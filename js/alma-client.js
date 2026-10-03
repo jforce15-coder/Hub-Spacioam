@@ -5,7 +5,7 @@
 (function (global) {
   var CFG = {
     sheetId: '1K8_MUCmJ4_Ks4DMKLSCbua1qC7X6QuilRaMvCquZ7kk',
-    url: 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec',                 // URL /exec del Apps Script de ALMA (pendiente)
+    url: 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec',   // URL /exec del Apps Script de ALMA
     webappSheetId: '12TF-FO6vld2VkzDr9YlUnHlNjh4d1u9Ss6qWz3F3KeQ',   // hoja de hola.spacioam.com (solo lectura: Reservas)
     token: 'SpacioAM2026!'
   };
@@ -48,9 +48,11 @@
     configure: function (url, token) { CFG.url = url; if (token) CFG.token = token; },
     hasApi: function () { return !!CFG.url; },
     readAll: function () {
-      var reservas = readTab('Reservas', CFG.webappSheetId).catch(function () { return []; });
-      return Promise.all(['ALMA_CONTROL', 'ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); }).concat([reservas]))
-        .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4] }; });
+      /* gviz devuelve la PRIMERA pestaña si el nombre no existe: se valida una columna esperada. */
+      var opc = function (t, id, col) { return readTab(t, id).then(function (rows) { return rows.length && !(col in rows[0]) ? [] : rows; }).catch(function () { return []; }); };
+      return Promise.all(['ALMA_CONTROL', 'ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); })
+        .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name')]))
+        .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7] }; });
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
     setPrompt: function (clave, prompt, nota) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota }); },
@@ -58,6 +60,10 @@
     enviarAhora: function (fila) { return call('enviarAhora', { fila: fila }); },
     retener: function (fila) { return call('retener', { fila: fila }); },
     proponerMejora: function (clave, prompt, pedido) { return call('proponerMejora', { clave: clave, prompt: prompt, pedido: pedido }); },
-    ajustarBorrador: function (borrador, ajuste, contexto) { return call('ajustarBorrador', { borrador: borrador, ajuste: ajuste, contexto: contexto }); }
+    ajustarBorrador: function (borrador, ajuste, contexto) { return call('ajustarBorrador', { borrador: borrador, ajuste: ajuste, contexto: contexto }); },
+    automejora: function (fila, estado, cambios, nota) { return call('automejora', { fila: fila, estado: estado, cambios: cambios, nota: nota }); },
+    setConocimiento: function (fila, tema, contenido, aplica, activo) { return call('setConocimiento', { fila: fila, tema: tema, contenido: contenido, aplica: aplica, activo: activo }); },
+    setPropiedadDato: function (propiedad, campo, valor) { return call('setPropiedadDato', { propiedad: propiedad, campo: campo, valor: valor }); },
+    hilo: function (resId) { return call('hilo', { resId: resId }); }
   };
 })(window);

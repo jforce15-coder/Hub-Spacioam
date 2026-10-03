@@ -13,7 +13,8 @@ hub/
 │  ├─ charts.jsx         ← gráficas de reviews (copiado de mi-spacioam)
 │  └─ noti-center.jsx    ← campana, push y centro de notificaciones (copiado de Grow)
 ├─ assets/               ← logos, brushstroke, fotos del bento
-└─ _ds/                  ← Spacio AM Design System (tokens + bundle de componentes)
+├─ ds/                   ← Spacio AM Design System (tokens + bundle de componentes)
+└─ .nojekyll             ← obliga a GitHub Pages a servir carpetas con guion bajo (no borrar)
 ```
 
 ## Configuración

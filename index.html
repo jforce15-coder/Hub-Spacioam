@@ -780,33 +780,33 @@
       </div>
     </div>
 
-    <div data-screen-label="ALMA · Mejoras" style="background:#3E3F3F; border-radius:22px; padding:clamp(18px,3vw,28px); display:flex; flex-direction:column; gap:16px; color:#FAFAFA; position:relative; overflow:hidden">
-      <span aria-hidden="true" style="position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(closest-side, rgba(233,130,106,.22), transparent)"></span>
+    <div data-screen-label="ALMA · Mejoras" style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:22px; padding:clamp(18px,3vw,28px); display:flex; flex-direction:column; gap:16px; color:#3E3F3F; position:relative; overflow:hidden">
+      <span aria-hidden="true" style="position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(closest-side, rgba(233,130,106,.28), transparent)"></span>
       <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; position:relative">
         <div style="display:flex; flex-direction:column; gap:4px; max-width:560px">
-          <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:rgba(250,250,250,.72)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import> Mejoras</span>
-          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,3.4vw,30px); line-height:1.08; text-wrap:pretty">¿Qué quieres que ALMA haga mejor?</span>
-          <span style="font-size:12.5px; line-height:1.55; color:rgba(250,250,250,.78); letter-spacing:.01em; text-wrap:pretty">Escríbelo como se lo dirías a alguien del equipo. ALMA propone el cambio exacto y tú lo apruebas.</span>
+          <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import> Mejoras</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,3.4vw,30px); line-height:1.08; text-wrap:pretty; color:#3E3F3F">¿Qué quieres que ALMA haga mejor?</span>
+          <span style="font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty">Escríbelo como se lo dirías a alguien del equipo. ALMA propone el cambio exacto y tú lo apruebas.</span>
         </div>
-        <select value="{{ mejoraClave }}" onChange="{{ setMejoraClave }}" style="border:1px solid rgba(250,250,250,.25); border-radius:999px; background:rgba(250,250,250,.08); padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#FAFAFA; cursor:pointer">
+        <select value="{{ mejoraClave }}" onChange="{{ setMejoraClave }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#3E3F3F; cursor:pointer">
           <sc-for list="{{ mejoraClaves }}" as="k" hint-placeholder-count="4">
             <option value="{{ k.v }}" style="color:#3E3F3F">{{ k.n }}</option>
           </sc-for>
         </select>
       </div>
       <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; position:relative">
-        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid rgba(250,250,250,.22); border-radius:16px; background:rgba(250,250,250,.1); padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#FAFAFA; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, background .18s" style-focus="border-color:#FAFAFA; background:rgba(250,250,250,.14)"></textarea>
-        <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:1px solid rgba(233,130,106,.9); border-radius:16px; background:rgba(233,130,106,.18); padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:background .18s, transform .1s" style-hover="background:rgba(233,130,106,.3)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
+        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+        <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:none; border-radius:16px; background:#3E3F3F; padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; position:relative">
-        <span style="font-size:10px; letter-spacing:.08em; color:rgba(250,250,250,.55)">Prueba con:</span>
+        <span style="font-size:10px; letter-spacing:.08em; color:#6F6867">Prueba con:</span>
         <sc-for list="{{ mejoraEjemplos }}" as="e" hint-placeholder-count="3">
-          <button onClick="{{ e.usar }}" style="border:1px solid rgba(250,250,250,.2); border-radius:999px; background:transparent; padding:6px 12px; font-family:inherit; font-size:11.5px; color:rgba(250,250,250,.85); cursor:pointer; transition:background .18s, border-color .18s" style-hover="background:rgba(250,250,250,.1); border-color:rgba(250,250,250,.45)">{{ e.texto }}</button>
+          <button onClick="{{ e.usar }}" style="border:1px solid rgba(233,130,106,.6); border-radius:999px; background:#FFFFFF; padding:6px 12px; font-family:inherit; font-size:11.5px; color:#3E3F3F; cursor:pointer; transition:background .18s, border-color .18s" style-hover="background:rgba(233,130,106,.14); border-color:#E9826A">{{ e.texto }}</button>
         </sc-for>
-        <span style="margin-left:auto; font-size:10.5px; letter-spacing:.05em; color:rgba(250,250,250,.72)">{{ mejoraNota }}</span>
+        <span style="margin-left:auto; font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ mejoraNota }}</span>
       </div>
         <sc-if value="{{ hayPropuesta }}" hint-placeholder-val="{{ false }}">
-          <div style="background:#FAFAFA; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; color:#3E3F3F">
+          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; color:#3E3F3F">
             <div style="font-size:12.5px; line-height:1.5; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ mejoraResumen }}</div>
             <sc-if value="{{ mejoraEsDato }}" hint-placeholder-val="{{ false }}">
               <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
@@ -838,10 +838,10 @@
           </div>
         </sc-if>
         <sc-if value="{{ hayMejorasHist }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(250,250,250,.14); padding-top:12px">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(250,250,250,.6)">Mejoras aplicadas</span>
+          <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(233,130,106,.45); padding-top:12px">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Mejoras aplicadas</span>
             <sc-for list="{{ mejorasHist }}" as="m" hint-placeholder-count="2">
-              <div style="font-size:11.5px; line-height:1.5; color:rgba(250,250,250,.85)"><span style="color:rgba(250,250,250,.55)">{{ m.cuando }} · {{ m.clave }}</span> — {{ m.resumen }}</div>
+              <div style="font-size:11.5px; line-height:1.5; color:#3E3F3F"><span style="color:#6F6867">{{ m.cuando }} · {{ m.clave }}</span> — {{ m.resumen }}</div>
             </sc-for>
           </div>
         </sc-if>
@@ -1012,7 +1012,7 @@
         <sc-for list="{{ logItems }}" as="l" hint-placeholder-count="4">
           <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-left:6px solid {{ l.color }}; border-radius:18px; overflow:hidden; display:flex; flex-direction:column">
             <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid #EAE6E0">
-              <span style="width:38px; height:38px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:#3E3F3F; color:#FAFAFA; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span>
+              <span style="width:38px; height:38px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span>
               <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                   <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:18px; color:#3E3F3F; line-height:1.1">{{ l.huesped }}</span>
@@ -1056,18 +1056,18 @@
 
             <sc-if value="{{ l.anotando }}" hint-placeholder-val="{{ false }}">
               <div style="padding:0 16px 16px; display:flex; flex-direction:column; gap:10px">
-                <div style="background:#3E3F3F; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; color:#FAFAFA">
+                <div style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
                   <div style="display:flex; align-items:center; gap:8px">
                     <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import>
-                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:rgba(250,250,250,.72)">Anotación · se vuelve mejora</span>
+                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Anotación · se vuelve mejora</span>
                   </div>
-                  <textarea value="{{ l.anotacion }}" onChange="{{ l.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid rgba(250,250,250,.25); border-radius:12px; background:rgba(250,250,250,.08); padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#FAFAFA; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#FAFAFA"></textarea>
+                  <textarea value="{{ l.anotacion }}" onChange="{{ l.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
                   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
-                    <button onClick="{{ l.prepararDesdeLog }}" style="border:1px solid rgba(233,130,106,.9); border-radius:999px; background:rgba(233,130,106,.18); padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="background:rgba(233,130,106,.3)">{{ l.prepararLabel }}</button>
-                    <span style="font-size:10.5px; letter-spacing:.05em; color:rgba(250,250,250,.72)">{{ l.anotNota }}</span>
+                    <button onClick="{{ l.prepararDesdeLog }}" style="border:none; border-radius:999px; background:#3E3F3F; padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="filter:brightness(.94)">{{ l.prepararLabel }}</button>
+                    <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ l.anotNota }}</span>
                   </div>
                   <sc-if value="{{ l.hayPropuesta }}" hint-placeholder-val="{{ false }}">
-                    <div style="background:#FAFAFA; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
+                    <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
                       <div style="font-size:12.5px; line-height:1.5; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ l.propResumen }}</div>
                       <sc-for list="{{ l.propCambios }}" as="c" hint-placeholder-count="1">
                         <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:4px">

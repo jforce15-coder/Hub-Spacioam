@@ -719,67 +719,109 @@
       <div style="background:rgba(242,117,90,.12); border:1px solid rgba(242,117,90,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
     </sc-if>
 
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:14px">
-      <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:18px; display:flex; flex-direction:column; gap:16px">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px">
-          <div style="display:flex; flex-direction:column; gap:3px">
+    <div data-screen-label="ALMA · Control" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
+      <div style="display:flex; align-items:center; gap:14px; padding:14px 18px">
+        <button onClick="{{ ctrlToggleAbierto }}" aria-expanded="{{ ctrlAbierto }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:14px; border:none; background:transparent; padding:0; cursor:pointer; text-align:left; font-family:inherit">
+          <span aria-hidden="true" style="width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; color:#3E3F3F; flex-shrink:0; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ ctrlChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></span>
+          <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
             <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Control</span>
-            <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:21px; color:#3E3F3F; line-height:1.1">{{ almaEstadoTitulo }}</span>
-          </div>
-          <button onClick="{{ almaToggle }}" aria-label="Encender o apagar ALMA" style="width:52px; height:30px; border-radius:999px; border:none; cursor:pointer; position:relative; transition:background .18s cubic-bezier(.22,.61,.36,1); background: {{ almaToggleBg }}">
-            <span style="position:absolute; top:3px; width:24px; height:24px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); transition:left .18s cubic-bezier(.22,.61,.36,1); left: {{ almaToggleLeft }}"></span>
-          </button>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px">
-          <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Modo</span>
-          <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
-            <sc-for list="{{ almaModos }}" as="m" hint-placeholder-count="3">
-              <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
+            <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:19px; color:#3E3F3F; line-height:1.1">{{ almaEstadoTitulo }}</span>
+          </span>
+          <span style="display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; padding-right:6px">
+            <sc-for list="{{ ctrlResumen }}" as="p" hint-placeholder-count="2">
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:#F5F3F0; color:#3E3F3F">{{ p }}</span>
             </sc-for>
+          </span>
+        </button>
+        <button onClick="{{ almaToggle }}" aria-label="Encender o apagar ALMA" style="width:52px; height:30px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1); background: {{ almaToggleBg }}">
+          <span style="position:absolute; top:3px; width:24px; height:24px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); transition:left .18s cubic-bezier(.22,.61,.36,1); left: {{ almaToggleLeft }}"></span>
+        </button>
+      </div>
+      <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows: {{ ctrlRows }}">
+        <div style="overflow:hidden; min-height:0">
+          <div style="padding:4px 18px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:22px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
+            <div style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Modo</span>
+                <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
+                  <sc-for list="{{ almaModos }}" as="m" hint-placeholder-count="3">
+                    <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
+                  </sc-for>
+                </div>
+                <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; line-height:1.5; text-wrap:pretty">{{ almaModoDesc }}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Horario</span>
+                <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
+                  <sc-for list="{{ almaHorarios }}" as="m" hint-placeholder-count="2">
+                    <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:auto">
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ almaGuardarControl }}" loading="{{ almaGuardando }}" disabled="{{ almaSinCambios }}" hint-size="auto,38px">{{ almaGuardarLabel }}</x-import>
+                <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaControlNota }}</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Tiempos de espera</span>
+              <sc-for list="{{ almaTiempos }}" as="t" hint-placeholder-count="4">
+                <label style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <span style="flex:1; min-width:0; font-size:12px; line-height:1.4; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ t.label }}</span>
+                  <span style="display:flex; align-items:center; gap:6px; flex-shrink:0">
+                    <input type="number" min="0" step="{{ t.step }}" value="{{ t.valor }}" onChange="{{ t.set }}" style="width:64px; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:7px 9px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; text-align:right; font-variant-numeric:tabular-nums" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                    <span style="font-size:10px; letter-spacing:.06em; color:#6F6867; width:26px">{{ t.unidad }}</span>
+                  </span>
+                </label>
+              </sc-for>
+            </div>
           </div>
-          <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; line-height:1.5; text-wrap:pretty">{{ almaModoDesc }}</span>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px">
-          <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Horario</span>
-          <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
-            <sc-for list="{{ almaHorarios }}" as="m" hint-placeholder-count="2">
-              <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
-            </sc-for>
-          </div>
-        </div>
-        <label style="display:flex; flex-direction:column; gap:6px">
-          <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Solo una reserva (prueba)</span>
-          <input value="{{ almaSoloReserva }}" onChange="{{ almaSetSolo }}" placeholder="Código o UUID · vacío = todas" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-        </label>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ almaGuardarControl }}" loading="{{ almaGuardando }}" disabled="{{ almaSinCambios }}" hint-size="auto,38px">{{ almaGuardarLabel }}</x-import>
-          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaControlNota }}</span>
         </div>
       </div>
+    </div>
 
-      <div style="background:#3E3F3F; border-radius:18px; padding:18px; display:flex; flex-direction:column; gap:14px; color:#FAFAFA">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px">
-          <div style="display:flex; flex-direction:column; gap:3px">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:rgba(250,250,250,.72)">Mejoras</span>
-            <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:21px; line-height:1.1">Enséñale algo a ALMA</span>
-          </div>
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
+    <div data-screen-label="ALMA · Mejoras" style="background:#3E3F3F; border-radius:22px; padding:clamp(18px,3vw,28px); display:flex; flex-direction:column; gap:16px; color:#FAFAFA; position:relative; overflow:hidden">
+      <span aria-hidden="true" style="position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(closest-side, rgba(233,130,106,.22), transparent)"></span>
+      <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; position:relative">
+        <div style="display:flex; flex-direction:column; gap:4px; max-width:560px">
+          <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:rgba(250,250,250,.72)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import> Mejoras</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,3.4vw,30px); line-height:1.08; text-wrap:pretty">¿Qué quieres que ALMA haga mejor?</span>
+          <span style="font-size:12.5px; line-height:1.55; color:rgba(250,250,250,.78); letter-spacing:.01em; text-wrap:pretty">Escríbelo como se lo dirías a alguien del equipo. ALMA propone el cambio exacto y tú lo apruebas.</span>
         </div>
-        <p style="margin:0; font-size:12px; line-height:1.55; color:rgba(250,250,250,.82); letter-spacing:.01em; text-wrap:pretty">Dilo con tus palabras. Se traduce en una o dos líneas nuevas dentro de las instrucciones, sin reescribir nada de lo que ya funciona.</p>
-        <select value="{{ mejoraClave }}" onChange="{{ setMejoraClave }}" style="border:1px solid rgba(250,250,250,.25); border-radius:999px; background:rgba(250,250,250,.08); padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#FAFAFA; cursor:pointer; align-self:flex-start">
+        <select value="{{ mejoraClave }}" onChange="{{ setMejoraClave }}" style="border:1px solid rgba(250,250,250,.25); border-radius:999px; background:rgba(250,250,250,.08); padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#FAFAFA; cursor:pointer">
           <sc-for list="{{ mejoraClaves }}" as="k" hint-placeholder-count="4">
             <option value="{{ k.v }}" style="color:#3E3F3F">{{ k.n }}</option>
           </sc-for>
         </select>
-        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="3" placeholder="Ej.: deja de responder tan monótono, alterna respuestas distintas para que no se repita" style="border:1px solid rgba(250,250,250,.25); border-radius:12px; background:rgba(250,250,250,.08); padding:11px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#FAFAFA; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#FAFAFA"></textarea>
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
-          <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="border:1px solid rgba(233,130,106,.9); border-radius:999px; background:rgba(233,130,106,.18); padding:10px 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="background:rgba(233,130,106,.3)">{{ mejoraBtnLabel }}</button>
-          <span style="font-size:10.5px; letter-spacing:.05em; color:rgba(250,250,250,.72)">{{ mejoraNota }}</span>
-        </div>
-
+      </div>
+      <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; position:relative">
+        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid rgba(250,250,250,.22); border-radius:16px; background:rgba(250,250,250,.1); padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#FAFAFA; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, background .18s" style-focus="border-color:#FAFAFA; background:rgba(250,250,250,.14)"></textarea>
+        <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:1px solid rgba(233,130,106,.9); border-radius:16px; background:rgba(233,130,106,.18); padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:background .18s, transform .1s" style-hover="background:rgba(233,130,106,.3)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; position:relative">
+        <span style="font-size:10px; letter-spacing:.08em; color:rgba(250,250,250,.55)">Prueba con:</span>
+        <sc-for list="{{ mejoraEjemplos }}" as="e" hint-placeholder-count="3">
+          <button onClick="{{ e.usar }}" style="border:1px solid rgba(250,250,250,.2); border-radius:999px; background:transparent; padding:6px 12px; font-family:inherit; font-size:11.5px; color:rgba(250,250,250,.85); cursor:pointer; transition:background .18s, border-color .18s" style-hover="background:rgba(250,250,250,.1); border-color:rgba(250,250,250,.45)">{{ e.texto }}</button>
+        </sc-for>
+        <span style="margin-left:auto; font-size:10.5px; letter-spacing:.05em; color:rgba(250,250,250,.72)">{{ mejoraNota }}</span>
+      </div>
         <sc-if value="{{ hayPropuesta }}" hint-placeholder-val="{{ false }}">
           <div style="background:#FAFAFA; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; color:#3E3F3F">
             <div style="font-size:12.5px; line-height:1.5; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ mejoraResumen }}</div>
+            <sc-if value="{{ mejoraEsDato }}" hint-placeholder-val="{{ false }}">
+              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Dato de propiedad · {{ mejoraDatoProp }}</span>
+                <span style="font-size:11px; letter-spacing:.05em; color:#6F6867">{{ mejoraDatoCampo }}</span>
+                <sc-if value="{{ mejoraDatoHayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ mejoraDatoAntes }}</span></sc-if>
+                <span style="font-size:13px; line-height:1.5; color:#3E3F3F; font-weight:500">{{ mejoraDatoValor }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ mejoraEsKb }}" hint-placeholder-val="{{ false }}">
+              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Base de conocimiento · {{ mejoraKbTema }} · {{ mejoraKbAplica }}</span>
+                <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F; white-space:pre-wrap">{{ mejoraKbContenido }}</span>
+              </div>
+            </sc-if>
             <sc-for list="{{ mejoraCambios }}" as="c" hint-placeholder-count="2">
               <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
                 <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
@@ -803,7 +845,6 @@
             </sc-for>
           </div>
         </sc-if>
-      </div>
     </div>
 
     <div style="display:flex; flex-direction:column; gap:12px">
@@ -825,11 +866,11 @@
 
       <div style="display:flex; flex-direction:column; gap:10px">
         <sc-for list="{{ colaItems }}" as="c" hint-placeholder-count="3">
-          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; overflow:hidden; display:flex">
-            <span aria-hidden="true" style="width:4px; flex-shrink:0; background: {{ c.color }}"></span>
+          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px; overflow:hidden; display:flex">
+            <span aria-hidden="true" style="width:7px; flex-shrink:0; background: {{ c.color }}"></span>
             <div style="flex:1; min-width:0; padding:14px 16px; display:flex; flex-direction:column; gap:10px">
               <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
-                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:4px 9px; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivel }}</span>
+                <span style="font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:5px 11px; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivel }}</span>
                 <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:17px; color:#3E3F3F">{{ c.huesped }}</span>
                 <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ c.propiedad }}</span>
                 <span style="margin-left:auto; font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ c.recibido }}</span>
@@ -851,12 +892,23 @@
 
               <sc-if value="{{ c.abierto }}" hint-placeholder-val="{{ false }}">
                 <div style="border-top:1px solid rgba(62,63,63,.08); padding-top:12px; display:flex; flex-direction:column; gap:12px">
-                  <sc-if value="{{ c.hayBorrador }}" hint-placeholder-val="{{ true }}">
-                    <div style="display:flex; flex-direction:column; gap:6px">
-                      <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.borradorLabel }}</span>
-                      <div style="background:#F5F3F0; border-radius:12px; padding:12px 14px; font-size:13px; line-height:1.6; color:#3E3F3F; white-space:pre-wrap; letter-spacing:.01em">{{ c.borrador }}</div>
-                    </div>
-                  </sc-if>
+                  <div style="background:#FAFAFA; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px">
+                    <sc-if value="{{ c.hiloCargando }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:10.5px; letter-spacing:.06em; color:#938B8A; text-align:center">Cargando la conversación…</span>
+                    </sc-if>
+                    <sc-for list="{{ c.hilo }}" as="m" hint-placeholder-count="0">
+                      <div style="display:flex; flex-direction:column; gap:3px; align-items: {{ m.align }}">
+                        <div style="max-width:min(82%,520px); padding:9px 13px; font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
+                        <span style="font-size:9.5px; letter-spacing:.06em; color:#938B8A">{{ m.meta }}</span>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ c.hayBorrador }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
+                        <div style="max-width:min(82%,520px); padding:10px 14px; font-size:13px; line-height:1.6; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background:#FFFFFF; color:#3E3F3F; border:1.5px dashed #E9826A">{{ c.borrador }}</div>
+                        <span style="font-size:9.5px; letter-spacing:.06em; color:#B54D36">{{ c.borradorLabel }}</span>
+                      </div>
+                    </sc-if>
+                  </div>
                   <sc-if value="{{ c.hayRazon }}" hint-placeholder-val="{{ false }}">
                     <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; line-height:1.5">Por qué: {{ c.razon }}</span>
                   </sc-if>
@@ -893,6 +945,61 @@
       </div>
     </div>
 
+    <div data-screen-label="ALMA · Auto mejora" style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Auto mejora · ALMA_AUTOMEJORA</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:24px; color:#3E3F3F; line-height:1.1">Lo que ALMA aprendió mirando al equipo</span>
+        </div>
+        <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; border:1px solid {{ autoPillBd }}; color: {{ autoPillFg }}; background: {{ autoPillBg }}">{{ autoPendientes }} pendientes</span>
+      </div>
+      <p style="margin:0; font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty; max-width:720px">Cuando una persona del equipo responde en lugar de ALMA, una hora después se compara lo que ALMA habría dicho con lo que dijo el equipo. Si hay algo que valga la pena, aparece aquí. Nada se aplica sin tu aprobación.</p>
+      <sc-if value="{{ autoVacio }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em">Nada pendiente por ahora.</div>
+      </sc-if>
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <sc-for list="{{ autoItems }}" as="m" hint-placeholder-count="1">
+          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:14px">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+              <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:17px; color:#3E3F3F">{{ m.huesped }}</span>
+              <span style="font-size:11px; letter-spacing:.04em; color:#6F6867">{{ m.propiedad }}</span>
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ m.claveLabel }}</span>
+              <span style="margin-left:auto; font-size:11px; letter-spacing:.04em; color:#938B8A; font-variant-numeric:tabular-nums">{{ m.fecha }}</span>
+            </div>
+            <div style="background:#FAFAFA; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px">
+              <div style="display:flex; justify-content:flex-start">
+                <div style="max-width:min(82%,520px); background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px 16px 16px 4px; padding:9px 13px; font-size:13px; line-height:1.55; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ m.pregunta }}</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
+                <div style="max-width:min(82%,520px); background:#EAE6E0; border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; line-height:1.55; color:#6F6867; white-space:pre-wrap; text-wrap:pretty">{{ m.borrador }}</div>
+                <span style="font-size:9.5px; letter-spacing:.06em; color:#938B8A">Lo que ALMA habría dicho · no se envió</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
+                <div style="max-width:min(82%,520px); background:rgba(233,130,106,.16); border:1px solid rgba(233,130,106,.35); border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; line-height:1.55; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ m.humano }}</div>
+                <span style="font-size:9.5px; letter-spacing:.06em; color:#B54D36">Lo que respondió el equipo</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Aprendizaje:</strong> {{ m.aprendizaje }}</div>
+              <div style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ m.resumen }}</div>
+              <sc-for list="{{ m.cambios }}" as="c" hint-placeholder-count="1">
+                <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
+                  <sc-if value="{{ c.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ c.antes }}</span></sc-if>
+                  <textarea value="{{ c.despues }}" onChange="{{ c.set }}" rows="2" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:12.5px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                </div>
+              </sc-for>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ m.aceptar }}" loading="{{ m.busy }}" hint-size="auto,38px">Aceptar y aplicar</x-import>
+                <button onClick="{{ m.rechazar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#C0392B; border-color:#C0392B">Rechazar</button>
+                <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ m.nota }}</span>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
     <div style="display:flex; flex-direction:column; gap:12px">
       <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
         <div style="display:flex; flex-direction:column; gap:4px">
@@ -903,13 +1010,13 @@
       </div>
       <div style="display:flex; flex-direction:column; gap:12px">
         <sc-for list="{{ logItems }}" as="l" hint-placeholder-count="4">
-          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; overflow:hidden; display:flex; flex-direction:column">
-            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid rgba(62,63,63,.06)">
-              <span style="width:38px; height:38px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:#F5F3F0; color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span>
+          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-left:6px solid {{ l.color }}; border-radius:18px; overflow:hidden; display:flex; flex-direction:column">
+            <div style="display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid #EAE6E0">
+              <span style="width:38px; height:38px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:#3E3F3F; color:#FAFAFA; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span>
               <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                   <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:18px; color:#3E3F3F; line-height:1.1">{{ l.huesped }}</span>
-                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background: {{ l.nivelBg }}; color: {{ l.nivelFg }}">{{ l.nivelLabel }}</span>
+                  <span style="font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:5px 11px; background: {{ l.nivelBg }}; color: {{ l.nivelFg }}">{{ l.nivelLabel }}</span>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; letter-spacing:.04em; color:#6F6867">
                   <span>{{ l.propiedad }}</span>
@@ -917,12 +1024,12 @@
                   <sc-if value="{{ l.hayCodigo }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span style="font-variant-numeric:tabular-nums">{{ l.codigo }}</span></sc-if>
                 </div>
               </div>
-              <span style="font-size:11px; letter-spacing:.04em; color:#938B8A; font-variant-numeric:tabular-nums; text-align:right; flex-shrink:0">{{ l.fecha }}</span>
+              <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums; text-align:right; flex-shrink:0">{{ l.fecha }}</span>
             </div>
 
-            <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
+            <div style="padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#F5F3F0">
               <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px">
-                <div style="max-width:min(82%,520px); background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.04)">{{ l.pregunta }}</div>
+                <div style="max-width:min(82%,520px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ l.pregunta }}</div>
                 <sc-if value="{{ l.hayFotos }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(82%,520px)">
                     <sc-for list="{{ l.fotos }}" as="f" hint-placeholder-count="1">
@@ -941,8 +1048,8 @@
               </sc-if>
             </div>
 
-            <div style="padding:12px 16px; display:flex; align-items:flex-start; gap:10px; border-top:1px solid rgba(62,63,63,.06)">
-              <span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; background: {{ l.color }}"></span>
+            <div style="padding:12px 16px; display:flex; align-items:flex-start; gap:10px; border-top:1px solid #EAE6E0; background:#FFFFFF">
+              <span style="width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:4px; background: {{ l.color }}"></span>
               <span style="flex:1; font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ l.resumen }}</span>
               <button onClick="{{ l.anotar }}" style="flex-shrink:0; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:7px 12px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ l.anotarLabel }}</button>
             </div>
@@ -984,6 +1091,57 @@
       <sc-if value="{{ logVacio }}" hint-placeholder-val="{{ false }}">
         <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em">Sin registros con ese filtro.</div>
       </sc-if>
+    </div>
+
+    <div data-screen-label="ALMA · Conocimiento" style="display:flex; flex-direction:column; gap:12px">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Base de conocimiento · ALMA_CONOCIMIENTO</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:24px; color:#3E3F3F; line-height:1.1">Lo que ALMA sabe</span>
+        </div>
+        <button onClick="{{ kbNuevoAbrir }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer; font-family:inherit" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ kbNuevoLabel }}</button>
+      </div>
+      <p style="margin:0; font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty; max-width:720px">Políticas y datos que ALMA consulta al responder. Cada entrada aplica a todas las propiedades o solo a las que indiques. También puedes pedir cambios aquí desde el bloque de mejoras.</p>
+      <sc-if value="{{ kbNuevo }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF; border:1px solid #E9826A; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:10px">
+            <input value="{{ kbNuevoTema }}" onChange="{{ kbSetNuevoTema }}" placeholder="Tema · ej. Parqueo · Fiamene" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+            <input value="{{ kbNuevoAplica }}" onChange="{{ kbSetNuevoAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+          </div>
+          <textarea value="{{ kbNuevoContenido }}" onChange="{{ kbSetNuevoContenido }}" rows="4" placeholder="Qué debe saber ALMA, en su voz" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+            <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ kbGuardarNuevo }}" hint-size="auto,38px">Guardar</x-import>
+            <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ kbNota }}</span>
+          </div>
+        </div>
+      </sc-if>
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <sc-for list="{{ kbItems }}" as="k" hint-placeholder-count="4">
+          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:8px">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+              <button onClick="{{ k.toggle }}" aria-label="Activar o desactivar" style="width:36px; height:22px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; background: {{ k.toggleBg }}">
+                <span style="position:absolute; top:3px; width:16px; height:16px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); left: {{ k.toggleLeft }}"></span>
+              </button>
+              <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:17px; line-height:1.1; color: {{ k.temaColor }}">{{ k.tema }}</span>
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ k.aplica }}</span>
+              <button onClick="{{ k.editar }}" style="margin-left:auto; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10.5px; letter-spacing:.06em; color:#6F6867; padding:2px 0" style-hover="color:#3E3F3F">{{ k.editarLabel }}</button>
+            </div>
+            <sc-if value="{{ k.cerrado }}" hint-placeholder-val="{{ true }}">
+              <p style="margin:0; font-size:12.5px; line-height:1.5; color:#6F6867; letter-spacing:.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">{{ k.contenido }}</p>
+            </sc-if>
+            <sc-if value="{{ k.abierto }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <input value="{{ k.editAplica }}" onChange="{{ k.setAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:8px 11px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F">
+                <textarea value="{{ k.editContenido }}" onChange="{{ k.setContenido }}" rows="5" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+                  <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ k.guardar }}" loading="{{ k.busy }}" hint-size="auto,38px">Guardar</x-import>
+                  <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ k.nota }}</span>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
     </div>
   </div>
 </div>
@@ -1389,6 +1547,8 @@ class Component extends DCLogic {
     almaAbierto: null, almaAjustes: {}, almaPreview: {}, almaAjusteBusy: null, almaAccionNota: {},
     mejoraClave: "REDACTOR", mejoraTexto: "", mejoraBusy: false, mejoraAplicando: false, mejoraPropuesta: null, mejoraNota: "", mejorasHist: [],
     logFiltro: "Todo", logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
+    almaHilos: {}, autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false,
+    kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
     /* TODO: GET/POST /hub/tareas → [{id, texto, prop, quien, dias, hecha, comentarios[]}] */
     tareas: [
       { id: "t1", texto: "Reponer amenidades de baño", prop: "Z10 - Airali - 1401", quien: "Marleny", dias: -2, hecha: false, subtareas: [{ texto: "Contar lo que queda en bodega", hecha: true }, { texto: "Pedir shampoo y acondicionador", hecha: false }], comentarios: [{ quien: "Sofía", texto: "@Marleny ya se pidió el shampoo, llega el jueves.", hace: "2 h" }] },
@@ -1434,8 +1594,9 @@ class Component extends DCLogic {
     /* El tile de ALMA muestra modo y cola en vivo; se refresca cada minuto. */
     setTimeout(function () { self.almaCargar(); }, 1600);
     this._almaTimer = setInterval(function () { if (self.state.vista === "alma" || self.state.vista === "hub") self.almaCargar(); }, 60000);
+    this._tick = setInterval(function () { if (self.state.vista === "alma") self.forceUpdate(); }, 20000);
   }
-  componentWillUnmount() { clearInterval(this._almaTimer); }
+  componentWillUnmount() { clearInterval(this._almaTimer); clearInterval(this._tick); }
   resolverSesion() {
     var tok = (window.SA && SA.getToken) ? SA.getToken() : this.cookie("sa_session");
     var valido = !!tok && (!(window.SA && SA.isValidSession) || SA.isValidSession(tok));
@@ -1513,13 +1674,22 @@ class Component extends DCLogic {
   ALMA_MODOS = {
     SOMBRA: "Solo observa: clasifica y redacta, pero no escribe a nadie. Todo queda en el historial.",
     BORRADOR: "Redacta y te manda el borrador por correo. No le escribe al huésped.",
-    AUTO: "Responde al huésped en Hospitable tras una espera de 2 a 4 minutos. Los ROJOS solo reciben contención y avisan al equipo."
+    AUTO: "Responde al huésped en Hospitable tras una breve espera (ver Tiempos). Los ROJOS solo reciben contención y avisan al equipo."
   };
   almaDemo() {
     var ahora = Date.now(), m = 60000, iso = function (t) { return new Date(t).toISOString(); };
     var d = function (o) { return JSON.stringify(o); };
     return {
-      control: [{ clave: "TOGGLE", valor: "ON" }, { clave: "MODO", valor: "AUTO" }, { clave: "HORARIO", valor: "ON" }, { clave: "SOLO_RESERVA", valor: "" }],
+      control: [{ clave: "TOGGLE", valor: "ON" }, { clave: "MODO", valor: "AUTO" }, { clave: "HORARIO", valor: "ON" }],
+      automejora: [
+        { _fila: 2, fecha: iso(ahora - 190 * m), codigo: "HMN2L5", propiedad: "Antigua - Casa Nook", huesped: "Ana Lucía", pregunta: "Podemos dejar las maletas después del checkout? Nuestro vuelo sale hasta la noche", borrador_ia: "Claro, podemos guardar tus pertenencias en el apartamento hasta las 14:00 sin costo. Solo deja todo empacado y fuera del paso para que limpieza pueda trabajar.", respuesta_humana: "Sí, con gusto. Hasta las 2 de la tarde las dejamos en el apartamento; si necesitan más tiempo, en la recepción del edificio también las pueden guardar hasta la noche, solo avísenle al guardia que son de Spacio AM.", clave: "REDACTOR", resumen: "Añadir la opción de guardar maletas en recepción después de las 14:00 cuando el vuelo es tarde.", cambios: JSON.stringify([{ tipo: "agregar", seccion: "POLÍTICAS", despues: "Equipaje después de las 14:00 el día de salida: la recepción del edificio puede guardarlo hasta la noche; el huésped avisa al guardia que es de Spacio AM (solo en edificios con recepción)." }]), estado: "pendiente", nota: "El equipo ofreció una alternativa para después de las 14:00 que ALMA no conocía." }
+      ],
+      conocimiento: [
+        { _fila: 2, tema: "Facturación", contenido: "Sí emitimos factura por la estadía. Por procesos administrativos se entrega dentro de los 5 días hábiles posteriores a la salida. Necesitamos NIT, razón social y, si aplica, comentarios.", aplica_a: "*", activo: "SI" },
+        { _fila: 3, tema: "Parqueo · Brunelo", contenido: "Incluye 1 espacio. Para un adicional se revisa disponibilidad y se paga en portfolio.spacioam.com.", aplica_a: "Brunelo", activo: "SI" },
+        { _fila: 4, tema: "Early check-in · sin salida el mismo día", contenido: "El check-in estándar es a las 15:00. Opciones: 1) early check-in sujeto a disponibilidad, se confirma a las 21:00 del día previo; 2) guardar equipaje desde las 12:00; 3) noche adicional.", aplica_a: "*", activo: "SI" }
+      ],
+      propiedades: [{ property_name: "Z10 - Airali - 1401", info_json: JSON.stringify({ wifiNet: "Airali1401", wifiPass: "bienvenido1401", floor: "14", unit: "1401" }) }],
       cola: [
         { _fila: 14, recibido: iso(ahora - 4 * m), reservation_id: "r1", huesped: "Camila", texto: "Hola! Ya estamos en el edificio pero el código de la puerta no abre, llevamos 10 min afuera", estado: "esperando_rojo", proximo: iso(ahora + 6 * m), nota: "ROJO · contención enviada", datos: d({ nivel: "ROJO", propiedad: "Z10 - Airali - 1401", codigo: "HMK8Q2", razon: "huésped afuera del apartamento en estadía activa", borrador: "Gracias por avisarnos. Ya estoy con esto y en un momento te escribe alguien del equipo por aquí mismo para resolverlo contigo.", modo: "AUTO" }) },
         { _fila: 15, recibido: iso(ahora - 3 * m), reservation_id: "r2", huesped: "Daniel", texto: "Podríamos hacer check-in a las 12? Llegamos temprano al aeropuerto", estado: "esperando_envio", proximo: iso(ahora + 2.5 * m), nota: "AMARILLO · envío en 180s", datos: d({ nivel: "AMARILLO", propiedad: "Z4 - Loft - 302", codigo: "HMA3R7", razon: "early check-in requiere autorización", borrador: "Entiendo, llegar temprano siempre se agradece.\n\nTodavía no te lo puedo confirmar, pero mañana temprano ya tendremos mucha más claridad y te escribimos por aquí mismo.", modo: "AUTO" }) },
@@ -1560,10 +1730,33 @@ class Component extends DCLogic {
       listo(self.almaDemo(), "Datos de muestra · la hoja no respondió");
     });
   }
+  /* Tiempos editables: clave de ALMA_CONTROL, valor por defecto del script, etiqueta y unidad de la UI. */
+  TIEMPOS = [
+    { k: "AGRUPAR_SEG", def: 60, label: "Silencio del huésped antes de responder (agrupa mensajes seguidos)", unidad: "seg", factor: 1, step: 10 },
+    { k: "DELAY_MIN_SEG", def: 45, label: "Espera mínima antes de enviar (parece humana)", unidad: "seg", factor: 1, step: 15 },
+    { k: "DELAY_MAX_SEG", def: 150, label: "Espera máxima antes de enviar", unidad: "seg", factor: 1, step: 15 },
+    { k: "ESPERA_SIN_SALIENTE_SEG", def: 180, label: "Reserva nueva sin mensaje nuestro: deja pasar el automático", unidad: "min", factor: 60, step: 1 },
+    { k: "MIN_EQUIPO_ACTIVO", def: 30, label: "Si alguien del equipo escribió hace menos de…, ALMA calla", unidad: "min", factor: 1, step: 5 },
+    { k: "ESPERA_ROJO_SEG", def: 600, label: "Urgente sin respuesta del equipo: avisar al respaldo tras", unidad: "min", factor: 60, step: 1 },
+    { k: "EMERGENCIA_MIN", def: 15, label: "Sin acceso y nadie responde: enviar código de emergencia tras", unidad: "min", factor: 1, step: 5 },
+    { k: "CONTENCION_HORAS", def: 6, label: "Una sola contención por incidente durante", unidad: "h", factor: 1, step: 1 },
+    { k: "APRENDER_MIN", def: 60, label: "Auto mejora: comparar con el equipo después de", unidad: "min", factor: 1, step: 15 }
+  ];
   almaCtrlOriginal() {
-    var ctrl = {};
+    var ctrl = {}, self = this;
     ((this.state.alma || {}).control || []).forEach(function (r) { ctrl[String(r.clave || "").trim().toUpperCase()] = String(r.valor || "").trim().toUpperCase(); });
-    return { TOGGLE: ctrl.TOGGLE || "OFF", MODO: ctrl.MODO || "SOMBRA", HORARIO: ctrl.HORARIO || "ON", SOLO_RESERVA: ctrl.SOLO_RESERVA || "" };
+    var o = { TOGGLE: ctrl.TOGGLE || "OFF", MODO: ctrl.MODO || "SOMBRA", HORARIO: ctrl.HORARIO || "ON" };
+    this.TIEMPOS.forEach(function (t) { var v = parseFloat(ctrl[t.k]); o[t.k] = isNaN(v) ? String(t.def) : String(v); });
+    return o;
+  }
+  partesPropiedadDato(nombre, campo) {
+    var props = (this.state.alma || {}).propiedades || [];
+    var norm = function (x) { return String(x || "").toLowerCase().replace(/[\s\-–_]/g, ""); };
+    var p = props.find(function (r) { return norm(r.property_name) === norm(nombre); });
+    if (!p) return null;
+    var j; try { j = JSON.parse(p.info_json || "{}"); } catch (e) { return null; }
+    var o = j; String(campo || "").split(".").forEach(function (k) { o = o && o[k]; });
+    return o == null ? "" : String(o);
   }
   /* IA: Apps Script de ALMA si está configurado; si no, Claude del navegador (prototipo). */
   almaIA(system, user, maxTokens) {
@@ -1576,23 +1769,64 @@ class Component extends DCLogic {
     var ins = ((this.state.alma || {}).instrucciones || []);
     return (ins.find(function (i) { return String(i.clave || "").toUpperCase() === clave; }) || {}).prompt || "";
   }
-  MEJORA_SYSTEM = "Eres el editor de los prompts de ALMA (Spacio AM). Recibes un PROMPT vigente y un PEDIDO de mejora en lenguaje natural, a veces con el CASO concreto que lo motivó. Tradúcelo en cambios MÍNIMOS que respeten la estructura, el orden de secciones, el tono y el concepto original. Reglas: (1) Nunca reformules ni reescribas el prompt completo. (2) Prefiere AGREGAR una o dos líneas dentro de la sección que corresponde, o CORREGIR una línea existente cambiando lo justo. (3) Cada cambio es una línea concreta y general (una regla, no la anécdota del caso), en el mismo estilo del prompt (español, viñetas \"· \" donde el prompt las usa). (4) Si el pedido contradice una regla esencial (confidencialidad, no inventar datos, no autorizar lo que requiere al equipo), no la elimines: agrega la matización. (5) Máximo 3 cambios. Devuelve SOLO JSON: {\"resumen\":\"una frase\",\"cambios\":[{\"tipo\":\"agregar|corregir\",\"seccion\":\"título EXACTO de la sección donde va\",\"antes\":\"línea existente exacta (solo en corregir)\",\"despues\":\"línea nueva o corregida\"}]}";
+  CAMPOS_PROPIEDAD = ["wifiNet", "wifiPass", "wifiNetBk", "wifiPassBk", "wifiNetBk2", "wifiPassBk2", "floor", "unit", "parkNote", "lock", "smartBrand", "std.es.arrivalIntro", "std.es.parking", "std.es.wifiNote", "std.es.tip", "std.en.arrivalIntro", "std.en.parking", "std.en.wifiNote", "std.en.tip"];
+  CAMPO_LABEL = { wifiNet: "Red WiFi", wifiPass: "Clave WiFi", wifiNetBk: "Red WiFi alterna", wifiPassBk: "Clave WiFi alterna", wifiNetBk2: "Red WiFi alterna 2", wifiPassBk2: "Clave WiFi alterna 2", floor: "Piso", unit: "Apartamento / unidad", parkNote: "Nota de parqueo", lock: "Cerradura", smartBrand: "Marca de cerradura", "std.es.arrivalIntro": "Dirección y edificio (ES)", "std.es.parking": "Parqueo (ES)", "std.es.wifiNote": "Nota WiFi (ES)", "std.es.tip": "Tip (ES)", "std.en.arrivalIntro": "Dirección y edificio (EN)", "std.en.parking": "Parqueo (EN)", "std.en.wifiNote": "Nota WiFi (EN)", "std.en.tip": "Tip (EN)" };
+  MEJORA_SYSTEM = "Eres el editor de los prompts de ALMA (Spacio AM). Recibes un PROMPT vigente y un PEDIDO de mejora en lenguaje natural, a veces con el CASO concreto que lo motivó. Tradúcelo en cambios MÍNIMOS que respeten la estructura, el orden de secciones, el tono y el concepto original. Reglas: (1) Nunca reformules ni reescribas el prompt completo. (2) Prefiere AGREGAR una o dos líneas dentro de la sección que corresponde, o CORREGIR una línea existente cambiando lo justo. (3) Cada cambio es una línea concreta y general (una regla, no la anécdota del caso), en el mismo estilo del prompt (español, viñetas \"· \" donde el prompt las usa). (4) Si el pedido contradice una regla esencial (confidencialidad, no inventar datos, no autorizar lo que requiere al equipo), no la elimines: agrega la matización. (5) Máximo 3 cambios. (6) Si el pedido es cambiar un DATO de una propiedad concreta (clave o red WiFi, piso, unidad, nota de parqueo, texto de llegada), NO toques el prompt: devuelve {\"tipo\":\"dato\",\"propiedad\":\"nombre exacto de PROPIEDADES CONOCIDAS\",\"campo\":\"uno de CAMPOS\",\"valor\":\"nuevo valor\",\"resumen\":\"una frase\"}. (7) Si el pedido es una política o un dato general (facturación, parqueo de un edificio, horarios, qué ofrecer en un caso) devuelve {\"tipo\":\"conocimiento\",\"tema\":\"título corto\",\"aplica_a\":\"* o nombre(s) de propiedad separados por coma\",\"contenido\":\"texto en la voz de Alma\",\"resumen\":\"una frase\"}. En cualquier otro caso devuelve SOLO JSON: {\"tipo\":\"prompt\",\"resumen\":\"una frase\",\"cambios\":[{\"tipo\":\"agregar|corregir\",\"seccion\":\"título EXACTO de la sección donde va\",\"antes\":\"línea existente exacta (solo en corregir)\",\"despues\":\"línea nueva o corregida\"}]}";
   /* Una propuesta de mejora: cambios puntuales sobre el prompt vigente. */
   proponer(clave, pedido, contexto) {
     var self = this, vigente = this.promptActual(clave);
-    var user = "CLAVE: " + clave + "\n\nPROMPT VIGENTE:\n" + (vigente || "(vacío: crea la primera línea)") + (contexto ? "\n\nCASO QUE MOTIVA LA MEJORA:\n" + contexto : "") + "\n\nPEDIDO DEL EQUIPO:\n" + pedido;
+    var props = ((this.state.alma || {}).propiedades || []).map(function (r) { return r.property_name; }).filter(function (n) { return n && n.indexOf("__") < 0; });
+    var user = "CLAVE: " + clave + "\n\nPROPIEDADES CONOCIDAS:\n" + (props.join("\n") || "(ninguna)") + "\n\nCAMPOS: " + this.CAMPOS_PROPIEDAD.join(", ") + "\n\nPROMPT VIGENTE:\n" + (vigente || "(vacío: crea la primera línea)") + (contexto ? "\n\nCASO QUE MOTIVA LA MEJORA:\n" + contexto : "") + "\n\nPEDIDO DEL EQUIPO:\n" + pedido;
     var p = window.ALMA && ALMA.hasApi() ? ALMA.proponerMejora(clave, vigente, pedido + (contexto ? "\n\nCASO:\n" + contexto : "")) : Promise.resolve({ ok: false, error: "no_url" });
     return p.then(function (res) {
       if (res && res.ok && res.propuesta) return res.propuesta;
       return self.almaIA(self.MEJORA_SYSTEM, user, 900).then(function (txt) { return JSON.parse(String(txt).match(/\{[\s\S]*\}/)[0]); });
     }).then(function (prop) {
-      if (!prop || !prop.cambios || !prop.cambios.length) throw new Error("vacía");
+      if (!prop) throw new Error("vacía");
+      if (prop.tipo === "dato") { if (!prop.propiedad || !prop.campo) throw new Error("dato incompleto"); prop.antes = self.partesPropiedadDato(prop.propiedad, prop.campo); prop.cambios = []; }
+      else if (prop.tipo === "conocimiento") { if (!prop.tema || !prop.contenido) throw new Error("kb incompleta"); prop.cambios = []; }
+      else if (!prop.cambios || !prop.cambios.length) throw new Error("vacía");
       return Object.assign({ clave: clave, vigente: vigente }, prop);
     });
   }
   aplicar(pr) {
-    var self = this, nuevo = this.aplicarCambiosPrompt(pr.vigente, pr.cambios);
+    var self = this;
     var CLAVES = { REDACTOR: "Cómo escribe", CLASIFICADOR: "Cómo clasifica", VERIFICADOR: "Control de calidad", REGLAS_EXTRA: "Avisos temporales" };
+    var hist = function (clave, resumen) {
+      var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+      return { cuando: cuando, clave: clave, resumen: resumen };
+    };
+    if (pr.tipo === "dato") {
+      var pd = window.ALMA && ALMA.hasApi() ? ALMA.setPropiedadDato(pr.propiedad, pr.campo, pr.valor) : Promise.resolve({ ok: true, local: true });
+      return pd.then(function (res) {
+        if (!(res && res.ok)) return res || { ok: false };
+        self.setState(function (s) {
+          var norm = function (x) { return String(x || "").toLowerCase().replace(/[\s\-–_]/g, ""); };
+          var props = (s.alma.propiedades || []).map(function (r) {
+            if (norm(r.property_name) !== norm(pr.propiedad)) return r;
+            var j; try { j = JSON.parse(r.info_json || "{}"); } catch (e) { j = {}; }
+            var path = pr.campo.split("."), o = j;
+            for (var i = 0; i < path.length - 1; i++) { if (!o[path[i]] || typeof o[path[i]] !== "object") o[path[i]] = {}; o = o[path[i]]; }
+            o[path[path.length - 1]] = pr.valor;
+            return Object.assign({}, r, { info_json: JSON.stringify(j) });
+          });
+          return { alma: Object.assign({}, s.alma, { propiedades: props }), mejorasHist: [hist(pr.propiedad, pr.resumen)].concat(s.mejorasHist).slice(0, 6) };
+        });
+        return res;
+      });
+    }
+    if (pr.tipo === "conocimiento") {
+      var pk = window.ALMA && ALMA.hasApi() ? ALMA.setConocimiento(null, pr.tema, pr.contenido, pr.aplica_a || "*", true) : Promise.resolve({ ok: true, local: true });
+      return pk.then(function (res) {
+        if (!(res && res.ok)) return res || { ok: false };
+        self.setState(function (s) {
+          var kb = (s.alma.conocimiento || []).concat([{ _fila: res.fila || ("n" + Date.now()), tema: pr.tema, contenido: pr.contenido, aplica_a: pr.aplica_a || "*", activo: "SI" }]);
+          return { alma: Object.assign({}, s.alma, { conocimiento: kb }), mejorasHist: [hist("Conocimiento", pr.resumen)].concat(s.mejorasHist).slice(0, 6) };
+        });
+        return res;
+      });
+    }
+    var nuevo = this.aplicarCambiosPrompt(pr.vigente, pr.cambios);
     var p = window.ALMA && ALMA.hasApi() ? ALMA.setPrompt(pr.clave, nuevo, pr.resumen) : Promise.resolve({ ok: true, local: true });
     return p.then(function (res) {
       if (!(res && res.ok)) return res || { ok: false };
@@ -1617,6 +1851,7 @@ class Component extends DCLogic {
     if (/acuse/i.test(a)) return "El huésped solo agradeció. ALMA decidió no responder.";
     if (/equipo está gestionando/i.test(a)) return "Alguien del equipo ya estaba atendiendo este chat. ALMA se hizo a un lado.";
     if (/nada nuevo/i.test(a)) return "No había nada nuevo que decir (ya le habíamos escrito). ALMA no respondió.";
+    if (/EMERGENCIA/i.test(a)) return "Nadie del equipo respondió y el huésped no podía entrar: ALMA le envió el código de acceso del equipo de limpieza vigente." + r;
     if (/ya había contención/i.test(a)) return "Caso urgente que ya tenía contención enviada. ALMA no repitió el mensaje; solo volvió a avisar al equipo." + r;
     if (/borrador enviado/i.test(a)) return "ALMA preparó una respuesta y la mandó a Juan como borrador. No se envió al huésped." + r;
     if (/SOMBRA/i.test(a)) return "Modo sombra: ALMA practicó la respuesta pero no la envió." + r;
@@ -1667,20 +1902,26 @@ class Component extends DCLogic {
   almaVals() {
     var self = this, st = this.state, a = st.alma || { control: [], cola: [], log: [], instrucciones: [] };
     var ctrlO = this.almaCtrlOriginal(), ctrl = st.almaCtrl || ctrlO;
-    var sinCambios = ["TOGGLE", "MODO", "HORARIO", "SOLO_RESERVA"].every(function (k) { return (ctrl[k] || "") === (ctrlO[k] || ""); });
+    var sinCambios = Object.keys(ctrlO).every(function (k) { return String(ctrl[k] == null ? "" : ctrl[k]) === String(ctrlO[k] == null ? "" : ctrlO[k]); });
     var setCtrl = function (k, v) { self.setState(function (s) { var n = Object.assign({}, s.almaCtrl || ctrlO); n[k] = v; return { almaCtrl: n, almaControlNota: "" }; }); };
     var on = ctrl.TOGGLE === "ON";
     var pillStyle = function (activo) { return activo ? { bg: "#3E3F3F", fg: "#FAFAFA" } : { bg: "transparent", fg: "#6F6867" }; };
     var fmtHora = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" }); };
+    var fmtDia = function (v) {
+      if (!v) return "";
+      var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v);
+      return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short" });
+    };
     var enMin = function (iso) { var d = new Date(iso); if (isNaN(d)) return null; return Math.round((d - Date.now()) / 60000); };
 
     /* Cola: solo lo vivo, lo más urgente primero. */
     var PESO = { ROJO: 0, AMARILLO: 1, VERDE: 2 };
     var NIVEL = {
-      ROJO: { bg: "rgba(192,57,43,.12)", fg: "#C0392B", color: "#C0392B" },
-      AMARILLO: { bg: "rgba(242,117,90,.14)", fg: "#B54D36", color: "#F2755A" },
-      VERDE: { bg: "rgba(61,107,82,.12)", fg: "#3d6b52", color: "#3d6b52" },
-      "": { bg: "#F5F3F0", fg: "#6F6867", color: "#D8D4CE" }
+      ROJO: { bg: "#C0392B", fg: "#FFFFFF", color: "#C0392B" },
+      AMARILLO: { bg: "#F2755A", fg: "#3E3F3F", color: "#F2755A" },
+      VERDE: { bg: "#3d6b52", fg: "#FFFFFF", color: "#3d6b52" },
+      SILENCIO: { bg: "#EAE6E0", fg: "#3E3F3F", color: "#B8B1AA" },
+      "": { bg: "#EAE6E0", fg: "#3E3F3F", color: "#D8D4CE" }
     };
     var FINALES = ["silencio", "respondido", "borrador", "sombra", "omitido", "escalado", "error", "agrupado"];
     var vivos = (a.cola || []).filter(function (r) { return FINALES.indexOf(String(r.estado || "").trim()) < 0; }).map(function (r) {
@@ -1700,16 +1941,35 @@ class Component extends DCLogic {
       var ajuste = st.almaAjustes[key] || "", preview = st.almaPreview[key] || "";
       var N = NIVEL[v.nivel] || NIVEL[""];
       var fotosCola = self.fotosDe(d.fotos, r.fotos, r.texto);
+      var hiloSt = st.almaHilos[key];
+      var hilo = (hiloSt && hiloSt.lista ? hiloSt.lista : [{ tipo: "guest", texto: r.texto, created: r.recibido }]).map(function (m) {
+        var guest = m.tipo === "guest";
+        return {
+          texto: m.texto, align: guest ? "flex-start" : "flex-end",
+          radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
+          bg: guest ? "#FFFFFF" : m.auto ? "#EAE6E0" : "rgba(233,130,106,.16)", fg: guest ? "#3E3F3F" : m.auto ? "#6F6867" : "#3E3F3F",
+          bd: guest ? "rgba(62,63,63,.08)" : m.auto ? "transparent" : "rgba(233,130,106,.35)",
+          meta: (guest ? (r.huesped || "Huésped") : m.auto ? "Spacio AM · automático" : "Spacio AM") + " · " + fmtHora(m.created)
+        };
+      });
+      var cargarHilo = function () {
+        if (!r.reservation_id || !(window.ALMA && ALMA.hasApi()) || self.state.almaHilos[key]) return;
+        self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[key] = { cargando: true }; return { almaHilos: n }; });
+        ALMA.hilo(r.reservation_id).then(function (res) {
+          self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[key] = res && res.ok ? { lista: res.hilo } : { error: true }; return { almaHilos: n }; });
+        });
+      };
       return {
         hayFotos: fotosCola.length > 0, fotos: fotosCola,
+        hilo: hilo, hiloCargando: !!(hiloSt && hiloSt.cargando),
         huesped: r.huesped || "Huésped", propiedad: d.propiedad ? d.propiedad.replace(/\s*-\s*/g, " · ") : (d.codigo || ""),
         recibido: fmtHora(r.recibido), texto: r.texto, nota: r.nota || "",
         nivel: v.nivel || "Sin clasificar", nivelBg: N.bg, nivelFg: N.fg, color: N.color,
         cuando: cuando, cuandoColor: cuandoColor,
         abierto: st.almaAbierto === key, abrirLabel: st.almaAbierto === key ? "Cerrar" : (d.borrador ? "Ver respuesta" : "Detalle"),
-        abrir: function () { self.setState({ almaAbierto: st.almaAbierto === key ? null : key }); },
+        abrir: function () { var abre = st.almaAbierto !== key; self.setState({ almaAbierto: abre ? key : null }); if (abre) cargarHilo(); },
         hayBorrador: !!d.borrador, borrador: d.borrador || "",
-        borradorLabel: est === "esperando_rojo" ? "Contención que ya se envió" : "Respuesta preparada",
+        borradorLabel: est === "esperando_rojo" ? "Contención · ya enviada" : puedeEnviar ? "Respuesta preparada · sale a las " + hora : "Respuesta preparada",
         hayRazon: !!d.razon, razon: d.razon || "",
         ajustable: est === "esperando_envio" || est === "pendiente",
         puedeEnviar: puedeEnviar,
@@ -1770,6 +2030,75 @@ class Component extends DCLogic {
       };
     });
 
+    /* Auto mejora */
+    var CLAVE_LABEL = { REDACTOR: "Cómo escribe", CLASIFICADOR: "Cómo clasifica", VERIFICADOR: "Control de calidad", REGLAS_EXTRA: "Avisos temporales" };
+    var TIPO_ = { agregar: "Se agrega", corregir: "Se corrige" };
+    var autoItems = (a.automejora || []).filter(function (r) { return "borrador_ia" in r && String(r.estado || "").trim() === "pendiente"; }).slice().reverse().map(function (r) {
+      var key = String(r._fila), clave = String(r.clave || "REDACTOR").toUpperCase();
+      var base = []; try { base = JSON.parse(r.cambios || "[]"); } catch (e) {}
+      var edit = st.autoEdit[key] || base;
+      var setEdit = function (i, val) { self.setState(function (s) { var o = Object.assign({}, s.autoEdit); var arr = (o[key] || base).map(function (c) { return Object.assign({}, c); }); arr[i].despues = val; o[key] = arr; return { autoEdit: o }; }); };
+      var nota = function (txt) { return function (s) { var o = Object.assign({}, s.autoNota); o[key] = txt; return { autoNota: o }; }; };
+      var resolver = function (estado) {
+        var lista = self.state.autoEdit[key] || base;
+        self.setState({ autoBusy: key });
+        var p = window.ALMA && ALMA.hasApi() ? ALMA.automejora(r._fila, estado, lista) : Promise.resolve({ ok: true, local: true });
+        p.then(function (res) {
+          if (!(res && res.ok)) { self.setState({ autoBusy: null }); self.setState(nota("No se pudo guardar.")); return; }
+          self.setState(function (s) {
+            var am = (s.alma.automejora || []).map(function (x) { return x._fila === r._fila ? Object.assign({}, x, { estado: estado === "aceptada" ? "aceptada" : "rechazada", cambios: JSON.stringify(lista) }) : x; });
+            var ins = s.alma.instrucciones;
+            if (estado === "aceptada") {
+              var nuevo = self.aplicarCambiosPrompt(self.promptActual(clave), lista);
+              ins = (ins || []).some(function (i) { return String(i.clave).toUpperCase() === clave; }) ? ins.map(function (i) { return String(i.clave).toUpperCase() === clave ? Object.assign({}, i, { prompt: nuevo }) : i; }) : (ins || []).concat([{ clave: clave, prompt: nuevo }]);
+            }
+            var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+            return { autoBusy: null, alma: Object.assign({}, s.alma, { automejora: am, instrucciones: ins }),
+              mejorasHist: estado === "aceptada" ? [{ cuando: cuando, clave: "Auto mejora · " + (CLAVE_LABEL[clave] || clave), resumen: r.resumen }].concat(s.mejorasHist).slice(0, 6) : s.mejorasHist };
+          });
+        });
+      };
+      return {
+        huesped: r.huesped || "Huésped", propiedad: String(r.propiedad || "").replace(/\s*-\s*/g, " · "), claveLabel: CLAVE_LABEL[clave] || clave,
+        fecha: fmtDia(r.fecha) + " " + fmtHora(r.fecha), pregunta: r.pregunta || "", borrador: r.borrador_ia || "(ALMA no habría respondido)", humano: r.respuesta_humana || "",
+        aprendizaje: r.nota || "", resumen: r.resumen || "",
+        cambios: edit.map(function (c, i) { return { etiqueta: (TIPO_[c.tipo] || "Se agrega") + (c.seccion ? " en " + c.seccion : ""), hayAntes: c.tipo === "corregir" && !!c.antes, antes: c.antes || "", despues: c.despues || "", set: function (e) { setEdit(i, e.target.value); } }; }),
+        busy: st.autoBusy === key, nota: st.autoNota[key] || "",
+        aceptar: function () { resolver("aceptada"); }, rechazar: function () { resolver("rechazada"); }
+      };
+    });
+
+    /* Base de conocimiento */
+    var kbItems = (a.conocimiento || []).filter(function (r) { return "tema" in r; }).map(function (r) {
+      var key = String(r._fila), activo = ["NO", "FALSE", "0"].indexOf(String(r.activo || "").trim().toUpperCase()) < 0;
+      var ed = st.kbEdit[key] || { contenido: r.contenido || "", aplica: r.aplica_a || "*" };
+      var guardar = function (cambios) {
+        var fin = Object.assign({ tema: r.tema, contenido: r.contenido, aplica: r.aplica_a || "*", activo: activo }, cambios);
+        self.setState({ kbBusy: key });
+        var p = window.ALMA && ALMA.hasApi() ? ALMA.setConocimiento(r._fila, fin.tema, fin.contenido, fin.aplica, fin.activo) : Promise.resolve({ ok: true, local: true });
+        p.then(function (res) {
+          self.setState(function (s) {
+            if (!(res && res.ok)) return { kbBusy: null, kbNota: "No se pudo guardar." };
+            var kb = (s.alma.conocimiento || []).map(function (x) { return x._fila === r._fila ? Object.assign({}, x, { contenido: fin.contenido, aplica_a: fin.aplica, activo: fin.activo ? "SI" : "NO" }) : x; });
+            var e2 = Object.assign({}, s.kbEdit); delete e2[key];
+            return { kbBusy: null, kbAbierto: null, kbEdit: e2, kbNota: res.local ? "Guardado aquí · conecta el Apps Script para que llegue a la hoja" : "Guardado", alma: Object.assign({}, s.alma, { conocimiento: kb }) };
+          });
+        });
+      };
+      return {
+        tema: r.tema || "Sin tema", temaColor: activo ? "#3E3F3F" : "#938B8A", contenido: r.contenido || "",
+        aplica: !r.aplica_a || r.aplica_a === "*" ? "Todas" : r.aplica_a,
+        toggleBg: activo ? "#3E3F3F" : "#D8D4CE", toggleLeft: activo ? "17px" : "3px", toggle: function () { guardar({ activo: !activo }); },
+        abierto: st.kbAbierto === key, cerrado: st.kbAbierto !== key, editarLabel: st.kbAbierto === key ? "Cerrar" : "Editar",
+        editar: function () { self.setState({ kbAbierto: st.kbAbierto === key ? null : key, kbNota: "" }); },
+        editContenido: ed.contenido, editAplica: ed.aplica,
+        setContenido: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.kbEdit); o[key] = Object.assign({}, ed, { contenido: v }); return { kbEdit: o }; }); },
+        setAplica: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.kbEdit); o[key] = Object.assign({}, ed, { aplica: v }); return { kbEdit: o }; }); },
+        guardar: function () { var cur = self.state.kbEdit[key] || ed; guardar({ contenido: cur.contenido, aplica: cur.aplica }); },
+        busy: st.kbBusy === key, nota: st.kbAbierto === key ? st.kbNota : ""
+      };
+    });
+
     /* Mejoras */
     var claves = [{ v: "REDACTOR", n: "Cómo escribe" }, { v: "CLASIFICADOR", n: "Cómo clasifica" }, { v: "VERIFICADOR", n: "Control de calidad" }, { v: "REGLAS_EXTRA", n: "Avisos temporales" }];
     var promptActual = function (clave) { return ((a.instrucciones || []).find(function (i) { return String(i.clave || "").toUpperCase() === clave; }) || {}).prompt || ""; };
@@ -1782,18 +2111,13 @@ class Component extends DCLogic {
     var reservaDe = function (codigo) { return reservasIdx[String(codigo || "").trim().toUpperCase()] || {}; };
     var huespedPorCodigo = {};
     (a.cola || []).forEach(function (r) { try { var dd = JSON.parse(r.datos || "{}"); if (dd.codigo && r.huesped) huespedPorCodigo[String(dd.codigo).toUpperCase()] = r.huesped; } catch (e) {} });
-    var fmtDia = function (v) {
-      if (!v) return "";
-      var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v);
-      return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short" });
-    };
     var logFiltros = ["Todo", "ROJO", "AMARILLO", "VERDE", "Enviados"];
     var logLista = (a.log || []).slice().reverse().filter(function (l) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "").toUpperCase();
       if (st.logFiltro === "Todo") return true;
       if (st.logFiltro === "Enviados") return acc.indexOf("ENVIADO") === 0 || acc.indexOf("CONTENCIÓN") >= 0;
       return n === st.logFiltro;
-    }).slice(0, 40).map(function (l, idx) {
+    }).slice(0, 48).map(function (l, idx) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "");
       var N = NIVEL[n] || NIVEL[""];
       var enviado = /^ENVIADO|contención/i.test(acc);
@@ -1816,9 +2140,9 @@ class Component extends DCLogic {
         nivelLabel: NIVEL_LABEL[n] || (n || "Sin nivel"), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
         pregunta: l.pregunta || "", hayRespuesta: !!l.respuesta, respuesta: l.respuesta || "",
         hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta),
-        burbujaBg: enviado ? "rgba(233,130,106,.16)" : "#EAE6E0", burbujaFg: enviado ? "#3E3F3F" : "#6F6867", burbujaBd: enviado ? "rgba(233,130,106,.35)" : "transparent",
+        burbujaBg: enviado ? "rgba(233,130,106,.22)" : "#E4E0DA", burbujaFg: "#3E3F3F", burbujaBd: enviado ? "rgba(233,130,106,.5)" : "#D8D4CE",
         sentido: enviado ? "Enviado al huésped" : "No se envió · " + (/borrador/i.test(acc) ? "borrador" : /SOMBRA/i.test(acc) ? "modo sombra" : /retenid/i.test(acc) ? "retenido" : "quedó en el hub"),
-        sentidoColor: enviado ? "#B54D36" : "#938B8A",
+        sentidoColor: enviado ? "#B54D36" : "#6F6867",
         resumen: self.resumenLog(n, acc, l.razon),
         anotando: st.logAbierto === key, anotarLabel: st.logAbierto === key ? "Cerrar" : "Anotar",
         anotar: function () { self.setState({ logAbierto: st.logAbierto === key ? null : key }); },
@@ -1862,12 +2186,24 @@ class Component extends DCLogic {
       almaAviso: !(window.ALMA && ALMA.hasApi()),
       almaAvisoTexto: "Lectura en vivo de la hoja; los cambios (control, mejoras, ajustes) aún no viajan a ALMA. Falta pegar alma-hub-api.gs en el Apps Script y poner su URL en alma-client.js.",
       almaEstadoTitulo: on ? "ALMA está encendida" : "ALMA está apagada",
+      ctrlAbierto: st.ctrlAbierto, ctrlRows: st.ctrlAbierto ? "1fr" : "0fr", ctrlChevron: st.ctrlAbierto ? "rotate(180deg)" : "rotate(0deg)",
+      ctrlToggleAbierto: function () { self.setState({ ctrlAbierto: !st.ctrlAbierto }); },
+      ctrlResumen: on ? [ctrl.MODO, ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00"].concat(sinCambios ? [] : ["Sin guardar"]) : (sinCambios ? [] : ["Sin guardar"]),
+      mejoraEjemplos: [
+        "Deja de sonar monótona: varía cómo empiezas cada mensaje",
+        "Cambia la clave WiFi de Airali 1401 a casa1401",
+        "Cuando pidan factura, pide NIT y razón social en el mismo mensaje"
+      ].map(function (t) { return { texto: t, usar: function () { self.setState({ mejoraTexto: t, mejoraPropuesta: null, mejoraNota: "" }); } }; }),
       almaToggle: function () { setCtrl("TOGGLE", on ? "OFF" : "ON"); },
       almaToggleBg: on ? "#3E3F3F" : "#D8D4CE", almaToggleLeft: on ? "25px" : "3px",
       almaModos: ["SOMBRA", "BORRADOR", "AUTO"].map(function (m) { var s = pillStyle(ctrl.MODO === m); return { nombre: m, bg: s.bg, fg: s.fg, set: function () { setCtrl("MODO", m); } }; }),
       almaModoDesc: this.ALMA_MODOS[ctrl.MODO] || "",
       almaHorarios: [{ v: "ON", n: "19:00 – 04:00" }, { v: "OFF", n: "24 horas" }].map(function (h) { var s = pillStyle(ctrl.HORARIO === h.v); return { nombre: h.n, bg: s.bg, fg: s.fg, set: function () { setCtrl("HORARIO", h.v); } }; }),
-      almaSoloReserva: ctrl.SOLO_RESERVA || "", almaSetSolo: function (e) { setCtrl("SOLO_RESERVA", e.target.value.toUpperCase()); },
+      almaTiempos: this.TIEMPOS.map(function (t) {
+        var seg = parseFloat(ctrl[t.k]); if (isNaN(seg)) seg = t.def;
+        var shown = Math.round((seg / t.factor) * 100) / 100;
+        return { label: t.label, unidad: t.unidad, step: t.step, valor: String(shown), set: function (e) { var v = parseFloat(e.target.value); if (isNaN(v) || v < 0) v = 0; setCtrl(t.k, String(Math.round(v * t.factor))); } };
+      }),
       almaSinCambios: sinCambios, almaGuardando: st.almaGuardando,
       almaGuardarLabel: sinCambios ? "Sin cambios" : "Guardar en ALMA_CONTROL",
       almaControlNota: st.almaControlNota,
@@ -1877,7 +2213,7 @@ class Component extends DCLogic {
         var p = window.ALMA && ALMA.hasApi() ? ALMA.setControl(ctrl) : Promise.resolve({ ok: true, local: true });
         p.then(function (res) {
           self.setState(function (s) {
-            var control = ["TOGGLE", "MODO", "HORARIO", "SOLO_RESERVA"].map(function (k) { return { clave: k, valor: ctrl[k] || "" }; });
+            var control = Object.keys(ctrl).map(function (k) { return { clave: k, valor: ctrl[k] == null ? "" : String(ctrl[k]) }; });
             return { almaGuardando: false, alma: res && res.ok ? Object.assign({}, s.alma, { control: control }) : s.alma,
               almaControlNota: res && res.ok ? (res.local ? "Guardado aquí · conecta el Apps Script para que llegue a la hoja" : "Guardado · ALMA lo lee en el próximo minuto") : "No se pudo guardar." };
           });
@@ -1899,6 +2235,25 @@ class Component extends DCLogic {
         });
       },
       hayPropuesta: !!prop, mejoraResumen: prop ? prop.resumen : "",
+      mejoraEsDato: !!prop && prop.tipo === "dato", mejoraDatoProp: prop && prop.propiedad ? String(prop.propiedad).replace(/\s*-\s*/g, " · ") : "",
+      mejoraDatoCampo: prop && prop.campo ? (self.CAMPO_LABEL[prop.campo] || prop.campo) : "", mejoraDatoValor: prop ? prop.valor || "" : "",
+      mejoraDatoHayAntes: !!(prop && prop.antes), mejoraDatoAntes: prop ? prop.antes || "" : "",
+      mejoraEsKb: !!prop && prop.tipo === "conocimiento", mejoraKbTema: prop ? prop.tema || "" : "", mejoraKbAplica: prop ? (!prop.aplica_a || prop.aplica_a === "*" ? "todas" : prop.aplica_a) : "", mejoraKbContenido: prop ? prop.contenido || "" : "",
+      autoItems: autoItems, autoVacio: !!st.alma && !autoItems.length, autoPendientes: String(autoItems.length),
+      autoPillBd: autoItems.length ? "#E9826A" : "#D8D4CE", autoPillFg: autoItems.length ? "#B54D36" : "#938B8A", autoPillBg: autoItems.length ? "rgba(233,130,106,.12)" : "transparent",
+      kbItems: kbItems, kbNuevo: st.kbNuevo, kbNuevoLabel: st.kbNuevo ? "Cancelar" : "Agregar",
+      kbNuevoAbrir: function () { self.setState({ kbNuevo: !st.kbNuevo, kbNota: "" }); },
+      kbNuevoTema: st.kbNuevoTema, kbNuevoAplica: st.kbNuevoAplica, kbNuevoContenido: st.kbNuevoContenido,
+      kbSetNuevoTema: function (e) { self.setState({ kbNuevoTema: e.target.value }); }, kbSetNuevoAplica: function (e) { self.setState({ kbNuevoAplica: e.target.value }); }, kbSetNuevoContenido: function (e) { self.setState({ kbNuevoContenido: e.target.value }); },
+      kbNota: st.kbNuevo ? st.kbNota : "",
+      kbGuardarNuevo: function () {
+        var s0 = self.state;
+        if (!s0.kbNuevoTema.trim() || !s0.kbNuevoContenido.trim()) { self.setState({ kbNota: "Falta el tema o el contenido." }); return; }
+        self.aplicar({ tipo: "conocimiento", tema: s0.kbNuevoTema.trim(), contenido: s0.kbNuevoContenido.trim(), aplica_a: s0.kbNuevoAplica.trim() || "*", resumen: "Nueva entrada: " + s0.kbNuevoTema.trim() }).then(function (res) {
+          if (res && res.ok) self.setState({ kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "", kbNota: "" });
+          else self.setState({ kbNota: "No se pudo guardar." });
+        });
+      },
       mejoraCambios: prop ? (prop.cambios || []).map(function (c) {
         return { etiqueta: (TIPO[c.tipo] || "Se agrega") + (c.seccion ? " en " + c.seccion : ""), hayAntes: c.tipo === "corregir" && !!c.antes, antes: c.antes || "", despues: c.despues || "" };
       }) : [],

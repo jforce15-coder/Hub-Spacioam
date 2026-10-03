@@ -13,8 +13,9 @@ hub/
 │  ├─ charts.jsx         ← gráficas de reviews (copiado de mi-spacioam)
 │  └─ noti-center.jsx    ← campana, push y centro de notificaciones (copiado de Grow)
 ├─ assets/               ← logos, brushstroke, fotos del bento
-├─ ds/                   ← Spacio AM Design System (tokens + bundle de componentes)
-└─ .nojekyll             ← obliga a GitHub Pages a servir carpetas con guion bajo (no borrar)
+└─ ds/                   ← Spacio AM Design System (tokens, fuentes, bundle.js)
+
+Regla de GitHub Pages: ningún archivo ni carpeta puede empezar con guion bajo (`_`); Jekyll los omite y dan 404.
 ```
 
 ## Configuración

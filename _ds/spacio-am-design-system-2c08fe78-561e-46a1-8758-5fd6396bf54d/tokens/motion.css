@@ -1,0 +1,13 @@
+/* MOVIMIENTO — un solo easing. Fades y desplazamientos cortos; nunca bounce. */
+:root{
+  --ease:cubic-bezier(0.22,0.61,0.36,1); /* @kind other */
+  --d-fast:180ms; /* @kind other */ --d-med:360ms; /* @kind other */ --d-slow:720ms; /* @kind other */
+}
+@keyframes sa-fade{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@keyframes sa-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes sa-spin{to{transform:rotate(360deg)}}
+@keyframes sa-floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+/* Loader canónico: el logo rebota y su sombra acompaña. Nunca un anillo giratorio. */
+@keyframes sa-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-18px)}}
+@keyframes sa-shadow{0%,100%{transform:scaleX(1);opacity:.55}50%{transform:scaleX(.6);opacity:.25}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}

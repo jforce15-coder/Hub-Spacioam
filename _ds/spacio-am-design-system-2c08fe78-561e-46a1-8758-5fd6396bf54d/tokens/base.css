@@ -1,0 +1,20 @@
+/* Reset de página con alcance (.spacio) + helpers de marca. */
+.spacio,body.spacio{background:var(--bg);color:var(--fg);font-family:var(--font-sans);font-size:var(--t-body);line-height:var(--lh-body);letter-spacing:var(--tr-wide);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.spacio h1{font-family:var(--font-serif);font-weight:400;font-size:var(--t-h1);line-height:var(--lh-heading);letter-spacing:var(--tr-tight);margin:0}
+.spacio h2{font-family:var(--font-serif);font-weight:400;font-size:var(--t-h2);line-height:var(--lh-heading);letter-spacing:var(--tr-tight);margin:0}
+.spacio h3{font-family:var(--font-serif);font-weight:500;font-size:var(--t-h3);line-height:var(--lh-heading);margin:0}
+.spacio p{font-family:var(--font-sans);font-size:var(--t-body);line-height:var(--lh-body);letter-spacing:var(--tr-wide);text-wrap:pretty}
+a{color:var(--fg);text-decoration-color:var(--divider);text-underline-offset:3px}
+a:hover{color:var(--fg);text-decoration-color:var(--accent)}
+.accent{color:var(--accent)}
+.muted{color:var(--fg-muted)}
+.divider{border:0;border-top:var(--border)}
+/* Faroles — escala única de estados. */
+.farol{display:inline-flex;align-items:center;gap:var(--s-2);font-family:var(--font-sans);font-size:var(--t-small);font-weight:600;letter-spacing:var(--tr-wide);padding:var(--s-1) var(--s-3);border-radius:var(--r-pill)}
+.farol::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.farol--success{color:var(--color-success);background:var(--color-success-tint)}
+.farol--error{color:var(--color-error);background:var(--color-error-tint)}
+.farol--warning{color:var(--color-warning);background:var(--color-warning-tint)}
+.farol--info{color:var(--color-info);background:var(--color-info-tint)}
+.farol--attention{color:var(--attention-text);background:var(--attention-tint)}
+.farol--pending{color:var(--color-pending);background:var(--color-pending-tint)}

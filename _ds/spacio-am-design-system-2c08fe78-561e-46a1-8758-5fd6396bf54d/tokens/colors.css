@@ -1,0 +1,67 @@
+/* COLOR — capa base (marca) + estados + capa semántica por rol.
+   En código un color se llama por lo que HACE (--fg-muted), no por lo que ES (--color-earth). */
+:root{
+  --color-ink:#3E3F3F;          /* texto primario · 10.1:1 sobre alabaster */
+  --color-alabaster:#FAFAFA;    /* fondo primario */
+  --color-beige:#F5F3F0;        /* fondo secundario / relleno del brushstroke */
+  --color-earth:#938B8A;        /* swatch de marca · texto SOLO >=18px o decorativo (3.19:1) */
+  --color-warm-grey:#D8D4CE;    /* divisores · nunca texto */
+  --color-peach:#E9826A;        /* acento GRÁFICO · nunca texto ni relleno con texto (2.56:1) */
+  --color-peach-neon:#F2755A;   /* acento gráfico vivo: serie destacada, glow, highlight */
+  --color-attention:#F2755A;      /* ATENCIÓN (gráfico): algo bajó, algo falta, algo destaca */
+  --color-attention-text:#B54D36; /* ATENCIÓN en texto pequeño · 4.93:1 · mismo carácter, legible */
+  --color-attention-tint:#FDEFEB;
+  --color-graphite:#6F6867;     /* texto secundario accesible · 5.2:1 */
+  --color-white:#FFFFFF;
+
+  --color-ink-08:rgba(62,63,63,0.08);
+  --color-ink-16:rgba(62,63,63,0.16);
+  --color-ink-60:rgba(62,63,63,0.60);
+  --color-peach-12:rgba(233,130,106,0.12);
+  --color-peach-22:rgba(233,130,106,0.22);
+  --color-peach-06:rgba(242,117,90,0.06);
+  --color-beige-30:rgba(245,243,240,0.30);
+
+  /* estados — escala única de faroles.
+     El peach NO es error, pero SÍ es atención: un mes a la baja no es una falla.
+     El rojo queda para la excepción que exige acción (vencido, daño, destructivo). */
+  --color-success:#3d6b52; --color-success-tint:#E8F2ED;
+  --color-error:#C0392B;   --color-error-tint:#F7E7E4;
+  --color-warning:#9a5020; --color-warning-tint:#F5EBE5;
+  --color-info:#3B6691;    --color-info-tint:#E8EDF3;
+  --color-pending:#6F6867; --color-pending-tint:#F5F3F0;
+
+  /* capa semántica — ESTO consumen los componentes */
+  --bg:var(--color-alabaster);
+  --bg-alt:var(--color-beige);
+  --surface:var(--color-white);
+  --fg:var(--color-ink);
+  --fg-muted:var(--color-graphite);
+  --fg-subtle:var(--color-earth);
+  --fg-inverse:var(--color-alabaster);
+  --accent:var(--color-peach);
+  /* No hay "peach sólido con texto": el peach no carga texto (2.56:1).
+     Un CTA cálido es tinte peach + borde peach + texto ink. La acción sólida es ink. */
+  --accent-neon:var(--color-peach-neon);
+  --attention:var(--color-attention);
+  --attention-text:var(--color-attention-text);
+  --attention-tint:var(--color-attention-tint);
+  --accent-tint:var(--color-peach-12);
+  --accent-tint-strong:var(--color-peach-22);
+  --accent-contrast:var(--color-white);
+  --divider:var(--color-warm-grey);
+  --border:1px solid var(--color-warm-grey);
+  --border-soft:1px solid var(--color-ink-08);
+  --focus-ring:0 0 0 3px rgba(233,130,106,0.35);
+  --overlay:rgba(62,63,63,0.55);
+
+  /* dataviz — UNA serie protagonista en peach, el resto en neutros cálidos.
+     No es una paleta categórica de 6 colores: es jerarquía. El peach dice "mira esto". */
+  --series-1:#3E3F3F;                    /* la serie base, siempre ink */
+  --series-accent:var(--color-peach);    /* LA serie destacada — solo una por gráfica */
+  --series-2:#938B8A; --series-3:#B8B0AC;
+  --series-4:#D8D4CE; --series-5:#EAE6E1;
+  --series-6:#6F6867;
+  --series-accent-fill:rgba(233,130,106,0.14);
+  --series-base-fill:rgba(62,63,63,0.05);
+}

@@ -1,0 +1,7 @@
+/* ESPACIADO base 8 + layout. Usar SIEMPRE estos pasos. */
+:root{
+  --s-1:4px; --s-2:8px; --s-3:16px; --s-4:24px; --s-5:32px;
+  --s-6:48px; --s-7:64px; --s-8:96px; --s-9:128px; --s-10:192px;
+  --bp-sm:480px; --bp-md:780px; --bp-lg:1080px;
+  --container-narrow:640px; --container-standard:1080px;
+}

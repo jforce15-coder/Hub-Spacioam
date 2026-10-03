@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" fill="none" stroke="#3E3F3F" aria-label="Spacio AM monogram">
+  
+  <path d="M100 8 C 102 22, 106 26, 124 28 C 106 30, 102 34, 100 48 C 98 34, 94 30, 76 28 C 94 26, 98 22, 100 8 Z" fill="#3E3F3F" stroke="none"></path>
+  
+  <path d="M50 230 L 50 110 Q 50 70, 100 70 Q 150 70, 150 110 L 150 230 Z" stroke-width="3.5" stroke-linejoin="round"></path>
+  
+  <text x="100" y="200" text-anchor="middle" font-family="'Valky', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" font-weight="600" font-size="140" fill="#3E3F3F" stroke="none">S</text>
+</svg>

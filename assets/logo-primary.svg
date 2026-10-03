@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" fill="#3E3F3F" aria-label="Spacio AM">
+  
+  <path d="M300 8 C 302 32, 308 40, 340 44 C 308 48, 302 56, 300 80 C 298 56, 292 48, 260 44 C 292 40, 298 32, 300 8 Z"></path>
+  
+  <text x="300" y="190" text-anchor="middle" font-family="'Valky', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" font-weight="500" font-size="150" letter-spacing="2">SPACIO</text>
+  
+  <text x="186" y="248" font-family="'Valky', 'Cormorant Garamond', Georgia, serif" font-size="28" letter-spacing="4">A</text>
+  <line x1="220" y1="240" x2="378" y2="240" stroke="#3E3F3F" stroke-width="2"></line>
+  <text x="392" y="248" font-family="'Valky', 'Cormorant Garamond', Georgia, serif" font-size="28" letter-spacing="4">M</text>
+</svg>

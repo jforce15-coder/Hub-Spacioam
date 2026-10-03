@@ -1,0 +1,14 @@
+/* CAPA DE DOMINIO — categorías de trabajo de la EPI App.
+   Hereda forma/tipo del core; NO es parte del core global: solo EPI carga esta capa.
+   Fórmula: fondo tinte S30/L93, texto mismo tono a L que pasa AA >=4.5. */
+:root{
+  --dom-limpieza-tradicional-bg:#E8F3ED; --dom-limpieza-tradicional-fg:#317754;
+  --dom-limpieza-profunda-bg:#E8F3F0;    --dom-limpieza-profunda-fg:#317766;
+  --dom-mantenimiento-bg:#E8EDF3;        --dom-mantenimiento-fg:#3B6691;
+  --dom-nuevo-producto-bg:#F3EEE8;       --dom-nuevo-producto-fg:#866537;
+  --dom-ajuste-bg:#F3F1E8;               --dom-ajuste-fg:#776C31;
+  --dom-danos-bg:#F3E9E8;                --dom-danos-fg:#91473B;
+  --dom-supervision-bg:#EEE8F3;          --dom-supervision-fg:#6D3B91;
+  --dom-cancelacion-bg:#F3E8ED;          --dom-cancelacion-fg:#913B66;
+  --dom-wifi-bg:#E8F1F3;                 --dom-wifi-fg:#357682;
+}

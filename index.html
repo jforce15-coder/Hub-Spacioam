@@ -8,6 +8,15 @@
 <body>
 <x-dc>
 <helmet>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/icons/favicon-64.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FAFAFA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spacio AM">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="ds/tokens/fonts.css">
 <link rel="stylesheet" href="ds/tokens/colors.css">
 <link rel="stylesheet" href="ds/tokens/typography.css">
@@ -967,10 +976,23 @@
                           <span style="font-size:12.5px; font-weight:600; color:#3E3F3F">{{ p.titulo }}</span>
                           <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; margin-left:auto">{{ p.cuando }}</span>
                         </div>
-                        <span style="font-size:12px; line-height:1.5; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ p.corto }}</span>
-                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-                          <button onClick="{{ p.adelantar }}" disabled="{{ p.busy }}" style="border:none; background:#3E3F3F; color:#FAFAFA; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.96)">{{ p.label }}</button>
-                          <span style="font-size:11px; color:#6F6867">{{ p.nota }}</span>
+                        <sc-if value="{{ p.editando }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex; flex-direction:column; gap:6px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
+                            <textarea value="{{ p.texto }}" onChange="{{ p.setTexto }}" rows="7" placeholder="Hospitable no entregó el texto de este mensaje. Escríbelo aquí." style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; resize:vertical; outline:none; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                            <span style="font-size:11px; line-height:1.5; color:#6F6867; text-wrap:pretty">{{ p.ayuda }}</span>
+                          </div>
+                        </sc-if>
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                          <sc-if value="{{ p.noEditando }}" hint-placeholder-val="{{ true }}">
+                            <button onClick="{{ p.editar }}" style="border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Editar</button>
+                          </sc-if>
+                          <sc-if value="{{ p.editando }}" hint-placeholder-val="{{ false }}">
+                            <button onClick="{{ p.guardar }}" disabled="{{ p.busy }}" style="border:1px solid #E9826A; background:rgba(233,130,106,.12); color:#3E3F3F; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:opacity .18s, transform .1s; -webkit-tap-highlight-color:transparent; opacity: {{ p.guardarOp }}" style-active="transform:scale(.96)">{{ p.guardarLabel }}</button>
+                            <button onClick="{{ p.cerrarEdit }}" style="border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Cerrar</button>
+                          </sc-if>
+                          <button onClick="{{ p.enviar }}" disabled="{{ p.busy }}" style="border:none; background:#3E3F3F; color:#FAFAFA; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.96)">{{ p.enviarLabel }}</button>
+                          <button onClick="{{ p.cancelar }}" disabled="{{ p.busy }}" style="border:1px solid {{ p.cancelarBd }}; background: {{ p.cancelarBg }}; color: {{ p.cancelarFg }}; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">{{ p.cancelarLabel }}</button>
+                          <span style="font-size:11px; color:#6F6867; line-height:1.4">{{ p.nota }}</span>
                         </div>
                       </div>
                     </sc-for>
@@ -1906,7 +1928,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: {}, autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad",
-    versionNueva: false, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
+    versionNueva: false, progEdit: {}, progConfirm: "", briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -1980,7 +2002,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-05.0030";
+  BUILD = "2026-10-05.0100";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2001,7 +2023,13 @@ class Component extends DCLogic {
     setTimeout(function () { self.resolverSesion(); }, 900);
     /* El tile de ALMA muestra modo y cola en vivo; se refresca cada minuto. */
     setTimeout(function () { self.almaCargar(); }, 1600);
-    this._almaTimer = setInterval(function () { if (self.state.vista === "alma" || self.state.vista === "hub") self.almaCargar(); }, 60000);
+    /* En ALMA la cola se refresca cada 20 s (en vivo desde el Apps Script); en el hub, cada minuto. */
+    this._almaN = 0;
+    this._almaTimer = setInterval(function () {
+      self._almaN++;
+      if (document.visibilityState === "hidden") return;
+      if (self.state.vista === "alma" || (self.state.vista === "hub" && self._almaN % 3 === 0)) self.almaCargar();
+    }, 20000);
     this._tick = setInterval(function () { if (self.state.vista === "alma") self.forceUpdate(); }, 20000);
   }
   componentWillUnmount() { clearInterval(this._almaTimer); clearInterval(this._tick); clearInterval(this._verT); }
@@ -2098,6 +2126,7 @@ class Component extends DCLogic {
       });
     }, 700);
   }
+  _autoHilo = {};
   abrirProgramados(key, resId) {
     var self = this;
     if (this.state.progAbierto === key) { this.setState({ progAbierto: "" }); return; }
@@ -2108,13 +2137,23 @@ class Component extends DCLogic {
     ALMA.programados(resId).then(function (r) { put(r && r.ok ? { lista: r.lista || [] } : { lista: [], error: "No pude consultar Hospitable" + (r && r.error ? " (" + r.error + ")" : "") + "." }); })
       .catch(function () { put({ lista: [], error: "No pude consultar Hospitable." }); });
   }
-  adelantarProgramado(resId, id) {
+  /* tipo: "enviar" (ya, con el texto editado si lo hay) · "cancelar" · "guardar" (mantiene la hora; ALMA lo envía). */
+  progAccion(resId, id, tipo) {
     var self = this, upd = function (o) { self.setState(function (s) { var n = Object.assign({}, s.programados); n[resId] = Object.assign({}, n[resId], o); return { programados: n }; }); };
-    upd({ busy: id, notaId: id, nota: "" });
-    ALMA.adelantar(resId, id).then(function (r) {
-      if (r && r.ok) { var l = ((self.state.programados[resId] || {}).lista || []).filter(function (p) { return p.id !== id; }); upd({ busy: "", lista: l, notaId: "", nota: "" }); self.almaCargar(); }
-      else upd({ busy: "", notaId: id, nota: (r && r.error) || "No se pudo enviar." });
-    }).catch(function () { upd({ busy: "", notaId: id, nota: "No se pudo enviar." }); });
+    var ed = (this.state.progEdit || {})[id];
+    var p = tipo === "cancelar" ? ALMA.cancelarProg(resId, id) : tipo === "guardar" ? ALMA.editarProg(resId, id, ed, this.quienSoy()) : ALMA.adelantar(resId, id, ed);
+    upd({ busy: id, busyTipo: tipo, notaId: id, nota: "" });
+    p.then(function (r) {
+      if (!(r && r.ok)) { upd({ busy: "", notaId: id, nota: (r && r.error) || "No se pudo." }); return; }
+      self.setState(function (s) { var e = Object.assign({}, s.progEdit); delete e[id]; return { progEdit: e, progConfirm: "" }; });
+      var lista = ((self.state.programados[resId] || {}).lista || []);
+      if (tipo === "guardar") {
+        upd({ busy: "", notaId: r.id || id, nota: "Guardado · sale a la misma hora con tu texto.", lista: lista.map(function (x) { return x.id === id ? Object.assign({}, x, { id: r.id || id, texto: ed, propio: true }) : x; }) });
+      } else {
+        upd({ busy: "", notaId: "", nota: "", lista: lista.filter(function (x) { return x.id !== id; }) });
+        if (tipo === "enviar") self.almaCargar();
+      }
+    }).catch(function () { upd({ busy: "", notaId: id, nota: "No se pudo. Revisa la conexión." }); });
   }
   quienSoy() {
     try { var s = window.SA && SA.session ? SA.session() : null; return (s && (s.nombre || s.email)) || ""; } catch (e) { return ""; }
@@ -2618,7 +2657,9 @@ class Component extends DCLogic {
       var hiloSt = st.almaHilos[resId];
       var hilo = mapHilo(hiloSt && hiloSt.lista ? hiloSt.lista : [{ tipo: "guest", texto: r.texto, created: r.recibido }], r.huesped);
       var cargarHilo = function () { cargarHiloDe(resId); };
-      var convKey = "c" + key, enHilo = !!st.convHilo[convKey];
+      /* Mientras clasifica no hay resumen: se muestra la conversación completa y se carga sola. */
+      var convKey = "c" + key, enHilo = st.convHilo[convKey] != null ? !!st.convHilo[convKey] : !v.nivel;
+      if (enHilo && resId && !st.almaHilos[resId] && !self._autoHilo[resId]) { self._autoHilo[resId] = 1; setTimeout(cargarHilo, 0); }
       var estadiaC = d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "";
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
         key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est, cargarHilo: cargarHilo,
@@ -3060,9 +3101,19 @@ class Component extends DCLogic {
         c.progAbierto = st.progAbierto === c.key; c.progBtnBg = c.progAbierto ? "#F5F3F0" : "#FFFFFF";
         c.toggleProg = function () { self.abrirProgramados(c.key, pk); };
         c.progLista = (ps.lista || []).map(function (p) {
-          var b = ps.busy === p.id, d = new Date(p.envio);
-          return { titulo: p.titulo, corto: String(p.texto || "").slice(0, 280) || "Sin vista previa del texto.", cuando: isNaN(d) ? "" : "Sale " + d.toLocaleString("es-GT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }),
-            busy: b, label: b ? "Enviando…" : "Enviar ahora", nota: ps.notaId === p.id ? ps.nota : "", adelantar: function () { self.adelantarProgramado(pk, p.id); } };
+          var b = ps.busy === p.id, d = new Date(p.envio), ed = (st.progEdit || {})[p.id], editando = ed != null;
+          var conf = st.progConfirm === p.id, cambio = editando && ed.trim() !== String(p.texto || "").trim();
+          var setEd = function (v) { self.setState(function (s) { var e = Object.assign({}, s.progEdit); if (v == null) delete e[p.id]; else e[p.id] = v; return { progEdit: e }; }); };
+          return { titulo: p.titulo, cuando: isNaN(d) ? "" : "Sale " + d.toLocaleString("es-GT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }),
+            editando: editando, noEditando: !editando, texto: editando ? ed : "", setTexto: function (e) { setEd(e.target.value); },
+            ayuda: p.propio ? "ALMA lo enviará a la hora indicada." : "Hospitable no permite editar un programado: al guardar se cancela allá y ALMA lo envía a la misma hora con tu texto.",
+            editar: function () { setEd(String(p.texto || "")); }, cerrarEdit: function () { setEd(null); },
+            guardar: function () { if (cambio) self.progAccion(pk, p.id, "guardar"); }, guardarOp: cambio ? "1" : ".45", guardarLabel: b && ps.busyTipo === "guardar" ? "Guardando…" : "Guardar",
+            enviar: function () { self.progAccion(pk, p.id, "enviar"); }, enviarLabel: b && ps.busyTipo === "enviar" ? "Enviando…" : "Enviar ahora",
+            cancelar: function () { if (!conf) { self.setState({ progConfirm: p.id }); setTimeout(function () { if (self.state.progConfirm === p.id) self.setState({ progConfirm: "" }); }, 4000); return; } self.progAccion(pk, p.id, "cancelar"); },
+            cancelarLabel: b && ps.busyTipo === "cancelar" ? "Cancelando…" : conf ? "¿Cancelar? Toca otra vez" : "Cancelar",
+            cancelarBg: conf ? "rgba(192,57,43,.10)" : "#FFFFFF", cancelarBd: conf ? "#C0392B" : "#D8D4CE", cancelarFg: conf ? "#C0392B" : "#3E3F3F",
+            busy: b, nota: ps.notaId === p.id ? ps.nota : "" };
         });
         c.progNota = ps.cargando ? "Consultando Hospitable…" : ps.error ? ps.error : (ps.lista && !ps.lista.length ? "No hay mensajes programados pendientes." : (!window.ALMA || !ALMA.hasApi() ? "Conecta el Apps Script para consultar Hospitable." : ""));
         c.progHayNota = !!c.progNota;

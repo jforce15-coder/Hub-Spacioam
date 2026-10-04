@@ -710,9 +710,9 @@
       <div style="display:flex; align-items:center; gap:14px">
         <div aria-hidden="true" style="position:relative; width:64px; height:64px; flex-shrink:0">
           <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 4px 16px rgba(62,63,63,.08); border:2px solid #FFFFFF; box-sizing:border-box">
-            <sc-for list="{{ almaFotos }}" as="f" hint-placeholder-count="0">
-              <img src="{{ f.src }}" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ f.op }}">
-            </sc-for>
+            <sc-if value="{{ hayAlmaFotos }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ almaFotos }}" as="f" hint-placeholder-count="0">
+              <img src="{{ f.src }}" loading="lazy" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ f.op }}">
+            </sc-for></sc-if>
           </div>
           <span style="position:absolute; right:1px; bottom:1px; width:14px; height:14px; border-radius:50%; border:2.5px solid #FAFAFA; box-sizing:border-box; background: {{ almaDotBg }}; box-shadow:0 1px 2px rgba(62,63,63,.2)"></span>
         </div>
@@ -731,7 +731,8 @@
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
           <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-1px; top:-1px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#E9826A; color:#FFFFFF; font-size:10.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box; line-height:1">{{ autoPendientes }}</span></sc-if>
         </button>
-        <button onClick="{{ almaRecargar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer; font-family:inherit" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ almaRecargarLabel }}</button>
+        <button onClick="{{ abrirCorreos }}" aria-label="Correos enviados" title="Correos enviados" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
+        <button onClick="{{ almaRecargar }}" aria-label="{{ almaRecargarLabel }}" title="{{ almaRecargarLabel }}" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent; opacity: {{ almaRecargarOp }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
       </div>
     </div>
 
@@ -740,11 +741,16 @@
     </sc-if>
 
     <div data-screen-label="ALMA · Filtros" style="display:flex; flex-direction:column; gap:10px">
-      <label style="display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+      <div style="display:flex; gap:8px; align-items:center">
+      <label style="flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
         <input value="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
         <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#6F6867; padding:0">Limpiar</button></sc-if>
       </label>
+        <button onClick="{{ toggleFiltros }}" aria-expanded="{{ filtrosAbiertos }}" style="display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; flex-shrink:0; border:1px solid {{ filtrosBd }}; background: {{ filtrosBg }}; color: {{ filtrosFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">Filtros<sc-if value="{{ hayFiltrosActivos }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#F2755A; color:#3E3F3F; font-size:9.5px; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box">{{ filtrosActivos }}</span></sc-if><span aria-hidden="true" style="display:grid; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ filtrosChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="currentColor" hint-size="14px,14px"></x-import></span></button>
+      </div>
+      <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows: {{ filtrosRows }}">
+        <div style="overflow:hidden; min-height:0; transition:opacity .36s cubic-bezier(.22,.61,.36,1); opacity: {{ filtrosOp }}">
       <div style="display:flex; flex-wrap:wrap; gap:12px 20px; align-items:flex-start">
         <div style="display:flex; flex-direction:column; gap:4px">
           <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Urgencia</span>
@@ -769,6 +775,8 @@
         <div style="display:flex; flex-direction:column; gap:4px">
           <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Orden</span>
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ ordenFiltros }}" value="{{ convOrden }}" onChange="{{ setConvOrden }}" size="sm" hint-size="auto,40px"></x-import>
+        </div>
+      </div>
         </div>
       </div>
     </div>
@@ -857,7 +865,7 @@
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap">
           <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="3">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; border:1px solid {{ r.bd }}; color: {{ r.fg }}; background: {{ r.bg }}">{{ r.n }} {{ r.nombre }}</span>
+            <button onClick="{{ r.set }}" aria-pressed="{{ r.activo }}" style="display:inline-flex; align-items:baseline; gap:6px; min-height:36px; padding:0 14px; border:1px solid {{ r.bd }}; background: {{ r.bg }}; color: {{ r.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums">{{ r.n }}</span>{{ r.nombre }}</button>
           </sc-for>
         </div>
       </div>
@@ -904,19 +912,40 @@
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; margin-left:auto">
                   <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums; padding-right: {{ c.fechaPad }}">{{ c.fecha }}</span>
                   <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end">
+                    <button onClick="{{ c.toggleResuelta }}" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ c.resLabel }}</button>
+                    <button onClick="{{ c.toggleProg }}" aria-label="Mensajes programados" title="Mensajes programados en Hospitable" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #D8D4CE; background: {{ c.progBtnBg }}; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>Programados</button>
                     <button onClick="{{ c.toggleAbrir }}" style="border:1px solid {{ c.abrirBd }}; border-radius:999px; background: {{ c.abrirBg }}; color: {{ c.abrirFg }}; padding:0 14px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.abrirLabel }}</button>
                   </div>
                 </div>
               </div>
 
-              <div data-alma-chat="1" style="flex:1; min-height: {{ c.chatMin }}; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
+              <sc-if value="{{ c.progAbierto }}" hint-placeholder-val="{{ false }}">
+                  <div data-alma-scroll="1" style="flex-shrink:0; max-height:42%; overflow-y:auto; border-bottom:1px solid #EAE6E0; background:#F5F3F0; padding:10px 14px; display:flex; flex-direction:column; gap:8px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
+                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Programados en Hospitable</span>
+                    <sc-if value="{{ c.progHayNota }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#6F6867; line-height:1.5">{{ c.progNota }}</span></sc-if>
+                    <sc-for list="{{ c.progLista }}" as="p" hint-placeholder-count="0">
+                      <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:10px 12px; display:flex; flex-direction:column; gap:6px">
+                        <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap">
+                          <span style="font-size:12.5px; font-weight:600; color:#3E3F3F">{{ p.titulo }}</span>
+                          <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; margin-left:auto">{{ p.cuando }}</span>
+                        </div>
+                        <span style="font-size:12px; line-height:1.5; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ p.corto }}</span>
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                          <button onClick="{{ p.adelantar }}" disabled="{{ p.busy }}" style="border:none; background:#3E3F3F; color:#FAFAFA; min-height:36px; padding:0 14px; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.96)">{{ p.label }}</button>
+                          <span style="font-size:11px; color:#6F6867">{{ p.nota }}</span>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <div data-alma-chat="1" style="flex:1; min-height: {{ c.chatMin }}; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
                 <sc-if value="{{ c.modoResumen }}" hint-placeholder-val="{{ true }}">
                   <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
                     <sc-if value="{{ c.hayPregunta }}" hint-placeholder-val="{{ true }}"><div style="max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div></sc-if>
                     <sc-if value="{{ c.hayFotos }}" hint-placeholder-val="{{ false }}">
                       <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px)">
                         <sc-for list="{{ c.fotos }}" as="f" hint-placeholder-count="0">
-                          <button onClick="{{ f.abrir }}" aria-label="Ver foto" style="display:block; width:110px; height:110px; padding:0; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); cursor:zoom-in; transition:transform .18s" style-hover="transform:scale(1.02)"><img src="{{ f.url }}" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></button>
+                          <button onClick="{{ f.abrir }}" aria-label="Ver foto" style="display:block; width:110px; height:110px; padding:0; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); cursor:zoom-in; transition:transform .18s" style-hover="transform:scale(1.02)"><img src="{{ f.url }}" loading="lazy" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></button>
                         </sc-for>
                       </div>
                     </sc-if>
@@ -968,7 +997,7 @@
                     <span style="margin-left:auto; font-size:10.5px; letter-spacing:.04em; color:#6F6867">{{ c.respNota }}</span>
                   </div>
                   <div style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0" style-focus="border-color:#3E3F3F">
-                    <textarea value="{{ c.respTexto }}" onChange="{{ c.setRespTexto }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Mejorar para que ALMA la redacte" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; min-height:56px"></textarea>
+                    <textarea value="{{ c.respTexto }}" onChange="{{ c.setRespTexto }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Redactar con ALMA" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; min-height:56px"></textarea>
                     <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-wrap:wrap">
                       <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(233,130,106,.9); border-radius:999px; background:rgba(233,130,106,.14); padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; transition:background .18s" style-hover="background:rgba(233,130,106,.26)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import> {{ c.respMejorarLabel }}</button>
                       <span style="font-size:10.5px; letter-spacing:.02em; color:#6F6867; line-height:1.4; flex:1; min-width:160px">{{ c.respHint }}</span>
@@ -1106,9 +1135,45 @@
     </div>
 
   </div>
+    <sc-if value="{{ correosAbierto }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
+        <div onClick="{{ cerrarCorreos }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
+        <div role="dialog" aria-label="Correos enviados" style="position:relative; width:min(100%,760px); max-height:min(92dvh,900px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
+          <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
+          <button onClick="{{ cerrarCorreos }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="padding:14px 18px 6px; display:flex; flex-direction:column; gap:3px">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Log de correos</span>
+            <span style="font-size:17px; font-weight:600; color:#3E3F3F">{{ correosTitulo }}</span>
+            <span style="font-size:11.5px; color:#6F6867; line-height:1.5">{{ correosSub }}</span>
+          </div>
+          <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:8px 14px calc(18px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; min-height:0">
+            <sc-for list="{{ correos }}" as="m" hint-placeholder-count="0">
+              <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; overflow:hidden">
+                <button onClick="{{ m.toggle }}" style="width:100%; border:none; background:transparent; text-align:left; padding:12px 14px; display:flex; flex-direction:column; gap:5px; cursor:pointer; font-family:inherit; -webkit-tap-highlight-color:transparent">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                    <span style="display:inline-flex; align-items:center; gap:6px; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#3E3F3F"><span style="width:8px; height:8px; border-radius:50%; background: {{ m.dot }}"></span>{{ m.tipo }}</span>
+                    <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; margin-left:auto">{{ m.fecha }}</span>
+                  </div>
+                  <span style="font-size:13px; font-weight:600; color:#3E3F3F; line-height:1.4; text-wrap:pretty">{{ m.asunto }}</span>
+                  <span style="font-size:11px; color:#6F6867; line-height:1.5">Para {{ m.para }} · desde {{ m.desde }}</span>
+                  <sc-if value="{{ m.fallo }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; color:#C0392B; line-height:1.5">{{ m.estado }}</span></sc-if>
+                </button>
+                <sc-if value="{{ m.abierto }}" hint-placeholder-val="{{ false }}">
+                  <div style="border-top:1px solid #EAE6E0; background:#FAFAFA">
+                    <sc-if value="{{ m.hayHtml }}" hint-placeholder-val="{{ false }}"><iframe title="Vista del correo" srcdoc="{{ m.html }}" style="display:block; width:100%; height:560px; border:0; background:#FAFAFA"></iframe></sc-if>
+                    <sc-if value="{{ m.soloTexto }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px; font-size:12px; line-height:1.6; color:#3E3F3F; white-space:pre-wrap">{{ m.texto }}</div></sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{ correosVacio }}" hint-placeholder-val="{{ false }}"><div style="padding:28px; text-align:center; font-size:12.5px; color:#6F6867; line-height:1.6">Todavía no hay correos registrados. Aparecen aquí desde que subas la nueva versión de alma.gs.</div></sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
     <sc-if value="{{ lightboxAbierto }}" hint-placeholder-val="{{ false }}">
       <div onClick="{{ cerrarLightbox }}" role="dialog" aria-label="Foto" style="position:fixed; inset:0; z-index:70; background:rgba(62,63,63,.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; padding:24px; cursor:zoom-out; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
-        <img src="{{ lightboxUrl }}" alt="Foto enviada por el huésped" style="max-width:min(96vw,1100px); max-height:88dvh; border-radius:18px; box-shadow:0 28px 80px rgba(0,0,0,.35); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; object-fit:contain">
+        <sc-if value="{{ hayLightboxUrl }}" hint-placeholder-val="{{ false }}"><img src="{{ lightboxUrl }}" loading="lazy" alt="Foto enviada por el huésped" style="max-width:min(96vw,1100px); max-height:88dvh; border-radius:18px; box-shadow:0 28px 80px rgba(0,0,0,.35); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; object-fit:contain"></sc-if>
         <button onClick="{{ cerrarLightbox }}" aria-label="Cerrar" style="position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(250,250,250,.92); display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
       </div>
     </sc-if>
@@ -1802,6 +1867,8 @@ class Component extends DCLogic {
     almaHilos: {}, autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad",
     briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
+    filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
+    resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
     /* TODO: GET/POST /hub/tareas → [{id, texto, prop, quien, dias, hecha, comentarios[]}] */
     tareas: [
@@ -1977,6 +2044,24 @@ class Component extends DCLogic {
         });
       });
     }, 700);
+  }
+  abrirProgramados(key, resId) {
+    var self = this;
+    if (this.state.progAbierto === key) { this.setState({ progAbierto: "" }); return; }
+    this.setState({ progAbierto: key });
+    if (!resId || !window.ALMA || !ALMA.hasApi()) return;
+    var put = function (o) { self.setState(function (s) { var n = Object.assign({}, s.programados); n[resId] = o; return { programados: n }; }); };
+    put({ cargando: true });
+    ALMA.programados(resId).then(function (r) { put(r && r.ok ? { lista: r.lista || [] } : { lista: [], error: "No pude consultar Hospitable" + (r && r.error ? " (" + r.error + ")" : "") + "." }); })
+      .catch(function () { put({ lista: [], error: "No pude consultar Hospitable." }); });
+  }
+  adelantarProgramado(resId, id) {
+    var self = this, upd = function (o) { self.setState(function (s) { var n = Object.assign({}, s.programados); n[resId] = Object.assign({}, n[resId], o); return { programados: n }; }); };
+    upd({ busy: id, notaId: id, nota: "" });
+    ALMA.adelantar(resId, id).then(function (r) {
+      if (r && r.ok) { var l = ((self.state.programados[resId] || {}).lista || []).filter(function (p) { return p.id !== id; }); upd({ busy: "", lista: l, notaId: "", nota: "" }); self.almaCargar(); }
+      else upd({ busy: "", notaId: id, nota: (r && r.error) || "No se pudo enviar." });
+    }).catch(function () { upd({ busy: "", notaId: id, nota: "No se pudo enviar." }); });
   }
   quienSoy() {
     try { var s = window.SA && SA.session ? SA.session() : null; return (s && (s.nombre || s.email)) || ""; } catch (e) { return ""; }
@@ -2344,7 +2429,8 @@ class Component extends DCLogic {
       return { r: r, d: d, nivel: nivel, peso: nivel in PESO ? PESO[nivel] : 3 };
     }).sort(function (x, y) { return x.peso - y.peso || (new Date(x.r.proximo || x.r.recibido) - new Date(y.r.proximo || y.r.recibido)); });
     var textosAlma = {};
-    (a.log || []).forEach(function (l) { if (/^ENVIADO/i.test(String(l.accion || "")) && !/por el equipo/i.test(String(l.accion || "")) && l.respuesta) textosAlma[String(l.respuesta).trim()] = 1; });
+    var normT = function (t) { return String(t || "").replace(/\s+/g, " ").trim(); };
+    (a.log || []).forEach(function (l) { var ac = String(l.accion || ""); if (l.respuesta && !/por el equipo|desde el hub|^NO ENVIADO|retenid|borrador/i.test(ac)) textosAlma[normT(l.respuesta)] = 1; });
     var reservasIdx = {};
     (a.reservas || []).forEach(function (r) { var c = String(r.code || r.codigo || "").trim().toUpperCase(); if (c) reservasIdx[c] = r; });
     var reservaDe = function (codigo) { return reservasIdx[String(codigo || "").trim().toUpperCase()] || {}; };
@@ -2357,7 +2443,7 @@ class Component extends DCLogic {
     var mapHilo = function (lista, nombre) {
       return (lista || []).map(function (m) {
         var guest = m.tipo === "guest";
-        if (!guest && !m.auto && textosAlma[String(m.texto || "").trim()]) m = Object.assign({}, m, { alma: true });
+        if (!guest && !m.auto && textosAlma[normT(m.texto)]) m = Object.assign({}, m, { alma: true });
         return {
           align: guest ? "flex-start" : "flex-end",
           radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
@@ -2384,7 +2470,7 @@ class Component extends DCLogic {
         respTexto: texto, setRespTexto: function (e) { upd({ texto: e.target.value }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !texto.trim() || !!rs.enviando,
         respMejorarLabel: rs.busy ? "Redactando…" : texto.trim() ? "Mejorar" : "Redactar con ALMA",
-        respHint: texto.trim() ? "Mejorar pule tu texto con la voz de Spacio AM y el contexto del chat." : "Vacío + Mejorar: ALMA propone la respuesta. Tú decides si se envía.",
+        respHint: texto.trim() ? "Mejorar pule tu texto con la voz de Spacio AM y el contexto del chat." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
         respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: texto.trim() ? "#3E3F3F" : "#D8D4CE", respEnviarFg: texto.trim() ? "#FAFAFA" : "#938B8A",
         respMejorar: function () {
           var actual = (self.state.convResp[convKey] || {}).texto || "";
@@ -2848,15 +2934,53 @@ class Component extends DCLogic {
       var confirmamos = ult.tipo !== "guest" && /ya qued[oó] resuelto|me alegra que .*(resuelt|arregl|funcion)|gracias por avisar(nos)? que ya/i.test(u);
       return (dice && ult.tipo !== "guest") || confirmamos;
     };
+    var resMan = {};
+    (a.resueltas || []).forEach(function (r) { var t = new Date(r.ts).getTime(), k = String(r.res_key || ""); if (k && (!resMan[k] || resMan[k].ts < t)) resMan[k] = { estado: r.estado, ts: t, por: r.por }; });
+    Object.keys(st.resMan || {}).forEach(function (k) { var e = st.resMan[k]; if (!resMan[k] || resMan[k].ts < e.ts) resMan[k] = e; });
     grupos.forEach(function (g) {
       g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
-      var top = g.frags[0];
-      g.resuelto = !top.esCola && yaResuelto(top.resId);
+      var top = g.frags[0], man = resMan[g.key];
+      var vigente = man && man.ts >= top.ts;
+      g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && yaResuelto(top.resId));
+      g.frags.forEach(function (c) {
+        c.resLabel = g.resuelto ? "Reabrir" : "Resuelta";
+        c.resBg = g.resuelto ? "rgba(61,107,82,.14)" : "#FFFFFF"; c.resBd = g.resuelto ? "rgba(61,107,82,.5)" : "#D8D4CE"; c.resFg = g.resuelto ? "#3d6b52" : "#3E3F3F";
+        c.toggleResuelta = function (e) {
+          if (e && e.stopPropagation) e.stopPropagation();
+          var ent = { estado: g.resuelto ? "abierta" : "resuelta", ts: Date.now(), por: self.quienSoy() };
+          self.setState(function (s) { var n = Object.assign({}, s.resMan); n[g.key] = ent; try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} return { resMan: n }; });
+          if (window.ALMA && ALMA.hasApi()) ALMA.resolver(g.key, ent.estado, ent.por);
+        };
+        var pk = c.resId || "", ps = st.programados[pk] || {};
+        c.progAbierto = st.progAbierto === c.key; c.progBtnBg = c.progAbierto ? "#F5F3F0" : "#FFFFFF";
+        c.toggleProg = function () { self.abrirProgramados(c.key, pk); };
+        c.progLista = (ps.lista || []).map(function (p) {
+          var b = ps.busy === p.id, d = new Date(p.envio);
+          return { titulo: p.titulo, corto: String(p.texto || "").slice(0, 280) || "Sin vista previa del texto.", cuando: isNaN(d) ? "" : "Sale " + d.toLocaleString("es-GT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }),
+            busy: b, label: b ? "Enviando…" : "Enviar ahora", nota: ps.notaId === p.id ? ps.nota : "", adelantar: function () { self.adelantarProgramado(pk, p.id); } };
+        });
+        c.progNota = ps.cargando ? "Consultando Hospitable…" : ps.error ? ps.error : (ps.lista && !ps.lista.length ? "No hay mensajes programados pendientes." : (!window.ALMA || !ALMA.hasApi() ? "Conecta el Apps Script para consultar Hospitable." : ""));
+        c.progHayNota = !!c.progNota;
+      });
       g.rk = g.resuelto ? 7 : rank(top); g.ts = top.ts;
       if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
       g.frags.forEach(function (c, i) { c.hayFrags = g.frags.length > 1; c.fragPos = (i + 1) + " / " + g.frags.length; c.fechaPad = g.frags.length > 1 ? "52px" : "0"; });
     });
     if (st.convOrden !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
+    var gruposTodos = grupos;
+    var nFiltros = (st.logFiltro !== "Todo" ? 1 : 0) + (st.logQuien !== "Todos" ? 1 : 0) + (st.logResp !== "Todas" ? 1 : 0) + (st.convOrden === "Cronológico" ? 1 : 0);
+    var TIPO_C = { sin_atender: ["Sin atender", "#C0392B"], urgente: ["Urgente", "#C0392B"], codigo: ["Código enviado", "#F2755A"], sin_codigo: ["Sin código", "#C0392B"], retenido: ["Retenido", "#F2755A"], borrador: ["Borrador", "#3B6691"], seguimiento: ["Seguimiento", "#F2755A"], error: ["Error", "#C0392B"], aviso: ["Aviso", "#6F6867"] };
+    var limC = Date.now() - st.convDias * 86400000;
+    var correosVista = (a.correos || []).map(function (m, i) { var t = new Date(m.fecha).getTime(); return { m: m, t: t, k: (m.fecha || "") + i }; })
+      .filter(function (x) { return !isNaN(x.t) && x.t >= limC; }).sort(function (x, y) { return y.t - x.t; }).slice(0, 80).map(function (x) {
+        var m = x.m, tp = TIPO_C[m.tipo] || TIPO_C.aviso, ab = st.correoVer === x.k, fallo = /^error/i.test(m.estado || "");
+        return { tipo: tp[0], dot: tp[1], asunto: m.asunto || "(sin asunto)", para: m.para || "—", desde: m.desde || "—", estado: m.estado || "", fallo: fallo,
+          fecha: new Date(x.t).toLocaleString("es-GT", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }),
+          abierto: ab, hayHtml: ab && !!m.html, soloTexto: ab && !m.html, html: ab ? (m.html || "") : "", texto: m.texto || "",
+          toggle: function () { self.setState({ correoVer: ab ? "" : x.k }); } };
+      });
+    if (st.convVista === "resueltas") grupos = grupos.filter(function (g) { return g.resuelto; });
+    else if (st.convOrden !== "Cronológico") grupos = grupos.filter(function (g) { return !g.resuelto; });
     gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
     this._convGrupos = grupos; this._convTotal = grupos.length;
     /* Precarga el hilo de los primeros casos urgentes/por confirmar del historial para saber si ya se resolvieron sin abrirlos. */
@@ -2957,14 +3081,16 @@ class Component extends DCLogic {
       hayMejorasHist: st.mejorasHist.length > 0, mejorasHist: st.mejorasHist,
 
       colaResumen: [["ROJO", "urgentes"], ["AMARILLO", "por confirmar"], ["VERDE", "resueltas"]].map(function (x) {
-        var N = NIVEL[x[0]], n = conteo[x[0]];
-        return { n: String(n), nombre: x[1], bd: n ? N.color : "#D8D4CE", fg: n ? N.fg : "#938B8A", bg: n ? N.bg : "transparent" };
+        var N = NIVEL[x[0]], n = gruposTodos.filter(function (g) { var t = g.frags[0]; return x[0] === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x[0] || (x[0] === "ROJO" && t.nivelLabel === "Urgente") || (x[0] === "AMARILLO" && t.nivelLabel === "Por confirmar"))); }).length;
+        var act = x[0] === "VERDE" ? st.convVista === "resueltas" : (st.convVista !== "resueltas" && st.logFiltro === x[0]);
+        return { n: String(n), nombre: x[1], activo: act, bd: act ? "#3E3F3F" : "#D8D4CE", fg: act ? "#FAFAFA" : "#3E3F3F", bg: act ? "#3E3F3F" : "#FFFFFF",
+          set: function () { self.setState(act ? { logFiltro: "Todo", convVista: "", convIdx: 0 } : x[0] === "VERDE" ? { convVista: "resueltas", logFiltro: "Todo", convIdx: 0 } : { logFiltro: x[0], convVista: "", convIdx: 0 }); self.convReset(); } };
       }),
       logFiltros: logFiltros.map(function (x) { return { value: x, label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase() }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       quienFiltros: quienFiltros.map(function (x) { return { value: x, label: x }; }), logQuien: st.logQuien, setLogQuien: function (v) { self.setState({ logQuien: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       autoAbierto: st.autoAbierto, autoToggleAbierto: function () { self.setState({ autoAbierto: !st.autoAbierto }); },
-      convItems: convItems, convVacio: !!st.alma && !convItems.length,
-      convVacioTexto: busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
+      convItems: convItems, convVacio: !!st.alma && !grupos.length,
+      convVacioTexto: st.convVista === "resueltas" ? "No hay conversaciones resueltas en estos días." : gruposTodos.length && !convItems.length === false && !grupos.length ? "Todo resuelto. Las resueltas están en el contador “resueltas”." : busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
       convBusca: st.convBusca, convHayBusca: !!busca,
       setConvBusca: function (e) { self.setState({ convBusca: e.target.value, convIdx: 0, briefIdx: 0 }); self.convReset(); }, limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
       convHayMas: ocultos > 0, convCargarMasLabel: "Cargar más · " + ocultos + " anteriores",
@@ -2990,10 +3116,18 @@ class Component extends DCLogic {
         var act = st.logQuien === x, p = x === "ALMA" ? "#3B6691" : x === "Todos" ? null : "#E9826A";
         return { label: x, hayPunto: !!p, punto: p || "transparent", activo: act, bg: act ? "#3E3F3F" : "#FFFFFF", fg: act ? "#FAFAFA" : "#3E3F3F", bd: act ? "#3E3F3F" : "#D8D4CE", set: function () { self.setState({ logQuien: x, convIdx: 0, briefIdx: 0 }); self.convReset(); } };
       }),
-      lightboxAbierto: !!st.lightbox, lightboxUrl: st.lightbox, cerrarLightbox: function () { self.setState({ lightbox: "" }); },
+      filtrosAbiertos: st.filtrosAbiertos, filtrosRows: st.filtrosAbiertos ? "1fr" : "0fr", filtrosOp: st.filtrosAbiertos ? "1" : "0", filtrosChevron: st.filtrosAbiertos ? "rotate(180deg)" : "rotate(0deg)",
+      toggleFiltros: function () { self.setState({ filtrosAbiertos: !st.filtrosAbiertos }); },
+      filtrosActivos: String(nFiltros), hayFiltrosActivos: nFiltros > 0, filtrosBg: st.filtrosAbiertos ? "#3E3F3F" : "#FFFFFF", filtrosFg: st.filtrosAbiertos ? "#FAFAFA" : "#3E3F3F", filtrosBd: st.filtrosAbiertos ? "#3E3F3F" : "#D8D4CE",
+      almaRecargarOp: st.almaCargando ? ".5" : "1",
+      correosAbierto: st.correosAbierto, abrirCorreos: function () { self.setState({ correosAbierto: true }); }, cerrarCorreos: function () { self.setState({ correosAbierto: false, correoVer: "" }); },
+      correos: correosVista, correosVacio: !correosVista.length,
+      correosTitulo: correosVista.length ? correosVista.length + (correosVista.length === 1 ? " correo" : " correos") + " en los últimos " + st.convDias + " días" : "Sin correos",
+      correosSub: "Salen desde hola@spacioam.com con el formato de Spacio AM. Toca uno para verlo como llegó.",
+      lightboxAbierto: !!st.lightbox, hayLightboxUrl: !!st.lightbox, lightboxUrl: st.lightbox, cerrarLightbox: function () { self.setState({ lightbox: "" }); },
       respFiltros: respFiltros.map(function (x) { return { value: x, label: x }; }), logResp: st.logResp, setLogResp: function (v) { self.setState({ logResp: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       ordenFiltros: ordenFiltros.map(function (x) { return { value: x, label: x }; }), convOrden: st.convOrden, setConvOrden: function (v) { self.setState({ convOrden: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
-      almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/alma-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
+      hayAlmaFotos: true, almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/alma-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
       almaEstadoCorto: !st.alma ? "Conectando…" : !ctrlLegible ? "Control sin leer" : on ? (ctrl.MODO || "ON") + " · " + (ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00") : "Apagada",
       briefTitulo: !st.alma ? "Leyendo la cola…" : briefHumanos ? briefHumanos + (briefHumanos === 1 ? " caso necesita" : " casos necesitan") + " a alguien del equipo" : briefItems.length ? "Todo atendido, nada pendiente de ti" : "Sin movimiento",
       briefDigest: briefDigest, briefHayDigest: !!briefDigest,

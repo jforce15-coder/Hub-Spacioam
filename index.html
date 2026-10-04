@@ -707,9 +707,19 @@
   <div style="max-width:960px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
     <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px">
-      <div style="display:flex; flex-direction:column; gap:6px">
-        <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Asistente nocturno · Hospitable</span>
-        <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">ALMA</h2>
+      <div style="display:flex; align-items:center; gap:14px">
+        <div aria-hidden="true" style="position:relative; width:64px; height:64px; flex-shrink:0">
+          <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 4px 16px rgba(62,63,63,.08); border:2px solid #FFFFFF; box-sizing:border-box">
+            <sc-for list="{{ almaFotos }}" as="f" hint-placeholder-count="0">
+              <img src="{{ f.src }}" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ f.op }}">
+            </sc-for>
+          </div>
+          <span style="position:absolute; right:1px; bottom:1px; width:14px; height:14px; border-radius:50%; border:2.5px solid #FAFAFA; box-sizing:border-box; background: {{ almaDotBg }}; box-shadow:0 1px 2px rgba(62,63,63,.2)"></span>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:2px">
+          <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,34px); line-height:1.05">ALMA</h2>
+          <span style="font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ almaEstadoCorto }}</span>
+        </div>
       </div>
       <div style="display:flex; align-items:center; gap:8px">
         <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
@@ -729,36 +739,112 @@
       <div style="background:rgba(242,117,90,.12); border:1px solid rgba(242,117,90,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
     </sc-if>
 
-    <div data-screen-label="ALMA · Resumen" style="display:flex; flex-direction:column; gap:10px">
-      <div style="display:flex; flex-direction:column; gap:4px">
-        <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Resumen · {{ briefVentana }}</span>
-        <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,4vw,28px); color:#3E3F3F; line-height:1.1; text-wrap:pretty">{{ briefTitulo }}</span>
-        <sc-if value="{{ briefHayDigest }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; letter-spacing:.03em; color:#6F6867; line-height:1.5">{{ briefDigest }}</span></sc-if>
-      </div>
-      <sc-for list="{{ briefItems }}" as="b" hint-placeholder-count="1">
-        <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-left:3px solid {{ b.color }}; border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(62,63,63,.04); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
-          <div style="display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:4px 9px; background: {{ b.tagBg }}; color: {{ b.tagFg }}">{{ b.tag }}</span>
-            <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867; margin-left:auto; font-variant-numeric:tabular-nums">{{ b.tiempo }}</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px">
-            <span style="font-size:14px; font-weight:600; color:#3E3F3F; letter-spacing:.01em; line-height:1.4; text-wrap:pretty">{{ b.titulo }}</span>
-            <span style="font-size:12.5px; color:#3E3F3F; line-height:1.55; letter-spacing:.01em; text-wrap:pretty">{{ b.detalle }}</span>
-            <span style="font-size:12px; color: {{ b.accionColor }}; line-height:1.5; letter-spacing:.01em; font-weight:500; text-wrap:pretty">{{ b.accion }}</span>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap">
-            <sc-if value="{{ b.pideHumano }}" hint-placeholder-val="{{ false }}">
-              <button onClick="{{ b.responder }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:0 16px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.97)">Responder ahora</button>
-            </sc-if>
-            <button onClick="{{ b.irA }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; padding:0 14px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">Ir al chat →</button>
+    <div data-screen-label="ALMA · Filtros" style="display:flex; flex-direction:column; gap:10px">
+      <label style="display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
+        <input value="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
+        <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#6F6867; padding:0">Limpiar</button></sc-if>
+      </label>
+      <div style="display:flex; flex-wrap:wrap; gap:12px 20px; align-items:flex-start">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Urgencia</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap">
+            <sc-for list="{{ urgOpciones }}" as="u" hint-placeholder-count="4">
+              <button onClick="{{ u.set }}" aria-pressed="{{ u.activo }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid {{ u.bd }}; border-radius:999px; background: {{ u.bg }}; color: {{ u.fg }}; padding:0 12px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><sc-if value="{{ u.hayPunto }}" hint-placeholder-val="{{ true }}"><span aria-hidden="true" style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background: {{ u.punto }}"></span></sc-if>{{ u.label }}</button>
+            </sc-for>
           </div>
         </div>
-      </sc-for>
-      <sc-if value="{{ briefHayMas }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A; padding-left:4px">{{ briefMasTexto }}</span></sc-if>
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Respuesta</span>
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ respFiltros }}" value="{{ logResp }}" onChange="{{ setLogResp }}" size="sm" hint-size="auto,40px"></x-import>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Quién respondió</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap">
+            <sc-for list="{{ quienOpciones }}" as="u" hint-placeholder-count="3">
+              <button onClick="{{ u.set }}" aria-pressed="{{ u.activo }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid {{ u.bd }}; border-radius:999px; background: {{ u.bg }}; color: {{ u.fg }}; padding:0 12px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><sc-if value="{{ u.hayPunto }}" hint-placeholder-val="{{ true }}"><span aria-hidden="true" style="width:9px; height:9px; border-radius:50%; flex-shrink:0; background: {{ u.punto }}"></span></sc-if>{{ u.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Orden</span>
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ ordenFiltros }}" value="{{ convOrden }}" onChange="{{ setConvOrden }}" size="sm" hint-size="auto,40px"></x-import>
+        </div>
+      </div>
+    </div>
+
+    <div data-screen-label="ALMA · Resumen" style="display:flex; flex-direction:column; gap:10px">
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Resumen · {{ briefVentana }}</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,4vw,28px); color:#3E3F3F; line-height:1.1; text-wrap:pretty">{{ briefTitulo }}</span>
+          <sc-if value="{{ briefHayDigest }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; letter-spacing:.03em; color:#6F6867; line-height:1.5">{{ briefDigest }}</span></sc-if>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px">
+          <sc-if value="{{ briefHayOcultas }}" hint-placeholder-val="{{ false }}"><button onClick="{{ briefRestaurar }}" style="border:none; background:transparent; font-family:inherit; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; padding:0 4px; min-height:36px" style-hover="color:#3E3F3F">{{ briefOcultasLabel }}</button></sc-if>
+          <span style="font-size:11px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ briefPos }}</span>
+        </div>
+      </div>
       <sc-if value="{{ briefVacio }}" hint-placeholder-val="{{ false }}">
         <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px">
           <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ almaDotBg }}"></span>
           <span style="font-size:13px; color:#3E3F3F; letter-spacing:.01em; line-height:1.5; text-wrap:pretty">{{ briefVacioTexto }}</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ briefHay }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
+          <div ref="{{ briefRef }}" class="sa-snap" tabIndex="0" aria-label="Resumen · desliza vertical para cambiar, derecha para descartar, izquierda para abrir el chat" style="position:relative; height:clamp(300px, 46dvh, 420px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; scroll-behavior:smooth; outline:none; touch-action:pan-y">
+            <div style="position:relative; width:100%; height: {{ briefAltoTotal }}">
+              <sc-for list="{{ briefPaginas }}" as="b" hint-placeholder-count="1">
+                <div style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ b.pagTop }}; height: {{ b.pagAlto }}">
+                  <div style="position:relative; height:100%; min-height:0">
+                    <div aria-hidden="true" style="position:absolute; inset:0; border-radius:18px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; transition:opacity .18s; background: {{ b.fondoBg }}; color: {{ b.fondoFg }}; opacity: {{ b.fondoOp }}"><span>{{ b.fondoIzq }}</span><span>{{ b.fondoDer }}</span></div>
+                    <div onPointerDown="{{ b.pDown }}" onPointerMove="{{ b.pMove }}" onPointerUp="{{ b.pUp }}" onPointerCancel="{{ b.pUp }}" style="position:relative; height:100%; min-height:0; box-sizing:border-box; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-left:6px solid {{ b.color }}; border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; box-shadow:0 4px 16px rgba(62,63,63,.05); touch-action:pan-y; user-select:none; -webkit-user-select:none; will-change:transform; transition: {{ b.cardTrans }}; transform: {{ b.cardT }}; overflow:hidden">
+                      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0">
+                        <span style="font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:5px 11px; background: {{ b.tagBg }}; color: {{ b.tagFg }}">{{ b.tag }}</span>
+                        <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867; margin-left:auto; font-variant-numeric:tabular-nums">{{ b.tiempo }}</span>
+                      </div>
+                      <div style="display:flex; flex-direction:column; gap:2px; flex-shrink:0">
+                        <span style="font-size:16px; font-weight:600; color:#3E3F3F; letter-spacing:.01em; line-height:1.2">{{ b.huesped }}</span>
+                        <span style="font-size:11px; letter-spacing:.04em; color:#6F6867">{{ b.propiedad }}</span>
+                      </div>
+                      <div style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; display:grid; grid-template-columns:max-content minmax(0,1fr); column-gap:14px; row-gap:8px; align-content:start; font-size:12.5px; line-height:1.5; letter-spacing:.01em; color:#3E3F3F">
+                        <sc-for list="{{ b.filas }}" as="r" hint-placeholder-count="3">
+                          <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-top:3px">{{ r.k }}</span>
+                          <span style="text-wrap:pretty; color: {{ r.color }}; font-weight: {{ r.peso }}">{{ r.v }}</span>
+                        </sc-for>
+                        <sc-if value="{{ b.verUltimo }}" hint-placeholder-val="{{ false }}">
+                          <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-top:3px">Cierre</span>
+                          <div style="display:flex; flex-direction:column; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
+                            <sc-for list="{{ b.ultimos }}" as="m" hint-placeholder-count="0">
+                              <div style="display:flex; flex-direction:column; gap:2px; align-items: {{ m.align }}">
+                                <div style="max-width:100%; padding:7px 11px; font-size:12px; line-height:1.5; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
+                                <span style="font-size:9px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span>
+                              </div>
+                            </sc-for>
+                            <sc-if value="{{ b.ultimoCargando }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; color:#6F6867">Cargando…</span></sc-if>
+                          </div>
+                        </sc-if>
+                      </div>
+                      <div style="display:flex; gap:8px; flex-wrap:wrap; flex-shrink:0">
+                        <sc-if value="{{ b.pideHumano }}" hint-placeholder-val="{{ false }}">
+                          <button onClick="{{ b.responder }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:0 16px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.97)">Responder ahora</button>
+                        </sc-if>
+                        <button onClick="{{ b.irA }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; padding:0 14px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">Ir al chat →</button>
+                        <button onClick="{{ b.toggleUltimo }}" style="border:1px solid #D8D4CE; border-radius:999px; background: {{ b.ultimoBg }}; color:#3E3F3F; padding:0 14px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">{{ b.ultimoLabel }}</button>
+                        <button onClick="{{ b.descartar }}" aria-label="Quitar del resumen" style="margin-left:auto; border:none; background:transparent; color:#938B8A; font-family:inherit; font-size:10px; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; padding:0 6px; min-height:40px" style-hover="color:#3E3F3F">Quitar</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:absolute; right:14px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:5px; pointer-events:none">
+            <sc-for list="{{ briefPuntos }}" as="p" hint-placeholder-count="0">
+              <span style="width:5px; border-radius:999px; transition:height .18s cubic-bezier(.22,.61,.36,1), background .18s; height: {{ p.h }}; background: {{ p.bg }}"></span>
+            </sc-for>
+          </div>
         </div>
       </sc-if>
     </div>
@@ -773,23 +859,6 @@
           <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="3">
             <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; border:1px solid {{ r.bd }}; color: {{ r.fg }}; background: {{ r.bg }}">{{ r.n }} {{ r.nombre }}</span>
           </sc-for>
-        </div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:10px">
-        <label style="display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
-          <input value="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
-          <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#6F6867; padding:0">Limpiar</button></sc-if>
-        </label>
-        <div class="sa-hscroll" style="display:flex; gap:14px; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding:2px 2px 4px; margin:0 -2px">
-          <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0; scroll-snap-align:start">
-            <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Urgencia</span>
-            <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ logFiltros }}" value="{{ logFiltro }}" onChange="{{ setLogFiltro }}" size="sm" hint-size="auto,40px"></x-import>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0; scroll-snap-align:start">
-            <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Quién respondió</span>
-            <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ quienFiltros }}" value="{{ logQuien }}" onChange="{{ setLogQuien }}" size="sm" hint-size="auto,40px"></x-import>
-          </div>
         </div>
       </div>
 
@@ -808,8 +877,12 @@
             <div style="position:absolute; inset:14px; display:grid; place-items:center"><div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em; max-width:420px">{{ convVacioTexto }}</div></div>
           </sc-if>
           <div style="position:relative; width:100%; height: {{ convAltoTotal }}">
-        <sc-for list="{{ convPaginas }}" as="c" hint-placeholder-count="1">
-          <div data-alma-page="1" style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ c.pagTop }}; height: {{ c.pagAlto }}">
+        <sc-for list="{{ convPaginas }}" as="g" hint-placeholder-count="1">
+          <div data-alma-page="1" style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ g.pagTop }}; height: {{ g.pagAlto }}">
+            <div class="sa-snap" style="position:relative; height:100%; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; gap:12px">
+            <sc-for list="{{ g.frags }}" as="c" hint-placeholder-count="1">
+            <div style="flex:0 0 100%; width:100%; height:100%; min-width:0; scroll-snap-align:start; scroll-snap-stop:always; position:relative">
+            <sc-if value="{{ c.hayFrags }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; top:12px; right:14px; z-index:2; font-size:9.5px; font-weight:600; letter-spacing:.12em; border-radius:999px; padding:4px 9px; background:#3E3F3F; color:#FAFAFA; font-variant-numeric:tabular-nums">{{ c.fragPos }}</span></sc-if>
             <div data-alma-card="1" style="background:#FFFFFF; border:1px solid #D8D4CE; border-left:6px solid {{ c.color }}; border-radius:18px; overflow:hidden; display:flex; flex-direction:column; height:100%; min-height:0; box-shadow:0 4px 16px rgba(62,63,63,.05)">
 
               <div style="display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border-bottom:1px solid #EAE6E0; flex-wrap:wrap; flex-shrink:0">
@@ -824,25 +897,26 @@
                     <span>{{ c.propiedad }}</span>
                     <sc-if value="{{ c.hayEstadia }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span>{{ c.estadia }}</span></sc-if>
                     <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span style="font-variant-numeric:tabular-nums">{{ c.codigo }}</span></sc-if>
+                    <span aria-hidden="true">·</span>
+                    <span title="{{ c.form.formLabel }}" aria-label="{{ c.form.formLabel }}" style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ c.form.formBg }}; box-shadow:0 0 0 2px rgba(62,63,63,.06)"></span><span style="font-size:10px; letter-spacing:.06em">{{ c.form.formTxt }}</span></span>
                   </div>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; margin-left:auto">
-                  <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums">{{ c.fecha }}</span>
+                  <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums; padding-right: {{ c.fechaPad }}">{{ c.fecha }}</span>
                   <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end">
-                    <button onClick="{{ c.toggleHilo }}" style="border:1px solid #D8D4CE; border-radius:999px; background: {{ c.hiloBtnBg }}; padding:0 12px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.hiloLabel }}</button>
-                    <button onClick="{{ c.toggleResp }}" style="border:1px solid {{ c.respBtnBd }}; border-radius:999px; background: {{ c.respBtnBg }}; padding:0 12px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.respLabel }}</button>
+                    <button onClick="{{ c.toggleAbrir }}" style="border:1px solid {{ c.abrirBd }}; border-radius:999px; background: {{ c.abrirBg }}; color: {{ c.abrirFg }}; padding:0 14px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.abrirLabel }}</button>
                   </div>
                 </div>
               </div>
 
-              <div data-alma-chat="1" style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
+              <div data-alma-chat="1" style="flex:1; min-height: {{ c.chatMin }}; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
                 <sc-if value="{{ c.modoResumen }}" hint-placeholder-val="{{ true }}">
                   <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
-                    <div style="max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div>
+                    <sc-if value="{{ c.hayPregunta }}" hint-placeholder-val="{{ true }}"><div style="max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div></sc-if>
                     <sc-if value="{{ c.hayFotos }}" hint-placeholder-val="{{ false }}">
                       <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px)">
                         <sc-for list="{{ c.fotos }}" as="f" hint-placeholder-count="0">
-                          <a href="{{ f.url }}" target="_blank" rel="noopener" style="display:block; width:110px; height:110px; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08)"><img src="{{ f.url }}" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></a>
+                          <button onClick="{{ f.abrir }}" aria-label="Ver foto" style="display:block; width:110px; height:110px; padding:0; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); cursor:zoom-in; transition:transform .18s" style-hover="transform:scale(1.02)"><img src="{{ f.url }}" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></button>
                         </sc-for>
                       </div>
                     </sc-if>
@@ -887,13 +961,14 @@
               </div>
 
               <sc-if value="{{ c.respAbierto }}" hint-placeholder-val="{{ false }}">
-                <div data-alma-scroll="1" style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:10px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; max-height:52%; overflow-y:auto; overscroll-behavior:auto">
+                <div data-alma-scroll="1" style="padding:10px 14px 12px; display:flex; flex-direction:column; gap:8px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; overflow:visible">
                   <div style="display:flex; align-items:center; gap:8px">
-                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Responder al huésped</span>
+                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; flex-shrink:0">Responder</span>
+                    <sc-if value="{{ c.hayCasoLinea }}" hint-placeholder-val="{{ false }}"><span style="min-width:0; flex:1; font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">· {{ c.casoLinea }}</span></sc-if>
                     <span style="margin-left:auto; font-size:10.5px; letter-spacing:.04em; color:#6F6867">{{ c.respNota }}</span>
                   </div>
-                  <div style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; display:flex; flex-direction:column; overflow:hidden" style-focus="border-color:#3E3F3F">
-                    <textarea value="{{ c.respTexto }}" onChange="{{ c.setRespTexto }}" rows="4" placeholder="Escribe tu respuesta, o deja vacío y presiona Mejorar para que ALMA la redacte" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box; min-height:96px"></textarea>
+                  <div style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0" style-focus="border-color:#3E3F3F">
+                    <textarea value="{{ c.respTexto }}" onChange="{{ c.setRespTexto }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Mejorar para que ALMA la redacte" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; min-height:56px"></textarea>
                     <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-wrap:wrap">
                       <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(233,130,106,.9); border-radius:999px; background:rgba(233,130,106,.14); padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; transition:background .18s" style-hover="background:rgba(233,130,106,.26)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import> {{ c.respMejorarLabel }}</button>
                       <span style="font-size:10.5px; letter-spacing:.02em; color:#6F6867; line-height:1.4; flex:1; min-width:160px">{{ c.respHint }}</span>
@@ -947,10 +1022,29 @@
               </sc-if>
 
               <sc-if value="{{ c.esLog }}" hint-placeholder-val="{{ false }}">
-                <div data-alma-scroll="1" style="border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; max-height:46%; overflow-y:auto; overscroll-behavior:auto">
-                  <div style="padding:12px 16px; display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap">
-                    <span style="width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:4px; background: {{ c.color }}"></span>
-                    <span style="flex:1; min-width:180px; font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ c.resumen }}</span>
+                <div data-alma-scroll="1" style="border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; overflow-y:auto; overscroll-behavior:auto; max-height: {{ c.pieMax }}; display: {{ c.pieDisplay }}">
+                  <sc-if value="{{ c.piePlegado }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:8px 16px; display:flex; align-items:center; gap:10px; min-height:40px">
+                      <span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ c.color }}"></span>
+                      <span style="flex:1; min-width:0; font-size:11.5px; color:#3E3F3F; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.caso.titulo }}</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.pieAbierto }}" hint-placeholder-val="{{ true }}">
+                  <div style="padding:10px 16px 12px; display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap">
+                    <span style="width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:5px; background: {{ c.color }}"></span>
+                    <div style="flex:1; min-width:180px; display:flex; flex-direction:column; gap:5px">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                        <span style="font-size:12.5px; font-weight:600; color:#3E3F3F; letter-spacing:.01em; line-height:1.4">{{ c.caso.titulo }}</span>
+                        <sc-if value="{{ c.caso.hayMotivo }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ c.caso.motivo }}</span></sc-if>
+                      </div>
+                      <sc-if value="{{ c.caso.mostrarPuntos }}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex; flex-direction:column; gap:3px">
+                          <sc-for list="{{ c.caso.puntos }}" as="p" hint-placeholder-count="2">
+                            <div style="display:flex; gap:8px; align-items:flex-start; font-size:12px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em"><span aria-hidden="true" style="width:4px; height:4px; border-radius:50%; background:#938B8A; flex-shrink:0; margin-top:8px"></span><span style="text-wrap:pretty">{{ p }}</span></div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
                     <div style="display:flex; align-items:center; gap:6px; flex-shrink:0">
                       <button onClick="{{ c.votarBien }}" aria-label="Buena respuesta" aria-pressed="{{ c.votoBien }}" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent; background: {{ c.votoBienBg }}; color: {{ c.votoBienFg }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="15" color="{{ c.votoBienFg }}" hint-size="15px,15px"></x-import></button>
                       <button onClick="{{ c.votarMal }}" aria-label="A mejorar" aria-pressed="{{ c.votoMal }}" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent; background: {{ c.votoMalBg }}; color: {{ c.votoMalFg }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="15" color="{{ c.votoMalFg }}" hint-size="15px,15px"></x-import></button>
@@ -988,8 +1082,12 @@
                       </div>
                     </div>
                   </sc-if>
+                  </sc-if>
                 </div>
               </sc-if>
+            </div>
+            </div>
+            </sc-for>
             </div>
           </div>
         </sc-for>
@@ -1008,6 +1106,12 @@
     </div>
 
   </div>
+    <sc-if value="{{ lightboxAbierto }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ cerrarLightbox }}" role="dialog" aria-label="Foto" style="position:fixed; inset:0; z-index:70; background:rgba(62,63,63,.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; padding:24px; cursor:zoom-out; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
+        <img src="{{ lightboxUrl }}" alt="Foto enviada por el huésped" style="max-width:min(96vw,1100px); max-height:88dvh; border-radius:18px; box-shadow:0 28px 80px rgba(0,0,0,.35); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; object-fit:contain">
+        <button onClick="{{ cerrarLightbox }}" aria-label="Cerrar" style="position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(250,250,250,.92); display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
+      </div>
+    </sc-if>
     <sc-if value="{{ ctrlAbierto }}" hint-placeholder-val="{{ false }}">
       <div style="position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
         <div onClick="{{ ctrlToggleAbierto }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
@@ -1696,7 +1800,8 @@ class Component extends DCLogic {
     mejoraClave: "REDACTOR", mejoraTexto: "", mejoraBusy: false, mejoraAplicando: false, mejoraPropuesta: null, mejoraNota: "", mejorasHist: [],
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: {}, autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
-    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {},
+    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad",
+    briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
     /* TODO: GET/POST /hub/tareas → [{id, texto, prop, quien, dias, hecha, comentarios[]}] */
     tareas: [
@@ -1737,8 +1842,42 @@ class Component extends DCLogic {
     try { document.cookie = "sa_hub_seen=" + Date.now() + "; domain=.spacioam.com; path=/; Secure; SameSite=Lax"; } catch (e) {}
   }
   /* Loader canónico primero; resolvemos la sesión detrás de él. */
+  _hiloPre = {}; _hiloCola = []; _hiloOcupado = false;
+  /* Precarga de a uno (el Apps Script rechaza ráfagas); un reintento por hilo y nunca deja un error fijo. */
+  hiloPrefetch() {
+    if (this._hiloOcupado || !this._hiloCola.length) return;
+    var self = this, rid = this._hiloCola.shift(), intento = 0;
+    this._hiloOcupado = true;
+    var pedir = function () {
+      ALMA.hilo(rid).then(function (res) {
+        if (res && res.ok) {
+          self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[rid] = { lista: res.hilo || [] }; return { almaHilos: n }; });
+        } else if (intento++ < 1) { return setTimeout(pedir, 1500); }
+        else { delete self._hiloPre[rid]; }
+        self._hiloOcupado = false; setTimeout(function () { self.hiloPrefetch(); }, 900);
+      }).catch(function () {
+        if (intento++ < 1) return setTimeout(pedir, 1500);
+        delete self._hiloPre[rid]; self._hiloOcupado = false; setTimeout(function () { self.hiloPrefetch(); }, 900);
+      });
+    };
+    pedir();
+  }
+  _briefRef = React.createRef();
+  briefRefCb = (el) => {
+    this._briefRef.current = el;
+    if (!el || el._saBound) return;
+    el._saBound = true;
+    var self = this, fn = function () {
+      clearTimeout(self._briefT);
+      self._briefT = setTimeout(function () { var i = Math.round(el.scrollTop / Math.max(1, el.clientHeight)); if (i !== self.state.briefIdx) self.setState({ briefIdx: i }); }, 90);
+    };
+    el.addEventListener("scroll", fn, { passive: true });
+  };
   componentDidMount() {
     var self = this;
+    /* Foto de perfil de ALMA: alterna cada hora con fundido; arranca en una foto según la hora del día. */
+    this.setState({ almaFotoIdx: new Date().getHours() % 11 });
+    this._fotoT = setInterval(function () { if (self.state.vista === "alma") self.setState(function (s) { return { almaFotoIdx: (s.almaFotoIdx + 1) % 11 }; }); }, 3600000);
     setTimeout(function () { self.resolverSesion(); }, 900);
     /* El tile de ALMA muestra modo y cola en vivo; se refresca cada minuto. */
     setTimeout(function () { self.almaCargar(); }, 1600);
@@ -1770,6 +1909,7 @@ class Component extends DCLogic {
   }
   convScroll(e, total) {
     var el = e.currentTarget, self = this;
+    if (this._convJump && Date.now() - this._convJump < 600) return;
     if (this._convJump && Date.now() - this._convJump < 400) return;
     clearTimeout(this._convScrollT);
     this._convScrollT = setTimeout(function () {
@@ -1790,12 +1930,25 @@ class Component extends DCLogic {
   }
   /* Salto directo: primero se montan las páginas alrededor del destino (setState), y solo entonces se mueve el
      scroll con el snap apagado un frame — si no, el snap "mandatory" devuelve el scroll a la página montada más cercana. */
+  /* Abrir conversación = hilo completo arriba + editor abajo, como un inbox. */
+  convAbrir(convKey, abre, cargarHilo) {
+    this.setState(function (s) {
+      var o = Object.assign({}, s.convResp); o[convKey] = Object.assign({}, o[convKey] || {}, { abierto: abre, nota: "" });
+      var hh = Object.assign({}, s.convHilo); hh[convKey] = abre;
+      return { convResp: o, convHilo: hh };
+    });
+    if (abre && cargarHilo) cargarHilo();
+  }
+  briefDescartar(k) {
+    this.setState(function (s) { var o = Object.assign({}, s.briefOcultas); o[k] = 1; return { briefOcultas: o, briefDrag: null }; });
+    try { if (navigator.vibrate && matchMedia("(pointer: coarse)").matches) navigator.vibrate(8); } catch (x) {}
+  }
   convIrA(i) {
     var self = this, el = this._convRef.current;
     if (!el) { this.setState({ convIdx: i }); return; }
     var top = el.getBoundingClientRect().top + window.scrollY - 72;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-    this._convJump = Date.now();
+    this._convJump = Date.now(); clearTimeout(this._convScrollT);
     this.setState({ convIdx: i }, function () {
       el.style.scrollSnapType = "none"; el.style.scrollBehavior = "auto";
       el.scrollTop = i * el.clientHeight;
@@ -2073,6 +2226,18 @@ class Component extends DCLogic {
       return res;
     });
   }
+  /* Resumen del caso en lectura rápida: qué hizo ALMA (título), etiqueta corta de motivo y 2–3 viñetas limpias. */
+  casoDe(nivel, accion, razon) {
+    var base = this.resumenLog(nivel, accion, "");
+    var titulo = base.split(/\.\s/)[0].replace(/\.$/, "");
+    var detalle = base.slice(titulo.length).replace(/^\.?\s*/, "");
+    var r = String(razon || "").replace(/[A-Z_]{6,}\s*=\s*\w+\.?/g, "").replace(/\s+/g, " ").trim();
+    var frases = (detalle ? [detalle] : []).concat(r.split(/(?<=\.)\s+(?=[A-ZÁÉÍÓÚ¿¡])/)).map(function (s) { return s.replace(/\.$/, "").trim(); }).filter(function (s) { return s.length > 3; });
+    var motivo = "";
+    var m1 = r.match(/(cerradura|c[oó]digo|acceso|wifi|check[- ]?in|check[- ]?out|limpieza|ruido|agua|luz|factura|parqueo|llave|puerta|early|late|maleta)/i);
+    if (m1) motivo = m1[1].charAt(0).toUpperCase() + m1[1].slice(1).toLowerCase();
+    return { titulo: titulo, motivo: motivo, hayMotivo: !!motivo, puntos: frases.slice(0, 3), mostrarPuntos: frases.length > 0 };
+  }
   /* Lo que ALMA hizo, en una frase que cualquiera entiende. */
   resumenLog(nivel, accion, razon) {
     var a = String(accion || ""), r = razon ? " Motivo: " + razon + "." : "";
@@ -2119,6 +2284,7 @@ class Component extends DCLogic {
     return lineas.join("\n");
   }
   /* URLs de fotos: columna `fotos` (JSON o lista separada por coma), `datos.fotos`, o enlaces sueltos en el texto. */
+  limpiaImg(t) { return String(t || "").replace(/\[(imagen adjunta|el huésped envió una imagen)\]/gi, "").replace(/[ \t]+\n/g, "\n").trim(); }
   fotosDe() {
     var out = [];
     for (var i = 0; i < arguments.length; i++) {
@@ -2139,11 +2305,12 @@ class Component extends DCLogic {
     var setCtrl = function (k, v) { self.setState(function (s) { var n = Object.assign({}, s.almaCtrl || ctrlO); n[k] = v; return { almaCtrl: n, almaControlNota: "Guardando…" }; }); self.ctrlAutosave(); };
     var on = ctrl.TOGGLE === "ON", ctrlLegible = !!ctrlO.TOGGLE;
     var pillStyle = function (activo) { return activo ? { bg: "#3E3F3F", fg: "#FAFAFA" } : { bg: "transparent", fg: "#6F6867" }; };
-    var fmtHora = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" }); };
+    var TZ = "America/Guatemala";
+    var fmtHora = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: TZ }); };
     var fmtDia = function (v) {
       if (!v) return "";
       var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v);
-      return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short" });
+      return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: String(v).length <= 10 ? undefined : TZ });
     };
     var enMin = function (iso) { var d = new Date(iso); if (isNaN(d)) return null; return Math.round((d - Date.now()) / 60000); };
 
@@ -2176,15 +2343,28 @@ class Component extends DCLogic {
       var nivel = String(d.nivel || (lider.estado === "esperando_rojo" ? "ROJO" : "")).toUpperCase();
       return { r: r, d: d, nivel: nivel, peso: nivel in PESO ? PESO[nivel] : 3 };
     }).sort(function (x, y) { return x.peso - y.peso || (new Date(x.r.proximo || x.r.recibido) - new Date(y.r.proximo || y.r.recibido)); });
+    var textosAlma = {};
+    (a.log || []).forEach(function (l) { if (/^ENVIADO/i.test(String(l.accion || "")) && !/por el equipo/i.test(String(l.accion || "")) && l.respuesta) textosAlma[String(l.respuesta).trim()] = 1; });
+    var reservasIdx = {};
+    (a.reservas || []).forEach(function (r) { var c = String(r.code || r.codigo || "").trim().toUpperCase(); if (c) reservasIdx[c] = r; });
+    var reservaDe = function (codigo) { return reservasIdx[String(codigo || "").trim().toUpperCase()] || {}; };
+    /* Farol del registro de llegada (Reservas.status_form): verde completo, rojo pendiente, gris sin dato. */
+    var farolForm = function (codigo, statusCola) {
+      var s = String(statusCola || reservaDe(codigo).status_form || "").trim().toLowerCase();
+      if (!s) return { formBg: "#D8D4CE", formLabel: "Formulario · sin dato", formTxt: "Sin dato" };
+      return /complet|listo|ok|enviado|si|sí|true/.test(s) ? { formBg: "#3d6b52", formLabel: "Formulario de llegada · completo", formTxt: "Formulario ✓" } : { formBg: "#C0392B", formLabel: "Formulario de llegada · pendiente", formTxt: "Formulario pendiente" };
+    };
     var mapHilo = function (lista, nombre) {
       return (lista || []).map(function (m) {
         var guest = m.tipo === "guest";
+        if (!guest && !m.auto && textosAlma[String(m.texto || "").trim()]) m = Object.assign({}, m, { alma: true });
         return {
-          texto: m.texto, align: guest ? "flex-start" : "flex-end",
+          align: guest ? "flex-start" : "flex-end",
           radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
-          bg: guest ? "#FFFFFF" : m.auto ? "#E4E0DA" : "rgba(233,130,106,.22)", fg: "#3E3F3F",
-          bd: guest ? "#D8D4CE" : m.auto ? "#D8D4CE" : "rgba(233,130,106,.5)",
-          meta: (guest ? (nombre || "Huésped") : m.auto ? "Spacio AM · automático" : "Spacio AM") + " · " + fmtDia(m.created) + " " + fmtHora(m.created)
+          texto: self.limpiaImg(m.texto) || m.texto,
+          bg: guest ? "#FFFFFF" : m.auto ? "#E4E0DA" : m.alma ? "rgba(59,102,145,.12)" : "rgba(233,130,106,.22)", fg: "#3E3F3F",
+          bd: guest ? "#D8D4CE" : m.auto ? "#D8D4CE" : m.alma ? "rgba(59,102,145,.4)" : "rgba(233,130,106,.5)",
+          meta: (guest ? (nombre || "Huésped") : m.auto ? "Spacio AM · automático" : m.alma ? "ALMA" : "Equipo Spacio AM") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created)
         };
       });
     };
@@ -2197,9 +2377,10 @@ class Component extends DCLogic {
       var hiloTxt = (info.hiloLista || []).map(function (m) { return "[" + (m.tipo === "guest" ? "HUÉSPED" : m.auto ? "SPACIO AM · automático" : "SPACIO AM") + "] " + m.texto; }).join("\n---\n").slice(-6000);
       var ctx = "Huésped: " + (info.huesped || "") + " · Propiedad: " + (info.propiedad || "") + (info.estadia ? " · Estadía " + info.estadia : "") + "\nHILO:\n" + (hiloTxt || "[HUÉSPED] " + (info.pregunta || ""));
       return {
-        respAbierto: !!rs.abierto, respLabel: rs.abierto ? "Cerrar" : "Responder",
-        respBtnBd: rs.abierto ? "#3E3F3F" : "#D8D4CE", respBtnBg: rs.abierto ? "#F5F3F0" : "#FFFFFF",
-        toggleResp: function () { upd({ abierto: !rs.abierto, nota: "" }); if (!rs.abierto) info.cargarHilo && info.cargarHilo(); },
+        respAbierto: !!rs.abierto,
+        abrirLabel: rs.abierto ? "Cerrar" : "Abrir conversación", abrirBd: rs.abierto ? "#3E3F3F" : "#3E3F3F", abrirBg: rs.abierto ? "#F5F3F0" : "#3E3F3F", abrirFg: rs.abierto ? "#3E3F3F" : "#FAFAFA",
+        toggleAbrir: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
+        toggleResp: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
         respTexto: texto, setRespTexto: function (e) { upd({ texto: e.target.value }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !texto.trim() || !!rs.enviando,
         respMejorarLabel: rs.busy ? "Redactando…" : texto.trim() ? "Mejorar" : "Redactar con ALMA",
@@ -2263,20 +2444,21 @@ class Component extends DCLogic {
       var convKey = "c" + key, enHilo = !!st.convHilo[convKey];
       var estadiaC = d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "";
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
-        key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est,
+        key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est, cargarHilo: cargarHilo,
+        form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? "35%" : "0",
         emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
         hayEstadia: !!(d.checkin), estadia: d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "", hayCodigo: !!d.codigo, codigo: d.codigo || "",
         fecha: fmtDia(r.recibido) + " " + fmtHora(r.recibido),
-        pregunta: r.texto, hayRespuesta: !!d.borrador, respuesta: d.borrador || "",
+        pregunta: self.limpiaImg(r.texto), hayPregunta: !!self.limpiaImg(r.texto), hayRespuesta: !!String(d.borrador || "").trim(), respuesta: d.borrador || "",
         burbujaBg: "#FFFFFF", burbujaBorde: "1.5px dashed #E9826A", sentidoColor: "#B54D36",
         sentido: est === "esperando_rojo" ? "Contención · ya enviada" : puedeEnviar ? "Respuesta preparada · sale a las " + hora : "Respuesta preparada",
         modoHilo: enHilo, modoResumen: !enHilo, hiloLabel: enHilo ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHilo ? "#F5F3F0" : "#FFFFFF",
         toggleHilo: function () { var abre = !enHilo; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKey] = abre; return { convHilo: o }; }); if (abre) cargarHilo(); },
         hiloNoDisponible: enHilo && (!resId || !(window.ALMA && ALMA.hasApi()) || !!(hiloSt && hiloSt.error)),
         hiloNoDisponibleTexto: !resId ? "Esta consulta no tiene reserva asociada; solo está el mensaje recibido." : "No se pudo traer la conversación de Hospitable. Se muestra el mensaje recibido.",
-        hayFotos: fotosCola.length > 0, fotos: fotosCola,
+        hayFotos: fotosCola.length > 0, fotos: fotosCola.map(function (f) { return Object.assign({}, f, { abrir: function (e) { e.stopPropagation(); self.setState({ lightbox: f.url }); } }); }),
         hilo: hilo, hiloCargando: !!(hiloSt && hiloSt.cargando),
         huesped: r.huesped || "Huésped", propiedad: d.propiedad ? d.propiedad.replace(/\s*-\s*/g, " · ") : (d.codigo || ""),
         recibido: fmtHora(r.recibido), texto: r.texto, nota: r.nota || "",
@@ -2433,12 +2615,9 @@ class Component extends DCLogic {
     var TIPO = { agregar: "Se agrega", corregir: "Se corrige" };
 
     /* Log · nombre y fechas: del propio log si trae columnas, si no de Reservas (hoja de Hola) o de la cola. */
-    var reservasIdx = {};
-    (a.reservas || []).forEach(function (r) { var c = String(r.code || r.codigo || "").trim().toUpperCase(); if (c) reservasIdx[c] = r; });
-    var reservaDe = function (codigo) { return reservasIdx[String(codigo || "").trim().toUpperCase()] || {}; };
     var huespedPorCodigo = {};
     (a.cola || []).forEach(function (r) { try { var dd = JSON.parse(r.datos || "{}"); if (dd.codigo && r.huesped) huespedPorCodigo[String(dd.codigo).toUpperCase()] = r.huesped; } catch (e) {} });
-    var logFiltros = ["Todo", "ROJO", "AMARILLO", "VERDE"];
+    var logFiltros = ["Todo", "ROJO", "AMARILLO", "VERDE"], respFiltros = ["Todas", "Con respuesta", "Sin respuesta"], ordenFiltros = ["Prioridad", "Cronológico"];
     /* Quién respondió: columna respondido_por del log, o el nombre al final de la acción "… desde el hub · Nombre". */
     var quienDe = function (l) {
       var q = String(l.respondido_por || "").trim(); if (q) return q;
@@ -2483,7 +2662,7 @@ class Component extends DCLogic {
         votoBienBg: voto === "up" ? "#3d6b52" : "transparent", votoBienFg: voto === "up" ? "#FFFFFF" : "#6F6867",
         votoMalBg: voto === "down" ? "#F2755A" : "transparent", votoMalFg: voto === "down" ? "#3E3F3F" : "#6F6867",
         votarBien: function () { votar("up"); }, votarMal: function () { votar("down"); },
-        key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
+        key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, cargarHilo: function () { cargarHiloDe(resIdLog); }, form: farolForm(l.codigo, ""), nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
         quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
         modoHilo: enHiloL, modoResumen: !enHiloL, hiloLabel: enHiloL ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHiloL ? "#F5F3F0" : "#FFFFFF",
         toggleHilo: function () { var abre = !enHiloL; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKeyL] = abre; return { convHilo: o }; }); if (abre) cargarHiloDe(resIdLog); },
@@ -2498,12 +2677,14 @@ class Component extends DCLogic {
         hayEstadia: !!ci, estadia: ci && co ? ci + " – " + co : ci,
         hayCodigo: !!l.codigo, codigo: l.codigo || "",
         nivelLabel: NIVEL_LABEL[n] || (n || "Sin nivel"), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
-        pregunta: l.pregunta || "", hayRespuesta: !!l.respuesta, respuesta: l.respuesta || "",
-        hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta),
-        burbujaBg: enviado ? "rgba(233,130,106,.22)" : "#E4E0DA", burbujaFg: "#3E3F3F", burbujaBd: enviado ? "rgba(233,130,106,.5)" : "#D8D4CE",
+        pregunta: self.limpiaImg(l.pregunta), hayPregunta: !!self.limpiaImg(l.pregunta), hayRespuesta: !!String(l.respuesta || "").trim(), respuesta: l.respuesta || "",
+        hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta).map(function (f) { return Object.assign({}, f, { abrir: function (e) { e.stopPropagation(); self.setState({ lightbox: f.url }); } }); }),
+        burbujaBg: enviado ? (humano ? "rgba(233,130,106,.22)" : "rgba(59,102,145,.12)") : "#E4E0DA", burbujaFg: "#3E3F3F", burbujaBd: enviado ? (humano ? "rgba(233,130,106,.5)" : "rgba(59,102,145,.4)") : "#D8D4CE",
         sentido: enviado ? "Enviado al huésped" : "No se envió · " + (/borrador/i.test(acc) ? "borrador" : /SOMBRA/i.test(acc) ? "modo sombra" : /retenid/i.test(acc) ? "retenido" : "quedó en el hub"),
         sentidoColor: enviado ? "#B54D36" : "#6F6867",
         resumen: self.resumenLog(n, acc, l.razon),
+        caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: (st.convResp[convKeyL] || {}).abierto ? "none" : "46%", pieVisible: !(st.convResp[convKeyL] || {}).abierto, pieDisplay: (st.convResp[convKeyL] || {}).abierto ? "none" : "block",
+        hayCasoLinea: true, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: false, pieAbierto: !(st.convResp[convKeyL] || {}).abierto, chatMin: (st.convResp[convKeyL] || {}).abierto ? "35%" : "0",
         anotando: st.logAbierto === key, anotarLabel: st.logAbierto === key ? "Cerrar" : "Anotar",
         anotar: function () { self.setState({ logAbierto: st.logAbierto === key ? null : key }); },
         anotacion: st.logAnot[key] || "",
@@ -2548,79 +2729,151 @@ class Component extends DCLogic {
     var pasaFiltro = function (c) {
       var urg = st.logFiltro === "Todo" || (c.esCola ? (c.nivelLabel === ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[st.logFiltro]) : c.nivel === st.logFiltro);
       var q = st.logQuien === "ALMA" ? (c.esLog && !!c.enviado && !c.humano) : st.logQuien === "Equipo" ? (c.esLog && !!c.humano) : st.logQuien === "Todos" ? true : (c.esLog && !!c.humano && c.quien === st.logQuien);
-      return urg && q;
+      var tiene = c.esLog ? (!!c.enviado || !!c.humano) : c.estadoCola === "respondido";
+      var r = st.logResp === "Con respuesta" ? tiene : st.logResp === "Sin respuesta" ? !tiene : true;
+      return urg && q && r;
     };
     var todos = colaItems.concat(logLista || []).filter(Boolean).filter(pasaFiltro).filter(coincide);
     var limite = Date.now() - st.convDias * 86400000;
     var visibles = todos.filter(function (c) { return c.esCola || c.ts >= limite; });
     var ocultos = todos.length - visibles.length;
-    var convItems = visibles.sort(function (x, y) { return rank(x) - rank(y) || (x.esCola ? 0 : y.ts - x.ts); });
-    this._convTotal = convItems.length;
+    /* Cronológico: la conversación con la última actualización sube arriba. Prioridad: urgentes primero. */
+    var convItems = st.convOrden === "Cronológico" ? visibles.sort(function (x, y) { return y.ts - x.ts; }) : visibles.sort(function (x, y) { return rank(x) - rank(y) || (x.esCola ? 0 : y.ts - x.ts); });
+
 
     /* Resumen del negocio: todo lo ocurrido en la ventana (2 h; de 3 a 11 am, 8 h), ordenado por lo que pide a una persona. */
-    var ahora = Date.now(), hGt = new Date().getHours(), ventanaH = hGt >= 3 && hGt < 11 ? 8 : 2, ventanaMs = ventanaH * 3600000;
-    var vistosBrief = {}, briefHumanos = 0, briefItems = [], briefN = { total: 0, alma: 0, equipo: 0, cola: 0, sin: 0 };
+    var ahora = Date.now(), hGt = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/Guatemala" }).format(new Date())) % 24;
+    var ventanaH = hGt >= 3 && hGt < 11 ? 8 : 2, ventanaMs = ventanaH * 3600000;
+    var vistosBrief = {}, briefHumanos = 0, briefItems = [], briefN = { total: 0, alma: 0, equipo: 0, cola: 0, sin: 0 }, briefOcultasN = 0;
     var mins = function (ts) { var m = Math.max(0, Math.round((ahora - ts) / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"; };
     var corto = function (t, n) { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).trim() + "…" : t; };
+    var VERDE = "#3d6b52", ROJO_T = "#B54D36", GRIS = "#6F6867";
     todos.forEach(function (c) {
       if (!c.esCola && ahora - c.ts > ventanaMs) return;
       var k = c.resId || c.codigo || c.key; if (vistosBrief[k]) return; vistosBrief[k] = 1;
+      if (st.briefOcultas[k]) { briefOcultasN++; return; }
       var i = convItems.indexOf(c);
       var esRojo = c.nivel === "ROJO" || c.nivelLabel === "Urgente", esAmarillo = c.nivel === "AMARILLO" || c.nivelLabel === "Por confirmar";
-      var quien = c.huesped + " · " + (c.propiedad || "propiedad sin nombre");
-      var ir = function () { if (i >= 0) self.convIrA(i); };
-      var responder = function () { if (i >= 0) self.convIrA(i); if (!c.respAbierto) c.toggleResp(); };
-      var b;
-      briefN.total++;
-      if (c.esCola) {
-        briefN.cola++;
-        var motivo = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief || corto(c.pregunta, 110));
-        if (esRojo) {
-          var humano = !c.emergenciaEnviada;
-          var detalle = motivo + ". Lleva " + mins(c.ts) + " sin resolución" + (c.estadoCola === "esperando_rojo" ? "; ALMA ya envió la contención" : "") + ".";
-          if (c.formStatus && c.formStatus !== "completo") detalle += " El registro de llegada está pendiente: ALMA ya se lo pidió.";
-          b = { color: "#F2755A", tag: "Urgente · en cola", tagBg: "rgba(242,117,90,.16)", tagFg: "#B54D36", tiempo: "Esperando " + mins(c.ts), titulo: quien, detalle: detalle,
-            accion: c.emergenciaEnviada ? "Ya recibió el código de emergencia y no volvió a escribir: no news, good news. No necesita seguimiento." : c.accesoTipo === "edificio" ? "Hay que confirmar la reserva con el edificio. Necesaria intervención humana." : "Nadie del equipo ha respondido. Necesaria intervención humana.",
-            accionColor: humano ? "#B54D36" : "#3d6b52", pideHumano: humano, rk: 0 };
-        } else if (esAmarillo) {
-          var tarda = ahora - c.ts > 45 * 60000;
-          b = { color: "#E9826A", tag: "Por confirmar", tagBg: "rgba(233,130,106,.14)", tagFg: "#B54D36", tiempo: "Esperando " + mins(c.ts), titulo: quien, detalle: motivo + ".",
-            accion: tarda ? "ALMA preparó una respuesta pero necesita confirmación del equipo." : "ALMA preparó una respuesta; sale sola si nadie la ajusta.", accionColor: tarda ? "#B54D36" : "#6F6867", pideHumano: tarda, rk: 1 };
-        } else {
-          b = { color: "#D8D4CE", tag: c.nivelLabel || "En cola", tagBg: "#F5F3F0", tagFg: "#6F6867", tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: motivo + ".", accion: c.sentido || "ALMA lo atiende.", accionColor: "#6F6867", pideHumano: false, rk: 2 };
-        }
+      var resuelto = !!c.humano, emer = !!c.emergenciaEnviada, respondio = c.esLog ? !!c.enviado : c.estadoCola === "respondido";
+      var quienTxt = c.quien && c.quien !== "Equipo" ? c.quien : "el equipo";
+      briefN.total++; if (c.esCola) briefN.cola++; else if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++;
+      /* Problema / Estado / Pendiente / Siguiente paso — lo que hay que entender en tres segundos. */
+      var razonEsEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(c.razonBrief || "");
+      var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : corto(c.pregunta, 140) || c.razonBrief || "Sin detalle");
+      var estado, pendiente = "", paso, pasoColor, pideHumano = false, tag, tagBg, tagFg, color;
+      if (esRojo) {
+        if (resuelto) { estado = "Atendido por " + quienTxt + " hace " + mins(c.ts); paso = "Solo confirma que quedó cerrado."; pasoColor = VERDE; tag = "Urgente · atendido"; color = VERDE; }
+        else if (emer) { estado = "Sin respuesta del equipo; ALMA envió el código de emergencia"; paso = "No news, good news. Sin seguimiento."; pasoColor = VERDE; tag = "Urgente · código enviado"; color = "#E9826A"; }
+        else { estado = (c.esCola ? "Esperando " : "Hace ") + mins(c.ts) + (c.estadoCola === "esperando_rojo" ? " · contención enviada" : " · sin respuesta"); paso = c.accesoTipo === "edificio" ? "Confirmar la reserva con el edificio. Intervención humana." : "Nadie ha respondido. Intervención humana."; pasoColor = ROJO_T; pideHumano = true; tag = "Urgente"; color = "#F2755A"; }
+        if (c.formStatus && c.formStatus !== "completo") pendiente = "Registro de llegada sin llenar (ALMA ya lo pidió)";
+        tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "rgba(242,117,90,.16)"; tagFg = color === VERDE ? VERDE : ROJO_T;
+      } else if (esAmarillo) {
+        var tarda = c.esCola && ahora - c.ts > 45 * 60000;
+        if (resuelto) { estado = "Confirmado por " + quienTxt; paso = "Nada pendiente."; pasoColor = VERDE; tag = "Por confirmar · resuelto"; color = VERDE; }
+        else if (respondio) { estado = "ALMA respondió hace " + mins(c.ts); paso = "Revisa si algo quedó por confirmar."; pasoColor = GRIS; tag = "Por confirmar · ALMA respondió"; color = "#E9826A"; }
+        else { estado = c.esCola ? "Esperando " + mins(c.ts) + " · respuesta preparada" : "Sin respuesta hace " + mins(c.ts); paso = tarda || !c.esCola ? "Necesita confirmación del equipo." : "Sale sola si nadie la ajusta."; pasoColor = tarda || !c.esCola ? ROJO_T : GRIS; pideHumano = tarda || !c.esCola; tag = "Por confirmar"; color = "#E9826A"; }
+        tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.14)"; tagFg = color === VERDE ? VERDE : ROJO_T;
       } else {
-        var resuelto = !!c.humano, emer = c.emergenciaEnviada, respondio = !!c.enviado;
-        if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++;
-        var base = (c.razonBrief ? c.razonBrief + ". " : "") + corto(c.pregunta, 120);
-        if (esRojo) {
-          b = { color: resuelto ? "#3d6b52" : emer ? "#E9826A" : "#F2755A", tag: resuelto ? "Urgente · " + (c.quien && c.quien !== "Equipo" ? "atendió " + c.quien : "atendido por el equipo") : emer ? "Urgente · código enviado" : "Urgente · sin respuesta", tagBg: resuelto ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.14)", tagFg: resuelto ? "#3d6b52" : "#B54D36",
-            tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: base,
-            accion: resuelto ? "Alguien del equipo ya respondió. Solo revisa que haya quedado cerrado." : emer ? "Se le envió el código de emergencia y no volvió a escribir: no news, good news. No necesita seguimiento." : "Sigue sin respuesta humana. Conviene revisar el chat.",
-            accionColor: resuelto || emer ? "#3d6b52" : "#B54D36", pideHumano: !resuelto && !emer, rk: resuelto || emer ? 4 : 0 };
-        } else if (esAmarillo) {
-          b = { color: resuelto ? "#3d6b52" : respondio ? "#E9826A" : "#F2755A", tag: resuelto ? "Por confirmar · " + (c.quien && c.quien !== "Equipo" ? c.quien : "equipo") : respondio ? "Por confirmar · ALMA respondió" : "Por confirmar · sin respuesta", tagBg: resuelto ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.14)", tagFg: resuelto ? "#3d6b52" : "#B54D36",
-            tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: base,
-            accion: resuelto ? "El equipo ya lo confirmó." : respondio ? "ALMA respondió. Revisa si hace falta confirmar algo." : "Nadie ha respondido todavía.", accionColor: resuelto ? "#3d6b52" : "#B54D36", pideHumano: !resuelto && !respondio, rk: resuelto ? 4 : respondio ? 3 : 1 };
-        } else {
-          b = { color: resuelto ? "#3d6b52" : respondio ? "#3d6b52" : "#D8D4CE", tag: resuelto ? (c.quienLabel || "Respondió el equipo") : respondio ? "ALMA respondió" : (c.nivelLabel || "Sin respuesta"), tagBg: resuelto || respondio ? "rgba(61,107,82,.14)" : "#F5F3F0", tagFg: resuelto || respondio ? "#3d6b52" : "#6F6867",
-            tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: base, accion: resuelto ? "Cerrado por el equipo." : respondio ? "Resuelto por ALMA. Nada que hacer." : (c.resumen || "ALMA decidió no responder."), accionColor: resuelto || respondio ? "#3d6b52" : "#6F6867", pideHumano: false, rk: 5 };
-        }
+        if (resuelto) { estado = "Cerrado por " + quienTxt; paso = "Nada pendiente."; pasoColor = VERDE; tag = "Respondió " + quienTxt; color = VERDE; }
+        else if (respondio) { estado = "Resuelto por ALMA hace " + mins(c.ts); paso = "Nada que hacer."; pasoColor = VERDE; tag = "ALMA respondió"; color = VERDE; }
+        else if (c.esCola) { estado = "En cola · " + (c.nivelLabel || "procesando"); paso = c.sentido || "ALMA lo atiende."; pasoColor = GRIS; tag = c.nivelLabel || "En cola"; color = "#D8D4CE"; }
+        else { estado = "ALMA decidió no responder"; paso = c.resumen || "Sin acción."; pasoColor = GRIS; tag = c.nivelLabel || "Sin respuesta"; color = "#D8D4CE"; }
+        tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "#F5F3F0"; tagFg = color === VERDE ? VERDE : GRIS;
       }
-      b.ts = c.ts; if (b.pideHumano) briefHumanos++;
-      briefItems.push(Object.assign(b, { irA: ir, responder: responder }));
+      if (razonEsEstado && c.razonBrief) estado = c.razonBrief.replace(/^\w/, function (ch) { return ch.toUpperCase(); }) + " · " + estado;
+      var filas = [{ k: "Problema", v: problema, color: "#3E3F3F", peso: "500" }, { k: "Estado", v: estado, color: "#3E3F3F", peso: "400" }];
+      if (c.form && c.form.formTxt !== "Sin dato") filas.push({ k: "Formulario", v: c.form.formTxt === "Formulario ✓" ? "Completo" : "Pendiente", color: c.form.formBg, peso: "600" });
+      if (pendiente) filas.push({ k: "Pendiente", v: pendiente, color: ROJO_T, peso: "500" });
+      filas.push({ k: "Siguiente", v: paso, color: pasoColor, peso: "600" });
+      if (pideHumano) briefHumanos++;
+      var abrir = function () {
+        var gk0 = c.resId || c.codigo || c.key; var j = gIdx[gk0] != null ? gIdx[gk0] : -1;
+        if (j < 0) return;
+        self.convAbrir(c.key, true, c.cargarHilo);
+        self.convIrA(j);
+      };
+      var drag = st.briefDrag && st.briefDrag.k === k ? st.briefDrag : null, dx = drag ? drag.dx : 0;
+      var verUlt = !!st.briefUltimo[k];
+      var hiloB = c.hilo || [];
+      briefItems.push({
+        k: k, ts: c.ts, rk: pideHumano ? 0 : esRojo ? 1 : esAmarillo ? 2 : 3, pideHumano: pideHumano,
+        color: color, tag: tag, tagBg: tagBg, tagFg: tagFg, tiempo: (c.esCola ? "Esperando " : "Hace ") + mins(c.ts),
+        huesped: c.huesped, propiedad: c.propiedad || "Propiedad sin nombre", filas: filas,
+        irA: abrir, responder: abrir,
+        descartar: function () { self.briefDescartar(k); },
+        verUltimo: verUlt, ultimoLabel: verUlt ? "Ocultar cierre" : "Último mensaje", ultimoBg: verUlt ? "#F5F3F0" : "#FFFFFF",
+        toggleUltimo: function () { self.setState(function (s) { var o = Object.assign({}, s.briefUltimo); o[k] = !o[k]; return { briefUltimo: o }; }); if (!verUlt && c.cargarHilo) c.cargarHilo(); },
+        ultimos: verUlt ? hiloB.slice(-2) : [], ultimoCargando: verUlt && !!c.hiloCargando,
+        cardT: "translateX(" + dx + "px)", cardTrans: drag ? "none" : "transform .36s cubic-bezier(.22,.61,.36,1)",
+        fondoBg: dx > 0 ? "rgba(216,212,206,.6)" : "rgba(233,130,106,.22)", fondoFg: dx > 0 ? "#6F6867" : "#B54D36", fondoOp: Math.min(1, Math.abs(dx) / 70),
+        fondoIzq: dx > 0 ? "Quitar del resumen" : "", fondoDer: dx < 0 ? "Abrir chat →" : "",
+        pDown: function (e) { if (e.pointerType === "mouse" && e.button !== 0) return; self._bd = { k: k, x0: e.clientX, y0: e.clientY, id: e.pointerId, el: e.currentTarget, on: false }; },
+        pMove: function (e) {
+          var d = self._bd; if (!d || d.k !== k) return;
+          var ddx = e.clientX - d.x0, ddy = e.clientY - d.y0;
+          if (!d.on) { if (Math.abs(ddx) < 10 || Math.abs(ddx) < Math.abs(ddy) * 1.2) return; d.on = true; try { d.el.setPointerCapture(d.id); } catch (x) {} }
+          e.preventDefault();
+          var lim = 160, r = ddx > 0 ? Math.min(ddx, lim + (ddx - lim) * .25) : Math.max(ddx, -lim + (ddx + lim) * .25);
+          self.setState({ briefDrag: { k: k, dx: r } });
+        },
+        pUp: function () {
+          var d = self._bd; if (!d || d.k !== k) return; self._bd = null;
+          var fin = (self.state.briefDrag && self.state.briefDrag.k === k) ? self.state.briefDrag.dx : 0;
+          if (fin > 90) { self.setState({ briefDrag: { k: k, dx: 600 } }); setTimeout(function () { self.briefDescartar(k); }, 220); }
+          else if (fin < -90) { self.setState({ briefDrag: null }); abrir(); }
+          else self.setState({ briefDrag: null });
+        }
+      });
     });
-    briefItems.sort(function (x, y) { return (y.pideHumano ? 1 : 0) - (x.pideHumano ? 1 : 0) || x.rk - y.rk || y.ts - x.ts; });
-    var briefMas = Math.max(0, briefItems.length - 8);
-    briefItems = briefItems.slice(0, 8);
+    briefItems.sort(function (x, y) { return st.convOrden === "Cronológico" ? y.ts - x.ts : (x.rk - y.rk || y.ts - x.ts); });
+    var briefIdx = Math.max(0, Math.min(briefItems.length - 1, st.briefIdx || 0)), nBrief = Math.max(1, briefItems.length), briefPct = 100 / nBrief;
+    var briefPaginas = briefItems.map(function (b, i) { return Object.assign(b, { _i: i }); }).filter(function (b) { return Math.abs(b._i - briefIdx) <= 1; }).map(function (b) { return Object.assign(b, { pagTop: (b._i * briefPct) + "%", pagAlto: briefPct + "%" }); });
+    var briefPuntos = briefItems.length > 1 && briefItems.length <= 12 ? briefItems.map(function (b, i) { return { h: i === briefIdx ? "18px" : "5px", bg: i === briefIdx ? "#3E3F3F" : "#D8D4CE" }; }) : [];
+    var briefMas = 0;
     var briefDigest = briefN.total ? [briefN.total + (briefN.total === 1 ? " conversación" : " conversaciones"), briefN.alma ? "ALMA respondió " + briefN.alma : "", briefN.equipo ? "el equipo " + briefN.equipo : "", briefN.cola ? briefN.cola + " en cola" : "", briefN.sin ? briefN.sin + " sin respuesta" : ""].filter(Boolean).join(" · ") : "";
-    var convIdx = Math.max(0, Math.min(convItems.length - 1, st.convIdx || 0));
-    var nPag = Math.max(1, convItems.length), pagPct = 100 / nPag;
-    /* Solo se montan la actual y sus vecinas, en su posición absoluta dentro del alto total. */
-    var convPaginas = convItems.map(function (c, i) { return Object.assign({}, c, { _i: i }); }).filter(function (c) { return Math.abs(c._i - convIdx) <= 1; }).map(function (c) {
-      return Object.assign(c, { pagTop: (c._i * pagPct) + "%", pagAlto: pagPct + "%" });
+    /* Una página por reserva: los fragmentos de la misma conversación se deslizan en horizontal (el más reciente primero). */
+    var grupos = [], gIdx = {};
+    convItems.forEach(function (c) {
+      var gk = c.resId || c.codigo || c.key;
+      if (gIdx[gk] == null) { gIdx[gk] = grupos.length; grupos.push({ key: gk, frags: [] }); }
+      grupos[gIdx[gk]].frags.push(c);
     });
-    var convPuntos = convItems.length > 1 && convItems.length <= 14 ? convItems.map(function (c, i) { return { h: i === convIdx ? "18px" : "5px", bg: i === convIdx ? "#3E3F3F" : "#D8D4CE" }; }) : [];
+    var yaResuelto = function (resId) {
+      var hl = st.almaHilos[resId] && st.almaHilos[resId].lista; if (!hl || !hl.length) return false;
+      var ult = hl[hl.length - 1], ultGuest = null;
+      for (var q = hl.length - 1; q >= 0; q--) { if (hl[q].tipo === "guest") { ultGuest = hl[q]; break; } }
+      if (!ultGuest) return false;
+      var g = String(ultGuest.texto || ""), u = String(ult.texto || "");
+      var dice = /resuelt|solucion|ya (lo |la )?(arregl|repar|resolv|solucion|cambi|abri|funcion|qued|entr[eé]|lleg)|ya pude (entrar|abrir|conectar)|ya est[aá] (bien|listo)|todo bien|ya no es necesario/i.test(g);
+      var confirmamos = ult.tipo !== "guest" && /ya qued[oó] resuelto|me alegra que .*(resuelt|arregl|funcion)|gracias por avisar(nos)? que ya/i.test(u);
+      return (dice && ult.tipo !== "guest") || confirmamos;
+    };
+    grupos.forEach(function (g) {
+      g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
+      var top = g.frags[0];
+      g.resuelto = !top.esCola && yaResuelto(top.resId);
+      g.rk = g.resuelto ? 7 : rank(top); g.ts = top.ts;
+      if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
+      g.frags.forEach(function (c, i) { c.hayFrags = g.frags.length > 1; c.fragPos = (i + 1) + " / " + g.frags.length; c.fechaPad = g.frags.length > 1 ? "52px" : "0"; });
+    });
+    if (st.convOrden !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
+    gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
+    this._convGrupos = grupos; this._convTotal = grupos.length;
+    /* Precarga el hilo de los primeros casos urgentes/por confirmar del historial para saber si ya se resolvieron sin abrirlos. */
+    if (window.ALMA && ALMA.hasApi()) {
+      grupos.forEach(function (g) {
+        var t = g.frags[0]; if (self._hiloCola.length >= 6 || t.esCola || g.rk > 4 || !t.resId || (st.almaHilos[t.resId] && !st.almaHilos[t.resId].error) || self._hiloPre[t.resId]) return;
+        self._hiloPre[t.resId] = 1; self._hiloCola.push(t.resId);
+      });
+      self.hiloPrefetch();
+    }
+    var convIdx = Math.max(0, Math.min(grupos.length - 1, st.convIdx || 0));
+    var nPag = Math.max(1, grupos.length), pagPct = 100 / nPag;
+    /* Solo se montan la actual y sus vecinas, en su posición absoluta dentro del alto total. */
+    var convPaginas = grupos.map(function (g, i) { return Object.assign({}, g, { _i: i }); }).filter(function (g) { return Math.abs(g._i - convIdx) <= 1; }).map(function (g) {
+      return Object.assign(g, { pagTop: (g._i * pagPct) + "%", pagAlto: pagPct + "%" });
+    });
+    var convPuntos = grupos.length > 1 && grupos.length <= 14 ? grupos.map(function (c, i) { return { h: i === convIdx ? "18px" : "5px", bg: i === convIdx ? "#3E3F3F" : "#D8D4CE" }; }) : [];
 
 
     return {
@@ -2707,27 +2960,43 @@ class Component extends DCLogic {
         var N = NIVEL[x[0]], n = conteo[x[0]];
         return { n: String(n), nombre: x[1], bd: n ? N.color : "#D8D4CE", fg: n ? N.fg : "#938B8A", bg: n ? N.bg : "transparent" };
       }),
-      logFiltros: logFiltros.map(function (x) { return { value: x, label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase() }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0 }); self.convReset(); },
-      quienFiltros: quienFiltros.map(function (x) { return { value: x, label: x }; }), logQuien: st.logQuien, setLogQuien: function (v) { self.setState({ logQuien: v, convIdx: 0 }); self.convReset(); },
+      logFiltros: logFiltros.map(function (x) { return { value: x, label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase() }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
+      quienFiltros: quienFiltros.map(function (x) { return { value: x, label: x }; }), logQuien: st.logQuien, setLogQuien: function (v) { self.setState({ logQuien: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       autoAbierto: st.autoAbierto, autoToggleAbierto: function () { self.setState({ autoAbierto: !st.autoAbierto }); },
       convItems: convItems, convVacio: !!st.alma && !convItems.length,
       convVacioTexto: busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
       convBusca: st.convBusca, convHayBusca: !!busca,
-      setConvBusca: function (e) { self.setState({ convBusca: e.target.value, convIdx: 0 }); self.convReset(); }, limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
+      setConvBusca: function (e) { self.setState({ convBusca: e.target.value, convIdx: 0, briefIdx: 0 }); self.convReset(); }, limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
       convHayMas: ocultos > 0, convCargarMasLabel: "Cargar más · " + ocultos + " anteriores",
       convCargarMas: function () { self.setState({ convDias: st.convDias + 2 }); },
       convPie: convItems.length + (convItems.length === 1 ? " conversación" : " conversaciones") + " · últimos " + st.convDias + " días" + (busca ? " · filtradas por “" + st.convBusca + "”" : ""),
       convRef: this.convRefCb,
-      convPaginas: convPaginas, convPuntos: convPuntos, convPos: convItems.length ? (convIdx + 1) + " de " + convItems.length : "",
-      convAltoTotal: (nPag * 100) + "%", convHandleOp: convItems.length > 1 && convIdx < convItems.length - 1 ? "1" : "0",
-      convScroll: function () {}, convKey: function (e) { self.convKey(e, convItems.length); },
-      convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= convItems.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
-      convAnterior: function () { self.convIr(-1, convItems.length); }, convSiguiente: function () { self.convIr(1, convItems.length); },
+      convPaginas: convPaginas, convPuntos: convPuntos, convPos: grupos.length ? (convIdx + 1) + " de " + grupos.length : "",
+      convAltoTotal: (nPag * 100) + "%", convHandleOp: grupos.length > 1 && convIdx < grupos.length - 1 ? "1" : "0",
+      convScroll: function () {}, convKey: function (e) { self.convKey(e, grupos.length); },
+      convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
+      convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
       mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
-      briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length, briefVentana: "Últimas " + ventanaH + " horas",
+      briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length, briefHay: briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",
+      briefRef: this.briefRefCb, briefPaginas: briefPaginas, briefPuntos: briefPuntos, briefAltoTotal: (nBrief * 100) + "%",
+      briefPos: briefItems.length ? (briefIdx + 1) + " de " + briefItems.length : "",
+      briefHayOcultas: briefOcultasN > 0, briefOcultasLabel: "Mostrar " + briefOcultasN + (briefOcultasN === 1 ? " quitada" : " quitadas"), briefRestaurar: function () { self.setState({ briefOcultas: {} }); },
+      urgOpciones: logFiltros.map(function (x) {
+        var act = st.logFiltro === x, N0 = { ROJO: NIVEL.ROJO.color, AMARILLO: NIVEL.AMARILLO.color, VERDE: NIVEL.VERDE.color }[x];
+        return { label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase(), hayPunto: !!N0, punto: N0 || "transparent", activo: act, bg: act ? "#3E3F3F" : "#FFFFFF", fg: act ? "#FAFAFA" : "#3E3F3F", bd: act ? "#3E3F3F" : "#D8D4CE", set: function () { self.setState({ logFiltro: x, convIdx: 0, briefIdx: 0 }); self.convReset(); } };
+      }),
+      quienOpciones: quienFiltros.map(function (x) {
+        var act = st.logQuien === x, p = x === "ALMA" ? "#3B6691" : x === "Todos" ? null : "#E9826A";
+        return { label: x, hayPunto: !!p, punto: p || "transparent", activo: act, bg: act ? "#3E3F3F" : "#FFFFFF", fg: act ? "#FAFAFA" : "#3E3F3F", bd: act ? "#3E3F3F" : "#D8D4CE", set: function () { self.setState({ logQuien: x, convIdx: 0, briefIdx: 0 }); self.convReset(); } };
+      }),
+      lightboxAbierto: !!st.lightbox, lightboxUrl: st.lightbox, cerrarLightbox: function () { self.setState({ lightbox: "" }); },
+      respFiltros: respFiltros.map(function (x) { return { value: x, label: x }; }), logResp: st.logResp, setLogResp: function (v) { self.setState({ logResp: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
+      ordenFiltros: ordenFiltros.map(function (x) { return { value: x, label: x }; }), convOrden: st.convOrden, setConvOrden: function (v) { self.setState({ convOrden: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
+      almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/alma-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
+      almaEstadoCorto: !st.alma ? "Conectando…" : !ctrlLegible ? "Control sin leer" : on ? (ctrl.MODO || "ON") + " · " + (ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00") : "Apagada",
       briefTitulo: !st.alma ? "Leyendo la cola…" : briefHumanos ? briefHumanos + (briefHumanos === 1 ? " caso necesita" : " casos necesitan") + " a alguien del equipo" : briefItems.length ? "Todo atendido, nada pendiente de ti" : "Sin movimiento",
-      briefDigest: briefDigest, briefHayDigest: !!briefDigest, briefHayMas: briefMas > 0, briefMasTexto: "+ " + briefMas + " más abajo, en las conversaciones",
+      briefDigest: briefDigest, briefHayDigest: !!briefDigest,
       briefVacioTexto: !ctrlLegible ? "No se pudo leer el interruptor de ALMA_CONTROL. Revisa la hoja antes de confiar en este resumen." : on ? "Nada en las últimas " + ventanaH + " horas. ALMA atiende la cola y te avisa aquí si algo necesita a una persona." : "ALMA está apagada. Lo que llegue a Hospitable no se atenderá hasta encenderla."
     };
   }

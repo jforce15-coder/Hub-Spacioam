@@ -737,7 +737,7 @@
     </div>
 
     <sc-if value="{{ almaAviso }}" hint-placeholder-val="{{ false }}">
-      <div style="background:rgba(242,117,90,.12); border:1px solid rgba(242,117,90,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
+      <div style="background:rgba(233,130,106,.12); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
     </sc-if>
 
     <div data-screen-label="ALMA · Filtros" style="display:flex; flex-direction:column; gap:10px">
@@ -747,7 +747,7 @@
         <input value="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
         <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#6F6867; padding:0">Limpiar</button></sc-if>
       </label>
-        <button onClick="{{ toggleFiltros }}" aria-expanded="{{ filtrosAbiertos }}" style="display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; flex-shrink:0; border:1px solid {{ filtrosBd }}; background: {{ filtrosBg }}; color: {{ filtrosFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">Filtros<sc-if value="{{ hayFiltrosActivos }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#F2755A; color:#3E3F3F; font-size:9.5px; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box">{{ filtrosActivos }}</span></sc-if><span aria-hidden="true" style="display:grid; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ filtrosChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="currentColor" hint-size="14px,14px"></x-import></span></button>
+        <button onClick="{{ toggleFiltros }}" aria-expanded="{{ filtrosAbiertos }}" style="display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; flex-shrink:0; border:1px solid {{ filtrosBd }}; background: {{ filtrosBg }}; color: {{ filtrosFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">Filtros<sc-if value="{{ hayFiltrosActivos }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#E9826A; color:#3E3F3F; font-size:9.5px; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box">{{ filtrosActivos }}</span></sc-if><span aria-hidden="true" style="display:grid; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ filtrosChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="currentColor" hint-size="14px,14px"></x-import></span></button>
       </div>
       <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows: {{ filtrosRows }}">
         <div style="overflow:hidden; min-height:0; transition:opacity .36s cubic-bezier(.22,.61,.36,1); opacity: {{ filtrosOp }}">
@@ -793,6 +793,18 @@
           <span style="font-size:11px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ briefPos }}</span>
         </div>
       </div>
+      <sc-if value="{{ resHay }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; padding:6px 0; display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(62,63,63,.04)">
+          <span style="padding:10px 16px 6px; font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">{{ resSub }}</span>
+          <sc-for list="{{ resLineas }}" as="l" hint-placeholder-count="3">
+            <button onClick="{{ l.ir }}" style="display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 16px; border:none; border-top:1px solid #F0EDE8; background:transparent; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent" style-hover="background:#FAFAFA" style-active="background:#F5F3F0">
+              <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; background: {{ l.dot }}"></span>
+              <span style="font-size:13px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty; min-width:0"><span style="font-weight:600">{{ l.quien }}</span> · {{ l.texto }}</span>
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; white-space:nowrap; line-height:1; background: {{ l.tagBg }}; color: {{ l.tagFg }}">{{ l.estado }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
       <sc-if value="{{ briefVacio }}" hint-placeholder-val="{{ false }}">
         <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px">
           <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ almaDotBg }}"></span>
@@ -801,7 +813,7 @@
       </sc-if>
       <sc-if value="{{ briefHay }}" hint-placeholder-val="{{ true }}">
         <div style="position:relative; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
-          <div ref="{{ briefRef }}" class="sa-snap" tabIndex="0" aria-label="Resumen · desliza vertical para cambiar, derecha para descartar, izquierda para abrir el chat" style="position:relative; height:clamp(300px, 46dvh, 420px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; scroll-behavior:smooth; outline:none; touch-action:pan-y">
+          <div ref="{{ briefRef }}" class="sa-snap" tabIndex="0" aria-label="Resumen · desliza vertical para cambiar, derecha para descartar, izquierda para abrir el chat" style="position:relative; height:clamp(300px, 46dvh, 420px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
             <div style="position:relative; width:100%; height: {{ briefAltoTotal }}">
               <sc-for list="{{ briefPaginas }}" as="b" hint-placeholder-count="1">
                 <div style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ b.pagTop }}; height: {{ b.pagAlto }}">
@@ -863,9 +875,9 @@
           <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Conversaciones · en cola e historial</span>
           <span style="font-size:17px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">Lo que ALMA atiende</span>
         </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap">
+        <div data-alma-contadores="1" style="display:flex; gap:6px; flex-wrap:wrap">
           <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="3">
-            <button onClick="{{ r.set }}" aria-pressed="{{ r.activo }}" style="display:inline-flex; align-items:baseline; gap:6px; min-height:36px; padding:0 14px; border:1px solid {{ r.bd }}; background: {{ r.bg }}; color: {{ r.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums">{{ r.n }}</span>{{ r.nombre }}</button>
+            <button onClick="{{ r.set }}" aria-pressed="{{ r.activo }}" style="display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; min-width:140px; padding:0 14px; line-height:1; box-sizing:border-box; border:1px solid {{ r.bd }}; background: {{ r.bg }}; color: {{ r.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums; line-height:1; min-width:2ch; text-align:right">{{ r.n }}</span><span style="line-height:1">{{ r.nombre }}</span></button>
           </sc-for>
         </div>
       </div>
@@ -880,13 +892,16 @@
       </div>
 
       <div style="position:relative; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
-        <div ref="{{ convRef }}" class="sa-snap" onScroll="{{ convScroll }}" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:relative; height:clamp(440px, calc(100dvh - 230px), 780px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; scroll-behavior:smooth; outline:none; touch-action:pan-y">
+        <div ref="{{ convRef }}" class="sa-snap" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:relative; height:clamp(440px, calc(100dvh - 230px), 780px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
           <sc-if value="{{ convVacio }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute; inset:14px; display:grid; place-items:center"><div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em; max-width:420px">{{ convVacioTexto }}</div></div>
           </sc-if>
           <div style="position:relative; width:100%; height: {{ convAltoTotal }}">
+        <sc-for list="{{ convAnclas }}" as="an" hint-placeholder-count="0">
+          <div aria-hidden="true" style="position:absolute; left:0; width:1px; pointer-events:none; scroll-snap-align:start; scroll-snap-stop:always; top: {{ an.top }}; height: {{ an.alto }}"></div>
+        </sc-for>
         <sc-for list="{{ convPaginas }}" as="g" hint-placeholder-count="1">
-          <div data-alma-page="1" style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ g.pagTop }}; height: {{ g.pagAlto }}">
+          <div data-alma-page="1" style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; top: {{ g.pagTop }}; height: {{ g.pagAlto }}">
             <div class="sa-snap" style="position:relative; height:100%; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; gap:12px">
             <sc-for list="{{ g.frags }}" as="c" hint-placeholder-count="1">
             <div style="flex:0 0 100%; width:100%; height:100%; min-width:0; scroll-snap-align:start; scroll-snap-stop:always; position:relative">
@@ -1962,7 +1977,7 @@ class Component extends DCLogic {
     el._saBound = true;
     var self = this, fn = function () { self.convScroll({ currentTarget: el }, self._convTotal); };
     el.addEventListener("scroll", fn, { passive: true });
-    el.addEventListener("scrollend", function () { clearTimeout(self._convScrollT); self._convScrollT = setTimeout(fn, 0); }, { passive: true });
+
   };
   /* Visor nativo: el contenedor es un scroll con snap (una conversación por página). El dedo arrastra 1:1,
      con inercia y rebote del sistema; el chat interior hace su propio scroll y, al llegar al borde,
@@ -1977,9 +1992,9 @@ class Component extends DCLogic {
   convScroll(e, total) {
     var el = e.currentTarget, self = this;
     if (this._convJump && Date.now() - this._convJump < 600) return;
-    if (this._convJump && Date.now() - this._convJump < 400) return;
     clearTimeout(this._convScrollT);
     this._convScrollT = setTimeout(function () {
+      if (self._convJump && Date.now() - self._convJump < 600) return;
       var i = Math.max(0, Math.min(total - 1, Math.round(el.scrollTop / Math.max(1, el.clientHeight))));
       if (i !== (self.state.convIdx || 0)) {
         self.setState({ convIdx: i });
@@ -2403,7 +2418,7 @@ class Component extends DCLogic {
     var PESO = { ROJO: 0, AMARILLO: 1, VERDE: 2 };
     var NIVEL = {
       ROJO: { bg: "#C0392B", fg: "#FFFFFF", color: "#C0392B" },
-      AMARILLO: { bg: "#F2755A", fg: "#3E3F3F", color: "#F2755A" },
+      AMARILLO: { bg: "#E9826A", fg: "#FFFFFF", color: "#E9826A" },
       VERDE: { bg: "#3d6b52", fg: "#FFFFFF", color: "#3d6b52" },
       SILENCIO: { bg: "#EAE6E0", fg: "#3E3F3F", color: "#B8B1AA" },
       "": { bg: "#EAE6E0", fg: "#3E3F3F", color: "#D8D4CE" }
@@ -2715,7 +2730,7 @@ class Component extends DCLogic {
     var quienFiltros = ["Todos", "ALMA", "Equipo"].concat(Object.keys(personas).sort());
     var logLista = (a.log || []).slice().reverse().filter(function (l) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "").toUpperCase();
-      return st.logFiltro === "Todo" || n === st.logFiltro;
+      return true;
     }).map(function (l, idx) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "");
       var N = NIVEL[n] || NIVEL[""];
@@ -2746,7 +2761,7 @@ class Component extends DCLogic {
         humano: humano, hayHumano: !!humano,
         votoBien: voto === "up", votoMal: voto === "down",
         votoBienBg: voto === "up" ? "#3d6b52" : "transparent", votoBienFg: voto === "up" ? "#FFFFFF" : "#6F6867",
-        votoMalBg: voto === "down" ? "#F2755A" : "transparent", votoMalFg: voto === "down" ? "#3E3F3F" : "#6F6867",
+        votoMalBg: voto === "down" ? "#E9826A" : "transparent", votoMalFg: voto === "down" ? "#3E3F3F" : "#6F6867",
         votarBien: function () { votar("up"); }, votarMal: function () { votar("down"); },
         key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, cargarHilo: function () { cargarHiloDe(resIdLog); }, form: farolForm(l.codigo, ""), nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
         quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
@@ -2813,7 +2828,7 @@ class Component extends DCLogic {
       return [c.huesped, c.propiedad, c.pregunta, c.respuesta, c.borrador, c.codigo].some(function (x) { return String(x || "").toLowerCase().indexOf(busca) >= 0; });
     };
     var pasaFiltro = function (c) {
-      var urg = st.logFiltro === "Todo" || (c.esCola ? (c.nivelLabel === ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[st.logFiltro]) : c.nivel === st.logFiltro);
+      var urg = true;
       var q = st.logQuien === "ALMA" ? (c.esLog && !!c.enviado && !c.humano) : st.logQuien === "Equipo" ? (c.esLog && !!c.humano) : st.logQuien === "Todos" ? true : (c.esLog && !!c.humano && c.quien === st.logQuien);
       var tiene = c.esLog ? (!!c.enviado || !!c.humano) : c.estadoCola === "respondido";
       var r = st.logResp === "Con respuesta" ? tiene : st.logResp === "Sin respuesta" ? !tiene : true;
@@ -2850,9 +2865,9 @@ class Component extends DCLogic {
       if (esRojo) {
         if (resuelto) { estado = "Atendido por " + quienTxt + " hace " + mins(c.ts); paso = "Solo confirma que quedó cerrado."; pasoColor = VERDE; tag = "Urgente · atendido"; color = VERDE; }
         else if (emer) { estado = "Sin respuesta del equipo; ALMA envió el código de emergencia"; paso = "No news, good news. Sin seguimiento."; pasoColor = VERDE; tag = "Urgente · código enviado"; color = "#E9826A"; }
-        else { estado = (c.esCola ? "Esperando " : "Hace ") + mins(c.ts) + (c.estadoCola === "esperando_rojo" ? " · contención enviada" : " · sin respuesta"); paso = c.accesoTipo === "edificio" ? "Confirmar la reserva con el edificio. Intervención humana." : "Nadie ha respondido. Intervención humana."; pasoColor = ROJO_T; pideHumano = true; tag = "Urgente"; color = "#F2755A"; }
+        else { estado = (c.esCola ? "Esperando " : "Hace ") + mins(c.ts) + (c.estadoCola === "esperando_rojo" ? " · contención enviada" : " · sin respuesta"); paso = c.accesoTipo === "edificio" ? "Confirmar la reserva con el edificio. Intervención humana." : "Nadie ha respondido. Intervención humana."; pasoColor = ROJO_T; pideHumano = true; tag = "Urgente"; color = "#E9826A"; }
         if (c.formStatus && c.formStatus !== "completo") pendiente = "Registro de llegada sin llenar (ALMA ya lo pidió)";
-        tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "rgba(242,117,90,.16)"; tagFg = color === VERDE ? VERDE : ROJO_T;
+        tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.16)"; tagFg = color === VERDE ? VERDE : ROJO_T;
       } else if (esAmarillo) {
         var tarda = c.esCola && ahora - c.ts > 45 * 60000;
         if (resuelto) { estado = "Confirmado por " + quienTxt; paso = "Nada pendiente."; pasoColor = VERDE; tag = "Por confirmar · resuelto"; color = VERDE; }
@@ -2882,7 +2897,7 @@ class Component extends DCLogic {
       var verUlt = !!st.briefUltimo[k];
       var hiloB = c.hilo || [];
       briefItems.push({
-        k: k, ts: c.ts, rk: pideHumano ? 0 : esRojo ? 1 : esAmarillo ? 2 : 3, pideHumano: pideHumano,
+        k: k, ts: c.ts, rk: pideHumano ? 0 : esRojo ? 1 : esAmarillo ? 2 : 3, pideHumano: pideHumano, _nv: esRojo ? "ROJO" : esAmarillo ? "AMARILLO" : "VERDE",
         color: color, tag: tag, tagBg: tagBg, tagFg: tagFg, tiempo: (c.esCola ? "Esperando " : "Hace ") + mins(c.ts),
         huesped: c.huesped, propiedad: c.propiedad || "Propiedad sin nombre", filas: filas,
         irA: abrir, responder: abrir,
@@ -2916,6 +2931,7 @@ class Component extends DCLogic {
     var briefPaginas = briefItems.map(function (b, i) { return Object.assign(b, { _i: i }); }).filter(function (b) { return Math.abs(b._i - briefIdx) <= 1; }).map(function (b) { return Object.assign(b, { pagTop: (b._i * briefPct) + "%", pagAlto: briefPct + "%" }); });
     var briefPuntos = briefItems.length > 1 && briefItems.length <= 12 ? briefItems.map(function (b, i) { return { h: i === briefIdx ? "18px" : "5px", bg: i === briefIdx ? "#3E3F3F" : "#D8D4CE" }; }) : [];
     var briefMas = 0;
+    if (st.logFiltro !== "Todo") briefItems = briefItems.filter(function (b) { return b._nv === st.logFiltro; });
     var briefDigest = briefN.total ? [briefN.total + (briefN.total === 1 ? " conversación" : " conversaciones"), briefN.alma ? "ALMA respondió " + briefN.alma : "", briefN.equipo ? "el equipo " + briefN.equipo : "", briefN.cola ? briefN.cola + " en cola" : "", briefN.sin ? briefN.sin + " sin respuesta" : ""].filter(Boolean).join(" · ") : "";
     /* Una página por reserva: los fragmentos de la misma conversación se deslizan en horizontal (el más reciente primero). */
     var grupos = [], gIdx = {};
@@ -2968,8 +2984,29 @@ class Component extends DCLogic {
     });
     if (st.convOrden !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
     var gruposTodos = grupos;
+    var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Por confirmar"))); };
+    /* Resumen en texto: una línea por reserva con movimiento en la ventana; si no hubo, lo que sigue abierto. */
+    var tsG = function (g) { return g.frags.reduce(function (m, c) { return Math.max(m, c.ts || 0); }, 0); };
+    var gruposRes = st.logFiltro === "Todo" ? gruposTodos : gruposTodos.filter(function (g) { return enNivel(g, st.logFiltro); });
+    var enVent = gruposRes.filter(function (g) { return ahora - tsG(g) <= ventanaMs; });
+    var resRecientes = enVent.length > 0;
+    var baseRes = resRecientes ? enVent : gruposRes.filter(function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || g.frags[0].esCola); });
+    var resLineas = baseRes.map(function (g) {
+      var t = g.frags[0], est, dot, bg, fg, pr;
+      if (g.resuelto) { est = "Resuelto"; dot = "#3d6b52"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; }
+      else if (enNivel(g, "ROJO")) { est = "Urgente"; dot = "#C0392B"; bg = "#C0392B"; fg = "#FFFFFF"; pr = 0; }
+      else if (enNivel(g, "AMARILLO")) { est = "Por confirmar"; dot = "#E9826A"; bg = "#E9826A"; fg = "#FFFFFF"; pr = 1; }
+      else if (t.esCola) { est = "En cola"; dot = "#938B8A"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 2; }
+      else { est = t.humano ? "Atendió el equipo" : "ALMA respondió"; dot = "#3d6b52"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; }
+      var razon = String(t.razonBrief || ""), esEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(razon);
+      var prob = (razon && !esEstado ? razon : self.limpiaImg(t.pregunta) || razon || "Sin detalle").replace(/\s+/g, " ").trim();
+      if (prob.length > 110) prob = prob.slice(0, 108).replace(/\s+\S*$/, "") + "…";
+      var nom = String(t.huesped || "Huésped").split(" ")[0];
+      return { pr: pr, ts: tsG(g), quien: nom + (t.propiedad ? " · " + t.propiedad : ""), texto: prob.replace(/\.$/, "") + ".", estado: est, dot: dot, tagBg: bg, tagFg: fg,
+        ir: function () { var j = gIdx[g.key]; if (j == null) return; self.convAbrir(t.key, true, t.cargarHilo); self.convIrA(j); } };
+    }).sort(function (x, y) { return x.pr - y.pr || y.ts - x.ts; }).slice(0, 8);
     var nFiltros = (st.logFiltro !== "Todo" ? 1 : 0) + (st.logQuien !== "Todos" ? 1 : 0) + (st.logResp !== "Todas" ? 1 : 0) + (st.convOrden === "Cronológico" ? 1 : 0);
-    var TIPO_C = { sin_atender: ["Sin atender", "#C0392B"], urgente: ["Urgente", "#C0392B"], codigo: ["Código enviado", "#F2755A"], sin_codigo: ["Sin código", "#C0392B"], retenido: ["Retenido", "#F2755A"], borrador: ["Borrador", "#3B6691"], seguimiento: ["Seguimiento", "#F2755A"], error: ["Error", "#C0392B"], aviso: ["Aviso", "#6F6867"] };
+    var TIPO_C = { sin_atender: ["Sin atender", "#C0392B"], urgente: ["Urgente", "#C0392B"], codigo: ["Código enviado", "#E9826A"], sin_codigo: ["Sin código", "#C0392B"], retenido: ["Retenido", "#E9826A"], borrador: ["Borrador", "#3B6691"], seguimiento: ["Seguimiento", "#E9826A"], error: ["Error", "#C0392B"], aviso: ["Aviso", "#6F6867"] };
     var limC = Date.now() - st.convDias * 86400000;
     var correosVista = (a.correos || []).map(function (m, i) { var t = new Date(m.fecha).getTime(); return { m: m, t: t, k: (m.fecha || "") + i }; })
       .filter(function (x) { return !isNaN(x.t) && x.t >= limC; }).sort(function (x, y) { return y.t - x.t; }).slice(0, 80).map(function (x) {
@@ -2979,7 +3016,8 @@ class Component extends DCLogic {
           abierto: ab, hayHtml: ab && !!m.html, soloTexto: ab && !m.html, html: ab ? (m.html || "") : "", texto: m.texto || "",
           toggle: function () { self.setState({ correoVer: ab ? "" : x.k }); } };
       });
-    if (st.convVista === "resueltas") grupos = grupos.filter(function (g) { return g.resuelto; });
+    var verN = st.convVista === "resueltas" ? "VERDE" : st.logFiltro;
+    if (verN !== "Todo") grupos = grupos.filter(function (g) { return enNivel(g, verN); });
     else if (st.convOrden !== "Cronológico") grupos = grupos.filter(function (g) { return !g.resuelto; });
     gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
     this._convGrupos = grupos; this._convTotal = grupos.length;
@@ -3081,10 +3119,17 @@ class Component extends DCLogic {
       hayMejorasHist: st.mejorasHist.length > 0, mejorasHist: st.mejorasHist,
 
       colaResumen: [["ROJO", "urgentes"], ["AMARILLO", "por confirmar"], ["VERDE", "resueltas"]].map(function (x) {
-        var N = NIVEL[x[0]], n = gruposTodos.filter(function (g) { var t = g.frags[0]; return x[0] === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x[0] || (x[0] === "ROJO" && t.nivelLabel === "Urgente") || (x[0] === "AMARILLO" && t.nivelLabel === "Por confirmar"))); }).length;
+        var N = NIVEL[x[0]], n = gruposTodos.filter(function (g) { return enNivel(g, x[0]); }).length;
         var act = x[0] === "VERDE" ? st.convVista === "resueltas" : (st.convVista !== "resueltas" && st.logFiltro === x[0]);
         return { n: String(n), nombre: x[1], activo: act, bd: act ? "#3E3F3F" : "#D8D4CE", fg: act ? "#FAFAFA" : "#3E3F3F", bg: act ? "#3E3F3F" : "#FFFFFF",
-          set: function () { self.setState(act ? { logFiltro: "Todo", convVista: "", convIdx: 0 } : x[0] === "VERDE" ? { convVista: "resueltas", logFiltro: "Todo", convIdx: 0 } : { logFiltro: x[0], convVista: "", convIdx: 0 }); self.convReset(); } };
+          set: function () {
+            /* Ancla: los contadores se quedan quietos en pantalla aunque cambie el alto de lo de arriba. */
+            var box = document.querySelector("[data-alma-contadores]"), y0 = box ? box.getBoundingClientRect().top : null;
+            self.setState(act ? { logFiltro: "Todo", convVista: "", convIdx: 0, briefIdx: 0 } : x[0] === "VERDE" ? { convVista: "resueltas", logFiltro: "Todo", convIdx: 0, briefIdx: 0 } : { logFiltro: x[0], convVista: "", convIdx: 0, briefIdx: 0 }, function () {
+              requestAnimationFrame(function () { var b2 = document.querySelector("[data-alma-contadores]"); if (b2 && y0 != null) window.scrollBy(0, b2.getBoundingClientRect().top - y0); });
+            });
+            self.convReset();
+          } };
       }),
       logFiltros: logFiltros.map(function (x) { return { value: x, label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase() }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       quienFiltros: quienFiltros.map(function (x) { return { value: x, label: x }; }), logQuien: st.logQuien, setLogQuien: function (v) { self.setState({ logQuien: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
@@ -3097,6 +3142,7 @@ class Component extends DCLogic {
       convCargarMas: function () { self.setState({ convDias: st.convDias + 2 }); },
       convPie: convItems.length + (convItems.length === 1 ? " conversación" : " conversaciones") + " · últimos " + st.convDias + " días" + (busca ? " · filtradas por “" + st.convBusca + "”" : ""),
       convRef: this.convRefCb,
+      convAnclas: grupos.map(function (g, i) { return { top: (i * pagPct) + "%", alto: pagPct + "%" }; }),
       convPaginas: convPaginas, convPuntos: convPuntos, convPos: grupos.length ? (convIdx + 1) + " de " + grupos.length : "",
       convAltoTotal: (nPag * 100) + "%", convHandleOp: grupos.length > 1 && convIdx < grupos.length - 1 ? "1" : "0",
       convScroll: function () {}, convKey: function (e) { self.convKey(e, grupos.length); },
@@ -3104,7 +3150,9 @@ class Component extends DCLogic {
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
       mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
-      briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length, briefHay: briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",
+      resLineas: resLineas, resHay: resLineas.length > 0,
+      resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : "Nada nuevo en " + ventanaH + " horas · siguen abiertos",
+      briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length && !resLineas.length, briefHay: briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",
       briefRef: this.briefRefCb, briefPaginas: briefPaginas, briefPuntos: briefPuntos, briefAltoTotal: (nBrief * 100) + "%",
       briefPos: briefItems.length ? (briefIdx + 1) + " de " + briefItems.length : "",
       briefHayOcultas: briefOcultasN > 0, briefOcultasLabel: "Mostrar " + briefOcultasN + (briefOcultasN === 1 ? " quitada" : " quitadas"), briefRestaurar: function () { self.setState({ briefOcultas: {} }); },
@@ -3151,7 +3199,7 @@ class Component extends DCLogic {
     });
     return hit;
   }
-  sevColor(s) { return s === "urgente" ? "#C0392B" : s === "atencion" ? "#F2755A" : "#3d6b52"; }
+  sevColor(s) { return s === "urgente" ? "#C0392B" : s === "atencion" ? "#E9826A" : "#3d6b52"; }
   pill(activo) {
     return activo
       ? { bg: "#3E3F3F", fg: "#FAFAFA", bd: "#3E3F3F" }
@@ -3331,7 +3379,7 @@ class Component extends DCLogic {
         titulo: t.texto || t.titulo,
         meta: t.meta || (t.prop + " · " + t.quien + " · " + (t.dias < 0 ? Math.abs(t.dias) + " días tarde" : t.dias === 0 ? "hoy" : "en " + t.dias + " días")),
         origen: origen,
-        color: t.dias < 0 ? "#C0392B" : t.dias <= 1 ? "#F2755A" : "#D8D4CE",
+        color: t.dias < 0 ? "#C0392B" : t.dias <= 1 ? "#E9826A" : "#D8D4CE",
         abrir: origen === "Grow" ? ir(self.APPS.grow) : setV("tareas")
       };
     };
@@ -3362,7 +3410,7 @@ class Component extends DCLogic {
     var dist = [5, 4, 3, 2, 1].map(function (e) {
       var n = filtradas.filter(function (r) { return r.rating === e; }).length;
       var pct = filtradas.length ? Math.round((n / filtradas.length) * 100) : 0;
-      return { estrella: String(e), n: String(n), pct: pct + "%", color: e >= 4 ? "#3E3F3F" : "#F2755A" };
+      return { estrella: String(e), n: String(n), pct: pct + "%", color: e >= 4 ? "#3E3F3F" : "#E9826A" };
     });
     /* Serie histórica: promedio por mes dentro del rango, del más viejo al más nuevo. */
     var hist = (function () {
@@ -3797,7 +3845,7 @@ class Component extends DCLogic {
       reviewDestacados: this.temas(todas12, "pos").slice(0, 3).map(function (t) {
         return { tema: t.tema, menciones: String(t.menciones), color: "#3d6b52" };
       }).concat(this.temas(todas12, "neg").slice(0, 2).map(function (t) {
-        return { tema: t.tema, menciones: String(t.menciones), color: "#F2755A" };
+        return { tema: t.tema, menciones: String(t.menciones), color: "#E9826A" };
       })),
       optPropiedades: props.map(function (p) { return { value: p, label: p }; }),
       optRangos: rangos.map(function (r) { return { value: r.v, label: r.n }; }),

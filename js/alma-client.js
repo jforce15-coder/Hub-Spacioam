@@ -64,6 +64,9 @@
     automejora: function (fila, estado, cambios, nota) { return call('automejora', { fila: fila, estado: estado, cambios: cambios, nota: nota }); },
     setConocimiento: function (fila, tema, contenido, aplica, activo) { return call('setConocimiento', { fila: fila, tema: tema, contenido: contenido, aplica: aplica, activo: activo }); },
     setPropiedadDato: function (propiedad, campo, valor) { return call('setPropiedadDato', { propiedad: propiedad, campo: campo, valor: valor }); },
-    hilo: function (resId) { return call('hilo', { resId: resId }); }
+    hilo: function (resId) { return call('hilo', { resId: resId }); },
+    redactarHub: function (resId, texto) { return call('redactarHub', { resId: resId, texto: texto }); },
+    responder: function (resId, texto) { return call('responder', { resId: resId, texto: texto }); },
+    votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); }
   };
 })(window);

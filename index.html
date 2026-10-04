@@ -703,16 +703,24 @@
 </sc-if>
 
 <sc-if value="{{ enAlma }}" hint-placeholder-val="{{ false }}">
-<div data-screen-label="ALMA" class="sa-anim" style="min-height:100vh; background:#FAFAFA; padding:0 0 64px; overflow-x:hidden; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
-  <div style="max-width:960px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px">
+<div data-screen-label="ALMA" class="sa-anim" style="min-height:100vh; background:#FAFAFA; padding:0 0 64px; overflow-x:hidden">
+  <div style="max-width:960px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
     <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px">
       <div style="display:flex; flex-direction:column; gap:6px">
         <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Asistente nocturno · Hospitable</span>
         <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">ALMA</h2>
       </div>
-      <div style="display:flex; align-items:center; gap:10px">
+      <div style="display:flex; align-items:center; gap:8px">
         <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
+        <button onClick="{{ ctrlToggleAbierto }}" aria-label="Control de ALMA" title="Control" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="settings" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
+          <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ almaDotBg }}"></span>
+        </button>
+        <button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras y auto mejora" title="Mejoras" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
+          <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-1px; top:-1px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#E9826A; color:#FFFFFF; font-size:10.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box; line-height:1">{{ autoPendientes }}</span></sc-if>
+        </button>
         <button onClick="{{ almaRecargar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer; font-family:inherit" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ almaRecargarLabel }}</button>
       </div>
     </div>
@@ -721,262 +729,45 @@
       <div style="background:rgba(242,117,90,.12); border:1px solid rgba(242,117,90,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
     </sc-if>
 
-    <div data-screen-label="ALMA · Control" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
-      <div style="display:flex; align-items:center; gap:14px; padding:14px 18px">
-        <button onClick="{{ ctrlToggleAbierto }}" aria-expanded="{{ ctrlAbierto }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:14px; border:none; background:transparent; padding:0; cursor:pointer; text-align:left; font-family:inherit; min-height:44px; -webkit-tap-highlight-color:transparent" style-active="opacity:.7">
-          <span aria-hidden="true" style="width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; color:#3E3F3F; flex-shrink:0; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ ctrlChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></span>
-          <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Control</span>
-            <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:19px; color:#3E3F3F; line-height:1.1">{{ almaEstadoTitulo }}</span>
-          </span>
-          <span style="display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; padding-right:6px">
-            <sc-for list="{{ ctrlResumen }}" as="p" hint-placeholder-count="2">
-              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:#F5F3F0; color:#3E3F3F">{{ p }}</span>
-            </sc-for>
-          </span>
-        </button>
-        <button onClick="{{ almaToggle }}" aria-label="Encender o apagar ALMA" style="width:52px; height:30px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1); background: {{ almaToggleBg }}">
-          <span style="position:absolute; top:3px; width:24px; height:24px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); transition:left .18s cubic-bezier(.22,.61,.36,1); left: {{ almaToggleLeft }}"></span>
-        </button>
+    <div data-screen-label="ALMA · Resumen" style="display:flex; flex-direction:column; gap:10px">
+      <div style="display:flex; flex-direction:column; gap:4px">
+        <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Resumen · {{ briefVentana }}</span>
+        <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,4vw,28px); color:#3E3F3F; line-height:1.1; text-wrap:pretty">{{ briefTitulo }}</span>
+        <sc-if value="{{ briefHayDigest }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; letter-spacing:.03em; color:#6F6867; line-height:1.5">{{ briefDigest }}</span></sc-if>
       </div>
-      <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows: {{ ctrlRows }}">
-        <div style="overflow:hidden; min-height:0; transition:opacity .36s cubic-bezier(.22,.61,.36,1); opacity: {{ ctrlOp }}">
-          <div style="padding:4px 18px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:22px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
-            <div style="display:flex; flex-direction:column; gap:16px">
-              <div style="display:flex; flex-direction:column; gap:8px">
-                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Modo</span>
-                <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
-                  <sc-for list="{{ almaModos }}" as="m" hint-placeholder-count="3">
-                    <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
-                  </sc-for>
-                </div>
-                <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; line-height:1.5; text-wrap:pretty">{{ almaModoDesc }}</span>
-              </div>
-              <div style="display:flex; flex-direction:column; gap:8px">
-                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Horario</span>
-                <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
-                  <sc-for list="{{ almaHorarios }}" as="m" hint-placeholder-count="2">
-                    <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
-                  </sc-for>
-                </div>
-              </div>
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:auto">
-                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ almaGuardarControl }}" loading="{{ almaGuardando }}" disabled="{{ almaSinCambios }}" hint-size="auto,38px">{{ almaGuardarLabel }}</x-import>
-                <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaControlNota }}</span>
-              </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:8px">
-              <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Tiempos de espera</span>
-              <sc-for list="{{ almaTiempos }}" as="t" hint-placeholder-count="4">
-                <label style="display:flex; align-items:center; justify-content:space-between; gap:10px">
-                  <span style="flex:1; min-width:0; font-size:12px; line-height:1.4; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ t.label }}</span>
-                  <span style="display:flex; align-items:center; gap:6px; flex-shrink:0">
-                    <input type="number" min="0" step="{{ t.step }}" value="{{ t.valor }}" onChange="{{ t.set }}" style="width:64px; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:7px 9px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; text-align:right; font-variant-numeric:tabular-nums" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-                    <span style="font-size:10px; letter-spacing:.06em; color:#6F6867; width:26px">{{ t.unidad }}</span>
-                  </span>
-                </label>
-              </sc-for>
-            </div>
-            <div data-screen-label="ALMA · Conocimiento" style="grid-column:1 / -1; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
-
-          <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
-            <div style="display:flex; flex-direction:column; gap:4px">
-              <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Base de conocimiento</span>
-              <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:19px; color:#3E3F3F; line-height:1.1">Lo que ALMA sabe</span>
-            </div>
-            <button onClick="{{ kbNuevoAbrir }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer; font-family:inherit" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ kbNuevoLabel }}</button>
+      <sc-for list="{{ briefItems }}" as="b" hint-placeholder-count="1">
+        <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-left:3px solid {{ b.color }}; border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(62,63,63,.04); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
+          <div style="display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:4px 9px; background: {{ b.tagBg }}; color: {{ b.tagFg }}">{{ b.tag }}</span>
+            <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867; margin-left:auto; font-variant-numeric:tabular-nums">{{ b.tiempo }}</span>
           </div>
-          <p style="margin:0; font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty; max-width:720px">Políticas y datos que ALMA consulta al responder. Cada entrada aplica a todas las propiedades o solo a las que indiques. También puedes pedir cambios aquí desde el bloque de mejoras.</p>
-          <sc-if value="{{ kbNuevo }}" hint-placeholder-val="{{ false }}">
-            <div style="background:#FFFFFF; border:1px solid #E9826A; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px">
-              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:10px">
-                <input value="{{ kbNuevoTema }}" onChange="{{ kbSetNuevoTema }}" placeholder="Tema · ej. Parqueo · Fiamene" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-                <input value="{{ kbNuevoAplica }}" onChange="{{ kbSetNuevoAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-              </div>
-              <textarea value="{{ kbNuevoContenido }}" onChange="{{ kbSetNuevoContenido }}" rows="4" placeholder="Qué debe saber ALMA, en su voz" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
-              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
-                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ kbGuardarNuevo }}" hint-size="auto,38px">Guardar</x-import>
-                <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ kbNota }}</span>
-              </div>
-            </div>
-          </sc-if>
-          <div style="display:flex; flex-direction:column; gap:8px">
-            <sc-for list="{{ kbItems }}" as="k" hint-placeholder-count="4">
-              <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:8px">
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
-                  <button onClick="{{ k.toggle }}" aria-label="Activar o desactivar" style="width:36px; height:22px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; background: {{ k.toggleBg }}">
-                    <span style="position:absolute; top:3px; width:16px; height:16px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); left: {{ k.toggleLeft }}"></span>
-                  </button>
-                  <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:17px; line-height:1.1; color: {{ k.temaColor }}">{{ k.tema }}</span>
-                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ k.aplica }}</span>
-                  <button onClick="{{ k.editar }}" style="margin-left:auto; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10.5px; letter-spacing:.06em; color:#6F6867; padding:2px 0" style-hover="color:#3E3F3F">{{ k.editarLabel }}</button>
-                </div>
-                <sc-if value="{{ k.cerrado }}" hint-placeholder-val="{{ true }}">
-                  <p style="margin:0; font-size:12.5px; line-height:1.5; color:#6F6867; letter-spacing:.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">{{ k.contenido }}</p>
-                </sc-if>
-                <sc-if value="{{ k.abierto }}" hint-placeholder-val="{{ false }}">
-                  <div style="display:flex; flex-direction:column; gap:8px">
-                    <input value="{{ k.editAplica }}" onChange="{{ k.setAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:8px 11px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F">
-                    <textarea value="{{ k.editContenido }}" onChange="{{ k.setContenido }}" rows="5" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
-                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
-                      <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ k.guardar }}" loading="{{ k.busy }}" hint-size="auto,38px">Guardar</x-import>
-                      <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ k.nota }}</span>
-                    </div>
-                  </div>
-                </sc-if>
-              </div>
-            </sc-for>
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:14px; font-weight:600; color:#3E3F3F; letter-spacing:.01em; line-height:1.4; text-wrap:pretty">{{ b.titulo }}</span>
+            <span style="font-size:12.5px; color:#3E3F3F; line-height:1.55; letter-spacing:.01em; text-wrap:pretty">{{ b.detalle }}</span>
+            <span style="font-size:12px; color: {{ b.accionColor }}; line-height:1.5; letter-spacing:.01em; font-weight:500; text-wrap:pretty">{{ b.accion }}</span>
           </div>
-            </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <sc-if value="{{ b.pideHumano }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ b.responder }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:0 16px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.97)">Responder ahora</button>
+            </sc-if>
+            <button onClick="{{ b.irA }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; padding:0 14px; min-height:40px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">Ir al chat →</button>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div data-screen-label="ALMA · Mejoras" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
-      <button onClick="{{ mejToggleAbierto }}" aria-expanded="{{ mejAbierto }}" style="width:100%; display:flex; align-items:center; gap:14px; border:none; background:transparent; padding:14px 18px; cursor:pointer; text-align:left; font-family:inherit; min-height:60px; -webkit-tap-highlight-color:transparent" style-active="opacity:.7">
-        <span aria-hidden="true" style="width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; color:#3E3F3F; flex-shrink:0; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ mejChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></span>
-        <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
-          <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Mejoras y auto mejora</span>
-          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:19px; color:#3E3F3F; line-height:1.1">Enséñale algo a ALMA</span>
-        </span>
-        <span style="display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; align-items:center">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import>
-          <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; border:1px solid {{ autoPillBd }}; color: {{ autoPillFg }}; background: {{ autoPillBg }}">{{ autoPendientes }} por revisar</span>
-        </span>
-      </button>
-      <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows: {{ mejRows }}">
-        <div style="overflow:hidden; min-height:0; transition:opacity .36s cubic-bezier(.22,.61,.36,1); opacity: {{ mejOp }}">
-          <div style="padding:0 18px 18px; display:flex; flex-direction:column; gap:18px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
-            <div style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:18px; padding:clamp(16px,2.5vw,22px); display:flex; flex-direction:column; gap:14px; color:#3E3F3F; position:relative; overflow:hidden">
-      <span aria-hidden="true" style="position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(closest-side, rgba(233,130,106,.28), transparent)"></span>
-      <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; position:relative">
-        <div style="display:flex; flex-direction:column; gap:4px; max-width:560px">
-          <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import> Mejoras</span>
-          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,3.4vw,30px); line-height:1.08; text-wrap:pretty; color:#3E3F3F">¿Qué quieres que ALMA haga mejor?</span>
-          <span style="font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty">Escríbelo como se lo dirías a alguien del equipo. ALMA propone el cambio exacto y tú lo apruebas.</span>
+      </sc-for>
+      <sc-if value="{{ briefHayMas }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A; padding-left:4px">{{ briefMasTexto }}</span></sc-if>
+      <sc-if value="{{ briefVacio }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; padding:14px 16px; display:flex; align-items:center; gap:12px">
+          <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ almaDotBg }}"></span>
+          <span style="font-size:13px; color:#3E3F3F; letter-spacing:.01em; line-height:1.5; text-wrap:pretty">{{ briefVacioTexto }}</span>
         </div>
-        <select value="{{ mejoraClave }}" onChange="{{ setMejoraClave }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#3E3F3F; cursor:pointer">
-          <sc-for list="{{ mejoraClaves }}" as="k" hint-placeholder-count="4">
-            <option value="{{ k.v }}" style="color:#3E3F3F">{{ k.n }}</option>
-          </sc-for>
-        </select>
-      </div>
-      <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; position:relative">
-        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
-        <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:none; border-radius:16px; background:#3E3F3F; padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
-      </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; position:relative">
-        <span style="font-size:10px; letter-spacing:.08em; color:#6F6867">Prueba con:</span>
-        <sc-for list="{{ mejoraEjemplos }}" as="e" hint-placeholder-count="3">
-          <button onClick="{{ e.usar }}" style="border:1px solid rgba(233,130,106,.6); border-radius:999px; background:#FFFFFF; padding:6px 12px; font-family:inherit; font-size:11.5px; color:#3E3F3F; cursor:pointer; transition:background .18s, border-color .18s" style-hover="background:rgba(233,130,106,.14); border-color:#E9826A">{{ e.texto }}</button>
-        </sc-for>
-        <span style="margin-left:auto; font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ mejoraNota }}</span>
-      </div>
-        <sc-if value="{{ hayPropuesta }}" hint-placeholder-val="{{ false }}">
-          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; color:#3E3F3F">
-            <div style="font-size:12.5px; line-height:1.5; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ mejoraResumen }}</div>
-            <sc-if value="{{ mejoraEsDato }}" hint-placeholder-val="{{ false }}">
-              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
-                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Dato de propiedad · {{ mejoraDatoProp }}</span>
-                <span style="font-size:11px; letter-spacing:.05em; color:#6F6867">{{ mejoraDatoCampo }}</span>
-                <sc-if value="{{ mejoraDatoHayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ mejoraDatoAntes }}</span></sc-if>
-                <span style="font-size:13px; line-height:1.5; color:#3E3F3F; font-weight:500">{{ mejoraDatoValor }}</span>
-              </div>
-            </sc-if>
-            <sc-if value="{{ mejoraEsKb }}" hint-placeholder-val="{{ false }}">
-              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
-                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Base de conocimiento · {{ mejoraKbTema }} · {{ mejoraKbAplica }}</span>
-                <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F; white-space:pre-wrap">{{ mejoraKbContenido }}</span>
-              </div>
-            </sc-if>
-            <sc-for list="{{ mejoraCambios }}" as="c" hint-placeholder-count="2">
-              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
-                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
-                <sc-if value="{{ c.hayAntes }}" hint-placeholder-val="{{ false }}">
-                  <span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ c.antes }}</span>
-                </sc-if>
-                <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F">{{ c.despues }}</span>
-              </div>
-            </sc-for>
-            <div style="display:flex; gap:8px; flex-wrap:wrap">
-              <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ aplicarMejora }}" loading="{{ mejoraAplicando }}" hint-size="auto,38px">Aplicar a ALMA</x-import>
-              <button onClick="{{ descartarMejora }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Descartar</button>
-            </div>
-          </div>
-        </sc-if>
-        <sc-if value="{{ hayMejorasHist }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(233,130,106,.45); padding-top:12px">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Mejoras aplicadas</span>
-            <sc-for list="{{ mejorasHist }}" as="m" hint-placeholder-count="2">
-              <div style="font-size:11.5px; line-height:1.5; color:#3E3F3F"><span style="color:#6F6867">{{ m.cuando }} · {{ m.clave }}</span> — {{ m.resumen }}</div>
-            </sc-for>
-          </div>
-        </sc-if>
-            </div>
-            <div data-screen-label="ALMA · Auto mejora" style="display:flex; flex-direction:column; gap:12px">
-              <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
-                <div style="display:flex; flex-direction:column; gap:4px">
-                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Auto mejora</span>
-                  <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:20px; color:#3E3F3F; line-height:1.1">Lo que ALMA aprendió mirando al equipo</span>
-                </div>
-              </div>
-              <p style="margin:0; font-size:12px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty; max-width:720px">ALMA aprende de cuatro señales: cuando alguien del equipo responde en su lugar, cuando marcas una respuesta con “A mejorar”, cuando el control de calidad frena algo, y cuando un huésped tiene que volver a preguntar. Si una misma duda se repite en una propiedad, propone fijarla como conocimiento. Nada se aplica sin tu aprobación.</p>
-      <sc-if value="{{ autoVacio }}" hint-placeholder-val="{{ false }}">
-        <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em">Nada pendiente por ahora.</div>
       </sc-if>
-      <div style="display:flex; flex-direction:column; gap:12px">
-        <sc-for list="{{ autoItems }}" as="m" hint-placeholder-count="1">
-          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:14px">
-            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
-              <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:17px; color:#3E3F3F">{{ m.huesped }}</span>
-              <span style="font-size:11px; letter-spacing:.04em; color:#6F6867">{{ m.propiedad }}</span>
-              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ m.claveLabel }}</span>
-              <span style="margin-left:auto; font-size:11px; letter-spacing:.04em; color:#938B8A; font-variant-numeric:tabular-nums">{{ m.fecha }}</span>
-            </div>
-            <div style="background:#FAFAFA; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px">
-              <div style="display:flex; justify-content:flex-start">
-                <div style="max-width:min(82%,520px); background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px 16px 16px 4px; padding:9px 13px; font-size:13px; line-height:1.55; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ m.pregunta }}</div>
-              </div>
-              <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
-                <div style="max-width:min(82%,520px); background:#EAE6E0; border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; line-height:1.55; color:#6F6867; white-space:pre-wrap; text-wrap:pretty">{{ m.borrador }}</div>
-                <span style="font-size:9.5px; letter-spacing:.06em; color:#938B8A">Lo que ALMA habría dicho · no se envió</span>
-              </div>
-              <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
-                <div style="max-width:min(82%,520px); background:rgba(233,130,106,.16); border:1px solid rgba(233,130,106,.35); border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; line-height:1.55; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ m.humano }}</div>
-                <span style="font-size:9.5px; letter-spacing:.06em; color:#B54D36">Lo que respondió el equipo</span>
-              </div>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:10px">
-              <div style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Aprendizaje:</strong> {{ m.aprendizaje }}</div>
-              <div style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ m.resumen }}</div>
-              <sc-for list="{{ m.cambios }}" as="c" hint-placeholder-count="1">
-                <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
-                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
-                  <sc-if value="{{ c.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ c.antes }}</span></sc-if>
-                  <textarea value="{{ c.despues }}" onChange="{{ c.set }}" rows="2" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:12.5px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
-                </div>
-              </sc-for>
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ m.aceptar }}" loading="{{ m.busy }}" hint-size="auto,38px">Aceptar y aplicar</x-import>
-                <button onClick="{{ m.rechazar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#C0392B; border-color:#C0392B">Rechazar</button>
-                <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ m.nota }}</span>
-              </div>
-            </div>
-          </div>
-        </sc-for>
-      </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div data-screen-label="ALMA · Conversaciones" style="display:flex; flex-direction:column; gap:12px">
       <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
         <div style="display:flex; flex-direction:column; gap:4px">
           <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Conversaciones · en cola e historial</span>
-          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:24px; color:#3E3F3F; line-height:1.1">Lo que ALMA atiende</span>
+          <span style="font-size:17px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">Lo que ALMA atiende</span>
         </div>
         <div style="display:flex; gap:6px; flex-wrap:wrap">
           <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="3">
@@ -990,8 +781,15 @@
           <input value="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
           <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#6F6867; padding:0">Limpiar</button></sc-if>
         </label>
-        <div class="sa-hscroll" style="display:flex; gap:8px; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding:2px 2px 4px; margin:0 -2px">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ logFiltros }}" value="{{ logFiltro }}" onChange="{{ setLogFiltro }}" size="sm" hint-size="auto,40px" style="flex-shrink:0; scroll-snap-align:start"></x-import>
+        <div class="sa-hscroll" style="display:flex; gap:14px; align-items:center; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding:2px 2px 4px; margin:0 -2px">
+          <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0; scroll-snap-align:start">
+            <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Urgencia</span>
+            <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ logFiltros }}" value="{{ logFiltro }}" onChange="{{ setLogFiltro }}" size="sm" hint-size="auto,40px"></x-import>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0; scroll-snap-align:start">
+            <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Quién respondió</span>
+            <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ quienFiltros }}" value="{{ logQuien }}" onChange="{{ setLogQuien }}" size="sm" hint-size="auto,40px"></x-import>
+          </div>
         </div>
       </div>
 
@@ -1018,7 +816,7 @@
                 <span style="width:36px; height:36px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ c.iniciales }}</span>
                 <div style="flex:1; min-width:160px; display:flex; flex-direction:column; gap:3px">
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-                    <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:18px; color:#3E3F3F; line-height:1.1">{{ c.huesped }}</span>
+                    <span style="font-size:15px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">{{ c.huesped }}</span>
                     <span style="font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:5px 11px; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivelLabel }}</span>
                     <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:4px 9px; border:1px solid #E9826A; color:#B54D36; background:rgba(233,130,106,.12)">En cola</span></sc-if>
                   </div>
@@ -1061,7 +859,7 @@
                     <div style="display:flex; justify-content:flex-end">
                       <div style="max-width:min(92%,560px); display:flex; flex-direction:column; gap:4px; align-items:flex-end">
                         <div style="padding:10px 14px; font-size:13.5px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background:rgba(233,130,106,.22); color:#3E3F3F; border:1px solid rgba(233,130,106,.5)">{{ c.humano }}</div>
-                        <span style="font-size:10px; letter-spacing:.06em; color:#B54D36">Respondió el equipo</span>
+                        <span style="font-size:10px; letter-spacing:.06em; color:#B54D36">{{ c.quienLabel }}</span>
                       </div>
                     </div>
                   </sc-if>
@@ -1209,28 +1007,291 @@
       </sc-if>
     </div>
 
-              <div data-alma-chat="1" style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
-                <sc-if value="{{ c.modoResumen }}" hint-placeholder-val="{{ true }}">
-                  <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
-                    <div style="max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div>
-                    <sc-if value="{{ c.hayFotos }}" hint-placeholder-val="{{ false }}">
-                      <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px)">
-                        <sc-for list="{{ c.fotos }}" as="f" hint-placeholder-count="0">
-                          <a href="{{ f.url }}" target="_blank" rel="noopener" style="display:block; width:110px; height:110px; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08)"><img src="{{ f.url }}" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></a>
-                        </div>
-        </sc-for>
-        <div style="position:absolute; right:14px; top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:5px; pointer-events:none">
-          <sc-for list="{{ convPuntos }}" as="p" hint-placeholder-count="0">
-            <span style="width:5px; border-radius:999px; transition:height .18s, background .18s; height: {{ p.h }}; background: {{ p.bg }}"></span>
-          </sc-for>
+  </div>
+    <sc-if value="{{ ctrlAbierto }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
+        <div onClick="{{ ctrlToggleAbierto }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
+        <div role="dialog" aria-label="Control de ALMA" style="position:relative; width:min(100%,760px); max-height:min(92dvh,900px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
+          <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
+          <button onClick="{{ ctrlToggleAbierto }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:10px 14px calc(18px + env(safe-area-inset-bottom)); min-height:0">
+    <div data-screen-label="ALMA · Control" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
+      <div style="display:flex; align-items:center; gap:14px; padding:14px 18px">
+        <div style="flex:1; min-width:0; display:flex; align-items:center; gap:14px; padding-right:40px">
+          <span aria-hidden="true" style="width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; color:#3E3F3F; flex-shrink:0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="settings" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></span>
+          <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Control</span>
+            <span style="font-size:15px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">{{ almaEstadoTitulo }}</span>
+          </span>
+          <span style="display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; padding-right:6px">
+            <sc-for list="{{ ctrlResumen }}" as="p" hint-placeholder-count="2">
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:#F5F3F0; color:#3E3F3F">{{ p }}</span>
+            </sc-for>
+          </span>
+        </div>
+        <button onClick="{{ almaToggle }}" aria-label="Encender o apagar ALMA" style="width:52px; height:30px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1); background: {{ almaToggleBg }}">
+          <span style="position:absolute; top:3px; width:24px; height:24px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); transition:left .18s cubic-bezier(.22,.61,.36,1); left: {{ almaToggleLeft }}"></span>
+        </button>
+      </div>
+      <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows:1fr">
+        <div style="overflow:hidden; min-height:0">
+          <div style="padding:4px 18px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:22px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
+            <div style="display:flex; flex-direction:column; gap:16px">
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Modo</span>
+                <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
+                  <sc-for list="{{ almaModos }}" as="m" hint-placeholder-count="3">
+                    <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
+                  </sc-for>
+                </div>
+                <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; line-height:1.5; text-wrap:pretty">{{ almaModoDesc }}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Horario</span>
+                <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
+                  <sc-for list="{{ almaHorarios }}" as="m" hint-placeholder-count="2">
+                    <button onClick="{{ m.set }}" style="flex:1; border:none; border-radius:999px; padding:8px 6px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s; background: {{ m.bg }}; color: {{ m.fg }}">{{ m.nombre }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:auto">
+                <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; transition:background .18s; background: {{ almaAutoDot }}"></span>
+                <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaControlNota }}</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px">
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Tiempos de espera</span>
+              <sc-for list="{{ almaTiempos }}" as="t" hint-placeholder-count="4">
+                <label style="display:flex; align-items:center; justify-content:space-between; gap:10px">
+                  <span style="flex:1; min-width:0; font-size:12px; line-height:1.4; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ t.label }}</span>
+                  <span style="display:flex; align-items:center; gap:6px; flex-shrink:0">
+                    <input type="number" min="0" step="{{ t.step }}" value="{{ t.valor }}" onChange="{{ t.set }}" style="width:64px; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:7px 9px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; text-align:right; font-variant-numeric:tabular-nums" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                    <span style="font-size:10px; letter-spacing:.06em; color:#6F6867; width:26px">{{ t.unidad }}</span>
+                  </span>
+                </label>
+              </sc-for>
+            </div>
+            <div data-screen-label="ALMA · Conocimiento" style="grid-column:1 / -1; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
+
+          <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
+            <div style="display:flex; flex-direction:column; gap:4px">
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Base de conocimiento</span>
+              <span style="font-size:15px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">Lo que ALMA sabe</span>
+            </div>
+            <button onClick="{{ kbNuevoAbrir }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer; font-family:inherit" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ kbNuevoLabel }}</button>
+          </div>
+          <p style="margin:0; font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty; max-width:720px">Políticas y datos que ALMA consulta al responder. Cada entrada aplica a todas las propiedades o solo a las que indiques. También puedes pedir cambios aquí desde el bloque de mejoras.</p>
+          <sc-if value="{{ kbNuevo }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FFFFFF; border:1px solid #E9826A; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:10px">
+                <input value="{{ kbNuevoTema }}" onChange="{{ kbSetNuevoTema }}" placeholder="Tema · ej. Parqueo · Fiamene" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                <input value="{{ kbNuevoAplica }}" onChange="{{ kbSetNuevoAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+              </div>
+              <textarea value="{{ kbNuevoContenido }}" onChange="{{ kbSetNuevoContenido }}" rows="4" placeholder="Qué debe saber ALMA, en su voz" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ kbGuardarNuevo }}" hint-size="auto,38px">Guardar</x-import>
+                <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ kbNota }}</span>
+              </div>
+            </div>
+          </sc-if>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <sc-for list="{{ kbItems }}" as="k" hint-placeholder-count="4">
+              <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:8px">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+                  <button onClick="{{ k.toggle }}" aria-label="Activar o desactivar" style="width:36px; height:22px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; background: {{ k.toggleBg }}">
+                    <span style="position:absolute; top:3px; width:16px; height:16px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); left: {{ k.toggleLeft }}"></span>
+                  </button>
+                  <span style="font-size:14px; font-weight:600; letter-spacing:.01em; line-height:1.1; color: {{ k.temaColor }}">{{ k.tema }}</span>
+                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ k.aplica }}</span>
+                  <button onClick="{{ k.editar }}" style="margin-left:auto; border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10.5px; letter-spacing:.06em; color:#6F6867; padding:2px 0" style-hover="color:#3E3F3F">{{ k.editarLabel }}</button>
+                </div>
+                <sc-if value="{{ k.cerrado }}" hint-placeholder-val="{{ true }}">
+                  <p style="margin:0; font-size:12.5px; line-height:1.5; color:#6F6867; letter-spacing:.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">{{ k.contenido }}</p>
+                </sc-if>
+                <sc-if value="{{ k.abierto }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:8px">
+                    <input value="{{ k.editAplica }}" onChange="{{ k.setAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:8px 11px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F">
+                    <textarea value="{{ k.editContenido }}" onChange="{{ k.setContenido }}" rows="5" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
+                      <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ k.autoDot }}"></span>
+                      <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ k.nota }}</span>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+            </div>
+          </div>
         </div>
       </div>
-      <sc-if value="{{ convHayMas }}" hint-placeholder-val="{{ false }}">
-        <button onClick="{{ convCargarMas }}" style="align-self:center; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:10px 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer" style-hover="border-color:#3E3F3F">{{ convCargarMasLabel }}</button>
-      </sc-if>
     </div>
 
-  </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ mejAbierto }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
+        <div onClick="{{ mejToggleAbierto }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
+        <div role="dialog" aria-label="Mejoras y auto mejora" style="position:relative; width:min(100%,760px); max-height:min(92dvh,900px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
+          <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
+          <button onClick="{{ mejToggleAbierto }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:10px 14px calc(18px + env(safe-area-inset-bottom)); min-height:0">
+    <div data-screen-label="ALMA · Mejoras" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
+      <div style="width:100%; display:flex; align-items:center; gap:14px; padding:14px 48px 14px 18px; min-height:60px; box-sizing:border-box">
+        <span aria-hidden="true" style="width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; color:#3E3F3F; flex-shrink:0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="14" hint-size="14px,14px"></x-import></span>
+        <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
+          <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Mejoras y auto mejora</span>
+          <span style="font-size:15px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">Enséñale algo a ALMA</span>
+        </span>
+        <span style="display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; align-items:center">
+          <button onClick="{{ autoToggleAbierto }}" style="display:inline-flex; align-items:center; gap:7px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:0 12px; min-height:36px; cursor:pointer; transition:transform .1s, filter .18s; -webkit-tap-highlight-color:transparent; border:1px solid {{ autoPillBd }}; color: {{ autoPillFg }}; background: {{ autoPillBg }}" style-hover="filter:brightness(.97)" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import>{{ autoPendientes }} por revisar →</button>
+        </span>
+      </div>
+      <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows:1fr">
+        <div style="overflow:hidden; min-height:0">
+          <div style="padding:0 18px 18px; display:flex; flex-direction:column; gap:18px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
+            <div style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:18px; padding:clamp(16px,2.5vw,22px); display:flex; flex-direction:column; gap:14px; color:#3E3F3F; position:relative; overflow:hidden">
+      <span aria-hidden="true" style="position:absolute; right:-40px; top:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(closest-side, rgba(233,130,106,.28), transparent)"></span>
+      <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; position:relative">
+        <div style="display:flex; flex-direction:column; gap:4px; max-width:560px">
+          <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import> Mejoras</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,3.4vw,30px); line-height:1.08; text-wrap:pretty; color:#3E3F3F">¿Qué quieres que ALMA haga mejor?</span>
+          <span style="font-size:12.5px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty">Escríbelo como se lo dirías a alguien del equipo. ALMA propone el cambio exacto y tú lo apruebas.</span>
+        </div>
+        <select value="{{ mejoraClave }}" onChange="{{ setMejoraClave }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#3E3F3F; cursor:pointer">
+          <sc-for list="{{ mejoraClaves }}" as="k" hint-placeholder-count="4">
+            <option value="{{ k.v }}" style="color:#3E3F3F">{{ k.n }}</option>
+          </sc-for>
+        </select>
+      </div>
+      <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; position:relative">
+        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+        <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:none; border-radius:999px; background:#3E3F3F; padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; position:relative">
+        <span style="font-size:10px; letter-spacing:.08em; color:#6F6867">Prueba con:</span>
+        <sc-for list="{{ mejoraEjemplos }}" as="e" hint-placeholder-count="3">
+          <button onClick="{{ e.usar }}" style="border:1px solid rgba(233,130,106,.6); border-radius:999px; background:#FFFFFF; padding:6px 12px; font-family:inherit; font-size:11.5px; color:#3E3F3F; cursor:pointer; transition:background .18s, border-color .18s" style-hover="background:rgba(233,130,106,.14); border-color:#E9826A">{{ e.texto }}</button>
+        </sc-for>
+        <span style="margin-left:auto; font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ mejoraNota }}</span>
+      </div>
+        <sc-if value="{{ hayPropuesta }}" hint-placeholder-val="{{ false }}">
+          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:12px; color:#3E3F3F">
+            <div style="font-size:12.5px; line-height:1.5; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ mejoraResumen }}</div>
+            <sc-if value="{{ mejoraEsDato }}" hint-placeholder-val="{{ false }}">
+              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Dato de propiedad · {{ mejoraDatoProp }}</span>
+                <span style="font-size:11px; letter-spacing:.05em; color:#6F6867">{{ mejoraDatoCampo }}</span>
+                <sc-if value="{{ mejoraDatoHayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ mejoraDatoAntes }}</span></sc-if>
+                <span style="font-size:13px; line-height:1.5; color:#3E3F3F; font-weight:500">{{ mejoraDatoValor }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ mejoraEsKb }}" hint-placeholder-val="{{ false }}">
+              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Base de conocimiento · {{ mejoraKbTema }} · {{ mejoraKbAplica }}</span>
+                <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F; white-space:pre-wrap">{{ mejoraKbContenido }}</span>
+              </div>
+            </sc-if>
+            <sc-for list="{{ mejoraCambios }}" as="c" hint-placeholder-count="2">
+              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
+                <sc-if value="{{ c.hayAntes }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ c.antes }}</span>
+                </sc-if>
+                <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F">{{ c.despues }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ aplicarMejora }}" loading="{{ mejoraAplicando }}" hint-size="auto,38px">Aplicar a ALMA</x-import>
+              <button onClick="{{ descartarMejora }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Descartar</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hayMejorasHist }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(233,130,106,.45); padding-top:12px">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Mejoras aplicadas</span>
+            <sc-for list="{{ mejorasHist }}" as="m" hint-placeholder-count="2">
+              <div style="font-size:11.5px; line-height:1.5; color:#3E3F3F"><span style="color:#6F6867">{{ m.cuando }} · {{ m.clave }}</span> — {{ m.resumen }}</div>
+            </sc-for>
+          </div>
+        </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ autoAbierto }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:61; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
+        <div onClick="{{ autoToggleAbierto }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
+        <div role="dialog" aria-label="Auto mejora" style="position:relative; width:min(100%,760px); max-height:min(92dvh,900px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
+          <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
+          <button onClick="{{ autoToggleAbierto }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:10px 14px calc(18px + env(safe-area-inset-bottom)); min-height:0">
+            <div data-screen-label="ALMA · Auto mejora" style="display:flex; flex-direction:column; gap:12px">
+              <div style="display:flex; align-items:center; gap:14px; padding:4px 4px 0 4px; padding-right:40px">
+                <span aria-hidden="true" style="width:28px; height:28px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; flex-shrink:0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="14" hint-size="14px,14px"></x-import></span>
+                <div style="display:flex; flex-direction:column; gap:2px">
+                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Auto mejora · {{ autoPendientes }} por revisar</span>
+                  <span style="font-size:15px; font-weight:600; color:#3E3F3F; line-height:1.2; letter-spacing:.01em">Lo que ALMA aprendió mirando al equipo</span>
+                </div>
+              </div>
+              <p style="margin:0; font-size:12px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty; max-width:720px">ALMA aprende de cuatro señales: cuando alguien del equipo responde en su lugar, cuando marcas una respuesta con “A mejorar”, cuando el control de calidad frena algo, y cuando un huésped tiene que volver a preguntar. Si una misma duda se repite en una propiedad, propone fijarla como conocimiento. Nada se aplica sin tu aprobación.</p>
+      <sc-if value="{{ autoVacio }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em">Nada pendiente por ahora.</div>
+      </sc-if>
+      <div style="display:flex; flex-direction:column; gap:12px">
+        <sc-for list="{{ autoItems }}" as="m" hint-placeholder-count="1">
+          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:14px">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px">
+              <span style="font-size:14px; font-weight:600; letter-spacing:.01em; color:#3E3F3F">{{ m.huesped }}</span>
+              <span style="font-size:11px; letter-spacing:.04em; color:#6F6867">{{ m.propiedad }}</span>
+              <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ m.claveLabel }}</span>
+              <span style="margin-left:auto; font-size:11px; letter-spacing:.04em; color:#938B8A; font-variant-numeric:tabular-nums">{{ m.fecha }}</span>
+            </div>
+            <div style="background:#FAFAFA; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px">
+              <div style="display:flex; justify-content:flex-start">
+                <div style="max-width:min(82%,520px); background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px 16px 16px 4px; padding:9px 13px; font-size:13px; line-height:1.55; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ m.pregunta }}</div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
+                <div style="max-width:min(82%,520px); background:#EAE6E0; border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; line-height:1.55; color:#6F6867; white-space:pre-wrap; text-wrap:pretty">{{ m.borrador }}</div>
+                <span style="font-size:9.5px; letter-spacing:.06em; color:#938B8A">Lo que ALMA habría dicho · no se envió</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
+                <div style="max-width:min(82%,520px); background:rgba(233,130,106,.16); border:1px solid rgba(233,130,106,.35); border-radius:16px 16px 4px 16px; padding:9px 13px; font-size:13px; line-height:1.55; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ m.humano }}</div>
+                <span style="font-size:9.5px; letter-spacing:.06em; color:#B54D36">Lo que respondió el equipo</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Aprendizaje:</strong> {{ m.aprendizaje }}</div>
+              <div style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ m.resumen }}</div>
+              <sc-for list="{{ m.cambios }}" as="c" hint-placeholder-count="1">
+                <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
+                  <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
+                  <sc-if value="{{ c.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ c.antes }}</span></sc-if>
+                  <textarea value="{{ c.despues }}" onChange="{{ c.set }}" rows="2" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:12.5px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                </div>
+              </sc-for>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ m.aceptar }}" loading="{{ m.busy }}" hint-size="auto,38px">Aceptar y aplicar</x-import>
+                <button onClick="{{ m.rechazar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#C0392B; border-color:#C0392B">Rechazar</button>
+                <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ m.nota }}</span>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
 </div>
 </sc-if>
 
@@ -1633,7 +1694,7 @@ class Component extends DCLogic {
     almaCtrl: null, almaGuardando: false, almaControlNota: "",
     almaAbierto: null, almaAjustes: {}, almaPreview: {}, almaAjusteBusy: null, almaAccionNota: {},
     mejoraClave: "REDACTOR", mejoraTexto: "", mejoraBusy: false, mejoraAplicando: false, mejoraPropuesta: null, mejoraNota: "", mejorasHist: [],
-    logFiltro: "Todo", logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
+    logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: {}, autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {},
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -1686,6 +1747,17 @@ class Component extends DCLogic {
   }
   componentWillUnmount() { clearInterval(this._almaTimer); clearInterval(this._tick); }
   _convRef = React.createRef();
+  _convTotal = 0;
+  /* Ref de callback: el visor se monta/desmonta con la vista; el listener nativo (passive) no depende del
+     onScroll sintético, que en iOS se pierde durante la inercia. */
+  convRefCb = (el) => {
+    this._convRef.current = el;
+    if (!el || el._saBound) return;
+    el._saBound = true;
+    var self = this, fn = function () { self.convScroll({ currentTarget: el }, self._convTotal); };
+    el.addEventListener("scroll", fn, { passive: true });
+    el.addEventListener("scrollend", function () { clearTimeout(self._convScrollT); self._convScrollT = setTimeout(fn, 0); }, { passive: true });
+  };
   /* Visor nativo: el contenedor es un scroll con snap (una conversación por página). El dedo arrastra 1:1,
      con inercia y rebote del sistema; el chat interior hace su propio scroll y, al llegar al borde,
      el gesto continúa hacia la siguiente conversación. Solo se montan la página actual y sus vecinas. */
@@ -1698,6 +1770,7 @@ class Component extends DCLogic {
   }
   convScroll(e, total) {
     var el = e.currentTarget, self = this;
+    if (this._convJump && Date.now() - this._convJump < 400) return;
     clearTimeout(this._convScrollT);
     this._convScrollT = setTimeout(function () {
       var i = Math.max(0, Math.min(total - 1, Math.round(el.scrollTop / Math.max(1, el.clientHeight))));
@@ -1714,6 +1787,46 @@ class Component extends DCLogic {
   }
   convReset() {
     var el = this._convRef.current; if (el) el.scrollTo({ top: 0, behavior: "auto" });
+  }
+  /* Salto directo: primero se montan las páginas alrededor del destino (setState), y solo entonces se mueve el
+     scroll con el snap apagado un frame — si no, el snap "mandatory" devuelve el scroll a la página montada más cercana. */
+  convIrA(i) {
+    var self = this, el = this._convRef.current;
+    if (!el) { this.setState({ convIdx: i }); return; }
+    var top = el.getBoundingClientRect().top + window.scrollY - 72;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    this._convJump = Date.now();
+    this.setState({ convIdx: i }, function () {
+      el.style.scrollSnapType = "none"; el.style.scrollBehavior = "auto";
+      el.scrollTop = i * el.clientHeight;
+      requestAnimationFrame(function () { requestAnimationFrame(function () { el.style.scrollSnapType = ""; el.style.scrollBehavior = ""; self._convJump = 0; }); });
+      try { el.focus({ preventScroll: true }); } catch (x) {}
+    });
+  }
+  _kbT = {};
+  /* Control: cada cambio viaja solo a ALMA_CONTROL, con un pequeño debounce para agrupar toques seguidos. */
+  ctrlAutosave() {
+    var self = this; clearTimeout(this._ctrlT);
+    this._ctrlT = setTimeout(function () {
+      var ctrl = self.state.almaCtrl; if (!ctrl) return;
+      var orig = self.almaCtrlOriginal(), hayHoja = ((self.state.alma || {}).control || []).length > 0, diff = {};
+      Object.keys(ctrl).forEach(function (k) { if (String(ctrl[k] == null ? "" : ctrl[k]) !== String(orig[k] == null ? "" : orig[k])) diff[k] = ctrl[k]; });
+      if (!Object.keys(diff).length) { self.setState({ almaCtrl: null, almaControlNota: "" }); return; }
+      if (!hayHoja || !orig.TOGGLE) { self.setState({ almaCtrl: null, almaControlNota: "No se pudo leer ALMA_CONTROL; no se guardó nada para no apagar ALMA por error." }); return; }
+      self.setState({ almaGuardando: true });
+      var p = window.ALMA && ALMA.hasApi() ? ALMA.setControl(diff) : Promise.resolve({ ok: true, local: true });
+      p.then(function (res) {
+        self.setState(function (s) {
+          if (s.almaCtrl !== ctrl) return { almaGuardando: false };
+          var control = Object.keys(ctrl).map(function (k) { return { clave: k, valor: ctrl[k] == null ? "" : String(ctrl[k]) }; });
+          return { almaGuardando: false, alma: res && res.ok ? Object.assign({}, s.alma, { control: control }) : s.alma, almaCtrl: res && res.ok ? null : s.almaCtrl,
+            almaControlNota: res && res.ok ? (res.local ? "Guardado aquí · conecta el Apps Script para que llegue a la hoja" : "Guardado · ALMA lo lee en el próximo minuto") : "No se pudo guardar. Revisa la conexión." };
+        });
+      });
+    }, 700);
+  }
+  quienSoy() {
+    try { var s = window.SA && SA.session ? SA.session() : null; return (s && (s.nombre || s.email)) || ""; } catch (e) { return ""; }
   }
   resolverSesion() {
     var tok = (window.SA && SA.getToken) ? SA.getToken() : this.cookie("sa_session");
@@ -1863,7 +1976,8 @@ class Component extends DCLogic {
   almaCtrlOriginal() {
     var ctrl = {}, self = this;
     ((this.state.alma || {}).control || []).forEach(function (r) { ctrl[String(r.clave || "").trim().toUpperCase()] = String(r.valor || "").trim().toUpperCase(); });
-    var o = { TOGGLE: ctrl.TOGGLE || "OFF", MODO: ctrl.MODO || "SOMBRA", HORARIO: ctrl.HORARIO || "ON" };
+    /* Sin TOGGLE legible NO se asume OFF: queda vacío y el hub lo muestra como "sin leer" y bloquea el autoguardado. */
+    var o = { TOGGLE: ctrl.TOGGLE || "", MODO: ctrl.MODO || "", HORARIO: ctrl.HORARIO || "" };
     this.TIEMPOS.forEach(function (t) { var v = parseFloat(ctrl[t.k]); o[t.k] = isNaN(v) ? String(t.def) : String(v); });
     return o;
   }
@@ -2022,8 +2136,8 @@ class Component extends DCLogic {
     var self = this, st = this.state, a = st.alma || { control: [], cola: [], log: [], instrucciones: [] };
     var ctrlO = this.almaCtrlOriginal(), ctrl = st.almaCtrl || ctrlO;
     var sinCambios = Object.keys(ctrlO).every(function (k) { return String(ctrl[k] == null ? "" : ctrl[k]) === String(ctrlO[k] == null ? "" : ctrlO[k]); });
-    var setCtrl = function (k, v) { self.setState(function (s) { var n = Object.assign({}, s.almaCtrl || ctrlO); n[k] = v; return { almaCtrl: n, almaControlNota: "" }; }); };
-    var on = ctrl.TOGGLE === "ON";
+    var setCtrl = function (k, v) { self.setState(function (s) { var n = Object.assign({}, s.almaCtrl || ctrlO); n[k] = v; return { almaCtrl: n, almaControlNota: "Guardando…" }; }); self.ctrlAutosave(); };
+    var on = ctrl.TOGGLE === "ON", ctrlLegible = !!ctrlO.TOGGLE;
     var pillStyle = function (activo) { return activo ? { bg: "#3E3F3F", fg: "#FAFAFA" } : { bg: "transparent", fg: "#6F6867" }; };
     var fmtHora = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" }); };
     var fmtDia = function (v) {
@@ -2107,7 +2221,7 @@ class Component extends DCLogic {
         respEnviar: function () {
           var t = ((self.state.convResp[convKey] || {}).texto || "").trim(); if (!t) return;
           upd({ enviando: true, nota: "" });
-          var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
+          var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
           p.then(function (res) {
             if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
             upd({ enviando: false, abierto: false, texto: "", nota: "" });
@@ -2149,7 +2263,8 @@ class Component extends DCLogic {
       var convKey = "c" + key, enHilo = !!st.convHilo[convKey];
       var estadiaC = d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "";
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
-        key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId,
+        key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est,
+        emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
         hayEstadia: !!(d.checkin), estadia: d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "", hayCodigo: !!d.codigo, codigo: d.codigo || "",
@@ -2280,6 +2395,10 @@ class Component extends DCLogic {
     var kbItems = (a.conocimiento || []).filter(function (r) { return "tema" in r; }).map(function (r) {
       var key = String(r._fila), activo = ["NO", "FALSE", "0"].indexOf(String(r.activo || "").trim().toUpperCase()) < 0;
       var ed = st.kbEdit[key] || { contenido: r.contenido || "", aplica: r.aplica_a || "*" };
+      var kbAuto = function () {
+        clearTimeout(self._kbT[key]);
+        self._kbT[key] = setTimeout(function () { var cur = self.state.kbEdit[key]; if (cur) guardar({ contenido: cur.contenido, aplica: cur.aplica }); }, 1100);
+      };
       var guardar = function (cambios) {
         var fin = Object.assign({ tema: r.tema, contenido: r.contenido, aplica: r.aplica_a || "*", activo: activo }, cambios);
         self.setState({ kbBusy: key });
@@ -2288,7 +2407,7 @@ class Component extends DCLogic {
           self.setState(function (s) {
             if (!(res && res.ok)) return { kbBusy: null, kbNota: "No se pudo guardar." };
             var kb = (s.alma.conocimiento || []).map(function (x) { return x._fila === r._fila ? Object.assign({}, x, { contenido: fin.contenido, aplica_a: fin.aplica, activo: fin.activo ? "SI" : "NO" }) : x; });
-            var e2 = Object.assign({}, s.kbEdit); delete e2[key];
+            var e2 = Object.assign({}, s.kbEdit); if (!cambios.contenido || (e2[key] && e2[key].contenido === fin.contenido && e2[key].aplica === fin.aplica)) delete e2[key];
             return { kbBusy: null, kbAbierto: null, kbEdit: e2, kbNota: res.local ? "Guardado aquí · conecta el Apps Script para que llegue a la hoja" : "Guardado", alma: Object.assign({}, s.alma, { conocimiento: kb }) };
           });
         });
@@ -2300,10 +2419,10 @@ class Component extends DCLogic {
         abierto: st.kbAbierto === key, cerrado: st.kbAbierto !== key, editarLabel: st.kbAbierto === key ? "Cerrar" : "Editar",
         editar: function () { self.setState({ kbAbierto: st.kbAbierto === key ? null : key, kbNota: "" }); },
         editContenido: ed.contenido, editAplica: ed.aplica,
-        setContenido: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.kbEdit); o[key] = Object.assign({}, ed, { contenido: v }); return { kbEdit: o }; }); },
-        setAplica: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.kbEdit); o[key] = Object.assign({}, ed, { aplica: v }); return { kbEdit: o }; }); },
-        guardar: function () { var cur = self.state.kbEdit[key] || ed; guardar({ contenido: cur.contenido, aplica: cur.aplica }); },
-        busy: st.kbBusy === key, nota: st.kbAbierto === key ? st.kbNota : ""
+        setContenido: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.kbEdit); o[key] = Object.assign({}, ed, { contenido: v }); return { kbEdit: o, kbNota: "Guardando…" }; }); kbAuto(); },
+        setAplica: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.kbEdit); o[key] = Object.assign({}, ed, { aplica: v }); return { kbEdit: o, kbNota: "Guardando…" }; }); kbAuto(); },
+        autoDot: st.kbBusy === key || st.kbEdit[key] ? "#E9826A" : /No se pudo/.test(st.kbNota || "") ? "#C0392B" : "#3d6b52",
+        busy: st.kbBusy === key, nota: st.kbAbierto === key ? (st.kbNota || "Se guarda solo al escribir") : ""
       };
     });
 
@@ -2319,11 +2438,19 @@ class Component extends DCLogic {
     var reservaDe = function (codigo) { return reservasIdx[String(codigo || "").trim().toUpperCase()] || {}; };
     var huespedPorCodigo = {};
     (a.cola || []).forEach(function (r) { try { var dd = JSON.parse(r.datos || "{}"); if (dd.codigo && r.huesped) huespedPorCodigo[String(dd.codigo).toUpperCase()] = r.huesped; } catch (e) {} });
-    var logFiltros = ["Todo", "ROJO", "AMARILLO", "VERDE", "ALMA", "Equipo"];
+    var logFiltros = ["Todo", "ROJO", "AMARILLO", "VERDE"];
+    /* Quién respondió: columna respondido_por del log, o el nombre al final de la acción "… desde el hub · Nombre". */
+    var quienDe = function (l) {
+      var q = String(l.respondido_por || "").trim(); if (q) return q;
+      var m = String(l.accion || "").match(/desde el hub · (.+)$/); if (m) return m[1].trim();
+      return /por el equipo/i.test(String(l.accion || "")) ? "Equipo" : (/^ENVIADO/i.test(String(l.accion || "")) ? "ALMA" : "");
+    };
+    var personas = {};
+    (a.log || []).forEach(function (l) { var q = quienDe(l); if (q && q !== "ALMA" && q !== "Equipo") personas[q] = 1; });
+    var quienFiltros = ["Todos", "ALMA", "Equipo"].concat(Object.keys(personas).sort());
     var logLista = (a.log || []).slice().reverse().filter(function (l) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "").toUpperCase();
-      if (st.logFiltro === "Todo" || st.logFiltro === "ALMA" || st.logFiltro === "Equipo") return true;
-      return n === st.logFiltro;
+      return st.logFiltro === "Todo" || n === st.logFiltro;
     }).map(function (l, idx) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "");
       var N = NIVEL[n] || NIVEL[""];
@@ -2356,7 +2483,8 @@ class Component extends DCLogic {
         votoBienBg: voto === "up" ? "#3d6b52" : "transparent", votoBienFg: voto === "up" ? "#FFFFFF" : "#6F6867",
         votoMalBg: voto === "down" ? "#F2755A" : "transparent", votoMalFg: voto === "down" ? "#3E3F3F" : "#6F6867",
         votarBien: function () { votar("up"); }, votarMal: function () { votar("down"); },
-        key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, nivel: n, enviado: enviado,
+        key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
+        quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
         modoHilo: enHiloL, modoResumen: !enHiloL, hiloLabel: enHiloL ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHiloL ? "#F5F3F0" : "#FFFFFF",
         toggleHilo: function () { var abre = !enHiloL; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKeyL] = abre; return { convHilo: o }; }); if (abre) cargarHiloDe(resIdLog); },
         hilo: mapHilo(hiloStL && hiloStL.lista ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), huesped),
@@ -2418,16 +2546,74 @@ class Component extends DCLogic {
       return [c.huesped, c.propiedad, c.pregunta, c.respuesta, c.borrador, c.codigo].some(function (x) { return String(x || "").toLowerCase().indexOf(busca) >= 0; });
     };
     var pasaFiltro = function (c) {
-      if (st.logFiltro === "Todo") return true;
-      if (st.logFiltro === "ALMA") return c.esLog && !!c.enviado && !/por el equipo/i.test(c.resumen || "");
-      if (st.logFiltro === "Equipo") return c.esLog && !!c.humano;
-      return c.esCola ? (c.nivelLabel === ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[st.logFiltro]) : c.nivel === st.logFiltro;
+      var urg = st.logFiltro === "Todo" || (c.esCola ? (c.nivelLabel === ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[st.logFiltro]) : c.nivel === st.logFiltro);
+      var q = st.logQuien === "ALMA" ? (c.esLog && !!c.enviado && !c.humano) : st.logQuien === "Equipo" ? (c.esLog && !!c.humano) : st.logQuien === "Todos" ? true : (c.esLog && !!c.humano && c.quien === st.logQuien);
+      return urg && q;
     };
     var todos = colaItems.concat(logLista || []).filter(Boolean).filter(pasaFiltro).filter(coincide);
     var limite = Date.now() - st.convDias * 86400000;
     var visibles = todos.filter(function (c) { return c.esCola || c.ts >= limite; });
     var ocultos = todos.length - visibles.length;
     var convItems = visibles.sort(function (x, y) { return rank(x) - rank(y) || (x.esCola ? 0 : y.ts - x.ts); });
+    this._convTotal = convItems.length;
+
+    /* Resumen del negocio: todo lo ocurrido en la ventana (2 h; de 3 a 11 am, 8 h), ordenado por lo que pide a una persona. */
+    var ahora = Date.now(), hGt = new Date().getHours(), ventanaH = hGt >= 3 && hGt < 11 ? 8 : 2, ventanaMs = ventanaH * 3600000;
+    var vistosBrief = {}, briefHumanos = 0, briefItems = [], briefN = { total: 0, alma: 0, equipo: 0, cola: 0, sin: 0 };
+    var mins = function (ts) { var m = Math.max(0, Math.round((ahora - ts) / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"; };
+    var corto = function (t, n) { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).trim() + "…" : t; };
+    todos.forEach(function (c) {
+      if (!c.esCola && ahora - c.ts > ventanaMs) return;
+      var k = c.resId || c.codigo || c.key; if (vistosBrief[k]) return; vistosBrief[k] = 1;
+      var i = convItems.indexOf(c);
+      var esRojo = c.nivel === "ROJO" || c.nivelLabel === "Urgente", esAmarillo = c.nivel === "AMARILLO" || c.nivelLabel === "Por confirmar";
+      var quien = c.huesped + " · " + (c.propiedad || "propiedad sin nombre");
+      var ir = function () { if (i >= 0) self.convIrA(i); };
+      var responder = function () { if (i >= 0) self.convIrA(i); if (!c.respAbierto) c.toggleResp(); };
+      var b;
+      briefN.total++;
+      if (c.esCola) {
+        briefN.cola++;
+        var motivo = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief || corto(c.pregunta, 110));
+        if (esRojo) {
+          var humano = !c.emergenciaEnviada;
+          var detalle = motivo + ". Lleva " + mins(c.ts) + " sin resolución" + (c.estadoCola === "esperando_rojo" ? "; ALMA ya envió la contención" : "") + ".";
+          if (c.formStatus && c.formStatus !== "completo") detalle += " El registro de llegada está pendiente: ALMA ya se lo pidió.";
+          b = { color: "#F2755A", tag: "Urgente · en cola", tagBg: "rgba(242,117,90,.16)", tagFg: "#B54D36", tiempo: "Esperando " + mins(c.ts), titulo: quien, detalle: detalle,
+            accion: c.emergenciaEnviada ? "Ya recibió el código de emergencia y no volvió a escribir: no news, good news. No necesita seguimiento." : c.accesoTipo === "edificio" ? "Hay que confirmar la reserva con el edificio. Necesaria intervención humana." : "Nadie del equipo ha respondido. Necesaria intervención humana.",
+            accionColor: humano ? "#B54D36" : "#3d6b52", pideHumano: humano, rk: 0 };
+        } else if (esAmarillo) {
+          var tarda = ahora - c.ts > 45 * 60000;
+          b = { color: "#E9826A", tag: "Por confirmar", tagBg: "rgba(233,130,106,.14)", tagFg: "#B54D36", tiempo: "Esperando " + mins(c.ts), titulo: quien, detalle: motivo + ".",
+            accion: tarda ? "ALMA preparó una respuesta pero necesita confirmación del equipo." : "ALMA preparó una respuesta; sale sola si nadie la ajusta.", accionColor: tarda ? "#B54D36" : "#6F6867", pideHumano: tarda, rk: 1 };
+        } else {
+          b = { color: "#D8D4CE", tag: c.nivelLabel || "En cola", tagBg: "#F5F3F0", tagFg: "#6F6867", tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: motivo + ".", accion: c.sentido || "ALMA lo atiende.", accionColor: "#6F6867", pideHumano: false, rk: 2 };
+        }
+      } else {
+        var resuelto = !!c.humano, emer = c.emergenciaEnviada, respondio = !!c.enviado;
+        if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++;
+        var base = (c.razonBrief ? c.razonBrief + ". " : "") + corto(c.pregunta, 120);
+        if (esRojo) {
+          b = { color: resuelto ? "#3d6b52" : emer ? "#E9826A" : "#F2755A", tag: resuelto ? "Urgente · " + (c.quien && c.quien !== "Equipo" ? "atendió " + c.quien : "atendido por el equipo") : emer ? "Urgente · código enviado" : "Urgente · sin respuesta", tagBg: resuelto ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.14)", tagFg: resuelto ? "#3d6b52" : "#B54D36",
+            tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: base,
+            accion: resuelto ? "Alguien del equipo ya respondió. Solo revisa que haya quedado cerrado." : emer ? "Se le envió el código de emergencia y no volvió a escribir: no news, good news. No necesita seguimiento." : "Sigue sin respuesta humana. Conviene revisar el chat.",
+            accionColor: resuelto || emer ? "#3d6b52" : "#B54D36", pideHumano: !resuelto && !emer, rk: resuelto || emer ? 4 : 0 };
+        } else if (esAmarillo) {
+          b = { color: resuelto ? "#3d6b52" : respondio ? "#E9826A" : "#F2755A", tag: resuelto ? "Por confirmar · " + (c.quien && c.quien !== "Equipo" ? c.quien : "equipo") : respondio ? "Por confirmar · ALMA respondió" : "Por confirmar · sin respuesta", tagBg: resuelto ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.14)", tagFg: resuelto ? "#3d6b52" : "#B54D36",
+            tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: base,
+            accion: resuelto ? "El equipo ya lo confirmó." : respondio ? "ALMA respondió. Revisa si hace falta confirmar algo." : "Nadie ha respondido todavía.", accionColor: resuelto ? "#3d6b52" : "#B54D36", pideHumano: !resuelto && !respondio, rk: resuelto ? 4 : respondio ? 3 : 1 };
+        } else {
+          b = { color: resuelto ? "#3d6b52" : respondio ? "#3d6b52" : "#D8D4CE", tag: resuelto ? (c.quienLabel || "Respondió el equipo") : respondio ? "ALMA respondió" : (c.nivelLabel || "Sin respuesta"), tagBg: resuelto || respondio ? "rgba(61,107,82,.14)" : "#F5F3F0", tagFg: resuelto || respondio ? "#3d6b52" : "#6F6867",
+            tiempo: "Hace " + mins(c.ts), titulo: quien, detalle: base, accion: resuelto ? "Cerrado por el equipo." : respondio ? "Resuelto por ALMA. Nada que hacer." : (c.resumen || "ALMA decidió no responder."), accionColor: resuelto || respondio ? "#3d6b52" : "#6F6867", pideHumano: false, rk: 5 };
+        }
+      }
+      b.ts = c.ts; if (b.pideHumano) briefHumanos++;
+      briefItems.push(Object.assign(b, { irA: ir, responder: responder }));
+    });
+    briefItems.sort(function (x, y) { return (y.pideHumano ? 1 : 0) - (x.pideHumano ? 1 : 0) || x.rk - y.rk || y.ts - x.ts; });
+    var briefMas = Math.max(0, briefItems.length - 8);
+    briefItems = briefItems.slice(0, 8);
+    var briefDigest = briefN.total ? [briefN.total + (briefN.total === 1 ? " conversación" : " conversaciones"), briefN.alma ? "ALMA respondió " + briefN.alma : "", briefN.equipo ? "el equipo " + briefN.equipo : "", briefN.cola ? briefN.cola + " en cola" : "", briefN.sin ? briefN.sin + " sin respuesta" : ""].filter(Boolean).join(" · ") : "";
     var convIdx = Math.max(0, Math.min(convItems.length - 1, st.convIdx || 0));
     var nPag = Math.max(1, convItems.length), pagPct = 100 / nPag;
     /* Solo se montan la actual y sus vecinas, en su posición absoluta dentro del alto total. */
@@ -2441,14 +2627,13 @@ class Component extends DCLogic {
       enAlma: st.vista === "alma",
       verAlma: function () { self.setState({ vista: "alma" }); if (!self.state.alma) self.almaCargar(); },
       almaModoTile: ctrlO.TOGGLE === "ON" ? ctrlO.MODO : (st.alma ? "OFF" : "ALMA"),
-      almaTileSub: !st.alma ? "Asistente nocturno de huéspedes." : ctrlO.TOGGLE !== "ON" ? "Apagada. Toca para encenderla." : vivos.length ? vivos.length + (vivos.length === 1 ? " conversación en curso." : " conversaciones en curso.") : "En silencio. Nada en cola.",
+      almaTileSub: !st.alma ? "Asistente nocturno de huéspedes." : !ctrlO.TOGGLE ? "No se pudo leer ALMA_CONTROL." : ctrlO.TOGGLE !== "ON" ? "Apagada. Toca para encenderla." : vivos.length ? vivos.length + (vivos.length === 1 ? " conversación en curso." : " conversaciones en curso.") : "En silencio. Nada en cola.",
       almaFuente: st.almaFuente, almaRecargar: function () { self.almaCargar(); }, almaRecargarLabel: st.almaCargando ? "Cargando…" : "Actualizar",
       almaAviso: !(window.ALMA && ALMA.hasApi()),
       almaAvisoTexto: "Lectura en vivo de la hoja; los cambios (control, mejoras, ajustes) aún no viajan a ALMA. Falta pegar alma-hub-api.gs en el Apps Script y poner su URL en alma-client.js.",
-      almaEstadoTitulo: on ? "ALMA está encendida" : "ALMA está apagada",
-      ctrlAbierto: st.ctrlAbierto, ctrlRows: st.ctrlAbierto ? "1fr" : "0fr", ctrlOp: st.ctrlAbierto ? "1" : "0", ctrlChevron: st.ctrlAbierto ? "rotate(180deg)" : "rotate(0deg)",
-      ctrlToggleAbierto: function () { self.setState({ ctrlAbierto: !st.ctrlAbierto }); },
-      ctrlResumen: (on ? [ctrl.MODO, ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00"] : []).concat([kbItems.length + " en conocimiento"]).concat(sinCambios ? [] : ["Sin guardar"]),
+      almaEstadoTitulo: !st.alma ? "Leyendo ALMA_CONTROL…" : !ctrlLegible ? "No se pudo leer el interruptor" : on ? "ALMA está encendida" : "ALMA está apagada",
+      ctrlAbierto: st.ctrlAbierto, ctrlToggleAbierto: function () { self.setState({ ctrlAbierto: !st.ctrlAbierto, mejAbierto: false }); },
+      ctrlResumen: (on ? [ctrl.MODO, ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00"] : []).concat([kbItems.length + " en conocimiento"]),
       mejoraEjemplos: [
         "Deja de sonar monótona: varía cómo empiezas cada mensaje",
         "Cambia la clave WiFi de Airali 1401 a casa1401",
@@ -2464,21 +2649,9 @@ class Component extends DCLogic {
         var shown = Math.round((seg / t.factor) * 100) / 100;
         return { label: t.label, unidad: t.unidad, step: t.step, valor: String(shown), set: function (e) { var v = parseFloat(e.target.value); if (isNaN(v) || v < 0) v = 0; setCtrl(t.k, String(Math.round(v * t.factor))); } };
       }),
-      almaSinCambios: sinCambios, almaGuardando: st.almaGuardando,
-      almaGuardarLabel: sinCambios ? "Sin cambios" : "Guardar en ALMA_CONTROL",
-      almaControlNota: st.almaControlNota,
-      almaGuardarControl: function () {
-        if (sinCambios) return;
-        self.setState({ almaGuardando: true });
-        var p = window.ALMA && ALMA.hasApi() ? ALMA.setControl(ctrl) : Promise.resolve({ ok: true, local: true });
-        p.then(function (res) {
-          self.setState(function (s) {
-            var control = Object.keys(ctrl).map(function (k) { return { clave: k, valor: ctrl[k] == null ? "" : String(ctrl[k]) }; });
-            return { almaGuardando: false, alma: res && res.ok ? Object.assign({}, s.alma, { control: control }) : s.alma,
-              almaControlNota: res && res.ok ? (res.local ? "Guardado aquí · conecta el Apps Script para que llegue a la hoja" : "Guardado · ALMA lo lee en el próximo minuto") : "No se pudo guardar." };
-          });
-        });
-      },
+      almaControlNota: st.almaControlNota || "Los cambios se guardan solos",
+      almaAutoDot: st.almaGuardando || !sinCambios ? "#E9826A" : /No se pudo/.test(st.almaControlNota || "") ? "#C0392B" : "#3d6b52",
+      almaDotBg: !ctrlLegible ? "#E9826A" : on ? "#3d6b52" : "#D8D4CE",
 
       mejoraClaves: claves, mejoraClave: st.mejoraClave,
       setMejoraClave: function (e) { self.setState({ mejoraClave: e.target.value, mejoraPropuesta: null }); },
@@ -2500,7 +2673,7 @@ class Component extends DCLogic {
       mejoraDatoHayAntes: !!(prop && prop.antes), mejoraDatoAntes: prop ? prop.antes || "" : "",
       mejoraEsKb: !!prop && prop.tipo === "conocimiento", mejoraKbTema: prop ? prop.tema || "" : "", mejoraKbAplica: prop ? (!prop.aplica_a || prop.aplica_a === "*" ? "todas" : prop.aplica_a) : "", mejoraKbContenido: prop ? prop.contenido || "" : "",
       autoItems: autoItems, autoVacio: !!st.alma && !autoItems.length, autoPendientes: String(autoItems.length),
-      autoPillBd: autoItems.length ? "#E9826A" : "#D8D4CE", autoPillFg: autoItems.length ? "#B54D36" : "#938B8A", autoPillBg: autoItems.length ? "rgba(233,130,106,.12)" : "transparent",
+      autoHayPendientes: autoItems.length > 0, autoPillBd: autoItems.length ? "#E9826A" : "#D8D4CE", autoPillFg: autoItems.length ? "#B54D36" : "#938B8A", autoPillBg: autoItems.length ? "rgba(233,130,106,.12)" : "transparent",
       kbItems: kbItems, kbNuevo: st.kbNuevo, kbNuevoLabel: st.kbNuevo ? "Cancelar" : "Agregar",
       kbNuevoAbrir: function () { self.setState({ kbNuevo: !st.kbNuevo, kbNota: "" }); },
       kbNuevoTema: st.kbNuevoTema, kbNuevoAplica: st.kbNuevoAplica, kbNuevoContenido: st.kbNuevoContenido,
@@ -2534,23 +2707,28 @@ class Component extends DCLogic {
         var N = NIVEL[x[0]], n = conteo[x[0]];
         return { n: String(n), nombre: x[1], bd: n ? N.color : "#D8D4CE", fg: n ? N.fg : "#938B8A", bg: n ? N.bg : "transparent" };
       }),
-      logFiltros: logFiltros.map(function (x) { return { value: x, label: x }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0 }); self.convReset(); },
+      logFiltros: logFiltros.map(function (x) { return { value: x, label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase() }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0 }); self.convReset(); },
+      quienFiltros: quienFiltros.map(function (x) { return { value: x, label: x }; }), logQuien: st.logQuien, setLogQuien: function (v) { self.setState({ logQuien: v, convIdx: 0 }); self.convReset(); },
+      autoAbierto: st.autoAbierto, autoToggleAbierto: function () { self.setState({ autoAbierto: !st.autoAbierto }); },
       convItems: convItems, convVacio: !!st.alma && !convItems.length,
-      convVacioTexto: busca ? "Nada coincide con “" + st.convBusca + "”." : st.logFiltro === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logFiltro === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
+      convVacioTexto: busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
       convBusca: st.convBusca, convHayBusca: !!busca,
       setConvBusca: function (e) { self.setState({ convBusca: e.target.value, convIdx: 0 }); self.convReset(); }, limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
       convHayMas: ocultos > 0, convCargarMasLabel: "Cargar más · " + ocultos + " anteriores",
       convCargarMas: function () { self.setState({ convDias: st.convDias + 2 }); },
       convPie: convItems.length + (convItems.length === 1 ? " conversación" : " conversaciones") + " · últimos " + st.convDias + " días" + (busca ? " · filtradas por “" + st.convBusca + "”" : ""),
-      convRef: this._convRef,
+      convRef: this.convRefCb,
       convPaginas: convPaginas, convPuntos: convPuntos, convPos: convItems.length ? (convIdx + 1) + " de " + convItems.length : "",
       convAltoTotal: (nPag * 100) + "%", convHandleOp: convItems.length > 1 && convIdx < convItems.length - 1 ? "1" : "0",
-      convScroll: function (e) { self.convScroll(e, convItems.length); }, convKey: function (e) { self.convKey(e, convItems.length); },
+      convScroll: function () {}, convKey: function (e) { self.convKey(e, convItems.length); },
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= convItems.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, convItems.length); }, convSiguiente: function () { self.convIr(1, convItems.length); },
 
-      mejAbierto: st.mejAbierto, mejRows: st.mejAbierto ? "1fr" : "0fr", mejOp: st.mejAbierto ? "1" : "0", mejChevron: st.mejAbierto ? "rotate(180deg)" : "rotate(0deg)",
-      mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto }); }
+      mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
+      briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length, briefVentana: "Últimas " + ventanaH + " horas",
+      briefTitulo: !st.alma ? "Leyendo la cola…" : briefHumanos ? briefHumanos + (briefHumanos === 1 ? " caso necesita" : " casos necesitan") + " a alguien del equipo" : briefItems.length ? "Todo atendido, nada pendiente de ti" : "Sin movimiento",
+      briefDigest: briefDigest, briefHayDigest: !!briefDigest, briefHayMas: briefMas > 0, briefMasTexto: "+ " + briefMas + " más abajo, en las conversaciones",
+      briefVacioTexto: !ctrlLegible ? "No se pudo leer el interruptor de ALMA_CONTROL. Revisa la hoja antes de confiar en este resumen." : on ? "Nada en las últimas " + ventanaH + " horas. ALMA atiende la cola y te avisa aquí si algo necesita a una persona." : "ALMA está apagada. Lo que llegue a Hospitable no se atenderá hasta encenderla."
     };
   }
 

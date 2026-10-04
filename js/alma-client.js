@@ -25,8 +25,8 @@
   /* ALMA_CONTROL se lee por POSICIÓN (A = clave, B = valor): una cabecera dañada no puede "apagar" nada.
      Celdas con varias líneas (filas fusionadas) se desarman línea por línea. */
   function readControl() {
-    var u = 'https://docs.google.com/spreadsheets/d/' + CFG.sheetId + '/gviz/tq?tqx=out:csv&sheet=ALMA_CONTROL';
-    return fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (t) {
+    var u = 'https://docs.google.com/spreadsheets/d/' + CFG.sheetId + '/gviz/tq?tqx=out:csv&sheet=ALMA_CONTROL&_=' + Date.now();
+    return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (t) {
       var out = [], vistos = {};
       parseCsv(t).forEach(function (r, fi) {
         /* Celda fusionada: gviz entrega "CLAVE TOGGLE MODO HORARIO" / "valor ON AUTO OFF" (separado por espacios o saltos). Las claves nunca llevan espacios. */
@@ -43,8 +43,8 @@
     });
   }
   function readTab(name, sheetId) {
-    var u = 'https://docs.google.com/spreadsheets/d/' + (sheetId || CFG.sheetId) + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(name);
-    return fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (t) {
+    var u = 'https://docs.google.com/spreadsheets/d/' + (sheetId || CFG.sheetId) + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(name) + '&_=' + Date.now();
+    return fetch(u, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (t) {
       var rows = parseCsv(t).filter(function (r) { return r.some(function (c) { return c && c.trim(); }); });
       if (!rows.length) return [];
       var head = rows[0].map(function (h) { return String(h || '').trim().toLowerCase(); });
@@ -71,8 +71,10 @@
       /* gviz devuelve la PRIMERA pestaña si el nombre no existe: se valida una columna esperada. */
       var opc = function (t, id, col) { return readTab(t, id).then(function (rows) { return rows.length && !(col in rows[0]) ? [] : rows; }).catch(function () { return []; }); };
       return Promise.all([readControl()].concat(['ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); }))
-        .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name'), opc('ALMA_CORREOS', null, 'asunto'), opc('ALMA_RESUELTAS', null, 'res_key')]))
-        .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9] }; });
+        .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name'), opc('ALMA_CORREOS', null, 'asunto'), opc('ALMA_RESUELTAS', null, 'res_key')])
+        .concat([CFG.url ? call('cola', {}).catch(function () { return null; }) : Promise.resolve(null)]))
+        /* La cola llega en vivo del Apps Script (gviz puede tardar minutos en reflejar filas nuevas). */
+        .then(function (r) { if (r[10] && r[10].ok && r[10].cola) r[1] = r[10].cola; return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9] }; });
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
     setPrompt: function (clave, prompt, nota) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota }); },
@@ -81,7 +83,9 @@
     retener: function (fila) { return call('retener', { fila: fila }); },
     resolver: function (key, estado, quien) { return call('resolver', { key: key, estado: estado, quien: quien || '' }); },
     programados: function (resId) { return call('programados', { resId: resId }); },
-    adelantar: function (resId, id) { return call('adelantar', { resId: resId, id: id }); },
+    adelantar: function (resId, id, texto) { return call('adelantar', { resId: resId, id: id, texto: texto || '' }); },
+    cancelarProg: function (resId, id) { return call('cancelarProg', { resId: resId, id: id }); },
+    editarProg: function (resId, id, texto, quien) { return call('editarProg', { resId: resId, id: id, texto: texto, quien: quien || '' }); },
     proponerMejora: function (clave, prompt, pedido) { return call('proponerMejora', { clave: clave, prompt: prompt, pedido: pedido }); },
     ajustarBorrador: function (borrador, ajuste, contexto) { return call('ajustarBorrador', { borrador: borrador, ajuste: ajuste, contexto: contexto }); },
     automejora: function (fila, estado, cambios, nota) { return call('automejora', { fila: fila, estado: estado, cambios: cambios, nota: nota }); },

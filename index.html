@@ -815,7 +815,10 @@
           <sc-for list="{{ resLineas }}" as="l" hint-placeholder-count="3">
             <button onClick="{{ l.ir }}" style="display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:12px; padding:10px 16px; border:none; border-top:1px solid #F0EDE8; background:transparent; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent" style-hover="background:#FAFAFA" style-active="background:#F5F3F0">
               <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; background: {{ l.dot }}"></span>
-              <span style="font-size:13px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty; min-width:0"><span style="font-weight:600">{{ l.quien }}</span> · {{ l.texto }}</span>
+              <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
+                <span style="font-size:13px; line-height:1.35; color:#3E3F3F; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"><span style="font-weight:600">{{ l.quien }}</span><span style="color:#6F6867"> · {{ l.prop }}</span></span>
+                <span style="font-size:12.5px; line-height:1.4; color:#3E3F3F; letter-spacing:.01em; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-wrap:pretty">{{ l.texto }}</span>
+              </span>
               <span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; white-space:nowrap; line-height:1; background: {{ l.tagBg }}; color: {{ l.tagFg }}">{{ l.estado }}</span>
             </button>
           </sc-for>
@@ -834,7 +837,10 @@
               <sc-for list="{{ briefPaginas }}" as="b" hint-placeholder-count="1">
                 <div style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ b.pagTop }}; height: {{ b.pagAlto }}">
                   <div style="position:relative; height:100%; min-height:0">
-                    <div aria-hidden="true" style="position:absolute; inset:0; border-radius:18px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; transition:opacity .18s; background: {{ b.fondoBg }}; color: {{ b.fondoFg }}; opacity: {{ b.fondoOp }}"><span>{{ b.fondoIzq }}</span><span>{{ b.fondoDer }}</span></div>
+                    <div style="position:absolute; inset:0; border-radius:18px; display:flex; align-items:stretch; justify-content:space-between; gap:8px; transition:opacity .18s; opacity: {{ b.fondoOp }}">
+                      <button onClick="{{ b.accIzq }}" tabIndex="-1" aria-label="Quitar del resumen" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border:none; border-radius:18px; background:#D8D4CE; color:#3E3F3F; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; overflow:hidden; white-space:nowrap; transition:width .18s cubic-bezier(.22,.61,.36,1), background .18s; width: {{ b.izqW }}; filter: {{ b.izqFx }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="20" color="#3E3F3F" hint-size="20px,20px"></x-import><span>Quitar</span></button>
+                      <button onClick="{{ b.accDer }}" tabIndex="-1" aria-label="Abrir chat" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border:none; border-radius:18px; background:#3E3F3F; color:#FAFAFA; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; overflow:hidden; white-space:nowrap; transition:width .18s cubic-bezier(.22,.61,.36,1); width: {{ b.derW }}; filter: {{ b.derFx }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="20" color="#FAFAFA" hint-size="20px,20px"></x-import><span>Abrir chat</span></button>
+                    </div>
                     <div onPointerDown="{{ b.pDown }}" onPointerMove="{{ b.pMove }}" onPointerUp="{{ b.pUp }}" onPointerCancel="{{ b.pUp }}" style="position:relative; height:100%; min-height:0; box-sizing:border-box; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-left:6px solid {{ b.color }}; border-radius:18px; padding:14px 16px; display:flex; flex-direction:column; gap:10px; box-shadow:0 4px 16px rgba(62,63,63,.05); touch-action:pan-y; user-select:none; -webkit-user-select:none; will-change:transform; transition: {{ b.cardTrans }}; transform: {{ b.cardT }}; overflow:hidden">
                       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0">
                         <span style="font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:5px 11px; background: {{ b.tagBg }}; color: {{ b.tagFg }}">{{ b.tag }}</span>
@@ -1974,7 +1980,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-04.2340";
+  BUILD = "2026-10-05.0030";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -1990,7 +1996,7 @@ class Component extends DCLogic {
     this._verT = setInterval(function () { self.revisarVersion(); }, 300000);
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") self.revisarVersion(); });
     /* Foto de perfil de ALMA: alterna cada hora con fundido; arranca en una foto según la hora del día. */
-    this.setState({ almaFotoIdx: new Date().getHours() % 11 });
+    this.setState({ almaFotoIdx: this.gtHora() % 11 });
     this._fotoT = setInterval(function () { if (self.state.vista === "alma") self.setState(function (s) { return { almaFotoIdx: (s.almaFotoIdx + 1) % 11 }; }); }, 3600000);
     setTimeout(function () { self.resolverSesion(); }, 900);
     /* El tile de ALMA muestra modo y cola en vivo; se refresca cada minuto. */
@@ -2241,7 +2247,7 @@ class Component extends DCLogic {
     if (!window.ALMA) { listo(this.almaDemo(), "Datos de muestra"); return; }
     ALMA.readAll().then(function (d) {
       if (!d.control.length && !d.cola.length && !d.log.length) throw new Error("vacía");
-      listo(d, "Hoja de ALMA · " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" }));
+      listo(d, "Hoja de ALMA · " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }));
     }).catch(function () {
       listo(self.almaDemo(), "Datos de muestra · la hoja no respondió");
     });
@@ -2310,7 +2316,7 @@ class Component extends DCLogic {
     var self = this;
     var CLAVES = { REDACTOR: "Cómo escribe", CLASIFICADOR: "Cómo clasifica", VERIFICADOR: "Control de calidad", REGLAS_EXTRA: "Avisos temporales" };
     var hist = function (clave, resumen) {
-      var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+      var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" });
       return { cuando: cuando, clave: clave, resumen: resumen };
     };
     if (pr.tipo === "dato") {
@@ -2351,7 +2357,7 @@ class Component extends DCLogic {
         var ins = (s.alma.instrucciones || []).some(function (i) { return String(i.clave).toUpperCase() === pr.clave; })
           ? s.alma.instrucciones.map(function (i) { return String(i.clave).toUpperCase() === pr.clave ? Object.assign({}, i, { prompt: nuevo }) : i; })
           : (s.alma.instrucciones || []).concat([{ clave: pr.clave, prompt: nuevo, notas: "" }]);
-        var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+        var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" });
         return { alma: Object.assign({}, s.alma, { instrucciones: ins }),
           mejorasHist: [{ cuando: cuando, clave: CLAVES[pr.clave] || pr.clave, resumen: pr.resumen }].concat(s.mejorasHist).slice(0, 6) };
       });
@@ -2416,6 +2422,44 @@ class Component extends DCLogic {
     return lineas.join("\n");
   }
   /* URLs de fotos: columna `fotos` (JSON o lista separada por coma), `datos.fotos`, o enlaces sueltos en el texto. */
+  /* "Z10 · Brunelo · Apto 1808" → "Brunelo 1808" */
+  propCorta(p) {
+    var s = String(p || "").split("·").map(function (x) { return x.trim(); }).filter(function (x) { return x && !/^Z\d+$/i.test(x); });
+    return s.join(" ").replace(/\bApto\.?\s*/i, "").replace(/\s+/g, " ").trim();
+  }
+  /* Una frase de lectura rápida, ≤ 12 palabras, a partir de la razón del clasificador o del mensaje del huésped. */
+  fraseCaso(t) {
+    var r = String(t.razonBrief || "").replace(/\s+/g, " ").trim(), msg = this.limpiaImg(t.pregunta || "").replace(/\s+/g, " ").trim();
+    var R = r.toLowerCase(), M = msg.toLowerCase();
+    msg = msg.replace(/^(hola|buen[oa]s?\s+(d[ií]as|tardes|noches))[,!.\s]*/i, "").trim(); M = msg.toLowerCase();
+    var B = "(?:^|[^a-záéíóúñü])", E = "(?=$|[^a-záéíóúñü])";
+    var rx = function (s) { return new RegExp(B + "(?:" + s + ")" + E, "i"); };
+    var tabla = [
+      [rx("acuse|agradec\\w*|solo confirma|confirma que todo|sin pregunta"), "Solo confirmó o agradeció"],
+      [rx("anuncia una duda|tiene una duda|no la ha formulado"), "Tiene una duda, aún no la dice"],
+      [rx("edificio|porter[ií]a|garita|no (me|lo|nos) dejan (entrar|pasar)|no (est[aá] )?notificad[ao]"), "No lo dejan entrar al edificio"],
+      [rx("c[oó]digo|cerradura|no (me )?abre|no (puede|puedo|podemos) entrar"), "No puede entrar al apartamento"],
+      [rx("wifi|wi-fi|internet|la red|contraseña del wifi"), "Problemas con el internet"],
+      [rx("formulario|registro de llegada"), "Formulario de llegada pendiente"],
+      [rx("early check ?-?in|entrar m[aá]s temprano|llegar m[aá]s temprano|check ?-?in temprano"), "Pide entrar más temprano"],
+      [rx("late check ?-?out|salir m[aá]s tarde|check ?-?out tard[ei]o?"), "Pide salir más tarde"],
+      [rx("parqueo|estacionamiento|parking"), "Pregunta por el parqueo"],
+      [rx("factura|nit"), "Pide factura"],
+      [rx("agua caliente|ducha|calentador"), "Sin agua caliente"],
+      [rx("aire acondicionado|el aire|hace (mucho )?calor"), "Problema con el aire acondicionado"],
+      [rx("limpieza|sucio|sucia|toallas?|s[aá]banas?"), "Tema de limpieza o blancos"],
+      [rx("ruido|vecinos?"), "Se queja de ruido"],
+      [rx("fotos?|documentos?|dpi|pasaporte|im[aá]gen(es)?"), "Envió fotos o documentos"],
+      [rx("c[oó]mo llego|direcci[oó]n|ubicaci[oó]n"), "Pregunta cómo llegar"]
+    ];
+    var i;
+    for (i = 0; i < tabla.length; i++) if (tabla[i][0].test(R)) return tabla[i][1];
+    for (i = 0; i < tabla.length; i++) if (tabla[i][0].test(M)) return tabla[i][1];
+    var base = r && !/equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador|responder de forma/i.test(r) ? r : (msg ? "“" + msg + "”" : r || "Sin detalle");
+    base = base.split(/[.!?]\s/)[0];
+    var w = base.split(" "); if (w.length > 12) base = w.slice(0, 12).join(" ").replace(/[,;:·]$/, "") + (base[0] === "“" ? "…”" : "…");
+    return base.replace(/\.$/, "");
+  }
   limpiaImg(t) { return String(t || "").replace(/\[(imagen adjunta|el huésped envió una imagen)\]/gi, "").replace(/[ \t]+\n/g, "\n").trim(); }
   fotosDe() {
     var out = [];
@@ -2687,7 +2731,7 @@ class Component extends DCLogic {
               var nuevo = self.aplicarCambiosPrompt(self.promptActual(clave), lista);
               ins = (ins || []).some(function (i) { return String(i.clave).toUpperCase() === clave; }) ? ins.map(function (i) { return String(i.clave).toUpperCase() === clave ? Object.assign({}, i, { prompt: nuevo }) : i; }) : (ins || []).concat([{ clave: clave, prompt: nuevo }]);
             }
-            var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" });
+            var cuando = new Date().toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }) + " " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" });
             return { autoBusy: null, alma: Object.assign({}, s.alma, { automejora: am, instrucciones: ins, conocimiento: kb }),
               mejorasHist: estado === "aceptada" ? [{ cuando: cuando, clave: "Auto mejora · " + (CLAVE_LABEL[clave] || clave), resumen: r.resumen }].concat(s.mejorasHist).slice(0, 6) : s.mejorasHist };
           });
@@ -2875,7 +2919,7 @@ class Component extends DCLogic {
 
 
     /* Resumen del negocio: todo lo ocurrido en la ventana (2 h; de 3 a 11 am, 8 h), ordenado por lo que pide a una persona. */
-    var ahora = Date.now(), hGt = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "America/Guatemala" }).format(new Date())) % 24;
+    var ahora = Date.now(), hGt = this.gtHora();
     var ventanaH = hGt >= 3 && hGt < 11 ? 8 : 2, ventanaMs = ventanaH * 3600000;
     var vistosBrief = {}, briefHumanos = 0, briefItems = [], briefN = { total: 0, alma: 0, equipo: 0, cola: 0, sin: 0 }, briefOcultasN = 0;
     var mins = function (ts) { var m = Math.max(0, Math.round((ahora - ts) / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"; };
@@ -2937,23 +2981,37 @@ class Component extends DCLogic {
         verUltimo: verUlt, ultimoLabel: verUlt ? "Ocultar cierre" : "Último mensaje", ultimoBg: verUlt ? "#F5F3F0" : "#FFFFFF",
         toggleUltimo: function () { self.setState(function (s) { var o = Object.assign({}, s.briefUltimo); o[k] = !o[k]; return { briefUltimo: o }; }); if (!verUlt && c.cargarHilo) c.cargarHilo(); },
         ultimos: verUlt ? hiloB.slice(-2) : [], ultimoCargando: verUlt && !!c.hiloCargando,
-        cardT: "translateX(" + dx + "px)", cardTrans: drag ? "none" : "transform .36s cubic-bezier(.22,.61,.36,1)",
-        fondoBg: dx > 0 ? "rgba(216,212,206,.6)" : "rgba(233,130,106,.22)", fondoFg: dx > 0 ? "#6F6867" : "#B54D36", fondoOp: Math.min(1, Math.abs(dx) / 70),
-        fondoIzq: dx > 0 ? "Quitar del resumen" : "", fondoDer: dx < 0 ? "Abrir chat →" : "",
-        pDown: function (e) { if (e.pointerType === "mouse" && e.button !== 0) return; self._bd = { k: k, x0: e.clientX, y0: e.clientY, id: e.pointerId, el: e.currentTarget, on: false }; },
+        /* Como el Notification Center: el swipe revela la acción y se queda abierto (REV px) para leerla;
+           se ejecuta al tocar el botón o con un swipe largo (más del 55% del ancho), que ensancha el botón antes de soltar. */
+        cardT: "translateX(" + dx + "px)", cardTrans: drag && drag.vivo ? "none" : "transform .36s cubic-bezier(.22,.61,.36,1)",
+        fondoOp: dx === 0 ? "0" : "1",
+        izqW: dx > 0 ? Math.max(0, dx - 8) + "px" : "0px", derW: dx < 0 ? Math.max(0, -dx - 8) + "px" : "0px",
+        izqFx: drag && drag.armado && dx > 0 ? "brightness(.9)" : "none", derFx: drag && drag.armado && dx < 0 ? "brightness(1.25)" : "none",
+        accIzq: function (e) { e.stopPropagation(); self.setState({ briefDrag: { k: k, dx: 900 } }); setTimeout(function () { self.briefDescartar(k); }, 260); },
+        accDer: function (e) { e.stopPropagation(); self.setState({ briefDrag: null }); abrir(); },
+        pDown: function (e) {
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+          var abierto = st.briefDrag && st.briefDrag.k === k && !st.briefDrag.vivo ? st.briefDrag.dx : 0;
+          self._bd = { k: k, x0: e.clientX, y0: e.clientY, id: e.pointerId, el: e.currentTarget, on: false, base: abierto, w: e.currentTarget.offsetWidth || 340 };
+        },
         pMove: function (e) {
           var d = self._bd; if (!d || d.k !== k) return;
           var ddx = e.clientX - d.x0, ddy = e.clientY - d.y0;
-          if (!d.on) { if (Math.abs(ddx) < 10 || Math.abs(ddx) < Math.abs(ddy) * 1.2) return; d.on = true; try { d.el.setPointerCapture(d.id); } catch (x) {} }
+          if (!d.on) { if (Math.abs(ddx) < 8 || Math.abs(ddx) < Math.abs(ddy) * 1.2) return; d.on = true; try { d.el.setPointerCapture(d.id); } catch (x) {} }
           e.preventDefault();
-          var lim = 160, r = ddx > 0 ? Math.min(ddx, lim + (ddx - lim) * .25) : Math.max(ddx, -lim + (ddx + lim) * .25);
-          self.setState({ briefDrag: { k: k, dx: r } });
+          var raw = d.base + ddx, lim = d.w * .9, r = Math.abs(raw) <= lim ? raw : Math.sign(raw) * (lim + (Math.abs(raw) - lim) * .2);
+          var armado = Math.abs(r) > d.w * .55;
+          if (armado !== !!d.armado) { d.armado = armado; try { if (armado && navigator.vibrate) navigator.vibrate(10); } catch (x) {} }
+          self.setState({ briefDrag: { k: k, dx: r, vivo: true, armado: armado } });
         },
         pUp: function () {
           var d = self._bd; if (!d || d.k !== k) return; self._bd = null;
-          var fin = (self.state.briefDrag && self.state.briefDrag.k === k) ? self.state.briefDrag.dx : 0;
-          if (fin > 90) { self.setState({ briefDrag: { k: k, dx: 600 } }); setTimeout(function () { self.briefDescartar(k); }, 220); }
-          else if (fin < -90) { self.setState({ briefDrag: null }); abrir(); }
+          var cur = self.state.briefDrag && self.state.briefDrag.k === k ? self.state.briefDrag.dx : 0, REV = 104;
+          if (!d.on) { if (d.base) self.setState({ briefDrag: null }); return; }
+          if (cur > d.w * .55) { self.setState({ briefDrag: { k: k, dx: 900 } }); setTimeout(function () { self.briefDescartar(k); }, 260); }
+          else if (cur < -d.w * .55) { self.setState({ briefDrag: null }); abrir(); }
+          else if (cur > 44) self.setState({ briefDrag: { k: k, dx: REV } });
+          else if (cur < -44) self.setState({ briefDrag: { k: k, dx: -REV } });
           else self.setState({ briefDrag: null });
         }
       });
@@ -3021,7 +3079,8 @@ class Component extends DCLogic {
     var gruposRes = gruposTodos;
     var enVent = gruposRes.filter(function (g) { return ahora - tsG(g) <= ventanaMs; });
     var resRecientes = enVent.length > 0;
-    var baseRes = resRecientes ? enVent : gruposRes.filter(function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || g.frags[0].esCola); });
+    var abiertosRes = gruposRes.filter(function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || g.frags[0].esCola); });
+    var baseRes = resRecientes ? enVent : (abiertosRes.length ? abiertosRes : gruposRes.slice().sort(function (x, y) { return tsG(y) - tsG(x); }).slice(0, 5));
     var resLineas = baseRes.map(function (g) {
       var t = g.frags[0], est, dot, bg, fg, pr;
       if (g.resuelto) { est = "Resuelto"; dot = "#3d6b52"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; }
@@ -3029,11 +3088,8 @@ class Component extends DCLogic {
       else if (enNivel(g, "AMARILLO")) { est = "Por confirmar"; dot = "#E9826A"; bg = "#E9826A"; fg = "#FFFFFF"; pr = 1; }
       else if (t.esCola) { est = "En cola"; dot = "#938B8A"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 2; }
       else { est = t.humano ? "Atendió el equipo" : "ALMA respondió"; dot = "#3d6b52"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; }
-      var razon = String(t.razonBrief || ""), esEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(razon);
-      var prob = (razon && !esEstado ? razon : self.limpiaImg(t.pregunta) || razon || "Sin detalle").replace(/\s+/g, " ").trim();
-      if (prob.length > 110) prob = prob.slice(0, 108).replace(/\s+\S*$/, "") + "…";
       var nom = String(t.huesped || "Huésped").split(" ")[0];
-      return { pr: pr, ts: tsG(g), quien: nom + (t.propiedad ? " · " + t.propiedad : ""), texto: prob.replace(/\.$/, "") + ".", estado: est, dot: dot, tagBg: bg, tagFg: fg,
+      return { pr: pr, ts: tsG(g), quien: nom, prop: self.propCorta(t.propiedad), texto: self.fraseCaso(t), estado: est, dot: dot, tagBg: bg, tagFg: fg,
         ir: function () { var j = gIdx[g.key]; if (j == null) return; self.convAbrir(t.key, true, t.cargarHilo); self.convIrA(j); } };
     }).sort(function (x, y) { return x.pr - y.pr || y.ts - x.ts; }).slice(0, 8);
     var nFiltros = (st.logFiltro !== "Todo" ? 1 : 0) + (st.logQuien !== "Todos" ? 1 : 0) + (st.logResp !== "Todas" ? 1 : 0) + (st.convOrden === "Cronológico" ? 1 : 0);
@@ -3183,7 +3239,7 @@ class Component extends DCLogic {
       mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
       versionNueva: st.versionNueva, recargarVersion: function () { location.reload(); },
       resLineas: resLineas, resHay: resLineas.length > 0,
-      resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : "Nada nuevo en " + ventanaH + " horas · siguen abiertos",
+      resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : abiertosRes.length ? "Nada nuevo en " + ventanaH + " h · siguen abiertos" : "Nada nuevo en " + ventanaH + " h · lo último que pasó",
       briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length && !resLineas.length, briefHay: briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",
       briefRef: this.briefRefCb, briefPaginas: briefPaginas, briefPuntos: briefPuntos, briefAltoTotal: (nBrief * 100) + "%",
       briefPos: briefItems.length ? (briefIdx + 1) + " de " + briefItems.length : "",
@@ -3216,7 +3272,15 @@ class Component extends DCLogic {
   }
 
   /* ── helpers ───────────────────────────────────────────────── */
-  hoy() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+  /* Reloj fijo en Guatemala (UTC−6, sin horario de verano): nunca depende de la zona del dispositivo. */
+  gtPartes(t) {
+    var p = {}; new Intl.DateTimeFormat("en-US", { timeZone: "America/Guatemala", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hour12: false })
+      .formatToParts(t == null ? new Date() : new Date(t)).forEach(function (x) { p[x.type] = Number(x.value); });
+    return { y: p.year, m: p.month - 1, d: p.day, h: p.hour % 24, min: p.minute };
+  }
+  gtHora() { return this.gtPartes().h; }
+  /* "Hoy" = medianoche local de la fecha de Guatemala; las cuentas de días y getters locales quedan alineados con GT. */
+  hoy() { var g = this.gtPartes(); return new Date(g.y, g.m, g.d); }
   masDias(n) { var d = this.hoy(); d.setDate(d.getDate() + n); return d; }
   fmtFecha(d) { return d.toLocaleDateString("es-GT", { day: "numeric", month: "short" }); }
   fmtISO(d) { var p = function (n) { return (n < 10 ? "0" : "") + n; }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
@@ -3300,7 +3364,7 @@ class Component extends DCLogic {
     var ir = function (u) { return function () { location.href = u; }; };
     var setV = function (v) { return function () { self.setState({ vista: v }); }; };
     var notis = this.notis();
-    var h = new Date().getHours();
+    var h = this.gtHora();
     var nombre = this.props.nombreAdmin || "Andrea";
     var partesNombre = String(nombre).trim().split(/\s+/);
     var perfil = st.perfil || {
@@ -3448,7 +3512,7 @@ class Component extends DCLogic {
     var hist = (function () {
       var semanal = st.rvRango <= 30;
       var cubos = semanal ? Math.max(1, Math.round(st.rvRango / 7)) : Math.max(1, Math.round(st.rvRango / 30));
-      var etiquetas = [], valores = [], conteos = [], hoyM = new Date();
+      var etiquetas = [], valores = [], conteos = [], hoyM = self.hoy();
       var fechaDe = function (r) { return new Date(hoyM.getTime() - r.dias * 86400000); };
       for (var i = cubos - 1; i >= 0; i--) {
         var grupo, d;
@@ -3602,7 +3666,7 @@ class Component extends DCLogic {
     };
 
     /* calendario · solo visitas, reuniones y (opcional) tareas */
-    var hoyD = new Date(), y = hoyD.getFullYear(), m = hoyD.getMonth();
+    var hoyD = this.hoy(), y = hoyD.getFullYear(), m = hoyD.getMonth();
     var primero = new Date(y, m, 1), inicio = (primero.getDay() + 6) % 7;
     var diasMes = new Date(y, m + 1, 0).getDate();
     var COLOR = { visita: "#3E3F3F", reunion: "#938B8A", tarea: "#E9826A", tarde: "#C0392B" };
@@ -3780,7 +3844,7 @@ class Component extends DCLogic {
         "Hacerlo bien toma lo mismo que hacerlo a medias, y dura mucho más.",
         "Cada llegada es la primera vez para alguien."
       ]),
-      fechaLarga: new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" }),
+      fechaLarga: new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Guatemala" }),
       resumenDia: this.CHECKINS.length + " llegadas, " + turnosHoy.length + " turnos en Epi y " + (atrasados.length) + " cosas que ya te esperaban. Empecemos por ahí.",
       stats: stats,
       hoyStats: [

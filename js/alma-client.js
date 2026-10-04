@@ -22,6 +22,26 @@
     if (cell.length || row.length) { row.push(cell); rows.push(row); }
     return rows;
   }
+  /* ALMA_CONTROL se lee por POSICIÓN (A = clave, B = valor): una cabecera dañada no puede "apagar" nada.
+     Celdas con varias líneas (filas fusionadas) se desarman línea por línea. */
+  function readControl() {
+    var u = 'https://docs.google.com/spreadsheets/d/' + CFG.sheetId + '/gviz/tq?tqx=out:csv&sheet=ALMA_CONTROL';
+    return fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (t) {
+      var out = [], vistos = {};
+      parseCsv(t).forEach(function (r, fi) {
+        /* Celda fusionada: gviz entrega "CLAVE TOGGLE MODO HORARIO" / "valor ON AUTO OFF" (separado por espacios o saltos). Las claves nunca llevan espacios. */
+        var ka = String(r[0] || '').trim().split(/\s+/), vb = String(r[1] || '').trim().split(/\s+/);
+        ka.forEach(function (k, i) {
+          var K = k.trim().toUpperCase(); if (!K || K === 'CLAVE') return;
+          var v = ka.length === 1 ? String(r[1] || '').trim() : (vb[i] != null ? vb[i] : '').trim();
+          if (/^VALOR$/i.test(v)) v = '';
+          if (vistos[K] && !v) return;
+          vistos[K] = 1; out.push({ _fila: fi + 1, clave: K, valor: v });
+        });
+      });
+      return out;
+    });
+  }
   function readTab(name, sheetId) {
     var u = 'https://docs.google.com/spreadsheets/d/' + (sheetId || CFG.sheetId) + '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(name);
     return fetch(u).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); }).then(function (t) {
@@ -50,7 +70,7 @@
     readAll: function () {
       /* gviz devuelve la PRIMERA pestaña si el nombre no existe: se valida una columna esperada. */
       var opc = function (t, id, col) { return readTab(t, id).then(function (rows) { return rows.length && !(col in rows[0]) ? [] : rows; }).catch(function () { return []; }); };
-      return Promise.all(['ALMA_CONTROL', 'ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); })
+      return Promise.all([readControl()].concat(['ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); }))
         .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name')]))
         .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7] }; });
     },
@@ -66,7 +86,7 @@
     setPropiedadDato: function (propiedad, campo, valor) { return call('setPropiedadDato', { propiedad: propiedad, campo: campo, valor: valor }); },
     hilo: function (resId) { return call('hilo', { resId: resId }); },
     redactarHub: function (resId, texto) { return call('redactarHub', { resId: resId, texto: texto }); },
-    responder: function (resId, texto) { return call('responder', { resId: resId, texto: texto }); },
+    responder: function (resId, texto, quien) { return call('responder', { resId: resId, texto: texto, quien: quien || '' }); },
     votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); }
   };
 })(window);

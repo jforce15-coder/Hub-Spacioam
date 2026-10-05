@@ -58,13 +58,25 @@
   @keyframes sa-spin{ to{ transform:rotate(360deg); } }
   .sa-snap{ scrollbar-width:none; } .sa-snap::-webkit-scrollbar{ display:none; }
   .sa-hscroll{ scrollbar-width:none; } .sa-hscroll::-webkit-scrollbar{ display:none; }
-  .alma-wrap{ max-width:960px; }
-  .alma-split{ display:grid; grid-template-columns:minmax(0,1fr); gap:28px; align-items:start; }
+  /* ALMA: la página no hace scroll; el resumen y las conversaciones hacen scroll dentro de su caja. */
+  .alma-shell{ height:100vh; height:100dvh; overflow:hidden; display:flex; flex-direction:column; }
+  .alma-wrap{ max-width:960px; width:100%; box-sizing:border-box; flex:1; min-height:0; padding-bottom:calc(12px + env(safe-area-inset-bottom)) !important; gap:14px !important; }
+  .alma-split{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(0,20fr) minmax(0,80fr); gap:12px; }
+  .alma-side{ min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .alma-side::-webkit-scrollbar{ display:none; }
+  .alma-main{ min-width:0; min-height:0; display:flex; flex-direction:column; }
+  .alma-scroll{ overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
   @media (min-width:1180px){
     .alma-wrap{ max-width:1360px; }
-    .alma-split{ grid-template-columns:minmax(340px,420px) minmax(0,1fr); gap:28px; }
-    .alma-side{ position:sticky; top:16px; max-height:calc(100dvh - 32px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; padding-right:4px; }
+    .alma-split{ grid-template-columns:minmax(340px,400px) minmax(0,1fr); grid-template-rows:minmax(0,1fr); gap:24px; }
+    .alma-side{ scrollbar-width:thin; padding-right:4px; }
   }
+  .alma-foco .alma-side, .alma-foco .alma-filtros, .alma-foco .alma-titulo, .alma-foco .alma-mas { display:none !important; }
+  .alma-foco .alma-split{ grid-template-rows:minmax(0,1fr) !important; }
+  @media (max-width:1179px){ .alma-foco .alma-head, .alma-foco .alma-volver, .alma-foco .alma-aviso { display:none !important; } .alma-foco .alma-wrap{ padding-top:12px !important; } }
+  @media (min-width:1180px){ .alma-foco .alma-side{ display:block !important; } }
+  @keyframes sa-dive { from { opacity:0; transform:scale(.92) translateY(10px); } 60% { opacity:1; } to { opacity:1; transform:none; } }
+  @keyframes sa-surface { from { opacity:0; transform:scale(1.035); } to { opacity:1; transform:none; } }
   @media (prefers-reduced-motion:reduce){ .sp-tile, .sp-img{ transition:none; } .sa-anim, .sa-anim *{ animation:none !important; transition-duration:1ms !important; } .sa-snap{ scroll-behavior:auto !important; } }
 </style>
 </helmet>
@@ -141,6 +153,7 @@
                   <span style="font-size:12.5px; letter-spacing:.06em">Notificaciones push</span>
                   <span style="font-size:10.5px; letter-spacing:.03em; color:#6F6867; line-height:1.4">{{ pushSub }}</span>
                 </span>
+                <sc-if value="{{ pushOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pushProbar }}" disabled="{{ pushBusy }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:32px; padding:0 12px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; flex-shrink:0" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Probar</button></sc-if>
                 <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ pushOn }}" onChange="{{ pushToggle }}" disabled="{{ pushBusy }}" aria-label="Notificaciones push" hint-size="44px,26px"></x-import>
               </div>
             </sc-if>
@@ -307,7 +320,7 @@
 <sc-if value="{{ enHoy }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div style="max-width:880px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-direction:column; gap:6px">
       <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Epi · Hola · el día completo</span>
       <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">Hoy</h2>
@@ -469,7 +482,7 @@
 <sc-if value="{{ enCuenta }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div style="max-width:680px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:20px">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-direction:column; gap:6px">
       <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Cuenta</span>
       <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">Tus datos</h2>
@@ -556,7 +569,7 @@
 <sc-if value="{{ enAccion }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div style="max-width:820px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-direction:column; gap:6px">
       <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Consolidado Grow + tareas</span>
       <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">Necesita tu acción</h2>
@@ -589,7 +602,7 @@
 <sc-if value="{{ enReviews }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div class="alma-wrap" style="margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-direction:column; gap:6px">
       <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Análisis de reviews</span>
       <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">Qué están diciendo los huéspedes</h2>
@@ -730,7 +743,7 @@
 </sc-if>
 
 <sc-if value="{{ enAlma }}" hint-placeholder-val="{{ false }}">
-<div data-screen-label="ALMA" class="sa-anim" style="min-height:100vh; background:#FAFAFA; padding:0 0 64px; overflow-x:hidden">
+<div data-screen-label="ALMA" class="sa-anim alma-shell {{ almaFoco }}" style="background:#FAFAFA; overflow-x:hidden">
   <sc-if value="{{ versionNueva }}" hint-placeholder-val="{{ false }}">
     <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:80; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; max-width:calc(100vw - 24px); box-sizing:border-box">
       <span style="width:8px; height:8px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
@@ -739,8 +752,8 @@
     </div>
   </sc-if>
   <div class="alma-wrap" style="margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
-    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px">
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <div class="alma-head" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px">
       <div style="display:flex; align-items:center; gap:14px">
         <div aria-hidden="true" style="position:relative; width:64px; height:64px; flex-shrink:0">
           <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 4px 16px rgba(62,63,63,.08); border:2px solid #FFFFFF; box-sizing:border-box">
@@ -771,10 +784,10 @@
     </div>
 
     <sc-if value="{{ almaAviso }}" hint-placeholder-val="{{ false }}">
-      <div style="background:rgba(233,130,106,.12); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
+      <div class="alma-aviso" style="background:rgba(233,130,106,.12); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
     </sc-if>
 
-    <div data-screen-label="ALMA · Filtros" style="display:flex; flex-direction:column; gap:10px">
+    <div data-screen-label="ALMA · Filtros" class="alma-filtros" style="display:flex; flex-direction:column; gap:10px">
       <div style="display:flex; gap:8px; align-items:center">
       <label style="flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
@@ -912,9 +925,9 @@
       </sc-if>
     </div>
       </div>
-      <div style="min-width:0">
-    <div data-screen-label="ALMA · Conversaciones" style="display:flex; flex-direction:column; gap:12px">
-      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
+      <div class="alma-main">
+    <div data-screen-label="ALMA · Conversaciones" style="flex:1; min-height:0; display:flex; flex-direction:column; gap:10px">
+      <div class="alma-titulo" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
         <div style="display:flex; flex-direction:column; gap:4px">
           <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Conversaciones · en cola e historial</span>
           <span style="font-size:17px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">Lo que ALMA atiende</span>
@@ -926,8 +939,8 @@
         </div>
       </div>
 
-      <sc-if value="{{ convVerLista }}" hint-placeholder-val="{{ false }}">
-        <div style="display:flex; flex-direction:column; gap:8px">
+      <sc-if value="{{ convVerLista }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; transform-origin: {{ diveOrigin }}; animation:sa-surface .36s cubic-bezier(.22,.61,.36,1) both">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
             <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ cronoPie }}</span>
             <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:10.5px; letter-spacing:.04em; color:#6F6867">
@@ -937,9 +950,13 @@
             </div>
           </div>
           <sc-if value="{{ cronoVacio }}" hint-placeholder-val="{{ false }}">
-            <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:24px; text-align:center; font-size:13px; color:#6F6867">No hay conversaciones con estos filtros.</div>
+            <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px 24px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center">
+              <span style="font-size:14px; font-weight:600; color:#3E3F3F; letter-spacing:.01em">{{ cronoVacioTitulo }}</span>
+              <span style="font-size:12.5px; color:#6F6867; line-height:1.55; max-width:360px; text-wrap:pretty">{{ cronoVacioTexto }}</span>
+              <sc-if value="{{ cronoVacioBoton }}" hint-placeholder-val="{{ false }}"><button onClick="{{ verCronologico }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">Ver todas las conversaciones</button></sc-if>
+            </div>
           </sc-if>
-          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; overflow:hidden; box-shadow:0 1px 2px rgba(62,63,63,.04)">
+          <div class="alma-scroll" style="flex:1; min-height:0; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04)">
             <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
               <button onClick="{{ r.abrir }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; border-top:1px solid {{ r.borde }}; border-left:4px solid {{ r.color }}; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F5F3F0" style-active="background:#EFECE8">
                 <span style="position:relative; width:44px; height:44px; flex-shrink:0">
@@ -977,8 +994,8 @@
         <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ convPie }}</span>
       </div>
 
-      <div style="position:relative; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
-        <div ref="{{ convRef }}" class="sa-snap" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:relative; transition:height .36s cubic-bezier(.22,.61,.36,1); height: {{ convAltoVisor }}; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
+      <div style="position:relative; flex:1; min-height:0; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0; transform-origin: {{ diveOrigin }}; animation:sa-dive .42s cubic-bezier(.22,.61,.36,1) both">
+        <div ref="{{ convRef }}" class="sa-snap" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
           <sc-if value="{{ convVacio }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute; inset:14px; display:grid; place-items:center"><div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em; max-width:420px">{{ convVacioTexto }}</div></div>
           </sc-if>
@@ -1252,7 +1269,7 @@
       </div>
       </sc-if>
       <sc-if value="{{ convHayMas }}" hint-placeholder-val="{{ false }}">
-        <button onClick="{{ convCargarMas }}" style="align-self:center; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:10px 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer" style-hover="border-color:#3E3F3F">{{ convCargarMasLabel }}</button>
+        <button onClick="{{ convCargarMas }}" class="alma-mas" style="align-self:center; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:10px 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer" style-hover="border-color:#3E3F3F">{{ convCargarMasLabel }}</button>
       </sc-if>
     </div>
       </div>
@@ -1638,7 +1655,7 @@
 <sc-if value="{{ enTareas }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div style="max-width:880px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:20px">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div style="display:flex; flex-direction:column; gap:6px">
       <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Operación · sin proyecto</span>
       <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">Tareas del equipo</h2>
@@ -1771,7 +1788,7 @@
 <sc-if value="{{ enCalendario }}" hint-placeholder-val="{{ false }}">
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div class="alma-wrap" style="margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:20px">
-    <button onClick="{{ volver }}" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
+    <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
 
     <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap">
       <div style="display:flex; flex-direction:column; gap:6px">
@@ -2137,7 +2154,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-05.1500";
+  BUILD = "2026-10-05.1700";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2160,11 +2177,14 @@ class Component extends DCLogic {
     setTimeout(function () { self.almaCargar(); }, 1600);
     /* En ALMA la cola se refresca cada 20 s (en vivo desde el Apps Script); en el hub, cada minuto. */
     this._almaN = 0;
+    /* ALMA abierta: lo vivo cada 10 s (cada 5 s si hay un urgente activo); la hoja completa cada 2 min. Hub: cada minuto. */
     this._almaTimer = setInterval(function () {
       self._almaN++;
       if (document.visibilityState === "hidden") return;
-      if (self.state.vista === "alma" || (self.state.vista === "hub" && self._almaN % 3 === 0)) self.almaCargar();
-    }, 20000);
+      if (self.state.vista === "alma") { if (self._hayUrg || self._almaN % 2 === 0) self.almaCargar(self._almaN % 24 !== 0); }
+      else if (self.state.vista === "hub" && self._almaN % 12 === 0) self.almaCargar(true);
+    }, 5000);
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && self.state.vista === "alma") self.almaCargar(true); });
     this._tick = setInterval(function () { if (self.state.vista === "alma") self.forceUpdate(); }, 20000);
   }
   componentWillUnmount() { clearInterval(this._almaTimer); clearInterval(this._tick); clearInterval(this._verT); }
@@ -2343,6 +2363,13 @@ class Component extends DCLogic {
     }, 700);
   }
   _autoHilo = {};
+  abrirDesdeLista(e, t, i) {
+    var row = e && e.currentTarget, box = row && row.parentElement, o = "50% 30%";
+    try { var r = row.getBoundingClientRect(), b = box.getBoundingClientRect(); o = "50% " + Math.max(0, Math.round(r.top - b.top + r.height / 2)) + "px"; } catch (x) {}
+    this.setState({ cronoLista: false, diveOrigin: o });
+    this.convAbrir(t.key, true, t.cargarHilo);
+    this.convIrA(i);
+  }
   /* Resuelta sola cuando ya no hay nada pendiente (sin escribir en la hoja; un mensaje nuevo la reabre):
      · nosotros respondimos último y el huésped lleva 3 h sin escribir
      · el huésped cerró con un agradecimiento corto después de nuestra respuesta
@@ -2514,8 +2541,9 @@ class Component extends DCLogic {
       ]
     };
   }
-  almaCargar() {
+  almaCargar(soloVivo) {
     var self = this;
+    if (this._cargandoVivo && soloVivo) return;
     this.setState({ almaCargando: true, almaError: "" });
     var listo = function (data, fuente) {
       var ctrl = {};
@@ -2542,6 +2570,16 @@ class Component extends DCLogic {
       return d;
     };
     /* 2. Lo vivo (cola, log, bandeja) y la hoja completa llegan en paralelo; cada uno pinta apenas llega. */
+    if (soloVivo && this.state.alma && !this.state.alma._demo) {
+      this._cargandoVivo = true;
+      ALMA.readLive().then(function (l) {
+        self._cargandoVivo = false;
+        if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
+        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || [];
+        listo(d, "En vivo · " + horaGT()); guardar();
+      }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
+      return;
+    }
     ALMA.readLive().then(function (l) {
       if (!l || !l.ok) return; vivo = l;
       if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }
@@ -3276,9 +3314,11 @@ class Component extends DCLogic {
       if (c.esCola) return ["pendiente", "esperando_envio", "esperando_rojo", "clasificando"].indexOf(c.estadoCola) >= 0 || !c.estadoCola;
       return c.sinResp || ((c.nivel === "ROJO" || c.nivel === "AMARILLO") && !c.enviado && !c.humano);
     });
-    if (hayPend && this._pendPrev === false && st.convOrden) { var me = this; setTimeout(function () { me.setState({ convOrden: null, cronoLista: true }); }, 0); }
-    this._pendPrev = hayPend;
-    var ordenEf = st.convOrden || (hayPend ? "Prioridad" : "Cronológico");
+    /* Urgente activo = ROJO de las últimas 6 h que nadie del equipo ha atendido. Entra uno nuevo → prioridad sola. */
+    var hayUrg = visibles.some(function (c) { return (c.nivel === "ROJO" || c.nivelLabel === "Urgente") && !c.humano && Date.now() - (c.ts || 0) < 6 * 3600000; });
+    if (hayUrg && this._urgPrev === false && st.convOrden) { var me = this; setTimeout(function () { me.setState({ convOrden: null, cronoLista: true }); }, 0); }
+    this._urgPrev = hayUrg; this._hayUrg = hayUrg;
+    var ordenEf = st.convOrden || (hayUrg ? "Prioridad" : "Cronológico");
     this._ordenEf = ordenEf;
     var convItems = ordenEf === "Cronológico" ? visibles.sort(function (x, y) { return y.ts - x.ts; }) : visibles.sort(function (x, y) { return rank(x) - rank(y) || (x.esCola ? 0 : y.ts - x.ts); });
 
@@ -3512,6 +3552,34 @@ class Component extends DCLogic {
     var convPuntos = grupos.length > 1 && grupos.length <= 14 ? grupos.map(function (c, i) { return { h: i === convIdx ? "18px" : "5px", bg: i === convIdx ? "#3E3F3F" : "#D8D4CE" }; }) : [];
 
 
+    var prio = ordenEf === "Prioridad";
+    var cronoFilas = grupos.map(function (g, i) {
+        var t = g.frags[0], ib = inboxPor[g.key];
+        var pend = !g.resuelto && (t.esCola || (ib ? ib.ultimo_de === "guest" : ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano)));
+        var est = g.resuelto ? "res" : pend ? "pend" : (ib || t.enviado || t.humano) ? "resp" : "pend";
+        var E = { pend: ["Pendiente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"], resp: ["Respondida", "rgba(59,102,145,.12)", "#3B6691", "#3B6691"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"] }[est];
+        var tsG = g.ts || t.ts || 0, d = new Date(tsG), mn = Math.max(0, Math.round((Date.now() - tsG) / 60000));
+        var hora = !tsG || isNaN(d) ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 24 * 60 ? "hace " + Math.floor(mn / 60) + " h" : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
+        var prev = ib ? (ib.ultimo_de === "guest" ? "" : "Tú: ") + String(ib.ultimo_texto || "").replace(/\[foto\]/, "Foto") : String((t.hayRespuesta && (t.enviado || t.humano) ? "Tú: " + t.respuesta : t.pregunta) || t.resumen || "");
+        prev = prev.replace(/\s+/g, " ").trim();
+        var nombre = (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped";
+        var propR = (ib && ib.propiedad) || t.propiedad || "";
+        var hoyISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+        var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
+        var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
+        if (prio && est !== "pend") return null;
+        if (prio) {
+          var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Por confirmar" ? ["Por confirmar", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];
+          E = U; var fr = self.fraseCaso ? self.fraseCaso(t) : ""; if (fr) prev = fr;
+        }
+        return { iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
+          prop: propR ? (self.propCorta ? self.propCorta(propR) : propR) : "Propiedad por confirmar", preview: prev || "Sin texto", hora: hora,
+          hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
+          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" ? "600" : "400", previewFg: est === "pend" ? "#3E3F3F" : "#6F6867",
+          bg: est === "pend" ? "#FFFFFF" : "#FFFFFF", borde: i === 0 ? "transparent" : "#EAE6E0",
+          abrir: function (e) { self.abrirDesdeLista(e, t, i); } };
+    }).filter(Boolean);
+
     return {
       enAlma: st.vista === "alma",
       verAlma: function () { self.setState({ vista: "alma" }); if (!self.state.alma) self.almaCargar(); },
@@ -3612,13 +3680,14 @@ class Component extends DCLogic {
       descartarMejora: function () { self.setState({ mejoraPropuesta: null }); },
       hayMejorasHist: st.mejorasHist.length > 0, mejorasHist: st.mejorasHist,
 
-      colaResumen: [["ROJO", "urgentes"], ["AMARILLO", "por confirmar"], ["VERDE", "resueltas"]].map(function (x) {
-        var N = NIVEL[x[0]], n = gruposTodos.filter(function (g) { return enNivel(g, x[0]); }).length;
-        var act = x[0] === "VERDE" ? st.convVista === "resueltas" : (st.convVista !== "resueltas" && st.logFiltro === x[0]);
+      colaResumen: [["ROJO", "urgentes"], ["AMARILLO", "por confirmar"], ["SIN", "sin responder"], ["VERDE", "resueltas"]].map(function (x) {
+        var N = NIVEL[x[0]] || NIVEL.AMARILLO, n = x[0] === "SIN" ? gruposTodos.filter(function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && !enNivel(g, "ROJO") && !enNivel(g, "AMARILLO") && (t.sinResp || (ib && ib.ultimo_de === "guest")); }).length : gruposTodos.filter(function (g) { return enNivel(g, x[0]); }).length;
+        var act = x[0] === "SIN" ? (st.convOrden === "Prioridad" && st.logFiltro === "Todo" && st.convVista !== "resueltas") : x[0] === "VERDE" ? st.convVista === "resueltas" : (st.convVista !== "resueltas" && st.logFiltro === x[0]);
         return { n: String(n), nombre: x[1], activo: act, bd: act ? "#3E3F3F" : "#D8D4CE", fg: act ? "#FAFAFA" : "#3E3F3F", bg: act ? "#3E3F3F" : "#FFFFFF",
           set: function () {
             /* Ancla: los contadores se quedan quietos en pantalla aunque cambie el alto de lo de arriba. */
             var box = document.querySelector("[data-alma-contadores]"), y0 = box ? box.getBoundingClientRect().top : null;
+            if (x[0] === "SIN") { self.setState(act ? { convOrden: null, cronoLista: true } : { convOrden: "Prioridad", logFiltro: "Todo", convVista: "", cronoLista: true, convIdx: 0 }); return; }
             self.setState(act ? { logFiltro: "Todo", convVista: "", convIdx: 0, briefIdx: 0 } : x[0] === "VERDE" ? { convVista: "resueltas", logFiltro: "Todo", convIdx: 0, briefIdx: 0 } : { logFiltro: x[0], convVista: "", convIdx: 0, briefIdx: 0 }, function () {
               requestAnimationFrame(function () { var b2 = document.querySelector("[data-alma-contadores]"); if (b2 && y0 != null) window.scrollBy(0, b2.getBoundingClientRect().top - y0); });
             });
@@ -3640,31 +3709,15 @@ class Component extends DCLogic {
       convPaginas: convPaginas, convPuntos: convPuntos, convPos: grupos.length ? (convIdx + 1) + " de " + grupos.length : "",
       convAltoTotal: (nPag * 100) + "%", convHandleOp: grupos.length > 1 && convIdx < grupos.length - 1 ? "1" : "0",
       convScroll: function () {}, convKey: function (e) { self.convKey(e, grupos.length); },
-      convEsCrono: ordenEf === "Cronológico",
-      convVerLista: ordenEf === "Cronológico" && st.cronoLista, convVerVisor: !(ordenEf === "Cronológico" && st.cronoLista),
+      convEsCrono: true, esPrioridad: ordenEf === "Prioridad", almaFoco: st.cronoLista === false ? "alma-foco" : "",
+      convVerLista: st.cronoLista !== false, convVerVisor: st.cronoLista === false, diveOrigin: st.diveOrigin || "50% 30%",
+      verCronologico: function () { self.setState({ convOrden: "Cronológico", cronoLista: true }); },
       volverLista: function () { self.convCerrarTodas(); self.setState({ cronoLista: true }); },
-      cronoVacio: !grupos.length, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
-      cronoFilas: grupos.map(function (g, i) {
-        var t = g.frags[0], ib = inboxPor[g.key];
-        var pend = !g.resuelto && (t.esCola || (ib ? ib.ultimo_de === "guest" : ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano)));
-        var est = g.resuelto ? "res" : pend ? "pend" : (ib || t.enviado || t.humano) ? "resp" : "pend";
-        var E = { pend: ["Pendiente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"], resp: ["Respondida", "rgba(59,102,145,.12)", "#3B6691", "#3B6691"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"] }[est];
-        var tsG = g.ts || t.ts || 0, d = new Date(tsG), mn = Math.max(0, Math.round((Date.now() - tsG) / 60000));
-        var hora = !tsG || isNaN(d) ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 24 * 60 ? "hace " + Math.floor(mn / 60) + " h" : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
-        var prev = ib ? (ib.ultimo_de === "guest" ? "" : "Tú: ") + String(ib.ultimo_texto || "").replace(/\[foto\]/, "Foto") : String((t.hayRespuesta && (t.enviado || t.humano) ? "Tú: " + t.respuesta : t.pregunta) || t.resumen || "");
-        prev = prev.replace(/\s+/g, " ").trim();
-        var nombre = (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped";
-        var propR = (ib && ib.propiedad) || t.propiedad || "";
-        var hoyISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
-        var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
-        var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
-        return { iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
-          prop: propR ? (self.propCorta ? self.propCorta(propR) : propR) : "Propiedad por confirmar", preview: prev || "Sin texto", hora: hora,
-          hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
-          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" ? "600" : "400", previewFg: est === "pend" ? "#3E3F3F" : "#6F6867",
-          bg: est === "pend" ? "#FFFFFF" : "#FFFFFF", borde: i === 0 ? "transparent" : "#EAE6E0",
-          abrir: function () { self.setState({ cronoLista: false }); self.convAbrir(t.key, true, t.cargarHilo); self.convIrA(i); } };
-      }),
+      cronoVacio: !cronoFilas.length,
+      cronoVacioTitulo: prio ? "Nada urgente ahora" : "Sin conversaciones",
+      cronoVacioTexto: prio ? "No hay casos pendientes. ALMA sigue atendiendo y te traemos aquí en cuanto algo necesite a alguien." : "No hay conversaciones con estos filtros.",
+      cronoVacioBoton: prio, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
+      cronoFilas: cronoFilas,
       convAltoVisor: convItems.some(function (c) { return (st.convResp[c.key] || {}).abierto; }) ? "clamp(360px, calc(100dvh - 150px), 780px)" : "clamp(280px, 52dvh, 520px)",
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
@@ -4403,7 +4456,15 @@ class Component extends DCLogic {
       pushPermitir: function () { self.pushPermitir(); }, pushAhoraNo: function () { self.pushAhoraNo(); },
       pushDisponible: (function () { var e = window.SAPush && SAPush.configurado() ? SAPush.estado() : "no"; return e === "activo" || e === "pausado" || e === "soportado" || e === "bloqueado" || e === "instalar"; })(),
       pushOn: (window.SAPush && SAPush.estado() === "activo") || false,
-      pushSub: (function () { var e = window.SAPush ? SAPush.estado() : "no"; return e === "activo" ? "Activas en este dispositivo" : e === "bloqueado" ? "Bloqueadas · actívalas en los ajustes del teléfono" : e === "instalar" ? "Agrega el hub a tu pantalla de inicio para recibirlas" : "Apagadas en este dispositivo"; })(),
+      pushProbar: function () {
+        if (!window.ALMA || !ALMA.probarPush) return;
+        var q = self.quienPush(); self.setState({ pushBusy: true, pushPrueba: "Enviando prueba…" });
+        ALMA.probarPush(q.email).then(function (r) {
+          var t = !r || !r.ok ? "No se pudo enviar: " + ((r && r.error) || "sin respuesta") : r.destinatarios > 0 ? "Prueba enviada a " + r.destinatarios + (r.destinatarios === 1 ? " dispositivo" : " dispositivos") + ". Debe llegar en segundos." : "OneSignal no encontró ningún dispositivo con tu correo (" + q.email + "). Apaga y vuelve a encender el interruptor desde el ícono de inicio.";
+          self.setState({ pushBusy: false, pushPrueba: t });
+        }).catch(function () { self.setState({ pushBusy: false, pushPrueba: "No se pudo enviar la prueba." }); });
+      },
+      pushSub: st.pushPrueba ? st.pushPrueba : (function () { var e = window.SAPush ? SAPush.estado() : "no"; return e === "activo" ? "Activas en este dispositivo" : e === "bloqueado" ? "Bloqueadas · actívalas en los ajustes del teléfono" : e === "instalar" ? "Agrega el hub a tu pantalla de inicio para recibirlas" : "Apagadas en este dispositivo"; })(),
       pushToggle: function (v) { var on = typeof v === "boolean" ? v : !(window.SAPush && SAPush.estado() === "activo"); var e = window.SAPush ? SAPush.estado() : "no"; if (e === "bloqueado" || e === "instalar") return; self.pushToggle(on); },
       notisPush: notis.filter(function (n) { return n.sev === "urgente"; }),
       notiTotal: String(notis.length),

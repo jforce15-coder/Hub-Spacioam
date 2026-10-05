@@ -3,7 +3,7 @@
    2. Copia el App ID aquí. 3. Sube OneSignalSDKWorker.js a la raíz del sitio.
    El Apps Script de ALMA envía los avisos con la REST API Key (propiedad ONESIGNAL_KEY). */
 (function (g) {
-  var APP_ID = '';
+  var APP_ID = '7ab3b3cf-d7f3-4d1b-8377-3f7d20c4db96';
   var cargado = null;
   function standalone() { return (g.matchMedia && matchMedia('(display-mode: standalone)').matches) || g.navigator.standalone === true; }
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

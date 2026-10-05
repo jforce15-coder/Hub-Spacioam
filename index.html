@@ -134,6 +134,16 @@
               <div style="font-size:11px; letter-spacing:.06em; color:#6F6867; margin-top:3px">{{ rolLabel }}</div>
             </div>
             <button onClick="{{ verCuenta }}" style="display:flex; align-items:center; gap:10px; width:100%; border:none; background:transparent; cursor:pointer; padding:14px; font-size:12.5px; letter-spacing:.06em; color:#3E3F3F; font-family:inherit; text-align:left" style-hover="background:#F5F3F0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="user" size="16" color="#6F6867" hint-size="16px,16px"></x-import>Mi cuenta</button>
+            <sc-if value="{{ pushDisponible }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; align-items:center; gap:10px; width:100%; border-top:1px solid #D8D4CE; padding:10px 14px; box-sizing:border-box; color:#3E3F3F">
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="alert" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
+                <span style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1">
+                  <span style="font-size:12.5px; letter-spacing:.06em">Notificaciones push</span>
+                  <span style="font-size:10.5px; letter-spacing:.03em; color:#6F6867; line-height:1.4">{{ pushSub }}</span>
+                </span>
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ pushOn }}" onChange="{{ pushToggle }}" disabled="{{ pushBusy }}" aria-label="Notificaciones push" hint-size="44px,26px"></x-import>
+              </div>
+            </sc-if>
             <button onClick="{{ toggleLang }}" style="display:flex; align-items:center; gap:10px; width:100%; border:none; border-top:1px solid #D8D4CE; background:transparent; cursor:pointer; padding:12px 14px; font-family:inherit; text-align:left; color:#3E3F3F" style-hover="background:#F5F3F0">
               <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="globe" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
               <span style="font-size:12.5px; letter-spacing:.06em">Idioma</span>
@@ -747,11 +757,6 @@
       </div>
       <div style="display:flex; align-items:center; gap:8px">
         <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
-        <sc-if value="{{ hayPushNota }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:11px; letter-spacing:.02em; color:#3E3F3F; background:#F5F3F0; border-radius:999px; padding:6px 12px; max-width:320px; line-height:1.4; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">{{ pushNota }}</span></sc-if>
-        <button onClick="{{ pushActivar }}" aria-label="{{ pushLabel }}" title="{{ pushLabel }}" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="alert" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
-          <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ pushDot }}"></span>
-        </button>
         <button onClick="{{ ctrlToggleAbierto }}" aria-label="Control de ALMA" title="Control" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="settings" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
           <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ almaDotBg }}"></span>
@@ -1851,6 +1856,23 @@
 </sc-if>
 
 <x-import component="NotiPush" from="./js/noti-center.jsx" notis="{{ notisPush }}" store-key="hub:notiSeen" onOpen="{{ abrirNotis }}" hint-size="0px,0px"></x-import>
+<sc-if value="{{ pushPreguntar }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; inset:0; z-index:300; display:flex; align-items:flex-end; justify-content:center; padding:16px 16px calc(16px + env(safe-area-inset-bottom))">
+    <div onClick="{{ pushAhoraNo }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
+    <div role="dialog" aria-label="Activar notificaciones" style="position:relative; width:min(100%,420px); background:#FFFFFF; border-radius:28px; padding:28px 24px 20px; box-shadow:0 28px 80px rgba(62,63,63,.10); display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
+      <img src="assets/icons/apple-touch-icon.png" alt="" style="width:64px; height:64px; border-radius:16px; box-shadow:0 4px 16px rgba(62,63,63,.08)">
+      <div style="display:flex; flex-direction:column; gap:6px">
+        <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:24px; line-height:1.15; color:#3E3F3F">Recibe los avisos de ALMA</span>
+        <span style="font-size:13px; line-height:1.6; color:#6F6867; letter-spacing:.01em; text-wrap:pretty">Te avisamos en este teléfono cuando un huésped necesite a alguien del equipo. Solo lo urgente, y solo cuando estés de turno.</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; width:100%; margin-top:4px">
+        <button onClick="{{ pushPermitir }}" disabled="{{ pushBusy }}" style="width:100%; min-height:48px; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ pushPermitirLabel }}</button>
+        <button onClick="{{ pushAhoraNo }}" style="width:100%; min-height:44px; border:none; border-radius:999px; background:transparent; color:#6F6867; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.98)">Ahora no</button>
+      </div>
+      <span style="font-size:10.5px; color:#6F6867; letter-spacing:.03em; line-height:1.5">Puedes apagarlas cuando quieras en tu menú de cuenta.</span>
+    </div>
+  </div>
+</sc-if>
 <x-import component="NotiCenter" from="./js/noti-center.jsx" open="{{ notiOpen }}" notis="{{ notisVisibles }}" onClose="{{ cerrarNotis }}" onDismiss="{{ descartarNoti }}" onSnooze="{{ posponerNoti }}" hint-size="0px,0px"></x-import>
 
 </x-dc>
@@ -2027,7 +2049,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: null, cronoLista: true,
-    versionNueva: false, progEdit: {}, progConfirm: "", usuariosAcc: [], pushNota: "", pushEstado: "", escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
+    versionNueva: false, progEdit: {}, progConfirm: "", usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -2110,7 +2132,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-05.1100";
+  BUILD = "2026-10-05.1400";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2260,22 +2282,33 @@ class Component extends DCLogic {
     var self = this; if (this._accCargado || !(window.SAAuth && SAAuth.usuarios)) return; this._accCargado = 1;
     SAAuth.usuarios().then(function (us) { self.setState({ usuariosAcc: us || [] }); });
   }
-  pushActivar() {
-    var self = this, P = window.SAPush;
-    var nota = function (t) { self.setState({ pushNota: t }); clearTimeout(self._pushT); self._pushT = setTimeout(function () { self.setState({ pushNota: "" }); }, 7000); };
-    if (!P) return nota("No se cargó el módulo de avisos.");
+  /* Push: al abrir desde el ícono de inicio (o al iniciar sesión ahí) se pregunta una vez. "Ahora no" vuelve a preguntar
+     en 7 días. Después, el toggle del menú de cuenta enciende o apaga los avisos en este dispositivo. */
+  quienPush() { var s = (window.SA && SA.session && SA.session()) || {}; return { email: s.email || (this.state.perfil || {}).correo || "", nombre: s.nombre || "", rol: this.rol() }; }
+  pushRevisar() {
+    var P = window.SAPush; if (!P || !P.configurado()) return;
     var est = P.estado();
-    if (est === "sin_config") return nota("Falta el App ID de OneSignal en js/push.js.");
-    if (est === "instalar") return nota("En iPhone: Compartir → Agregar a inicio, abre el hub desde ese ícono y vuelve a tocar la campana.");
-    if (est === "no") return nota("Este navegador no admite avisos.");
-    if (est === "bloqueado") return nota("Los avisos están bloqueados. Actívalos en los ajustes del navegador para hub.spacioam.com.");
-    var s = window.SA && SA.session ? SA.session() || {} : {};
-    nota("Activando…");
-    P.activar({ email: s.email || (this.state.perfil || {}).correo || "", nombre: s.nombre || "", rol: this.rol() }).then(function (r) {
-      self.setState({ pushEstado: r.estado });
-      nota(r.ok ? "Listo. Te avisaremos aquí de los casos urgentes." : r.estado === "bloqueado" ? "No diste permiso. Puedes activarlo en los ajustes del navegador." : "No pudimos activar los avisos en este dispositivo.");
+    if (est === "activo") { P.reanudar(this.quienPush()); return; }
+    if (est !== "soportado" || !P.instalada()) return;
+    var ult = Number(localStorage.getItem("sa_push_preg") || 0);
+    if (Date.now() - ult < 7 * 86400000) return;
+    var self = this; setTimeout(function () { self.setState({ pushPreguntar: true }); }, 1200);
+  }
+  pushPermitir() {
+    var self = this, P = window.SAPush; if (!P) return;
+    this.setState({ pushBusy: true });
+    P.activar(this.quienPush()).then(function (r) {
+      localStorage.setItem("sa_push_preg", String(Date.now()));
+      self.setState({ pushBusy: false, pushPreguntar: false, pushEstado: r.estado });
     });
   }
+  pushAhoraNo() { localStorage.setItem("sa_push_preg", String(Date.now())); this.setState({ pushPreguntar: false }); }
+  pushToggle(on) {
+    var self = this, P = window.SAPush; if (!P) return;
+    this.setState({ pushBusy: true });
+    (on ? P.activar(this.quienPush()) : P.desactivar()).then(function (r) { self.setState({ pushBusy: false, pushEstado: r.estado }); });
+  }
+
   escAutosave(lista) {
     var self = this; clearTimeout(this._escT);
     this._escT = setTimeout(function () {
@@ -2361,7 +2394,7 @@ class Component extends DCLogic {
         return { perfil: Object.assign({ primerNombre: n[0] || "", segundoNombre: "", primerApellido: n[1] || "", segundoApellido: "", correo: email || "", alterno: "", pass: "", avatar: "" }, extra || {}) }; });
     };
     if (s.nombre) poner(s.nombre, s.email);
-    try { if (window.SAPush && SAPush.reanudar) SAPush.reanudar({ email: s.email }); } catch (e) {}
+    try { this.pushRevisar(); } catch (e) {}
     if (!s.email) return;
     if (window.SAAuth && SAAuth.profile) SAAuth.profile(s.email).then(function (r) { if (r && r.ok && r.profile && r.profile.nombre) poner(r.profile.nombre, s.email, { avatar: r.profile.avatar || "" }); else if (!s.nombre && SAAuth.usuarios) SAAuth.usuarios().then(function (us) { var u = (us || []).find(function (x) { return String(x.email).toLowerCase() === String(s.email).toLowerCase(); }); if (u && u.nombre) poner(u.nombre, s.email); }); });
   }
@@ -3479,9 +3512,7 @@ class Component extends DCLogic {
           bd: enTurno(p) ? "#3d6b52" : "rgba(62,63,63,.10)", op: act ? "1" : ".6",
           resumen: (enTurno(p) ? "De turno ahora · " : "") + (p.desde || "?") + " – " + (p.hasta || "?") + (cruza ? " (cruza la medianoche)" : "") + " · " + (ds.length === 7 ? "todos los días" : ds.split("").map(function (l) { return NOMD[LETRAS.indexOf(l)].slice(0, 3); }).join(", ") || "ningún día") + " · hora de Guatemala" };
       }),
-      pushActivar: function () { self.pushActivar(); }, pushNota: st.pushNota, hayPushNota: !!st.pushNota,
-      pushLabel: (function () { var e = window.SAPush ? SAPush.estado() : "no"; return e === "activo" ? "Avisos activados en este dispositivo" : "Activar avisos en este dispositivo"; })(),
-      pushDot: (window.SAPush && SAPush.estado() === "activo") || st.pushEstado === "activo" ? "#3d6b52" : "#D8D4CE",
+
       escAgregar: function () { setEsc(function (n) { n.push({ nombre: "", email: "", telefono: "", desde: "08:00", hasta: "20:00", dias: "todos", activo: "TRUE", nota: "" }); }); },
       escTurnoTxt: turnoAhora.length ? "De turno ahora: " + turnoAhora.map(function (p) { return p.nombre || p.email; }).join(" y ") : "Nadie de turno a esta hora · los urgentes van al correo de alertas",
       escTurnoDot: turnoAhora.length ? "#3d6b52" : "#F2755A",
@@ -3632,26 +3663,66 @@ class Component extends DCLogic {
   }
 
   notis() {
-    if (!this._notis) this._notis = this.notisBase();
+    var a = this.state.alma;
+    /* Se recalculan solo cuando llega una lectura nueva de ALMA. */
+    if (this._notisDe !== a) { this._notisDe = a; this._notis = this.notisBase(a); }
     var fin = this.rol() === "admin", d = this.state.descartadas;
     return this._notis.filter(function (n) { return (fin || !n.fin) && !d[n.id]; });
   }
 
-  notisBase() {
-    var h = 3600000, ahora = Date.now();
-    /* TODO: GET /notificaciones (unificado 4 apps) → [{id, app, tipo, subcat, texto, contexto, ts, peso, sev}] */
-    var base = [
-      { id: "n1", app: "epi", fin: false, tipo: "alerta", subcat: "Epi · operación", texto: "El a/c de Zona 10 · 1401 sigue reportado como dañado.", contexto: "Reportado por Kevin · huésped llega hoy 21:00", ts: ahora - 1.5 * h, peso: 100, sev: "urgente" },
-      { id: "n2", app: "hola", fin: false, tipo: "accion", subcat: "Hola · huéspedes", texto: "Ryan Whitfield llega hoy sin formulario completo.", contexto: "Falta documento de identidad", ts: ahora - 3 * h, peso: 92, sev: "atencion" },
-      { id: "n3", app: "grow", fin: false, tipo: "alerta", subcat: "Grow · proyectos", texto: "El anticipo del carpintero vence mañana.", contexto: "Remodelación Zona 4", ts: ahora - 5 * h, peso: 88, sev: "urgente" },
-      { id: "n4", app: "mi", fin: true, tipo: "accion", subcat: "mi · finanzas", texto: "Falta la constancia de retención de agosto.", contexto: "2 propiedades pendientes", ts: ahora - 20 * h, peso: 70, sev: "atencion" },
-      { id: "n5", app: "epi", fin: false, tipo: "accion", subcat: "Epi · operación", texto: "Doris pidió un adelanto de Q 850.", contexto: "Se descuenta del cierre del mes", ts: ahora - 26 * h, peso: 60, sev: "atencion" },
-      { id: "n6", app: "hola", fin: false, tipo: "accion", subcat: "Hola · huéspedes", texto: "Familia Ordóñez completó su check-in.", contexto: "Cayalá 12A · 15:00", ts: ahora - 30 * h, peso: 30, sev: "ok" },
-      { id: "n7", app: "grow", fin: false, tipo: "alerta", subcat: "Grow · proyectos", texto: "Amueblado Rooftop lleva 6 días sin avance.", contexto: "Última nota: 21 ago", ts: ahora - 52 * h, peso: 55, sev: "atencion" },
-      { id: "n8", app: "mi", fin: true, tipo: "alerta", subcat: "mi · finanzas", texto: "Zona 4 · Loft 302 cerró 19% abajo contra julio.", contexto: "Menos noches, mejor pagadas", ts: ahora - 96 * h, peso: 48, sev: "atencion" },
-      { id: "n9", app: "epi", fin: false, tipo: "accion", subcat: "Epi · operación", texto: "Falta subir fotos de la limpieza de Casa Nook.", contexto: "Turno del 24 ago", ts: ahora - 9 * 24 * h, peso: 25, sev: "ok" }
-    ];
-    return base;
+  /* Notificaciones REALES, todas derivadas de la hoja de ALMA (cola, log, auto mejora, correos, control).
+     id estable por evento: la misma notificación nunca se duplica ni reaparece después de descartarla. */
+  notisBase(a) {
+    if (!a) return [];
+    var self = this, ahora = Date.now(), H = 3600000, out = [], visto = {};
+    var parse = function (s) { var t = Date.parse(String(s || "").replace(" ", "T")); return isNaN(t) ? 0 : t; };
+    var J = function (s) { try { return JSON.parse(s || "{}") || {}; } catch (e) { return {}; } };
+    var corto = function (s, n) { s = String(s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1).trim() + "…" : s; };
+    var mins = function (t) { var m = Math.max(1, Math.round((ahora - t) / 60000)); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + (m % 60) + " min"; };
+    var irAlma = function () { self.setState({ vista: "alma", notiOpen: false }); };
+    var push = function (n) { if (visto[n.id]) return; visto[n.id] = 1; n.app = "alma"; n.fin = false; n.abrir = n.abrir || irAlma; out.push(n); };
+    var ctrl = {}; (a.control || []).forEach(function (r) { ctrl[String(r.clave || "").toUpperCase()] = String(r.valor || "").toUpperCase(); });
+
+    if (ctrl.TOGGLE === "OFF") push({ id: "alma-off", tipo: "alerta", subcat: "ALMA · control", texto: "ALMA está apagada.", contexto: "Los mensajes de Hospitable no se atienden hasta encenderla.", ts: ahora - 60000, peso: 95, sev: "urgente" });
+
+    /* 1. Cola: urgentes y por confirmar que siguen esperando. */
+    (a.cola || []).forEach(function (r) {
+      var d = J(r.datos), t = parse(r.recibido), est = String(r.estado || "");
+      if (!t || ahora - t > 24 * H || /enviado|omitido|resuelto|descartado/i.test(est)) return;
+      var niv = String(d.nivel || r.nivel || "").toUpperCase();
+      var quien = (d.huesped || r.huesped || "Huésped") + (d.propiedad ? " · " + corto(d.propiedad, 34) : "");
+      var base = "alma-cola-" + (r.reservation_id || r.msg_id || r._fila) + "-" + (r.msg_id || t);
+      if (niv === "ROJO") push({ id: base, tipo: "alerta", subcat: "ALMA · urgente", texto: quien + ": " + corto(d.razon || r.texto, 90), contexto: "Esperando " + mins(t) + (d.emergenciaAt ? " · ya recibió código de emergencia" : " · necesita a alguien del equipo"), ts: t, peso: 100, sev: "urgente" });
+      else if (niv === "AMARILLO" && ahora - t > 20 * 60000) push({ id: base, tipo: "accion", subcat: "ALMA · por confirmar", texto: quien + ": " + corto(d.razon || r.texto, 90), contexto: "ALMA preparó una respuesta y espera tu confirmación · " + mins(t), ts: t, peso: 80, sev: "atencion" });
+      else if (!niv && ahora - t > 10 * 60000 && /pendiente|clasificando/i.test(est)) push({ id: base + "-lento", tipo: "alerta", subcat: "ALMA · cola", texto: quien + " lleva " + mins(t) + " sin clasificar.", contexto: "Revisa que el disparador de procesarCola esté activo.", ts: t, peso: 75, sev: "atencion" });
+    });
+
+    /* 2. Log de las últimas 24 h: códigos de emergencia, urgentes sin respuesta humana y errores de envío. */
+    (a.log || []).forEach(function (l) {
+      var t = parse(l.fecha); if (!t || ahora - t > 24 * H) return;
+      var acc = String(l.accion || ""), niv = String(l.nivel || "").toUpperCase();
+      var quien = (l.huesped || "Huésped") + (l.propiedad ? " · " + corto(l.propiedad, 34) : "");
+      var id = "alma-log-" + (l._fila || t);
+      if (/EMERGENCIA/i.test(acc)) push({ id: id, tipo: "accion", subcat: "ALMA · acceso", texto: "ALMA envió el código de emergencia a " + quien + ".", contexto: "Confirma que pudo entrar.", ts: t, peso: 85, sev: "atencion" });
+      else if (/error|fall/i.test(acc)) push({ id: id, tipo: "alerta", subcat: "ALMA · envío", texto: "No se pudo enviar un mensaje a " + quien + ".", contexto: corto(acc, 90), ts: t, peso: 90, sev: "urgente" });
+      else if (niv === "ROJO" && !/por el equipo|desde el hub/i.test(acc) && !String(l.respondido_por || "").trim()) push({ id: id, tipo: "alerta", subcat: "ALMA · urgente", texto: quien + ": " + corto(l.razon || l.pregunta, 90), contexto: /contención/i.test(acc) ? "ALMA envió contención · falta respuesta del equipo" : corto(acc, 80), ts: t, peso: 92, sev: "urgente" });
+    });
+
+    /* 3. Auto mejora pendiente de aprobar (una sola notificación agrupada). */
+    var autoP = (a.automejora || []).filter(function (r) { return String(r.estado || "").trim() === "pendiente"; });
+    if (autoP.length) {
+      var tA = Math.max.apply(null, autoP.map(function (r) { return parse(r.fecha) || 0; })) || ahora;
+      push({ id: "alma-auto-" + autoP.length + "-" + tA, tipo: "accion", subcat: "ALMA · auto mejora", texto: autoP.length + (autoP.length === 1 ? " mejora sugerida espera" : " mejoras sugeridas esperan") + " tu aprobación.", contexto: "Ninguna se aplica sin tu autorización.", ts: tA, peso: 50, sev: "atencion", abrir: function () { self.setState({ vista: "alma", notiOpen: false, mejAbierto: true }); } });
+    }
+
+    /* 4. Correos de escalamiento enviados al equipo en las últimas 12 h. */
+    (a.correos || []).forEach(function (m, k) {
+      var t = parse(m.fecha); if (!t || ahora - t > 12 * H) return;
+      if (!/urgen|escal|emergen/i.test(String(m.tipo || "") + " " + String(m.asunto || ""))) return;
+      push({ id: "alma-mail-" + (m._fila || t + "-" + k), tipo: "accion", subcat: "ALMA · correo", texto: corto(m.asunto || "Correo de alerta enviado", 100), contexto: "Enviado a " + corto(m.para || "el equipo", 60), ts: t, peso: 40, sev: "ok" });
+    });
+
+    return out.sort(function (x, y) { return y.peso - x.peso || y.ts - x.ts; });
   }
 
   /* ── reviews ───────────────────────────────────────────────── */
@@ -4254,7 +4325,13 @@ class Component extends DCLogic {
       /* notificaciones */
       notiOpen: st.notiOpen,
       notisVisibles: notis,
-      notisPush: notis.filter(function (n) { return n.sev === "urgente" || n.app === "grow"; }),
+      pushPreguntar: !!st.pushPreguntar, pushBusy: !!st.pushBusy, pushPermitirLabel: st.pushBusy ? "Activando…" : "Activar notificaciones",
+      pushPermitir: function () { self.pushPermitir(); }, pushAhoraNo: function () { self.pushAhoraNo(); },
+      pushDisponible: (function () { var e = window.SAPush && SAPush.configurado() ? SAPush.estado() : "no"; return e === "activo" || e === "pausado" || e === "soportado" || e === "bloqueado" || e === "instalar"; })(),
+      pushOn: (window.SAPush && SAPush.estado() === "activo") || false,
+      pushSub: (function () { var e = window.SAPush ? SAPush.estado() : "no"; return e === "activo" ? "Activas en este dispositivo" : e === "bloqueado" ? "Bloqueadas · actívalas en los ajustes del teléfono" : e === "instalar" ? "Agrega el hub a tu pantalla de inicio para recibirlas" : "Apagadas en este dispositivo"; })(),
+      pushToggle: function (v) { var on = typeof v === "boolean" ? v : !(window.SAPush && SAPush.estado() === "activo"); var e = window.SAPush ? SAPush.estado() : "no"; if (e === "bloqueado" || e === "instalar") return; self.pushToggle(on); },
+      notisPush: notis.filter(function (n) { return n.sev === "urgente"; }),
       notiTotal: String(notis.length),
       notiTotalNum: notis.length,
       hayNotis: notis.length > 0,

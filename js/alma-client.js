@@ -67,14 +67,16 @@
     SHEET: CFG.sheetId,
     configure: function (url, token) { CFG.url = url; if (token) CFG.token = token; },
     hasApi: function () { return !!CFG.url; },
+    /* Solo lo vivo (cola, log reciente, bandeja) desde el Apps Script: lo que cambia minuto a minuto. */
+    readLive: function () { return CFG.url ? call('cola', {}) : Promise.resolve(null); },
     readAll: function () {
       /* gviz devuelve la PRIMERA pestaña si el nombre no existe: se valida una columna esperada. */
       var opc = function (t, id, col) { return readTab(t, id).then(function (rows) { return rows.length && !(col in rows[0]) ? [] : rows; }).catch(function () { return []; }); };
       return Promise.all([readControl()].concat(['ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); }))
         .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name'), opc('ALMA_CORREOS', null, 'asunto'), opc('ALMA_RESUELTAS', null, 'res_key'), opc('ALMA_ESCALAMIENTO', null, 'email')])
-        .concat([CFG.url ? call('cola', {}).catch(function () { return null; }) : Promise.resolve(null)]))
-        /* La cola llega en vivo del Apps Script (gviz puede tardar minutos en reflejar filas nuevas). */
-        .then(function (r) { if (r[11] && r[11].ok && r[11].cola) r[1] = r[11].cola; return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9], escalamiento: r[10] }; });
+        )
+        /* Lo vivo (cola/log/bandeja) lo trae readLive en paralelo: el hub no espera al Apps Script para pintar. */
+        .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9], escalamiento: r[10] }; });
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
     setEscalamiento: function (lista) { return call('setEscalamiento', { lista: lista }); },

@@ -942,16 +942,21 @@
           <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; overflow:hidden; box-shadow:0 1px 2px rgba(62,63,63,.04)">
             <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
               <button onClick="{{ r.abrir }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; border-top:1px solid {{ r.borde }}; border-left:4px solid {{ r.color }}; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F5F3F0" style-active="background:#EFECE8">
-                <span style="width:34px; height:34px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:11px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span>
-                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
-                  <span style="display:flex; align-items:baseline; gap:6px; min-width:0">
-                    <span style="font-size:13.5px; font-weight: {{ r.peso }}; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em">{{ r.huesped }}</span>
-                    <span style="font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.03em; min-width:0">{{ r.prop }}</span>
-                  </span>
-                  <span style="font-size:12px; color: {{ r.previewFg }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.4">{{ r.preview }}</span>
+                <span style="position:relative; width:44px; height:44px; flex-shrink:0">
+                  <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" style="width:44px; height:44px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
+                  <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
+                  <sc-if value="{{ r.noLeido }}" hint-placeholder-val="{{ false }}"><span aria-label="Sin responder" style="position:absolute; left:-3px; top:-3px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF"></span></sc-if>
                 </span>
-                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0">
-                  <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; letter-spacing:.03em">{{ r.hora }}</span>
+                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+                  <span style="display:flex; align-items:baseline; gap:8px; min-width:0">
+                    <span style="flex:1; min-width:0; font-size:14px; font-weight: {{ r.peso }}; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em">{{ r.huesped }}</span>
+                    <span style="font-size:11px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; font-variant-numeric:tabular-nums; letter-spacing:.02em; white-space:nowrap; flex-shrink:0">{{ r.hora }}</span>
+                  </span>
+                  <sc-if value="{{ r.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; color:#6F6867; letter-spacing:.03em">{{ r.etapa }}</span></sc-if>
+                  <span style="font-size:12.5px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.4">{{ r.preview }}</span>
+                  <span style="font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.03em">{{ r.prop }}</span>
+                </span>
+                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; align-self:center">
                   <span style="font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
                 </span>
               </button>
@@ -2132,7 +2137,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-05.1400";
+  BUILD = "2026-10-05.1500";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2338,6 +2343,19 @@ class Component extends DCLogic {
     }, 700);
   }
   _autoHilo = {};
+  /* Resuelta sola cuando ya no hay nada pendiente (sin escribir en la hoja; un mensaje nuevo la reabre):
+     · nosotros respondimos último y el huésped lleva 3 h sin escribir
+     · el huésped cerró con un agradecimiento corto después de nuestra respuesta
+     · la estadía ya terminó */
+  autoResuelta(ib, ug, uh) {
+    if (!ib) return "";
+    var ahora = Date.now(), hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+    if (ib.tipo !== "consulta" && ib.checkout && String(ib.checkout).slice(0, 10) < hoy) return "estadía terminada";
+    if (uh && uh >= ug && ahora - uh > 3 * 3600000) return "respondida hace más de 3 h";
+    var t = String(ib.ultimo_de === "guest" ? ib.ultimo_texto : "").trim().toLowerCase();
+    if (uh && t && t.length <= 60 && /^(ok(ay|ey)?|vale|listo|perfecto|genial|excelente|super|súper|entendido|de acuerdo|gracias|muchas gracias|mil gracias|thanks|thank you|thank you so much|great|perfect|got it|noted|👍|🙏)[\s!.,🙏👍❤️😊]*((muchas )?gracias|thanks|thank you)?[\s!.,🙏👍❤️😊]*$/i.test(t)) return "el huésped cerró la conversación";
+    return "";
+  }
   abrirProgramados(key, resId) {
     var self = this;
     if (this.state.progAbierto === key) { this.setState({ progAbierto: "" }); return; }
@@ -2508,11 +2526,32 @@ class Component extends DCLogic {
       self.setState({ alma: data, almaCargando: false, almaFuente: fuente, almaCtrl: sinGuardar ? ed : null });
     };
     if (!window.ALMA) { listo(this.almaDemo(), "Datos de muestra"); return; }
+    var horaGT = function () { return new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); };
+    /* 1. Al abrir: la última lectura guardada en este dispositivo se pinta al instante. */
+    if (!this.state.alma && !this._cacheLeido) {
+      this._cacheLeido = true;
+      try { var c0 = JSON.parse(localStorage.getItem("sa_alma_cache") || "null"); if (c0 && c0.data) this.setState({ alma: c0.data, almaFuente: "Última lectura " + new Date(c0.ts).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) + " · actualizando…" }); } catch (e) {}
+    }
+    var guardar = function () {
+      try { var a = self.state.alma; if (!a || a._demo) return; var o = {}; ["control", "cola", "log", "inbox", "resueltas", "automejora", "correos", "escalamiento", "conocimiento"].forEach(function (k) { o[k] = a[k]; }); localStorage.setItem("sa_alma_cache", JSON.stringify({ ts: Date.now(), data: o })); } catch (e) {}
+    };
+    var vivo = null, base = null;
+    var unir = function () {
+      var d = Object.assign({}, base || self.state.alma || {});
+      if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; }
+      return d;
+    };
+    /* 2. Lo vivo (cola, log, bandeja) y la hoja completa llegan en paralelo; cada uno pinta apenas llega. */
+    ALMA.readLive().then(function (l) {
+      if (!l || !l.ok) return; vivo = l;
+      if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }
+    }).catch(function () {});
     ALMA.readAll().then(function (d) {
       if (!d.control.length && !d.cola.length && !d.log.length) throw new Error("vacía");
-      listo(d, "Hoja de ALMA · " + new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }));
+      base = d; listo(unir(), (vivo ? "En vivo · " : "Hoja de ALMA · ") + horaGT()); guardar();
     }).catch(function () {
-      listo(self.almaDemo(), "Datos de muestra · la hoja no respondió");
+      if (vivo || (self.state.alma && !self.state.alma._demo)) { self.setState({ almaCargando: false }); return; }
+      var dm = self.almaDemo(); dm._demo = true; listo(dm, "Datos de muestra · la hoja no respondió");
     });
   }
   /* Tiempos editables: clave de ALMA_CONTROL, valor por defecto del script, etiqueta y unidad de la UI. */
@@ -2642,7 +2681,9 @@ class Component extends DCLogic {
   /* Lo que ALMA hizo, en una frase que cualquiera entiende. */
   resumenLog(nivel, accion, razon) {
     var a = String(accion || ""), r = razon ? " Motivo: " + razon + "." : "";
+    if (/por el equipo/i.test(a)) return "Respondió el equipo." + r;
     if (/^ENVIADO/i.test(a)) return "ALMA respondió sola y el mensaje llegó al huésped." + r;
+    if (!a && !nivel) return "El huésped escribió y nadie ha respondido todavía.";
     if (/contención/i.test(a)) return "Caso urgente. ALMA envió un mensaje de contención y avisó al equipo por WhatsApp." + r;
     if (/sin atender/i.test(a)) return "Nadie del equipo respondió a tiempo: se avisó al respaldo.";
     if (/alerta ROJO/i.test(a)) return "Caso urgente. ALMA no le escribió al huésped; solo alertó al equipo." + r;
@@ -2687,6 +2728,7 @@ class Component extends DCLogic {
   /* URLs de fotos: columna `fotos` (JSON o lista separada por coma), `datos.fotos`, o enlaces sueltos en el texto. */
   /* "Z10 · Brunelo · Apto 1808" → "Brunelo 1808" */
   propCorta(p) {
+    if (String(p || "").indexOf("·") < 0 && /\s[-–—]\s/.test(String(p || ""))) { var q = this.partes(p); return [q.edificio, q.unidad].filter(Boolean).join(" ").trim(); }
     var s = String(p || "").split("·").map(function (x) { return x.trim(); }).filter(function (x) { return x && !/^Z\d+$/i.test(x); });
     return s.join(" ").replace(/\bApto\.?\s*/i, "").replace(/\s+/g, " ").trim();
   }
@@ -2718,7 +2760,8 @@ class Component extends DCLogic {
     var i;
     for (i = 0; i < tabla.length; i++) if (tabla[i][0].test(R)) return tabla[i][1];
     for (i = 0; i < tabla.length; i++) if (tabla[i][0].test(M)) return tabla[i][1];
-    var base = r && !/equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador|responder de forma/i.test(r) ? r : (msg ? "“" + msg + "”" : r || "Sin detalle");
+    var resp = this.limpiaImg(t.respuesta || "").replace(/\s+/g, " ").trim();
+    var base = r && !/equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador|responder de forma/i.test(r) ? r : (msg ? "“" + msg + "”" : resp ? "Última respuesta: “" + resp + "”" : r || "Sin detalle");
     base = base.split(/[.!?]\s/)[0];
     var w = base.split(" "); if (w.length > 12) base = w.slice(0, 12).join(" ").replace(/[,;:·]$/, "") + (base[0] === "“" ? "…”" : "…");
     return base.replace(/\.$/, "");
@@ -3101,7 +3144,21 @@ class Component extends DCLogic {
     var personas = {};
     (a.log || []).forEach(function (l) { var q = quienDe(l); if (q && q !== "ALMA" && q !== "Equipo") personas[q] = 1; });
     var quienFiltros = ["Todos", "ALMA", "Equipo"].concat(Object.keys(personas).sort());
-    var logLista = (a.log || []).slice().reverse().filter(function (l) {
+    /* Bandeja (ALMA_INBOX): último mensaje real de cada conversación, como el inbox de Hospitable. */
+    var inboxPor = {}; (a.inbox || []).forEach(function (r) { if (r.conv_id) inboxPor[r.conv_id] = r; });
+    this._inboxPor = inboxPor;
+    var conItem = {}; (a.cola || []).forEach(function (r) { if (r.reservation_id) conItem[r.reservation_id] = 1; }); (a.log || []).forEach(function (l) { if (l.reservation_id) conItem[l.reservation_id] = 1; });
+    var limiteIb = Date.now() - (st.convDias || 2) * 86400000;
+    var sinteticos = (a.inbox || []).filter(function (r) { return r.conv_id && !conItem[r.conv_id] && Date.parse(r.ultimo_ts) >= limiteIb; }).map(function (r) {
+      var host = r.ultimo_de !== "guest";
+      return { fecha: r.ultimo_ts, reservation_id: r.conv_id, huesped: r.huesped, propiedad: r.propiedad, codigo: r.codigo, checkin: r.checkin, checkout: r.checkout,
+        pregunta: host ? "" : r.ultimo_texto, respuesta: host ? r.ultimo_texto : "", accion: host ? "ENVIADO por el equipo en Hospitable" : "", nivel: "", razon: "", _fila: "ib-" + r.conv_id, _inbox: true };
+    });
+    var logSrc = (a.log || []).map(function (l) {
+      var ib = inboxPor[l.reservation_id]; if (!ib) return l;
+      return Object.assign({}, l, { huesped: l.huesped || ib.huesped, propiedad: l.propiedad || ib.propiedad, codigo: l.codigo || ib.codigo, checkin: l.checkin || ib.checkin, checkout: l.checkout || ib.checkout });
+    }).concat(sinteticos.reverse());
+    var logLista = logSrc.slice().reverse().filter(function (l) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "").toUpperCase();
       return true;
     }).map(function (l, idx) {
@@ -3123,7 +3180,7 @@ class Component extends DCLogic {
       var NIVEL_LABEL = { ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta", SILENCIO: "Sin respuesta", INQUIRY: "Consulta", ERROR: "Error" };
       var prop = st.logProp[key];
       var contexto = "Huésped: " + huesped + " · Propiedad: " + (l.propiedad || "") + (ci ? " · Estadía " + ci + " – " + co : "") + "\nNivel: " + n + (l.razon ? " · Motivo: " + l.razon : "") + "\nMensaje del huésped:\n" + (l.pregunta || "") + "\nRespuesta de ALMA" + (enviado ? " (enviada)" : " (no enviada)") + ":\n" + (l.respuesta || "(ninguna)") + "\nResultado: " + acc;
-      var humano = /gestionando|hilo cambió|retenido|borrador enviado|atendido por el equipo|por el equipo desde el hub/i.test(acc);
+      var humano = /gestionando|hilo cambió|retenido|borrador enviado|atendido por el equipo|por el equipo desde el hub|por el equipo en hospitable/i.test(acc);
       var voto = st.logVoto[key] !== undefined ? st.logVoto[key] : String(l.voto || "").toLowerCase();
       var votar = function (v) {
         var nuevo = voto === v ? "" : v;
@@ -3136,6 +3193,7 @@ class Component extends DCLogic {
         votoBienBg: voto === "up" ? "#3d6b52" : "transparent", votoBienFg: voto === "up" ? "#FFFFFF" : "#6F6867",
         votoMalBg: voto === "down" ? "#E9826A" : "transparent", votoMalFg: voto === "down" ? "#3E3F3F" : "#6F6867",
         votarBien: function () { votar("up"); }, votarMal: function () { votar("down"); },
+        sinResp: !!l._inbox && !acc,
         key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, cargarHilo: function () { cargarHiloDe(resIdLog); }, form: farolForm(l.codigo, ""), nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
         quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
         modoHilo: enHiloL, modoResumen: !enHiloL, hiloLabel: enHiloL ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHiloL ? "#F5F3F0" : "#FFFFFF",
@@ -3150,7 +3208,7 @@ class Component extends DCLogic {
         huesped: huesped, iniciales: ini,
         hayEstadia: !!ci, estadia: ci && co ? ci + " – " + co : ci,
         hayCodigo: !!l.codigo, codigo: l.codigo || "",
-        nivelLabel: NIVEL_LABEL[n] || (n || "Sin nivel"), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
+        nivelLabel: NIVEL_LABEL[n] || (n || (l._inbox ? (acc ? "Respondió el equipo" : "Sin responder") : "Sin nivel")), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
         pregunta: self.limpiaImg(l.pregunta), hayPregunta: !!self.limpiaImg(l.pregunta), hayRespuesta: !!String(l.respuesta || "").trim(), respuesta: l.respuesta || "",
         hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta).map(function (f) { return self.fotoVista(f); }),
         burbujaBg: enviado ? (humano ? "rgba(233,130,106,.22)" : "rgba(59,102,145,.12)") : "#E4E0DA", burbujaFg: "#3E3F3F", burbujaBd: enviado ? (humano ? "rgba(233,130,106,.5)" : "rgba(59,102,145,.4)") : "#D8D4CE",
@@ -3194,7 +3252,7 @@ class Component extends DCLogic {
 
     /* Conversaciones unificadas: urgentes en cola → por confirmar en cola → resto de la cola → historial por nivel. */
     var RANK_LOG = { ROJO: 3, AMARILLO: 4, VERDE: 5 };
-    var rank = function (c) { return c.esCola ? (c.nivel === "ROJO" || c.nivelLabel === "Urgente" ? 0 : c.nivelLabel === "Por confirmar" ? 1 : 2) : (RANK_LOG[c.nivel] || 6); };
+    var rank = function (c) { return c.esCola ? (c.nivel === "ROJO" || c.nivelLabel === "Urgente" ? 0 : c.nivelLabel === "Por confirmar" ? 1 : 2) : c.sinResp ? 1 : (RANK_LOG[c.nivel] || 6); };
     var busca = String(st.convBusca || "").trim().toLowerCase();
     var coincide = function (c) {
       if (!busca) return true;
@@ -3216,7 +3274,7 @@ class Component extends DCLogic {
        hasta que entra algo nuevo pendiente, que vuelve a poner Prioridad. */
     var hayPend = visibles.some(function (c) {
       if (c.esCola) return ["pendiente", "esperando_envio", "esperando_rojo", "clasificando"].indexOf(c.estadoCola) >= 0 || !c.estadoCola;
-      return (c.nivel === "ROJO" || c.nivel === "AMARILLO") && !c.enviado && !c.humano;
+      return c.sinResp || ((c.nivel === "ROJO" || c.nivel === "AMARILLO") && !c.enviado && !c.humano);
     });
     if (hayPend && this._pendPrev === false && st.convOrden) { var me = this; setTimeout(function () { me.setState({ convOrden: null, cronoLista: true }); }, 0); }
     this._pendPrev = hayPend;
@@ -3243,8 +3301,8 @@ class Component extends DCLogic {
       briefN.total++; if (c.esCola) briefN.cola++; else if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++;
       /* Problema / Estado / Pendiente / Siguiente paso — lo que hay que entender en tres segundos. */
       var razonEsEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(c.razonBrief || "");
-      var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : corto(c.pregunta, 140) || c.razonBrief || "Sin detalle");
-      var estado, pendiente = "", paso, pasoColor, pideHumano = false, tag, tagBg, tagFg, color;
+      var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : corto(c.pregunta, 140) || c.razonBrief || (c.respuesta ? "Última respuesta: “" + corto(c.respuesta, 120) + "”" : "Sin detalle"));
+      var estado, pendiente = "", paso, pasoColor, pideHumano = !!c.sinResp, tag, tagBg, tagFg, color;
       if (esRojo) {
         if (resuelto) { estado = "Atendido por " + quienTxt + " hace " + mins(c.ts); paso = "Solo confirma que quedó cerrado."; pasoColor = VERDE; tag = "Urgente · atendido"; color = VERDE; }
         else if (emer) { estado = "Sin respuesta del equipo; ALMA envió el código de emergencia"; paso = "No news, good news. Sin seguimiento."; pasoColor = VERDE; tag = "Urgente · código enviado"; color = "#E9826A"; }
@@ -3259,6 +3317,8 @@ class Component extends DCLogic {
         tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.14)"; tagFg = color === VERDE ? VERDE : ROJO_T;
       } else {
         if (resuelto) { estado = "Cerrado por " + quienTxt; paso = "Nada pendiente."; pasoColor = VERDE; tag = "Respondió " + quienTxt; color = VERDE; }
+        else if (c.sinResp) { estado = "El huésped escribió hace " + mins(c.ts) + " · nadie ha respondido"; paso = "Responde desde el chat."; pasoColor = ROJO_T; tag = "Sin responder"; color = "#F2755A"; }
+        else if (c.humano) { estado = "Respondió el equipo hace " + mins(c.ts); paso = "Nada que hacer."; pasoColor = VERDE; tag = "Respondió el equipo"; color = VERDE; }
         else if (respondio) { estado = "Resuelto por ALMA hace " + mins(c.ts); paso = "Nada que hacer."; pasoColor = VERDE; tag = "ALMA respondió"; color = VERDE; }
         else if (c.esCola) { estado = "En cola · " + (c.nivelLabel || "procesando"); paso = c.sentido || "ALMA lo atiende."; pasoColor = GRIS; tag = c.nivelLabel || "En cola"; color = "#D8D4CE"; }
         else { estado = "ALMA decidió no responder"; paso = c.resumen || "Sin acción."; pasoColor = GRIS; tag = c.nivelLabel || "Sin respuesta"; color = "#D8D4CE"; }
@@ -3351,9 +3411,13 @@ class Component extends DCLogic {
     Object.keys(st.resMan || {}).forEach(function (k) { var e = st.resMan[k]; if (!resMan[k] || resMan[k].ts < e.ts) resMan[k] = e; });
     grupos.forEach(function (g) {
       g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
-      var top = g.frags[0], man = resMan[g.key];
-      var vigente = man && man.ts >= top.ts;
-      g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && yaResuelto(top.resId));
+      var top = g.frags[0], man = resMan[g.key], ib = inboxPor[g.key];
+      var ug = ib ? Date.parse(ib.ultimo_guest_ts) || 0 : 0, uh = ib ? Date.parse(ib.ultimo_host_ts) || 0 : 0;
+      g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0);
+      /* Un mensaje nuevo del huésped después de marcarla reabre la conversación sola. */
+      var vigente = man && man.ts >= Math.max(top.ts || 0, ug);
+      g.autoRes = !top.esCola && self.autoResuelta(ib, ug, uh);
+      g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes));
       g.frags.forEach(function (c) {
         c.resLabel = g.resuelto ? "Reabrir" : "Resuelta";
         c.resBg = g.resuelto ? "rgba(61,107,82,.14)" : "#FFFFFF"; c.resBd = g.resuelto ? "rgba(61,107,82,.5)" : "#D8D4CE"; c.resFg = g.resuelto ? "#3d6b52" : "#3E3F3F";
@@ -3404,6 +3468,7 @@ class Component extends DCLogic {
       else if (enNivel(g, "ROJO")) { est = "Urgente"; dot = "#C0392B"; bg = "#C0392B"; fg = "#FFFFFF"; pr = 0; }
       else if (enNivel(g, "AMARILLO")) { est = "Por confirmar"; dot = "#E9826A"; bg = "#E9826A"; fg = "#FFFFFF"; pr = 1; }
       else if (t.esCola) { est = "En cola"; dot = "#938B8A"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 2; }
+      else if (t.sinResp) { est = "Sin responder"; dot = "#F2755A"; bg = "rgba(242,117,90,.16)"; fg = "#B54D36"; pr = 1; }
       else { est = t.humano ? "Atendió el equipo" : "ALMA respondió"; dot = "#3d6b52"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; }
       var nom = String(t.huesped || "Huésped").split(" ")[0];
       return { pr: pr, ts: tsG(g), quien: nom, prop: self.propCorta(t.propiedad), texto: self.fraseCaso(t), estado: est, dot: dot, tagBg: bg, tagFg: fg,
@@ -3437,6 +3502,7 @@ class Component extends DCLogic {
       });
       self.hiloPrefetch();
     }
+    if (ordenEf === "Cronológico") { grupos.sort(function (x, y) { return (y.ts || 0) - (x.ts || 0); }); gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; }); }
     var convIdx = Math.max(0, Math.min(grupos.length - 1, st.convIdx || 0));
     var nPag = Math.max(1, grupos.length), pagPct = 100 / nPag;
     /* Solo se montan la actual y sus vecinas, en su posición absoluta dentro del alto total. */
@@ -3579,15 +3645,23 @@ class Component extends DCLogic {
       volverLista: function () { self.convCerrarTodas(); self.setState({ cronoLista: true }); },
       cronoVacio: !grupos.length, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
       cronoFilas: grupos.map(function (g, i) {
-        var t = g.frags[0];
-        var pend = !g.resuelto && (t.esCola || ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano));
-        var est = g.resuelto ? "res" : pend ? "pend" : (t.enviado || t.humano) ? "resp" : "pend";
+        var t = g.frags[0], ib = inboxPor[g.key];
+        var pend = !g.resuelto && (t.esCola || (ib ? ib.ultimo_de === "guest" : ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano)));
+        var est = g.resuelto ? "res" : pend ? "pend" : (ib || t.enviado || t.humano) ? "resp" : "pend";
         var E = { pend: ["Pendiente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"], resp: ["Respondida", "rgba(59,102,145,.12)", "#3B6691", "#3B6691"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"] }[est];
-        var d = new Date(t.ts || 0), hoyGT = new Date().toLocaleDateString("es-GT", { timeZone: "America/Guatemala" });
-        var hora = isNaN(d) || !t.ts ? "" : d.toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }) === hoyGT ? d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
-        var prev = String((t.hayRespuesta && (t.enviado || t.humano) ? "Tú: " + t.respuesta : t.pregunta) || t.resumen || "").replace(/\s+/g, " ").trim();
-        return { iniciales: t.iniciales || "H", huesped: t.huesped || "Huésped", prop: self.propCorta ? self.propCorta(t.propiedad) : t.propiedad, preview: prev || "Sin texto", hora: hora,
-          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" ? "700" : "600", previewFg: est === "pend" ? "#3E3F3F" : "#6F6867",
+        var tsG = g.ts || t.ts || 0, d = new Date(tsG), mn = Math.max(0, Math.round((Date.now() - tsG) / 60000));
+        var hora = !tsG || isNaN(d) ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 24 * 60 ? "hace " + Math.floor(mn / 60) + " h" : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
+        var prev = ib ? (ib.ultimo_de === "guest" ? "" : "Tú: ") + String(ib.ultimo_texto || "").replace(/\[foto\]/, "Foto") : String((t.hayRespuesta && (t.enviado || t.humano) ? "Tú: " + t.respuesta : t.pregunta) || t.resumen || "");
+        prev = prev.replace(/\s+/g, " ").trim();
+        var nombre = (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped";
+        var propR = (ib && ib.propiedad) || t.propiedad || "";
+        var hoyISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+        var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
+        var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
+        return { iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
+          prop: propR ? (self.propCorta ? self.propCorta(propR) : propR) : "Propiedad por confirmar", preview: prev || "Sin texto", hora: hora,
+          hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
+          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" ? "600" : "400", previewFg: est === "pend" ? "#3E3F3F" : "#6F6867",
           bg: est === "pend" ? "#FFFFFF" : "#FFFFFF", borde: i === 0 ? "transparent" : "#EAE6E0",
           abrir: function () { self.setState({ cronoLista: false }); self.convAbrir(t.key, true, t.cargarHilo); self.convIrA(i); } };
       }),

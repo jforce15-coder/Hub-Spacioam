@@ -30,6 +30,7 @@
 <script src="js/sa-auth-client.js"></script>
 <script src="js/sa-session.js"></script>
 <script src="js/alma-client.js"></script>
+<script src="js/push.js"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -333,7 +334,7 @@
           </div>
           <div>
             <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Hora</label>
-            <input type="time" value="{{ tfHora }}" onChange="{{ setTfHora }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
+            <input type="time" value="{{ tfHora }}" onChange="{{ setTfHora }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important">
           </div>
         </div>
         <div>
@@ -531,7 +532,7 @@
         <div style="display:flex; flex-direction:column; gap:10px">
           <label style="display:flex; flex-direction:column; gap:7px">
             <span style="font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Correo o id del calendario</span>
-            <input value="{{ calInput }}" onChange="{{ setCalInput }}" placeholder="andrea@spacioam.com" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+            <input value="{{ calInput }}" onChange="{{ setCalInput }}" placeholder="tu-correo@spacioam.com" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
           </label>
           <button onClick="{{ enlazarCal }}" style="align-self:flex-start; border:none; cursor:pointer; background:#3E3F3F; color:#FAFAFA; border-radius:13px; padding:13px 22px; font-family:inherit; font-size:11px; font-weight:500; letter-spacing:.2em; text-transform:uppercase">Enlazar calendario</button>
         </div>
@@ -746,14 +747,19 @@
       </div>
       <div style="display:flex; align-items:center; gap:8px">
         <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
+        <sc-if value="{{ hayPushNota }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:11px; letter-spacing:.02em; color:#3E3F3F; background:#F5F3F0; border-radius:999px; padding:6px 12px; max-width:320px; line-height:1.4; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">{{ pushNota }}</span></sc-if>
+        <button onClick="{{ pushActivar }}" aria-label="{{ pushLabel }}" title="{{ pushLabel }}" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="alert" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
+          <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ pushDot }}"></span>
+        </button>
         <button onClick="{{ ctrlToggleAbierto }}" aria-label="Control de ALMA" title="Control" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="settings" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
           <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ almaDotBg }}"></span>
         </button>
-        <button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras y auto mejora" title="Mejoras" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
+        <sc-if value="{{ esPrincipal }}" hint-placeholder-val="{{ true }}"><button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras y auto mejora" title="Mejoras" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
           <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-1px; top:-1px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#E9826A; color:#FFFFFF; font-size:10.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box; line-height:1">{{ autoPendientes }}</span></sc-if>
-        </button>
+        </button></sc-if>
         <button onClick="{{ abrirCorreos }}" aria-label="Correos enviados" title="Correos enviados" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
         <button onClick="{{ almaRecargar }}" aria-label="{{ almaRecargarLabel }}" title="{{ almaRecargarLabel }}" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent; opacity: {{ almaRecargarOp }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
       </div>
@@ -798,6 +804,7 @@
         <div style="display:flex; flex-direction:column; gap:4px">
           <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A; padding-left:4px">Orden</span>
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Segmented" options="{{ ordenFiltros }}" value="{{ convOrden }}" onChange="{{ setConvOrden }}" size="sm" hint-size="auto,40px"></x-import>
+          <span style="font-size:10px; letter-spacing:.04em; color:#6F6867; padding-left:4px">{{ convOrdenNota }}</span>
         </div>
       </div>
         </div>
@@ -841,7 +848,7 @@
       </sc-if>
       <sc-if value="{{ briefHay }}" hint-placeholder-val="{{ true }}">
         <div style="position:relative; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
-          <div ref="{{ briefRef }}" class="sa-snap" tabIndex="0" aria-label="Resumen · desliza vertical para cambiar, derecha para descartar, izquierda para abrir el chat" style="position:relative; height:clamp(300px, 46dvh, 420px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
+          <div ref="{{ briefRef }}" class="sa-snap" tabIndex="0" aria-label="Resumen · desliza vertical para cambiar, derecha para descartar, izquierda para abrir el chat" style="position:relative; height:clamp(220px, 36dvh, 420px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
             <div style="position:relative; width:100%; height: {{ briefAltoTotal }}">
               <sc-for list="{{ briefPaginas }}" as="b" hint-placeholder-count="1">
                 <div style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; scroll-snap-align:start; scroll-snap-stop:always; top: {{ b.pagTop }}; height: {{ b.pagAlto }}">
@@ -914,8 +921,45 @@
         </div>
       </div>
 
+      <sc-if value="{{ convVerLista }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
+            <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ cronoPie }}</span>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:10.5px; letter-spacing:.04em; color:#6F6867">
+              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; background:#F2755A"></span>Pendiente</span>
+              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; background:#3B6691"></span>Respondida</span>
+              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; background:#3d6b52"></span>Resuelta</span>
+            </div>
+          </div>
+          <sc-if value="{{ cronoVacio }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:24px; text-align:center; font-size:13px; color:#6F6867">No hay conversaciones con estos filtros.</div>
+          </sc-if>
+          <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; overflow:hidden; box-shadow:0 1px 2px rgba(62,63,63,.04)">
+            <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
+              <button onClick="{{ r.abrir }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; border-top:1px solid {{ r.borde }}; border-left:4px solid {{ r.color }}; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F5F3F0" style-active="background:#EFECE8">
+                <span style="width:34px; height:34px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:11px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span>
+                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+                  <span style="display:flex; align-items:baseline; gap:6px; min-width:0">
+                    <span style="font-size:13.5px; font-weight: {{ r.peso }}; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em">{{ r.huesped }}</span>
+                    <span style="font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.03em; min-width:0">{{ r.prop }}</span>
+                  </span>
+                  <span style="font-size:12px; color: {{ r.previewFg }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.4">{{ r.preview }}</span>
+                </span>
+                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0">
+                  <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; letter-spacing:.03em">{{ r.hora }}</span>
+                  <span style="font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ convVerVisor }}" hint-placeholder-val="{{ true }}">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
         <div style="display:flex; align-items:center; gap:8px">
+          <sc-if value="{{ convEsCrono }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ volverLista }}" style="display:inline-flex; align-items:center; gap:6px; min-height:44px; padding:0 16px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">← Lista</button>
+          </sc-if>
           <button onClick="{{ convAnterior }}" disabled="{{ convEsPrimera }}" aria-label="Conversación anterior" style="width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; color:#3E3F3F; transition:border-color .18s, opacity .18s, transform .1s; -webkit-tap-highlight-color:transparent; opacity: {{ convOpAnt }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronUp" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
           <button onClick="{{ convSiguiente }}" disabled="{{ convEsUltima }}" aria-label="Conversación siguiente" style="width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; color:#3E3F3F; transition:border-color .18s, opacity .18s, transform .1s; -webkit-tap-highlight-color:transparent; opacity: {{ convOpSig }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
           <span style="font-size:11px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ convPos }}</span>
@@ -924,7 +968,7 @@
       </div>
 
       <div style="position:relative; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
-        <div ref="{{ convRef }}" class="sa-snap" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:relative; height:clamp(440px, calc(100dvh - 230px), 780px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
+        <div ref="{{ convRef }}" class="sa-snap" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:relative; transition:height .36s cubic-bezier(.22,.61,.36,1); height: {{ convAltoVisor }}; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
           <sc-if value="{{ convVacio }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute; inset:14px; display:grid; place-items:center"><div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em; max-width:420px">{{ convVacioTexto }}</div></div>
           </sc-if>
@@ -956,9 +1000,9 @@
                     <span title="{{ c.form.formLabel }}" aria-label="{{ c.form.formLabel }}" style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ c.form.formBg }}; box-shadow:0 0 0 2px rgba(62,63,63,.06)"></span><span style="font-size:10px; letter-spacing:.06em">{{ c.form.formTxt }}</span></span>
                   </div>
                 </div>
-                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; margin-left:auto">
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:1 1 auto; min-width:0; max-width:100%; margin-left:auto">
                   <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums; padding-right: {{ c.fechaPad }}">{{ c.fecha }}</span>
-                  <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end">
+                  <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:100%">
                     <button onClick="{{ c.toggleResuelta }}" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ c.resLabel }}</button>
                     <button onClick="{{ c.toggleProg }}" aria-label="Mensajes programados" title="Mensajes programados en Hospitable" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #D8D4CE; background: {{ c.progBtnBg }}; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>Programados</button>
                     <button onClick="{{ c.toggleAbrir }}" style="border:1px solid {{ c.abrirBd }}; border-radius:999px; background: {{ c.abrirBg }}; color: {{ c.abrirFg }}; padding:0 14px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.abrirLabel }}</button>
@@ -998,14 +1042,14 @@
                     </sc-for>
                   </div>
                 </sc-if>
-                <div data-alma-chat="1" style="flex:1; min-height: {{ c.chatMin }}; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
+                <div data-alma-chat="1" data-conv="{{ c.key }}" data-n="{{ c.hiloN }}" style="flex:1; min-height: {{ c.chatMin }}; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
                 <sc-if value="{{ c.modoResumen }}" hint-placeholder-val="{{ true }}">
                   <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
                     <sc-if value="{{ c.hayPregunta }}" hint-placeholder-val="{{ true }}"><div style="max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div></sc-if>
                     <sc-if value="{{ c.hayFotos }}" hint-placeholder-val="{{ false }}">
                       <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px)">
                         <sc-for list="{{ c.fotos }}" as="f" hint-placeholder-count="0">
-                          <button onClick="{{ f.abrir }}" aria-label="Ver foto" style="display:block; width:110px; height:110px; padding:0; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); cursor:zoom-in; transition:transform .18s" style-hover="transform:scale(1.02)"><img src="{{ f.url }}" loading="lazy" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></button>
+                          <button onClick="{{ f.abrir }}" aria-label="Ver foto" style="display:block; width:110px; height:110px; padding:0; border-radius:14px 14px 14px 4px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); cursor:zoom-in; transition:transform .18s" style-hover="transform:scale(1.02)"><sc-if value="{{ f.ok }}" hint-placeholder-val="{{ true }}"><img src="{{ f.src }}" onError="{{ f.fallo }}" loading="lazy" alt="Foto enviada por el huésped" style="width:100%; height:100%; object-fit:cover; display:block"></sc-if><sc-if value="{{ f.roto }}" hint-placeholder-val="{{ false }}"><span style="display:grid; place-items:center; width:100%; height:100%; font-size:10.5px; color:#6F6867; letter-spacing:.04em; padding:8px; box-sizing:border-box; text-align:center; line-height:1.4">{{ f.rotoTxt }}</span></sc-if></button>
                         </sc-for>
                       </div>
                     </sc-if>
@@ -1036,7 +1080,14 @@
                   </sc-if>
                   <sc-for list="{{ c.hilo }}" as="m" hint-placeholder-count="0">
                     <div style="display:flex; flex-direction:column; gap:3px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both; align-items: {{ m.align }}">
-                      <div style="max-width:min(92%,560px); padding:9px 13px; font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
+                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div style="max-width:min(92%,560px); padding:9px 13px; font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div></sc-if>
+                      <sc-if value="{{ m.hayFotos }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px); justify-content: {{ m.align }}">
+                          <sc-for list="{{ m.fotos }}" as="f" hint-placeholder-count="0">
+                            <button onClick="{{ f.abrir }}" aria-label="Ver foto" style="display:block; width:120px; height:120px; padding:0; border-radius:14px; overflow:hidden; background:#F5F3F0; border:1px solid rgba(62,63,63,.08); cursor:zoom-in"><sc-if value="{{ f.ok }}" hint-placeholder-val="{{ true }}"><img src="{{ f.src }}" onError="{{ f.fallo }}" loading="lazy" alt="Foto de la conversación" style="width:100%; height:100%; object-fit:cover; display:block"></sc-if><sc-if value="{{ f.roto }}" hint-placeholder-val="{{ false }}"><span style="display:grid; place-items:center; width:100%; height:100%; font-size:10.5px; color:#6F6867; letter-spacing:.04em; padding:8px; box-sizing:border-box; text-align:center; line-height:1.4">{{ f.rotoTxt }}</span></sc-if></button>
+                          </sc-for>
+                        </div>
+                      </sc-if>
                       <span style="font-size:9.5px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span>
                     </div>
                   </sc-for>
@@ -1057,7 +1108,7 @@
                     <span style="margin-left:auto; font-size:10.5px; letter-spacing:.04em; color:#6F6867">{{ c.respNota }}</span>
                   </div>
                   <div style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0" style-focus="border-color:#3E3F3F">
-                    <textarea value="{{ c.respTexto }}" onChange="{{ c.setRespTexto }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Redactar con ALMA" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; min-height:56px"></textarea>
+                    <textarea ref="{{ c.respRef }}" onInput="{{ c.setRespTexto }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Redactar con ALMA" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; min-height:56px"></textarea>
                     <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-wrap:wrap">
                       <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(233,130,106,.9); border-radius:999px; background:rgba(233,130,106,.14); padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; transition:background .18s" style-hover="background:rgba(233,130,106,.26)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import> {{ c.respMejorarLabel }}</button>
                       <span style="font-size:10.5px; letter-spacing:.02em; color:#6F6867; line-height:1.4; flex:1; min-width:160px">{{ c.respHint }}</span>
@@ -1068,7 +1119,7 @@
               </sc-if>
 
               <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}">
-                <div data-alma-scroll="1" style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid #EAE6E0; flex-shrink:0; max-height:46%; overflow-y:auto; overscroll-behavior:auto">
+                <div data-alma-scroll="1" style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid #EAE6E0; flex-shrink:0; max-height:min(34%, 240px); overflow-y:auto; overscroll-behavior:auto">
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                     <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="{{ c.cuandoColor }}" hint-size="14px,14px"></x-import>
                     <span style="font-size:12px; letter-spacing:.03em; font-weight:500; color: {{ c.cuandoColor }}">{{ c.cuando }}</span>
@@ -1189,6 +1240,7 @@
         </div>
         <span aria-hidden="true" style="position:absolute; left:50%; bottom:6px; transform:translateX(-50%); width:36px; height:4px; border-radius:999px; background:rgba(62,63,63,.18); pointer-events:none; transition:opacity .36s; opacity: {{ convHandleOp }}"></span>
       </div>
+      </sc-if>
       <sc-if value="{{ convHayMas }}" hint-placeholder-val="{{ false }}">
         <button onClick="{{ convCargarMas }}" style="align-self:center; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:10px 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer" style-hover="border-color:#3E3F3F">{{ convCargarMasLabel }}</button>
       </sc-if>
@@ -1235,7 +1287,7 @@
     </sc-if>
     <sc-if value="{{ lightboxAbierto }}" hint-placeholder-val="{{ false }}">
       <div onClick="{{ cerrarLightbox }}" role="dialog" aria-label="Foto" style="position:fixed; inset:0; z-index:70; background:rgba(62,63,63,.82); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:grid; place-items:center; padding:24px; cursor:zoom-out; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
-        <sc-if value="{{ hayLightboxUrl }}" hint-placeholder-val="{{ false }}"><img src="{{ lightboxUrl }}" loading="lazy" alt="Foto enviada por el huésped" style="max-width:min(96vw,1100px); max-height:88dvh; border-radius:18px; box-shadow:0 28px 80px rgba(0,0,0,.35); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; object-fit:contain"></sc-if>
+        <sc-if value="{{ hayLightboxUrl }}" hint-placeholder-val="{{ false }}">{{ lightboxImg }}</sc-if>
         <button onClick="{{ cerrarLightbox }}" aria-label="Cerrar" style="position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(250,250,250,.92); display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
       </div>
     </sc-if>
@@ -1264,6 +1316,10 @@
           <span style="position:absolute; top:3px; width:24px; height:24px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); transition:left .18s cubic-bezier(.22,.61,.36,1); left: {{ almaToggleLeft }}"></span>
         </button>
       </div>
+      <sc-if value="{{ esSecundario }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:0 18px 18px; font-size:12px; line-height:1.55; color:#6F6867; letter-spacing:.01em; text-wrap:pretty">Puedes encender o apagar ALMA. El modo, los horarios, los tiempos y la base de conocimiento solo los cambia el administrador principal.</div>
+      </sc-if>
+      <sc-if value="{{ esPrincipal }}" hint-placeholder-val="{{ true }}">
       <div style="display:grid; transition:grid-template-rows .36s cubic-bezier(.22,.61,.36,1); grid-template-rows:1fr">
         <div style="overflow:hidden; min-height:0">
           <div style="padding:4px 18px 18px; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:22px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
@@ -1300,6 +1356,48 @@
                     <span style="font-size:10px; letter-spacing:.06em; color:#6F6867; width:26px">{{ t.unidad }}</span>
                   </span>
                 </label>
+              </sc-for>
+            </div>
+            <div data-screen-label="ALMA · Escalamiento" style="grid-column:1 / -1; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
+              <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
+                <div style="display:flex; flex-direction:column; gap:4px; min-width:0">
+                  <span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Escalar a una persona</span>
+                  <span style="font-size:15px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; line-height:1.1">Quién recibe los urgentes</span>
+                  <span style="font-size:12px; line-height:1.55; color:#6F6867; max-width:62ch; text-wrap:pretty">Solo cuando ALMA no puede resolverlo: el huésped no puede entrar, hay un riesgo de seguridad o una emergencia del edificio, o pide a una persona después de que ALMA intentó ayudar. Llega por correo y, si está configurado, por WhatsApp.</span>
+                </div>
+                <button onClick="{{ escAgregar }}" style="border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; min-height:36px; padding:0 14px; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Agregar persona</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:#F5F3F0; border-radius:14px; padding:10px 14px">
+                <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ escTurnoDot }}"></span>
+                <span style="font-size:12.5px; color:#3E3F3F; letter-spacing:.01em; line-height:1.5">{{ escTurnoTxt }}</span>
+                <span style="font-size:10.5px; color:#6F6867; letter-spacing:.04em; margin-left:auto">{{ escNota }}</span>
+              </div>
+              <datalist id="sa-usuarios-acc"><sc-for list="{{ usuariosAcc }}" as="u" hint-placeholder-count="0"><option value="{{ u.email }}">{{ u.nombre }}</option></sc-for></datalist>
+              <sc-for list="{{ escLista }}" as="e" hint-placeholder-count="2">
+                <div style="background:#FFFFFF; border:1px solid {{ e.bd }}; border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:10px; opacity: {{ e.op }}; transition:opacity .18s, border-color .18s">
+                  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:8px">
+                    <label style="display:flex; flex-direction:column; gap:4px; min-width:0"><span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Nombre</span><input defaultValue="{{ e.nombre }}" onBlur="{{ e.setNombre }}" placeholder="Nombre" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; height:42px; font-family:inherit; font-size:13px; color:#3E3F3F; letter-spacing:.01em; outline:none; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; min-width:0"><span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Correo</span><input type="email" list="sa-usuarios-acc" defaultValue="{{ e.email }}" onBlur="{{ e.setEmail }}" placeholder="correo@spacioam.com" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; height:42px; font-family:inherit; font-size:13px; color:#3E3F3F; letter-spacing:.01em; outline:none; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; min-width:0"><span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">WhatsApp</span><input type="tel" defaultValue="{{ e.telefono }}" onBlur="{{ e.setTelefono }}" placeholder="+502…" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; height:42px; font-family:inherit; font-size:13px; color:#3E3F3F; letter-spacing:.01em; outline:none; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></label>
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px">
+                    <label style="display:flex; flex-direction:column; gap:4px; flex:1 1 120px; min-width:0; max-width:160px"><span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Desde · GT</span><input type="time" defaultValue="{{ e.desde }}" onBlur="{{ e.setDesde }}" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; height:42px; font-family:inherit; font-size:13px; color:#3E3F3F; letter-spacing:.01em; outline:none; transition:border-color .18s, box-shadow .18s; font-variant-numeric:tabular-nums; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></label>
+                    <label style="display:flex; flex-direction:column; gap:4px; flex:1 1 120px; min-width:0; max-width:160px"><span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Hasta · GT</span><input type="time" defaultValue="{{ e.hasta }}" onBlur="{{ e.setHasta }}" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; height:42px; font-family:inherit; font-size:13px; color:#3E3F3F; letter-spacing:.01em; outline:none; transition:border-color .18s, box-shadow .18s; font-variant-numeric:tabular-nums; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></label>
+                    <div style="display:flex; flex-direction:column; gap:4px">
+                      <span style="font-size:9px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Días</span>
+                      <div style="display:flex; gap:4px; flex-wrap:wrap">
+                        <sc-for list="{{ e.dias }}" as="d" hint-placeholder-count="7">
+                          <button onClick="{{ d.toggle }}" aria-pressed="{{ d.on }}" aria-label="{{ d.nombre }}" style="width:36px; height:36px; border-radius:50%; border:1px solid {{ d.bd }}; background: {{ d.bg }}; color: {{ d.fg }}; font-family:inherit; font-size:11px; font-weight:600; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.94)">{{ d.letra }}</button>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <div style="display:flex; gap:6px; margin-left:auto; flex-wrap:wrap">
+                      <button onClick="{{ e.toggleActivo }}" style="border:1px solid {{ e.actBd }}; background: {{ e.actBg }}; color: {{ e.actFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; min-height:36px; padding:0 14px; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">{{ e.actLabel }}</button>
+                      <button onClick="{{ e.quitar }}" style="border:1px solid {{ e.quitarBd }}; background:#FFFFFF; color: {{ e.quitarFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; min-height:36px; padding:0 14px; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">{{ e.quitarLabel }}</button>
+                    </div>
+                  </div>
+                  <span style="font-size:11px; line-height:1.5; color:#6F6867; letter-spacing:.02em">{{ e.resumen }}</span>
+                </div>
               </sc-for>
             </div>
             <div data-screen-label="ALMA · Conocimiento" style="grid-column:1 / -1; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(62,63,63,.08); padding-top:16px">
@@ -1356,6 +1454,7 @@
           </div>
         </div>
       </div>
+      </sc-if>
     </div>
 
           </div>
@@ -1692,7 +1791,7 @@
       <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center">
         <input value="{{ reuTitulo }}" onChange="{{ setReuTitulo }}" placeholder="¿De qué es la reunión?" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:13.5px; letter-spacing:.03em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
         <input type="date" value="{{ reuFecha }}" onChange="{{ setReuFecha }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none">
-        <input type="time" value="{{ reuHora }}" onChange="{{ setReuHora }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none">
+        <input type="time" value="{{ reuHora }}" onChange="{{ setReuHora }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important">
         <button onClick="{{ guardarReunion }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:11px 18px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer">Guardar</button>
         <button onClick="{{ nuevaReunion }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:11px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer">Cancelar</button>
       </div>
@@ -1926,9 +2025,9 @@ class Component extends DCLogic {
     almaAbierto: null, almaAjustes: {}, almaPreview: {}, almaAjusteBusy: null, almaAccionNota: {},
     mejoraClave: "REDACTOR", mejoraTexto: "", mejoraBusy: false, mejoraAplicando: false, mejoraPropuesta: null, mejoraNota: "", mejorasHist: [],
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
-    almaHilos: {}, autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
-    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad",
-    versionNueva: false, progEdit: {}, progConfirm: "", briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
+    almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
+    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: null, cronoLista: true,
+    versionNueva: false, progEdit: {}, progConfirm: "", usuariosAcc: [], pushNota: "", pushEstado: "", escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -1971,7 +2070,18 @@ class Component extends DCLogic {
     try { document.cookie = "sa_hub_seen=" + Date.now() + "; domain=.spacioam.com; path=/; Secure; SameSite=Lax"; } catch (e) {}
   }
   /* Loader canónico primero; resolvemos la sesión detrás de él. */
-  _hiloPre = {}; _hiloCola = []; _hiloOcupado = false;
+  _hiloPre = {}; _hiloCola = []; _hiloOcupado = false; _hiloFresco = {};
+  /* Los hilos se guardan en el dispositivo: al abrir el hub (20–30 veces al día) la conversación aparece al instante
+     y se refresca por detrás. Se guardan las 80 más recientes. */
+  guardarHilo(rid, lista) {
+    this._hiloFresco[rid] = Date.now();
+    this.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[rid] = { lista: lista || [], ts: Date.now() }; return { almaHilos: n }; });
+    try {
+      var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); o[rid] = { lista: lista || [], ts: Date.now() };
+      var ks = Object.keys(o).sort(function (x, y) { return (o[y].ts || 0) - (o[x].ts || 0); }); ks.slice(80).forEach(function (k) { delete o[k]; });
+      localStorage.setItem("sa_alma_hilos", JSON.stringify(o));
+    } catch (e) {}
+  }
   /* Precarga de a uno (el Apps Script rechaza ráfagas); un reintento por hilo y nunca deja un error fijo. */
   hiloPrefetch() {
     if (this._hiloOcupado || !this._hiloCola.length) return;
@@ -1979,11 +2089,9 @@ class Component extends DCLogic {
     this._hiloOcupado = true;
     var pedir = function () {
       ALMA.hilo(rid).then(function (res) {
-        if (res && res.ok) {
-          self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[rid] = { lista: res.hilo || [] }; return { almaHilos: n }; });
-        } else if (intento++ < 1) { return setTimeout(pedir, 1500); }
+        if (res && res.ok) { self.guardarHilo(rid, res.hilo); } else if (intento++ < 1) { return setTimeout(pedir, 1500); }
         else { delete self._hiloPre[rid]; }
-        self._hiloOcupado = false; setTimeout(function () { self.hiloPrefetch(); }, 900);
+        delete self._hiloPre[rid]; self._hiloOcupado = false; setTimeout(function () { self.hiloPrefetch(); }, 400);
       }).catch(function () {
         if (intento++ < 1) return setTimeout(pedir, 1500);
         delete self._hiloPre[rid]; self._hiloOcupado = false; setTimeout(function () { self.hiloPrefetch(); }, 900);
@@ -2002,7 +2110,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-05.0100";
+  BUILD = "2026-10-05.1100";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2080,12 +2188,54 @@ class Component extends DCLogic {
      scroll con el snap apagado un frame — si no, el snap "mandatory" devuelve el scroll a la página montada más cercana. */
   /* Abrir conversación = hilo completo arriba + editor abajo, como un inbox. */
   convAbrir(convKey, abre, cargarHilo) {
+    this._chatN = {};
     this.setState(function (s) {
-      var o = Object.assign({}, s.convResp); o[convKey] = Object.assign({}, o[convKey] || {}, { abierto: abre, nota: "" });
-      var hh = Object.assign({}, s.convHilo); hh[convKey] = abre;
-      return { convResp: o, convHilo: hh };
+      var o = {}, hh = Object.assign({}, s.convHilo);
+      Object.keys(s.convResp || {}).forEach(function (k) { o[k] = Object.assign({}, s.convResp[k], { abierto: false }); if (abre && k !== convKey && s.convResp[k].abierto) hh[k] = false; });
+      o[convKey] = Object.assign({}, o[convKey] || {}, { abierto: abre, nota: "" });
+      hh[convKey] = abre;
+      return { convResp: o, convHilo: hh, cronoLista: abre ? false : s.cronoLista };
     });
     if (abre && cargarHilo) cargarHilo();
+    if (!abre && this._ordenEf === "Cronológico") this.setState({ cronoLista: true });
+  }
+  convCerrarTodas() {
+    this.setState(function (s) { var o = {}; Object.keys(s.convResp || {}).forEach(function (k) { o[k] = Object.assign({}, s.convResp[k], { abierto: false }); }); return { convResp: o }; });
+  }
+  /* Hilo completo: se abre en el último mensaje; vuelve a bajar solo cuando llegan mensajes nuevos. */
+  componentDidUpdate() { if (this.state.vista === "alma") { this.anclarChats(); this.cargarUsuariosAcc(); } }
+  anclarChats() {
+    var self = this; this._chatN = this._chatN || {};
+    if (this._irPend != null && this._convRef.current) {
+      var v = this._convRef.current, i = this._irPend; this._irPend = null;
+      var snap = v.style.scrollSnapType; v.style.scrollSnapType = "none"; v.scrollTop = i * v.clientHeight;
+      requestAnimationFrame(function () { v.style.scrollSnapType = snap; });
+    }
+    document.querySelectorAll('[data-alma-chat="1"][data-n]').forEach(function (el) {
+      var k = el.getAttribute("data-conv"), n = el.getAttribute("data-n");
+      if (!k || n === "0" || self._chatN[k] === n) return;
+      self._chatN[k] = n;
+      /* Al último mensaje ya; y se sostiene ~1.5 s mientras cargan fotos, salvo que toques el chat. */
+      var toco = false, marca = function () { toco = true; };
+      el.addEventListener("touchstart", marca, { once: true, passive: true }); el.addEventListener("wheel", marca, { once: true, passive: true });
+      el.style.scrollBehavior = "auto"; el.scrollTop = el.scrollHeight;
+      var t0 = Date.now(), fijar = function () { if (toco) return; el.scrollTop = el.scrollHeight; if (Date.now() - t0 < 1500) setTimeout(fijar, 120); };
+      requestAnimationFrame(fijar);
+    });
+  }
+  _respDraft = {}; _respEl = {}; _fotoBusy = {};
+  /* Si una foto de Hospitable no carga directo (URL privada o vencida), se pide por el Apps Script. */
+  fotoFallo(url) {
+    var self = this; if (this._fotoBusy[url]) return; this._fotoBusy[url] = 1;
+    var p = window.ALMA && ALMA.hasApi() && ALMA.foto ? ALMA.foto(url) : Promise.resolve(null);
+    var fin = function (v) { self.setState(function (s) { var f = Object.assign({}, s.fotoCache); f[url] = v; return { fotoCache: f }; }); };
+    p.then(function (r) { fin(r && r.ok && r.data ? r.data : "x"); }).catch(function () { fin("x"); });
+  }
+  fotoVista(u) {
+    var self = this, url = typeof u === "string" ? u : (u && u.url) || "", c = (this.state.fotoCache || {})[url];
+    return { url: url, src: c && c !== "x" ? c : url, ok: c !== "x", roto: c === "x", rotoTxt: "Foto no disponible en Hospitable",
+      fallo: function () { if (!c) self.fotoFallo(url); },
+      abrir: function (e) { if (e) e.stopPropagation(); if (c !== "x") self.setState({ lightbox: url }); } };
   }
   briefDescartar(k) {
     this.setState(function (s) { var o = Object.assign({}, s.briefOcultas); o[k] = 1; return { briefOcultas: o, briefDrag: null }; });
@@ -2093,7 +2243,7 @@ class Component extends DCLogic {
   }
   convIrA(i) {
     var self = this, el = this._convRef.current;
-    if (!el) { this.setState({ convIdx: i }); return; }
+    if (!el) { this._irPend = i; this.setState({ convIdx: i }); return; }
     var top = el.getBoundingClientRect().top + window.scrollY - 72;
     window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     this._convJump = Date.now(); clearTimeout(this._convScrollT);
@@ -2106,6 +2256,34 @@ class Component extends DCLogic {
   }
   _kbT = {};
   /* Control: cada cambio viaja solo a ALMA_CONTROL, con un pequeño debounce para agrupar toques seguidos. */
+  cargarUsuariosAcc() {
+    var self = this; if (this._accCargado || !(window.SAAuth && SAAuth.usuarios)) return; this._accCargado = 1;
+    SAAuth.usuarios().then(function (us) { self.setState({ usuariosAcc: us || [] }); });
+  }
+  pushActivar() {
+    var self = this, P = window.SAPush;
+    var nota = function (t) { self.setState({ pushNota: t }); clearTimeout(self._pushT); self._pushT = setTimeout(function () { self.setState({ pushNota: "" }); }, 7000); };
+    if (!P) return nota("No se cargó el módulo de avisos.");
+    var est = P.estado();
+    if (est === "sin_config") return nota("Falta el App ID de OneSignal en js/push.js.");
+    if (est === "instalar") return nota("En iPhone: Compartir → Agregar a inicio, abre el hub desde ese ícono y vuelve a tocar la campana.");
+    if (est === "no") return nota("Este navegador no admite avisos.");
+    if (est === "bloqueado") return nota("Los avisos están bloqueados. Actívalos en los ajustes del navegador para hub.spacioam.com.");
+    var s = window.SA && SA.session ? SA.session() || {} : {};
+    nota("Activando…");
+    P.activar({ email: s.email || (this.state.perfil || {}).correo || "", nombre: s.nombre || "", rol: this.rol() }).then(function (r) {
+      self.setState({ pushEstado: r.estado });
+      nota(r.ok ? "Listo. Te avisaremos aquí de los casos urgentes." : r.estado === "bloqueado" ? "No diste permiso. Puedes activarlo en los ajustes del navegador." : "No pudimos activar los avisos en este dispositivo.");
+    });
+  }
+  escAutosave(lista) {
+    var self = this; clearTimeout(this._escT);
+    this._escT = setTimeout(function () {
+      var p = window.ALMA && ALMA.hasApi() && ALMA.setEscalamiento ? ALMA.setEscalamiento(lista) : Promise.resolve({ ok: true, local: true });
+      p.then(function (r) { self.setState({ escNota: r && r.ok ? (r.local ? "Guardado aquí · conecta el Apps Script" : "Guardado") : "No se pudo guardar. Revisa la conexión." }); })
+        .catch(function () { self.setState({ escNota: "No se pudo guardar. Revisa la conexión." }); });
+    }, 900);
+  }
   ctrlAutosave() {
     var self = this; clearTimeout(this._ctrlT);
     this._ctrlT = setTimeout(function () {
@@ -2169,10 +2347,23 @@ class Component extends DCLogic {
       return;
     }
     this.setState({ calCuenta: this.leerGcal() });
-    if (valido) { this.sello(); this.setState({ vista: "hub" }); return; }
+    if (valido) { this.sello(); this.setState({ vista: "hub" }); this.perfilDeSesion(); return; }
     if ((this.props.vistaInicial || "login") === "hub") { this.setState({ vista: "hub" }); return; }
     /* El hub NUNCA se auto-redirige: sin sesión se queda en el estado login. */
     this.setState({ vista: "login" });
+  }
+  /* Sesión recuperada (cookie): el nombre sale del token y, si falta, del «Control de usuarios». */
+  perfilDeSesion() {
+    var self = this, s = (window.SA && SA.session && SA.session()) || {};
+    var poner = function (nombre, email, extra) {
+      var n = String(nombre || "").trim().split(/\s+/);
+      self.setState(function (st) { if (st.perfil && st.perfil.primerNombre && st.perfil.correo === email) return null;
+        return { perfil: Object.assign({ primerNombre: n[0] || "", segundoNombre: "", primerApellido: n[1] || "", segundoApellido: "", correo: email || "", alterno: "", pass: "", avatar: "" }, extra || {}) }; });
+    };
+    if (s.nombre) poner(s.nombre, s.email);
+    try { if (window.SAPush && SAPush.reanudar) SAPush.reanudar({ email: s.email }); } catch (e) {}
+    if (!s.email) return;
+    if (window.SAAuth && SAAuth.profile) SAAuth.profile(s.email).then(function (r) { if (r && r.ok && r.profile && r.profile.nombre) poner(r.profile.nombre, s.email, { avatar: r.profile.avatar || "" }); else if (!s.nombre && SAAuth.usuarios) SAAuth.usuarios().then(function (us) { var u = (us || []).find(function (x) { return String(x.email).toLowerCase() === String(s.email).toLowerCase(); }); if (u && u.nombre) poner(u.nombre, s.email); }); });
   }
   /* Login unificado (hoja «Control de usuarios»), igual que las otras 4 apps. */
   ingresar() {
@@ -2517,7 +2708,7 @@ class Component extends DCLogic {
     var self = this, st = this.state, a = st.alma || { control: [], cola: [], log: [], instrucciones: [] };
     var ctrlO = this.almaCtrlOriginal(), ctrl = st.almaCtrl || ctrlO;
     var sinCambios = Object.keys(ctrlO).every(function (k) { return String(ctrl[k] == null ? "" : ctrl[k]) === String(ctrlO[k] == null ? "" : ctrlO[k]); });
-    var setCtrl = function (k, v) { self.setState(function (s) { var n = Object.assign({}, s.almaCtrl || ctrlO); n[k] = v; return { almaCtrl: n, almaControlNota: "Guardando…" }; }); self.ctrlAutosave(); };
+    var setCtrl = function (k, v) { if (!esPrincipal && k !== "TOGGLE") return; self.setState(function (s) { var n = Object.assign({}, s.almaCtrl || ctrlO); n[k] = v; return { almaCtrl: n, almaControlNota: "Guardando…" }; }); self.ctrlAutosave(); };
     var on = ctrl.TOGGLE === "ON", ctrlLegible = !!ctrlO.TOGGLE;
     var pillStyle = function (activo) { return activo ? { bg: "#3E3F3F", fg: "#FAFAFA" } : { bg: "transparent", fg: "#6F6867" }; };
     var TZ = "America/Guatemala";
@@ -2571,13 +2762,14 @@ class Component extends DCLogic {
       return /complet|listo|ok|enviado|si|sí|true/.test(s) ? { formBg: "#3d6b52", formLabel: "Formulario de llegada · completo", formTxt: "Formulario ✓" } : { formBg: "#C0392B", formLabel: "Formulario de llegada · pendiente", formTxt: "Formulario pendiente" };
     };
     var mapHilo = function (lista, nombre) {
-      return (lista || []).map(function (m) {
+      return (lista || []).filter(function (m) { return self.limpiaImg(m.texto) || (m.fotos || []).length; }).map(function (m) {
         var guest = m.tipo === "guest";
         if (!guest && !m.auto && textosAlma[normT(m.texto)]) m = Object.assign({}, m, { alma: true });
         return {
           align: guest ? "flex-start" : "flex-end",
           radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
-          texto: self.limpiaImg(m.texto) || m.texto,
+          texto: self.limpiaImg(m.texto), hayTexto: !!self.limpiaImg(m.texto),
+          hayFotos: (m.fotos || []).length > 0, fotos: (m.fotos || []).map(function (u) { return self.fotoVista(u); }),
           bg: guest ? "#FFFFFF" : m.auto ? "#E4E0DA" : m.alma ? "rgba(59,102,145,.12)" : "rgba(233,130,106,.22)", fg: "#3E3F3F",
           bd: guest ? "#D8D4CE" : m.auto ? "#D8D4CE" : m.alma ? "rgba(59,102,145,.4)" : "rgba(233,130,106,.5)",
           meta: (guest ? (nombre || "Huésped") : m.auto ? "Spacio AM · automático" : m.alma ? "ALMA" : "Equipo Spacio AM") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created)
@@ -2588,7 +2780,8 @@ class Component extends DCLogic {
     var composer = function (convKey, info) {
       var rs = st.convResp[convKey] || {};
       var upd = function (patch) { self.setState(function (s) { var o = Object.assign({}, s.convResp); o[convKey] = Object.assign({}, o[convKey] || {}, patch); return { convResp: o }; }); };
-      var texto = rs.texto || "";
+      if (self._respDraft[convKey] == null) self._respDraft[convKey] = rs.texto || "";
+      var ponerTexto = function (t) { self._respDraft[convKey] = t; var el = self._respEl[convKey]; if (el) el.value = t; upd({ lleno: !!t.trim() }); };
       var redactor = ((a.instrucciones || []).find(function (i) { return String(i.clave).toUpperCase() === "REDACTOR"; }) || {}).prompt || "Eres Alma, del equipo de Spacio AM. Cálida, breve, tú, sin markdown.";
       var hiloTxt = (info.hiloLista || []).map(function (m) { return "[" + (m.tipo === "guest" ? "HUÉSPED" : m.auto ? "SPACIO AM · automático" : "SPACIO AM") + "] " + m.texto; }).join("\n---\n").slice(-6000);
       var ctx = "Huésped: " + (info.huesped || "") + " · Propiedad: " + (info.propiedad || "") + (info.estadia ? " · Estadía " + info.estadia : "") + "\nHILO:\n" + (hiloTxt || "[HUÉSPED] " + (info.pregunta || ""));
@@ -2597,31 +2790,32 @@ class Component extends DCLogic {
         abrirLabel: rs.abierto ? "Cerrar" : "Abrir conversación", abrirBd: rs.abierto ? "#3E3F3F" : "#3E3F3F", abrirBg: rs.abierto ? "#F5F3F0" : "#3E3F3F", abrirFg: rs.abierto ? "#3E3F3F" : "#FAFAFA",
         toggleAbrir: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
         toggleResp: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
-        respTexto: texto, setRespTexto: function (e) { upd({ texto: e.target.value }); },
-        respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !texto.trim() || !!rs.enviando,
-        respMejorarLabel: rs.busy ? "Redactando…" : texto.trim() ? "Mejorar" : "Redactar con ALMA",
-        respHint: texto.trim() ? "Mejorar pule tu texto con la voz de Spacio AM y el contexto del chat." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
-        respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: texto.trim() ? "#3E3F3F" : "#D8D4CE", respEnviarFg: texto.trim() ? "#FAFAFA" : "#938B8A",
+        respRef: function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; } },
+        setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
+        respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !rs.lleno || !!rs.enviando,
+        respMejorarLabel: rs.busy ? "Redactando…" : rs.lleno ? "Mejorar" : "Redactar con ALMA",
+        respHint: rs.lleno ? "Mejorar pule tu texto con la voz de Spacio AM y el contexto del chat." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
+        respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: rs.lleno ? "#3E3F3F" : "#D8D4CE", respEnviarFg: rs.lleno ? "#FAFAFA" : "#938B8A",
         respMejorar: function () {
-          var actual = (self.state.convResp[convKey] || {}).texto || "";
+          var actual = self._respDraft[convKey] || "";
           upd({ busy: true, nota: "" });
           var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual) : Promise.resolve({ ok: false });
           p.then(function (res) {
             if (res && res.ok && res.texto) return res.texto;
             var user = actual.trim()
-              ? "El equipo escribió este BORRADOR para responder al huésped. Púlelo con la voz de Spacio AM, conservando su intención y sus datos, e integrando lo que haga falta del contexto. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nBORRADOR DEL EQUIPO:\n" + actual
+              ? "MODO REESCRITURA. Una persona del equipo escribió el TEXTO BASE. Reescríbelo, no respondas por tu cuenta: conserva exactamente su intención (lo que confirma, niega, pide u ofrece) y todos sus datos; no agregues ofertas, promesas, disculpas ni información nueva. Mejora solo la forma: palabras más precisas y profesionales, la voz de Spacio AM y las reglas de tus instrucciones, en el idioma del huésped. Si el texto base es corto, la respuesta también. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
               : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
             return self.almaIA(redactor, user, 700);
-          }).then(function (t) { upd({ busy: false, texto: String(t || "").trim(), nota: "Revísalo antes de enviar." }); })
+          }).then(function (t) { ponerTexto(String(t || "").trim()); upd({ busy: false, nota: "Revísalo antes de enviar." }); })
             .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora." }); });
         },
         respEnviar: function () {
-          var t = ((self.state.convResp[convKey] || {}).texto || "").trim(); if (!t) return;
+          var t = (self._respDraft[convKey] || "").trim(); if (!t || (self.state.convResp[convKey] || {}).enviando) return;
           upd({ enviando: true, nota: "" });
           var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
           p.then(function (res) {
             if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
-            upd({ enviando: false, abierto: false, texto: "", nota: "" });
+            ponerTexto(""); upd({ enviando: false, abierto: false, nota: "" });
             self.setState(function (s) {
               var n = Object.assign({}, s.almaHilos); delete n[info.resId];
               var cola = (s.alma.cola || []).map(function (x) { return x.reservation_id === info.resId && ["pendiente", "esperando_envio", "esperando_rojo"].indexOf(x.estado) >= 0 ? Object.assign({}, x, { estado: "respondido", nota: "respondido por el equipo desde el hub" }) : x; });
@@ -2635,11 +2829,17 @@ class Component extends DCLogic {
     var resIdPorCodigo = {};
     (a.cola || []).forEach(function (r) { try { var dd = JSON.parse(r.datos || "{}"); if (dd.codigo && r.reservation_id) resIdPorCodigo[String(dd.codigo).toUpperCase()] = r.reservation_id; } catch (e) {} });
     var cargarHiloDe = function (resId) {
-      if (!resId || !(window.ALMA && ALMA.hasApi()) || self.state.almaHilos[resId]) return;
-      self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[resId] = { cargando: true }; return { almaHilos: n }; });
+      if (!resId || !(window.ALMA && ALMA.hasApi())) return;
+      var ya = self.state.almaHilos[resId];
+      if (ya && !ya.cache && !ya.error) return;
+      if (self._hiloFresco[resId] && Date.now() - self._hiloFresco[resId] < 45000) return;
+      self._hiloFresco[resId] = Date.now();
+      /* Con caché: se muestra ya y se refresca en silencio. Sin caché: indicador de carga. */
+      if (!ya || ya.error) self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[resId] = { cargando: true }; return { almaHilos: n }; });
       ALMA.hilo(resId).then(function (res) {
-        self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[resId] = res && res.ok ? { lista: res.hilo } : { error: true }; return { almaHilos: n }; });
-      });
+        if (res && res.ok) return self.guardarHilo(resId, res.hilo);
+        if (!ya || ya.error) self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[resId] = { error: true }; return { almaHilos: n }; });
+      }).catch(function () { delete self._hiloFresco[resId]; });
     };
     var conteo = { ROJO: 0, AMARILLO: 0, VERDE: 0 };
     vivos.forEach(function (v) { if (v.nivel in conteo) conteo[v.nivel]++; });
@@ -2663,7 +2863,7 @@ class Component extends DCLogic {
       var estadiaC = d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "";
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
         key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est, cargarHilo: cargarHilo,
-        form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? "35%" : "0",
+        form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? "35%" : "0", hiloN: enHilo && hiloSt && hiloSt.lista ? String(hiloSt.lista.length) : "0",
         emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
@@ -2676,7 +2876,7 @@ class Component extends DCLogic {
         toggleHilo: function () { var abre = !enHilo; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKey] = abre; return { convHilo: o }; }); if (abre) cargarHilo(); },
         hiloNoDisponible: enHilo && (!resId || !(window.ALMA && ALMA.hasApi()) || !!(hiloSt && hiloSt.error)),
         hiloNoDisponibleTexto: !resId ? "Esta consulta no tiene reserva asociada; solo está el mensaje recibido." : "No se pudo traer la conversación de Hospitable. Se muestra el mensaje recibido.",
-        hayFotos: fotosCola.length > 0, fotos: fotosCola.map(function (f) { return Object.assign({}, f, { abrir: function (e) { e.stopPropagation(); self.setState({ lightbox: f.url }); } }); }),
+        hayFotos: fotosCola.length > 0, fotos: fotosCola.map(function (f) { return self.fotoVista(f); }),
         hilo: hilo, hiloCargando: !!(hiloSt && hiloSt.cargando),
         huesped: r.huesped || "Huésped", propiedad: d.propiedad ? d.propiedad.replace(/\s*-\s*/g, " · ") : (d.codigo || ""),
         recibido: fmtHora(r.recibido), texto: r.texto, nota: r.nota || "",
@@ -2791,6 +2991,29 @@ class Component extends DCLogic {
       };
     });
 
+    /* Escalamiento: lista editable; cada cambio se guarda solo (agrupado 900 ms) en ALMA_ESCALAMIENTO. */
+    var ESC_DEF = [
+      { nombre: "Gabriel Asturias", email: "gasturias@spacioam.com", telefono: "+50256806660", desde: "08:00", hasta: "20:00", dias: "todos", activo: "TRUE", nota: "turno de día" },
+      { nombre: "Juan Ovalle", email: "jovalle@spacioam.com", telefono: "+50256909499", desde: "20:00", hasta: "08:00", dias: "todos", activo: "TRUE", nota: "turno de noche" }
+    ];
+    var escBase = st.escEdit || ((a.escalamiento || []).length ? a.escalamiento.map(function (r) { return { nombre: r.nombre || "", email: r.email || "", telefono: String(r.telefono || ""), desde: r.desde || "08:00", hasta: r.hasta || "20:00", dias: r.dias || "todos", activo: r.activo || "TRUE", nota: r.nota || "" }; }) : ESC_DEF);
+    var hm = function (s) { var m = String(s || "").match(/(\d{1,2}):?(\d{2})?/); return m ? Number(m[1]) * 60 + Number(m[2] || 0) : null; };
+    var LETRAS = "LMXJVSD", NOMD = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"];
+    var diasDe = function (p) { var s = String(p.dias || "todos").toUpperCase(); return /TODOS|^\s*$/.test(s) ? LETRAS : s.replace(/[^LMXJVSD]/g, ""); };
+    var gtParts = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Guatemala", hour: "2-digit", minute: "2-digit", weekday: "short", hour12: false }).formatToParts(new Date());
+    var gp = function (t) { return (gtParts.find(function (x) { return x.type === t; }) || {}).value; };
+    var minGT = Number(gp("hour")) % 24 * 60 + Number(gp("minute")), diaGT = "LMXJVSD"["MonTueWedThuFriSatSun".indexOf(gp("weekday")) / 3], ayerGT = LETRAS[(LETRAS.indexOf(diaGT) + 6) % 7];
+    var enTurno = function (p) {
+      if (/^(false|no|0)$/i.test(p.activo)) return false;
+      var x = hm(p.desde), y = hm(p.hasta), ds = diasDe(p); if (x == null || y == null) return false;
+      if (x === y) return ds.indexOf(diaGT) >= 0;
+      if (x < y) return minGT >= x && minGT < y && ds.indexOf(diaGT) >= 0;
+      return (minGT >= x && ds.indexOf(diaGT) >= 0) || (minGT < y && ds.indexOf(ayerGT) >= 0);
+    };
+    var accPorEmail = {}; (st.usuariosAcc || []).forEach(function (u) { accPorEmail[String(u.email).toLowerCase()] = u; });
+    escBase = escBase.map(function (p) { var u = accPorEmail[String(p.email || "").toLowerCase()]; return u && u.nombre ? Object.assign({}, p, { nombre: u.nombre }) : p; });
+    var setEsc = function (fn) { var n = escBase.map(function (p) { return Object.assign({}, p); }); fn(n); self.setState({ escEdit: n, escNota: "Guardando…" }); self.escAutosave(n); };
+    var turnoAhora = escBase.filter(enTurno);
     /* Base de conocimiento */
     var kbItems = (a.conocimiento || []).filter(function (r) { return "tema" in r; }).map(function (r) {
       var key = String(r._fila), activo = ["NO", "FALSE", "0"].indexOf(String(r.activo || "").trim().toUpperCase()) < 0;
@@ -2896,13 +3119,13 @@ class Component extends DCLogic {
         hayCodigo: !!l.codigo, codigo: l.codigo || "",
         nivelLabel: NIVEL_LABEL[n] || (n || "Sin nivel"), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
         pregunta: self.limpiaImg(l.pregunta), hayPregunta: !!self.limpiaImg(l.pregunta), hayRespuesta: !!String(l.respuesta || "").trim(), respuesta: l.respuesta || "",
-        hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta).map(function (f) { return Object.assign({}, f, { abrir: function (e) { e.stopPropagation(); self.setState({ lightbox: f.url }); } }); }),
+        hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta).map(function (f) { return self.fotoVista(f); }),
         burbujaBg: enviado ? (humano ? "rgba(233,130,106,.22)" : "rgba(59,102,145,.12)") : "#E4E0DA", burbujaFg: "#3E3F3F", burbujaBd: enviado ? (humano ? "rgba(233,130,106,.5)" : "rgba(59,102,145,.4)") : "#D8D4CE",
         sentido: enviado ? "Enviado al huésped" : "No se envió · " + (/borrador/i.test(acc) ? "borrador" : /SOMBRA/i.test(acc) ? "modo sombra" : /retenid/i.test(acc) ? "retenido" : "quedó en el hub"),
         sentidoColor: enviado ? "#B54D36" : "#6F6867",
         resumen: self.resumenLog(n, acc, l.razon),
-        caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: (st.convResp[convKeyL] || {}).abierto ? "none" : "46%", pieVisible: !(st.convResp[convKeyL] || {}).abierto, pieDisplay: (st.convResp[convKeyL] || {}).abierto ? "none" : "block",
-        hayCasoLinea: true, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: false, pieAbierto: !(st.convResp[convKeyL] || {}).abierto, chatMin: (st.convResp[convKeyL] || {}).abierto ? "35%" : "0",
+        caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: (st.convResp[convKeyL] || {}).abierto ? "none" : "min(34%, 240px)", pieVisible: !(st.convResp[convKeyL] || {}).abierto, pieDisplay: (st.convResp[convKeyL] || {}).abierto ? "none" : "block",
+        hayCasoLinea: true, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: false, pieAbierto: !(st.convResp[convKeyL] || {}).abierto, chatMin: (st.convResp[convKeyL] || {}).abierto ? "35%" : "0", hiloN: enHiloL && hiloStL && hiloStL.lista ? String(hiloStL.lista.length) : "0",
         anotando: st.logAbierto === key, anotarLabel: st.logAbierto === key ? "Cerrar" : "Anotar",
         anotar: function () { self.setState({ logAbierto: st.logAbierto === key ? null : key }); },
         anotacion: st.logAnot[key] || "",
@@ -2956,7 +3179,17 @@ class Component extends DCLogic {
     var visibles = todos.filter(function (c) { return c.esCola || c.ts >= limite; });
     var ocultos = todos.length - visibles.length;
     /* Cronológico: la conversación con la última actualización sube arriba. Prioridad: urgentes primero. */
-    var convItems = st.convOrden === "Cronológico" ? visibles.sort(function (x, y) { return y.ts - x.ts; }) : visibles.sort(function (x, y) { return rank(x) - rank(y) || (x.esCola ? 0 : y.ts - x.ts); });
+    /* Orden automático: hay algo pendiente → Prioridad; calma → Cronológico. Si eliges uno a mano se respeta
+       hasta que entra algo nuevo pendiente, que vuelve a poner Prioridad. */
+    var hayPend = visibles.some(function (c) {
+      if (c.esCola) return ["pendiente", "esperando_envio", "esperando_rojo", "clasificando"].indexOf(c.estadoCola) >= 0 || !c.estadoCola;
+      return (c.nivel === "ROJO" || c.nivel === "AMARILLO") && !c.enviado && !c.humano;
+    });
+    if (hayPend && this._pendPrev === false && st.convOrden) { var me = this; setTimeout(function () { me.setState({ convOrden: null, cronoLista: true }); }, 0); }
+    this._pendPrev = hayPend;
+    var ordenEf = st.convOrden || (hayPend ? "Prioridad" : "Cronológico");
+    this._ordenEf = ordenEf;
+    var convItems = ordenEf === "Cronológico" ? visibles.sort(function (x, y) { return y.ts - x.ts; }) : visibles.sort(function (x, y) { return rank(x) - rank(y) || (x.esCola ? 0 : y.ts - x.ts); });
 
 
     /* Resumen del negocio: todo lo ocurrido en la ventana (2 h; de 3 a 11 am, 8 h), ordenado por lo que pide a una persona. */
@@ -3057,7 +3290,7 @@ class Component extends DCLogic {
         }
       });
     });
-    briefItems.sort(function (x, y) { return st.convOrden === "Cronológico" ? y.ts - x.ts : (x.rk - y.rk || y.ts - x.ts); });
+    briefItems.sort(function (x, y) { return ordenEf === "Cronológico" ? y.ts - x.ts : (x.rk - y.rk || y.ts - x.ts); });
     var briefIdx = Math.max(0, Math.min(briefItems.length - 1, st.briefIdx || 0)), nBrief = Math.max(1, briefItems.length), briefPct = 100 / nBrief;
     var briefPaginas = briefItems.map(function (b, i) { return Object.assign(b, { _i: i }); }).filter(function (b) { return Math.abs(b._i - briefIdx) <= 1; }).map(function (b) { return Object.assign(b, { pagTop: (b._i * briefPct) + "%", pagAlto: briefPct + "%" }); });
     var briefPuntos = briefItems.length > 1 && briefItems.length <= 12 ? briefItems.map(function (b, i) { return { h: i === briefIdx ? "18px" : "5px", bg: i === briefIdx ? "#3E3F3F" : "#D8D4CE" }; }) : [];
@@ -3122,7 +3355,7 @@ class Component extends DCLogic {
       if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
       g.frags.forEach(function (c, i) { c.hayFrags = g.frags.length > 1; c.fragPos = (i + 1) + " / " + g.frags.length; c.fechaPad = g.frags.length > 1 ? "52px" : "0"; });
     });
-    if (st.convOrden !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
+    if (ordenEf !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
     var gruposTodos = grupos;
     var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Por confirmar"))); };
     /* Resumen en texto: una línea por reserva con movimiento en la ventana; si no hubo, lo que sigue abierto. */
@@ -3143,7 +3376,7 @@ class Component extends DCLogic {
       return { pr: pr, ts: tsG(g), quien: nom, prop: self.propCorta(t.propiedad), texto: self.fraseCaso(t), estado: est, dot: dot, tagBg: bg, tagFg: fg,
         ir: function () { var j = gIdx[g.key]; if (j == null) return; self.convAbrir(t.key, true, t.cargarHilo); self.convIrA(j); } };
     }).sort(function (x, y) { return x.pr - y.pr || y.ts - x.ts; }).slice(0, 8);
-    var nFiltros = (st.logFiltro !== "Todo" ? 1 : 0) + (st.logQuien !== "Todos" ? 1 : 0) + (st.logResp !== "Todas" ? 1 : 0) + (st.convOrden === "Cronológico" ? 1 : 0);
+    var nFiltros = (st.logFiltro !== "Todo" ? 1 : 0) + (st.logQuien !== "Todos" ? 1 : 0) + (st.logResp !== "Todas" ? 1 : 0) + (st.convOrden ? 1 : 0);
     var TIPO_C = { sin_atender: ["Sin atender", "#C0392B"], urgente: ["Urgente", "#C0392B"], codigo: ["Código enviado", "#E9826A"], sin_codigo: ["Sin código", "#C0392B"], retenido: ["Retenido", "#E9826A"], borrador: ["Borrador", "#3B6691"], seguimiento: ["Seguimiento", "#E9826A"], error: ["Error", "#C0392B"], aviso: ["Aviso", "#6F6867"] };
     var limC = Date.now() - st.convDias * 86400000;
     var correosVista = (a.correos || []).map(function (m, i) { var t = new Date(m.fecha).getTime(); return { m: m, t: t, k: (m.fecha || "") + i }; })
@@ -3156,14 +3389,18 @@ class Component extends DCLogic {
       });
     var verN = st.convVista === "resueltas" ? "VERDE" : st.logFiltro;
     if (verN !== "Todo") grupos = grupos.filter(function (g) { return enNivel(g, verN); });
-    else if (st.convOrden !== "Cronológico") grupos = grupos.filter(function (g) { return !g.resuelto; });
+    else if (ordenEf !== "Cronológico") grupos = grupos.filter(function (g) { return !g.resuelto; });
     gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
     this._convGrupos = grupos; this._convTotal = grupos.length;
     /* Precarga el hilo de los primeros casos urgentes/por confirmar del historial para saber si ya se resolvieron sin abrirlos. */
     if (window.ALMA && ALMA.hasApi()) {
-      grupos.forEach(function (g) {
-        var t = g.frags[0]; if (self._hiloCola.length >= 6 || t.esCola || g.rk > 4 || !t.resId || (st.almaHilos[t.resId] && !st.almaHilos[t.resId].error) || self._hiloPre[t.resId]) return;
-        self._hiloPre[t.resId] = 1; self._hiloCola.push(t.resId);
+      var ci0 = Math.max(0, Math.min(grupos.length - 1, st.convIdx || 0));
+      var orden0 = grupos.slice(ci0, ci0 + 3).concat(grupos.filter(function (g) { return g.frags[0].esCola; }), grupos.filter(function (g) { return g.rk <= 4; }));
+      orden0.forEach(function (g, k) {
+        var t = g.frags[0], h0 = t.resId && st.almaHilos[t.resId];
+        if (!t.resId || self._hiloPre[t.resId] || (h0 && !h0.error && !h0.cache) || (self._hiloFresco[t.resId] && Date.now() - self._hiloFresco[t.resId] < 45000)) return;
+        if (self._hiloCola.length >= 8) return;
+        self._hiloPre[t.resId] = 1; if (k < 3) self._hiloCola.unshift(t.resId); else self._hiloCola.push(t.resId);
       });
       self.hiloPrefetch();
     }
@@ -3227,6 +3464,28 @@ class Component extends DCLogic {
       mejoraEsKb: !!prop && prop.tipo === "conocimiento", mejoraKbTema: prop ? prop.tema || "" : "", mejoraKbAplica: prop ? (!prop.aplica_a || prop.aplica_a === "*" ? "todas" : prop.aplica_a) : "", mejoraKbContenido: prop ? prop.contenido || "" : "",
       autoItems: autoItems, autoVacio: !!st.alma && !autoItems.length, autoPendientes: String(autoItems.length),
       autoHayPendientes: autoItems.length > 0, autoPillBd: autoItems.length ? "#E9826A" : "#D8D4CE", autoPillFg: autoItems.length ? "#B54D36" : "#938B8A", autoPillBg: autoItems.length ? "rgba(233,130,106,.12)" : "transparent",
+      escLista: escBase.map(function (p, i) {
+        var act = !/^(false|no|0)$/i.test(p.activo), ds = diasDe(p), conf = st.escConfirm === i, cruza = hm(p.hasta) != null && hm(p.desde) != null && hm(p.hasta) < hm(p.desde);
+        var set = function (k) { return function (e) { var v = e.target.value; if (String(p[k] || "") === v) return; setEsc(function (n) { n[i][k] = v; }); }; };
+        return { nombre: p.nombre, email: p.email, telefono: p.telefono, desde: p.desde, hasta: p.hasta,
+          setNombre: set("nombre"),
+          setEmail: function (e) { var v = e.target.value.trim(); if (String(p.email || "") === v) return; var u = accPorEmail[v.toLowerCase()]; setEsc(function (n) { n[i].email = v; if (u && u.nombre) n[i].nombre = u.nombre; }); }, setTelefono: set("telefono"), setDesde: set("desde"), setHasta: set("hasta"),
+          dias: LETRAS.split("").map(function (l, j) { var on = ds.indexOf(l) >= 0; return { letra: l, nombre: NOMD[j], on: on, bg: on ? "#3E3F3F" : "#FFFFFF", fg: on ? "#FAFAFA" : "#6F6867", bd: on ? "#3E3F3F" : "#D8D4CE",
+            toggle: function () { setEsc(function (n) { var cur = diasDe(n[i]); cur = cur.indexOf(l) >= 0 ? cur.replace(l, "") : cur + l; cur = LETRAS.split("").filter(function (x) { return cur.indexOf(x) >= 0; }).join(""); n[i].dias = cur.length === 7 ? "todos" : cur.split("").join(" "); }); } }; }),
+          actLabel: act ? "Activo" : "Pausado", actBg: act ? "rgba(61,107,82,.12)" : "#FFFFFF", actBd: act ? "#3d6b52" : "#D8D4CE", actFg: act ? "#3d6b52" : "#6F6867",
+          toggleActivo: function () { setEsc(function (n) { n[i].activo = act ? "FALSE" : "TRUE"; }); },
+          quitarLabel: conf ? "¿Quitar? Toca otra vez" : "Quitar", quitarBd: conf ? "#C0392B" : "#D8D4CE", quitarFg: conf ? "#C0392B" : "#3E3F3F",
+          quitar: function () { if (!conf) { self.setState({ escConfirm: i }); setTimeout(function () { if (self.state.escConfirm === i) self.setState({ escConfirm: null }); }, 4000); return; } self.setState({ escConfirm: null }); setEsc(function (n) { n.splice(i, 1); }); },
+          bd: enTurno(p) ? "#3d6b52" : "rgba(62,63,63,.10)", op: act ? "1" : ".6",
+          resumen: (enTurno(p) ? "De turno ahora · " : "") + (p.desde || "?") + " – " + (p.hasta || "?") + (cruza ? " (cruza la medianoche)" : "") + " · " + (ds.length === 7 ? "todos los días" : ds.split("").map(function (l) { return NOMD[LETRAS.indexOf(l)].slice(0, 3); }).join(", ") || "ningún día") + " · hora de Guatemala" };
+      }),
+      pushActivar: function () { self.pushActivar(); }, pushNota: st.pushNota, hayPushNota: !!st.pushNota,
+      pushLabel: (function () { var e = window.SAPush ? SAPush.estado() : "no"; return e === "activo" ? "Avisos activados en este dispositivo" : "Activar avisos en este dispositivo"; })(),
+      pushDot: (window.SAPush && SAPush.estado() === "activo") || st.pushEstado === "activo" ? "#3d6b52" : "#D8D4CE",
+      escAgregar: function () { setEsc(function (n) { n.push({ nombre: "", email: "", telefono: "", desde: "08:00", hasta: "20:00", dias: "todos", activo: "TRUE", nota: "" }); }); },
+      escTurnoTxt: turnoAhora.length ? "De turno ahora: " + turnoAhora.map(function (p) { return p.nombre || p.email; }).join(" y ") : "Nadie de turno a esta hora · los urgentes van al correo de alertas",
+      escTurnoDot: turnoAhora.length ? "#3d6b52" : "#F2755A",
+      usuariosAcc: (st.usuariosAcc || []).filter(function (u) { return u.email; }), escNota: st.escNota || "Se guarda solo",
       kbItems: kbItems, kbNuevo: st.kbNuevo, kbNuevoLabel: st.kbNuevo ? "Cancelar" : "Agregar",
       kbNuevoAbrir: function () { self.setState({ kbNuevo: !st.kbNuevo, kbNota: "" }); },
       kbNuevoTema: st.kbNuevoTema, kbNuevoAplica: st.kbNuevoAplica, kbNuevoContenido: st.kbNuevoContenido,
@@ -3284,10 +3543,28 @@ class Component extends DCLogic {
       convPaginas: convPaginas, convPuntos: convPuntos, convPos: grupos.length ? (convIdx + 1) + " de " + grupos.length : "",
       convAltoTotal: (nPag * 100) + "%", convHandleOp: grupos.length > 1 && convIdx < grupos.length - 1 ? "1" : "0",
       convScroll: function () {}, convKey: function (e) { self.convKey(e, grupos.length); },
+      convEsCrono: ordenEf === "Cronológico",
+      convVerLista: ordenEf === "Cronológico" && st.cronoLista, convVerVisor: !(ordenEf === "Cronológico" && st.cronoLista),
+      volverLista: function () { self.convCerrarTodas(); self.setState({ cronoLista: true }); },
+      cronoVacio: !grupos.length, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
+      cronoFilas: grupos.map(function (g, i) {
+        var t = g.frags[0];
+        var pend = !g.resuelto && (t.esCola || ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano));
+        var est = g.resuelto ? "res" : pend ? "pend" : (t.enviado || t.humano) ? "resp" : "pend";
+        var E = { pend: ["Pendiente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"], resp: ["Respondida", "rgba(59,102,145,.12)", "#3B6691", "#3B6691"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"] }[est];
+        var d = new Date(t.ts || 0), hoyGT = new Date().toLocaleDateString("es-GT", { timeZone: "America/Guatemala" });
+        var hora = isNaN(d) || !t.ts ? "" : d.toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }) === hoyGT ? d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
+        var prev = String((t.hayRespuesta && (t.enviado || t.humano) ? "Tú: " + t.respuesta : t.pregunta) || t.resumen || "").replace(/\s+/g, " ").trim();
+        return { iniciales: t.iniciales || "H", huesped: t.huesped || "Huésped", prop: self.propCorta ? self.propCorta(t.propiedad) : t.propiedad, preview: prev || "Sin texto", hora: hora,
+          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" ? "700" : "600", previewFg: est === "pend" ? "#3E3F3F" : "#6F6867",
+          bg: est === "pend" ? "#FFFFFF" : "#FFFFFF", borde: i === 0 ? "transparent" : "#EAE6E0",
+          abrir: function () { self.setState({ cronoLista: false }); self.convAbrir(t.key, true, t.cargarHilo); self.convIrA(i); } };
+      }),
+      convAltoVisor: convItems.some(function (c) { return (st.convResp[c.key] || {}).abierto; }) ? "clamp(360px, calc(100dvh - 150px), 780px)" : "clamp(280px, 52dvh, 520px)",
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
-      mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
+      mejAbierto: st.mejAbierto && esPrincipal, mejToggleAbierto: function () { if (!esPrincipal) return; self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
       versionNueva: st.versionNueva, recargarVersion: function () { location.reload(); },
       resLineas: resLineas, resHay: resLineas.length > 0,
       resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : abiertosRes.length ? "Nada nuevo en " + ventanaH + " h · siguen abiertos" : "Nada nuevo en " + ventanaH + " h · lo último que pasó",
@@ -3311,9 +3588,10 @@ class Component extends DCLogic {
       correos: correosVista, correosVacio: !correosVista.length,
       correosTitulo: correosVista.length ? correosVista.length + (correosVista.length === 1 ? " correo" : " correos") + " en los últimos " + st.convDias + " días" : "Sin correos",
       correosSub: "Salen desde hola@spacioam.com con el formato de Spacio AM. Toca uno para verlo como llegó.",
-      lightboxAbierto: !!st.lightbox, hayLightboxUrl: !!st.lightbox, lightboxUrl: st.lightbox, cerrarLightbox: function () { self.setState({ lightbox: "" }); },
+      lightboxAbierto: !!st.lightbox, hayLightboxUrl: !!st.lightbox, lightboxUrl: st.lightbox, lightboxImg: st.lightbox ? React.createElement("img", { src: (st.fotoCache || {})[st.lightbox] && st.fotoCache[st.lightbox] !== "x" ? st.fotoCache[st.lightbox] : st.lightbox, alt: "Foto enviada por el huésped", style: {"maxWidth":"min(96vw,1100px)","maxHeight":"88dvh","borderRadius":"18px","boxShadow":"0 28px 80px rgba(0,0,0,.35)","animation":"sa-rise .36s cubic-bezier(.22,.61,.36,1) both","objectFit":"contain"} }) : null, lightboxSrcSeguro: !st.lightbox ? undefined : ((st.fotoCache || {})[st.lightbox] && st.fotoCache[st.lightbox] !== "x" ? st.fotoCache[st.lightbox] : st.lightbox), lightboxSrc: (st.fotoCache || {})[st.lightbox] && st.fotoCache[st.lightbox] !== "x" ? st.fotoCache[st.lightbox] : st.lightbox, cerrarLightbox: function () { self.setState({ lightbox: "" }); },
       respFiltros: respFiltros.map(function (x) { return { value: x, label: x }; }), logResp: st.logResp, setLogResp: function (v) { self.setState({ logResp: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
-      ordenFiltros: ordenFiltros.map(function (x) { return { value: x, label: x }; }), convOrden: st.convOrden, setConvOrden: function (v) { self.setState({ convOrden: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
+      ordenFiltros: ordenFiltros.map(function (x) { return { value: x, label: x }; }), convOrden: ordenEf, convOrdenNota: st.convOrden ? "Elegido por ti · vuelve a Prioridad si entra algo pendiente" : (hayPend ? "Automático · hay pendientes" : "Automático · todo en calma"),
+      setConvOrden: function (v) { self.setState({ convOrden: v, cronoLista: true, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       hayAlmaFotos: true, almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/alma-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
       almaEstadoCorto: !st.alma ? "Conectando…" : !ctrlLegible ? "Control sin leer" : on ? (ctrl.MODO || "ON") + " · " + (ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00") : "Apagada",
       briefTitulo: !st.alma ? "Leyendo la cola…" : briefHumanos ? briefHumanos + (briefHumanos === 1 ? " caso necesita" : " casos necesitan") + " a alguien del equipo" : briefItems.length ? "Todo atendido, nada pendiente de ti" : "Sin movimiento",
@@ -3416,12 +3694,13 @@ class Component extends DCLogic {
     var setV = function (v) { return function () { self.setState({ vista: v }); }; };
     var notis = this.notis();
     var h = this.gtHora();
-    var nombre = this.props.nombreAdmin || "Andrea";
+    var ses0 = (window.SA && SA.session && SA.session()) || {};
+    var nombre = (st.perfil && [st.perfil.primerNombre, st.perfil.primerApellido].filter(Boolean).join(" ")) || ses0.nombre || (ses0.email ? String(ses0.email).split("@")[0] : "") || this.props.nombreAdmin || "equipo";
     var partesNombre = String(nombre).trim().split(/\s+/);
     var perfil = st.perfil || {
       primerNombre: partesNombre[0] || "", segundoNombre: "",
       primerApellido: partesNombre[1] || "", segundoApellido: "",
-      correo: this.props.correoAdmin || "andrea@spacioam.com",
+      correo: ses0.email || this.props.correoAdmin || "",
       alterno: "", pass: "", avatar: ""
     };
     var setPerfil = function (k) {

@@ -68,6 +68,7 @@
     configure: function (url, token) { CFG.url = url; if (token) CFG.token = token; },
     hasApi: function () { return !!CFG.url; },
     /* Solo lo vivo (cola, log reciente, bandeja) desde el Apps Script: lo que cambia minuto a minuto. */
+    probarPush: function (email) { return call('probarPush', { email: email }); },
     readLive: function () { return CFG.url ? call('cola', {}) : Promise.resolve(null); },
     readAll: function () {
       /* gviz devuelve la PRIMERA pestaña si el nombre no existe: se valida una columna esperada. */

@@ -71,12 +71,13 @@
       /* gviz devuelve la PRIMERA pestaña si el nombre no existe: se valida una columna esperada. */
       var opc = function (t, id, col) { return readTab(t, id).then(function (rows) { return rows.length && !(col in rows[0]) ? [] : rows; }).catch(function () { return []; }); };
       return Promise.all([readControl()].concat(['ALMA_COLA', 'ALMA_LOG', 'ALMA_INSTRUCCIONES'].map(function (t) { return readTab(t); }))
-        .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name'), opc('ALMA_CORREOS', null, 'asunto'), opc('ALMA_RESUELTAS', null, 'res_key')])
+        .concat([opc('Reservas', CFG.webappSheetId, 'code'), opc('ALMA_AUTOMEJORA', null, 'borrador_ia'), opc('ALMA_CONOCIMIENTO', null, 'tema'), opc('PropiedadesInfo', CFG.webappSheetId, 'property_name'), opc('ALMA_CORREOS', null, 'asunto'), opc('ALMA_RESUELTAS', null, 'res_key'), opc('ALMA_ESCALAMIENTO', null, 'email')])
         .concat([CFG.url ? call('cola', {}).catch(function () { return null; }) : Promise.resolve(null)]))
         /* La cola llega en vivo del Apps Script (gviz puede tardar minutos en reflejar filas nuevas). */
-        .then(function (r) { if (r[10] && r[10].ok && r[10].cola) r[1] = r[10].cola; return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9] }; });
+        .then(function (r) { if (r[11] && r[11].ok && r[11].cola) r[1] = r[11].cola; return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9], escalamiento: r[10] }; });
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
+    setEscalamiento: function (lista) { return call('setEscalamiento', { lista: lista }); },
     setPrompt: function (clave, prompt, nota) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota }); },
     setBorrador: function (fila, borrador) { return call('setBorrador', { fila: fila, borrador: borrador }); },
     enviarAhora: function (fila) { return call('enviarAhora', { fila: fila }); },
@@ -84,6 +85,7 @@
     resolver: function (key, estado, quien) { return call('resolver', { key: key, estado: estado, quien: quien || '' }); },
     programados: function (resId) { return call('programados', { resId: resId }); },
     adelantar: function (resId, id, texto) { return call('adelantar', { resId: resId, id: id, texto: texto || '' }); },
+    foto: function (url) { return call('foto', { url: url }); },
     cancelarProg: function (resId, id) { return call('cancelarProg', { resId: resId, id: id }); },
     editarProg: function (resId, id, texto, quien) { return call('editarProg', { resId: resId, id: id, texto: texto, quien: quien || '' }); },
     proponerMejora: function (clave, prompt, pedido) { return call('proponerMejora', { clave: clave, prompt: prompt, pedido: pedido }); },

@@ -222,22 +222,28 @@ function NotiCenter(props){
 function useNotiPush(notisVis, storeKey){
   var KEY = storeKey || "epi:notiSeen";
   var ts = useState([]); var toasts = ts[0], setToasts = ts[1];
-  var seenRef = React.useRef(null);
+  var seenRef = React.useRef(null), shownRef = React.useRef(false);
   function _load(){ try{ return JSON.parse(localStorage.getItem(KEY)||"null"); }catch(_){ return null; } }
   function _save(o){ try{ localStorage.setItem(KEY, JSON.stringify(o)); }catch(_){} }
   var visSig = (notisVis||[]).map(notiKey).join("|");
   React.useEffect(function(){
     var list = notisVis||[];
     if(seenRef.current==null) seenRef.current=_load();
-    var keys = list.map(notiKey);
-    if(seenRef.current==null){ var boot={}; keys.forEach(function(k){ boot[k]=1; }); seenRef.current=boot; _save(boot); return; }
-    var nuevos = list.filter(function(n){ return n.ts!=null && !seenRef.current[notiKey(n)]; });
-    var toShow = nuevos.slice(0,2);
-    if(!toShow.length) return;
-    var u = Object.assign({}, seenRef.current);
-    toShow.forEach(function(n){ u[notiKey(n)]=1; });
-    seenRef.current=u; _save(u);
-    setToasts(function(p){ return p.concat(toShow).slice(-2); });
+    /* Clave ESTABLE (id + texto, sin la hora): la misma notificación nunca se repite aunque abras la página 30 veces.
+       Topes: 1 banner por apertura, mínimo 60 min entre banners y máximo 4 al día. Lo visto se recuerda 14 días. */
+    var pk = function(n){ return String(n.id)+"|"+String(n.texto||""); };
+    var ahora = Date.now(), hoy = new Date().toISOString().slice(0,10);
+    var s = seenRef.current;
+    if(s==null || !s.v2){ var boot={ v2:1, vistos:{}, dia:hoy, n:0, ultimo:0 }; list.forEach(function(n){ boot.vistos[pk(n)]=ahora; }); seenRef.current=boot; _save(boot); return; }
+    Object.keys(s.vistos).forEach(function(k){ if(ahora - s.vistos[k] > 14*86400000) delete s.vistos[k]; });
+    if(s.dia !== hoy){ s.dia = hoy; s.n = 0; }
+    var nuevos = list.filter(function(n){ return !s.vistos[pk(n)]; });
+    nuevos.forEach(function(n){ s.vistos[pk(n)] = ahora; });   // todo lo que llegó se da por visto (queda en la campana)
+    var puede = !shownRef.current && s.n < 4 && ahora - (s.ultimo||0) > 60*60000;
+    var toShow = puede ? nuevos.slice(0,1) : [];
+    if(toShow.length){ s.n++; s.ultimo = ahora; shownRef.current = true; }
+    _save(s);
+    if(toShow.length) setToasts(function(p){ return p.concat(toShow).slice(-1); });
   },[visSig]);
   function close(item){ var k=notiKey(item); setToasts(function(p){ return p.filter(function(t){ return notiKey(t)!==k; }); }); }
   return { toasts: toasts, close: close };

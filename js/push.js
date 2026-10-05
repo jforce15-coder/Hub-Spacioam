@@ -19,26 +19,34 @@
   }
   var SAPush = {
     configurado: function () { return !!APP_ID; },
+    instalada: standalone,
     estado: function () {
       if (!APP_ID) return 'sin_config';
       if (ios && !standalone()) return 'instalar';
       if (!('serviceWorker' in navigator) || !('Notification' in g)) return 'no';
       if (Notification.permission === 'denied') return 'bloqueado';
-      if (Notification.permission === 'granted' && localStorage.getItem('sa_push_on') === '1') return 'activo';
+      var pref = localStorage.getItem('sa_push_on');
+      if (Notification.permission === 'granted' && pref === '1') return 'activo';
+      if (Notification.permission === 'granted' && pref === '0') return 'pausado';
       return 'soportado';
     },
     /* Vincula el dispositivo a tu correo (external_id) para que ALMA avise solo a quien esté de turno. Llamar desde un toque. */
     activar: function (quien) {
       var est = SAPush.estado();
-      if (est !== 'soportado' && est !== 'activo') return Promise.resolve({ ok: false, estado: est });
+      if (est !== 'soportado' && est !== 'activo' && est !== 'pausado') return Promise.resolve({ ok: false, estado: est });
       return cargar().then(function (OS) {
         var email = String((quien && quien.email) || '').toLowerCase();
         return (email ? OS.login(email) : Promise.resolve()).then(function () { return OS.Notifications.requestPermission(); }).then(function () {
           var ok = OS.Notifications.permission === true || Notification.permission === 'granted';
-          if (ok) { localStorage.setItem('sa_push_on', '1'); if (quien && quien.rol) OS.User.addTag('rol', String(quien.rol)); }
+          if (ok) { localStorage.setItem('sa_push_on', '1'); try { OS.User.PushSubscription.optIn(); } catch (e) {} if (quien && quien.rol) OS.User.addTag('rol', String(quien.rol)); }
           return { ok: ok, estado: ok ? 'activo' : (Notification.permission === 'denied' ? 'bloqueado' : 'soportado') };
         });
       }).catch(function (e) { console.error('push', e); return { ok: false, estado: 'no' }; });
+    },
+    /* Apagar en este dispositivo: deja de recibir sin revocar el permiso (se puede volver a encender con el toggle). */
+    desactivar: function () {
+      localStorage.setItem('sa_push_on', '0');
+      return cargar().then(function (OS) { return OS.User.PushSubscription.optOut(); }).then(function () { return { ok: true, estado: 'pausado' }; }, function () { return { ok: true, estado: 'pausado' }; });
     },
     /* Mantiene el vínculo al abrir el hub (sin pedir permiso de nuevo). */
     reanudar: function (quien) { if (SAPush.estado() === 'activo') cargar().then(function (OS) { var e = String((quien && quien.email) || '').toLowerCase(); if (e) OS.login(e); }).catch(function () {}); }

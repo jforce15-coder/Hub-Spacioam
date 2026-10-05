@@ -75,6 +75,20 @@
   .alma-foco .alma-split{ grid-template-rows:minmax(0,1fr) !important; }
   @media (max-width:1179px){ .alma-foco .alma-head, .alma-foco .alma-volver, .alma-foco .alma-aviso { display:none !important; } .alma-foco .alma-wrap{ padding-top:12px !important; } }
   @media (min-width:1180px){ .alma-foco .alma-side{ display:block !important; } }
+  .alma-head{ flex-wrap:nowrap !important; align-items:center !important; }
+  .alma-res-toggle{ display:inline-flex; }
+  @media (max-width:1179px){
+    .alma-head .alma-avatar{ width:46px !important; height:46px !important; }
+    .alma-head h2{ font-size:24px !important; }
+    .alma-head .alma-acciones{ gap:6px !important; }
+    .alma-head .alma-acciones > button, .alma-head .alma-acciones > span > button{ width:40px !important; height:40px !important; }
+    .alma-fuente{ display:none !important; }
+    .alma-split{ grid-template-rows:minmax(0,46fr) minmax(0,54fr); }
+    .alma-res-min .alma-split{ grid-template-rows:auto minmax(0,1fr); }
+    .alma-res-min [data-screen-label="ALMA · Resumen"] > :not(:first-child){ display:none !important; }
+    .alma-res-min .alma-res-extra{ display:none !important; }
+  }
+  @media (min-width:1180px){ .alma-res-toggle{ display:none !important; } }
   @keyframes sa-dive { from { opacity:0; transform:scale(.92) translateY(10px); } 60% { opacity:1; } to { opacity:1; transform:none; } }
   @keyframes sa-surface { from { opacity:0; transform:scale(1.035); } to { opacity:1; transform:none; } }
   @media (prefers-reduced-motion:reduce){ .sp-tile, .sp-img{ transition:none; } .sa-anim, .sa-anim *{ animation:none !important; transition-duration:1ms !important; } .sa-snap{ scroll-behavior:auto !important; } }
@@ -743,7 +757,7 @@
 </sc-if>
 
 <sc-if value="{{ enAlma }}" hint-placeholder-val="{{ false }}">
-<div data-screen-label="ALMA" class="sa-anim alma-shell {{ almaFoco }}" style="background:#FAFAFA; overflow-x:hidden">
+<div data-screen-label="ALMA" class="sa-anim alma-shell {{ almaFoco }} {{ almaResMin }}" style="background:#FAFAFA; overflow-x:hidden">
   <sc-if value="{{ versionNueva }}" hint-placeholder-val="{{ false }}">
     <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:80; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; max-width:calc(100vw - 24px); box-sizing:border-box">
       <span style="width:8px; height:8px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
@@ -755,7 +769,7 @@
     <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div class="alma-head" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px">
       <div style="display:flex; align-items:center; gap:14px">
-        <div aria-hidden="true" style="position:relative; width:64px; height:64px; flex-shrink:0">
+        <div aria-hidden="true" class="alma-avatar" style="position:relative; width:64px; height:64px; flex-shrink:0">
           <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 4px 16px rgba(62,63,63,.08); border:2px solid #FFFFFF; box-sizing:border-box">
             <sc-if value="{{ hayAlmaFotos }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ almaFotos }}" as="f" hint-placeholder-count="0">
               <img src="{{ f.src }}" loading="lazy" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ f.op }}">
@@ -768,8 +782,8 @@
           <span style="font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ almaEstadoCorto }}</span>
         </div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px">
-        <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
+      <div class="alma-acciones" style="display:flex; align-items:center; gap:8px; flex-shrink:0">
+        <span class="alma-fuente" style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
         <button onClick="{{ ctrlToggleAbierto }}" aria-label="Control de ALMA" title="Control" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="settings" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
           <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ almaDotBg }}"></span>
@@ -832,13 +846,14 @@
     <div class="alma-split">
       <div class="alma-side" style="min-width:0">
     <div data-screen-label="ALMA · Resumen" style="display:flex; flex-direction:column; gap:10px">
-      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:10px">
-        <div style="display:flex; flex-direction:column; gap:4px">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; position:sticky; top:0; z-index:2; background:#FAFAFA; padding:2px 0 4px">
+        <div style="display:flex; flex-direction:column; gap:4px; min-width:0; flex:1">
           <span style="font-size:9.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Resumen · {{ briefVentana }}</span>
-          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(22px,4vw,28px); color:#3E3F3F; line-height:1.1; text-wrap:pretty">{{ briefTitulo }}</span>
-          <sc-if value="{{ briefHayDigest }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; letter-spacing:.03em; color:#6F6867; line-height:1.5">{{ briefDigest }}</span></sc-if>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(20px,4vw,28px); color:#3E3F3F; line-height:1.1; text-wrap:pretty">{{ briefTitulo }}</span>
+          <sc-if value="{{ briefHayDigest }}" hint-placeholder-val="{{ false }}"><span class="alma-res-extra" style="font-size:12px; letter-spacing:.03em; color:#6F6867; line-height:1.5">{{ briefDigest }}</span></sc-if>
         </div>
-        <div style="display:flex; align-items:center; gap:8px">
+        <button onClick="{{ toggleResumen }}" class="alma-res-toggle" aria-expanded="{{ resAbierto }}" aria-label="Mostrar u ocultar el resumen" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.94)"><span style="display:grid; place-items:center; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ resChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></span></button>
+        <div class="alma-res-extra" style="display:flex; align-items:center; gap:8px">
           <sc-if value="{{ briefHayOcultas }}" hint-placeholder-val="{{ false }}"><button onClick="{{ briefRestaurar }}" style="border:none; background:transparent; font-family:inherit; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; padding:0 4px; min-height:36px" style-hover="color:#3E3F3F">{{ briefOcultasLabel }}</button></sc-if>
           <span style="font-size:11px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ briefPos }}</span>
         </div>
@@ -2071,7 +2086,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: null, cronoLista: true,
-    versionNueva: false, progEdit: {}, progConfirm: "", usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
+    versionNueva: false, progEdit: {}, progConfirm: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -3709,7 +3724,9 @@ class Component extends DCLogic {
       convPaginas: convPaginas, convPuntos: convPuntos, convPos: grupos.length ? (convIdx + 1) + " de " + grupos.length : "",
       convAltoTotal: (nPag * 100) + "%", convHandleOp: grupos.length > 1 && convIdx < grupos.length - 1 ? "1" : "0",
       convScroll: function () {}, convKey: function (e) { self.convKey(e, grupos.length); },
-      convEsCrono: true, esPrioridad: ordenEf === "Prioridad", almaFoco: st.cronoLista === false ? "alma-foco" : "",
+      convEsCrono: true, esPrioridad: ordenEf === "Prioridad",
+      resAbierto: !st.resMin, almaResMin: st.resMin ? "alma-res-min" : "", resChevron: st.resMin ? "rotate(0deg)" : "rotate(180deg)",
+      toggleResumen: function () { var v = !st.resMin; try { localStorage.setItem("sa_res_min", v ? "1" : "0"); } catch (e) {} self.setState({ resMin: v }); }, almaFoco: st.cronoLista === false ? "alma-foco" : "",
       convVerLista: st.cronoLista !== false, convVerVisor: st.cronoLista === false, diveOrigin: st.diveOrigin || "50% 30%",
       verCronologico: function () { self.setState({ convOrden: "Cronológico", cronoLista: true }); },
       volverLista: function () { self.convCerrarTodas(); self.setState({ cronoLista: true }); },

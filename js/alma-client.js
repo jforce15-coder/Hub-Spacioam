@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { redactarHub: 1, ajustarBorrador: 1, proponerMejora: 1, responder: 1, hilo: 1, probarPush: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, proponerMejora: 1, responder: 1, hilo: 1, probarPush: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;

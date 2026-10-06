@@ -29,8 +29,8 @@
 <script src="ds/bundle.js"></script>
 <script src="js/sa-auth-client.js"></script>
 <script src="js/sa-session.js"></script>
-<script src="js/alma-client.js?v=2026-10-06.2000"></script>
-<script src="js/push.js?v=2026-10-06.2000"></script>
+<script src="js/alma-client.js?v=2026-10-06.2100"></script>
+<script src="js/push.js?v=2026-10-06.2100"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -774,6 +774,11 @@
 
 <sc-if value="{{ enAlma }}" hint-placeholder-val="{{ false }}">
 <div data-screen-label="ALMA" class="sa-anim alma-shell {{ almaFoco }} {{ almaResMin }} {{ almaM }}" style="background:#FAFAFA; overflow-x:hidden">
+  <sc-if value="{{ hayToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; left:0; right:0; bottom:calc(84px + env(safe-area-inset-bottom)); z-index:90; display:flex; justify-content:center; pointer-events:none; padding:0 16px">
+      <div role="status" aria-live="polite" style="padding:10px 18px; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:12.5px; letter-spacing:.02em; line-height:1.4; box-shadow:0 12px 40px rgba(62,63,63,.18); animation:sa-rise .2s cubic-bezier(.23,1,.32,1) both; text-align:center; max-width:420px">{{ toastTxt }}</div>
+    </div>
+  </sc-if>
   <sc-if value="{{ versionNueva }}" hint-placeholder-val="{{ false }}">
     <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:80; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; max-width:calc(100vw - 24px); box-sizing:border-box">
       <span style="width:8px; height:8px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
@@ -785,13 +790,14 @@
     <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div class="alma-head" style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:12px">
       <div style="display:flex; align-items:center; gap:14px">
-        <div aria-hidden="true" class="alma-avatar" style="position:relative; width:64px; height:64px; flex-shrink:0">
+        <div class="alma-avatar" style="position:relative; width:64px; height:64px; flex-shrink:0">
           <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 4px 16px rgba(62,63,63,.08); border:2px solid #FFFFFF; box-sizing:border-box">
             <sc-if value="{{ hayAlmaFotos }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ almaFotos }}" as="f" hint-placeholder-count="0">
               <img src="{{ f.src }}" loading="lazy" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ f.op }}">
             </sc-for></sc-if>
           </div>
           <span style="position:absolute; right:1px; bottom:1px; width:14px; height:14px; border-radius:50%; border:2.5px solid #FAFAFA; box-sizing:border-box; background: {{ almaDotBg }}; box-shadow:0 1px 2px rgba(62,63,63,.2)"></span>
+          <button onClick="{{ ctrlToggleAbierto }}" aria-label="Control de ALMA" title="Control de ALMA" style="position:absolute; inset:0; padding:0; border:none; border-radius:50%; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .16s cubic-bezier(.23,1,.32,1)" style-active="background:rgba(62,63,63,.12)"></button>
         </div>
         <div style="display:flex; flex-direction:column; gap:2px">
           <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,34px); line-height:1.05">ALMA</h2>
@@ -800,10 +806,6 @@
       </div>
       <div class="alma-acciones" style="display:flex; align-items:center; gap:8px; flex-shrink:0">
         <span class="alma-fuente" style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ almaFuente }}</span>
-        <button onClick="{{ ctrlToggleAbierto }}" aria-label="Control de ALMA" title="Control" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="settings" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import>
-          <span aria-hidden="true" style="position:absolute; right:3px; top:3px; width:9px; height:9px; border-radius:50%; border:2px solid #FFFFFF; background: {{ almaDotBg }}"></span>
-        </button>
         <sc-if value="{{ esPrincipal }}" hint-placeholder-val="{{ true }}"><button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras y auto mejora" title="Mejoras" style="position:relative; width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
           <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-1px; top:-1px; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#E9826A; color:#FFFFFF; font-size:10.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box; line-height:1">{{ autoPendientes }}</span></sc-if>
@@ -870,6 +872,15 @@
         </sc-for>
       </div>
     </div>
+    <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="0">
+      <sc-if value="{{ r.activo }}" hint-placeholder-val="{{ false }}">
+        <div class="alma-mbar" style="align-items:center; gap:8px; margin-top:-6px; animation:sa-fade .18s cubic-bezier(.23,1,.32,1) both">
+          <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ r.badgeBg }}"></span>
+          <span style="flex:1; min-width:0; font-size:12px; letter-spacing:.03em; color:#3E3F3F">Mostrando <strong style="font-weight:600">{{ r.nombre }}</strong> · {{ r.n }}</span>
+          <button onClick="{{ r.set }}" style="border:none; background:transparent; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; min-height:36px; padding:0 4px">Ver todo</button>
+        </div>
+      </sc-if>
+    </sc-for>
     <div class="alma-split">
       <div class="alma-side" style="min-width:0">
     <div data-screen-label="ALMA · Resumen" style="display:flex; flex-direction:column; gap:10px">
@@ -895,7 +906,7 @@
             </span>
           </div>
           <sc-for list="{{ resLineas }}" as="l" hint-placeholder-count="4">
-            <div style="display:flex; align-items:center; gap:8px; padding-right:12px; border-top:1px solid #F0EDE8; background: {{ l.bg }}; transition:background .18s">
+            <div data-gk="{{ l.gk }}" style="display:flex; align-items:center; gap:8px; padding-right:12px; border-top:1px solid #F0EDE8; background: {{ l.bg }}; transition:background .18s">
               <button onClick="{{ l.ir }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:12px; padding:12px 0 12px 14px; border:none; background:transparent; text-align:left; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:opacity .18s" style-active="opacity:.6">
                 <span style="position:relative; width:40px; height:40px; flex-shrink:0">
                   <sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
@@ -907,7 +918,7 @@
                     <span style="flex:1; min-width:0; font-size:14px; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em">{{ l.quien }}</span>
                     <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0">{{ l.hace }}</span>
                   </span>
-                  <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ l.propLinea }}</span>
+                  <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; line-height:1.45; text-wrap:pretty">{{ l.propLinea }}</span>
                   <span style="display:flex; align-items:center; gap:5px; min-width:0; margin-top:1px">
                     <sc-for list="{{ l.dots }}" as="d" hint-placeholder-count="0"><span title="{{ d.t }}" aria-label="{{ d.t }}" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ d.bg }}"></span></sc-for>
                     <span style="flex:1; min-width:0; margin-left:2px; font-size:12.5px; line-height:1.4; letter-spacing:.01em; color: {{ l.txtFg }}; font-weight: {{ l.txtPeso }}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-wrap:pretty">{{ l.texto }}</span>
@@ -955,7 +966,7 @@
                           <div style="display:flex; flex-direction:column; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
                             <sc-for list="{{ b.ultimos }}" as="m" hint-placeholder-count="0">
                               <div style="display:flex; flex-direction:column; gap:2px; align-items: {{ m.align }}">
-                                <div style="max-width:100%; padding:7px 11px; font-size:12px; line-height:1.5; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
+                                <div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:100%; padding:7px 11px; font-size:12px; line-height:1.5; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
                                 <span style="font-size:9px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span>
                               </div>
                             </sc-for>
@@ -1004,6 +1015,7 @@
             </div>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
               <span style="font-size:9.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:5px 11px; background: {{ tj.tagBg }}; color: {{ tj.tagFg }}">{{ tj.tag }}</span>
+              <sc-if value="{{ tj.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ tj.copiarCodigo }}" aria-label="Copiar el código de reserva" title="Copiar código" style="display:inline-flex; align-items:center; gap:5px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; min-height:28px; padding:0 10px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.08em; font-variant-numeric:tabular-nums; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ tj.codigo }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></sc-if>
               <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867; margin-left:auto; font-variant-numeric:tabular-nums">{{ tj.tiempo }}</span>
             </div>
             <div style="display:grid; grid-template-columns:max-content minmax(0,1fr); column-gap:14px; row-gap:10px; font-size:13px; line-height:1.5; letter-spacing:.01em; color:#3E3F3F">
@@ -1017,7 +1029,7 @@
                 <span style="font-size:8.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#938B8A">Último hilo</span>
                 <sc-for list="{{ tj.ultimos }}" as="m" hint-placeholder-count="0">
                   <div style="display:flex; flex-direction:column; gap:2px; align-items: {{ m.align }}">
-                    <div style="max-width:92%; padding:8px 12px; font-size:12.5px; line-height:1.5; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
+                    <div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:92%; padding:8px 12px; font-size:12.5px; line-height:1.5; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div>
                     <span style="font-size:9.5px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span>
                   </div>
                 </sc-for>
@@ -1066,7 +1078,7 @@
           </sc-if>
           <div class="alma-scroll" style="flex:1; min-height:0; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; box-shadow:0 1px 2px rgba(62,63,63,.04)">
             <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
-              <button onClick="{{ r.abrir }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; border-top:1px solid {{ r.borde }}; border-left:4px solid {{ r.color }}; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F5F3F0" style-active="background:#EFECE8">
+              <button onClick="{{ r.abrir }}" data-gk="{{ r.gk }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; border-top:1px solid {{ r.borde }}; border-left:4px solid {{ r.color }}; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F5F3F0" style-active="background:#EFECE8">
                 <span style="position:relative; width:44px; height:44px; flex-shrink:0">
                   <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" style="width:44px; height:44px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
                   <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
@@ -1085,7 +1097,7 @@
                       <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ r.clasTxt }}</span>
                     </span>
                   </sc-if>
-                  <span style="font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.03em">{{ r.prop }}</span>
+                  <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; line-height:1.45; text-wrap:pretty">{{ r.prop }}</span>
                 </span>
                 <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; align-self:center">
                   <span style="font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
@@ -1136,9 +1148,8 @@
                   <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:11px; letter-spacing:.04em; color:#6F6867">
                     <span>{{ c.propiedad }}</span>
                     <sc-if value="{{ c.hayEstadia }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span>{{ c.estadia }}</span></sc-if>
-                    <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span style="font-variant-numeric:tabular-nums">{{ c.codigo }}</span></sc-if>
-                    <span aria-hidden="true">·</span>
-                    <span title="{{ c.form.formLabel }}" aria-label="{{ c.form.formLabel }}" style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ c.form.formBg }}; box-shadow:0 0 0 2px rgba(62,63,63,.06)"></span><span style="font-size:10px; letter-spacing:.06em">{{ c.form.formTxt }}</span></span>
+                    <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.copiarCodigo }}" aria-label="Copiar el código de reserva" title="Copiar código" style="display:inline-flex; align-items:center; gap:5px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; min-height:28px; padding:0 10px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.08em; font-variant-numeric:tabular-nums; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.codigo }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></sc-if>
+                    <button onClick="{{ c.form.ver }}" aria-label="{{ c.form.formLabel }}" title="{{ c.form.formLabel }}" style="width:28px; height:28px; border-radius:50%; border:1px solid {{ c.form.formBd }}; background: {{ c.form.formTint }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="file" size="14" color="{{ c.form.formBg }}" hint-size="14px,14px"></x-import></button>
                   </div>
                   <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
                     <span role="progressbar" aria-label="{{ c.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-width:280px">
@@ -1192,7 +1203,7 @@
                 <div data-alma-chat="1" data-conv="{{ c.key }}" data-n="{{ c.hiloN }}" style="flex:1; min-height: {{ c.chatMin }}; overflow-y:auto; overscroll-behavior:auto; -webkit-overflow-scrolling:touch; padding:14px 16px; display:flex; flex-direction:column; gap:10px; background:#FAFAFA">
                 <sc-if value="{{ c.modoResumen }}" hint-placeholder-val="{{ true }}">
                   <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">
-                    <sc-if value="{{ c.hayPregunta }}" hint-placeholder-val="{{ true }}"><div style="max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div></sc-if>
+                    <sc-if value="{{ c.hayPregunta }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ c.lpPregDown }}" onPointerMove="{{ c.lpPregMove }}" onPointerUp="{{ c.lpPregUp }}" onPointerCancel="{{ c.lpPregUp }}" onPointerLeave="{{ c.lpPregUp }}" onContextMenu="{{ c.lpPregMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(92%,560px); background:#FFFFFF; border:1px solid #D8D4CE; border-radius:16px 16px 16px 4px; padding:10px 14px; font-size:13.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; box-shadow:0 1px 2px rgba(62,63,63,.06)">{{ c.pregunta }}</div></sc-if>
                     <sc-if value="{{ c.hayFotos }}" hint-placeholder-val="{{ false }}">
                       <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px)">
                         <sc-for list="{{ c.fotos }}" as="f" hint-placeholder-count="0">
@@ -1204,15 +1215,15 @@
                   <sc-if value="{{ c.hayRespuesta }}" hint-placeholder-val="{{ true }}">
                     <div style="display:flex; justify-content:flex-end">
                       <div style="max-width:min(92%,560px); display:flex; flex-direction:column; gap:4px; align-items:flex-end">
-                        <div onClick="{{ c.verRazon }}" style="cursor:pointer; padding:10px 14px; font-size:13.5px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background: {{ c.burbujaBg }}; color:#3E3F3F; border: {{ c.burbujaBorde }}">{{ c.respuesta }}</div>
-                        <span style="display:flex; align-items:center; gap:8px"><span style="font-size:10px; letter-spacing:.06em; color: {{ c.sentidoColor }}">{{ c.sentido }}</span><button onClick="{{ c.verRazon }}" style="border:none; background:transparent; padding:4px 0; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#3B6691; cursor:pointer; text-decoration:underline; text-underline-offset:3px">Por qué</button></span>
+                        <div onPointerDown="{{ c.lpRespDown }}" onPointerMove="{{ c.lpRespMove }}" onPointerUp="{{ c.lpRespUp }}" onPointerCancel="{{ c.lpRespUp }}" onPointerLeave="{{ c.lpRespUp }}" onContextMenu="{{ c.lpRespMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; padding:10px 14px; font-size:13.5px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background: {{ c.burbujaBg }}; color:#3E3F3F; border: {{ c.burbujaBorde }}">{{ c.respuesta }}</div>
+                        <span style="display:flex; align-items:center; gap:8px"><span style="font-size:10px; letter-spacing:.06em; color: {{ c.sentidoColor }}">{{ c.sentido }}</span></span>
                       </div>
                     </div>
                   </sc-if>
                   <sc-if value="{{ c.hayHumano }}" hint-placeholder-val="{{ false }}">
                     <div style="display:flex; justify-content:flex-end">
                       <div style="max-width:min(92%,560px); display:flex; flex-direction:column; gap:4px; align-items:flex-end">
-                        <div style="padding:10px 14px; font-size:13.5px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background:rgba(233,130,106,.22); color:#3E3F3F; border:1px solid rgba(233,130,106,.5)">{{ c.humano }}</div>
+                        <div onPointerDown="{{ c.lpHumDown }}" onPointerMove="{{ c.lpHumMove }}" onPointerUp="{{ c.lpHumUp }}" onPointerCancel="{{ c.lpHumUp }}" onPointerLeave="{{ c.lpHumUp }}" onContextMenu="{{ c.lpHumMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; padding:10px 14px; font-size:13.5px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background:rgba(233,130,106,.22); color:#3E3F3F; border:1px solid rgba(233,130,106,.5)">{{ c.humano }}</div>
                         <span style="font-size:10px; letter-spacing:.06em; color:#B54D36">{{ c.quienLabel }}</span>
                       </div>
                     </div>
@@ -1225,9 +1236,10 @@
                   <sc-if value="{{ c.hiloNoDisponible }}" hint-placeholder-val="{{ false }}">
                     <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; text-align:center; line-height:1.5">{{ c.hiloNoDisponibleTexto }}</span>
                   </sc-if>
+                  <sc-if value="{{ c.hayHiloLista }}" hint-placeholder-val="{{ false }}"><span style="align-self:center; font-size:10px; letter-spacing:.06em; color:#938B8A">Mantén presionado un mensaje para ver su análisis</span></sc-if>
                   <sc-for list="{{ c.hilo }}" as="m" hint-placeholder-count="0">
                     <div style="display:flex; flex-direction:column; gap:3px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both; align-items: {{ m.align }}">
-                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div onClick="{{ m.tap }}" style="cursor: {{ m.cursor }}; max-width:min(92%,560px); padding:9px 13px; font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div></sc-if>
+                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(92%,560px); padding:9px 13px; font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div></sc-if>
                       <sc-if value="{{ m.hayFotos }}" hint-placeholder-val="{{ false }}">
                         <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px); justify-content: {{ m.align }}">
                           <sc-for list="{{ m.fotos }}" as="f" hint-placeholder-count="0">
@@ -1235,12 +1247,12 @@
                           </sc-for>
                         </div>
                       </sc-if>
-                      <span style="display:flex; align-items:center; gap:8px"><span style="font-size:9.5px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span><sc-if value="{{ m.esAlma }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.tap }}" style="border:none; background:transparent; padding:4px 0; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#3B6691; cursor:pointer; text-decoration:underline; text-underline-offset:3px">Por qué</button></sc-if></span>
+                      <span style="display:flex; align-items:center; gap:8px"><span style="font-size:9.5px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span></span>
                     </div>
                   </sc-for>
                   <sc-if value="{{ c.hayBorrador }}" hint-placeholder-val="{{ false }}">
                     <div style="display:flex; flex-direction:column; gap:3px; align-items:flex-end">
-                      <div style="max-width:min(92%,560px); padding:10px 14px; font-size:13px; line-height:1.6; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background:#FFFFFF; color:#3E3F3F; border:1.5px dashed #E9826A">{{ c.borrador }}</div>
+                      <div onPointerDown="{{ c.lpBorrDown }}" onPointerMove="{{ c.lpBorrMove }}" onPointerUp="{{ c.lpBorrUp }}" onPointerCancel="{{ c.lpBorrUp }}" onPointerLeave="{{ c.lpBorrUp }}" onContextMenu="{{ c.lpBorrMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(92%,560px); padding:10px 14px; font-size:13px; line-height:1.6; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius:16px 16px 4px 16px; background:#FFFFFF; color:#3E3F3F; border:1.5px dashed #E9826A">{{ c.borrador }}</div>
                       <span style="font-size:9.5px; letter-spacing:.06em; color:#B54D36">{{ c.borradorLabel }}</span>
                     </div>
                   </sc-if>
@@ -1255,7 +1267,7 @@
                     <span style="margin-left:auto; font-size:10.5px; letter-spacing:.04em; color:#6F6867">{{ c.respNota }}</span>
                   </div>
                   <div style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0" style-focus="border-color:#3E3F3F">
-                    <textarea ref="{{ c.respRef }}" onInput="{{ c.setRespTexto }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Redactar con ALMA" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; min-height:56px"></textarea>
+                    <textarea ref="{{ c.respRef }}" onInput="{{ c.setRespTexto }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Redactar con ALMA" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; transition:min-height .2s cubic-bezier(.23,1,.32,1); min-height: {{ c.respTaMin }}"></textarea>
                     <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-wrap:wrap">
                       <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(233,130,106,.9); border-radius:999px; background:rgba(233,130,106,.14); padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; transition:background .18s" style-hover="background:rgba(233,130,106,.26)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import> {{ c.respMejorarLabel }}</button>
                       <span style="font-size:10.5px; letter-spacing:.02em; color:#6F6867; line-height:1.4; flex:1; min-width:160px">{{ c.respHint }}</span>
@@ -1441,16 +1453,19 @@
     <sc-if value="{{ rzAbierto }}" hint-placeholder-val="{{ false }}">
       <div style="position:fixed; inset:0; z-index:65; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
         <div onClick="{{ rzCerrar }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
-        <div role="dialog" aria-label="Razonamiento de ALMA" style="position:relative; width:min(100%,640px); max-height:min(88dvh,860px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
+        <div role="dialog" aria-label="Análisis del mensaje" style="position:relative; width:min(100%,640px); max-height:min(88dvh,860px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
           <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
           <button onClick="{{ rzCerrar }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
           <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:12px 18px calc(20px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:18px; min-height:0">
             <div style="display:flex; flex-direction:column; gap:4px; padding-right:44px">
-              <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import>Razonamiento de ALMA</span>
+              <span style="display:flex; align-items:center; gap:8px; font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import>Análisis del mensaje</span>
               <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:26px; line-height:1.1; color:#3E3F3F">{{ rz.titulo }}</span>
             </div>
             <sc-if value="{{ rz.hayTexto }}" hint-placeholder-val="{{ false }}">
-              <div style="padding:12px 14px; font-size:13.5px; line-height:1.6; white-space:pre-wrap; text-wrap:pretty; color:#3E3F3F; border-radius:16px 16px 4px 16px; background: {{ rz.burbujaBg }}; border: {{ rz.burbujaBd }}">{{ rz.texto }}</div>
+              <div style="display:flex; flex-direction:column; gap:2px">
+                <div style="padding:12px 14px; font-size:13.5px; line-height:1.6; white-space:pre-wrap; text-wrap:pretty; color:#3E3F3F; border-radius: {{ rz.burbujaRadio }}; background: {{ rz.burbujaBg }}; border: {{ rz.burbujaBd }}">{{ rz.texto }}</div>
+                <button onClick="{{ rz.copiar }}" style="align-self:flex-end; display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; min-height:36px; padding:0 4px" style-hover="color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="13" color="currentColor" hint-size="13px,13px"></x-import>Copiar texto</button>
+              </div>
             </sc-if>
             <sc-if value="{{ rz.noEnviado }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; gap:10px; align-items:flex-start; background:rgba(233,130,106,.12); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:12px 14px">
@@ -1466,11 +1481,11 @@
             </div>
             <sc-if value="{{ rz.hay }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; flex-direction:column; gap:14px; border-top:1px solid #EAE6E0; padding-top:16px">
-                <div style="display:flex; align-items:center; gap:10px">
+                <sc-if value="{{ rz.hayVoto }}" hint-placeholder-val="{{ false }}"><div style="display:flex; align-items:center; gap:10px">
                   <span style="flex:1; font-size:13px; font-weight:600; color:#3E3F3F">¿Fue el mejor servicio posible?</span>
                   <button onClick="{{ rz.votarBien }}" aria-label="Buena respuesta" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; background: {{ rz.votoBienBg }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="15" color="{{ rz.votoBienFg }}" hint-size="15px,15px"></x-import></button>
                   <button onClick="{{ rz.votarMal }}" aria-label="A mejorar" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; background: {{ rz.votoMalBg }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="15" color="{{ rz.votoMalFg }}" hint-size="15px,15px"></x-import></button>
-                </div>
+                </div></sc-if>
                 <div style="display:flex; flex-direction:column; gap:10px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; padding:14px">
                   <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Anotación para ALMA · se vuelve mejora</span>
                   <div style="display:flex; flex-wrap:wrap; gap:6px">
@@ -2343,7 +2358,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-06.2000";
+  BUILD = "2026-10-06.2100";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2390,6 +2405,35 @@ class Component extends DCLogic {
     };
     document.addEventListener("visibilitychange", volver); window.addEventListener("pageshow", volver); window.addEventListener("focus", volver);
     this._tick = setInterval(function () { if (self.state.vista === "alma") self.forceUpdate(); }, 20000);
+    /* Móvil: el swipe horizontal navega la jerarquía; la pantalla sigue al dedo y entra desde el lado correcto. */
+    this._rm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var mueve = function (x, anim) { var w = document.querySelector(".alma-split"); if (!w || self._rm) return; w.style.transition = anim ? "transform .24s cubic-bezier(.23,1,.32,1)" : "none"; w.style.transform = x ? "translateX(" + x + "px)" : ""; };
+    document.addEventListener("touchstart", function (e) {
+      self._sw = null;
+      var st0 = self.state;
+      if (st0.vista !== "alma" || st0.razon || st0.ctrlAbierto || st0.mejAbierto || st0.correosAbierto || st0.lightbox || e.touches.length !== 1 || !(window.matchMedia && matchMedia("(max-width:1179px)").matches)) return;
+      var t = e.target; if (!t || !t.closest || t.closest("textarea, input, select, [role=dialog], .alma-brief")) return;
+      for (var el = t; el && el !== document.body; el = el.parentElement) { if (el.scrollWidth > el.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
+      var row = t.closest("[data-gk]");
+      self._sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), gk: row ? row.getAttribute("data-gk") : null, lock: null, dx: 0 };
+    }, { passive: true });
+    document.addEventListener("touchmove", function (e) {
+      var s = self._sw; if (!s) return;
+      var dx = e.touches[0].clientX - s.x, dy = e.touches[0].clientY - s.y;
+      if (!s.lock) { if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return; s.lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? "h" : "v"; if (s.lock === "h") self.lpCancel(); }
+      if (s.lock !== "h") return;
+      s.dx = dx; mueve(dx * (self.swipePuede(dx < 0 ? "izq" : "der", s.gk) ? 0.45 : 0.12), false);
+    }, { passive: true });
+    var fin = function () {
+      var s = self._sw; self._sw = null; if (!s || s.lock !== "h") return;
+      var v = Math.abs(s.dx) / Math.max(1, Date.now() - s.t), dir = s.dx < 0 ? "izq" : "der";
+      if ((Math.abs(s.dx) > 70 || (v > 0.45 && Math.abs(s.dx) > 30)) && self.swipePuede(dir, s.gk)) {
+        try { navigator.vibrate && navigator.vibrate(8); } catch (x) {}
+        self.swipeNav(dir, s.gk);
+        requestAnimationFrame(function () { mueve(dir === "izq" ? 36 : -36, false); requestAnimationFrame(function () { mueve(0, true); }); });
+      } else mueve(0, true);
+    };
+    document.addEventListener("touchend", fin, { passive: true }); document.addEventListener("touchcancel", fin, { passive: true });
   }
   componentWillUnmount() { clearInterval(this._almaTimer); clearInterval(this._tick); clearInterval(this._verT); }
   _convRef = React.createRef();
@@ -2578,6 +2622,99 @@ class Component extends DCLogic {
       requestAnimationFrame(function () { var side = document.querySelector(".alma-side"), el = document.querySelector(".alma-tarjeta"); if (side && el) side.scrollTo({ top: side.scrollTop + el.getBoundingClientRect().top - side.getBoundingClientRect().top - 8, behavior: "smooth" }); });
     } else requestAnimationFrame(function () { var side = document.querySelector(".alma-side"); if (side) side.scrollTop = 0; });
   }
+  /* Cierre corto del huésped ("gracias", "perfecto"): no queda nada pendiente. */
+  esCierre(t) { t = String(t || "").trim().toLowerCase(); return !!t && t.length <= 60 && /^(ok(ay|ey)?|vale|listo|perfecto|genial|excelente|super|súper|entendido|de acuerdo|gracias|muchas gracias|mil gracias|thanks|thank you|thank you so much|great|perfect|got it|noted|👍|🙏)[\s!.,🙏👍❤️😊]*((muchas )?gracias|thanks|thank you)?[\s!.,🙏👍❤️😊]*$/i.test(t); }
+  /* ¿Un automático entrega lo que el huésped pidió? Ej.: pidió la dirección y llegó el acceso a hola.spacioam.com. */
+  autoResuelve(p, a) {
+    p = String(p || "").toLowerCase(); a = String(a || "").toLowerCase();
+    var pideInfo = /direcci|ubicaci|address|location|where is|d[oó]nde (queda|est)|c[oó]mo llego|how (do i|to) get|wifi|wi-fi|internet|clave|contrase|password|c[oó]digo|code|acceso|access|check.?in|llegada|arrival|instruc|parqueo|parking|piso|floor|gu[ií]a|guide/.test(p);
+    if (pideInfo && /hola\.spacioam\.com/.test(a)) return true;
+    return [[/wifi|wi-fi|internet/, /wifi|wi-fi|red |network/], [/direcci|ubicaci|address|location/, /direcci|address|maps\.|waze|ubicaci/], [/c[oó]digo|code|acceso|access/, /c[oó]digo|code|acceso|access/]].some(function (pr) { return pr[0].test(p) && pr[1].test(a); });
+  }
+  idiomaDe(t) {
+    var s = " " + String(t || "").toLowerCase().replace(/[^a-záéíóúñüçãõàâêôè'\s]/g, " ").replace(/\s+/g, " ") + " ";
+    var c = function (ws) { return ws.reduce(function (n, w) { return n + (s.indexOf(" " + w + " ") >= 0 ? 1 : 0); }, 0); };
+    var L = [["Español", c(["el", "la", "los", "las", "que", "y", "un", "una", "por", "es", "hola", "gracias", "estoy", "tengo", "puedo", "dónde", "cómo", "qué", "buenas", "nos", "mi", "muchas", "llegamos", "tenemos"])],
+      ["Inglés", c(["the", "and", "is", "you", "to", "of", "it", "we", "i", "my", "for", "hi", "hello", "thanks", "thank", "can", "what", "where", "how", "please", "there", "our", "are", "not", "will"])],
+      ["Portugués", c(["obrigado", "obrigada", "você", "não", "olá", "estamos", "onde", "nós", "uma", "com", "tudo", "bom"])],
+      ["Francés", c(["le", "les", "et", "est", "vous", "merci", "bonjour", "nous", "pas", "je", "une", "avec", "où"])]].sort(function (x, y) { return y[1] - x[1]; });
+    return L[0][1] > 0 && L[0][1] > L[1][1] ? L[0][0] : "";
+  }
+  durTxt(ms) { var mn = Math.max(1, Math.round(ms / 60000)); return mn < 60 ? mn + " min" : Math.floor(mn / 60) + " h" + (mn % 60 ? " " + (mn % 60) + " min" : ""); }
+  /* Análisis corto de un mensaje del hilo: qué pide, quién y cuándo respondió, si un automático lo resolvió, idioma. */
+  analizarMsg(lista, i) {
+    var self = this, m = lista[i], out = [], T = function (x) { return Date.parse(x && x.created) || 0; };
+    var tipoDe = function (x) { return x.tipo === "guest" ? "guest" : x.tipo === "nota" ? "nota" : x.auto ? "auto" : x.alma ? "alma" : "equipo"; };
+    var corto = function (t, n) { t = self.limpiaImg(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
+    var tp = tipoDe(m), idi = this.idiomaDe(m.texto);
+    if (tp === "guest") {
+      out.push({ k: "Qué pide", v: this.fraseCaso({ pregunta: m.texto }) || "Escribió al equipo" });
+      if (idi) out.push({ k: "Idioma", v: idi + " · ALMA le responde en este idioma" });
+      var auto = null, resp = null;
+      for (var j = i + 1; j < lista.length; j++) { var tx = tipoDe(lista[j]); if (tx === "guest" || tx === "nota") continue; if (tx === "auto") { if (!auto) auto = lista[j]; continue; } resp = lista[j]; break; }
+      if (resp) out.push({ k: "Respuesta", v: (tipoDe(resp) === "alma" ? "ALMA" : "El equipo") + " respondió " + this.durTxt(T(resp) - T(m)) + " después" });
+      else if (this.esCierre(m.texto)) out.push({ k: "Estado", v: "Cierre del huésped · no requiere respuesta" });
+      else out.push({ k: "Respuesta", v: "Nadie le ha respondido · hace " + this.durTxt(Date.now() - T(m)) });
+      if (auto && (!resp || T(auto) < T(resp))) out.push({ k: "Automático", v: this.autoResuelve(m.texto, auto.texto) ? "Después llegó un automático que sí entrega lo que pidió" : "Después llegó un automático que no atiende lo que pidió · no cuenta como respuesta" });
+    } else {
+      var g = null; for (var q = i - 1; q >= 0; q--) { if (lista[q].tipo === "guest") { g = lista[q]; break; } }
+      out.push({ k: "Quién", v: { nota: "ALMA · no se envió", auto: "Mensaje automático de Hospitable", alma: "ALMA", equipo: "Equipo Spacio AM" }[tp] });
+      if (g) {
+        out.push({ k: "Responde a", v: "“" + corto(g.texto, 140) + "”" });
+        if (tp === "auto") out.push({ k: "¿Resolvió?", v: this.autoResuelve(g.texto, m.texto) ? "Sí: entrega lo que el huésped pidió" : "No: es un envío programado, no atiende lo que preguntó" });
+        else if (tp !== "nota") out.push({ k: "Tiempo", v: this.durTxt(T(m) - T(g)) + " después del mensaje del huésped" });
+        var ig = this.idiomaDe(g.texto); if (ig && idi && ig !== idi) out.push({ k: "Idioma", v: "El huésped escribió en " + ig.toLowerCase() + " y esto salió en " + idi.toLowerCase() });
+      } else if (tp === "auto") out.push({ k: "Contexto", v: "Envío programado; no responde a ninguna pregunta" });
+    }
+    return out;
+  }
+  /* Lo mismo para las burbujas del modo resumen (sin hilo completo). */
+  analizarSuelto(tipo, c) {
+    var corto = function (t, n) { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; }, out = [];
+    if (tipo === "guest") {
+      out.push({ k: "Qué pide", v: this.fraseCaso(c) || "Escribió al equipo" });
+      var idi = this.idiomaDe(c.pregunta); if (idi) out.push({ k: "Idioma", v: idi + " · ALMA le responde en este idioma" });
+      out.push({ k: "Estado", v: c.nivelLabel || "" }, { k: "Respuesta", v: c.humano ? "Respondió " + (c.quien && c.quien !== "Equipo" ? c.quien : "el equipo") : c.enviado ? "ALMA respondió" : c.esCola ? (c.cuando || "En cola") : "Sin respuesta" });
+    } else {
+      out.push({ k: "Quién", v: tipo === "equipo" ? (c.quien && c.quien !== "Equipo" ? c.quien : "Equipo Spacio AM") : tipo === "borrador" ? "ALMA · borrador, aún no se envía" : "ALMA" });
+      if (c.pregunta) out.push({ k: "Responde a", v: "“" + corto(this.limpiaImg(c.pregunta), 140) + "”" });
+      if (tipo === "borrador" && c.cuando) out.push({ k: "Cuándo sale", v: c.cuando });
+      if (c.razon) out.push({ k: "Por qué", v: c.razon });
+    }
+    return out;
+  }
+  /* Mantener presionado (480 ms) abre el análisis; mover el dedo lo cancela. Clic derecho en escritorio. */
+  lp(abrir, pre) {
+    var self = this, o = {};
+    pre = pre || "lp";
+    o[pre + "Down"] = function (e) {
+        if (e.button > 0) return;
+        var el = e.currentTarget; self.lpCancel(); self._lpXY = [e.clientX, e.clientY]; self._lpEl = el; self._lpOk = false;
+        if (!self._rm) { el.style.transition = "transform .48s cubic-bezier(.23,1,.32,1)"; el.style.transform = "scale(.97)"; }
+        self._lpT = setTimeout(function () { self._lpOk = true; self.lpCancel(); self._sw = null; try { navigator.vibrate && navigator.vibrate(12); } catch (x) {} abrir(); }, 480);
+    };
+    o[pre + "Move"] = function (e) { if (self._lpXY && (Math.abs(e.clientX - self._lpXY[0]) > 10 || Math.abs(e.clientY - self._lpXY[1]) > 10)) self.lpCancel(); };
+    o[pre + "Up"] = function () { self.lpCancel(); };
+    o[pre + "Menu"] = function (e) { e.preventDefault(); var ya = self._lpOk; self.lpCancel(); self._lpOk = false; if (!ya) abrir(); };
+    return o;
+  }
+  lpCancel() { clearTimeout(this._lpT); this._lpXY = null; var el = this._lpEl; if (el) { el.style.transition = "transform .18s cubic-bezier(.23,1,.32,1)"; el.style.transform = ""; this._lpEl = null; } }
+  abrirBurbuja(info) { this.setState({ razon: info, rzAnot: "", rzProp: null, rzNota: "", rzBusy: false }); }
+  aviso(t) { var self = this; clearTimeout(this._toastT); this.setState({ toast: "" }, function () { self.setState({ toast: t }); }); this._toastT = setTimeout(function () { self.setState({ toast: "" }); }, 2200); }
+  copiar(txt, msg) {
+    var self = this, ok = function () { self.aviso(msg || "Copiado"); };
+    var viejo = function () { try { var ta = document.createElement("textarea"); ta.value = txt; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); ok(); } catch (e) { self.aviso("No se pudo copiar"); } };
+    if (!txt) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, viejo); else viejo();
+  }
+  /* Swipe en móvil: izquierda = más adentro (lista → tarjeta → conversación); derecha = volver. */
+  swipePuede(dir, gk) { var st = this.state, chat = st.cronoLista === false, tar = !!st.selG && !chat; return dir === "izq" ? (!chat && (tar || !!gk)) : (chat || tar); }
+  swipeNav(dir, gk) {
+    var st = this.state, chat = st.cronoLista === false, tar = !!st.selG && !chat;
+    if (dir === "izq") { if (chat) return; if (tar) this.abrirGrupo(st.selG); else if (gk) this.selConv(gk, false); return; }
+    if (chat) { var g = (this._convGrupos || [])[st.convIdx || 0]; this.convCerrarTodas(); this.setState({ cronoLista: true, selG: g ? g.key : st.selG || null }); return; }
+    if (tar) this.setState({ selG: null });
+  }
   /* Abre la conversación aunque los filtros la escondan (se quitan los filtros y se reintenta). */
   abrirGrupo(gk) { this._apTry = 0; this.setState({ abrirPend: gk }); }
   abrirDesdeLista(e, t, i) {
@@ -2597,7 +2734,7 @@ class Component extends DCLogic {
     if (ib.tipo !== "consulta" && ib.checkout && String(ib.checkout).slice(0, 10) < hoy) return "estadía terminada";
     if (uh && uh >= ug && ahora - uh > 3 * 3600000) return "respondida hace más de 3 h";
     var t = String(ib.ultimo_de === "guest" ? ib.ultimo_texto : "").trim().toLowerCase();
-    if (uh && t && t.length <= 60 && /^(ok(ay|ey)?|vale|listo|perfecto|genial|excelente|super|súper|entendido|de acuerdo|gracias|muchas gracias|mil gracias|thanks|thank you|thank you so much|great|perfect|got it|noted|👍|🙏)[\s!.,🙏👍❤️😊]*((muchas )?gracias|thanks|thank you)?[\s!.,🙏👍❤️😊]*$/i.test(t)) return "el huésped cerró la conversación";
+    if (uh && this.esCierre(t)) return "el huésped cerró la conversación";
     return "";
   }
   abrirProgramados(key, resId) {
@@ -3041,6 +3178,7 @@ class Component extends DCLogic {
     return out.filter(function (u) { u = String(u || "").trim(); if (!u || vistos[u]) return false; vistos[u] = 1; return true; }).slice(0, 6).map(function (u) { return { url: String(u).trim() }; });
   }
   almaVals() {
+    var esPrincipal = this.rol() === "admin";
     var self = this, st = this.state, a = st.alma || { control: [], cola: [], log: [], instrucciones: [] };
     var ctrlO = this.almaCtrlOriginal(), ctrl = st.almaCtrl || ctrlO;
     var sinCambios = Object.keys(ctrlO).every(function (k) { return String(ctrl[k] == null ? "" : ctrl[k]) === String(ctrlO[k] == null ? "" : ctrlO[k]); });
@@ -3054,6 +3192,9 @@ class Component extends DCLogic {
       var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v);
       return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: String(v).length <= 10 ? undefined : TZ });
     };
+    /* Listados: fecha corta sin día de la semana, sin cortes de línea dentro de la fecha. */
+    var fmtCorta = function (v) { if (!v) return ""; var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v); return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: String(v).length <= 10 ? undefined : TZ }).replace(/\.$/, "").replace(/\s/g, "\u00a0"); };
+    var fmtRango = function (x, y) { var a1 = fmtCorta(x), b1 = fmtCorta(y); return a1 ? a1 + (b1 ? "\u00a0–\u00a0" + b1 : "") : ""; };
     var enMin = function (iso) { var d = new Date(iso); if (isNaN(d)) return null; return Math.round((d - Date.now()) / 60000); };
 
     /* Cola: solo lo vivo, lo más urgente primero. */
@@ -3103,17 +3244,22 @@ class Component extends DCLogic {
     /* Farol del registro de llegada (Reservas.status_form): verde completo, rojo pendiente, gris sin dato. */
     var farolForm = function (codigo, statusCola) {
       var s = String(statusCola || reservaDe(codigo).status_form || "").trim().toLowerCase();
-      if (!s) return { formBg: "#D8D4CE", formLabel: "Formulario · sin dato", formTxt: "Sin dato" };
-      return /complet|listo|ok|enviado|si|sí|true/.test(s) ? { formBg: "#3d6b52", formLabel: "Formulario de llegada · completo", formTxt: "Formulario ✓" } : { formBg: "#C0392B", formLabel: "Formulario de llegada · pendiente", formTxt: "Formulario pendiente" };
+      var F = !s ? ["#938B8A", "#F5F3F0", "#D8D4CE", "Formulario de llegada · sin dato", "Sin dato"]
+        : /complet|listo|ok|enviado|si|sí|true/.test(s) ? ["#3d6b52", "rgba(61,107,82,.12)", "rgba(61,107,82,.45)", "Formulario de llegada · completo", "Formulario ✓"]
+        : ["#C0392B", "rgba(192,57,43,.10)", "rgba(192,57,43,.45)", "Formulario de llegada · pendiente", "Formulario pendiente"];
+      return { formBg: F[0], formTint: F[1], formBd: F[2], formLabel: F[3], formTxt: F[4], ver: function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.aviso(F[3]); } };
     };
     var mapHilo = function (lista, nombre, resIdN) {
       var base = (lista || []).slice();
       if (resIdN && notasRes[resIdN]) base = base.concat(notasRes[resIdN]).sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); });
-      return base.filter(function (m) { return self.limpiaImg(m.texto) || (m.fotos || []).length; }).map(function (m) {
+      var lista = base.filter(function (m) { return self.limpiaImg(m.texto) || (m.fotos || []).length; }).map(function (m) {
+        return m.tipo !== "guest" && m.tipo !== "nota" && !m.auto && textosAlma[normT(m.texto)] ? Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] }) : m;
+      });
+      return lista.map(function (m, iM) {
         var guest = m.tipo === "guest", nota = m.tipo === "nota";
         if (!guest && !nota && !m.auto && textosAlma[normT(m.texto)]) m = Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] });
         var esAlma = nota || !!m.alma, kR = m._k || "", txR = m.texto;
-        return {
+        var it = {
           align: guest ? "flex-start" : "flex-end",
           radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
           texto: self.limpiaImg(m.texto), hayTexto: !!self.limpiaImg(m.texto),
@@ -3122,8 +3268,12 @@ class Component extends DCLogic {
           bd: guest ? "#D8D4CE" : nota ? "#D8D4CE" : m.auto ? "#D8D4CE" : m.alma ? "rgba(59,102,145,.4)" : "rgba(233,130,106,.5)",
           meta: (guest ? (nombre || "Huésped") : nota ? "ALMA · no se envió · " + motivoNota(m._acc) : m.auto ? "Spacio AM · automático" : m.alma ? "ALMA" : "Equipo Spacio AM") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created),
           esAlma: esAlma, cursor: esAlma ? "pointer" : "auto",
-          tap: esAlma ? function () { self.setState({ razon: { key: kR, texto: txR } }); } : undefined
+          _lp: self.lp(function () {
+            self.abrirBurbuja({ logKey: esAlma ? kR : "", tipo: guest ? "guest" : nota ? "nota" : m.auto ? "auto" : m.alma ? "alma" : "equipo", texto: self.limpiaImg(txR), filas: self.analizarMsg(lista, iM),
+              contexto: lista.slice(Math.max(0, iM - 6), iM + 3).map(function (x) { return "[" + (x.tipo === "guest" ? "HUÉSPED" : x.tipo === "nota" ? "ALMA · no enviado" : x.auto ? "AUTOMÁTICO" : x.alma ? "ALMA" : "EQUIPO") + "] " + self.limpiaImg(x.texto); }).join("\n") });
+          }, "lp")
         };
+        return Object.assign(it, it._lp);
       });
     };
     /* Responder desde el hub: editor + Mejorar (ALMA redacta o pule) + Enviar (Hospitable). */
@@ -3140,6 +3290,12 @@ class Component extends DCLogic {
         abrirLabel: rs.abierto ? "Cerrar" : "Abrir conversación", abrirBd: rs.abierto ? "#3E3F3F" : "#3E3F3F", abrirBg: rs.abierto ? "#F5F3F0" : "#3E3F3F", abrirFg: rs.abierto ? "#3E3F3F" : "#FAFAFA",
         toggleAbrir: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
         toggleResp: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
+        respTaMin: rs.foco ? "min(40dvh, 340px)" : "56px",
+        respOnFocus: function () {
+          clearTimeout(self._blurT); if (!(self.state.convResp[convKey] || {}).foco) upd({ foco: true });
+          setTimeout(function () { var ch = document.querySelector('[data-alma-chat][data-conv="' + convKey + '"]'); if (ch) ch.scrollTop = ch.scrollHeight; }, 220);
+        },
+        respOnBlur: function () { clearTimeout(self._blurT); self._blurT = setTimeout(function () { if (document.activeElement === self._respEl[convKey] || (self.state.convResp[convKey] || {}).busy) return; upd({ foco: false }); }, 350); },
         respRef: function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; } },
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !rs.lleno || !!rs.enviando,
@@ -3153,8 +3309,8 @@ class Component extends DCLogic {
           p.then(function (res) {
             if (res && res.ok && res.texto) return res.texto;
             var user = actual.trim()
-              ? "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE. Mejóralo y compleméntalo con el contexto de TODA la conversación: (1) conserva su intención y todos sus datos, sin cambiar la decisión; (2) mejora la forma con la voz de Spacio AM, en el idioma del huésped; (3) agrega solo lo relevante que falte: preguntas del huésped que siguen sin respuesta y cuya respuesta está en el contexto, el siguiente paso útil para su estadía, o reconocer lo que contó (una molestia, una celebración); (4) nunca inventes datos ni ofrezcas concesiones (horarios especiales, descuentos, reembolsos, cambios) que el equipo no ofreció; (5) breve: máximo dos agregados. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
-              : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
+              ? "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE. Mejóralo y compleméntalo con el contexto de TODA la conversación: (1) conserva su intención y todos sus datos, sin cambiar la decisión; (2) mejora la forma con la voz de Spacio AM, en el idioma del ÚLTIMO mensaje del huésped (si aún no escribe, el idioma asignado a su reserva; si cambió de idioma, usa el nuevo); (3) agrega solo lo relevante que falte: preguntas del huésped que siguen sin respuesta y cuya respuesta está en el contexto, el siguiente paso útil para su estadía, o reconocer lo que contó (una molestia, una celebración); (4) nunca inventes datos ni ofrezcas concesiones (horarios especiales, descuentos, reembolsos, cambios) que el equipo no ofreció; (5) breve: máximo dos agregados. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
+              : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM, en el idioma de ese último mensaje (si cambió de idioma, usa el nuevo). Los mensajes automáticos no cuentan como respuesta. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
             return self.almaIA(redactor, user, 700);
           }).then(function (t) { ponerTexto(String(t || "").trim()); upd({ busy: false, nota: "Revísalo antes de enviar." }); })
             .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora." }); });
@@ -3218,16 +3374,16 @@ class Component extends DCLogic {
       /* Mientras clasifica no hay resumen: se muestra la conversación completa y se carga sola. */
       var convKey = "c" + key, enHilo = st.convHilo[convKey] != null ? !!st.convHilo[convKey] : !v.nivel;
       if (enHilo && resId && !st.almaHilos[resId] && !self._autoHilo[resId]) { self._autoHilo[resId] = 1; setTimeout(cargarHilo, 0); }
-      var estadiaC = d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "";
+      var estadiaC = fmtRango(d.checkin, d.checkout);
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
         propRaw: d.propiedad || "",
         key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est, cargarHilo: cargarHilo,
-        form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? "35%" : "0", hiloN: enHilo && hiloSt && hiloSt.lista ? String(hiloSt.lista.length) : "0",
+        form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? ((st.convResp[convKey] || {}).foco ? "72px" : "35%") : "0", hiloN: enHilo && hiloSt && hiloSt.lista ? String(hiloSt.lista.length) : "0",
         emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
         clasificando: clasInfo.on, clasPct: clasInfo.pct, clasTxt: clasInfo.txt,
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
-        hayEstadia: !!(d.checkin), estadia: d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "", hayCodigo: !!d.codigo, codigo: d.codigo || "",
+        hayEstadia: !!(d.checkin), estadia: fmtRango(d.checkin, d.checkout), hayCodigo: !!d.codigo, codigo: d.codigo || "",
         fecha: fmtDia(r.recibido) + " " + fmtHora(r.recibido),
         pregunta: self.limpiaImg(r.texto), hayPregunta: !!self.limpiaImg(r.texto), hayRespuesta: !!String(d.borrador || "").trim(), respuesta: d.borrador || "",
         burbujaBg: "#FFFFFF", burbujaBorde: "1.5px dashed #E9826A", sentidoColor: "#B54D36",
@@ -3460,10 +3616,10 @@ class Component extends DCLogic {
       var pt = self.partes(l.propiedad || res.property_name || "");
       var apto = l.apartamento || res.apartment || pt.unidad;
       var propiedad = [pt.zona, pt.edificio].filter(Boolean).join(" · ") + (apto ? " · Apto " + apto : "");
-      var ci = fmtDia(l.checkin || res.checkin_date), co = fmtDia(l.checkout || res.checkout_date);
+      var ci = fmtCorta(l.checkin || res.checkin_date), co = fmtCorta(l.checkout || res.checkout_date);
       var NIVEL_LABEL = { ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta", SILENCIO: "Sin respuesta", INQUIRY: "Consulta", ERROR: "Error" };
       var prop = st.logProp[key];
-      var contexto = "Huésped: " + huesped + " · Propiedad: " + (l.propiedad || "") + (ci ? " · Estadía " + ci + " – " + co : "") + "\nNivel: " + n + (l.razon ? " · Motivo: " + l.razon : "") + "\nMensaje del huésped:\n" + (l.pregunta || "") + "\nRespuesta de ALMA" + (enviado ? " (enviada)" : " (no enviada)") + ":\n" + (l.respuesta || "(ninguna)") + "\nResultado: " + acc;
+      var contexto = "Huésped: " + huesped + " · Propiedad: " + (l.propiedad || "") + (ci ? " · Estadía " + ci + "\u00a0–\u00a0" + co : "") + "\nNivel: " + n + (l.razon ? " · Motivo: " + l.razon : "") + "\nMensaje del huésped:\n" + (l.pregunta || "") + "\nRespuesta de ALMA" + (enviado ? " (enviada)" : " (no enviada)") + ":\n" + (l.respuesta || "(ninguna)") + "\nResultado: " + acc;
       var humano = /gestionando|hilo cambió|retenido|borrador enviado|atendido por el equipo|por el equipo desde el hub|por el equipo en hospitable/i.test(acc);
       var voto = st.logVoto[key] !== undefined ? st.logVoto[key] : String(l.voto || "").toLowerCase();
       var votar = function (v) {
@@ -3471,7 +3627,7 @@ class Component extends DCLogic {
         self.setState(function (s) { var o = Object.assign({}, s.logVoto); o[key] = nuevo; return { logVoto: o }; });
         if (window.ALMA && ALMA.hasApi() && l._fila) ALMA.votar(l._fila, nuevo);
       };
-      return Object.assign(composer(convKeyL, { resId: resIdLog, huesped: huesped, propiedad: l.propiedad, estadia: ci ? ci + " – " + co : "", pregunta: l.pregunta, hiloLista: hiloStL && hiloStL.lista, cargarHilo: function () { cargarHiloDe(resIdLog); } }), {
+      return Object.assign(composer(convKeyL, { resId: resIdLog, huesped: huesped, propiedad: l.propiedad, estadia: ci ? ci + "\u00a0–\u00a0" + co : "", pregunta: l.pregunta, hiloLista: hiloStL && hiloStL.lista, cargarHilo: function () { cargarHiloDe(resIdLog); } }), {
         humano: humano, hayHumano: !!humano,
         votoBien: voto === "up", votoMal: voto === "down",
         votoBienBg: voto === "up" ? "#3d6b52" : "transparent", votoBienFg: voto === "up" ? "#FFFFFF" : "#6F6867",
@@ -3479,7 +3635,7 @@ class Component extends DCLogic {
         votarBien: function () { votar("up"); }, votarMal: function () { votar("down"); },
         sinResp: !!l._inbox && !acc,
         propRaw: l.propiedad || res.property_name || "", pregunta: l.pregunta || "",
-        verRazon: function () { self.setState({ razon: { key: convKeyL, texto: l.respuesta || "" } }); },
+        verRazon: function () { self.abrirBurbuja({ logKey: convKeyL, tipo: "alma", texto: l.respuesta || "" }); },
         key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, cargarHilo: function () { cargarHiloDe(resIdLog); }, form: farolForm(l.codigo, ""), nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
         quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
         modoHilo: enHiloL, modoResumen: !enHiloL, hiloLabel: enHiloL ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHiloL ? "#F5F3F0" : "#FFFFFF",
@@ -3492,7 +3648,7 @@ class Component extends DCLogic {
         burbujaBorde: "1px solid " + (enviado ? "rgba(233,130,106,.5)" : "#D8D4CE"),
         fecha: fmtDia(tsLog || l.fecha) + " " + (tsLog ? fmtHora(tsLog) : ""), propiedad: propiedad || "Propiedad sin nombre",
         huesped: huesped, iniciales: ini,
-        hayEstadia: !!ci, estadia: ci && co ? ci + " – " + co : ci,
+        hayEstadia: !!ci, estadia: ci && co ? ci + "\u00a0–\u00a0" + co : ci,
         hayCodigo: !!l.codigo, codigo: l.codigo || "",
         nivelLabel: NIVEL_LABEL[n] || (n || (l._inbox ? (acc ? "Respondió el equipo" : "Sin responder") : "Sin nivel")), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
         pregunta: self.limpiaImg(l.pregunta), hayPregunta: !!self.limpiaImg(l.pregunta), hayRespuesta: !!String(l.respuesta || "").trim(), respuesta: l.respuesta || "",
@@ -3502,7 +3658,7 @@ class Component extends DCLogic {
         sentidoColor: enviado ? "#B54D36" : "#6F6867",
         resumen: self.resumenLog(n, acc, l.razon),
         caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: (st.convResp[convKeyL] || {}).abierto ? "none" : "min(34%, 240px)", pieVisible: !(st.convResp[convKeyL] || {}).abierto, pieDisplay: (st.convResp[convKeyL] || {}).abierto ? "none" : "block",
-        hayCasoLinea: true, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: false, pieAbierto: !(st.convResp[convKeyL] || {}).abierto, chatMin: (st.convResp[convKeyL] || {}).abierto ? "35%" : "0", hiloN: enHiloL && hiloStL && hiloStL.lista ? String(hiloStL.lista.length) : "0",
+        hayCasoLinea: true, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: false, pieAbierto: !(st.convResp[convKeyL] || {}).abierto, chatMin: (st.convResp[convKeyL] || {}).abierto ? ((st.convResp[convKeyL] || {}).foco ? "72px" : "35%") : "0", hiloN: enHiloL && hiloStL && hiloStL.lista ? String(hiloStL.lista.length) : "0",
         anotando: st.logAbierto === key, anotarLabel: st.logAbierto === key ? "Cerrar" : "Anotar",
         anotar: function () { self.setState({ logAbierto: st.logAbierto === key ? null : key }); },
         anotacion: st.logAnot[key] || "",
@@ -3700,6 +3856,17 @@ class Component extends DCLogic {
       var confirmamos = ult.tipo !== "guest" && /ya qued[oó] resuelto|me alegra que .*(resuelt|arregl|funcion)|gracias por avisar(nos)? que ya/i.test(u);
       return (dice && ult.tipo !== "guest") || confirmamos;
     };
+    /* ¿El huésped sigue esperando? Los automáticos de Hospitable que caen después no cuentan, salvo que entreguen lo que pidió. */
+    var pendHilo = function (resId) {
+      var hl = resId && st.almaHilos[resId] && st.almaHilos[resId].lista; if (!hl || !hl.length) return null;
+      var i = hl.length - 1, autos = [];
+      while (i >= 0 && hl[i].tipo !== "guest" && hl[i].auto) { autos.push(hl[i]); i--; }
+      if (!autos.length || i < 0 || hl[i].tipo !== "guest") return false;
+      var j = i; while (j >= 0 && hl[j].tipo === "guest") j--;
+      var preg = hl.slice(j + 1, i + 1).map(function (m) { return m.texto || ""; }).join("\n");
+      if (self.esCierre(preg)) return false;
+      return !autos.some(function (a1) { return self.autoResuelve(preg, a1.texto); });
+    };
     var resMan = {};
     (a.resueltas || []).forEach(function (r) { var t = new Date(r.ts).getTime(), k = String(r.res_key || ""); if (k && (!resMan[k] || resMan[k].ts < t)) resMan[k] = { estado: r.estado, ts: t, por: r.por }; });
     Object.keys(st.resMan || {}).forEach(function (k) { var e = st.resMan[k]; if (!resMan[k] || resMan[k].ts < e.ts) resMan[k] = e; });
@@ -3710,10 +3877,21 @@ class Component extends DCLogic {
       g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0);
       /* Un mensaje nuevo del huésped después de marcarla reabre la conversación sola. */
       var vigente = man && man.ts >= Math.max(top.ts || 0, ug);
-      g.autoRes = !top.esCola && self.autoResuelta(ib, ug, uh);
+      g.pendAuto = !top.esCola && pendHilo(top.resId) === true;
+      if (g.pendAuto) g.frags.forEach(function (c) { c.sinResp = true; });
+      g.autoRes = !top.esCola && !g.pendAuto && self.autoResuelta(ib, ug, uh);
       g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes));
       g.frags.forEach(function (c) {
         c.resLabel = g.resuelto ? "Reabrir" : "Resuelta";
+        c.copiarCodigo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.copiar(c.codigo, "Código " + c.codigo + " copiado"); };
+        c.hayHiloLista = (c.hilo || []).length > 0;
+        (function (c) {
+          var hc = "[HUÉSPED] " + self.limpiaImg(c.pregunta || "") + (c.respuesta ? "\n[ALMA" + (c.esLog && c.enviado ? "" : " · sin enviar") + "] " + c.respuesta : "") + (c.humano ? "\n[EQUIPO] " + c.humano : "");
+          Object.assign(c, self.lp(function () { self.abrirBurbuja({ tipo: "guest", texto: self.limpiaImg(c.pregunta), filas: self.analizarSuelto("guest", c), contexto: hc }); }, "lpPreg"));
+          Object.assign(c, self.lp(function () { self.abrirBurbuja({ logKey: c.esLog ? c.key : "", tipo: c.esCola ? "borrador" : c.enviado ? "alma" : "nota", texto: c.respuesta, filas: self.analizarSuelto(c.esCola ? "borrador" : "alma", c), contexto: hc }); }, "lpResp"));
+          Object.assign(c, self.lp(function () { self.abrirBurbuja({ tipo: "equipo", texto: c.humano, filas: self.analizarSuelto("equipo", c), contexto: hc }); }, "lpHum"));
+          Object.assign(c, self.lp(function () { self.abrirBurbuja({ tipo: "borrador", texto: c.borrador, filas: self.analizarSuelto("borrador", c), contexto: hc }); }, "lpBorr"));
+        })(c);
         c.resBg = g.resuelto ? "rgba(61,107,82,.14)" : "#FFFFFF"; c.resBd = g.resuelto ? "rgba(61,107,82,.5)" : "#D8D4CE"; c.resFg = g.resuelto ? "#3d6b52" : "#3E3F3F";
         c.toggleResuelta = function (e) {
           if (e && e.stopPropagation) e.stopPropagation();
@@ -3757,7 +3935,7 @@ class Component extends DCLogic {
     var abiertosRes = gruposRes.filter(function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || g.frags[0].esCola); });
     this._gruposTodos = gruposTodos;
     var propDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return String((ib && ib.propiedad) || t.propRaw || "").trim(); };
-    var estadiaDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; if (t.estadia) return t.estadia; return ib && ib.checkin ? fmtDia(ib.checkin) + (ib.checkout ? " – " + fmtDia(ib.checkout) : "") : ""; };
+    var estadiaDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; if (t.estadia) return t.estadia; return ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : ""; };
     var fotoDe = function (g) { var ib = inboxPor[g.key]; return ib && /^https?:/.test(ib.foto || "") ? ib.foto : ""; };
     var nombreDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped"; };
     var iniDe = function (n) { return String(n || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H"; };
@@ -3773,7 +3951,7 @@ class Component extends DCLogic {
       var alma = g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano) : c.estadoCola === "respondido"; });
       var fEq = g.frags.find(function (c) { return !!c.humano; }), equipo = !!fEq, quienEq = fEq && fEq.quien && fEq.quien !== "Equipo" ? fEq.quien : "el equipo";
       var tema = temaDe(t), ug = ib ? Date.parse(ib.ultimo_guest_ts) || 0 : 0, tsU = ug || t.ts;
-      var sinRespG = t.sinResp || (ib && ib.ultimo_de === "guest");
+      var sinRespG = t.sinResp || g.pendAuto || (ib && ib.ultimo_de === "guest");
       if (g.resuelto) { est = "Resuelto"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 4; tipo = "cierre"; texto = PASADO[tema] || tema + " · resuelto"; }
       else if (enNivel(g, "ROJO")) {
         est = "Urgente"; bg = "#C0392B"; fg = "#FFFFFF"; pr = 0; tipo = "chat";
@@ -3789,14 +3967,14 @@ class Component extends DCLogic {
       else { est = "ALMA respondió"; bg = "rgba(59,102,145,.12)"; fg = "#3B6691"; pr = 3; tipo = alma ? "alma" : "cierre"; texto = tema + (alma ? " · ALMA respondió" : " · sin acción"); }
       var foto = fotoDe(g), nom = nombreDe(g), es = estadiaDe(g), fAlma = g.frags.find(function (c) { return c.esLog && c.enviado && !c.humano; });
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
-      return { pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
+      return { gk: g.key, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
         propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), hace: haceDe(tsG(g)), texto: texto, dots: dots,
         txtFg: pide ? "#B54D36" : "#3E3F3F", txtPeso: pide ? "600" : "400", estado: est, tagBg: bg, tagFg: fg,
         bg: st.selG === g.key ? "#F5F3F0" : "#FFFFFF",
         tagAria: tipo === "alma" ? "Ver la respuesta de ALMA" : tipo === "cierre" ? "Ver el último hilo" : tipo === "chat" ? "Abrir la conversación" : "Ver el resumen",
         ir: function () { self.selConv(g.key, false); },
         tagIr: function () {
-          if (tipo === "alma" && fAlma) self.setState({ razon: { key: fAlma.key, texto: fAlma.respuesta || "" } });
+          if (tipo === "alma" && fAlma) self.abrirBurbuja({ logKey: fAlma.key, tipo: "alma", texto: fAlma.respuesta || "" });
           else if (tipo === "cierre") self.selConv(g.key, true);
           else if (tipo === "chat") { self.setState({ selG: g.key }); self.abrirGrupo(g.key); }
           else self.selConv(g.key, false);
@@ -3808,6 +3986,8 @@ class Component extends DCLogic {
       if (tj) {
         var fS = fotoDe(gSel), nS = nombreDe(gSel), eS = estadiaDe(gSel);
         Object.assign(tj, { huesped: nS, fotos: fS ? [{ src: fS }] : [], noFoto: !fS, iniciales: iniDe(nS), propLinea: (propDe(gSel) || tj.propiedad) + (eS ? " · " + eS : ""), verChat: function () { self.abrirGrupo(gSel.key); } });
+        var cS = String(gSel.frags[0].codigo || "");
+        Object.assign(tj, { hayCodigo: !!cS, codigo: cS, copiarCodigo: function () { self.copiar(cS, "Código " + cS + " copiado"); } });
         if (gSel.resuelto) Object.assign(tj, { tag: "Resuelta", tagBg: "rgba(61,107,82,.14)", tagFg: "#3d6b52", color: "#3d6b52" });
       }
     }
@@ -3859,7 +4039,7 @@ class Component extends DCLogic {
     var prio = ordenEf === "Prioridad";
     var cronoFilas = grupos.map(function (g, i) {
         var t = g.frags[0], ib = inboxPor[g.key];
-        var pend = !g.resuelto && (t.esCola || (ib ? ib.ultimo_de === "guest" : ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano)));
+        var pend = !g.resuelto && (t.esCola || g.pendAuto || (ib ? ib.ultimo_de === "guest" : ((t.nivel === "ROJO" || t.nivel === "AMARILLO") && !t.enviado && !t.humano)));
         var est = g.resuelto ? "res" : pend ? "pend" : (ib || t.enviado || t.humano) ? "resp" : "pend";
         var E = { pend: ["Pendiente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"], resp: ["Respondida", "rgba(59,102,145,.12)", "#3B6691", "#3B6691"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"] }[est];
         var tsG = g.ts || t.ts || 0, d = new Date(tsG), mn = Math.max(0, Math.round((Date.now() - tsG) / 60000));
@@ -3867,7 +4047,7 @@ class Component extends DCLogic {
         var prev = ib ? (ib.ultimo_de === "guest" ? "" : "Tú: ") + String(ib.ultimo_texto || "").replace(/\[foto\]/, "Foto") : String((t.hayRespuesta && (t.enviado || t.humano) ? "Tú: " + t.respuesta : t.pregunta) || t.resumen || "");
         prev = prev.replace(/\s+/g, " ").trim();
         var nombre = (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped";
-        var propR = (ib && ib.propiedad) || t.propRaw || "", estR = t.estadia || (ib && ib.checkin ? fmtDia(ib.checkin) + (ib.checkout ? " – " + fmtDia(ib.checkout) : "") : "");
+        var propR = (ib && ib.propiedad) || t.propRaw || "", estR = t.estadia || (ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : "");
         var hoyISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
         var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
         var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
@@ -3876,7 +4056,7 @@ class Component extends DCLogic {
           var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Por confirmar" ? ["Por confirmar", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];
           E = U; var fr = self.fraseCaso ? self.fraseCaso(t) : ""; if (fr) prev = fr;
         }
-        return { iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
+        return { gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
           clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "",
@@ -3887,26 +4067,57 @@ class Component extends DCLogic {
 
     var rz = null;
     if (st.razon) {
-      var rc = (logLista || []).find(function (x) { return x && x.key === st.razon.key; });
+      var RZ = st.razon, rc = RZ.logKey ? (logLista || []).find(function (x) { return x && x.key === RZ.logKey; }) : null;
       var NVR = { ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Lo podía resolver ALMA", SILENCIO: "No requería respuesta", INQUIRY: "Consulta", ERROR: "Error" };
+      var analisis = (RZ.filas || []).filter(function (f) { return f && f.v; });
+      var copiarRz = function () { self.copiar(RZ.texto || "", "Texto copiado"); };
       if (rc) {
-        var envR = !!rc.enviado, txR = st.razon.texto || rc.respuesta || "";
-        rz = { hay: true, titulo: envR ? "La envió al huésped" : rc.humano ? "La atendió el equipo" : "Decidió no enviarla",
-          texto: txR, hayTexto: !!txR, burbujaBg: envR ? "rgba(59,102,145,.12)" : "#FFFFFF", burbujaBd: envR ? "1px solid rgba(59,102,145,.4)" : "1.5px dashed #D8D4CE",
+        var envR = !!rc.enviado, txR = RZ.texto || rc.respuesta || "";
+        rz = { hay: true, hayVoto: true, titulo: envR ? "La envió al huésped" : rc.humano ? "La atendió el equipo" : "Decidió no enviarla",
+          texto: txR, hayTexto: !!txR, burbujaBg: envR ? "rgba(59,102,145,.12)" : "#FFFFFF", burbujaBd: envR ? "1px solid rgba(59,102,145,.4)" : "1.5px dashed #D8D4CE", burbujaRadio: "16px 16px 4px 16px",
           noEnviado: !envR && !rc.humano, noEnviadoTxt: (rc.sentido || "No se envió") + ". El huésped no vio este mensaje.",
-          filas: [{ k: "Clasificó", v: NVR[rc.nivel] || rc.nivel || "Sin clasificar" }, { k: "Por qué", v: rc.razonBrief || "ALMA no dejó motivo" }, { k: "Decisión", v: self.resumenLog(rc.nivel, rc.accion, "") }, { k: "Huésped", v: corto(self.limpiaImg(rc.pregunta), 240) }].filter(function (f) { return f.v; }),
+          filas: [{ k: "Clasificó", v: NVR[rc.nivel] || rc.nivel || "Sin clasificar" }, { k: "Por qué", v: rc.razonBrief || "ALMA no dejó motivo" }, { k: "Decisión", v: self.resumenLog(rc.nivel, rc.accion, "") }]
+            .concat(analisis.length ? analisis : [{ k: "Huésped", v: corto(self.limpiaImg(rc.pregunta), 240) }]).filter(function (f) { return f.v; }),
           votarBien: rc.votarBien, votarMal: rc.votarMal, votoBienBg: rc.votoBienBg, votoBienFg: rc.votoBienFg, votoMalBg: rc.votoMalBg, votoMalFg: rc.votoMalFg,
           chips: ["Muy larga", "Le faltó calidez", "Debió escalar a una persona", "No debió responder", "Dato incorrecto", "No resolvió lo que preguntó", "Pudo anticiparse a lo que sigue"].map(function (t) {
             return { t: t, usar: function () { var cur = String(rc.anotacion || "").trim(); rc.setAnotacion({ target: { value: (cur ? cur.replace(/[.\s]*$/, "") + ". " : "") + t } }); } }; }),
           anotacion: rc.anotacion, setAnotacion: rc.setAnotacion, preparar: rc.prepararDesdeLog, prepararLabel: rc.prepararLabel, nota: rc.anotNota,
-          hayPropuesta: rc.hayPropuesta, propResumen: rc.propResumen, propCambios: rc.propCambios, aplicar: rc.aplicarDesdeLog, descartar: rc.descartarDesdeLog };
-      } else rz = { hay: false, titulo: "Respuesta de ALMA", texto: st.razon.texto || "", hayTexto: !!st.razon.texto, burbujaBg: "rgba(59,102,145,.12)", burbujaBd: "1px solid rgba(59,102,145,.4)", noEnviado: false, chips: [], propCambios: [],
-        filas: [{ k: "Registro", v: "Este mensaje es anterior a los registros cargados de ALMA_LOG; no hay razonamiento guardado." }] };
+          hayPropuesta: rc.hayPropuesta, propResumen: rc.propResumen, propCambios: rc.propCambios, aplicar: rc.aplicarDesdeLog, descartar: rc.descartarDesdeLog, copiar: copiarRz };
+      } else {
+        var tpR = RZ.tipo || "alma";
+        var TIT = { guest: "Mensaje del huésped", equipo: "Respuesta del equipo", auto: "Mensaje automático", alma: "Respuesta de ALMA", nota: "ALMA decidió no enviarlo", borrador: "Borrador de ALMA" };
+        var STY = { guest: ["#FFFFFF", "1px solid #D8D4CE"], equipo: ["rgba(233,130,106,.22)", "1px solid rgba(233,130,106,.5)"], auto: ["#E4E0DA", "1px solid #D8D4CE"], alma: ["rgba(59,102,145,.12)", "1px solid rgba(59,102,145,.4)"], nota: ["#F5F3F0", "1.5px dashed #D8D4CE"], borrador: ["#FFFFFF", "1.5px dashed #E9826A"] };
+        var CH = { guest: ["ALMA debió responder esto", "Debió escalar a una persona", "Tardamos en responder", "Clasificación incorrecta", "Pudimos anticiparnos a esto"],
+          equipo: ["Buen ejemplo: ALMA debe responder así", "Le faltó calidez", "Dato incorrecto", "Esto lo pudo resolver ALMA"],
+          auto: ["El automático no resolvió lo que pidió", "Este automático necesita actualizarse", "ALMA debió responder después del automático"],
+          alma: ["Muy larga", "Le faltó calidez", "Debió escalar a una persona", "Dato incorrecto", "No resolvió lo que preguntó", "Pudo anticiparse a lo que sigue"] };
+        CH.nota = CH.alma; CH.borrador = CH.alma;
+        var sty = STY[tpR] || STY.alma, pr0 = st.rzProp;
+        rz = { hay: true, hayVoto: false, titulo: TIT[tpR] || "Mensaje", texto: RZ.texto || "", hayTexto: !!RZ.texto, burbujaBg: sty[0], burbujaBd: sty[1], burbujaRadio: tpR === "guest" ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
+          noEnviado: tpR === "nota", noEnviadoTxt: "ALMA decidió no enviarlo. El huésped no vio este mensaje.",
+          filas: analisis.length ? analisis : [{ k: "Registro", v: "Sin datos suficientes para analizar este mensaje." }],
+          chips: (CH[tpR] || CH.alma).map(function (t) { return { t: t, usar: function () { var cur = String(self.state.rzAnot || "").trim(); self.setState({ rzAnot: (cur ? cur.replace(/[.\s]*$/, "") + ". " : "") + t }); } }; }),
+          anotacion: st.rzAnot || "", setAnotacion: function (e) { self.setState({ rzAnot: e.target.value }); },
+          preparar: function () {
+            var pedido = String(self.state.rzAnot || "").trim(); if (!pedido) { self.setState({ rzNota: "Escribe primero la anotación." }); return; }
+            self.setState({ rzBusy: true, rzNota: "" });
+            var ctxM = "MENSAJE (" + (TIT[tpR] || "") + "):\n" + (RZ.texto || "") + "\n\nANÁLISIS:\n" + analisis.map(function (f) { return f.k + ": " + f.v; }).join("\n") + (RZ.contexto ? "\n\nCONVERSACIÓN:\n" + RZ.contexto : "");
+            self.proponer(tpR === "guest" && /clasific|escalar|urgente/i.test(pedido) ? "CLASIFICADOR" : "REDACTOR", pedido, ctxM)
+              .then(function (p) { self.setState({ rzProp: p, rzBusy: false }); })
+              .catch(function () { self.setState({ rzBusy: false, rzNota: "No pudimos preparar la mejora ahora." }); });
+          },
+          prepararLabel: st.rzBusy ? "Preparando…" : "Convertir en mejora", nota: st.rzNota || "",
+          hayPropuesta: !!pr0, propResumen: pr0 ? pr0.resumen : "",
+          propCambios: pr0 ? (pr0.cambios || []).map(function (c) { return { etiqueta: (TIPO[c.tipo] || "Se agrega") + (c.seccion ? " en " + c.seccion : ""), hayAntes: c.tipo === "corregir" && !!c.antes, antes: c.antes || "", despues: c.despues || "" }; }) : [],
+          aplicar: function () { var p = self.state.rzProp; if (!p) return; self.aplicar(p).then(function (res) { self.setState(res && res.ok ? { rzProp: null, rzAnot: "", rzNota: res.local ? "Aplicada aquí · conecta el Apps Script para que llegue a la hoja" : "Aplicada. ALMA la usa desde su próximo turno." } : { rzNota: "No se pudo guardar en ALMA_INSTRUCCIONES." }); }); },
+          descartar: function () { self.setState({ rzProp: null }); }, copiar: copiarRz };
+      }
     }
     var mesk = window.matchMedia && matchMedia("(max-width:1179px)").matches;
     return {
       enAlma: st.vista === "alma",
       rzAbierto: !!rz, rz: rz || { filas: [], chips: [], propCambios: [] }, rzCerrar: function () { self.setState({ razon: null }); },
+      hayToast: !!st.toast, toastTxt: st.toast || "",
       almaM: st.cronoLista === false ? "m-chat" : tj ? "m-tarjeta" : "m-" + (st.mVista || "resumen"),
       mVistas: [{ value: "resumen", label: "Resumen" }, { value: "lista", label: "Cronológico" }], mVista: st.mVista || "resumen",
       setMVista: function (v) { try { localStorage.setItem("sa_m_vista", v); } catch (e) {} self.setState({ mVista: v, selG: null, convOrden: v === "lista" ? "Cronológico" : null, logFiltro: "Todo", convVista: "", cronoLista: true, convIdx: 0 }); self.convReset(); },
@@ -4012,7 +4223,7 @@ class Component extends DCLogic {
       hayMejorasHist: st.mejorasHist.length > 0, mejorasHist: st.mejorasHist,
 
       colaResumen: [["ROJO", "urgentes"], ["AMARILLO", "por confirmar"], ["SIN", "sin responder"], ["VERDE", "resueltas"]].map(function (x) {
-        var N = NIVEL[x[0]] || NIVEL.AMARILLO, n = x[0] === "SIN" ? gruposTodos.filter(function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && !!propDe(g) && !enNivel(g, "ROJO") && !enNivel(g, "AMARILLO") && (t.sinResp || (ib && ib.ultimo_de === "guest")); }).length : gruposTodos.filter(function (g) { return enNivel(g, x[0]); }).length;
+        var N = NIVEL[x[0]] || NIVEL.AMARILLO, n = x[0] === "SIN" ? gruposTodos.filter(function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && !!propDe(g) && !enNivel(g, "ROJO") && !enNivel(g, "AMARILLO") && (t.sinResp || g.pendAuto || (ib && ib.ultimo_de === "guest")); }).length : gruposTodos.filter(function (g) { return enNivel(g, x[0]); }).length;
         var act = x[0] === "SIN" ? (st.convOrden === "Prioridad" && st.logFiltro === "Todo" && st.convVista !== "resueltas") : x[0] === "VERDE" ? st.convVista === "resueltas" : (st.convVista !== "resueltas" && st.logFiltro === x[0]);
         var o = { n: String(n), nombre: x[1], activo: act, hayN: n > 0, aria: n + " " + x[1], icono: { ROJO: "alert", AMARILLO: "clock", SIN: "mail", VERDE: "check" }[x[0]], badgeBg: { ROJO: "#C0392B", AMARILLO: "#B54D36", SIN: "#3E3F3F", VERDE: "#3d6b52" }[x[0]], bd: act ? "#3E3F3F" : "#D8D4CE", fg: act ? "#FAFAFA" : "#3E3F3F", bg: act ? "#3E3F3F" : "#FFFFFF",
           set: function () {
@@ -4024,7 +4235,7 @@ class Component extends DCLogic {
             });
             self.convReset();
           } };
-        o.setM = function () { try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} self.setState({ mVista: "lista", cronoLista: true, selG: null }); o.set(); };
+        o.setM = function () { if (!act) self.aviso(x[1][0].toUpperCase() + x[1].slice(1) + " · " + n); try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} self.setState({ mVista: "lista", cronoLista: true, selG: null }); o.set(); };
         return o;
       }),
       logFiltros: logFiltros.map(function (x) { return { value: x, label: x === "Todo" ? "Todo" : x[0] + x.slice(1).toLowerCase() }; }), logFiltro: st.logFiltro, setLogFiltro: function (v) { self.setState({ logFiltro: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },

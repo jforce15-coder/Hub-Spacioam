@@ -55,13 +55,19 @@
       });
     });
   }
+  /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
+     y dejaba el hub sin actualizar hasta cerrarlo. */
+  var LENTAS = { redactarHub: 1, ajustarBorrador: 1, proponerMejora: 1, responder: 1, hilo: 1, probarPush: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
+    var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var reloj = setTimeout(function () { if (ctl) ctl.abort(); }, LENTAS[action] ? 60000 : 25000);
     return fetch(CFG.url, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store', signal: ctl ? ctl.signal : undefined,
       body: JSON.stringify(Object.assign({ hub: 1, action: action, token: CFG.token }, payload || {}))
     }).then(function (r) { return r.json(); })
-      .catch(function (e) { return { ok: false, error: 'no_url', detail: String(e) }; });
+      .then(function (j) { clearTimeout(reloj); return j; })
+      .catch(function (e) { clearTimeout(reloj); return { ok: false, error: e && e.name === 'AbortError' ? 'timeout' : 'no_url', detail: String(e) }; });
   }
   global.ALMA = {
     SHEET: CFG.sheetId,

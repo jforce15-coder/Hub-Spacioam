@@ -29,8 +29,8 @@
 <script src="ds/bundle.js"></script>
 <script src="js/sa-auth-client.js"></script>
 <script src="js/sa-session.js"></script>
-<script src="js/alma-client.js"></script>
-<script src="js/push.js"></script>
+<script src="js/alma-client.js?v=2026-10-06.1900"></script>
+<script src="js/push.js?v=2026-10-06.1900"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -986,6 +986,12 @@
                   </span>
                   <sc-if value="{{ r.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; color:#6F6867; letter-spacing:.03em">{{ r.etapa }}</span></sc-if>
                   <span style="font-size:12.5px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.4">{{ r.preview }}</span>
+                  <sc-if value="{{ r.clasificando }}" hint-placeholder-val="{{ false }}">
+                    <span role="progressbar" aria-label="{{ r.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:3px; max-width:280px">
+                      <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ r.clasPct }}"></span></span>
+                      <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ r.clasTxt }}</span>
+                    </span>
+                  </sc-if>
                   <span style="font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.03em">{{ r.prop }}</span>
                 </span>
                 <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; align-self:center">
@@ -1041,6 +1047,12 @@
                     <span aria-hidden="true">·</span>
                     <span title="{{ c.form.formLabel }}" aria-label="{{ c.form.formLabel }}" style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ c.form.formBg }}; box-shadow:0 0 0 2px rgba(62,63,63,.06)"></span><span style="font-size:10px; letter-spacing:.06em">{{ c.form.formTxt }}</span></span>
                   </div>
+                  <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
+                    <span role="progressbar" aria-label="{{ c.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-width:280px">
+                      <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ c.clasPct }}"></span></span>
+                      <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ c.clasTxt }}</span>
+                    </span>
+                  </sc-if>
                 </div>
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:1 1 auto; min-width:0; max-width:100%; margin-left:auto">
                   <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums; padding-right: {{ c.fechaPad }}">{{ c.fecha }}</span>
@@ -2169,13 +2181,19 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-05.1700";
+  BUILD = "2026-10-06.1900";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
     try {
       fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
-        var m = t && t.match(/BUILD = "([^"]+)"/); if (m && m[1] !== self.BUILD) self.setState({ versionNueva: true });
+        var m = t && t.match(/BUILD = "([^"]+)"/); if (m && m[1] !== self.BUILD) {
+          /* En la app de inicio (iPhone) se recarga sola una vez: ahí no hay botón de recargar. */
+          var auto = window.SAPush && SAPush.instalada(), k = "sa_recarga_" + m[1], ya = false;
+          try { ya = !!sessionStorage.getItem(k); if (auto && !ya) sessionStorage.setItem(k, "1"); } catch (e) { ya = true; }
+          if (auto && !ya) { location.replace(location.pathname + "?v=" + encodeURIComponent(m[1])); return; }
+          self.setState({ versionNueva: true });
+        }
       }).catch(function () {});
     } catch (e) {}
   }
@@ -2196,10 +2214,19 @@ class Component extends DCLogic {
     this._almaTimer = setInterval(function () {
       self._almaN++;
       if (document.visibilityState === "hidden") return;
+      if (self._clasHasta > Date.now() && self.state.vista === "alma" && self._almaN % 2 === 1) self.forceUpdate();
       if (self.state.vista === "alma") { if (self._hayUrg || self._almaN % 2 === 0) self.almaCargar(self._almaN % 24 !== 0); }
       else if (self.state.vista === "hub" && self._almaN % 12 === 0) self.almaCargar(true);
     }, 5000);
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible" && self.state.vista === "alma") self.almaCargar(true); });
+    /* Al volver a la app (iPhone congela la página en segundo plano): se suelta cualquier lectura colgada y,
+       si lo vivo tiene más de un minuto, se relee todo antes de mostrar nada viejo. */
+    var volver = function () {
+      if (document.visibilityState !== "visible") return;
+      if (self._volverTs && Date.now() - self._volverTs < 3000) return; self._volverTs = Date.now();
+      self._cargandoVivo = false; self.revisarVersion();
+      if (self.state.vista === "alma" || self.state.vista === "hub") self.almaCargar(!!(self._vivoTs && Date.now() - self._vivoTs < 60000));
+    };
+    document.addEventListener("visibilitychange", volver); window.addEventListener("pageshow", volver); window.addEventListener("focus", volver);
     this._tick = setInterval(function () { if (self.state.vista === "alma") self.forceUpdate(); }, 20000);
   }
   componentWillUnmount() { clearInterval(this._almaTimer); clearInterval(this._tick); clearInterval(this._verT); }
@@ -2558,7 +2585,8 @@ class Component extends DCLogic {
   }
   almaCargar(soloVivo) {
     var self = this;
-    if (this._cargandoVivo && soloVivo) return;
+    if (this._cargandoVivo && soloVivo && Date.now() - (this._vivoInicio || 0) < 20000) return;
+    var seq = this._seq = (this._seq || 0) + 1;
     this.setState({ almaCargando: true, almaError: "" });
     var listo = function (data, fuente) {
       var ctrl = {};
@@ -2573,7 +2601,7 @@ class Component extends DCLogic {
     /* 1. Al abrir: la última lectura guardada en este dispositivo se pinta al instante. */
     if (!this.state.alma && !this._cacheLeido) {
       this._cacheLeido = true;
-      try { var c0 = JSON.parse(localStorage.getItem("sa_alma_cache") || "null"); if (c0 && c0.data) this.setState({ alma: c0.data, almaFuente: "Última lectura " + new Date(c0.ts).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) + " · actualizando…" }); } catch (e) {}
+      try { var c0 = JSON.parse(localStorage.getItem("sa_alma_cache") || "null"); if (c0 && c0.data && Date.now() - c0.ts < 15 * 60000) this.setState({ alma: c0.data, almaFuente: "Última lectura " + new Date(c0.ts).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) + " · actualizando…" }); } catch (e) {}
     }
     var guardar = function () {
       try { var a = self.state.alma; if (!a || a._demo) return; var o = {}; ["control", "cola", "log", "inbox", "resueltas", "automejora", "correos", "escalamiento", "conocimiento"].forEach(function (k) { o[k] = a[k]; }); localStorage.setItem("sa_alma_cache", JSON.stringify({ ts: Date.now(), data: o })); } catch (e) {}
@@ -2582,25 +2610,29 @@ class Component extends DCLogic {
     var unir = function () {
       var d = Object.assign({}, base || self.state.alma || {});
       if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; }
+      /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes. */
+      else if (self.state.alma && self._vivoTs && Date.now() - self._vivoTs < 300000) { var a0 = self.state.alma; d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; }
       return d;
     };
     /* 2. Lo vivo (cola, log, bandeja) y la hoja completa llegan en paralelo; cada uno pinta apenas llega. */
     if (soloVivo && this.state.alma && !this.state.alma._demo) {
-      this._cargandoVivo = true;
+      this._cargandoVivo = true; this._vivoInicio = Date.now();
       ALMA.readLive().then(function (l) {
         self._cargandoVivo = false;
         if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
+        if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now();
         var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || [];
         listo(d, "En vivo · " + horaGT()); guardar();
       }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
       return;
     }
     ALMA.readLive().then(function (l) {
-      if (!l || !l.ok) return; vivo = l;
+      if (!l || !l.ok || seq < (self._vivoSeq || 0)) return; vivo = l; self._vivoSeq = seq; self._vivoTs = Date.now();
       if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }
     }).catch(function () {});
     ALMA.readAll().then(function (d) {
       if (!d.control.length && !d.cola.length && !d.log.length) throw new Error("vacía");
+      if (seq < (self._baseSeq || 0)) return; self._baseSeq = seq;
       base = d; listo(unir(), (vivo ? "En vivo · " : "Hoja de ALMA · ") + horaGT()); guardar();
     }).catch(function () {
       if (vivo || (self.state.alma && !self.state.alma._demo)) { self.setState({ almaCargando: false }); return; }
@@ -2873,7 +2905,7 @@ class Component extends DCLogic {
       var textos = filas.map(function (x) { return x.texto; }).filter(Boolean);
       var fotos = [];
       filas.forEach(function (x) { try { var dd = JSON.parse(x.datos || "{}"); if (dd.fotos) fotos = fotos.concat(dd.fotos); } catch (e) {} });
-      var r = Object.assign({}, lider, { texto: textos.join("\n"), recibido: filas[0].recibido, _filas: filas.map(function (x) { return x._fila; }) });
+      var r = Object.assign({}, lider, { texto: textos.join("\n"), recibido: filas[0].recibido, _ultimo: filas[filas.length - 1].recibido, _filas: filas.map(function (x) { return x._fila; }) });
       if (fotos.length && !d.fotos) d.fotos = fotos;
       var nivel = String(d.nivel || (lider.estado === "esperando_rojo" ? "ROJO" : "")).toUpperCase();
       return { r: r, d: d, nivel: nivel, peso: nivel in PESO ? PESO[nivel] : 3 };
@@ -2923,7 +2955,7 @@ class Component extends DCLogic {
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !rs.lleno || !!rs.enviando,
         respMejorarLabel: rs.busy ? "Redactando…" : rs.lleno ? "Mejorar" : "Redactar con ALMA",
-        respHint: rs.lleno ? "Mejorar pule tu texto con la voz de Spacio AM y el contexto del chat." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
+        respHint: rs.lleno ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
         respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: rs.lleno ? "#3E3F3F" : "#D8D4CE", respEnviarFg: rs.lleno ? "#FAFAFA" : "#938B8A",
         respMejorar: function () {
           var actual = self._respDraft[convKey] || "";
@@ -2932,7 +2964,7 @@ class Component extends DCLogic {
           p.then(function (res) {
             if (res && res.ok && res.texto) return res.texto;
             var user = actual.trim()
-              ? "MODO REESCRITURA. Una persona del equipo escribió el TEXTO BASE. Reescríbelo, no respondas por tu cuenta: conserva exactamente su intención (lo que confirma, niega, pide u ofrece) y todos sus datos; no agregues ofertas, promesas, disculpas ni información nueva. Mejora solo la forma: palabras más precisas y profesionales, la voz de Spacio AM y las reglas de tus instrucciones, en el idioma del huésped. Si el texto base es corto, la respuesta también. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
+              ? "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE. Mejóralo y compleméntalo con el contexto de TODA la conversación: (1) conserva su intención y todos sus datos, sin cambiar la decisión; (2) mejora la forma con la voz de Spacio AM, en el idioma del huésped; (3) agrega solo lo relevante que falte: preguntas del huésped que siguen sin respuesta y cuya respuesta está en el contexto, el siguiente paso útil para su estadía, o reconocer lo que contó (una molestia, una celebración); (4) nunca inventes datos ni ofrezcas concesiones (horarios especiales, descuentos, reembolsos, cambios) que el equipo no ofreció; (5) breve: máximo dos agregados. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
               : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
             return self.almaIA(redactor, user, 700);
           }).then(function (t) { ponerTexto(String(t || "").trim()); upd({ busy: false, nota: "Revísalo antes de enviar." }); })
@@ -2974,10 +3006,18 @@ class Component extends DCLogic {
     vivos.forEach(function (v) { if (v.nivel in conteo) conteo[v.nivel]++; });
     var colaItems = vivos.map(function (v) {
       var r = v.r, d = v.d, est = String(r.estado || "").trim(), min = enMin(r.proximo), hora = fmtHora(r.proximo);
-      var cuando, cuandoColor = "#3E3F3F", puedeEnviar = false;
+      var cuando, cuandoColor = "#3E3F3F", puedeEnviar = false, clasInfo = { on: false, pct: "0%", txt: "" };
       if (est === "esperando_envio") { puedeEnviar = true; cuando = min != null && min <= 0 ? "Se envía en este minuto" : "Se envía a las " + hora + (min != null ? " · en " + min + " min" : ""); cuandoColor = "#B54D36"; }
       else if (est === "esperando_rojo") { cuando = "Contención enviada · si nadie responde, avisa al respaldo a las " + hora; cuandoColor = "#C0392B"; }
-      else cuando = "Esperando a que el huésped termine de escribir · se clasifica en ~2 min";
+      else {
+        /* Clasifica tras AGRUPAR_SEG de silencio del huésped + hasta 1 min del disparador. */
+        var agr = parseFloat(self.almaCtrlOriginal().AGRUPAR_SEG) || 60, t0 = new Date(r._ultimo || r.recibido).getTime(), tot = (agr + 60) * 1000;
+        var falta = isNaN(t0) ? tot : Math.max(0, t0 + tot - Date.now()), sg = Math.ceil(falta / 1000);
+        var faltaTxt = sg >= 90 ? Math.ceil(sg / 60) + " min" : sg + " s";
+        clasInfo = { on: !v.nivel, pct: Math.min(100, Math.max(4, Math.round((1 - falta / tot) * 100))) + "%", txt: falta > 0 ? "ALMA la clasifica en ~" + faltaTxt : "Clasificando ahora…" };
+        if (clasInfo.on) self._clasHasta = Date.now() + 15000;
+        cuando = falta > 0 ? "Esperando a que el huésped termine de escribir · se clasifica en ~" + faltaTxt : "ALMA está clasificando esta conversación…";
+      }
       var key = String(r._fila);
       var ajuste = st.almaAjustes[key] || "", preview = st.almaPreview[key] || "";
       var N = NIVEL[v.nivel] || NIVEL[""];
@@ -2995,6 +3035,7 @@ class Component extends DCLogic {
         form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? "35%" : "0", hiloN: enHilo && hiloSt && hiloSt.lista ? String(hiloSt.lista.length) : "0",
         emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
+        clasificando: clasInfo.on, clasPct: clasInfo.pct, clasTxt: clasInfo.txt,
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Por confirmar", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
         hayEstadia: !!(d.checkin), estadia: d.checkin ? fmtDia(d.checkin) + (d.checkout ? " – " + fmtDia(d.checkout) : "") : "", hayCodigo: !!d.codigo, codigo: d.codigo || "",
         fecha: fmtDia(r.recibido) + " " + fmtHora(r.recibido),
@@ -3590,6 +3631,7 @@ class Component extends DCLogic {
         return { iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
           prop: propR ? (self.propCorta ? self.propCorta(propR) : propR) : "Propiedad por confirmar", preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
+          clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "",
           tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" ? "600" : "400", previewFg: est === "pend" ? "#3E3F3F" : "#6F6867",
           bg: est === "pend" ? "#FFFFFF" : "#FFFFFF", borde: i === 0 ? "transparent" : "#EAE6E0",
           abrir: function (e) { self.abrirDesdeLista(e, t, i); } };
@@ -3740,7 +3782,7 @@ class Component extends DCLogic {
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
       mejAbierto: st.mejAbierto && esPrincipal, mejToggleAbierto: function () { if (!esPrincipal) return; self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
-      versionNueva: st.versionNueva, recargarVersion: function () { location.reload(); },
+      versionNueva: st.versionNueva, recargarVersion: function () { location.replace(location.pathname + "?v=" + Date.now()); },
       resLineas: resLineas, resHay: resLineas.length > 0,
       resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : abiertosRes.length ? "Nada nuevo en " + ventanaH + " h · siguen abiertos" : "Nada nuevo en " + ventanaH + " h · lo último que pasó",
       briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length && !resLineas.length, briefHay: briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",
@@ -4475,10 +4517,15 @@ class Component extends DCLogic {
       pushOn: (window.SAPush && SAPush.estado() === "activo") || false,
       pushProbar: function () {
         if (!window.ALMA || !ALMA.probarPush) return;
-        var q = self.quienPush(); self.setState({ pushBusy: true, pushPrueba: "Enviando prueba…" });
-        ALMA.probarPush(q.email).then(function (r) {
-          var t = !r || !r.ok ? "No se pudo enviar: " + ((r && r.error) || "sin respuesta") : r.destinatarios > 0 ? "Prueba enviada a " + r.destinatarios + (r.destinatarios === 1 ? " dispositivo" : " dispositivos") + ". Debe llegar en segundos." : "OneSignal no encontró ningún dispositivo con tu correo (" + q.email + "). Apaga y vuelve a encender el interruptor desde el ícono de inicio.";
-          self.setState({ pushBusy: false, pushPrueba: t });
+        var q = self.quienPush(); self.setState({ pushBusy: true, pushPrueba: "Revisando este dispositivo…" });
+        var dgP = window.SAPush && SAPush.diag ? SAPush.diag() : Promise.resolve(null);
+        dgP.then(function (dg) {
+          if (dg && dg.motivo) { self.setState({ pushBusy: false, pushPrueba: "Este dispositivo no está listo: " + dg.motivo + ". Apaga y vuelve a encender el interruptor." }); return; }
+          self.setState({ pushPrueba: "Enviando prueba…" });
+          return ALMA.probarPush(q.email).then(function (r) {
+            var t = !r || !r.ok ? "No se pudo enviar: " + ((r && r.error) || "sin respuesta") : r.destinatarios > 0 ? "Prueba enviada a " + r.destinatarios + (r.destinatarios === 1 ? " dispositivo" : " dispositivos") + ". Debe llegar en segundos." : "OneSignal no encontró ningún dispositivo con tu correo (" + q.email + (dg && dg.externalId && dg.externalId !== q.email ? "; este teléfono está vinculado a " + dg.externalId : "") + "). Apaga y vuelve a encender el interruptor.";
+            self.setState({ pushBusy: false, pushPrueba: t });
+          });
         }).catch(function () { self.setState({ pushBusy: false, pushPrueba: "No se pudo enviar la prueba." }); });
       },
       pushSub: st.pushPrueba ? st.pushPrueba : (function () { var e = window.SAPush ? SAPush.estado() : "no"; return e === "activo" ? "Activas en este dispositivo" : e === "bloqueado" ? "Bloqueadas · actívalas en los ajustes del teléfono" : e === "instalar" ? "Agrega el hub a tu pantalla de inicio para recibirlas" : "Apagadas en este dispositivo"; })(),

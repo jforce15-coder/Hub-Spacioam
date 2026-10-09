@@ -29,8 +29,9 @@
 <script src="ds/bundle.js"></script>
 <script src="js/sa-auth-client.js"></script>
 <script src="js/sa-session.js"></script>
-<script src="js/alma-client.js?v=2026-10-06.2200"></script>
-<script src="js/push.js?v=2026-10-06.2200"></script>
+<script src="js/alma-client.js?v=2026-10-09.1400"></script>
+<script src="js/push.js?v=2026-10-09.1400"></script>
+<script src="js/sched-engine.js?v=2026-10-09.1400"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -38,6 +39,7 @@
   a { color:#3E3F3F; text-decoration:none; }
   a:hover { opacity:.6; }
   button { font-family:inherit; }
+  @keyframes sa-cargar{ from{ width:4%; } to{ width:92%; } }
   @keyframes sa-rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
   @keyframes sa-fade { from { opacity:0; } to { opacity:1; } }
   @media (min-width: 880px){ .sa-login { grid-template-columns: 1.05fr 1fr !important; } .sa-login-aside { display:flex !important; } }
@@ -217,7 +219,7 @@
 
       <div class="bento">
         <button class="sp-tile" onClick="{{ verHoy }}" style="grid-column:span 2; grid-row:span 2; min-height:0; background:#F5F3F0; border:1px solid transparent; border-radius:18px; padding:15px; position:relative; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; text-align:left; box-shadow:0 4px 16px rgba(62,63,63,.05); min-height:0; color:#FAFAFA">
-      <img src="assets/hub-hoy.jpeg" alt="" aria-hidden="true" class="sp-img" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0">
+      <img src="assets/hub-hoy-v2.jpg" fetchpriority="high" decoding="async" alt="" aria-hidden="true" class="sp-img" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0">
       <span aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(62,63,63,.66), rgba(62,63,63,.05) 62%); z-index:1"></span>
       <div style="position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start">
         <span style="width:36px; height:36px; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.16); backdrop-filter:blur(6px)"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:19px; height:19px; stroke:#FAFAFA; stroke-width:1.4; fill:none; stroke-linecap:round; stroke-linejoin:round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 9h18M8 3v4M16 3v4M8 14l3 3 5-6"></path></svg></span>
@@ -250,7 +252,7 @@
 
 
         <button class="sp-tile" onClick="{{ verReviews }}" style="grid-row:span 2; background:#F5F3F0; border:1px solid transparent; border-radius:18px; padding:15px; position:relative; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; text-align:left; box-shadow:0 4px 16px rgba(62,63,63,.05); min-height:0; color:#FAFAFA">
-      <img src="assets/hub-reviews.jpeg" alt="" aria-hidden="true" class="sp-img" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0">
+      <img src="assets/hub-reviews-v2.jpg" decoding="async" alt="" aria-hidden="true" class="sp-img" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0">
       <span aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(62,63,63,.66), rgba(62,63,63,.05) 62%); z-index:1"></span>
       <div style="position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start">
         <span style="width:36px; height:36px; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.16)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="star" size="19" color="#FAFAFA" hint-size="19px,19px"></x-import></span>
@@ -298,7 +300,7 @@
 
         <sc-if value="{{ esPrincipal }}" hint-placeholder-val="{{ true }}">
           <button class="sp-tile" onClick="{{ irMi }}" style="grid-column:span 2; background:#F5F3F0; border:1px solid transparent; border-radius:18px; padding:15px; position:relative; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; justify-content:space-between; text-align:left; box-shadow:0 4px 16px rgba(62,63,63,.05); min-height:0; color:#FAFAFA">
-      <img src="assets/hub-mi.jpeg" alt="" aria-hidden="true" class="sp-img" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0">
+      <img src="assets/hub-mi-v2.jpg" loading="lazy" decoding="async" alt="" aria-hidden="true" class="sp-img" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0">
       <span aria-hidden="true" style="position:absolute; inset:0; background:linear-gradient(to top, rgba(62,63,63,.66), rgba(62,63,63,.05) 62%); z-index:1"></span>
       <div style="position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-start">
         <span style="width:36px; height:36px; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.16)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="19" color="#FAFAFA" hint-size="19px,19px"></x-import></span>
@@ -348,164 +350,213 @@
 </sc-if>
 
 <sc-if value="{{ enHoy }}" hint-placeholder-val="{{ false }}">
-<div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
-  <div style="max-width:880px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px">
+<div data-screen-label="Hoy" style="min-height:100vh; background:#FAFAFA; padding:0 0 calc(72px + env(safe-area-inset-bottom))">
+  <sc-if value="{{ hayToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; left:0; right:0; bottom:calc(24px + env(safe-area-inset-bottom)); z-index:90; display:flex; justify-content:center; pointer-events:none; padding:0 16px">
+      <div role="status" aria-live="polite" style="padding:10px 18px; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:12.5px; letter-spacing:.02em; line-height:1.4; box-shadow:0 12px 40px rgba(62,63,63,.18); animation:sa-rise .2s cubic-bezier(.22,.61,.36,1) both; text-align:center; max-width:420px">{{ toastTxt }}</div>
+    </div>
+  </sc-if>
+  <div style="max-width:960px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:18px">
     <button onClick="{{ volver }}" class="alma-volver" style="align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
-    <div style="display:flex; flex-direction:column; gap:6px">
-      <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Epi · Hola · el día completo</span>
-      <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">Hoy</h2>
+    <div style="display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px">
+      <div style="display:flex; flex-direction:column; gap:6px; min-width:0">
+        <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Epi · Hola · el día</span>
+        <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(28px,5vw,40px); line-height:1.05">Hoy</h2>
+        <span style="font-size:12px; letter-spacing:.03em; color:#6F6867">{{ hyFechaLarga }} · hora de Guatemala</span>
+      </div>
+      <button onClick="{{ hyRecargar }}" aria-label="Actualizar" style="display:inline-flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; min-height:40px; padding:0 14px; font-family:inherit; font-size:11px; letter-spacing:.04em; color:#6F6867; cursor:pointer; transition:border-color .18s" style-hover="border-color:#3E3F3F; color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ hyEstadoTxt }}</button>
     </div>
-
-    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,132px),1fr)); gap:12px">
-      <sc-for list="{{ hoyStats }}" as="s" hint-placeholder-count="4">
-        <div style="background:#F5F3F0; border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:6px">
-          <span style="font-size:30px; font-weight:500; line-height:1; font-variant-numeric:tabular-nums">{{ s.valor }}</span>
-          <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">{{ s.etiqueta }}</span>
-        </div>
+    <sc-if value="{{ hyCargando }}" hint-placeholder-val="{{ false }}">
+      <span role="progressbar" aria-label="Actualizando" style="display:block; height:3px; border-radius:999px; background:#F5F3F0; overflow:hidden; margin-top:-8px"><span style="display:block; height:100%; width:4%; border-radius:999px; background:#E9826A; animation:sa-cargar 20s cubic-bezier(.1,.7,.2,1) forwards"></span></span>
+    </sc-if>
+    <div role="tablist" style="display:flex; background:#F5F3F0; border-radius:999px; padding:4px; gap:4px; align-self:flex-start; max-width:100%">
+      <sc-for list="{{ hyTabs }}" as="tb" hint-placeholder-count="2">
+        <button role="tab" aria-selected="{{ tb.on }}" onClick="{{ tb.pick }}" style="border:none; border-radius:999px; min-height:40px; padding:0 18px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:background .18s, color .18s; background: {{ tb.bg }}; color: {{ tb.fg }}; box-shadow: {{ tb.sh }}">{{ tb.label }}<span style="font-variant-numeric:tabular-nums; letter-spacing:.04em; color:#6F6867">{{ tb.n }}</span></button>
       </sc-for>
     </div>
+    <sc-if value="{{ hyHayError }}" hint-placeholder-val="{{ false }}">
+      <span style="font-size:12px; line-height:1.6; color:#B54D36; letter-spacing:.02em">{{ hyError }}</span>
+    </sc-if>
 
-    <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; margin-top:6px">Rutas del día</span>
-
-    <div style="display:flex; background:#F5F3F0; border-radius:7px; padding:3px; gap:2px; border:1px solid #EAE6E0">
-      <sc-for list="{{ filtrosTurno }}" as="t" hint-placeholder-count="3">
-        <button onClick="{{ t.pick }}" style="flex:1; padding:7px; border-radius:5px; border:none; font-family:inherit; font-size:11.5px; font-weight:600; cursor:pointer; background: {{ t.bg }}; color: {{ t.fg }}">{{ t.label }}</button>
-      </sc-for>
-    </div>
-
-    <div style="display:flex; gap:8px">
-      <button onClick="{{ toggleForm }}" style="flex:1; padding:11px; border-radius:7px; border:1px solid #D8D4CE; background:#fff; color:#3E3F3F; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; text-align:left">{{ formLabel }}</button>
-    </div>
-
-    <sc-if value="{{ showForm }}" hint-placeholder-val="{{ false }}">
-      <div style="background:#fff; border-radius:10px; padding:16px; border:1.5px solid #3E3F3F; display:flex; flex-direction:column; gap:12px">
-        <div style="font-size:10px; font-weight:700; color:#6F6867; letter-spacing:.18em; text-transform:uppercase">{{ formTitulo }}</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-          <div>
-            <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Fecha *</label>
-            <input type="date" value="{{ tfFecha }}" onChange="{{ setTfFecha }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
+    <sc-if value="{{ hyEnPrograma }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr)); gap:10px">
+        <sc-for list="{{ hyStats }}" as="hs" hint-placeholder-count="4">
+          <div style="background:#F5F3F0; border-radius:16px; padding:14px 16px; display:flex; flex-direction:column; gap:6px">
+            <span style="font-size:26px; font-weight:500; line-height:1; font-variant-numeric:tabular-nums">{{ hs.n }}</span>
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">{{ hs.l }}</span>
           </div>
-          <div>
-            <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Hora</label>
-            <input type="time" value="{{ tfHora }}" onChange="{{ setTfHora }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important">
+        </sc-for>
+      </div>
+      <sc-if value="{{ hyHaySinLimp }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Hoy · Sin limpieza" style="background:rgba(233,130,106,.10); border:1px solid rgba(233,130,106,.45); border-radius:22px; padding:18px clamp(14px,3vw,22px); display:flex; flex-direction:column; gap:12px">
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#B54D36">Revisar ahora</span>
+            <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(20px,3.4vw,26px); line-height:1.15">{{ hySinLimpTitulo }}</span>
           </div>
-        </div>
-        <div>
-          <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Propiedad *</label>
-          <select value="{{ tfPropiedad }}" onChange="{{ setTfPropiedad }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
-            <option value="">Seleccionar…</option>
-            <sc-for list="{{ propiedades }}" as="p" hint-placeholder-count="6">
-              <option value="{{ p }}">{{ p }}</option>
-            </sc-for>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Técnico *</label>
-          <input placeholder="Nombre, correo o teléfono del técnico…" value="{{ tfVendorRaw }}" onChange="{{ setTfVendorRaw }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
-          <sc-if value="{{ tfMatch }}" hint-placeholder-val="{{ false }}">
-            <div style="margin-top:5px; padding:7px 11px; border-radius:6px; font-size:12px; background: {{ tfMatchBg }}; border:1px solid {{ tfMatchBd }}">
-              <span style="font-weight:600; color: {{ tfMatchFg }}">{{ tfMatchTexto }}</span>
-              <span style="color:#6F6867; margin-left:6px">{{ tfMatchMeta }}</span>
+          <sc-for list="{{ hySinLimp }}" as="sl" hint-placeholder-count="2">
+            <div style="background:#FFFFFF; border-radius:16px; padding:14px; display:flex; flex-direction:column; gap:10px">
+              <div style="display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:6px 12px">
+                <span style="font-size:14px; font-weight:600; letter-spacing:.02em">{{ sl.prop }}</span>
+                <span style="font-size:11px; letter-spacing:.03em; color:#6F6867">{{ sl.meta }}</span>
+              </div>
+              <sc-if value="{{ sl.entrada }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#B54D36">Tiene entrada hoy</span></sc-if>
+              <div style="display:flex; gap:8px; align-items:center">
+                <label style="position:relative; flex:1; min-width:0; display:block"><span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">Técnico</span><select value="{{ sl.tecSel }}" onChange="{{ sl.setTec }}" style="appearance:none; -webkit-appearance:none; width:100%; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; height:44px; padding:0 36px 0 16px; font-family:inherit; font-size:13px; letter-spacing:.02em; color:#3E3F3F; outline:none; cursor:pointer; border-radius:14px"><sc-for list="{{ sl.opts }}" as="to" hint-placeholder-count="3"><option value="{{ to.id }}">{{ to.label }}</option></sc-for></select><span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; display:flex"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="15" color="#6F6867" hint-size="15px,15px"></x-import></span></label>
+                <button onClick="{{ sl.asignar }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:filter .18s, transform .1s; min-height:44px" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ sl.asignarLabel }}</button>
+              </div>
             </div>
-          </sc-if>
-          <div style="margin-top:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap">
-            <span style="font-size:10.5px; color:#6F6867">O selecciona directamente:</span>
-            <select value="{{ tfVendorId }}" onChange="{{ setTfVendorId }}" style="font-size:12px; padding:4px 8px; border:1px solid #D8D4CE; border-radius:5px; background:#fff; font-family:inherit; color:#3E3F3F; outline:none">
-              <option value="">—</option>
-              <sc-for list="{{ tecnicos }}" as="t" hint-placeholder-count="4">
-                <option value="{{ t.id }}">{{ t.display }}</option>
-              </sc-for>
-            </select>
+          </sc-for>
+          <span style="font-size:11px; line-height:1.6; letter-spacing:.02em; color:#6F6867">Checkouts de hoy según las reservas de Epi. Se agrega a la ruta de Epi a las 11:00 y queda a nombre del técnico que elijas.</span>
+        </div>
+      </sc-if>
+
+      <div data-screen-label="Hoy · Ruta del día" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; box-shadow:0 1px 2px rgba(62,63,63,.04); padding:18px clamp(14px,3vw,22px); display:flex; flex-direction:column; gap:12px; min-width:0">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px">
+          <div style="display:flex; flex-direction:column; gap:3px; min-width:0">
+            <span style="font-size:17px; font-weight:600; letter-spacing:.02em">Ruta del día</span>
+            <span style="font-size:11.5px; letter-spacing:.03em; color:#6F6867">{{ hyRutaMeta }}</span>
+          </div>
+          <div style="display:flex; background:#F5F3F0; border-radius:999px; padding:3px; gap:2px">
+            <sc-for list="{{ hyRutaModos }}" as="rm" hint-placeholder-count="2">
+              <button onClick="{{ rm.pick }}" style="border:none; border-radius:999px; min-height:36px; padding:0 14px; font-family:inherit; font-size:11.5px; font-weight:600; letter-spacing:.02em; cursor:pointer; transition:background .18s; background: {{ rm.bg }}; color: {{ rm.fg }}">{{ rm.label }}</button>
+            </sc-for>
           </div>
         </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-          <div>
-            <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Tipo</label>
-            <select value="{{ tfTipo }}" onChange="{{ setTfTipo }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
-              <option value="Limpieza">Limpieza</option>
-              <option value="Limpieza Profunda">Limpieza Profunda</option>
-              <option value="Mantenimiento">Mantenimiento</option>
-              <option value="Revisión">Revisión</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Código de acceso</label>
-            <input placeholder="Ej. 1234#" value="{{ tfCodigo }}" onChange="{{ setTfCodigo }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
-          </div>
+        <sc-if value="{{ hyRutaVacia }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; line-height:1.6; color:#6F6867">{{ hyRutaVaciaTxt }}</span></sc-if>
+        <div style="display:flex; flex-direction:column">
+          <sc-for list="{{ hyRuta }}" as="r" hint-placeholder-count="5">
+            <div style="display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto; align-items:center; gap:10px; padding:12px 0; border-top:1px solid #F0EDE8">
+              <div style="display:flex; flex-direction:column; gap:4px; min-width:0">
+                <span style="font-size:13.5px; font-weight:600; letter-spacing:.02em; line-height:1.35">{{ r.prop }}</span>
+                <span style="display:flex; flex-wrap:wrap; gap:6px"><sc-for list="{{ r.tags }}" as="tg" hint-placeholder-count="0"><span style="font-size:9px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:2px 8px; background: {{ tg.bg }}; color: {{ tg.fg }}">{{ tg.t }}</span></sc-for></span>
+              </div>
+              <span style="display:flex; align-items:center; gap:8px; min-width:0; font-size:12.5px; letter-spacing:.02em"><span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ r.dot }}"></span><span style="min-width:0; overflow-wrap:anywhere">{{ r.tec }}</span></span>
+              <sc-if value="{{ r.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.copiar }}" aria-label="Copiar código" title="Copiar código" style="border:1.5px solid #3E3F3F; border-radius:999px; background:#FFFFFF; min-height:36px; min-width:72px; padding:0 12px; font-family:inherit; font-size:13px; font-weight:700; letter-spacing:.08em; font-variant-numeric:tabular-nums; color:#3E3F3F; cursor:pointer; transition:transform .1s" style-active="transform:scale(.96)">{{ r.codigo }}</button></sc-if>
+              <sc-if value="{{ r.sinCodigo }}" hint-placeholder-val="{{ true }}"><span aria-label="Sin código" style="display:inline-grid; place-items:center; border:1px solid #D8D4CE; border-radius:999px; min-height:36px; min-width:72px; color:#938B8A">—</span></sc-if>
+            </div>
+          </sc-for>
         </div>
-        <div>
-          <label style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:5px">Notas</label>
-          <input placeholder="Instrucciones especiales…" value="{{ tfNotas }}" onChange="{{ setTfNotas }}" style="border:1px solid #D8D4CE; border-radius:6px; padding:9px 11px; font-size:13px; font-family:inherit; outline:none; width:100%; box-sizing:border-box; background:#fff; color:#3E3F3F">
-        </div>
-        <button onClick="{{ guardarTurno }}" style="padding:12px; border-radius:7px; border:none; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer; color:#fff; background: {{ guardarBg }}">{{ guardarLabel }}</button>
       </div>
-    </sc-if>
 
-    <sc-if value="{{ sinTurnos }}" hint-placeholder-val="{{ false }}">
-      <div style="text-align:center; padding:32px; color:#6F6867; font-size:13px">{{ sinTurnosTexto }}</div>
-    </sc-if>
-
-    <sc-for list="{{ turnos }}" as="s" hint-placeholder-count="4">
-      <div style="background:#fff; border-radius:9px; padding:13px 15px; border:1px solid {{ s.borde }}; display:flex; flex-direction:column; gap:5px">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px">
-          <div>
-            <div style="font-size:13.5px; font-weight:600; color:#3E3F3F">{{ s.propiedad }}</div>
-            <div style="font-size:11.5px; color:#6F6867; margin-top:2px">{{ s.meta }}</div>
-            <div style="font-size:11px; color:#6F6867; margin-top:1px">{{ s.tecnico }}</div>
-          </div>
-          <div style="display:flex; gap:6px; flex-shrink:0">
-            <button onClick="{{ s.editar }}" title="Editar" style="display:flex; align-items:center; padding:5px 9px; border-radius:5px; border:1px solid #D8D4CE; background:#fff; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="edit" size="15" color="#6F6867" hint-size="15px,15px"></x-import></button>
-            <button onClick="{{ s.borrar }}" title="Eliminar" style="display:flex; align-items:center; padding:5px 9px; border-radius:5px; border:1px solid #DBC8C4; background:#fff; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="trash" size="15" color="#C0392B" hint-size="15px,15px"></x-import></button>
-          </div>
-        </div>
-        <sc-if value="{{ s.hayCodigo }}" hint-placeholder-val="{{ true }}">
-          <div style="display:flex; align-items:center; gap:6px; margin-top:4px">
-            <span style="font-size:9.5px; font-weight:700; color:#6F6867; letter-spacing:.1em; text-transform:uppercase">Código:</span>
-            <span style="font-size:13px; font-weight:700; color:#3E3F3F; background:#F5F3F0; padding:2px 10px; border-radius:5px; letter-spacing:.1em">{{ s.codigo }}</span>
+      <div data-screen-label="Hoy · Profundas" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; box-shadow:0 1px 2px rgba(62,63,63,.04); padding:18px clamp(14px,3vw,22px); display:flex; flex-direction:column; gap:12px; min-width:0">
+        <button onClick="{{ hyProfToggle }}" aria-expanded="{{ hyProfAbierto }}" style="display:flex; align-items:center; gap:12px; border:none; background:transparent; padding:0; font-family:inherit; color:#3E3F3F; cursor:pointer; text-align:left; width:100%">
+          <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:17px; font-weight:600; letter-spacing:.02em">Limpiezas profundas</span>
+            <span style="font-size:11.5px; line-height:1.5; letter-spacing:.02em; color:#6F6867">Una por propiedad cada ~30 días, montada sobre una limpieza ya programada.</span>
+          </span>
+          <span style="flex-shrink:0; font-size:11px; font-weight:600; letter-spacing:.04em; border-radius:999px; padding:5px 11px; background:rgba(233,130,106,.14); color:#B54D36">{{ hyProfN }}</span>
+          <span aria-hidden="true" style="flex-shrink:0; display:flex; transition:transform .24s cubic-bezier(.22,.61,.36,1); transform: {{ hyProfRot }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="16" color="#6F6867" hint-size="16px,16px"></x-import></span>
+        </button>
+        <sc-if value="{{ hyProfAbierto }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; animation:sa-fade .2s cubic-bezier(.22,.61,.36,1) both">
+            <sc-if value="{{ hyProfVacia }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#6F6867; padding-top:4px">{{ hyProfVaciaTxt }}</span></sc-if>
+            <sc-for list="{{ hyProf }}" as="pf" hint-placeholder-count="4">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 12px; padding:11px 0; border-top:1px solid #F0EDE8">
+                <span style="font-size:13px; font-weight:600; letter-spacing:.02em">{{ pf.prop }}</span>
+                <span style="display:flex; gap:10px; flex-wrap:wrap; font-size:11.5px; letter-spacing:.02em"><span style="color:#6F6867">{{ pf.ult }}</span><span style="color: {{ pf.proxFg }}">{{ pf.prox }}</span></span>
+              </div>
+            </sc-for>
           </div>
         </sc-if>
-        <sc-if value="{{ s.hayNotas }}" hint-placeholder-val="{{ false }}">
-          <div style="font-size:12px; color:#6F6867; font-style:italic">{{ s.notas }}</div>
-        </sc-if>
       </div>
-    </sc-for>
-
-    <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; margin-top:6px">Mantenimientos</span>
-    <sc-if value="{{ sinMantto }}" hint-placeholder-val="{{ false }}">
-      <span style="font-size:12.5px; line-height:1.6; color:#6F6867; letter-spacing:.02em">No hay mantenimientos programados para hoy.</span>
+      <a href="https://epi.spacioam.com" target="_blank" rel="noopener" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s; align-self:flex-start" style-hover="border-color:#3E3F3F">Abrir Epi <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="14" color="currentColor" hint-size="14px,14px"></x-import></a>
     </sc-if>
-    <sc-for list="{{ mantenimientos }}" as="j" hint-placeholder-count="2">
-      <div style="display:flex; align-items:center; gap:14px; padding:15px 17px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px">
-        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Farol" state="{{ j.farol }}" dot-only="{{ true }}" label="{{ j.estadoLabel }}" hint-size="8px,8px"></x-import>
-        <span style="font-size:11px; font-variant-numeric:tabular-nums; color:#6F6867; width:46px; flex-shrink:0">{{ j.hora }}</span>
-        <span style="flex:1; font-size:13.5px; letter-spacing:.02em; text-wrap:pretty">{{ j.titulo }}</span>
-      </div>
-    </sc-for>
 
-    <div style="display:flex">
-      <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" onClick="{{ irEpi }}" icon-right="arrowRight" hint-size="auto,46px">Abrir Epi</x-import>
-    </div>
-
-    <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; margin-top:10px">Llegan hoy</span>
-    <sc-for list="{{ checkinsHoy }}" as="g" hint-placeholder-count="4">
-      <button onClick="{{ g.abrir }}" style="display:flex; align-items:center; gap:14px; padding:15px 17px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; cursor:pointer; text-align:left; color:#3E3F3F; width:100%; transition:border-color .18s, box-shadow .24s" style-hover="border-color:#3E3F3F; box-shadow:0 4px 16px rgba(62,63,63,.05)">
-        <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px">
-          <span style="font-size:13.5px; letter-spacing:.02em">{{ g.nombre }}</span>
-          <span style="font-size:11px; letter-spacing:.04em; color:#6F6867">{{ g.prop }}</span>
+    <sc-if value="{{ hyEnRegistros }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Hoy · Registros" style="display:flex; flex-direction:column; gap:14px">
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <span style="display:inline-flex; align-items:center; gap:8px; font-size:10px; font-weight:600; letter-spacing:.28em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="11" hint-size="11px,11px"></x-import>Panel de administración</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(26px,4.4vw,36px); line-height:1.05">Control de registros</span>
+          <span style="font-size:12.5px; line-height:1.55; letter-spacing:.02em; color:#6F6867; max-width:460px">Formularios de check-in de tus alojamientos, sincronizados con Hospitable.</span>
         </div>
-        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Farol" state="{{ g.farol }}" hint-size="auto,26px">{{ g.estado }}</x-import>
-      </button>
-    </sc-for>
-
-    <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; margin-top:10px">Salidas de hoy</span>
-    <sc-for list="{{ salidasHoy }}" as="c" hint-placeholder-count="3">
-      <div style="display:flex; align-items:center; gap:14px; padding:15px 17px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px">
-        <span style="font-size:11px; font-variant-numeric:tabular-nums; color:#6F6867; width:46px; flex-shrink:0">{{ c.hora }}</span>
-        <span style="flex:1; font-size:13.5px; letter-spacing:.02em">{{ c.nombre }}</span>
-        <span style="font-size:11px; letter-spacing:.04em; color:#6F6867">{{ c.prop }}</span>
+        <label style="display:flex; align-items:center; gap:10px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 16px; height:46px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import><input type="search" defaultValue="{{ hyBusca }}" data-sync="1" data-v="{{ hyBusca }}" onInput="{{ hySetBusca }}" placeholder="Buscar reserva, huésped o propiedad…" style="flex:1; min-width:0; border:none; outline:none; background:transparent; font-family:inherit; font-size:14px; color:#3E3F3F"></label>
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:420px">
+          <div style="background:#F5F3F0; border-radius:16px; padding:16px 18px"><div style="font-size:30px; font-weight:600; line-height:1; color:#3d6b52; font-variant-numeric:tabular-nums">{{ hyRegDone }}</div><div style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; margin-top:8px">Completos</div></div>
+          <div style="background:#F5F3F0; border-radius:16px; padding:16px 18px"><div style="font-size:30px; font-weight:600; line-height:1; color:#B54D36; font-variant-numeric:tabular-nums">{{ hyRegPend }}</div><div style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; margin-top:8px">Pendientes</div></div>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px">
+          <label style="position:relative; flex:1 1 150px; min-width:0; display:block"><span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">Fecha de check-in</span><select value="{{ hyRegFecha }}" onChange="{{ hySetRegFecha }}" style="appearance:none; -webkit-appearance:none; width:100%; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; height:44px; padding:0 36px 0 16px; font-family:inherit; font-size:13px; letter-spacing:.02em; color:#3E3F3F; outline:none; cursor:pointer"><sc-for list="{{ hyRegFechaOpts }}" as="opFecha" hint-placeholder-count="3"><option value="{{ opFecha.v }}">{{ opFecha.l }}</option></sc-for></select><span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; display:flex"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="15" color="#6F6867" hint-size="15px,15px"></x-import></span></label>
+          <label style="position:relative; flex:1 1 150px; min-width:0; display:block"><span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">Estado</span><select value="{{ hyRegEstado }}" onChange="{{ hySetRegEstado }}" style="appearance:none; -webkit-appearance:none; width:100%; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; height:44px; padding:0 36px 0 16px; font-family:inherit; font-size:13px; letter-spacing:.02em; color:#3E3F3F; outline:none; cursor:pointer"><sc-for list="{{ hyRegEstadoOpts }}" as="opEstado" hint-placeholder-count="3"><option value="{{ opEstado.v }}">{{ opEstado.l }}</option></sc-for></select><span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; display:flex"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="15" color="#6F6867" hint-size="15px,15px"></x-import></span></label>
+          <label style="position:relative; flex:1 1 150px; min-width:0; display:block"><span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">Propiedad</span><select value="{{ hyRegProp }}" onChange="{{ hySetRegProp }}" style="appearance:none; -webkit-appearance:none; width:100%; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; height:44px; padding:0 36px 0 16px; font-family:inherit; font-size:13px; letter-spacing:.02em; color:#3E3F3F; outline:none; cursor:pointer"><sc-for list="{{ hyRegPropOpts }}" as="opProp" hint-placeholder-count="3"><option value="{{ opProp.v }}">{{ opProp.l }}</option></sc-for></select><span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; display:flex"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="15" color="#6F6867" hint-size="15px,15px"></x-import></span></label>
+          <label style="position:relative; flex:1 1 150px; min-width:0; display:block"><span style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)">Orden</span><select value="{{ hyRegOrden }}" onChange="{{ hySetRegOrden }}" style="appearance:none; -webkit-appearance:none; width:100%; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; height:44px; padding:0 36px 0 16px; font-family:inherit; font-size:13px; letter-spacing:.02em; color:#3E3F3F; outline:none; cursor:pointer"><sc-for list="{{ hyRegOrdenOpts }}" as="opOrden" hint-placeholder-count="3"><option value="{{ opOrden.v }}">{{ opOrden.l }}</option></sc-for></select><span aria-hidden="true" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); pointer-events:none; display:flex"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="15" color="#6F6867" hint-size="15px,15px"></x-import></span></label>
+        </div>
+        <span style="font-size:11px; letter-spacing:.03em; color:#6F6867; margin-top:-4px">Se filtra por fecha de check-in.</span>
+        <sc-if value="{{ hyRegVacio }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; line-height:1.6; color:#6F6867; text-align:center; padding:20px 0">{{ hyRegVacioTxt }}</span></sc-if>
+        <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; overflow:hidden">
+          <sc-for list="{{ hyRegs }}" as="rg" hint-placeholder-count="4">
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; padding:14px 16px; border-top:1px solid #F5F3F0">
+              <div style="flex:1 1 200px; min-width:0; display:flex; flex-direction:column; gap:3px">
+                <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:18px; line-height:1.15">{{ rg.nombre }}</span>
+                <span style="display:inline-flex; align-items:center; gap:7px"><span style="font-size:11px; font-weight:600; letter-spacing:.14em; color:#6F6867">{{ rg.code }}</span><button onClick="{{ rg.copiar }}" aria-label="Copiar código" title="Copiar código" style="width:28px; height:28px; border-radius:8px; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; transition:transform .1s" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></span>
+                <span style="font-size:11px; letter-spacing:.02em; color:#6F6867">{{ rg.prop }}</span>
+              </div>
+              <div style="flex:0 0 auto; display:flex; flex-direction:column; gap:2px; min-width:84px">
+                <span style="font-size:14px; font-variant-numeric:tabular-nums">{{ rg.fecha }}</span>
+                <span style="font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#B54D36">{{ rg.bucket }}</span>
+              </div>
+              <span style="flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 11px; font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; background: {{ rg.stBg }}; border:1px solid {{ rg.stBd }}; color: {{ rg.stFg }}"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background: {{ rg.stDot }}"></span>{{ rg.stLabel }}</span>
+              <div style="flex:1 1 220px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px">
+                <sc-if value="{{ rg.done }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ rg.ver }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="eye" size="13" color="currentColor" hint-size="13px,13px"></x-import>Ver resumen</button>
+                  <button onClick="{{ rg.descargar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="download" size="13" color="currentColor" hint-size="13px,13px"></x-import>Descargar</button>
+                  <button onClick="{{ rg.reenviar }}" aria-label="Reenviar por correo" title="Reenviar por correo" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s; padding:0 12px" style-hover="border-color:#3E3F3F" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="14" color="currentColor" hint-size="14px,14px"></x-import></button>
+                </sc-if>
+                <sc-if value="{{ rg.pend }}" hint-placeholder-val="{{ false }}">
+                  <a href="https://hola.spacioam.com" target="_blank" rel="noopener" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="pencil" size="13" color="currentColor" hint-size="13px,13px"></x-import>Llenar formulario</a>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
       </div>
-    </sc-for>
+    </sc-if>
   </div>
+
+  <sc-if value="{{ hySumAbierto }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ hySum.cerrarFondo }}" style="position:fixed; inset:0; z-index:300; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; justify-content:center; align-items:flex-start; overflow-y:auto; padding:clamp(12px,4vh,40px) 0 calc(24px + env(safe-area-inset-bottom)); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
+      <div role="dialog" aria-label="Resumen de registro" style="width:min(720px,94vw); background:#FFFFFF; border-radius:28px; box-shadow:0 28px 80px rgba(62,63,63,.10); padding:clamp(20px,4vw,36px); display:flex; flex-direction:column; gap:16px; animation:sa-rise .3s cubic-bezier(.22,.61,.36,1) both">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
+          <div style="display:flex; gap:8px; flex-wrap:wrap">
+            <button onClick="{{ hySum.descargar }}" style="border:1px solid #E9826A; border-radius:999px; background:rgba(233,130,106,.14); color:#3E3F3F; min-height:42px; padding:0 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:background .18s" style-hover="background:rgba(233,130,106,.24)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="download" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ hySum.descargarLabel }}</button>
+            <button onClick="{{ hySum.reenviar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s; min-height:42px" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="14" color="currentColor" hint-size="14px,14px"></x-import>Reenviar</button>
+          </div>
+          <button onClick="{{ hySum.cerrar }}" aria-label="Cerrar" style="width:42px; height:42px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; padding-bottom:16px; border-bottom:1.5px solid #3E3F3F">
+          <span style="font-size:9.5px; font-weight:600; letter-spacing:.28em; text-transform:uppercase; color:#6F6867">Resumen de registro</span>
+          <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(24px,4vw,30px); line-height:1.05">{{ hySum.titulo }}</span>
+          <sc-if value="{{ hySum.haySub }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; letter-spacing:.02em">{{ hySum.sub }}</span></sc-if>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center">
+          <span style="display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:6px 13px; font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; background: {{ hySum.stBg }}; border:1px solid {{ hySum.stBd }}; color: {{ hySum.stFg }}">{{ hySum.estado }}</span>
+          <sc-if value="{{ hySum.hayRecibido }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; letter-spacing:.02em; background:#F5F3F0; border-radius:999px; padding:6px 13px">{{ hySum.recibido }}</span></sc-if>
+        </div>
+        <sc-if value="{{ hySum.cargando }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#6F6867; background:#F5F3F0; border-radius:14px; padding:14px 16px">Leyendo el registro…</span></sc-if>
+        <sc-if value="{{ hySum.hayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; line-height:1.6; color:#3E3F3F; background:#F5F3F0; border-radius:14px; padding:14px 16px">{{ hySum.error }}</span></sc-if>
+        <sc-for list="{{ hySum.secciones }}" as="sc" hint-placeholder-count="2">
+          <div style="display:flex; flex-direction:column; gap:4px">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867; padding-bottom:6px; border-bottom:1px solid #D8D4CE">{{ sc.titulo }}</span>
+            <sc-for list="{{ sc.filas }}" as="sf" hint-placeholder-count="3">
+              <div style="display:grid; grid-template-columns:minmax(0,38%) minmax(0,1fr); gap:10px; padding:6px 0; font-size:13px; line-height:1.5"><span style="font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#6F6867">{{ sf.k }}</span><span style="overflow-wrap:anywhere">{{ sf.v }}</span></div>
+            </sc-for>
+          </div>
+        </sc-for>
+        <sc-for list="{{ hySum.huespedes }}" as="hg" hint-placeholder-count="0">
+          <div style="border:1px solid #D8D4CE; border-radius:16px; padding:16px 18px; background:#FAFAFA; display:flex; flex-direction:column; gap:6px">
+            <span style="display:flex; align-items:center; gap:8px"><span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:18px">{{ hg.titulo }}</span><sc-if value="{{ hg.main }}" hint-placeholder-val="{{ false }}"><span style="font-size:8.5px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; border:1px solid #E9826A; background:rgba(233,130,106,.14); border-radius:999px; padding:3px 9px">Principal</span></sc-if></span>
+            <sc-for list="{{ hg.filas }}" as="hf" hint-placeholder-count="2">
+              <div style="display:grid; grid-template-columns:minmax(0,38%) minmax(0,1fr); gap:10px; padding:4px 0; font-size:13px"><span style="font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#6F6867">{{ hf.k }}</span><span style="overflow-wrap:anywhere">{{ hf.v }}</span></div>
+            </sc-for>
+            <sc-for list="{{ hg.imgs }}" as="docImg" hint-placeholder-count="0"><img src="{{ docImg.src }}" loading="lazy" alt="Documento de identidad" style="display:block; max-width:100%; border-radius:12px; margin-top:8px"></sc-for>
+            <sc-if value="{{ hg.cargandoDoc }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; color:#6F6867">Cargando documento…</span></sc-if>
+            <sc-if value="{{ hg.sinDoc }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; color:#6F6867">Sin imagen del documento.</span></sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ hySum.hayNormas }}" hint-placeholder-val="{{ false }}"><span style="display:flex; gap:10px; align-items:flex-start; background:#F5F3F0; border-radius:14px; padding:14px 16px; font-size:12.5px; line-height:1.6"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="16" color="#3d6b52" hint-size="16px,16px"></x-import>{{ hySum.normas }}</span></sc-if>
+        <span style="text-align:center; font-size:10px; letter-spacing:.06em; color:#6F6867; padding-top:14px; border-top:1px solid #F5F3F0">hola@spacioam.com · spacioam.com</span>
+      </div>
+    </div>
+  </sc-if>
 </div>
 </sc-if>
 
@@ -545,7 +596,7 @@
         <sc-for list="{{ camposNombre }}" as="c" hint-placeholder-count="4">
           <label style="display:flex; flex-direction:column; gap:7px">
             <span style="font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">{{ c.label }}</span>
-            <input value="{{ c.valor }}" onChange="{{ c.set }}" placeholder="{{ c.label }}" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+            <input defaultValue="{{ c.valor }}" data-sync="1" data-v="{{ c.valor }}" onChange="{{ c.set }}" placeholder="{{ c.label }}" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
           </label>
         </sc-for>
       </div>
@@ -553,7 +604,7 @@
       <sc-for list="{{ camposContacto }}" as="c" hint-placeholder-count="3">
         <label style="display:flex; flex-direction:column; gap:7px">
           <span style="font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">{{ c.label }}</span>
-          <input type="{{ c.tipo }}" value="{{ c.valor }}" onChange="{{ c.set }}" placeholder="{{ c.ph }}" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+          <input type="{{ c.tipo }}" defaultValue="{{ c.valor }}" data-sync="1" data-v="{{ c.valor }}" onChange="{{ c.set }}" placeholder="{{ c.ph }}" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
           <span style="font-size:11px; line-height:1.5; color:#6F6867; letter-spacing:.02em">{{ c.hint }}</span>
         </label>
       </sc-for>
@@ -585,7 +636,7 @@
         <div style="display:flex; flex-direction:column; gap:10px">
           <label style="display:flex; flex-direction:column; gap:7px">
             <span style="font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Correo o id del calendario</span>
-            <input value="{{ calInput }}" onChange="{{ setCalInput }}" placeholder="tu-correo@spacioam.com" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+            <input defaultValue="{{ calInput }}" data-sync="1" data-v="{{ calInput }}" onChange="{{ setCalInput }}" placeholder="tu-correo@spacioam.com" style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; letter-spacing:.02em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
           </label>
           <button onClick="{{ enlazarCal }}" style="align-self:flex-start; border:none; cursor:pointer; background:#3E3F3F; color:#FAFAFA; border-radius:13px; padding:13px 22px; font-family:inherit; font-size:11px; font-weight:500; letter-spacing:.2em; text-transform:uppercase">Enlazar calendario</button>
         </div>
@@ -823,7 +874,7 @@
       <div style="display:flex; gap:8px; align-items:center">
       <label style="flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
-        <input value="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
+        <input defaultValue="{{ convBusca }}" data-sync="1" data-v="{{ convBusca }}" onChange="{{ setConvBusca }}" placeholder="Buscar por huésped, propiedad o texto del mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; letter-spacing:.01em">
         <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="border:none; background:transparent; cursor:pointer; font-family:inherit; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#6F6867; padding:0">Limpiar</button></sc-if>
       </label>
         <button onClick="{{ toggleFiltros }}" aria-expanded="{{ filtrosAbiertos }}" style="display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 16px; flex-shrink:0; border:1px solid {{ filtrosBd }}; background: {{ filtrosBg }}; color: {{ filtrosFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">Filtros<sc-if value="{{ hayFiltrosActivos }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#E9826A; color:#3E3F3F; font-size:9.5px; display:grid; place-items:center; font-variant-numeric:tabular-nums; box-sizing:border-box">{{ filtrosActivos }}</span></sc-if><span aria-hidden="true" style="display:grid; transition:transform .36s cubic-bezier(.22,.61,.36,1); transform: {{ filtrosChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="currentColor" hint-size="14px,14px"></x-import></span></button>
@@ -1180,7 +1231,7 @@
                         </div>
                         <sc-if value="{{ p.editando }}" hint-placeholder-val="{{ false }}">
                           <div style="display:flex; flex-direction:column; gap:6px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
-                            <textarea value="{{ p.texto }}" onChange="{{ p.setTexto }}" rows="7" placeholder="Hospitable no entregó el texto de este mensaje. Escríbelo aquí." style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; resize:vertical; outline:none; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                            <textarea defaultValue="{{ p.texto }}" data-sync="1" data-v="{{ p.texto }}" onChange="{{ p.setTexto }}" rows="7" placeholder="Hospitable no entregó el texto de este mensaje. Escríbelo aquí." style="width:100%; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em; resize:vertical; outline:none; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
                             <span style="font-size:11px; line-height:1.5; color:#6F6867; text-wrap:pretty">{{ p.ayuda }}</span>
                           </div>
                         </sc-if>
@@ -1266,6 +1317,24 @@
                     <sc-if value="{{ c.hayCasoLinea }}" hint-placeholder-val="{{ false }}"><span style="min-width:0; flex:1; font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">· {{ c.casoLinea }}</span></sc-if>
                     <span style="margin-left:auto; font-size:10.5px; letter-spacing:.04em; color:#6F6867">{{ c.respNota }}</span>
                   </div>
+                  <sc-if value="{{ c.respBusy }}" hint-placeholder-val="{{ false }}">
+                    <div role="progressbar" aria-label="{{ c.respBusyTxt }}" style="display:flex; flex-direction:column; gap:6px; padding:2px 0">
+                      <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; width:4%; border-radius:999px; background:#E9826A; animation:sa-cargar 14s cubic-bezier(.1,.7,.2,1) forwards"></span></span>
+                      <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867">{{ c.respBusyTxt }}</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.hayPropuesta }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; flex-direction:column; gap:10px; border:1.5px solid #E9826A; border-radius:14px; background:#FFFFFF; padding:12px 14px; animation:sa-rise .24s cubic-bezier(.22,.61,.36,1) both">
+                      <span style="display:inline-flex; align-items:center; gap:6px; font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="11" hint-size="11px,11px"></x-import>{{ c.propTitulo }}</span>
+                      <div style="font-size:14px; line-height:1.6; letter-spacing:.01em; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty; max-height:min(46dvh,420px); overflow-y:auto; overscroll-behavior:contain">{{ c.propuesta }}</div>
+                      <div style="display:flex; gap:8px; flex-wrap:wrap">
+                        <button onClick="{{ c.propAprobar }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ c.propAprobarLabel }}</button>
+                        <button onClick="{{ c.propEditar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.98)">Editar</button>
+                        <button onClick="{{ c.propRerun }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="13" color="currentColor" hint-size="13px,13px"></x-import>Rehacer</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.sinPropuesta }}" hint-placeholder-val="{{ true }}">
                   <div style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; display:flex; flex-direction:column; overflow:hidden; flex-shrink:0" style-focus="border-color:#3E3F3F">
                     <textarea ref="{{ c.respRef }}" onInput="{{ c.setRespTexto }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="2" placeholder="Escribe tu respuesta, o deja vacío y presiona Redactar con ALMA" style="border:none; background:transparent; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.55; color:#3E3F3F; outline:none; resize:none; width:100%; box-sizing:border-box; transition:min-height .2s cubic-bezier(.23,1,.32,1); min-height: {{ c.respTaMin }}"></textarea>
                     <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-wrap:wrap">
@@ -1274,6 +1343,7 @@
                       <button onClick="{{ c.respEnviar }}" disabled="{{ c.respSinTexto }}" style="border:none; border-radius:999px; padding:9px 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s; background: {{ c.respEnviarBg }}; color: {{ c.respEnviarFg }}" style-hover="filter:brightness(.94)">{{ c.respEnviarLabel }}</button>
                     </div>
                   </div>
+                  </sc-if>
                 </div>
               </sc-if>
 
@@ -1294,7 +1364,7 @@
                         <div style="display:flex; flex-direction:column; gap:8px">
                           <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Ajuste antes de enviar</span>
                           <div style="display:flex; gap:8px; flex-wrap:wrap">
-                            <input value="{{ c.ajuste }}" onChange="{{ c.setAjuste }}" placeholder="Ej.: menciona que mañana a las 9 pasa Kevin" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                            <input defaultValue="{{ c.ajuste }}" data-sync="1" data-v="{{ c.ajuste }}" onChange="{{ c.setAjuste }}" placeholder="Ej.: menciona que mañana a las 9 pasa Kevin" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
                             <button onClick="{{ c.aplicarAjuste }}" style="border:1px solid #E9826A; border-radius:999px; background:rgba(233,130,106,.12); padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer" style-hover="background:rgba(233,130,106,.22)">{{ c.ajusteLabel }}</button>
                           </div>
                           <sc-if value="{{ c.hayPreview }}" hint-placeholder-val="{{ false }}">
@@ -1357,7 +1427,7 @@
                           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import>
                           <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Anotación · se vuelve mejora</span>
                         </div>
-                        <textarea value="{{ c.anotacion }}" onChange="{{ c.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                        <textarea defaultValue="{{ c.anotacion }}" data-sync="1" data-v="{{ c.anotacion }}" onChange="{{ c.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
                         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
                           <button onClick="{{ c.prepararDesdeLog }}" style="border:none; border-radius:999px; background:#3E3F3F; padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="filter:brightness(.94)">{{ c.prepararLabel }}</button>
                           <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ c.anotNota }}</span>
@@ -1493,7 +1563,7 @@
                       <button onClick="{{ ch.usar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:34px; padding:0 12px; font-family:inherit; font-size:11.5px; letter-spacing:.02em; cursor:pointer; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ ch.t }}</button>
                     </sc-for>
                   </div>
-                  <textarea value="{{ rz.anotacion }}" onChange="{{ rz.setAnotacion }}" rows="3" placeholder="Qué pudo hacer mejor para el huésped. Ej.: debió ofrecer el parqueo de visitas antes de que lo pidiera" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                  <textarea defaultValue="{{ rz.anotacion }}" data-sync="1" data-v="{{ rz.anotacion }}" onChange="{{ rz.setAnotacion }}" rows="3" placeholder="Qué pudo hacer mejor para el huésped. Ej.: debió ofrecer el parqueo de visitas antes de que lo pidiera" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
                   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
                     <button onClick="{{ rz.preparar }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-hover="filter:brightness(.94)" style-active="transform:scale(.97)">{{ rz.prepararLabel }}</button>
                     <span style="font-size:11px; color:#6F6867; line-height:1.4">{{ rz.nota }}</span>
@@ -1582,7 +1652,7 @@
                 <label style="display:flex; align-items:center; justify-content:space-between; gap:10px">
                   <span style="flex:1; min-width:0; font-size:12px; line-height:1.4; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ t.label }}</span>
                   <span style="display:flex; align-items:center; gap:6px; flex-shrink:0">
-                    <input type="number" min="0" step="{{ t.step }}" value="{{ t.valor }}" onChange="{{ t.set }}" style="width:64px; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:7px 9px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; text-align:right; font-variant-numeric:tabular-nums" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                    <input type="number" min="0" step="{{ t.step }}" defaultValue="{{ t.valor }}" data-sync="1" data-v="{{ t.valor }}" onChange="{{ t.set }}" style="width:64px; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:7px 9px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; text-align:right; font-variant-numeric:tabular-nums" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
                     <span style="font-size:10px; letter-spacing:.06em; color:#6F6867; width:26px">{{ t.unidad }}</span>
                   </span>
                 </label>
@@ -1643,10 +1713,10 @@
           <sc-if value="{{ kbNuevo }}" hint-placeholder-val="{{ false }}">
             <div style="background:#FFFFFF; border:1px solid #E9826A; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px">
               <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:10px">
-                <input value="{{ kbNuevoTema }}" onChange="{{ kbSetNuevoTema }}" placeholder="Tema · ej. Parqueo · Fiamene" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-                <input value="{{ kbNuevoAplica }}" onChange="{{ kbSetNuevoAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                <input defaultValue="{{ kbNuevoTema }}" data-sync="1" data-v="{{ kbNuevoTema }}" onChange="{{ kbSetNuevoTema }}" placeholder="Tema · ej. Parqueo · Fiamene" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                <input defaultValue="{{ kbNuevoAplica }}" data-sync="1" data-v="{{ kbNuevoAplica }}" onChange="{{ kbSetNuevoAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
               </div>
-              <textarea value="{{ kbNuevoContenido }}" onChange="{{ kbSetNuevoContenido }}" rows="4" placeholder="Qué debe saber ALMA, en su voz" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+              <textarea defaultValue="{{ kbNuevoContenido }}" data-sync="1" data-v="{{ kbNuevoContenido }}" onChange="{{ kbSetNuevoContenido }}" rows="4" placeholder="Qué debe saber ALMA, en su voz" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
                 <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ kbGuardarNuevo }}" hint-size="auto,38px">Guardar</x-import>
                 <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ kbNota }}</span>
@@ -1669,8 +1739,8 @@
                 </sc-if>
                 <sc-if value="{{ k.abierto }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex; flex-direction:column; gap:8px">
-                    <input value="{{ k.editAplica }}" onChange="{{ k.setAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:8px 11px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F">
-                    <textarea value="{{ k.editContenido }}" onChange="{{ k.setContenido }}" rows="5" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                    <input defaultValue="{{ k.editAplica }}" data-sync="1" data-v="{{ k.editAplica }}" onChange="{{ k.setAplica }}" placeholder="Aplica a · * o nombres separados por coma" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:8px 11px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F">
+                    <textarea defaultValue="{{ k.editContenido }}" data-sync="1" data-v="{{ k.editContenido }}" onChange="{{ k.setContenido }}" rows="5" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">
                       <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ k.autoDot }}"></span>
                       <span style="font-size:10.5px; letter-spacing:.05em; color:#938B8A">{{ k.nota }}</span>
@@ -1727,7 +1797,7 @@
         </select>
       </div>
       <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; position:relative">
-        <textarea value="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+        <textarea defaultValue="{{ mejoraTexto }}" data-sync="1" data-v="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
         <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:none; border-radius:999px; background:#3E3F3F; padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; position:relative">
@@ -1835,7 +1905,7 @@
                 <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:5px">
                   <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.etiqueta }}</span>
                   <sc-if value="{{ c.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ c.antes }}</span></sc-if>
-                  <textarea value="{{ c.despues }}" onChange="{{ c.set }}" rows="2" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:12.5px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                  <textarea defaultValue="{{ c.despues }}" data-sync="1" data-v="{{ c.despues }}" onChange="{{ c.set }}" rows="2" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:12.5px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
                 </div>
               </sc-for>
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
@@ -1865,7 +1935,7 @@
     </div>
 
     <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:12px 14px">
-      <input value="{{ nuevaTarea }}" onChange="{{ setNuevaTarea }}" onKeyDown="{{ onKeyNueva }}" placeholder="Escribe una tarea y presiona Enter" style="flex:1 1 220px; min-width:0; border:none; outline:none; background:transparent; font-family:inherit; font-size:13.5px; letter-spacing:.03em; color:#3E3F3F; padding:6px 2px">
+      <input defaultValue="{{ nuevaTarea }}" data-sync="1" data-v="{{ nuevaTarea }}" onChange="{{ setNuevaTarea }}" onKeyDown="{{ onKeyNueva }}" placeholder="Escribe una tarea y presiona Enter" style="flex:1 1 220px; min-width:0; border:none; outline:none; background:transparent; font-family:inherit; font-size:13.5px; letter-spacing:.03em; color:#3E3F3F; padding:6px 2px">
       <select value="{{ nuevaProp }}" onChange="{{ setNuevaProp }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:8px 12px; font-family:inherit; font-size:10.5px; letter-spacing:.08em; color:#6F6867; cursor:pointer">
         <sc-for list="{{ propiedades }}" as="p" hint-placeholder-count="6">
           <option value="{{ p }}">{{ p }}</option>
@@ -1909,7 +1979,7 @@
               <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr)); gap:10px">
                 <label style="display:flex; flex-direction:column; gap:6px">
                   <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Tarea</span>
-                  <input value="{{ t.texto }}" onChange="{{ t.setTexto }}" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                  <input defaultValue="{{ t.texto }}" data-sync="1" data-v="{{ t.texto }}" onChange="{{ t.setTexto }}" style="border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
                 </label>
                 <label style="display:flex; flex-direction:column; gap:6px">
                   <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Responsable</span>
@@ -1944,7 +2014,7 @@
                   </div>
                 </sc-for>
                 <div style="display:flex; gap:8px; align-items:center">
-                  <input value="{{ subTexto }}" onChange="{{ setSubTexto }}" placeholder="Agregar subtarea" style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:8px 13px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none">
+                  <input defaultValue="{{ subTexto }}" data-sync="1" data-v="{{ subTexto }}" onChange="{{ setSubTexto }}" placeholder="Agregar subtarea" style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:8px 13px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none">
                   <button onClick="{{ t.agregarSub }}" style="border:1px solid #D8D4CE; background:transparent; border-radius:999px; padding:8px 14px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="border-color:#3E3F3F; color:#3E3F3F">Añadir</button>
                 </div>
               </div>
@@ -1961,7 +2031,7 @@
                   </div>
                 </sc-for>
                 <div style="display:flex; gap:8px; align-items:center">
-                  <input value="{{ comentarioTexto }}" onChange="{{ setComentario }}" placeholder="Comenta o menciona con @" style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:9px 14px; font-family:inherit; font-size:12.5px; letter-spacing:.03em; color:#3E3F3F; outline:none">
+                  <input defaultValue="{{ comentarioTexto }}" data-sync="1" data-v="{{ comentarioTexto }}" onChange="{{ setComentario }}" placeholder="Comenta o menciona con @" style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:9px 14px; font-family:inherit; font-size:12.5px; letter-spacing:.03em; color:#3E3F3F; outline:none">
                   <button onClick="{{ t.comentar }}" style="border:1px solid #D8D4CE; background:transparent; border-radius:999px; padding:9px 15px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="border-color:#3E3F3F; color:#3E3F3F">Enviar</button>
                 </div>
                 <sc-if value="{{ t.hayMenciones }}" hint-placeholder-val="{{ false }}">
@@ -1976,7 +2046,7 @@
       </sc-for>
 
               <div style="display:flex; gap:8px; align-items:center">
-                <input value="{{ comentarioTexto }}" onChange="{{ setComentario }}" placeholder="Comenta o menciona a alguien" style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:9px 14px; font-family:inherit; font-size:12.5px; letter-spacing:.03em; color:#3E3F3F; outline:none">
+                <input defaultValue="{{ comentarioTexto }}" data-sync="1" data-v="{{ comentarioTexto }}" onChange="{{ setComentario }}" placeholder="Comenta o menciona a alguien" style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:999px; background:#FAFAFA; padding:9px 14px; font-family:inherit; font-size:12.5px; letter-spacing:.03em; color:#3E3F3F; outline:none">
                 <button onClick="{{ t.comentar }}" style="border:1px solid #D8D4CE; background:transparent; border-radius:999px; padding:9px 15px; font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="border-color:#3E3F3F; color:#3E3F3F">Enviar</button>
               </div>
             </div>
@@ -2019,7 +2089,7 @@
 
     <sc-if value="{{ formReunion }}" hint-placeholder-val="{{ false }}">
       <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center">
-        <input value="{{ reuTitulo }}" onChange="{{ setReuTitulo }}" placeholder="¿De qué es la reunión?" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:13.5px; letter-spacing:.03em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+        <input defaultValue="{{ reuTitulo }}" data-sync="1" data-v="{{ reuTitulo }}" onChange="{{ setReuTitulo }}" placeholder="¿De qué es la reunión?" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:13.5px; letter-spacing:.03em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
         <input type="date" value="{{ reuFecha }}" onChange="{{ setReuFecha }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none">
         <input type="time" value="{{ reuHora }}" onChange="{{ setReuHora }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important">
         <button onClick="{{ guardarReunion }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:11px 18px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer">Guardar</button>
@@ -2148,6 +2218,8 @@ class Component extends DCLogic {
      {id, fecha, hora, propiedad, vendorId, tipo, codigoAcceso, notas}.
      Es la única fuente del día: de aquí salen los conteos, las rutas y los
      mantenimientos. TODO: GET/PUT /epi/schedules — el motor sigue en Epi. */
+  EPI_URL = "https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec";
+  HOLA_URL = "https://script.google.com/macros/s/AKfycbwnaUyShyZHDD--rLd7XouPY4mBpgEYPYVxG2bL86nswVg89XZ9jLMFkh2ktL2IG1VRUg/exec";
   TURNOS_BASE = [
     { id: "s1", d: 0, hora: "11:00", propiedad: "Z10 - Airali - 1401", vendorId: "v1", tipo: "Limpieza", codigoAcceso: "4821", notas: "Entra huésped hoy 21:00" },
     { id: "s2", d: 0, hora: "13:30", propiedad: "Z14 - Rooftop - 505", vendorId: "v1", tipo: "Limpieza", codigoAcceso: "", notas: "" },
@@ -2358,7 +2430,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-06.2200";
+  BUILD = "2026-10-09.1400";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2376,6 +2448,15 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     var self = this;
+    /* Escritura rápida: mientras se teclea, los cambios de estado se juntan y se aplican 220 ms después de la última tecla
+       (o al salir del campo / tocar otro control). El hub no se re-pinta letra por letra. */
+    var setOrig = this.setState.bind(this), colaTec = [], tFl = null;
+    var flushTec = function () { clearTimeout(tFl); tFl = null; if (!colaTec.length) return; var q = colaTec; colaTec = []; q.forEach(function (x) { setOrig(x[0], x[1]); }); };
+    this.setState = function (u, cb) { if (self._tecla) { colaTec.push([u, cb]); clearTimeout(tFl); tFl = setTimeout(flushTec, 220); return; } setOrig(u, cb); };
+    var esTxt = function (t) { return !!t && (t.tagName === "TEXTAREA" || (t.tagName === "INPUT" && /^(text|search|email|tel|url|password|)$/i.test(t.getAttribute("type") || ""))); };
+    document.addEventListener("input", function (e) { if (!esTxt(e.target)) return; self._tecla = true; setTimeout(function () { self._tecla = false; }, 0); }, true);
+    document.addEventListener("focusout", function (e) { if (esTxt(e.target)) flushTec(); }, true);
+    document.addEventListener("pointerdown", function () { flushTec(); }, true);
     this.revisarVersion();
     this._verT = setInterval(function () { self.revisarVersion(); }, 300000);
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") self.revisarVersion(); });
@@ -2499,7 +2580,9 @@ class Component extends DCLogic {
     this.setState(function (s) { var o = {}; Object.keys(s.convResp || {}).forEach(function (k) { o[k] = Object.assign({}, s.convResp[k], { abierto: false }); }); return { convResp: o }; });
   }
   /* Hilo completo: se abre en el último mensaje; vuelve a bajar solo cuando llegan mensajes nuevos. */
-  componentDidUpdate() { if (this.state.vista === "alma") { this.anclarChats(); this.cargarUsuariosAcc(); } }
+  componentDidUpdate() { this.syncCampos(); if (this.state.vista === "alma") { this.anclarChats(); this.cargarUsuariosAcc(); } if (this.state.vista === "hoy") this.hoyCargar(); }
+  /* Los campos de texto no son controlados: si el estado cambió por código (limpiar, una sugerencia), se copia al campo que no está en foco. */
+  syncCampos() { var act = document.activeElement; document.querySelectorAll("[data-sync]").forEach(function (el) { if (el === act) return; var v = el.getAttribute("data-v") || ""; if (el.value !== v) el.value = v; }); }
   anclarChats() {
     var self = this; this._chatN = this._chatN || {};
     if (this._irPend != null && this._convRef.current) {
@@ -2622,6 +2705,260 @@ class Component extends DCLogic {
       this.abrirGrupo(gk);
       requestAnimationFrame(function () { var side = document.querySelector(".alma-side"), el = document.querySelector(".alma-tarjeta"); if (side && el) side.scrollTo({ top: side.scrollTop + el.getBoundingClientRect().top - side.getBoundingClientRect().top - 8, behavior: "smooth" }); });
     } else requestAnimationFrame(function () { var side = document.querySelector(".alma-side"); if (side) side.scrollTop = 0; });
+  }
+  /* ════════ HOY · Programa (Epi) + Registros (Hola) ════════
+     Epi: getConfig → schedules / vendors / props; getAll → reportes (historial de profundas).
+     Hola: listCached → reservas con estado del formulario; getRegistration / getDocImage para el resumen. */
+  hoyISO() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" }); }
+  hoySet(p) { this.setState(function (s) { var H = s.hoy || {}; return { hoy: Object.assign({}, H, typeof p === "function" ? p(H) : p) }; }); }
+  gpost(url, action, payload, ms) {
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 30000);
+    return fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow", cache: "no-store", signal: ctl ? ctl.signal : undefined, body: JSON.stringify(Object.assign({ action: action }, payload || {})) })
+      .then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); return j; }, function (e) { clearTimeout(t); throw e; });
+  }
+  salvage(x) { if (Array.isArray(x)) return x; if (typeof x === "string") { try { var p = JSON.parse(x); return Array.isArray(p) ? p : []; } catch (e) { return []; } } return []; }
+  hoyCargar(forzar) {
+    var self = this, H = this.state.hoy || {}, EPI = this.EPI_URL, HOLA = this.HOLA_URL;
+    if (H.cargando || (!forzar && H.ts && Date.now() - H.ts < 90000)) return;
+    var base = {};
+    if (!H.cfg && !H.roster) { try { var c = JSON.parse(localStorage.getItem("sa_hoy_v1") || "null"); if (c && Date.now() - c.ts < 12 * 3600000) base = { cfg: c.cfg, roster: c.roster, hist: c.hist, tsOk: c.ts }; } catch (e) {} }
+    this.setState({ hoy: Object.assign({}, H, base, { cargando: true, errEpi: "", errHola: "", ts: Date.now() }) });
+    var guardar = function () { try { var x = self.state.hoy || {}; localStorage.setItem("sa_hoy_v1", JSON.stringify({ ts: Date.now(), cfg: x.cfg, roster: x.roster, hist: x.hist })); } catch (e) {} };
+    var slim = function (p) { var o = {}; Object.keys(p || {}).forEach(function (k) { var v = p[k]; if (typeof v === "string" && v.length > 400) return; if (Array.isArray(v) && v.length > 30) return; o[k] = v; }); return o; };
+    var pE = this.gpost(EPI, "getConfig", {}, 45000).then(function (j) {
+      if (!j || j.ok === false) throw new Error("epi"); var d = j.data || j;
+      self.hoySet({ cfg: { schedules: self.salvage(d.schedules), vendors: self.salvage(d.vendors), props: self.salvage(d.props).map(slim), reservas: self.salvage(d.reservas), codigos: d.codigos && typeof d.codigos === "object" ? d.codigos : {} } });
+    }).catch(function () { self.hoySet({ errEpi: "No pudimos leer el programa de Epi. Se muestra lo último guardado." }); });
+    var pH = this.gpost(HOLA, "listCached", {}, 180000).then(function (j) {
+      if (!j || j.ok === false) throw new Error("hola"); self.hoySet({ roster: j.reservations || [] });
+    }).catch(function () { self.hoySet({ errHola: "No pudimos leer los registros de Hola. Se muestra lo último guardado." }); });
+    Promise.all([pE, pH]).then(function () { self.hoySet({ cargando: false, tsOk: Date.now() }); guardar(); });
+    if (!H.hist || forzar) this.gpost(EPI, "getAll", {}, 90000).then(function (j) {
+      var reps = ((j && (j.data || j)) || {}).reports || [];
+      var hist = reps.filter(function (r) { return /profunda/i.test(String(r.categoria || r.category || "")); }).map(function (r) { return { propiedad: r.propiedad || "", fecha: String(r.fecha || "").slice(0, 10), tipo: "Limpieza profunda" }; });
+      self.hoySet({ hist: hist }); guardar();
+    }).catch(function () {});
+  }
+  hoyNorm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
+  /* Asignación manual: se relee el programa justo antes de guardar para no pisar cambios hechos en Epi. */
+  hoyAsignar(res, vendorId, entrada) {
+    var self = this, hoy = this.hoyISO(), k = this.hoyNorm(res.propertyName);
+    if (!vendorId) { this.aviso("Elige un técnico"); return; }
+    if ((this.state.hoy || {}).asignando) return;
+    this.hoySet({ asignando: k });
+    this.gpost(this.EPI_URL, "getConfig", {}, 45000).then(function (j) {
+      if (!j || j.ok === false) throw new Error("epi"); var d = j.data || j;
+      var lista = self.salvage(d.schedules), vs = self.salvage(d.vendors);
+      var v = vs.find(function (x) { return String(x.id) === String(vendorId); }) || {};
+      var nom = v.name || v.nombre || "";
+      lista = lista.concat([{ id: "hub_" + Date.now(), fecha: hoy, hora: "11:00", propiedad: res.propertyName, vendorId: v.id != null ? v.id : vendorId, vendorEmail: v.email || "", vendorRaw: nom, tipo: "Limpieza", codigoAcceso: "", notas: "Asignada desde el hub" + (entrada ? " · tiene entrada hoy" : ""), entradaHoy: !!entrada, origen: "hub" }]);
+      return self.gpost(self.EPI_URL, "saveConfig", { key: "schedules", value: lista }, 45000).then(function (r) {
+        if (r && r.ok === false) throw new Error("save");
+        self.hoySet(function (H) { return { asignando: "", cfg: Object.assign({}, H.cfg, { schedules: lista, vendors: vs.length ? vs : (H.cfg || {}).vendors }) }; });
+        self.aviso("Limpieza asignada" + (nom ? " a " + nom : ""));
+      });
+    }).catch(function () { self.hoySet({ asignando: "" }); self.aviso("No se pudo asignar. Intenta de nuevo."); });
+  }
+  hoyAbrirSum(r, imprimir) {
+    var self = this, code = r.code;
+    this.hoySet({ sum: { h: r, rec: null, cargando: true, error: "", imgs: {}, docs: 0, imprimir: !!imprimir } });
+    var listo = function () { var S = (self.state.hoy || {}).sum; if (S && S.h.code === code && S.imprimir && !S.cargando && !S.docs) { self.hoySet(function (H) { return { sum: Object.assign({}, H.sum, { imprimir: false }) }; }); setTimeout(function () { self.hoyImprimir(); }, 250); } };
+    var setS = function (fn) { self.hoySet(function (H) { if (!H.sum || H.sum.h.code !== code) return {}; return { sum: Object.assign({}, H.sum, fn(H.sum)) }; }); };
+    this.gpost(this.HOLA_URL, "getRegistration", { code: code }, 30000).then(function (j) {
+      var rec = j && j.record;
+      if (!rec) { setS(function () { return { cargando: false, error: "No pudimos leer el registro. Puede que el envío del huésped se haya cortado antes de guardarse." }; }); return; }
+      var ids = (rec.guests || []).map(function (g) { return g.docFileId; }).filter(Boolean);
+      setS(function () { return { rec: rec, cargando: false, docs: ids.length }; });
+      if (!ids.length) { setTimeout(listo, 50); return; }
+      ids.forEach(function (id) {
+        self.gpost(self.HOLA_URL, "getDocImage", { fileId: id }, 25000).then(function (d) { return d && d.image ? self.marcaAgua(d.image, code) : ""; }).then(function (img) { setS(function (S) { var im = Object.assign({}, S.imgs); if (img) im[id] = img; return { imgs: im, docs: Math.max(0, S.docs - 1) }; }); setTimeout(listo, 50); })
+          .catch(function () { setS(function (S) { return { docs: Math.max(0, S.docs - 1) }; }); setTimeout(listo, 50); });
+      });
+    }).catch(function () { setS(function () { return { cargando: false, error: "La consulta tardó demasiado. Vuelve a abrir el resumen." }; }); });
+  }
+  marcaAgua(src, code) {
+    return new Promise(function (ok) {
+      var im = new Image();
+      im.onload = function () {
+        try {
+          var w = im.naturalWidth, hh = im.naturalHeight, esc = Math.min(1, 1600 / Math.max(w, hh)); w = Math.round(w * esc); hh = Math.round(hh * esc);
+          var c = document.createElement("canvas"); c.width = w; c.height = hh; var g = c.getContext("2d");
+          g.drawImage(im, 0, 0, w, hh);
+          var fs = Math.max(14, Math.round(w / 26)), txt = "SPACIO AM · SOLO PARA REGISTRO DE HUÉSPEDES · " + code;
+          g.save(); g.translate(w / 2, hh / 2); g.rotate(-Math.PI / 7);
+          g.font = "600 " + fs + "px Montserrat, Helvetica, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+          g.fillStyle = "rgba(62,63,63,.22)"; g.strokeStyle = "rgba(255,255,255,.28)"; g.lineWidth = Math.max(1, fs / 14);
+          var diag = Math.sqrt(w * w + hh * hh);
+          for (var y = -diag / 2; y < diag / 2; y += fs * 3.2) { g.strokeText(txt, 0, y); g.fillText(txt, 0, y); }
+          g.restore();
+          var band = Math.round(fs * 1.9); g.fillStyle = "rgba(62,63,63,.62)"; g.fillRect(0, hh - band, w, band);
+          g.fillStyle = "#FAFAFA"; g.font = "600 " + Math.round(fs * .7) + "px Montserrat, Helvetica, Arial, sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+          g.fillText("Copia exclusiva para el registro de Spacio AM · " + new Date().toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }), w / 2, hh - band / 2);
+          ok(c.toDataURL("image/jpeg", .86));
+        } catch (e) { ok(src); }
+      };
+      im.onerror = function () { ok(src); };
+      im.src = src;
+    });
+  }
+  hoyReenviar(code) {
+    var self = this; this.aviso("Enviando…");
+    this.gpost(this.HOLA_URL, "resendRegistration", { code: code, channel: "email" }, 45000)
+      .then(function (r) { self.aviso(r && r.ok ? "Reenviado" + (r.to ? " a " + r.to : "") : "No se pudo reenviar" + (r && r.error ? " · " + r.error : "")); })
+      .catch(function () { self.aviso("No se pudo reenviar"); });
+  }
+  telTxt(p) { if (!p) return ""; if (typeof p === "object") return [p.code || p.cc || p.dial || "", p.number || p.num || p.phone || ""].filter(Boolean).join(" "); return String(p); }
+  hoySumDatos() {
+    var S = (this.state.hoy || {}).sum; if (!S) return null;
+    var h = S.h, rec = S.rec, self = this;
+    var fdt = function (v) { try { var d = new Date(v); return isNaN(d) ? "" : d.toLocaleString("es-GT", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); } catch (e) { return ""; } };
+    var secs = [{ titulo: "Reserva", filas: [{ k: "Código", v: h.code }, { k: "Check-in", v: h.checkin ? h.checkin + " · 3:00 PM" : "" }, { k: "Check-out", v: h.checkout ? h.checkout + " · 11:00 AM" : "" }, { k: "Capacidad", v: h.maxCapacity ? "Hasta " + h.maxCapacity : "" }, { k: "Asignado a", v: h.assignedEmail || "" }] }];
+    if (rec) {
+      var b = rec.booker || {};
+      secs.push({ titulo: "Quién reservó", filas: b.type === "third" && b.doc ? [{ k: "Reservó", v: "Un tercero" }, { k: "Nombre", v: b.doc.name }, { k: "Documento", v: b.doc.id }, { k: "Teléfono", v: self.telTxt(b.phone) }, { k: "Correo", v: b.email }] : [{ k: "Reservó", v: "El huésped principal" }] });
+      secs.push({ titulo: "Contacto", filas: [{ k: "Correo", v: (rec.contact || {}).email }, { k: "Teléfono", v: self.telTxt((rec.contact || {}).phone) }, { k: "Emergencia", v: self.telTxt((rec.contact || {}).emergency) }] });
+    }
+    secs.forEach(function (s) { s.filas = s.filas.filter(function (f) { return f.v; }); });
+    var huesp = rec ? (rec.guests || []).map(function (g, i) {
+      var img = g.docImage || (g.docFileId && S.imgs[g.docFileId]) || "";
+      return { titulo: "Huésped " + (i + 1), main: !!g.main, filas: [{ k: "Nombre completo", v: g.name || "—" }, { k: "Documento", v: g.id || "—" }], img: img, imgs: img ? [{ src: img }] : [], cargandoDoc: !img && !!g.docFileId && S.docs > 0, sinDoc: !img && !(g.docFileId && S.docs > 0) };
+    }) : [];
+    var done = !!rec || /complet/i.test(String(h.statusForm || ""));
+    return { h: h, rec: rec, secciones: secs.filter(function (s) { return s.filas.length; }), huespedes: huesp, done: done,
+      titulo: h.propertyShort || h.propertyName || "Registro", sub: h.propertyName && h.propertyName !== h.propertyShort ? h.propertyName + (h.apartment && String(h.propertyName).indexOf(h.apartment) < 0 ? " · " + h.apartment : "") : "",
+      recibido: rec && (rec.completedAt || rec.acceptedRulesAt) ? "Formulario recibido: " + fdt(rec.completedAt || rec.acceptedRulesAt) : "",
+      normas: rec ? "Aceptó las normas de convivencia" + (rec.acceptedRulesAt ? " · " + fdt(rec.acceptedRulesAt) : "") : "" };
+  }
+  /* Descargar: se arma el documento con los datos y se imprime en un marco oculto (Guardar como PDF). */
+  hoyImprimir() {
+    var D = this.hoySumDatos(); if (!D) return;
+    var esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+    var filas = function (fs) { return '<table style="width:100%;border-collapse:collapse">' + fs.map(function (f) { return '<tr><td style="padding:6px 0;width:38%;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#6F6867;vertical-align:top">' + esc(f.k) + '</td><td style="padding:6px 0;font-size:13px">' + esc(f.v) + "</td></tr>"; }).join("") + "</table>"; };
+    var cuerpo = '<div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1.5px solid #3E3F3F;padding-bottom:14px"><div><div style="font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:#6F6867">Resumen de registro</div><div style="font-family:Georgia,serif;font-size:28px;margin-top:6px">' + esc(D.titulo) + "</div>" + (D.sub ? '<div style="font-size:12px;margin-top:4px">' + esc(D.sub) + "</div>" : "") + '</div><div style="font-size:11px;letter-spacing:.2em">SPACIO AM</div></div>' +
+      '<p style="font-size:11px;margin:14px 0 0">' + (D.done ? "Completo" : "Pendiente") + (D.recibido ? " · " + esc(D.recibido) : "") + " · Generado " + esc(new Date().toLocaleString("es-GT", { dateStyle: "long", timeStyle: "short", timeZone: "America/Guatemala" })) + "</p>" +
+      D.secciones.map(function (s) { return '<section style="margin-top:20px"><h3 style="font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#6F6867;border-bottom:1px solid #D8D4CE;padding-bottom:6px;margin:0 0 6px">' + esc(s.titulo) + "</h3>" + filas(s.filas) + "</section>"; }).join("") +
+      D.huespedes.map(function (g) { return '<section class="g" style="border:1px solid #D8D4CE;border-radius:14px;padding:14px 16px;margin-top:20px"><div style="font-family:Georgia,serif;font-size:18px;margin-bottom:6px">' + esc(g.titulo) + (g.main ? " · principal" : "") + "</div>" + filas(g.filas) + (g.img ? '<img src="' + g.img + '" alt="">' : '<p style="font-size:11px;color:#6F6867">Sin imagen del documento.</p>') + "</section>"; }).join("") +
+      (D.normas ? '<p style="margin-top:20px;background:#F5F3F0;border-radius:12px;padding:12px 14px;font-size:12.5px">' + esc(D.normas) + "</p>" : "") +
+      '<p style="text-align:center;font-size:10px;color:#6F6867;margin-top:26px">hola@spacioam.com · spacioam.com</p>';
+    var doc = '<!doctype html><html><head><meta charset="utf-8"><title>Registro ' + esc(D.h.code) + " · " + esc(D.titulo) + '</title><style>@page{margin:14mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box}body{margin:0;padding:6px;font-family:Montserrat,Helvetica,Arial,sans-serif;color:#3E3F3F}img{max-width:100%;max-height:190mm;height:auto;display:block;margin-top:10px;border-radius:8px}.g{break-before:page;page-break-before:always}</style></head><body>' + cuerpo + "</body></html>";
+    var fr = document.createElement("iframe"); fr.setAttribute("aria-hidden", "true"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+    document.body.appendChild(fr);
+    var d = fr.contentWindow.document; d.open(); d.write(doc); d.close();
+    var ims = Array.prototype.slice.call(d.images || []);
+    Promise.all(ims.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.onload = im.onerror = r; }); })).then(function () {
+      setTimeout(function () { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { var w = window.open("", "_blank"); if (w) { w.document.write(doc); w.document.close(); w.print(); } } setTimeout(function () { fr.remove(); }, 60000); }, 300);
+    });
+  }
+  hoyVals() {
+    var self = this, st = this.state, H = st.hoy || {}, hoy = this.hoyISO(), norm = this.hoyNorm;
+    var cfg = H.cfg || {}, sch = cfg.schedules || [], vend = cfg.vendors || [], roster = (H.roster || []).map(function (x) { return Object.assign({}, x, { guestName: String(x.guestName || "").replace(/[\u2066-\u2069\u200e\u200f]/g, "").trim() }); });
+    var resEpi = cfg.reservas || [];
+    var fC = function (iso) { var d = new Date(String(iso).slice(0, 10) + "T12:00:00"); return isNaN(d) ? String(iso || "") : d.toLocaleDateString("es-GT", { day: "2-digit", month: "short" }).replace(/\.$/, ""); };
+    var vNom = function (v) { return v ? String(v.name || v.nombre || [v.firstName, v.lastName].filter(Boolean).join(" ") || v.email || "").trim() : ""; };
+    var vPor = {}; vend.forEach(function (v) { if (!v) return; if (v.id != null) vPor["i" + v.id] = v; if (v.email) vPor["e" + String(v.email).toLowerCase()] = v; });
+    var vDe = function (s) { return vPor["i" + s.vendorId] || vPor["e" + String(s.vendorEmail || "").toLowerCase()] || null; };
+    var cancel = function (x) { return /cancel/i.test(String(x.status || x.estado || x.reservationStatus || x.statusReserva || "")); };
+    var hoySch = sch.filter(function (s) { return s && String(s.fecha || "").slice(0, 10) === hoy && !cancel(s); });
+    var esLimp = function (s) { return /limpieza|cleaning|profunda/i.test(String(s.tipo || "Limpieza")); };
+    var rOk = roster.filter(function (x) { return x && !cancel(x); });
+    /* Entradas y salidas del día: las reservas que Epi sincroniza de Hospitable (las mismas que usa su motor). */
+    var entran = {}; resEpi.forEach(function (x) { if (String(x.checkIn || "").slice(0, 10) === hoy) entran[norm(x.propiedad)] = 1; });
+    var conL = {}; hoySch.filter(esLimp).forEach(function (s) { conL[norm(s.propiedad)] = 1; });
+    var tieneL = function (p) { var k = norm(p); return !!conL[k] || Object.keys(conL).some(function (x) { return x && k && (x.indexOf(k) >= 0 || k.indexOf(x) >= 0); }); };
+    var entra = function (p) { var k = norm(p); return !!entran[k] || Object.keys(entran).some(function (x) { return x && k && (x.indexOf(k) >= 0 || k.indexOf(x) >= 0); }); };
+    var cnt = {}; hoySch.forEach(function (s) { var v = vDe(s); if (v) cnt[v.id] = (cnt[v.id] || 0) + 1; });
+    var tecOpts = vend.filter(function (v) { return v && v.id != null && vNom(v) && v.active !== false && v.activo !== false && /limpieza/i.test(String(v.categoria || "Limpieza")); })
+      .map(function (v) { return { id: String(v.id), n: cnt[v.id] || 0, label: vNom(v) + " · " + (cnt[v.id] || 0) + " hoy" }; })
+      .sort(function (a, b) { return a.n - b.n || a.label.localeCompare(b.label); });
+    var visto = {};
+    var salen = resEpi.filter(function (x) { return String(x.checkOut || "").slice(0, 10) === hoy; }).map(function (x) {
+      var hl = rOk.find(function (y) { return norm(y.propertyName) === norm(x.propiedad) && String(y.checkout || "").slice(0, 10) === hoy; });
+      return { propertyName: x.propiedad, habitaciones: x.habitaciones, guestName: hl ? hl.guestName : "" };
+    });
+    var sinLimp = salen.filter(function (x) { var k = norm(x.propertyName); if (!k || tieneL(x.propertyName) || visto[k]) return false; visto[k] = 1; return true; }).map(function (x) {
+      var k = norm(x.propertyName), sel = (H.sel || {})[k] || (tecOpts[0] || {}).id || "", e = entra(x.propertyName);
+      return { prop: x.propertyName, meta: "Sale " + (x.guestName || "huésped") + (x.habitaciones ? " · " + x.habitaciones + " hab" : ""), entrada: e,
+        opts: [{ id: "", label: "Elegir técnico…" }].concat(tecOpts), tecSel: sel,
+        setTec: function (ev) { var v = ev.target.value; self.hoySet(function (H2) { var s2 = Object.assign({}, H2.sel); s2[k] = v; return { sel: s2 }; }); },
+        asignar: function () { self.hoyAsignar(x, sel, e); }, asignarLabel: H.asignando === k ? "Asignando…" : "Asignar" };
+    });
+    var cods = cfg.codigos || {}, fechasCod = Object.keys(cods).filter(function (k) { return /^\d{4}-\d{2}-\d{2}$/.test(k) && k <= hoy; }).sort();
+    var codDe = function (p) { var k = norm(p), f = fechasCod[fechasCod.length - 1], c = f && cods[f] ? cods[f][k] : ""; if (!c && cods.__cfg && cods.__cfg[k]) c = cods.__cfg[k].permCode || ""; return String(c || ""); };
+    var periodo = fechasCod.length ? fC(fechasCod[fechasCod.length - 1]) : "";
+    var modo = H.rutaModo || "apto";
+    var ruta = hoySch.map(function (s) {
+      var v = vDe(s), tec = vNom(v) || String(s.vendorRaw || "").trim() || "Sin asignar", tags = [];
+      if (s.entradaHoy || entra(s.propiedad)) tags.push({ t: "Entrada", bg: "rgba(233,130,106,.12)", fg: "#B54D36" });
+      if (/profunda/i.test(String(s.tipo || ""))) tags.push({ t: "Profunda", bg: "rgba(233,130,106,.18)", fg: "#B54D36" });
+      else if (s.tipo && !/^limpieza$/i.test(String(s.tipo))) tags.push({ t: s.tipo, bg: "#F5F3F0", fg: "#6F6867" });
+      var cod = String(s.codigoAcceso || "").trim() || codDe(s.propiedad);
+      return { prop: s.propiedad || "—", tec: tec, dot: v ? "#3d6b52" : "#C0392B", tags: tags, codigo: cod, hayCodigo: !!cod, sinCodigo: !cod,
+        copiar: function () { self.copiar(cod, "Código " + cod + " copiado"); } };
+    }).sort(function (a, b) { return modo === "tec" ? a.tec.localeCompare(b.tec) || a.prop.localeCompare(b.prop) : a.prop.localeCompare(b.prop); });
+    var nTec = {}; ruta.forEach(function (r) { if (r.tec !== "Sin asignar") nTec[r.tec] = 1; });
+    var prof = [];
+    if (window.SCHED && SCHED.estadoProfundas && (cfg.props || []).length) { try { prof = SCHED.estadoProfundas({ hoy: hoy, props: cfg.props, historial: H.hist || [], programadas: sch }); } catch (e) { prof = []; } }
+    var vencidas = prof.filter(function (p) { return p.vencida; });
+    var porHacer = vencidas.filter(function (p) { return !p.proxima; }).length;
+    var profRows = vencidas.map(function (p) {
+      var pv = p.proxima ? vDe({ vendorEmail: p.proxima.vendorEmail }) : null;
+      return { prop: p.propiedad, ult: p.ultima ? "Última hace " + p.diasDesde + " días" : "Sin registro", prox: p.proxima ? "Programada " + fC(p.proxima.fecha) + (pv ? " · " + vNom(pv) : "") : "Sin programar", proxFg: p.proxima ? "#3d6b52" : "#B54D36" };
+    });
+    /* Registros (Hola) */
+    var stOf = function (x) { var s = String(x.statusForm || "").toLowerCase(); if (/complet/.test(s)) return "done"; if (x.started || x.inProgress || /proceso|progress|parcial|iniciad/.test(s)) return "progress"; return "pending"; };
+    var dif = function (iso) { var a = Date.parse(String(iso || "").slice(0, 10) + "T12:00:00"), b = Date.parse(hoy + "T12:00:00"); return isNaN(a) ? 999 : Math.round((a - b) / 86400000); };
+    var fF = H.regFecha || "today", eF = H.regEstado || "both", pF = H.regProp || "all", oF = H.regOrden || "desc", q = norm(H.busca);
+    var porCod = {}; rOk.forEach(function (x) { var k = String(x.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "") || x.id; var sc = function (y) { return (/complet/i.test(String(y.statusForm || "")) ? 2 : 0) + (y.propertyName && y.propertyName !== "Spacio AM" ? 1 : 0); }; if (!porCod[k] || sc(x) > sc(porCod[k])) porCod[k] = x; });
+    var enRango = function (iso) { var d = dif(iso); return fF === "all" ? true : fF === "next3" ? d >= 0 && d <= 2 : fF === "last3" ? d <= 0 && d >= -2 : fF === "yesterday" ? d === -1 : fF === "tomorrow" ? d === 1 : d === 0; };
+    var regs = Object.keys(porCod).map(function (k) { return porCod[k]; }).filter(function (x) { return enRango(x.checkin); })
+      .filter(function (x) { return pF === "all" || x.propertyName === pF; })
+      .filter(function (x) { var s = stOf(x); return eF === "both" ? true : eF === "done" ? s === "done" : eF === "progress" ? s === "progress" : s !== "done"; })
+      .filter(function (x) { return !q || norm([x.guestName, x.code, x.propertyName].join(" ")).indexOf(q) >= 0; })
+      .sort(function (a, b) { var ta = Date.parse(a.completedAt || a.formAt || "") || (Date.parse(String(a.checkin) + "T12:00:00") || 0), tb = Date.parse(b.completedAt || b.formAt || "") || (Date.parse(String(b.checkin) + "T12:00:00") || 0); return oF === "asc" ? ta - tb : tb - ta; });
+    var STY = { done: ["Completo", "rgba(61,107,82,.10)", "rgba(61,107,82,.35)", "#3d6b52", "#3d6b52"], progress: ["En proceso", "rgba(233,130,106,.12)", "rgba(233,130,106,.4)", "#B54D36", "#E9826A"], pending: ["Pendiente", "#F5F3F0", "#D8D4CE", "#6F6867", "#938B8A"] };
+    var BK = { "-1": "Ayer", "0": "Hoy", "1": "Mañana", "2": "Pasado mañana" };
+    var regRows = regs.map(function (x) {
+      var s = stOf(x), S = STY[s];
+      return { nombre: x.guestName || "Huésped", code: x.code, prop: (x.propertyName || "") + (x.apartment && String(x.propertyName || "").indexOf(x.apartment) < 0 ? " · " + x.apartment : ""),
+        fecha: fC(x.checkin), bucket: BK[String(dif(x.checkin))] || "", stLabel: S[0], stBg: S[1], stBd: S[2], stFg: S[3], stDot: S[4], done: s === "done", pend: s !== "done",
+        copiar: function () { self.copiar(x.code, "Código " + x.code + " copiado"); }, ver: function () { self.hoyAbrirSum(x, false); }, descargar: function () { self.hoyAbrirSum(x, true); }, reenviar: function () { self.hoyReenviar(x.code); } };
+    });
+    var nDone = regRows.filter(function (r) { return r.done; }).length;
+    var props = Object.keys(rOk.reduce(function (m, x) { if (x.propertyName) m[x.propertyName] = 1; return m; }, {})).sort();
+    var opt = function (list, cur) { return list.map(function (o) { return { v: o[0], l: o[1] }; }); };
+    var tab = H.tab || "programa";
+    var mins = H.tsOk ? Math.round((Date.now() - H.tsOk) / 60000) : null;
+    var D = this.hoySumDatos(), S0 = H.sum;
+    var sumV = D ? Object.assign({}, D, { haySub: !!D.sub, hayRecibido: !!D.recibido, hayNormas: !!D.normas, cargando: !!S0.cargando, error: S0.error || "", hayError: !!S0.error,
+      estado: D.done ? "Completo" : "Pendiente", stBg: D.done ? "rgba(61,107,82,.12)" : "#F5F3F0", stBd: D.done ? "rgba(61,107,82,.4)" : "#D8D4CE", stFg: D.done ? "#3d6b52" : "#3E3F3F",
+      descargarLabel: S0.cargando || S0.docs > 0 ? "Cargando documentos…" : "Descargar PDF",
+      descargar: function () { var S1 = (self.state.hoy || {}).sum; if (!S1) return; if (S1.cargando || S1.docs > 0) { self.hoySet(function (H2) { return { sum: Object.assign({}, H2.sum, { imprimir: true }) }; }); return; } self.hoyImprimir(); },
+      reenviar: function () { self.hoyReenviar(D.h.code); }, cerrar: function () { self.hoySet({ sum: null }); },
+      cerrarFondo: function (e) { if (e.target === e.currentTarget) self.hoySet({ sum: null }); } }) : { secciones: [], huespedes: [] };
+    var fechaLarga = new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Guatemala" });
+    return {
+      hyFechaLarga: fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1),
+      hyCargando: !!H.cargando, hyRecargar: function () { self.hoyCargar(true); },
+      hyEstadoTxt: H.cargando ? "Actualizando…" : mins == null ? "Actualizar" : mins < 1 ? "Al día" : "Hace " + (mins < 60 ? mins + " min" : Math.floor(mins / 60) + " h"),
+      hyError: [H.errEpi, H.errHola].filter(Boolean).join(" "), hyHayError: !!(H.errEpi || H.errHola),
+      hyTabs: [["programa", "Programa", hoySch.length], ["registros", "Registros", regRows.length]].map(function (t) { var on = tab === t[0]; return { label: t[1], n: t[2] || "", on: on ? "true" : "false", bg: on ? "#FFFFFF" : "transparent", fg: on ? "#3E3F3F" : "#6F6867", sh: on ? "0 1px 2px rgba(62,63,63,.06)" : "none", pick: function () { self.hoySet({ tab: t[0] }); } }; }),
+      hyEnPrograma: tab === "programa", hyEnRegistros: tab === "registros",
+      hyHaySinLimp: sinLimp.length > 0, hySinLimp: sinLimp, hySinLimpTitulo: sinLimp.length + (sinLimp.length === 1 ? " checkout sin limpieza asignada" : " checkouts sin limpieza asignada"),
+      hyRuta: ruta, hyRutaVacia: !ruta.length, hyRutaVaciaTxt: H.cfg ? "No hay limpiezas programadas para hoy." : H.cargando ? "Leyendo el programa de Epi…" : "Sin datos de Epi todavía.",
+      hyRutaMeta: ruta.length + (ruta.length === 1 ? " limpieza" : " limpiezas") + " · " + Object.keys(nTec).length + " técnicos" + (periodo ? " · códigos del periodo " + periodo : ""),
+      hyStats: [[ruta.length, "Limpiezas"], [Object.keys(nTec).length, "Técnicos"], [salen.length, "Check-out"], [Object.keys(entran).length, "Check-in"]].map(function (s) { return { n: s[0], l: s[1] }; }),
+      hyRutaModos: [["apto", "Por apartamento"], ["tec", "Por técnico"]].map(function (m) { var on = modo === m[0]; return { label: m[1], bg: on ? "#FFFFFF" : "transparent", fg: on ? "#3E3F3F" : "#6F6867", pick: function () { self.hoySet({ rutaModo: m[0] }); } }; }),
+      hyProfAbierto: !!H.profAbierto, hyProfToggle: function () { self.hoySet(function (H2) { return { profAbierto: !H2.profAbierto }; }); }, hyProfRot: H.profAbierto ? "rotate(180deg)" : "none",
+      hyProf: profRows, hyProfN: !H.hist ? "…" : porHacer + " por hacer", hyProfVacia: !profRows.length, hyProfVaciaTxt: !H.hist ? "Leyendo el historial de Epi…" : "Todas las propiedades están al día.",
+      hyBusca: H.busca || "", hySetBusca: function (e) { self.hoySet({ busca: e.target.value }); },
+      hyRegDone: nDone, hyRegPend: regRows.length - nDone, hyRegs: regRows, hyRegVacio: !regRows.length,
+      hyRegVacioTxt: H.roster ? "No hay registros con estos filtros." : H.cargando ? "Leyendo los registros de Hola…" : "Sin datos de Hola todavía.",
+      hyRegFecha: fF, hySetRegFecha: function (e) { self.hoySet({ regFecha: e.target.value }); }, hyRegFechaOpts: opt([["yesterday", "Ayer"], ["today", "Hoy"], ["tomorrow", "Mañana"], ["next3", "Próximos 3 días"], ["last3", "Últimos 3 días"], ["all", "Todas las fechas"]]),
+      hyRegEstado: eF, hySetRegEstado: function (e) { self.hoySet({ regEstado: e.target.value }); }, hyRegEstadoOpts: opt([["both", "Todos los estados"], ["pending", "Solo pendientes"], ["progress", "En proceso"], ["done", "Solo completos"]]),
+      hyRegProp: pF, hySetRegProp: function (e) { self.hoySet({ regProp: e.target.value }); }, hyRegPropOpts: [{ v: "all", l: "Todas las propiedades" }].concat(props.map(function (p) { return { v: p, l: p }; })),
+      hyRegOrden: oF, hySetRegOrden: function (e) { self.hoySet({ regOrden: e.target.value }); }, hyRegOrdenOpts: opt([["desc", "Más reciente primero"], ["asc", "Más antiguo primero"]]),
+      hySumAbierto: !!D, hySum: sumV
+    };
   }
   /* Cierre corto del huésped ("gracias", "perfecto"): no queda nada pendiente. */
   esCierre(t) { t = String(t || "").trim().toLowerCase(); return !!t && t.length <= 60 && /^(ok(ay|ey)?|vale|listo|perfecto|genial|excelente|super|súper|entendido|de acuerdo|gracias|muchas gracias|mil gracias|thanks|thank you|thank you so much|great|perfect|got it|noted|👍|🙏)[\s!.,🙏👍❤️😊]*((muchas )?gracias|thanks|thank you)?[\s!.,🙏👍❤️😊]*$/i.test(t); }
@@ -3288,12 +3625,41 @@ class Component extends DCLogic {
       var redactor = ((a.instrucciones || []).find(function (i) { return String(i.clave).toUpperCase() === "REDACTOR"; }) || {}).prompt || "Eres Alma, del equipo de Spacio AM. Cálida, breve, tú, sin markdown.";
       var hiloTxt = (info.hiloLista || []).map(function (m) { return "[" + (m.tipo === "guest" ? "HUÉSPED" : m.auto ? "SPACIO AM · automático" : "SPACIO AM") + "] " + m.texto; }).join("\n---\n").slice(-6000);
       var ctx = "Huésped: " + (info.huesped || "") + " · Propiedad: " + (info.propiedad || "") + (info.estadia ? " · Estadía " + info.estadia : "") + "\nHILO:\n" + (hiloTxt || "[HUÉSPED] " + (info.pregunta || ""));
+      /* Mejorar = pule lo escrito; Redactar = sin texto, ALMA responde desde el contexto. El resultado se muestra completo y se aprueba, edita o rehace. */
+      var mejorar = function (base) {
+        var actual = base != null ? base : (self._respDraft[convKey] || "");
+        upd({ busy: true, nota: "", propuesta: "", base: actual, modo: actual.trim() ? "mejorar" : "redactar" });
+        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual) : Promise.resolve({ ok: false });
+        p.then(function (res) {
+          if (res && res.ok && res.texto) return res.texto;
+          var user = actual.trim()
+              ? "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE. Mejóralo y compleméntalo con el contexto de TODA la conversación: (1) conserva su intención y todos sus datos, sin cambiar la decisión; (2) mejora la forma con la voz de Spacio AM, en el idioma del ÚLTIMO mensaje del huésped (si aún no escribe, el idioma asignado a su reserva; si cambió de idioma, usa el nuevo); (3) agrega solo lo relevante que falte: preguntas del huésped que siguen sin respuesta y cuya respuesta está en el contexto, el siguiente paso útil para su estadía, o reconocer lo que contó (una molestia, una celebración); (4) nunca inventes datos ni ofrezcas concesiones (horarios especiales, descuentos, reembolsos, cambios) que el equipo no ofreció; (5) breve: máximo dos agregados. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
+              : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM, en el idioma de ese último mensaje (si cambió de idioma, usa el nuevo). Los mensajes automáticos no cuentan como respuesta. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
+            return self.almaIA(redactor, user, 700);
+        }).then(function (t) { t = String(t || "").trim(); upd(t ? { busy: false, propuesta: t } : { busy: false, nota: "ALMA no devolvió texto. Intenta de nuevo." }); })
+          .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora." }); });
+      };
+      var enviar = function (t) {
+        t = String(t || "").trim(); if (!t || (self.state.convResp[convKey] || {}).enviando) return;
+        upd({ enviando: true, nota: "" });
+        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
+        p.then(function (res) {
+          if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
+          ponerTexto(""); upd({ enviando: false, abierto: false, nota: "", propuesta: "", base: null });
+          self.setState(function (s) {
+            var n = Object.assign({}, s.almaHilos); delete n[info.resId];
+            var cola = (s.alma.cola || []).map(function (x) { return x.reservation_id === info.resId && ["pendiente", "esperando_envio", "esperando_rojo"].indexOf(x.estado) >= 0 ? Object.assign({}, x, { estado: "respondido", nota: "respondido por el equipo desde el hub" }) : x; });
+            return { almaHilos: n, alma: Object.assign({}, s.alma, { cola: cola }) };
+          });
+          setTimeout(function () { self.almaCargar(); }, 1500);
+        });
+      };
       return {
         respAbierto: !!rs.abierto,
         abrirLabel: rs.abierto ? "Cerrar" : "Abrir conversación", abrirBd: rs.abierto ? "#3E3F3F" : "#3E3F3F", abrirBg: rs.abierto ? "#F5F3F0" : "#3E3F3F", abrirFg: rs.abierto ? "#3E3F3F" : "#FAFAFA",
         toggleAbrir: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
         toggleResp: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
-        respTaMin: rs.foco ? "min(40dvh, 340px)" : "56px",
+        respTaMin: rs.foco ? "min(20dvh, 170px)" : "56px",
         respOnFocus: function () {
           clearTimeout(self._blurT); if (!(self.state.convResp[convKey] || {}).foco) upd({ foco: true });
           setTimeout(function () { var ch = document.querySelector('[data-alma-chat][data-conv="' + convKey + '"]'); if (ch) ch.scrollTop = ch.scrollHeight; }, 220);
@@ -3305,34 +3671,15 @@ class Component extends DCLogic {
         respMejorarLabel: rs.busy ? "Redactando…" : rs.lleno ? "Mejorar" : "Redactar con ALMA",
         respHint: rs.lleno ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
         respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: rs.lleno ? "#3E3F3F" : "#D8D4CE", respEnviarFg: rs.lleno ? "#FAFAFA" : "#938B8A",
-        respMejorar: function () {
-          var actual = self._respDraft[convKey] || "";
-          upd({ busy: true, nota: "" });
-          var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual) : Promise.resolve({ ok: false });
-          p.then(function (res) {
-            if (res && res.ok && res.texto) return res.texto;
-            var user = actual.trim()
-              ? "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE. Mejóralo y compleméntalo con el contexto de TODA la conversación: (1) conserva su intención y todos sus datos, sin cambiar la decisión; (2) mejora la forma con la voz de Spacio AM, en el idioma del ÚLTIMO mensaje del huésped (si aún no escribe, el idioma asignado a su reserva; si cambió de idioma, usa el nuevo); (3) agrega solo lo relevante que falte: preguntas del huésped que siguen sin respuesta y cuya respuesta está en el contexto, el siguiente paso útil para su estadía, o reconocer lo que contó (una molestia, una celebración); (4) nunca inventes datos ni ofrezcas concesiones (horarios especiales, descuentos, reembolsos, cambios) que el equipo no ofreció; (5) breve: máximo dos agregados. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
-              : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM, en el idioma de ese último mensaje (si cambió de idioma, usa el nuevo). Los mensajes automáticos no cuentan como respuesta. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
-            return self.almaIA(redactor, user, 700);
-          }).then(function (t) { ponerTexto(String(t || "").trim()); upd({ busy: false, nota: "Revísalo antes de enviar." }); })
-            .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora." }); });
-        },
-        respEnviar: function () {
-          var t = (self._respDraft[convKey] || "").trim(); if (!t || (self.state.convResp[convKey] || {}).enviando) return;
-          upd({ enviando: true, nota: "" });
-          var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
-          p.then(function (res) {
-            if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
-            ponerTexto(""); upd({ enviando: false, abierto: false, nota: "" });
-            self.setState(function (s) {
-              var n = Object.assign({}, s.almaHilos); delete n[info.resId];
-              var cola = (s.alma.cola || []).map(function (x) { return x.reservation_id === info.resId && ["pendiente", "esperando_envio", "esperando_rojo"].indexOf(x.estado) >= 0 ? Object.assign({}, x, { estado: "respondido", nota: "respondido por el equipo desde el hub" }) : x; });
-              return { almaHilos: n, alma: Object.assign({}, s.alma, { cola: cola }) };
-            });
-            setTimeout(function () { self.almaCargar(); }, 1500);
-          });
-        }
+        respBusyTxt: rs.modo === "mejorar" ? "ALMA está mejorando tu texto con el contexto de la conversación…" : "ALMA está leyendo la conversación y redactando…",
+        hayPropuesta: !!rs.propuesta && !rs.busy, sinPropuesta: !rs.propuesta || !!rs.busy, propuesta: rs.propuesta || "",
+        propTitulo: rs.modo === "mejorar" ? "Tu texto, mejorado por ALMA" : "Propuesta de ALMA",
+        propAprobarLabel: rs.enviando ? "Enviando…" : "Aprobar y enviar",
+        propAprobar: function () { enviar((self.state.convResp[convKey] || {}).propuesta || ""); },
+        propEditar: function () { var t = (self.state.convResp[convKey] || {}).propuesta || ""; upd({ propuesta: "" }); ponerTexto(t); setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.value = t; el.focus(); } }, 60); },
+        propRerun: function () { mejorar((self.state.convResp[convKey] || {}).base); },
+        respMejorar: function () { mejorar(); },
+        respEnviar: function () { enviar(self._respDraft[convKey] || ""); }
       };
     };
     var resIdPorCodigo = {};
@@ -3878,13 +4225,16 @@ class Component extends DCLogic {
       g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
       var top = g.frags[0], man = resMan[g.key], ib = inboxPor[g.key];
       var ug = ib ? Date.parse(ib.ultimo_guest_ts) || 0 : 0, uh = ib ? Date.parse(ib.ultimo_host_ts) || 0 : 0;
-      g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0);
+      g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0); g.tsReal = g.ts;
+      /* 15 h sin mensajes de ninguna de las partes: se da por resuelta. */
+      var inactiva = !top.esCola && g.ts > 0 && Date.now() - g.ts >= 15 * 3600000;
       /* Un mensaje nuevo del huésped después de marcarla reabre la conversación sola. */
       var vigente = man && man.ts >= Math.max(top.ts || 0, ug);
       g.pendAuto = !top.esCola && pendHilo(top.resId) === true;
       if (g.pendAuto) g.frags.forEach(function (c) { c.sinResp = true; });
       g.autoRes = !top.esCola && !g.pendAuto && self.autoResuelta(ib, ug, uh);
-      g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes));
+      if (inactiva && !g.autoRes) g.autoRes = "sin actividad en 15 h";
+      g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes || inactiva));
       g.frags.forEach(function (c) {
         c.resLabel = g.resuelto ? "Reabrir" : "Resuelta";
         c.copiarCodigo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.copiar(c.codigo, "Código " + c.codigo + " copiado"); };
@@ -3924,7 +4274,7 @@ class Component extends DCLogic {
         c.progNota = ps.cargando ? "Consultando Hospitable…" : ps.error ? ps.error : (ps.lista && !ps.lista.length ? "No hay mensajes programados pendientes." : (!window.ALMA || !ALMA.hasApi() ? "Conecta el Apps Script para consultar Hospitable." : ""));
         c.progHayNota = !!c.progNota;
       });
-      g.rk = g.resuelto ? 7 : rank(top); g.ts = top.ts;
+      g.rk = g.resuelto ? 7 : rank(top); g.ts = g.tsReal;
       if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
       g.frags.forEach(function (c, i) { c.hayFrags = g.frags.length > 1; c.fragPos = (i + 1) + " / " + g.frags.length; c.fechaPad = g.frags.length > 1 ? "52px" : "0"; });
     });
@@ -3932,7 +4282,8 @@ class Component extends DCLogic {
     var gruposTodos = grupos;
     var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Por confirmar"))); };
     /* Resumen en texto: una línea por reserva con movimiento en la ventana; si no hubo, lo que sigue abierto. */
-    var tsG = function (g) { return g.frags.reduce(function (m, c) { return Math.max(m, c.ts || 0); }, 0); };
+    /* Hora real del último mensaje (de quien sea), igual que el inbox de Hospitable. */
+    var tsG = function (g) { return Math.max(g.tsReal || 0, g.frags.reduce(function (m, c) { return Math.max(m, c.ts || 0); }, 0)); };
     var gruposRes = gruposTodos;
     var enVent = gruposRes.filter(function (g) { return ahora - tsG(g) <= ventanaMs; });
     var resRecientes = enVent.length > 0;
@@ -3948,7 +4299,8 @@ class Component extends DCLogic {
     var temaDe = function (t) { return self.fraseCaso(t) || (t.esCola ? "Mensaje nuevo del huésped" : t.humano || t.enviado ? "Conversación con el huésped" : "El huésped escribió"); };
     var PASADO = { "No lo dejan entrar al edificio": "No lo dejaban entrar al edificio · ya ingresó", "No puede entrar al apartamento": "No podía entrar · ya ingresó", "Problemas con el internet": "Problema con el internet · resuelto", "Sin agua caliente": "No tenía agua caliente · resuelto", "Tiene una duda, aún no la dice": "Tenía una duda · se le respondió" };
     var vistoR = {};
-    var baseRes = enVent.concat(abiertosRes).filter(function (g) { if (vistoR[g.key]) return false; vistoR[g.key] = 1; return !!propDe(g) || enNivel(g, "ROJO"); });
+    /* Solo lo que tuvo movimiento en la ventana (8 h): nada viejo. */
+    var baseRes = enVent.filter(function (g) { if (vistoR[g.key]) return false; vistoR[g.key] = 1; return !!propDe(g) || enNivel(g, "ROJO"); });
     if (!baseRes.length) baseRes = gruposRes.filter(function (g) { return !!propDe(g); }).sort(function (x, y) { return tsG(y) - tsG(x); }).slice(0, 5);
     var resLineas = baseRes.map(function (g) {
       var t = g.frags[0], ib = inboxPor[g.key], est, bg, fg, pr, pide = false, tipo = "tarjeta", texto;
@@ -4302,7 +4654,7 @@ class Component extends DCLogic {
       respFiltros: respFiltros.map(function (x) { return { value: x, label: x }; }), logResp: st.logResp, setLogResp: function (v) { self.setState({ logResp: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       ordenFiltros: ordenFiltros.map(function (x) { return { value: x, label: x }; }), convOrden: ordenEf, convOrdenNota: st.convOrden ? "Elegido por ti · vuelve a Prioridad si entra algo pendiente" : (hayPend ? "Automático · hay pendientes" : "Automático · todo en calma"),
       setConvOrden: function (v) { self.setState({ convOrden: v, cronoLista: true, convIdx: 0, briefIdx: 0 }); self.convReset(); },
-      hayAlmaFotos: true, almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/alma-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
+      hayAlmaFotos: true, almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/a-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
       almaEstadoCorto: !st.alma ? "Conectando…" : !ctrlLegible ? "Control sin leer" : on ? (ctrl.MODO || "ON") + " · " + (ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00") : "Apagada",
       briefTitulo: !st.alma ? "Leyendo la cola…" : briefHumanos ? briefHumanos + (briefHumanos === 1 ? " caso necesita" : " casos necesitan") + " a alguien del equipo" : briefItems.length ? "Todo atendido, nada pendiente de ti" : "Sin movimiento",
       briefDigest: briefDigest, briefHayDigest: !!briefDigest,
@@ -4791,7 +5143,7 @@ class Component extends DCLogic {
         };
       });
 
-    return Object.assign(this.almaVals(), {
+    return Object.assign(this.almaVals(), this.hoyVals(), {
       /* vistas */
       enCargando: st.vista === "cargando",
       enHoy: st.vista === "hoy",
@@ -5018,6 +5370,12 @@ class Component extends DCLogic {
           return ALMA.probarPush(q.email).then(function (r) {
             var t = !r || !r.ok ? "No se pudo enviar: " + ((r && r.error) || "sin respuesta") : r.destinatarios > 0 ? "Prueba enviada a " + r.destinatarios + (r.destinatarios === 1 ? " dispositivo" : " dispositivos") + ". Debe llegar en segundos." : "OneSignal no encontró ningún dispositivo con tu correo (" + q.email + (dg && dg.externalId && dg.externalId !== q.email ? "; este teléfono está vinculado a " + dg.externalId : "") + "). Apaga y vuelve a encender el interruptor.";
             self.setState({ pushBusy: false, pushPrueba: t });
+            if (ALMA.pushLog) ALMA.pushLog(48).then(function (L) {
+              if (!L || !L.ok) return;
+              var f = L.filas || [], ok = f.filter(function (x) { return Number(x.destinatarios) > 0 || Number(x.destinatarios) === -1; }).length, malos = f.filter(function (x) { return x.error || !(Number(x.destinatarios) > 0 || Number(x.destinatarios) === -1); });
+              var ult = malos.length ? " Último problema: " + String(malos[malos.length - 1].error || "OneSignal no encontró dispositivos") .slice(0, 140) + "." : "";
+              self.setState({ pushPrueba: t + " · Últimas 48 h: " + f.length + (f.length === 1 ? " aviso" : " avisos") + " de ALMA, " + ok + " entregados." + ult });
+            });
           });
         }).catch(function () { self.setState({ pushBusy: false, pushPrueba: "No se pudo enviar la prueba." }); });
       },

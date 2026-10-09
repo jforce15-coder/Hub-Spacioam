@@ -14,10 +14,17 @@
       var s = document.createElement('script'); s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; s.defer = true;
       s.onerror = function (e) { cargado = null; ko(e); };
       document.head.appendChild(s);
-      g.OneSignalDeferred.push(function (OS) { OS.init({ appId: APP_ID, serviceWorkerPath: 'OneSignalSDKWorker.js', notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true }).then(function () { ok(OS); }, ko); });
+      g.OneSignalDeferred.push(function (OS) { OS.init({ appId: APP_ID, serviceWorkerPath: 'OneSignalSDKWorker.js', notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true }).then(function () {
+        /* Cualquier suscripción nueva (también la del aviso de OneSignal) se vincula al correo: sin eso ALMA no sabe a quién avisar. */
+        try { OS.User.PushSubscription.addEventListener('change', function (ev) { var c = ev && ev.current || {}; if (c.optedIn && c.id) { if (localStorage.getItem('sa_push_on') !== '0') localStorage.setItem('sa_push_on', '1'); vincular(OS); } avisar(); }); } catch (e) {}
+        vincular(OS); avisar(); ok(OS);
+      }, ko); });
     });
     return cargado;
   }
+  function correo() { try { return String(localStorage.getItem('sa_push_email') || '').toLowerCase(); } catch (e) { return ''; } }
+  function vincular(OS) { var e = correo(); if (!e) return Promise.resolve(); var actual = ''; try { actual = String(OS.User.externalId || '').toLowerCase(); } catch (x) {} return actual === e ? Promise.resolve() : OS.login(e).catch(function () {}); }
+  function avisar() { try { g.dispatchEvent(new Event('sa-push')); } catch (e) {} }
   /* OneSignal crea la suscripción unos segundos después del permiso: se espera a tener id y token. */
   function esperarSub(OS, ms) {
     return new Promise(function (ok) {
@@ -34,8 +41,8 @@
       if (!('serviceWorker' in navigator) || !('Notification' in g)) return 'no';
       if (Notification.permission === 'denied') return 'bloqueado';
       var pref = localStorage.getItem('sa_push_on');
-      if (Notification.permission === 'granted' && pref === '1') return 'activo';
-      if (Notification.permission === 'granted' && pref === '0') return 'pausado';
+      /* Si el permiso ya está dado (aunque lo haya pedido el aviso de OneSignal y no el hub), cuenta como activo. */
+      if (Notification.permission === 'granted') return pref === '0' ? 'pausado' : 'activo';
       return 'soportado';
     },
     /* Vincula el dispositivo a tu correo (external_id) para que ALMA avise solo a quien esté de turno. Llamar desde un toque. */
@@ -47,12 +54,12 @@
       return Promise.resolve(permiso).then(function (p) {
         if (p !== 'granted') return { ok: false, estado: p === 'denied' ? 'bloqueado' : 'soportado' };
         return cargar().then(function (OS) {
-          var email = String((quien && quien.email) || '').toLowerCase();
+          var email = String((quien && quien.email) || '').toLowerCase(); if (email) localStorage.setItem('sa_push_email', email);
           return (email ? OS.login(email) : Promise.resolve()).catch(function () {})
             .then(function () { return OS.User.PushSubscription.optIn(); }).catch(function () {})
             .then(function () { return esperarSub(OS, 10000); })
             .then(function (s) {
-              localStorage.setItem('sa_push_on', '1');
+              localStorage.setItem('sa_push_on', '1'); avisar();
               if (quien && quien.rol) { try { OS.User.addTag('rol', String(quien.rol)); } catch (e) {} }
               return { ok: !!s.id, estado: 'activo', subId: s.id || '' };
             });
@@ -69,7 +76,7 @@
         return esperarSub(OS, 4000).then(function (s) {
           d.subId = s.id || ''; d.token = !!s.token; d.optedIn = !!s.optedIn;
           try { d.externalId = String(OS.User.externalId || '').toLowerCase(); } catch (e) {}
-          d.motivo = !s.id ? 'OneSignal no tiene suscripción para este teléfono' : !s.token ? 'falta el token de notificaciones' : !s.optedIn ? 'la suscripción está pausada' : '';
+          d.motivo = !s.id ? 'OneSignal no registró este dispositivo (revisa que OneSignalSDKWorker.js esté en la raíz de hub.spacioam.com)' : !s.token ? 'falta el token de notificaciones' : !s.optedIn ? 'la suscripción está pausada' : '';
           return d;
         });
       }).catch(function () { d.motivo = 'OneSignal no cargó'; return d; });
@@ -84,8 +91,8 @@
     reanudar: function (quien) {
       if (SAPush.estado() !== 'activo') return;
       cargar().then(function (OS) {
-        var e = String((quien && quien.email) || '').toLowerCase();
-        return (e ? OS.login(e) : Promise.resolve()).then(function () { if (!OS.User.PushSubscription.optedIn) return OS.User.PushSubscription.optIn(); });
+        var e = String((quien && quien.email) || '').toLowerCase(); if (e) localStorage.setItem('sa_push_email', e);
+        return vincular(OS).then(function () { if (!OS.User.PushSubscription.optedIn) return OS.User.PushSubscription.optIn(); }).then(function () { return esperarSub(OS, 8000); }).then(function (s) { if (s && s.id) localStorage.setItem('sa_push_on', '1'); avisar(); });
       }).catch(function () {});
     }
   };

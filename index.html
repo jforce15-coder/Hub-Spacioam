@@ -1362,7 +1362,7 @@
               </sc-if>
 
               <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}">
-                <div data-alma-scroll="1" style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid #EAE6E0; flex-shrink:0; max-height:min(34%, 240px); overflow-y:auto; overscroll-behavior:auto">
+                <div data-alma-scroll="1" style="padding:12px 16px 14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid #EAE6E0; flex: {{ c.colaFlex }}; min-height:0; max-height: {{ c.colaMax }}; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding-bottom:calc(14px + env(safe-area-inset-bottom))">
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                     <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="{{ c.cuandoColor }}" hint-size="14px,14px"></x-import>
                     <span style="font-size:12px; letter-spacing:.03em; font-weight:500; color: {{ c.cuandoColor }}">{{ c.cuando }}</span>
@@ -1371,6 +1371,12 @@
                   </div>
                   <sc-if value="{{ c.abierto }}" hint-placeholder-val="{{ false }}">
                     <div style="display:flex; flex-direction:column; gap:12px">
+                      <sc-if value="{{ c.hayBorrador }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; flex-direction:column; gap:6px">
+                          <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Respuesta preparada</span>
+                          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:14px; padding:12px 14px; font-size:14px; line-height:1.6; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ c.borrador }}</div>
+                        </div>
+                      </sc-if>
                       <sc-if value="{{ c.hayRazon }}" hint-placeholder-val="{{ false }}">
                         <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; line-height:1.5">Por qué: {{ c.razon }}</span>
                       </sc-if>
@@ -1534,7 +1540,13 @@
         <button onClick="{{ cerrarLightbox }}" aria-label="Cerrar" style="position:absolute; top:calc(14px + env(safe-area-inset-top)); right:14px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(250,250,250,.92); display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
       </div>
     </sc-if>
-    <sc-if value="{{ rzAbierto }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ swResVisible }}" hint-placeholder-val="{{ false }}">
+              <div role="status" style="position:fixed; left:50%; transform:translateX(-50%); bottom:calc(24px + env(safe-area-inset-bottom)); z-index:60; display:flex; align-items:center; gap:14px; background:#3E3F3F; color:#FAFAFA; border-radius:999px; padding:10px 10px 10px 18px; box-shadow:0 12px 40px rgba(62,63,63,.18); font-size:12.5px; letter-spacing:.02em">
+                <span>Marcada como resuelta</span>
+                <button onClick="{{ deshacerResolver }}" style="border:none; border-radius:999px; background:rgba(250,250,250,.14); color:#FAFAFA; padding:8px 14px; min-height:36px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer">Deshacer</button>
+              </div>
+            </sc-if>
+      <sc-if value="{{ rzAbierto }}" hint-placeholder-val="{{ false }}">
       <div style="position:fixed; inset:0; z-index:65; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
         <div onClick="{{ rzCerrar }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
         <div role="dialog" aria-label="Análisis del mensaje" style="position:relative; width:min(100%,640px); max-height:min(88dvh,860px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
@@ -2517,18 +2529,28 @@ class Component extends DCLogic {
       var t = e.target; if (!t || !t.closest || t.closest("textarea, input, select, [role=dialog], .alma-brief")) return;
       for (var el = t; el && el !== document.body; el = el.parentElement) { if (el.scrollWidth > el.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
       var row = t.closest("[data-gk]");
-      self._sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), gk: row ? row.getAttribute("data-gk") : null, lock: null, dx: 0 };
+      self._sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), gk: row ? row.getAttribute("data-gk") : null, row: row, lock: null, dx: 0 };
     }, { passive: true });
     document.addEventListener("touchmove", function (e) {
       var s = self._sw; if (!s) return;
       var dx = e.touches[0].clientX - s.x, dy = e.touches[0].clientY - s.y;
       if (!s.lock) { if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return; s.lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? "h" : "v"; if (s.lock === "h") self.lpCancel(); }
       if (s.lock !== "h") return;
-      s.dx = dx; mueve(dx * (self.swipePuede(dx < 0 ? "izq" : "der", s.gk) ? 0.45 : 0.12), false);
+      s.dx = dx;
+      var stR = self.state, enLista = s.row && stR.cronoLista !== false && !stR.selG;
+      if (enLista && dx > 0) { s.res = true; s.row.style.transition = "none"; s.row.style.transform = "translateX(" + Math.min(dx, 160) + "px)"; s.row.style.boxShadow = dx > 70 ? "inset 4px 0 0 #3d6b52" : ""; s.row.style.backgroundColor = dx > 70 ? "rgba(61,107,82,.12)" : ""; return; }
+      if (s.res) { s.res = false; s.row.style.transform = ""; s.row.style.boxShadow = ""; s.row.style.backgroundColor = ""; }
+      mueve(dx * (self.swipePuede(dx < 0 ? "izq" : "der", s.gk) ? 0.45 : 0.12), false);
     }, { passive: true });
     var fin = function () {
       var s = self._sw; self._sw = null; if (!s || s.lock !== "h") return;
       var v = Math.abs(s.dx) / Math.max(1, Date.now() - s.t), dir = s.dx < 0 ? "izq" : "der";
+      if (s.res) {
+        var r0 = s.row, ok = s.dx > 70 || (v > 0.45 && s.dx > 30);
+        r0.style.transition = "transform .24s cubic-bezier(.22,.61,.36,1), background-color .24s"; r0.style.transform = ""; r0.style.boxShadow = ""; r0.style.backgroundColor = "";
+        if (ok) { try { navigator.vibrate && navigator.vibrate(8); } catch (x) {} self.resolverGk(s.gk); }
+        return;
+      }
       if ((Math.abs(s.dx) > 70 || (v > 0.45 && Math.abs(s.dx) > 30)) && self.swipePuede(dir, s.gk)) {
         try { navigator.vibrate && navigator.vibrate(8); } catch (x) {}
         self.swipeNav(dir, s.gk);
@@ -3068,12 +3090,25 @@ class Component extends DCLogic {
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, viejo); else viejo();
   }
   /* Swipe en móvil: izquierda = más adentro (lista → tarjeta → conversación); derecha = volver. */
-  swipePuede(dir, gk) { var st = this.state, chat = st.cronoLista === false, tar = !!st.selG && !chat; return dir === "izq" ? (!chat && (tar || !!gk)) : (chat || tar); }
+  swipePuede(dir, gk) { var st = this.state, chat = st.cronoLista === false, tar = !!st.selG && !chat; return dir === "izq" ? (!chat && (tar || !!gk)) : (chat || tar || !!gk); }
+  /* Swipe a la derecha sobre una fila del listado = marcar resuelta (con deshacer). */
+  resolverGk(gk) {
+    var self = this, prev = (this.state.resMan || {})[gk] || null, ent = { estado: "resuelta", ts: Date.now(), por: this.quienSoy() };
+    this.setState(function (s) { var n = Object.assign({}, s.resMan); n[gk] = ent; try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} return { resMan: n, swRes: { gk: gk, prev: prev } }; });
+    if (window.ALMA && ALMA.hasApi()) ALMA.resolver(gk, "resuelta", ent.por);
+    clearTimeout(this._swResT); this._swResT = setTimeout(function () { self.setState({ swRes: null }); }, 4000);
+  }
+  deshacerResolver() {
+    var r = this.state.swRes; if (!r) return; var ent = r.prev || { estado: "abierta", ts: Date.now(), por: this.quienSoy() };
+    this.setState(function (s) { var n = Object.assign({}, s.resMan); n[r.gk] = ent; try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} return { resMan: n, swRes: null }; });
+    if (window.ALMA && ALMA.hasApi()) ALMA.resolver(r.gk, ent.estado, this.quienSoy());
+  }
   swipeNav(dir, gk) {
     var st = this.state, chat = st.cronoLista === false, tar = !!st.selG && !chat;
     if (dir === "izq") { if (chat) return; if (tar) this.abrirGrupo(st.selG); else if (gk) this.selConv(gk, false); return; }
     if (chat) { var g = (this._convGrupos || [])[st.convIdx || 0]; this.convCerrarTodas(); this.setState({ cronoLista: true, selG: g ? g.key : st.selG || null }); return; }
-    if (tar) this.setState({ selG: null });
+    if (tar) { this.setState({ selG: null }); return; }
+    if (gk) this.resolverGk(gk);
   }
   /* Abre la conversación aunque los filtros la escondan (se quitan los filtros y se reintenta). */
   abrirGrupo(gk) { this._apTry = 0; this.setState({ abrirPend: gk }); }
@@ -3786,6 +3821,8 @@ class Component extends DCLogic {
         cuando: cuando, cuandoColor: cuandoColor,
         abierto: st.almaAbierto === key, abrirLabel: st.almaAbierto === key ? "Cerrar" : (d.borrador ? "Ver respuesta" : "Detalle"),
         abrir: function () { var abre = st.almaAbierto !== key; self.setState({ almaAbierto: abre ? key : null }); if (abre) cargarHilo(); },
+        colaMax: st.almaAbierto === key ? (window.matchMedia && matchMedia("(max-width:1179px)").matches ? "82%" : "min(64%, 560px)") : "min(34%, 240px)",
+        colaFlex: st.almaAbierto === key ? "1 1 auto" : "0 0 auto",
         hayBorrador: !!d.borrador, borrador: d.borrador || "",
         borradorLabel: est === "esperando_rojo" ? "Contención · ya enviada" : puedeEnviar ? "Respuesta preparada · sale a las " + hora : "Respuesta preparada",
         hayRazon: !!d.razon, razon: d.razon || "",
@@ -4677,6 +4714,7 @@ class Component extends DCLogic {
       cronoVacioTexto: prio ? "No hay casos pendientes. ALMA sigue atendiendo y te traemos aquí en cuanto algo necesite a alguien." : "No hay conversaciones con estos filtros.",
       cronoVacioBoton: prio, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
       cronoFilas: cronoFilas, canalFiltros: canalFiltros,
+      swResVisible: !!st.swRes, deshacerResolver: function () { self.deshacerResolver(); },
       convAltoVisor: convItems.some(function (c) { return (st.convResp[c.key] || {}).abierto; }) ? "clamp(360px, calc(100dvh - 150px), 780px)" : "clamp(280px, 52dvh, 520px)",
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },

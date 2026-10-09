@@ -30,7 +30,7 @@
 <script src="js/sa-auth-client.js"></script>
 <script src="js/sa-session.js"></script>
 <script src="js/alma-client.js?v=2026-10-09.1400"></script>
-<script src="js/push.js?v=2026-10-09.1400"></script>
+<script src="js/push.js?v=2026-10-09.1500"></script>
 <script src="js/sched-engine.js?v=2026-10-09.1400"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
@@ -185,7 +185,7 @@
                   <span style="font-size:12.5px; letter-spacing:.06em">Notificaciones push</span>
                   <span style="font-size:10.5px; letter-spacing:.03em; color:#6F6867; line-height:1.4">{{ pushSub }}</span>
                 </span>
-                <sc-if value="{{ pushOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pushProbar }}" disabled="{{ pushBusy }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:32px; padding:0 12px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; flex-shrink:0" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Probar</button></sc-if>
+                <sc-if value="{{ pushPuedeProbar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pushProbar }}" disabled="{{ pushBusy }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:32px; padding:0 12px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; flex-shrink:0" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Probar</button></sc-if>
                 <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ pushOn }}" onChange="{{ pushToggle }}" disabled="{{ pushBusy }}" aria-label="Notificaciones push" hint-size="44px,26px"></x-import>
               </div>
             </sc-if>
@@ -2430,7 +2430,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-09.1400";
+  BUILD = "2026-10-09.1500";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2645,6 +2645,8 @@ class Component extends DCLogic {
   pushRevisar() {
     var P = window.SAPush; if (!P || !P.configurado()) return;
     var est = P.estado();
+    if (!this._pushEv) { var me = this; this._pushEv = true; window.addEventListener("sa-push", function () { me.forceUpdate(); }); }
+    try { var q0 = this.quienPush(); if (q0.email) localStorage.setItem("sa_push_email", String(q0.email).toLowerCase()); } catch (e) {}
     if (est === "activo") { P.reanudar(this.quienPush()); return; }
     if (est !== "soportado" || !P.instalada()) return;
     var ult = Number(localStorage.getItem("sa_push_preg") || 0);
@@ -5360,6 +5362,7 @@ class Component extends DCLogic {
       pushPermitir: function () { self.pushPermitir(); }, pushAhoraNo: function () { self.pushAhoraNo(); },
       pushDisponible: (function () { var e = window.SAPush && SAPush.configurado() ? SAPush.estado() : "no"; return e === "activo" || e === "pausado" || e === "soportado" || e === "bloqueado" || e === "instalar"; })(),
       pushOn: (window.SAPush && SAPush.estado() === "activo") || false,
+      pushPuedeProbar: !!window.SAPush && ["activo", "pausado", "bloqueado"].indexOf(SAPush.estado()) >= 0,
       pushProbar: function () {
         if (!window.ALMA || !ALMA.probarPush) return;
         var q = self.quienPush(); self.setState({ pushBusy: true, pushPrueba: "Revisando este dispositivo…" });

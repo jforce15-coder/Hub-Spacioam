@@ -468,6 +468,7 @@
           <span style="display:inline-flex; align-items:center; gap:8px; font-size:10px; font-weight:600; letter-spacing:.28em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="11" hint-size="11px,11px"></x-import>Panel de administración</span>
           <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:clamp(26px,4.4vw,36px); line-height:1.05">Control de registros</span>
           <span style="font-size:12.5px; line-height:1.55; letter-spacing:.02em; color:#6F6867; max-width:460px">Formularios de check-in de tus alojamientos, sincronizados con Hospitable.</span>
+          <a href="https://hola.spacioam.com" target="_blank" rel="noopener" style="align-self:flex-start; margin-top:4px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; display:inline-flex; align-items:center; gap:6px; text-decoration:none; transition:border-color .18s" style-hover="border-color:#3E3F3F">Abrir Hola <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="14" color="currentColor" hint-size="14px,14px"></x-import></a>
         </div>
         <label style="display:flex; align-items:center; gap:10px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 16px; height:46px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="16" color="#6F6867" hint-size="16px,16px"></x-import><input type="search" defaultValue="{{ hyBusca }}" data-sync="1" data-v="{{ hyBusca }}" onInput="{{ hySetBusca }}" placeholder="Buscar reserva, huésped o propiedad…" style="flex:1; min-width:0; border:none; outline:none; background:transparent; font-family:inherit; font-size:14px; color:#3E3F3F"></label>
         <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:420px">
@@ -922,9 +923,9 @@
           </button>
         </sc-for>
         <span aria-hidden="true" style="width:1px; align-self:stretch; margin:6px 0; background:#D8D4CE; flex-shrink:0"></span>
-        <sc-for list="{{ canalFiltros }}" as="cf" hint-placeholder-count="2">
+        <sc-for list="{{ canalFiltros }}" as="cf" hint-placeholder-count="0">
           <button onClick="{{ cf.setM }}" aria-label="{{ cf.aria }}" title="{{ cf.aria }}" aria-pressed="{{ cf.activo }}" class="alma-cont-ico" style="position:relative; width:38px; height:38px; border-radius:50%; border:1px solid {{ cf.bd }}; background: {{ cf.bg }}; place-items:center; cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent; transition:background .18s, border-color .18s, transform .1s" style-active="transform:scale(.92)">
-            <span style="width:20px; height:20px; border-radius:50%; background: {{ cf.marca }}; color:#FFFFFF; display:grid; place-items:center; font-size:10px; font-weight:700; line-height:1">{{ cf.letra }}</span>
+            <img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ cf.dom }}" alt="" style="width:20px; height:20px; border-radius:50%; background:#FFFFFF; object-fit:cover; display:block">
             <sc-if value="{{ cf.hayN }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-5px; top:-5px; min-width:13px; height:17px; padding:0 4px; border-radius:999px; border:2px solid #FAFAFA; background:#3E3F3F; color:#FFFFFF; font-size:9.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1">{{ cf.n }}</span></sc-if>
           </button>
         </sc-for>
@@ -969,7 +970,7 @@
                 <span style="position:relative; width:40px; height:40px; flex-shrink:0">
                   <sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
                   <sc-if value="{{ l.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span></sc-if>
-                  <sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><span title="{{ l.canalNom }}" aria-label="{{ l.canalNom }}" style="position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background: {{ l.canalBg }}; color:#FFFFFF; display:grid; place-items:center; font-size:8.5px; font-weight:700; letter-spacing:0; line-height:1; font-family:Montserrat,sans-serif">{{ l.canalLetra }}</span></sc-if>
+                  <sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ l.canalDom }}" title="{{ l.canalNom }}" alt="{{ l.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
                   <sc-if value="{{ l.pide }}" hint-placeholder-val="{{ false }}"><span aria-label="Necesita a alguien" style="position:absolute; left:-2px; top:-2px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF; box-sizing:border-box"></span></sc-if>
                 </span>
                 <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
@@ -1064,7 +1065,7 @@
           <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-left:6px solid {{ tj.color }}; border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:14px; box-shadow:0 4px 16px rgba(62,63,63,.05)">
             <div style="display:flex; align-items:center; gap:12px">
               <span style="position:relative; width:48px; height:48px; flex-shrink:0">
-                <sc-if value="{{ tj.canalHay }}" hint-placeholder-val="{{ false }}"><span title="{{ tj.canalNom }}" aria-label="{{ tj.canalNom }}" style="position:absolute; right:-3px; bottom:-3px; width:19px; height:19px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background: {{ tj.canalBg }}; color:#FFFFFF; display:grid; place-items:center; font-size:8.5px; font-weight:700; letter-spacing:0; line-height:1; font-family:Montserrat,sans-serif">{{ tj.canalLetra }}</span></sc-if>
+                <sc-if value="{{ tj.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ tj.canalDom }}" title="{{ tj.canalNom }}" alt="{{ tj.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:19px; height:19px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
                 <sc-for list="{{ tj.fotos }}" as="fotoTjfotos" hint-placeholder-count="0"><img src="{{ fotoTjfotos.src }}" loading="lazy" alt="" style="width:48px; height:48px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-for>
                 <sc-if value="{{ tj.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:48px; height:48px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:13px; font-weight:600; letter-spacing:.06em">{{ tj.iniciales }}</span></sc-if>
               </span>
@@ -1116,8 +1117,8 @@
           <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="3">
             <button onClick="{{ r.set }}" aria-pressed="{{ r.activo }}" style="display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; min-width:140px; padding:0 14px; line-height:1; box-sizing:border-box; border:1px solid {{ r.bd }}; background: {{ r.bg }}; color: {{ r.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums; line-height:1; min-width:2ch; text-align:right">{{ r.n }}</span><span style="line-height:1">{{ r.nombre }}</span></button>
           </sc-for>
-          <sc-for list="{{ canalFiltros }}" as="cf" hint-placeholder-count="2">
-            <button onClick="{{ cf.set }}" aria-pressed="{{ cf.activo }}" title="{{ cf.aria }}" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:38px; padding:0 14px 0 8px; line-height:1; box-sizing:border-box; border:1px solid {{ cf.bd }}; background: {{ cf.bg }}; color: {{ cf.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="width:22px; height:22px; border-radius:50%; background: {{ cf.marca }}; color:#FFFFFF; display:grid; place-items:center; font-size:10px; font-weight:700; letter-spacing:0">{{ cf.letra }}</span><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums">{{ cf.n }}</span><span>{{ cf.nombre }}</span></button>
+          <sc-for list="{{ canalFiltros }}" as="cf" hint-placeholder-count="0">
+            <button onClick="{{ cf.set }}" aria-pressed="{{ cf.activo }}" title="{{ cf.aria }}" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:38px; padding:0 14px 0 8px; line-height:1; box-sizing:border-box; border:1px solid {{ cf.bd }}; background: {{ cf.bg }}; color: {{ cf.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ cf.dom }}" alt="" style="width:22px; height:22px; border-radius:50%; background:#FFFFFF; object-fit:cover; display:block"><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums">{{ cf.n }}</span><span>{{ cf.nombre }}</span></button>
           </sc-for>
         </div>
       </div>
@@ -1145,7 +1146,7 @@
                 <span style="position:relative; width:44px; height:44px; flex-shrink:0">
                   <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" style="width:44px; height:44px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
                   <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
-                  <sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><span title="{{ r.canalNom }}" aria-label="{{ r.canalNom }}" style="position:absolute; right:-3px; bottom:-3px; width:18px; height:18px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background: {{ r.canalBg }}; color:#FFFFFF; display:grid; place-items:center; font-size:8.5px; font-weight:700; letter-spacing:0; line-height:1; font-family:Montserrat,sans-serif">{{ r.canalLetra }}</span></sc-if>
+                  <sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ r.canalDom }}" title="{{ r.canalNom }}" alt="{{ r.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:18px; height:18px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
                   <sc-if value="{{ r.noLeido }}" hint-placeholder-val="{{ false }}"><span aria-label="Sin responder" style="position:absolute; left:-3px; top:-3px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF"></span></sc-if>
                 </span>
                 <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
@@ -2443,7 +2444,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-09.1700";
+  BUILD = "2026-10-09.1900";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -2461,6 +2462,12 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     var self = this;
+    /* Cualquier enlace a epi / hola / mi / grow lleva la sesión, para no volver a iniciar sesión. */
+    document.addEventListener("click", function (e) {
+      var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;
+      var u = a.getAttribute("href") || ""; if (!/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) || /sa_sso=/.test(u)) return;
+      a.setAttribute("href", self.conSesion(u)); setTimeout(function () { a.setAttribute("href", u); }, 1500);
+    }, true);
     /* Escritura rápida: mientras se teclea, los cambios de estado se juntan y se aplican 220 ms después de la última tecla
        (o al salir del campo / tocar otro control). El hub no se re-pinta letra por letra. */
     var setOrig = this.setState.bind(this), colaTec = [], tFl = null;
@@ -3150,6 +3157,15 @@ class Component extends DCLogic {
     if (!s.email) return;
     if (window.SAAuth && SAAuth.profile) SAAuth.profile(s.email).then(function (r) { if (r && r.ok && r.profile && r.profile.nombre) poner(r.profile.nombre, s.email, { avatar: r.profile.avatar || "" }); else if (!s.nombre && SAAuth.usuarios) SAAuth.usuarios().then(function (us) { var u = (us || []).find(function (x) { return String(x.email).toLowerCase() === String(s.email).toLowerCase(); }); if (u && u.nombre) poner(u.nombre, s.email); }); });
   }
+  /* Sesión única: al abrir otra app de Spacio AM desde el hub viaja la sesión en el #fragmento (no llega a ningún servidor).
+     La app la guarda con sa-sso.js y limpia la URL. Necesario sobre todo en el ícono de inicio de iPhone/iPad, que no comparte cookies con Safari. */
+  conSesion(u) {
+    try {
+      var t = window.SA && SA.getToken && SA.getToken(); if (!t || !/^https:\/\/([a-z0-9-]+\.)?spacioam\.com/i.test(u) || /\/\/hub\./i.test(u)) return u;
+      if (SA.touchSession) SA.touchSession(); t = SA.getToken();
+      return u + (u.indexOf("#") >= 0 ? "&" : "#") + "sa_sso=" + encodeURIComponent(t);
+    } catch (e) { return u; }
+  }
   /* Login unificado (hoja «Control de usuarios»), igual que las otras 4 apps. */
   ingresar() {
     var self = this, st = this.state;
@@ -3633,6 +3649,8 @@ class Component extends DCLogic {
     };
     /* Responder desde el hub: editor + Mejorar (ALMA redacta o pule) + Enviar (Hospitable). */
     var composer = function (convKey, info) {
+      if (info && !info.resId && String(convKey).indexOf("wa:") === 0) info = Object.assign({}, info, { resId: convKey });
+      if (info && !info.resId && String(info.gk || info.key || "").indexOf("wa:") === 0) info = Object.assign({}, info, { resId: info.gk || info.key });
       var rs = st.convResp[convKey] || {};
       var upd = function (patch) { self.setState(function (s) { var o = Object.assign({}, s.convResp); o[convKey] = Object.assign({}, o[convKey] || {}, patch); return { convResp: o }; }); };
       if (self._respDraft[convKey] == null) self._respDraft[convKey] = rs.texto || "";
@@ -4297,21 +4315,22 @@ class Component extends DCLogic {
     });
     if (ordenEf !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
     /* Origen: WhatsApp (número del negocio) u Hospitable (Airbnb, VRBO, Booking, directas). Una conversación unida tiene los dos. */
-    var CANAL = { whatsapp: ["WhatsApp", "W", "#128C7E"], airbnb: ["Airbnb", "A", "#FF5A5F"], vrbo: ["VRBO", "V", "#1A4FA3"], booking: ["Booking.com", "B", "#003580"], expedia: ["Expedia", "E", "#00355F"], directa: ["Hospitable · reserva directa", "H", "#3E3F3F"] };
+    var CANAL = { whatsapp: ["WhatsApp", "W", "#128C7E", "whatsapp.com"], airbnb: ["Airbnb", "A", "#FF5A5F", "airbnb.com"], vrbo: ["VRBO", "V", "#1A4FA3", "vrbo.com"], booking: ["Booking.com", "B", "#003580", "booking.com"], expedia: ["Expedia", "E", "#00355F", "expedia.com"], directa: ["Hospitable · reserva directa", "H", "#3E3F3F", "hospitable.com"] };
+    var logoDe = function (dom) { return "https://www.google.com/s2/favicons?sz=64&domain=" + dom; };
     var esWA = function (g) { var ib = inboxPor[g.key]; return String(g.key).indexOf("wa:") === 0 || !!(ib && ib.wa); };
     var esHosp = function (g) { return String(g.key).indexOf("wa:") !== 0; };
     var canalVM = function (g) {
       var ib = inboxPor[g.key] || {}, k = ib.ultimo_canal === "whatsapp" || String(g.key).indexOf("wa:") === 0 ? "whatsapp" : (ib.canal || "");
       var C = CANAL[k]; if (!C) return { canalHay: false };
-      return { canalHay: true, canalNom: C[0] + (k === "whatsapp" && esHosp(g) ? " · también en " + ((CANAL[ib.canal] || CANAL.directa)[0]) : ""), canalLetra: C[1], canalBg: C[2] };
+      return { canalHay: true, canalNom: C[0] + (k === "whatsapp" && esHosp(g) ? " · también en " + ((CANAL[ib.canal] || CANAL.directa)[0]) : ""), canalLetra: C[1], canalBg: C[2], canalLogo: logoDe(C[3]), canalDom: C[3] };
     };
     this._canalVM = canalVM;
     var gruposSinCanal = grupos;
     if (st.convCanal === "whatsapp") grupos = grupos.filter(esWA); else if (st.convCanal === "hospitable") grupos = grupos.filter(esHosp);
-    var canalFiltros = [["whatsapp", "WhatsApp", "W", "#128C7E", esWA], ["hospitable", "Hospitable", "H", "#3E3F3F", esHosp]].map(function (x) {
+    var canalFiltros = [["whatsapp", "WhatsApp", "W", "#128C7E", esWA, "whatsapp.com"], ["hospitable", "Hospitable", "H", "#3E3F3F", esHosp, "hospitable.com"]].map(function (x) {
       var on = st.convCanal === x[0], n = gruposSinCanal.filter(function (g) { return !g.resuelto && x[4](g); }).length;
       var set = function () { self.setState({ convCanal: on ? "" : x[0], convIdx: 0, briefIdx: 0 }); self.convReset(); };
-      return { nombre: x[1], letra: x[2], marca: x[3], n: String(n), hayN: n > 0, activo: on ? "true" : "false", aria: (on ? "Quitar filtro " : "Solo ") + x[1] + " · " + n + " abiertas",
+      return { nombre: x[1], letra: x[2], marca: x[3], logo: logoDe(x[5]), dom: x[5], n: String(n), hayN: n > 0, activo: on ? "true" : "false", aria: (on ? "Quitar filtro " : "Solo ") + x[1] + " · " + n + " abiertas",
         bd: on ? "#3E3F3F" : "#D8D4CE", bg: on ? "#3E3F3F" : "#FFFFFF", fg: on ? "#FAFAFA" : "#3E3F3F", set: set,
         setM: function () { self.aviso(on ? "Todos los canales" : "Solo " + x[1]); try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} self.setState({ mVista: "lista", cronoLista: true, selG: null }); set(); } };
     });
@@ -4828,7 +4847,7 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, st = this.state, rol = this.rol();
     var esPrincipal = rol === "admin";
-    var ir = function (u) { return function () { location.href = u; }; };
+    var ir = function (u) { return function () { location.href = self.conSesion(u); }; };
     var setV = function (v) { return function () { self.setState({ vista: v }); }; };
     var notis = this.notis();
     var h = this.gtHora();

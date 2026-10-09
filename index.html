@@ -29,9 +29,9 @@
 <script src="ds/bundle.js"></script>
 <script src="js/sa-auth-client.js"></script>
 <script src="js/sa-session.js"></script>
-<script src="js/alma-client.js?v=2026-10-09.1400"></script>
-<script src="js/push.js?v=2026-10-09.1500"></script>
-<script src="js/sched-engine.js?v=2026-10-09.1400"></script>
+<script src="js/alma-client.js?v=2026-10-09.1700"></script>
+<script src="js/push.js?v=2026-10-09.1700"></script>
+<script src="js/sched-engine.js?v=2026-10-09.1700"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -921,6 +921,13 @@
             <sc-if value="{{ r.hayN }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-5px; top:-5px; min-width:13px; height:17px; padding:0 4px; border-radius:999px; border:2px solid #FAFAFA; background: {{ r.badgeBg }}; color:#FFFFFF; font-size:9.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1">{{ r.n }}</span></sc-if>
           </button>
         </sc-for>
+        <span aria-hidden="true" style="width:1px; align-self:stretch; margin:6px 0; background:#D8D4CE; flex-shrink:0"></span>
+        <sc-for list="{{ canalFiltros }}" as="cf" hint-placeholder-count="2">
+          <button onClick="{{ cf.setM }}" aria-label="{{ cf.aria }}" title="{{ cf.aria }}" aria-pressed="{{ cf.activo }}" class="alma-cont-ico" style="position:relative; width:38px; height:38px; border-radius:50%; border:1px solid {{ cf.bd }}; background: {{ cf.bg }}; place-items:center; cursor:pointer; padding:0; -webkit-tap-highlight-color:transparent; transition:background .18s, border-color .18s, transform .1s" style-active="transform:scale(.92)">
+            <span style="width:20px; height:20px; border-radius:50%; background: {{ cf.marca }}; color:#FFFFFF; display:grid; place-items:center; font-size:10px; font-weight:700; line-height:1">{{ cf.letra }}</span>
+            <sc-if value="{{ cf.hayN }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; right:-5px; top:-5px; min-width:13px; height:17px; padding:0 4px; border-radius:999px; border:2px solid #FAFAFA; background:#3E3F3F; color:#FFFFFF; font-size:9.5px; font-weight:700; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1">{{ cf.n }}</span></sc-if>
+          </button>
+        </sc-for>
       </div>
     </div>
     <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="0">
@@ -962,6 +969,7 @@
                 <span style="position:relative; width:40px; height:40px; flex-shrink:0">
                   <sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
                   <sc-if value="{{ l.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span></sc-if>
+                  <sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><span title="{{ l.canalNom }}" aria-label="{{ l.canalNom }}" style="position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background: {{ l.canalBg }}; color:#FFFFFF; display:grid; place-items:center; font-size:8.5px; font-weight:700; letter-spacing:0; line-height:1; font-family:Montserrat,sans-serif">{{ l.canalLetra }}</span></sc-if>
                   <sc-if value="{{ l.pide }}" hint-placeholder-val="{{ false }}"><span aria-label="Necesita a alguien" style="position:absolute; left:-2px; top:-2px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF; box-sizing:border-box"></span></sc-if>
                 </span>
                 <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
@@ -1055,7 +1063,8 @@
           </div>
           <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-left:6px solid {{ tj.color }}; border-radius:18px; padding:16px; display:flex; flex-direction:column; gap:14px; box-shadow:0 4px 16px rgba(62,63,63,.05)">
             <div style="display:flex; align-items:center; gap:12px">
-              <span style="width:48px; height:48px; flex-shrink:0">
+              <span style="position:relative; width:48px; height:48px; flex-shrink:0">
+                <sc-if value="{{ tj.canalHay }}" hint-placeholder-val="{{ false }}"><span title="{{ tj.canalNom }}" aria-label="{{ tj.canalNom }}" style="position:absolute; right:-3px; bottom:-3px; width:19px; height:19px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background: {{ tj.canalBg }}; color:#FFFFFF; display:grid; place-items:center; font-size:8.5px; font-weight:700; letter-spacing:0; line-height:1; font-family:Montserrat,sans-serif">{{ tj.canalLetra }}</span></sc-if>
                 <sc-for list="{{ tj.fotos }}" as="fotoTjfotos" hint-placeholder-count="0"><img src="{{ fotoTjfotos.src }}" loading="lazy" alt="" style="width:48px; height:48px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-for>
                 <sc-if value="{{ tj.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:48px; height:48px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:13px; font-weight:600; letter-spacing:.06em">{{ tj.iniciales }}</span></sc-if>
               </span>
@@ -1107,6 +1116,9 @@
           <sc-for list="{{ colaResumen }}" as="r" hint-placeholder-count="3">
             <button onClick="{{ r.set }}" aria-pressed="{{ r.activo }}" style="display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; min-width:140px; padding:0 14px; line-height:1; box-sizing:border-box; border:1px solid {{ r.bd }}; background: {{ r.bg }}; color: {{ r.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums; line-height:1; min-width:2ch; text-align:right">{{ r.n }}</span><span style="line-height:1">{{ r.nombre }}</span></button>
           </sc-for>
+          <sc-for list="{{ canalFiltros }}" as="cf" hint-placeholder-count="2">
+            <button onClick="{{ cf.set }}" aria-pressed="{{ cf.activo }}" title="{{ cf.aria }}" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:38px; padding:0 14px 0 8px; line-height:1; box-sizing:border-box; border:1px solid {{ cf.bd }}; background: {{ cf.bg }}; color: {{ cf.fg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><span style="width:22px; height:22px; border-radius:50%; background: {{ cf.marca }}; color:#FFFFFF; display:grid; place-items:center; font-size:10px; font-weight:700; letter-spacing:0">{{ cf.letra }}</span><span style="font-size:13px; letter-spacing:.02em; font-variant-numeric:tabular-nums">{{ cf.n }}</span><span>{{ cf.nombre }}</span></button>
+          </sc-for>
         </div>
       </div>
 
@@ -1133,6 +1145,7 @@
                 <span style="position:relative; width:44px; height:44px; flex-shrink:0">
                   <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" style="width:44px; height:44px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
                   <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
+                  <sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><span title="{{ r.canalNom }}" aria-label="{{ r.canalNom }}" style="position:absolute; right:-3px; bottom:-3px; width:18px; height:18px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background: {{ r.canalBg }}; color:#FFFFFF; display:grid; place-items:center; font-size:8.5px; font-weight:700; letter-spacing:0; line-height:1; font-family:Montserrat,sans-serif">{{ r.canalLetra }}</span></sc-if>
                   <sc-if value="{{ r.noLeido }}" hint-placeholder-val="{{ false }}"><span aria-label="Sin responder" style="position:absolute; left:-3px; top:-3px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF"></span></sc-if>
                 </span>
                 <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
@@ -2430,7 +2443,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-09.1500";
+  BUILD = "2026-10-09.1700";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -3608,7 +3621,7 @@ class Component extends DCLogic {
           hayFotos: (m.fotos || []).length > 0, fotos: (m.fotos || []).map(function (u) { return self.fotoVista(u); }),
           bg: guest ? "#FFFFFF" : nota ? "#F5F3F0" : m.auto ? "#E4E0DA" : m.alma ? "rgba(59,102,145,.12)" : "rgba(233,130,106,.22)", fg: nota ? "#6F6867" : "#3E3F3F",
           bd: guest ? "#D8D4CE" : nota ? "#D8D4CE" : m.auto ? "#D8D4CE" : m.alma ? "rgba(59,102,145,.4)" : "rgba(233,130,106,.5)",
-          meta: (guest ? (nombre || "Huésped") : nota ? "ALMA · no se envió · " + motivoNota(m._acc) : m.auto ? "Spacio AM · automático" : m.alma ? "ALMA" : "Equipo Spacio AM") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created),
+          meta: (guest ? (nombre || "Huésped") : nota ? "ALMA · no se envió · " + motivoNota(m._acc) : m.auto ? "Spacio AM · automático" : m.alma ? "ALMA" : "Equipo Spacio AM") + (m.canal === "whatsapp" ? " · por WhatsApp" : "") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created),
           esAlma: esAlma, cursor: esAlma ? "pointer" : "auto",
           _lp: self.lp(function () {
             self.abrirBurbuja({ logKey: esAlma ? kR : "", tipo: guest ? "guest" : nota ? "nota" : m.auto ? "auto" : m.alma ? "alma" : "equipo", texto: self.limpiaImg(txR), filas: self.analizarMsg(lista, iM),
@@ -3648,6 +3661,8 @@ class Component extends DCLogic {
         p.then(function (res) {
           if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
           ponerTexto(""); upd({ enviando: false, abierto: false, nota: "", propuesta: "", base: null });
+          if (res.plantilla) self.aviso("Pasaron más de 24 h: WhatsApp solo permite la plantilla para retomar. Ya se envió; cuando responda, escribe tu mensaje.");
+          else if (res.canal === "whatsapp") self.aviso("Enviado por WhatsApp");
           self.setState(function (s) {
             var n = Object.assign({}, s.almaHilos); delete n[info.resId];
             var cola = (s.alma.cola || []).map(function (x) { return x.reservation_id === info.resId && ["pendiente", "esperando_envio", "esperando_rojo"].indexOf(x.estado) >= 0 ? Object.assign({}, x, { estado: "respondido", nota: "respondido por el equipo desde el hub" }) : x; });
@@ -4281,6 +4296,25 @@ class Component extends DCLogic {
       g.frags.forEach(function (c, i) { c.hayFrags = g.frags.length > 1; c.fragPos = (i + 1) + " / " + g.frags.length; c.fechaPad = g.frags.length > 1 ? "52px" : "0"; });
     });
     if (ordenEf !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
+    /* Origen: WhatsApp (número del negocio) u Hospitable (Airbnb, VRBO, Booking, directas). Una conversación unida tiene los dos. */
+    var CANAL = { whatsapp: ["WhatsApp", "W", "#128C7E"], airbnb: ["Airbnb", "A", "#FF5A5F"], vrbo: ["VRBO", "V", "#1A4FA3"], booking: ["Booking.com", "B", "#003580"], expedia: ["Expedia", "E", "#00355F"], directa: ["Hospitable · reserva directa", "H", "#3E3F3F"] };
+    var esWA = function (g) { var ib = inboxPor[g.key]; return String(g.key).indexOf("wa:") === 0 || !!(ib && ib.wa); };
+    var esHosp = function (g) { return String(g.key).indexOf("wa:") !== 0; };
+    var canalVM = function (g) {
+      var ib = inboxPor[g.key] || {}, k = ib.ultimo_canal === "whatsapp" || String(g.key).indexOf("wa:") === 0 ? "whatsapp" : (ib.canal || "");
+      var C = CANAL[k]; if (!C) return { canalHay: false };
+      return { canalHay: true, canalNom: C[0] + (k === "whatsapp" && esHosp(g) ? " · también en " + ((CANAL[ib.canal] || CANAL.directa)[0]) : ""), canalLetra: C[1], canalBg: C[2] };
+    };
+    this._canalVM = canalVM;
+    var gruposSinCanal = grupos;
+    if (st.convCanal === "whatsapp") grupos = grupos.filter(esWA); else if (st.convCanal === "hospitable") grupos = grupos.filter(esHosp);
+    var canalFiltros = [["whatsapp", "WhatsApp", "W", "#128C7E", esWA], ["hospitable", "Hospitable", "H", "#3E3F3F", esHosp]].map(function (x) {
+      var on = st.convCanal === x[0], n = gruposSinCanal.filter(function (g) { return !g.resuelto && x[4](g); }).length;
+      var set = function () { self.setState({ convCanal: on ? "" : x[0], convIdx: 0, briefIdx: 0 }); self.convReset(); };
+      return { nombre: x[1], letra: x[2], marca: x[3], n: String(n), hayN: n > 0, activo: on ? "true" : "false", aria: (on ? "Quitar filtro " : "Solo ") + x[1] + " · " + n + " abiertas",
+        bd: on ? "#3E3F3F" : "#D8D4CE", bg: on ? "#3E3F3F" : "#FFFFFF", fg: on ? "#FAFAFA" : "#3E3F3F", set: set,
+        setM: function () { self.aviso(on ? "Todos los canales" : "Solo " + x[1]); try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} self.setState({ mVista: "lista", cronoLista: true, selG: null }); set(); } };
+    });
     var gruposTodos = grupos;
     var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Por confirmar"))); };
     /* Resumen en texto: una línea por reserva con movimiento en la ventana; si no hubo, lo que sigue abierto. */
@@ -4325,7 +4359,7 @@ class Component extends DCLogic {
       else { est = "ALMA respondió"; bg = "rgba(59,102,145,.12)"; fg = "#3B6691"; pr = 3; tipo = alma ? "alma" : "cierre"; texto = tema + (alma ? " · ALMA respondió" : " · sin acción"); }
       var foto = fotoDe(g), nom = nombreDe(g), es = estadiaDe(g), fAlma = g.frags.find(function (c) { return c.esLog && c.enviado && !c.humano; });
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
-      return { gk: g.key, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
+      return { ...canalVM(g), gk: g.key, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
         propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), hace: haceDe(tsG(g)), texto: texto, dots: dots,
         txtFg: pide ? "#B54D36" : "#3E3F3F", txtPeso: pide ? "600" : "400", estado: est, tagBg: bg, tagFg: fg,
         bg: st.selG === g.key ? "#F5F3F0" : "#FFFFFF",
@@ -4343,7 +4377,7 @@ class Component extends DCLogic {
       tj = armarBrief(gSel.frags[0], true) || null;
       if (tj) {
         var fS = fotoDe(gSel), nS = nombreDe(gSel), eS = estadiaDe(gSel);
-        Object.assign(tj, { huesped: nS, fotos: fS ? [{ src: fS }] : [], noFoto: !fS, iniciales: iniDe(nS), propLinea: (propDe(gSel) || tj.propiedad) + (eS ? " · " + eS : ""), verChat: function () { self.abrirGrupo(gSel.key); } });
+        Object.assign(tj, canalVM(gSel), { huesped: nS, fotos: fS ? [{ src: fS }] : [], noFoto: !fS, iniciales: iniDe(nS), propLinea: (propDe(gSel) || tj.propiedad) + (eS ? " · " + eS : ""), verChat: function () { self.abrirGrupo(gSel.key); } });
         var cS = String(gSel.frags[0].codigo || "");
         Object.assign(tj, { hayCodigo: !!cS, codigo: cS, copiarCodigo: function () { self.copiar(cS, "Código " + cS + " copiado"); } });
         if (gSel.resuelto) Object.assign(tj, { tag: "Resuelta", tagBg: "rgba(61,107,82,.14)", tagFg: "#3d6b52", color: "#3d6b52" });
@@ -4416,7 +4450,7 @@ class Component extends DCLogic {
           var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Por confirmar" ? ["Por confirmar", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];
           E = U; var fr = self.fraseCaso ? self.fraseCaso(t) : ""; if (fr) prev = fr;
         }
-        return { gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
+        return { ...(self._canalVM ? self._canalVM(g) : {}), gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
           clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "",
@@ -4623,7 +4657,7 @@ class Component extends DCLogic {
       cronoVacioTitulo: prio ? "Nada urgente ahora" : "Sin conversaciones",
       cronoVacioTexto: prio ? "No hay casos pendientes. ALMA sigue atendiendo y te traemos aquí en cuanto algo necesite a alguien." : "No hay conversaciones con estos filtros.",
       cronoVacioBoton: prio, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
-      cronoFilas: cronoFilas,
+      cronoFilas: cronoFilas, canalFiltros: canalFiltros,
       convAltoVisor: convItems.some(function (c) { return (st.convResp[c.key] || {}).abierto; }) ? "clamp(360px, calc(100dvh - 150px), 780px)" : "clamp(280px, 52dvh, 520px)",
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
@@ -5368,11 +5402,11 @@ class Component extends DCLogic {
         var q = self.quienPush(); self.setState({ pushBusy: true, pushPrueba: "Revisando este dispositivo…" });
         var dgP = window.SAPush && SAPush.diag ? SAPush.diag() : Promise.resolve(null);
         dgP.then(function (dg) {
-          if (dg && dg.motivo) { self.setState({ pushBusy: false, pushPrueba: "Este dispositivo no está listo: " + dg.motivo + ". Apaga y vuelve a encender el interruptor." }); return; }
+          var notaDisp = dg && dg.motivo ? " · Este dispositivo: " + dg.motivo : (dg && dg.subId ? " · Este dispositivo está registrado" + (dg.externalId ? " como " + dg.externalId : " (sin correo)") : "");
           self.setState({ pushPrueba: "Enviando prueba…" });
           return ALMA.probarPush(q.email).then(function (r) {
             var t = !r || !r.ok ? "No se pudo enviar: " + ((r && r.error) || "sin respuesta") : r.destinatarios > 0 ? "Prueba enviada a " + r.destinatarios + (r.destinatarios === 1 ? " dispositivo" : " dispositivos") + ". Debe llegar en segundos." : "OneSignal no encontró ningún dispositivo con tu correo (" + q.email + (dg && dg.externalId && dg.externalId !== q.email ? "; este teléfono está vinculado a " + dg.externalId : "") + "). Apaga y vuelve a encender el interruptor.";
-            self.setState({ pushBusy: false, pushPrueba: t });
+            self.setState({ pushBusy: false, pushPrueba: t + notaDisp });
             if (ALMA.pushLog) ALMA.pushLog(48).then(function (L) {
               if (!L || !L.ok) return;
               var f = L.filas || [], ok = f.filter(function (x) { return Number(x.destinatarios) > 0 || Number(x.destinatarios) === -1; }).length, malos = f.filter(function (x) { return x.error || !(Number(x.destinatarios) > 0 || Number(x.destinatarios) === -1); });

@@ -4,7 +4,7 @@
    debe pedirse en el mismo toque, antes de cualquier carga o llamada de red. */
 (function (g) {
   var APP_ID = '7ab3b3cf-d7f3-4d1b-8377-3f7d20c4db96';
-  var cargado = null;
+  var cargado = null, errInit = '';
   function standalone() { return (g.matchMedia && matchMedia('(display-mode: standalone)').matches) || g.navigator.standalone === true; }
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   function cargar() {
@@ -12,13 +12,13 @@
     cargado = new Promise(function (ok, ko) {
       g.OneSignalDeferred = g.OneSignalDeferred || [];
       var s = document.createElement('script'); s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; s.defer = true;
-      s.onerror = function (e) { cargado = null; ko(e); };
+      s.onerror = function (e) { cargado = null; errInit = 'no se pudo descargar el SDK de OneSignal (red o bloqueador)'; ko(e); };
       document.head.appendChild(s);
       g.OneSignalDeferred.push(function (OS) { OS.init({ appId: APP_ID, serviceWorkerPath: 'OneSignalSDKWorker.js', notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true }).then(function () {
         /* Cualquier suscripción nueva (también la del aviso de OneSignal) se vincula al correo: sin eso ALMA no sabe a quién avisar. */
         try { OS.User.PushSubscription.addEventListener('change', function (ev) { var c = ev && ev.current || {}; if (c.optedIn && c.id) { if (localStorage.getItem('sa_push_on') !== '0') localStorage.setItem('sa_push_on', '1'); vincular(OS); } avisar(); }); } catch (e) {}
-        vincular(OS); avisar(); ok(OS);
-      }, ko); });
+        errInit = ''; vincular(OS); avisar(); ok(OS);
+      }, function (e) { errInit = 'OneSignal rechazó el inicio: ' + String((e && e.message) || e || '').slice(0, 140); cargado = null; ko(e); }); });
     });
     return cargado;
   }
@@ -71,7 +71,7 @@
       var d = { permiso: ('Notification' in g) ? Notification.permission : 'no', instalada: standalone(), ios: ios, subId: '', token: false, optedIn: false, externalId: '', motivo: '' };
       if (ios && !d.instalada) { d.motivo = 'ábrelo desde el ícono de la pantalla de inicio'; return Promise.resolve(d); }
       if (d.permiso !== 'granted') { d.motivo = d.permiso === 'denied' ? 'permiso bloqueado en los ajustes del teléfono' : 'falta dar permiso de notificaciones'; return Promise.resolve(d); }
-      var tope = new Promise(function (ok) { setTimeout(function () { if (!d.subId) d.motivo = d.motivo || 'OneSignal no cargó'; ok(d); }, 9000); });
+      var tope = new Promise(function (ok) { setTimeout(function () { if (!d.subId) d.motivo = d.motivo || errInit || 'OneSignal tardó más de 20 s en responder'; ok(d); }, 20000); });
       var real = cargar().then(function (OS) {
         return esperarSub(OS, 4000).then(function (s) {
           d.subId = s.id || ''; d.token = !!s.token; d.optedIn = !!s.optedIn;
@@ -79,7 +79,7 @@
           d.motivo = !s.id ? 'OneSignal no registró este dispositivo (revisa que OneSignalSDKWorker.js esté en la raíz de hub.spacioam.com)' : !s.token ? 'falta el token de notificaciones' : !s.optedIn ? 'la suscripción está pausada' : '';
           return d;
         });
-      }).catch(function () { d.motivo = 'OneSignal no cargó'; return d; });
+      }).catch(function (e) { d.motivo = errInit || ('OneSignal no inició: ' + String((e && e.message) || e || '').slice(0, 140)); return d; });
       return Promise.race([real, tope]);
     },
     /* Apagar en este dispositivo: deja de recibir sin revocar el permiso. */

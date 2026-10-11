@@ -89,6 +89,8 @@
     setControl: function (valores) { return call('setControl', { valores: valores }); },
     setEscalamiento: function (lista) { return call('setEscalamiento', { lista: lista }); },
     setPrompt: function (clave, prompt, nota) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota }); },
+    prompts: function () { return call('prompts', {}); },
+    setAuto: function (resId, on, quien) { return call('setAuto', { resId: resId, on: !!on, quien: quien }); },
     setBorrador: function (fila, borrador) { return call('setBorrador', { fila: fila, borrador: borrador }); },
     enviarAhora: function (fila) { return call('enviarAhora', { fila: fila }); },
     retener: function (fila) { return call('retener', { fila: fila }); },

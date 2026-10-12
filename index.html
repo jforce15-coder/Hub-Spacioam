@@ -42,6 +42,17 @@
   @keyframes sa-cargar{ from{ width:4%; } to{ width:92%; } }
   @keyframes sa-rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
   @keyframes sa-fade { from { opacity:0; } to { opacity:1; } }
+  /* Navegación móvil: lista → tarjeta → conversación entra desde la derecha; volver entra desde la izquierda. Solo transform + opacity. */
+  @keyframes sa-in-fwd { from { opacity:0; transform:translate3d(28px,0,0); } to { opacity:1; transform:none; } }
+  @keyframes sa-in-back { from { opacity:0; transform:translate3d(-28px,0,0); } to { opacity:1; transform:none; } }
+  @media (max-width:1179px){
+    .alma-shell .alma-side, .alma-shell .alma-main{ animation:sa-in-fwd .32s cubic-bezier(.22,.61,.36,1) both; will-change:transform, opacity; }
+    .alma-shell.nav-back .alma-side, .alma-shell.nav-back .alma-main{ animation-name:sa-in-back; }
+  }
+  @media (min-width:1180px){ .alma-main [data-alma-card]{ animation:sa-fade .24s cubic-bezier(.22,.61,.36,1) both; } }
+  @media (prefers-reduced-motion: reduce){
+    .alma-shell .alma-side, .alma-shell .alma-main, .alma-main [data-alma-card]{ animation:sa-fade .18s linear both !important; }
+  }
   @media (min-width: 880px){ .sa-login { grid-template-columns: 1.05fr 1fr !important; } .sa-login-aside { display:flex !important; } }
   .bento-wrap{ box-sizing:border-box; width:100%; max-width:480px; margin:0 auto; }
   .bento{ display:grid; grid-template-columns:repeat(2,1fr); grid-auto-rows:128px; gap:12px; grid-auto-flow:dense; }
@@ -1056,7 +1067,7 @@
         </div>
       </sc-if>
       <sc-if value="{{ tarjetaHay }}" hint-placeholder-val="{{ false }}">
-        <div class="alma-tarjeta" data-screen-label="ALMA · Tarjeta" style="display:flex; flex-direction:column; gap:12px; animation:sa-push .36s cubic-bezier(.22,.61,.36,1) both">
+        <div class="alma-tarjeta alma-pantalla" data-screen-label="ALMA · Tarjeta" style="display:flex; flex-direction:column; gap:12px">
           <div style="display:flex; align-items:center; gap:10px; min-height:40px">
             <button onClick="{{ tarjetaVolver }}" class="alma-mtarjeta-volver" style="display:inline-flex; align-items:center; gap:4px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent; padding:0 14px 0 8px" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronLeft" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import>Resumen</button>
             <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Resumen de la conversación</span>
@@ -1185,7 +1196,7 @@
         <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ convPie }}</span>
       </div>
 
-      <div style="position:relative; flex:1; min-height:0; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0; transform-origin: {{ diveOrigin }}; animation:sa-dive .42s cubic-bezier(.22,.61,.36,1) both">
+      <div style="position:relative; flex:1; min-height:0; border-radius:22px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); overflow:hidden; min-width:0">
         <div ref="{{ convRef }}" class="sa-snap" onKeyDown="{{ convKey }}" tabIndex="0" aria-label="Conversaciones · desliza o usa las flechas" style="position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; scroll-snap-type:y mandatory; outline:none; touch-action:pan-y">
           <sc-if value="{{ convVacio }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute; inset:14px; display:grid; place-items:center"><div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px; text-align:center; font-size:13px; color:#6F6867; letter-spacing:.02em; max-width:420px">{{ convVacioTexto }}</div></div>
@@ -1197,7 +1208,7 @@
         <sc-for list="{{ convPaginas }}" as="g" hint-placeholder-count="1">
           <div data-alma-page="1" style="position:absolute; left:0; right:0; padding:12px; box-sizing:border-box; top: {{ g.pagTop }}; height: {{ g.pagAlto }}">
             <div class="sa-snap" style="position:relative; height:100%; display:flex; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; gap:12px">
-            <sc-for list="{{ g.frags }}" as="c" hint-placeholder-count="1">
+            <sc-for list="{{ g.fragsVista }}" as="c" hint-placeholder-count="1">
             <div style="flex:0 0 100%; width:100%; height:100%; min-width:0; scroll-snap-align:start; scroll-snap-stop:always; position:relative">
             <sc-if value="{{ c.hayFrags }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; top:12px; right:14px; z-index:2; font-size:9.5px; font-weight:600; letter-spacing:.12em; border-radius:999px; padding:4px 9px; background:#3E3F3F; color:#FAFAFA; font-variant-numeric:tabular-nums">{{ c.fragPos }}</span></sc-if>
             <div data-alma-card="1" style="background:#FFFFFF; border:1px solid #D8D4CE; border-left:6px solid {{ c.color }}; border-radius:18px; overflow:hidden; display:flex; flex-direction:column; height:100%; min-height:0; box-shadow:0 4px 16px rgba(62,63,63,.05)">
@@ -3701,6 +3712,23 @@ class Component extends DCLogic {
     return s.join(" ").replace(/\bApto\.?\s*/i, "").replace(/\s+/g, " ").trim();
   }
   /* Una frase de lectura rápida, ≤ 12 palabras, a partir de la razón del clasificador o del mensaje del huésped. */
+  /* Temas de la conversación (máx. 2) leídos de la pregunta y la respuesta, para un resumen sin citar mensajes. */
+  temasCaso(t) {
+    var txt = (this.limpiaImg(t.pregunta || "") + " " + this.limpiaImg(t.respuesta || "")).toLowerCase();
+    var T = [[/extensi[oó]n|extender|noche(s)? m[aá]s|quedarnos m[aá]s/, "extensión de la estadía"], [/lavander[ií]a|lavadora|secadora|token/, "lavandería"],
+      [/parqueo|estacionamiento|parking/, "parqueo"], [/wifi|wi-fi|internet/, "internet"], [/factura|\bnit\b/, "factura"], [/early|m[aá]s temprano/, "entrada temprano"],
+      [/late check|m[aá]s tarde|salida tard/, "salida tarde"], [/limpieza|toallas?|s[aá]banas?/, "limpieza"], [/agua caliente|ducha|calentador/, "agua caliente"],
+      [/direcci[oó]n|ubicaci[oó]n|c[oó]mo llego/, "cómo llegar"], [/c[oó]digo|cerradura|acceso/, "acceso"], [/pago|cobro|reembolso|dep[oó]sito/, "pagos"],
+      [/precio|tarifa|cu[aá]nto cuesta|disponib/, "precio y disponibilidad"], [/mascota|perr|gat[oa]/, "mascotas"], [/gimnasio|piscina|amenidad/, "amenidades"],
+      [/maleta|equipaje/, "equipaje"], [/televis|\btv\b|netflix/, "televisión"], [/recomenda|restaurante|tour/, "recomendaciones"]];
+    var out = []; T.forEach(function (x) { if (out.length < 2 && x[0].test(txt)) out.push(x[1]); });
+    return out.join(" y ");
+  }
+  resumenBreve(t) {
+    var f = this.fraseCaso(t); if (f) return f;
+    var tm = this.temasCaso(t); if (tm) return "Consulta sobre " + tm;
+    return t.respuesta ? "El huésped escribió y se le respondió" : "El huésped escribió";
+  }
   fraseCaso(t) {
     var r = String(t.razonBrief || "").replace(/\s+/g, " ").trim(), msg = this.limpiaImg(t.pregunta || "").replace(/\s+/g, " ").trim();
     var R = r.toLowerCase(), M = msg.toLowerCase();
@@ -4033,7 +4061,7 @@ class Component extends DCLogic {
       var hilo = mapHilo(hiloSt && hiloSt.lista ? hiloSt.lista : [{ tipo: "guest", texto: r.texto, created: r.recibido }], r.huesped);
       var cargarHilo = function () { cargarHiloDe(resId); };
       /* Mientras clasifica no hay resumen: se muestra la conversación completa y se carga sola. */
-      var convKey = resId ? "r" + resId : "c" + key, enHilo = st.convHilo[convKey] != null ? !!st.convHilo[convKey] : !v.nivel;
+      var convKey = resId ? "r" + resId : "c" + key, enHilo = true;
       if (enHilo && resId && !st.almaHilos[resId] && !self._autoHilo[resId]) { self._autoHilo[resId] = 1; setTimeout(cargarHilo, 0); }
       var estadiaC = fmtRango(d.checkin, d.checkout);
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
@@ -4274,7 +4302,7 @@ class Component extends DCLogic {
       var fL = String(l.fecha || ""), tsLog = (/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(fL) ? Date.parse(fL.replace(" ", "T") + ":00-06:00") : Date.parse(fL)) || 0;
       var resIdLog = l.reservation_id || resIdPorCodigo[String(l.codigo || "").toUpperCase()] || (l.huesped && ibPorNombre[String(l.huesped).trim().toLowerCase()]) || "";
       var hiloStL = st.almaHilos[resIdLog];
-      var convKeyL = resIdLog ? "r" + resIdLog : "l" + key, enHiloL = !!st.convHilo[convKeyL];
+      var convKeyL = resIdLog ? "r" + resIdLog : "l" + key, enHiloL = true;
       var res = reservaDe(l.codigo), nombreCola = huespedPorCodigo[String(l.codigo || "").toUpperCase()] || "";
       var huesped = l.huesped || [res.guest_first_name, res.guest_last_name].filter(Boolean).join(" ") || res.guest_name || res.nombre || nombreCola || "Huésped";
       var ini = String(huesped).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H";
@@ -4308,7 +4336,7 @@ class Component extends DCLogic {
         hilo: mapHilo(hiloStL && hiloStL.lista ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), huesped, hiloStL && hiloStL.lista ? resIdLog : ""),
         hiloCargando: !!(hiloStL && hiloStL.cargando),
         hiloNoDisponible: enHiloL && (!resIdLog || !(window.ALMA && ALMA.hasApi()) || !!(hiloStL && hiloStL.error)),
-        hiloNoDisponibleTexto: !resIdLog ? "No encontramos la reserva de esta conversación; se muestra solo este intercambio." : "No se pudo traer la conversación de Hospitable. Se muestra este intercambio.",
+        hiloNoDisponibleTexto: !resIdLog ? "No pudimos ligar este mensaje a una reserva o consulta de Hospitable; se muestra solo este intercambio." : /^inq:/.test(resIdLog) ? "Consulta sin reserva. No se pudo traer el hilo de Hospitable; se muestra este intercambio." : "No se pudo traer la conversación de Hospitable. Se muestra este intercambio.",
         hayBorrador: !!(l.respuesta && !enviado), borrador: l.respuesta || "", borradorLabel: "No se envió",
         burbujaBorde: "1px solid " + (enviado ? "rgba(233,130,106,.5)" : "#D8D4CE"),
         fecha: fmtDia(tsLog || l.fecha) + " " + (tsLog ? fmtHora(tsLog) : ""), propiedad: propiedad || "Propiedad sin nombre",
@@ -4413,7 +4441,7 @@ class Component extends DCLogic {
       if (!solo) { briefN.total++; if (c.esCola) briefN.cola++; else if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++; }
       /* Problema / Estado / Pendiente / Siguiente paso — lo que hay que entender en tres segundos. */
       var razonEsEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(c.razonBrief || "");
-      var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : corto(c.pregunta, 140) || c.razonBrief || (c.respuesta ? "Última respuesta: “" + corto(c.respuesta, 120) + "”" : "Sin detalle"));
+      var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : self.resumenBreve(c));
       var estado, pendiente = "", paso, pasoColor, pideHumano = !!c.sinResp, tag, tagBg, tagFg, color;
       if (esRojo) {
         if (resuelto) { estado = "Atendido por " + quienTxt + " hace " + mins(c.ts); paso = "Solo confirma que quedó cerrado."; pasoColor = VERDE; tag = "Urgente · atendido"; color = VERDE; }
@@ -4591,7 +4619,7 @@ class Component extends DCLogic {
       });
       g.rk = g.resuelto ? 7 : rank(top); g.ts = g.tsReal;
       if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
-      g.frags.forEach(function (c, i) { c.hayFrags = g.frags.length > 1; c.fragPos = (i + 1) + " / " + g.frags.length; c.fechaPad = g.frags.length > 1 ? "52px" : "0"; });
+      g.frags.forEach(function (c) { c.hayFrags = false; c.fragPos = ""; c.fechaPad = "0"; }); g.fragsVista = g.frags.slice(0, 1);
     });
     if (ordenEf !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
     /* Origen: WhatsApp (número del negocio) u Hospitable (Airbnb, VRBO, Booking, directas). Una conversación unida tiene los dos. */
@@ -4830,11 +4858,13 @@ class Component extends DCLogic {
       enAlma: st.vista === "alma",
       rzAbierto: !!rz, rz: rz || { filas: [], chips: [], propCambios: [] }, rzCerrar: function () { self.setState({ razon: null }); },
       hayToast: !!st.toast, toastTxt: st.toast || "",
-      almaM: st.cronoLista === false ? "m-chat" : tj ? "m-tarjeta" : "m-" + (st.mVista || "resumen"),
+      almaM: (function () { var m = st.cronoLista === false ? "m-chat" : tj ? "m-tarjeta" : "m-" + (st.mVista || "resumen"), r = m === "m-chat" ? 2 : m === "m-tarjeta" ? 1 : 0;
+        if (self._navR == null) self._navR = r; if (r !== self._navR) { self._navDir = r > self._navR ? "nav-fwd" : "nav-back"; self._navR = r; }
+        return m + " " + (self._navDir || "nav-fwd"); })(),
       mVistas: [{ value: "resumen", label: "Resumen" }, { value: "lista", label: "Cronológico" }], mVista: st.mVista || "resumen",
       setMVista: function (v) { try { localStorage.setItem("sa_m_vista", v); } catch (e) {} self.setState({ mVista: v, selG: null, convOrden: v === "lista" ? "Cronológico" : null, logFiltro: "Todo", convVista: "", cronoLista: true, convIdx: 0 }); self.convReset(); },
       tarjetaHay: !!tj, tj: tj || { filas: [], ultimos: [], fotos: [] }, tarjetaVolver: function () { self.setState({ selG: null }); },
-      briefCarrusel: briefItems.length > 0 && !tj,
+      briefCarrusel: false,
       volverLabel: mesk && (st.mVista || "resumen") === "resumen" ? "← Resumen" : "← Lista",
       verAlma: function () { self.setState({ vista: "alma" }); if (!self.state.alma) self.almaCargar(); },
       almaModoTile: ctrlO.TOGGLE === "ON" ? ctrlO.MODO : (st.alma ? "OFF" : "ALMA"),
@@ -4988,7 +5018,7 @@ class Component extends DCLogic {
       resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : abiertosRes.length ? "Nada nuevo en " + ventanaH + " h · siguen abiertos" : "Nada nuevo en " + ventanaH + " h · lo último que pasó",
       briefItems: briefItems, briefVacio: !!st.alma && !briefItems.length && !resLineas.length, briefHay: briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",
       briefRef: this.briefRefCb, briefPaginas: briefPaginas, briefPuntos: briefPuntos, briefAltoTotal: (nBrief * 100) + "%",
-      briefPos: briefItems.length ? (briefIdx + 1) + " de " + briefItems.length : "",
+      briefPos: "",
       briefHayOcultas: briefOcultasN > 0, briefOcultasLabel: "Mostrar " + briefOcultasN + (briefOcultasN === 1 ? " quitada" : " quitadas"), briefRestaurar: function () { self.setState({ briefOcultas: {} }); },
       urgOpciones: logFiltros.map(function (x) {
         var act = st.logFiltro === x, N0 = { ROJO: NIVEL.ROJO.color, AMARILLO: NIVEL.AMARILLO.color, VERDE: NIVEL.VERDE.color }[x];

@@ -3996,7 +3996,7 @@ class Component extends DCLogic {
       var hilo = mapHilo(hiloSt && hiloSt.lista ? hiloSt.lista : [{ tipo: "guest", texto: r.texto, created: r.recibido }], r.huesped);
       var cargarHilo = function () { cargarHiloDe(resId); };
       /* Mientras clasifica no hay resumen: se muestra la conversación completa y se carga sola. */
-      var convKey = "c" + key, enHilo = st.convHilo[convKey] != null ? !!st.convHilo[convKey] : !v.nivel;
+      var convKey = resId ? "r" + resId : "c" + key, enHilo = st.convHilo[convKey] != null ? !!st.convHilo[convKey] : !v.nivel;
       if (enHilo && resId && !st.almaHilos[resId] && !self._autoHilo[resId]) { self._autoHilo[resId] = 1; setTimeout(cargarHilo, 0); }
       var estadiaC = fmtRango(d.checkin, d.checkout);
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
@@ -4213,7 +4213,7 @@ class Component extends DCLogic {
     (a.log || []).forEach(function (l) { var q = quienDe(l); if (q && q !== "ALMA" && q !== "Equipo") personas[q] = 1; });
     var quienFiltros = ["Todos", "ALMA", "Equipo"].concat(Object.keys(personas).sort());
     /* Bandeja (ALMA_INBOX): último mensaje real de cada conversación, como el inbox de Hospitable. */
-    var inboxPor = {}; (a.inbox || []).forEach(function (r) { if (r.conv_id) inboxPor[r.conv_id] = r; });
+    var inboxPor = {}, ibPorNombre = {}; (a.inbox || []).forEach(function (r) { if (r.conv_id) { inboxPor[r.conv_id] = r; var nm = String(r.huesped || "").trim().toLowerCase(); if (nm && (!ibPorNombre[nm] || String(r.conv_id).indexOf("inq:") === 0)) ibPorNombre[nm] = r.conv_id; } });
     this._inboxPor = inboxPor;
     var conItem = {}; (a.cola || []).forEach(function (r) { if (r.reservation_id) conItem[r.reservation_id] = 1; }); (a.log || []).forEach(function (l) { if (l.reservation_id) conItem[l.reservation_id] = 1; });
     var limiteIb = Date.now() - (st.convDias || 2) * 86400000;
@@ -4234,10 +4234,10 @@ class Component extends DCLogic {
       var N = NIVEL[n] || NIVEL[""];
       var enviado = /^ENVIADO|contención|EMERGENCIA/i.test(acc);
       var key = String(l._fila || idx);
-      var tsLog = Date.parse(String(l.fecha || "").replace(" ", "T")) || 0;
-      var resIdLog = l.reservation_id || resIdPorCodigo[String(l.codigo || "").toUpperCase()] || "";
+      var fL = String(l.fecha || ""), tsLog = (/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(fL) ? Date.parse(fL.replace(" ", "T") + ":00-06:00") : Date.parse(fL)) || 0;
+      var resIdLog = l.reservation_id || resIdPorCodigo[String(l.codigo || "").toUpperCase()] || (l.huesped && ibPorNombre[String(l.huesped).trim().toLowerCase()]) || "";
       var hiloStL = st.almaHilos[resIdLog];
-      var convKeyL = "l" + key, enHiloL = !!st.convHilo[convKeyL];
+      var convKeyL = resIdLog ? "r" + resIdLog : "l" + key, enHiloL = !!st.convHilo[convKeyL];
       var res = reservaDe(l.codigo), nombreCola = huespedPorCodigo[String(l.codigo || "").toUpperCase()] || "";
       var huesped = l.huesped || [res.guest_first_name, res.guest_last_name].filter(Boolean).join(" ") || res.guest_name || res.nombre || nombreCola || "Huésped";
       var ini = String(huesped).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H";
@@ -4502,7 +4502,8 @@ class Component extends DCLogic {
       g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
       var top = g.frags[0], man = resMan[g.key], ib = inboxPor[g.key];
       var ug = ib ? Date.parse(ib.ultimo_guest_ts) || 0 : 0, uh = ib ? Date.parse(ib.ultimo_host_ts) || 0 : 0;
-      g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0); g.tsReal = g.ts;
+      var hlT = top.resId && st.almaHilos[top.resId] && st.almaHilos[top.resId].lista, ultHl = hlT && hlT.length ? Date.parse(hlT[hlT.length - 1].created) || 0 : 0;
+      g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0, ug, uh, ultHl); g.tsReal = g.ts;
       /* 15 h sin mensajes de ninguna de las partes: se da por resuelta. */
       var inactiva = !top.esCola && g.ts > 0 && Date.now() - g.ts >= 15 * 3600000;
       /* Un mensaje nuevo del huésped después de marcarla reabre la conversación sola. */
@@ -4680,7 +4681,26 @@ class Component extends DCLogic {
         else if (++this._apTry > 4) setTimeout(function () { self.setState({ abrirPend: null }); }, 0);
       } else { var tp = grupos[jp].frags[0]; this._apTry = 0; setTimeout(function () { self.setState({ abrirPend: null }); self.convAbrir(tp.key, true, tp.cargarHilo); self.convIrA(jp); }, 0); }
     }
-    var convIdx = Math.max(0, Math.min(grupos.length - 1, st.convIdx || 0));
+    /* La conversación abierta se fija por identidad: si cambia de estado o de orden, la vista la sigue
+       (y si sale del filtro, se queda visible hasta que el usuario navegue). */
+    var ciQ = Math.max(0, Math.min(grupos.length - 1, st.convIdx || 0)), selK = this._convSelKey;
+    if (this._convStale && st.convIdx !== this._convIdxPrev && st.convIdx > this._convStale.at) ciQ = Math.max(0, ciQ - 1);
+    this._convStale = null;
+    if (st.convIdx !== this._convIdxPrev || !selK || this._convFiltroK !== verN + "|" + ordenEf) selK = grupos[ciQ] && grupos[ciQ].key;
+    else if (grupos[ciQ] && grupos[ciQ].key !== selK || !grupos[ciQ]) {
+      var jSel = gIdx[selK];
+      if (jSel == null && this._convSelG && this._convSelG.key === selK) {
+        grupos.splice(ciQ, 0, this._convSelG); gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; }); jSel = ciQ; this._convStale = { at: ciQ };
+        this._convGrupos = grupos; this._convTotal = grupos.length;
+      }
+      if (jSel != null && jSel !== ciQ) {
+        ciQ = jSel;
+        setTimeout(function () { self.setState({ convIdx: jSel }); var el = self._convRef.current; if (el) { var sn = el.style.scrollSnapType; el.style.scrollSnapType = "none"; el.scrollTop = jSel * el.clientHeight; requestAnimationFrame(function () { el.style.scrollSnapType = sn; }); } }, 0);
+      }
+    }
+    if (ciQ !== (st.convIdx || 0) && !this._convStale) { var ciF = ciQ; setTimeout(function () { if ((self.state.convIdx || 0) !== ciF) self.setState({ convIdx: ciF }); var el = self._convRef.current; if (el && Math.abs(el.scrollTop - ciF * el.clientHeight) > 4) { var sn = el.style.scrollSnapType; el.style.scrollSnapType = "none"; el.scrollTop = ciF * el.clientHeight; requestAnimationFrame(function () { el.style.scrollSnapType = sn; }); } }, 0); }
+    this._convSelKey = selK; this._convIdxPrev = ciQ; this._convFiltroK = verN + "|" + ordenEf; this._convSelG = grupos[ciQ] || null;
+    var convIdx = ciQ;
     var nPag = Math.max(1, grupos.length), pagPct = 100 / nPag;
     /* Solo se montan la actual y sus vecinas, en su posición absoluta dentro del alto total. */
     var convPaginas = grupos.map(function (g, i) { return Object.assign({}, g, { _i: i }); }).filter(function (g) { return Math.abs(g._i - convIdx) <= 1; }).map(function (g) {

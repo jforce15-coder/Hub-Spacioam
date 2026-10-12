@@ -1369,10 +1369,18 @@
                       <button onClick="{{ c.progConfirmar }}" disabled="{{ c.progBusyDis }}" style="align-self:flex-end; min-height:40px; padding:0 18px; border:none; border-radius:999px; background: {{ c.progConfirmBg }}; color: {{ c.progConfirmFg }}; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ c.progConfirmLabel }}</button>
                     </div>
                   </sc-if>
+                  <sc-if value="{{ c.hayAlmaTxt }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; flex-shrink:0; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
+                      <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="11" hint-size="11px,11px"></x-import>
+                      <span style="flex:1; min-width:0; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ c.almaTxtTitulo }}</span>
+                      <button onClick="{{ c.almaDeshacer }}" style="min-height:32px; padding:0 12px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-active="transform:scale(.98)">Deshacer</button>
+                      <button onClick="{{ c.almaRehacer }}" style="min-height:32px; padding:0 12px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="12" color="currentColor" hint-size="12px,12px"></x-import>Rehacer</button>
+                    </div>
+                  </sc-if>
                   <div style="display:flex; align-items:flex-end; gap:8px; flex-shrink:0">
                     <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="{{ c.respMejorarLabel }}" title="{{ c.respMejorarLabel }}" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></button>
                     <div style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:22px; background:#FFFFFF; display:flex; transition:border-color .18s">
-                      <textarea ref="{{ c.respRef }}" onInput="{{ c.setRespTexto }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Mensaje" aria-label="Escribe tu respuesta" title="{{ c.respHint }}" style="flex:1; min-width:0; border:none; background:transparent; padding:11px 16px; font-family:inherit; font-size:15px; line-height:20px; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:42px; max-height:142px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
+                      <textarea ref="{{ c.respRef }}" readOnly="{{ c.respReadOnly }}" onInput="{{ c.setRespTexto }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Mensaje" aria-label="Escribe tu respuesta" title="{{ c.respHint }}" style="flex:1; min-width:0; border:none; background:transparent; padding:11px 16px; font-family:inherit; font-size:15px; line-height:20px; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:42px; max-height:142px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
                     </div>
                     <button onClick="{{ c.progPickToggle }}" aria-label="Programar envío" title="Programar envío (hora de Guatemala)" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="17" color="currentColor" hint-size="17px,17px"></x-import></button>
                     <button onClick="{{ c.respEnviar }}" disabled="{{ c.respSinTexto }}" aria-label="{{ c.respEnviarLabel }}" title="{{ c.respEnviarLabel }}" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; display:grid; place-items:center; cursor:pointer; transition:filter .18s, transform .1s; background: {{ c.respEnviarBg }}; color: {{ c.respEnviarFg }}" style-hover="filter:brightness(.94)" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="18" color="currentColor" hint-size="18px,18px"></x-import></button>
@@ -3180,9 +3188,23 @@ class Component extends DCLogic {
     return dia + " · " + ((H % 12) || 12) + ":" + (mi < 10 ? "0" : "") + mi + (H < 12 ? " am" : " pm");
   }
   gtInput(ms) { var g = new Date(ms - 216e5); return g.toISOString().slice(0, 16); }
-  altoResp(el) {
+  /* Borradores: se guardan por conversación en este dispositivo (7 días) y vuelven al reabrirla. */
+  borradores() {
+    if (this._borr) return this._borr;
+    var o = {}; try { o = JSON.parse(localStorage.getItem("sa_borradores") || "{}") || {}; } catch (e) {}
+    var lim = Date.now() - 7 * 864e5; Object.keys(o).forEach(function (k) { if (!o[k] || o[k].ts < lim) delete o[k]; });
+    return (this._borr = o);
+  }
+  leerBorrador(k) { var b = this.borradores()[k]; return b ? b.t : ""; }
+  guardarBorrador(k, t) {
+    var o = this.borradores(), self = this; t = String(t || "");
+    if (t.trim()) o[k] = { t: t, ts: Date.now() }; else delete o[k];
+    clearTimeout(this._borrT);
+    this._borrT = setTimeout(function () { try { localStorage.setItem("sa_borradores", JSON.stringify(self._borr || o)); } catch (e) {} }, 400);
+  }
+  altoResp(el, filasMax) {
     if (!el) return;
-    var filas = window.matchMedia && matchMedia("(min-width:1180px)").matches ? 6 : 4, max = 20 * filas + 22;
+    var filas = filasMax || (window.matchMedia && matchMedia("(min-width:1180px)").matches ? 6 : 4), max = 20 * filas + 22;
     el.style.height = "auto";
     var h = Math.max(42, Math.min(el.scrollHeight, max));
     el.style.height = h + "px"; el.style.maxHeight = max + "px";
@@ -3833,7 +3855,7 @@ class Component extends DCLogic {
       if (info && !info.resId && String(info.gk || info.key || "").indexOf("wa:") === 0) info = Object.assign({}, info, { resId: info.gk || info.key });
       var rs = st.convResp[convKey] || {};
       var upd = function (patch) { self.setState(function (s) { var o = Object.assign({}, s.convResp); o[convKey] = Object.assign({}, o[convKey] || {}, patch); return { convResp: o }; }); };
-      if (self._respDraft[convKey] == null) self._respDraft[convKey] = rs.texto || "";
+      if (self._respDraft[convKey] == null) self._respDraft[convKey] = self.leerBorrador(convKey) || rs.texto || "";
       var ponerTexto = function (t) { self._respDraft[convKey] = t; var el = self._respEl[convKey]; if (el) { el.value = t; self.altoResp(el); } upd({ lleno: !!t.trim() }); };
       var redactor = ((a.instrucciones || []).find(function (i) { return String(i.clave).toUpperCase() === "REDACTOR"; }) || {}).prompt || "Eres Alma, del equipo de Spacio AM. Cálida, breve, tú, sin markdown.";
       var hiloTxt = (info.hiloLista || []).map(function (m) { return "[" + (m.tipo === "guest" ? "HUÉSPED" : m.auto ? "SPACIO AM · automático" : "SPACIO AM") + "] " + m.texto; }).join("\n---\n").slice(-6000);
@@ -3841,16 +3863,27 @@ class Component extends DCLogic {
       /* Mejorar = pule lo escrito; Redactar = sin texto, ALMA responde desde el contexto. El resultado se muestra completo y se aprueba, edita o rehace. */
       var mejorar = function (base) {
         var actual = base != null ? base : (self._respDraft[convKey] || "");
-        upd({ busy: true, nota: "", propuesta: "", base: actual, modo: actual.trim() ? "mejorar" : "redactar" });
-        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual) : Promise.resolve({ ok: false });
+        if ((self.state.convResp[convKey] || {}).busy) return;
+        self.guardarBorrador(convKey, actual);
+        upd({ busy: true, abierto: true, nota: "", propuesta: "", alma: false, base: actual, modo: actual.trim() ? "mejorar" : "redactar" });
+        var errSrv = "";
+        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual) : Promise.resolve({ ok: false, error: !info.resId ? "Esta conversación no tiene reserva ni WhatsApp asociado" : "Conecta el Apps Script" });
         p.then(function (res) {
           if (res && res.ok && res.texto) return res.texto;
+          errSrv = res && res.error === "timeout" ? "ALMA tardó demasiado" : (res && res.error) || "";
+          if (!(window.claude && window.claude.complete)) return "";
           var user = actual.trim()
               ? "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE. Mejóralo y compleméntalo con el contexto de TODA la conversación: (1) conserva su intención y todos sus datos, sin cambiar la decisión; (2) mejora la forma con la voz de Spacio AM, en el idioma del ÚLTIMO mensaje del huésped (si aún no escribe, el idioma asignado a su reserva; si cambió de idioma, usa el nuevo); (3) agrega solo lo relevante que falte: preguntas del huésped que siguen sin respuesta y cuya respuesta está en el contexto, el siguiente paso útil para su estadía, o reconocer lo que contó (una molestia, una celebración); (4) nunca inventes datos ni ofrezcas concesiones (horarios especiales, descuentos, reembolsos, cambios) que el equipo no ofreció; (5) breve: máximo dos agregados. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx + "\n\nTEXTO BASE DEL EQUIPO:\n" + actual
               : "Redacta la respuesta al último mensaje del huésped con la voz de Spacio AM, en el idioma de ese último mensaje (si cambió de idioma, usa el nuevo). Los mensajes automáticos no cuentan como respuesta. Devuelve SOLO el mensaje final.\n\nCONTEXTO:\n" + ctx;
             return self.almaIA(redactor, user, 700);
-        }).then(function (t) { t = String(t || "").trim(); upd(t ? { busy: false, propuesta: t } : { busy: false, nota: "ALMA no devolvió texto. Intenta de nuevo." }); })
-          .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora." }); });
+        }).then(function (t) {
+            t = String(t || "").trim();
+            if (!t || /SIN_RESPUESTA/.test(t)) { upd({ busy: false, abierto: true, nota: (errSrv ? errSrv + ". " : "") + "Tu texto sigue aquí. Intenta de nuevo." }); return; }
+            ponerTexto(t); self.guardarBorrador(convKey, t);
+            upd({ busy: false, abierto: true, alma: true, lleno: true, nota: "" });
+            setTimeout(function () { var el = self._respEl[convKey]; if (el) { self.altoResp(el, 10); el.scrollTop = 0; } }, 30);
+          })
+          .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora. Tu texto sigue aquí." }); });
       };
       var enviar = function (t) {
         t = String(t || "").trim(); if (!t || (self.state.convResp[convKey] || {}).enviando) return;
@@ -3858,7 +3891,7 @@ class Component extends DCLogic {
         var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
         p.then(function (res) {
           if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
-          ponerTexto(""); upd({ enviando: false, abierto: false, nota: "", propuesta: "", base: null });
+          ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ enviando: false, abierto: false, nota: "", propuesta: "", base: null, alma: false });
           if (res.plantilla) self.aviso("Pasaron más de 24 h: WhatsApp solo permite la plantilla para retomar. Ya se envió; cuando responda, escribe tu mensaje.");
           else if (res.canal === "whatsapp") self.aviso("Enviado por WhatsApp");
           self.setState(function (s) {
@@ -3933,19 +3966,23 @@ class Component extends DCLogic {
           ALMA.programar(info.resId, t, new Date(cur.progSel).toISOString(), self.quienSoy()).then(function (res) {
             if (!(res && res.ok)) { upd({ progBusy: false, progNota: (res && res.error) || "No se pudo programar. Intenta de nuevo." }); return; }
             var cuando = self.gtFmt(cur.progSel);
-            ponerTexto(""); upd({ progBusy: false, progPick: false, progSel: null, progNota: "", lleno: false });
+            ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ progBusy: false, progPick: false, progSel: null, progNota: "", lleno: false, alma: false });
             self.setState(function (s) { var n = Object.assign({}, s.programados); delete n[info.resId]; return { programados: n }; });
             self.aviso("Programado para " + cuando + ". Lo ves y lo puedes cancelar en Programados.");
           }).catch(function () { upd({ progBusy: false, progNota: "No se pudo programar. Intenta de nuevo." }); });
         },
-        respRef: function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el); } },
-        setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
+        respRef: function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el, (self.state.convResp[convKey] || {}).alma ? 10 : 0); } },
+        setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target, (self.state.convResp[convKey] || {}).alma ? 10 : 0); self.guardarBorrador(convKey, v); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !rs.lleno || !!rs.enviando,
         respMejorarLabel: rs.busy ? "Redactando…" : rs.lleno ? "Mejorar" : "Redactar con ALMA",
         respHint: rs.lleno ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
         respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: rs.lleno ? "#3E3F3F" : "#D8D4CE", respEnviarFg: rs.lleno ? "#FAFAFA" : "#938B8A",
         respBusyTxt: rs.modo === "mejorar" ? "ALMA está mejorando tu texto con el contexto de la conversación…" : "ALMA está leyendo la conversación y redactando…",
-        hayPropuesta: !!rs.propuesta && !rs.busy, sinPropuesta: !rs.propuesta || !!rs.busy, propuesta: rs.propuesta || "",
+        hayPropuesta: false, sinPropuesta: true, propuesta: "",
+        hayAlmaTxt: !!rs.alma && !rs.busy, almaTxtTitulo: rs.modo === "mejorar" ? "Tu texto, mejorado por ALMA · revísalo y envía" : "Redactado por ALMA · revísalo y envía",
+        almaDeshacer: function () { var b = (self.state.convResp[convKey] || {}).base || ""; ponerTexto(b); self.guardarBorrador(convKey, b); upd({ alma: false, lleno: !!b.trim() }); },
+        almaRehacer: function () { mejorar((self.state.convResp[convKey] || {}).base || ""); },
+        respReadOnly: !!rs.busy,
         propTitulo: rs.modo === "mejorar" ? "Tu texto, mejorado por ALMA" : "Propuesta de ALMA",
         propAprobarLabel: rs.enviando ? "Enviando…" : "Aprobar y enviar",
         propAprobar: function () { enviar((self.state.convResp[convKey] || {}).propuesta || ""); },

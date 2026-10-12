@@ -1228,7 +1228,7 @@
                   <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:100%">
                     <button onClick="{{ c.autoToggle }}" role="switch" aria-checked="{{ c.autoOn }}" aria-label="Respuestas automáticas de ALMA en esta conversación" title="Respuestas automáticas de ALMA en esta conversación" style="display:inline-flex; align-items:center; gap:8px; min-height:36px; padding:0 12px 0 8px; border:1px solid {{ c.autoBd }}; background:#FFFFFF; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.98)"><span aria-hidden="true" style="width:30px; height:18px; border-radius:999px; background: {{ c.autoBg }}; border:1px solid {{ c.autoBd }}; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1)"><span style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background: {{ c.autoFg }}; left: {{ c.autoKnob }}; transition:left .18s cubic-bezier(.22,.61,.36,1)"></span></span>{{ c.autoLabel }}</button>
                     <button onClick="{{ c.toggleResuelta }}" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ c.resLabel }}</button>
-                    <button onClick="{{ c.toggleProg }}" aria-label="Mensajes programados" title="Mensajes programados en Hospitable" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #D8D4CE; background: {{ c.progBtnBg }}; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>Programados</button>
+                    <button onClick="{{ c.toggleProg }}" aria-label="Mensajes programados" title="Mensajes programados (Hospitable y equipo)" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #D8D4CE; background: {{ c.progBtnBg }}; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>Programados</button>
                     <button onClick="{{ c.toggleAbrir }}" style="border:1px solid {{ c.abrirBd }}; border-radius:999px; background: {{ c.abrirBg }}; color: {{ c.abrirFg }}; padding:0 14px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.abrirLabel }}</button>
                   </div>
                 </div>
@@ -1349,11 +1349,32 @@
                     </div>
                   </sc-if>
                   <sc-if value="{{ c.sinPropuesta }}" hint-placeholder-val="{{ true }}">
+                  <sc-if value="{{ c.progPickOn }}" hint-placeholder-val="{{ false }}">
+                    <div role="group" aria-label="Programar envío" style="display:flex; flex-direction:column; gap:10px; padding:12px; background:#F5F3F0; border-radius:14px; flex-shrink:0; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
+                      <div style="display:flex; align-items:center; gap:8px">
+                        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>
+                        <span style="font-size:12.5px; font-weight:600; color:#3E3F3F; letter-spacing:.02em; font-variant-numeric:tabular-nums; flex:1; min-width:0">{{ c.progResumen }}</span>
+                        <button onClick="{{ c.progPickToggle }}" aria-label="Cerrar programar" style="width:32px; height:32px; border-radius:50%; border:none; background:transparent; display:grid; place-items:center; cursor:pointer; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="14" color="currentColor" hint-size="14px,14px"></x-import></button>
+                      </div>
+                      <div style="display:flex; flex-wrap:wrap; gap:6px">
+                        <sc-for list="{{ c.progOpciones }}" as="op" hint-placeholder-count="0">
+                          <button onClick="{{ op.elegir }}" style="min-height:36px; padding:0 14px; border-radius:999px; border:1px solid {{ op.bd }}; background: {{ op.bg }}; color: {{ op.fg }}; font-family:inherit; font-size:12px; font-weight:500; letter-spacing:.02em; font-variant-numeric:tabular-nums; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.98)">{{ op.label }}</button>
+                        </sc-for>
+                      </div>
+                      <label style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+                        <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Otra fecha y hora</span>
+                        <input type="datetime-local" value="{{ c.progCustomVal }}" min="{{ c.progCustomMin }}" onChange="{{ c.progCustom }}" style="min-height:40px; padding:0 12px; border:1px solid #D8D4CE; border-radius:10px; background:#FFFFFF; font-family:inherit; font-size:13px; color:#3E3F3F; font-variant-numeric:tabular-nums; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                      </label>
+                      <sc-if value="{{ c.progHayNota }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:12px; color:#B54D36">{{ c.progNota }}</span></sc-if>
+                      <button onClick="{{ c.progConfirmar }}" disabled="{{ c.progBusyDis }}" style="align-self:flex-end; min-height:40px; padding:0 18px; border:none; border-radius:999px; background: {{ c.progConfirmBg }}; color: {{ c.progConfirmFg }}; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ c.progConfirmLabel }}</button>
+                    </div>
+                  </sc-if>
                   <div style="display:flex; align-items:flex-end; gap:8px; flex-shrink:0">
                     <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="{{ c.respMejorarLabel }}" title="{{ c.respMejorarLabel }}" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></button>
                     <div style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:22px; background:#FFFFFF; display:flex; transition:border-color .18s">
                       <textarea ref="{{ c.respRef }}" onInput="{{ c.setRespTexto }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Mensaje" aria-label="Escribe tu respuesta" title="{{ c.respHint }}" style="flex:1; min-width:0; border:none; background:transparent; padding:11px 16px; font-family:inherit; font-size:15px; line-height:20px; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:42px; max-height:142px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
                     </div>
+                    <button onClick="{{ c.progPickToggle }}" aria-label="Programar envío" title="Programar envío (hora de Guatemala)" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="17" color="currentColor" hint-size="17px,17px"></x-import></button>
                     <button onClick="{{ c.respEnviar }}" disabled="{{ c.respSinTexto }}" aria-label="{{ c.respEnviarLabel }}" title="{{ c.respEnviarLabel }}" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; display:grid; place-items:center; cursor:pointer; transition:filter .18s, transform .1s; background: {{ c.respEnviarBg }}; color: {{ c.respEnviarFg }}" style-hover="filter:brightness(.94)" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="18" color="currentColor" hint-size="18px,18px"></x-import></button>
                   </div>
                   </sc-if>
@@ -3144,6 +3165,21 @@ class Component extends DCLogic {
   }
   /* Swipe en móvil: izquierda = más adentro (lista → tarjeta → conversación); derecha = volver. */
   /* Cuadro estilo WhatsApp: 1 fila en reposo, crece al escribir hasta 4 filas (6 en escritorio) y luego hace scroll dentro. */
+  /* Hora de Guatemala (UTC−6, sin horario de verano). */
+  gtProx(hh, mm) {
+    var now = Date.now(), g = new Date(now - 216e5), t = Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate(), hh, mm) + 216e5;
+    if (t <= now + 60000) t += 864e5;
+    return t;
+  }
+  gtFmt(ms) {
+    var g = new Date(ms - 216e5), hoy = new Date(Date.now() - 216e5), dia;
+    var d0 = Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth(), hoy.getUTCDate()), d1 = Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate()), dd = Math.round((d1 - d0) / 864e5);
+    var M = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    dia = dd === 0 ? "hoy" : dd === 1 ? "mañana" : g.getUTCDate() + " " + M[g.getUTCMonth()];
+    var H = g.getUTCHours(), mi = g.getUTCMinutes();
+    return dia + " · " + ((H % 12) || 12) + ":" + (mi < 10 ? "0" : "") + mi + (H < 12 ? " am" : " pm");
+  }
+  gtInput(ms) { var g = new Date(ms - 216e5); return g.toISOString().slice(0, 16); }
   altoResp(el) {
     if (!el) return;
     var filas = window.matchMedia && matchMedia("(min-width:1180px)").matches ? 6 : 4, max = 20 * filas + 22;
@@ -3860,6 +3896,47 @@ class Component extends DCLogic {
             if (!(res && res.ok)) { self.aviso("No se guardó. Intenta de nuevo."); return; }
             self.aviso(on ? "Respuestas automáticas activadas. ALMA revisa la conversación y envía lo pendiente si hace falta." : "Respuestas automáticas apagadas en esta conversación.");
           });
+        },
+        progPickOn: !!rs.progPick,
+        progBtnTxt: rs.progSel ? "Programar" : "Programar",
+        progPickToggle: function () {
+          if (!String(self._respDraft[convKey] || "").trim()) { self.aviso("Escribe el mensaje primero y luego elige la hora de envío."); return; }
+          upd({ progPick: !rs.progPick, progSel: rs.progPick ? null : (rs.progSel || null), progNota: "" });
+        },
+        progOpciones: (function () {
+          var now = Date.now(), ops = [[6, 30], [7, 0], [8, 0], [9, 0]].map(function (x) { return self.gtProx(x[0], x[1]); });
+          ops.push(Math.ceil((now + 36e5) / 3e5) * 3e5, Math.ceil((now + 3 * 36e5) / 3e5) * 3e5);
+          return ops.filter(function (v, i, a) { return a.indexOf(v) === i; }).map(function (ms, i) {
+            var sel = rs.progSel === ms, rel = i >= ops.length - 2;
+            return { label: rel ? (i === ops.length - 2 ? "En 1 h" : "En 3 h") : self.gtFmt(ms), bg: sel ? "#3E3F3F" : "#FFFFFF", fg: sel ? "#FAFAFA" : "#3E3F3F", bd: sel ? "#3E3F3F" : "#D8D4CE",
+              elegir: function () { upd({ progSel: ms, progNota: "" }); } };
+          });
+        })(),
+        progCustomVal: rs.progSel ? self.gtInput(rs.progSel) : "",
+        progCustomMin: self.gtInput(Date.now()),
+        progCustom: function (e) {
+          var m = String(e.target.value || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if (!m) return;
+          upd({ progSel: Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + 216e5, progNota: "" });
+        },
+        progResumen: rs.progSel ? "Se envía " + self.gtFmt(rs.progSel) + " · hora de Guatemala" : "Elige cuándo se envía (hora de Guatemala)",
+        progHayNota: !!rs.progNota, progNota: rs.progNota || "",
+        progListo: !!rs.progSel && !rs.progBusy, progBusyDis: !rs.progSel || !!rs.progBusy,
+        progConfirmLabel: rs.progBusy ? "Programando…" : "Programar envío",
+        progConfirmBg: rs.progSel ? "#3E3F3F" : "#D8D4CE", progConfirmFg: rs.progSel ? "#FAFAFA" : "#938B8A",
+        progConfirmar: function () {
+          var t = String(self._respDraft[convKey] || "").trim(), cur = self.state.convResp[convKey] || {};
+          if (!cur.progSel || cur.progBusy) return;
+          if (!t) { upd({ progNota: "El mensaje está vacío." }); return; }
+          if (cur.progSel < Date.now() + 30000) { upd({ progNota: "Esa hora ya pasó. Elige otra." }); return; }
+          if (!(window.ALMA && ALMA.hasApi() && ALMA.programar && info.resId)) { upd({ progNota: !info.resId ? "Esta conversación no tiene reserva ni WhatsApp asociado." : "Conecta el Apps Script para programar." }); return; }
+          upd({ progBusy: true, progNota: "" });
+          ALMA.programar(info.resId, t, new Date(cur.progSel).toISOString(), self.quienSoy()).then(function (res) {
+            if (!(res && res.ok)) { upd({ progBusy: false, progNota: (res && res.error) || "No se pudo programar. Intenta de nuevo." }); return; }
+            var cuando = self.gtFmt(cur.progSel);
+            ponerTexto(""); upd({ progBusy: false, progPick: false, progSel: null, progNota: "", lleno: false });
+            self.setState(function (s) { var n = Object.assign({}, s.programados); delete n[info.resId]; return { programados: n }; });
+            self.aviso("Programado para " + cuando + ". Lo ves y lo puedes cancelar en Programados.");
+          }).catch(function () { upd({ progBusy: false, progNota: "No se pudo programar. Intenta de nuevo." }); });
         },
         respRef: function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el); } },
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },

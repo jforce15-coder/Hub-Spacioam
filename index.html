@@ -203,6 +203,15 @@
                 <sc-if value="{{ pushPuedeProbar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pushProbar }}" disabled="{{ pushBusy }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:32px; padding:0 12px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; flex-shrink:0" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Probar</button></sc-if>
                 <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ pushOn }}" onChange="{{ pushToggle }}" disabled="{{ pushBusy }}" aria-label="Notificaciones push" hint-size="44px,26px"></x-import>
               </div>
+              <sc-if value="{{ pushOn }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; align-items:center; gap:10px; width:100%; padding:4px 14px 12px 40px; box-sizing:border-box; color:#3E3F3F">
+                  <span style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1">
+                    <span style="font-size:12.5px; letter-spacing:.06em">Mensajes nuevos</span>
+                    <span style="font-size:10.5px; letter-spacing:.03em; color:#6F6867; line-height:1.4">{{ pushNuevosSub }}</span>
+                  </span>
+                  <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ pushNuevosOn }}" onChange="{{ pushNuevosToggle }}" aria-label="Avisar cada mensaje nuevo de un huésped" hint-size="44px,26px"></x-import>
+                </div>
+              </sc-if>
             </sc-if>
             <button onClick="{{ toggleLang }}" style="display:flex; align-items:center; gap:10px; width:100%; border:none; border-top:1px solid #D8D4CE; background:transparent; cursor:pointer; padding:12px 14px; font-family:inherit; text-align:left; color:#3E3F3F" style-hover="background:#F5F3F0">
               <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="globe" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
@@ -1406,13 +1415,22 @@
                       <button onClick="{{ c.almaRehacer }}" style="min-height:32px; padding:0 12px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="12" color="currentColor" hint-size="12px,12px"></x-import>Rehacer</button>
                     </div>
                   </sc-if>
-                  <div style="display:flex; align-items:flex-end; gap:8px; flex-shrink:0">
-                    <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="{{ c.respMejorarLabel }}" title="{{ c.respMejorarLabel }}" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></button>
-                    <div style="flex:1; min-width:0; border:1px solid #D8D4CE; border-radius:22px; background:#FFFFFF; display:flex; transition:border-color .18s">
-                      <textarea ref="{{ c.respRef }}" readOnly="{{ c.respReadOnly }}" onInput="{{ c.setRespTexto }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Mensaje" aria-label="Escribe tu respuesta" title="{{ c.respHint }}" style="flex:1; min-width:0; border:none; background:transparent; padding:11px 16px; font-family:inherit; font-size:15px; line-height:20px; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:42px; max-height:142px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
+                  <div style="display:flex; align-items:flex-end; gap:6px; flex-shrink:0">
+                    <div style="flex:1; min-width:0; display:flex; align-items:flex-end; min-height:48px; border-radius:24px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); box-shadow:0 1px 2px rgba(62,63,63,.04); padding:0 4px">
+                      <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="Mejorar con ALMA" title="{{ c.respHint }}" style="width:40px; height:40px; margin-bottom:3px; flex-shrink:0; border-radius:50%; border:none; background:transparent; display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:rgba(233,130,106,.14)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import></button>
+                      </sc-if>
+                      <textarea ref="{{ c.respRef }}" readOnly="{{ c.respReadOnly }}" onInput="{{ c.setRespTexto }}" onKeyDown="{{ c.respKey }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Mensaje" aria-label="Escribe tu respuesta" enterKeyHint="enter" autoCapitalize="sentences" autoCorrect="on" spellCheck="true" style="flex:1; min-width:0; border:none; background:transparent; padding:13px 12px; font-family:inherit; font-size:16px; line-height:22px; letter-spacing:0; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:48px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
+                      <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
+                        <button onClick="{{ c.progPickToggle }}" aria-label="Programar envío" title="Programar envío (hora de Guatemala)" style="width:40px; height:40px; margin-bottom:3px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:#F5F3F0" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="19" color="currentColor" hint-size="19px,19px"></x-import></button>
+                      </sc-if>
                     </div>
-                    <button onClick="{{ c.progPickToggle }}" aria-label="Programar envío" title="Programar envío (hora de Guatemala)" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; display:grid; place-items:center; cursor:pointer; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="17" color="currentColor" hint-size="17px,17px"></x-import></button>
-                    <button onClick="{{ c.respEnviar }}" disabled="{{ c.respSinTexto }}" aria-label="{{ c.respEnviarLabel }}" title="{{ c.respEnviarLabel }}" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; display:grid; place-items:center; cursor:pointer; transition:filter .18s, transform .1s; background: {{ c.respEnviarBg }}; color: {{ c.respEnviarFg }}" style-hover="filter:brightness(.94)" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="18" color="currentColor" hint-size="18px,18px"></x-import></button>
+                    <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ c.respEnviar }}" disabled="{{ c.respEnviando }}" aria-label="{{ c.respEnviarLabel }}" title="{{ c.respEnviarLabel }}" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:none; background:#3E3F3F; color:#FAFAFA; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 16px rgba(62,63,63,.12); transition:filter .18s, transform .1s; opacity: {{ c.respEnviarOp }}; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(1.12)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="20" color="currentColor" hint-size="20px,20px"></x-import></button>
+                    </sc-if>
+                    <sc-if value="{{ c.respVacio }}" hint-placeholder-val="{{ true }}">
+                      <button onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="Redactar con ALMA" title="{{ c.respHint }}" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import></button>
+                    </sc-if>
                   </div>
                   </sc-if>
                 </div>
@@ -2642,6 +2660,8 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     var self = this;
+    var convLink = this.convDeUrl(location.href); if (convLink) setTimeout(function () { self.irAConv(convLink); }, 0);
+    window.addEventListener("sa-push-click", function (e) { var k = self.convDeUrl((e && e.detail) || ""); if (k) self.irAConv(k); });
     /* Cualquier enlace a epi / hola / mi / grow lleva la sesión, para no volver a iniciar sesión. */
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;
@@ -3292,13 +3312,22 @@ class Component extends DCLogic {
     clearTimeout(this._borrT);
     this._borrT = setTimeout(function () { try { localStorage.setItem("sa_borradores", JSON.stringify(self._borr || o)); } catch (e) {} }, 400);
   }
+  /* Crece como WhatsApp: hasta ~7 líneas (40% de la pantalla en teléfono) y luego hace scroll por dentro.
+     Solo vuelve a medir desde cero cuando el texto se acorta; al escribir basta comparar scrollHeight. Se agrupa por frame. */
   altoResp(el, filasMax) {
     if (!el) return;
-    var filas = filasMax || (window.matchMedia && matchMedia("(min-width:1180px)").matches ? 6 : 4), max = 20 * filas + 22;
-    el.style.height = "auto";
-    var h = Math.max(42, Math.min(el.scrollHeight, max));
-    el.style.height = h + "px"; el.style.maxHeight = max + "px";
-    el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
+    var self = this;
+    if (el._altoRaf) return;
+    el._altoRaf = requestAnimationFrame(function () {
+      el._altoRaf = 0;
+      var ancho = window.matchMedia && matchMedia("(min-width:1180px)").matches;
+      var filas = filasMax || (ancho ? 8 : 7), max = Math.min(22 * filas + 26, Math.round(window.innerHeight * (ancho ? 0.45 : 0.4)));
+      var len = el.value.length, prev = el._altoLen || 0; el._altoLen = len;
+      if (len < prev || !el.style.height) el.style.height = "48px";
+      var h = Math.max(48, Math.min(el.scrollHeight, max));
+      if (el.style.height !== h + "px") el.style.height = h + "px";
+      var ov = el.scrollHeight > max + 1 ? "auto" : "hidden"; if (el.style.overflowY !== ov) el.style.overflowY = ov;
+    });
   }
   insAbrir() {
     var self = this;
@@ -3369,6 +3398,16 @@ class Component extends DCLogic {
   }
   /* Abre la conversación aunque los filtros la escondan (se quitan los filtros y se reintenta). */
   abrirGrupo(gk) { this._apTry = 0; this.setState({ abrirPend: gk }); }
+  /* Desde una notificación: abre ALMA y la conversación. Si la sesión aún no está lista, espera. */
+  irAConv(gk) {
+    var self = this; if (!gk) return;
+    if (this.state.vista === "login" || this.state.vista === "cargando") { setTimeout(function () { self.irAConv(gk); }, 600); return; }
+    try { if (/[?&]conv=/.test(location.search)) history.replaceState(null, "", location.pathname); } catch (e) {}
+    this.setState({ vista: "alma", notiOpen: false, ctrlAbierto: false, mejAbierto: false, autoAbierto: false, correosAbierto: false });
+    if (!this.state.alma) this.almaCargar();
+    this.abrirGrupo(gk);
+  }
+  convDeUrl(u) { try { return new URL(u, location.href).searchParams.get("conv") || ""; } catch (e) { return ""; } }
   abrirDesdeLista(e, t, i) {
     var row = e && e.currentTarget, box = row && row.parentElement, o = "50% 30%";
     try { var r = row.getBoundingClientRect(), b = box.getBoundingClientRect(); o = "50% " + Math.max(0, Math.round(r.top - b.top + r.height / 2)) + "px"; } catch (x) {}
@@ -4018,7 +4057,23 @@ class Component extends DCLogic {
         upd({ enviando: true, nota: "" });
         var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
         p.then(function (res) {
-          if (!(res && res.ok)) { upd({ enviando: false, nota: res && res.error === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : "No se pudo enviar. Conecta el Apps Script." }); return; }
+          if (!(res && res.ok)) {
+            var er = String((res && res.error) || "");
+            /* timeout o corte de red: el mensaje pudo salir. Se recarga el hilo antes de sugerir reenviar, para no duplicar. */
+            if (er === "timeout" || er === "red") {
+              upd({ enviando: false, nota: "La conexión se cortó antes de confirmar. Revisando si salió…" });
+              var n0 = Object.assign({}, self.state.almaHilos); delete n0[info.resId]; self._hiloFresco[info.resId] = 0; self.setState({ almaHilos: n0 });
+              ALMA.hilo(info.resId).then(function (r2) {
+                var ya = r2 && r2.ok && (r2.hilo || []).slice(-6).some(function (m) { return m.tipo !== "guest" && String(m.texto || "").trim() === t; });
+                if (r2 && r2.ok) self.guardarHilo(info.resId, r2.hilo);
+                if (ya) { ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ nota: "", abierto: false, alma: false }); self.aviso("Enviado"); }
+                else upd({ nota: "No se envió. Tu texto sigue aquí; toca enviar otra vez." });
+              });
+              return;
+            }
+            upd({ enviando: false, nota: er === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : er === "no_url" ? "El hub no tiene la dirección del Apps Script. Revisa la configuración." : er === "token" ? "El Apps Script rechazó la clave del hub. Ejecuta configurar() y vuelve a implementar." : "No se envió: " + er + ". Tu texto sigue aquí." });
+            return;
+          }
           ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ enviando: false, abierto: false, nota: "", propuesta: "", base: null, alma: false });
           if (res.plantilla) self.aviso("Pasaron más de 24 h: WhatsApp solo permite la plantilla para retomar. Ya se envió; cuando responda, escribe tu mensaje.");
           else if (res.canal === "whatsapp") self.aviso("Enviado por WhatsApp");
@@ -4099,9 +4154,16 @@ class Component extends DCLogic {
             self.aviso("Programado para " + cuando + ". Lo ves y lo puedes cancelar en Programados.");
           }).catch(function () { upd({ progBusy: false, progNota: "No se pudo programar. Intenta de nuevo." }); });
         },
-        respRef: function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el, (self.state.convResp[convKey] || {}).alma ? 10 : 0); } },
+        respRef: (self._respRefFn = self._respRefFn || {})[convKey] || (self._respRefFn[convKey] = function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el, (self.state.convResp[convKey] || {}).alma ? 10 : 0); } }),
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target, (self.state.convResp[convKey] || {}).alma ? 10 : 0); self.guardarBorrador(convKey, v); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !rs.lleno || !!rs.enviando,
+        respLleno: !!rs.lleno, respVacio: !rs.lleno, respEnviando: !!rs.enviando, respEnviarOp: rs.enviando ? ".5" : "1",
+        /* Escritorio: Enter envía, Shift+Enter salta línea. Teléfono: Enter es salto de línea, como WhatsApp. */
+        respKey: function (e) {
+          if (e.key !== "Enter" || e.shiftKey || e.altKey || e.isComposing) return;
+          if (!(window.matchMedia && matchMedia("(min-width:1180px) and (hover:hover)").matches)) return;
+          e.preventDefault(); enviar(self._respDraft[convKey] || "");
+        },
         respMejorarLabel: rs.busy ? "Redactando…" : rs.lleno ? "Mejorar" : "Redactar con ALMA",
         respHint: rs.lleno ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
         respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: rs.lleno ? "#3E3F3F" : "#D8D4CE", respEnviarFg: rs.lleno ? "#FAFAFA" : "#938B8A",
@@ -4716,9 +4778,17 @@ class Component extends DCLogic {
         c.resBg = g.resuelto ? "rgba(61,107,82,.14)" : "#FFFFFF"; c.resBd = g.resuelto ? "rgba(61,107,82,.5)" : "#D8D4CE"; c.resFg = g.resuelto ? "#3d6b52" : "#3E3F3F";
         c.toggleResuelta = function (e) {
           if (e && e.stopPropagation) e.stopPropagation();
-          var ent = { estado: g.resuelto ? "abierta" : "resuelta", ts: Date.now(), por: self.quienSoy() };
-          self.setState(function (s) { var n = Object.assign({}, s.resMan); n[g.key] = ent; try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} return { resMan: n }; });
-          if (window.ALMA && ALMA.hasApi()) ALMA.resolver(g.key, ent.estado, ent.por);
+          /* La marca debe quedar después del último mensaje que se conoce (aunque su hora venga adelantada o en otra zona);
+             si no, "vigente" la ignoraba y el botón parecía no responder. */
+          var ent = { estado: g.resuelto ? "abierta" : "resuelta", ts: Math.max(Date.now(), top.ts || 0, ug || 0, g.tsReal || 0) + 1, por: self.quienSoy() };
+          var prev = (self.state.resMan || {})[g.key];
+          var guardar = function (n) { try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} };
+          self.setState(function (s) { var n = Object.assign({}, s.resMan); n[g.key] = ent; guardar(n); return { resMan: n }; });
+          if (window.ALMA && ALMA.hasApi()) ALMA.resolver(g.key, ent.estado, ent.por).then(function (r) {
+            if (r && r.ok) return;
+            self.setState(function (s) { var n = Object.assign({}, s.resMan); if (prev) n[g.key] = prev; else delete n[g.key]; guardar(n); return { resMan: n }; });
+            self.aviso("No se guardó el cambio. Revisa la conexión e intenta de nuevo.");
+          });
         };
         var pk = c.resId || "", ps = st.programados[pk] || {};
         c.progAbierto = st.progAbierto === c.key; c.progBtnBg = c.progAbierto ? "#F5F3F0" : "#FFFFFF";
@@ -4873,7 +4943,7 @@ class Component extends DCLogic {
       var gp = st.abrirPend, jp = gIdx[gp];
       if (jp == null) {
         if (!this._apTry) { this._apTry = 1; setTimeout(function () { self.setState({ convOrden: "Cronológico", logFiltro: "Todo", convVista: "", convSolo: "", convBusca: "", logQuien: "Todos", logResp: "Todas" }); }, 0); }
-        else if (++this._apTry > 4) setTimeout(function () { self.setState({ abrirPend: null }); }, 0);
+        else if (st.alma && !convCargando && ++this._apTry > 6) setTimeout(function () { self.setState({ abrirPend: null }); self.aviso("No encontramos esa conversación en los últimos días."); }, 0);
       } else { var tp = grupos[jp].frags[0]; this._apTry = 0; setTimeout(function () { self.setState({ abrirPend: null }); self.convAbrir(tp.key, true, tp.cargarHilo); self.convIrA(jp); }, 0); }
     }
     /* La conversación abierta se fija por identidad: si cambia de estado o de orden, la vista la sigue
@@ -5913,6 +5983,14 @@ class Component extends DCLogic {
       pushPermitir: function () { self.pushPermitir(); }, pushAhoraNo: function () { self.pushAhoraNo(); },
       pushDisponible: (function () { var e = window.SAPush && SAPush.configurado() ? SAPush.estado() : "no"; return e === "activo" || e === "pausado" || e === "soportado" || e === "bloqueado" || e === "instalar"; })(),
       pushOn: (window.SAPush && SAPush.estado() === "activo") || false,
+      pushNuevosOn: !!(window.SAPush && SAPush.nuevos && SAPush.nuevos()),
+      pushNuevosSub: window.SAPush && SAPush.nuevos && SAPush.nuevos() ? "Te avisamos cada mensaje de un huésped. Tócalo para abrir el chat." : "Solo urgentes y cambios de reserva",
+      pushNuevosToggle: function (v) {
+        if (!(window.SAPush && SAPush.setNuevos)) return;
+        var on = typeof v === "boolean" ? v : !SAPush.nuevos();
+        SAPush.setNuevos(on).then(function (r) { self.aviso(r && r.ok ? (on ? "Te avisaremos cada mensaje nuevo en este dispositivo." : "Ya no recibirás avisos de cada mensaje.") : "No se pudo cambiar. Intenta de nuevo."); self.forceUpdate(); });
+        self.forceUpdate();
+      },
       pushPuedeProbar: !!window.SAPush && ["activo", "pausado", "bloqueado"].indexOf(SAPush.estado()) >= 0,
       pushProbar: function () {
         if (!window.ALMA || !ALMA.probarPush) return;

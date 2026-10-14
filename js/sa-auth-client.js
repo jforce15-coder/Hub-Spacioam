@@ -103,6 +103,8 @@
     setPassword:        function (email, cur, next){ return call('setPassword', { email: email, current: cur, next: next }); },
     setEmail:           function (email, next)     { return call('setEmail', { email: email, next: next }); },
     setPhoto:           function (email, url)      { return call('setPhoto', { email: email, url: url }); },
+    /* Lista de solo lectura (email, nombre, apps) de la hoja «Control de usuarios». */
+    usuarios:           function () { return readSheet().then(function (us) { return us.filter(function (u) { return u.activo; }).map(function (u) { return { email: u.email, nombre: u.nombre, apps: u.apps }; }); }).catch(function () { return []; }); },
     roleFor:            function (profile, appKey) { return (profile && profile.apps && profile.apps[appKey || SAAuth.APP]) || null; }
   };
 

@@ -65,9 +65,9 @@
     return fetch(CFG.url, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store', signal: ctl ? ctl.signal : undefined,
       body: JSON.stringify(Object.assign({ hub: 1, action: action, token: CFG.token }, payload || {}))
-    }).then(function (r) { return r.json(); })
+    }).then(function (r) { if (!r.ok) return { ok: false, error: 'HTTP ' + r.status }; return r.json().catch(function () { return { ok: false, error: 'respuesta inválida del Apps Script' }; }); })
       .then(function (j) { clearTimeout(reloj); return j; })
-      .catch(function (e) { clearTimeout(reloj); return { ok: false, error: e && e.name === 'AbortError' ? 'timeout' : 'no_url', detail: String(e) }; });
+      .catch(function (e) { clearTimeout(reloj); return { ok: false, error: e && e.name === 'AbortError' ? 'timeout' : 'red', detail: String(e) }; });
   }
   global.ALMA = {
     SHEET: CFG.sheetId,

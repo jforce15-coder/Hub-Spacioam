@@ -967,36 +967,26 @@
       </sc-if>
       <sc-if value="{{ resHay }}" hint-placeholder-val="{{ false }}">
         <div class="alma-reslista" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px 8px">
-            <span style="font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">{{ resSub }}</span>
-            <span style="display:flex; gap:10px; font-size:10px; letter-spacing:.04em; color:#6F6867; flex-shrink:0">
-              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:7px; height:7px; border-radius:50%; background:#3B6691"></span>ALMA</span>
-              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:7px; height:7px; border-radius:50%; background:#E9826A"></span>Equipo</span>
-            </span>
-          </div>
+          <span style="padding:14px 16px 10px; font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">{{ resSub }}</span>
           <sc-for list="{{ resLineas }}" as="l" hint-placeholder-count="4">
-            <div data-gk="{{ l.gk }}" style="display:flex; align-items:center; gap:8px; padding-right:12px; border-top:1px solid #F0EDE8; background: {{ l.bg }}; transition:background .18s">
-              <button onClick="{{ l.ir }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:12px; padding:12px 0 12px 14px; border:none; background:transparent; text-align:left; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:opacity .18s" style-active="opacity:.6">
-                <span style="position:relative; width:40px; height:40px; flex-shrink:0">
-                  <sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
-                  <sc-if value="{{ l.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span></sc-if>
-                  <sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ l.canalDom }}" title="{{ l.canalNom }}" alt="{{ l.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
-                  <sc-if value="{{ l.pide }}" hint-placeholder-val="{{ false }}"><span aria-label="Necesita a alguien" style="position:absolute; left:-2px; top:-2px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF; box-sizing:border-box"></span></sc-if>
+            <button onClick="{{ l.ir }}" data-gk="{{ l.gk }}" style="display:grid; grid-template-columns:40px minmax(0,1fr); gap:12px; align-items:start; width:100%; padding:14px 16px; border:none; border-top:1px solid #F0EDE8; background: {{ l.bg }}; text-align:left; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#FAFAFA" style-active="background:#F5F3F0">
+              <span style="position:relative; width:40px; height:40px">
+                <sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
+                <sc-if value="{{ l.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span></sc-if>
+                <sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ l.canalDom }}" title="{{ l.canalNom }}" alt="{{ l.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
+              </span>
+              <span style="min-width:0; display:flex; flex-direction:column; gap:3px">
+                <span style="display:flex; align-items:baseline; gap:10px; min-width:0">
+                  <span style="flex:1; min-width:0; font-size:14.5px; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.25">{{ l.quien }}</span>
+                  <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; white-space:nowrap; letter-spacing:.04em">{{ l.hace }}</span>
                 </span>
-                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
-                  <span style="display:flex; align-items:baseline; gap:8px; min-width:0">
-                    <span style="flex:1; min-width:0; font-size:14px; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em">{{ l.quien }}</span>
-                    <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0">{{ l.hace }}</span>
-                  </span>
-                  <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; line-height:1.45; text-wrap:pretty">{{ l.propLinea }}</span>
-                  <span style="display:flex; align-items:center; gap:5px; min-width:0; margin-top:1px">
-                    <sc-for list="{{ l.dots }}" as="d" hint-placeholder-count="0"><span title="{{ d.t }}" aria-label="{{ d.t }}" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ d.bg }}"></span></sc-for>
-                    <span style="flex:1; min-width:0; margin-left:2px; font-size:12.5px; line-height:1.4; letter-spacing:.01em; color: {{ l.txtFg }}; font-weight: {{ l.txtPeso }}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-wrap:pretty">{{ l.texto }}</span>
-                  </span>
+                <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4">{{ l.propLinea }}</span>
+                <span style="display:flex; align-items:center; gap:8px; min-width:0; margin-top:5px">
+                  <span style="flex-shrink:0; font-size:8.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:4px 8px; line-height:1; white-space:nowrap; background: {{ l.tagBg }}; color: {{ l.tagFg }}">{{ l.estado }}</span>
+                  <span style="flex:1; min-width:0; font-size:12.5px; line-height:1.35; letter-spacing:.01em; color:#3E3F3F; font-weight: {{ l.txtPeso }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ l.titulo }}</span>
                 </span>
-              </button>
-              <button onClick="{{ l.tagIr }}" aria-label="{{ l.tagAria }}" title="{{ l.tagAria }}" style="flex-shrink:0; border:none; font-family:inherit; font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:7px 10px; white-space:nowrap; line-height:1; cursor:pointer; background: {{ l.tagBg }}; color: {{ l.tagFg }}; -webkit-tap-highlight-color:transparent; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.94)">{{ l.estado }}</button>
-            </div>
+              </span>
+            </button>
           </sc-for>
         </div>
       </sc-if>
@@ -1243,6 +1233,8 @@
                     <sc-if value="{{ c.hayEstadia }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span>{{ c.estadia }}</span></sc-if>
                     <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.copiarCodigo }}" aria-label="Copiar el código de reserva" title="Copiar código" style="display:inline-flex; align-items:center; gap:5px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; min-height:28px; padding:0 10px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.08em; font-variant-numeric:tabular-nums; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.codigo }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></sc-if>
                     <button onClick="{{ c.form.ver }}" aria-label="{{ c.form.formLabel }}" title="{{ c.form.formLabel }}" style="width:28px; height:28px; border-radius:50%; border:1px solid {{ c.form.formBd }}; background: {{ c.form.formTint }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="file" size="14" color="{{ c.form.formBg }}" hint-size="14px,14px"></x-import></button>
+                    <sc-if value="{{ c.hayCal }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verCal }}" aria-label="Calendario de la propiedad" title="Calendario de la propiedad" style="width:28px; height:28px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
+                    <sc-if value="{{ c.hayIng }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verIng }}" aria-label="Ingreso de la reserva" title="Ingreso de la reserva" style="width:28px; height:28px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                   </div>
                   <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
                     <span role="progressbar" aria-label="{{ c.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-width:280px">
@@ -1254,6 +1246,7 @@
                 <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:1 1 auto; min-width:0; max-width:100%; margin-left:auto">
                   <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums; padding-right: {{ c.fechaPad }}">{{ c.fecha }}</span>
                   <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:100%">
+                    <sc-if value="{{ c.hayPreap }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.preaprobar }}" title="{{ c.preapTitulo }}" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #E9826A; background:rgba(233,130,106,.12); color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.96)" style-active="transform:scale(.96)">Pre-aprobar<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#3E3F3F" hint-size="13px,13px"></x-import></button></sc-if>
                     <button onClick="{{ c.autoToggle }}" role="switch" aria-checked="{{ c.autoOn }}" aria-label="Respuestas automáticas de ALMA en esta conversación" title="Respuestas automáticas de ALMA en esta conversación" style="display:inline-flex; align-items:center; gap:8px; min-height:36px; padding:0 12px 0 8px; border:1px solid {{ c.autoBd }}; background:#FFFFFF; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.98)"><span aria-hidden="true" style="width:30px; height:18px; border-radius:999px; background: {{ c.autoBg }}; border:1px solid {{ c.autoBd }}; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1)"><span style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background: {{ c.autoFg }}; left: {{ c.autoKnob }}; transition:left .18s cubic-bezier(.22,.61,.36,1)"></span></span>{{ c.autoLabel }}</button>
                     <button onClick="{{ c.toggleResuelta }}" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ c.resLabel }}</button>
                     <button onClick="{{ c.toggleProg }}" aria-label="Mensajes programados" title="Mensajes programados (Hospitable y equipo)" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #D8D4CE; background: {{ c.progBtnBg }}; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>Programados</button>
@@ -1626,6 +1619,69 @@
                 <button onClick="{{ deshacerResolver }}" style="border:none; border-radius:999px; background:rgba(250,250,250,.14); color:#FAFAFA; padding:8px 14px; min-height:36px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer">Deshacer</button>
               </div>
             </sc-if>
+      <sc-if value="{{ infoAbierto }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:66; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:16px; box-sizing:border-box">
+        <div onClick="{{ infoCerrar }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
+        <div role="dialog" aria-label="{{ info.eyebrow }}" style="position:relative; width:min(100%,440px); max-height:min(88dvh,780px); display:flex; flex-direction:column; background:#FFFFFF; border-radius:28px; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both; overflow:hidden">
+          <button onClick="{{ infoCerrar }}" aria-label="Cerrar" style="position:absolute; right:14px; top:14px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; z-index:1; transition:transform .1s" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:24px 24px 26px; display:flex; flex-direction:column; gap:20px; min-height:0">
+            <div style="display:flex; flex-direction:column; gap:6px; padding-right:48px">
+              <span style="font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">{{ info.eyebrow }}</span>
+              <span style="font-family:'Valky','Cormorant Garamond',serif; font-size:26px; line-height:1.1; color:#3E3F3F; text-wrap:pretty">{{ info.titulo }}</span>
+              <span style="font-size:12px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ info.sub }}</span>
+            </div>
+            <sc-if value="{{ info.cargando }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:10px">
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Skeleton" height="14" width="40%" hint-size="40%,14px"></x-import>
+                <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Skeleton" height="180" width="100%" radius="14px" hint-size="100%,180px"></x-import>
+              </div>
+            </sc-if>
+            <sc-if value="{{ info.hayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px; line-height:1.6; color:#6F6867; text-align:center; padding:24px 0">{{ info.error }}</span></sc-if>
+            <sc-if value="{{ info.esCal }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:22px">
+                <sc-for list="{{ info.meses }}" as="mes" hint-placeholder-count="0">
+                  <div style="display:flex; flex-direction:column; gap:10px">
+                    <span style="font-size:13px; font-weight:600; letter-spacing:.04em; color:#3E3F3F; text-transform:capitalize">{{ mes.titulo }}</span>
+                    <div style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px">
+                      <sc-for list="{{ info.semana }}" as="w" hint-placeholder-count="7"><span style="text-align:center; font-size:9.5px; font-weight:600; letter-spacing:.14em; color:#938B8A; padding-bottom:4px">{{ w }}</span></sc-for>
+                      <sc-for list="{{ mes.celdas }}" as="d" hint-placeholder-count="0">
+                        <span title="{{ d.aria }}" aria-label="{{ d.aria }}" style="aspect-ratio:1; display:grid; place-items:center; border-radius:10px; font-size:12.5px; font-variant-numeric:tabular-nums; box-sizing:border-box; border:1.5px solid {{ d.bd }}; background: {{ d.bg }}; color: {{ d.fg }}; opacity: {{ d.op }}; font-weight: {{ d.peso }}">{{ d.n }}</span>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+                <div style="display:flex; flex-wrap:wrap; gap:8px 16px; padding-top:4px; border-top:1px solid #F0EDE8">
+                  <sc-for list="{{ info.leyenda }}" as="lg" hint-placeholder-count="4"><span style="display:inline-flex; align-items:center; gap:6px; padding-top:12px; font-size:11px; letter-spacing:.04em; color:#6F6867"><span style="width:10px; height:10px; border-radius:3px; background: {{ lg.bg }}"></span>{{ lg.t }}</span></sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ info.esIng }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:22px">
+                <sc-if value="{{ info.haySeg }}" hint-placeholder-val="{{ false }}">
+                  <div role="tablist" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; background:#F5F3F0; border-radius:999px">
+                    <button role="tab" onClick="{{ info.verHost }}" style="min-height:40px; border:none; border-radius:999px; background: {{ info.segHostBg }}; box-shadow: {{ info.segHostSh }}; color: {{ info.segHostFg }}; font-family:inherit; font-size:12.5px; font-weight:600; letter-spacing:.04em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s" style-active="transform:scale(.98)">Tú recibes</button>
+                    <button role="tab" onClick="{{ info.verGuest }}" style="min-height:40px; border:none; border-radius:999px; background: {{ info.segGuestBg }}; box-shadow: {{ info.segGuestSh }}; color: {{ info.segGuestFg }}; font-family:inherit; font-size:12.5px; font-weight:600; letter-spacing:.04em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s" style-active="transform:scale(.98)">Pagó el huésped</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ info.sinIngreso }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px; line-height:1.6; color:#6F6867; text-align:center; padding:16px 0">Hospitable no entregó el desglose de esta reserva.</span></sc-if>
+                <sc-if value="{{ info.hayIngreso }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-direction:column; gap:22px">
+                    <span style="text-align:center; font-size:40px; font-weight:600; letter-spacing:.01em; color:#3E3F3F; font-variant-numeric:tabular-nums; line-height:1">{{ info.total }}</span>
+                    <div style="display:flex; flex-direction:column; gap:12px">
+                      <sc-for list="{{ info.lineas }}" as="ln" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; font-size:13.5px; letter-spacing:.02em; color:#3E3F3F"><span style="min-width:0">{{ ln.label }}</span><span style="font-variant-numeric:tabular-nums; white-space:nowrap">{{ ln.monto }}</span></div>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding-top:16px; border-top:1px solid #EAE6E0; font-size:14px; font-weight:600; letter-spacing:.02em; color:#3E3F3F"><span>{{ info.totalLabel }}</span><span style="font-variant-numeric:tabular-nums">{{ info.total }}</span></div>
+                    <sc-if value="{{ info.hayNota }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; line-height:1.6; color:#6F6867; text-wrap:pretty">{{ info.nota }}</span></sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+      </sc-if>
       <sc-if value="{{ rzAbierto }}" hint-placeholder-val="{{ false }}">
       <div style="position:fixed; inset:0; z-index:65; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
         <div onClick="{{ rzCerrar }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both"></div>
@@ -2561,7 +2617,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     mVista: (function () { try { return localStorage.getItem("sa_m_vista") || "resumen"; } catch (e) { return "resumen"; } })(), selG: null, abrirPend: null, razon: null,
-    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad", convSolo: "ATENCION", filtroMenu: false, cronoLista: true,
+    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad", convSolo: "ATENCION", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
     versionNueva: false, progEdit: {}, progConfirm: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
@@ -3277,6 +3333,16 @@ class Component extends DCLogic {
     return o;
   }
   lpCancel() { clearTimeout(this._lpT); this._lpXY = null; var el = this._lpEl; if (el) { el.style.transition = "transform .18s cubic-bezier(.23,1,.32,1)"; el.style.transform = ""; this._lpEl = null; } }
+  abrirInfo(resId, modo) {
+    var self = this, ya = (this.state.resInfo || {})[resId];
+    this.setState({ infoSheet: { resId: resId, modo: modo, lado: "host" } });
+    if (ya && (ya.data || ya.cargando) && Date.now() - (ya.t || 0) < 300000) return;
+    var put = function (v) { self.setState(function (s) { var n = Object.assign({}, s.resInfo); n[resId] = Object.assign({ t: Date.now() }, v); return { resInfo: n }; }); };
+    put({ cargando: true });
+    if (!(window.ALMA && ALMA.hasApi())) return put({ error: "Sin conexión con ALMA." });
+    ALMA.reservaInfo(resId).then(function (r) { if (r && r.ok) put({ data: r }); else put({ error: (r && r.error) || "No se pudo leer la reserva en Hospitable." }); })
+      .catch(function () { put({ error: "Sin conexión. Intenta de nuevo." }); });
+  }
   hiloMas(key, total) {
     var self = this, cur = (this.state.hiloVer || {})[key] || 30;
     if (this._hmBusy || cur >= total) return;
@@ -3394,7 +3460,7 @@ class Component extends DCLogic {
   resolverGk(gk) {
     var self = this, prev = (this.state.resMan || {})[gk] || null, ent = { estado: "resuelta", ts: Date.now(), por: this.quienSoy() };
     this.setState(function (s) { var n = Object.assign({}, s.resMan); n[gk] = ent; try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} return { resMan: n, swRes: { gk: gk, prev: prev } }; });
-    if (window.ALMA && ALMA.hasApi()) ALMA.resolver(gk, "resuelta", ent.por);
+    if (window.ALMA && ALMA.hasApi()) ALMA.resolver(gk, "resuelta", ent.por, ent.ts);
     clearTimeout(this._swResT); this._swResT = setTimeout(function () { self.setState({ swRes: null }); }, 4000);
   }
   deshacerResolver() {
@@ -3638,12 +3704,12 @@ class Component extends DCLogic {
       try { var c0 = JSON.parse(localStorage.getItem("sa_alma_cache") || "null"); if (c0 && c0.data && Date.now() - c0.ts < 15 * 60000) this.setState({ alma: c0.data, almaFuente: "Última lectura " + new Date(c0.ts).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) + " · actualizando…" }); } catch (e) {}
     }
     var guardar = function () {
-      try { var a = self.state.alma; if (!a || a._demo) return; var o = {}; ["control", "cola", "log", "inbox", "resueltas", "automejora", "correos", "escalamiento", "conocimiento"].forEach(function (k) { o[k] = a[k]; }); localStorage.setItem("sa_alma_cache", JSON.stringify({ ts: Date.now(), data: o })); } catch (e) {}
+      try { var a = self.state.alma; if (!a || a._demo) return; var o = {}; ["control", "cola", "log", "inbox", "resueltas", "resueltasVivo", "automejora", "correos", "escalamiento", "conocimiento"].forEach(function (k) { o[k] = a[k]; }); localStorage.setItem("sa_alma_cache", JSON.stringify({ ts: Date.now(), data: o })); } catch (e) {}
     };
     var vivo = null, base = null;
     var unir = function () {
       var d = Object.assign({}, base || self.state.alma || {});
-      if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; }
+      if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; if (vivo.resueltas) d.resueltasVivo = vivo.resueltas; }
       /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes. */
       else if (self.state.alma && self._vivoTs && Date.now() - self._vivoTs < 300000) { var a0 = self.state.alma; d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; }
       return d;
@@ -3655,7 +3721,7 @@ class Component extends DCLogic {
         self._cargandoVivo = false;
         if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
         if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now();
-        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || [];
+        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || []; if (l.resueltas) d.resueltasVivo = l.resueltas;
         listo(d, "En vivo · " + horaGT()); guardar();
       }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
       return;
@@ -4767,14 +4833,24 @@ class Component extends DCLogic {
       var i = hl.length - 1, autos = [];
       while (i >= 0 && hl[i].tipo !== "guest" && hl[i].auto) { autos.push(hl[i]); i--; }
       if (!autos.length || i < 0 || hl[i].tipo !== "guest") return false;
+      /* Ej. Elvis: preguntó hace 10 días (se le respondió en la consulta), reservó y luego llegó el automático de check-in. */
+      if (Date.now() - (Date.parse(hl[i].created) || 0) > 24 * 3600000) return false;
       var j = i; while (j >= 0 && hl[j].tipo === "guest") j--;
       var preg = hl.slice(j + 1, i + 1).map(function (m) { return m.texto || ""; }).join("\n");
       if (self.esCierre(preg)) return false;
       return !autos.some(function (a1) { return self.autoResuelve(preg, a1.texto); });
     };
     var resMan = {};
-    (a.resueltas || []).forEach(function (r) { var t = new Date(r.ts).getTime(), k = String(r.res_key || ""); if (k && (!resMan[k] || resMan[k].ts < t)) resMan[k] = { estado: r.estado, ts: t, por: r.por }; });
-    Object.keys(st.resMan || {}).forEach(function (k) { var e = st.resMan[k]; if (!resMan[k] || resMan[k].ts < e.ts) resMan[k] = e; });
+    /* La hoja puede entregar la hora como texto local ("15/10/2026 22:52:00"): si no se entiende, antes quedaba NaN y
+       borraba la marca local → la conversación "volvía" a pendiente al cambiar de filtro. */
+    var tsR = function (r) {
+      var n = Number(r.ts_ms); if (n) return n;
+      var v = String(r.ts || "").trim(), m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      if (m) return Date.UTC(+m[3], +m[2] - 1, +m[1], +m[4] + 6, +m[5], +(m[6] || 0));
+      var t = Date.parse(v); return isNaN(t) ? 0 : t;
+    };
+    (a.resueltas || []).concat(a.resueltasVivo || []).forEach(function (r) { var t = tsR(r), k = String(r.res_key || ""); if (!t) return; if (k && (!resMan[k] || resMan[k].ts < t)) resMan[k] = { estado: r.estado, ts: t, por: r.por }; });
+    Object.keys(st.resMan || {}).forEach(function (k) { var e = st.resMan[k]; if (e && e.ts && (!resMan[k] || !(resMan[k].ts >= e.ts))) resMan[k] = e; });
     grupos.forEach(function (g) {
       g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
       var top = g.frags[0], man = resMan[g.key], ib = inboxPor[g.key];
@@ -4784,7 +4860,8 @@ class Component extends DCLogic {
       /* 15 h sin mensajes de ninguna de las partes: se da por resuelta. */
       var inactiva = !top.esCola && g.ts > 0 && Date.now() - g.ts >= 15 * 3600000;
       /* Un mensaje nuevo del huésped después de marcarla reabre la conversación sola. */
-      var vigente = man && man.ts >= Math.max(top.ts || 0, ug);
+      /* Solo un mensaje NUEVO del huésped la reabre (no una fila de revisión ni un automático). */
+      var vigente = man && man.ts >= (ug || top.ts || 0);
       g.pendAuto = !top.esCola && pendHilo(top.resId) === true && !self.noRequiere(ib);
       if (g.pendAuto) g.frags.forEach(function (c) { c.sinResp = true; });
       g.autoRes = !top.esCola && !g.pendAuto && self.autoResuelta(ib, ug, uh);
@@ -4792,6 +4869,16 @@ class Component extends DCLogic {
       g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes || inactiva));
       g.frags.forEach(function (c) {
         c.resLabel = g.resuelto ? "Reabrir" : "Resuelta";
+        (function (c) {
+          var rid = String(c.resId || ""), conRes = !!rid && rid.indexOf("wa:") !== 0, ibc = inboxPor[g.key] || {};
+          c.hayCal = conRes; c.hayIng = conRes && esPrincipal;
+          c.verCal = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirInfo(rid, "cal"); };
+          c.verIng = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirInfo(rid, "ing"); };
+          var airbnb = /airbnb/i.test(String(ibc.canal || "") + String(c.canalNom || ""));
+          c.hayPreap = rid.indexOf("inq:") === 0 && !g.resuelto;
+          c.preapTitulo = airbnb ? "Abre la bandeja de Airbnb para pre-aprobar (la API no permite hacerlo desde aquí)" : "Abre Hospitable para pre-aprobar (la API no permite hacerlo desde aquí)";
+          c.preaprobar = function (e) { if (e && e.stopPropagation) e.stopPropagation(); window.open(airbnb ? "https://www.airbnb.com/hosting/messages" : "https://my.hospitable.com/inbox", "_blank", "noopener"); };
+        })(c);
         c.copiarCodigo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.copiar(c.codigo, "Código " + c.codigo + " copiado"); };
         c.hayHiloLista = (c.hilo || []).length > 0;
         (function (c) {
@@ -4811,7 +4898,7 @@ class Component extends DCLogic {
           self._fijos = Object.assign({}, self._fijos); self._fijos[g.key] = 1;
           var guardar = function (n) { try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} };
           self.setState(function (s) { var n = Object.assign({}, s.resMan); n[g.key] = ent; guardar(n); return { resMan: n }; });
-          if (window.ALMA && ALMA.hasApi()) ALMA.resolver(g.key, ent.estado, ent.por).then(function (r) {
+          if (window.ALMA && ALMA.hasApi()) ALMA.resolver(g.key, ent.estado, ent.por, ent.ts).then(function (r) {
             if (r && r.ok) return;
             self.setState(function (s) { var n = Object.assign({}, s.resMan); if (prev) n[g.key] = prev; else delete n[g.key]; guardar(n); return { resMan: n }; });
             self.aviso("No se guardó el cambio. Revisa la conexión e intenta de nuevo.");
@@ -4909,6 +4996,7 @@ class Component extends DCLogic {
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
       return { ...canalVM(g), gk: g.key, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
         propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), hace: haceDe(tsG(g)), texto: texto, dots: dots,
+        titulo: g.resuelto ? (PASADO[tema] || tema) : tema,
         txtFg: pide ? "#B54D36" : "#3E3F3F", txtPeso: pide ? "600" : "400", estado: est, tagBg: bg, tagFg: fg,
         bg: st.selG === g.key ? "#F5F3F0" : "#FFFFFF",
         tagAria: tipo === "alma" ? "Ver la respuesta de ALMA" : tipo === "cierre" ? "Ver el último hilo" : tipo === "chat" ? "Abrir la conversación" : "Ver el resumen",
@@ -4956,7 +5044,13 @@ class Component extends DCLogic {
     else if (st.convSolo === "SIN") grupos = grupos.filter(keep(esSinG));
     else if (st.convSolo === "ALMA") grupos = grupos.filter(keep(almaG));
     else if (st.convSolo === "EQUIPO") grupos = grupos.filter(keep(eqG));
-    if (st.convSolo === "ATENCION" && st.alma && !st.convCanal && !Object.keys(fijo).length && !gruposSinCanal.some(atnG)) setTimeout(function () { if (self.state.convSolo === "ATENCION") self.setState({ convSolo: "", convOrden: null, convIdx: 0, briefIdx: 0 }); }, 0);
+    /* Sin nada que atender → Todas. Entra algo nuevo mientras ves Todas → vuelve a Requiere atención. */
+    var nAtn = gruposSinCanal.filter(atnG).length, enTodas = !st.convSolo && !st.convCanal && st.logFiltro === "Todo" && !st.convVista;
+    if (st.alma && !convCargando && !st.filtroMenu) {
+      if (st.convSolo === "ATENCION" && !st.convCanal && !nAtn && !self._swF) self._swF = setTimeout(function () { self._swF = null; self._fijos = {}; if (self.state.convSolo === "ATENCION") self.setState({ convSolo: "", convOrden: null, convIdx: 0, briefIdx: 0 }); }, 900);
+      else if (enTodas && self._atnPrev != null && nAtn > self._atnPrev && !self._swF) self._swF = setTimeout(function () { self._swF = null; self._fijos = {}; self.setState({ convSolo: "ATENCION", convOrden: "Prioridad", convIdx: 0, briefIdx: 0 }); self.aviso("Entró una conversación que requiere atención"); }, 300);
+      self._atnPrev = nAtn;
+    }
     gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
     this._convGrupos = grupos; this._convTotal = grupos.length;
     /* Precarga el hilo de los primeros casos urgentes/por confirmar del historial para saber si ya se resolvieron sin abrirlos. */
@@ -5050,6 +5144,54 @@ class Component extends DCLogic {
           abrir: function (e) { self.abrirDesdeLista(e, t, i); } };
     }).filter(Boolean);
 
+    var infoVM = null, IS = st.infoSheet;
+    if (IS) {
+      var RI = (st.resInfo || {})[IS.resId] || { cargando: true }, D = RI.data, esCalI = IS.modo === "cal";
+      var hoyI = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+      var esInqI = D ? D.tipo === "consulta" : String(IS.resId).indexOf("inq:") === 0;
+      var meses = [];
+      if (D && esCalI) {
+        var mapD = {}; (D.dias || []).forEach(function (x) { mapD[x.fecha] = x; });
+        var y0 = +String(D.inicio).slice(0, 4), m0 = +String(D.inicio).slice(5, 7) - 1;
+        var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+        for (var mi = 0; mi < 2; mi++) {
+          var fy = new Date(Date.UTC(y0, m0 + mi, 1, 12)), yy = fy.getUTCFullYear(), mm = fy.getUTCMonth(), nd = new Date(Date.UTC(yy, mm + 1, 0, 12)).getUTCDate();
+          var off = (fy.getUTCDay() + 6) % 7, celdas = [];
+          for (var b0 = 0; b0 < off; b0++) celdas.push({ vacio: true, n: "", bg: "transparent", fg: "transparent", bd: "transparent", op: "1", peso: "400", aria: "" });
+          for (var dd = 1; dd <= nd; dd++) {
+            var f = yy + "-" + pad(mm + 1) + "-" + pad(dd), x = mapD[f], est = D.checkin && f >= D.checkin && f < D.checkout;
+            var C = est ? (esInqI ? ["#9a5020", "#FFFFFF", "#9a5020", "Fechas de esta consulta"] : ["#3B6691", "#FFFFFF", "#3B6691", "Esta reserva"])
+              : !x ? ["transparent", "#938B8A", "transparent", "Sin datos"]
+              : x.libre ? ["rgba(61,107,82,.12)", "#3d6b52", "transparent", "Disponible"]
+              : x.razon === "RESERVADO" ? ["rgba(192,57,43,.12)", "#C0392B", "transparent", "Reservado"] : ["#F5F3F0", "#938B8A", "transparent", "Bloqueado"];
+            celdas.push({ vacio: false, n: String(dd), bg: C[0], fg: C[1], bd: f === hoyI ? "#3E3F3F" : C[2], op: f < hoyI ? ".4" : "1", peso: est ? "600" : "500", aria: dd + " · " + C[3] });
+          }
+          meses.push({ titulo: fy.toLocaleDateString("es-GT", { month: "long", year: "numeric", timeZone: "UTC" }), celdas: celdas });
+        }
+      }
+      var ING = D && D.ingreso, ladoI = IS.lado === "guest" && ING && ING.guest ? "guest" : "host", LD = ING && ING[ladoI];
+      var fmM = function (v, mon) { if (v == null || isNaN(v)) return ""; return (v < 0 ? "−" : "") + (mon === "USD" || !mon ? "$" : mon + " ") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+      var esL = function (t) { return String(t || "").replace(/_/g, " ").replace(/^accommodation$|room fee|accommodation/i, "Hospedaje").replace(/cleaning fee|^cleaning$/i, "Limpieza").replace(/host service fee|host fees?/i, "Comisión de la plataforma").replace(/guest service fee|guest fees?|^fees$/i, "Cargo de servicio").replace(/pass through taxes|^taxes?$/i, "Impuestos").replace(/discounts?/i, "Descuentos").replace(/adjustments?/i, "Ajustes").replace(/nights?/i, function (w) { return /s$/i.test(w) ? "noches" : "noche"; }).replace(/^./, function (c0) { return c0.toUpperCase(); }); };
+      var lineasI = LD ? (LD.lineas || []).map(function (l) { return { label: esL(l.label), monto: l.txt || fmM(l.monto, ING.moneda) }; }) : [];
+      var totI = LD ? (LD.total && (LD.total.txt || fmM(LD.total.monto, ING.moneda))) || fmM((LD.lineas || []).reduce(function (a0, l) { return a0 + (Number(l.monto) || 0); }, 0), ING.moneda) : "";
+      var setLado = function (v) { return function () { self.setState(function (s) { return { infoSheet: Object.assign({}, s.infoSheet, { lado: v }) }; }); }; };
+      infoVM = {
+        eyebrow: esCalI ? (esInqI ? "Consulta · calendario" : "Reserva · calendario") : (ING && ING.estimado ? "Consulta · estimado" : "Ingreso"),
+        titulo: D ? (D.propiedad || "Propiedad") : esCalI ? "Calendario" : "Ingreso",
+        sub: D && D.checkin ? fmtRango(D.checkin, D.checkout) : "",
+        cargando: !!RI.cargando, hayError: !!RI.error, error: RI.error || "",
+        esCal: esCalI && !!D, meses: meses, semana: ["L", "M", "M", "J", "V", "S", "D"],
+        leyenda: [{ bg: esInqI ? "#9a5020" : "#3B6691", t: esInqI ? "Esta consulta" : "Esta reserva" }, { bg: "rgba(61,107,82,.35)", t: "Disponible" }, { bg: "rgba(192,57,43,.35)", t: "Reservado" }, { bg: "#D8D4CE", t: "Bloqueado" }],
+        esIng: !esCalI && !!D, hayIngreso: !!LD, sinIngreso: !esCalI && !!D && !LD,
+        haySeg: !!(ING && ING.guest), segHostBg: ladoI === "host" ? "#FFFFFF" : "transparent", segGuestBg: ladoI === "guest" ? "#FFFFFF" : "transparent",
+        segHostSh: ladoI === "host" ? "0 1px 2px rgba(62,63,63,.08)" : "none", segGuestSh: ladoI === "guest" ? "0 1px 2px rgba(62,63,63,.08)" : "none",
+        segHostFg: ladoI === "host" ? "#3E3F3F" : "#6F6867", segGuestFg: ladoI === "guest" ? "#3E3F3F" : "#6F6867",
+        verHost: setLado("host"), verGuest: setLado("guest"),
+        total: totI, lineas: lineasI, totalLabel: "Total" + (ING && ING.moneda ? " (" + ING.moneda + ")" : ""),
+        nota: ING && ING.estimado ? "Estimado con la tarifa por noche del calendario. El precio final lo define la plataforma al reservar." : "",
+        hayNota: !!(ING && ING.estimado)
+      };
+    }
     var rz = null;
     if (st.razon) {
       var RZ = st.razon, rc = RZ.logKey ? (logLista || []).find(function (x) { return x && x.key === RZ.logKey; }) : null;
@@ -5101,6 +5243,7 @@ class Component extends DCLogic {
     var mesk = window.matchMedia && matchMedia("(max-width:1179px)").matches;
     return {
       enAlma: st.vista === "alma",
+      infoAbierto: !!infoVM, info: infoVM || { meses: [], lineas: [], leyenda: [], semana: [] }, infoCerrar: function () { self.setState({ infoSheet: null }); },
       rzAbierto: !!rz, rz: rz || { filas: [], chips: [], propCambios: [] }, rzCerrar: function () { self.setState({ razon: null }); },
       hayToast: !!st.toast, toastTxt: st.toast || "",
       almaM: (function () { var m = st.cronoLista === false ? "m-chat" : tj ? "m-tarjeta" : "m-" + (st.mVista || "resumen"), r = m === "m-chat" ? 2 : m === "m-tarjeta" ? 1 : 0;

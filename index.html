@@ -914,22 +914,25 @@
         </sc-for>
       </div>
     </div>
-    <div class="alma-chips" data-alma-contadores="1" role="toolbar" aria-label="Filtrar conversaciones" style="display:flex; align-items:center; gap:8px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; margin:-4px calc(-1 * clamp(16px,4vw,28px)); padding:4px clamp(16px,4vw,28px)">
-      <sc-for list="{{ filtroChips }}" as="f" hint-placeholder-count="6">
-        <button onClick="{{ f.set }}" aria-pressed="{{ f.activo }}" style="flex-shrink:0; display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; box-sizing:border-box; border-radius:999px; border:1px solid {{ f.bd }}; background: {{ f.bg }}; color: {{ f.fg }}; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; white-space:nowrap; cursor:pointer; transition:background .18s, border-color .18s, color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">
-          <sc-if value="{{ f.hayPunto }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ f.punto }}"></span></sc-if>
-          <span>{{ f.label }}</span>
-          <sc-if value="{{ f.hayN }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; font-weight:600; letter-spacing:.02em; font-variant-numeric:tabular-nums; color: {{ f.nFg }}">{{ f.n }}</span></sc-if>
-        </button>
-      </sc-for>
-      <span aria-hidden="true" style="width:1px; height:24px; background:#D8D4CE; flex-shrink:0"></span>
-      <sc-for list="{{ canalChips }}" as="cf" hint-placeholder-count="2">
-        <button onClick="{{ cf.pick }}" aria-pressed="{{ cf.activo }}" title="{{ cf.aria }}" style="flex-shrink:0; display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px 0 6px; box-sizing:border-box; border-radius:999px; border:1px solid {{ cf.bd }}; background: {{ cf.bg }}; color: {{ cf.fg }}; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; white-space:nowrap; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">
-          <img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ cf.dom }}" alt="" style="width:26px; height:26px; border-radius:50%; background:#FFFFFF; object-fit:cover; display:block">
-          <span>{{ cf.nombre }}</span>
-          <sc-if value="{{ cf.hayN }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; font-weight:600; letter-spacing:.02em; font-variant-numeric:tabular-nums; color: {{ cf.nFg }}">{{ cf.n }}</span></sc-if>
-        </button>
-      </sc-for>
+    <div data-alma-contadores="1" style="position:relative; display:flex; align-items:center; gap:8px; margin:-6px 0 -2px">
+      <button onClick="{{ fx.toggle }}" aria-haspopup="listbox" aria-expanded="{{ fx.ariaExp }}" aria-label="Filtrar conversaciones" style="display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 10px 0 2px; border:none; background:transparent; color:#3E3F3F; font-family:inherit; cursor:pointer; border-radius:999px; transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="opacity:.6" style-active="transform:scale(.98)">
+        <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ fx.punto }}"></span>
+        <span style="font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; white-space:nowrap">{{ fx.label }}</span>
+        <sc-if value="{{ fx.hayN }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; font-weight:600; letter-spacing:.02em; font-variant-numeric:tabular-nums; color:#6F6867">{{ fx.n }}</span></sc-if>
+        <span aria-hidden="true" style="display:grid; place-items:center; transition:transform .18s cubic-bezier(.22,.61,.36,1); transform: {{ fx.chevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="#6F6867" hint-size="14px,14px"></x-import></span>
+      </button>
+      <sc-if value="{{ fx.abierto }}" hint-placeholder-val="{{ false }}"><div onClick="{{ fx.cerrar }}" aria-hidden="true" style="position:fixed; inset:0; z-index:40"></div></sc-if>
+      <div role="listbox" aria-label="Filtros" style="position:absolute; top:calc(100% + 4px); left:0; z-index:41; width:min(272px, calc(100vw - 32px)); padding:6px; box-sizing:border-box; display:flex; flex-direction:column; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; box-shadow:0 12px 40px rgba(62,63,63,.07); transform-origin:top left; transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1), visibility .18s; opacity: {{ fx.menuOp }}; transform: {{ fx.menuTf }}; visibility: {{ fx.menuVis }}; pointer-events: {{ fx.menuPe }}">
+        <sc-for list="{{ fx.ops }}" as="o" hint-placeholder-count="0">
+          <sc-if value="{{ o.sep }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="height:1px; background:#EAE6E0; margin:6px 10px"></span></sc-if>
+          <button role="option" aria-selected="{{ o.aria }}" onClick="{{ o.set }}" style="display:flex; align-items:center; gap:10px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background: {{ o.bg }}; color:#3E3F3F; font-family:inherit; font-size:13.5px; font-weight: {{ o.fw }}; letter-spacing:.02em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1); -webkit-tap-highlight-color:transparent" style-hover="background:#F5F3F0">
+            <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ o.punto }}"></span>
+            <span style="flex:1; min-width:0">{{ o.label }}</span>
+            <sc-if value="{{ o.hayN }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; font-variant-numeric:tabular-nums; color:#6F6867">{{ o.n }}</span></sc-if>
+            <span aria-hidden="true" style="width:16px; display:grid; place-items:center; opacity: {{ o.checkOp }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="15" color="#3E3F3F" hint-size="15px,15px"></x-import></span>
+          </button>
+        </sc-for>
+      </div>
     </div>
     <div class="alma-split">
       <div class="alma-side" style="min-width:0">
@@ -1326,6 +1329,7 @@
                   </sc-if>
                   <sc-if value="{{ c.hiloNoDisponible }}" hint-placeholder-val="{{ false }}">
                     <span style="font-size:11.5px; letter-spacing:.02em; color:#6F6867; text-align:center; line-height:1.5">{{ c.hiloNoDisponibleTexto }}</span>
+                    <sc-if value="{{ c.hiloReintentable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.hiloReintentar }}" style="align-self:center; min-height:36px; padding:0 16px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1), transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">Reintentar</button></sc-if>
                   </sc-if>
                   <sc-if value="{{ c.hayHiloLista }}" hint-placeholder-val="{{ false }}"><span style="align-self:center; font-size:10px; letter-spacing:.06em; color:#938B8A">Mantén presionado un mensaje para ver su análisis</span></sc-if>
                   <sc-if value="{{ c.hayAnteriores }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verAnteriores }}" style="align-self:center; display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:0 14px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#6F6867; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; color:#3E3F3F" style-active="transform:scale(.97)">{{ c.anterioresTxt }}</button></sc-if>
@@ -2557,7 +2561,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     mVista: (function () { try { return localStorage.getItem("sa_m_vista") || "resumen"; } catch (e) { return "resumen"; } })(), selG: null, abrirPend: null, razon: null,
-    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: null, convSolo: "", cronoLista: true,
+    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad", convSolo: "ATENCION", filtroMenu: false, cronoLista: true,
     versionNueva: false, progEdit: {}, progConfirm: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
@@ -4262,6 +4266,7 @@ class Component extends DCLogic {
         modoHilo: enHilo, modoResumen: !enHilo, hiloLabel: enHilo ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHilo ? "#F5F3F0" : "#FFFFFF",
         toggleHilo: function () { var abre = !enHilo; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKey] = abre; return { convHilo: o }; }); if (abre) cargarHilo(); },
         hiloNoDisponible: enHilo && (!resId || !(window.ALMA && ALMA.hasApi()) || !!(hiloSt && hiloSt.error)),
+        hiloReintentable: !!(resId && hiloSt && hiloSt.error), hiloReintentar: function () { delete self._hiloFresco[resId]; cargarHiloDe(resId); },
         hiloNoDisponibleTexto: !resId ? "Esta consulta no tiene reserva asociada; solo está el mensaje recibido." : "No se pudo traer la conversación de Hospitable. Se muestra el mensaje recibido.",
         hayFotos: fotosCola.length > 0, fotos: fotosCola.map(function (f) { return self.fotoVista(f); }),
         hilo: hilo, hiloCargando: !!(hiloSt && hiloSt.cargando),
@@ -4536,6 +4541,7 @@ class Component extends DCLogic {
         hilo: mapHilo(hiloStL && hiloStL.lista ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), huesped, hiloStL && hiloStL.lista ? resIdLog : ""),
         hiloCargando: !!(hiloStL && hiloStL.cargando),
         hiloNoDisponible: enHiloL && (!resIdLog || !(window.ALMA && ALMA.hasApi()) || !!(hiloStL && hiloStL.error)),
+        hiloReintentable: !!(resIdLog && hiloStL && hiloStL.error), hiloReintentar: function () { delete self._hiloFresco[resIdLog]; cargarHiloDe(resIdLog); },
         hiloNoDisponibleTexto: !resIdLog ? "No pudimos ligar este mensaje a una reserva o consulta de Hospitable; se muestra solo este intercambio." : /^inq:/.test(resIdLog) ? "Consulta sin reserva. No se pudo traer el hilo de Hospitable; se muestra este intercambio." : "No se pudo traer la conversación de Hospitable. Se muestra este intercambio.",
         hayBorrador: !!(l.respuesta && !enviado), borrador: l.respuesta || "", borradorLabel: "No se envió",
         burbujaBorde: "1px solid " + (enviado ? "rgba(233,130,106,.5)" : "#D8D4CE"),
@@ -4802,6 +4808,7 @@ class Component extends DCLogic {
              si no, "vigente" la ignoraba y el botón parecía no responder. */
           var ent = { estado: g.resuelto ? "abierta" : "resuelta", ts: Math.max(Date.now(), top.ts || 0, ug || 0, g.tsReal || 0) + 1, por: self.quienSoy() };
           var prev = (self.state.resMan || {})[g.key];
+          self._fijos = Object.assign({}, self._fijos); self._fijos[g.key] = 1;
           var guardar = function (n) { try { localStorage.setItem("sa_alma_resman", JSON.stringify(n)); } catch (x) {} };
           self.setState(function (s) { var n = Object.assign({}, s.resMan); n[g.key] = ent; guardar(n); return { resMan: n }; });
           if (window.ALMA && ALMA.hasApi()) ALMA.resolver(g.key, ent.estado, ent.por).then(function (r) {
@@ -4938,12 +4945,18 @@ class Component extends DCLogic {
     var esSinG = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && !!propDe(g) && (t.sinResp || g.pendAuto || (ib && ib.ultimo_de === "guest")); };
     var almaG = function (g) { return g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano) : c.estadoCola === "respondido"; }); };
     var eqG = function (g) { return g.frags.some(function (c) { return !!c.humano; }); };
+    /* Requiere atención = urgentes + necesita equipo + sin responder. */
+    var atnG = function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || esSinG(g)); };
+    /* Una conversación que cambias de estado se queda en la lista actual hasta que cambies de filtro: así el cambio se ve y no se "pierde". */
+    var fijo = self._fijos || {}, keep = function (f) { return function (g) { return !!fijo[g.key] || f(g); }; };
     var verN = st.convVista === "resueltas" ? "VERDE" : st.logFiltro;
-    if (verN !== "Todo") grupos = grupos.filter(function (g) { return enNivel(g, verN); });
-    else if (ordenEf !== "Cronológico") grupos = grupos.filter(function (g) { return !g.resuelto; });
-    if (st.convSolo === "SIN") grupos = grupos.filter(esSinG);
-    else if (st.convSolo === "ALMA") grupos = grupos.filter(almaG);
-    else if (st.convSolo === "EQUIPO") grupos = grupos.filter(eqG);
+    if (verN !== "Todo") grupos = grupos.filter(keep(function (g) { return enNivel(g, verN); }));
+    else if (ordenEf !== "Cronológico") grupos = grupos.filter(keep(function (g) { return !g.resuelto; }));
+    if (st.convSolo === "ATENCION") grupos = grupos.filter(keep(atnG));
+    else if (st.convSolo === "SIN") grupos = grupos.filter(keep(esSinG));
+    else if (st.convSolo === "ALMA") grupos = grupos.filter(keep(almaG));
+    else if (st.convSolo === "EQUIPO") grupos = grupos.filter(keep(eqG));
+    if (st.convSolo === "ATENCION" && st.alma && !st.convCanal && !Object.keys(fijo).length && !gruposSinCanal.some(atnG)) setTimeout(function () { if (self.state.convSolo === "ATENCION") self.setState({ convSolo: "", convOrden: null, convIdx: 0, briefIdx: 0 }); }, 0);
     gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
     this._convGrupos = grupos; this._convTotal = grupos.length;
     /* Precarga el hilo de los primeros casos urgentes/por confirmar del historial para saber si ya se resolvieron sin abrirlos. */
@@ -5025,14 +5038,15 @@ class Component extends DCLogic {
           var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Necesita equipo" ? ["Necesita equipo", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];
           E = U; var fr = self.fraseCaso ? self.fraseCaso(t) : ""; if (fr) prev = fr;
         }
-        var necEq = !g.resuelto && enNivel(g, "AMARILLO");
-        if (necEq) E = ["Necesita equipo", "#B54D36", "#FFFFFF", "#E9826A"];
+        var urg = !g.resuelto && enNivel(g, "ROJO"), necEq = !g.resuelto && !urg && enNivel(g, "AMARILLO"), sinR = !g.resuelto && !urg && !necEq && !t.esCola && esSinG(g);
+        if (urg) E = ["Urgente", "#C0392B", "#FFFFFF", "#C0392B"]; else if (necEq) E = ["Necesita equipo", "#B54D36", "#FFFFFF", "#E9826A"]; else if (sinR) E = ["Sin responder", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"];
+        var atn = urg || necEq || sinR;
         return { ...(self._canalVM ? self._canalVM(g) : {}), gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
           clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "",
-          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" || necEq ? "600" : "400", previewFg: est === "pend" || necEq ? "#3E3F3F" : "#6F6867",
-          bg: necEq ? "rgba(233,130,106,.08)" : "#FFFFFF", precargar: function () { if (t.cargarHilo) t.cargarHilo(); }, borde: i === 0 ? "transparent" : "#EAE6E0",
+          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" || atn ? "600" : "400", previewFg: est === "pend" || atn ? "#3E3F3F" : "#6F6867",
+          bg: atn ? "rgba(233,130,106,.08)" : "#FFFFFF", precargar: function () { if (t.cargarHilo) t.cargarHilo(); }, borde: i === 0 ? "transparent" : "#EAE6E0",
           abrir: function (e) { self.abrirDesdeLista(e, t, i); } };
     }).filter(Boolean);
 
@@ -5206,28 +5220,32 @@ class Component extends DCLogic {
         return { label: x[1], icono: x[2], activo: on ? "true" : "false", fg: on ? "#3E3F3F" : "#6F6867", set: function () { if (!on) self.setMVistaV(x[0]); } };
       }),
       mVistaThumb: (st.mVista || "resumen") === "lista" ? "translateX(100%)" : "translateX(0)",
-      filtroChips: (function () {
-        var base = { logFiltro: "Todo", convVista: "", convSolo: "", logQuien: "Todos", logResp: "Todas", convOrden: null, convIdx: 0, briefIdx: 0 };
-        var cnt = function (f) { return gruposTodos.filter(f).length; };
+      fx: (function () {
+        var base = { logFiltro: "Todo", convVista: "", convSolo: "", convCanal: "", logQuien: "Todos", logResp: "Todas", convOrden: null, convIdx: 0, briefIdx: 0, filtroMenu: false };
+        var G = gruposSinCanal, cnt = function (f) { return G.filter(f).length; }, cOn = st.convCanal || "";
         var defs = [
-          ["TODAS", "Todas", null, null, {}, st.logFiltro === "Todo" && !st.convVista && !st.convSolo],
-          ["ROJO", "Urgentes", "#C0392B", cnt(function (g) { return enNivel(g, "ROJO"); }), { logFiltro: "ROJO" }, st.logFiltro === "ROJO" && st.convVista !== "resueltas" && !st.convSolo],
-          ["SIN", "Sin responder", "#F2755A", cnt(esSinG), { convSolo: "SIN", convOrden: "Prioridad" }, st.convSolo === "SIN"],
-          ["AMARILLO", "Necesita equipo", "#9a5020", cnt(function (g) { return enNivel(g, "AMARILLO"); }), { logFiltro: "AMARILLO" }, st.logFiltro === "AMARILLO" && st.convVista !== "resueltas" && !st.convSolo],
-          ["ALMA", "Respondió ALMA", "#3B6691", cnt(almaG), { convSolo: "ALMA", convOrden: "Cronológico" }, st.convSolo === "ALMA"],
-          ["EQUIPO", "Respondió equipo", "#938B8A", cnt(eqG), { convSolo: "EQUIPO", convOrden: "Cronológico" }, st.convSolo === "EQUIPO"],
-          ["VERDE", "Resueltas", "#3d6b52", cnt(function (g) { return enNivel(g, "VERDE"); }), { convVista: "resueltas" }, st.convVista === "resueltas" && !st.convSolo]
+          ["ATN", "Requiere atención", "#F2755A", cnt(atnG), { convSolo: "ATENCION", convOrden: "Prioridad" }, !cOn && st.convSolo === "ATENCION"],
+          ["TODAS", "Todas", "#3E3F3F", null, {}, !cOn && st.logFiltro === "Todo" && !st.convVista && !st.convSolo],
+          ["ALMA", "Respondió ALMA", "#3B6691", cnt(almaG), { convSolo: "ALMA", convOrden: "Cronológico" }, !cOn && st.convSolo === "ALMA"],
+          ["EQUIPO", "Respondió equipo", "#938B8A", cnt(eqG), { convSolo: "EQUIPO", convOrden: "Cronológico" }, !cOn && st.convSolo === "EQUIPO"],
+          ["VERDE", "Resueltas", "#3d6b52", cnt(function (g) { return enNivel(g, "VERDE"); }), { convVista: "resueltas" }, !cOn && st.convVista === "resueltas" && !st.convSolo],
+          ["WA", "WhatsApp", "#128C7E", cnt(function (g) { return !g.resuelto && esWA(g); }), { convCanal: "whatsapp" }, cOn === "whatsapp"],
+          ["HOSP", "Hospitable", "#938B8A", cnt(function (g) { return !g.resuelto && esHosp(g); }), { convCanal: "hospitable" }, cOn === "hospitable"]
         ];
-        return defs.map(function (d) {
-          var act = !!d[5], n = d[3];
-          return { label: d[1], hayPunto: !!d[2], punto: d[2] || "transparent", hayN: n != null && n > 0, n: String(n || 0), activo: act ? "true" : "false",
-            bg: act ? "#3E3F3F" : "#FFFFFF", fg: act ? "#FAFAFA" : "#3E3F3F", bd: act ? "#3E3F3F" : "#D8D4CE", nFg: act ? "rgba(250,250,250,.78)" : "#6F6867",
-            set: function () {
-              var o = Object.assign({}, base, act || d[0] === "TODAS" ? {} : d[4], { cronoLista: true });
-              if (window.matchMedia && window.matchMedia("(max-width:1179px)").matches && d[0] !== "TODAS") { try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} o.mVista = "lista"; o.selG = null; }
-              self.setState(o); self.convReset();
-            } };
-        });
+        var act = defs.filter(function (d) { return d[5]; })[0] || defs[1], ab = !!st.filtroMenu;
+        return { label: act[1], punto: act[2], n: String(act[3] || 0), hayN: act[3] > 0, abierto: ab, ariaExp: ab ? "true" : "false",
+          menuOp: ab ? "1" : "0", menuTf: ab ? "translateY(0) scale(1)" : "translateY(-4px) scale(.98)", menuVis: ab ? "visible" : "hidden", menuPe: ab ? "auto" : "none", chevron: ab ? "rotate(180deg)" : "rotate(0deg)",
+          toggle: function () { self.setState({ filtroMenu: !ab }); }, cerrar: function () { self.setState({ filtroMenu: false }); },
+          ops: defs.map(function (d, i) {
+            var on = d === act;
+            return { label: d[1], punto: d[2], n: String(d[3] || 0), hayN: d[3] > 0, sep: i === 5, aria: on ? "true" : "false", bg: on ? "#F5F3F0" : "transparent", fw: on ? "600" : "500", checkOp: on ? "1" : "0",
+              set: function () {
+                self._fijos = {};
+                var o = Object.assign({}, base, d[4], { cronoLista: true });
+                if (window.matchMedia && window.matchMedia("(max-width:1179px)").matches && d[0] !== "TODAS") { try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} o.mVista = "lista"; o.selG = null; }
+                self.setState(o); self.convReset();
+              } };
+          }) };
       })(),
       canalChips: canalFiltros.map(function (cf) {
         var on = cf.activo === "true";
@@ -5253,7 +5271,7 @@ class Component extends DCLogic {
       quienFiltros: quienFiltros.map(function (x) { return { value: x, label: x }; }), logQuien: st.logQuien, setLogQuien: function (v) { self.setState({ logQuien: v, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       autoAbierto: st.autoAbierto, autoToggleAbierto: function () { self.setState({ autoAbierto: !st.autoAbierto }); },
       convItems: convItems, convVacio: !!st.alma && !grupos.length,
-      convVacioTexto: st.convSolo === "ALMA" ? "ALMA no ha respondido en los últimos " + st.convDias + " días." : st.convSolo === "EQUIPO" ? "Nadie del equipo respondió en los últimos " + st.convDias + " días." : st.convSolo === "SIN" ? "Nada sin responder. Todo tiene respuesta." : st.convVista === "resueltas" ? "No hay conversaciones resueltas en estos días." : gruposTodos.length && !convItems.length === false && !grupos.length ? "Todo resuelto. Las resueltas están en el contador “resueltas”." : busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
+      convVacioTexto: st.convSolo === "ATENCION" ? "Nada requiere atención ahora." : st.convSolo === "ALMA" ? "ALMA no ha respondido en los últimos " + st.convDias + " días." : st.convSolo === "EQUIPO" ? "Nadie del equipo respondió en los últimos " + st.convDias + " días." : st.convSolo === "SIN" ? "Nada sin responder. Todo tiene respuesta." : st.convVista === "resueltas" ? "No hay conversaciones resueltas en estos días." : gruposTodos.length && !convItems.length === false && !grupos.length ? "Todo resuelto. Las resueltas están en el contador “resueltas”." : busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
       convBusca: st.convBusca, convHayBusca: !!busca,
       setConvBusca: function (e) { self.setState({ convBusca: e.target.value, convIdx: 0, briefIdx: 0 }); self.convReset(); }, limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
       convHayMas: ocultos > 0, convCargarMasLabel: "Cargar más · " + ocultos + " anteriores",

@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, proponerMejora: 1, responder: 1, hilo: 1, probarPush: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -95,7 +95,8 @@
     setBorrador: function (fila, borrador) { return call('setBorrador', { fila: fila, borrador: borrador }); },
     enviarAhora: function (fila) { return call('enviarAhora', { fila: fila }); },
     retener: function (fila) { return call('retener', { fila: fila }); },
-    resolver: function (key, estado, quien) { return call('resolver', { key: key, estado: estado, quien: quien || '' }); },
+    resolver: function (key, estado, quien, ts) { return call('resolver', { key: key, estado: estado, quien: quien || '', ts: ts || 0 }); },
+    reservaInfo: function (resId) { return call('reservaInfo', { resId: resId }); },
     programados: function (resId) { return call('programados', { resId: resId }); },
     adelantar: function (resId, id, texto) { return call('adelantar', { resId: resId, id: id, texto: texto || '' }); },
     foto: function (url) { return call('foto', { url: url }); },

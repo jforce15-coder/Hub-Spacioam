@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -103,6 +103,10 @@
     cancelarProg: function (resId, id) { return call('cancelarProg', { resId: resId, id: id }); },
     editarProg: function (resId, id, texto, quien) { return call('editarProg', { resId: resId, id: id, texto: texto, quien: quien || '' }); },
     proponerMejora: function (clave, prompt, pedido) { return call('proponerMejora', { clave: clave, prompt: prompt, pedido: pedido }); },
+    reviewHuesped: function (resId, recomendar, contexto, ajuste, previo) { return call('reviewHuesped', { resId: resId, recomendar: recomendar, contexto: contexto || '', ajuste: ajuste || '', previo: previo || '' }); },
+    respuestaReview: function (review, contexto, ajuste, previo) { return call('respuestaReview', { review: review, contexto: contexto || '', ajuste: ajuste || '', previo: previo || '' }); },
+    publicarRespuesta: function (uuid, texto) { return call('publicarRespuesta', { uuid: uuid, texto: texto }); },
+    apelacion: function (review, contexto, ajuste, previo) { return call('apelacionReview', { review: review, contexto: contexto || '', ajuste: ajuste || '', previo: previo || '' }); },
     ajustarBorrador: function (borrador, ajuste, contexto) { return call('ajustarBorrador', { borrador: borrador, ajuste: ajuste, contexto: contexto }); },
     automejora: function (fila, estado, cambios, nota, fecha) { return call('automejora', { fila: fila, estado: estado, cambios: cambios, nota: nota, fecha: fecha }); },
     setConocimiento: function (fila, tema, contenido, aplica, activo) { return call('setConocimiento', { fila: fila, tema: tema, contenido: contenido, aplica: aplica, activo: activo }); },

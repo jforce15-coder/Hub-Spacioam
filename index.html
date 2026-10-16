@@ -1250,7 +1250,6 @@
                     <button onClick="{{ c.autoToggle }}" role="switch" aria-checked="{{ c.autoOn }}" aria-label="Respuestas automáticas de ALMA en esta conversación" title="Respuestas automáticas de ALMA en esta conversación" style="display:inline-flex; align-items:center; gap:8px; min-height:36px; padding:0 12px 0 8px; border:1px solid {{ c.autoBd }}; background:#FFFFFF; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.98)"><span aria-hidden="true" style="width:30px; height:18px; border-radius:999px; background: {{ c.autoBg }}; border:1px solid {{ c.autoBd }}; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1)"><span style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background: {{ c.autoFg }}; left: {{ c.autoKnob }}; transition:left .18s cubic-bezier(.22,.61,.36,1)"></span></span>{{ c.autoLabel }}</button>
                     <button onClick="{{ c.toggleResuelta }}" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ c.resLabel }}</button>
                     <button onClick="{{ c.toggleProg }}" aria-label="Mensajes programados" title="Mensajes programados (Hospitable y equipo)" style="display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px; border:1px solid #D8D4CE; background: {{ c.progBtnBg }}; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>Programados</button>
-                    <button onClick="{{ c.toggleAbrir }}" style="border:1px solid {{ c.abrirBd }}; border-radius:999px; background: {{ c.abrirBg }}; color: {{ c.abrirFg }}; padding:0 14px; min-height:36px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.abrirLabel }}</button>
                   </div>
                 </div>
               </div>
@@ -1339,8 +1338,9 @@
                       </div>
                     </sc-if>
                     <sc-if value="{{ m.noHito }}" hint-placeholder-val="{{ true }}">
-                    <div style="display:flex; flex-direction:column; gap:3px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both; align-items: {{ m.align }}">
-                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(92%,560px); padding:9px 13px; font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div></sc-if>
+                    <div style="display:flex; flex-direction:column; gap:3px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both; align-items: {{ m.align }}; margin-top: {{ m.gapTop }}">
+                      <sc-if value="{{ m.diaHay }}" hint-placeholder-val="{{ false }}"><span role="separator" style="align-self:center; margin:8px 0 6px; padding:4px 12px; border-radius:999px; background:#F5F3F0; font-size:10.5px; font-weight:500; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ m.dia }}</span></sc-if>
+                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(92%,560px); padding:9px 13px; transition:background .36s cubic-bezier(.22,.61,.36,1), border-color .36s cubic-bezier(.22,.61,.36,1), color .36s cubic-bezier(.22,.61,.36,1); font-size:13px; line-height:1.55; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div></sc-if>
                       <sc-if value="{{ m.hayFotos }}" hint-placeholder-val="{{ false }}">
                         <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px); justify-content: {{ m.align }}">
                           <sc-for list="{{ m.fotos }}" as="fotoMfotos" hint-placeholder-count="0">
@@ -1348,7 +1348,7 @@
                           </sc-for>
                         </div>
                       </sc-if>
-                      <span style="display:flex; align-items:center; gap:8px"><span style="font-size:9.5px; letter-spacing:.06em; color:#6F6867">{{ m.meta }}</span></span>
+                      <sc-if value="{{ m.metaHay }}" hint-placeholder-val="{{ true }}"><span aria-live="polite" style="font-size:9.5px; letter-spacing:.06em; color: {{ m.metaFg }}; padding:0 4px">{{ m.meta }}</span></sc-if>
                     </div>
                     </sc-if>
                   </sc-for>
@@ -1361,6 +1361,66 @@
                 </sc-if>
               </div>
 
+              <sc-if value="{{ c.esLog }}" hint-placeholder-val="{{ false }}">
+                <div data-alma-scroll="1" style="border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; overflow-y:auto; overscroll-behavior:contain; max-height: {{ c.pieMax }}">
+                  <button onClick="{{ c.pieToggle }}" aria-expanded="{{ c.pieAria }}" style="width:100%; display:flex; align-items:center; gap:10px; min-height:40px; padding:6px 16px; border:none; background:transparent; font-family:inherit; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#FAFAFA" style-active="background:#F5F3F0">
+                    <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="11" hint-size="11px,11px"></x-import>
+                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; flex-shrink:0">Análisis</span>
+                    <span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; flex-shrink:0; background: {{ c.color }}"></span>
+                    <span style="flex:1; min-width:0; font-size:12px; letter-spacing:.01em; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.caso.titulo }}</span>
+                    <span aria-hidden="true" style="display:grid; place-items:center; flex-shrink:0; transition:transform .18s cubic-bezier(.22,.61,.36,1); transform: {{ c.pieChevron }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="#6F6867" hint-size="14px,14px"></x-import></span>
+                  </button>
+                  <sc-if value="{{ c.pieAbierto }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:0 16px 12px 37px; display:flex; flex-direction:column; gap:10px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) both">
+                      <sc-if value="{{ c.caso.hayMotivo }}" hint-placeholder-val="{{ false }}"><span style="align-self:flex-start; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ c.caso.motivo }}</span></sc-if>
+                      <sc-if value="{{ c.caso.mostrarPuntos }}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex; flex-direction:column; gap:3px">
+                          <sc-for list="{{ c.caso.puntos }}" as="p" hint-placeholder-count="2">
+                            <div style="display:flex; gap:8px; align-items:flex-start; font-size:12.5px; line-height:1.55; color:#3E3F3F; letter-spacing:.01em"><span aria-hidden="true" style="width:4px; height:4px; border-radius:50%; background:#938B8A; flex-shrink:0; margin-top:8px"></span><span style="text-wrap:pretty">{{ p }}</span></div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                      <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                        <span style="font-size:10.5px; letter-spacing:.04em; color:#6F6867; margin-right:4px">¿Cómo lo hizo ALMA?</span>
+                      <button onClick="{{ c.votarBien }}" aria-label="Buena respuesta" aria-pressed="{{ c.votoBien }}" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent; background: {{ c.votoBienBg }}; color: {{ c.votoBienFg }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="15" color="{{ c.votoBienFg }}" hint-size="15px,15px"></x-import></button>
+                      <button onClick="{{ c.votarMal }}" aria-label="A mejorar" aria-pressed="{{ c.votoMal }}" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent; background: {{ c.votoMalBg }}; color: {{ c.votoMalFg }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="15" color="{{ c.votoMalFg }}" hint-size="15px,15px"></x-import></button>
+                      <button onClick="{{ c.anotar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:7px 12px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ c.anotarLabel }}</button>
+                      </div>
+                    </div>
+                  <sc-if value="{{ c.anotando }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:0 16px 16px; display:flex; flex-direction:column; gap:10px">
+                      <div style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
+                        <div style="display:flex; align-items:center; gap:8px">
+                          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import>
+                          <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Anotación · se vuelve mejora</span>
+                        </div>
+                        <textarea defaultValue="{{ c.anotacion }}" data-sync="1" data-v="{{ c.anotacion }}" onChange="{{ c.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
+                          <button onClick="{{ c.prepararDesdeLog }}" style="border:none; border-radius:999px; background:#3E3F3F; padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="filter:brightness(.94)">{{ c.prepararLabel }}</button>
+                          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ c.anotNota }}</span>
+                        </div>
+                        <sc-if value="{{ c.hayPropuesta }}" hint-placeholder-val="{{ false }}">
+                          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
+                            <div style="font-size:12.5px; line-height:1.5; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ c.propResumen }}</div>
+                            <sc-for list="{{ c.propCambios }}" as="p" hint-placeholder-count="1">
+                              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:4px">
+                                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ p.etiqueta }}</span>
+                                <sc-if value="{{ p.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ p.antes }}</span></sc-if>
+                                <span style="font-size:12.5px; line-height:1.5">{{ p.despues }}</span>
+                              </div>
+                            </sc-for>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap">
+                              <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ c.aplicarDesdeLog }}" hint-size="auto,38px">Aplicar a ALMA</x-import>
+                              <button onClick="{{ c.descartarDesdeLog }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Descartar</button>
+                            </div>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </div>
+                  </sc-if>
+                  </sc-if>
+                </div>
+              </sc-if>
               <sc-if value="{{ c.respAbierto }}" hint-placeholder-val="{{ false }}">
                 <div data-alma-scroll="1" style="padding:10px 14px 12px; display:flex; flex-direction:column; gap:8px; border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; overflow:visible">
                   <div style="display:flex; align-items:center; gap:8px">
@@ -1483,70 +1543,6 @@
                 </div>
               </sc-if>
 
-              <sc-if value="{{ c.esLog }}" hint-placeholder-val="{{ false }}">
-                <div data-alma-scroll="1" style="border-top:1px solid #EAE6E0; background:#FFFFFF; flex-shrink:0; overflow-y:auto; overscroll-behavior:auto; max-height: {{ c.pieMax }}; display: {{ c.pieDisplay }}">
-                  <sc-if value="{{ c.piePlegado }}" hint-placeholder-val="{{ false }}">
-                    <div style="padding:8px 16px; display:flex; align-items:center; gap:10px; min-height:40px">
-                      <span style="width:8px; height:8px; border-radius:50%; flex-shrink:0; background: {{ c.color }}"></span>
-                      <span style="flex:1; min-width:0; font-size:11.5px; color:#3E3F3F; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.caso.titulo }}</span>
-                    </div>
-                  </sc-if>
-                  <sc-if value="{{ c.pieAbierto }}" hint-placeholder-val="{{ true }}">
-                  <div style="padding:10px 16px 12px; display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap">
-                    <span style="width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:5px; background: {{ c.color }}"></span>
-                    <div style="flex:1; min-width:180px; display:flex; flex-direction:column; gap:5px">
-                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
-                        <span style="font-size:12.5px; font-weight:600; color:#3E3F3F; letter-spacing:.01em; line-height:1.4">{{ c.caso.titulo }}</span>
-                        <sc-if value="{{ c.caso.hayMotivo }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ c.caso.motivo }}</span></sc-if>
-                      </div>
-                      <sc-if value="{{ c.caso.mostrarPuntos }}" hint-placeholder-val="{{ true }}">
-                        <div style="display:flex; flex-direction:column; gap:3px">
-                          <sc-for list="{{ c.caso.puntos }}" as="p" hint-placeholder-count="2">
-                            <div style="display:flex; gap:8px; align-items:flex-start; font-size:12px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em"><span aria-hidden="true" style="width:4px; height:4px; border-radius:50%; background:#938B8A; flex-shrink:0; margin-top:8px"></span><span style="text-wrap:pretty">{{ p }}</span></div>
-                          </sc-for>
-                        </div>
-                      </sc-if>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:6px; flex-shrink:0">
-                      <button onClick="{{ c.votarBien }}" aria-label="Buena respuesta" aria-pressed="{{ c.votoBien }}" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent; background: {{ c.votoBienBg }}; color: {{ c.votoBienFg }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="15" color="{{ c.votoBienFg }}" hint-size="15px,15px"></x-import></button>
-                      <button onClick="{{ c.votarMal }}" aria-label="A mejorar" aria-pressed="{{ c.votoMal }}" style="width:40px; height:40px; border-radius:50%; border:1px solid #D8D4CE; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent; background: {{ c.votoMalBg }}; color: {{ c.votoMalFg }}" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="15" color="{{ c.votoMalFg }}" hint-size="15px,15px"></x-import></button>
-                      <button onClick="{{ c.anotar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:7px 12px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ c.anotarLabel }}</button>
-                    </div>
-                  </div>
-                  <sc-if value="{{ c.anotando }}" hint-placeholder-val="{{ false }}">
-                    <div style="padding:0 16px 16px; display:flex; flex-direction:column; gap:10px">
-                      <div style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
-                        <div style="display:flex; align-items:center; gap:8px">
-                          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import>
-                          <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Anotación · se vuelve mejora</span>
-                        </div>
-                        <textarea defaultValue="{{ c.anotacion }}" data-sync="1" data-v="{{ c.anotacion }}" onChange="{{ c.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
-                          <button onClick="{{ c.prepararDesdeLog }}" style="border:none; border-radius:999px; background:#3E3F3F; padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="filter:brightness(.94)">{{ c.prepararLabel }}</button>
-                          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ c.anotNota }}</span>
-                        </div>
-                        <sc-if value="{{ c.hayPropuesta }}" hint-placeholder-val="{{ false }}">
-                          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
-                            <div style="font-size:12.5px; line-height:1.5; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ c.propResumen }}</div>
-                            <sc-for list="{{ c.propCambios }}" as="p" hint-placeholder-count="1">
-                              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:4px">
-                                <span style="font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ p.etiqueta }}</span>
-                                <sc-if value="{{ p.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#938B8A; text-decoration:line-through">{{ p.antes }}</span></sc-if>
-                                <span style="font-size:12.5px; line-height:1.5">{{ p.despues }}</span>
-                              </div>
-                            </sc-for>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap">
-                              <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ c.aplicarDesdeLog }}" hint-size="auto,38px">Aplicar a ALMA</x-import>
-                              <button onClick="{{ c.descartarDesdeLog }}" style="border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Descartar</button>
-                            </div>
-                          </div>
-                        </sc-if>
-                      </div>
-                    </div>
-                  </sc-if>
-                  </sc-if>
-                </div>
-              </sc-if>
             </div>
             </div>
             </sc-for>
@@ -2617,7 +2613,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     mVista: (function () { try { return localStorage.getItem("sa_m_vista") || "resumen"; } catch (e) { return "resumen"; } })(), selG: null, abrirPend: null, razon: null,
-    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad", convSolo: "ATENCION", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
+    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, optim: {}, pieVer: {}, logVoto: {}, logResp: "Todas", convOrden: "Prioridad", convSolo: "ATENCION", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
     versionNueva: false, progEdit: {}, progConfirm: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
@@ -4078,7 +4074,7 @@ class Component extends DCLogic {
         if (!guest && !nota && !m.auto && textosAlma[normT(m.texto)]) m = Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] });
         var esAlma = nota || !!m.alma, kR = m._k || "", txR = m.texto;
         var it = {
-          esHito: false, noHito: true,
+          esHito: false, noHito: true, _q: guest ? "g" : nota ? "n" : m.auto ? "a" : m.alma ? "al" : "e", _t: Date.parse(m.created) || 0, _op: m._op || "",
           align: guest ? "flex-start" : "flex-end",
           radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
           texto: self.limpiaImg(m.texto), hayTexto: !!self.limpiaImg(m.texto),
@@ -4092,18 +4088,53 @@ class Component extends DCLogic {
               contexto: lista.slice(Math.max(0, iM - 6), iM + 3).map(function (x) { return "[" + (x.tipo === "guest" ? "HUÉSPED" : x.tipo === "nota" ? "ALMA · no enviado" : x.auto ? "AUTOMÁTICO" : x.alma ? "ALMA" : "EQUIPO") + "] " + self.limpiaImg(x.texto); }).join("\n") });
           }, "lp")
         };
+        if (m._op) {
+          it.bg = m._op === "fallo" ? "#FFFFFF" : m._op === "enviando" ? "#EFECE8" : "rgba(233,130,106,.22)";
+          it.bd = m._op === "fallo" ? "#C0392B" : m._op === "enviando" ? "#D8D4CE" : "rgba(233,130,106,.5)";
+          it.fg = m._op === "enviando" ? "#6F6867" : "#3E3F3F";
+          it.meta = m._op === "enviando" ? "Enviando…" : m._op === "fallo" ? "No se envió · tu texto volvió al editor" : "Enviado · " + fmtHora(m.created);
+          it.metaFg = m._op === "fallo" ? "#C0392B" : "#6F6867";
+        }
         return Object.assign(it, it._lp);
       });
     };
     /* Memo: el hilo ya mapeado se reutiliza mientras la lista (misma referencia) y sus dependencias no cambien. */
     var memoH = self._hiloMemo || (self._hiloMemo = new WeakMap()), taN = null, fcN = Object.keys(st.fotoCache || {}).length;
+    var diaDe = function (t) {
+      if (!t) return ""; var f = function (x) { return new Date(x).toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }); };
+      return f(t) === f(Date.now()) ? "Hoy" : f(t) === f(Date.now() - 864e5) ? "Ayer" : new Date(t).toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Guatemala" });
+    };
+    /* Como iMessage: mensajes seguidos de la misma persona (< 5 min) se agrupan y solo el último lleva la hora; separador por día. */
+    var agrupar = function (out) {
+      var prevDia = "";
+      return (out || []).map(function (it, i) {
+        var dia = it._t ? diaDe(it._t) : "", pv = out[i - 1], nx = out[i + 1];
+        var junto = function (a1, b1) { return a1 && b1 && !a1.esHito && !b1.esHito && a1._q === b1._q && !a1._op && !b1._op && a1._t && b1._t && Math.abs(b1._t - a1._t) < 5 * 60000 && diaDe(a1._t) === diaDe(b1._t); };
+        var conSig = junto(it, nx), conAnt = junto(pv, it);
+        var o = Object.assign({}, it, { diaHay: !!dia && dia !== prevDia, dia: dia, metaHay: !conSig, metaFg: it.metaFg || "#6F6867", gapTop: conAnt && !(dia && dia !== prevDia) ? "-6px" : "0px" });
+        if (conSig && !it.esHito) o.radio = "16px";
+        if (dia) prevDia = dia;
+        return o;
+      });
+    };
+    /* Envío optimista: el mensaje aparece al instante en gris y cambia de color cuando Hospitable confirma. */
+    var optimDe = function (lista, resIdO) {
+      var ops = resIdO && st.optim[resIdO]; if (!ops || !ops.length) return lista;
+      var base = lista || [];
+      var add = ops.filter(function (o) {
+        if (o.estado === "fallo") return true;
+        var t0 = Date.parse(o.created) - 120000;
+        return !base.some(function (m) { return m.tipo !== "guest" && normT(m.texto) === normT(o.texto) && (Date.parse(m.created) || 0) >= t0; });
+      }).map(function (o) { return { tipo: "host", texto: o.texto, created: o.created, _op: o.estado }; });
+      return add.length ? base.concat(add) : base;
+    };
     var mapHilo = function (lista, nombre, resIdN) {
-      if (!lista || !lista.length) return mapHiloRaw(lista, nombre, resIdN);
+      if (!lista || !lista.length) return agrupar(mapHiloRaw(lista, nombre, resIdN));
       if (taN == null) taN = Object.keys(textosAlma).length;
       var hN = resIdN && st.almaHilos[resIdN] && st.almaHilos[resIdN].hitos;
       var sig = [nombre, resIdN, hN ? hN.length : 0, resIdN && notasRes[resIdN] ? notasRes[resIdN].length : 0, fcN, taN].join("|");
       var mm = memoH.get(lista); if (mm && mm.sig === sig) return mm.out;
-      var out = mapHiloRaw(lista, nombre, resIdN); memoH.set(lista, { sig: sig, out: out }); return out;
+      var out = agrupar(mapHiloRaw(lista, nombre, resIdN)); memoH.set(lista, { sig: sig, out: out }); return out;
     };
     /* Responder desde el hub: editor + Mejorar (ALMA redacta o pule) + Enviar (Hospitable). */
     var composer = function (convKey, info) {
@@ -4142,40 +4173,53 @@ class Component extends DCLogic {
           .catch(function () { upd({ busy: false, nota: "No pudimos redactar ahora. Tu texto sigue aquí." }); });
       };
       var enviar = function (t) {
-        t = String(t || "").trim(); if (!t || (self.state.convResp[convKey] || {}).enviando) return;
-        upd({ enviando: true, nota: "" });
-        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.responder(info.resId, t, self.quienSoy()) : Promise.resolve({ ok: false, error: !info.resId ? "sin reserva" : "no_url" });
-        p.then(function (res) {
+        t = String(t || "").trim(); if (!t) return;
+        var rid = info.resId;
+        if (!(window.ALMA && ALMA.hasApi() && rid)) { upd({ nota: !rid ? "Esta conversación no tiene reserva en Hospitable." : "El hub no tiene la dirección del Apps Script. Revisa la configuración." }); return; }
+        var opId = "o" + Date.now() + Math.random().toString(36).slice(2, 6), created = new Date().toISOString();
+        var setOp = function (estado) {
+          self.setState(function (s) {
+            var o = Object.assign({}, s.optim), l = (o[rid] || []).filter(function (x) { return x.id === opId || !(x.estado === "fallo" && normT(x.texto) === normT(t)); });
+            var i = l.findIndex(function (x) { return x.id === opId; });
+            if (estado == null) { if (i >= 0) l.splice(i, 1); } else if (i >= 0) l[i] = Object.assign({}, l[i], { estado: estado }); else l.push({ id: opId, texto: t, created: created, estado: estado });
+            o[rid] = l; return { optim: o };
+          });
+        };
+        /* La conversación se queda donde está aunque cambie de estado o salga del filtro. */
+        self._fijos = Object.assign({}, self._fijos); self._fijos[rid] = 1;
+        setOp("enviando");
+        ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ nota: "", propuesta: "", base: null, alma: false, progPick: false });
+        var fallo = function (msg) { setOp("fallo"); if (!String(self._respDraft[convKey] || "").trim()) { ponerTexto(t); self.guardarBorrador(convKey, t); } upd({ nota: msg }); };
+        ALMA.responder(rid, t, self.quienSoy()).then(function (res) {
           if (!(res && res.ok)) {
             var er = String((res && res.error) || "");
-            /* timeout o corte de red: el mensaje pudo salir. Se recarga el hilo antes de sugerir reenviar, para no duplicar. */
+            /* timeout o corte de red: el mensaje pudo salir. Se revisa el hilo antes de sugerir reenviar, para no duplicar. */
             if (er === "timeout" || er === "red") {
-              upd({ enviando: false, nota: "La conexión se cortó antes de confirmar. Revisando si salió…" });
-              var n0 = Object.assign({}, self.state.almaHilos); delete n0[info.resId]; self._hiloFresco[info.resId] = 0; self.setState({ almaHilos: n0 });
-              ALMA.hilo(info.resId).then(function (r2) {
-                var ya = r2 && r2.ok && (r2.hilo || []).slice(-6).some(function (m) { return m.tipo !== "guest" && String(m.texto || "").trim() === t; });
-                if (r2 && r2.ok) self.guardarHilo(info.resId, r2.hilo);
-                if (ya) { ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ nota: "", abierto: false, alma: false }); self.aviso("Enviado"); }
-                else upd({ nota: "No se envió. Tu texto sigue aquí; toca enviar otra vez." });
-              });
+              upd({ nota: "La conexión se cortó antes de confirmar. Revisando si salió…" });
+              ALMA.hilo(rid).then(function (r2) {
+                var ya = r2 && r2.ok && (r2.hilo || []).slice(-6).some(function (m) { return m.tipo !== "guest" && normT(m.texto) === normT(t); });
+                if (r2 && r2.ok) self.guardarHilo(rid, r2.hilo);
+                if (ya) { setOp("enviado"); upd({ nota: "" }); } else fallo("No se envió. Tu texto volvió al editor; toca enviar otra vez.");
+              }).catch(function () { fallo("No pudimos confirmar el envío. Revisa el hilo antes de reenviar."); });
               return;
             }
-            upd({ enviando: false, nota: er === "sin reserva" ? "Esta conversación no tiene reserva en Hospitable." : er === "no_url" ? "El hub no tiene la dirección del Apps Script. Revisa la configuración." : er === "token" ? "El Apps Script rechazó la clave del hub. Ejecuta configurar() y vuelve a implementar." : "No se envió: " + er + ". Tu texto sigue aquí." });
+            fallo(er === "token" ? "El Apps Script rechazó la clave del hub. Ejecuta configurar() y vuelve a implementar." : "No se envió: " + er + ". Tu texto volvió al editor.");
             return;
           }
-          ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ enviando: false, abierto: false, nota: "", propuesta: "", base: null, alma: false });
+          setOp("enviado");
           if (res.plantilla) self.aviso("Pasaron más de 24 h: WhatsApp solo permite la plantilla para retomar. Ya se envió; cuando responda, escribe tu mensaje.");
           else if (res.canal === "whatsapp") self.aviso("Enviado por WhatsApp");
           self.setState(function (s) {
-            var n = Object.assign({}, s.almaHilos); delete n[info.resId];
-            var cola = (s.alma.cola || []).map(function (x) { return x.reservation_id === info.resId && ["pendiente", "esperando_envio", "esperando_rojo"].indexOf(x.estado) >= 0 ? Object.assign({}, x, { estado: "respondido", nota: "respondido por el equipo desde el hub" }) : x; });
-            return { almaHilos: n, alma: Object.assign({}, s.alma, { cola: cola }) };
+            var cola = (s.alma.cola || []).map(function (x) { return x.reservation_id === rid && ["pendiente", "esperando_envio", "esperando_rojo"].indexOf(x.estado) >= 0 ? Object.assign({}, x, { estado: "respondido", nota: "respondido por el equipo desde el hub" }) : x; });
+            return { alma: Object.assign({}, s.alma, { cola: cola }) };
           });
-          setTimeout(function () { self.almaCargar(); }, 1500);
-        });
+          /* El hilo se refresca por detrás; la burbuja optimista se va sola cuando el servidor ya trae el mensaje. */
+          setTimeout(function () { ALMA.hilo(rid).then(function (r3) { if (r3 && r3.ok) self.guardarHilo(rid, r3.hilo); }); self.almaCargar(); }, 1500);
+          setTimeout(function () { setOp(null); }, 10 * 60000);
+        }).catch(function () { fallo("No se envió. Revisa la conexión; tu texto volvió al editor."); });
       };
       return {
-        respAbierto: !!rs.abierto,
+        respAbierto: true,
         abrirLabel: rs.abierto ? "Cerrar" : "Abrir conversación", abrirBd: rs.abierto ? "#3E3F3F" : "#3E3F3F", abrirBg: rs.abierto ? "#F5F3F0" : "#3E3F3F", abrirFg: rs.abierto ? "#3E3F3F" : "#FAFAFA",
         toggleAbrir: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
         toggleResp: function () { self.convAbrir(convKey, !rs.abierto, info.cargarHilo); },
@@ -4310,7 +4354,7 @@ class Component extends DCLogic {
       var fotosCola = self.fotosDe(d.fotos, r.fotos, r.texto);
       var resId = r.reservation_id || "";
       var hiloSt = st.almaHilos[resId];
-      var hilo = mapHilo(hiloSt && hiloSt.lista ? hiloSt.lista : [{ tipo: "guest", texto: r.texto, created: r.recibido }], r.huesped);
+      var hilo = mapHilo(optimDe(hiloSt && hiloSt.lista ? hiloSt.lista : [{ tipo: "guest", texto: r.texto, created: r.recibido }], resId), r.huesped);
       var cargarHilo = function () { cargarHiloDe(resId); };
       /* Mientras clasifica no hay resumen: se muestra la conversación completa y se carga sola. */
       var convKey = resId ? "r" + resId : "c" + key, enHilo = true;
@@ -4319,7 +4363,7 @@ class Component extends DCLogic {
       return Object.assign(composer(convKey, { resId: resId, huesped: r.huesped, propiedad: d.propiedad, estadia: estadiaC, pregunta: r.texto, hiloLista: hiloSt && hiloSt.lista, cargarHilo: cargarHilo }), {
         propRaw: d.propiedad || "",
         key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est, cargarHilo: cargarHilo,
-        form: farolForm(d.codigo, d.formStatus), chatMin: (st.convResp[convKey] || {}).abierto ? "120px" : "0", hiloN: enHilo && hiloSt && hiloSt.lista ? String(hiloSt.lista.length) : "0",
+        form: farolForm(d.codigo, d.formStatus), chatMin: "120px", hiloN: String((hiloSt && hiloSt.lista ? hiloSt.lista.length : 0) + (st.optim[resId] || []).length),
         emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
         clasificando: clasInfo.on, clasPct: clasInfo.pct, clasTxt: clasInfo.txt,
@@ -4604,7 +4648,7 @@ class Component extends DCLogic {
         quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
         modoHilo: enHiloL, modoResumen: !enHiloL, hiloLabel: enHiloL ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHiloL ? "#F5F3F0" : "#FFFFFF",
         toggleHilo: function () { var abre = !enHiloL; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKeyL] = abre; return { convHilo: o }; }); if (abre) cargarHiloDe(resIdLog); },
-        hilo: mapHilo(hiloStL && hiloStL.lista ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), huesped, hiloStL && hiloStL.lista ? resIdLog : ""),
+        hilo: mapHilo(optimDe(hiloStL && hiloStL.lista ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), resIdLog), huesped, hiloStL && hiloStL.lista ? resIdLog : ""),
         hiloCargando: !!(hiloStL && hiloStL.cargando),
         hiloNoDisponible: enHiloL && (!resIdLog || !(window.ALMA && ALMA.hasApi()) || !!(hiloStL && hiloStL.error)),
         hiloReintentable: !!(resIdLog && hiloStL && hiloStL.error), hiloReintentar: function () { delete self._hiloFresco[resIdLog]; cargarHiloDe(resIdLog); },
@@ -4622,8 +4666,9 @@ class Component extends DCLogic {
         sentido: enviado ? "Enviado al huésped" : "No se envió · " + (/borrador/i.test(acc) ? "borrador" : /SOMBRA/i.test(acc) ? "modo sombra" : /retenid/i.test(acc) ? "retenido" : "quedó en el hub"),
         sentidoColor: enviado ? "#B54D36" : "#6F6867",
         resumen: self.resumenLog(n, acc, l.razon),
-        caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: (st.convResp[convKeyL] || {}).abierto ? "none" : "min(34%, 240px)", pieVisible: !(st.convResp[convKeyL] || {}).abierto, pieDisplay: (st.convResp[convKeyL] || {}).abierto ? "none" : "block",
-        hayCasoLinea: true, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: false, pieAbierto: !(st.convResp[convKeyL] || {}).abierto, chatMin: (st.convResp[convKeyL] || {}).abierto ? "120px" : "0", hiloN: enHiloL && hiloStL && hiloStL.lista ? String(hiloStL.lista.length) : "0",
+        caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: st.pieVer[convKeyL] ? "min(46%, 360px)" : "none", pieVisible: true, pieDisplay: "block", pieChevron: st.pieVer[convKeyL] ? "rotate(180deg)" : "none", pieAria: st.pieVer[convKeyL] ? "true" : "false",
+        pieToggle: function () { self.setState(function (s) { var o = Object.assign({}, s.pieVer); o[convKeyL] = !o[convKeyL]; return { pieVer: o }; }); },
+        hayCasoLinea: false, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: true, pieAbierto: !!st.pieVer[convKeyL], chatMin: "120px", hiloN: String((hiloStL && hiloStL.lista ? hiloStL.lista.length : 0) + (st.optim[resIdLog] || []).length),
         anotando: st.logAbierto === key, anotarLabel: st.logAbierto === key ? "Cerrar" : "Anotar",
         anotar: function () { self.setState({ logAbierto: st.logAbierto === key ? null : key }); },
         anotacion: st.logAnot[key] || "",
@@ -5046,7 +5091,7 @@ class Component extends DCLogic {
     else if (st.convSolo === "EQUIPO") grupos = grupos.filter(keep(eqG));
     /* Sin nada que atender → Todas. Entra algo nuevo mientras ves Todas → vuelve a Requiere atención. */
     var nAtn = gruposSinCanal.filter(atnG).length, enTodas = !st.convSolo && !st.convCanal && st.logFiltro === "Todo" && !st.convVista;
-    if (st.alma && !convCargando && !st.filtroMenu) {
+    if (st.alma && !convCargando && !st.filtroMenu && st.cronoLista !== false) {
       if (st.convSolo === "ATENCION" && !st.convCanal && !nAtn && !self._swF) self._swF = setTimeout(function () { self._swF = null; self._fijos = {}; if (self.state.convSolo === "ATENCION") self.setState({ convSolo: "", convOrden: null, convIdx: 0, briefIdx: 0 }); }, 900);
       else if (enTodas && self._atnPrev != null && nAtn > self._atnPrev && !self._swF) self._swF = setTimeout(function () { self._swF = null; self._fijos = {}; self.setState({ convSolo: "ATENCION", convOrden: "Prioridad", convIdx: 0, briefIdx: 0 }); self.aviso("Entró una conversación que requiere atención"); }, 300);
       self._atnPrev = nAtn;

@@ -147,11 +147,12 @@
   }
   @keyframes sa-skel { 0%,100% { opacity:.5; } 50% { opacity:.95; } }
   .sa-skel{ animation:sa-skel 1.4s cubic-bezier(.22,.61,.36,1) infinite; }
-  .app-dock{ display:flex; gap:8px; margin-top:18px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; padding:2px 2px 6px; margin-left:-2px; margin-right:-2px; overscroll-behavior-x:contain; }
-  .app-dock::-webkit-scrollbar{ display:none; }
-  @media (min-width:780px){ .app-dock{ overflow:visible; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; } }
-  @media (hover:hover) and (pointer:fine){ .app-btn:hover{ transform:translateY(-2px); box-shadow:0 12px 40px rgba(62,63,63,.07) !important; border-color:#D8D4CE !important; } .app-btn:hover .app-arrow{ opacity:1 !important; transform:translate(0,0) !important; } }
-  .app-btn:active{ transform:scale(.98); }
+  .app-dock{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; margin-top:22px; padding:10px 8px; background:#FFFFFF; border-radius:26px; box-shadow:0 1px 2px rgba(62,63,63,.04), 0 0 0 1px rgba(62,63,63,.05); max-width:520px; }
+  @media (min-width:780px){ .app-dock{ gap:8px; padding:12px 10px; } }
+  @media (hover:hover) and (pointer:fine){ .app-btn:hover .app-tile{ transform:translateY(-3px); box-shadow:0 12px 28px rgba(62,63,63,.10), inset 0 0 0 1px rgba(62,63,63,.06) !important; } }
+  .app-btn:active .app-tile{ transform:scale(.94); }
+  .app-btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(233,130,106,.35); }
+  @media (max-width:380px){ .app-desc{ display:none !important; } }
   @keyframes sa-tile { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
   .bento > *{ animation:sa-tile .56s cubic-bezier(.22,.61,.36,1) backwards; }
   .bento > :nth-child(2){ animation-delay:.06s; } .bento > :nth-child(3){ animation-delay:.12s; } .bento > :nth-child(4){ animation-delay:.18s; }
@@ -285,21 +286,16 @@
           <h1 style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(34px,5vw,46px); color:#3E3F3F; margin:0; line-height:1.04; letter-spacing:-.01em">{{ saludo }}.</h1>
           <nav class="app-dock" aria-label="Apps de Spacio AM">
             <sc-for list="{{ appsDock }}" as="ap" hint-placeholder-count="5">
-              <a class="app-btn" href="{{ ap.url }}" target="_blank" rel="noopener" aria-label="{{ ap.aria }}" style="position:relative; flex:0 0 auto; scroll-snap-align:start; min-width:152px; min-height:68px; box-sizing:border-box; display:flex; align-items:center; gap:12px; padding:10px 14px 10px 10px; border-radius:20px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); box-shadow:0 1px 2px rgba(62,63,63,.04); text-decoration:none; color:#3E3F3F; transition:transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .24s cubic-bezier(.22,.61,.36,1), border-color .18s; -webkit-tap-highlight-color:transparent">
-                <span style="position:relative; width:48px; height:48px; flex-shrink:0; border-radius:15px; display:grid; place-items:center; background: {{ ap.tint }}">
-                  <span aria-hidden="true" style="width:30px; height:30px; display:block; background-repeat:no-repeat; background-position:center; background-size:contain; background-image: {{ ap.glyphBg }}"></span>
+              <a class="app-btn" href="{{ ap.url }}" target="_blank" rel="noopener" aria-label="{{ ap.aria }}" style="position:relative; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 2px; border-radius:18px; text-decoration:none; color:#3E3F3F; -webkit-tap-highlight-color:transparent">
+                <span class="app-tile" style="position:relative; width:min(60px,15vw); aspect-ratio:1; border-radius:30%; overflow:visible; display:block; transition:transform .24s cubic-bezier(.22,.61,.36,1), box-shadow .24s cubic-bezier(.22,.61,.36,1); box-shadow:0 1px 2px rgba(62,63,63,.06), inset 0 0 0 1px rgba(62,63,63,.06)">
+                  <span aria-hidden="true" style="position:absolute; inset:0; border-radius:inherit; background-color:#F5F3F0; background-size:cover; background-position:center; background-image: {{ ap.iconBg }}"></span>
                   <sc-if value="{{ ap.hayN }}" hint-placeholder-val="{{ false }}">
-                    <span style="position:absolute; top:-6px; right:-6px; display:inline-flex; align-items:center; justify-content:center; gap:4px; min-width:22px; height:22px; padding:0 7px; box-sizing:border-box; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; border:2px solid #FFFFFF">
-                      <span aria-hidden="true" style="position:relative; width:5px; height:5px; display:block"><span class="sa-breathe" style="position:absolute; inset:0; border-radius:50%; background:#F2755A"></span><span style="position:absolute; inset:0; border-radius:50%; background:#F2755A"></span></span>{{ ap.n }}
-                    </span>
+                    <span style="position:absolute; top:-5px; right:-7px; min-width:20px; height:20px; padding:0 6px; box-sizing:border-box; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#3E3F3F; color:#FAFAFA; font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; box-shadow:0 0 0 2px #FAFAFA">{{ ap.n }}</span>
                   </sc-if>
                 </span>
-                <span style="display:flex; flex-direction:column; gap:4px; min-width:0">
-                  <span style="display:flex; align-items:center; gap:6px">
-                    <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:21px; line-height:1; letter-spacing:-.01em; color:#3E3F3F">{{ ap.nombre }}</span>
-                    <span class="app-arrow" aria-hidden="true" style="display:grid; opacity:0; transform:translate(-3px,3px); transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#6F6867" hint-size="13px,13px"></x-import></span>
-                  </span>
-                  <span style="font-size:10.5px; letter-spacing:.04em; line-height:1.3; color:#6F6867; white-space:nowrap">{{ ap.desc }}</span>
+                <span style="display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; max-width:100%">
+                  <span style="font-size:12.5px; font-weight:600; letter-spacing:.02em; line-height:1.2; color:#3E3F3F">{{ ap.nombre }}</span>
+                  <span class="app-desc" style="font-size:10.5px; letter-spacing:.02em; line-height:1.25; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%">{{ ap.desc }}</span>
                 </span>
               </a>
             </sc-for>
@@ -2934,11 +2930,11 @@ class Component extends DCLogic {
   /* Notificaciones de cada app: cada una publica un JSON { "count": n } (o { "items": [...] }) en esta ruta.
      Si una app aún no lo publica, su botón queda sin número. */
   APPS_DOCK = [
-    { k: "hola", nombre: "hola", desc: "Huéspedes", url: "https://hola.spacioam.com", glyph: "assets/glyphs/heart.svg", tint: "rgba(233,130,106,.14)" },
-    { k: "epi", nombre: "epi", desc: "Operación", url: "https://epi.spacioam.com", glyph: "assets/glyphs/check.svg", tint: "#F5F3F0" },
-    { k: "mi", nombre: "mi", desc: "Finanzas", url: "https://mi.spacioam.com", glyph: "assets/glyphs/cart.svg", tint: "#EFECE8" },
-    { k: "docs", nombre: "docs", desc: "Contratos", url: "https://docs.spacioam.com", glyph: "assets/glyphs/doc.svg", tint: "#F5F3F0" },
-    { k: "grow", nombre: "grow", desc: "Proyectos", url: "https://grow.spacioam.com", glyph: "assets/glyphs/mas.svg", tint: "rgba(61,107,82,.10)" }
+    { k: "hola", nombre: "hola", desc: "Huéspedes", url: "https://hola.spacioam.com" },
+    { k: "epi", nombre: "epi", desc: "Operación", url: "https://epi.spacioam.com" },
+    { k: "mi", nombre: "mi", desc: "Finanzas", url: "https://mi.spacioam.com" },
+    { k: "docs", nombre: "docs", desc: "Contratos", url: "https://docs.spacioam.com" },
+    { k: "grow", nombre: "grow", desc: "Proyectos", url: "https://grow.spacioam.com" }
   ];
   APPS_NOTIS_RUTA = "/notificaciones.json";
   cargarAppNotis() {
@@ -3201,7 +3197,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-17d";
+  BUILD = "2026-10-17e";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -5403,7 +5399,10 @@ class Component extends DCLogic {
         self.guardarBorrador(convKey, actual);
         upd({ busy: true, abierto: true, nota: "", propuesta: "", alma: false, base: actual, modo: actual.trim() ? "mejorar" : "redactar" });
         var errSrv = "";
-        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual, ((st.almaHilos[info.resId] || {}).lista || []).slice(-40).map(function (m) { return { tipo: m.tipo, texto: String(m.texto || "").slice(0, 1500), created: m.created, auto: !!m.auto, canal: m.canal || "" }; })) : Promise.resolve({ ok: false, error: !info.resId ? "Esta conversación no tiene reserva ni WhatsApp asociado" : "Conecta el Apps Script" });
+        /* Mejorar no depende del hilo de Hospitable: se manda lo que el hub ve (hilo cargado o, si falló, el intercambio del log). */
+        var hlV = ((st.almaHilos[info.resId] || {}).lista || []).slice(-40);
+        if (!hlV.length) (a.log || []).filter(function (l) { return info.resId && l.reservation_id === info.resId; }).slice(-8).forEach(function (l) { var f = String(l.fecha || "").replace(" ", "T"); if (l.pregunta) hlV.push({ tipo: "guest", texto: l.pregunta, created: f }); if (l.respuesta && /^ENVIADO/i.test(String(l.accion || ""))) hlV.push({ tipo: "host", texto: l.respuesta, created: f }); });
+        var p = window.ALMA && ALMA.hasApi() ? ALMA.redactarHub(info.resId || "", actual, hlV.map(function (m) { return { tipo: m.tipo, texto: String(m.texto || "").slice(0, 1500), created: m.created, auto: !!m.auto, canal: m.canal || "" }; })) : Promise.resolve({ ok: false, error: "Conecta el Apps Script" });
         p.then(function (res) {
           if (res && res.ok && res.texto) return self.formatoMsg(res.texto);
           errSrv = res && res.error === "timeout" ? "ALMA tardó demasiado" : (res && res.error) || "";
@@ -7541,7 +7540,7 @@ class Component extends DCLogic {
       proyectosActivos: String(this.PROYECTOS.length),
       appsDock: this.APPS_DOCK.map(function (ap) {
         var an = (st.appNotis || {})[ap.k], n = typeof an === "number" ? an : 0;
-        return { url: ap.url, nombre: ap.nombre, desc: ap.desc, glyphBg: ap.glyph ? "url(" + ap.glyph + ")" : "none", tint: ap.tint, n: n > 99 ? "99+" : String(n), hayN: n > 0, aria: "Abrir " + ap.nombre + " · " + ap.desc + (n ? " · " + n + " notificaciones" : "") };
+        return { url: ap.url, nombre: ap.nombre, desc: ap.desc, iconBg: "url(assets/apps/" + ap.k + ".png)", n: n > 99 ? "99+" : String(n), hayN: n > 0, aria: "Abrir " + ap.nombre + " · " + ap.desc + (n ? " · " + n + " notificaciones" : "") };
       }),
       alertasTotal: String(this.ALERTAS_GROW.length),
       iniciales: (((perfil.primerNombre || "")[0] || "") + ((perfil.primerApellido || "")[0] || "")).toUpperCase() || "SA",

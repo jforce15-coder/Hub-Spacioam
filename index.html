@@ -27,11 +27,12 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-auth-client.js"></script>
-<script src="js/sa-session.js"></script>
-<script src="js/alma-client.js?v=2026-10-14.1200"></script>
-<script src="js/push.js?v=2026-10-09.1700"></script>
-<script src="js/sched-engine.js?v=2026-10-09.1700"></script>
+<script src="js/sw-reg.js?v=2026-10-17g"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-17g"></script>
+<script src="js/sa-session.js?v=2026-10-17g"></script>
+<script src="js/alma-client.js?v=2026-10-17g"></script>
+<script src="js/push.js?v=2026-10-17g"></script>
+<script src="js/sched-engine.js?v=2026-10-17g"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -147,12 +148,33 @@
   }
   @keyframes sa-skel { 0%,100% { opacity:.5; } 50% { opacity:.95; } }
   .sa-skel{ animation:sa-skel 1.4s cubic-bezier(.22,.61,.36,1) infinite; }
-  .app-dock{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; margin-top:22px; padding:10px 8px; background:#FFFFFF; border-radius:26px; box-shadow:0 1px 2px rgba(62,63,63,.04), 0 0 0 1px rgba(62,63,63,.05); max-width:520px; }
-  @media (min-width:780px){ .app-dock{ gap:8px; padding:12px 10px; } }
-  @media (hover:hover) and (pointer:fine){ .app-btn:hover .app-tile{ transform:translateY(-3px); box-shadow:0 12px 28px rgba(62,63,63,.10), inset 0 0 0 1px rgba(62,63,63,.06) !important; } }
-  .app-btn:active .app-tile{ transform:scale(.94); }
-  .app-btn:focus-visible{ outline:none; box-shadow:0 0 0 3px rgba(233,130,106,.35); }
-  @media (max-width:380px){ .app-desc{ display:none !important; } }
+  /* Dock estilo Apple: barra de vidrio flotante, íconos squircle, magnificación tipo macOS y resorte al presionar. */
+  .app-dock{ position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:45; display:flex; align-items:flex-end; gap:clamp(8px,2.6vw,14px); padding:10px clamp(10px,3vw,14px); border-radius:32px;
+    background:rgba(250,250,250,.58); -webkit-backdrop-filter:blur(26px) saturate(180%) brightness(1.06); backdrop-filter:blur(26px) saturate(180%) brightness(1.06);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 .5px rgba(62,63,63,.10), 0 18px 50px rgba(62,63,63,.16), 0 4px 14px rgba(62,63,63,.06);
+    animation:sa-dock .7s cubic-bezier(.34,1.36,.64,1) .15s backwards; max-width:calc(100vw - 24px); box-sizing:border-box; }
+  @keyframes sa-dock{ from{ opacity:0; transform:translate(-50%,28px) scale(.94); } to{ opacity:1; transform:translate(-50%,0) scale(1); } }
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .app-dock{ background:rgba(250,250,250,.96); } }
+  .app-btn{ position:relative; display:block; text-decoration:none; -webkit-tap-highlight-color:transparent; outline:none; }
+  .app-tile{ display:block; width:clamp(48px,13vw,56px); aspect-ratio:1; border-radius:24%; overflow:hidden; background:#F5F3F0; transform-origin:50% 100%;
+    box-shadow:0 1px 2px rgba(62,63,63,.10), 0 6px 14px rgba(62,63,63,.08), inset 0 0 0 .5px rgba(62,63,63,.10);
+    transition:transform .42s cubic-bezier(.34,1.56,.64,1), box-shadow .3s cubic-bezier(.22,.61,.36,1); will-change:transform; }
+  .app-img{ display:block; width:100%; height:100%; background-size:158%; background-position:center; background-repeat:no-repeat; }
+  .app-badge{ position:absolute; top:-6px; right:-6px; min-width:20px; height:20px; padding:0 6px; box-sizing:border-box; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#3E3F3F; color:#FAFAFA; font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; box-shadow:0 0 0 2px rgba(250,250,250,.95); pointer-events:none; animation:sa-pop .5s cubic-bezier(.34,1.56,.64,1) .6s backwards; }
+  @keyframes sa-pop{ from{ transform:scale(0); } to{ transform:scale(1); } }
+  .app-tip{ position:absolute; left:50%; bottom:calc(100% + 14px); transform:translate(-50%,6px) scale(.92); opacity:0; pointer-events:none; white-space:nowrap; padding:6px 11px; border-radius:10px; font-size:11.5px; font-weight:500; letter-spacing:.01em; color:#3E3F3F;
+    background:rgba(250,250,250,.86); -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%); box-shadow:0 0 0 .5px rgba(62,63,63,.12), 0 8px 24px rgba(62,63,63,.12); transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .app-btn:active .app-tile{ transform:scale(.88); transition-duration:.12s; transition-timing-function:cubic-bezier(.22,.61,.36,1); filter:brightness(.92); }
+  .app-btn:active .app-tip, .app-btn:focus-visible .app-tip{ opacity:1; transform:translate(-50%,0) scale(1); }
+  .app-btn:focus-visible .app-tile{ box-shadow:0 0 0 3px rgba(233,130,106,.45), 0 6px 14px rgba(62,63,63,.08); }
+  @media (hover:hover) and (pointer:fine){
+    .app-btn:hover .app-tile{ transform:translateY(-12px) scale(1.32); box-shadow:0 2px 4px rgba(62,63,63,.10), 0 16px 30px rgba(62,63,63,.16), inset 0 0 0 .5px rgba(62,63,63,.10); }
+    .app-btn:hover .app-tip{ opacity:1; transform:translate(-50%,-14px) scale(1); }
+    .app-btn:hover + .app-btn .app-tile, .app-btn:has(+ .app-btn:hover) .app-tile{ transform:translateY(-5px) scale(1.14); }
+    .app-btn:hover .app-badge{ transform:translateY(-14px); transition:transform .42s cubic-bezier(.34,1.56,.64,1); }
+  }
+  @media (prefers-reduced-motion: reduce){ .app-dock, .app-badge{ animation:none; } .app-tile, .app-tip{ transition:opacity .18s ease; } .app-btn:hover .app-tile, .app-btn:active .app-tile{ transform:none; } }
+  @media (prefers-reduced-transparency: reduce){ .app-dock{ background:#FAFAFA; backdrop-filter:none; -webkit-backdrop-filter:none; } }
   @keyframes sa-tile { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
   .bento > *{ animation:sa-tile .56s cubic-bezier(.22,.61,.36,1) backwards; }
   .bento > :nth-child(2){ animation-delay:.06s; } .bento > :nth-child(3){ animation-delay:.12s; } .bento > :nth-child(4){ animation-delay:.18s; }
@@ -278,28 +300,13 @@
 
   <div style="min-height:100vh; background:#FAFAFA; position:relative; overflow:hidden">
     <div aria-hidden="true" style="position:absolute; top:-140px; left:50%; transform:translateX(-50%); width:min(900px,150%); height:300px; border-radius:50%; background:radial-gradient(circle, rgba(233,130,106,.07), rgba(233,130,106,0) 68%); pointer-events:none"></div>
-    <div style="padding:clamp(26px,5vh,46px) clamp(18px,5vw,28px) 68px; position:relative; z-index:2">
+    <div style="padding:clamp(26px,5vh,46px) clamp(18px,5vw,28px) calc(124px + env(safe-area-inset-bottom)); position:relative; z-index:2">
     <div class="bento-wrap">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:clamp(20px,3vh,30px); animation:sa-rise .5s cubic-bezier(.22,.61,.36,1) backwards">
         <div style="min-width:0; flex:1">
           <div style="font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#6F6867; margin-bottom:8px; font-weight:500">{{ fechaLarga }}</div>
           <h1 style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(34px,5vw,46px); color:#3E3F3F; margin:0; line-height:1.04; letter-spacing:-.01em">{{ saludo }}.</h1>
-          <nav class="app-dock" aria-label="Apps de Spacio AM">
-            <sc-for list="{{ appsDock }}" as="ap" hint-placeholder-count="5">
-              <a class="app-btn" href="{{ ap.url }}" target="_blank" rel="noopener" aria-label="{{ ap.aria }}" style="position:relative; min-width:0; display:flex; flex-direction:column; align-items:center; gap:8px; padding:6px 2px; border-radius:18px; text-decoration:none; color:#3E3F3F; -webkit-tap-highlight-color:transparent">
-                <span class="app-tile" style="position:relative; width:min(60px,15vw); aspect-ratio:1; border-radius:30%; overflow:visible; display:block; transition:transform .24s cubic-bezier(.22,.61,.36,1), box-shadow .24s cubic-bezier(.22,.61,.36,1); box-shadow:0 1px 2px rgba(62,63,63,.06), inset 0 0 0 1px rgba(62,63,63,.06)">
-                  <span aria-hidden="true" style="position:absolute; inset:0; border-radius:inherit; background-color:#F5F3F0; background-size:cover; background-position:center; background-image: {{ ap.iconBg }}"></span>
-                  <sc-if value="{{ ap.hayN }}" hint-placeholder-val="{{ false }}">
-                    <span style="position:absolute; top:-5px; right:-7px; min-width:20px; height:20px; padding:0 6px; box-sizing:border-box; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#3E3F3F; color:#FAFAFA; font-size:10.5px; font-weight:600; font-variant-numeric:tabular-nums; box-shadow:0 0 0 2px #FAFAFA">{{ ap.n }}</span>
-                  </sc-if>
-                </span>
-                <span style="display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; max-width:100%">
-                  <span style="font-size:12.5px; font-weight:600; letter-spacing:.02em; line-height:1.2; color:#3E3F3F">{{ ap.nombre }}</span>
-                  <span class="app-desc" style="font-size:10.5px; letter-spacing:.02em; line-height:1.25; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%">{{ ap.desc }}</span>
-                </span>
-              </a>
-            </sc-for>
-          </nav>
+          
         </div>
       </div>
 
@@ -487,12 +494,20 @@
 
       <div style="text-align:center; margin-top:44px; opacity:.9">
         <div style="display:flex; justify-content:center"><img src="assets/logo-wordmark.png" alt="Spacio AM" style="width:120px; height:auto; display:block"></div>
-        <p style="font-size:10px; letter-spacing:.06em; color:#6F6867; margin-top:14px">hub@spacioam.com</p>
       </div>
     </div>
     </div>
   </div>
 </div>
+<nav class="app-dock" aria-label="Apps de Spacio AM">
+    <sc-for list="{{ appsDock }}" as="ap" hint-placeholder-count="5">
+      <a class="app-btn" href="{{ ap.url }}" target="_blank" rel="noopener" aria-label="{{ ap.aria }}">
+        <span class="app-tip" aria-hidden="true">{{ ap.nombre }} · {{ ap.desc }}</span>
+        <span class="app-tile"><span class="app-img" aria-hidden="true" style="background-image: {{ ap.iconBg }}"></span></span>
+        <sc-if value="{{ ap.hayN }}" hint-placeholder-val="{{ false }}"><span class="app-badge">{{ ap.n }}</span></sc-if>
+      </a>
+    </sc-for>
+  </nav>
 </sc-if>
 
 <sc-if value="{{ enHoy }}" hint-placeholder-val="{{ false }}">
@@ -1122,13 +1137,7 @@
       <div role="status" aria-live="polite" style="padding:10px 18px; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:12.5px; letter-spacing:.02em; line-height:1.4; box-shadow:0 12px 40px rgba(62,63,63,.18); animation:sa-rise .2s cubic-bezier(.23,1,.32,1) backwards; text-align:center; max-width:420px">{{ toastTxt }}</div>
     </div>
   </sc-if>
-  <sc-if value="{{ versionNueva }}" hint-placeholder-val="{{ false }}">
-    <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:400; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; max-width:calc(100vw - 24px); box-sizing:border-box">
-      <span style="width:8px; height:8px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
-      <span style="font-size:12.5px; color:#3E3F3F; letter-spacing:.01em">Hay una versión nueva del hub</span>
-      <button onClick="{{ recargarVersion }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-active="transform:scale(.97)">Recargar</button>
-    </div>
-  </sc-if>
+  
   <div class="alma-wrap" style="margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards">
     <button onClick="{{ volver }}" class="alma-volver" style="min-height:40px; align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div class="alma-head" style="display:flex; justify-content:space-between; align-items:center; gap:12px">
@@ -1744,7 +1753,7 @@
                   </sc-if>
                   <sc-if value="{{ c.sinPropuesta }}" hint-placeholder-val="{{ true }}">
                   <sc-if value="{{ c.progPickOn }}" hint-placeholder-val="{{ false }}">
-                    <div role="group" aria-label="Programar envío" style="display:flex; flex-direction:column; gap:10px; padding:12px; background:#F5F3F0; border-radius:14px; flex-shrink:0; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards">
+                    <div role="group" aria-label="Programar envío" data-no-swipe="1" style="display:flex; flex-direction:column; gap:10px; padding:12px 12px 0; background:#F5F3F0; border-radius:14px; flex-shrink:0; max-height:min(52dvh,440px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards">
                       <div style="display:flex; align-items:center; gap:8px">
                         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import>
                         <span style="font-size:12.5px; font-weight:600; color:#3E3F3F; letter-spacing:.02em; font-variant-numeric:tabular-nums; flex:1; min-width:0">{{ c.progResumen }}</span>
@@ -1760,7 +1769,7 @@
                         <input type="datetime-local" value="{{ c.progCustomVal }}" min="{{ c.progCustomMin }}" onChange="{{ c.progCustom }}" style="min-height:40px; padding:0 12px; border:1px solid #D8D4CE; border-radius:10px; background:#FFFFFF; font-family:inherit; font-size:13px; color:#3E3F3F; font-variant-numeric:tabular-nums; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
                       </label>
                       <sc-if value="{{ c.progHayNota }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:12px; color:#B54D36">{{ c.progNota }}</span></sc-if>
-                      <button onClick="{{ c.progConfirmar }}" disabled="{{ c.progBusyDis }}" style="align-self:flex-end; min-height:40px; padding:0 18px; border:none; border-radius:999px; background: {{ c.progConfirmBg }}; color: {{ c.progConfirmFg }}; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ c.progConfirmLabel }}</button>
+                      <div style="position:sticky; bottom:0; margin:0 -12px; padding:10px 12px 12px; background:#F5F3F0; display:flex; justify-content:flex-end; box-shadow:0 -10px 14px -10px rgba(62,63,63,.12)"><button onClick="{{ c.progConfirmar }}" disabled="{{ c.progBusyDis }}" style="min-height:44px; padding:0 18px; border:none; border-radius:999px; background: {{ c.progConfirmBg }}; color: {{ c.progConfirmFg }}; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; transition:filter .18s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ c.progConfirmLabel }}</button></div>
                     </div>
                   </sc-if>
                   <sc-if value="{{ c.hayAlmaTxt }}" hint-placeholder-val="{{ false }}">
@@ -2909,6 +2918,13 @@
     </div>
   </div>
 </sc-if>
+<sc-if value="{{ versionNueva }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:400; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; max-width:calc(100vw - 24px); box-sizing:border-box">
+      <span style="width:8px; height:8px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
+      <span style="font-size:12.5px; color:#3E3F3F; letter-spacing:.01em">Hay una versión nueva · se actualiza sola en cuanto dejes de escribir</span>
+      <button onClick="{{ recargarVersion }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-active="transform:scale(.97)">Recargar</button>
+    </div>
+  </sc-if>
 <x-import component="NotiCenter" from="./js/noti-center.jsx" open="{{ notiOpen }}" notis="{{ notisVisibles }}" onClose="{{ cerrarNotis }}" onDismiss="{{ descartarNoti }}" onSnooze="{{ posponerNoti }}" hint-size="0px,0px"></x-import>
 
 </x-dc>
@@ -3197,25 +3213,38 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-17e";
+  BUILD = "2026-10-17g";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
+  /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
+     Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
+     y nunca con algo a medio escribir. Mientras tanto, el aviso permite recargar ya. */
   revisarVersion() {
     var self = this;
+    if (this._verBusy && Date.now() - this._verBusy < 8000) return; this._verBusy = Date.now();
+    var leer = function () { return fetch("version.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { return j && j.build; })
+      .catch(function () { return fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) { var m = t && t.match(/BUILD = "([^"]+)"/); return m && m[1]; }); }); };
     try {
-      fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
-        var m = t && t.match(/BUILD = "([^"]+)"/); if (m && m[1] !== self.BUILD) {
-          /* En la app de inicio (iPhone) se recarga sola una vez: ahí no hay botón de recargar. */
-          /* Solo se recarga sola al volver de segundo plano (>1 min fuera) y sin nada a medio escribir; si no, aparece el aviso para recargar cuando quieras. */
-          var auto = window.SAPush && SAPush.instalada(), k = "sa_recarga_" + m[1], ya = false;
-          try { ya = !!sessionStorage.getItem(k); } catch (e) { ya = true; }
-          var act = document.activeElement, escribiendo = !!act && (act.tagName === "TEXTAREA" || act.tagName === "INPUT");
-          var dr = self._respDraft || {}, hayDraft = Object.keys(dr).some(function (x) { return String(dr[x] || "").trim(); });
-          var recienVuelve = !!self._volvioLargo && Date.now() - self._volvioLargo < 6000;
-          if (auto && !ya && recienVuelve && !escribiendo && !hayDraft && !self.state.opAbierto) { try { sessionStorage.setItem(k, "1"); } catch (e) {} self.guardarUltima(); location.replace(location.pathname + "?v=" + encodeURIComponent(m[1])); return; }
-          self.setState({ versionNueva: true });
-        }
-      }).catch(function () {});
+      leer().then(function (b) {
+        self._verBusy = 0;
+        if (!b || b === self.BUILD) return;
+        self._verNueva = b; try { if (window.SAUpdate) SAUpdate.revisar(); } catch (e) {}
+        if (!self.recargarSiSeguro()) self.setState({ versionNueva: true });
+      }).catch(function () { self._verBusy = 0; });
     } catch (e) {}
+  }
+  recargarSiSeguro(forzar) {
+    var b = this._verNueva; if (!b) return false;
+    var k = "sa_recarga_" + b, ya = false; try { ya = !!sessionStorage.getItem(k); } catch (e) {}
+    if (ya && !forzar) return false;
+    var act = document.activeElement, escribiendo = !!act && (act.tagName === "TEXTAREA" || act.tagName === "INPUT" || act.isContentEditable);
+    var dr = this._respDraft || {}, hayDraft = Object.keys(dr).some(function (x) { return String(dr[x] || "").trim(); });
+    var quieto = Date.now() - Math.max(this._actTs || 0, this._tocadoTs || 0) > 45000, recienVuelve = !!this._volvioLargo && Date.now() - this._volvioLargo < 8000;
+    var abierto = !!(this.state.razon || this.state.rvhK || this.state.infoSheet || this.state.ctrlAbierto || this.state.lightbox);
+    if (!forzar && (escribiendo || hayDraft || abierto || !(quieto || recienVuelve || document.visibilityState === "hidden"))) return false;
+    try { sessionStorage.setItem(k, "1"); } catch (e) {}
+    this.guardarUltima();
+    location.replace(location.pathname + "?v=" + encodeURIComponent(b));
+    return true;
   }
   REANUDAR_MIN = 30;
   guardarUltima() {
@@ -3229,7 +3258,7 @@ class Component extends DCLogic {
     document.addEventListener("pointerdown", act, true); document.addEventListener("keydown", act, true);
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "hidden") { self._ocultoTs = Date.now(); self.guardarUltima(); return; }
-      if (self._ocultoTs && Date.now() - self._ocultoTs > 60000) self._volvioLargo = Date.now(); self._ocultoTs = 0;
+      if (self._ocultoTs && Date.now() - self._ocultoTs > 15000) self._volvioLargo = Date.now(); self._ocultoTs = 0;
       var u = null; try { u = JSON.parse(localStorage.getItem("sa_ultima") || "null"); } catch (e) {}
       var v = self.state.vista;
       if (u && v && v !== "login" && v !== "cargando" && v !== "hub" && Date.now() - (u.ts || 0) > self.REANUDAR_MIN * 60000) self.setState({ vista: "hub" });
@@ -3304,7 +3333,10 @@ class Component extends DCLogic {
     document.addEventListener("focusout", function (e) { if (esTxt(e.target)) flushTec(); }, true);
     document.addEventListener("pointerdown", function () { flushTec(); }, true);
     this.revisarVersion();
-    this._verT = setInterval(function () { self.revisarVersion(); }, 300000);
+    this._verT = setInterval(function () { self.revisarVersion(); }, 120000);
+    this._verR = setInterval(function () { if (self._verNueva) self.recargarSiSeguro(); }, 15000);
+    document.addEventListener("pointerdown", function () { self._tocadoTs = Date.now(); }, true); document.addEventListener("keydown", function () { self._tocadoTs = Date.now(); }, true);
+    window.addEventListener("sa-sw-activo", function () { self.revisarVersion(); });
     document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") self.revisarVersion(); });
     /* Foto de perfil de ALMA: alterna cada hora con fundido; arranca en una foto según la hora del día. */
     this.setState({ almaFotoIdx: this.gtHora() % 11 });
@@ -6864,7 +6896,7 @@ class Component extends DCLogic {
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
       mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
-      versionNueva: st.versionNueva, recargarVersion: function () { location.replace(location.pathname + "?v=" + Date.now()); },
+      versionNueva: st.versionNueva, recargarVersion: function () { if (!self.recargarSiSeguro(true)) location.replace(location.pathname + "?v=" + Date.now()); },
       resLineas: resLineas, resHay: !convCargando && resLineas.length > 0,
       resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : abiertosRes.length ? "Nada nuevo en " + ventanaH + " h · siguen abiertos" : "Nada nuevo en " + ventanaH + " h · lo último que pasó",
       briefItems: convCargando ? [] : briefItems, briefVacio: !convCargando && !!st.alma && !briefItems.length && !resLineas.length, briefHay: !convCargando && briefItems.length > 0, briefVentana: "Últimas " + ventanaH + " horas",

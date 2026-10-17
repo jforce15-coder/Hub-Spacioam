@@ -27,12 +27,12 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sw-reg.js?v=2026-10-17g"></script>
-  <script src="js/sa-auth-client.js?v=2026-10-17g"></script>
-<script src="js/sa-session.js?v=2026-10-17g"></script>
-<script src="js/alma-client.js?v=2026-10-17g"></script>
-<script src="js/push.js?v=2026-10-17g"></script>
-<script src="js/sched-engine.js?v=2026-10-17g"></script>
+<script src="js/sw-reg.js?v=2026-10-17h"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-17h"></script>
+<script src="js/sa-session.js?v=2026-10-17h"></script>
+<script src="js/alma-client.js?v=2026-10-17h"></script>
+<script src="js/push.js?v=2026-10-17h"></script>
+<script src="js/sched-engine.js?v=2026-10-17h"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -149,13 +149,14 @@
   @keyframes sa-skel { 0%,100% { opacity:.5; } 50% { opacity:.95; } }
   .sa-skel{ animation:sa-skel 1.4s cubic-bezier(.22,.61,.36,1) infinite; }
   /* Dock estilo Apple: barra de vidrio flotante, íconos squircle, magnificación tipo macOS y resorte al presionar. */
-  .app-dock{ position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:45; display:flex; align-items:flex-end; gap:clamp(8px,2.6vw,14px); padding:10px clamp(10px,3vw,14px); border-radius:32px;
+  .app-dock{ position:fixed; left:50%; bottom:calc(14px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:45; display:flex; align-items:flex-end; gap:clamp(8px,2.6vw,14px); padding:10px clamp(12px,3.4vw,16px) 8px; border-radius:32px;
     background:rgba(250,250,250,.58); -webkit-backdrop-filter:blur(26px) saturate(180%) brightness(1.06); backdrop-filter:blur(26px) saturate(180%) brightness(1.06);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 .5px rgba(62,63,63,.10), 0 18px 50px rgba(62,63,63,.16), 0 4px 14px rgba(62,63,63,.06);
     animation:sa-dock .7s cubic-bezier(.34,1.36,.64,1) .15s backwards; max-width:calc(100vw - 24px); box-sizing:border-box; }
   @keyframes sa-dock{ from{ opacity:0; transform:translate(-50%,28px) scale(.94); } to{ opacity:1; transform:translate(-50%,0) scale(1); } }
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .app-dock{ background:rgba(250,250,250,.96); } }
-  .app-btn{ position:relative; display:block; text-decoration:none; -webkit-tap-highlight-color:transparent; outline:none; }
+  .app-lbl{ display:block; margin-top:6px; text-align:center; font-size:10.5px; font-weight:500; letter-spacing:.02em; line-height:1; color:#3E3F3F; transition:opacity .18s cubic-bezier(.22,.61,.36,1); }
+  .app-btn{ position:relative; display:flex; flex-direction:column; align-items:center; text-decoration:none; -webkit-tap-highlight-color:transparent; outline:none; }
   .app-tile{ display:block; width:clamp(48px,13vw,56px); aspect-ratio:1; border-radius:24%; overflow:hidden; background:#F5F3F0; transform-origin:50% 100%;
     box-shadow:0 1px 2px rgba(62,63,63,.10), 0 6px 14px rgba(62,63,63,.08), inset 0 0 0 .5px rgba(62,63,63,.10);
     transition:transform .42s cubic-bezier(.34,1.56,.64,1), box-shadow .3s cubic-bezier(.22,.61,.36,1); will-change:transform; }
@@ -165,11 +166,12 @@
   .app-tip{ position:absolute; left:50%; bottom:calc(100% + 14px); transform:translate(-50%,6px) scale(.92); opacity:0; pointer-events:none; white-space:nowrap; padding:6px 11px; border-radius:10px; font-size:11.5px; font-weight:500; letter-spacing:.01em; color:#3E3F3F;
     background:rgba(250,250,250,.86); -webkit-backdrop-filter:blur(18px) saturate(160%); backdrop-filter:blur(18px) saturate(160%); box-shadow:0 0 0 .5px rgba(62,63,63,.12), 0 8px 24px rgba(62,63,63,.12); transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .3s cubic-bezier(.34,1.56,.64,1); }
   .app-btn:active .app-tile{ transform:scale(.88); transition-duration:.12s; transition-timing-function:cubic-bezier(.22,.61,.36,1); filter:brightness(.92); }
-  .app-btn:active .app-tip, .app-btn:focus-visible .app-tip{ opacity:1; transform:translate(-50%,0) scale(1); }
+  .app-btn:focus-visible .app-tip{ opacity:1; transform:translate(-50%,0) scale(1); }
   .app-btn:focus-visible .app-tile{ box-shadow:0 0 0 3px rgba(233,130,106,.45), 0 6px 14px rgba(62,63,63,.08); }
   @media (hover:hover) and (pointer:fine){
     .app-btn:hover .app-tile{ transform:translateY(-12px) scale(1.32); box-shadow:0 2px 4px rgba(62,63,63,.10), 0 16px 30px rgba(62,63,63,.16), inset 0 0 0 .5px rgba(62,63,63,.10); }
     .app-btn:hover .app-tip{ opacity:1; transform:translate(-50%,-14px) scale(1); }
+    .app-btn:hover .app-lbl{ opacity:0; }
     .app-btn:hover + .app-btn .app-tile, .app-btn:has(+ .app-btn:hover) .app-tile{ transform:translateY(-5px) scale(1.14); }
     .app-btn:hover .app-badge{ transform:translateY(-14px); transition:transform .42s cubic-bezier(.34,1.56,.64,1); }
   }
@@ -504,6 +506,7 @@
       <a class="app-btn" href="{{ ap.url }}" target="_blank" rel="noopener" aria-label="{{ ap.aria }}">
         <span class="app-tip" aria-hidden="true">{{ ap.nombre }} · {{ ap.desc }}</span>
         <span class="app-tile"><span class="app-img" aria-hidden="true" style="background-image: {{ ap.iconBg }}"></span></span>
+        <span class="app-lbl" aria-hidden="true">{{ ap.corto }}</span>
         <sc-if value="{{ ap.hayN }}" hint-placeholder-val="{{ false }}"><span class="app-badge">{{ ap.n }}</span></sc-if>
       </a>
     </sc-for>
@@ -2442,11 +2445,11 @@
             </div>
           </sc-if>
           <sc-if value="{{ autoHayCard }}" hint-placeholder-val="{{ false }}">
-            <div data-auto-card="1" onPointerDown="{{ autoDown }}" onPointerMove="{{ autoMove }}" onPointerUp="{{ autoUp }}" onPointerCancel="{{ autoUp }}" style="position:relative; width:100%; max-width:560px; height:100%; box-sizing:border-box; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; box-shadow:0 12px 40px rgba(62,63,63,.07); display:flex; flex-direction:column; overflow:hidden; user-select:none; -webkit-user-select:none; will-change:transform; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; touch-action: {{ autoTouch }}">
-              <span data-sello="si" aria-hidden="true" style="position:absolute; top:22px; left:20px; z-index:3; opacity:0; transform:rotate(-8deg); border:2px solid #3d6b52; color:#3d6b52; background:#FFFFFF; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Aplicar</span>
-              <span data-sello="no" aria-hidden="true" style="position:absolute; top:22px; right:20px; z-index:3; opacity:0; transform:rotate(8deg); border:2px solid #C0392B; color:#C0392B; background:#FFFFFF; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Rechazar</span>
+            <div data-auto-card="1" onPointerDown="{{ autoDown }}" onPointerMove="{{ autoMove }}" onPointerUp="{{ autoUp }}" onPointerCancel="{{ autoUp }}" style="position:relative; width:100%; max-width:560px; height:100%; box-sizing:border-box; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; box-shadow:0 12px 40px rgba(62,63,63,.07); display:flex; flex-direction:column; overflow:hidden; user-select:none; -webkit-user-select:none; will-change:transform; cursor:grab; -webkit-touch-callout:none; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; touch-action: {{ autoTouch }}">
+              <span data-sello="si" aria-hidden="true" style="position:absolute; top:22px; left:20px; z-index:3; opacity:0; transform:rotate(-8deg) scale(.86); border:2px solid #3d6b52; color:#3d6b52; background:#FFFFFF; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Aplicar</span>
+              <span data-sello="no" aria-hidden="true" style="position:absolute; top:22px; right:20px; z-index:3; opacity:0; transform:rotate(8deg) scale(.86); border:2px solid #C0392B; color:#C0392B; background:#FFFFFF; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Rechazar</span>
               <span data-sello="ed" aria-hidden="true" style="position:absolute; bottom:22px; left:50%; margin-left:-56px; width:112px; text-align:center; z-index:3; opacity:0; border:2px solid #3E3F3F; color:#3E3F3F; background:#FFFFFF; border-radius:999px; padding:7px 0; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Editar</span>
-              <div style="flex:1; min-height:0; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:24px 22px 18px; display:flex; flex-direction:column; gap:20px; overflow-y: {{ autoOverflow }}">
+              <div data-auto-scroll="1" style="flex:1; min-height:0; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:24px 22px 18px; display:flex; flex-direction:column; gap:20px; overflow-y: {{ autoOverflow }}">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                   <span style="font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:#F5F3F0; color:#3E3F3F">{{ autoCard.claveLabel }}</span>
                   <sc-if value="{{ autoCard.haySenal }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:rgba(242,117,90,.14); color:#B54D36">{{ autoCard.senal }}</span></sc-if>
@@ -2948,9 +2951,9 @@ class Component extends DCLogic {
   APPS_DOCK = [
     { k: "hola", nombre: "hola", desc: "Huéspedes", url: "https://hola.spacioam.com" },
     { k: "epi", nombre: "epi", desc: "Operación", url: "https://epi.spacioam.com" },
+    { k: "grow", nombre: "grow", desc: "Proyectos", url: "https://grow.spacioam.com" },
     { k: "mi", nombre: "mi", desc: "Finanzas", url: "https://mi.spacioam.com" },
-    { k: "docs", nombre: "docs", desc: "Contratos", url: "https://docs.spacioam.com" },
-    { k: "grow", nombre: "grow", desc: "Proyectos", url: "https://grow.spacioam.com" }
+    { k: "docs", nombre: "docs", desc: "Contratos", url: "https://docs.spacioam.com" }
   ];
   APPS_NOTIS_RUTA = "/notificaciones.json";
   cargarAppNotis() {
@@ -3213,7 +3216,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-17g";
+  BUILD = "2026-10-17h";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3504,29 +3507,52 @@ class Component extends DCLogic {
     this._flip = next;
   }
   /* Revisión de mejoras: tarjeta con gestos. Derecha = aplicar, izquierda = rechazar, arriba = editar. */
+  /* Swipe de la revisión: toda la tarjeta es zona de arrastre (también encima de botones; si hubo arrastre, el toque no cuenta).
+     Umbral relativo al ancho (~22%) o un gesto rápido; el seguimiento va en rAF y la tarjeta gira según dónde la tomaste. */
   autoSellos(el, dx, dy) {
-    var s = function (n, v) { var x = el && el.querySelector('[data-sello="' + n + '"]'); if (x) x.style.opacity = String(Math.max(0, Math.min(1, v))); };
-    s("si", dx / 110); s("no", -dx / 110); s("ed", Math.abs(dx) < 60 ? -dy / 110 : 0);
+    var w = Math.max(200, (el && el.offsetWidth) || 360) * .22;
+    var s = function (n, v) { var x = el && el.querySelector('[data-sello="' + n + '"]'); if (x) { v = Math.max(0, Math.min(1, v)); x.style.opacity = String(v); x.style.transform = (n === "si" ? "rotate(-8deg) " : n === "no" ? "rotate(8deg) " : "") + "scale(" + (.86 + v * .14) + ")"; } };
+    s("si", dx / w); s("no", -dx / w); s("ed", Math.abs(dx) < 50 ? -dy / 90 : 0);
   }
   autoPDown(e) {
     if (this.state.autoEditK || this.state.autoTutVer || (e.pointerType === "mouse" && e.button !== 0)) return;
-    if (e.target && e.target.closest && e.target.closest("button, textarea, input, a, select")) return;
-    this._ad = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId, el: e.currentTarget, on: false, dx: 0, dy: 0 };
+    if (e.target && e.target.closest && e.target.closest("textarea, input, select")) return;
+    var el = e.currentTarget, r = el.getBoundingClientRect();
+    if (this._adAnim) { try { this._adAnim.cancel(); } catch (x) {} this._adAnim = null; }
+    this._ad = { x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId, el: el, on: false, dx: 0, dy: 0, w: r.width, h: r.height, arriba: e.clientY < r.top + r.height / 2, hist: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
   }
   autoPMove(e) {
     var d = this._ad; if (!d || d.id !== e.pointerId) return;
     var dx = e.clientX - d.x, dy = e.clientY - d.y, acc = this.state.autoAcc || {};
-    if (!d.on) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; d.vert = Math.abs(dy) > Math.abs(dx); if (d.vert && (acc.c || acc.v)) { this._ad = null; return; } d.on = true; try { d.el.setPointerCapture(e.pointerId); } catch (x) {} d.el.style.transition = "none"; }
-    var tx = d.vert ? dx * .2 : dx, ty = d.vert ? Math.min(0, dy) * .9 : dy * .12;
-    d.el.style.transform = "translate(" + tx + "px," + ty + "px) rotate(" + (tx / 24) + "deg)";
-    this.autoSellos(d.el, tx, ty); d.dx = tx; d.dy = ty;
+    d.hist.push({ x: e.clientX, y: e.clientY, t: performance.now() }); if (d.hist.length > 6) d.hist.shift();
+    if (!d.on) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      d.vert = Math.abs(dy) > Math.abs(dx) * 1.2;
+      var sc = d.el.querySelector("[data-auto-scroll]");
+      if (d.vert && (dy > 0 || ((acc.c || acc.v) && sc && sc.scrollHeight > sc.clientHeight + 4 && sc.scrollTop + sc.clientHeight < sc.scrollHeight - 4))) { this._ad = null; return; }
+      d.on = true; d.x = e.clientX - Math.sign(dx) * 0; try { d.el.setPointerCapture(e.pointerId); } catch (x) {} d.el.style.transition = "none";
+    }
+    if (e.cancelable) e.preventDefault();
+    var tx = d.vert ? dx * .15 : dx, ty = d.vert ? (dy < 0 ? dy : dy * .2) : dy * .1, rot = d.vert ? 0 : (tx / d.w) * (d.arriba ? 12 : -12);
+    d.dx = tx; d.dy = ty;
+    if (d.raf) return; var self = this;
+    d.raf = requestAnimationFrame(function () { d.raf = 0; d.el.style.transform = "translate3d(" + d.dx + "px," + d.dy + "px,0) rotate(" + (d.vert ? 0 : (d.dx / d.w) * (d.arriba ? 12 : -12)) + "deg)"; self.autoSellos(d.el, d.dx, d.dy); });
   }
   autoPUp(e) {
     var d = this._ad; this._ad = null; if (!d || !d.on) return;
-    var dx = d.dx, dy = d.dy, v = dx / Math.max(1, Date.now() - d.t);
-    var ac = dx > 110 || (v > .6 && dx > 40) ? "aceptar" : dx < -110 || (v < -.6 && dx < -40) ? "rechazar" : d.vert && dy < -100 ? "editar" : null;
-    if (!ac || (e && e.type === "pointercancel")) { d.el.style.transition = "transform .32s cubic-bezier(.22,.61,.36,1)"; d.el.style.transform = ""; this.autoSellos(d.el, 0, 0); return; }
-    this.autoAccion(ac, d.el);
+    if (d.raf) { cancelAnimationFrame(d.raf); d.raf = 0; }
+    /* El arrastre no debe convertirse en toque sobre el botón que quedó debajo. */
+    var tragar = function (ev) { ev.stopPropagation(); ev.preventDefault(); }; d.el.addEventListener("click", tragar, true); setTimeout(function () { d.el.removeEventListener("click", tragar, true); }, 350);
+    var h = d.hist, a0 = h[0], a1 = h[h.length - 1], dt = Math.max(16, a1.t - a0.t), vx = (a1.x - a0.x) / dt, vy = (a1.y - a0.y) / dt;
+    var dx = d.dx, dy = d.dy, umb = d.w * .22;
+    var ac = d.vert ? (dy < -Math.min(110, d.h * .16) || (vy < -.5 && dy < -30) ? "editar" : null)
+      : (dx > umb || (vx > .45 && dx > 28) ? "aceptar" : dx < -umb || (vx < -.45 && dx < -28) ? "rechazar" : null);
+    if (!ac || (e && e.type === "pointercancel")) {
+      d.el.style.transition = "transform .42s cubic-bezier(.22,.61,.36,1)"; d.el.style.transform = "";
+      var el = d.el; ["si", "no", "ed"].forEach(function (n) { var x = el.querySelector('[data-sello="' + n + '"]'); if (x) { x.style.transition = "opacity .24s cubic-bezier(.22,.61,.36,1)"; x.style.opacity = "0"; } });
+      return;
+    }
+    this._adVel = d.vert ? vy : vx; this.autoAccion(ac, d.el);
   }
   autoAccion(ac, el) {
     var self = this, card = this._autoCard; if (!card) return;
@@ -3534,7 +3560,8 @@ class Component extends DCLogic {
     el = el || document.querySelector("[data-auto-card]");
     if (ac === "editar") { if (el) { el.style.transition = "transform .32s cubic-bezier(.22,.61,.36,1)"; el.style.transform = ""; this.autoSellos(el, 0, 0); } this.setState({ autoEditK: card.key }); return; }
     var dir = ac === "aceptar" ? 1 : ac === "rechazar" ? -1 : 0;
-    if (el && !red) { el.style.transition = "transform .26s cubic-bezier(.22,.61,.36,1), opacity .26s cubic-bezier(.22,.61,.36,1)"; el.style.transform = dir ? "translate(" + (dir * 120) + "vw,-24px) rotate(" + (dir * 14) + "deg)" : "translateY(36px) scale(.94)"; el.style.opacity = "0"; }
+    var vel = Math.abs(this._adVel || 0), dur = Math.round(Math.max(200, Math.min(340, 320 - vel * 90))); this._adVel = 0;
+    if (el && !red) { el.style.transition = "transform " + dur + "ms cubic-bezier(.4,0,.2,1), opacity " + dur + "ms cubic-bezier(.4,0,.2,1)"; el.style.transform = dir ? "translate3d(" + (dir * 130) + "vw,-6vh,0) rotate(" + (dir * 18) + "deg)" : "translateY(36px) scale(.94)"; el.style.opacity = "0"; }
     try { if (navigator.vibrate && matchMedia("(pointer: coarse)").matches) navigator.vibrate(8); } catch (x) {}
     setTimeout(function () {
       if (ac === "aceptar") { self._autoRev = (self._autoRev || 0) + 1; card.aceptar(); }
@@ -3544,10 +3571,10 @@ class Component extends DCLogic {
         requestAnimationFrame(function () {
           var n = document.querySelector("[data-auto-card]"); if (!n) return;
           n.style.transition = "none"; n.style.transform = ""; n.style.opacity = ""; self.autoSellos(n, 0, 0);
-          if (n.animate && !red) n.animate([{ opacity: 0, transform: "translateX(" + (dir > 0 ? -56 : 56) + "px) scale(.97)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: "cubic-bezier(.22,.61,.36,1)" });
+          if (n.animate && !red) n.animate([{ opacity: 0, transform: "translateY(18px) scale(.95)" }, { opacity: 1, transform: "none" }], { duration: 380, easing: "cubic-bezier(.22,.61,.36,1)" });
         });
       });
-    }, red ? 0 : 220);
+    }, red ? 0 : dur - 40);
   }
   convCerrarTodas() {
     this.setState(function (s) { var o = {}; Object.keys(s.convResp || {}).forEach(function (k) { o[k] = Object.assign({}, s.convResp[k], { abierto: false }); }); return { convResp: o }; });
@@ -7572,7 +7599,8 @@ class Component extends DCLogic {
       proyectosActivos: String(this.PROYECTOS.length),
       appsDock: this.APPS_DOCK.map(function (ap) {
         var an = (st.appNotis || {})[ap.k], n = typeof an === "number" ? an : 0;
-        return { url: ap.url, nombre: ap.nombre, desc: ap.desc, iconBg: "url(assets/apps/" + ap.k + ".png)", n: n > 99 ? "99+" : String(n), hayN: n > 0, aria: "Abrir " + ap.nombre + " · " + ap.desc + (n ? " · " + n + " notificaciones" : "") };
+        var cortos = { hola: "Hola", epi: "EPI", grow: "Grow", mi: "Mi", docs: "Docs" };
+        return { corto: cortos[ap.k] || ap.nombre, url: ap.url, nombre: ap.nombre, desc: ap.desc, iconBg: "url(assets/apps/" + ap.k + ".png)", n: n > 99 ? "99+" : String(n), hayN: n > 0, aria: "Abrir " + ap.nombre + " · " + ap.desc + (n ? " · " + n + " notificaciones" : "") };
       }),
       alertasTotal: String(this.ALERTAS_GROW.length),
       iniciales: (((perfil.primerNombre || "")[0] || "") + ((perfil.primerApellido || "")[0] || "")).toUpperCase() || "SA",

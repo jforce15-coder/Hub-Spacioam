@@ -1132,14 +1132,14 @@
     <button onClick="{{ volver }}" class="alma-volver" style="min-height:40px; align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div class="alma-head" style="display:flex; justify-content:space-between; align-items:center; gap:12px">
       <div style="display:flex; align-items:center; gap:16px; min-width:0">
-        <div class="alma-avatar" role="button" tabIndex="0" aria-label="ALMA · mantén presionado para abrir el control" title="Mantén presionado para abrir el control de ALMA" onPointerDown="{{ avLpDown }}" onPointerUp="{{ avLpUp }}" onPointerLeave="{{ avLpUp }}" onPointerCancel="{{ avLpUp }}" onContextMenu="{{ avLpMenu }}" onKeyDown="{{ avLpKey }}" style="position:relative; width:96px; height:96px; flex-shrink:0; cursor:pointer; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; transition:transform .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.96)">
+        <div class="alma-avatar" role="button" tabIndex="0" aria-label="ALMA · toca para tu chat, mantén presionado para el control" title="Toca para tu chat con ALMA · mantén presionado para el control" onPointerDown="{{ avLpDown }}" onPointerUp="{{ avLpUp }}" onPointerLeave="{{ avLpUp }}" onPointerCancel="{{ avLpUp }}" onContextMenu="{{ avLpMenu }}" onKeyDown="{{ avLpKey }}" style="position:relative; width:96px; height:96px; flex-shrink:0; cursor:pointer; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; transition:transform .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.96)">
           <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 12px 40px rgba(62,63,63,.07); border:3px solid #FFFFFF; box-sizing:border-box">
             <sc-if value="{{ hayAlmaFotos }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ almaFotos }}" as="fotoAlmaFotos" hint-placeholder-count="0">
               <img src="{{ fotoAlmaFotos.src }}" loading="lazy" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ fotoAlmaFotos.op }}">
             </sc-for></sc-if>
           </div>
           <span style="position:absolute; right:4%; bottom:4%; width:18px; height:18px; border-radius:50%; border:3px solid #FAFAFA; box-sizing:border-box; background: {{ almaDotBg }}; box-shadow:0 1px 2px rgba(62,63,63,.2)"></span>
-          <button onClick="{{ ctrlToggleAbierto }}" aria-label="Centro de control de ALMA" title="Centro de control" style="position:absolute; inset:0; padding:0; border:none; border-radius:50%; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="background:rgba(62,63,63,.12)"></button>
+          <button onClick="{{ opTapFoto }}" aria-label="Chat operativo con ALMA" title="Toca para tu chat con ALMA · mantén presionado para el control" style="position:absolute; inset:0; padding:0; border:none; border-radius:50%; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="background:rgba(62,63,63,.12)"></button>
         </div>
         <button onClick="{{ ctrlToggleAbierto }}" aria-label="Centro de control de ALMA" style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0; border:none; background:transparent; padding:0; font-family:inherit; text-align:left; cursor:pointer; color:#3E3F3F; -webkit-tap-highlight-color:transparent" style-active="opacity:.6">
           <span class="alma-nombre" style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(32px,5vw,42px); line-height:1">ALMA</span>
@@ -2902,6 +2902,69 @@
     </div>
   </div>
 </sc-if>
+<sc-if value="{{ opAbierto }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ opFondo }}" style="position:fixed; inset:0; z-index:85; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); display:flex; align-items:flex-end; justify-content:center; animation:sa-fade .24s cubic-bezier(.22,.61,.36,1) both">
+    <div role="dialog" aria-label="Chat operativo" style="width:100%; max-width:640px; height:min(90dvh,860px); background:#FFFFFF; border-radius:28px 28px 0 0; display:flex; flex-direction:column; overflow:hidden; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) both">
+      <div style="padding:10px 20px 14px; display:flex; flex-direction:column; gap:10px; border-bottom:1px solid #EAE6E0; flex-shrink:0">
+        <span aria-hidden="true" style="align-self:center; width:40px; height:4px; border-radius:999px; background:#D8D4CE"></span>
+        <div style="display:flex; align-items:center; gap:12px">
+          <sc-if value="{{ op.hayVolver }}" hint-placeholder-val="{{ false }}"><button onClick="{{ opVolverLista }}" aria-label="Todos los chats" style="width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; flex-shrink:0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronLeft" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button></sc-if>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+            <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">{{ op.eyebrow }}</span>
+            <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:22px; line-height:1.15; color:#3E3F3F; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ op.titulo }}</span>
+            <span style="font-size:12px; line-height:1.4; color:#6F6867">{{ op.sub }}</span>
+          </div>
+          <sc-if value="{{ op.hayVerTodos }}" hint-placeholder-val="{{ false }}"><button onClick="{{ opVerTodos }}" style="min-height:40px; padding:0 14px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; flex-shrink:0">Equipo</button></sc-if>
+          <button onClick="{{ opCerrar }}" aria-label="Cerrar" style="width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; flex-shrink:0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+        </div>
+      </div>
+      <sc-if value="{{ op.esLista }}" hint-placeholder-val="{{ false }}">
+        <div style="flex:1; overflow-y:auto; overscroll-behavior:contain; padding:6px 12px calc(20px + env(safe-area-inset-bottom)); display:flex; flex-direction:column">
+          <sc-for list="{{ op.lista }}" as="u" hint-placeholder-count="3">
+            <button onClick="{{ u.abrir }}" style="min-height:68px; display:flex; align-items:center; gap:12px; border:none; border-bottom:1px solid #F0EDE9; background:transparent; padding:12px 8px; font-family:inherit; text-align:left; cursor:pointer; color:#3E3F3F" style-hover="background:#FAFAFA">
+              <span style="width:42px; height:42px; border-radius:50%; background:#F5F3F0; display:grid; place-items:center; font-size:13px; font-weight:600; letter-spacing:.06em; color:#3E3F3F; flex-shrink:0">{{ u.ini }}</span>
+              <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+                <span style="display:flex; align-items:center; gap:8px"><span style="font-size:15px; font-weight:600; letter-spacing:.01em">{{ u.nombre }}</span><sc-if value="{{ u.hayWA }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867">WhatsApp</span></sc-if></span>
+                <span style="font-size:12.5px; color:#6F6867; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ u.ultimo }}</span>
+              </span>
+              <span style="font-size:11px; color:#6F6867; flex-shrink:0">{{ u.hora }}</span>
+            </button>
+          </sc-for>
+          <sc-if value="{{ op.listaVacia }}" hint-placeholder-val="{{ false }}"><p style="margin:40px 0; text-align:center; font-size:13px; line-height:1.6; color:#6F6867">{{ op.listaVacioTexto }}</p></sc-if>
+        </div>
+      </sc-if>
+      <sc-if value="{{ op.esChat }}" hint-placeholder-val="{{ false }}">
+        <div ref="{{ opRef }}" style="flex:1; overflow-y:auto; overscroll-behavior:contain; padding:16px 16px 12px; display:flex; flex-direction:column; gap:4px; background:#FAFAFA">
+          <sc-if value="{{ op.vacio }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:auto 0; display:flex; flex-direction:column; align-items:center; gap:14px; padding:24px 8px; text-align:center">
+              <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="20" hint-size="20px,20px"></x-import>
+              <span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:22px; line-height:1.2; color:#3E3F3F; max-width:30ch; text-wrap:pretty">{{ op.vacioTitulo }}</span>
+              <span style="font-size:13px; line-height:1.6; color:#6F6867; max-width:44ch; text-wrap:pretty">{{ op.vacioTexto }}</span>
+              <sc-if value="{{ op.puedeEscribir }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:4px"><sc-for list="{{ op.sugerencias }}" as="sg" hint-placeholder-count="3"><button onClick="{{ sg.usar }}" style="min-height:40px; padding:8px 14px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; font-family:inherit; font-size:12.5px; color:#3E3F3F; cursor:pointer; text-align:left" style-hover="border-color:#3E3F3F">{{ sg.txt }}</button></sc-for></div></sc-if>
+            </div>
+          </sc-if>
+          <sc-for list="{{ op.msgs }}" as="m" hint-placeholder-count="0">
+            <sc-if value="{{ m.haySep }}" hint-placeholder-val="{{ false }}"><div style="align-self:center; margin:12px 0 6px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">{{ m.sep }}</div></sc-if>
+            <div style="display:flex; flex-direction:column; align-items: {{ m.lado }}; gap:4px; margin-top: {{ m.mt }}">
+              <div style="max-width:84%; box-sizing:border-box; border-radius:18px; padding:10px 14px; background: {{ m.bg }}; border:1px solid {{ m.bd }}; color: {{ m.fg }}; font-size:14px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; transition:background .36s cubic-bezier(.22,.61,.36,1), border-color .36s cubic-bezier(.22,.61,.36,1), color .36s cubic-bezier(.22,.61,.36,1)">{{ m.texto }}</div>
+              <sc-if value="{{ m.hayAcc }}" hint-placeholder-val="{{ false }}"><div style="display:flex; flex-direction:column; gap:4px; max-width:84%"><sc-for list="{{ m.acc }}" as="a" hint-placeholder-count="1"><div style="display:flex; align-items:flex-start; gap:8px; border-radius:12px; padding:8px 12px; background:#FFFFFF; border:1px solid #EAE6E0; font-size:12.5px; line-height:1.45; color: {{ a.fg }}"><span style="flex-shrink:0; margin-top:1px; display:flex"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="{{ a.icono }}" size="14" color="{{ a.ic }}" hint-size="14px,14px"></x-import></span><span>{{ a.txt }}</span></div></sc-for></div></sc-if>
+              <sc-if value="{{ m.hayMeta }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; letter-spacing:.04em; padding:0 6px; color: {{ m.metaFg }}">{{ m.meta }}</span></sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ op.pensando }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start; margin-top:8px; border-radius:18px; padding:10px 14px; background:#F5F3F0; font-size:12.5px; color:#6F6867; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) both">ALMA está trabajando…</div></sc-if>
+        </div>
+        <sc-if value="{{ op.puedeEscribir }}" hint-placeholder-val="{{ false }}">
+          <div style="flex-shrink:0; display:flex; align-items:flex-end; gap:8px; padding:10px 12px calc(12px + env(safe-area-inset-bottom)); border-top:1px solid #EAE6E0; background:#FFFFFF">
+            <textarea ref="{{ opTaRef }}" onInput="{{ opSetTexto }}" onKeyDown="{{ opKey }}" rows="1" placeholder="Escríbele a ALMA…" aria-label="Mensaje para ALMA" style="flex:1; min-height:46px; max-height:140px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:15px; line-height:1.4; color:#3E3F3F; resize:none; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+            <button onClick="{{ opEnviar }}" aria-label="Enviar" style="width:46px; height:46px; border-radius:50%; border:none; display:grid; place-items:center; cursor:pointer; flex-shrink:0; background: {{ op.envBg }}; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.98)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="18" color="#FAFAFA" hint-size="18px,18px"></x-import></button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ op.soloLectura }}" hint-placeholder-val="{{ false }}"><div style="flex-shrink:0; padding:12px 20px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid #EAE6E0; font-size:12px; line-height:1.5; color:#6F6867; text-align:center">{{ op.soloLecturaTexto }}</div></sc-if>
+      </sc-if>
+      <sc-if value="{{ op.hayErr }}" hint-placeholder-val="{{ false }}"><div style="flex-shrink:0; padding:10px 20px; background:rgba(192,57,43,.06); font-size:12.5px; color:#C0392B">{{ op.err }}</div></sc-if>
+    </div>
+  </div>
+</sc-if>
 <x-import component="NotiCenter" from="./js/noti-center.jsx" open="{{ notiOpen }}" notis="{{ notisVisibles }}" onClose="{{ cerrarNotis }}" onDismiss="{{ descartarNoti }}" onSnooze="{{ posponerNoti }}" hint-size="0px,0px"></x-import>
 
 </x-dc>
@@ -3112,6 +3175,7 @@ class Component extends DCLogic {
     mVista: "resumen", selG: null, abrirPend: null, razon: null,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, optim: {}, pieVer: {}, logVoto: {}, logResp: "Todas", convOrden: null, convSolo: "", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
     versionNueva: false, progEdit: {}, progConfirm: "", masMenu: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
+    opAbierto: false, opModo: "chat", opDe: "", opHilos: {}, opLista: null, opCargando: false, opPensando: false, opTexto: "", opErr: "",
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -3189,7 +3253,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-09.1900";
+  BUILD = "2026-10-17b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   revisarVersion() {
     var self = this;
@@ -3197,9 +3261,13 @@ class Component extends DCLogic {
       fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : ""; }).then(function (t) {
         var m = t && t.match(/BUILD = "([^"]+)"/); if (m && m[1] !== self.BUILD) {
           /* En la app de inicio (iPhone) se recarga sola una vez: ahí no hay botón de recargar. */
+          /* Solo se recarga sola al volver de segundo plano (>1 min fuera) y sin nada a medio escribir; si no, aparece el aviso para recargar cuando quieras. */
           var auto = window.SAPush && SAPush.instalada(), k = "sa_recarga_" + m[1], ya = false;
-          try { ya = !!sessionStorage.getItem(k); if (auto && !ya) sessionStorage.setItem(k, "1"); } catch (e) { ya = true; }
-          if (auto && !ya) { location.replace(location.pathname + "?v=" + encodeURIComponent(m[1])); return; }
+          try { ya = !!sessionStorage.getItem(k); } catch (e) { ya = true; }
+          var act = document.activeElement, escribiendo = !!act && (act.tagName === "TEXTAREA" || act.tagName === "INPUT");
+          var dr = self._respDraft || {}, hayDraft = Object.keys(dr).some(function (x) { return String(dr[x] || "").trim(); });
+          var recienVuelve = !!self._volvioLargo && Date.now() - self._volvioLargo < 6000;
+          if (auto && !ya && recienVuelve && !escribiendo && !hayDraft && !self.state.opAbierto) { try { sessionStorage.setItem(k, "1"); } catch (e) {} self.guardarUltima(); location.replace(location.pathname + "?v=" + encodeURIComponent(m[1])); return; }
           self.setState({ versionNueva: true });
         }
       }).catch(function () {});
@@ -3208,7 +3276,7 @@ class Component extends DCLogic {
   REANUDAR_MIN = 30;
   guardarUltima() {
     var st = this.state, v = st.vista; if (!v || v === "login" || v === "cargando") return;
-    try { localStorage.setItem("sa_ultima", JSON.stringify({ vista: v, mVista: st.mVista, hoyTab: (st.hoy || {}).tab, ts: Date.now() })); } catch (e) {}
+    try { localStorage.setItem("sa_ultima", JSON.stringify({ vista: v, mVista: st.mVista, hoyTab: (st.hoy || {}).tab, conv: v === "alma" && st.cronoLista === false ? (this._convSelKey || "") : "", ts: Date.now() })); } catch (e) {}
   }
   componentDidMount() {
     var self = this;
@@ -3216,11 +3284,39 @@ class Component extends DCLogic {
     var act = function () { if (Date.now() - (self._actTs || 0) > 5000) { self._actTs = Date.now(); self.guardarUltima(); } };
     document.addEventListener("pointerdown", act, true); document.addEventListener("keydown", act, true);
     document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "hidden") { self.guardarUltima(); return; }
+      if (document.visibilityState === "hidden") { self._ocultoTs = Date.now(); self.guardarUltima(); return; }
+      if (self._ocultoTs && Date.now() - self._ocultoTs > 60000) self._volvioLargo = Date.now(); self._ocultoTs = 0;
       var u = null; try { u = JSON.parse(localStorage.getItem("sa_ultima") || "null"); } catch (e) {}
       var v = self.state.vista;
       if (u && v && v !== "login" && v !== "cargando" && v !== "hub" && Date.now() - (u.ts || 0) > self.REANUDAR_MIN * 60000) self.setState({ vista: "hub" });
     });
+    /* Popups: deslizar hacia abajo (o Escape) cierra cualquiera, aunque su botón falle. */
+    var cerrarDlg = function (d) {
+      var b = d.querySelector('button[aria-label="Cerrar"], button[aria-label^="Cerrar "], button[aria-label="Volver"]'); if (b) { b.click(); return; }
+      var sib = d.previousElementSibling; if (sib && getComputedStyle(sib).position === "absolute") { sib.click(); return; }
+      var p = d.parentElement; if (p && getComputedStyle(p).position === "fixed") { p.click(); return; }
+      d.click();
+    };
+    var sw = null;
+    document.addEventListener("touchstart", function (e) {
+      sw = null; var d = e.target && e.target.closest && e.target.closest('[role="dialog"]'); if (!d || e.touches.length !== 1) return;
+      if (e.target.closest("textarea, input, select, [data-no-swipe]")) return;
+      for (var el = e.target; el && el !== d.parentElement; el = el.parentElement) { if (el.scrollTop > 0) return; }
+      sw = { d: d, y: e.touches[0].clientY, x: e.touches[0].clientX, t: Date.now(), dy: 0 };
+    }, { passive: true, capture: true });
+    document.addEventListener("touchmove", function (e) {
+      if (!sw) return; var dy = e.touches[0].clientY - sw.y, dx = Math.abs(e.touches[0].clientX - sw.x);
+      if (!sw.on && dx > 12 && dx > dy) { sw = null; return; }
+      if (dy > 8) { sw.on = true; sw.dy = dy; sw.d.style.animation = "none"; sw.d.style.transition = "none"; sw.d.style.transform = "translateY(" + dy + "px)"; }
+    }, { passive: true, capture: true });
+    var finSw = function () {
+      if (!sw) return; var x = sw, d = x.d; sw = null; if (!x.on) return;
+      d.style.transition = "transform .24s cubic-bezier(.22,.61,.36,1)";
+      if (x.dy > 110 || (x.dy > 50 && Date.now() - x.t < 260)) { d.style.transform = "translateY(100%)"; setTimeout(function () { cerrarDlg(d); d.style.transform = ""; d.style.transition = ""; }, 200); }
+      else d.style.transform = "";
+    };
+    document.addEventListener("touchend", finSw, true); document.addEventListener("touchcancel", finSw, true);
+    document.addEventListener("keydown", function (e) { if (e.key !== "Escape") return; var ds = document.querySelectorAll('[role="dialog"]'); if (ds.length) cerrarDlg(ds[ds.length - 1]); });
     setTimeout(function () { self.cargarAppNotis(); }, 1200);
     this._appNotisT = setInterval(function () { if (document.visibilityState === "visible") self.cargarAppNotis(); }, 90000);
     /* Imágenes y archivos se ven en un popup, nunca en otra página. */
@@ -4582,6 +4678,105 @@ class Component extends DCLogic {
   quienSoy() {
     try { var s = window.SA && SA.session ? SA.session() : null; return (s && (s.nombre || s.email)) || ""; } catch (e) { return ""; }
   }
+  /* ── Chat operativo: un chat por administrador con ALMA (WhatsApp + hub). Solo el admin principal ve los de los demás. ── */
+  opEmail() { try { var s = window.SA && SA.session ? SA.session() : null; return String((s && s.email) || this.props.correoAdmin || "").trim().toLowerCase(); } catch (e) { return String(this.props.correoAdmin || "").trim().toLowerCase(); } }
+  opApi() { return !!(window.ALMA && ALMA.hasApi && ALMA.hasApi() && ALMA.opHilo); }
+  opAbrir(modo, de) {
+    var self = this; clearInterval(this._opT);
+    if (modo === "lista") { this.setState({ opAbierto: true, opModo: "lista", opErr: "", ctrlAbierto: false, filtroMenu: false }); this.opCargarLista(); return; }
+    var who = de || this.opEmail();
+    this.setState({ opAbierto: true, opModo: "chat", opDe: who, opErr: "", ctrlAbierto: false, filtroMenu: false }, function () { self.opBajar(); });
+    this.opCargarHilo(who);
+    this._opT = setInterval(function () { if (self.state.opAbierto && self.state.opModo === "chat" && document.visibilityState === "visible" && !self.state.opPensando) self.opCargarHilo(self.state.opDe, true); }, 20000);
+  }
+  opCerrar() { clearInterval(this._opT); this.setState({ opAbierto: false }); }
+  opCargarLista() {
+    var self = this; if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para ver los chats del equipo." }); return; }
+    this.setState({ opCargando: true });
+    ALMA.opLista(this.opEmail()).then(function (r) { self.setState({ opCargando: false, opLista: r && r.ok ? r.lista : [], opErr: r && r.ok ? "" : (r && r.error) || "No se pudo leer la lista." }); })
+      .catch(function () { self.setState({ opCargando: false, opErr: "Sin conexión con ALMA." }); });
+  }
+  opCargarHilo(who, silencioso) {
+    var self = this; if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para usar el chat operativo." }); return; }
+    if (!silencioso) this.setState({ opCargando: true });
+    ALMA.opHilo(this.opEmail(), who).then(function (r) {
+      if (!r || !r.ok) { self.setState({ opCargando: false, opErr: (r && r.error) === "usuario" ? "Tu correo no está en Control de usuarios." : (r && r.error) || "No se pudo leer el chat." }); return; }
+      var prev = (self.state.opHilos[who] || {}).mensajes || [];
+      self.setState(function (s) { var o = Object.assign({}, s.opHilos); var pend = (prev || []).filter(function (m) { return m._pend; }); o[who] = { nombre: r.nombre, tieneWA: r.tieneWA, mensajes: (r.mensajes || []).concat(pend) }; return { opHilos: o, opCargando: false, opErr: "" }; },
+        function () { if ((r.mensajes || []).length !== prev.length) self.opBajar(); });
+    }).catch(function () { self.setState({ opCargando: false, opErr: silencioso ? self.state.opErr : "Sin conexión con ALMA." }); });
+  }
+  opBajar() { var el = this._opEl; if (el) requestAnimationFrame(function () { el.scrollTop = el.scrollHeight; }); }
+  opEnviar(txt) {
+    var self = this, texto = String(txt != null ? txt : this.state.opTexto || "").trim(), yo = this.opEmail();
+    if (!texto || this.state.opPensando) return;
+    if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para usar el chat operativo." }); return; }
+    var tmp = { id: "tmp" + Date.now(), de: "yo", canal: "hub", texto: texto, ts: new Date().toISOString(), acciones: [], _pend: true };
+    var put = function (fn) { self.setState(function (s) { var o = Object.assign({}, s.opHilos), h = Object.assign({ mensajes: [] }, o[yo]); h.mensajes = fn(h.mensajes || []); o[yo] = h; return { opHilos: o }; }, function () { self.opBajar(); }); };
+    if (this._opTa) { this._opTa.value = ""; this._opTa.style.height = ""; }
+    this.setState({ opTexto: "", opPensando: true, opErr: "" }); put(function (l) { return l.concat([tmp]); });
+    ALMA.opEnviar(yo, texto).then(function (r) {
+      self.setState({ opPensando: false });
+      if (!r || !r.ok) { put(function (l) { return l.map(function (m) { return m.id === tmp.id ? Object.assign({}, m, { _pend: false, _fallo: true }) : m; }); }); self.setState({ opErr: (r && r.error) || "ALMA no respondió. Intenta de nuevo." }); return; }
+      put(function (l) { return l.filter(function (m) { return m.id !== tmp.id; }).concat([r.yo, r.alma].filter(Boolean)); });
+      if ((r.alma && r.alma.acciones || []).some(function (a) { return !a.error && /tarea|hecha|comentario|epi/.test(a.tipo); })) { self._hoyTs = 0; try { self.hoyCargar(true); } catch (e) {} }
+    }).catch(function () {
+      self.setState({ opPensando: false, opErr: "Sin conexión con ALMA. Tu mensaje no se envió." });
+      put(function (l) { return l.map(function (m) { return m.id === tmp.id ? Object.assign({}, m, { _pend: false, _fallo: true }) : m; }); });
+    });
+  }
+  opVals(esPrincipal) {
+    var self = this, st = this.state, yo = this.opEmail(), modo = st.opModo, who = st.opDe || yo, H = st.opHilos[who] || {}, esMio = who === yo;
+    var fmtH = function (t) { try { return new Date(t).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); } catch (e) { return ""; } };
+    var diaK = function (t) { try { return new Date(t).toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }); } catch (e) { return ""; } };
+    var hoyK = diaK(Date.now()), ayerK = diaK(Date.now() - 86400000);
+    var diaL = function (t) { var k = diaK(t); if (k === hoyK) return "Hoy"; if (k === ayerK) return "Ayer"; try { return new Date(t).toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Guatemala" }).replace(/\./g, ""); } catch (e) { return k; } };
+    var ICO = { tarea: "check", hecha: "check", comentario: "pencil", epi: "calendar", nota: "file" };
+    var msgs = (H.mensajes || []).map(function (m, i, a) {
+      var p = a[i - 1], mio = m.de === "yo", sep = !p || diaK(p.ts) !== diaK(m.ts), mismo = p && !sep && p.de === m.de;
+      var n = a[i + 1], ultimoGrupo = !n || n.de !== m.de || diaK(n.ts) !== diaK(m.ts);
+      var o = { texto: m.texto, haySep: sep, sep: sep ? diaL(m.ts) : "", lado: mio ? "flex-end" : "flex-start", mt: mismo ? "0px" : "8px",
+        bg: mio ? "rgba(233,130,106,.22)" : "#FFFFFF", bd: mio ? "rgba(233,130,106,.5)" : "#EAE6E0", fg: "#3E3F3F",
+        hayMeta: ultimoGrupo || m._pend || m._fallo, meta: (mio ? "" : "ALMA · ") + fmtH(m.ts) + (m.canal === "whatsapp" ? " · WhatsApp" : ""), metaFg: "#6F6867",
+        acc: (m.acciones || []).map(function (x) { return { txt: x.resumen + (x.error ? " · no se pudo: " + x.error : ""), icono: x.error ? "alert" : ICO[x.tipo] || "check", ic: x.error ? "#C0392B" : x.tipo === "nota" ? "#6F6867" : "#3d6b52", fg: x.error ? "#C0392B" : "#3E3F3F" }; }) };
+      o.hayAcc = o.acc.length > 0;
+      if (m._pend) { o.bg = "#EFECE8"; o.bd = "#D8D4CE"; o.fg = "#6F6867"; o.meta = "Enviando…"; }
+      if (m._fallo) { o.bg = "#FFFFFF"; o.bd = "#C0392B"; o.meta = "No se envió"; o.metaFg = "#C0392B"; }
+      return o;
+    });
+    var nombreYo = (H.nombre || this.quienSoy() || "").split(" ")[0];
+    var SUG = ["¿Qué tareas tengo abiertas?", "Agenda mantenimiento mañana en…", "Crea una tarea para…", "¿Qué hay en el programa de hoy?"];
+    var lista = (st.opLista || []).map(function (u) {
+      var ini = String(u.nombre || u.email).split(/\s+/).map(function (x) { return x[0] || ""; }).join("").slice(0, 2).toUpperCase();
+      var ul = u.ultimo; return { nombre: u.nombre + (u.email === yo ? " · tú" : ""), ini: ini, hayWA: !!u.tieneWA, ultimo: ul ? (ul.de === "alma" ? "ALMA: " : "") + String(ul.texto || "").replace(/\s+/g, " ") : "Sin mensajes todavía", hora: ul ? (diaK(ul.ts) === hoyK ? fmtH(ul.ts) : diaL(ul.ts)) : "",
+        abrir: function () { self.opAbrir("chat", u.email); } };
+    });
+    return {
+      opAbierto: !!st.opAbierto,
+      op: {
+        esLista: modo === "lista", esChat: modo !== "lista", hayVolver: modo !== "lista" && esPrincipal && !esMio, hayVerTodos: modo !== "lista" && esPrincipal && esMio,
+        eyebrow: modo === "lista" ? "Chat operativo · solo admin principal" : esMio ? "Tu chat con ALMA" : "Chat operativo · solo lectura",
+        titulo: modo === "lista" ? "Equipo" : esMio ? "ALMA" : (H.nombre || who),
+        sub: modo === "lista" ? (st.opCargando && !st.opLista ? "Leyendo los chats…" : "Un chat por administrador. WhatsApp y hub en el mismo hilo.") : esMio ? (H.tieneWA ? "También le escribes desde tu WhatsApp registrado. Crea tareas, agenda en Epi y toma notas." : "Crea tareas, agenda en Epi y toma notas. Registra tu WhatsApp en Control de usuarios para escribirle desde ahí.") : (H.tieneWA ? "Escribe desde su WhatsApp registrado." : "Sin WhatsApp registrado."),
+        lista: lista, listaVacia: !!st.opLista && !lista.length, listaVacioTexto: "No hay administradores con chat todavía.",
+        msgs: msgs, vacio: !msgs.length && !st.opCargando, pensando: !!st.opPensando && esMio,
+        vacioTitulo: esMio ? (nombreYo ? nombreYo + ", ¿en qué te ayudo?" : "¿En qué te ayudo?") : "Todavía no hay mensajes",
+        vacioTexto: esMio ? "Pídeme tareas para el equipo, trabajos en Epi o que recuerde algo. Te confirmo cada acción aquí." : "Cuando escriba a ALMA, su chat aparece aquí.",
+        sugerencias: SUG.map(function (t) { return { txt: t, usar: function () { if (/…$/.test(t)) { if (self._opTa) { self._opTa.value = t.replace(/…$/, " "); self._opTa.focus(); } self.setState({ opTexto: t.replace(/…$/, " ") }); } else self.opEnviar(t); } }; }),
+        puedeEscribir: modo !== "lista" && esMio, soloLectura: modo !== "lista" && !esMio, soloLecturaTexto: "Solo lectura. " + ((H.nombre || "").split(" ")[0] || "Esta persona") + " le escribe a ALMA desde su WhatsApp o su hub.",
+        envBg: String(st.opTexto || "").trim() && !st.opPensando ? "#3E3F3F" : "#D8D4CE",
+        hayErr: !!st.opErr, err: st.opErr || ""
+      },
+      opTapFoto: function () { if (self._avLong) { self._avLong = false; return; } self.opAbrir("chat"); },
+      opCerrar: function () { self.opCerrar(); }, opFondo: function (e) { if (e.target === e.currentTarget) self.opCerrar(); },
+      opVolverLista: function () { self.opAbrir("lista"); }, opVerTodos: function () { self.opAbrir("lista"); },
+      opRef: this._opRefCb || (this._opRefCb = function (el) { self._opEl = el; }),
+      opTaRef: this._opTaCb || (this._opTaCb = function (el) { self._opTa = el; }),
+      opSetTexto: function (e) { var el = e.target; el.style.height = "auto"; el.style.height = Math.min(140, el.scrollHeight) + "px"; self.setState({ opTexto: el.value }); },
+      opKey: function (e) { if (e.key === "Enter" && !e.shiftKey && !(window.matchMedia && window.matchMedia("(pointer:coarse)").matches)) { e.preventDefault(); self.opEnviar(e.target.value); } },
+      opEnviar: function () { self.opEnviar(self._opTa ? self._opTa.value : st.opTexto); }
+    };
+  }
   resolverSesion() {
     var tok = (window.SA && SA.getToken) ? SA.getToken() : this.cookie("sa_session");
     var valido = !!tok && (!(window.SA && SA.isValidSession) || SA.isValidSession(tok));
@@ -4598,7 +4793,7 @@ class Component extends DCLogic {
       /* Reanudar: si la última sesión fue hace menos de 30 min, se vuelve a la última pantalla; si no, al bento. */
       var ult = null; try { ult = JSON.parse(localStorage.getItem("sa_ultima") || "null"); } catch (e) {}
       var RE = { hub: 1, alma: 1, hoy: 1, reviews: 1, tareas: 1, accion: 1, calendario: 1, cuenta: 1 };
-      if (ult && RE[ult.vista] && Date.now() - (ult.ts || 0) < this.REANUDAR_MIN * 60000) this.setState(Object.assign({ vista: ult.vista }, ult.mVista ? { mVista: ult.mVista } : {}, ult.hoyTab ? { hoy: Object.assign({}, this.state.hoy, { tab: ult.hoyTab }) } : {}));
+      if (ult && RE[ult.vista] && Date.now() - (ult.ts || 0) < this.REANUDAR_MIN * 60000) this.setState(Object.assign({ vista: ult.vista }, ult.mVista ? { mVista: ult.mVista } : {}, ult.hoyTab ? { hoy: Object.assign({}, this.state.hoy, { tab: ult.hoyTab }) } : {}, ult.vista === "alma" && ult.conv ? { abrirPend: ult.conv } : {}));
       else this.setState({ vista: "hub" });
       this.perfilDeSesion(); return;
     }
@@ -5197,6 +5392,8 @@ class Component extends DCLogic {
       if (info && !info.resId && String(convKey).indexOf("wa:") === 0) info = Object.assign({}, info, { resId: convKey });
       if (info && !info.resId && String(info.gk || info.key || "").indexOf("wa:") === 0) info = Object.assign({}, info, { resId: info.gk || info.key });
       var rs = st.convResp[convKey] || {};
+      /* «Lleno» se deriva también del texto real del campo: un borrador restaurado (tras recargar) o pegado sin evento de input sigue mostrando Enviar. */
+      var llenoV = !!rs.lleno || !!String((self._respDraft || {})[convKey] || "").trim();
       var upd = function (patch) { self.setState(function (s) { var o = Object.assign({}, s.convResp); o[convKey] = Object.assign({}, o[convKey] || {}, patch); return { convResp: o }; }); };
       if (self._respDraft[convKey] == null) self._respDraft[convKey] = self.leerBorrador(convKey) || rs.texto || "";
       var ponerTexto = function (t) { self._respDraft[convKey] = t; var el = self._respEl[convKey]; if (el) { el.value = t; self.altoResp(el); } upd({ lleno: !!t.trim() }); };
@@ -5214,7 +5411,7 @@ class Component extends DCLogic {
         self.guardarBorrador(convKey, actual);
         upd({ busy: true, abierto: true, nota: "", propuesta: "", alma: false, base: actual, modo: actual.trim() ? "mejorar" : "redactar" });
         var errSrv = "";
-        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual) : Promise.resolve({ ok: false, error: !info.resId ? "Esta conversación no tiene reserva ni WhatsApp asociado" : "Conecta el Apps Script" });
+        var p = window.ALMA && ALMA.hasApi() && info.resId ? ALMA.redactarHub(info.resId, actual, ((st.almaHilos[info.resId] || {}).lista || []).slice(-40).map(function (m) { return { tipo: m.tipo, texto: String(m.texto || "").slice(0, 1500), created: m.created, auto: !!m.auto, canal: m.canal || "" }; })) : Promise.resolve({ ok: false, error: !info.resId ? "Esta conversación no tiene reserva ni WhatsApp asociado" : "Conecta el Apps Script" });
         p.then(function (res) {
           if (res && res.ok && res.texto) return self.formatoMsg(res.texto);
           errSrv = res && res.error === "timeout" ? "ALMA tardó demasiado" : (res && res.error) || "";
@@ -5351,8 +5548,8 @@ class Component extends DCLogic {
         },
         respRef: (self._respRefFn = self._respRefFn || {})[convKey] || (self._respRefFn[convKey] = function (el) { if (el) { self._respEl[convKey] = el; if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el, (self.state.convResp[convKey] || {}).alma ? 10 : 0); } }),
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target, (self.state.convResp[convKey] || {}).alma ? 10 : 0); self.guardarBorrador(convKey, v); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
-        respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !rs.lleno || !!rs.enviando,
-        respLleno: !!rs.lleno, respVacio: !rs.lleno, respEnviando: !!rs.enviando, respEnviarOp: rs.enviando ? ".5" : "1",
+        respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !llenoV || !!rs.enviando,
+        respLleno: !!llenoV, respVacio: !llenoV, respEnviando: !!rs.enviando, respEnviarOp: rs.enviando ? ".5" : "1",
         /* Escritorio: Enter envía, Shift+Enter salta línea. Teléfono: Enter es salto de línea, como WhatsApp. */
         respKey: function (e) {
           if (e.key === "Escape") { e.currentTarget.blur(); return; }
@@ -5361,9 +5558,9 @@ class Component extends DCLogic {
           if (!mod && !(window.matchMedia && matchMedia("(min-width:1180px) and (hover:hover)").matches)) return;
           e.preventDefault(); enviar(self._respDraft[convKey] || "");
         },
-        respMejorarLabel: rs.busy ? "Redactando…" : rs.lleno ? "Mejorar" : "Redactar con ALMA",
-        respHint: rs.lleno ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
-        respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: rs.lleno ? "#3E3F3F" : "#D8D4CE", respEnviarFg: rs.lleno ? "#FAFAFA" : "#938B8A",
+        respMejorarLabel: rs.busy ? "Redactando…" : llenoV ? "Mejorar" : "Redactar con ALMA",
+        respHint: llenoV ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
+        respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: llenoV ? "#3E3F3F" : "#D8D4CE", respEnviarFg: llenoV ? "#FAFAFA" : "#938B8A",
         respBusyTxt: rs.modo === "mejorar" ? "ALMA está mejorando tu texto con el contexto de la conversación…" : "ALMA está leyendo la conversación y redactando…",
         hayPropuesta: false, sinPropuesta: true, propuesta: "",
         hayAlmaTxt: !!rs.alma && !rs.busy, almaTxtTitulo: rs.modo === "mejorar" ? "Tu texto, mejorado por ALMA · revísalo y envía" : "Redactado por ALMA · revísalo y envía",
@@ -6012,7 +6209,7 @@ class Component extends DCLogic {
           c.riesgoBarras = [1, 2, 3, 4, 5].map(function (i) { return { bg: i <= R.n ? COL[R.n - 1] : "#EAE6E0" }; });
           c.verRiesgo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.setState({ rvhK: rid, rvhInfo: { huesped: c.huesped || "", prop: c.propRaw || c.propiedad || "", n: R.n, label: R.label, motivos: R.motivos } }); };
           var vistoR = (st.rvhVisto || {})[rid];
-          if (R.n >= 3 && R.n <= 4 && !vistoR && c.key === st.abrirAuto) { setTimeout(function () { c.verRiesgo(); self.setState(function (s) { var o = Object.assign({}, s.rvhVisto); o[rid] = 1; return { rvhVisto: o, abrirAuto: null }; }); }, 600); }
+          if (R.n >= 3 && R.n <= 4 && !vistoR && c.key === st.abrirAuto && !(self._rvhAuto || (self._rvhAuto = {}))[rid]) { self._rvhAuto[rid] = 1; setTimeout(function () { c.verRiesgo(); self.setState(function (s) { var o = Object.assign({}, s.rvhVisto); o[rid] = 1; return { rvhVisto: o, abrirAuto: null }; }); }, 600); }
         })(c);
         c.copiarCodigo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.copiar(c.codigo, "Código " + c.codigo + " copiado"); };
         c.hayHiloLista = (c.hilo || []).length > 0;
@@ -6065,6 +6262,8 @@ class Component extends DCLogic {
       });
       g.rk = g.resuelto ? 7 : rank(top); g.ts = g.tsReal;
       if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
+      /* Sin resolver, ninguna etiqueta dice «Resuelta» (p. ej. ALMA clasificó VERDE pero su respuesta no salió): mismo estado que la lista. */
+      else g.frags.forEach(function (c) { if (!c.esCola && c.nivelLabel === "Resuelta") { var sinR = !c.enviado && !c.humano || c.sinResp || (inboxPor[g.key] && inboxPor[g.key].ultimo_de === "guest"); if (sinR) { c.nivelLabel = "Sin responder"; c.nivelBg = "rgba(242,117,90,.16)"; c.nivelFg = "#B54D36"; c.color = "#F2755A"; } else { c.nivelLabel = "Respondida"; c.nivelBg = "rgba(59,102,145,.12)"; c.nivelFg = "#3B6691"; c.color = "#3B6691"; } } });
       g.frags.forEach(function (c) { c.hayFrags = false; c.fragPos = ""; c.fechaPad = "0"; }); g.fragsVista = g.frags.slice(0, 1);
     });
     if (ordenEf !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
@@ -6089,7 +6288,7 @@ class Component extends DCLogic {
         setM: function () { self.aviso(on ? "Todos los canales" : "Solo " + x[1]); try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} self.setState({ mVista: "lista", cronoLista: true, selG: null }); set(); } };
     });
     var gruposTodos = grupos;
-    var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE")) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Necesita equipo"))); };
+    var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE" && (t.enviado || t.humano))) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Necesita equipo"))); };
     /* Resumen en texto: una línea por reserva con movimiento en la ventana; si no hubo, lo que sigue abierto. */
     /* Hora real del último mensaje (de quien sea), igual que el inbox de Hospitable. */
     var tsG = function (g) { return Math.max(g.tsReal || 0, g.frags.reduce(function (m, c) { return Math.max(m, c.ts || 0); }, 0)); };
@@ -6419,9 +6618,9 @@ class Component extends DCLogic {
       almaEstadoTitulo: !st.alma ? "Leyendo ALMA_CONTROL…" : !ctrlLegible ? "No se pudo leer el interruptor" : on ? "ALMA está encendida" : "ALMA está apagada",
       ...this.insVals(),
       /* Long press (450 ms) en la foto de ALMA abre el control. */
-      avLpDown: function (e) { if (e && e.pointerType === "mouse" && e.button !== 0) return; clearTimeout(self._avT); self._avT = setTimeout(function () { try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) {} self.setState({ ctrlAbierto: true, mejAbierto: false }); }, 450); },
+      avLpDown: function (e) { if (e && e.pointerType === "mouse" && e.button !== 0) return; clearTimeout(self._avT); self._avLong = false; self._avT = setTimeout(function () { self._avLong = true; try { if (navigator.vibrate) navigator.vibrate(10); } catch (x) {} self.setState({ ctrlAbierto: true, mejAbierto: false }); }, 450); },
       avLpUp: function () { clearTimeout(self._avT); },
-      avLpMenu: function (e) { if (e && e.preventDefault) e.preventDefault(); clearTimeout(self._avT); self.setState({ ctrlAbierto: true, mejAbierto: false }); },
+      avLpMenu: function (e) { if (e && e.preventDefault) e.preventDefault(); clearTimeout(self._avT); self._avLong = true; self.setState({ ctrlAbierto: true, mejAbierto: false }); },
       avLpKey: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); self.setState({ ctrlAbierto: true, mejAbierto: false }); } },
       ...(function () {
         var k = st.rvhK, info = st.rvhInfo || {}, M = (function () { try { return JSON.parse(localStorage.getItem("sa_rvh") || "{}"); } catch (e) { return {}; } })(), S = Object.assign({}, M[k] || {}, (st.rvhRes || {})[k] || {});
@@ -6445,7 +6644,8 @@ class Component extends DCLogic {
           rvhRedactar: redactar, rvhCopiar: function () { self.copiar(S.texto || "", "Review copiado"); }
         };
       })(),
-      ctrlAbierto: st.ctrlAbierto, ctrlToggleAbierto: function () { self.setState({ ctrlAbierto: !st.ctrlAbierto, mejAbierto: false }); },
+      ...this.opVals(esPrincipal),
+      ctrlAbierto: st.ctrlAbierto, ctrlToggleAbierto: function () { self.setState(function (s) { return { ctrlAbierto: !s.ctrlAbierto, mejAbierto: false }; }); },
       ctrlCorreos: function () { self.setState({ ctrlAbierto: false, correosAbierto: true }); },
       ctrlResumen: (on ? [ctrl.MODO, ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00"] : []).concat([kbItems.length + " en conocimiento"]),
       mejoraEjemplos: [
@@ -6605,7 +6805,7 @@ class Component extends DCLogic {
                 try { localStorage.setItem("sa_m_vista", "atencion"); } catch (e) {} o.mVista = "atencion"; o.selG = null;
                 self.setState(o); self.convReset();
               } };
-          }) };
+          }).concat(esPrincipal ? [{ label: "Chat operativo · equipo", punto: "#3E3F3F", n: "0", hayN: false, sep: true, aria: "false", bg: "transparent", fw: "500", checkOp: "0", set: function () { self.opAbrir("lista"); } }] : []) };
       })(),
       canalChips: canalFiltros.map(function (cf) {
         var on = cf.activo === "true";

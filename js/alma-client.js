@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -112,8 +112,11 @@
     setConocimiento: function (fila, tema, contenido, aplica, activo) { return call('setConocimiento', { fila: fila, tema: tema, contenido: contenido, aplica: aplica, activo: activo }); },
     setPropiedadDato: function (propiedad, campo, valor) { return call('setPropiedadDato', { propiedad: propiedad, campo: campo, valor: valor }); },
     hilo: function (resId) { return call('hilo', { resId: resId }); },
-    redactarHub: function (resId, texto) { return call('redactarHub', { resId: resId, texto: texto }); },
+    redactarHub: function (resId, texto, hilo) { return call('redactarHub', { resId: resId, texto: texto, hilo: hilo || [] }); },
     responder: function (resId, texto, quien) { return call('responder', { resId: resId, texto: texto, quien: quien || '' }); },
-    votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); }
+    votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); },
+    opHilo: function (email, de) { return call('opHilo', { email: email, de: de || '' }); },
+    opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
+    opLista: function (email) { return call('opLista', { email: email }); }
   };
 })(window);

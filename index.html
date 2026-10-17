@@ -27,12 +27,12 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sw-reg.js?v=2026-10-17i"></script>
-  <script src="js/sa-auth-client.js?v=2026-10-17i"></script>
-<script src="js/sa-session.js?v=2026-10-17i"></script>
-<script src="js/alma-client.js?v=2026-10-17i"></script>
-<script src="js/push.js?v=2026-10-17i"></script>
-<script src="js/sched-engine.js?v=2026-10-17i"></script>
+<script src="js/sw-reg.js?v=2026-10-17j"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-17j"></script>
+<script src="js/sa-session.js?v=2026-10-17j"></script>
+<script src="js/alma-client.js?v=2026-10-17j"></script>
+<script src="js/push.js?v=2026-10-17j"></script>
+<script src="js/sched-engine.js?v=2026-10-17j"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -120,6 +120,9 @@
   .alma-filtros{ display:none !important; }
   /* Buscador discreto: lupa en píldora de 48 px que se abre hacia la izquierda al tocarla (queda abierta si hay texto). */
   .alma-q{ position:relative; width:48px; height:48px; flex-shrink:0; z-index:42; }
+  .alma-acciones{ margin-left:auto; }
+  @media (max-width:620px){ .sa-ver-largo{ display:none; } }
+  @media (max-width:780px){ .alma-q:focus-within .alma-q-pill, .alma-q[data-on="1"] .alma-q-pill{ width:calc(100vw - 96px) !important; } }
   .alma-q-pill{ position:absolute; right:0; top:0; height:48px; width:48px; display:flex; align-items:center; gap:4px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden; cursor:text; box-sizing:border-box;
     transition:width .36s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1), border-color .18s cubic-bezier(.22,.61,.36,1); }
   .alma-q-ico{ width:46px; height:46px; flex-shrink:0; display:grid; place-items:center; }
@@ -1202,6 +1205,7 @@
         </sc-for>
       </div>
     </div>
+        <div class="alma-qm" style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0">
         <div class="alma-q" data-on="{{ convQOn }}">
           <label class="alma-q-pill" title="Buscar conversaciones">
             <span class="alma-q-ico" aria-hidden="true"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></span>
@@ -1209,11 +1213,11 @@
             <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="flex-shrink:0; width:28px; height:28px; border:none; border-radius:50%; background:#F5F3F0; cursor:pointer; display:grid; place-items:center; padding:0; margin-right:8px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="14" color="#6F6867" hint-size="14px,14px"></x-import></button></sc-if>
           </label>
         </div>
-        <button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras y auto mejora" title="Mejoras" style="display:inline-flex; align-items:center; gap:10px; height:48px; padding:0 16px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; cursor:pointer; font-family:inherit; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:border-color .18s, box-shadow .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; box-shadow:0 4px 16px rgba(62,63,63,.05)" style-active="transform:scale(.97)">
-          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
-          <span class="alma-mej-label" style="font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase">Mejoras</span>
-          <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span style="min-width:32px; height:32px; margin-right:-8px; padding:0 10px; box-sizing:border-box; border-radius:999px; background:rgba(233,130,106,.16); border:1px solid rgba(233,130,106,.55); color:#3E3F3F; font-size:12px; font-weight:700; letter-spacing:.02em; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1">{{ autoPendientes }}</span></sc-if>
+        <button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras · {{ autoPendientes }} pendientes" title="Mejoras" style="position:relative; width:48px; height:48px; flex-shrink:0; display:grid; place-items:center; padding:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; cursor:pointer; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; box-shadow:0 4px 16px rgba(62,63,63,.05)" style-active="transform:scale(.96)">
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import>
+          <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position:absolute; top:-7px; right:-7px; min-width:22px; height:22px; padding:0 6px; box-sizing:border-box; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:11px; font-weight:600; letter-spacing:.01em; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1; box-shadow:0 0 0 2px #FAFAFA; pointer-events:none">{{ autoPendientes }}</span></sc-if>
         </button>
+        </div>
       </div>
     </div>
 
@@ -2927,7 +2931,7 @@
       </sc-if>
       <div style="display:flex; flex-direction:column; gap:8px">
         <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Nuestro review del huésped</span>
-        <span style="font-size:12px; line-height:1.5; color:#6F6867; text-wrap:pretty">Lo que escribimos sobre el huésped y si lo recomendamos a otros anfitriones (la pregunta "¿Recomendarías a este huésped?" de Airbnb). ALMA lo redacta; tú lo pegas en Hospitable.</span>
+        <span style="font-size:12px; line-height:1.5; color:#6F6867; text-wrap:pretty">Lo que escribimos sobre el huésped y si lo recomendamos a otros anfitriones (la pregunta "¿Recomendarías a este huésped?" de Airbnb). ALMA lo redacta y lo publicas desde aquí.</span>
         <div role="radiogroup" aria-label="Recomendar" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:999px; background:#F5F3F0">
           <button role="radio" aria-checked="{{ rvh.siAria }}" onClick="{{ rvhSi }}" style="min-height:40px; border:none; border-radius:999px; background: {{ rvh.siBg }}; font-family:inherit; font-size:12.5px; font-weight:600; color:#3E3F3F; cursor:pointer">Lo recomendamos</button>
           <button role="radio" aria-checked="{{ rvh.noAria }}" onClick="{{ rvhNo }}" style="min-height:40px; border:none; border-radius:999px; background: {{ rvh.noBg }}; font-family:inherit; font-size:12.5px; font-weight:600; color:#3E3F3F; cursor:pointer">No lo recomendamos</button>
@@ -2935,23 +2939,33 @@
         <input type="text" value="{{ rvh.contexto }}" onChange="{{ rvhSetCtx }}" placeholder="Contexto para ALMA (opcional)…" autocomplete="off" style="height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:0 14px; font-family:inherit; font-size:14px; color:#3E3F3F">
         <button onClick="{{ rvhRedactar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; background:#3E3F3F; color:#FAFAFA"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="14" hint-size="14px,14px"></x-import>{{ rvh.redLabel }}</button>
         <sc-if value="{{ rvh.hayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#B54D36">{{ rvh.error }}</span></sc-if>
+        <sc-if value="{{ rvh.redactando }}" hint-placeholder-val="{{ false }}"><div style="border-radius:14px; background:#F5F3F0; padding:14px; display:flex; flex-direction:column; gap:8px"><span style="font-size:12.5px; color:#6F6867">ALMA está preparando el review…</span><span style="height:10px; width:82%; border-radius:6px; background:#EAE6E0"></span><span style="height:10px; width:64%; border-radius:6px; background:#EAE6E0"></span></div></sc-if>
         <sc-if value="{{ rvh.hayTexto }}" hint-placeholder-val="{{ false }}">
-          <textarea data-sync="1" data-v="{{ rvh.texto }}" defaultValue="{{ rvh.texto }}" onChange="{{ rvhSetTxt }}" rows="6" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.6; color:#3E3F3F; resize:vertical"></textarea>
-          <div style="display:flex; gap:8px; flex-wrap:wrap">
-            <button onClick="{{ rvhCopiar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:1 1 160px; border:none; background:#3E3F3F; color:#FAFAFA"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="14" color="#FAFAFA" hint-size="14px,14px"></x-import>Copiar review</button>
-            <a href="https://my.hospitable.com/inbox" target="_blank" rel="noopener" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:1 1 160px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; text-decoration:none">Pegar en Hospitable<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></a>
-          </div>
-          <span style="font-size:11.5px; line-height:1.5; color:#6F6867">Hospitable no deja editar su review programado por API: pégalo en "Review a guest" → Edit de esta reserva y guarda. Se publica en la fecha que ya tiene programada.</span>
+          <textarea data-sync="1" data-v="{{ rvh.texto }}" defaultValue="{{ rvh.texto }}" onChange="{{ rvhSetTxt }}" rows="6" aria-label="Review preparado por ALMA" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.6; color:#3E3F3F; resize:vertical"></textarea>
+          <sc-if value="{{ rvh.enviadoOk }}" hint-placeholder-val="{{ false }}"><div style="display:flex; align-items:center; gap:8px; border-radius:14px; padding:10px 12px; background:rgba(61,107,82,.10); font-size:12.5px; color:#3d6b52; font-weight:500"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="16" color="#3d6b52" hint-size="16px,16px"></x-import>{{ rvh.enviadoTxt }}</div></sc-if>
+          <sc-if value="{{ rvh.hayAviso }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#B54D36">{{ rvh.avisoTexto }}</span></sc-if>
+          <sc-if value="{{ rvh.puedePublicar }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button onClick="{{ rvhPublicar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:1 1 160px; border:none; background:#3E3F3F; color:#FAFAFA" style-active="transform:scale(.98)">{{ rvh.pubLabel }}</button>
+              <sc-if value="{{ rvh.conDelay }}" hint-placeholder-val="{{ false }}"><button onClick="{{ rvhPublicarDelay }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; flex:1 1 160px; border:1px solid #E9826A; background:rgba(233,130,106,.12); color:#3E3F3F" style-active="transform:scale(.98)">{{ rvh.delayLabel }}</button></sc-if>
+            </div>
+          </sc-if>
+          <button onClick="{{ rvhCopiar }}" style="align-self:flex-start; min-height:40px; padding:0 4px; border:none; background:transparent; font-family:inherit; font-size:12px; font-weight:600; color:#6F6867; cursor:pointer; display:inline-flex; align-items:center; gap:6px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="14" color="#6F6867" hint-size="14px,14px"></x-import>Copiar texto</button>
         </sc-if>
+        <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid #D8D4CE; padding-top:12px">
+          <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Hospitable</span>
+          <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F; text-wrap:pretty">{{ rvh.hospEstado }}</span>
+          <sc-if value="{{ rvh.hospHay }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px; line-height:1.55; color:#6F6867; background:#F5F3F0; border-radius:14px; padding:10px 12px; white-space:pre-wrap">{{ rvh.hospTexto }}</div></sc-if>
+        </div>
       </div>
     </div>
   </div>
 </sc-if>
 <sc-if value="{{ versionNueva }}" hint-placeholder-val="{{ false }}">
-    <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:400; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; max-width:calc(100vw - 24px); box-sizing:border-box">
+    <div role="status" style="position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:400; width:max-content; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(250,250,250,.88); backdrop-filter:blur(20px) saturate(120%); -webkit-backdrop-filter:blur(20px) saturate(120%); border:1px solid #D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; max-width:calc(100vw - 24px); box-sizing:border-box">
       <span style="width:8px; height:8px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
-      <span style="font-size:12.5px; color:#3E3F3F; letter-spacing:.01em">Hay una versión nueva · se actualiza sola en cuanto dejes de escribir</span>
-      <button onClick="{{ recargarVersion }}" style="border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-active="transform:scale(.97)">Recargar</button>
+      <span style="flex:1; min-width:0; font-size:12.5px; line-height:1.35; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty"><span>Versión nueva</span><span class="sa-ver-largo"> · se actualiza sola en cuanto dejes de escribir</span></span>
+      <button onClick="{{ recargarVersion }}" style="flex-shrink:0; white-space:nowrap; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-active="transform:scale(.97)">Recargar</button>
     </div>
   </sc-if>
 <x-import component="NotiCenter" from="./js/noti-center.jsx" open="{{ notiOpen }}" notis="{{ notisVisibles }}" onClose="{{ cerrarNotis }}" onDismiss="{{ descartarNoti }}" onSnooze="{{ posponerNoti }}" hint-size="0px,0px"></x-import>
@@ -3242,7 +3256,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-17i";
+  BUILD = "2026-10-17j";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -6489,7 +6503,9 @@ class Component extends DCLogic {
     var vistoR = {};
     /* Solo lo que tuvo movimiento en la ventana (8 h): nada viejo. */
     var atnRes = atnG;
-    var baseRes = gruposRes.filter(atnRes).concat(enVent).filter(function (g) { if (vistoR[g.key]) return false; vistoR[g.key] = 1; return atnRes(g) || !!propDe(g) || enNivel(g, "ROJO"); });
+    /* Conversaciones nuevas (en cola / clasificándose) aparecen en el resumen de inmediato, tengan o no propiedad. */
+    var enColaG = function (g) { return !g.resuelto && g.frags.some(function (c) { return c.esCola; }); };
+    var baseRes = gruposRes.filter(enColaG).concat(gruposRes.filter(atnRes), enVent).filter(function (g) { if (vistoR[g.key]) return false; vistoR[g.key] = 1; return atnRes(g) || enColaG(g) || !!propDe(g) || enNivel(g, "ROJO"); });
     if (!baseRes.length) baseRes = gruposRes.filter(function (g) { return !!propDe(g); }).sort(function (x, y) { return tsG(y) - tsG(x); }).slice(0, 5);
     var resLineas = baseRes.map(function (g) {
       var t = g.frags[0], ib = inboxPor[g.key], est, bg, fg, pr, pide = false, tipo = "tarjeta", texto;
@@ -6506,13 +6522,13 @@ class Component extends DCLogic {
       } else if (enNivel(g, "AMARILLO")) {
         est = "Necesita equipo"; bg = "#B54D36"; fg = "#FFFFFF"; pr = 0.5;
         if (alma) { tipo = "alma"; texto = tema + " · ALMA respondió · necesita al equipo"; pide = true; } else { tipo = "chat"; pide = true; texto = tema + " · necesita al equipo · " + mins(tsU); }
-      } else if (t.esCola) { est = "En cola"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 2; texto = tema + (t.clasificando ? " · " + t.clasTxt : " · ALMA lo está atendiendo"); }
+      } else if (t.esCola) { est = t.clasificando ? "Clasificando" : "En cola"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 0.8; texto = tema + (t.clasificando ? " · " + t.clasTxt : " · ALMA lo está atendiendo"); }
       else if (sinRespG) { est = "Sin responder"; bg = "rgba(242,117,90,.16)"; fg = "#B54D36"; pr = 1; tipo = "chat"; pide = true; texto = tema + " · sin respuesta hace " + mins(tsU); }
       else if (equipo) { est = "Respondió el equipo"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; tipo = "cierre"; texto = tema + " · respondió " + quienEq; }
       else { est = "ALMA respondió"; bg = "rgba(59,102,145,.12)"; fg = "#3B6691"; pr = 3; tipo = alma ? "alma" : "cierre"; texto = tema + (alma ? " · ALMA respondió" : " · sin acción"); }
       var foto = fotoDe(g), nom = nombreDe(g), es = estadiaDe(g), fAlma = g.frags.find(function (c) { return c.esLog && c.enviado && !c.humano; });
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
-      var atnL = atnG(g); if (!atnL && pr < 2) pr = 2.5;
+      var atnL = atnG(g); if (!atnL && pr < 2 && !t.esCola) pr = 2.5;
       return { ...canalVM(g), gk: g.key, atn: atnL, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
         propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), hace: haceDe(tsG(g)), texto: texto, dots: dots,
         titulo: g.resuelto ? (PASADO[tema] || tema) : tema,
@@ -6802,9 +6818,24 @@ class Component extends DCLogic {
       avLpKey: function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); self.setState({ ctrlAbierto: true, mejAbierto: false }); } },
       ...(function () {
         var k = st.rvhK, info = st.rvhInfo || {}, M = (function () { try { return JSON.parse(localStorage.getItem("sa_rvh") || "{}"); } catch (e) { return {}; } })(), S = Object.assign({}, M[k] || {}, (st.rvhRes || {})[k] || {});
-        var put = function (patch, guardar) { self.setState(function (s) { var o = Object.assign({}, s.rvhRes); o[k] = Object.assign({}, S, o[k] || {}, patch); if (guardar) { var m = {}; try { m = JSON.parse(localStorage.getItem("sa_rvh") || "{}"); } catch (e) {} m[k] = { dec: o[k].dec, rec: o[k].rec, texto: o[k].texto, ts: Date.now() }; try { localStorage.setItem("sa_rvh", JSON.stringify(m)); } catch (e) {} } return { rvhRes: o }; }); };
+        var put = function (patch, guardar) { self.setState(function (s) { var o = Object.assign({}, s.rvhRes); o[k] = Object.assign({}, S, o[k] || {}, patch); if (guardar) { var m = {}; try { m = JSON.parse(localStorage.getItem("sa_rvh") || "{}"); } catch (e) {} m[k] = { dec: o[k].dec, rec: o[k].rec, texto: o[k].texto, enviado: o[k].enviado, ts: Date.now() }; try { localStorage.setItem("sa_rvh", JSON.stringify(m)); } catch (e) {} } return { rvhRes: o }; }); };
         var n = info.n || 1, COL = ["#3d6b52", "#938B8A", "#E9826A", "#B54D36", "#C0392B"], rec = S.rec != null ? S.rec : n < 4;
         var acc = n >= 4 ? "Riesgo alto: cancela el review request en Hospitable, activa \"Delay publishing this review until the end\" y marca \"Don't send\" en nuestro review (o no recomendar)." : n === 3 ? (S.dec === "seguir" ? "Decidiste seguir con el review como está programado." : S.dec === "retener" ? "Decidiste cancelar el review request y poner delay. Hazlo en Hospitable en esta reserva." : "Riesgo medio: ¿seguimos con el review programado o cancelamos el request y ponemos delay?") : "Riesgo bajo: todo sigue como está planificado.";
+        /* Al abrir: trae el review que Hospitable tiene programado y, si aún no hay texto nuestro, ALMA lo redacta solo. */
+        if (k && window.ALMA && ALMA.hasApi() && !(self._rvhIni || (self._rvhIni = {}))[k]) {
+          self._rvhIni[k] = 1;
+          if (ALMA.guestReview) ALMA.guestReview(k).then(function (r) { put({ hosp: r && r.ok ? r : { error: (r && r.error) || "No se pudo leer Hospitable." } }); }).catch(function () { put({ hosp: { error: "Sin conexión con ALMA." } }); });
+          if (!S.texto) setTimeout(function () { redactar(); }, 0);
+        }
+        var publicar = function (delay) {
+          if (S.enviando || !S.texto) return;
+          if (!(window.ALMA && ALMA.enviarReview)) { put({ error: "Conecta ALMA (Apps Script) para publicar." }); return; }
+          put({ enviando: delay ? "delay" : "ya", error: "" });
+          ALMA.enviarReview(k, S.texto, rec, "", delay).then(function (r) {
+            if (r && r.ok) { put({ enviando: "", enviado: delay ? "delay" : "ya", enviadoTs: Date.now(), avisoTexto: r.textoAplicado === false ? "Hospitable publicó, pero con su propio texto. Revísalo en Hospitable." : "" }, true); self.aviso(delay ? "Review programado al final del periodo" : "Review publicado"); }
+            else put({ enviando: "", error: (r && r.error) || "No se pudo publicar." });
+          }).catch(function () { put({ enviando: "", error: "Sin conexión con ALMA." }); });
+        };
         var redactar = function () {
           if (S.cargando) return; if (!(window.ALMA && ALMA.hasApi() && ALMA.reviewHuesped)) { put({ error: "Conecta ALMA (Apps Script) para redactar." }); return; }
           put({ cargando: true, error: "" });
@@ -6816,7 +6847,14 @@ class Component extends DCLogic {
             accion: acc, accBg: n >= 4 ? "rgba(192,57,43,.08)" : n === 3 ? "rgba(233,130,106,.10)" : "rgba(61,107,82,.08)", pregunta: n === 3,
             segBg: S.dec === "seguir" ? "#F5F3F0" : "#FFFFFF", retBg: S.dec === "retener" ? "#F5F3F0" : "#FFFFFF",
             siAria: rec ? "true" : "false", noAria: rec ? "false" : "true", siBg: rec ? "#FFFFFF" : "transparent", noBg: rec ? "transparent" : "#FFFFFF",
-            contexto: S.contexto || "", redLabel: S.cargando ? "Redactando…" : S.texto ? "Volver a redactar" : "Redactar con ALMA", hayError: !!S.error, error: S.error || "", hayTexto: !!S.texto, texto: S.texto || "" },
+            contexto: S.contexto || "", redLabel: S.cargando ? "Redactando…" : S.texto ? "Volver a redactar" : "Redactar con ALMA", hayError: !!S.error, error: S.error || "", hayTexto: !!S.texto, texto: S.texto || "",
+            redactando: !!S.cargando && !S.texto,
+            hospHay: !!(S.hosp && S.hosp.existe && S.hosp.texto), hospTexto: (S.hosp && S.hosp.texto) || "",
+            hospEstado: !S.hosp ? "Leyendo el review programado en Hospitable…" : S.hosp.error ? S.hosp.error : !S.hosp.existe ? "Hospitable no tiene un review programado para esta reserva." : S.hosp.estado === "sent" ? "Hospitable ya publicó este review." : "Programado en Hospitable" + (S.hosp.expira ? " · vence " + new Date(S.hosp.expira).toLocaleDateString("es-GT", { day: "numeric", month: "short" }) : "") + ". Al publicar, se reemplaza por el nuestro.",
+            puedePublicar: !!S.texto && !(S.hosp && (S.hosp.error || !S.hosp.existe || S.hosp.estado === "sent")) && !S.enviado,
+            pubLabel: S.enviando === "ya" ? "Publicando…" : "Publicar en Hospitable", delayLabel: S.enviando === "delay" ? "Programando…" : "Publicar al final del periodo", conDelay: n >= 3,
+            enviadoOk: !!S.enviado, enviadoTxt: S.enviado === "delay" ? "Publicado con delay: Airbnb lo muestra al cierre del periodo de reseñas." : "Publicado en Hospitable.", avisoTexto: S.avisoTexto || "", hayAviso: !!S.avisoTexto },
+          rvhPublicar: function () { publicar(false); }, rvhPublicarDelay: function () { publicar(true); },
           rvhSeguir: function () { put({ dec: "seguir" }, true); }, rvhRetener: function () { put({ dec: "retener", rec: false }, true); self.aviso("Cancela el review request y activa el delay en Hospitable"); },
           rvhSi: function () { put({ rec: true }); }, rvhNo: function () { put({ rec: false }); }, rvhSetCtx: function (e) { put({ contexto: e.target.value }); }, rvhSetTxt: function (e) { put({ texto: e.target.value }, true); },
           rvhRedactar: redactar, rvhCopiar: function () { self.copiar(S.texto || "", "Review copiado"); }

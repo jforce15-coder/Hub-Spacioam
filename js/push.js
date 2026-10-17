@@ -14,7 +14,7 @@
       var s = document.createElement('script'); s.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; s.defer = true;
       s.onerror = function (e) { cargado = null; errInit = 'no se pudo descargar el SDK de OneSignal (red o bloqueador)'; ko(e); };
       document.head.appendChild(s);
-      g.OneSignalDeferred.push(function (OS) { OS.init({ appId: APP_ID, serviceWorkerPath: 'OneSignalSDKWorker.js', notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true,
+      g.OneSignalDeferred.push(function (OS) { OS.init({ appId: APP_ID, serviceWorkerPath: 'OneSignalSDKWorker.js', serviceWorkerParam: { scope: '/' }, notifyButton: { enable: false }, allowLocalhostAsSecureOrigin: true,
         /* Si el hub ya está abierto, se enfoca esa ventana y el hub abre la conversación (evento sa-push-click). */
         notificationClickHandlerMatch: 'origin', notificationClickHandlerAction: 'focus' }).then(function () {
         try { OS.Notifications.addEventListener('click', function (ev) { var n = (ev && ev.notification) || {}; var u = ev && ev.result && ev.result.url || n.launchURL || n.url || ''; try { g.dispatchEvent(new CustomEvent('sa-push-click', { detail: u })); } catch (e) {} }); } catch (e) {}
@@ -63,7 +63,10 @@
             .then(function () { return OS.User.PushSubscription.optIn(); }).catch(function () {})
             .then(function () { return esperarSub(OS, 10000); })
             .then(function (s) {
-              localStorage.setItem('sa_push_on', '1'); avisar();
+              localStorage.setItem('sa_push_on', '1');
+              /* Primera vez: también avisa cada mensaje nuevo de un huésped (se apaga en el menú de cuenta). */
+              if (localStorage.getItem('sa_push_nuevos') == null) { localStorage.setItem('sa_push_nuevos', '1'); try { OS.User.addTag('nuevos', '1'); } catch (e) {} }
+              avisar();
               if (quien && quien.rol) { try { OS.User.addTag('rol', String(quien.rol)); } catch (e) {} }
               return { ok: !!s.id, estado: 'activo', subId: s.id || '' };
             });

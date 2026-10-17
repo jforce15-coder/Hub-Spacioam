@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -103,6 +103,8 @@
     cancelarProg: function (resId, id) { return call('cancelarProg', { resId: resId, id: id }); },
     editarProg: function (resId, id, texto, quien) { return call('editarProg', { resId: resId, id: id, texto: texto, quien: quien || '' }); },
     proponerMejora: function (clave, prompt, pedido) { return call('proponerMejora', { clave: clave, prompt: prompt, pedido: pedido }); },
+    guestReview: function (resId) { return call('guestReview', { resId: resId }); },
+    enviarReview: function (resId, texto, recomendar, privado, delay) { return call('enviarReview', { resId: resId, texto: texto, recomendar: recomendar, privado: privado || '', delay: !!delay }); },
     reviewHuesped: function (resId, recomendar, contexto, ajuste, previo) { return call('reviewHuesped', { resId: resId, recomendar: recomendar, contexto: contexto || '', ajuste: ajuste || '', previo: previo || '' }); },
     respuestaReview: function (review, contexto, ajuste, previo) { return call('respuestaReview', { review: review, contexto: contexto || '', ajuste: ajuste || '', previo: previo || '' }); },
     publicarRespuesta: function (uuid, texto) { return call('publicarRespuesta', { uuid: uuid, texto: texto }); },

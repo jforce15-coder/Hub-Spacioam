@@ -27,12 +27,12 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sw-reg.js?v=2026-10-17h"></script>
-  <script src="js/sa-auth-client.js?v=2026-10-17h"></script>
-<script src="js/sa-session.js?v=2026-10-17h"></script>
-<script src="js/alma-client.js?v=2026-10-17h"></script>
-<script src="js/push.js?v=2026-10-17h"></script>
-<script src="js/sched-engine.js?v=2026-10-17h"></script>
+<script src="js/sw-reg.js?v=2026-10-17i"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-17i"></script>
+<script src="js/sa-session.js?v=2026-10-17i"></script>
+<script src="js/alma-client.js?v=2026-10-17i"></script>
+<script src="js/push.js?v=2026-10-17i"></script>
+<script src="js/sched-engine.js?v=2026-10-17i"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -117,6 +117,23 @@
   @media (max-width:399px){ .alma-mej-label{ display:none !important; } }
   /* Móvil tipo app: Resumen → Tarjeta → Conversación (alma-foco). Escritorio sigue en dos columnas. */
   .alma-mbar{ display:none; }
+  .alma-filtros{ display:none !important; }
+  /* Buscador discreto: lupa en píldora de 48 px que se abre hacia la izquierda al tocarla (queda abierta si hay texto). */
+  .alma-q{ position:relative; width:48px; height:48px; flex-shrink:0; z-index:42; }
+  .alma-q-pill{ position:absolute; right:0; top:0; height:48px; width:48px; display:flex; align-items:center; gap:4px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden; cursor:text; box-sizing:border-box;
+    transition:width .36s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1), border-color .18s cubic-bezier(.22,.61,.36,1); }
+  .alma-q-ico{ width:46px; height:46px; flex-shrink:0; display:grid; place-items:center; }
+  .alma-q input{ opacity:0; transition:opacity .18s cubic-bezier(.22,.61,.36,1); }
+  .alma-q input::-webkit-search-cancel-button{ display:none; }
+  .alma-q:focus-within .alma-q-pill, .alma-q[data-on="1"] .alma-q-pill{ width:min(340px, calc(100vw - 32px)); border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35), 0 12px 40px rgba(62,63,63,.07); }
+  .alma-q[data-on="1"]:not(:focus-within) .alma-q-pill{ border-color:#D8D4CE; box-shadow:0 12px 40px rgba(62,63,63,.07); }
+  .alma-q:focus-within input, .alma-q[data-on="1"] input{ opacity:1; }
+  @media (prefers-reduced-motion: reduce){ .alma-q-pill{ transition:none; } }
+  /* Deslizar hacia abajo para actualizar */
+  .sa-star-alerta{ animation:sa-star 1.8s cubic-bezier(.22,.61,.36,1) infinite; }
+  @keyframes sa-star{ 0%{ box-shadow:0 0 0 0 rgba(233,130,106,.55); } 70%{ box-shadow:0 0 0 10px rgba(233,130,106,0); } 100%{ box-shadow:0 0 0 0 rgba(233,130,106,0); } }
+  @media (prefers-reduced-motion: reduce){ .sa-star-alerta{ animation:none; box-shadow:0 0 0 3px rgba(233,130,106,.35); } }
+  @keyframes sa-ptr-dot{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
   .alma-mscroll > *{ flex-shrink:0; }
   .alma-mscroll::-webkit-scrollbar{ display:none; }
   .alma-cont-ico{ display:none !important; }
@@ -1185,6 +1202,13 @@
         </sc-for>
       </div>
     </div>
+        <div class="alma-q" data-on="{{ convQOn }}">
+          <label class="alma-q-pill" title="Buscar conversaciones">
+            <span class="alma-q-ico" aria-hidden="true"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></span>
+            <input defaultValue="{{ convBusca }}" data-sync="1" data-v="{{ convBusca }}" onChange="{{ setConvBusca }}" type="search" enterKeyHint="search" autoComplete="off" spellCheck="false" aria-label="Buscar conversaciones" placeholder="Huésped, propiedad o mensaje" style="flex:1; min-width:0; border:none; background:transparent; font-family:inherit; font-size:14px; color:#3E3F3F; outline:none; letter-spacing:.01em; padding:0">
+            <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="flex-shrink:0; width:28px; height:28px; border:none; border-radius:50%; background:#F5F3F0; cursor:pointer; display:grid; place-items:center; padding:0; margin-right:8px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="14" color="#6F6867" hint-size="14px,14px"></x-import></button></sc-if>
+          </label>
+        </div>
         <button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras y auto mejora" title="Mejoras" style="display:inline-flex; align-items:center; gap:10px; height:48px; padding:0 16px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; cursor:pointer; font-family:inherit; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:border-color .18s, box-shadow .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; box-shadow:0 4px 16px rgba(62,63,63,.05)" style-active="transform:scale(.97)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import>
           <span class="alma-mej-label" style="font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase">Mejoras</span>
@@ -1531,6 +1555,7 @@
                     <sc-if value="{{ c.hayEstadia }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">·</span><span>{{ c.estadia }}</span></sc-if>
                     <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.copiarCodigo }}" aria-label="Copiar el código de reserva" title="Copiar código" style="display:inline-flex; align-items:center; gap:5px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; min-height:40px; padding:0 10px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.08em; font-variant-numeric:tabular-nums; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.codigo }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></sc-if>
                     <button onClick="{{ c.form.ver }}" aria-label="{{ c.form.formLabel }}" title="{{ c.form.formLabel }}" style="width:36px; height:36px; border-radius:50%; border:1px solid {{ c.form.formBd }}; background: {{ c.form.formTint }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="file" size="14" color="{{ c.form.formBg }}" hint-size="14px,14px"></x-import></button>
+                    <sc-if value="{{ c.hayRiesgo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verRiesgo }}" aria-label="Review del huésped · riesgo {{ c.riesgoLabel }}" title="Review del huésped · riesgo {{ c.riesgoLabel }}" class="{{ c.estrellaClase }}" style="position:relative; width:36px; height:36px; border-radius:50%; border:1px solid {{ c.estrellaBd }}; background: {{ c.estrellaBg }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="star" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                     <sc-if value="{{ c.hayCal }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verCal }}" aria-label="Calendario de la propiedad" title="Calendario de la propiedad" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                     <sc-if value="{{ c.hayIng }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verIng }}" aria-label="Ingreso de la reserva" title="Ingreso de la reserva" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                   </div>
@@ -2901,10 +2926,11 @@
         </div>
       </sc-if>
       <div style="display:flex; flex-direction:column; gap:8px">
-        <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Review personalizado</span>
+        <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Nuestro review del huésped</span>
+        <span style="font-size:12px; line-height:1.5; color:#6F6867; text-wrap:pretty">Lo que escribimos sobre el huésped y si lo recomendamos a otros anfitriones (la pregunta "¿Recomendarías a este huésped?" de Airbnb). ALMA lo redacta; tú lo pegas en Hospitable.</span>
         <div role="radiogroup" aria-label="Recomendar" style="display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:999px; background:#F5F3F0">
-          <button role="radio" aria-checked="{{ rvh.siAria }}" onClick="{{ rvhSi }}" style="min-height:40px; border:none; border-radius:999px; background: {{ rvh.siBg }}; font-family:inherit; font-size:12.5px; font-weight:600; color:#3E3F3F; cursor:pointer">Recomendar</button>
-          <button role="radio" aria-checked="{{ rvh.noAria }}" onClick="{{ rvhNo }}" style="min-height:40px; border:none; border-radius:999px; background: {{ rvh.noBg }}; font-family:inherit; font-size:12.5px; font-weight:600; color:#3E3F3F; cursor:pointer">No recomendar</button>
+          <button role="radio" aria-checked="{{ rvh.siAria }}" onClick="{{ rvhSi }}" style="min-height:40px; border:none; border-radius:999px; background: {{ rvh.siBg }}; font-family:inherit; font-size:12.5px; font-weight:600; color:#3E3F3F; cursor:pointer">Lo recomendamos</button>
+          <button role="radio" aria-checked="{{ rvh.noAria }}" onClick="{{ rvhNo }}" style="min-height:40px; border:none; border-radius:999px; background: {{ rvh.noBg }}; font-family:inherit; font-size:12.5px; font-weight:600; color:#3E3F3F; cursor:pointer">No lo recomendamos</button>
         </div>
         <input type="text" value="{{ rvh.contexto }}" onChange="{{ rvhSetCtx }}" placeholder="Contexto para ALMA (opcional)…" autocomplete="off" style="height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:0 14px; font-family:inherit; font-size:14px; color:#3E3F3F">
         <button onClick="{{ rvhRedactar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; background:#3E3F3F; color:#FAFAFA"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="14" hint-size="14px,14px"></x-import>{{ rvh.redLabel }}</button>
@@ -3216,7 +3242,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-17h";
+  BUILD = "2026-10-17i";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3254,8 +3280,85 @@ class Component extends DCLogic {
     var st = this.state, v = st.vista; if (!v || v === "login" || v === "cargando") return;
     try { localStorage.setItem("sa_ultima", JSON.stringify({ vista: v, mVista: st.mVista, hoyTab: (st.hoy || {}).tab, conv: v === "alma" && st.cronoLista === false ? (this._convSelKey || "") : "", ts: Date.now() })); } catch (e) {}
   }
+  /* Deslizar hacia abajo para actualizar (como Instagram): desde el tope de cualquier lista de ALMA.
+     Resistencia elástica, flecha que gira al armarse, vibración corta y punto que rebota mientras actualiza. */
+  ptrInit() {
+    var self = this, UMB = 72, MAX = 128;
+    var ind = document.createElement("div"); ind.setAttribute("aria-hidden", "true");
+    ind.style.cssText = "position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);z-index:300;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:#FFFFFF;box-shadow:0 0 0 1px rgba(62,63,63,.06),0 4px 16px rgba(62,63,63,.10);display:grid;place-items:center;opacity:0;transform:translate3d(0,-64px,0) scale(.7);pointer-events:none;will-change:transform,opacity";
+    var flecha = document.createElement("div");
+    flecha.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3E3F3F" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
+    flecha.style.cssText = "display:grid;place-items:center;transition:transform .18s cubic-bezier(.22,.61,.36,1)";
+    var punto = document.createElement("span"); punto.style.cssText = "display:none;width:8px;height:8px;border-radius:50%;background:#E9826A;animation:sa-ptr-dot .7s cubic-bezier(.22,.61,.36,1) infinite";
+    ind.appendChild(flecha); ind.appendChild(punto); document.body.appendChild(ind);
+    var d = null, ocupado = false;
+    var pintar = function (y, anim) {
+      var p = Math.min(1, y / UMB);
+      ind.style.transition = anim ? "transform .36s cubic-bezier(.22,.61,.36,1), opacity .36s cubic-bezier(.22,.61,.36,1)" : "none";
+      ind.style.opacity = String(Math.min(1, p * 1.4));
+      ind.style.transform = "translate3d(0," + (y - 52) + "px,0) scale(" + (.7 + p * .3) + ")";
+      flecha.style.transform = "rotate(" + (y >= UMB ? 180 : 0) + "deg)";
+    };
+    var scroller = function (el) {
+      for (var n = el; n && n !== document.body; n = n.parentElement) {
+        var cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowY) && n.scrollHeight > n.clientHeight + 1) return n;
+      }
+      return null;
+    };
+    document.addEventListener("touchstart", function (e) {
+      d = null; var st0 = self.state;
+      if (ocupado || st0.vista !== "alma" || e.touches.length !== 1) return;
+      if (st0.razon || st0.rvhK || st0.infoSheet || st0.ctrlAbierto || st0.mejAbierto || st0.lightbox) return;
+      var t = e.target; if (!t || !t.closest || t.closest('textarea, input, select, [role="dialog"], [data-no-swipe], [data-auto-card]')) return;
+      var sc = scroller(t); if ((sc && sc.scrollTop > 0) || (window.scrollY || document.documentElement.scrollTop) > 0) return;
+      d = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: false, pull: 0, armado: false, sc: sc };
+    }, { passive: true });
+    document.addEventListener("touchmove", function (e) {
+      if (!d) return; var t = e.touches[0], dy = t.clientY - d.y, dx = t.clientX - d.x;
+      if (!d.on) { if (dy < 8) { if (dy < -4 || Math.abs(dx) > 10) d = null; return; } if (Math.abs(dx) > dy || (d.sc && d.sc.scrollTop > 0)) { d = null; return; } d.on = true; d.y = t.clientY - 8; dy = 8; }
+      if (e.cancelable) e.preventDefault();
+      var r = Math.max(0, dy), pull = Math.min(MAX, r * .55 * (1 - Math.min(.5, r / 900)));
+      d.pull = pull; var arm = pull >= UMB;
+      if (arm !== d.armado) { d.armado = arm; if (arm) try { navigator.vibrate && navigator.vibrate(8); } catch (x) {} }
+      pintar(pull, false);
+    }, { passive: false });
+    var soltar = function () {
+      var q = d; d = null; if (!q || !q.on) return;
+      if (!q.armado) { pintar(0, true); return; }
+      ocupado = true; pintar(UMB - 8, true); flecha.style.display = "none"; punto.style.display = "block";
+      var t0 = Date.now();
+      self.ptrRefrescar().then(function () {
+        setTimeout(function () { pintar(0, true); setTimeout(function () { flecha.style.display = "grid"; punto.style.display = "none"; ocupado = false; }, 380); }, Math.max(0, 600 - (Date.now() - t0)));
+      });
+    };
+    document.addEventListener("touchend", soltar, { passive: true }); document.addEventListener("touchcancel", soltar, { passive: true });
+  }
+  rvhVisto(rid) {
+    if (!this._rvhV) { try { this._rvhV = JSON.parse(localStorage.getItem("sa_rvh_visto") || "{}"); } catch (e) { this._rvhV = {}; } }
+    return !!this._rvhV[rid];
+  }
+  rvhMarcarVisto(rid) {
+    if (!rid || this.rvhVisto(rid)) return; this._rvhV[rid] = Date.now();
+    var lim = Date.now() - 60 * 86400000, v = this._rvhV; Object.keys(v).forEach(function (k) { if (v[k] < lim) delete v[k]; });
+    try { localStorage.setItem("sa_rvh_visto", JSON.stringify(v)); } catch (e) {}
+  }
+  ptrRefrescar() {
+    var self = this;
+    this._cargandoVivo = false;
+    try { this.almaCargar(true); } catch (e) {}
+    var abiertos = Object.keys(this.state.convHilo || {}).filter(function (k) { return self.state.convHilo[k]; });
+    var hilos = [];
+    (this._convGrupos || []).forEach(function (g) {
+      if (abiertos.indexOf(g.key) < 0 && self.state.selG !== g.key) return;
+      var rid = g.frags && g.frags[0] && g.frags[0].resId; if (!rid || !window.ALMA || !ALMA.hilo) return;
+      hilos.push(ALMA.hilo(rid).then(function (r) { if (r && r.ok) self.guardarHilo(rid, r.hilo); }).catch(function () {}));
+    });
+    var vivo = new Promise(function (ok) { var t0 = Date.now(); (function esperar() { if (!self.state.almaCargando || Date.now() - t0 > 9000) return ok(); setTimeout(esperar, 200); })(); });
+    return Promise.all([vivo].concat(hilos)).then(function () { if (self.aviso) self.aviso("Actualizado"); });
+  }
   componentDidMount() {
     var self = this;
+    this.ptrInit();
     /* Actividad: cualquier toque renueva la marca; al volver tras 30 min sin uso se regresa al bento. */
     var act = function () { if (Date.now() - (self._actTs || 0) > 5000) { self._actTs = Date.now(); self.guardarUltima(); } };
     document.addEventListener("pointerdown", act, true); document.addEventListener("keydown", act, true);
@@ -5925,7 +6028,8 @@ class Component extends DCLogic {
     var limiteIb = Date.now() - (st.convDias || 2) * 86400000;
     var sinteticos = (a.inbox || []).filter(function (r) { return r.conv_id && !conItem[r.conv_id] && Date.parse(r.ultimo_ts) >= limiteIb; }).map(function (r) {
       var host = r.ultimo_de !== "guest";
-      return { fecha: r.ultimo_ts, reservation_id: r.conv_id, huesped: r.huesped, propiedad: r.propiedad, codigo: r.codigo, checkin: r.checkin, checkout: r.checkout,
+      var tH = Math.max(Date.parse(r.ultimo_guest_ts) || 0, Date.parse(r.ultimo_host_ts) || 0);
+      return { fecha: tH ? new Date(tH).toISOString() : r.ultimo_ts, reservation_id: r.conv_id, huesped: r.huesped, propiedad: r.propiedad, codigo: r.codigo, checkin: r.checkin, checkout: r.checkout,
         pregunta: host ? "" : r.ultimo_texto, respuesta: host ? r.ultimo_texto : "", accion: host ? "ENVIADO por el equipo en Hospitable" : "", nivel: "", razon: "", _fila: "ib-" + r.conv_id, _inbox: true };
     });
     var logSrc = (a.log || []).map(function (l) {
@@ -6085,14 +6189,16 @@ class Component extends DCLogic {
       }
       var i = convItems.indexOf(c);
       var esRojo = c.nivel === "ROJO" || c.nivelLabel === "Urgente", esAmarillo = c.nivel === "AMARILLO" || c.nivelLabel === "Necesita equipo";
-      var resuelto = !!c.humano, emer = !!c.emergenciaEnviada, respondio = c.esLog ? !!c.enviado : c.estadoCola === "respondido";
+      var gRes = !c.esCola && !!(self._gResPor || {})[c.key || ""];
+      var resuelto = !!c.humano || gRes, emer = !!c.emergenciaEnviada, respondio = c.esLog ? !!c.enviado : c.estadoCola === "respondido";
       var quienTxt = c.quien && c.quien !== "Equipo" ? c.quien : "el equipo";
       if (!solo) { briefN.total++; if (c.esCola) briefN.cola++; else if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++; }
       /* Problema / Estado / Pendiente / Siguiente paso — lo que hay que entender en tres segundos. */
       var razonEsEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(c.razonBrief || "");
       var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : self.resumenBreve(c));
       var estado, pendiente = "", paso, pasoColor, pideHumano = !!c.sinResp, tag, tagBg, tagFg, color;
-      if (esRojo) {
+      if (gRes) { estado = "Marcada como resuelta"; paso = "Nada pendiente."; pasoColor = VERDE; pideHumano = false; tag = "Resuelta"; color = VERDE; tagBg = "rgba(61,107,82,.14)"; tagFg = VERDE; }
+      else if (esRojo) {
         if (resuelto) { estado = "Atendido por " + quienTxt + " hace " + mins(c.ts); paso = "Solo confirma que quedó cerrado."; pasoColor = VERDE; tag = "Urgente · atendido"; color = VERDE; }
         else if (emer) { estado = "Sin respuesta del equipo; ALMA envió el código de emergencia"; paso = "No news, good news. Sin seguimiento."; pasoColor = VERDE; tag = "Urgente · código enviado"; color = "#E9826A"; }
         else { estado = (c.esCola ? "Esperando " : "Hace ") + mins(c.ts) + (c.estadoCola === "esperando_rojo" ? " · contención enviada" : " · sin respuesta"); paso = c.accesoTipo === "edificio" ? "Confirmar la reserva con el edificio. Intervención humana." : "Nadie ha respondido. Intervención humana."; pasoColor = ROJO_T; pideHumano = true; tag = "Urgente"; color = "#E9826A"; }
@@ -6211,7 +6317,7 @@ class Component extends DCLogic {
       if (self.esCierre(preg)) return false;
       return !autos.some(function (a1) { return self.autoResuelve(preg, a1.texto); });
     };
-    var resMan = {};
+    var resMan = {}, gResPor = {};
     /* La hoja puede entregar la hora como texto local ("15/10/2026 22:52:00"): si no se entiende, antes quedaba NaN y
        borraba la marca local → la conversación "volvía" a pendiente al cambiar de filtro. */
     var tsR = function (r) {
@@ -6226,8 +6332,11 @@ class Component extends DCLogic {
       g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
       var top = g.frags[0], man = resMan[g.key], ib = inboxPor[g.key];
       var ug = ib ? Date.parse(ib.ultimo_guest_ts) || 0 : 0, uh = ib ? Date.parse(ib.ultimo_host_ts) || 0 : 0;
-      var hlT = top.resId && st.almaHilos[top.resId] && st.almaHilos[top.resId].lista, ultHl = hlT && hlT.length ? Date.parse(hlT[hlT.length - 1].created) || 0 : 0;
-      g.ts = Math.max(top.ts || 0, ib ? Date.parse(ib.ultimo_ts) || 0 : 0, ug, uh, ultHl); g.tsReal = g.ts;
+      /* Los automáticos de Hospitable (checkout, first morning, review reminder…) no son actividad: no reabren ni reviven conversaciones. */
+      var hlT = top.resId && st.almaHilos[top.resId] && st.almaHilos[top.resId].lista, hlH = (hlT || []).filter(function (m) { return !(m.tipo !== "guest" && m.auto); });
+      var ultHl = hlH.length ? Date.parse(hlH[hlH.length - 1].created) || 0 : 0;
+      if (hlT && hlT.length) { var uhH = 0; for (var q2 = hlH.length - 1; q2 >= 0; q2--) if (hlH[q2].tipo !== "guest") { uhH = Date.parse(hlH[q2].created) || 0; break; } if (uhH || !uh || uh > ultHl) uh = uhH; }
+      g.ts = Math.max(top.ts || 0, ug, uh, ultHl, ib && !ug && !uh ? Date.parse(ib.ultimo_ts) || 0 : 0); g.tsReal = g.ts;
       /* 15 h sin mensajes de ninguna de las partes: se da por resuelta. */
       /* Sin respuesta ni marca: sigue abierta hasta 1 día después del checkout; entonces pasa sola a resuelta. Sin fechas: 48 h sin movimiento. */
       var coISO = String((ib && ib.checkout) || top.checkout || "").slice(0, 10), finCo = /^\d{4}-\d{2}-\d{2}$/.test(coISO) ? Date.parse(coISO + "T23:59:00-06:00") + 86400000 : 0;
@@ -6241,6 +6350,7 @@ class Component extends DCLogic {
       if (inactiva && !g.autoRes) g.autoRes = finCo ? "pasó 1 día del checkout" : "sin actividad en 48 h";
       g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes || inactiva));
       g.resuelto = self.resEstable(g, man);
+      g.frags.forEach(function (c) { gResPor[c.key || ""] = !!g.resuelto; });
       g.frags.forEach(function (c) {
         c.resLabel = g.resuelto ? "Reabrir" : "Resuelta";
         (function (c) {
@@ -6266,9 +6376,12 @@ class Component extends DCLogic {
           var COL = ["#3d6b52", "#938B8A", "#E9826A", "#B54D36", "#C0392B"];
           c.hayRiesgo = true; c.riesgoLabel = R.label; c.riesgoAria = "Riesgo de mal review: " + R.label;
           c.riesgoBarras = [1, 2, 3, 4, 5].map(function (i) { return { bg: i <= R.n ? COL[R.n - 1] : "#EAE6E0" }; });
-          c.verRiesgo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.setState({ rvhK: rid, rvhInfo: { huesped: c.huesped || "", prop: c.propRaw || c.propiedad || "", n: R.n, label: R.label, motivos: R.motivos } }); };
-          var vistoR = (st.rvhVisto || {})[rid];
-          if (R.n >= 3 && R.n <= 4 && !vistoR && c.key === st.abrirAuto && !(self._rvhAuto || (self._rvhAuto = {}))[rid]) { self._rvhAuto[rid] = 1; setTimeout(function () { c.verRiesgo(); self.setState(function (s) { var o = Object.assign({}, s.rvhVisto); o[rid] = 1; return { rvhVisto: o, abrirAuto: null }; }); }, 600); }
+          c.verRiesgo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.rvhMarcarVisto(rid); self.setState({ rvhK: rid, rvhInfo: { huesped: c.huesped || "", prop: c.propRaw || c.propiedad || "", n: R.n, label: R.label, motivos: R.motivos } }); };
+          /* Estrella junto a la reserva: abre el review cuando quieras. En riesgo alto late con un halo peach hasta que lo abras. */
+          var alto = R.n >= 4;
+          c.estrellaClase = alto && !self.rvhVisto(rid) ? "sa-star-alerta" : ""; c.estrellaBg = R.n >= 3 ? "rgba(233,130,106,.12)" : "#FFFFFF"; c.estrellaBd = R.n >= 3 ? "#E9826A" : "#D8D4CE";
+          /* El popup se abre solo una vez por reserva (queda guardado en el dispositivo); después, desde la estrella. */
+          if (R.n >= 3 && R.n <= 4 && !self.rvhVisto(rid) && c.key === st.abrirAuto && !(self._rvhAuto || (self._rvhAuto = {}))[rid]) { self._rvhAuto[rid] = 1; setTimeout(function () { c.verRiesgo(); self.setState({ abrirAuto: null }); }, 600); }
         })(c);
         c.copiarCodigo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.copiar(c.codigo, "Código " + c.codigo + " copiado"); };
         c.hayHiloLista = (c.hilo || []).length > 0;
@@ -6325,6 +6438,8 @@ class Component extends DCLogic {
       else g.frags.forEach(function (c) { if (!c.esCola && c.nivelLabel === "Resuelta") { var sinR = !c.enviado && !c.humano || c.sinResp || (inboxPor[g.key] && inboxPor[g.key].ultimo_de === "guest"); if (sinR) { c.nivelLabel = "Sin responder"; c.nivelBg = "rgba(242,117,90,.16)"; c.nivelFg = "#B54D36"; c.color = "#F2755A"; } else { c.nivelLabel = "Respondida"; c.nivelBg = "rgba(59,102,145,.12)"; c.nivelFg = "#3B6691"; c.color = "#3B6691"; } } });
       g.frags.forEach(function (c) { c.hayFrags = false; c.fragPos = ""; c.fechaPad = "0"; }); g.fragsVista = g.frags.slice(0, 1);
     });
+    /* El resumen se arma antes que los grupos: guarda qué conversaciones están resueltas y repinta si cambió. */
+    var gResK = JSON.stringify(gResPor); if (gResK !== this._gResK) { this._gResK = gResK; this._gResPor = gResPor; var me2 = this; setTimeout(function () { me2.forceUpdate(); }, 0); }
     if (ordenEf !== "Cronológico") grupos.sort(function (x, y) { return x.rk - y.rk || y.ts - x.ts; }); else grupos.sort(function (x, y) { return y.ts - x.ts; });
     /* Origen: WhatsApp (número del negocio) u Hospitable (Airbnb, VRBO, Booking, directas). Una conversación unida tiene los dos. */
     var CANAL = { whatsapp: ["WhatsApp", "W", "#128C7E", "whatsapp.com"], airbnb: ["Airbnb", "A", "#FF5A5F", "airbnb.com"], vrbo: ["VRBO", "V", "#1A4FA3", "vrbo.com"], booking: ["Booking.com", "B", "#003580", "booking.com"], expedia: ["Expedia", "E", "#00355F", "expedia.com"], directa: ["Hospitable · reserva directa", "H", "#3E3F3F", "hospitable.com"] };
@@ -6897,7 +7012,7 @@ class Component extends DCLogic {
       convItems: convItems, convVacio: !!st.alma && !grupos.length,
       convVacioTexto: st.convSolo === "ATENCION" ? "Nada requiere atención ahora." : st.convSolo === "ALMA" ? "ALMA no ha respondido en los últimos " + st.convDias + " días." : st.convSolo === "EQUIPO" ? "Nadie del equipo respondió en los últimos " + st.convDias + " días." : st.convSolo === "SIN" ? "Nada sin responder. Todo tiene respuesta." : st.convVista === "resueltas" ? "No hay conversaciones resueltas en estos días." : gruposTodos.length && !convItems.length === false && !grupos.length ? "Todo resuelto. Las resueltas están en el contador “resueltas”." : busca ? "Nada coincide con “" + st.convBusca + "”." : st.logQuien === "ALMA" ? "ALMA no ha respondido sola en los últimos " + st.convDias + " días." : st.logQuien === "Equipo" ? "Nadie del equipo intervino en los últimos " + st.convDias + " días." : st.logQuien !== "Todos" ? st.logQuien + " no respondió en los últimos " + st.convDias + " días." : st.logFiltro !== "Todo" ? "Sin conversaciones con ese filtro en los últimos " + st.convDias + " días." : "Nada en los últimos " + st.convDias + " días. ALMA está en silencio.",
       convBusca: st.convBusca, convHayBusca: !!busca,
-      setConvBusca: function (e) { self.setState({ convBusca: e.target.value, convIdx: 0, briefIdx: 0 }); self.convReset(); }, limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
+      setConvBusca: function (e) { var v = e.target.value, o = { convBusca: v, convIdx: 0, briefIdx: 0 }; if (String(v).trim() && (st.mVista || "resumen") === "resumen") o.mVista = "lista"; self.setState(o); self.convReset(); }, convQOn: busca ? "1" : "0", limpiarConvBusca: function () { self.setState({ convBusca: "", convIdx: 0 }); self.convReset(); },
       convHayMas: ocultos > 0, convCargarMasLabel: "Cargar más · " + ocultos + " anteriores",
       convCargarMas: function () { self.setState({ convDias: st.convDias + 2 }); },
       convPie: convItems.length + (convItems.length === 1 ? " conversación" : " conversaciones") + " · últimos " + st.convDias + " días" + (busca ? " · filtradas por “" + st.convBusca + "”" : ""),

@@ -27,12 +27,12 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sw-reg.js?v=2026-10-17j"></script>
-  <script src="js/sa-auth-client.js?v=2026-10-17j"></script>
-<script src="js/sa-session.js?v=2026-10-17j"></script>
-<script src="js/alma-client.js?v=2026-10-17j"></script>
-<script src="js/push.js?v=2026-10-17j"></script>
-<script src="js/sched-engine.js?v=2026-10-17j"></script>
+<script src="js/sw-reg.js?v=2026-10-18a"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-18a"></script>
+<script src="js/sa-session.js?v=2026-10-18a"></script>
+<script src="js/alma-client.js?v=2026-10-18a"></script>
+<script src="js/push.js?v=2026-10-18a"></script>
+<script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
   *, *::before, *::after { box-sizing:border-box; }
   html, body { margin:0; padding:0; background:#FAFAFA; }
@@ -1305,7 +1305,7 @@
                   <span style="flex:1; min-width:0; font-size:14.5px; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.25">{{ l.quien }}</span>
                   <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; white-space:nowrap; letter-spacing:.04em">{{ l.hace }}</span>
                 </span>
-                <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4">{{ l.propLinea }}</span>
+                <span style="display:flex; align-items:center; gap:6px; min-width:0"><sc-if value="{{ l.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:2px 7px; background:{{ l.etapa.bg }}; color:{{ l.etapa.fg }}; white-space:nowrap; line-height:1.4">{{ l.etapa.txt }}</span></sc-if><span style="min-width:0; font-size:11px; color:#6F6867; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4">{{ l.propLinea }}</span></span>
                 <span style="display:flex; align-items:center; gap:8px; min-width:0; margin-top:5px">
                   <span style="flex-shrink:0; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:4px 8px; line-height:1; white-space:nowrap; background: {{ l.tagBg }}; color: {{ l.tagFg }}">{{ l.estado }}</span>
                   <span style="flex:1; min-width:0; font-size:12.5px; line-height:1.35; letter-spacing:.01em; color:#3E3F3F; font-weight: {{ l.txtPeso }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ l.titulo }}</span>
@@ -1505,7 +1505,7 @@
                       <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ r.clasTxt }}</span>
                     </span>
                   </sc-if>
-                  <span style="font-size:11px; color:#6F6867; letter-spacing:.03em; line-height:1.45; text-wrap:pretty">{{ r.prop }}</span>
+                  <span style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0"><sc-if value="{{ r.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:2px 7px; background:{{ r.etapa.bg }}; color:{{ r.etapa.fg }}; white-space:nowrap; line-height:1.4">{{ r.etapa.txt }}</span></sc-if><span style="min-width:0; font-size:11px; color:#6F6867; letter-spacing:.03em; line-height:1.45; text-wrap:pretty">{{ r.prop }}</span></span>
                 </span>
                 <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; align-self:center">
                   <span style="font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
@@ -3256,7 +3256,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-17j";
+  BUILD = "2026-10-18a";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -6099,7 +6099,7 @@ class Component extends DCLogic {
         hiloNoDisponibleTexto: !resIdLog ? "No pudimos ligar este mensaje a una reserva o consulta de Hospitable; se muestra solo este intercambio." : /^inq:/.test(resIdLog) ? "Consulta sin reserva. No se pudo traer el hilo de Hospitable; se muestra este intercambio." : "No se pudo traer la conversación de Hospitable. Se muestra este intercambio.",
         hayBorrador: !!(l.respuesta && !enviado), borrador: l.respuesta || "", borradorLabel: "No se envió",
         burbujaBorde: "1px solid " + (enviado ? "rgba(233,130,106,.5)" : "#D8D4CE"),
-        fecha: fmtDia(tsLog || l.fecha) + " " + (tsLog ? fmtHora(tsLog) : ""), propiedad: propiedad || "Propiedad sin nombre",
+        fecha: fmtDia(tsLog || l.fecha) + " " + (tsLog ? fmtHora(tsLog) : ""), propiedad: propiedad || "Propiedad por confirmar",
         huesped: huesped, iniciales: ini,
         hayEstadia: !!ci, estadia: ci && co ? ci + "\u00a0–\u00a0" + co : ci,
         hayCodigo: !!l.codigo, codigo: l.codigo || "",
@@ -6251,7 +6251,7 @@ class Component extends DCLogic {
       var item = {
         k: k, ts: c.ts, rk: pideHumano ? 0 : esRojo ? 1 : esAmarillo ? 2 : 3, pideHumano: pideHumano, _nv: esRojo ? "ROJO" : esAmarillo ? "AMARILLO" : "VERDE",
         color: color, tag: tag, tagBg: tagBg, tagFg: tagFg, tiempo: (c.esCola ? "Esperando " : "Hace ") + mins(c.ts),
-        huesped: c.huesped, propiedad: c.propiedad || "Propiedad sin nombre", filas: filas,
+        huesped: c.huesped, propiedad: c.propiedad || "Propiedad por confirmar", filas: filas,
         irA: abrir, responder: abrir,
         descartar: function () { self.briefDescartar(k); },
         verUltimo: verUlt, ultimoLabel: verUlt ? "Ocultar cierre" : "Último mensaje", ultimoBg: verUlt ? "#F5F3F0" : "#FFFFFF",
@@ -6489,6 +6489,24 @@ class Component extends DCLogic {
     var abiertosRes = gruposRes.filter(function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || g.frags[0].esCola); });
     this._gruposTodos = gruposTodos;
     var propDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return String((ib && ib.propiedad) || t.propRaw || "").trim(); };
+    /* Etapa de la estadía para la etiqueta del listado: Inquiry · Check-in hoy/mañana/en N días · Hospedado · Checkout hoy · Checked out. */
+    self._etapa = function (key, ib) {
+      ib = ib || inboxPor[key] || {};
+      var inq = String(key || "").indexOf("inq:") === 0 || /consulta|inquiry/i.test(ib.tipo || "");
+      if (inq) return { txt: "Inquiry", bg: "rgba(59,102,145,.12)", fg: "#3B6691" };
+      if (String(key || "").indexOf("wa:") === 0 || String(key || "").indexOf("op:") === 0 || !ib.checkin) return null;
+      var d0 = new Date(); d0.setHours(0, 0, 0, 0);
+      var dia = function (x) { var m = String(x || "").match(/(\d{4})-(\d\d)-(\d\d)/); return m ? Math.round((new Date(+m[1], +m[2] - 1, +m[3]) - d0) / 86400000) : null; };
+      var ci = dia(ib.checkin), co = dia(ib.checkout);
+      if (ci == null) return null;
+      var N = { bg: "#F5F3F0", fg: "#6F6867" }, P = { bg: "rgba(233,130,106,.14)", fg: "#B54D36" }, V = { bg: "rgba(61,107,82,.14)", fg: "#3d6b52" };
+      if (ci > 1) return Object.assign({ txt: "Check-in en " + ci + " días" }, N);
+      if (ci === 1) return Object.assign({ txt: "Check-in mañana" }, P);
+      if (ci === 0) return Object.assign({ txt: "Check-in hoy" }, P);
+      if (co != null && co === 0) return Object.assign({ txt: "Checkout hoy" }, P);
+      if (co != null && co < 0) return Object.assign({ txt: "Checked out" }, N);
+      return Object.assign({ txt: "Hospedado" }, V);
+    };
     var estadiaDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; if (t.estadia) return t.estadia; return ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : ""; };
     var fotoDe = function (g) { var ib = inboxPor[g.key]; return ib && /^https?:/.test(ib.foto || "") ? ib.foto : ""; };
     var nombreDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped"; };
@@ -6530,7 +6548,7 @@ class Component extends DCLogic {
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
       var atnL = atnG(g); if (!atnL && pr < 2 && !t.esCola) pr = 2.5;
       return { ...canalVM(g), gk: g.key, atn: atnL, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
-        propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), hace: haceDe(tsG(g)), texto: texto, dots: dots,
+        propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), etapa: self._etapa(g.key) || { txt: "" }, hayEtapa: !!self._etapa(g.key), hace: haceDe(tsG(g)), texto: texto, dots: dots,
         titulo: g.resuelto ? (PASADO[tema] || tema) : tema,
         txtFg: pide ? "#B54D36" : "#3E3F3F", txtPeso: pide ? "600" : "400", estado: est, tagBg: bg, tagFg: fg,
         bg: st.selG === g.key ? "#F5F3F0" : "#FFFFFF",
@@ -6672,6 +6690,7 @@ class Component extends DCLogic {
         if (urg) E = ["Urgente", "#C0392B", "#FFFFFF", "#C0392B"]; else if (necEq) E = ["Necesita equipo", "#B54D36", "#FFFFFF", "#E9826A"]; else if (sinR) E = ["Sin responder", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"];
         var atn = urg || necEq || sinR;
         return { ...(self._canalVM ? self._canalVM(g) : {}), gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
+          etapa: (self._etapa && self._etapa(g.key, ib)) || { txt: "" }, hayEtapa: !!(self._etapa && self._etapa(g.key, ib)),
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
           clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "",

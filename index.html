@@ -736,6 +736,133 @@
 </sc-if>
 
 <sc-if value="{{ enCuenta }}" hint-placeholder-val="{{ false }}">
+    <sc-if value="{{ iaAbierto }}" hint-placeholder-val="{{ false }}">
+      <div role="dialog" aria-label="Consumo de IA" style="position:fixed; inset:0; z-index:202; background:#FAFAFA; display:flex; flex-direction:column; animation:sa-fade .24s cubic-bezier(.22,.61,.36,1) backwards">
+        <div style="display:flex; align-items:center; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 16px 10px; width:100%; max-width:760px; margin:0 auto; box-sizing:border-box">
+          <button onClick="{{ iaCerrar }}" aria-label="Cerrar" style="width:44px; height:44px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; flex-shrink:0" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+            <span style="font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Consumo de IA</span>
+            <span style="font-size:13.5px; font-weight:600; color:#3E3F3F">{{ iaSubtitulo }}</span>
+          </div>
+          <button onClick="{{ iaRecargar }}" aria-label="Actualizar" style="width:44px; height:44px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer; flex-shrink:0" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="refresh" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+        </div>
+        <div style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch">
+          <div style="width:100%; max-width:760px; margin:0 auto; padding:8px 16px calc(32px + env(safe-area-inset-bottom)); box-sizing:border-box; display:flex; flex-direction:column; gap:20px">
+            <div role="tablist" aria-label="Periodo" style="display:flex; gap:4px; background:#F5F3F0; border-radius:999px; padding:4px; align-self:flex-start">
+              <sc-for list="{{ iaPeriodos }}" as="p" hint-placeholder-count="3">
+                <button onClick="{{ p.pick }}" role="tab" aria-selected="{{ p.on }}" style="min-height:40px; border:none; border-radius:999px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; background: {{ p.bg }}; color: {{ p.fg }}">{{ p.label }}</button>
+              </sc-for>
+            </div>
+            <sc-if value="{{ iaCargando }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; flex-direction:column; gap:12px"><span style="height:132px; border-radius:28px; background:#F5F3F0"></span><span style="height:72px; border-radius:14px; background:#F5F3F0"></span><span style="height:72px; border-radius:14px; background:#F5F3F0"></span></div>
+            </sc-if>
+            <sc-if value="{{ iaHayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px; line-height:1.55; color:#B54D36">{{ iaError }}</span></sc-if>
+            <sc-if value="{{ iaListo }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; gap:20px">
+                <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; padding:24px; display:flex; flex-direction:column; gap:16px; box-shadow:0 4px 16px rgba(62,63,63,.05)">
+                  <div style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Estimado · {{ iaPeriodoTxt }}</span>
+                    <span style="font-size:clamp(34px,8vw,48px); font-weight:500; letter-spacing:.02em; line-height:1; color:#3E3F3F; font-variant-numeric:tabular-nums">{{ iaTotal }}</span>
+                    <span style="font-size:12.5px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums">{{ iaTotalSub }}</span>
+                  </div>
+                  <sc-if value="{{ iaHayFactura }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #EAE6E0; padding-top:14px">
+                      <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
+                      <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F; text-wrap:pretty">{{ iaFacturaTxt }}</span>
+                    </div>
+                  </sc-if>
+                  <div aria-hidden="true" style="display:flex; align-items:flex-end; gap:2px; height:64px">
+                    <sc-for list="{{ iaDiasBar }}" as="b" hint-placeholder-count="14">
+                      <span title="{{ b.tip }}" style="flex:1; min-width:2px; border-radius:3px 3px 0 0; height: {{ b.h }}; background: {{ b.bg }}"></span>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums"><span>{{ iaDiaIni }}</span><span>Hoy</span></div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px">
+                  <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Por app</span>
+                  <sc-if value="{{ iaSinDatos }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px; line-height:1.55; color:#6F6867; text-align:center; padding:16px 0">Todavía no hay consumo registrado en este periodo. ALMA empieza a registrar desde que se implementa esta versión.</span></sc-if>
+                  <sc-for list="{{ iaApps }}" as="a" hint-placeholder-count="0">
+                    <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; overflow:hidden">
+                      <button onClick="{{ a.toggle }}" aria-expanded="{{ a.abierto }}" style="width:100%; display:flex; flex-direction:column; gap:8px; padding:14px 16px; border:none; background:transparent; cursor:pointer; font-family:inherit; text-align:left; color:#3E3F3F" style-hover="background:#FAFAFA">
+                        <span style="display:flex; align-items:baseline; gap:10px; width:100%">
+                          <span style="font-size:15px; font-weight:600">{{ a.nombre }}</span>
+                          <span style="font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums">{{ a.meta }}</span>
+                          <span style="margin-left:auto; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums">{{ a.usd }}</span>
+                          <span aria-hidden="true" style="display:grid; transition:transform .18s cubic-bezier(.22,.61,.36,1); transform: {{ a.chev }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="14" color="#6F6867" hint-size="14px,14px"></x-import></span>
+                        </span>
+                        <span style="display:block; height:6px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; width: {{ a.pct }}; background: {{ a.barra }}"></span></span>
+                      </button>
+                      <sc-if value="{{ a.abierto }}" hint-placeholder-val="{{ false }}">
+                        <div style="border-top:1px solid #EAE6E0; display:flex; flex-direction:column">
+                          <sc-for list="{{ a.funciones }}" as="f" hint-placeholder-count="0">
+                            <div style="border-bottom:1px solid #F5F3F0">
+                              <button onClick="{{ f.toggle }}" aria-expanded="{{ f.abierto }}" style="width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; row-gap:3px; padding:12px 16px 12px 24px; border:none; background:transparent; cursor:pointer; font-family:inherit; text-align:left; color:#3E3F3F" style-hover="background:#FAFAFA">
+                                <span style="font-size:13.5px; font-weight:500; line-height:1.35">{{ f.nombre }}</span>
+                                <span style="font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right">{{ f.usd }}</span>
+                                <span style="font-size:11px; letter-spacing:.03em; color:#6F6867; font-variant-numeric:tabular-nums; line-height:1.45">{{ f.meta }}</span>
+                                <span style="font-size:11px; letter-spacing:.03em; color:#6F6867; font-variant-numeric:tabular-nums; text-align:right">{{ f.pct }}</span>
+                              </button>
+                              <sc-if value="{{ f.abierto }}" hint-placeholder-val="{{ false }}">
+                                <div style="padding:2px 16px 14px 24px; display:flex; flex-direction:column; gap:6px">
+                                  <span style="font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Últimas llamadas</span>
+                                  <sc-for list="{{ f.llamadas }}" as="l" hint-placeholder-count="0">
+                                    <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; row-gap:2px; background:#FAFAFA; border-radius:10px; padding:8px 10px">
+                                      <span style="font-size:12px; line-height:1.45; color:#3E3F3F; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ l.titulo }}</span>
+                                      <span style="font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right">{{ l.usd }}</span>
+                                      <span style="font-size:10.5px; letter-spacing:.03em; color:#6F6867; font-variant-numeric:tabular-nums">{{ l.meta }}</span>
+                                      <span style="font-size:10.5px; letter-spacing:.03em; text-align:right; color: {{ l.okFg }}">{{ l.estado }}</span>
+                                    </div>
+                                  </sc-for>
+                                </div>
+                              </sc-if>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px">
+                  <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Facturado por Anthropic · por llave de API</span>
+                  <sc-if value="{{ iaHayLlaves }}" hint-placeholder-val="{{ false }}">
+                    <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; display:flex; flex-direction:column">
+                      <sc-for list="{{ iaLlaves }}" as="k" hint-placeholder-count="0">
+                        <div style="display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:12px; row-gap:3px; padding:12px 16px; border-bottom:1px solid #F5F3F0">
+                          <span style="font-size:13.5px; font-weight:500">{{ k.nombre }}</span>
+                          <span style="font-size:13.5px; font-weight:600; font-variant-numeric:tabular-nums; text-align:right">{{ k.usd }}</span>
+                          <span style="font-size:11px; letter-spacing:.03em; color:#6F6867; font-variant-numeric:tabular-nums">{{ k.meta }}</span>
+                          <span style="font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; text-align:right; color: {{ k.appFg }}">{{ k.app }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ iaSinLlaveAdmin }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:12.5px; line-height:1.6; color:#6F6867; text-wrap:pretty">{{ iaLlaveTxt }}</span>
+                  </sc-if>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:10px">
+                  <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Dónde usa IA cada app</span>
+                  <sc-for list="{{ iaFuentes }}" as="fu" hint-placeholder-count="6">
+                    <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:4px">
+                      <div style="display:flex; align-items:center; gap:10px">
+                        <span style="font-size:13.5px; font-weight:600">{{ fu.nombre }}</span>
+                        <span style="font-size:11px; color:#6F6867">{{ fu.donde }}</span>
+                        <span style="margin-left:auto; flex-shrink:0; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:4px 10px; background: {{ fu.bg }}; color: {{ fu.fg }}">{{ fu.estado }}</span>
+                      </div>
+                      <span style="font-size:12px; line-height:1.55; color:#3E3F3F; text-wrap:pretty">{{ fu.que }}</span>
+                      <span style="font-size:11.5px; line-height:1.5; color:#6F6867">{{ fu.como }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-if>
 <div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
   <div style="max-width:680px; margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:20px">
     <button onClick="{{ volver }}" class="alma-volver" style="min-height:40px; align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
@@ -745,6 +872,17 @@
       <p style="margin:4px 0 0; font-size:12.5px; line-height:1.6; color:#6F6867; letter-spacing:.02em">Así te vemos y así te escribimos.</p>
     </div>
 
+    <sc-if value="{{ esPrincipal }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ iaAbrir }}" style="display:flex; align-items:center; gap:16px; width:100%; text-align:left; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; padding:20px 24px; cursor:pointer; font-family:inherit; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1)" style-hover="transform:translateY(-2px); box-shadow:0 12px 40px rgba(62,63,63,.07)" style-active="transform:scale(.98)">
+        <span aria-hidden="true" style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; flex-shrink:0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></span>
+        <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Consumo de IA · solo admin principal</span>
+          <span style="font-size:15px; font-weight:600; line-height:1.3">En qué se van los tokens de cada app</span>
+          <span style="font-size:12px; line-height:1.5; color:#6F6867">Por app, por función y por conversación.</span>
+        </span>
+        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronRight" size="18" color="#6F6867" hint-size="18px,18px"></x-import>
+      </button>
+    </sc-if>
     <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; padding:28px; display:flex; flex-direction:column; gap:20px">
       <div style="display:flex; align-items:center; gap:18px">
         <button onClick="{{ pedirFoto }}" title="Cambiar foto" style="flex-shrink:0; width:72px; height:72px; border-radius:999px; border:1px solid #D8D4CE; background:#F5F3F0; overflow:hidden; cursor:pointer; padding:0; display:grid; place-items:center; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:24px; color:#6F6867">
@@ -3272,7 +3410,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-19c";
+  BUILD = "2026-10-19f";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -4200,19 +4338,41 @@ class Component extends DCLogic {
       rv2Alma: function () { var it = Sh; if (!it) return; self.setState({ rv2Sheet: null, vista: "alma", mejAbierto: true, mejoraClave: "REDACTOR", mejoraTexto: pedidoAlma(it), mejoraPropuesta: null, mejoraNota: "" }); }
     };
   }
-  /* Riesgo de mal review: 1 (muy bajo) → 5 (muy alto). Señales: nivel de ALMA, quejas y tono del huésped, daños, si quedó resuelta. */
+  /* Riesgo de mal review: 1 (muy bajo) → 5 (muy alto). Se mide la satisfacción por etapa de la estadía
+     (llegada · estadía · salida), no por un solo mal momento: quien se queja en varias etapas es riesgoso; quien tuvo
+     un problema al llegar y después no volvió a quejarse (o agradeció) casi nunca deja un mal review. No news, good news. */
   riesgoConv(g, ib, hl) {
-    var t = (g && g.frags && g.frags[0]) || {}, p = 0, mot = [];
-    if (t.nivel === "ROJO" || t.nivelLabel === "Urgente") { p += 3; mot.push("Hubo un urgente"); } else if (t.nivel === "AMARILLO" || t.nivelLabel === "Necesita equipo") { p += 1; mot.push("Necesitó al equipo"); }
-    var txt = ((hl && hl.lista) || []).filter(function (m) { return m.tipo === "guest"; }).map(function (m) { return m.texto || ""; }).join(" \n ") || String((ib && ib.ultimo_de === "guest" && ib.ultimo_texto) || t.pregunta || "");
-    var Q = /queja|molest|decepcion|inaceptable|terrible|horrible|p[eé]sim|sucio|sucia|reembolso|refund|disappoint|unacceptable|worst|awful|dirty|not happy|no estoy content|mala experiencia|bad experience|review|rese[ñn]a|calificaci/i;
-    var D = /se (rompi|quebr|da[ñn])|roto|rota|da[ñn]ad|fuga|gotera|no funciona|no sirve|broken|not working|leak/i;
-    var N = (txt.match(new RegExp(Q.source, "gi")) || []).length;
-    if (N >= 3) { p += 3; mot.push("Varias quejas del huésped"); } else if (N) { p += 2; mot.push("El huésped expresó molestia"); }
-    if (D.test(txt)) { p += 1; mot.push("Reportó algo dañado o sin funcionar"); }
-    if (/!!|\?\?|ya van|otra vez|todav[ií]a no|still not|again/i.test(txt)) { p += 1; mot.push("Tono impaciente"); }
-    if (g && g.resuelto) { p -= 1; } if (!mot.length) mot.push("Sin señales de riesgo en la conversación");
-    var n = p >= 6 ? 5 : p >= 4 ? 4 : p >= 2 ? 3 : p >= 1 ? 2 : 1;
+    var t = (g && g.frags && g.frags[0]) || {}, mot = [];
+    var NEG = /queja|molest|decepcion|inaceptable|terrible|horrible|p[eé]sim|sucio|sucia|reembolso|refund|disappoint|unacceptable|worst|awful|dirty|not happy|no estoy content|mala experiencia|bad experience|no funciona|no sirve|broken|not working|se (rompi|quebr|da[ñn])|fuga|gotera|ruido|noisy|no hay agua|sin agua|no (nos )?dejan entrar|no puedo entrar|can'?t get in/i;
+    var FUERTE = /reembolso|refund|inaceptable|unacceptable|terrible|horrible|p[eé]sim|worst|awful|estafa|scam|nunca m[aá]s|never again|(mal|bad|negative) (review|rese[ñn]a)|calificaci[oó]n baja/i;
+    var POS = /gracias|thank|perfecto|perfect|excelente|excellent|genial|great|nos encant|love|lovely|amazing|incre[ií]ble|todo bien|all good|muy (bonito|lindo|c[oó]modo)|beautiful|disfrut|enjoy/i;
+    var IMP = /!!|\?\?|ya van|otra vez|todav[ií]a no|still not|again/i;
+    var lista = ((hl && hl.lista) || []).filter(function (m) { return m.tipo === "guest" && m.texto; });
+    if (!lista.length) { var t0 = String((ib && ib.ultimo_de === "guest" && ib.ultimo_texto) || t.pregunta || ""); if (t0) lista = [{ texto: t0, created: (ib && ib.ultimo_guest_ts) || "" }]; }
+    var ci = String((ib && ib.checkin) || t.checkin || "").slice(0, 10), co = String((ib && ib.checkout) || t.checkout || "").slice(0, 10);
+    var dia = function (x) { var d = new Date(x); return isNaN(d) ? "" : d.toLocaleDateString("en-CA", { timeZone: "America/Guatemala" }); };
+    var etapa = function (m) { var d = dia(m.created); if (!d || !ci) return "estadia"; if (d <= ci) return "llegada"; if (co && d >= co) return "salida"; return "estadia"; };
+    var E = { llegada: { neg: 0, pos: 0, fuerte: 0, imp: 0, n: 0 }, estadia: { neg: 0, pos: 0, fuerte: 0, imp: 0, n: 0 }, salida: { neg: 0, pos: 0, fuerte: 0, imp: 0, n: 0 } };
+    lista.forEach(function (m) { var e = E[etapa(m)], x = String(m.texto); e.n++; if (NEG.test(x)) e.neg++; if (FUERTE.test(x)) e.fuerte++; if (POS.test(x) && !NEG.test(x)) e.pos++; if (IMP.test(x)) e.imp++; });
+    if (t.nivel === "ROJO" || t.nivelLabel === "Urgente") { var eu = E[etapa({ created: t.recibido || t.fecha || (ib && ib.ultimo_guest_ts) || "" })]; eu.neg = Math.max(eu.neg, 1); }
+    var orden = ["llegada", "estadia", "salida"], NOM = { llegada: "Llegada", estadia: "Estadía", salida: "Salida" };
+    var conNeg = orden.filter(function (k) { return E[k].neg > 0; }), fuertes = orden.reduce(function (a, k) { return a + E[k].fuerte; }, 0);
+    var ultimaConMsg = orden.filter(function (k) { return E[k].n > 0; }).pop() || "";
+    var negUltima = ultimaConMsg && E[ultimaConMsg].neg > E[ultimaConMsg].pos;
+    var posDespues = conNeg.length ? orden.slice(orden.indexOf(conNeg[conNeg.length - 1]) + 1).some(function (k) { return E[k].pos > 0; }) || (E[conNeg[conNeg.length - 1]].pos > 0 && !negUltima) : false;
+    var n;
+    if (!conNeg.length) n = 1;
+    else if (conNeg.length >= 3 || (conNeg.length >= 2 && fuertes >= 2)) n = 5;
+    else if (conNeg.length === 2) n = negUltima ? 4 : 3;
+    else if (fuertes && negUltima && !(g && g.resuelto)) n = 4;
+    else if (negUltima && !(g && g.resuelto)) n = 3;
+    else n = 2;                                   // un solo mal momento, ya pasado: después silencio o agradecimiento
+    if (n >= 3 && posDespues) n--;
+    if (n >= 3 && orden.some(function (k) { return E[k].imp > 1; })) n = Math.min(5, n + 1);
+    orden.forEach(function (k) { var e = E[k]; if (!e.n) return; mot.push(NOM[k] + ": " + (e.neg ? (e.fuerte ? "queja fuerte" : "molestia") + (e.pos ? " · también agradeció" : "") : e.pos ? "agradeció" : "sin quejas")); });
+    if (conNeg.length === 1 && !negUltima) mot.push("Tuvo un problema y después no volvió a quejarse: no news, good news");
+    if (conNeg.length >= 2) mot.push("Se quejó en " + conNeg.length + " etapas distintas");
+    if (!mot.length) mot.push("Sin señales de riesgo en la conversación");
     return { n: n, label: ["Muy bajo", "Bajo", "Medio", "Alto", "Muy alto"][n - 1], motivos: mot };
   }
   hoyNorm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim(); }
@@ -5221,6 +5381,56 @@ class Component extends DCLogic {
     });
   }
   aplicar(pr) { var self = this; return this._aplicar(pr).then(function (r) { if (r && r.ok && !r.local) setTimeout(function () { self.mejHistCargar(); }, 300); return r; }); }
+  iaCargar(dias) {
+    var self = this; dias = dias || this.state.iaDias || 30;
+    if (!window.ALMA || !ALMA.hasApi() || !ALMA.usoIA) { this.setState({ iaData: { error: "Conecta el Apps Script de ALMA para ver el consumo." } }); return; }
+    var prev = (this.state.iaData || {}).d || null;
+    this.setState({ iaData: { cargando: true, d: prev } });
+    ALMA.usoIA(dias).then(function (r) { self.setState({ iaData: r && r.ok ? { d: r } : { d: prev, error: "No pude leer el consumo" + (r && r.error ? " (" + r.error + ")" : "") + "." } }); })
+      .catch(function () { self.setState({ iaData: { d: prev, error: "No pude leer el consumo." } }); });
+  }
+  iaVals(esPrincipal) {
+    var self = this, st = this.state, ab = !!st.iaAbierto && esPrincipal, D = st.iaData || {}, d = D.d, dias = st.iaDias || 30;
+    var usd = function (x) { x = Number(x) || 0; return "US$ " + (x === 0 ? "0.00" : x < 0.01 ? x.toFixed(4) : x < 1 ? x.toFixed(3) : x.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })); };
+    var tk = function (n) { n = Number(n) || 0; return n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + " M" : n >= 1e3 ? Math.round(n / 1e3) + " k" : String(n); };
+    var NOM = { ALMA: "ALMA · hub", EPI: "EPI", Hola: "Hola", mi: "mi", Docs: "Docs", Grow: "Grow" };
+    var fmtT = function (x) { var t = new Date(x); return isNaN(t) ? "" : t.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }) + " " + t.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); };
+    var tot = d ? d.total : { usd: 0, inp: 0, out: 0, n: 0 }, maxApp = d && d.apps.length ? d.apps[0].usd || 0 : 0;
+    var ant = d && d.anthropic, maxD = d ? Math.max.apply(null, d.porDia.map(function (x) { return x.usd; }).concat([0])) : 0;
+    var toggle = function (k, v) { return function () { self.setState(function (s) { var r = {}; r[k] = s[k] === v ? null : v; return r; }); }; };
+    return {
+      iaAbierto: ab, iaAbrir: function () { self.setState({ iaAbierto: true }); self.iaCargar(); }, iaCerrar: function () { self.setState({ iaAbierto: false }); }, iaRecargar: function () { self.iaCargar(); },
+      iaSubtitulo: d ? "Últimos " + dias + " días · " + usd(tot.usd) : "Cargando…",
+      iaPeriodos: [[7, "7 días"], [30, "30 días"], [90, "90 días"]].map(function (p) { var on = dias === p[0]; return { label: p[1], on: on, bg: on ? "#3E3F3F" : "transparent", fg: on ? "#FAFAFA" : "#6F6867", pick: function () { self.setState({ iaDias: p[0], iaApp: null, iaFn: null }); self.iaCargar(p[0]); } }; }),
+      iaCargando: !!(D.cargando && !d), iaHayError: !!D.error, iaError: D.error || "", iaListo: !!d,
+      iaPeriodoTxt: "últimos " + dias + " días", iaTotal: usd(tot.usd),
+      iaTotalSub: tk(tot.inp) + " tokens de entrada · " + tk(tot.out) + " de salida · " + (tot.n || 0).toLocaleString("en-US") + " llamadas" + (tot.err ? " · " + tot.err + " con error" : ""),
+      iaHayFactura: !!(ant && ant.ok), iaFacturaTxt: ant && ant.ok ? "Anthropic facturó " + usd(ant.usd) + " en el mismo periodo (todas las apps, una sola llave). Si es mayor que lo registrado, alguna app todavía no registra su consumo." : "",
+      iaDiasBar: d ? d.porDia.map(function (x, i, arr) { var hoy = i === arr.length - 1; return { h: (maxD ? Math.max(2, Math.round(x.usd / maxD * 64)) : 2) + "px", bg: hoy ? "#E9826A" : x.usd ? "#938B8A" : "#EAE6E0", tip: x.d + " · " + usd(x.usd) }; }) : [],
+      iaDiaIni: d && d.porDia.length ? new Date(d.porDia[0].d + "T12:00:00").toLocaleDateString("es-GT", { day: "numeric", month: "short" }) : "",
+      iaSinDatos: !!d && !d.apps.length,
+      iaApps: d ? d.apps.map(function (a, i) {
+        var abA = st.iaApp === a.app;
+        return { nombre: NOM[a.app] || a.app, usd: usd(a.usd), meta: tk(a.inp + a.out) + " tokens · " + a.n + " llamadas", abierto: abA, chev: abA ? "rotate(180deg)" : "none",
+          pct: (maxApp ? Math.max(2, Math.round(a.usd / maxApp * 100)) : 0) + "%", barra: i === 0 ? "#E9826A" : "#938B8A", toggle: toggle("iaApp", a.app),
+          funciones: abA ? a.funciones.map(function (f) {
+            var k = a.app + "|" + f.funcion, abF = st.iaFn === k, mods = Object.keys(f.modelos || {}).map(function (m) { return m.replace(/^claude-/, "").replace(/-\d{8}$/, ""); }).join(", ");
+            return { nombre: f.funcion, usd: usd(f.usd), pct: a.usd ? Math.round(f.usd / a.usd * 100) + "% de la app" : "",
+              meta: f.n + " llamadas · " + tk(Math.round((f.inp + f.out) / Math.max(1, f.n))) + " tokens por llamada" + (mods ? " · " + mods : "") + (f.err ? " · " + f.err + " con error" : ""),
+              abierto: abF, toggle: toggle("iaFn", k),
+              llamadas: abF ? (f.ultimas || []).map(function (l) { return { titulo: [l.detalle, l.ref].filter(Boolean).join(" · ") || "Sin conversación asociada", usd: usd(l.usd), meta: fmtT(l.ts) + " · " + tk(l.inp) + " entrada · " + tk(l.out) + " salida", estado: l.ok ? "OK" : "Error", okFg: l.ok ? "#3d6b52" : "#C0392B" }; }) : [] };
+          }) : [] };
+      }) : [],
+      iaHayLlaves: !!(ant && ant.ok && ant.llaves && ant.llaves.length),
+      iaLlaves: ant && ant.ok ? (ant.llaves || []).map(function (k) { return { nombre: k.nombre, usd: usd(k.usd), meta: tk(k.inp) + " entrada · " + tk(k.out) + " salida", app: (ant.llaves || []).length === 1 ? "Todas las apps" : k.app ? (NOM[k.app] || k.app) : "Sin asignar", appFg: (ant.llaves || []).length === 1 || k.app ? "#3E3F3F" : "#B54D36" }; }) : [],
+      iaSinLlaveAdmin: !!d && !(ant && ant.ok),
+      iaLlaveTxt: ant && ant.sinLlave ? "Para ver lo que Anthropic factura de verdad, crea una Admin API key en console.anthropic.com (Settings → Admin keys) y agrégala en el Apps Script de ALMA como ANTHROPIC_ADMIN_KEY. Como todas las apps usan la misma llave, Anthropic da el total; el reparto por app y por función sale del registro de cada app." : "No pude leer la facturación de Anthropic" + (ant && ant.error ? " (" + ant.error + ")" : "") + ".",
+      iaFuentes: d ? (d.fuentes || []).map(function (f) {
+        var sinIA = /^(mi|Docs|Grow)$/.test(f.app), E = f.registrando ? ["Registrando", "rgba(61,107,82,.14)", "#3d6b52"] : sinIA ? ["Sin consumo", "#F5F3F0", "#6F6867"] : ["Falta conectar", "rgba(242,117,90,.16)", "#B54D36"];
+        return { nombre: f.nombre, donde: f.donde, que: f.que, como: f.registrando ? "Registrando en este periodo." : f.como, estado: E[0], bg: E[1], fg: E[2] };
+      }) : []
+    };
+  }
   mejHistCargar() {
     var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.mejoras) return;
     var prev = (this.state.mejSrv || {}).lista || null;
@@ -5472,9 +5682,10 @@ class Component extends DCLogic {
     }).sort(function (x, y) { return x.peso - y.peso || (new Date(x.r.proximo || x.r.recibido) - new Date(y.r.proximo || y.r.recibido)); });
     var textosAlma = {};
     var normT = function (t) { return String(t || "").replace(/\s+/g, " ").trim(); };
-    var notasRes = {};
+    var notasRes = {}, enviadosRes = {};
     (a.log || []).forEach(function (l) {
       var ac = String(l.accion || ""), kL = "l" + String(l._fila || "");
+      if (l.respuesta && l.reservation_id && /^ENVIADO|contención|EMERGENCIA/i.test(ac)) { var tsE = Date.parse(String(l.fecha || "").replace(" ", "T")); if (tsE && Date.now() - tsE < 6 * 3600000) (enviadosRes[l.reservation_id] = enviadosRes[l.reservation_id] || []).push({ tipo: "host", alma: true, texto: l.respuesta, created: new Date(tsE).toISOString(), _k: kL, canal: "hospitable" }); }
       if (l.respuesta && !/por el equipo|desde el hub|^NO ENVIADO|retenid|borrador/i.test(ac)) textosAlma[normT(l.respuesta)] = kL;
       if (l.respuesta && l.reservation_id && !/^ENVIADO|contención|EMERGENCIA|por el equipo/i.test(ac)) {
         var tsN = Date.parse(String(l.fecha || "").replace(" ", "T"));
@@ -5500,6 +5711,9 @@ class Component extends DCLogic {
       var hitosN = resIdN && st.almaHilos[resIdN] && st.almaHilos[resIdN].hitos;
       if (hitosN && hitosN.length) base = base.concat(hitosN);
       if (resIdN && notasRes[resIdN]) base = base.concat(notasRes[resIdN]);
+      /* Lo que ALMA envió se ve en cuanto llega al registro, aunque Hospitable aún no lo devuelva en el hilo. */
+      if (resIdN && enviadosRes[resIdN]) { var kE = function (t) { return String(t || "").toLowerCase().replace(/[^a-z0-9áéíóúñü]/g, "").slice(0, 50); }, visE = {}; base.forEach(function (m) { if (m.tipo !== "guest") visE[kE(m.texto)] = 1; });
+        var faltE = enviadosRes[resIdN].filter(function (m) { return !visE[kE(m.texto)]; }); if (faltE.length) { base = base.concat(faltE); base.sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); }); } }
       if ((hitosN && hitosN.length) || (resIdN && notasRes[resIdN])) base.sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); });
       var lista = base.filter(function (m) { return self.limpiaImg(m.texto) || (m.fotos || []).length; }).map(function (m) {
         return m.tipo !== "guest" && m.tipo !== "nota" && !m.auto && textosAlma[normT(m.texto)] ? Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] }) : m;
@@ -6421,7 +6635,7 @@ class Component extends DCLogic {
           var alto = R.n >= 4;
           c.estrellaClase = alto && !self.rvhVisto(rid) ? "sa-star-alerta" : ""; c.estrellaBg = R.n >= 3 ? "rgba(233,130,106,.12)" : "#FFFFFF"; c.estrellaBd = R.n >= 3 ? "#E9826A" : "#D8D4CE";
           /* El popup se abre solo una vez por reserva (queda guardado en el dispositivo); después, desde la estrella. */
-          if (R.n >= 3 && R.n <= 4 && !self.rvhVisto(rid) && c.key === st.abrirAuto && !(self._rvhAuto || (self._rvhAuto = {}))[rid]) { self._rvhAuto[rid] = 1; setTimeout(function () { c.verRiesgo(); self.setState({ abrirAuto: null }); }, 600); }
+          if (R.n >= 3 && !self.rvhVisto(rid) && c.key === st.abrirAuto && !(self._rvhAuto || (self._rvhAuto = {}))[rid]) { self._rvhAuto[rid] = 1; setTimeout(function () { c.verRiesgo(); self.setState({ abrirAuto: null }); }, 600); }
         })(c);
         c.copiarCodigo = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.copiar(c.codigo, "Código " + c.codigo + " copiado"); };
         c.hayHiloLista = (c.hilo || []).length > 0;
@@ -6651,7 +6865,7 @@ class Component extends DCLogic {
           if (this._apTry === 3) setTimeout(function () { try { localStorage.setItem("sa_m_vista", "lista"); } catch (e) {} self.setState({ mVista: "lista", convOrden: "Cronológico", logFiltro: "Todo", convVista: "", convSolo: "", convCanal: "", convBusca: "", logQuien: "Todos", logResp: "Todas" }); }, 0);
           else if (this._apTry > 8) setTimeout(function () { self.setState({ abrirPend: null }); self.aviso("No encontramos esa conversación en los últimos días."); }, 0);
         }
-      } else { var tp = grupos[jp].frags[0]; this._apTry = 0; setTimeout(function () { self.setState({ abrirPend: null, selG: null }); self.convAbrir(tp.key, true, tp.cargarHilo); self.convIrA(jp); }, 0); }
+      } else { var tp = grupos[jp].frags[0]; this._apTry = 0; setTimeout(function () { self.setState({ abrirPend: null, selG: null }); /* se fija por identidad: si la lista se reordena mientras carga (p. ej. el chat operativo), no abre la conversación vecina */ self._convSelKey = grupos[jp].key; self._convIdxPrev = jp; self._convSelG = grupos[jp]; self.convAbrir(tp.key, true, tp.cargarHilo); self.convIrA(jp); }, 0); }
     }
     /* La conversación abierta se fija por identidad: si cambia de estado o de orden, la vista la sigue
        (y si sale del filtro, se queda visible hasta que el usuario navegue). */
@@ -7817,6 +8031,7 @@ class Component extends DCLogic {
       rolLabel: esPrincipal ? "Admin principal" : "Admin secundario",
       esPrincipal: esPrincipal,
       esSecundario: !esPrincipal,
+      ...this.iaVals(esPrincipal),
       saludo: (h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches") + ", " + nombre,
       /* Cambia con el día, no con cada render: una frase que se repite todo el
          día se vuelve parte de la casa; una que parpadea, ruido. */

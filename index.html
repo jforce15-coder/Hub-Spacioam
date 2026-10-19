@@ -1726,37 +1726,6 @@
                       <button onClick="{{ c.anotar }}" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:7px 12px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">{{ c.anotarLabel }}</button>
                       </div>
                     </div>
-                  <sc-if value="{{ c.anotando }}" hint-placeholder-val="{{ false }}">
-                    <div style="padding:0 16px 16px; display:flex; flex-direction:column; gap:10px">
-                      <div style="background:rgba(233,130,106,.14); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
-                        <div style="display:flex; align-items:center; gap:8px">
-                          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="13" hint-size="13px,13px"></x-import>
-                          <span style="font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Anotación · se vuelve mejora</span>
-                        </div>
-                        <textarea defaultValue="{{ c.anotacion }}" data-sync="1" data-v="{{ c.anotacion }}" onChange="{{ c.setAnotacion }}" rows="2" placeholder="Qué debió hacer distinto aquí. Ej.: aquí no debía dar el parqueo porque la reserva no estaba confirmada" style="border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
-                          <button onClick="{{ c.prepararDesdeLog }}" style="min-height:40px; border:none; border-radius:999px; background:#3E3F3F; padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-hover="filter:brightness(.94)">{{ c.prepararLabel }}</button>
-                          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ c.anotNota }}</span>
-                        </div>
-                        <sc-if value="{{ c.hayPropuesta }}" hint-placeholder-val="{{ false }}">
-                          <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
-                            <div style="font-size:12.5px; line-height:1.5; text-wrap:pretty"><strong style="font-weight:600">Propuesta:</strong> {{ c.propResumen }}</div>
-                            <sc-for list="{{ c.propCambios }}" as="p" hint-placeholder-count="1">
-                              <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:4px">
-                                <span style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ p.etiqueta }}</span>
-                                <sc-if value="{{ p.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#6F6867; text-decoration:line-through">{{ p.antes }}</span></sc-if>
-                                <span style="font-size:12.5px; line-height:1.5">{{ p.despues }}</span>
-                              </div>
-                            </sc-for>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap">
-                              <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" size="sm" onClick="{{ c.aplicarDesdeLog }}" hint-size="auto,38px">Aplicar a ALMA</x-import>
-                              <button onClick="{{ c.descartarDesdeLog }}" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:8px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Descartar</button>
-                            </div>
-                          </div>
-                        </sc-if>
-                      </div>
-                    </div>
-                  </sc-if>
                   </sc-if>
                 </div>
               </sc-if>
@@ -2430,14 +2399,61 @@
             </div>
           </div>
         </sc-if>
-        <sc-if value="{{ hayMejorasHist }}" hint-placeholder-val="{{ false }}">
-          <div style="display:flex; flex-direction:column; gap:6px; border-top:1px solid rgba(233,130,106,.45); padding-top:12px">
-            <span style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Mejoras aplicadas</span>
-            <sc-for list="{{ mejorasHist }}" as="m" hint-placeholder-count="2">
-              <div style="font-size:11.5px; line-height:1.5; color:#3E3F3F"><span style="color:#6F6867">{{ m.cuando }} · {{ m.clave }}</span> — {{ m.resumen }}</div>
-            </sc-for>
+        <div style="display:flex; flex-direction:column; gap:10px; border-top:1px solid rgba(233,130,106,.45); padding-top:14px; position:relative">
+          <div style="display:flex; align-items:baseline; gap:10px">
+            <span style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Historial de mejoras</span>
+            <span style="margin-left:auto; font-size:11px; letter-spacing:.04em; color:#6F6867; font-variant-numeric:tabular-nums">{{ mejTotal }}</span>
           </div>
-        </sc-if>
+          <span style="font-size:12px; line-height:1.55; color:#6F6867; text-wrap:pretty">Cada mejora que aplicas queda aquí. Puedes editarla, eliminarla (se revierte en ALMA) o verificar que ALMA la esté siguiendo.</span>
+          <sc-if value="{{ mejSinApi }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#6F6867">Conecta el Apps Script para ver el historial.</span></sc-if>
+          <sc-if value="{{ mejCargando }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-direction:column; gap:8px"><span style="height:64px; border-radius:14px; background:#F5F3F0"></span><span style="height:64px; border-radius:14px; background:#F5F3F0"></span></div>
+          </sc-if>
+          <sc-if value="{{ hayMejError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; color:#B54D36">{{ mejError }}</span></sc-if>
+          <sc-if value="{{ mejVacio }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#6F6867; text-align:center; padding:12px 0">Todavía no hay mejoras aplicadas.</span></sc-if>
+          <sc-for list="{{ mejH }}" as="m" hint-placeholder-count="0">
+            <div style="background:#FFFFFF; border:1px solid #D8D4CE; border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; color:#3E3F3F">
+              <div style="display:flex; align-items:flex-start; gap:10px">
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px">
+                  <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ m.meta }}</span>
+                  <span style="font-size:13.5px; font-weight:600; line-height:1.45; text-wrap:pretty">{{ m.resumen }}</span>
+                </div>
+                <span style="flex-shrink:0; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:4px 10px; background: {{ m.estBg }}; color: {{ m.estFg }}">{{ m.estado }}</span>
+              </div>
+              <sc-if value="{{ m.hayLineas }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:6px">
+                  <sc-for list="{{ m.lineas }}" as="ln" hint-placeholder-count="1">
+                    <div style="border-left:2px solid #E9826A; padding-left:10px; display:flex; flex-direction:column; gap:3px">
+                      <sc-if value="{{ ln.hayAntes }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#6F6867; text-decoration:line-through">{{ ln.antes }}</span></sc-if>
+                      <span style="font-size:12.5px; line-height:1.55; text-wrap:pretty">{{ ln.txt }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ m.editando }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; flex-direction:column; gap:8px">
+                  <sc-for list="{{ m.edLineas }}" as="el" hint-placeholder-count="1">
+                    <textarea defaultValue="{{ el.v }}" onChange="{{ el.set }}" rows="3" style="border:1px solid #D8D4CE; border-radius:12px; background:#FAFAFA; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.5; color:#3E3F3F; outline:none; resize:vertical; width:100%; box-sizing:border-box" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+                  </sc-for>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap">
+                    <button onClick="{{ m.guardar }}" style="min-height:40px; border:none; border-radius:999px; background:#3E3F3F; padding:0 16px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#FAFAFA; cursor:pointer" style-active="transform:scale(.97)">{{ m.guardarLabel }}</button>
+                    <button onClick="{{ m.cancelar }}" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Cancelar</button>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ m.hayVer }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; line-height:1.5; color:#3E3F3F; background:#F5F3F0; border-radius:10px; padding:8px 10px; text-wrap:pretty">{{ m.verNota }}</span></sc-if>
+              <sc-if value="{{ m.verLeyendo }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; gap:6px; flex-wrap:wrap">
+                  <button onClick="{{ m.verificar }}" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; display:inline-flex; align-items:center; gap:6px" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="13" color="#3E3F3F" hint-size="13px,13px"></x-import>{{ m.verLabel }}</button>
+                  <sc-if value="{{ m.editable }}" hint-placeholder-val="{{ true }}"><button onClick="{{ m.editar }}" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer; display:inline-flex; align-items:center; gap:6px" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="pencil" size="13" color="#3E3F3F" hint-size="13px,13px"></x-import>Editar</button></sc-if>
+                  <sc-if value="{{ m.editable }}" hint-placeholder-val="{{ true }}"><button onClick="{{ m.eliminar }}" style="min-height:40px; border-radius:999px; background:transparent; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#C0392B; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border:1px solid {{ m.eliminarBd }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="trash" size="13" color="#C0392B" hint-size="13px,13px"></x-import>{{ m.eliminarLabel }}</button></sc-if>
+                  <sc-if value="{{ m.noEditable }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; line-height:1.4; color:#6F6867; align-self:center">Anterior al historial: no guardó el cambio exacto.</span></sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <sc-if value="{{ mejHayMas }}" hint-placeholder-val="{{ false }}"><button onClick="{{ mejVerMas }}" style="align-self:center; min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer">Ver todas</button></sc-if>
+        </div>
             </div>
           </div>
         </div>
@@ -2478,7 +2494,7 @@
               <span data-sello="si" aria-hidden="true" style="position:absolute; top:22px; left:20px; z-index:3; opacity:0; transform:rotate(-8deg) scale(.86); border:2px solid #3d6b52; color:#3d6b52; background:#FFFFFF; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Aplicar</span>
               <span data-sello="no" aria-hidden="true" style="position:absolute; top:22px; right:20px; z-index:3; opacity:0; transform:rotate(8deg) scale(.86); border:2px solid #C0392B; color:#C0392B; background:#FFFFFF; border-radius:999px; padding:7px 14px; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Rechazar</span>
               <span data-sello="ed" aria-hidden="true" style="position:absolute; bottom:22px; left:50%; margin-left:-56px; width:112px; text-align:center; z-index:3; opacity:0; border:2px solid #3E3F3F; color:#3E3F3F; background:#FFFFFF; border-radius:999px; padding:7px 0; font-size:12px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; pointer-events:none">Editar</span>
-              <div data-auto-scroll="1" style="flex:1; min-height:0; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:24px 22px 18px; display:flex; flex-direction:column; gap:20px; overflow-y: {{ autoOverflow }}">
+              <div data-auto-scroll="1" style="flex:1; min-height:0; overflow-x:hidden; overflow-wrap:anywhere; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:24px 22px 18px; display:flex; flex-direction:column; gap:20px; overflow-y: {{ autoOverflow }}">
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                   <span style="font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:#F5F3F0; color:#3E3F3F">{{ autoCard.claveLabel }}</span>
                   <sc-if value="{{ autoCard.haySenal }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:5px 10px; background:rgba(242,117,90,.14); color:#B54D36">{{ autoCard.senal }}</span></sc-if>
@@ -3256,7 +3272,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-18a";
+  BUILD = "2026-10-19b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3393,7 +3409,7 @@ class Component extends DCLogic {
     var sw = null;
     document.addEventListener("touchstart", function (e) {
       sw = null; var d = e.target && e.target.closest && e.target.closest('[role="dialog"]'); if (!d || e.touches.length !== 1) return;
-      if (e.target.closest("textarea, input, select, [data-no-swipe]")) return;
+      if (e.target.closest("textarea, input, select, [data-no-swipe], [data-auto-card]")) return;
       for (var el = e.target; el && el !== d.parentElement; el = el.parentElement) { if (el.scrollTop > 0) return; }
       sw = { d: d, y: e.touches[0].clientY, x: e.touches[0].clientX, t: Date.now(), dy: 0 };
     }, { passive: true, capture: true });
@@ -5204,7 +5220,15 @@ class Component extends DCLogic {
       return Object.assign({ clave: clave, vigente: vigente }, prop);
     });
   }
-  aplicar(pr) {
+  aplicar(pr) { var self = this; return this._aplicar(pr).then(function (r) { if (r && r.ok && !r.local) setTimeout(function () { self.mejHistCargar(); }, 300); return r; }); }
+  mejHistCargar() {
+    var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.mejoras) return;
+    var prev = (this.state.mejSrv || {}).lista || null;
+    this.setState({ mejSrv: { lista: prev, cargando: true } });
+    ALMA.mejoras().then(function (r) { self.setState({ mejSrv: r && r.ok ? { lista: r.lista || [] } : { lista: prev || [], error: "No pude leer el historial" + (r && r.error ? " (" + r.error + ")" : "") + "." } }); })
+      .catch(function () { self.setState({ mejSrv: { lista: prev || [], error: "No pude leer el historial." } }); });
+  }
+  _aplicar(pr) {
     var self = this;
     var CLAVES = { REDACTOR: "Cómo escribe", CLASIFICADOR: "Cómo clasifica", VERIFICADOR: "Control de calidad", REGLAS_EXTRA: "Avisos temporales" };
     var hist = function (clave, resumen) {
@@ -5212,7 +5236,7 @@ class Component extends DCLogic {
       return { cuando: cuando, clave: clave, resumen: resumen };
     };
     if (pr.tipo === "dato") {
-      var pd = window.ALMA && ALMA.hasApi() ? ALMA.setPropiedadDato(pr.propiedad, pr.campo, pr.valor) : Promise.resolve({ ok: true, local: true });
+      var pd = window.ALMA && ALMA.hasApi() ? ALMA.setPropiedadDato(pr.propiedad, pr.campo, pr.valor, { por: self.quienSoy(), resumen: pr.resumen }) : Promise.resolve({ ok: true, local: true });
       return pd.then(function (res) {
         if (!(res && res.ok)) return res || { ok: false };
         self.setState(function (s) {
@@ -5231,7 +5255,7 @@ class Component extends DCLogic {
       });
     }
     if (pr.tipo === "conocimiento") {
-      var pk = window.ALMA && ALMA.hasApi() ? ALMA.setConocimiento(null, pr.tema, pr.contenido, pr.aplica_a || "*", true) : Promise.resolve({ ok: true, local: true });
+      var pk = window.ALMA && ALMA.hasApi() ? ALMA.setConocimiento(null, pr.tema, pr.contenido, pr.aplica_a || "*", true, { por: self.quienSoy(), resumen: pr.resumen }) : Promise.resolve({ ok: true, local: true });
       return pk.then(function (res) {
         if (!(res && res.ok)) return res || { ok: false };
         self.setState(function (s) {
@@ -5242,7 +5266,7 @@ class Component extends DCLogic {
       });
     }
     var nuevo = this.aplicarCambiosPrompt(pr.vigente, pr.cambios);
-    var p = window.ALMA && ALMA.hasApi() ? ALMA.setPrompt(pr.clave, nuevo, pr.resumen) : Promise.resolve({ ok: true, local: true });
+    var p = window.ALMA && ALMA.hasApi() ? ALMA.setPrompt(pr.clave, nuevo, pr.resumen, { cambios: pr.cambios || [], por: self.quienSoy(), origen: "hub" }) : Promise.resolve({ ok: true, local: true });
     return p.then(function (res) {
       if (!(res && res.ok)) return res || { ok: false };
       self.setState(function (s) {
@@ -6113,8 +6137,8 @@ class Component extends DCLogic {
         caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: st.pieVer[convKeyL] ? "min(46%, 360px)" : "none", pieVisible: true, pieDisplay: "block", pieChevron: st.pieVer[convKeyL] ? "rotate(180deg)" : "none", pieAria: st.pieVer[convKeyL] ? "true" : "false",
         pieToggle: function () { self.setState(function (s) { var o = Object.assign({}, s.pieVer); o[convKeyL] = !o[convKeyL]; return { pieVer: o }; }); },
         hayCasoLinea: false, casoLinea: self.casoDe(n, acc, l.razon).titulo, piePlegado: true, pieAbierto: !!st.pieVer[convKeyL], chatMin: "120px", hiloN: String((hiloStL && hiloStL.lista ? hiloStL.lista.length : 0) + (st.optim[resIdLog] || []).length),
-        anotando: st.logAbierto === key, anotarLabel: st.logAbierto === key ? "Cerrar" : "Anotar",
-        anotar: function () { self.setState({ logAbierto: st.logAbierto === key ? null : key }); },
+        anotando: false, anotarLabel: "Anotar",
+        anotar: function () { self.abrirBurbuja({ logKey: convKeyL, tipo: "alma", texto: l.respuesta || "" }); },
         anotacion: st.logAnot[key] || "",
         setAnotacion: function (e) { var v = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.logAnot); o[key] = v; return { logAnot: o }; }); },
         prepararLabel: st.logBusy === key ? "Preparando…" : "Convertir en mejora",
@@ -6129,8 +6153,8 @@ class Component extends DCLogic {
             self.setState(function (s) { var o = Object.assign({}, s.logProp); o[key] = pr; return { logProp: o, logBusy: null }; });
           }).catch(function () { self.setState({ logBusy: null }); self.setState(nota("No pudimos preparar la mejora ahora.")); });
         },
-        hayPropuesta: !!prop, propResumen: prop ? prop.resumen : "",
-        propCambios: prop ? (prop.cambios || []).map(function (c) { return { etiqueta: (TIPO[c.tipo] || "Se agrega") + (c.seccion ? " en " + c.seccion : ""), hayAntes: c.tipo === "corregir" && !!c.antes, antes: c.antes || "", despues: c.despues || "" }; }) : [],
+        mejHay: !!prop, mejResumen: prop ? prop.resumen : "",
+        mejCambios: prop ? (prop.cambios || []).map(function (c) { return { etiqueta: (TIPO[c.tipo] || "Se agrega") + (c.seccion ? " en " + c.seccion : ""), hayAntes: c.tipo === "corregir" && !!c.antes, antes: c.antes || "", despues: c.despues || "" }; }) : [],
         aplicarDesdeLog: function () {
           var pr = self.state.logProp[key]; if (!pr) return;
           self.aplicar(pr).then(function (res) {
@@ -6361,6 +6385,8 @@ class Component extends DCLogic {
       g.pendAuto = !top.esCola && pendHilo(top.resId) === true && !self.noRequiere(ib);
       if (g.pendAuto) g.frags.forEach(function (c) { c.sinResp = true; });
       g.autoRes = !top.esCola && !g.pendAuto && self.autoResuelta(ib, ug, uh);
+      /* Ya le respondimos (ALMA o el equipo, no un automático) después de su último mensaje y del análisis: no necesita al equipo. */
+      if (!g.autoRes && !top.esCola && !g.pendAuto && top.nivel !== "ROJO" && top.nivelLabel !== "Urgente" && uh && uh > ug && uh >= (top.ts || 0)) g.autoRes = "ya se le respondió";
       if (inactiva && !g.autoRes) g.autoRes = finCo ? "pasó 1 día del checkout" : "sin actividad en 48 h";
       g.resuelto = vigente ? man.estado === "resuelta" : (!top.esCola && (yaResuelto(top.resId) || !!g.autoRes || inactiva));
       g.resuelto = self.resEstable(g, man);
@@ -6764,7 +6790,7 @@ class Component extends DCLogic {
           chips: ["Muy larga", "Le faltó calidez", "Debió escalar a una persona", "No debió responder", "Dato incorrecto", "No resolvió lo que preguntó", "Pudo anticiparse a lo que sigue"].map(function (t) {
             return { t: t, usar: function () { var cur = String(rc.anotacion || "").trim(); rc.setAnotacion({ target: { value: (cur ? cur.replace(/[.\s]*$/, "") + ". " : "") + t } }); } }; }),
           anotacion: rc.anotacion, setAnotacion: rc.setAnotacion, preparar: rc.prepararDesdeLog, prepararLabel: rc.prepararLabel, nota: rc.anotNota,
-          hayPropuesta: rc.hayPropuesta, propResumen: rc.propResumen, propCambios: rc.propCambios, aplicar: rc.aplicarDesdeLog, descartar: rc.descartarDesdeLog, copiar: copiarRz };
+          hayPropuesta: rc.mejHay, propResumen: rc.mejResumen, propCambios: rc.mejCambios, aplicar: rc.aplicarDesdeLog, descartar: rc.descartarDesdeLog, copiar: copiarRz };
       } else {
         var tpR = RZ.tipo || "alma";
         var TIT = { guest: "Mensaje del huésped", equipo: "Respuesta del equipo", auto: "Mensaje automático", alma: "Respuesta de ALMA", nota: "ALMA decidió no enviarlo", borrador: "Borrador de ALMA" };
@@ -6997,7 +7023,51 @@ class Component extends DCLogic {
         });
       },
       descartarMejora: function () { self.setState({ mejoraPropuesta: null }); },
-      hayMejorasHist: st.mejorasHist.length > 0, mejorasHist: st.mejorasHist,
+      hayMejorasHist: true, mejorasHist: st.mejorasHist,
+      mejH: (function () {
+        var CL = { REDACTOR: "Cómo escribe", CLASIFICADOR: "Cómo clasifica", VERIFICADOR: "Control de calidad", REGLAS_EXTRA: "Avisos temporales", CONOCIMIENTO: "Base de conocimiento", DATO: "Dato de propiedad" };
+        var OR = { hub: "Mejora", auto: "Auto mejora", historial: "Antes del historial" };
+        var src = (st.mejSrv && st.mejSrv.lista) || [], n = st.mejVerTodas ? src.length : 10;
+        var fmt = function (x) { var d = new Date(x); return isNaN(d) ? String(x || "") : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }) + " · " + d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); };
+        var upd = function (k, id, v) { self.setState(function (s) { var o = Object.assign({}, s[k]); if (v === undefined) delete o[id]; else o[id] = v; var r = {}; r[k] = o; return r; }); };
+        return src.slice(0, n).map(function (m) {
+          var ed = (st.mejEd || {})[m.id], ver = (st.mejVer || {})[m.id], busy = st.mejBusy === m.id;
+          var vn = ver ? (ver.nota || "") + (ver.conflicto ? " · Choca con: " + ver.conflicto : "") : String(m.verifNota || "").replace(/^(OK|REVISAR) · /, "");
+          var okV = ver ? ver.seCumple : /^OK/.test(m.verifNota || "") ? true : /^REVISAR/.test(m.verifNota || "") ? false : null;
+          var E = !m.enPrompt ? ["No se encuentra", "rgba(192,57,43,.1)", "#C0392B"] : okV === false ? ["Revisar", "rgba(242,117,90,.16)", "#B54D36"] : okV === true ? ["Verificada", "rgba(61,107,82,.14)", "#3d6b52"] : ["Activa", "#F5F3F0", "#3E3F3F"];
+          var lineas = (m.cambios || []).map(function (c) { return { txt: String(c.despues || ""), hayAntes: c.tipo === "corregir" && !!c.antes, antes: String(c.antes || "") }; }).filter(function (x) { return x.txt; });
+          var fin = function (ok, msg) { self.setState({ mejBusy: null }); self.aviso(msg); if (ok) self.mejHistCargar(); };
+          return {
+            id: m.id, meta: fmt(m.fecha) + " · " + (OR[m.origen] || "Mejora") + " · " + (CL[m.clave] || m.clave) + (m.por ? " · " + m.por : ""),
+            resumen: m.resumen || "Sin resumen", estado: E[0], estBg: E[1], estFg: E[2],
+            lineas: lineas, hayLineas: lineas.length > 0 && !ed, editable: !!m.editable, noEditable: !m.editable,
+            editando: !!ed, verLeyendo: !ed,
+            edLineas: ed ? ed.map(function (t, i) { return { v: t, set: function (e) { var val = e.target.value; self.setState(function (s) { var o = Object.assign({}, s.mejEd), a = (o[m.id] || []).slice(); a[i] = val; o[m.id] = a; return { mejEd: o }; }); } }; }) : [],
+            editar: function () { upd("mejEd", m.id, (m.cambios || []).map(function (c) { return String(c.despues || ""); })); self.setState({ mejConf: null }); },
+            cancelar: function () { upd("mejEd", m.id); },
+            guardar: function () {
+              var a = (self.state.mejEd || {})[m.id]; if (!a) return; self.setState({ mejBusy: m.id });
+              ALMA.mejoraEditar(m.id, a, m.resumen).then(function (r) { if (r && r.ok) upd("mejEd", m.id); fin(r && r.ok, r && r.ok ? "Mejora actualizada · ALMA la usa desde su próximo turno" : "No se pudo guardar" + (r && r.error ? ": " + r.error : "")); }).catch(function () { fin(false, "No se pudo guardar."); });
+            },
+            guardarLabel: busy ? "Guardando…" : "Guardar",
+            eliminarLabel: st.mejConf === m.id ? "Toca otra vez para eliminar" : "Eliminar", eliminarBd: st.mejConf === m.id ? "#C0392B" : "#D8D4CE",
+            eliminar: function () {
+              if (self.state.mejConf !== m.id) { self.setState({ mejConf: m.id }); return; }
+              self.setState({ mejBusy: m.id, mejConf: null });
+              ALMA.mejoraEliminar(m.id).then(function (r) { fin(r && r.ok, r && r.ok ? "Mejora eliminada · se revirtió en ALMA" : "No se pudo eliminar" + (r && r.error ? ": " + r.error : "")); }).catch(function () { fin(false, "No se pudo eliminar."); });
+            },
+            verificar: function () {
+              self.setState({ mejBusy: m.id });
+              ALMA.mejoraVerificar(m.id).then(function (r) { upd("mejVer", m.id, r && r.ok ? r : { nota: "No se pudo verificar ahora", seCumple: null }); self.setState({ mejBusy: null }); }).catch(function () { upd("mejVer", m.id, { nota: "No se pudo verificar ahora", seCumple: null }); self.setState({ mejBusy: null }); });
+            },
+            verLabel: busy && !ed ? "Verificando…" : "Verificar", hayVer: !!vn, verNota: vn
+          };
+        });
+      })(),
+      mejCargando: !!(st.mejSrv && st.mejSrv.cargando && !(st.mejSrv.lista || []).length), mejError: (st.mejSrv && st.mejSrv.error) || "", hayMejError: !!(st.mejSrv && st.mejSrv.error),
+      mejVacio: !!(st.mejSrv && !st.mejSrv.cargando && !(st.mejSrv.lista || []).length), mejSinApi: !(window.ALMA && ALMA.hasApi()),
+      mejHayMas: !st.mejVerTodas && ((st.mejSrv && st.mejSrv.lista) || []).length > 10, mejVerMas: function () { self.setState({ mejVerTodas: true }); },
+      mejTotal: ((st.mejSrv && st.mejSrv.lista) || []).length + " aplicadas",
 
       mVistasT: [["resumen", "Resumen", "grid"], ["lista", "Cronológico", "menu"]].map(function (x) {
         var on = (st.mVista || "resumen") === x[0];
@@ -7094,7 +7164,7 @@ class Component extends DCLogic {
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
-      mejAbierto: st.mejAbierto, mejToggleAbierto: function () { self.setState({ mejAbierto: !st.mejAbierto, ctrlAbierto: false }); },
+      mejAbierto: st.mejAbierto, mejToggleAbierto: function () { var ab = !st.mejAbierto; self.setState({ mejAbierto: ab, ctrlAbierto: false, mejConf: null }); if (ab) self.mejHistCargar(); },
       versionNueva: st.versionNueva, recargarVersion: function () { if (!self.recargarSiSeguro(true)) location.replace(location.pathname + "?v=" + Date.now()); },
       resLineas: resLineas, resHay: !convCargando && resLineas.length > 0,
       resSub: resRecientes ? "Lo que pasó en las últimas " + ventanaH + " horas" : abiertosRes.length ? "Nada nuevo en " + ventanaH + " h · siguen abiertos" : "Nada nuevo en " + ventanaH + " h · lo último que pasó",

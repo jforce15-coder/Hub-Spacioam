@@ -90,6 +90,7 @@
     setEscalamiento: function (lista) { return call('setEscalamiento', { lista: lista }); },
     setPrompt: function (clave, prompt, nota, meta) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota, meta: meta || null }); },
     mejoras: function () { return call('mejoras', {}); },
+    usoIA: function (dias) { return call('usoIA', { dias: dias || 30 }); },
     mejoraEditar: function (id, cambios, resumen) { return call('mejoraEditar', { id: id, cambios: cambios, resumen: resumen }); },
     mejoraEliminar: function (id) { return call('mejoraEliminar', { id: id }); },
     mejoraVerificar: function (id) { return call('mejoraVerificar', { id: id }); },

@@ -18,7 +18,8 @@
         /* Si el hub ya está abierto, se enfoca esa ventana y el hub abre la conversación (evento sa-push-click). */
         notificationClickHandlerMatch: 'origin', notificationClickHandlerAction: 'focus' }).then(function () {
         try { OS.Notifications.addEventListener('click', function (ev) { var n = (ev && ev.notification) || {}; var u = ev && ev.result && ev.result.url || n.launchURL || n.url || ''; try { g.dispatchEvent(new CustomEvent('sa-push-click', { detail: u })); } catch (e) {} }); } catch (e) {}
-        try { if (localStorage.getItem('sa_push_nuevos') === '1') OS.User.addTag('nuevos', '1'); } catch (e) {}
+        /* Mensajes nuevos: activado por defecto; solo se apaga si el usuario lo desactivó (sa_push_nuevos = '0'). */
+        try { OS.User.addTag('nuevos', localStorage.getItem('sa_push_nuevos') === '0' ? '0' : '1'); } catch (e) {}
         /* Cualquier suscripción nueva (también la del aviso de OneSignal) se vincula al correo: sin eso ALMA no sabe a quién avisar. */
         try { OS.User.PushSubscription.addEventListener('change', function (ev) { var c = ev && ev.current || {}; if (c.optedIn && c.id) { if (localStorage.getItem('sa_push_on') !== '0') localStorage.setItem('sa_push_on', '1'); vincular(OS); } avisar(); }); } catch (e) {}
         errInit = ''; vincular(OS); avisar(); ok(OS);
@@ -65,7 +66,7 @@
             .then(function (s) {
               localStorage.setItem('sa_push_on', '1');
               /* Primera vez: también avisa cada mensaje nuevo de un huésped (se apaga en el menú de cuenta). */
-              if (localStorage.getItem('sa_push_nuevos') == null) { localStorage.setItem('sa_push_nuevos', '1'); try { OS.User.addTag('nuevos', '1'); } catch (e) {} }
+              if (localStorage.getItem('sa_push_nuevos') !== '0') { localStorage.setItem('sa_push_nuevos', '1'); try { OS.User.addTag('nuevos', '1'); } catch (e) {} }
               avisar();
               if (quien && quien.rol) { try { OS.User.addTag('rol', String(quien.rol)); } catch (e) {} }
               return { ok: !!s.id, estado: 'activo', subId: s.id || '' };
@@ -90,10 +91,10 @@
       return Promise.race([real, tope]);
     },
     /* Avisos de cada mensaje nuevo de un huésped: etiqueta "nuevos" en este dispositivo (ALMA envía solo a quien la tiene). */
-    nuevos: function () { try { return localStorage.getItem('sa_push_nuevos') === '1'; } catch (e) { return false; } },
+    nuevos: function () { try { return localStorage.getItem('sa_push_nuevos') !== '0'; } catch (e) { return true; } },
     setNuevos: function (on) {
       try { localStorage.setItem('sa_push_nuevos', on ? '1' : '0'); } catch (e) {}
-      return cargar().then(function (OS) { return on ? OS.User.addTag('nuevos', '1') : OS.User.removeTag('nuevos'); })
+      return cargar().then(function (OS) { return OS.User.addTag('nuevos', on ? '1' : '0'); })
         .then(function () { avisar(); return { ok: true }; }, function () { return { ok: false }; });
     },
     /* Apagar en este dispositivo: deja de recibir sin revocar el permiso. */

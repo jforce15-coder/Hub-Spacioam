@@ -115,7 +115,11 @@ function _verify(session){
   var s=_verificarSesion(session); if(!s) return {ok:false, error:'session'};
   var f=_findRow(s.e); if(!f) return {ok:false, error:'no_user'};
   var row=f.d.data[f.i]; if(row[f.d.H.estado]==='suspendido') return {ok:false, error:'suspended'};
-  return {ok:true, profile:_publicProfile(row, f.d.H), exp:s.exp};
+  var prof=_publicProfile(row, f.d.H);
+  // Renueva la sesión (perfil al día, 30 días más) solo si es del formato anterior o tiene más de un día:
+  // así no cambia en cada comprobación y los backends aprovechan su caché.
+  var renovar = !s.p || (Date.now() - (s.iat||0) > 86400000);
+  return {ok:true, profile:prof, exp:s.exp, session: renovar ? _firmarSesion(prof) : undefined};
 }
 function _profile(email){
   var f=_findRow(email); if(!f) return {ok:false, error:'no_user'};
@@ -301,7 +305,8 @@ function _secreto(){
   return s;
 }
 function _firmarSesion(prof){
-  var datos={ e:String(prof.email||'').toLowerCase(), n:prof.nombre||'', apps:prof.apps||{}, iat:Date.now(), exp:Date.now()+SESION_DIAS*86400000 };
+  // p: perfil público completo, para que las apps puedan entrar al instante y comprobar la firma en segundo plano.
+  var datos={ e:String(prof.email||'').toLowerCase(), n:prof.nombre||'', apps:prof.apps||{}, p:prof, iat:Date.now(), exp:Date.now()+SESION_DIAS*86400000 };
   var cuerpo=_b64u(Utilities.newBlob(JSON.stringify(datos)).getBytes());
   return cuerpo+'.'+_b64u(Utilities.computeHmacSha256Signature(cuerpo, _secreto()));
 }

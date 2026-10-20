@@ -143,5 +143,20 @@
   }
   envolver();
   document.addEventListener('DOMContentLoaded', envolver);
+
+  /* Hub: quien tenga la sesión antigua del Hub (sa_session) pero no la firmada, vuelve a iniciar sesión una
+     vez. Sin la firmada no puede leer las hojas privadas (ALMA, usuarios) y vería el Hub vacío. */
+  if (/^hub\.spacioam\.com$/i.test(location.hostname)) {
+    w.addEventListener('load', function () {
+      try {
+        if (leer() || sessionStorage.getItem('sa_relogin')) return;
+        if (w.SA && w.SA.isValidSession && w.SA.isValidSession()) {
+          sessionStorage.setItem('sa_relogin', '1');
+          if (w.SA.logout) w.SA.logout();
+          location.reload();
+        }
+      } catch (e) {}
+    });
+  }
   w.addEventListener('load', envolver);
 })(window);

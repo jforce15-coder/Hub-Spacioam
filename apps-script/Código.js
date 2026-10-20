@@ -4722,14 +4722,24 @@ function migrarVinculos() {
 
 /* ═══════════════════════════════ 14. SESIÓN FIRMADA (fase 1b) ═══════════════════
    El login (Apps Script de «Control de usuarios») firma la sesión. Aquí se comprueba con su acción verify
-   y se guarda 10 minutos en caché. Devuelve el perfil vigente o null. */
+   y se guarda 1 hora en caché (10 min si es inválida). Devuelve el perfil vigente o null. */
 const LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec';
 function sesionLogin_(session) {
   session = String(session || ''); if (session.indexOf('.') < 1 || session.length > 4000) return null;
   const cache = CacheService.getScriptCache();
   const k = 'ses_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, session)).slice(0, 40);
-  const hit = cache.get(k);
+  let hit = cache.get(k);
   if (hit) { try { return hit === '-' ? null : JSON.parse(hit); } catch (e) {} }
+  /* Al abrir el Hub salen muchas llamadas a la vez: solo la primera consulta al login, las demás esperan su resultado. */
+  const lock = LockService.getUserLock(), conLock = !lock.hasLock() && lock.tryLock(15000);   // lock aparte: no bloquea a ALMA
+  try {
+    hit = cache.get(k);
+    if (hit) { try { return hit === '-' ? null : JSON.parse(hit); } catch (e) {} }
+    return sesionLoginRemota_(session, k);
+  } finally { if (conLock) lock.releaseLock(); }
+}
+function sesionLoginRemota_(session, k) {
+  const cache = CacheService.getScriptCache();
   let prof = null;
   try {
     const r = UrlFetchApp.fetch(LOGIN_URL_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
@@ -4737,7 +4747,7 @@ function sesionLogin_(session) {
     const j = JSON.parse(r.getContentText() || '{}');
     if (j.ok && j.profile) prof = j.profile;
   } catch (e) { console.warn('sesionLogin_: ' + e); return null; }   // error de red: no se cachea el negativo
-  cache.put(k, prof ? JSON.stringify(prof) : '-', 600);
+  cache.put(k, prof ? JSON.stringify(prof) : '-', prof ? 3600 : 600);
   return prof;
 }
 /* Última vez que se entró con sesión y con la llave antigua: sirve para saber cuándo se puede apagar la llave. */

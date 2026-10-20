@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnóstico · Spacio AM</title>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<link rel="stylesheet" href="ds/tokens/fonts.css">
+<link rel="stylesheet" href="ds/tokens/colors.css">
+<link rel="stylesheet" href="ds/tokens/typography.css">
+<link rel="stylesheet" href="ds/tokens/radius-shadow.css">
+<!--
+  Diagnóstico del lector seguro de hojas (fase 2). Archivo propio del repo (no lo toca el export de
+  Claude Design). Con la sesión firmada de quien lo abre, lee una fila de cada hoja de Spacio AM a
+  través del login y dice si funciona. No muestra datos: solo OK / error y cuántas columnas leyó.
+-->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg, #FAFAFA); color: var(--fg, #3E3F3F); font-family: var(--font-sans, Montserrat, system-ui, sans-serif); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; }
+  .eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-muted, #938B8A); margin: 0 0 6px; }
+  h1 { font-family: var(--font-serif, Valky, Georgia, serif); font-weight: 400; font-size: 34px; margin: 0 0 8px; }
+  p { color: var(--fg-muted, #938B8A); margin: 0 0 22px; }
+  .fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface, #fff); border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-md, 14px); margin-bottom: 10px; }
+  .nombre b { display: block; font-weight: 600; }
+  .nombre span { font-size: 12px; color: var(--fg-muted, #938B8A); }
+  .estado { font-size: 13px; white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: var(--bg-alt, #F5F3F0); }
+  .ok { background: #E3EEE6; color: #2F5D3E; }
+  .mal { background: #F9E1DA; color: #9A3B22; }
+  .aviso { padding: 16px; border-radius: var(--r-md, 14px); background: var(--bg-alt, #F5F3F0); }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Seguridad · fase 2</p>
+  <h1>Lector de hojas</h1>
+  <p>Lee una fila de cada hoja a través del lector seguro, con tu sesión. Si una hoja es privada y aquí sale OK, las apps la pueden leer.</p>
+  <div id="lista"></div>
+</div>
+<script>
+(function () {
+  var HOJAS = [
+    ['ALMA - Mensajes y control', '1K8_MUCmJ4_Ks4DMKLSCbua1qC7X6QuilRaMvCquZ7kk', 'Hub'],
+    ['Control de usuarios', '1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U', 'Hub · login'],
+    ['Guest app DB', '12TF-FO6vld2VkzDr9YlUnHlNjh4d1u9Ss6qWz3F3KeQ', 'Hub · Epi (wi-fi)'],
+    ['Spacio AM 2025', '1l9wLH8880NlN9ac2jvne2U6cqej6gycqAD77Z25cLF4', 'Mi · Epi'],
+    ['Spacio AM DB', '1-SfKC-evkK24qfOrrvIrcDs6ckGAmRzSLS_IYB8cYZg', 'Mi (reportes)'],
+    ['Contratos APP', '1r__zfIAFLr6mxcuAN6HwQF1OmLTG-lce-jv_naGRDVU', 'Docs'],
+    ['The gentle stoic parent app', '11V5EoY84H8tDQ6DvZ9jqtIcoBarY7EODqueNmNr71iM', 'TGSP']
+  ];
+  var lista = document.getElementById('lista');
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
+  if (!window.SASesion || !SASesion.leer()) {
+    var a = el('div', 'aviso'); a.append('No hay sesión firmada en este navegador. Entra primero al ', Object.assign(el('a', '', 'Hub'), { href: './' }), ' y vuelve a abrir esta página.');
+    lista.appendChild(a); return;
+  }
+  HOJAS.forEach(function (h) {
+    var f = el('div', 'fila'), n = el('div', 'nombre'), e = el('span', 'estado', 'Leyendo…');
+    n.appendChild(el('b', '', h[0])); n.appendChild(el('span', '', h[2]));
+    f.appendChild(n); f.appendChild(e); lista.appendChild(f);
+    var t0 = Date.now();
+    SASesion.leerHoja(h[1] + '/gviz/tq?tqx=out:csv&tq=' + encodeURIComponent('select * limit 1'))
+      .then(function (r) { return r.text(); })
+      .then(function (csv) {
+        var cols = (String(csv).split('\n')[0] || '').split(',').length;
+        e.className = 'estado ok'; e.textContent = 'OK · ' + cols + ' columnas · ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s';
+      })
+      .catch(function (err) { e.className = 'estado mal'; e.textContent = 'Error · ' + (err && err.message || err); });
+  });
+})();
+</script>
+</body>
+</html>

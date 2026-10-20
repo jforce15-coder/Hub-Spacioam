@@ -116,6 +116,7 @@ function doPost(e) {
     const props = PropertiesService.getScriptProperties();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
+    if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
 
@@ -2982,6 +2983,8 @@ function hubApi_(body) {
       case 'opHilo': return json_(hubOpHilo_(body.email, body.de));
       case 'opEnviar': return json_(hubOpEnviar_(body.email, body.texto));
       case 'opLista': return json_(hubOpLista_(body.email));
+      case 'dsPropuestas': return json_(dsPropuestas_());
+      case 'dsDecidir': return json_(dsDecidir_(body.id, body.decision, body.nota, body.quien));
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {
@@ -4518,4 +4521,120 @@ function opHiloHub_(email) {
       texto: (n ? n + ', ¿en qué te ayudo?' : '¿En qué te ayudo?') + '\n\nPuedo crear tareas para el equipo, agendar trabajos en Epi, contarte qué hay en el programa o guardar una nota. Te confirmo cada acción aquí.' });
   }
   return out;
+}
+
+/* ═══════════════════════════════ 12. DESIGN SYSTEM · PROPUESTAS ═══════════════════
+   La revisión automática (tarea programada de Claude, lunes y jueves) compara las seis apps con el
+   design system (repo Spacio-am) y publica aquí sus propuestas. El administrador principal las ve
+   en hub.spacioam.com/design-system.html y decide: estandarizar · solo esta app · revertir.
+   La siguiente revisión lee esas decisiones, abre los cambios en GitHub y las marca como aplicadas.
+
+   Hoja: pestaña DS_PROPUESTAS en la hoja de ALMA. Una fila por propuesta; la propuesta completa
+   (incluidas sus vistas HTML) va en la columna json.
+   La tarea programada se identifica con su propia llave (ver dsTokenOk_). */
+const DS_TAB_ = 'DS_PROPUESTAS';
+const DS_CAB_ = ['id', 'fecha', 'estado', 'titulo', 'app_origen', 'recomendacion', 'decision', 'nota', 'quien', 'decidido_en', 'aplicada_en', 'resultado', 'json'];
+const DS_DECISIONES_ = ['estandarizar', 'solo esta app', 'revertir', 'descartar'];
+
+function dsHoja_() {
+  const sh = hojaCrear_(DS_TAB_, DS_CAB_);
+  const cab = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(x => String(x).trim().toLowerCase());
+  return { sh: sh, col: k => cab.indexOf(k) + 1 };
+}
+function dsFilas_() {
+  const h = dsHoja_();
+  return leerTablaHoja_(h.sh).map((r, i) => Object.assign(r, { _fila: i + 2 }));
+}
+function dsParse_(s) { try { return JSON.parse(String(s || '{}')); } catch (e) { return {}; } }
+function dsFecha_(v) { return v instanceof Date ? v.toISOString() : String(v || ''); }
+
+/* Hub · lista de propuestas (pendientes primero, después las últimas 60 resueltas). */
+function dsPropuestas_() {
+  const filas = dsFilas_().map(r => ({
+    id: String(r.id), fecha: dsFecha_(r.fecha), estado: String(r.estado || 'pendiente'),
+    decision: String(r.decision || ''), nota: String(r.nota || ''), quien: String(r.quien || ''),
+    decidido_en: dsFecha_(r.decidido_en), aplicada_en: dsFecha_(r.aplicada_en), resultado: String(r.resultado || ''),
+    propuesta: dsParse_(r.json)
+  }));
+  const pend = filas.filter(f => f.estado === 'pendiente');
+  const resto = filas.filter(f => f.estado !== 'pendiente').sort((a, b) => (b.decidido_en || b.fecha).localeCompare(a.decidido_en || a.fecha)).slice(0, 60);
+  return { ok: true, propuestas: pend.concat(resto) };
+}
+
+/* Hub · el administrador principal decide sobre una propuesta. Se puede cambiar mientras no esté aplicada. */
+function dsDecidir_(id, decision, nota, quien) {
+  decision = String(decision || '').toLowerCase().trim();
+  if (DS_DECISIONES_.indexOf(decision) < 0) return { ok: false, error: 'decision' };
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const h = dsHoja_(), f = dsFilas_().find(r => String(r.id) === String(id));
+    if (!f) return { ok: false, error: 'no existe' };
+    if (String(f.estado) === 'aplicada') return { ok: false, error: 'ya aplicada' };
+    const set = (k, v) => h.sh.getRange(f._fila, h.col(k)).setValue(v);
+    set('estado', 'decidida'); set('decision', decision); set('nota', String(nota || '').slice(0, 2000));
+    set('quien', String(quien || '').slice(0, 200)); set('decidido_en', new Date());
+    return { ok: true };
+  } finally { lock.releaseLock(); }
+}
+
+/* Tarea programada · publicar propuestas, leer decisiones y marcarlas como aplicadas. */
+/* La llave del robot no se guarda en el código (el repo es público): solo su huella SHA-256.
+   Si algún día se define la propiedad DS_BOT_TOKEN, también vale. */
+const DS_BOT_HASH_ = 'b0d3ca9d3adb76025e4b4289181cb6300d7769a1d53a2a0c91636df9e0c65ed5';
+function dsTokenOk_(t) {
+  t = String(t || ''); if (!t) return false;
+  const prop = PropertiesService.getScriptProperties().getProperty('DS_BOT_TOKEN');
+  if (prop && t === prop) return true;
+  const h = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t, Utilities.Charset.UTF_8)
+    .map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  return h === DS_BOT_HASH_;
+}
+function dsBotApi_(body) {
+  if (!dsTokenOk_(body.token)) return json_({ ok: false, error: 'token' });
+  try {
+    switch (body.action) {
+      case 'publicar': return json_(dsPublicar_(body.propuestas || []));
+      case 'decisiones': return json_({ ok: true, propuestas: dsFilas_().filter(r => String(r.estado) === 'decidida').map(r => ({ id: String(r.id), decision: String(r.decision), nota: String(r.nota || ''), quien: String(r.quien || ''), propuesta: dsParse_(r.json) })) });
+      case 'todas': return json_(dsPropuestas_());
+      case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
+      default: return json_({ ok: false, error: 'accion' });
+    }
+  } catch (err) {
+    console.error('dsBotApi_: ' + (err.stack || err));
+    return json_({ ok: false, error: String(err) });
+  }
+}
+function dsPublicar_(lista) {
+  const lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    const h = dsHoja_(), ya = {};
+    dsFilas_().forEach(r => ya[String(r.id)] = r);
+    const nuevas = [], errores = [];
+    lista.forEach(p => {
+      const id = String(p && p.id || '');
+      if (!id) { errores.push('sin id'); return; }
+      const json = JSON.stringify(p);
+      if (json.length > 48000) { errores.push(id + ': demasiado grande (' + json.length + ')'); return; }
+      const fila = ya[id];
+      if (fila) {                                    // ya existía: solo se actualiza si sigue pendiente
+        if (String(fila.estado) === 'pendiente') {
+          h.sh.getRange(fila._fila, h.col('titulo')).setValue(String(p.titulo || ''));
+          h.sh.getRange(fila._fila, h.col('recomendacion')).setValue(String(p.recomendacion || ''));
+          h.sh.getRange(fila._fila, h.col('json')).setValue(json);
+        }
+        return;
+      }
+      nuevas.push(DS_CAB_.map(k => ({ id: id, fecha: new Date(), estado: 'pendiente', titulo: String(p.titulo || ''), app_origen: String(p.origen || ''), recomendacion: String(p.recomendacion || ''), json: json })[k] || ''));
+    });
+    if (nuevas.length) h.sh.getRange(h.sh.getLastRow() + 1, 1, nuevas.length, DS_CAB_.length).setValues(nuevas);
+    return { ok: true, nuevas: nuevas.length, errores: errores };
+  } finally { lock.releaseLock(); }
+}
+function dsAplicada_(id, resultado) {
+  const h = dsHoja_(), f = dsFilas_().find(r => String(r.id) === String(id));
+  if (!f) return { ok: false, error: 'no existe' };
+  h.sh.getRange(f._fila, h.col('estado')).setValue('aplicada');
+  h.sh.getRange(f._fila, h.col('aplicada_en')).setValue(new Date());
+  h.sh.getRange(f._fila, h.col('resultado')).setValue(String(resultado || '').slice(0, 5000));
+  return { ok: true };
 }

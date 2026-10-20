@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design system · Spacio AM</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<meta name="theme-color" content="#FAFAFA">
+<link rel="stylesheet" href="ds/tokens/fonts.css">
+<link rel="stylesheet" href="ds/tokens/colors.css">
+<link rel="stylesheet" href="ds/tokens/typography.css">
+<link rel="stylesheet" href="ds/tokens/spacing.css">
+<link rel="stylesheet" href="ds/tokens/radius-shadow.css">
+<link rel="stylesheet" href="ds/tokens/motion.css">
+<link rel="stylesheet" href="ds/tokens/base.css">
+<script src="js/sa-session.js?v=2026-10-20a"></script>
+<!--
+  Panel de propuestas del design system — solo administrador principal.
+  Archivo propio (no forma parte del export de Claude Design): no se sobrescribe al subir el Hub.
+  Datos: Apps Script del Hub, acciones dsPropuestas / dsDecidir (pestaña DS_PROPUESTAS).
+-->
+<style>
+  :root { --pad: 16px; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg, #FAFAFA); color: var(--fg, #3E3F3F); font-family: var(--font-sans, Montserrat, system-ui, sans-serif); font-size: var(--t-body, 15px); line-height: 1.55; letter-spacing: .01em; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px var(--pad) 80px; }
+  a { color: inherit; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 28px; }
+  .back { font-size: 13px; color: var(--fg-muted, #938B8A); text-decoration: none; display: inline-flex; gap: 6px; align-items: center; }
+  .back:hover { color: var(--fg); }
+  .eyebrow { font-size: var(--t-eyebrow, 11px); letter-spacing: .18em; text-transform: uppercase; color: var(--fg-muted, #938B8A); margin: 0 0 6px; }
+  h1 { font-family: var(--font-serif, Valky, Georgia, serif); font-weight: 400; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 0 0 8px; }
+  .lead { color: var(--fg-muted, #938B8A); max-width: 620px; margin: 0; }
+  .tabs { display: flex; gap: 6px; margin: 28px 0 20px; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--divider, #D8D4CE); background: var(--surface, #fff); color: var(--fg); border-radius: var(--r-pill, 999px); padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; }
+  .tab[aria-pressed="true"] { background: var(--fg, #3E3F3F); color: var(--fg-inverse, #FAFAFA); border-color: var(--fg); }
+  .tab .n { opacity: .6; margin-left: 4px; }
+  .lista { display: grid; gap: 20px; }
+  .card { background: var(--surface, #fff); border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-lg, 18px); padding: 22px; box-shadow: var(--shadow-xs, none); }
+  .card-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+  .card h2 { font-family: var(--font-serif, Valky, Georgia, serif); font-weight: 400; font-size: 22px; line-height: 1.25; margin: 4px 0 8px; }
+  .pid { font-size: 11px; letter-spacing: .08em; color: var(--fg-subtle, #938B8A); font-variant-numeric: tabular-nums; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; border-radius: var(--r-pill, 999px); padding: 3px 10px; background: var(--bg-alt, #F5F3F0); color: var(--fg); white-space: nowrap; }
+  .chip.origen { background: var(--fg, #3E3F3F); color: var(--fg-inverse, #FAFAFA); }
+  .chip.alto { background: var(--accent-tint-strong, #F7D9D0); }
+  .chip.medio { background: var(--accent-tint, #FBEAE5); }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px 20px; margin: 14px 0 18px; font-size: 13px; }
+  .meta dt { color: var(--fg-muted, #938B8A); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 4px; }
+  .meta dd { margin: 0; }
+  .compara { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .vista { border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-md, 14px); overflow: hidden; background: var(--bg, #FAFAFA); }
+  .vista-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; font-size: 12px; border-bottom: 1px solid var(--divider, #D8D4CE); background: var(--surface, #fff); }
+  .vista-cab b { font-weight: 600; }
+  .vista iframe { display: block; width: 100%; border: 0; background: #fff; }
+  .motivo { margin: 16px 0 0; padding: 14px 16px; background: var(--bg-alt, #F5F3F0); border-radius: var(--r-md, 14px); font-size: 14px; }
+  .motivo b { font-weight: 600; }
+  details { margin-top: 12px; font-size: 13px; }
+  summary { cursor: pointer; color: var(--fg-muted, #938B8A); }
+  details ul { margin: 8px 0 0; padding-left: 18px; }
+  details code { font-size: 12px; background: var(--bg-alt, #F5F3F0); padding: 1px 5px; border-radius: 6px; word-break: break-word; }
+  .decidir { margin-top: 18px; border-top: 1px solid var(--divider, #D8D4CE); padding-top: 16px; }
+  .decidir textarea { width: 100%; min-height: 56px; resize: vertical; border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-sm, 10px); padding: 10px 12px; font: inherit; font-size: 14px; background: var(--bg, #FAFAFA); color: var(--fg); }
+  .botones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .btn { font: inherit; font-size: 14px; border-radius: var(--r-pill, 999px); padding: 10px 18px; border: 1px solid var(--fg, #3E3F3F); background: transparent; color: var(--fg); cursor: pointer; }
+  .btn.prim { background: var(--fg, #3E3F3F); color: var(--fg-inverse, #FAFAFA); }
+  .btn.rec { box-shadow: 0 0 0 2px var(--accent, #E9826A); }
+  .btn.sutil { border-color: transparent; color: var(--fg-muted, #938B8A); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent, #E9826A); outline-offset: 2px; }
+  .estado { font-size: 13px; color: var(--fg-muted, #938B8A); }
+  .estado b { color: var(--fg); font-weight: 600; }
+  .vacio, .aviso { text-align: center; padding: 64px 16px; color: var(--fg-muted, #938B8A); }
+  .aviso h2 { font-family: var(--font-serif, Valky, Georgia, serif); font-weight: 400; color: var(--fg); }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--fg, #3E3F3F); color: var(--fg-inverse, #FAFAFA); padding: 10px 18px; border-radius: var(--r-pill, 999px); font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.on { opacity: 1; }
+  @media (max-width: 560px) { .card { padding: 16px; } .btn { flex: 1 1 auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="./">← Hub</a>
+    <span class="estado" id="quien"></span>
+  </div>
+  <p class="eyebrow">Design system</p>
+  <h1>Propuestas de estandarización</h1>
+  <p class="lead">Dos veces por semana se revisan Hub, Hola, Epi, Mi, Docs y Grow. Cada propuesta muestra cómo está hoy el design system frente a lo que cambió en las apps. Tú decides; los cambios llegan después a GitHub para aprobarlos con Merge.</p>
+
+  <div class="tabs" role="group" aria-label="Filtrar">
+    <button class="tab" data-f="pendiente" aria-pressed="true">Pendientes<span class="n" id="n-pendiente"></span></button>
+    <button class="tab" data-f="decidida" aria-pressed="false">Decididas<span class="n" id="n-decidida"></span></button>
+    <button class="tab" data-f="aplicada" aria-pressed="false">Aplicadas<span class="n" id="n-aplicada"></span></button>
+  </div>
+
+  <div id="lista" class="lista"><p class="vacio">Cargando…</p></div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  var APPS = { hub: 'Hub', hola: 'Hola', epi: 'Epi', mi: 'Mi', docs: 'Docs', grow: 'Grow', ds: 'Design system' };
+  var DECISIONES = [
+    { k: 'estandarizar', t: 'Estandarizar en todas', d: 'Pasa al design system y a las demás apps.' },
+    { k: 'solo esta app', t: 'Solo esta app', d: 'Se guarda como excepción y no vuelve a salir.' },
+    { k: 'revertir', t: 'Revertir', d: 'La app vuelve al estilo del design system.' }
+  ];
+  /* Mismo Apps Script y token que usa el Hub (js/alma-client.js). */
+  var API = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
+  var TOKEN = 'SpacioAM2026!';
+  function api(action, payload) {
+    return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store',
+      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: TOKEN }, payload || {})) })
+      .then(function (r) { return r.ok ? r.json() : { ok: false, error: 'HTTP ' + r.status }; })
+      .catch(function () { return { ok: false, error: 'red' }; });
+  }
+  var datos = [], filtro = 'pendiente';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === 'class') n.className = attrs[k];
+      else if (k === 'text') n.textContent = attrs[k];
+      else if (k.indexOf('on') === 0) n.addEventListener(k.slice(2), attrs[k]);
+      else n.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function toast(t) { var x = $('#toast'); x.textContent = t; x.classList.add('on'); setTimeout(function () { x.classList.remove('on'); }, 2400); }
+  function nombreApp(a) { return APPS[String(a || '').toLowerCase()] || a; }
+  function fecha(s) { if (!s) return ''; var d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); }
+
+  /* Acceso: solo administrador principal del Hub. */
+  var ses = (window.SA && SA.session && SA.session()) || null;
+  var apps = ses && window.SA.appsDePerfil ? SA.appsDePerfil(ses) : {};
+  var esAdmin = !!(ses && SA.isValidSession() && (apps.hub === 'admin' || SA.normRol(ses.rol) === 'admin'));
+  if (!esAdmin) {
+    $('#lista').replaceChildren(el('div', { class: 'aviso' }, [
+      el('h2', { text: 'Solo para el administrador principal' }),
+      el('p', {}, ['Inicia sesión en el ', el('a', { href: './', text: 'Hub' }), ' con una cuenta de administrador principal.'])
+    ]));
+    document.querySelector('.tabs').hidden = true;
+    return;
+  }
+  $('#quien').textContent = ses.nombre || ses.email || '';
+
+  /* Vista aislada: HTML de la propuesta en un iframe sin scripts, con los tokens del design system. */
+  function vista(v) {
+    var base = location.origin + location.pathname.replace(/[^/]*$/, '');
+    var css = ['fonts', 'colors', 'typography', 'spacing', 'radius-shadow', 'motion', 'base'].map(function (f) {
+      return '<link rel="stylesheet" href="' + base + 'ds/tokens/' + f + '.css">';
+    }).join('');
+    var doc = '<!DOCTYPE html><html><head><meta charset="utf-8">' + css +
+      '<style>body{margin:0;padding:20px;background:var(--bg,#FAFAFA);font-family:var(--font-sans,Montserrat,sans-serif);color:var(--fg,#3E3F3F)}</style>' +
+      (v.css ? '<style>' + v.css + '</style>' : '') + '</head><body>' + (v.html || '') + '</body></html>';
+    var f = el('iframe', { sandbox: '', title: v.etiqueta || 'Vista', loading: 'lazy' });
+    f.srcdoc = doc;
+    f.style.height = Math.max(120, Math.min(Number(v.alto) || 240, 900)) + 'px';
+    var cab = el('div', { class: 'vista-cab' }, [el('b', { text: v.etiqueta || nombreApp(v.app) }), v.nota ? el('span', { class: 'estado', text: v.nota }) : null]);
+    return el('div', { class: 'vista' }, [cab, f]);
+  }
+
+  function tarjeta(item) {
+    var p = item.propuesta || {};
+    var head = el('div', { class: 'card-head' }, [
+      el('div', {}, [el('span', { class: 'pid', text: item.id + ' · ' + fecha(item.fecha) }), el('h2', { text: p.titulo || item.id })]),
+      el('div', { class: 'chips' }, [
+        p.impacto ? el('span', { class: 'chip ' + p.impacto, text: 'Impacto ' + p.impacto }) : null,
+        p.tipo ? el('span', { class: 'chip', text: p.tipo }) : null
+      ])
+    ]);
+    var afect = el('div', { class: 'chips' }, (p.apps_afectadas || []).map(function (a) { return el('span', { class: 'chip', text: nombreApp(a) }); }));
+    var con = el('div', { class: 'chips' }, (p.apps_con_el_cambio || [p.origen]).filter(Boolean).map(function (a) {
+      return el('span', { class: 'chip' + (a === p.origen ? ' origen' : ''), text: nombreApp(a) });
+    }));
+    var meta = el('dl', { class: 'meta' }, [
+      el('div', {}, [el('dt', { text: 'Dónde está el cambio' }), el('dd', {}, [con])]),
+      el('div', {}, [el('dt', { text: 'Apps afectadas' }), el('dd', {}, [afect])]),
+      el('div', {}, [el('dt', { text: 'En el design system' }), el('dd', { text: p.estado_en_ds || '—' })])
+    ]);
+    var vistas = (p.vistas || []).length ? el('div', { class: 'compara' }, p.vistas.map(vista)) : el('p', { class: 'estado', text: 'Esta propuesta no trae vista previa.' });
+    var motivo = el('div', { class: 'motivo' }, [el('b', { text: 'Recomendación: ' + (p.recomendacion || '—') + '. ' }), p.motivo || '']);
+    var evid = (p.evidencia || []).length ? el('details', {}, [
+      el('summary', { text: 'Ver dónde está en el código (' + p.evidencia.length + ')' }),
+      el('ul', {}, p.evidencia.map(function (e) {
+        return el('li', {}, [el('b', { text: nombreApp(e.app) }), ' · ', el('code', { text: e.archivo || '' }), e.detalle ? ' — ' + e.detalle : '']);
+      }))
+    ]) : null;
+
+    var pie;
+    if (item.estado === 'aplicada') {
+      pie = el('div', { class: 'decidir' }, [el('p', { class: 'estado' }, [el('b', { text: 'Aplicada · ' + item.decision }), ' el ' + fecha(item.aplicada_en) + (item.resultado ? '. ' + item.resultado : '')])]);
+    } else {
+      var nota = el('textarea', { placeholder: 'Nota opcional (por ejemplo: aplicar solo en móvil, usar el beige del DS…)' });
+      nota.value = item.nota || '';
+      var botones = el('div', { class: 'botones' });
+      DECISIONES.concat([{ k: 'descartar', t: 'Descartar', d: 'No hacer nada.' }]).forEach(function (d) {
+        var clase = 'btn' + (d.k === 'descartar' ? ' sutil' : (d.k === item.decision ? ' prim' : '')) + (d.k === p.recomendacion ? ' rec' : '');
+        botones.appendChild(el('button', { class: clase, title: d.d, onclick: function () { decidir(item, d.k, nota.value, botones); } }, [d.t]));
+      });
+      var est = item.estado === 'decidida'
+        ? el('p', { class: 'estado' }, [el('b', { text: 'Decidida: ' + item.decision }), ' por ' + (item.quien || '—') + ' el ' + fecha(item.decidido_en) + '. Se aplicará en la próxima revisión; puedes cambiarla hasta entonces.'])
+        : el('p', { class: 'estado', text: 'El botón marcado en color es la recomendación.' });
+      pie = el('div', { class: 'decidir' }, [est, nota, botones]);
+    }
+    return el('article', { class: 'card' }, [head, meta, vistas, motivo, evid, pie]);
+  }
+
+  function pintar() {
+    ['pendiente', 'decidida', 'aplicada'].forEach(function (k) {
+      var n = datos.filter(function (d) { return d.estado === k; }).length;
+      $('#n-' + k).textContent = n ? '· ' + n : '';
+    });
+    var vis = datos.filter(function (d) { return d.estado === filtro || (filtro === 'decidida' && d.estado === 'descartada'); });
+    var lista = $('#lista');
+    if (!vis.length) {
+      lista.replaceChildren(el('p', { class: 'vacio', text: filtro === 'pendiente' ? 'No hay propuestas pendientes. La próxima revisión es el lunes o el jueves.' : 'Nada por aquí todavía.' }));
+      return;
+    }
+    lista.replaceChildren.apply(lista, vis.map(tarjeta));
+  }
+
+  function decidir(item, decision, nota, botones) {
+    Array.prototype.forEach.call(botones.querySelectorAll('button'), function (b) { b.disabled = true; });
+    api('dsDecidir', { id: item.id, decision: decision, nota: nota, quien: ses.nombre || ses.email || '' })
+      .then(function (r) {
+        if (!r || !r.ok) throw new Error((r && r.error) || 'error');
+        item.estado = 'decidida'; item.decision = decision; item.nota = nota; item.quien = ses.nombre || ses.email; item.decidido_en = new Date().toISOString();
+        toast(decision === 'descartar' ? 'Descartada' : 'Guardado: ' + decision);
+        pintar();
+      })
+      .catch(function (e) {
+        toast('No se pudo guardar (' + e.message + ')');
+        Array.prototype.forEach.call(botones.querySelectorAll('button'), function (b) { b.disabled = false; });
+      });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () {
+      filtro = b.getAttribute('data-f');
+      Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      pintar();
+    });
+  });
+
+  api('dsPropuestas', {})
+    .then(function (r) {
+      if (!r || !r.ok) throw new Error((r && r.error) || 'error');
+      datos = r.propuestas || [];
+      pintar();
+    })
+    .catch(function (e) {
+      $('#lista').replaceChildren(el('p', { class: 'vacio', text: 'No se pudieron cargar las propuestas (' + e.message + ').' }));
+    });
+})();
+</script>
+</body>
+</html>

@@ -583,7 +583,7 @@ function repararHilosConsultas(max) {
   const sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return 'sin bandeja';
   const props = PropertiesService.getScriptProperties(), limite = Date.now() - 30 * 86400000, t0 = Date.now();
   const ids = sh.getRange(2, 1, sh.getLastRow() - 1, INBOX_CAB_.length).getValues()
-    .filter(v => String(v[0]).indexOf('inq:') === 0 && tsMs_(v[10]) >= limite && !props.getProperty('inqrep3_' + String(v[0]).slice(4)))
+    .filter(v => String(v[0]).indexOf('inq:') === 0 && tsMs_(v[10]) >= limite && !vGet_('inqrep3_' + String(v[0]).slice(4)))
     .sort((a, b) => tsMs_(b[10]) - tsMs_(a[10])).map(v => String(v[0]));
   let n = 0, conv = 0;
   for (let i = 0; i < ids.length && n < max && Date.now() - t0 < 240000; i++) {
@@ -593,7 +593,7 @@ function repararHilosConsultas(max) {
       const d = r.code === 200 ? ((r.json && r.json.data) || {}) : {};
       const cid = s_(d.conversation_id || (d.conversation && d.conversation.id)) || uid;
       recordarConv_(cid, uid);
-      if (reservaDeConsulta_(uid)) { conv++; props.setProperty('inqrep3_' + uid, '1'); continue; }
+      if (reservaDeConsulta_(uid)) { conv++; vSet_('inqrep3_' + uid, '1'); continue; }
       const msgs = Array.isArray(d.messages) ? d.messages : (d.messages && d.messages.data) || [];
       if (msgs.length) {
         const loc = hiloInqLocal_(id), k = m => m.tipo + '|' + String(m.texto).slice(0, 80), vis = {}; loc.forEach(m => vis[k(m)] = 1);
@@ -608,7 +608,7 @@ function repararHilosConsultas(max) {
           ultimo_guest_ts: ug ? ug.created : '', ultimo_host_ts: uh ? uh.created : '', _forzar: true });
       }
       try { CacheService.getScriptCache().removeAll(['hf_' + id, 'hr_' + id]); } catch (e) {}
-      props.setProperty('inqrep3_' + uid, '1');
+      vSet_('inqrep3_' + uid, '1');
     } catch (e) { console.error('repararHilosConsultas ' + id + ': ' + e); }
   }
   return n + ' consultas revisadas · ' + conv + ' ya eran reserva y se fusionaron · ' + Math.max(0, ids.length - n) + ' quedan para la siguiente vuelta';
@@ -3718,8 +3718,8 @@ function reservaCambio_(action, d) {
   d = d || {};
   const id = s_(d.id || d.uuid || d.reservation_id); if (!id) return 'cambio sin id';
   try { const cid0 = s_(d.conversation_id || (d.conversation && d.conversation.id)); if (cid0) vincularReserva_(cid0, id); } catch (e) { console.error('vincular en cambio: ' + e); }
-  const props = PropertiesService.getScriptProperties(), k = 'rsnap_' + id, nuevo = snapReserva_(d);
-  let prev = null; try { prev = JSON.parse(props.getProperty(k) || 'null'); } catch (e) {}
+  const k = 'rsnap_' + id, nuevo = snapReserva_(d);
+  let prev = null; try { prev = JSON.parse(vGet_(k) || 'null'); } catch (e) {}
   if (!prev) {   // primera vez que la vemos: las fechas que tenía la bandeja sirven de punto de partida
     const sh = ssAlma_().getSheetByName('ALMA_INBOX');
     if (sh && sh.getLastRow() >= 2) {
@@ -3739,7 +3739,7 @@ function reservaCambio_(action, d) {
   const crudo = JSON.stringify(d).toLowerCase();
   nuevo.pideCambio = /alteration|modification|change_request/.test(nuevo.sub + ' ' + nuevo.estado) || /"(alteration|alterations|pending_alteration|alteration_request)"\s*:\s*(\{|\[\s*\{)/.test(crudo);
   if (nuevo.pideCambio && !(prev && prev.pideCambio)) cambios.push(['solicitud', 'Solicitud de modificación del huésped · apruébala o recházala en Hospitable']);
-  props.setProperty(k, JSON.stringify(nuevo));
+  vSet_(k, JSON.stringify(nuevo));
   if (!cambios.length) return 'cambio sin diferencias';
   const sh = hojaCrear_('ALMA_HITOS', HITOS_CAB_), ts = new Date().toISOString(), cod = s_(d.code || d.platform_id);
   cambios.forEach(c => sh.appendRow([ts, id, cod, c[0], c[1], action]));
@@ -4230,8 +4230,7 @@ function reporteDanoEpi_(ctx) {
   if (!txt || !RX_DANO_.test(txt)) return false;
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd');
   const clave = 'dano:' + String(ctx.resId || ctx.codigo || ctx.huesped || '') + ':' + hoy;
-  const props = PropertiesService.getScriptProperties();
-  if (props.getProperty(clave)) return false;
+  if (vGet_(clave)) return false;
   const fotos = (Array.isArray(ctx.fotos) ? ctx.fotos : []).filter(function (u) { return /^https?:/i.test(String(u || '')); }).slice(0, 6);
   const id = Date.now(), etiqueta = 'Reporte de huésped by ALMA';
   const rep = {
@@ -4245,7 +4244,7 @@ function reporteDanoEpi_(ctx) {
   };
   const r = UrlFetchApp.fetch(EPI_API_URL, { method: 'post', contentType: 'text/plain;charset=utf-8', payload: JSON.stringify({ action: 'saveReport', data: rep }), muteHttpExceptions: true, followRedirects: true });
   const ok = r.getResponseCode() < 300 && !/"ok"\s*:\s*false/.test(r.getContentText() || '');
-  if (ok) { props.setProperty(clave, String(id)); ctx.razon = (ctx.razon ? ctx.razon + ' · ' : '') + 'reporte de daño creado en EPI'; }
+  if (ok) { vSet_(clave, String(id)); ctx.razon = (ctx.razon ? ctx.razon + ' · ' : '') + 'reporte de daño creado en EPI'; }
   else console.warn('EPI saveReport respondió ' + r.getResponseCode() + ': ' + String(r.getContentText() || '').slice(0, 200));
   return ok;
 }
@@ -4638,13 +4637,14 @@ function dsAplicada_(id, resultado) {
 
 /* ═══════════════════════════════ 13. VÍNCULOS (antes en Propiedades del script) ═══════════════════
    ALMA recuerda pares pequeños por conversación o por número de WhatsApp: consulta ↔ reserva
-   (cinq_, inqcid_, cres_, inqres_) y datos de WhatsApp (waactor_, waruta_, wacat_). Antes se guardaban
+   (cinq_, inqcid_, cres_, inqres_), datos de WhatsApp (waactor_, waruta_, wacat_), la foto de cada reserva
+   para detectar cambios (rsnap_), consultas ya reparadas (inqrep3_) y reportes de daño ya enviados (dano:). Antes se guardaban
    como Propiedades del script y nunca se borraban: pasaron de 50 (el editor quedó en solo lectura) y
    habrían llenado el límite total de Google. Ahora viven en la pestaña ALMA_VINCULOS de la hoja de ALMA.
    Lectura: memoria de la ejecución → caché (6 h) → hoja → (respaldo) propiedad antigua, que se mueve a la hoja.
    Una vez: ejecuta migrarVinculos() desde el editor para mover y borrar las propiedades antiguas. */
 const VINC_TAB_ = 'ALMA_VINCULOS';
-const VINC_PREFIJOS_ = ['cinq_', 'inqcid_', 'cres_', 'inqres_', 'waactor_', 'waruta_', 'wacat_'];
+const VINC_PREFIJOS_ = ['cinq_', 'inqcid_', 'cres_', 'inqres_', 'waactor_', 'waruta_', 'wacat_', 'rsnap_', 'inqrep3_', 'dano:'];
 const VINC_ = { mapa: null, filas: null, sh: null };
 
 function vincHoja_() { return VINC_.sh || (VINC_.sh = hojaCrear_(VINC_TAB_, ['clave', 'valor', 'actualizado'])); }
@@ -4700,7 +4700,11 @@ function migrarVinculos() {
   } finally { lock.releaseLock(); }
   SpreadsheetApp.flush();
   claves.forEach(k => { try { props.deleteProperty(k); } catch (e) {} });
-  const quedan = Object.keys(props.getProperties()).length;
+  const resto = Object.keys(props.getProperties()), quedan = resto.length;
   console.log('Vínculos movidos a ' + VINC_TAB_ + ': ' + nuevas + ' nuevos de ' + claves.length + '. Propiedades del script que quedan: ' + quedan + '.');
+  /* Resumen de lo que queda (solo nombres, nunca valores): agrupa por prefijo para ver si algo más crece solo. */
+  const grupos = {};
+  resto.forEach(k => { const m = /^([a-zA-Z]+[_:])[^_:]{6,}/.exec(k), g = m ? m[1] + '…' : k; grupos[g] = (grupos[g] || 0) + 1; });
+  console.log('Quedan: ' + Object.keys(grupos).sort().map(g => grupos[g] > 1 ? g + ' ×' + grupos[g] : g).join(', '));
   return { movidas: claves.length, nuevas: nuevas, quedan: quedan };
 }

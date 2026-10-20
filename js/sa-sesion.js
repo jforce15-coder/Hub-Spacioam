@@ -43,16 +43,45 @@
   function verificar() {
     var s = leer(); if (!s) return Promise.resolve(null);
     if (verif && verif.s === s && Date.now() - verif.t < 300000) return verif.p;
+    var estado = '';
     var p = (origFetch || w.fetch)('https://script.google.com/macros/s/' + LOGIN + '/exec', {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'verify', token: 'SpacioAM2026!', session: s })
     }).then(function (r) { return r.json(); })
-      .then(function (j) { if (j && j.ok && j.profile) return j.profile; if (j && j.ok === false && j.error === 'session') borrar(); return null; })
-      .catch(function () { return null; });
-    verif = { s: s, t: Date.now(), p: p };
+      .then(function (j) {
+        if (j && j.ok && j.profile) { estado = 'ok'; if (j.session) guardar(j.session); return j.profile; }
+        estado = 'invalida';
+        if (j && j.ok === false && j.error === 'session') borrar();
+        return null;
+      })
+      .catch(function () { estado = 'red'; return null; });
+    verif = { s: s, t: Date.now(), p: p, estado: function () { return estado; } };
     return p;
   }
-  w.SASesion = { leer: leer, guardar: guardar, borrar: borrar, verificar: verificar };
+  /* Perfil incluido en la sesión (sin comprobar la firma): permite entrar AL INSTANTE y llamar a
+     verificar() en segundo plano; si la firma no vale, la app cierra la sesión. Igual de seguro que el
+     inicio de sesión recordado que ya usa cada app, y la seguridad real la ponen los backends. */
+  function perfilRapido() {
+    var s = leer(); if (!s) return null;
+    try {
+      var c = s.slice(0, s.lastIndexOf('.')).replace(/-/g, '+').replace(/_/g, '/');
+      while (c.length % 4) c += '=';
+      var d = JSON.parse(decodeURIComponent(escape(atob(c))));
+      if (!d || !d.p || !d.p.email || !d.exp || d.exp < Date.now()) return null;
+      return d.p;
+    } catch (e) { return null; }
+  }
+  /* Comprueba en segundo plano un ingreso instantáneo. Si la firma no vale o el perfil perdió el
+     acceso a appKey, borra la sesión y llama a alFallar (por ejemplo, cerrar sesión y recargar). */
+  function confirmar(appKey, alFallar) {
+    verificar().then(function (p) {
+      if (p && p.apps && (!appKey || p.apps[appKey])) return;
+      if (!p && !(verif && verif.estado() === 'invalida')) return;   // sin red: no se cierra la sesión
+      borrar();
+      try { alFallar && alFallar(); } catch (e) {}
+    });
+  }
+  w.SASesion = { leer: leer, guardar: guardar, borrar: borrar, verificar: verificar, perfilRapido: perfilRapido, confirmar: confirmar };
 
   var esAppsScript = function (u) { return /script\.google(usercontent)?\.com\/macros\//.test(String(u || '')); };
   var origFetch = w.fetch && w.fetch.bind(w);

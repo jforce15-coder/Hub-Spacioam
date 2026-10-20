@@ -50,6 +50,7 @@ function doGet(){
 function _handle(e){
   try{
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if(body.action === 'diagLector') return _diagLector(body.robot);
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -393,15 +394,46 @@ function _hoja(ses, q){
   if(!tipo) return {ok:false, error:'hoja_no_permitida'};
   var cache=CacheService.getScriptCache(), ck='h_'+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, q)).slice(0,40);
   var hit=cache.get(ck); if(hit!=null) return {ok:true, csv:hit, cache:true};
-  var r=UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/'+q, { muteHttpExceptions:true, followRedirects:true,
-    headers:{ Authorization:'Bearer '+ScriptApp.getOAuthToken() } });
-  var code=r.getResponseCode(), csv=r.getContentText();
-  if(code>=300 || /^\s*</.test(csv)) return {ok:false, error:'google_'+code};
+  var t0=Date.now(), code=0, csv='';
+  try{
+    var r=UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/'+q, { muteHttpExceptions:true, followRedirects:true,
+      headers:{ Authorization:'Bearer '+ScriptApp.getOAuthToken() } });
+    code=r.getResponseCode(); csv=r.getContentText();
+  }catch(e){ code=-1; csv=''; _lectorError(q, 'fetch: '+e, Date.now()-t0); }
+  if(code>=300 || code<0 || /^\s*</.test(csv)){
+    // Respaldo: si gviz falla (límite de Google, error temporal), se lee la pestaña directo con SpreadsheetApp.
+    // Solo para lecturas de pestaña completa (sin consulta tq), que es lo que piden casi todas las apps.
+    _lectorError(q, 'gviz '+code, Date.now()-t0);
+    var alt=_hojaDirecta(id, m[2]||'');
+    if(alt==null) return {ok:false, error:'google_'+code};
+    csv=alt;
+  }
   if(tipo==='usuarios') csv=_sinColumna(csv, 'password_hash');
   if(csv.length<90000){ try{ cache.put(ck, csv, 30); }catch(e){} }
   return {ok:true, csv:csv};
 }
 /* Quita una columna de un CSV (por nombre de cabecera), respetando comillas. */
+function _lectorError(q, err, ms){
+  try{ var c=CacheService.getScriptCache(), l=[]; try{ l=JSON.parse(c.get('lector_err')||'[]'); }catch(e){}
+    l.unshift({ t:new Date().toISOString(), q:String(q).replace(/^[^\/]+/, function(x){ return (HOJAS_PERMITIDAS[x]||'?'); }).slice(0,120), err:String(err).slice(0,120), ms:ms });
+    c.put('lector_err', JSON.stringify(l.slice(0,40)), 21600); }catch(e){}
+}
+function _hojaDirecta(id, qs){
+  try{
+    var p={}; String(qs||'').replace(/^\?/,'').split('&').forEach(function(kv){ if(!kv) return; var i=kv.indexOf('='); p[decodeURIComponent(kv.slice(0,i<0?kv.length:i))]=decodeURIComponent((i<0?'':kv.slice(i+1)).replace(/\+/g,' ')); });
+    if(p.tq || (p.tqx && !/out:csv/.test(p.tqx))) return null;      // consultas gviz: no se emulan
+    var ss=SpreadsheetApp.openById(id), sh=p.sheet ? ss.getSheetByName(p.sheet) : (p.gid ? ss.getSheets().filter(function(x){ return String(x.getSheetId())===String(p.gid); })[0] : ss.getSheets()[0]);
+    if(!sh) return null;
+    var v=sh.getDataRange().getDisplayValues();
+    return v.map(function(row){ return row.map(function(x){ return '"'+String(x).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+  }catch(e){ _lectorError(id, 'directa: '+e, 0); return null; }
+}
+// Diagnóstico para el robot (llave por hash): últimos errores del lector.
+function _diagLector(token){
+  var h=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(token||''), Utilities.Charset.UTF_8).map(function(b){ return ('0'+(b&0xff).toString(16)).slice(-2); }).join('');
+  if(h!=='b0d3ca9d3adb76025e4b4289181cb6300d7769a1d53a2a0c91636df9e0c65ed5') return {ok:false, error:'token'};
+  return {ok:true, errores: JSON.parse(CacheService.getScriptCache().get('lector_err')||'[]')};
+}
 function _sinColumna(csv, nombre){
   var filas=Utilities.parseCsv(csv); if(!filas.length) return csv;
   var i=filas[0].map(function(h){ return String(h).trim().toLowerCase(); }).indexOf(nombre);

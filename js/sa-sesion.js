@@ -105,7 +105,9 @@
       var url = typeof input === 'string' ? input : (input && input.url) || '';
       var g = RX_GVIZ.exec(url);
       if (g && leer() && (!init || !init.method || String(init.method).toUpperCase() === 'GET')) {
-        return leerHoja(g[1]).catch(function (e) {
+        return leerHoja(g[1]).catch(function () {   // un reintento antes de ir directo (la hoja privada no se puede leer directo)
+          return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return leerHoja(g[1]); });
+        }).catch(function (e) {
           try { console.warn('[sa-sesion] lector de hojas: ' + (e && e.message) + ' · se intenta directo'); } catch (x) {}
           return origFetch(input, init);
         });

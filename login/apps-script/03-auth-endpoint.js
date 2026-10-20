@@ -105,7 +105,7 @@ function _login(email, password){
   if(!hash) return {ok:false, error:'needs_password', profile:_publicProfile(row, H)};
   if(!_claveOk(hash, password)){ _fallo(email); return {ok:false, error:'bad_pass'}; }
   _limpiarFallos(email);
-  if(!_esHashNuevo(hash)){                       // hash antiguo (SHA-256 sin sal): se actualiza en este ingreso
+  if(!_esHashNuevo(hash) || Number(String(hash).split('$')[2]) !== VUELTAS){   // hash antiguo o con otras vueltas: se actualiza
     try{ f.d.sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(password)); }catch(e){}
   }
   var prof=_publicProfile(row, H);
@@ -266,14 +266,14 @@ function sha256(txt){
 }
 
 /* ═══ SEGURIDAD (fase 1, oct 2026) ═══════════════════════════════════════════
-   · Contraseñas con sal: 'v2$<sal>$<hash>' = HMAC-SHA256 iterado (1 000 vueltas). Las antiguas (SHA-256 sin
+   · Contraseñas con sal: 'v2$<sal>$<hash>' = HMAC-SHA256 iterado (200 vueltas; cada vuelta en Apps Script es lenta). Las antiguas (SHA-256 sin
      sal, 64 hex) siguen valiendo y se convierten solas en el siguiente ingreso correcto.
    · Sesión firmada: el login devuelve "session" = base64url(datos) + '.' + base64url(HMAC-SHA256) con una
      clave secreta (propiedad SESSION_SECRET, se crea sola). No se puede fabricar desde el navegador.
      verify { session } la comprueba y devuelve el perfil vigente; las demás apps la usarán en la fase 1b.
    · Intentos: 5 contraseñas erróneas seguidas bloquean ese correo 15 minutos.
    ════════════════════════════════════════════════════════════════════════ */
-var SESION_DIAS = 30, VUELTAS = 1000;
+var SESION_DIAS = 30, VUELTAS = 200;
 function _hex(bytes){ return bytes.map(function(b){ return ('0'+(b&0xFF).toString(16)).slice(-2); }).join(''); }
 function _b64u(bytes){ return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/,''); }
 function _esHashNuevo(h){ return /^v2\$/.test(String(h)); }

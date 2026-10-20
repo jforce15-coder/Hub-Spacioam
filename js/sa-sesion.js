@@ -14,6 +14,7 @@
    · Si un Apps Script responde { ok:false, error:"session" }, borra la sesión y
      recarga para volver al login.
    · Al cerrar sesión (SA.logout / SAAuth.clearSession) la borra.
+   · SASesion.verificar() → perfil vigente para la sesión única entre apps.
    --------------------------------------------------------------------------- */
 (function (w) {
   if (w.__saSesion) return; w.__saSesion = true;
@@ -36,7 +37,22 @@
     [dominio(), ''].forEach(function (d) { try { document.cookie = KEY + '=' + d + '; path=/; max-age=0'; } catch (e) {} });
     try { localStorage.removeItem(KEY); } catch (e) {}
   }
-  w.SASesion = { leer: leer, guardar: guardar, borrar: borrar };
+  /* Sesión única: comprueba la sesión firmada con el login y devuelve el perfil vigente (o null).
+     Cada app la llama al arrancar, antes de mostrar su pantalla de login. Resultado en memoria 5 min. */
+  var verif = null;
+  function verificar() {
+    var s = leer(); if (!s) return Promise.resolve(null);
+    if (verif && verif.s === s && Date.now() - verif.t < 300000) return verif.p;
+    var p = (origFetch || w.fetch)('https://script.google.com/macros/s/' + LOGIN + '/exec', {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'verify', token: 'SpacioAM2026!', session: s })
+    }).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.ok && j.profile) return j.profile; if (j && j.ok === false && j.error === 'session') borrar(); return null; })
+      .catch(function () { return null; });
+    verif = { s: s, t: Date.now(), p: p };
+    return p;
+  }
+  w.SASesion = { leer: leer, guardar: guardar, borrar: borrar, verificar: verificar };
 
   var esAppsScript = function (u) { return /script\.google(usercontent)?\.com\/macros\//.test(String(u || '')); };
   var origFetch = w.fetch && w.fetch.bind(w);

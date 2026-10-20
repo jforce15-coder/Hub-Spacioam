@@ -132,7 +132,7 @@
               else if (j.ok === false && j.error === 'session' && leer()) { borrar(); setTimeout(function () { location.reload(); }, 50); }
             }
           } catch (e) {}
-          var h = {}; try { res.headers.forEach(function (v, k) { h[k] = v; }); } catch (e) {}
+          var h = { 'Content-Type': res.headers.get('Content-Type') || 'application/json; charset=utf-8' };   // solo el tipo: copiar longitud/compresión del original confunde a Safari
           return new Response(txt, { status: res.status, statusText: res.statusText, headers: h });
         });
       });

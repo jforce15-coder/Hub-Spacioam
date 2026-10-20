@@ -62,8 +62,9 @@ function _handle(e){
       case 'addUser':     return _addUser(ses ? ses.e : body.by, body.email, body.nombre, body.app, body.rol, !!ses);
       case 'setInitialPassword': return _setInitialPassword(body.email, body.next);
       case 'setPassword': return _setPassword(body.email, body.current, body.next);
-      case 'setEmail':    return _setEmail(body.email, body.next);
-      case 'setPhoto':    return _setPhoto(body.email, body.url);
+      case 'setEmail':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setEmail(body.email, body.next);
+      case 'setPhoto':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setPhoto(body.email, body.url);
+      case 'resetPassword': return _resetPassword(ses, body.email);
       default:            return {ok:false, error:'action'};
     }
   }catch(err){ return {ok:false, error:String(err)}; }
@@ -104,6 +105,15 @@ function _login(email, password){
   var hash=String(row[H.password_hash]||'');
   // password_hash vacío → primer ingreso: la app debe pedir crear contraseña
   if(!hash) return {ok:false, error:'needs_password', profile:_publicProfile(row, H)};
+  // Contraseña reiniciada por un admin: entra con el código temporal y la app le pide crear una nueva.
+  if(_esReinicio(hash)){
+    var rp=String(hash).split('|');
+    if(Number(rp[1]) < Date.now()) return {ok:false, error:'reset_expired', detail:'El código temporal venció. Pide uno nuevo al administrador.'};
+    if(!_claveOk(rp[2], String(password||'').trim().toUpperCase())){ _fallo(email); return {ok:false, error:'bad_pass'}; }
+    _limpiarFallos(email);
+    CacheService.getScriptCache().put(_permisoReinicio(email), '1', 900);   // 15 min para crear la nueva
+    return {ok:false, error:'needs_password', reset:true, profile:_publicProfile(row, H)};
+  }
   if(!_claveOk(hash, password)){ _fallo(email); return {ok:false, error:'bad_pass'}; }
   _limpiarFallos(email);
   if(!_esHashNuevo(hash) || Number(String(hash).split('$')[2]) !== VUELTAS){   // hash antiguo o con otras vueltas: se actualiza
@@ -229,10 +239,12 @@ function _touch(sh, H, i){ sh.getRange(i+1, H.actualizado+1).setValue(new Date()
 function _setInitialPassword(email, next){
   var f=_findRow(email); if(!f) return {ok:false, error:'no_user'};
   var row=f.d.data[f.i], H=f.d.H, sh=f.d.sh;
-  if(String(row[H.password_hash]||'')) return {ok:false, error:'already_set'};
+  var hActual=String(row[H.password_hash]||''), porReinicio=_esReinicio(hActual) && CacheService.getScriptCache().get(_permisoReinicio(email));
+  if(hActual && !porReinicio) return {ok:false, error:'already_set'};
   if(!next || String(next).length<8) return {ok:false, error:'weak'};
   sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(next));
   _touch(sh,H,f.i);
+  if(porReinicio) CacheService.getScriptCache().remove(_permisoReinicio(email));
   var prof=_publicProfile(row, H);
   return {ok:true, profile:prof, session:_firmarSesion(prof)};
 }
@@ -246,6 +258,35 @@ function _setPassword(email, current, next){
   sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(next));
   _touch(sh,H,f.i);
   return {ok:true};
+}
+// ---- Reinicio de contraseña (respaldo) ----
+// Un administrador principal (con su sesión firmada) reinicia la contraseña de un usuario: se genera un código
+// temporal de 8 caracteres válido 48 h. El usuario entra con su correo + ese código y la app le pide crear una
+// contraseña nueva (mismo flujo que el primer ingreso). Hasta entonces la contraseña anterior deja de valer.
+var REINICIO_HORAS = 48;
+function _esReinicio(h){ return /^reset\|/.test(String(h||'')); }
+function _permisoReinicio(email){ return 'rp_'+String(email||'').toLowerCase().slice(0,200); }
+function _esAdminPrincipal(email){
+  var f=_findRow(email); if(!f) return false;
+  var row=f.d.data[f.i], H=f.d.H;
+  if(row[H.estado]==='suspendido') return false;
+  return APP_KEYS.some(function(a){ return String(row[H['perm_'+a]]||'')==='admin_principal'; });
+}
+function _puedeEditar(ses, email){
+  if(!ses) return false;
+  return String(ses.e||'')===String(email||'').trim().toLowerCase() || _esAdminPrincipal(ses.e);
+}
+function _resetPassword(ses, email){
+  if(!ses) return {ok:false, error:'session'};
+  if(!_esAdminPrincipal(ses.e)) return {ok:false, error:'forbidden'};
+  var f=_findRow(email); if(!f) return {ok:false, error:'no_user'};
+  var ABC='ABCDEFGHJKMNPQRSTUVWXYZ23456789', bytes=Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,''), codigo='';
+  for(var k=0;k<8;k++) codigo+=ABC.charAt(parseInt(bytes.substr(k*4,4),16) % ABC.length);
+  var vence=Date.now()+REINICIO_HORAS*3600000, sh=f.d.sh, H=f.d.H;
+  sh.getRange(f.i+1, H.password_hash+1).setValue('reset|'+vence+'|'+_hashClave(codigo));
+  _touch(sh,H,f.i);
+  _limpiarFallos(email);
+  return {ok:true, codigo:codigo, vence:new Date(vence).toISOString(), email:String(f.d.data[f.i][H.email]||'')};
 }
 function _setEmail(email, next){
   var f=_findRow(email); if(!f) return {ok:false, error:'no_user'};

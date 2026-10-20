@@ -1,0 +1,63 @@
+# Publica el Apps Script del LOGIN (hoja «Control de usuarios») cuando un cambio aprobado llega a main.
+# La web (GitHub Pages) se publica sola; este flujo se ocupa solo del Apps Script.
+#
+# Requiere el secreto CLASPRC_JSON (Settings → Secrets and variables → Actions).
+# Actualiza siempre la misma implementación, así la URL de la web app no cambia.
+
+name: Publicar Apps Script del login
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "login/**"
+  workflow_dispatch:
+
+concurrency:
+  group: login-apps-script
+  cancel-in-progress: false
+
+env:
+  DEPLOYMENT_ID: AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar clasp
+        run: npm install -g @google/clasp@3
+
+      - name: Cargar credenciales de Google
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ]; then
+            echo "::error::Falta el secreto CLASPRC_JSON en este repositorio."
+            exit 1
+          fi
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+
+      - name: Subir el código
+        working-directory: login
+        run: clasp push --force
+
+      - name: Crear versión y actualizar la implementación
+        working-directory: login
+        run: |
+          MSG="${{ github.event.head_commit.message || 'Publicación manual' }}"
+          DESC="$(printf '%s' "$MSG" | head -n1 | cut -c1-90)"
+          OUT="$(clasp create-version "$DESC" 2>&1)"
+          echo "$OUT"
+          VERSION="$(printf '%s' "$OUT" | grep -oE '[0-9]+' | tail -n1)"
+          if [ -z "$VERSION" ]; then
+            echo "::error::No se pudo leer el número de versión."
+            exit 1
+          fi
+          clasp update-deployment "$DEPLOYMENT_ID" -V "$VERSION" -d "$DESC"
+          echo "Publicada la versión $VERSION en la implementación $DEPLOYMENT_ID" >> "$GITHUB_STEP_SUMMARY"

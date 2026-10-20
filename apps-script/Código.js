@@ -4600,6 +4600,10 @@ function dsBotApi_(body) {
       case 'decisiones': return json_({ ok: true, propuestas: dsFilas_().filter(r => String(r.estado) === 'decidida').map(r => ({ id: String(r.id), decision: String(r.decision), nota: String(r.nota || ''), quien: String(r.quien || ''), propuesta: dsParse_(r.json) })) });
       case 'todas': return json_(dsPropuestas_());
       case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
+      case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
+        const p = PropertiesService.getScriptProperties();
+        return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
+      }
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

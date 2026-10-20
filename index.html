@@ -3414,7 +3414,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-20b";
+  BUILD = "2026-10-20c";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5510,6 +5510,7 @@ class Component extends DCLogic {
   resumenLog(nivel, accion, razon) {
     var a = String(accion || ""), r = razon ? " Motivo: " + razon + "." : "";
     if (/por el equipo/i.test(a)) return "Respondió el equipo." + r;
+    if (/automático por Hospitable/i.test(a)) return "Mensaje automático de Hospitable. No es una respuesta de ALMA ni del equipo.";
     if (/^ENVIADO/i.test(a)) return "ALMA respondió sola y el mensaje llegó al huésped." + r;
     if (!a && !nivel) return "El huésped escribió y nadie ha respondido todavía.";
     if (/contención/i.test(a)) return "Caso urgente. ALMA envió un mensaje de contención y avisó al equipo por WhatsApp." + r;
@@ -6282,7 +6283,17 @@ class Component extends DCLogic {
     this._inboxPor = inboxPor;
     var conItem = {}; (a.cola || []).forEach(function (r) { if (r.reservation_id) conItem[r.reservation_id] = 1; }); (a.log || []).forEach(function (l) { if (l.reservation_id) conItem[l.reservation_id] = 1; });
     var limiteIb = Date.now() - (st.convDias || 2) * 86400000;
-    var sinteticos = (a.inbox || []).filter(function (r) { return r.conv_id && !conItem[r.conv_id] && Date.parse(r.ultimo_ts) >= limiteIb; }).map(function (r) {
+    /* «Ver todo» (vista lista) muestra TODO, como el inbox de Hospitable: también las conversaciones cuyo último
+       mensaje es un automático de Hospitable (confirmación, self check-in, checkout…). Resumen y Requiere atención
+       siguen ignorándolos. Archivo editado en GitHub, no en Claude Design. */
+    var verTodo = st.mVista === "lista";
+    var ibAutoTs = function (r) { return r ? Date.parse(r.ultimo_auto_ts) || 0 : 0; };
+    var ibAutoUltimo = function (r) { var ta = ibAutoTs(r); return !!ta && ta > Math.max(Date.parse(r.ultimo_ts) || 0, Date.parse(r.ultimo_guest_ts) || 0, Date.parse(r.ultimo_host_ts) || 0); };
+    var ibAutoItems = !verTodo ? [] : (a.inbox || []).filter(function (r) { return r.conv_id && ibAutoUltimo(r) && ibAutoTs(r) >= limiteIb; }).map(function (r) {
+      return { fecha: new Date(ibAutoTs(r)).toISOString(), reservation_id: r.conv_id, huesped: r.huesped, propiedad: r.propiedad, codigo: r.codigo, checkin: r.checkin, checkout: r.checkout,
+        pregunta: "", respuesta: String(r.ultimo_auto_texto || ""), accion: "ENVIADO automático por Hospitable", respondido_por: "Hospitable", nivel: "", razon: "", _fila: "ia-" + r.conv_id, _inbox: true, _auto: true };
+    });
+    var sinteticos = (a.inbox || []).filter(function (r) { return r.conv_id && !conItem[r.conv_id] && !(verTodo && ibAutoUltimo(r)) && Date.parse(r.ultimo_ts) >= limiteIb; }).map(function (r) {
       var host = r.ultimo_de !== "guest";
       var tH = Math.max(Date.parse(r.ultimo_guest_ts) || 0, Date.parse(r.ultimo_host_ts) || 0);
       return { fecha: tH ? new Date(tH).toISOString() : r.ultimo_ts, reservation_id: r.conv_id, huesped: r.huesped, propiedad: r.propiedad, codigo: r.codigo, checkin: r.checkin, checkout: r.checkout,
@@ -6291,7 +6302,7 @@ class Component extends DCLogic {
     var logSrc = (a.log || []).map(function (l) {
       var ib = inboxPor[l.reservation_id]; if (!ib) return l;
       return Object.assign({}, l, { huesped: l.huesped || ib.huesped, propiedad: l.propiedad || ib.propiedad, codigo: l.codigo || ib.codigo, checkin: l.checkin || ib.checkin, checkout: l.checkout || ib.checkout });
-    }).concat(sinteticos.reverse());
+    }).concat(sinteticos.reverse()).concat(ibAutoItems);
     var logLista = logSrc.slice().reverse().filter(function (l) {
       var n = String(l.nivel || "").toUpperCase(), acc = String(l.accion || "").toUpperCase();
       return true;
@@ -6327,7 +6338,7 @@ class Component extends DCLogic {
         votoBienBg: voto === "up" ? "#3d6b52" : "transparent", votoBienFg: voto === "up" ? "#FFFFFF" : "#6F6867",
         votoMalBg: voto === "down" ? "#E9826A" : "transparent", votoMalFg: voto === "down" ? "#3E3F3F" : "#6F6867",
         votarBien: function () { votar("up"); }, votarMal: function () { votar("down"); },
-        sinResp: !!l._inbox && !acc,
+        sinResp: !!l._inbox && !acc, esAuto: !!l._auto,
         propRaw: l.propiedad || res.property_name || "", pregunta: l.pregunta || "",
         verRazon: function () { self.abrirBurbuja({ logKey: convKeyL, tipo: "alma", texto: l.respuesta || "" }); },
         key: convKeyL, ts: tsLog, esCola: false, esLog: true, resId: resIdLog, cargarHilo: function () { cargarHiloDe(resIdLog); }, form: farolForm(l.codigo, ""), nivel: n, enviado: enviado, emergenciaEnviada: /EMERGENCIA/i.test(acc), razonBrief: l.razon || "", accion: acc,
@@ -6345,11 +6356,11 @@ class Component extends DCLogic {
         huesped: huesped, iniciales: ini,
         hayEstadia: !!ci, estadia: ci && co ? ci + "\u00a0–\u00a0" + co : ci,
         hayCodigo: !!l.codigo, codigo: l.codigo || "",
-        nivelLabel: NIVEL_LABEL[n] || (n || (l._inbox ? (acc ? "Respondió el equipo" : "Sin responder") : "Sin nivel")), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
+        nivelLabel: NIVEL_LABEL[n] || (n || (l._auto ? "Automático" : l._inbox ? (acc ? "Respondió el equipo" : "Sin responder") : "Sin nivel")), nivelBg: N.bg, nivelFg: N.fg, color: N.color,
         pregunta: self.limpiaImg(l.pregunta), hayPregunta: !!self.limpiaImg(l.pregunta), hayRespuesta: !!String(l.respuesta || "").trim(), respuesta: l.respuesta || "",
         hayFotos: self.fotosDe(l.fotos, l.pregunta).length > 0, fotos: self.fotosDe(l.fotos, l.pregunta).map(function (f) { return self.fotoVista(f); }),
         burbujaBg: enviado ? (humano ? "rgba(233,130,106,.22)" : "rgba(59,102,145,.12)") : "#E4E0DA", burbujaFg: "#3E3F3F", burbujaBd: enviado ? (humano ? "rgba(233,130,106,.5)" : "rgba(59,102,145,.4)") : "#D8D4CE",
-        sentido: enviado ? "Enviado al huésped" : "No se envió · " + (/borrador/i.test(acc) ? "borrador" : /SOMBRA/i.test(acc) ? "modo sombra" : /retenid/i.test(acc) ? "retenido" : "quedó en el hub"),
+        sentido: l._auto ? "Mensaje automático de Hospitable" : enviado ? "Enviado al huésped" : "No se envió · " + (/borrador/i.test(acc) ? "borrador" : /SOMBRA/i.test(acc) ? "modo sombra" : /retenid/i.test(acc) ? "retenido" : "quedó en el hub"),
         sentidoColor: enviado ? "#B54D36" : "#6F6867",
         resumen: self.resumenLog(n, acc, l.razon),
         caso: self.casoDe(n, acc, l.razon, l.humano || ""), pieMax: st.pieVer[convKeyL] ? "min(46%, 360px)" : "none", pieVisible: true, pieDisplay: "block", pieChevron: st.pieVer[convKeyL] ? "rotate(180deg)" : "none", pieAria: st.pieVer[convKeyL] ? "true" : "false",
@@ -6536,7 +6547,7 @@ class Component extends DCLogic {
       if (solo) return item;
       briefItems.push(item);
     };
-    todos.forEach(function (c) { armarBrief(c); });
+    todos.forEach(function (c) { if (!c.esAuto) armarBrief(c); });
     briefItems.sort(function (x, y) { return ordenEf === "Cronológico" ? y.ts - x.ts : (x.rk - y.rk || y.ts - x.ts); });
     var briefIdx = Math.max(0, Math.min(briefItems.length - 1, st.briefIdx || 0)), nBrief = Math.max(1, briefItems.length), briefPct = 100 / nBrief;
     var briefPaginas = briefItems.map(function (b, i) { return Object.assign(b, { _i: i }); }).filter(function (b) { return Math.abs(b._i - briefIdx) <= 1; }).map(function (b) { return Object.assign(b, { pagTop: (b._i * briefPct) + "%", pagAlto: briefPct + "%" }); });
@@ -6585,7 +6596,7 @@ class Component extends DCLogic {
     (a.resueltas || []).concat(a.resueltasVivo || []).forEach(function (r) { var t = tsR(r), k = String(r.res_key || ""); if (!t) return; if (k && (!resMan[k] || resMan[k].ts < t)) resMan[k] = { estado: r.estado, ts: t, por: r.por }; });
     Object.keys(st.resMan || {}).forEach(function (k) { var e = st.resMan[k]; if (e && e.ts && (!resMan[k] || !(resMan[k].ts >= e.ts))) resMan[k] = e; });
     grupos.forEach(function (g) {
-      g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || y.ts - x.ts; });
+      g.frags.sort(function (x, y) { return (x.esCola ? 0 : 1) - (y.esCola ? 0 : 1) || (x.esAuto ? 1 : 0) - (y.esAuto ? 1 : 0) || y.ts - x.ts; });
       var top = g.frags[0], man = resMan[g.key], ib = inboxPor[g.key];
       var ug = ib ? Date.parse(ib.ultimo_guest_ts) || 0 : 0, uh = ib ? Date.parse(ib.ultimo_host_ts) || 0 : 0;
       /* Los automáticos de Hospitable (checkout, first morning, review reminder…) no son actividad: no reabren ni reviven conversaciones. */
@@ -6691,6 +6702,7 @@ class Component extends DCLogic {
         c.progHayNota = !!c.progNota;
       });
       g.rk = g.resuelto ? 7 : rank(top); g.ts = g.tsReal;
+      g.autoUlt = verTodo && !!ib && ibAutoUltimo(ib); if (g.autoUlt && ibAutoTs(ib) > g.ts) g.ts = ibAutoTs(ib);
       if (g.resuelto) g.frags.forEach(function (c) { if (!c.esCola) { c.nivelLabel = "Resuelta"; c.nivelBg = "rgba(61,107,82,.14)"; c.nivelFg = "#3d6b52"; c.color = "#3d6b52"; } });
       /* Sin resolver, ninguna etiqueta dice «Resuelta» (p. ej. ALMA clasificó VERDE pero su respuesta no salió): mismo estado que la lista. */
       else g.frags.forEach(function (c) { if (!c.esCola && c.nivelLabel === "Resuelta") { var sinR = !c.enviado && !c.humano || c.sinResp || (inboxPor[g.key] && inboxPor[g.key].ultimo_de === "guest"); if (sinR) { c.nivelLabel = "Sin responder"; c.nivelBg = "rgba(242,117,90,.16)"; c.nivelFg = "#B54D36"; c.color = "#F2755A"; } else { c.nivelLabel = "Respondida"; c.nivelBg = "rgba(59,102,145,.12)"; c.nivelFg = "#3B6691"; c.color = "#3B6691"; } } });
@@ -6726,8 +6738,8 @@ class Component extends DCLogic {
     var enNivel = function (g, x) { var t = g.frags[0]; return x === "VERDE" ? (g.resuelto || (!t.esCola && t.nivel === "VERDE" && (t.enviado || t.humano))) : (!g.resuelto && (t.nivel === x || (x === "ROJO" && t.nivelLabel === "Urgente") || (x === "AMARILLO" && t.nivelLabel === "Necesita equipo"))); };
     /* Resumen en texto: una línea por reserva con movimiento en la ventana; si no hubo, lo que sigue abierto. */
     /* Hora real del último mensaje (de quien sea), igual que el inbox de Hospitable. */
-    var tsG = function (g) { return Math.max(g.tsReal || 0, g.frags.reduce(function (m, c) { return Math.max(m, c.ts || 0); }, 0)); };
-    var gruposRes = gruposTodos;
+    var tsG = function (g) { return Math.max(g.tsReal || 0, g.frags.reduce(function (m, c) { return c.esAuto ? m : Math.max(m, c.ts || 0); }, 0)); };
+    var gruposRes = gruposTodos.filter(function (g) { return g.frags.some(function (c) { return !c.esAuto; }); });
     var enVent = gruposRes.filter(function (g) { return ahora - tsG(g) <= ventanaMs; });
     var resRecientes = enVent.length > 0;
     var abiertosRes = gruposRes.filter(function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || g.frags[0].esCola); });
@@ -6827,7 +6839,7 @@ class Component extends DCLogic {
           abierto: ab, hayHtml: ab && !!m.html, soloTexto: ab && !m.html, html: ab ? (m.html || "") : "", texto: m.texto || "",
           toggle: function () { self.setState({ correoVer: ab ? "" : x.k }); } };
       });
-    var almaG = function (g) { return g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano) : c.estadoCola === "respondido"; }); };
+    var almaG = function (g) { return g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano && !c.esAuto) : c.estadoCola === "respondido"; }); };
     var eqG = function (g) { return g.frags.some(function (c) { return !!c.humano; }); };
     /* Una conversación que cambias de estado se queda en la lista actual hasta que cambies de filtro: así el cambio se ve y no se "pierde". */
     var fijo = self._fijos || {}, keep = function (f) { return function (g) { return !!fijo[g.key] || f(g); }; };
@@ -6917,9 +6929,11 @@ class Component extends DCLogic {
         var tsG = g.ts || t.ts || 0, d = new Date(tsG), mn = Math.max(0, Math.round((Date.now() - tsG) / 60000));
         var hora = !tsG || isNaN(d) ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 24 * 60 ? "hace " + Math.floor(mn / 60) + " h" : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
         /* Resumen de la conversación (tema + desenlace), nunca el texto del último mensaje. */
-        var temaL = self.fraseCaso(t), almaL = g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano) : c.estadoCola === "respondido"; }), eqL = g.frags.some(function (c) { return !!c.humano; });
+        var temaL = t.esAuto ? "" : self.fraseCaso(t), almaL = g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano && !c.esAuto) : c.estadoCola === "respondido"; }), eqL = g.frags.some(function (c) { return !!c.humano; });
         var desL = t.clasificando ? t.clasTxt : t.esCola ? "ALMA lo está atendiendo" : est === "pend" ? "sin respuesta" : est === "res" ? (g.autoRes ? "resuelta sola" : "resuelta") : eqL ? "respondió el equipo" : almaL ? "ALMA respondió" : ib && ib.ultimo_de !== "guest" ? "le respondimos" : "";
         var prev = temaL ? temaL + (desL ? " · " + desL : "") : desL ? desL[0].toUpperCase() + desL.slice(1) : "";
+        /* Ver todo: el último mensaje fue un automático de Hospitable → se dice y se muestra (no cuenta como pendiente ni respondida). */
+        if (g.autoUlt && ib) { var txA = String(ib.ultimo_auto_texto || "").replace(/\s+/g, " ").trim(); prev = "Automático de Hospitable" + (txA ? ": " + (txA.length > 90 ? txA.slice(0, 89) + "…" : txA) : "") + (t.esAuto ? "" : prev ? " · " + prev : ""); if (est === "resp" && t.esAuto) E = ["Automático", "#F5F3F0", "#6F6867", "#938B8A"]; }
         var nombre = (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped";
         var propR = (ib && ib.propiedad) || t.propRaw || "", estR = t.estadia || (ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : "");
         var hoyISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });

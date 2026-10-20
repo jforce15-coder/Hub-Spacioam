@@ -205,19 +205,17 @@ function convId_(d) {
   return '';
 }
 function recordarConv_(cid, inqU) {
-  const p = PropertiesService.getScriptProperties();
-  if (p.getProperty('cinq_' + cid) !== inqU) p.setProperty('cinq_' + cid, inqU);
-  if (p.getProperty('inqcid_' + inqU) !== cid) p.setProperty('inqcid_' + inqU, cid);
+  vSet_('cinq_' + cid, inqU);
+  vSet_('inqcid_' + inqU, cid);
 }
 /* Consulta → reserva: la fila de la bandeja, la cola, el log, los hitos, las marcas de resuelta y los mensajes guardados
    pasan del id de la consulta (inq:…) al de la reserva. Desde ahí el hilo completo sale de /reservations/{id}/messages. */
 function vincularReserva_(cid, resId) {
   if (!cid || !resId || resId === cid) return;
-  const props = PropertiesService.getScriptProperties();
-  if (props.getProperty('cres_' + cid) === resId) return;
-  const inqU = props.getProperty('cinq_' + cid) || cid;
+  if (vGet_('cres_' + cid) === resId) return;
+  const inqU = vGet_('cinq_' + cid) || cid;
   if (inqU === resId) return;
-  props.setProperty('cres_' + cid, resId); props.setProperty('inqres_' + inqU, resId); if (inqU !== cid) props.setProperty('inqres_' + cid, resId);
+  vSet_('cres_' + cid, resId); vSet_('inqres_' + inqU, resId); if (inqU !== cid) vSet_('inqres_' + cid, resId);
   const viejos = ['inq:' + inqU].concat(inqU !== cid ? ['inq:' + cid] : []);
   const lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch (e) { return; }
   try {
@@ -246,10 +244,9 @@ function vincularReserva_(cid, resId) {
 }
 /* ¿La consulta ya es reserva? GET /reservations?conversation_id=… (sin ventana de fechas). Negativo cacheado 10 min. */
 function reservaDeConsulta_(uid) {
-  const props = PropertiesService.getScriptProperties();
-  const ya = props.getProperty('inqres_' + uid); if (ya) return ya;
+  const ya = vGet_('inqres_' + uid); if (ya) return ya;
   const cache = CacheService.getScriptCache(); if (cache.get('nores_' + uid)) return '';
-  const cid = props.getProperty('inqcid_' + uid) || uid;
+  const cid = vGet_('inqcid_' + uid) || uid;
   const r = hosp_('get', '/reservations?conversation_id=' + encodeURIComponent(cid) + '&per_page=5');
   const d = r.code === 200 ? ((r.json && r.json.data) || []).filter(x => s_(x.id) && s_(x.id) !== uid && s_(x.id) !== cid) : [];
   if (!d.length) { cache.put('nores_' + uid, '1', 600); return ''; }
@@ -280,8 +277,8 @@ function idsPropiedades_() {
   return ids;
 }
 function inqDeConversacion_(d) {
-  const props = PropertiesService.getScriptProperties(), cid = s_(d.conversation_id || (d.conversation && d.conversation.id));
-  if (cid) { const ya = props.getProperty('cinq_' + cid); if (ya) return ya; }
+  const cid = s_(d.conversation_id || (d.conversation && d.conversation.id));
+  if (cid) { const ya = vGet_('cinq_' + cid); if (ya) return ya; }
   /* El nombre solo sirve si escribe el huésped: en un mensaje nuestro el remitente es el anfitrión (p. ej. Gabriel
      Asturias) y buscarlo entre las consultas dejaba nuestra respuesta sin conversación. */
   const s = d.sender || {}, deHuesped = String(d.sender_type || '').toLowerCase() === 'guest';
@@ -1121,8 +1118,8 @@ function contextoWA_(convId, hilo, modo) {
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd');
   return {
     resId: convId, codigo: '', estado: 'sin reserva · contacto por WhatsApp · ' + waCatDe_(convId) + ' (ALMA sí responde: clasifica por el contenido)', modo: modo, sinReserva: true,
-    actor: PropertiesService.getScriptProperties().getProperty('waactor_' + fin8_(String(convId).slice(3))) || 'externo',
-    rutaPrev: PropertiesService.getScriptProperties().getProperty('waruta_' + fin8_(String(convId).slice(3))) || '',
+    actor: vGet_('waactor_' + fin8_(String(convId).slice(3))) || 'externo',
+    rutaPrev: vGet_('waruta_' + fin8_(String(convId).slice(3))) || '',
     huesped: s_(ultGuest && ultGuest.nombre) || 'Contacto de WhatsApp', esWA: true,
     idioma: idioma, idiomaReserva: '', ultimoGuestTexto: ultGuest ? String(ultGuest.texto || '').slice(0, 400) : '',
     propiedad: 'Sin reserva', apartamento: '', checkin: '', checkout: '', hoy: hoy,
@@ -1141,7 +1138,7 @@ function contextoWA_(convId, hilo, modo) {
       (waCatDe_(convId) === 'administrativa' ? prompt_('ADMIN_WHATSAPP') : prompt_('VENTAS_WHATSAPP')) + '\n' + prompt_('REGLAS_EXTRA')
   };
 }
-function waCatDe_(convId) { return PropertiesService.getScriptProperties().getProperty('wacat_' + fin8_(String(convId).slice(3))) || 'reserva'; }
+function waCatDe_(convId) { return vGet_('wacat_' + fin8_(String(convId).slice(3))) || 'reserva'; }
 function contextoHosp_(resId, hilo, modo) {
   const esInq = String(resId).indexOf('inq:') === 0;
   const r = hosp_('get', '/reservations/' + resId + (esInq ? '?include=properties,listings,guest' : '?include=properties,guest'));
@@ -1679,7 +1676,7 @@ function clasificar_(ctx) {
   if (ctx.esWA) {
     const rt = routerWA_(ctx);
     ctx.ruta = rt.ruta; ctx.urgencia = rt.urgencia;
-    try { PropertiesService.getScriptProperties().setProperty('waruta_' + fin8_(String(ctx.resId).slice(3)), rt.ruta); } catch (e) {}
+    try { vSet_('waruta_' + fin8_(String(ctx.resId).slice(3)), rt.ruta); } catch (e) {}
     const reglas = reglasRuta_(rt.ruta, rt.urgencia);
     if (rt.ruta !== 'huesped') {
       /* Rutas no-huésped: nunca ROJO (no hay estadía, códigos ni contención). Urgente → responde ya y avisa al de turno. */
@@ -3885,7 +3882,7 @@ function waEntrante_(m, nombre) {
   const esEquipo = !prueba && !esJuan && W.equipo.some(x => fin8_(x) === fin8_(wa));
   const esSocio = !prueba && !esJuan && !esEquipo && waPropietarios_().some(x => fin8_(x) === fin8_(wa));
   const actor = esJuan ? 'juan' : esEquipo ? 'equipo' : esSocio ? 'propietario' : 'externo';
-  PropertiesService.getScriptProperties().setProperty('waactor_' + fin8_(wa), actor);
+  vSet_('waactor_' + fin8_(wa), actor);
   const res = actor !== 'externo' ? null : waReserva_(wa);
   const convId = res ? res.resId : 'wa:' + wa;
   const cat = res ? 'reserva' : actor !== 'externo' ? ({ juan: 'estrategico', equipo: 'interno', propietario: 'socio' })[actor] : waCategoria_(wa, texto, nombre);
@@ -3987,7 +3984,7 @@ function transcribir_(blob) {
 /* Conversación de WhatsApp sin reserva unida: ¿es una reserva o posible reserva, o es administrativa
    (proveedores, pagos de servicios, vecinos, bancos, trámites, ofertas)? Una vez que es "reserva" se queda así. */
 function waCategoria_(wa, texto, nombre) {
-  const props = PropertiesService.getScriptProperties(), k = 'wacat_' + fin8_(wa), prev = props.getProperty(k);
+  const k = 'wacat_' + fin8_(wa), prev = vGet_(k);
   if (prev === 'reserva') return prev;
   const hist = waHilo_('wa:' + wa).slice(-8).map(m => (m.tipo === 'guest' ? 'CONTACTO: ' : 'SPACIO AM: ') + m.texto).join('\n');
   const t = claude_(CFG.MODELO_CLASIFICADOR, 20,
@@ -3996,7 +3993,7 @@ function waCategoria_(wa, texto, nombre) {
     'administrativa = todo lo demás: proveedores, técnicos, limpieza, cobros o pagos de servicios, bancos, vecinos, administración de edificios, trámites, ventas o publicidad que nos ofrecen, propietarios de apartamentos, reclutamiento.',
     'Nombre: ' + (nombre || '-') + '\nConversación previa:\n' + (hist || '(ninguna)') + '\nMensaje nuevo: ' + texto, 0);
   const cat = /admin/i.test(String(t)) ? 'administrativa' : 'reserva';
-  props.setProperty(k, cat);
+  vSet_(k, cat);
   return cat;
 }
 /* ═══ ROUTER DE CONVERSACIONES (WhatsApp) ═══
@@ -4637,4 +4634,73 @@ function dsAplicada_(id, resultado) {
   h.sh.getRange(f._fila, h.col('aplicada_en')).setValue(new Date());
   h.sh.getRange(f._fila, h.col('resultado')).setValue(String(resultado || '').slice(0, 5000));
   return { ok: true };
+}
+
+/* ═══════════════════════════════ 13. VÍNCULOS (antes en Propiedades del script) ═══════════════════
+   ALMA recuerda pares pequeños por conversación o por número de WhatsApp: consulta ↔ reserva
+   (cinq_, inqcid_, cres_, inqres_) y datos de WhatsApp (waactor_, waruta_, wacat_). Antes se guardaban
+   como Propiedades del script y nunca se borraban: pasaron de 50 (el editor quedó en solo lectura) y
+   habrían llenado el límite total de Google. Ahora viven en la pestaña ALMA_VINCULOS de la hoja de ALMA.
+   Lectura: memoria de la ejecución → caché (6 h) → hoja → (respaldo) propiedad antigua, que se mueve a la hoja.
+   Una vez: ejecuta migrarVinculos() desde el editor para mover y borrar las propiedades antiguas. */
+const VINC_TAB_ = 'ALMA_VINCULOS';
+const VINC_PREFIJOS_ = ['cinq_', 'inqcid_', 'cres_', 'inqres_', 'waactor_', 'waruta_', 'wacat_'];
+const VINC_ = { mapa: null, filas: null, sh: null };
+
+function vincHoja_() { return VINC_.sh || (VINC_.sh = hojaCrear_(VINC_TAB_, ['clave', 'valor', 'actualizado'])); }
+function vincCargar_() {
+  if (VINC_.mapa) return;
+  const sh = vincHoja_(), n = sh.getLastRow() - 1, mapa = {}, filas = {};
+  if (n > 0) sh.getRange(2, 1, n, 2).getValues().forEach((r, i) => { const k = String(r[0]); if (k) { mapa[k] = String(r[1]); filas[k] = i + 2; } });
+  VINC_.mapa = mapa; VINC_.filas = filas;
+}
+function vGet_(k) {
+  k = String(k || ''); if (!k) return null;
+  if (VINC_.mapa && k in VINC_.mapa) return VINC_.mapa[k];
+  const cache = CacheService.getScriptCache(), c = cache.get('v_' + k);
+  if (c !== null) return c === '\u0000' ? null : c;
+  vincCargar_();
+  let v = k in VINC_.mapa ? VINC_.mapa[k] : null;
+  if (v === null) {                                       // respaldo: propiedad antigua aún no migrada
+    const props = PropertiesService.getScriptProperties(), old = props.getProperty(k);
+    if (old !== null) { vSet_(k, old); try { props.deleteProperty(k); } catch (e) {} v = old; }
+  }
+  try { cache.put('v_' + k, v === null ? '\u0000' : v, 21600); } catch (e) {}
+  return v;
+}
+function vSet_(k, v) {
+  k = String(k || ''); v = String(v === undefined || v === null ? '' : v); if (!k) return;
+  if (VINC_.mapa && VINC_.mapa[k] === v) return;
+  const lock = LockService.getScriptLock(), yaTenia = lock.hasLock();   // si quien llama ya tiene el lock, no se suelta aquí
+  if (!yaTenia) { try { lock.waitLock(10000); } catch (e) { console.warn('vSet_ sin lock: ' + k); return; } }
+  try {
+    VINC_.mapa = null; vincCargar_();                     // relee dentro del lock por si otra ejecución escribió
+    if (VINC_.mapa[k] === v) return;
+    const sh = vincHoja_();
+    if (VINC_.filas[k]) sh.getRange(VINC_.filas[k], 2, 1, 2).setValues([[v, new Date()]]);
+    else { sh.appendRow([k, v, new Date()]); VINC_.filas[k] = sh.getLastRow(); }
+    VINC_.mapa[k] = v;
+  } finally { if (!yaTenia) lock.releaseLock(); }
+  try { CacheService.getScriptCache().put('v_' + k, v, 21600); } catch (e) {}
+}
+
+/* Ejecutar UNA vez desde el editor. Mueve las propiedades antiguas a ALMA_VINCULOS y las borra.
+   Se puede repetir sin riesgo: lo que ya está en la hoja no se duplica. */
+function migrarVinculos() {
+  const props = PropertiesService.getScriptProperties(), todas = props.getProperties();
+  const claves = Object.keys(todas).filter(k => VINC_PREFIJOS_.some(p => k.indexOf(p) === 0));
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  let nuevas = 0;
+  try {
+    VINC_.mapa = null; vincCargar_();
+    const sh = vincHoja_(), filas = [];
+    claves.forEach(k => { if (!(k in VINC_.mapa)) { filas.push([k, String(todas[k]), new Date()]); VINC_.mapa[k] = String(todas[k]); } });
+    if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, 3).setValues(filas);
+    nuevas = filas.length;
+  } finally { lock.releaseLock(); }
+  SpreadsheetApp.flush();
+  claves.forEach(k => { try { props.deleteProperty(k); } catch (e) {} });
+  const quedan = Object.keys(props.getProperties()).length;
+  console.log('Vínculos movidos a ' + VINC_TAB_ + ': ' + nuevas + ' nuevos de ' + claves.length + '. Propiedades del script que quedan: ' + quedan + '.');
+  return { movidas: claves.length, nuevas: nuevas, quedan: quedan };
 }

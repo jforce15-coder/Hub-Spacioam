@@ -304,6 +304,9 @@
                 </div>
               </sc-if>
             </sc-if>
+            <sc-if value="{{ esPrincipal }}" hint-placeholder-val="{{ false }}">
+              <a href="./design-system.html" style="display:flex; align-items:center; gap:10px; width:100%; border-top:1px solid #D8D4CE; padding:14px; box-sizing:border-box; font-size:12.5px; letter-spacing:.06em; color:#3E3F3F; font-family:inherit; text-decoration:none" style-hover="background:#F5F3F0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="grid" size="16" color="#6F6867" hint-size="16px,16px"></x-import><span style="flex:1">Design system</span><sc-if value="{{ dsPendientesVisible }}" hint-placeholder-val="{{ false }}"><span aria-label="Propuestas pendientes" style="min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:#3E3F3F; color:#FFFFFF; font-size:10.5px; font-weight:600; display:grid; place-items:center; box-sizing:border-box">{{ dsPendientes }}</span></sc-if></a>
+            </sc-if>
             <button onClick="{{ toggleLang }}" style="display:flex; align-items:center; gap:10px; width:100%; border:none; border-top:1px solid #D8D4CE; background:transparent; cursor:pointer; padding:12px 14px; font-family:inherit; text-align:left; color:#3E3F3F" style-hover="background:#F5F3F0">
               <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="globe" size="16" color="#6F6867" hint-size="16px,16px"></x-import>
               <span style="font-size:12.5px; letter-spacing:.06em">Idioma</span>
@@ -3410,7 +3413,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-19f";
+  BUILD = "2026-10-20a";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -8031,6 +8034,8 @@ class Component extends DCLogic {
       rolLabel: esPrincipal ? "Admin principal" : "Admin secundario",
       esPrincipal: esPrincipal,
       esSecundario: !esPrincipal,
+      /* Contador de propuestas del design system: preparado, oculto hasta conectarlo (poner dsPendientes > 0 lo muestra). */
+      dsPendientes: 0, dsPendientesVisible: false,
       ...this.iaVals(esPrincipal),
       saludo: (h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches") + ", " + nombre,
       /* Cambia con el día, no con cada render: una frase que se repite todo el

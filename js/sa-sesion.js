@@ -158,5 +158,15 @@
       } catch (e) {}
     });
   }
+  /* Epi: los técnicos con la sesión antigua guardada (sam_sess) pero sin la firmada vuelven una vez al login.
+     Sin la firmada no pueden leer la hoja de Guest app (wi-fi de las propiedades) cuando sea privada. */
+  if (/^epi\.spacioam\.com$/i.test(location.hostname)) {
+    try {
+      if (!leer() && !sessionStorage.getItem('sa_relogin') && localStorage.getItem('sam_sess')) {
+        sessionStorage.setItem('sa_relogin', '1');
+        localStorage.removeItem('sam_sess');
+      }
+    } catch (e) {}
+  }
   w.addEventListener('load', envolver);
 })(window);

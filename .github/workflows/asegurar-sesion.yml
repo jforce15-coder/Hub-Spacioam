@@ -1,0 +1,37 @@
+# Garantiza que index.html cargue la sesión firmada compartida (fase 1b de seguridad).
+# Si una exportación de Claude Design la quita, este flujo la vuelve a poner sola.
+name: Asegurar sesión firmada
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  asegurar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Añadir el script si falta
+        run: |
+          TAG='<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>'
+          if grep -q 'hub.spacioam.com/js/sa-sesion.js' index.html; then
+            echo "Ya está."; exit 0
+          fi
+          python3 - "$TAG" <<'PY'
+          import re, sys
+          tag = sys.argv[1]
+          s = open('index.html', encoding='utf-8').read()
+          m = re.search(r'<head[^>]*>', s, re.I)
+          s = (s[:m.end()] + '\n' + tag + s[m.end():]) if m else (tag + '\n' + s)
+          open('index.html', 'w', encoding='utf-8').write(s)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Añadir sa-sesion.js a index.html (lo quitó una exportación)"
+          git push

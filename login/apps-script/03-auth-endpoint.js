@@ -55,6 +55,7 @@ function _handle(e){
     switch(body.action){
       case 'login':       return _login(body.email, body.password);
       case 'verify':      return _verify(body.session);
+      case 'hoja':        return _hoja(ses, body.q);
       case 'profile':     return _profile(body.email);
       case 'users':       return _users(body.app);
       case 'owners':      return _owners();
@@ -324,3 +325,52 @@ function _claveFallos(email){ return 'fail_'+String(email||'').toLowerCase().sli
 function _bloqueado(email){ return Number(CacheService.getScriptCache().get(_claveFallos(email))||0) >= 5; }
 function _fallo(email){ var c=CacheService.getScriptCache(), k=_claveFallos(email); c.put(k, String(Number(c.get(k)||0)+1), 900); }
 function _limpiarFallos(email){ CacheService.getScriptCache().remove(_claveFallos(email)); }
+
+/* ═══ LECTOR SEGURO DE HOJAS (fase 2, oct 2026) ═══════════════════════════════════════
+   Las apps leían las hojas de Google directo desde el navegador (gviz CSV), por eso tenían que ser
+   públicas. Ahora sa-sesion.js envía esas lecturas aquí: solo con sesión firmada válida y solo para las
+   hojas de Spacio AM. Este script corre como el dueño, así que puede leer hojas PRIVADAS.
+   · q: lo que va después de /spreadsheets/d/ en la URL original (id + /gviz/tq?…).
+   · La hoja «Control de usuarios» nunca devuelve la columna password_hash.
+   · Caché de 30 s por consulta (si el CSV cabe), para no repetir lecturas al abrir varias pantallas.
+   ════════════════════════════════════════════════════════════════════════════ */
+var HOJAS_PERMITIDAS = {
+  '1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U': 'usuarios',   // Control de usuarios
+  '1K8_MUCmJ4_Ks4DMKLSCbua1qC7X6QuilRaMvCquZ7kk': 'alma',       // ALMA (Hub)
+  '12TF-FO6vld2VkzDr9YlUnHlNjh4d1u9Ss6qWz3F3KeQ': 'hola',       // Hola / reservas
+  '1l9wLH8880NlN9ac2jvne2U6cqej6gycqAD77Z25cLF4': 'epi',        // EPI / Mi
+  '1-SfKC-evkK24qfOrrvIrcDs6ckGAmRzSLS_IYB8cYZg': 'docs',       // Docs / reportes
+  '1r__zfIAFLr6mxcuAN6HwQF1OmLTG-lce-jv_naGRDVU': 'docs2',      // Docs
+  '11V5EoY84H8tDQ6DvZ9jqtIcoBarY7EODqueNmNr71iM': 'tgsp'        // The Gentle Stoic Parent
+};
+function _hoja(ses, q){
+  if(!ses) return {ok:false, error:'session'};
+  q=String(q||'');
+  var m=/^([A-Za-z0-9_-]{30,60})\/gviz\/tq(\?[^#]*)?$/.exec(q);
+  if(!m) return {ok:false, error:'consulta'};
+  var id=m[1], tipo=HOJAS_PERMITIDAS[id];
+  if(!tipo) return {ok:false, error:'hoja_no_permitida'};
+  var cache=CacheService.getScriptCache(), ck='h_'+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, q)).slice(0,40);
+  var hit=cache.get(ck); if(hit!=null) return {ok:true, csv:hit, cache:true};
+  var r=UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/'+q, { muteHttpExceptions:true, followRedirects:true,
+    headers:{ Authorization:'Bearer '+ScriptApp.getOAuthToken() } });
+  var code=r.getResponseCode(), csv=r.getContentText();
+  if(code>=300 || /^\s*</.test(csv)) return {ok:false, error:'google_'+code};
+  if(tipo==='usuarios') csv=_sinColumna(csv, 'password_hash');
+  if(csv.length<90000){ try{ cache.put(ck, csv, 30); }catch(e){} }
+  return {ok:true, csv:csv};
+}
+/* Quita una columna de un CSV (por nombre de cabecera), respetando comillas. */
+function _sinColumna(csv, nombre){
+  var filas=Utilities.parseCsv(csv); if(!filas.length) return csv;
+  var i=filas[0].map(function(h){ return String(h).trim().toLowerCase(); }).indexOf(nombre);
+  if(i<0) return csv;
+  return filas.map(function(f){ f.splice(i,1); return f.map(function(c){ c=String(c); return /[",\n\r]/.test(c) ? '"'+c.replace(/"/g,'""')+'"' : c; }).join(','); }).join('\n');
+}
+/* Ejecútala UNA vez desde el editor tras publicar esta versión: concede el permiso nuevo de leer hojas
+   y conectarse a Google (UrlFetch). Sin esto el lector responde error de autorización. */
+function autorizarLectorHojas(){
+  var r=UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U/gviz/tq?tqx=out:csv&tq=select%20A%20limit%201',
+    { headers:{ Authorization:'Bearer '+ScriptApp.getOAuthToken() }, muteHttpExceptions:true });
+  console.log('Lector de hojas: HTTP '+r.getResponseCode()+(r.getResponseCode()===200?' · listo':' · revisa permisos'));
+}

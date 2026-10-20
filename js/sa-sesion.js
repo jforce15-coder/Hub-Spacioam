@@ -15,6 +15,7 @@
      recarga para volver al login.
    · Al cerrar sesión (SA.logout / SAAuth.clearSession) la borra.
    · SASesion.verificar() → perfil vigente para la sesión única entre apps.
+   · Lecturas de hojas (docs.google.com/…/gviz/tq) → lector seguro del login (hojas privadas).
    --------------------------------------------------------------------------- */
 (function (w) {
   if (w.__saSesion) return; w.__saSesion = true;
@@ -84,10 +85,31 @@
   w.SASesion = { leer: leer, guardar: guardar, borrar: borrar, verificar: verificar, perfilRapido: perfilRapido, confirmar: confirmar };
 
   var esAppsScript = function (u) { return /script\.google(usercontent)?\.com\/macros\//.test(String(u || '')); };
+  /* Lector seguro de hojas (fase 2): las descargas gviz de las hojas de Spacio AM pasan por el login, que
+     comprueba la sesión y lee la hoja aunque sea privada. Sin sesión, o si el lector falla, se intenta la
+     descarga directa de siempre (funciona mientras la hoja siga pública). */
+  var RX_GVIZ = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]{30,60}\/gviz\/tq(?:\?[^#]*)?)/;
+  function leerHoja(q) {
+    return origFetch('https://script.google.com/macros/s/' + LOGIN + '/exec', {
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'hoja', token: 'SpacioAM2026!', session: leer(), q: q })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.ok || typeof j.csv !== 'string') throw new Error((j && j.error) || 'lector');
+      return new Response(new Blob([j.csv], { type: 'text/csv;charset=utf-8' }), { status: 200, headers: { 'Content-Type': 'text/csv; charset=utf-8' } });
+    });
+  }
+  w.SASesion.leerHoja = leerHoja;
   var origFetch = w.fetch && w.fetch.bind(w);
   if (origFetch) {
     w.fetch = function (input, init) {
       var url = typeof input === 'string' ? input : (input && input.url) || '';
+      var g = RX_GVIZ.exec(url);
+      if (g && leer() && (!init || !init.method || String(init.method).toUpperCase() === 'GET')) {
+        return leerHoja(g[1]).catch(function (e) {
+          try { console.warn('[sa-sesion] lector de hojas: ' + (e && e.message) + ' · se intenta directo'); } catch (x) {}
+          return origFetch(input, init);
+        });
+      }
       if (!esAppsScript(url)) return origFetch(input, init);
       var accion = '';
       try {

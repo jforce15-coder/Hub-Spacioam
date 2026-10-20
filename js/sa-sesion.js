@@ -1,0 +1,80 @@
+/* Spacio AM · Sesión firmada compartida (fase 1b, oct 2026)
+   ---------------------------------------------------------------------------
+   UN solo archivo para todas las apps. Se carga desde el Hub:
+       <script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+   (en <head>, antes de los demás scripts). Lo mantiene GitHub (repo del Hub);
+   no forma parte de los proyectos de Claude Design.
+
+   Qué hace, sin tocar el código de cada app:
+   · Cuando el login (Apps Script de «Control de usuarios») responde ok con
+     "session", la guarda: cookie sa_auth en .spacioam.com (compartida por todas
+     las apps) + localStorage.
+   · A toda llamada POST con cuerpo JSON a un Apps Script (script.google.com/macros)
+     le añade "session" si no la trae ya.
+   · Si un Apps Script responde { ok:false, error:"session" }, borra la sesión y
+     recarga para volver al login.
+   · Al cerrar sesión (SA.logout / SAAuth.clearSession) la borra.
+   --------------------------------------------------------------------------- */
+(function (w) {
+  if (w.__saSesion) return; w.__saSesion = true;
+  var KEY = 'sa_auth', MAX = 30 * 86400;
+  var LOGIN = 'AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd';
+
+  function dominio() { return /(^|\.)spacioam\.com$/i.test(location.hostname) ? '; domain=.spacioam.com' : ''; }
+  function leer() {
+    var v = null;
+    try { var m = document.cookie.match(/(?:^|;\s*)sa_auth=([^;]*)/); if (m && m[1]) v = decodeURIComponent(m[1]); } catch (e) {}
+    if (!v) { try { v = localStorage.getItem(KEY); } catch (e) {} }
+    return v || null;
+  }
+  function guardar(s) {
+    if (!s || typeof s !== 'string') return;
+    try { document.cookie = KEY + '=' + encodeURIComponent(s) + dominio() + '; path=/; max-age=' + MAX + '; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+    try { localStorage.setItem(KEY, s); } catch (e) {}
+  }
+  function borrar() {
+    [dominio(), ''].forEach(function (d) { try { document.cookie = KEY + '=' + d + '; path=/; max-age=0'; } catch (e) {} });
+    try { localStorage.removeItem(KEY); } catch (e) {}
+  }
+  w.SASesion = { leer: leer, guardar: guardar, borrar: borrar };
+
+  var esAppsScript = function (u) { return /script\.google(usercontent)?\.com\/macros\//.test(String(u || '')); };
+  var origFetch = w.fetch && w.fetch.bind(w);
+  if (origFetch) {
+    w.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (!esAppsScript(url)) return origFetch(input, init);
+      var accion = '';
+      try {
+        if (init && typeof init.body === 'string' && /^\s*\{/.test(init.body)) {
+          var b = JSON.parse(init.body); accion = String(b.action || '');
+          var s = leer();
+          if (s && !b.session) { b.session = s; init = Object.assign({}, init, { body: JSON.stringify(b) }); }
+        }
+      } catch (e) {}
+      return origFetch(input, init).then(function (res) {
+        try {
+          res.clone().json().then(function (j) {
+            if (!j || typeof j !== 'object') return;
+            if (j.ok && j.session && url.indexOf(LOGIN) >= 0 && (accion === 'login' || accion === 'setInitialPassword')) guardar(j.session);
+            else if (j.ok === false && j.error === 'session' && leer()) { borrar(); setTimeout(function () { location.reload(); }, 50); }
+          }).catch(function () {});
+        } catch (e) {}
+        return res;
+      });
+    };
+  }
+
+  /* Cerrar sesión: envuelve SA.logout y SAAuth.clearSession en cuanto existan. */
+  function envolver() {
+    try {
+      if (w.SA && w.SA.logout && !w.SA.logout.__ses) {
+        var lo = w.SA.logout; w.SA.logout = function () { borrar(); return lo.apply(this, arguments); }; w.SA.logout.__ses = true;
+      }
+      if (w.SAAuth && !w.SAAuth.session) { w.SAAuth.session = leer; w.SAAuth.clearSession = borrar; }
+    } catch (e) {}
+  }
+  envolver();
+  document.addEventListener('DOMContentLoaded', envolver);
+  w.addEventListener('load', envolver);
+})(window);

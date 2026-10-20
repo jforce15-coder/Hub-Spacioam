@@ -4531,7 +4531,7 @@ function opHiloHub_(email) {
 
    Hoja: pestaña DS_PROPUESTAS en la hoja de ALMA. Una fila por propuesta; la propuesta completa
    (incluidas sus vistas HTML) va en la columna json.
-   Propiedad del script: DS_BOT_TOKEN (solo lo conoce la tarea programada). */
+   La tarea programada se identifica con su propia llave (ver dsTokenOk_). */
 const DS_TAB_ = 'DS_PROPUESTAS';
 const DS_CAB_ = ['id', 'fecha', 'estado', 'titulo', 'app_origen', 'recomendacion', 'decision', 'nota', 'quien', 'decidido_en', 'aplicada_en', 'resultado', 'json'];
 const DS_DECISIONES_ = ['estandarizar', 'solo esta app', 'revertir', 'descartar'];
@@ -4578,9 +4578,19 @@ function dsDecidir_(id, decision, nota, quien) {
 }
 
 /* Tarea programada · publicar propuestas, leer decisiones y marcarlas como aplicadas. */
+/* La llave del robot no se guarda en el código (el repo es público): solo su huella SHA-256.
+   Si algún día se define la propiedad DS_BOT_TOKEN, también vale. */
+const DS_BOT_HASH_ = 'b0d3ca9d3adb76025e4b4289181cb6300d7769a1d53a2a0c91636df9e0c65ed5';
+function dsTokenOk_(t) {
+  t = String(t || ''); if (!t) return false;
+  const prop = PropertiesService.getScriptProperties().getProperty('DS_BOT_TOKEN');
+  if (prop && t === prop) return true;
+  const h = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t, Utilities.Charset.UTF_8)
+    .map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+  return h === DS_BOT_HASH_;
+}
 function dsBotApi_(body) {
-  const tok = PropertiesService.getScriptProperties().getProperty('DS_BOT_TOKEN');
-  if (!tok || body.token !== tok) return json_({ ok: false, error: 'token' });
+  if (!dsTokenOk_(body.token)) return json_({ ok: false, error: 'token' });
   try {
     switch (body.action) {
       case 'publicar': return json_(dsPublicar_(body.propuestas || []));

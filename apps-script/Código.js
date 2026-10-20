@@ -2934,7 +2934,14 @@ function adjuntos_(lista) {
 function hubApi_(body) {
   const p = PropertiesService.getScriptProperties();
   const tok = p.getProperty('HUB_TOKEN');
-  if (!tok || body.token !== tok) return json_({ ok: false, error: 'token' });
+  /* Fase 1b: la app envía la sesión firmada del login (body.session). Mientras todas las apps se actualizan,
+     la llave antigua (HUB_TOKEN) sigue valiendo; HUB_SOLO_SESION=1 la apaga. */
+  const ses = body.session ? sesionLogin_(body.session) : null;
+  if (ses) marcaAcceso_('HUB_ULTIMA_SESION');
+  else {
+    if (p.getProperty('HUB_SOLO_SESION') === '1' || !tok || body.token !== tok) return json_({ ok: false, error: body.session ? 'session' : 'token' });
+    marcaAcceso_('HUB_ULTIMA_LLAVE');
+  }
   try {
     switch (body.action) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
@@ -4707,4 +4714,32 @@ function migrarVinculos() {
   resto.forEach(k => { const m = /^([a-zA-Z]+[_:])[^_:]{6,}/.exec(k), g = m ? m[1] + '…' : k; grupos[g] = (grupos[g] || 0) + 1; });
   console.log('Quedan: ' + Object.keys(grupos).sort().map(g => grupos[g] > 1 ? g + ' ×' + grupos[g] : g).join(', '));
   return { movidas: claves.length, nuevas: nuevas, quedan: quedan };
+}
+
+/* ═══════════════════════════════ 14. SESIÓN FIRMADA (fase 1b) ═══════════════════
+   El login (Apps Script de «Control de usuarios») firma la sesión. Aquí se comprueba con su acción verify
+   y se guarda 10 minutos en caché. Devuelve el perfil vigente o null. */
+const LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec';
+function sesionLogin_(session) {
+  session = String(session || ''); if (session.indexOf('.') < 1 || session.length > 4000) return null;
+  const cache = CacheService.getScriptCache();
+  const k = 'ses_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, session)).slice(0, 40);
+  const hit = cache.get(k);
+  if (hit) { try { return hit === '-' ? null : JSON.parse(hit); } catch (e) {} }
+  let prof = null;
+  try {
+    const r = UrlFetchApp.fetch(LOGIN_URL_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+      payload: JSON.stringify({ action: 'verify', token: PropertiesService.getScriptProperties().getProperty('LOGIN_TOKEN') || 'SpacioAM2026!', session: session }) });
+    const j = JSON.parse(r.getContentText() || '{}');
+    if (j.ok && j.profile) prof = j.profile;
+  } catch (e) { console.warn('sesionLogin_: ' + e); return null; }   // error de red: no se cachea el negativo
+  cache.put(k, prof ? JSON.stringify(prof) : '-', 600);
+  return prof;
+}
+/* Última vez que se entró con sesión y con la llave antigua: sirve para saber cuándo se puede apagar la llave. */
+function marcaAcceso_(clave) {
+  const c = CacheService.getScriptCache();
+  if (c.get('m_' + clave)) return;
+  c.put('m_' + clave, '1', 3600);
+  try { PropertiesService.getScriptProperties().setProperty(clave, new Date().toISOString()); } catch (e) {}
 }

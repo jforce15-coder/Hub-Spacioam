@@ -108,9 +108,14 @@
   /* Mismo Apps Script y token que usa el Hub (js/alma-client.js). */
   var API = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
   var TOKEN = 'SpacioAM2026!';
+  /* Sesión firmada del login (fase 1b): cookie sa_auth compartida por *.spacioam.com o localStorage. */
+  function sesionFirmada() {
+    var m = document.cookie.match(/(?:^|; )sa_auth=([^;]*)/); if (m) return decodeURIComponent(m[1]);
+    try { return localStorage.getItem('sa_auth') || undefined; } catch (e) { return undefined; }
+  }
   function api(action, payload) {
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store',
-      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: TOKEN }, payload || {})) })
+      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: TOKEN, session: sesionFirmada() }, payload || {})) })
       .then(function (r) { return r.ok ? r.json() : { ok: false, error: 'HTTP ' + r.status }; })
       .catch(function () { return { ok: false, error: 'red' }; });
   }

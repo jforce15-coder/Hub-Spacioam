@@ -28,9 +28,9 @@
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
-  <script src="js/sa-auth-client.js?v=2026-10-18a"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-18a"></script>
+<script src="js/alma-client.js?v=2026-10-20b"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -3413,7 +3413,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-20a";
+  BUILD = "2026-10-20b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -4002,8 +4002,8 @@ class Component extends DCLogic {
   hoySet(p) { this.setState(function (s) { var H = s.hoy || {}; return { hoy: Object.assign({}, H, typeof p === "function" ? p(H) : p) }; }); }
   gpost(url, action, payload, ms) {
     var ctl = typeof AbortController !== "undefined" ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 30000);
-    return fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow", cache: "no-store", signal: ctl ? ctl.signal : undefined, body: JSON.stringify(Object.assign({ action: action }, payload || {})) })
-      .then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); return j; }, function (e) { clearTimeout(t); throw e; });
+    return fetch(url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, redirect: "follow", cache: "no-store", signal: ctl ? ctl.signal : undefined, body: JSON.stringify(Object.assign({ action: action, session: window.SAAuth && SAAuth.session ? SAAuth.session() : null }, payload || {})) })
+      .then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t); if (window.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); return j; }, function (e) { clearTimeout(t); throw e; });
   }
   salvage(x) { if (Array.isArray(x)) return x; if (typeof x === "string") { try { var p = JSON.parse(x); return Array.isArray(p) ? p : []; } catch (e) { return []; } } return []; }
   hoyCargar(forzar) {
@@ -8026,6 +8026,7 @@ class Component extends DCLogic {
       entrar: function () { self.ingresar(); },
       salir: function () {
         if (window.SA && SA.logout) { try { SA.logout(); } catch (e) {} }
+        if (window.SAAuth && SAAuth.clearSession) { try { SAAuth.clearSession(); } catch (e) {} }
         location.href = self.APPS.home;
       },
 

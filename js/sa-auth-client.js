@@ -13,14 +13,47 @@
     token: 'SpacioAM2026!'
   };
 
+  /* ── Sesión firmada (la emite el Apps Script en login / setInitialPassword) ── */
+  var SES_KEY = 'sa_auth', SES_MAX = 30 * 86400;
+  function sesDominio() { return /(^|\.)spacioam\.com$/i.test(location.hostname) ? '; domain=.spacioam.com' : ''; }
+  function sesGuardar(ses) {
+    if (!ses) return;
+    var v = typeof ses === 'string' ? ses : JSON.stringify(ses);
+    try { document.cookie = SES_KEY + '=' + encodeURIComponent(v) + sesDominio() + '; path=/; max-age=' + SES_MAX + '; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
+    try { localStorage.setItem(SES_KEY, v); } catch (e) {}
+  }
+  function sesLeer() {
+    var v = null;
+    try { var m = document.cookie.match(/(?:^|;\s*)sa_auth=([^;]*)/); if (m && m[1]) v = decodeURIComponent(m[1]); } catch (e) {}
+    if (!v) { try { v = localStorage.getItem(SES_KEY); } catch (e) {} }
+    if (!v) return null;
+    try { return JSON.parse(v); } catch (e) { return v; }
+  }
+  function sesBorrar() {
+    [sesDominio(), ''].forEach(function (d) { try { document.cookie = SES_KEY + '=' + d + '; path=/; max-age=0'; } catch (e) {} });
+    try { localStorage.removeItem(SES_KEY); } catch (e) {}
+  }
+  function conSesion(r) { if (r && r.ok && r.session) sesGuardar(r.session); return r; }
+  /* Sesión rechazada por el servidor: se borra y se vuelve al login (una sola vez). */
+  var expirando = false;
+  function revisarSesion(r) {
+    if (r && r.ok === false && r.error === 'session' && !expirando) {
+      expirando = true; sesBorrar();
+      try { if (global.SA && global.SA.logout) global.SA.logout(); } catch (e) {}
+      setTimeout(function () { location.reload(); }, 50);
+    }
+    return r;
+  }
+
   function call(action, payload) {
-    var body = Object.assign({ action: action, token: CFG.token }, payload || {});
+    var body = Object.assign({ action: action, token: CFG.token, session: sesLeer() }, payload || {});
     // text/plain evita el preflight CORS de Apps Script
     return fetch(CFG.url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(body)
     }).then(function (r) { return r.json(); })
+      .then(revisarSesion)
       .catch(function (e) { return { ok: false, error: 'no_url', detail: String(e) }; });
   }
 
@@ -95,10 +128,14 @@
     configure: function (url, token) { CFG.url = url; if (token) CFG.token = token; },
     login: function (email, password) {
       return call('login', { email: email, password: password }).then(function (r) {
-        return r && r.error === 'no_url' ? sheetLogin(email, password) : r;
+        return r && r.error === 'no_url' ? sheetLogin(email, password) : conSesion(r);
       });
     },
-    setInitialPassword: function (email, next)     { return call('setInitialPassword', { email: email, next: next }); },
+    setInitialPassword: function (email, next)     { return call('setInitialPassword', { email: email, next: next }).then(conSesion); },
+    session:            function () { return sesLeer(); },
+    clearSession:       function () { sesBorrar(); },
+    /* Para otros clientes (ALMA, EPI, Hola): si su respuesta es { ok:false, error:"session" }, borra y vuelve al login. */
+    checkResponse:      function (r) { return revisarSesion(r); },
     profile:            function (email)           { return call('profile', { email: email }); },
     setPassword:        function (email, cur, next){ return call('setPassword', { email: email, current: cur, next: next }); },
     setEmail:           function (email, next)     { return call('setEmail', { email: email, next: next }); },

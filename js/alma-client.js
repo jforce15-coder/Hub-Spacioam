@@ -64,9 +64,9 @@
     var reloj = setTimeout(function () { if (ctl) ctl.abort(); }, LENTAS[action] ? 60000 : 25000);
     return fetch(CFG.url, {
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store', signal: ctl ? ctl.signal : undefined,
-      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: CFG.token }, payload || {}))
+      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: CFG.token, session: global.SAAuth && SAAuth.session ? SAAuth.session() : null }, payload || {}))
     }).then(function (r) { if (!r.ok) return { ok: false, error: 'HTTP ' + r.status }; return r.json().catch(function () { return { ok: false, error: 'respuesta inválida del Apps Script' }; }); })
-      .then(function (j) { clearTimeout(reloj); return j; })
+      .then(function (j) { clearTimeout(reloj); if (global.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); return j; })
       .catch(function (e) { clearTimeout(reloj); return { ok: false, error: e && e.name === 'AbortError' ? 'timeout' : 'red', detail: String(e) }; });
   }
   global.ALMA = {

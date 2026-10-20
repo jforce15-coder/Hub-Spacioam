@@ -360,7 +360,7 @@ function inquiryDatos_(uuid) {
 }
 
 /* ── Bandeja (ALMA_INBOX): una fila por conversación con su último mensaje — el espejo del inbox de Hospitable ── */
-const INBOX_CAB_ = ['conv_id', 'codigo', 'huesped', 'foto', 'propiedad', 'tipo', 'checkin', 'checkout', 'ultimo_texto', 'ultimo_de', 'ultimo_ts', 'ultimo_guest_ts', 'ultimo_host_ts', 'actualizado', 'canal', 'wa', 'ultimo_canal', 'revisado_ts', 'no_requiere', 'revision_razon', 'hosp_conv'];
+const INBOX_CAB_ = ['conv_id', 'codigo', 'huesped', 'foto', 'propiedad', 'tipo', 'checkin', 'checkout', 'ultimo_texto', 'ultimo_de', 'ultimo_ts', 'ultimo_guest_ts', 'ultimo_host_ts', 'actualizado', 'canal', 'wa', 'ultimo_canal', 'revisado_ts', 'no_requiere', 'revision_razon', 'hosp_conv', 'ultimo_auto_ts', 'ultimo_auto_texto'];
 let INBOX_OK_ = false;
 function hojaInbox_() {
   const sh = hojaCrear_('ALMA_INBOX', INBOX_CAB_);
@@ -415,7 +415,14 @@ function inboxUpsert_(convId, o) {
     const forzar = !!o._forzar; delete o._forzar;
     /* Automáticos de Hospitable (checkout, first morning, review reminder…): no son actividad. No mueven la hora ni el
        último mensaje, así no reviven conversaciones viejas o ya resueltas. Solo cuentan si entregan lo que el huésped pidió. */
-    if (o._auto) { delete o._auto; if (!(String(cur.ultimo_de) === 'guest' && autoResuelve_(cur.ultimo_texto, o.ultimo_texto))) ['ultimo_texto', 'ultimo_de', 'ultimo_host_ts', 'ultimo_ts', 'ultimo_canal'].forEach(k => delete o[k]); }
+    /* Pero sí se guardan aparte (ultimo_auto_ts / ultimo_auto_texto) para que «Ver todo» muestre también las
+       conversaciones que solo tienen automáticos (confirmación de reserva, self check-in…). */
+    if (o._auto) {
+      delete o._auto;
+      const tA = o.ultimo_ts ? new Date(o.ultimo_ts).getTime() : 0, tAPrev = cur.ultimo_auto_ts ? new Date(cur.ultimo_auto_ts).getTime() : 0;
+      if (tA && tA >= tAPrev) { o.ultimo_auto_ts = o.ultimo_ts; o.ultimo_auto_texto = o.ultimo_texto; }
+      if (!(String(cur.ultimo_de) === 'guest' && autoResuelve_(cur.ultimo_texto, o.ultimo_texto))) ['ultimo_texto', 'ultimo_de', 'ultimo_host_ts', 'ultimo_ts', 'ultimo_canal'].forEach(k => delete o[k]);
+    }
     else delete o._auto;
     // Solo avanza: un mensaje más viejo nunca pisa al último.
     const tsNuevo = o.ultimo_ts ? new Date(o.ultimo_ts).getTime() : 0, tsPrev = cur.ultimo_ts ? new Date(cur.ultimo_ts).getTime() : 0;
@@ -613,6 +620,8 @@ function repararHilosConsultas(max) {
   }
   return n + ' consultas revisadas · ' + conv + ' ya eran reserva y se fusionaron · ' + Math.max(0, ids.length - n) + ' quedan para la siguiente vuelta';
 }
+/* Última actividad de una fila de la bandeja, contando también los automáticos de Hospitable. */
+function actividadInbox_(o) { return Math.max(new Date(o.ultimo_ts).getTime() || 0, new Date(o.ultimo_auto_ts).getTime() || 0); }
 function hubInbox_() {
   const sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return [];
   /* Los chats de WhatsApp de administradores viven en el chat operativo, no en la lista de huéspedes. */
@@ -622,7 +631,7 @@ function hubInbox_() {
   return sh.getRange(2, 1, sh.getLastRow() - 1, INBOX_CAB_.length).getValues()
     .map(v => { const o = {}; INBOX_CAB_.forEach((k, i) => o[k] = v[i] instanceof Date ? v[i].toISOString() : String(v[i])); return o; })
     .filter(o => !(String(o.conv_id).indexOf('wa:') === 0 && admTel[fin8_(String(o.conv_id).slice(3))]))
-    .sort((a, b) => new Date(b.ultimo_ts) - new Date(a.ultimo_ts)).slice(0, 250);
+    .sort((a, b) => actividadInbox_(b) - actividadInbox_(a)).slice(0, 250);
 }
 
 function doGet(e) {

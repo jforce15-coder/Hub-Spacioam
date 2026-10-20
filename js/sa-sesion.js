@@ -124,9 +124,13 @@
       /* Se lee la respuesta UNA vez y se devuelve una copia nueva. Antes se usaba res.clone(): en Safari
          (iPad) la respuesta clonada de Apps Script a veces no terminaba de llegar y la app se quedaba
          esperando aunque el servidor ya había respondido. */
+      var dbg = function (m) { try { w.saDbg && w.saDbg('  [sesión] ' + accion + ' · ' + m); } catch (e) {} };
+      dbg('enviada');
       return origFetch(input, init).then(function (res) {
+        dbg('respuesta ' + res.status + ' ' + res.type);
         if (res.type === 'opaque' || res.status < 200 || [204, 205, 304].indexOf(res.status) >= 0) return res;
         return res.text().then(function (txt) {
+          dbg('leída ' + txt.length + ' bytes');
           try {
             var j = JSON.parse(txt);
             if (j && typeof j === 'object') {
@@ -135,7 +139,9 @@
             }
           } catch (e) {}
           var h = { 'Content-Type': res.headers.get('Content-Type') || 'application/json; charset=utf-8' };   // solo el tipo: copiar longitud/compresión del original confunde a Safari
-          return new Response(txt, { status: res.status, statusText: res.statusText, headers: h });
+          var nueva = new Response(txt, { status: res.status, statusText: res.statusText, headers: h });
+          dbg('entregada');
+          return nueva;
         });
       });
     };

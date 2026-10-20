@@ -119,15 +119,22 @@
           if (s && !b.session) { b.session = s; init = Object.assign({}, init, { body: JSON.stringify(b) }); }
         }
       } catch (e) {}
+      /* Se lee la respuesta UNA vez y se devuelve una copia nueva. Antes se usaba res.clone(): en Safari
+         (iPad) la respuesta clonada de Apps Script a veces no terminaba de llegar y la app se quedaba
+         esperando aunque el servidor ya había respondido. */
       return origFetch(input, init).then(function (res) {
-        try {
-          res.clone().json().then(function (j) {
-            if (!j || typeof j !== 'object') return;
-            if (j.ok && j.session && url.indexOf(LOGIN) >= 0 && (accion === 'login' || accion === 'setInitialPassword')) guardar(j.session);
-            else if (j.ok === false && j.error === 'session' && leer()) { borrar(); setTimeout(function () { location.reload(); }, 50); }
-          }).catch(function () {});
-        } catch (e) {}
-        return res;
+        if (res.type === 'opaque' || res.status < 200 || [204, 205, 304].indexOf(res.status) >= 0) return res;
+        return res.text().then(function (txt) {
+          try {
+            var j = JSON.parse(txt);
+            if (j && typeof j === 'object') {
+              if (j.ok && j.session && url.indexOf(LOGIN) >= 0 && (accion === 'login' || accion === 'setInitialPassword')) guardar(j.session);
+              else if (j.ok === false && j.error === 'session' && leer()) { borrar(); setTimeout(function () { location.reload(); }, 50); }
+            }
+          } catch (e) {}
+          var h = {}; try { res.headers.forEach(function (v, k) { h[k] = v; }); } catch (e) {}
+          return new Response(txt, { status: res.status, statusText: res.statusText, headers: h });
+        });
       });
     };
   }

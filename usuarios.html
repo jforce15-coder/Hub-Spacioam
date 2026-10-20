@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usuarios · Spacio AM</title>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<link rel="stylesheet" href="ds/tokens/fonts.css">
+<link rel="stylesheet" href="ds/tokens/colors.css">
+<link rel="stylesheet" href="ds/tokens/typography.css">
+<link rel="stylesheet" href="ds/tokens/radius-shadow.css">
+<!--
+  Reinicio de contraseña (respaldo). Archivo propio del repo: no lo toca el export de Claude Design.
+  Solo el administrador principal. Genera un código temporal (48 h); el usuario entra con su correo + ese
+  código y la app le pide crear una contraseña nueva. La comprobación real la hace el login (Apps Script).
+-->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg, #FAFAFA); color: var(--fg, #3E3F3F); font-family: var(--font-sans, Montserrat, system-ui, sans-serif); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 28px 16px 60px; }
+  .eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-muted, #938B8A); margin: 0 0 6px; }
+  h1 { font-family: var(--font-serif, Valky, Georgia, serif); font-weight: 400; font-size: 34px; margin: 0 0 8px; }
+  p { color: var(--fg-muted, #938B8A); margin: 0 0 22px; }
+  input[type=search] { width: 100%; font: inherit; padding: 13px 16px; border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-md, 14px); background: var(--surface, #fff); color: inherit; margin-bottom: 14px; }
+  input[type=search]:focus { outline: none; border-color: #938B8A; }
+  .fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; background: var(--surface, #fff); border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-md, 14px); margin-bottom: 10px; }
+  .nombre { min-width: 0; }
+  .nombre b { display: block; font-weight: 600; }
+  .nombre span { display: block; font-size: 12px; color: var(--fg-muted, #938B8A); overflow-wrap: anywhere; }
+  button { font: inherit; font-size: 13px; letter-spacing: .04em; cursor: pointer; border-radius: 999px; padding: 9px 16px; border: 1px solid var(--divider, #D8D4CE); background: var(--surface, #fff); color: var(--fg, #3E3F3F); white-space: nowrap; }
+  button:hover { border-color: #938B8A; }
+  button.oscuro { background: #3E3F3F; color: #FAFAFA; border-color: #3E3F3F; }
+  button.acento { border-color: #E9826A; color: #B54D36; }
+  button:disabled { opacity: .5; cursor: default; }
+  .aviso { padding: 16px; border-radius: var(--r-md, 14px); background: var(--bg-alt, #F5F3F0); }
+  .resultado { padding: 20px; border-radius: var(--r-lg, 20px); background: var(--bg-alt, #F5F3F0); margin-bottom: 18px; }
+  .codigo { font-family: ui-monospace, Menlo, monospace; font-size: 30px; letter-spacing: .18em; margin: 6px 0 4px; color: #3E3F3F; }
+  .msg { white-space: pre-wrap; background: var(--surface, #fff); border: 1px solid var(--divider, #D8D4CE); border-radius: var(--r-md, 14px); padding: 14px; font-size: 14px; color: #3E3F3F; margin: 12px 0; }
+  .acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+  .error { color: #9A3B22; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Usuarios · respaldo</p>
+  <h1>Reiniciar contraseña</h1>
+  <p>Genera un código temporal para alguien que olvidó su contraseña. Entra con su correo y el código, y la app le pide crear una contraseña nueva. Su contraseña anterior deja de funcionar.</p>
+  <div id="resultado"></div>
+  <div id="lista"></div>
+</div>
+<script>
+(function () {
+  var LOGIN = 'https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec';
+  var USUARIOS = '1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U/gviz/tq?tqx=out:csv&sheet=Usuarios';
+  var lista = document.getElementById('lista'), resultado = document.getElementById('resultado');
+  function el(t, c, x) { var n = document.createElement(t); if (c) n.className = c; if (x != null) n.textContent = x; return n; }
+  function aviso(nodos) { lista.textContent = ''; var a = el('div', 'aviso'); a.append.apply(a, nodos); lista.appendChild(a); }
+
+  var perfil = window.SASesion && SASesion.perfilRapido();
+  if (!perfil) { aviso(['No hay sesión en este navegador. Entra primero al ', Object.assign(el('a', '', 'Hub'), { href: './' }), ' y vuelve a abrir esta página.']); return; }
+  var esPrincipal = Object.keys(perfil.apps || {}).some(function (k) { return perfil.apps[k] === 'admin_principal'; });
+  if (!esPrincipal) { aviso(['Esta página es solo para el administrador principal.']); return; }
+
+  function csv(t) {
+    var filas = [], f = [], c = '', q = false;
+    for (var i = 0; i < t.length; i++) {
+      var ch = t[i];
+      if (q) { if (ch === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === ',') { f.push(c); c = ''; }
+      else if (ch === '\n') { f.push(c); filas.push(f); f = []; c = ''; }
+      else if (ch !== '\r') c += ch;
+    }
+    if (c || f.length) { f.push(c); filas.push(f); }
+    var cab = (filas.shift() || []).map(function (h) { return h.trim(); });
+    return filas.map(function (r) { var o = {}; cab.forEach(function (h, i) { o[h] = (r[i] || '').trim(); }); return o; });
+  }
+
+  var usuarios = [];
+  aviso(['Leyendo usuarios…']);
+  SASesion.leerHoja(USUARIOS).then(function (r) { return r.text(); }).then(function (t) {
+    usuarios = csv(t).filter(function (u) { return u.email && u.email.indexOf('@') > 0; })
+      .sort(function (a, b) { return (a.nombre || a.email).localeCompare(b.nombre || b.email, 'es'); });
+    pintar('');
+  }).catch(function (e) { aviso(['No se pudo leer la lista de usuarios (' + (e && e.message || e) + ').']); });
+
+  function pintar(filtro) {
+    lista.textContent = '';
+    var buscar = el('input'); buscar.type = 'search'; buscar.placeholder = 'Buscar por nombre o correo'; buscar.value = filtro;
+    buscar.addEventListener('input', function () { var v = buscar.value; pintarFilas(v); });
+    lista.appendChild(buscar);
+    var cont = el('div'); cont.id = 'filas'; lista.appendChild(cont);
+    pintarFilas(filtro);
+    buscar.focus();
+  }
+  function pintarFilas(filtro) {
+    var cont = document.getElementById('filas'); cont.textContent = '';
+    var f = String(filtro || '').toLowerCase();
+    var vis = usuarios.filter(function (u) { return !f || (u.nombre + ' ' + u.email).toLowerCase().indexOf(f) >= 0; });
+    if (!vis.length) { cont.appendChild(el('p', '', 'Nadie coincide con la búsqueda.')); return; }
+    vis.forEach(function (u) {
+      var fila = el('div', 'fila'), n = el('div', 'nombre');
+      n.appendChild(el('b', '', u.nombre || u.email));
+      n.appendChild(el('span', '', u.email + (u.estado === 'suspendido' ? ' · suspendido' : '')));
+      var b = el('button', 'acento', 'Reiniciar contraseña');
+      b.addEventListener('click', function () { reiniciar(u, b); });
+      fila.appendChild(n); fila.appendChild(b); cont.appendChild(fila);
+    });
+  }
+
+  function reiniciar(u, boton) {
+    if (!confirm('¿Reiniciar la contraseña de ' + (u.nombre || u.email) + '?\n\nSu contraseña actual dejará de funcionar hasta que cree una nueva con el código temporal.')) return;
+    boton.disabled = true; boton.textContent = 'Generando…';
+    fetch(LOGIN, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'resetPassword', token: 'SpacioAM2026!', email: u.email }) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        boton.disabled = false; boton.textContent = 'Reiniciar contraseña';
+        if (!j || !j.ok) { mostrarError(u, j && j.error); return; }
+        mostrar(u, j);
+      })
+      .catch(function (e) { boton.disabled = false; boton.textContent = 'Reiniciar contraseña'; mostrarError(u, e && e.message); });
+  }
+  function mostrarError(u, err) {
+    var txt = { forbidden: 'Tu usuario no es administrador principal.', session: 'Tu sesión venció. Vuelve a entrar al Hub.', no_user: 'No se encontró ese usuario.' }[err] || ('Error: ' + (err || 'desconocido'));
+    resultado.textContent = ''; var d = el('div', 'resultado'); d.appendChild(el('b', 'error', 'No se pudo reiniciar la contraseña de ' + (u.nombre || u.email) + '.')); d.appendChild(el('div', '', txt));
+    resultado.appendChild(d); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function mostrar(u, j) {
+    var nombre = (u.primer_nombre || (u.nombre || '').split(' ')[0] || '').trim();
+    var vence = new Date(j.vence).toLocaleString('es-GT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    var mensaje = 'Hola' + (nombre ? ' ' + nombre : '') + ', reinicié tu contraseña de Spacio AM.\n\n' +
+      'Entra con tu correo ' + (j.email || u.email) + ' y este código temporal:\n' + j.codigo + '\n\n' +
+      'Al entrar te pedirá crear una contraseña nueva. El código vence en 48 horas.';
+    resultado.textContent = '';
+    var d = el('div', 'resultado');
+    d.appendChild(el('p', 'eyebrow', 'Código temporal · ' + (u.nombre || u.email)));
+    d.appendChild(el('div', 'codigo', j.codigo));
+    d.appendChild(el('div', '', 'Vence el ' + vence + ' · se muestra solo esta vez.'));
+    d.appendChild(el('div', 'msg', mensaje));
+    var acc = el('div', 'acciones');
+    var copiar = el('button', 'oscuro', 'Copiar mensaje');
+    copiar.addEventListener('click', function () { (navigator.clipboard ? navigator.clipboard.writeText(mensaje) : Promise.reject()).then(function () { copiar.textContent = 'Copiado ✓'; }, function () { copiar.textContent = 'Selecciónalo y cópialo'; }); });
+    var wa = el('button', '', 'Abrir en WhatsApp');
+    wa.addEventListener('click', function () { window.open('https://wa.me/?text=' + encodeURIComponent(mensaje), '_blank', 'noopener'); });
+    acc.appendChild(copiar); acc.appendChild(wa); d.appendChild(acc);
+    resultado.appendChild(d); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+})();
+</script>
+</body>
+</html>

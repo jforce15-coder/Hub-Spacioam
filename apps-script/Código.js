@@ -3032,7 +3032,7 @@ function hubApi_(body) {
       case 'adelantar': return json_(hubAdelantar_(body.resId, body.id, body.texto));
       case 'cancelarProg': return json_(hubCancelarProg_(body.resId, body.id));
       case 'editarProg': return json_(hubEditarProg_(body.resId, body.id, body.texto, body.quien));
-      case 'cola': return json_(hubCola_(body.horas));
+      case 'cola': return json_(hubCola_(body.horas, body.hash));
       case 'probarPush': return json_(hubProbarPush_(body.email));
       case 'pushLog': return json_(hubPushLog_(body.horas));
       case 'setEscalamiento': return json_(hubSetEscalamiento_(body.lista));
@@ -3617,7 +3617,7 @@ function latido_() {
     if (hay) { PropertiesService.getScriptProperties().setProperty('ALMA_ACTIVO', '1'); procesarCola(); }
   } catch (e) { console.error('latido_: ' + e); }
 }
-function hubCola_(horas) {
+function hubCola_(horas, hashPrev) {
   latido_();
   /* Solo lo reciente (por defecto 48 h, o los días que el Hub esté mostrando) + lo que siga vivo en la cola.
      Antes eran siempre 300 + 400 filas completas (~1 MB cada 5-10 s); lo anterior ya lo tiene el Hub de la lectura completa. */
@@ -3636,7 +3636,15 @@ function hubCola_(horas) {
   let auto = {}; try { auto = autoTodos_(); } catch (e) {}
   let resueltas = []; try { resueltas = resueltasVivo_(); } catch (e) { console.error('resueltasVivo_: ' + e); }
   let formsOk = []; try { formsOk = formsOk_(); } catch (e) { console.error('formsOk_: ' + e); }
-  return { ok: true, cola: tail(CFG.TAB_COLA, 300), log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk, ts: new Date().toISOString() };
+  const cola = tail(CFG.TAB_COLA, 300);
+  /* El texto del huésped ya viaja en la fila: no se repite dentro de datos. */
+  cola.forEach(r => { if (r.datos && r.datos.length > 200) { try { const d = JSON.parse(r.datos); delete d.texto; r.datos = JSON.stringify(d); } catch (e) {} } });
+  const out = { ok: true, cola: cola, log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk };
+  /* Huella del contenido: si el Hub ya tiene exactamente esto, se responde «sin cambios» (unos bytes) y no repinta nada. */
+  const huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(out), Utilities.Charset.UTF_8));
+  if (hashPrev && hashPrev === huella) return { ok: true, same: true, hash: huella, ts: new Date().toISOString() };
+  out.hash = huella; out.ts = new Date().toISOString();
+  return out;
 }
 /* Códigos con registro de llegada enviado (pestaña Formularios de hola), descontando los que el administrador reinició
    después. Es la fuente real: Reservas.status_form a veces queda desactualizado. Caché 5 min. */

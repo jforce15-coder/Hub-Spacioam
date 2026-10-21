@@ -4623,6 +4623,8 @@ function dsBotApi_(body) {
       case 'voz_recoger': return json_(vozRecoger_(true));
       case 'voz_turnos': return json_(vozTurnos_(body.eagerness));
       case 'voz_inicio': return json_(vozConfigInicio_(body.k));
+      case 'voz_inicio_off': return json_(vozInicioOff_());
+      case 'voz_conv': return json_(vozConv_(body.n));
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

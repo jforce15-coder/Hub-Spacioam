@@ -469,3 +469,26 @@ function vozConfigInicio_(k) {
     fetch: (ps2.overrides || {}).enable_conversation_initiation_client_data_from_webhook,
     saludo: (((ps2.overrides || {}).conversation_config_override || {}).agent || {}).first_message, sync: sy || null };
 }
+
+/* Robot voz_inicio_off: desconecta el webhook de inicio (las llamadas vuelven a contestar sin consultar al Hub). */
+function vozInicioOff_() {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
+  var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), ov = JSON.parse(JSON.stringify((ag.platform_settings || {}).overrides || {}));
+  ov.enable_conversation_initiation_client_data_from_webhook = false;
+  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ platform_settings: { overrides: ov } }) });
+  return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), detalle: r.getContentText().slice(0, 200) };
+}
+/* Robot voz_conv: últimas conversaciones del agente con su estado y motivo de cierre (diagnóstico, sin transcripciones). */
+function vozConv_(n) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'), h = { 'xi-api-key': key };
+  var api = 'https://api.elevenlabs.io/v1/convai/conversations';
+  var l = JSON.parse(UrlFetchApp.fetch(api + '?page_size=' + (n || 5) + '&agent_id=' + encodeURIComponent(agente), { headers: h }).getContentText()).conversations || [];
+  return { ok: true, conv: l.map(function (c) {
+    var d = {}; try { d = JSON.parse(UrlFetchApp.fetch(api + '/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText()); } catch (e) {}
+    var md = d.metadata || {};
+    return { id: c.conversation_id, status: c.status, inicio: new Date(Number(c.start_time_unix_secs || 0) * 1000).toISOString(), dur: md.call_duration_secs,
+      fin: md.termination_reason, error: md.error, turnos: (d.transcript || []).length, init: JSON.stringify(md.conversation_initiation_source || md.initiation_webhook || '').slice(0, 200),
+      extra: JSON.stringify(Object.keys(md)) };
+  }) };
+}

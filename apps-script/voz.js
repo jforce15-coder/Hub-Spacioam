@@ -615,3 +615,67 @@ function vozSecretaria_(b) {
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
   return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
+
+/* ═══ LLAMADAS SALIENTES POR WHATSAPP ═══════════════════════════════════════════════════════════
+   WhatsApp exige que la persona acepte recibir llamadas de la empresa (call_permission_request). Flujo:
+   vozLlamar_(tel, motivo): si hay permiso → ElevenLabs llama por el SIP trunk de WhatsApp con la ficha y el encargo
+   cargados; si no → se envía la solicitud de permiso y la llamada queda pendiente (VOZ_PEND_<tel>) hasta que acepte
+   (el webhook de WhatsApp avisa con call_permission_reply y se llama sola).
+   Propiedad: ELEVENLABS_PHONE_ID (id del número «WhatsApp ALMA» en ElevenLabs; si falta se busca solo). */
+function vozGraph_(metodo, ruta, cuerpo) {
+  var W = waCfg_(), o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } };
+  if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
+  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + ruta, o), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  return { code: r.getResponseCode(), j: j, txt: r.getContentText().slice(0, 500) };
+}
+function vozPermiso_(tel) {
+  var W = waCfg_(), r = vozGraph_('get', W.phoneId + '/call_permissions?user_wa_id=' + normTel_(tel));
+  var p = (r.j && r.j.permission) || {}, acc = (r.j && r.j.actions) || [];
+  var puede = acc.some(function (a) { return a.action_name === 'start_call' && a.can_perform_action; });
+  return { ok: r.code < 300, estado: p.status || '', puede_llamar: puede, detalle: r.code < 300 ? '' : r.txt };
+}
+function vozPedirPermiso_(tel, texto) {
+  var W = waCfg_();
+  var r = vozGraph_('post', W.phoneId + '/messages', { messaging_product: 'whatsapp', recipient_type: 'individual', to: normTel_(tel), type: 'interactive',
+    interactive: { type: 'call_permission_request', action: { name: 'call_permission_request' }, body: { text: String(texto || 'Hola, soy Alma, la asistente virtual de Spacio AM. ¿Me permites llamarte por WhatsApp?').slice(0, 1024) } } });
+  return { ok: r.code < 300, detalle: r.code < 300 ? '' : r.txt };
+}
+function vozPhoneId_() {
+  var p = PropertiesService.getScriptProperties(), id = p.getProperty('ELEVENLABS_PHONE_ID'); if (id) return id;
+  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/phone-numbers', { headers: { 'xi-api-key': p.getProperty('ELEVENLABS_KEY') }, muteHttpExceptions: true });
+  var l = []; try { l = JSON.parse(r.getContentText()); } catch (e) {}
+  l = Array.isArray(l) ? l : (l.phone_numbers || []);
+  var hit = l.filter(function (x) { return /50231280966|whatsapp/i.test(String(x.phone_number || '') + ' ' + String(x.label || '')); })[0];
+  if (hit) { id = hit.phone_number_id || hit.id; p.setProperty('ELEVENLABS_PHONE_ID', id); }
+  return id || '';
+}
+function vozLlamar_(tel, motivo) {
+  tel = normTel_(tel); if (!tel) return { ok: false, error: 'número inválido' };
+  var perm = vozPermiso_(tel);
+  if (!perm.puede_llamar) {
+    PropertiesService.getScriptProperties().setProperty('VOZ_PEND_' + fin8_(tel), JSON.stringify({ tel: tel, motivo: motivo || '', t: Date.now() }));
+    var pp = vozPedirPermiso_(tel);
+    return { ok: false, pendiente: true, permiso: perm.estado || 'sin permiso', solicitud_enviada: pp.ok, detalle: pp.detalle || perm.detalle };
+  }
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'), phone = vozPhoneId_();
+  if (!phone) return { ok: false, error: 'No encontré el número de WhatsApp en ElevenLabs (ELEVENLABS_PHONE_ID).' };
+  var ini = {}; try { ini = vozInicio_({ caller_id: tel }); delete ini._tipo; } catch (e) {}
+  if (motivo) { ini.dynamic_variables = ini.dynamic_variables || {}; ini.dynamic_variables.quien_llama = (ini.dynamic_variables.quien_llama || '') + '\n\nESTA LLAMADA LA HACES TÚ (saliente). Motivo: ' + motivo; }
+  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+    payload: JSON.stringify({ agent_id: agente, agent_phone_number_id: phone, to_number: '+' + tel, conversation_initiation_client_data: ini }) });
+  var j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  p.deleteProperty('VOZ_PEND_' + fin8_(tel));
+  vozTraza_('saliente', { caller_id: tel }, { ok: r.getResponseCode() < 300 && j.success !== false, error: r.getResponseCode() < 300 ? '' : r.getContentText().slice(0, 120) });
+  return r.getResponseCode() < 300 && j.success !== false ? { ok: true, conversation_id: j.conversation_id || '', sip_call_id: j.sip_call_id || '' } : { ok: false, error: 'ElevenLabs HTTP ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 300) };
+}
+/* Webhook de WhatsApp: la persona respondió a la solicitud de permiso. Si aceptó y había llamada pendiente, se llama. */
+function vozPermisoRespuesta_(m) {
+  var i = m.interactive || {}, rep = i.call_permission_reply || {}, tel = normTel_(m.from);
+  vozTraza_('permiso', { caller_id: tel }, { ok: rep.response === 'accept', error: rep.response || '' });
+  if (rep.response !== 'accept') return;
+  var p = PropertiesService.getScriptProperties(), pend = p.getProperty('VOZ_PEND_' + fin8_(tel)); if (!pend) return;
+  var o = {}; try { o = JSON.parse(pend); } catch (e) {}
+  if (Date.now() - Number(o.t || 0) > 24 * 3600000) { p.deleteProperty('VOZ_PEND_' + fin8_(tel)); return; }
+  Utilities.sleep(4000);
+  vozLlamar_(tel, o.motivo || '');
+}

@@ -58,7 +58,34 @@ function vozRespuesta_(r, metodo, hoy) {
 }
 
 /* ── lookup_reservation ─────────────────────────────────────────────────────────────────── */
+/* Quién llama, con las mismas reglas que WhatsApp por texto (WA_PRUEBA = número del equipo tratado como huésped). */
+function vozQuien_(tel) {
+  if (!tel) return { tipo: 'externo' };
+  var p = PropertiesService.getScriptProperties();
+  var prueba = String(p.getProperty('WA_PRUEBA') || '').split(/[,;\s]+/).some(function (x) { return x && fin8_(x) === fin8_(tel); });
+  if (prueba) return { tipo: 'externo' };
+  var adm = null; try { adm = adminPorTel_(tel); } catch (e) {}
+  var nombre = adm && adm.nombre ? String(adm.nombre).split(' ')[0] : '';
+  if (fin8_(CFG.WHATSAPP_JUAN) === fin8_(tel)) return { tipo: 'juan', nombre: nombre || 'Juan' };
+  if (adm || waCfg_().equipo.some(function (x) { return fin8_(x) === fin8_(tel); })) return { tipo: 'equipo', nombre: nombre };
+  try { if (waPropietarios_().some(function (x) { return fin8_(x) === fin8_(tel); })) return { tipo: 'propietario' }; } catch (e) {}
+  return { tipo: 'externo' };
+}
+
 function vozLookup_(b) {
+  var tel0 = normTel_(b.caller_id || b.system__caller_id || b.telefono || ''), q = vozQuien_(tel0);
+  if (q.tipo === 'juan' || q.tipo === 'equipo') {
+    var busca = b.code || b.codigo || b.guest_first_name || b.guest_last_name || b.caller_name;
+    var base = { ok: true, caller_type: q.tipo, team_member: true, caller_name: q.nombre || '', today: vozHoy_() };
+    if (!busca) { base.found = false; base.verified = false; base.note = 'Llama alguien del equipo de Spacio AM: no necesita validar reserva.'; return base; }
+    var r = vozLookupHuesped_(Object.assign({}, b, { usar_telefono: false }));
+    for (var x in base) r[x] = base[x];
+    return r;
+  }
+  var out = vozLookupHuesped_(b); out.caller_type = q.tipo; return out;
+}
+
+function vozLookupHuesped_(b) {
   var hoy = vozHoy_(), cache = CacheService.getScriptCache();
   var tel = normTel_(b.caller_id || b.system__caller_id || b.telefono || '');
   var kf = 'vozf_' + (fin8_(tel) || 'x');
@@ -217,6 +244,13 @@ var SEMILLA_VOZ_ = [
 /* Reemplaza una sola vez la primera versión de la fila VOZ (citaba secciones de otro prompt). */
 var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
 
+function vozQuienBloque_() {
+  return ['QUIÉN LLAMA (lo indica lookup_reservation en caller_type; llámala siempre primero con caller_id)',
+    '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
+    '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
+    '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.'].join('\n');
+}
+
 function vozInternos_() {
   var lista = String(PropertiesService.getScriptProperties().getProperty('VOZ_INTERNOS') || '').split(/[\s,;]+/).map(function (n) { return n.replace(/\D/g, ''); }).filter(Boolean);
   if (!lista.length) return '';
@@ -233,7 +267,7 @@ function vozPromptCompleto_() {
   var base = prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + mejorasBloque_('REDACTOR');
   if (!String(base).trim()) return { error: 'El prompt REDACTOR está vacío en ALMA_INSTRUCCIONES.' };
   var extra = sinCab_(prompt_('REGLAS_EXTRA'));
-  return { clave: 'REDACTOR', texto: [vozInternos_(), base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
+  return { clave: 'REDACTOR', texto: [vozInternos_(), vozQuienBloque_(), base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
 }
 function vozSyncSiToca_() {
   var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;
@@ -270,7 +304,7 @@ function vozDefHerramientas_(base) {
   var caller = { type: 'string', dynamic_variable: 'system__caller_id' };
   return [
     { name: 'lookup_reservation', response_timeout_secs: 20,
-      description: 'Ubica y valida la reserva de quien llama. Llámala SIEMPRE primero, solo con caller_id (valida por el número que llama). Si no queda validada, vuelve a llamarla con nombre, apellido y fecha de entrada (y lo que ya tengas). Devuelve found, verified, ambiguous, ask_next, zone_options, today, code, guest_name, check_in, check_out, property, form_status.',
+      description: 'Ubica y valida la reserva de quien llama. Llámala SIEMPRE primero, solo con caller_id (valida por el número que llama). Si no queda validada, vuelve a llamarla con nombre, apellido y fecha de entrada (y lo que ya tengas). Devuelve caller_type (juan, equipo, propietario o externo), team_member, caller_name, found, verified, ambiguous, ask_next, zone_options, today, code, guest_name, check_in, check_out, property, form_status. Si team_member = true no hace falta validar reserva.',
       api_schema: { url: base + '&h=lookup_reservation', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id'], properties: {
         caller_id: caller,
         guest_first_name: s('Nombre del titular de la reserva, si ya lo dio.'),

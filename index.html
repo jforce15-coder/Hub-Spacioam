@@ -31,7 +31,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-22g"></script>
+<script src="js/alma-client.js?v=2026-10-22h"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -3459,7 +3459,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22g";
+  BUILD = "2026-10-22h";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5495,18 +5495,21 @@ class Component extends DCLogic {
     /* 2. Lo vivo (cola, log, bandeja) y la hoja completa llegan en paralelo; cada uno pinta apenas llega. */
     if (soloVivo && this.state.alma && !this.state.alma._demo) {
       this._cargandoVivo = true; this._vivoInicio = Date.now();
-      ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12)).then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
+      ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12), self._vivoHash).then(function (l) {
         self._cargandoVivo = false;
         if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
-        if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now();
-        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || []; if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
+        /* Sin cambios desde la última lectura: no se descarga ni se repinta nada. */
+        if (l.same) { self._vivoTs = Date.now(); if (self.state.almaCargando) self.setState({ almaCargando: false }); return; }
+        if (l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
+        if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
+        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = self.unirVentana(l.cola, d.cola, "recibido"); if (l.log && l.log.length) d.log = self.unirVentana(l.log, d.log, "fecha"); d.inbox = l.inbox || d.inbox || []; if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
         listo(d, "En vivo · " + horaGT()); guardar();
       }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
       return;
     }
     ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12)).then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
       if (!l || !l.ok) { self._vivoFallo = true; self.forceUpdate(); return; }
-      if (seq < (self._vivoSeq || 0)) return; vivo = l; self._vivoSeq = seq; self._vivoTs = Date.now();
+      if (seq < (self._vivoSeq || 0)) return; vivo = l; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
       if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }
     }).catch(function () { self._vivoFallo = true; self.forceUpdate(); });
     ALMA.readAll().then(function (d) {

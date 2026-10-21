@@ -19,6 +19,9 @@ var SEMILLA_SECRETARIA_ = [
   '· Los mensajes que escribes al equipo deben ser concretos y accionables: quién eres (si no te conocen: «Soy Alma, la asistente virtual de Spacio AM»), de parte de quién, para qué, y qué necesitas que haga y cuándo. Nada de mensajes vagos o de cortesía vacía.',
   '· Si el administrador quiere que hables con alguien (presentarte, explicar algo, hacerle preguntas, validar información) y no puedes llamar, usa encargar_conversacion: le escribes por WhatsApp pidiéndole que llame a la línea de ALMA (+502 3128 0966) y, cuando llame, cumplirás el objetivo y le enviarás el resumen al administrador. Incluye en el objetivo todo lo que te pidió (temas, preguntas).',
   '· Con el equipo eres directa y dinámica: es tu equipo, no un huésped.',
+  '· En este chat, cuando te nombran a alguien («Gabriel», «Joselyn», «Selvin») se trata de alguien del EQUIPO (administración, técnicos, limpieza, mantenimiento, proveedores): búscalo con las herramientas del equipo, no entre huéspedes, y no pidas su número (las herramientas lo tienen). Solo si no aparece en el equipo o el contexto lo indica, pregunta si es un huésped.',
+  '· Cuando le pidas algo a alguien del equipo y haya que hacer algo con su respuesta (ej. «cuando te mande el código, envíaselo al huésped»), usa escribir_a_equipo con al_responder describiendo exactamente qué hacer, con todos los datos (reserva, huésped, formato del mensaje). Así queda como encargo y lo cumples cuando responda, aunque sea otro día.',
+  '· Si en ENCARGOS PENDIENTES CONTIGO hay algo y este mensaje es la respuesta (ej. te mandan un código), cúmplelo de inmediato con tus herramientas, ciérralo con cerrar_encargo y agradécele en una línea. No le preguntes de qué se trata: ya lo sabes.',
   '',
   'FORMATO',
   '· Por WhatsApp: breve, sin markdown, una idea por párrafo. En el Hub puedes usar listas cortas con «· ».',
@@ -56,7 +59,7 @@ function agHerramientas_() {
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp.',
       { codigo: s('Código de reserva o conv_id'), texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado') }, ['codigo', 'texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) por su nombre.',
-      { persona: s('Nombre de la persona'), texto: s('Mensaje') }, ['persona', 'texto']),
+      { persona: s('Nombre de la persona del equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
     T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
       { fecha: s('YYYY-MM-DD; por defecto hoy'), persona: s('Opcional: nombre del técnico') }),
     T('tareas_abiertas', 'Lista las tareas abiertas del equipo (Hub/Epi).', {}),
@@ -69,6 +72,7 @@ function agHerramientas_() {
       { propiedad: s('Nombre exacto'), campo: s('Campo exacto (ej. address, wifiPass, std.es.parking)'), valor: s('Valor nuevo') }, ['propiedad', 'campo', 'valor']),
     T('encargar_conversacion', 'Cuando el administrador quiere que ALMA hable con alguien (del equipo u otra persona) para presentarse, explicar algo, hacer preguntas o validar información. Le escribe por WhatsApp pidiéndole que llame a la línea de ALMA; cuando llame, ALMA cumple el objetivo en la llamada y le envía el resumen al administrador por WhatsApp.',
       { persona: s('Nombre de la persona del equipo, o un número de WhatsApp con código de país'), objetivo: s('Todo lo que hay que lograr en la conversación: qué explicar, qué preguntar, qué validar'), mensaje: s('WhatsApp inicial concreto: quién eres, de parte de quién, para qué y que llame a la línea de ALMA (+502 3128 0966)') }, ['persona', 'objetivo', 'mensaje']),
+    T('cerrar_encargo', 'Marca como cumplido un encargo de ENCARGOS PENDIENTES CONTIGO y le avisa a quien lo pidió.', { id: s('id del encargo'), resultado: s('Qué se hizo, en una o dos frases') }, ['id', 'resultado']),
     T('promesas_abiertas', 'Lo que ALMA le prometió a huéspedes o contactos y sigue pendiente.', {}),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
@@ -127,6 +131,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       cE.put(kE, '1', 180);
       var ok = true; try { waEnviar_(normTel_(p.tel), String(inp.texto)); } catch (e) { ok = false; }
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : 'no salió' });
+      if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
       return ok ? { ok: true, enviado_a: p.nombre, nota: 'Si no le había escrito en 24 h, WhatsApp puede no entregarlo; avísale por otro medio si es urgente.' } : { error: 'No se pudo enviar.' };
     }
     case 'ruta_del_dia': {
@@ -171,6 +176,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : 'el WhatsApp no salió' });
       return { ok: okE, encargo: idE, persona: pe.nombre, nota: okE ? 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' : 'Guardé el encargo pero el WhatsApp no salió; puede que no haya escrito en 24 h.' };
     }
+    case 'cerrar_encargo': {
+      var rE = encargoCerrar_(String(inp.id), String(inp.resultado || ''), adm);
+      ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo cumplido · ' + String(inp.resultado || '').slice(0, 80), error: rE.ok ? '' : rE.error });
+      return rE;
+    }
     case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
@@ -201,7 +211,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
   var system = (prompt_('SECRETARIA') || SEMILLA_SECRETARIA_) + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
-    '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
+    encargosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
   previos.filter(function (m) { return new Date(m.ts).getTime() >= corte; }).slice(-14).forEach(function (m) {
@@ -297,4 +307,28 @@ function encargoCerrarConLlamada_(tel, d, resumen) {
   if (adm) { try { opGuardar_(adm, 'alma', 'llamada', texto, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + e.persona }]); } catch (x) {} }
   var dest = normTel_(e.solicitante_tel) || (adm && adm.tels[0]);
   if (dest) { try { waEnviar_(dest, texto); } catch (x) { console.error('encargo aviso: ' + x); } }
+}
+
+/* Encargos abiertos donde esta persona es a quien se le pidió algo (por sus teléfonos). */
+function encargosDe_(tels) {
+  var ks = (tels || []).map(fin8_).filter(Boolean); if (!ks.length) return [];
+  var sh = hojaEnc_(), n = sh.getLastRow(); if (n < 2) return [];
+  return sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues().map(function (r, i) { return { fila: i + 2, id: String(r[0]), creado: r[1], solicitante: String(r[2]), solicitante_tel: String(r[3]), persona: String(r[4]), tel: String(r[5]), objetivo: String(r[6]), estado: String(r[7]) }; })
+    .filter(function (e) { return e.estado === 'abierto' && ks.indexOf(fin8_(e.tel)) >= 0 && Date.now() - new Date(e.creado).getTime() < 7 * 86400000; });
+}
+function encargosTexto_(adm) {
+  var l = []; try { l = encargosDe_(adm.tels || []); } catch (e) {}
+  if (!l.length) return '';
+  return '\n\nENCARGOS PENDIENTES CONTIGO (' + adm.nombre + '):\n' + l.map(function (e) { var a = adminPorEmail_(e.solicitante) || {}; return '· [' + e.id + '] De parte de ' + (a.nombre || e.solicitante) + ' (' + String(e.creado instanceof Date ? e.creado.toISOString() : e.creado).slice(0, 16).replace('T', ' ') + '): ' + e.objetivo; }).join('\n') + '\n';
+}
+function encargoCerrar_(id, resultado, quien) {
+  var sh = hojaEnc_(), n = sh.getLastRow(); if (n < 2) return { error: 'no hay encargos' };
+  var v = sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues();
+  for (var i = 0; i < v.length; i++) if (String(v[i][0]) === id) {
+    sh.getRange(i + 2, 8, 1, 3).setValues([['cumplido', String(resultado).slice(0, 2000), new Date().toISOString()]]);
+    var adm = adminPorEmail_(String(v[i][2])), txt = 'Encargo cumplido (' + v[i][4] + '): ' + resultado;
+    if (adm && (!quien || adm.email !== quien.email)) { try { opGuardar_(adm, 'alma', 'whatsapp', txt, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + v[i][4] }]); } catch (e) {} var dest = normTel_(v[i][3]) || adm.tels[0]; if (dest) { try { waEnviar_(dest, txt); } catch (e) {} } }
+    return { ok: true };
+  }
+  return { error: 'No encontré ese encargo.' };
 }

@@ -361,7 +361,7 @@ function inquiryDatos_(uuid) {
 }
 
 /* ── Bandeja (ALMA_INBOX): una fila por conversación con su último mensaje — el espejo del inbox de Hospitable ── */
-const INBOX_CAB_ = ['conv_id', 'codigo', 'huesped', 'foto', 'propiedad', 'tipo', 'checkin', 'checkout', 'ultimo_texto', 'ultimo_de', 'ultimo_ts', 'ultimo_guest_ts', 'ultimo_host_ts', 'actualizado', 'canal', 'wa', 'ultimo_canal', 'revisado_ts', 'no_requiere', 'revision_razon', 'hosp_conv', 'ultimo_auto_ts', 'ultimo_auto_texto'];
+const INBOX_CAB_ = ['conv_id', 'codigo', 'huesped', 'foto', 'propiedad', 'tipo', 'checkin', 'checkout', 'ultimo_texto', 'ultimo_de', 'ultimo_ts', 'ultimo_guest_ts', 'ultimo_host_ts', 'actualizado', 'canal', 'wa', 'ultimo_canal', 'revisado_ts', 'no_requiere', 'revision_razon', 'hosp_conv', 'ultimo_auto_ts', 'ultimo_auto_texto', 'promesa', 'promesa_vence', 'promesa_id', 'promesa_estado'];
 let INBOX_OK_ = false;
 function hojaInbox_() {
   const sh = hojaCrear_('ALMA_INBOX', INBOX_CAB_);
@@ -672,6 +672,7 @@ function procesarCola() {
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
+  try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('ALMA_ACTIVO') !== '1') { limpiezaDiaria_(); return; }
@@ -2450,6 +2451,8 @@ function log_(c, respuesta, accion) {
     respondido_por: quienRespondio_(c, accion || c.accion)
   };
   sh.appendRow(h.map(k => val[k] !== undefined ? val[k] : ''));
+  /* ALMA envió algo que promete un seguimiento del equipo → pendiente rastreable (promesas.js). */
+  if (respuesta && /^ENVIADO/i.test(String(accion || '')) && !/equipo|llamada atendida/i.test(String(accion || ''))) { try { promesaRegistrar_(c, respuesta, 'texto'); } catch (e) { console.error('promesa: ' + e); } }
 }
 
 function set_(sh, f, cambios) {
@@ -2984,6 +2987,8 @@ function hubApi_(body) {
       case 'redactarHub': return json_(hubRedactar_(body.resId, body.texto, body.hilo));
       case 'responder': return json_(hubResponder_(body.resId, body.texto, body.quien, body.canal));
       case 'responderWa': return json_(hubResponderWa_(body.resId, body.texto, body.quien, body.wa));
+      case 'promesas': return json_(hubPromesas_(!!body.todas));
+      case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
       case 'waNumeros': return json_({ ok: true, numeros: telsReserva_(body.resId) });
       case 'resolver': return json_(hubResolver_(body.key, body.estado, body.quien, body.ts));
       case 'reservaInfo': return json_(hubReservaInfo_(body.resId));
@@ -3646,6 +3651,7 @@ function hubResponder_(resId, texto, quien, canal) {
   d.modo = 'HUB'; d.respondidoPor = quien || 'Equipo';
   log_(d, texto, 'ENVIADO por el equipo desde el hub' + (quien ? ' · ' + quien : ''));
   observar_(d, d.borrador || '');
+  try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) { console.error('promesasCumplir_: ' + e); }
   return { ok: true, plantilla: plantilla, canal: ug.canal === 'whatsapp' ? 'whatsapp' : 'hospitable' };
 }
 
@@ -4225,6 +4231,7 @@ function hubResponderWa_(resId, texto, quien, wa) {
   const w = waResponder_(num, texto, resId, String(quien || 'Equipo').slice(0, 80), idiomaDe_(ultG.texto || ''), pre.huesped || ultG.nombre || '');
   if (!w.ok) return { ok: false, error: w.error };
   try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
+  try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) {}
   return { ok: true, wa: num, plantilla: !!w.plantilla };
 }
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {

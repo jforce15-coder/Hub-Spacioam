@@ -235,6 +235,8 @@ function vozPostCall_(body) {
                                   : [ts, tel, pre.huesped || '', 'in', txt, convEL + '#' + (i + 1), convId, 'llamada', '', '']);
   });
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
+  /* Lo que ALMA prometió en la llamada queda como pendiente rastreable (promesas.js). */
+  try { var dichoAlma = (d.transcript || []).filter(function (m) { return m.role === 'agent'; }).map(function (m) { return s_(m.message); }).join('\n'); if (dichoAlma) promesaRegistrar_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', texto: resumen }, dichoAlma.slice(-3000), 'llamada'); } catch (x) { console.error('promesa voz: ' + x); }
   var fin = new Date(t0 + dur * 1000).toISOString();
   inboxUpsert_(convId, Object.assign({ huesped: pre.huesped || (tel ? '+' + tel : 'Llamada'), propiedad: pre.propiedad || 'Llamada · ' + canal, canal: pre.canal || 'whatsapp',
     ultimo_canal: 'whatsapp', ultimo_texto: '📞 Llamada · ' + (resumen || mmss).slice(0, 280), ultimo_de: 'host', ultimo_ts: fin, ultimo_host_ts: fin },

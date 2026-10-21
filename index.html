@@ -3428,7 +3428,7 @@ class Component extends DCLogic {
     try {
       leer().then(function (b) {
         self._verBusy = 0;
-        if (!b || b === self.BUILD) return;
+        if (!b || b <= self.BUILD) return;   /* solo si la publicada es más nueva: un version.json atrasado no debe pedir recargar en bucle */
         self._verNueva = b; try { if (window.SAUpdate) SAUpdate.revisar(); } catch (e) {}
         if (!self.recargarSiSeguro()) self.setState({ versionNueva: true });
       }).catch(function () { self._verBusy = 0; });

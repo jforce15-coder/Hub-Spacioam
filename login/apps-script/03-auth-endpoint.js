@@ -84,6 +84,13 @@ function _findRow(email){
   for(var i=1;i<d.data.length;i++){
     if(String(d.data[i][d.H.email]).toLowerCase()===key) return {i:i, d:d};
   }
+  // Correo alterno (personas con varios correos, p. ej. la contadora): entra con cualquiera de ellos. El principal siempre gana.
+  if(key && d.H.email_alterno!=null){
+    for(var j=1;j<d.data.length;j++){
+      var alt=String(d.data[j][d.H.email_alterno]||'').toLowerCase().split(/[\s,;]+/);
+      if(alt.indexOf(key)>=0) return {i:j, d:d};
+    }
+  }
   return null;
 }
 function _publicProfile(row, H){

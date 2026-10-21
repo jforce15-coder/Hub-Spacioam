@@ -80,6 +80,6 @@ function diagVelocidad_() {
     leer_log_entero: med(function () { leerTabla_(CFG.TAB_LOG); }),
     leer_cola_entera: med(function () { leerTabla_(CFG.TAB_COLA); })
   };
-  var tam = 0; try { tam = JSON.stringify(hubCola_()).length; } catch (e) {}
+  var tam = 0; try { tam = JSON.stringify(hubCola_(48)).length; } catch (e) {}
   return { ok: true, tablas: tablas, tiempos_ms: tiempos, respuesta_cola_kb: Math.round(tam / 1024), archivo: PropertiesService.getScriptProperties().getProperty('ARCHIVO_ULT') || '', auto: PropertiesService.getScriptProperties().getProperty('ARCHIVO_AUTO') || '0' };
 }

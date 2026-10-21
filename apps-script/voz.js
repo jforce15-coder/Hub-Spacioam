@@ -62,6 +62,7 @@ function vozRespuesta_(r, metodo, hoy) {
 function vozQuien_(tel) {
   if (!tel) return { tipo: 'externo' };
   var p = PropertiesService.getScriptProperties();
+  if (String(p.getProperty('VOZ_INTERNOS') || '').split(/[\s,;]+/).some(function (n) { n = n.replace(/\D/g, ''); return n && fin8_(n) === fin8_(tel); })) return { tipo: 'registro' };
   var prueba = String(p.getProperty('WA_PRUEBA') || '').split(/[,;\s]+/).some(function (x) { return x && fin8_(x) === fin8_(tel); });
   if (prueba) return { tipo: 'externo' };
   var adm = null; try { adm = adminPorTel_(tel); } catch (e) {}
@@ -157,7 +158,7 @@ function vozPostCall_(body) {
   var convEL = s_(d.conversation_id);
   var tel = normTel_(pc.external_number || dv.system__caller_id || '');
   if (!convEL) return { ok: false, error: 'sin conversation_id' };
-  var cache = CacheService.getScriptCache(); if (cache.get('vozpc_' + convEL)) return { ok: true, duplicado: true }; cache.put('vozpc_' + convEL, '1', 21600);
+  if (!vozMarcar_(convEL)) return { ok: true, duplicado: true };
   var t0 = Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), dur = Number(md.call_duration_secs || 0);
   var rel = null; try { rel = tel ? waReserva_(tel) : null; } catch (x) {}
   var convId = rel && rel.resId ? rel.resId : (tel ? 'wa:' + tel : 'llamada:' + convEL);
@@ -190,7 +191,7 @@ function vozPostCall_(body) {
 function vozTraza_(herr, b, out) {
   try {
     var c = CacheService.getScriptCache(), l = []; try { l = JSON.parse(c.get('voz_traza') || '[]'); } catch (x) {}
-    l.unshift({ t: new Date().toISOString(), h: herr, tel: fin8_(b.caller_id || b.telefono || '').slice(-4), ok: !!(out && out.ok), found: out && out.found, verified: out && out.verified, ask: out && out.ask_next, metodo: out && out.metodo, err: out && (out.error || out.motivo) || '' });
+    l.unshift({ t: new Date().toISOString(), h: herr, tel: fin8_(b.caller_id || b.telefono || '').slice(-4), ok: !!(out && out.ok), found: out && out.found, verified: out && out.verified, ask: out && out.ask_next, metodo: out && out.metodo, tipo: out && out.caller_type, err: out && (out.error || out.motivo) || '' });
     c.put('voz_traza', JSON.stringify(l.slice(0, 30)), 21600);
   } catch (x) {}
 }
@@ -248,7 +249,9 @@ function vozQuienBloque_() {
   return ['QUIÉN LLAMA (lo indica lookup_reservation en caller_type; llámala siempre primero con caller_id)',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
-    '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.'].join('\n');
+    '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
+    '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
+    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.'].join('\n');
 }
 
 function vozInternos_() {
@@ -267,7 +270,7 @@ function vozPromptCompleto_() {
   var base = prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + mejorasBloque_('REDACTOR');
   if (!String(base).trim()) return { error: 'El prompt REDACTOR está vacío en ALMA_INSTRUCCIONES.' };
   var extra = sinCab_(prompt_('REGLAS_EXTRA'));
-  return { clave: 'REDACTOR', texto: [vozInternos_(), vozQuienBloque_(), base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
+  return { clave: 'REDACTOR', texto: [vozQuienBloque_(), base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
 }
 function vozSyncSiToca_() {
   var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;
@@ -362,4 +365,35 @@ function vozEstado_(extra) {
     llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '' };
   for (var x in (extra || {})) o[x] = extra[x];
   return o;
+}
+
+
+/* ═══ Respaldo del webhook: cada pocos minutos el Hub trae de ElevenLabs las llamadas terminadas que no le llegaron ═══ */
+function vozMarcar_(id) {
+  var lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch (e) {}
+  try {
+    var p = PropertiesService.getScriptProperties(), l = []; try { l = JSON.parse(p.getProperty('VOZ_HECHAS') || '[]'); } catch (e) {}
+    if (l.indexOf(id) >= 0) return false;
+    l.push(id); p.setProperty('VOZ_HECHAS', JSON.stringify(l.slice(-300))); return true;
+  } finally { try { lock.releaseLock(); } catch (e) {} }
+}
+function vozRecoger_(forzar) {
+  var c = CacheService.getScriptCache(); if (!forzar && c.get('voz_recoger')) return { ok: true, omitido: true }; c.put('voz_recoger', '1', 240);
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var h = { 'xi-api-key': key }, api = 'https://api.elevenlabs.io/v1/convai/conversations';
+  var r = UrlFetchApp.fetch(api + '?page_size=20&agent_id=' + encodeURIComponent(agente), { headers: h, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return { ok: false, error: 'lista HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 200) };
+  var hechas = []; try { hechas = JSON.parse(p.getProperty('VOZ_HECHAS') || '[]'); } catch (e) {}
+  var desde = Date.now() / 1000 - 3 * 86400, nuevas = [], vistas = 0;
+  (JSON.parse(r.getContentText()).conversations || []).forEach(function (cv) {
+    vistas++;
+    if (hechas.indexOf(cv.conversation_id) >= 0 || !/done|failed/i.test(String(cv.status)) || Number(cv.start_time_unix_secs || 0) < desde) return;
+    var d = UrlFetchApp.fetch(api + '/' + encodeURIComponent(cv.conversation_id), { headers: h, muteHttpExceptions: true });
+    if (d.getResponseCode() !== 200) return;
+    var out = vozPostCall_({ type: 'post_call_transcription', data: JSON.parse(d.getContentText()) });
+    if (!out.duplicado) nuevas.push(cv.conversation_id);
+  });
+  if (nuevas.length) vozTraza_('recoger', {}, { ok: true, found: nuevas.length });
+  return { ok: true, vistas: vistas, nuevas: nuevas.length };
 }

@@ -757,13 +757,16 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
   const lider = grupo[grupo.length - 1];
   USO_REF_ = s_(lider.v[C.reservation_id] || lider.v[C.conversation_id]); USO_DET_ = s_(lider.v[C.huesped]);
   const otros = grupo.slice(0, -1);
+  const pKey = s_(lider.v[C.reservation_id] || lider.v[C.conversation_id]);
   const marcarTodos = (estado, nota) => {
+    paso_(pKey, ({ silencio: 'Sin respuesta necesaria', omitido: 'Nada que responder' }[estado] || 'Listo') + (nota ? ' · ' + nota : ''), true);
     set_(sh, lider, { estado: estado, nota: nota });
     otros.forEach(f => set_(sh, f, { estado: 'agrupado', nota: 'ver fila ' + lider.fila }));
   };
   const resId = lider.v[C.reservation_id];
 
   if (ctrl.toggle !== 'ON') return marcarTodos('omitido', 'TOGGLE OFF');
+  pasoIni_(pKey); paso_(pKey, grupo.length > 1 ? 'Juntando los ' + grupo.length + ' mensajes del huésped' : 'Mensaje nuevo del huésped');
 
   // Si ya había una respuesta esperando para esta misma reserva, se retira: este turno la incluye.
   const prevKey = resId || lider.v[C.conversation_id];
@@ -780,6 +783,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
   if (!resId) {
     const convInq = String(lider.v[C.conversation_id] || '');
     let r = null;
+    paso_(pKey, 'Consulta sin reserva · revisando disponibilidad y preparando la respuesta');
     try { r = convInq ? inquiryResponder_(convInq, grupo.map(f => s_(f.v[C.texto])).join('\n'), s_(lider.v[C.huesped]), ctrl, new Date(grupo[0].v[C.recibido]).getTime()) : null; } catch (e) { console.error('inquiryResponder_: ' + e); }
     if (r && r.esperar) return set_(sh, lider, { proximo: new Date(ahora.getTime() + 60000).toISOString(), nota: r.nota });
     marcarTodos(r && r.estado ? r.estado : 'omitido', r ? r.nota : 'inquiry sin conversación');
@@ -795,6 +799,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
   if (hiloRes.code !== 200) return reintentar_(sh, lider, 'hilo HTTP ' + hiloRes.code);
   const hilo = hiloRes.hilo;
   if (!hilo.length) return reintentar_(sh, lider, 'hilo vacío');
+  paso_(pKey, 'Leyendo la conversación · ' + hilo.length + ' mensajes' + (hilo.some(m => m.canal === 'whatsapp' || /^wa/.test(String(m.id || ''))) ? ' (plataforma y WhatsApp)' : ''));
 
   const ultimo = hilo[hilo.length - 1];
   // Un mensaje automático que cae justo después NO cuenta como respuesta, salvo que entregue lo que el huésped pidió.
@@ -809,6 +814,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
 
   const ctx = contexto_(resId, hilo, ctrl.modo);
   if (!ctx) return reintentar_(sh, lider, 'reserva no disponible');
+  paso_(pKey, 'Reserva y ficha de la propiedad' + (ctx.propiedad ? ' · ' + ctx.propiedad : '') + (ctx.codigo ? ' · ' + ctx.codigo : ''));
   if (!ctx.fotos.length) ctx.fotos = [].concat.apply([], grupo.map(f => { try { return JSON.parse(f.v[C.datos] || '{}').fotos || []; } catch (e) { return []; } }));
   if (ctrl.soloReserva) {   // modo prueba: solo la reserva elegida usa el modo real
     const coincide = esPrueba || String(ctx.codigo).toUpperCase() === ctrl.soloReserva;
@@ -833,12 +839,14 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     return log_(ctx, '', 'sin respuesta: el equipo está gestionando');
   }
 
-  if (codigoPendiente_(ctx, hilo)) return manejarCodigo_(sh, lider, otros, ctx);
+  if (codigoPendiente_(ctx, hilo)) { paso_(pKey, 'Código de acceso pendiente · avisando a los administradores', true); return manejarCodigo_(sh, lider, otros, ctx); }
 
   /* Avance visible en el Hub (columna nota, prefijo ⏳): qué está haciendo ALMA mientras piensa. */
   const avance = t => { try { set_(sh, lider, { nota: '⏳ ' + t }); SpreadsheetApp.flush(); } catch (e) {} };
   avance('Leyendo la conversación y decidiendo cómo responder');
+  paso_(pKey, 'Entendiendo qué necesita el huésped');
   const cls = clasificar_(ctx);
+  paso_(pKey, (PASO_NIVEL_[cls.nivel] || cls.nivel) + (cls.razon ? ' · ' + String(cls.razon).slice(0, 150) : ''));
   ctx.nivel = cls.nivel; ctx.razon = cls.razon; ctx.acceso = !!cls.acceso;
   if (cls.nivel !== 'SILENCIO' && cls.nivel !== 'ROJO') avance(cls.nivel + ' · ' + String(cls.razon || '').slice(0, 160) + ' · redactando la respuesta');
   ctx.escalar = !!cls.escalar; ctx.motivoEscalar = cls.motivoEscalar || '';
@@ -855,9 +863,11 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     return log_(ctx, '', 'sin respuesta (acuse)');
   }
 
-  if (ctx.nivel === 'ROJO') return manejarRojo_(sh, lider, otros, ctx);
+  if (ctx.nivel === 'ROJO') { paso_(pKey, 'Urgente · conteniendo al huésped y avisando al equipo', true); return manejarRojo_(sh, lider, otros, ctx); }
 
+  paso_(pKey, 'Redactando la respuesta con la ficha y el historial');
   let red = redactarVerificado_(ctx);
+  if (red && red.texto && !red.silencio) paso_(pKey, red.ok ? 'Revisé la respuesta: datos, tono y reglas en orden' : 'Control de calidad: ' + String(red.problema || 'revisar').slice(0, 140));
   if (red && red.texto && !red.silencio) avance('Respuesta lista · ' + ctx.nivel + ' · ' + String(red.texto).replace(/\s+/g, ' ').slice(0, 220));
   if (red.silencio && ctx.despedida) {
     const t2 = redactar_(ctx, 'El huésped se está despidiendo. Está PROHIBIDO devolver SIN_RESPUESTA: escribe la despedida cálida y breve, lista para enviar.');
@@ -887,6 +897,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     const ultG = Math.max.apply(null, grupo.map(f => new Date(f.v[C.recibido]).getTime()));
     const objetivo = Math.min(cfg_('DELAY_MAX_SEG'), cfg_('DELAY_MIN_SEG') + Math.round(String(borrador).length / 30)) + Math.floor(Math.random() * 8);
     const delay = Math.max(2, objetivo - Math.round((Date.now() - ultG) / 1000));
+    paso_(pKey, 'Respuesta lista · se envía en ' + delay + ' s', true);
     otros.forEach(f => set_(sh, f, { estado: 'agrupado', nota: 'ver fila ' + lider.fila }));
     return set_(sh, lider, {
       estado: 'esperando_envio', proximo: new Date(ahora.getTime() + delay * 1000).toISOString(),
@@ -894,6 +905,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     });
   }
 
+  if (ctx.modo !== 'AUTO') paso_(pKey, 'Borrador listo para que el equipo lo revise', true);
   if (ctx.modo === 'BORRADOR') {
     notificar_(CFG.WHATSAPP_JUAN, 'ALMA · borrador (' + ctx.nivel + ') · ' + ctx.propiedad,
       'Huésped: ' + ctx.huesped + '\nPropiedad: ' + ctx.propiedad + '\nCódigo: ' + ctx.codigo +
@@ -3010,6 +3022,7 @@ function hubApi_(body) {
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
       case 'limpiezas': return json_(hubLimpiezas_(body.codigo));
+      case 'pasos': return json_(hubPasos_(body.ids));
       case 'waNumeros': return json_({ ok: true, numeros: telsReserva_(body.resId) });
       case 'resolver': return json_(hubResolver_(body.key, body.estado, body.quien, body.ts));
       case 'reservaInfo': return json_(hubReservaInfo_(body.resId));

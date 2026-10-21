@@ -67,6 +67,7 @@ function vozQuien_(tel) {
   if (prueba) return { tipo: 'externo' };
   var adm = null; try { adm = adminPorTel_(tel); } catch (e) {}
   var nombre = adm && adm.nombre ? String(adm.nombre).split(' ')[0] : '';
+  if (!nombre) { try { var esc = escalamiento_().filter(function (x) { return fin8_(x.telefono) === fin8_(tel); })[0]; if (esc && esc.nombre) nombre = String(esc.nombre).split(' ')[0]; } catch (e) {} }
   if (fin8_(CFG.WHATSAPP_JUAN) === fin8_(tel)) return { tipo: 'juan', nombre: nombre || 'Juan' };
   if (adm || waCfg_().equipo.some(function (x) { return fin8_(x) === fin8_(tel); })) return { tipo: 'equipo', nombre: nombre };
   try { if (waPropietarios_().some(function (x) { return fin8_(x) === fin8_(tel); })) return { tipo: 'propietario' }; } catch (e) {}
@@ -77,8 +78,9 @@ function vozLookup_(b) {
   var tel0 = normTel_(b.caller_id || b.system__caller_id || b.telefono || ''), q = vozQuien_(tel0);
   if (q.tipo === 'juan' || q.tipo === 'equipo') {
     var busca = b.code || b.codigo || b.guest_first_name || b.guest_last_name || b.caller_name;
-    var base = { ok: true, caller_type: q.tipo, team_member: true, caller_name: q.nombre || '', today: vozHoy_() };
-    if (!busca) { base.found = false; base.verified = false; base.note = 'Llama alguien del equipo de Spacio AM: no necesita validar reserva.'; return base; }
+    var base = { ok: true, caller_type: q.tipo, team_member: true, caller_name: q.nombre || '', today: vozHoy_(),
+      instruction: 'Quien llama es ' + (q.nombre || 'alguien') + ' del equipo de Spacio AM. NO es huésped: no le pidas reserva, nombre, apellido ni fechas. ' + (q.nombre ? 'Llámalo ' + q.nombre + '. ' : '') + 'Ayúdale directamente con lo que necesite.' };
+    if (!busca) { base.found = false; base.verified = true; return base; }
     var r = vozLookupHuesped_(Object.assign({}, b, { usar_telefono: false }));
     for (var x in base) r[x] = base[x];
     return r;
@@ -163,6 +165,9 @@ function vozPostCall_(body) {
   var rel = null; try { rel = tel ? waReserva_(tel) : null; } catch (x) {}
   var convId = rel && rel.resId ? rel.resId : (tel ? 'wa:' + tel : 'llamada:' + convEL);
   var pre = {}; try { pre = rel && rel.resId ? (preContexto_(rel.resId) || {}) : {}; } catch (x) {}
+  var quien = { tipo: 'externo' }; try { quien = vozQuien_(tel); } catch (x) {}
+  if (!pre.huesped && (quien.tipo === 'equipo' || quien.tipo === 'juan')) { pre.huesped = 'Equipo' + (quien.nombre ? ' · ' + quien.nombre : ''); pre.propiedad = 'Llamada del equipo'; }
+  else if (!pre.huesped && quien.tipo === 'propietario') pre.propiedad = 'Llamada de propietario';
   var resumen = s_((d.analysis || {}).transcript_summary) || s_((d.analysis || {}).call_summary_title);
   var mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
   var canal = /sip/i.test(s_(pc.type)) || s_(pc.agent_number).replace(/\D/g, '').slice(-8) === '31280966' ? 'WhatsApp' : 'teléfono';
@@ -396,4 +401,19 @@ function vozRecoger_(forzar) {
   });
   if (nuevas.length) vozTraza_('recoger', {}, { ok: true, found: nuevas.length });
   return { ok: true, vistas: vistas, nuevas: nuevas.length };
+}
+
+/* Turnos de conversación (que Alma no interrumpa). Robot: { action:'voz_turnos', eagerness:'patient'|'normal'|'eager' }. */
+function vozTurnos_(eag) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
+  var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), cc = ag.conversation_config || {};
+  var antes = { turn: cc.turn || {}, interrupcion: ((cc.conversation || {}).client_events || []).indexOf('interruption') >= 0 };
+  if (!eag) return { ok: true, antes: antes };
+  var turn = Object.assign({}, cc.turn || {}, { turn_eagerness: String(eag) });
+  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ conversation_config: { turn: turn } }) });
+  if (r.getResponseCode() >= 300) return { ok: false, error: 'PATCH HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300), antes: antes };
+  var ag2 = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText());
+  return { ok: true, antes: antes, despues: (ag2.conversation_config || {}).turn || {} };
 }

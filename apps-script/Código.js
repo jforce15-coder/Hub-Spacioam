@@ -4621,6 +4621,7 @@ function dsBotApi_(body) {
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());
       case 'voz_recoger': return json_(vozRecoger_(true));
+      case 'voz_turnos': return json_(vozTurnos_(body.eagerness));
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

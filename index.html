@@ -31,7 +31,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-21a"></script>
+<script src="js/alma-client.js?v=2026-10-21b"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -1706,6 +1706,15 @@
                     <sc-if value="{{ c.hayCal }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verCal }}" aria-label="Calendario de la propiedad" title="Calendario de la propiedad" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                     <sc-if value="{{ c.hayIng }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verIng }}" aria-label="Ingreso de la reserva" title="Ingreso de la reserva" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                   </div>
+                  <sc-if value="{{ c.hayProm }}" hint-placeholder-val="{{ false }}">
+                    <div role="status" style="display:flex; align-items:center; gap:10px; margin-top:8px; padding:8px 10px 8px 12px; border:1px solid {{ c.promBd }}; background:{{ c.promBg }}; border-radius:12px; max-width:560px">
+                      <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
+                        <span style="font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:{{ c.promFg }}">ALMA prometió · {{ c.promPlazo }}</span>
+                        <span style="font-size:12.5px; line-height:1.45; color:#3E3F3F">{{ c.promTxt }}</span>
+                      </span>
+                      <button onClick="{{ c.promCerrar }}" title="Marcar como cumplida" style="flex-shrink:0; min-height:32px; padding:0 12px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer">Cumplida</button>
+                    </div>
+                  </sc-if>
                   <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
                     <span role="progressbar" aria-label="{{ c.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-width:280px">
                       <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ c.clasPct }}"></span></span>
@@ -3415,7 +3424,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-21a";
+  BUILD = "2026-10-21b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -6753,6 +6762,14 @@ class Component extends DCLogic {
           var rid = String(c.resId || ""), conRes = !!rid && rid.indexOf("wa:") !== 0 && rid.indexOf("op:") !== 0, ibc = inboxPor[g.key] || {};
           c.hayCal = conRes; c.hayIng = conRes && esPrincipal;
           c.hayWa = conRes;
+          /* Promesa abierta de ALMA en esta conversación (promesas.js): se ve arriba hasta que el equipo responda o se marque cumplida. */
+          var pEst = String(ibc.promesa_estado || ""), pId = String(ibc.promesa_id || "");
+          c.hayProm = (pEst === "abierta" || pEst === "vencida") && !!ibc.promesa && !(self._promCerradas || {})[pId];
+          c.promVencida = pEst === "vencida" || (!!ibc.promesa_vence && Date.parse(ibc.promesa_vence) < Date.now());
+          c.promTxt = String(ibc.promesa || "");
+          c.promPlazo = c.promVencida ? "Vencida" : ibc.promesa_vence ? "Antes de las " + new Date(ibc.promesa_vence).toLocaleTimeString("es-GT", { timeZone: "America/Guatemala", hour: "2-digit", minute: "2-digit" }) : "";
+          c.promBd = c.promVencida ? "rgba(192,57,43,.45)" : "rgba(233,130,106,.5)"; c.promBg = c.promVencida ? "rgba(192,57,43,.06)" : "rgba(233,130,106,.08)"; c.promFg = c.promVencida ? "#C0392B" : "#B54D36";
+          c.promCerrar = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self._promCerradas = Object.assign({}, self._promCerradas); self._promCerradas[pId] = 1; self.setState({ _promTick: Date.now() }); ALMA.promesaCerrar(pId, self.quienSoy()).then(function (r) { if (!(r && r.ok)) self.aviso("No se pudo marcar como cumplida"); else self.aviso("Promesa cumplida"); }); };
           var hWa = st.almaHilos[rid] && st.almaHilos[rid].lista, conWa = !!(hWa && hWa.some(function (m) { return m.canal === "whatsapp" && !m.llamada; }));
           c.waColor = conWa ? "#3d6b52" : "#938B8A"; c.waBd = conWa ? "rgba(61,107,82,.45)" : "#D8D4CE";
           c.waTitulo = conWa ? "Abrir el chat de WhatsApp" : "Escribir por WhatsApp";

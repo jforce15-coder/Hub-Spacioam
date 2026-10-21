@@ -3888,6 +3888,7 @@ function waEntrante_(m, nombre) {
   let texto = '';
   if (m.type === 'text') texto = s_(m.text && m.text.body);
   else if (m.type === 'button') texto = s_(m.button && m.button.text);
+  else if (m.type === 'interactive' && m.interactive && m.interactive.type === 'call_permission_reply') { try { vozPermisoRespuesta_(m); } catch (e) { console.error('permiso llamada: ' + e); } return; }
   else if (m.type === 'interactive') { const i = m.interactive || {}; texto = s_((i.button_reply || i.list_reply || {}).title); }
   else if (m.type === 'location') { const l = m.location || {}; texto = '[compartió su ubicación] ' + [s_(l.name), s_(l.address)].filter(Boolean).join(' · ') + ' https://maps.google.com/?q=' + l.latitude + ',' + l.longitude; }
   else texto = s_((m[m.type] || {}).caption) || (T[m.type] != null ? T[m.type] : '[' + m.type + ']');
@@ -4687,6 +4688,8 @@ function dsBotApi_(body) {
       case 'voz_inicio_off': return json_(vozInicioOff_());
       case 'voz_conv': return json_(vozConv_(body.n));
       case 'voz_transcript': return json_(vozTranscript_(body.id));
+      case 'voz_llamar': return json_(vozLlamar_(body.tel, body.motivo || ''));
+      case 'voz_permiso': return json_(vozPermiso_(body.tel));
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

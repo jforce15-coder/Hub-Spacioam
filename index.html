@@ -31,7 +31,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-22f"></script>
+<script src="js/alma-client.js?v=2026-10-22g"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -3459,7 +3459,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22f";
+  BUILD = "2026-10-22g";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5445,6 +5445,16 @@ class Component extends DCLogic {
       ]
     };
   }
+  /* Lo vivo trae solo la ventana reciente: se completa con lo anterior que ya se tenía (lectura completa), sin duplicar. */
+  unirVentana(vivas, base, campo) {
+    if (!base || !base.length) return vivas;
+    var t = function (r) { var v = String((r && r[campo]) || ""); var x = Date.parse(v.replace(" ", "T")); return isNaN(x) ? 0 : x; };
+    var corte = Date.now() - Math.max(48, (Number(this.state.convDias) || 2) * 24 + 12) * 3600000;   /* lo vivo viejo (aún en cola) no recorta la historia */
+    var min = vivas.reduce(function (m, r) { var x = t(r); return x && x >= corte && x < m ? x : m; }, Infinity);
+    if (!isFinite(min)) return base;
+    var vistos = {}; vivas.forEach(function (r) { var k = r.message_id || r.id; if (k) vistos[k] = 1; });
+    return base.filter(function (r) { var x = t(r); return x && x < min && !vistos[r.message_id || r.id || "~"]; }).concat(vivas);
+  }
   almaCargar(soloVivo) {
     var self = this;
     if (this._cargandoVivo && soloVivo && Date.now() - (this._vivoInicio || 0) < 20000) return;
@@ -5477,7 +5487,7 @@ class Component extends DCLogic {
     var unir = function () {
       var d = Object.assign({}, base || self.state.alma || {});
       var a0 = self.state.alma;
-      if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
+      if (vivo && vivo.ok) { if (vivo.cola) d.cola = self.unirVentana(vivo.cola, d.cola, "recibido"); if (vivo.log && vivo.log.length) d.log = self.unirVentana(vivo.log, d.log, "fecha"); d.inbox = vivo.inbox || d.inbox || []; if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
       /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes (ni las marcas de resuelta en vivo). */
       else if (a0 && self._vivoTs && Date.now() - self._vivoTs < 300000) { d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; d.resueltasVivo = a0.resueltasVivo; }
       return d;
@@ -5485,7 +5495,7 @@ class Component extends DCLogic {
     /* 2. Lo vivo (cola, log, bandeja) y la hoja completa llegan en paralelo; cada uno pinta apenas llega. */
     if (soloVivo && this.state.alma && !this.state.alma._demo) {
       this._cargandoVivo = true; this._vivoInicio = Date.now();
-      ALMA.readLive().then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
+      ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12)).then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
         self._cargandoVivo = false;
         if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
         if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now();
@@ -5494,7 +5504,7 @@ class Component extends DCLogic {
       }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
       return;
     }
-    ALMA.readLive().then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
+    ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12)).then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
       if (!l || !l.ok) { self._vivoFallo = true; self.forceUpdate(); return; }
       if (seq < (self._vivoSeq || 0)) return; vivo = l; self._vivoSeq = seq; self._vivoTs = Date.now();
       if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }

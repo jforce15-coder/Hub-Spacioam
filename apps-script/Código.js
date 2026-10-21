@@ -3032,7 +3032,7 @@ function hubApi_(body) {
       case 'adelantar': return json_(hubAdelantar_(body.resId, body.id, body.texto));
       case 'cancelarProg': return json_(hubCancelarProg_(body.resId, body.id));
       case 'editarProg': return json_(hubEditarProg_(body.resId, body.id, body.texto, body.quien));
-      case 'cola': return json_(hubCola_());
+      case 'cola': return json_(hubCola_(body.horas));
       case 'probarPush': return json_(hubProbarPush_(body.email));
       case 'pushLog': return json_(hubPushLog_(body.horas));
       case 'setEscalamiento': return json_(hubSetEscalamiento_(body.lista));
@@ -3617,12 +3617,19 @@ function latido_() {
     if (hay) { PropertiesService.getScriptProperties().setProperty('ALMA_ACTIVO', '1'); procesarCola(); }
   } catch (e) { console.error('latido_: ' + e); }
 }
-function hubCola_() {
+function hubCola_(horas) {
   latido_();
+  /* Solo lo reciente (por defecto 48 h, o los días que el Hub esté mostrando) + lo que siga vivo en la cola.
+     Antes eran siempre 300 + 400 filas completas (~1 MB cada 5-10 s); lo anterior ya lo tiene el Hub de la lectura completa. */
+  const lim = Date.now() - Math.max(24, Math.min(24 * 15, Number(horas) || 48)) * 3600000;
   const tail = (tab, max) => {
     const sh = hoja_(tab), n = sh.getLastRow(); if (n < 2) return [];
     const cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(x => String(x).trim());
-    const desde = Math.max(2, n - max + 1);
+    let desde = Math.max(2, n - max + 1);
+    const cF = Math.max(0, cab.findIndex(c => /^(recibido|fecha)$/i.test(c))), cE = cab.findIndex(c => /^estado$/i.test(c));
+    const fechas = sh.getRange(desde, cF + 1, n - desde + 1, 1).getValues(), est = cE >= 0 ? sh.getRange(desde, cE + 1, n - desde + 1, 1).getValues() : null;
+    let k0 = fechas.findIndex((f, i) => archivoFecha_(f[0]) >= lim || (est && FINALES.indexOf(String(est[i][0])) === -1 && String(est[i][0]) !== ''));
+    if (k0 < 0) k0 = fechas.length; desde += k0; if (desde > n) return [];
     return sh.getRange(desde, 1, n - desde + 1, cab.length).getDisplayValues().map((v, k) => { const o = {}; cab.forEach((c, q) => { if (c) o[c] = v[q]; }); o._fila = desde + k; return o; });
   };
   let inbox = []; try { inbox = hubInbox_(); } catch (e) { console.error('hubInbox_: ' + e); }

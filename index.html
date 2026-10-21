@@ -31,7 +31,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-20b"></script>
+<script src="js/alma-client.js?v=2026-10-21a"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -1702,6 +1702,7 @@
                     <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.copiarCodigo }}" aria-label="Copiar el código de reserva" title="Copiar código" style="display:inline-flex; align-items:center; gap:5px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; min-height:40px; padding:0 10px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.08em; font-variant-numeric:tabular-nums; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.codigo }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></sc-if>
                     <button onClick="{{ c.form.ver }}" aria-label="{{ c.form.formLabel }}" title="{{ c.form.formLabel }}" style="width:36px; height:36px; border-radius:50%; border:1px solid {{ c.form.formBd }}; background: {{ c.form.formTint }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="file" size="14" color="{{ c.form.formBg }}" hint-size="14px,14px"></x-import></button>
                     <sc-if value="{{ c.hayRiesgo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verRiesgo }}" aria-label="Review del huésped · riesgo {{ c.riesgoLabel }}" title="Review del huésped · riesgo {{ c.riesgoLabel }}" class="{{ c.estrellaClase }}" style="position:relative; width:36px; height:36px; border-radius:50%; border:1px solid {{ c.estrellaBd }}; background: {{ c.estrellaBg }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="star" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
+                    <sc-if value="{{ c.hayWa }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verWa }}" aria-label="{{ c.waTitulo }}" title="{{ c.waTitulo }}" style="width:36px; height:36px; border-radius:50%; border:1px solid {{ c.waBd }}; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ c.waColor }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M9 9.5c.3 1.6 1.9 3.3 3.6 3.8l1-1 1.6.7-.4 1.4c-2.7.2-6.2-3-6.4-5.8l1.3-.5.9 1.5z" fill="{{ c.waColor }}" stroke="none"/></svg></button></sc-if>
                     <sc-if value="{{ c.hayCal }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verCal }}" aria-label="Calendario de la propiedad" title="Calendario de la propiedad" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                     <sc-if value="{{ c.hayIng }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verIng }}" aria-label="Ingreso de la reserva" title="Ingreso de la reserva" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                   </div>
@@ -1810,10 +1811,10 @@
                     <sc-if value="{{ m.esHito }}" hint-placeholder-val="{{ false }}">
                       <div role="note" style="display:flex; align-items:center; gap:10px; margin:6px 0; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) backwards">
                         <span aria-hidden="true" style="flex:1; min-width:12px; height:1px; background:#D8D4CE"></span>
-                        <div style="max-width:min(86%,520px); display:flex; flex-direction:column; align-items:center; gap:4px; padding:9px 14px; border:1px solid rgba(233,130,106,.45); background:rgba(233,130,106,.10); border-radius:14px; text-align:center">
-                          <span style="display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#B54D36"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="12" color="#B54D36" hint-size="12px,12px"></x-import>{{ m.hitoTitulo }}</span>
+                        <div style="max-width:min(86%,520px); display:flex; flex-direction:column; align-items:center; gap:4px; padding:9px 14px; border:1px solid {{ m.bd }}; background:{{ m.bg }}; border-radius:14px; text-align:center">
+                          <span style="display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:{{ m.hitoFg }}"><sc-if value="{{ m.esCal }}" hint-placeholder-val="{{ true }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="12" color="#B54D36" hint-size="12px,12px"></x-import></sc-if><sc-if value="{{ m.esLlamada }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6F6867" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg></sc-if><sc-if value="{{ m.esWaHito }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6F6867" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/></svg></sc-if>{{ m.hitoTitulo }}</span>
                           <span style="font-size:12.5px; line-height:1.5; color:#3E3F3F; letter-spacing:.01em; text-wrap:pretty">{{ m.texto }}</span>
-                          <span style="font-size:10px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ m.hitoHora }}</span>
+                          <span style="display:inline-flex; align-items:center; gap:10px; font-size:10px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ m.hitoHora }}<sc-if value="{{ m.hayVer }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.ver }}" style="border:none; background:none; padding:2px 0; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#B54D36; cursor:pointer; text-decoration:underline; text-decoration-color:rgba(233,130,106,.6); text-underline-offset:3px">{{ m.verTxt }}</button></sc-if></span>
                         </div>
                         <span aria-hidden="true" style="flex:1; min-width:12px; height:1px; background:#D8D4CE"></span>
                       </div>
@@ -3414,7 +3415,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-20c";
+  BUILD = "2026-10-21a";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -4479,6 +4480,103 @@ class Component extends DCLogic {
     setTimeout(function () {
       ALMA.reservaInfo(rid).then(function (r) { var cod = r && r.ok && (r.codigo || r.code); if (!cod) return; self.setState(function (s) { var o = Object.assign({}, s.codRes); o[rid] = String(cod); return { codRes: o }; }); }).catch(function () {});
     }, 0);
+  }
+  /* Chat secundario de una reserva (WhatsApp o una llamada): hoja lateral liviana, sin recargar la conversación. */
+  abrirWaChat(rid, huesped) {
+    var h = this.state.almaHilos[rid], msgs = ((h && h.lista) || []).filter(function (m) { return m.canal === "whatsapp" && !m.llamada; });
+    this.abrirSubchat({ tipo: "whatsapp", resId: rid, huesped: huesped, titulo: "WhatsApp", msgs: msgs });
+  }
+  abrirSubchat(o) {
+    var self = this, prev = document.getElementById("sa-subchat"); if (prev) prev.remove();
+    var mk = function (tag, css, txt) { var n = document.createElement(tag); if (css) n.style.cssText = css; if (txt != null) n.textContent = txt; return n; };
+    var fh = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("es-GT", { timeZone: "America/Guatemala", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+    var movil = window.innerWidth < 720, esWa = o.tipo === "whatsapp";
+    var fondo = mk("div", "position:fixed; inset:0; z-index:9000; background:rgba(62,63,63,.22); display:flex; justify-content:flex-end; align-items:" + (movil ? "flex-end" : "stretch") + "; animation:sa-fade .2s ease");
+    fondo.id = "sa-subchat";
+    var hoja = mk("div", "background:#FAFAFA; display:flex; flex-direction:column; font-family:Montserrat,system-ui,sans-serif; color:#3E3F3F; box-shadow:0 10px 40px rgba(62,63,63,.18); " +
+      (movil ? "width:100%; height:86vh; border-radius:22px 22px 0 0;" : "width:min(440px,100%); height:100%; border-radius:22px 0 0 22px;"));
+    hoja.setAttribute("role", "dialog"); hoja.setAttribute("aria-label", o.titulo);
+    var cerrar = function () { fondo.remove(); document.removeEventListener("keydown", esc); };
+    var esc = function (e) { if (e.key === "Escape") cerrar(); };
+    document.addEventListener("keydown", esc);
+    fondo.addEventListener("click", function (e) { if (e.target === fondo) cerrar(); });
+    /* Cabecera */
+    var cab = mk("div", "display:flex; align-items:center; gap:12px; padding:18px 18px 14px; border-bottom:1px solid #EAE6E0");
+    var tt = mk("div", "flex:1; min-width:0; display:flex; flex-direction:column; gap:2px");
+    tt.appendChild(mk("span", "font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#B54D36", esWa ? "WhatsApp" : "Llamada"));
+    tt.appendChild(mk("span", "font-size:16px; font-weight:600; letter-spacing:.01em", o.huesped || (esWa ? "Huésped" : o.titulo)));
+    var nro = mk("span", "font-size:11px; letter-spacing:.04em; color:#6F6867", ""); tt.appendChild(nro);
+    var x = mk("button", "width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; cursor:pointer; font-size:16px; color:#6F6867", "×"); x.setAttribute("aria-label", "Cerrar"); x.onclick = cerrar;
+    cab.appendChild(tt); cab.appendChild(x); hoja.appendChild(cab);
+    /* Mensajes */
+    var lista = mk("div", "flex:1; overflow-y:auto; padding:16px 16px 8px; display:flex; flex-direction:column; gap:8px; -webkit-overflow-scrolling:touch");
+    var burbuja = function (m) {
+      var t = String(m.texto || "");
+      if (/^📞/.test(t)) {
+        var l = t.split("\n"), n = mk("div", "align-self:center; max-width:90%; text-align:center; padding:9px 14px; border:1px solid #D8D4CE; background:#F5F3F0; border-radius:14px; display:flex; flex-direction:column; gap:4px");
+        n.appendChild(mk("span", "font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867", l[0].replace(/^📞\s*/, "")));
+        if (l.slice(1).join(" ").trim()) n.appendChild(mk("span", "font-size:12.5px; line-height:1.5", l.slice(1).join(" ").trim()));
+        n.appendChild(mk("span", "font-size:10px; color:#938B8A", fh(m.created)));
+        return n;
+      }
+      var g = m.tipo === "guest", w = mk("div", "display:flex; flex-direction:column; gap:3px; align-items:" + (g ? "flex-start" : "flex-end"));
+      w.appendChild(mk("div", "max-width:82%; padding:10px 14px; font-size:13.5px; line-height:1.5; white-space:pre-wrap; word-break:break-word; border-radius:" + (g ? "16px 16px 16px 4px" : "16px 16px 4px 16px") +
+        "; border:1px solid " + (g ? "#D8D4CE" : m.alma ? "rgba(59,102,145,.4)" : "rgba(233,130,106,.5)") + "; background:" + (g ? "#FFFFFF" : m.alma ? "rgba(59,102,145,.12)" : "rgba(233,130,106,.22)"), t));
+      w.appendChild(mk("span", "font-size:10px; letter-spacing:.04em; color:#938B8A", (g ? (o.huesped || "Huésped") : m.alma ? "ALMA" : "Equipo Spacio AM") + " · " + fh(m.created)));
+      return w;
+    };
+    if (!o.msgs.length) lista.appendChild(mk("div", "margin:auto; text-align:center; font-size:12.5px; line-height:1.6; color:#6F6867; max-width:260px", esWa ? "Aún no hay conversación por WhatsApp con esta reserva. Escribe abajo para iniciarla." : "No hay detalle de esta llamada."));
+    o.msgs.forEach(function (m) { lista.appendChild(burbuja(m)); });
+    hoja.appendChild(lista);
+    /* Pie */
+    var pie = mk("div", "padding:12px 16px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid #EAE6E0; display:flex; flex-direction:column; gap:8px");
+    if (!esWa) {
+      pie.appendChild(mk("span", "font-size:11.5px; color:#6F6867; text-align:center", "Las llamadas no se responden desde aquí."));
+      var bw = mk("button", "min-height:42px; border-radius:999px; border:1px solid #3E3F3F; background:#3E3F3F; color:#FAFAFA; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer", "Responder por WhatsApp");
+      bw.onclick = function () { cerrar(); self.abrirWaChat(o.resId, o.huesped); };
+      pie.appendChild(bw);
+    } else {
+      var numeros = [], sel = mk("select", "display:none; font-family:inherit; font-size:12px; padding:8px 10px; border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; color:#3E3F3F");
+      var manual = mk("input", "display:none; font-family:inherit; font-size:13px; padding:10px 12px; border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF");
+      manual.placeholder = "Número de WhatsApp con código de país (ej. +502…)"; manual.inputMode = "tel";
+      var fila = mk("div", "display:flex; gap:8px; align-items:flex-end");
+      var ta = mk("textarea", "flex:1; min-height:44px; max-height:140px; resize:none; font-family:inherit; font-size:13.5px; line-height:1.45; padding:11px 14px; border:1px solid #D8D4CE; border-radius:18px; background:#FFFFFF; color:#3E3F3F; outline:none");
+      ta.placeholder = "Escribe por WhatsApp…"; ta.rows = 1;
+      ta.oninput = function () { ta.style.height = "auto"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; };
+      var env = mk("button", "width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:#E9826A; color:#FFFFFF; font-size:17px; cursor:pointer", "↑"); env.setAttribute("aria-label", "Enviar por WhatsApp");
+      var nota = mk("span", "display:none; font-size:11px; line-height:1.5; color:#6F6867");
+      var numero = function () { return manual.style.display !== "none" ? manual.value.trim() : sel.value; };
+      env.onclick = function () {
+        var t = ta.value.trim(); if (!t) return; var wa = numero();
+        if (manual.style.display !== "none" && !wa) { nota.style.display = "block"; nota.textContent = "Escribe el número de WhatsApp."; return; }
+        env.disabled = true; env.style.opacity = ".5";
+        ALMA.responderWa(o.resId, t, self.quienSoy(), wa).then(function (r) {
+          env.disabled = false; env.style.opacity = "1";
+          if (!(r && r.ok)) { nota.style.display = "block"; nota.textContent = r && r.error === "sin_numero" ? "No encuentro un número para esta reserva. Escríbelo arriba." : "No se envió: " + ((r && r.error) || "error"); if (r && r.error === "sin_numero") { manual.style.display = "block"; sel.style.display = "none"; } return; }
+          var m = { tipo: "host", canal: "whatsapp", texto: t, created: new Date().toISOString() }; o.msgs.push(m);
+          var vacio = lista.querySelector("div[style*='margin:auto']"); if (vacio) vacio.remove();
+          lista.appendChild(burbuja(m)); lista.scrollTop = lista.scrollHeight; ta.value = ""; ta.oninput();
+          nota.style.display = r.plantilla ? "block" : "none";
+          nota.textContent = r.plantilla ? "Pasaron más de 24 h desde su último mensaje: se envió la plantilla para retomar la conversación. Tu mensaje queda guardado." : "";
+          ALMA.hilo(o.resId).then(function (h) { if (h && h.ok) self.guardarHilo(o.resId, h.hilo); });
+        }, function () { env.disabled = false; env.style.opacity = "1"; nota.style.display = "block"; nota.textContent = "Sin conexión. Intenta de nuevo."; });
+      };
+      ta.onkeydown = function (e) { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) env.onclick(); };
+      fila.appendChild(ta); fila.appendChild(env);
+      pie.appendChild(sel); pie.appendChild(manual); pie.appendChild(fila); pie.appendChild(nota);
+      ALMA.waNumeros(o.resId).then(function (r) {
+        numeros = (r && r.numeros) || [];
+        var ORI = { whatsapp: "su WhatsApp", llamada: "llamó desde aquí", reserva: "de la reserva", registro: "del registro", emergencia: "emergencia" };
+        if (!numeros.length) { manual.style.display = "block"; return; }
+        numeros.forEach(function (n) { var op = document.createElement("option"); op.value = n.wa; op.textContent = "+" + n.wa + " · " + (ORI[n.origen] || n.origen); sel.appendChild(op); });
+        var otro = document.createElement("option"); otro.value = "__otro"; otro.textContent = "Otro número…"; sel.appendChild(otro);
+        sel.onchange = function () { if (sel.value === "__otro") { sel.style.display = "none"; manual.style.display = "block"; manual.focus(); } };
+        if (numeros.length > 1) sel.style.display = "block"; else nro.textContent = "+" + numeros[0].wa;
+      }, function () { manual.style.display = "block"; });
+    }
+    hoja.appendChild(pie); fondo.appendChild(hoja); document.body.appendChild(fondo);
+    lista.scrollTop = lista.scrollHeight;
+    if (esWa) setTimeout(function () { var t = hoja.querySelector("textarea"); if (t && !movil) t.focus(); }, 60);
   }
   /* Formulario completo desde una conversación: abre el mismo resumen de Hoy (comprobar + descargar). */
   abrirRegistro(code, imprimir) {
@@ -5712,20 +5810,49 @@ class Component extends DCLogic {
         ver: function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (completo && codigo) self.abrirRegistro(codigo, false); else self.aviso(F[3]); } };
     };
     var mapHiloRaw = function (lista, nombre, resIdN) {
-      var base = (lista || []).slice();
+      var base = (lista || []).slice(), subN = 0;
+      /* WhatsApp y llamadas de una reserva no se mezclan con el hilo de la plataforma: cada llamada y cada tanda de
+         WhatsApp queda como un hito discreto que abre su propio chat. */
+      if (resIdN && !/^(wa|op|inq):/.test(String(resIdN)) && base.some(function (m) { return m.canal === "whatsapp"; })) {
+        var gruposS = [], porLl = {};
+        base.filter(function (m) { return m.canal === "whatsapp"; }).forEach(function (m) {
+          var t = Date.parse(m.created) || 0;
+          if (m.llamada) { var kl = m.llamadaId || ("ll" + t); if (!porLl[kl]) { porLl[kl] = { tipo: "llamada", msgs: [] }; gruposS.push(porLl[kl]); } porLl[kl].msgs.push(m); return; }
+          var ult = null; for (var ig = gruposS.length - 1; ig >= 0; ig--) if (gruposS[ig].tipo === "whatsapp") { ult = gruposS[ig]; break; }
+          if (ult && t - ult.fin < 6 * 3600000) { ult.msgs.push(m); ult.fin = t; } else gruposS.push({ tipo: "whatsapp", msgs: [m], fin: t });
+        });
+        base = base.filter(function (m) { return m.canal !== "whatsapp"; }).concat(gruposS.map(function (g) {
+          var c0 = g.msgs[0], cab = g.tipo === "llamada" ? (g.msgs.find(function (x) { return /^📞/.test(String(x.texto || "")); }) || c0) : null;
+          var ultT = g.msgs[g.msgs.length - 1];
+          var txt = g.tipo === "llamada" ? String(cab.texto || "").split("\n").slice(1).join(" ").trim()
+            : (ultT.tipo === "guest" ? "" : "Spacio AM: ") + String(ultT.texto || "").replace(/\s+/g, " ");
+          return { tipo: "hito", hito: g.tipo, created: c0.created, texto: txt.length > 150 ? txt.slice(0, 148) + "…" : txt, _sub: g,
+            _dur: g.tipo === "llamada" ? ((String(cab.texto || "").split("\n")[0].match(/(\d+:\d\d)/) || [])[1] || "") : "" };
+        }));
+        subN = gruposS.length;
+      }
       var hitosN = resIdN && st.almaHilos[resIdN] && st.almaHilos[resIdN].hitos;
       if (hitosN && hitosN.length) base = base.concat(hitosN);
       if (resIdN && notasRes[resIdN]) base = base.concat(notasRes[resIdN]);
       /* Lo que ALMA envió se ve en cuanto llega al registro, aunque Hospitable aún no lo devuelva en el hilo. */
       if (resIdN && enviadosRes[resIdN]) { var kE = function (t) { return String(t || "").toLowerCase().replace(/[^a-z0-9áéíóúñü]/g, "").slice(0, 50); }, visE = {}; base.forEach(function (m) { if (m.tipo !== "guest") visE[kE(m.texto)] = 1; });
         var faltE = enviadosRes[resIdN].filter(function (m) { return !visE[kE(m.texto)]; }); if (faltE.length) { base = base.concat(faltE); base.sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); }); } }
-      if ((hitosN && hitosN.length) || (resIdN && notasRes[resIdN])) base.sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); });
+      if (subN || (hitosN && hitosN.length) || (resIdN && notasRes[resIdN])) base.sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); });
       var lista = base.filter(function (m) { return self.limpiaImg(m.texto) || (m.fotos || []).length; }).map(function (m) {
         return m.tipo !== "guest" && m.tipo !== "nota" && !m.auto && textosAlma[normT(m.texto)] ? Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] }) : m;
       });
       var noop = function () {}, HITO_T = { fechas: "Cambio de fechas", huespedes: "Cambio de huéspedes", propiedad: "Cambio de propiedad", estado: "Estado de la reserva", solicitud: "Solicitud de cambio" };
       return lista.map(function (m, iM) {
-        if (m.tipo === "hito") return { esHito: true, noHito: false, align: "center", radio: "14px", texto: m.texto || "", hayTexto: true, hayFotos: false, fotos: [], bg: "rgba(233,130,106,.10)", fg: "#3E3F3F", bd: "rgba(233,130,106,.45)",
+        if (m.tipo === "hito" && m._sub) {
+          var esLl = m.hito === "llamada", nM = m._sub.msgs.filter(function (x) { return !/^📞/.test(String(x.texto || "")); }).length;
+          var tit = esLl ? "Llamada" + (m._dur ? " · " + m._dur : "") : "WhatsApp · " + nM + (nM === 1 ? " mensaje" : " mensajes");
+          return { esHito: true, noHito: false, esCal: false, esLlamada: esLl, esWaHito: !esLl, align: "center", radio: "14px", texto: m.texto || (esLl ? "Sin resumen" : ""), hayTexto: true, hayFotos: false, fotos: [],
+            bg: "#F5F3F0", fg: "#3E3F3F", bd: "#D8D4CE", hitoFg: "#6F6867", hitoTitulo: tit, hitoHora: fmtDia(m.created) + " · " + fmtHora(m.created), hitoAccion: false,
+            hayVer: true, verTxt: esLl ? "Ver llamada" : "Ver chat",
+            ver: function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (esLl) self.abrirSubchat({ tipo: "llamada", resId: resIdN, huesped: nombre, titulo: tit, msgs: m._sub.msgs }); else self.abrirWaChat(resIdN, nombre); },
+            meta: tit + " · " + fmtDia(m.created) + " · " + fmtHora(m.created), esAlma: false, cursor: "auto", lpDown: noop, lpMove: noop, lpUp: noop, lpMenu: noop };
+        }
+        if (m.tipo === "hito") return { esHito: true, noHito: false, esCal: true, esLlamada: false, esWaHito: false, hitoFg: "#B54D36", hayVer: false, verTxt: "", ver: noop, align: "center", radio: "14px", texto: m.texto || "", hayTexto: true, hayFotos: false, fotos: [], bg: "rgba(233,130,106,.10)", fg: "#3E3F3F", bd: "rgba(233,130,106,.45)",
           hitoTitulo: HITO_T[m.hito] || "Cambio en la reserva", hitoHora: fmtDia(m.created) + " · " + fmtHora(m.created), hitoAccion: m.hito === "solicitud",
           meta: (HITO_T[m.hito] || "Cambio en la reserva") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created), esAlma: false, cursor: "auto", lpDown: noop, lpMove: noop, lpUp: noop, lpMenu: noop };
         var guest = m.tipo === "guest", nota = m.tipo === "nota";
@@ -5858,7 +5985,7 @@ class Component extends DCLogic {
         setOp("enviando");
         ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ nota: "", propuesta: "", base: null, alma: false, progPick: false });
         var fallo = function (msg) { setOp("fallo"); if (!String(self._respDraft[convKey] || "").trim()) { ponerTexto(t); self.guardarBorrador(convKey, t); } upd({ nota: msg }); };
-        ALMA.responder(rid, t, self.quienSoy()).then(function (res) {
+        ALMA.responder(rid, t, self.quienSoy(), /^(wa|op|inq):/.test(String(rid)) ? "" : "plataforma").then(function (res) {
           if (!(res && res.ok)) {
             var er = String((res && res.error) || "");
             /* timeout o corte de red: el mensaje pudo salir. Se revisa el hilo antes de sugerir reenviar, para no duplicar. */
@@ -6625,6 +6752,11 @@ class Component extends DCLogic {
         (function (c) {
           var rid = String(c.resId || ""), conRes = !!rid && rid.indexOf("wa:") !== 0 && rid.indexOf("op:") !== 0, ibc = inboxPor[g.key] || {};
           c.hayCal = conRes; c.hayIng = conRes && esPrincipal;
+          c.hayWa = conRes;
+          var hWa = st.almaHilos[rid] && st.almaHilos[rid].lista, conWa = !!(hWa && hWa.some(function (m) { return m.canal === "whatsapp" && !m.llamada; }));
+          c.waColor = conWa ? "#3d6b52" : "#938B8A"; c.waBd = conWa ? "rgba(61,107,82,.45)" : "#D8D4CE";
+          c.waTitulo = conWa ? "Abrir el chat de WhatsApp" : "Escribir por WhatsApp";
+          c.verWa = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirWaChat(rid, c.huesped); };
           c.verCal = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirInfo(rid, "cal"); };
           c.verIng = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirInfo(rid, "ing"); };
           var airbnb = /airbnb/i.test(String(ibc.canal || "") + String(c.canalNom || ""));

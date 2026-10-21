@@ -1194,7 +1194,7 @@ function contextoHosp_(resId, hilo, modo) {
     contencionReciente: hilo.some(m => m.tipo !== 'guest' && esContencion_(m.texto) && Date.now() - new Date(m.created).getTime() < cfg_('CONTENCION_HORAS') * 3600000),
     ultimosNuestros: hilo.filter(m => m.tipo !== 'guest' && !m.auto).slice(-3).map(m => m.texto),
     ultimoGuestAt: turno.length ? turno[turno.length - 1].created : '',
-    hiloTexto: hilo.map(m => '[' + (m.tipo === 'guest' ? 'HUÉSPED' : (m.auto ? 'SPACIO AM · automático' : 'SPACIO AM')) + '] ' + m.texto)
+    hiloTexto: hilo.map(m => '[' + (m.tipo === 'guest' ? 'HUÉSPED' : (m.auto ? 'SPACIO AM · automático' : 'SPACIO AM')) + (m.llamada ? ' · en llamada' : m.canal === 'whatsapp' ? ' · por WhatsApp' : '') + '] ' + m.texto)
       .join('\n---\n').slice(-8000),
     propiedadInfo: infoPropiedad_(nombreProp, idiomaCtx),
     codigos: codigosEnHilo_(hilo),
@@ -2688,7 +2688,7 @@ function amAppend_(o) {
    una versión corta para el snapshot del hub. */
 function ctxConversacion_(hilo, hastaIdx) {
   const previos = (hilo || []).slice(0, hastaIdx == null ? (hilo || []).length : hastaIdx).filter(m => String(m.texto || '').trim());
-  const et = m => m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM';
+  const et = m => (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' · en llamada' : m.canal === 'whatsapp' ? ' · por WhatsApp' : '');
   const txt = previos.slice(-16).map(m => '[' + et(m) + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + '] ' + String(m.texto).slice(0, 700)).join('\n');
   const json = JSON.stringify(previos.slice(-8).map(m => ({ d: m.tipo === 'guest' ? 'g' : m.auto ? 'a' : 'e', t: String(m.texto).slice(0, 400), ts: m.created || '' })));
   return { txt: txt, json: json };
@@ -2982,7 +2982,9 @@ function hubApi_(body) {
       case 'setPropiedadDato': return json_(hubSetPropiedadDato_(body.propiedad, body.campo, body.valor, body.meta));
       case 'hilo': return json_(hubHilo_(body.resId));
       case 'redactarHub': return json_(hubRedactar_(body.resId, body.texto, body.hilo));
-      case 'responder': return json_(hubResponder_(body.resId, body.texto, body.quien));
+      case 'responder': return json_(hubResponder_(body.resId, body.texto, body.quien, body.canal));
+      case 'responderWa': return json_(hubResponderWa_(body.resId, body.texto, body.quien, body.wa));
+      case 'waNumeros': return json_({ ok: true, numeros: telsReserva_(body.resId) });
       case 'resolver': return json_(hubResolver_(body.key, body.estado, body.quien, body.ts));
       case 'reservaInfo': return json_(hubReservaInfo_(body.resId));
       case 'programados': return json_(hubProgramados_(body.resId));
@@ -3609,7 +3611,7 @@ function hubSetAuto_(resId, on, quien) {
   }
   return { ok: true, estado: on ? 'on' : 'off', ts: ts };
 }
-function hubResponder_(resId, texto, quien) {
+function hubResponder_(resId, texto, quien, canal) {
   texto = String(texto || '').trim();
   quien = String(quien || '').trim().slice(0, 80);
   if (!resId || !texto) return { ok: false, error: 'faltan datos' };
@@ -3618,7 +3620,8 @@ function hubResponder_(resId, texto, quien) {
   /* Se responde por el canal del último mensaje del huésped: WhatsApp o la plataforma de la reserva. */
   const hc = hiloConv_(resId), ug = (hc.hilo || []).filter(m => m.tipo === 'guest').pop() || {};
   let plantilla = false;
-  if (ug.canal === 'whatsapp' && ug.wa) {
+  /* Desde la conversación de la reserva se responde por la plataforma; WhatsApp tiene su propio chat (hubResponderWa_). */
+  if (canal !== 'plataforma' && ug.canal === 'whatsapp' && ug.wa) {
     const w = waResponder_(ug.wa, texto, resId, quien || 'Equipo', idiomaDe_(ug.texto), ug.nombre);
     if (!w.ok) return { ok: false, error: 'WhatsApp: ' + w.error };
     plantilla = !!w.plantilla;
@@ -3712,7 +3715,7 @@ function hubHilo_(resId) {
   const r = hiloConv_(resId);
   if (r.code !== 200) return { ok: false, error: 'HTTP ' + r.code };
   let hitos = []; try { hitos = hitosDe_(resId); } catch (e) { console.error('hitosDe_: ' + e); }
-  return { ok: true, hilo: r.hilo.slice(-300).map(m => ({ tipo: m.tipo, auto: !!m.auto, texto: m.texto, created: m.created, fotos: m.fotos || [], canal: m.canal || 'hospitable' })).concat(hitos) };
+  return { ok: true, hilo: r.hilo.slice(-300).map(m => Object.assign({ tipo: m.tipo, auto: !!m.auto, texto: m.texto, created: m.created, fotos: m.fotos || [], canal: m.canal || 'hospitable' }, m.canal === 'whatsapp' ? { wa: m.wa || '', llamada: !!m.llamada, llamadaId: m.llamadaId || '', alma: !!m.alma } : {})).concat(hitos) };
 }
 
 /* ── HITOS DE RESERVA: Hospitable avisa (webhook reservation.changed) cuando cambian fechas, huéspedes, propiedad o
@@ -4117,6 +4120,8 @@ function waReserva_(wa) {
     let pre = {}; try { pre = preContexto_(activas[i].conv_id); } catch (e) {}
     if ((pre.tels || []).some(t => fin8_(t) === k8)) return guardar({ resId: activas[i].conv_id });
   }
+  /* Teléfonos que dejaron en el registro de llegada de hola (titular, contacto, emergencia). */
+  try { const cH = vozCodigoPorTelHola_(wa), idH = cH && porCodigo(cH); if (idH) return guardar({ resId: idH }); } catch (e) { console.error('waReserva_ hola: ' + e); }
   return guardar(null);
 }
 function waHilo_(convId) {
@@ -4124,7 +4129,7 @@ function waHilo_(convId) {
   const n = sh.getLastRow(), desde = Math.max(2, n - 3000);
   return sh.getRange(desde, 1, n - desde + 1, Math.min(WA_CAB_.length, sh.getLastColumn())).getValues().map(v => v.concat(['', ''])).filter(v => s_(v[6]) === String(convId))
     .map(v => ({ tipo: v[3] === 'in' ? 'guest' : 'host', auto: false, alma: s_(v[8]) === 'alma', texto: s_(v[4]), nombre: v[3] === 'in' ? s_(v[2]) : s_(v[8]), fotos: s_(v[9]).split(/\s+/).filter(u => /thumbnail\?id=/.test(u)),
-      created: v[0] instanceof Date ? v[0].toISOString() : s_(v[0]), canal: 'whatsapp', wa: s_(v[1]) }));
+      created: v[0] instanceof Date ? v[0].toISOString() : s_(v[0]), canal: 'whatsapp', wa: s_(v[1]), llamada: s_(v[7]) === 'llamada', llamadaId: s_(v[7]) === 'llamada' ? s_(v[5]).split('#')[0] : '' }));
 }
 /* Hilo de una conversación: Hospitable (si es reserva) + WhatsApp, por hora. */
 /* Copia del hilo de Hospitable: fresca 60 s (evita pedirlo varias veces seguidas) y de respaldo 6 h si Hospitable responde 429. */
@@ -4192,6 +4197,36 @@ function waVentana_(wa) {
   return !!ult && Date.now() - new Date(ult[0]).getTime() < 23.5 * 3600000;
 }
 /* Responde por WhatsApp. Dentro de las 24 h: texto libre. Fuera: plantilla aprobada (WA_PLANTILLA) para retomar. */
+/* Números de WhatsApp de una reserva, del más probable al menos: los que ya escribieron o llamaron, los del huésped en
+   Hospitable y los del registro de llegada (titular, contacto, emergencia). */
+function telsReserva_(resId) {
+  resId = String(resId || ''); if (!resId || /^(wa|op|inq):/.test(resId)) return [];
+  const out = [], add = (t, origen) => { const n = normTel_(t); if (n && !out.some(x => fin8_(x.wa) === fin8_(n))) out.push({ wa: n, origen: origen }); };
+  try { waHilo_(resId).slice().reverse().forEach(m => { if (m.wa) add(m.wa, m.llamada ? 'llamada' : 'whatsapp'); }); } catch (e) {}
+  let pre = {}; try { pre = preContexto_(resId) || {}; } catch (e) {}
+  (pre.tels || []).forEach(t => add(t, 'reserva'));
+  try {
+    const cod = String(pre.codigo || '').toUpperCase(), sh = cod && ssWebapp_().getSheetByName('Formularios');
+    if (sh && sh.getLastRow() >= 2) {
+      const v = sh.getDataRange().getDisplayValues(), cab = v[0].map(x => String(x).trim()), cc = cab.indexOf('code');
+      const ct = cab.map((x, i) => /phone|emergency/i.test(x) ? i : -1).filter(i => i >= 0);
+      v.slice(1).filter(r => String(r[cc]).trim().toUpperCase() === cod).forEach(r => ct.forEach(i => telsDe_(r[i]).forEach(t => add(t, /emergency/i.test(cab[i]) ? 'emergencia' : 'registro'))));
+    }
+  } catch (e) { console.error('telsReserva_ hola: ' + e); }
+  return out;
+}
+/* Escribir por WhatsApp desde la conversación de una reserva: al número indicado o al más probable. */
+function hubResponderWa_(resId, texto, quien, wa) {
+  texto = String(texto || '').trim(); if (!resId || !texto) return { ok: false, error: 'faltan datos' };
+  const num = normTel_(wa || '') || ((telsReserva_(resId)[0] || {}).wa) || '';
+  if (!num) return { ok: false, error: 'sin_numero' };
+  let pre = {}; try { pre = preContexto_(resId) || {}; } catch (e) {}
+  const ultG = waHilo_(resId).filter(m => m.tipo === 'guest' && !m.llamada).pop() || {};
+  const w = waResponder_(num, texto, resId, String(quien || 'Equipo').slice(0, 80), idiomaDe_(ultG.texto || ''), pre.huesped || ultG.nombre || '');
+  if (!w.ok) return { ok: false, error: w.error };
+  try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
+  return { ok: true, wa: num, plantilla: !!w.plantilla };
+}
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   const W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'falta WA_TOKEN o WA_PHONE_ID' };
   const abierta = waVentana_(wa);

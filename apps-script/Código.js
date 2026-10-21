@@ -1498,6 +1498,7 @@ const NOTAS_PROMPTS = {
   RUTA_ESTRATEGICO: 'Conversación estratégica con Juan (fundador).', RUTA_PERSONAL: 'Agenda personal de Juan.',
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
+  SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el chat operativo (Hub y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
   REGLAS_EXTRA: 'Avisos temporales que Alma debe tener en cuenta (una por línea). Ej.: "Brunelo: corte de agua el sábado de 8 a 12".',
   CONTENCION_ES: 'Mensajes al huésped en un ROJO (modo AUTO), en español. Varias variantes separadas por una línea en blanco: ALMA elige una al azar y nunca repite la última. Solo se envía una contención por incidente.',
   CONTENCION_EN: 'Mensaje fijo al huésped en un ROJO (modo AUTO), en inglés.',
@@ -1520,7 +1521,7 @@ const SEMILLA_APELACION_ = "Eres especialista en la política de reseñas de Air
 const SEMILLA_MEJORAR_ = "MODO MEJORA. Una persona del equipo escribió el TEXTO BASE para responder al huésped. Es tu referencia principal: reescríbelo, no respondas por tu cuenta.\n· Mantén su mismo espíritu: lo que confirma, niega, pide, ofrece o propone, y todos sus datos (horas, montos, códigos, nombres). No cambies la decisión del equipo.\n· Redáctalo mejor: más claro, cálido y preciso, con la voz de Spacio AM y las reglas de tus instrucciones (de tú, sin markdown, sin emoji), en el idioma del huésped y con un formato limpio, fácil de leer en el teléfono.\n· Agrega instrucciones o información SOLO si el contexto lo amerita: una pregunta del huésped que sigue sin respuesta y cuya respuesta está en el contexto confirmado, o el siguiente paso útil para su estadía. Si no lo amerita, no agregues nada.\n· Límites: nunca inventes datos; no ofrezcas concesiones que el equipo no ofreció (horarios especiales, descuentos, reembolsos, cambios de reserva); no compartas códigos de acceso que el texto base no incluya; no repitas lo ya dicho en el hilo.\n· Si el texto base es corto, el resultado también.\n· Devuelve SOLO el mensaje final, listo para enviar.";
 function promptsRespaldo_() {
   return {
-    ESTILO: SEMILLA_ESTILO_, MEJORAR: SEMILLA_MEJORAR_, APELACION: SEMILLA_APELACION_, RESPUESTA_REVIEW: SEMILLA_RESP_REVIEW_, REVIEW_HUESPED: SEMILLA_REVIEW_HUESPED_, OPERATIVO: SEMILLA_OPERATIVO_,
+    ESTILO: SEMILLA_ESTILO_, MEJORAR: SEMILLA_MEJORAR_, APELACION: SEMILLA_APELACION_, RESPUESTA_REVIEW: SEMILLA_RESP_REVIEW_, REVIEW_HUESPED: SEMILLA_REVIEW_HUESPED_, OPERATIVO: SEMILLA_OPERATIVO_, SECRETARIA: SEMILLA_SECRETARIA_,
     REDACTOR: PROMPT_REDACTOR, CLASIFICADOR: PROMPT_CLASIFICADOR, VERIFICADOR: PROMPT_VERIFICADOR, REGLAS_EXTRA: '',
     REGLAS_REDACTOR: sinCab_(REGLAS_FIJAS_REDACTOR), REGLAS_CLASIFICADOR: sinCab_(REGLAS_FIJAS_CLASIFICADOR),
     ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_, VOZ: SEMILLA_VOZ_,
@@ -1640,7 +1641,7 @@ function sembrarInstrucciones_(faltan) {
   } catch (e) { console.error('sembrarInstrucciones_: ' + e); }
 }
 const GRUPO_PROMPT_ = k => /^(REDACTOR|REGLAS_REDACTOR|VERIFICADOR)$/.test(k) ? 'Redacción' : /^(CLASIFICADOR|REGLAS_CLASIFICADOR|ROUTER)$/.test(k) ? 'Clasificación' : /^INQUIRY_/.test(k) ? 'Consultas (inquiries)' :
-  /^(RUTA_|ADMIN_WHATSAPP|VENTAS_WHATSAPP)/.test(k) ? 'WhatsApp' : /^(CONTENCION_|EMERGENCIA_|ACCESO_)/.test(k) ? 'Mensajes fijos' : k === 'REGLAS_EXTRA' ? 'Avisos temporales' : k === 'VOZ' ? 'Llamadas' : 'Aprendizaje';
+  /^(RUTA_|ADMIN_WHATSAPP|VENTAS_WHATSAPP)/.test(k) ? 'WhatsApp' : /^(CONTENCION_|EMERGENCIA_|ACCESO_)/.test(k) ? 'Mensajes fijos' : k === 'REGLAS_EXTRA' ? 'Avisos temporales' : k === 'VOZ' ? 'Llamadas' : /^(SECRETARIA|OPERATIVO)$/.test(k) ? 'Chat operativo' : 'Aprendizaje';
 /* Hub: lista completa para el editor de instrucciones. */
 function hubPrompts_() {
   prompt_('REDACTOR');
@@ -4504,9 +4505,16 @@ function opProcesar_(adm, texto, canal, fotos) {
         '\n\nCONVERSACIÓN ACTIVA (últimas 6 h):\n' + (nuevos.map(quien).join('\n') || '(empieza aquí: si solo saluda, salúdalo y pregúntale en qué le ayudas)');
     })() +
     '\n\nMENSAJE NUEVO:\n' + texto;
-  let r = {}; const raw = claude_(CFG.MODELO_REDACTOR, 900, prompt_('OPERATIVO'), user, 0.2, fotos || []);
-  try { r = JSON.parse(String(raw).match(/\{[\s\S]*\}/)[0]); } catch (e) { r = { respuesta: s_(raw) || 'No pude procesarlo. Intenta de nuevo.', acciones: [] }; }
-  const hechas = errEpi ? [] : opEjecutar_(adm, Array.isArray(r.acciones) ? r.acciones : [], cfg, props);
+  let r = {}, hechas = [];
+  if (opAgenteActivo_()) {
+    /* ALMA secretaria: herramientas reales con permisos por rol (agente.js). */
+    try { const ag = opAgente_(adm, texto, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
+    catch (e) { console.error('opAgente_: ' + (e.stack || e)); r = { respuesta: 'Tuve un problema procesando tu mensaje. Intenta de nuevo.' }; }
+  } else {
+    const raw = claude_(CFG.MODELO_REDACTOR, 900, prompt_('OPERATIVO'), user, 0.2, fotos || []);
+    try { r = JSON.parse(String(raw).match(/\{[\s\S]*\}/)[0]); } catch (e) { r = { respuesta: s_(raw) || 'No pude procesarlo. Intenta de nuevo.', acciones: [] }; }
+    hechas = errEpi ? [] : opEjecutar_(adm, Array.isArray(r.acciones) ? r.acciones : [], cfg, props);
+  }
   let resp = formatearMensaje_(s_(r.respuesta) || (hechas.length ? 'Listo.' : 'Entendido.'));
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas);
@@ -4675,6 +4683,7 @@ function dsBotApi_(body) {
       case 'voz_inicio_off': return json_(vozInicioOff_());
       case 'voz_conv': return json_(vozConv_(body.n));
       case 'voz_transcript': return json_(vozTranscript_(body.id));
+      case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []))); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

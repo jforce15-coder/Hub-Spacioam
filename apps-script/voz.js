@@ -301,7 +301,7 @@ function vozHerramientas_(k) {
     if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
     return t ? JSON.parse(t) : {};
   };
-  var base = ScriptApp.getService().getUrl() + '?voz=1&k=' + encodeURIComponent(k);
+  var base = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec?voz=1&k=' + encodeURIComponent(k);
   var existentes = (pedir('get', '/tools').tools || []), hechas = [];
   vozDefHerramientas_(base).forEach(function (def) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];

@@ -566,3 +566,15 @@ function vozCodigoPorTelHola_(tel) {
   c.put(ck, cod, 900);
   return cod;
 }
+
+/* Robot voz_transcript: transcripción de una conversación (o la última), con llamadas y resultados de herramientas. */
+function vozTranscript_(id) {
+  var p = PropertiesService.getScriptProperties(), h = { 'xi-api-key': p.getProperty('ELEVENLABS_KEY') }, api = 'https://api.elevenlabs.io/v1/convai/conversations';
+  if (!id) id = (JSON.parse(UrlFetchApp.fetch(api + '?page_size=1&agent_id=' + encodeURIComponent(p.getProperty('ELEVENLABS_AGENT_ID')), { headers: h }).getContentText()).conversations || [{}])[0].conversation_id;
+  var d = JSON.parse(UrlFetchApp.fetch(api + '/' + encodeURIComponent(id), { headers: h }).getContentText());
+  return { ok: true, id: id, turnos: (d.transcript || []).map(function (t) {
+    return { r: t.role, s: t.time_in_call_secs, m: t.message || '',
+      tools: (t.tool_calls || []).map(function (c) { return c.tool_name + ' ' + String(c.params_as_json || '').slice(0, 200); }),
+      res: (t.tool_results || []).map(function (c) { return c.tool_name + ' → ' + String(c.result_value || '').slice(0, 300); }) };
+  }) };
+}

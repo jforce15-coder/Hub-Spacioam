@@ -261,3 +261,71 @@ function vozSyncPrompt_(forzar) {
   p.setProperty('VOZ_PROMPT_HUELLA', huella);
   return guardar({ ok: true, clave_base: pc.clave, caracteres: pc.texto.length });
 }
+
+/* ═══ Herramientas del agente (las crea/actualiza el Hub por API; no hace falta configurarlas a mano) ═══
+   Robot: { dsBot, token, action:'voz_tools', k:'<llave de voz>' }. La llave viaja en la URL de la herramienta
+   (ElevenLabs la guarda); aquí solo se verifica contra VOZ_HASH_. Idempotente: si ya existen, las actualiza. */
+function vozDefHerramientas_(base) {
+  var s = function (d) { return { type: 'string', description: d }; };
+  var caller = { type: 'string', dynamic_variable: 'system__caller_id' };
+  return [
+    { name: 'lookup_reservation', response_timeout_secs: 20,
+      description: 'Ubica y valida la reserva de quien llama. Llámala SIEMPRE primero, solo con caller_id (valida por el número que llama). Si no queda validada, vuelve a llamarla con nombre, apellido y fecha de entrada (y lo que ya tengas). Devuelve found, verified, ambiguous, ask_next, zone_options, today, code, guest_name, check_in, check_out, property, form_status.',
+      api_schema: { url: base + '&h=lookup_reservation', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id'], properties: {
+        caller_id: caller,
+        guest_first_name: s('Nombre del titular de la reserva, si ya lo dio.'),
+        guest_last_name: s('Apellido del titular, si ya lo dio.'),
+        check_in: s('Fecha de entrada en formato YYYY-MM-DD, si ya la dio.'),
+        check_out: s('Fecha de salida YYYY-MM-DD, solo como filtro secundario.'),
+        property_name: s('Prefijo de zona para desempatar (Z1, Z10, Antigua), solo si ask_next fue zone.'),
+        code: s('Código de reserva, solo si la persona lo dio.') } } } },
+    { name: 'property_info', response_timeout_secs: 20,
+      description: 'Datos de la propiedad de una reserva YA validada (verified = true): dirección, cómo llegar, portería, WiFi, parqueo y base de conocimiento del edificio. Usa el code que devolvió lookup_reservation.',
+      api_schema: { url: base + '&h=property_info', method: 'POST', request_body_schema: { type: 'object', required: ['code'], properties: {
+        code: s('Código de la reserva validada (campo code de lookup_reservation).'),
+        lang: s('Idioma de la llamada: es o en.'),
+        caller_id: caller } } } }
+  ].map(function (t) { t.type = 'webhook'; return t; });
+}
+
+function vozHerramientas_(k) {
+  if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
+        .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var api = 'https://api.elevenlabs.io/v1/convai', h = { 'xi-api-key': key };
+  var pedir = function (metodo, ruta, cuerpo) {
+    var o = { method: metodo, headers: h, muteHttpExceptions: true };
+    if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
+    var r = UrlFetchApp.fetch(api + ruta, o), c = r.getResponseCode(), t = r.getContentText();
+    if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
+    return t ? JSON.parse(t) : {};
+  };
+  var base = ScriptApp.getService().getUrl() + '?voz=1&k=' + encodeURIComponent(k);
+  var existentes = (pedir('get', '/tools').tools || []), hechas = [];
+  vozDefHerramientas_(base).forEach(function (def) {
+    var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];
+    var r = ya ? pedir('patch', '/tools/' + ya.id, { tool_config: def }) : pedir('post', '/tools', { tool_config: def });
+    hechas.push({ name: def.name, id: (r && r.id) || ya.id, accion: ya ? 'actualizada' : 'creada' });
+  });
+  var ag = pedir('get', '/agents/' + encodeURIComponent(agente)), pr = ag.conversation_config.agent.prompt;
+  var ids = (pr.tool_ids || []).slice();
+  hechas.forEach(function (t) { if (ids.indexOf(t.id) < 0) ids.push(t.id); });
+  pr.tool_ids = ids; delete pr.tools;
+  pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr } } });
+  return vozEstado_({ herramientas: hechas });
+}
+
+/* Estado del agente tal como lo ve ElevenLabs (para comprobar que el prompt y las herramientas quedaron). */
+function vozEstado_(extra) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return { ok: false, error: 'GET agente HTTP ' + r.getResponseCode() };
+  var ag = JSON.parse(r.getContentText()), pr = ((ag.conversation_config || {}).agent || {}).prompt || {};
+  var o = { ok: true, agente: ag.name, prompt_caracteres: String(pr.prompt || '').length, prompt_inicio: String(pr.prompt || '').slice(0, 80),
+    tool_ids: pr.tool_ids || [], sistema: Object.keys(pr.built_in_tools || {}).filter(function (k) { return pr.built_in_tools[k]; }),
+    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '' };
+  for (var x in (extra || {})) o[x] = extra[x];
+  return o;
+}

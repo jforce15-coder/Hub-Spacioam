@@ -3403,6 +3403,7 @@ function hubResolver_(key, estado, quien, tsCli) {
   if (sh.getLastColumn() < 5) sh.getRange(1, 5).setValue('ts_ms');
   const ms = Math.max(Date.now(), Number(tsCli) || 0);
   sh.appendRow([String(key), estado === 'abierta' ? 'abierta' : 'resuelta', new Date().toISOString(), String(quien || '').slice(0, 80), ms]);
+  if (estado !== 'abierta') { try { promesasCumplir_(key, quien, 'resuelta'); } catch (e) {} }   // resolverla cierra lo que ALMA prometió
   return { ok: true, ts: ms };
 }
 function resueltasVivo_() {

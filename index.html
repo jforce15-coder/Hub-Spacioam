@@ -1707,15 +1707,6 @@
                     <sc-if value="{{ c.hayCal }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verCal }}" aria-label="Calendario de la propiedad" title="Calendario de la propiedad" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                     <sc-if value="{{ c.hayIng }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verIng }}" aria-label="Ingreso de la reserva" title="Ingreso de la reserva" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                   </div>
-                  <sc-if value="{{ c.hayProm }}" hint-placeholder-val="{{ false }}">
-                    <div role="status" style="display:flex; align-items:center; gap:10px; margin-top:8px; padding:8px 10px 8px 12px; border:1px solid {{ c.promBd }}; background:{{ c.promBg }}; border-radius:12px; max-width:560px">
-                      <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
-                        <span style="font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:{{ c.promFg }}">ALMA prometió · {{ c.promPlazo }}</span>
-                        <span style="font-size:12.5px; line-height:1.45; color:#3E3F3F">{{ c.promTxt }}</span>
-                      </span>
-                      <button onClick="{{ c.promCerrar }}" title="Marcar como cumplida" style="flex-shrink:0; min-height:32px; padding:0 12px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer">Cumplida</button>
-                    </div>
-                  </sc-if>
                   <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
                     <span role="progressbar" aria-label="{{ c.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-width:280px">
                       <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ c.clasPct }}"></span></span>
@@ -3425,7 +3416,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22b";
+  BUILD = "2026-10-22c";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3706,7 +3697,8 @@ class Component extends DCLogic {
     var self = this, fn = function () { self.convScroll({ currentTarget: el }, self._convTotal); };
     el.addEventListener("scroll", fn, { passive: true });
     /* Solo un gesto real mueve la conversación: los cambios de alto o los saltos programados no cuentan. */
-    var marca = function () { self._convUser = Date.now(); };
+    /* Solo gestos de navegación cuentan como «el usuario movió el visor»; escribir en el chat no (antes una tecla + la lista reordenándose saltaba a otra conversación). */
+    var marca = function (e) { var t = e && e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return; self._convUser = Date.now(); };
     ["touchstart", "touchmove", "touchend", "wheel", "pointerdown", "keydown"].forEach(function (ev) { el.addEventListener(ev, marca, { passive: true }); });
 
   };
@@ -3723,6 +3715,7 @@ class Component extends DCLogic {
   convScroll(e, total) {
     var el = e.currentTarget, self = this;
     if (!this._convUser || Date.now() - this._convUser > 3000) return;
+    var foco = document.activeElement; if (foco && foco.tagName === "TEXTAREA" && el.contains(foco)) return;   /* escribiendo: la conversación no cambia sola */
     if (this._convJump && Date.now() - this._convJump < 600) return;
     clearTimeout(this._convScrollT);
     this._convScrollT = setTimeout(function () {
@@ -6959,8 +6952,10 @@ class Component extends DCLogic {
     var temaDe = function (t) { return self.fraseCaso(t) || (t.esCola ? "Mensaje nuevo del huésped" : t.humano || t.enviado ? "Conversación con el huésped" : "El huésped escribió"); };
     var PASADO = { "No lo dejan entrar al edificio": "No lo dejaban entrar al edificio · ya ingresó", "No puede entrar al apartamento": "No podía entrar · ya ingresó", "Problemas con el internet": "Problema con el internet · resuelto", "Sin agua caliente": "No tenía agua caliente · resuelto", "Tiene una duda, aún no la dice": "Tenía una duda · se le respondió" };
     var esSinG = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && !!propDe(g) && (t.sinResp || g.pendAuto || (ib && ib.ultimo_de === "guest")); };
-    /* Requiere atención = urgentes + necesita equipo + sin responder. Mismo criterio en el tile, el resumen y la pestaña. */
-    var atnG = function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || esSinG(g)); };
+    /* ALMA prometió que el equipo contactaría (promesas.js): la conversación queda por atender hasta que alguien responda o se marque resuelta. */
+    var promG = function (g) { var ib = inboxPor[g.key], e = ib ? String(ib.promesa_estado || "") : ""; return !g.resuelto && (e === "abierta" || e === "vencida") && !!ib.promesa && !(self._promCerradas || {})[String(ib.promesa_id || "")]; };
+    /* Requiere atención = urgentes + necesita equipo + promesas de ALMA + sin responder. Mismo criterio en el tile, el resumen y la pestaña. */
+    var atnG = function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || promG(g) || esSinG(g)); };
     var vistoR = {};
     /* Solo lo que tuvo movimiento en la ventana (8 h): nada viejo. */
     var atnRes = atnG;
@@ -6983,7 +6978,8 @@ class Component extends DCLogic {
       } else if (enNivel(g, "AMARILLO")) {
         est = "Necesita equipo"; bg = "#B54D36"; fg = "#FFFFFF"; pr = 0.5;
         if (alma) { tipo = "alma"; texto = tema + " · ALMA respondió · necesita al equipo"; pide = true; } else { tipo = "chat"; pide = true; texto = tema + " · necesita al equipo · " + mins(tsU); }
-      } else if (t.esCola) { est = t.clasificando ? "Clasificando" : "En cola"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 0.8; texto = tema + (t.clasificando ? " · " + t.clasTxt : " · ALMA lo está atendiendo"); }
+      } else if (promG(g)) { est = "ALMA prometió"; bg = "#B54D36"; fg = "#FFFFFF"; pr = 0.6; tipo = "chat"; pide = true; texto = "ALMA prometió: " + String(ib.promesa || "").slice(0, 110) + (String(ib.promesa_estado) === "vencida" ? " · vencida" : ""); }
+      else if (t.esCola) { est = t.clasificando ? "Clasificando" : "En cola"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 0.8; texto = tema + (t.clasificando ? " · " + t.clasTxt : " · ALMA lo está atendiendo"); }
       else if (sinRespG) { est = "Sin responder"; bg = "rgba(242,117,90,.16)"; fg = "#B54D36"; pr = 1; tipo = "chat"; pide = true; texto = tema + " · sin respuesta hace " + mins(tsU); }
       else if (equipo) { est = "Respondió el equipo"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; tipo = "cierre"; texto = tema + " · respondió " + quienEq; }
       else { est = "ALMA respondió"; bg = "rgba(59,102,145,.12)"; fg = "#3B6691"; pr = 3; tipo = alma ? "alma" : "cierre"; texto = tema + (alma ? " · ALMA respondió" : " · sin acción"); }
@@ -7131,9 +7127,9 @@ class Component extends DCLogic {
           var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Necesita equipo" ? ["Necesita equipo", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];
           E = U; var fr = self.fraseCaso ? self.fraseCaso(t) : ""; if (fr) prev = fr;
         }
-        var urg = !g.resuelto && enNivel(g, "ROJO"), necEq = !g.resuelto && !urg && enNivel(g, "AMARILLO"), sinR = !g.resuelto && !urg && !necEq && !t.esCola && esSinG(g);
-        if (urg) E = ["Urgente", "#C0392B", "#FFFFFF", "#C0392B"]; else if (necEq) E = ["Necesita equipo", "#B54D36", "#FFFFFF", "#E9826A"]; else if (sinR) E = ["Sin responder", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"];
-        var atn = urg || necEq || sinR;
+        var urg = !g.resuelto && enNivel(g, "ROJO"), necEq = !g.resuelto && !urg && enNivel(g, "AMARILLO"), prom = !urg && !necEq && promG(g), sinR = !g.resuelto && !urg && !necEq && !prom && !t.esCola && esSinG(g);
+        if (urg) E = ["Urgente", "#C0392B", "#FFFFFF", "#C0392B"]; else if (necEq) E = ["Necesita equipo", "#B54D36", "#FFFFFF", "#E9826A"]; else if (prom) E = ["ALMA prometió", "#B54D36", "#FFFFFF", "#E9826A"]; else if (sinR) E = ["Sin responder", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"];
+        var atn = urg || necEq || prom || sinR;
         return { ...(self._canalVM ? self._canalVM(g) : {}), gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
           etapa: (self._etapa && self._etapa(g.key, ib)) || { txt: "" }, hayEtapa: !!(self._etapa && self._etapa(g.key, ib)),
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,

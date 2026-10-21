@@ -74,6 +74,15 @@ function agHerramientas_() {
       { persona: s('Nombre de la persona del equipo, o un número de WhatsApp con código de país'), objetivo: s('Todo lo que hay que lograr en la conversación: qué explicar, qué preguntar, qué validar'), mensaje: s('WhatsApp inicial concreto: quién eres, de parte de quién, para qué y que llame a la línea de ALMA (+502 3128 0966)') }, ['persona', 'objetivo', 'mensaje']),
     T('cerrar_encargo', 'Marca como cumplido un encargo de ENCARGOS PENDIENTES CONTIGO y le avisa a quien lo pidió.', { id: s('id del encargo'), resultado: s('Qué se hizo, en una o dos frases') }, ['id', 'resultado']),
     T('promesas_abiertas', 'Lo que ALMA le prometió a huéspedes o contactos y sigue pendiente.', {}),
+    T('grow_proyectos', 'Grow (captación y montaje de apartamentos nuevos): busca proyectos por edificio, apartamento, zona o dueño, o lista los de una etapa. Sin filtros da el conteo por etapa. Devuelve id, etapa, dueño y visita.',
+      { buscar: s('Opcional: edificio, apartamento, zona o nombre del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional: solo los de esta etapa' } }),
+    T('grow_crear_proyecto', 'Grow: da de alta un apartamento nuevo (prospecto) con su dueño. Si el dueño trae correo, queda con acceso inmediato a Grow. Si ya existe ese edificio + apartamento, devuelve el existente.',
+      { edificio: s('Nombre del edificio'), apto: s('Número o nombre del apartamento'), zona: s('Opcional: zona (ej. Zona 14)'), hab: { type: 'number', description: 'Opcional: habitaciones' }, banos: { type: 'number', description: 'Opcional: baños' },
+        dueno_nombre: s('Opcional: nombre del dueño'), dueno_email: s('Opcional: correo del dueño'), dueno_tel: s('Opcional: teléfono del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional; por defecto desconocido' }, nota: s('Opcional: contexto') }, ['edificio']),
+    T('grow_mover_etapa', 'Grow: mueve un proyecto a otra etapa del embudo (usa el id de grow_proyectos). Para descartar usa etapa descartado con motivo.',
+      { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
+    T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo. Si el proyecto estaba en captación pasa a visita.',
+      { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];
@@ -182,6 +191,15 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rE;
     }
     case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
+    case 'grow_proyectos': return growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
+    case 'grow_crear_proyecto': case 'grow_mover_etapa': case 'grow_agendar_visita': {
+      if (nombre === 'grow_mover_etapa' && inp.etapa === 'descartado' && !String(inp.motivo || '').trim()) return { error: 'Para descartar necesito el motivo.' };
+      var op = { grow_crear_proyecto: 'crear', grow_mover_etapa: 'etapa', grow_agendar_visita: 'visita' }[nombre];
+      var r = growApi_(op, Object.assign({}, inp, { por: (adm && adm.nombre) || '' }));
+      if (r && r.ok) ctx.hechas.push({ tipo: 'grow', resumen: 'Grow · ' + (op === 'crear' ? (r.ya_existia ? 'ya existía ' : 'nuevo proyecto ') + ((r.proyecto || {}).nombre || '')
+        : op === 'etapa' ? r.proyecto + ': ' + r.de + ' → ' + r.a : 'visita ' + r.proyecto + ' · ' + r.fecha + ' · ' + r.asignado) });
+      return r;
+    }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };
@@ -347,4 +365,20 @@ function hubLimpiezas_(codigo) {
   var salida = deProp.filter(function (x) { return String(x.fecha).slice(0, 10) >= co; }).sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); })[0];
   var f = function (x) { return x ? { fecha: String(x.fecha).slice(0, 10), hora: x.hora || '', tipo: x.tipo || '', quien: nombreDe(x), tel: tel(x), estado: x.estado || '' } : null; };
   return { ok: true, propiedad: prop, checkin: ci, checkout: co, antes: f(antes), salida: f(salida), rango: 'Epi: últimas 3 semanas y próximo mes' };
+}
+
+/* ═══ GROW (captación y montaje) ═══════════════════════════════════════════════════════════════
+   La secretaria consulta y mueve proyectos de Grow por su puerta de servidor (__secretaria), que escribe en las
+   hojas y en el estado compartido de la app. Token en la propiedad GROW_TOKEN (se carga por el robot: grow_token). */
+var GROW_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec';
+var GROW_ETAPAS_ = ['desconocido', 'reunion', 'archivos', 'visita', 'decision', 'anteproyecto', 'presupuesto', 'contrato', 'ejecucion', 'fotos', 'lanzamiento', 'revision', 'descartado'];
+function growApi_(op, datos) {
+  var P = PropertiesService.getScriptProperties(), tok = P.getProperty('GROW_TOKEN');
+  if (!tok) return { ok: false, error: 'Grow no está conectado todavía (falta GROW_TOKEN).' };
+  try {
+    var r = UrlFetchApp.fetch(P.getProperty('GROW_URL') || GROW_URL_DEF_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+      payload: JSON.stringify(Object.assign({}, datos || {}, { action: '__secretaria', token: tok, op: op })) });
+    var t = r.getContentText();
+    try { return JSON.parse(t); } catch (e) { return { ok: false, error: 'Grow respondió ' + r.getResponseCode() + ': ' + t.slice(0, 200) }; }
+  } catch (e) { return { ok: false, error: 'Grow no respondió: ' + e }; }
 }

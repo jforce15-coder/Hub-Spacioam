@@ -1024,6 +1024,13 @@ function codigoPendiente_(ctx, hilo) {
   const t = String(ctx.texto || '');
   if (!RX_PIDE_CODIGO_.test(t)) return false;
   if (/wi-?fi|internet|router|network|\bred\b/i.test(t) && !/puerta|door|cerradura|lock|entrar|ingres|acceso|access/i.test(t)) return false;
+  /* Solo es urgente si ya está por entrar: el día de llegada desde CODIGO_URGENTE_DESDE (14:30), durante la estadía, o si
+     dice que está en la puerta / no puede entrar. Si pregunta con tiempo («llegamos a las 5»), ALMA responde normal: el
+     código llega por la plataforma antes de su llegada (y si promete enviarlo, queda como promesa rastreable). */
+  const enPuerta = /(no (puedo|podemos) (entrar|ingresar|abrir)|no (me |nos )?abre|ya (llegu|estamos|estoy)|estoy (afuera|en la puerta|aqu[ií])|estamos (afuera|en la puerta|aqu[ií])|can'?t (get in|open|enter)|(i'?m|we'?re|we are|i am) (here|outside|at the door)|locked out|just arrived)/i.test(t);
+  const desde = String(PropertiesService.getScriptProperties().getProperty('CODIGO_URGENTE_DESDE') || '14:30');
+  const ahoraHM = Utilities.formatDate(new Date(), CFG.TZ, 'HH:mm');
+  if (!enPuerta && ctx.hoy === ctx.checkin && ahoraHM < desde) return false;
   return !codigoEnviadoEnHilo_(hilo);
 }
 function avisarAdmins_(asunto, texto) {

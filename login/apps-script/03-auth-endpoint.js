@@ -52,6 +52,7 @@ function _handle(e){
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if(body.action === 'diagLector') return _diagLector(body.robot);
     if(body.action === 'diagClaves') return _diagClaves(body.robot);
+    if(body.action === 'diagAlternos') return _diagAlternos(body.robot);
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -90,6 +91,11 @@ function _findRow(email){
       var alt=String(d.data[j][d.H.email_alterno]||'').toLowerCase().split(/[\s,;]+/);
       if(alt.indexOf(key)>=0) return {i:j, d:d};
     }
+  }
+  // Correos secundarios que el socio guardó en Mi (SETUP · «secondary user email»): llevan a su correo principal.
+  var prin=key ? _alternosMi()[key] : '';
+  if(prin && prin!==key){
+    for(var q=1;q<d.data.length;q++){ if(String(d.data[q][d.H.email]).toLowerCase()===prin) return {i:q, d:d}; }
   }
   return null;
 }
@@ -468,4 +474,41 @@ function autorizarLectorHojas(){
   var r=UrlFetchApp.fetch('https://docs.google.com/spreadsheets/d/1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U/gviz/tq?tqx=out:csv&tq=select%20A%20limit%201',
     { headers:{ Authorization:'Bearer '+ScriptApp.getOAuthToken() }, muteHttpExceptions:true });
   console.log('Lector de hojas: HTTP '+r.getResponseCode()+(r.getResponseCode()===200?' · listo':' · revisa permisos'));
+}
+
+// ---- Correos secundarios de los socios (Mi) ----
+// Mi guarda en SETUP, por propiedad, «User email» (principal) y «secondary user email» (varios, separados por coma).
+// Mapa secundario → principal, en caché 10 min. Así el socio entra al login unificado con cualquiera de sus correos.
+var MI_SETUP_ID = '1l9wLH8880NlN9ac2jvne2U6cqej6gycqAD77Z25cLF4';
+function _alternosMi(){
+  var c=CacheService.getScriptCache(), v=c.get('alt_mi'); if(v){ try{ return JSON.parse(v); }catch(e){} }
+  var out={};
+  try{
+    var sh=SpreadsheetApp.openById(MI_SETUP_ID).getSheetByName('SETUP'), data=sh.getDataRange().getValues();
+    var h=data[0].map(function(x){ return String(x).trim().toLowerCase(); }), cp=h.indexOf('user email'), cs=h.indexOf('secondary user email');
+    if(cp>=0 && cs>=0) for(var i=1;i<data.length;i++){
+      var p=String(data[i][cp]||'').trim().toLowerCase(); if(p.indexOf('@')<0) continue;
+      String(data[i][cs]||'').toLowerCase().split(/[\s,;]+/).forEach(function(a){ if(a.indexOf('@')>0 && a!==p && !out[a]) out[a]=p; });
+    }
+  }catch(e){ console.error('alternosMi: '+e); return {}; }
+  try{ c.put('alt_mi', JSON.stringify(out), 600); }catch(e){}
+  return out;
+}
+// Robot: cuántos secundarios hay en Mi, cuántos llevan a un usuario existente, y conflictos (sin datos personales).
+function _diagAlternos(token){
+  if(!_diagLector(token).ok) return {ok:false, error:'token'};
+  CacheService.getScriptCache().remove('alt_mi');
+  var m=_alternosMi(), d=_all(), prin={}, alt={};
+  for(var i=1;i<d.data.length;i++){
+    prin[String(d.data[i][d.H.email]).toLowerCase()]=1;
+    if(d.H.email_alterno!=null) String(d.data[i][d.H.email_alterno]||'').toLowerCase().split(/[\s,;]+/).forEach(function(a){ if(a) alt[a]=1; });
+  }
+  var r={secundarios:0, socios:0, llevan_a_usuario:0, principal_sin_usuario:0, ya_en_alterno:0, es_principal_de_otro:0}, vistos={};
+  Object.keys(m).forEach(function(a){
+    r.secundarios++; if(!vistos[m[a]]){ vistos[m[a]]=1; r.socios++; }
+    if(prin[a]) r.es_principal_de_otro++;
+    else if(prin[m[a]]) r.llevan_a_usuario++; else r.principal_sin_usuario++;
+    if(alt[a]) r.ya_en_alterno++;
+  });
+  return {ok:true, mi:r};
 }

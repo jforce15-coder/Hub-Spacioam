@@ -4687,6 +4687,10 @@ function dsBotApi_(body) {
       case 'voz_conv': return json_(vozConv_(body.n));
       case 'voz_transcript': return json_(vozTranscript_(body.id));
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
+      case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
+        const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),
+          op_activo: opActivo_(), prueba: String(PropertiesService.getScriptProperties().getProperty('WA_PRUEBA') || '').split(/[,;\s]+/).some(x => x && fin8_(x) === fin8_(tel)), juan_cfg: fin8_(CFG.WHATSAPP_JUAN) === fin8_(tel),
+          ultimos: v.map(r => [String(r[0]).slice(0, 16), r[3], String(r[6]).slice(0, 24), r[7], r[8], String(r[4]).slice(0, 80)].join(' | ')) }); }
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }

@@ -4520,7 +4520,7 @@ const propNombre_ = p => String((p && (p.nombre || p.name || p.propiedad || p.id
 const vendNombre_ = v => String((v && (v.nombre || v.name || v.email)) || '').trim();
 function opMatch_(txt, lista) {
   const n = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim(), t = n(txt); if (!t) return '';
-  return lista.find(x => n(x) === t) || lista.find(x => n(x).indexOf(t) >= 0) || lista.find(x => t.indexOf(n(x)) >= 0 && n(x).length > 3) || '';
+  return lista.find(x => n(x) === t) || lista.find(x => n(x).indexOf(t) >= 0) || lista.find(x => t.indexOf(n(x)) >= 0 && n(x).length > 3) || bqMejor_(txt, lista) || '';
 }
 /* Un mensaje del administrador (WhatsApp o hub): se guarda, ALMA responde con el contexto real y ejecuta lo que pidió. */
 function opProcesar_(adm, texto, canal, fotos) {

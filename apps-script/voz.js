@@ -178,15 +178,17 @@ function vozLookupHuesped_(b) {
   var ci = fecha_(b.check_in || ''), co = fecha_(b.check_out || ''), zona = vozNorm_(b.property_name || '');
   if (!apellido && !nombre) return { ok: true, found: false, verified: false, today: hoy, ask_next: 'last_name' };
   var tok = function (s) { return s.split(' ').filter(function (w) { return w.length >= 3; }); };
+  /* Por voz los nombres llegan mal transcritos (Erika/Ericka, Cuba/Kuba): se comparan por sonido y con tolerancia. */
+  var seParece = function (w, full) { return full.split(' ').some(function (t) { return bqPalabraSim_(w, t) >= 0.7; }); };
   var cand = filas.filter(function (r) {
     var full = vozNorm_(s_(r.guest_first_name) + ' ' + s_(r.guest_last_name));
-    if (apellido && !tok(apellido).some(function (w) { return full.indexOf(w) >= 0; })) return false;
-    if (nombre && !tok(nombre).some(function (w) { return full.indexOf(w) >= 0; })) return false;
+    if (apellido && !tok(apellido).some(function (w) { return seParece(w, full); })) return false;
+    if (nombre && !tok(nombre).some(function (w) { return seParece(w, full); })) return false;
     var rci = fecha_(r.checkin_date), rco = fecha_(r.checkout_date);
     if (ci && !(rci === ci || rci === sumarDias_(ci, -1) || rci === sumarDias_(ci, 1))) return false;
     if (!ci && co && rco !== co) return false;
     if (!ci && !co && !vozVigente_(rci, rco, hoy)) return false;   // sin fecha: solo reservas vigentes
-    if (zona && vozPrefijo_(r.property_name).indexOf(vozPrefijo_(zona)) !== 0 && vozNorm_(r.property_name).indexOf(zona) < 0) return false;
+    if (zona && vozPrefijo_(r.property_name).indexOf(vozPrefijo_(zona)) !== 0 && vozNorm_(r.property_name).indexOf(zona) < 0 && bqPuntaje_(zona, r.property_name).puntaje < 0.7) return false;
     return true;
   });
   if (cand.length === 1) { cache.remove(kf); return vozRespuesta_(cand[0], 'nombre_y_fecha', hoy); }

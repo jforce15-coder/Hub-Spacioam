@@ -53,7 +53,7 @@ function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
   return [
-    T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
+    T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
       { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' } }),
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas.', { codigo: s('Código de reserva o conv_id') }, ['codigo']),
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp.',
@@ -102,16 +102,18 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'buscar_reservas': {
       var q = n(inp.texto), f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
       var filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return !/cancel/i.test(s_(r.status)) && s_(r.code); });
-      var hits = filas.filter(function (r) {
+      var enFecha = filas.filter(function (r) {
         var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date);
-        if (f && (inp.solo_llegadas ? ci !== f : !(ci <= f && f <= co))) return false;
-        if (!q) return !!f;
-        return n([r.code, r.guest_first_name, r.guest_last_name, r.property_name, r.apartment].join(' ')).indexOf(q) >= 0;
-      }).slice(0, 12);
-      return { reservas: hits.map(function (r) {
+        return !f || (inp.solo_llegadas ? ci === f : (ci <= f && f <= co));
+      });
+      /* Búsqueda flexible: tolera nombres y propiedades mal escritos o mal transcritos (Brunello/Brunelo, Erika/Ericka). */
+      var parecido = {}, hits = !q ? (f ? enFecha.slice(0, 12) : []) : bqBuscar_(inp.texto, enFecha, function (r) { return [r.code, r.guest_first_name, r.guest_last_name, r.property_name, r.apartment].join(' '); }, 12)
+        .map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
+      return { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
+        reservas: hits.map(function (r) {
         var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
         return { codigo: cod, huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date),
-          huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
+          coincidencia: parecido[cod] || 'exacta', huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
       }), total: hits.length };
     }
     case 'ver_conversacion': {
@@ -166,7 +168,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ver_propiedad': {
       var fil = leerTabla_(CFG.TAB_PROPIEDADES), np = n(inp.propiedad).replace(/[\s\-–_]/g, '');
       var hitP = fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '') === np; })[0] || fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '').indexOf(np) >= 0; })[0];
-      if (!hitP) return { error: 'No encontré esa propiedad.', opciones: fil.map(function (r) { return r.property_name; }).filter(function (x) { return n(x).indexOf(n(inp.propiedad).split(' ')[0]) >= 0; }).slice(0, 8) };
+      if (!hitP) {
+        var par = bqBuscar_(inp.propiedad, fil, function (r) { return r.property_name; }, 6);
+        if (par.length === 1 || (par.length > 1 && par[0].puntaje - par[1].puntaje >= 0.15)) hitP = par[0].item;
+        else return { error: 'No encontré esa propiedad exacta.', opciones: par.map(function (x) { return x.item.property_name; }) };
+      }
       var j = {}; try { j = JSON.parse(String(hitP.info_json || '{}')); } catch (e) {}
       var plano = {}; (function rec(o, pre) { Object.keys(o || {}).forEach(function (k) { var v = o[k], key = pre ? pre + '.' + k : k; if (v && typeof v === 'object' && !Array.isArray(v)) rec(v, key); else plano[key] = String(Array.isArray(v) ? JSON.stringify(v) : v).slice(0, 300); }); })(j, '');
       return { propiedad: hitP.property_name, campos: plano };

@@ -4625,6 +4625,7 @@ function dsBotApi_(body) {
       case 'voz_inicio': return json_(vozConfigInicio_(body.k));
       case 'voz_inicio_off': return json_(vozInicioOff_());
       case 'voz_conv': return json_(vozConv_(body.n));
+      case 'voz_transcript': return json_(vozTranscript_(body.id));
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

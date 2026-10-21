@@ -4686,6 +4686,7 @@ function dsBotApi_(body) {
       case 'voz_inicio_off': return json_(vozInicioOff_());
       case 'voz_conv': return json_(vozConv_(body.n));
       case 'voz_transcript': return json_(vozTranscript_(body.id));
+      case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }

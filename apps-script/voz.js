@@ -167,3 +167,55 @@ function vozTraza_(herr, b, out) {
     c.put('voz_traza', JSON.stringify(l.slice(0, 30)), 21600);
   } catch (x) {}
 }
+
+/* ═══ Un solo prompt vivo ═══════════════════════════════════════════════════════════════════
+   El agente de voz usa EL MISMO system prompt de ALMA que se mejora desde el Hub (ALMA_INSTRUCCIONES),
+   más la fila «VOZ» con las anotaciones propias de las llamadas (también editable en el Hub, grupo Llamadas).
+   Cada 30 min, si cambió algo, el Hub lo copia al agente de ElevenLabs por API (no se edita allá).
+   Propiedades del script: ELEVENLABS_KEY (API key con permiso de Agents) y ELEVENLABS_AGENT_ID.
+   La fila base se detecta sola (la que contiene «IDENTIDAD CENTRAL»); VOZ_CLAVE_BASE la fija a mano. */
+var SEMILLA_VOZ_ = [
+  'ANOTACIONES PARA LLAMADAS (prevalecen sobre lo anterior cuando hablas por teléfono o por llamada de WhatsApp):',
+  '· Estás en una llamada de voz. Todo se dice hablando: sin listas, sin viñetas, sin enlaces escritos ni negritas.',
+  '· Antes de preguntar nombres, llama a lookup_reservation con caller_id = {{system__caller_id}}. Si devuelve verified = true, la reserva ya quedó validada por el número desde el que llama: no pidas nombre, apellido ni fecha; sigue con lo que necesitaba.',
+  '· Si no se valida por el número, sigue el orden de la sección 9 (nombre → apellido → fecha de entrada → código), pasando siempre también caller_id.',
+  '· property_info solo con el code de una reserva validada.',
+  '· Los datos exactos (WiFi, direcciones, códigos de portería) se dictan con la sección 9.4. Los códigos de cerradura inteligente nunca se dicen: llegan por la plataforma.',
+  '· Si no puedes resolver y es urgente, usa transfer_to_number según la sección 21. Si no es urgente, di que el equipo le escribe por WhatsApp a este mismo número.',
+  '· La regla de números internos (sección 0) aplica igual en llamadas: con esos números no atiendes solicitudes.'
+].join('\n');
+
+function vozPromptCompleto_() {
+  var filas = leerTabla_(CFG.TAB_INSTRUCCIONES), claveBase = PropertiesService.getScriptProperties().getProperty('VOZ_CLAVE_BASE');
+  var fila = claveBase ? filas.filter(function (r) { return String(r.clave || '').trim().toUpperCase() === claveBase.toUpperCase(); })[0]
+                       : filas.filter(function (r) { return /IDENTIDAD CENTRAL/.test(String(r.prompt || '')); })[0];
+  var base = fila ? String(fila.prompt || '').trim() : '';
+  if (!base) return { error: 'No encontré en ALMA_INSTRUCCIONES el prompt base (el que contiene «IDENTIDAD CENTRAL»). Pon su clave en la propiedad VOZ_CLAVE_BASE.' };
+  var extra = sinCab_(prompt_('REGLAS_EXTRA')), voz = String(prompt_('VOZ') || '').trim();
+  return { clave: String(fila.clave), texto: [base, extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
+}
+function vozSyncSiToca_() {
+  var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;
+  c.put('voz_sync_ok', '1', 1800);
+  var p = PropertiesService.getScriptProperties();
+  if (!p.getProperty('ELEVENLABS_KEY') || !p.getProperty('ELEVENLABS_AGENT_ID')) return;
+  vozSyncPrompt_(false);
+}
+function vozSyncPrompt_(forzar) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  var guardar = function (o) { o.t = new Date().toISOString(); p.setProperty('VOZ_SYNC', JSON.stringify(o)); return o; };
+  if (!key || !agente) return guardar({ ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' });
+  var pc = vozPromptCompleto_(); if (pc.error) return guardar({ ok: false, error: pc.error });
+  var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, pc.texto, Utilities.Charset.UTF_8));
+  if (!forzar && huella === p.getProperty('VOZ_PROMPT_HUELLA')) return { ok: true, sin_cambios: true };
+  var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
+  var g = UrlFetchApp.fetch(url, { headers: h, muteHttpExceptions: true });
+  if (g.getResponseCode() !== 200) return guardar({ ok: false, error: 'GET agente HTTP ' + g.getResponseCode(), detalle: g.getContentText().slice(0, 200) });
+  var ag = JSON.parse(g.getContentText()), prompt = (((ag.conversation_config || {}).agent || {}).prompt) || {};
+  prompt.prompt = pc.texto;   // solo cambia el texto; herramientas, LLM y demás quedan como están
+  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
+    payload: JSON.stringify({ conversation_config: { agent: { prompt: prompt } } }) });
+  if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });
+  p.setProperty('VOZ_PROMPT_HUELLA', huella);
+  return guardar({ ok: true, clave_base: pc.clave, caracteres: pc.texto.length });
+}

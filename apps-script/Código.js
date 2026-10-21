@@ -662,19 +662,24 @@ function programarPronto_(texto) {
 }
 function procesarColaPronto() {
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'procesarColaPronto').forEach(t => ScriptApp.deleteTrigger(t));
-  procesarCola();
+  procesarColaNucleo_();   // solo la cola: el mantenimiento lo hace el disparador de cada minuto
 }
 
 /* ═══════════════════════════════ 2. COLA (cada minuto) ═══════════════════════════════ */
 
+/* Cada minuto: primero la cola (lo que ve el huésped), después el mantenimiento. Antes el mantenimiento iba primero
+   (Hospitable, ElevenLabs, Epi — que tarda hasta 35 s) y retrasaba cada clasificación hasta 1-2 minutos. */
 function procesarCola() {
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
+  try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
-  try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
+  try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
+}
+function procesarColaNucleo_() {
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('ALMA_ACTIVO') !== '1') { limpiezaDiaria_(); return; }
 
@@ -830,8 +835,12 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
 
   if (codigoPendiente_(ctx, hilo)) return manejarCodigo_(sh, lider, otros, ctx);
 
+  /* Avance visible en el Hub (columna nota, prefijo ⏳): qué está haciendo ALMA mientras piensa. */
+  const avance = t => { try { set_(sh, lider, { nota: '⏳ ' + t }); SpreadsheetApp.flush(); } catch (e) {} };
+  avance('Leyendo la conversación y decidiendo cómo responder');
   const cls = clasificar_(ctx);
   ctx.nivel = cls.nivel; ctx.razon = cls.razon; ctx.acceso = !!cls.acceso;
+  if (cls.nivel !== 'SILENCIO' && cls.nivel !== 'ROJO') avance(cls.nivel + ' · ' + String(cls.razon || '').slice(0, 160) + ' · redactando la respuesta');
   ctx.escalar = !!cls.escalar; ctx.motivoEscalar = cls.motivoEscalar || '';
   /* Despedida: regla fija. Aunque el clasificador lo vea como acuse, ALMA se despide. */
   try { ctx.despedida = despedida_(ctx, hilo); } catch (e) { ctx.despedida = false; }
@@ -849,6 +858,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
   if (ctx.nivel === 'ROJO') return manejarRojo_(sh, lider, otros, ctx);
 
   let red = redactarVerificado_(ctx);
+  if (red && red.texto && !red.silencio) avance('Respuesta lista · ' + ctx.nivel + ' · ' + String(red.texto).replace(/\s+/g, ' ').slice(0, 220));
   if (red.silencio && ctx.despedida) {
     const t2 = redactar_(ctx, 'El huésped se está despidiendo. Está PROHIBIDO devolver SIN_RESPUESTA: escribe la despedida cálida y breve, lista para enviar.');
     red = textoEnviable_(t2) ? { texto: t2, ok: true } : red;
@@ -1196,7 +1206,7 @@ function contextoHosp_(resId, hilo, modo) {
     disponibilidad: disponibilidad_(nombreProp, checkin, checkout, codigo),
     conocimiento: conocimiento_(nombreProp),
     reservaConfirmada: ['accepted', 'confirmed', 'checked_in', 'checkpoint'].some(x => estado.indexOf(x) !== -1),
-    formStatus: String(fila.status_form || '').toLowerCase() === 'completo' ? 'completo' : 'pendiente',
+    formStatus: (String(fila.status_form || '').toLowerCase() === 'completo' || (function () { try { return formsOk_().indexOf(String(fila.code || codigo || '').toUpperCase()) >= 0; } catch (e) { return false; } })()) ? 'completo' : 'pendiente',
     texto: turno.map(m => m.texto).join('\n'),
     fotos: [].concat.apply([], turno.map(m => m.fotos || [])),
     equipoActivo: equipoActivo_(hilo, codigo),
@@ -1940,6 +1950,7 @@ function precioIA_(modelo) {
 }
 function costoIA_(modelo, u, extra) {
   u = u || {}; extra = extra || {};
+  if (/scribe/i.test(modelo)) return (Number(extra.minutos) || 0) * 0.0067;
   if (/whisper/i.test(modelo)) return (Number(extra.minutos) || 0) * 0.006;
   const p = precioIA_(modelo), pin = extra.audio ? Math.max(p[0], 0.7) : p[0];
   const cw = (Number(u.cache_creation_input_tokens) || 0), cr = Number(u.cache_read_input_tokens) || 0;
@@ -2998,6 +3009,7 @@ function hubApi_(body) {
       case 'responderWa': return json_(hubResponderWa_(body.resId, body.texto, body.quien, body.wa));
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
+      case 'limpiezas': return json_(hubLimpiezas_(body.codigo));
       case 'waNumeros': return json_({ ok: true, numeros: telsReserva_(body.resId) });
       case 'resolver': return json_(hubResolver_(body.key, body.estado, body.quien, body.ts));
       case 'reservaInfo': return json_(hubReservaInfo_(body.resId));
@@ -3601,7 +3613,20 @@ function hubCola_() {
   let inbox = []; try { inbox = hubInbox_(); } catch (e) { console.error('hubInbox_: ' + e); }
   let auto = {}; try { auto = autoTodos_(); } catch (e) {}
   let resueltas = []; try { resueltas = resueltasVivo_(); } catch (e) { console.error('resueltasVivo_: ' + e); }
-  return { ok: true, cola: tail(CFG.TAB_COLA, 300), log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, ts: new Date().toISOString() };
+  let formsOk = []; try { formsOk = formsOk_(); } catch (e) { console.error('formsOk_: ' + e); }
+  return { ok: true, cola: tail(CFG.TAB_COLA, 300), log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk, ts: new Date().toISOString() };
+}
+/* Códigos con registro de llegada enviado (pestaña Formularios de hola), descontando los que el administrador reinició
+   después. Es la fuente real: Reservas.status_form a veces queda desactualizado. Caché 5 min. */
+function formsOk_() {
+  const c = CacheService.getScriptCache(), c0 = c.get('forms_ok'); if (c0) return JSON.parse(c0);
+  const ss = ssWebapp_(), sh = ss.getSheetByName('Formularios'); if (!sh || sh.getLastRow() < 2) return [];
+  const v = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues(), ult = {};   // submitted_at | code
+  v.forEach(r => { const k = String(r[1] || '').trim().toUpperCase(); if (!k) return; const t = new Date(r[0]).getTime() || 1; if (!ult[k] || t > ult[k]) ult[k] = t; });
+  const re = ss.getSheetByName('Reinicios');
+  if (re && re.getLastRow() >= 2) re.getRange(2, 1, re.getLastRow() - 1, 2).getValues().forEach(r => { const k = String(r[1] || '').trim().toUpperCase(), t = new Date(r[0]).getTime() || 0; if (ult[k] && t > ult[k]) delete ult[k]; });
+  const out = Object.keys(ult); try { c.put('forms_ok', JSON.stringify(out), 300); } catch (e) {}
+  return out;
 }
 /* Interruptor de respuestas automáticas por conversación (ALMA_AUTO: la fila más reciente gana). */
 let AUTO_ = null;
@@ -4016,6 +4041,19 @@ function transcribir_(blob) {
       if (j.text) return String(j.text).trim().slice(0, 3000);
       console.error('Whisper ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300));
     } catch (e) { console.error('transcribir_ whisper: ' + e); }
+  }
+  /* ElevenLabs Speech to Text (Scribe): usa la misma ELEVENLABS_KEY del agente de voz (necesita el permiso «Speech to Text»). */
+  const ek = p.getProperty('ELEVENLABS_KEY');
+  if (ek) {
+    try {
+      const r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'post', muteHttpExceptions: true, headers: { 'xi-api-key': ek },
+        payload: { model_id: 'scribe_v1', file: blob.setName('nota.ogg') } });
+      const j = JSON.parse(r.getContentText() || '{}');
+      try { registrarUso_({ app: 'ALMA', funcion: 'Notas de voz · transcripción', modelo: 'elevenlabs-scribe', usage: {}, minutos: Math.max(0.1, bytes.length / 2000 / 60), ok: !!j.text }); } catch (e) {}
+      if (j.text) return String(j.text).trim().slice(0, 3000);
+      console.error('ElevenLabs STT ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300));
+      try { CacheService.getScriptCache().put('stt_error', r.getResponseCode() + ' ' + r.getContentText().slice(0, 200), 21600); } catch (e) {}
+    } catch (e) { console.error('transcribir_ elevenlabs: ' + e); }
   }
   return '';
 }

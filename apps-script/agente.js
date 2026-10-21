@@ -16,6 +16,9 @@ var SEMILLA_SECRETARIA_ = [
   '· Si algo falla o no tienes herramienta para hacerlo todavía (agenda, Grow, llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (por ejemplo, crear una tarea o una nota).',
   '· Para buscar proveedores, precios o información externa usa la búsqueda web y entrega una lista corta y útil: nombre, qué ofrecen, zona, contacto y enlace.',
   '· Usa guardar_nota para lo que el administrador quiera que recuerdes (decisiones, preferencias, pendientes de largo plazo).',
+  '· Los mensajes que escribes al equipo deben ser concretos y accionables: quién eres (si no te conocen: «Soy Alma, la asistente virtual de Spacio AM»), de parte de quién, para qué, y qué necesitas que haga y cuándo. Nada de mensajes vagos o de cortesía vacía.',
+  '· Si el administrador quiere que hables con alguien (presentarte, explicar algo, hacerle preguntas, validar información) y no puedes llamar, usa encargar_conversacion: le escribes por WhatsApp pidiéndole que llame a la línea de ALMA (+502 3128 0966) y, cuando llame, cumplirás el objetivo y le enviarás el resumen al administrador. Incluye en el objetivo todo lo que te pidió (temas, preguntas).',
+  '· Con el equipo eres directa y dinámica: es tu equipo, no un huésped.',
   '',
   'FORMATO',
   '· Por WhatsApp: breve, sin markdown, una idea por párrafo. En el Hub puedes usar listas cortas con «· ».',
@@ -64,6 +67,8 @@ function agHerramientas_() {
     T('ver_propiedad', 'Ficha de una propiedad tal como la usa ALMA (dirección, WiFi, parqueo, llegada…) con el nombre exacto de cada campo editable.', { propiedad: s('Nombre o parte del nombre') }, ['propiedad']),
     T('cambiar_dato_propiedad', 'Corrige un dato de la ficha de una propiedad. Usa el nombre de campo exacto que devolvió ver_propiedad.',
       { propiedad: s('Nombre exacto'), campo: s('Campo exacto (ej. address, wifiPass, std.es.parking)'), valor: s('Valor nuevo') }, ['propiedad', 'campo', 'valor']),
+    T('encargar_conversacion', 'Cuando el administrador quiere que ALMA hable con alguien (del equipo u otra persona) para presentarse, explicar algo, hacer preguntas o validar información. Le escribe por WhatsApp pidiéndole que llame a la línea de ALMA; cuando llame, ALMA cumple el objetivo en la llamada y le envía el resumen al administrador por WhatsApp.',
+      { persona: s('Nombre de la persona del equipo, o un número de WhatsApp con código de país'), objetivo: s('Todo lo que hay que lograr en la conversación: qué explicar, qué preguntar, qué validar'), mensaje: s('WhatsApp inicial concreto: quién eres, de parte de quién, para qué y que llame a la línea de ALMA (+502 3128 0966)') }, ['persona', 'objetivo', 'mensaje']),
     T('promesas_abiertas', 'Lo que ALMA le prometió a huéspedes o contactos y sigue pendiente.', {}),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
@@ -115,9 +120,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       adminsOp_().forEach(function (a) { personas.push({ nombre: a.nombre, tel: a.tels[0] || '' }); });
       try { ctx.cfg().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
       try { escalamiento_().forEach(function (p) { personas.push({ nombre: p.nombre, tel: p.telefono }); }); } catch (e) {}
-      var m = opMatch_(inp.persona, personas.map(function (p) { return p.nombre; }));
-      var p = personas.filter(function (x) { return x.nombre === m && normTel_(x.tel); })[0];
+      var p = agPersona_(inp.persona, ctx);
       if (!p) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
+      var cE = CacheService.getScriptCache(), kE = 'agwa_' + fin8_(p.tel);
+      if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí.' };
+      cE.put(kE, '1', 180);
       var ok = true; try { waEnviar_(normTel_(p.tel), String(inp.texto)); } catch (e) { ok = false; }
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : 'no salió' });
       return ok ? { ok: true, enviado_a: p.nombre, nota: 'Si no le había escrito en 24 h, WhatsApp puede no entregarlo; avísale por otro medio si es urgente.' } : { error: 'No se pudo enviar.' };
@@ -155,6 +162,14 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rC = agSetCampo_(inp.propiedad, String(inp.campo), inp.valor, adm);
       ctx.hechas.push({ tipo: 'dato', resumen: 'Dato · ' + inp.propiedad + ' · ' + inp.campo, error: rC.ok ? '' : rC.error });
       return rC;
+    }
+    case 'encargar_conversacion': {
+      var pe = agPersona_(inp.persona, ctx) || (normTel_(inp.persona) ? { nombre: '+' + normTel_(inp.persona), tel: normTel_(inp.persona) } : null);
+      if (!pe) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
+      var okE = true; try { waEnviar_(normTel_(pe.tel), String(inp.mensaje)); } catch (e) { okE = false; }
+      var idE = encargoCrear_(adm, pe.nombre, normTel_(pe.tel), String(inp.objetivo));
+      ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : 'el WhatsApp no salió' });
+      return { ok: okE, encargo: idE, persona: pe.nombre, nota: okE ? 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' : 'Guardé el encargo pero el WhatsApp no salió; puede que no haya escrito en 24 h.' };
     }
     case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
@@ -235,3 +250,51 @@ function epiSnap_(forzar) {
   return snap;
 }
 function epiSnapSiToca_() { var c = CacheService.getScriptCache(); if (c.get('episnap_t')) return; c.put('episnap_t', '1', 600); try { epiSnap_(true); } catch (e) { console.error('epiSnapSiToca_: ' + e); } }
+
+/* Persona del equipo por nombre (administradores, técnicos de Epi, escalamiento). */
+function agPersona_(nombre, ctx) {
+  var personas = [];
+  adminsOp_().forEach(function (a) { personas.push({ nombre: a.nombre, tel: a.tels[0] || '' }); });
+  try { ctx.cfg().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
+  try { escalamiento_().forEach(function (p) { personas.push({ nombre: p.nombre, tel: p.telefono }); }); } catch (e) {}
+  var m = opMatch_(nombre, personas.map(function (p) { return p.nombre; }));
+  return personas.filter(function (x) { return x.nombre === m && normTel_(x.tel); })[0] || null;
+}
+
+/* ═══ ENCARGOS: conversaciones que un administrador le delega a ALMA («habla con Gabriel y explícale…»).
+   ALMA le escribe a la persona pidiéndole que llame; cuando llama, el encargo entra en la ficha de la llamada y,
+   al colgar, ALMA resume la conversación y se la envía a quien la pidió. ═══ */
+var ENC_CAB_ = ['id', 'creado', 'solicitante', 'solicitante_tel', 'persona', 'tel', 'objetivo', 'estado', 'resumen', 'cerrado'];
+function hojaEnc_() { return hojaCrear_('ALMA_ENCARGOS', ENC_CAB_); }
+function encargoCrear_(adm, persona, tel, objetivo) {
+  var id = 'en' + Date.now();
+  hojaEnc_().appendRow([id, new Date().toISOString(), adm.email, adm.tels[0] || '', persona, tel, objetivo.slice(0, 2000), 'abierto', '', '']);
+  return id;
+}
+function encargoAbierto_(tel) {
+  var k = fin8_(tel); if (!k) return null;
+  var sh = hojaEnc_(), n = sh.getLastRow(); if (n < 2) return null;
+  var v = sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues();
+  for (var i = v.length - 1; i >= 0; i--) if (fin8_(v[i][5]) === k && v[i][7] === 'abierto' && Date.now() - new Date(v[i][1]).getTime() < 7 * 86400000)
+    return { fila: i + 2, id: v[i][0], solicitante: v[i][2], solicitante_tel: String(v[i][3]), persona: v[i][4], objetivo: String(v[i][6]) };
+  return null;
+}
+function encargoInstruccion_(e) {
+  var adm = adminPorEmail_(e.solicitante) || {};
+  return (adm.nombre || 'Un administrador') + ' te encargó hablar con ' + e.persona + '. Objetivo: ' + e.objetivo + ' Cúmplelo en esta llamada con naturalidad; al colgar, el resumen se le envía solo.';
+}
+function encargoCerrarConLlamada_(tel, d, resumen) {
+  var e = encargoAbierto_(tel); if (!e) return;
+  var lineas = (d.transcript || []).map(function (m) { return (m.role === 'agent' ? 'ALMA' : e.persona) + ': ' + s_(m.message); }).filter(function (x) { return x.length > 6; }).join('\n').slice(-12000);
+  if (!lineas) return;
+  var res = String(claude_(CFG.MODELO_REDACTOR, 700, 'Resumes para un administrador de Spacio AM una llamada que ALMA tuvo por encargo suyo. Español, directo, para leer en WhatsApp: 1) si se cumplió el objetivo, 2) lo importante que dijo la persona (respuestas, datos, compromisos), 3) pendientes o siguientes pasos. Sin markdown, máximo 12 líneas.',
+    'OBJETIVO DEL ENCARGO: ' + e.objetivo + '\n\nTRANSCRIPCIÓN:\n' + lineas, 0.2) || resumen || '').trim();
+  if (!res) return;
+  var sh = hojaEnc_();
+  sh.getRange(e.fila, 8, 1, 3).setValues([['cumplido', res.slice(0, 4000), new Date().toISOString()]]);
+  var adm = adminPorEmail_(e.solicitante);
+  var texto = 'Resumen de mi llamada con ' + e.persona + ':\n\n' + res;
+  if (adm) { try { opGuardar_(adm, 'alma', 'llamada', texto, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + e.persona }]); } catch (x) {} }
+  var dest = normTel_(e.solicitante_tel) || (adm && adm.tels[0]);
+  if (dest) { try { waEnviar_(dest, texto); } catch (x) { console.error('encargo aviso: ' + x); } }
+}

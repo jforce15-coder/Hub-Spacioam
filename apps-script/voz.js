@@ -127,6 +127,7 @@ function vozLookup_(b) {
         ? 'NO ES HUÉSPED. Quien llama es ' + (q.nombre || 'alguien') + ', del equipo de Spacio AM (' + q.rol + '). Ya está identificado por su número: no le pidas reserva, código, nombre ni fechas. ' + vozCompetencias_(q) + (q.nombre ? ' Llámalo ' + q.nombre + '.' : '')
         : 'NO ES HUÉSPED. Quien llama es ' + (q.nombre || 'un socio') + ', socio o propietario de Spacio AM. Ya está identificado por su número: no le pidas reserva. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, el equipo le escribe por WhatsApp.',
       ok: true, caller_type: q.tipo, team_member: equipo, caller_name: q.nombre || '', caller_role: q.rol || '', identified: true, today: vozHoy_() };
+    try { var enc = encargoAbierto_(tel0); if (enc) base.ENCARGO = encargoInstruccion_(enc); } catch (e) {}
     var busca = b.code || b.codigo || b.guest_first_name || b.guest_last_name;
     if (!busca || !equipo) return base;
     var r = vozLookupHuesped_(Object.assign({}, b, { usar_telefono: false }));
@@ -134,7 +135,9 @@ function vozLookup_(b) {
     for (var x in base) if (x !== 'IMPORTANTE') o[x] = base[x];
     return o;
   }
-  var out = vozLookupHuesped_(b); out.caller_type = q.tipo; return out;
+  var out = vozLookupHuesped_(b); out.caller_type = q.tipo;
+  try { var enc0 = encargoAbierto_(tel0); if (enc0) { out.ENCARGO = encargoInstruccion_(enc0); } } catch (e) {}
+  return out;
 }
 
 function vozLookupHuesped_(b) {
@@ -236,6 +239,8 @@ function vozPostCall_(body) {
                                   : [ts, tel, pre.huesped || '', 'in', txt, convEL + '#' + (i + 1), convId, 'llamada', '', '']);
   });
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
+  /* Si la llamada cumplía un encargo, el resumen le llega a quien lo pidió. */
+  try { encargoCerrarConLlamada_(tel, d, resumen); } catch (x) { console.error('encargo voz: ' + x); }
   /* Lo que ALMA prometió en la llamada queda como pendiente rastreable (promesas.js). */
   try { var dichoAlma = (d.transcript || []).filter(function (m) { return m.role === 'agent'; }).map(function (m) { return s_(m.message); }).join('\n'); if (dichoAlma) promesaRegistrar_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', texto: resumen }, dichoAlma.slice(-3000), 'llamada'); } catch (x) { console.error('promesa voz: ' + x); }
   var fin = new Date(t0 + dur * 1000).toISOString();
@@ -317,7 +322,13 @@ function vozQuienBloque_() {
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
-    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.']).join('\n');
+    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.',
+    '· DESPEDIDA: despídete UNA sola vez. Si ya te despediste y la persona responde con otra cortesía («gracias», «igualmente», «tú también», «adiós»), no vuelvas a despedirte ni a desear buen día: usa end_call de inmediato, sin decir nada más.',
+    '',
+    'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LOS PATRONES DE HUÉSPED',
+    '· Es un equipo interno: trato cordial pero directo, dinámico y sin rodeos, como una compañera de trabajo eficiente. Nada de «el equipo te escribirá», «no te puedo dar esa información» ni validaciones.',
+    '· Si preguntan por alguien del equipo (ej. «¿y Gabriel?»), responde con lo que sabes de su trabajo (rutas, tareas) usando secretaria; no digas que «no está disponible» ni inventes su estado.',
+    '· Si la respuesta de lookup_reservation trae ENCARGO, ese es el motivo de la llamada para ti: cúmplelo con naturalidad (preséntate, explica, pregunta lo que pide) y al terminar despídete; el resumen le llega solo a quien te lo encargó.']).join('\n');
 }
 
 function vozInternos_() {
@@ -506,6 +517,7 @@ function vozInicio_(b) {
     ficha = 'Huésped con reserva YA VALIDADA por su número (no le pidas nombre, apellido ni fecha): ' + r.guest_name + '. Propiedad: ' + r.property + '. Entrada ' + r.check_in + ', salida ' + r.check_out + '. Hoy ' + r.today + ' (' + r.stay + '). Registro de llegada: ' + r.form_status + '. code = ' + r.code + ' (úsalo en property_info).';
     saludo = 'Hola' + (nom(r.guest_name) ? ' ' + nom(r.guest_name) : '') + ', soy Alma, de Spacio A eme. ¿En qué te puedo ayudar?';
   }
+  try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = 'Hola' + (r.caller_name ? ' ' + r.caller_name : '') + ', soy Alma, de Spacio A eme. Gracias por llamar.'; } } catch (e) {}
   var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha }, _tipo: tipo };
   if (saludo) out.conversation_config_override = { agent: { first_message: saludo } };
   return out;

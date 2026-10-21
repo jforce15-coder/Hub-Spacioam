@@ -1,139 +1,169 @@
 /* ═══ 15 · ALMA VOZ (ElevenLabs) ════════════════════════════════════════════════════════════════
-   Herramientas que usa el agente de voz de ElevenLabs durante las llamadas (WhatsApp y teléfono).
-   Mismo cerebro que ALMA por mensajes: mismas reservas, misma ficha de propiedad y mismas reglas.
+   El agente de voz «Alma» de ElevenLabs atiende las llamadas (WhatsApp por SIP y, más adelante, teléfono).
+   Su system prompt ya define cómo habla y cómo valida; aquí viven sus herramientas, con el mismo cerebro
+   de datos que ALMA por mensajes (reservas, bandeja, WhatsApp vinculado, ficha de la propiedad):
 
-   URL de cada herramienta (Server tool, método POST, cuerpo JSON):
-       https://script.google.com/macros/s/<despliegue del Hub>/exec?voz=1&k=<LLAVE_VOZ>
-   La llave solo vive en ElevenLabs; aquí se guarda su huella (SHA-256), porque este código es público.
+     lookup_reservation  → ubica y valida la reserva (por el número que llama, código, o nombre + fecha)
+     property_info       → ficha de la propiedad, solo de una reserva vigente (sin códigos de cerradura)
+     post-call webhook   → cada llamada terminada aparece en «Mensajes» del Hub, como cualquier conversación
 
-   Cuerpo: { "herramienta": "reglas" | "validar" | "info_propiedad" | "registrar", ...parámetros }
-   Regla de oro: nada sensible (dirección exacta, WiFi, acceso, parqueo) sin validar antes la reserva.
-   Los códigos de puerta NUNCA salen por aquí (infoPropiedad_ ya los excluye).
+   URL (Server tool o post-call webhook, POST con JSON):
+       https://script.google.com/macros/s/<despliegue del Hub>/exec?voz=1&k=<LLAVE_VOZ>&h=<herramienta>
+   La llave solo vive en ElevenLabs; aquí se guarda su huella SHA-256 (este código es público).
    ═══════════════════════════════════════════════════════════════════════════════════════════════ */
 var VOZ_HASH_ = '4dedaf0c70ab1f199064dc935b16a00f3419183628540516a52d48b16e53d44a';
 
 function vozApi_(e, body) {
-  var k = String((e && e.parameter && e.parameter.k) || body.k || '');
+  var p = (e && e.parameter) || {};
+  var k = String(p.k || body.k || '');
   var h = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, k, Utilities.Charset.UTF_8)
     .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
   if (h !== VOZ_HASH_) return json_({ ok: false, error: 'llave' });
-  var herr = String(body.herramienta || (e.parameter && e.parameter.h) || '').toLowerCase();
+  var herr = String(p.h || body.herramienta || (body.type === 'post_call_transcription' ? 'postcall' : '')).toLowerCase();
   try {
     var out;
-    if (herr === 'reglas') out = vozReglas_();
-    else if (herr === 'validar') out = vozValidar_(body);
-    else if (herr === 'info_propiedad') out = vozInfo_(body);
-    else if (herr === 'registrar') out = vozRegistrar_(body);
+    if (herr === 'lookup_reservation') out = vozLookup_(body);
+    else if (herr === 'property_info') out = vozPropertyInfo_(body);
+    else if (herr === 'postcall') out = vozPostCall_(body);
     else out = { ok: false, error: 'herramienta desconocida: ' + herr };
     vozTraza_(herr, body, out);
     return json_(out);
   } catch (err) {
-    console.error('vozApi_: ' + err);
-    return json_({ ok: false, error: 'interno', detalle: String(err).slice(0, 200) });
+    console.error('vozApi_: ' + (err.stack || err));
+    vozTraza_(herr, body, { ok: false, error: String(err).slice(0, 120) });
+    return json_({ ok: false, error: 'interno' });
   }
 }
 
-/* Reglas de ALMA (las mismas de los mensajes) + las propias de una llamada. */
-function vozReglas_() {
-  var base = [prompt_('REDACTOR'), prompt_('REGLAS_EXTRA'), sinCab_(prompt_('ESTILO'))].filter(Boolean).join('\n\n');
-  var voz = [
-    'REGLAS DE LLAMADA (prevalecen):',
-    '1. Antes de dar cualquier dato de la estadía (dirección exacta, cómo llegar, WiFi, parqueo, acceso), valida la reserva con la herramienta validar.',
-    '2. Primero intenta validar solo con el número desde el que llama ({{system__caller_id}}). Si no coincide, pide el código de la reserva y el apellido del titular, de forma amable y breve.',
-    '3. Si no se puede validar, ofrece ayuda general (disponibilidad, cómo reservar, políticas) y dile que el equipo le escribirá. Nunca adivines datos.',
-    '4. Nunca des códigos de puerta ni de cerradura por teléfono: llegan por la plataforma de reserva antes del check-in.',
-    '5. Si hay una urgencia (no puede entrar, fuga, seguridad, salud), registra la llamada con urgente=true para avisar al equipo de inmediato, y dile al huésped que una persona le contactará en minutos.',
-    '6. Al terminar cada llamada, usa registrar con un resumen corto (qué pidió, qué le dijiste, si queda algo pendiente).',
-    '7. Habla con frases cortas y naturales. Confirma números y fechas despacio.'
-  ].join('\n');
-  return { ok: true, reglas: (base + '\n\n' + voz).slice(0, 12000) };
-}
-
-/* ── Validación ───────────────────────────────────────────────────────────────────────────── */
-function vozDigitos_(t) { return String(t || '').replace(/\D/g, ''); }
-function vozMismoTel_(a, b) { a = vozDigitos_(a); b = vozDigitos_(b); return a.length >= 8 && b.length >= 8 && a.slice(-8) === b.slice(-8); }
+/* ── utilidades ─────────────────────────────────────────────────────────────────────────── */
 function vozNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function vozHoy_() { return Utilities.formatDate(new Date(), CFG.TZ, 'yyyy-MM-dd'); }
+/* "Z10 - Airali - 1508" → "Zona 10 – Airali" (nunca el tercer segmento: número de apartamento). */
+function vozZona_(nombre) {
+  var seg = String(nombre || '').split(/\s+-\s+|\s+–\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  if (!seg.length) return '';
+  var z = seg[0].match(/^Z(\d+)$/i);
+  return (z ? 'Zona ' + z[1] : seg[0]) + (seg[1] ? ' – ' + seg[1] : '');
+}
+function vozPrefijo_(nombre) { return String(nombre || '').split(/\s+-\s+/)[0].trim().toLowerCase(); }
+function vozVigente_(ci, co, hoy) { return !!ci && !!co && sumarDias_(ci, -30) <= hoy && hoy <= sumarDias_(co, 1); }
 
-/* Reservas vigentes: desde 3 días antes del check-in hasta 1 día después del checkout, sin canceladas. */
-function vozVigentes_() {
-  var hoy = Utilities.formatDate(new Date(), CFG.TZ, 'yyyy-MM-dd');
-  return leerTabla_(CFG.TAB_RESERVAS).filter(function (r) {
-    if (/cancel/i.test(s_(r.status))) return false;
-    var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date);
-    if (!ci || !co) return false;
-    return sumarDias_(ci, -3) <= hoy && hoy <= sumarDias_(co, 1);
+function vozRespuesta_(r, metodo, hoy) {
+  var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date);
+  return { ok: true, found: true, verified: true, ambiguous: false, metodo: metodo, today: hoy,
+    code: s_(r.code), guest_name: [s_(r.guest_first_name), s_(r.guest_last_name)].filter(Boolean).join(' '),
+    check_in: ci, check_out: co, property: vozZona_(r.property_name), guests: s_(r.guest_count),
+    form_status: /complet/i.test(s_(r.status_form)) ? 'completo' : 'pendiente',
+    stay: hoy < ci ? 'antes_del_checkin' : hoy > co ? 'despues_del_checkout' : 'estadia_activa' };
+}
+
+/* ── lookup_reservation ─────────────────────────────────────────────────────────────────── */
+function vozLookup_(b) {
+  var hoy = vozHoy_(), cache = CacheService.getScriptCache();
+  var tel = normTel_(b.caller_id || b.system__caller_id || b.telefono || '');
+  var kf = 'vozf_' + (fin8_(tel) || 'x');
+  var filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return !/cancel/i.test(s_(r.status)) && s_(r.code); });
+  var porCodigo = {}; filas.forEach(function (r) { porCodigo[s_(r.code).toUpperCase()] = r; });
+
+  // 1) El número desde el que llama (WhatsApp vinculado, hoja de reservas o teléfonos del huésped en Hospitable).
+  if (tel && b.usar_telefono !== false) {
+    try {
+      var rel = waReserva_(tel);
+      if (rel && rel.resId) {
+        var pre = preContexto_(rel.resId) || {};
+        var rT = pre.codigo && porCodigo[String(pre.codigo).toUpperCase()];
+        if (rT && vozVigente_(fecha_(rT.checkin_date), fecha_(rT.checkout_date), hoy)) return vozRespuesta_(rT, 'telefono', hoy);
+      }
+    } catch (x) { console.error('vozLookup_ tel: ' + x); }
+  }
+  // 2) Código de reserva (último recurso según el prompt, pero si lo dan, basta).
+  var code = String(b.code || b.codigo || '').replace(/\s+/g, '').toUpperCase();
+  if (code) {
+    if (porCodigo[code]) { cache.remove(kf); return vozRespuesta_(porCodigo[code], 'codigo', hoy); }
+    return vozFallo_(cache, kf, hoy, 'codigo_no_encontrado');
+  }
+  // 3) Nombre + apellido + fecha de entrada (o salida), con zona opcional para desempatar.
+  if (Number(cache.get(kf) || 0) >= 6) return { ok: true, found: false, verified: false, today: hoy, blocked: true };
+  var nombre = vozNorm_(b.guest_first_name || ''), apellido = vozNorm_(b.guest_last_name || '');
+  if (!apellido && b.caller_name) { var cn = vozNorm_(b.caller_name).split(' '); apellido = cn.length > 1 ? cn.slice(1).join(' ') : ''; nombre = nombre || cn[0]; }
+  var ci = fecha_(b.check_in || ''), co = fecha_(b.check_out || ''), zona = vozNorm_(b.property_name || '');
+  if (!apellido && !nombre) return { ok: true, found: false, verified: false, today: hoy, ask_next: 'last_name' };
+  var tok = function (s) { return s.split(' ').filter(function (w) { return w.length >= 3; }); };
+  var cand = filas.filter(function (r) {
+    var full = vozNorm_(s_(r.guest_first_name) + ' ' + s_(r.guest_last_name));
+    if (apellido && !tok(apellido).some(function (w) { return full.indexOf(w) >= 0; })) return false;
+    if (nombre && !tok(nombre).some(function (w) { return full.indexOf(w) >= 0; })) return false;
+    var rci = fecha_(r.checkin_date), rco = fecha_(r.checkout_date);
+    if (ci && !(rci === ci || rci === sumarDias_(ci, -1) || rci === sumarDias_(ci, 1))) return false;
+    if (!ci && co && rco !== co) return false;
+    if (!ci && !co && !vozVigente_(rci, rco, hoy)) return false;   // sin fecha: solo reservas vigentes
+    if (zona && vozPrefijo_(r.property_name).indexOf(vozPrefijo_(zona)) !== 0 && vozNorm_(r.property_name).indexOf(zona) < 0) return false;
+    return true;
   });
+  if (cand.length === 1) { cache.remove(kf); return vozRespuesta_(cand[0], 'nombre_y_fecha', hoy); }
+  if (!cand.length) return vozFallo_(cache, kf, hoy, 'sin_coincidencia');
+  var ask = !apellido ? 'last_name' : !ci && !co ? 'check_in' : 'zone';
+  var zonas = cand.map(function (r) { return vozZona_(r.property_name); }).filter(function (z, i, a) { return z && a.indexOf(z) === i; });
+  return { ok: true, found: true, verified: false, ambiguous: true, today: hoy, ask_next: ask, matches: cand.length, zone_options: zonas.slice(0, 2) };
+}
+function vozFallo_(cache, kf, hoy, motivo) {
+  cache.put(kf, String(Number(cache.get(kf) || 0) + 1), 1800);
+  return { ok: true, found: false, verified: false, ambiguous: false, today: hoy, motivo: motivo };
 }
 
-/* Teléfonos conocidos por código de reserva: formulario de llegada (Hola) + WhatsApp vinculado en la bandeja. */
-function vozTelefonos_(codigos) {
-  var tels = {}, add = function (c, t) { t = vozDigitos_(t); if (c && t.length >= 8) (tels[c] = tels[c] || []).push(t); };
+/* ── property_info ──────────────────────────────────────────────────────────────────────── */
+function vozPropertyInfo_(b) {
+  var code = String(b.code || b.codigo || '').replace(/\s+/g, '').toUpperCase(), hoy = vozHoy_();
+  var r = code ? leerTabla_(CFG.TAB_RESERVAS).filter(function (x) { return s_(x.code).toUpperCase() === code && !/cancel/i.test(s_(x.status)); })[0] : null;
+  if (!r) return { ok: true, found: false, verified: false, today: hoy };
+  var lang = String(b.lang || 'es').slice(0, 2).toLowerCase() === 'en' ? 'en' : 'es';
+  return { ok: true, found: true, verified: true, today: hoy, property: vozZona_(r.property_name), check_in: fecha_(r.checkin_date), check_out: fecha_(r.checkout_date),
+    portal: 'hola.spacioam.com', form_status: /complet/i.test(s_(r.status_form)) ? 'completo' : 'pendiente',
+    info: infoPropiedad_(s_(r.property_name), lang), knowledge: conocimiento_(s_(r.property_name)).slice(0, 4000) };
+}
+
+/* ── post-call webhook → «Mensajes» del Hub ─────────────────────────────────────────────────
+   Cada llamada terminada se guarda como una conversación más: en la reserva del huésped si su número
+   está vinculado, o como conversación de WhatsApp de ese número. Se ve el resumen y la transcripción. */
+function vozPostCall_(body) {
+  var d = body.data || body, md = d.metadata || {}, pc = md.phone_call || {}, dv = ((d.conversation_initiation_client_data || {}).dynamic_variables) || {};
+  var convEL = s_(d.conversation_id);
+  var tel = normTel_(pc.external_number || dv.system__caller_id || '');
+  if (!convEL) return { ok: false, error: 'sin conversation_id' };
+  var cache = CacheService.getScriptCache(); if (cache.get('vozpc_' + convEL)) return { ok: true, duplicado: true }; cache.put('vozpc_' + convEL, '1', 21600);
+  var t0 = Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), dur = Number(md.call_duration_secs || 0);
+  var rel = null; try { rel = tel ? waReserva_(tel) : null; } catch (x) {}
+  var convId = rel && rel.resId ? rel.resId : (tel ? 'wa:' + tel : 'llamada:' + convEL);
+  var pre = {}; try { pre = rel && rel.resId ? (preContexto_(rel.resId) || {}) : {}; } catch (x) {}
+  var resumen = s_((d.analysis || {}).transcript_summary) || s_((d.analysis || {}).call_summary_title);
+  var mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
+  var canal = /sip/i.test(s_(pc.type)) || s_(pc.agent_number).replace(/\D/g, '').slice(-8) === '31280966' ? 'WhatsApp' : 'teléfono';
+  var sh = hojaWA_(), filas = [];
+  filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (resumen ? '\n' + resumen : ''), convEL + '#0', convId, 'llamada', 'sistema', '']);
+  (d.transcript || []).forEach(function (m, i) {
+    var txt = s_(m.message).trim(); if (!txt) return;
+    var ts = new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString();
+    filas.push(m.role === 'agent' ? [ts, tel, 'ALMA voz', 'out', txt, convEL + '#' + (i + 1), convId, 'llamada', 'alma', '']
+                                  : [ts, tel, pre.huesped || '', 'in', txt, convEL + '#' + (i + 1), convId, 'llamada', '', '']);
+  });
+  if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
+  var fin = new Date(t0 + dur * 1000).toISOString();
+  inboxUpsert_(convId, Object.assign({ huesped: pre.huesped || (tel ? '+' + tel : 'Llamada'), propiedad: pre.propiedad || 'Llamada · ' + canal, canal: pre.canal || 'whatsapp',
+    ultimo_canal: 'whatsapp', ultimo_texto: '📞 Llamada · ' + (resumen || mmss).slice(0, 280), ultimo_de: 'host', ultimo_ts: fin, ultimo_host_ts: fin },
+    tel ? { wa: tel } : {}, pre.codigo ? { codigo: pre.codigo, checkin: pre.checkin, checkout: pre.checkout } : {}));
   try {
-    var sh = ssWebapp_().getSheetByName('Formularios');
-    if (sh) leerTablaHoja_(sh).forEach(function (f) { var c = s_(f.code); if (codigos[c]) { add(c, f.contact_phone); add(c, f.booker_phone); } });
-  } catch (x) { console.error('vozTelefonos_ formularios: ' + x); }
-  try {
-    leerTablaHoja_(hojaInbox_()).forEach(function (r) {
-      var c = s_(r.codigo); if (!codigos[c]) return;
-      if (String(r.conv_id).indexOf('wa:') === 0) add(c, String(r.conv_id).slice(3));
-      if (r.wa) add(c, r.wa);
-    });
-  } catch (x) { console.error('vozTelefonos_ inbox: ' + x); }
-  return tels;
+    log_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', codigo: pre.codigo || '', checkin: pre.checkin || '', checkout: pre.checkout || '',
+      canal: 'llamada', nivel: 'VERDE', texto: '📞 Llamada por ' + canal + ' (' + mmss + ')', razon: resumen.slice(0, 300) },
+      '', 'ENVIADO · llamada atendida por ALMA voz');
+  } catch (x) { console.error('vozPostCall_ log: ' + x); }
+  return { ok: true, conv_id: convId, mensajes: filas.length };
 }
 
-function vozValidar_(b) {
-  var tel = vozDigitos_(b.telefono || b.caller_id), codigo = String(b.codigo || '').trim().toUpperCase(), apellido = vozNorm_(b.apellido || b.nombre);
-  var cache = CacheService.getScriptCache(), kf = 'vozf_' + (tel || 'x').slice(-10);
-  if (Number(cache.get(kf) || 0) >= 6) return { ok: true, validado: false, motivo: 'demasiados_intentos', indicacion: 'No sigas intentando validar. Ofrece que el equipo le escriba por WhatsApp.' };
-  var vig = vozVigentes_(), porCod = {};
-  vig.forEach(function (r) { porCod[s_(r.code).toUpperCase()] = r; });
-  var r = null, metodo = '';
-  if (tel) {
-    var tels = vozTelefonos_(vig.reduce(function (o, x) { o[s_(x.code)] = 1; return o; }, {}));
-    var hits = Object.keys(tels).filter(function (c) { return tels[c].some(function (t) { return vozMismoTel_(t, tel); }); });
-    if (hits.length === 1) { r = porCod[hits[0].toUpperCase()]; metodo = 'telefono'; }
-  }
-  if (!r && codigo && porCod[codigo]) {
-    var cand = porCod[codigo], nombres = vozNorm_(s_(cand.guest_first_name) + ' ' + s_(cand.guest_last_name)).split(' ').filter(function (w) { return w.length >= 3; });
-    var pal = apellido.split(' ').filter(function (w) { return w.length >= 3; });
-    if (pal.some(function (w) { return nombres.indexOf(w) >= 0; })) { r = cand; metodo = 'codigo_y_apellido'; }
-  }
-  if (!r) {
-    if (codigo || apellido) cache.put(kf, String(Number(cache.get(kf) || 0) + 1), 1800);
-    return { ok: true, validado: false, motivo: tel && !codigo ? 'telefono_no_coincide' : 'datos_no_coinciden',
-      indicacion: tel && !codigo ? 'Pide amablemente el código de la reserva (lo ve en Airbnb/Booking o en su confirmación) y el apellido del titular.' : 'Los datos no coinciden con una reserva vigente. Ofrece ayuda general y que el equipo le escriba.' };
-  }
-  cache.remove(kf);
-  return { ok: true, validado: true, metodo: metodo, codigo: s_(r.code), huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].filter(Boolean).join(' '),
-    propiedad: s_(r.property_name), checkin: fecha_(r.checkin_date), checkout: fecha_(r.checkout_date), personas: s_(r.guest_count) };
-}
-
-function vozInfo_(b) {
-  var v = vozValidar_(b);
-  if (!v.validado) return v;
-  return { ok: true, validado: true, propiedad: v.propiedad, checkin: v.checkin, checkout: v.checkout,
-    ficha: infoPropiedad_(v.propiedad, b.idioma || 'es'), conocimiento: conocimiento_(v.propiedad).slice(0, 4000) };
-}
-
-/* ── Registro y avisos ───────────────────────────────────────────────────────────────────── */
-function vozRegistrar_(b) {
-  var sh = hojaCrear_('ALMA_LLAMADAS', ['fecha', 'telefono', 'codigo', 'huesped', 'resumen', 'urgente', 'canal', 'conversation_id']);
-  var urgente = b.urgente === true || String(b.urgente).toLowerCase() === 'true';
-  var tel = vozDigitos_(b.telefono || b.caller_id);
-  sh.appendRow([new Date().toISOString(), tel, s_(b.codigo), s_(b.huesped || b.nombre), s_(b.resumen).slice(0, 2000), urgente ? 'sí' : '', s_(b.canal) || 'llamada', s_(b.conversation_id)]);
-  if (urgente) {
-    try { escalar_('Llamada urgente · ' + (s_(b.huesped) || tel || 'huésped'), (s_(b.resumen) || '(sin resumen)') + '\n\nTeléfono: +' + tel + (b.codigo ? '\nReserva: ' + s_(b.codigo) : '') + '\n\nRecibida por ALMA voz.'); }
-    catch (x) { console.error('vozRegistrar_ escalar: ' + x); }
-  }
-  return { ok: true, registrado: true, aviso_equipo: urgente };
-}
-
-/* Diagnóstico: últimas 30 llamadas a herramientas (sin datos de la ficha), en caché 6 h. */
+/* Diagnóstico: últimas 30 llamadas a herramientas (sin datos personales), en caché 6 h. */
 function vozTraza_(herr, b, out) {
   try {
     var c = CacheService.getScriptCache(), l = []; try { l = JSON.parse(c.get('voz_traza') || '[]'); } catch (x) {}
-    l.unshift({ t: new Date().toISOString(), h: herr, tel: vozDigitos_(b.telefono || b.caller_id).slice(-4), ok: !!(out && out.ok), validado: out && out.validado, motivo: out && (out.motivo || out.error) || '' });
+    l.unshift({ t: new Date().toISOString(), h: herr, tel: fin8_(b.caller_id || b.telefono || '').slice(-4), ok: !!(out && out.ok), found: out && out.found, verified: out && out.verified, ask: out && out.ask_next, metodo: out && out.metodo, err: out && (out.error || out.motivo) || '' });
     c.put('voz_traza', JSON.stringify(l.slice(0, 30)), 21600);
   } catch (x) {}
 }

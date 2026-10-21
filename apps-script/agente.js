@@ -32,7 +32,13 @@ function claudeTools_(modelo, system, messages, tools, maxTokens) {
     payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }], messages: messages, tools: tools }) });
   var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   try { registrarUso_({ app: 'ALMA', funcion: 'Chat operativo', modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: 0 }); } catch (e) {}
-  if (r.getResponseCode() !== 200) { console.error('claudeTools_ ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 400)); return null; }
+  if (r.getResponseCode() !== 200) {
+    var err = r.getResponseCode() + ': ' + r.getContentText().slice(0, 400); console.error('claudeTools_ ' + err);
+    try { CacheService.getScriptCache().put('ag_error', err, 3600); } catch (e) {}
+    /* Si la búsqueda web no está habilitada en la cuenta de Anthropic, sigue sin ella. */
+    if (/web_search/i.test(r.getContentText()) && tools.some(function (t) { return t.type && /web_search/.test(t.type); })) return claudeTools_(modelo, system, messages, tools.filter(function (t) { return !(t.type && /web_search/.test(t.type)); }), maxTokens);
+    return null;
+  }
   return j;
 }
 

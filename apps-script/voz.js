@@ -253,7 +253,7 @@ var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
 
 function vozQuienBloque_() {
   var ficha = PropertiesService.getScriptProperties().getProperty('VOZ_INICIO_OK') ? ['FICHA DE QUIEN LLAMA (el Hub la identificó por su número antes de contestar; confía en ella y no vuelvas a preguntar lo que ya dice):', '{{quien_llama}}', ''] : [];
-  return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type; si la ficha de arriba no lo dice, llámala primero con caller_id)',
+  return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type). Tu PRIMERA acción en cada llamada, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número, consúltalo con la herramienta antes de contestar.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
@@ -476,8 +476,10 @@ function vozInicioOff_() {
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
   var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), ov = JSON.parse(JSON.stringify((ag.platform_settings || {}).overrides || {}));
   ov.enable_conversation_initiation_client_data_from_webhook = false;
+  p.deleteProperty('VOZ_INICIO_OK');
   var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ platform_settings: { overrides: ov } }) });
-  return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), detalle: r.getContentText().slice(0, 200) };
+  var sy = r.getResponseCode() < 300 ? vozSyncPrompt_(true) : null;
+  return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), sync: sy };
 }
 /* Robot voz_conv: últimas conversaciones del agente con su estado y motivo de cierre (diagnóstico, sin transcripciones). */
 function vozConv_(n) {

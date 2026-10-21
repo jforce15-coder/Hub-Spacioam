@@ -80,6 +80,16 @@ function diagVelocidad_() {
     leer_log_entero: med(function () { leerTabla_(CFG.TAB_LOG); }),
     leer_cola_entera: med(function () { leerTabla_(CFG.TAB_COLA); })
   };
-  var tam = 0; try { tam = JSON.stringify(hubCola_(48)).length; } catch (e) {}
-  return { ok: true, tablas: tablas, tiempos_ms: tiempos, respuesta_cola_kb: Math.round(tam / 1024), archivo: PropertiesService.getScriptProperties().getProperty('ARCHIVO_ULT') || '', auto: PropertiesService.getScriptProperties().getProperty('ARCHIVO_AUTO') || '0' };
+  var tam = 0, partes = {}, columnas = {};
+  try {
+    var r = hubCola_(48); tam = JSON.stringify(r).length;
+    Object.keys(r).forEach(function (k) { partes[k] = Math.round(JSON.stringify(r[k]).length / 1024); });
+    /* Por columna (KB), para ver qué campo pesa: cola, registro y bandeja. */
+    ['cola', 'log', 'inbox'].forEach(function (k) {
+      var m = {}; (r[k] || []).forEach(function (row) { Object.keys(row).forEach(function (c) { m[c] = (m[c] || 0) + String(row[c] == null ? '' : row[c]).length; }); });
+      columnas[k] = Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).slice(0, 6).map(function (c) { return c + ':' + Math.round(m[c] / 1024); });
+      partes[k + '_filas'] = (r[k] || []).length;
+    });
+  } catch (e) { partes.error = String(e); }
+  return { ok: true, tablas: tablas, tiempos_ms: tiempos, respuesta_cola_kb: Math.round(tam / 1024), partes_kb: partes, columnas_kb: columnas, archivo: PropertiesService.getScriptProperties().getProperty('ARCHIVO_ULT') || '', auto: PropertiesService.getScriptProperties().getProperty('ARCHIVO_AUTO') || '0' };
 }

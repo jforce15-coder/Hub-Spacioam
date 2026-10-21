@@ -671,6 +671,7 @@ function procesarCola() {
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
+  try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('ALMA_ACTIVO') !== '1') { limpiezaDiaria_(); return; }
@@ -4619,6 +4620,7 @@ function dsBotApi_(body) {
       case 'voz_sync': return json_(vozSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());
+      case 'voz_recoger': return json_(vozRecoger_(true));
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

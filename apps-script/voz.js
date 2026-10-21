@@ -55,7 +55,7 @@ function vozRespuesta_(r, metodo, hoy) {
   return { ok: true, found: true, verified: true, ambiguous: false, metodo: metodo, today: hoy,
     code: s_(r.code), guest_name: [s_(r.guest_first_name), s_(r.guest_last_name)].filter(Boolean).join(' '),
     check_in: ci, check_out: co, property: vozZona_(r.property_name), guests: s_(r.guest_count),
-    form_status: /complet/i.test(s_(r.status_form)) ? 'completo' : 'pendiente',
+    form_status: (/complet/i.test(s_(r.status_form)) || (function () { try { return formsOk_().indexOf(s_(r.code).toUpperCase()) >= 0; } catch (e) { return false; } })()) ? 'completo' : 'pendiente',
     stay: hoy < ci ? 'antes_del_checkin' : hoy > co ? 'despues_del_checkout' : 'estadia_activa' };
 }
 

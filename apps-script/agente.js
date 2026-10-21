@@ -91,7 +91,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
   inp = inp || {}; var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
-      var q = n(inp.texto), f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_();
+      var q = n(inp.texto), f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
       var filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return !/cancel/i.test(s_(r.status)) && s_(r.code); });
       var hits = filas.filter(function (r) {
         var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date);
@@ -102,7 +102,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return { reservas: hits.map(function (r) {
         var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
         return { codigo: cod, huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date),
-          huespedes: s_(r.guest_count), registro: /complet/i.test(s_(r.status_form)) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
+          huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
       }), total: hits.length };
     }
     case 'ver_conversacion': {
@@ -247,7 +247,7 @@ function epiSnap_(forzar) {
   var c = CacheService.getScriptCache();
   if (!forzar) { try { var t = c.get('episnap'); if (t) return JSON.parse(t); } catch (e) {} }
   var cfg = epiCfg_();
-  var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ayer = sumarDias_(hoy, -1), fin = sumarDias_(hoy, 7);
+  var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ayer = sumarDias_(hoy, -21), fin = sumarDias_(hoy, 30);
   var snap = {
     ts: new Date().toISOString(),
     vendors: cfg.vendors.filter(function (v) { return v && v.active !== false; }).map(function (v) { return { id: v.id, email: v.email, name: vendNombre_(v), phone: v.phone || v.telefono || '' }; }),
@@ -331,4 +331,20 @@ function encargoCerrar_(id, resultado, quien) {
     return { ok: true };
   }
   return { error: 'No encontré ese encargo.' };
+}
+
+/* Hub: quién limpió antes de la llegada y quién tiene asignada la limpieza de salida de una reserva (Epi). */
+function hubLimpiezas_(codigo) {
+  codigo = String(codigo || '').trim().toUpperCase(); if (!codigo) return { ok: false, error: 'falta código' };
+  var r = leerTabla_(CFG.TAB_RESERVAS).filter(function (x) { return s_(x.code).toUpperCase() === codigo; }).pop();
+  if (!r) return { ok: false, error: 'No encontré la reserva.' };
+  var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date), prop = s_(r.property_name);
+  var cfg = epiSnap_(false), nrm = function (x) { return String(x || '').toLowerCase().replace(/[\s\-–_]/g, ''); };
+  var nombreDe = function (x) { var v = cfg.vendors.filter(function (y) { return (x.vendorEmail && String(y.email || '').toLowerCase() === String(x.vendorEmail).toLowerCase()) || (x.vendorId && String(y.id || '') === String(x.vendorId)); })[0]; return v ? v.name : (x.vendorRaw || x.vendorEmail || 'sin asignar'); };
+  var tel = function (x) { var v = cfg.vendors.filter(function (y) { return x.vendorEmail && String(y.email || '').toLowerCase() === String(x.vendorEmail).toLowerCase(); })[0]; return v ? String(v.phone || '') : ''; };
+  var deProp = cfg.schedules.filter(function (x) { return nrm(x.propiedad) === nrm(prop) && !/cancel/.test(String(x.estado || '')) && /limpieza/i.test(String(x.tipo || '')); });
+  var antes = deProp.filter(function (x) { return String(x.fecha).slice(0, 10) <= ci; }).sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); })[0];
+  var salida = deProp.filter(function (x) { return String(x.fecha).slice(0, 10) >= co; }).sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); })[0];
+  var f = function (x) { return x ? { fecha: String(x.fecha).slice(0, 10), hora: x.hora || '', tipo: x.tipo || '', quien: nombreDe(x), tel: tel(x), estado: x.estado || '' } : null; };
+  return { ok: true, propiedad: prop, checkin: ci, checkout: co, antes: f(antes), salida: f(salida), rango: 'Epi: últimas 3 semanas y próximo mes' };
 }

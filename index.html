@@ -31,7 +31,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-21b"></script>
+<script src="js/alma-client.js?v=2026-10-22b"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -1702,6 +1702,7 @@
                     <sc-if value="{{ c.hayCodigo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.copiarCodigo }}" aria-label="Copiar el código de reserva" title="Copiar código" style="display:inline-flex; align-items:center; gap:5px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; min-height:40px; padding:0 10px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.08em; font-variant-numeric:tabular-nums; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">{{ c.codigo }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="12" color="#6F6867" hint-size="12px,12px"></x-import></button></sc-if>
                     <button onClick="{{ c.form.ver }}" aria-label="{{ c.form.formLabel }}" title="{{ c.form.formLabel }}" style="width:36px; height:36px; border-radius:50%; border:1px solid {{ c.form.formBd }}; background: {{ c.form.formTint }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="file" size="14" color="{{ c.form.formBg }}" hint-size="14px,14px"></x-import></button>
                     <sc-if value="{{ c.hayRiesgo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verRiesgo }}" aria-label="Review del huésped · riesgo {{ c.riesgoLabel }}" title="Review del huésped · riesgo {{ c.riesgoLabel }}" class="{{ c.estrellaClase }}" style="position:relative; width:36px; height:36px; border-radius:50%; border:1px solid {{ c.estrellaBd }}; background: {{ c.estrellaBg }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="star" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
+                    <sc-if value="{{ c.hayLimp }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verLimp }}" aria-label="Limpieza de esta reserva" title="Quién limpió antes de la llegada y quién limpia en la salida" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6F6867" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3l-4.5 9"/><path d="M6.5 12h7l2 9H4.5z"/><path d="M8.5 16v5M11.5 16v5"/></svg></button></sc-if>
                     <sc-if value="{{ c.hayWa }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verWa }}" aria-label="{{ c.waTitulo }}" title="{{ c.waTitulo }}" style="width:36px; height:36px; border-radius:50%; border:1px solid {{ c.waBd }}; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ c.waColor }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M9 9.5c.3 1.6 1.9 3.3 3.6 3.8l1-1 1.6.7-.4 1.4c-2.7.2-6.2-3-6.4-5.8l1.3-.5.9 1.5z" fill="{{ c.waColor }}" stroke="none"/></svg></button></sc-if>
                     <sc-if value="{{ c.hayCal }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verCal }}" aria-label="Calendario de la propiedad" title="Calendario de la propiedad" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="calendar" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                     <sc-if value="{{ c.hayIng }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verIng }}" aria-label="Ingreso de la reserva" title="Ingreso de la reserva" style="width:36px; height:36px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="coins" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
@@ -3424,7 +3425,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-21b";
+  BUILD = "2026-10-22b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -4490,6 +4491,36 @@ class Component extends DCLogic {
       ALMA.reservaInfo(rid).then(function (r) { var cod = r && r.ok && (r.codigo || r.code); if (!cod) return; self.setState(function (s) { var o = Object.assign({}, s.codRes); o[rid] = String(cod); return { codRes: o }; }); }).catch(function () {});
     }, 0);
   }
+  /* Limpieza de una reserva (Epi): quién limpió antes de la llegada y quién tiene la de salida. Tarjeta liviana. */
+  abrirLimpiezas(codigo, huesped) {
+    var self = this, prev = document.getElementById("sa-limp"); if (prev) prev.remove();
+    var mk = function (tag, css, txt) { var n = document.createElement(tag); if (css) n.style.cssText = css; if (txt != null) n.textContent = txt; return n; };
+    var fondo = mk("div", "position:fixed; inset:0; z-index:9000; background:rgba(62,63,63,.22); display:grid; place-items:center; padding:16px"); fondo.id = "sa-limp";
+    var card = mk("div", "width:min(400px,100%); background:#FAFAFA; border-radius:22px; padding:20px; font-family:Montserrat,system-ui,sans-serif; color:#3E3F3F; box-shadow:0 10px 40px rgba(62,63,63,.18); display:flex; flex-direction:column; gap:12px");
+    var cerrar = function () { fondo.remove(); }; fondo.onclick = function (e) { if (e.target === fondo) cerrar(); };
+    card.appendChild(mk("span", "font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#B54D36", "Limpieza"));
+    card.appendChild(mk("span", "font-size:15px; font-weight:600", huesped || codigo || "Reserva"));
+    var cuerpo = mk("div", "display:flex; flex-direction:column; gap:10px; font-size:13px; line-height:1.5; color:#6F6867", "Consultando Epi…"); card.appendChild(cuerpo);
+    var x = mk("button", "align-self:flex-end; min-height:38px; padding:0 16px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer", "Cerrar"); x.onclick = cerrar; card.appendChild(x);
+    fondo.appendChild(card); document.body.appendChild(fondo);
+    if (!codigo) { cuerpo.textContent = "Esta conversación aún no tiene código de reserva."; return; }
+    var fila = function (titulo, d, vacio) {
+      var b = mk("div", "padding:12px 14px; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; display:flex; flex-direction:column; gap:3px");
+      b.appendChild(mk("span", "font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#938B8A", titulo));
+      if (!d) { b.appendChild(mk("span", "color:#6F6867", vacio)); return b; }
+      b.appendChild(mk("span", "font-size:14px; font-weight:600; color:#3E3F3F", d.quien));
+      var f = new Date(d.fecha + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" });
+      b.appendChild(mk("span", "", f + (d.hora ? " · " + d.hora : "") + " · " + d.tipo + (d.estado === "tentativa" ? " · tentativa" : "")));
+      if (d.tel) { var a = mk("a", "align-self:flex-start; margin-top:4px; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#B54D36; text-decoration:none", "WhatsApp"); a.href = "https://wa.me/" + String(d.tel).replace(/\D/g, "").replace(/^(\d{8})$/, "502$1"); a.target = "_blank"; a.rel = "noopener"; b.appendChild(a); }
+      return b;
+    };
+    ALMA.limpiezas(codigo).then(function (r) {
+      cuerpo.textContent = "";
+      if (!(r && r.ok)) { cuerpo.textContent = (r && r.error) || "No se pudo consultar Epi."; return; }
+      cuerpo.appendChild(fila("Antes de la llegada · " + r.checkin, r.antes, "No encuentro una limpieza registrada antes de su llegada."));
+      cuerpo.appendChild(fila("Salida · " + r.checkout, r.salida, "Todavía no hay limpieza asignada para su salida."));
+    }, function () { cuerpo.textContent = "Sin conexión."; });
+  }
   /* Chat secundario de una reserva (WhatsApp o una llamada): hoja lateral liviana, sin recargar la conversación. */
   abrirWaChat(rid, huesped) {
     var h = this.state.almaHilos[rid], msgs = ((h && h.lista) || []).filter(function (m) { return m.canal === "whatsapp" && !m.llamada; });
@@ -5397,7 +5428,7 @@ class Component extends DCLogic {
     var unir = function () {
       var d = Object.assign({}, base || self.state.alma || {});
       var a0 = self.state.alma;
-      if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
+      if (vivo && vivo.ok) { if (vivo.cola) d.cola = vivo.cola; if (vivo.log && vivo.log.length) d.log = vivo.log; d.inbox = vivo.inbox || d.inbox || []; if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
       /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes (ni las marcas de resuelta en vivo). */
       else if (a0 && self._vivoTs && Date.now() - self._vivoTs < 300000) { d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; d.resueltasVivo = a0.resueltasVivo; }
       return d;
@@ -5409,7 +5440,7 @@ class Component extends DCLogic {
         self._cargandoVivo = false;
         if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
         if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now();
-        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || []; if (l.resueltas) d.resueltasVivo = l.resueltas;
+        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = l.cola; if (l.log && l.log.length) d.log = l.log; d.inbox = l.inbox || d.inbox || []; if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
         listo(d, "En vivo · " + horaGT()); guardar();
       }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
       return;
@@ -5811,6 +5842,8 @@ class Component extends DCLogic {
     /* Farol del registro de llegada (Reservas.status_form): verde completo, rojo pendiente, gris sin dato. */
     var farolForm = function (codigo, statusCola) {
       var s = String(statusCola || reservaDe(codigo).status_form || "").trim().toLowerCase();
+      /* La fuente real es la pestaña Formularios de hola (viene en lo vivo): si ya lo envió, está completo aunque Reservas no se haya actualizado. */
+      if (codigo && (a.formsOk || []).indexOf(String(codigo).trim().toUpperCase()) >= 0 && !/complet/.test(s)) s = "completo";
       var F = !s ? ["#938B8A", "#F5F3F0", "#D8D4CE", "Formulario de llegada · sin dato", "Sin dato"]
         : /complet|listo|ok|enviado|si|sí|true/.test(s) ? ["#3d6b52", "rgba(61,107,82,.12)", "rgba(61,107,82,.45)", "Formulario de llegada · completo", "Formulario ✓"]
         : ["#C0392B", "rgba(192,57,43,.10)", "rgba(192,57,43,.45)", "Formulario de llegada · pendiente", "Formulario pendiente"];
@@ -6162,6 +6195,9 @@ class Component extends DCLogic {
         if (clasInfo.on) self._clasHasta = Date.now() + 15000;
         cuando = falta > 0 ? "Esperando a que el huésped termine de escribir · se clasifica en ~" + faltaTxt : "ALMA está clasificando esta conversación…";
       }
+      /* Lo que ALMA está haciendo ahora (nota con ⏳ que escribe el backend en cada paso): decisión, razón y respuesta propuesta. */
+      var avz = String(r.nota || "");
+      if (/^⏳/.test(avz) && ["pendiente", "clasificando", ""].indexOf(est) >= 0) { var tA = avz.replace(/^⏳\s*/, ""); clasInfo = { on: true, pct: /^Respuesta lista/.test(tA) ? "95%" : /redactando/.test(tA) ? "70%" : "40%", txt: tA }; cuando = tA; }
       var key = String(r._fila);
       var ajuste = st.almaAjustes[key] || "", preview = st.almaPreview[key] || "";
       var N = NIVEL[v.nivel] || NIVEL[""];
@@ -6762,6 +6798,8 @@ class Component extends DCLogic {
           var rid = String(c.resId || ""), conRes = !!rid && rid.indexOf("wa:") !== 0 && rid.indexOf("op:") !== 0, ibc = inboxPor[g.key] || {};
           c.hayCal = conRes; c.hayIng = conRes && esPrincipal;
           c.hayWa = conRes;
+          c.hayLimp = conRes && !!c.codigo || conRes;
+          c.verLimp = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirLimpiezas(c.codigo, c.huesped); };
           /* Promesa abierta de ALMA en esta conversación (promesas.js): se ve arriba hasta que el equipo responda o se marque cumplida. */
           var pEst = String(ibc.promesa_estado || ""), pId = String(ibc.promesa_id || "");
           c.hayProm = (pEst === "abierta" || pEst === "vencida") && !!ibc.promesa && !(self._promCerradas || {})[pId];

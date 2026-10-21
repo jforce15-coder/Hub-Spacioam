@@ -123,6 +123,7 @@
     responder: function (resId, texto, quien, canal) { return call('responder', { resId: resId, texto: texto, quien: quien || '', canal: canal || '' }); },
     responderWa: function (resId, texto, quien, wa) { return call('responderWa', { resId: resId, texto: texto, quien: quien || '', wa: wa || '' }); },
     waNumeros: function (resId) { return call('waNumeros', { resId: resId }); },
+    limpiezas: function (codigo) { return call('limpiezas', { codigo: codigo }); },
     promesas: function (todas) { return call('promesas', { todas: !!todas }); },
     promesaCerrar: function (id, quien) { return call('promesaCerrar', { id: id, quien: quien || '' }); },
     votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); },

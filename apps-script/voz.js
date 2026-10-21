@@ -25,6 +25,7 @@ function vozApi_(e, body) {
     if (herr === 'lookup_reservation') out = vozLookup_(body);
     else if (herr === 'property_info') out = vozPropertyInfo_(body);
     else if (herr === 'postcall') out = vozPostCall_(body);
+    else if (herr === 'inicio') { out = vozInicio_(body); vozTraza_(herr, body, { ok: true, found: out._tipo }); delete out._tipo; return json_(out); }
     else out = { ok: false, error: 'herramienta desconocida: ' + herr };
     vozTraza_(herr, body, out);
     return json_(out);
@@ -251,12 +252,13 @@ var SEMILLA_VOZ_ = [
 var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
 
 function vozQuienBloque_() {
-  return ['QUIÉN LLAMA (lo indica lookup_reservation en caller_type; llámala siempre primero con caller_id)',
+  var ficha = PropertiesService.getScriptProperties().getProperty('VOZ_INICIO_OK') ? ['FICHA DE QUIEN LLAMA (el Hub la identificó por su número antes de contestar; confía en ella y no vuelvas a preguntar lo que ya dice):', '{{quien_llama}}', ''] : [];
+  return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type; si la ficha de arriba no lo dice, llámala primero con caller_id)',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
-    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.'].join('\n');
+    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.']).join('\n');
 }
 
 function vozInternos_() {
@@ -416,4 +418,54 @@ function vozTurnos_(eag) {
   if (r.getResponseCode() >= 300) return { ok: false, error: 'PATCH HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300), antes: antes };
   var ag2 = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText());
   return { ok: true, antes: antes, despues: (ag2.conversation_config || {}).turn || {} };
+}
+
+/* ═══ Al empezar la llamada (webhook de inicio de ElevenLabs): el Hub identifica el número ANTES de que Alma hable ═══
+   Devuelve la variable {{quien_llama}} y, si sabe quién es, un saludo con su nombre. */
+var VOZ_DESCONOCIDO_ = 'Número no identificado: puede ser un huésped. Valida la reserva como indican las anotaciones.';
+function vozInicio_(b) {
+  var tel = b.caller_id || b.from || b.from_number || '';
+  var r = {}; try { r = vozLookup_({ caller_id: tel }); } catch (e) { r = {}; }
+  var tipo = r.caller_type || 'externo', ficha = VOZ_DESCONOCIDO_, saludo = '';
+  var nom = function (n) { return String(n || '').trim().split(/\s+/)[0]; };
+  if (tipo === 'juan' || tipo === 'equipo') {
+    ficha = 'Es ' + (r.caller_name || 'alguien') + ', del equipo de Spacio AM. No es huésped: no le pidas reserva ni datos para validarle. Ayúdale directo con lo operativo.';
+    saludo = 'Hola' + (r.caller_name ? ' ' + r.caller_name : '') + ', soy Alma. ¿En qué te ayudo?';
+  } else if (tipo === 'registro') {
+    ficha = 'Es un número de registros (edificio o contacto que solo comparte información de registros). Trátalo como indica QUIÉN LLAMA para caller_type = registro.';
+  } else if (tipo === 'propietario') {
+    ficha = 'Es un socio o propietario de Spacio AM. Trátalo como indica QUIÉN LLAMA para caller_type = propietario.';
+  } else if (r.verified && r.code) {
+    ficha = 'Huésped con reserva YA VALIDADA por su número (no le pidas nombre, apellido ni fecha): ' + r.guest_name + '. Propiedad: ' + r.property + '. Entrada ' + r.check_in + ', salida ' + r.check_out + '. Hoy ' + r.today + ' (' + r.stay + '). Registro de llegada: ' + r.form_status + '. code = ' + r.code + ' (úsalo en property_info).';
+    saludo = 'Hola' + (nom(r.guest_name) ? ' ' + nom(r.guest_name) : '') + ', soy Alma, de Spacio A eme. ¿En qué te puedo ayudar?';
+  }
+  var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha }, _tipo: tipo };
+  if (saludo) out.conversation_config_override = { agent: { first_message: saludo } };
+  return out;
+}
+
+/* Robot voz_inicio: conecta el webhook de inicio al agente, permite cambiar el saludo y crea la variable quien_llama. */
+function vozConfigInicio_(k) {
+  if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
+        .map(function (x) { return ('0' + (x & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
+  var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText());
+  var cc = ag.conversation_config || {}, a = cc.agent || {}, dv = a.dynamic_variables || {}, ph = Object.assign({}, dv.dynamic_variable_placeholders || {}, { quien_llama: VOZ_DESCONOCIDO_ });
+  var ps = ag.platform_settings || {}, ov = JSON.parse(JSON.stringify(ps.overrides || {})), wo = JSON.parse(JSON.stringify(ps.workspace_overrides || {}));
+  ov.enable_conversation_initiation_client_data_from_webhook = true;
+  ov.conversation_config_override = ov.conversation_config_override || {}; ov.conversation_config_override.agent = ov.conversation_config_override.agent || {};
+  ov.conversation_config_override.agent.first_message = true;
+  wo.conversation_initiation_client_data_webhook = { url: 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec?voz=1&k=' + encodeURIComponent(k) + '&h=inicio', request_headers: {} };
+  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({
+    conversation_config: { agent: { dynamic_variables: { dynamic_variable_placeholders: ph } } },
+    platform_settings: { overrides: ov, workspace_overrides: wo } }) });
+  if (r.getResponseCode() >= 300) return { ok: false, error: 'PATCH HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 400) };
+  var ag2 = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), ps2 = ag2.platform_settings || {};
+  var listo = !!((ps2.workspace_overrides || {}).conversation_initiation_client_data_webhook || {}).url &&
+    !!(((ag2.conversation_config || {}).agent || {}).dynamic_variables || {}).dynamic_variable_placeholders.quien_llama;
+  if (listo) { p.setProperty('VOZ_INICIO_OK', '1'); try { CacheService.getScriptCache().remove('voz_sync_ok'); } catch (e) {} var sy = vozSyncPrompt_(true); }
+  return { ok: listo, webhook: !!((ps2.workspace_overrides || {}).conversation_initiation_client_data_webhook || {}).url,
+    fetch: (ps2.overrides || {}).enable_conversation_initiation_client_data_from_webhook,
+    saludo: (((ps2.overrides || {}).conversation_config_override || {}).agent || {}).first_message, sync: sy || null };
 }

@@ -243,7 +243,7 @@ function _setInitialPassword(email, next){
   var row=f.d.data[f.i], H=f.d.H, sh=f.d.sh;
   var hActual=String(row[H.password_hash]||''), porReinicio=_esReinicio(hActual) && CacheService.getScriptCache().get(_permisoReinicio(email));
   if(hActual && !porReinicio) return {ok:false, error:'already_set'};
-  if(!next || String(next).length<8) return {ok:false, error:'weak'};
+  if(!next || String(next).length<8 || _claveDebil(next)) return {ok:false, error:'weak'};
   sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(next));
   _touch(sh,H,f.i);
   if(porReinicio) CacheService.getScriptCache().remove(_permisoReinicio(email));
@@ -256,7 +256,7 @@ function _setPassword(email, current, next){
   var row=f.d.data[f.i], H=f.d.H, sh=f.d.sh;
   if(_bloqueado(email)) return {ok:false, error:'too_many'};
   if(!_claveOk(String(row[H.password_hash]||''), current)){ _fallo(email); return {ok:false, error:'bad_current'}; }
-  if(!next || String(next).length<8) return {ok:false, error:'weak'};
+  if(!next || String(next).length<8 || _claveDebil(next)) return {ok:false, error:'weak'};
   sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(next));
   _touch(sh,H,f.i);
   return {ok:true};
@@ -324,6 +324,8 @@ function sha256(txt){
 var SESION_DIAS = 30, VUELTAS = 200;
 function _hex(bytes){ return bytes.map(function(b){ return ('0'+(b&0xFF).toString(16)).slice(-2); }).join(''); }
 function _b64u(bytes){ return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/,''); }
+// Contraseñas que no se aceptan como nuevas (las iniciales que se repartían y las obvias).
+function _claveDebil(x){ x=String(x||'').toLowerCase(); return /^(\d)\1*$/.test(x) || /^(0?123456789?0?|12345678|87654321|password|contrase(n|ñ)a|qwerty\w*|spacio\s*am\d*|spacioam\d*|epi\d*)$/.test(x); }
 function _esHashNuevo(h){ return /^v2\$/.test(String(h)); }
 function _derivar(clave, sal, vueltas){
   var k=Utilities.computeHmacSha256Signature(String(clave), String(sal), Utilities.Charset.UTF_8), acc=k.slice();

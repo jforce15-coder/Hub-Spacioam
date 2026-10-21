@@ -508,7 +508,7 @@ function hiloInqLocal_(id) {
   };
   try { leerTablaHoja_(ssAlma_().getSheetByName('ALMA_MSG_INQ')).filter(r => s_(r.conv_id) === id).forEach(r => add(s_(r.tipo) === 'guest' ? 'guest' : 'host', r.texto, isoDe_(r.created), s_(r.auto) === 'si', s_(r.fotos).split(' ').filter(Boolean))); } catch (e) { console.error('hiloInq msg: ' + e); }
   try { leerTabla_(CFG.TAB_COLA).filter(r => s_(r.reservation_id) === id || s_(r.conversation_id) === id).forEach(r => add('guest', r.texto, isoDe_(r.recibido))); } catch (e) { console.error('hiloInq cola: ' + e); }
-  try { leerTabla_(CFG.TAB_LOG).filter(r => s_(r.reservation_id) === id).forEach(r => {
+  try { (function () { const v = leerTabla_(CFG.TAB_LOG).filter(r => s_(r.reservation_id) === id); return v.length ? v : archivoBuscar_(CFG.TAB_LOG, 'reservation_id', id); })().forEach(r => {
     const f = isoDe_(r.fecha);
     if (s_(r.pregunta)) add('guest', r.pregunta, f ? new Date(Date.parse(f) - 1000).toISOString() : '');
     if (s_(r.respuesta) && /^ENVIADO|contención/i.test(s_(r.accion))) add('host', r.respuesta, f);
@@ -676,6 +676,7 @@ function procesarCola() {
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
+  try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
 }
@@ -4749,6 +4750,8 @@ function dsBotApi_(body) {
           ultimos: v.map(r => [String(r[0]).slice(0, 16), r[3], String(r[6]).slice(0, 24), r[7], r[8], String(r[4]).slice(0, 80)].join(' | ')) }); }
       case 'grow_token': { if (!body.valor) return json_({ ok: false, error: 'valor' }); PropertiesService.getScriptProperties().setProperty('GROW_TOKEN', String(body.valor)); return json_({ ok: true }); }
       case 'grow': return json_(growApi_(String(body.op || 'resumen'), body.datos || {}));
+      case 'diag_vel': return json_(diagVelocidad_());
+      case 'archivar': { if (body.auto != null) PropertiesService.getScriptProperties().setProperty('ARCHIVO_AUTO', body.auto ? '1' : '0'); return json_(archivar_(body.seco !== false)); }
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }

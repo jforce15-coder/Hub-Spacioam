@@ -51,6 +51,7 @@ function _handle(e){
   try{
     var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if(body.action === 'diagLector') return _diagLector(body.robot);
+    if(body.action === 'diagClaves') return _diagClaves(body.robot);
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -427,6 +428,18 @@ function _hojaDirecta(id, qs){
     var v=sh.getDataRange().getDisplayValues();
     return v.map(function(row){ return row.map(function(x){ return '"'+String(x).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
   }catch(e){ _lectorError(id, 'directa: '+e, 0); return null; }
+}
+// Diagnóstico para el robot: por app, cuántos usuarios activos tienen contraseña, cuántos no y cuántos en reinicio.
+// Solo cuentas, sin correos ni nombres.
+function _diagClaves(token){
+  if(!_diagLector(token).ok) return {ok:false, error:'token'};
+  var d=_all(), out={};
+  for(var i=1;i<d.data.length;i++){
+    var row=d.data[i], H=d.H; if(!row[H.email] || row[H.estado]==='suspendido') continue;
+    var h=String(row[H.password_hash]||''), tipo=!h?'sin_clave':(_esReinicio(h)?'reinicio':'con_clave');
+    APP_KEYS.forEach(function(a){ if(!row[H['perm_'+a]]) return; out[a]=out[a]||{con_clave:0,sin_clave:0,reinicio:0}; out[a][tipo]++; });
+  }
+  return {ok:true, apps:out};
 }
 // Diagnóstico para el robot (llave por hash): últimos errores del lector.
 function _diagLector(token){

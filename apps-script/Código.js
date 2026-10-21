@@ -4733,6 +4733,8 @@ function dsBotApi_(body) {
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),
           op_activo: opActivo_(), prueba: String(PropertiesService.getScriptProperties().getProperty('WA_PRUEBA') || '').split(/[,;\s]+/).some(x => x && fin8_(x) === fin8_(tel)), juan_cfg: fin8_(CFG.WHATSAPP_JUAN) === fin8_(tel),
           ultimos: v.map(r => [String(r[0]).slice(0, 16), r[3], String(r[6]).slice(0, 24), r[7], r[8], String(r[4]).slice(0, 80)].join(' | ')) }); }
+      case 'grow_token': { if (!body.valor) return json_({ ok: false, error: 'valor' }); PropertiesService.getScriptProperties().setProperty('GROW_TOKEN', String(body.valor)); return json_({ ok: true }); }
+      case 'grow': return json_(growApi_(String(body.op || 'resumen'), body.datos || {}));
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }

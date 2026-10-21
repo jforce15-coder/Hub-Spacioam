@@ -169,30 +169,71 @@ function vozTraza_(herr, b, out) {
 }
 
 /* ═══ Un solo prompt vivo ═══════════════════════════════════════════════════════════════════
-   El agente de voz usa EL MISMO system prompt de ALMA que se mejora desde el Hub (ALMA_INSTRUCCIONES),
-   más la fila «VOZ» con las anotaciones propias de las llamadas (también editable en el Hub, grupo Llamadas).
+   El agente de voz usa EL MISMO prompt con el que ALMA responde a los huéspedes en el Hub:
+   REDACTOR + REGLAS_REDACTOR + automejoras aceptadas (lo mismo que se ve como «vigente» en el Hub),
+   más los avisos temporales (REGLAS_EXTRA) y la fila «VOZ» con las anotaciones propias de las llamadas
+   (editable en el Hub, grupo Llamadas). ESTILO no se manda: es formato de texto para el teléfono.
    Cada 30 min, si cambió algo, el Hub lo copia al agente de ElevenLabs por API (no se edita allá).
-   Propiedades del script: ELEVENLABS_KEY (API key con permiso de Agents) y ELEVENLABS_AGENT_ID.
-   La fila base se detecta sola (la que contiene «IDENTIDAD CENTRAL»); VOZ_CLAVE_BASE la fija a mano. */
+   Propiedades del script: ELEVENLABS_KEY, ELEVENLABS_AGENT_ID y, opcional, VOZ_INTERNOS
+   (números internos separados por coma: se agregan al prompt al sincronizar, nunca quedan en el código). */
 var SEMILLA_VOZ_ = [
-  'ANOTACIONES PARA LLAMADAS (prevalecen sobre lo anterior cuando hablas por teléfono o por llamada de WhatsApp):',
-  '· Estás en una llamada de voz. Todo se dice hablando: sin listas, sin viñetas, sin enlaces escritos ni negritas.',
-  '· Antes de preguntar nombres, llama a lookup_reservation con caller_id = {{system__caller_id}}. Si devuelve verified = true, la reserva ya quedó validada por el número desde el que llama: no pidas nombre, apellido ni fecha; sigue con lo que necesitaba.',
-  '· Si no se valida por el número, sigue el orden de la sección 9 (nombre → apellido → fecha de entrada → código), pasando siempre también caller_id.',
-  '· property_info solo con el code de una reserva validada.',
-  '· Los datos exactos (WiFi, direcciones, códigos de portería) se dictan con la sección 9.4. Los códigos de cerradura inteligente nunca se dicen: llegan por la plataforma.',
-  '· Si no puedes resolver y es urgente, usa transfer_to_number según la sección 21. Si no es urgente, di que el equipo le escribe por WhatsApp a este mismo número.',
-  '· La regla de números internos (sección 0) aplica igual en llamadas: con esos números no atiendes solicitudes.'
+  'ANOTACIONES PARA LLAMADAS (prevalecen sobre todo lo anterior cuando hablas por teléfono o por llamada de WhatsApp)',
+  '',
+  'CANAL',
+  'Estás en una llamada de voz, no en un chat. Todo lo anterior aplica, con estas equivalencias:',
+  '· No escribes: hablas. Turnos cortos, una idea por turno, ritmo suave y pausas naturales. Sin listas, viñetas, enlaces escritos, negritas ni emojis. La sección de FORMATO de chat no aplica.',
+  '· Lo que antes venía en el mensaje ahora te lo dan las herramientas: RESERVA_CONFIRMADA = verified de lookup_reservation; HOY = today; CHECKIN / CHECKOUT = check_in / check_out; FORM_STATUS = form_status; la FICHA DE LA PROPIEDAD = property_info.',
+  '· "Te escribimos por aquí mismo" se convierte en: "el equipo te escribe por WhatsApp a este mismo número; no necesitas esperar en línea".',
+  '· Persona de voz: cálida, tranquila, segura, como una directora de hospitalidad boutique. Nunca robótica ni excesivamente alegre.',
+  '',
+  'VALIDAR LA RESERVA',
+  '· Lo primero, antes de preguntar nada, llama a lookup_reservation con caller_id = {{system__caller_id}}. Si devuelve verified = true, la reserva ya quedó validada por el número desde el que llama: no pidas nombre, apellido ni fecha. Di algo breve como "Listo, ya la tengo" y sigue con lo que necesitaba, sin recitar los datos.',
+  '· Si no se valida por el número, pregunta en este orden, una cosa a la vez: nombre, apellido, fecha de entrada ("¿Qué día llegas?", nunca en pasado si aún no llega). Luego llama a lookup_reservation con guest_first_name, guest_last_name, check_in (YYYY-MM-DD) y siempre caller_id. El código de reserva es el último recurso, nunca lo primero.',
+  '· Si devuelve ambiguous = true, obedece ask_next: last_name → pide el apellido; check_in → pide la fecha; zone → ofrece máximo dos zonas de zone_options ("¿Es la de Zona 1 o la de Zona 10?"). Al volver a buscar, manda el dato nuevo más todo lo que ya tenías (property_name con la zona si desempataste por zona).',
+  '· Sin coincidencia: pide el nombre completo con los dos apellidos, luego si puede estar a nombre de otra persona, y por último el código. Máximo tres búsquedas. Si no aparece: "Estoy teniendo problemas para ubicar tu reserva desde aquí. Lo reviso con el equipo y te escribimos por WhatsApp a este mismo número. No necesitas esperar en línea."',
+  '· Con la reserva validada, compara today con check_in y check_out antes de resolver cualquier reporte del interior: muchos se explican con la fecha.',
+  '· Sin reserva validada solo das edificio, zona y políticas generales: nunca apartamento, WiFi, códigos ni dirección exacta.',
+  '',
+  'DATOS DE LA PROPIEDAD',
+  '· property_info { code, lang } solo con el code de una reserva validada. No leas la ficha completa: da los dos o tres puntos que necesita ahora y recuerda que el detalle está en el portal.',
+  '· Lo que devuelve la herramienta se puede compartir con una reserva validada (portería, WiFi, apartamento, llegada). Lo que no devuelve, no existe: "Ese dato no lo tengo a la mano. Lo confirmo con el equipo y te escribimos por WhatsApp."',
+  '· Los códigos de cerradura inteligente nunca se dicen por llamada: llegan por la plataforma el día antes de la llegada.',
+  '· El portal se dice "hola punto spacio A eme punto com", y la marca "Spacio A eme". El AM siempre se deletrea: A, eme. Recuérdalo como algo que ya le enviamos por la plataforma. No dictes el código de reserva salvo que lo pida.',
+  '',
+  'DICTAR DATOS EXACTOS (WiFi, códigos de portería, direcciones)',
+  '· Primero lo dices completo y con calma, marcando el formato ("todo junto, en minúsculas"). Luego preguntas "¿Te lo deletreo?" y esperas.',
+  '· Si dice que sí, letra por letra y dígito por dígito, en grupos de tres o cuatro con pausas: "H, M, ocho, dos... Q, A, A, N". Nunca como cifra entera ("cero, tres, uno, cero", no "trescientos diez"). Al terminar: "Esa es."',
+  '· Si te pide repetirlo, lo repites con paciencia las veces que haga falta.',
+  '',
+  'ESPERAS',
+  '· Antes de usar una herramienta di una transición corta y variada ("Dame un segundo", "Déjame ver", "Un momentito"). Nunca silencio sin aviso y nunca describas lo que haces por dentro.',
+  '',
+  'TRANSFERIR A UNA PERSONA',
+  '· Solo si no lo puedes resolver Y es urgente: huésped afuera sin acceso, servicios esenciales caídos, seguridad comprometida o una decisión humana inmediata. Nunca por solicitudes comunes, disponibilidad o solo porque la persona suena frustrada.',
+  '· Reconoce con calma, confirma la urgencia con una pregunta si hace falta, di "Te paso con alguien del equipo para resolverlo de una vez" y usa transfer_to_number.',
+  '· Si no es urgente: lo dejas anotado y el equipo le escribe por WhatsApp a este mismo número.'
 ].join('\n');
 
+/* Reemplaza una sola vez la primera versión de la fila VOZ (citaba secciones de otro prompt). */
+var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
+
+function vozInternos_() {
+  var lista = String(PropertiesService.getScriptProperties().getProperty('VOZ_INTERNOS') || '').split(/[\s,;]+/).map(function (n) { return n.replace(/\D/g, ''); }).filter(Boolean);
+  if (!lista.length) return '';
+  return ['NÚMEROS INTERNOS (prioridad máxima, por encima de todo lo anterior)',
+    'Si {{system__caller_id}} es exactamente uno de estos números: ' + lista.join(', ') + ', no atiendes solicitudes.',
+    '· Si solo saluda, agradece o confirma algo, responde amable en una frase y no agregues nada.',
+    '· Para cualquier otra cosa di exactamente: "Hola. Este número es solo para compartir información de registros y no está autorizado para resolver solicitudes. Para soporte, por favor comunícate con el grupo de Spacio AM en WhatsApp. ¡Gracias!"',
+    'Si el número no está en la lista, ignora esta regla.'].join('\n');
+}
+
 function vozPromptCompleto_() {
-  var filas = leerTabla_(CFG.TAB_INSTRUCCIONES), claveBase = PropertiesService.getScriptProperties().getProperty('VOZ_CLAVE_BASE');
-  var fila = claveBase ? filas.filter(function (r) { return String(r.clave || '').trim().toUpperCase() === claveBase.toUpperCase(); })[0]
-                       : filas.filter(function (r) { return /IDENTIDAD CENTRAL/.test(String(r.prompt || '')); })[0];
-  var base = fila ? String(fila.prompt || '').trim() : '';
-  if (!base) return { error: 'No encontré en ALMA_INSTRUCCIONES el prompt base (el que contiene «IDENTIDAD CENTRAL»). Pon su clave en la propiedad VOZ_CLAVE_BASE.' };
-  var extra = sinCab_(prompt_('REGLAS_EXTRA')), voz = String(prompt_('VOZ') || '').trim();
-  return { clave: String(fila.clave), texto: [base, extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
+  var voz = String(prompt_('VOZ') || '').trim();
+  if (!voz || VOZ_SEMILLA_VIEJA_.test(voz)) { hubSetPrompt_('VOZ', SEMILLA_VOZ_, 'anotaciones de llamadas v2 (independientes de ElevenLabs)'); voz = SEMILLA_VOZ_; }
+  var base = prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + mejorasBloque_('REDACTOR');
+  if (!String(base).trim()) return { error: 'El prompt REDACTOR está vacío en ALMA_INSTRUCCIONES.' };
+  var extra = sinCab_(prompt_('REGLAS_EXTRA'));
+  return { clave: 'REDACTOR', texto: [vozInternos_(), base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz].filter(Boolean).join('\n\n') };
 }
 function vozSyncSiToca_() {
   var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;
@@ -213,6 +254,7 @@ function vozSyncPrompt_(forzar) {
   if (g.getResponseCode() !== 200) return guardar({ ok: false, error: 'GET agente HTTP ' + g.getResponseCode(), detalle: g.getContentText().slice(0, 200) });
   var ag = JSON.parse(g.getContentText()), prompt = (((ag.conversation_config || {}).agent || {}).prompt) || {};
   prompt.prompt = pc.texto;   // solo cambia el texto; herramientas, LLM y demás quedan como están
+  if (prompt.tool_ids && prompt.tool_ids.length) delete prompt.tools;   // la API no acepta los dos a la vez
   var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
     payload: JSON.stringify({ conversation_config: { agent: { prompt: prompt } } }) });
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });

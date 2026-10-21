@@ -25,6 +25,7 @@ function vozApi_(e, body) {
     if (herr === 'lookup_reservation') out = vozLookup_(body);
     else if (herr === 'property_info') out = vozPropertyInfo_(body);
     else if (herr === 'postcall') out = vozPostCall_(body);
+    else if (herr === 'secretaria') out = vozSecretaria_(body);
     else if (herr === 'inicio') { out = vozInicio_(body); vozTraza_(herr, body, { ok: true, found: out._tipo }); delete out._tipo; return json_(out); }
     else out = { ok: false, error: 'herramienta desconocida: ' + herr };
     vozTraza_(herr, body, out);
@@ -312,6 +313,7 @@ function vozQuienBloque_() {
   return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type). Tu PRIMERA acción en cada llamada, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número, consúltalo con la herramienta antes de contestar.',
     '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
+    '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Antes di algo breve como «Dame un momento». Nunca digas que hiciste algo si secretaria no lo confirma.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
@@ -388,7 +390,12 @@ function vozDefHerramientas_(base) {
       api_schema: { url: base + '&h=property_info', method: 'POST', request_body_schema: { type: 'object', required: ['code'], properties: {
         code: s('Código de la reserva validada (campo code de lookup_reservation).'),
         lang: s('Idioma de la llamada: es o en.'),
-        caller_id: caller } } } }
+        caller_id: caller } } } },
+    { name: 'secretaria', response_timeout_secs: 60,
+      description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
+      api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
+        caller_id: caller,
+        pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).') } } } }
   ].map(function (t) { t.type = 'webhook'; return t; });
 }
 
@@ -582,4 +589,17 @@ function vozTranscript_(id) {
       tools: (t.tool_calls || []).map(function (c) { return c.tool_name + ' ' + String(c.params_as_json || '').slice(0, 200); }),
       res: (t.tool_results || []).map(function (c) { return c.tool_name + ' → ' + String(c.result_value || '').slice(0, 300); }) };
   }) };
+}
+
+/* La secretaria por voz: el administrador pide algo en la llamada y ALMA lo ejecuta con las mismas herramientas del chat operativo.
+   Queda registrado en su chat operativo (canal llamada). */
+function vozSecretaria_(b) {
+  var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
+  if (!adm) return { ok: false, error: 'Esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
+  var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
+  var previos = opFilas_(adm.email, 20);
+  opGuardar_(adm, 'yo', 'llamada', pedido);
+  var r = opAgente_(adm, pedido, 'llamada', [], previos);
+  opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
+  return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }

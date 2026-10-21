@@ -186,7 +186,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
   var system = (prompt_('SECRETARIA') || SEMILLA_SECRETARIA_) + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
-    '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
+    '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
   previos.filter(function (m) { return new Date(m.ts).getTime() >= corte; }).slice(-14).forEach(function (m) {

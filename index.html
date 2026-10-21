@@ -31,7 +31,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-22b"></script>
+<script src="js/alma-client.js?v=2026-10-22f"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -152,6 +152,12 @@
     .alma-cont-ico{ display:grid !important; }
     .alma-volver{ padding:7px 12px !important; }
   }
+  /* Pasos de ALMA en vivo: giro del paso actual y brillo que recorre el texto (como Claude). */
+  .sa-spin{ display:block; animation:sa-spin .8s linear infinite; }
+  @keyframes sa-spin{ to{ transform:rotate(360deg); } }
+  .sa-shimmer{ background:linear-gradient(90deg,#3E3F3F 0%,#3E3F3F 40%,#C9C2B8 50%,#3E3F3F 60%,#3E3F3F 100%); background-size:240% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; animation:sa-shimmer 1.8s linear infinite; }
+  @keyframes sa-shimmer{ from{ background-position:100% 0; } to{ background-position:-140% 0; } }
+  @media (prefers-reduced-motion: reduce){ .sa-spin, .sa-shimmer{ animation:none; } .sa-shimmer{ color:#3E3F3F; background:none; } }
   /* Cabecera de conversación · referencias: Apple (grupos, segmented control, tracking por tamaño, respuesta al presionar) y Airbnb (iconos circulares rellenos sin borde, un solo acento). */
   .sa-conv-head .sa-tb-plain, .sa-conv-head .sa-tb-code{ border-color:transparent !important; background:#F5F3F0 !important; }
   .sa-conv-head [role="toolbar"] button{ transition:transform .1s ease-out, background .18s !important; }
@@ -1748,11 +1754,26 @@
                   <span style="flex-shrink:0; font-size:10.5px; letter-spacing:.03em; color:#938B8A; font-variant-numeric:tabular-nums; white-space:nowrap">{{ c.fecha }}</span>
                 </div>
                   <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
+                  <sc-if value="{{ c.hayPasos }}" hint-placeholder-val="{{ false }}">
+                    <div role="status" aria-live="polite" aria-label="Lo que ALMA está haciendo" class="sa-pasos" style="display:flex; flex-direction:column; gap:4px; padding:2px 0 0 2px">
+                      <sc-for list="{{ c.clasPasos }}" as="ps" hint-placeholder-count="3">
+                        <div style="display:flex; align-items:flex-start; gap:8px; font-size:11.5px; line-height:1.45; letter-spacing:.01em; color:{{ ps.fg }}; animation:sa-fade .24s cubic-bezier(.22,.61,.36,1) backwards">
+                          <span aria-hidden="true" style="width:14px; height:14px; flex-shrink:0; margin-top:1.5px; display:grid; place-items:center">
+                            <sc-if value="{{ ps.hecho }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3d6b52" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></sc-if>
+                            <sc-if value="{{ ps.vivo }}" hint-placeholder-val="{{ false }}"><span class="sa-spin" style="width:11px; height:11px; border-radius:50%; border:1.6px solid #E4DFD8; border-top-color:#E9826A"></span></sc-if>
+                          </span>
+                          <span style="min-width:0; text-wrap:pretty"><sc-if value="{{ ps.vivo }}" hint-placeholder-val="{{ false }}"><span class="sa-shimmer">{{ ps.x }}</span></sc-if><sc-if value="{{ ps.hecho }}" hint-placeholder-val="{{ true }}">{{ ps.x }}</sc-if></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ c.sinPasos }}" hint-placeholder-val="{{ true }}">
                     <span role="progressbar" aria-label="{{ c.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:6px; max-width:280px">
                       <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ c.clasPct }}"></span></span>
                       <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ c.clasTxt }}</span>
                     </span>
                   </sc-if>
+                </sc-if>
               </div>
 
               <sc-if value="{{ c.progAbierto }}" hint-placeholder-val="{{ false }}">
@@ -3438,7 +3459,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22e";
+  BUILD = "2026-10-22f";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3650,6 +3671,19 @@ class Component extends DCLogic {
     this._almaN = 0;
     Object.defineProperty(this, "_enCola", { configurable: true, get: function () { return Date.now() - (this._enColaTs || 0) < 30000; } });
     /* ALMA abierta: lo vivo cada 10 s (cada 5 s si hay un urgente activo); la hoja completa cada 2 min. Hub: cada minuto. */
+    /* Pasos en vivo: mientras alguna conversación se clasifica, se consultan cada 2.5 s (solo caché del servidor, respuesta inmediata). */
+    this._pasosT = setInterval(function () {
+      if (document.visibilityState === "hidden" || self._pasosVolando || !window.ALMA || !ALMA.pasos) return;
+      var ks = Object.keys(self._clasKeys || {}).filter(function (k) { return Date.now() - self._clasKeys[k] < 30000; });
+      if (!ks.length) return;
+      self._pasosVolando = true;
+      ALMA.pasos(ks).then(function (res) {
+        if (res && res.ok && res.pasos) {
+          var prev = self.state.pasosVivo || {}, cambio = ks.some(function (k) { return JSON.stringify(prev[k] || null) !== JSON.stringify(res.pasos[k] || null); });
+          if (cambio) self.setState({ pasosVivo: Object.assign({}, prev, res.pasos) });
+        }
+      }).catch(function () {}).then(function () { self._pasosVolando = false; });
+    }, 2500);
     this._almaTimer = setInterval(function () {
       self._almaN++;
       if (document.visibilityState === "hidden") return;
@@ -6213,6 +6247,15 @@ class Component extends DCLogic {
       /* Lo que ALMA está haciendo ahora (nota con ⏳ que escribe el backend en cada paso): decisión, razón y respuesta propuesta. */
       var avz = String(r.nota || "");
       if (/^⏳/.test(avz) && ["pendiente", "clasificando", ""].indexOf(est) >= 0) { var tA = avz.replace(/^⏳\s*/, ""); clasInfo = { on: true, pct: /^Respuesta lista/.test(tA) ? "95%" : /redactando/.test(tA) ? "70%" : "40%", txt: tA }; cuando = tA; }
+      /* Pasos en vivo (pasos.js): lo que ALMA va haciendo, uno por línea, como en Claude. */
+      var pKeyV = String(r.reservation_id || r.conversation_id || ""), pv = pKeyV ? (st.pasosVivo || {})[pKeyV] : null;
+      if (pKeyV && (clasInfo.on || ["pendiente", "clasificando", ""].indexOf(est) >= 0)) { self._clasKeys = self._clasKeys || {}; self._clasKeys[pKeyV] = Date.now(); }
+      if (pv && pv.pasos && pv.pasos.length && (!pv.fin || Date.now() - pv.fin < 25000) && Date.now() - (pv.ini || 0) < 15 * 60000) {
+        var nP = pv.pasos.length, vis = pv.pasos.slice(-5);
+        clasInfo = { on: true, pct: pv.fin ? "100%" : Math.min(92, 12 + nP * 12) + "%", txt: pv.pasos[nP - 1].x,
+          pasos: vis.map(function (p, i) { var vivo = !pv.fin && i === vis.length - 1; return { x: p.x, vivo: vivo, hecho: !vivo, fg: vivo ? "#3E3F3F" : "#6F6867" }; }) };
+        cuando = clasInfo.txt;
+      }
       var key = String(r._fila);
       var ajuste = st.almaAjustes[key] || "", preview = st.almaPreview[key] || "";
       var N = NIVEL[v.nivel] || NIVEL[""];
@@ -6231,7 +6274,7 @@ class Component extends DCLogic {
         form: farolForm(d.codigo, d.formStatus), chatMin: "120px", hiloN: String((hiloSt && hiloSt.lista ? hiloSt.lista.length : 0) + (st.optim[resId] || []).length),
         emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
-        clasificando: clasInfo.on, clasPct: clasInfo.pct, clasTxt: clasInfo.txt,
+        clasificando: clasInfo.on, clasPct: clasInfo.pct, clasTxt: clasInfo.txt, clasPasos: clasInfo.pasos || [], hayPasos: !!(clasInfo.pasos && clasInfo.pasos.length), sinPasos: !(clasInfo.pasos && clasInfo.pasos.length),
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Necesita equipo", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
         hayEstadia: !!(d.checkin), estadia: fmtRango(d.checkin, d.checkout), hayCodigo: !!d.codigo, codigo: d.codigo || "",
         fecha: fmtDia(r.recibido) + " " + fmtHora(r.recibido),
@@ -7156,7 +7199,7 @@ class Component extends DCLogic {
           etapa: (self._etapa && self._etapa(g.key, ib)) || { txt: "" }, hayEtapa: !!(self._etapa && self._etapa(g.key, ib)),
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
-          clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "",
+          clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "", clasPasos: t.clasPasos || [], hayPasos: !!t.hayPasos, sinPasos: !t.hayPasos,
           tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" || atn ? "600" : "400", previewFg: est === "pend" || atn ? "#3E3F3F" : "#6F6867",
           bg: atn ? "rgba(233,130,106,.08)" : "#FFFFFF", precargar: function () { if (t.cargarHilo) t.cargarHilo(); }, borde: i === 0 ? "transparent" : "#EAE6E0",
           abrir: function (e) { self.abrirDesdeLista(e, t, i); } };

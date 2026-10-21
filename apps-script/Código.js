@@ -673,6 +673,7 @@ function procesarCola() {
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
+  try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('ALMA_ACTIVO') !== '1') { limpiezaDiaria_(); return; }

@@ -113,7 +113,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'escribir_a_equipo': {
       var personas = [];
       adminsOp_().forEach(function (a) { personas.push({ nombre: a.nombre, tel: a.tels[0] || '' }); });
-      try { epiCfg_().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
+      try { ctx.cfg().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
       try { escalamiento_().forEach(function (p) { personas.push({ nombre: p.nombre, tel: p.telefono }); }); } catch (e) {}
       var m = opMatch_(inp.persona, personas.map(function (p) { return p.nombre; }));
       var p = personas.filter(function (x) { return x.nombre === m && normTel_(x.tel); })[0];
@@ -127,7 +127,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var vend = quienR ? cfg.vendors.filter(function (v) { return vendNombre_(v) === quienR; })[0] : null;
       var del = cfg.schedules.filter(function (x) { return x && String(x.fecha || '').slice(0, 10) === fd && String(x.estado || '') !== 'cancelada' && String(x.estado || '') !== 'cancelado'; });
       if (vend) del = del.filter(function (x) { return String(x.vendorEmail || '').toLowerCase() === String(vend.email || '').toLowerCase() || String(x.vendorId || '') === String(vend.id || '') || n(x.vendorRaw) === n(vendNombre_(vend)); });
-      if (inp.persona && !vend) return { error: 'No encontré a «' + inp.persona + '» en el equipo de Epi.' };
+      if (inp.persona && !vend) return { error: cfg.vendors.length ? 'No encontré a «' + inp.persona + '» en el equipo de Epi. Personas: ' + cfg.vendors.map(vendNombre_).join(', ') : 'No pude leer Epi en este momento; intenta de nuevo en un minuto.' };
       del.sort(function (a, b) { return String(a.vendorRaw || '').localeCompare(String(b.vendorRaw || '')) || (a.orden || 0) - (b.orden || 0) || String(a.hora || '').localeCompare(String(b.hora || '')); });
       var nomDe = function (x) { var v = cfg.vendors.filter(function (y) { return (x.vendorEmail && String(y.email || '').toLowerCase() === String(x.vendorEmail).toLowerCase()) || (x.vendorId && String(y.id || '') === String(x.vendorId)); })[0]; return v ? vendNombre_(v) : (x.vendorRaw || x.vendorEmail || 'sin asignar'); };
       return { fecha: fd, persona: vend ? vendNombre_(vend) : 'todos', trabajos: del.map(function (x) { return [x.hora || '', x.tipo || '', x.propiedad || '', nomDe(x), x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : ''].filter(Boolean).join(' · '); }) };
@@ -197,7 +197,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var contenido = (fotos || []).slice(0, 4).map(imgBloque_).filter(Boolean); contenido.push({ type: 'text', text: texto });
   if (msgs.length && msgs[msgs.length - 1].role === 'user') msgs.push({ role: 'assistant', content: '(continúo)' });
   msgs.push({ role: 'user', content: contenido });
-  var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiCfg_(); return this._cfg; } };
+  var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   var tools = agHerramientas_(), final = '';
   for (var vuelta = 0; vuelta < 8; vuelta++) {
     var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
@@ -214,3 +214,24 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   }
   return { respuesta: final || (ctx.hechas.length ? 'Listo.' : 'Entendido.'), hechas: ctx.hechas };
 }
+
+/* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).
+   Se refresca sola cada 10 min desde procesarCola y se guarda en caché: técnicos, propiedades, tareas abiertas
+   y la programación de ayer a +7 días. Si no hay foto, se lee en vivo una vez. */
+function epiSnap_(forzar) {
+  var c = CacheService.getScriptCache();
+  if (!forzar) { try { var t = c.get('episnap'); if (t) return JSON.parse(t); } catch (e) {} }
+  var cfg = epiCfg_();
+  var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ayer = sumarDias_(hoy, -1), fin = sumarDias_(hoy, 7);
+  var snap = {
+    ts: new Date().toISOString(),
+    vendors: cfg.vendors.filter(function (v) { return v && v.active !== false; }).map(function (v) { return { id: v.id, email: v.email, name: vendNombre_(v), phone: v.phone || v.telefono || '' }; }),
+    props: cfg.props.map(function (p) { return { nombre: propNombre_(p) }; }).filter(function (p) { return p.nombre; }),
+    tareas: cfg.tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 80),
+    schedules: cfg.schedules.filter(function (x) { var f = String(x && x.fecha || '').slice(0, 10); return f >= ayer && f <= fin; })
+      .map(function (x) { return { id: x.id, fecha: x.fecha, hora: x.hora, tipo: x.tipo, propiedad: x.propiedad, vendorEmail: x.vendorEmail, vendorId: x.vendorId, vendorRaw: x.vendorRaw, estado: x.estado, orden: x.orden, entradaHoy: x.entradaHoy }; })
+  };
+  try { c.put('episnap', JSON.stringify(snap), 1500); } catch (e) { console.error('episnap: ' + e); }
+  return snap;
+}
+function epiSnapSiToca_() { var c = CacheService.getScriptCache(); if (c.get('episnap_t')) return; c.put('episnap_t', '1', 600); try { epiSnap_(true); } catch (e) { console.error('epiSnapSiToca_: ' + e); } }

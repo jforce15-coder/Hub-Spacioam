@@ -4617,6 +4617,8 @@ function dsBotApi_(body) {
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
       case 'voz_sync': return json_(vozSyncPrompt_(true));
+      case 'voz_tools': return json_(vozHerramientas_(body.k));
+      case 'voz_estado': return json_(vozEstado_());
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

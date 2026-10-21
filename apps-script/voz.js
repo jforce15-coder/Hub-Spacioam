@@ -361,6 +361,9 @@ function vozSyncPrompt_(forzar) {
   return guardar({ ok: true, clave_base: pc.clave, caracteres: pc.texto.length });
 }
 
+/* Puente Cloudflare (Worker alma-puente): ElevenLabs no sigue la redirección 302 de Apps Script; el Worker la sigue y devuelve la respuesta limpia. */
+var VOZ_PUENTE_ = 'https://alma-puente.jforce15.workers.dev/';
+
 /* ═══ Herramientas del agente (las crea/actualiza el Hub por API; no hace falta configurarlas a mano) ═══
    Robot: { dsBot, token, action:'voz_tools', k:'<llave de voz>' }. La llave viaja en la URL de la herramienta
    (ElevenLabs la guarda); aquí solo se verifica contra VOZ_HASH_. Idempotente: si ya existen, las actualiza. */
@@ -400,7 +403,7 @@ function vozHerramientas_(k) {
     if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
     return t ? JSON.parse(t) : {};
   };
-  var base = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec?voz=1&k=' + encodeURIComponent(k);
+  var base = VOZ_PUENTE_ + '?voz=1&k=' + encodeURIComponent(k);
   var existentes = (pedir('get', '/tools').tools || []), hechas = [];
   vozDefHerramientas_(base).forEach(function (def) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];
@@ -511,7 +514,7 @@ function vozConfigInicio_(k) {
   ov.enable_conversation_initiation_client_data_from_webhook = true;
   ov.conversation_config_override = ov.conversation_config_override || {}; ov.conversation_config_override.agent = ov.conversation_config_override.agent || {};
   ov.conversation_config_override.agent.first_message = true;
-  wo.conversation_initiation_client_data_webhook = { url: 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec?voz=1&k=' + encodeURIComponent(k) + '&h=inicio', request_headers: {} };
+  wo.conversation_initiation_client_data_webhook = { url: VOZ_PUENTE_ + '?voz=1&k=' + encodeURIComponent(k) + '&h=inicio', request_headers: {} };
   var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({
     conversation_config: { agent: { dynamic_variables: { dynamic_variable_placeholders: ph } } },
     platform_settings: { overrides: ov, workspace_overrides: wo } }) });

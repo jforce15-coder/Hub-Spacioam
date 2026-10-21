@@ -59,32 +59,79 @@ function vozRespuesta_(r, metodo, hoy) {
 }
 
 /* ── lookup_reservation ─────────────────────────────────────────────────────────────────── */
-/* Quién llama, con las mismas reglas que WhatsApp por texto (WA_PRUEBA = número del equipo tratado como huésped). */
+/* Quién llama. Fuente principal: Control de usuarios (todas sus pestañas), con nombre, rol y apps de cada persona.
+   Respaldos: propietarios del Hub, técnicos de EPI, lista de escalamiento y WA_EQUIPO. WA_PRUEBA = equipo tratado como huésped. */
+function vozUsuarioPorTel_(tel) {
+  var k = fin8_(tel), c = CacheService.getScriptCache(), ck = 'vozusr_' + k, c0 = c.get(ck);
+  if (c0) return c0 === '-' ? null : JSON.parse(c0);
+  var norm = function (x) { return String(x || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  var lleno = function (x) { var t = norm(x); return !!t && t !== 'no' && t !== 'false' && t !== '0'; };
+  var hit = null;
+  try {
+    SpreadsheetApp.openById(SHEET_ACCESOS_ID).getSheets().forEach(function (sh) {
+      if (hit) return;
+      var v = sh.getDataRange().getDisplayValues(); if (v.length < 2) return;
+      var cab = v[0].map(norm);
+      var tels = cab.map(function (x, i) { return /^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/.test(x) ? i : -1; }).filter(function (i) { return i >= 0; });
+      if (!tels.length) return;
+      var cn = cab.findIndex(function (x) { return /^(nombre|name|primer_nombre)$/.test(x); }), cr = cab.findIndex(function (x) { return /^(rol|role|perfil|tipo_usuario|tipo)$/.test(x); });
+      var cEst = cab.findIndex(function (x) { return /^(estado|activo|active)$/.test(x); });
+      v.slice(1).forEach(function (r) {
+        if (hit || (cEst >= 0 && /inactiv|baja|bloque|suspend|^no$|false/.test(norm(r[cEst])))) return;
+        if (!tels.some(function (i) { return telsDe_(r[i]).some(function (t) { return fin8_(t) === k; }); })) return;
+        var apps = {}; cab.forEach(function (x, i) { var m = x.replace(/\s+/g, '_').match(/^perm_(.+)$/); if (m && lleno(r[i])) apps[m[1]] = String(r[i]).trim(); });
+        var flagsSocio = cab.some(function (x, i) { return /^(es_)?(dueno|duenio|duena|socio|socia|propietario)$/.test(x) && /^(si|yes|true|x|1|verdadero)$/.test(norm(r[i])); });
+        hit = { nombre: cn >= 0 ? String(r[cn]).trim() : '', rol: cr >= 0 ? String(r[cr]).trim() : '', apps: apps, socio: flagsSocio, hoja: sh.getName() };
+      });
+    });
+  } catch (e) { console.error('vozUsuarioPorTel_: ' + e); }
+  c.put(ck, hit ? JSON.stringify(hit) : '-', 1800);
+  return hit;
+}
+
 function vozQuien_(tel) {
   if (!tel) return { tipo: 'externo' };
   var p = PropertiesService.getScriptProperties();
   if (String(p.getProperty('VOZ_INTERNOS') || '').split(/[\s,;]+/).some(function (n) { n = n.replace(/\D/g, ''); return n && fin8_(n) === fin8_(tel); })) return { tipo: 'registro' };
   var prueba = String(p.getProperty('WA_PRUEBA') || '').split(/[,;\s]+/).some(function (x) { return x && fin8_(x) === fin8_(tel); });
   if (prueba) return { tipo: 'externo' };
-  var adm = null; try { adm = adminPorTel_(tel); } catch (e) {}
-  var nombre = adm && adm.nombre ? String(adm.nombre).split(' ')[0] : '';
+  var u = vozUsuarioPorTel_(tel), nombre = u && u.nombre ? u.nombre.split(' ')[0] : '';
   if (!nombre) { try { var esc = escalamiento_().filter(function (x) { return fin8_(x.telefono) === fin8_(tel); })[0]; if (esc && esc.nombre) nombre = String(esc.nombre).split(' ')[0]; } catch (e) {} }
-  if (fin8_(CFG.WHATSAPP_JUAN) === fin8_(tel)) return { tipo: 'juan', nombre: nombre || 'Juan' };
-  if (adm || waCfg_().equipo.some(function (x) { return fin8_(x) === fin8_(tel); })) return { tipo: 'equipo', nombre: nombre };
-  try { if (waPropietarios_().some(function (x) { return fin8_(x) === fin8_(tel); })) return { tipo: 'propietario' }; } catch (e) {}
+  var roles = u ? [u.rol].concat(Object.keys(u.apps).map(function (a) { return a + ': ' + u.apps[a]; })).filter(Boolean).join(' · ') : '';
+  var texto = (u ? u.rol + ' ' + Object.keys(u.apps).map(function (a) { return u.apps[a]; }).join(' ') : '').toLowerCase();
+  var esProp = false; try { esProp = waPropietarios_().some(function (x) { return fin8_(x) === fin8_(tel); }); } catch (e) {}
+  if (u && (u.socio || /propietari|socio/.test(texto)) || (!u && esProp)) return { tipo: 'propietario', nombre: nombre, rol: roles || 'propietario / socio' };
+  var juan = fin8_(CFG.WHATSAPP_JUAN) === fin8_(tel) || /admin_principal|principal/.test(texto);
+  if (juan) return { tipo: 'juan', nombre: nombre || 'Juan', rol: roles || 'administrador principal' };
+  if (u) return { tipo: 'equipo', nombre: nombre, rol: roles || 'equipo' };
+  var tec = false; try { tec = waCfg_().equipo.some(function (x) { return fin8_(x) === fin8_(tel); }); } catch (e) {}
+  if (tec) return { tipo: 'equipo', nombre: nombre, rol: 'equipo operativo (técnicos / escalamiento)' };
   return { tipo: 'externo' };
+}
+
+function vozCompetencias_(q) {
+  var t = (q.rol || '').toLowerCase();
+  if (q.tipo === 'juan') return 'Es el administrador principal de Spacio AM (fundador). Tiene acceso a todo: reservas, huéspedes, propiedades, códigos, finanzas y equipo. Respóndele todo lo que pida con los datos de las herramientas.';
+  if (/admin/.test(t)) return 'Es administrador de Spacio AM. Puede consultar reservas, huéspedes, datos de propiedades y accesos. Respóndele directo lo operativo.';
+  if (/tecnic|mantenimiento|proveedor/.test(t)) return 'Es técnico o proveedor de mantenimiento. Ayúdale con lo de su trabajo: qué propiedad, dirección, cómo entrar al edificio y quién está hospedado o llega hoy. No le des montos ni datos financieros.';
+  if (/limpi|housekeep|camarer/.test(t)) return 'Es del equipo de limpieza. Ayúdale con entradas y salidas del día, direcciones y acceso a las propiedades para su trabajo. No le des montos ni datos financieros.';
+  return 'Es del equipo de Spacio AM. Ayúdale con lo operativo de su trabajo; si pide algo financiero o sensible fuera de su rol, dile que lo vea con Juan.';
 }
 
 function vozLookup_(b) {
   var tel0 = normTel_(b.caller_id || b.system__caller_id || b.telefono || ''), q = vozQuien_(tel0);
-  if (q.tipo === 'juan' || q.tipo === 'equipo') {
-    var busca = b.code || b.codigo || b.guest_first_name || b.guest_last_name || b.caller_name;
-    var base = { ok: true, caller_type: q.tipo, team_member: true, caller_name: q.nombre || '', today: vozHoy_(),
-      instruction: 'Quien llama es ' + (q.nombre || 'alguien') + ' del equipo de Spacio AM. NO es huésped: no le pidas reserva, nombre, apellido ni fechas. ' + (q.nombre ? 'Llámalo ' + q.nombre + '. ' : '') + 'Ayúdale directamente con lo que necesite.' };
-    if (!busca) { base.found = false; base.verified = true; return base; }
+  if (q.tipo === 'juan' || q.tipo === 'equipo' || q.tipo === 'propietario') {
+    var equipo = q.tipo !== 'propietario';
+    var base = { IMPORTANTE: equipo
+        ? 'NO ES HUÉSPED. Quien llama es ' + (q.nombre || 'alguien') + ', del equipo de Spacio AM (' + q.rol + '). Ya está identificado por su número: no le pidas reserva, código, nombre ni fechas. ' + vozCompetencias_(q) + (q.nombre ? ' Llámalo ' + q.nombre + '.' : '')
+        : 'NO ES HUÉSPED. Quien llama es ' + (q.nombre || 'un socio') + ', socio o propietario de Spacio AM. Ya está identificado por su número: no le pidas reserva. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, el equipo le escribe por WhatsApp.',
+      ok: true, caller_type: q.tipo, team_member: equipo, caller_name: q.nombre || '', caller_role: q.rol || '', identified: true, today: vozHoy_() };
+    var busca = b.code || b.codigo || b.guest_first_name || b.guest_last_name;
+    if (!busca || !equipo) return base;
     var r = vozLookupHuesped_(Object.assign({}, b, { usar_telefono: false }));
-    for (var x in base) r[x] = base[x];
-    return r;
+    var o = { IMPORTANTE: base.IMPORTANTE, reserva_buscada: r };
+    for (var x in base) if (x !== 'IMPORTANTE') o[x] = base[x];
+    return o;
   }
   var out = vozLookupHuesped_(b); out.caller_type = q.tipo; return out;
 }
@@ -96,6 +143,13 @@ function vozLookupHuesped_(b) {
   var filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return !/cancel/i.test(s_(r.status)) && s_(r.code); });
   var porCodigo = {}; filas.forEach(function (r) { porCodigo[s_(r.code).toUpperCase()] = r; });
 
+  // 0) Teléfonos que el huésped dejó en el registro de llegada de hola.spacioam.com (titular, contacto y emergencia).
+  if (tel && b.usar_telefono !== false) {
+    try {
+      var codHola = vozCodigoPorTelHola_(tel), rH = codHola && porCodigo[codHola];
+      if (rH && vozVigente_(fecha_(rH.checkin_date), fecha_(rH.checkout_date), hoy)) return vozRespuesta_(rH, 'telefono_registro', hoy);
+    } catch (e) { console.error('voz hola: ' + e); }
+  }
   // 1) El número desde el que llama (WhatsApp vinculado, hoja de reservas o teléfonos del huésped en Hospitable).
   if (tel && b.usar_telefono !== false) {
     try {
@@ -254,6 +308,7 @@ var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
 function vozQuienBloque_() {
   var ficha = PropertiesService.getScriptProperties().getProperty('VOZ_INICIO_OK') ? ['FICHA DE QUIEN LLAMA (el Hub la identificó por su número antes de contestar; confía en ella y no vuelvas a preguntar lo que ya dice):', '{{quien_llama}}', ''] : [];
   return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type). Tu PRIMERA acción en cada llamada, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número, consúltalo con la herramienta antes de contestar.',
+    '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
@@ -493,4 +548,21 @@ function vozConv_(n) {
       fin: md.termination_reason, error: md.error, turnos: (d.transcript || []).length, init: JSON.stringify(md.conversation_initiation_source || md.initiation_webhook || '').slice(0, 200),
       extra: JSON.stringify(Object.keys(md)) };
   }) };
+}
+
+/* Código de reserva cuyo registro de llegada (hola, pestaña Formularios / LT_Huespedes) tiene este teléfono. El más reciente gana. */
+function vozCodigoPorTelHola_(tel) {
+  var k = fin8_(tel); if (!k) return '';
+  var c = CacheService.getScriptCache(), ck = 'vozhola_' + k, c0 = c.get(ck); if (c0 != null) return c0;
+  var cod = '', ss = ssWebapp_();
+  [['Formularios', /phone|emergency|telefono/i, 'code'], ['LT_Huespedes', /telefono|phone/i, 'codigo_lt']].forEach(function (d) {
+    if (cod) return;
+    var sh = ss.getSheetByName(d[0]); if (!sh || sh.getLastRow() < 2) return;
+    var v = sh.getDataRange().getDisplayValues(), cab = v[0].map(function (x) { return String(x).trim(); });
+    var cc = cab.indexOf(d[2]), ct = cab.map(function (x, i) { return d[1].test(x) ? i : -1; }).filter(function (i) { return i >= 0; });
+    if (cc < 0 || !ct.length) return;
+    for (var i = v.length - 1; i >= 1 && !cod; i--) if (ct.some(function (j) { return telsDe_(v[i][j]).some(function (t) { return fin8_(t) === k; }); })) cod = String(v[i][cc]).trim().toUpperCase();
+  });
+  c.put(ck, cod, 900);
+  return cod;
 }

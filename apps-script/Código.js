@@ -117,6 +117,7 @@ function doPost(e) {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
+    if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
 
@@ -670,6 +671,7 @@ function procesarCola() {
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
+  try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   const props = PropertiesService.getScriptProperties();
   if (props.getProperty('ALMA_ACTIVO') !== '1') { limpiezaDiaria_(); return; }
 
@@ -1512,7 +1514,7 @@ function promptsRespaldo_() {
     ESTILO: SEMILLA_ESTILO_, MEJORAR: SEMILLA_MEJORAR_, APELACION: SEMILLA_APELACION_, RESPUESTA_REVIEW: SEMILLA_RESP_REVIEW_, REVIEW_HUESPED: SEMILLA_REVIEW_HUESPED_, OPERATIVO: SEMILLA_OPERATIVO_,
     REDACTOR: PROMPT_REDACTOR, CLASIFICADOR: PROMPT_CLASIFICADOR, VERIFICADOR: PROMPT_VERIFICADOR, REGLAS_EXTRA: '',
     REGLAS_REDACTOR: sinCab_(REGLAS_FIJAS_REDACTOR), REGLAS_CLASIFICADOR: sinCab_(REGLAS_FIJAS_CLASIFICADOR),
-    ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_,
+    ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_, VOZ: SEMILLA_VOZ_,
     INQUIRY_EVALUAR: PROMPT_INQ_EVALUAR_, INQUIRY_FUSIONAR: PROMPT_INQ_FUSIONAR_,
     ROUTER: [
       'Eres el router de conversaciones de ALMA (Spacio AM, alojamientos en Guatemala). Clasifica la conversación en UNA ruta:',
@@ -1629,7 +1631,7 @@ function sembrarInstrucciones_(faltan) {
   } catch (e) { console.error('sembrarInstrucciones_: ' + e); }
 }
 const GRUPO_PROMPT_ = k => /^(REDACTOR|REGLAS_REDACTOR|VERIFICADOR)$/.test(k) ? 'Redacción' : /^(CLASIFICADOR|REGLAS_CLASIFICADOR|ROUTER)$/.test(k) ? 'Clasificación' : /^INQUIRY_/.test(k) ? 'Consultas (inquiries)' :
-  /^(RUTA_|ADMIN_WHATSAPP|VENTAS_WHATSAPP)/.test(k) ? 'WhatsApp' : /^(CONTENCION_|EMERGENCIA_|ACCESO_)/.test(k) ? 'Mensajes fijos' : k === 'REGLAS_EXTRA' ? 'Avisos temporales' : 'Aprendizaje';
+  /^(RUTA_|ADMIN_WHATSAPP|VENTAS_WHATSAPP)/.test(k) ? 'WhatsApp' : /^(CONTENCION_|EMERGENCIA_|ACCESO_)/.test(k) ? 'Mensajes fijos' : k === 'REGLAS_EXTRA' ? 'Avisos temporales' : k === 'VOZ' ? 'Llamadas' : 'Aprendizaje';
 /* Hub: lista completa para el editor de instrucciones. */
 function hubPrompts_() {
   prompt_('REDACTOR');
@@ -4613,6 +4615,8 @@ function dsBotApi_(body) {
         const p = PropertiesService.getScriptProperties();
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
+      case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
+      case 'voz_sync': return json_(vozSyncPrompt_(true));
       default: return json_({ ok: false, error: 'accion' });
     }
   } catch (err) {

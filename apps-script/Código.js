@@ -4426,7 +4426,7 @@ function epiUrl_() { return PropertiesService.getScriptProperties().getProperty(
 /* Administradores con acceso al hub, desde Control de usuarios: correo, nombre, teléfonos y si es principal. Cacheado 30 min. */
 function adminsOp_() {
   if (OP_ADM_) return OP_ADM_;
-  const cache = CacheService.getScriptCache(), c0 = cache.get('op_admins');
+  const cache = CacheService.getScriptCache(), c0 = cache.get('op_admins2');
   if (c0) { try { return (OP_ADM_ = JSON.parse(c0)); } catch (e) {} }
   const out = [], norm = k => String(k).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const lleno = x => { const t = norm(x); return !!t && t !== 'no' && t !== 'false' && t !== '0'; };
@@ -4438,17 +4438,20 @@ function adminsOp_() {
       const cr = cab.findIndex(x => /^(rol|role|perfil|tipo_usuario)$/.test(x)), ch = cab.findIndex(x => x.replace(/\s+/g, '_') === 'perm_hub');
       const tels = cab.map((c, i) => /^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/.test(c) ? i : -1).filter(i => i >= 0);
       const cEst = cab.findIndex(x => /^(estado|activo|active)$/.test(x));
-      if (ce < 0 || (cr < 0 && ch < 0)) return;
+      /* Control de usuarios unificado: el rol vive en columnas perm_<app> (admin_principal, admin, tecnico…). */
+      const cPerm = cab.map((x, i) => /^perm_/.test(x.replace(/\s+/g, '_')) ? i : -1).filter(i => i >= 0);
+      if (ce < 0 || (cr < 0 && ch < 0 && !cPerm.length)) return;
       v.slice(1).forEach(r => {
         if (cEst >= 0 && /inactiv|baja|bloque|suspend|^no$|false/.test(norm(r[cEst]))) return;
-        const rol = cr >= 0 ? norm(r[cr]) : '', email = String(r[ce] || '').trim().toLowerCase();
+        const perms = cPerm.map(i => norm(r[i])).join(' ');
+        const rol = ((cr >= 0 ? norm(r[cr]) : '') + ' ' + perms).trim(), email = String(r[ce] || '').trim().toLowerCase();
         if (!email || !(/admin/.test(rol) || (ch >= 0 && lleno(r[ch]) && !/propietari|socio|tecnic|proveedor/.test(rol)))) return;
         if (out.some(a => a.email === email)) return;
-        out.push({ email: email, nombre: cn >= 0 ? String(r[cn]).trim() : email.split('@')[0], tels: [].concat.apply([], tels.map(i => telsDe_(r[i]))), principal: /^admin$|principal/.test(rol) });
+        out.push({ email: email, nombre: cn >= 0 ? String(r[cn]).trim() : email.split('@')[0], tels: [].concat.apply([], tels.map(i => telsDe_(r[i]))), principal: /^admin$|principal/.test(rol) || /admin_principal/.test(rol) });
       });
     });
   } catch (e) { console.error('adminsOp_: ' + e); }
-  try { cache.put('op_admins', JSON.stringify(out), 1800); } catch (e) {}
+  try { cache.put('op_admins2', JSON.stringify(out), 1800); } catch (e) {}
   return (OP_ADM_ = out);
 }
 function adminPorTel_(wa) { const k = fin8_(wa); return adminsOp_().find(a => a.tels.some(t => fin8_(t) === k)) || null; }

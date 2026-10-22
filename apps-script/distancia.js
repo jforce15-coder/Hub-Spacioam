@@ -45,7 +45,8 @@ function distGoogle_(o, destino, key) {
 function distOSM_(o, destino) {
   var d = 0.35, vb = (o.lng - d) + ',' + (o.lat + d) + ',' + (o.lng + d) + ',' + (o.lat - d);
   /* Nominatim no entiende búsquedas largas: se prueba el nombre completo, la parte antes de la coma y sin paréntesis; primero cerca de la propiedad. */
-  var variantes = [destino, String(destino).split(',')[0], String(destino).replace(/\(.*?\)/g, ' ')].map(function (x) { return String(x).replace(/\s+/g, ' ').trim(); }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
+  var corto = String(destino).split(',')[0], siglas = (String(destino).match(/\b[A-ZÁÉÍÓÚÑ]{3,}\b/g) || []);
+  var variantes = [destino, corto, String(destino).replace(/\(.*?\)/g, ' '), corto.replace(/\b[A-ZÁÉÍÓÚÑ]{3,}\b/g, ' ')].concat(siglas).map(function (x) { return String(x).replace(/\s+/g, ' ').trim(); }).filter(function (x, i, arr) { return x && arr.indexOf(x) === i; });
   var g = [];
   for (var i = 0; i < variantes.length && !g.length; i++) {
     [true, false].some(function (cerca) {

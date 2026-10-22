@@ -3472,7 +3472,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22q";
+  BUILD = "2026-10-22r";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3573,19 +3573,33 @@ class Component extends DCLogic {
     var lim = Date.now() - 60 * 86400000, v = this._rvhV; Object.keys(v).forEach(function (k) { if (v[k] < lim) delete v[k]; });
     try { localStorage.setItem("sa_rvh_visto", JSON.stringify(v)); } catch (e) {}
   }
+  /* Vuelve a pedir un hilo aunque ya esté cargado. Devuelve cuántos mensajes nuevos trajo. */
+  refrescarHilo(rid) {
+    var self = this; if (!rid || !window.ALMA || !ALMA.hilo) return Promise.resolve(0);
+    this._hiloFresco[rid] = Date.now();
+    var antes = ((this.state.almaHilos[rid] || {}).lista || []).length;
+    return ALMA.hilo(rid).then(function (r) {
+      if (!(r && r.ok && (r.hilo || []).length)) return 0;
+      self.guardarHilo(rid, r.hilo);
+      return Math.max(0, r.hilo.filter(function (m) { return m && m.tipo !== "hito"; }).length - antes);
+    }).catch(function () { return 0; });
+  }
+  /* Deslizar hacia abajo: relee lo vivo (sin el atajo de «sin cambios») y vuelve a pedir el hilo de la conversación abierta
+     y de las que tengas desplegadas. Al final dice si llegó algo nuevo, para que se note que sí actualizó. */
   ptrRefrescar() {
     var self = this;
-    this._cargandoVivo = false;
+    this._cargandoVivo = false; this._vivoHash = "";
     try { this.almaCargar(true); } catch (e) {}
+    var rids = {}, add = function (g) { var rid = g && g.frags && g.frags[0] && g.frags[0].resId; if (rid) rids[rid] = 1; };
+    if (this.state.cronoLista === false) add(this._convSelG);
     var abiertos = Object.keys(this.state.convHilo || {}).filter(function (k) { return self.state.convHilo[k]; });
-    var hilos = [];
-    (this._convGrupos || []).forEach(function (g) {
-      if (abiertos.indexOf(g.key) < 0 && self.state.selG !== g.key) return;
-      var rid = g.frags && g.frags[0] && g.frags[0].resId; if (!rid || !window.ALMA || !ALMA.hilo) return;
-      hilos.push(ALMA.hilo(rid).then(function (r) { if (r && r.ok) self.guardarHilo(rid, r.hilo); }).catch(function () {}));
-    });
+    (this._convGrupos || []).forEach(function (g) { if (abiertos.indexOf(g.key) >= 0 || self.state.selG === g.key) add(g); });
+    var hilos = Object.keys(rids).slice(0, 4).map(function (rid) { return self.refrescarHilo(rid); });
     var vivo = new Promise(function (ok) { var t0 = Date.now(); (function esperar() { if (!self.state.almaCargando || Date.now() - t0 > 9000) return ok(); setTimeout(esperar, 200); })(); });
-    return Promise.all([vivo].concat(hilos)).then(function () { if (self.aviso) self.aviso("Actualizado"); });
+    return Promise.all([vivo].concat(hilos)).then(function (r) {
+      var n = r.slice(1).reduce(function (a, x) { return a + (x || 0); }, 0);
+      if (self.aviso) self.aviso(n ? (n === 1 ? "1 mensaje nuevo" : n + " mensajes nuevos") : "Al día · sin mensajes nuevos");
+    });
   }
   componentDidMount() {
     var self = this;
@@ -6993,6 +7007,7 @@ class Component extends DCLogic {
       var ultHl = hlH.length ? Date.parse(hlH[hlH.length - 1].created) || 0 : 0;
       if (hlT && hlT.length) { var uhH = 0; for (var q2 = hlH.length - 1; q2 >= 0; q2--) if (hlH[q2].tipo !== "guest") { uhH = Date.parse(hlH[q2].created) || 0; break; } if (uhH || !uh || uh > ultHl) uh = uhH; }
       g.ts = Math.max(top.ts || 0, ug, uh, ultHl, ib && !ug && !uh ? Date.parse(ib.ultimo_ts) || 0 : 0); g.tsReal = g.ts;
+      g.ultEntra = Math.max(ug, top.esCola ? top.ts || 0 : 0, uh);   /* último mensaje que conocemos por la bandeja o la cola (para saber si el hilo en pantalla está atrasado) */
       /* 15 h sin mensajes de ninguna de las partes: se da por resuelta. */
       /* Sin respuesta ni marca: sigue abierta hasta 1 día después del checkout; entonces pasa sola a resuelta. Sin fechas: 48 h sin movimiento. */
       var coISO = String((ib && ib.checkout) || top.checkout || "").slice(0, 10), finCo = /^\d{4}-\d{2}-\d{2}$/.test(coISO) ? Date.parse(coISO + "T23:59:00-06:00") + 86400000 : 0;
@@ -7326,6 +7341,18 @@ class Component extends DCLogic {
     }
     if (ciQ !== (st.convIdx || 0) && !this._convStale) { var ciF = ciQ; setTimeout(function () { if ((self.state.convIdx || 0) !== ciF) self.setState({ convIdx: ciF }); var el = self._convRef.current; if (el && Math.abs(el.scrollTop - ciF * el.clientHeight) > 4) { var sn = el.style.scrollSnapType; el.style.scrollSnapType = "none"; el.scrollTop = ciF * el.clientHeight; requestAnimationFrame(function () { el.style.scrollSnapType = sn; }); } }, 0); }
     this._convSelKey = selK; this._convIdxPrev = ciQ; this._convFiltroK = verN + "|" + ordenEf; this._convSelG = grupos[ciQ] || null;
+    /* Conversación abierta: si la bandeja ya sabe de un mensaje que el hilo en pantalla no tiene, el hilo se vuelve a pedir solo
+       (antes un hilo cargado no se volvía a pedir nunca y el mensaje nuevo no aparecía aunque llegara el aviso). */
+    var gAb = st.cronoLista === false ? grupos[ciQ] : null, ridAb = gAb && gAb.frags && gAb.frags[0] && gAb.frags[0].resId;
+    if (ridAb && gAb.ultEntra && window.ALMA && ALMA.hasApi()) {
+      var hAb = st.almaHilos[ridAb], ultAb = 0;
+      ((hAb && hAb.lista) || []).forEach(function (m) { var x = Date.parse(m.created) || 0; if (x > ultAb) ultAb = x; });
+      var kInt = ridAb + "|" + gAb.ultEntra, ints = (this._hiloInt = this._hiloInt || {});
+      if (hAb && hAb.lista && gAb.ultEntra > ultAb + 3000 && (ints[kInt] || 0) < 4 && !(this._hiloFresco[ridAb] && Date.now() - this._hiloFresco[ridAb] < 12000)) {
+        ints[kInt] = (ints[kInt] || 0) + 1;
+        setTimeout(function () { self.refrescarHilo(ridAb); }, 0);
+      }
+    }
     var convIdx = ciQ;
     var nPag = Math.max(1, grupos.length), pagPct = 100 / nPag;
     /* Solo se montan la actual y sus vecinas, en su posición absoluta dentro del alto total. */

@@ -83,6 +83,10 @@ function agHerramientas_() {
       { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
     T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo. Si el proyecto estaba en captación pasa a visita.',
       { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
+    T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
+    T('recordar_en_propiedad', 'Guarda un dato nuevo en la memoria de una propiedad (o de todo su edificio) para que ALMA lo use con futuros huéspedes. Úsalo cuando el administrador te enseñe algo de una propiedad.',
+      { propiedad: s('Nombre o parte del nombre'), dato: s('El dato, como hecho claro (máx. 30 palabras)'), alcance: { type: 'string', enum: ['apartamento', 'edificio'] }, dias: { type: 'number', description: 'Opcional: si es temporal, cuántos días vale' } }, ['propiedad', 'dato']),
+    T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad).', { id: s('id del dato (mp…)') }, ['id']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];
@@ -206,6 +210,16 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         : op === 'etapa' ? r.proyecto + ': ' + r.de + ' → ' + r.a : 'visita ' + r.proyecto + ' · ' + r.fecha + ' · ' + r.asignado) });
       return r;
     }
+    case 'memoria_propiedad': case 'recordar_en_propiedad': {
+      var fl = leerTabla_(CFG.TAB_PROPIEDADES).map(function (r) { return r.property_name; }).filter(Boolean);
+      var pn = fl.filter(function (x) { return n(x) === n(inp.propiedad); })[0] || bqMejor_(inp.propiedad, fl) || fl.filter(function (x) { return n(x).indexOf(n(inp.propiedad)) >= 0; })[0];
+      if (!pn) return { error: 'No encontré esa propiedad.', opciones: bqBuscar_(inp.propiedad, fl, function (x) { return x; }, 6).map(function (x) { return x.item; }) };
+      if (nombre === 'memoria_propiedad') return memoriaVer_(pn);
+      var g = memoriaGuardar_(pn, [{ tema: 'Otro', dato: inp.dato, alcance: inp.alcance || 'apartamento', temporal: !!inp.dias, dias: inp.dias }], 'chat · ' + ((adm && adm.nombre) || ''), '', '', (adm && adm.nombre) || '');
+      ctx.hechas.push({ tipo: 'memoria', resumen: 'Memoria · ' + pn + ' · ' + String(inp.dato).slice(0, 60) });
+      return { ok: true, guardado: g };
+    }
+    case 'olvidar_memoria': { var r0 = memoriaOlvidar_(inp.id, (adm && adm.nombre) || ''); if (r0.ok) ctx.hechas.push({ tipo: 'memoria', resumen: 'Olvidado · ' + String(r0.olvidado).slice(0, 60) }); return r0; }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };

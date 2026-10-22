@@ -84,7 +84,7 @@ function _all(){
 function _findRow(email){
   var d=_all(), key=String(email||'').toLowerCase();
   for(var i=1;i<d.data.length;i++){
-    if(String(d.data[i][d.H.email]).toLowerCase()===key) return {i:i, d:d};
+    if(String(d.data[i][d.H.email]).replace(/\s+/g,'').toLowerCase()===key.replace(/\s+/g,'')) return {i:i, d:d};
   }
   // Correo alterno (personas con varios correos, p. ej. la contadora): entra con cualquiera de ellos. El principal siempre gana.
   if(key && d.H.email_alterno!=null){
@@ -535,34 +535,43 @@ function _diagAlternos(token){
 // aplicar=false (por defecto) solo informa, sin datos personales.
 function _resolverSocios(token, aplicar){
   if(!_diagLector(token).ok) return {ok:false, error:'token'};
-  var d=_all(), H=d.H, prin={}, porId={};
-  for(var i=1;i<d.data.length;i++){ prin[String(d.data[i][H.email]).toLowerCase()]=i; var uid=String(d.data[i][H.user_id]||'').trim().toLowerCase(); if(uid) porId[uid]=i; }
+  var d=_all(), H=d.H, porCorreo={}, porId={};
+  var norm=function(x){ return String(x||'').replace(/\s+/g,'').toLowerCase(); };
+  var lista=function(x){ return String(x||'').toLowerCase().split(/[\s,;]+/).map(norm).filter(function(e){ return e.indexOf('@')>0; }); };
+  for(var i=1;i<d.data.length;i++){
+    lista(d.data[i][H.email]).forEach(function(e){ porCorreo[e]=porCorreo[e]!=null?porCorreo[e]:i; });
+    if(H.email_alterno!=null) lista(d.data[i][H.email_alterno]).forEach(function(e){ if(porCorreo[e]==null) porCorreo[e]=i; });
+    var uid=norm(d.data[i][H.user_id]); if(uid) porId[uid]=i;
+  }
   var ms=SpreadsheetApp.openById(MI_SETUP_ID).getSheetByName('SETUP'), md=ms.getDataRange().getValues(), mh=md[0].map(function(x){ return String(x).trim().toLowerCase(); });
   var cp=mh.indexOf('user email'), cs=mh.indexOf('secondary user email'), cu=mh.indexOf('usuario id');
   var socios={};
   for(var r=1;r<md.length;r++){
-    var p=String(md[r][cp]||'').trim().toLowerCase(), code=String(md[r][cu]||'').trim(); if(p.indexOf('@')<0 || !code || prin[p]!=null) continue;
-    (socios[code]=socios[code]||{code:code, correoMi:p, filas:[]}).filas.push(r);
+    var code=String(md[r][cu]||'').trim(), ps=lista(md[r][cp]); if(!code || !ps.length) continue;
+    if(String(md[r][cp]).trim().toLowerCase()===ps[0] && ps.length===1 && porCorreo[ps[0]]!=null && norm(d.data[porCorreo[ps[0]]][H.email])===ps[0]) continue;   // ya cuadra exacto
+    var s=(socios[code]=socios[code]||{code:code, correos:{}, filas:[]}); s.filas.push(r);
+    ps.concat(cs>=0?lista(md[r][cs]):[]).forEach(function(e){ s.correos[e]=1; });
   }
   var out=[];
   Object.keys(socios).forEach(function(code){
-    var s=socios[code], k=porId[code.toLowerCase()];
+    var s=socios[code], k=null, via='';
+    if(porId[norm(code)]!=null){ k=porId[norm(code)]; via='código de socio'; }
+    else Object.keys(s.correos).some(function(e){ if(porCorreo[e]!=null){ k=porCorreo[e]; via=norm(d.data[k][H.email])===e?'correo (con espacios o mayúsculas distintas, o un secundario de Mi)':'correo alterno de Control'; return true; } return false; });
     if(k!=null){
       var correo=String(d.data[k][H.email]||'').trim();
-      out.push({socio:code, accion:'usar el correo de Control de usuarios en Mi', filas_mi:s.filas.length});
+      out.push({socio:code, existe:true, encontrado_por:via, accion:'escribir en Mi el correo de Control de usuarios', filas_mi:s.filas.length});
       if(aplicar) s.filas.forEach(function(r){
-        var sec=String(md[r][cs]||'').split(/[\s,;]+/).filter(function(x){ return x && x.toLowerCase()!==correo.toLowerCase(); });
-        if(sec.map(function(x){return x.toLowerCase();}).indexOf(s.correoMi)<0) sec.push(s.correoMi);
+        var viejo=lista(md[r][cp]), sec=(cs>=0?lista(md[r][cs]):[]).concat(viejo).filter(function(x,i,a){ return x!==norm(correo) && a.indexOf(x)===i; });
         ms.getRange(r+1, cp+1).setValue(correo);
         if(cs>=0) ms.getRange(r+1, cs+1).setValue(sec.join(', '));
       });
     } else {
-      out.push({socio:code, accion:'dar de alta con el correo de Mi', filas_mi:s.filas.length});
+      var correoMi=lista(md[s.filas[0]][cp])[0];
+      out.push({socio:code, existe:false, accion:'dar de alta con el correo de Mi', filas_mi:s.filas.length});
       if(aplicar){
-        var fila=d.data[0].map(function(){ return ''; });
-        var put=function(c,v){ if(H[c]!=null) fila[H[c]]=v; };
-        put('user_id', code); put('nombre', code); put('email', s.correoMi); put('estado','activo'); put('es_dueno','sí'); put('es_socio','sí'); put('perm_mi','socio');
-        if(H.creado!=null) put('creado', new Date()); if(H.actualizado!=null) put('actualizado', new Date());
+        var fila=d.data[0].map(function(){ return ''; }), put=function(c,v){ if(H[c]!=null) fila[H[c]]=v; };
+        put('user_id', code); put('nombre', code); put('email', correoMi); put('estado','activo'); put('es_dueno','sí'); put('es_socio','sí'); put('perm_mi','socio');
+        put('creado', new Date()); put('actualizado', new Date());
         d.sh.appendRow(fila);
       }
     }

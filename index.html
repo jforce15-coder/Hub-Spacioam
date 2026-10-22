@@ -3472,7 +3472,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22p";
+  BUILD = "2026-10-22q";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3658,6 +3658,7 @@ class Component extends DCLogic {
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;
       var u = a.getAttribute("href") || ""; if (!/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) || /sa_sso=/.test(u)) return;
+      if (self.appDentro()) { e.preventDefault(); e.stopPropagation(); self.abrirApp(u); return; }
       a.setAttribute("href", self.conSesion(u)); setTimeout(function () { a.setAttribute("href", u); }, 1500);
     }, true);
     /* Escritura rápida: mientras se teclea, los cambios de estado se juntan y se aplican 220 ms después de la última tecla
@@ -3722,7 +3723,7 @@ class Component extends DCLogic {
       self._sw = null;
       var st0 = self.state;
       if (st0.vista !== "alma" || st0.razon || st0.insAbierto || st0.ctrlAbierto || st0.mejAbierto || st0.correosAbierto || st0.lightbox || e.touches.length !== 1 || !(window.matchMedia && matchMedia("(max-width:1179px)").matches)) return;
-      var t = e.target; if (!t || !t.closest || t.closest("textarea, input, select, [role=dialog], .alma-brief")) return;
+      var t = e.target; if (!t || !t.closest || t.closest("textarea, input, select, [role=dialog], .alma-brief, [data-no-swipe]")) return;
       for (var el = t; el && el !== document.body; el = el.parentElement) { if (el.scrollWidth > el.clientWidth + 4 && /(auto|scroll)/.test(getComputedStyle(el).overflowX)) return; }
       var row = t.closest("[data-gk]");
       self._sw = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), gk: row ? row.getAttribute("data-gk") : null, row: row, lock: null, dx: 0 };
@@ -3846,7 +3847,7 @@ class Component extends DCLogic {
   }
   /* Reclasificación visible: cuando una conversación cambia de estado y de lugar, se desliza a su nueva posición. */
   flipListas() {
-    var prev = this._flip || {}, next = {}, hay = Object.keys(prev).length > 0 && !this._vistaCambio;
+    var prev = this._flip || {}, next = {}, hay = Object.keys(prev).length > 0 && !this._vistaCambio && !this._flipAnclado; this._flipAnclado = false;
     var red = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.querySelectorAll(".alma-reslista [data-gk], .alma-scroll [data-gk]").forEach(function (el) {
       if (!el.offsetParent) return;
@@ -3931,7 +3932,32 @@ class Component extends DCLogic {
     this.setState(function (s) { var o = {}; Object.keys(s.convResp || {}).forEach(function (k) { o[k] = Object.assign({}, s.convResp[k], { abierto: false }); }); return { convResp: o }; });
   }
   /* Hilo completo: se abre en el último mensaje; vuelve a bajar solo cuando llegan mensajes nuevos. */
-  componentDidUpdate() { this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
+  /* Lista quieta: antes de pintar se anota qué tarjeta está arriba en pantalla; si entra algo nuevo arriba mientras
+     estás bajando, el scroll se corrige lo mismo que creció la lista y lo que mirabas no se mueve. */
+  getSnapshotBeforeUpdate() {
+    if (this.state.vista !== "alma" || this.state.cronoLista === false) return null;
+    var els = document.querySelectorAll(".alma-reslista [data-gk], .alma-scroll [data-gk]"), top0 = 90;
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i]; if (!el.offsetParent) continue; var r = el.getBoundingClientRect();
+      if (r.bottom > top0 && r.top < innerHeight) {
+        var sc = null; for (var n = el.parentElement; n && n !== document.body; n = n.parentElement) { var o = getComputedStyle(n).overflowY; if (/(auto|scroll)/.test(o) && n.scrollHeight > n.clientHeight + 1) { sc = n; break; } }
+        var y = sc ? sc.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+        if (y < 8) return null;   /* arriba del todo: lo nuevo se ve entrar, como siempre */
+        return { k: el.getAttribute("data-gk"), lista: !!el.closest(".alma-reslista"), top: r.top, sc: sc };
+      }
+    }
+    return null;
+  }
+  anclarLista(a) {
+    if (!a) return;
+    var sel = (a.lista ? ".alma-reslista" : ".alma-scroll") + ' [data-gk="' + String(a.k).replace(/["\\]/g, "\\$&") + '"]', el = null;
+    try { el = document.querySelector(sel); } catch (e) { return; }
+    if (!el || !el.offsetParent) return;
+    var d = el.getBoundingClientRect().top - a.top; if (Math.abs(d) < 2) return;
+    if (a.sc && a.sc.isConnected) a.sc.scrollTop += d; else window.scrollBy(0, d);
+    this._flipAnclado = true;   /* lo que se corrió fue el scroll, no las tarjetas: sin animación de reacomodo */
+  }
+  componentDidUpdate(pp, ps, ancla) { this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
     if (this.state.vista !== this._vistaG) { this._vistaG = this.state.vista; this.guardarUltima(); }
     if (this.state.vista === "hoy" || this.state.vista === "hub" || this.state.vista === "tareas" || this.state.vista === "accion") this.hoyCargar();
     if (this._tareasOk && this.state.tareas !== this._tareasGuardadas) { this._tareasGuardadas = this.state.tareas; this.tareasGuardar(); } }
@@ -5357,6 +5383,68 @@ class Component extends DCLogic {
   }
   /* Sesión única: al abrir otra app de Spacio AM desde el hub viaja la sesión en el #fragmento (no llega a ningún servidor).
      La app la guarda con sa-sso.js y limpia la URL. Necesario sobre todo en el ícono de inicio de iPhone/iPad, que no comparte cookies con Safari. */
+  /* Apps dentro del Hub (iPhone / app de inicio): Epi, Hola, Mi y Grow se abren en un panel encima del Hub en vez de una
+     ventana de Safari que recargaba todo cada vez. El panel se queda vivo 10 min al cerrarlo: volver es instantáneo.
+     Solo una app viva a la vez (cuidar la memoria del iPhone). En computadora se siguen abriendo en otra pestaña. */
+  appDentro() {
+    try { return !!(navigator.standalone || (window.matchMedia && (matchMedia("(display-mode: standalone)").matches || matchMedia("(pointer: coarse)").matches))); } catch (e) { return false; }
+  }
+  abrirApp(u) {
+    var self = this, k = ((u.match(/^https:\/\/([a-z]+)\./i) || [])[1] || "app").toLowerCase();
+    var NOM = { epi: "Epi", hola: "Hola", mi: "Mi", grow: "Grow" };
+    var P = this._appP;
+    if (!P) {
+      P = this._appP = document.createElement("div");
+      P.setAttribute("role", "region"); P.setAttribute("aria-label", "App abierta"); P.setAttribute("data-no-swipe", "1");
+      P.style.cssText = "position:fixed;inset:0;z-index:500;background:#FAFAFA;display:none;flex-direction:column;transform:translate3d(100%,0,0);transition:transform .32s cubic-bezier(.32,.72,0,1);will-change:transform";
+      var bar = document.createElement("div");
+      bar.style.cssText = "flex:none;display:flex;align-items:center;gap:10px;padding:calc(env(safe-area-inset-top) + 8px) 16px 8px;background:rgba(250,250,250,.94);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border-bottom:1px solid rgba(62,63,63,.08)";
+      var pill = "display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid #D8D4CE;background:#FFFFFF;color:#3E3F3F;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;-webkit-tap-highlight-color:transparent";
+      var vol = document.createElement("button"); vol.type = "button"; vol.setAttribute("aria-label", "Volver al Hub"); vol.style.cssText = pill;
+      vol.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3E3F3F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>Hub';
+      vol.onclick = function () { self.cerrarApp(); };
+      var tit = document.createElement("div"); tit.style.cssText = "flex:1;text-align:center;font:500 12px Montserrat,system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#938B8A";
+      var rec = document.createElement("button"); rec.type = "button"; rec.setAttribute("aria-label", "Recargar"); rec.style.cssText = pill + ";padding:0;width:36px;justify-content:center";
+      rec.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3E3F3F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>';
+      rec.onclick = function () { var f = self._appF; if (f) { f.el.src = self.conSesion(f.u); } };
+      bar.appendChild(vol); bar.appendChild(tit); bar.appendChild(rec);
+      var cuerpo = document.createElement("div"); cuerpo.style.cssText = "flex:1;min-height:0;position:relative;background:#FAFAFA";
+      var carga = document.createElement("div"); carga.style.cssText = "position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;transition:opacity .3s";
+      carga.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:#E9826A;animation:sa-ptr-dot .7s cubic-bezier(.22,.61,.36,1) infinite"></span>';
+      cuerpo.appendChild(carga);
+      P.appendChild(bar); P.appendChild(cuerpo); document.body.appendChild(P);
+      P._tit = tit; P._cuerpo = cuerpo; P._carga = carga;
+      window.addEventListener("popstate", function () { if (self._appAbierta && !(history.state && history.state.saApp)) self.cerrarApp(true); });
+    }
+    clearTimeout(this._appSoltar);
+    var f = this._appF;
+    if (!f || f.k !== k) {
+      if (f) { try { f.el.remove(); } catch (e) {} }
+      var el = document.createElement("iframe");
+      el.title = NOM[k] || k; el.setAttribute("allow", "clipboard-read; clipboard-write; camera; microphone; geolocation; fullscreen");
+      el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:0;background:#FAFAFA;opacity:0;transition:opacity .25s";
+      P._carga.style.opacity = "1";
+      el.onload = function () { el.style.opacity = "1"; P._carga.style.opacity = "0"; };
+      el.src = this.conSesion(u);
+      P._cuerpo.appendChild(el);
+      f = this._appF = { k: k, u: u, el: el };
+    }
+    P._tit.textContent = NOM[k] || k;
+    this._appAbierta = true;
+    try { history.pushState({ saApp: k }, ""); } catch (e) {}
+    P.style.display = "flex";
+    requestAnimationFrame(function () { requestAnimationFrame(function () { P.style.transform = "translate3d(0,0,0)"; }); });
+  }
+  cerrarApp(desdeHistorial) {
+    var self = this, P = this._appP; if (!P || !this._appAbierta) return;
+    this._appAbierta = false;
+    if (!desdeHistorial) { try { if (history.state && history.state.saApp) history.back(); } catch (e) {} }
+    P.style.transform = "translate3d(100%,0,0)";
+    setTimeout(function () { if (!self._appAbierta) P.style.display = "none"; }, 340);
+    clearTimeout(this._appSoltar);
+    this._appSoltar = setTimeout(function () { var f = self._appF; if (f && !self._appAbierta) { try { f.el.remove(); } catch (e) {} self._appF = null; } }, 600000);
+    this.almaCargar && (this.state.vista === "alma" || this.state.vista === "hub") && this.almaCargar(true);
+  }
   conSesion(u) {
     try {
       var t = window.SA && SA.getToken && SA.getToken(); if (!t || !/^https:\/\/([a-z0-9-]+\.)?spacioam\.com/i.test(u) || /\/\/hub\./i.test(u)) return u;
@@ -7902,7 +7990,7 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, st = this.state, rol = this.rol();
     var esPrincipal = rol === "admin";
-    var ir = function (u) { return function () { location.href = self.conSesion(u); }; };
+    var ir = function (u) { return function () { if (/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) && self.appDentro()) { self.abrirApp(u); return; } location.href = self.conSesion(u); }; };
     var setV = function (v) { return function () { self.setState({ vista: v }); }; };
     var notis = this.notis();
     var h = this.gtHora();

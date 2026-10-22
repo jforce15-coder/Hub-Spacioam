@@ -55,7 +55,7 @@ function recepcionProcesar_() {
   });
 }
 
-function recepcionEnviar_(code) {
+function recepcionEnviar_(code, soloA) {
   var robot = PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN');
   if (!robot) return { ok: false, error: 'falta ROBOT_TOKEN en el Hub' };
   var W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'WhatsApp de ALMA sin configurar' };
@@ -65,6 +65,7 @@ function recepcionEnviar_(code) {
   if (!d.ok) return { ok: false, error: 'Hola: ' + (d.error || 'sin registro'), reintentar: d.error !== 'registro-no-encontrado' && d.error !== 'token' };
   var nums = (d.whatsapps || []).map(function (n) { return String(n).replace(/\D/g, ''); }).filter(function (n) { return n.length >= 8; });
   if (!nums.length) return { ok: false, error: 'la propiedad no tiene WhatsApp de recepción' };
+  if (soloA) nums = [String(soloA).replace(/\D/g, '')];   // prueba: solo a este número
   var blob = Utilities.newBlob(Utilities.base64Decode(d.pdfB64), 'application/pdf', d.filename || ('Registro-' + code + '.pdf'));
   var up = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: { messaging_product: 'whatsapp', type: 'application/pdf', file: blob } });
@@ -86,7 +87,7 @@ function recepcionEnviar_(code) {
     try { hojaWA_().appendRow([new Date().toISOString(), n, 'Recepción', 'out', 'Registro de ingreso · ' + (m.propiedad || '') + ' · ' + code + (ok ? '' : ' · NO SE ENVIÓ'), '', 'wa:' + n, 'document', 'recepcion', '']); } catch (e) {}
     return { n: n, ok: ok, err: ok ? '' : r.getContentText().slice(0, 200) };
   });
-  recepcionRecordar_(nums, m.propiedad);
+  if (!soloA) recepcionRecordar_(nums, m.propiedad);
   var bien = res.filter(function (x) { return x.ok; }).length;
   return { ok: bien > 0, enviados: bien, total: res.length, plantilla: tpl, error: bien === res.length ? '' : res.filter(function (x) { return !x.ok; }).map(function (x) { return '…' + x.n.slice(-4) + ': ' + x.err; }).join(' | ') };
 }

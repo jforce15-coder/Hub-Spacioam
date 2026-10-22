@@ -3,7 +3,8 @@
    el equipo dio algo que ALMA no sabía: «las tarjetas son para el elevador», «el elevador correcto es el del
    fondo», «suban por las escaleras», «el código cambió». Cada hora ALMA revisa esos casos, extrae solo lo que
    sirve para FUTUROS huéspedes de esa propiedad (o de todo el edificio) y lo guarda aquí. Desde ese momento
-   lo usa al responder (va dentro de conocimiento_). Lo temporal vence solo. Se ve y se borra desde el chat
+   lo usa al responder (va dentro de conocimiento_). Lo temporal vence solo. El equipo también se equivoca
+   (un dígito, un nombre): lo que contradice la ficha queda «por confirmar» y solo se activa si se repite. Se ve y se borra desde el chat
    operativo («¿qué sabes de Brunelo 905?», «olvida lo del elevador»). */
 var MEM_CAB_ = ['id', 'fecha', 'propiedad', 'aplica_a', 'tema', 'dato', 'temporal', 'vence', 'estado', 'fuente', 'pregunta', 'respuesta_equipo'];
 function hojaMem_() { return hojaCrear_('ALMA_MEMORIA_PROP', MEM_CAB_); }
@@ -17,7 +18,9 @@ function memFilas_() {
 function memEdificio_(propiedad) { var p = String(propiedad || '').split(/\s+-\s+/); return p.length >= 3 ? p.slice(0, 2).join(' - ') : String(propiedad || ''); }
 function memoriaDe_(propiedad) {
   var ahora = Date.now();
-  return memFilas_().filter(function (m) { return m.estado === 'activa' && (!m.vence || Date.parse(m.vence) > ahora) && aplicaA_(m.aplica_a, propiedad); });
+  /* El nombre puede venir escrito distinto (Brunello/Brunelo, «Apto 905»): coincidencia exacta por palabras o por parecido. */
+  var aplica = function (m) { return aplicaA_(m.aplica_a, propiedad) || bqPuntaje_(m.aplica_a, propiedad).todas; };
+  return memFilas_().filter(function (m) { return (m.estado === 'activa' || m.estado === 'por_confirmar') && (!m.vence || Date.parse(m.vence) > ahora) && aplica(m); });
 }
 /* Texto para el redactor y el clasificador (se suma a la base de conocimiento). */
 function memoriaTexto_(propiedad) {
@@ -25,6 +28,7 @@ function memoriaTexto_(propiedad) {
   var m = memoriaDe_(propiedad); if (!m.length) return '';
   return '## Lo que el equipo enseñó sobre esta propiedad (memoria · lo más reciente manda si contradice la ficha)\n' + m.slice(-25).map(function (x) {
     var cod = /c[oó]digo|clave|contrase/i.test(x.tema + ' ' + x.dato) && /\d{3,}/.test(x.dato);
+    if (x.estado === 'por_confirmar') return '- [SIN CONFIRMAR: el equipo lo dijo una vez pero no coincide con la ficha; no lo afirmes, usa la ficha y si es clave pide confirmación al equipo] ' + x.dato;
     return '- ' + (cod ? '[ACCESO: compártelo solo cuando las reglas de códigos lo permitan] ' : '') + x.dato + (x.temporal === 'sí' ? ' (temporal, hasta ' + String(x.vence).slice(0, 10) + ')' : '') + ' · ' + String(x.fecha).slice(0, 10);
   }).join('\n');
 }
@@ -37,7 +41,10 @@ var MEM_PROMPT_ = 'Eres la memoria de ALMA, la asistente de Spacio AM (alojamien
   'promesas de seguimiento, ni lo que ya dice la ficha o la memoria. Si dudas, no lo guardes.\n' +
   'alcance: «edificio» si aplica a todos los apartamentos del edificio (lobby, elevadores, parqueo, garita, normas del edificio); «apartamento» si es de esta unidad.\n' +
   'temporal: true si es algo pasajero (obra, corte, mantenimiento, cambio por unos días), con «dias» estimados de vigencia.\n' +
-  'Devuelve SOLO JSON: {"datos":[{"tema":"Acceso|Elevador|Parqueo|Llegada|Edificio|Wifi|Apartamento|Otro","dato":"frase clara en español, máximo 30 palabras, escrita como hecho","alcance":"apartamento|edificio","temporal":false,"dias":0}]} o {"datos":[]}';
+  'ERROR HUMANO: el equipo escribe rápido y se equivoca en códigos, números, pisos, nombres y contraseñas. Para cada dato exacto (un código, un número, un nombre propio) compáralo con la FICHA y la MEMORIA: ' +
+  'si coincide, «confianza»:"alta"; si no aparece en ninguna, «confianza»:"media"; si CONTRADICE la ficha o la memoria, o parece un error de dedo (un dígito cambiado, letras invertidas), «confianza»:"baja" y en «nota» explica qué dice cada fuente. ' +
+  'Escribe los nombres tal como deberían ser (corrige errores obvios de ortografía, p. ej. «Brunello» → «Brunelo» si la ficha dice Brunelo).\n' +
+  'Devuelve SOLO JSON: {"datos":[{"tema":"Acceso|Elevador|Parqueo|Llegada|Edificio|Wifi|Apartamento|Otro","dato":"frase clara en español, máximo 30 palabras, escrita como hecho","alcance":"apartamento|edificio","temporal":false,"dias":0,"confianza":"alta|media|baja","nota":""}]} o {"datos":[]}';
 
 function memoriaExtraer_(propiedad, pregunta, respuesta, conversacion) {
   var actual = memoriaTexto_(propiedad), ficha = '';
@@ -54,49 +61,54 @@ function memoriaGuardar_(propiedad, datos, fuente, pregunta, respuesta, por) {
   datos.forEach(function (d) {
     var temporal = !!d.temporal, dias = Math.max(1, Math.min(90, Number(d.dias) || 7));
     var aplica = String(d.alcance) === 'edificio' ? memEdificio_(propiedad) : propiedad;
+    /* ¿Ya lo sabíamos (aunque escrito distinto)? Si estaba por confirmar, esta segunda vez lo confirma; si ya estaba activo, no se duplica. */
+    var igual = memFilas_().filter(function (m) { return (m.estado === 'activa' || m.estado === 'por_confirmar') && aplicaA_(m.aplica_a, propiedad) && bqPuntaje_(d.dato, m.dato).puntaje >= 0.85; })[0];
+    if (igual) {
+      if (igual.estado === 'por_confirmar' && String(d.confianza) !== 'baja') { sh.getRange(igual.fila, MEM_CAB_.indexOf('estado') + 1).setValue('activa'); out.push({ id: igual.id, dato: igual.dato, confirmado: true }); }
+      return;
+    }
+    var estado = String(d.confianza) === 'baja' ? 'por_confirmar' : 'activa';
     var id = 'mp' + hoy.getTime() + Math.floor(Math.random() * 1000);
     sh.appendRow([id, hoy.toISOString(), propiedad, aplica, String(d.tema || 'Otro'), String(d.dato).trim().slice(0, 300), temporal ? 'sí' : 'no',
-      temporal ? new Date(hoy.getTime() + dias * 86400000).toISOString() : '', 'activa', String(fuente || por || ''), String(pregunta || '').slice(0, 800), String(respuesta || '').slice(0, 800)]);
-    out.push({ id: id, dato: d.dato, aplica_a: aplica, temporal: temporal });
+      temporal ? new Date(hoy.getTime() + dias * 86400000).toISOString() : '', estado, String(fuente || por || '') + (d.nota ? ' · ' + String(d.nota).slice(0, 200) : ''), String(pregunta || '').slice(0, 800), String(respuesta || '').slice(0, 800)]);
+    MEM_CACHE_ = null;
+    out.push({ id: id, dato: d.dato, aplica_a: aplica, temporal: temporal, estado: estado });
   });
   MEM_CACHE_ = null;
   return out;
 }
 
-/* Cada hora (desde aprender): casos de las últimas 72 h donde ALMA pidió ayuda y el equipo respondió. */
+/* Cada hora (desde aprender): toda conversación de las últimas 72 h en la que alguien del equipo escribió algo
+   nuevo, haya pedido ayuda ALMA o no. Se procesa cada mensaje del equipo una sola vez (marca por conversación). */
 function memoriaAprender_() {
-  var P = PropertiesService.getScriptProperties(), hechos = {}; try { hechos = JSON.parse(P.getProperty('MEM_HECHOS') || '{}'); } catch (e) {}
-  var sh = hoja_(CFG.TAB_LOG); if (!sh || sh.getLastRow() < 2) return 0;
-  var n = sh.getLastRow(), desde = Math.max(2, n - 400), cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) { return String(x).trim().toLowerCase(); });
-  var v = sh.getRange(desde, 1, n - desde + 1, cab.length).getValues(), c = function (k) { return cab.indexOf(k); };
-  var limite = Date.now() - 72 * 3600000, hechosN = 0, revisados = 0;
-  for (var i = v.length - 1; i >= 0 && revisados < 8; i--) {
-    var r = v[i], resId = String(r[c('reservation_id')] || ''), niv = String(r[c('nivel')] || ''), acc = String(r[c('accion')] || '');
-    var t = archivoFecha_(r[c('fecha')]); if (!resId || !t || t < limite) continue;
-    if (!/AMARILLO|ROJO/.test(niv) && !/escal|necesita|contenci/i.test(acc)) continue;
-    var key = resId + '|' + t; if (hechos[key]) continue;
+  var P = PropertiesService.getScriptProperties(), hechos = {}; try { hechos = JSON.parse(P.getProperty('MEM_HECHOS2') || '{}'); } catch (e) {}
+  var limite = Date.now() - 72 * 3600000, guardados = 0, revisados = 0;
+  var cand = hubInbox_().filter(function (r) {
+    var id = String(r.conv_id || ''), th = Date.parse(r.ultimo_host_ts || '') || 0;
+    return id && !/^(op|wa):/.test(id) && r.propiedad && th > limite && th > (hechos[id] || 0);
+  }).sort(function (x, y) { return (Date.parse(y.ultimo_host_ts) || 0) - (Date.parse(x.ultimo_host_ts) || 0); });
+  for (var i = 0; i < cand.length && revisados < 6; i++) {
+    var r = cand[i], id = String(r.conv_id), desde = Math.max(limite, hechos[id] || 0);
+    var hc = hiloConv_(id); if (hc.code && hc.code !== 200) continue;
     revisados++;
-    var hc = hiloConv_(resId); if (hc.code && hc.code !== 200) continue;
-    var hilo = hc.hilo || [], codigo = String(r[c('codigo')] || ''), mios = textosAlma_(codigo);
-    var hum = hilo.filter(function (m) { return m.tipo !== 'guest' && !m.auto && !m.alma && Date.parse(m.created) > t && String(m.texto || '').trim() && !esContencion_(m.texto) && mios.indexOf(String(m.texto).trim()) === -1; });
-    if (!hum.length) { if (Date.now() - t > 24 * 3600000) hechos[key] = Date.now(); continue; }   // aún nadie respondió: se revisa luego
-    hechos[key] = Date.now();
-    var prop = String(r[c('propiedad')] || ''); if (!prop) continue;
+    var hilo = hc.hilo || [], mios = textosAlma_(String(r.codigo || ''));
+    var hum = hilo.filter(function (m) { return m.tipo !== 'guest' && !m.auto && !m.alma && Date.parse(m.created) > desde && String(m.texto || '').trim().length > 20 && !esContencion_(m.texto) && mios.indexOf(String(m.texto).trim()) === -1; });
+    hechos[id] = Date.now();
+    if (!hum.length) continue;
     var idx = hilo.indexOf(hum[0]), cx = ''; try { cx = ctxConversacion_(hilo, idx).txt; } catch (e) {}
-    var preg = String(r[c('pregunta')] || '') || hilo.slice(0, idx).filter(function (m) { return m.tipo === 'guest'; }).slice(-3).map(function (m) { return m.texto; }).join('\n');
-    var resp = hum.slice(0, 4).map(function (m) { return m.texto; }).join('\n\n');
-    var datos = memoriaExtraer_(prop, preg, resp, cx);
-    hechosN += memoriaGuardar_(prop, datos, codigo || resId, preg, resp).length;
+    var preg = hilo.slice(0, idx).filter(function (m) { return m.tipo === 'guest'; }).slice(-3).map(function (m) { return m.texto; }).join('\n');
+    var resp = hum.slice(0, 5).map(function (m) { return m.texto; }).join('\n\n');
+    guardados += memoriaGuardar_(String(r.propiedad), memoriaExtraer_(String(r.propiedad), preg, resp, cx), String(r.codigo || id), preg, resp).length;
   }
-  var ks = Object.keys(hechos).sort(function (a, b) { return hechos[b] - hechos[a]; }).slice(0, 600), o = {}; ks.forEach(function (k) { o[k] = hechos[k]; });
-  P.setProperty('MEM_HECHOS', JSON.stringify(o));
-  return hechosN;
+  var o = {}; Object.keys(hechos).sort(function (a, b) { return hechos[b] - hechos[a]; }).slice(0, 800).forEach(function (k) { o[k] = hechos[k]; });
+  P.setProperty('MEM_HECHOS2', JSON.stringify(o));
+  return guardados;
 }
 
 /* Chat operativo: ver, agregar y olvidar. */
 function memoriaVer_(propiedad) {
   var m = memoriaDe_(propiedad);
-  return { propiedad: propiedad, memoria: m.map(function (x) { return { id: x.id, dato: x.dato, tema: x.tema, aplica_a: x.aplica_a, temporal: x.temporal === 'sí' ? 'hasta ' + String(x.vence).slice(0, 10) : 'permanente', desde: String(x.fecha).slice(0, 10) }; }) };
+  return { propiedad: propiedad, memoria: m.map(function (x) { return { id: x.id, dato: x.dato, tema: x.tema, aplica_a: x.aplica_a, estado: x.estado === 'por_confirmar' ? 'por confirmar (contradice la ficha)' : 'activo', temporal: x.temporal === 'sí' ? 'hasta ' + String(x.vence).slice(0, 10) : 'permanente', desde: String(x.fecha).slice(0, 10) }; }) };
 }
 function memoriaOlvidar_(id, por) {
   var f = memFilas_().filter(function (x) { return x.id === String(id); })[0]; if (!f) return { error: 'No existe ese recuerdo: ' + id };

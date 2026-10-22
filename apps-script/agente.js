@@ -86,7 +86,7 @@ function agHerramientas_() {
     T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
     T('recordar_en_propiedad', 'Guarda un dato nuevo en la memoria de una propiedad (o de todo su edificio) para que ALMA lo use con futuros huéspedes. Úsalo cuando el administrador te enseñe algo de una propiedad.',
       { propiedad: s('Nombre o parte del nombre'), dato: s('El dato, como hecho claro (máx. 30 palabras)'), alcance: { type: 'string', enum: ['apartamento', 'edificio'] }, dias: { type: 'number', description: 'Opcional: si es temporal, cuántos días vale' } }, ['propiedad', 'dato']),
-    T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad).', { id: s('id del dato (mp…)') }, ['id']),
+    T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];

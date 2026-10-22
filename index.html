@@ -3461,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22n";
+  BUILD = "2026-10-22o";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5466,7 +5466,16 @@ class Component extends DCLogic {
     var min = vivas.reduce(function (m, r) { var x = t(r); return x && x >= corte && x < m ? x : m; }, Infinity);
     if (!isFinite(min)) return base;
     var vistos = {}; vivas.forEach(function (r) { var k = r.message_id || r.id; if (k) vistos[k] = 1; });
-    return base.filter(function (r) { var x = t(r); return x && x < min && !vistos[r.message_id || r.id || "~"]; }).concat(vivas);
+    return this.recortar(base.filter(function (r) { var x = t(r); return x && x < min && !vistos[r.message_id || r.id || "~"]; }).concat(vivas), campo);
+  }
+  /* El Hub solo trabaja con lo reciente (como antes de unir con la historia): cola 350 filas y registro 450.
+     Con toda la historia en memoria cada toque recalculaba 3-4 veces más filas y la app se volvía lenta. Lo vivo de la cola nunca se recorta. */
+  recortar(arr, campo) {
+    var n = campo === "recibido" ? 350 : 450; if (!arr || arr.length <= n) return arr || [];
+    var t = function (r) { var x = Date.parse(String((r && r[campo]) || "").replace(" ", "T")); return isNaN(x) ? 0 : x; };
+    var ts = arr.map(t).sort(function (a, b) { return b - a; }), umbral = ts[n - 1] || 0;
+    var FIN = { silencio: 1, respondido: 1, borrador: 1, sombra: 1, omitido: 1, escalado: 1, error: 1, agrupado: 1 };
+    return arr.filter(function (r) { return t(r) >= umbral || (campo === "recibido" && r.estado && !FIN[String(r.estado).trim()]); });
   }
   almaCargar(soloVivo) {
     var self = this;
@@ -5499,6 +5508,7 @@ class Component extends DCLogic {
     var vivo = null, base = null;
     var unir = function () {
       var d = Object.assign({}, base || self.state.alma || {});
+      d.cola = self.recortar(d.cola, "recibido"); d.log = self.recortar(d.log, "fecha");
       var a0 = self.state.alma;
       if (vivo && vivo.ok) { if (vivo.cola) d.cola = self.unirVentana(vivo.cola, d.cola, "recibido"); if (vivo.log && vivo.log.length) d.log = self.unirVentana(vivo.log, d.log, "fecha"); d.inbox = self.unirInbox(vivo.inbox, d.inbox); if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
       /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes (ni las marcas de resuelta en vivo). */

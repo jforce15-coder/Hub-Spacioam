@@ -283,8 +283,9 @@
         <sc-if value="{{ needPass }}" hint-placeholder-val="{{ false }}">
           <div style="font-size:12.5px; letter-spacing:.03em; line-height:1.6; color:#6F6867; background:#F5F3F0; border-radius:12px; padding:12px 14px; margin-bottom:-2px">Es tu primer ingreso. Crea una contraseña (mínimo 6 caracteres).</div>
         </sc-if>
-        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Input" label="Correo electrónico" type="email" value="{{ loginEmail }}" onChange="{{ setEmail }}" placeholder="tu@spacioam.com" hint-size="100%,74px"></x-import>
-        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Input" label="{{ passLabel }}" type="password" value="{{ loginPass }}" onChange="{{ setPass }}" placeholder="••••••••" error="{{ loginError }}" hint-size="100%,74px"></x-import>
+        <!-- Campos sin estado: escribir no redibuja la app (antes cada tecla repintaba todo y el correo se trababa o cambiaba letras). -->
+        <label style="display:flex; flex-direction:column; gap:var(--s-2); width:100%"><span style="font-family:var(--font-sans); font-size:var(--t-eyebrow); font-weight:500; letter-spacing:var(--tr-eyebrow); text-transform:uppercase; color:var(--fg-muted)">Correo electrónico</span><input id="sa-login-email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck="false" placeholder="tu@spacioam.com" onKeyDown="{{ loginKey }}" style="width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:16px; letter-spacing:var(--tr-normal); color:var(--fg); padding:14px 16px; background:var(--surface); border:1px solid var(--divider); border-radius:var(--r-md); outline:none; transition:border-color .15s, box-shadow .15s" style-focus="border-color:var(--fg); box-shadow:var(--focus-ring)"></label>
+        <label style="display:flex; flex-direction:column; gap:var(--s-2); width:100%"><span style="font-family:var(--font-sans); font-size:var(--t-eyebrow); font-weight:500; letter-spacing:var(--tr-eyebrow); text-transform:uppercase; color:var(--fg-muted)">{{ passLabel }}</span><input id="sa-login-pass" type="password" autoComplete="current-password" placeholder="••••••••" onKeyDown="{{ loginKey }}" style="width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:16px; letter-spacing:var(--tr-normal); color:var(--fg); padding:14px 16px; background:var(--surface); border:1px solid var(--divider); border-radius:var(--r-md); outline:none; transition:border-color .15s, box-shadow .15s" style-focus="border-color:var(--fg); box-shadow:var(--focus-ring)"><sc-if value="{{ hayLoginError }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-family:var(--font-sans); font-size:12px; letter-spacing:.02em; color:var(--color-error)">{{ loginError }}</span></sc-if></label>
         <span style="font-size:11.5px; letter-spacing:.04em; color:#6F6867">¿Olvidaste tu contraseña? Escríbenos y te ayudamos.</span>
         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" onClick="{{ entrar }}" icon="lock" loading="{{ busy }}" full="{{ true }}" style="margin-top:6px" hint-size="100%,50px">{{ botonLabel }}</x-import>
       </div>
@@ -2186,7 +2187,7 @@
             <sc-if value="{{ rz.hayTexto }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; flex-direction:column; gap:2px">
                 <div style="padding:12px 14px; font-size:13.5px; line-height:1.6; white-space:pre-wrap; text-wrap:pretty; color:#3E3F3F; border-radius: {{ rz.burbujaRadio }}; background: {{ rz.burbujaBg }}; border: {{ rz.burbujaBd }}">{{ rz.texto }}</div>
-                <button onClick="{{ rz.copiar }}" style="align-self:flex-end; display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; min-height:40px; padding:0 4px" style-hover="color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="13" color="currentColor" hint-size="13px,13px"></x-import>Copiar texto</button>
+                <button onClick="{{ rz.copiar }}" style="align-self:flex-end; display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; min-height:40px; padding:0 4px" style-hover="color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="copy" size="13" color="currentColor" hint-size="13px,13px"></x-import>{{ rz.copiarLabel }}</button>
                 <sc-if value="{{ rzPuedeBorrar }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end">
                     <a href="{{ rzBorrarUrl }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#C0392B; text-decoration:none"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="trash" size="13" color="#C0392B" hint-size="13px,13px"></x-import>Eliminar en Airbnb</a>
@@ -3072,7 +3073,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
           <div style="display:flex; gap:8px; flex-wrap:wrap">
             <button onClick="{{ hySum.descargar }}" style="border:1px solid #E9826A; border-radius:999px; background:rgba(233,130,106,.14); color:#3E3F3F; min-height:42px; padding:0 18px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:7px; transition:background .18s" style-hover="background:rgba(233,130,106,.24)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="download" size="14" color="currentColor" hint-size="14px,14px"></x-import>{{ hySum.descargarLabel }}</button>
-            <button onClick="{{ hySum.reenviar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s; min-height:42px" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="14" color="currentColor" hint-size="14px,14px"></x-import>Reenviar</button>
+            <button onClick="{{ hySum.reenviar }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s; min-height:42px" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="14" color="currentColor" hint-size="14px,14px"></x-import>Enviar por correo</button>
+            <button onClick="{{ hySum.reenviarWa }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; text-decoration:none; transition:border-color .18s, transform .1s; min-height:42px" style-hover="border-color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mail" size="14" color="currentColor" hint-size="14px,14px"></x-import>Enviar por WhatsApp</button>
           </div>
           <button onClick="{{ hySum.cerrar }}" aria-label="Cerrar" style="width:42px; height:42px; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></button>
         </div>
@@ -3459,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22h";
+  BUILD = "2026-10-22i";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3755,7 +3757,9 @@ class Component extends DCLogic {
     /* Solo un gesto real mueve la conversación: los cambios de alto o los saltos programados no cuentan. */
     /* Solo gestos de navegación cuentan como «el usuario movió el visor»; escribir en el chat no (antes una tecla + la lista reordenándose saltaba a otra conversación). */
     var marca = function (e) { var t = e && e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return; self._convUser = Date.now(); };
-    ["touchstart", "touchmove", "touchend", "wheel", "pointerdown", "keydown"].forEach(function (ev) { el.addEventListener(ev, marca, { passive: true }); });
+    /* Solo arrastrar o la rueda cuentan como cambiar de conversación. Un toque en un botón (p. ej. Resuelta) no: si la lista se
+       reacomoda por ese cambio, el visor ya no salta a la conversación vecina. */
+    ["touchmove", "wheel"].forEach(function (ev) { el.addEventListener(ev, marca, { passive: true }); });
 
   };
   /* Visor nativo: el contenedor es un scroll con snap (una conversación por página). El dedo arrastra 1:1,
@@ -4501,9 +4505,9 @@ class Component extends DCLogic {
       im.src = src;
     });
   }
-  hoyReenviar(code) {
+  hoyReenviar(code, canal) {
     var self = this; this.aviso("Enviando…");
-    this.gpost(this.HOLA_URL, "resendRegistration", { code: code, channel: "email" }, 45000)
+    this.gpost(this.HOLA_URL, "resendRegistration", { code: code, channel: canal || "email" }, 45000)
       .then(function (r) { self.aviso(r && r.ok ? "Reenviado" + (r.to ? " a " + r.to : "") : "No se pudo reenviar" + (r && r.error ? " · " + r.error : "")); })
       .catch(function () { self.aviso("No se pudo reenviar"); });
   }
@@ -4821,7 +4825,7 @@ class Component extends DCLogic {
       estado: D.done ? "Completo" : "Pendiente", stBg: D.done ? "rgba(61,107,82,.12)" : "#F5F3F0", stBd: D.done ? "rgba(61,107,82,.4)" : "#D8D4CE", stFg: D.done ? "#3d6b52" : "#3E3F3F",
       descargarLabel: S0.cargando || S0.docs > 0 ? "Cargando documentos…" : "Descargar PDF",
       descargar: function () { var S1 = (self.state.hoy || {}).sum; if (!S1) return; if (S1.cargando || S1.docs > 0) { self.hoySet(function (H2) { return { sum: Object.assign({}, H2.sum, { imprimir: true }) }; }); return; } self.hoyImprimir(); },
-      reenviar: function () { self.hoyReenviar(D.h.code); }, cerrar: function () { self.hoySet({ sum: null }); },
+      reenviar: function () { self.hoyReenviar(D.h.code); }, reenviarWa: function () { self.hoyReenviar(D.h.code, "whatsapp"); }, cerrar: function () { self.hoySet({ sum: null }); },
       cerrarFondo: function (e) { if (e.target === e.currentTarget) self.hoySet({ sum: null }); } }) : { secciones: [], huespedes: [] };
     var fechaLarga = new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Guatemala" });
     return {
@@ -4969,7 +4973,8 @@ class Component extends DCLogic {
   }
   /* Mensaje de ALMA que no salió: se envía tal cual o se abre en el editor (mejorar con ALMA / programar). */
   rzEnviar(resId, texto, editar) {
-    var self = this, g = (this._gruposTodos || []).find(function (x) { return x.frags.some(function (c) { return c.resId === resId; }); });
+    var self = this, g = resId ? (this._gruposTodos || []).find(function (x) { return x.frags.some(function (c) { return c.resId === resId; }); }) : null;
+    if (!g && this._convSelG && this.state.cronoLista === false) g = this._convSelG;   /* sin id: la conversación abierta */
     if (!g) { this.aviso("No encontramos la conversación de este mensaje."); return; }
     var k = g.frags[0].key, tx = this.formatoMsg(texto);
     this._respDraft[k] = tx; try { this.guardarBorrador(k, tx); } catch (e) {}
@@ -5350,7 +5355,8 @@ class Component extends DCLogic {
   /* Login unificado (hoja «Control de usuarios»), igual que las otras 4 apps. */
   ingresar() {
     var self = this, st = this.state;
-    var email = (st.loginEmail || "").trim(), pass = st.loginPass || "";
+    var eE = document.getElementById("sa-login-email"), eP = document.getElementById("sa-login-pass");
+    var email = ((eE && eE.value) || st.loginEmail || "").trim(), pass = (eP && eP.value) || st.loginPass || "";
     if (!email || !pass) { this.setState({ loginError: "Nos falta tu correo y tu contraseña." }); return; }
     if (st.needPass && pass.length < 6) { this.setState({ loginError: "La contraseña necesita al menos 6 caracteres." }); return; }
     this.setState({ busy: true, loginError: "" });
@@ -5363,7 +5369,7 @@ class Component extends DCLogic {
     var p = st.needPass ? SAAuth.setInitialPassword(email, pass) : SAAuth.login(email, pass);
     p.then(function (r) {
       if (r && r.ok && r.profile) { self.abrirSesion(r.profile); return; }
-      if (r && r.error === "needs_password") { self.setState({ busy: false, needPass: true, loginPass: "", loginError: "" }); return; }
+      if (r && r.error === "needs_password") { var p0 = document.getElementById("sa-login-pass"); if (p0) p0.value = ""; self.setState({ busy: false, needPass: true, loginPass: "", loginError: "" }); return; }
       if (r && r.error === "no_url") { fallback("No pudimos conectar con el control de usuarios."); return; }
       if (r && r.error === "inactive") { self.setState({ busy: false, loginError: "Tu acceso está desactivado. Escríbenos y lo revisamos." }); return; }
       /* Con modoDemo (revisión de diseño) entramos igual; en producción va apagado. */
@@ -5377,6 +5383,7 @@ class Component extends DCLogic {
     if (!(window.SA && SA.rolDePerfil)) { rol = rol === "admin_principal" ? "admin" : rol === "admin_secundario" ? "admin2" : rol; }
     if (rol !== "admin" && rol !== "admin2") {
       /* Sin acceso de admin: se queda en el login con el aviso, sin redirigir. */
+      var p1 = document.getElementById("sa-login-pass"); if (p1) p1.value = "";
       this.setState({ busy: false, loginPass: "", loginError: "Este hub es del equipo administrador. Tu cuenta no tiene acceso aquí." });
       return;
     }
@@ -5908,6 +5915,7 @@ class Component extends DCLogic {
       if (codigo && (a.formsOk || []).indexOf(String(codigo).trim().toUpperCase()) >= 0 && !/complet/.test(s)) s = "completo";
       var F = !s ? ["#938B8A", "#F5F3F0", "#D8D4CE", "Formulario de llegada · sin dato", "Sin dato"]
         : /complet|listo|ok|enviado|si|sí|true/.test(s) ? ["#3d6b52", "rgba(61,107,82,.12)", "rgba(61,107,82,.45)", "Formulario de llegada · completo", "Formulario ✓"]
+        : /proceso|progreso|iniciad|llenando|borrador/.test(s) ? ["#9A6A12", "rgba(214,158,46,.16)", "rgba(214,158,46,.6)", "Formulario de llegada · en proceso: el huésped lo está llenando", "Formulario en proceso"]
         : ["#C0392B", "rgba(192,57,43,.10)", "rgba(192,57,43,.45)", "Formulario de llegada · pendiente", "Formulario pendiente"];
       var completo = F[4] === "Formulario ✓";
       return { formBg: F[0], formTint: F[1], formBd: F[2], formLabel: completo ? "Formulario completo · ver y descargar" : F[3], formTxt: F[4],
@@ -6250,7 +6258,7 @@ class Component extends DCLogic {
       else if (est === "esperando_rojo") { cuando = "Contención enviada · si nadie responde, avisa al respaldo a las " + hora; cuandoColor = "#C0392B"; }
       else {
         /* Clasifica tras AGRUPAR_SEG de silencio del huésped + el siguiente latido del hub (≤ 15 s). */
-        var agr = Math.min(60, parseFloat(self.almaCtrlOriginal().AGRUPAR_SEG) || 30), t0 = new Date(r._ultimo || r.recibido).getTime(), tot = (agr + 15) * 1000;
+        var agr = Math.min(15, parseFloat(self.almaCtrlOriginal().AGRUPAR_SEG) || 15), t0 = new Date(r._ultimo || r.recibido).getTime(), tot = (agr + 15) * 1000;
         var falta = isNaN(t0) ? tot : Math.max(0, t0 + tot - Date.now()), sg = Math.ceil(falta / 1000);
         var faltaTxt = sg >= 90 ? Math.ceil(sg / 60) + " min" : sg + " s";
         clasInfo = { on: !v.nivel, pct: Math.min(100, Math.max(4, Math.round((1 - falta / tot) * 100))) + "%", txt: falta > 0 ? "ALMA la clasifica en ~" + faltaTxt : "Clasificando ahora…" };
@@ -7057,13 +7065,13 @@ class Component extends DCLogic {
         est = "Necesita equipo"; bg = "#B54D36"; fg = "#FFFFFF"; pr = 0.5;
         if (alma) { tipo = "alma"; texto = tema + " · ALMA respondió · necesita al equipo"; pide = true; } else { tipo = "chat"; pide = true; texto = tema + " · necesita al equipo · " + mins(tsU); }
       } else if (promG(g)) { est = "ALMA prometió"; bg = "#B54D36"; fg = "#FFFFFF"; pr = 0.6; tipo = "chat"; pide = true; texto = "ALMA prometió: " + String(ib.promesa || "").slice(0, 110) + (String(ib.promesa_estado) === "vencida" ? " · vencida" : ""); }
-      else if (t.esCola) { est = t.clasificando ? "Clasificando" : "En cola"; bg = "#F5F3F0"; fg = "#6F6867"; pr = 0.8; texto = tema + (t.clasificando ? " · " + t.clasTxt : " · ALMA lo está atendiendo"); }
+      else if (t.esCola) { est = t.clasificando ? "Clasificando" : "En cola"; bg = "#F5F3F0"; fg = "#6F6867"; pr = -1;   /* mientras ALMA la trabaja, va primero en el resumen */ texto = tema + (t.clasificando ? " · " + t.clasTxt : " · ALMA lo está atendiendo"); }
       else if (sinRespG) { est = "Sin responder"; bg = "rgba(242,117,90,.16)"; fg = "#B54D36"; pr = 1; tipo = "chat"; pide = true; texto = tema + " · sin respuesta hace " + mins(tsU); }
       else if (equipo) { est = "Respondió el equipo"; bg = "rgba(61,107,82,.14)"; fg = "#3d6b52"; pr = 3; tipo = "cierre"; texto = tema + " · respondió " + quienEq; }
       else { est = "ALMA respondió"; bg = "rgba(59,102,145,.12)"; fg = "#3B6691"; pr = 3; tipo = alma ? "alma" : "cierre"; texto = tema + (alma ? " · ALMA respondió" : " · sin acción"); }
       var foto = fotoDe(g), nom = nombreDe(g), es = estadiaDe(g), fAlma = g.frags.find(function (c) { return c.esLog && c.enviado && !c.humano; });
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
-      var atnL = atnG(g); if (!atnL && pr < 2 && !t.esCola) pr = 2.5;
+      var atnL = atnG(g) || (t.esCola && !g.resuelto); if (!atnL && pr < 2 && !t.esCola) pr = 2.5;
       return { ...canalVM(g), gk: g.key, atn: atnL, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
         propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), etapa: self._etapa(g.key) || { txt: "" }, hayEtapa: !!self._etapa(g.key), hace: haceDe(tsG(g)), texto: texto, dots: dots,
         titulo: g.resuelto ? (PASADO[tema] || tema) : tema,
@@ -7314,7 +7322,11 @@ class Component extends DCLogic {
           descartar: function () { self.setState({ rzProp: null }); }, copiar: copiarRz };
       }
     }
-    if (rz) { var ridRz = (rc && rc.resId) || RZ.resId || "", txRz = String(rz.texto || ""); rz.puedeEnviar = !!(rz.noEnviado && ridRz && txRz.trim()); rz.enviar = function () { self.rzEnviar(ridRz, txRz, false); }; rz.editar = function () { self.rzEnviar(ridRz, txRz, true); }; }
+    if (rz) { var ridRz = (rc && rc.resId) || RZ.resId || "", txRz = String(rz.texto || "");
+      /* Mensaje que no salió: «Usar este mensaje» lo pasa al cuadro de texto de la conversación para mandarlo tal cual o mejorarlo. */
+      rz.puedeEnviar = false; rz.usar = !!(rz.noEnviado && txRz.trim()); rz.copiarLabel = rz.usar ? "Usar este mensaje" : "Copiar texto";
+      rz.enviar = function () { self.rzEnviar(ridRz, txRz, false); }; rz.editar = function () { self.rzEnviar(ridRz, txRz, true); };
+      if (rz.usar) rz.copiar = rz.editar; }
     var mesk = window.matchMedia && matchMedia("(max-width:1179px)").matches;
     return {
       enAlma: st.vista === "alma",
@@ -8295,6 +8307,7 @@ class Component extends DCLogic {
       loginEmail: st.loginEmail, loginPass: st.loginPass, loginError: st.loginError,
       setEmail: function (v) { self.setState({ loginEmail: v }); },
       setPass: function (v) { self.setState({ loginPass: v }); },
+      hayLoginError: !!st.loginError, loginKey: function (e) { if (e.key === "Enter") { e.preventDefault(); self.ingresar(); } },
       needPass: st.needPass,
       busy: st.busy,
       passLabel: st.needPass ? "Nueva contraseña" : "Contraseña",

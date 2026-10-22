@@ -3426,12 +3426,23 @@ class Component extends DCLogic {
     this._hiloFresco[rid] = Date.now();
     /* Los hitos (cambios de reserva) viajan aparte: no cuentan como mensajes para pendientes ni resúmenes. */
     var hitos = (lista || []).filter(function (m) { return m && m.tipo === "hito"; }); lista = (lista || []).filter(function (m) { return m && m.tipo !== "hito"; });
-    this.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[rid] = { lista: lista, hitos: hitos, ts: Date.now() }; return { almaHilos: n }; });
-    try {
-      var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); o[rid] = { lista: lista, hitos: hitos, ts: Date.now() };
-      var ks = Object.keys(o).sort(function (x, y) { return (o[y].ts || 0) - (o[x].ts || 0); }); ks.slice(80).forEach(function (k) { delete o[k]; });
-      localStorage.setItem("sa_alma_hilos", JSON.stringify(o));
-    } catch (e) {}
+    /* En memoria solo los 60 hilos más recientes (antes crecía sin límite y el iPhone terminaba cerrando la app). */
+    this.setState(function (s) {
+      var n = Object.assign({}, s.almaHilos); n[rid] = { lista: lista, hitos: hitos, ts: Date.now() };
+      var ks = Object.keys(n); if (ks.length > 60) ks.sort(function (x, y) { return ((n[y] && n[y].ts) || 0) - ((n[x] && n[x].ts) || 0); }).slice(60).forEach(function (k) { delete n[k]; });
+      return { almaHilos: n };
+    });
+    /* La copia en el teléfono se escribe en lote cada 3 s (antes leía y reescribía 80 hilos con cada hilo que llegaba y trababa los toques). */
+    var self = this; (this._hilosPend = this._hilosPend || {})[rid] = { lista: lista, hitos: hitos, ts: Date.now() };
+    clearTimeout(this._hilosGT);
+    this._hilosGT = setTimeout(function () {
+      var pend = self._hilosPend; self._hilosPend = {};
+      try {
+        var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.assign(o, pend);
+        var ks = Object.keys(o).sort(function (x, y) { return (o[y].ts || 0) - (o[x].ts || 0); }); ks.slice(40).forEach(function (k) { delete o[k]; });
+        localStorage.setItem("sa_alma_hilos", JSON.stringify(o));
+      } catch (e) {}
+    }, 3000);
   }
   /* Precarga de a uno (el Apps Script rechaza ráfagas); un reintento por hilo y nunca deja un error fijo. */
   hiloPrefetch() {
@@ -3461,7 +3472,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22o";
+  BUILD = "2026-10-22p";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3486,7 +3497,8 @@ class Component extends DCLogic {
     if (ya && !forzar) return false;
     var act = document.activeElement, escribiendo = !!act && (act.tagName === "TEXTAREA" || act.tagName === "INPUT" || act.isContentEditable);
     var dr = this._respDraft || {}, hayDraft = Object.keys(dr).some(function (x) { return String(dr[x] || "").trim(); });
-    var quieto = Date.now() - Math.max(this._actTs || 0, this._tocadoTs || 0) > 45000, recienVuelve = !!this._volvioLargo && Date.now() - this._volvioLargo < 8000;
+    /* Por estar quieto solo se recarga en el inicio; dentro de ALMA (leyendo una conversación) solo al volver de segundo plano. */
+    var quieto = this.state.vista === "hub" && Date.now() - Math.max(this._actTs || 0, this._tocadoTs || 0) > 45000, recienVuelve = !!this._volvioLargo && Date.now() - this._volvioLargo < 8000;
     var abierto = !!(this.state.razon || this.state.rvhK || this.state.infoSheet || this.state.ctrlAbierto || this.state.lightbox);
     if (!forzar && (escribiendo || hayDraft || abierto || !(quieto || recienVuelve || document.visibilityState === "hidden"))) return false;
     try { sessionStorage.setItem(k, "1"); } catch (e) {}
@@ -5493,7 +5505,7 @@ class Component extends DCLogic {
     };
     if (!window.ALMA) { listo(this.almaDemo(), "Datos de muestra"); return; }
     var horaGT = function () { return new Date().toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); };
-    if (!this._cargaT) this._cargaT = setTimeout(function () { self._vivoFallo = true; self.forceUpdate(); }, 15000);
+    if (!this._cargaT) this._cargaT = setTimeout(function () { if (self._vivoTs) return; self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); }, 15000);
     /* 1. Al abrir: la última lectura guardada en este dispositivo se pinta al instante. */
     if (!this.state.alma && !this._cacheLeido) {
       this._cacheLeido = true;
@@ -5531,15 +5543,20 @@ class Component extends DCLogic {
       return;
     }
     ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12)).then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
-      if (!l || !l.ok) { self._vivoFallo = true; self.forceUpdate(); return; }
+      if (!l || !l.ok) { self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); return; }
       if (seq < (self._vivoSeq || 0)) return; vivo = l; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
+      self._basePend = false;
       if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }
-    }).catch(function () { self._vivoFallo = true; self.forceUpdate(); });
+    }).catch(function () { self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); });
     ALMA.readAll().then(function (d) {
       if (!d.control.length && !d.cola.length && !d.log.length) throw new Error("vacía");
       if (seq < (self._baseSeq || 0)) return; self._baseSeq = seq;
       self._baseTs = Date.now();
-      base = d; listo(unir(), (vivo ? "En vivo · " : "Hoja de ALMA · ") + horaGT()); guardar();
+      base = d;
+      /* Si ya hay algo en pantalla (última lectura), la hoja sola no lo reemplaza: trae menos conversaciones y sin fotos, y la lista
+         cambiaba dos veces debajo del dedo. Espera a lo vivo; solo si lo vivo falla se pinta la hoja. */
+      if (!vivo && !self._vivoFallo && self.state.alma && !self.state.alma._demo) { self._basePend = true; return; }
+      listo(unir(), (vivo ? "En vivo · " : "Hoja de ALMA · ") + horaGT()); guardar();
     }).catch(function () {
       self._baseFallo = true;
       if (vivo || (self.state.alma && !self.state.alma._demo)) { self.setState({ almaCargando: false }); return; }
@@ -7176,6 +7193,21 @@ class Component extends DCLogic {
       self.hiloPrefetch();
     }
     if (ordenEf === "Cronológico") { grupos.sort(function (x, y) { return (y.ts || 0) - (x.ts || 0); }); gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; }); }
+    /* Con una conversación abierta el orden se congela: lo que llega en vivo se agrega al final y lo que se resuelve o sale
+       del filtro se queda en su lugar hasta volver a la lista. Así nada se corre debajo del dedo ni aparece otra conversación. */
+    if (st.cronoLista === false) {
+      var fzK = [verN, ordenEf, st.convSolo || "", st.convCanal || "", st.convVista || "", st.convBusca || "", st.logQuien || "", st.logResp || "", st.mVista || ""].join("|"), fz = this._ordenFz;
+      if (fz && fz.k === fzK) {
+        var porK = {}, vistoK = {}, fzOut = [];
+        grupos.forEach(function (g) { porK[g.key] = g; });
+        fz.keys.forEach(function (k) { var g = porK[k] || fz.obj[k]; if (g && !vistoK[k]) { fzOut.push(g); vistoK[k] = 1; } });
+        grupos.forEach(function (g) { if (!vistoK[g.key]) fzOut.push(g); });
+        grupos = fzOut; gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; });
+        this._convGrupos = grupos; this._convTotal = grupos.length;
+      }
+      var fzObj = {}; grupos.forEach(function (g) { fzObj[g.key] = g; });
+      this._ordenFz = { k: fzK, keys: grupos.map(function (g) { return g.key; }), obj: fzObj };
+    } else this._ordenFz = null;
     if (st.abrirPend) {
       var gp = st.abrirPend, jp = gIdx[gp];
       if (jp == null) {

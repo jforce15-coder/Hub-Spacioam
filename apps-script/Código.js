@@ -4259,7 +4259,15 @@ function hiloConv_(convId, hiloCliente) {
     /* Consulta: si ya se convirtió en reserva (mismo conversation_id), el hilo completo —incluida la etapa de consulta— sale
        de la reserva. Si no, solo lo guardado (Hospitable no expone GET de mensajes de una consulta). */
     let r = { code: 0 };
-    if (inq) { const res = reservaDeConsulta_(uid); if (res) r = hosp_('get', '/reservations/' + res + '/messages'); }
+    if (inq) {
+      const res = reservaDeConsulta_(uid);
+      if (res) r = hosp_('get', '/reservations/' + res + '/messages');
+      else {
+        /* La API v2 sí entrega el historial de la consulta con include=messages (automáticos de Hospitable incluidos). */
+        const ri = hosp_('get', '/inquiries/' + uid + '?include=messages');
+        if (ri.code === 200 && ri.json && ri.json.data && Array.isArray(ri.json.data.messages)) r = { code: 200, json: { data: ri.json.data.messages } };
+      }
+    }
     else r = hosp_('get', '/reservations/' + uid + '/messages');
     if (r.code === 200 && inq) {
       /* Consulta: lo de Hospitable + lo que ALMA guardó por webhook, sin duplicados. */

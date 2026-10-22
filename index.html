@@ -2187,7 +2187,7 @@
             <sc-if value="{{ rz.hayTexto }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; flex-direction:column; gap:2px">
                 <div style="padding:12px 14px; font-size:13.5px; line-height:1.6; white-space:pre-wrap; text-wrap:pretty; color:#3E3F3F; border-radius: {{ rz.burbujaRadio }}; background: {{ rz.burbujaBg }}; border: {{ rz.burbujaBd }}">{{ rz.texto }}</div>
-                <sc-if value="{{ rz.usar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ rz.copiar }}" style="align-self:flex-end; display:inline-flex; align-items:center; gap:6px; border:none; background:transparent; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer; min-height:40px; padding:0 4px" style-hover="color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="currentColor" hint-size="13px,13px"></x-import>Enviar mensaje</button></sc-if>
+                <sc-if value="{{ rz.usar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ rz.copiar }}" style="align-self:stretch; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; margin-top:8px; padding:0 20px; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.97)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#FAFAFA" hint-size="13px,13px"></x-import>Enviar mensaje</button></sc-if>
                 <sc-if value="{{ rzPuedeBorrar }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end">
                     <a href="{{ rzBorrarUrl }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#C0392B; text-decoration:none"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="trash" size="13" color="#C0392B" hint-size="13px,13px"></x-import>Eliminar en Airbnb</a>
@@ -3461,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22m";
+  BUILD = "2026-10-22n";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -7349,7 +7349,7 @@ class Component extends DCLogic {
     }
     if (rz) { var ridRz = (rc && rc.resId) || RZ.resId || "", txRz = String(rz.texto || "");
       /* Mensaje que no salió: «Usar este mensaje» lo pasa al cuadro de texto de la conversación para mandarlo tal cual o mejorarlo. */
-      rz.puedeEnviar = false; rz.usar = !!(rz.noEnviado && txRz.trim()); 
+      rz.puedeEnviar = false; rz.usar = !!(txRz.trim() && (rz.noEnviado || (rc && !rc.enviado) || RZ.tipo === "nota")); 
       rz.enviar = function () { self.rzEnviar(ridRz, txRz, false); }; rz.editar = function () { self.rzEnviar(ridRz, txRz, true); };
       if (rz.usar) rz.copiar = rz.editar; }
     var mesk = window.matchMedia && matchMedia("(max-width:1179px)").matches;

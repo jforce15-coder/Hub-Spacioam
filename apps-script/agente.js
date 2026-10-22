@@ -19,6 +19,7 @@ var SEMILLA_SECRETARIA_ = [
   '· Los mensajes que escribes al equipo deben ser concretos y accionables: quién eres (si no te conocen: «Soy Alma, la asistente virtual de Spacio AM»), de parte de quién, para qué, y qué necesitas que haga y cuándo. Nada de mensajes vagos o de cortesía vacía.',
   '· Si el administrador quiere que hables con alguien (presentarte, explicar algo, hacerle preguntas, validar información) y no puedes llamar, usa encargar_conversacion: le escribes por WhatsApp pidiéndole que llame a la línea de ALMA (+502 3128 0966) y, cuando llame, cumplirás el objetivo y le enviarás el resumen al administrador. Incluye en el objetivo todo lo que te pidió (temas, preguntas).',
   '· Con el equipo eres directa y dinámica: es tu equipo, no un huésped.',
+  '· Temas personales del administrador (escribirle a un familiar, amigo o cualquier persona fuera del negocio): usa mensaje_personal. Ahí eres «Alma, la asistente de Juan», nunca Spacio AM. Para llamadas salientes todavía no tienes herramienta: dilo y ofrece el mensaje.',
   '· En este chat, cuando te nombran a alguien («Gabriel», «Joselyn», «Selvin») se trata de alguien del EQUIPO (administración, técnicos, limpieza, mantenimiento, proveedores): búscalo con las herramientas del equipo, no entre huéspedes, y no pidas su número (las herramientas lo tienen). Solo si no aparece en el equipo o el contexto lo indica, pregunta si es un huésped.',
   '· Cuando le pidas algo a alguien del equipo y haya que hacer algo con su respuesta (ej. «cuando te mande el código, envíaselo al huésped»), usa escribir_a_equipo con al_responder describiendo exactamente qué hacer, con todos los datos (reserva, huésped, formato del mensaje). Así queda como encargo y lo cumples cuando responda, aunque sea otro día.',
   '· Si en ENCARGOS PENDIENTES CONTIGO hay algo y este mensaje es la respuesta (ej. te mandan un código), cúmplelo de inmediato con tus herramientas, ciérralo con cerrar_encargo y agradécele en una línea. No le preguntes de qué se trata: ya lo sabes.',
@@ -88,6 +89,8 @@ function agHerramientas_() {
       { propiedad: s('Nombre o parte del nombre'), dato: s('El dato, como hecho claro (máx. 30 palabras)'), alcance: { type: 'string', enum: ['apartamento', 'edificio'] }, dias: { type: 'number', description: 'Opcional: si es temporal, cuántos días vale' } }, ['propiedad', 'dato']),
     T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('calcular_distancia', 'Tiempo en carro y caminando desde una propiedad hasta un lugar (USAC, aeropuerto, un centro comercial, el parque central…). Responde en minutos; caminando solo cuenta si son 15 min o menos.', { propiedad: s('Nombre o parte del nombre de la propiedad'), destino: s('Lugar, con ciudad si ayuda') }, ['propiedad', 'destino']),
+    T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp. Te presentas como Alma, la asistente de Juan; nunca menciones Spacio AM. Si la persona no ha escrito en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, cuando responda, este mensaje. Lo que la persona conteste le llega al administrador.',
+      { persona: s('Nombre de la persona (si lo sabes)'), numero: s('Número de WhatsApp con código de país; si ya le escribiste antes por este medio, basta el nombre'), texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»), sin mencionar Spacio AM') }, ['texto']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];
@@ -145,10 +148,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var cE = CacheService.getScriptCache(), kE = 'agwa_' + fin8_(p.tel);
       if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí.' };
       cE.put(kE, '1', 180);
-      var ok = true; try { waEnviar_(normTel_(p.tel), String(inp.texto)); } catch (e) { ok = false; }
-      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : 'no salió' });
+      var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), ok = !!rw.ok;
+      if (!ok) cE.remove(kE);
+      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
       if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
-      return ok ? { ok: true, enviado_a: p.nombre, nota: 'Si no le había escrito en 24 h, WhatsApp puede no entregarlo; avísale por otro medio si es urgente.' } : { error: 'No se pudo enviar.' };
+      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó el mensaje de primer contacto pidiéndole que responda; el mensaje completo se le envía en cuanto responda.' : 'Entregado a WhatsApp.' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
     }
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), quienR = inp.persona ? opMatch_(inp.persona, cfg.vendors.map(vendNombre_)) : '';
@@ -191,10 +195,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'encargar_conversacion': {
       var pe = agPersona_(inp.persona, ctx) || (normTel_(inp.persona) ? { nombre: '+' + normTel_(inp.persona), tel: normTel_(inp.persona) } : null);
       if (!pe) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
-      var okE = true; try { waEnviar_(normTel_(pe.tel), String(inp.mensaje)); } catch (e) { okE = false; }
+      var rwE = waEnviarAlguien_(pe.tel, String(inp.mensaje), { nombre: pe.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), okE = !!rwE.ok;
       var idE = encargoCrear_(adm, pe.nombre, normTel_(pe.tel), String(inp.objetivo));
-      ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : 'el WhatsApp no salió' });
-      return { ok: okE, encargo: idE, persona: pe.nombre, nota: okE ? 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' : 'Guardé el encargo pero el WhatsApp no salió; puede que no haya escrito en 24 h.' };
+      ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : (rwE.error || 'el WhatsApp no salió') });
+      return { ok: okE, encargo: idE, persona: pe.nombre, nota: !okE ? 'Guardé el encargo pero el WhatsApp no salió: ' + (rwE.error || '') : rwE.modo === 'plantilla' ? 'No había escrito al número de ALMA en 24 h: le llegó el mensaje de primer contacto; en cuanto responda le envío tu mensaje y sigo con el encargo.' : 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' };
     }
     case 'cerrar_encargo': {
       var rE = encargoCerrar_(String(inp.id), String(inp.resultado || ''), adm);
@@ -225,6 +229,14 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var flD = leerTabla_(CFG.TAB_PROPIEDADES).map(function (r) { return r.property_name; }).filter(Boolean);
       var pD = flD.filter(function (x) { return n(x) === n(inp.propiedad); })[0] || bqMejor_(inp.propiedad, flD) || inp.propiedad;
       var rD = distanciaCalcular_(pD, inp.destino); return rD.error ? rD : Object.assign({ propiedad: pD, frase: distanciaFrase_(rD) }, rD);
+    }
+    case 'mensaje_personal': {
+      var relP = !inp.numero && inp.persona ? personalPorNombre_(inp.persona) : null;
+      var numP = normTel_(inp.numero || (relP && relP.wa) || '');
+      if (!numP) return { error: 'Necesito el número de WhatsApp de ' + (inp.persona || 'esa persona') + ' (con código de país).' };
+      var rp = personalEnviar_(adm, inp.persona || (relP && relP.nombre) || '', numP, String(inp.texto));
+      ctx.hechas.push({ tipo: 'mensaje', resumen: 'Personal · ' + (inp.persona || '+' + numP) + ' · ' + String(inp.texto).slice(0, 80), error: rp.ok ? '' : rp.error });
+      return rp.ok ? { ok: true, nota: rp.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?». En cuanto responda le envío el mensaje, y lo que conteste te llega.' : 'Mensaje entregado a WhatsApp. Lo que conteste te llega.' } : { error: rp.error };
     }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }

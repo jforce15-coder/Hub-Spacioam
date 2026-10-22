@@ -2275,17 +2275,19 @@ function deTurno_(fecha) {
     return (min >= a && tieneDia(p, dia)) || (min < b && tieneDia(p, ayer));   // cruza la medianoche
   });
 }
+/* Devuelve { ok, error } (antes no devolvía nada y quien llamaba no sabía si Meta lo rechazó). */
 function waEnviar_(numero, texto) {
   const p = PropertiesService.getScriptProperties();
   const token = p.getProperty('WA_TOKEN'), phoneId = p.getProperty('WA_PHONE_ID');
-  if (!token || !phoneId || !numero) return;
+  if (!token || !phoneId || !numero) return { ok: false, error: 'sin configuración o sin número' };
   try {
     const r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token },
       payload: JSON.stringify({ messaging_product: 'whatsapp', to: String(numero).replace(/\D/g, ''), type: 'text', text: { body: String(texto).slice(0, 4000) } })
     });
-    if (r.getResponseCode() >= 300) console.error('WhatsApp ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 300));
-  } catch (e) { console.error('WhatsApp: ' + e); }
+    if (r.getResponseCode() >= 300) { console.error('WhatsApp ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 300)); return { ok: false, error: r.getContentText().slice(0, 300) }; }
+    return { ok: true };
+  } catch (e) { console.error('WhatsApp: ' + e); return { ok: false, error: String(e) }; }
 }
 /* Escala a quien esté de turno ahora (correo + WhatsApp si está configurado). Sin nadie de turno → correo de alertas. */
 function escalar_(asunto, texto) {
@@ -3991,6 +3993,7 @@ function waWebhook_(body) {
 function waEntrante_(m, nombre) {
   const wa = s_(m.from).replace(/\D/g, ''); if (!wa || !m.id) return;
   const cache = CacheService.getScriptCache(); if (cache.get('wa_' + m.id)) return; cache.put('wa_' + m.id, '1', 21600);
+  try { waPendienteSoltar_(wa); } catch (e) { console.error('waPendienteSoltar_: ' + e); }   // respondió a la plantilla de primer contacto (contacto.js)
   const T = { image: '[envió una imagen]', audio: '[envió una nota de voz]', video: '[envió un video]', document: '[envió un documento]', sticker: '[sticker]', contacts: '[compartió un contacto]', reaction: '', unsupported: '[Mensaje que WhatsApp no deja leer aquí: suele ser un código de verificación o un mensaje con botones. Ábrelo en el teléfono]', system: '[aviso de WhatsApp: cambio de número o de cuenta]', order: '[envió un pedido del catálogo]', request_welcome: '[abrió el chat]' };
   let texto = '';
   if (m.type === 'text') texto = s_(m.text && m.text.body);
@@ -4042,6 +4045,9 @@ function waEntrante_(m, nombre) {
   }
   /* Recepción de un edificio (le mandamos los registros desde este número): no es un huésped. Se guarda, se ve en el Hub
      y ALMA recuerda que el canal oficial es el grupo o Juan / Gabriel (recepcion.js). */
+  /* Contacto personal de un administrador (mensaje_personal): lo que responda se le reenvía a él, no entra como huésped. */
+  const pers = !prueba && !esJuan && !esEquipo ? personalDe_(wa) : null;
+  if (pers) { personalEntrante_(wa, nombre, texto, ts, media, s_(m.id), pers); return; }
   const recep = !prueba && !esJuan && !esEquipo ? recepcionDe_(wa) : null;
   if (recep) { recepcionEntrante_(wa, nombre, texto, ts, media, s_(m.id), recep); return; }
   /* Chat operativo: un administrador registrado escribe → su chat con ALMA, fuera de la lista general. */
@@ -4812,6 +4818,9 @@ function dsBotApi_(body) {
       case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
       case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
       case 'recepcion_estado': return json_(recepcionEstado_());
+      case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
+      case 'personal_plantilla': return json_(personalPlantillaCrear_());
+      case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), personal: (CacheService.getScriptCache().remove('tpl_personal'), personalPlantillaOk_()), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
       case 'recepcion_probar': return json_(body.enviarYa || body.soloA ? recepcionEnviar_(String(body.code || ''), body.soloA || '') : recepcionEncolar_({ code: body.code, force: true }));
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua

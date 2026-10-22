@@ -3461,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22l";
+  BUILD = "2026-10-22m";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5452,6 +5452,12 @@ class Component extends DCLogic {
       ]
     };
   }
+  /* La bandeja viva trae solo lo reciente: lo nuevo manda y lo anterior se conserva por conversación. */
+  unirInbox(nuevas, prev) {
+    if (!nuevas) return prev || [];
+    var vistos = {}; nuevas.forEach(function (r) { if (r && r.conv_id) vistos[r.conv_id] = 1; });
+    return nuevas.concat((prev || []).filter(function (r) { return r && r.conv_id && !vistos[r.conv_id]; })).slice(0, 400);
+  }
   /* Lo vivo trae solo la ventana reciente: se completa con lo anterior que ya se tenía (lectura completa), sin duplicar. */
   unirVentana(vivas, base, campo) {
     if (!base || !base.length) return vivas;
@@ -5494,7 +5500,7 @@ class Component extends DCLogic {
     var unir = function () {
       var d = Object.assign({}, base || self.state.alma || {});
       var a0 = self.state.alma;
-      if (vivo && vivo.ok) { if (vivo.cola) d.cola = self.unirVentana(vivo.cola, d.cola, "recibido"); if (vivo.log && vivo.log.length) d.log = self.unirVentana(vivo.log, d.log, "fecha"); d.inbox = vivo.inbox || d.inbox || []; if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
+      if (vivo && vivo.ok) { if (vivo.cola) d.cola = self.unirVentana(vivo.cola, d.cola, "recibido"); if (vivo.log && vivo.log.length) d.log = self.unirVentana(vivo.log, d.log, "fecha"); d.inbox = self.unirInbox(vivo.inbox, d.inbox); if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
       /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes (ni las marcas de resuelta en vivo). */
       else if (a0 && self._vivoTs && Date.now() - self._vivoTs < 300000) { d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; d.resueltasVivo = a0.resueltasVivo; }
       return d;
@@ -5509,7 +5515,7 @@ class Component extends DCLogic {
         if (l.same) { self._vivoTs = Date.now(); if (self.state.almaCargando) self.setState({ almaCargando: false }); return; }
         if (l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
         if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
-        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = self.unirVentana(l.cola, d.cola, "recibido"); if (l.log && l.log.length) d.log = self.unirVentana(l.log, d.log, "fecha"); d.inbox = l.inbox || d.inbox || []; if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
+        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = self.unirVentana(l.cola, d.cola, "recibido"); if (l.log && l.log.length) d.log = self.unirVentana(l.log, d.log, "fecha"); d.inbox = self.unirInbox(l.inbox, d.inbox); if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
         listo(d, "En vivo · " + horaGT()); guardar();
       }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
       return;

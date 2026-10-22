@@ -3644,6 +3644,11 @@ function hubCola_(horas, hashPrev) {
   const cola = tail(CFG.TAB_COLA, 300);
   /* El texto del huésped ya viaja en la fila: no se repite dentro de datos. */
   cola.forEach(r => { if (r.datos && r.datos.length > 200) { try { const d = JSON.parse(r.datos); delete d.texto; r.datos = JSON.stringify(d); } catch (e) {} } });
+  /* Bandeja liviana: solo lo que tuvo movimiento en la ventana (o tiene una promesa abierta), con los textos recortados.
+     Lo anterior el Hub ya lo tiene y lo conserva (unirInbox). */
+  const corto = (t, n) => { t = String(t || ''); return t.length > n ? t.slice(0, n) + '…' : t; };
+  inbox = inbox.filter(o => Math.max(actividadInbox_(o), Date.parse(o.actualizado) || 0, Date.parse(o.revisado_ts) || 0) >= lim || o.promesa_estado === 'abierta' || o.promesa_estado === 'vencida')
+    .map(o => { const x = Object.assign({}, o); x.ultimo_texto = corto(o.ultimo_texto, 400); x.ultimo_auto_texto = corto(o.ultimo_auto_texto, 500); x.revision_razon = corto(o.revision_razon, 200); return x; });
   const out = { ok: true, cola: cola, log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk };
   /* Huella del contenido: si el Hub ya tiene exactamente esto, se responde «sin cambios» (unos bytes) y no repinta nada. */
   const huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(out), Utilities.Charset.UTF_8));

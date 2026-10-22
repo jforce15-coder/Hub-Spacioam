@@ -510,5 +510,19 @@ function _diagAlternos(token){
     else if(prin[m[a]]) r.llevan_a_usuario++; else r.principal_sin_usuario++;
     if(alt[a]) r.ya_en_alterno++;
   });
-  return {ok:true, mi:r};
+  // Socios cuyo correo principal de Mi no existe en el login: código de socio y propiedades (sin correos).
+  var sinUsuario=[];
+  try{
+    var data=SpreadsheetApp.openById(MI_SETUP_ID).getSheetByName('SETUP').getDataRange().getValues(), h=data[0].map(function(x){ return String(x).trim().toLowerCase(); });
+    var cp=h.indexOf('user email'), cu=h.indexOf('usuario id'), cn=h.indexOf('property_name'), porSocio={};
+    if(cn<0) cn=h.indexOf('property name');
+    for(var i=1;i<data.length;i++){
+      var p=String(data[i][cp]||'').trim().toLowerCase(); if(p.indexOf('@')<0 || prin[p]) continue;
+      var k=String(data[i][cu]||'').trim()||'(sin código)'; porSocio[k]=porSocio[k]||{socio:k, propiedades:[], tiene_secundario:false};
+      var pn=String(data[i][cn]||'').trim(); if(pn && porSocio[k].propiedades.indexOf(pn)<0) porSocio[k].propiedades.push(pn);
+      if(Object.keys(m).some(function(a){ return m[a]===p; })) porSocio[k].tiene_secundario=true;
+    }
+    sinUsuario=Object.keys(porSocio).map(function(k){ return porSocio[k]; });
+  }catch(e){ sinUsuario=[{error:String(e)}]; }
+  return {ok:true, mi:r, socios_sin_usuario:sinUsuario};
 }

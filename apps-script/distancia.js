@@ -32,15 +32,21 @@ function distOrigen_(propiedad) {
   return m ? ps.filter(function (p) { return p.n === m; })[0] : null;
 }
 function distMin_(seg) { return Math.max(1, Math.round(seg / 60)); }
+/* Google Routes API (la Distance Matrix clásica ya no se puede activar en proyectos nuevos). */
 function distGoogle_(o, destino, key) {
-  var base = 'https://maps.googleapis.com/maps/api/distancematrix/json?language=es&region=gt&origins=' + o.lat + ',' + o.lng + '&destinations=' + encodeURIComponent(destino + ', Guatemala') + '&key=' + key;
-  var a = JSON.parse(UrlFetchApp.fetch(base + '&mode=driving&departure_time=now', { muteHttpExceptions: true }).getContentText() || '{}');
-  var e = a.rows && a.rows[0] && a.rows[0].elements && a.rows[0].elements[0];
-  if (!e || e.status !== 'OK') return null;
-  var w = JSON.parse(UrlFetchApp.fetch(base + '&mode=walking', { muteHttpExceptions: true }).getContentText() || '{}');
-  var ew = w.rows && w.rows[0] && w.rows[0].elements && w.rows[0].elements[0];
-  return { carro: distMin_((e.duration_in_traffic || e.duration).value), caminando: ew && ew.status === 'OK' ? distMin_(ew.duration.value) : null,
-    lugar: String((a.destination_addresses || [])[0] || destino), fuente: 'Google Maps (tráfico actual)' };
+  var pedir = function (modo) {
+    var cuerpo = { origins: [{ waypoint: { location: { latLng: { latitude: o.lat, longitude: o.lng } } } }],
+      destinations: [{ waypoint: { address: destino + ', Guatemala' } }], travelMode: modo, languageCode: 'es', regionCode: 'GT' };
+    if (modo === 'DRIVE') cuerpo.routingPreference = 'TRAFFIC_AWARE';
+    var r = UrlFetchApp.fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'duration,condition,status' }, payload: JSON.stringify(cuerpo) });
+    var j = JSON.parse(r.getContentText() || '[]'); if (!Array.isArray(j)) { console.error('Routes API: ' + r.getContentText().slice(0, 300)); return null; }
+    var e = j[0]; if (!e || e.condition !== 'ROUTE_EXISTS' || !e.duration) return null;
+    return parseInt(String(e.duration), 10) || null;
+  };
+  var carro = pedir('DRIVE'); if (!carro) return null;
+  var pie = pedir('WALK');
+  return { carro: distMin_(carro), caminando: pie ? distMin_(pie) : null, lugar: destino, fuente: 'Google Maps (tráfico actual)' };
 }
 function distOSM_(o, destino) {
   var d = 0.35, vb = (o.lng - d) + ',' + (o.lat + d) + ',' + (o.lng + d) + ',' + (o.lat - d);

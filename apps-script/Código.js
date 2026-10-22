@@ -4772,6 +4772,8 @@ function dsBotApi_(body) {
       case 'grow': return json_(growApi_(String(body.op || 'resumen'), body.datos || {}));
       case 'diag_vel': return json_(diagVelocidad_());
       case 'archivar': { if (body.auto != null) PropertiesService.getScriptProperties().setProperty('ARCHIVO_AUTO', body.auto ? '1' : '0'); return json_(archivar_(body.seco !== false)); }
+      case 'memoria_lista': return json_(memoriaResumen_());
+      case 'memoria_limpiar_pins': return json_(memoriaLimpiarPins_());
       case 'memoria_aprender': return json_({ ok: true, guardados: memoriaAprender_() });
       case 'memoria_ver': return json_(Object.assign({ ok: true }, memoriaVer_(String(body.propiedad || ''))));
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat

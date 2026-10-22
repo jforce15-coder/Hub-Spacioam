@@ -120,6 +120,7 @@ function doPost(e) {
     if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
+    if (body.recepcion) return json_(recepcionEncolar_(body));   // Hola: registro enviado → ALMA manda el PDF a la recepción (recepcion.js)
 
     const clave = props.getProperty('WEBHOOK_KEY');
     if (clave && (!e || !e.parameter || e.parameter.k !== clave)) return ok_('ignorado: clave');
@@ -684,6 +685,7 @@ function procesarColaPronto() {
 function procesarCola() {
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
+  try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
@@ -4038,6 +4040,10 @@ function waEntrante_(m, nombre) {
     log_({ resId: 'wa:' + wa, huesped: nombre || '+' + wa, propiedad: 'WhatsApp · Mensaje del sistema', canal: 'whatsapp', nivel: 'SILENCIO', texto: texto, razon: 'mensaje del sistema de WhatsApp / Meta: no se clasifica ni se responde' }, '', 'SISTEMA · no se responde');
     return;
   }
+  /* Recepción de un edificio (le mandamos los registros desde este número): no es un huésped. Se guarda, se ve en el Hub
+     y ALMA recuerda que el canal oficial es el grupo o Juan / Gabriel (recepcion.js). */
+  const recep = !prueba && !esJuan && !esEquipo ? recepcionDe_(wa) : null;
+  if (recep) { recepcionEntrante_(wa, nombre, texto, ts, media, s_(m.id), recep); return; }
   /* Chat operativo: un administrador registrado escribe → su chat con ALMA, fuera de la lista general. */
   /* Cualquier número registrado de un administrador (o el de Juan) va a su chat operativo, aunque no esté en WA_EQUIPO. */
   const admOp = !prueba && opActivo_() ? (adminPorTel_(wa) || (esJuan ? (adminsOp_().find(a => a.principal) || null) : null)) : null;
@@ -4804,6 +4810,10 @@ function dsBotApi_(body) {
       case 'decisiones': return json_({ ok: true, propuestas: dsFilas_().filter(r => String(r.estado) === 'decidida').map(r => ({ id: String(r.id), decision: String(r.decision), nota: String(r.nota || ''), quien: String(r.quien || ''), propuesta: dsParse_(r.json) })) });
       case 'todas': return json_(dsPropuestas_());
       case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
+      case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
+      case 'recepcion_estado': return json_(recepcionEstado_());
+      case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
+      case 'recepcion_probar': return json_(body.enviarYa ? recepcionEnviar_(String(body.code || '')) : recepcionEncolar_({ code: body.code, force: true }));
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
         const p = PropertiesService.getScriptProperties();
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });

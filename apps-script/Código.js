@@ -50,7 +50,7 @@ const CFG = {
   VENTANA_INICIO: 19,          // 19:00
   VENTANA_FIN: 4,              // 04:00  (en SOMBRA se procesa 24 h)
 
-  AGRUPAR_SEG: 30,             // silencio del huésped antes de procesar su turno
+  AGRUPAR_SEG: 15,             // silencio del huésped antes de procesar su turno (antes 30)
   ESPERA_SIN_SALIENTE_SEG: 180,// reserva nueva sin ningún mensaje nuestro: esperar al automático
   DELAY_MIN_SEG: 20,           // AUTO: espera "humana" antes de enviar
   DELAY_MAX_SEG: 60,
@@ -98,7 +98,7 @@ const NIVELES = ['VERDE', 'AMARILLO', 'ROJO', 'SILENCIO'];
 const NUM_KEYS = ['AGRUPAR_SEG', 'ESPERA_SIN_SALIENTE_SEG', 'DELAY_MIN_SEG', 'DELAY_MAX_SEG', 'ESPERA_ROJO_SEG', 'MIN_EQUIPO_ACTIVO', 'CONTENCION_HORAS', 'APRENDER_MIN', 'EMERGENCIA_MIN', 'CODIGO_REVISION_MIN', 'INQUIRY_ESPERA_MIN'];
 let CTRL_NUM_ = null;
 /* Topes de velocidad: aunque la hoja tenga valores altos, ALMA clasifica en ≤ 1 min y envía en ≤ 2 min. */
-const TOPES_ = { AGRUPAR_SEG: 60, DELAY_MIN_SEG: 90, DELAY_MAX_SEG: 120 };
+const TOPES_ = { AGRUPAR_SEG: 15, DELAY_MIN_SEG: 90, DELAY_MAX_SEG: 120 };
 function cfg_(k) {
   if (!CTRL_NUM_) leerControl_(); const v = CTRL_NUM_[k];
   let x = (v != null && !isNaN(v)) ? v : CFG[k];
@@ -650,7 +650,7 @@ function doGet(e) {
    un "hola" o un fragmento corto sin cierre sí espera la ventana normal, porque casi siempre viene más. */
 function agruparSeg_(texto) {
   const t = String(texto || '').trim(), base = cfg_('AGRUPAR_SEG');
-  if (/[?？]\s*$/.test(t) || t.length >= 70 || /\[el huésped envió una imagen\]/.test(t) && t.length > 40) return Math.min(base, 15);
+  if (/[?？]\s*$/.test(t) || t.length >= 70 || /\[el huésped envió una imagen\]/.test(t) && t.length > 40) return Math.min(base, 8);
   return base;
 }
 function programarPronto_(texto) {
@@ -863,6 +863,9 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     marcarTodos('silencio', cls.razon);
     return log_(ctx, '', 'sin respuesta (acuse)');
   }
+
+  /* No puede entrar al formulario de Hola: se sincroniza Hola y se le avisa (holaacceso.js). */
+  if (holaAccesoAplica_(ctx)) { try { if (holaAccesoResolver_(ctx, pKey)) { otros.forEach(f => set_(sh, f, { estado: 'agrupado', nota: 'ver fila ' + lider.fila })); return set_(sh, lider, { estado: 'respondido', nota: 'acceso a Hola: sincronizado' }); } } catch (e) { console.error('holaAcceso: ' + e); } }
 
   if (ctx.nivel === 'ROJO') { paso_(pKey, 'Urgente · conteniendo al huésped y avisando al equipo', true); return manejarRojo_(sh, lider, otros, ctx); }
 

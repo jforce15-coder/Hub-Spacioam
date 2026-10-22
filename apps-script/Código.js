@@ -1220,7 +1220,7 @@ function contextoHosp_(resId, hilo, modo) {
     horaLocal: Utilities.formatDate(ahora_(), CFG.TZ, 'HH:mm'),
     momento: momento_(hoy, checkin, checkout),
     disponibilidad: disponibilidad_(nombreProp, checkin, checkout, codigo),
-    conocimiento: conocimiento_(nombreProp),
+    conocimiento: conocimiento_(nombreProp) + distanciaBloque_(nombreProp, turno.map(m => m.texto).join('\n')),
     reservaConfirmada: ['accepted', 'confirmed', 'checked_in', 'checkpoint'].some(x => estado.indexOf(x) !== -1),
     formStatus: (String(fila.status_form || '').toLowerCase() === 'completo' || (function () { try { return formsOk_().indexOf(String(fila.code || codigo || '').toUpperCase()) >= 0; } catch (e) { return false; } })()) ? 'completo' : 'pendiente',
     texto: turno.map(m => m.texto).join('\n'),
@@ -3472,7 +3472,7 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   const esperaMs = Math.max(0, Number(cfg_('INQUIRY_ESPERA_MIN')) || 12) * 60000;
   const prog = inquiryProgramado_(inf.uuid);
   if (!prog && desdeMs && Date.now() - desdeMs < esperaMs && !inqPrevio_('inq:' + inf.uuid)) return Object.assign(base, { esperar: true, nota: 'inquiry: esperando el automático de Hospitable' });
-  const ficha = infoPropiedad_(inf.propiedad, inf.idioma) || '', kb = conocimiento_(inf.propiedad) || '';
+  const ficha = infoPropiedad_(inf.propiedad, inf.idioma) || '', kb = (conocimiento_(inf.propiedad) || '') + distanciaBloque_(inf.propiedad, pregunta);
   const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR'),
     'PROPIEDAD: ' + (inf.propiedad || 'sin dato') + '\nFECHAS: ' + inf.checkin + ' → ' + inf.checkout +
     '\n\nFICHA:\n' + ficha + '\n\nBASE DE CONOCIMIENTO:\n' + kb + '\n\nMENSAJE DEL HUÉSPED:\n' + pregunta, 0);
@@ -4817,6 +4817,7 @@ function dsBotApi_(body) {
       case 'memoria_limpiar_pins': return json_(memoriaLimpiarPins_());
       case 'memoria_aprender': return json_({ ok: true, guardados: memoriaAprender_() });
       case 'memoria_ver': return json_(Object.assign({ ok: true }, memoriaVer_(String(body.propiedad || ''))));
+      case 'distancia': return json_(distanciaCalcular_(String(body.propiedad || ''), String(body.destino || '')));
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }

@@ -145,10 +145,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var cE = CacheService.getScriptCache(), kE = 'agwa_' + fin8_(p.tel);
       if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí.' };
       cE.put(kE, '1', 180);
-      var ok = true; try { waEnviar_(normTel_(p.tel), String(inp.texto)); } catch (e) { ok = false; }
-      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : 'no salió' });
+      var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), ok = !!rw.ok;
+      if (!ok) cE.remove(kE);
+      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
       if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
-      return ok ? { ok: true, enviado_a: p.nombre, nota: 'Si no le había escrito en 24 h, WhatsApp puede no entregarlo; avísale por otro medio si es urgente.' } : { error: 'No se pudo enviar.' };
+      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó el mensaje de primer contacto pidiéndole que responda; el mensaje completo se le envía en cuanto responda.' : 'Entregado a WhatsApp.' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
     }
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), quienR = inp.persona ? opMatch_(inp.persona, cfg.vendors.map(vendNombre_)) : '';
@@ -191,10 +192,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'encargar_conversacion': {
       var pe = agPersona_(inp.persona, ctx) || (normTel_(inp.persona) ? { nombre: '+' + normTel_(inp.persona), tel: normTel_(inp.persona) } : null);
       if (!pe) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
-      var okE = true; try { waEnviar_(normTel_(pe.tel), String(inp.mensaje)); } catch (e) { okE = false; }
+      var rwE = waEnviarAlguien_(pe.tel, String(inp.mensaje), { nombre: pe.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), okE = !!rwE.ok;
       var idE = encargoCrear_(adm, pe.nombre, normTel_(pe.tel), String(inp.objetivo));
-      ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : 'el WhatsApp no salió' });
-      return { ok: okE, encargo: idE, persona: pe.nombre, nota: okE ? 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' : 'Guardé el encargo pero el WhatsApp no salió; puede que no haya escrito en 24 h.' };
+      ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : (rwE.error || 'el WhatsApp no salió') });
+      return { ok: okE, encargo: idE, persona: pe.nombre, nota: !okE ? 'Guardé el encargo pero el WhatsApp no salió: ' + (rwE.error || '') : rwE.modo === 'plantilla' ? 'No había escrito al número de ALMA en 24 h: le llegó el mensaje de primer contacto; en cuanto responda le envío tu mensaje y sigo con el encargo.' : 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' };
     }
     case 'cerrar_encargo': {
       var rE = encargoCerrar_(String(inp.id), String(inp.resultado || ''), adm);

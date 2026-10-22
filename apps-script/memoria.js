@@ -29,7 +29,7 @@ function memoriaTexto_(propiedad) {
   if (!propiedad || propiedad === '*') return '';
   var m = memoriaDe_(propiedad); if (!m.length) return '';
   return '## Lo que el equipo enseñó sobre esta propiedad (memoria · lo más reciente manda si contradice la ficha)\n' + m.slice(-25).map(function (x) {
-    var cod = /c[oó]digo|clave|contrase/i.test(x.tema + ' ' + x.dato) && /\d{3,}/.test(x.dato);
+    var cod = /c[oó]digo|clave|contrase|pin\b/i.test(x.tema + ' ' + x.dato) && /\d{3,}/.test(x.dato) && !/locker|caja|buz[oó]n/i.test(x.tema + ' ' + x.dato);
     if (x.estado === 'por_confirmar') return '- [SIN CONFIRMAR: el equipo lo dijo una vez pero no coincide con la ficha; no lo afirmes, usa la ficha y si es clave pide confirmación al equipo] ' + x.dato;
     return '- ' + (cod ? '[ACCESO: compártelo solo cuando las reglas de códigos lo permitan] ' : '') + x.dato + (x.temporal === 'sí' ? ' (temporal, hasta ' + String(x.vence).slice(0, 10) + ')' : '') + ' · ' + String(x.fecha).slice(0, 10);
   }).join('\n');
@@ -43,8 +43,8 @@ var MEM_PROMPT_ = 'Eres la memoria de ALMA, la asistente de Spacio AM (alojamien
   'promesas de seguimiento, ni lo que ya dice la ficha o la memoria. Si dudas, no lo guardes.\n' +
   'alcance: «edificio» si aplica a todos los apartamentos del edificio (lobby, elevadores, parqueo, garita, normas del edificio); «apartamento» si es de esta unidad.\n' +
   'temporal: true si es algo pasajero (obra, corte, mantenimiento, cambio por unos días), con «dias» estimados de vigencia.\n' +
-  'CÓDIGOS Y CLAVES: los PIN de las cerraduras digitales y los códigos de acceso suelen ser distintos en cada reserva. NUNCA guardes un PIN, código de puerta, clave de caja o contraseña que el equipo le dio a ESTE huésped. ' +
-  'Sí guarda CÓMO se usa (p. ej. «palma sobre el teclado, código y luego el candado») y códigos fijos del EDIFICIO solo si el equipo dice que son fijos (p. ej. el locker general).\n' +
+  'CÓDIGOS: el código de la PUERTA DEL APARTAMENTO (cerradura digital) cambia con cada reserva: NUNCA lo guardes; sí guarda CÓMO se usa la cerradura (p. ej. «palma sobre el teclado, código y luego el candado»). ' +
+  'Los PIN de LOCKERS, cajas de llaves, portones o áreas del edificio suelen ser fijos: guárdalos con su tema («Locker», «Acceso edificio»).\n' +
   'ERROR HUMANO: el equipo escribe rápido y se equivoca en códigos, números, pisos, nombres y contraseñas. Para cada dato exacto (un código, un número, un nombre propio) compáralo con la FICHA y la MEMORIA: ' +
   'si coincide, «confianza»:"alta"; si no aparece en ninguna, «confianza»:"media"; si CONTRADICE la ficha o la memoria, o parece un error de dedo (un dígito cambiado, letras invertidas), «confianza»:"baja" y en «nota» explica qué dice cada fuente. ' +
   'Escribe los nombres tal como deberían ser (corrige errores obvios de ortografía, p. ej. «Brunello» → «Brunelo» si la ficha dice Brunelo).\n' +
@@ -72,9 +72,9 @@ function memoriaGuardar_(propiedad, datos, fuente, pregunta, respuesta, por) {
       return;
     }
     var dt = String(d.dato || '');
-    if (/\d{6,}/.test(dt.replace(/[\s-]/g, '')) && /c[oó]digo|pin|clave|contrase|puerta|cerradura/i.test(dt + ' ' + d.tema)) return;   // PIN de una reserva: no se guarda
-    var esCodigo = /c[oó]digo|pin\b|clave|contrase/i.test(dt + ' ' + d.tema) && /\d{3,}/.test(dt);
-    var estado = String(d.confianza) === 'baja' || (esCodigo && !por) ? 'por_confirmar' : 'activa';   // un código aprendido solo se activa si alguien del equipo lo confirma
+    var esPuerta = /puerta|cerradura|door|lock/i.test(dt + ' ' + d.tema) && !/locker|caja|buz[oó]n|port[oó]n|garita|edificio|lobby|parqueo|gimnasio|piscina/i.test(dt + ' ' + d.tema);
+    if (esPuerta && /\d{4,}/.test(dt.replace(/[\s-]/g, ''))) return;   // código de la puerta del apartamento: cambia con cada reserva, no se guarda
+    var estado = String(d.confianza) === 'baja' ? 'por_confirmar' : 'activa';   // lockers y accesos del edificio: fijos, se guardan
     var id = 'mp' + hoy.getTime() + Math.floor(Math.random() * 1000);
     sh.appendRow([id, hoy.toISOString(), propiedad, aplica, String(d.tema || 'Otro'), String(d.dato).trim().slice(0, 300), temporal ? 'sí' : 'no',
       temporal ? new Date(hoy.getTime() + dias * 86400000).toISOString() : '', estado, String(fuente || por || '') + (d.nota ? ' · ' + String(d.nota).slice(0, 200) : ''), String(pregunta || '').slice(0, 800), String(respuesta || '').slice(0, 800)]);
@@ -131,7 +131,8 @@ function memoriaLimpiarPins_() {
   var sh = hojaMem_(), n = 0;
   memFilas_().forEach(function (m) {
     if (m.estado.indexOf('activa') !== 0 && m.estado !== 'por_confirmar') return;
-    if (/\d{6,}/.test(m.dato.replace(/[\s-]/g, '')) && /c[oó]digo|pin|clave|contrase|puerta|cerradura/i.test(m.dato + ' ' + m.tema)) { sh.getRange(m.fila, MEM_CAB_.indexOf('estado') + 1).setValue('descartada · PIN de una reserva'); n++; }
+    var t = m.dato + ' ' + m.tema, puerta = /puerta|cerradura|door|lock/i.test(t) && !/locker|caja|buz[oó]n|port[oó]n|garita|edificio|lobby|parqueo/i.test(t);
+    if (puerta && /\d{4,}/.test(m.dato.replace(/[\s-]/g, ''))) { sh.getRange(m.fila, MEM_CAB_.indexOf('estado') + 1).setValue('descartada · código de puerta de una reserva'); n++; }
   });
   MEM_CACHE_ = null; return { ok: true, descartados: n };
 }

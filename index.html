@@ -1751,7 +1751,7 @@
                   <sc-if value="{{ c.hayWa }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verWa }}" aria-label="{{ c.waTitulo }}" title="{{ c.waTitulo }}" style="width:34px; height:34px; flex-shrink:0; border-radius:50%; border:1px solid {{ c.waBd }}; background:#FFFFFF; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.92)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ c.waColor }}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20.5l1.6-5.4A8.5 8.5 0 1 1 21 11.5z"/><path d="M9 9.5c.3 1.6 1.9 3.3 3.6 3.8l1-1 1.6.7-.4 1.4c-2.7.2-6.2-3-6.4-5.8l1.3-.5.9 1.5z" fill="{{ c.waColor }}" stroke="none"/></svg></button></sc-if>
                   <sc-if value="{{ c.hayRiesgo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verRiesgo }}" aria-label="Review del huésped · riesgo {{ c.riesgoLabel }}" title="Review del huésped · riesgo {{ c.riesgoLabel }}" class="{{ c.estrellaClase }}" style="position:relative; width:34px; height:34px; flex-shrink:0; border-radius:50%; border:1px solid {{ c.estrellaBd }}; background: {{ c.estrellaBg }}; display:inline-grid; place-items:center; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:border-color .18s, transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="star" size="14" color="#3E3F3F" hint-size="14px,14px"></x-import></button></sc-if>
                   <span style="flex:1 0 8px"></span>
-                  <sc-if value="{{ c.hayPreap }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.preaprobar }}" title="{{ c.preapTitulo }}" style="display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 11px; flex-shrink:0; white-space:nowrap; border:1px solid #E9826A; background:rgba(233,130,106,.12); color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.96)" style-active="transform:scale(.96)">Pre-aprobar<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#3E3F3F" hint-size="13px,13px"></x-import></button></sc-if>
+                  <sc-if value="{{ c.hayPreap }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.preaprobar }}" title="{{ c.preapTitulo }}" style="display:inline-flex; align-items:center; gap:6px; min-height:30px; padding:0 9px; flex-shrink:0; white-space:nowrap; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; border-radius:999px; font-family:inherit; font-size:9.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(.96)" style-active="transform:scale(.96)">Pre-aprobar<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#3E3F3F" hint-size="13px,13px"></x-import></button></sc-if>
                   <span style="flex-shrink:0; font-size:10.5px; letter-spacing:.03em; color:#938B8A; font-variant-numeric:tabular-nums; white-space:nowrap">{{ c.fecha }}</span>
                 </div>
                   <sc-if value="{{ c.clasificando }}" hint-placeholder-val="{{ false }}">
@@ -1867,7 +1867,7 @@
                     <sc-if value="{{ m.noHito }}" hint-placeholder-val="{{ true }}">
                     <div style="display:flex; flex-direction:column; gap:3px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) backwards; align-items: {{ m.align }}; margin-top: {{ m.gapTop }}">
                       <sc-if value="{{ m.diaHay }}" hint-placeholder-val="{{ false }}"><span role="separator" style="align-self:center; margin:8px 0 6px; padding:4px 12px; border-radius:999px; background:#F5F3F0; font-size:10.5px; font-weight:500; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ m.dia }}</span></sc-if>
-                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(82%,560px); padding:10px 14px; transition:background .36s cubic-bezier(.22,.61,.36,1), border-color .36s cubic-bezier(.22,.61,.36,1), color .36s cubic-bezier(.22,.61,.36,1); font-size:14px; line-height:1.5; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; overflow-wrap:anywhere; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}</div></sc-if>
+                      <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none; max-width:min(82%,560px); padding:10px 14px; transition:background .36s cubic-bezier(.22,.61,.36,1), border-color .36s cubic-bezier(.22,.61,.36,1), color .36s cubic-bezier(.22,.61,.36,1); font-size:14px; line-height:1.5; letter-spacing:.01em; white-space:pre-wrap; text-wrap:pretty; overflow-wrap:anywhere; border-radius: {{ m.radio }}; background: {{ m.bg }}; color: {{ m.fg }}; border:1px solid {{ m.bd }}">{{ m.texto }}<sc-if value="{{ m.plegable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.toggleVer }}" style="display:block; margin-top:6px; padding:0; border:none; background:transparent; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer">{{ m.verMasTxt }}</button></sc-if></div></sc-if>
                       <sc-if value="{{ m.hayFotos }}" hint-placeholder-val="{{ false }}">
                         <div style="display:flex; flex-wrap:wrap; gap:6px; max-width:min(92%,560px); justify-content: {{ m.align }}">
                           <sc-for list="{{ m.fotos }}" as="fotoMfotos" hint-placeholder-count="0">
@@ -2094,7 +2094,7 @@
                 <sc-if value="{{ m.abierto }}" hint-placeholder-val="{{ false }}">
                   <div style="border-top:1px solid #EAE6E0; background:#FAFAFA">
                     <sc-if value="{{ m.hayHtml }}" hint-placeholder-val="{{ false }}"><iframe title="Vista del correo" srcdoc="{{ m.html }}" style="display:block; width:100%; height:560px; border:0; background:#FAFAFA"></iframe></sc-if>
-                    <sc-if value="{{ m.soloTexto }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px; font-size:12px; line-height:1.6; color:#3E3F3F; white-space:pre-wrap">{{ m.texto }}</div></sc-if>
+                    <sc-if value="{{ m.soloTexto }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px; font-size:12px; line-height:1.6; color:#3E3F3F; white-space:pre-wrap">{{ m.texto }}<sc-if value="{{ m.plegable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ m.toggleVer }}" style="display:block; margin-top:6px; padding:0; border:none; background:transparent; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867; cursor:pointer">{{ m.verMasTxt }}</button></sc-if></div></sc-if>
                   </div>
                 </sc-if>
               </div>
@@ -3461,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22j";
+  BUILD = "2026-10-22k";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5976,6 +5976,7 @@ class Component extends DCLogic {
           radio: guest ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
           texto: self.limpiaImg(m.texto), hayTexto: !!self.limpiaImg(m.texto),
           hayFotos: (m.fotos || []).length > 0, fotos: (m.fotos || []).map(function (u) { return self.fotoVista(u); }),
+          plegable: false, verMasTxt: "", toggleVer: noop,
           bg: guest ? "#FFFFFF" : nota ? "#F5F3F0" : m.auto ? "#E4E0DA" : m.alma ? "rgba(59,102,145,.12)" : "rgba(233,130,106,.22)", fg: nota ? "#6F6867" : "#3E3F3F",
           bd: guest ? "#D8D4CE" : nota ? "#D8D4CE" : m.auto ? "#D8D4CE" : m.alma ? "rgba(59,102,145,.4)" : "rgba(233,130,106,.5)",
           meta: (guest ? (nombre || "Huésped") : nota ? "ALMA · no se envió · " + motivoNota(m._acc) : m.auto ? "Spacio AM · automático" : m.alma ? "ALMA" : "Equipo Spacio AM") + (m.canal === "whatsapp" ? " · por WhatsApp" : "") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created),
@@ -5991,6 +5992,17 @@ class Component extends DCLogic {
           it.fg = m._op === "enviando" ? "#6F6867" : "#3E3F3F";
           it.meta = m._op === "enviando" ? "Enviando…" : m._op === "fallo" ? "No se envió · tu texto volvió al editor" : "Enviado · " + fmtHora(m.created);
           it.metaFg = m._op === "fallo" ? "#C0392B" : "#6F6867";
+        }
+        /* Mensajes automáticos de Hospitable (largos): plegados con su título y el inicio; se expanden al tocar «Ver completo». */
+        if (m.auto && it.texto.length > 220) {
+          var kAu = (resIdN || "") + "|" + (m.created || "") + "|" + it.texto.slice(0, 24), abierto = !!(st.autoVer || {})[kAu];
+          var TIT_AU = { checkin: "Registro de llegada", checkout: "Instrucciones de salida", review: "Reseña", first_morning: "Primera mañana" };
+          var primera = it.texto.split(/\n/).filter(function (x) { return x.trim(); })[0] || "";
+          var titAu = TIT_AU[m.plantilla] || (primera.length <= 70 ? primera : "Mensaje automático");
+          var cuerpo = it.texto.replace(primera, "").replace(/\s+/g, " ").trim();
+          it.plegable = true; it.verMasTxt = abierto ? "Ver menos" : "Ver completo";
+          if (!abierto) it.texto = "▸ " + titAu + "\n" + (cuerpo.length > 140 ? cuerpo.slice(0, 138).trim() + "…" : cuerpo);
+          it.toggleVer = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.setState(function (s0) { var o = Object.assign({}, s0.autoVer || {}); o[kAu] = !o[kAu]; return { autoVer: o }; }); };
         }
         return Object.assign(it, it._lp);
       });
@@ -6894,7 +6906,9 @@ class Component extends DCLogic {
           c.verCal = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirInfo(rid, "cal"); };
           c.verIng = function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.abrirInfo(rid, "ing"); };
           var airbnb = /airbnb/i.test(String(ibc.canal || "") + String(c.canalNom || ""));
-          c.hayPreap = rid.indexOf("inq:") === 0 && !g.resuelto;
+          /* Hospitable pre-aprueba solo al enviar el primer automático de la consulta: si ya salió, no hay nada que pre-aprobar. */
+          var hInq = st.almaHilos[rid] && st.almaHilos[rid].lista, yaAuto = !!(hInq && hInq.some(function (m) { return m.tipo !== "guest" && m.auto; }));
+          c.hayPreap = rid.indexOf("inq:") === 0 && !g.resuelto && !!hInq && !yaAuto;
           c.preapTitulo = airbnb ? "Abre la bandeja de Airbnb para pre-aprobar (la API no permite hacerlo desde aquí)" : "Abre Hospitable para pre-aprobar (la API no permite hacerlo desde aquí)";
           c.preaprobar = function (e) { if (e && e.stopPropagation) e.stopPropagation(); window.open(airbnb ? "https://www.airbnb.com/hosting/messages" : "https://my.hospitable.com/inbox", "_blank", "noopener"); };
         })(c);

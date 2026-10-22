@@ -53,6 +53,7 @@ function _handle(e){
     if(body.action === 'diagLector') return _diagLector(body.robot);
     if(body.action === 'diagClaves') return _diagClaves(body.robot);
     if(body.action === 'diagAlternos') return _diagAlternos(body.robot);
+    if(body.action === 'resolverSocios') return _resolverSocios(body.robot, body.aplicar === true);
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -525,4 +526,47 @@ function _diagAlternos(token){
     sinUsuario=Object.keys(porSocio).map(function(k){ return porSocio[k]; });
   }catch(e){ sinUsuario=[{error:String(e)}]; }
   return {ok:true, mi:r, socios_sin_usuario:sinUsuario};
+}
+
+// ---- Socios de Mi sin usuario por correo (robot) ----
+// Control de usuarios manda: si el socio ya existe ahí (user_id = su código «Socio_###»), su correo es el bueno y se
+// escribe en Mi (SETUP · User email), dejando el correo viejo de Mi como secundario para que siga sirviendo.
+// Si no existe, se da de alta con el correo de Mi como socio de Mi (sin contraseña: la crea en su primer ingreso).
+// aplicar=false (por defecto) solo informa, sin datos personales.
+function _resolverSocios(token, aplicar){
+  if(!_diagLector(token).ok) return {ok:false, error:'token'};
+  var d=_all(), H=d.H, prin={}, porId={};
+  for(var i=1;i<d.data.length;i++){ prin[String(d.data[i][H.email]).toLowerCase()]=i; var uid=String(d.data[i][H.user_id]||'').trim().toLowerCase(); if(uid) porId[uid]=i; }
+  var ms=SpreadsheetApp.openById(MI_SETUP_ID).getSheetByName('SETUP'), md=ms.getDataRange().getValues(), mh=md[0].map(function(x){ return String(x).trim().toLowerCase(); });
+  var cp=mh.indexOf('user email'), cs=mh.indexOf('secondary user email'), cu=mh.indexOf('usuario id');
+  var socios={};
+  for(var r=1;r<md.length;r++){
+    var p=String(md[r][cp]||'').trim().toLowerCase(), code=String(md[r][cu]||'').trim(); if(p.indexOf('@')<0 || !code || prin[p]!=null) continue;
+    (socios[code]=socios[code]||{code:code, correoMi:p, filas:[]}).filas.push(r);
+  }
+  var out=[];
+  Object.keys(socios).forEach(function(code){
+    var s=socios[code], k=porId[code.toLowerCase()];
+    if(k!=null){
+      var correo=String(d.data[k][H.email]||'').trim();
+      out.push({socio:code, accion:'usar el correo de Control de usuarios en Mi', filas_mi:s.filas.length});
+      if(aplicar) s.filas.forEach(function(r){
+        var sec=String(md[r][cs]||'').split(/[\s,;]+/).filter(function(x){ return x && x.toLowerCase()!==correo.toLowerCase(); });
+        if(sec.map(function(x){return x.toLowerCase();}).indexOf(s.correoMi)<0) sec.push(s.correoMi);
+        ms.getRange(r+1, cp+1).setValue(correo);
+        if(cs>=0) ms.getRange(r+1, cs+1).setValue(sec.join(', '));
+      });
+    } else {
+      out.push({socio:code, accion:'dar de alta con el correo de Mi', filas_mi:s.filas.length});
+      if(aplicar){
+        var fila=d.data[0].map(function(){ return ''; });
+        var put=function(c,v){ if(H[c]!=null) fila[H[c]]=v; };
+        put('user_id', code); put('nombre', code); put('email', s.correoMi); put('estado','activo'); put('es_dueno','sí'); put('es_socio','sí'); put('perm_mi','socio');
+        if(H.creado!=null) put('creado', new Date()); if(H.actualizado!=null) put('actualizado', new Date());
+        d.sh.appendRow(fila);
+      }
+    }
+  });
+  if(aplicar) CacheService.getScriptCache().remove('alt_mi');
+  return {ok:true, aplicado:!!aplicar, socios:out};
 }

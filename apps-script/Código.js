@@ -1376,7 +1376,8 @@ function conocimiento_(propiedad) {
   return kbActivas_()
     .filter(r => !/^parqueo/i.test(s_(r.tema).trim()))   // el parqueo ya viene resuelto en la ficha
     .filter(r => aplicaA_(r.aplica_a, propiedad))
-    .map(r => '## ' + s_(r.tema).trim() + '\n' + s_(r.contenido).trim()).join('\n\n').slice(0, 8000);
+    .map(r => '## ' + s_(r.tema).trim() + '\n' + s_(r.contenido).trim()).join('\n\n').slice(0, 8000)
+    + (function () { try { const m = memoriaTexto_(propiedad); return m ? '\n\n' + m : ''; } catch (e) { return ''; } })();
 }
 
 function buscarReserva_(codigo) {
@@ -2815,6 +2816,7 @@ function proponerAutomejora_(info, prop) {
 // Disparador cada hora (lo crea configurar()).
 function aprender() {
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
+  try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   if (!automejoraOn_()) return;
   try { aprenderSenales(); } catch (e) { console.error('aprenderSenales: ' + e); }
   try { amHoja_(); } catch (e) {}
@@ -4770,6 +4772,8 @@ function dsBotApi_(body) {
       case 'grow': return json_(growApi_(String(body.op || 'resumen'), body.datos || {}));
       case 'diag_vel': return json_(diagVelocidad_());
       case 'archivar': { if (body.auto != null) PropertiesService.getScriptProperties().setProperty('ARCHIVO_AUTO', body.auto ? '1' : '0'); return json_(archivar_(body.seco !== false)); }
+      case 'memoria_aprender': return json_({ ok: true, guardados: memoriaAprender_() });
+      case 'memoria_ver': return json_(Object.assign({ ok: true }, memoriaVer_(String(body.propiedad || ''))));
       case 'agente_prueba': { const adm = adminsOp_().find(x => x.principal) || adminsOp_()[0]; return json_(Object.assign({ ok: true, admin: adm && adm.nombre }, opAgente_(adm, String(body.texto || ''), 'hub', [], []), { error_api: CacheService.getScriptCache().get('ag_error') || '' })); }   // diagnóstico: no guarda en el chat
       default: return json_({ ok: false, error: 'accion' });
     }

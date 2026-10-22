@@ -4820,6 +4820,7 @@ function dsBotApi_(body) {
       case 'recepcion_estado': return json_(recepcionEstado_());
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
+      case 'personal_objetivo': return json_(personalObjetivo_(String(body.wa || ''), String(body.objetivo || '')));
       case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), personal: (CacheService.getScriptCache().remove('tpl_personal'), personalPlantillaOk_()), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
       case 'recepcion_probar': return json_(body.enviarYa || body.soloA ? recepcionEnviar_(String(body.code || ''), body.soloA || '') : recepcionEncolar_({ code: body.code, force: true }));

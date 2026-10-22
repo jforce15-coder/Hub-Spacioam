@@ -90,7 +90,7 @@ function agHerramientas_() {
     T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('calcular_distancia', 'Tiempo en carro y caminando desde una propiedad hasta un lugar (USAC, aeropuerto, un centro comercial, el parque central…). Responde en minutos; caminando solo cuenta si son 15 min o menos.', { propiedad: s('Nombre o parte del nombre de la propiedad'), destino: s('Lugar, con ciudad si ayuda') }, ['propiedad', 'destino']),
     T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp. Te presentas como Alma, la asistente de Juan; nunca menciones Spacio AM. Si la persona no ha escrito en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, cuando responda, este mensaje. Lo que la persona conteste le llega al administrador.',
-      { persona: s('Nombre de la persona (si lo sabes)'), numero: s('Número de WhatsApp con código de país; si ya le escribiste antes por este medio, basta el nombre'), texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»), sin mencionar Spacio AM') }, ['texto']),
+      { persona: s('Nombre de la persona (si lo sabes)'), numero: s('Número de WhatsApp con código de país; si ya le escribiste antes por este medio, basta el nombre'), texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»), sin mencionar Spacio AM'), objetivo: s('Si el administrador quiere que reúnas información o resuelvas algo (ej. «recopila su itinerario: fechas, vuelos, hospedaje»): qué hay que conseguir. Con objetivo, ALMA conversa con la persona hasta tenerlo y le manda un resumen al administrador; sin objetivo, solo le reenvía lo que conteste.') }, ['texto']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];
@@ -234,9 +234,9 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var relP = !inp.numero && inp.persona ? personalPorNombre_(inp.persona) : null;
       var numP = normTel_(inp.numero || (relP && relP.wa) || '');
       if (!numP) return { error: 'Necesito el número de WhatsApp de ' + (inp.persona || 'esa persona') + ' (con código de país).' };
-      var rp = personalEnviar_(adm, inp.persona || (relP && relP.nombre) || '', numP, String(inp.texto));
+      var rp = personalEnviar_(adm, inp.persona || (relP && relP.nombre) || '', numP, String(inp.texto), inp.objetivo || '');
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'Personal · ' + (inp.persona || '+' + numP) + ' · ' + String(inp.texto).slice(0, 80), error: rp.ok ? '' : rp.error });
-      return rp.ok ? { ok: true, nota: rp.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?». En cuanto responda le envío el mensaje, y lo que conteste te llega.' : 'Mensaje entregado a WhatsApp. Lo que conteste te llega.' } : { error: rp.error };
+      return rp.ok ? { ok: true, nota: rp.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?». En cuanto responda le envío el mensaje' + (inp.objetivo ? ', converso con ella hasta tener todo y te mando el resumen.' : ', y lo que conteste te llega.') : 'Mensaje entregado a WhatsApp. ' + (inp.objetivo ? 'Converso con ella hasta tener todo y te mando el resumen.' : 'Lo que conteste te llega.') } : { error: rp.error };
     }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }

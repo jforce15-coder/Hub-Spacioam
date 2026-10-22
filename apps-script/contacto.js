@@ -40,7 +40,7 @@ function waPendienteSoltar_(wa) {
   var pend = {}; try { pend = JSON.parse(raw); } catch (e) { return; }
   var k = fin8_(wa), L = pend[k]; if (!L || !L.length) return;
   delete pend[k]; p.setProperty('WA_PEND', JSON.stringify(pend));
-  L.forEach(function (m) { var r = waEnviar_(wa, m.texto); if (r && r.ok) contactoRegistrar_(wa, m.nombre, m.texto); });
+  L.forEach(function (m) { var r = waEnviar_(wa, m.texto); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
 }
 
 function contactoRegistrar_(wa, nombre, texto) {
@@ -77,15 +77,17 @@ function contactoPlantillaCrear_() {
    huésped: se le reenvía a quien lo pidió (WhatsApp + su chat con ALMA) y él decide qué responder. */
 var PERSONAL_PLANTILLA_ = 'asistente_personal';
 
-function personalEnviar_(adm, persona, numero, texto) {
+function personalEnviar_(adm, persona, numero, texto, objetivo) {
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'número inválido' };
   var nombre = String(persona || '').trim(), primer = /^[+\d]/.test(nombre) || !nombre ? '' : nombre.split(' ')[0];
   var de = (adm && adm.nombre ? String(adm.nombre).split(' ')[0] : 'Juan');
-  personalRelay_(wa, { nombre: nombre || '+' + wa, dest: (adm && (adm.tels || [])[0]) || CFG.WHATSAPP_JUAN || '', adm: (adm && adm.email) || '' });
+  var prev = personalDe_(wa) || {};
+  personalRelay_(wa, { nombre: nombre || prev.nombre || '+' + wa, dest: (adm && (adm.tels || [])[0]) || CFG.WHATSAPP_JUAN || prev.dest || '', adm: (adm && adm.email) || prev.adm || '', de: de,
+    objetivo: objetivo ? String(objetivo).slice(0, 1500) : (prev.objetivo || ''), h: prev.h || [], fin: objetivo ? false : !!prev.fin });
   var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
   if (abierta) {
     var r = waEnviar_(wa, texto);
-    if (r && r.ok) { contactoRegistrar_(wa, nombre, texto); return { ok: true, modo: 'texto' }; }
+    if (r && r.ok) { contactoRegistrar_(wa, nombre, texto); personalNotar_(wa, 'alma', texto); return { ok: true, modo: 'texto' }; }
   }
   if (!personalPlantillaOk_()) return { ok: false, error: 'No ha escrito al número de ALMA en las últimas 24 h y la plantilla personal (' + PERSONAL_PLANTILLA_ + ') aún no está aprobada por Meta.' };
   var W = waCfg_();
@@ -119,13 +121,56 @@ function personalPorNombre_(nombre) {
   return hit ? L.filter(function (r) { return r.nombre === hit; })[0] : null;
 }
 
-/* La persona respondió: el mensaje completo ya salió (waPendienteSoltar_); aquí se le reenvía a quien lo pidió. */
+/* Historial corto de la conversación personal (últimos 16 mensajes) dentro del mismo registro. */
+function personalNotar_(wa, quien, texto) {
+  var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('WA_RELAY') || '{}'); } catch (e) {}
+  var r = m[fin8_(wa)]; if (!r) return;
+  r.h = (r.h || []).concat([{ q: quien, t: String(texto).slice(0, 700), ts: Date.now() }]).slice(-16);
+  p.setProperty('WA_RELAY', JSON.stringify(m));
+}
+function personalAvisar_(rel, texto, resumen) {
+  var adm = null; try { adm = rel.adm ? adminPorEmail_(rel.adm) : null; } catch (e) {}
+  if (adm) { try { opGuardar_(adm, 'alma', 'whatsapp', texto, [{ tipo: 'mensaje', resumen: resumen }]); } catch (e) {} }
+  if (rel.dest) { var r = waEnviar_(rel.dest, texto); if (!(r && r.ok)) console.error('aviso personal: ' + (r && r.error)); }
+}
+
+/* La persona respondió (el mensaje guardado ya salió con waPendienteSoltar_).
+   · Con objetivo («recopila su itinerario…»): ALMA conversa como la asistente de Juan hasta reunirlo todo, sin
+     inventar ni decidir nada; si pregunta algo que solo Juan sabe, se lo pasa. Al terminar, le manda el resumen.
+   · Sin objetivo (o ya cumplido): lo que escriba se le reenvía a Juan tal cual. */
 function personalEntrante_(wa, nombre, texto, ts, media, msgId, rel) {
   try { hojaWA_().appendRow([ts, wa, nombre, 'in', String(texto).slice(0, 4000), msgId, 'wa:' + wa, 'text', 'personal', (media || []).join(' ')]); } catch (e) {}
-  var quien = rel.nombre || nombre || ('+' + wa), aviso = quien + ' respondió:\n\n' + texto + '\n\n(Dime qué le contesto y se lo escribo.)';
-  var adm = null; try { adm = rel.adm ? adminPorEmail_(rel.adm) : null; } catch (e) {}
-  if (adm) { try { opGuardar_(adm, 'alma', 'whatsapp', aviso, [{ tipo: 'mensaje', resumen: 'Respuesta de ' + quien }]); } catch (e) {} }
-  if (rel.dest) { var r = waEnviar_(rel.dest, aviso); if (!(r && r.ok)) console.error('aviso personal: ' + (r && r.error)); }
+  personalNotar_(wa, 'ella', texto);
+  var quien = rel.nombre || nombre || ('+' + wa), de = rel.de || 'Juan';
+  if (!rel.objetivo || rel.fin) { personalAvisar_(rel, quien + ' respondió:\n\n' + texto + '\n\n(Dime qué le contesto y se lo escribo.)', 'Respuesta de ' + quien); return; }
+  var r2 = personalDe_(wa) || rel, hist = (r2.h || []).map(function (x) { return (x.q === 'alma' ? 'ALMA' : quien) + ': ' + x.t; }).join('\n');
+  var sys = 'Eres Alma, la asistente personal de ' + de + '. Conversas por WhatsApp con ' + quien + ' para cumplir un encargo PERSONAL de ' + de + ' (no es tema de ningún negocio: nunca menciones Spacio AM ni hables de alquileres). ' +
+    'Tono cálido, natural y breve, como una asistente de confianza; tutea si la otra persona tutea. Una o dos preguntas por mensaje, no un formulario. ' +
+    'No inventes datos ni tomes decisiones por ' + de + ': si preguntan algo que no sabes o que debe decidir ' + de + ', di que se lo consultas y márcalo en para_juan. ' +
+    'Cuando tengas todo lo que pide el objetivo (o la persona no puede/no quiere dar más), agradece, despídete en una línea y marca completo. ' +
+    'Responde SOLO JSON: {"respuesta":"mensaje para ' + quien + ' (vacío si no hace falta responder)","para_juan":"pregunta o dato urgente para ' + de + ' (vacío si nada)","completo":true|false,"resumen":"si completo: resumen ordenado para ' + de + ' con todo lo reunido (fechas, horas, números, detalles), en viñetas «· »"}';
+  var usr = 'OBJETIVO DEL ENCARGO: ' + rel.objetivo + '\n\nCONVERSACIÓN HASTA AHORA:\n' + hist;
+  var out = {};
+  try { var raw = String(claude_(CFG.MODELO_REDACTOR, 900, sys, usr, 0.4) || ''); out = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { out = {}; }
+  if (!out || (out.respuesta == null && !out.completo)) { personalAvisar_(rel, quien + ' respondió:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
+  if (String(out.respuesta || '').trim()) {
+    var w = waEnviar_(wa, String(out.respuesta).trim());
+    if (w && w.ok) { contactoRegistrar_(wa, quien, out.respuesta); personalNotar_(wa, 'alma', out.respuesta); }
+  }
+  if (String(out.para_juan || '').trim()) personalAvisar_(rel, quien + ' pregunta algo que debes decidir tú:\n\n' + String(out.para_juan).trim() + '\n\n(Dime qué le respondo.)', 'Consulta de ' + quien);
+  if (out.completo) {
+    var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('WA_RELAY') || '{}'); } catch (e) {}
+    if (m[fin8_(wa)]) { m[fin8_(wa)].fin = true; p.setProperty('WA_RELAY', JSON.stringify(m)); }
+    personalAvisar_(rel, 'Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + String(out.resumen || '(sin resumen)').trim(), 'Encargo personal cumplido · ' + quien);
+  }
+}
+
+/* Robot: poner o cambiar el objetivo de una conversación personal ya iniciada. */
+function personalObjetivo_(wa, objetivo) {
+  var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('WA_RELAY') || '{}'); } catch (e) {}
+  var r = m[fin8_(wa)]; if (!r) return { ok: false, error: 'no hay conversación personal con ese número' };
+  r.objetivo = String(objetivo || '').slice(0, 1500); r.fin = false; p.setProperty('WA_RELAY', JSON.stringify(m));
+  return { ok: true, nombre: r.nombre, historial: (r.h || []).length };
 }
 
 function personalPlantillaOk_() {

@@ -3461,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22k";
+  BUILD = "2026-10-22l";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5964,6 +5964,11 @@ class Component extends DCLogic {
             ver: function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (esLl) self.abrirSubchat({ tipo: "llamada", resId: resIdN, huesped: nombre, titulo: tit, msgs: m._sub.msgs }); else self.abrirWaChat(resIdN, nombre); },
             meta: tit + " · " + fmtDia(m.created) + " · " + fmtHora(m.created), esAlma: false, cursor: "auto", lpDown: noop, lpMove: noop, lpUp: noop, lpMenu: noop };
         }
+        /* Estado de la reserva (como Hospitable): consulta recibida, solicitud, aceptada, cancelada… Hito neutro y discreto. */
+        if (m.tipo === "hito" && m.hito === "estado") { var malo = /cancel|rechaz|vencid|no aceptada/i.test(m.texto || "");
+          return { esHito: true, noHito: false, esCal: true, esLlamada: false, esWaHito: false, hitoFg: malo ? "#C0392B" : "#6F6867", hayVer: false, verTxt: "", ver: noop, align: "center", radio: "14px", texto: "", hayTexto: false, hayFotos: false, fotos: [],
+            bg: malo ? "rgba(192,57,43,.06)" : "#F5F3F0", fg: "#3E3F3F", bd: malo ? "rgba(192,57,43,.35)" : "#D8D4CE", hitoTitulo: m.texto || "Estado de la reserva", hitoHora: fmtDia(m.created) + " · " + fmtHora(m.created), hitoAccion: false,
+            meta: (m.texto || "Estado") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created), esAlma: false, cursor: "auto", lpDown: noop, lpMove: noop, lpUp: noop, lpMenu: noop }; }
         if (m.tipo === "hito") return { esHito: true, noHito: false, esCal: true, esLlamada: false, esWaHito: false, hitoFg: "#B54D36", hayVer: false, verTxt: "", ver: noop, align: "center", radio: "14px", texto: m.texto || "", hayTexto: true, hayFotos: false, fotos: [], bg: "rgba(233,130,106,.10)", fg: "#3E3F3F", bd: "rgba(233,130,106,.45)",
           hitoTitulo: HITO_T[m.hito] || "Cambio en la reserva", hitoHora: fmtDia(m.created) + " · " + fmtHora(m.created), hitoAccion: m.hito === "solicitud",
           meta: (HITO_T[m.hito] || "Cambio en la reserva") + " · " + fmtDia(m.created) + " · " + fmtHora(m.created), esAlma: false, cursor: "auto", lpDown: noop, lpMove: noop, lpUp: noop, lpMenu: noop };

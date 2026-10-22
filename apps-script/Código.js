@@ -4813,7 +4813,7 @@ function dsBotApi_(body) {
       case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
       case 'recepcion_estado': return json_(recepcionEstado_());
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
-      case 'recepcion_probar': return json_(body.enviarYa ? recepcionEnviar_(String(body.code || '')) : recepcionEncolar_({ code: body.code, force: true }));
+      case 'recepcion_probar': return json_(body.enviarYa || body.soloA ? recepcionEnviar_(String(body.code || ''), body.soloA || '') : recepcionEncolar_({ code: body.code, force: true }));
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
         const p = PropertiesService.getScriptProperties();
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });

@@ -4045,6 +4045,9 @@ function waEntrante_(m, nombre) {
   }
   /* Recepción de un edificio (le mandamos los registros desde este número): no es un huésped. Se guarda, se ve en el Hub
      y ALMA recuerda que el canal oficial es el grupo o Juan / Gabriel (recepcion.js). */
+  /* Contacto personal de un administrador (mensaje_personal): lo que responda se le reenvía a él, no entra como huésped. */
+  const pers = !prueba && !esJuan && !esEquipo ? personalDe_(wa) : null;
+  if (pers) { personalEntrante_(wa, nombre, texto, ts, media, s_(m.id), pers); return; }
   const recep = !prueba && !esJuan && !esEquipo ? recepcionDe_(wa) : null;
   if (recep) { recepcionEntrante_(wa, nombre, texto, ts, media, s_(m.id), recep); return; }
   /* Chat operativo: un administrador registrado escribe → su chat con ALMA, fuera de la lista general. */
@@ -4816,7 +4819,8 @@ function dsBotApi_(body) {
       case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
       case 'recepcion_estado': return json_(recepcionEstado_());
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
-      case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
+      case 'personal_plantilla': return json_(personalPlantillaCrear_());
+      case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), personal: (CacheService.getScriptCache().remove('tpl_personal'), personalPlantillaOk_()), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
       case 'recepcion_probar': return json_(body.enviarYa || body.soloA ? recepcionEnviar_(String(body.code || ''), body.soloA || '') : recepcionEncolar_({ code: body.code, force: true }));
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua

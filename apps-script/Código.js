@@ -3848,11 +3848,39 @@ function reservaCambio_(action, d) {
   return 'hito: ' + cambios.length;
 }
 function hitosDe_(convId) {
-  const sh = ssAlma_().getSheetByName('ALMA_HITOS'); if (!sh || sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, HITOS_CAB_.length).getValues()
+  const sh = ssAlma_().getSheetByName('ALMA_HITOS');
+  let out = (!sh || sh.getLastRow() < 2) ? [] : sh.getRange(2, 1, sh.getLastRow() - 1, HITOS_CAB_.length).getValues()
     .filter(v => String(v[1]) === String(convId))
     .map(v => ({ tipo: 'hito', auto: false, texto: String(v[4] || ''), created: v[0] instanceof Date ? v[0].toISOString() : String(v[0]), fotos: [], canal: 'hospitable', hito: String(v[3] || '') }))
     .slice(-20);
+  /* Como Hospitable: el momento en que entró la consulta o la solicitud y cada cambio de estado (aceptada, cancelada…). */
+  try {
+    const est = hitosEstado_(convId);
+    if (est.length) out = out.filter(h => h.hito !== 'estado').concat(est);
+  } catch (e) { console.error('hitosEstado_: ' + e); }
+  return out;
+}
+const ESTADO_HITO_ = { request: 'Solicitud de reserva', pending: 'Solicitud de reserva', inquiry: 'Consulta', accepted: 'Reserva aceptada', confirmed: 'Reserva aceptada',
+  cancelled: 'Reserva cancelada', canceled: 'Reserva cancelada', not_accepted: 'No aceptada', declined: 'Solicitud rechazada', expired: 'Solicitud vencida', denied: 'Solicitud rechazada', checkpoint: 'En revisión' };
+function hitosEstado_(convId) {
+  const id = String(convId || ''); if (!id || /^(wa|op):/.test(id)) return [];
+  const c = CacheService.getScriptCache(), k = 'hest_' + id.slice(-40), c0 = c.get(k); if (c0) { try { return JSON.parse(c0); } catch (e) {} }
+  const mk = (tipo, txt, ts) => ({ tipo: 'hito', auto: false, texto: txt, created: ts, fotos: [], canal: 'hospitable', hito: tipo });
+  let out = [];
+  if (id.indexOf('inq:') === 0) {
+    const r = hosp_('get', '/inquiries/' + id.slice(4));
+    const d = r.code === 200 && r.json && r.json.data; if (d && d.inquiry_date) out.push(mk('estado', 'Consulta recibida', d.inquiry_date));
+  } else {
+    const r = hosp_('get', '/reservations/' + id); const d = r.code === 200 && r.json && r.json.data;
+    if (d) {
+      const hist = (d.reservation_status && d.reservation_status.history) || [];
+      const primera = hist.length ? String(hist[0].category || '') : '';
+      if (d.booking_date && primera !== 'request' && primera !== 'pending') out.push(mk('estado', 'Reserva creada', d.booking_date));
+      hist.forEach(h => { const cat = String(h.category || '').toLowerCase(); if (h.changed_at) out.push(mk('estado', ESTADO_HITO_[cat] || ('Estado: ' + cat), h.changed_at)); });
+    }
+  }
+  try { c.put(k, JSON.stringify(out), 900); } catch (e) {}
+  return out;
 }
 
 /* Mejora de prompt: devuelve cambios puntuales, nunca una reescritura. */

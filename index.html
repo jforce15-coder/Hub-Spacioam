@@ -3461,7 +3461,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22o";
+  BUILD = "2026-10-22p";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3486,7 +3486,8 @@ class Component extends DCLogic {
     if (ya && !forzar) return false;
     var act = document.activeElement, escribiendo = !!act && (act.tagName === "TEXTAREA" || act.tagName === "INPUT" || act.isContentEditable);
     var dr = this._respDraft || {}, hayDraft = Object.keys(dr).some(function (x) { return String(dr[x] || "").trim(); });
-    var quieto = Date.now() - Math.max(this._actTs || 0, this._tocadoTs || 0) > 45000, recienVuelve = !!this._volvioLargo && Date.now() - this._volvioLargo < 8000;
+    /* Por estar quieto solo se recarga en el inicio; dentro de ALMA (leyendo una conversación) solo al volver de segundo plano. */
+    var quieto = this.state.vista === "hub" && Date.now() - Math.max(this._actTs || 0, this._tocadoTs || 0) > 45000, recienVuelve = !!this._volvioLargo && Date.now() - this._volvioLargo < 8000;
     var abierto = !!(this.state.razon || this.state.rvhK || this.state.infoSheet || this.state.ctrlAbierto || this.state.lightbox);
     if (!forzar && (escribiendo || hayDraft || abierto || !(quieto || recienVuelve || document.visibilityState === "hidden"))) return false;
     try { sessionStorage.setItem(k, "1"); } catch (e) {}
@@ -7176,6 +7177,21 @@ class Component extends DCLogic {
       self.hiloPrefetch();
     }
     if (ordenEf === "Cronológico") { grupos.sort(function (x, y) { return (y.ts || 0) - (x.ts || 0); }); gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; }); }
+    /* Con una conversación abierta el orden se congela: lo que llega en vivo se agrega al final y lo que se resuelve o sale
+       del filtro se queda en su lugar hasta volver a la lista. Así nada se corre debajo del dedo ni aparece otra conversación. */
+    if (st.cronoLista === false) {
+      var fzK = [verN, ordenEf, st.convSolo || "", st.convCanal || "", st.convVista || "", st.convBusca || "", st.logQuien || "", st.logResp || "", st.mVista || ""].join("|"), fz = this._ordenFz;
+      if (fz && fz.k === fzK) {
+        var porK = {}, vistoK = {}, fzOut = [];
+        grupos.forEach(function (g) { porK[g.key] = g; });
+        fz.keys.forEach(function (k) { var g = porK[k] || fz.obj[k]; if (g && !vistoK[k]) { fzOut.push(g); vistoK[k] = 1; } });
+        grupos.forEach(function (g) { if (!vistoK[g.key]) fzOut.push(g); });
+        grupos = fzOut; gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; });
+        this._convGrupos = grupos; this._convTotal = grupos.length;
+      }
+      var fzObj = {}; grupos.forEach(function (g) { fzObj[g.key] = g; });
+      this._ordenFz = { k: fzK, keys: grupos.map(function (g) { return g.key; }), obj: fzObj };
+    } else this._ordenFz = null;
     if (st.abrirPend) {
       var gp = st.abrirPend, jp = gIdx[gp];
       if (jp == null) {

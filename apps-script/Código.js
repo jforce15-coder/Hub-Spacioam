@@ -130,6 +130,7 @@ function doPost(e) {
     const convId = convId_(d);
     // Bandeja: cada mensaje (huésped, equipo o automático) actualiza la conversación, igual que el inbox de Hospitable.
     try { inboxDesdeWebhook_(convId, d); } catch (x) { console.error('inbox: ' + x); }
+    try { cacheEntrante_(convId, d); } catch (x) {}
     if (String(convId).indexOf('inq:') === 0) { try { guardarMsgInq_(convId, d); } catch (x) { console.error('guardarMsgInq_: ' + x); } }
     if (String(d.sender_type || '').toLowerCase() === 'guest') { try { let pn = {}; try { pn = preContexto_(convId); } catch (x) {} const sn = d.sender || {}; pushNuevo_(convId, pn.huesped || [s_(sn.first_name), s_(sn.last_name)].filter(Boolean).join(' ') || s_(sn.full_name), pn.propiedad, s_(d.body) || (d.attachments && d.attachments.length ? 'Envió una foto' : '')); } catch (x) { console.error('pushNuevo hosp: ' + x); } }
     if (String(d.sender_type || '').toLowerCase() !== 'guest') { try { if (d.source !== 'automated') observarHumano_(convId, s_(d.body)); } catch (x) { console.error('observarHumano_: ' + x); } return ok_('bandeja: mensaje nuestro'); }
@@ -536,6 +537,17 @@ function inboxDesdeWebhook_(convId, d) {
     ultimo_texto: (s_(d.body) || (fotos.length ? '[foto]' : '')).slice(0, 300), ultimo_de: guest ? 'guest' : 'host', ultimo_ts: ts,
     ultimo_guest_ts: guest ? ts : '', ultimo_host_ts: guest ? '' : ts, _auto: auto, hosp_conv: s_(d.conversation_id)
   });
+}
+/* Mensajes que llegan por webhook: la API de Hospitable a veces tarda en devolverlos en el hilo. Se guardan 2 h y se
+   mezclan con el hilo hasta que la API ya los trae; además se descarta el hilo en caché para que el Hub lo vea al instante. */
+function cacheEntrante_(convId, d) {
+  try {
+    const texto = s_(d.body), fotos = adjuntos_(d.attachments); if (!convId || (!texto && !fotos.length)) return;
+    const guest = String(d.sender_type || '').toLowerCase() === 'guest', c = CacheService.getScriptCache(), k = 'gin_' + convId;
+    let L = []; try { L = JSON.parse(c.get(k) || '[]'); } catch (e) {}
+    L.push({ tipo: guest ? 'guest' : 'host', texto: texto.slice(0, 3000), created: s_(d.created_at) || new Date().toISOString(), auto: !guest && s_(d.source) === 'automated', canal: 'hospitable', fotos: fotos });
+    c.put(k, JSON.stringify(L.slice(-10)), 7200); c.removeAll(['hf_' + convId]);
+  } catch (e) { console.error('cacheEntrante_: ' + e); }
 }
 /* Cada ~2 min re-lee de Hospitable las conversaciones que se movieron en las últimas 48 h (cubre mensajes que
    el equipo escribe directo en Hospitable si ese webhook no llega) y las de la cola/log sin fila en la bandeja. */
@@ -4271,11 +4283,15 @@ function cacheEnvio_(id, texto) {
   try { inboxUpsert_(id, { ultimo_texto: String(texto).slice(0, 300), ultimo_de: 'host', ultimo_ts: ts, ultimo_host_ts: ts, ultimo_canal: 'hospitable' }); } catch (e) {}
 }
 function mezclarEnvios_(id, hilo) {
-  let L = []; try { L = JSON.parse(CacheService.getScriptCache().get('env_' + id) || '[]'); } catch (e) {}
-  if (!L.length) return hilo;
+  const c = CacheService.getScriptCache();
+  let L = []; try { L = JSON.parse(c.get('env_' + id) || '[]'); } catch (e) {}
+  let G = []; try { G = JSON.parse(c.get('gin_' + id) || '[]'); } catch (e) {}
+  if (!L.length && !G.length) return hilo;
   const k = t => String(t || '').toLowerCase().replace(/[^a-z0-9áéíóúñü]/g, '').slice(0, 50), vis = {};
-  hilo.filter(m => m.tipo !== 'guest').forEach(m => vis[k(m.texto)] = 1);
-  const falt = L.filter(m => !vis[k(m.texto)]);
+  hilo.forEach(m => vis[(m.tipo === 'guest' ? 'g|' : 'h|') + k(m.texto)] = 1);
+  const falt = L.map(m => Object.assign({ tipo: 'host' }, m)).concat(G).filter(m => {
+    const kk = (m.tipo === 'guest' ? 'g|' : 'h|') + k(m.texto); if (!k(m.texto) || vis[kk]) return false; vis[kk] = 1; return true;
+  });
   return falt.length ? hilo.concat(falt).sort((a, b) => new Date(a.created) - new Date(b.created)) : hilo;
 }
 function hiloConv_(convId, hiloCliente) {

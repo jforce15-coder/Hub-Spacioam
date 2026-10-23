@@ -695,6 +695,7 @@ function procesarCola() {
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
   try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
+  try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
@@ -4828,6 +4829,9 @@ function dsBotApi_(body) {
       case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
       case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
       case 'recepcion_estado': return json_(recepcionEstado_());
+      case 'foto_estado': return json_(fotoEstado_());
+      case 'foto_config': return json_(fotoConfig_(body));
+      case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
       case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));

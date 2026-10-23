@@ -31,6 +31,26 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Revisar el código antes de publicar
+        # Apps Script junta todos los archivos en un solo espacio: un nombre declarado dos veces (const/let/var/función)
+        # tumba TODO el script (le pasó a ALMA el 23 oct). También revisa que cada archivo sea JavaScript válido.
+        run: |
+          set -e
+          for f in apps-script/*.js; do cp "$f" /tmp/x.js; node --check /tmp/x.js; done
+          python3 - <<'EOF'
+          import re, glob, collections, sys
+          d = collections.defaultdict(list)
+          for f in glob.glob('apps-script/*.js'):
+              for i, l in enumerate(open(f, encoding='utf-8')):
+                  m = re.match(r'(?:function\s+([A-Za-z_$][\w$]*)|(?:var|let|const)\s+([A-Za-z_$][\w$]*))', l)
+                  if m: d[m.group(1) or m.group(2)].append(f + ':' + str(i + 1))
+          dup = {k: v for k, v in d.items() if len(v) > 1}
+          if dup:
+              for k, v in dup.items(): print('::error::Nombre declarado dos veces: ' + k + ' → ' + ', '.join(v))
+              sys.exit(1)
+          print('Sin nombres duplicados.')
+          EOF
+
       - name: Instalar clasp
         run: npm install -g @google/clasp@3
 

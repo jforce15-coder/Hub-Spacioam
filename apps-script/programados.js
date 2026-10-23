@@ -1,12 +1,12 @@
 /* ═══ MENSAJES PROGRAMADOS POR WHATSAPP ════════════════════════════════════════════════════════════════════
-   «Mándale a Gabriel mañana a las 7 a. m. …»: ALMA guarda el mensaje (hoja ALMA_PROGRAMADOS) y lo envía a la hora,
+   «Mándale a Gabriel mañana a las 7 a. m. …»: ALMA guarda el mensaje (hoja ALMA_WA_PROGRAMADOS) y lo envía a la hora,
    revisando cada minuto con procesarCola. Sirve para el equipo (operativo o administrativo) y para temas personales:
    · equipo   → waEnviarAlguien_ (Spacio AM; fuera de 24 h, plantilla de primer contacto y el mensaje al responder)
    · personal → personalEnviar_ («Alma, la asistente de Juan»; nunca Spacio AM)
    La hora se guarda en hora de Guatemala salvo que se indique otra zona. Si el envío falla, se le avisa a quien lo pidió. */
 
-var PROG_CAB_ = ['id', 'creado', 'solicitante', 'persona', 'tel', 'texto', 'cuando', 'zona', 'tipo', 'estado', 'resultado', 'enviado'];
-function hojaProg_() { return hojaCrear_('ALMA_PROGRAMADOS', PROG_CAB_); }
+var WAPROG_CAB_ = ['id', 'creado', 'solicitante', 'persona', 'tel', 'texto', 'cuando', 'zona', 'tipo', 'estado', 'resultado', 'enviado'];
+function hojaWaProg_() { return hojaCrear_('ALMA_WA_PROGRAMADOS', WAPROG_CAB_); }
 
 /* "2026-10-24 07:00" en la zona dada → Date */
 function progFecha_(txt, zona) {
@@ -27,20 +27,20 @@ function progCrear_(adm, o) {
   if (d.getTime() > Date.now() + 60 * 86400000) return { error: 'Solo programo hasta 60 días adelante.' };
   var tel = normTel_(o.tel); if (!tel) return { error: 'Falta el número de WhatsApp de ' + (o.persona || 'esa persona') + '.' };
   var id = 'pg' + Date.now();
-  hojaProg_().appendRow([id, new Date().toISOString(), (adm && adm.email) || '', o.persona || '', tel, String(o.texto).slice(0, 3500), d.toISOString(), zona, o.tipo === 'personal' ? 'personal' : 'equipo', 'pendiente', '', '']);
+  hojaWaProg_().appendRow([id, new Date().toISOString(), (adm && adm.email) || '', o.persona || '', tel, String(o.texto).slice(0, 3500), d.toISOString(), zona, o.tipo === 'personal' ? 'personal' : 'equipo', 'pendiente', '', '']);
   progProximo_();
   return { ok: true, id: id, para: o.persona || '+' + tel, cuando: Utilities.formatDate(d, zona, "EEEE d 'de' MMMM, HH:mm") + ' (' + (zona === CFG.TZ ? 'hora de Guatemala' : zona) + ')',
     en_espana: Utilities.formatDate(d, 'Europe/Madrid', 'd MMM HH:mm') + ' hora de España' };
 }
 
 function progLista_(adm, todos) {
-  var sh = hojaProg_(), n = sh.getLastRow(); if (n < 2) return [];
-  return sh.getRange(2, 1, n - 1, PROG_CAB_.length).getValues().filter(function (v) { return v[9] === 'pendiente' && (todos || !adm || String(v[2]) === adm.email); })
+  var sh = hojaWaProg_(), n = sh.getLastRow(); if (n < 2) return [];
+  return sh.getRange(2, 1, n - 1, WAPROG_CAB_.length).getValues().filter(function (v) { return v[9] === 'pendiente' && (todos || !adm || String(v[2]) === adm.email); })
     .map(function (v) { var d = new Date(v[6]); return { id: String(v[0]), para: v[3] || '+' + v[4], cuando: Utilities.formatDate(d, String(v[7] || CFG.TZ), 'd MMM HH:mm') + (String(v[7]) === CFG.TZ ? ' GT' : ' ' + v[7]), tipo: v[8], texto: String(v[5]).slice(0, 160) }; });
 }
 function progCancelar_(id) {
-  var sh = hojaProg_(), n = sh.getLastRow(); if (n < 2) return { error: 'No hay mensajes programados.' };
-  var v = sh.getRange(2, 1, n - 1, PROG_CAB_.length).getValues();
+  var sh = hojaWaProg_(), n = sh.getLastRow(); if (n < 2) return { error: 'No hay mensajes programados.' };
+  var v = sh.getRange(2, 1, n - 1, WAPROG_CAB_.length).getValues();
   for (var i = 0; i < v.length; i++) if (String(v[i][0]) === String(id)) {
     if (v[i][9] !== 'pendiente') return { error: 'Ese mensaje ya está ' + v[i][9] + '.' };
     sh.getRange(i + 2, 10).setValue('cancelado'); progProximo_(); return { ok: true, cancelado: v[i][3] || v[i][4] };
@@ -50,7 +50,7 @@ function progCancelar_(id) {
 
 /* Guarda cuándo vence el próximo, para no leer la hoja cada minuto si no hay nada. */
 function progProximo_() {
-  var sh = hojaProg_(), n = sh.getLastRow(), prox = 0;
+  var sh = hojaWaProg_(), n = sh.getLastRow(), prox = 0;
   if (n >= 2) sh.getRange(2, 7, n - 1, 4).getValues().forEach(function (v) { if (v[3] === 'pendiente') { var t = new Date(v[0]).getTime(); if (t && (!prox || t < prox)) prox = t; } });
   PropertiesService.getScriptProperties().setProperty('PROG_PROX', String(prox));
 }
@@ -61,8 +61,8 @@ function progProcesar_() {
   if (!prox || prox > Date.now()) return;
   var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
   try {
-    var sh = hojaProg_(), n = sh.getLastRow(); if (n < 2) return;
-    var v = sh.getRange(2, 1, n - 1, PROG_CAB_.length).getValues();
+    var sh = hojaWaProg_(), n = sh.getLastRow(); if (n < 2) return;
+    var v = sh.getRange(2, 1, n - 1, WAPROG_CAB_.length).getValues();
     v.forEach(function (r, i) {
       if (r[9] !== 'pendiente' || new Date(r[6]).getTime() > Date.now()) return;
       sh.getRange(i + 2, 10).setValue('enviando');

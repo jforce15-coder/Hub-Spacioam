@@ -3472,7 +3472,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-22r";
+  BUILD = "2026-10-23s";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5591,6 +5591,21 @@ class Component extends DCLogic {
     var FIN = { silencio: 1, respondido: 1, borrador: 1, sombra: 1, omitido: 1, escalado: 1, error: 1, agrupado: 1 };
     return arr.filter(function (r) { return t(r) >= umbral || (campo === "recibido" && r.estado && !FIN[String(r.estado).trim()]); });
   }
+  /* Salud real de ALMA (no la del último dato guardado): ¿responde el Apps Script y sigue corriendo su proceso de cada minuto?
+     ok · retraso (el proceso lleva 4-10 min sin correr) · caida (no responde hace más de 90 s, o el proceso lleva más de 10 min parado). */
+  saludMarcar(ok, pulso) {
+    var antes = this.saludAlma().nivel;
+    if (ok) { this._vivoOkTs = Date.now(); this._vivoErrTs = 0; if (pulso) this._pulso = Number(pulso); }
+    else if (!this._vivoErrTs) this._vivoErrTs = Date.now();
+    if (this.saludAlma().nivel !== antes) this.forceUpdate();
+  }
+  saludAlma() {
+    var ahora = Date.now(), hora = function (t) { return new Date(t).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); };
+    if (this._vivoErrTs && ahora - this._vivoErrTs > 90000) { var desde = this._vivoOkTs || this._vivoErrTs; return { nivel: "caida", txt: "ALMA no responde · desde " + hora(desde) }; }
+    if (this._pulso && ahora - this._pulso > 600000) return { nivel: "caida", txt: "ALMA detenida · su proceso no corre desde " + hora(this._pulso) };
+    if (this._pulso && ahora - this._pulso > 240000) return { nivel: "retraso", txt: "ALMA con retraso · último proceso " + hora(this._pulso) };
+    return { nivel: "ok", txt: "" };
+  }
   almaCargar(soloVivo) {
     var self = this;
     if (this._cargandoVivo && soloVivo && Date.now() - (this._vivoInicio || 0) < 20000) return;
@@ -5634,22 +5649,23 @@ class Component extends DCLogic {
       this._cargandoVivo = true; this._vivoInicio = Date.now();
       ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12), self._vivoHash).then(function (l) {
         self._cargandoVivo = false;
-        if (!l || !l.ok) { self.setState({ almaCargando: false }); return; }
+        if (!l || !l.ok) { self.saludMarcar(false); self.setState({ almaCargando: false }); return; }
+        self.saludMarcar(true, l.pulso);
         /* Sin cambios desde la última lectura: no se descarga ni se repinta nada. */
         if (l.same) { self._vivoTs = Date.now(); if (self.state.almaCargando) self.setState({ almaCargando: false }); return; }
         if (l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
         if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
         var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = self.unirVentana(l.cola, d.cola, "recibido"); if (l.log && l.log.length) d.log = self.unirVentana(l.log, d.log, "fecha"); d.inbox = self.unirInbox(l.inbox, d.inbox); if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
         listo(d, "En vivo · " + horaGT()); guardar();
-      }).catch(function () { self._cargandoVivo = false; self.setState({ almaCargando: false }); });
+      }).catch(function () { self._cargandoVivo = false; self.saludMarcar(false); self.setState({ almaCargando: false }); });
       return;
     }
     ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12)).then(function (l) { if (l && l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
-      if (!l || !l.ok) { self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); return; }
+      if (!l || !l.ok) { self.saludMarcar(false); self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); return; }
       if (seq < (self._vivoSeq || 0)) return; vivo = l; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
-      self._basePend = false;
+      self._basePend = false; self.saludMarcar(true, l.pulso);
       if (base || self.state.alma) { listo(unir(), "En vivo · " + horaGT()); guardar(); }
-    }).catch(function () { self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); });
+    }).catch(function () { self.saludMarcar(false); self._vivoFallo = true; if (base && self._basePend) { self._basePend = false; listo(unir(), "Hoja de ALMA · " + horaGT()); guardar(); } else self.forceUpdate(); });
     ALMA.readAll().then(function (d) {
       if (!d.control.length && !d.cola.length && !d.log.length) throw new Error("vacía");
       if (seq < (self._baseSeq || 0)) return; self._baseSeq = seq;
@@ -5973,6 +5989,7 @@ class Component extends DCLogic {
     return out.filter(function (u) { u = String(u || "").trim(); if (!u || vistos[u]) return false; vistos[u] = 1; return true; }).slice(0, 6).map(function (u) { return { url: String(u).trim() }; });
   }
   almaVals() {
+    var salud = this.saludAlma();   /* salud real de ALMA para el punto de estado */
     var esPrincipal = this.rol() === "admin";
     /* Mientras llega la lectura en vivo no se muestran conversaciones viejas: se ve la carga. */
     /* Hasta tener la lectura en vivo Y la hoja completa no se clasifica nada: se ve la carga, nunca una lista provisional. */
@@ -7534,11 +7551,11 @@ class Component extends DCLogic {
           almaPush: pend.slice(0, 3).map(function (l) { return { quien: l.quien, hace: l.hace, linea: l.titulo, hayFoto: l.hayFoto, foto: l.foto, noFoto: l.noFoto, iniciales: l.iniciales, dot: l.pr === 0 ? "#C0392B" : l.pr < 1 ? "#E9826A" : "#F2755A", ir: function (e) { if (e && e.stopPropagation) e.stopPropagation(); self.irAConv(l.gk); } }; }),
           almaPushHay: !convCargando && n > 0, almaPushVacio: !convCargando && !n, almaCargandoT: convCargando,
           almaSkel: [{ d: "0s", w1: "46%", w2: "72%" }, { d: ".15s", w1: "38%", w2: "64%" }, { d: ".3s", w1: "52%", w2: "58%" }],
-          almaMiniSub: convCargando ? "Cargando conversaciones…" : n ? (n === 1 ? "1 necesita atención" : n + " necesitan atención") : "Asistente virtual · todo en orden", almaPushN: String(n), almaPushHayMas: n > 3, almaPushMas: "+" + (n - 3) + " más en ALMA",
+          almaMiniSub: salud.nivel === "caida" ? "⚠ " + salud.txt : convCargando ? "Cargando conversaciones…" : n ? (n === 1 ? "1 necesita atención" : n + " necesitan atención") : "Asistente virtual · todo en orden", almaPushN: String(n), almaPushHayMas: n > 3, almaPushMas: "+" + (n - 3) + " más en ALMA",
           almaPushSub: convCargando ? "Cargando conversaciones…" : n ? (n === 1 ? "1 conversación necesita atención" : n + " conversaciones necesitan atención") : "Asistente virtual"
         };
       })(),
-      almaFuente: st.almaFuente, almaRecargar: function () { self.almaCargar(); }, almaRecargarLabel: st.almaCargando ? "Cargando…" : "Actualizar",
+      almaFuente: salud.nivel !== "ok" ? "⚠ " + salud.txt : st.almaFuente, almaRecargar: function () { self.almaCargar(); }, almaRecargarLabel: st.almaCargando ? "Cargando…" : "Actualizar",
       almaAviso: !(window.ALMA && ALMA.hasApi()),
       almaAvisoTexto: "Lectura en vivo de la hoja; los cambios (control, mejoras, ajustes) aún no viajan a ALMA. Falta pegar alma-hub-api.gs en el Apps Script y poner su URL en alma-client.js.",
       almaEstadoTitulo: !st.alma ? "Leyendo ALMA_CONTROL…" : !ctrlLegible ? "No se pudo leer el interruptor" : on ? "ALMA está encendida" : "ALMA está apagada",
@@ -7616,7 +7633,7 @@ class Component extends DCLogic {
       }),
       almaControlNota: st.almaControlNota || "Los cambios se guardan solos",
       almaAutoDot: st.almaGuardando || !sinCambios ? "#E9826A" : /No se pudo/.test(st.almaControlNota || "") ? "#C0392B" : "#3d6b52",
-      almaDotBg: !ctrlLegible ? "#E9826A" : on ? "#3d6b52" : "#D8D4CE",
+      almaDotBg: salud.nivel === "caida" ? "#B54D36" : salud.nivel === "retraso" ? "#E9826A" : !ctrlLegible ? "#E9826A" : on ? "#3d6b52" : "#D8D4CE",
 
       mejoraClaves: claves, mejoraClave: st.mejoraClave,
       setMejoraClave: function (e) { self.setState({ mejoraClave: e.target.value, mejoraPropuesta: null }); },
@@ -7880,7 +7897,7 @@ class Component extends DCLogic {
       ordenFiltros: ordenFiltros.map(function (x) { return { value: x, label: x }; }), convOrden: ordenEf, convOrdenNota: st.convOrden ? "Elegido por ti · vuelve a Prioridad si entra algo pendiente" : (hayPend ? "Automático · hay pendientes" : "Automático · todo en calma"),
       setConvOrden: function (v) { self.setState({ convOrden: v, cronoLista: true, convIdx: 0, briefIdx: 0 }); self.convReset(); },
       hayAlmaFotos: true, almaFotos: Array.apply(null, Array(11)).map(function (_, i) { return { src: "assets/alma/a-" + String(i + 1).padStart(2, "0") + ".jpg", op: i === st.almaFotoIdx ? "1" : "0" }; }),
-      almaEstadoCorto: !st.alma ? "Conectando…" : !ctrlLegible ? "Control sin leer" : on ? (ctrl.MODO || "ON") + " · " + (ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00") : "Apagada",
+      almaEstadoCorto: salud.nivel === "caida" ? "Sin respuesta" : !st.alma ? "Conectando…" : !ctrlLegible ? "Control sin leer" : on ? (ctrl.MODO || "ON") + " · " + (ctrl.HORARIO === "OFF" ? "24 h" : "19:00 – 04:00") : "Apagada",
       briefTitulo: !st.alma ? "Leyendo la cola…" : briefHumanos ? briefHumanos + (briefHumanos === 1 ? " caso necesita" : " casos necesitan") + " a alguien del equipo" : briefItems.length ? "Todo atendido, nada pendiente de ti" : "Sin movimiento",
       briefDigest: briefDigest, briefHayDigest: !!briefDigest,
       briefVacioTexto: !ctrlLegible ? "No se pudo leer el interruptor de ALMA_CONTROL. Revisa la hoja antes de confiar en este resumen." : on ? "Nada en las últimas " + ventanaH + " horas. ALMA atiende la cola y te avisa aquí si algo necesita a una persona." : "ALMA está apagada. Lo que llegue a Hospitable no se atenderá hasta encenderla."

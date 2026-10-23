@@ -115,6 +115,7 @@ function doPost(e) {
   try {
     const props = PropertiesService.getScriptProperties();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
     if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
@@ -682,7 +683,14 @@ function procesarColaPronto() {
 
 /* Cada minuto: primero la cola (lo que ve el huésped), después el mantenimiento. Antes el mantenimiento iba primero
    (Hospitable, ElevenLabs, Epi — que tarda hasta 35 s) y retrasaba cada clasificación hasta 1-2 minutos. */
+/* Pulso: procesarCola corre cada minuto; si deja de correr (script caído, disparador borrado, cuota), el Hub y el vigía lo notan. */
+function pulso_() { try { PropertiesService.getScriptProperties().setProperty('PULSO', String(Date.now())); } catch (e) {} }
+function saludAlma_() {
+  const t = Number(PropertiesService.getScriptProperties().getProperty('PULSO') || 0), min = t ? Math.round((Date.now() - t) / 60000) : -1;
+  return { ok: true, pulso: t ? new Date(t).toISOString() : '', pulso_min: min, sano: t > 0 && min <= 5 };
+}
 function procesarCola() {
+  pulso_();
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
@@ -3669,9 +3677,10 @@ function hubCola_(horas, hashPrev) {
   const out = { ok: true, cola: cola, log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk };
   /* Huella del contenido: si el Hub ya tiene exactamente esto, se responde «sin cambios» (unos bytes) y no repinta nada. */
   const huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(out), Utilities.Charset.UTF_8));
-  if (hashPrev && hashPrev === huella) return { ok: true, same: true, hash: huella, ts: new Date().toISOString() };
+  const pulsoMs = Number(PropertiesService.getScriptProperties().getProperty('PULSO') || 0);
+  if (hashPrev && hashPrev === huella) return { ok: true, same: true, hash: huella, ts: new Date().toISOString(), pulso: pulsoMs };
   out.hash = huella; out.ts = new Date().toISOString();
-  return out;
+  out.pulso = pulsoMs; return out;
 }
 /* Códigos con registro de llegada enviado (pestaña Formularios de hola), descontando los que el administrador reinició
    después. Es la fuente real: Reservas.status_form a veces queda desactualizado. Caché 5 min. */

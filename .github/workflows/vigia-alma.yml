@@ -1,0 +1,48 @@
+# Vigía de ALMA: cada 10 minutos (GitHub puede retrasarlo unos minutos) pregunta si ALMA responde y si su proceso de
+# cada minuto sigue corriendo. Si no: abre un aviso (issue) «🚨 ALMA no responde» y el flujo falla una vez → GitHub te manda
+# un correo (uno por caída, no cada 10 min). Cuando vuelve: comenta y cierra el aviso (otro correo). Funciona aunque ALMA esté completamente caída.
+name: Vigía de ALMA
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: vigia-alma
+  cancel-in-progress: true
+
+jobs:
+  vigia:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preguntar a ALMA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          URL: https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec
+        run: |
+          R=""; for i in 1 2 3; do R=$(curl -sSL -m 60 -d '{"salud":1}' "$URL" || true); echo "$R" | grep -q '"ok":true' && break; sleep 20; done
+          echo "Respuesta: $(echo "$R" | head -c 300)"
+          SANO=no; MOTIVO=""
+          if echo "$R" | grep -q '"sano":true'; then SANO=si
+          elif echo "$R" | grep -q '"ok":true'; then MOTIVO="ALMA responde, pero su proceso de cada minuto no corre desde hace $(echo "$R" | grep -o '"pulso_min":-\?[0-9]*' | cut -d: -f2) min (disparador detenido o cuota de Google)."
+          else MOTIVO="ALMA no responde: el Apps Script devuelve error o no contesta. $(echo "$R" | grep -o 'SyntaxError[^<]*\|TypeError[^<]*\|ReferenceError[^<]*' | head -1)"
+          fi
+          ABIERTO=$(gh issue list -R "$GITHUB_REPOSITORY" --state open --search "ALMA no responde in:title" --json number -q '.[0].number' || true)
+          HORA=$(TZ=America/Guatemala date '+%d %b %H:%M')
+          if [ "$SANO" = si ]; then
+            if [ -n "$ABIERTO" ]; then gh issue comment "$ABIERTO" -R "$GITHUB_REPOSITORY" -b "✅ ALMA volvió a responder ($HORA, hora de Guatemala)."; gh issue close "$ABIERTO" -R "$GITHUB_REPOSITORY"; fi
+            echo "ALMA está bien."; exit 0
+          fi
+          if [ -z "$ABIERTO" ]; then
+            gh issue create -R "$GITHUB_REPOSITORY" -t "🚨 ALMA no responde" -b "Detectado el $HORA (hora de Guatemala).
+
+          $MOTIVO
+
+          Mientras siga así, ALMA no contesta a huéspedes ni procesa WhatsApp, el Hub ni los envíos a recepción. Este aviso se cierra solo cuando vuelva."
+            echo "::error::$MOTIVO"; exit 1   # solo la primera vez: un correo por caída, no uno cada 10 minutos
+          fi
+          echo "::warning::Sigue caída (aviso #$ABIERTO abierto). $MOTIVO"

@@ -77,13 +77,15 @@ function contactoPlantillaCrear_() {
    huésped: se le reenvía a quien lo pidió (WhatsApp + su chat con ALMA) y él decide qué responder. */
 var PERSONAL_PLANTILLA_ = 'asistente_personal';
 
-function personalEnviar_(adm, persona, numero, texto, objetivo) {
+function personalEnviar_(adm, persona, numero, texto, objetivo, contexto, proyecto) {
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'número inválido' };
   var nombre = String(persona || '').trim(), primer = /^[+\d]/.test(nombre) || !nombre ? '' : nombre.split(' ')[0];
   var de = (adm && adm.nombre ? String(adm.nombre).split(' ')[0] : 'Juan');
   var prev = personalDe_(wa) || {};
-  personalRelay_(wa, { nombre: nombre || prev.nombre || '+' + wa, dest: (adm && (adm.tels || [])[0]) || CFG.WHATSAPP_JUAN || prev.dest || '', adm: (adm && adm.email) || prev.adm || '', de: de,
-    objetivo: objetivo ? String(objetivo).slice(0, 1500) : (prev.objetivo || ''), h: prev.h || [], fin: objetivo ? false : !!prev.fin });
+  var proy = proyecto ? proyAsegurar_(adm, proyecto, objetivo) : (prev.proy || '');
+  if (proyecto && prev.proy && prev.proy !== proy) prev.h = [];   // cambió de proyecto: la conversación empieza de nuevo
+  personalRelay_(wa, { proy: proy, nombre: nombre || prev.nombre || '+' + wa, dest: (adm && (adm.tels || [])[0]) || CFG.WHATSAPP_JUAN || prev.dest || '', adm: (adm && adm.email) || prev.adm || '', de: de,
+    objetivo: objetivo ? String(objetivo).slice(0, 1500) : (prev.objetivo || ''), ctx: contexto ? String(contexto).slice(0, 4000) : (prev.ctx || ''), h: prev.h || [], fin: objetivo ? false : !!prev.fin });
   var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
   if (abierta) {
     var r = waEnviar_(wa, texto);
@@ -127,6 +129,7 @@ function personalNotar_(wa, quien, texto) {
   var r = m[fin8_(wa)]; if (!r) return;
   r.h = (r.h || []).concat([{ q: quien, t: String(texto).slice(0, 700), ts: Date.now() }]).slice(-16);
   p.setProperty('WA_RELAY', JSON.stringify(m));
+  if (r.proy) proyNotar_(r.proy, r.nombre, r.wa, quien === 'alma' ? 'alma' : 'persona', texto);
 }
 function personalAvisar_(rel, texto, resumen) {
   var adm = null; try { adm = rel.adm ? adminPorEmail_(rel.adm) : null; } catch (e) {}
@@ -148,8 +151,8 @@ function personalEntrante_(wa, nombre, texto, ts, media, msgId, rel) {
     'Tono cálido, natural y breve, como una asistente de confianza; tutea si la otra persona tutea. Una o dos preguntas por mensaje, no un formulario. ' +
     'No inventes datos ni tomes decisiones por ' + de + ': si preguntan algo que no sabes o que debe decidir ' + de + ', di que se lo consultas y márcalo en para_juan. ' +
     'Cuando tengas todo lo que pide el objetivo (o la persona no puede/no quiere dar más), agradece, despídete en una línea y marca completo. ' +
-    'Responde SOLO JSON: {"respuesta":"mensaje para ' + quien + ' (vacío si no hace falta responder)","para_juan":"pregunta o dato urgente para ' + de + ' (vacío si nada)","completo":true|false,"resumen":"si completo: resumen ordenado para ' + de + ' con todo lo reunido (fechas, horas, números, detalles), en viñetas «· »"}';
-  var usr = 'OBJETIVO DEL ENCARGO: ' + rel.objetivo + '\n\nCONVERSACIÓN HASTA AHORA:\n' + hist;
+    'Responde SOLO JSON: {"respuesta":"mensaje para ' + quien + ' (vacío si no hace falta responder)","para_juan":"pregunta o dato urgente para ' + de + ' (vacío si nada)","completo":true|false,"resumen":"si completo: resumen ordenado para ' + de + ' con todo lo reunido (fechas, horas, números, detalles), en viñetas «· »; si hay CONTEXTO de otras personas, intégralo y señala diferencias o datos que se contradicen"}';
+  var usr = 'OBJETIVO DEL ENCARGO: ' + rel.objetivo + (r2.proy ? '\n\n' + proyContexto_(r2.proy, wa) + '\n(Usa el contexto del proyecto para no repetir lo que ya se sabe, completar lo que falta y contrastar.)' : r2.ctx ? '\n\nCONTEXTO (lo que ya se habló con otras personas sobre este tema; úsalo para no volver a preguntar lo que ya se sabe, para contrastar y para completar):\n' + r2.ctx : '') + '\n\nCONVERSACIÓN HASTA AHORA:\n' + hist;
   var out = {};
   try { var raw = String(claude_(CFG.MODELO_REDACTOR, 900, sys, usr, 0.4) || ''); out = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { out = {}; }
   if (!out || (out.respuesta == null && !out.completo)) { personalAvisar_(rel, quien + ' respondió:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
@@ -161,7 +164,10 @@ function personalEntrante_(wa, nombre, texto, ts, media, msgId, rel) {
   if (out.completo) {
     var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('WA_RELAY') || '{}'); } catch (e) {}
     if (m[fin8_(wa)]) { m[fin8_(wa)].fin = true; p.setProperty('WA_RELAY', JSON.stringify(m)); }
-    personalAvisar_(rel, 'Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + String(out.resumen || '(sin resumen)').trim(), 'Encargo personal cumplido · ' + quien);
+    if (r2.proy) {
+      var cons = ''; try { cons = proyActualizarResumen_(r2.proy, de); } catch (e) {}
+      personalAvisar_(rel, 'Listo, hablé con ' + quien + '. Proyecto «' + r2.proy + '» actualizado con todo lo que se sabe:\n\n' + String(cons || out.resumen || '(sin resumen)').trim(), 'Proyecto ' + r2.proy + ' · ' + quien);
+    } else personalAvisar_(rel, 'Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + String(out.resumen || '(sin resumen)').trim(), 'Encargo personal cumplido · ' + quien);
   }
 }
 
@@ -192,4 +198,13 @@ function personalPlantillaCrear_() {
   var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(body) });
   return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), respuesta: r.getContentText().slice(0, 300) };
+}
+
+/* Texto de las conversaciones personales con otras personas (por nombre), para dar contexto a una nueva. */
+function personalContextoDe_(nombres) {
+  return [].concat(nombres || []).map(function (n) {
+    var r = personalPorNombre_(String(n)); if (!r) return '';
+    var h = (r.h || []).map(function (x) { return (x.q === 'alma' ? 'ALMA' : r.nombre) + ': ' + x.t; }).join('\n');
+    return h ? '— Conversación con ' + r.nombre + ':\n' + h : '';
+  }).filter(Boolean).join('\n\n').slice(0, 4000);
 }

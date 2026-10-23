@@ -3472,7 +3472,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-23s";
+  BUILD = "2026-10-24a";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -4518,14 +4518,15 @@ class Component extends DCLogic {
   hoyAbrirSum(r, imprimir) {
     var self = this, code = r.code;
     this.hoySet({ sum: { h: r, rec: null, cargando: true, error: "", imgs: {}, raw: {}, docs: 0, imprimir: !!imprimir } });
-    var listo = function () { var S = (self.state.hoy || {}).sum; if (S && S.h.code === code && S.imprimir && !S.cargando && !S.docs) { self.hoySet(function (H) { return { sum: Object.assign({}, H.sum, { imprimir: false }) }; }); setTimeout(function () { self.hoyImprimir(); }, 250); } };
+    var listo = function () { var S = (self.state.hoy || {}).sum; if (S && S.h.code === code && S.imprimir && !S.cargando) { self.hoySet(function (H) { return { sum: Object.assign({}, H.sum, { imprimir: false }) }; }); setTimeout(function () { self.hoyImprimir(); }, 250); } };
     var setS = function (fn) { self.hoySet(function (H) { if (!H.sum || H.sum.h.code !== code) return {}; return { sum: Object.assign({}, H.sum, fn(H.sum)) }; }); };
     this.gpost(this.HOLA_URL, "getRegistration", { code: code }, 30000).then(function (j) {
       var rec = j && j.record;
       if (!rec) { setS(function () { return { cargando: false, error: "No pudimos leer el registro. Puede que el envío del huésped se haya cortado antes de guardarse." }; }); return; }
       var ids = (rec.guests || []).map(function (g) { return g.docFileId; }).filter(Boolean);
       setS(function () { return { rec: rec, cargando: false, docs: ids.length }; });
-      if (!ids.length) { setTimeout(listo, 50); return; }
+      setTimeout(listo, 50);
+      if (!ids.length) return;
       ids.forEach(function (id) {
         self.gpost(self.HOLA_URL, "getDocImage", { fileId: id }, 25000).then(function (d) { var raw = d && d.image || ""; return (raw ? self.marcaAgua(raw, code) : Promise.resolve("")).then(function (img) { return { raw: raw, img: img }; }); }).then(function (o) { setS(function (S) { var im = Object.assign({}, S.imgs), rw = Object.assign({}, S.raw); if (o.img) im[id] = o.img; if (o.raw) rw[id] = o.raw; return { imgs: im, raw: rw, docs: Math.max(0, S.docs - 1) }; }); setTimeout(listo, 50); })
           .catch(function () { setS(function (S) { return { docs: Math.max(0, S.docs - 1) }; }); setTimeout(listo, 50); });
@@ -4730,51 +4731,24 @@ class Component extends DCLogic {
     this.hoyAbrirSum(r || { code: code, statusForm: "completo", propertyShort: "Registro " + code, propertyName: "" }, !!imprimir);
     if (!r && !(this.state.hoy || {}).roster) this.hoyCargar();
   }
+  /* Descargar: el MISMO PDF que en hola.spacioam.com — lo arma js/sa-registro-pdf.js (una sola fuente).
+     Es un archivo .pdf de verdad y espera a todos los documentos (reintenta los que fallen). */
   hoyImprimir() {
-    var S = (this.state.hoy || {}).sum; if (!S) return;
-    var h = S.h || {}, rec = S.rec, self = this;
-    var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
-    var C = { negro: "#3E3F3F", tierra: "#6F6867", beige: "#F5F3F0", gris: "#D8D4CE", alab: "#FAFAFA", peach: "#E9826A" };
-    var serif = "Valky,'Cormorant Garamond',Georgia,serif", sans = "Montserrat,-apple-system,system-ui,'Segoe UI',sans-serif";
-    var fdt = function (v) { try { return new Date(v).toLocaleString("es-GT", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); } catch (e) { return "—"; } };
-    var tel = function (p) { if (!p) return ""; if (typeof p === "string") return p.trim(); return String(p.number || "").trim() ? (p.code || "+502") + " " + p.number : ""; };
-    var row = function (k, v) { if (!v) return ""; return '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid ' + C.beige + '"><span style="font-family:' + sans + ';font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#6E6663;font-weight:600;flex-shrink:0">' + esc(k) + '</span><span style="font-family:' + sans + ';font-size:14px;color:' + C.negro + ';text-align:right;letter-spacing:.01em;font-weight:500">' + esc(v) + "</span></div>"; };
-    var sec = function (titulo, cuerpo) { return '<div class="sum-section" style="margin-top:26px"><div style="font-family:' + serif + ';font-size:20px;color:' + C.negro + ';margin-bottom:6px;line-height:1.15">' + esc(titulo) + "</div>" + cuerpo + "</div>"; };
-    var W = 380, Hh = 116, lab = "DOCUMENTACIÓN DE REGISTRO";
-    var wm = encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='" + W + "' height='" + Hh + "'><g font-family='Montserrat,Arial,sans-serif' font-size='12.5' font-weight='700' letter-spacing='2.5' fill='%23938B8A' fill-opacity='0.25'><text x='8' y='42'>" + lab + "</text><text x='" + (8 + W / 2) + "' y='100'>" + lab + "</text><text x='" + (8 - W / 2) + "' y='100'>" + lab + "</text></g></svg>");
-    var docImg = function (src) {
-      if (!src) return '<div style="min-height:120px;border-radius:12px;border:1px dashed ' + C.gris + ';background:' + C.beige + ';display:grid;place-items:center;font-family:' + sans + ';font-size:12px;color:' + C.tierra + ';padding:20px;text-align:center">Sin imagen del documento</div>';
-      return '<div style="position:relative;border-radius:12px;overflow:hidden;border:1px solid ' + C.gris + ';background:#fff"><img src="' + src + '" alt="documento" style="display:block;width:100%;height:auto;object-fit:contain"><div style="position:absolute;top:-60%;left:-30%;width:160%;height:220%;transform:rotate(-22deg);transform-origin:center;background-image:url(&quot;data:image/svg+xml,' + wm + '&quot;);background-repeat:repeat;background-size:' + W + "px " + Hh + 'px"></div><div style="position:absolute;right:5%;bottom:6%;width:8%;max-width:36px;aspect-ratio:1;opacity:.6;background:#FF6F52;-webkit-mask-image:url(assets/brand/logo-stamp-transparent.png);mask-image:url(assets/brand/logo-stamp-transparent.png);-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center"></div></div>';
+    var S = (this.state.hoy || {}).sum, self = this; if (!S) return;
+    if (this._pdfOcupado) return; this._pdfOcupado = true;
+    var raw = S.raw || {};
+    var fin = function () { self._pdfOcupado = false; };
+    var arrancar = function () {
+      if (!window.SARegistroPDF) { self.aviso("No se pudo cargar el generador de PDF."); fin(); return; }
+      window.SARegistroPDF.descargar({ h: S.h || {}, rec: S.rec || null,
+        imagen: function (id) { return raw[id] ? Promise.resolve(raw[id]) : self.gpost(self.HOLA_URL, "getDocImage", { fileId: id }, 25000).then(function (d) { return (d && d.image) || ""; }); },
+        alAvanzar: function (t) { self.aviso(t); } })
+        .then(function (r) { self.aviso(r.faltan ? "PDF descargado · " + r.faltan + " documento(s) no cargaron; vuelve a intentarlo en un momento" : "PDF descargado"); fin(); },
+              function () { self.aviso("No se pudo generar el PDF. Intenta de nuevo."); fin(); });
     };
-    var done = !!rec || /complet/i.test(String(h.statusForm || ""));
-    var pill = function (txt, ico) { return '<span style="display:inline-flex;align-items:center;gap:7px;font-family:' + sans + ';font-size:11px;color:' + C.negro + ';letter-spacing:.02em;background:' + C.beige + ';border:1px solid ' + C.gris + ';border-radius:999px;padding:6px 13px">' + txt + "</span>"; };
-    var sub = h.propertyName && h.propertyName !== h.propertyShort ? h.propertyName : "", apt = h.apartment && String(sub || h.propertyShort || "").indexOf(h.apartment) < 0 ? h.apartment : "", linea = [sub, apt].filter(Boolean).join(" · ");
-    var html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-bottom:20px;border-bottom:1.5px solid ' + C.negro + '"><div><div style="font-family:' + sans + ';font-size:9.5px;letter-spacing:.28em;text-transform:uppercase;color:' + C.tierra + ';font-weight:600;margin-bottom:8px">Resumen de registro</div><div style="font-family:' + serif + ';font-size:30px;color:' + C.negro + ';line-height:1.05">' + esc(h.propertyShort || h.propertyName || "") + "</div>" + (linea ? '<div style="font-family:' + sans + ';font-size:12px;color:' + C.negro + ';margin-top:4px;letter-spacing:.02em">' + esc(linea) + "</div>" : "") + '</div><img src="assets/brand/logo-stamp-transparent.png" alt="Spacio AM" style="width:64px;height:64px;object-fit:contain;display:block"></div>';
-    html += '<div style="display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap"><span style="display:inline-flex;align-items:center;gap:7px;background:' + (done ? "rgba(31,138,91,.12)" : C.beige) + ';border:1px solid ' + (done ? "rgba(31,138,91,.4)" : C.gris) + ';border-radius:999px;padding:6px 13px;font-family:' + sans + ';font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:' + (done ? "#177A4F" : C.negro) + ';font-weight:700"><span style="width:7px;height:7px;border-radius:50%;background:' + (done ? "#1F8A5B" : "#938B8A") + '"></span>' + (done ? "Completo" : "Pendiente") + '</span><span style="font-family:' + sans + ';font-size:11px;color:' + C.negro + ';letter-spacing:.02em">Generado: ' + esc(new Date().toLocaleString("es-GT", { dateStyle: "long", timeStyle: "short", timeZone: "America/Guatemala" })) + "</span>" +
-      (rec && (rec.completedAt || rec.acceptedRulesAt) ? pill("Formulario recibido: " + esc(fdt(rec.completedAt || rec.acceptedRulesAt))) : "") + (rec && rec.startedAt ? pill("Formulario iniciado: " + esc(fdt(rec.startedAt))) : "") + (rec && rec.completedBy && rec.completedBy !== "huésped" ? pill("Finalizado por: " + esc(rec.completedBy)) : "") + "</div>";
-    html += sec("Reserva", row("Reserva", h.code) + row("Check-in", h.checkin ? h.checkin + " · 3:00 PM" : "") + row("Check-out", h.checkout ? h.checkout + " · 11:00 AM" : "") + row("Capacidad", h.maxCapacity ? "hasta " + h.maxCapacity : "") + row("Recepción asignada", h.assignedEmail));
-    if (rec) {
-      var bk = rec.booker || {}, guests = rec.guests || [];
-      html += sec("Quién reservó", '<div style="font-family:' + sans + ';font-size:13px;color:' + C.negro + ';letter-spacing:.01em;line-height:1.6">' + (bk.type === "third" ? "Reserva gestionada por un tercero (no se hospeda)" : "El huésped principal realizó la reserva") + "</div>" +
-        (bk.type === "third" && bk.doc ? '<div class="sum-card" style="margin-top:14px;background:' + C.beige + ';border-radius:14px;padding:16px 18px"><div style="font-family:' + sans + ';font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:' + C.negro + ';font-weight:600;margin-bottom:10px">Persona encargada</div>' + row("Nombre completo", bk.doc.name) + row("Número de identificación", bk.doc.id) + row("Teléfono", tel(bk.phone)) + row("Teléfono de emergencia", tel(bk.emergency)) + row("Correo electrónico", bk.email) + (bk.doc.docImage ? '<div style="margin-top:14px">' + docImg(bk.doc.docImage) + "</div>" : "") + "</div>" : ""));
-      html += sec("Contacto", row("Correo electrónico", (rec.contact || {}).email) + row("Teléfono", tel((rec.contact || {}).phone)) + row("Emergencia", tel((rec.contact || {}).emergency)));
-      html += sec("Huéspedes registrados (" + guests.length + ")", '<div class="sum-guest-list" style="display:flex;flex-direction:column;gap:18px">' + guests.map(function (g, i) {
-        var src = g.docImage || (g.docFileId && ((S.raw || {})[g.docFileId] || (S.imgs || {})[g.docFileId])) || "";
-        return '<div class="sum-card" style="border:1px solid ' + C.gris + ';border-radius:16px;padding:16px 18px;background:' + C.alab + '"><div style="display:flex;align-items:center;gap:9px;margin-bottom:8px"><span style="font-family:' + serif + ';font-size:18px;color:' + C.negro + '">Huésped ' + (i + 1) + "</span>" + (g.main ? '<span style="font-family:' + sans + ';font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;background:' + C.peach + ';color:#fff;padding:4px 9px;border-radius:999px;font-weight:600">principal</span>' : "") + (g.manual ? '<span style="font-family:' + sans + ';font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:' + C.tierra + '">· Escribir datos manualmente</span>' : "") + "</div>" +
-          row("Nombre completo", g.name || "—") + row("Número de identificación", g.id || "—") + '<div style="margin-top:14px;font-family:' + sans + ';font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:' + C.negro + ';font-weight:600;margin-bottom:8px">Documentos de identidad</div>' + docImg(src) + "</div>";
-      }).join("") + "</div>");
-      html += sec("Normas de convivencia", '<div style="display:flex;gap:11px;align-items:flex-start;background:' + C.beige + ';border-radius:14px;padding:14px 16px"><span style="flex-shrink:0;margin-top:1px;color:#1F8A5B;font-size:15px">&#10003;</span><div style="font-family:' + sans + ';font-size:12.5px;color:' + C.negro + ';line-height:1.6;letter-spacing:.01em">Aceptadas al finalizar el registro' + (rec.acceptedRulesAt ? '<span style="display:block;margin-top:3px;font-size:11.5px">' + esc(new Date(rec.acceptedRulesAt).toLocaleString("es-GT", { dateStyle: "long", timeStyle: "short", timeZone: "America/Guatemala" })) + "</span>" : "") + "</div></div>");
-    }
-    var css = "@font-face{font-family:Valky;src:url(ds/fonts/Valky-Regular.otf) format('opentype')}@page{margin:14mm}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#3E3F3F;font-family:" + sans + "}body{padding:24px}img{max-width:100%!important;max-height:190mm!important;height:auto!important;display:block}.sum-section{break-inside:auto;page-break-inside:auto}.sum-guest-list{display:block!important;break-inside:auto;page-break-inside:auto}.sum-guest-list>*{margin-bottom:18px}.sum-card{break-inside:avoid;page-break-inside:avoid}.sum-guest-list>.sum-card{break-before:page;page-break-before:always}";
-    var doc = "<!doctype html><html><head><meta charset='utf-8'><base href='" + location.href.split("#")[0] + "'><title>Resumen de registro</title><style>" + css + "</style></head><body><div>" + html + "</div></body></html>";
-    var fr = document.createElement("iframe"); fr.setAttribute("aria-hidden", "true"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
-    document.body.appendChild(fr);
-    var d = fr.contentWindow.document; d.open(); d.write(doc); d.close();
-    var ims = Array.prototype.slice.call(d.images || []);
-    var fuentes = d.fonts && d.fonts.ready ? d.fonts.ready.catch(function () {}) : Promise.resolve();
-    Promise.all(ims.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.onload = im.onerror = r; }); }).concat([fuentes])).then(function () {
-      setTimeout(function () { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { var w = window.open("", "_blank"); if (w) { w.document.write(doc); w.document.close(); w.print(); } } setTimeout(function () { fr.remove(); }, 60000); }, 350);
-    });
+    if (window.SARegistroPDF) { arrancar(); return; }
+    var sc = document.createElement("script"); sc.src = "js/sa-registro-pdf.js?v=1"; sc.onload = arrancar; sc.onerror = function () { self.aviso("No se pudo cargar el generador de PDF."); fin(); };
+    document.head.appendChild(sc);
   }
   hoyVals() {
     var self = this, st = this.state, H = st.hoy || {}, hoy = this.hoyISO(), norm = this.hoyNorm;
@@ -4875,8 +4849,8 @@ class Component extends DCLogic {
     var D = this.hoySumDatos(), S0 = H.sum;
     var sumV = D ? Object.assign({}, D, { haySub: !!D.sub, hayRecibido: !!D.recibido, hayNormas: !!D.normas, cargando: !!S0.cargando, error: S0.error || "", hayError: !!S0.error,
       estado: D.done ? "Completo" : "Pendiente", stBg: D.done ? "rgba(61,107,82,.12)" : "#F5F3F0", stBd: D.done ? "rgba(61,107,82,.4)" : "#D8D4CE", stFg: D.done ? "#3d6b52" : "#3E3F3F",
-      descargarLabel: S0.cargando || S0.docs > 0 ? "Cargando documentos…" : "Descargar PDF",
-      descargar: function () { var S1 = (self.state.hoy || {}).sum; if (!S1) return; if (S1.cargando || S1.docs > 0) { self.hoySet(function (H2) { return { sum: Object.assign({}, H2.sum, { imprimir: true }) }; }); return; } self.hoyImprimir(); },
+      descargarLabel: S0.cargando ? "Cargando registro…" : "Descargar PDF",
+      descargar: function () { var S1 = (self.state.hoy || {}).sum; if (!S1) return; if (S1.cargando) { self.hoySet(function (H2) { return { sum: Object.assign({}, H2.sum, { imprimir: true }) }; }); return; } self.hoyImprimir(); },
       reenviar: function () { self.hoyReenviar(D.h.code); }, reenviarWa: function () { self.hoyReenviar(D.h.code, "whatsapp"); }, cerrar: function () { self.hoySet({ sum: null }); },
       cerrarFondo: function (e) { if (e.target === e.currentTarget) self.hoySet({ sum: null }); } }) : { secciones: [], huespedes: [] };
     var fechaLarga = new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Guatemala" });

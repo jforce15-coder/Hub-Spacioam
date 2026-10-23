@@ -59,7 +59,7 @@ function agHerramientas_() {
     T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
       { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' } }),
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas.', { codigo: s('Código de reserva o conv_id') }, ['codigo']),
-    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp.',
+    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Formato fácil de leer en el teléfono: saludo en su propia línea y párrafos cortos (una idea por párrafo) separados por una línea en blanco.',
       { codigo: s('Código de reserva o conv_id'), texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado') }, ['codigo', 'texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) por su nombre.',
       { persona: s('Nombre de la persona del equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
@@ -147,6 +147,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'enviar_a_huesped': {
       var rid2 = agResId_(inp.codigo); if (!rid2) return { error: 'No encontré esa reserva.' };
       var quien = 'ALMA · pedido de ' + adm.nombre;
+      inp.texto = pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
       var r2 = inp.canal === 'whatsapp' ? hubResponderWa_(rid2, inp.texto, quien, inp.numero || '') : hubResponder_(rid2, inp.texto, quien, 'plataforma');
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'Mensaje al huésped (' + (inp.canal === 'whatsapp' ? 'WhatsApp' : 'plataforma') + ') · ' + String(inp.texto).slice(0, 80), error: r2.ok ? '' : r2.error });
       return r2.ok ? { ok: true, plantilla: !!r2.plantilla } : { error: r2.error === 'sin_numero' ? 'No hay número de WhatsApp para esa reserva; pide el número.' : r2.error };
@@ -448,4 +449,52 @@ function growApi_(op, datos) {
     var t = r.getContentText();
     try { return JSON.parse(t); } catch (e) { return { ok: false, error: 'Grow respondió ' + r.getResponseCode() + ': ' + t.slice(0, 200) }; }
   } catch (e) { return { ok: false, error: 'Grow no respondió: ' + e }; }
+}
+
+
+/* Pulido de los mensajes que ALMA manda a un huésped por encargo del equipo.
+   1) Por la plataforma (Airbnb, Booking, Hospitable) no se presenta la empresa (el huésped ya está en su reserva),
+      pero Alma sí: «te escribimos de Spacio AM» o «soy Alma (de Spacio AM)» → «te saluda Alma».
+   2) Si llega como un solo bloque, se parte en párrafos cortos: saludo en su línea, una idea por párrafo,
+      preguntas y despedida aparte. Si el texto ya trae párrafos, se respeta. */
+function pulirMsgHuesped_(texto, canal) {
+  var t = String(texto || '').replace(/\r/g, '').trim();
+  if (!t) return t;
+  if (canal !== 'whatsapp') {
+    /* Alma sí se presenta (los huéspedes no la conocen); lo que sobra es la empresa. */
+    t = t.replace(/(?:te|les|le)\s+(?:escribimos|saludamos|contactamos)\s+(?:de(?:sde)?|del equipo de)\s+(?:el equipo de\s+)?Spacio\s*AM\b/gi, 'te saluda Alma')
+         .replace(/\b(?:soy|habla|te escribe)\s+Alma\s*,?\s+(?:de|del equipo de)\s+Spacio\s*AM\b/gi, 'te saluda Alma')
+         .replace(/\b(?:soy|te habla|habla|te escribe)\s+Alma\b/gi, 'te saluda Alma')
+         .replace(/[,;]?\s*(?:somos|de parte de)\s+(?:el equipo de\s+)?Spacio\s*AM\b[^.!?\n]*/gi, '')
+         .replace(/(te saluda Alma)(?:[.,]?\s*te saluda Alma\b)+/gi, '$1')
+         .replace(/\s+([.,!?])/g, '$1').replace(/([.!?])\1+/g, '$1').replace(/^\s*[,.]\s*/, '');
+  }
+  if (/\n\s*\n/.test(t)) return t;
+  t = t.replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ');
+  var frases = t.match(/[^.!?…]+(?:[.!?…]+|$)(?:\s*[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]+)?/gu) || [t];
+  frases = frases.map(function (f) { return f.trim(); }).filter(Boolean);
+  if (frases.length < 3 && t.length < 180) return t;
+  var parrafos = [];
+  var saludo = /^(hola|buen[oa]s?\s+\w+|hi|hello|dear|estimad[oa])\b/i;
+  if (saludo.test(frases[0]) && frases[0].length <= 60) {
+    var sal = frases.shift();
+    parrafos.push(sal.indexOf(',') < 0 ? sal.replace(/[.!]$/, ',') : sal);
+  }
+  var cierre = /^(cualquier (duda|cosa|consulta)|quedo|quedamos|gracias|saludos|un abrazo|feliz|que disfrut|any question|thank|best|kind regards|enjoy)/i;
+  var actual = [];
+  frases.forEach(function (f) {
+    var esPregunta = /^[¿]/.test(f) || /\?$/.test(f);
+    var esCierre = cierre.test(f);
+    if (esPregunta || esCierre) {
+      if (actual.length) { parrafos.push(actual.join(' ')); actual = []; }
+      if (esCierre && parrafos.length && cierre.test(parrafos[parrafos.length - 1])) parrafos[parrafos.length - 1] += ' ' + f;
+      else parrafos.push(f);
+      return;
+    }
+    if (actual.length === 1 && (actual[0] + ' ' + f).length <= 170) { actual.push(f); parrafos.push(actual.join(' ')); actual = []; return; }
+    if (actual.length) parrafos.push(actual.join(' '));
+    actual = [f];
+  });
+  if (actual.length) parrafos.push(actual.join(' '));
+  return parrafos.join('\n\n');
 }

@@ -4821,6 +4821,8 @@ function dsBotApi_(body) {
       case 'recepcion_estado': return json_(recepcionEstado_());
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
+      case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));
+      case 'proy_ver': return json_(proyVer_(String(body.proyecto || ''), !!body.actualizar, 'Juan'));
       case 'personal_objetivo': return json_(personalObjetivo_(String(body.wa || ''), String(body.objetivo || '')));
       case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), personal: (CacheService.getScriptCache().remove('tpl_personal'), personalPlantillaOk_()), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());

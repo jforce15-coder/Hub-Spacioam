@@ -96,7 +96,7 @@ function recepcionLog_(code, r) {
   try {
     var ss = ssAlma_(), sh = ss.getSheetByName('ALMA_RECEPCION');
     if (!sh) { sh = ss.insertSheet('ALMA_RECEPCION'); sh.appendRow(['fecha', 'codigo', 'resultado', 'enviados', 'plantilla', 'detalle']); }
-    sh.appendRow([new Date().toISOString(), code, r && r.ok ? 'OK' : 'ERROR', r && r.enviados != null ? r.enviados + '/' + r.total : '', (r && r.plantilla) || '', String((r && r.error) || '').slice(0, 400)]);
+    sh.appendRow([new Date().toISOString(), code, r && r.ok ? 'OK' : 'ERROR', r && r.enviados != null ? r.enviados + ' de ' + r.total : '', (r && r.plantilla) || '', String((r && r.error) || '').slice(0, 400)]);
   } catch (e) { console.error('recepcionLog_: ' + e); }
 }
 

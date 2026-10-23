@@ -686,6 +686,7 @@ function procesarCola() {
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
+  try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }

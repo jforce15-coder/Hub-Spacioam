@@ -54,6 +54,7 @@ function _handle(e){
     if(body.action === 'diagClaves') return _diagClaves(body.robot);
     if(body.action === 'diagAlternos') return _diagAlternos(body.robot);
     if(body.action === 'resolverSocios') return _resolverSocios(body.robot, body.aplicar === true);
+    if(body.action === 'crearContador') return _crearContador(body.robot, body.email, body.alternos, body.nombre, body.aplicar === true);
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -578,4 +579,35 @@ function _resolverSocios(token, aplicar){
   });
   if(aplicar) CacheService.getScriptCache().remove('alt_mi');
   return {ok:true, aplicado:!!aplicar, socios:out};
+}
+
+/* Robot: usuario de contabilidad de Mi (perm_mi = contador → Mi solo le muestra Contabilidad). Entra con el correo
+   principal o con cualquiera de los alternos. Sin contraseña: en su primer ingreso Mi le pide crearla.
+   Sin aplicar, solo dice qué haría. */
+function _crearContador(token, email, alternos, nombre, aplicar){
+  if(!_diagLector(token).ok) return {ok:false, error:'token'};
+  email=String(email||'').trim().toLowerCase(); if(email.indexOf('@')<0) return {ok:false, error:'bad_email'};
+  var alt=[].concat(alternos||[]).map(function(x){ return String(x||'').trim().toLowerCase(); }).filter(function(x){ return x.indexOf('@')>0 && x!==email; });
+  var d=_all(), sh=d.sh, H=d.H, f=_findRow(email);
+  if(H.perm_mi==null) return {ok:false, error:'sin columna perm_mi'};
+  if(f){
+    var prev=String(f.d.data[f.i][H.perm_mi]||'');
+    if(ROLES_ADMIN.indexOf(prev)>=0) return {ok:false, error:'ese correo ya es administrador; no se cambia'};
+    if(!aplicar) return {ok:true, existe:true, perm_mi_actual:prev||'(ninguno)', haria:'perm_mi = contador y agregar alternos'};
+    sh.getRange(f.i+1, H.perm_mi+1).setValue('contador');
+    if(H.email_alterno!=null && alt.length){ var ya=String(f.d.data[f.i][H.email_alterno]||'').toLowerCase().split(/[\s,;]+/).filter(Boolean); sh.getRange(f.i+1, H.email_alterno+1).setValue(ya.concat(alt).filter(function(x,i,a){ return a.indexOf(x)===i; }).join(', ')); }
+    if(String(f.d.data[f.i][H.estado]||'')==='suspendido') sh.getRange(f.i+1, H.estado+1).setValue('activo');
+    return {ok:true, actualizado:true};
+  }
+  if(!aplicar) return {ok:true, existe:false, haria:'crear usuario contador', alternos:alt.length, columna_alterno:H.email_alterno!=null};
+  nombre=String(nombre||'Contabilidad').trim();
+  var row=[]; for(var k=0;k<sh.getLastColumn();k++) row.push('');
+  var set=function(col, v){ if(H[col]!=null) row[H[col]]=v; };
+  set('user_id', 'U-' + Utilities.getUuid().slice(0, 8).toUpperCase()); set('nombre', nombre); set('email', email);
+  set('primer_nombre', nombre.split(/\s+/)[0]||''); set('estado', 'activo'); set('es_dueno', 'no'); set('es_socio', 'no');
+  set('perm_mi', 'contador'); set('password_hash', ''); set('actualizado', new Date());
+  if(H.email_alterno!=null) set('email_alterno', alt.join(', '));
+  sh.appendRow(row);
+  CacheService.getScriptCache().remove('alt_mi');
+  return {ok:true, creado:true};
 }

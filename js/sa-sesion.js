@@ -94,6 +94,7 @@
       method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'hoja', token: 'SpacioAM2026!', session: leer(), q: q })
     }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.error === 'session') { var es = new Error('session'); es.sesion = true; throw es; }
       if (!j || !j.ok || typeof j.csv !== 'string') throw new Error((j && j.error) || 'lector');
       return new Response(new Blob([j.csv], { type: 'text/csv;charset=utf-8' }), { status: 200, headers: { 'Content-Type': 'text/csv; charset=utf-8' } });
     });
@@ -105,9 +106,12 @@
       var url = typeof input === 'string' ? input : (input && input.url) || '';
       var g = RX_GVIZ.exec(url);
       if (g && leer() && (!init || !init.method || String(init.method).toUpperCase() === 'GET')) {
-        return leerHoja(g[1]).catch(function () {   // un reintento antes de ir directo (la hoja privada no se puede leer directo)
+        return leerHoja(g[1]).catch(function (e0) {   // un reintento antes de ir directo (la hoja privada no se puede leer directo)
+          if (e0 && e0.sesion) throw e0;
           return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return leerHoja(g[1]); });
         }).catch(function (e) {
+          /* Sesión vencida o inválida: no tiene sentido leer directo (la hoja es privada). Se borra para que la app pida entrar de nuevo. */
+          if (e && e.sesion) { borrar(); try { w.dispatchEvent(new Event('sa-sesion-vencida')); } catch (x) {} throw e; }
           try { console.warn('[sa-sesion] lector de hojas: ' + (e && e.message) + ' · se intenta directo'); } catch (x) {}
           return origFetch(input, init);
         });

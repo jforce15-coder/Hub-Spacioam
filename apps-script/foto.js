@@ -1,27 +1,22 @@
 /* ═══ Foto de perfil de ALMA que rota sola ═══════════════════════════════════
    Las fotos viven en el Hub (hub.spacioam.com/alma/fotos/01.jpg … NN.jpg, cuadradas).
-   Una vez por periodo (por defecto cada día a las 7:00 de Guatemala) se sube la siguiente
-   al perfil de WhatsApp Business. Orden barajado sin repetir hasta usarlas todas.
-   Propiedades opcionales: FOTO_ROTAR=0 (pausa) · FOTO_CADA_DIAS (1) · FOTO_HORA (7) · FOTO_TOTAL. */
+   Cada FOTO_CADA_HORAS (4 por defecto) se sube la siguiente al perfil de WhatsApp Business.
+   Orden barajado sin repetir hasta usarlas todas.
+   Propiedades opcionales: FOTO_ROTAR=0 (pausa) · FOTO_CADA_HORAS (4) · FOTO_TOTAL. */
 const FOTO_BASE_ = 'https://hub.spacioam.com/alma/fotos/';
 const FOTO_TOTAL_DEF_ = 15;
 
 function fotoProcesar_() {
   const p = PropertiesService.getScriptProperties();
   if (p.getProperty('FOTO_ROTAR') === '0') return;
-  const ahora = new Date();
-  const dia = Utilities.formatDate(ahora, 'America/Guatemala', 'yyyy-MM-dd');
-  const hora = Number(Utilities.formatDate(ahora, 'America/Guatemala', 'H'));
-  const cada = Math.max(1, Number(p.getProperty('FOTO_CADA_DIAS') || 1));
-  const hh = Number(p.getProperty('FOTO_HORA') || 7);
-  if (hora < hh) return;
-  const ult = p.getProperty('FOTO_ULT_DIA') || '';
-  if (ult && (new Date(dia + 'T12:00:00Z') - new Date(ult + 'T12:00:00Z')) / 864e5 < cada) return;
+  const cadaH = Math.max(1, Number(p.getProperty('FOTO_CADA_HORAS') || 4));
+  const ult = Date.parse(p.getProperty('FOTO_CAMBIADA') || '') || 0;
+  if (Date.now() - ult < cadaH * 3600000 - 60000) return;
   // Si falla (por ejemplo, la foto aún no está publicada) reintenta cada 30 min, no cada minuto.
   const intento = Number(p.getProperty('FOTO_INTENTO') || 0);
   if (Date.now() - intento < 30 * 60000) return;
   p.setProperty('FOTO_INTENTO', String(Date.now()));
-  try { fotoCambiar_(); p.setProperty('FOTO_ULT_DIA', dia); }
+  try { fotoCambiar_(); }
   catch (e) { p.setProperty('FOTO_ERROR', String(e).slice(0, 400)); console.warn('fotoCambiar_: ' + e); }
 }
 
@@ -88,16 +83,14 @@ function fotoCambiar_(n) {
 function fotoEstado_() {
   const p = PropertiesService.getScriptProperties();
   return { ok: true, rotar: p.getProperty('FOTO_ROTAR') !== '0', actual: Number(p.getProperty('FOTO_ACTUAL') || 0),
-    cambiada: p.getProperty('FOTO_CAMBIADA') || '', ultDia: p.getProperty('FOTO_ULT_DIA') || '',
-    cadaDias: Number(p.getProperty('FOTO_CADA_DIAS') || 1), hora: Number(p.getProperty('FOTO_HORA') || 7),
+    cambiada: p.getProperty('FOTO_CAMBIADA') || '', cadaHoras: Number(p.getProperty('FOTO_CADA_HORAS') || 4),
     total: Number(p.getProperty('FOTO_TOTAL') || FOTO_TOTAL_DEF_), error: p.getProperty('FOTO_ERROR') || '' };
 }
 
 function fotoConfig_(b) {
   const p = PropertiesService.getScriptProperties();
   if (b.rotar != null) p.setProperty('FOTO_ROTAR', b.rotar ? '1' : '0');
-  if (b.cadaDias) p.setProperty('FOTO_CADA_DIAS', String(Math.max(1, Number(b.cadaDias))));
-  if (b.hora != null && b.hora !== '') p.setProperty('FOTO_HORA', String(Math.min(23, Math.max(0, Number(b.hora)))));
+  if (b.cadaHoras) p.setProperty('FOTO_CADA_HORAS', String(Math.max(1, Number(b.cadaHoras))));
   if (b.total) { p.setProperty('FOTO_TOTAL', String(Number(b.total))); p.deleteProperty('FOTO_COLA'); }
   return fotoEstado_();
 }

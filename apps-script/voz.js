@@ -221,6 +221,9 @@ function vozPostCall_(body) {
   var convEL = s_(d.conversation_id);
   var tel = normTel_(pc.external_number || dv.system__caller_id || '');
   if (!convEL) return { ok: false, error: 'sin conversation_id' };
+  /* Llamada sin número (prueba desde el navegador o el panel de ElevenLabs): es del administrador principal y va a su conversación. */
+  var prueba = false;
+  if (!tel) { try { var ppal = adminsOp_().filter(function (a) { return a.principal; })[0]; if (ppal && ppal.tels && ppal.tels[0]) { tel = normTel_(ppal.tels[0]); prueba = true; } } catch (x) {} }
   if (!vozMarcar_(convEL)) return { ok: true, duplicado: true };
   var t0 = Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), dur = Number(md.call_duration_secs || 0);
   var rel = null; try { rel = tel ? waReserva_(tel) : null; } catch (x) {}
@@ -238,7 +241,7 @@ function vozPostCall_(body) {
   if (!pre.huesped && (nomDC || nomTool) && !/^(desconocid|no se|n\/a|vac)/i.test(nomDC || nomTool)) pre.huesped = (nomDC || nomTool).slice(0, 60);
   if (!pre.propiedad && (motivo || propDC)) pre.propiedad = [propDC, motivo].filter(Boolean).join(' · ').slice(0, 90);
   var mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
-  var canal = /sip/i.test(s_(pc.type)) || s_(pc.agent_number).replace(/\D/g, '').slice(-8) === '31280966' ? 'WhatsApp' : 'teléfono';
+  var canal = /sip/i.test(s_(pc.type)) || s_(pc.agent_number).replace(/\D/g, '').slice(-8) === '31280966' ? 'WhatsApp' : prueba ? 'navegador (prueba)' : 'teléfono';
   var sh = hojaWA_(), filas = [];
   filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convId, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
@@ -796,4 +799,24 @@ function vozPermisoRespuesta_(m) {
   if (Date.now() - Number(o.t || 0) > 24 * 3600000) { p.deleteProperty('VOZ_PEND_' + fin8_(tel)); return; }
   Utilities.sleep(4000);
   vozLlamar_(tel, o.motivo || '');
+}
+
+/* Una vez: las llamadas de prueba que quedaron como conversaciones sueltas (llamada:<id>) pasan a la conversación de WhatsApp
+   del administrador principal, y se quitan de la bandeja las filas sueltas. */
+function vozUnirPruebas_() {
+  var ppal = adminsOp_().filter(function (a) { return a.principal; })[0];
+  var tel = ppal && ppal.tels && ppal.tels[0] ? normTel_(ppal.tels[0]) : ''; if (!tel) return { ok: false, error: 'sin número del administrador principal' };
+  var sh = hojaWA_(), n = sh.getLastRow(), movidas = 0;
+  if (n >= 2) {
+    var v = sh.getRange(2, 1, n - 1, 7).getValues();
+    v.forEach(function (r, i) { if (/^llamada:/.test(String(r[6]))) { r[1] = tel; r[6] = 'wa:' + tel; movidas++; } });
+    if (movidas) sh.getRange(2, 1, n - 1, 7).setValues(v);
+  }
+  var shI = hojaInbox_(), nI = shI.getLastRow(), borradas = 0;
+  if (nI >= 2) {
+    var ids = shI.getRange(2, 1, nI - 1, 1).getValues();
+    for (var k = ids.length - 1; k >= 0; k--) if (/^llamada:/.test(String(ids[k][0]))) { shI.deleteRow(k + 2); borradas++; }
+  }
+  try { CacheService.getScriptCache().removeAll(['inbox', 'hub_inbox']); } catch (e) {}
+  return { ok: true, mensajes_movidos: movidas, conversaciones_quitadas: borradas };
 }

@@ -38,13 +38,7 @@ function promesaRegistrar_(c, texto, origen) {
     var vence = new Date(ahora + p.horas * 3600000).toISOString(), id = 'pr' + ahora + Math.floor(Math.random() * 1000);
     d.sh.appendRow([id, new Date(ahora).toISOString(), convId, c.huesped || '', c.propiedad || '', p.canal, p.que, vence, 'abierta', origen || 'texto', String(texto).slice(0, 1500), 1, '', '']);
     try { inboxUpsert_(convId, { promesa: p.que, promesa_vence: vence, promesa_id: id, promesa_estado: 'abierta' }); } catch (e) {}
-    var donde = (c.huesped || 'Huésped') + (c.propiedad ? ' · ' + c.propiedad : '');
-    var canalTxt = { whatsapp: 'por WhatsApp', plataforma: 'por la plataforma', llamada: 'por llamada', correo: 'por correo' }[p.canal] || '';
-    try {
-      escalar_('ALMA prometió algo · ' + donde,
-        'ALMA le dijo a ' + donde + ' que el equipo ' + (canalTxt ? 'le respondería ' + canalTxt : 'haría seguimiento') + '.\n\nQué se prometió: ' + p.que +
-        '\nPlazo: ' + Utilities.formatDate(new Date(vence), CFG.TZ, 'dd MMM HH:mm') + ' (hora Guatemala)\n\nÁbrelo en el Hub y respóndele desde ahí: la promesa se cierra sola.\nhttps://hub.spacioam.com/');
-    } catch (e) { console.error('promesa aviso: ' + e); }
+    /* Sin aviso al crearla: el seguimiento queda en el Hub y, si vence, entra en el resumen periódico (promesasRevisar_). */
     return { id: id, que: p.que, vence: vence };
   } finally { try { lock.releaseLock(); } catch (e) {} }
 }
@@ -63,17 +57,25 @@ function promesasCumplir_(convId, quien, motivo) {
   return n;
 }
 
-/* Revisión periódica (procesarCola): las vencidas avisan una segunda vez y quedan marcadas. */
+/* Revisión periódica (procesarCola): las vencidas se marcan en silencio y, como mucho cada PROM_AVISO_HORAS (6 h por defecto)
+   y solo de 7:00 a 21:00 en Guatemala, sale UN resumen con las que siguen pendientes. Nada de un aviso por promesa. */
 function promesasRevisar_() {
   var c = CacheService.getScriptCache(); if (c.get('prom_rev')) return; c.put('prom_rev', '1', 600);
   var d = promFilas_(), ahora = Date.now();
   d.filas.forEach(function (f) {
     if (f.estado !== 'abierta' || !(Date.parse(f.vence) < ahora)) return;
     d.sh.getRange(f.fila, PROM_CAB_.indexOf('estado') + 1).setValue('vencida');
-    d.sh.getRange(f.fila, PROM_CAB_.indexOf('avisos') + 1).setValue(Number(f.avisos || 1) + 1);
+    f.estado = 'vencida';
     try { inboxUpsert_(f.conv_id, { promesa: f.que, promesa_vence: f.vence, promesa_id: f.id, promesa_estado: 'vencida' }); } catch (e) {}
-    try { escalar_('Promesa vencida · ' + (f.huesped || 'Huésped'), 'Sigue pendiente lo que ALMA le prometió a ' + (f.huesped || 'un huésped') + (f.propiedad ? ' (' + f.propiedad + ')' : '') + ':\n\n' + f.que + '\n\nVenció ' + Utilities.formatDate(new Date(f.vence), CFG.TZ, 'dd MMM HH:mm') + '. Respóndele desde el Hub.\nhttps://hub.spacioam.com/'); } catch (e) {}
   });
+  var P = PropertiesService.getScriptProperties(), cada = Math.max(1, Number(P.getProperty('PROM_AVISO_HORAS') || 6)), ult = Number(P.getProperty('PROM_ULT_AVISO') || 0);
+  var h = +Utilities.formatDate(new Date(), CFG.TZ, 'H');
+  if (h < 7 || h >= 21 || ahora - ult < cada * 3600000) return;
+  var venc = d.filas.filter(function (f) { return f.estado === 'vencida'; });
+  if (!venc.length) return;
+  P.setProperty('PROM_ULT_AVISO', String(ahora));
+  var lineas = venc.slice(-8).reverse().map(function (f) { return '· ' + (f.huesped || 'Huésped') + (f.propiedad ? ' (' + f.propiedad + ')' : '') + ': ' + String(f.que).slice(0, 140); });
+  try { escalar_('Promesas pendientes · ' + venc.length, 'Resumen de lo que ALMA prometió y sigue pendiente (' + venc.length + '):\n\n' + lineas.join('\n') + (venc.length > 8 ? '\n· …y ' + (venc.length - 8) + ' más' : '') + '\n\nSe cierran solas al responderle al huésped o al marcar la conversación como resuelta. Próximo resumen en ' + cada + ' h como mínimo.\nhttps://hub.spacioam.com/'); } catch (e) { console.error('promesas resumen: ' + e); }
 }
 
 /* Hub: lista de promesas (abiertas y vencidas por defecto) y cierre manual. */

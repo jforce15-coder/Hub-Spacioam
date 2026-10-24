@@ -1551,6 +1551,7 @@ const NOTAS_PROMPTS = {
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
   SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el chat operativo (Hub y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
+  VOZ_HUMANA: 'Llamadas: cómo suena Alma para que se escuche como una persona (ritmo, reacciones, muletillas, etiquetas de voz, fechas y números). Va al final del prompt de voz. Edítalo libremente.',
   REGLAS_EXTRA: 'Avisos temporales que Alma debe tener en cuenta (una por línea). Ej.: "Brunelo: corte de agua el sábado de 8 a 12".',
   CONTENCION_ES: 'Mensajes al huésped en un ROJO (modo AUTO), en español. Varias variantes separadas por una línea en blanco: ALMA elige una al azar y nunca repite la última. Solo se envía una contención por incidente.',
   CONTENCION_EN: 'Mensaje fijo al huésped en un ROJO (modo AUTO), en inglés.',
@@ -1576,7 +1577,7 @@ function promptsRespaldo_() {
     ESTILO: SEMILLA_ESTILO_, MEJORAR: SEMILLA_MEJORAR_, APELACION: SEMILLA_APELACION_, RESPUESTA_REVIEW: SEMILLA_RESP_REVIEW_, REVIEW_HUESPED: SEMILLA_REVIEW_HUESPED_, OPERATIVO: SEMILLA_OPERATIVO_, SECRETARIA: SEMILLA_SECRETARIA_,
     REDACTOR: PROMPT_REDACTOR, CLASIFICADOR: PROMPT_CLASIFICADOR, VERIFICADOR: PROMPT_VERIFICADOR, REGLAS_EXTRA: '',
     REGLAS_REDACTOR: sinCab_(REGLAS_FIJAS_REDACTOR), REGLAS_CLASIFICADOR: sinCab_(REGLAS_FIJAS_CLASIFICADOR),
-    ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_, VOZ: SEMILLA_VOZ_,
+    ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_, VOZ: SEMILLA_VOZ_, VOZ_HUMANA: SEMILLA_VOZ_HUMANA_,
     INQUIRY_EVALUAR: PROMPT_INQ_EVALUAR_, INQUIRY_FUSIONAR: PROMPT_INQ_FUSIONAR_,
     ROUTER: [
       'Eres el router de conversaciones de ALMA (Spacio AM, alojamientos en Guatemala). Clasifica la conversación en UNA ruta:',
@@ -1693,7 +1694,7 @@ function sembrarInstrucciones_(faltan) {
   } catch (e) { console.error('sembrarInstrucciones_: ' + e); }
 }
 const GRUPO_PROMPT_ = k => /^(REDACTOR|REGLAS_REDACTOR|VERIFICADOR)$/.test(k) ? 'Redacción' : /^(CLASIFICADOR|REGLAS_CLASIFICADOR|ROUTER)$/.test(k) ? 'Clasificación' : /^INQUIRY_/.test(k) ? 'Consultas (inquiries)' :
-  /^(RUTA_|ADMIN_WHATSAPP|VENTAS_WHATSAPP)/.test(k) ? 'WhatsApp' : /^(CONTENCION_|EMERGENCIA_|ACCESO_)/.test(k) ? 'Mensajes fijos' : k === 'REGLAS_EXTRA' ? 'Avisos temporales' : k === 'VOZ' ? 'Llamadas' : /^(SECRETARIA|OPERATIVO)$/.test(k) ? 'Chat operativo' : 'Aprendizaje';
+  /^(RUTA_|ADMIN_WHATSAPP|VENTAS_WHATSAPP)/.test(k) ? 'WhatsApp' : /^(CONTENCION_|EMERGENCIA_|ACCESO_)/.test(k) ? 'Mensajes fijos' : k === 'REGLAS_EXTRA' ? 'Avisos temporales' : /^VOZ(_HUMANA)?$/.test(k) ? 'Llamadas' : /^(SECRETARIA|OPERATIVO)$/.test(k) ? 'Chat operativo' : 'Aprendizaje';
 /* Hub: lista completa para el editor de instrucciones. */
 function hubPrompts_() {
   prompt_('REDACTOR');

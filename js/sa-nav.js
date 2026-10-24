@@ -71,15 +71,22 @@
   var STONE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .62 0 0 0 0 .55 0 0 0 0 .50 0 0 0 .16 -.03'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23m)'/%3E%3C/svg%3E\")," + GRAIN;
   var GRAD = "linear-gradient(100deg,#E64E37 0%,#EE7552 45%,#F59D68 100%)";
   function scrimCss(e, g) { return "#sa-nav-root .san-scrim[data-e='" + e + "']{background:" + g + "}"; }
-  var LIN = function (dir) { return "linear-gradient(to " + dir + ",rgba(38,36,35,.26) 0px,rgba(38,36,35,.18) 110px,rgba(38,36,35,.05) 210px,rgba(38,36,35,0) 290px)"; };
-  var RAD = function (at) { return "radial-gradient(circle at " + at + ",rgba(38,36,35,.26) 0px,rgba(38,36,35,.17) 160px,rgba(38,36,35,.05) 280px,rgba(38,36,35,0) 380px)"; };
+  /* El fade mide 140 px más por cada lado que la pantalla: con las barras flotantes de Safari (que aparecen y se esconden
+     al hacer scroll) nunca se ve su borde cortado. Los degradados se corren esos 140 px para verse igual. */
+  var SX = 140;
+  var LIN = function (dir) { return "linear-gradient(to " + dir + ",rgba(38,36,35,.26) 0px,rgba(38,36,35,.26) " + SX + "px,rgba(38,36,35,.18) " + (SX + 110) + "px,rgba(38,36,35,.05) " + (SX + 210) + "px,rgba(38,36,35,0) " + (SX + 290) + "px)"; };
+  var RAD = function (at) {
+    var p = at.split(" ").map(function (v) { return v === "0%" ? SX + "px" : "calc(100% - " + SX + "px)"; }).join(" ");
+    return "radial-gradient(circle at " + p + ",rgba(38,36,35,.26) 0px,rgba(38,36,35,.17) 160px,rgba(38,36,35,.05) 280px,rgba(38,36,35,0) 380px)";
+  };
   var CSS = [
     "#sa-nav-root{--san-ink:#9C928A;--san-spark:#C9C1B8;--san-z:880;font-family:Montserrat,system-ui,-apple-system,sans-serif}",
     "#sa-nav-root[hidden]{display:none!important}",
-    "#sa-nav-root .san-scrim{position:fixed;inset:0;pointer-events:none;z-index:var(--san-z);opacity:.35;transition:opacity .6s cubic-bezier(.45,0,.55,1)}",
+    "#sa-nav-root .san-scrim{position:fixed;inset:-140px;pointer-events:none;z-index:var(--san-z);opacity:.35;transition:opacity .6s cubic-bezier(.45,0,.55,1)}",
     "#sa-nav-root .san-scrim[data-s='2']{opacity:.7}#sa-nav-root .san-scrim[data-s='3']{opacity:.82}#sa-nav-root .san-scrim[data-s='4']{opacity:1}#sa-nav-root .san-scrim.moving{opacity:.2}",
     scrimCss("b", LIN("top")), scrimCss("t", LIN("bottom")), scrimCss("l", LIN("right")), scrimCss("r", LIN("left")),
     scrimCss("bl", RAD("0% 100%")), scrimCss("br", RAD("100% 100%")), scrimCss("tl", RAD("0% 0%")), scrimCss("tr", RAD("100% 0%")),
+    "#sa-nav-root .san-probe{position:fixed;left:0;bottom:0;width:0;height:0;visibility:hidden;pointer-events:none}",
     "#sa-nav-root .san-catch{position:fixed;inset:0;z-index:calc(var(--san-z) + 1);display:none}#sa-nav-root .san-catch.on{display:block}",
     "#sa-nav-root .san-dots{position:fixed;inset:0;pointer-events:none;z-index:calc(var(--san-z) + 2)}",
     "#sa-nav-root .san-dot{position:absolute;left:0;top:0;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:#EEEBE7;box-shadow:inset 0 3px 5px rgba(110,90,80,.18),inset 0 -2px 3px rgba(255,255,255,.7);opacity:0;transition:opacity .35s ease,transform .5s cubic-bezier(.3,1.3,.55,1),box-shadow .25s}",
@@ -257,14 +264,14 @@
   function build() {
     if (!d.getElementById("sa-nav-css")) { var s = d.createElement("style"); s.id = "sa-nav-css"; s.textContent = CSS; d.head.appendChild(s); }
     root = d.createElement("div"); root.id = "sa-nav-root";
-    root.innerHTML = '<div class="san-scrim" aria-hidden="true"></div><div class="san-catch"></div><div class="san-dots" aria-hidden="true"></div>' +
+    root.innerHTML = '<div class="san-probe"></div><div class="san-scrim" aria-hidden="true"></div><div class="san-catch"></div><div class="san-dots" aria-hidden="true"></div>' +
       '<nav class="san-nav" aria-label="Navegación"><div class="san-arms"><div class="san-arm san-grain"></div><div class="san-arm san-grain"></div></div><div class="san-fan"></div><div class="san-items"></div>' +
       '<div class="san-abs san-core"><span class="san-body"><span class="san-led"><span class="san-glow"></span><span class="san-glowb"></span><span class="san-ring"></span></span>' +
       '<button type="button" class="san-face" data-mode="idle" aria-label="Abrir menú" aria-expanded="false"><span class="san-stone"><span class="san-lit"></span></span>' +
       '<span class="san-g san-g-spark">' + SPARK + '</span><span class="san-g san-g-home">' + svg(P.home, 22) + '<span class="san-t"></span></span><span class="san-g san-g-x">' + SPARK + '<span class="san-t">Cerrar</span></span></button></span></div></nav>' +
       '<div class="san-ph" role="status"></div><div class="san-hint" role="note"><span><b>Toca</b> · pantallas</span><span><b>Doble toque</b> · apps</span><span><b>Mantén</b> · mover</span></div>';
     d.body.appendChild(root);
-    E.scrim = root.querySelector(".san-scrim"); E.catch = root.querySelector(".san-catch"); E.dots = root.querySelector(".san-dots");
+    E.scrim = root.querySelector(".san-scrim"); E.probe = root.querySelector(".san-probe"); E.catch = root.querySelector(".san-catch"); E.dots = root.querySelector(".san-dots");
     E.nav = root.querySelector(".san-nav"); E.arms = root.querySelectorAll(".san-arm"); E.armsBox = root.querySelector(".san-arms"); E.fan = root.querySelector(".san-fan"); E.items = root.querySelector(".san-items");
     E.core = root.querySelector(".san-core"); E.face = root.querySelector(".san-face"); E.body = root.querySelector(".san-body"); E.lbl = root.querySelector(".san-g-home .san-t"); E.hint = root.querySelector(".san-hint"); E.ph = root.querySelector(".san-ph");
     ANCH.forEach(function (a) { var s = d.createElement("span"); s.className = "san-dot"; s.dataset.a = a; E.dots.appendChild(s); });
@@ -324,9 +331,16 @@
 
   /* ================= render ================= */
   function slotOf(i) { var a = i < 2 ? 0 : 1, s = i === 0 || i === 3 ? SLOT[1] : SLOT[0]; return { d: arms[a], s: s }; }
+  /* Los botones de abajo se pintan contados desde el borde inferior (bottom:0): cuando la barra de Safari aparece o se
+     esconde al hacer scroll, el navegador los mueve en el mismo cuadro, sin esperar a JavaScript. */
+  var fbTop = 0, fbOn = false;
+  function measureBottom() { if (E.probe) { var t = E.probe.getBoundingClientRect().top; if (t > 0) fbTop = t; } return fbTop; }
   function render() {
     if (!root) return;
-    E.nav.style.transform = "translate(" + px.x + "px," + py.x + "px) scale(" + zoom.x.toFixed(4) + ")";
+    if (!fbTop) measureBottom();
+    var fb = fbTop > 0 && py.t > fbTop / 2;
+    if (fb !== fbOn) { fbOn = fb; E.nav.style.top = fb ? "auto" : ""; E.nav.style.bottom = fb ? "0" : ""; }
+    E.nav.style.transform = "translate(" + px.x + "px," + (fb ? py.x - fbTop : py.x) + "px) scale(" + zoom.x.toFixed(4) + ")";
     if (pullS && (pullS.x || pulling)) pullRender(); else if (pullS) pullClear();
     var bs = "scale(" + barS.x.toFixed(4) + ")"; E.armsBox.style.transform = bs; E.items.style.transform = bs;
     var h = T / 2, A0 = arms[0], A1 = arms[1], L0 = clamp(arm[0].x, h, ARM_L), L1 = clamp(arm[1].x, h, ARM_L), op = clamp(Math.max(arm[0].x, arm[1].x) / 24, 0, 1);
@@ -358,10 +372,11 @@
   /* ================= encaje en el campo de texto =================
      Si la pantalla tiene un botón marcado con data-sa-dock (p. ej. «Mejorar con ALMA» del Hub), el menú se encaja ahí,
      a su tamaño, y un toque hace lo de ese botón. Mantener presionado lo saca a uno de los 8 puntos y vuelve a ser menú. */
-  var dock = { on: false, el: null, out: false, gone: 0 };
+  var dock = { on: false, el: null, out: false, gone: 0, ox: 0, oy: 0 };
   function dockTarget() {
     var els = d.querySelectorAll("[data-sa-dock]");
-    for (var i = 0; i < els.length; i++) { var r = els[i].getBoundingClientRect(); if (r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < w.innerHeight) return { el: els[i], r: r }; }
+    var lim = Math.max(w.innerHeight, d.documentElement.clientHeight || 0);
+    for (var i = 0; i < els.length; i++) { var r = els[i].getBoundingClientRect(); if (r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < lim) return { el: els[i], r: r }; }
     return null;
   }
   function setDocked(on) {
@@ -377,18 +392,25 @@
       dock.gone = 0;
       if (t.el !== dock.el) { dock.el = t.el; if (dockRO) { dockRO.disconnect(); dockRO.observe(t.el); } }
       if (!dock.out) {
-        var cx = t.r.left + t.r.width / 2, cy = t.r.top + t.r.height / 2, z = Math.min(t.r.width, t.r.height) / 92;
+        var cx = t.r.left + t.r.width / 2 + dock.ox, cy = t.r.top + t.r.height / 2 + dock.oy, z = Math.min(t.r.width, t.r.height) / 92;
         if (!dock.on) { setDocked(true); px.to(cx, .4, .82); py.to(cy, .4, .82); zoom.to(z, .4, .8); }
         else if (Math.abs(px.t - cx) > .5 || Math.abs(py.t - cy) > .5 || Math.abs(zoom.t - z) > .01) { px.x = px.t = cx; py.x = py.t = cy; zoom.x = zoom.t = z; kick(); }
+        else if (!pulling && px.rest(.5) && py.rest(.5)) {
+          /* comprobación real: si el botón pintado no quedó sobre el destino (capas fijas desplazadas en iPhone), se corrige */
+          var fr = E.face.getBoundingClientRect(), ex = cx - dock.ox - (fr.left + fr.width / 2), ey = cy - dock.oy - (fr.top + fr.height / 2);
+          if (fr.width && (Math.abs(ex) > 4 || Math.abs(ey) > 4)) { dock.ox += ex; dock.oy += ey; px.x = px.t = px.t + ex; py.x = py.t = py.t + ey; kick(); }
+        }
       }
     }
   }
   var dockLast = 0, dockT = null, dockRaf = 0, dockMO = null, dockRO = null;
   /* a lo sumo una revisión cada 120 ms, leída dentro de un cuadro (no fuerza diseño extra) */
+  var dockRafAt = 0;
   function dockSchedule() {
+    if (dockRaf && Date.now() - dockRafAt > 700) { cancelAnimationFrame(dockRaf); dockRaf = 0; }   /* un cuadro que nunca llegó (app en segundo plano) */
     if (dockRaf || dockT) return;
     var wait = Math.max(0, 120 - (Date.now() - dockLast));
-    dockT = setTimeout(function () { dockT = null; dockRaf = requestAnimationFrame(function () { dockRaf = 0; dockLast = Date.now(); dockCheck(); }); }, wait);
+    dockT = setTimeout(function () { dockT = null; dockRafAt = Date.now(); dockRaf = requestAnimationFrame(function () { dockRaf = 0; dockLast = Date.now(); dockCheck(); }); }, wait);
   }
   function dockWatch() {
     if (w.MutationObserver) { dockMO = new MutationObserver(dockSchedule); dockMO.observe(d.body, { childList: true, subtree: true }); }
@@ -396,6 +418,10 @@
     w.addEventListener("scroll", dockSchedule, { capture: true, passive: true });
     if (w.visualViewport) { w.visualViewport.addEventListener("resize", onResize); w.visualViewport.addEventListener("scroll", dockSchedule); }
     (function slow() { if (!root) return; dockSchedule(); setTimeout(slow, 1500); })();
+    var back = function () { if (!root) return; if (dragging && !downAt) { dragging = false; } onResize(); dockSchedule(); };
+    d.addEventListener("visibilitychange", function () { if (d.visibilityState === "visible") back(); });
+    w.addEventListener("pageshow", back);
+    d.addEventListener("focusin", function () { setTimeout(dockSchedule, 350); }); d.addEventListener("focusout", function () { setTimeout(back, 350); });
   }
   function placeScrim() { var a = st.anchor; E.scrim.dataset.e = isCorner(a) ? a : a === "bc" ? "b" : a === "tc" ? "t" : a === "ml" ? "l" : "r"; }
   function onHome() { return cfg.current === cfg.home.k; }
@@ -538,7 +564,7 @@
     var back = (prevS === 2 || prevS === 4) ? 2 : 1; prevS = 1;
     setTimeout(function () { if (!root) return; st.S = 0; setS(back); }, 170);
   }
-  function onResize() { if (!root) return; insetCache = null; if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
+  function onResize() { if (!root) return; insetCache = null; measureBottom(); if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
 
   /* El pulso (luz y tamaño) son animaciones CSS con la misma duración, montadas en el mismo instante: corren en el
      compositor, sin trabajo de JavaScript por cuadro, y siguen sincronizadas. */
@@ -599,10 +625,15 @@
   }
   var PULL_MIN = 14, PULL_GO = 88, PULL_END = 70, pulling = 0, pullAlong = 0, pullS = null;
   var aX, aY, aS, aSq, aDX, aDY, aL, aH;
-  function almaOk() { return !!(cfg && cfg.alma && cfg.alma.start) && !dock.on; }
+  function almaOk() { return !!(cfg && cfg.alma && cfg.alma.start); }
+  /* hacia dónde queda «el centro» desde donde está el botón (encajado puede estar en cualquier lado) */
+  function towardCenter() { if (!dock.on) return inward(st.anchor); var dx = VW() / 2 - px.x, dy = VH() * .42 - py.x, l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; }
+  /* ¿se puede volver a encajar? hay botón de Alma en pantalla y el menú está fuera */
+  function canRedock() { return !!(dock.el && dock.out && !dock.on && !AL.min && !AL.on); }
+  var pv = [0, -1], pullT0 = 0;
   function rubber(x, lim) { return lim * (1 - Math.exp(-x / lim)); }
   function pullRender() {
-    var v = inward(st.anchor), x = pullS.x, a = Math.abs(x), t = (x < 0 ? -1 : 1) * rubber(a, 26), lim = x < 0 ? PULL_END : PULL_GO;
+    var v = pv, x = pullS.x, a = Math.abs(x), t = (x < 0 ? -1 : 1) * rubber(a, 26), lim = x < 0 ? PULL_END : PULL_GO;
     E.core.style.translate = (v[0] * t).toFixed(2) + "px " + (v[1] * t).toFixed(2) + "px";
     var ax = Math.abs(v[0]), ay = Math.abs(v[1]), s = .045 * clamp(a / lim, 0, 1.3);
     E.body.style.scale = (1 + s * ax - s * .45 * ay).toFixed(4) + " " + (1 + s * ay - s * .45 * ax).toFixed(4);
@@ -614,12 +645,26 @@
     clearTimeout(E.ph._t); if (ms) E.ph._t = setTimeout(function () { if (!pulling) E.ph.classList.remove("on"); }, ms);
   }
   function pullMove(e) {
+    var dx = e.clientX - downAt[0], dy = e.clientY - downAt[1];
+    if (pulling === 2 || (!pulling && canRedock())) {
+      /* menú → volver a encajarlo en el botón de Alma: lanzarlo hacia abajo (o hacia su borde) */
+      var vi = inward(st.anchor), aw = -(dx * vi[0] + dy * vi[1]), down = st.anchor[0] !== "t" && dy > 0 && Math.abs(dx) < dy * .9;
+      var mag = down ? dy : (aw > 0 && Math.abs(dx * vi[1] - dy * vi[0]) < aw * .9 ? aw : 0);
+      if (!pulling) { if (mag > PULL_MIN) { pulling = 2; pullT0 = performance.now(); release(); clearTimeout(tapT); tapT = null; } else if (!almaOk() || !(dx * vi[0] + dy * vi[1] > 0)) return false; }
+      if (pulling === 2) {
+        var l = Math.hypot(dx, dy) || 1; pv = [dx / l, dy / l]; pullAlong = l; pullS.x = pullS.t = l; pullS.v = 0;
+        var fast = l > 26 && l / Math.max(1, performance.now() - pullT0) > .55, go = l >= 64 || fast;
+        if (go) phShow("Suelta para volver al botón de Alma", px.x + pv[0] * 90, py.x + pv[1] * 90); else E.ph.classList.remove("on");
+        kick(); return true;
+      }
+    }
     if (!almaOk() && !AL.min) return false;
-    var v = inward(st.anchor), dx = e.clientX - downAt[0], dy = e.clientY - downAt[1], along = dx * v[0] + dy * v[1], perp = Math.abs(dx * v[1] - dy * v[0]);
+    var v = AL.min ? inward(st.anchor) : towardCenter(), along = dx * v[0] + dy * v[1], perp = Math.abs(dx * v[1] - dy * v[0]);
     if (!pulling) {
       if (along > PULL_MIN && perp < along * .9) pulling = 1;
       else if (AL.min && along < -PULL_MIN && perp < -along * .9) pulling = -1;
       else return false;
+      pv = v;
       release(); clearTimeout(tapT); tapT = null;
       if (pulling > 0 && !AL.min && cfg.alma.prepare) { try { cfg.alma.prepare(); } catch (x) {} }
     }
@@ -631,9 +676,15 @@
     kick(); return true;
   }
   function pullEnd() {
-    var dir = pulling, go = dir > 0 ? pullAlong >= PULL_GO : pullAlong <= -PULL_END;
+    var dir = pulling, go = dir === 2 ? (pullAlong >= 64 || (pullAlong > 26 && pullAlong / Math.max(1, performance.now() - pullT0) > .55)) : dir > 0 ? pullAlong >= PULL_GO : pullAlong <= -PULL_END;
     pulling = 0; pullAlong = 0; E.ph.classList.remove("on"); pullS.to(0, .5, .62); moved = true;
-    if (go && dir > 0) almaOpen(); else if (go && dir < 0) almaEnd(false);
+    if (go && dir === 2) redock();
+    else if (go && dir > 0) almaOpen(); else if (go && dir < 0) almaEnd(false);
+  }
+  function redock() {
+    dock.out = false; dock.gone = 0; setS(1);
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+    dockCheck(); if (!dock.on) dockSchedule();
   }
 
   function almaBuild() {
@@ -723,7 +774,7 @@
     if (wasMin) { phShow("Llamada con Alma terminada", px.x, py.x + inward(st.anchor)[1] * 90, 2200); if (navigator.vibrate) try { navigator.vibrate([8, 40, 8]); } catch (x) {} return; }
     var r = E.face.getBoundingClientRect(); E.ov.classList.remove("on", "chat", "min", "ending");
     aX.to(r.left + r.width / 2, .62, .86); aY.to(r.top + r.height / 2, .62, .86); aS.to(r.width, .62, .86); aL.to(.06, .62, 1); aH.to(1, .62, .5);
-    E.scrim.style.opacity = "";
+    E.scrim.style.opacity = dock.on ? "0" : "";
     setTimeout(function () { if (AL.on || AL.min) return; hideCore(false); showStone(false); }, 660);
   }
   function almaChat(on) {
@@ -765,6 +816,7 @@
     var a = sHist[0] || { x: aX.x, y: aY.x, t: 0 }, b = sHist[sHist.length - 1] || a, dt = Math.max(16, b.t - a.t), vx = (b.x - a.x) / dt * 1000, vy = (b.y - a.y) / dt * 1000;
     if (performance.now() - b.t > 90) vx = vy = 0;
     var an = nearest(aX.x + project(vx), aY.x + project(vy)); st.anchor = an; setCk("sa_nav_pos", an);
+    if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     var p = anchorPt(an); px.x = px.t = p.x; py.x = py.t = p.y; zoom.x = zoom.t = K(); arms = armsFor(an); placeScrim(); kick();
     aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(74 * K(), .55, .8); aL.to(.2, .55, .6); aH.to(1, .55, .45);
     E.ov.classList.remove("on", "chat", "min"); AL.on = false; AL.min = true; AL.chat = false; E.scrim.style.opacity = "";

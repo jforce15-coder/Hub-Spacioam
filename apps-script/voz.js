@@ -369,10 +369,13 @@ function vozQuienBloque_() {
     '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Antes di algo breve como «Dame un momento». Nunca digas que hiciste algo si secretaria no lo confirma.',
+    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo y te confirmo por WhatsApp cuando esté listo», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas confirmar por WhatsApp sin haber usado el modo segundo_plano: es lo que hace que la confirmación llegue.',
+    '· Si secretaria tarda o falla, no lo reintentes en la llamada: pásalo a segundo plano.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
     '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.',
+    '· NO REPITAS: nunca repitas ni parafrasees en voz alta lo que la persona acaba de decir («Te entiendo, me tengo que ir…»). Responde directo a lo que necesita.',
     '· DESPEDIDA: despídete UNA sola vez. Si ya te despediste y la persona responde con otra cortesía («gracias», «igualmente», «tú también», «adiós»), no vuelvas a despedirte ni a desear buen día: usa end_call de inmediato, sin decir nada más.',
     '',
     'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LOS PATRONES DE HUÉSPED',
@@ -457,7 +460,8 @@ function vozDefHerramientas_(base) {
       description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller,
-        pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).') } } } }
+        pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
+        modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le confirma por WhatsApp al administrador; úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
   ].map(function (t) { t.type = 'webhook'; return t; });
 }
 
@@ -660,11 +664,58 @@ function vozSecretaria_(b) {
   var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
   if (!adm) return { ok: false, error: 'Esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
-  var previos = opFilas_(adm.email, 20);
+  if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
+  var t0 = Date.now(), previos = opFilas_(adm.email, 20);
   opGuardar_(adm, 'yo', 'llamada', pedido);
   var r = opAgente_(adm, pedido, 'llamada', [], previos);
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
+  /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 60 s), el resultado también va por WhatsApp. */
+  if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+}
+
+/* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
+   y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
+function vozSecEncolar_(tel, pedido) {
+  var lock = LockService.getScriptLock(); lock.waitLock(5000);
+  try {
+    var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
+    cola.push({ tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() });
+    p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
+  } finally { lock.releaseLock(); }
+  try { ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(5000).create(); } catch (e) { console.error('trigger vozSecretariaPronto: ' + e); }
+  return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano y le confirmo por WhatsApp a este mismo número en cuanto esté listo. Ya puedes despedirte si no necesita nada más.' };
+}
+function vozSecretariaPronto() {
+  ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  vozSecProcesar_();
+}
+function vozSecProcesar_() {
+  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), item = null;
+  for (var n = 0; n < 3; n++) {
+    if (!lock.tryLock(5000)) return;
+    try {
+      var cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
+      item = cola.shift() || null;
+      p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola));
+    } finally { lock.releaseLock(); }
+    if (!item) return;
+    var adm = adminPorTel_(item.tel); if (!adm) continue;
+    var r;
+    try {
+      var previos = opFilas_(adm.email, 20);
+      opGuardar_(adm, 'yo', 'llamada', item.pedido + ' (en segundo plano)');
+      r = opAgente_(adm, item.pedido, 'llamada', [], previos);
+      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
+    } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [] }; }
+    try { vozSecAvisar_(item.tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); }
+  }
+}
+function vozSecAvisar_(tel, adm, r) {
+  var malas = (r.hechas || []).filter(function (h) { return h.error; });
+  var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
+  var w = waEnviarAlguien_(tel, 'Sobre lo que me pediste en la llamada:\n\n' + txt, { nombre: adm.nombre });
+  if (!w.ok) console.error('vozSecAvisar_ WhatsApp: ' + w.error);
 }
 
 /* ═══ LLAMADAS SALIENTES POR WHATSAPP ═══════════════════════════════════════════════════════════

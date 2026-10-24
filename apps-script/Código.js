@@ -695,6 +695,7 @@ function procesarCola() {
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
   try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
+  try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }

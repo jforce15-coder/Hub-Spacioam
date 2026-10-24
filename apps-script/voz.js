@@ -683,7 +683,11 @@ function vozSecEncolar_(tel, pedido) {
     cola.push({ tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() });
     p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
   } finally { lock.releaseLock(); }
-  try { ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(5000).create(); } catch (e) { console.error('trigger vozSecretariaPronto: ' + e); }
+  /* Espera breve: si en la misma llamada piden algo más (p. ej. «revisa también la imagen»), todo se hace junto en un solo WhatsApp. */
+  try {
+    ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
+    ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(45000).create();
+  } catch (e) { console.error('trigger vozSecretariaPronto: ' + e); }
   return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano y le confirmo por WhatsApp a este mismo número en cuanto esté listo. Ya puedes despedirte si no necesita nada más.' };
 }
 function vozSecretariaPronto() {
@@ -691,24 +695,29 @@ function vozSecretariaPronto() {
   vozSecProcesar_();
 }
 function vozSecProcesar_() {
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), item = null;
+  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock();
   for (var n = 0; n < 3; n++) {
+    var grupo = [];
     if (!lock.tryLock(5000)) return;
     try {
       var cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
-      item = cola.shift() || null;
-      p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola));
+      if (!cola.length) return;
+      var tel = cola[0].tel, suyos = cola.filter(function (x) { return x.tel === tel; });
+      /* Si el último pedido de esa persona es muy reciente, puede seguir en la llamada: se espera a la próxima pasada. */
+      if (Date.now() - Math.max.apply(null, suyos.map(function (x) { return x.t; })) < 40000) return;
+      grupo = suyos;
+      p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.filter(function (x) { return x.tel !== tel; })));
     } finally { lock.releaseLock(); }
-    if (!item) return;
-    var adm = adminPorTel_(item.tel); if (!adm) continue;
+    var adm = adminPorTel_(grupo[0].tel); if (!adm) continue;
+    var pedido = grupo.length === 1 ? grupo[0].pedido : 'Me pediste varias cosas en la misma llamada; resuélvelas juntas y respóndeme en un solo mensaje:\n' + grupo.map(function (x, i) { return (i + 1) + ') ' + x.pedido; }).join('\n');
     var r;
     try {
       var previos = opFilas_(adm.email, 20);
-      opGuardar_(adm, 'yo', 'llamada', item.pedido + ' (en segundo plano)');
-      r = opAgente_(adm, item.pedido, 'llamada', [], previos);
+      opGuardar_(adm, 'yo', 'llamada', pedido + ' (en segundo plano)');
+      r = opAgente_(adm, pedido, 'segundo_plano', [], previos);
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [] }; }
-    try { vozSecAvisar_(item.tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); }
+    try { vozSecAvisar_(grupo[0].tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }
 function vozSecAvisar_(tel, adm, r) {

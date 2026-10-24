@@ -559,16 +559,16 @@ function vozInicio_(b) {
   var nom = function (n) { return String(n || '').trim().split(/\s+/)[0]; };
   if (tipo === 'juan' || tipo === 'equipo') {
     ficha = 'Es ' + (r.caller_name || 'alguien') + ', del equipo de Spacio AM. No es huésped: no le pidas reserva ni datos para validarle. Ayúdale directo con lo operativo.';
-    saludo = 'Hola' + (r.caller_name ? ' ' + r.caller_name : '') + ', soy Alma. ¿En qué te ayudo?';
+    saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma… ¿En qué te ayudo?';
   } else if (tipo === 'registro') {
     ficha = 'Es un número de registros (edificio o contacto que solo comparte información de registros). Trátalo como indica QUIÉN LLAMA para caller_type = registro.';
   } else if (tipo === 'propietario') {
     ficha = 'Es un socio o propietario de Spacio AM. Trátalo como indica QUIÉN LLAMA para caller_type = propietario.';
   } else if (r.verified && r.code) {
     ficha = 'Huésped con reserva YA VALIDADA por su número (no le pidas nombre, apellido ni fecha): ' + r.guest_name + '. Propiedad: ' + r.property + '. Entrada ' + r.check_in + ', salida ' + r.check_out + '. Hoy ' + r.today + ' (' + r.stay + '). Registro de llegada: ' + r.form_status + '. code = ' + r.code + ' (úsalo en property_info).';
-    saludo = 'Hola' + (nom(r.guest_name) ? ' ' + nom(r.guest_name) : '') + ', soy Alma, de Spacio A eme. ¿En qué te puedo ayudar?';
+    saludo = '¡Hola' + (nom(r.guest_name) ? ' ' + nom(r.guest_name) : '') + '! Te saluda Alma, de Spacio A eme… Cuéntame, ¿en qué te ayudo?';
   }
-  try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = 'Hola' + (r.caller_name ? ' ' + r.caller_name : '') + ', soy Alma, de Spacio A eme. Gracias por llamar.'; } } catch (e) {}
+  try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
   var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha }, _tipo: tipo };
   if (saludo) out.conversation_config_override = { agent: { first_message: saludo } };
   return out;

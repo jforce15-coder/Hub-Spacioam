@@ -3980,6 +3980,7 @@ class Component extends DCLogic {
     var self = this, v = this.state.vista;
     var c = {
       app: "hub", home: { k: "hub", l: "Inicio" }, current: v, hidden: v === "login" || v === "cargando",
+      apps: ["hub", "hola", "epi", "grow", "mi", "docs"],   /* el Hub es solo del equipo administrador: ve todas las apps */
       items: [
         { k: "hoy", l: "Hoy", icon: "sun" }, { k: "alma", l: "Alma", icon: "chat" }, { k: "accion", l: "Acción", icon: "bolt" },
         { k: "reviews", l: "Reviews", icon: "review" }, { k: "tareas", l: "Tareas", icon: "task" }, { k: "calendario", l: "Calendario", icon: "calendar" },

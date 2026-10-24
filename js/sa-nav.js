@@ -145,7 +145,7 @@
   ].join("\n");
 
   /* ================= geometría ================= */
-  var T = 84, SLOT = [84, 160], ARM_L = 202, IDLE_MS = 6000, TAP_MS = 250, LONG_MS = 420, PULSE = 3600;
+  var T = 84, SLOT = [84, 160], ARM_L = 202, IDLE_MS = 6000, TAP_MS = 320, LONG_MS = 420, PULSE = 3600;
   var ANCH = ["tl", "tc", "tr", "ml", "mr", "bl", "bc", "br"];
   var RM = w.matchMedia && w.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
@@ -503,7 +503,9 @@
     var v = w.SASesion && w.SASesion.verificar ? w.SASesion.verificar() : null;
     if (v && v.then) v.then(function (prof) {
       if (!prof || !root) return;
-      var ap = prof.apps || {}; allowed = Object.keys(ap).filter(function (k) { return !!ap[k]; });
+      var ap = prof.apps || {}, no = /^(no|0|false|-|—|ninguno|sin acceso)?$/i;
+      if (typeof ap === "string") ap = ap.split(/[\s,;]+/);
+      allowed = Array.isArray(ap) ? ap.map(function (k) { return String(k).toLowerCase(); }) : Object.keys(ap).filter(function (k) { return !no.test(String(ap[k] == null ? "" : ap[k]).trim()); });
       if (/admin/i.test(String(prof.rol || prof.role || ""))) allowed = APPS.map(function (a) { return a.k; });
       if (allowed.indexOf(cfg.app) < 0) allowed.push(cfg.app);
       if (st.fan === "apps") buildFan("apps");

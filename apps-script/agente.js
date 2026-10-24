@@ -59,6 +59,8 @@ function agHerramientas_() {
     T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
       { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' } }),
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas.', { codigo: s('Código de reserva o conv_id') }, ['codigo']),
+    T('ver_imagenes', 'Mira las imágenes y fotos que mandó el huésped en la conversación de una reserva (capturas, comprobantes, datos de facturación, fotos de un problema). Devuelve las más recientes para que las leas tú mismo. Úsala cuando el administrador mencione una imagen o cuando ver_conversacion marque [imagen].',
+      { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
     T('marcar_resuelta', 'Marca la conversación de una reserva como RESUELTA en la bandeja del Hub (igual que el botón «Resuelta»): sale de pendientes, lo anterior queda como atendido y se cierran las promesas abiertas de ALMA en esa conversación. Un mensaje nuevo del huésped la reabre sola. Con reabrir = true la vuelve a abrir.',
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Formato fácil de leer en el teléfono: saludo en su propia línea y párrafos cortos (una idea por párrafo) separados por una línea en blanco.',
@@ -143,8 +145,17 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rid = agResId_(inp.codigo); if (!rid) return { error: 'No encontré esa reserva en las conversaciones.' };
       var h = hiloConv_(rid); if (h.code !== 200) return { error: 'No pude leer la conversación (HTTP ' + h.code + ').' };
       var pr = hubPromesas_(false).promesas.filter(function (p) { return p.conv_id === rid; });
-      return { conv_id: rid, mensajes: (h.hilo || []).slice(-15).map(function (m) { return (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' (llamada)' : m.canal === 'whatsapp' ? ' (WhatsApp)' : '') + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + ': ' + String(m.texto || '').slice(0, 500); }),
+      return { conv_id: rid, mensajes: (h.hilo || []).slice(-15).map(function (m) { return (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' (llamada)' : m.canal === 'whatsapp' ? ' (WhatsApp)' : '') + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + ': ' + String(m.texto || '').slice(0, 500) + ((m.fotos || []).length ? ' [imagen' + (m.fotos.length > 1 ? 'es: ' + m.fotos.length : '') + ' — usa ver_imagenes]' : ''); }),
         promesas_abiertas: pr.map(function (p) { return p.que + ' (vence ' + p.vence + ')'; }) };
+    }
+    case 'ver_imagenes': {
+      var ridI = agResId_(inp.codigo); if (!ridI) return { error: 'No encontré esa conversación.' };
+      var hI = hiloConv_(ridI); if (hI.code !== 200) return { error: 'No pude leer la conversación (HTTP ' + hI.code + ').' };
+      var lista = [];
+      (hI.hilo || []).forEach(function (m) { (m.fotos || []).forEach(function (u) { if (u) lista.push({ u: u, de: m.tipo === 'guest' ? 'huésped' : 'Spacio AM', f: String(m.created || '').slice(0, 16).replace('T', ' ') }); }); });
+      var n = Math.max(1, Math.min(4, Number(inp.cuantas) || 4)), ult = lista.slice(-n);
+      if (!ult.length) return { ok: true, imagenes: 0, nota: 'Esa conversación no tiene imágenes.' };
+      return { ok: true, imagenes: ult.length, total_en_conversacion: lista.length, detalle: ult.map(function (x, i) { return 'Imagen ' + (i + 1) + ': de ' + x.de + ', ' + x.f; }), _imgs: ult.map(function (x) { return x.u; }) };
     }
     case 'marcar_resuelta': {
       var ridR = agResId_(inp.codigo); if (!ridR) return { error: 'No encontré esa conversación en la bandeja.' };
@@ -305,7 +316,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
   var system = (prompt_('SECRETARIA') || SEMILLA_SECRETARIA_) + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
-    encargosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
+    encargosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
   previos.filter(function (m) { return new Date(m.ts).getTime() >= corte; }).slice(-14).forEach(function (m) {
@@ -328,6 +339,10 @@ function opAgente_(adm, texto, canal, fotos, previos) {
     if (!usos.length || j.stop_reason !== 'tool_use') { final = bloques.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('').trim(); break; }
     msgs.push({ role: 'user', content: usos.map(function (u) {
       var res; try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
+      if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen
+        var bl = res._imgs.map(imgBloque_).filter(Boolean); delete res._imgs;
+        return { type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, 4000) }]) };
+      }
       return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
     }) });
   }

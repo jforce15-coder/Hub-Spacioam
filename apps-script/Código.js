@@ -4858,6 +4858,7 @@ function dsBotApi_(body) {
       case 'voz_transcript': return json_(vozTranscript_(body.id));
       case 'voz_llamar': return json_(vozLlamar_(body.tel, body.motivo || ''));
       case 'voz_permiso': return json_(vozPermiso_(body.tel));
+      case 'prog_ultimos': { const shP = hojaWaProg_(), nP = shP.getLastRow(); return json_({ ok: true, filas: nP < 2 ? [] : shP.getRange(Math.max(2, nP - 9), 1, Math.min(10, nP - 1), WAPROG_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], para: v[3], cuando: v[6], zona: v[7], estado: v[9], resultado: String(v[10]).slice(0, 120) })) }); }   // diagnóstico (sin textos)
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

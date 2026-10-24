@@ -87,7 +87,7 @@
         .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9], escalamiento: r[10] }; });
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
-    vozWeb: function () { return call('vozWeb', {}); },
+    vozWeb: function (ligero) { return call('vozWeb', ligero ? { ligero: 1 } : {}); },
     vozWebVincular: function (convId) { return call('vozWebVincular', { conv_id: convId }); },
     setEscalamiento: function (lista) { return call('setEscalamiento', { lista: lista }); },
     setPrompt: function (clave, prompt, nota, meta) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota, meta: meta || null }); },

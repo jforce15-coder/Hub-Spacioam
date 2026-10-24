@@ -1,19 +1,32 @@
 /* Spacio AM · Alma por voz dentro del Hub (proveedor del menú compartido, js/sa-nav.js)
-   Al deslizar el botón del menú hacia el centro, el menú llama a SAAlmaVoz.start(): pide al Apps Script una
-   URL firmada de ElevenLabs para el administrador con sesión iniciada y abre la conversación con el mismo
-   agente de las llamadas. Alma lo reconoce como administrador (voz.js · vozWeb*). */
+   Al deslizar el botón del menú hacia el centro, el menú llama a SAAlmaVoz.start().
+   Rápido y liviano:
+   - SDK propio de ElevenLabs solo con websocket (js/vendor/eleven-ws.js, ~60 KB) en vez de 650 KB con WebRTC desde un CDN.
+   - Conexión directa al agente con su agent_id: no espera una URL firmada del Apps Script.
+   - La ficha del administrador (quién es, saludo) se guarda en el teléfono y se renueva en segundo plano;
+     solo la primera vez se espera al Hub.
+   - Si la conexión falla por la red, reintenta una vez sola. */
 (function (w) {
   "use strict";
-  var SDK = "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.27.0/+esm";
-  var mod = null, prep = null;
-  function loadSdk() { return mod ? Promise.resolve(mod) : import(SDK).then(function (m) { mod = m; return m; }); }
-  /* Se adelanta mientras el dedo todavía jala: SDK + URL firmada (de un solo uso, ~15 min). */
-  function prepare() {
-    if (prep && Date.now() - prep.t < 60000) return prep.p;
-    var p = Promise.all([loadSdk(), w.ALMA && w.ALMA.vozWeb ? w.ALMA.vozWeb() : Promise.resolve({ ok: false, error: "ALMA no disponible" })]);
-    prep = { t: Date.now(), p: p }; p.catch(function () { prep = null; });
-    return p;
+  var SDK = new URL("vendor/eleven-ws.js?v=1.27.0a", (document.currentScript && document.currentScript.src) || location.href).href;
+  var KEY = "sa_alma_voz_ficha", VIGENCIA = 12 * 3600e3;
+  var mod = null, modP = null, idP = null, idT = 0;
+  function loadSdk() { if (mod) return Promise.resolve(mod); if (!modP) modP = import(SDK).then(function (m) { mod = m; return m; }, function (e) { modP = null; throw e; }); return modP; }
+  function leerFicha() { try { var j = JSON.parse(localStorage.getItem(KEY) || "null"); return j && j.agent_id && Date.now() - j.t < VIGENCIA ? j : null; } catch (e) { return null; } }
+  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "" })); } catch (e) {} }
+  /* Pide la ficha al Hub (como mucho una vez cada 20 s). */
+  function renovar() {
+    if (idP && Date.now() - idT < 20000) return idP;
+    idT = Date.now();
+    idP = (w.ALMA && w.ALMA.vozWeb ? w.ALMA.vozWeb(true) : Promise.resolve({ ok: false, error: "ALMA no disponible" })).then(function (j) {
+      if (j && j.ok && j.agent_id) guardarFicha(j);
+      else idP = null;
+      return j;
+    }, function (e) { idP = null; throw e; });
+    return idP;
   }
+  /* Se adelanta mientras el dedo todavía jala: SDK + ficha fresca. */
+  function prepare() { loadSdk().catch(function () {}); renovar().catch(function () {}); }
   /* iPhone: el audio solo arranca si se "despierta" dentro del gesto del usuario. */
   function unlockAudio() {
     try {
@@ -23,27 +36,42 @@
       setTimeout(function () { try { c.close(); } catch (e) {} }, 800);
     } catch (e) {}
   }
+  /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
+  function limpiar(t) { return String(t || "").replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").replace(/\s+([,.;:!?…])/g, "$1").trim(); }
+  function ficha() {
+    var f = leerFicha();
+    if (f) { renovar().catch(function () {}); return Promise.resolve(f); }
+    return renovar().then(function (j) {
+      if (!j || !j.ok || !j.agent_id) throw new Error((j && j.error === "timeout") ? "El Hub tardó en responder. Intenta de nuevo." : ((j && j.error) || "No pude abrir la sesión de voz"));
+      return j;
+    });
+  }
   function start(h) {
     unlockAudio();
-    var mic = navigator.mediaDevices && navigator.mediaDevices.getUserMedia ? navigator.mediaDevices.getUserMedia({ audio: true }) : Promise.resolve(null);
-    var conv = null, enChat = false;
-    return Promise.all([prepare(), mic]).then(function (r) {
-      var m = r[0][0], cfg = r[0][1], st = r[1]; prep = null;
-      if (st) st.getTracks().forEach(function (t) { t.stop(); });
-      if (!cfg || !cfg.ok) throw new Error((cfg && cfg.error) || "No pude abrir la sesión de voz");
-      return m.Conversation.startSession({
-        signedUrl: cfg.signed_url, connectionType: "websocket", dynamicVariables: cfg.dynamic_variables || {},
-        onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId && w.ALMA.vozWebVincular) w.ALMA.vozWebVincular(x.conversationId); },
-        onMessage: function (x) { if (x) h.message(x.source, x.message); },
+    var enChat = false;
+    function abrir(f, m) {
+      var opt = {
+        agentId: f.agent_id, connectionType: "websocket", dynamicVariables: f.dynamic_variables || {},
+        onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId && w.ALMA && w.ALMA.vozWebVincular) w.ALMA.vozWebVincular(x.conversationId); },
+        onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) h.message(x.source, t); },
         onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
         onDisconnect: function () { h.ended(); },
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
+      };
+      if (f.first_message) opt.overrides = { agent: { firstMessage: f.first_message } };
+      return m.Conversation.startSession(opt);
+    }
+    return Promise.all([ficha(), loadSdk()]).then(function (r) {
+      var f = r[0], m = r[1];
+      return abrir(f, m).catch(function (e) {
+        if (e && (e.name === "NotAllowedError" || e.name === "SecurityError" || e.name === "NotFoundError")) throw e;
+        return new Promise(function (ok) { setTimeout(ok, 600); }).then(function () { return abrir(f, m); });
       });
     }).catch(function (e) {
       if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) throw new Error("Permite el micrófono para hablar con Alma.");
+      if (e && e.name === "NotFoundError") throw new Error("No encontré un micrófono.");
       throw e;
-    }).then(function (c) {
-      conv = c;
+    }).then(function (conv) {
       return {
         end: function () { try { conv.endSession(); } catch (e) {} },
         level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
@@ -52,5 +80,5 @@
       };
     });
   }
-  w.SAAlmaVoz = { prepare: prepare, start: start };
+  w.SAAlmaVoz = { prepare: prepare, start: start, limpiar: limpiar };
 })(window);

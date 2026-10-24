@@ -574,6 +574,28 @@
        { prepare(): adelanta la conexión, start(h): Promise<{ end(), level(), sendText(t), chat(on) }> }
      h = { status(texto), message(origen 'ai'|'user', texto), ended(), error(texto) }. */
   var AL = { on: false, min: false, chat: false, ses: null, vis: false, built: false, breath: 0, loop: false };
+  /* Gelatina de la voz: J.v tamaño extra (resorte poco amortiguado que sigue la envolvente de la voz),
+     J.w deformación (bamboleo) que se dispara en cada pico o subida brusca de la voz. */
+  var J = { env: 0, slow: 0, v: 0, vv: 0, w: 0, wv: 0, ang: 0, lt: 0, pk: 0, p: 0 };
+  function jReset() { J.env = J.slow = J.v = J.vv = J.w = J.wv = 0; J.lt = 0; }
+  function jStep(t, lv) {
+    var dt = J.lt ? Math.min(.05, (t - J.lt) / 1000) : .016; J.lt = t;
+    var pe = J.env;
+    J.env += (lv - J.env) * (lv > J.env ? .55 : .1);          /* sube rápido, baja suave */
+    J.slow += (lv - J.slow) * .04;
+    if (lv - J.slow > .16 && t - J.pk > 150) {                  /* pico: golpe de rebote + bamboleo */
+      var g = Math.min(1, lv - J.slow); J.pk = t;
+      J.vv += 2.4 * g; J.wv += (Math.random() < .5 ? -1 : 1) * 3.2 * g; J.ang = Math.random() * Math.PI;
+    }
+    J.wv += (J.env - pe) * 9;                                   /* las subidas también estiran */
+    var wn = 2 * Math.PI / .34, k = wn * wn, c = 2 * .36 * wn;  /* tamaño: gelatina con rebote */
+    J.vv += (-k * (J.v - J.env * .24) - c * J.vv) * dt; J.v += J.vv * dt;
+    var wn2 = 2 * Math.PI / .24, k2 = wn2 * wn2, c2 = 2 * .22 * wn2;
+    J.wv += (-k2 * J.w - c2 * J.wv) * dt; J.w += J.wv * dt;
+    if (J.v < -.025) { J.v = -.025; if (J.vv < 0) J.vv *= -.4; }     /* nunca más chica que su tamaño en reposo */
+    J.w = clamp(J.w, -.09, .09);
+    J.p = (1 - Math.cos(2 * Math.PI * ((t % PULSE) / PULSE))) / 2;
+  }
   var PULL_MIN = 14, PULL_GO = 88, PULL_END = 70, pulling = 0, pullAlong = 0, pullS = null;
   var aX, aY, aS, aSq, aDX, aDY, aL, aH;
   function almaOk() { return !!(cfg && cfg.alma && cfg.alma.start) && !dock.on; }
@@ -636,31 +658,33 @@
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag) almaEnd(false); };
     bindStone();
   }
-  function stoneTarget() { return AL.chat ? { x: VW() / 2, y: Math.max(70, VH() - Math.min(VH() * .7, 560) - 60), s: 78 } : { x: VW() / 2, y: VH() * .44, s: Math.min(VW() * .66, VH() * .4, 270) }; }
+  function stoneTarget() { return AL.chat ? { x: VW() / 2, y: Math.max(70, VH() - Math.min(VH() * .7, 560) - 60), s: 78 } : { x: VW() / 2, y: VH() * .42, s: Math.min(VW() * .66, VH() * .4, 270) }; }
   function faceD() { return 74 * zoom.x; }
   function stoneRender() {
     var dx = aDX.x, dy = aDY.x, dd = Math.hypot(dx, dy), ang = Math.atan2(dy, dx), st2 = Math.min(.05, dd / 1100);
-    var D = Math.max(0, aS.x * (1 - .035 * aSq.x + (AL.on ? .016 * AL.bth : 0)));
+    var D = Math.max(0, aS.x * (1 - .035 * aSq.x) * (AL.on ? 1 + .02 * J.p + J.v : 1));
     var s = E.stone.style; s.width = s.height = D + "px"; s.marginLeft = s.marginTop = (-D / 2) + "px";
-    s.transform = "translate(" + (aX.x + dx) + "px," + (aY.x + dy) + "px) rotate(" + ang + "rad) scale(" + (1 + st2) + "," + (1 - st2 * .6) + ") rotate(" + (-ang) + "rad)";
-    E.stone.style.setProperty("--lit", (aL.x + .38 * AL.bth + aSq.x * .15).toFixed(3));
-    E.stone.style.setProperty("--halo", clamp(aH.x * (.72 + .32 * AL.bth), 0, 1.4).toFixed(3));
+    var jw = AL.on ? J.w : 0;
+    s.transform = "translate(" + (aX.x + dx) + "px," + (aY.x + dy) + "px) rotate(" + ang + "rad) scale(" + (1 + st2) + "," + (1 - st2 * .6) + ") rotate(" + (-ang) + "rad)" +
+      (jw ? " rotate(" + J.ang.toFixed(3) + "rad) scale(" + (1 + jw).toFixed(4) + "," + (1 - jw * .85).toFixed(4) + ") rotate(" + (-J.ang).toFixed(3) + "rad)" : "");
+    E.stone.style.setProperty("--lit", (aL.x + .3 * AL.bth + aSq.x * .15 + (AL.on ? J.v * 1.6 : 0)).toFixed(3));
+    E.stone.style.setProperty("--halo", clamp(aH.x * (.72 + .3 * AL.bth + (AL.on ? J.v * 2.2 : 0)), 0, 1.5).toFixed(3));
   }
   /* respiración de la piedra: el mismo ciclo del menú más el volumen real de la voz de Alma (solo mientras hay llamada) */
   function almaLoop(t) {
     if (!AL.vis && !AL.min) { AL.loop = false; return; }
-    var lv = 0; if (AL.ses && AL.ses.level) { try { lv = clamp((AL.ses.level() || 0) * 2.2, 0, 1); } catch (x) {} }
-    AL.breath += (lv - AL.breath) * .16;
-    var p = (1 - Math.cos(2 * Math.PI * ((t % PULSE) / PULSE))) / 2; AL.bth = .55 * p + AL.breath * .6;
+    var lv = 0; if (AL.ses && AL.ses.level) { try { lv = clamp((AL.ses.level() || 0) * 2.6, 0, 1); } catch (x) {} }
+    jStep(t, lv); AL.breath = J.env;
+    AL.bth = .55 * J.p + J.env * .7;
     if (AL.vis) stoneRender();
-    if (AL.min) { E.core.style.setProperty("--voice", AL.breath.toFixed(3)); if (!pulling && !pullS.x) E.body.style.scale = (1 + AL.breath * .03).toFixed(4); }
+    if (AL.min) { E.core.style.setProperty("--voice", AL.breath.toFixed(3)); if (!pulling && !pullS.x) { var bs = 1 + .015 * J.p + J.v * .75; E.body.style.scale = (bs + J.w * .8).toFixed(4) + " " + (bs - J.w * .7).toFixed(4); } }
     requestAnimationFrame(almaLoop);
   }
-  function almaLoopOn() { if (!AL.loop) { AL.loop = true; AL.bth = 0; requestAnimationFrame(almaLoop); } }
+  function almaLoopOn() { if (!AL.loop) { AL.loop = true; AL.bth = 0; jReset(); requestAnimationFrame(almaLoop); } }
   function showStone(on) { AL.vis = on; E.stone.style.visibility = on ? "visible" : "hidden"; if (on) almaLoopOn(); }
   function hideCore(h) { E.face.style.visibility = h ? "hidden" : ""; E.core.querySelector(".san-led").style.opacity = h ? "0" : ""; }
   function status(t) { if (E.ost) E.ost.textContent = t || ""; }
-  function caption(t) { E.cap.classList.add("in"); E.cap.textContent = t; void E.cap.offsetWidth; E.cap.classList.remove("in"); }
+  function caption(t) { t = String(t).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!t) return; E.cap.classList.add("in"); E.cap.textContent = t; void E.cap.offsetWidth; E.cap.classList.remove("in"); }
   function addMsg(t, who) { var m = d.createElement("div"); m.className = "san-m " + who; m.textContent = t; E.msgs.appendChild(m); E.msgs.scrollTop = E.msgs.scrollHeight; }
 
   function almaOpen() {
@@ -679,7 +703,7 @@
     status("Conectando…"); E.cap.textContent = ""; E.msgs.innerHTML = "";
     var h = {
       status: function (x) { if (AL.on || AL.min) status(x); },
-      message: function (src, x) { if (!x || (!AL.on && !AL.min)) return; if (src === "ai") { if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
+      message: function (src, x) { if (!x || (!AL.on && !AL.min)) return; if (src === "ai") { x = String(x).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
       ended: function () { if (AL.on || AL.min) almaEnd(true); },
       error: function (m) { status("No pude conectar con Alma"); E.cap.textContent = m || ""; setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
     };
@@ -691,7 +715,7 @@
     }).catch(function (e) { h.error(String((e && e.message) || e || "")); });
   }
   function almaEnd(remote) {
-    var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.breath = 0;
+    var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.breath = 0; jReset();
     if (s && !remote) { try { s.end(); } catch (x) {} }
     E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); E.body.style.scale = "";
     if (!E.ov) return;

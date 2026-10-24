@@ -10,7 +10,21 @@
   "use strict";
   var SDK = new URL("vendor/eleven-ws.js?v=1.27.0a", (document.currentScript && document.currentScript.src) || location.href).href;
   var KEY = "sa_alma_voz_ficha", VIGENCIA = 12 * 3600e3;
-  var mod = null, modP = null, idP = null, idT = 0;
+  var mod = null, modP = null, idP = null, idT = 0, ctx = null, ctxKey = "", vivo = null;
+  /* Conversación abierta en pantalla (la pone el Hub): si Juan dice «escríbele…» sin decir a quién, es esta. */
+  function ctxTexto(c) {
+    if (!c) return "EN PANTALLA: no hay una conversación de huésped abierta. Si mencionan una reserva, un huésped o un apartamento, búscalo como siempre con secretaria.";
+    var d = [c.huesped, c.propiedad, c.fechas].filter(Boolean).join(" · ");
+    return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta en el Hub la conversación de la reserva " + (c.codigo || c.conv_id || "") + (d ? " (" + d + ")" : "") + ". " +
+      "Si te pide algo sobre «la reserva», «el huésped», «esta conversación», «escríbele», «mándale», «respóndele», o cualquier cosa de una reserva sin decir cuál, es ESTA: no preguntes cuál ni la busques, pásale a secretaria el pedido completo incluyendo el código " + (c.codigo || c.conv_id || "") + (c.huesped ? " y el nombre " + c.huesped : "") + ". " +
+      "Solo si nombra otra reserva, otro huésped u otro apartamento distinto, búscala y resuelve como siempre.";
+  }
+  function setContexto(c) {
+    var k = c ? String(c.codigo || c.conv_id || "") : "";
+    if (k === ctxKey) { ctx = c; return; }
+    ctx = c; ctxKey = k;
+    if (vivo && vivo.sendContextualUpdate) { try { vivo.sendContextualUpdate("Cambió la pantalla. " + ctxTexto(c)); } catch (e) {} }
+  }
   function loadSdk() { if (mod) return Promise.resolve(mod); if (!modP) modP = import(SDK).then(function (m) { mod = m; return m; }, function (e) { modP = null; throw e; }); return modP; }
   function leerFicha() { try { var j = JSON.parse(localStorage.getItem(KEY) || "null"); return j && j.agent_id && Date.now() - j.t < VIGENCIA ? j : null; } catch (e) { return null; } }
   function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "" })); } catch (e) {} }
@@ -46,16 +60,17 @@
       return j;
     });
   }
+  function conCtx(dv) { var o = {}; for (var k in dv) o[k] = dv[k]; o.quien_llama = (o.quien_llama || "") + "\n\n" + ctxTexto(ctx); return o; }
   function start(h) {
     unlockAudio();
     var enChat = false;
     function abrir(f, m) {
       var opt = {
-        agentId: f.agent_id, connectionType: "websocket", dynamicVariables: f.dynamic_variables || {},
+        agentId: f.agent_id, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
         onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId && w.ALMA && w.ALMA.vozWebVincular) w.ALMA.vozWebVincular(x.conversationId); },
         onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) h.message(x.source, t); },
         onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
-        onDisconnect: function () { h.ended(); },
+        onDisconnect: function () { vivo = null; h.ended(); },
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
       if (f.first_message) opt.overrides = { agent: { firstMessage: f.first_message } };
@@ -72,13 +87,14 @@
       if (e && e.name === "NotFoundError") throw new Error("No encontré un micrófono.");
       throw e;
     }).then(function (conv) {
+      vivo = conv;
       return {
-        end: function () { try { conv.endSession(); } catch (e) {} },
+        end: function () { vivo = null; try { conv.endSession(); } catch (e) {} },
         level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
         sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
         chat: function (on) { enChat = on; try { conv.setMicMuted(on); conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho"); }
       };
     });
   }
-  w.SAAlmaVoz = { prepare: prepare, start: start, limpiar: limpiar };
+  w.SAAlmaVoz = { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto };
 })(window);

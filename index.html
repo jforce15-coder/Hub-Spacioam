@@ -32,8 +32,8 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-24k"></script>
-<script src="js/alma-voz.js?v=2026-10-24i"></script>
+<script src="js/sa-nav.js?v=2026-10-24l"></script>
+<script src="js/alma-voz.js?v=2026-10-24l"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
@@ -3480,7 +3480,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-24k";
+  BUILD = "2026-10-24l";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3983,6 +3983,12 @@ class Component extends DCLogic {
   navSync() {
     if (!window.SANav) return;
     var self = this, v = this.state.vista;
+    /* Alma por voz: la conversación abierta en pantalla es el contexto por defecto de lo que se le pida. */
+    if (window.SAAlmaVoz && SAAlmaVoz.setContexto) {
+      var gA = v === "alma" && this.state.cronoLista === false ? this._convSelG : null, fA = gA && gA.frags && gA.frags[0];
+      var okA = fA && fA.tipo !== "operativo" && !/^op:/.test(String(fA.conv_id || ""));
+      try { SAAlmaVoz.setContexto(okA ? { codigo: fA.codigo || "", conv_id: fA.conv_id || fA.resId || "", huesped: fA.huesped || "", propiedad: fA.propiedad || "", fechas: [fA.checkin || fA.check_in || "", fA.checkout || fA.check_out || ""].filter(Boolean).join(" → "), nombre: String((((window.SA && SA.session && SA.session()) || {}).nombre) || (this.state.perfil || {}).nombre || "").split(" ")[0] } : null); } catch (e) {}
+    }
     var c = {
       app: "hub", home: { k: "hub", l: "Inicio" }, current: v, hidden: v === "login" || v === "cargando",
       apps: ["hub", "hola", "epi", "grow", "mi", "docs"],   /* el Hub es solo del equipo administrador: ve todas las apps */

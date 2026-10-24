@@ -33,7 +33,7 @@ function cdTabla_() {
   var sh = SpreadsheetApp.openById(CFG.SHEET_EPI_ID).getSheetByName('Config');
   var vals = sh.getRange(1, 1, sh.getLastRow(), 2).getValues(), fila = vals.filter(function (r) { return String(r[0]).trim() === 'codigos'; })[0];
   var j = {}; try { j = JSON.parse(String((fila && fila[1]) || '{}')); } catch (e) { j = {}; }
-  try { var txt = JSON.stringify(j); if (txt.length < 90000) c.put(k, txt, 300); } catch (e) {}
+  if (fila) { try { var txt = JSON.stringify(j); if (txt.length < 90000) c.put(k, txt, 300); } catch (e) {} }
   return j;
 }
 /* Código del equipo para una propiedad y fecha, igual que Epi. Devuelve null si no hay. */

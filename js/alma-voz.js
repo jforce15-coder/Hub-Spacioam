@@ -15,6 +15,7 @@
   function ctxTexto(c) {
     if (!c) return "EN PANTALLA: no hay una conversación de huésped abierta. Si mencionan una reserva, un huésped o un apartamento, búscalo como siempre con secretaria.";
     var d = [c.huesped, c.propiedad, c.fechas].filter(Boolean).join(" · ");
+    if (c.whatsapp) return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta la conversación de WhatsApp con " + (c.huesped || "un contacto") + (c.codigo ? " (reserva " + c.codigo + ")" : "") + ". Si dice «escríbele», «respóndele», «mándale» o pregunta por esa persona sin decir otra, es ESTA conversación: pásale a secretaria el nombre " + (c.huesped || "") + (c.conv_id ? " y la conversación " + c.conv_id : "") + ". Solo si nombra a otra persona o reserva, búscala.";
     return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta en el Hub la conversación de la reserva " + (c.codigo || c.conv_id || "") + (d ? " (" + d + ")" : "") + ". " +
       "Si te pide algo sobre «la reserva», «el huésped», «esta conversación», «escríbele», «mándale», «respóndele», o cualquier cosa de una reserva sin decir cuál, es ESTA: no preguntes cuál ni la busques, pásale a secretaria el pedido completo incluyendo el código " + (c.codigo || c.conv_id || "") + (c.huesped ? " y el nombre " + c.huesped : "") + ". " +
       "Solo si nombra otra reserva, otro huésped u otro apartamento distinto, búscala y resuelve como siempre.";
@@ -60,6 +61,12 @@
       return j;
     });
   }
+  /* Liga la llamada al administrador en el Hub; si falla (red, Hub dormido), reintenta. */
+  function vincular(id, n) {
+    if (!w.ALMA || !w.ALMA.vozWebVincular) return;
+    Promise.resolve(w.ALMA.vozWebVincular(id)).then(function (r) { if ((!r || !r.ok) && n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); },
+      function () { if (n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); });
+  }
   function conCtx(dv) { var o = {}; for (var k in dv) o[k] = dv[k]; o.quien_llama = (o.quien_llama || "") + "\n\n" + ctxTexto(ctx); return o; }
   function start(h) {
     unlockAudio();
@@ -67,7 +74,7 @@
     function abrir(f, m) {
       var opt = {
         agentId: f.agent_id, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
-        onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId && w.ALMA && w.ALMA.vozWebVincular) w.ALMA.vozWebVincular(x.conversationId); },
+        onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId) vincular(x.conversationId, 0); },
         onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) h.message(x.source, t); },
         onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
         onDisconnect: function () { vivo = null; h.ended(); },

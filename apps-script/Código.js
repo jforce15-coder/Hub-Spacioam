@@ -4631,7 +4631,8 @@ function opFilas_(email, n) {
 }
 function opGuardar_(adm, de, canal, texto, acciones) {
   const id = 'op' + Date.now() + Math.floor(Math.random() * 1000), ts = new Date().toISOString();
-  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, String(texto || '').slice(0, 4000), acciones && acciones.length ? JSON.stringify(acciones) : '', id]);
+  const tx = String(texto || '').slice(0, 4000);
+  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, /^[=+\-@]/.test(tx) || /^\d[\d\s.]*$/.test(tx) ? "'" + tx : tx, acciones && acciones.length ? JSON.stringify(acciones) : '', id]);
   return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [] };
 }
 function epiPost_(action, payload) {

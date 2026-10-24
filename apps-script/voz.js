@@ -393,7 +393,19 @@ function vozQuienBloque_() {
     'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LOS PATRONES DE HUÉSPED',
     '· Es un equipo interno: trato cordial pero directo, dinámico y sin rodeos, como una compañera de trabajo eficiente. Nada de «el equipo te escribirá», «no te puedo dar esa información» ni validaciones.',
     '· Si preguntan por alguien del equipo (ej. «¿y Gabriel?»), responde con lo que sabes de su trabajo (rutas, tareas) usando secretaria; no digas que «no está disponible» ni inventes su estado.',
-    '· Si la respuesta de lookup_reservation trae ENCARGO, ese es el motivo de la llamada para ti: cúmplelo con naturalidad (preséntate, explica, pregunta lo que pide) y al terminar despídete; el resumen le llega solo a quien te lo encargó.']).join('\n');
+    '· Si la respuesta de lookup_reservation trae ENCARGO, ese es el motivo de la llamada para ti: cúmplelo con naturalidad (preséntate, explica, pregunta lo que pide) y al terminar despídete; el resumen le llega solo a quien te lo encargó.',
+    '',
+    'CON UN ADMINISTRADOR (reglas fijas, por encima de todo)',
+    '· Si la FICHA DE QUIEN LLAMA dice «LLAMADA DESDE LA APP DEL HUB», ya está identificado: no llames lookup_reservation para identificarle. Para pedidos del administrador nunca uses lookup_reservation ni hospitable_router: todo va por secretaria.',
+    '· Las personas del equipo (Jorge, Gabriel, Santiago, técnicos, recepciones de edificios) no son huéspedes: nunca busques «la reserva de» alguien del equipo.',
+    '· En pedido pasa sus palabras tal cual, completas (nombres, números, apartamento, texto del mensaje). No las resumas ni cambies a quién va dirigido.',
+    '· EN PANTALLA: si dice «el huésped», «la reserva», «escríbele» sin decir cuál, es la de EN PANTALLA. Si no hay EN PANTALLA o no está claro, pregunta cuál en una frase; nunca lo deduzcas del historial ni de llamadas anteriores.',
+    '· NUNCA CONFIRMES DE MEMORIA: solo di «listo», «ya se envió» o «quedó» si secretaria lo confirmó en ESTA respuesta. Si secretaria devuelve ok:false, un error o no menciona la acción, NO se hizo: dilo así («no pude, el sistema me respondió…») y ofrece intentarlo de nuevo o en segundo plano. Si pregunta si algo se envió o en qué quedó, consúltalo con secretaria antes de responder.',
+    '· Si secretaria dice que a la persona solo le llegó el mensaje de primer contacto (no había escrito en 24 h) o que el mensaje sale cuando responda, dilo así: «le llegó el aviso; el mensaje completo sale en cuanto conteste». No digas que ya lo recibió.',
+    '· Un pedido va UNA sola vez a secretaria: nunca lo mandes en primer plano y además en segundo plano, ni lo repitas si ya respondió. Si dudas si salió, pregúntale a secretaria si se envió.',
+    '· Si te pide un momento («dame un segundo», «déjame ver»), espera en silencio. Como mucho un recordatorio corto; nunca repitas la misma pregunta.',
+    '· Con el equipo nada de frases de centro de llamadas («gracias por comunicarte», «gracias por confirmarlo», «con gusto le apoyo»). Directa y cálida, de tú.',
+    '· Al terminar con end_call no agregues otra despedida si ya te despediste, y nunca pongas etiquetas, notas de tono ([warm]) ni marcadores en lo que vas a decir.']).join('\n');
 }
 
 function vozInternos_() {
@@ -409,13 +421,13 @@ function vozInternos_() {
 /* Con Juan y el equipo, la voz es la MISMA Alma del WhatsApp: el prompt vivo SECRETARIA (con sus mejoras) entra al
    agente de ElevenLabs en cada sincronización (cada 30 min si cambió algo). Solo se adapta la forma: es una llamada. */
 function vozEquipoBloque_() {
-  var sec = String(prompt_('SECRETARIA') || (typeof SEMILLA_SECRETARIA_ !== 'undefined' ? SEMILLA_SECRETARIA_ : '')).trim();
+  var sec = ''; try { sec = secretariaPrompt_(); } catch (e) { sec = String(prompt_('SECRETARIA') || '').trim(); }
   if (!sec) return '';
-  var mej = ''; try { mej = mejorasBloque_('SECRETARIA'); } catch (e) {}
+  var mej = '';
   return ['CON JUAN Y EL EQUIPO (caller_type juan o equipo, o la ficha dice que es un administrador identificado) — PREVALECE SOBRE TODO LO DE HUÉSPEDES',
     'Con ellos eres exactamente la misma Alma que les responde por WhatsApp y en el Hub: misma personalidad, misma energía, misma confianza. Abajo está su guía tal como la usa el WhatsApp.',
     'En la llamada cambia solo la forma: frases cortas, nada de listas ni markdown ni enlaces. Las herramientas que esa guía menciona (buscar_reservas, escribir_a_equipo, codigo_acceso, ruta_del_dia, crear_tarea…) las usas pidiéndoselo a la herramienta secretaria con el pedido completo; nunca digas que hiciste algo si secretaria no lo confirmó.',
-    '', '--- GUÍA DE ALMA CON EL EQUIPO (WhatsApp) ---', sec + (typeof REGLA_CODIGOS_SECRETARIA_ !== 'undefined' ? REGLA_CODIGOS_SECRETARIA_ : '') + mej, '--- FIN DE LA GUÍA DEL EQUIPO ---'].join('\n');
+    '', '--- GUÍA DE ALMA CON EL EQUIPO (WhatsApp) ---', sec + mej, '--- FIN DE LA GUÍA DEL EQUIPO ---'].join('\n');
 }
 function vozPromptCompleto_() {
   var voz = String(prompt_('VOZ') || '').trim();
@@ -486,7 +498,13 @@ function vozDefHerramientas_(base) {
         caller_id: caller, conv_id: conv,
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
         modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le confirma por WhatsApp al administrador; úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
-  ].map(function (t) { t.type = 'webhook'; return t; });
+  ].map(function (t) {
+    t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
+    t.execution_mode = 'post_tool_speech'; t.tool_error_handling_mode = 'auto';
+    /* secretaria no se abandona si el administrador habla mientras trabaja (antes se cortaba y el pedido podía ejecutarse igual sin que ALMA lo supiera) */
+    t.interruption_mode = t.name === 'secretaria' ? 'disable_during_tool' : 'allow';
+    return t;
+  });
 }
 
 function vozHerramientas_(k) {
@@ -686,7 +704,7 @@ function vozTranscript_(id) {
    Queda registrado en su chat operativo (canal llamada). */
 function vozSecretaria_(b) {
   var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
-  if (!adm) return { ok: false, error: 'Esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
+  if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
   var t0 = Date.now(), previos = opFilas_(adm.email, 20);
@@ -870,6 +888,7 @@ function vozWebInicio_(ses, ligero) {
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0];
   var dv = Object.assign({}, ini.dynamic_variables || {});
   dv.quien_llama = vozWebFicha_(adm, nom) + '\n\n' + (dv.quien_llama || '');
+  dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
@@ -894,6 +913,30 @@ function vozWebIdentificar_(b) {
   if (normTel_(b.caller_id || b.system__caller_id || '')) return;
   var conv = String(b.conv_id || '').trim(); if (!conv) return;
   var c = CacheService.getScriptCache(), tel = c.get('vozweb_' + conv);
+  /* Sin vínculo todavía: la propia llamada trae la ficha firmada por el Hub (variable sa_web al conectar). Se lee de
+     ElevenLabs y se verifica la firma: no depende de que vozWebVincular llegue a tiempo ni de una marca global. */
+  if (!tel) { try { tel = vozWebTelDeConv_(conv); } catch (e) { console.error('vozWebTelDeConv_: ' + e); } if (tel) c.put('vozweb_' + conv, tel, 21600); }
   if (!tel) { tel = c.get('vozweb_pend'); if (tel) { c.put('vozweb_' + conv, tel, 21600); c.remove('vozweb_pend'); } }
   if (tel) b.caller_id = tel;
+}
+function vozWebSecreto_() {
+  var p = PropertiesService.getScriptProperties(), k = p.getProperty('VOZ_WEB_SECRETO');
+  if (!k) { k = Utilities.getUuid() + Utilities.getUuid(); p.setProperty('VOZ_WEB_SECRETO', k); }
+  return k;
+}
+function vozWebFirma_(txt) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(String(txt), vozWebSecreto_())).replace(/=+$/, '');
+}
+function vozWebToken_(tel) { var exp = Date.now() + 36 * 3600000, base = normTel_(tel) + '.' + exp; return base + '.' + vozWebFirma_(base); }
+function vozWebTokenTel_(tok) {
+  var p = String(tok || '').split('.'); if (p.length !== 3) return '';
+  var base = p[0] + '.' + p[1]; if (+p[1] < Date.now() || vozWebFirma_(base) !== p[2]) return '';
+  return p[0];
+}
+function vozWebTelDeConv_(conv) {
+  var key = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_KEY'); if (!key || !/^conv_/.test(conv)) return '';
+  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversations/' + encodeURIComponent(conv), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return '';
+  var j = JSON.parse(r.getContentText() || '{}'), dv = ((j.conversation_initiation_client_data || {}).dynamic_variables) || {};
+  return vozWebTokenTel_(dv.sa_web);
 }

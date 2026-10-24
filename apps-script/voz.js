@@ -230,10 +230,17 @@ function vozPostCall_(body) {
   if (!pre.huesped && (quien.tipo === 'equipo' || quien.tipo === 'juan')) { pre.huesped = 'Equipo' + (quien.nombre ? ' · ' + quien.nombre : ''); pre.propiedad = 'Llamada del equipo'; }
   else if (!pre.huesped && quien.tipo === 'propietario') pre.propiedad = 'Llamada de propietario';
   var resumen = s_((d.analysis || {}).transcript_summary) || s_((d.analysis || {}).call_summary_title);
+  /* Nombre y motivo: data collection del agente (nombre, motivo, propiedad) y, de respaldo, lo que devolvieron las herramientas. */
+  var dc = (d.analysis || {}).data_collection_results || {}, dcv = function (k) { var x = dc[k]; var v = x && (x.value !== undefined ? x.value : x); return v == null || typeof v === 'object' ? '' : String(v).trim(); };
+  var nomTool = '';
+  (d.transcript || []).forEach(function (m) { (m.tool_results || []).forEach(function (tr) { if (nomTool) return; try { var j = JSON.parse(tr.result_value || '{}'); nomTool = s_(j.guest_name || j.caller_name).trim(); } catch (e) {} }); });
+  var nomDC = dcv('nombre'), motivo = dcv('motivo') || s_((d.analysis || {}).call_summary_title), propDC = dcv('propiedad');
+  if (!pre.huesped && (nomDC || nomTool) && !/^(desconocid|no se|n\/a|vac)/i.test(nomDC || nomTool)) pre.huesped = (nomDC || nomTool).slice(0, 60);
+  if (!pre.propiedad && (motivo || propDC)) pre.propiedad = [propDC, motivo].filter(Boolean).join(' · ').slice(0, 90);
   var mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
   var canal = /sip/i.test(s_(pc.type)) || s_(pc.agent_number).replace(/\D/g, '').slice(-8) === '31280966' ? 'WhatsApp' : 'teléfono';
   var sh = hojaWA_(), filas = [];
-  filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (resumen ? '\n' + resumen : ''), convEL + '#0', convId, 'llamada', 'sistema', '']);
+  filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convId, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
     var txt = s_(m.message).trim(); if (!txt) return;
     var ts = new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString();
@@ -247,7 +254,7 @@ function vozPostCall_(body) {
   try { var dichoAlma = (d.transcript || []).filter(function (m) { return m.role === 'agent'; }).map(function (m) { return s_(m.message); }).join('\n'); if (dichoAlma) promesaRegistrar_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', texto: resumen }, dichoAlma.slice(-3000), 'llamada'); } catch (x) { console.error('promesa voz: ' + x); }
   var fin = new Date(t0 + dur * 1000).toISOString();
   inboxUpsert_(convId, Object.assign({ huesped: pre.huesped || (tel ? '+' + tel : 'Llamada'), propiedad: pre.propiedad || 'Llamada · ' + canal, canal: pre.canal || 'whatsapp',
-    ultimo_canal: 'whatsapp', ultimo_texto: '📞 Llamada · ' + (resumen || mmss).slice(0, 280), ultimo_de: 'host', ultimo_ts: fin, ultimo_host_ts: fin },
+    ultimo_canal: 'whatsapp', ultimo_texto: '📞 Llamada · ' + (motivo ? motivo + ' · ' : '') + (resumen || mmss).slice(0, 260), ultimo_de: 'host', ultimo_ts: fin, ultimo_host_ts: fin },
     tel ? { wa: tel } : {}, pre.codigo ? { codigo: pre.codigo, checkin: pre.checkin, checkout: pre.checkout } : {}));
   try {
     log_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', codigo: pre.codigo || '', checkin: pre.checkin || '', checkout: pre.checkout || '',

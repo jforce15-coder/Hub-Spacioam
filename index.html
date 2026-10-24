@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-24d"></script>
+<script src="js/sa-nav.js?v=2026-10-24e"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
@@ -3475,7 +3475,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-24d";
+  BUILD = "2026-10-24e";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3980,6 +3980,7 @@ class Component extends DCLogic {
     var self = this, v = this.state.vista;
     var c = {
       app: "hub", home: { k: "hub", l: "Inicio" }, current: v, hidden: v === "login" || v === "cargando",
+      apps: ["hub", "hola", "epi", "grow", "mi", "docs"],   /* el Hub es solo del equipo administrador: ve todas las apps */
       items: [
         { k: "hoy", l: "Hoy", icon: "sun" }, { k: "alma", l: "Alma", icon: "chat" }, { k: "accion", l: "Acción", icon: "bolt" },
         { k: "reviews", l: "Reviews", icon: "review" }, { k: "tareas", l: "Tareas", icon: "task" }, { k: "calendario", l: "Calendario", icon: "calendar" },

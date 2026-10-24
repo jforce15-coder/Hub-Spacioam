@@ -1889,16 +1889,22 @@ function avisarSeguimiento_(c) {
 const PROMPT_VERIFICADOR = 'Eres el control de calidad de las respuestas de Spacio AM a huéspedes. Recibes el CONTEXTO (reglas de Alma, avisos internos, ficha de la propiedad, hilo, nivel) y un BORRADOR. Marca error SOLO en estos casos graves:\n(1) El borrador menciona un horario, cifra, precio, dato de acceso, WiFi, dirección o regla que NO aparece en el contexto o que lo contradice.\n(2) El nivel es AMARILLO o ROJO y el borrador concede lo que el huésped pide: dice que sí se puede, que está aprobado, confirmado o garantizado, o que "no hay problema".\n(3) Comparte un código de cerradura inteligente.\n(4) Promete una visita, reparación o acción para esta misma noche.\nNO es error: agradecer, decir "con gusto", decir que se pasa o traslada al equipo, pedir datos para que el equipo revise, ni decir que el equipo confirmará por este canal. Eso es acoger sin resolver, que es justo lo correcto en AMARILLO.\nAnte la duda, aprueba. Devuelve SOLO JSON: {"ok":true} o {"ok":false,"problema":"<qué está mal, en una frase>"}.';
 
 function verificar_(ctx, borrador) {
-  const txt = claude_(CFG.MODELO_CLASIFICADOR, 200, prompt_('VERIFICADOR'),
-    'NIVEL: ' + ctx.nivel + '\n\nREGLAS DE ALMA:\n' + prompt_('REDACTOR') + mejorasBloque_('REDACTOR') +
-    '\n\nAVISOS INTERNOS:\n' + (ctx.instrucciones || '(ninguno)') + '\n\nBASE DE CONOCIMIENTO:\n' + (ctx.conocimiento || '(vacía)') + '\n\nMOMENTO: ' + (ctx.momento || '') + '\n\nFICHA DE LA PROPIEDAD:\n' + ctx.propiedadInfo +
-    '\n\nHILO:\n' + ctx.hiloTexto.slice(-3000) + '\n\nBORRADOR:\n' + borrador, 0, ctx.fotos);
-  try {
-    const p = JSON.parse(String(txt).match(/\{[\s\S]*\}/)[0]);
-    return { ok: p.ok === true, problema: s_(p.problema) };
-  } catch (e) { return { ok: false, problema: 'verificador sin respuesta válida' }; }
+  /* El verificador ve las MISMAS reglas que el redactor (incluidas las fijas y la disponibilidad); antes solo veía el prompt base
+     y frenaba respuestas correctas que seguían reglas que él no conocía (early check-in, guardar maletas, noche adicional). */
+  const entrada = 'NIVEL: ' + ctx.nivel + '\nRESERVA_CONFIRMADA: ' + !!ctx.reservaConfirmada + '\nHOY: ' + (ctx.hoy || '') + ' · CHECKIN: ' + (ctx.checkin || '') + ' · CHECKOUT: ' + (ctx.checkout || '') +
+    '\n\nREGLAS DE ALMA:\n' + prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + mejorasBloque_('REDACTOR') +
+    '\n\nAVISOS INTERNOS:\n' + (ctx.instrucciones || '(ninguno)') + '\n\nBASE DE CONOCIMIENTO:\n' + (ctx.conocimiento || '(vacía)') + '\n\nMOMENTO: ' + (ctx.momento || '') +
+    '\n\nDISPONIBILIDAD (early check-in / late checkout):\n' + (function () { try { return textoDisponibilidad_(ctx.disponibilidad); } catch (e) { return '(sin dato)'; } })() +
+    '\n\nFICHA DE LA PROPIEDAD:\n' + ctx.propiedadInfo + '\n\nHILO:\n' + ctx.hiloTexto.slice(-3000) + '\n\nBORRADOR:\n' + borrador;
+  for (let intento = 0; intento < 2; intento++) {
+    const txt = claude_(CFG.MODELO_CLASIFICADOR, 300, prompt_('VERIFICADOR') + VERIF_NO_ERROR_, entrada, 0, ctx.fotos);
+    try { const p = JSON.parse(String(txt).match(/\{[\s\S]*\}/)[0]); return { ok: p.ok === true, problema: s_(p.problema) }; } catch (e) {}
+  }
+  /* El verificador no respondió (API caída o sin JSON): «ante la duda, aprueba» en VERDE; en AMARILLO/ROJO se retiene. */
+  return ctx.nivel === 'VERDE' ? { ok: true, problema: '' } : { ok: false, problema: 'verificador sin respuesta válida' };
 }
-
+/* Regla fija (código, no hoja): lo que NUNCA es error, aunque el prompt editable diga otra cosa. */
+const VERIF_NO_ERROR_ = '\n\nREGLA FIJA · NUNCA son error:\n· Ofrecer las opciones que aparecen en las REGLAS, la BASE DE CONOCIMIENTO o la DISPONIBILIDAD (early check-in sujeto a confirmación a las 21:00, guardar maletas, noche adicional, late checkout con condiciones). Ofrecer opciones no es conceder.\n· Repetir el horario estándar de check-in o checkout.\n· Con RESERVA_CONFIRMADA=true, dar dirección, edificio, piso, número de apartamento, WiFi, parqueo o pasos de llegada que estén en la FICHA.\n· Decir que el código de la cerradura llega por la plataforma un día antes.\n· Detalles de redacción, tono o diferencias menores de palabras (edificio/apartamento) que no cambian un dato concreto.\nSolo frenas si el borrador inventa o contradice un dato concreto, concede algo que el equipo debe aprobar o promete algo para esta noche.';
 // Redacta, verifica y, si falla, corrige una vez con la observación. Devuelve {texto, ok, problema}.
 /* ── Despedidas ── Un huésped que se despide, agradece por todo o avisa que ya salió SIEMPRE recibe una despedida
    cálida. Es regla de código: antes "acuse = SILENCIO" (regla fija del clasificador) le ganaba a cualquier mejora del prompt.
@@ -4321,11 +4327,11 @@ function mezclarEnvios_(id, hilo) {
 }
 function hiloConv_(convId, hiloCliente) {
   const id = String(convId || ''); let hilo = [];
-  if (id.indexOf('wa:') !== 0) {
+  if (!/^(wa|llamada):/.test(id)) {   // WhatsApp y llamadas sin número viven solo en ALMA_WHATSAPP
     const fr = hiloCacheGet_(id, true);
     if (fr) { hilo = fr; try { hilo = hilo.concat(waHilo_(id)); } catch (e) {} hilo.sort((a, b) => new Date(a.created) - new Date(b.created)); try { hilo = mezclarEnvios_(id, hilo); } catch (e) {} return { code: 200, hilo: hilo, cache: true }; }
   }
-  if (id.indexOf('wa:') !== 0) {
+  if (!/^(wa|llamada):/.test(id)) {   // WhatsApp y llamadas sin número viven solo en ALMA_WHATSAPP
     /* Las consultas (inq:uuid) viven en /inquiries; antes se pedían a /reservations y fallaban → el hub solo mostraba un intercambio. */
     const inq = id.indexOf('inq:') === 0, uid = id.replace(/^inq:/, '');
     /* La API no deja leer el historial de una consulta: se intenta por si la consulta ya se convirtió en reserva y,
@@ -4859,6 +4865,7 @@ function dsBotApi_(body) {
       case 'voz_llamar': return json_(vozLlamar_(body.tel, body.motivo || ''));
       case 'voz_permiso': return json_(vozPermiso_(body.tel));
       case 'prog_ultimos': { const shP = hojaWaProg_(), nP = shP.getLastRow(); return json_({ ok: true, filas: nP < 2 ? [] : shP.getRange(Math.max(2, nP - 9), 1, Math.min(10, nP - 1), WAPROG_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], para: v[3], cuando: v[6], zona: v[7], estado: v[9], resultado: String(v[10]).slice(0, 120) })) }); }   // diagnóstico (sin textos)
+      case 'qa_retenidos': { const shL = hoja_(CFG.TAB_LOG), nL = shL.getLastRow(), cab = LOG_HEADERS; const iA = cab.indexOf('accion'), iN = cab.indexOf('nivel'), iF = cab.indexOf('fecha'), iP = cab.indexOf('propiedad'); return json_({ ok: true, filas: nL < 2 ? [] : shL.getRange(Math.max(2, nL - 400), 1, Math.min(401, nL - 1), cab.length).getValues().filter(v => /RETENIDO|QA/.test(String(v[iA]))).slice(-15).map(v => ({ fecha: v[iF], propiedad: v[iP], nivel: v[iN], accion: String(v[iA]).slice(0, 300) })) }); }   // diagnóstico del control de calidad (sin textos de huéspedes)
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

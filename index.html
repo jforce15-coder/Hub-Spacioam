@@ -2178,7 +2178,7 @@
         <div onClick="{{ rzCerrar }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards"></div>
         <div role="dialog" aria-label="Análisis del mensaje" style="position:relative; width:min(100%,640px); max-height:min(88dvh,860px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; overflow:hidden">
           <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
-          <button onClick="{{ rzCerrar }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <button onClick="{{ rzCerrar }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; z-index:3; width:44px; height:44px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
           <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:12px 18px calc(20px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:18px; min-height:0">
             <div style="display:flex; flex-direction:column; gap:4px; padding-right:44px">
               <span style="display:flex; align-items:center; gap:8px; font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="12" hint-size="12px,12px"></x-import>Análisis del mensaje</span>
@@ -2187,7 +2187,7 @@
             <sc-if value="{{ rz.hayTexto }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; flex-direction:column; gap:2px">
                 <div style="padding:12px 14px; font-size:13.5px; line-height:1.6; white-space:pre-wrap; text-wrap:pretty; color:#3E3F3F; border-radius: {{ rz.burbujaRadio }}; background: {{ rz.burbujaBg }}; border: {{ rz.burbujaBd }}">{{ rz.texto }}</div>
-                <sc-if value="{{ rz.usar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ rz.copiar }}" style="align-self:stretch; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; margin-top:8px; padding:0 20px; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.97)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#FAFAFA" hint-size="13px,13px"></x-import>Enviar mensaje</button></sc-if>
+                <sc-if value="{{ rz.usar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ rz.copiar }}" style="align-self:stretch; display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:48px; margin-top:8px; padding:0 20px; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .1s" style-active="transform:scale(.97)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowUpRight" size="13" color="#FAFAFA" hint-size="13px,13px"></x-import>Enviar mensaje</button><span style="font-size:11.5px; line-height:1.5; color:#6F6867; margin-top:6px">No sale todavía: pasa al cuadro de texto para que lo edites, lo mejores con ALMA, lo programes o lo envíes.</span></sc-if>
                 <sc-if value="{{ rzPuedeBorrar }}" hint-placeholder-val="{{ false }}">
                   <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end">
                     <a href="{{ rzBorrarUrl }}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#C0392B; text-decoration:none"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="trash" size="13" color="#C0392B" hint-size="13px,13px"></x-import>Eliminar en Airbnb</a>
@@ -3472,7 +3472,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-24a";
+  BUILD = "2026-10-24b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -6436,7 +6436,7 @@ class Component extends DCLogic {
         propRaw: d.propiedad || "",
         key: convKey, ts: new Date(r.recibido).getTime(), esCola: true, esLog: false, resId: resId, estadoCola: est, cargarHilo: cargarHilo,
         form: farolForm(d.codigo, d.formStatus), chatMin: "120px", hiloN: String((hiloSt && hiloSt.lista ? hiloSt.lista.length : 0) + (st.optim[resId] || []).length),
-        emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
+        estadoRes: d.estado || "", emergenciaEnviada: !!d.emergenciaAt, accesoTipo: d.acceso === true ? "apartamento" : (d.accesoTipo || (d.acceso ? "apartamento" : null)), formStatus: d.formStatus || "", razonBrief: d.razon || "",
         iniciales: String(r.huesped || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H",
         clasificando: clasInfo.on, clasPct: clasInfo.pct, clasTxt: clasInfo.txt, clasPasos: clasInfo.pasos || [], hayPasos: !!(clasInfo.pasos && clasInfo.pasos.length), sinPasos: !(clasInfo.pasos && clasInfo.pasos.length),
         nivelLabel: ({ ROJO: "Urgente", AMARILLO: "Necesita equipo", VERDE: "Resuelta" })[v.nivel] || "Clasificando…",
@@ -6856,13 +6856,17 @@ class Component extends DCLogic {
       if (!solo) { briefN.total++; if (c.esCola) briefN.cola++; else if (resuelto) briefN.equipo++; else if (respondio) briefN.alma++; else briefN.sin++; }
       /* Problema / Estado / Pendiente / Siguiente paso — lo que hay que entender en tres segundos. */
       var razonEsEstado = /equipo|alma|respondi|gestionand|contenci|hilo|retenid|borrador/i.test(c.razonBrief || "");
-      var problema = c.accesoTipo === "edificio" ? "No le permiten entrar al edificio" : c.accesoTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado ? c.razonBrief : self.resumenBreve(c));
+      /* Una consulta (inquiry) no tiene reserva confirmada: no existe "no puede entrar". Se ignora el acceso y cualquier razón de acceso. */
+      var cSinRes = /^inq:/.test(String(c.resId || "")) || /consulta|inquiry|solicitud|request|sin reserva/i.test(String(c.estadoRes || c.propRaw || "") + " " + String(c.tipoRes || ""));
+      var razonAcceso = /no (se )?(puede|pueden|podemos|le permiten|les permiten|lo dejan|la dejan|los dejan) (entrar|ingresar|el ingreso|pasar)|sin acceso|problema de acceso|acceso al (edificio|apartamento)/i;
+      var accTipo = cSinRes ? null : c.accesoTipo;
+      var problema = accTipo === "edificio" ? "No le permiten entrar al edificio" : accTipo === "apartamento" ? "No puede entrar al apartamento" : (c.razonBrief && !razonEsEstado && !(cSinRes && razonAcceso.test(c.razonBrief)) ? c.razonBrief : self.resumenBreve(c));
       var estado, pendiente = "", paso, pasoColor, pideHumano = !!c.sinResp, tag, tagBg, tagFg, color;
       if (gRes) { estado = "Marcada como resuelta"; paso = "Nada pendiente."; pasoColor = VERDE; pideHumano = false; tag = "Resuelta"; color = VERDE; tagBg = "rgba(61,107,82,.14)"; tagFg = VERDE; }
       else if (esRojo) {
         if (resuelto) { estado = "Atendido por " + quienTxt + " hace " + mins(c.ts); paso = "Solo confirma que quedó cerrado."; pasoColor = VERDE; tag = "Urgente · atendido"; color = VERDE; }
         else if (emer) { estado = "Sin respuesta del equipo; ALMA envió el código de emergencia"; paso = "No news, good news. Sin seguimiento."; pasoColor = VERDE; tag = "Urgente · código enviado"; color = "#E9826A"; }
-        else { estado = (c.esCola ? "Esperando " : "Hace ") + mins(c.ts) + (c.estadoCola === "esperando_rojo" ? " · contención enviada" : " · sin respuesta"); paso = c.accesoTipo === "edificio" ? "Confirmar la reserva con el edificio. Intervención humana." : "Nadie ha respondido. Intervención humana."; pasoColor = ROJO_T; pideHumano = true; tag = "Urgente"; color = "#E9826A"; }
+        else { estado = (c.esCola ? "Esperando " : "Hace ") + mins(c.ts) + (c.estadoCola === "esperando_rojo" ? " · contención enviada" : " · sin respuesta"); paso = accTipo === "edificio" ? "Confirmar la reserva con el edificio. Intervención humana." : "Nadie ha respondido. Intervención humana."; pasoColor = ROJO_T; pideHumano = true; tag = "Urgente"; color = "#E9826A"; }
         if (c.formStatus && c.formStatus !== "completo") pendiente = "Registro de llegada sin llenar (ALMA ya lo pidió)";
         tagBg = color === VERDE ? "rgba(61,107,82,.14)" : "rgba(233,130,106,.16)"; tagFg = color === VERDE ? VERDE : ROJO_T;
       } else if (esAmarillo) {
@@ -7476,7 +7480,7 @@ class Component extends DCLogic {
         CH.nota = CH.alma; CH.borrador = CH.alma;
         var sty = STY[tpR] || STY.alma, pr0 = st.rzProp;
         rz = { hay: true, hayVoto: false, titulo: TIT[tpR] || "Mensaje", texto: RZ.texto || "", hayTexto: !!RZ.texto, burbujaBg: sty[0], burbujaBd: sty[1], burbujaRadio: tpR === "guest" ? "16px 16px 16px 4px" : "16px 16px 4px 16px",
-          noEnviado: tpR === "nota", noEnviadoTxt: "ALMA decidió no enviarlo. El huésped no vio este mensaje.",
+          noEnviado: tpR === "nota" || tpR === "borrador", noEnviadoTxt: tpR === "borrador" ? "Borrador: no se envió. El huésped no vio este mensaje." : "ALMA decidió no enviarlo. El huésped no vio este mensaje.",
           filas: analisis.length ? analisis : [{ k: "Registro", v: "Sin datos suficientes para analizar este mensaje." }],
           chips: (CH[tpR] || CH.alma).map(function (t) { return { t: t, usar: function () { var cur = String(self.state.rzAnot || "").trim(); self.setState({ rzAnot: (cur ? cur.replace(/[.\s]*$/, "") + ". " : "") + t }); } }; }),
           anotacion: st.rzAnot || "", setAnotacion: function (e) { self.setState({ rzAnot: e.target.value }); },
@@ -7497,7 +7501,7 @@ class Component extends DCLogic {
     }
     if (rz) { var ridRz = (rc && rc.resId) || RZ.resId || "", txRz = String(rz.texto || "");
       /* Mensaje que no salió: «Usar este mensaje» lo pasa al cuadro de texto de la conversación para mandarlo tal cual o mejorarlo. */
-      rz.puedeEnviar = false; rz.usar = !!(txRz.trim() && (rz.noEnviado || (rc && !rc.enviado) || RZ.tipo === "nota")); 
+      rz.puedeEnviar = false; rz.usar = !!(txRz.trim() && (rz.noEnviado || (rc && !rc.enviado) || RZ.tipo === "nota" || RZ.tipo === "borrador")); 
       rz.enviar = function () { self.rzEnviar(ridRz, txRz, false); }; rz.editar = function () { self.rzEnviar(ridRz, txRz, true); };
       if (rz.usar) rz.copiar = rz.editar; }
     var mesk = window.matchMedia && matchMedia("(max-width:1179px)").matches;

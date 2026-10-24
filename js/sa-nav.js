@@ -76,8 +76,8 @@
   var CSS = [
     "#sa-nav-root{--san-ink:#9C928A;--san-spark:#C9C1B8;--san-z:880;font-family:Montserrat,system-ui,-apple-system,sans-serif}",
     "#sa-nav-root[hidden]{display:none!important}",
-    "#sa-nav-root .san-scrim{position:fixed;inset:0;pointer-events:none;z-index:var(--san-z);opacity:.5;transition:opacity .6s cubic-bezier(.45,0,.55,1)}",
-    "#sa-nav-root .san-scrim.open{opacity:1}#sa-nav-root .san-scrim.moving{opacity:.25}",
+    "#sa-nav-root .san-scrim{position:fixed;inset:0;pointer-events:none;z-index:var(--san-z);opacity:.35;transition:opacity .6s cubic-bezier(.45,0,.55,1)}",
+    "#sa-nav-root .san-scrim[data-s='2']{opacity:.7}#sa-nav-root .san-scrim[data-s='3']{opacity:.82}#sa-nav-root .san-scrim[data-s='4']{opacity:1}#sa-nav-root .san-scrim.moving{opacity:.2}",
     scrimCss("b", LIN("top")), scrimCss("t", LIN("bottom")), scrimCss("l", LIN("right")), scrimCss("r", LIN("left")),
     scrimCss("bl", RAD("0% 100%")), scrimCss("br", RAD("100% 100%")), scrimCss("tl", RAD("0% 0%")), scrimCss("tr", RAD("100% 0%")),
     "#sa-nav-root .san-catch{position:fixed;inset:0;z-index:calc(var(--san-z) + 1);display:none}#sa-nav-root .san-catch.on{display:block}",
@@ -91,7 +91,7 @@
     "#sa-nav-root .san-grain::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background-image:" + GRAIN + "}",
     "#sa-nav-root .san-arms{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}",
     "#sa-nav-root .san-arm{position:absolute;border-radius:999px;background:#E9E4DE;box-shadow:0 14px 22px -6px rgba(60,45,38,.30),0 3px 6px rgba(60,45,38,.12),inset 0 3px 5px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10)}",
-    "#sa-nav-root .san-item{width:0;height:0}",
+    "#sa-nav-root .san-item{width:0;height:0}#sa-nav-root .san-items{position:absolute;left:0;top:0;width:0;height:0}",
     "#sa-nav-root .san-btn{position:absolute;left:-29px;top:-29px;width:58px;height:58px;border-radius:50%;border:0;padding:0;margin:0;cursor:pointer;color:var(--san-ink);font:inherit;" +
       "background:radial-gradient(120% 120% at 50% 20%,#F4F1EE 0%,#ECE8E3 55%,#E3DED8 100%);--lx:0;--ly:0;--la:0;" +
       "box-shadow:inset calc(var(--lx)*1px) calc(var(--ly)*1px) 10px rgba(238,116,82,var(--la)),0 7px 12px -5px rgba(96,76,66,.24),0 1px 3px rgba(96,76,66,.10),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.09);" +
@@ -206,7 +206,7 @@
 
   /* ================= estado ================= */
   var cfg = null, root = null, st = { S: 1, anchor: "bc", fan: "apps" };
-  var px, py, arm, navP = [], fanP = [], arms, geo = { pol: [], R: 0 };
+  var px, py, arm, barS, navP = [], fanP = [], arms, geo = { pol: [], R: 0 };
   var E = {}, itemEls = [], fanEls = [], fanList = [], shown = [], overflow = [];
   var allowed = null, dragging = false;
 
@@ -221,7 +221,7 @@
       '<div class="san-hint" role="note"><span><b>Toca</b> · pantallas</span><span><b>Doble toque</b> · apps</span><span><b>Mantén</b> · mover</span></div>';
     d.body.appendChild(root);
     E.scrim = root.querySelector(".san-scrim"); E.catch = root.querySelector(".san-catch"); E.dots = root.querySelector(".san-dots");
-    E.nav = root.querySelector(".san-nav"); E.arms = root.querySelectorAll(".san-arm"); E.fan = root.querySelector(".san-fan"); E.items = root.querySelector(".san-items");
+    E.nav = root.querySelector(".san-nav"); E.arms = root.querySelectorAll(".san-arm"); E.armsBox = root.querySelector(".san-arms"); E.fan = root.querySelector(".san-fan"); E.items = root.querySelector(".san-items");
     E.core = root.querySelector(".san-core"); E.face = root.querySelector(".san-face"); E.lbl = root.querySelector(".san-g-home .san-t"); E.hint = root.querySelector(".san-hint");
     ANCH.forEach(function (a) { var s = d.createElement("span"); s.className = "san-dot"; s.dataset.a = a; E.dots.appendChild(s); });
     E.nav.addEventListener("contextmenu", function (e) { e.preventDefault(); });
@@ -283,6 +283,7 @@
   function render() {
     if (!root) return;
     E.nav.style.transform = "translate(" + px.x + "px," + py.x + "px) scale(" + K() + ")";
+    var bs = "scale(" + barS.x.toFixed(4) + ")"; E.armsBox.style.transform = bs; E.items.style.transform = bs;
     var h = T / 2, A0 = arms[0], A1 = arms[1], L0 = clamp(arm[0].x, h, ARM_L), L1 = clamp(arm[1].x, h, ARM_L), op = clamp(Math.max(arm[0].x, arm[1].x) / 24, 0, 1);
     if (A0[0] === -A1[0] && A0[1] === -A1[1]) {
       E.arms[0].style.cssText = A0[0] !== 0 ? "left:" + (-L0) + "px;top:" + (-h) + "px;width:" + (L0 + L1) + "px;height:" + T + "px;opacity:" + op
@@ -320,10 +321,13 @@
   function surge() { E.core.classList.remove("surge"); void E.core.offsetWidth; E.core.classList.add("surge"); clearTimeout(surgeT); surgeT = setTimeout(function () { if (E.core) E.core.classList.remove("surge"); }, 1100); }
   function applyState(prev) {
     var s = st.S, open = s === 2 || s === 4, fan = s === 3 || s === 4;
-    E.scrim.classList.toggle("open", s !== 1);
+    E.scrim.dataset.s = s;
     cancelPend(navP.concat(fanP, arm));
     arms = armsFor(st.anchor);
     arm.forEach(function (sp) { open ? sp.to(ARM_L, .78, .84) : sp.to(0, .62, 1); });
+    /* la barra respira con el cambio: crece mientras se abre y se asienta con un rebote, como el botón central */
+    var wasOpen = prev === 2 || prev === 4;
+    if (prev && open !== wasOpen) { barS.x = 1; barS.to(1, .62, .42, open ? .95 : -.55); }
     navP.forEach(function (sp, i) { var near = (i === 1 || i === 2) ? 0 : 1; open ? later(sp, 1, 90 + near * 80, .7, .82) : later(sp, 0, (1 - near) * 60, .5, 1); });
     geo = fanGeo(st.anchor, fanEls.length, open);
     if (fan) fanP.forEach(function (sp, j) { later(sp, 1, 60 + j * 55, .72, .82); });
@@ -483,7 +487,7 @@
       build();
       var sv = getCk("sa_nav_pos"); if (sv && ANCH.indexOf(sv) >= 0) st.anchor = sv;
       try { var ss = JSON.parse(sessionStorage.getItem("sa_nav_state") || "null"); if (ss && ss.S === 2 && Date.now() - ss.t < IDLE_MS) st.S = 2; } catch (e) {}
-      var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)];
+      var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1);
       arms = armsFor(st.anchor);
       loadAllowed(); buildItems(); buildFan("apps"); placeScrim(); placeDots();
       if (cfg.hidden) root.hidden = true;

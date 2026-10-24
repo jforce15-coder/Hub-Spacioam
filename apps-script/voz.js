@@ -406,6 +406,17 @@ function vozInternos_() {
     'Si el número no está en la lista, ignora esta regla.'].join('\n');
 }
 
+/* Con Juan y el equipo, la voz es la MISMA Alma del WhatsApp: el prompt vivo SECRETARIA (con sus mejoras) entra al
+   agente de ElevenLabs en cada sincronización (cada 30 min si cambió algo). Solo se adapta la forma: es una llamada. */
+function vozEquipoBloque_() {
+  var sec = String(prompt_('SECRETARIA') || (typeof SEMILLA_SECRETARIA_ !== 'undefined' ? SEMILLA_SECRETARIA_ : '')).trim();
+  if (!sec) return '';
+  var mej = ''; try { mej = mejorasBloque_('SECRETARIA'); } catch (e) {}
+  return ['CON JUAN Y EL EQUIPO (caller_type juan o equipo, o la ficha dice que es un administrador identificado) — PREVALECE SOBRE TODO LO DE HUÉSPEDES',
+    'Con ellos eres exactamente la misma Alma que les responde por WhatsApp y en el Hub: misma personalidad, misma energía, misma confianza. Abajo está su guía tal como la usa el WhatsApp.',
+    'En la llamada cambia solo la forma: frases cortas, nada de listas ni markdown ni enlaces. Las herramientas que esa guía menciona (buscar_reservas, escribir_a_equipo, codigo_acceso, ruta_del_dia, crear_tarea…) las usas pidiéndoselo a la herramienta secretaria con el pedido completo; nunca digas que hiciste algo si secretaria no lo confirmó.',
+    '', '--- GUÍA DE ALMA CON EL EQUIPO (WhatsApp) ---', sec + (typeof REGLA_CODIGOS_SECRETARIA_ !== 'undefined' ? REGLA_CODIGOS_SECRETARIA_ : '') + mej, '--- FIN DE LA GUÍA DEL EQUIPO ---'].join('\n');
+}
 function vozPromptCompleto_() {
   var voz = String(prompt_('VOZ') || '').trim();
   if (!voz || VOZ_SEMILLA_VIEJA_.test(voz)) { hubSetPrompt_('VOZ', SEMILLA_VOZ_, 'anotaciones de llamadas v2 (independientes de ElevenLabs)'); voz = SEMILLA_VOZ_; }
@@ -413,7 +424,7 @@ function vozPromptCompleto_() {
   if (!String(base).trim()) return { error: 'El prompt REDACTOR está vacío en ALMA_INSTRUCCIONES.' };
   var extra = sinCab_(prompt_('REGLAS_EXTRA'));
   var humana = String(prompt_('VOZ_HUMANA') || '').trim();
-  return { clave: 'REDACTOR', texto: [vozQuienBloque_(), base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, humana].filter(Boolean).join('\n\n') };
+  return { clave: 'REDACTOR', texto: [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, humana].filter(Boolean).join('\n\n') };
 }
 function vozSyncSiToca_() {
   var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;

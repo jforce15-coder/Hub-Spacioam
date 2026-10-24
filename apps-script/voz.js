@@ -22,6 +22,7 @@ function vozApi_(e, body) {
   var herr = String(p.h || body.herramienta || (body.type === 'post_call_transcription' ? 'postcall' : '')).toLowerCase();
   try {
     var out;
+    vozWebIdentificar_(body);   // llamada desde el botón de Alma del Hub: sin número, se reconoce por su conversación
     if (herr === 'lookup_reservation') out = vozLookup_(body);
     else if (herr === 'property_info') out = vozPropertyInfo_(body);
     else if (herr === 'postcall') out = vozPostCall_(body);
@@ -223,6 +224,7 @@ function vozPostCall_(body) {
   if (!convEL) return { ok: false, error: 'sin conversation_id' };
   /* Llamada sin número (prueba desde el navegador o el panel de ElevenLabs): es del administrador principal y va a su conversación. */
   var prueba = false;
+  if (!tel) { var tw = vozWebTel_(convEL); if (tw) tel = normTel_(tw); }
   if (!tel) { try { var ppal = adminsOp_().filter(function (a) { return a.principal; })[0]; if (ppal && ppal.tels && ppal.tels[0]) { tel = normTel_(ppal.tels[0]); prueba = true; } } catch (x) {} }
   if (!vozMarcar_(convEL)) return { ok: true, duplicado: true };
   var t0 = Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), dur = Number(md.call_duration_secs || 0);
@@ -449,6 +451,7 @@ var VOZ_PUENTE_ = 'https://alma-puente.jforce15.workers.dev/';
 function vozDefHerramientas_(base) {
   var s = function (d) { return { type: 'string', description: d }; };
   var caller = { type: 'string', dynamic_variable: 'system__caller_id' };
+  var conv = { type: 'string', dynamic_variable: 'system__conversation_id' };
   return [
     { name: 'lookup_reservation', response_timeout_secs: 20,
       description: 'Ubica y valida la reserva de quien llama. Llámala SIEMPRE primero, solo con caller_id (valida por el número que llama). Si no queda validada, vuelve a llamarla con nombre, apellido y fecha de entrada (y lo que ya tengas). Devuelve caller_type (juan, equipo, propietario o externo), team_member, caller_name, found, verified, ambiguous, ask_next, zone_options, today, code, guest_name, check_in, check_out, property, form_status. Si team_member = true no hace falta validar reserva.',
@@ -459,17 +462,17 @@ function vozDefHerramientas_(base) {
         check_in: s('Fecha de entrada en formato YYYY-MM-DD, si ya la dio.'),
         check_out: s('Fecha de salida YYYY-MM-DD, solo como filtro secundario.'),
         property_name: s('Prefijo de zona para desempatar (Z1, Z10, Antigua), solo si ask_next fue zone.'),
-        code: s('Código de reserva, solo si la persona lo dio.') } } } },
+        code: s('Código de reserva, solo si la persona lo dio.'), conv_id: conv } } } },
     { name: 'property_info', response_timeout_secs: 20,
       description: 'Datos de la propiedad de una reserva YA validada (verified = true): dirección, cómo llegar, portería, WiFi, parqueo y base de conocimiento del edificio. Usa el code que devolvió lookup_reservation.',
       api_schema: { url: base + '&h=property_info', method: 'POST', request_body_schema: { type: 'object', required: ['code'], properties: {
         code: s('Código de la reserva validada (campo code de lookup_reservation).'),
         lang: s('Idioma de la llamada: es o en.'),
-        caller_id: caller } } } },
+        caller_id: caller, conv_id: conv } } } },
     { name: 'secretaria', response_timeout_secs: 60,
       description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
-        caller_id: caller,
+        caller_id: caller, conv_id: conv,
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
         modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le confirma por WhatsApp al administrador; úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
   ].map(function (t) { t.type = 'webhook'; return t; });
@@ -819,4 +822,42 @@ function vozUnirPruebas_() {
   }
   try { CacheService.getScriptCache().removeAll(['inbox', 'hub_inbox']); } catch (e) {}
   return { ok: true, mensajes_movidos: movidas, conversaciones_quitadas: borradas };
+}
+
+
+/* ═══ Alma por voz dentro de las apps (botón del menú compartido) ═══════════════════════════════
+   El Hub pide una URL firmada de ElevenLabs para el administrador con sesión iniciada. La llamada web no
+   trae número: queda ligada a ese administrador por su conversation_id (lo envía el Hub al conectar) y,
+   mientras eso llega, por un aviso de 90 s. Así las herramientas lo reconocen igual que por teléfono. */
+function vozWebAdmin_(ses) {
+  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
+  if (!ses) { var ppal = adminsOp_().filter(function (a) { return a.principal; })[0]; if (ppal) adm = ppal; }   // llave antigua del Hub: solo administradores
+  return adm && adm.tels && adm.tels.length ? adm : null;
+}
+function vozWebInicio_(ses) {
+  var adm = vozWebAdmin_(ses);
+  if (!adm) return { ok: false, error: 'Tu usuario no tiene un teléfono registrado como administrador.' };
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
+  var j = JSON.parse(r.getContentText() || '{}'); if (!j.signed_url) return { ok: false, error: 'sin URL firmada' };
+  var tel = normTel_(adm.tels[0]), ini = {};
+  try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
+  CacheService.getScriptCache().put('vozweb_pend', tel, 90);
+  return { ok: true, signed_url: j.signed_url, dynamic_variables: ini.dynamic_variables || {}, nombre: String(adm.nombre || '').trim().split(/\s+/)[0] };
+}
+function vozWebVincular_(ses, convId) {
+  var adm = vozWebAdmin_(ses); convId = String(convId || '').trim();
+  if (!adm || !convId) return { ok: false };
+  CacheService.getScriptCache().put('vozweb_' + convId, normTel_(adm.tels[0]), 21600);
+  return { ok: true };
+}
+function vozWebTel_(convId) { convId = String(convId || '').trim(); return convId ? (CacheService.getScriptCache().get('vozweb_' + convId) || '') : ''; }
+function vozWebIdentificar_(b) {
+  if (normTel_(b.caller_id || b.system__caller_id || '')) return;
+  var conv = String(b.conv_id || '').trim(); if (!conv) return;
+  var c = CacheService.getScriptCache(), tel = c.get('vozweb_' + conv);
+  if (!tel) { tel = c.get('vozweb_pend'); if (tel) { c.put('vozweb_' + conv, tel, 21600); c.remove('vozweb_pend'); } }
+  if (tel) b.caller_id = tel;
 }

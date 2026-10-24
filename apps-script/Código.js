@@ -695,6 +695,7 @@ function procesarCola() {
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
   try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
+  try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
   try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
@@ -979,6 +980,7 @@ function enviarPendiente_(sh, f, ctrl, filas) {
   set_(sh, f, { estado: 'respondido', nota: d.nivel + ' · enviado' });
   log_(d, d.borrador, 'ENVIADO al huésped' + (d.seguimiento ? ' · seguimiento avisado' : ''));
   avisarSeguimiento_(d);
+  try { earlyRegistrar_(d); } catch (e) { console.error('earlyRegistrar_: ' + e); }   // solo si el mensaje sí salió
 }
 
 function manejarRojo_(sh, lider, otros, ctx) {
@@ -4867,6 +4869,8 @@ function dsBotApi_(body) {
       case 'prog_ultimos': { const shP = hojaWaProg_(), nP = shP.getLastRow(); return json_({ ok: true, filas: nP < 2 ? [] : shP.getRange(Math.max(2, nP - 9), 1, Math.min(10, nP - 1), WAPROG_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], para: v[3], cuando: v[6], zona: v[7], estado: v[9], resultado: String(v[10]).slice(0, 120) })) }); }   // diagnóstico (sin textos)
       case 'qa_retenidos': { const shL = hoja_(CFG.TAB_LOG), nL = shL.getLastRow(), cab = LOG_HEADERS; const iA = cab.indexOf('accion'), iN = cab.indexOf('nivel'), iF = cab.indexOf('fecha'), iP = cab.indexOf('propiedad'); return json_({ ok: true, filas: nL < 2 ? [] : shL.getRange(Math.max(2, nL - 400), 1, Math.min(401, nL - 1), cab.length).getValues().filter(v => /RETENIDO|QA/.test(String(v[iA]))).slice(-15).map(v => ({ fecha: v[iF], propiedad: v[iP], nivel: v[iN], accion: String(v[iA]).slice(0, 300) })) }); }   // diagnóstico del control de calidad (sin textos de huéspedes)
       case 'voz_unir_pruebas': return json_(vozUnirPruebas_());   // una vez: las llamadas de prueba sin número pasan a la conversación del admin principal
+      case 'mejora_reemplazar': return json_(mejoraReemplazar_(String(body.buscar || ''), String(body.nuevo || '')));
+      case 'early_estado': { const shE = hojaEarly_(), nE = shE.getLastRow(); return json_({ ok: true, filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), EARLY_CAB_.length).getValues().map(v => ({ propiedad: v[5], checkin: v[6], estado: v[10], resultado: v[11] })) }); }
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

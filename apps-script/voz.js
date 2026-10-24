@@ -247,7 +247,7 @@ function vozPostCall_(body) {
   var sh = hojaWA_(), filas = [];
   filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convId, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
-    var txt = s_(m.message).trim(); if (!txt) return;
+    var txt = s_(m.message).trim(); if (m.role === 'agent') txt = vozSinNotas_(txt); if (!txt) return;
     var ts = new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString();
     filas.push(m.role === 'agent' ? [ts, tel, 'ALMA voz', 'out', txt, convEL + '#' + (i + 1), convId, 'llamada', 'alma', '']
                                   : [ts, tel, pre.huesped || '', 'in', txt, convEL + '#' + (i + 1), convId, 'llamada', '', '']);
@@ -834,18 +834,25 @@ function vozWebAdmin_(ses) {
   if (!ses) { var ppal = adminsOp_().filter(function (a) { return a.principal; })[0]; if (ppal) adm = ppal; }   // llave antigua del Hub: solo administradores
   return adm && adm.tels && adm.tels.length ? adm : null;
 }
-function vozWebInicio_(ses) {
+/* Quita las notas de actuación del modelo de voz ([warm], [softly]…) de lo que se guarda o se muestra. */
+function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
+function vozWebInicio_(ses, ligero) {
   var adm = vozWebAdmin_(ses);
   if (!adm) return { ok: false, error: 'Tu usuario no tiene un teléfono registrado como administrador.' };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var tel = normTel_(adm.tels[0]), ini = {};
+  try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
+  var out = { ok: true, agent_id: agente, dynamic_variables: ini.dynamic_variables || {}, nombre: String(adm.nombre || '').trim().split(/\s+/)[0],
+    first_message: ((ini.conversation_config_override || {}).agent || {}).first_message || '' };
+  /* ligero: el navegador se conecta directo con agent_id (el agente es público) y guarda esta ficha; sin URL firmada. */
+  if (ligero) return out;
   var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
   var j = JSON.parse(r.getContentText() || '{}'); if (!j.signed_url) return { ok: false, error: 'sin URL firmada' };
-  var tel = normTel_(adm.tels[0]), ini = {};
-  try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
   CacheService.getScriptCache().put('vozweb_pend', tel, 90);
-  return { ok: true, signed_url: j.signed_url, dynamic_variables: ini.dynamic_variables || {}, nombre: String(adm.nombre || '').trim().split(/\s+/)[0] };
+  out.signed_url = j.signed_url;
+  return out;
 }
 function vozWebVincular_(ses, convId) {
   var adm = vozWebAdmin_(ses); convId = String(convId || '').trim();

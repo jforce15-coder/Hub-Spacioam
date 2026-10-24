@@ -3034,7 +3034,7 @@ function hubApi_(body) {
   try {
     switch (body.action) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
-      case 'vozWeb': return json_(vozWebInicio_(ses));                    // Alma por voz desde el menú (voz.js)
+      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero));                    // Alma por voz desde el menú (voz.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id));
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());

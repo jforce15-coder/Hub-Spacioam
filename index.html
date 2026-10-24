@@ -4,6 +4,10 @@
 <script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preload" as="script" href="https://unpkg.com/react@18.3.1/umd/react.production.min.js" integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z" crossorigin="anonymous">
+<link rel="preload" as="script" href="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1" crossorigin="anonymous">
+<link rel="preload" as="script" href="ds/bundle.js">
 <script src="./js/support.js"></script>
 </head>
 <body>
@@ -28,12 +32,12 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-24h"></script>
-<script src="js/alma-voz.js?v=2026-10-24h"></script>
+<script src="js/sa-nav.js?v=2026-10-24i"></script>
+<script src="js/alma-voz.js?v=2026-10-24i"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-10-22h"></script>
+<script src="js/alma-client.js?v=2026-10-24i"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -305,7 +309,7 @@
       <div style="display:flex; align-items:center; gap:14px">
         <img src="assets/logo-wordmark.png" alt="Spacio AM" style="height:34px; width:auto; display:block">
         <span aria-hidden="true" style="width:1px; height:26px; background:#D8D4CE; display:inline-block; flex-shrink:0"></span>
-        <x-import component="NotiBell" from="./js/noti-center.jsx" total="{{ notiTotalNum }}" onOpen="{{ abrirNotis }}" hint-size="40px,40px"></x-import>
+        <x-import component="NotiBell" from="./js/noti-center.js?v=2026-10-24i" total="{{ notiTotalNum }}" onOpen="{{ abrirNotis }}" hint-size="40px,40px"></x-import>
       </div>
       <div style="margin-left:auto; display:flex; align-items:center; gap:10px; position:relative">
         <button onClick="{{ toggleMenu }}" aria-label="Tu cuenta" style="width:38px; height:38px; border-radius:50%; border:1px solid rgba(62,63,63,.08); background:#F5F3F0; color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.04em; cursor:pointer; display:flex; align-items:center; justify-content:center">{{ iniciales }}</button>
@@ -3047,7 +3051,7 @@
 </div>
 </sc-if>
 
-<x-import component="NotiPush" from="./js/noti-center.jsx" notis="{{ notisPush }}" store-key="hub:notiSeen" onOpen="{{ abrirNotis }}" hint-size="0px,0px"></x-import>
+<x-import component="NotiPush" from="./js/noti-center.js?v=2026-10-24i" notis="{{ notisPush }}" store-key="hub:notiSeen" onOpen="{{ abrirNotis }}" hint-size="0px,0px"></x-import>
 <sc-if value="{{ pushPreguntar }}" hint-placeholder-val="{{ false }}">
   <div style="position:fixed; inset:0; z-index:300; display:flex; align-items:flex-end; justify-content:center; padding:16px 16px calc(16px + env(safe-area-inset-bottom))">
     <div onClick="{{ pushAhoraNo }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards"></div>
@@ -3177,7 +3181,7 @@
       <button onClick="{{ recargarVersion }}" style="flex-shrink:0; white-space:nowrap; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; min-height:40px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer" style-active="transform:scale(.97)">Recargar</button>
     </div>
   </sc-if>
-<x-import component="NotiCenter" from="./js/noti-center.jsx" open="{{ notiOpen }}" notis="{{ notisVisibles }}" onClose="{{ cerrarNotis }}" onDismiss="{{ descartarNoti }}" onSnooze="{{ posponerNoti }}" hint-size="0px,0px"></x-import>
+<x-import component="NotiCenter" from="./js/noti-center.js?v=2026-10-24i" open="{{ notiOpen }}" notis="{{ notisVisibles }}" onClose="{{ cerrarNotis }}" onDismiss="{{ descartarNoti }}" onSnooze="{{ posponerNoti }}" hint-size="0px,0px"></x-import>
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;rol&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;admin2&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;\&quot;admin\&quot; | \&quot;admin2\&quot;&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;vistaInicial&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;hub&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;\&quot;login\&quot; | \&quot;hub\&quot;&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;modoDemo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;nombreAdmin&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Andrea&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;correoAdmin&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;andrea@spacioam.com&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Sesión&quot;},&quot;calendarioUrl&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Integraciones&quot;}}">
@@ -3476,7 +3480,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-24h";
+  BUILD = "2026-10-24i";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,

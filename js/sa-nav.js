@@ -585,13 +585,14 @@
     J.slow += (lv - J.slow) * .04;
     if (lv - J.slow > .16 && t - J.pk > 150) {                  /* pico: golpe de rebote + bamboleo */
       var g = Math.min(1, lv - J.slow); J.pk = t;
-      J.vv += 2.4 * g; J.wv += (Math.random() < .5 ? -1 : 1) * 3.2 * g; J.ang = Math.random() * Math.PI;
+      J.vv += 1.7 * g; J.wv += (Math.random() < .5 ? -1 : 1) * 3.2 * g; J.ang = Math.random() * Math.PI;
     }
     J.wv += (J.env - pe) * 9;                                   /* las subidas también estiran */
     var wn = 2 * Math.PI / .34, k = wn * wn, c = 2 * .36 * wn;  /* tamaño: gelatina con rebote */
-    J.vv += (-k * (J.v - J.env * .24) - c * J.vv) * dt; J.v += J.vv * dt;
+    J.vv += (-k * (J.v - J.env * .15) - c * J.vv) * dt; J.v += J.vv * dt;
     var wn2 = 2 * Math.PI / .24, k2 = wn2 * wn2, c2 = 2 * .22 * wn2;
     J.wv += (-k2 * J.w - c2 * J.wv) * dt; J.w += J.wv * dt;
+    if (J.v > .2) { J.v = .2; if (J.vv > 0) J.vv *= -.3; }
     if (J.v < -.025) { J.v = -.025; if (J.vv < 0) J.vv *= -.4; }     /* nunca más chica que su tamaño en reposo */
     J.w = clamp(J.w, -.09, .09);
     J.p = (1 - Math.cos(2 * Math.PI * ((t % PULSE) / PULSE))) / 2;

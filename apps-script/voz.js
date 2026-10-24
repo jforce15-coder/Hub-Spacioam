@@ -836,6 +836,19 @@ function vozWebAdmin_(ses) {
 }
 /* Quita las notas de actuación del modelo de voz ([warm], [softly]…) de lo que se guarda o se muestra. */
 function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
+/* Ficha para la llamada desde la app: quién es, cómo tratarlo y lo último que habló con Alma por WhatsApp o el Hub,
+   para que la voz sea la misma Alma que ya lo conoce y no la del protocolo de huéspedes. */
+function vozWebFicha_(adm, nom) {
+  var t = 'LLAMADA DESDE LA APP DEL HUB DE SPACIO AM. Quien habla es ' + (adm.nombre || nom) + (adm.principal ? ', el administrador principal (caller_type juan)' : ', administrador del equipo') +
+    '. Ya está identificado por su sesión: NO es huésped, aunque lookup_reservation no reconozca un número. Nunca le pidas reserva, nombre ni fecha y nunca uses con él los patrones de huésped («el equipo te escribirá», «te confirmamos por aquí mismo»).' +
+    ' Háblale como su compañera de trabajo de confianza: por su nombre, con energía, directa, cálida y resolutiva, en frases cortas. Para todo lo operativo (reservas, huéspedes, equipo, rutas, códigos, tareas, propiedades) usa la herramienta secretaria con su pedido completo.';
+  try {
+    var corte = Date.now() - 24 * 3600000;
+    var ult = opFilas_(adm.email, 12).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }).slice(-6);
+    if (ult.length) t += '\nLO ÚLTIMO QUE HABLARON (WhatsApp / Hub):\n' + ult.map(function (m) { return (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, 220); }).join('\n');
+  } catch (e) {}
+  return t;
+}
 function vozWebInicio_(ses, ligero) {
   var adm = vozWebAdmin_(ses);
   if (!adm) return { ok: false, error: 'Tu usuario no tiene un teléfono registrado como administrador.' };
@@ -843,8 +856,13 @@ function vozWebInicio_(ses, ligero) {
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
   var tel = normTel_(adm.tels[0]), ini = {};
   try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
-  var out = { ok: true, agent_id: agente, dynamic_variables: ini.dynamic_variables || {}, nombre: String(adm.nombre || '').trim().split(/\s+/)[0],
-    first_message: ((ini.conversation_config_override || {}).agent || {}).first_message || '' };
+  var nom = String(adm.nombre || '').trim().split(/\s+/)[0];
+  var dv = Object.assign({}, ini.dynamic_variables || {});
+  dv.quien_llama = vozWebFicha_(adm, nom) + '\n\n' + (dv.quien_llama || '');
+  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+  /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
+     sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
+  CacheService.getScriptCache().put('vozweb_pend', tel, 120);
   /* ligero: el navegador se conecta directo con agent_id (el agente es público) y guarda esta ficha; sin URL firmada. */
   if (ligero) return out;
   var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });

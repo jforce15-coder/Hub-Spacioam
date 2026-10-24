@@ -140,6 +140,7 @@
     "#sa-nav-root .san-hint[data-side='down']{transform:translate(-50%,0) translateY(-8px)}#sa-nav-root .san-hint[data-side='right']{transform:translate(0,-50%) translateX(-8px)}#sa-nav-root .san-hint[data-side='left']{transform:translate(-100%,-50%) translateX(8px)}",
     "#sa-nav-root .san-hint.on{opacity:1;transform:translate(-50%,-100%)}#sa-nav-root .san-hint.on[data-side='down']{transform:translate(-50%,0)}#sa-nav-root .san-hint.on[data-side='right']{transform:translate(0,-50%)}#sa-nav-root .san-hint.on[data-side='left']{transform:translate(-100%,-50%)}",
     "@media (prefers-reduced-motion:reduce){#sa-nav-root .san-scrim{transition:none}#sa-nav-root .san-btn,#sa-nav-root .san-face,#sa-nav-root .san-g,#sa-nav-root .san-led,#sa-nav-root .san-lit{transition-duration:.01s!important}#sa-nav-root .san-core.surge .san-glow{animation:none}}",
+    "body.san-docked [data-sa-dock]{visibility:hidden!important}#sa-nav-root.docked .san-hint{display:none}",
     "@media print{#sa-nav-root{display:none!important}}"
   ].join("\n");
 
@@ -206,7 +207,7 @@
 
   /* ================= estado ================= */
   var cfg = null, root = null, st = { S: 1, anchor: "bc", fan: "apps" };
-  var px, py, arm, barS, navP = [], fanP = [], arms, geo = { pol: [], R: 0 };
+  var px, py, arm, barS, zoom, navP = [], fanP = [], arms, geo = { pol: [], R: 0 };
   var E = {}, itemEls = [], fanEls = [], fanList = [], shown = [], overflow = [];
   var allowed = null, dragging = false;
 
@@ -282,7 +283,7 @@
   function slotOf(i) { var a = i < 2 ? 0 : 1, s = i === 0 || i === 3 ? SLOT[1] : SLOT[0]; return { d: arms[a], s: s }; }
   function render() {
     if (!root) return;
-    E.nav.style.transform = "translate(" + px.x + "px," + py.x + "px) scale(" + K() + ")";
+    E.nav.style.transform = "translate(" + px.x + "px," + py.x + "px) scale(" + zoom.x.toFixed(4) + ")";
     var bs = "scale(" + barS.x.toFixed(4) + ")"; E.armsBox.style.transform = bs; E.items.style.transform = bs;
     var h = T / 2, A0 = arms[0], A1 = arms[1], L0 = clamp(arm[0].x, h, ARM_L), L1 = clamp(arm[1].x, h, ARM_L), op = clamp(Math.max(arm[0].x, arm[1].x) / 24, 0, 1);
     if (A0[0] === -A1[0] && A0[1] === -A1[1]) {
@@ -310,6 +311,34 @@
   }
 
   /* ================= estados ================= */
+  /* ================= encaje en el campo de texto =================
+     Si la pantalla tiene un botón marcado con data-sa-dock (p. ej. «Mejorar con ALMA» del Hub), el menú se encaja ahí,
+     a su tamaño, y un toque hace lo de ese botón. Mantener presionado lo saca a uno de los 8 puntos y vuelve a ser menú. */
+  var dock = { on: false, el: null, out: false, gone: 0 };
+  function dockTarget() {
+    var els = d.querySelectorAll("[data-sa-dock]");
+    for (var i = 0; i < els.length; i++) { var r = els[i].getBoundingClientRect(); if (r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < w.innerHeight) return { el: els[i], r: r }; }
+    return null;
+  }
+  function setDocked(on) {
+    if (dock.on === on) return; dock.on = on;
+    d.body.classList.toggle("san-docked", on); root.classList.toggle("docked", on);
+    if (on) { setS(1); E.scrim.style.opacity = "0"; } else { E.scrim.style.opacity = ""; var p = anchorPt(st.anchor); px.to(p.x, .55, .8); py.to(p.y, .55, .8); zoom.to(K(), .55, .8); }
+  }
+  function dockTick() {
+    if (!root) return;
+    var t = (!root.hidden && !dragging) ? dockTarget() : null;
+    if (!t) { if (dock.el && !dragging) { if (!dock.gone) dock.gone = Date.now(); if (Date.now() - dock.gone > 1500) { dock.el = null; dock.out = false; } } if (dock.on && !dragging) setDocked(false); }
+    else {
+      dock.gone = 0; dock.el = t.el;
+      if (!dock.out) {
+        var cx = t.r.left + t.r.width / 2, cy = t.r.top + t.r.height / 2, z = Math.min(t.r.width, t.r.height) / 92;
+        if (!dock.on) { setDocked(true); px.to(cx, .55, .8); py.to(cy, .55, .8); zoom.to(z, .55, .78); }
+        else if (Math.abs(px.t - cx) > .5 || Math.abs(py.t - cy) > .5 || Math.abs(zoom.t - z) > .01) { px.x = px.t = cx; py.x = py.t = cy; zoom.x = zoom.t = z; kick(); }
+      }
+    }
+    setTimeout(dockTick, dock.on ? 80 : 300);
+  }
   function placeScrim() { var a = st.anchor; E.scrim.dataset.e = isCorner(a) ? a : a === "bc" ? "b" : a === "tc" ? "t" : a === "ml" ? "l" : "r"; }
   function onHome() { return cfg.current === cfg.home.k; }
   function setCoreLbl() {
@@ -370,7 +399,7 @@
   }
   function nope() { E.face.animate && E.face.animate([{ translate: "0 0" }, { translate: "-4px 0" }, { translate: "4px 0" }, { translate: "-2px 0" }, { translate: "0 0" }], { duration: 420, easing: "ease-out" }); }
   function multi() { return APPS.filter(function (a) { return a.k !== cfg.app && (!allowed || allowed.indexOf(a.k) >= 0); }).length > 0; }
-  function onSingle() { activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
+  function onSingle() { if (dock.on) { try { dock.el.click(); } catch (e) {} surge(); return; } activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
   function onDouble() {
     activity();
     if (!multi()) { nope(); return; }
@@ -401,7 +430,7 @@
       if (!downAt) return; release(); downAt = null;
       if (dragging) { endDrag(); return; }
       if (cancel || moved) return;
-      if (!multi() || st.S === 3 || st.S === 4) { onSingle(); return; }
+      if (dock.on || !multi() || st.S === 3 || st.S === 4) { onSingle(); return; }
       if (tapT) { clearTimeout(tapT); tapT = null; onDouble(); } else tapT = setTimeout(function () { tapT = null; onSingle(); }, TAP_MS);
     }
     f.addEventListener("pointerup", function () { up(false); });
@@ -420,7 +449,7 @@
   function onKey(e) { if (e.key === "Escape" && root && st.S !== 1) setS(1); }
   function placeDots() { E.dots.querySelectorAll(".san-dot").forEach(function (s) { var p = anchorPt(s.dataset.a); s.style.left = p.x + "px"; s.style.top = p.y + "px"; }); }
   function startDrag() {
-    unCharge(); E.scrim.classList.add("moving"); dragging = true; prevS = st.S;
+    unCharge(); E.scrim.classList.add("moving"); dragging = true; prevS = st.S; zoom.to(K(), .45, .85);
     E.face.classList.remove("pressed"); E.face.classList.add("lift"); E.core.classList.add("lifted"); d.body.classList.add("san-dragging");
     try { getSelection().removeAllRanges(); } catch (e) {}
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
@@ -440,13 +469,15 @@
     if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
   }
   function moveTo(a, vx, vy) {
+    if (dock.on || dock.el) { dock.out = true; setDocked(false); }
+    zoom.to(K(), .5, .8);
     st.anchor = a; setCk("sa_nav_pos", a);
     var p = anchorPt(a); px.to(p.x, .46, .78, vx); py.to(p.y, .46, .78, vy); placeScrim();
     setTimeout(function () { if (E.scrim) E.scrim.classList.remove("moving"); }, 250);
     var back = (prevS === 2 || prevS === 4) ? 2 : 1; prevS = 1;
     setTimeout(function () { if (!root) return; st.S = 0; setS(back); }, 170);
   }
-  function onResize() { if (!root) return; insetCache = null; var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
+  function onResize() { if (!root) return; insetCache = null; if (dock.on) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
 
   /* ================= pulso: un solo reloj para luz y tamaño ================= */
   var beatOn = false;
@@ -487,12 +518,12 @@
       build();
       var sv = getCk("sa_nav_pos"); if (sv && ANCH.indexOf(sv) >= 0) st.anchor = sv;
       try { var ss = JSON.parse(sessionStorage.getItem("sa_nav_state") || "null"); if (ss && ss.S === 2 && Date.now() - ss.t < IDLE_MS) st.S = 2; } catch (e) {}
-      var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1);
+      var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1); zoom = S(K());
       arms = armsFor(st.anchor);
       loadAllowed(); buildItems(); buildFan("apps"); placeScrim(); placeDots();
       if (cfg.hidden) root.hidden = true;
       if (RM) E.nav.style.setProperty("--p", ".5"); else if (!beatOn) { beatOn = true; requestAnimationFrame(beat); }
-      w.addEventListener("resize", onResize); d.addEventListener("keydown", onKey);
+      w.addEventListener("resize", onResize); d.addEventListener("keydown", onKey); dockTick();
       var s0 = st.S; st.S = 1; applyState(1); if (s0 === 2) setS(2);
       render(); kick();
       setTimeout(showHint, 1200);

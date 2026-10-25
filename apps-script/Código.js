@@ -122,6 +122,7 @@ function doPost(e) {
     if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
+    if (body.anilloPrueba) return json_(anilloGuardar_(body));   // prueba del anillo desde hub.spacioam.com/anillo/ (anillo.js)
     if (body.recepcionEstado) return json_(recepcionEstados_(body.codes));   // Hola: estado del envío a recepción por código
     if (body.recepcion) return json_(recepcionEncolar_(body));   // Hola: registro enviado → ALMA manda el PDF a la recepción (recepcion.js)
 
@@ -4867,6 +4868,7 @@ function dsBotApi_(body) {
       case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
       case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
       case 'recepcion_estado': return json_(recepcionEstado_());
+      case 'anillo': return json_(anilloLeer_(body.n));
       case 'foto_estado': return json_(fotoEstado_());
       case 'foto_config': return json_(fotoConfig_(body));
       case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }

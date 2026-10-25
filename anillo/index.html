@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Anillo · prueba de sensores</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+<style>
+/* Prueba del anillo QRing: conectar → marcar el gesto → hacerlo. Todo se guarda solo en el Hub para que Claude lo lea. */
+:root{--bg:#FAFAFA;--card:#F5F3F0;--ink:#3E3F3F;--muted:#6F6867;--line:#D8D4CE;--acc:#E9826A;--ok:#1F8A5B;--bad:#B03A2E;
+  --sans:Montserrat,system-ui,-apple-system,sans-serif;--mono:ui-monospace,Menlo,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#1E1D1C;--card:#2A2826;--ink:#EEEAE5;--muted:#B3ABA4;--line:#45413D;--acc:#EE9478;--ok:#4CC08A;--bad:#E07A6E;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);
+  padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+main{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{margin:0;font-weight:600;font-size:24px;letter-spacing:-.01em}
+p{margin:0;color:var(--muted)}
+.etq{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.fila{display:flex;gap:8px;flex-wrap:wrap}
+button{font:600 12px var(--sans);letter-spacing:.03em;border-radius:999px;padding:11px 16px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button.on{border-color:var(--acc);color:var(--acc)}
+button:disabled{opacity:.4}
+.aviso{background:var(--card);border-radius:16px;padding:14px 16px;color:var(--ink)}
+.aviso b{display:block;margin-bottom:4px}
+.vivo{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.vivo div{background:var(--card);border-radius:14px;padding:10px 12px}
+.vivo span{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.vivo strong{font:600 20px var(--mono);font-variant-numeric:tabular-nums}
+.dial{position:relative;width:120px;height:120px;border-radius:50%;border:1px solid var(--line);align-self:center;background:var(--card)}
+.dial i{position:absolute;left:50%;top:50%;width:2px;height:52px;margin-left:-1px;background:var(--acc);transform-origin:50% 0;border-radius:2px}
+#estado{font-size:12.5px}
+#log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;max-height:44vh;overflow:auto}
+#log li{background:var(--card);border-radius:10px;padding:7px 10px;font:12px var(--mono);word-break:break-all}
+#log li small{color:var(--muted);font-family:var(--sans)}
+input{font:13px var(--mono);border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--card);color:var(--ink);flex:1;min-width:0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Anillo · prueba de sensores</h1>
+  <div class="aviso" id="sinbt" hidden><b>Esta página necesita Bluefy</b>Safari no deja usar Bluetooth. Instala «Bluefy – Web BLE Browser» desde la App Store y abre ahí esta misma dirección: <span style="font-family:var(--mono)">hub.spacioam.com/anillo/</span></div>
+  <p>Antes de conectar: cierra la app QRing (desliza hacia arriba para cerrarla), porque el anillo solo se conecta a una app a la vez.</p>
+  <div class="fila">
+    <button class="pri" id="conectar" type="button">Conectar anillo</button>
+    <button id="sensores" type="button" disabled>Activar acelerómetro</button>
+    <button id="parar" type="button" disabled>Detener</button>
+    <button id="bateria" type="button" disabled>Batería</button>
+  </div>
+  <p id="estado">Sin conectar.</p>
+
+  <div class="etq">Estoy probando</div>
+  <div class="fila" id="gestos">
+    <button type="button" data-g="quieto">Quieto</button>
+    <button type="button" data-g="girar derecha">Girar ↻</button>
+    <button type="button" data-g="girar izquierda">Girar ↺</button>
+    <button type="button" data-g="un toque">Un toque</button>
+    <button type="button" data-g="doble toque">Doble toque</button>
+    <button type="button" data-g="deslizar">Deslizar</button>
+    <button type="button" data-g="mano arriba">Mano arriba</button>
+    <button type="button" data-g="mano abajo">Mano abajo</button>
+  </div>
+
+  <div class="etq">En vivo</div>
+  <div class="vivo"><div><span>x</span><strong id="vx">–</strong></div><div><span>y</span><strong id="vy">–</strong></div><div><span>z</span><strong id="vz">–</strong></div><div><span>lect./s</span><strong id="hz">–</strong></div></div>
+  <div class="dial" aria-hidden="true"><i id="aguja"></i></div>
+  <p id="guardado">Se guarda solo en el Hub cada pocos segundos.</p>
+
+  <div class="etq">Enviar un comando (avanzado)</div>
+  <div class="fila"><input id="hex" placeholder="ej. a104" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="enviar" type="button" disabled>Enviar</button></div>
+
+  <div class="etq">Todo lo que llega</div>
+  <ol id="log"></ol>
+</main>
+<script>
+(function () {
+  var HUB = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
+  /* Protocolo conocido de los anillos Colmi / Yawell (app QRing): comandos de 16 bytes, el último es la suma de los demás. */
+  var RXTX = '6e40fff0-b5a3-f393-e0a9-e50e24dcca9e', RX_W = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+  var MAIN = 'de5bf728-d711-4e47-af26-65e3012a5dc7', MAIN_W = 'de5bf72a-d711-4e47-af26-65e3012a5dc7';
+  var OPC = [RXTX, MAIN, 'battery_service', 'device_information', 'heart_rate', 'generic_access', 0xfee7, 0xfff0, 0xffe0, 0x1812];
+  var $ = function (id) { return document.getElementById(id); };
+  var sesion = 's' + Date.now().toString(36), t0 = Date.now(), gesto = '', pend = [], dev = null, writers = {}, nAcc = 0, hzT = Date.now();
+  if (!navigator.bluetooth) $('sinbt').hidden = false;
+
+  function hex(dv) { var a = []; for (var i = 0; i < dv.byteLength; i++) a.push(('0' + dv.getUint8(i).toString(16)).slice(-2)); return a.join(''); }
+  function seg() { return ((Date.now() - t0) / 1000).toFixed(2); }
+  function anota(tipo, det, guardar) {
+    var li = document.createElement('li'); li.textContent = seg() + ' · ' + (gesto || '-') + ' · ' + tipo + (det ? ' · ' + det : '');
+    $('log').insertBefore(li, $('log').firstChild); while ($('log').children.length > 120) $('log').removeChild($('log').lastChild);
+    if (guardar !== false) pend.push({ t: seg(), g: gesto, tipo: tipo, det: det || '' });
+  }
+  function s12(hi, lo) { var v = (hi << 4) | (lo & 0xf); return v & 0x800 ? v - 0x1000 : v; }
+  function cmd(h) {
+    var b = []; for (var i = 0; i + 1 < h.length; i += 2) b.push(parseInt(h.substr(i, 2), 16));
+    while (b.length < 15) b.push(0); b = b.slice(0, 15); b.push(b.reduce(function (a, x) { return a + x; }, 0) & 0xff);
+    return new Uint8Array(b);
+  }
+  function manda(h) {
+    var w = writers[RX_W] || writers[MAIN_W] || Object.keys(writers).map(function (k) { return writers[k]; })[0];
+    if (!w) { anota('Sin canal para escribir', h); return Promise.resolve(); }
+    var c = cmd(h); anota('→ comando', Array.prototype.map.call(c, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''));
+    return (w.writeValueWithResponse ? w.writeValueWithResponse(c) : w.writeValue(c)).catch(function (e) {
+      return w.writeValueWithoutResponse ? w.writeValueWithoutResponse(c) : Promise.reject(e);
+    }).catch(function (e) { anota('Error al escribir', String(e && e.message || e)); });
+  }
+  function llega(uuid, dv) {
+    var h = hex(dv), b0 = dv.byteLength ? dv.getUint8(0) : -1;
+    if (b0 === 0xa1 && dv.byteLength >= 8 && dv.getUint8(1) === 0x03) {
+      var y = s12(dv.getUint8(2), dv.getUint8(3)), z = s12(dv.getUint8(4), dv.getUint8(5)), x = s12(dv.getUint8(6), dv.getUint8(7));
+      nAcc++; $('vx').textContent = x; $('vy').textContent = y; $('vz').textContent = z;
+      var ang = Math.round(Math.atan2(x, y) * 180 / Math.PI); $('aguja').style.transform = 'rotate(' + (ang + 180) + 'deg)';
+      pend.push({ t: seg(), g: gesto, tipo: 'acc', det: x + ',' + y + ',' + z + ' · ' + ang + '°', hex: h });
+      return;
+    }
+    anota('← ' + uuid.slice(4, 8), h);
+  }
+  setInterval(function () { var n = Date.now(), d = (n - hzT) / 1000; $('hz').textContent = (nAcc / d).toFixed(1); nAcc = 0; hzT = n; }, 2000);
+
+  function guardar() {
+    if (!pend.length) return; var lote = pend.splice(0, 400);
+    fetch(HUB, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ anilloPrueba: 1, sesion: sesion, equipo: navigator.userAgent, eventos: lote }) })
+      .then(function (r) { return r.json(); }).then(function (j) { $('guardado').textContent = j && j.ok ? 'Guardado en el Hub · ' + new Date().toLocaleTimeString() : 'No se guardó (' + ((j && j.error) || '?') + ')'; if (!(j && j.ok)) pend = lote.concat(pend); })
+      .catch(function () { pend = lote.concat(pend); $('guardado').textContent = 'Sin conexión con el Hub, reintento…'; });
+  }
+  setInterval(guardar, 3000);
+
+  $('gestos').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return; gesto = b.getAttribute('data-g');
+    [].forEach.call(this.children, function (x) { x.classList.toggle('on', x === b); }); anota('Ahora', gesto);
+  });
+
+  $('conectar').onclick = function () {
+    if (!navigator.bluetooth) { $('sinbt').hidden = false; return; }
+    $('estado').textContent = 'Buscando… elige el anillo (R08…) en la lista.';
+    navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: OPC }).then(function (d) {
+      dev = d; anota('Elegido', d.name || d.id);
+      d.addEventListener('gattserverdisconnected', function () { $('estado').textContent = 'Se desconectó.'; anota('Desconectado', ''); });
+      return d.gatt.connect();
+    }).then(function (srv) {
+      $('estado').textContent = 'Conectado a ' + (dev.name || 'anillo') + '. Leyendo sus canales…';
+      return srv.getPrimaryServices();
+    }).then(function (svcs) {
+      return svcs.reduce(function (p, s) {
+        return p.then(function () {
+          return s.getCharacteristics().then(function (chs) {
+            anota('Servicio', s.uuid + ' · ' + chs.length + ' canales');
+            return chs.reduce(function (p2, c) {
+              return p2.then(function () {
+                var pr = c.properties, f = [pr.read && 'leer', pr.write && 'escribir', pr.writeWithoutResponse && 'escribir-rápido', pr.notify && 'avisa', pr.indicate && 'indica'].filter(Boolean).join(',');
+                anota('Canal', c.uuid + ' · ' + f);
+                if (pr.write || pr.writeWithoutResponse) writers[c.uuid] = c;
+                var q = Promise.resolve();
+                if (pr.read) q = q.then(function () { return c.readValue().then(function (v) { anota('Valor ' + c.uuid.slice(4, 8), hex(v)); }).catch(function () {}); });
+                if (pr.notify || pr.indicate) q = q.then(function () { c.addEventListener('characteristicvaluechanged', function (ev) { llega(c.uuid, ev.target.value); }); return c.startNotifications().catch(function (e) { anota('No avisa', c.uuid + ' ' + e); }); });
+                return q;
+              });
+            }, Promise.resolve());
+          }).catch(function (e) { anota('Servicio sin acceso', s.uuid + ' ' + e); });
+        });
+      }, Promise.resolve());
+    }).then(function () {
+      ['sensores', 'parar', 'bateria', 'enviar'].forEach(function (k) { $(k).disabled = false; });
+      $('estado').textContent = 'Listo. Toca «Activar acelerómetro» y luego marca cada gesto antes de hacerlo.';
+      return manda('03');
+    }).catch(function (e) { $('estado').textContent = 'No se pudo conectar: ' + (e && e.message || e); anota('Error', String(e && e.message || e)); });
+  };
+  $('sensores').onclick = function () { manda('a104'); };
+  $('parar').onclick = function () { manda('a102'); };
+  $('bateria').onclick = function () { manda('03'); };
+  $('enviar').onclick = function () { var h = $('hex').value.replace(/[^0-9a-f]/gi, ''); if (h) manda(h); };
+  document.addEventListener('visibilitychange', function () { if (document.hidden) guardar(); });
+})();
+</script>
+</body>
+</html>

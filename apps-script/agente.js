@@ -171,7 +171,8 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rid = agResId_(inp.codigo); if (!rid) return { error: 'No encontré esa reserva en las conversaciones.' };
       var h = hiloConv_(rid); if (h.code !== 200) return { error: 'No pude leer la conversación (HTTP ' + h.code + ').' };
       var pr = hubPromesas_(false).promesas.filter(function (p) { return p.conv_id === rid; });
-      return { conv_id: rid, mensajes: (h.hilo || []).slice(-15).map(function (m) { return (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' (llamada)' : m.canal === 'whatsapp' ? ' (WhatsApp)' : '') + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + ': ' + String(m.texto || '').slice(0, 500) + ((m.fotos || []).length ? ' [imagen' + (m.fotos.length > 1 ? 'es: ' + m.fotos.length : '') + ' — usa ver_imagenes]' : ''); }),
+      var entregaWa = /^wa:/.test(rid) ? waEntregaTexto_(rid.slice(3)) : '';
+      return { conv_id: rid, entrega_ultimo_mensaje: entregaWa || undefined, mensajes: (h.hilo || []).slice(-15).map(function (m) { return (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' (llamada)' : m.canal === 'whatsapp' ? ' (WhatsApp)' : '') + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + ': ' + String(m.texto || '').slice(0, 500) + ((m.fotos || []).length ? ' [imagen' + (m.fotos.length > 1 ? 'es: ' + m.fotos.length : '') + ' — usa ver_imagenes]' : ''); }),
         promesas_abiertas: pr.map(function (p) { return p.que + ' (vence ' + p.vence + ')'; }) };
     }
     case 'ver_imagenes': {
@@ -215,7 +216,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!ok) cE.remove(kE);
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
       if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
-      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó el mensaje de primer contacto pidiéndole que responda; el mensaje completo se le envía en cuanto responda.' : 'Entregado a WhatsApp.' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
+      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió el aviso de primer contacto pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
     }
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), quienR = inp.persona ? opMatch_(inp.persona, cfg.vendors.map(vendNombre_)) : '';
@@ -517,9 +518,10 @@ function encargosPedidosTexto_(adm) {
   var out = '\n\nLO QUE PEDISTE Y SIGUE ABIERTO (si pregunta «¿en qué quedó…?», «¿ya respondió…?» o pide seguimiento, la respuesta empieza aquí; para leer la conversación usa ver_conversacion con el número):';
   l.forEach(function (e) {
     out += '\n· [' + e.id + '] ' + e.persona + ' (+' + normTel_(e.tel) + '), pedido el ' + f(e.creado) + ': ' + e.objetivo.replace(/\s+/g, ' ').slice(0, 300) +
-      (e.esperando ? '\n  ESTADO: le llegó el mensaje de primer contacto el ' + f(e.desde) + ' y AÚN NO RESPONDE; el mensaje completo sale en cuanto responda. Nada de lo que depende de su respuesta se ha hecho todavía.' : '\n  ESTADO: ya tiene el mensaje completo; revisa con ver_conversacion si respondió.');
+      (e.esperando ? '\n  ESTADO: se le envió el aviso de primer contacto el ' + f(e.desde) + ' y AÚN NO RESPONDE; el mensaje completo sale en cuanto responda. Nada de lo que depende de su respuesta se ha hecho todavía.' : '\n  ESTADO: ya tiene el mensaje completo; revisa con ver_conversacion si respondió.') +
+      '\n  ENTREGA (Meta): ' + waEntregaTexto_(e.tel) + '. Nunca digas que «le llegó» o «ya lo tiene» si la entrega no dice ENTREGADO o LEÍDO.';
   });
-  sueltos.forEach(function (k) { var m = pend[k][0]; out += '\n· ' + (m.nombre || 'Contacto') + ': primer contacto el ' + f(m.ts) + ', AÚN NO RESPONDE. Mensaje guardado: «' + String(m.texto).slice(0, 200) + '»'; });
+  sueltos.forEach(function (k) { var m = pend[k][0]; out += '\n· ' + (m.nombre || 'Contacto') + ': primer contacto el ' + f(m.ts) + ', AÚN NO RESPONDE. Entrega (Meta): ' + waEntregaTexto_(k) + '. Mensaje guardado: «' + String(m.texto).slice(0, 200) + '»'; });
   return out + '\n· Para dar seguimiento a alguien que no responde, vuelve a usar escribir_a_equipo con su número y el mismo pedido (le llega de nuevo el aviso; el encargo no se duplica).';
 }
 function encargosTexto_(adm) {

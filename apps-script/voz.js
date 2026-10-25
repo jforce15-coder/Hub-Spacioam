@@ -220,6 +220,10 @@ function vozPropertyInfo_(b) {
 function vozPostCall_(body) {
   var d = body.data || body, md = d.metadata || {}, pc = md.phone_call || {}, dv = ((d.conversation_initiation_client_data || {}).dynamic_variables) || {};
   var convEL = s_(d.conversation_id);
+  /* El webhook de ElevenLabs es de toda la cuenta: las conversaciones de otros agentes (Alma · Familia de The Gentle Stoic Parent)
+     son personales y no entran al Hub. */
+  var miAgente = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_AGENT_ID');
+  if (d.agent_id && miAgente && s_(d.agent_id) !== miAgente) return { ok: true, ignorado: 'otro agente' };
   var tel = normTel_(pc.external_number || dv.system__caller_id || '');
   if (!convEL) return { ok: false, error: 'sin conversation_id' };
   /* Llamada sin número (prueba desde el navegador o el panel de ElevenLabs): es del administrador principal y va a su conversación. */

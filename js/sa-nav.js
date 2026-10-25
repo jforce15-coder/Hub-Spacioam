@@ -69,7 +69,31 @@
   /* ================= estilos (todo bajo #sa-nav-root, prefijo san-) ================= */
   var GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .34 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")";
   var STONE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .62 0 0 0 0 .55 0 0 0 0 .50 0 0 0 .16 -.03'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23m)'/%3E%3C/svg%3E\")," + GRAIN;
-  var GRAD = "linear-gradient(100deg,#E64E37 0%,#EE7552 45%,#F59D68 100%)";
+  /* Color del halo y del brillo interno. Por defecto el del Hub; una app puede teñirlo con SANav.update({ tint: "#4B6A94" })
+     (null vuelve al del Hub). Se aplica con variables CSS en <html> y cambia con un fundido suave. */
+  var GRAD = "linear-gradient(100deg,var(--san-t1,#E64E37) 0%,var(--san-t2,#EE7552) 45%,var(--san-t3,#F59D68) 100%)";
+  var TINT0 = ["#E64E37", "#EE7552", "#F59D68", "#F2A07E", "#F6B696", "#FAD0B6"];
+  var tintNow = TINT0.map(hexRgb), tintRaf = 0, tintKey = "";
+  function hexRgb(h) { h = String(h || "").replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h.slice(0, 6), 16); return isNaN(n) ? [233, 130, 106] : [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  function mixRgb(a, b, t) { return [0, 1, 2].map(function (i) { return a[i] + (b[i] - a[i]) * t; }); }
+  function rgbCss(c) { return "rgb(" + c.map(Math.round).join(",") + ")"; }
+  function tintStops(hex) {
+    if (!hex) return TINT0.map(hexRgb);
+    var b = hexRgb(hex), K0 = [0, 0, 0], W = [255, 255, 255];
+    return [mixRgb(b, K0, .12), b, mixRgb(b, W, .28), mixRgb(b, W, .36), mixRgb(b, W, .5), mixRgb(b, W, .64)];
+  }
+  function setTint(hex) {
+    var k = String(hex || ""); if (k === tintKey) return; tintKey = k;
+    var from = tintNow.map(function (c) { return c.slice(); }), to = tintStops(hex), t0 = 0, el = d.documentElement;
+    cancelAnimationFrame(tintRaf);
+    (function step(t) {
+      if (!t0) t0 = t; var p = Math.min(1, (t - t0) / 700), e = p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+      tintNow = from.map(function (c, i) { return mixRgb(c, to[i], e); });
+      tintNow.forEach(function (c, i) { el.style.setProperty("--san-t" + (i + 1), rgbCss(c)); });
+      el.style.setProperty("--san-acc", rgbCss(tintNow[1]));
+      if (p < 1) tintRaf = requestAnimationFrame(step);
+    })(performance.now());
+  }
   function scrimCss(e, g) { return ".san-scope .san-scrim[data-e='" + e + "']{background:" + g + "}"; }
   /* El fade mide 140 px más por cada lado que la pantalla: con las barras flotantes de Safari (que aparecen y se esconden
      al hacer scroll) nunca se ve su borde cortado. Los degradados se corren esos 140 px para verse igual. */
@@ -108,7 +132,7 @@
     ".san-scope .san-btn.pressed,.san-scope .san-btn[aria-current='page']{transform:scale(.94);transition:transform .12s ease-out,box-shadow .14s ease-out;background:radial-gradient(120% 120% at 50% 80%,#EFEBE7 0%,#E6E1DB 60%,#DED8D1 100%);" +
       "box-shadow:inset calc(var(--lx)*1px) calc(var(--ly)*1px) 9px rgba(238,116,82,var(--la)),inset 0 3px 6px rgba(100,80,70,.22),inset 0 -1px 2px rgba(255,255,255,.5)}",
     ".san-scope .san-btn[aria-current='page'] svg{color:#E0613F}",
-    ".san-scope .san-btn:focus-visible{outline:2px solid #E9826A;outline-offset:6px}",
+    ".san-scope .san-btn:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:6px}",
     ".san-scope .san-badge{position:absolute;top:-4px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E9826A;color:#fff;font:600 9.5px/18px Montserrat,system-ui,sans-serif;text-align:center;z-index:2;box-shadow:0 0 0 2.5px #EDE9E4,0 2px 4px rgba(200,90,60,.25)}",
     ".san-scope .san-fanb .san-btn{left:-30px;top:-30px;width:60px;height:60px;gap:3px;box-shadow:0 12px 18px -6px rgba(90,70,60,.32),0 3px 5px rgba(90,70,60,.14),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10)}",
     ".san-scope .san-fanb .san-btn.pressed{box-shadow:inset 0 3px 6px rgba(100,80,70,.22),inset 0 -1px 2px rgba(255,255,255,.5)}",
@@ -139,7 +163,7 @@
     ".san-scope .san-body.pressed.charge{transform:scale(1);transition:transform .28s cubic-bezier(.3,1.2,.55,1)}",
     ".san-scope .san-body.lift{transform:scale(1.07)}",
     ".san-scope .san-face.lift{box-shadow:0 26px 32px -10px rgba(150,90,64,.34),0 4px 8px rgba(96,76,66,.12),inset 0 -6px 12px rgba(110,90,80,.12),inset 0 4px 8px rgba(255,255,255,.35)}",
-    ".san-scope .san-face:focus-visible{outline:2px solid #E9826A;outline-offset:13px}",
+    ".san-scope .san-face:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:13px}",
     ".san-scope .san-g{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;z-index:1;transition:opacity .4s ease,transform .6s cubic-bezier(.3,1.25,.55,1),filter .4s ease}",
     ".san-scope .san-g svg{filter:drop-shadow(0 1px 0 rgba(255,255,255,.75)) drop-shadow(0 -.6px 0 rgba(90,70,60,.30))}",
     ".san-scope .san-g .san-t{font:600 8.8px/1 Montserrat,system-ui,sans-serif;letter-spacing:.03em;color:var(--san-ink);text-shadow:0 1px 0 rgba(255,255,255,.7)}",
@@ -165,7 +189,7 @@
     ".san-scope .san-st-glow{inset:-96px;opacity:var(--halo);-webkit-mask:radial-gradient(closest-side,transparent calc(100% - 104px),rgba(0,0,0,.9) calc(100% - 88px),rgba(0,0,0,.55) calc(100% - 60px),rgba(0,0,0,.2) calc(100% - 30px),transparent 100%);mask:radial-gradient(closest-side,transparent calc(100% - 104px),rgba(0,0,0,.9) calc(100% - 88px),rgba(0,0,0,.55) calc(100% - 60px),rgba(0,0,0,.2) calc(100% - 30px),transparent 100%)}",
     ".san-scope .san-st-body{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);background:radial-gradient(circle at 40% 34%,#F7F5F2 0%,#EFECE8 42%,#E3DFDA 78%,#D3CEC8 100%)}",
     ".san-scope .san-st-body::before{content:'';position:absolute;inset:-6%;background-image:" + STONE + ";background-size:150px 150px,120px 120px;background-position:center;opacity:.85}",
-    ".san-scope .san-st-lit{position:absolute;inset:0;border-radius:50%;background:linear-gradient(100deg,#F2A07E 0%,#F6B696 50%,#FAD0B6 100%);-webkit-mask:radial-gradient(closest-side,rgba(0,0,0,.55) 0%,rgba(0,0,0,.8) 70%,#000 100%);mask:radial-gradient(closest-side,rgba(0,0,0,.55) 0%,rgba(0,0,0,.8) 70%,#000 100%);opacity:calc(var(--lit)*.42)}",
+    ".san-scope .san-st-lit{position:absolute;inset:0;border-radius:50%;background:linear-gradient(100deg,var(--san-t4,#F2A07E) 0%,var(--san-t5,#F6B696) 50%,var(--san-t6,#FAD0B6) 100%);-webkit-mask:radial-gradient(closest-side,rgba(0,0,0,.55) 0%,rgba(0,0,0,.8) 70%,#000 100%);mask:radial-gradient(closest-side,rgba(0,0,0,.55) 0%,rgba(0,0,0,.8) 70%,#000 100%);opacity:calc(var(--lit)*.42)}",
     ".san-scope .san-st-rim{position:absolute;inset:0;border-radius:50%;box-shadow:inset -16px -22px 40px rgba(90,80,70,.22),inset 14px 16px 30px rgba(255,255,255,.45)}",
     ".san-scope .san-st-spark{position:absolute;inset:0;display:grid;place-items:center;color:#CBC4BC;pointer-events:none}.san-scope .san-st-spark svg{width:22%;height:22%;filter:drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32))}",
     ".san-scope .san-ov-ui{position:absolute;left:50%;top:calc(44% + min(33vw,20vh,135px) + 34px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:16px;width:min(320px,calc(100% - 32px));opacity:0;scale:.96;transition:opacity .16s ease,scale .2s ease}",
@@ -176,7 +200,7 @@
     ".san-scope .san-ov-cap.in{opacity:0;scale:.97;transition:none}",
     ".san-scope .san-ov-btns{display:flex;gap:22px}",
     ".san-scope .san-ob{position:relative;width:56px;height:56px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--san-ink);background:radial-gradient(120% 120% at 50% 20%,#F4F1EE 0%,#ECE8E3 55%,#E3DED8 100%);box-shadow:0 12px 18px -6px rgba(40,30,25,.4),0 3px 5px rgba(40,30,25,.16),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10);transition:transform .45s cubic-bezier(.3,1.35,.55,1)}",
-    ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end svg{color:#D9583A}.san-scope .san-ob:focus-visible{outline:2px solid #E9826A;outline-offset:4px}",
+    ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end svg{color:#D9583A}.san-scope .san-ob:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:4px}",
     ".san-scope .san-ob span{position:absolute;top:62px;left:50%;transform:translateX(-50%);font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.06em;color:#F5F1EC;white-space:nowrap;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
     ".san-scope .san-ov-tip{font:500 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:rgba(245,241,236,.8);text-align:center;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
     ".san-scope .san-chat{position:absolute;left:50%;bottom:0;width:min(520px,100%);height:min(70vh,560px);transform:translate(-50%,105%);background:#FAF8F6;border-radius:28px 28px 0 0;box-shadow:0 -20px 40px -20px rgba(40,30,25,.35);display:flex;flex-direction:column;transition:transform .6s cubic-bezier(.3,1.15,.55,1);padding-bottom:env(safe-area-inset-bottom,0px)}",
@@ -186,7 +210,7 @@
     ".san-scope .san-m{max-width:80%;padding:10px 14px;border-radius:18px;font-size:13.5px;line-height:1.45;-webkit-user-select:text;user-select:text}",
     ".san-scope .san-m.a{background:#EFEAE4;color:#3E3F3F;border-bottom-left-radius:6px;align-self:flex-start}.san-scope .san-m.u{background:#3E3F3F;color:#FAFAFA;border-bottom-right-radius:6px;align-self:flex-end}",
     ".san-scope .san-chat form{display:flex;gap:8px;padding:10px 14px 14px}",
-    ".san-scope .san-in{flex:1;min-width:0;border:0;border-radius:999px;background:#EFEAE4;padding:13px 16px;font:500 16px Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none}.san-scope .san-in:focus-visible{box-shadow:0 0 0 2px #E9826A}",
+    ".san-scope .san-in{flex:1;min-width:0;border:0;border-radius:999px;background:#EFEAE4;padding:13px 16px;font:500 16px Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none}.san-scope .san-in:focus-visible{box-shadow:0 0 0 2px var(--san-acc,#E9826A)}",
     ".san-scope .san-send,.san-scope .san-tovoice{width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#ECE8E3;color:var(--san-ink);box-shadow:0 6px 10px -5px rgba(40,30,25,.3),inset 0 2px 3px rgba(255,255,255,.6)}.san-scope .san-send{background:#3E3F3F;color:#FAFAFA}",
     "body.san-docked [data-sa-dock]{visibility:hidden!important}[data-sa-dock].san-hosting{position:relative!important;overflow:visible!important}",
     "[data-sa-slot]{transition:padding-right .55s cubic-bezier(.34,1.45,.6,1)}[data-sa-slot].san-slotted{position:relative;padding-right:var(--san-slot-w)!important}",
@@ -515,8 +539,10 @@
   }
   function placeScrim() { var a = st.anchor; E.scrim.dataset.e = isCorner(a) ? a : a === "bc" ? "b" : a === "tc" ? "t" : a === "ml" ? "l" : "r"; }
   function onHome() { return cfg.current === cfg.home.k; }
+  /* ¿la app es de Spacio AM? (otras, como The Gentle Stoic Parent, usan el menú sin ir al Hub) */
+  function spacio() { return APPS.some(function (a) { return a.k === cfg.app; }); }
   function setCoreLbl() {
-    var lt = !onHome() ? cfg.home.l : (cfg.app !== "hub" ? "Hub" : "Cerrar"); if (E.lbl.textContent !== lt) E.lbl.textContent = lt;
+    var lt = !onHome() ? cfg.home.l : (cfg.app !== "hub" && spacio() ? "Hub" : "Cerrar"); if (E.lbl.textContent !== lt) E.lbl.textContent = lt;
     var m = E.face.dataset.mode;
     E.face.setAttribute("aria-label", m === "home" ? "Ir a " + E.lbl.textContent : m === "close" ? "Cerrar" : "Abrir menú");
   }
@@ -563,7 +589,7 @@
   }
   function goHome() {
     if (!onHome()) { surge(); go(cfg.home.k); return; }
-    if (cfg.app !== "hub") { goHub(); return; }
+    if (cfg.app !== "hub" && spacio()) { goHub(); return; }
     setS(1);
   }
   function openApp(a) {
@@ -967,6 +993,7 @@
       arms = armsFor(st.anchor);
       loadAllowed(); buildItems(); buildFan("apps"); placeScrim(); placeDots();
       if (cfg.hidden) root.hidden = true;
+      if (cfg.tint) setTint(cfg.tint);
       w.addEventListener("resize", onResize); d.addEventListener("keydown", onKey); dockWatch();
       /* en la app de inicio de iPhone el alto real llega tarde: se recoloca al cargar */
       w.addEventListener("load", onResize); setTimeout(onResize, 400); setTimeout(onResize, 1200);
@@ -980,6 +1007,7 @@
       Object.assign(cfg, c);
       if (c.apps) allowed = c.apps.slice();
       if (c.appBadges && st.fan === "apps" && st.S !== 3 && st.S !== 4 && JSON.stringify(c.appBadges) !== root._ab) { root._ab = JSON.stringify(c.appBadges); buildFan("apps"); }
+      if ("tint" in c) setTint(c.tint);
       if ("hidden" in c) { root.hidden = !!c.hidden; if (c.hidden && st.S !== 1) setS(1); }
       if (rebuild) { buildItems(); if (st.fan === "more") buildFan("more"); applyState(0); }
       else markCurrent();

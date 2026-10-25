@@ -4076,8 +4076,10 @@ function waEntrante_(m, nombre) {
   if (recep) { recepcionEntrante_(wa, nombre, texto, ts, media, s_(m.id), recep); return; }
   /* Alguien a quien ALMA le escribió por encargo de un administrador (escribir_a_equipo con al_responder) y que no es
      administrador: ALMA sigue esa conversación hasta cumplir el encargo (agente.js · encargoEntrante_). */
-  const encW = !prueba && !esJuan && !adminPorTel_(wa) ? encargoAbierto_(wa) : null;
-  if (encW && /ESPERA SU RESPUESTA/.test(encW.objetivo)) { try { encargoEntrante_(wa, nombre, texto, ts, media, s_(m.id), encW); } catch (e) { console.error('encargoEntrante_: ' + e); } return; }
+  /* (Un contacto personal —boda, familia— nunca entra aquí, aunque su conversación personal ya haya vencido.) */
+  let esPersonal = false; try { esPersonal = !!JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_RELAY') || '{}')[fin8_(wa)]; } catch (e) {}
+  const encW = !prueba && !esJuan && !esPersonal && !adminPorTel_(wa) ? encargoAbierto_(wa) : null;
+  if (encW) { try { encargoEntrante_(wa, nombre, texto, ts, media, s_(m.id), encW); } catch (e) { console.error('encargoEntrante_: ' + e); } return; }
   /* Chat operativo: un administrador registrado escribe → su chat con ALMA, fuera de la lista general. */
   /* Cualquier número registrado de un administrador (o el de Juan) va a su chat operativo, aunque no esté en WA_EQUIPO. */
   const admOp = !prueba && opActivo_() ? (adminPorTel_(wa) || (esJuan ? (adminsOp_().find(a => a.principal) || null) : null)) : null;

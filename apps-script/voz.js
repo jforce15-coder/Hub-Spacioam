@@ -499,7 +499,9 @@ function vozDefHerramientas_(base) {
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
         modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le confirma por WhatsApp al administrador; úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
   ].map(function (t) {
-    t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
+    t.type = 'webhook'; t.pre_tool_speech = 'off';
+    /* sin sonido de ElevenLabs: en la app suena el patrón propio de espera (js/alma-voz.js, Espera); por teléfono Alma avisa «dame un momento» */
+    t.tool_call_sound = null; t.tool_call_sound_behavior = 'auto';
     t.execution_mode = 'post_tool_speech'; t.tool_error_handling_mode = 'auto';
     /* secretaria no se abandona si el administrador habla mientras trabaja (antes se cortaba y el pedido podía ejecutarse igual sin que ALMA lo supiera) */
     t.interruption_mode = t.name === 'secretaria' ? 'disable_during_tool' : 'allow';

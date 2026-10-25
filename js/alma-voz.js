@@ -53,6 +53,49 @@
       setTimeout(function () { try { c.close(); } catch (e) {} }, 800);
     } catch (e) {}
   }
+  /* ── Sonido de espera (solo en la app) ──
+     Mientras Alma trabaja con una herramienta: ráfagas cortas de tecleo, a veces una hoja o un clic de pluma, y
+     silencios. Todo sintetizado (sin archivos), bajito y nunca continuo. ElevenLabs queda sin sonido de herramienta. */
+  var Espera = (function () {
+    var ac = null, on = 0, timer = null, gen = 0, out = null, nb = null;
+    function ctxA() {
+      if (!ac) { var C = w.AudioContext || w.webkitAudioContext; if (!C) return null; ac = new C(); out = ac.createGain(); out.gain.value = 1.2; out.connect(ac.destination); }
+      if (ac.state === "suspended" && ac.resume) ac.resume();
+      return ac;
+    }
+    function ruido() {
+      if (nb) return nb; var n = ac.sampleRate, b = ac.createBuffer(1, n, n), d = b.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; nb = b; return b;
+    }
+    function golpe(t, f, q, dur, vol) {
+      var s = ac.createBufferSource(), bp = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = ruido(); bp.type = "bandpass"; bp.frequency.value = f; bp.Q.value = q;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .002); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+      s.connect(bp); bp.connect(g); g.connect(out); s.start(t, Math.random() * .8); s.stop(t + dur + .02);
+    }
+    function teclas(t) {   /* 4 a 10 teclas, ritmo humano; a veces la barra espaciadora */
+      var n = 4 + Math.floor(Math.random() * 7);
+      for (var i = 0; i < n; i++) {
+        var esp = Math.random() < .14;
+        golpe(t, esp ? 900 + Math.random() * 200 : 2600 + Math.random() * 1800, esp ? 2 : 4 + Math.random() * 3, esp ? .05 : .025 + Math.random() * .015, esp ? .2 : .11 + Math.random() * .08);
+        t += .07 + Math.random() * .11 + (Math.random() < .12 ? .18 : 0);
+      }
+      return t;
+    }
+    function hoja(t) { golpe(t, 1400, .7, .18, .05); golpe(t + .12, 2200, .9, .32, .06); golpe(t + .38, 1700, .8, .2, .035); return t + .7; }
+    function pluma(t) { golpe(t, 5200, 9, .012, .14); golpe(t + .09, 4300, 9, .014, .11); return t + .25; }
+    function paso() {
+      if (!on || !ac) return; var g = gen, t = ac.currentTime + .03, r = Math.random(), fin;
+      fin = r < .62 ? teclas(t) : r < .8 ? hoja(t) : r < .92 ? pluma(t) : t;          /* a veces solo silencio */
+      var pausa = .6 + Math.random() * 1.6 + (Math.random() < .25 ? 1.4 : 0);
+      timer = setTimeout(function () { if (g === gen) paso(); }, (fin - ac.currentTime + pausa) * 1000);
+    }
+    return {
+      despertar: function () { try { ctxA(); } catch (e) {} },
+      iniciar: function () { if (on++) return; if (!ctxA()) return; gen++; clearTimeout(timer); timer = setTimeout(paso, 450); },
+      parar: function (todo) { on = todo ? 0 : Math.max(0, on - 1); if (on) return; gen++; clearTimeout(timer); timer = null; }
+    };
+  })();
   /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
   function limpiar(t) { return String(t || "").replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").replace(/\s+([,.;:!?…])/g, "$1").trim(); }
   function ficha() {
@@ -71,15 +114,17 @@
   }
   function conCtx(dv) { var o = {}; for (var k in dv) o[k] = dv[k]; o.quien_llama = (o.quien_llama || "") + "\n\n" + ctxTexto(ctx); return o; }
   function start(h) {
-    unlockAudio();
+    unlockAudio(); Espera.despertar();
     var enChat = false;
     function abrir(f, m) {
       var opt = {
         agentId: f.agent_id, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
         onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId) vincular(x.conversationId, 0); },
         onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) h.message(x.source, t); },
-        onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
-        onDisconnect: function () { vivo = null; h.ended(); },
+        onModeChange: function (x) { if (x && x.mode === "speaking") Espera.parar(true); if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
+        onAgentToolRequest: function () { if (!enChat) Espera.iniciar(); },
+        onAgentToolResponse: function () { Espera.parar(); },
+        onDisconnect: function () { Espera.parar(true); vivo = null; h.ended(); },
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
       if (f.first_message) opt.overrides = { agent: { firstMessage: f.first_message } };
@@ -98,12 +143,12 @@
     }).then(function (conv) {
       vivo = conv;
       return {
-        end: function () { vivo = null; try { conv.endSession(); } catch (e) {} },
+        end: function () { Espera.parar(true); vivo = null; try { conv.endSession(); } catch (e) {} },
         level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
         sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
-        chat: function (on) { enChat = on; try { conv.setMicMuted(on); conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho"); }
+        chat: function (on) { enChat = on; if (on) Espera.parar(true); try { conv.setMicMuted(on); conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho"); }
       };
     });
   }
-  w.SAAlmaVoz = { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto };
+  w.SAAlmaVoz = { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto, _espera: Espera };
 })(window);

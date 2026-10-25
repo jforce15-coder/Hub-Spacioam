@@ -700,6 +700,15 @@
     var back = (prevS === 2 || prevS === 4) ? 2 : 1; prevS = 1;
     setTimeout(function () { if (!root) return; st.S = 0; setS(back); }, 170);
   }
+  var vvRaf = 0, vvH = 0;
+  function onVV() {
+    if (vvRaf) return;
+    vvRaf = requestAnimationFrame(function () {
+      vvRaf = 0; var h = VH(); if (Math.abs(h - vvH) < 2) return; vvH = h;
+      if (!root || dragging || dock.on || AL.on || pulling) return;
+      insetCache = null; measureBottom(); var p = anchorPt(st.anchor); px.t = p.x; py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick();
+    });
+  }
   function onResize() { if (!root) return; insetCache = null; measureBottom(); if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
 
   /* El pulso (luz y tamaño) son animaciones CSS con la misma duración, montadas en el mismo instante: corren en el
@@ -709,6 +718,7 @@
   function hideHint() { if (E.hint && E.hint.classList.contains("on")) { E.hint.classList.remove("on"); setCk("sa_nav_hint", "1"); } }
   function showHint() {
     if (!root || root.hidden || getCk("sa_nav_hint")) return;
+    var dt = E.hint.children[1]; if (dt) dt.style.display = multi() ? "" : "none";   /* app sin otras apps: no hay doble toque */
     var v = inward(st.anchor); E.hint.style.left = (px.t + v[0] * 76) + "px"; E.hint.style.top = (py.t + v[1] * 76) + "px";
     E.hint.dataset.side = v[1] < 0 ? "up" : v[1] > 0 ? "down" : v[0] > 0 ? "right" : "left";
     E.hint.classList.add("on"); setTimeout(hideHint, 6500);
@@ -987,7 +997,8 @@
       if (root) { this.update(c); return; }
       cfg = Object.assign({ items: [], current: c && c.home ? c.home.k : "" }, c);
       build();
-      var sv = getCk("sa_nav_pos"); if (sv && ANCH.indexOf(sv) >= 0) st.anchor = sv;
+      /* posición: la que el usuario eligió (mantener y mover) o la inicial de la app (abajo al centro por defecto) */
+      var sv = getCk("sa_nav_pos"); st.anchor = sv && ANCH.indexOf(sv) >= 0 ? sv : (cfg.pos && ANCH.indexOf(cfg.pos) >= 0 ? cfg.pos : "bc");
       try { var ss = JSON.parse(sessionStorage.getItem("sa_nav_state") || "null"); if (ss && ss.S === 2 && Date.now() - ss.t < IDLE_MS) st.S = 2; } catch (e) {}
       var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1); zoom = S(K()); pullS = S(0, true);
       arms = armsFor(st.anchor);
@@ -995,8 +1006,10 @@
       if (cfg.hidden) root.hidden = true;
       if (cfg.tint) setTint(cfg.tint);
       w.addEventListener("resize", onResize); d.addEventListener("keydown", onKey); dockWatch();
+      /* Safari esconde y muestra sus barras al hacer scroll sin avisar con resize: se reacomoda con el visor visible. */
+      if (w.visualViewport) w.visualViewport.addEventListener("resize", onVV);
       /* en la app de inicio de iPhone el alto real llega tarde: se recoloca al cargar */
-      w.addEventListener("load", onResize); setTimeout(onResize, 400); setTimeout(onResize, 1200);
+      w.addEventListener("load", onResize); setTimeout(onResize, 400); setTimeout(onResize, 1200); setTimeout(onResize, 2600);
       var s0 = st.S; st.S = 1; applyState(1); if (s0 === 2) setS(2);
       render(); kick();
       setTimeout(showHint, 1200);
@@ -1017,7 +1030,7 @@
     close: function () { if (root) setS(1); },
     unmount: function () {
       if (!root) return;
-      w.removeEventListener("resize", onResize); d.removeEventListener("keydown", onKey); if (dockMO) dockMO.disconnect(); if (dockRO) dockRO.disconnect();
+      w.removeEventListener("resize", onResize); d.removeEventListener("keydown", onKey); if (w.visualViewport) w.visualViewport.removeEventListener("resize", onVV); if (dockMO) dockMO.disconnect(); if (dockRO) dockRO.disconnect();
       clearTimeout(idleT); root.remove(); root = null; springs = []; pend = []; running = false; cfg = null; E = {};
     },
     icons: Object.keys(P)

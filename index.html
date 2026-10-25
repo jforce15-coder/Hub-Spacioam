@@ -32,10 +32,10 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-25c"></script>
+<script src="js/sa-nav.js?v=2026-10-25d"></script>
 <script src="js/alma-voz.js?v=2026-10-25b"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
-  <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
+  <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
 <script src="js/alma-client.js?v=2026-10-24i"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
@@ -296,6 +296,15 @@
         <label style="display:flex; flex-direction:column; gap:var(--s-2); width:100%"><span style="font-family:var(--font-sans); font-size:var(--t-eyebrow); font-weight:500; letter-spacing:var(--tr-eyebrow); text-transform:uppercase; color:var(--fg-muted)">{{ passLabel }}</span><input id="sa-login-pass" type="password" autoComplete="current-password" placeholder="••••••••" onKeyDown="{{ loginKey }}" style="width:100%; box-sizing:border-box; font-family:var(--font-sans); font-size:16px; letter-spacing:var(--tr-normal); color:var(--fg); padding:14px 16px; background:var(--surface); border:1px solid var(--divider); border-radius:var(--r-md); outline:none; transition:border-color .15s, box-shadow .15s" style-focus="border-color:var(--fg); box-shadow:var(--focus-ring)"><sc-if value="{{ hayLoginError }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-family:var(--font-sans); font-size:12px; letter-spacing:.02em; color:var(--color-error)">{{ loginError }}</span></sc-if></label>
         <span style="font-size:11.5px; letter-spacing:.04em; color:#6F6867">¿Olvidaste tu contraseña? Escríbenos y te ayudamos.</span>
         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Button" onClick="{{ entrar }}" icon="lock" loading="{{ busy }}" full="{{ true }}" style="margin-top:6px" hint-size="100%,50px">{{ botonLabel }}</x-import>
+        <sc-if value="{{ loginAlternos }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; margin-top:2px">
+            <div aria-hidden="true" style="display:flex; align-items:center; gap:12px; width:100%"><span style="flex:1; height:1px; background:#D8D4CE"></span><span style="font-size:10.5px; font-weight:500; letter-spacing:.24em; text-transform:uppercase; color:#938B8A">o también</span><span style="flex:1; height:1px; background:#D8D4CE"></span></div>
+            <sc-if value="{{ hayFaceLogin }}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{ entrarFace }}" style="width:100%; min-height:50px; display:flex; align-items:center; justify-content:center; gap:10px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; cursor:pointer; font-family:inherit; font-size:12px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; transition:transform .12s ease" style-active="transform:scale(.98)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M9 9.5v1M15 9.5v1M12 9.5v3.5h-1M9.5 15.5c1.4 1.1 3.6 1.1 5 0"/></svg>{{ faceLoginLabel }}</button>
+            </sc-if>
+            <div ref="{{ googleRef }}" style="width:100%; min-height:44px; display:flex; justify-content:center"></div>
+          </div>
+        </sc-if>
       </div>
     </div>
   </main>
@@ -994,6 +1003,26 @@
         </div>
       </sc-if>
       <p style="font-size:11.5px; letter-spacing:.03em; line-height:1.6; color:#6F6867; margin:0; text-wrap:pretty">El enlace se guarda en la cuenta, no en la app: si lo conectas aquí queda conectado en Grow, y al revés.</p>
+    </div>
+
+    <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; padding:24px; display:flex; flex-direction:column; gap:14px">
+      <div style="display:flex; align-items:center; gap:10px">
+        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="lock" size="17" color="#6F6867" hint-size="17px,17px"></x-import>
+        <span style="font-size:11px; font-weight:500; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Formas de entrar</span>
+      </div>
+      <p style="font-size:12.5px; letter-spacing:.02em; line-height:1.6; color:#3E3F3F; margin:0; text-wrap:pretty">Tu contraseña sigue igual. Además puedes entrar con Google (tu correo o tu correo alterno) y con Face ID en este dispositivo. Es el mismo usuario en todas las apps, también en The Gentle Stoic Parent.</p>
+      <sc-if value="{{ faceActivo }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+          <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Farol" state="success" hint-size="auto,26px">Face ID activo aquí</x-import>
+          <button onClick="{{ desactivarFace }}" style="min-height:40px; border:1px solid #D8D4CE; background:transparent; border-radius:999px; padding:9px 15px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867; cursor:pointer">Desactivar</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{ faceOfrecer }}" hint-placeholder-val="{{ true }}">
+        <button onClick="{{ activarFace }}" style="align-self:flex-start; border:none; cursor:pointer; background:#3E3F3F; color:#FAFAFA; border-radius:13px; padding:13px 22px; font-family:inherit; font-size:11px; font-weight:500; letter-spacing:.2em; text-transform:uppercase">Activar Face ID en este dispositivo</button>
+      </sc-if>
+      <sc-if value="{{ faceMsg }}" hint-placeholder-val="{{ false }}">
+        <span role="status" style="font-size:12px; letter-spacing:.02em; color:#6F6867">{{ faceMsg }}</span>
+      </sc-if>
     </div>
   </div>
 </div>
@@ -3480,7 +3509,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-25c";
+  BUILD = "2026-10-25d";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -5505,6 +5534,72 @@ class Component extends DCLogic {
       /* Falla de login: nos quedamos aquí, nunca redirigimos. */
       self.setState({ busy: false, loginError: "Datos incorrectos. Revisa e intenta de nuevo." });
     }).catch(function () { fallback("No pudimos conectar con el control de usuarios."); });
+  }
+  /* ═══ Entrar con Google o con Face ID (alternativas: la contraseña sigue igual) ═══
+     El usuario es el mismo del «Control de usuarios» (correo principal o alterno). Face ID: el teléfono guarda una
+     llave del login y solo la usa después de pasar Face ID (passkey del dispositivo). */
+  faceLocal() { try { var f = JSON.parse(localStorage.getItem("sa_faceid") || "null"); return f && f.email && f.llave && f.id ? f : null; } catch (e) { return null; } }
+  faceDisponible() {
+    var self = this; if (this._faceDisp != null) return this._faceDisp; this._faceDisp = false;
+    try { if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(function (ok) { self._faceDisp = !!ok; if (ok) self.forceUpdate(); }, function () {}); } catch (e) {}
+    return false;
+  }
+  b64u(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+  unb64u(s) { s = String(s).replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); }); }
+  entrarFace() {
+    var self = this, f = this.faceLocal(); if (!f || !window.SAAuth || !SAAuth.faceLogin) return;
+    var falla = "No pudimos entrar con Face ID. Intenta con tu contraseña.";
+    navigator.credentials.get({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), allowCredentials: [{ type: "public-key", id: this.unb64u(f.id), transports: ["internal", "hybrid"] }], userVerification: "required", timeout: 60000 } })
+      .then(function () { self.setState({ busy: true, loginError: "" }); return SAAuth.faceLogin(f.email, f.llave); })
+      .then(function (r) {
+        if (r && r.ok && r.profile) { self.abrirSesion(r.profile); return; }
+        if (r && (r.error === "face" || r.error === "no_user")) { try { localStorage.removeItem("sa_faceid"); } catch (e) {} self.setState({ busy: false, loginError: "Face ID ya no está activo en este dispositivo (¿cambiaste la contraseña?). Entra con tu contraseña y vuelve a activarlo en Mi cuenta." }); return; }
+        self.setState({ busy: false, loginError: falla });
+      })
+      .catch(function (e) { self.setState({ busy: false, loginError: e && e.name === "NotAllowedError" ? "" : falla }); });
+  }
+  activarFace() {
+    var self = this, s = (window.SA && SA.session && SA.session()) || {}, P = this.state.perfil || {}, em = s.email || P.correo || "";
+    if (!window.SAAuth || !SAAuth.faceEnroll) return;
+    this.setState({ faceMsg: "" });
+    navigator.credentials.create({ publicKey: { challenge: crypto.getRandomValues(new Uint8Array(32)), rp: { name: "Spacio AM" },
+      user: { id: new TextEncoder().encode("sa:" + em), name: em || "Spacio AM", displayName: P.primerNombre || s.nombre || "Spacio AM" },
+      pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+      authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "preferred" }, timeout: 60000, attestation: "none" } })
+      .then(function (cred) {
+        return SAAuth.faceEnroll().then(function (r) {
+          if (!r || !r.ok) throw new Error((r && r.error) || "enroll");
+          localStorage.setItem("sa_faceid", JSON.stringify({ id: self.b64u(cred.rawId), email: r.email, llave: r.llave, at: Date.now() }));
+          self.setState({ faceMsg: "Listo: la próxima vez entras con Face ID." });
+        });
+      })
+      .catch(function (e) { self.setState({ faceMsg: e && e.name === "NotAllowedError" ? "" : "No pudimos activar Face ID en este dispositivo." }); });
+  }
+  desactivarFace() { var f = this.faceLocal(); try { localStorage.removeItem("sa_faceid"); } catch (e) {} if (f && window.SAAuth && SAAuth.faceOff) SAAuth.faceOff(f.llave); this.setState({ faceMsg: "Face ID desactivado en este dispositivo." }); }
+  googleBoton(el) {
+    if (!el || el.dataset.ok) return; el.dataset.ok = "1";
+    var self = this, cid = window.SA_GOOGLE_CLIENT_ID || "946315464909-i0uptgcvbpqnspnjp5a0o4a7dnpi0ngi.apps.googleusercontent.com";
+    var pintar = function () {
+      try {
+        google.accounts.id.initialize({ client_id: cid, ux_mode: "popup", auto_select: false, itp_support: true, callback: function (r) { self.entrarGoogle(r && r.credential); } });
+        google.accounts.id.renderButton(el, { type: "standard", theme: "outline", size: "large", shape: "pill", text: "continue_with", logo_alignment: "left", width: Math.min(400, Math.max(240, el.offsetWidth || 320)), locale: "es" });
+      } catch (e) { el.dataset.ok = ""; }
+    };
+    if (window.google && google.accounts && google.accounts.id) { pintar(); return; }
+    var sc = document.createElement("script"); sc.src = "https://accounts.google.com/gsi/client"; sc.async = true; sc.onload = pintar;
+    sc.onerror = function () { el.style.display = "none"; }; document.head.appendChild(sc);
+  }
+  entrarGoogle(cred) {
+    var self = this; if (!cred || !window.SAAuth || !SAAuth.googleLogin) return;
+    this.setState({ busy: true, loginError: "" });
+    SAAuth.googleLogin(cred).then(function (r) {
+      if (r && r.ok && r.profile) { self.abrirSesion(r.profile); return; }
+      var m = r && r.error === "no_user" ? "Esa cuenta de Google no está en el control de usuarios. Entra con tu contraseña o agrega ese correo como alterno."
+        : r && r.error === "suspended" ? "Tu acceso está desactivado. Escríbenos y lo revisamos."
+        : r && (r.error === "action" || r.error === "google_client") ? "Entrar con Google todavía no está habilitado. Usa tu contraseña."
+        : "No pudimos entrar con Google. Intenta de nuevo o usa tu contraseña.";
+      self.setState({ busy: false, loginError: m });
+    }).catch(function () { self.setState({ busy: false, loginError: "No pudimos conectar con el control de usuarios." }); });
   }
   abrirSesion(profile) {
     var rol = window.SA && SA.rolDePerfil ? SA.rolDePerfil(profile) : (profile.apps && profile.apps.hub) || null;
@@ -8524,6 +8619,12 @@ class Component extends DCLogic {
       loginEmail: st.loginEmail, loginPass: st.loginPass, loginError: st.loginError,
       setEmail: function (v) { self.setState({ loginEmail: v }); },
       setPass: function (v) { self.setState({ loginPass: v }); },
+      loginAlternos: !st.needPass, hayFaceLogin: !!this.faceLocal() && this.faceDisponible(),
+      faceLoginLabel: "Entrar con Face ID",
+      entrarFace: function () { self.entrarFace(); },
+      googleRef: this._gRefCb || (this._gRefCb = function (el) { self.googleBoton(el); }),
+      faceActivo: !!this.faceLocal(), faceOfrecer: !this.faceLocal() && this.faceDisponible(), faceMsg: st.faceMsg || "",
+      activarFace: function () { self.activarFace(); }, desactivarFace: function () { self.desactivarFace(); },
       hayLoginError: !!st.loginError, loginKey: function (e) { if (e.key === "Enter") { e.preventDefault(); self.ingresar(); } },
       needPass: st.needPass,
       busy: st.busy,

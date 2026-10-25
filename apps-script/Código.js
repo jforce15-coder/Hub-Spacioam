@@ -117,6 +117,7 @@ function doPost(e) {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
+    if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
     if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
@@ -1544,6 +1545,7 @@ const NOTAS_PROMPTS = {
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
   SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el chat operativo (Hub y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
+  FAMILIA: 'Alma en The Gentle Stoic Parent (vida familiar, no trabajo): enfoque, metodologías (Gentle Stoic Parenting, Montessori, Relato Espejo, Stillwater) y reglas. Se le suma VOZ_HUMANA y se copia sola al agente «Alma · Familia». Edítalo libremente.',
   VOZ_HUMANA: 'Llamadas: cómo suena Alma para que se escuche como una persona (ritmo, reacciones, muletillas, etiquetas de voz, fechas y números). Va al final del prompt de voz. Edítalo libremente.',
   REGLAS_EXTRA: 'Avisos temporales que Alma debe tener en cuenta (una por línea). Ej.: "Brunelo: corte de agua el sábado de 8 a 12".',
   CONTENCION_ES: 'Mensajes al huésped en un ROJO (modo AUTO), en español. Varias variantes separadas por una línea en blanco: ALMA elige una al azar y nunca repite la última. Solo se envía una contención por incidente.',
@@ -1570,7 +1572,7 @@ function promptsRespaldo_() {
     ESTILO: SEMILLA_ESTILO_, MEJORAR: SEMILLA_MEJORAR_, APELACION: SEMILLA_APELACION_, RESPUESTA_REVIEW: SEMILLA_RESP_REVIEW_, REVIEW_HUESPED: SEMILLA_REVIEW_HUESPED_, OPERATIVO: SEMILLA_OPERATIVO_, SECRETARIA: SEMILLA_SECRETARIA_,
     REDACTOR: PROMPT_REDACTOR, CLASIFICADOR: PROMPT_CLASIFICADOR, VERIFICADOR: PROMPT_VERIFICADOR, REGLAS_EXTRA: '',
     REGLAS_REDACTOR: sinCab_(REGLAS_FIJAS_REDACTOR), REGLAS_CLASIFICADOR: sinCab_(REGLAS_FIJAS_CLASIFICADOR),
-    ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_, VOZ: SEMILLA_VOZ_, VOZ_HUMANA: SEMILLA_VOZ_HUMANA_,
+    ENTRENADOR: PROMPT_ENTRENADOR_, EDITOR_PROMPTS: PROMPT_MEJORA_, VOZ: SEMILLA_VOZ_, VOZ_HUMANA: SEMILLA_VOZ_HUMANA_, FAMILIA: SEMILLA_FAMILIA_,
     INQUIRY_EVALUAR: PROMPT_INQ_EVALUAR_, INQUIRY_FUSIONAR: PROMPT_INQ_FUSIONAR_,
     ROUTER: [
       'Eres el router de conversaciones de ALMA (Spacio AM, alojamientos en Guatemala). Clasifica la conversación en UNA ruta:',
@@ -4592,7 +4594,7 @@ function epiUrl_() { return PropertiesService.getScriptProperties().getProperty(
 /* Administradores con acceso al hub, desde Control de usuarios: correo, nombre, teléfonos y si es principal. Cacheado 30 min. */
 function adminsOp_() {
   if (OP_ADM_) return OP_ADM_;
-  const cache = CacheService.getScriptCache(), c0 = cache.get('op_admins2');
+  const cache = CacheService.getScriptCache(), c0 = cache.get('op_admins3');
   if (c0) { try { return (OP_ADM_ = JSON.parse(c0)); } catch (e) {} }
   const out = [], norm = k => String(k).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const lleno = x => { const t = norm(x); return !!t && t !== 'no' && t !== 'false' && t !== '0'; };
@@ -4604,6 +4606,7 @@ function adminsOp_() {
       const cr = cab.findIndex(x => /^(rol|role|perfil|tipo_usuario)$/.test(x)), ch = cab.findIndex(x => x.replace(/\s+/g, '_') === 'perm_hub');
       const tels = cab.map((c, i) => /^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/.test(c) ? i : -1).filter(i => i >= 0);
       const cEst = cab.findIndex(x => /^(estado|activo|active)$/.test(x));
+      const cAlt = cab.findIndex(x => /alterno/.test(x));   // correo alterno: la misma persona en otras apps (p. ej. The Gentle Stoic Parent)
       /* Control de usuarios unificado: el rol vive en columnas perm_<app> (admin_principal, admin, tecnico…). */
       const cPerm = cab.map((x, i) => /^perm_/.test(x.replace(/\s+/g, '_')) ? i : -1).filter(i => i >= 0);
       if (ce < 0 || (cr < 0 && ch < 0 && !cPerm.length)) return;
@@ -4613,11 +4616,11 @@ function adminsOp_() {
         const rol = ((cr >= 0 ? norm(r[cr]) : '') + ' ' + perms).trim(), email = String(r[ce] || '').trim().toLowerCase();
         if (!email || !(/admin/.test(rol) || (ch >= 0 && lleno(r[ch]) && !/propietari|socio|tecnic|proveedor/.test(rol)))) return;
         if (out.some(a => a.email === email)) return;
-        out.push({ email: email, nombre: cn >= 0 ? String(r[cn]).trim() : email.split('@')[0], tels: [].concat.apply([], tels.map(i => telsDe_(r[i]))), principal: /^admin$|principal/.test(rol) || /admin_principal/.test(rol) });
+        out.push({ email: email, alternos: cAlt >= 0 ? String(r[cAlt] || '').toLowerCase().split(/[\s,;]+/).filter(Boolean) : [], nombre: cn >= 0 ? String(r[cn]).trim() : email.split('@')[0], tels: [].concat.apply([], tels.map(i => telsDe_(r[i]))), principal: /^admin$|principal/.test(rol) || /admin_principal/.test(rol) });
       });
     });
   } catch (e) { console.error('adminsOp_: ' + e); }
-  try { cache.put('op_admins2', JSON.stringify(out), 1800); } catch (e) {}
+  try { cache.put('op_admins3', JSON.stringify(out), 1800); } catch (e) {}
   return (OP_ADM_ = out);
 }
 function adminPorTel_(wa) { const k = fin8_(wa); return adminsOp_().find(a => a.tels.some(t => fin8_(t) === k)) || null; }
@@ -4857,7 +4860,8 @@ function dsBotApi_(body) {
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
-      case 'voz_sync': return json_(vozSyncPrompt_(true));
+      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), familia: familiaSyncPrompt_(true) });
+      case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());
       case 'voz_recoger': return json_(vozRecoger_(true));

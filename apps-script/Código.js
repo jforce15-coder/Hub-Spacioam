@@ -705,8 +705,9 @@ function procesarCola() {
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
   try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
-  try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }
-  try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)   // ALMA voz: mismo prompt vivo (voz.js)
+  try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
+  try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
+  try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
 }
 function procesarColaNucleo_() {
@@ -3067,8 +3068,8 @@ function hubApi_(body) {
       case 'setPropiedadDato': return json_(hubSetPropiedadDato_(body.propiedad, body.campo, body.valor, body.meta));
       case 'hilo': return json_(hubHilo_(body.resId));
       case 'redactarHub': return json_(hubRedactar_(body.resId, body.texto, body.hilo));
-      case 'responder': return json_(hubResponder_(body.resId, body.texto, body.quien, body.canal));
-      case 'responderWa': return json_(hubResponderWa_(body.resId, body.texto, body.quien, body.wa));
+      case 'responder': return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
+      case 'responderWa': return json_(hubResponderSeguro_(body, ses));
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
       case 'limpiezas': return json_(hubLimpiezas_(body.codigo));
@@ -3752,7 +3753,8 @@ function hubResponder_(resId, texto, quien, canal) {
     try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
     return { ok: true, canal: 'whatsapp', plantilla: rw.modo === 'plantilla' };
   }
-  const hc = hiloConv_(resId), ug = (hc.hilo || []).filter(m => m.tipo === 'guest').pop() || {};
+  /* Desde la plataforma no hace falta leer el hilo antes de enviar (era lo que más tardaba): se lee solo si podría ser WhatsApp. */
+  const hc = canal === 'plataforma' ? { code: 0, hilo: [] } : hiloConv_(resId), ug = (hc.hilo || []).filter(m => m.tipo === 'guest').pop() || {};
   let plantilla = false;
   /* Desde la conversación de la reserva se responde por la plataforma; WhatsApp tiene su propio chat (hubResponderWa_). */
   if (canal !== 'plataforma' && ug.canal === 'whatsapp' && ug.wa) {
@@ -3773,13 +3775,11 @@ function hubResponder_(resId, texto, quien, canal) {
       set_(sh, { fila: i + 2, v: v }, { estado: 'respondido', nota: 'respondido por el equipo desde el hub' });
     });
   }
-  if (!d) {
-    const ctx = hc.code === 200 ? contexto_(resId, hc.hilo, 'HUB') : null;
-    d = ctx ? compacto_(ctx) : { resId: resId, modo: 'HUB' };
-  }
-  d.modo = 'HUB'; d.respondidoPor = quien || 'Equipo';
-  log_(d, texto, 'ENVIADO por el equipo desde el hub' + (quien ? ' · ' + quien : ''));
-  observar_(d, d.borrador || '');
+  if (d) {
+    d.modo = 'HUB'; d.respondidoPor = quien || 'Equipo';
+    log_(d, texto, 'ENVIADO por el equipo desde el hub' + (quien ? ' · ' + quien : ''));
+    observar_(d, d.borrador || '');
+  } else hubDespuesEncolar_(resId, texto, quien);   // armar el contexto es lento: se registra en la siguiente pasada (envio.js)
   try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) { console.error('promesasCumplir_: ' + e); }
   return { ok: true, plantilla: plantilla, canal: ug.canal === 'whatsapp' ? 'whatsapp' : 'hospitable' };
 }

@@ -82,7 +82,11 @@
 
   /* ================= estilos (todo bajo #sa-nav-root, prefijo san-) ================= */
   var GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .34 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")";
-  var STONE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .22 -.07'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23m)'/%3E%3C/svg%3E\")," + GRAIN;
+  var MAPA = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .22 -.07'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23m)'/%3E%3C/svg%3E\")";
+  var STONE = MAPA + "," + GRAIN;
+  /* Luz desde adentro (como alabastro iluminado): núcleo cálido claro y el tono del halo; se ve igual en grande y en pequeño. */
+  var LUZ = "radial-gradient(closest-side,rgba(255,248,236,.95) 0%,rgba(255,246,232,.6) 36%,rgba(255,244,228,0) 80%),linear-gradient(100deg,var(--san-t4,#F2A07E) 0%,var(--san-t5,#F6B696) 50%,var(--san-t6,#FAD0B6) 100%)";
+  var LUZ_MASK = "radial-gradient(closest-side,#000 0%,#000 55%,rgba(0,0,0,.78) 100%)";
   /* Color del halo y del brillo interno. Por defecto el del Hub; una app puede teñirlo con SANav.update({ tint: "#4B6A94" })
      (null vuelve al del Hub). Se aplica con variables CSS en <html> y cambia con un fundido suave. */
   var GRAD = "linear-gradient(100deg,var(--san-t1,#E64E37) 0%,var(--san-t2,#EE7552) 45%,var(--san-t3,#F59D68) 100%)";
@@ -168,11 +172,11 @@
       "background:radial-gradient(100% 100% at 50% 38%,#F5F2EE 0%,#EDE9E4 55%,#E2DCD5 100%);box-shadow:inset 0 4px 8px rgba(255,255,255,.35);transition:box-shadow .35s}",
     /* Sombras de la roca (como la esfera de referencia): solo negro, por fuera y por dentro, y respiran con el brillo. */
     ".san-scope .san-face::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:0 16px 24px -8px rgba(0,0,0,.30),0 4px 7px rgba(0,0,0,.14);animation:san-sombra 3.6s ease-in-out infinite;transition:box-shadow .35s}",
-    ".san-scope .san-stone::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 36% 30%,rgba(0,0,0,0) 46%,rgba(0,0,0,.045) 74%,rgba(0,0,0,.10) 100%);animation:san-sombra 3.6s ease-in-out infinite}",
+    ".san-scope .san-stone::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 36% 30%,rgba(0,0,0,0) 46%,rgba(0,0,0,.045) 74%,rgba(0,0,0,.10) 100%)" + "," + MAPA + ";background-size:100% 100%;background-repeat:no-repeat;animation:san-sombra 3.6s ease-in-out infinite}",
     "@keyframes san-sombra{0%,100%{opacity:.7}50%{opacity:1}}",
     ".san-scope .san-stone{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);pointer-events:none}",
-    ".san-scope .san-stone::before{content:'';position:absolute;inset:0;border-radius:50%;opacity:.9;background-image:" + STONE + ";background-size:100% 100%,120px 120px;background-repeat:no-repeat,repeat;background-position:center}",
-    ".san-scope .san-lit{position:absolute;inset:0;border-radius:50%;background:" + GRAD + ";opacity:.06;transition:opacity .8s cubic-bezier(.45,0,.55,1)}",
+    ".san-scope .san-stone::before{content:'';position:absolute;inset:0;border-radius:50%;opacity:.9;background-image:" + GRAIN + ";background-size:120px 120px}",
+    ".san-scope .san-lit{position:absolute;inset:0;border-radius:50%;background:" + LUZ + ";-webkit-mask:" + LUZ_MASK + ";mask:" + LUZ_MASK + ";opacity:.06;transition:opacity .8s cubic-bezier(.45,0,.55,1)}",
     ".san-scope .san-lit::after{content:'';position:absolute;inset:0;border-radius:50%;background:inherit;opacity:0;animation:san-lit 3.6s ease-in-out infinite}",
     ".san-scope .san-face[data-mode='home'] .san-lit{opacity:.13}.san-scope .san-face[data-mode='close'] .san-lit{opacity:.2}",
     ".san-scope .san-face.charge .san-lit,.san-scope .san-face.lift .san-lit{opacity:.34;transition-duration:.6s}",
@@ -206,9 +210,9 @@
     ".san-scope .san-st-ring{inset:-9px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%)}",
     ".san-scope .san-st-glow{inset:-96px;opacity:var(--halo);-webkit-mask:radial-gradient(closest-side,transparent calc(100% - 104px),rgba(0,0,0,.9) calc(100% - 88px),rgba(0,0,0,.55) calc(100% - 60px),rgba(0,0,0,.2) calc(100% - 30px),transparent 100%);mask:radial-gradient(closest-side,transparent calc(100% - 104px),rgba(0,0,0,.9) calc(100% - 88px),rgba(0,0,0,.55) calc(100% - 60px),rgba(0,0,0,.2) calc(100% - 30px),transparent 100%)}",
     ".san-scope .san-st-body{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);background:radial-gradient(circle at 40% 34%,#F7F5F2 0%,#EFECE8 42%,#E3DFDA 78%,#D3CEC8 100%)}",
-    ".san-scope .san-st-body::before{content:'';position:absolute;inset:-6%;background-image:" + STONE + ";background-size:100% 100%,120px 120px;background-repeat:no-repeat,repeat;background-position:center;opacity:.9}",
-    ".san-scope .san-st-lit{position:absolute;inset:0;border-radius:50%;background:linear-gradient(100deg,var(--san-t4,#F2A07E) 0%,var(--san-t5,#F6B696) 50%,var(--san-t6,#FAD0B6) 100%);opacity:calc(var(--lit)*.42)}",
-    ".san-scope .san-st-rim{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 40%,rgba(0,0,0,0) 46%,rgba(0,0,0,.045) 74%,rgba(0,0,0,.10) 100%);animation:san-sombra 3.6s ease-in-out infinite}",
+    ".san-scope .san-st-body::before{content:'';position:absolute;inset:0;background-image:" + GRAIN + ";background-size:120px 120px;opacity:.9}",
+    ".san-scope .san-st-lit{position:absolute;inset:0;border-radius:50%;background:" + LUZ + ";-webkit-mask:" + LUZ_MASK + ";mask:" + LUZ_MASK + ";opacity:calc(var(--lit)*.5)}",
+    ".san-scope .san-st-rim{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,rgba(255,255,255,.28) 0%,rgba(255,255,255,0) 40%,rgba(0,0,0,0) 46%,rgba(0,0,0,.045) 74%,rgba(0,0,0,.10) 100%)," + MAPA + ";background-size:100% 100%;background-repeat:no-repeat;animation:san-sombra 3.6s ease-in-out infinite}",
     ".san-scope .san-st-spark{position:absolute;inset:0;display:grid;place-items:center;color:#CBC4BC;pointer-events:none}.san-scope .san-st-spark svg{width:22%;height:22%;filter:drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32))}",
     ".san-scope .san-ov-ui{position:absolute;left:50%;top:calc(44% + min(33vw,20vh,135px) + 34px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:16px;width:min(320px,calc(100% - 32px));opacity:0;scale:.96;transition:opacity .16s ease,scale .2s ease}",
     ".san-scope .san-ov.on .san-ov-ui{opacity:1;scale:1;transition:opacity 1.1s cubic-bezier(.45,0,.55,1) .55s,scale 1.3s cubic-bezier(.22,.61,.36,1) .55s}",

@@ -58,12 +58,16 @@
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
   var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1 };
+  var SALEN = { responder: 1, responderWa: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var reloj = setTimeout(function () { if (ctl) ctl.abort(); }, LENTAS[action] ? 60000 : 25000);
+    /* Enviar un mensaje: keepalive hace que el pedido termine de salir aunque se cierre la pestaña o se cambie de app;
+       el servidor lo envía igual y avisa a quien lo escribió si no salió (apps-script/envio.js). */
+    var seguir = SALEN[action] === 1;
     return fetch(CFG.url, {
-      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store', signal: ctl ? ctl.signal : undefined,
+      method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, cache: 'no-store', keepalive: seguir, signal: ctl ? ctl.signal : undefined,
       body: JSON.stringify(Object.assign({ hub: 1, action: action, token: CFG.token, session: global.SAAuth && SAAuth.session ? SAAuth.session() : null }, payload || {}))
     }).then(function (r) { if (!r.ok) return { ok: false, error: 'HTTP ' + r.status }; return r.json().catch(function () { return { ok: false, error: 'respuesta inválida del Apps Script' }; }); })
       .then(function (j) { clearTimeout(reloj); if (global.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); return j; })

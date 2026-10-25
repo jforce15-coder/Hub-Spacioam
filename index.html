@@ -3509,7 +3509,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-25h";
+  BUILD = "2026-10-25i";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -4768,17 +4768,28 @@ class Component extends DCLogic {
       env.onclick = function () {
         var t = ta.value.trim(); if (!t) return; var wa = numero();
         if (manual.style.display !== "none" && !wa) { nota.style.display = "block"; nota.textContent = "Escribe el número de WhatsApp."; return; }
-        env.disabled = true; env.style.opacity = ".5";
+        /* Como en las conversaciones: el mensaje aparece enviado al salir; si el servidor dice que no salió, vuelve al editor. */
+        var m = { tipo: "host", canal: "whatsapp", texto: t, created: new Date().toISOString() }; o.msgs.push(m);
+        var vacio = lista.querySelector("div[style*='margin:auto']"); if (vacio) vacio.remove();
+        var bEl = burbuja(m); bEl.style.opacity = ".7"; lista.appendChild(bEl); lista.scrollTop = lista.scrollHeight; ta.value = ""; ta.oninput();
+        nota.style.display = "block"; nota.textContent = "Enviado · confirmando. Puedes cerrar; si no sale, te avisamos.";
+        var quitar = function (msg) {
+          if (bEl.parentNode) bEl.parentNode.removeChild(bEl); var k = o.msgs.indexOf(m); if (k >= 0) o.msgs.splice(k, 1);
+          if (!ta.value.trim()) { ta.value = t; ta.oninput(); }
+          nota.style.display = "block"; nota.textContent = msg;
+        };
         ALMA.responderWa(o.resId, t, self.quienSoy(), wa).then(function (r) {
-          env.disabled = false; env.style.opacity = "1";
-          if (!(r && r.ok)) { nota.style.display = "block"; nota.textContent = r && r.error === "sin_numero" ? "No encuentro un número para esta reserva. Escríbelo arriba." : "No se envió: " + ((r && r.error) || "error"); if (r && r.error === "sin_numero") { manual.style.display = "block"; sel.style.display = "none"; } return; }
-          var m = { tipo: "host", canal: "whatsapp", texto: t, created: new Date().toISOString() }; o.msgs.push(m);
-          var vacio = lista.querySelector("div[style*='margin:auto']"); if (vacio) vacio.remove();
-          lista.appendChild(burbuja(m)); lista.scrollTop = lista.scrollHeight; ta.value = ""; ta.oninput();
+          if (!(r && r.ok)) {
+            if (r && (r.error === "timeout" || r.error === "red")) { nota.textContent = "Enviado · sin confirmar aún. Si no sale, te avisamos."; return; }
+            quitar(r && r.error === "sin_numero" ? "No encuentro un número para esta reserva. Escríbelo arriba." : "No se envió: " + ((r && r.error) || "error") + ". Tu texto volvió al editor.");
+            if (r && r.error === "sin_numero") { manual.style.display = "block"; sel.style.display = "none"; }
+            return;
+          }
+          bEl.style.opacity = "1";
           nota.style.display = r.plantilla ? "block" : "none";
           nota.textContent = r.plantilla ? "Pasaron más de 24 h desde su último mensaje: se envió la plantilla para retomar la conversación. Tu mensaje queda guardado." : "";
           ALMA.hilo(o.resId).then(function (h) { if (h && h.ok) self.guardarHilo(o.resId, h.hilo); });
-        }, function () { env.disabled = false; env.style.opacity = "1"; nota.style.display = "block"; nota.textContent = "Sin conexión. Intenta de nuevo."; });
+        }, function () { quitar("Sin conexión. Tu texto volvió al editor."); });
       };
       ta.onkeydown = function (e) { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) env.onclick(); };
       fila.appendChild(ta); fila.appendChild(env);
@@ -6275,10 +6286,14 @@ class Component extends DCLogic {
           }, "lp")
         };
         if (m._op) {
+          /* salio: ya se fue del teléfono (puedes cerrar la pestaña); el servidor termina y avisa si no salió. */
           it.bg = m._op === "fallo" ? "#FFFFFF" : m._op === "enviando" ? "#EFECE8" : "rgba(233,130,106,.22)";
-          it.bd = m._op === "fallo" ? "#C0392B" : m._op === "enviando" ? "#D8D4CE" : "rgba(233,130,106,.5)";
+          it.bd = m._op === "fallo" ? "#C0392B" : m._op === "enviando" ? "#D8D4CE" : m._op === "sinconf" ? "#D8D4CE" : "rgba(233,130,106,.5)";
           it.fg = m._op === "enviando" ? "#6F6867" : "#3E3F3F";
-          it.meta = m._op === "enviando" ? "Enviando…" : m._op === "fallo" ? "No se envió · tu texto volvió al editor" : "Enviado · " + fmtHora(m.created);
+          it.meta = m._op === "enviando" ? "Enviando…" : m._op === "fallo" ? "No se envió · tu texto volvió al editor"
+            : m._op === "salio" ? "Enviado · " + fmtHora(m.created) + " · confirmando"
+            : m._op === "sinconf" ? "Enviado · " + fmtHora(m.created) + " · sin confirmar aún; si no sale, te avisamos"
+            : "Enviado · " + fmtHora(m.created) + " ✓";
           it.metaFg = m._op === "fallo" ? "#C0392B" : "#6F6867";
         }
         /* Mensajes automáticos de Hospitable (largos): plegados con su título y el inicio; se expanden al tocar «Ver completo». */
@@ -6394,22 +6409,34 @@ class Component extends DCLogic {
         };
         /* La conversación se queda donde está aunque cambie de estado o salga del filtro. */
         self._fijos = Object.assign({}, self._fijos); self._fijos[rid] = 1;
+        /* Sin conexión el pedido no puede salir: se dice de una vez. Con conexión, el mensaje se marca enviado al salir del
+           teléfono (keepalive): ya puedes cerrar la pestaña o seguir con otra cosa; el servidor termina el envío y, si no sale,
+           te avisa con una notificación y en tu chat con ALMA (apps-script/envio.js). */
+        var offline = typeof navigator !== "undefined" && navigator.onLine === false;
         setOp("enviando");
         ponerTexto(""); self.guardarBorrador(convKey, ""); upd({ nota: "", propuesta: "", base: null, alma: false, progPick: false });
         var fallo = function (msg) { setOp("fallo"); if (!String(self._respDraft[convKey] || "").trim()) { ponerTexto(t); self.guardarBorrador(convKey, t); } upd({ nota: msg }); };
+        if (offline) { fallo("Estás sin conexión: el mensaje no salió. Tu texto volvió al editor."); return; }
+        var listo = false;
+        setTimeout(function () { if (!listo) setOp("salio"); }, 350);
+        /* El servidor puede tardar más que el teléfono en esperar: se revisa el hilo unas veces antes de dudar. */
+        var verificar = function (intento, er0) {
+          var final = function () { if (er0 === "red") fallo("No pudimos confirmar que saliera. Tu texto volvió al editor; mira el hilo antes de reenviar."); else setOp("sinconf"); };
+          ALMA.hilo(rid).then(function (r2) {
+            var ya = r2 && r2.ok && (r2.hilo || []).slice(-8).some(function (m) { return m.tipo !== "guest" && normT(m.texto) === normT(t); });
+            if (r2 && r2.ok) self.guardarHilo(rid, r2.hilo);
+            if (ya) { setOp("enviado"); return; }
+            if (intento < 3) { setTimeout(function () { verificar(intento + 1, er0); }, [20000, 40000, 60000][intento]); return; }
+            final();
+          }).catch(function () { if (intento < 3) setTimeout(function () { verificar(intento + 1, er0); }, 30000); else final(); });
+        };
         ALMA.responder(rid, t, self.quienSoy(), /^(wa|op|inq):/.test(String(rid)) ? "" : "plataforma").then(function (res) {
+          listo = true;
           if (!(res && res.ok)) {
             var er = String((res && res.error) || "");
-            /* timeout o corte de red: el mensaje pudo salir. Se revisa el hilo antes de sugerir reenviar, para no duplicar. */
-            if (er === "timeout" || er === "red") {
-              upd({ nota: "La conexión se cortó antes de confirmar. Revisando si salió…" });
-              ALMA.hilo(rid).then(function (r2) {
-                var ya = r2 && r2.ok && (r2.hilo || []).slice(-6).some(function (m) { return m.tipo !== "guest" && normT(m.texto) === normT(t); });
-                if (r2 && r2.ok) self.guardarHilo(rid, r2.hilo);
-                if (ya) { setOp("enviado"); upd({ nota: "" }); } else fallo("No se envió. Tu texto volvió al editor; toca enviar otra vez.");
-              }).catch(function () { fallo("No pudimos confirmar el envío. Revisa el hilo antes de reenviar."); });
-              return;
-            }
+            /* timeout o corte de red: el pedido ya salió y el servidor sigue trabajando. No se devuelve el texto (evita
+               duplicados): se queda «confirmando» y se revisa el hilo; si de verdad no sale, el servidor avisa. */
+            if (er === "timeout" || er === "red") { setOp("salio"); verificar(0, er); return; }
             fallo(er === "token" ? "El Apps Script rechazó la clave del hub. Ejecuta configurar() y vuelve a implementar." : "No se envió: " + er + ". Tu texto volvió al editor.");
             return;
           }

@@ -189,6 +189,9 @@
     ".san-scope .san-in{flex:1;min-width:0;border:0;border-radius:999px;background:#EFEAE4;padding:13px 16px;font:500 16px Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none}.san-scope .san-in:focus-visible{box-shadow:0 0 0 2px #E9826A}",
     ".san-scope .san-send,.san-scope .san-tovoice{width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#ECE8E3;color:var(--san-ink);box-shadow:0 6px 10px -5px rgba(40,30,25,.3),inset 0 2px 3px rgba(255,255,255,.6)}.san-scope .san-send{background:#3E3F3F;color:#FAFAFA}",
     "body.san-docked [data-sa-dock]{visibility:hidden!important}[data-sa-dock].san-hosting{position:relative!important;overflow:visible!important}",
+    "[data-sa-slot]{transition:padding-right .55s cubic-bezier(.34,1.45,.6,1)}[data-sa-slot].san-slotted{position:relative;padding-right:var(--san-slot-w)!important}",
+    ".san-slothost{position:absolute;top:50%;width:0;height:0;visibility:visible;z-index:5;pointer-events:none}.san-slothost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
+    "@media (prefers-reduced-motion:reduce){[data-sa-slot]{transition:none}}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
     ".san-scope.docked .san-hint{display:none}",
     "@media print{#sa-nav-root{display:none!important}}"
@@ -210,12 +213,41 @@
     insetCache = { t: parseFloat(c.paddingTop) || 0, r: parseFloat(c.paddingRight) || 0, b: parseFloat(c.paddingBottom) || 0, l: parseFloat(c.paddingLeft) || 0 };
     p.remove(); return insetCache;
   }
-  function anchorPt(a) {
+  /* Ranuras: en algunas pantallas una de las 8 posiciones no es la esquina de la pantalla sino un lugar de la página.
+     · La del botón de Alma del editor (data-sa-dock) reemplaza a la posición más cercana: soltar ahí = volver a encajarlo.
+     · Un contenedor con data-sa-slot="tr" (p. ej. los botones del encabezado del Resumen) es la esquina superior derecha:
+       el botón se acomoda al final de ese contenedor, a su tamaño normal, y empuja hacia la izquierda lo que había ahí. */
+  var ptsCache = null;
+  function anchorPt(a, raw) {
+    if (!raw) {
+      if (ptsCache && ptsCache[a]) return ptsCache[a];
+      var da = dockAnchor(); if (da && da.a === a) return { x: da.x, y: da.y, dock: true };
+      var sl = slotFor(a); if (sl) return { x: sl.r.right - slotW() / 2, y: sl.r.top + sl.r.height / 2, slot: true };
+    }
     var W = VW(), H = VH(), i = insets(), m = 60 * K();
     var x = a[1] === "l" ? m + i.l : a[1] === "r" ? W - m - i.r : W / 2, y = a[0] === "t" ? m + i.t : a[0] === "b" ? H - m - i.b : H / 2;
     if (a === "ml") x = m + i.l; if (a === "mr") x = W - m - i.r;
     return { x: x, y: y };
   }
+  function dockAnchor() {
+    if (!dock.el || !root) return null;
+    var t = dockTarget(); if (!t) return null;
+    var cx = t.r.left + t.r.width / 2, cy = t.r.top + t.r.height / 2, b = null, bd = 1e9;
+    ANCH.forEach(function (a) { var p = anchorPt(a, true), dd = Math.hypot(p.x - cx, p.y - cy); if (dd < bd) { bd = dd; b = a; } });
+    return b ? { a: b, x: cx, y: cy } : null;
+  }
+  function slotW() { return Math.round(74 * K()) + 10; }
+  function slotFor(a) {
+    var els = d.querySelectorAll('[data-sa-slot="' + a + '"]'), lim = Math.max(w.innerHeight, d.documentElement.clientHeight || 0);
+    for (var i = 0; i < els.length; i++) { var r = els[i].getBoundingClientRect(); if (r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < lim && dockShown(els[i], r)) return { el: els[i], r: r }; }
+    return null;
+  }
+  var slotEl = null;
+  function slotPush(el) {
+    if (slotEl === el) return; slotPull();
+    if (!el) return; slotEl = el; el.style.setProperty("--san-slot-w", slotW() + "px"); el.classList.add("san-slotted");
+  }
+  function slotPull() { if (slotEl) { slotEl.classList.remove("san-slotted"); slotEl = null; } }
   function armsFor(a) {
     if (a === "tc" || a === "bc") return [[-1, 0], [1, 0]];
     if (a === "ml" || a === "mr") return [[0, -1], [0, 1]];
@@ -401,11 +433,17 @@
   }
   /* El botón encajado vive DENTRO del botón real de la página: el navegador lo mantiene en su lugar al abrir una
      conversación, al hacer scroll o con el teclado, sin cálculos de coordenadas (en iPhone a veces quedaba arriba). */
-  var hosted = false;
+  var hosted = false, hostKind = "";
   function hostIn() {
     if (hosted || !dock.on || !dock.el || !d.body.contains(dock.el)) return;
     var h = d.createElement("span"); h.className = "san-scope san-dockhost"; h.setAttribute("data-no-swipe", "1"); h.setAttribute("aria-hidden", "false");
-    dock.el.classList.add("san-hosting"); dock.el.appendChild(h); h.appendChild(E.nav); dock.host = h; hosted = true; render();
+    dock.el.classList.add("san-hosting"); dock.el.appendChild(h); h.appendChild(E.nav); dock.host = h; hosted = true; hostKind = "dock"; render();
+  }
+  /* En la ranura del encabezado: el botón vive dentro del contenedor (se mueve con la página, a su tamaño normal). */
+  function slotIn(el) {
+    if (hosted || !el || !d.body.contains(el)) return;
+    var h = d.createElement("span"); h.className = "san-scope san-slothost"; h.setAttribute("data-no-swipe", "1"); h.style.right = (slotW() / 2) + "px";
+    el.appendChild(h); h.appendChild(E.nav); dock.host = h; dock.hostEl = null; hosted = true; hostKind = "slot"; render();
   }
   function hostOut() {
     if (!hosted) return; hosted = false;
@@ -413,7 +451,7 @@
     root.appendChild(E.nav); fbOn = null;
     if (dock.host && dock.host.parentNode) dock.host.parentNode.removeChild(dock.host);
     if (dock.hostEl) dock.hostEl.classList.remove("san-hosting");
-    dock.host = null;
+    dock.host = null; hostKind = "";
     if (live) { px.x = px.t = fr.left + fr.width / 2; py.x = py.t = fr.top + fr.height / 2; px.v = py.v = 0; }
     render(); kick();
   }
@@ -426,11 +464,12 @@
     if (!root) return;
     if (hosted && (!dock.host || !d.body.contains(dock.host))) { hosted = false; root.appendChild(E.nav); fbOn = null; dock.host = null; if (dock.hostEl) dock.hostEl.classList.remove("san-hosting"); var t0 = dockTarget(); if (t0) { px.x = px.t = t0.r.left + t0.r.width / 2; py.x = py.t = t0.r.top + t0.r.height / 2; } render(); }
     var t = (!root.hidden && !dragging) ? dockTarget() : null;
+    slotCheck(t);
     if (!t) { if (dock.el && !dragging) { if (!dock.gone) dock.gone = Date.now(); if (Date.now() - dock.gone > 1500) { dock.el = null; dock.out = false; } } if (dock.on && !dragging) setDocked(false); }
     else {
       dock.gone = 0;
-      if (t.el !== dock.el) { hostOut(); dock.el = t.el; if (dockRO) { dockRO.disconnect(); dockRO.observe(t.el); } }
-      if (hosted) { if (!dock.out) return; hostOut(); }
+      if (t.el !== dock.el) { if (hostKind === "dock") hostOut(); dock.el = t.el; if (dockRO) { dockRO.disconnect(); dockRO.observe(t.el); } }
+      if (hosted && hostKind === "dock") { if (!dock.out) return; hostOut(); }
       if (!dock.out) {
         var cx = t.r.left + t.r.width / 2 + dock.ox, cy = t.r.top + t.r.height / 2 + dock.oy, z = Math.min(t.r.width, t.r.height) / 92;
         if (!dock.on) { setDocked(true); px.to(cx, .4, .82); py.to(cy, .4, .82); zoom.to(z, .4, .8); }
@@ -443,6 +482,16 @@
         }
       }
     }
+  }
+  function slotCheck(t) {
+    if (dragging || pulling || AL.on || root.hidden) return;
+    var sl = (!t || dock.out) && !dock.on ? slotFor(st.anchor) : null;
+    if (!sl) { if (hosted && hostKind === "slot") { hostOut(); var p = anchorPt(st.anchor); px.to(p.x, .5, .8); py.to(p.y, .5, .8); } if (slotEl) slotPull(); return; }
+    slotPush(sl.el);
+    if (hosted) { if (hostKind === "slot" && dock.host && dock.host.parentNode !== sl.el) hostOut(); return; }
+    var cx = sl.r.right - slotW() / 2, cy = sl.r.top + sl.r.height / 2;
+    if (Math.abs(px.t - cx) > .5 || Math.abs(py.t - cy) > .5) { px.to(cx, .45, .8); py.to(cy, .45, .8); }
+    else if (px.rest(.5) && py.rest(.5) && zoom.rest(.01)) slotIn(sl.el);
   }
   var dockLast = 0, dockT = null, dockRaf = 0, dockMO = null, dockRO = null;
   /* a lo sumo una revisión cada 120 ms, leída dentro de un cuadro (no fuerza diseño extra) */
@@ -532,14 +581,14 @@
   }
 
   /* ================= gestos del botón central ================= */
-  var taps = 0, downAt = null, lpT = null, tapT = null, chT = null, grab = [0, 0], hist = [], prevS = 1, moved = false;
+  var pid = null, taps = 0, downAt = null, lpT = null, tapT = null, chT = null, grab = [0, 0], hist = [], prevS = 1, moved = false;
   function unCharge() { clearTimeout(chT); E.core.classList.remove("charge"); E.face.classList.remove("charge"); E.body.classList.remove("charge"); }
   function release() { clearTimeout(lpT); unCharge(); E.face.classList.remove("pressed"); E.body.classList.remove("pressed"); E.core.classList.remove("hot"); }
   function bindCore() {
     var f = E.face;
     f.addEventListener("pointerdown", function (e) {
       if (e.button > 0) return; e.preventDefault();
-      try { f.setPointerCapture(e.pointerId); } catch (x) {}
+      try { f.setPointerCapture(e.pointerId); } catch (x) {} pid = e.pointerId;
       f.classList.add("pressed"); E.body.classList.add("pressed"); E.core.classList.add("hot"); moved = false;
       if (hosted) { var fr0 = E.face.getBoundingClientRect(); px.x = px.t = fr0.left + fr0.width / 2; py.x = py.t = fr0.top + fr0.height / 2; px.v = py.v = 0; }
       downAt = [e.clientX, e.clientY]; grab = [e.clientX - px.x, e.clientY - py.x];
@@ -586,23 +635,32 @@
   function onKey(e) { if (e.key !== "Escape" || !root) return; if (AL.on) almaEnd(false); else if (st.S !== 1) setS(1); }
   function placeDots() { E.dots.querySelectorAll(".san-dot").forEach(function (s) { var p = anchorPt(s.dataset.a); s.style.left = p.x + "px"; s.style.top = p.y + "px"; }); }
   function startDrag() {
-    hostOut(); unCharge(); E.scrim.classList.add("moving"); dragging = true; prevS = st.S; zoom.to(K(), .45, .85);
+    /* sacarlo del botón de la página mueve el nodo y el navegador suelta la captura del dedo: se vuelve a capturar */
+    var was = hosted; hostOut(); if (was && pid != null) { try { E.face.setPointerCapture(pid); } catch (x) {} }
+    unCharge(); E.scrim.classList.add("moving"); dragging = true; prevS = st.S; zoom.to(K(), .45, .85);
     E.face.classList.remove("pressed"); E.face.classList.add("lift"); E.body.classList.remove("pressed", "charge"); E.body.classList.add("lift"); E.core.classList.add("lifted"); d.body.classList.add("san-dragging");
     try { getSelection().removeAllRanges(); } catch (e) {}
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
     st.S = 1; cancelPend(navP.concat(fanP, arm));
     arm.forEach(function (s) { s.to(0, .26, 1); }); navP.forEach(function (s) { s.to(0, .2, 1); }); fanP.forEach(function (s) { s.to(0, .2, 1); });
     E.face.dataset.mode = "idle"; E.catch.classList.remove("on");
+    ptsCache = null; var pc = {}; ANCH.forEach(function (a) { pc[a] = anchorPt(a); }); ptsCache = pc;
     placeDots(); E.dots.classList.add("on"); hist = [{ x: px.x, y: py.x, t: performance.now() }]; kick();
   }
   function project(v) { var dd = .99; return (v / 1000) * dd / (1 - dd); }
-  function nearest(x, y) { var b = null, bd = 1e9; ANCH.forEach(function (a) { var p = anchorPt(a), dd = Math.hypot(p.x - x, p.y - y); if (dd < bd) { bd = dd; b = a; } }); return b; }
-  function markNear(x, y) { var n = nearest(x, y); E.dots.querySelectorAll(".san-dot").forEach(function (s) { s.classList.toggle("near", s.dataset.a === n); }); }
+  function nearest(x, y, raw) { var b = null, bd = 1e9; ANCH.forEach(function (a) { var p = anchorPt(a, raw), dd = Math.hypot(p.x - x, p.y - y); if (dd < bd) { bd = dd; b = a; } }); return b; }
+  function markNear(x, y) {
+    var n = nearest(x, y); E.dots.querySelectorAll(".san-dot").forEach(function (s) { s.classList.toggle("near", s.dataset.a === n); });
+    /* acercarlo a la ranura del encabezado ya va abriendo espacio */
+    var p = ptsCache && ptsCache[n]; if (p && p.slot) { var sl = slotFor(n); if (sl) slotPush(sl.el); } else if (slotEl) slotPull();
+  }
   function endDrag() {
     dragging = false; E.face.classList.remove("lift"); E.body.classList.remove("lift"); E.core.classList.remove("lifted", "hot"); d.body.classList.remove("san-dragging"); E.dots.classList.remove("on");
     var a = hist[0], b = hist[hist.length - 1], dt = Math.max(16, b.t - a.t), vx = (b.x - a.x) / dt * 1000, vy = (b.y - a.y) / dt * 1000;
     if (performance.now() - b.t > 90) vx = vy = 0;
-    moveTo(nearest(px.x + project(vx), py.x + project(vy)), vx, vy);
+    var to = nearest(px.x + project(vx), py.x + project(vy)), pt = ptsCache && ptsCache[to]; ptsCache = null;
+    if (pt && pt.dock) { E.scrim.classList.remove("moving"); redock(); if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {} return; }
+    moveTo(to, vx, vy);
     if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
   }
   function moveTo(a, vx, vy) {
@@ -610,6 +668,8 @@
     zoom.to(K(), .5, .8);
     st.anchor = a; setCk("sa_nav_pos", a);
     var p = anchorPt(a); px.to(p.x, .46, .78, vx); py.to(p.y, .46, .78, vy); placeScrim();
+    if (p.slot) { var sl = slotFor(a); if (sl) slotPush(sl.el); } else slotPull();
+    setTimeout(dockSchedule, 700);
     setTimeout(function () { if (E.scrim) E.scrim.classList.remove("moving"); }, 250);
     var back = (prevS === 2 || prevS === 4) ? 2 : 1; prevS = 1;
     setTimeout(function () { if (!root) return; st.S = 0; setS(back); }, 170);
@@ -876,15 +936,16 @@
   }
   function startStoneDrag() {
     stoneDrag = true; sHist = []; aSq.to(0, .3, 1); aDX.x = aDX.t = aDY.x = aDY.t = 0; aS.to(Math.max(110, faceD() * 1.6), .4, .85); E.ov.classList.add("min");
-    if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {} placeDots(); E.dots.classList.add("on");
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+    var pc = {}; ANCH.forEach(function (a) { pc[a] = anchorPt(a, true); }); ptsCache = pc; placeDots(); E.dots.classList.add("on");
   }
   function endStoneDrag() {
-    stoneDrag = false; E.dots.classList.remove("on");
+    stoneDrag = false; E.dots.classList.remove("on"); ptsCache = null;
     var a = sHist[0] || { x: aX.x, y: aY.x, t: 0 }, b = sHist[sHist.length - 1] || a, dt = Math.max(16, b.t - a.t), vx = (b.x - a.x) / dt * 1000, vy = (b.y - a.y) / dt * 1000;
     if (performance.now() - b.t > 90) vx = vy = 0;
-    var an = nearest(aX.x + project(vx), aY.x + project(vy)); st.anchor = an; setCk("sa_nav_pos", an);
+    var an = nearest(aX.x + project(vx), aY.x + project(vy), true); st.anchor = an; setCk("sa_nav_pos", an);
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
-    var p = anchorPt(an); px.x = px.t = p.x; py.x = py.t = p.y; zoom.x = zoom.t = K(); arms = armsFor(an); placeScrim(); kick();
+    var p = anchorPt(an, true); px.x = px.t = p.x; py.x = py.t = p.y; zoom.x = zoom.t = K(); arms = armsFor(an); placeScrim(); kick();
     aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(74 * K(), .55, .8); aL.to(.2, .55, .6); aH.to(1, .55, .45);
     E.ov.classList.remove("on", "chat", "min"); AL.on = false; AL.min = true; AL.chat = false; E.scrim.style.opacity = "";
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(false); } catch (x) {} }

@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-25a"></script>
+<script src="js/sa-nav.js?v=2026-10-25b"></script>
 <script src="js/alma-voz.js?v=2026-10-25a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
@@ -1357,7 +1357,7 @@
           <span style="font-size:11px; letter-spacing:.03em; color:#6F6867; white-space:nowrap">{{ almaFuente }}</span>
         </button>
       </div>
-      <div class="alma-acciones" style="display:flex; align-items:center; gap:12px; flex-shrink:0">
+      <div class="alma-acciones" data-sa-slot="tr" style="display:flex; align-items:center; gap:12px; flex-shrink:0">
         <div class="alma-tg-desk" style="position:relative; align-items:center; width:440px">
       <div role="tablist" aria-label="Vista" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.5fr 1fr; height:48px; padding:4px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
         <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left .32s cubic-bezier(.22,.61,.36,1), width .32s cubic-bezier(.22,.61,.36,1); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
@@ -3480,7 +3480,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-25a";
+  BUILD = "2026-10-25b";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,

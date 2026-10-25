@@ -9,10 +9,26 @@
 (function (w) {
   "use strict";
   var SDK = new URL("vendor/eleven-ws.js?v=1.27.0a", (document.currentScript && document.currentScript.src) || location.href).href;
-  var KEY = "sa_alma_voz_ficha", VIGENCIA = 12 * 3600e3;
-  var mod = null, modP = null, idP = null, idT = 0, ctx = null, ctxKey = "", vivo = null;
+  var mod = null, modP = null;
+  function loadSdk() { if (mod) return Promise.resolve(mod); if (!modP) modP = import(SDK).then(function (m) { mod = m; return m; }, function (e) { modP = null; throw e; }); return modP; }
+  /* Proveedor de voz para el menú compartido. El Hub usa el de siempre (SAAlmaVoz); otra app crea el suyo con
+     SAAlmaVoz.crear({
+       clave: "gsp_alma_ficha",              ficha guardada en el teléfono (cada app la suya)
+       ficha: () => Promise<{ ok, agent_id, dynamic_variables, first_message }>,   quién habla (lo da la app)
+       vincular: (conversationId) => Promise, liga la llamada en su servidor (opcional)
+       contexto: (c) => texto,                qué hay en pantalla (opcional)
+       campoContexto: "en_pantalla",          variable del agente donde va ese texto (opcional)
+       herramientas: { nombre: fn(params) },  herramientas del lado de la app (client tools de ElevenLabs)
+       alMensaje: (origen, texto) => {},      para guardar la conversación donde corresponda (opcional)
+       alTerminar: () => {}
+     }) */
+  function crear(o) {
+  o = o || {};
+  var KEY = o.clave || "sa_alma_voz_ficha", VIGENCIA = 12 * 3600e3;
+  var idP = null, idT = 0, ctx = null, ctxKey = "", vivo = null;
   /* Conversación abierta en pantalla (la pone el Hub): si Juan dice «escríbele…» sin decir a quién, es esta. */
   function ctxTexto(c) {
+    if (o.contexto) return o.contexto(c);
     if (!c) return "EN PANTALLA: no hay una conversación de huésped abierta. Si mencionan una reserva, un huésped o un apartamento, búscalo como siempre con secretaria.";
     var d = [c.huesped, c.propiedad, c.fechas].filter(Boolean).join(" · ");
     if (c.vista) return "EN PANTALLA: " + (c.nombre || "Juan") + " está en la sección «" + c.vista + "» del Hub" + (c.detalle ? " (" + c.detalle + ")" : "") + ". Úsalo como contexto de lo que pregunte; si menciona una reserva, persona o apartamento, búscalo con secretaria.";
@@ -28,14 +44,13 @@
     ctx = c; ctxKey = k;
     if (vivo && vivo.sendContextualUpdate) { try { vivo.sendContextualUpdate("Cambió la pantalla. " + ctxTexto(c)); } catch (e) {} }
   }
-  function loadSdk() { if (mod) return Promise.resolve(mod); if (!modP) modP = import(SDK).then(function (m) { mod = m; return m; }, function (e) { modP = null; throw e; }); return modP; }
   function leerFicha() { try { var j = JSON.parse(localStorage.getItem(KEY) || "null"); return j && j.agent_id && Date.now() - j.t < VIGENCIA ? j : null; } catch (e) { return null; } }
-  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "" })); } catch (e) {} }
+  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "", language: j.language || "" })); } catch (e) {} }
   /* Pide la ficha al Hub (como mucho una vez cada 20 s). */
   function renovar() {
     if (idP && Date.now() - idT < 20000) return idP;
     idT = Date.now();
-    idP = (w.ALMA && w.ALMA.vozWeb ? w.ALMA.vozWeb(true) : Promise.resolve({ ok: false, error: "ALMA no disponible" })).then(function (j) {
+    idP = (o.ficha ? Promise.resolve().then(o.ficha) : w.ALMA && w.ALMA.vozWeb ? w.ALMA.vozWeb(true) : Promise.resolve({ ok: false, error: "ALMA no disponible" })).then(function (j) {
       if (j && j.ok && j.agent_id) guardarFicha(j);
       else idP = null;
       return j;
@@ -65,11 +80,12 @@
   }
   /* Liga la llamada al administrador en el Hub; si falla (red, Hub dormido), reintenta. */
   function vincular(id, n) {
-    if (!w.ALMA || !w.ALMA.vozWebVincular) return;
-    Promise.resolve(w.ALMA.vozWebVincular(id)).then(function (r) { if ((!r || !r.ok) && n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); },
+    var fn = o.vincular || (w.ALMA && w.ALMA.vozWebVincular); if (!fn) return;
+    Promise.resolve().then(function () { return fn(id); }).then(function (r) { if ((!r || !r.ok) && n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); },
       function () { if (n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); });
   }
-  function conCtx(dv) { var o = {}; for (var k in dv) o[k] = dv[k]; o.quien_llama = (o.quien_llama || "") + "\n\n" + ctxTexto(ctx); return o; }
+  /* El contexto de pantalla va en una variable del agente: en el Hub se suma a quien_llama; otra app puede usar la suya (o.campoContexto). */
+  function conCtx(dv) { var r = {}; for (var k in dv) r[k] = dv[k]; if (o.campoContexto) r[o.campoContexto] = ctxTexto(ctx); else r.quien_llama = (r.quien_llama || "") + "\n\n" + ctxTexto(ctx); return r; }
   function start(h) {
     unlockAudio();
     var enChat = false;
@@ -77,12 +93,13 @@
       var opt = {
         agentId: f.agent_id, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
         onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId) vincular(x.conversationId, 0); },
-        onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) h.message(x.source, t); },
+        onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
         onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
-        onDisconnect: function () { vivo = null; h.ended(); },
+        onDisconnect: function () { vivo = null; h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } },
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
-      if (f.first_message) opt.overrides = { agent: { firstMessage: f.first_message } };
+      if (o.herramientas) opt.clientTools = o.herramientas;
+      if (f.first_message || f.language) { opt.overrides = { agent: {} }; if (f.first_message) opt.overrides.agent.firstMessage = f.first_message; if (f.language) opt.overrides.agent.language = f.language; }
       return m.Conversation.startSession(opt);
     }
     return Promise.all([ficha(), loadSdk()]).then(function (r) {
@@ -105,5 +122,8 @@
       };
     });
   }
-  w.SAAlmaVoz = { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto };
+  return { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto };
+  }
+  w.SAAlmaVoz = crear({});
+  w.SAAlmaVoz.crear = crear;
 })(window);

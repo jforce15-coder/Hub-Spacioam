@@ -210,3 +210,34 @@ function personalContextoDe_(nombres) {
     return h ? '— Conversación con ' + r.nombre + ':\n' + h : '';
   }).filter(Boolean).join('\n\n').slice(0, 4000);
 }
+
+/* ═══ Robot: corregir avisos de primer contacto ═══════════════════════════════════════════════════════════
+   contactoCancelar_(tel): borra el mensaje guardado para ese número y cierra sus encargos abiertos (se envió por error).
+   contactoReenviar_(tel, nombre, texto, plantilla): vuelve a mandar el aviso ('personal' = «soy Alma, la asistente de
+   Juan. ¿Tienes un minuto?», más cercano; 'contacto' = el de Spacio AM) y deja «texto» como el único mensaje que le
+   llega al responder. La conversación sigue siendo de trabajo (encargo), no personal. */
+function contactoCancelar_(tel) {
+  var k = fin8_(tel); if (!k) return { ok: false, error: 'número' };
+  var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
+  var habia = (pend[k] || []).length; delete pend[k]; p.setProperty('WA_PEND', JSON.stringify(pend));
+  var cerrados = 0, sh = hojaEnc_(), n = sh.getLastRow();
+  if (n >= 2) sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues().forEach(function (r, i) { if (fin8_(r[5]) === k && r[7] === 'abierto') { sh.getRange(i + 2, 8, 1, 3).setValues([['cancelado', 'Enviado por error: cancelado por el administrador.', new Date().toISOString()]]); cerrados++; } });
+  return { ok: true, mensajes_borrados: habia, encargos_cerrados: cerrados };
+}
+function contactoReenviar_(tel, nombre, texto, plantilla) {
+  var wa = normTel_(tel); if (!wa || !String(texto || '').trim()) return { ok: false, error: 'faltan número o texto' };
+  var personal = plantilla === 'personal', tpl = personal ? PERSONAL_PLANTILLA_ : CONTACTO_PLANTILLA_;
+  if (personal ? !personalPlantillaOk_() : !contactoPlantillaOk_()) return { ok: false, error: 'plantilla ' + tpl + ' no aprobada' };
+  var W = waCfg_(), primer = String(nombre || '').split(' ')[0] || 'qué tal';
+  var params = personal ? [primer, 'Juan'] : [primer, 'Juan Ovalle'];
+  var rr = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + W.token },
+    payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: tpl, language: { code: 'es' }, components: [
+      { type: 'body', parameters: params.map(function (v) { return { type: 'text', text: String(v).slice(0, 60) }; }) }] } }) });
+  if (rr.getResponseCode() >= 300) return { ok: false, error: 'Meta: ' + rr.getContentText().slice(0, 200) };
+  var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
+  pend[fin8_(wa)] = [{ texto: String(texto).slice(0, 3500), ts: Date.now(), nombre: nombre || '' }];
+  p.setProperty('WA_PEND', JSON.stringify(pend));
+  contactoRegistrar_(wa, nombre, '[' + (personal ? 'plantilla: ¿tienes un minuto?' : 'plantilla de primer contacto') + '] · pendiente: ' + texto);
+  return { ok: true, plantilla: tpl };
+}

@@ -452,6 +452,8 @@ function encargoCerrarConLlamada_(tel, d, resumen) {
   if (adm) { try { opGuardar_(adm, 'alma', 'llamada', texto, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + e.persona }]); } catch (x) {} }
   var dest = normTel_(e.solicitante_tel) || (adm && adm.tels[0]);
   if (dest) { try { waEnviar_(dest, texto); } catch (x) { console.error('encargo aviso: ' + x); } }
+  /* Lo que el encargo dejaba para después de hablar (crear un reporte, una tarea, asignar a alguien) también se hace. */
+  if (adm && adm.tels && adm.tels[0] && /(crea|crear|asign|reporte|tarea|program|agend)/i.test(e.objetivo)) { try { vozSecEncolar_(adm.tels[0], 'Terminé la llamada con ' + e.persona + '. Resumen:\n' + res + '\n\nAhora haz lo que falte del encargo (tareas, reportes, asignaciones). No vuelvas a contactar a ' + e.persona + '. Encargo: ' + e.objetivo); } catch (x) { console.error('encargo después: ' + x); } }
 }
 
 /* La persona a la que ALMA le escribió por encargo (escribir_a_equipo con al_responder) responde por WhatsApp.
@@ -462,7 +464,8 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   try { hojaWA_().appendRow([ts, wa, nombre, 'in', String(texto).slice(0, 4000), msgId, 'wa:' + wa, 'text', 'encargo', (media || []).join(' ')]); } catch (x) {}
   var adm = adminPorEmail_(e.solicitante) || {}, quien = e.persona || nombre || ('+' + wa), de = adm.nombre || 'el equipo';
   try { inboxUpsert_('wa:' + wa, { huesped: quien, propiedad: 'WhatsApp · Encargo de ' + de, tipo: 'interno', canal: 'whatsapp', wa: wa, ultimo_canal: 'whatsapp', ultimo_texto: String(texto).slice(0, 300), ultimo_de: 'guest', ultimo_ts: ts, ultimo_guest_ts: ts }); } catch (x) {}
-  var obj = String(e.objetivo || ''), despues = (obj.split('Cuando responda:')[1] || '').trim();
+  /* «Cuando responda: …» (escribir_a_equipo) o, en un encargo de conversación (encargar_conversacion), lo que quede del objetivo después de hablar. */
+  var obj = String(e.objetivo || ''), despues = /Cuando responda:/.test(obj) ? (obj.split('Cuando responda:')[1] || '').trim() : obj.trim();
   var hist = []; try { hist = waHilo_('wa:' + wa).slice(-18).map(function (m) { return (m.tipo === 'guest' ? quien : 'ALMA') + ': ' + String(m.texto || '').replace(/^\[plantilla[^\]]*\]\s*·\s*pendiente:\s*/, '[aviso de primer contacto] ').slice(0, 700); }); } catch (x) {}
   var sys = 'Eres Alma, del equipo de Spacio AM (alojamientos boutique en Guatemala). Conversas por WhatsApp con ' + quien + ' por encargo de ' + de + '. ' +
     'Tono cálido, directo y breve, de tú, sin voseo ni «va», «dale» o «ahorita». Una o dos preguntas por mensaje, nunca un formulario. ' +
@@ -479,10 +482,12 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   if (String(out.para_admin || '').trim()) avisar(quien + ' pregunta algo que debes decidir tú:\n\n' + String(out.para_admin).trim() + '\n\n(Dime qué le respondo.)', 'Consulta de ' + quien);
   if (!out.completo) return;
   var res = String(out.resumen || '').trim() || '(sin resumen)';
-  try { hojaEnc_().getRange(e.fila, 8, 1, 3).setValues([['cumplido', res.slice(0, 4000), new Date().toISOString()]]); } catch (x) {}
+  /* Se cierran todos los encargos abiertos con esta persona del mismo administrador (los seguimientos repetidos). */
+  try { var shE = hojaEnc_(), vE = shE.getRange(2, 1, shE.getLastRow() - 1, ENC_CAB_.length).getValues(), hoyE = new Date().toISOString();
+    vE.forEach(function (r, i) { if (fin8_(r[5]) === fin8_(wa) && r[7] === 'abierto' && String(r[2]) === String(e.solicitante)) shE.getRange(i + 2, 8, 1, 3).setValues([['cumplido', res.slice(0, 4000), hoyE]]); }); } catch (x) {}
   avisar('Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + res + (despues ? '\n\nAhora hago lo que me pediste para después y te confirmo.' : ''), 'Encargo cumplido · ' + quien);
   /* Lo que pidió para cuando respondiera: lo hace la secretaria en su nombre (en segundo plano) y le confirma por WhatsApp. */
-  if (despues && adm.tels && adm.tels[0]) { try { vozSecEncolar_(adm.tels[0], 'Terminé la conversación con ' + quien + ' (+' + normTel_(wa) + '). Esto es lo que reunió:\n' + res + '\n\nAhora haz lo que me pediste para cuando respondiera: ' + despues); } catch (x) { console.error('encargo después: ' + x); } }
+  if (despues && adm.tels && adm.tels[0]) { try { vozSecEncolar_(adm.tels[0], 'Terminé la conversación con ' + quien + ' (+' + normTel_(wa) + '). Esto es lo que reunió:\n' + res + '\n\nAhora haz lo que falte del encargo (lo que me pediste para después: tareas, reportes, asignaciones). No vuelvas a escribirle a ' + quien + '. Encargo: ' + despues); } catch (x) { console.error('encargo después: ' + x); } }
 }
 
 /* Encargos abiertos donde esta persona es a quien se le pidió algo (por sus teléfonos). */

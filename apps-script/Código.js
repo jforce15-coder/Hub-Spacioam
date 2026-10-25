@@ -647,7 +647,8 @@ function hubInbox_() {
   return sh.getRange(2, 1, sh.getLastRow() - 1, INBOX_CAB_.length).getValues()
     .map(v => { const o = {}; INBOX_CAB_.forEach((k, i) => o[k] = v[i] instanceof Date ? v[i].toISOString() : String(v[i])); return o; })
     .filter(o => !(String(o.conv_id).indexOf('wa:') === 0 && admTel[fin8_(String(o.conv_id).slice(3))]))
-    .sort((a, b) => actividadInbox_(b) - actividadInbox_(a)).slice(0, 250);
+    .sort((a, b) => actividadInbox_(b) - actividadInbox_(a)).slice(0, 250)
+    .map(o => { if (String(o.conv_id).indexOf('wa:') !== 0) return o; let f = null; try { f = contactoFicha_(o.conv_id.slice(3)); } catch (e) {} if (f) { o.contacto_tipo = f.tipo; o.contacto_estado = f.estado; o.contacto_rol = f.rol; if (f.nombre && (!o.huesped || /^\+?\d+$/.test(o.huesped))) o.huesped = f.nombre; } return o; });   // ficha del contacto (contactos.js)
 }
 
 function doGet(e) {
@@ -704,7 +705,8 @@ function procesarCola() {
   try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
   try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
-  try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
+  try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }
+  try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)   // ALMA voz: mismo prompt vivo (voz.js)
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
 }
 function procesarColaNucleo_() {
@@ -4102,6 +4104,7 @@ function waEntrante_(m, nombre) {
     return;
   }
   hojaWA_().appendRow([ts, wa, nombre, 'in', texto.slice(0, 4000), s_(m.id), convId, s_(m.type), '', media.join(' ')]);
+  if (!res && (actor !== 'externo' || cat !== 'reserva')) { try { contactoEncolar_(wa, ''); } catch (e) {} }   // proveedor, técnico, socio… (contactos.js)
   let pre = {}; try { pre = preContexto_(convId); } catch (e) {}
   inboxUpsert_(convId, { codigo: pre.codigo, huesped: pre.huesped || nombre || '+' + wa, foto: pre.foto, propiedad: res ? (pre.propiedad || 'Reserva') : (RUTA_NOMBRE_[cat] || 'WhatsApp · Posible reserva'),
     tipo: res ? (pre.tipo || 'reserva') : cat, checkin: pre.checkin, checkout: pre.checkout, canal: pre.canal || 'whatsapp', wa: wa, ultimo_canal: 'whatsapp',
@@ -4900,6 +4903,9 @@ function dsBotApi_(body) {
       case 'contacto_reenviar': return json_(contactoReenviar_(String(body.tel || ''), String(body.nombre || ''), String(body.texto || ''), String(body.plantilla || 'contacto')));
       case 'wa_diag': return json_(waDiag_());
       case 'op_rango': { const n0 = Math.min(400, Number(body.n) || 80); return json_({ ok: true, filas: opFilas_('', n0).filter(m => !body.desde || String(m.ts) >= String(body.desde)).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: String(m.texto).slice(0, 600), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) }); }
+      case 'contactos': return json_({ ok: true, contactos: contactosTodos_().map(c => ({ tel: '…' + String(c.tel).slice(-4), nombre: c.nombre, tipo: c.tipo, rol: c.rol, estado: c.estado, actualizado: String(c.actualizado).slice(0, 10) })) });
+      case 'contactos_rellenar': return json_(contactosRellenar_());
+      case 'contacto_clasificar': return json_({ ok: true, ficha: contactoClasificar_(String(body.tel || ''), String(body.contexto || ''), true) });
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);

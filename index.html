@@ -3509,7 +3509,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-25g";
+  BUILD = "2026-10-25h";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -7289,6 +7289,9 @@ class Component extends DCLogic {
     var logoDe = function (dom) { return "https://www.google.com/s2/favicons?sz=64&domain=" + dom; };
     var esWA = function (g) { var ib = inboxPor[g.key]; return String(g.key).indexOf("wa:") === 0 || !!(ib && ib.wa); };
     var esHosp = function (g) { return String(g.key).indexOf("wa:") !== 0; };
+    /* Contactos agrupados por su ficha (contactos.js): proveedores y técnicos por un lado, socios y potenciales socios por otro. */
+    var tipoC = function (g) { var ib = inboxPor[g.key]; return String(g.key).indexOf("wa:") === 0 && ib ? String(ib.contacto_tipo || "") : ""; };
+    var esProv = function (g) { return /^(proveedor|tecnico)$/.test(tipoC(g)); }, esSocio = function (g) { return /socio/.test(tipoC(g)); };
     var canalVM = function (g) {
       var ib = inboxPor[g.key] || {}, k = ib.ultimo_canal === "whatsapp" || String(g.key).indexOf("wa:") === 0 ? "whatsapp" : (ib.canal || "");
       var C = CANAL[k]; if (!C) return { canalHay: false };
@@ -7300,6 +7303,7 @@ class Component extends DCLogic {
     var gruposSinCanal = grupos;
     if (st.convCanal === "operativo") grupos = gruposOp.sort(function (x, y) { return (y.ts || 0) - (x.ts || 0); });
     else if (st.convCanal === "whatsapp") grupos = grupos.filter(esWA); else if (st.convCanal === "hospitable") grupos = grupos.filter(esHosp);
+    else if (st.convCanal === "proveedores") grupos = grupos.filter(esProv); else if (st.convCanal === "socios") grupos = grupos.filter(esSocio);
     var canalFiltros = [["whatsapp", "WhatsApp", "W", "#128C7E", esWA, "whatsapp.com"], ["hospitable", "Hospitable", "H", "#3E3F3F", esHosp, "hospitable.com"]].map(function (x) {
       var on = st.convCanal === x[0], n = gruposSinCanal.filter(function (g) { return !g.resuelto && x[4](g); }).length;
       var set = function () { self.setState({ convCanal: on ? "" : x[0], convIdx: 0, briefIdx: 0 }); self.convReset(); };
@@ -7323,6 +7327,12 @@ class Component extends DCLogic {
       ib = ib || inboxPor[key] || {};
       var inq = String(key || "").indexOf("inq:") === 0 || /consulta|inquiry/i.test(ib.tipo || "");
       if (inq) return { txt: "Inquiry", bg: "rgba(59,102,145,.12)", fg: "#3B6691" };
+      /* Contactos sin reserva (proveedor, técnico, socio…): su tipo y en qué está, como las etapas de una reserva. */
+      if (String(key || "").indexOf("wa:") === 0 && ib.contacto_tipo) {
+        var TN = { proveedor: "Proveedor", tecnico: "Técnico", socio: "Socio", potencial_socio: "Potencial socio", recepcion: "Recepción", equipo: "Equipo", otro: "Contacto" };
+        var CS = /socio/.test(ib.contacto_tipo) ? { bg: "rgba(59,102,145,.12)", fg: "#3B6691" } : /proveedor|tecnico/.test(ib.contacto_tipo) ? { bg: "rgba(147,139,138,.16)", fg: "#5E5857" } : { bg: "#F5F3F0", fg: "#6F6867" };
+        return Object.assign({ txt: (TN[ib.contacto_tipo] || "Contacto") + (ib.contacto_estado ? " · " + ib.contacto_estado : "") }, CS);
+      }
       if (String(key || "").indexOf("wa:") === 0 || String(key || "").indexOf("op:") === 0 || !ib.checkin) return null;
       var d0 = new Date(); d0.setHours(0, 0, 0, 0);
       var dia = function (x) { var m = String(x || "").match(/(\d{4})-(\d\d)-(\d\d)/); return m ? Math.round((new Date(+m[1], +m[2] - 1, +m[3]) - d0) / 86400000) : null; };
@@ -7915,7 +7925,7 @@ class Component extends DCLogic {
       mVistaThumb: (st.mVista || "resumen") === "lista" ? "translateX(100%)" : "translateX(0)",
       mTabs: (function () {
         var mv = st.mVista === "lista" || st.mVista === "atencion" ? st.mVista : "resumen", ab = !!st.filtroMenu;
-        var sub = st.convCanal === "operativo" ? "Equipo" : st.convCanal === "whatsapp" ? "WhatsApp" : st.convCanal === "hospitable" ? "Hospitable" : st.convSolo === "ALMA" ? "Respondió ALMA" : st.convSolo === "EQUIPO" ? "Respondió equipo" : st.convVista === "resueltas" ? "Resueltas" : "Requiere atención";
+        var sub = st.convCanal === "operativo" ? "Equipo" : st.convCanal === "whatsapp" ? "WhatsApp" : st.convCanal === "hospitable" ? "Hospitable" : st.convCanal === "proveedores" ? "Proveedores y técnicos" : st.convCanal === "socios" ? "Socios" : st.convSolo === "ALMA" ? "Respondió ALMA" : st.convSolo === "EQUIPO" ? "Respondió equipo" : st.convVista === "resueltas" ? "Resueltas" : "Requiere atención";
         return [["resumen", "Resumen"], ["atencion", mv === "atencion" ? sub : "Requiere atención"], ["lista", "Ver todo"]].map(function (x) {
           var on = mv === x[0], esA = x[0] === "atencion";
           return { label: x[1], activo: on ? "true" : "false", fg: on ? "#3E3F3F" : "#6F6867", menu: esA, popup: esA ? "listbox" : "false", exp: esA && ab ? "true" : "false", chev: esA && ab ? "rotate(180deg)" : "rotate(0deg)", punto: esA && !on && nAtn > 0,
@@ -7935,6 +7945,8 @@ class Component extends DCLogic {
           ["VERDE", "Resueltas", "#3d6b52", cnt(function (g) { return enNivel(g, "VERDE"); }), { convVista: "resueltas" }, !cOn && st.convVista === "resueltas" && !st.convSolo],
           ["WA", "WhatsApp", "#128C7E", cnt(function (g) { return !g.resuelto && esWA(g); }), { convCanal: "whatsapp" }, cOn === "whatsapp"],
           ["HOSP", "Hospitable", "#938B8A", cnt(function (g) { return !g.resuelto && esHosp(g); }), { convCanal: "hospitable" }, cOn === "hospitable"],
+          ["PROV", "Proveedores y técnicos", "#5E5857", cnt(esProv), { convCanal: "proveedores", convOrden: "Cronológico" }, cOn === "proveedores"],
+          ["SOC", "Socios", "#3B6691", cnt(esSocio), { convCanal: "socios", convOrden: "Cronológico" }, cOn === "socios"],
           ["OP", esPrincipal ? "Equipo · chats con ALMA" : "Mi chat con ALMA", "#3E3F3F", null, { convCanal: "operativo", convOrden: "Cronológico" }, cOn === "operativo"]
         ];
         var act = defs.filter(function (d) { return d[5]; })[0] || defs[1], ab = !!st.filtroMenu;

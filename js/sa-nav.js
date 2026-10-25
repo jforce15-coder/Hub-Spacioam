@@ -216,6 +216,10 @@
     "[data-sa-slot]{transition:padding-right .55s cubic-bezier(.34,1.45,.6,1)}[data-sa-slot].san-slotted{position:relative;padding-right:var(--san-slot-w)!important}",
     ".san-slothost{position:absolute;top:50%;width:0;height:0;visibility:visible;z-index:5;pointer-events:none}.san-slothost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
     "@media (prefers-reduced-motion:reduce){[data-sa-slot]{transition:none}}",
+    /* portal: la piedra de Alma cubre la pantalla al irse a otra página y la recibe al llegar */
+    ".san-scope.san-portal{position:fixed;inset:0;z-index:2147483600;overflow:hidden;pointer-events:auto;touch-action:none}",
+    ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;pointer-events:none}",
+    ".san-scope .san-pcap{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(320px,82vw);text-align:center;font:500 15px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#6F6867;opacity:0;pointer-events:none}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
     ".san-scope.docked .san-hint{display:none}",
     "@media print{#sa-nav-root{display:none!important}}"
@@ -993,6 +997,64 @@
     }, 600);
   }
 
+  /* ================= portal =================
+     SANav.portal("out", { texto }) → la piedra sale del botón, sube y crece hasta cubrir la pantalla (como si Alma te
+     llevara a otro lado). Resuelve con una función para deshacerlo si al final no se salió de la página.
+     SANav.portal("in", { texto }) → la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar en el botón. */
+  var PB = 140;
+  function portalPt() {
+    if (root && !root.hidden && E.face) { var r = E.face.getBoundingClientRect(); if (r.width > 4) return { x: r.left + r.width / 2, y: r.top + r.height / 2, s: r.width / PB }; }
+    var p = anchorPt(st.anchor || "bc", true); return { x: p.x, y: p.y, s: 74 * K() / PB };
+  }
+  function portal(dir, o) {
+    o = o || {};
+    if (!d.getElementById("sa-nav-css")) { var cs = d.createElement("style"); cs.id = "sa-nav-css"; cs.textContent = CSS; d.head.appendChild(cs); }
+    var pv = d.createElement("div"); pv.className = "san-scope san-portal"; pv.setAttribute("aria-hidden", "true");
+    pv.innerHTML = '<div class="san-rock san-pp"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div></div><div class="san-pcap"></div>';
+    d.body.appendChild(pv);
+    var rk = pv.firstChild, sp = rk.querySelector(".san-st-spark"), cap = pv.lastChild; cap.textContent = o.texto || "";
+    var b = portalPt(), cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
+    var T = function (x, y, k) { return "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + k.toFixed(4) + ")"; };
+    var tengo = !!(root && E.face); if (tengo) hideCore(true);
+    var fin = function () { if (pv.parentNode) pv.remove(); if (tengo && root) { hideCore(false); surge(); } };
+    var recibir = function (ok, espera) {
+      if (RM || !rk.animate) { pv.animate ? pv.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260 }).onfinish = function () { fin(); ok(); } : (fin(), ok()); return; }
+      setTimeout(function () {
+        cap.animate([{ opacity: +getComputedStyle(cap).opacity }, { opacity: 0 }], { duration: 260, fill: "forwards" });
+        sp.animate([{ opacity: 0 }, { opacity: 0, offset: .4 }, { opacity: 1 }], { duration: 1250, fill: "forwards" });
+        var a = rk.animate([
+          { transform: T(cx, cy, sC) },
+          { transform: T(cx, cy, b.s * 2.3), offset: .45, easing: "cubic-bezier(.4,0,.2,1)" },
+          { transform: T(b.x, b.y - 12, b.s * 1.1), offset: .8, easing: "cubic-bezier(.3,0,.2,1)" },
+          { transform: T(b.x, b.y + 2, b.s * .95), offset: .91 },
+          { transform: T(b.x, b.y, b.s) }
+        ], { duration: 1250, fill: "forwards", easing: "linear" });
+        a.onfinish = function () { fin(); ok(); };
+      }, espera);
+    };
+    return new Promise(function (ok) {
+      if (dir === "in") {
+        rk.style.transform = T(cx, cy, sC); sp.style.opacity = 0; if (o.texto) cap.style.opacity = 1;
+        recibir(ok, o.espera != null ? o.espera : 450); return;
+      }
+      var deshacer = function () { return new Promise(function (ok2) { recibir(ok2, 0); }); };
+      if (RM || !rk.animate) { rk.style.transform = T(cx, cy, sC); cap.style.opacity = 1; pv.animate && pv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 }); setTimeout(function () { ok(deshacer); }, 240); return; }
+      sp.animate([{ opacity: 1 }, { opacity: 1, offset: .45 }, { opacity: 0 }], { duration: 1150, fill: "forwards" });
+      var a = rk.animate([
+        { transform: T(b.x, b.y, b.s) },
+        { transform: T(b.x, b.y + 4, b.s * .86), offset: .1 },
+        { transform: T(b.x, b.y - 16, b.s * 1.18), offset: .24, easing: "cubic-bezier(.3,0,.2,1)" },
+        { transform: T(cx, cy, b.s * 2.2), offset: .56, easing: "cubic-bezier(.6,0,.85,.3)" },
+        { transform: T(cx, cy, sC) }
+      ], { duration: 1150, fill: "forwards", easing: "linear" });
+      if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+      a.onfinish = function () {
+        cap.animate([{ opacity: 0, transform: "translate(-50%,-40%)" }, { opacity: 1, transform: "translate(-50%,-50%)" }], { duration: 380, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
+        setTimeout(function () { ok(deshacer); }, 420);
+      };
+    });
+  }
+
   /* ================= API ================= */
   w.SANav = {
     mount: function (c) {
@@ -1030,6 +1092,7 @@
     },
     /* Abre a Alma al centro desde la app (un botón de la pantalla), igual que deslizar el botón hacia el centro. */
     alma: function () { if (!root || root.hidden || !almaOk()) return false; almaOpen(); return true; },
+    portal: portal,
     hide: function (h) { if (root) this.update({ hidden: h !== false }); },
     close: function () { if (root) setS(1); },
     unmount: function () {

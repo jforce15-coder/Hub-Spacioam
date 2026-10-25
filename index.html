@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-24l"></script>
+<script src="js/sa-nav.js?v=2026-10-25a"></script>
 <script src="js/alma-voz.js?v=2026-10-25a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-20b"></script>
@@ -3989,6 +3989,7 @@ class Component extends DCLogic {
       var okA = fA && fA.tipo !== "operativo" && !/^op:/.test(String(fA.conv_id || ""));
       /* Una conversación de WhatsApp abierta encima (subchat) manda sobre la de la lista. */
       if (this._subCtx && document.getElementById("sa-subchat")) { try { SAAlmaVoz.setContexto(this._subCtx); } catch (e) {} }
+      else if (!okA && v !== "alma") { var nomV = { hub: "Inicio", hoy: "Hoy", accion: "Acción", reviews: "Reviews", tareas: "Tareas", calendario: "Calendario", llegadas: "Llegadas", cuenta: "Cuenta" }[v] || v; try { SAAlmaVoz.setContexto({ vista: nomV, nombre: String((((window.SA && SA.session && SA.session()) || {}).nombre) || "").split(" ")[0] }); } catch (e) {} }
       else try { SAAlmaVoz.setContexto(okA ? { whatsapp: /^wa:/.test(String(fA.conv_id || "")), codigo: fA.codigo || "", conv_id: fA.conv_id || fA.resId || "", huesped: fA.huesped || "", propiedad: fA.propiedad || "", fechas: [fA.checkin || fA.check_in || "", fA.checkout || fA.check_out || ""].filter(Boolean).join(" → "), nombre: String((((window.SA && SA.session && SA.session()) || {}).nombre) || (this.state.perfil || {}).nombre || "").split(" ")[0] } : null); } catch (e) {}
     }
     var c = {

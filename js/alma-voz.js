@@ -15,13 +15,15 @@
   function ctxTexto(c) {
     if (!c) return "EN PANTALLA: no hay una conversación de huésped abierta. Si mencionan una reserva, un huésped o un apartamento, búscalo como siempre con secretaria.";
     var d = [c.huesped, c.propiedad, c.fechas].filter(Boolean).join(" · ");
-    if (c.whatsapp) return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta la conversación de WhatsApp con " + (c.huesped || "un contacto") + (c.codigo ? " (reserva " + c.codigo + ")" : "") + ". Si dice «escríbele», «respóndele», «mándale» o pregunta por esa persona sin decir otra, es ESTA conversación: pásale a secretaria el nombre " + (c.huesped || "") + (c.conv_id ? " y la conversación " + c.conv_id : "") + ". Solo si nombra a otra persona o reserva, búscala.";
+    if (c.vista) return "EN PANTALLA: " + (c.nombre || "Juan") + " está en la sección «" + c.vista + "» del Hub" + (c.detalle ? " (" + c.detalle + ")" : "") + ". Úsalo como contexto de lo que pregunte; si menciona una reserva, persona o apartamento, búscalo con secretaria.";
+    if (c.whatsapp) { var tel = String(c.conv_id || "").replace(/^wa:/, "").replace(/\D/g, ""); return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta la conversación de WhatsApp con " + (c.huesped || "un contacto") + (c.propiedad ? " (" + c.propiedad + ")" : "") + (c.codigo ? " · reserva " + c.codigo : "") + (tel ? " · número +" + tel : "") + ". Si dice «escríbele», «mándale», «respóndele», «pásale el código» o pregunta por esa persona sin nombrar a otra, es ESTA conversación: pásale a secretaria el nombre " + (c.huesped || "") + (tel ? ", el número +" + tel : "") + " y la conversación " + (c.conv_id || "") + " (para leerla: ver_conversacion con " + (c.conv_id || "") + "; para escribirle: escribir_a_equipo con ese número si es del equipo o un contacto de trabajo, o enviar_a_huesped por WhatsApp si es huésped). Solo si nombra a otra persona o reserva, búscala."; }
+    if (false) return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta la conversación de WhatsApp con " + (c.huesped || "un contacto") + (c.codigo ? " (reserva " + c.codigo + ")" : "") + ". Si dice «escríbele», «respóndele», «mándale» o pregunta por esa persona sin decir otra, es ESTA conversación: pásale a secretaria el nombre " + (c.huesped || "") + (c.conv_id ? " y la conversación " + c.conv_id : "") + ". Solo si nombra a otra persona o reserva, búscala.";
     return "EN PANTALLA: " + (c.nombre || "Juan") + " tiene abierta en el Hub la conversación de la reserva " + (c.codigo || c.conv_id || "") + (d ? " (" + d + ")" : "") + ". " +
       "Si te pide algo sobre «la reserva», «el huésped», «esta conversación», «escríbele», «mándale», «respóndele», o cualquier cosa de una reserva sin decir cuál, es ESTA: no preguntes cuál ni la busques, pásale a secretaria el pedido completo incluyendo el código " + (c.codigo || c.conv_id || "") + (c.huesped ? " y el nombre " + c.huesped : "") + ". " +
       "Solo si nombra otra reserva, otro huésped u otro apartamento distinto, búscala y resuelve como siempre.";
   }
   function setContexto(c) {
-    var k = c ? String(c.codigo || c.conv_id || "") : "";
+    var k = c ? String(c.codigo || c.conv_id || ("vista:" + (c.vista || ""))) : "";
     if (k === ctxKey) { ctx = c; return; }
     ctx = c; ctxKey = k;
     if (vivo && vivo.sendContextualUpdate) { try { vivo.sendContextualUpdate("Cambió la pantalla. " + ctxTexto(c)); } catch (e) {} }

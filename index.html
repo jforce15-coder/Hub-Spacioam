@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-25f"></script>
+<script src="js/sa-nav.js?v=2026-10-25g"></script>
 <script src="js/alma-voz.js?v=2026-10-25c"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
@@ -3509,7 +3509,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-25f";
+  BUILD = "2026-10-25g";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -3710,6 +3710,8 @@ class Component extends DCLogic {
       var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;
       var u = a.getAttribute("href") || ""; if (!/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) || /sa_sso=/.test(u)) return;
       if (self.appDentro()) { e.preventDefault(); e.stopPropagation(); self.abrirApp(u); return; }
+      /* Alma hace la transición al cambiar de app (sa-nav · SANav.ir); en otra pestaña la recibe la app nueva. */
+      if (window.SANav && SANav.ir) { e.preventDefault(); e.stopPropagation(); SANav.ir(self.conSesion(u), a.getAttribute("target") === "_blank"); return; }
       a.setAttribute("href", self.conSesion(u)); setTimeout(function () { a.setAttribute("href", u); }, 1500);
     }, true);
     /* Escritura rápida: mientras se teclea, los cambios de estado se juntan y se aplican 220 ms después de la última tecla
@@ -4031,6 +4033,8 @@ class Component extends DCLogic {
       ],
       appBadges: this.state.appNotis || {},
       alma: window.SAAlmaVoz || null,   /* deslizar el botón hacia el centro: Alma por voz (js/alma-voz.js) */
+      /* En el teléfono (o el ícono de inicio) las apps se abren en el panel del Hub, también desde el abanico del menú. */
+      abrirApp: function (u) { if (/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) && self.appDentro()) { self.abrirApp(u); return true; } return false; },
       onNavigate: function (k) { self.navIr(k); }
     };
     if (!this._navOn) { this._navOn = true; SANav.mount(c); } else SANav.update(c);
@@ -5481,14 +5485,25 @@ class Component extends DCLogic {
       el.title = NOM[k] || k; el.setAttribute("allow", "clipboard-read; clipboard-write; camera; microphone; geolocation; fullscreen");
       el.style.cssText = "position:absolute;inset:0;width:100%;height:100%;border:0;background:#FAFAFA;opacity:0;transition:opacity .25s";
       P._carga.style.opacity = "1";
-      el.onload = function () { el.style.opacity = "1"; P._carga.style.opacity = "0"; };
+      el.onload = function () { el.style.opacity = "1"; P._carga.style.opacity = "0"; var g = self._appF; if (g && g.el === el) { g.cargada = true; if (g.alListo) { var cb = g.alListo; g.alListo = null; cb(); } } };
       el.src = this.conSesion(u);
       P._cuerpo.appendChild(el);
       f = this._appF = { k: k, u: u, el: el };
     }
     P._tit.textContent = NOM[k] || k;
+    var yaAbierta = this._appAbierta;
     this._appAbierta = true;
     try { history.pushState({ saApp: k }, ""); } catch (e) {}
+    /* Con Alma: la piedra cubre el Hub del mismo blanco, el panel aparece debajo y, cuando la app cargó, Alma vuelve a su
+       botón destapándola. Sin Alma, el deslizamiento de siempre. */
+    if (!yaAbierta && window.SANav && SANav.portal) {
+      SANav.portal("out", { blanco: true, rapido: true, fondo: "#FAFAFA" }).then(function (deshacer) {
+        var tr = P.style.transition; P.style.transition = "none"; P.style.display = "flex"; P.style.transform = "translate3d(0,0,0)"; void P.offsetWidth; P.style.transition = tr;
+        var g = self._appF, listo = function () { deshacer(); };
+        if (!g || g.cargada) setTimeout(listo, 120); else { g.alListo = listo; setTimeout(function () { if (g.alListo) { g.alListo = null; listo(); } }, 2600); }
+      });
+      return;
+    }
     P.style.display = "flex";
     requestAnimationFrame(function () { requestAnimationFrame(function () { P.style.transform = "translate3d(0,0,0)"; }); });
   }
@@ -5496,8 +5511,15 @@ class Component extends DCLogic {
     var self = this, P = this._appP; if (!P || !this._appAbierta) return;
     this._appAbierta = false;
     if (!desdeHistorial) { try { if (history.state && history.state.saApp) history.back(); } catch (e) {} }
-    P.style.transform = "translate3d(100%,0,0)";
-    setTimeout(function () { if (!self._appAbierta) P.style.display = "none"; }, 340);
+    if (window.SANav && SANav.portal && !desdeHistorial) {
+      SANav.portal("out", { blanco: true, rapido: true, fondo: "#FAFAFA" }).then(function (deshacer) {
+        var tr = P.style.transition; P.style.transition = "none"; P.style.transform = "translate3d(100%,0,0)"; if (!self._appAbierta) P.style.display = "none"; void P.offsetWidth; P.style.transition = tr;
+        setTimeout(deshacer, 80);
+      });
+    } else {
+      P.style.transform = "translate3d(100%,0,0)";
+      setTimeout(function () { if (!self._appAbierta) P.style.display = "none"; }, 340);
+    }
     clearTimeout(this._appSoltar);
     this._appSoltar = setTimeout(function () { var f = self._appF; if (f && !self._appAbierta) { try { f.el.remove(); } catch (e) {} self._appF = null; } }, 600000);
     this.almaCargar && (this.state.vista === "alma" || this.state.vista === "hub") && this.almaCargar(true);
@@ -8147,7 +8169,7 @@ class Component extends DCLogic {
   renderVals() {
     var self = this, st = this.state, rol = this.rol();
     var esPrincipal = rol === "admin";
-    var ir = function (u) { return function () { if (/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) && self.appDentro()) { self.abrirApp(u); return; } location.href = self.conSesion(u); }; };
+    var ir = function (u) { return function () { if (/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) && self.appDentro()) { self.abrirApp(u); return; } if (window.SANav && SANav.ir) SANav.ir(self.conSesion(u)); else location.href = self.conSesion(u); }; };
     var setV = function (v) { return function () { self.setState({ vista: v }); }; };
     var notis = this.notis();
     var h = this.gtHora();

@@ -24,6 +24,20 @@
 (function (w, d) {
   "use strict";
   if (w.SANav) return;
+  /* Llegada desde otra app con Alma (#sa_portal=<posición>): la pantalla se cubre ya con el color de la página
+     (el mismo blanco de carga) y se quita el parámetro de la URL; el resto lo hace llegada() al montar el menú. */
+  var LLEGADA = null;
+  try {
+    var mh = location.hash.match(/(^#|&)sa_portal=([a-z]{2})(?=&|$)/);
+    if (mh) {
+      LLEGADA = { a: mh[2] };
+      var nh = location.hash.replace(/(^#|&)sa_portal=[a-z]{2}(?=&|$)/, "$1").replace(/^#&/, "#").replace(/&&/, "&").replace(/&$/, "");
+      try { history.replaceState(history.state, "", location.pathname + location.search + (nh === "#" ? "" : nh)); } catch (e) {}
+      var cs0 = d.createElement("style"); cs0.textContent = 'html.san-llegando::after{content:"";position:fixed;inset:0;z-index:2147483500;background:#FAFAFA;transition:opacity .4s ease}html.san-llegando.san-fin::after{opacity:0}';
+      (d.head || d.documentElement).appendChild(cs0); d.documentElement.classList.add("san-llegando");
+      setTimeout(function () { var h = d.documentElement; if (h.classList.contains("san-llegando")) { h.classList.add("san-fin"); setTimeout(function () { h.classList.remove("san-llegando", "san-fin"); }, 420); } }, 4000);   // si el menú no llega a montarse
+    }
+  } catch (e) {}
 
   var HUB = "https://hub.spacioam.com";
   var APPS = [
@@ -219,6 +233,7 @@
     /* portal: la piedra de Alma cubre la pantalla al irse a otra página y la recibe al llegar */
     ".san-scope.san-portal{position:fixed;inset:0;z-index:2147483600;overflow:hidden;pointer-events:auto;touch-action:none}",
     ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;pointer-events:none}",
+    ".san-scope .san-pw{position:absolute;inset:-1px;border-radius:50%;background:#FAFAFA;opacity:0;pointer-events:none}",
     ".san-scope .san-pcap{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(320px,82vw);text-align:center;font:500 15px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#6F6867;opacity:0;pointer-events:none}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
     ".san-scope.docked .san-hint{display:none}",
@@ -591,7 +606,7 @@
     /* Las apps se abren desde el Hub en otra pestaña: si esta pestaña la abrió el Hub, se cierra y vuelve a él. */
     var closed = false;
     try { if (w.opener && !w.opener.closed) { w.close(); closed = w.closed; } } catch (e) {}
-    setTimeout(function () { if (!w.closed && !closed) location.href = HUB; }, 160);
+    setTimeout(function () { if (!w.closed && !closed) irA(HUB, false); }, 160);
   }
   function goHome() {
     if (!onHome()) { surge(); go(cfg.home.k); return; }
@@ -600,8 +615,8 @@
   }
   function openApp(a) {
     setS(1);
-    if (cfg.app === "hub") { var win = null; try { win = w.open(a.url, "_blank"); } catch (e) {} if (!win) location.href = a.url; }
-    else location.href = a.url;
+    if (cfg.abrirApp) { try { if (cfg.abrirApp(a.url, a.k) !== false) return; } catch (e) {} }   // la app decide (p. ej. el panel del Hub)
+    irA(a.url, cfg.app === "hub");
   }
   function nope() { E.body.animate && E.body.animate([{ translate: "0 0" }, { translate: "-4px 0" }, { translate: "4px 0" }, { translate: "-2px 0" }, { translate: "0 0" }], { duration: 420, easing: "ease-out" }); }
   function multi() { return APPS.filter(function (a) { return a.k !== cfg.app && (!allowed || allowed.indexOf(a.k) >= 0); }).length > 0; }
@@ -1009,10 +1024,14 @@
   function portal(dir, o) {
     o = o || {};
     if (!d.getElementById("sa-nav-css")) { var cs = d.createElement("style"); cs.id = "sa-nav-css"; cs.textContent = CSS; d.head.appendChild(cs); }
+    /* blanco: la piedra se vuelve del color de la página (cambio de app: el blanco de carga del navegador queda «pintado» por Alma) */
+    var bl = !!o.blanco, fondo = o.fondo || (bl ? (function () { try { var c = getComputedStyle(d.body).backgroundColor; return c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c) ? c : "#FAFAFA"; } catch (e) { return "#FAFAFA"; } })() : "");
+    var DO = o.rapido ? 760 : 1150, DI = o.rapido ? 900 : 1250;
     var pv = d.createElement("div"); pv.className = "san-scope san-portal"; pv.setAttribute("aria-hidden", "true");
-    pv.innerHTML = '<div class="san-rock san-pp"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div></div><div class="san-pcap"></div>';
+    pv.innerHTML = '<div class="san-rock san-pp"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div><div class="san-pw"></div></div><div class="san-pcap"></div>';
     d.body.appendChild(pv);
-    var rk = pv.firstChild, sp = rk.querySelector(".san-st-spark"), cap = pv.lastChild; cap.textContent = o.texto || "";
+    var rk = pv.firstChild, sp = rk.querySelector(".san-st-spark"), pw = rk.querySelector(".san-pw"), gl = rk.querySelector(".san-st-glow"), cap = pv.lastChild; cap.textContent = o.texto || "";
+    if (bl) pw.style.background = fondo;
     var b = portalPt(), cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
     var T = function (x, y, k) { return "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + k.toFixed(4) + ")"; };
     var tengo = !!(root && E.face); if (tengo) hideCore(true);
@@ -1021,38 +1040,64 @@
       if (RM || !rk.animate) { pv.animate ? pv.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260 }).onfinish = function () { fin(); ok(); } : (fin(), ok()); return; }
       setTimeout(function () {
         cap.animate([{ opacity: +getComputedStyle(cap).opacity }, { opacity: 0 }], { duration: 260, fill: "forwards" });
-        sp.animate([{ opacity: 0 }, { opacity: 0, offset: .4 }, { opacity: 1 }], { duration: 1250, fill: "forwards" });
+        sp.animate([{ opacity: 0 }, { opacity: 0, offset: .4 }, { opacity: 1 }], { duration: DI, fill: "forwards" });
+        if (bl) { pw.animate([{ opacity: 1 }, { opacity: 1, offset: .3 }, { opacity: 0, offset: .82 }, { opacity: 0 }], { duration: DI, fill: "forwards" });
+          gl.animate([{ opacity: 0 }, { opacity: 0, offset: .55 }, { opacity: 1 }], { duration: DI, fill: "forwards" }); }
         var a = rk.animate([
           { transform: T(cx, cy, sC) },
           { transform: T(cx, cy, b.s * 2.3), offset: .45, easing: "cubic-bezier(.4,0,.2,1)" },
           { transform: T(b.x, b.y - 12, b.s * 1.1), offset: .8, easing: "cubic-bezier(.3,0,.2,1)" },
           { transform: T(b.x, b.y + 2, b.s * .95), offset: .91 },
           { transform: T(b.x, b.y, b.s) }
-        ], { duration: 1250, fill: "forwards", easing: "linear" });
+        ], { duration: DI, fill: "forwards", easing: "linear" });
         a.onfinish = function () { fin(); ok(); };
       }, espera);
     };
     return new Promise(function (ok) {
       if (dir === "in") {
         rk.style.transform = T(cx, cy, sC); sp.style.opacity = 0; if (o.texto) cap.style.opacity = 1;
+        if (bl) { pw.style.opacity = 1; gl.style.opacity = 0; }
         recibir(ok, o.espera != null ? o.espera : 450); return;
       }
       var deshacer = function () { return new Promise(function (ok2) { recibir(ok2, 0); }); };
-      if (RM || !rk.animate) { rk.style.transform = T(cx, cy, sC); cap.style.opacity = 1; pv.animate && pv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 }); setTimeout(function () { ok(deshacer); }, 240); return; }
-      sp.animate([{ opacity: 1 }, { opacity: 1, offset: .45 }, { opacity: 0 }], { duration: 1150, fill: "forwards" });
+      if (RM || !rk.animate) { rk.style.transform = T(cx, cy, sC); if (bl) pw.style.opacity = 1; cap.style.opacity = o.texto ? 1 : 0; pv.animate && pv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 }); setTimeout(function () { ok(deshacer); }, 240); return; }
+      sp.animate([{ opacity: 1 }, { opacity: 1, offset: .45 }, { opacity: 0 }], { duration: DO, fill: "forwards" });
+      if (bl) { pw.animate([{ opacity: 0 }, { opacity: 0, offset: .38 }, { opacity: 1, offset: .9 }, { opacity: 1 }], { duration: DO, fill: "forwards" });
+        gl.animate([{ opacity: 1 }, { opacity: 1, offset: .4 }, { opacity: 0, offset: .85 }, { opacity: 0 }], { duration: DO, fill: "forwards" }); }
       var a = rk.animate([
         { transform: T(b.x, b.y, b.s) },
         { transform: T(b.x, b.y + 4, b.s * .86), offset: .1 },
         { transform: T(b.x, b.y - 16, b.s * 1.18), offset: .24, easing: "cubic-bezier(.3,0,.2,1)" },
         { transform: T(cx, cy, b.s * 2.2), offset: .56, easing: "cubic-bezier(.6,0,.85,.3)" },
         { transform: T(cx, cy, sC) }
-      ], { duration: 1150, fill: "forwards", easing: "linear" });
+      ], { duration: DO, fill: "forwards", easing: "linear" });
       if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
       a.onfinish = function () {
+        if (!o.texto) { ok(deshacer); return; }
         cap.animate([{ opacity: 0, transform: "translate(-50%,-40%)" }, { opacity: 1, transform: "translate(-50%,-50%)" }], { duration: 380, fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" });
         setTimeout(function () { ok(deshacer); }, 420);
       };
     });
+  }
+  /* Cambio de app (Hub → Epi, Epi → Hub…): Alma pinta la pantalla del color de la página y se va; la otra app la recibe
+     en la MISMA posición (#sa_portal=<posición>) y Alma vuelve al botón destapando la pantalla nueva. */
+  function irA(url, nueva) {
+    var u = String(url || ""); if (!u) return;
+    u += (u.indexOf("#") >= 0 ? "&" : "#") + "sa_portal=" + (st.anchor || "bc");
+    if (nueva) { var win = null; try { win = w.open(u, "_blank"); } catch (e) {} if (win) return; }
+    if (RM) { location.href = u; return; }
+    portal("out", { blanco: true, rapido: true }).then(function (deshacer) {
+      w.addEventListener("pageshow", function (e) { if (e.persisted) deshacer(); }, { once: true });   // volvió con «atrás»
+      location.href = u;
+    });
+  }
+  /* Llegada: la pantalla empieza del color de la página y Alma la destapa en cuanto el menú se monta. */
+  function llegadaFin() { var h = d.documentElement; if (!h.classList.contains("san-llegando")) return; h.classList.add("san-fin"); setTimeout(function () { h.classList.remove("san-llegando", "san-fin"); }, 420); }
+  function llegada() {
+    if (!LLEGADA) return; var a = LLEGADA.a; LLEGADA = null;
+    if (!root || root.hidden || RM) { llegadaFin(); return; }
+    portal("in", { blanco: true, rapido: true, espera: 140 });
+    requestAnimationFrame(function () { d.documentElement.classList.remove("san-llegando", "san-fin"); });
   }
 
   /* ================= API ================= */
@@ -1063,6 +1108,7 @@
       build();
       /* posición: la que el usuario eligió (mantener y mover) o la inicial de la app (abajo al centro por defecto) */
       var sv = getCk("sa_nav_pos"); st.anchor = sv && ANCH.indexOf(sv) >= 0 ? sv : (cfg.pos && ANCH.indexOf(cfg.pos) >= 0 ? cfg.pos : "bc");
+      if (LLEGADA && ANCH.indexOf(LLEGADA.a) >= 0) { st.anchor = LLEGADA.a; setCk("sa_nav_pos", st.anchor); }   // donde estaba en la otra app
       try { var ss = JSON.parse(sessionStorage.getItem("sa_nav_state") || "null"); if (ss && ss.S === 2 && Date.now() - ss.t < IDLE_MS) st.S = 2; } catch (e) {}
       var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1); zoom = S(K()); pullS = S(0, true);
       arms = armsFor(st.anchor);
@@ -1076,6 +1122,7 @@
       w.addEventListener("load", onResize); setTimeout(onResize, 400); setTimeout(onResize, 1200); setTimeout(onResize, 2600);
       var s0 = st.S; st.S = 1; applyState(1); if (s0 === 2) setS(2);
       render(); kick();
+      if (LLEGADA) requestAnimationFrame(llegada);
       setTimeout(showHint, 1200);
     },
     update: function (c) {
@@ -1093,6 +1140,7 @@
     /* Abre a Alma al centro desde la app (un botón de la pantalla), igual que deslizar el botón hacia el centro. */
     alma: function () { if (!root || root.hidden || !almaOk()) return false; almaOpen(); return true; },
     portal: portal,
+    ir: function (url, nueva) { irA(url, nueva); },
     hide: function (h) { if (root) this.update({ hidden: h !== false }); },
     close: function () { if (root) setS(1); },
     unmount: function () {

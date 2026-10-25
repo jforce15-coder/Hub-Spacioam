@@ -18,6 +18,7 @@
        vincular: (conversationId) => Promise, liga la llamada en su servidor (opcional)
        contexto: (c) => texto,                qué hay en pantalla (opcional)
        campoContexto: "en_pantalla",          variable del agente donde va ese texto (opcional)
+       primerMensaje: () => texto,            saludo de esta llamada según desde dónde se abrió (opcional)
        herramientas: { nombre: fn(params) },  herramientas del lado de la app (client tools de ElevenLabs)
        alMensaje: (origen, texto) => {},      para guardar la conversación donde corresponda (opcional)
        alTerminar: () => {}
@@ -99,7 +100,8 @@
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
       if (o.herramientas) opt.clientTools = o.herramientas;
-      if (f.first_message || f.language) { opt.overrides = { agent: {} }; if (f.first_message) opt.overrides.agent.firstMessage = f.first_message; if (f.language) opt.overrides.agent.language = f.language; }
+      var fm = f.first_message; if (o.primerMensaje) { try { fm = o.primerMensaje() || fm; } catch (e) {} }
+      if (fm || f.language) { opt.overrides = { agent: {} }; if (fm) opt.overrides.agent.firstMessage = fm; if (f.language) opt.overrides.agent.language = f.language; }
       return m.Conversation.startSession(opt);
     }
     return Promise.all([ficha(), loadSdk()]).then(function (r) {

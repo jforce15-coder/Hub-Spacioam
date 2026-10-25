@@ -351,7 +351,9 @@
   }
   function buildItems() {
     var items = cfg.items || [];
-    if (items.length > 4) { shown = items.slice(0, 3).concat([{ k: "__more", l: "Más", icon: "more", badge: items.slice(3).reduce(function (a, it) { return a + (it.badge || 0); }, 0) }]); overflow = items.slice(3); }
+    /* hasta 4 directos; con más, 3 + «Más». La app puede fijar cuántos van directos (cfg.masDesde) */
+    var lim = typeof cfg.masDesde === "number" ? cfg.masDesde : (items.length > 4 ? 3 : 4);
+    if (items.length > lim) { shown = items.slice(0, lim).concat([{ k: "__more", l: "Más", icon: "more", badge: items.slice(lim).reduce(function (a, it) { return a + (it.badge || 0); }, 0) }]); overflow = items.slice(lim); }
     else { shown = items.slice(); overflow = []; }
     E.items.innerHTML = ""; itemEls = [];
     springs = springs.filter(function (s) { return navP.indexOf(s) < 0; }); navP = [];
@@ -1026,6 +1028,8 @@
       else markCurrent();
       setCoreLbl();
     },
+    /* Abre a Alma al centro desde la app (un botón de la pantalla), igual que deslizar el botón hacia el centro. */
+    alma: function () { if (!root || root.hidden || !almaOk()) return false; almaOpen(); return true; },
     hide: function (h) { if (root) this.update({ hidden: h !== false }); },
     close: function () { if (root) setS(1); },
     unmount: function () {

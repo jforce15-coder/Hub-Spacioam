@@ -82,7 +82,7 @@
 
   /* ================= estilos (todo bajo #sa-nav-root, prefijo san-) ================= */
   var GRAIN = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .34 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")";
-  var STONE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .54 0 0 0 0 .47 0 0 0 0 .42 0 0 0 1.1 -.42'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23m)'/%3E%3C/svg%3E\")," + GRAIN;
+  var STONE = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.018' numOctaves='3' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .34 -.12'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23m)'/%3E%3C/svg%3E\")," + GRAIN;
   /* Color del halo y del brillo interno. Por defecto el del Hub; una app puede teñirlo con SANav.update({ tint: "#4B6A94" })
      (null vuelve al del Hub). Se aplica con variables CSS en <html> y cambia con un fundido suave. */
   var GRAD = "linear-gradient(100deg,var(--san-t1,#E64E37) 0%,var(--san-t2,#EE7552) 45%,var(--san-t3,#F59D68) 100%)";
@@ -165,7 +165,11 @@
     ".san-scope .san-core.charge .san-glowb{opacity:.85;transform:scale(1.04);transition:opacity .28s ease,transform .28s ease}",
     ".san-scope .san-core.surge .san-glowb{animation:san-surge 1.1s cubic-bezier(.22,.61,.36,1)}",
         ".san-scope .san-face{position:absolute;left:-37px;top:-37px;width:74px;height:74px;border-radius:50%;border:0;padding:0;margin:0;cursor:pointer;color:var(--san-ink);touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;" +
-      "background:radial-gradient(100% 100% at 50% 38%,#F5F2EE 0%,#EDE9E4 55%,#E2DCD5 100%);box-shadow:0 16px 24px -8px rgba(150,90,64,.36),0 4px 7px rgba(96,76,66,.16),inset 0 -6px 12px rgba(110,90,80,.12),inset 0 4px 8px rgba(255,255,255,.35);transition:box-shadow .35s}",
+      "background:radial-gradient(100% 100% at 50% 38%,#F5F2EE 0%,#EDE9E4 55%,#E2DCD5 100%);box-shadow:inset 0 4px 8px rgba(255,255,255,.35);transition:box-shadow .35s}",
+    /* Sombras de la roca (como la esfera de referencia): solo negro, por fuera y por dentro, y respiran con el brillo. */
+    ".san-scope .san-face::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:0 16px 24px -8px rgba(0,0,0,.30),0 4px 7px rgba(0,0,0,.14);animation:san-sombra 3.6s ease-in-out infinite;transition:box-shadow .35s}",
+    ".san-scope .san-stone::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 36% 30%,rgba(0,0,0,0) 42%,rgba(0,0,0,.07) 72%,rgba(0,0,0,.16) 100%);box-shadow:inset -7px -9px 16px rgba(0,0,0,.13),inset 0 -3px 6px rgba(0,0,0,.08);animation:san-sombra 3.6s ease-in-out infinite}",
+    "@keyframes san-sombra{0%,100%{opacity:.7}50%{opacity:1}}",
     ".san-scope .san-stone{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);pointer-events:none}",
     ".san-scope .san-stone::before{content:'';position:absolute;inset:0;border-radius:50%;opacity:1;background-image:" + STONE + ";background-size:150px 150px,120px 120px;background-position:center}",
     ".san-scope .san-lit{position:absolute;inset:0;border-radius:50%;background:" + GRAD + ";opacity:.06;transition:opacity .8s cubic-bezier(.45,0,.55,1)}",
@@ -173,10 +177,10 @@
     ".san-scope .san-face[data-mode='home'] .san-lit{opacity:.13}.san-scope .san-face[data-mode='close'] .san-lit{opacity:.2}",
     ".san-scope .san-face.charge .san-lit,.san-scope .san-face.lift .san-lit{opacity:.34;transition-duration:.6s}",
     ".san-scope .san-body.pressed{transform:scale(.93);transition:transform .12s ease-out}",
-    ".san-scope .san-face.pressed{transition:box-shadow .12s;box-shadow:0 5px 9px -4px rgba(150,90,64,.3),inset 0 4px 9px rgba(100,80,70,.18),inset 0 -3px 6px rgba(255,255,255,.3)}",
+    ".san-scope .san-face.pressed{transition:box-shadow .12s;box-shadow:inset 0 4px 9px rgba(0,0,0,.16),inset 0 -3px 6px rgba(255,255,255,.3)}.san-scope .san-face.pressed::before{transition:box-shadow .12s;box-shadow:0 5px 9px -4px rgba(0,0,0,.28)}",
     ".san-scope .san-body.pressed.charge{transform:scale(1);transition:transform .28s cubic-bezier(.3,1.2,.55,1)}",
     ".san-scope .san-body.lift{transform:scale(1.07)}",
-    ".san-scope .san-face.lift{box-shadow:0 26px 32px -10px rgba(150,90,64,.34),0 4px 8px rgba(96,76,66,.12),inset 0 -6px 12px rgba(110,90,80,.12),inset 0 4px 8px rgba(255,255,255,.35)}",
+    ".san-scope .san-face.lift::before{box-shadow:0 26px 32px -10px rgba(0,0,0,.30),0 4px 8px rgba(0,0,0,.12)}",
     ".san-scope .san-face:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:13px}",
     ".san-scope .san-g{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;z-index:1;transition:opacity .4s ease,transform .6s cubic-bezier(.3,1.25,.55,1),filter .4s ease}",
     ".san-scope .san-g svg{filter:drop-shadow(0 1px 0 rgba(255,255,255,.75)) drop-shadow(0 -.6px 0 rgba(90,70,60,.30))}",
@@ -188,7 +192,7 @@
     ".san-scope .san-hint b{font-weight:600}.san-scope .san-hint span{display:block;white-space:nowrap}",
     ".san-scope .san-hint[data-side='down']{transform:translate(-50%,0) translateY(-8px)}.san-scope .san-hint[data-side='right']{transform:translate(0,-50%) translateX(-8px)}.san-scope .san-hint[data-side='left']{transform:translate(-100%,-50%) translateX(8px)}",
     ".san-scope .san-hint.on{opacity:1;transform:translate(-50%,-100%)}.san-scope .san-hint.on[data-side='down']{transform:translate(-50%,0)}.san-scope .san-hint.on[data-side='right']{transform:translate(0,-50%)}.san-scope .san-hint.on[data-side='left']{transform:translate(-100%,-50%)}",
-    "@media (prefers-reduced-motion:reduce){.san-scope .san-core,.san-scope .san-glow,.san-scope .san-lit::after{animation:none}.san-scope .san-glow{opacity:.5}.san-scope .san-scrim{transition:none}.san-scope .san-btn,.san-scope .san-face,.san-scope .san-g,.san-scope .san-body,.san-scope .san-lit{transition-duration:.01s!important}.san-scope .san-core.surge .san-glow{animation:none}}",
+    "@media (prefers-reduced-motion:reduce){.san-scope .san-core,.san-scope .san-glow,.san-scope .san-lit::after,.san-scope .san-face::before,.san-scope .san-stone::after,.san-scope .san-st-rim{animation:none}.san-scope .san-glow{opacity:.5}.san-scope .san-scrim{transition:none}.san-scope .san-btn,.san-scope .san-face,.san-scope .san-g,.san-scope .san-body,.san-scope .san-lit{transition-duration:.01s!important}.san-scope .san-core.surge .san-glow{animation:none}}",
     /* Alma por voz */
     ".san-scope .san-glowb{opacity:calc(.9*var(--pull,0))}.san-scope .san-lit{opacity:calc(.06 + .3*var(--pull,0))}",
     ".san-scope .san-core.alma-live .san-glowb{opacity:calc(.3 + .6*var(--voice,0))}.san-scope .san-core.alma-live .san-lit{opacity:calc(.14 + .35*var(--voice,0) + .3*var(--pull,0))}",
@@ -204,7 +208,7 @@
     ".san-scope .san-st-body{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);background:radial-gradient(circle at 40% 34%,#F7F5F2 0%,#EFECE8 42%,#E3DFDA 78%,#D3CEC8 100%)}",
     ".san-scope .san-st-body::before{content:'';position:absolute;inset:-6%;background-image:" + STONE + ";background-size:150px 150px,120px 120px;background-position:center;opacity:.85}",
     ".san-scope .san-st-lit{position:absolute;inset:0;border-radius:50%;background:linear-gradient(100deg,var(--san-t4,#F2A07E) 0%,var(--san-t5,#F6B696) 50%,var(--san-t6,#FAD0B6) 100%);opacity:calc(var(--lit)*.42)}",
-    ".san-scope .san-st-rim{position:absolute;inset:0;border-radius:50%;box-shadow:inset -16px -22px 40px rgba(90,80,70,.22),inset 14px 16px 30px rgba(255,255,255,.45)}",
+    ".san-scope .san-st-rim{position:absolute;inset:0;border-radius:50%;box-shadow:inset -16px -22px 40px rgba(0,0,0,.20),inset 14px 16px 30px rgba(255,255,255,.45);animation:san-sombra 3.6s ease-in-out infinite}",
     ".san-scope .san-st-spark{position:absolute;inset:0;display:grid;place-items:center;color:#CBC4BC;pointer-events:none}.san-scope .san-st-spark svg{width:22%;height:22%;filter:drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32))}",
     ".san-scope .san-ov-ui{position:absolute;left:50%;top:calc(44% + min(33vw,20vh,135px) + 34px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:16px;width:min(320px,calc(100% - 32px));opacity:0;scale:.96;transition:opacity .16s ease,scale .2s ease}",
     ".san-scope .san-ov.on .san-ov-ui{opacity:1;scale:1;transition:opacity 1.1s cubic-bezier(.45,0,.55,1) .55s,scale 1.3s cubic-bezier(.22,.61,.36,1) .55s}",

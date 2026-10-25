@@ -168,12 +168,13 @@
     ".san-scope .san-core.hot .san-glowb{opacity:.55;transition-duration:.12s}",
     ".san-scope .san-core.charge .san-glowb{opacity:.85;transform:scale(1.04);transition:opacity .28s ease,transform .28s ease}",
     ".san-scope .san-core.surge .san-glowb{animation:san-surge 1.1s cubic-bezier(.22,.61,.36,1)}",
-        ".san-scope .san-face{position:absolute;left:-37px;top:-37px;width:74px;height:74px;border-radius:50%;border:0;padding:0;margin:0;cursor:pointer;color:var(--san-ink);touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;" +
+        ".san-scope .san-face{--sombra:.6;position:absolute;left:-37px;top:-37px;width:74px;height:74px;border-radius:50%;border:0;padding:0;margin:0;cursor:pointer;color:var(--san-ink);touch-action:none;-webkit-tap-highlight-color:transparent;outline:none;" +
       "background:radial-gradient(100% 100% at 50% 38%,#F5F2EE 0%,#EDE9E4 55%,#E2DCD5 100%);box-shadow:inset 0 4px 8px rgba(255,255,255,.35);transition:box-shadow .35s}",
     /* Sombras de la roca (como la esfera de referencia): solo negro, por fuera y por dentro, y respiran con el brillo. */
     ".san-scope .san-face::before{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;box-shadow:0 16px 24px -8px rgba(0,0,0,.30),0 4px 7px rgba(0,0,0,.14);animation:san-sombra 3.6s ease-in-out infinite;transition:box-shadow .35s}",
     ".san-scope .san-stone::after{content:'';position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 36% 30%,rgba(0,0,0,0) 46%,rgba(0,0,0,.045) 74%,rgba(0,0,0,.10) 100%)" + "," + MAPA + ";background-size:100% 100%;background-repeat:no-repeat;animation:san-sombra 3.6s ease-in-out infinite}",
-    "@keyframes san-sombra{0%,100%{opacity:.7}50%{opacity:1}}",
+    ".san-scope .san-face::before,.san-scope .san-stone::after,.san-scope .san-st-rim{opacity:var(--sombra,1)}",
+    "@keyframes san-sombra{0%,100%{opacity:calc(.7*var(--sombra,1))}50%{opacity:var(--sombra,1)}}",
     ".san-scope .san-stone{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);pointer-events:none}",
     ".san-scope .san-stone::before{content:'';position:absolute;inset:0;border-radius:50%;opacity:.9;background-image:" + GRAIN + ";background-size:120px 120px}",
     ".san-scope .san-lit{position:absolute;inset:0;border-radius:50%;background:" + LUZ + ";-webkit-mask:" + LUZ_MASK + ";mask:" + LUZ_MASK + ";opacity:.06;transition:opacity .8s cubic-bezier(.45,0,.55,1)}",
@@ -240,7 +241,7 @@
     "@media (prefers-reduced-motion:reduce){[data-sa-slot]{transition:none}}",
     /* portal: la piedra de Alma cubre la pantalla al irse a otra página y la recibe al llegar */
     ".san-scope.san-portal{position:fixed;inset:0;z-index:2147483600;overflow:hidden;pointer-events:auto;touch-action:none}",
-    ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;pointer-events:none}",
+    ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;--sombra:.73;pointer-events:none}",
     ".san-scope .san-pw{position:absolute;inset:-1px;border-radius:50%;background:#FAFAFA;opacity:0;pointer-events:none}",
     ".san-scope .san-pcap{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(320px,82vw);text-align:center;font:500 15px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#6F6867;opacity:0;pointer-events:none}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
@@ -894,6 +895,8 @@
     var jw = AL.on ? J.w : 0;
     s.transform = "translate(" + (aX.x + dx) + "px," + (aY.x + dy) + "px) rotate(" + ang + "rad) scale(" + (1 + st2) + "," + (1 - st2 * .6) + ") rotate(" + (-ang) + "rad)" +
       (jw ? " rotate(" + J.ang.toFixed(3) + "rad) scale(" + (1 + jw).toFixed(4) + "," + (1 - jw * .85).toFixed(4) + ") rotate(" + (-J.ang).toFixed(3) + "rad)" : "");
+    /* Sombras según el tamaño: en el menú (74 px) más claras, en grande (voz, ~270 px) completas; cambian suave con la piedra. */
+    E.stone.style.setProperty("--sombra", clamp(.6 + .4 * (D - 74) / 196, .6, 1).toFixed(3));
     E.stone.style.setProperty("--lit", (aL.x + .3 * AL.bth + aSq.x * .15 + (AL.on ? J.v * 1.6 : 0)).toFixed(3));
     E.stone.style.setProperty("--halo", clamp(aH.x * (.72 + .3 * AL.bth + (AL.on ? J.v * 2.2 : 0)), 0, 1.5).toFixed(3));
   }

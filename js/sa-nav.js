@@ -241,7 +241,7 @@
     "@media (prefers-reduced-motion:reduce){[data-sa-slot]{transition:none}}",
     /* portal: la piedra de Alma cubre la pantalla al irse a otra página y la recibe al llegar */
     ".san-scope.san-portal{position:fixed;inset:0;z-index:2147483600;overflow:hidden;pointer-events:auto;touch-action:none}",
-    ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;--sombra:.73;pointer-events:none}",
+    ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;--sombra:.6;pointer-events:none}",
     ".san-scope .san-pw{position:absolute;inset:-1px;border-radius:50%;background:#FAFAFA;opacity:0;pointer-events:none}",
     ".san-scope .san-pcap{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(320px,82vw);text-align:center;font:500 15px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#6F6867;opacity:0;pointer-events:none}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
@@ -891,10 +891,15 @@
   function stoneRender() {
     var dx = aDX.x, dy = aDY.x, dd = Math.hypot(dx, dy), ang = Math.atan2(dy, dx), st2 = Math.min(.05, dd / 1100);
     var D = Math.max(0, aS.x * (1 - .035 * aSq.x) * (AL.on ? 1 + .02 * J.p + J.v : 1));
-    var s = E.stone.style; s.width = s.height = D + "px"; s.marginLeft = s.marginTop = (-D / 2) + "px";
+    /* Tamaño: mientras crece o se encoge se cambia el tamaño real (anillo y halo quedan exactos); quieta, la respiración
+       va por transform (sin recalcular el diseño ni repintar las máscaras en cada cuadro). */
+    var s = E.stone.style, Ds = E.stone._D || 0;
+    if (!Ds || Math.abs(aS.v) > 4 || Math.abs(D - Ds) / Ds > .08) { Ds = E.stone._D = D; s.width = s.height = D + "px"; s.marginLeft = s.marginTop = (-D / 2) + "px"; }
+    var kD = D / Ds;
     var jw = AL.on ? J.w : 0;
     s.transform = "translate(" + (aX.x + dx) + "px," + (aY.x + dy) + "px) rotate(" + ang + "rad) scale(" + (1 + st2) + "," + (1 - st2 * .6) + ") rotate(" + (-ang) + "rad)" +
-      (jw ? " rotate(" + J.ang.toFixed(3) + "rad) scale(" + (1 + jw).toFixed(4) + "," + (1 - jw * .85).toFixed(4) + ") rotate(" + (-J.ang).toFixed(3) + "rad)" : "");
+      (jw ? " rotate(" + J.ang.toFixed(3) + "rad) scale(" + (1 + jw).toFixed(4) + "," + (1 - jw * .85).toFixed(4) + ") rotate(" + (-J.ang).toFixed(3) + "rad)" : "") +
+      (Math.abs(kD - 1) > .0005 ? " scale(" + kD.toFixed(4) + ")" : "");
     /* Sombras según el tamaño: en el menú (74 px) más claras, en grande (voz, ~270 px) completas; cambian suave con la piedra. */
     E.stone.style.setProperty("--sombra", clamp(.6 + .4 * (D - 74) / 196, .6, 1).toFixed(3));
     E.stone.style.setProperty("--lit", (aL.x + .3 * AL.bth + aSq.x * .15 + (AL.on ? J.v * 1.6 : 0)).toFixed(3));
@@ -911,6 +916,22 @@
     requestAnimationFrame(almaLoop);
   }
   function almaLoopOn() { if (!AL.loop) { AL.loop = true; AL.bth = 0; jReset(); requestAnimationFrame(almaLoop); } }
+  /* Brillo interno que tiene el botón ahora (la piedra arranca y termina con el mismo, sin salto al cambiar de objeto). */
+  function litFace() { try { return (+getComputedStyle(E.face.querySelector(".san-lit")).opacity || .06) / .5; } catch (x) { return .12; } }
+  /* El cambio piedra → botón se hace cuando la piedra ya terminó su rebote (no a un tiempo fijo, que cortaba el rebote). */
+  function alReposo(list, cb, max) {
+    var t0 = performance.now();
+    (function chk() {
+      if (list.every(function (sp) { return Math.abs(sp.x - sp.t) < .6 && Math.abs(sp.v) < 25; }) || performance.now() - t0 > (max || 1500)) cb();
+      else requestAnimationFrame(chk);
+    })();
+  }
+  /* La respiración deja el botón a otra escala: vuelve a 1 con un rebote corto en vez de saltar. */
+  function suelta(el) {
+    if (!el || !el.style.scale) return;
+    el.style.transition = "transform .55s cubic-bezier(.3,1.25,.55,1),scale .5s cubic-bezier(.3,1.35,.55,1)"; el.style.scale = "";
+    clearTimeout(el._sT); el._sT = setTimeout(function () { el.style.transition = ""; }, 560);
+  }
   function showStone(on) { AL.vis = on; E.stone.style.visibility = on ? "visible" : "hidden"; if (on) almaLoopOn(); }
   function hideCore(h) { E.face.style.visibility = h ? "hidden" : ""; E.core.querySelector(".san-led").style.opacity = h ? "0" : ""; }
   function status(t) { if (E.ost) E.ost.textContent = t || ""; }
@@ -924,7 +945,7 @@
     var r = E.face.getBoundingClientRect();
     aX.x = aX.t = r.left + r.width / 2; aY.x = aY.t = r.top + r.height / 2; aS.x = aS.t = r.width; aSq.x = aSq.t = 0; aDX.x = aDX.t = aDY.x = aDY.t = 0;
     /* el mismo objeto: el botón se oculta en el mismo cuadro en que la piedra toma su lugar */
-    aL.x = aL.t = .36; aH.x = aH.t = 1; showStone(true); stoneRender(); hideCore(true);
+    aL.x = aL.t = litFace(); aH.x = aH.t = 1; showStone(true); stoneRender(); hideCore(true);
     E.ov.classList.add("on"); var t = stoneTarget();
     aX.to(t.x, .74, .72); aY.to(t.y, .74, .72); aS.to(t.s, .74, .66);
     aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
@@ -964,13 +985,13 @@
   function almaEnd(remote) {
     var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.breath = 0; jReset();
     if (s && !remote) { try { s.end(); } catch (x) {} }
-    E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); E.body.style.scale = "";
+    E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); suelta(E.body);
     if (!E.ov) return;
     if (wasMin) { phMini("Llamada con Alma terminada"); if (navigator.vibrate) try { navigator.vibrate([8, 40, 8]); } catch (x) {} return; }
     var r = E.face.getBoundingClientRect(); E.ov.classList.remove("on", "chat", "min", "ending");
-    aX.to(r.left + r.width / 2, .62, .86); aY.to(r.top + r.height / 2, .62, .86); aS.to(r.width, .62, .86); aL.to(.06, .62, 1); aH.to(1, .62, .5);
+    aX.to(r.left + r.width / 2, .62, .82); aY.to(r.top + r.height / 2, .62, .82); aS.to(r.width, .62, .8); aL.to(litFace(), .62, 1); aH.to(1, .62, .5);
     E.scrim.style.opacity = dock.on ? "0" : "";
-    setTimeout(function () { if (AL.on || AL.min) return; hideCore(false); showStone(false); }, 660);
+    alReposo([aX, aY, aS], function () { if (AL.on || AL.min) return; hideCore(false); showStone(false); });
   }
   function almaChat(on) {
     AL.chat = on; E.ov.classList.toggle("chat", on);
@@ -1014,13 +1035,13 @@
     var an = nearest(aX.x + project(vx), aY.x + project(vy), true); st.anchor = an; setCk("sa_nav_pos", an);
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     var p = anchorPt(an, true); px.x = px.t = p.x; py.x = py.t = p.y; zoom.x = zoom.t = K(); arms = armsFor(an); placeScrim(); kick();
-    aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(74 * K(), .55, .8); aL.to(.2, .55, .6); aH.to(1, .55, .45);
+    aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(74 * K(), .55, .8); aL.to(.28, .55, .8); aH.to(1, .55, .45);
     E.ov.classList.remove("on", "chat", "min"); AL.on = false; AL.min = true; AL.chat = false; E.scrim.style.opacity = "";
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(false); } catch (x) {} }
-    setTimeout(function () {
+    alReposo([aX, aY, aS], function () {
       if (!AL.min) return; hideCore(false); showStone(false); E.core.classList.add("alma-live"); almaLoopOn();
       var v = inward(st.anchor); phShow("Hacia el centro: Alma · hacia el borde: terminar", px.t + v[0] * 92, py.t + v[1] * 92, 3400);
-    }, 600);
+    });
   }
 
   /* ================= portal =================
@@ -1041,7 +1062,7 @@
     var pv = d.createElement("div"); pv.className = "san-scope san-portal"; pv.setAttribute("aria-hidden", "true");
     pv.innerHTML = '<div class="san-rock san-pp"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div><div class="san-pw"></div></div><div class="san-pcap"></div>';
     d.body.appendChild(pv);
-    var rk = pv.firstChild, sp = rk.querySelector(".san-st-spark"), pw = rk.querySelector(".san-pw"), gl = rk.querySelector(".san-st-glow"), cap = pv.lastChild; cap.textContent = o.texto || "";
+    var rk = pv.firstChild, li = rk.querySelector(".san-st-lit"), lf = tengo0() ? Math.min(.6, litFace() * .5) : .06, sp = rk.querySelector(".san-st-spark"), pw = rk.querySelector(".san-pw"), gl = rk.querySelector(".san-st-glow"), cap = pv.lastChild; cap.textContent = o.texto || "";
     if (bl) pw.style.background = fondo;
     var b = portalPt(), cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
     var T = function (x, y, k) { return "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + k.toFixed(4) + ")"; };
@@ -1052,6 +1073,7 @@
       setTimeout(function () {
         cap.animate([{ opacity: +getComputedStyle(cap).opacity }, { opacity: 0 }], { duration: 260, fill: "forwards" });
         sp.animate([{ opacity: 0 }, { opacity: 0, offset: .4 }, { opacity: 1 }], { duration: DI, fill: "forwards" });
+        li.animate([{ opacity: .275 }, { opacity: .275, offset: .5 }, { opacity: lf }], { duration: DI, fill: "forwards", easing: "cubic-bezier(.4,0,.2,1)" });
         if (bl) { pw.animate([{ opacity: 1 }, { opacity: 1, offset: .3 }, { opacity: 0, offset: .82 }, { opacity: 0 }], { duration: DI, fill: "forwards" });
           gl.animate([{ opacity: 0 }, { opacity: 0, offset: .55 }, { opacity: 1 }], { duration: DI, fill: "forwards" }); }
         var a = rk.animate([
@@ -1073,6 +1095,7 @@
       var deshacer = function () { return new Promise(function (ok2) { recibir(ok2, 0); }); };
       if (RM || !rk.animate) { rk.style.transform = T(cx, cy, sC); if (bl) pw.style.opacity = 1; cap.style.opacity = o.texto ? 1 : 0; pv.animate && pv.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 }); setTimeout(function () { ok(deshacer); }, 240); return; }
       sp.animate([{ opacity: 1 }, { opacity: 1, offset: .45 }, { opacity: 0 }], { duration: DO, fill: "forwards" });
+      li.animate([{ opacity: lf }, { opacity: .275, offset: .35 }, { opacity: .275 }], { duration: DO, fill: "forwards", easing: "cubic-bezier(.4,0,.2,1)" });
       if (bl) { pw.animate([{ opacity: 0 }, { opacity: 0, offset: .38 }, { opacity: 1, offset: .9 }, { opacity: 1 }], { duration: DO, fill: "forwards" });
         gl.animate([{ opacity: 1 }, { opacity: 1, offset: .4 }, { opacity: 0, offset: .85 }, { opacity: 0 }], { duration: DO, fill: "forwards" }); }
       var a = rk.animate([
@@ -1092,6 +1115,7 @@
   }
   /* Cambio de app (Hub → Epi, Epi → Hub…): Alma pinta la pantalla del color de la página y se va; la otra app la recibe
      en la MISMA posición (#sa_portal=<posición>) y Alma vuelve al botón destapando la pantalla nueva. */
+  function tengo0() { return !!(root && E.face); }
   function irA(url, nueva) {
     var u = String(url || ""); if (!u) return;
     u += (u.indexOf("#") >= 0 ? "&" : "#") + "sa_portal=" + (st.anchor || "bc");

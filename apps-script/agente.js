@@ -6,6 +6,24 @@
    propiedades (leer y corregir), promesas, notas y búsqueda web. Próximas: Grow, agenda (Calendar), llamadas salientes. */
 /* Regla fija (código, no hoja): vale aunque el prompt editable SECRETARIA no la tenga. */
 var REGLA_CODIGOS_SECRETARIA_ = '\n\nREGLA FIJA · CÓDIGOS DE ACCESO: cuando te pregunten un código (de limpieza, del equipo, de emergencia, de la puerta o la cerradura de una propiedad, o el que se le envió a un huésped) usa SIEMPRE la herramienta codigo_acceso. Son los mismos códigos que el equipo ve en Epi: permanentes o de la quincena vigente. Nunca respondas que no hay código sin haber llamado a codigo_acceso; si devuelve una nota (sin código cargado, quincena pendiente), dila tal cual. ver_propiedad y la memoria de la propiedad NO tienen códigos. Los códigos del equipo son solo para administradores y el equipo: nunca se los envíes a un huésped.';
+/* Prompt completo de la secretaria. El de código (SEMILLA) siempre va: antes, la fila SECRETARIA de la hoja (una versión
+   vieja de 11 líneas) lo reemplazaba y ALMA perdía reglas y herramientas nuevas. Lo de la hoja se suma como indicaciones
+   del equipo, más las mejoras aprobadas y las reglas fijas. La voz (voz.js) usa esta misma función. */
+function secretariaPrompt_() {
+  var hoja = String(prompt_('SECRETARIA') || '').trim(), base = SEMILLA_SECRETARIA_;
+  var extra = hoja && base.indexOf(hoja.slice(0, 120)) < 0 ? '\n\nINDICACIONES DEL EQUIPO (hoja ALMA_INSTRUCCIONES):\n' + hoja : '';
+  var mej = ''; try { mej = mejorasBloque_('SECRETARIA'); } catch (e) {}
+  return base + extra + mej + REGLA_CODIGOS_SECRETARIA_ + REGLAS_FIJAS_SECRETARIA_;
+}
+var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
+  '\n· Si un nombre de propiedad, huésped o persona no coincide exacto, ofrece las 1 a 3 opciones más parecidas que devuelvan tus herramientas en vez de preguntar en blanco. Si solo hay una coincidencia clara, úsala.' +
+  '\n· «Marcar como resuelta» = marcar_resuelta. No lo confundas con promesas abiertas.' +
+  '\n· Para un mensaje inmediato a alguien del equipo o a un contacto de trabajo (recepción de un edificio, proveedor) usa escribir_a_equipo (acepta numero si no está en el equipo). programar_mensaje es solo para enviar más tarde.' +
+  '\n· Para reunir información de alguien por WhatsApp usa escribir_a_equipo con al_responder; encargar_conversacion es solo cuando el administrador quiere que esa persona te LLAME.' +
+  '\n· Socios, propietarios, proveedores y contactos de trabajo son temas de Spacio AM: no preguntes si escribir como Spacio AM o como asistente de Juan.' +
+  '\n· Lo que una herramienta te devolvió en esta conversación es real: no digas después que lo inventaste. Si dudas, vuelve a consultar.' +
+  '\n· Si ver_imagenes existe en tus herramientas, sí puedes ver las fotos de una conversación: úsala.' +
+  '\n· No envíes dos veces el mismo mensaje al mismo destinatario; si ya salió, dilo.';
 var SEMILLA_SECRETARIA_ = [
   'Eres ALMA, la secretaria virtual del equipo administrativo de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala).',
   'Hablas con un administrador (te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
@@ -68,7 +86,7 @@ function agHerramientas_() {
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Formato fácil de leer en el teléfono: saludo en su propia línea y párrafos cortos (una idea por párrafo) separados por una línea en blanco.',
       { codigo: s('Código de reserva o conv_id'), texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado') }, ['codigo', 'texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) por su nombre.',
-      { persona: s('Nombre de la persona del equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
+      { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
     T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
       { fecha: s('YYYY-MM-DD; por defecto hoy'), persona: s('Opcional: nombre del técnico') }),
     T('tareas_abiertas', 'Lista las tareas abiertas del equipo (Hub/Epi).', {}),
@@ -136,7 +154,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         return !f || (inp.solo_llegadas ? ci === f : (ci <= f && f <= co));
       });
       /* Búsqueda flexible: tolera nombres y propiedades mal escritos o mal transcritos (Brunello/Brunelo, Erika/Ericka). */
-      var parecido = {}, hits = !q ? (f ? enFecha.slice(0, 12) : []) : bqBuscar_(inp.texto, enFecha, function (r) { return [r.code, r.guest_first_name, r.guest_last_name, r.property_name, r.apartment].join(' '); }, 12)
+      var parecido = {}, hits = !q ? (f ? enFecha.slice(0, 12) : []) : bqBuscar_(inp.texto, enFecha, function (r) { var pn = s_(r.property_name); return [r.code, r.guest_first_name, r.guest_last_name, pn, pn.replace(/\s+/g, ''), r.apartment].join(' '); }, 12)
         .map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
       return { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
         reservas: hits.map(function (r) {
@@ -169,9 +187,12 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'enviar_a_huesped': {
       var rid2 = agResId_(inp.codigo); if (!rid2) return { error: 'No encontré esa reserva.' };
+      var cH = CacheService.getScriptCache(), kH = 'aghu_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, rid2 + '|' + String(inp.texto || '').trim().toLowerCase().slice(0, 300)));
+      if (cH.get(kH)) return { ok: true, nota: 'Ese mismo mensaje ya se le envió a esta reserva hace menos de 3 minutos; no lo repetí.' };
       var quien = 'ALMA · pedido de ' + adm.nombre;
       inp.texto = pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
       var r2 = inp.canal === 'whatsapp' ? hubResponderWa_(rid2, inp.texto, quien, inp.numero || '') : hubResponder_(rid2, inp.texto, quien, 'plataforma');
+      if (r2.ok) cH.put(kH, '1', 180);
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'Mensaje al huésped (' + (inp.canal === 'whatsapp' ? 'WhatsApp' : 'plataforma') + ') · ' + String(inp.texto).slice(0, 80), error: r2.ok ? '' : r2.error });
       return r2.ok ? { ok: true, plantilla: !!r2.plantilla } : { error: r2.error === 'sin_numero' ? 'No hay número de WhatsApp para esa reserva; pide el número.' : r2.error };
     }
@@ -181,7 +202,8 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       try { ctx.cfg().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
       try { escalamiento_().forEach(function (p) { personas.push({ nombre: p.nombre, tel: p.telefono }); }); } catch (e) {}
       var p = agPersona_(inp.persona, ctx);
-      if (!p) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
+      if (normTel_(inp.numero || '')) p = { nombre: (p && p.nombre) || String(inp.persona || 'Contacto'), tel: normTel_(inp.numero) };
+      if (!p) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp. Si es un contacto de trabajo (recepción, proveedor), pídele el número al administrador y vuelve a llamar con numero.' };
       var cE = CacheService.getScriptCache(), kE = 'agwa_' + fin8_(p.tel);
       if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí.' };
       cE.put(kE, '1', 180);
@@ -224,7 +246,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var plano = {}; (function rec(o, pre) { Object.keys(o || {}).forEach(function (k) { var v = o[k], key = pre ? pre + '.' + k : k; if (v && typeof v === 'object' && !Array.isArray(v)) rec(v, key); else plano[key] = String(Array.isArray(v) ? JSON.stringify(v) : v).slice(0, 300); }); })(j, '');
       return { propiedad: hitP.property_name, campos: plano };
     }
-    case 'codigo_acceso': return codigosAcceso_(inp, ctx.cfg());
+    case 'codigo_acceso': { var rC = codigosAcceso_(inp, ctx.cfg()); (rC.equipo || []).forEach(function (e) { ctx.hechas.push({ tipo: 'consulta', resumen: 'Código · ' + e.propiedad + ': ' + (e.codigo || 'sin código') + (e.tipo ? ' (' + e.tipo + ')' : '') }); }); return rC; }
     case 'cambiar_dato_propiedad': {
       if (/pass|code|codigo|pin|lock/i.test(String(inp.campo)) && !adm.principal) return { error: 'Solo el administrador principal puede cambiar claves y códigos.' };
       var rC = agSetCampo_(inp.propiedad, String(inp.campo), inp.valor, adm);
@@ -321,7 +343,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 function opAgente_(adm, texto, canal, fotos, previos) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
-  var system = (prompt_('SECRETARIA') || SEMILLA_SECRETARIA_) + REGLA_CODIGOS_SECRETARIA_ + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
+  var system = secretariaPrompt_() + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
     encargosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
@@ -360,7 +382,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
    y la programación de ayer a +7 días. Si no hay foto, se lee en vivo una vez. */
 function epiSnap_(forzar) {
   var c = CacheService.getScriptCache();
-  if (!forzar) { try { var t = c.get('episnap'); if (t) return JSON.parse(t); } catch (e) {} }
+  if (!forzar) { try { var t = c.get('episnap'); if (t) { var sv = JSON.parse(t); if (sv && sv.props && sv.props.length && sv.vendors && sv.vendors.length) return sv; } } catch (e) {} }
   var cfg = epiCfg_();
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ayer = sumarDias_(hoy, -21), fin = sumarDias_(hoy, 30);
   var snap = {
@@ -371,7 +393,8 @@ function epiSnap_(forzar) {
     schedules: cfg.schedules.filter(function (x) { var f = String(x && x.fecha || '').slice(0, 10); return f >= ayer && f <= fin; })
       .map(function (x) { return { id: x.id, fecha: x.fecha, hora: x.hora, tipo: x.tipo, propiedad: x.propiedad, vendorEmail: x.vendorEmail, vendorId: x.vendorId, vendorRaw: x.vendorRaw, estado: x.estado, orden: x.orden, entradaHoy: x.entradaHoy }; })
   };
-  try { c.put('episnap', JSON.stringify(snap), 1500); } catch (e) { console.error('episnap: ' + e); }
+  /* Un snapshot vacío (Epi tardó o falló) no se guarda: antes quedaba 25 min y ALMA decía que no existían propiedades, códigos ni técnicos. */
+  if (snap.props.length && snap.vendors.length) { try { c.put('episnap', JSON.stringify(snap), 1500); } catch (e) { console.error('episnap: ' + e); } }
   return snap;
 }
 function epiSnapSiToca_() { var c = CacheService.getScriptCache(); if (c.get('episnap_t')) return; c.put('episnap_t', '1', 600); try { epiSnap_(true); } catch (e) { console.error('epiSnapSiToca_: ' + e); } }

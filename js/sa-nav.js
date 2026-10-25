@@ -532,7 +532,7 @@
   }
 
   /* ================= gestos del botón central ================= */
-  var downAt = null, lpT = null, tapT = null, chT = null, grab = [0, 0], hist = [], prevS = 1, moved = false;
+  var taps = 0, downAt = null, lpT = null, tapT = null, chT = null, grab = [0, 0], hist = [], prevS = 1, moved = false;
   function unCharge() { clearTimeout(chT); E.core.classList.remove("charge"); E.face.classList.remove("charge"); E.body.classList.remove("charge"); }
   function release() { clearTimeout(lpT); unCharge(); E.face.classList.remove("pressed"); E.body.classList.remove("pressed"); E.core.classList.remove("hot"); }
   function bindCore() {
@@ -558,6 +558,13 @@
       if (pulling) { pullEnd(); return; }
       if (dragging) { endDrag(); return; }
       if (cancel || moved) return;
+      /* Triple toque (botón en reposo o encajado): Alma por voz ahí mismo, sin abrir la piedra al centro. */
+      var trio = almaOk() && !AL.on && !AL.min && (dock.on || st.S === 1);
+      if (trio) {
+        taps++; clearTimeout(tapT);
+        tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; if (n >= 3) almaMini(); else if (n === 2 && !dock.on && multi()) onDouble(); else onSingle(); }, TAP_MS);
+        return;
+      }
       if (dock.on || !multi() || st.S === 3 || st.S === 4) { onSingle(); return; }
       if (tapT) { clearTimeout(tapT); tapT = null; onDouble(); } else tapT = setTimeout(function () { tapT = null; onSingle(); }, TAP_MS);
     }
@@ -702,7 +709,7 @@
       }
     }
     if (!almaOk() && !AL.min) return false;
-    var v = AL.min ? inward(st.anchor) : towardCenter(), along = dx * v[0] + dy * v[1], perp = Math.abs(dx * v[1] - dy * v[0]);
+    var v = towardCenter(), along = dx * v[0] + dy * v[1], perp = Math.abs(dx * v[1] - dy * v[0]);
     if (!pulling) {
       if (along > PULL_MIN && perp < along * .9) pulling = 1;
       else if (AL.min && along < -PULL_MIN && perp < -along * .9) pulling = -1;
@@ -796,12 +803,17 @@
     E.scrim.style.opacity = "0"; clearTimeout(idleT);
     if (resume) { status("Te escucho"); return; }
     status("Conectando…"); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    almaSesion();
+  }
+  /* Conversación de voz (la misma para la piedra al centro y para el modo en el botón). */
+  function almaSesion() {
     var h = {
-      status: function (x) { if (AL.on || AL.min) status(x); },
+      status: function (x) { if (AL.on || AL.min) status(x); if (AL.min && !AL.on && x === "Te escucho" && !almaSesion.dicho) { almaSesion.dicho = 1; phMini("Alma te escucha"); } },
       message: function (src, x) { if (!x || (!AL.on && !AL.min)) return; if (src === "ai") { x = String(x).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
       ended: function () { if (AL.on || AL.min) almaEnd(true); },
-      error: function (m) { status("No pude conectar con Alma"); E.cap.textContent = m || ""; setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
+      error: function (m) { status("No pude conectar con Alma"); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
     };
+    almaSesion.dicho = 0;
     AL.ses = null;
     var pr; try { pr = cfg.alma.start(h); } catch (x) { pr = Promise.reject(x); }
     Promise.resolve(pr).then(function (s) {
@@ -809,12 +821,24 @@
       AL.ses = s || null;
     }).catch(function (e) { h.error(String((e && e.message) || e || "")); });
   }
+  function phMini(t) { var v = towardCenter(), fr = E.face.getBoundingClientRect(), cx = fr.left + fr.width / 2, cy = fr.top + fr.height / 2; phShow(t, cx + v[0] * 80, cy + v[1] * 80, 2600); }
+  /* Triple toque: la llamada empieza en el botón, minimizada (respira con la voz). Deslizar al centro la abre en grande;
+     hacia el borde la termina. */
+  function almaMini() {
+    if (AL.on || AL.min || !almaOk()) return;
+    almaBuild(); setS(1); clearTimeout(idleT);
+    AL.min = true; AL.on = false; AL.chat = false; E.cap.textContent = ""; E.msgs.innerHTML = "";
+    E.core.classList.add("alma-live"); almaLoopOn(); surge();
+    if (navigator.vibrate) try { navigator.vibrate([6, 30, 6]); } catch (x) {}
+    phMini("Conectando con Alma…");
+    almaSesion();
+  }
   function almaEnd(remote) {
     var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.breath = 0; jReset();
     if (s && !remote) { try { s.end(); } catch (x) {} }
     E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); E.body.style.scale = "";
     if (!E.ov) return;
-    if (wasMin) { phShow("Llamada con Alma terminada", px.x, py.x + inward(st.anchor)[1] * 90, 2200); if (navigator.vibrate) try { navigator.vibrate([8, 40, 8]); } catch (x) {} return; }
+    if (wasMin) { phMini("Llamada con Alma terminada"); if (navigator.vibrate) try { navigator.vibrate([8, 40, 8]); } catch (x) {} return; }
     var r = E.face.getBoundingClientRect(); E.ov.classList.remove("on", "chat", "min", "ending");
     aX.to(r.left + r.width / 2, .62, .86); aY.to(r.top + r.height / 2, .62, .86); aS.to(r.width, .62, .86); aL.to(.06, .62, 1); aH.to(1, .62, .5);
     E.scrim.style.opacity = dock.on ? "0" : "";

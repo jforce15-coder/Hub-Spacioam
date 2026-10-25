@@ -17,6 +17,7 @@
        ficha: () => Promise<{ ok, agent_id, dynamic_variables, first_message }>,   quién habla (lo da la app)
        vincular: (conversationId) => Promise, liga la llamada en su servidor (opcional)
        contexto: (c) => texto,                qué hay en pantalla (opcional)
+       campoContexto: "en_pantalla",          variable del agente donde va ese texto (opcional)
        herramientas: { nombre: fn(params) },  herramientas del lado de la app (client tools de ElevenLabs)
        alMensaje: (origen, texto) => {},      para guardar la conversación donde corresponda (opcional)
        alTerminar: () => {}
@@ -44,7 +45,7 @@
     if (vivo && vivo.sendContextualUpdate) { try { vivo.sendContextualUpdate("Cambió la pantalla. " + ctxTexto(c)); } catch (e) {} }
   }
   function leerFicha() { try { var j = JSON.parse(localStorage.getItem(KEY) || "null"); return j && j.agent_id && Date.now() - j.t < VIGENCIA ? j : null; } catch (e) { return null; } }
-  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "" })); } catch (e) {} }
+  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "", language: j.language || "" })); } catch (e) {} }
   /* Pide la ficha al Hub (como mucho una vez cada 20 s). */
   function renovar() {
     if (idP && Date.now() - idT < 20000) return idP;
@@ -83,7 +84,8 @@
     Promise.resolve().then(function () { return fn(id); }).then(function (r) { if ((!r || !r.ok) && n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); },
       function () { if (n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); });
   }
-  function conCtx(dv) { var o = {}; for (var k in dv) o[k] = dv[k]; o.quien_llama = (o.quien_llama || "") + "\n\n" + ctxTexto(ctx); return o; }
+  /* El contexto de pantalla va en una variable del agente: en el Hub se suma a quien_llama; otra app puede usar la suya (o.campoContexto). */
+  function conCtx(dv) { var r = {}; for (var k in dv) r[k] = dv[k]; if (o.campoContexto) r[o.campoContexto] = ctxTexto(ctx); else r.quien_llama = (r.quien_llama || "") + "\n\n" + ctxTexto(ctx); return r; }
   function start(h) {
     unlockAudio();
     var enChat = false;
@@ -97,7 +99,7 @@
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
       if (o.herramientas) opt.clientTools = o.herramientas;
-      if (f.first_message) opt.overrides = { agent: { firstMessage: f.first_message } };
+      if (f.first_message || f.language) { opt.overrides = { agent: {} }; if (f.first_message) opt.overrides.agent.firstMessage = f.first_message; if (f.language) opt.overrides.agent.language = f.language; }
       return m.Conversation.startSession(opt);
     }
     return Promise.all([ficha(), loadSdk()]).then(function (r) {

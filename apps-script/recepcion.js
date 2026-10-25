@@ -26,6 +26,7 @@ function recepcionEncolar_(body) {
     if (cola.some(function (x) { return x.code === code; })) return { ok: true, enCola: true };
     cola.push({ code: code, force: force, ts: Date.now() });
     p.setProperty('RECEP_COLA', JSON.stringify(cola.slice(-30)));
+    recepcionEstadoGuardar_(code, { e: 'cola' });
   } finally { lock.releaseLock(); }
   return { ok: true, enCola: true };
 }
@@ -43,6 +44,7 @@ function recepcionProcesar_() {
   lote.forEach(function (x) {
     var r; try { r = recepcionEnviar_(x.code); } catch (e) { r = { ok: false, error: String(e) }; }
     recepcionLog_(x.code, r);
+    recepcionEstadoGuardar_(x.code, r && r.ok ? { e: 'ok', nums: r.nums || [] } : { e: r && r.reintentar && (x.intentos || 0) < 3 ? 'cola' : 'error', det: String((r && r.error) || '').slice(0, 160) });
     if (r && r.ok) {
       var h = {}; try { h = JSON.parse(p.getProperty('RECEP_HECHO') || '{}'); } catch (e) {}
       h[x.code] = Date.now();
@@ -89,7 +91,7 @@ function recepcionEnviar_(code, soloA) {
   });
   if (!soloA) recepcionRecordar_(nums, m.propiedad);
   var bien = res.filter(function (x) { return x.ok; }).length;
-  return { ok: bien > 0, enviados: bien, total: res.length, plantilla: tpl, error: bien === res.length ? '' : res.filter(function (x) { return !x.ok; }).map(function (x) { return '…' + x.n.slice(-4) + ': ' + x.err; }).join(' | ') };
+  return { ok: bien > 0, enviados: bien, total: res.length, nums: res.filter(function (x) { return x.ok; }).map(function (x) { return x.n; }), plantilla: tpl, error: bien === res.length ? '' : res.filter(function (x) { return !x.ok; }).map(function (x) { return '…' + x.n.slice(-4) + ': ' + x.err; }).join(' | ') };
 }
 
 function recepcionLog_(code, r) {
@@ -201,4 +203,31 @@ function recepcionEstado_() {
   var p = PropertiesService.getScriptProperties(), sh = null, ult = [];
   try { sh = ssAlma_().getSheetByName('ALMA_RECEPCION'); if (sh && sh.getLastRow() > 1) ult = sh.getRange(Math.max(2, sh.getLastRow() - 9), 1, Math.min(10, sh.getLastRow() - 1), 6).getValues().map(function (v) { return { fecha: v[0], resultado: v[2], enviados: v[3], plantilla: v[4], detalle: String(v[5]).slice(0, 160) }; }); } catch (e) {}
   return { ok: true, plantillas: recepcionPlantillas_(), usa: recepcionPlantillaUsar_(), robot: !!p.getProperty('ROBOT_TOKEN'), cola: JSON.parse(p.getProperty('RECEP_COLA') || '[]').length, recepciones: Object.keys(recepcionNumeros_()).length, ultimos: ult };
+}
+
+/* Estado del envío a recepción por código, para los botones del panel de Hola (verde = entregado, rojo = no llegó).
+   Guarda lo último de cada código y lo cruza con la entrega real que avisa Meta (entrega.js). */
+function recepcionEstadoGuardar_(code, o) {
+  try {
+    var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('RECEP_EST') || '{}'); } catch (e) {}
+    m[code] = Object.assign({ ts: Date.now() }, o);
+    var ks = Object.keys(m); if (ks.length > 300) ks.sort(function (a, b) { return m[a].ts - m[b].ts; }).slice(0, ks.length - 300).forEach(function (k) { delete m[k]; });
+    p.setProperty('RECEP_EST', JSON.stringify(m));
+  } catch (e) { console.error('recepcionEstadoGuardar_: ' + e); }
+}
+function recepcionEstados_(codes) {
+  var m = {}; try { m = JSON.parse(PropertiesService.getScriptProperties().getProperty('RECEP_EST') || '{}'); } catch (e) {}
+  var out = {};
+  (codes || []).slice(0, 200).forEach(function (c) {
+    c = String(c || '').trim().toUpperCase(); var x = m[c]; if (!x) return;
+    var o = { e: x.e, ts: x.ts, det: x.det || '' };
+    if (x.e === 'ok' && (x.nums || []).length) {
+      var est = (x.nums || []).map(function (n) { var w = null; try { w = waEntrega_(n); } catch (e) {} return w && w.ts >= x.ts - 60000 ? w : null; });
+      var fallo = est.filter(function (w) { return w && w.estado === 'failed'; })[0];
+      if (fallo) { o.e = 'no_entregado'; o.det = fallo.motivo || ''; }
+      else if (est.length && est.every(function (w) { return w && (w.estado === 'delivered' || w.estado === 'read'); })) o.e = est.every(function (w) { return w.estado === 'read'; }) ? 'leido' : 'entregado';
+    }
+    out[c] = o;
+  });
+  return { ok: true, estados: out };
 }

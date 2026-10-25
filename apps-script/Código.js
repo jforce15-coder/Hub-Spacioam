@@ -122,6 +122,7 @@ function doPost(e) {
     if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
+    if (body.recepcionEstado) return json_(recepcionEstados_(body.codes));   // Hola: estado del envío a recepción por código
     if (body.recepcion) return json_(recepcionEncolar_(body));   // Hola: registro enviado → ALMA manda el PDF a la recepción (recepcion.js)
 
     const clave = props.getProperty('WEBHOOK_KEY');

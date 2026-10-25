@@ -3740,6 +3740,16 @@ function hubResponder_(resId, texto, quien, canal) {
   /* Chat operativo: el administrador escribe a ALMA desde la misma interfaz de conversaciones. */
   if (String(resId).indexOf('op:') === 0) { const adm = adminPorEmail_(String(resId).slice(3)); const r = opProcesar_(adm, texto, 'hub', []); return r.ok ? { ok: true, alma: r.alma } : r; }
   /* Se responde por el canal del último mensaje del huésped: WhatsApp o la plataforma de la reserva. */
+  /* Conversación de WhatsApp sin reserva (proveedor, técnico, socio…): se le escribe a ese número, aunque todavía no haya
+     respondido nunca (antes caía a Hospitable con «wa:…» y fallaba). Fuera de las 24 h sale el aviso de primer contacto. */
+  if (String(resId).indexOf('wa:') === 0) {
+    const numW = normTel_(String(resId).slice(3)); if (!numW) return { ok: false, error: 'número inválido' };
+    let nomW = ''; try { nomW = (waHilo_(resId).filter(m => m.tipo === 'guest' && m.nombre).pop() || {}).nombre || ''; } catch (e) {}
+    const rw = waEnviarAlguien_(numW, texto, { nombre: nomW, de: quien || 'Spacio AM' });
+    if (!rw.ok) return { ok: false, error: rw.error || 'no salió' };
+    try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
+    return { ok: true, canal: 'whatsapp', plantilla: rw.modo === 'plantilla' };
+  }
   const hc = hiloConv_(resId), ug = (hc.hilo || []).filter(m => m.tipo === 'guest').pop() || {};
   let plantilla = false;
   /* Desde la conversación de la reserva se responde por la plataforma; WhatsApp tiene su propio chat (hubResponderWa_). */
@@ -4013,7 +4023,7 @@ function waWebhook_(body) {
     const v = ch.value || {}, nombres = {};
     (v.contacts || []).forEach(c => nombres[s_(c.wa_id)] = s_(c.profile && c.profile.name));
     (v.messages || []).forEach(m => { try { waEntrante_(m, nombres[s_(m.from)] || ''); } catch (e) { console.error('waEntrante_: ' + e); } });
-    (v.statuses || []).forEach(st => { if (st.status === 'failed') console.error('WhatsApp no entregó ' + s_(st.id) + ': ' + JSON.stringify(st.errors || [])); });
+    (v.statuses || []).forEach(st => { if (st.status === 'failed') console.error('WhatsApp no entregó ' + s_(st.id) + ': ' + JSON.stringify(st.errors || [])); try { waEntregaGuardar_(st); } catch (e) { console.error('waEntregaGuardar_: ' + e); } });   // entrega real (entrega.js)
   }));
   return ok_('wa');   // siempre 200: Meta reintenta si no
 }
@@ -4888,6 +4898,8 @@ function dsBotApi_(body) {
       case 'early_estado': { const shE = hojaEarly_(), nE = shE.getLastRow(); return json_({ ok: true, filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), EARLY_CAB_.length).getValues().map(v => ({ propiedad: v[5], checkin: v[6], estado: v[10], resultado: v[11] })) }); }
       case 'contacto_cancelar': return json_(contactoCancelar_(String(body.tel || '')));
       case 'contacto_reenviar': return json_(contactoReenviar_(String(body.tel || ''), String(body.nombre || ''), String(body.texto || ''), String(body.plantilla || 'contacto')));
+      case 'wa_diag': return json_(waDiag_());
+      case 'op_rango': { const n0 = Math.min(400, Number(body.n) || 80); return json_({ ok: true, filas: opFilas_('', n0).filter(m => !body.desde || String(m.ts) >= String(body.desde)).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: String(m.texto).slice(0, 600), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) }); }
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);

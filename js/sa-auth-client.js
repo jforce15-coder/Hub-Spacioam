@@ -132,6 +132,11 @@
       });
     },
     setInitialPassword: function (email, next)     { return call('setInitialPassword', { email: email, next: next }).then(conSesion); },
+    /* Formas alternativas de entrar (la contraseña sigue igual): Google y Face ID de este dispositivo. */
+    googleLogin:        function (credential)      { return call('googleLogin', { credential: credential }).then(conSesion); },
+    faceEnroll:         function ()                { return call('faceEnroll', {}); },
+    faceLogin:          function (email, llave)    { return call('faceLogin', { email: email, llave: llave }).then(conSesion); },
+    faceOff:            function (llave)           { return call('faceOff', { llave: llave }); },
     session:            function () { return sesLeer(); },
     clearSession:       function () { sesBorrar(); },
     /* Para otros clientes (ALMA, EPI, Hola): si su respuesta es { ok:false, error:"session" }, borra y vuelve al login. */

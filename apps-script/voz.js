@@ -448,6 +448,7 @@ function vozSyncSiToca_() {
   var p = PropertiesService.getScriptProperties();
   if (!p.getProperty('ELEVENLABS_KEY') || !p.getProperty('ELEVENLABS_AGENT_ID')) return;
   vozSyncPrompt_(false);
+  try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
 }
 function vozSyncPrompt_(forzar) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
@@ -919,8 +920,11 @@ function vozWebIdentificar_(b) {
   var c = CacheService.getScriptCache(), tel = c.get('vozweb_' + conv);
   /* Sin vínculo todavía: la propia llamada trae la ficha firmada por el Hub (variable sa_web al conectar). Se lee de
      ElevenLabs y se verifica la firma: no depende de que vozWebVincular llegue a tiempo ni de una marca global. */
-  if (!tel) { try { tel = vozWebTelDeConv_(conv); } catch (e) { console.error('vozWebTelDeConv_: ' + e); } if (tel) c.put('vozweb_' + conv, tel, 21600); }
-  if (!tel) { tel = c.get('vozweb_pend'); if (tel) { c.put('vozweb_' + conv, tel, 21600); c.remove('vozweb_pend'); } }
+  var otro = false;
+  if (!tel) { try { var inf = vozWebConvInfo_(conv); tel = inf.tel; otro = inf.otro; } catch (e) { console.error('vozWebConvInfo_: ' + e); } if (tel) c.put('vozweb_' + conv, tel, 21600); }
+  /* El aviso «pendiente» es solo para el botón de voz del Hub: una llamada de otro agente (Alma · Familia) se identifica
+     únicamente por su firma, así nadie más de la familia puede quedar como administrador. */
+  if (!tel && !otro) { tel = c.get('vozweb_pend'); if (tel) { c.put('vozweb_' + conv, tel, 21600); c.remove('vozweb_pend'); } }
   if (tel) b.caller_id = tel;
 }
 function vozWebSecreto_() {
@@ -937,10 +941,12 @@ function vozWebTokenTel_(tok) {
   var base = p[0] + '.' + p[1]; if (+p[1] < Date.now() || vozWebFirma_(base) !== p[2]) return '';
   return p[0];
 }
-function vozWebTelDeConv_(conv) {
-  var key = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_KEY'); if (!key || !/^conv_/.test(conv)) return '';
+function vozWebTelDeConv_(conv) { return vozWebConvInfo_(conv).tel; }
+function vozWebConvInfo_(conv) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'); if (!key || !/^conv_/.test(conv)) return { tel: '', otro: false };
   var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversations/' + encodeURIComponent(conv), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
-  if (r.getResponseCode() !== 200) return '';
+  if (r.getResponseCode() !== 200) return { tel: '', otro: false };
   var j = JSON.parse(r.getContentText() || '{}'), dv = ((j.conversation_initiation_client_data || {}).dynamic_variables) || {};
-  return vozWebTokenTel_(dv.sa_web);
+  var mio = p.getProperty('ELEVENLABS_AGENT_ID');
+  return { tel: vozWebTokenTel_(dv.sa_web), otro: !!(j.agent_id && mio && j.agent_id !== mio) };
 }

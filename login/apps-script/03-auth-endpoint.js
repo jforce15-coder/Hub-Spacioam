@@ -24,6 +24,9 @@
  *   setPassword  { email, current, next }    -> cambia contraseña (todas las apps)
  *   setEmail     { email, next }             -> cambia correo
  *   setPhoto     { email, url }              -> guarda link de foto
+ *   googleLogin  { credential }              -> entra con la cuenta de Google (correo principal o alterno)
+ *   faceEnroll   { session }                 -> llave de este dispositivo para entrar con Face ID
+ *   faceLogin    { email, llave }            -> entra con esa llave (el teléfono la libera solo tras Face ID)
  *
  * La respuesta SIEMPRE incluye { ok:true/false }. Nunca devuelve el hash.
  **********************************************************************/
@@ -70,6 +73,10 @@ function _handle(e){
       case 'setEmail':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setEmail(body.email, body.next);
       case 'setPhoto':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setPhoto(body.email, body.url);
       case 'resetPassword': return _resetPassword(ses, body.email);
+      case 'googleLogin': return _googleLogin(body.credential);
+      case 'faceEnroll':  return _faceEnroll(ses);
+      case 'faceLogin':   return _faceLogin(body.email, body.llave);
+      case 'faceOff':     return _faceOff(ses, body.llave);
       default:            return {ok:false, error:'action'};
     }
   }catch(err){ return {ok:false, error:String(err)}; }
@@ -274,6 +281,7 @@ function _setPassword(email, current, next){
   if(!next || String(next).length<8 || _claveDebil(next)) return {ok:false, error:'weak'};
   sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(next));
   _touch(sh,H,f.i);
+  _faceBorrarTodo(row[H.email]);   // cambiar la contraseña desactiva Face ID en todos los dispositivos
   return {ok:true};
 }
 // ---- Reinicio de contraseña (respaldo) ----
@@ -302,6 +310,7 @@ function _resetPassword(ses, email){
   var vence=Date.now()+REINICIO_HORAS*3600000, sh=f.d.sh, H=f.d.H;
   sh.getRange(f.i+1, H.password_hash+1).setValue('reset|'+vence+'|'+_hashClave(codigo));
   _touch(sh,H,f.i);
+  _faceBorrarTodo(f.d.data[f.i][H.email]);
   _limpiarFallos(email);
   return {ok:true, codigo:codigo, vence:new Date(vence).toISOString(), email:String(f.d.data[f.i][H.email]||'')};
 }
@@ -611,3 +620,59 @@ function _crearContador(token, email, alternos, nombre, aplicar){
   CacheService.getScriptCache().remove('alt_mi');
   return {ok:true, creado:true};
 }
+
+
+/* ═══ ENTRAR CON GOOGLE Y CON FACE ID (oct 2026) ═══════════════════════════════════════
+   Formas alternativas de entrar: la contraseña sigue igual. El usuario es el mismo de siempre, el de esta hoja
+   (correo principal o alterno), así que la misma persona entra igual en todas las apps.
+   · Google: la app manda el ID token de Google; se verifica con Google y que sea de nuestro Client ID
+     (propiedad GOOGLE_CLIENT_IDS, separados por coma; por defecto el de The Gentle Stoic Parent).
+   · Face ID: con la sesión abierta, el dispositivo pide una llave larga y la guarda; el teléfono solo la usa
+     después de pasar Face ID (passkey del dispositivo). Aquí se guarda solo su huella. Cambiar o reiniciar la
+     contraseña borra todas las llaves de esa persona.
+   ════════════════════════════════════════════════════════════════════════════ */
+var GOOGLE_CLIENT_ID_GSP = '946315464909-i0uptgcvbpqnspnjp5a0o4a7dnpi0ngi.apps.googleusercontent.com';
+function _googleIds(){ return String(PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_IDS') || GOOGLE_CLIENT_ID_GSP).split(/[\s,;]+/).filter(String); }
+function _entrarComo(email){
+  var f=_findRow(email); if(!f) return {ok:false, error:'no_user'};
+  var row=f.d.data[f.i], H=f.d.H;
+  if(row[H.estado]==='suspendido') return {ok:false, error:'suspended'};
+  var prof=_publicProfile(row, H);
+  return {ok:true, profile:prof, session:_firmarSesion(prof)};
+}
+function _googleLogin(credential){
+  credential=String(credential||''); if(!credential) return {ok:false, error:'google'};
+  var r=UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(credential), {muteHttpExceptions:true});
+  if(r.getResponseCode()!==200) return {ok:false, error:'google'};
+  var t=JSON.parse(r.getContentText()||'{}');
+  if(_googleIds().indexOf(String(t.aud))<0) return {ok:false, error:'google_client'};
+  if(String(t.email_verified)!=='true' || !t.email || Number(t.exp)*1000<Date.now()) return {ok:false, error:'google'};
+  return _entrarComo(String(t.email).toLowerCase());
+}
+function _faceClave(email){ return 'face_'+String(email||'').toLowerCase().slice(0,200); }
+function _faceLista(email){ try{ return JSON.parse(PropertiesService.getScriptProperties().getProperty(_faceClave(email))||'[]'); }catch(e){ return []; } }
+function _faceHuella(llave){ return _hex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(llave), Utilities.Charset.UTF_8)); }
+function _faceEnroll(ses){
+  if(!ses) return {ok:false, error:'session'};
+  var f=_findRow(ses.e); if(!f) return {ok:false, error:'no_user'};
+  var email=String(f.d.data[f.i][f.d.H.email]||ses.e).toLowerCase();
+  var llave=Utilities.getUuid().replace(/-/g,'')+Utilities.getUuid().replace(/-/g,'');
+  var l=_faceLista(email); l.push({h:_faceHuella(llave), t:Date.now()});
+  PropertiesService.getScriptProperties().setProperty(_faceClave(email), JSON.stringify(l.slice(-6)));   // hasta 6 dispositivos
+  return {ok:true, email:email, llave:llave};
+}
+function _faceLogin(email, llave){
+  email=String(email||'').toLowerCase();
+  if(_bloqueado(email)) return {ok:false, error:'too_many'};
+  var h=_faceHuella(llave||''), ok=_faceLista(email).some(function(x){ return _iguales(x.h, h); });
+  if(!ok){ _fallo(email); return {ok:false, error:'face'}; }
+  return _entrarComo(email);
+}
+function _faceOff(ses, llave){
+  if(!ses) return {ok:false, error:'session'};
+  var f=_findRow(ses.e); if(!f) return {ok:false, error:'no_user'};
+  var email=String(f.d.data[f.i][f.d.H.email]||ses.e).toLowerCase(), h=_faceHuella(llave||'');
+  PropertiesService.getScriptProperties().setProperty(_faceClave(email), JSON.stringify(_faceLista(email).filter(function(x){ return x.h!==h; })));
+  return {ok:true};
+}
+function _faceBorrarTodo(email){ try{ PropertiesService.getScriptProperties().deleteProperty(_faceClave(email)); }catch(e){} }

@@ -105,11 +105,15 @@ var FAMILIA_MODOS_ = [
   '  · En estos modos ya están como equipo: no llames a modo_reunion.'
 ].join('\n');
 
+/* Sin susurros: la calma va en las palabras, no en bajar la voz (va al final: prevalece sobre las etiquetas de VOZ_HUMANA). */
+var FAMILIA_VOZ_CLARA_ = 'VOZ CLARA (prevalece sobre todo lo anterior)\n· Nunca susurres. No uses [softly], [whispers], [whispering], [quietly] ni ninguna etiqueta que baje la voz, ni siquiera en temas delicados, cuentos para dormir o despedidas.\n· Habla siempre con voz clara, presente y a volumen normal, como en una conversación cara a cara. La calma y la ternura van en las palabras y en el ritmo, no en el volumen.\n· La única etiqueta permitida es [warm], como mucho una vez al saludar o despedirte.';
+
 /* Prompt completo del agente familiar: enfoque familiar + la voz de Alma (la misma fila VOZ_HUMANA de las llamadas). */
 function familiaPromptCompleto_() {
   var fam = String(prompt_('FAMILIA') || '').trim() || SEMILLA_FAMILIA_;
   var humana = String(prompt_('VOZ_HUMANA') || '').trim();
-  return [fam, FAMILIA_MODOS_, humana ? '--- CÓMO SUENAS (la misma voz de Alma en todos lados) ---\nEn la app familiar no te presentas como Spacio AM ni hablas del portal, de reservas ni de WhatsApp de huéspedes: esas líneas no aplican aquí. Todo lo demás, sí.\n\n' + humana : ''].filter(Boolean).join('\n\n');
+  var weebo = ''; try { weebo = weeboVozBloque_(true); } catch (e) {}
+  return [fam, FAMILIA_MODOS_, weebo, humana ? '--- CÓMO SUENAS (la misma voz de Alma en todos lados) ---\nEn la app familiar no te presentas como Spacio AM ni hablas del portal, de reservas ni de WhatsApp de huéspedes: esas líneas no aplican aquí. Todo lo demás, sí.\n\n' + humana : '', FAMILIA_VOZ_CLARA_].filter(Boolean).join('\n\n');
 }
 
 /* Copia un prompt a un agente de ElevenLabs si cambió (huella en claveHuella). Solo cambia el texto. */

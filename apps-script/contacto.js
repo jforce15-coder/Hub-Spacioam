@@ -27,7 +27,9 @@ function waEnviarAlguien_(numero, texto, o) {
       { type: 'body', parameters: [/^[+\d]/.test(String(o.nombre || '')) || !o.nombre ? 'qué tal' : String(o.nombre).split(' ')[0], String(o.de || 'Spacio AM')].map(function (v) { return { type: 'text', text: v.slice(0, 60) }; }) }] } }) });
   if (rr.getResponseCode() >= 300) return { ok: false, error: 'Meta rechazó la plantilla: ' + rr.getContentText().slice(0, 200) };
   var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
-  var k = fin8_(wa); (pend[k] = pend[k] || []).push({ texto: String(texto).slice(0, 3500), ts: Date.now(), nombre: o.nombre || '' });
+  /* Un seguimiento (volver a escribirle) no duplica el mensaje que le llegará: se guarda una sola vez, con la fecha del primero. */
+  var k = fin8_(wa), tx = String(texto).slice(0, 3500), prev = (pend[k] || []).filter(function (m) { return m.texto === tx; })[0];
+  pend[k] = (pend[k] || []).filter(function (m) { return m.texto !== tx; }); pend[k].push({ texto: tx, ts: prev ? prev.ts : Date.now(), nombre: o.nombre || '' });
   Object.keys(pend).forEach(function (x) { pend[x] = pend[x].filter(function (m) { return Date.now() - m.ts < 7 * 86400000; }).slice(-3); if (!pend[x].length) delete pend[x]; });
   p.setProperty('WA_PEND', JSON.stringify(pend));
   contactoRegistrar_(wa, o.nombre, '[plantilla de primer contacto] · pendiente: ' + texto);

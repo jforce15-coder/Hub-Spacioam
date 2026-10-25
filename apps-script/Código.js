@@ -4074,6 +4074,10 @@ function waEntrante_(m, nombre) {
   if (pers) { personalEntrante_(wa, nombre, texto, ts, media, s_(m.id), pers); return; }
   const recep = !prueba && !esJuan && !esEquipo ? recepcionDe_(wa) : null;
   if (recep) { recepcionEntrante_(wa, nombre, texto, ts, media, s_(m.id), recep); return; }
+  /* Alguien a quien ALMA le escribió por encargo de un administrador (escribir_a_equipo con al_responder) y que no es
+     administrador: ALMA sigue esa conversación hasta cumplir el encargo (agente.js · encargoEntrante_). */
+  const encW = !prueba && !esJuan && !adminPorTel_(wa) ? encargoAbierto_(wa) : null;
+  if (encW && /ESPERA SU RESPUESTA/.test(encW.objetivo)) { try { encargoEntrante_(wa, nombre, texto, ts, media, s_(m.id), encW); } catch (e) { console.error('encargoEntrante_: ' + e); } return; }
   /* Chat operativo: un administrador registrado escribe → su chat con ALMA, fuera de la lista general. */
   /* Cualquier número registrado de un administrador (o el de Juan) va a su chat operativo, aunque no esté en WA_EQUIPO. */
   const admOp = !prueba && opActivo_() ? (adminPorTel_(wa) || (esJuan ? (adminsOp_().find(a => a.principal) || null) : null)) : null;
@@ -4877,6 +4881,7 @@ function dsBotApi_(body) {
       case 'voz_unir_pruebas': return json_(vozUnirPruebas_());   // una vez: las llamadas de prueba sin número pasan a la conversación del admin principal
       case 'mejora_reemplazar': return json_(mejoraReemplazar_(String(body.buscar || ''), String(body.nuevo || '')));
       case 'early_estado': { const shE = hojaEarly_(), nE = shE.getLastRow(); return json_({ ok: true, filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), EARLY_CAB_.length).getValues().map(v => ({ propiedad: v[5], checkin: v[6], estado: v[10], resultado: v[11] })) }); }
+      case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

@@ -10,9 +10,18 @@ function bqPalabras_(s) {
   var t = String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/\bzona\s*(\d+)/g, 'z$1').replace(/([a-z])(\d)/g, '$1 $2').replace(/(\d)([a-z])/g, '$1 $2');
   t = t.replace(/\bz (\d+)/g, 'z$1');
+  /* Números en letras desde diez («Bonadiez», «Bona diez», «Andares doce») → dígitos (los menores son nombres comunes: «Tres Marías»). */
+  t = t.replace(/[a-zñ]+/g, function (w) {
+    if (BQ_NUM_[w] != null) return String(BQ_NUM_[w]);
+    var m = w.match(BQ_NUM_FIN_); return m && w.length > m[1].length + 2 ? w.slice(0, -m[1].length) + ' ' + BQ_NUM_[m[1]] : w;
+  });
+  t = t.replace(/\bzona\s*(\d+)/g, 'z$1');
   return t.replace(/[^a-z0-9ñ]+/g, ' ').trim().split(' ').filter(function (w) { return w && ['de', 'del', 'la', 'el', 'los', 'las', 'y', 'apto', 'apartamento', 'edificio'].indexOf(w) < 0; });
 }
 
+var BQ_NUM_ = { diez: 10, once: 11, doce: 12, trece: 13,
+  catorce: 14, quince: 15, dieciseis: 16, diecisiete: 17, dieciocho: 18, diecinueve: 19, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50 };
+var BQ_NUM_FIN_ = /(diez|once|doce|trece|catorce|quince|dieciseis|diecisiete|dieciocho|diecinueve|veinte|treinta|cuarenta|cincuenta)$/;
 /* Cómo suena una palabra en español: ck/qu/c dura → k, z/ce/ci → s, v → b, h muda, y/ll → i, sin letras dobles. */
 function bqSonido_(w) {
   if (/^\d+$/.test(w) || /^z\d+$/.test(w)) return w;
@@ -63,7 +72,13 @@ function bqPuntaje_(busqueda, texto) {
     var mejor = 0; ts.forEach(function (t) { var s = bqPalabraSim_(q, t); if (s > mejor) mejor = s; });
     suma += mejor; if (mejor >= 0.6) halladas++;
   });
-  return { puntaje: suma / qs.length, todas: halladas === qs.length, halladas: halladas, total: qs.length };
+  var r = { puntaje: suma / qs.length, todas: halladas === qs.length, halladas: halladas, total: qs.length };
+  /* Palabras pegadas o separadas distinto («Namericas» / «N Americas», «Casasol» / «Casa Sol»): se compara también sin espacios. */
+  if (!r.todas) {
+    var qc = qs.join(''), tc = ts.join('');
+    if (qc.length >= 5 && (tc.indexOf(qc) >= 0 || bqLev_(bqSonido_(qc), bqSonido_(tc).slice(0, bqSonido_(qc).length), 1) <= 1)) r = { puntaje: 0.9, todas: true, halladas: qs.length, total: qs.length };
+  }
+  return r;
 }
 
 /* Busca en una lista. Primero los que cumplen todas las palabras; si no hay, los que cumplen la mayoría.

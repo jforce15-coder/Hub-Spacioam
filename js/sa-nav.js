@@ -807,22 +807,24 @@
      punto de la pantalla. Un dedo nunca cae dos veces en el mismo píxel; el anillo sí. Se aprende ese punto solo (tres
      toques idénticos seguidos) y desde entonces los toques en ese punto son del anillo: no tocan la página y controlan
      a Alma. Por app y por equipo (localStorage). SANav.anillo(false) lo olvida; SANav.anillo(true) vuelve a aprender.
-       sin llamada ....... 1 toque: Alma por voz al centro · 2 toques: abre el menú
-       Alma al centro .... 1 toque: pausa / vuelve el micrófono · 2 toques: termina la llamada
-       Alma en el botón .. 1 toque: la abre al centro · 2 toques: termina
-       deslizar .......... pasa el botón a la siguiente de las 8 posiciones (abajo: sentido del reloj · arriba: al revés) */
+       sin llamada ....... 1 toque: menú · 2 toques: apps · 3 toques: Alma por voz minimizada · deslizar: 8 posiciones
+       Alma minimizada ... deslizar ↑: al centro (luego ↑↓ la mueven) · 1 toque: al centro · 2 toques: termina
+       Alma al centro .... deslizar ↓: termina · deslizar ↑: se minimiza arriba · 1 toque: pausa el micrófono */
   var RING = { pt: null, prev: [], taps: 0, tT: null, on: false, aprender: false };
   function anilloCargar() { try { var v = JSON.parse(localStorage.getItem("sa_anillo") || "null"); if (v && v.fx >= 0 && v.fy >= 0) RING.pt = v; } catch (x) {} }
   function anilloPunto() { return RING.pt ? { x: RING.pt.fx * VW(), y: RING.pt.fy * VH() } : null; }
   function anilloEs(t) { var p = anilloPunto(); return !!p && Math.abs(t.clientX - p.x) <= 4 && Math.abs(t.clientY - p.y) <= 4; }
   /* Al deslizar, el anillo empieza en la misma columna exacta pero puede caer unos píxeles más arriba o abajo. */
   function anilloInicio(t) { var p = anilloPunto(); return !!p && Math.abs(t.clientX - p.x) <= 1.5 && Math.abs(t.clientY - p.y) <= 40; }
-  /* Las 8 posiciones en el sentido del reloj: deslizar con el anillo pasa el botón a la siguiente (o a la anterior). */
-  var RING_ORDEN = ["tl", "tc", "tr", "mr", "br", "bc", "bl", "ml"];
+  /* Recorrido de las 8 posiciones con el anillo, como lo pensó Juan: «arriba» sube por los lados y en el borde de arriba
+     va y viene entre el centro y la esquina izquierda; «abajo» baja por los lados y en el borde de abajo va y viene entre
+     el centro y la esquina derecha. Ej.: esquina sup. derecha ↑ centro sup. ↑ esquina sup. izq.; ahí ↓ baja y ↑ vuelve
+     a la derecha. */
+  var RING_SUBE = { tl: "tc", tc: "tl", tr: "tc", ml: "tl", mr: "tr", bl: "ml", bc: "bl", br: "mr" };
+  var RING_BAJA = { tl: "ml", tc: "tr", tr: "mr", ml: "bl", mr: "br", bl: "bc", bc: "br", br: "bc" };
   function anilloMover(dir) {
-    if (AL.on) return; activity();
-    var i = RING_ORDEN.indexOf(st.anchor); if (i < 0) i = RING_ORDEN.indexOf("bc");
-    var a = RING_ORDEN[(i + dir + RING_ORDEN.length) % RING_ORDEN.length];
+    activity();
+    var a = (dir === "up" ? RING_SUBE : RING_BAJA)[st.anchor] || "bc";
     prevS = st.S; if (st.S !== 1) setS(1); moveTo(a, 0, 0);
     if (AL.min) { var v = inward(a), p = anchorPt(a); phShow("Alma sigue contigo aquí", p.x + v[0] * 90, p.y + v[1] * 90, 1600); }
   }
@@ -834,20 +836,30 @@
     RING.pt = { fx: a.x / VW(), fy: a.y / VH() }; RING.prev = []; RING.aprender = false;
     try { localStorage.setItem("sa_anillo", JSON.stringify(RING.pt)); } catch (x) {}
     if (navigator.vibrate) try { navigator.vibrate([6, 40, 6]); } catch (x) {}
-    phShow("Anillo listo · 1 toque: Alma · 2 toques: menú", VW() / 2, Math.max(60, a.y - 70), 3600);
+    phShow("Anillo listo · 1 toque: menú · 3 toques: Alma", VW() / 2, Math.max(60, a.y - 70), 3600);
     return true;
   }
+  /* Toques: 1 = menú · 2 = apps · 3 = Alma por voz minimizada. En llamada al centro, 1 toque pausa el micrófono;
+     con Alma minimizada, 1 toque la trae al centro y 2 terminan. */
   function anilloAccion(n) {
     activity();
     if (AL.on && !AL.chat) {
-      if (n >= 2) { almaEnd(false); return; }
+      if (n !== 1) return;
       AL.mudo = !AL.mudo; if (AL.ses && AL.ses.mute) { try { AL.ses.mute(AL.mudo); } catch (x) {} }
       status(AL.mudo ? "Micrófono en pausa · toca el anillo para seguir" : "Te escucho"); surge(); return;
     }
-    if (AL.on && AL.chat) { if (n >= 2) almaEnd(false); else almaChat(false); return; }
-    if (AL.min) { if (n >= 2) almaEnd(false); else almaOpen(); return; }
-    if (n >= 2) { if (st.S === 1) setS(2); else setS(1); return; }
-    if (almaOk()) almaOpen(); else onSingle();
+    if (AL.on && AL.chat) { if (n === 1) almaChat(false); return; }
+    if (AL.min) { if (n === 1) { RING.rotar = false; almaOpen(); } else if (n === 2) almaEnd(false); return; }
+    if (n >= 3) { if (almaOk()) { RING.rotar = false; almaMini(); } return; }
+    if (n === 2) onDouble(); else onSingle();
+  }
+  /* Deslizar: con Alma al centro, abajo termina y arriba la minimiza arriba (al centro superior) para seguir moviéndola;
+     con Alma recién minimizada (triple toque), arriba la lleva al centro; en lo demás, mueve el botón por las 8 posiciones. */
+  function anilloSwipe(dir) {
+    activity();
+    if (AL.on) { if (dir === "down") almaEnd(false); else { RING.rotar = true; minimizarEn("tc", 0, 0, false); } return; }
+    if (AL.min && !RING.rotar && dir === "up") { almaOpen(); return; }
+    anilloMover(dir);
   }
   function anilloBind() {
     if (RING.on) return; RING.on = true; anilloCargar();
@@ -863,7 +875,7 @@
         if (ev === "touchmove") { if (t) RING.dy = t.clientY - RING.y0; return; }
         RING.dentro = false; if (t) RING.dy = t.clientY - RING.y0;
         /* Deslizar: no mueve la página (no hay scroll que el anillo deba activar); mueve el botón por las 8 posiciones. */
-        if (Math.abs(RING.dy) > 25) { clearTimeout(RING.tT); RING.taps = 0; anilloMover(RING.dy > 0 ? 1 : -1); return; }
+        if (Math.abs(RING.dy) > 25) { clearTimeout(RING.tT); RING.taps = 0; anilloSwipe(RING.dy > 0 ? "down" : "up"); return; }
         RING.taps++; clearTimeout(RING.tT);
         RING.tT = setTimeout(function () { var n = RING.taps; RING.taps = 0; anilloAccion(n); }, 360);
       }, { capture: true, passive: false });
@@ -1102,7 +1114,11 @@
     stoneDrag = false; E.dots.classList.remove("on"); ptsCache = null;
     var a = sHist[0] || { x: aX.x, y: aY.x, t: 0 }, b = sHist[sHist.length - 1] || a, dt = Math.max(16, b.t - a.t), vx = (b.x - a.x) / dt * 1000, vy = (b.y - a.y) / dt * 1000;
     if (performance.now() - b.t > 90) vx = vy = 0;
-    var an = nearest(aX.x + project(vx), aY.x + project(vy), true); st.anchor = an; setCk("sa_nav_pos", an);
+    minimizarEn(nearest(aX.x + project(vx), aY.x + project(vy), true), vx, vy, true);
+  }
+  /* Alma (piedra al centro) se minimiza a una de las 8 posiciones y sigue la llamada en el botón. */
+  function minimizarEn(an, vx, vy, ayuda) {
+    st.anchor = an; setCk("sa_nav_pos", an);
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     var p = anchorPt(an, true); px.x = px.t = p.x; py.x = py.t = p.y; zoom.x = zoom.t = K(); arms = armsFor(an); placeScrim(); kick();
     aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(74 * K(), .55, .8); aL.to(.28, .55, .8); aH.to(1, .55, .45);
@@ -1110,7 +1126,7 @@
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(false); } catch (x) {} }
     alReposo([aX, aY, aS], function () {
       if (!AL.min) return; hideCore(false); showStone(false); E.core.classList.add("alma-live"); almaLoopOn();
-      var v = inward(st.anchor); phShow("Hacia el centro: Alma · hacia el borde: terminar", px.t + v[0] * 92, py.t + v[1] * 92, 3400);
+      if (ayuda) { var v = inward(st.anchor); phShow("Hacia el centro: Alma · hacia el borde: terminar", px.t + v[0] * 92, py.t + v[1] * 92, 3400); }
     });
   }
 

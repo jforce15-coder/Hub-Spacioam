@@ -26,7 +26,14 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· No envíes dos veces el mismo mensaje al mismo destinatario; si ya salió, dilo.' +
   '\n· Nunca digas «lo hago ahora», «le escribo» o «le doy seguimiento» sin hacerlo en esta misma respuesta con la herramienta. Si no lo hiciste, di que no lo hiciste y por qué.' +
   '\n· Antes de decir que no hay registro de alguien, revisa LO QUE PEDISTE Y SIGUE ABIERTO, usa buscar_contacto (proveedores, técnicos, socios) y, si te dan un número, ver_conversacion con ese número.' +
-  '\n· Cuando le escribas a alguien que no es huésped, en el texto del pedido incluye quién es para la empresa (socio de qué, proveedor de qué): así queda bien clasificado.';
+  '\n· Cuando le escribas a alguien que no es huésped, en el texto del pedido incluye quién es para la empresa (socio de qué, proveedor de qué): así queda bien clasificado.' +
+  '\n· ACTÚA, NO PREGUNTES: si el pedido se puede cumplir con lo que tienes, cúmplelo. Solo pregunta cuando de verdad falta un dato que ninguna herramienta te da, y entonces una sola pregunta concreta.' +
+  '\n· No preguntes el canal para un huésped: por defecto se le escribe en la conversación de su reserva (Airbnb, Booking o la plataforma que sea) con enviar_a_huesped. WhatsApp solo si el administrador lo pide o si el huésped te está escribiendo por WhatsApp.' +
+  '\n· No preguntes entre dos nombres parecidos (Gabriel / Gabriela) si tus herramientas devuelven una sola persona que coincide; usa esa.' +
+  '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
+  '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
+  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
+  '\n· Nunca inventes un código, una dirección, un monto ni un número: si una herramienta no te lo dio en esta conversación, no lo tienes.';
 var SEMILLA_SECRETARIA_ = [
   'Eres ALMA, la secretaria virtual del equipo administrativo de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala).',
   'Hablas con un administrador (te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
@@ -378,6 +385,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   msgs.push({ role: 'user', content: contenido });
   var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   var tools = agHerramientas_(), final = '';
+  system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   for (var vuelta = 0; vuelta < 8; vuelta++) {
     var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
     if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
@@ -426,7 +434,12 @@ function agPersona_(nombre, ctx) {
   adminsOp_().forEach(function (a) { personas.push({ nombre: a.nombre, tel: a.tels[0] || '' }); });
   try { ctx.cfg().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
   try { escalamiento_().forEach(function (p) { personas.push({ nombre: p.nombre, tel: p.telefono }); }); } catch (e) {}
+  /* También las recepciones de los edificios (números que Hola tiene por propiedad) y los contactos con ficha
+     (proveedores, técnicos, socios): así «escríbele a la recepción de Ignacio» o «a Liliana» no termina en pedir el número. */
+  try { var rn = recepcionNumeros_(); Object.keys(rn).forEach(function (k) { if (rn[k] && rn[k].prop) personas.push({ nombre: 'Recepción ' + rn[k].prop, tel: rn[k].n }); }); } catch (e) {}
+  try { contactosTodos_().forEach(function (o) { if (o.nombre && normTel_(o.tel)) personas.push({ nombre: o.nombre + (o.rol ? ' (' + o.rol + ')' : ''), tel: o.tel }); }); } catch (e) {}
   var m = opMatch_(nombre, personas.map(function (p) { return p.nombre; }));
+  if (!m) { var b = bqMejor_(nombre, personas.map(function (p) { return p.nombre; })); if (b) m = b; }
   return personas.filter(function (x) { return x.nombre === m && normTel_(x.tel); })[0] || null;
 }
 

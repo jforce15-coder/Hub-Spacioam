@@ -153,6 +153,7 @@
     ".san-scope .san-btn:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:6px}",
     ".san-scope .san-badge{position:absolute;top:-4px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#E9826A;color:#fff;font:600 9.5px/18px Montserrat,system-ui,sans-serif;text-align:center;z-index:2;box-shadow:0 0 0 2.5px #EDE9E4,0 2px 4px rgba(200,90,60,.25)}",
     ".san-scope .san-fanb .san-btn{left:-30px;top:-30px;width:60px;height:60px;gap:3px;box-shadow:0 12px 18px -6px rgba(90,70,60,.32),0 3px 5px rgba(90,70,60,.14),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10)}",
+    ".san-scope .san-btn.san-foco{outline:2.5px solid var(--san-acc,#E9826A);outline-offset:3px;transform:scale(1.08)}",
     ".san-scope .san-fanb .san-btn.pressed{box-shadow:inset 0 3px 6px rgba(100,80,70,.22),inset 0 -1px 2px rgba(255,255,255,.5)}",
     ".san-scope .san-fanb img{width:21px;height:21px;object-fit:contain;position:relative;z-index:1;pointer-events:none;filter:drop-shadow(0 1px 0 rgba(255,255,255,.75))}",
     ".san-scope .san-core{width:0;height:0;animation:san-core 3.6s ease-in-out infinite}",
@@ -822,9 +823,12 @@
      a la derecha. */
   var RING_SUBE = { tl: "tc", tc: "tl", tr: "tc", ml: "tl", mr: "tr", bl: "ml", bc: "bl", br: "mr" };
   var RING_BAJA = { tl: "ml", tc: "tr", tr: "mr", ml: "bl", mr: "br", bl: "bc", bc: "br", br: "bc" };
+  /* Recorrido alrededor de la pantalla: ↓ en el sentido del reloj, ↑ en contra. */
+  var RING_RELOJ = ["tl", "tc", "tr", "mr", "br", "bc", "bl", "ml"];
   function anilloMover(dir) {
     activity();
-    var a = (dir === "up" ? RING_SUBE : RING_BAJA)[st.anchor] || "bc";
+    var i = RING_RELOJ.indexOf(st.anchor); if (i < 0) i = 5;
+    var a = RING_RELOJ[(i + (dir === "down" ? 1 : RING_RELOJ.length - 1)) % RING_RELOJ.length];
     prevS = st.S; if (st.S !== 1) setS(1); moveTo(a, 0, 0);
     if (AL.min) { var v = inward(a), p = anchorPt(a); phShow("Alma sigue contigo aquí", p.x + v[0] * 90, p.y + v[1] * 90, 1600); }
   }
@@ -841,8 +845,41 @@
   }
   /* Toques: 1 = menú · 2 = apps · 3 = Alma por voz minimizada. En llamada al centro, 1 toque pausa el micrófono;
      con Alma minimizada, 1 toque la trae al centro y 2 terminan. */
+  /* ── Navegar dentro del menú con el anillo (jerarquía: barra de pantallas → «Más» / apps) ──
+     ↑ / ↓ cambian la opción marcada · 1 toque entra (abre la pantalla o despliega «Más») · 2 toques regresan un nivel ·
+     doble ↓ (dos deslizar hacia abajo seguidos) vuelve siempre al estado 1. */
+  function anilloNivel() { return st.S === 3 || st.S === 4 ? "fan" : st.S === 2 ? "bar" : ""; }
+  function anilloLista() { return anilloNivel() === "fan" ? fanEls : anilloNivel() === "bar" ? itemEls : []; }
+  function anilloFoco(i) {
+    root.querySelectorAll(".san-foco").forEach(function (b) { b.classList.remove("san-foco"); });
+    if (i < 0) { RING.foco = -1; RING.nivel = ""; return; }
+    var L = anilloLista(); if (!L.length) { RING.foco = -1; return; }
+    RING.foco = ((i % L.length) + L.length) % L.length; RING.nivel = anilloNivel();
+    var b = L[RING.foco] && L[RING.foco].firstChild; if (b) b.classList.add("san-foco");
+  }
+  function anilloFocoInicial() {
+    var i = 0;
+    if (anilloNivel() === "bar") shown.forEach(function (it, j) { if (it.k === cfg.current) i = j; });
+    setTimeout(function () { anilloFoco(i); }, 30);
+  }
+  function anilloMenuMover(dir) { activity(); if (RING.nivel !== anilloNivel()) { anilloFocoInicial(); return; } anilloFoco((RING.foco < 0 ? 0 : RING.foco) + (dir === "down" ? 1 : -1)); }
+  function anilloMenuEntrar() {
+    activity(); var nv = anilloNivel(), i = RING.foco < 0 ? 0 : RING.foco;
+    if (nv === "bar") {
+      var it = shown[i]; if (!it) return;
+      if (it.k === "__more") { openFan("more"); anilloFocoInicial(); return; }
+      go(it.k); setS(1); anilloFoco(-1); return;
+    }
+    if (nv === "fan") { var f = fanList[i]; if (!f) return; var wasMore = st.fan === "more"; f.tap(); if (wasMore) setS(1); anilloFoco(-1); }
+  }
+  function anilloMenuAtras() {
+    activity();
+    if (st.S === 4) { setS(2); anilloFocoInicial(); return; }
+    setS(1); anilloFoco(-1);
+  }
   function anilloAccion(n) {
     activity();
+    if (!AL.on && !AL.min && st.S !== 1) { if (n === 1) anilloMenuEntrar(); else if (n === 2) anilloMenuAtras(); return; }
     if (AL.on && !AL.chat) {
       if (n !== 1) return;
       AL.mudo = !AL.mudo; if (AL.ses && AL.ses.mute) { try { AL.ses.mute(AL.mudo); } catch (x) {} }
@@ -851,12 +888,20 @@
     if (AL.on && AL.chat) { if (n === 1) almaChat(false); return; }
     if (AL.min) { if (n === 1) { RING.rotar = false; almaOpen(); } else if (n === 2) almaEnd(false); return; }
     if (n >= 3) { if (almaOk()) { RING.rotar = false; almaMini(); } return; }
-    if (n === 2) onDouble(); else onSingle();
+    if (n === 2) { onDouble(); anilloFocoInicial(); } else { onSingle(); anilloFocoInicial(); }
   }
   /* Deslizar: con Alma al centro, abajo termina y arriba la minimiza arriba (al centro superior) para seguir moviéndola;
      con Alma recién minimizada (triple toque), arriba la lleva al centro; en lo demás, mueve el botón por las 8 posiciones. */
   function anilloSwipe(dir) {
     activity();
+    /* Con un menú abierto: ↑ / ↓ cambian la opción; dos ↓ seguidos vuelven al estado 1 (se espera un instante al segundo). */
+    if (!AL.on && !AL.min && st.S !== 1) {
+      if (dir === "down") {
+        if (RING.bajaT) { clearTimeout(RING.bajaT); RING.bajaT = null; setS(1); anilloFoco(-1); phShow("Inicio", px.t, py.t - 60, 900); return; }
+        RING.bajaT = setTimeout(function () { RING.bajaT = null; anilloMenuMover("down"); }, 650); return;
+      }
+      anilloMenuMover("up"); return;
+    }
     if (AL.on) { if (dir === "down") almaEnd(false); else { RING.rotar = true; minimizarEn("tc", 0, 0, false); } return; }
     if (AL.min && !RING.rotar && dir === "up") { almaOpen(); return; }
     anilloMover(dir);

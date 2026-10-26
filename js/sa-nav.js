@@ -861,27 +861,38 @@
     if (AL.min && !RING.rotar && dir === "up") { almaOpen(); return; }
     anilloMover(dir);
   }
+  /* Firma del anillo medida en el iPhone de Juan: su «dedo» es ancho (pointer width ~93 px, radio ~47; un dedo ~24 / 12).
+     Un toque baja y sube en el mismo punto; al deslizar no hay arrastre: baja en un punto y SUBE ~140 px más arriba (↑) o
+     más abajo (↓). Se reconoce por eso (o por el punto aprendido, de respaldo) y nunca llega a la página. */
+  function anilloAncho(e) { return e.pointerType === "touch" && (e.width || 0) >= 60; }
   function anilloBind() {
     if (RING.on) return; RING.on = true; anilloCargar();
-    d.addEventListener("touchstart", function (e) {
-      if (!root || e.touches.length !== 1) return; var t = e.touches[0];
-      if (RING.pt && !RING.aprender && anilloInicio(t)) { e.preventDefault(); e.stopPropagation(); RING.dentro = true; RING.y0 = t.clientY; RING.dy = 0; return; }
-      RING.dentro = false; anilloAprende(t);
-    }, { capture: true, passive: false });
-    ["touchmove", "touchend"].forEach(function (ev) {
-      d.addEventListener(ev, function (e) {
-        if (!RING.dentro) return; e.preventDefault(); e.stopPropagation();
-        var t = (e.changedTouches || e.touches)[0];
-        if (ev === "touchmove") { if (t) RING.dy = t.clientY - RING.y0; return; }
-        RING.dentro = false; if (t) RING.dy = t.clientY - RING.y0;
-        /* Deslizar: no mueve la página (no hay scroll que el anillo deba activar); mueve el botón por las 8 posiciones. */
-        if (Math.abs(RING.dy) > 25) { clearTimeout(RING.tT); RING.taps = 0; anilloSwipe(RING.dy > 0 ? "down" : "up"); return; }
+    var tapa = function (e) { e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); };
+    w.addEventListener("pointerdown", function (e) {
+      if (!root || RING.aprender) return;
+      if (anilloAncho(e) || (RING.pt && e.pointerType === "touch" && anilloInicio(e))) { tapa(e); RING.dentro = true; RING.y0 = e.clientY; RING.pid = e.pointerId; }
+    }, true);
+    w.addEventListener("pointermove", function (e) { if (RING.dentro && e.pointerId === RING.pid) tapa(e); }, true);
+    ["pointerup", "pointercancel"].forEach(function (ev) {
+      w.addEventListener(ev, function (e) {
+        if (!RING.dentro || e.pointerId !== RING.pid) return; tapa(e); RING.dentro = false; RING.hasta = Date.now() + 600;
+        if (ev === "pointercancel") return;
+        var dy = e.clientY - RING.y0;
+        /* Deslizar: mueve la roca (o entra / sale de Alma); nunca hace scroll en la página. */
+        if (Math.abs(dy) > 50) { clearTimeout(RING.tT); RING.taps = 0; anilloSwipe(dy > 0 ? "down" : "up"); return; }
         RING.taps++; clearTimeout(RING.tT);
-        RING.tT = setTimeout(function () { var n = RING.taps; RING.taps = 0; anilloAccion(n); }, 360);
+        RING.tT = setTimeout(function () { var n = RING.taps; RING.taps = 0; anilloAccion(n); }, 380);
+      }, true);
+    });
+    ["touchstart", "touchmove", "touchend"].forEach(function (ev) {
+      d.addEventListener(ev, function (e) {
+        var t = (e.changedTouches || e.touches || [])[0];
+        if (RING.dentro || (t && (t.radiusX || 0) >= 30) || Date.now() < (RING.hasta || 0)) { tapa(e); return; }
+        if (ev === "touchstart" && root && e.touches.length === 1) anilloAprende(e.touches[0]);
       }, { capture: true, passive: false });
     });
-    /* El toque del anillo no debe activar lo que haya debajo (por si el navegador igual manda el clic). */
-    d.addEventListener("click", function (e) { if (RING.pt && !RING.aprender && e.isTrusted && anilloEs(e)) { e.preventDefault(); e.stopPropagation(); } }, true);
+    /* Por si el navegador igual manda el clic del toque del anillo. */
+    d.addEventListener("click", function (e) { if (Date.now() < (RING.hasta || 0)) tapa(e); }, true);
   }
   function almaOk() { return !!(cfg && cfg.alma && cfg.alma.start); }
   /* hacia dónde queda «el centro» desde donde está el botón (encajado puede estar en cualquier lado) */

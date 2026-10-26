@@ -809,11 +809,23 @@
      a Alma. Por app y por equipo (localStorage). SANav.anillo(false) lo olvida; SANav.anillo(true) vuelve a aprender.
        sin llamada ....... 1 toque: Alma por voz al centro · 2 toques: abre el menú
        Alma al centro .... 1 toque: pausa / vuelve el micrófono · 2 toques: termina la llamada
-       Alma en el botón .. 1 toque: la abre al centro · 2 toques: termina */
+       Alma en el botón .. 1 toque: la abre al centro · 2 toques: termina
+       deslizar .......... pasa el botón a la siguiente de las 8 posiciones (abajo: sentido del reloj · arriba: al revés) */
   var RING = { pt: null, prev: [], taps: 0, tT: null, on: false, aprender: false };
   function anilloCargar() { try { var v = JSON.parse(localStorage.getItem("sa_anillo") || "null"); if (v && v.fx >= 0 && v.fy >= 0) RING.pt = v; } catch (x) {} }
   function anilloPunto() { return RING.pt ? { x: RING.pt.fx * VW(), y: RING.pt.fy * VH() } : null; }
   function anilloEs(t) { var p = anilloPunto(); return !!p && Math.abs(t.clientX - p.x) <= 4 && Math.abs(t.clientY - p.y) <= 4; }
+  /* Al deslizar, el anillo empieza en la misma columna exacta pero puede caer unos píxeles más arriba o abajo. */
+  function anilloInicio(t) { var p = anilloPunto(); return !!p && Math.abs(t.clientX - p.x) <= 1.5 && Math.abs(t.clientY - p.y) <= 40; }
+  /* Las 8 posiciones en el sentido del reloj: deslizar con el anillo pasa el botón a la siguiente (o a la anterior). */
+  var RING_ORDEN = ["tl", "tc", "tr", "mr", "br", "bc", "bl", "ml"];
+  function anilloMover(dir) {
+    if (AL.on) return; activity();
+    var i = RING_ORDEN.indexOf(st.anchor); if (i < 0) i = RING_ORDEN.indexOf("bc");
+    var a = RING_ORDEN[(i + dir + RING_ORDEN.length) % RING_ORDEN.length];
+    prevS = st.S; if (st.S !== 1) setS(1); moveTo(a, 0, 0);
+    if (AL.min) { var v = inward(a), p = anchorPt(a); phShow("Alma sigue contigo aquí", p.x + v[0] * 90, p.y + v[1] * 90, 1600); }
+  }
   function anilloAprende(t) {
     var n = performance.now(); RING.prev.push({ x: t.clientX, y: t.clientY, t: n }); RING.prev = RING.prev.filter(function (q) { return n - q.t < 5000; }).slice(-3);
     if (RING.prev.length < 3) return false;
@@ -841,14 +853,18 @@
     if (RING.on) return; RING.on = true; anilloCargar();
     d.addEventListener("touchstart", function (e) {
       if (!root || e.touches.length !== 1) return; var t = e.touches[0];
-      if (RING.pt && !RING.aprender && anilloEs(t)) { e.preventDefault(); e.stopPropagation(); RING.dentro = true; return; }
+      if (RING.pt && !RING.aprender && anilloInicio(t)) { e.preventDefault(); e.stopPropagation(); RING.dentro = true; RING.y0 = t.clientY; RING.dy = 0; return; }
       RING.dentro = false; anilloAprende(t);
     }, { capture: true, passive: false });
     ["touchmove", "touchend"].forEach(function (ev) {
       d.addEventListener(ev, function (e) {
         if (!RING.dentro) return; e.preventDefault(); e.stopPropagation();
-        if (ev === "touchmove") return;
-        RING.dentro = false; RING.taps++; clearTimeout(RING.tT);
+        var t = (e.changedTouches || e.touches)[0];
+        if (ev === "touchmove") { if (t) RING.dy = t.clientY - RING.y0; return; }
+        RING.dentro = false; if (t) RING.dy = t.clientY - RING.y0;
+        /* Deslizar: no mueve la página (no hay scroll que el anillo deba activar); mueve el botón por las 8 posiciones. */
+        if (Math.abs(RING.dy) > 25) { clearTimeout(RING.tT); RING.taps = 0; anilloMover(RING.dy > 0 ? 1 : -1); return; }
+        RING.taps++; clearTimeout(RING.tT);
         RING.tT = setTimeout(function () { var n = RING.taps; RING.taps = 0; anilloAccion(n); }, 360);
       }, { capture: true, passive: false });
     });

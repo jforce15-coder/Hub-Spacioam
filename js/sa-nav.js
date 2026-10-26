@@ -801,6 +801,60 @@
   }
   var PULL_MIN = 14, PULL_GO = 88, PULL_END = 70, pulling = 0, pullAlong = 0, pullS = null;
   var aX, aY, aS, aSq, aDX, aDY, aL, aH;
+
+  /* ================= anillo (QRing / Colmi en modo «Touch Control») =================
+     El anillo no tiene un botón que la página pueda leer: se comporta como un dedo invisible que toca SIEMPRE el mismo
+     punto de la pantalla. Un dedo nunca cae dos veces en el mismo píxel; el anillo sí. Se aprende ese punto solo (tres
+     toques idénticos seguidos) y desde entonces los toques en ese punto son del anillo: no tocan la página y controlan
+     a Alma. Por app y por equipo (localStorage). SANav.anillo(false) lo olvida; SANav.anillo(true) vuelve a aprender.
+       sin llamada ....... 1 toque: Alma por voz al centro · 2 toques: abre el menú
+       Alma al centro .... 1 toque: pausa / vuelve el micrófono · 2 toques: termina la llamada
+       Alma en el botón .. 1 toque: la abre al centro · 2 toques: termina */
+  var RING = { pt: null, prev: [], taps: 0, tT: null, on: false, aprender: false };
+  function anilloCargar() { try { var v = JSON.parse(localStorage.getItem("sa_anillo") || "null"); if (v && v.fx >= 0 && v.fy >= 0) RING.pt = v; } catch (x) {} }
+  function anilloPunto() { return RING.pt ? { x: RING.pt.fx * VW(), y: RING.pt.fy * VH() } : null; }
+  function anilloEs(t) { var p = anilloPunto(); return !!p && Math.abs(t.clientX - p.x) <= 4 && Math.abs(t.clientY - p.y) <= 4; }
+  function anilloAprende(t) {
+    var n = performance.now(); RING.prev.push({ x: t.clientX, y: t.clientY, t: n }); RING.prev = RING.prev.filter(function (q) { return n - q.t < 5000; }).slice(-3);
+    if (RING.prev.length < 3) return false;
+    var a = RING.prev[0], ok = RING.prev.every(function (q) { return Math.abs(q.x - a.x) <= .6 && Math.abs(q.y - a.y) <= .6; });
+    if (!ok) return false;
+    RING.pt = { fx: a.x / VW(), fy: a.y / VH() }; RING.prev = []; RING.aprender = false;
+    try { localStorage.setItem("sa_anillo", JSON.stringify(RING.pt)); } catch (x) {}
+    if (navigator.vibrate) try { navigator.vibrate([6, 40, 6]); } catch (x) {}
+    phShow("Anillo listo · 1 toque: Alma · 2 toques: menú", VW() / 2, Math.max(60, a.y - 70), 3600);
+    return true;
+  }
+  function anilloAccion(n) {
+    activity();
+    if (AL.on && !AL.chat) {
+      if (n >= 2) { almaEnd(false); return; }
+      AL.mudo = !AL.mudo; if (AL.ses && AL.ses.mute) { try { AL.ses.mute(AL.mudo); } catch (x) {} }
+      status(AL.mudo ? "Micrófono en pausa · toca el anillo para seguir" : "Te escucho"); surge(); return;
+    }
+    if (AL.on && AL.chat) { if (n >= 2) almaEnd(false); else almaChat(false); return; }
+    if (AL.min) { if (n >= 2) almaEnd(false); else almaOpen(); return; }
+    if (n >= 2) { if (st.S === 1) setS(2); else setS(1); return; }
+    if (almaOk()) almaOpen(); else onSingle();
+  }
+  function anilloBind() {
+    if (RING.on) return; RING.on = true; anilloCargar();
+    d.addEventListener("touchstart", function (e) {
+      if (!root || e.touches.length !== 1) return; var t = e.touches[0];
+      if (RING.pt && !RING.aprender && anilloEs(t)) { e.preventDefault(); e.stopPropagation(); RING.dentro = true; return; }
+      RING.dentro = false; anilloAprende(t);
+    }, { capture: true, passive: false });
+    ["touchmove", "touchend"].forEach(function (ev) {
+      d.addEventListener(ev, function (e) {
+        if (!RING.dentro) return; e.preventDefault(); e.stopPropagation();
+        if (ev === "touchmove") return;
+        RING.dentro = false; RING.taps++; clearTimeout(RING.tT);
+        RING.tT = setTimeout(function () { var n = RING.taps; RING.taps = 0; anilloAccion(n); }, 360);
+      }, { capture: true, passive: false });
+    });
+    /* El toque del anillo no debe activar lo que haya debajo (por si el navegador igual manda el clic). */
+    d.addEventListener("click", function (e) { if (RING.pt && !RING.aprender && e.isTrusted && anilloEs(e)) { e.preventDefault(); e.stopPropagation(); } }, true);
+  }
   function almaOk() { return !!(cfg && cfg.alma && cfg.alma.start); }
   /* hacia dónde queda «el centro» desde donde está el botón (encajado puede estar en cualquier lado) */
   function towardCenter() { if (!dock.on) return inward(st.anchor); var dx = VW() / 2 - px.x, dy = VH() * .42 - py.x, l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; }
@@ -940,7 +994,7 @@
 
   function almaOpen() {
     if (AL.on) return; almaBuild(); var resume = AL.min;
-    AL.on = true; AL.min = false; AL.chat = false; E.ov.classList.remove("chat"); setS(1); E.core.classList.remove("alma-live");
+    AL.on = true; AL.min = false; AL.chat = false; AL.mudo = false; E.ov.classList.remove("chat"); setS(1); E.core.classList.remove("alma-live");
     pullClear(); E.body.style.scale = ""; pullS.x = pullS.t = 0;
     var r = E.face.getBoundingClientRect();
     aX.x = aX.t = r.left + r.width / 2; aY.x = aY.t = r.top + r.height / 2; aS.x = aS.t = r.width; aSq.x = aSq.t = 0; aDX.x = aDX.t = aDY.x = aDY.t = 0;
@@ -1150,7 +1204,7 @@
       loadAllowed(); buildItems(); buildFan("apps"); placeScrim(); placeDots();
       if (cfg.hidden) root.hidden = true;
       if (cfg.tint) setTint(cfg.tint);
-      w.addEventListener("resize", onResize); d.addEventListener("keydown", onKey); dockWatch();
+      w.addEventListener("resize", onResize); d.addEventListener("keydown", onKey); dockWatch(); anilloBind();
       /* Safari esconde y muestra sus barras al hacer scroll sin avisar con resize: se reacomoda con el visor visible. */
       if (w.visualViewport) w.visualViewport.addEventListener("resize", onVV);
       /* en la app de inicio de iPhone el alto real llega tarde: se recoloca al cargar */
@@ -1174,6 +1228,7 @@
     },
     /* Abre a Alma al centro desde la app (un botón de la pantalla), igual que deslizar el botón hacia el centro. */
     alma: function () { if (!root || root.hidden || !almaOk()) return false; almaOpen(); return true; },
+    anillo: function (on) { if (on === false) { RING.pt = null; try { localStorage.removeItem("sa_anillo"); } catch (x) {} return false; } if (on === true) { RING.aprender = true; RING.prev = []; phShow("Toca el anillo 3 veces", VW() / 2, VH() * .4, 4000); return true; } return !!RING.pt; },
     portal: portal,
     ir: function (url, nueva) { irA(url, nueva); },
     hide: function (h) { if (root) this.update({ hidden: h !== false }); },

@@ -120,6 +120,7 @@
         end: function () { vivo = null; try { conv.endSession(); } catch (e) {} },
         level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
         sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
+        mute: function (on) { try { conv.setMicMuted(!!on); } catch (e) {} },
         chat: function (on) { enChat = on; try { conv.setMicMuted(on); conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho"); }
       };
     });

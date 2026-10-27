@@ -18,8 +18,8 @@
 
    Estados: 1 círculo · 2 barra con las pantallas · 3 abanico de apps · 4 barra + abanico.
    1 toque abre/va al inicio · 2 toques abre las apps · mantener lo mueve a 8 posiciones.
-   «Tutoriales» va al final de las pantallas (o en «Más»): abre js/sa-tutoriales.js, que además muestra
-   el video del botón roca en pantalla completa la primera vez. cfg.tutoriales: función propia o false.
+   Tutoriales (js/sa-tutoriales.js): el video del botón roca se reproduce solo, en pantalla completa, hasta que
+   se ve; después queda en el «?» flotante del costado. cfg.tutoriales: función (centro propio, sin «?») o false.
    La posición se comparte entre apps (cookie .spacioam.com). Los huéspedes no lo ven:
    solo lo montan las pantallas del equipo.
    --------------------------------------------------------------------------- */
@@ -381,11 +381,8 @@
     return '<button type="button" class="san-btn san-grain" aria-label="' + esc(label) + (badge ? " · " + badge : "") + '">' + (img ? '<img alt="" src="' + img + '">' : icon(ic)) +
       '<span class="san-t">' + esc(label) + '</span>' + (badge ? '<span class="san-badge" aria-hidden="true">' + (badge > 99 ? "99+" : badge) + "</span>" : "") + "</button>";
   }
-  /* «Tutoriales» va siempre al final de las pantallas de cada app (entra en «Más» cuando no caben).
-     La app puede abrir su propio centro (cfg.tutoriales = función) o quitarlo (cfg.tutoriales = false). */
-  var TUT = { k: "__tut", l: "Tutoriales", icon: "help" };
   function buildItems() {
-    var items = (cfg.items || []).concat(cfg.tutoriales === false ? [] : [TUT]);
+    var items = cfg.items || [];
     /* hasta 4 directos; con más, 3 + «Más». La app puede fijar cuántos van directos (cfg.masDesde) */
     var lim = typeof cfg.masDesde === "number" ? cfg.masDesde : (items.length > 4 ? 3 : 4);
     if (items.length > lim) { shown = items.slice(0, lim).concat([{ k: "__more", l: "Más", icon: "more", badge: items.slice(lim).reduce(function (a, it) { return a + (it.badge || 0); }, 0) }]); overflow = items.slice(lim); }
@@ -624,7 +621,7 @@
   function conTutoriales(cb) {
     if (w.SATutoriales) { cb(); return; }
     tutCb.push(cb); if (tutCargando) return; tutCargando = true;
-    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-10-27";
+    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-10-27b";
     s.onload = function () { var l = tutCb; tutCb = []; l.forEach(function (f) { try { f(); } catch (e) { console.error(e); } }); };
     s.onerror = function () { tutCargando = false; tutCb = []; };
     (d.head || d.documentElement).appendChild(s);
@@ -633,9 +630,17 @@
     if (typeof cfg.tutoriales === "function") { try { cfg.tutoriales(); } catch (e) { console.error(e); } return; }
     conTutoriales(function () { w.SATutoriales.centro({ app: cfg.app }); });
   }
-  /* La primera vez que el menú se ve, sale el video del botón roca en pantalla completa (una sola vez por equipo). */
+  /* Cuando el menú se ve: el «?» flotante (si la app no tiene centro propio) y el video del botón roca
+     en pantalla completa hasta que la persona lo haya visto. */
+  function tutBoton(on) {
+    if (typeof cfg.tutoriales === "function" || cfg.tutoriales === false) return;
+    if (on) conTutoriales(function () { if (root && !root.hidden) w.SATutoriales.boton(true, cfg.app); });
+    else if (w.SATutoriales) w.SATutoriales.boton(false);
+  }
   function bienvenida() {
-    if (tutPrimera || !root || root.hidden || cfg.bienvenida === false) return; tutPrimera = true;
+    if (!root || root.hidden) return;
+    tutBoton(true);
+    if (tutPrimera || cfg.bienvenida === false || cfg.tutoriales === false) return; tutPrimera = true;
     setTimeout(function () { if (root && !root.hidden) conTutoriales(function () { w.SATutoriales.primeraVez(cfg.app); }); else tutPrimera = false; }, 1600);
   }
   function goHub() {
@@ -1357,7 +1362,7 @@
       if (c.apps) allowed = c.apps.slice();
       if (c.appBadges && st.fan === "apps" && st.S !== 3 && st.S !== 4 && JSON.stringify(c.appBadges) !== root._ab) { root._ab = JSON.stringify(c.appBadges); buildFan("apps"); }
       if ("tint" in c) setTint(c.tint);
-      if ("hidden" in c) { root.hidden = !!c.hidden; if (c.hidden && st.S !== 1) setS(1); if (!c.hidden) bienvenida(); }
+      if ("hidden" in c) { root.hidden = !!c.hidden; if (c.hidden && st.S !== 1) setS(1); if (!c.hidden) bienvenida(); else tutBoton(false); }
       if (rebuild) { buildItems(); if (st.fan === "more") buildFan("more"); applyState(0); }
       else markCurrent();
       setCoreLbl();
@@ -1373,7 +1378,7 @@
     unmount: function () {
       if (!root) return;
       w.removeEventListener("resize", onResize); d.removeEventListener("keydown", onKey); if (w.visualViewport) w.visualViewport.removeEventListener("resize", onVV); if (dockMO) dockMO.disconnect(); if (dockRO) dockRO.disconnect();
-      clearTimeout(idleT); root.remove(); root = null; springs = []; pend = []; running = false; cfg = null; E = {};
+      tutBoton(false); clearTimeout(idleT); root.remove(); root = null; springs = []; pend = []; running = false; cfg = null; E = {};
     },
     icons: Object.keys(P)
   };

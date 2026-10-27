@@ -121,7 +121,7 @@
     ".sat-player.tapado{opacity:0;pointer-events:none}",
     ".sat-player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#FAFAFA}",
     "@media (max-aspect-ratio:9/16){.sat-player video{object-fit:cover}}",
-    ".sat-tap{position:absolute;inset:0;border:0;background:transparent;padding:0;margin:0;cursor:pointer}",
+    ".sat-tap{position:absolute;inset:0;border:0;background:transparent;padding:0;margin:0;cursor:pointer;touch-action:none}",
     ".sat-later{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;display:flex;align-items:center;gap:8px;border:1px solid #EDEAE6;border-radius:999px;padding:11px 16px;min-height:44px;background:#FFFFFF;box-shadow:0 8px 22px -10px rgba(90,70,60,.35);font:600 12.5px/1 Montserrat,system-ui,sans-serif;letter-spacing:.02em;color:#3E3F3F;cursor:pointer}",
     ".sat-later i{width:7px;height:7px;border-radius:50%;background:#E9826A}",
     /* aviso grande al centro: «Toca para escuchar» (sonando en silencio) o «Ver tutorial» (el teléfono no dejó arrancar) */
@@ -211,6 +211,34 @@
     setTimeout(function () { t.classList.remove("on"); setTimeout(function () { t.remove(); }, 400); }, 4200);
   }
 
+  /* ── Deslizar hacia abajo para cerrar (video y hojas) ──
+     zona: donde empieza el gesto · obj: lo que se mueve con el dedo · puede(): si se permite empezar (p. ej. hoja sin scroll)
+     Cierra al bajar más de 120 px o con un movimiento rápido; si no, vuelve con rebote. Devuelve true si el último
+     gesto fue un arrastre (para no tomarlo como toque). */
+  function deslizarAbajo(zona, obj, alCerrar, puede) {
+    var y0 = null, x0 = 0, t0 = 0, dy = 0, activo = false, arrastre = false;
+    function ini(x, y) { if (puede && !puede()) return; y0 = y; x0 = x; t0 = Date.now(); dy = 0; activo = false; arrastre = false; obj.style.transition = "none"; }
+    function mov(x, y, e) {
+      if (y0 == null) return;
+      var ddy = y - y0, ddx = x - x0;
+      if (!activo) { if (Math.abs(ddy) < 8 && Math.abs(ddx) < 8) return; if (ddy <= 0 || Math.abs(ddx) > ddy) { y0 = null; return; } activo = true; arrastre = true; }
+      if (e && e.cancelable) e.preventDefault();
+      dy = Math.max(0, ddy);
+      obj.style.transform = "translateY(" + dy.toFixed(1) + "px) scale(" + (1 - Math.min(dy, 400) / 4000).toFixed(4) + ")";
+    }
+    function fin() {
+      if (y0 == null) return; y0 = null; if (!activo) return;
+      var vel = dy / Math.max(1, Date.now() - t0);
+      if (dy > 120 || (dy > 40 && vel > .55)) { alCerrar(); return; }
+      obj.style.transition = "transform .5s cubic-bezier(.3,1.35,.5,1)"; obj.style.transform = "";
+    }
+    zona.addEventListener("touchstart", function (e) { var p = e.touches[0]; ini(p.clientX, p.clientY); }, { passive: true });
+    zona.addEventListener("touchmove", function (e) { var p = e.touches[0]; mov(p.clientX, p.clientY, e); }, { passive: false });
+    zona.addEventListener("touchend", fin); zona.addEventListener("touchcancel", fin);
+    zona.addEventListener("mousedown", function (e) { ini(e.clientX, e.clientY); var mm = function (e2) { mov(e2.clientX, e2.clientY, e2); }, mu = function () { d.removeEventListener("mousemove", mm); d.removeEventListener("mouseup", mu); fin(); }; d.addEventListener("mousemove", mm); d.addEventListener("mouseup", mu); });
+    return function () { var a = arrastre; arrastre = false; return a; };
+  }
+
   /* ── Reproductor a pantalla completa ──
      Entrada y salida con la piedra de Alma (SANav.portal, la misma transición de cambiar de app): la piedra sale del
      botón y cubre la pantalla, debajo se prepara el video, y Alma vuelve a su lugar destapándolo. Al terminar, igual.
@@ -268,7 +296,10 @@
     }
     function conSonido() { ctaMostrar(null); el.classList.remove("pausa"); v.muted = false; v.removeAttribute("muted"); var p = v.play(); if (p && p.catch) p.catch(function () { ctaMostrar("play"); }); }
     cta.addEventListener("click", function (e) { e.stopPropagation(); conSonido(); });
+    /* Deslizar hacia abajo cierra el video (cuenta como «Ver más tarde» si aún no lo termina). */
+    var fueArrastre = deslizarAbajo(el.querySelector(".sat-tap"), el, function () { cerrar(false); });
     el.querySelector(".sat-tap").addEventListener("click", function () {
+      if (fueArrastre()) return;
       if (cta.classList.contains("on") || v.muted) { conSonido(); return; }
       if (v.paused) { v.play(); el.classList.remove("pausa"); } else { v.pause(); el.classList.add("pausa"); }
     });
@@ -344,6 +375,7 @@
     });
     html += '<div class="sat-pronto">Pronto llegarán aquí los tutoriales propios de esta app.</div></div></div>';
     var el = capa("sat-hub", html);
+    var hoja = el.querySelector(".sat-sheet"); deslizarAbajo(hoja, hoja, function () { cerrar(); }, function () { return hoja.scrollTop <= 0; });
     function cerrar(cb) { d.removeEventListener("keydown", tecla); quitar(el, cb); }
     function tecla(e) { if (e.key === "Escape") cerrar(); }
     d.addEventListener("keydown", tecla);
@@ -367,6 +399,7 @@
     d.addEventListener("keydown", tecla);
     el.addEventListener("click", function (e) { if (e.target === el) cerrar(); });
     el.querySelector(".sat-x").addEventListener("click", cerrar);
+    var hoja = el.querySelector(".sat-sheet"); deslizarAbajo(hoja, hoja, cerrar, function () { return hoja.scrollTop <= 0; });
     var caja = el.querySelector(".sat-rep"), s = sesion();
     fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ hub: 1, action: "tutoriales", session: s }) })
       .then(function (r) { return r.json(); }).then(function (j) {

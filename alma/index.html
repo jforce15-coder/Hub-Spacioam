@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<link rel="stylesheet" href="../ds/tokens/colors.css">
+<link rel="stylesheet" href="../ds/tokens/typography.css">
+<!-- «Alma aquí»: Alma sola, abierta desde cualquier página con el atajo de Compartir o el marcador
+     (instalar.html). Recibe qué estaba viendo la persona (?t=título&sel=texto&desde=<url>, desde al final)
+     y se lo pasa a Alma como contexto, en el chat y en la voz. -->
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg, #F4F1EC); color: var(--fg, #1D1D1B); font-family: var(--font-sans, -apple-system, system-ui, sans-serif);
+    min-height: 100dvh; display: flex; flex-direction: column; }
+  header { padding: max(16px, env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid var(--border-soft, #e4ded5); background: var(--surface, #fff); }
+  h1 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 26px; margin: 0; }
+  .viendo { margin-top: 6px; font-size: 13px; color: var(--fg-muted, #6f6867); overflow-wrap: anywhere; }
+  .viendo a { color: inherit; }
+  .sel { margin-top: 6px; font-size: 13px; padding: 6px 10px; border-left: 3px solid var(--accent, #B54D36); background: var(--bg-alt, #efe9e0); border-radius: 4px; max-height: 5.5em; overflow: auto; }
+  main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .m { max-width: 85%; padding: 10px 14px; border-radius: 16px; line-height: 1.45; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .yo { align-self: flex-end; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); border-bottom-right-radius: 4px; }
+  .alma { align-self: flex-start; background: var(--surface, #fff); border: 1px solid var(--border-soft, #e4ded5); border-bottom-left-radius: 4px; }
+  .nota { align-self: center; color: var(--fg-muted, #6f6867); font-size: 13px; text-align: center; }
+  footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: var(--surface, #fff); border-top: 1px solid var(--border-soft, #e4ded5); display: flex; gap: 8px; align-items: flex-end; }
+  textarea { flex: 1; resize: none; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); max-height: 140px; }
+  button { font: inherit; border: 0; border-radius: 999px; height: 44px; min-width: 44px; padding: 0 16px; cursor: pointer; }
+  #enviar { background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); }
+  #voz { background: var(--accent, #B54D36); color: #fff; }
+  #voz.vivo { background: var(--color-error, #a33); }
+  button:disabled { opacity: .45; }
+  .entrar { margin: 40px auto; max-width: 360px; text-align: center; line-height: 1.5; }
+  .entrar a { display: inline-block; margin-top: 12px; padding: 12px 20px; border-radius: 999px; background: var(--fg, #1D1D1B); color: #fff; text-decoration: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Alma</h1>
+  <div class="viendo" id="viendo">Abierta sin página de origen.</div>
+  <div class="sel" id="sel" hidden></div>
+</header>
+<main id="hilo"><div class="nota">Cargando…</div></main>
+<footer id="pie">
+  <button id="voz" title="Hablar con Alma">🎙</button>
+  <textarea id="txt" rows="1" placeholder="Pregúntale a Alma sobre esta página…"></textarea>
+  <button id="enviar">Enviar</button>
+</footer>
+<script src="../js/sa-auth-client.js"></script>
+<script src="../js/alma-client.js"></script>
+<script src="../js/alma-voz.js"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  /* desde va al final y puede venir sin codificar (atajo de Compartir): es todo lo que sigue a «desde=». */
+  var q = location.search.slice(1), i = q.indexOf("desde="), antes = i >= 0 ? q.slice(0, i) : q;
+  var p = new URLSearchParams(antes), desde = i >= 0 ? q.slice(i + 6) : "";
+  try { if (/%[0-9A-F]{2}/i.test(desde)) desde = decodeURIComponent(desde); } catch (e) {}
+  var titulo = (p.get("t") || "").slice(0, 200), sel = (p.get("sel") || "").slice(0, 1500);
+  if (desde) {
+    var a = document.createElement("a"); a.href = desde; a.textContent = titulo || desde; a.target = "_blank"; a.rel = "noopener";
+    $("viendo").textContent = "Estás viendo: "; $("viendo").appendChild(a);
+  }
+  if (sel) { $("sel").hidden = false; $("sel").textContent = "«" + sel + "»"; }
+
+  /* Quién es: el correo va dentro de la sesión firmada (pulsera) que guarda sa-sesion.js. */
+  function correo() {
+    try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return "";
+      var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
+      return String(JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4))))).e || "").toLowerCase();
+    } catch (e) { return ""; }
+  }
+  var yo = correo();
+  if (!yo) {
+    $("pie").hidden = true;
+    $("hilo").innerHTML = '<div class="entrar">Para hablar con Alma, entra primero al Hub con tu cuenta. Después vuelve a abrir este enlace.<br><a href="https://hub.spacioam.com/">Entrar al Hub</a></div>';
+    return;
+  }
+  var ctx = desde ? ("Estoy viendo la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " y seleccioné este texto: «" + sel + "»" : "") + ".") : "";
+  var ctxEnviado = false;
+
+  function pinta(lista) {
+    var h = $("hilo"); h.innerHTML = "";
+    if (!lista.length) { var n = document.createElement("div"); n.className = "nota"; n.textContent = desde ? "Pregúntale lo que quieras sobre esta página." : "Escríbele a Alma o tócale el micrófono."; h.appendChild(n); }
+    lista.forEach(function (m) { var d = document.createElement("div"); d.className = "m " + (m.de === "yo" ? "yo" : "alma"); d.textContent = SAAlmaVoz.limpiar(m.texto || ""); h.appendChild(d); });
+    h.scrollTop = h.scrollHeight;
+  }
+  var mensajes = [];
+  ALMA.opHilo(yo, "").then(function (r) { mensajes = ((r && r.mensajes) || []).slice(-30); pinta(mensajes); }, function () { pinta([]); });
+
+  function enviar() {
+    var t = $("txt").value.trim(); if (!t) return;
+    var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
+    $("txt").value = ""; $("enviar").disabled = true;
+    mensajes = mensajes.concat([{ de: "yo", texto: t }, { de: "alma", texto: "…" }]); pinta(mensajes);
+    ALMA.opEnviar(yo, texto).then(function (r) {
+      mensajes.pop();
+      mensajes.push({ de: "alma", texto: r && r.ok && r.alma ? r.alma.texto : "No pude responder ahora (" + ((r && r.error) || "sin conexión") + "). Intenta de nuevo." });
+      pinta(mensajes);
+    }).finally(function () { $("enviar").disabled = false; });
+  }
+  $("enviar").onclick = enviar;
+  $("txt").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } });
+
+  /* Voz: el mismo agente del Hub; lo que hay en pantalla es la página de origen. */
+  var voz = SAAlmaVoz.crear({ contexto: function () {
+    return "EN PANTALLA: abrió a Alma desde «Alma aquí»" + (desde ? ", mientras veía la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " con este texto seleccionado: «" + sel + "»" : "") : "") +
+      ". Úsalo como contexto de lo que pregunte.";
+  } });
+  var llamada = null;
+  $("voz").onclick = function () {
+    if (llamada) { llamada.end(); return; }
+    $("voz").disabled = true;
+    voz.start({
+      status: function (s) { $("voz").title = s; },
+      message: function (src, t) { mensajes.push({ de: src === "ai" ? "alma" : "yo", texto: t }); pinta(mensajes); },
+      ended: function () { llamada = null; $("voz").classList.remove("vivo"); $("voz").textContent = "🎙"; },
+      error: function (m) { mensajes.push({ de: "alma", texto: m }); pinta(mensajes); }
+    }).then(function (c) { llamada = c; $("voz").classList.add("vivo"); $("voz").textContent = "■"; },
+      function (e) { mensajes.push({ de: "alma", texto: (e && e.message) || "No pude abrir la voz." }); pinta(mensajes); })
+      .finally(function () { $("voz").disabled = false; });
+  };
+})();
+</script>
+</body>
+</html>

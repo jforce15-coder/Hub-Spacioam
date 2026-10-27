@@ -211,6 +211,8 @@
        encima de todo (también del chat de WhatsApp), y un halo coral late alrededor de la roca. */
     ".san-scope.san-pista{position:fixed;z-index:2147483000;left:0;top:0;white-space:nowrap;font:500 11px/1 -apple-system,BlinkMacSystemFont,Montserrat,system-ui,sans-serif;letter-spacing:.01em;color:rgba(60,60,67,.62);background:rgba(242,242,247,.66);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);padding:6px 10px;border-radius:999px;border:.5px solid rgba(60,60,67,.12);opacity:0;transform:translateY(calc(-100% - 4px)) scale(.96);transform-origin:var(--ax,50%) 100%;pointer-events:none;transition:opacity .35s ease,transform .5s cubic-bezier(.25,1,.5,1)}",
     ".san-scope.san-pista.on{opacity:1;transform:translateY(calc(-100% - 8px)) scale(1)}",
+    ".san-scope.san-pista{box-sizing:border-box;overflow:hidden;text-align:center;transition:opacity .35s ease,transform .5s cubic-bezier(.25,1,.5,1),width .4s cubic-bezier(.25,1,.5,1),left .4s cubic-bezier(.25,1,.5,1)}.san-scope.san-pista.sin-anim{transition:none}",
+    ".san-scope .san-pista-t{display:inline-block;transition:opacity .22s ease,transform .32s cubic-bezier(.25,1,.5,1)}.san-scope .san-pista-t.fuera{opacity:0;transform:translateY(3px)}",
     ".san-scope.san-pista b{font-weight:600;color:#E9826A}",   /* lo resaltado, siempre en el tono de Alma */
     "@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.san-scope.san-pista{background:rgba(242,242,247,.94)}}",
     ".san-scope .san-face.san-halo{animation:san-halo 1.8s ease-out 1}",
@@ -686,30 +688,42 @@
     for (var p = dock.el && dock.el.parentElement; p && p !== d.body; p = p.parentElement) { var b = p.querySelector("[data-sa-dock-enviar]"); if (b) return b.hasAttribute("data-sa-vacio") ? null : b; }
     return null;   // sin texto (data-sa-vacio o sin flecha): 1 toque hace lo del botón encajado (redactar)
   }
-  /* Pista: cuando el campo pasa de vacío a tener texto, un globito sobre la roca recuerda los toques. Una vez por texto
-     nuevo y a lo sumo cada 45 s; se va al tocar la roca o si el campo vuelve a quedar vacío. */
-  var PISTAS = ["<b>2 toques</b> para mejorar con IA", "<b>1 toque</b> para enviar"];
-  var pista = { el: null, lleno: false, t: null, ult: 0 };
+  /* Pista (fase de adaptación): mientras el campo tiene texto, un globito sobre la roca va rotando los tres toques en el
+     mismo lugar: enviar (el que más dura), mejorar (medio) y hablar con Alma (el más corto), y vuelve a empezar.
+     Se va al tocar la roca, si el campo queda vacío o si empieza una llamada. */
+  var PISTAS = [["<b>1 toque</b> para enviar", 3600], ["<b>2 toques</b> para mejorar con IA", 2600], ["<b>3 toques</b> para hablar con Alma", 1700]];
+  var pista = { el: null, tx: null, lleno: false, t: null, i: 0, vista: false };
   function pistaQuitar() {
-    clearTimeout(pista.t); pista.t = null;
+    clearTimeout(pista.t); pista.t = null; pista.vista = false;
     if (pista.el) pista.el.classList.remove("on");
     if (E.face) E.face.classList.remove("san-halo");
   }
+  function pistaSitio(wd) {
+    var fr = E.face.getBoundingClientRect(); if (!fr.width) return false;
+    var cx = fr.left + fr.width / 2, x = clamp(cx - wd / 2, 8, VW() - wd - 8);
+    pista.el.style.width = wd + "px"; pista.el.style.left = x + "px"; pista.el.style.top = fr.top + "px"; pista.el.style.setProperty("--ax", clamp(cx - x, 14, wd - 14) + "px");
+    return true;
+  }
   function pistaMostrar(i) {
     if (!dock.on || !dockEnviar() || AL.on || AL.min || dragging || !E.face) { pistaQuitar(); return; }
-    if (!pista.el) { pista.el = d.createElement("div"); pista.el.className = "san-scope san-pista"; pista.el.setAttribute("role", "status"); d.body.appendChild(pista.el); }
-    var el = pista.el, fr = E.face.getBoundingClientRect(); if (!fr.width) return;
-    el.innerHTML = PISTAS[i]; var wd = el.offsetWidth || 180, cx = fr.left + fr.width / 2, x = clamp(cx - wd / 2, 8, VW() - wd - 8);
-    el.style.left = x + "px"; el.style.top = fr.top + "px"; el.style.setProperty("--ax", clamp(cx - x, 14, wd - 14) + "px");
-    el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
-    if (i === 0) { E.face.classList.remove("san-halo"); void E.face.offsetWidth; E.face.classList.add("san-halo"); }
-    pista.t = setTimeout(function () { el.classList.remove("on"); if (i + 1 < PISTAS.length) pista.t = setTimeout(function () { pistaMostrar(i + 1); }, 320); else E.face.classList.remove("san-halo"); }, i === 0 ? 3000 : 2200);
+    if (!pista.el) {
+      pista.el = d.createElement("div"); pista.el.className = "san-scope san-pista"; pista.el.setAttribute("role", "status");
+      pista.tx = d.createElement("span"); pista.tx.className = "san-pista-t"; pista.el.appendChild(pista.tx); d.body.appendChild(pista.el);
+    }
+    var el = pista.el, tx = pista.tx, p = PISTAS[i % PISTAS.length];
+    var poner = function () {
+      tx.innerHTML = p[0]; var wd = Math.ceil(tx.offsetWidth) + 20;   // 10 px de cada lado
+      if (!pistaSitio(wd)) return;
+      tx.classList.remove("fuera");
+      if (!pista.vista) { pista.vista = true; el.classList.add("sin-anim"); pistaSitio(wd); void el.offsetWidth; el.classList.remove("sin-anim"); el.classList.add("on"); E.face.classList.remove("san-halo"); void E.face.offsetWidth; E.face.classList.add("san-halo"); }
+      pista.t = setTimeout(function () { pistaMostrar(i + 1); }, p[1]);
+    };
+    /* Cambio en el mismo lugar: el texto se desvanece, la píldora se ajusta al nuevo ancho y el texto nuevo aparece. */
+    if (pista.vista) { tx.classList.add("fuera"); pista.t = setTimeout(poner, 220); } else poner();
   }
   function pistaCheck() {
     var lleno = !!(dock.on && dock.el && dockEnviar());
-    if (lleno && !pista.lleno && !AL.on && !AL.min && Date.now() - pista.ult > 45000) {
-      pista.ult = Date.now(); clearTimeout(pista.t); pista.t = setTimeout(function () { pistaMostrar(0); }, 900);   // deja terminar la palabra
-    }
+    if (lleno && !pista.lleno && !AL.on && !AL.min) { clearTimeout(pista.t); pista.vista = false; pista.t = setTimeout(function () { pistaMostrar(0); }, 900); }   // deja terminar la palabra
     if (!lleno && pista.lleno) pistaQuitar();
     pista.lleno = lleno;
   }

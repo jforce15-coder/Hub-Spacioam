@@ -43,7 +43,21 @@
 
   /* ── Avance por persona ── { "<correo>|<id>@<v>": { v: 1 visto, m: % máximo alcanzado (0-100) } } */
   var CK = "sa_tut";
+  /* Sesión firmada del login (sa_auth): de ahí sale quién es, y el Hub la comprueba antes de guardar. */
+  function sesion() {
+    var s = null;
+    try { var m = d.cookie.match(/(?:^|;\s*)sa_auth=([^;]*)/); if (m && m[1]) s = decodeURIComponent(m[1]); } catch (e) {}
+    if (!s) { try { s = localStorage.getItem("sa_auth"); } catch (e) {} }
+    return s || null;
+  }
   function quien() {
+    try {
+      var s0 = sesion();
+      if (s0 && s0.lastIndexOf(".") > 0) {
+        var c = s0.slice(0, s0.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/"); while (c.length % 4) c += "=";
+        var dj = JSON.parse(decodeURIComponent(escape(atob(c)))); if (dj && dj.p && dj.p.email) return String(dj.p.email).toLowerCase();
+      }
+    } catch (e) {}
     try {
       var m = d.cookie.match(/(?:^|; )sa_session=([^;]*)/), tk = m ? decodeURIComponent(m[1]) : (localStorage.getItem("sa_session") || "");
       if (tk) { var s = tk.replace(/-/g, "+").replace(/_/g, "/"); var j = JSON.parse(decodeURIComponent(escape(atob(s)))); if (j && j.email) return String(j.email).toLowerCase(); }
@@ -65,6 +79,31 @@
     try { d.cookie = CK + "=" + encodeURIComponent(s) + "; path=/; max-age=" + 60 * 60 * 24 * 400 + dom + "; SameSite=Lax" + (location.protocol === "https:" ? "; Secure" : ""); } catch (e) {}
     try { localStorage.setItem(CK, s); } catch (e) {}
     return a;
+  }
+  /* ── Servidor (Apps Script del Hub, hoja TUTORIALES): el avance vale en todos los equipos de la persona ── */
+  var API = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  function servidor(datos, ms) {
+    var s = sesion(); if (!s || !w.fetch) return Promise.resolve(null);
+    var cuerpo = JSON.stringify(Object.assign({ tutorial: 1, session: s }, datos));
+    var pet = fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: cuerpo, keepalive: cuerpo.length < 60000 })
+      .then(function (r) { return r.json(); }).then(function (j) { return j && j.ok ? j : null; }).catch(function () { return null; });
+    if (!ms) return pet;
+    return Promise.race([pet, new Promise(function (ok) { setTimeout(function () { ok(null); }, ms); })]);
+  }
+  /* Trae lo que la persona ya vio en otros equipos y lo junta con lo de este. */
+  function sincronizar(ms) {
+    return servidor({ accion: "leer" }, ms).then(function (j) {
+      if (!j || !j.avance) return;
+      var yo = quien();
+      CATALOGO.concat(extra).forEach(function (t) { var a = j.avance[t.id + "@" + (t.version || 1)]; if (a) guardar(t, a.m || 0, !!a.v); });
+      return yo;
+    });
+  }
+  var enviado = {};
+  function avisar(t, pct, evento) {
+    var k = t.id + "@" + (t.version || 1), paso = evento === "avance" ? Math.floor(pct / 25) : -1;
+    if (evento === "avance") { if (enviado[k] != null && enviado[k] >= paso) return; enviado[k] = paso; }
+    servidor({ accion: "guardar", id: t.id, version: t.version || 1, pct: Math.round(pct), evento: evento, app: appActual });
   }
   function progreso(t) { var a = leerTodo()[clave(t)]; return { visto: !!(a && a.v), max: (a && a.m) || 0 }; }
   /* «Ver más tarde» vuelve a salir en la siguiente entrada, no en cada cambio de pantalla de esta misma visita. */
@@ -124,6 +163,12 @@
     ".sat-it-r{display:block;font-size:11.5px;color:#938B8A;line-height:1.45;margin-top:3px}",
     ".sat-it-m{display:inline-block;margin-top:6px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#B4553C;background:#FCEDE8;border:1px solid #E9826A;border-radius:999px;padding:2px 8px}",
     ".sat-pronto{margin-top:18px;padding:13px 14px;border-radius:14px;border:1px dashed #D8D4CE;font-size:12px;line-height:1.55;color:#938B8A}",
+    ".sat-rep-res{display:flex;gap:8px;margin-top:14px}.sat-rep-res div{flex:1;background:#F5F3F0;border-radius:16px;padding:12px 14px}.sat-rep-res b{display:block;font:400 26px/1 'Valky','Cormorant Garamond',Georgia,serif;color:#3E3F3F}.sat-rep-res span{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#938B8A}",
+    ".sat-per{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #EDEAE6}.sat-per:last-child{border-bottom:0}",
+    ".sat-per .ini{width:36px;height:36px;border-radius:50%;background:#F5F3F0;display:flex;align-items:center;justify-content:center;font:400 15px/1 'Valky','Cormorant Garamond',Georgia,serif;color:#938B8A;flex-shrink:0}",
+    ".sat-per .n{font-size:13.5px;font-weight:600;color:#3E3F3F}.sat-per .s{font-size:11.5px;color:#938B8A;margin-top:2px}",
+    ".sat-pill{margin-left:auto;flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:3px 9px}",
+    ".sat-pill.ok{background:#EEF3EC;color:#4F6B47;border:1px solid #B9CDB2}.sat-pill.no{background:#FCEDE8;color:#B4553C;border:1px solid #E9826A}",
     "@media (prefers-reduced-motion:reduce){.sat-fade,.sat-sheet,.sat-player,.sat-fab{transition:none;animation:none}}"
   ].join("\n");
   function estilos() { if (d.getElementById("sat-css")) return; var s = d.createElement("style"); s.id = "sat-css"; s.textContent = css; (d.head || d.documentElement).appendChild(s); }
@@ -180,7 +225,7 @@
     v.addEventListener("timeupdate", function () {
       if (!v.duration) return;
       var pct = 100 * v.currentTime / v.duration; bar.style.width = pct.toFixed(1) + "%";
-      if (v.currentTime - ultimo < 1.6 && pct > maxPct) { maxPct = pct; if (Math.floor(pct) % 5 === 0) guardar(t, maxPct); }
+      if (v.currentTime - ultimo < 1.6 && pct > maxPct) { maxPct = pct; if (Math.floor(pct) % 5 === 0) guardar(t, maxPct); if (pct >= 25) avisar(t, pct, "avance"); }
       ultimo = v.currentTime;
     });
     function arrancar() {
@@ -201,6 +246,7 @@
     function cerrar(fin) {
       try { v.pause(); } catch (e) {}
       var a = guardar(t, fin ? 100 : maxPct, fin);
+      avisar(t, fin ? 100 : maxPct, fin ? "fin" : (forzado && !a.v ? "mas_tarde" : "cerrar"));
       d.removeEventListener("keydown", tecla);
       /* Al terminar, el video «se guarda» en el «?» del costado. */
       if (fab && fabOn) { var r = fab.getBoundingClientRect(); el.style.setProperty("--sat-ox", (r.left + r.width / 2) + "px"); el.style.setProperty("--sat-oy", (r.top + r.height / 2) + "px"); el.classList.add("guardar"); }
@@ -223,6 +269,10 @@
   function primeraVez(app) {
     appActual = app || appActual;
     if (yaPreguntado) return; yaPreguntado = true;
+    /* Primero pregunta al Hub (máx. 4 s): si ya lo vio en otro equipo, no sale. Sin red, decide lo de este equipo. */
+    sincronizar(4000).then(function () { arrancarCola(); }, function () { arrancarCola(); });
+  }
+  function arrancarCola() {
     var cola = lista(appActual).filter(function (t) { return t.obligatorio && t.video && !progreso(t).visto && !yaSalioEstaVisita(t); });
     (function sig() { var t = cola.shift(); if (!t) return; marcarVisita(t); play(t, { forzado: true, alCerrar: sig }); })();
   }
@@ -259,7 +309,43 @@
     return true;
   }
 
+  /* ── Hub · administradores: quién vio cada tutorial (hoja TUTORIALES del Apps Script del Hub) ── */
+  function reporte() {
+    cerrarMenu();
+    var el = capa("sat-hub", '<div class="sat-sheet"><div class="sat-hero"><div class="sat-stone"></div><button type="button" class="sat-x" aria-label="Cerrar">✕</button></div>' +
+      '<div class="sat-body"><div class="sat-kick"><i></i><span>Tutoriales · equipo</span></div><div class="sat-h1">¿Quién ya los vio?</div>' +
+      '<p class="sat-sub">Cuenta como visto al llegar al 85 % del video. Solo aparece quien ya lo abrió al menos una vez.</p><div class="sat-rep"><p class="sat-sub" style="margin-top:18px">Cargando…</p></div></div></div>');
+    function cerrar() { quitar(el); d.removeEventListener("keydown", tecla); }
+    function tecla(e) { if (e.key === "Escape") cerrar(); }
+    d.addEventListener("keydown", tecla);
+    el.addEventListener("click", function (e) { if (e.target === el) cerrar(); });
+    el.querySelector(".sat-x").addEventListener("click", cerrar);
+    var caja = el.querySelector(".sat-rep"), s = sesion();
+    fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ hub: 1, action: "tutoriales", session: s }) })
+      .then(function (r) { return r.json(); }).then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.error) || "sin respuesta");
+        var fecha = function (x) { var t = new Date(x); return isNaN(t) ? "" : t.toLocaleDateString("es-GT", { day: "numeric", month: "short" }); };
+        var html = "";
+        CATALOGO.concat(extra).forEach(function (t) {
+          var fs = j.filas.filter(function (f) { return f.tutorial === t.id && f.version === (t.version || 1); })
+            .sort(function (a, b) { return (a.visto - b.visto) || String(a.nombre || a.email).localeCompare(String(b.nombre || b.email)); });
+          var vistos = fs.filter(function (f) { return f.visto; }).length;
+          html += '<div class="sat-grp"><h3>' + esc(t.titulo) + '</h3><div class="sat-rep-res"><div><b>' + vistos + '</b><span>Lo vieron</span></div><div><b>' + (fs.length - vistos) + '</b><span>Pendientes</span></div></div>';
+          fs.forEach(function (f) {
+            var nom = f.nombre || f.email, ini = String(nom).trim().charAt(0).toUpperCase();
+            var sub = f.visto ? "Visto el " + fecha(f.vistoEl) + (f.app ? " · " + f.app : "") : "Va en " + f.pct + " %" + (f.masTarde ? " · «más tarde» " + f.masTarde + (f.masTarde === 1 ? " vez" : " veces") : "") + " · " + fecha(f.ultima);
+            html += '<div class="sat-per"><span class="ini">' + esc(ini) + '</span><span style="min-width:0"><div class="n">' + esc(nom) + (f.rol ? ' <span style="font-weight:500;color:#938B8A">· ' + esc(f.rol) + "</span>" : "") + '</div><div class="s">' + esc(sub) + '</div></span><span class="sat-pill ' + (f.visto ? "ok" : "no") + '">' + (f.visto ? "Visto" : "Pendiente") + "</span></div>";
+          });
+          if (!fs.length) html += '<p class="sat-sub" style="margin-top:12px">Nadie lo ha abierto todavía.</p>';
+          html += "</div>";
+        });
+        caja.innerHTML = html;
+      }).catch(function (e) { caja.innerHTML = '<p class="sat-sub" style="margin-top:18px">No pude leer el registro (' + esc(e.message) + ').</p>'; });
+    return true;
+  }
+
   w.SATutoriales = {
+    reporte: reporte,
     primeraVez: primeraVez, centro: centro, play: function (id) { return play(id); }, lista: lista, boton: function (on, app) { if (app) appActual = app; boton(on); },
     registrar: function (arr) { (arr || []).forEach(function (t) { if (t && t.id && !porId(t.id)) extra.push(t); }); },
     progreso: function (id) { var t = porId(id); return t ? progreso(t) : null; }

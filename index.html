@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-27u"></script>
+<script src="js/sa-nav.js?v=2026-10-27v"></script>
 <script src="js/alma-voz.js?v=2026-10-25c"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
@@ -927,6 +927,15 @@
           <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Consumo de IA · solo admin principal</span>
           <span style="font-size:15px; font-weight:600; line-height:1.3">En qué se van los tokens de cada app</span>
           <span style="font-size:12px; line-height:1.5; color:#6F6867">Por app, por función y por conversación.</span>
+        </span>
+        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronRight" size="18" color="#6F6867" hint-size="18px,18px"></x-import>
+      </button>
+<button onClick="{{ tutReporte }}" style="display:flex; align-items:center; gap:16px; width:100%; text-align:left; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:28px; padding:20px 24px; cursor:pointer; font-family:inherit; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:transform .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1)" style-hover="transform:translateY(-2px); box-shadow:0 12px 40px rgba(62,63,63,.07)" style-active="transform:scale(.98)">
+        <span aria-hidden="true" style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:#F5F3F0; flex-shrink:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:20px; color:#6F6867">?</span>
+        <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px">
+          <span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Tutoriales · equipo</span>
+          <span style="font-size:15px; font-weight:600; line-height:1.3">Quién ya vio cada tutorial</span>
+          <span style="font-size:12px; line-height:1.5; color:#6F6867">Hasta dónde llegó cada persona y cuántas veces lo dejó para más tarde.</span>
         </span>
         <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronRight" size="18" color="#6F6867" hint-size="18px,18px"></x-import>
       </button>
@@ -5903,6 +5912,7 @@ class Component extends DCLogic {
     var ant = d && d.anthropic, maxD = d ? Math.max.apply(null, d.porDia.map(function (x) { return x.usd; }).concat([0])) : 0;
     var toggle = function (k, v) { return function () { self.setState(function (s) { var r = {}; r[k] = s[k] === v ? null : v; return r; }); }; };
     return {
+      tutReporte: function () { var ir = function () { window.SATutoriales.reporte(); }; if (window.SATutoriales) ir(); else { var s = document.createElement("script"); s.src = "js/sa-tutoriales.js?v=2026-10-27c"; s.onload = ir; document.head.appendChild(s); } },
       iaAbierto: ab, iaAbrir: function () { self.setState({ iaAbierto: true }); self.iaCargar(); }, iaCerrar: function () { self.setState({ iaAbierto: false }); }, iaRecargar: function () { self.iaCargar(); },
       iaSubtitulo: d ? "Últimos " + dias + " días · " + usd(tot.usd) : "Cargando…",
       iaPeriodos: [[7, "7 días"], [30, "30 días"], [90, "90 días"]].map(function (p) { var on = dias === p[0]; return { label: p[1], on: on, bg: on ? "#3E3F3F" : "transparent", fg: on ? "#FAFAFA" : "#6F6867", pick: function () { self.setState({ iaDias: p[0], iaApp: null, iaFn: null }); self.iaCargar(p[0]); } }; }),

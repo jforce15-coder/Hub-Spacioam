@@ -237,8 +237,10 @@
     ".san-scope .san-m{max-width:80%;padding:10px 14px;border-radius:18px;font-size:13.5px;line-height:1.45;-webkit-user-select:text;user-select:text}",
     ".san-scope .san-m.a{background:#EFEAE4;color:#3E3F3F;border-bottom-left-radius:6px;align-self:flex-start}.san-scope .san-m.u{background:#3E3F3F;color:#FAFAFA;border-bottom-right-radius:6px;align-self:flex-end}",
     ".san-scope .san-chat form{display:flex;gap:8px;padding:10px 14px 14px}",
-    ".san-scope .san-in{flex:1;min-width:0;border:0;border-radius:999px;background:#EFEAE4;padding:13px 16px;font:500 16px Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none}.san-scope .san-in:focus-visible{box-shadow:0 0 0 2px var(--san-acc,#E9826A)}",
-    ".san-scope .san-send,.san-scope .san-tovoice{width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#ECE8E3;color:var(--san-ink);box-shadow:0 6px 10px -5px rgba(40,30,25,.3),inset 0 2px 3px rgba(255,255,255,.6)}.san-scope .san-send{background:#3E3F3F;color:#FAFAFA}",
+    ".san-scope .san-in{flex:1;min-width:0;height:48px;box-sizing:border-box;border:1px solid #D8D4CE;border-radius:24px;background:#FAFAFA;padding:13px 16px;font:500 16px Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none}.san-scope .san-in:focus-visible{box-shadow:0 0 0 2px var(--san-acc,#E9826A)}",
+    ".san-scope .san-send,.san-scope .san-tovoice{width:44px;height:44px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#ECE8E3;color:var(--san-ink);box-shadow:0 6px 10px -5px rgba(40,30,25,.3),inset 0 2px 3px rgba(255,255,255,.6)}",
+    /* Editor igual al de las conversaciones del Hub: campo redondo + un solo botón de Alma (coral). */
+    ".san-scope .san-chat form{align-items:flex-end;gap:6px}.san-scope .san-send{width:48px;height:48px;flex-shrink:0;border:1px solid #E9826A;background:rgba(233,130,106,.14);color:#B54D36;box-shadow:none;-webkit-tap-highlight-color:transparent}.san-scope .san-send svg{width:18px;height:18px}",
     "body.san-docked [data-sa-dock]{visibility:hidden!important}[data-sa-dock].san-hosting{position:relative!important;overflow:visible!important}",
     "[data-sa-slot]{transition:padding-right .55s cubic-bezier(.34,1.45,.6,1)}[data-sa-slot].san-slotted{position:relative;padding-right:var(--san-slot-w)!important}",
     ".san-slothost{position:absolute;top:50%;width:0;height:0;visibility:visible;z-index:5;pointer-events:none}.san-slothost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
@@ -483,6 +485,12 @@
         if (cx < pr.left || cx > pr.right || cy < pr.top || cy > pr.bottom) return false;
       }
     }
+    /* Tapado por otra hoja (p. ej. el chat de WhatsApp encima del editor): lo que está en ese punto no es el botón ni lo
+       que lo contiene. Encajado, el botón está oculto y en su punto se ve su contenedor o el propio botón de Alma. */
+    /* Las capas del propio menú (también encajado en otro botón) no cuentan: se mira la primera que no es de Alma. */
+    var pila = cx >= 0 && cy >= 0 && cx <= w.innerWidth && cy <= w.innerHeight && d.elementsFromPoint ? d.elementsFromPoint(cx, cy) : [], top = null;
+    for (var k = 0; k < pila.length; k++) { var q = pila[k]; if (!(root && root.contains(q)) && !(E.nav && E.nav.contains(q))) { top = q; break; } }
+    if (top && top !== el && !el.contains(top) && !top.contains(el)) return false;
     return true;
   }
   function dockTarget() {
@@ -665,8 +673,8 @@
   function multi() { return APPS.filter(function (a) { return a.k !== cfg.app && (!allowed || allowed.indexOf(a.k) >= 0); }).length > 0; }
   /* El enviar del mismo editor: el más cercano subiendo desde el botón encajado (el Hub pinta otras conversaciones al lado). */
   function dockEnviar() {
-    for (var p = dock.el && dock.el.parentElement; p && p !== d.body; p = p.parentElement) { var b = p.querySelector("[data-sa-dock-enviar]"); if (b) return b; }
-    return null;
+    for (var p = dock.el && dock.el.parentElement; p && p !== d.body; p = p.parentElement) { var b = p.querySelector("[data-sa-dock-enviar]"); if (b) return b.hasAttribute("data-sa-vacio") ? null : b; }
+    return null;   // sin texto (data-sa-vacio o sin flecha): 1 toque hace lo del botón encajado (redactar)
   }
   function onDock(n) {
     activity();
@@ -1061,16 +1069,23 @@
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
       '<div class="san-chat"><header><b>Alma</b><button type="button" class="san-tovoice" aria-label="Volver a voz">' + svg('<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>', 20) + '</button></header><div class="san-msgs"></div>' +
-      '<form><input class="san-in" placeholder="Escríbele a Alma" autocomplete="off" aria-label="Mensaje para Alma"><button type="submit" class="san-send" aria-label="Enviar">' + svg('<path d="M5 12h13M13 6l6 6-6 6"/>', 20) + '</button></form></div>';
+      '<form><input class="san-in" placeholder="Escríbele a Alma" autocomplete="off" aria-label="Mensaje para Alma"><button type="button" class="san-send" aria-label="Alma · 1 toque envía · 3 toques cuelgan" title="1 toque envía · 3 toques cuelgan">' + SPARK + '</button></form></div>';
     root.appendChild(ov);
     E.ov = ov; E.stone = ov.querySelector(".san-rock"); E.ost = ov.querySelector(".san-ov-st"); E.cap = ov.querySelector(".san-ov-cap"); E.msgs = ov.querySelector(".san-msgs");
     aX = S(0, true); aY = S(0, true); aS = S(0, true); aSq = S(0); aDX = S(0, true); aDY = S(0, true); aL = S(.06); aH = S(.5);
     ov.querySelector('[data-a="end"]').onclick = function () { almaEnd(false); };
     ov.querySelector('[data-a="chat"]').onclick = function () { almaChat(true); };
     ov.querySelector(".san-tovoice").onclick = function () { almaChat(false); };
-    ov.querySelector("form").onsubmit = function (e) {
-      e.preventDefault(); var i = ov.querySelector(".san-in"), v = i.value.trim(); if (!v) return; i.value = ""; addMsg(v, "u");
+    var mandar = function () {
+      var i = ov.querySelector(".san-in"), v = i.value.trim(); if (!v) return; i.value = ""; addMsg(v, "u");
       if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} }
+    };
+    ov.querySelector("form").onsubmit = function (e) { e.preventDefault(); mandar(); };
+    /* El mismo botón de Alma que en los editores: 1 toque envía, 3 cuelgan. 2 toques (mejorar) no aplica: aquí le escribes a Alma. */
+    var sb = ov.querySelector(".san-send"), sn = 0, sT = null;
+    sb.onclick = function (e) {
+      e.preventDefault(); sn++; clearTimeout(sT);
+      sT = setTimeout(function () { var n = sn; sn = 0; if (n >= 3) almaEnd(false); else if (n === 1) mandar(); else sb.animate && sb.animate([{ translate: "0 0" }, { translate: "-3px 0" }, { translate: "3px 0" }, { translate: "0 0" }], { duration: 300 }); }, TAP_MS);
     };
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag) almaEnd(false); };
     bindStone();

@@ -4763,12 +4763,30 @@ class Component extends DCLogic {
       var numeros = [], sel = mk("select", "display:none; font-family:inherit; font-size:12px; padding:8px 10px; border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; color:#3E3F3F");
       var manual = mk("input", "display:none; font-family:inherit; font-size:13px; padding:10px 12px; border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF");
       manual.placeholder = "Número de WhatsApp con código de país (ej. +502…)"; manual.inputMode = "tel";
-      var fila = mk("div", "display:flex; gap:8px; align-items:flex-end");
-      var ta = mk("textarea", "flex:1; min-height:44px; max-height:140px; resize:none; font-family:inherit; font-size:13.5px; line-height:1.45; padding:11px 14px; border:1px solid #D8D4CE; border-radius:18px; background:#FFFFFF; color:#3E3F3F; outline:none");
+      /* El mismo editor que en las conversaciones: campo + un solo botón de Alma (1 toque envía, 2 mejoran, 3 llaman o
+         cuelgan; sa-nav.js). La flecha (data-sa-dock-enviar) solo se ve si Alma no está encajada. */
+      var fila = mk("div", "display:flex; gap:6px; align-items:flex-end");
+      var caja = mk("div", "flex:1; min-width:0; display:flex; align-items:flex-end; min-height:48px; border-radius:24px; background:#FAFAFA; border:1px solid #D8D4CE; padding:0 4px");
+      var ta = mk("textarea", "flex:1; min-width:0; height:48px; max-height:140px; resize:none; border:none; background:transparent; padding:13px 12px; font-family:inherit; font-size:16px; line-height:22px; color:#3E3F3F; outline:none; box-sizing:border-box; overflow-y:hidden");
       ta.placeholder = "Escribe por WhatsApp…"; ta.rows = 1;
-      ta.oninput = function () { ta.style.height = "auto"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; };
-      var env = mk("button", "width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:#E9826A; color:#FFFFFF; font-size:17px; cursor:pointer", "↑"); env.setAttribute("aria-label", "Enviar por WhatsApp");
+      ta.oninput = function () { ta.style.height = "48px"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; ta.style.overflowY = ta.scrollHeight > 140 ? "auto" : "hidden"; var lleno = !!ta.value.trim(); env.style.display = lleno ? "grid" : "none"; if (lleno) env.removeAttribute("data-sa-vacio"); else env.setAttribute("data-sa-vacio", "1"); };
+      var almaB = mk("button", "width:48px; height:48px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); color:#B54D36; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent");
+      almaB.setAttribute("data-sa-dock", "1"); almaB.setAttribute("aria-label", "Mejorar con ALMA"); almaB.title = "Mejorar pule tu texto con la voz de Spacio AM y lo que se ve en esta conversación. Sin texto, ALMA lo redacta.";
+      almaB.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg>';
+      var env = mk("button", "width:48px; height:48px; flex-shrink:0; border-radius:50%; border:none; background:#3E3F3F; color:#FAFAFA; display:none; place-items:center; cursor:pointer; box-shadow:0 4px 16px rgba(62,63,63,.12)");
+      env.setAttribute("data-sa-dock-enviar", "1"); env.setAttribute("data-sa-vacio", "1"); env.setAttribute("aria-label", "Enviar por WhatsApp");
+      env.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
       var nota = mk("span", "display:none; font-size:11px; line-height:1.5; color:#6F6867");
+      var mejorando = false;
+      almaB.onclick = function () {
+        if (mejorando || !(window.ALMA && ALMA.hasApi())) return;
+        var base = ta.value; mejorando = true; almaB.style.opacity = ".5"; ta.readOnly = true;
+        nota.style.display = "block"; nota.textContent = base.trim() ? "ALMA está mejorando tu texto…" : "ALMA está leyendo la conversación y redactando…";
+        ALMA.redactarHub(o.resId || "", base, o.msgs.slice(-40).map(function (m) { return { tipo: m.tipo, texto: String(m.texto || "").slice(0, 1500), created: m.created, canal: "whatsapp" }; })).then(function (r) {
+          var t = r && r.ok && r.texto ? self.formatoMsg(r.texto) : "";
+          if (t) { ta.value = t; nota.style.display = "none"; } else nota.textContent = ((r && r.error) || "ALMA no pudo redactar") + ". Tu texto sigue aquí.";
+        }, function () { nota.textContent = "Sin conexión. Tu texto sigue aquí."; }).then(function () { mejorando = false; almaB.style.opacity = ""; ta.readOnly = false; ta.oninput(); });
+      };
       var numero = function () { return manual.style.display !== "none" ? manual.value.trim() : sel.value; };
       env.onclick = function () {
         var t = ta.value.trim(); if (!t) return; var wa = numero();
@@ -4797,7 +4815,7 @@ class Component extends DCLogic {
         }, function () { quitar("Sin conexión. Tu texto volvió al editor."); });
       };
       ta.onkeydown = function (e) { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) env.onclick(); };
-      fila.appendChild(ta); fila.appendChild(env);
+      caja.appendChild(ta); fila.appendChild(caja); fila.appendChild(almaB); fila.appendChild(env);
       pie.appendChild(sel); pie.appendChild(manual); pie.appendChild(fila); pie.appendChild(nota);
       ALMA.waNumeros(o.resId).then(function (r) {
         numeros = (r && r.numeros) || [];

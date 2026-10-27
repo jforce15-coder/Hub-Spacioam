@@ -28,12 +28,11 @@
   .alma { align-self: flex-start; background: var(--surface, #fff); border: 1px solid var(--border-soft, #e4ded5); border-bottom-left-radius: 4px; }
   .nota { align-self: center; color: var(--fg-muted, #6f6867); font-size: 13px; text-align: center; }
   footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: var(--surface, #fff); border-top: 1px solid var(--border-soft, #e4ded5); display: flex; gap: 8px; align-items: flex-end; }
-  textarea { flex: 1; resize: none; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); max-height: 140px; }
-  button { font: inherit; border: 0; border-radius: 999px; height: 44px; min-width: 44px; padding: 0 16px; cursor: pointer; }
-  #enviar { background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); }
-  #voz { background: var(--accent, #B54D36); color: #fff; }
-  #voz.vivo { background: var(--color-error, #a33); }
-  button:disabled { opacity: .45; }
+  /* El mismo editor que en el Hub: campo redondo + un solo botón de Alma. 1 toque envía · 3 toques llaman o cuelgan. */
+  textarea { flex: 1; min-width: 0; resize: none; font: inherit; font-size: 16px; line-height: 22px; height: 48px; box-sizing: border-box; padding: 12px 16px; border-radius: 24px; border: 1px solid #D8D4CE; background: #FAFAFA; color: #3E3F3F; max-height: 140px; outline: none; }
+  #alma { width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; border: 1px solid #E9826A; background: rgba(233,130,106,.14); color: #B54D36; display: grid; place-items: center; cursor: pointer; padding: 0; -webkit-tap-highlight-color: transparent; }
+  #alma.vivo { background: #E9826A; color: #fff; }
+  #alma:disabled { opacity: .45; }
   .entrar { margin: 40px auto; max-width: 360px; text-align: center; line-height: 1.5; }
   .entrar a { display: inline-block; margin-top: 12px; padding: 12px 20px; border-radius: 999px; background: var(--fg, #1D1D1B); color: #fff; text-decoration: none; }
 </style>
@@ -46,9 +45,8 @@
 </header>
 <main id="hilo"><div class="nota">Cargando…</div></main>
 <footer id="pie">
-  <button id="voz" title="Hablar con Alma">🎙</button>
   <textarea id="txt" rows="1" placeholder="Pregúntale a Alma sobre esta página…"></textarea>
-  <button id="enviar">Enviar</button>
+  <button id="alma" aria-label="Alma · 1 toque envía · 3 toques llaman o cuelgan" title="1 toque envía · 3 toques llaman o cuelgan"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg></button>
 </footer>
 <script src="../js/sa-auth-client.js"></script>
 <script src="../js/alma-client.js"></script>
@@ -94,17 +92,17 @@
   ALMA.opHilo(yo, "").then(function (r) { mensajes = ((r && r.mensajes) || []).slice(-30); pinta(mensajes); }, function () { pinta([]); });
 
   function enviar() {
-    var t = $("txt").value.trim(); if (!t) return;
+    var t = $("txt").value.trim(); if (!t || enviando) return;
     var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
-    $("txt").value = ""; $("enviar").disabled = true;
+    $("txt").value = ""; enviando = true;
     mensajes = mensajes.concat([{ de: "yo", texto: t }, { de: "alma", texto: "…" }]); pinta(mensajes);
     ALMA.opEnviar(yo, texto).then(function (r) {
       mensajes.pop();
       mensajes.push({ de: "alma", texto: r && r.ok && r.alma ? r.alma.texto : "No pude responder ahora (" + ((r && r.error) || "sin conexión") + "). Intenta de nuevo." });
       pinta(mensajes);
-    }).finally(function () { $("enviar").disabled = false; });
+    }).finally(function () { enviando = false; });
   }
-  $("enviar").onclick = enviar;
+  var enviando = false;
   $("txt").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } });
 
   /* Voz: el mismo agente del Hub; lo que hay en pantalla es la página de origen. */
@@ -112,18 +110,24 @@
     return "EN PANTALLA: abrió a Alma desde «Alma aquí»" + (desde ? ", mientras veía la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " con este texto seleccionado: «" + sel + "»" : "") : "") +
       ". Úsalo como contexto de lo que pregunte.";
   } });
-  var llamada = null;
-  $("voz").onclick = function () {
+  var llamada = null, abriendo = false;
+  function llamar() {
     if (llamada) { llamada.end(); return; }
-    $("voz").disabled = true;
+    if (abriendo) return; abriendo = true;
     voz.start({
-      status: function (s) { $("voz").title = s; },
+      status: function (s) { $("alma").title = s; },
       message: function (src, t) { mensajes.push({ de: src === "ai" ? "alma" : "yo", texto: t }); pinta(mensajes); },
-      ended: function () { llamada = null; $("voz").classList.remove("vivo"); $("voz").textContent = "🎙"; },
+      ended: function () { llamada = null; $("alma").classList.remove("vivo"); },
       error: function (m) { mensajes.push({ de: "alma", texto: m }); pinta(mensajes); }
-    }).then(function (c) { llamada = c; $("voz").classList.add("vivo"); $("voz").textContent = "■"; },
+    }).then(function (c) { llamada = c; $("alma").classList.add("vivo"); },
       function (e) { mensajes.push({ de: "alma", texto: (e && e.message) || "No pude abrir la voz." }); pinta(mensajes); })
-      .finally(function () { $("voz").disabled = false; });
+      .finally(function () { abriendo = false; });
+  }
+  /* Un solo botón: 1 toque envía · 3 toques llaman o cuelgan. 2 toques (mejorar) no aplica: aquí le escribes a Alma. */
+  var nT = 0, tT = null;
+  $("alma").onclick = function () {
+    nT++; clearTimeout(tT);
+    tT = setTimeout(function () { var n = nT; nT = 0; if (n >= 3) llamar(); else if (n === 1 && !enviando) enviar(); }, 320);
   };
 })();
 </script>

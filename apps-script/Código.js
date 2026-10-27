@@ -650,7 +650,7 @@ function hubInbox_() {
     .map(v => { const o = {}; INBOX_CAB_.forEach((k, i) => o[k] = v[i] instanceof Date ? v[i].toISOString() : String(v[i])); return o; })
     .filter(o => !(String(o.conv_id).indexOf('wa:') === 0 && admTel[fin8_(String(o.conv_id).slice(3))]))
     .sort((a, b) => actividadInbox_(b) - actividadInbox_(a)).slice(0, 250)
-    .map(o => { if (String(o.conv_id).indexOf('wa:') !== 0) return o; let f = null; try { f = contactoFicha_(o.conv_id.slice(3)); } catch (e) {} if (f) { o.contacto_tipo = f.tipo; o.contacto_estado = f.estado; o.contacto_rol = f.rol; if (f.nombre && (!o.huesped || /^\+?\d+$/.test(o.huesped))) o.huesped = f.nombre; } return o; });   // ficha del contacto (contactos.js)
+    .map(o => { if (String(o.conv_id).indexOf('wa:') !== 0) return o; let f = null; try { f = contactoFicha_(o.conv_id.slice(3)); } catch (e) {} if (f) { o.contacto_tipo = f.tipo; o.contacto_estado = f.estado; o.contacto_rol = f.rol; o.contacto_empresa = f.empresa; if (f.nombre) { if (o.huesped && o.huesped !== f.nombre) o.wa_nombre = o.huesped; o.huesped = f.nombre; } }   /* el nombre que le pusimos manda sobre el de su perfil de WhatsApp */ return o; });   // ficha del contacto (contactos.js)
 }
 
 function doGet(e) {
@@ -710,6 +710,7 @@ function procesarCola() {
   try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
+  try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
 }
 function procesarColaNucleo_() {
@@ -1000,7 +1001,7 @@ function manejarRojo_(sh, lider, otros, ctx) {
     return log_(ctx, '[ROJO — habría enviado contención, alertado a ' + CFG.WHATSAPP_NOCTURNO + ' y pausado First Morning/Review]', 'SOMBRA: no enviado');
   }
   if (ctx.contencionReciente) {          // ya le escribimos: no repetir; solo avisar al equipo
-    avisarRojo_(ctx, '🔴 ALMA ROJO · seguimiento · ' + ctx.propiedad, 'El huésped sigue escribiendo tras la contención.\n\n' + alerta);
+    avisarRojo_(ctx, '🔴 ALMA ROJO · seguimiento · ' + ctx.propiedad, 'El huésped sigue escribiendo tras la contención.\n\n' + alerta, true);
     set_(sh, lider, { estado: 'escalado', nota: 'ROJO · contención ya enviada, solo alerta' });
     return log_(ctx, '', 'ROJO: ya había contención · solo alerta al equipo');
   }
@@ -1083,7 +1084,10 @@ function codigoPendiente_(ctx, hilo) {
   if (!enPuerta && ctx.hoy === ctx.checkin && ahoraHM < desde) return false;
   return !codigoEnviadoEnHilo_(hilo);
 }
-function avisarAdmins_(asunto, texto) {
+/* WhatsApp a los administradores solo para lo de verdad relevante (critico = true). Lo demás va por notificación
+   del Hub y correo: Juan pidió ver en WhatsApp de ALMA solo updates importantes. */
+function avisarAdmins_(asunto, texto, critico) {
+  if (!critico) { pushA_(null, asunto, texto); try { correo_(CFG.EMAIL_ALERTAS || Session.getEffectiveUser().getEmail(), asunto, texto); } catch (e) {} return; }
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   if (CFG.WHATSAPP_RESPALDO && CFG.WHATSAPP_RESPALDO !== CFG.WHATSAPP_NOCTURNO) waEnviar_(CFG.WHATSAPP_RESPALDO, asunto + '\n\n' + texto);
   pushA_(null, asunto, texto);
@@ -1114,7 +1118,7 @@ function verificarCodigo_(sh, f) {
   if (codigoEnviadoEnHilo_(r.hilo)) { set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · ya se envió' }); return log_(d, '', 'CÓDIGO: ya se envió · revisión cerrada'); }
   const ce = codigoEmergencia_(d.propiedad, d.checkin);
   if (!ce) {
-    avisarAdmins_('🔑🔴 ALMA · sin código de emergencia · ' + d.propiedad, 'El huésped sigue sin su código y no encontré un código de limpieza vigente en EPI. Hay que enviarlo ya.\nHuésped: ' + d.huesped + ' · ' + d.codigo);
+    avisarAdmins_('🔑🔴 ALMA · sin código de emergencia · ' + d.propiedad, 'El huésped sigue sin su código y no encontré un código de limpieza vigente en EPI. Hay que enviarlo ya.\nHuésped: ' + d.huesped + ' · ' + d.codigo, true);
     set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · sin código de emergencia · admins avisados' });
     return log_(d, '', 'CÓDIGO: sigue sin enviarse y no hay código de emergencia · admins avisados');
   }
@@ -1141,7 +1145,7 @@ function verificarRojo_(sh, f) {
       const msg = mensajeEmergencia_(d.idioma, ce.codigo);
       const env = enviarCanal_(d, msg);
       escalar_('🔑 ALMA · código de emergencia enviado · ' + d.propiedad,
-        'Nadie respondió en ' + cfg_('EMERGENCIA_MIN') + ' min y el huésped no podía entrar. ALMA le envió el código de limpieza ' + ce.codigo + ' (' + ce.origen + ').\nHuésped: ' + d.huesped + '\nCódigo de reserva: ' + d.codigo + '\nRevisa que haya entrado y considera rotar el código.');
+        'Nadie respondió en ' + cfg_('EMERGENCIA_MIN') + ' min y el huésped no podía entrar. ALMA le envió el código de limpieza ' + ce.codigo + ' (' + ce.origen + ').\nHuésped: ' + d.huesped + '\nCódigo de reserva: ' + d.codigo + '\nRevisa que haya entrado y considera rotar el código.', { sinWa: true });
       d.emergenciaAt = new Date().toISOString();
       const restante = Math.max(60, cfg_('ESPERA_ROJO_SEG') - cfg_('EMERGENCIA_MIN') * 60);
       set_(sh, f, { proximo: new Date(ahora_().getTime() + restante * 1000).toISOString(), nota: 'ROJO · código de emergencia ' + (env.code < 300 ? 'enviado' : 'FALLÓ ' + env.code), datos: JSON.stringify(d) });
@@ -1744,7 +1748,7 @@ function auditarInstrucciones() {
 }
 
 /* Reglas de código: se añaden siempre, aunque el prompt de la hoja cambie. */
-const REGLAS_FIJAS_CLASIFICADOR = '\n\nREGLAS FIJAS (prevalecen sobre todo lo anterior):\n· ESCALAR A UNA PERSONA: agrega al JSON "escalar" (true/false) y, si es true, "motivo_escalar" con uno de: acceso, seguridad, emergencia_edificio, afuera_sin_entrar, pide_humano, urgente_sin_solucion. Escalar es raro y solo por urgencia operativa: true SOLO si (a) es urgente y ALMA no puede resolverlo, (b) el huésped no puede acceder a la propiedad, (c) hay un riesgo de seguridad, (d) hay una emergencia del edificio (sin electricidad, sin agua, riesgo de incendio, fuga grave), (e) el huésped está afuera y no puede entrar, o (f) pide hablar con una persona DESPUÉS de que ALMA ya intentó ayudar en el hilo. NUNCA escales por disponibilidad, cambios de reserva, información general, preguntas no urgentes ni nada que ALMA pueda resolver. Si escalar=true, el nivel es ROJO. En la duda, escalar=false.\n· IMÁGENES: puedes verlas. Si son documentos de identidad, pasaportes, comprobantes, capturas de pantalla o fotos enviadas sin pregunta y sin un problema visible, es SILENCIO: el equipo las recibe y no hace falta responder. Si muestran un problema (cerradura, panel, fuga, daño, algo roto), clasifica según ese problema.\n· Si CONTENCION_YA_ENVIADA=true y el huésped solo agrega fotos, detalles o insiste sobre lo mismo, es SILENCIO: el equipo ya está alertado. Solo vuelve a ROJO si aparece un riesgo nuevo y distinto.\n· Un saludo o acuse sin pregunta es SILENCIO.\n· ACCESO: agrega al JSON "acceso" con uno de tres valores. "apartamento" cuando el problema es la puerta del apartamento: el huésped dice cosas como "no puedo entrar", "no me sirve el código", "no me abre", "la cerradura no funciona", "el código no funciona". "edificio" cuando el problema es la portería o recepción: dice cosas como "no me dejan entrar", "no me permiten el ingreso", "mi reserva no está notificada", "el guardia no me deja pasar", "no aparezco en la lista", "recepción no tiene mi reserva". null en cualquier otro caso. Si hay duda entre los dos, elige "edificio": el código de emergencia solo sirve para la puerta del apartamento y darlo cuando el problema es la portería no resuelve nada.\n· Si FORM_STATUS=pendiente y el problema es "edificio", la causa más probable es que no se ha llenado el registro de llegada (con él avisamos al edificio): sigue siendo ROJO, pero indícalo en "razon".\n· SIN RESERVA CONFIRMADA (RESERVA_CONFIRMADA=false: consulta, solicitud o pendiente): no existe un problema de acceso. acceso=null, escalar=false y nunca ROJO por acceso; una "razon" sobre no poder entrar es inválida.\n· PREGUNTAS INFORMATIVAS (parqueo, amenidades, precio, políticas, ubicación, cómo llegar) son VERDE cuando la respuesta está en la ficha o el conocimiento; AMARILLO solo si de verdad falta el dato. Nunca las marques como acceso.\n· "razon" describe el tema real del último turno en pocas palabras (ej. "pregunta por parqueo"); nunca un tema que el huésped no mencionó.\n· FECHAS SOLICITADAS no disponibles: nunca SILENCIO. Es VERDE: ALMA informa con calidez y ofrece alternativas.\n· HITO de conversación resuelta: lo anterior al hito ya quedó atendido. No lo retomes ni lo uses para subir el nivel; un mensaje nuevo se clasifica solo por lo que dice.';
+const REGLAS_FIJAS_CLASIFICADOR = '\n\nREGLAS FIJAS (prevalecen sobre todo lo anterior):\n· ESCALAR A UNA PERSONA: agrega al JSON "escalar" (true/false) y, si es true, "motivo_escalar" con uno de: acceso, seguridad, emergencia_edificio, afuera_sin_entrar, pide_humano, urgente_sin_solucion. Escalar es raro y solo por urgencia operativa: true SOLO si (a) es urgente y ALMA no puede resolverlo, (b) el huésped no puede acceder a la propiedad, (c) hay un riesgo de seguridad, (d) hay una emergencia del edificio (sin electricidad, sin agua, riesgo de incendio, fuga grave), (e) el huésped está afuera y no puede entrar, o (f) pide hablar con una persona DESPUÉS de que ALMA ya intentó ayudar en el hilo. NUNCA escales por disponibilidad, cambios de reserva, información general, preguntas no urgentes ni nada que ALMA pueda resolver. Si escalar=true, el nivel es ROJO. En la duda, escalar=false.\n· IMÁGENES: puedes verlas. Si son documentos de identidad, pasaportes, comprobantes, capturas de pantalla o fotos enviadas sin pregunta y sin un problema visible, es SILENCIO: el equipo las recibe y no hace falta responder. Si muestran un problema (cerradura, panel, fuga, daño, algo roto), clasifica según ese problema.\n· Si CONTENCION_YA_ENVIADA=true y el huésped solo agrega fotos, detalles o insiste sobre lo mismo, es SILENCIO: el equipo ya está alertado. Solo vuelve a ROJO si aparece un riesgo nuevo y distinto.\n· Un saludo o acuse sin pregunta es SILENCIO.\n· ACCESO: agrega al JSON "acceso" con uno de tres valores. "apartamento" cuando el problema es la puerta del apartamento: el huésped dice cosas como "no puedo entrar", "no me sirve el código", "no me abre", "la cerradura no funciona", "el código no funciona". "edificio" cuando el problema es la portería o recepción: dice cosas como "no me dejan entrar", "no me permiten el ingreso", "mi reserva no está notificada", "el guardia no me deja pasar", "no aparezco en la lista", "recepción no tiene mi reserva". null en cualquier otro caso. Si hay duda entre los dos, elige "edificio": el código de emergencia solo sirve para la puerta del apartamento y darlo cuando el problema es la portería no resuelve nada.\n· Si FORM_STATUS=pendiente y el problema es "edificio", la causa más probable es que no se ha llenado el registro de llegada (con él avisamos al edificio): sigue siendo ROJO, pero indícalo en "razon".\n· SIN RESERVA CONFIRMADA (RESERVA_CONFIRMADA=false: consulta, solicitud o pendiente): no existe un problema de acceso. acceso=null, escalar=false y nunca ROJO por acceso; una "razon" sobre no poder entrar es inválida.\n· PREGUNTAS INFORMATIVAS (parqueo, amenidades, precio, políticas, ubicación, cómo llegar) son VERDE cuando la respuesta está en la ficha o el conocimiento; AMARILLO solo si de verdad falta el dato. Nunca las marques como acceso.\n· "razon" describe el tema real del último turno en pocas palabras (ej. "pregunta por parqueo"); nunca un tema que el huésped no mencionó.\n· FECHAS SOLICITADAS no disponibles: nunca SILENCIO. Es VERDE: ALMA informa con calidez y ofrece alternativas.\n· HITO de conversación resuelta: lo anterior al hito ya quedó atendido. No lo retomes ni lo uses para subir el nivel; un mensaje nuevo se clasifica solo por lo que dice.\n· SENSIBILIDAD DE ROJO (prevalece sobre tus criterios de ROJO): ROJO es SOLO para algo que pasa AHORA y necesita a una persona en minutos: el huésped no puede entrar o está afuera durante su estadía (hoy entre checkin y checkout); sin agua, luz o gas en el apartamento; fuga, inundación, humo o riesgo de incendio; seguridad o salud en riesgo. Todo lo demás es AMARILLO aunque el tono sea fuerte: quejas, amenaza de mala reseña, dinero, reembolsos, cobros, cancelaciones, compensaciones, ruido de vecinos, wifi, limpieza, faltantes, pedidos de hablar con una persona. Si el problema de acceso ya se resolvió en el hilo, o el huésped solo pregunta cómo entrará (aún no llega), no es ROJO. En la duda entre ROJO y AMARILLO, AMARILLO.';
 const REGLAS_FIJAS_REDACTOR = '\n\nREGLAS FIJAS (prevalecen sobre todo lo anterior):\n· PROHIBIDO escribirle al huésped SIN_RESPUESTA, NO_RESPONDER, SILENCIO o cualquier marcador interno. Si de verdad no hay nada nuevo que decir, devuelve exactamente SIN_RESPUESTA y nada más: el sistema lo detecta y no envía. Nunca lo mezcles con un mensaje.\n· FACTURA: si el huésped pide factura, revisa el HILO completo y reúne: NIT (o CF / pasaporte si es extranjero) y nombre o razón social. Opcional: correo y comentario. Si falta un dato obligatorio, pide SOLO lo que falta, en una sola frase amable, sin repetir lo que ya dio. Cuando estén completos, confírmale los datos tal como los dio y que la factura se entrega dentro de los 5 días hábiles posteriores a la salida y cierre de la reserva. En ese mismo mensaje agrega al final, en una línea aparte, [[FACTURA: {"nit":"…","razon_social":"…","correo":"…","comentario":"…"}]] (el sistema lo quita y lo registra; el huésped no lo ve). Nunca inventes ni completes un dato que el huésped no escribió.\n· ESCALAMIENTO: si ESCALADO=true, explica en una o dos frases, con calma, que ya avisaste a una persona del equipo y que te contactará por este chat. No prometas un tiempo exacto ni des el nombre ni el teléfono de nadie.\n· TIEMPO: lee MOMENTO DE LA ESTADÍA y HORA LOCAL. Si el check-in es HOY, nunca digas "mañana" para algo que debe estar listo antes de la llegada: di "antes de tu llegada" o "en cuanto el equipo entre esta mañana". Si el check-in es mañana, lo que se confirma "temprano" debe ser antes de las 15:00. Nunca propongas resolver algo después de la fecha en que el huésped lo necesita.\n· EARLY CHECK-IN / LATE CHECKOUT: usa DISPONIBILIDAD y la BASE DE CONOCIMIENTO. Guardar maletas (desde las 12:00 / hasta las 14:00) siempre lo puedes ofrecer directamente; el early check-in en sí nunca lo confirmas tú: se confirma a las 21:00 del día previo. Presenta solo las opciones que apliquen y pide que elija una.\n· SEGUIMIENTO: si el huésped eligió algo que el equipo debe gestionar (guardar maletas, confirmar early check-in a las 21:00, noche adicional, factura con NIT), termina con una última línea exacta: [[SEGUIMIENTO: qué debe hacer el equipo y cuándo]]. Esa línea se retira antes de enviar; el huésped no la ve.\n· IMÁGENES: si ves un documento de identidad o comprobante, no leas ni repitas sus datos; a lo sumo confirma en una frase que lo recibiste. Si muestra un problema, descríbelo solo lo necesario para orientar.\n· VARIEDAD: lee NUESTROS ÚLTIMOS MENSAJES y no repitas su apertura, su estructura ni sus frases. Cada mensaje debe sonar como una continuación natural de la conversación, nunca como una plantilla.\n· REGISTRO COMPLETO: si FORM_STATUS=completo y el huésped pregunta por su llegada, acceso, códigos, dirección, WiFi, parqueo o cómo funciona algo del apartamento, respóndele lo que sepas y recuérdale en una frase que tiene todas sus instrucciones en hola.spacioam.com con el código de su reserva. En este caso el recordatorio no tiene el límite de una mención por conversación.\n· Si ya dijimos que el equipo está con el tema y no tienes nada nuevo que aportar, devuelve exactamente SIN_RESPUESTA (sin más texto).';
 
 function clasificar_(ctx) {
@@ -1774,7 +1778,8 @@ function clasificar_(ctx) {
     if (NIVELES.indexOf(nivel) !== -1) {
       const a = p.acceso === true ? 'apartamento' : String(p.acceso || '').toLowerCase();
       const esc = p.escalar === true || String(p.escalar).toLowerCase() === 'true';
-      return { nivel: esc && nivel !== 'ROJO' ? 'ROJO' : nivel, razon: s_(p.razon) || '-', acceso: a === 'apartamento' || a === 'edificio' ? a : null,
+      const motEsc = esc ? s_(p.motivo_escalar).toLowerCase() : '', escRojo = esc && /acceso|seguridad|emergencia|afuera/.test(motEsc);   /* pedir una persona o una urgencia sin solución ya no es ROJO por sí sola */
+      return { nivel: escRojo && nivel !== 'ROJO' ? 'ROJO' : nivel, razon: s_(p.razon) || '-', acceso: a === 'apartamento' || a === 'edificio' ? a : null,
         escalar: esc, motivoEscalar: esc ? s_(p.motivo_escalar) : '' };
     }
   } catch (e) { }
@@ -2319,7 +2324,10 @@ function waEnviar_(numero, texto) {
   } catch (e) { console.error('WhatsApp: ' + e); return { ok: false, error: String(e) }; }
 }
 /* Escala a quien esté de turno ahora (correo + WhatsApp si está configurado). Sin nadie de turno → correo de alertas. */
-function escalar_(asunto, texto) {
+function escalar_(asunto, texto, o) {
+  o = o || {};
+  /* Informativo (sinWa): notificación del Hub y correo, sin WhatsApp. */
+  if (o.sinWa) { const tn = deTurno_(); pushA_(tn.length ? tn.map(p => p.email).filter(Boolean) : null, asunto, texto); tn.forEach(p => { if (p.email) { try { correo_(p.email, asunto, texto); } catch (e) {} } }); return; }
   const turno = deTurno_();
   if (!turno.length) { pushA_(null, asunto, texto); return notificar_(CFG.WHATSAPP_NOCTURNO, asunto + ' · sin nadie de turno', texto); }
   pushA_(turno.map(p => p.email).filter(Boolean), asunto, texto);
@@ -2328,7 +2336,8 @@ function escalar_(asunto, texto) {
     waEnviar_(p.telefono, asunto + '\n\n' + texto);
   });
 }
-function avisarRojo_(ctx, asunto, texto) {
+function avisarRojo_(ctx, asunto, texto, sinWa) {
+  if (sinWa) { pushA_(null, asunto, texto); return; }   // seguimiento de un ROJO ya avisado: no repite el WhatsApp
   if (ctx && ctx.escalar) return escalar_(asunto, texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente'));
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   pushA_(null, asunto, texto);
@@ -4908,6 +4917,8 @@ function dsBotApi_(body) {
       case 'op_rango': { const n0 = Math.min(400, Number(body.n) || 80); return json_({ ok: true, filas: opFilas_('', n0).filter(m => !body.desde || String(m.ts) >= String(body.desde)).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: String(m.texto).slice(0, 600), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) }); }
       case 'contactos': return json_({ ok: true, contactos: contactosTodos_().map(c => ({ tel: '…' + String(c.tel).slice(-4), nombre: c.nombre, tipo: c.tipo, rol: c.rol, estado: c.estado, actualizado: String(c.actualizado).slice(0, 10) })) });
       case 'contactos_rellenar': return json_(contactosRellenar_());
+      case 'para_claude': return json_(paraClaudeLista_(!!body.todos));
+      case 'para_claude_marcar': return json_(paraClaudeMarcar_(body.id, body.estado, body.nota));
       case 'contacto_clasificar': return json_({ ok: true, ficha: contactoClasificar_(String(body.tel || ''), String(body.contexto || ''), true) });
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico

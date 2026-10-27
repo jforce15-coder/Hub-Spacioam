@@ -141,6 +141,10 @@ function agHerramientas_() {
         tipo: { type: 'string', enum: ['equipo', 'personal'], description: 'personal = de parte de Juan como su asistente, sin mencionar Spacio AM' } }, ['texto', 'cuando', 'tipo']),
     T('mensajes_programados', 'Lista los mensajes programados que aún no se envían.', {}),
     T('cancelar_programado', 'Cancela un mensaje programado.', { id: s('id del mensaje programado') }, ['id']),
+    T('mejora_para_claude', 'Le pasa a Claude (el desarrollador que programa el Hub, Hola, Epi, Mi, Grow, Docs y a ti misma) un pedido de MEJORA o un ERROR del sistema: algo que debería funcionar distinto, una función nueva, algo que falla. Úsala cuando el administrador diga «dile a Claude», «esto hay que mejorarlo», «anota esta mejora», «esto está fallando» o describa cómo debería funcionar algo. Estructura bien lo que dijo: qué pasa hoy, qué quiere, un ejemplo concreto. Confírmale que quedó enviado. No la uses para cambiar un dato (eso lo haces tú) ni para tu tono (eso es guardar_nota).',
+      { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
+        tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
+        ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] } }, ['titulo', 'app', 'tipo', 'que_quiere']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];
@@ -234,6 +238,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), ok = !!rw.ok;
       if (!ok) cE.remove(kE);
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
+      if (ok) { try { contactoAsegurar_(p.tel); } catch (e) {} }
       if (ok) { try { contactoEncolar_(p.tel, 'Pedido de ' + ((adm && adm.nombre) || 'un administrador') + ' sobre ' + p.nombre + ': ' + String(inp.texto).slice(0, 600) + (inp.al_responder ? ' · Cuando responda: ' + String(inp.al_responder).slice(0, 400) : '')); } catch (e) {} }
       if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
       return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió el aviso de primer contacto pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
@@ -341,6 +346,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'asignar_a_proyecto': { var rpA = personalPorNombre_(inp.persona || ''); if (!rpA) return { error: 'No encontré una conversación personal reciente con ' + inp.persona + '.' }; var ra = proyAsignar_(adm, rpA.wa, inp.proyecto, inp.objetivo || ''); if (ra.ok) ctx.hechas.push({ tipo: 'proyecto', resumen: 'Proyecto ' + ra.proyecto + ' · ' + ra.persona }); return ra; }
     case 'cerrar_proyecto': return proyCerrar_(inp.proyecto);
     case 'ver_conversacion_personal': { var cv = personalContextoDe_([inp.persona]); return cv ? { conversacion: cv } : { error: 'No encontré una conversación personal reciente con ' + inp.persona + '.' }; }
+    case 'mejora_para_claude': { var rm = paraClaudeCrear_(adm, inp); if (rm.ok) ctx.hechas.push({ tipo: 'mejora', resumen: 'Para Claude · ' + String(inp.titulo).slice(0, 80) }); return rm; }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };
@@ -416,7 +422,7 @@ function epiSnap_(forzar) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ayer = sumarDias_(hoy, -21), fin = sumarDias_(hoy, 30);
   var snap = {
     ts: new Date().toISOString(),
-    vendors: cfg.vendors.filter(function (v) { return v && v.active !== false; }).map(function (v) { return { id: v.id, email: v.email, name: vendNombre_(v), phone: v.phone || v.telefono || '' }; }),
+    vendors: cfg.vendors.filter(function (v) { return v && v.active !== false; }).map(function (v) { return { id: v.id, email: v.email, name: vendNombre_(v), phone: v.phone || v.telefono || '', cat: String(v.categoria || v.category || '') }; }),
     props: cfg.props.map(function (p) { return { nombre: propNombre_(p) }; }).filter(function (p) { return p.nombre; }),
     tareas: cfg.tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 80),
     schedules: cfg.schedules.filter(function (x) { var f = String(x && x.fecha || '').slice(0, 10); return f >= ayer && f <= fin; })
@@ -496,6 +502,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   try { inboxUpsert_('wa:' + wa, { huesped: quien, propiedad: 'WhatsApp · Encargo de ' + de, tipo: 'interno', canal: 'whatsapp', wa: wa, ultimo_canal: 'whatsapp', ultimo_texto: String(texto).slice(0, 300), ultimo_de: 'guest', ultimo_ts: ts, ultimo_guest_ts: ts }); } catch (x) {}
   /* «Cuando responda: …» (escribir_a_equipo) o, en un encargo de conversación (encargar_conversacion), lo que quede del objetivo después de hablar. */
   try { contactoEncolar_(wa, ''); } catch (x) {}
+  if (esRespuestaAutomatica_(texto)) return;   // respuesta automática de su WhatsApp Business: se espera la de verdad
   var obj = String(e.objetivo || ''), despues = /Cuando responda:/.test(obj) ? (obj.split('Cuando responda:')[1] || '').trim() : obj.trim();
   var hist = []; try { hist = waHilo_('wa:' + wa).slice(-18).map(function (m) { return (m.tipo === 'guest' ? quien : 'ALMA') + ': ' + String(m.texto || '').replace(/^\[plantilla[^\]]*\]\s*·\s*pendiente:\s*/, '[aviso de primer contacto] ').slice(0, 700); }); } catch (x) {}
   var sys = 'Eres Alma, del equipo de Spacio AM (alojamientos boutique en Guatemala). Conversas por WhatsApp con ' + quien + ' por encargo de ' + de + '. ' +
@@ -510,13 +517,14 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   var avisar = function (t, res) { if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, t); } catch (x) {} } };
   if (!out || (out.respuesta == null && !out.completo)) { avisar(quien + ' respondió a tu encargo:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
   if (String(out.respuesta || '').trim()) { var w = waEnviar_(wa, String(out.respuesta).trim()); if (w && w.ok) contactoRegistrar_(wa, quien, String(out.respuesta).trim()); }
-  if (String(out.para_admin || '').trim()) avisar(quien + ' pregunta algo que debes decidir tú:\n\n' + String(out.para_admin).trim() + '\n\n(Dime qué le respondo.)', 'Consulta de ' + quien);
+  /* Si con este mensaje el encargo ya terminó, la pregunta va dentro del resumen final: un solo WhatsApp, no dos. */
+  if (String(out.para_admin || '').trim() && !out.completo) avisar(quien + ' pregunta algo que debes decidir tú:\n\n' + String(out.para_admin).trim() + '\n\n(Dime qué le respondo.)', 'Consulta de ' + quien);
   if (!out.completo) return;
   var res = String(out.resumen || '').trim() || '(sin resumen)';
   /* Se cierran todos los encargos abiertos con esta persona del mismo administrador (los seguimientos repetidos). */
   try { var shE = hojaEnc_(), vE = shE.getRange(2, 1, shE.getLastRow() - 1, ENC_CAB_.length).getValues(), hoyE = new Date().toISOString();
     vE.forEach(function (r, i) { if (fin8_(r[5]) === fin8_(wa) && r[7] === 'abierto' && String(r[2]) === String(e.solicitante)) shE.getRange(i + 2, 8, 1, 3).setValues([['cumplido', res.slice(0, 4000), hoyE]]); }); } catch (x) {}
-  avisar('Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + res + (despues ? '\n\nAhora hago lo que me pediste para después y te confirmo.' : ''), 'Encargo cumplido · ' + quien);
+  avisar('Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + res + (String(out.para_admin || '').trim() ? '\n\nNecesito que decidas: ' + String(out.para_admin).trim() : '') + (despues ? '\n\nAhora hago lo que me pediste para después y te confirmo.' : ''), 'Encargo cumplido · ' + quien);
   /* Lo que pidió para cuando respondiera: lo hace la secretaria en su nombre (en segundo plano) y le confirma por WhatsApp. */
   if (despues && adm.tels && adm.tels[0]) { try { vozSecEncolar_(adm.tels[0], 'Terminé la conversación con ' + quien + ' (+' + normTel_(wa) + '). Esto es lo que reunió:\n' + res + '\n\nAhora haz lo que falte del encargo (lo que me pediste para después: tareas, reportes, asignaciones). No vuelvas a escribirle a ' + quien + '. Encargo: ' + despues); } catch (x) { console.error('encargo después: ' + x); } }
 }

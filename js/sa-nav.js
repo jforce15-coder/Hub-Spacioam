@@ -18,6 +18,8 @@
 
    Estados: 1 círculo · 2 barra con las pantallas · 3 abanico de apps · 4 barra + abanico.
    1 toque abre/va al inicio · 2 toques abre las apps · mantener lo mueve a 8 posiciones.
+   «Tutoriales» va al final de las pantallas (o en «Más»): abre js/sa-tutoriales.js, que además muestra
+   el video del botón roca en pantalla completa la primera vez. cfg.tutoriales: función propia o false.
    La posición se comparte entre apps (cookie .spacioam.com). Los huéspedes no lo ven:
    solo lo montan las pantallas del equipo.
    --------------------------------------------------------------------------- */
@@ -61,6 +63,7 @@
     dash: '<rect x="3.5" y="3.5" width="7" height="9" rx="2"/><rect x="13.5" y="3.5" width="7" height="5" rx="2"/><rect x="3.5" y="15.5" width="7" height="5" rx="2"/><rect x="13.5" y="11.5" width="7" height="9" rx="2"/>',
     grid: '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
     list: '<path d="M9 6.5h11M9 12h11M9 17.5h11"/><circle cx="4.8" cy="6.5" r="1"/><circle cx="4.8" cy="12" r="1"/><circle cx="4.8" cy="17.5" r="1"/>',
+    help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.6"/><circle cx="12" cy="16.9" r=".7"/>',
     more: '<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>',
     bolt: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>',
     review: '<path d="M4 5.5h16v10H9l-5 4z"/><path d="M12 8l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/>',
@@ -378,8 +381,11 @@
     return '<button type="button" class="san-btn san-grain" aria-label="' + esc(label) + (badge ? " · " + badge : "") + '">' + (img ? '<img alt="" src="' + img + '">' : icon(ic)) +
       '<span class="san-t">' + esc(label) + '</span>' + (badge ? '<span class="san-badge" aria-hidden="true">' + (badge > 99 ? "99+" : badge) + "</span>" : "") + "</button>";
   }
+  /* «Tutoriales» va siempre al final de las pantallas de cada app (entra en «Más» cuando no caben).
+     La app puede abrir su propio centro (cfg.tutoriales = función) o quitarlo (cfg.tutoriales = false). */
+  var TUT = { k: "__tut", l: "Tutoriales", icon: "help" };
   function buildItems() {
-    var items = cfg.items || [];
+    var items = (cfg.items || []).concat(cfg.tutoriales === false ? [] : [TUT]);
     /* hasta 4 directos; con más, 3 + «Más». La app puede fijar cuántos van directos (cfg.masDesde) */
     var lim = typeof cfg.masDesde === "number" ? cfg.masDesde : (items.length > 4 ? 3 : 4);
     if (items.length > lim) { shown = items.slice(0, lim).concat([{ k: "__more", l: "Más", icon: "more", badge: items.slice(lim).reduce(function (a, it) { return a + (it.badge || 0); }, 0) }]); overflow = items.slice(lim); }
@@ -607,10 +613,30 @@
 
   /* ================= acciones ================= */
   function go(k) {
+    if (k === "__tut") { setS(1); activity(); abrirTutoriales(); return; }
     if (st.S === 3 || st.S === 4) setS(2);
     if (k !== cfg.current) { cfg.current = k; markCurrent(); setCoreLbl(); }
     activity();
     try { cfg.onNavigate && cfg.onNavigate(k); } catch (e) { console.error(e); }
+  }
+  /* ── Tutoriales (js/sa-tutoriales.js): se carga solo cuando hace falta ── */
+  var tutCb = [], tutCargando = false, tutPrimera = false;
+  function conTutoriales(cb) {
+    if (w.SATutoriales) { cb(); return; }
+    tutCb.push(cb); if (tutCargando) return; tutCargando = true;
+    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-10-27";
+    s.onload = function () { var l = tutCb; tutCb = []; l.forEach(function (f) { try { f(); } catch (e) { console.error(e); } }); };
+    s.onerror = function () { tutCargando = false; tutCb = []; };
+    (d.head || d.documentElement).appendChild(s);
+  }
+  function abrirTutoriales() {
+    if (typeof cfg.tutoriales === "function") { try { cfg.tutoriales(); } catch (e) { console.error(e); } return; }
+    conTutoriales(function () { w.SATutoriales.centro({ app: cfg.app }); });
+  }
+  /* La primera vez que el menú se ve, sale el video del botón roca en pantalla completa (una sola vez por equipo). */
+  function bienvenida() {
+    if (tutPrimera || !root || root.hidden || cfg.bienvenida === false) return; tutPrimera = true;
+    setTimeout(function () { if (root && !root.hidden) conTutoriales(function () { w.SATutoriales.primeraVez(cfg.app); }); else tutPrimera = false; }, 1600);
   }
   function goHub() {
     /* Las apps se abren desde el Hub en otra pestaña: si esta pestaña la abrió el Hub, se cierra y vuelve a él. */
@@ -1322,6 +1348,7 @@
       render(); kick();
       if (LLEGADA) requestAnimationFrame(llegada);
       setTimeout(showHint, 1200);
+      bienvenida();
     },
     update: function (c) {
       if (!root) { this.mount(c); return; }
@@ -1330,7 +1357,7 @@
       if (c.apps) allowed = c.apps.slice();
       if (c.appBadges && st.fan === "apps" && st.S !== 3 && st.S !== 4 && JSON.stringify(c.appBadges) !== root._ab) { root._ab = JSON.stringify(c.appBadges); buildFan("apps"); }
       if ("tint" in c) setTint(c.tint);
-      if ("hidden" in c) { root.hidden = !!c.hidden; if (c.hidden && st.S !== 1) setS(1); }
+      if ("hidden" in c) { root.hidden = !!c.hidden; if (c.hidden && st.S !== 1) setS(1); if (!c.hidden) bienvenida(); }
       if (rebuild) { buildItems(); if (st.fan === "more") buildFan("more"); applyState(0); }
       else markCurrent();
       setCoreLbl();
@@ -1342,6 +1369,7 @@
     ir: function (url, nueva) { irA(url, nueva); },
     hide: function (h) { if (root) this.update({ hidden: h !== false }); },
     close: function () { if (root) setS(1); },
+    tutoriales: function () { if (root) abrirTutoriales(); },
     unmount: function () {
       if (!root) return;
       w.removeEventListener("resize", onResize); d.removeEventListener("keydown", onKey); if (w.visualViewport) w.visualViewport.removeEventListener("resize", onVV); if (dockMO) dockMO.disconnect(); if (dockRO) dockRO.disconnect();

@@ -211,7 +211,7 @@
        encima de todo (también del chat de WhatsApp), y un halo coral late alrededor de la roca. */
     ".san-scope.san-pista{position:fixed;z-index:2147483000;left:0;top:0;white-space:nowrap;font:500 11px/1 -apple-system,BlinkMacSystemFont,Montserrat,system-ui,sans-serif;letter-spacing:.01em;color:rgba(60,60,67,.62);background:rgba(242,242,247,.66);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);padding:6px 10px;border-radius:999px;border:.5px solid rgba(60,60,67,.12);opacity:0;transform:translateY(calc(-100% - 4px)) scale(.96);transform-origin:var(--ax,50%) 100%;pointer-events:none;transition:opacity .35s ease,transform .5s cubic-bezier(.25,1,.5,1)}",
     ".san-scope.san-pista.on{opacity:1;transform:translateY(calc(-100% - 8px)) scale(1)}",
-    ".san-scope.san-pista b{font-weight:600;color:rgba(60,60,67,.78)}",
+    ".san-scope.san-pista b{font-weight:600;color:#E9826A}",   /* lo resaltado, siempre en el tono de Alma */
     "@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.san-scope.san-pista{background:rgba(242,242,247,.94)}}",
     ".san-scope .san-face.san-halo{animation:san-halo 1.8s ease-out 1}",
     "@keyframes san-halo{0%{box-shadow:0 0 0 0 rgba(142,142,147,.28)}100%{box-shadow:0 0 0 10px rgba(142,142,147,0)}}",

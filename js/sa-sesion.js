@@ -100,6 +100,28 @@
     });
   }
   w.SASesion.leerHoja = leerHoja;
+  /* Fase 1c: quien entró a una app ANTES de las sesiones firmadas tiene su sesión vieja guardada pero no la
+     pulsera (sa_auth). El backend lo rechaza con error "session" y la app se quedaba vacía, sin pedir login.
+     Si este navegador guarda la sesión vieja de alguna app, se borra y se recarga: la app muestra su login y
+     al entrar recibe la pulsera. Huéspedes, firmantes y propietarios no tienen sesión vieja: no les pasa nada.
+     Como mucho una vez cada 10 minutos, para no entrar en un ciclo. */
+  var VIEJAS = ['sam_sess', 'sa-session', 'SPACIO_GROW_SESION', 'spacio_admin_user', 'spacio_admin_sesion_v1',
+                'spacioam_admin_session', 'spacioam_admin_profile', 'sa_session'];
+  function sinPulsera() {
+    try {
+      if (/[?&](firmar|datos)=/.test(location.search)) return;   // enlace de firma (Docs) o de datos del cliente (Grow)
+      var hay = VIEJAS.filter(function (k) { return localStorage.getItem(k) != null; });
+      if (/(?:^|;\s*)sa_session=/.test(document.cookie)) hay.push('cookie');
+      if (!hay.length) return;
+      var t = +sessionStorage.getItem('sa_sin_pulsera') || 0;
+      if (Date.now() - t < 600000) return;
+      sessionStorage.setItem('sa_sin_pulsera', String(Date.now()));
+      VIEJAS.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
+      [dominio(), ''].forEach(function (d) { try { document.cookie = 'sa_session=' + d + '; path=/; max-age=0'; } catch (e) {} });
+      try { w.dispatchEvent(new Event('sa-sesion-vencida')); } catch (e) {}
+      setTimeout(function () { location.reload(); }, 50);
+    } catch (e) {}
+  }
   var origFetch = w.fetch && w.fetch.bind(w);
   if (origFetch) {
     w.fetch = function (input, init) {
@@ -140,6 +162,7 @@
             if (j && typeof j === 'object') {
               if (j.ok && j.session && url.indexOf(LOGIN) >= 0 && (accion === 'login' || accion === 'setInitialPassword')) guardar(j.session);
               else if (j.ok === false && j.error === 'session' && leer()) { borrar(); setTimeout(function () { location.reload(); }, 50); }
+              else if (j.ok === false && j.error === 'session') sinPulsera();
             }
           } catch (e) {}
           var h = { 'Content-Type': res.headers.get('Content-Type') || 'application/json; charset=utf-8' };   // solo el tipo: copiar longitud/compresión del original confunde a Safari

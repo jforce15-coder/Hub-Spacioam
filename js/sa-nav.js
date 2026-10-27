@@ -209,12 +209,12 @@
     ".san-scope .san-ph.on{opacity:1;transform:translate(-50%,-50%) scale(1)}",
     /* Pista del editor: globito sobre el botón de Alma cuando ya hay texto («2 toques · mejora con IA»). Vive en <body>,
        encima de todo (también del chat de WhatsApp), y un halo coral late alrededor de la roca. */
-    ".san-scope.san-pista{position:fixed;z-index:2147483000;left:0;top:0;white-space:nowrap;font:600 11.5px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#FAFAFA;background:#3E3F3F;padding:8px 13px;border-radius:999px;box-shadow:0 10px 20px -10px rgba(40,30,25,.45);opacity:0;transform:translateY(calc(-100% - 6px)) scale(.92);transform-origin:var(--ax,50%) 100%;pointer-events:none;transition:opacity .22s ease,transform .45s cubic-bezier(.3,1.3,.55,1)}",
-    ".san-scope.san-pista.on{opacity:1;transform:translateY(calc(-100% - 12px)) scale(1)}",
-    ".san-scope.san-pista b{color:#F2B4A4;font-weight:700}",
-    ".san-scope.san-pista:after{content:'';position:absolute;left:var(--ax,50%);bottom:-4px;width:9px;height:9px;margin-left:-4.5px;background:#3E3F3F;border-radius:2px;transform:rotate(45deg)}",
-    ".san-scope .san-face.san-halo{animation:san-halo 1.5s ease-out 3}",
-    "@keyframes san-halo{0%{box-shadow:0 0 0 0 rgba(233,130,106,.6)}100%{box-shadow:0 0 0 16px rgba(233,130,106,0)}}",
+    ".san-scope.san-pista{position:fixed;z-index:2147483000;left:0;top:0;white-space:nowrap;font:500 11px/1 -apple-system,BlinkMacSystemFont,Montserrat,system-ui,sans-serif;letter-spacing:.01em;color:rgba(60,60,67,.62);background:rgba(242,242,247,.66);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);padding:6px 10px;border-radius:999px;border:.5px solid rgba(60,60,67,.12);opacity:0;transform:translateY(calc(-100% - 4px)) scale(.96);transform-origin:var(--ax,50%) 100%;pointer-events:none;transition:opacity .35s ease,transform .5s cubic-bezier(.25,1,.5,1)}",
+    ".san-scope.san-pista.on{opacity:1;transform:translateY(calc(-100% - 8px)) scale(1)}",
+    ".san-scope.san-pista b{font-weight:600;color:rgba(60,60,67,.78)}",
+    "@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.san-scope.san-pista{background:rgba(242,242,247,.94)}}",
+    ".san-scope .san-face.san-halo{animation:san-halo 1.8s ease-out 1}",
+    "@keyframes san-halo{0%{box-shadow:0 0 0 0 rgba(142,142,147,.28)}100%{box-shadow:0 0 0 10px rgba(142,142,147,0)}}",
     "@media (prefers-reduced-motion:reduce){.san-scope .san-face.san-halo{animation:none}.san-scope.san-pista{transition:opacity .2s}}",
     ".san-scope .san-ov{position:fixed;inset:0;z-index:calc(var(--san-z) + 10);pointer-events:none;font-family:Montserrat,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.san-scope .san-ov.on{pointer-events:auto}",
     ".san-scope .san-ov-bg{position:absolute;inset:0;opacity:0;transition:opacity .7s cubic-bezier(.45,0,.55,1);background:radial-gradient(circle at 50% 50%,rgba(34,32,31,.62) 0px,rgba(34,32,31,.52) 170px,rgba(34,32,31,.34) 330px,rgba(34,32,31,.16) 480px,rgba(34,32,31,.06) 640px),rgba(250,250,250,.18)}",
@@ -688,7 +688,7 @@
   }
   /* Pista: cuando el campo pasa de vacío a tener texto, un globito sobre la roca recuerda los toques. Una vez por texto
      nuevo y a lo sumo cada 45 s; se va al tocar la roca o si el campo vuelve a quedar vacío. */
-  var PISTAS = ["<b>2 toques</b> · mejora con IA", "<b>1 toque</b> · envía"];
+  var PISTAS = ["<b>2 toques</b> para mejorar con IA", "<b>1 toque</b> para enviar"];
   var pista = { el: null, lleno: false, t: null, ult: 0 };
   function pistaQuitar() {
     clearTimeout(pista.t); pista.t = null;

@@ -116,15 +116,23 @@
     ".sat *{box-sizing:border-box}",
     ".sat-fade{opacity:0;transition:opacity .45s cubic-bezier(.22,.61,.36,1)}.sat-fade.on{opacity:1}",
     /* reproductor: pantalla completa, el video ocupa todo (su fondo es el mismo alabastro) */
-    ".sat-player{background:#FAFAFA;transform-origin:var(--sat-ox,100%) var(--sat-oy,62%);transition:opacity .45s cubic-bezier(.22,.61,.36,1),transform .6s cubic-bezier(.6,0,.3,1),border-radius .6s}",
-    ".sat-player.guardar{transform:scale(.04);border-radius:50%;opacity:0;overflow:hidden}",
+    /* reproductor: pantalla completa, sin fundidos propios (los hace la piedra de Alma, SANav.portal) */
+    ".sat-player{background:#FAFAFA}",
+    ".sat-player.tapado{opacity:0;pointer-events:none}",
     ".sat-player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#FAFAFA}",
+    "@media (max-aspect-ratio:9/16){.sat-player video{object-fit:cover}}",
     ".sat-tap{position:absolute;inset:0;border:0;background:transparent;padding:0;margin:0;cursor:pointer}",
-    ".sat-later{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 16px;min-height:44px;background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 8px 22px -10px rgba(90,70,60,.35);font:600 12.5px/1 Montserrat,system-ui,sans-serif;letter-spacing:.02em;color:#3E3F3F;cursor:pointer}",
+    ".sat-later{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;display:flex;align-items:center;gap:8px;border:1px solid #EDEAE6;border-radius:999px;padding:11px 16px;min-height:44px;background:#FFFFFF;box-shadow:0 8px 22px -10px rgba(90,70,60,.35);font:600 12.5px/1 Montserrat,system-ui,sans-serif;letter-spacing:.02em;color:#3E3F3F;cursor:pointer}",
     ".sat-later i{width:7px;height:7px;border-radius:50%;background:#E9826A}",
-    ".sat-sound{position:absolute;left:14px;top:calc(14px + env(safe-area-inset-top));display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 16px;min-height:44px;background:#3E3F3F;color:#FFFFFF;font:600 12.5px/1 Montserrat,system-ui,sans-serif;cursor:pointer;box-shadow:0 12px 26px -10px rgba(40,30,25,.5);white-space:nowrap}",
-    ".sat-sound svg{width:17px;height:17px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}",
-    ".sat-paused{position:absolute;left:50%;top:50%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 14px 30px -12px rgba(90,70,60,.45);display:none;pointer-events:none}",
+    /* aviso grande al centro: «Toca para escuchar» (sonando en silencio) o «Ver tutorial» (el teléfono no dejó arrancar) */
+    ".sat-cta{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:none;flex-direction:column;align-items:center;gap:14px;border:0;background:transparent;padding:0;cursor:pointer;font-family:Montserrat,system-ui,sans-serif}",
+    ".sat-cta.on{display:flex}",
+    ".sat-cta b{position:relative;width:92px;height:92px;border-radius:50%;background:#E9826A;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 40px -14px rgba(233,130,106,.75)}",
+    ".sat-cta b:before{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(233,130,106,.55);animation:satPulso 1.8s cubic-bezier(.22,.61,.36,1) infinite}",
+    ".sat-cta svg{width:38px;height:38px;fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}",
+    ".sat-cta span{background:#3E3F3F;color:#fff;border-radius:999px;padding:11px 18px;font-size:13.5px;font-weight:600;letter-spacing:.01em;white-space:nowrap;box-shadow:0 12px 26px -10px rgba(40,30,25,.5)}",
+    "@keyframes satPulso{0%{transform:scale(.92);opacity:1}100%{transform:scale(1.35);opacity:0}}",
+    ".sat-paused{position:absolute;left:50%;top:50%;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;background:#FFFFFF;box-shadow:0 14px 30px -12px rgba(90,70,60,.45);display:none;pointer-events:none}",
     ".sat-paused:after{content:'';position:absolute;left:31px;top:24px;border-left:20px solid #E9826A;border-top:14px solid transparent;border-bottom:14px solid transparent}",
     ".sat-player.pausa .sat-paused{display:block}",
     ".sat-bar{position:absolute;left:18px;right:18px;bottom:calc(22px + env(safe-area-inset-bottom));height:3px;border-radius:3px;background:rgba(62,63,63,.12);overflow:hidden;pointer-events:none}",
@@ -169,7 +177,7 @@
     ".sat-per .n{font-size:13.5px;font-weight:600;color:#3E3F3F}.sat-per .s{font-size:11.5px;color:#938B8A;margin-top:2px}",
     ".sat-pill{margin-left:auto;flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:999px;padding:3px 9px}",
     ".sat-pill.ok{background:#EEF3EC;color:#4F6B47;border:1px solid #B9CDB2}.sat-pill.no{background:#FCEDE8;color:#B4553C;border:1px solid #E9826A}",
-    "@media (prefers-reduced-motion:reduce){.sat-fade,.sat-sheet,.sat-player,.sat-fab{transition:none;animation:none}}"
+    "@media (prefers-reduced-motion:reduce){.sat-fade,.sat-sheet,.sat-fab,.sat-cta b:before{transition:none;animation:none}}"
   ].join("\n");
   function estilos() { if (d.getElementById("sat-css")) return; var s = d.createElement("style"); s.id = "sat-css"; s.textContent = css; (d.head || d.documentElement).appendChild(s); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -203,64 +211,103 @@
     setTimeout(function () { t.classList.remove("on"); setTimeout(function () { t.remove(); }, 400); }, 4200);
   }
 
-  /* ── Reproductor a pantalla completa ── */
+  /* ── Reproductor a pantalla completa ──
+     Entrada y salida con la piedra de Alma (SANav.portal, la misma transición de cambiar de app): la piedra sale del
+     botón y cubre la pantalla, debajo se prepara el video, y Alma vuelve a su lugar destapándolo. Al terminar, igual.
+     El video se arranca en el mismo toque (si lo hubo) para que el navegador lo deje sonar. */
   var abierto = null, appActual = "";
+  var ICO_SON = '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+  var ICO_PLAY = '<svg viewBox="0 0 24 24" style="margin-left:5px"><path d="M7 4.5v15l12-7.5z" fill="#fff" stroke="none"/></svg>';
+  function cubrir() {
+    if (w.SANav && w.SANav.portal && !(w.matchMedia && w.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      try { return w.SANav.portal("out", { blanco: true, fondo: "#FAFAFA" }).then(function (deshacer) { return deshacer; }, function () { return null; }); } catch (e) {}
+    }
+    return Promise.resolve(null);
+  }
   function play(id, opts) {
     var t = typeof id === "object" ? id : porId(id); if (!t || !t.video || abierto) return false;
     opts = opts || {}; var forzado = !!opts.forzado; cerrarMenu();
     var pr = progreso(t);
-    var el = capa("sat-player",
-      '<video playsinline preload="auto" poster="' + esc(A(t.poster || "")) + '" src="' + esc(A(t.video)) + '"></video>' +
+    estilos();
+    var el = d.createElement("div"); el.className = "sat sat-player tapado"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", t.titulo);
+    el.innerHTML = '<video playsinline webkit-playsinline preload="auto" poster="' + esc(A(t.poster || "")) + '" src="' + esc(A(t.video)) + '"></video>' +
       '<button type="button" class="sat-tap" aria-label="Pausar o seguir"></button><div class="sat-paused"></div>' +
+      '<button type="button" class="sat-cta" aria-live="polite"><b></b><span></span></button>' +
       '<button type="button" class="sat-later">' + (forzado && !pr.visto ? "<i></i>Ver más tarde" : "Cerrar") + '</button>' +
-      '<button type="button" class="sat-sound" hidden><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l4 5M20 9.5l-4 5"/></svg>Activar sonido</button>' +
-      '<div class="sat-bar"><i></i></div>');
+      '<div class="sat-bar"><i></i></div>';
+    d.body.appendChild(el);
     abierto = el; if (fab) fab.classList.add("fuera");
-    var v = el.querySelector("video"), bar = el.querySelector(".sat-bar i"), snd = el.querySelector(".sat-sound");
-    /* Retoma donde se quedó si ya iba avanzado (y aún no lo termina). */
+    var v = el.querySelector("video"), bar = el.querySelector(".sat-bar i"), cta = el.querySelector(".sat-cta");
     var inicio = forzado && !pr.visto && pr.max > 12 && pr.max < 95 ? pr.max : 0;
-    var maxPct = pr.max || 0, ultimo = 0;
-    v.addEventListener("loadedmetadata", function () { if (inicio && v.duration) { try { v.currentTime = Math.max(0, v.duration * inicio / 100 - 3); } catch (e) {} } });
-    /* Solo cuenta lo que avanzó reproduciéndose (no hay barra para adelantar). */
+    var maxPct = pr.max || 0, ultimo = 0, listo = false, cerrando = false;
+    function ctaMostrar(modo) {
+      if (!modo) { cta.classList.remove("on"); return; }
+      cta.querySelector("b").innerHTML = modo === "sonido" ? ICO_SON : ICO_PLAY;
+      cta.querySelector("span").textContent = modo === "sonido" ? "Toca para escuchar a Alma" : "Ver el tutorial";
+      cta.setAttribute("data-modo", modo); cta.classList.add("on");
+    }
+    function irAlInicio() { if (inicio && v.duration) { try { v.currentTime = Math.max(0, v.duration * inicio / 100 - 3); } catch (e) {} inicio = 0; } }
+    v.addEventListener("loadedmetadata", function () { if (listo) irAlInicio(); });
     v.addEventListener("timeupdate", function () {
-      if (!v.duration) return;
+      if (!v.duration || !listo) return;
       var pct = 100 * v.currentTime / v.duration; bar.style.width = pct.toFixed(1) + "%";
       if (v.currentTime - ultimo < 1.6 && pct > maxPct) { maxPct = pct; if (Math.floor(pct) % 5 === 0) guardar(t, maxPct); if (pct >= 25) avisar(t, pct, "avance"); }
       ultimo = v.currentTime;
     });
-    function arrancar() {
-      v.muted = false;
+    /* Con sonido si el navegador deja; si no, en silencio con «Toca para escuchar»; si ni así, «Ver el tutorial». */
+    function sonar() {
+      el.classList.remove("pausa");
+      v.muted = false; v.removeAttribute("muted");
       var p = v.play();
-      if (p && p.catch) p.catch(function (er) {
+      if (!p || !p.then) { ctaMostrar(null); return; }
+      p.then(function () { ctaMostrar(null); }, function (er) {
         if (er && er.name === "AbortError") return;
-        /* El navegador no deja sonar sin un toque: sigue en silencio y pide un toque para el sonido. */
-        v.muted = true; snd.hidden = false; v.play().catch(function () { el.classList.add("pausa"); });
+        v.muted = true; v.setAttribute("muted", "");
+        v.play().then(function () { ctaMostrar("sonido"); }, function () { ctaMostrar("play"); });
       });
     }
-    function conSonido() { if (v.muted) { v.muted = false; snd.hidden = true; } if (v.paused) v.play(); el.classList.remove("pausa"); }
-    snd.addEventListener("click", function (e) { e.stopPropagation(); conSonido(); });
+    function conSonido() { ctaMostrar(null); el.classList.remove("pausa"); v.muted = false; v.removeAttribute("muted"); var p = v.play(); if (p && p.catch) p.catch(function () { ctaMostrar("play"); }); }
+    cta.addEventListener("click", function (e) { e.stopPropagation(); conSonido(); });
     el.querySelector(".sat-tap").addEventListener("click", function () {
-      if (v.muted) { conSonido(); return; }
+      if (cta.classList.contains("on") || v.muted) { conSonido(); return; }
       if (v.paused) { v.play(); el.classList.remove("pausa"); } else { v.pause(); el.classList.add("pausa"); }
     });
+    /* En el mismo toque (o al cargar): desbloquea el video; se pausa mientras Alma cubre la pantalla. */
+    var desbloqueo = null;
+    try { v.muted = false; desbloqueo = v.play(); if (desbloqueo && desbloqueo.then) desbloqueo.then(function () { if (!listo) v.pause(); }, function () {}); } catch (e) {}
+    function destapar(deshacer) {
+      if (cerrando) return;
+      listo = true; el.classList.remove("tapado");
+      try { if (inicio) { if (v.readyState >= 1) irAlInicio(); } else v.currentTime = 0; } catch (e) {}
+      sonar();
+      if (deshacer) deshacer();
+    }
+    /* Alma cubre la pantalla; el video se destapa cuando ya puede arrancar (máx. 2,5 s esperando). */
+    cubrir().then(function (deshacer) {
+      var hecho = false, go = function () { if (hecho) return; hecho = true; destapar(deshacer); };
+      if (v.readyState >= 3) go(); else { v.addEventListener("canplay", go, { once: true }); setTimeout(go, 2500); }
+    });
     function cerrar(fin) {
+      if (cerrando) return; cerrando = true;
       try { v.pause(); } catch (e) {}
       var a = guardar(t, fin ? 100 : maxPct, fin);
       avisar(t, fin ? 100 : maxPct, fin ? "fin" : (forzado && !a.v ? "mas_tarde" : "cerrar"));
       d.removeEventListener("keydown", tecla);
-      /* Al terminar, el video «se guarda» en el «?» del costado. */
-      if (fab && fabOn) { var r = fab.getBoundingClientRect(); el.style.setProperty("--sat-ox", (r.left + r.width / 2) + "px"); el.style.setProperty("--sat-oy", (r.top + r.height / 2) + "px"); el.classList.add("guardar"); }
-      quitar(el, function () {
-        abierto = null;
-        if (fabOn) fabLlega(forzado ? (a.v ? "Aquí queda guardado. Tócalo cuando quieras volver a verlo." : "Lo verás la próxima vez que entres. También está aquí.") : "");
-        if (opts.alCerrar) opts.alCerrar(a);
-      }, 620);
+      var fuera = function (deshacer) {
+        if (el.parentNode) el.parentNode.removeChild(el); abierto = null;
+        var luego = function () {
+          if (fabOn) fabLlega(forzado ? (a.v ? "Aquí queda guardado. Tócalo cuando quieras volver a verlo." : "Lo verás la próxima vez que entres. También está aquí.") : "");
+          if (opts.alCerrar) opts.alCerrar(a);
+        };
+        if (deshacer) { var r = deshacer(); if (r && r.then) r.then(luego); else setTimeout(luego, 900); } else luego();
+      };
+      if (w.SANav && w.SANav.portal) cubrir().then(fuera);
+      else { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(function () { fuera(null); }, 420); }
     }
     function tecla(e) { if (e.key === "Escape") cerrar(false); else if (e.key === " ") { e.preventDefault(); el.querySelector(".sat-tap").click(); } }
     d.addEventListener("keydown", tecla);
     v.addEventListener("ended", function () { cerrar(true); });
     el.querySelector(".sat-later").addEventListener("click", function (e) { e.stopPropagation(); cerrar(false); });
-    arrancar();
     return true;
   }
 

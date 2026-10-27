@@ -698,6 +698,7 @@ function procesarCola() {
   pulso_();
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
+  try { opWaProcesar_(); } catch (e) { console.error('opWaProcesar_: ' + e); }   // respaldo si el disparador de 20 s no corrió
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
   try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
   try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
@@ -4112,8 +4113,11 @@ function waEntrante_(m, nombre) {
   /* Cualquier número registrado de un administrador (o el de Juan) va a su chat operativo, aunque no esté en WA_EQUIPO. */
   const admOp = !prueba && opActivo_() ? (adminPorTel_(wa) || (esJuan ? (adminsOp_().find(a => a.principal) || null) : null)) : null;
   if (admOp) {
-    hojaWA_().appendRow([ts, wa, nombre, 'in', texto.slice(0, 4000), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo', media.join(' ')]);
-    try { opProcesar_(Object.assign({}, admOp, { wa: wa }), texto, 'whatsapp', media.filter(u => /thumbnail/.test(u))); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
+    /* No responde mensaje por mensaje: espera a que deje de escribir y contesta todo junto (opWaProcesar_). */
+    const reenv = m.context && (m.context.forwarded || m.context.frequently_forwarded) ? '[reenviado] ' : '';
+    hojaWA_().appendRow([ts, wa, nombre, 'in', (reenv + texto).slice(0, 4000), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo_pend', media.join(' ')]);
+    PropertiesService.getScriptProperties().setProperty('OP_WA_PEND', '1');
+    opWaProgramar_();
     return;
   }
   hojaWA_().appendRow([ts, wa, nombre, 'in', texto.slice(0, 4000), s_(m.id), convId, s_(m.type), '', media.join(' ')]);
@@ -4709,9 +4713,10 @@ function opMatch_(txt, lista) {
   return lista.find(x => n(x) === t) || lista.find(x => n(x).indexOf(t) >= 0) || lista.find(x => t.indexOf(n(x)) >= 0 && n(x).length > 3) || bqMejor_(txt, lista) || '';
 }
 /* Un mensaje del administrador (WhatsApp o hub): se guarda, ALMA responde con el contexto real y ejecuta lo que pidió. */
-function opProcesar_(adm, texto, canal, fotos) {
+function opProcesar_(adm, texto, canal, fotos, nota) {
   texto = String(texto || '').trim(); if (!adm || !texto) return { ok: false, error: 'faltan datos' };
   const yo = opGuardar_(adm, 'yo', canal, texto);
+  const pedido = nota ? nota + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
   try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); }
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE HH:mm');
@@ -4733,11 +4738,11 @@ function opProcesar_(adm, texto, canal, fotos) {
       return (viejos.length ? '\n\nHISTORIAL ANTERIOR (ya cerrado; NO lo retomes ni respondas preguntas viejas salvo que el mensaje nuevo lo pida):\n' + viejos.map(quien).join('\n') : '') +
         '\n\nCONVERSACIÓN ACTIVA (últimas 6 h):\n' + (nuevos.map(quien).join('\n') || '(empieza aquí: si solo saluda, salúdalo y pregúntale en qué le ayudas)');
     })() +
-    '\n\nMENSAJE NUEVO:\n' + texto;
+    '\n\nMENSAJE NUEVO:\n' + pedido;
   let r = {}, hechas = [];
   if (opAgenteActivo_()) {
     /* ALMA secretaria: herramientas reales con permisos por rol (agente.js). */
-    try { const ag = opAgente_(adm, texto, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
+    try { const ag = opAgente_(adm, pedido, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
     catch (e) { console.error('opAgente_: ' + (e.stack || e)); r = { respuesta: 'Tuve un problema procesando tu mensaje. Intenta de nuevo.' }; }
   } else {
     const raw = claude_(CFG.MODELO_REDACTOR, 900, prompt_('OPERATIVO'), user, 0.2, fotos || []);
@@ -4749,6 +4754,53 @@ function opProcesar_(adm, texto, canal, fotos) {
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas);
   if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp);
   return { ok: true, yo: yo, alma: alma };
+}
+/* WhatsApp del administrador: ALMA espera OP_AGRUPAR_SEG (20 s) de silencio y responde una sola vez a todo el bloque.
+   Así, varios mensajes reenviados de otro chat más la instrucción del final se leen como un solo pedido. Mientras esperan,
+   viven en ALMA_WHATSAPP con autor «operativo_pend»; opWaPronto (o el disparador de cada minuto) los junta y los procesa. */
+function opAgruparSeg_() { const n = Number(PropertiesService.getScriptProperties().getProperty('OP_AGRUPAR_SEG')); return n >= 5 && n <= 120 ? n : 20; }
+function opWaProgramar_(seg) {
+  try {
+    if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'opWaPronto')) return;
+    ScriptApp.newTrigger('opWaPronto').timeBased().after((seg || opAgruparSeg_()) * 1000 + 2000).create();
+  } catch (e) { console.error('opWaProgramar_: ' + e); }
+}
+function opWaPronto() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'opWaPronto').forEach(t => ScriptApp.deleteTrigger(t));
+  opWaProcesar_();
+}
+function opWaProcesar_() {
+  const props = PropertiesService.getScriptProperties(); if (props.getProperty('OP_WA_PEND') !== '1') return;
+  /* Candado corto en caché: la cola de huéspedes tiene el de script ocupado mucho rato y esto no puede esperarla. */
+  const cache = CacheService.getScriptCache(), yo = Utilities.getUuid();
+  if (cache.get('opwa_lock')) { opWaProgramar_(10); return; }
+  cache.put('opwa_lock', yo, 30); Utilities.sleep(300);
+  if (cache.get('opwa_lock') !== yo) { opWaProgramar_(10); return; }
+  const listos = []; let falta = 0;
+  try {
+    const sh = hojaWA_(), n = sh.getLastRow(); if (n < 2) return;
+    const desde = Math.max(2, n - 299), v = sh.getRange(desde, 1, n - desde + 1, WA_CAB_.length).getValues(), grupos = {};
+    v.forEach((r, i) => { if (s_(r[8]) === 'operativo_pend') (grupos[s_(r[6])] = grupos[s_(r[6])] || []).push({ fila: desde + i, r: r }); });
+    const espera = opAgruparSeg_() * 1000;
+    Object.keys(grupos).forEach(conv => {
+      const g = grupos[conv], quedan = Math.max.apply(null, g.map(x => new Date(x.r[0]).getTime() || 0)) + espera - Date.now();
+      if (quedan > 0) { falta = Math.max(falta, quedan); return; }
+      g.forEach(x => sh.getRange(x.fila, 9).setValue('operativo'));
+      listos.push(g);
+    });
+    SpreadsheetApp.flush();
+    if (!falta) props.deleteProperty('OP_WA_PEND');
+  } finally { if (cache.get('opwa_lock') === yo) cache.remove('opwa_lock'); }
+  if (falta) opWaProgramar_(Math.ceil(falta / 1000));
+  listos.forEach(g => {
+    const wa = s_(g[g.length - 1].r[1]), email = s_(g[0].r[6]).slice(3);
+    const adm = adminsOp_().find(a => a.email === email) || adminPorTel_(wa);
+    if (!adm) { console.error('opWaProcesar_: sin administrador para ' + email); return; }
+    const textos = g.map(x => s_(x.r[4])).filter(Boolean);
+    const nota = textos.length > 1 ? '(' + textos.length + ' mensajes seguidos por WhatsApp. Léelos juntos como un solo pedido y responde una vez: los marcados [reenviado] vienen de otro chat y suelen ser el material; la instrucción casi siempre va al final.)' : '';
+    const fotos = [].concat.apply([], g.map(x => s_(x.r[9]).split(/\s+/))).filter(u => /thumbnail/.test(u));
+    try { opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, nota); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
+  });
 }
 function opEjecutar_(adm, acciones, cfg, props) {
   const out = [], hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ymd = x => /^\d{4}-\d{2}-\d{2}$/.test(String(x || '')) ? String(x) : '';

@@ -466,7 +466,9 @@
   /* ================= estados ================= */
   /* ================= encaje en el campo de texto =================
      Si la pantalla tiene un botón marcado con data-sa-dock (p. ej. «Mejorar con ALMA» del Hub), el menú se encaja ahí,
-     a su tamaño, y un toque hace lo de ese botón. Mantener presionado lo saca a uno de los 8 puntos y vuelve a ser menú. */
+     a su tamaño. Mantener presionado lo saca a uno de los 8 puntos y vuelve a ser menú.
+     Encajado: 1 toque envía (el botón data-sa-dock-enviar del mismo editor; si no hay texto, hace lo del botón encajado),
+     2 toques hacen lo del botón encajado (Mejorar / Redactar con ALMA) y 3 toques llaman a Alma o cuelgan. */
   var dock = { on: false, el: null, out: false, gone: 0, ox: 0, oy: 0 };
   /* ¿Se ve de verdad? El Hub pinta la conversación anterior y la siguiente justo fuera del área visible (paginador
      vertical): su botón tiene tamaño y cae dentro de la pantalla, pero queda recortado por el contenedor. Se descarta
@@ -661,7 +663,18 @@
   }
   function nope() { E.body.animate && E.body.animate([{ translate: "0 0" }, { translate: "-4px 0" }, { translate: "4px 0" }, { translate: "-2px 0" }, { translate: "0 0" }], { duration: 420, easing: "ease-out" }); }
   function multi() { return APPS.filter(function (a) { return a.k !== cfg.app && (!allowed || allowed.indexOf(a.k) >= 0); }).length > 0; }
-  function onSingle() { if (dock.on) { try { dock.el.click(); } catch (e) {} surge(); return; } activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
+  /* El enviar del mismo editor: el más cercano subiendo desde el botón encajado (el Hub pinta otras conversaciones al lado). */
+  function dockEnviar() {
+    for (var p = dock.el && dock.el.parentElement; p && p !== d.body; p = p.parentElement) { var b = p.querySelector("[data-sa-dock-enviar]"); if (b) return b; }
+    return null;
+  }
+  function onDock(n) {
+    activity();
+    if (n >= 3) { if (AL.min || AL.on) almaEnd(false); else if (almaOk()) almaMini(); else nope(); return; }
+    var b = (n === 1 && dockEnviar()) || dock.el;
+    try { b.click(); } catch (e) {} surge();
+  }
+  function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
   function onDouble() {
     activity();
     if (!multi()) { nope(); return; }
@@ -695,11 +708,17 @@
       if (pulling) { pullEnd(); return; }
       if (dragging) { endDrag(); return; }
       if (cancel || moved) return;
-      /* Triple toque (botón en reposo o encajado): Alma por voz ahí mismo, sin abrir la piedra al centro. */
-      var trio = almaOk() && !AL.on && !AL.min && (dock.on || st.S === 1);
+      /* Encajado en el editor: 1 envía · 2 mejora · 3 llama o cuelga (también con la llamada en curso). */
+      if (dock.on) {
+        taps++; clearTimeout(tapT);
+        tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; onDock(n); }, TAP_MS);
+        return;
+      }
+      /* Triple toque (botón en reposo): Alma por voz ahí mismo, sin abrir la piedra al centro. */
+      var trio = almaOk() && !AL.on && !AL.min && st.S === 1;
       if (trio) {
         taps++; clearTimeout(tapT);
-        tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; if (n >= 3) almaMini(); else if (n === 2 && !dock.on && multi()) onDouble(); else onSingle(); }, TAP_MS);
+        tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; if (n >= 3) almaMini(); else if (n === 2 && multi()) onDouble(); else onSingle(); }, TAP_MS);
         return;
       }
       if (dock.on || !multi() || st.S === 3 || st.S === 4) { onSingle(); return; }
@@ -711,7 +730,7 @@
     ["pointerdown", "pointerup", "touchstart", "touchend", "mousedown", "mouseup"].forEach(function (ev) { f.addEventListener(ev, function (e) { if (hosted) e.stopPropagation(); }, { passive: true }); });
     f.addEventListener("dblclick", function (e) { e.preventDefault(); });
     f.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.shiftKey ? onDouble() : onSingle(); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (dock.on) onDock(e.shiftKey ? 2 : 1); else e.shiftKey ? onDouble() : onSingle(); }
       else if (e.altKey && /^Arrow/.test(e.key)) {
         e.preventDefault(); var r = st.anchor[0], c = st.anchor[1];
         if (e.key === "ArrowUp") r = r === "b" ? "m" : "t"; if (e.key === "ArrowDown") r = r === "t" ? "m" : "b";
@@ -917,6 +936,7 @@
       status(AL.mudo ? "Micrófono en pausa · toca el anillo para seguir" : "Te escucho"); surge(); return;
     }
     if (AL.on && AL.chat) { if (n === 1) almaChat(false); return; }
+    if (dock.on) { onDock(n); return; }   // encajado en el editor: los mismos 1 · 2 · 3 toques que con el dedo
     if (AL.min) { if (n === 1) { RING.rotar = false; almaOpen(); } else if (n === 2) almaEnd(false); return; }
     if (n >= 3) { if (almaOk()) { RING.rotar = false; almaMini(); } return; }
     if (n === 2) { onDouble(); anilloFocoInicial(); } else { onSingle(); anilloFocoInicial(); }

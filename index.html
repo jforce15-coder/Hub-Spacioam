@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-10-26c"></script>
+<script src="js/sa-nav.js?v=2026-10-27a"></script>
 <script src="js/alma-voz.js?v=2026-10-25c"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
@@ -3509,7 +3509,7 @@ class Component extends DCLogic {
     };
     el.addEventListener("scroll", fn, { passive: true });
   };
-  BUILD = "2026-10-26c";
+  BUILD = "2026-10-27a";
   /* Si el navegador guardó una versión vieja (pasa mucho en escritorio), se detecta y se ofrece recargar. */
   /* Actualización automática (web y app de inicio de iPhone): version.json dice qué versión está publicada.
      Si hay una nueva se recarga sola en cuanto es seguro: al volver de segundo plano o tras 45 s sin tocar nada,
@@ -7318,7 +7318,7 @@ class Component extends DCLogic {
     var esHosp = function (g) { return String(g.key).indexOf("wa:") !== 0; };
     /* Contactos agrupados por su ficha (contactos.js): proveedores y técnicos por un lado, socios y potenciales socios por otro. */
     var tipoC = function (g) { var ib = inboxPor[g.key]; return String(g.key).indexOf("wa:") === 0 && ib ? String(ib.contacto_tipo || "") : ""; };
-    var esProv = function (g) { return /^(proveedor|tecnico)$/.test(tipoC(g)); }, esSocio = function (g) { return /socio/.test(tipoC(g)); };
+    var esProv = function (g) { return /^(proveedor|tecnico)$/.test(tipoC(g)); }, esSocio = function (g) { return /socio/.test(tipoC(g)); }, esEquipoC = function (g) { return /^(equipo|recepcion)$/.test(tipoC(g)); };
     var canalVM = function (g) {
       var ib = inboxPor[g.key] || {}, k = ib.ultimo_canal === "whatsapp" || String(g.key).indexOf("wa:") === 0 ? "whatsapp" : (ib.canal || "");
       var C = CANAL[k]; if (!C) return { canalHay: false };
@@ -7330,7 +7330,7 @@ class Component extends DCLogic {
     var gruposSinCanal = grupos;
     if (st.convCanal === "operativo") grupos = gruposOp.sort(function (x, y) { return (y.ts || 0) - (x.ts || 0); });
     else if (st.convCanal === "whatsapp") grupos = grupos.filter(esWA); else if (st.convCanal === "hospitable") grupos = grupos.filter(esHosp);
-    else if (st.convCanal === "proveedores") grupos = grupos.filter(esProv); else if (st.convCanal === "socios") grupos = grupos.filter(esSocio);
+    else if (st.convCanal === "proveedores") grupos = grupos.filter(esProv); else if (st.convCanal === "socios") grupos = grupos.filter(esSocio); else if (st.convCanal === "equipoWa") grupos = grupos.filter(esEquipoC);
     var canalFiltros = [["whatsapp", "WhatsApp", "W", "#128C7E", esWA, "whatsapp.com"], ["hospitable", "Hospitable", "H", "#3E3F3F", esHosp, "hospitable.com"]].map(function (x) {
       var on = st.convCanal === x[0], n = gruposSinCanal.filter(function (g) { return !g.resuelto && x[4](g); }).length;
       var set = function () { self.setState({ convCanal: on ? "" : x[0], convIdx: 0, briefIdx: 0 }); self.convReset(); };
@@ -7375,6 +7375,8 @@ class Component extends DCLogic {
     };
     var estadiaDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; if (t.estadia) return t.estadia; return ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : ""; };
     var fotoDe = function (g) { var ib = inboxPor[g.key]; return ib && /^https?:/.test(ib.foto || "") ? ib.foto : ""; };
+    /* Contactos sin reserva: en vez de «Propiedad por confirmar», quién es para la empresa («EPI · Equipo de limpieza»). */
+    var ctLinea = function (g) { var ib = inboxPor[g.key]; if (String(g.key).indexOf("wa:") !== 0 || !ib) return ""; return [ib.contacto_empresa, ib.contacto_rol].filter(function (x) { return x && String(x).trim(); }).join(" · "); };
     var nombreDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped"; };
     var iniDe = function (n) { return String(n || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H"; };
     var haceDe = function (ts) { var mn = Math.max(0, Math.round((ahora - ts) / 60000)); return !ts ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 1440 ? "hace " + Math.floor(mn / 60) + " h" : new Date(ts).toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }); };
@@ -7417,7 +7419,7 @@ class Component extends DCLogic {
       var dots = (alma ? [{ bg: "#3B6691", t: "Respondió ALMA" }] : []).concat(equipo ? [{ bg: "#E9826A", t: "Respondió " + quienEq }] : []);
       var atnL = atnG(g) || (t.esCola && !g.resuelto); if (!atnL && pr < 2 && !t.esCola) pr = 2.5;
       return { ...canalVM(g), gk: g.key, atn: atnL, pr: pr, ts: tsG(g), quien: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto, pide: pide,
-        propLinea: (propDe(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), etapa: self._etapa(g.key) || { txt: "" }, hayEtapa: !!self._etapa(g.key), hace: haceDe(tsG(g)), texto: texto, dots: dots,
+        propLinea: (propDe(g) || ctLinea(g) || "Propiedad por confirmar") + (es ? " · " + es : ""), etapa: self._etapa(g.key) || { txt: "" }, hayEtapa: !!self._etapa(g.key), hace: haceDe(tsG(g)), texto: texto, dots: dots,
         titulo: g.resuelto ? (PASADO[tema] || tema) : tema,
         txtFg: pide ? "#B54D36" : "#3E3F3F", txtPeso: pide ? "600" : "400", estado: est, tagBg: bg, tagFg: fg,
         bg: st.selG === g.key ? "#F5F3F0" : "#FFFFFF",
@@ -7435,7 +7437,7 @@ class Component extends DCLogic {
       tj = armarBrief(gSel.frags[0], true) || null;
       if (tj) {
         var fS = fotoDe(gSel), nS = nombreDe(gSel), eS = estadiaDe(gSel);
-        Object.assign(tj, canalVM(gSel), { huesped: nS, fotos: fS ? [{ src: fS }] : [], noFoto: !fS, iniciales: iniDe(nS), propLinea: (propDe(gSel) || tj.propiedad) + (eS ? " · " + eS : ""), verChat: function () { self.abrirGrupo(gSel.key); } });
+        Object.assign(tj, canalVM(gSel), { huesped: nS, fotos: fS ? [{ src: fS }] : [], noFoto: !fS, iniciales: iniDe(nS), propLinea: (propDe(gSel) || ctLinea(gSel) || tj.propiedad) + (eS ? " · " + eS : ""), verChat: function () { self.abrirGrupo(gSel.key); } });
         var cS = String(gSel.frags[0].codigo || "");
         Object.assign(tj, { hayCodigo: !!cS, codigo: cS, copiarCodigo: function () { self.copiar(cS, "Código " + cS + " copiado"); } });
         if (gSel.resuelto) Object.assign(tj, { tag: "Resuelta", tagBg: "rgba(61,107,82,.14)", tagFg: "#3d6b52", color: "#3d6b52" });
@@ -7952,7 +7954,7 @@ class Component extends DCLogic {
       mVistaThumb: (st.mVista || "resumen") === "lista" ? "translateX(100%)" : "translateX(0)",
       mTabs: (function () {
         var mv = st.mVista === "lista" || st.mVista === "atencion" ? st.mVista : "resumen", ab = !!st.filtroMenu;
-        var sub = st.convCanal === "operativo" ? "Equipo" : st.convCanal === "whatsapp" ? "WhatsApp" : st.convCanal === "hospitable" ? "Hospitable" : st.convCanal === "proveedores" ? "Proveedores y técnicos" : st.convCanal === "socios" ? "Socios" : st.convSolo === "ALMA" ? "Respondió ALMA" : st.convSolo === "EQUIPO" ? "Respondió equipo" : st.convVista === "resueltas" ? "Resueltas" : "Requiere atención";
+        var sub = st.convCanal === "operativo" ? "Equipo" : st.convCanal === "whatsapp" ? "WhatsApp" : st.convCanal === "hospitable" ? "Hospitable" : st.convCanal === "proveedores" ? "Proveedores y técnicos" : st.convCanal === "equipoWa" ? "Operación · equipo" : st.convCanal === "socios" ? "Socios" : st.convSolo === "ALMA" ? "Respondió ALMA" : st.convSolo === "EQUIPO" ? "Respondió equipo" : st.convVista === "resueltas" ? "Resueltas" : "Requiere atención";
         return [["resumen", "Resumen"], ["atencion", mv === "atencion" ? sub : "Requiere atención"], ["lista", "Ver todo"]].map(function (x) {
           var on = mv === x[0], esA = x[0] === "atencion";
           return { label: x[1], activo: on ? "true" : "false", fg: on ? "#3E3F3F" : "#6F6867", menu: esA, popup: esA ? "listbox" : "false", exp: esA && ab ? "true" : "false", chev: esA && ab ? "rotate(180deg)" : "rotate(0deg)", punto: esA && !on && nAtn > 0,
@@ -7972,6 +7974,7 @@ class Component extends DCLogic {
           ["VERDE", "Resueltas", "#3d6b52", cnt(function (g) { return enNivel(g, "VERDE"); }), { convVista: "resueltas" }, !cOn && st.convVista === "resueltas" && !st.convSolo],
           ["WA", "WhatsApp", "#128C7E", cnt(function (g) { return !g.resuelto && esWA(g); }), { convCanal: "whatsapp" }, cOn === "whatsapp"],
           ["HOSP", "Hospitable", "#938B8A", cnt(function (g) { return !g.resuelto && esHosp(g); }), { convCanal: "hospitable" }, cOn === "hospitable"],
+          ["EQWA", "Operación · equipo y recepciones", "#3E3F3F", cnt(esEquipoC), { convCanal: "equipoWa", convOrden: "Cronológico" }, cOn === "equipoWa"],
           ["PROV", "Proveedores y técnicos", "#5E5857", cnt(esProv), { convCanal: "proveedores", convOrden: "Cronológico" }, cOn === "proveedores"],
           ["SOC", "Socios", "#3B6691", cnt(esSocio), { convCanal: "socios", convOrden: "Cronológico" }, cOn === "socios"],
           ["OP", esPrincipal ? "Equipo · chats con ALMA" : "Mi chat con ALMA", "#3E3F3F", null, { convCanal: "operativo", convOrden: "Cronológico" }, cOn === "operativo"]

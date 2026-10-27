@@ -56,6 +56,8 @@ function contactoClasificar_(wa, contexto, forzar) {
   var j = {};
   try { var raw = String(claude_(CFG.MODELO_CLASIFICADOR, 700, sys, usr, 0) || ''); j = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { return null; }
   if (!CONTACTO_TIPOS_[j.tipo]) j.tipo = prev.tipo || 'otro';
+  var con = null; try { con = contactosConocidos_()[fin8_(wa)]; } catch (e) {}
+  if (con) { j.nombre = con.nombre; j.tipo = con.tipo; j.rol = con.rol; j.empresa = con.empresa; if (con.propiedades) j.propiedades = con.propiedades; }
   contactoGuardar_(wa, { nombre: j.nombre, tipo: j.tipo, rol: j.rol, empresa: j.empresa, propiedades: j.propiedades, estado: j.estado, resumen: j.resumen, origen: prev.origen || (contexto ? 'pedido del administrador' : 'WhatsApp') });
   return contactoFicha_(wa);
 }
@@ -92,4 +94,40 @@ function contactosRellenar_() {
   var hechos = 0, t0 = Date.now();
   pend.forEach(function (o) { if (Date.now() - t0 > 240000) return; try { if (contactoClasificar_(o.conv_id.slice(3), '', true)) hechos++; } catch (e) {} });
   return { ok: true, clasificados: hechos, quedan: Math.max(0, pend.length - hechos) };
+}
+
+/* ── Personas que la empresa YA conoce (no las adivina la IA): equipo de Epi, personas de escalamiento y recepciones.
+   Su ficha se llena sola con el nombre que les pusimos (no el de su perfil de WhatsApp) y queda en Equipo, para que su
+   conversación aparezca ordenada desde el primer mensaje: «Karen Chacón · EPI · Equipo de limpieza». ── */
+function contactoRolEpi_(cat) {
+  var c = String(cat || '').trim(); if (!c) return 'Equipo operativo';
+  var m = c.match(/^EPI\s+(.+)$/i), area = (m ? m[1] : c).trim();
+  return 'Equipo de ' + area.charAt(0).toLowerCase() + area.slice(1);
+}
+function contactosConocidos_() {
+  var c = CacheService.getScriptCache(), hit = c.get('ct_conocidos'); if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var m = {};
+  try { epiSnap_(false).vendors.forEach(function (v) { var k = fin8_(v.phone); if (k && v.name) m[k] = { nombre: v.name, tipo: 'equipo', rol: contactoRolEpi_(v.cat), empresa: 'EPI', origen: 'equipo Epi' }; }); } catch (e) {}
+  try { escalamiento_().forEach(function (p) { var k = fin8_(p.telefono); if (k && p.nombre && !m[k]) m[k] = { nombre: p.nombre, tipo: 'equipo', rol: 'Equipo Spacio AM', empresa: 'Spacio AM', origen: 'escalamiento' }; }); } catch (e) {}
+  try { var rn = recepcionNumeros_(); Object.keys(rn).forEach(function (k) { if (rn[k] && rn[k].prop && !m[fin8_(rn[k].n)]) m[fin8_(rn[k].n)] = { nombre: 'Recepción ' + rn[k].prop, tipo: 'recepcion', rol: 'Recepción del edificio', empresa: '', propiedades: rn[k].prop, origen: 'recepciones Hola' }; }); } catch (e) {}
+  try { c.put('ct_conocidos', JSON.stringify(m), 1800); } catch (e) {}
+  return m;
+}
+/* Crea o corrige la ficha de alguien conocido. Conserva estado y resumen; nombre, tipo y rol mandan los nuestros. */
+function contactoAsegurar_(wa) {
+  wa = normTel_(wa); if (!wa) return null;
+  try { if (adminPorTel_(wa)) return null; } catch (e) {}
+  var k = contactosConocidos_()[fin8_(wa)]; if (!k) return null;
+  var f = contactoFicha_(wa);
+  if (f && f.nombre === k.nombre && f.tipo === k.tipo && f.rol === k.rol && String(f.empresa || '') === String(k.empresa || '')) return f;
+  contactoGuardar_(wa, { nombre: k.nombre, tipo: k.tipo, rol: k.rol, empresa: k.empresa, propiedades: k.propiedades || (f && f.propiedades) || '', origen: (f && f.origen) || k.origen });
+  return contactoFicha_(wa);
+}
+/* Cada 30 min: las conversaciones de WhatsApp del equipo y de recepciones que aún no tienen la ficha correcta. */
+function contactosConocidosSiToca_() {
+  var c = CacheService.getScriptCache(); if (c.get('ct_conoc_ok')) return; c.put('ct_conoc_ok', '1', 1800);
+  var conocidos = contactosConocidos_(), t0 = Date.now();
+  var sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return;
+  var ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (v) { return String(v[0]); });
+  ids.forEach(function (id) { if (Date.now() - t0 > 20000 || id.indexOf('wa:') !== 0 || !conocidos[fin8_(id.slice(3))]) return; try { contactoAsegurar_(id.slice(3)); } catch (e) {} });
 }

@@ -147,6 +147,7 @@ function personalEntrante_(wa, nombre, texto, ts, media, msgId, rel) {
   try { hojaWA_().appendRow([ts, wa, nombre, 'in', String(texto).slice(0, 4000), msgId, 'wa:' + wa, 'text', 'personal', (media || []).join(' ')]); } catch (e) {}
   personalNotar_(wa, 'ella', texto);
   var quien = rel.nombre || nombre || ('+' + wa), de = rel.de || 'Juan';
+  if (esRespuestaAutomatica_(texto)) return;   // «Gracias por contactarnos · horarios de atención…»: no se le reenvía a Juan
   if (!rel.objetivo || rel.fin) { personalAvisar_(rel, quien + ' respondió:\n\n' + texto + '\n\n(Dime qué le contesto y se lo escribo.)', 'Respuesta de ' + quien); return; }
   var r2 = personalDe_(wa) || rel, hist = (r2.h || []).map(function (x) { return (x.q === 'alma' ? 'ALMA' : quien) + ': ' + x.t; }).join('\n');
   var sys = 'Eres Alma, la asistente personal de ' + de + '. Conversas por WhatsApp con ' + quien + ' para cumplir un encargo PERSONAL de ' + de + ' (no es tema de ningún negocio: nunca menciones Spacio AM ni hables de alquileres). ' +
@@ -240,4 +241,11 @@ function contactoReenviar_(tel, nombre, texto, plantilla) {
   p.setProperty('WA_PEND', JSON.stringify(pend));
   contactoRegistrar_(wa, nombre, '[' + (personal ? 'plantilla: ¿tienes un minuto?' : 'plantilla de primer contacto') + '] · pendiente: ' + texto);
   return { ok: true, plantilla: tpl };
+}
+
+/* Respuestas automáticas de WhatsApp Business (bienvenida, horarios, «te respondemos pronto»): no son una respuesta
+   real de la persona, así que no se le avisan al administrador ni hacen avanzar un encargo. */
+function esRespuestaAutomatica_(texto) {
+  var t = String(texto || '');
+  return t.length < 600 && /horarios? de atenci[oó]n|gracias por (contactar|comunicar|escribir)|mensaje autom[aá]tico|respuesta autom[aá]tica|te (responderemos|contestaremos|atenderemos) (pronto|en breve|lo antes)|en breve te (respond|atend)|fuera de(l)? horario|thanks for (contacting|reaching out)|we.ll get back to you/i.test(t);
 }

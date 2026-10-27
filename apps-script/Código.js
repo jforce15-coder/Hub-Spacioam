@@ -4673,6 +4673,25 @@ function opGuardar_(adm, de, canal, texto, acciones) {
 }
 /* Llave del robot: Epi y Hola reconocen así las llamadas del Hub (servidor a servidor, sin sesión de una persona). */
 function llaveRobot_() { return PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN') || undefined; }
+/* Fase 1c: resumen de ACCESOS de cada backend (qué acciones llegan con sesión, sin ella o del robot), para decidir
+   qué bloquear antes de encender SESION_EXIGIR. Solo lectura; la llave del robot no sale del Hub. Robot: dsBot · «accesos_apps». */
+const ACCESOS_APPS_ = {
+  epi: () => epiUrl_(), hola: () => holaUrl_(),
+  mi: () => 'https://script.google.com/macros/s/AKfycbzqUTv_0NuNBVRXhlfHGaS5RdWKjBAmfA-dIsdDnMLbl2aE2PriEXNWw3qCi8yPF28qaQ/exec',
+  grow: () => 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec',
+  docs: () => 'https://script.google.com/macros/s/AKfycbz2_KDtQ5Wm8LRiyEwCXxsHx_DtE4pe2b_aJlLFrN0zu7UvLrnh2PM-6VzbEf00oekW_Q/exec'
+};
+function accesosApps_() {
+  const llave = llaveRobot_(); if (!llave) return { ok: false, error: 'falta ROBOT_TOKEN en el Hub' };
+  const apps = Object.keys(ACCESOS_APPS_);
+  const rs = UrlFetchApp.fetchAll(apps.map(app => ({ url: ACCESOS_APPS_[app](), method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: '__accesos', token: llave }) })));
+  const out = { ok: true, apps: {} };
+  apps.forEach((app, i) => {
+    try { const j = JSON.parse(rs[i].getContentText() || '{}'); out.apps[app] = j.ok ? j.accesos : { error: j.error || 'HTTP ' + rs[i].getResponseCode() }; }
+    catch (e) { out.apps[app] = { error: 'HTTP ' + rs[i].getResponseCode() + ': respuesta no es JSON' }; }
+  });
+  return out;
+}
 function epiPost_(action, payload) {
   const r = UrlFetchApp.fetch(epiUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ action: action, robot: llaveRobot_() }, payload || {})) });
   if (r.getResponseCode() >= 300) throw new Error('Epi HTTP ' + r.getResponseCode());
@@ -4891,6 +4910,7 @@ function dsBotApi_(body) {
       case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), personal: (CacheService.getScriptCache().remove('tpl_personal'), personalPlantillaOk_()), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
       case 'recepcion_probar': return json_(body.enviarYa || body.soloA ? recepcionEnviar_(String(body.code || ''), body.soloA || '') : recepcionEncolar_({ code: body.code, force: true }));
+      case 'accesos_apps': return json_(accesosApps_());   // fase 1c: ACCESOS de Epi, Hola, Mi, Grow y Docs
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
         const p = PropertiesService.getScriptProperties();
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });

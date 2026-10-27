@@ -1,0 +1,77 @@
+# Revisa el Apps Script dentro del PR, antes de que lo apruebes.
+# Si algo falla aquí, no le des Merge: Publicar Apps Script lo subiría roto.
+# Revisa cada carpeta con appsscript.json (salvo archivo/) y cada .clasp.json.
+
+name: Revisar Apps Script
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps-script/**"
+      - ".clasp.json"
+      - "login/apps-script/**"
+      - "login/.clasp.json"
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    env:
+      BASE: ${{ github.base_ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Sintaxis de los .js
+        run: |
+          fallo=0
+          while IFS= read -r -d '' f; do
+            if node --check "$f"; then echo "✓ $f"; else echo "::error file=$f::Error de sintaxis"; fallo=1; fi
+          done < <(find . -path ./.git -prune -o -path '*/archivo/*' -prune -o -path '*/apps-script/*.js' -print0)
+          exit $fallo
+
+      - name: JSON y .clasp.json
+        run: |
+          fallo=0
+          while IFS= read -r -d '' f; do
+            if node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$f"; then echo "✓ $f"; else echo "::error file=$f::JSON inválido"; fallo=1; fi
+          done < <(find . -path ./.git -prune -o -path '*/archivo/*' -prune -o \( -name appsscript.json -o -name .clasp.json \) -print0)
+          while IFS= read -r -d '' c; do
+            node -e '
+              const fs = require("fs"), path = require("path"), c = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+              const dir = path.join(path.dirname(process.argv[1]), c.rootDir || ".");
+              if (!c.scriptId) throw new Error("falta scriptId");
+              if (!fs.existsSync(path.join(dir, "appsscript.json"))) throw new Error("rootDir no tiene appsscript.json: " + dir);
+            ' "$c" && echo "✓ $c" || { echo "::error file=$c::Revisa scriptId y rootDir"; fallo=1; }
+          done < <(find . -path ./.git -prune -o -path '*/archivo/*' -prune -o -name .clasp.json -print0)
+          exit $fallo
+
+      # Apps Script junta todos los archivos de un proyecto en uno: dos funciones con el mismo
+      # nombre no dan error, la que carga al final pisa a la otra. Falla solo si el PR agrega una;
+      # las que ya estaban en main quedan como aviso.
+      - name: Funciones repetidas entre archivos
+        run: |
+          git fetch -q --depth=1 origin "$BASE"
+          repetidas() {  # $1 = commit, $2 = carpeta
+            git ls-tree -z --name-only "$1" -- "$2/" | while IFS= read -r -d '' f; do
+              case "$f" in *.js) git show "$1:$f";; esac
+            done | grep -oE '^function +[A-Za-z0-9_$]+' | awk '{print $2}' | sort | uniq -d || true
+          }
+          fallo=0
+          while IFS= read -r -d '' a; do
+            dir="$(dirname "${a#./}")"
+            ahora="$(repetidas HEAD "$dir")"
+            antes="$(repetidas FETCH_HEAD "$dir")"
+            for fn in $ahora; do
+              if printf '%s\n' "$antes" | grep -qx "$fn"; then
+                echo "::warning::$dir: $fn está definida más de una vez (ya estaba así en main)."
+              else
+                echo "::error::$dir: este PR define $fn más de una vez."; fallo=1
+              fi
+            done
+            if [ -z "$ahora" ]; then echo "✓ $dir sin funciones repetidas"; fi
+          done < <(find . -path ./.git -prune -o -path '*/archivo/*' -prune -o -name appsscript.json -print0)
+          exit $fallo

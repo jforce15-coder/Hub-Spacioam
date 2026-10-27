@@ -1,8 +1,18 @@
 # Garantiza que index.html cargue la sesión firmada compartida (fase 1b de seguridad).
 # Si una exportación de Claude Design la quita, este flujo la vuelve a poner sola.
+#
+# main está protegida (solo entra por PR), así que el robot trabaja dentro del PR:
+# cuando das Merge, el cambio y su arreglo llegan juntos a main.
+# Red de seguridad: si algo llega a main sin arreglar, el robot abre su propio PR
+# (rama robot/asegurar-sesion) para que lo apruebes.
+
 name: Asegurar sesión firmada
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "index.html"
   push:
     branches: [main]
     paths:
@@ -11,17 +21,34 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+
+concurrency:
+  group: asegurar-sesion-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
-  asegurar:
+  robot:
+    # A un PR que viene de un fork el robot no le puede guardar nada.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    env:
+      RAMA: ${{ github.head_ref || github.ref_name }}
+      RAMA_ROBOT: robot/asegurar-sesion
+      ARCHIVOS: "index.html"
+      MENSAJE: "Añadir sa-sesion.js a index.html (lo quitó una exportación)"
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-      - name: Añadir el script si falta
+        with:
+          ref: ${{ env.RAMA }}
+
+      - name: Añadir sa-sesion.js si falta
         run: |
           TAG='<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>'
           if grep -q 'hub.spacioam.com/js/sa-sesion.js' index.html; then
-            echo "Ya está."; exit 0
+            echo "index.html ya carga sa-sesion.js."
+            exit 0
           fi
           python3 - "$TAG" <<'PY'
           import re, sys
@@ -31,7 +58,43 @@ jobs:
           s = (s[:m.end()] + '\n' + tag + s[m.end():]) if m else (tag + '\n' + s)
           open('index.html', 'w', encoding='utf-8').write(s)
           PY
+
+      - name: Guardar
+        run: |
+          git add -A -- $ARCHIVOS
+          if git diff --cached --quiet; then
+            echo "Nada que guardar: ya estaba al día." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git commit -am "Añadir sa-sesion.js a index.html (lo quitó una exportación)"
-          git push
+          git commit -m "$MENSAJE"
+
+          if [ "$RAMA" != "main" ]; then
+            # Otro robot puede estar guardando en la misma rama: traer lo suyo y reintentar.
+            for i in 1 2 3; do
+              if git pull --rebase -q origin "$RAMA" && git push origin "HEAD:refs/heads/$RAMA"; then
+                echo "Guardado en la rama \`$RAMA\`." >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+              git rebase --abort 2>/dev/null || true
+              sleep $((i * 5))
+            done
+            echo "::error::No pude guardar en la rama $RAMA."
+            exit 1
+          fi
+
+          # Llegó a main sin arreglar: el robot lo propone en su propio PR.
+          git push --force origin "HEAD:refs/heads/$RAMA_ROBOT"
+          if [ -n "$(gh pr list --head "$RAMA_ROBOT" --state open --json number -q '.[].number')" ]; then
+            echo "Actualicé el PR abierto del robot (\`$RAMA_ROBOT\`)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if gh pr create --base main --head "$RAMA_ROBOT" --title "$MENSAJE" \
+               --body "Esto llegó a main sin el arreglo del robot. Este PR lo trae; revísalo y dale Merge."; then
+            echo "Abrí un PR del robot: $MENSAJE." >> "$GITHUB_STEP_SUMMARY"
+          else
+            URL="https://github.com/$GITHUB_REPOSITORY/compare/main...$RAMA_ROBOT"
+            echo "::warning::No pude abrir el PR solo. Ábrelo aquí: $URL"
+            echo "Falta en main: $MENSAJE. Abre el PR aquí: $URL" >> "$GITHUB_STEP_SUMMARY"
+          fi

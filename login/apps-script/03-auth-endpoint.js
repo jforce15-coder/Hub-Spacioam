@@ -129,7 +129,11 @@ function _paginaConfirmar(r){
     .setTitle('Spacio AM · Contraseña');
 }
 /* Ejecútala UNA vez desde el editor para autorizar el envío de correos (te llega una prueba). */
-function autorizarCorreo(){ MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Spacio AM · correo del login autorizado', 'Listo: el login ya puede mandar el correo para confirmar contraseñas.'); }
+function autorizarCorreo(){
+  // Sin Session.getEffectiveUser(): pediría otro permiso (userinfo.email). La prueba va a hola@.
+  MailApp.sendEmail('hola@spacioam.com', 'Spacio AM · correo del login autorizado', 'Listo: el login ya puede mandar el correo para confirmar contraseñas.');
+  Logger.log('Correo autorizado. Quedan ' + MailApp.getRemainingDailyQuota() + ' envíos hoy.');
+}
 
 // ---- lectura ----
 function _sheet(){ return SpreadsheetApp.openById(CONTROL_SHEET_ID).getSheetByName(SHEET_TAB); }

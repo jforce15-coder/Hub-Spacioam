@@ -207,6 +207,15 @@
     ".san-scope .san-core.alma-live .san-glowb{opacity:calc(.3 + .6*var(--voice,0))}.san-scope .san-core.alma-live .san-lit{opacity:calc(.14 + .35*var(--voice,0) + .3*var(--pull,0))}",
     ".san-scope .san-ph{position:fixed;z-index:calc(var(--san-z) + 12);white-space:nowrap;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#3E3F3F;background:rgba(243,240,236,.94);padding:8px 13px;border-radius:999px;box-shadow:0 8px 16px -8px rgba(96,76,66,.3);transform:translate(-50%,-50%) scale(.9);opacity:0;pointer-events:none;transition:opacity .25s,transform .4s cubic-bezier(.3,1.3,.55,1)}",
     ".san-scope .san-ph.on{opacity:1;transform:translate(-50%,-50%) scale(1)}",
+    /* Pista del editor: globito sobre el botón de Alma cuando ya hay texto («2 toques · mejora con IA»). Vive en <body>,
+       encima de todo (también del chat de WhatsApp), y un halo coral late alrededor de la roca. */
+    ".san-scope.san-pista{position:fixed;z-index:2147483000;left:0;top:0;white-space:nowrap;font:600 11.5px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#FAFAFA;background:#3E3F3F;padding:8px 13px;border-radius:999px;box-shadow:0 10px 20px -10px rgba(40,30,25,.45);opacity:0;transform:translateY(calc(-100% - 6px)) scale(.92);transform-origin:var(--ax,50%) 100%;pointer-events:none;transition:opacity .22s ease,transform .45s cubic-bezier(.3,1.3,.55,1)}",
+    ".san-scope.san-pista.on{opacity:1;transform:translateY(calc(-100% - 12px)) scale(1)}",
+    ".san-scope.san-pista b{color:#F2B4A4;font-weight:700}",
+    ".san-scope.san-pista:after{content:'';position:absolute;left:var(--ax,50%);bottom:-4px;width:9px;height:9px;margin-left:-4.5px;background:#3E3F3F;border-radius:2px;transform:rotate(45deg)}",
+    ".san-scope .san-face.san-halo{animation:san-halo 1.5s ease-out 3}",
+    "@keyframes san-halo{0%{box-shadow:0 0 0 0 rgba(233,130,106,.6)}100%{box-shadow:0 0 0 16px rgba(233,130,106,0)}}",
+    "@media (prefers-reduced-motion:reduce){.san-scope .san-face.san-halo{animation:none}.san-scope.san-pista{transition:opacity .2s}}",
     ".san-scope .san-ov{position:fixed;inset:0;z-index:calc(var(--san-z) + 10);pointer-events:none;font-family:Montserrat,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.san-scope .san-ov.on{pointer-events:auto}",
     ".san-scope .san-ov-bg{position:absolute;inset:0;opacity:0;transition:opacity .7s cubic-bezier(.45,0,.55,1);background:radial-gradient(circle at 50% 50%,rgba(34,32,31,.62) 0px,rgba(34,32,31,.52) 170px,rgba(34,32,31,.34) 330px,rgba(34,32,31,.16) 480px,rgba(34,32,31,.06) 640px),rgba(250,250,250,.18)}",
     ".san-scope .san-ov.on .san-ov-bg{opacity:1}.san-scope .san-ov.min .san-ov-bg{opacity:.4}",
@@ -530,6 +539,7 @@
   }
   function dockCheck() {
     if (!root) return;
+    try { pistaCheck(); } catch (e) {}
     if (hosted && (!dock.host || !d.body.contains(dock.host))) { hosted = false; root.appendChild(E.nav); fbOn = null; dock.host = null; if (dock.hostEl) dock.hostEl.classList.remove("san-hosting"); var t0 = dockTarget(); if (t0) { px.x = px.t = t0.r.left + t0.r.width / 2; py.x = py.t = t0.r.top + t0.r.height / 2; } render(); }
     var t = (!root.hidden && !dragging) ? dockTarget() : null;
     slotCheck(t);
@@ -571,7 +581,7 @@
     dockT = setTimeout(function () { dockT = null; dockRafAt = Date.now(); dockRaf = requestAnimationFrame(function () { dockRaf = 0; dockLast = Date.now(); dockCheck(); }); }, wait);
   }
   function dockWatch() {
-    if (w.MutationObserver) { dockMO = new MutationObserver(dockSchedule); dockMO.observe(d.body, { childList: true, subtree: true }); }
+    if (w.MutationObserver) { dockMO = new MutationObserver(dockSchedule); dockMO.observe(d.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-sa-vacio"] }); }
     if (w.ResizeObserver) dockRO = new ResizeObserver(dockSchedule);
     w.addEventListener("scroll", dockSchedule, { capture: true, passive: true });
     if (w.visualViewport) { w.visualViewport.addEventListener("resize", onResize); w.visualViewport.addEventListener("scroll", dockSchedule); }
@@ -676,8 +686,35 @@
     for (var p = dock.el && dock.el.parentElement; p && p !== d.body; p = p.parentElement) { var b = p.querySelector("[data-sa-dock-enviar]"); if (b) return b.hasAttribute("data-sa-vacio") ? null : b; }
     return null;   // sin texto (data-sa-vacio o sin flecha): 1 toque hace lo del botón encajado (redactar)
   }
+  /* Pista: cuando el campo pasa de vacío a tener texto, un globito sobre la roca recuerda los toques. Una vez por texto
+     nuevo y a lo sumo cada 45 s; se va al tocar la roca o si el campo vuelve a quedar vacío. */
+  var PISTAS = ["<b>2 toques</b> · mejora con IA", "<b>1 toque</b> · envía"];
+  var pista = { el: null, lleno: false, t: null, ult: 0 };
+  function pistaQuitar() {
+    clearTimeout(pista.t); pista.t = null;
+    if (pista.el) pista.el.classList.remove("on");
+    if (E.face) E.face.classList.remove("san-halo");
+  }
+  function pistaMostrar(i) {
+    if (!dock.on || !dockEnviar() || AL.on || AL.min || dragging || !E.face) { pistaQuitar(); return; }
+    if (!pista.el) { pista.el = d.createElement("div"); pista.el.className = "san-scope san-pista"; pista.el.setAttribute("role", "status"); d.body.appendChild(pista.el); }
+    var el = pista.el, fr = E.face.getBoundingClientRect(); if (!fr.width) return;
+    el.innerHTML = PISTAS[i]; var wd = el.offsetWidth || 180, cx = fr.left + fr.width / 2, x = clamp(cx - wd / 2, 8, VW() - wd - 8);
+    el.style.left = x + "px"; el.style.top = fr.top + "px"; el.style.setProperty("--ax", clamp(cx - x, 14, wd - 14) + "px");
+    el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+    if (i === 0) { E.face.classList.remove("san-halo"); void E.face.offsetWidth; E.face.classList.add("san-halo"); }
+    pista.t = setTimeout(function () { el.classList.remove("on"); if (i + 1 < PISTAS.length) pista.t = setTimeout(function () { pistaMostrar(i + 1); }, 320); else E.face.classList.remove("san-halo"); }, i === 0 ? 3000 : 2200);
+  }
+  function pistaCheck() {
+    var lleno = !!(dock.on && dock.el && dockEnviar());
+    if (lleno && !pista.lleno && !AL.on && !AL.min && Date.now() - pista.ult > 45000) {
+      pista.ult = Date.now(); clearTimeout(pista.t); pista.t = setTimeout(function () { pistaMostrar(0); }, 900);   // deja terminar la palabra
+    }
+    if (!lleno && pista.lleno) pistaQuitar();
+    pista.lleno = lleno;
+  }
   function onDock(n) {
-    activity();
+    activity(); pistaQuitar();
     if (n >= 3) { if (AL.min || AL.on) almaEnd(false); else if (almaOk()) almaMini(); else nope(); return; }
     var b = (n === 1 && dockEnviar()) || dock.el;
     try { b.click(); } catch (e) {} surge();
@@ -1415,7 +1452,7 @@
     unmount: function () {
       if (!root) return;
       w.removeEventListener("resize", onResize); d.removeEventListener("keydown", onKey); if (w.visualViewport) w.visualViewport.removeEventListener("resize", onVV); if (dockMO) dockMO.disconnect(); if (dockRO) dockRO.disconnect();
-      tutBoton(false); clearTimeout(idleT); root.remove(); root = null; springs = []; pend = []; running = false; cfg = null; E = {};
+      tutBoton(false); clearTimeout(idleT); root.remove(); root = null; pistaQuitar(); if (pista.el) { pista.el.remove(); pista.el = null; } springs = []; pend = []; running = false; cfg = null; E = {};
     },
     icons: Object.keys(P)
   };

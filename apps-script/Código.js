@@ -4910,6 +4910,11 @@ function dsBotApi_(body) {
       case 'contacto_estado': CacheService.getScriptCache().remove('tpl_contacto'); return json_({ ok: true, aprobada: contactoPlantillaOk_(), personal: (CacheService.getScriptCache().remove('tpl_personal'), personalPlantillaOk_()), pendientes: Object.keys(JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}')).length });
       case 'recepcion_plantilla': return json_(recepcionPlantillaCrear_());
       case 'recepcion_probar': return json_(body.enviarYa || body.soloA ? recepcionEnviar_(String(body.code || ''), body.soloA || '') : recepcionEncolar_({ code: body.code, force: true }));
+      case 'solo_sesion': {   // fase 1c: HUB_SOLO_SESION por el robot (el proyecto tiene más de 50 propiedades y la pantalla no deja agregarla)
+        const pS = PropertiesService.getScriptProperties();
+        if (body.valor === '1' || body.valor === '0') pS.setProperty('HUB_SOLO_SESION', body.valor);
+        return json_({ ok: true, solo_sesion: pS.getProperty('HUB_SOLO_SESION') === '1' });
+      }
       case 'accesos_apps': return json_(accesosApps_());   // fase 1c: ACCESOS de Epi, Hola, Mi, Grow y Docs
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
         const p = PropertiesService.getScriptProperties();

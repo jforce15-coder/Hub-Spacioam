@@ -45,7 +45,9 @@ function doPost(e){
     .setMimeType(ContentService.MimeType.JSON);
 }
 // GET solo para prueba rápida de que la implementación responde
-function doGet(){
+function doGet(e){
+  var t = e && e.parameter && e.parameter.confirmar;   // enlace del correo «Confirma tu contraseña»
+  if (t) return _paginaConfirmar(_confirmarClave(String(t)));
   return ContentService.createTextOutput(JSON.stringify({ok:true, service:'sa-auth'}))
     .setMimeType(ContentService.MimeType.JSON);
 }
@@ -64,10 +66,12 @@ function _handle(e){
       case 'login':       return _login(body.email, body.password);
       case 'verify':      return _verify(body.session);
       case 'hoja':        return _hoja(ses, body.q);
-      case 'profile':     return _profile(body.email);
-      case 'users':       return _users(body.app);
-      case 'owners':      return _owners();
-      case 'addUser':     return _addUser(ses ? ses.e : body.by, body.email, body.nombre, body.app, body.rol, !!ses);
+      /* Fase 1c: la llave compartida (AUTH_TOKEN) está en el código público de todas las apps; sola ya no basta
+         para ver el equipo ni para dar de alta usuarios. Hace falta sesión firmada o la llave del robot. */
+      case 'profile':     if(!ses && !_esRobot(body.robot)) return {ok:false, error:'session'}; return _profile(body.email);
+      case 'users':       if(!ses && !_esRobot(body.robot)) return {ok:false, error:'session'}; return _users(body.app);
+      case 'owners':      if(!ses && !_esRobot(body.robot)) return {ok:false, error:'session'}; return _owners();
+      case 'addUser':     if(!ses && !_esRobot(body.robot)) return {ok:false, error:'session'}; return _addUser(ses ? ses.e : body.by, body.email, body.nombre, body.app, body.rol, !!ses);
       case 'setInitialPassword': return _setInitialPassword(body.email, body.next);
       case 'setPassword': return _setPassword(body.email, body.current, body.next);
       case 'setEmail':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setEmail(body.email, body.next);
@@ -81,6 +85,51 @@ function _handle(e){
     }
   }catch(err){ return {ok:false, error:String(err)}; }
 }
+
+// ---- fase 1c: confirmar la primera contraseña desde el correo ----
+var LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec';
+function _esRobot(token){ return !!token && _diagLector(token).ok; }
+function _pedirConfirmacion(row, H, next){
+  var email = String(row[H.email]||'').trim().toLowerCase(), c = CacheService.getScriptCache();
+  var aviso = {ok:false, error:'check_email', message:'Te mandamos un correo a ' + email + '. Ábrelo, toca «Confirmar mi contraseña» y después entra con tu nueva contraseña.'};
+  if (c.get('conf_env_' + email)) return aviso;   // como mucho un correo por minuto
+  var tok = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  c.put('conf_' + tok, JSON.stringify({ e: email, h: _hashClave(next) }), 3600);
+  var url = LOGIN_URL_ + '?confirmar=' + tok, nombre = String(row[H.primer_nombre] || row[H.nombre] || '').split(/\s+/)[0];
+  try {
+    MailApp.sendEmail({ to: email, name: 'Spacio AM', subject: 'Confirma tu contraseña · Spacio AM',
+      htmlBody: '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#222">' +
+        '<p>Hola' + (nombre ? ' ' + nombre : '') + ',</p><p>Alguien (seguramente tú) creó la contraseña de tu cuenta de Spacio AM. ' +
+        'Para activarla, toca el botón. El enlace vale 1 hora.</p>' +
+        '<p><a href="' + url + '" style="display:inline-block;background:#222;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none">Confirmar mi contraseña</a></p>' +
+        '<p style="color:#777;font-size:13px">Si no fuiste tú, ignora este correo: sin tu confirmación la contraseña no se activa.</p></div>' });
+  } catch (err) {
+    console.error('_pedirConfirmacion: ' + err);
+    return {ok:false, error:'mail', message:'No pudimos mandarte el correo de confirmación. Escríbenos a hola@spacioam.com.'};
+  }
+  c.put('conf_env_' + email, '1', 60);
+  return aviso;
+}
+function _confirmarClave(tok){
+  var c = CacheService.getScriptCache(), raw = /^[0-9a-f]{64}$/.test(tok) ? c.get('conf_' + tok) : null;
+  if (!raw) return {ok:false, msg:'Este enlace ya venció o ya se usó. Vuelve a crear tu contraseña en la app.'};
+  var x = JSON.parse(raw), f = _findRow(x.e);
+  if (!f) return {ok:false, msg:'No encontramos tu cuenta. Escríbenos a hola@spacioam.com.'};
+  var row = f.d.data[f.i], H = f.d.H;
+  if (String(row[H.password_hash]||'')) { c.remove('conf_' + tok); return {ok:true, msg:'Tu cuenta ya tenía contraseña. Entra con ella.'}; }
+  f.d.sh.getRange(f.i+1, H.password_hash+1).setValue(x.h);
+  _touch(f.d.sh, H, f.i);
+  c.remove('conf_' + tok);
+  return {ok:true, msg:'¡Listo! Tu contraseña quedó activa. Vuelve a la app y entra con tu correo y tu nueva contraseña.'};
+}
+function _paginaConfirmar(r){
+  return HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<div style="font-family:Arial,sans-serif;max-width:420px;margin:60px auto;padding:0 20px;text-align:center;color:#222">' +
+    '<div style="font-size:42px">' + (r.ok ? '✓' : '⚠︎') + '</div><h2 style="font-weight:600">Spacio AM</h2><p style="font-size:16px;line-height:1.5">' + r.msg + '</p></div>')
+    .setTitle('Spacio AM · Contraseña');
+}
+/* Ejecútala UNA vez desde el editor para autorizar el envío de correos (te llega una prueba). */
+function autorizarCorreo(){ MailApp.sendEmail(Session.getEffectiveUser().getEmail(), 'Spacio AM · correo del login autorizado', 'Listo: el login ya puede mandar el correo para confirmar contraseñas.'); }
 
 // ---- lectura ----
 function _sheet(){ return SpreadsheetApp.openById(CONTROL_SHEET_ID).getSheetByName(SHEET_TAB); }
@@ -205,7 +254,10 @@ function _addUser(by, email, nombre, app, rol, conSesion){
   var solicitante = _findRow(by);
   if (!solicitante) return {ok:false, error:'no_user'};
   var permBy = String(solicitante.d.data[solicitante.i][solicitante.d.H['perm_' + app]] || '');
-  if (!/principal/i.test(permBy)) return {ok:false, error:'forbidden'};
+  // Administradores: solo un admin principal. Técnicos, compras y dueños: cualquier admin de esa app (fase 1c:
+  // ahora es quien tiene la sesión; antes bastaba con escribir el correo de un principal en «by»).
+  var esPrincipal = /principal/i.test(permBy), esAdmin = esPrincipal || /secundario/i.test(permBy);
+  if (ROLES_ADMIN.indexOf(rol) >= 0 ? !esPrincipal : !esAdmin) return {ok:false, error:'forbidden'};
   email = String(email || '').trim().toLowerCase();
   if (email.indexOf('@') < 0) return {ok:false, error:'bad_email'};
   var f = _findRow(email), sh, H, i;
@@ -266,6 +318,9 @@ function _setInitialPassword(email, next){
   var hActual=String(row[H.password_hash]||''), porReinicio=_esReinicio(hActual) && CacheService.getScriptCache().get(_permisoReinicio(email));
   if(hActual && !porReinicio) return {ok:false, error:'already_set'};
   if(!next || String(next).length<8 || _claveDebil(next)) return {ok:false, error:'weak'};
+  /* Primer ingreso (sin reinicio del admin): antes bastaba saber el correo para ponerle contraseña a una cuenta
+     nueva y entrar como esa persona. Ahora la contraseña queda pendiente hasta que la confirme desde su correo. */
+  if(!porReinicio) return _pedirConfirmacion(row, H, next);
   sh.getRange(f.i+1, H.password_hash+1).setValue(_hashClave(next));
   _touch(sh,H,f.i);
   if(porReinicio) CacheService.getScriptCache().remove(_permisoReinicio(email));

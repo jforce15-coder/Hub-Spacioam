@@ -4503,7 +4503,7 @@ function reporteDanoEpi_(ctx) {
     danios: [{ desc: txt.slice(0, 900), fotos: fotos, origen: etiqueta, reparacion: '', comentarios: '', fotos2: [], cobrado: false, quienPaga: '' }],
     hayDanios: true
   };
-  const r = UrlFetchApp.fetch(EPI_API_URL, { method: 'post', contentType: 'text/plain;charset=utf-8', payload: JSON.stringify({ action: 'saveReport', data: rep }), muteHttpExceptions: true, followRedirects: true });
+  const r = UrlFetchApp.fetch(EPI_API_URL, { method: 'post', contentType: 'text/plain;charset=utf-8', payload: JSON.stringify({ action: 'saveReport', data: rep, robot: llaveRobot_() }), muteHttpExceptions: true, followRedirects: true });
   const ok = r.getResponseCode() < 300 && !/"ok"\s*:\s*false/.test(r.getContentText() || '');
   if (ok) { vSet_(clave, String(id)); ctx.razon = (ctx.razon ? ctx.razon + ' · ' : '') + 'reporte de daño creado en EPI'; }
   else console.warn('EPI saveReport respondió ' + r.getResponseCode() + ': ' + String(r.getContentText() || '').slice(0, 200));
@@ -4662,8 +4662,10 @@ function opGuardar_(adm, de, canal, texto, acciones) {
   hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, /^[=+\-@]/.test(tx) || /^\d[\d\s.]*$/.test(tx) ? "'" + tx : tx, acciones && acciones.length ? JSON.stringify(acciones) : '', id]);
   return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [] };
 }
+/* Llave del robot: Epi y Hola reconocen así las llamadas del Hub (servidor a servidor, sin sesión de una persona). */
+function llaveRobot_() { return PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN') || undefined; }
 function epiPost_(action, payload) {
-  const r = UrlFetchApp.fetch(epiUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ action: action }, payload || {})) });
+  const r = UrlFetchApp.fetch(epiUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ action: action, robot: llaveRobot_() }, payload || {})) });
   if (r.getResponseCode() >= 300) throw new Error('Epi HTTP ' + r.getResponseCode());
   const j = JSON.parse(r.getContentText() || '{}'); if (j && j.ok === false) throw new Error('Epi: ' + (j.error || 'rechazó'));
   return j;

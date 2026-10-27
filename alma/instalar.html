@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Instalar «Alma aquí»</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<link rel="stylesheet" href="../ds/tokens/colors.css">
+<link rel="stylesheet" href="../ds/tokens/typography.css">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg, #F4F1EC); color: var(--fg, #1D1D1B); font-family: var(--font-sans, -apple-system, system-ui, sans-serif); line-height: 1.55; }
+  .w { max-width: 640px; margin: 0 auto; padding: max(24px, env(safe-area-inset-top)) 16px 48px; }
+  h1 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 32px; margin: 0 0 6px; }
+  h2 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 22px; margin: 32px 0 8px; }
+  .card { background: var(--surface, #fff); border: 1px solid var(--border-soft, #e4ded5); border-radius: 14px; padding: 16px 18px; }
+  ol { padding-left: 20px; margin: 8px 0 0; } li { margin: 6px 0; }
+  code { background: var(--bg-alt, #efe9e0); padding: 1px 6px; border-radius: 4px; font-size: 14px; overflow-wrap: anywhere; }
+  .muted { color: var(--fg-muted, #6f6867); font-size: 14px; }
+  .bm { display: inline-block; margin: 8px 0; padding: 10px 18px; border-radius: 999px; background: var(--accent, #B54D36); color: #fff; text-decoration: none; }
+  textarea { width: 100%; font: 13px ui-monospace, monospace; padding: 10px; border-radius: 10px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); }
+  button { font: inherit; border: 0; border-radius: 999px; padding: 10px 18px; background: var(--fg, #1D1D1B); color: #fff; cursor: pointer; }
+</style>
+</head>
+<body><div class="w">
+  <h1>«Alma aquí»</h1>
+  <p class="muted">Abre a Alma desde cualquier página, con la página como contexto: «¿qué dice este PR?», «resúmeme esto», «¿a quién le reenvío esto?».</p>
+
+  <h2>iPad y iPhone · desde «Compartir» (recomendado)</h2>
+  <div class="card">
+    Funciona en todos los sitios, incluidos GitHub y Google.
+    <ol>
+      <li>Abre la app <b>Atajos</b> y toca <b>+</b> para crear un atajo nuevo.</li>
+      <li>Toca el nombre de arriba y ponle <b>Alma</b>. En <b>ⓘ Detalles</b>, activa <b>Mostrar en hoja de compartir</b> y deja solo <b>URL</b> y <b>Páginas web de Safari</b>.</li>
+      <li>Busca la acción <b>Abrir URL</b> y agrégala.</li>
+      <li>En la URL escribe <code>https://hub.spacioam.com/alma/?desde=</code> y, justo después, toca la variable <b>Entrada del atajo</b>.</li>
+      <li>Listo. En Safari: <b>Compartir</b> → <b>Alma</b>.</li>
+    </ol>
+  </div>
+
+  <h2>Computadora · marcador</h2>
+  <div class="card">
+    Arrastra este botón a la barra de marcadores. En cualquier página, tócalo y Alma se abre en otra pestaña con esa página (y lo que tengas seleccionado).
+    <div><a class="bm" id="bm" href="#">Alma aquí</a></div>
+    <p class="muted">También sirve en Safari del iPad: guarda cualquier página como marcador, edítalo y pega este código en la dirección.</p>
+    <textarea id="codigo" rows="4" readonly></textarea>
+    <button id="copiar">Copiar código</button>
+  </div>
+  <p class="muted">Necesitas haber entrado al Hub con tu cuenta en este navegador.</p>
+</div>
+<script>
+  /* El marcador: desde va al final (alma/index.html lee todo lo que sigue a «desde=»). */
+  var codigo = "javascript:(function(){var s='';try{s=String(getSelection()).slice(0,1500)}catch(e){}" +
+    "window.open('https://hub.spacioam.com/alma/?t='+encodeURIComponent(document.title)+(s?'&sel='+encodeURIComponent(s):'')+'&desde='+encodeURIComponent(location.href),'_blank')})();";
+  document.getElementById("bm").href = codigo;
+  document.getElementById("codigo").value = codigo;
+  document.getElementById("copiar").onclick = function () {
+    var t = document.getElementById("codigo"); t.select();
+    (navigator.clipboard ? navigator.clipboard.writeText(codigo) : Promise.reject()).catch(function () { document.execCommand("copy"); });
+    this.textContent = "Copiado ✓";
+  };
+</script>
+</body>
+</html>

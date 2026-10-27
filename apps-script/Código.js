@@ -123,6 +123,7 @@ function doPost(e) {
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
     if (body.anilloPrueba) return json_(anilloGuardar_(body));   // prueba del anillo desde hub.spacioam.com/anillo/ (anillo.js)
+    if (body.tutorial) return json_(tutorialApi_(body));   // tutoriales: avance de cada persona (tutoriales.js)
     if (body.recepcionEstado) return json_(recepcionEstados_(body.codes));   // Hola: estado del envío a recepción por código
     if (body.recepcion) return json_(recepcionEncolar_(body));   // Hola: registro enviado → ALMA manda el PDF a la recepción (recepcion.js)
 
@@ -3052,6 +3053,7 @@ function hubApi_(body) {
   try {
     switch (body.action) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
+      case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero));                    // Alma por voz desde el menú (voz.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id));
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));

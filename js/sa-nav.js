@@ -1201,7 +1201,8 @@
     /* blanco: la piedra se vuelve del color de la página (cambio de app: el blanco de carga del navegador queda «pintado» por Alma) */
     var bl = !!o.blanco, fondo = o.fondo || (bl ? (function () { try { var c = getComputedStyle(d.body).backgroundColor; return c && !/rgba\(0, 0, 0, 0\)|transparent/.test(c) ? c : "#FAFAFA"; } catch (e) { return "#FAFAFA"; } })() : "");
     var DO = o.rapido ? 760 : 1150, DI = o.rapido ? 900 : 1250;
-    var pv = d.createElement("div"); pv.className = "san-scope san-portal"; pv.setAttribute("aria-hidden", "true");
+    portalBarrer(true);   // nunca dos piedras: si quedó un portal anterior (animación que el teléfono pausó), se quita
+    var pv = d.createElement("div"); pv.className = "san-scope san-portal"; pv.setAttribute("aria-hidden", "true"); pv._t = Date.now(); pv._dir = dir;
     pv.innerHTML = '<div class="san-rock san-pp"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div><div class="san-pw"></div></div><div class="san-pcap"></div>';
     d.body.appendChild(pv);
     var rk = pv.firstChild, li = rk.querySelector(".san-st-lit"), lf = tengo0() ? Math.min(.6, litFace() * .5) : .06, sp = rk.querySelector(".san-st-spark"), pw = rk.querySelector(".san-pw"), gl = rk.querySelector(".san-st-glow"), cap = pv.lastChild; cap.textContent = o.texto || "";
@@ -1209,7 +1210,11 @@
     var b = portalPt(), cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
     var T = function (x, y, k) { return "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + k.toFixed(4) + ")"; };
     var tengo = !!(root && E.face); if (tengo) hideCore(true);
-    var fin = function () { if (pv.parentNode) pv.remove(); if (tengo && root) { hideCore(false); surge(); } };
+    var fin = function () { if (pv._fin === null) return; pv._fin = null; if (pv.parentNode) pv.remove(); if (tengo && root) { hideCore(false); surge(); } };
+    pv._fin = fin;
+    /* Red de seguridad: si el navegador pausó la animación (pestaña en segundo plano, iPhone bloqueado) y nunca terminó,
+       la piedra del portal se queda pegada encima del botón y se ven dos. Al llegar, se quita sola. */
+    if (dir === "in") setTimeout(fin, DI + (o.espera != null ? o.espera : 450) + 900);
     var recibir = function (ok, espera) {
       if (RM || !rk.animate) { pv.animate ? pv.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260 }).onfinish = function () { fin(); ok(); } : (fin(), ok()); return; }
       setTimeout(function () {
@@ -1258,6 +1263,20 @@
   /* Cambio de app (Hub → Epi, Epi → Hub…): Alma pinta la pantalla del color de la página y se va; la otra app la recibe
      en la MISMA posición (#sa_portal=<posición>) y Alma vuelve al botón destapando la pantalla nueva. */
   function tengo0() { return !!(root && E.face); }
+  /* Quita portales que quedaron colgados. todos = también los de salida (al volver con «atrás» o crear uno nuevo). */
+  function portalBarrer(todos, edad) {
+    var L = d.querySelectorAll(".san-portal"), ahora = Date.now();
+    for (var i = 0; i < L.length; i++) {
+      var pv = L[i];
+      if (!todos && pv._dir !== "in") continue;
+      if (edad && ahora - (pv._t || 0) < edad) continue;
+      if (typeof pv._fin === "function") pv._fin(); else pv.remove();
+    }
+    if (!d.querySelector(".san-portal") && root && E.face) hideCore(false);
+  }
+  d.addEventListener("visibilitychange", function () { if (!d.hidden) setTimeout(function () { portalBarrer(false, 2500); }, 300); });
+  /* Volver con «atrás»: el portal de salida se deshace solo (irA); si su animación no terminó, se quita igual. */
+  w.addEventListener("pageshow", function (e) { if (e.persisted) setTimeout(function () { portalBarrer(true, 2000); }, 2500); });
   function irA(url, nueva) {
     var u = String(url || ""); if (!u) return;
     u += (u.indexOf("#") >= 0 ? "&" : "#") + "sa_portal=" + (st.anchor || "bc");
@@ -1281,6 +1300,8 @@
   w.SANav = {
     mount: function (c) {
       if (root) { this.update(c); return; }
+      /* Una sola piedra por página: si otro script dejó un menú montado, se quita antes de construir el nuevo. */
+      var viejos = d.querySelectorAll("#sa-nav-root"); for (var vi = 0; vi < viejos.length; vi++) viejos[vi].remove();
       cfg = Object.assign({ items: [], current: c && c.home ? c.home.k : "" }, c);
       build();
       /* posición: la que el usuario eligió (mantener y mover) o la inicial de la app (abajo al centro por defecto) */

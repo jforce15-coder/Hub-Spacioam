@@ -384,9 +384,12 @@ function vozQuienBloque_() {
   return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type). Tu PRIMERA acción en cada llamada, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número, consúltalo con la herramienta antes de contestar.',
     '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
-    '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Antes di algo breve como «Dame un momento». Nunca digas que hiciste algo si secretaria no lo confirma.',
+    '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma.',
+    '· SECRETARIA TRABAJA EN PARALELO: al llamarla, di UNA frase corta y natural según el pedido («Lo reviso.», «Ya lo pedí, te cuento en cuanto lo tenga.», «Va saliendo, mientras tanto…») y sigue la conversación con normalidad: atiende lo que diga, contesta otras cosas o pregunta si necesita algo más. No te quedes en silencio esperando ni rellenes con «sigo buscando». Nunca adelantes el resultado ni digas «listo» antes de que llegue.',
+    '· CUANDO LLEGA LA RESPUESTA de secretaria: si estás a mitad de una frase o de otro tema, termina tu idea y luego introdúcela con naturalidad («Por cierto, ya tengo lo de César: …», «Ah, y lo de las cancelaciones: …»). No interrumpas a la persona ni cortes lo que estabas diciendo. Si llegan varias, dalas en orden, una a la vez. Si la persona ya cambió de tema, dásela breve y vuelve a donde iban.',
+    '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
     '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo y te confirmo por WhatsApp cuando esté listo», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas confirmar por WhatsApp sin haber usado el modo segundo_plano: es lo que hace que la confirmación llegue.',
-    '· Si secretaria tarda o falla, no lo reintentes en la llamada: pásalo a segundo plano.',
+    '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
@@ -505,10 +508,14 @@ function vozDefHerramientas_(base) {
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
         modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le confirma por WhatsApp al administrador; úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
   ].map(function (t) {
-    t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
-    t.execution_mode = 'post_tool_speech'; t.tool_error_handling_mode = 'auto';
-    /* secretaria no se abandona si el administrador habla mientras trabaja (antes se cortaba y el pedido podía ejecutarse igual sin que ALMA lo supiera) */
-    t.interruption_mode = t.name === 'secretaria' ? 'disable_during_tool' : 'allow';
+    var sec = t.name === 'secretaria';
+    t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_error_handling_mode = 'auto';
+    /* secretaria tarda 8 a 25 s: corre en paralelo (async) y la conversación sigue mientras trabaja; cuando llega la
+       respuesta, ALMA la introduce con naturalidad. Sin sonido de tecleo para que no suene encima de la charla. Si el
+       administrador habla mientras trabaja, el pedido no se pierde: sigue corriendo y su respuesta llega igual. */
+    t.execution_mode = sec ? 'async' : 'post_tool_speech';
+    t.tool_call_sound = sec ? null : 'typing'; t.tool_call_sound_behavior = sec ? 'auto' : 'always';
+    t.interruption_mode = 'allow';
     return t;
   });
 }

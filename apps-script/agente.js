@@ -33,7 +33,10 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
   '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
   '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
-  '\n· Nunca inventes un código, una dirección, un monto ni un número: si una herramienta no te lo dio en esta conversación, no lo tienes.';
+  '\n· Nunca inventes un código, una dirección, un monto ni un número: si una herramienta no te lo dio en esta conversación, no lo tienes.' +
+  '\n· El estado de una reserva es el campo estado que devuelve buscar_reservas. Si dice cancelada, está cancelada (di cuándo, con cancelada_el): nunca digas que está activa ni hables de su acceso como si siguiera en pie.' +
+  '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
+  '\n· Reviews, recordatorios y mensajes automáticos de UNA reserva: programados_reserva para verlos y cancelar_programados_reserva para quitarlos (filtro review para los de reseña). No digas que no puedes.';
 var SEMILLA_SECRETARIA_ = [
   'Eres ALMA, la secretaria virtual del equipo administrativo de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala).',
   'Hablas con un administrador (te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
@@ -86,8 +89,14 @@ function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
   return [
-    T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
+    T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Cada resultado trae estado (confirmada, cancelada…) consultado en Hospitable: incluye las canceladas. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
       { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' } }),
+    T('cancelaciones', 'Reservas CANCELADAS en un rango de fechas (según la fecha en que se canceló, en Hospitable en vivo). Úsala para «¿hubo cancelaciones ayer / esta semana / en los últimos 3 días?».',
+      { desde: s('YYYY-MM-DD, inicio del rango (fecha de cancelación)'), hasta: s('YYYY-MM-DD, fin del rango (incluido). Si es un solo día, igual a desde') }, ['desde']),
+    T('programados_reserva', 'Mensajes automáticos programados de UNA reserva en Hospitable (recordatorio de reseña/review, check-in, first morning, salida…) que aún no salen, y el estado de la reseña al huésped.',
+      { codigo: s('Código de reserva o conv_id') }, ['codigo']),
+    T('cancelar_programados_reserva', 'Cancela mensajes programados de una reserva en Hospitable: los de reseña/review (filtro = review), todos (filtro = todos), los que contengan una palabra, o por ids de programados_reserva. Hospitable no permite posponerlos: si piden «posponer», cancélalos y ofrece programar uno nuevo con la fecha que digan.',
+      { codigo: s('Código de reserva o conv_id'), filtro: s('review, todos o una palabra del título'), ids: s('Opcional: ids separados por coma') }, ['codigo']),
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la conversación de WhatsApp de ALMA con cualquier número (socio, contacto de trabajo, alguien del equipo): pasa el número con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp (ej. +1 908 447 1404)') }, ['codigo']),
     T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número.', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Mira las imágenes y fotos que mandó el huésped en la conversación de una reserva (capturas, comprobantes, datos de facturación, fotos de un problema). Devuelve las más recientes para que las leas tú mismo. Úsala cuando el administrador mencione una imagen o cuando ver_conversacion marque [imagen].',
@@ -156,12 +165,69 @@ function agResId_(codigo) {
   var hit = hubInbox_().filter(function (x) { return String(x.codigo || '').toUpperCase() === C && x.conv_id && !/^(wa|op|inq):/.test(x.conv_id); })[0];
   return hit ? hit.conv_id : '';
 }
+/* Estado real de una reserva: Hospitable en vivo (10 min en caché) para los primeros resultados; si no, lo que diga
+   la hoja. La hoja puede tardar en enterarse de una cancelación, por eso se pregunta a Hospitable. */
+function agEstadoReserva_(uuid, fila, vivo) {
+  var hoja = /cancel/i.test(s_(fila && fila.status)) ? 'cancelada' : (s_(fila && fila.status) ? (estadoEs_(s_(fila.status).toLowerCase()) || s_(fila.status)) : 'confirmada');
+  if (!vivo || !uuid || /^(wa|op|inq):/.test(uuid)) return { estado: hoja };
+  var c = CacheService.getScriptCache(), k = 'agest_' + String(uuid).slice(-40), c0 = c.get(k);
+  if (c0) { try { return JSON.parse(c0); } catch (e) {} }
+  var out = { estado: hoja };
+  try {
+    var r = hosp_('get', '/reservations/' + uuid), d = r.code === 200 && r.json && r.json.data;
+    if (d) {
+      var cur = (d.reservation_status && d.reservation_status.current) || {}, cat = s_(cur.category || d.status).toLowerCase();
+      out.estado = estadoEs_(cat) || cat || hoja;
+      if (/cancel/.test(cat)) {
+        var hc = ((d.reservation_status && d.reservation_status.history) || []).filter(function (h) { return /cancel/i.test(s_(h.category)); }).pop();
+        if (hc && hc.changed_at) out.cancelada_el = Utilities.formatDate(new Date(hc.changed_at), CFG.TZ, 'yyyy-MM-dd HH:mm');
+      }
+    }
+  } catch (e) { console.error('agEstadoReserva_: ' + e); }
+  try { c.put(k, JSON.stringify(out), 600); } catch (e) {}
+  return out;
+}
+/* Cancelaciones por la fecha en que se cancelaron (Hospitable en vivo). Se piden las reservas canceladas con entrada
+   desde 60 días antes del rango hasta un año después, y se filtran por la fecha del cambio a «cancelled». */
+function agCancelaciones_(desde, hasta) {
+  desde = String(desde).slice(0, 10); hasta = String(hasta || desde).slice(0, 10);
+  if (!/^\d{4}-\d\d-\d\d$/.test(desde) || !/^\d{4}-\d\d-\d\d$/.test(hasta)) return { error: 'Fechas en formato YYYY-MM-DD.' };
+  var ck = 'agcanc_' + desde + '_' + hasta, cache = CacheService.getScriptCache(), c0 = cache.get(ck);
+  if (c0) { try { return JSON.parse(c0); } catch (e) {} }
+  var ids = idsPropiedades_(); if (!ids.length) return { error: 'No pude leer las propiedades de Hospitable.' };
+  var ini = sumarDias_(desde, -60), fin = sumarDias_(hasta, 365), lista = [], vistos = {};
+  for (var i = 0; i < ids.length; i += 40) {
+    var qs = ids.slice(i, i + 40).map(function (x) { return 'properties[]=' + encodeURIComponent(x); }).join('&');
+    for (var pg = 1; pg <= 4; pg++) {
+      var r = hosp_('get', '/reservations?' + qs + '&status[]=cancelled&date_query=checkin&start_date=' + ini + '&end_date=' + fin + '&include=guest,properties&per_page=100&page=' + pg);
+      if (r.code !== 200) break;
+      var d = (r.json && r.json.data) || [];
+      d.forEach(function (x) {
+        var cur = (x.reservation_status && x.reservation_status.current) || {};
+        if (!/cancel/i.test(s_(cur.category || x.status)) || vistos[x.id]) return; vistos[x.id] = 1;
+        var hc = ((x.reservation_status && x.reservation_status.history) || []).filter(function (h) { return /cancel/i.test(s_(h.category)); }).pop();
+        if (!hc || !hc.changed_at) return;
+        var dia = Utilities.formatDate(new Date(hc.changed_at), CFG.TZ, 'yyyy-MM-dd');
+        if (dia < desde || dia > hasta) return;
+        var g = x.guest || {}, pr = (x.properties && x.properties[0]) || {};
+        lista.push({ codigo: s_(x.code), huesped: s_(g.first_name ? g.first_name + ' ' + (g.last_name || '') : g.name).trim(), propiedad: s_(pr.name || pr.public_name),
+          entrada: s_(x.arrival_date).slice(0, 10), salida: s_(x.departure_date).slice(0, 10), cancelada_el: Utilities.formatDate(new Date(hc.changed_at), CFG.TZ, 'yyyy-MM-dd HH:mm'), plataforma: s_(x.platform), conv_id: s_(x.id) });
+      });
+      var meta = r.json && r.json.meta; if (!meta || !meta.last_page || pg >= meta.last_page) break;
+    }
+  }
+  lista.sort(function (a, b) { return a.cancelada_el < b.cancelada_el ? 1 : -1; });
+  var out = { desde: desde, hasta: hasta, cancelaciones: lista, total: lista.length, nota: lista.length ? undefined : 'Hospitable no tiene reservas canceladas en esas fechas.' };
+  try { cache.put(ck, JSON.stringify(out), 300); } catch (e) {}
+  return out;
+}
 function agEjecutar_(adm, nombre, inp, ctx) {
   inp = inp || {}; var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
       var q = n(inp.texto), f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
-      var filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return !/cancel/i.test(s_(r.status)) && s_(r.code); });
+      /* Las canceladas también se buscan (marcadas): si no, ALMA decía que una reserva cancelada seguía activa. */
+      var filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return s_(r.code); });
       var enFecha = filas.filter(function (r) {
         var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date);
         return !f || (inp.solo_llegadas ? ci === f : (ci <= f && f <= co));
@@ -170,11 +236,37 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var parecido = {}, hits = !q ? (f ? enFecha.slice(0, 12) : []) : bqBuscar_(inp.texto, enFecha, function (r) { var pn = s_(r.property_name); return [r.code, r.guest_first_name, r.guest_last_name, pn, pn.replace(/\s+/g, ''), r.apartment].join(' '); }, 12)
         .map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
       return { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
-        reservas: hits.map(function (r) {
+        reservas: (function () { var vivos = 0; return hits.map(function (r) {
         var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
-        return { codigo: cod, huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date),
+        var est = agEstadoReserva_(ib.conv_id, r, vivos++ < 5);
+        return { codigo: cod, estado: est.estado, cancelada_el: est.cancelada_el, huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date),
           coincidencia: parecido[cod] || 'exacta', huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
-      }), total: hits.length };
+      }).sort(function (a, b) { return (a.estado === 'cancelada') - (b.estado === 'cancelada'); }); })(), total: hits.length,
+        aviso_estado: 'El campo estado viene de Hospitable en vivo para los primeros resultados. Si dice cancelada, la reserva está CANCELADA: dilo así y no la trates como activa.' };
+    }
+    case 'cancelaciones': return agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy);
+    case 'programados_reserva': {
+      var ridP = agResId_(inp.codigo); if (!ridP || /^(wa|op):/.test(ridP)) return { error: 'No encontré esa reserva. Búscala antes con buscar_reservas y usa su código.' };
+      var pg = hubProgramados_(ridP); if (!pg.ok) return { error: 'No pude leer los programados (' + pg.error + ').' };
+      var gr = null; try { gr = hubGuestReview_(ridP); } catch (e) {}
+      return { conv_id: ridP, programados: pg.lista.map(function (m) { return { id: m.id, titulo: m.titulo, envio: String(m.envio).slice(0, 16).replace('T', ' '), texto: String(m.texto).slice(0, 160) }; }),
+        resena_al_huesped: gr && gr.ok && gr.existe ? { estado: gr.estado, programada: gr.programado || undefined } : undefined,
+        nota: pg.lista.length ? undefined : 'No hay mensajes programados pendientes para esta reserva.' };
+    }
+    case 'cancelar_programados_reserva': {
+      var ridC = agResId_(inp.codigo); if (!ridC || /^(wa|op):/.test(ridC)) return { error: 'No encontré esa reserva. Búscala antes con buscar_reservas y usa su código.' };
+      var pgC = hubProgramados_(ridC); if (!pgC.ok) return { error: 'No pude leer los programados (' + pgC.error + ').' };
+      var ids = String(inp.ids || '').split(/[\s,]+/).filter(Boolean), filtro = n(inp.filtro || '');
+      var obj = pgC.lista.filter(function (m) {
+        if (ids.length) return ids.indexOf(String(m.id)) >= 0;
+        if (!filtro || filtro === 'todos') return true;
+        var t = n(m.titulo + ' ' + m.texto); return filtro === 'review' || filtro === 'resena' ? /review|resena|reseña|opini/.test(t) : t.indexOf(filtro) >= 0;
+      });
+      if (!obj.length) return { ok: false, error: 'No hay programados pendientes que coincidan.', programados: pgC.lista.map(function (m) { return m.titulo; }) };
+      var hechos = obj.map(function (m) { var rr = hubCancelarProg_(ridC, m.id); return { titulo: m.titulo, ok: !!rr.ok, error: rr.error }; });
+      var okN = hechos.filter(function (x) { return x.ok; }).length;
+      if (okN) ctx.hechas.push({ tipo: 'programado', resumen: 'Cancelados ' + okN + ' programado(s) · ' + (inp.codigo || '') });
+      return { ok: okN === hechos.length, cancelados: hechos };
     }
     case 'ver_conversacion': {
       var rid = agResId_(inp.codigo); if (!rid) return { error: 'No encontré esa reserva en las conversaciones.' };

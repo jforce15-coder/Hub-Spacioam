@@ -246,9 +246,15 @@
   var abierto = null, appActual = "";
   var ICO_SON = '<svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
   var ICO_PLAY = '<svg viewBox="0 0 24 24" style="margin-left:5px"><path d="M7 4.5v15l12-7.5z" fill="#fff" stroke="none"/></svg>';
-  function cubrir() {
+  /* Dónde queda la piedra dentro del video (abajo al centro, x 540 · y 1600 · Ø 115 en el cuadro de 1080×1920),
+     según cómo se ajusta el video a la pantalla. La transición de Alma termina (y empieza al cerrar) justo ahí. */
+  function piedraDelVideo() {
+    var W = w.innerWidth, H = w.innerHeight, k = W / H <= 9 / 16 ? Math.max(W / 1080, H / 1920) : Math.min(W / 1080, H / 1920);
+    return { x: W / 2, y: H / 2 + (1600 - 960) * k, s: 115 * k / 140 };
+  }
+  function cubrir(o) {
     if (w.SANav && w.SANav.portal && !(w.matchMedia && w.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
-      try { return w.SANav.portal("out", { blanco: true, fondo: "#FAFAFA" }).then(function (deshacer) { return deshacer; }, function () { return null; }); } catch (e) {}
+      try { return w.SANav.portal("out", Object.assign({ blanco: true, fondo: "#FAFAFA" }, o || {})).then(function (deshacer) { return deshacer; }, function () { return null; }); } catch (e) {}
     }
     return Promise.resolve(null);
   }
@@ -314,7 +320,7 @@
       if (deshacer) deshacer();
     }
     /* Alma cubre la pantalla; el video se destapa cuando ya puede arrancar (máx. 2,5 s esperando). */
-    cubrir().then(function (deshacer) {
+    cubrir({ hacia: piedraDelVideo() }).then(function (deshacer) {
       var hecho = false, go = function () { if (hecho) return; hecho = true; destapar(deshacer); };
       if (v.readyState >= 3) go(); else { v.addEventListener("canplay", go, { once: true }); setTimeout(go, 2500); }
     });
@@ -332,7 +338,7 @@
         };
         if (deshacer) { var r = deshacer(); if (r && r.then) r.then(luego); else setTimeout(luego, 900); } else luego();
       };
-      if (w.SANav && w.SANav.portal) cubrir().then(fuera);
+      if (w.SANav && w.SANav.portal) cubrir({ desde: piedraDelVideo() }).then(fuera);
       else { el.style.transition = "opacity .4s"; el.style.opacity = "0"; setTimeout(function () { fuera(null); }, 420); }
     }
     function tecla(e) { if (e.key === "Escape") cerrar(false); else if (e.key === " ") { e.preventDefault(); el.querySelector(".sat-tap").click(); } }

@@ -8,7 +8,7 @@ var HOLA_ACC_RX_ = /((no|not|can'?t|cannot|unable)[^.?!\n]{0,40}(entrar|ingresar
 function holaUrl_() { return PropertiesService.getScriptProperties().getProperty('HOLA_URL') || HOLA_URL_DEF_; }
 function holaPost_(body, seg) {
   try {
-    var r = UrlFetchApp.fetch(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(body) });
+    var r = UrlFetchApp.fetch(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ robot: llaveRobot_() }, body)) });
     return JSON.parse(r.getContentText() || '{}');
   } catch (e) { return { ok: false, error: String(e) }; }
 }

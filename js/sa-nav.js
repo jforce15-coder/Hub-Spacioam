@@ -621,7 +621,7 @@
   function conTutoriales(cb) {
     if (w.SATutoriales) { cb(); return; }
     tutCb.push(cb); if (tutCargando) return; tutCargando = true;
-    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-10-27e";
+    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-10-27f";
     s.onload = function () { var l = tutCb; tutCb = []; l.forEach(function (f) { try { f(); } catch (e) { console.error(e); } }); };
     s.onerror = function () { tutCargando = false; tutCb = []; };
     (d.head || d.documentElement).appendChild(s);
@@ -1220,7 +1220,9 @@
   /* ================= portal =================
      SANav.portal("out", { texto }) → la piedra sale del botón, sube y crece hasta cubrir la pantalla (como si Alma te
      llevara a otro lado). Resuelve con una función para deshacerlo si al final no se salió de la página.
-     SANav.portal("in", { texto }) → la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar en el botón. */
+     SANav.portal("in", { texto }) → la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar en el botón.
+     o.desde / o.hacia = { x, y, s } (s = diámetro / 140): de dónde sale la piedra y adónde vuelve, si no es el botón
+     (p. ej. el video del tutorial termina la transición donde está la piedra dentro del video). */
   var PB = 140;
   function portalPt() {
     if (root && !root.hidden && E.face) { var r = E.face.getBoundingClientRect(); if (r.width > 4) return { x: r.left + r.width / 2, y: r.top + r.height / 2, s: r.width / PB }; }
@@ -1238,7 +1240,7 @@
     d.body.appendChild(pv);
     var rk = pv.firstChild, li = rk.querySelector(".san-st-lit"), lf = tengo0() ? Math.min(.6, litFace() * .5) : .06, sp = rk.querySelector(".san-st-spark"), pw = rk.querySelector(".san-pw"), gl = rk.querySelector(".san-st-glow"), cap = pv.lastChild; cap.textContent = o.texto || "";
     if (bl) pw.style.background = fondo;
-    var b = portalPt(), cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
+    var b = portalPt(), bI = o.hacia || b, bO = o.desde || b, cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
     var T = function (x, y, k) { return "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + k.toFixed(4) + ")"; };
     var tengo = !!(root && E.face); if (tengo) hideCore(true);
     var fin = function () { if (pv._fin === null) return; pv._fin = null; if (pv.parentNode) pv.remove(); if (tengo && root) { hideCore(false); surge(); } };
@@ -1256,10 +1258,10 @@
           gl.animate([{ opacity: 0 }, { opacity: 0, offset: .55 }, { opacity: 1 }], { duration: DI, fill: "forwards" }); }
         var a = rk.animate([
           { transform: T(cx, cy, sC) },
-          { transform: T(cx, cy, b.s * 2.3), offset: .45, easing: "cubic-bezier(.4,0,.2,1)" },
-          { transform: T(b.x, b.y - 12, b.s * 1.1), offset: .8, easing: "cubic-bezier(.3,0,.2,1)" },
-          { transform: T(b.x, b.y + 2, b.s * .95), offset: .91 },
-          { transform: T(b.x, b.y, b.s) }
+          { transform: T(cx, cy, bI.s * 2.3), offset: .45, easing: "cubic-bezier(.4,0,.2,1)" },
+          { transform: T(bI.x, bI.y - 12, bI.s * 1.1), offset: .8, easing: "cubic-bezier(.3,0,.2,1)" },
+          { transform: T(bI.x, bI.y + 2, bI.s * .95), offset: .91 },
+          { transform: T(bI.x, bI.y, bI.s) }
         ], { duration: DI, fill: "forwards", easing: "linear" });
         a.onfinish = function () { fin(); ok(); };
       }, espera);
@@ -1277,10 +1279,10 @@
       if (bl) { pw.animate([{ opacity: 0 }, { opacity: 0, offset: .38 }, { opacity: 1, offset: .9 }, { opacity: 1 }], { duration: DO, fill: "forwards" });
         gl.animate([{ opacity: 1 }, { opacity: 1, offset: .4 }, { opacity: 0, offset: .85 }, { opacity: 0 }], { duration: DO, fill: "forwards" }); }
       var a = rk.animate([
-        { transform: T(b.x, b.y, b.s) },
-        { transform: T(b.x, b.y + 4, b.s * .86), offset: .1 },
-        { transform: T(b.x, b.y - 16, b.s * 1.18), offset: .24, easing: "cubic-bezier(.3,0,.2,1)" },
-        { transform: T(cx, cy, b.s * 2.2), offset: .56, easing: "cubic-bezier(.6,0,.85,.3)" },
+        { transform: T(bO.x, bO.y, bO.s) },
+        { transform: T(bO.x, bO.y + 4, bO.s * .86), offset: .1 },
+        { transform: T(bO.x, bO.y - 16, bO.s * 1.18), offset: .24, easing: "cubic-bezier(.3,0,.2,1)" },
+        { transform: T(cx, cy, bO.s * 2.2), offset: .56, easing: "cubic-bezier(.6,0,.85,.3)" },
         { transform: T(cx, cy, sC) }
       ], { duration: DO, fill: "forwards", easing: "linear" });
       if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}

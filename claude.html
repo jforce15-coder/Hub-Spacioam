@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alma y Claude · Spacio AM</title>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<link rel="stylesheet" href="ds/tokens/fonts.css">
+<link rel="stylesheet" href="ds/tokens/colors.css">
+<link rel="stylesheet" href="ds/tokens/typography.css">
+<link rel="stylesheet" href="ds/tokens/radius-shadow.css">
+<!--
+  Conexión directa Alma → Claude Code. Archivo propio del repo (no lo toca el export de Claude Design).
+  El admin principal pega aquí la llave de la tarea de Claude (CLAUDE_RUTINA_TOKEN): la pantalla de Propiedades
+  del script no deja agregar más de 50. La llave va directo al Apps Script con la sesión firmada y nunca se vuelve a mostrar.
+-->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg, #FAFAFA); color: var(--fg, #3E3F3F); font-family: var(--font-sans, Montserrat, system-ui, sans-serif); font-size: 15px; line-height: 1.55; }
+  main { max-width: 520px; margin: 0 auto; padding: 56px 20px 40px; }
+  .eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--fg-muted, #938B8A); margin: 0 0 6px; }
+  h1 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 38px; line-height: 1.1; margin: 0 0 14px; }
+  h1 i { display: block; }
+  p { margin: 0 0 18px; }
+  ol { padding-left: 20px; margin: 0 0 26px; } li { margin-bottom: 8px; }
+  a { color: inherit; }
+  input { width: 100%; font: inherit; font-size: 16px; padding: 14px 16px; border: 1px solid var(--border, #E4DFDA); border-radius: var(--r-md, 12px); background: #fff; color: inherit; }
+  button { margin-top: 12px; width: 100%; font: inherit; font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; padding: 16px; border: 0; border-radius: 999px; background: #2E3030; color: #fff; }
+  button:disabled { opacity: .5; }
+  .estado { margin-top: 18px; padding: 14px 16px; border-radius: var(--r-md, 12px); background: var(--bg-alt, #F5F3F0); font-size: 14px; }
+  .ok { background: #E9F3EC; } .mal { background: #FBEAE6; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Alma · Desarrollo</p>
+  <h1>Alma habla<i>con Claude</i></h1>
+  <p>Con esta llave, cuando le pidas a Alma una mejora del sistema, ella se la pasa directo a Claude y te cuenta el resultado.</p>
+  <ol>
+    <li>Abre <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> → «Alma → Claude · mejoras del sistema» → Editar.</li>
+    <li>En disparadores toca <b>+</b> → <b>API</b> → <b>Generar token</b> y cópialo.</li>
+    <li>Pégalo aquí y toca Guardar.</li>
+  </ol>
+  <input id="llave" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-oat01-…">
+  <button id="guardar">Guardar</button>
+  <div id="estado" class="estado">Revisando…</div>
+</main>
+<script>
+(function () {
+  var URL = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
+  var $ = function (id) { return document.getElementById(id); }, est = $('estado'), btn = $('guardar');
+  function pintar(t, c) { est.textContent = t; est.className = 'estado' + (c ? ' ' + c : ''); }
+  var ses = window.SASesion && SASesion.leer();
+  if (!ses) { pintar('Entra primero al Hub con tu usuario y vuelve a abrir esta página.', 'mal'); btn.disabled = true; return; }
+  function llamar(llave) {
+    return fetch(URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ hub: 1, action: 'llaveClaude', session: ses, llave: llave || '' }) })
+      .then(function (r) { return r.json(); });
+  }
+  function mostrar(r) {
+    if (!r || !r.ok) return pintar((r && r.error) || 'No se pudo.', 'mal');
+    pintar(r.guardada ? 'Lista. Alma ya puede hablar con Claude (llave …' + r.termina + ').' : 'Todavía no hay llave guardada.', r.guardada ? 'ok' : '');
+  }
+  llamar('').then(mostrar).catch(function () { pintar('No pude conectar con el Hub.', 'mal'); });
+  btn.onclick = function () {
+    var v = $('llave').value.trim(); if (!v) return pintar('Pega primero la llave.', 'mal');
+    btn.disabled = true; pintar('Guardando…');
+    llamar(v).then(function (r) { $('llave').value = ''; mostrar(r); }).catch(function () { pintar('No pude conectar con el Hub.', 'mal'); }).then(function () { btn.disabled = false; });
+  };
+})();
+</script>
+</body>
+</html>

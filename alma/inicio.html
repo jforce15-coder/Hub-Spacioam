@@ -28,7 +28,6 @@
 <script>
 (function () {
   "use strict";
-  var HUB = "https://hub.spacioam.com/";
   /* Quién es: el correo va dentro de la sesión firmada (pulsera) que guarda sa-sesion.js. */
   function sesion() {
     try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return null;
@@ -36,10 +35,11 @@
       return JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4)))));
     } catch (e) { return null; }
   }
-  var yo = sesion();
-  /* Sin sesión, tocar a Alma lleva a entrar al Hub. */
-  var voz = yo && yo.e ? window.SAAlmaVoz : { start: function () { SANav.ir(HUB); return new Promise(function () {}); } };
-  if (yo && voz.setContexto) { try { voz.setContexto({ vista: "Inicio de la app de Alma", nombre: String(yo.n || yo.nombre || "").split(" ")[0] }); } catch (e) {} }
+  var yo = sesion() || {};
+  /* Tocar a Alma abre la voz aquí mismo, sin salir de esta pantalla. Sin sesión, lo dice aquí (no lleva a otra página). */
+  var hay = !!(window.SAAuth && SAAuth.session && SAAuth.session());
+  var voz = hay ? window.SAAlmaVoz : { start: function () { return Promise.reject(new Error("Entra al Hub con tu cuenta para hablar con Alma.")); } };
+  if (hay && voz.setContexto) { try { voz.setContexto({ vista: "Inicio de la app de Alma", nombre: String(yo.n || yo.nombre || "").split(" ")[0] }); } catch (e) {} }
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: voz, tutoriales: false, bienvenida: false });
   var t = SANav.escena();
   /* Al cargar: la transición de Alma (la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar, al centro). */

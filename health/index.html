@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#B9ABAE">
+<title>Health</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Health: lo que mide el anillo QRing (ritmo cardíaco, oxígeno, pasos) y sus ajustes, sin la app del anillo.
+     El anillo se conecta por Bluetooth a la app de Alma (alma-app · Anillo.swift); esta página le habla por el puente
+     (webkit.messageHandlers.alma · accion "anillo") y recibe cada dato en AlmaAnillo.evento.
+     Por ahora solo para el administrador principal. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --coral: #E9826A; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; font-family: Montserrat, system-ui, sans-serif; color: var(--tinta);
+    padding: max(18px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
+  main { max-width: 520px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 10px; margin: 8px 2px 18px; }
+  header a { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #FFFDFB; text-decoration: none;
+    background: rgba(255,255,255,.18); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+  h1 { margin: 0; font: 400 34px Valky, Georgia, serif; color: #FFFDFB; text-shadow: 0 2px 14px rgba(60,40,40,.28); }
+  .tarjeta { background: rgba(250,248,246,.86); -webkit-backdrop-filter: blur(24px) saturate(1.3); backdrop-filter: blur(24px) saturate(1.3);
+    border-radius: 22px; padding: 16px; margin-bottom: 14px; box-shadow: 0 14px 30px -22px rgba(40,30,25,.5); }
+  .tarjeta h2 { margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); }
+  .fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
+  .fila + .fila { border-top: .5px solid rgba(62,63,63,.12); }
+  .grande { font: 300 46px/1 Montserrat, system-ui, sans-serif; }
+  .grande small { font-size: 15px; color: var(--suave); margin-left: 4px; }
+  .dato { color: var(--suave); font-size: 14px; }
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+  .tres b { display: block; font-size: 22px; font-weight: 500; }
+  .tres span { font-size: 12px; color: var(--suave); }
+  button { font: 600 14px Montserrat, system-ui, sans-serif; border: 0; border-radius: 999px; padding: 11px 16px; cursor: pointer; color: var(--tinta); background: rgba(62,63,63,.08); }
+  button.prin { background: var(--coral); color: #fff; }
+  button:disabled { opacity: .5; }
+  .botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  select { font: 500 14px Montserrat, system-ui, sans-serif; border: 0; border-radius: 12px; padding: 8px 10px; background: rgba(62,63,63,.08); color: var(--tinta); }
+  .interruptor { position: relative; width: 51px; height: 31px; flex: none; }
+  .interruptor input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .interruptor span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120,120,128,.24); transition: background .25s; pointer-events: none; }
+  .interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform .3s cubic-bezier(.3,1.3,.55,1); }
+  .interruptor input:checked + span { background: var(--coral); }
+  .interruptor input:checked + span::after { transform: translateX(20px); }
+  .lista button { width: 100%; text-align: left; margin-top: 6px; display: flex; justify-content: space-between; }
+  .nota { font-size: 12.5px; color: var(--suave); line-height: 1.45; margin: 8px 0 0; }
+  .latido { display: inline-block; color: var(--coral); animation: latir 1s ease-in-out infinite; }
+  @keyframes latir { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } }
+  .aviso { text-align: center; color: #FFFDFB; text-shadow: 0 1px 8px rgba(60,40,40,.4); margin-top: 30vh; line-height: 1.5; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header><a href="../alma/inicio.html" aria-label="Volver"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a><h1>Health</h1></header>
+
+  <div class="aviso" id="sin-acceso" hidden></div>
+
+  <div id="todo" hidden>
+    <section class="tarjeta">
+      <h2>Anillo</h2>
+      <div class="fila"><span id="a-nombre">Sin anillo</span><span class="dato" id="a-estado">—</span></div>
+      <div class="fila" id="f-bateria" hidden><span>Batería</span><span class="dato" id="a-bateria">—</span></div>
+      <div class="lista" id="encontrados"></div>
+      <div class="botones">
+        <button class="prin" id="b-conectar">Conectar anillo</button>
+        <button id="b-parpadear" hidden>Encontrar anillo</button>
+        <button id="b-olvidar" hidden>Olvidar</button>
+      </div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Ritmo cardíaco</h2>
+      <div class="fila"><span class="grande"><span id="v-ritmo">—</span><small>lpm</small></span><span class="latido" id="latido" hidden>♥</span></div>
+      <div class="botones"><button id="b-ritmo">Medir ahora</button></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Oxígeno en sangre</h2>
+      <div class="fila"><span class="grande"><span id="v-oxigeno">—</span><small>%</small></span></div>
+      <div class="botones"><button id="b-oxigeno">Medir ahora</button></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Hoy</h2>
+      <div class="tres">
+        <div><b id="v-pasos">—</b><span>pasos</span></div>
+        <div><b id="v-calorias">—</b><span>kcal</span></div>
+        <div><b id="v-km">—</b><span>km</span></div>
+      </div>
+      <div class="botones"><button id="b-pasos">Actualizar</button></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Ajustes del anillo</h2>
+      <div class="fila"><span>Medir ritmo cardíaco solo</span><label class="interruptor"><input type="checkbox" id="i-auto"><span></span></label></div>
+      <div class="fila"><span>Cada</span>
+        <select id="s-min"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select></div>
+      <div class="fila"><span>Hora del anillo</span><button id="b-hora">Igualar al teléfono</button></div>
+    </section>
+
+    <section class="tarjeta">
+      <h2>Prueba de toques</h2>
+      <p class="nota">Con el anillo conectado, bloquea el teléfono y dale dos toques al anillo varias veces. Luego vuelve aquí y toca «Enviar registro»: así vemos si el anillo avisa al tocarlo, para que llame a Alma con el teléfono bloqueado.</p>
+      <div class="fila"><span>Avisos del anillo</span><span class="dato" id="v-solos">0</span></div>
+      <div class="botones"><button id="b-registro">Enviar registro</button></div>
+      <p class="nota" id="r-estado"></p>
+    </section>
+  </div>
+</main>
+<script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var HUB = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  var NATIVA = !!(window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma);
+  function nativa(m) { m.accion = "anillo"; try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
+  function cmd(nombre, extra) { var m = { que: "comando", nombre: nombre }; for (var k in (extra || {})) m[k] = extra[k]; nativa(m); }
+
+  /* Solo el administrador principal (por ahora). */
+  function sesion() {
+    try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return null;
+      var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4)))));
+    } catch (e) { return null; }
+  }
+  var yo = sesion(), apps = (yo && ((yo.p && yo.p.apps) || yo.apps)) || {};
+  var principal = Object.keys(apps).some(function (k) { return apps[k] === "admin_principal"; });
+  if (!yo) { $("sin-acceso").hidden = false; $("sin-acceso").textContent = "Entra a Alma con tu cuenta para ver Health."; return; }
+  if (!principal) { $("sin-acceso").hidden = false; $("sin-acceso").textContent = "Health todavía no está disponible para tu cuenta."; return; }
+  if (!NATIVA) { $("sin-acceso").hidden = false; $("sin-acceso").innerHTML = "Health se conecta a tu anillo por Bluetooth.<br>Ábrela desde la app de Alma en tu iPhone."; return; }
+  $("todo").hidden = false;
+
+  var conectado = false, midiendo = null, solos = 0;
+  function pinta(e) {
+    if ("conectado" in e) conectado = !!e.conectado;
+    if (e.nombre) $("a-nombre").textContent = e.nombre;
+    $("a-estado").textContent = conectado ? "Conectado" : e.buscando ? "Buscando…" : e.bluetooth === false ? "Bluetooth apagado" : e.guardado ? "Esperando al anillo…" : "Sin conectar";
+    $("b-conectar").hidden = conectado; $("b-parpadear").hidden = !conectado; $("b-olvidar").hidden = !(conectado || e.guardado);
+  }
+  window.AlmaAnillo = {
+    evento: function (e) {
+      if (!e) return;
+      if (e.solo) { solos++; $("v-solos").textContent = solos; }
+      switch (e.tipo) {
+        case "estado": pinta(e); break;
+        case "buscando": $("a-estado").textContent = "Buscando…"; $("encontrados").innerHTML = ""; break;
+        case "busqueda_fin": if (!conectado) $("a-estado").textContent = $("encontrados").children.length ? "Elige tu anillo" : "No encontré anillos cerca"; break;
+        case "encontrado":
+          var b = document.createElement("button"); b.innerHTML = "<span></span><span class='dato'></span>";
+          b.firstChild.textContent = e.nombre; b.lastChild.textContent = e.senal + " dBm";
+          b.onclick = function () { $("encontrados").innerHTML = ""; nativa({ que: "elegir", id: e.id }); };
+          $("encontrados").appendChild(b); break;
+        case "conectando": $("a-estado").textContent = "Conectando…"; break;
+        case "conectado": case "listo": conectado = true; pinta({ nombre: e.nombre, conectado: true }); if (e.tipo === "listo") setTimeout(function () { cmd("pasos", { dia: 0 }); }, 1400); break;
+        case "desconectado": conectado = false; pinta({ conectado: false, guardado: true }); break;
+        case "sin_conexion": $("a-estado").textContent = "El anillo no está conectado"; break;
+        case "bateria": $("f-bateria").hidden = false; $("a-bateria").textContent = e.nivel + "%" + (e.cargando ? " · cargando" : ""); break;
+        case "ritmo": if (e.valor > 0) $("v-ritmo").textContent = e.valor; break;
+        case "oxigeno": if (e.valor > 0) $("v-oxigeno").textContent = e.valor; break;
+        case "medicion_error": $("latido").hidden = true; break;
+        case "ritmoAjustes": $("i-auto").checked = !!e.activo; if (e.minutos) $("s-min").value = String([5, 10, 15, 30, 60].reduce(function (a, x) { return Math.abs(x - e.minutos) < Math.abs(a - e.minutos) ? x : a; }, 30)); break;
+        case "pasos": $("v-pasos").textContent = (e.pasos || 0).toLocaleString("es"); $("v-calorias").textContent = Math.round((e.calorias || 0) / (e.calorias > 20000 ? 1000 : 1)); $("v-km").textContent = ((e.metros || 0) / 1000).toFixed(2); break;
+        case "error": $("a-estado").textContent = e.mensaje || "Error"; break;
+      }
+    },
+    registro: function (lista) {
+      if (!lista || !lista.length) { $("r-estado").textContent = "No hay avisos nuevos del anillo."; return; }
+      $("r-estado").textContent = "Enviando " + lista.length + " avisos…";
+      fetch(HUB, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ anilloPrueba: 1, sesion: "app" + Date.now().toString(36), equipo: "Alma app · " + navigator.userAgent, eventos: lista }) })
+        .then(function (r) { return r.json(); }).then(function (j) { $("r-estado").textContent = j && j.ok ? "Listo: " + lista.length + " avisos enviados. Avísale a Claude." : "No se pudo enviar (" + ((j && j.error) || "?") + ")."; },
+          function () { $("r-estado").textContent = "Sin conexión. Intenta de nuevo."; });
+    }
+  };
+
+  /* Medición en vivo: 30 s y se detiene sola. */
+  function medir(tipo, boton) {
+    if (midiendo) return;
+    midiendo = tipo; $(boton).disabled = true; $("latido").hidden = tipo !== "ritmo";
+    cmd(tipo === "ritmo" ? "ritmoAhora" : "oxigenoAhora");
+    setTimeout(function () { cmd("pararMedicion", { tipo: tipo === "ritmo" ? 1 : 3 }); midiendo = null; $(boton).disabled = false; $("latido").hidden = true; }, 30000);
+  }
+  $("b-conectar").onclick = function () { nativa({ que: "buscar" }); };
+  $("b-parpadear").onclick = function () { cmd("buscarAnillo"); };
+  $("b-olvidar").onclick = function () { if (confirm("¿Olvidar este anillo en la app?")) nativa({ que: "olvidar" }); };
+  $("b-ritmo").onclick = function () { medir("ritmo", "b-ritmo"); };
+  $("b-oxigeno").onclick = function () { medir("oxigeno", "b-oxigeno"); };
+  $("b-pasos").onclick = function () { cmd("pasos", { dia: 0 }); };
+  $("b-hora").onclick = function () { cmd("hora"); };
+  var guardarAjustes = function () { cmd("ritmoGuardar", { activo: $("i-auto").checked, minutos: +$("s-min").value }); };
+  $("i-auto").onchange = guardarAjustes; $("s-min").onchange = guardarAjustes;
+  $("b-registro").onclick = function () { nativa({ que: "registro" }); };
+
+  nativa({ que: "estado" });
+})();
+</script>
+</body>
+</html>

@@ -123,7 +123,7 @@
     <p class="nota-g" id="d-anillo" hidden></p>
   </div>
   <div class="grupo">
-    <div class="fila" id="p-health-f" hidden><a href="../health/">Health</a><span class="va">›</span></div>
+    <div class="fila" id="p-health-f" hidden><a href="../health/" id="a-health">Health</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
   </div>
   <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
@@ -222,6 +222,13 @@
   }
   function cerrarAjustes() { $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
   $("b-ajustes").onclick = abrirAjustes;
+  /* Health es nativo en la app: se abre encima, sin cargar la página. Si la app es anterior y no contesta, va a la versión web. */
+  window.AlmaHealth = { abierto: function () { window.__healthOk = true; cerrarAjustes(); } };
+  $("a-health").onclick = function (e) {
+    if (!NATIVA) return;
+    e.preventDefault(); window.__healthOk = false; nativa({ accion: "health" });
+    var href = this.href; setTimeout(function () { if (!window.__healthOk) location.href = href; }, 700);
+  };
   $("velo").onclick = cerrarAjustes;
   /* Deslizar el panel hacia abajo lo cierra. */
   (function () {

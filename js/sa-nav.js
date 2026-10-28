@@ -391,14 +391,43 @@
     springs = springs.filter(function (s) { return navP.indexOf(s) < 0; }); navP = [];
     shown.forEach(function (it) {
       var el = d.createElement("div"); el.className = "san-abs san-item"; el.innerHTML = btnHtml(it.l, it.icon, it.badge);
-      pressable(el.firstChild, function () { if (it.k === "__more") openFan("more"); else go(it.k); });
+      pressable(el.firstChild, function () { if (Date.now() - (el.firstChild._sub || 0) < 700) return; if (it.k === "__more") openFan("more"); else go(it.k); });
+      subGesto(el.firstChild, it.k);
       E.items.appendChild(el); itemEls.push(el); navP.push(S(st.S === 2 || st.S === 4 ? 1 : 0));
     });
     markCurrent(); fitLabels();
   }
+  /* ── Opciones de adentro (estado 2) ──
+     Cada pantalla de la barra puede traer sus propias opciones: cfg.items[i].sub = [{ k, l, icon, badge }].
+     Se abren en abanico, con la misma animación que las apps: doble toque (anillo sobre la opción, o la roca con el
+     menú abierto) o, con el dedo, mantener la opción y deslizar hacia el centro de la pantalla. Las apps (Epi, Grow…)
+     solo se abren desde el estado 1. */
+  function subDe(k) { var it = (cfg.items || []).filter(function (x) { return x.k === k; })[0]; return it && it.sub && it.sub.length ? it : null; }
+  function openSub(k) {
+    activity();
+    if (k === "__more") { openFan("more"); return true; }
+    if (!subDe(k)) { nope(); return false; }
+    if (st.S !== 2 && st.S !== 4) setS(2);
+    openFan("sub:" + k);
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+    return true;
+  }
+  function subGesto(btn, k) {
+    var p0 = null, hecho = false;
+    btn.addEventListener("pointerdown", function (e) { p0 = [e.clientX, e.clientY]; hecho = false; try { btn.setPointerCapture(e.pointerId); } catch (x) {} });
+    btn.addEventListener("pointermove", function (e) {
+      if (!p0 || hecho) return;
+      var v = inward(st.anchor), dx = e.clientX - p0[0], dy = e.clientY - p0[1], al = dx * v[0] + dy * v[1], cruz = Math.abs(dx * v[1] - dy * v[0]);
+      if (al > 34 && cruz < al) { hecho = true; btn._sub = Date.now(); btn.classList.remove("pressed"); openSub(k); }
+    });
+    ["pointerup", "pointercancel"].forEach(function (ev) { btn.addEventListener(ev, function () { p0 = null; }); });
+  }
   function buildFan(mode) {
     st.fan = mode;
-    if (mode === "more") fanList = overflow.map(function (it) { return { label: it.l, icon: it.icon, badge: it.badge, k: it.k, tap: function () { go(it.k); } }; });
+    if (/^sub:/.test(mode)) {
+      var padre = subDe(mode.slice(4)) || { sub: [] };
+      fanList = padre.sub.map(function (o) { return { label: o.l, icon: o.icon || padre.icon, badge: o.badge, k: o.k, tap: function () { go(o.k); } }; });
+    } else if (mode === "more") fanList = overflow.map(function (it) { return { label: it.l, icon: it.icon, badge: it.badge, k: it.k, tap: function () { go(it.k); } }; });
     else fanList = APPS.filter(function (a) { return a.k !== cfg.app && (!allowed || allowed.indexOf(a.k) >= 0); })
       .map(function (a) { return { label: a.n, img: HUB + "/assets/apps/glyph-" + a.k + ".webp", badge: appBadge(a.k), tap: function () { openApp(a); }, aria: "Abrir " + a.n + " · " + a.desc }; });
     E.fan.innerHTML = ""; fanEls = [];
@@ -613,8 +642,9 @@
   /* ================= acciones ================= */
   function go(k) {
     if (k === "__tut") { setS(1); activity(); abrirTutoriales(); return; }
-    if (st.S === 3 || st.S === 4) setS(2);
-    if (k !== cfg.current) { cfg.current = k; markCurrent(); setCoreLbl(); }
+    var esSub = /^sub:/.test(st.fan || "") && (st.S === 3 || st.S === 4), base = String(k).split(":")[0];
+    if (st.S === 3 || st.S === 4) setS(esSub ? 1 : 2);
+    if (base !== cfg.current) { cfg.current = base; markCurrent(); setCoreLbl(); }
     activity();
     try { cfg.onNavigate && cfg.onNavigate(k); } catch (e) { console.error(e); }
   }
@@ -677,8 +707,10 @@
   function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
   function onDouble() {
     activity();
+    if (st.S === 2) { openSub(cfg.current); return; }   // estado 2: lo de adentro de la pantalla actual
+    if (st.S === 3) { setS(1); return; } if (st.S === 4) { setS(2); return; }
     if (!multi()) { nope(); return; }
-    if (st.S === 1) openFan("apps"); else if (st.S === 2) openFan("apps"); else if (st.S === 3) setS(1); else setS(2);
+    openFan("apps");                                     // las apps, solo desde el estado 1
   }
 
   /* ================= gestos del botón central ================= */
@@ -721,7 +753,7 @@
         tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; if (n >= 3) almaMini(); else if (n === 2 && multi()) onDouble(); else onSingle(); }, TAP_MS);
         return;
       }
-      if (dock.on || !multi() || st.S === 3 || st.S === 4) { onSingle(); return; }
+      if (dock.on || (!multi() && st.S !== 2) || st.S === 3 || st.S === 4) { onSingle(); return; }
       if (tapT) { clearTimeout(tapT); tapT = null; onDouble(); } else tapT = setTimeout(function () { tapT = null; onSingle(); }, TAP_MS);
     }
     f.addEventListener("pointerup", function () { up(false); });
@@ -859,6 +891,8 @@
      toques idénticos seguidos) y desde entonces los toques en ese punto son del anillo: no tocan la página y controlan
      a Alma. Por app y por equipo (localStorage). SANav.anillo(false) lo olvida; SANav.anillo(true) vuelve a aprender.
        sin llamada ....... 1 toque: menú · 2 toques: apps · 3 toques: Alma por voz minimizada · deslizar: 8 posiciones
+       menú abierto ...... ↑↓ marcan una opción · 1 toque: entra · 2 toques: abre sus opciones (abanico) · doble ↓: cierra
+       opciones abiertas . ↑↓ marcan · 1 toque: entra · 2 toques: vuelve a la barra
        Alma minimizada ... deslizar ↑: al centro (luego ↑↓ la mueven) · 1 toque: al centro · 2 toques: termina
        Alma al centro .... deslizar ↓: termina · deslizar ↑: se minimiza arriba · 1 toque: pausa el micrófono */
   var RING = { pt: null, prev: [], taps: 0, tT: null, on: false, aprender: false };
@@ -920,7 +954,12 @@
       if (it.k === "__more") { openFan("more"); anilloFocoInicial(); return; }
       go(it.k); setS(1); anilloFoco(-1); return;
     }
-    if (nv === "fan") { var f = fanList[i]; if (!f) return; var wasMore = st.fan === "more"; f.tap(); if (wasMore) setS(1); anilloFoco(-1); }
+    if (nv === "fan") { var f = fanList[i]; if (!f) return; var wasMore = st.fan === "more"; f.tap(); if (wasMore && st.S !== 1) setS(1); anilloFoco(-1); }
+  }
+  /* Estado 2 con el anillo: doble toque sobre la opción marcada abre sus opciones en abanico (sin opciones: se sacude). */
+  function anilloSub() {
+    var i = RING.nivel === "bar" && RING.foco >= 0 ? RING.foco : -1, it = i >= 0 ? shown[i] : null;
+    if (openSub(it ? it.k : cfg.current)) anilloFocoInicial();
   }
   function anilloMenuAtras() {
     activity();
@@ -929,7 +968,7 @@
   }
   function anilloAccion(n) {
     activity();
-    if (!AL.on && !AL.min && st.S !== 1) { if (n === 1) anilloMenuEntrar(); else if (n === 2) anilloMenuAtras(); return; }
+    if (!AL.on && !AL.min && st.S !== 1) { if (n === 1) anilloMenuEntrar(); else if (n === 2 && st.S === 2) anilloSub(); else if (n === 2) anilloMenuAtras(); return; }
     if (AL.on && !AL.chat) {
       if (n !== 1) return;
       AL.mudo = !AL.mudo; if (AL.ses && AL.ses.mute) { try { AL.ses.mute(AL.mudo); } catch (x) {} }

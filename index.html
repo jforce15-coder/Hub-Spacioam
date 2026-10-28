@@ -4032,7 +4032,7 @@ class Component extends DCLogic {
       app: "hub", home: { k: "hub", l: "Inicio" }, current: v, hidden: v === "login" || v === "cargando" || !!this._appAbierta,   /* app abierta encima: trae su propio Alma y su «?» */
       apps: ["hub", "hola", "epi", "grow", "mi", "docs"],   /* el Hub es solo del equipo administrador: ve todas las apps */
       items: [
-        { k: "hoy", l: "Hoy", icon: "sun" }, { k: "alma", l: "Alma", icon: "chat" }, { k: "accion", l: "Acción", icon: "bolt" },
+        { k: "hoy", l: "Hoy", icon: "sun" }, { k: "alma", l: "Alma", icon: "chat", sub: this.almaSubMenu() }, { k: "accion", l: "Acción", icon: "bolt" },
         { k: "reviews", l: "Reviews", icon: "review" }, { k: "tareas", l: "Tareas", icon: "task" }, { k: "calendario", l: "Calendario", icon: "calendar" },
         { k: "llegadas", l: "Llegadas", icon: "door" }, { k: "cuenta", l: "Cuenta", icon: "user" }
       ],
@@ -4044,7 +4044,34 @@ class Component extends DCLogic {
     };
     if (!this._navOn) { this._navOn = true; SANav.mount(c); } else SANav.update(c);
   }
+  /* Opciones de adentro de «Alma» en el menú compartido (estado 2: doble toque o deslizar la opción hacia arriba).
+     Los números salen del último cálculo de los filtros de la bandeja (_almaCnt). */
+  almaSubMenu() {
+    var n = this._almaCnt || {}, ppal = this.rol && this.rol() === "admin";
+    return [
+      { k: "alma:resumen", l: "Resumen", icon: "dash" },
+      { k: "alma:ATN", l: "Atención", icon: "bell", badge: n.ATN || 0 },
+      { k: "alma:WA", l: "WhatsApp", icon: "chat", badge: n.WA || 0 },
+      { k: "alma:HOSP", l: "Hospitable", icon: "home", badge: n.HOSP || 0 },
+      { k: "alma:OP", l: ppal ? "Equipo" : "Mi chat", icon: "users" },
+      { k: "alma:lista", l: "Ver todo", icon: "list" }
+    ];
+  }
   navIr(k) {
+    if (/^alma:/.test(k)) {
+      var x = k.slice(5);
+      if (x === "resumen" || x === "lista") { this.setMVistaV(x); this.setState({ vista: "alma", menu: false }); }
+      else {
+        var F = { ATN: { convSolo: "ATENCION", convOrden: "Prioridad" }, WA: { convCanal: "whatsapp" }, HOSP: { convCanal: "hospitable" }, OP: { convCanal: "operativo", convOrden: "Cronológico" } }[x] || {};
+        this._fijos = {};
+        try { localStorage.setItem("sa_m_vista", "atencion"); } catch (e) {}
+        this.setState(Object.assign({ logFiltro: "Todo", convVista: "", convSolo: "", convCanal: "", logQuien: "Todos", logResp: "Todas", convOrden: null, convIdx: 0, briefIdx: 0, filtroMenu: false }, F,
+          { cronoLista: true, mVista: "atencion", selG: null, vista: "alma", menu: false }));
+        if (this.convReset) this.convReset();
+      }
+      if (!this.state.alma) this.almaCargar();
+      return;
+    }
     if (k === "alma") { this.setMVistaV("resumen"); this.setState({ vista: "alma", menu: false }); if (!this.state.alma) this.almaCargar(); return; }
     this.setState({ vista: k, menu: false });
   }
@@ -7988,6 +8015,7 @@ class Component extends DCLogic {
           ["OP", esPrincipal ? "Equipo · chats con ALMA" : "Mi chat con ALMA", "#3E3F3F", null, { convCanal: "operativo", convOrden: "Cronológico" }, cOn === "operativo"]
         ];
         var act = defs.filter(function (d) { return d[5]; })[0] || defs[1], ab = !!st.filtroMenu;
+        self._almaCnt = {}; defs.forEach(function (d) { self._almaCnt[d[0]] = d[3] || 0; });   // números para el menú compartido
         return { label: act[1], punto: act[2], n: String(act[3] || 0), hayN: act[3] > 0, abierto: ab, ariaExp: ab ? "true" : "false",
           menuOp: ab ? "1" : "0", menuTf: ab ? "translateY(0) scale(1)" : "translateY(-4px) scale(.98)", menuVis: ab ? "visible" : "hidden", menuPe: ab ? "auto" : "none", chevron: ab ? "rotate(180deg)" : "rotate(0deg)",
           toggle: function () { self.setState({ filtroMenu: !ab }); }, cerrar: function () { self.setState({ filtroMenu: false }); },

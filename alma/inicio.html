@@ -67,6 +67,7 @@
   .fila.boton { cursor: pointer; justify-content: center; font-weight: 600; }
   .fila.boton.rojo { color: #D9583A; }
   .fila a { color: inherit; text-decoration: none; flex: 1; }
+  .nota-g { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 0; padding: 0 16px 12px; }
   .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
 
   /* ── Entrar ── */
@@ -114,6 +115,10 @@
   <div class="grupo" id="g-face" hidden>
     <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
   </div>
+  <div class="grupo" id="g-anillo" hidden>
+    <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
+    <p class="nota-g" id="n-anillo">Dos toques en tu anillo y Alma te escucha, aunque el teléfono esté bloqueado. Otros dos toques la pausan. El anillo va en modo Music.</p>
+  </div>
   <div class="grupo">
     <div class="fila" id="p-health-f" hidden><a href="../health/">Health</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
@@ -140,7 +145,7 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-10-24i"></script>
+<script src="../js/alma-client.js?v=2026-10-28v"></script>
 <script src="../js/alma-voz.js?v=2026-10-25c"></script>
 <script src="../js/sa-nav.js?v=2026-10-28c"></script>
 <script>
@@ -230,12 +235,28 @@
       if (r && r.ok && r.llave) nativa({ accion: "faceGuardar", email: r.email, llave: r.llave }); else sw.checked = false;
     }, function () { sw.checked = false; }).then(function () { sw.disabled = false; });
   };
+  /* ── Alma con el anillo (app de iPhone): la app guarda en su llavero cómo pedir tu ficha de voz y queda lista en segundo plano ── */
+  function vozConfig() {
+    if (!NATIVA || !hay() || !window.ALMA || !ALMA.destino) return;
+    var d = ALMA.destino(); nativa({ accion: "voz", que: "configurar", url: d.url, token: d.token, sesion: SAAuth.session() });
+  }
+  window.AlmaVoz = {
+    evento: function (e) {
+      if (!e) return;
+      if (e.tipo === "estado") { $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo; }
+      if (e.tipo === "error" && e.mensaje) $("n-anillo").textContent = e.mensaje;
+    }
+  };
+  $("i-anillo").onchange = function () { vozConfig(); nativa({ accion: "voz", que: "anillo", on: this.checked }); };
+  if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
+
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */
   function salir() {
     if (!confirm("¿Cerrar sesión en Alma?")) return;
     try { window.SAAuth && SAAuth.clearSession && SAAuth.clearSession(); } catch (e) {}
     try { window.SA && SA.logout && SA.logout(); } catch (e) {}
     try { localStorage.removeItem("sa_alma_voz_ficha"); } catch (e) {}
+    if (NATIVA) nativa({ accion: "voz", que: "anillo", on: false });
     location.reload();
   }
   $("b-salir").onclick = salir;
@@ -280,6 +301,7 @@
     if (NATIVA && como !== "face" && SAAuth.faceEnroll) {
       SAAuth.faceEnroll().then(function (r) { if (r && r.ok && r.llave) nativa({ accion: "faceGuardar", email: r.email, llave: r.llave }); }, function () {});
     }
+    vozConfig(); if (NATIVA) nativa({ accion: "voz", que: "estado" });
     try { document.activeElement && document.activeElement.blur(); } catch (e) {}
     $("entrar").classList.add("fuera");
     setTimeout(function () {

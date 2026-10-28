@@ -107,10 +107,16 @@ function paraClaudeRespuesta_(b) {
       (voz ? voz + '\n\n' : '') + String(b.detalle || '').trim().slice(0, 3000) + (enlaces.length ? '\n\n' + enlaces.join('\n') : '');
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? 'PR listo' : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
-    opGuardar_(DESARROLLO_, 'alma', 'hub', texto, []);
+    opGuardar_(DESARROLLO_, 'alma', 'hub', paraClaudeFecha_() + ' · ' + texto, []);   // cada mensaje de Claude empieza con la fecha
     paraClaudeAvisar_(titulo, voz || texto.slice(0, 200), estado);
     return { ok: true };
   } finally { lock.releaseLock(); }
+}
+/* Fecha legible en hora de Guatemala, ej. «28 Oct 2026». */
+function paraClaudeFecha_() {
+  var d = new Date(), m = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  var dia = Utilities.formatDate(d, 'America/Guatemala', 'd'), mes = Number(Utilities.formatDate(d, 'America/Guatemala', 'M')) - 1;
+  return dia + ' ' + m[mes] + ' ' + Utilities.formatDate(d, 'America/Guatemala', 'yyyy');
 }
 /* WhatsApp de una línea al principal + novedad pendiente para su próxima llamada con Alma. */
 function paraClaudeAvisar_(titulo, voz, estado) {

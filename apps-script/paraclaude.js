@@ -64,6 +64,20 @@ function paraClaudeCrear_(adm, inp) {
     nota: disparo.ok ? 'Ya se lo pasé a Claude. Está trabajando en eso; cuando termine te cuento en corto y queda en la conversación Desarrollo.' :
       issue ? 'Quedó enviado a Claude (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claude en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
 }
+/* hub.spacioam.com/claude.html: el admin principal pega ahí la llave de la tarea (la pantalla de Propiedades del script
+   no deja agregar más de 50). Con llave vacía solo dice si ya hay una guardada; nunca la devuelve. */
+function paraClaudeLlave_(ses, llave) {
+  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
+  if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }   // también con su correo alterno
+  if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal puede guardar esta llave.' };
+  var p = PropertiesService.getScriptProperties(); llave = String(llave || '').trim();
+  if (llave) {
+    if (!/^sk-ant-oat01-[\w-]{20,}$/.test(llave)) return { ok: false, error: 'Esa no parece la llave de la tarea: empieza con sk-ant-oat01-' };
+    p.setProperty('CLAUDE_RUTINA_TOKEN', llave);
+  }
+  var t = p.getProperty('CLAUDE_RUTINA_TOKEN') || '';
+  return { ok: true, guardada: !!t, termina: t ? t.slice(-4) : '' };
+}
 /* Dispara la tarea de Claude Code. Devuelve { ok, url } o { ok:false, error }. Sin reintentos: cada disparo abre una sesión. */
 function paraClaudeDisparar_(pedido) {
   var p = PropertiesService.getScriptProperties(), tok = p.getProperty('CLAUDE_RUTINA_TOKEN'), rutina = p.getProperty('CLAUDE_RUTINA_ID') || CLAUDE_RUTINA_DEF_;

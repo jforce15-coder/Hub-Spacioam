@@ -195,7 +195,15 @@
   $("i-auto").onchange = guardarAjustes; $("s-min").onchange = guardarAjustes;
   $("b-registro").onclick = function () { nativa({ que: "registro" }); };
 
+  /* Si la app no contesta, es una versión de antes del anillo: se avisa en vez de dejar botones que no hacen nada. */
+  var contesto = false, ev0 = AlmaAnillo.evento;
+  AlmaAnillo.evento = function (e) { contesto = true; ev0(e); };
   nativa({ que: "estado" });
+  setTimeout(function () {
+    if (contesto) return;
+    $("todo").hidden = true; $("sin-acceso").hidden = false;
+    $("sin-acceso").innerHTML = "Para conectar tu anillo, actualiza la app de Alma en TestFlight<br>(versión 1.0 (20) o más nueva) y vuelve a abrir Health.";
+  }, 1500);
 })();
 </script>
 </body>

@@ -1958,7 +1958,17 @@ function redactarVerificado_(ctx) {
 }
 
 /* Imagen para Claude: URL pública (Hospitable) o foto de WhatsApp guardada en Drive (se envía en base64). */
+/* Chat de Alma (app y web apps): una foto que manda alguien del equipo. Alma (ElevenLabs) no ve imágenes: aquí se describe
+   con todo lo útil (texto visible, números, problema, lugar) y Alma recibe esa descripción. Solo con sesión del equipo. */
+function almaFoto_(ses, foto) {
+  if (!ses || !ses.email) return { ok: false, error: 'session' };
+  foto = String(foto || ''); if (!/^data:image\/(jpeg|png|webp);base64,/.test(foto) || foto.length > 6000000) return { ok: false, error: 'foto' };
+  var t = claude_(CFG.MODELO_REDACTOR, 500, 'Describe en español, en 2 a 5 frases, la foto que una persona del equipo de Spacio AM (apartamentos de estadía corta en Guatemala) le manda a su asistente Alma. Incluye todo lo útil: texto o números visibles (montos, fechas, códigos, nombres), qué lugar o cosa se ve, y cualquier daño, problema o pendiente. Solo lo que se ve; sin suponer.', 'Esta es la foto.', 0.2, [foto]);
+  return t ? { ok: true, texto: String(t).trim().slice(0, 1500) } : { ok: false, error: 'lectura' };
+}
 function imgBloque_(u) {
+  var dm = /^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/.exec(String(u || ''));
+  if (dm) return { type: 'image', source: { type: 'base64', media_type: dm[1], data: dm[2] } };
   const id = (String(u || '').match(/drive\.google\.com\/thumbnail\?id=([\w-]+)/) || [])[1];
   if (!id) return u ? { type: 'image', source: { type: 'url', url: u } } : null;
   try {
@@ -3057,6 +3067,7 @@ function hubApi_(body) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
+      case 'almaFoto': return json_(almaFoto_(ses, body.foto));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero));                    // Alma por voz desde el menú (voz.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id));
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));

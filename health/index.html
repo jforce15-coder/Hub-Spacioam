@@ -4,113 +4,445 @@
 <script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#B9ABAE">
+<meta name="theme-color" content="#FBF9F7">
 <title>Health</title>
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
 <link rel="stylesheet" href="../ds/tokens/fonts.css">
-<!-- Health: lo que mide el anillo QRing (ritmo cardíaco, oxígeno, pasos) y sus ajustes, sin la app del anillo.
-     El anillo se conecta por Bluetooth a la app de Alma (alma-app · Anillo.swift); esta página le habla por el puente
-     (webkit.messageHandlers.alma · accion "anillo") y recibe cada dato en AlmaAnillo.evento.
-     Por ahora solo para el administrador principal. -->
+<!-- Health · el cuerpo, en calma. Menú bento con lo que mide el anillo QRing (Bluetooth, alma-app · Anillo.swift)
+     y lo que guarda Apple Salud (reloj, teléfono u otras apps · alma-app · Salud.swift). La app responde por el puente
+     webkit.messageHandlers.alma: accion "anillo" → AlmaAnillo.evento(e) · accion "salud" → AlmaSalud.datos(d).
+     Fuera de la app (o con ?demo=1) se ven datos de ejemplo para revisar el diseño. Por ahora: administrador principal. -->
 <style>
-  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --coral: #E9826A; }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; }
-  body { background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; font-family: Montserrat, system-ui, sans-serif; color: var(--tinta);
-    padding: max(18px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); -webkit-tap-highlight-color: transparent; }
-  main { max-width: 520px; margin: 0 auto; }
-  header { display: flex; align-items: center; gap: 10px; margin: 8px 2px 18px; }
-  header a { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #FFFDFB; text-decoration: none;
-    background: rgba(255,255,255,.18); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
-  h1 { margin: 0; font: 400 34px Valky, Georgia, serif; color: #FFFDFB; text-shadow: 0 2px 14px rgba(60,40,40,.28); }
-  .tarjeta { background: rgba(250,248,246,.86); -webkit-backdrop-filter: blur(24px) saturate(1.3); backdrop-filter: blur(24px) saturate(1.3);
-    border-radius: 22px; padding: 16px; margin-bottom: 14px; box-shadow: 0 14px 30px -22px rgba(40,30,25,.5); }
-  .tarjeta h2 { margin: 0 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); }
-  .fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; }
-  .fila + .fila { border-top: .5px solid rgba(62,63,63,.12); }
-  .grande { font: 300 46px/1 Montserrat, system-ui, sans-serif; }
-  .grande small { font-size: 15px; color: var(--suave); margin-left: 4px; }
-  .dato { color: var(--suave); font-size: 14px; }
-  .tres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
-  .tres b { display: block; font-size: 22px; font-weight: 500; }
-  .tres span { font-size: 12px; color: var(--suave); }
-  button { font: 600 14px Montserrat, system-ui, sans-serif; border: 0; border-radius: 999px; padding: 11px 16px; cursor: pointer; color: var(--tinta); background: rgba(62,63,63,.08); }
-  button.prin { background: var(--coral); color: #fff; }
-  button:disabled { opacity: .5; }
-  .botones { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  select { font: 500 14px Montserrat, system-ui, sans-serif; border: 0; border-radius: 12px; padding: 8px 10px; background: rgba(62,63,63,.08); color: var(--tinta); }
+  :root {
+    color-scheme: light;
+    --fondo: #FBF9F7; --papel: #FFFFFF; --arena: #F3EEE9; --linea: rgba(62,63,63,.08);
+    --tinta: #2F3030; --suave: #8A8580; --tenue: #B9B2AB;
+    --durazno: #F2B39E; --durazno-2: #F8D5C7; --durazno-3: #FCEDE6; --coral: #E9826A; --tierra: #B5624E;
+    --sueno: #8E8BD6; --sueno-2: #C9C6F2; --agua: #7FB7D9; --salvia: #9DBE9B; --sol: #F2C46D;
+    --r: 26px; --sombra: 0 1px 1px rgba(60,40,30,.03), 0 12px 32px -18px rgba(60,40,30,.22);
+    --ease: cubic-bezier(.22,.61,.36,1); --rebote: cubic-bezier(.3,1.3,.55,1);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--fondo); color: var(--tinta); font: 400 15px/1.45 Montserrat, system-ui, sans-serif; }
+  body { padding: max(14px, env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom)); -webkit-font-smoothing: antialiased; }
+  main { max-width: 560px; margin: 0 auto; }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+  [hidden] { display: none !important; }
+  .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--suave); }
+  .serif { font-family: Valky, "Cormorant Garamond", Georgia, serif; font-weight: 400; }
+  .num { font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+
+  /* ── Encabezado ── */
+  header { display: flex; align-items: center; gap: 12px; margin: 6px 0 16px; }
+  .atras { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--papel); box-shadow: var(--sombra); color: var(--tinta); text-decoration: none; transition: transform .15s; }
+  .atras:active { transform: scale(.92); }
+  header .t { flex: 1; }
+  header h1 { margin: 0; font-size: 38px; line-height: 1; letter-spacing: -.01em; }
+  header .eyebrow { display: block; margin-bottom: 4px; }
+
+  /* Alma en durazno: la misma piedra, aquí más clara */
+  .orbe { position: relative; width: 44px; height: 44px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 36% 30%, #FFFBF8 0%, #FCE6DC 38%, #F6C7B5 74%, #EFAE97 100%);
+    box-shadow: 0 10px 22px -10px rgba(233,130,106,.55), inset 0 -3px 6px rgba(181,98,78,.12), inset 0 2px 3px rgba(255,255,255,.8); }
+  .orbe::before { content: ""; position: absolute; inset: -10px; border-radius: 50%; background: radial-gradient(closest-side, rgba(242,179,158,.45), rgba(242,179,158,0)); z-index: -1; animation: respirar 5.5s ease-in-out infinite; }
+  .orbe svg { position: absolute; inset: 0; margin: auto; width: 34%; height: 34%; color: rgba(181,98,78,.45); }
+  @keyframes respirar { 0%,100% { transform: scale(.92); opacity: .7; } 50% { transform: scale(1.08); opacity: 1; } }
+
+  /* ── Bento ── */
+  .bento { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .c { position: relative; background: var(--papel); border-radius: var(--r); box-shadow: var(--sombra); padding: 16px; overflow: hidden; min-height: 150px;
+    opacity: 0; transform: translateY(14px) scale(.985); animation: entra .8s var(--ease) forwards; text-align: left; width: 100%; display: block; }
+  .c:active { transform: scale(.98); transition: transform .12s; }
+  .c.ancha { grid-column: span 2; }
+  .c .eyebrow { display: flex; align-items: center; gap: 6px; }
+  .c .eyebrow i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+  .c .valor { margin-top: 10px; font-size: 34px; font-weight: 300; line-height: 1; }
+  .c .valor small { font-size: 13px; color: var(--suave); font-weight: 500; margin-left: 3px; letter-spacing: 0; }
+  .c .pie { margin-top: 8px; font-size: 12px; color: var(--suave); }
+  .c .flecha { position: absolute; top: 14px; right: 14px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--arena); color: var(--suave); }
+  .c svg.mini { display: block; width: 100%; height: 46px; margin-top: 10px; overflow: visible; }
+  @keyframes entra { to { opacity: 1; transform: none; } }
+
+  /* Portada editorial */
+  .portada { grid-column: span 2; min-height: 420px; padding: 0; color: #fff; background: #EAD9CF; }
+  .portada .foto { position: absolute; inset: 0; background-size: cover; background-position: center; transform: scale(1.06); animation: acerca 14s var(--ease) forwards; }
+  .portada::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(40,30,26,.28) 0%, rgba(40,30,26,0) 34%, rgba(40,30,26,0) 52%, rgba(40,30,26,.5) 100%); }
+  @keyframes acerca { to { transform: scale(1); } }
+  .portada .arriba, .portada .abajo { position: absolute; left: 20px; right: 20px; z-index: 1; }
+  .portada .arriba { top: 18px; }
+  .portada .arriba .eyebrow { color: rgba(255,255,255,.85); }
+  .portada h2 { margin: 6px 0 0; font-size: 34px; line-height: 1.05; text-shadow: 0 2px 18px rgba(40,30,26,.25); }
+  .portada h2 em { font-style: italic; }
+  .portada .abajo { bottom: 18px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+  .vital { position: relative; width: 118px; height: 118px; flex: none; }
+  .vital svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .vital .centro { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .vital b { display: block; font-size: 38px; font-weight: 300; line-height: 1; }
+  .vital span { font-size: 9.5px; letter-spacing: .16em; text-transform: uppercase; opacity: .9; }
+  .vidrio { background: rgba(255,255,255,.2); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); box-shadow: inset 0 0 0 .5px rgba(255,255,255,.45); border-radius: 18px; padding: 10px 12px; font-size: 12.5px; line-height: 1.35; max-width: 60%; }
+  .vidrio b { display: block; font-weight: 600; font-size: 13px; }
+
+  /* Actividad: tres anillos concéntricos (los mismos círculos del anillo y de Alma) */
+  .act { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
+  .aros { width: 128px; height: 128px; flex: none; }
+  .aros circle { fill: none; stroke-linecap: round; transition: stroke-dashoffset 1.6s var(--ease); }
+  .act ul { list-style: none; margin: 0; padding: 0; flex: 1; display: grid; gap: 8px; }
+  .act li { display: grid; grid-template-columns: 9px 1fr auto; align-items: center; gap: 8px; font-size: 12.5px; color: var(--suave); }
+  .act li i { width: 9px; height: 9px; border-radius: 50%; }
+  .act li b { color: var(--tinta); font-size: 17px; font-weight: 500; }
+  .act li small { grid-column: 2 / 4; margin-top: -6px; font-size: 11px; color: var(--tenue); }
+  .barras { display: flex; align-items: flex-end; gap: 3px; height: 54px; margin-top: 14px; }
+  .barras span { flex: 1; border-radius: 3px 3px 1px 1px; background: var(--durazno-2); transform-origin: bottom; transform: scaleY(0); animation: crece .9s var(--ease) forwards; }
+  .barras span.ya { background: var(--coral); }
+  .ejes { display: flex; justify-content: space-between; font-size: 10px; color: var(--tenue); margin-top: 5px; }
+  @keyframes crece { to { transform: scaleY(1); } }
+
+  /* Sueño */
+  .sueno { padding: 0; color: #fff; min-height: 300px; background: #3B3A57; }
+  .sueno .foto { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: .78; }
+  .sueno::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(36,34,60,.15), rgba(36,34,60,.82) 72%); }
+  .sueno .dentro { position: relative; z-index: 1; padding: 16px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; min-height: 300px; }
+  .sueno .eyebrow { color: rgba(255,255,255,.82); position: absolute; top: 16px; left: 16px; }
+  .sueno .valor small { color: rgba(255,255,255,.75); }
+  .hipno { display: flex; height: 44px; margin-top: 12px; gap: 1px; align-items: stretch; }
+  .hipno span { border-radius: 3px; transform: scaleY(0); transform-origin: bottom; animation: crece .7s var(--ease) forwards; }
+  .leyenda { display: flex; gap: 12px; margin-top: 8px; font-size: 10.5px; opacity: .85; flex-wrap: wrap; }
+  .leyenda i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 4px; }
+
+  /* Ritmo en vivo */
+  .latido { color: var(--coral); display: inline-block; animation: latir 1s ease-in-out infinite; transform-origin: center; }
+  .latido.quieto { animation: none; opacity: .5; }
+  @keyframes latir { 0%,100% { transform: scale(1); } 14% { transform: scale(1.28); } 28% { transform: scale(1); } 42% { transform: scale(1.14); } }
+  .trazo { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 600; stroke-dashoffset: 600; animation: dibuja 1.8s var(--ease) .3s forwards; }
+  @keyframes dibuja { to { stroke-dashoffset: 0; } }
+
+  /* Respira con Alma */
+  .calma { padding: 0; color: var(--tinta); min-height: 230px; background: #F1E7E0; }
+  .calma .foto { position: absolute; inset: 0; background-size: cover; background-position: center; }
+  .calma::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(251,249,247,.92) 0%, rgba(251,249,247,.55) 48%, rgba(251,249,247,0) 100%); }
+  .calma .dentro { position: relative; z-index: 1; padding: 18px; max-width: 62%; }
+  .calma h3 { margin: 6px 0 4px; font-size: 26px; line-height: 1.05; }
+  .calma p { margin: 0; font-size: 12.5px; color: var(--suave); }
+  .calma .ir { margin-top: 14px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: var(--tinta); color: #fff; font-weight: 600; font-size: 13px; }
+
+  /* Anillo (dibujo de línea que gira) */
+  .anillo-c { display: flex; align-items: center; gap: 14px; min-height: 120px; }
+  .anillo-c .t { flex: 1; }
+  .anillo-c b { display: block; font-size: 17px; font-weight: 500; }
+  .anillo-c span { font-size: 12.5px; color: var(--suave); }
+  .pila { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--suave); }
+  .pila i { width: 26px; height: 11px; border-radius: 3px; border: 1.5px solid var(--tenue); position: relative; }
+  .pila i::after { content: ""; position: absolute; left: 1.5px; top: 1.5px; bottom: 1.5px; width: calc((100% - 3px) * var(--n, 0)); border-radius: 1.5px; background: var(--salvia); transition: width 1s var(--ease); }
+  .linea-anillo { width: 92px; height: 92px; flex: none; color: var(--tinta); }
+  .linea-anillo .gira { transform-box: fill-box; transform-origin: center; animation: voltear 5s ease-in-out infinite; }
+
+  .fuentes { display: flex; align-items: center; gap: 12px; }
+  .fuentes .ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--durazno-3); color: var(--coral); flex: none; }
+  .fuentes b { display: block; font-size: 14.5px; font-weight: 600; }
+  .fuentes span { font-size: 12px; color: var(--suave); }
+  .chip { margin-left: auto; padding: 8px 12px; border-radius: 999px; background: var(--tinta); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .chip.ok { background: var(--arena); color: var(--suave); }
+  .nota-demo { text-align: center; font-size: 11.5px; color: var(--tenue); margin: 18px 0 0; }
+
+  /* ── Detalle (hoja que sube) ── */
+  .velo { position: fixed; inset: 0; background: rgba(47,48,48,.22); opacity: 0; pointer-events: none; transition: opacity .35s ease; z-index: 50; }
+  .velo.on { opacity: 1; pointer-events: auto; }
+  .hoja { position: fixed; left: 50%; bottom: 0; width: min(560px, 100%); max-height: 90vh; overflow: auto; z-index: 51; background: var(--fondo); border-radius: 30px 30px 0 0;
+    padding: 10px 18px calc(22px + env(safe-area-inset-bottom)); transform: translate(-50%, 105%); transition: transform .55s cubic-bezier(.3,1.08,.5,1); box-shadow: 0 -20px 50px -24px rgba(40,30,25,.35); }
+  .hoja.on { transform: translate(-50%, 0); }
+  .asa { width: 38px; height: 5px; border-radius: 3px; background: rgba(62,63,63,.18); margin: 0 auto 14px; }
+  .hoja h2 { margin: 2px 0 2px; font-size: 32px; }
+  .hoja-foto { height: 190px; margin: 0 -18px 16px; background: var(--arena) center / cover; border-radius: 0; mask-image: linear-gradient(180deg, #000 70%, transparent); -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); }
+  .hoja .grande { font-size: 56px; font-weight: 200; line-height: 1; margin: 12px 0 4px; }
+  .hoja .grande small { font-size: 15px; color: var(--suave); font-weight: 500; margin-left: 4px; letter-spacing: 0; }
+  .grafica { background: var(--papel); border-radius: 22px; box-shadow: var(--sombra); padding: 14px 12px 8px; margin: 14px 0; }
+  .grafica svg { width: 100%; height: 170px; display: block; overflow: visible; }
+  .grafica .ejes { padding: 0 4px; }
+  .tres { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--papel); border-radius: 22px; box-shadow: var(--sombra); }
+  .tres div { padding: 14px 6px; text-align: center; }
+  .tres div + div { border-left: .5px solid var(--linea); }
+  .tres b { display: block; font-size: 24px; font-weight: 400; }
+  .tres span { font-size: 11px; color: var(--suave); }
+  .zonas { background: var(--papel); border-radius: 22px; box-shadow: var(--sombra); padding: 14px 16px; margin-top: 14px; }
+  .zonas .z { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; font-size: 12.5px; margin: 8px 0; }
+  .zonas .z i { grid-column: 1 / 3; height: 6px; border-radius: 3px; background: var(--arena); overflow: hidden; }
+  .zonas .z i::after { content: ""; display: block; height: 100%; width: var(--p, 0%); background: var(--col, var(--coral)); border-radius: 3px; transition: width 1.2s var(--ease); }
+  .accion { display: flex; gap: 10px; margin-top: 16px; }
+  .boton { flex: 1; height: 52px; border-radius: 999px; background: var(--tinta); color: #fff; font-weight: 600; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .12s; }
+  .boton:active { transform: scale(.97); }
+  .boton.claro { background: var(--papel); color: var(--tinta); box-shadow: var(--sombra); }
+  .boton:disabled { opacity: .5; }
+  .ajuste { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--papel); border-radius: 18px; box-shadow: var(--sombra); margin-top: 10px; font-size: 14.5px; }
+  .ajuste small { display: block; font-size: 11.5px; color: var(--suave); }
+  select { font: 500 14px Montserrat, system-ui, sans-serif; border: 0; border-radius: 12px; padding: 8px 10px; background: var(--arena); color: var(--tinta); }
   .interruptor { position: relative; width: 51px; height: 31px; flex: none; }
   .interruptor input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
-  .interruptor span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120,120,128,.24); transition: background .25s; pointer-events: none; }
-  .interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform .3s cubic-bezier(.3,1.3,.55,1); }
+  .interruptor span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120,120,128,.2); transition: background .25s; pointer-events: none; }
+  .interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform .3s var(--rebote); }
   .interruptor input:checked + span { background: var(--coral); }
   .interruptor input:checked + span::after { transform: translateX(20px); }
-  .lista button { width: 100%; text-align: left; margin-top: 6px; display: flex; justify-content: space-between; }
-  .nota { font-size: 12.5px; color: var(--suave); line-height: 1.45; margin: 8px 0 0; }
-  .latido { display: inline-block; color: var(--coral); animation: latir 1s ease-in-out infinite; }
-  @keyframes latir { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.25); } 30% { transform: scale(1); } }
-  .aviso { text-align: center; color: #FFFDFB; text-shadow: 0 1px 8px rgba(60,40,40,.4); margin-top: 30vh; line-height: 1.5; }
-  [hidden] { display: none !important; }
+
+  /* ── Conexión del anillo (pantalla completa, dibujos de línea) ── */
+  .conexion { position: fixed; inset: 0; z-index: 60; background: var(--fondo); display: flex; flex-direction: column; align-items: center;
+    padding: max(18px, env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom)); opacity: 0; pointer-events: none; transition: opacity .45s ease; overflow: hidden; }
+  .conexion.on { opacity: 1; pointer-events: auto; }
+  .conexion .cerrar { align-self: flex-start; }
+  .escena { position: relative; flex: 1; width: 100%; max-width: 420px; display: grid; place-items: center; }
+  .escena svg.dibujo { width: min(78vw, 330px); height: auto; overflow: visible; }
+  .dibujo .l { fill: none; stroke: var(--tinta); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; transition: stroke 1.2s var(--ease); }
+  .dibujo .a { stroke: var(--coral); }
+  .anillo3d { transform-box: fill-box; transform-origin: center; }
+  .conexion.buscando .anillo3d { animation: balancea 3.6s ease-in-out infinite; }
+  @keyframes balancea { 0%,100% { transform: rotate(-6deg) scaleX(1); } 50% { transform: rotate(6deg) scaleX(.82); } }
+  @keyframes voltear { 0% { transform: scaleX(1); } 25% { transform: scaleX(.16); } 50% { transform: scaleX(-1); } 75% { transform: scaleX(-.16); } 100% { transform: scaleX(1); } }
+  .dibujo .vista { transition: opacity .6s var(--ease), transform .8s var(--ease); transform-box: fill-box; transform-origin: center; }
+  .dibujo .banda { opacity: 0; transform: scale(.8); }
+  .conexion.buscando .mano, .conexion.eligiendo .mano { opacity: 0; transform: scale(.9); }
+  .conexion.buscando .banda, .conexion.eligiendo .banda { opacity: 1; transform: none; }
+  .dibujo .toque { opacity: 0; }
+  .conexion.conectando .flechas { animation: none; opacity: 0; }
+  .conexion.conectando .toque { animation: toca 1.1s ease-in-out infinite; }
+  .dibujo .flechas { animation: desliza 2.2s ease-in-out infinite; transform-box: fill-box; }
+  @keyframes desliza { 0%,100% { transform: translateY(-3px); opacity: .5; } 50% { transform: translateY(3px); opacity: 1; } }
+  @keyframes toca { 0%,40%,100% { opacity: 0; } 10%,30% { opacity: 1; } 55%,75% { opacity: 1; } 65% { opacity: .2; } }
+  .ondas circle { fill: none; stroke: var(--durazno); stroke-width: 1.2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+  .conexion.buscando .ondas circle { animation: onda 2.4s var(--ease) infinite; }
+  .conexion.buscando .ondas circle:nth-child(2) { animation-delay: .8s; }
+  .conexion.buscando .ondas circle:nth-child(3) { animation-delay: 1.6s; }
+  @keyframes onda { 0% { transform: scale(.55); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+  .conexion.conectando .l { stroke: var(--coral); }
+  /* Al final, el anillo se vuelve Alma: el círculo de línea se llena de durazno y aparece el destello */
+  .alma-final { position: absolute; width: 168px; height: 168px; border-radius: 50%; opacity: 0; transform: scale(.4);
+    background: radial-gradient(circle at 36% 30%, #FFFBF8 0%, #FCE6DC 38%, #F6C7B5 74%, #EFAE97 100%);
+    box-shadow: 0 30px 60px -24px rgba(233,130,106,.6), inset 0 -8px 16px rgba(181,98,78,.12); transition: opacity .7s var(--ease), transform 1.1s var(--rebote); display: grid; place-items: center; }
+  .alma-final::before { content: ""; position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(closest-side, rgba(242,179,158,.55), rgba(242,179,158,0)); animation: respirar 5.5s ease-in-out infinite; z-index: -1; }
+  .alma-final svg { width: 30%; color: rgba(181,98,78,.42); }
+  .conexion.listo .dibujo { opacity: 0; transform: scale(1.15); transition: opacity .6s ease, transform 1s var(--ease); }
+  .conexion.listo .alma-final { opacity: 1; transform: scale(1); }
+  .conexion.conectando .mano { transform: scale(1.04); }
+  .texto-con { text-align: center; max-width: 340px; min-height: 120px; }
+  .texto-con h2 { margin: 0 0 6px; font-size: 30px; line-height: 1.08; }
+  .texto-con p { margin: 0; color: var(--suave); font-size: 14px; }
+  .pasos-con { display: flex; gap: 6px; justify-content: center; margin: 14px 0 0; }
+  .pasos-con i { width: 6px; height: 6px; border-radius: 3px; background: var(--linea); transition: width .4s var(--ease), background .4s; }
+  .pasos-con i.on { width: 20px; background: var(--coral); }
+  .lista-con { width: 100%; max-width: 380px; display: grid; gap: 8px; margin-top: 10px; }
+  .lista-con button { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px; background: var(--papel); box-shadow: var(--sombra); text-align: left; animation: entra .6s var(--ease) both; opacity: 0; transform: translateY(10px); }
+  .lista-con button b { flex: 1; font-weight: 600; }
+  .lista-con button span { font-size: 12px; color: var(--suave); }
+  .pie-con { width: 100%; max-width: 380px; display: grid; gap: 10px; margin-top: 14px; }
+
+  /* Respiración */
+  .respira { position: fixed; inset: 0; z-index: 62; display: grid; place-items: center; text-align: center; opacity: 0; pointer-events: none; transition: opacity .6s ease;
+    background: radial-gradient(120% 90% at 50% 40%, #FFF8F4 0%, #FBEDE6 60%, #F6E2D8 100%); }
+  .respira.on { opacity: 1; pointer-events: auto; }
+  .respira .esfera { width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 34px; transition: transform 4s cubic-bezier(.45,0,.55,1);
+    background: radial-gradient(circle at 36% 30%, #FFFBF8 0%, #FCE6DC 38%, #F6C7B5 74%, #EFAE97 100%); box-shadow: 0 30px 70px -26px rgba(233,130,106,.7); }
+  .respira h2 { margin: 0; font-size: 34px; }
+  .respira p { margin: 6px 0 0; color: var(--suave); }
+  .respira .cerrar { position: absolute; top: max(18px, env(safe-area-inset-top)); left: 18px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    .c { opacity: 1; transform: none; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <header><a href="../alma/inicio.html" aria-label="Volver"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a><h1>Health</h1></header>
+  <header>
+    <a class="atras" href="../alma/inicio.html" aria-label="Volver"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="t"><span class="eyebrow" id="fecha"></span><h1 class="serif">Health</h1></div>
+    <div class="orbe" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 4.6 3.4 7.4 8 8-4.6.6-7.4 3.4-8 8-.6-4.6-3.4-7.4-8-8 4.6-.6 7.4-3.4 8-8z"/></svg></div>
+  </header>
 
-  <div class="aviso" id="sin-acceso" hidden></div>
+  <div class="aviso-acceso" id="sin-acceso" hidden style="text-align:center;color:var(--suave);margin-top:30vh;line-height:1.5"></div>
 
-  <div id="todo" hidden>
-    <section class="tarjeta">
-      <h2>Anillo</h2>
-      <div class="fila"><span id="a-nombre">Sin anillo</span><span class="dato" id="a-estado">—</span></div>
-      <div class="fila" id="f-bateria" hidden><span>Batería</span><span class="dato" id="a-bateria">—</span></div>
-      <div class="lista" id="encontrados"></div>
-      <div class="botones">
-        <button class="prin" id="b-conectar">Conectar anillo</button>
-        <button id="b-parpadear" hidden>Encontrar anillo</button>
-        <button id="b-olvidar" hidden>Olvidar</button>
+  <div class="bento" id="bento">
+    <!-- Portada editorial con la vitalidad del día -->
+    <section class="c portada" style="animation-delay:.02s">
+      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_c55820bf-9306-43c2-ab7b-181dae47de1e.png)"></div>
+      <div class="arriba"><span class="eyebrow" id="saludo">Buenos días</span><h2 class="serif">Tu cuerpo, <em>en calma.</em></h2></div>
+      <div class="abajo">
+        <div class="vidrio" id="resumen"><b>Hoy</b><span>Conecta tu anillo o Apple Salud para ver tu día.</span></div>
+        <div class="vital" aria-label="Vitalidad">
+          <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="7"/>
+            <circle id="vital-aro" cx="60" cy="60" r="52" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" style="transition:stroke-dashoffset 1.8s cubic-bezier(.22,.61,.36,1)"/></svg>
+          <div class="centro"><div><b class="num" id="vital">—</b><span>Vitalidad</span></div></div>
+        </div>
       </div>
     </section>
 
-    <section class="tarjeta">
-      <h2>Ritmo cardíaco</h2>
-      <div class="fila"><span class="grande"><span id="v-ritmo">—</span><small>lpm</small></span><span class="latido" id="latido" hidden>♥</span></div>
-      <div class="botones"><button id="b-ritmo">Medir ahora</button></div>
-    </section>
-
-    <section class="tarjeta">
-      <h2>Oxígeno en sangre</h2>
-      <div class="fila"><span class="grande"><span id="v-oxigeno">—</span><small>%</small></span></div>
-      <div class="botones"><button id="b-oxigeno">Medir ahora</button></div>
-    </section>
-
-    <section class="tarjeta">
-      <h2>Hoy</h2>
-      <div class="tres">
-        <div><b id="v-pasos">—</b><span>pasos</span></div>
-        <div><b id="v-calorias">—</b><span>kcal</span></div>
-        <div><b id="v-km">—</b><span>km</span></div>
+    <!-- Actividad -->
+    <button class="c ancha" data-det="actividad" style="animation-delay:.08s">
+      <span class="eyebrow" style="color:var(--coral)"><i></i>Actividad</span>
+      <span class="flecha"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></span>
+      <div class="act">
+        <svg class="aros" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="56" stroke="var(--durazno-3)" stroke-width="10"/><circle id="aro-pasos" cx="64" cy="64" r="56" stroke="var(--coral)" stroke-width="10" stroke-dasharray="351.9" stroke-dashoffset="351.9" transform="rotate(-90 64 64)"/>
+          <circle cx="64" cy="64" r="42" stroke="#EAF2E9" stroke-width="10"/><circle id="aro-km" cx="64" cy="64" r="42" stroke="var(--salvia)" stroke-width="10" stroke-dasharray="263.9" stroke-dashoffset="263.9" transform="rotate(-90 64 64)"/>
+          <circle cx="64" cy="64" r="28" stroke="#E7F1F8" stroke-width="10"/><circle id="aro-kcal" cx="64" cy="64" r="28" stroke="var(--agua)" stroke-width="10" stroke-dasharray="175.9" stroke-dashoffset="175.9" transform="rotate(-90 64 64)"/>
+        </svg>
+        <ul>
+          <li><i style="background:var(--coral)"></i>Pasos<b class="num" id="v-pasos">—</b><small>meta 10 000</small></li>
+          <li><i style="background:var(--salvia)"></i>Distancia<b class="num" id="v-km">—</b><small>meta 5 km</small></li>
+          <li><i style="background:var(--agua)"></i>Energía<b class="num" id="v-kcal">—</b><small>meta 800 kcal</small></li>
+        </ul>
       </div>
-      <div class="botones"><button id="b-pasos">Actualizar</button></div>
+      <div class="barras" id="barras-pasos"></div>
+      <div class="ejes"><span>0 h</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+    </button>
+
+    <!-- Sueño -->
+    <button class="c ancha sueno" data-det="sueno" style="animation-delay:.14s">
+      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_9536d912-2847-4efc-b3c8-366eaca5f5a6.png)"></div>
+      <div class="dentro">
+        <span class="eyebrow">Sueño</span>
+        <div class="valor num" id="v-sueno">—</div>
+        <div class="pie" style="color:rgba(255,255,255,.8)" id="p-sueno">Sin datos de anoche</div>
+        <div class="hipno" id="hipno"></div>
+        <div class="leyenda"><span><i style="background:#F2C46D"></i>Despierto</span><span><i style="background:#E5E2FF"></i>REM</span><span><i style="background:#A9A6EE"></i>Ligero</span><span><i style="background:#6C68C9"></i>Profundo</span></div>
+      </div>
+    </button>
+
+    <!-- Ritmo cardíaco -->
+    <button class="c" data-det="ritmo" style="animation-delay:.2s">
+      <span class="eyebrow" style="color:var(--coral)"><i></i>Ritmo</span>
+      <div class="valor num"><span id="v-ritmo">—</span><small>lpm</small> <span class="latido quieto" id="latido" style="font-size:18px">♥</span></div>
+      <svg class="mini" id="m-ritmo" viewBox="0 0 160 46" preserveAspectRatio="none"></svg>
+      <div class="pie" id="p-ritmo">Toca para medir</div>
+    </button>
+
+    <!-- Oxígeno -->
+    <button class="c" data-det="oxigeno" style="animation-delay:.24s">
+      <span class="eyebrow" style="color:var(--agua)"><i></i>Oxígeno</span>
+      <div class="valor num"><span id="v-oxigeno">—</span><small>%</small></div>
+      <svg class="mini" id="m-oxigeno" viewBox="0 0 160 46" preserveAspectRatio="none"></svg>
+      <div class="pie" id="p-oxigeno">En sangre</div>
+    </button>
+
+    <!-- HRV -->
+    <button class="c" data-det="hrv" style="animation-delay:.28s">
+      <span class="eyebrow" style="color:var(--sueno)"><i></i>HRV</span>
+      <div class="valor num"><span id="v-hrv">—</span><small>ms</small></div>
+      <svg class="mini" id="m-hrv" viewBox="0 0 160 46" preserveAspectRatio="none"></svg>
+      <div class="pie" id="p-hrv">Variabilidad</div>
+    </button>
+
+    <!-- Estrés -->
+    <button class="c" data-det="estres" style="animation-delay:.32s">
+      <span class="eyebrow" style="color:var(--salvia)"><i></i>Estrés</span>
+      <svg viewBox="0 0 120 70" style="width:100%;height:70px;margin-top:6px;overflow:visible">
+        <path d="M12 62 A48 48 0 0 1 108 62" fill="none" stroke="var(--arena)" stroke-width="9" stroke-linecap="round"/>
+        <path id="arco-estres" d="M12 62 A48 48 0 0 1 108 62" fill="none" stroke="var(--salvia)" stroke-width="9" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8" style="transition:stroke-dashoffset 1.6s cubic-bezier(.22,.61,.36,1),stroke 1s"/>
+        <text x="60" y="58" text-anchor="middle" font-size="24" font-weight="300" fill="var(--tinta)" id="v-estres" font-family="Montserrat">—</text>
+      </svg>
+      <div class="pie" id="p-estres">Sin datos</div>
+    </button>
+
+    <!-- Temperatura -->
+    <button class="c" data-det="temperatura" style="animation-delay:.36s">
+      <span class="eyebrow" style="color:var(--sol)"><i></i>Temperatura</span>
+      <div class="valor num"><span id="v-temp">—</span><small>°C</small></div>
+      <svg class="mini" id="m-temp" viewBox="0 0 160 46" preserveAspectRatio="none"></svg>
+      <div class="pie" id="p-temp">Del cuerpo</div>
+    </button>
+
+    <!-- Ejercicio -->
+    <button class="c" data-det="ejercicio" style="animation-delay:.4s">
+      <span class="eyebrow" style="color:var(--tierra)"><i></i>Ejercicio</span>
+      <div class="valor num"><span id="v-ejer">—</span><small>min</small></div>
+      <div class="pie" id="p-ejer">Esta semana</div>
+      <div class="barras" id="barras-ejer" style="height:36px"></div>
+    </button>
+
+    <!-- Respira con Alma -->
+    <section class="c ancha calma" style="animation-delay:.46s">
+      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_c5c5a679-07d1-4509-8b2c-1d162f6ccebb.png)"></div>
+      <div class="dentro">
+        <span class="eyebrow">Un minuto</span>
+        <h3 class="serif">Respira <em>con Alma.</em></h3>
+        <p>Inhala cuando crezca, exhala cuando se encoja.</p>
+        <button class="ir" id="b-respira">Empezar <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      </div>
     </section>
 
-    <section class="tarjeta">
-      <h2>Ajustes del anillo</h2>
-      <div class="fila"><span>Medir ritmo cardíaco solo</span><label class="interruptor"><input type="checkbox" id="i-auto"><span></span></label></div>
-      <div class="fila"><span>Cada</span>
-        <select id="s-min"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">60 min</option></select></div>
-      <div class="fila"><span>Hora del anillo</span><button id="b-hora">Igualar al teléfono</button></div>
-    </section>
+    <!-- Anillo -->
+    <button class="c ancha" id="c-anillo" style="animation-delay:.5s">
+      <span class="eyebrow"><i style="color:var(--tinta)"></i>Tu anillo</span>
+      <div class="anillo-c">
+        <svg class="linea-anillo" viewBox="0 0 100 100" aria-hidden="true"><g class="gira">
+          <ellipse cx="50" cy="50" rx="30" ry="38" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <ellipse cx="50" cy="50" rx="23" ry="31" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".55"/>
+          <rect x="44" y="11" width="12" height="7" rx="2" fill="none" stroke="var(--coral)" stroke-width="1.3"/></g></svg>
+        <div class="t"><b id="a-nombre">Sin anillo</b><span id="a-estado">Toca para conectar</span>
+          <div class="pila" id="a-pila" hidden><i id="a-pila-i"></i><span id="a-bat">—</span></div></div>
+      </div>
+    </button>
 
-    <section class="tarjeta">
-      <h2>Prueba de toques</h2>
-      <p class="nota">Con el anillo conectado, bloquea el teléfono y dale dos toques al anillo varias veces. Luego vuelve aquí y toca «Enviar registro»: así vemos si el anillo avisa al tocarlo, para que llame a Alma con el teléfono bloqueado.</p>
-      <div class="fila"><span>Avisos del anillo</span><span class="dato" id="v-solos">0</span></div>
-      <div class="botones"><button id="b-registro">Enviar registro</button></div>
-      <p class="nota" id="r-estado"></p>
+    <!-- Fuentes de datos -->
+    <section class="c ancha" style="animation-delay:.54s;min-height:auto">
+      <div class="fuentes">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg></div>
+        <div><b>Apple Salud</b><span id="f-estado">Tu reloj, tu iPhone y otras apps</span></div>
+        <button class="chip" id="b-salud">Conectar</button>
+      </div>
     </section>
   </div>
+  <p class="nota-demo" id="nota-demo" hidden>Datos de ejemplo · se ven así con tu anillo o Apple Salud</p>
 </main>
+
+<!-- Detalle de cada medida -->
+<div class="velo" id="velo"></div>
+<div class="hoja" id="hoja" role="dialog" aria-modal="true" aria-hidden="true"><div class="asa"></div><div id="hoja-dentro"></div></div>
+
+<!-- Conexión del anillo -->
+<div class="conexion" id="conexion" role="dialog" aria-label="Conectar anillo">
+  <button class="atras cerrar" id="con-cerrar" aria-label="Cerrar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="escena">
+    <svg class="dibujo" viewBox="280 470 380 300" aria-hidden="true">
+      <g class="ondas"><circle cx="460" cy="610" r="92"/><circle cx="460" cy="610" r="92"/><circle cx="460" cy="610" r="92"/></g>
+      <!-- La mano (como la guía del anillo): índice señalando con el anillo, dedos recogidos y pulgar debajo -->
+      <g class="vista mano">
+        <path class="l" d="M303 541c-6 1-7 9-2 13 14 10 30 20 47 28 22 10 44 15 64 19"/>
+        <path class="l" d="M303 541c22 2 62 10 101 19 22 5 44 10 62 14"/>
+        <path class="l" d="M454 572c16-7 32-15 46-24 14-9 28-20 42-25 10-3 18 0 24 8 18 24 36 47 56 71"/>
+        <path class="l" d="M412 607c10 14 24 30 40 46 9 9 18 16 25 12 7-5 5-17-3-26-12-14-28-27-42-38"/>
+        <path class="l" d="M367 650c-8 4-5 13 3 16 13 5 26 12 36 22 13 13 30 22 50 26 30 6 62 5 94 6 26 1 50 3 70 11"/>
+        <path class="l" d="M367 650c16-6 32-5 47 0 12 4 24 11 34 19"/>
+        <!-- anillo en el índice -->
+        <ellipse class="l" cx="396" cy="575" rx="10.5" ry="24" transform="rotate(12 396 575)"/>
+        <path class="l" d="M384 552c-6 4-9 14-8 24s5 19 11 23" />
+        <rect class="l a" x="388" y="574" width="9" height="10" rx="1.5" transform="rotate(12 392 579)"/>
+        <g class="flechas"><path class="l a" d="M372 566v22M368 570l4-5 4 5M368 584l4 5 4-5"/><path class="l a" d="M410 572v22M406 576l4-5 4 5M406 590l4 5 4-5"/></g>
+        <g class="toque"><path class="l a" d="M374 637l-5-7M384 634l-1-9M394 637l4-7"/></g>
+      </g>
+      <!-- El anillo en perspectiva, como una banda, con su área táctil y sus sensores -->
+      <g class="vista banda anillo3d">
+        <path class="l" d="M352 590c0-40 48-72 108-72s108 32 108 72"/>
+        <path class="l" d="M352 590c0 44 48 76 108 76s108-32 108-76"/>
+        <path class="l" d="M369 604c4-34 44-60 92-60 50 0 90 26 92 60-2 30-42 52-92 52-48 0-88-22-92-52z" opacity=".75"/>
+        <path class="l" d="M352 590c2 22 6 42 16 58M568 590c-2 22-8 40-18 54"/>
+        <path class="l a" stroke-dasharray="2.5 3" d="M386 542l26-14 12 26-26 14z"/>
+        <rect class="l a" x="395" y="642" width="11" height="9" rx="1.5" transform="rotate(-16 400 646)"/>
+        <rect class="l" x="412" y="646" width="9" height="8" rx="1.5" transform="rotate(-16 416 650)"/>
+        <circle class="l" cx="436" cy="653" r="7"/><circle class="l" cx="436" cy="653" r="3"/>
+      </g>
+    </svg>
+    <div class="alma-final"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c.6 4.6 3.4 7.4 8 8-4.6.6-7.4 3.4-8 8-.6-4.6-3.4-7.4-8-8 4.6-.6 7.4-3.4 8-8z"/></svg></div>
+  </div>
+  <div class="texto-con"><h2 class="serif" id="con-t">Ponte tu anillo</h2><p id="con-p">En el índice, con el sensor hacia la palma. Cierra la app del anillo para que quede libre.</p>
+    <div class="pasos-con"><i class="on"></i><i></i><i></i><i></i></div></div>
+  <div class="lista-con" id="con-lista"></div>
+  <div class="pie-con"><button class="boton" id="con-boton">Buscar mi anillo</button></div>
+</div>
+
+<!-- Respira con Alma -->
+<div class="respira" id="respira">
+  <button class="atras cerrar" id="resp-cerrar" aria-label="Cerrar"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div><div class="esfera" id="esfera"></div><h2 class="serif" id="resp-t">Inhala</h2><p id="resp-p">4 segundos</p></div>
+</div>
+
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script>
 (function () {
@@ -118,92 +450,317 @@
   var $ = function (id) { return document.getElementById(id); };
   var HUB = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
   var NATIVA = !!(window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma);
-  function nativa(m) { m.accion = "anillo"; try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
-  function cmd(nombre, extra) { var m = { que: "comando", nombre: nombre }; for (var k in (extra || {})) m[k] = extra[k]; nativa(m); }
+  var DEMO = /[?&]demo=1/.test(location.search) || !NATIVA;
+  function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
+  function anillo(m) { m.accion = "anillo"; nativa(m); }
+  function cmd(nombre, extra) { var m = { que: "comando", nombre: nombre }; for (var k in (extra || {})) m[k] = extra[k]; anillo(m); }
+  function vibra(ms) { try { navigator.vibrate && navigator.vibrate(ms || 8); } catch (e) {} }
+  var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* Solo el administrador principal (por ahora). */
+  /* ── Quién es (por ahora solo el administrador principal) ── */
   function sesion() {
     try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return null;
       var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
       return JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4)))));
     } catch (e) { return null; }
   }
-  var yo = sesion(), apps = (yo && ((yo.p && yo.p.apps) || yo.apps)) || {};
+  var yo = sesion(), pp = (yo && yo.p) || {}, apps = pp.apps || (yo && yo.apps) || {};
   var principal = Object.keys(apps).some(function (k) { return apps[k] === "admin_principal"; });
-  if (!yo) { $("sin-acceso").hidden = false; $("sin-acceso").textContent = "Entra a Alma con tu cuenta para ver Health."; return; }
-  if (!principal) { $("sin-acceso").hidden = false; $("sin-acceso").textContent = "Health todavía no está disponible para tu cuenta."; return; }
-  if (!NATIVA) { $("sin-acceso").hidden = false; $("sin-acceso").innerHTML = "Health se conecta a tu anillo por Bluetooth.<br>Ábrela desde la app de Alma en tu iPhone."; return; }
-  $("todo").hidden = false;
-
-  var conectado = false, midiendo = null, solos = 0;
-  function pinta(e) {
-    if ("conectado" in e) conectado = !!e.conectado;
-    if (e.nombre) $("a-nombre").textContent = e.nombre;
-    $("a-estado").textContent = conectado ? "Conectado" : e.buscando ? "Buscando…" : e.bluetooth === false ? "Bluetooth apagado" : e.guardado ? "Esperando al anillo…" : "Sin conectar";
-    $("b-conectar").hidden = conectado; $("b-parpadear").hidden = !conectado; $("b-olvidar").hidden = !(conectado || e.guardado);
+  if (NATIVA && (!yo || !principal)) {
+    $("bento").hidden = true; $("sin-acceso").hidden = false;
+    $("sin-acceso").textContent = !yo ? "Entra a Alma con tu cuenta para ver Health." : "Health todavía no está disponible para tu cuenta.";
+    return;
   }
-  window.AlmaAnillo = {
-    evento: function (e) {
-      if (!e) return;
-      if (e.solo) { solos++; $("v-solos").textContent = solos; }
-      switch (e.tipo) {
-        case "estado": pinta(e); break;
-        case "buscando": $("a-estado").textContent = "Buscando…"; $("encontrados").innerHTML = ""; break;
-        case "busqueda_fin": if (!conectado) $("a-estado").textContent = $("encontrados").children.length ? "Elige tu anillo" : "No encontré anillos cerca"; break;
-        case "encontrado":
-          var b = document.createElement("button"); b.innerHTML = "<span></span><span class='dato'></span>";
-          b.firstChild.textContent = e.nombre; b.lastChild.textContent = e.yaConectado ? "Conectado al iPhone" : e.senal + " dBm";
-          b.onclick = function () { $("encontrados").innerHTML = ""; nativa({ que: "elegir", id: e.id }); };
-          $("encontrados").appendChild(b); break;
-        case "conectando": $("a-estado").textContent = "Conectando…"; break;
-        case "conectado": case "listo": conectado = true; pinta({ nombre: e.nombre, conectado: true }); if (e.tipo === "listo") setTimeout(function () { cmd("pasos", { dia: 0 }); }, 1400); break;
-        case "desconectado": conectado = false; pinta({ conectado: false, guardado: true }); break;
-        case "sin_conexion": $("a-estado").textContent = "El anillo no está conectado"; break;
-        case "bateria": $("f-bateria").hidden = false; $("a-bateria").textContent = e.nivel + "%" + (e.cargando ? " · cargando" : ""); break;
-        case "ritmo": if (e.valor > 0) $("v-ritmo").textContent = e.valor; break;
-        case "oxigeno": if (e.valor > 0) $("v-oxigeno").textContent = e.valor; break;
-        case "medicion_error": $("latido").hidden = true; break;
-        case "ritmoAjustes": $("i-auto").checked = !!e.activo; if (e.minutos) $("s-min").value = String([5, 10, 15, 30, 60].reduce(function (a, x) { return Math.abs(x - e.minutos) < Math.abs(a - e.minutos) ? x : a; }, 30)); break;
-        case "pasos": $("v-pasos").textContent = (e.pasos || 0).toLocaleString("es"); $("v-calorias").textContent = Math.round((e.calorias || 0) / (e.calorias > 20000 ? 1000 : 1)); $("v-km").textContent = ((e.metros || 0) / 1000).toFixed(2); break;
-        case "error": $("a-estado").textContent = e.mensaje || "Error"; break;
-      }
-    },
-    registro: function (lista) {
-      if (!lista || !lista.length) { $("r-estado").textContent = "No hay avisos nuevos del anillo."; return; }
-      $("r-estado").textContent = "Enviando " + lista.length + " avisos…";
-      fetch(HUB, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ anilloPrueba: 1, sesion: "app" + Date.now().toString(36), equipo: "Alma app · " + navigator.userAgent, eventos: lista }) })
-        .then(function (r) { return r.json(); }).then(function (j) { $("r-estado").textContent = j && j.ok ? "Listo: " + lista.length + " avisos enviados. Avísale a Claude." : "No se pudo enviar (" + ((j && j.error) || "?") + ")."; },
-          function () { $("r-estado").textContent = "Sin conexión. Intenta de nuevo."; });
+  var nombre = String(pp.primer_nombre || (yo && yo.n) || "").split(" ")[0];
+  var h = new Date().getHours();
+  $("saludo").textContent = (h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches") + (nombre ? ", " + nombre : "");
+  $("fecha").textContent = new Date().toLocaleDateString("es", { weekday: "long", day: "numeric", month: "short" });
+
+  /* ── Utilidades ── */
+  function cuenta(el, a, dec, suf) {
+    if (typeof el === "string") el = $(el);
+    if (a == null || isNaN(a)) { el.textContent = "—"; return; }
+    var de = parseFloat(el.dataset.v || 0), t0 = 0, dur = RM ? 1 : 1300;
+    el.dataset.v = a;
+    (function paso(t) { if (!t0) t0 = t; var p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3), v = de + (a - de) * e;
+      el.textContent = (dec ? v.toFixed(dec) : Math.round(v).toLocaleString("es")) + (suf || ""); if (p < 1) requestAnimationFrame(paso); })(performance.now());
+  }
+  function aro(id, frac) { var c = $(id), L = parseFloat(c.getAttribute("stroke-dasharray")); requestAnimationFrame(function () { c.style.strokeDashoffset = L * (1 - Math.max(0, Math.min(1, frac || 0))); }); }
+  function mm(n) { n = Math.round(n || 0); return Math.floor(n / 60) + " h " + String(n % 60).padStart(2, "0") + " m"; }
+  /* Línea suave de una serie [{t: minuto del día, v}] dentro de un viewBox w×h. */
+  function camino(serie, w, h, min, max, cerrado) {
+    if (!serie || !serie.length) return "";
+    var X = function (t) { return t / 1440 * w; }, Y = function (v) { return h - (v - min) / (max - min || 1) * h; };
+    var p = serie.map(function (s) { return [X(s.t), Y(s.v)]; }), d = "M" + p[0][0].toFixed(1) + " " + p[0][1].toFixed(1);
+    for (var i = 1; i < p.length; i++) { var a = p[i - 1], b = p[i], mx = (a[0] + b[0]) / 2; d += " C" + mx.toFixed(1) + " " + a[1].toFixed(1) + " " + mx.toFixed(1) + " " + b[1].toFixed(1) + " " + b[0].toFixed(1) + " " + b[1].toFixed(1); }
+    if (cerrado) d += " L" + p[p.length - 1][0].toFixed(1) + " " + h + " L" + p[0][0].toFixed(1) + " " + h + " Z";
+    return d;
+  }
+  function rango(serie, pad) { var v = serie.map(function (s) { return s.v; }), a = Math.min.apply(null, v), b = Math.max.apply(null, v); return [a - (pad || 4), b + (pad || 4)]; }
+  function mini(id, serie, color) {
+    var svg = $(id); if (!svg) return; if (!serie || serie.length < 2) { svg.innerHTML = ""; return; }
+    var r = rango(serie, 3), gid = "g" + id, t0 = serie[0].t, t1 = serie[serie.length - 1].t || 1;
+    serie = serie.map(function (s) { return { t: (s.t - t0) / ((t1 - t0) || 1) * 1440, v: s.v }; });   // la mini gráfica usa todo el ancho
+    svg.innerHTML = '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + color + '" stop-opacity=".28"/><stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+      '<path d="' + camino(serie, 160, 46, r[0], r[1], true) + '" fill="url(#' + gid + ')"/><path class="trazo" d="' + camino(serie, 160, 46, r[0], r[1]) + '" stroke="' + color + '"/>';
+  }
+  function stats(serie) { if (!serie || !serie.length) return null; var v = serie.map(function (s) { return s.v; }); return { prom: v.reduce(function (a, b) { return a + b; }, 0) / v.length, min: Math.min.apply(null, v), max: Math.max.apply(null, v), ult: v[v.length - 1] }; }
+
+  /* ── Datos: Apple Salud (app) + anillo en vivo; de ejemplo fuera de la app ── */
+  var D = { hoy: {}, sueno: null, ejercicios: [] }, ANI = { conectado: false };
+  function demo() {
+    var serie = function (n, base, amp, ruido, hasta) { var o = []; for (var i = 0; i < n; i++) { var t = i * (hasta || 1440) / n; o.push({ t: t, v: Math.round(base + amp * Math.sin((t / 1440) * Math.PI * 2 - 1.6) + (Math.random() - .5) * ruido) }); } return o; };
+    var ahora = new Date().getHours() * 60 + new Date().getMinutes();
+    var ph = []; for (var i = 0; i < 24; i++) ph.push(i * 60 < ahora ? (i < 7 ? 0 : Math.round(Math.random() * 1600 + (i === 9 || i === 18 ? 1800 : 200))) : 0);
+    return {
+      fuente: "demo",
+      hoy: { pasos: 12746, km: 8.02, kcal: 399, pasosHora: ph,
+        ritmo: serie(64, 72, 14, 14, ahora), hrv: serie(18, 44, 6, 8, ahora), oxigeno: serie(16, 97, 1, 2, ahora),
+        estres: serie(32, 40, 10, 12, ahora), temp: serie(24, 36.5, .3, .2, ahora).map(function (s) { s.v = Math.round(s.v * 10) / 10 || 36.4; return s; }) },
+      sueno: { inicio: "01:03", fin: "07:45", minutos: 398, puntaje: 78, fases: [["l", 34], ["p", 52], ["r", 18], ["l", 30], ["d", 4], ["p", 40], ["r", 22], ["l", 46], ["p", 38], ["r", 20], ["l", 44], ["p", 30], ["r", 20]] },
+      ejercicios: [{ tipo: "Boxeo", min: 105, kcal: 1537, dia: 1 }, { tipo: "Caminata", min: 42, kcal: 210, dia: 3 }, { tipo: "Fuerza", min: 55, kcal: 380, dia: 5 }]
+    };
+  }
+
+  function pintar() {
+    var hoy = D.hoy || {};
+    // Actividad
+    cuenta("v-pasos", hoy.pasos); cuenta("v-km", hoy.km, 2); cuenta("v-kcal", hoy.kcal);
+    aro("aro-pasos", (hoy.pasos || 0) / 10000); aro("aro-km", (hoy.km || 0) / 5); aro("aro-kcal", (hoy.kcal || 0) / 800);
+    var ph = hoy.pasosHora || [], mx = Math.max.apply(null, ph.concat([1])), hr = new Date().getHours();
+    $("barras-pasos").innerHTML = (ph.length ? ph : new Array(24).fill(0)).map(function (v, i) { return '<span class="' + (i <= hr ? "ya" : "") + '" style="height:' + Math.max(4, v / mx * 100) + '%;animation-delay:' + (i * 25) + 'ms;opacity:' + (v ? 1 : .35) + '"></span>'; }).join("");
+    // Sueño
+    var s = D.sueno;
+    if (s && s.minutos) {
+      $("v-sueno").innerHTML = Math.floor(s.minutos / 60) + '<small>h</small> ' + (s.minutos % 60) + '<small>min</small>';
+      $("p-sueno").textContent = s.inicio + " – " + s.fin + (s.puntaje ? " · puntaje " + s.puntaje : "");
+      var col = { d: "#F2C46D", r: "#E5E2FF", l: "#A9A6EE", p: "#6C68C9" }, alto = { d: 100, r: 78, l: 56, p: 34 }, tot = s.fases.reduce(function (a, f) { return a + f[1]; }, 0);
+      $("hipno").innerHTML = s.fases.map(function (f, i) { return '<span style="flex:' + f[1] + ';background:' + col[f[0]] + ';margin-top:' + (100 - alto[f[0]]) * .44 + 'px;animation-delay:' + (i * 40) + 'ms"></span>'; }).join("");
+    }
+    // Series
+    var r = stats(hoy.ritmo); if (r && !ANI.midiendo) cuenta("v-ritmo", r.ult); mini("m-ritmo", hoy.ritmo, "#E9826A"); if (r) $("p-ritmo").textContent = Math.round(r.min) + "–" + Math.round(r.max) + " lpm hoy";
+    var o = stats(hoy.oxigeno); if (o) { cuenta("v-oxigeno", o.ult); $("p-oxigeno").textContent = Math.round(o.min) + "–" + Math.round(o.max) + " % hoy"; } mini("m-oxigeno", hoy.oxigeno, "#7FB7D9");
+    var v = stats(hoy.hrv); if (v) { cuenta("v-hrv", v.ult); $("p-hrv").textContent = v.ult < 30 ? "Baja" : v.ult <= 60 ? "Normal" : v.ult <= 101 ? "Buena" : "Excelente"; } mini("m-hrv", hoy.hrv, "#8E8BD6");
+    var t = stats(hoy.temp); if (t) { cuenta("v-temp", t.ult, 1); $("p-temp").textContent = t.min.toFixed(1) + "–" + t.max.toFixed(1) + " °C"; } mini("m-temp", hoy.temp, "#F2C46D");
+    var e = stats(hoy.estres);
+    if (e) { $("v-estres").textContent = Math.round(e.ult); var p = Math.min(1, e.ult / 100), c = e.ult < 30 ? "#7FB7D9" : e.ult < 60 ? "#9DBE9B" : e.ult < 80 ? "#F2C46D" : "#E9826A";
+      requestAnimationFrame(function () { $("arco-estres").style.strokeDashoffset = 150.8 * (1 - p); $("arco-estres").style.stroke = c; });
+      $("p-estres").textContent = e.ult < 30 ? "Relajado" : e.ult < 60 ? "Normal" : e.ult < 80 ? "Medio" : "Alto"; }
+    // Ejercicio
+    var ej = D.ejercicios || [], tot = ej.reduce(function (a, x) { return a + (x.min || 0); }, 0);
+    if (ej.length) { cuenta("v-ejer", tot); $("p-ejer").textContent = ej.length + " sesiones esta semana"; }
+    var dias = [0, 0, 0, 0, 0, 0, 0]; ej.forEach(function (x) { dias[Math.min(6, x.dia || 0)] += x.min || 0; }); var md = Math.max.apply(null, dias.concat([1]));
+    $("barras-ejer").innerHTML = dias.map(function (m, i) { return '<span class="' + (m ? "ya" : "") + '" style="height:' + Math.max(8, m / md * 100) + '%;animation-delay:' + (i * 50) + 'ms;' + (m ? "background:var(--tierra)" : "") + '"></span>'; }).join("");
+    // Vitalidad: actividad + sueño + HRV (de 0 a 100), y una frase de Alma
+    var partes = [], peso = 0;
+    if (hoy.pasos != null) { partes.push(Math.min(1, hoy.pasos / 10000) * 100); peso++; }
+    if (s && s.minutos) { partes.push(Math.min(1, s.minutos / 450) * 100); peso++; }
+    if (v) { partes.push(Math.min(1, v.prom / 60) * 100); peso++; }
+    if (peso) { var vit = Math.round(partes.reduce(function (a, b) { return a + b; }, 0) / peso); cuenta("vital", vit); aro("vital-aro", vit / 100);
+      $("resumen").innerHTML = "<b>«" + (vit >= 80 ? "Hoy vas muy bien." : vit >= 55 ? "Buen ritmo. Un poco más de pausa te hará bien." : "Día tranquilo. Escucha a tu cuerpo.") + "»</b><span>" +
+        (hoy.pasos != null ? Math.round(hoy.pasos).toLocaleString("es") + " pasos" : "") + (s && s.minutos ? " · " + mm(s.minutos) + " de sueño" : "") + "</span>"; }
+  }
+
+  /* ── Detalle de cada medida (hoja que sube) ── */
+  var FOTO = { ritmo: "https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_221e1da2-aa9a-404c-98ff-8be5beb8e507.png", oxigeno: "https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172257_61cb326e-2579-4099-81a3-fd3f9bc8b842.png",
+    actividad: "https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_08ff8f2b-2ca9-4120-b70b-f62e73c67e9c.png" };
+  function foto(k) { return FOTO[k] ? '<div class="hoja-foto" style="background-image:url(' + FOTO[k] + ')"></div>' : ""; }
+  var INFO = {
+    ritmo: { t: "Ritmo cardíaco", u: "lpm", c: "#E9826A", serie: "ritmo", medir: "ritmo",
+      zonas: [["Calentamiento", 0, 109, "#C9C6F2"], ["Quema de grasa", 110, 129, "#9DBE9B"], ["Aeróbico", 130, 149, "#F2C46D"], ["Anaeróbico", 150, 169, "#EFAE97"], ["Límite", 170, 250, "#E9826A"]] },
+    oxigeno: { t: "Oxígeno en sangre", u: "%", c: "#7FB7D9", serie: "oxigeno", medir: "oxigeno", zonas: [["Menos de 95 %", 0, 94, "#EFAE97"], ["95–97 %", 95, 97, "#7FB7D9"], ["98 % o más", 98, 100, "#9DBE9B"]] },
+    hrv: { t: "HRV", u: "ms", c: "#8E8BD6", serie: "hrv", zonas: [["Baja · menos de 30", 0, 29, "#EFAE97"], ["Normal · 30–60", 30, 60, "#8E8BD6"], ["Buena · 61–101", 61, 101, "#9DBE9B"], ["Excelente · más de 101", 102, 400, "#7FB7D9"]] },
+    estres: { t: "Estrés", u: "", c: "#9DBE9B", serie: "estres", zonas: [["Relajado · 0–29", 0, 29, "#7FB7D9"], ["Normal · 30–59", 30, 59, "#9DBE9B"], ["Medio · 60–79", 60, 79, "#F2C46D"], ["Alto · 80–100", 80, 100, "#E9826A"]] },
+    temperatura: { t: "Temperatura", u: "°C", c: "#F2C46D", serie: "temp", dec: 1 }
+  };
+  function abrirHoja(html) {
+    $("hoja-dentro").innerHTML = html; $("velo").classList.add("on"); $("hoja").classList.add("on"); $("hoja").setAttribute("aria-hidden", "false"); vibra(6);
+  }
+  function cerrarHoja() { $("velo").classList.remove("on"); $("hoja").classList.remove("on"); $("hoja").setAttribute("aria-hidden", "true"); }
+  $("velo").onclick = cerrarHoja;
+  (function () { // deslizar la hoja hacia abajo la cierra, siguiendo el dedo
+    var y0 = null, hj = $("hoja");
+    hj.addEventListener("touchstart", function (e) { y0 = hj.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+    hj.addEventListener("touchmove", function (e) { if (y0 == null) return; var dy = e.touches[0].clientY - y0; if (dy > 0) { hj.style.transition = "none"; hj.style.transform = "translate(-50%," + dy + "px)"; } }, { passive: true });
+    hj.addEventListener("touchend", function (e) { if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null; hj.style.transition = ""; hj.style.transform = ""; if (dy > 90) cerrarHoja(); });
+  })();
+  function grafica(serie, color, dec) {
+    if (!serie || serie.length < 2) return '<div class="grafica" style="text-align:center;color:var(--suave);padding:40px 0">Todavía no hay datos de hoy</div>';
+    var r = rango(serie, 4), w = 320, hh = 170, lin = "";
+    for (var i = 0; i <= 3; i++) { var y = hh * i / 3, val = r[1] - (r[1] - r[0]) * i / 3; lin += '<line x1="0" x2="' + w + '" y1="' + y + '" y2="' + y + '" stroke="rgba(62,63,63,.08)" stroke-dasharray="3 4"/><text x="' + (w + 4) + '" y="' + (y + 4) + '" font-size="10" fill="#B9B2AB">' + (dec ? val.toFixed(1) : Math.round(val)) + '</text>'; }
+    var u = serie[serie.length - 1], ux = u.t / 1440 * w, uy = hh - (u.v - r[0]) / (r[1] - r[0]) * hh;
+    return '<div class="grafica"><svg viewBox="0 0 ' + (w + 24) + ' ' + hh + '" preserveAspectRatio="none"><defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + color + '" stop-opacity=".25"/><stop offset="1" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' + lin +
+      '<path d="' + camino(serie, w, hh, r[0], r[1], true) + '" fill="url(#gd)"/><path class="trazo" style="stroke-dasharray:1400;stroke-dashoffset:1400" d="' + camino(serie, w, hh, r[0], r[1]) + '" stroke="' + color + '"/>' +
+      '<circle cx="' + ux + '" cy="' + uy + '" r="5" fill="#fff" stroke="' + color + '" stroke-width="2.5"/></svg><div class="ejes"><span>0 h</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>';
+  }
+  function detalle(k) {
+    if (k === "actividad") return detalleActividad();
+    if (k === "sueno") return detalleSueno();
+    if (k === "ejercicio") return detalleEjercicio();
+    var I = INFO[k]; if (!I) return; var serie = (D.hoy || {})[I.serie], st = stats(serie), dec = I.dec || 0;
+    var f = function (x) { return x == null ? "—" : dec ? x.toFixed(dec) : Math.round(x); };
+    var zonas = "";
+    if (I.zonas && serie && serie.length) {
+      zonas = '<div class="zonas"><span class="eyebrow">Durante el día</span>' + I.zonas.map(function (z) { var n = serie.filter(function (s) { return s.v >= z[1] && s.v <= z[2]; }).length, p = Math.round(n / serie.length * 100);
+        return '<div class="z"><span>' + z[0] + '</span><b>' + p + ' %</b><i style="--p:0%;--col:' + z[3] + '" data-p="' + p + '"></i></div>'; }).join("") + "</div>";
+    }
+    abrirHoja(foto(k) + '<span class="eyebrow" style="color:' + I.c + '">' + new Date().toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" }) + '</span><h2 class="serif">' + I.t + '</h2>' +
+      '<div class="grande num"><span id="h-vivo">' + f(st && st.ult) + '</span><small>' + I.u + '</small></div>' + grafica(serie, I.c, dec) +
+      '<div class="tres"><div><b class="num">' + f(st && st.prom) + '</b><span>Promedio</span></div><div><b class="num">' + f(st && st.min) + '</b><span>Mínimo</span></div><div><b class="num">' + f(st && st.max) + '</b><span>Máximo</span></div></div>' + zonas +
+      (I.medir ? '<div class="accion"><button class="boton" id="h-medir"><span class="latido quieto" id="h-lat">♥</span> Medir ahora</button></div>' : ""));
+    setTimeout(function () { Array.prototype.forEach.call(document.querySelectorAll(".zonas i"), function (i) { i.style.setProperty("--p", i.dataset.p + "%"); }); }, 250);
+    if (I.medir) $("h-medir").onclick = function () { medir(I.medir, this); };
+  }
+  function detalleActividad() {
+    var hoy = D.hoy || {}, ph = hoy.pasosHora || [], mx = Math.max.apply(null, ph.concat([1]));
+    abrirHoja(foto("actividad") + '<span class="eyebrow" style="color:var(--coral)">Hoy</span><h2 class="serif">Actividad</h2>' +
+      '<div class="grande num">' + (hoy.pasos != null ? Math.round(hoy.pasos).toLocaleString("es") : "—") + '<small>pasos</small></div>' +
+      '<div class="grafica"><div class="barras" style="height:150px">' + (ph.length ? ph : new Array(24).fill(0)).map(function (v, i) { return '<span class="ya" style="height:' + Math.max(2, v / mx * 100) + '%;animation-delay:' + i * 25 + 'ms;opacity:' + (v ? 1 : .25) + '"></span>'; }).join("") + '</div><div class="ejes"><span>0 h</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>' +
+      '<div class="tres"><div><b class="num">' + (hoy.km != null ? hoy.km.toFixed(2) : "—") + '</b><span>km</span></div><div><b class="num">' + (hoy.kcal != null ? Math.round(hoy.kcal) : "—") + '</b><span>kcal</span></div><div><b class="num">' + (hoy.pasos != null ? Math.round(hoy.pasos / 100) : "—") + '</b><span>% de la meta</span></div></div>');
+  }
+  function detalleSueno() {
+    var s = D.sueno;
+    if (!s || !s.minutos) { abrirHoja('<h2 class="serif">Sueño</h2><p style="color:var(--suave)">Duerme con tu anillo o tu reloj y aquí verás tus fases, tu puntaje y cómo descansaste.</p>'); return; }
+    var nombres = { d: "Despierto", r: "REM", l: "Ligero", p: "Profundo" }, col = { d: "#F2C46D", r: "#C9C6F2", l: "#A9A6EE", p: "#6C68C9" }, suma = { d: 0, r: 0, l: 0, p: 0 }, tot = 0;
+    s.fases.forEach(function (f) { suma[f[0]] += f[1]; tot += f[1]; });
+    abrirHoja('<span class="eyebrow" style="color:var(--sueno)">Anoche · ' + s.inicio + ' – ' + s.fin + '</span><h2 class="serif">Sueño</h2><div class="grande num">' + mm(s.minutos) + '</div>' +
+      '<div class="zonas">' + ["p", "l", "r", "d"].map(function (k) { var p = Math.round(suma[k] / tot * 100); return '<div class="z"><span>' + nombres[k] + '</span><b>' + mm(suma[k]) + ' · ' + p + ' %</b><i style="--p:0%;--col:' + col[k] + '" data-p="' + p + '"></i></div>'; }).join("") + '</div>' +
+      (s.puntaje ? '<div class="tres" style="margin-top:14px"><div><b class="num">' + s.puntaje + '</b><span>Puntaje</span></div><div><b class="num">' + Math.round((tot - suma.d) / tot * 100) + ' %</b><span>Eficiencia</span></div><div><b class="num">' + Math.round(suma.p / tot * 100) + ' %</b><span>Profundo</span></div></div>' : ""));
+    setTimeout(function () { Array.prototype.forEach.call(document.querySelectorAll(".zonas i"), function (i) { i.style.setProperty("--p", i.dataset.p + "%"); }); }, 250);
+  }
+  function detalleEjercicio() {
+    var ej = D.ejercicios || [];
+    abrirHoja('<span class="eyebrow" style="color:var(--tierra)">Últimos 7 días</span><h2 class="serif">Ejercicio</h2>' +
+      (ej.length ? ej.map(function (x) { return '<div class="ajuste"><div>' + x.tipo + '<small>' + x.min + ' min</small></div><b class="num">' + Math.round(x.kcal || 0) + ' kcal</b></div>'; }).join("") : '<p style="color:var(--suave)">Aún no hay ejercicios esta semana.</p>'));
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-det]"), function (b) { b.onclick = function () { detalle(b.dataset.det); }; });
+
+  /* Medición en vivo con el anillo (30 s) */
+  function medir(tipo, boton) {
+    if (!ANI.conectado) { abrirConexion(); return; }
+    if (ANI.midiendo) return; ANI.midiendo = tipo; boton.disabled = true;
+    var l = $("h-lat"); if (l) l.classList.remove("quieto"); $("latido").classList.remove("quieto");
+    cmd(tipo === "ritmo" ? "ritmoAhora" : "oxigenoAhora"); vibra(10);
+    setTimeout(function () { cmd("pararMedicion", { tipo: tipo === "ritmo" ? 1 : 3 }); ANI.midiendo = null; boton.disabled = false; if (l) l.classList.add("quieto"); $("latido").classList.add("quieto"); }, 30000);
+  }
+
+  /* ── Anillo: tarjeta, ajustes y conexión ── */
+  function pintarAnillo() {
+    $("a-nombre").textContent = ANI.conectado ? (ANI.nombre || "Tu anillo") : ANI.guardado ? (ANI.nombre || "Tu anillo") : "Sin anillo";
+    $("a-estado").textContent = ANI.conectado ? "Conectado · toca para ajustes" : ANI.guardado ? "Esperando al anillo…" : "Toca para conectar";
+    if (ANI.bateria != null) { $("a-pila").hidden = false; $("a-bat").textContent = ANI.bateria + " %" + (ANI.cargando ? " · cargando" : ""); $("a-pila-i").style.setProperty("--n", ANI.bateria / 100); }
+  }
+  $("c-anillo").onclick = function () { if (ANI.conectado) ajustesAnillo(); else abrirConexion(); };
+  function ajustesAnillo() {
+    abrirHoja('<span class="eyebrow">Tu anillo</span><h2 class="serif">' + (ANI.nombre || "Anillo") + '</h2>' +
+      '<div class="ajuste"><div>Batería<small>' + (ANI.cargando ? "Cargando" : "Conectado") + '</small></div><b class="num">' + (ANI.bateria != null ? ANI.bateria + " %" : "—") + '</b></div>' +
+      '<div class="ajuste"><div>Medir el ritmo solo<small>Cada cuántos minutos</small></div><label class="interruptor"><input type="checkbox" id="i-auto"' + (ANI.auto ? " checked" : "") + '><span></span></label></div>' +
+      '<div class="ajuste"><div>Cada</div><select id="s-min">' + [5, 10, 15, 30, 60].map(function (m) { return '<option value="' + m + '"' + (ANI.minutos === m ? " selected" : "") + '>' + m + ' min</option>'; }).join("") + '</select></div>' +
+      '<div class="accion"><button class="boton claro" id="h-parpadea">Encontrar anillo</button><button class="boton claro" id="h-hora">Igualar hora</button></div>' +
+      '<div class="accion"><button class="boton claro" id="h-toques">Prueba de toques</button><button class="boton claro" id="h-olvidar" style="color:var(--tierra)">Olvidar</button></div><p class="nota-demo" id="h-nota"></p>');
+    var guardar = function () { ANI.auto = $("i-auto").checked; ANI.minutos = +$("s-min").value; cmd("ritmoGuardar", { activo: ANI.auto, minutos: ANI.minutos }); vibra(6); };
+    $("i-auto").onchange = guardar; $("s-min").onchange = guardar;
+    $("h-parpadea").onclick = function () { cmd("buscarAnillo"); vibra(8); $("h-nota").textContent = "Tu anillo está parpadeando."; };
+    $("h-hora").onclick = function () { cmd("hora"); $("h-nota").textContent = "Listo: el anillo tiene la hora del teléfono."; };
+    $("h-toques").onclick = function () { anillo({ que: "registro" }); $("h-nota").textContent = "Enviando lo que el anillo mandó…"; };
+    $("h-olvidar").onclick = function () { if (confirm("¿Olvidar este anillo en Alma?")) { anillo({ que: "olvidar" }); cerrarHoja(); } };
+  }
+
+  /* Conexión: ponte el anillo → buscando (gira) → elige → conectando (se pinta) → listo (el anillo se vuelve Alma) */
+  var CON = $("conexion"), paso = 0;
+  function conPaso(n, t, p, boton) {
+    paso = n; CON.className = "conexion on " + ["", "buscando", "eligiendo", "conectando", "listo"][n];
+    $("con-t").textContent = t; $("con-p").textContent = p;
+    Array.prototype.forEach.call(CON.querySelectorAll(".pasos-con i"), function (i, k) { i.classList.toggle("on", k === Math.min(3, n === 4 ? 3 : n)); });
+    $("con-boton").style.visibility = boton ? "visible" : "hidden"; if (boton) $("con-boton").textContent = boton;
+  }
+  function abrirConexion() { cerrarHoja(); $("con-lista").innerHTML = ""; conPaso(0, "Ponte tu anillo", "En el índice, con el sensor hacia la palma. Cierra la app del anillo para que quede libre.", "Buscar mi anillo"); }
+  function cerrarConexion() { CON.className = "conexion"; }
+  $("con-cerrar").onclick = cerrarConexion;
+  $("con-boton").onclick = function () {
+    if (paso === 4) { cerrarConexion(); return; }
+    if (!NATIVA) { conDemo(); return; }
+    vibra(8); $("con-lista").innerHTML = ""; conPaso(1, "Buscando…", "Acerca el anillo al teléfono.", null); anillo({ que: "buscar" });
+  };
+  function encontrado(e) {
+    if (paso > 2) return;
+    conPaso(2, "Elige tu anillo", "Toca el tuyo para conectarlo.", null);
+    var b = document.createElement("button"); b.innerHTML = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><ellipse cx="12" cy="12" rx="7" ry="9"/><rect x="10.5" y="2.6" width="3" height="2" rx=".6" stroke="#E9826A"/></svg><b></b><span></span>';
+    b.querySelector("b").textContent = e.nombre; b.querySelector("span").textContent = e.yaConectado ? "Conectado al iPhone" : (e.senal > -60 ? "Muy cerca" : e.senal > -80 ? "Cerca" : "Lejos");
+    b.onclick = function () { vibra(10); $("con-lista").innerHTML = ""; conPaso(3, "Conectando…", "Un momento, Alma está conociendo tu anillo.", null); anillo({ que: "elegir", id: e.id }); };
+    $("con-lista").appendChild(b);
+  }
+  function conListo() {
+    if (!CON.classList.contains("on")) return;
+    vibra([10, 40, 14]); conPaso(4, "Ya son uno.", "Tu anillo y Alma están conectados. Ahora te cuida también cuando no lo miras.", "Listo");
+  }
+  function conDemo() { // fuera de la app: el recorrido completo, para ver cómo se siente
+    conPaso(1, "Buscando…", "Acerca el anillo al teléfono.", null);
+    setTimeout(function () { encontrado({ id: "demo", nombre: "R08_8105", yaConectado: true }); }, 2200);
+    $("con-lista").onclick = function () { setTimeout(conListo, 2400); };
+  }
+
+  /* ── Respira con Alma (4 · 4 · 6) ── */
+  var respT = null;
+  $("b-respira").onclick = function () {
+    $("respira").classList.add("on"); vibra(6); var fases = [["Inhala", "4 segundos", 1.45, 4000], ["Sostén", "4 segundos", 1.45, 4000], ["Exhala", "6 segundos", 1, 6000]], i = 0, vueltas = 0;
+    (function sigue() { var f = fases[i]; $("resp-t").textContent = f[0]; $("resp-p").textContent = f[1]; $("esfera").style.transitionDuration = (f[3] / 1000) + "s"; $("esfera").style.transform = "scale(" + f[2] + ")";
+      i = (i + 1) % 3; if (i === 0) vueltas++; respT = setTimeout(vueltas >= 4 ? function () { $("resp-t").textContent = "Bien hecho"; $("resp-p").textContent = "Un minuto para ti."; $("esfera").style.transform = "scale(1)"; } : sigue, f[3]); })();
+  };
+  $("resp-cerrar").onclick = function () { clearTimeout(respT); $("respira").classList.remove("on"); $("esfera").style.transform = "scale(1)"; };
+
+  /* ── Apple Salud ── */
+  $("b-salud").onclick = function () { if (!NATIVA) return; nativa({ accion: "salud", que: "permiso" }); };
+  window.AlmaSalud = {
+    datos: function (d) {
+      if (!d) return;
+      if (d.permiso === false) { $("f-estado").textContent = d.mensaje || "Tu reloj, tu iPhone y otras apps"; $("b-salud").textContent = "Conectar"; $("b-salud").classList.remove("ok"); return; }
+      $("b-salud").textContent = "Conectado"; $("b-salud").classList.add("ok"); $("f-estado").textContent = "Leyendo tu reloj, tu iPhone y tus apps";
+      DEMO = false; $("nota-demo").hidden = true;
+      D = { hoy: Object.assign({}, D.hoy, d.hoy || {}), sueno: d.sueno || D.sueno, ejercicios: d.ejercicios || D.ejercicios };
+      pintar();
     }
   };
 
-  /* Medición en vivo: 30 s y se detiene sola. */
-  function medir(tipo, boton) {
-    if (midiendo) return;
-    midiendo = tipo; $(boton).disabled = true; $("latido").hidden = tipo !== "ritmo";
-    cmd(tipo === "ritmo" ? "ritmoAhora" : "oxigenoAhora");
-    setTimeout(function () { cmd("pararMedicion", { tipo: tipo === "ritmo" ? 1 : 3 }); midiendo = null; $(boton).disabled = false; $("latido").hidden = true; }, 30000);
-  }
-  $("b-conectar").onclick = function () { nativa({ que: "buscar" }); };
-  $("b-parpadear").onclick = function () { cmd("buscarAnillo"); };
-  $("b-olvidar").onclick = function () { if (confirm("¿Olvidar este anillo en la app?")) nativa({ que: "olvidar" }); };
-  $("b-ritmo").onclick = function () { medir("ritmo", "b-ritmo"); };
-  $("b-oxigeno").onclick = function () { medir("oxigeno", "b-oxigeno"); };
-  $("b-pasos").onclick = function () { cmd("pasos", { dia: 0 }); };
-  $("b-hora").onclick = function () { cmd("hora"); };
-  var guardarAjustes = function () { cmd("ritmoGuardar", { activo: $("i-auto").checked, minutos: +$("s-min").value }); };
-  $("i-auto").onchange = guardarAjustes; $("s-min").onchange = guardarAjustes;
-  $("b-registro").onclick = function () { nativa({ que: "registro" }); };
+  /* ── Lo que llega del anillo ── */
+  var contesto = false;
+  window.AlmaAnillo = {
+    evento: function (e) {
+      contesto = true; if (!e) return;
+      switch (e.tipo) {
+        case "estado": ANI.conectado = !!e.conectado; ANI.guardado = !!e.guardado; if (e.nombre) ANI.nombre = e.nombre; pintarAnillo(); break;
+        case "encontrado": encontrado(e); break;
+        case "busqueda_fin": if (paso === 1) conPaso(0, "No lo encontré", "Revisa que el anillo tenga batería y esté cerca. Si sigue sin aparecer, olvídalo en Ajustes → Bluetooth del iPhone y vuelve a intentar.", "Buscar otra vez"); break;
+        case "conectado": case "listo":
+          ANI.conectado = true; if (e.nombre) ANI.nombre = e.nombre; pintarAnillo();
+          if (e.tipo === "listo") { conListo(); setTimeout(function () { cmd("pasos", { dia: 0 }); }, 1500); setTimeout(function () { cmd("ritmoAjustes"); }, 2200); }
+          break;
+        case "desconectado": ANI.conectado = false; ANI.guardado = true; pintarAnillo(); break;
+        case "error": if (paso === 3) conPaso(0, "No se pudo conectar", e.mensaje || "Intenta de nuevo.", "Buscar otra vez"); break;
+        case "bateria": ANI.bateria = e.nivel; ANI.cargando = e.cargando; pintarAnillo(); break;
+        case "ritmo": if (e.valor > 0) { cuenta("v-ritmo", e.valor); var hv = $("h-vivo"); if (hv && ANI.midiendo === "ritmo") hv.textContent = e.valor; } break;
+        case "oxigeno": if (e.valor > 0) { cuenta("v-oxigeno", e.valor); var ho = $("h-vivo"); if (ho && ANI.midiendo === "oxigeno") ho.textContent = e.valor; } break;
+        case "ritmoAjustes": ANI.auto = !!e.activo; ANI.minutos = e.minutos; break;
+        case "pasos": if (e.fin && !(D.hoy && D.hoy.fuente === "salud")) { D.hoy = D.hoy || {}; if (e.pasos) { D.hoy.pasos = e.pasos; D.hoy.km = (e.metros || 0) / 1000; D.hoy.kcal = (e.calorias || 0) / (e.calorias > 20000 ? 1000 : 1); pintar(); } } break;
+      }
+    },
+    registro: function (lista) {
+      var n = $("h-nota");
+      if (!lista || !lista.length) { if (n) n.textContent = "No hay avisos nuevos del anillo."; return; }
+      fetch(HUB, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ anilloPrueba: 1, sesion: "app" + Date.now().toString(36), equipo: "Alma app · " + navigator.userAgent, eventos: lista }) })
+        .then(function (r) { return r.json(); }).then(function (j) { if (n) n.textContent = j && j.ok ? "Listo: " + lista.length + " avisos enviados." : "No se pudo enviar."; }, function () { if (n) n.textContent = "Sin conexión."; });
+    }
+  };
 
-  /* Si la app no contesta, es una versión de antes del anillo: se avisa en vez de dejar botones que no hacen nada. */
-  var contesto = false, ev0 = AlmaAnillo.evento;
-  AlmaAnillo.evento = function (e) { contesto = true; ev0(e); };
-  nativa({ que: "estado" });
-  setTimeout(function () {
-    if (contesto) return;
-    $("todo").hidden = true; $("sin-acceso").hidden = false;
-    $("sin-acceso").innerHTML = "Para conectar tu anillo, actualiza la app de Alma en TestFlight<br>(versión 1.0 (20) o más nueva) y vuelve a abrir Health.";
-  }, 1500);
+  /* ── Arranque ── */
+  if (DEMO) { D = demo(); $("nota-demo").hidden = false; ANI = { conectado: false }; }
+  setTimeout(pintar, 350);
+  pintarAnillo();
+  if (NATIVA) {
+    anillo({ que: "estado" });
+    nativa({ accion: "salud", que: "leer" });
+    setTimeout(function () { if (!contesto) { $("a-estado").textContent = "Actualiza la app de Alma para conectar tu anillo"; } }, 1500);
+  }
 })();
 </script>
 </body>

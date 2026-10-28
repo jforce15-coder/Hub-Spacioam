@@ -152,7 +152,7 @@
         case "busqueda_fin": if (!conectado) $("a-estado").textContent = $("encontrados").children.length ? "Elige tu anillo" : "No encontré anillos cerca"; break;
         case "encontrado":
           var b = document.createElement("button"); b.innerHTML = "<span></span><span class='dato'></span>";
-          b.firstChild.textContent = e.nombre; b.lastChild.textContent = e.senal + " dBm";
+          b.firstChild.textContent = e.nombre; b.lastChild.textContent = e.yaConectado ? "Conectado al iPhone" : e.senal + " dBm";
           b.onclick = function () { $("encontrados").innerHTML = ""; nativa({ que: "elegir", id: e.id }); };
           $("encontrados").appendChild(b); break;
         case "conectando": $("a-estado").textContent = "Conectando…"; break;

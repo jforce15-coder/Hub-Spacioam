@@ -248,19 +248,24 @@ function vozPostCall_(body) {
   if (!pre.propiedad && (motivo || propDC)) pre.propiedad = [propDC, motivo].filter(Boolean).join(' · ').slice(0, 90);
   var mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
   var canal = /sip/i.test(s_(pc.type)) || s_(pc.agent_number).replace(/\D/g, '').slice(-8) === '31280966' ? 'WhatsApp' : prueba ? 'navegador (prueba)' : 'teléfono';
+  /* Un administrador: la llamada va a SU chat con Alma (el mismo de Hub y WhatsApp), no a la lista de conversaciones. */
+  var admC = null; try { admC = tel ? (adminPorTel_(tel) || (quien.tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] || null : null)) : null; } catch (x) {}
+  var convHilo = admC ? 'op:' + admC.email : convId;
+  if (admC) { try { opLlamadaGuardar_(admC, d, t0, dur, canal, motivo, resumen); } catch (x) { console.error('opLlamadaGuardar_: ' + x); } }
   var sh = hojaWA_(), filas = [];
-  filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convId, 'llamada', 'sistema', '']);
+  filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convHilo, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
     var txt = s_(m.message).trim(); if (m.role === 'agent') txt = vozSinNotas_(txt); if (!txt) return;
     var ts = new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString();
-    filas.push(m.role === 'agent' ? [ts, tel, 'ALMA voz', 'out', txt, convEL + '#' + (i + 1), convId, 'llamada', 'alma', '']
-                                  : [ts, tel, pre.huesped || '', 'in', txt, convEL + '#' + (i + 1), convId, 'llamada', '', '']);
+    filas.push(m.role === 'agent' ? [ts, tel, 'ALMA voz', 'out', txt, convEL + '#' + (i + 1), convHilo, 'llamada', 'alma', '']
+                                  : [ts, tel, pre.huesped || '', 'in', txt, convEL + '#' + (i + 1), convHilo, 'llamada', '', '']);
   });
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
   /* Si la llamada cumplía un encargo, el resumen le llega a quien lo pidió. */
   try { encargoCerrarConLlamada_(tel, d, resumen); } catch (x) { console.error('encargo voz: ' + x); }
   /* Lo que ALMA prometió en la llamada queda como pendiente rastreable (promesas.js). */
   try { var dichoAlma = (d.transcript || []).filter(function (m) { return m.role === 'agent'; }).map(function (m) { return s_(m.message); }).join('\n'); if (dichoAlma) promesaRegistrar_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', texto: resumen }, dichoAlma.slice(-3000), 'llamada'); } catch (x) { console.error('promesa voz: ' + x); }
+  if (admC) return { ok: true, conv_id: convHilo, mensajes: filas.length, administrador: admC.email };   // no entra a la lista de conversaciones ni al registro de huéspedes
   var fin = new Date(t0 + dur * 1000).toISOString();
   inboxUpsert_(convId, Object.assign({ huesped: pre.huesped || (tel ? '+' + tel : 'Llamada'), propiedad: pre.propiedad || 'Llamada · ' + canal, canal: pre.canal || 'whatsapp',
     ultimo_canal: 'whatsapp', ultimo_texto: '📞 Llamada · ' + (motivo ? motivo + ' · ' : '') + (resumen || mmss).slice(0, 260), ultimo_de: 'host', ultimo_ts: fin, ultimo_host_ts: fin },
@@ -627,6 +632,15 @@ function vozInicio_(b) {
     ficha = 'Huésped con reserva YA VALIDADA por su número (no le pidas nombre, apellido ni fecha): ' + r.guest_name + '. Propiedad: ' + r.property + '. Entrada ' + r.check_in + ', salida ' + r.check_out + '. Hoy ' + r.today + ' (' + r.stay + '). Registro de llegada: ' + r.form_status + '. code = ' + r.code + ' (úsalo en property_info).';
     saludo = '¡Hola' + (nom(r.guest_name) ? ' ' + nom(r.guest_name) : '') + '! Te saluda Alma, de Spacio A eme… Cuéntame, ¿en qué te ayudo?';
   }
+  /* Contexto reciente: si el administrador habló con Alma en la última hora (cualquier canal, o una llamada que se cortó),
+     Alma no se vuelve a presentar: ofrece retomar y ya sabe de qué venían hablando. b.saliente: la llamada la hace Alma. */
+  if ((tipo === 'juan' || tipo === 'equipo') && !b.saliente) {
+    try {
+      var admI = adminPorTel_(tel) || (tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] : null);
+      var cr = admI ? contextoReciente_(admI) : null;
+      if (cr) { ficha += '\n\n' + cr.bloque; saludo = cr.saludo(nom(r.caller_name || admI.nombre)); }
+    } catch (e) { console.error('contextoReciente_: ' + e); }
+  }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
   var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha }, _tipo: tipo };
   if (saludo) out.conversation_config_override = { agent: { first_message: saludo } };
@@ -825,7 +839,7 @@ function vozLlamar_(tel, motivo) {
   }
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'), phone = vozPhoneId_();
   if (!phone) return { ok: false, error: 'No encontré el número de WhatsApp en ElevenLabs (ELEVENLABS_PHONE_ID).' };
-  var ini = {}; try { ini = vozInicio_({ caller_id: tel }); delete ini._tipo; } catch (e) {}
+  var ini = {}; try { ini = vozInicio_({ caller_id: tel, saliente: true }); delete ini._tipo; } catch (e) {}
   if (motivo) { ini.dynamic_variables = ini.dynamic_variables || {}; ini.dynamic_variables.quien_llama = (ini.dynamic_variables.quien_llama || '') + '\n\nESTA LLAMADA LA HACES TÚ (saliente). Motivo: ' + motivo; }
   var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
     payload: JSON.stringify({ agent_id: agente, agent_phone_number_id: phone, to_number: '+' + tel, conversation_initiation_client_data: ini }) });
@@ -884,6 +898,7 @@ function vozWebFicha_(adm, nom) {
   var t = 'LLAMADA DESDE LA APP DEL HUB DE SPACIO AM. Quien habla es ' + (adm.nombre || nom) + (adm.principal ? ', el administrador principal (caller_type juan)' : ', administrador del equipo') +
     '. Ya está identificado por su sesión: NO es huésped, aunque lookup_reservation no reconozca un número. Nunca le pidas reserva, nombre ni fecha y nunca uses con él los patrones de huésped («el equipo te escribirá», «te confirmamos por aquí mismo»).' +
     ' Háblale como su compañera de trabajo de confianza: por su nombre, con energía, directa, cálida y resolutiva, en frases cortas. Para todo lo operativo (reservas, huéspedes, equipo, rutas, códigos, tareas, propiedades) usa la herramienta secretaria con su pedido completo.';
+  if (contextoReciente_(adm)) return t;   // vozInicio_ ya agrega el contexto reciente (última hora, todos los canales)
   try {
     var corte = Date.now() - 24 * 3600000;
     var ult = opFilas_(adm.email, 12).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }).slice(-6);
@@ -902,7 +917,8 @@ function vozWebInicio_(ses, ligero) {
   var dv = Object.assign({}, ini.dynamic_variables || {});
   dv.quien_llama = vozWebFicha_(adm, nom) + '\n\n' + (dv.quien_llama || '');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
-  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+  var retoma = contextoReciente_(adm);
+  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: retoma ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
   CacheService.getScriptCache().put('vozweb_pend', tel, 120);
@@ -957,4 +973,61 @@ function vozWebConvInfo_(conv) {
   var j = JSON.parse(r.getContentText() || '{}'), dv = ((j.conversation_initiation_client_data || {}).dynamic_variables) || {};
   var mio = p.getProperty('ELEVENLABS_AGENT_ID');
   return { tel: vozWebTokenTel_(dv.sa_web), otro: !!(j.agent_id && mio && j.agent_id !== mio) };
+}
+
+/* ═══ CONTEXTO RECIENTE ════════════════════════════════════════════════════════════════════════════════════
+   Todo lo que un administrador habla con Alma (Hub, WhatsApp y llamadas) vive en un solo chat: ALMA_OPERATIVO.
+   La última hora de ese chat es el «contexto reciente»: si la llamada se corta y vuelve a llamar, Alma saluda por su
+   nombre y ofrece retomar («¿Retomamos lo de …?») en lugar de presentarse otra vez. CTX_RECIENTE_MIN (propiedad) cambia
+   la ventana; por defecto 60 minutos. */
+function ctxRecienteMin_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CTX_RECIENTE_MIN')); return n >= 5 && n <= 720 ? n : 60; }
+function contextoReciente_(adm) {
+  if (!adm || !adm.email) return null;
+  var corte = Date.now() - ctxRecienteMin_() * 60000, nom = String(adm.nombre || '').trim().split(/\s+/)[0] || 'Él';
+  var filas = opFilas_(adm.email, 120).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }).slice(-40);
+  if (!filas.length) return null;
+  var CAN = { whatsapp: 'WhatsApp', hub: 'Hub', llamada: 'llamada' };
+  var lineas = filas.map(function (m) { return '[' + (CAN[m.canal] || m.canal) + ' · ' + Utilities.formatDate(new Date(m.ts), CFG.TZ, 'HH:mm') + '] ' + (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, 320); });
+  var tema = ctxTema_(adm, filas, lineas);
+  var ult = filas[filas.length - 1], hace = Math.max(1, Math.round((Date.now() - new Date(ult.ts).getTime()) / 60000));
+  return {
+    tema: tema, minutos: hace,
+    bloque: 'CONTEXTO RECIENTE (su última hora con Alma, por cualquier canal; lo último fue hace ' + hace + ' min' + (ult.canal === 'llamada' ? ', en una llamada que terminó o se cortó' : '') + '):\n' + lineas.join('\n') +
+      '\nESTÁ VOLVIENDO A HABLAR CONTIGO: no te presentes otra vez («te saluda Alma»). Ya le ofreciste retomar en el saludo. Si quiere retomar, sigue exactamente donde quedaron, sin repetir lo que ya se dijo ni volver a preguntar lo que ya respondió. Si quiere otra cosa, cámbiate de tema sin más.',
+    saludo: function (n) { n = n || nom; return '¡Hola, ' + n + '! ' + (tema ? '¿Retomamos lo ' + (/^el\s/i.test(tema) ? 'del ' + tema.slice(3) : 'de ' + tema) + ', o hablamos de otra cosa?' : '¿Retomamos donde nos quedamos, o hablamos de otra cosa?'); }
+  };
+}
+/* De qué venían hablando, en pocas palabras. Lo da el título de la llamada (ElevenLabs) o, si no, un resumen corto con
+   el modelo rápido; se guarda en caché por último mensaje para que el saludo no espere. */
+function ctxTema_(adm, filas, lineas) {
+  var cache = CacheService.getScriptCache(), ult = filas[filas.length - 1], k = 'ctxtema_' + Utilities.base64EncodeWebSafe(adm.email + '|' + ult.id).slice(0, 200);
+  var c0 = cache.get(k); if (c0 != null) return c0;
+  var t = '', titulo = '';
+  try {
+    var llam = filas.slice().reverse().filter(function (m) { return m.canal === 'llamada' && m.acciones && m.acciones[0] && m.acciones[0].tema; })[0];
+    if (llam) titulo = String(llam.acciones[0].tema);
+  } catch (e) {}
+  try {
+    t = String(claude_(CFG.MODELO_CLASIFICADOR, 30, 'Lees una conversación entre un administrador y su asistente Alma. Di de qué estaban hablando en 2 a 6 palabras, empezando con artículo, para completar la frase «¿Retomamos lo de …?». Sin punto final, sin comillas, en minúsculas salvo nombres propios. Ej.: la reserva de Marta en 1104 · el pago de la luz de Rue · la ruta de mañana de Kevin.',
+      (titulo ? 'Título de la última llamada: ' + titulo + '\n\n' : '') + lineas.slice(-14).join('\n'), 0) || '').replace(/["«»“”.]/g, '').replace(/^lo de\s+/i, '').trim();
+    if (t.length > 60 || /\n/.test(t)) t = '';
+  } catch (e) { t = ''; }
+  if (!t && titulo) t = titulo;
+  try { cache.put(k, t, 3600); } catch (e) {}
+  return t;
+}
+/* La llamada de un administrador queda en su chat: una línea de resumen y cada turno con su hora real. */
+function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
+  var sh = hojaOp_(), filas = [], mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
+  var titulo = s_((d.analysis || {}).call_summary_title) || motivo || '';
+  var id = function (i) { return 'opl' + s_(d.conversation_id).slice(-10) + '_' + i; };
+  var tx = function (x) { x = String(x || '').slice(0, 4000); return /^[=+\-@]/.test(x) || /^\d[\d\s.]*$/.test(x) ? "'" + x : x; };
+  (d.transcript || []).forEach(function (m, i) {
+    var t = s_(m.message).trim(); if (m.role === 'agent') t = vozSinNotas_(t); if (!t) return;
+    filas.push([new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString(), adm.email, adm.nombre, m.role === 'agent' ? 'alma' : 'yo', 'llamada', tx(t), '', id(i + 1)]);
+  });
+  filas.push([new Date(t0 + dur * 1000).toISOString(), adm.email, adm.nombre, 'alma', 'llamada', tx('📞 Llamada por ' + canal + ' · ' + mmss + (titulo ? ' · ' + titulo : '') + (resumen ? '\n' + resumen : '')),
+    JSON.stringify([{ tipo: 'llamada', resumen: titulo || 'Llamada', tema: titulo ? titulo.charAt(0).toLowerCase() + titulo.slice(1) : '' }]), id(0)]);
+  if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
+  try { SpreadsheetApp.flush(); contextoReciente_(adm); } catch (e) {}   // deja listo el tema: si vuelve a llamar enseguida, el saludo no espera
 }

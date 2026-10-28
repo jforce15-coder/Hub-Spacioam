@@ -473,8 +473,9 @@ function opAgente_(adm, texto, canal, fotos, previos) {
     encargosTexto_(adm) + encargosPedidosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
-  previos.filter(function (m) { return new Date(m.ts).getTime() >= corte; }).slice(-14).forEach(function (m) {
-    var rol = m.de === 'yo' ? 'user' : 'assistant', t = String(m.texto || '').slice(0, 2000) || '…';
+  /* Un solo chat por administrador: Hub, WhatsApp y llamadas (cada turno de voz es corto, por eso caben más). */
+  previos.filter(function (m) { return new Date(m.ts).getTime() >= corte; }).slice(-24).forEach(function (m) {
+    var rol = m.de === 'yo' ? 'user' : 'assistant', t = (m.canal === 'llamada' ? '[por llamada] ' : '') + (String(m.texto || '').slice(0, 2000) || '…');
     if (msgs.length && msgs[msgs.length - 1].role === rol) msgs[msgs.length - 1].content += '\n\n' + t; else msgs.push({ role: rol, content: t });
   });
   while (msgs.length && msgs[0].role !== 'user') msgs.shift();

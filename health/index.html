@@ -152,6 +152,7 @@
   .hoja.on { transform: translate(-50%, 0); }
   .asa { width: 38px; height: 5px; border-radius: 3px; background: rgba(62,63,63,.18); margin: 0 auto 14px; }
   .hoja h2 { margin: 2px 0 2px; font-size: 32px; }
+  .hoja-foto { height: 190px; margin: 0 -18px 16px; background: var(--arena) center / cover; border-radius: 0; mask-image: linear-gradient(180deg, #000 70%, transparent); -webkit-mask-image: linear-gradient(180deg, #000 70%, transparent); }
   .hoja .grande { font-size: 56px; font-weight: 200; line-height: 1; margin: 12px 0 4px; }
   .hoja .grande small { font-size: 15px; color: var(--suave); font-weight: 500; margin-left: 4px; letter-spacing: 0; }
   .grafica { background: var(--papel); border-radius: 22px; box-shadow: var(--sombra); padding: 14px 12px 8px; margin: 14px 0; }
@@ -248,7 +249,7 @@
   <div class="bento" id="bento">
     <!-- Portada editorial con la vitalidad del día -->
     <section class="c portada" style="animation-delay:.02s">
-      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_171431_69e0b5f8-94e0-4377-b216-058f90c7cd39.png)"></div>
+      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_c55820bf-9306-43c2-ab7b-181dae47de1e.png)"></div>
       <div class="arriba"><span class="eyebrow" id="saludo">Buenos días</span><h2 class="serif">Tu cuerpo, <em>en calma.</em></h2></div>
       <div class="abajo">
         <div class="vidrio" id="resumen"><b>Hoy</b><span>Conecta tu anillo o Apple Salud para ver tu día.</span></div>
@@ -282,7 +283,7 @@
 
     <!-- Sueño -->
     <button class="c ancha sueno" data-det="sueno" style="animation-delay:.14s">
-      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_171431_38566fe3-38de-486f-870c-4b80729499a0.png)"></div>
+      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_9536d912-2847-4efc-b3c8-366eaca5f5a6.png)"></div>
       <div class="dentro">
         <span class="eyebrow">Sueño</span>
         <div class="valor num" id="v-sueno">—</div>
@@ -345,7 +346,7 @@
 
     <!-- Respira con Alma -->
     <section class="c ancha calma" style="animation-delay:.46s">
-      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_171431_ae2863b4-5176-44d6-9da2-67308faf3032.png)"></div>
+      <div class="foto" style="background-image:url(https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_c5c5a679-07d1-4509-8b2c-1d162f6ccebb.png)"></div>
       <div class="dentro">
         <span class="eyebrow">Un minuto</span>
         <h3 class="serif">Respira <em>con Alma.</em></h3>
@@ -531,6 +532,9 @@
   }
 
   /* ── Detalle de cada medida (hoja que sube) ── */
+  var FOTO = { ritmo: "https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_221e1da2-aa9a-404c-98ff-8be5beb8e507.png", oxigeno: "https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172257_61cb326e-2579-4099-81a3-fd3f9bc8b842.png",
+    actividad: "https://d8j0ntlcm91z4.cloudfront.net/user_3Ea6vBfkJfUdpC9fvMdek39SfGS/hf_20261028_172256_08ff8f2b-2ca9-4120-b70b-f62e73c67e9c.png" };
+  function foto(k) { return FOTO[k] ? '<div class="hoja-foto" style="background-image:url(' + FOTO[k] + ')"></div>' : ""; }
   var INFO = {
     ritmo: { t: "Ritmo cardíaco", u: "lpm", c: "#E9826A", serie: "ritmo", medir: "ritmo",
       zonas: [["Calentamiento", 0, 109, "#C9C6F2"], ["Quema de grasa", 110, 129, "#9DBE9B"], ["Aeróbico", 130, 149, "#F2C46D"], ["Anaeróbico", 150, 169, "#EFAE97"], ["Límite", 170, 250, "#E9826A"]] },
@@ -570,7 +574,7 @@
       zonas = '<div class="zonas"><span class="eyebrow">Durante el día</span>' + I.zonas.map(function (z) { var n = serie.filter(function (s) { return s.v >= z[1] && s.v <= z[2]; }).length, p = Math.round(n / serie.length * 100);
         return '<div class="z"><span>' + z[0] + '</span><b>' + p + ' %</b><i style="--p:0%;--col:' + z[3] + '" data-p="' + p + '"></i></div>'; }).join("") + "</div>";
     }
-    abrirHoja('<span class="eyebrow" style="color:' + I.c + '">' + new Date().toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" }) + '</span><h2 class="serif">' + I.t + '</h2>' +
+    abrirHoja(foto(k) + '<span class="eyebrow" style="color:' + I.c + '">' + new Date().toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" }) + '</span><h2 class="serif">' + I.t + '</h2>' +
       '<div class="grande num"><span id="h-vivo">' + f(st && st.ult) + '</span><small>' + I.u + '</small></div>' + grafica(serie, I.c, dec) +
       '<div class="tres"><div><b class="num">' + f(st && st.prom) + '</b><span>Promedio</span></div><div><b class="num">' + f(st && st.min) + '</b><span>Mínimo</span></div><div><b class="num">' + f(st && st.max) + '</b><span>Máximo</span></div></div>' + zonas +
       (I.medir ? '<div class="accion"><button class="boton" id="h-medir"><span class="latido quieto" id="h-lat">♥</span> Medir ahora</button></div>' : ""));
@@ -579,7 +583,7 @@
   }
   function detalleActividad() {
     var hoy = D.hoy || {}, ph = hoy.pasosHora || [], mx = Math.max.apply(null, ph.concat([1]));
-    abrirHoja('<span class="eyebrow" style="color:var(--coral)">Hoy</span><h2 class="serif">Actividad</h2>' +
+    abrirHoja(foto("actividad") + '<span class="eyebrow" style="color:var(--coral)">Hoy</span><h2 class="serif">Actividad</h2>' +
       '<div class="grande num">' + (hoy.pasos != null ? Math.round(hoy.pasos).toLocaleString("es") : "—") + '<small>pasos</small></div>' +
       '<div class="grafica"><div class="barras" style="height:150px">' + (ph.length ? ph : new Array(24).fill(0)).map(function (v, i) { return '<span class="ya" style="height:' + Math.max(2, v / mx * 100) + '%;animation-delay:' + i * 25 + 'ms;opacity:' + (v ? 1 : .25) + '"></span>'; }).join("") + '</div><div class="ejes"><span>0 h</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>' +
       '<div class="tres"><div><b class="num">' + (hoy.km != null ? hoy.km.toFixed(2) : "—") + '</b><span>km</span></div><div><b class="num">' + (hoy.kcal != null ? Math.round(hoy.kcal) : "—") + '</b><span>kcal</span></div><div><b class="num">' + (hoy.pasos != null ? Math.round(hoy.pasos / 100) : "—") + '</b><span>% de la meta</span></div></div>');

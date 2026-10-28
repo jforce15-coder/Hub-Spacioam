@@ -1135,8 +1135,11 @@
     bindStone();
   }
   /* El chat: textarea que crece, sugerencias, foto y el botón roca (1 toque envía · mantener = nota de voz · 2 toques = foto). */
+  /* Chat sin actividad CHAT_INACTIVO_MS (3 min): la conversación termina sola (Alma no se queda preguntando «¿sigues ahí?»). */
+  var CHAT_INACTIVO_MS = 180000, chatT = 0;
+  function chatQuieto() { clearTimeout(chatT); if (AL.chat) chatT = setTimeout(function () { if (AL.chat && (AL.on || AL.min)) almaEnd(false); }, CHAT_INACTIVO_MS); }
   function chatEnviar(v) {
-    v = String(v || "").trim(); if (!v) return false; addMsg(v, "u");
+    v = String(v || "").trim(); if (!v) return false; addMsg(v, "u"); chatQuieto();
     if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} } else AL.cola = v;   // aún conectando: va en cuanto conecte
     return true;
   }
@@ -1274,7 +1277,10 @@
   function almaSesion() {
     var h = {
       status: function (x) { if (AL.on || AL.min) status(x); if (AL.min && !AL.on && x === "Te escucho" && !almaSesion.dicho) { almaSesion.dicho = 1; phMini("Alma te escucha"); } },
-      message: function (src, x) { if (!x || (!AL.on && !AL.min)) return; if (src === "ai") { x = String(x).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
+      message: function (src, x) { if (!x || (!AL.on && !AL.min)) return;
+        if (src !== "ai" && /^[\s.…]*$/.test(x)) return;   // «…»: la señal de silencio del agente, no algo que dijo la persona
+        if (src !== "ai") chatQuieto();
+        if (src === "ai") { x = String(x).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
       ended: function () { if (AL.on || AL.min) almaEnd(true); },
       error: function (m) { status("No pude conectar con Alma"); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
     };
@@ -1317,7 +1323,7 @@
     alReposo([aX, aY, aS], function () { if (AL.on || AL.min) return; hideCore(false); showStone(false); });
   }
   function almaChat(on) {
-    AL.chat = on; E.ov.classList.toggle("chat", on);
+    AL.chat = on; E.ov.classList.toggle("chat", on); if (on) chatQuieto(); else clearTimeout(chatT);
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(on); } catch (x) {} }
     var t = stoneTarget(); aX.to(t.x, .6, .78); aY.to(t.y, .6, .78); aS.to(t.s, .6, on ? .76 : .7);
     if (on) setTimeout(function () { var i = E.ov.querySelector(".san-in"); if (i) try { i.focus(); } catch (x) {} E.msgs.scrollTop = E.msgs.scrollHeight; }, 400);

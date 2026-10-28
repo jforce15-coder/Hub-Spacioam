@@ -390,6 +390,7 @@ function vozQuienBloque_() {
     '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma.',
+    '· SILENCIO: si la persona no responde, pregunta UNA sola vez si sigue ahí. Si sigue en silencio, despídete en una frase y usa end_call. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
     '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claude, el desarrollador del sistema. Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…»), NUNCA digas que no puedes: usa secretaria con modo = segundo_plano y su pedido completo empezando por «Mejora para Claude:». Confírmalo en una frase («Listo, ya se lo pasé a Claude; te cuento cuando termine») y sigue. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
     '· SECRETARIA TRABAJA EN PARALELO: al llamarla, di UNA frase corta y natural según el pedido («Lo reviso.», «Ya lo pedí, te cuento en cuanto lo tenga.») y sigue la conversación con normalidad: atiende lo que diga, contesta otras cosas o pregunta si necesita algo más. No te quedes en silencio esperando ni rellenes con «sigo buscando». Nunca adelantes el resultado ni digas «listo» antes de que llegue.',
@@ -640,7 +641,7 @@ function vozInicio_(b) {
     try {
       var admI = adminPorTel_(tel) || (tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] : null);
       var cr = admI ? contextoReciente_(admI) : null;
-      if (cr) { ficha += '\n\n' + cr.bloque; saludo = cr.saludo(nom(r.caller_name || admI.nombre)); }
+      if (cr) { ficha += '\n\n' + cr.bloque; if (cr.fresco) saludo = cr.saludo(nom(r.caller_name || admI.nombre)); }
     } catch (e) { console.error('contextoReciente_: ' + e); }
   }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
@@ -927,7 +928,7 @@ function vozWebInicio_(ses, ligero) {
   dv.quien_llama = vozWebFicha_(adm, nom) + '\n\n' + (dv.quien_llama || '');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   var retoma = contextoReciente_(adm);
-  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: retoma ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
   CacheService.getScriptCache().put('vozweb_pend', tel, 120);
@@ -989,6 +990,8 @@ function vozWebConvInfo_(conv) {
    La última hora de ese chat es el «contexto reciente»: si la llamada se corta y vuelve a llamar, Alma saluda por su
    nombre y ofrece retomar («¿Retomamos lo de …?») en lugar de presentarse otra vez. CTX_RECIENTE_MIN (propiedad) cambia
    la ventana; por defecto 60 minutos. */
+/* Solo un tema de hace poco (CTX_SALUDO_MIN, por defecto 10 min) se ofrece retomar en el saludo; lo de antes queda como contexto. */
+function ctxSaludoMin_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CTX_SALUDO_MIN')); return n >= 1 && n <= 120 ? n : 10; }
 function ctxRecienteMin_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CTX_RECIENTE_MIN')); return n >= 5 && n <= 720 ? n : 60; }
 function contextoReciente_(adm) {
   if (!adm || !adm.email) return null;
@@ -999,10 +1002,11 @@ function contextoReciente_(adm) {
   var lineas = filas.map(function (m) { return '[' + (CAN[m.canal] || m.canal) + ' · ' + Utilities.formatDate(new Date(m.ts), CFG.TZ, 'HH:mm') + '] ' + (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, 320); });
   var tema = ctxTema_(adm, filas, lineas);
   var ult = filas[filas.length - 1], hace = Math.max(1, Math.round((Date.now() - new Date(ult.ts).getTime()) / 60000));
+  var fresco = hace <= ctxSaludoMin_();
   return {
-    tema: tema, minutos: hace,
+    tema: tema, minutos: hace, fresco: fresco,
     bloque: 'CONTEXTO RECIENTE (su última hora con Alma, por cualquier canal; lo último fue hace ' + hace + ' min' + (ult.canal === 'llamada' ? ', en una llamada que terminó o se cortó' : '') + '):\n' + lineas.join('\n') +
-      '\nESTÁ VOLVIENDO A HABLAR CONTIGO: no te presentes otra vez («te saluda Alma»). Ya le ofreciste retomar en el saludo. Si quiere retomar, sigue exactamente donde quedaron, sin repetir lo que ya se dijo ni volver a preguntar lo que ya respondió. Si quiere otra cosa, cámbiate de tema sin más.',
+      (fresco ? '\nESTÁ VOLVIENDO A HABLAR CONTIGO: no te presentes otra vez («te saluda Alma»). Ya le ofreciste retomar en el saludo.' : '\nYA PASÓ UN RATO (más de ' + ctxSaludoMin_() + ' min): no le preguntes por ese tema ni ofrezcas retomarlo; úsalo solo si él lo menciona. No te presentes otra vez.') + ' Si quiere retomar, sigue exactamente donde quedaron, sin repetir lo que ya se dijo ni volver a preguntar lo que ya respondió. Si quiere otra cosa, cámbiate de tema sin más.',
     saludo: function (n) { n = n || nom; return '¡Hola, ' + n + '! ' + (tema ? '¿Retomamos lo ' + (/^el\s/i.test(tema) ? 'del ' + tema.slice(3) : 'de ' + tema) + ', o hablamos de otra cosa?' : '¿Retomamos donde nos quedamos, o hablamos de otra cosa?'); }
   };
 }

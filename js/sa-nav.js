@@ -210,8 +210,12 @@
     ".san-scope .san-ov{position:fixed;inset:0;z-index:calc(var(--san-z) + 10);pointer-events:none;font-family:Montserrat,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.san-scope .san-ov.on{pointer-events:auto}",
     ".san-scope .san-ov-bg{position:absolute;inset:0;opacity:0;transition:opacity .7s cubic-bezier(.45,0,.55,1);background:radial-gradient(circle at 50% 50%,rgba(34,32,31,.62) 0px,rgba(34,32,31,.52) 170px,rgba(34,32,31,.34) 330px,rgba(34,32,31,.16) 480px,rgba(34,32,31,.06) 640px),rgba(250,250,250,.18)}",
     ".san-scope .san-ov.on .san-ov-bg{opacity:1}.san-scope .san-ov.min .san-ov-bg{opacity:.4}",
+    /* escena (inicio de la app de Alma): solo la piedra con sus botones sobre el fondo de la página */
+    ".san-scope.san-escena>:not(.san-ov):not(.san-ph){display:none!important}",
+    ".san-scope .san-ov.escena .san-ov-bg{background:radial-gradient(circle at 50% 62%,rgba(40,30,32,.2) 0px,rgba(40,30,32,.08) 260px,rgba(40,30,32,0) 520px)}",
+    ".san-scope .san-ov.escena .san-ov-tip{display:none}.san-scope .san-ov.quieta .san-ob.end{opacity:.38;pointer-events:none}",
     ".san-scope .san-rock{position:absolute;left:0;top:0;width:0;height:0;border-radius:50%;visibility:hidden;will-change:transform;touch-action:none;cursor:pointer;pointer-events:auto;--halo:.5;--lit:.06;box-shadow:0 30px 44px -18px rgba(70,50,40,.45),0 8px 14px -6px rgba(70,50,40,.18)}",
-    ".san-scope .san-st-ring,.san-scope .san-st-glow{position:absolute;border-radius:50%;pointer-events:none;background:" + GRAD + "}",
+    ".san-scope .san-st-ring,.san-scope .san-st-glow{position:absolute;border-radius:50%;pointer-events:none;background:var(--san-halo," + GRAD + ")}",
     ".san-scope .san-st-ring{inset:-9px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%)}",
     ".san-scope .san-st-glow{inset:-96px;opacity:var(--halo);-webkit-mask:radial-gradient(closest-side,transparent calc(100% - 104px),rgba(0,0,0,.9) calc(100% - 88px),rgba(0,0,0,.55) calc(100% - 60px),rgba(0,0,0,.2) calc(100% - 30px),transparent 100%);mask:radial-gradient(closest-side,transparent calc(100% - 104px),rgba(0,0,0,.9) calc(100% - 88px),rgba(0,0,0,.55) calc(100% - 60px),rgba(0,0,0,.2) calc(100% - 30px),transparent 100%)}",
     ".san-scope .san-st-body{position:absolute;inset:0;border-radius:50%;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);transform:translateZ(0);background:radial-gradient(circle at 40% 34%,#F7F5F2 0%,#EFECE8 42%,#E3DFDA 78%,#D3CEC8 100%)}",
@@ -822,7 +826,8 @@
       insetCache = null; measureBottom(); var p = anchorPt(st.anchor); px.t = p.x; py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick();
     });
   }
-  function onResize() { if (!root) return; insetCache = null; measureBottom(); if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
+  function onResize() { if (!root) return; insetCache = null;
+    if (AL.vis && (AL.on || AL.esc) && !stoneDrag) { var tg = stoneTarget(); aX.to(tg.x, .5, .8); aY.to(tg.y, .5, .8); aS.to(tg.s, .5, .8); } measureBottom(); if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
 
   /* El pulso (luz y tamaño) son animaciones CSS con la misma duración, montadas en el mismo instante: corren en el
      compositor, sin trabajo de JavaScript por cuadro, y siguen sincronizadas. */
@@ -830,7 +835,7 @@
   /* ================= guía de primera vez ================= */
   function hideHint() { if (E.hint && E.hint.classList.contains("on")) { E.hint.classList.remove("on"); setCk("sa_nav_hint", "1"); } }
   function showHint() {
-    if (!root || root.hidden || getCk("sa_nav_hint")) return;
+    if (!root || root.hidden || AL.esc || getCk("sa_nav_hint")) return;
     var dt = E.hint.children[1]; if (dt) dt.style.display = multi() ? "" : "none";   /* app sin otras apps: no hay doble toque */
     var v = inward(st.anchor); E.hint.style.left = (px.t + v[0] * 76) + "px"; E.hint.style.top = (py.t + v[1] * 76) + "px";
     E.hint.dataset.side = v[1] < 0 ? "up" : v[1] > 0 ? "down" : v[0] > 0 ? "right" : "left";
@@ -1105,13 +1110,13 @@
     E.ov = ov; E.stone = ov.querySelector(".san-rock"); E.ost = ov.querySelector(".san-ov-st"); E.cap = ov.querySelector(".san-ov-cap"); E.msgs = ov.querySelector(".san-msgs");
     aX = S(0, true); aY = S(0, true); aS = S(0, true); aSq = S(0); aDX = S(0, true); aDY = S(0, true); aL = S(.06); aH = S(.5);
     ov.querySelector('[data-a="end"]').onclick = function () { almaEnd(false); };
-    ov.querySelector('[data-a="chat"]').onclick = function () { almaChat(true); };
+    ov.querySelector('[data-a="chat"]').onclick = function () { if (AL.esc && !AL.on) escActivar(true); else almaChat(true); };
     ov.querySelector(".san-tovoice").onclick = function () { almaChat(false); };
     ov.querySelector("form").onsubmit = function (e) {
       e.preventDefault(); var i = ov.querySelector(".san-in"), v = i.value.trim(); if (!v) return; i.value = ""; addMsg(v, "u");
-      if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} }
+      if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} } else AL.cola = v;   // aún conectando: va en cuanto conecte
     };
-    ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag) almaEnd(false); };
+    ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
     bindStone();
   }
   function stoneTarget() { return AL.chat ? { x: VW() / 2, y: Math.max(70, VH() - Math.min(VH() * .7, 560) - 60), s: 78 } : { x: VW() / 2, y: VH() * .42, s: Math.min(VW() * .66, VH() * .4, 270) }; }
@@ -1196,6 +1201,8 @@
     Promise.resolve(pr).then(function (s) {
       if (!AL.on && !AL.min) { try { s && s.end && s.end(); } catch (x) {} return; }
       AL.ses = s || null;
+      if (s && AL.chat && s.chat) { try { s.chat(true); } catch (x) {} }
+      if (s && AL.cola && s.sendText) { try { s.sendText(AL.cola); } catch (x) {} } AL.cola = null;
     }).catch(function (e) { h.error(String((e && e.message) || e || "")); });
   }
   function phMini(t) { var v = towardCenter(), fr = E.face.getBoundingClientRect(), cx = fr.left + fr.width / 2, cy = fr.top + fr.height / 2; phShow(t, cx + v[0] * 80, cy + v[1] * 80, 2600); }
@@ -1211,6 +1218,11 @@
     almaSesion();
   }
   function almaEnd(remote) {
+    if (AL.esc && E.ov) {
+      var se = AL.ses; AL.on = false; AL.ses = null; AL.breath = 0; AL.cola = null; jReset();
+      if (se && !remote) { try { se.end(); } catch (x) {} }
+      if (AL.chat) almaChat(false); escQuieta(); return;
+    }
     var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.breath = 0; jReset();
     if (s && !remote) { try { s.end(); } catch (x) {} }
     E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); suelta(E.body);
@@ -1227,20 +1239,39 @@
     var t = stoneTarget(); aX.to(t.x, .6, .78); aY.to(t.y, .6, .78); aS.to(t.s, .6, on ? .76 : .7);
     if (on) setTimeout(function () { var i = E.ov.querySelector(".san-in"); if (i) try { i.focus(); } catch (x) {} }, 400);
   }
+  /* Escena (inicio de la app de Alma): la piedra grande al centro, quieta hasta que se toca; tocarla (o Chat) abre la
+     conversación. Terminar la deja quieta en su lugar: no vuelve a un botón. */
+  function escena() {
+    if (!root) return false;
+    almaBuild(); AL.esc = true; root.classList.add("san-escena"); E.ov.classList.add("escena"); setS(1); clearTimeout(idleT); E.hint.classList.remove("on");
+    var t = stoneTarget();
+    aX.x = aX.t = t.x; aY.x = aY.t = t.y; aS.x = aS.t = t.s; aSq.x = aSq.t = 0; aDX.x = aDX.t = aDY.x = aDY.t = 0; aL.x = aL.t = .2; aH.x = aH.t = .5;
+    showStone(true); stoneRender(); E.ov.classList.add("on"); escQuieta();
+    return { x: t.x, y: t.y, s: t.s / PB };   // dónde quedó la piedra (para que el portal de entrada termine justo ahí)
+  }
+  function escQuieta() { E.ov.classList.add("quieta"); status("Toca a Alma"); E.cap.textContent = ""; aL.to(.2, .8, .9); aH.to(.5, .8, .9); }
+  function escActivar(chat) {
+    if (AL.on || !almaOk()) return;
+    AL.on = true; AL.chat = false; AL.mudo = false; E.ov.classList.remove("quieta", "chat");
+    aSq.x = 1; aSq.to(0, .5, .55); aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+    status("Conectando…"); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    almaSesion(); if (chat) almaChat(true);
+  }
   /* piedra pesada: cede poco, se estira poco, rebote corto · mantener = minimizar · deslizar abajo = terminar */
-  var stoneDrag = false, sHist = [], sDown = null, sLp = null, sEnd = false;
+  var stoneDrag = false, sHist = [], sDown = null, sLp = null, sEnd = false, sMov = 0;
   function bindStone() {
     var el = E.stone;
     el.addEventListener("pointerdown", function (e) {
       e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (x) {}
-      sDown = [e.clientX, e.clientY, aX.x, aY.x]; aSq.to(1, .22, 1); clearTimeout(sLp); if (!AL.chat) sLp = setTimeout(startStoneDrag, LONG_MS);
+      sDown = [e.clientX, e.clientY, aX.x, aY.x]; sMov = 0; aSq.to(1, .22, 1); clearTimeout(sLp); if (!AL.chat && !AL.esc) sLp = setTimeout(startStoneDrag, LONG_MS);
     });
     el.addEventListener("pointermove", function (e) {
       if (!sDown) return; var dx = e.clientX - sDown[0], dy = e.clientY - sDown[1];
       if (stoneDrag) { aX.x = aX.t = sDown[2] + dx; aY.x = aY.t = sDown[3] + dy; aX.v = aY.v = 0; sHist.push({ x: aX.x, y: aY.x, t: performance.now() }); if (sHist.length > 8) sHist.shift(); markNear(aX.x, aY.x); kick(); return; }
-      var dd = Math.hypot(dx, dy) || 1; if (dd > 10) clearTimeout(sLp);
+      var dd = Math.hypot(dx, dy) || 1; if (dd > 10) clearTimeout(sLp); sMov = Math.max(sMov, dd);
       var r = rubber(dd, 22); aDX.x = aDX.t = dx / dd * r; aDY.x = aDY.t = dy / dd * r;
-      sEnd = !AL.chat && dy > 80 && Math.abs(dx) < dy * .8; E.ov.classList.toggle("ending", sEnd);
+      sEnd = !AL.chat && (AL.on || !AL.esc) && dy > 80 && Math.abs(dx) < dy * .8; E.ov.classList.toggle("ending", sEnd);
       if (sEnd) phShow("Suelta para terminar", VW() / 2, aY.x + aS.x / 2 + 60); else E.ph.classList.remove("on");
     });
     function up() {
@@ -1248,6 +1279,7 @@
       if (stoneDrag) { endStoneDrag(); return; }
       aSq.to(0, .5, .55); aDX.to(0, .55, .6); aDY.to(0, .55, .6);
       if (sEnd) { sEnd = false; E.ov.classList.remove("ending"); E.ph.classList.remove("on"); almaEnd(false); }
+      else if (AL.esc && sMov < 12) { if (!AL.on) escActivar(false); else if (AL.chat) almaChat(false); }
     }
     el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
   }
@@ -1429,7 +1461,10 @@
       setCoreLbl();
     },
     /* Abre a Alma al centro desde la app (un botón de la pantalla), igual que deslizar el botón hacia el centro. */
-    alma: function () { if (!root || root.hidden || !almaOk()) return false; almaOpen(); return true; },
+    alma: function () { if (!root || root.hidden || !almaOk()) return false; if (AL.esc) { escActivar(false); return true; } almaOpen(); return true; },
+    /* Inicio de la app de Alma: la piedra grande al centro (quieta hasta tocarla) en vez del menú.
+       Devuelve { x, y, s } de la piedra, para SANav.portal("in", { hacia }). */
+    escena: function () { return escena(); },
     anillo: function (on) { if (on === false) { RING.pt = null; try { localStorage.removeItem("sa_anillo"); } catch (x) {} return false; } if (on === true) { RING.aprender = true; RING.prev = []; phShow("Toca el anillo 3 veces", VW() / 2, VH() * .4, 4000); return true; } return !!RING.pt; },
     portal: portal,
     ir: function (url, nueva) { irA(url, nueva); },

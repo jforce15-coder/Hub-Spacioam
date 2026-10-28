@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#B9ABAE">
+<title>Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Inicio de la app de Alma (iPhone y iPad): el atardecer muy difuminado de fondo y Alma grande al centro, igual que
+     la voz de las web apps. Empieza quieta; al tocarla (o Chat) abre la conversación. Terminar la deja quieta otra vez. -->
+<style>
+  :root {
+    color-scheme: light;
+    /* el halo y el anillo de Alma con los colores del fondo, con su durazno (#E9826A) en el medio */
+    --san-halo: linear-gradient(180deg, #8FA5C8 0%, #B8B6C8 30%, #E9826A 56%, #E3A47F 74%, #A98C93 100%);
+  }
+  html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; -webkit-tap-highlight-color: transparent; }
+</style>
+</head>
+<body>
+<script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
+<script src="../js/alma-client.js?v=2026-10-24i"></script>
+<script src="../js/alma-voz.js?v=2026-10-25c"></script>
+<script src="../js/sa-nav.js?v=2026-10-28b"></script>
+<script>
+(function () {
+  "use strict";
+  var HUB = "https://hub.spacioam.com/";
+  /* Quién es: el correo va dentro de la sesión firmada (pulsera) que guarda sa-sesion.js. */
+  function sesion() {
+    try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return null;
+      var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
+      return JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4)))));
+    } catch (e) { return null; }
+  }
+  var yo = sesion();
+  /* Sin sesión, tocar a Alma lleva a entrar al Hub. */
+  var voz = yo && yo.e ? window.SAAlmaVoz : { start: function () { SANav.ir(HUB); return new Promise(function () {}); } };
+  if (yo && voz.setContexto) { try { voz.setContexto({ vista: "Inicio de la app de Alma", nombre: String(yo.n || yo.nombre || "").split(" ")[0] }); } catch (e) {} }
+  SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: voz, tutoriales: false, bienvenida: false });
+  var t = SANav.escena();
+  /* Al cargar: la transición de Alma (la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar, al centro). */
+  if (t) SANav.portal("in", { blanco: true, rapido: true, hacia: t, espera: 160 });
+})();
+</script>
+</body>
+</html>

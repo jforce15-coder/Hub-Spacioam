@@ -886,7 +886,13 @@ function vozUnirPruebas_() {
    trae número: queda ligada a ese administrador por su conversation_id (lo envía el Hub al conectar) y,
    mientras eso llega, por un aviso de 90 s. Así las herramientas lo reconocen igual que por teléfono. */
 function vozWebAdmin_(ses) {
-  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
+  /* Usuario unificado: la sesión trae el correo principal del Control de usuarios y sus alternos; el administrador
+     puede estar registrado con cualquiera de ellos. */
+  var adm = null;
+  if (ses) {
+    var cs = [ses.email].concat(String(ses.email_alterno || '').split(/[\s,;]+/)).map(function (x) { return String(x || '').trim().toLowerCase(); }).filter(Boolean);
+    adm = adminsOp_().filter(function (a) { return a.tels && a.tels.length && cs.some(function (c) { return c === a.email || (a.alternos || []).indexOf(c) >= 0; }); })[0] || null;
+  }
   if (!ses) { var ppal = adminsOp_().filter(function (a) { return a.principal; })[0]; if (ppal) adm = ppal; }   // llave antigua del Hub: solo administradores
   return adm && adm.tels && adm.tels.length ? adm : null;
 }
@@ -908,7 +914,7 @@ function vozWebFicha_(adm, nom) {
 }
 function vozWebInicio_(ses, ligero) {
   var adm = vozWebAdmin_(ses);
-  if (!adm) return { ok: false, error: 'Tu usuario no tiene un teléfono registrado como administrador.' };
+  if (!adm) return { ok: false, error: 'Tu usuario' + (ses && ses.email ? ' (' + ses.email + ')' : '') + ' no tiene un teléfono registrado como administrador.' };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
   var tel = normTel_(adm.tels[0]), ini = {};

@@ -21,6 +21,14 @@
   body { background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; -webkit-tap-highlight-color: transparent;
     font-family: Montserrat, system-ui, sans-serif; }
 
+  /* Mientras la piedra de la transición vuelve a su lugar, la de la pantalla espera escondida (si no, se ven dos). */
+  body.llegando #sa-nav-root .san-rock { opacity: 0 !important; }
+  /* Saludo arriba: «Hola, Juan» */
+  .hola { position: fixed; left: 0; right: 0; top: max(64px, calc(env(safe-area-inset-top) + 34px)); z-index: 2147482000; text-align: center; pointer-events: none;
+    font: 400 34px/1.1 Valky, Georgia, serif; color: #FFFDFB; text-shadow: 0 2px 16px rgba(60,40,40,.28);
+    opacity: 0; transform: translateY(8px); transition: opacity 1.1s cubic-bezier(.45,0,.55,1), transform 1.3s cubic-bezier(.22,.61,.36,1); }
+  .hola.on { opacity: 1; transform: none; }
+
   /* ── Entrar ── */
   body.entrando #sa-nav-root .san-ov-ui { opacity: 0 !important; pointer-events: none !important; }
   .entrar { position: fixed; left: 50%; bottom: 0; z-index: 2147483000; width: min(440px, 100%); box-sizing: border-box;
@@ -50,7 +58,8 @@
   #gsi[hidden] { display: none; }
 </style>
 </head>
-<body>
+<body class="llegando">
+<div class="hola" id="hola" aria-live="polite"></div>
 <div class="entrar fuera" id="entrar" aria-label="Entrar">
   <h1>Alma</h1>
   <p>Entra para hablar con Alma.</p>
@@ -94,6 +103,8 @@
   /* Alma lista para hablar (con sesión): tocarla abre la voz aquí mismo. */
   function conVoz(nombre) {
     var v = window.SAAlmaVoz;
+    nombre = String(nombre || "").trim().split(/\s+/)[0];
+    if (nombre) { $("hola").textContent = "Hola, " + nombre; setTimeout(function () { $("hola").classList.add("on"); }, 900); }
     if (v && v.setContexto) { try { v.setContexto({ vista: "Inicio de la app de Alma", nombre: String(nombre || "").split(" ")[0] }); } catch (e) {} }
     SANav.update({ alma: v });
   }
@@ -102,10 +113,11 @@
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
-  if (ent) { var yo = sesion(); conVoz(yo.n || yo.nombre); }
+  if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }
   else mostrarEntrar();
   /* Al cargar: la transición de Alma (la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar). */
-  if (t) SANav.portal("in", { blanco: true, rapido: true, hacia: t, espera: 160 });
+  var llego = function () { document.body.classList.remove("llegando"); };
+  if (t) { SANav.portal("in", { blanco: true, rapido: true, hacia: t, espera: 160 }).then(llego, llego); setTimeout(llego, 3500); } else llego();
 
   /* ── Entrar ── */
   var ocupado = false, crearPass = false;
@@ -147,7 +159,7 @@
     $("entrar").classList.add("fuera");
     setTimeout(function () {
       document.body.classList.remove("entrando"); SANav.escena(null);
-      conVoz(profile.primerNombre || profile.nombre);
+      conVoz(profile.primer_nombre || profile.primerNombre || profile.nombre);
     }, 350);
   }
   $("b-face").onclick = function () { if (ocupado) return; ocupar(true); error(""); nativa({ accion: "faceEntrar" }); };

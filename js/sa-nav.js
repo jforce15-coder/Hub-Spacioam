@@ -891,8 +891,8 @@
      toques idénticos seguidos) y desde entonces los toques en ese punto son del anillo: no tocan la página y controlan
      a Alma. Por app y por equipo (localStorage). SANav.anillo(false) lo olvida; SANav.anillo(true) vuelve a aprender.
        sin llamada ....... 1 toque: menú · 2 toques: apps · 3 toques: Alma por voz minimizada · deslizar: 8 posiciones
-       menú abierto ...... ↑↓ marcan una opción · 1 toque: entra · 2 toques: abre sus opciones (abanico) · doble ↓: cierra
-       opciones abiertas . ↑↓ marcan · 1 toque: entra · 2 toques: vuelve a la barra
+       menú abierto ...... ↑↓ marcan una opción (dan la vuelta, no salen) · 2 toques: abre sus opciones o entra · 1 toque: cierra
+       opciones abiertas . ↑↓ marcan (dan la vuelta) · 2 toques: abre la marcada · 1 toque: vuelve a la barra
        Alma minimizada ... deslizar ↑: al centro (luego ↑↓ la mueven) · 1 toque: al centro · 2 toques: termina
        Alma al centro .... deslizar ↓: termina · deslizar ↑: se minimiza arriba · 1 toque: pausa el micrófono */
   var RING = { pt: null, prev: [], taps: 0, tT: null, on: false, aprender: false };
@@ -946,7 +946,7 @@
     if (anilloNivel() === "bar") shown.forEach(function (it, j) { if (it.k === cfg.current) i = j; });
     setTimeout(function () { anilloFoco(i); }, 30);
   }
-  function anilloMenuMover(dir) { activity(); if (RING.nivel !== anilloNivel()) { anilloFocoInicial(); return; } anilloFoco((RING.foco < 0 ? 0 : RING.foco) + (dir === "down" ? 1 : -1)); }
+  function anilloMenuMover(dir) { activity(); if (RING.nivel !== anilloNivel()) { anilloFocoInicial(); return; } var n = anilloLista().length || 1; anilloFoco(((RING.foco < 0 ? 0 : RING.foco) + (dir === "down" ? 1 : -1) + n) % n); }   // da la vuelta en los dos sentidos
   function anilloMenuEntrar() {
     activity(); var nv = anilloNivel(), i = RING.foco < 0 ? 0 : RING.foco;
     if (nv === "bar") {
@@ -958,8 +958,9 @@
   }
   /* Estado 2 con el anillo: doble toque sobre la opción marcada abre sus opciones en abanico (sin opciones: se sacude). */
   function anilloSub() {
-    var i = RING.nivel === "bar" && RING.foco >= 0 ? RING.foco : -1, it = i >= 0 ? shown[i] : null;
-    if (openSub(it ? it.k : cfg.current)) anilloFocoInicial();
+    var i = RING.nivel === "bar" && RING.foco >= 0 ? RING.foco : -1, it = i >= 0 ? shown[i] : null, k = it ? it.k : cfg.current;
+    if (k !== "__more" && !subDe(k)) { go(k); setS(1); anilloFoco(-1); return; }   // sin opciones de adentro: entra directo
+    if (openSub(k)) anilloFocoInicial();
   }
   function anilloMenuAtras() {
     activity();
@@ -968,7 +969,9 @@
   }
   function anilloAccion(n) {
     activity();
-    if (!AL.on && !AL.min && st.S !== 1) { if (n === 1) anilloMenuEntrar(); else if (n === 2 && st.S === 2) anilloSub(); else if (n === 2) anilloMenuAtras(); return; }
+    /* Menú abierto con el anillo: 2 toques abren (en la barra, las opciones de adentro; en un abanico, la opción marcada),
+       1 toque cierra (el abanico vuelve a la barra; la barra, al reposo). */
+    if (!AL.on && !AL.min && st.S !== 1) { if (n >= 2) { if (st.S === 2) anilloSub(); else anilloMenuEntrar(); } else anilloMenuAtras(); return; }
     if (AL.on && !AL.chat) {
       if (n !== 1) return;
       AL.mudo = !AL.mudo; if (AL.ses && AL.ses.mute) { try { AL.ses.mute(AL.mudo); } catch (x) {} }
@@ -984,14 +987,8 @@
      con Alma recién minimizada (triple toque), arriba la lleva al centro; en lo demás, mueve el botón por las 8 posiciones. */
   function anilloSwipe(dir) {
     activity();
-    /* Con un menú abierto: ↑ / ↓ cambian la opción; dos ↓ seguidos vuelven al estado 1 (se espera un instante al segundo). */
-    if (!AL.on && !AL.min && st.S !== 1) {
-      if (dir === "down") {
-        if (RING.bajaT) { clearTimeout(RING.bajaT); RING.bajaT = null; setS(1); anilloFoco(-1); phShow("Inicio", px.t, py.t - 60, 900); return; }
-        RING.bajaT = setTimeout(function () { RING.bajaT = null; anilloMenuMover("down"); }, 650); return;
-      }
-      anilloMenuMover("up"); return;
-    }
+    /* Con un menú abierto: ↑ / ↓ cambian la opción y dan la vuelta dentro de las que hay; nunca salen del menú. */
+    if (!AL.on && !AL.min && st.S !== 1) { anilloMenuMover(dir); return; }
     if (AL.on) { if (dir === "down") almaEnd(false); else { RING.rotar = true; minimizarEn("tc", 0, 0, false); } return; }
     if (AL.min && !RING.rotar && dir === "up") { almaOpen(); return; }
     anilloMover(dir);

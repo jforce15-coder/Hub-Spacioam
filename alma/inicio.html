@@ -67,6 +67,7 @@
   .fila.boton { cursor: pointer; justify-content: center; font-weight: 600; }
   .fila.boton.rojo { color: #D9583A; }
   .fila a { color: inherit; text-decoration: none; flex: 1; }
+  #d-anillo { white-space: pre-line; font-size: 11px; color: #6F6867; }
   .nota-g { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 0; padding: 0 16px 12px; }
   .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
 
@@ -118,6 +119,8 @@
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
     <p class="nota-g" id="n-anillo">Dos toques en tu anillo y Alma te escucha, aunque el teléfono esté bloqueado. Otros dos toques la pausan. El anillo va en modo Music.</p>
+    <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
+    <p class="nota-g" id="d-anillo" hidden></p>
   </div>
   <div class="grupo">
     <div class="fila" id="p-health-f" hidden><a href="../health/">Health</a><span class="va">›</span></div>
@@ -214,7 +217,7 @@
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
-    if (NATIVA) nativa({ accion: "estado" });
+    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); }
     $("velo").classList.add("on"); $("panel").classList.add("on"); $("panel").setAttribute("aria-hidden", "false");
   }
   function cerrarAjustes() { $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
@@ -243,11 +246,23 @@
   window.AlmaVoz = {
     evento: function (e) {
       if (!e) return;
-      if (e.tipo === "estado") { $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo; }
-      if (e.tipo === "error" && e.mensaje) $("n-anillo").textContent = e.mensaje;
+      if (e.tipo === "estado") {
+        $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
+        $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
+        /* Diagnóstico: qué pasó la última vez (sirve para ver dónde se queda con el teléfono bloqueado) */
+        var d = [];
+        if (e.microfono && e.microfono !== "si") d.push("Micrófono: " + e.microfono);
+        if (e.ultimoError) d.push("Último error: " + e.ultimoError);
+        if (e.pasos && e.pasos.length) d.push("Última vez:\n" + e.pasos.join("\n"));
+        $("d-anillo").hidden = !d.length; $("d-anillo").textContent = d.join("\n\n");
+      }
+      if (e.tipo === "paso" && e.texto) { $("d-anillo").hidden = false; $("d-anillo").textContent = e.texto; }
+      if (e.tipo === "error" && e.mensaje) { $("d-anillo").hidden = false; $("d-anillo").textContent = "Error: " + e.mensaje; }
     }
   };
   $("i-anillo").onchange = function () { vozConfig(); nativa({ accion: "voz", que: "anillo", on: this.checked }); };
+  /* Probar con la app abierta: si aquí funciona y bloqueado no, el problema es del segundo plano */
+  $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };
   if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
 
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */

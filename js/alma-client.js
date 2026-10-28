@@ -77,6 +77,8 @@
     SHEET: CFG.sheetId,
     configure: function (url, token) { CFG.url = url; if (token) CFG.token = token; },
     hasApi: function () { return !!CFG.url; },
+    /* Para la voz nativa de la app (Alma con el teléfono bloqueado): a dónde y con qué llave pedir la ficha. */
+    destino: function () { return { url: CFG.url, token: CFG.token }; },
     /* Solo lo vivo (cola, log reciente, bandeja) desde el Apps Script: lo que cambia minuto a minuto. */
     probarPush: function (email) { return call('probarPush', { email: email }); },
     pushLog: function (horas) { return call('pushLog', { horas: horas || 48 }); },

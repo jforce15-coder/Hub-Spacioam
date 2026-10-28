@@ -13,7 +13,9 @@
      SATutoriales.centro({app})     → abre el centro de tutoriales
      SATutoriales.play(id)          → reproduce un tutorial (desde un toque: con sonido)
      SATutoriales.boton(true|false) → muestra u oculta el «?» flotante
-     SATutoriales.registrar([...])  → una app agrega sus propios tutoriales al centro
+     SATutoriales.registrar([...])  → una app agrega sus propios tutoriales al centro. Sin video, con
+                                      abrir(): una guía de la app (Epi: sus tarjetas paso a paso); se abre
+                                      con su propio visor y no cuenta en el reporte de quién vio qué.
      SATutoriales.progreso(id)      → { visto, max } de la persona en este equipo
 
    El avance se guarda por persona (correo de la sesión compartida) en una cookie de
@@ -169,6 +171,7 @@
     ".sat-thumb:before{content:'';position:absolute;z-index:1;left:50%;top:50%;margin:-6px 0 0 -3px;border-left:9px solid #fff;border-top:6px solid transparent;border-bottom:6px solid transparent}",
     ".sat-it-t{display:block;font-size:14px;font-weight:600;color:#3E3F3F;line-height:1.3}",
     ".sat-it-r{display:block;font-size:11.5px;color:#938B8A;line-height:1.45;margin-top:3px}",
+    ".sat-thumb.guia{background:#F5EEE9;width:58px;height:58px}.sat-thumb.guia:before{display:none}.sat-thumb.guia:after{content:'✦';width:auto;height:auto;margin:0;left:50%;top:50%;transform:translate(-50%,-50%);background:none;color:#E9826A;font:400 22px/1 Georgia,serif}",
     ".sat-it-m{display:inline-block;margin-top:6px;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#B4553C;background:#FCEDE8;border:1px solid #E9826A;border-radius:999px;padding:2px 8px}",
     ".sat-pronto{margin-top:18px;padding:13px 14px;border-radius:14px;border:1px dashed #D8D4CE;font-size:12px;line-height:1.55;color:#938B8A}",
     ".sat-rep-res{display:flex;gap:8px;margin-top:14px}.sat-rep-res div{flex:1;background:#F5F3F0;border-radius:16px;padding:12px 14px}.sat-rep-res b{display:block;font:400 26px/1 'Valky','Cormorant Garamond',Georgia,serif;color:#3E3F3F}.sat-rep-res span{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#938B8A}",
@@ -373,13 +376,16 @@
       html += '<div class="sat-grp"><h3>' + esc(g) + "</h3>";
       grupos[g].forEach(function (t) {
         var p = progreso(t);
-        html += '<button type="button" class="sat-item" data-id="' + esc(t.id) + '"><span class="sat-thumb" style="background-image:url(\'' + esc(A(t.poster || "")) + '\')"></span>' +
+        var guia = !t.video && typeof t.abrir === "function";
+        html += '<button type="button" class="sat-item" data-id="' + esc(t.id) + '">' + (guia ? '<span class="sat-thumb guia"></span>' : '<span class="sat-thumb" style="background-image:url(\'' + esc(A(t.poster || "")) + '\')"></span>') +
           '<span style="min-width:0"><span class="sat-it-t">' + esc(t.titulo) + '</span><span class="sat-it-r">' + esc(t.resumen || "") + "</span>" +
-          (p.visto ? '<span class="sat-it-r" style="margin-top:6px">Visto · ' + esc(t.duracion || "") + "</span>" : '<span class="sat-it-m">' + (p.max > 3 ? "Vas en " + p.max + " %" : "Nuevo") + " · " + esc(t.duracion || "") + "</span>") + "</span></button>";
+          (guia ? '<span class="sat-it-r" style="margin-top:6px">Guía' + (t.pasos ? " · " + t.pasos + (t.pasos === 1 ? " paso" : " pasos") : "") + "</span>"
+            : p.visto ? '<span class="sat-it-r" style="margin-top:6px">Visto · ' + esc(t.duracion || "") + "</span>" : '<span class="sat-it-m">' + (p.max > 3 ? "Vas en " + p.max + " %" : "Nuevo") + " · " + esc(t.duracion || "") + "</span>") + "</span></button>";
       });
       html += "</div>";
     });
-    html += '<div class="sat-pronto">Pronto llegarán aquí los tutoriales propios de esta app.</div></div></div>';
+    if (!ts.some(function (t) { return !t.video; })) html += '<div class="sat-pronto">Pronto llegarán aquí los tutoriales propios de esta app.</div>';
+    html += "</div></div>";
     var el = capa("sat-hub", html);
     var hoja = el.querySelector(".sat-sheet"); deslizarAbajo(hoja, hoja, function () { cerrar(); }, function () { return hoja.scrollTop <= 0; });
     function cerrar(cb) { d.removeEventListener("keydown", tecla); quitar(el, cb); }
@@ -389,7 +395,11 @@
     el.querySelector(".sat-x").addEventListener("click", function () { cerrar(); });
     Array.prototype.forEach.call(el.querySelectorAll(".sat-item"), function (b) {
       /* Desde un toque el navegador sí deja sonar: se reproduce en el mismo gesto. */
-      b.addEventListener("click", function () { var id = b.getAttribute("data-id"); quitar(el); d.removeEventListener("keydown", tecla); play(id); });
+      b.addEventListener("click", function () {
+        var id = b.getAttribute("data-id"), t = porId(id); quitar(el); d.removeEventListener("keydown", tecla);
+        if (t && !t.video && typeof t.abrir === "function") { try { t.abrir(); } catch (e) { console.error(e); } return; }
+        play(id);
+      });
     });
     return true;
   }
@@ -412,7 +422,7 @@
         if (!j || !j.ok) throw new Error((j && j.error) || "sin respuesta");
         var fecha = function (x) { var t = new Date(x); return isNaN(t) ? "" : t.toLocaleDateString("es-GT", { day: "numeric", month: "short" }); };
         var html = "";
-        CATALOGO.concat(extra).forEach(function (t) {
+        CATALOGO.concat(extra).filter(function (t) { return t.video; }).forEach(function (t) {
           var fs = j.filas.filter(function (f) { return f.tutorial === t.id && f.version === (t.version || 1); })
             .sort(function (a, b) { return (a.visto - b.visto) || String(a.nombre || a.email).localeCompare(String(b.nombre || b.email)); });
           var vistos = fs.filter(function (f) { return f.visto; }).length;

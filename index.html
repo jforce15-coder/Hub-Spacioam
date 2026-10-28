@@ -4029,7 +4029,7 @@ class Component extends DCLogic {
       else try { SAAlmaVoz.setContexto(okA ? { whatsapp: /^wa:/.test(String(fA.conv_id || "")), codigo: fA.codigo || "", conv_id: fA.conv_id || fA.resId || "", huesped: fA.huesped || "", propiedad: fA.propiedad || "", fechas: [fA.checkin || fA.check_in || "", fA.checkout || fA.check_out || ""].filter(Boolean).join(" → "), nombre: String((((window.SA && SA.session && SA.session()) || {}).nombre) || (this.state.perfil || {}).nombre || "").split(" ")[0] } : null); } catch (e) {}
     }
     var c = {
-      app: "hub", home: { k: "hub", l: "Inicio" }, current: v, hidden: v === "login" || v === "cargando",
+      app: "hub", home: { k: "hub", l: "Inicio" }, current: v, hidden: v === "login" || v === "cargando" || !!this._appAbierta,   /* app abierta encima: trae su propio Alma y su «?» */
       apps: ["hub", "hola", "epi", "grow", "mi", "docs"],   /* el Hub es solo del equipo administrador: ve todas las apps */
       items: [
         { k: "hoy", l: "Hoy", icon: "sun" }, { k: "alma", l: "Alma", icon: "chat" }, { k: "accion", l: "Acción", icon: "bolt" },
@@ -5515,17 +5515,19 @@ class Component extends DCLogic {
     if (!yaAbierta && window.SANav && SANav.portal) {
       SANav.portal("out", { blanco: true, rapido: true, fondo: "#FAFAFA" }).then(function (deshacer) {
         var tr = P.style.transition; P.style.transition = "none"; P.style.display = "flex"; P.style.transform = "translate3d(0,0,0)"; void P.offsetWidth; P.style.transition = tr;
-        var g = self._appF, listo = function () { deshacer(); };
+        var g = self._appF, listo = function () { deshacer(); setTimeout(function () { if (self._appAbierta) self.navSync(); }, 700); };
         if (!g || g.cargada) setTimeout(listo, 120); else { g.alListo = listo; setTimeout(function () { if (g.alListo) { g.alListo = null; listo(); } }, 2600); }
       });
       return;
     }
     P.style.display = "flex";
     requestAnimationFrame(function () { requestAnimationFrame(function () { P.style.transform = "translate3d(0,0,0)"; }); });
+    this.navSync();   // sin portal: el menú del Hub se oculta de una vez
   }
   cerrarApp(desdeHistorial) {
     var self = this, P = this._appP; if (!P || !this._appAbierta) return;
     this._appAbierta = false;
+    this.navSync();   // el Hub vuelve a mostrar su Alma y su «?» (el portal sale desde ese botón)
     if (!desdeHistorial) { try { if (history.state && history.state.saApp) history.back(); } catch (e) {} }
     if (window.SANav && SANav.portal && !desdeHistorial) {
       SANav.portal("out", { blanco: true, rapido: true, fondo: "#FAFAFA" }).then(function (deshacer) {
@@ -5908,7 +5910,7 @@ class Component extends DCLogic {
     var ant = d && d.anthropic, maxD = d ? Math.max.apply(null, d.porDia.map(function (x) { return x.usd; }).concat([0])) : 0;
     var toggle = function (k, v) { return function () { self.setState(function (s) { var r = {}; r[k] = s[k] === v ? null : v; return r; }); }; };
     return {
-      tutReporte: function () { var ir = function () { window.SATutoriales.reporte(); }; if (window.SATutoriales) ir(); else { var s = document.createElement("script"); s.src = "js/sa-tutoriales.js?v=2026-10-27f"; s.onload = ir; document.head.appendChild(s); } },
+      tutReporte: function () { var ir = function () { window.SATutoriales.reporte(); }; if (window.SATutoriales) ir(); else { var s = document.createElement("script"); s.src = "js/sa-tutoriales.js?v=2026-10-28a"; s.onload = ir; document.head.appendChild(s); } },
       iaAbierto: ab, iaAbrir: function () { self.setState({ iaAbierto: true }); self.iaCargar(); }, iaCerrar: function () { self.setState({ iaAbierto: false }); }, iaRecargar: function () { self.iaCargar(); },
       iaSubtitulo: d ? "Últimos " + dias + " días · " + usd(tot.usd) : "Cargando…",
       iaPeriodos: [[7, "7 días"], [30, "30 días"], [90, "90 días"]].map(function (p) { var on = dias === p[0]; return { label: p[1], on: on, bg: on ? "#3E3F3F" : "transparent", fg: on ? "#FAFAFA" : "#6F6867", pick: function () { self.setState({ iaDias: p[0], iaApp: null, iaFn: null }); self.iaCargar(p[0]); } }; }),

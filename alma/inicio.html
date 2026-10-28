@@ -9,7 +9,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
 <link rel="stylesheet" href="../ds/tokens/fonts.css">
 <!-- Inicio de la app de Alma (iPhone y iPad): el atardecer muy difuminado de fondo y Alma grande al centro, igual que
-     la voz de las web apps. Empieza quieta; al tocarla (o Chat) abre la conversación. Terminar la deja quieta otra vez. -->
+     la voz de las web apps. Empieza quieta; al tocarla (o Chat) abre la conversación. Terminar la deja quieta otra vez.
+     Sin sesión: la entrada de la app (Face ID, Google o correo), con Alma arriba. -->
 <style>
   :root {
     color-scheme: light;
@@ -17,33 +18,163 @@
     --san-halo: linear-gradient(180deg, #8FA5C8 0%, #B8B6C8 30%, #E9826A 56%, #E3A47F 74%, #A98C93 100%);
   }
   html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
-  body { background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; -webkit-tap-highlight-color: transparent; }
+  body { background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; -webkit-tap-highlight-color: transparent;
+    font-family: Montserrat, system-ui, sans-serif; }
+
+  /* ── Entrar ── */
+  body.entrando #sa-nav-root .san-ov-ui { opacity: 0 !important; pointer-events: none !important; }
+  .entrar { position: fixed; left: 50%; bottom: 0; z-index: 2147483000; width: min(440px, 100%); box-sizing: border-box;
+    padding: 26px 22px max(22px, env(safe-area-inset-bottom)); transform: translate(-50%, 0); transition: transform .7s cubic-bezier(.3,1.1,.5,1), opacity .5s ease;
+    display: flex; flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+  .entrar.fuera { transform: translate(-50%, 110%); opacity: 0; pointer-events: none; }
+  .entrar h1 { margin: 0; font: 400 40px/1 Valky, Georgia, serif; color: #FFFDFB; text-shadow: 0 2px 14px rgba(60,40,40,.3); }
+  .entrar p { margin: 2px 0 12px; font-size: 13px; color: rgba(255,253,251,.88); text-shadow: 0 1px 8px rgba(60,40,40,.35); }
+  .entrar button, .entrar input { font: 600 15px Montserrat, system-ui, sans-serif; height: 52px; border-radius: 999px; border: 0; box-sizing: border-box; width: 100%; }
+  .entrar button { display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; color: #3E3F3F;
+    background: rgba(250,248,246,.92); box-shadow: 0 10px 22px -12px rgba(60,40,40,.45); transition: transform .3s cubic-bezier(.3,1.35,.55,1), opacity .2s; }
+  .entrar button[hidden] { display: none; }
+  .entrar button:active { transform: scale(.97); transition-duration: .08s; }
+  .entrar button:disabled { opacity: .55; }
+  .entrar button.sec { background: rgba(255,255,255,.22); color: #FFFDFB; box-shadow: none; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .entrar button.prin { background: #E9826A; color: #fff; }
+  .entrar svg { width: 20px; height: 20px; flex: none; }
+  .entrar input { padding: 0 20px; background: rgba(250,248,246,.94); color: #3E3F3F; font-weight: 500; font-size: 16px; outline: none; }
+  .entrar input:focus { box-shadow: 0 0 0 2px #E9826A; }
+  .entrar .correo { display: none; flex-direction: column; gap: 10px; }
+  .entrar.con-correo .correo { display: flex; }
+  .entrar.con-correo .metodos { display: none; }
+  .entrar .metodos { display: flex; flex-direction: column; gap: 10px; }
+  .entrar .err { min-height: 18px; font-size: 12.5px; font-weight: 500; color: #FFF6F2; text-shadow: 0 1px 8px rgba(60,30,30,.5); }
+  .entrar .volver { background: none !important; box-shadow: none !important; height: 36px !important; color: rgba(255,253,251,.9) !important; font-weight: 500 !important; font-size: 13px !important; }
+  #gsi { display: flex; justify-content: center; min-height: 44px; }
+  #gsi[hidden] { display: none; }
 </style>
 </head>
 <body>
+<div class="entrar fuera" id="entrar" aria-label="Entrar">
+  <h1>Alma</h1>
+  <p>Entra para hablar con Alma.</p>
+  <div class="metodos">
+    <button type="button" id="b-face" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 9v1.5M15 9v1.5M12 9v4h-1M9.5 15.5c1.4 1.2 3.6 1.2 5 0"/></svg>Entrar con Face ID</button>
+    <button type="button" id="b-google"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.6 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.3-4.8 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7.1H2.1a11 11 0 0 0 0 9.8l3.7-2.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7.1l3.7 2.8C6.7 7.3 9.1 5.4 12 5.4z"/></svg>Continuar con Google</button>
+    <div id="gsi" hidden></div>
+    <button type="button" class="sec" id="b-correo">Entrar con correo</button>
+  </div>
+  <form class="correo" id="f-correo" autocomplete="on">
+    <input id="i-email" type="email" placeholder="Correo" autocomplete="username" inputmode="email" autocapitalize="none" spellcheck="false">
+    <input id="i-pass" type="password" placeholder="Contraseña" autocomplete="current-password">
+    <button type="submit" class="prin" id="b-entrar">Entrar</button>
+    <button type="button" class="volver" id="b-volver">Otras formas de entrar</button>
+  </form>
+  <div class="err" id="err" role="alert"></div>
+</div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
+<script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-24i"></script>
 <script src="../js/alma-voz.js?v=2026-10-25c"></script>
-<script src="../js/sa-nav.js?v=2026-10-28b"></script>
+<script src="../js/sa-nav.js?v=2026-10-28c"></script>
 <script>
 (function () {
   "use strict";
-  /* Quién es: el correo va dentro de la sesión firmada (pulsera) que guarda sa-sesion.js. */
+  var $ = function (id) { return document.getElementById(id); };
+  var GOOGLE_ID = window.SA_GOOGLE_CLIENT_ID || "946315464909-i0uptgcvbpqnspnjp5a0o4a7dnpi0ngi.apps.googleusercontent.com";
+  /* La app de iPhone/iPad (alma-app) responde por aquí: Google en una hoja segura de Safari y Face ID con el llavero. */
+  var NATIVA = !!(window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma);
+  function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
+
+  /* Quién es: va dentro de la sesión firmada (pulsera) que guarda sa-sesion.js. */
   function sesion() {
-    try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return null;
+    try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return {};
       var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
-      return JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4)))));
-    } catch (e) { return null; }
+      return JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4))))) || {};
+    } catch (e) { return {}; }
   }
-  var yo = sesion() || {};
-  /* Tocar a Alma abre la voz aquí mismo, sin salir de esta pantalla. Sin sesión, lo dice aquí (no lleva a otra página). */
-  var hay = !!(window.SAAuth && SAAuth.session && SAAuth.session());
-  var voz = hay ? window.SAAlmaVoz : { start: function () { return Promise.reject(new Error("Entra al Hub con tu cuenta para hablar con Alma.")); } };
-  if (hay && voz.setContexto) { try { voz.setContexto({ vista: "Inicio de la app de Alma", nombre: String(yo.n || yo.nombre || "").split(" ")[0] }); } catch (e) {} }
-  SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: voz, tutoriales: false, bienvenida: false });
-  var t = SANav.escena();
-  /* Al cargar: la transición de Alma (la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar, al centro). */
+  function hay() { return !!(window.SAAuth && SAAuth.session && SAAuth.session()); }
+
+  /* Alma lista para hablar (con sesión): tocarla abre la voz aquí mismo. */
+  function conVoz(nombre) {
+    var v = window.SAAlmaVoz;
+    if (v && v.setContexto) { try { v.setContexto({ vista: "Inicio de la app de Alma", nombre: String(nombre || "").split(" ")[0] }); } catch (e) {} }
+    SANav.update({ alma: v });
+  }
+
+  var ent = hay();
+  SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false });
+  /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
+  var t = SANav.escena(ent ? null : { y: .3, s: 190 });
+  if (ent) { var yo = sesion(); conVoz(yo.n || yo.nombre); }
+  else mostrarEntrar();
+  /* Al cargar: la transición de Alma (la pantalla empieza cubierta por la piedra y Alma vuelve a su lugar). */
   if (t) SANav.portal("in", { blanco: true, rapido: true, hacia: t, espera: 160 });
+
+  /* ── Entrar ── */
+  var ocupado = false, crearPass = false;
+  function error(m) { $("err").textContent = m || ""; }
+  function ocupar(on) { ocupado = on; Array.prototype.forEach.call($("entrar").querySelectorAll("button"), function (b) { b.disabled = on; }); }
+  function mostrarEntrar() {
+    document.body.classList.add("entrando");
+    setTimeout(function () { $("entrar").classList.remove("fuera"); }, 700);
+    if (NATIVA) nativa({ accion: "estado" });
+  }
+  /* Respuestas de la app: si hay Face ID guardado, el resultado de Google y la llave que soltó Face ID. */
+  window.AlmaLogin = {
+    estado: function (e) { $("b-face").hidden = !(e && e.faceID && e.guardado); },
+    google: function (cred) { if (cred) entrarCon(SAAuth.googleLogin(cred), "google"); else ocupar(false); },
+    face: function (email, llave) { if (email && llave) entrarCon(SAAuth.faceLogin(email, llave), "face"); else ocupar(false); },
+    cancelado: function (m) { ocupar(false); error(m || ""); }
+  };
+  function entrarCon(p, como) {
+    ocupar(true); error("");
+    Promise.resolve(p).then(function (r) {
+      if (r && r.ok && r.profile) { listo(r.profile, como); return; }
+      if (r && r.error === "needs_password") { crearPass = true; $("i-pass").value = ""; $("i-pass").placeholder = "Crea tu contraseña (6 o más)"; $("i-pass").autocomplete = "new-password"; $("b-entrar").textContent = "Crear y entrar"; ocupar(false); error("Es tu primera vez: crea tu contraseña."); return; }
+      if (como === "face" && r && (r.error === "face" || r.error === "no_user")) { nativa({ accion: "faceBorrar" }); $("b-face").hidden = true; }
+      error(r && r.error === "no_user" ? "Esa cuenta no está registrada en Spacio AM. Usa tu correo de trabajo."
+        : r && (r.error === "inactive" || r.error === "suspended") ? "Tu acceso está desactivado. Escríbenos y lo revisamos."
+        : como === "face" ? "Face ID ya no sirve en este equipo. Entra con Google o con tu correo."
+        : como === "google" ? "No pudimos entrar con Google. Intenta de nuevo o usa tu correo."
+        : "Correo o contraseña incorrectos.");
+      ocupar(false);
+    }, function () { error("No pudimos conectar. Revisa tu internet e intenta de nuevo."); ocupar(false); });
+  }
+  function listo(profile, como) {
+    if (window.SA && SA.startSession) { try { SA.startSession(profile); } catch (e) {} }
+    /* La próxima vez, Face ID: el llavero del equipo guarda una llave del login que solo sale con Face ID. */
+    if (NATIVA && como !== "face" && SAAuth.faceEnroll) {
+      SAAuth.faceEnroll().then(function (r) { if (r && r.ok && r.llave) nativa({ accion: "faceGuardar", email: r.email, llave: r.llave }); }, function () {});
+    }
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    $("entrar").classList.add("fuera");
+    setTimeout(function () {
+      document.body.classList.remove("entrando"); SANav.escena(null);
+      conVoz(profile.primerNombre || profile.nombre);
+    }, 350);
+  }
+  $("b-face").onclick = function () { if (ocupado) return; ocupar(true); error(""); nativa({ accion: "faceEntrar" }); };
+  $("b-google").onclick = function () {
+    if (ocupado) return; error("");
+    if (NATIVA) { ocupar(true); nativa({ accion: "google" }); return; }
+    /* En el navegador: el botón de Google de siempre. */
+    $("b-google").hidden = true; $("gsi").hidden = false;
+    var pintar = function () {
+      try {
+        google.accounts.id.initialize({ client_id: GOOGLE_ID, ux_mode: "popup", auto_select: false, itp_support: true, callback: function (r) { AlmaLogin.google(r && r.credential); } });
+        google.accounts.id.renderButton($("gsi"), { type: "standard", theme: "outline", size: "large", shape: "pill", text: "continue_with", width: Math.min(400, $("gsi").offsetWidth || 320), locale: "es" });
+      } catch (e) { error("Google no está disponible ahora."); }
+    };
+    if (window.google && google.accounts && google.accounts.id) { pintar(); return; }
+    var sc = document.createElement("script"); sc.src = "https://accounts.google.com/gsi/client"; sc.async = true; sc.onload = pintar;
+    sc.onerror = function () { error("Google no está disponible ahora."); }; document.head.appendChild(sc);
+  };
+  $("b-correo").onclick = function () { error(""); $("entrar").classList.add("con-correo"); setTimeout(function () { $("i-email").focus(); }, 60); };
+  $("b-volver").onclick = function () { error(""); crearPass = false; $("b-entrar").textContent = "Entrar"; $("i-pass").placeholder = "Contraseña"; $("entrar").classList.remove("con-correo"); };
+  $("f-correo").onsubmit = function (e) {
+    e.preventDefault(); if (ocupado) return;
+    var em = $("i-email").value.trim(), pw = $("i-pass").value;
+    if (!em || !pw) { error("Escribe tu correo y tu contraseña."); return; }
+    if (crearPass && pw.length < 6) { error("La contraseña necesita al menos 6 caracteres."); return; }
+    entrarCon(crearPass ? SAAuth.setInitialPassword(em, pw) : SAAuth.login(em, pw), "correo");
+  };
 })();
 </script>
 </body>

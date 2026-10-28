@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alma · Google</title>
+<!-- Puente de «Continuar con Google» para la app de iPhone/iPad. La app abre esta página en una hoja segura de Safari
+     (Google no deja entrar dentro de un visor):
+       ?ir=1           → manda a Google a pedir la cuenta (id_token, el mismo que da el botón de Google en la web)
+       #id_token=…     → Google vuelve aquí y la página se la pasa a la app: alma://google?cred=…
+   En Google Cloud, este cliente necesita https://hub.spacioam.com/alma/google.html en «URI de redireccionamiento autorizados». -->
+<style>
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover;
+    font: 500 14px Montserrat, system-ui, sans-serif; color: #FFFDFB; text-shadow: 0 1px 8px rgba(60,40,40,.4); text-align: center; padding: 24px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<div id="msg">Conectando con Google…</div>
+<script>
+(function () {
+  "use strict";
+  var CID = "946315464909-i0uptgcvbpqnspnjp5a0o4a7dnpi0ngi.apps.googleusercontent.com";
+  var h = new URLSearchParams(location.hash.slice(1)), q = new URLSearchParams(location.search);
+  if (h.get("id_token")) { location.replace("alma://google?cred=" + encodeURIComponent(h.get("id_token"))); return; }
+  if (h.get("error")) { location.replace("alma://google?error=" + encodeURIComponent(h.get("error"))); return; }
+  if (q.get("ir")) {
+    var n = new Uint8Array(16); crypto.getRandomValues(n);
+    var u = "https://accounts.google.com/o/oauth2/v2/auth?" + new URLSearchParams({
+      client_id: CID, response_type: "id_token", scope: "openid email profile", prompt: "select_account",
+      redirect_uri: location.origin + location.pathname, nonce: Array.prototype.map.call(n, function (b) { return b.toString(16); }).join("")
+    }).toString();
+    location.replace(u); return;
+  }
+  document.getElementById("msg").textContent = "Abre la app de Alma para entrar.";
+})();
+</script>
+</body>
+</html>

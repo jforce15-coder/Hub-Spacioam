@@ -1116,7 +1116,7 @@
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
     bindStone();
   }
-  function stoneTarget() { return AL.chat ? { x: VW() / 2, y: Math.max(70, VH() - Math.min(VH() * .7, 560) - 60), s: 78 } : { x: VW() / 2, y: VH() * .42, s: Math.min(VW() * .66, VH() * .4, 270) }; }
+  function stoneTarget() { var eo = AL.esc ? AL.escO : null; return AL.chat ? { x: VW() / 2, y: Math.max(70, VH() - Math.min(VH() * .7, 560) - 60), s: 78 } : { x: VW() / 2, y: VH() * (eo && eo.y || .42), s: Math.min(VW() * .66, VH() * .4, eo && eo.s || 270) }; }
   function faceD() { return 74 * zoom.x; }
   function stoneRender() {
     var dx = aDX.x, dy = aDY.x, dd = Math.hypot(dx, dy), ang = Math.atan2(dy, dx), st2 = Math.min(.05, dd / 1100);
@@ -1238,8 +1238,12 @@
   }
   /* Escena (inicio de la app de Alma): la piedra grande al centro, quieta hasta que se toca; tocarla (o Chat) abre la
      conversación. Terminar la deja quieta en su lugar: no vuelve a un botón. */
-  function escena() {
+  /* o = { y: centro en fracción del alto, s: diámetro máximo } (p. ej. más arriba y más chica mientras se entra).
+     Si la escena ya está, la piedra va a su nuevo lugar con su resorte. */
+  function escena(o) {
     if (!root) return false;
+    if (AL.esc) { AL.escO = o || null; var tn = stoneTarget(); aX.to(tn.x, .7, .8); aY.to(tn.y, .7, .8); aS.to(tn.s, .7, .72); return { x: tn.x, y: tn.y, s: tn.s / PB }; }
+    AL.escO = o || null;
     almaBuild(); AL.esc = true; root.classList.add("san-escena"); E.ov.classList.add("escena"); setS(1); clearTimeout(idleT); E.hint.classList.remove("on");
     var t = stoneTarget();
     aX.x = aX.t = t.x; aY.x = aY.t = t.y; aS.x = aS.t = t.s; aSq.x = aSq.t = 0; aDX.x = aDX.t = aDY.x = aDY.t = 0; aL.x = aL.t = .2; aH.x = aH.t = .5;
@@ -1461,7 +1465,7 @@
     alma: function () { if (!root || root.hidden || !almaOk()) return false; if (AL.esc) { escActivar(false); return true; } almaOpen(); return true; },
     /* Inicio de la app de Alma: la piedra grande al centro (quieta hasta tocarla) en vez del menú.
        Devuelve { x, y, s } de la piedra, para SANav.portal("in", { hacia }). */
-    escena: function () { return escena(); },
+    escena: function (o) { return escena(o); },
     anillo: function (on) { if (on === false) { RING.pt = null; try { localStorage.removeItem("sa_anillo"); } catch (x) {} return false; } if (on === true) { RING.aprender = true; RING.prev = []; phShow("Toca el anillo 3 veces", VW() / 2, VH() * .4, 4000); return true; } return !!RING.pt; },
     portal: portal,
     ir: function (url, nueva) { irA(url, nueva); },

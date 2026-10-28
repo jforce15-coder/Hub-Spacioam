@@ -105,6 +105,7 @@ function paraClaudeRespuesta_(b) {
     var enlaces = (Array.isArray(b.enlaces) ? b.enlaces : []).map(String).filter(function (u) { return /^https:\/\/github\.com\//.test(u); }).slice(0, 6);
     var texto = (estado === 'pregunta' ? 'Claude pregunta · ' : estado === 'fallo' ? 'Claude no pudo · ' : 'Claude terminó · ') + titulo + '\n\n' +
       (voz ? voz + '\n\n' : '') + String(b.detalle || '').trim().slice(0, 3000) + (enlaces.length ? '\n\n' + enlaces.join('\n') : '');
+    if (estado === 'listo') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claude dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? 'PR listo' : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
     opGuardar_(DESARROLLO_, 'alma', 'hub', paraClaudeFecha_() + ' · ' + texto, []);   // cada mensaje de Claude empieza con la fecha
@@ -151,4 +152,62 @@ function paraClaudeMarcar_(id, estado, nota) {
   if (i < 0) return { ok: false, error: 'no existe' };
   sh.getRange(i + 2, 9).setValue(String(estado || 'hecho') + (nota ? ' · ' + String(nota).slice(0, 300) : ''));
   return { ok: true };
+}
+
+/* ═══ ACCIONES PENDIENTES DEL USUARIO ═══════════════════════════════════════════════════════════════════════════
+   Cuando Claude deja algo que Juan debe hacer a mano (unir un PR, aprobar, abrir un enlace), queda aquí como una
+   acción con título, instrucción y enlace. El Hub muestra un botón «Acciones pendientes (N)» solo si hay alguna.
+   Si el enlace es un PR de GitHub, el Hub la da por hecha sola cuando el PR ya se unió o se cerró. */
+var ACCIONES_CAB_ = ['id', 'fecha', 'titulo', 'instruccion', 'enlace', 'estado', 'origen'];
+function accionesHoja_() {
+  var sh = hojaCrear_('ALMA_ACCIONES', ACCIONES_CAB_);
+  if (sh.getLastColumn() < ACCIONES_CAB_.length) sh.getRange(1, 1, 1, ACCIONES_CAB_.length).setValues([ACCIONES_CAB_]);
+  return sh;
+}
+/* Crea una acción pendiente. Solo enlaces https. Si ya hay una pendiente con el mismo enlace, no la repite. */
+function accionCrear_(titulo, instruccion, enlace, origen) {
+  titulo = String(titulo || '').trim().slice(0, 120); if (!titulo) return { ok: false, error: 'titulo' };
+  enlace = /^https:\/\//.test(String(enlace || '')) ? String(enlace).slice(0, 500) : '';
+  var sh = accionesHoja_(), lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    if (enlace && sh.getLastRow() > 1) {
+      var v = sh.getRange(2, 1, sh.getLastRow() - 1, ACCIONES_CAB_.length).getValues();
+      for (var k = 0; k < v.length; k++) if (String(v[k][4]) === enlace && String(v[k][5]) === 'pendiente') return { ok: true, id: String(v[k][0]), repetida: true };
+    }
+    var id = 'ac' + Date.now();
+    sh.appendRow([id, Utilities.formatDate(new Date(), CFG.TZ, 'yyyy-MM-dd HH:mm'), titulo, String(instruccion || '').trim().slice(0, 2000), enlace, 'pendiente', String(origen || '').slice(0, 60)]);
+    return { ok: true, id: id };
+  } finally { lock.releaseLock(); }
+}
+/* ¿El PR de GitHub ya se unió o se cerró? true/false, o null si no se pudo saber. Repos públicos o con GITHUB_TOKEN. */
+function accionPrCerrado_(enlace) {
+  var m = /^https:\/\/github\.com\/(jforce15-coder\/[\w.-]+)\/pull\/(\d+)/i.exec(String(enlace)); if (!m) return null;
+  try {
+    var tok = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN'), h = { Accept: 'application/vnd.github+json' };
+    if (tok) h.Authorization = 'Bearer ' + tok;
+    var r = UrlFetchApp.fetch('https://api.github.com/repos/' + m[1] + '/pulls/' + m[2], { headers: h, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return null;
+    var pr = JSON.parse(r.getContentText()); return pr.state === 'closed' || !!pr.merged;
+  } catch (e) { return null; }
+}
+/* Lista las pendientes; antes revisa las de PR (como mucho una vez por minuto) y marca como hechas las ya unidas. */
+function accionesLista_() {
+  var sh = accionesHoja_(); if (sh.getLastRow() < 2) return { ok: true, acciones: [] };
+  var cache = CacheService.getScriptCache(), v = sh.getRange(2, 1, sh.getLastRow() - 1, ACCIONES_CAB_.length).getValues(), lista = [];
+  v.forEach(function (r, i) {
+    if (String(r[5]) !== 'pendiente') return;
+    var ck = 'acc_' + r[0];
+    if (/\/pull\/\d+/.test(String(r[4])) && !cache.get(ck)) {
+      cache.put(ck, '1', 60);
+      if (accionPrCerrado_(r[4]) === true) { sh.getRange(i + 2, 6).setValue('completada'); return; }
+    }
+    lista.push({ id: String(r[0]), fecha: String(r[1]), titulo: String(r[2]), instruccion: String(r[3]), enlace: String(r[4]) });
+  });
+  return { ok: true, acciones: lista };
+}
+function accionMarcar_(id) {
+  var sh = accionesHoja_(); if (sh.getLastRow() < 2) return { ok: false, error: 'no existe' };
+  var ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]); }), i = ids.indexOf(String(id));
+  if (i < 0) return { ok: false, error: 'no existe' };
+  sh.getRange(i + 2, 6).setValue('completada'); return { ok: true };
 }

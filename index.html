@@ -1433,6 +1433,9 @@
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import>
           <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position:absolute; top:-7px; right:-7px; min-width:22px; height:22px; padding:0 6px; box-sizing:border-box; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:11px; font-weight:600; letter-spacing:.01em; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1; box-shadow:0 0 0 2px #FAFAFA; pointer-events:none">{{ autoPendientes }}</span></sc-if>
         </button>
+        <sc-if value="{{ accHay }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ accToggle }}" aria-label="Acciones pendientes · {{ accN }}" title="Acciones pendientes" style="position:relative; height:48px; flex-shrink:0; display:inline-flex; align-items:center; gap:8px; padding:0 16px; border-radius:999px; border:1px solid #E9826A; background:rgba(233,130,106,.12); cursor:pointer; color:#B54D36; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">Acciones pendientes ({{ accN }})</button>
+        </sc-if>
         </div>
       </div>
     </div>
@@ -2547,6 +2550,32 @@
       </sc-if>
     </div>
 
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ accAbierto }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed; inset:0; z-index:203; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
+        <div onClick="{{ accToggle }}" style="position:absolute; inset:0; background:rgba(62,63,63,.55); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards"></div>
+        <div role="dialog" aria-label="Acciones pendientes" style="position:relative; width:min(100%,640px); max-height:min(88dvh,800px); display:flex; flex-direction:column; background:#FAFAFA; border-radius:28px 28px 0 0; box-shadow:0 28px 80px rgba(62,63,63,.10); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; overflow:hidden">
+          <span aria-hidden="true" style="align-self:center; margin:10px 0 0; width:36px; height:4px; border-radius:999px; background:#D8D4CE"></span>
+          <button onClick="{{ accToggle }}" aria-label="Cerrar" style="position:absolute; right:12px; top:12px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer" style-active="transform:scale(.94)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+          <div style="padding:14px 56px 8px 20px"><span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Te toca a ti</span><div style="font-size:15px; font-weight:600; color:#3E3F3F; margin-top:2px">Acciones pendientes ({{ accN }})</div></div>
+          <div style="overflow-y:auto; overscroll-behavior:contain; padding:6px 14px calc(18px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; min-height:0">
+            <sc-for each="{{ accLista }}" as="a">
+              <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; overflow:hidden">
+                <button onClick="{{ a.alternar }}" aria-expanded="{{ a.abierta }}" style="width:100%; min-height:52px; display:flex; align-items:center; gap:10px; padding:10px 16px; border:none; background:transparent; font-family:inherit; text-align:left; cursor:pointer; color:#3E3F3F"><span style="flex:1; min-width:0; font-size:14px; font-weight:600; line-height:1.3">{{ a.titulo }}</span><span aria-hidden="true" style="font-size:12px; color:#6F6867">{{ a.flecha }}</span></button>
+                <sc-if value="{{ a.abierta }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:0 16px 14px; display:flex; flex-direction:column; gap:12px">
+                    <div style="font-size:13px; line-height:1.5; color:#3E3F3F; white-space:pre-wrap; text-wrap:pretty">{{ a.instruccion }}</div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap">
+                      <sc-if value="{{ a.hayEnlace }}" hint-placeholder-val="{{ false }}"><a href="{{ a.enlace }}" target="_blank" rel="noopener" style="min-height:44px; padding:0 20px; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:13px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center">Abrir enlace</a></sc-if>
+                      <button onClick="{{ a.hecha }}" style="min-height:44px; padding:0 20px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:600; cursor:pointer">Ya lo hice</button>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
           </div>
         </div>
       </div>
@@ -3684,6 +3713,7 @@ class Component extends DCLogic {
     document.addEventListener("touchend", finSw, true); document.addEventListener("touchcancel", finSw, true);
     document.addEventListener("keydown", function (e) { if (e.key !== "Escape") return; var ds = document.querySelectorAll('[role="dialog"]'); if (ds.length) cerrarDlg(ds[ds.length - 1]); });
     setTimeout(function () { self.cargarAppNotis(); }, 1200);
+    self.accionesCargar(); this._accT = setInterval(function () { if (document.visibilityState === "visible") self.accionesCargar(); }, 90000);
     this._appNotisT = setInterval(function () { if (document.visibilityState === "visible") self.cargarAppNotis(); }, 90000);
     /* Imágenes y archivos se ven en un popup, nunca en otra página. */
     this._clickArch = function (e) {
@@ -5970,6 +6000,16 @@ class Component extends DCLogic {
       }) : []
     };
   }
+  /* Acciones que Claude le deja a Juan (unir un PR, etc.). El servidor da por hechas solas las de PR ya unido. */
+  accionesCargar() {
+    var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.acciones) return;
+    ALMA.acciones().then(function (r) { if (r && r.ok) self.setState({ accSrv: { lista: r.acciones || [] } }); }).catch(function () {});
+  }
+  accionHecha(id) {
+    var self = this;
+    this.setState(function (s) { return { accSrv: { lista: ((s.accSrv || {}).lista || []).filter(function (a) { return a.id !== id; }) } }; });
+    if (window.ALMA && ALMA.accionHecha) ALMA.accionHecha(id).catch(function () { self.accionesCargar(); });
+  }
   mejHistCargar() {
     var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.mejoras) return;
     var prev = (this.state.mejSrv || {}).lista || null;
@@ -8081,6 +8121,9 @@ class Component extends DCLogic {
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
       convAnterior: function () { self.convIr(-1, grupos.length); }, convSiguiente: function () { self.convIr(1, grupos.length); },
 
+      accHay: ((st.accSrv || {}).lista || []).length > 0, accN: ((st.accSrv || {}).lista || []).length, accAbierto: !!st.accAbierto && ((st.accSrv || {}).lista || []).length > 0,
+      accToggle: function () { var ab = !st.accAbierto; self.setState({ accAbierto: ab, accExp: null }); if (ab) self.accionesCargar(); },
+      accLista: ((st.accSrv || {}).lista || []).map(function (a) { var ab = st.accExp === a.id; return { titulo: a.titulo, instruccion: a.instruccion || "Sin instrucciones.", enlace: a.enlace, hayEnlace: !!a.enlace, abierta: ab, flecha: ab ? "▲" : "▼", alternar: function () { self.setState({ accExp: ab ? null : a.id }); }, hecha: function () { self.accionHecha(a.id); } }; }),
       mejAbierto: st.mejAbierto, mejToggleAbierto: function () { var ab = !st.mejAbierto; self.setState({ mejAbierto: ab, ctrlAbierto: false, mejConf: null }); if (ab) self.mejHistCargar(); },
       versionNueva: st.versionNueva, recargarVersion: function () { if (!self.recargarSiSeguro(true)) location.replace(location.pathname + "?v=" + Date.now()); },
       resLineas: resLineas, resHay: !convCargando && resLineas.length > 0,

@@ -3072,6 +3072,8 @@ function hubApi_(body) {
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id));
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());
+      case 'acciones': return json_(accionesLista_());                                  // acciones pendientes del usuario (paraclaude.js)
+      case 'accionHecha': return json_(accionMarcar_(body.id));
       case 'usoIA': return json_(hubUsoIA_(body.dias));
       case 'mejoraEditar': return json_(hubMejoraEditar_(body.id, body.cambios, body.resumen));
       case 'mejoraEliminar': return json_(hubMejoraEliminar_(body.id));

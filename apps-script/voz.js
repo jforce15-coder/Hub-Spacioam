@@ -904,6 +904,7 @@ function vozWebFicha_(adm, nom) {
   var t = 'LLAMADA DESDE LA APP DEL HUB DE SPACIO AM. Quien habla es ' + (adm.nombre || nom) + (adm.principal ? ', el administrador principal (caller_type juan)' : ', administrador del equipo') +
     '. Ya está identificado por su sesión: NO es huésped, aunque lookup_reservation no reconozca un número. Nunca le pidas reserva, nombre ni fecha y nunca uses con él los patrones de huésped («el equipo te escribirá», «te confirmamos por aquí mismo»).' +
     ' Háblale como su compañera de trabajo de confianza: por su nombre, con energía, directa, cálida y resolutiva, en frases cortas. Para todo lo operativo (reservas, huéspedes, equipo, rutas, códigos, tareas, propiedades) usa la herramienta secretaria con su pedido completo.';
+  try { t += paraClaudeNovedades_(adm); } catch (e) {}
   if (contextoReciente_(adm)) return t;   // vozInicio_ ya agrega el contexto reciente (última hora, todos los canales)
   try {
     var corte = Date.now() - 24 * 3600000;

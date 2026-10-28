@@ -64,6 +64,21 @@ function paraClaudeCrear_(adm, inp) {
     nota: disparo.ok ? 'Ya se lo pasé a Claude. Está trabajando en eso; cuando termine te cuento en corto y queda en la conversación Desarrollo.' :
       issue ? 'Quedó enviado a Claude (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claude en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
 }
+/* Responder en la conversación «Desarrollo» del Hub: el mensaje va directo a Claude como seguimiento, con su última
+   respuesta como contexto. Solo el administrador principal (con su sesión). */
+function paraClaudeDesdeChat_(ses, texto) {
+  texto = String(texto || '').trim(); if (!texto) return { ok: false, error: 'faltan datos' };
+  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
+  if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
+  if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal puede pedirle cambios a Claude.' };
+  var ult = '';
+  try { var fs = opFilas_(DESARROLLO_.email, 20).filter(function (m) { return m.de === 'alma'; }); if (fs.length) ult = String(fs[fs.length - 1].texto || '').slice(0, 3000); } catch (e) {}
+  var r = paraClaudeCrear_(adm, { titulo: texto.replace(/\s+/g, ' ').slice(0, 80), app: 'Otro', tipo: 'mejora', prioridad: 'normal',
+    que_quiere: texto + (ult ? '\n\nEs un seguimiento de Juan a tu respuesta anterior en «Desarrollo»:\n' + ult : '') });
+  if (!r.ok) return r;
+  var alma = opGuardar_(DESARROLLO_, 'alma', 'hub', r.claude ? 'Listo, ya se lo pasé a Claude. Te aviso aquí cuando responda.' : r.nota, []);
+  return { ok: true, alma: alma };
+}
 /* hub.spacioam.com/claude.html: el admin principal pega ahí la llave de la tarea (la pantalla de Propiedades del script
    no deja agregar más de 50). Con llave vacía solo dice si ya hay una guardada; nunca la devuelve. */
 function paraClaudeLlave_(ses, llave) {

@@ -3097,7 +3097,8 @@ function hubApi_(body) {
       case 'setPropiedadDato': return json_(hubSetPropiedadDato_(body.propiedad, body.campo, body.valor, body.meta));
       case 'hilo': return json_(hubHilo_(body.resId));
       case 'redactarHub': return json_(hubRedactar_(body.resId, body.texto, body.hilo));
-      case 'responder': return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
+      case 'responder': if (String(body.resId || '') === 'op:desarrollo') return json_(paraClaudeDesdeChat_(ses, body.texto));   // responder en «Desarrollo» = seguimiento para Claude
+        return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
       case 'responderWa': return json_(hubResponderSeguro_(body, ses));
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));

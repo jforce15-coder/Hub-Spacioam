@@ -275,6 +275,7 @@
           <div class="hipno" id="hipno"></div>
           <div class="leyenda"><span><i style="background:#3F5677"></i>Profundo</span><span><i style="background:#7F93B0"></i>Ligero</span><span><i style="background:#B9C5D6"></i>REM</span><span><i style="background:#E9A58E"></i>Despierto</span></div>
           <span class="pie" id="p-sueno" style="margin-top:10px">Duerme con tu anillo y aquí verás tu noche.</span>
+          <span class="pie" id="h-sueno" hidden></span>
         </button>
         <div class="rejilla">
           <div class="v r" style="--i:2"><span class="et">Te dormiste</span><span class="cifra num" id="v-inicio">—</span></div>
@@ -500,7 +501,7 @@
   var DIAS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 
   /* ── Datos: Apple Salud (app) + anillo en vivo; de ejemplo fuera de la app ── */
-  var D = { hoy: {}, sueno: null, ejercicios: [] }, ANI = { conectado: false };
+  var D = { hoy: {}, sueno: null, ejercicios: [] }, ANI = { conectado: false }, H = [];   // H: los últimos 30 días (Apple Salud)
   function demo() {
     var serie = function (n, base, amp, ruido, hasta) { var o = []; for (var i = 0; i < n; i++) { var t = i * (hasta || 1440) / n; o.push({ t: t, v: Math.round(base + amp * Math.sin((t / 1440) * Math.PI * 2 - 1.6) + (Math.random() - .5) * ruido) }); } return o; };
     var ahora = new Date().getHours() * 60 + new Date().getMinutes();
@@ -513,6 +514,29 @@
       sueno: { inicio: "23:14", fin: "06:56", minutos: 442, fases: [["l", 34], ["p", 52], ["r", 18], ["l", 30], ["d", 4], ["p", 40], ["r", 22], ["l", 46], ["p", 38], ["r", 20], ["l", 44], ["d", 6], ["p", 30], ["r", 20], ["l", 38]] },
       ejercicios: [{ tipo: "Boxeo", min: 52, kcal: 610, dia: 1 }, { tipo: "Caminata", min: 42, kcal: 210, dia: 3 }, { tipo: "Pádel", min: 75, kcal: 640, dia: 4 }, { tipo: "Fuerza", min: 45, kcal: 320, dia: 6 }]
     };
+  }
+
+  function demoHist() {
+    var o = [], hoy = new Date();
+    for (var i = 29; i >= 0; i--) { var d = new Date(hoy); d.setDate(d.getDate() - i); var r = Math.random;
+      o.push({ d: d.toISOString().slice(0, 10), pasos: Math.round(5000 + r() * 8000), ritmo: Math.round(64 + r() * 10), ritmoMin: Math.round(50 + r() * 6), hrv: Math.round(48 + r() * 22), oxigeno: Math.round(96 + r() * 3), sueno: Math.round(360 + r() * 120) }); }
+    return o;
+  }
+  /* Los últimos 30 días de una medida: una barra por día, hoy en peach, y el promedio. */
+  function historia(campo, f, unidad) {
+    if (!H.length) return "";
+    var vals = H.map(function (x) { return x[campo]; }), con = vals.filter(function (v) { return v != null; });
+    if (con.length < 2) return "";
+    var mx = Math.max.apply(null, con), mn = Math.min.apply(null, con), prom = con.reduce(function (a, b) { return a + b; }, 0) / con.length, base = campo === "pasos" || campo === "sueno" ? 0 : mn * .9;
+    var dd = function (k) { var x = H[k].d.split("-"); return +x[2] + " " + ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][+x[1] - 1]; };
+    return '<span class="et" style="display:block;margin-top:22px">Últimos 30 días</span><div class="caja"><div class="barras" style="height:120px">' +
+      vals.map(function (v, i) { return '<span class="' + (v == null ? "no" : i === vals.length - 1 ? "luz" : "") + '" style="transform:none;height:' + (v == null ? 3 : Math.max(4, (v - base) / ((mx - base) || 1) * 100)) + '%"></span>'; }).join("") +
+      '</div><div class="ejes"><span>' + dd(0) + '</span><span>' + dd(Math.floor(H.length / 2)) + '</span><span>hoy</span></div></div>' +
+      '<div class="tresd"><div><b class="num">' + f(prom) + '</b><span>Promedio' + (unidad ? " · " + unidad : "") + '</span></div><div><b class="num">' + f(mn) + '</b><span>Mínimo</span></div><div><b class="num">' + f(mx) + '</b><span>Máximo</span></div></div>';
+  }
+  function pintarHist() {
+    var con = H.filter(function (x) { return x.sueno; });
+    if (con.length >= 3) { var p = con.reduce(function (a, x) { return a + x.sueno; }, 0) / con.length; $("h-sueno").hidden = false; $("h-sueno").textContent = "Promedio de " + con.length + " noches: " + hm(p); }
   }
 
   function pintar() {
@@ -617,6 +641,7 @@
     abrirHoja(foto(k) + '<span class="et">' + fecha() + '</span><h3>' + I.t + '</h3>' +
       '<div class="grande num"><span id="h-vivo">' + f(st && st.ult) + '</span><small>' + I.u + '</small></div>' + grafica(serie, I.c, dec) +
       '<div class="tresd"><div><b class="num">' + f(st && st.prom) + '</b><span>Promedio</span></div><div><b class="num">' + f(st && st.min) + '</b><span>Mínimo</span></div><div><b class="num">' + f(st && st.max) + '</b><span>Máximo</span></div></div>' + zonas +
+      historia({ ritmo: "ritmo", hrv: "hrv", oxigeno: "oxigeno" }[k] || "-", f, I.u) +
       (I.medir ? '<div class="accion"><button class="boton" id="h-medir"><span class="latido quieto" id="h-lat" style="margin:0;vertical-align:0">♥</span> Medir ahora</button></div>' : ""));
     llenarZonas();
     if (I.medir) $("h-medir").onclick = function () { medir(I.medir, this); };
@@ -626,16 +651,16 @@
     abrirHoja(foto("actividad") + '<span class="et">Hoy</span><h3>Movimiento</h3>' +
       '<div class="grande num">' + (hoy.pasos != null ? Math.round(hoy.pasos).toLocaleString("es") : "—") + '<small>pasos</small></div>' +
       '<div class="caja"><div class="barras" style="height:150px">' + (ph.length ? ph : new Array(24).fill(0)).map(function (v) { return '<span class="' + (v ? "" : "no") + '" style="height:' + Math.max(2, v / mx * 100) + '%;transform:none"></span>'; }).join("") + '</div><div class="ejes"><span>0 h</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div>' +
-      '<div class="tresd"><div><b class="num">' + (hoy.km != null ? hoy.km.toFixed(1) : "—") + '</b><span>km</span></div><div><b class="num">' + (hoy.kcal != null ? Math.round(hoy.kcal) : "—") + '</b><span>kcal</span></div><div><b class="num">' + (hoy.pasos != null ? Math.min(100, Math.round(hoy.pasos / 100)) : "—") + ' %</b><span>de la meta</span></div></div>');
+      '<div class="tresd"><div><b class="num">' + (hoy.km != null ? hoy.km.toFixed(1) : "—") + '</b><span>km</span></div><div><b class="num">' + (hoy.kcal != null ? Math.round(hoy.kcal) : "—") + '</b><span>kcal</span></div><div><b class="num">' + (hoy.pasos != null ? Math.min(100, Math.round(hoy.pasos / 100)) : "—") + ' %</b><span>de la meta</span></div></div>' + historia("pasos", function (x) { return Math.round(x).toLocaleString("es"); }, "pasos"));
   }
   function detalleSueno() {
     var s = D.sueno;
-    if (!s || !s.minutos) { abrirHoja(foto("sueno") + '<h3>Tu noche</h3><p style="color:var(--suave)">Duerme con tu anillo o tu reloj y aquí verás tus fases y cómo descansaste.</p>'); return; }
+    if (!s || !s.minutos) { abrirHoja(foto("sueno") + '<h3>Tu noche</h3><p style="color:var(--suave)">Duerme con tu anillo o tu reloj y aquí verás tus fases y cómo descansaste.</p>' + historia("sueno", hm)); return; }
     var nombres = { p: "Profundo", l: "Ligero", r: "REM", d: "Despierto" }, suma = { d: 0, r: 0, l: 0, p: 0 }, tot = 0;
     s.fases.forEach(function (f) { suma[f[0]] += f[1]; tot += f[1]; });
     abrirHoja(foto("sueno") + '<span class="et">Anoche · ' + s.inicio + ' – ' + s.fin + '</span><h3>Tu noche</h3><div class="grande num">' + hm(s.minutos) + '</div>' +
       zonasHtml(["p", "l", "r", "d"].map(function (k) { var p = Math.round(suma[k] / tot * 100); return [nombres[k], hm(suma[k]) + " · " + p + " %", p, FASE[k]]; })) +
-      '<div class="tresd"><div><b class="num">' + Math.round((tot - suma.d) / tot * 100) + ' %</b><span>Eficiencia</span></div><div><b class="num">' + Math.round(suma.p / tot * 100) + ' %</b><span>Profundo</span></div><div><b class="num">' + Math.round(suma.r / tot * 100) + ' %</b><span>REM</span></div></div>');
+      '<div class="tresd"><div><b class="num">' + Math.round((tot - suma.d) / tot * 100) + ' %</b><span>Eficiencia</span></div><div><b class="num">' + Math.round(suma.p / tot * 100) + ' %</b><span>Profundo</span></div><div><b class="num">' + Math.round(suma.r / tot * 100) + ' %</b><span>REM</span></div></div>' + historia("sueno", hm));
     llenarZonas();
   }
   function detalleEjercicio() {
@@ -729,6 +754,8 @@
       if (d.permiso === false) { $("f-estado").textContent = d.mensaje || "Pasos, pulso, sueño y ejercicios"; $("b-salud").textContent = "Conectar"; $("b-salud").classList.remove("ok"); return; }
       $("b-salud").textContent = "Conectado"; $("b-salud").classList.add("ok"); $("f-estado").textContent = "Leyendo tu reloj, tu iPhone y tus apps";
       DEMO = false; $("nota-demo").hidden = true;
+      if (d.historial) { H = d.historial; pintarHist(); return; }
+      if (!H.length) nativa({ accion: "salud", que: "historial" });
       D = { hoy: Object.assign({}, D.hoy, d.hoy || {}), sueno: d.sueno || D.sueno, ejercicios: d.ejercicios || D.ejercicios };
       pintar();
     }
@@ -765,7 +792,7 @@
   };
 
   /* ── Arranque ── */
-  if (DEMO) { D = demo(); $("nota-demo").hidden = false; ANI = { conectado: false }; }
+  if (DEMO) { D = demo(); H = demoHist(); pintarHist(); $("nota-demo").hidden = false; ANI = { conectado: false }; }
   pintar();
   pintarAnillo();
   if (NATIVA) {

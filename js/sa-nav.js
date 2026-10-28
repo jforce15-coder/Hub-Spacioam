@@ -237,6 +237,8 @@
     /* Chat: un lienzo alabastro de pantalla completa. Alma sube a la cabecera en «modo texto»; las secciones se separan con sombras amplias y difusas. */
     ".san-scope .san-chat{position:absolute;inset:0;z-index:2;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
     ".san-scope .san-ov.chat .san-chat{opacity:1;transform:none;pointer-events:auto}.san-scope .san-ov.chat .san-rock{z-index:3;pointer-events:none}.san-scope .san-ov.chat .san-st-glow{opacity:.28;transition:opacity .6s ease}",
+    /* En el chat la roca toma el peach del Hub (#E9826A) */
+    ".san-scope .san-ov.chat .san-st-body{background:radial-gradient(circle at 40% 34%,#F2A08B 0%,#E9826A 55%,#DB6F57 100%)}.san-scope .san-ov.chat .san-st-spark{color:#fff}.san-scope .san-ov.chat .san-st-ring,.san-scope .san-ov.chat .san-st-glow{background:#E9826A}",
     ".san-scope .san-chat header{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px 16px 10px;min-height:64px;box-sizing:border-box;touch-action:none}.san-scope .san-chat header .asa{position:absolute;top:8px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:rgba(62,63,63,.14)}.san-scope .san-chat header .t{flex:1;min-width:0}",
     ".san-scope .san-chat header b{display:block;font:400 27px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-chat header small{display:block;margin-top:5px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
     ".san-scope .san-hb{width:42px;height:42px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#fff;color:var(--san-ink);box-shadow:0 12px 26px -14px rgba(60,45,35,.4),0 1px 3px rgba(60,45,35,.06)}.san-scope .san-hb:active{transform:scale(.92)}",
@@ -818,10 +820,10 @@
     if (performance.now() - b.t > 90) vx = vy = 0;
     var to = nearest(px.x + project(vx), py.x + project(vy)), pt = ptsCache && ptsCache[to]; ptsCache = null;
     if (pt && pt.dock) { E.scrim.classList.remove("moving"); redock(); if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {} return; }
-    moveTo(to, vx, vy);
+    moveTo(to, vx, vy, true);
     if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
   }
-  function moveTo(a, vx, vy) {
+  function moveTo(a, vx, vy, abrir) {
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     zoom.to(K(), .5, .8);
     st.anchor = a; setCk("sa_nav_pos", a);
@@ -829,7 +831,7 @@
     if (p.slot) { var sl = slotFor(a); if (sl) slotPush(sl.el); } else slotPull();
     setTimeout(dockSchedule, 700);
     setTimeout(function () { if (E.scrim) E.scrim.classList.remove("moving"); }, 250);
-    var back = (prevS === 2 || prevS === 4) ? 2 : 1; prevS = 1;
+    var back = abrir || prevS === 2 || prevS === 4 ? 2 : 1; prevS = 1;   /* al soltarla en una de las 8 posiciones se abre el navegador */
     setTimeout(function () { if (!root) return; st.S = 0; setS(back); }, 170);
   }
   var vvRaf = 0, vvH = 0;

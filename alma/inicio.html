@@ -115,6 +115,7 @@
     <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
   </div>
   <div class="grupo">
+    <div class="fila" id="p-health-f" hidden><a href="../health/">Health</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
   </div>
   <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
@@ -204,6 +205,8 @@
     $("p-nombre").textContent = p.nombre || p.email; $("p-correo").textContent = p.email; $("p-rol").textContent = rolDe(p.apps);
     $("p-alt-f").hidden = !p.alterno; $("p-alt").textContent = p.alterno;
     $("p-tel-f").hidden = !p.tel; $("p-tel").textContent = p.tel;
+    /* Health (anillo, ritmo cardíaco, pasos): por ahora solo el administrador principal. */
+    $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) nativa({ accion: "estado" });

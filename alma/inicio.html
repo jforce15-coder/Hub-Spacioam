@@ -30,6 +30,45 @@
   .hola.on { opacity: 1; transform: none; }
   .hola.sale { transition: opacity 1.8s cubic-bezier(.45,0,.55,1), transform 1.8s cubic-bezier(.45,0,.55,1); transform: translateY(-6px); }
 
+  /* ── Ajustes: el ícono arriba a la derecha y su panel ── */
+  .ajustes { position: fixed; right: max(16px, env(safe-area-inset-right)); top: max(14px, calc(env(safe-area-inset-top) + 6px)); z-index: 2147482500;
+    width: 40px; height: 40px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; color: #FFFDFB;
+    background: rgba(255,255,255,.18); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.35); opacity: 0; pointer-events: none; transition: opacity .8s ease, transform .3s cubic-bezier(.3,1.35,.55,1); }
+  .ajustes.on { opacity: 1; pointer-events: auto; }
+  .ajustes:active { transform: scale(.9); }
+  .ajustes svg { width: 20px; height: 20px; }
+  .velo { position: fixed; inset: 0; z-index: 2147483100; background: rgba(40,30,32,.28); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
+  .velo.on { opacity: 1; pointer-events: auto; }
+  .panel { position: fixed; left: 50%; bottom: 0; z-index: 2147483200; width: min(460px, 100%); box-sizing: border-box; max-height: 86vh; overflow: auto;
+    padding: 10px 18px max(18px, env(safe-area-inset-bottom)); border-radius: 30px 30px 0 0; color: #3E3F3F;
+    background: rgba(250,248,246,.86); -webkit-backdrop-filter: blur(28px) saturate(1.4); backdrop-filter: blur(28px) saturate(1.4);
+    box-shadow: 0 -18px 40px -20px rgba(40,30,25,.4); transform: translate(-50%, 105%); transition: transform .55s cubic-bezier(.3,1.1,.5,1); }
+  .panel.on { transform: translate(-50%, 0); }
+  .panel .asa { width: 36px; height: 5px; border-radius: 3px; background: rgba(62,63,63,.2); margin: 0 auto 14px; }
+  .panel h2 { margin: 0 0 14px; font: 400 26px Valky, Georgia, serif; text-align: center; }
+  .grupo { background: rgba(255,255,255,.75); border-radius: 18px; overflow: hidden; margin-bottom: 14px; }
+  .fila { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 16px; box-sizing: border-box; font-size: 15px; }
+  .fila + .fila { border-top: .5px solid rgba(62,63,63,.12); }
+  .fila[hidden], .grupo[hidden] { display: none; }
+  .fila .et { flex: 1; min-width: 0; }
+  .fila .va { color: #8A8580; font-size: 14px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
+  .yo { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+  .yo .av { width: 48px; height: 48px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 400 22px Valky, Georgia, serif; color: #fff;
+    background: linear-gradient(160deg, #8FA5C8, #E9826A 60%, #A98C93); background-size: cover; background-position: center; }
+  .yo b { display: block; font-size: 16px; font-weight: 600; }
+  .yo small { display: block; color: #8A8580; font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
+  .interruptor { position: relative; width: 51px; height: 31px; flex: none; }
+  .interruptor input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .interruptor span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120,120,128,.24); transition: background .25s; pointer-events: none; }
+  .interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform .3s cubic-bezier(.3,1.3,.55,1); }
+  .interruptor input:checked + span { background: #E9826A; }
+  .interruptor input:checked + span::after { transform: translateX(20px); }
+  .fila.boton { cursor: pointer; justify-content: center; font-weight: 600; }
+  .fila.boton.rojo { color: #D9583A; }
+  .fila a { color: inherit; text-decoration: none; flex: 1; }
+  .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
+
   /* ── Entrar ── */
   body.entrando #sa-nav-root .san-ov-ui { opacity: 0 !important; pointer-events: none !important; }
   .entrar { position: fixed; left: 50%; bottom: 0; z-index: 2147483000; width: min(440px, 100%); box-sizing: border-box;
@@ -61,6 +100,26 @@
 </head>
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
+<button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<div class="velo" id="velo"></div>
+<div class="panel" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
+  <div class="asa"></div>
+  <h2>Ajustes</h2>
+  <div class="grupo"><div class="yo"><div class="av" id="p-av"></div><div><b id="p-nombre"></b><small id="p-correo"></small></div></div></div>
+  <div class="grupo">
+    <div class="fila"><span class="et">Rol</span><span class="va" id="p-rol"></span></div>
+    <div class="fila" id="p-alt-f" hidden><span class="et">Correo alterno</span><span class="va" id="p-alt"></span></div>
+    <div class="fila" id="p-tel-f" hidden><span class="et">Teléfono</span><span class="va" id="p-tel"></span></div>
+  </div>
+  <div class="grupo" id="g-face" hidden>
+    <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
+  </div>
+  <div class="grupo">
+    <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
+  </div>
+  <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
+  <p class="nota-p" id="p-nota"></p>
+</div>
 <div class="entrar fuera" id="entrar" aria-label="Entrar">
   <h1>Alma</h1>
   <p>Entra para hablar con Alma.</p>
@@ -108,6 +167,7 @@
     if (nombre) { $("hola").textContent = "Hola, " + nombre; setTimeout(function () { $("hola").classList.add("on"); holaQuieto(); }, 900); }
     if (v && v.setContexto) { try { v.setContexto({ vista: "Inicio de la app de Alma", nombre: String(nombre || "").split(" ")[0] }); } catch (e) {} }
     SANav.update({ alma: v });
+    setTimeout(function () { $("b-ajustes").classList.add("on"); }, 900);
   }
 
   var ent = hay();
@@ -128,6 +188,56 @@
   }
   document.addEventListener("pointerdown", holaQuieto, { passive: true });
 
+  /* ── Ajustes: datos de la cuenta, Face ID y cerrar sesión ── */
+  var ROLES = { admin_principal: "Administrador principal", admin_secundario: "Administrador secundario", socio: "Socio", contador: "Contador", dueno: "Dueño",
+    supervisor: "Supervisor", tecnico_limpieza: "Técnico de limpieza", tecnico_mantenimiento: "Técnico de mantenimiento", proveedor_externo: "Proveedor externo", personal_campo: "Personal de campo" };
+  function perfil() { var s = sesion(), p = s.p || {}; return { nombre: p.nombre || s.n || "", primer: p.primer_nombre || String(p.nombre || s.n || "").split(" ")[0], email: p.email || s.e || "",
+    alterno: p.email_alterno || "", foto: p.foto || "", apps: p.apps || s.apps || {}, tel: p.telefono || "" }; }
+  function rolDe(apps) {
+    var v = Object.keys(apps || {}).map(function (k) { return String(apps[k]); });
+    var orden = ["admin_principal", "admin_secundario", "supervisor", "socio", "contador", "dueno"];
+    for (var i = 0; i < orden.length; i++) if (v.indexOf(orden[i]) >= 0) return ROLES[orden[i]];
+    return v.length ? (ROLES[v[0]] || v[0]) : "—";
+  }
+  function abrirAjustes() {
+    var p = perfil();
+    $("p-nombre").textContent = p.nombre || p.email; $("p-correo").textContent = p.email; $("p-rol").textContent = rolDe(p.apps);
+    $("p-alt-f").hidden = !p.alterno; $("p-alt").textContent = p.alterno;
+    $("p-tel-f").hidden = !p.tel; $("p-tel").textContent = p.tel;
+    var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
+    $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
+    if (NATIVA) nativa({ accion: "estado" });
+    $("velo").classList.add("on"); $("panel").classList.add("on"); $("panel").setAttribute("aria-hidden", "false");
+  }
+  function cerrarAjustes() { $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
+  $("b-ajustes").onclick = abrirAjustes;
+  $("velo").onclick = cerrarAjustes;
+  /* Deslizar el panel hacia abajo lo cierra. */
+  (function () {
+    var y0 = null, pn = $("panel");
+    pn.addEventListener("touchstart", function (e) { y0 = pn.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+    pn.addEventListener("touchmove", function (e) { if (y0 == null) return; var dy = e.touches[0].clientY - y0; if (dy > 0) { pn.style.transition = "none"; pn.style.transform = "translate(-50%," + dy + "px)"; } }, { passive: true });
+    pn.addEventListener("touchend", function (e) { if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null; pn.style.transition = ""; pn.style.transform = ""; if (dy > 90) cerrarAjustes(); });
+  })();
+  $("i-face").onchange = function () {
+    var on = this.checked, sw = this;
+    if (!on) { nativa({ accion: "faceBorrar" }); return; }
+    sw.disabled = true;
+    Promise.resolve(SAAuth.faceEnroll && SAAuth.faceEnroll()).then(function (r) {
+      if (r && r.ok && r.llave) nativa({ accion: "faceGuardar", email: r.email, llave: r.llave }); else sw.checked = false;
+    }, function () { sw.checked = false; }).then(function () { sw.disabled = false; });
+  };
+  /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */
+  function salir() {
+    if (!confirm("¿Cerrar sesión en Alma?")) return;
+    try { window.SAAuth && SAAuth.clearSession && SAAuth.clearSession(); } catch (e) {}
+    try { window.SA && SA.logout && SA.logout(); } catch (e) {}
+    try { localStorage.removeItem("sa_alma_voz_ficha"); } catch (e) {}
+    location.reload();
+  }
+  $("b-salir").onclick = salir;
+  $("b-salir").onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); salir(); } };
+
   /* ── Entrar ── */
   var ocupado = false, crearPass = false;
   function error(m) { $("err").textContent = m || ""; }
@@ -139,7 +249,10 @@
   }
   /* Respuestas de la app: si hay Face ID guardado, el resultado de Google y la llave que soltó Face ID. */
   window.AlmaLogin = {
-    estado: function (e) { $("b-face").hidden = !(e && e.faceID && e.guardado); },
+    estado: function (e) {
+      $("b-face").hidden = !(e && e.faceID && e.guardado);
+      $("g-face").hidden = !(e && e.faceID); $("i-face").checked = !!(e && e.guardado);
+    },
     google: function (cred) { if (cred) entrarCon(SAAuth.googleLogin(cred), "google"); else ocupar(false); },
     face: function (email, llave) { if (email && llave) entrarCon(SAAuth.faceLogin(email, llave), "face"); else ocupar(false); },
     cancelado: function (m) { ocupar(false); error(m || ""); }

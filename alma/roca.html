@@ -35,7 +35,9 @@
   zona();
   /* Lo que pide la app */
   window.AlmaRoca = {
-    apartar: function (x, y, w, h) { SANav.apartar({ x: x, y: y, w: w, h: h }); },
+    /* Con un cuadro de texto activo (y el teclado arriba), Alma va abajo al centro, justo encima del teclado. */
+    apartar: function () { SANav.ir("bc"); },
+    ir: function (a) { SANav.ir(a); },
     volver: function () { SANav.volver(); },
     escuchar: function (on) { SANav.escuchar(on); }
   };

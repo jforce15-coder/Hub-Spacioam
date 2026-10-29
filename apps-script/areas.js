@@ -72,7 +72,7 @@ function areasSesiones_(adm) {
   return L.filter(function (c) { return c.msgs.some(function (x) { return x.de === 'yo'; }); }).map(function (c) {
     var k = Object.keys(c.canales), ult = c.msgs[c.msgs.length - 1];
     return { clave: 'alma:' + c.id, ts: new Date(c.fin).toISOString(), n: c.msgs.length,
-      fuente: 'Alma · ' + (c.canales.llamada ? 'Voz' : c.canales.whatsapp && k.length === 1 ? 'WhatsApp' : 'Chat'),
+      fuente: 'Alma · ' + (c.canales.llamada ? 'Voz' : c.canales.app && k.length === 1 ? 'Navegador' : c.canales.whatsapp && k.length === 1 ? 'WhatsApp' : 'Chat'),
       texto: String(ult.t).replace(/\s+/g, ' ').slice(0, 220),
       muestra: c.msgs.slice(0, 14).map(function (x) { return (x.de === 'yo' ? 'Juan: ' : 'Alma: ') + x.t.replace(/\s+/g, ' ').slice(0, 260); }).join('\n').slice(0, 1800) };
   }).reverse();

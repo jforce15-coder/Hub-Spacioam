@@ -2,11 +2,13 @@
    Alma pone música en Spotify (Premium): una canción, un artista, un álbum o un mood, en el dispositivo que digas
    (bocinas Nest y Google Home, el teléfono, la compu, el carro: todo lo que aparezca en «Conectar a un dispositivo»).
    Solo desde la app de Alma (las web apps no lo muestran). Se configura en hub.spacioam.com/alma/conexiones.html (solo el admin principal):
-     1. App en developer.spotify.com/dashboard con Redirect URI = la dirección /exec de este Apps Script.
+     1. App en developer.spotify.com/dashboard con Redirect URI = hub.spacioam.com/alma/conexiones.html (esa página le pasa
+        el código al script; volver directo al /exec fallaba en el iPhone con «No se puede abrir el archivo» de Google Drive).
      2. Pegar Client ID y Client Secret → Guardar → «Conectar Spotify» (autorizas una vez).
    Propiedades: SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH. */
 var SPOTIFY_SCOPES_ = 'user-read-playback-state user-modify-playback-state user-read-currently-playing';
-function spotifyRedirect_() { return PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_; }
+var SPOTIFY_REDIRECT_ = 'https://hub.spacioam.com/alma/conexiones.html';
+function spotifyRedirect_() { return SPOTIFY_REDIRECT_; }
 
 /* El enlace para autorizar (lo abre conexiones.html). El «state» es de un solo uso y vence en 10 min. */
 function spotifyAutorizar_() {
@@ -17,18 +19,22 @@ function spotifyAutorizar_() {
   return { ok: true, url: 'https://accounts.spotify.com/authorize?response_type=code&client_id=' + encodeURIComponent(id) +
     '&scope=' + encodeURIComponent(SPOTIFY_SCOPES_) + '&redirect_uri=' + encodeURIComponent(spotifyRedirect_()) + '&state=' + st };
 }
-/* Spotify vuelve aquí (doGet con code y state). */
-function spotifyVuelta_(q) {
+/* Spotify vuelve a conexiones.html con code y state; la página los manda aquí (conexiones_ → spotifyCodigo). */
+function spotifyCanjear_(q) {
   var c = CacheService.getScriptCache(), ok = q.state && c.get('sp_state_' + q.state);
-  var html = function (t, bien) { return HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font:16px/1.5 -apple-system,Montserrat,sans-serif;max-width:420px;margin:18vh auto;padding:0 22px;color:#3E3F3F;text-align:center"><div style="font:400 34px Georgia,serif;margin-bottom:12px">' + (bien ? 'Listo.' : 'No se pudo.') + '</div>' + t + '</div>').setTitle('Spotify · Alma'); };
-  if (!ok) return html('El enlace venció. Vuelve a tocar «Conectar Spotify» en hub.spacioam.com/alma/conexiones.html.');
+  if (!ok) return { ok: false, error: 'El enlace venció. Toca otra vez «Conectar Spotify».' };
   c.remove('sp_state_' + q.state);
-  if (q.error) return html('Spotify dijo: ' + String(q.error).slice(0, 80));
+  if (q.error) return { ok: false, error: 'Spotify dijo: ' + String(q.error).slice(0, 80) };
   var r = spotifyPedirToken_({ grant_type: 'authorization_code', code: String(q.code || ''), redirect_uri: spotifyRedirect_() });
-  if (!r.refresh_token) return html('Spotify no entregó el permiso (' + (r.error_description || r.error || 'sin respuesta') + ').');
+  if (!r.refresh_token) return { ok: false, error: 'Spotify no entregó el permiso (' + (r.error_description || r.error || 'sin respuesta') + ').' };
   PropertiesService.getScriptProperties().setProperty('SPOTIFY_REFRESH', r.refresh_token);
   if (r.access_token) c.put('sp_access', r.access_token, Math.max(60, (r.expires_in || 3600) - 300));
-  return html('Alma ya puede poner tu música en Spotify. Pídeselo por voz o por chat: «pon algo tranquilo en la sala».', true);
+  return { ok: true };
+}
+/* Por si una autorización vieja todavía vuelve al /exec (doGet con code y state). */
+function spotifyVuelta_(q) {
+  var r = spotifyCanjear_(q);
+  return HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font:16px/1.5 -apple-system,Montserrat,sans-serif;max-width:420px;margin:18vh auto;padding:0 22px;color:#3E3F3F;text-align:center"><div style="font:400 34px Georgia,serif;margin-bottom:12px">' + (r.ok ? 'Listo.' : 'No se pudo.') + '</div>' + (r.ok ? 'Alma ya puede poner tu música en Spotify.' : r.error) + '</div>').setTitle('Spotify · Alma');
 }
 function spotifyPedirToken_(datos) {
   var p = PropertiesService.getScriptProperties();

@@ -91,7 +91,9 @@ function conexiones_(ses, b) {
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
   if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
+  var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
   var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')) };
+  if (canje) out.canje = canje;
   if (b.conectar === 'spotify') { var a = spotifyAutorizar_(); if (!a.ok) return a; out.url = a.url; }
   return out;
 }

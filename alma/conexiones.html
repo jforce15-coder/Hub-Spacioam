@@ -51,7 +51,7 @@
     <p>Para pedirle música a Alma: «pon algo tranquilo en la sala», «pon a Rosalía», «súbele». Suena en tus bocinas Nest, tu teléfono o donde tengas Spotify.</p>
     <ol>
       <li>Entra a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> con tu cuenta de Spotify y toca <b>Create app</b>.</li>
-      <li>Nombre: <b>Alma</b>. En <b>Redirect URIs</b> pega esta dirección (toca Copiar) y marca <b>Web API</b>:
+      <li>Nombre: <b>Alma</b>. En <b>Redirect URIs</b> pega esta dirección (toca Copiar) y marca <b>Web API</b> (la de script.google.com ya no se usa):
         <div class="copiar"><input id="redir" readonly><button type="button" class="sec" id="b-copiar">Copiar</button></div></li>
       <li>Guarda. En <b>Settings</b> copia el <b>Client ID</b> y el <b>Client Secret</b> y pégalos aquí.</li>
     </ol>
@@ -108,7 +108,14 @@
     $('b-sp-conectar').textContent = sp.conectado ? 'Volver a conectar' : 'Conectar Spotify';
     return r;
   }
-  llamar().then(pintar).catch(function () { msg('m-spotify', 'No pude conectar con el Hub.', 'mal'); });
+  /* Spotify vuelve aquí con ?code=…&state=… (o ?error=…): se lo pasamos al Hub y limpiamos la dirección. */
+  var q = new URLSearchParams(location.search), vuelta = q.get('state') && (q.get('code') || q.get('error'));
+  if (vuelta) { try { history.replaceState(null, '', location.pathname); } catch (e) {} msg('m-spotify', 'Conectando Spotify…'); }
+  llamar(vuelta ? { spotifyCodigo: { code: q.get('code') || '', state: q.get('state'), error: q.get('error') || '' } } : null).then(function (r) {
+    pintar(r);
+    if (r && r.canje) { if (r.canje.ok) msg('m-spotify', '¡Listo! Alma ya puede poner tu música. Pídele: «pon algo tranquilo».', 'bien'); else msg('m-spotify', r.canje.error, 'mal'); }
+    if (vuelta) { var s = $('s-spotify'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start' }); }
+  }).catch(function () { msg('m-spotify', 'No pude conectar con el Hub.', 'mal'); });
   $('b-copiar').onclick = function () { var i = $('redir'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } msg('m-spotify', 'Dirección copiada.', 'bien'); };
   $('b-sp-guardar').onclick = function () {
     var id = $('sp-id').value.trim(), sec = $('sp-sec').value.trim(); if (!id || !sec) return msg('m-spotify', 'Pega el Client ID y el Client Secret.', 'mal');

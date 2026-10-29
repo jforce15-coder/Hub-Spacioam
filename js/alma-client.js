@@ -100,6 +100,9 @@
     mejoras: function () { return call('mejoras', {}); },
     acciones: function () { return call('acciones', {}); },
     accionHecha: function (id) { return call('accionHecha', { id: id }); },
+    /* app de Alma: las 6 áreas de vida (Propósito, Relaciones…) con sus proyectos y conversaciones */
+    areas: function () { return call('areas', {}); },
+    areaMover: function (clave, area) { return call('areaMover', { clave: clave, area: area }); },
     usoIA: function (dias) { return call('usoIA', { dias: dias || 30 }); },
     mejoraEditar: function (id, cambios, resumen) { return call('mejoraEditar', { id: id, cambios: cambios, resumen: resumen }); },
     mejoraEliminar: function (id) { return call('mejoraEliminar', { id: id }); },
@@ -140,9 +143,6 @@
     votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); },
     opHilo: function (email, de) { return call('opHilo', { email: email, de: de || '' }); },
     /* foto del chat de Alma: el Hub la describe (IA con visión) para que Alma sepa qué se ve */
-    /* app de Alma: las 6 áreas de vida (Propósito, Relaciones…) con sus proyectos y conversaciones */
-    areas: function () { return call('areas', {}); },
-    areaMover: function (clave, area) { return call('areaMover', { clave: clave, area: area }); },
     almaFoto: function (dataUrl) { return call('almaFoto', { foto: dataUrl }); },
     /* app de Alma: lo que Claude dejó pendiente para el admin principal (botón «Pendientes») */
     pendientesClaude: function () { return call('pendientesClaude', {}); },

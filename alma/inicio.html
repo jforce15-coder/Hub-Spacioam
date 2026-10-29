@@ -150,7 +150,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-29p"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-29s"></script>
+<script src="../js/sa-nav.js?v=2026-10-29t"></script>
 <script>
 (function () {
   "use strict";
@@ -182,7 +182,11 @@
   }
 
   var ent = hay();
-  SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false });
+  /* En la app: llevar a Alma hacia los lados (una de las 8 posiciones) abre el navegador con la búsqueda lista;
+     la app la regresa al centro (SANav.escena(null)) si no se busca nada. */
+  SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
+    alSoltar: NATIVA ? function (pos) { nativa({ accion: "navegador", pos: pos }); } : null,
+    alVolver: function () { nativa({ accion: "navegador", pos: "" }); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }

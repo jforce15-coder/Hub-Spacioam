@@ -870,7 +870,7 @@
     });
   }
   function onResize() { if (!root) return; insetCache = null;
-    if (AL.vis && (AL.on || AL.esc) && !stoneDrag) { var tg = stoneTarget(); aX.to(tg.x, .5, .8); aY.to(tg.y, .5, .8); aS.to(tg.s, .5, .8); } measureBottom(); if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
+    if (AL.vis && (AL.on || AL.esc) && !stoneDrag) { var tg = AL.escPos && !AL.on ? escPosPt() : stoneTarget(); aX.to(tg.x, .5, .8); aY.to(tg.y, .5, .8); aS.to(tg.s, .5, .8); } measureBottom(); if (dock.on) { dockSchedule(); return; } if (dragging) return; zoom.x = zoom.t = K(); var p = anchorPt(st.anchor); px.x = px.t = p.x; py.x = py.t = p.y; geo = fanGeo(st.anchor, fanEls.length, st.S === 2 || st.S === 4); kick(); }
 
   /* El pulso (luz y tamaño) son animaciones CSS con la misma duración, montadas en el mismo instante: corren en el
      compositor, sin trabajo de JavaScript por cuadro, y siguen sincronizadas. */
@@ -1421,7 +1421,7 @@
      Si la escena ya está, la piedra va a su nuevo lugar con su resorte. */
   function escena(o) {
     if (!root) return false;
-    if (AL.esc) { AL.escO = o || null; var tn = stoneTarget(); aX.to(tn.x, .7, .8); aY.to(tn.y, .7, .8); aS.to(tn.s, .7, .72); return { x: tn.x, y: tn.y, s: tn.s / PB }; }
+    if (AL.esc) { AL.escO = o || null; AL.escPos = null; if (!stoneDrag) E.ov.classList.remove("min"); var tn = stoneTarget(); aX.to(tn.x, .7, .8); aY.to(tn.y, .7, .8); aS.to(tn.s, .7, .72); return { x: tn.x, y: tn.y, s: tn.s / PB }; }
     AL.escO = o || null;
     almaBuild(); AL.esc = true; root.classList.add("san-escena"); E.ov.classList.add("escena"); setS(1); clearTimeout(idleT); E.hint.classList.remove("on");
     var t = stoneTarget();
@@ -1444,12 +1444,13 @@
     var el = E.stone;
     el.addEventListener("pointerdown", function (e) {
       e.preventDefault(); try { el.setPointerCapture(e.pointerId); } catch (x) {}
-      sDown = [e.clientX, e.clientY, aX.x, aY.x]; sMov = 0; aSq.to(1, .22, 1); clearTimeout(sLp); if (!AL.chat && !AL.esc) sLp = setTimeout(startStoneDrag, LONG_MS);
+      sDown = [e.clientX, e.clientY, aX.x, aY.x]; sMov = 0; aSq.to(1, .22, 1); clearTimeout(sLp); if (!AL.chat && (!AL.esc || escSuelta())) sLp = setTimeout(startStoneDrag, LONG_MS);
     });
     el.addEventListener("pointermove", function (e) {
       if (!sDown) return; var dx = e.clientX - sDown[0], dy = e.clientY - sDown[1];
       if (stoneDrag) { aX.x = aX.t = sDown[2] + dx; aY.x = aY.t = sDown[3] + dy; aX.v = aY.v = 0; sHist.push({ x: aX.x, y: aY.x, t: performance.now() }); if (sHist.length > 8) sHist.shift(); markNear(aX.x, aY.x); kick(); return; }
       var dd = Math.hypot(dx, dy) || 1; if (dd > 10) clearTimeout(sLp); sMov = Math.max(sMov, dd);
+      if (dd > 14 && escSuelta()) { aDX.x = aDX.t = aDY.x = aDY.t = 0; startStoneDrag(); return; }   // escena: deslizarla ya la mueve
       var r = rubber(dd, 22); aDX.x = aDX.t = dx / dd * r; aDY.x = aDY.t = dy / dd * r;
       sEnd = !AL.chat && (AL.on || !AL.esc) && dy > 80 && Math.abs(dx) < dy * .8; E.ov.classList.toggle("ending", sEnd);
       if (sEnd) phShow("Suelta para terminar", VW() / 2, aY.x + aS.x / 2 + 60); else E.ph.classList.remove("on");
@@ -1459,7 +1460,7 @@
       if (stoneDrag) { endStoneDrag(); return; }
       aSq.to(0, .5, .55); aDX.to(0, .55, .6); aDY.to(0, .55, .6);
       if (sEnd) { sEnd = false; E.ov.classList.remove("ending"); E.ph.classList.remove("on"); almaEnd(false); }
-      else if (AL.esc && sMov < 12) { if (!AL.on) escActivar(false); else if (AL.chat) almaChat(false); }
+      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) escActivar(false); else if (AL.chat) almaChat(false); }
     }
     el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
   }
@@ -1472,7 +1473,19 @@
     stoneDrag = false; E.dots.classList.remove("on"); ptsCache = null;
     var a = sHist[0] || { x: aX.x, y: aY.x, t: 0 }, b = sHist[sHist.length - 1] || a, dt = Math.max(16, b.t - a.t), vx = (b.x - a.x) / dt * 1000, vy = (b.y - a.y) / dt * 1000;
     if (performance.now() - b.t > 90) vx = vy = 0;
-    minimizarEn(nearest(aX.x + project(vx), aY.x + project(vy), true), vx, vy, true);
+    var an = nearest(aX.x + project(vx), aY.x + project(vy), true);
+    if (escSuelta()) { escSoltar(an, vx, vy); return; }
+    minimizarEn(an, vx, vy, true);
+  }
+  /* App de Alma (inicio): sin llamada, la piedra de la escena se puede llevar a una de las 8 posiciones; ahí queda como
+     botón y la página decide qué sigue (cfg.alSoltar(posición): la app abre el navegador). SANav.escena(null) la regresa. */
+  function escPosPt() { var p = anchorPt(AL.escPos, true); return { x: p.x, y: p.y, s: 74 * K() }; }
+  function escSuelta() { return !!(AL.esc && !AL.on && !AL.chat && cfg && typeof cfg.alSoltar === "function"); }
+  function escSoltar(an, vx, vy) {
+    st.anchor = an; setCk("sa_nav_pos", an); AL.escPos = an;   // «min» se queda: sin los botones de abajo mientras es botón
+    var p = escPosPt(); aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(p.s, .55, .8); kick();
+    if (navigator.vibrate) try { navigator.vibrate(6); } catch (x) {}
+    try { cfg.alSoltar(an); } catch (x) { console.error(x); }
   }
   /* Alma (piedra al centro) se minimiza a una de las 8 posiciones y sigue la llamada en el botón. */
   function minimizarEn(an, vx, vy, ayuda) {

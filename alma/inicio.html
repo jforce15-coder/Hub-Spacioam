@@ -71,6 +71,63 @@
   .nota-g { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 0; padding: 0 16px 12px; }
   .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
 
+  /* ── Áreas de vida: el botón arriba a la izquierda y su hoja (solo el administrador principal, por ahora) ── */
+  .b-areas { position: fixed; left: max(16px, env(safe-area-inset-left)); top: max(14px, calc(env(safe-area-inset-top) + 6px)); z-index: 2147482500;
+    height: 40px; padding: 0 14px 0 10px; border-radius: 999px; border: 0; display: flex; align-items: center; gap: 7px; cursor: pointer; color: #FFFDFB;
+    font: 600 12px Montserrat, system-ui, sans-serif; letter-spacing: .04em;
+    background: rgba(255,255,255,.18); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.35); opacity: 0; pointer-events: none; transition: opacity .8s ease, transform .3s cubic-bezier(.3,1.35,.55,1); }
+  .b-areas.on { opacity: 1; pointer-events: auto; }
+  body.san-hoja .b-areas { opacity: 0 !important; pointer-events: none !important; }
+  .b-areas:active { transform: scale(.94); }
+  .b-areas svg { width: 20px; height: 20px; }
+  .areas { position: fixed; inset: 0; z-index: 2147483400; background: #FAF8F6; color: #3E3F3F; display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); box-sizing: border-box;
+    opacity: 0; transform: translateY(24px); pointer-events: none; transition: opacity .45s cubic-bezier(.45,0,.55,1), transform .6s cubic-bezier(.3,1.15,.55,1); }
+  .areas.on { opacity: 1; transform: none; pointer-events: auto; }
+  .areas header { display: flex; align-items: center; gap: 10px; padding: 18px 18px 10px; }
+  .areas header .t { flex: 1; min-width: 0; }
+  .areas header b { display: block; font: 400 30px/1.05 Valky, Georgia, serif; }
+  .areas header small { display: block; margin-top: 6px; font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; }
+  .areas .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; color: #3E3F3F;
+    background: #fff; box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); }
+  .areas .redondo svg { width: 20px; height: 20px; }
+  .areas .redondo[hidden] { display: none; }
+  .areas .cuerpo { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 6px 16px 28px; }
+  .rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .area { position: relative; min-height: 132px; border: 0; border-radius: 26px; padding: 16px; text-align: left; cursor: pointer; overflow: hidden; color: #fff;
+    display: flex; flex-direction: column; justify-content: flex-end; box-shadow: 0 22px 40px -24px rgba(70,50,40,.55); transition: transform .35s cubic-bezier(.3,1.35,.55,1); }
+  .area:active { transform: scale(.97); transition-duration: .08s; }
+  .area b { font: 400 23px/1.05 Valky, Georgia, serif; text-shadow: 0 1px 10px rgba(40,30,30,.2); }
+  .area span { margin-top: 5px; font: 500 11.5px/1.35 Montserrat, system-ui, sans-serif; opacity: .92; }
+  .area em { position: absolute; top: 12px; right: 12px; min-width: 24px; height: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 12px; font: 700 11px/24px Montserrat, system-ui, sans-serif; font-style: normal; text-align: center; background: rgba(255,255,255,.28); }
+  .area.proposito { background: linear-gradient(150deg, #E9826A, #C9705E); }
+  .area.relaciones { background: linear-gradient(150deg, #D99AA0, #A98C93); }
+  .area.finanzas { background: linear-gradient(150deg, #9DB59A, #6F8E6E); }
+  .area.health { background: linear-gradient(150deg, #E3A47F, #C88761); }
+  .area.comunidad { background: linear-gradient(150deg, #8FA5C8, #6E86AC); }
+  .area.espiritualidad { background: linear-gradient(150deg, #B8B6C8, #8D8AA6); }
+  .sec-t { margin: 22px 4px 10px; font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; }
+  .tarjeta { background: #fff; border-radius: 22px; padding: 16px; margin-bottom: 10px; box-shadow: 0 22px 44px -30px rgba(70,50,40,.45); }
+  .tarjeta h4 { margin: 0; font: 600 16px Montserrat, system-ui, sans-serif; }
+  .tarjeta p { margin: 5px 0 0; font: 500 13px/1.45 Montserrat, system-ui, sans-serif; color: #8A8580; }
+  .apps { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .apps button { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 9px 14px; border-radius: 16px; border: 0; cursor: pointer;
+    background: #F3EFEA; color: #3E3F3F; font: 600 13.5px Montserrat, system-ui, sans-serif; }
+  .apps small { font: 500 10.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
+  .conv { display: block; width: 100%; padding: 0; background: none; text-align: left; border: 0; font: inherit; color: inherit; cursor: pointer; }
+  .conv .arr { display: flex; gap: 8px; align-items: baseline; }
+  .conv .arr h4 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+  .conv .arr small { flex: none; font: 600 10.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
+  .conv .de { margin-top: 3px; font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #C9705E; }
+  .conv p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .mover { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .mover button { padding: 7px 11px; border-radius: 12px; border: 0; cursor: pointer; background: #F3EFEA; color: #3E3F3F; font: 600 11.5px Montserrat, system-ui, sans-serif; }
+  .mover button.ya { background: #3E3F3F; color: #fff; }
+  .mover .lbl { width: 100%; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
+  .b-mov { margin-top: 10px; padding: 0; border: 0; background: none; color: #A39B93; font: 600 11.5px Montserrat, system-ui, sans-serif; cursor: pointer; }
+  .vacio { text-align: center; padding: 26px 20px; font: 500 13.5px/1.5 Montserrat, system-ui, sans-serif; color: #A39B93; }
+
   /* ── Entrar ── */
   body.entrando #sa-nav-root .san-ov-ui { opacity: 0 !important; pointer-events: none !important; }
   .entrar { position: fixed; left: 50%; bottom: 0; z-index: 2147483000; width: min(440px, 100%); box-sizing: border-box;
@@ -103,6 +160,15 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<button type="button" class="b-areas" id="b-areas" aria-label="Tus áreas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="6.2" r="2.6"/><circle cx="17" cy="9.1" r="2.6"/><circle cx="17" cy="14.9" r="2.6"/><circle cx="12" cy="17.8" r="2.6"/><circle cx="7" cy="14.9" r="2.6"/><circle cx="7" cy="9.1" r="2.6"/></svg>Áreas</button>
+<div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
+  <header>
+    <button type="button" class="redondo" id="a-atras" aria-label="Volver" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="t"><b id="a-tit">Tu vida</b><small id="a-sub">Seis áreas</small></div>
+    <button type="button" class="redondo" id="a-cerrar" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </header>
+  <div class="cuerpo" id="a-cuerpo"></div>
+</div>
 <div class="velo" id="velo"></div>
 <div class="panel" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
   <div class="asa"></div>
@@ -148,7 +214,7 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-10-29p"></script>
+<script src="../js/alma-client.js?v=2026-10-29q"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
 <script src="../js/sa-nav.js?v=2026-10-29t"></script>
 <script>
@@ -178,8 +244,95 @@
     SANav.update({ alma: v });
     /* Solo en la app de Alma: el tercer botón con lo que Claude dejó pendiente (si es el admin principal) */
     if (window.ALMA && ALMA.pendientesClaude) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientesClaude(); }, hecho: function (id) { return ALMA.pendienteHecho(id); } } });
-    setTimeout(function () { $("b-ajustes").classList.add("on"); }, 900);
+    setTimeout(function () { $("b-ajustes").classList.add("on"); areasIniciar(); }, 900);
   }
+
+  /* ── Áreas de vida (Propósito, Relaciones, Finanzas, Health, Comunidad, Espiritualidad): proyectos y conversaciones de cada una.
+     El Hub responde solo al administrador principal; para los demás el botón no aparece. */
+  var AR = { datos: null, area: null, abierta: false, cargando: null };
+  function areasCargar() {
+    if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
+    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) AR.datos = r.areas; return r; }, function () { AR.cargando = null; return null; }));
+  }
+  function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) $("b-areas").classList.add("on"); }); }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+  function cuando(ts) {
+    var d = new Date(ts); if (!ts || isNaN(d)) return "";
+    var h = (Date.now() - d) / 36e5; if (h < 1) return "ahora"; if (h < 24) return Math.round(h) + " h";
+    return d.toLocaleDateString("es", { day: "numeric", month: "short" });
+  }
+  function abrirLink(u, nat) { if (nat && NATIVA) { nativa({ accion: nat }); return; } if (u) location.href = u; }
+  function areasPintar() {
+    var c = $("a-cuerpo"); c.innerHTML = ""; $("a-atras").hidden = !AR.area;
+    if (!AR.datos) { c.appendChild(el("div", "vacio", "Cargando tus áreas…")); return; }
+    if (!AR.area) {
+      $("a-tit").textContent = "Tu vida"; $("a-sub").textContent = "Seis áreas";
+      var g = el("div", "rejilla");
+      AR.datos.forEach(function (a) {
+        var b = el("button", "area " + a.k); b.type = "button";
+        var n = a.proyectos.length + a.total; if (n) b.appendChild(el("em", "", String(n)));
+        b.appendChild(el("b", "", a.n)); b.appendChild(el("span", "", a.d));
+        b.onclick = function () { AR.area = a.k; areasPintar(); c.scrollTop = 0; };
+        g.appendChild(b);
+      });
+      c.appendChild(g); return;
+    }
+    var a = AR.datos.filter(function (x) { return x.k === AR.area; })[0]; if (!a) { AR.area = null; areasPintar(); return; }
+    $("a-tit").textContent = a.n; $("a-sub").textContent = a.d;
+    if (a.proyectos.length) {
+      c.appendChild(el("div", "sec-t", "Proyectos"));
+      a.proyectos.forEach(function (p) {
+        var t = el("div", "tarjeta"); t.appendChild(el("h4", "", p.n)); if (p.d) t.appendChild(el("p", "", p.d));
+        if (p.apps && p.apps.length) {
+          var ap = el("div", "apps");
+          p.apps.forEach(function (x) { var b = el("button"); b.type = "button"; b.appendChild(document.createTextNode(x.n)); if (x.d && x.d !== x.n) b.appendChild(el("small", "", x.d)); b.onclick = function () { abrirLink(x.url, x.nativa); }; ap.appendChild(b); });
+          t.appendChild(ap);
+        }
+        if (p.mover) t.appendChild(botonMover(p.k, a.k));
+        c.appendChild(t);
+      });
+    }
+    c.appendChild(el("div", "sec-t", "Conversaciones" + (a.total > a.conversaciones.length ? " · las " + a.conversaciones.length + " más recientes" : "")));
+    if (!a.conversaciones.length) c.appendChild(el("div", "vacio", "Todavía no hay conversaciones aquí. Cuando Alma hable de algo de " + a.n.toLowerCase() + ", aparece en esta área."));
+    a.conversaciones.forEach(function (v) {
+      var t = el("div", "tarjeta"), b = el("button", "conv"); b.type = "button";
+      var arr = el("div", "arr"); arr.appendChild(el("h4", "", v.titulo)); arr.appendChild(el("small", "", cuando(v.ts))); b.appendChild(arr);
+      b.appendChild(el("div", "de", v.fuente)); if (v.texto) b.appendChild(el("p", "", v.texto));
+      if (v.url) b.onclick = function () { abrirLink(v.url); };
+      t.appendChild(b); t.appendChild(botonMover(v.clave, a.k)); c.appendChild(t);
+    });
+  }
+  /* «Mover a otra área»: las seis como botones; la actual marcada. */
+  function botonMover(clave, actual) {
+    var w = el("div"), b = el("button", "b-mov", "Mover a otra área"); b.type = "button"; w.appendChild(b);
+    b.onclick = function () {
+      w.innerHTML = ""; var m = el("div", "mover"); m.appendChild(el("span", "lbl", "¿A qué área va?"));
+      AR.datos.forEach(function (a) {
+        var x = el("button", a.k === actual ? "ya" : "", a.n); x.type = "button";
+        x.onclick = function () { if (a.k === actual) { w.innerHTML = ""; w.appendChild(b); return; } moverA(clave, actual, a.k); };
+        m.appendChild(x);
+      });
+      w.appendChild(m);
+    };
+    return w;
+  }
+  /* Se mueve al instante en pantalla; el Hub lo guarda (queda como lo dejaste). */
+  function moverA(clave, de, a) {
+    var src = AR.datos.filter(function (x) { return x.k === de; })[0], dst = AR.datos.filter(function (x) { return x.k === a; })[0];
+    if (!src || !dst) return;
+    var ci = src.conversaciones.findIndex(function (v) { return v.clave === clave; });
+    if (ci >= 0) { var v = src.conversaciones.splice(ci, 1)[0]; v.area = a; src.total--; dst.total++; dst.conversaciones.unshift(v); }
+    var pi = src.proyectos.findIndex(function (p) { return p.k === clave; });
+    if (pi >= 0) { var p = src.proyectos.splice(pi, 1)[0]; p.area = a; dst.proyectos.push(p); }
+    areasPintar(); ALMA.areaMover(clave, a);
+  }
+  function areasAbrir(on) {
+    AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true");
+    if (on) { AR.area = null; areasPintar(); areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
+  }
+  $("b-areas").onclick = function () { areasAbrir(true); };
+  $("a-cerrar").onclick = function () { areasAbrir(false); };
+  $("a-atras").onclick = function () { AR.area = null; areasPintar(); };
 
   var ent = hay();
   /* En la app: llevar a Alma hacia los lados (una de las 8 posiciones) abre el navegador con la búsqueda lista;

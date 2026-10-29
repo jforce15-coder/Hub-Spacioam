@@ -3075,6 +3075,7 @@ function hubApi_(body) {
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
+      case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
       case 'areas': return json_(areas_(ses));                                            // app de Alma: las 6 áreas de vida (areas.js)
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)

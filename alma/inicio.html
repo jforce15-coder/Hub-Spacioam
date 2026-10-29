@@ -352,7 +352,14 @@
     b.getAnimations().forEach(function (a) { a.cancel(); });
     if (RM) { b.style.opacity = 0; return; }
     if (!b._g) { b.style.opacity = 0; return; }
-    b.animate(orbitaKf(b._g, i, true), { duration: 1250, delay: (n - 1 - i) * 55, fill: "both" });
+    /* Salida propia: sin cola de resorte al revés (esa parte quieta se sentía como retraso). Arranca en el mismo cuadro del toque,
+       dura poco y frena con la curva de Apple (ease-out fuerte); apenas escalonadas (18 ms). */
+    var kf = [], g = b._g, P = 14;
+    for (var j = 0; j <= P; j++) {
+      var q = 1 - j / P, pt = orbitaPunto(g, i, q, q);
+      kf.push({ opacity: Math.max(0, Math.min(1, q * 1.5 - .2)), transform: "translate(" + pt.x.toFixed(1) + "px," + pt.y.toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")" });
+    }
+    b.animate(kf, { duration: 420, delay: (n - 1 - i) * 18, easing: "cubic-bezier(.32,.72,0,1)", fill: "both" });
   }
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* Un toque a Alma quieta: las 6 áreas llegan desde afuera con su rebote y Alma se encoge. Otro toque a Alma: se van y

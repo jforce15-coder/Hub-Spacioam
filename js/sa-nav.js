@@ -229,7 +229,20 @@
     ".san-scope .san-ov-st{font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#F5F1EC;text-shadow:0 1px 6px rgba(40,30,25,.35)}",
     ".san-scope .san-ov-cap{font:500 15px/1.45 Montserrat,system-ui,sans-serif;color:#FFFDFB;text-align:center;min-height:44px;max-height:30vh;overflow:auto;text-shadow:0 1px 8px rgba(40,30,25,.45);text-wrap:balance;transition:opacity .9s cubic-bezier(.45,0,.55,1),scale 1.1s cubic-bezier(.22,.61,.36,1)}",
     ".san-scope .san-ov-cap.in{opacity:0;scale:.97;transition:none}",
-    ".san-scope .san-ov-btns{display:flex;gap:22px}",
+    ".san-scope .san-ov-btns{display:flex;gap:22px}.san-scope .san-ob[hidden]{display:none}",
+    /* Pendientes de Claude (solo la app de Alma): tercer botón con su número y una lista que se abre a pantalla completa */
+    ".san-scope .san-badge{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:10px;background:#E9826A;color:#fff;font:700 11px/20px Montserrat,system-ui,sans-serif;font-style:normal;box-shadow:0 4px 10px -4px rgba(233,130,106,.8)}",
+    ".san-scope .san-pend{position:absolute;inset:0;z-index:4;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
+    ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
+    ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
+    ".san-scope .san-pend-l{flex:1;overflow:auto;padding:8px 16px 28px;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch}",
+    ".san-scope .san-pc{background:#fff;border-radius:24px;box-shadow:0 28px 60px -30px rgba(70,50,40,.36),0 2px 6px -3px rgba(70,50,40,.07);overflow:hidden}",
+    ".san-scope .san-pc>button{width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;font:inherit;color:#3E3F3F}",
+    ".san-scope .san-pc .tt{flex:1;min-width:0}.san-scope .san-pc .tt b{display:block;font:600 15px/1.35 Montserrat,system-ui,sans-serif}.san-scope .san-pc .tt em{display:block;margin-top:4px;font:500 13px/1.45 Montserrat,system-ui,sans-serif;font-style:normal;color:#8A8580}",
+    ".san-scope .san-chip{flex:none;font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:#F3EFEA;color:#8A8580}.san-scope .san-chip.listo{background:rgba(233,130,106,.14);color:#B3553E}.san-scope .san-chip.pregunta{background:#EEF1F7;color:#55668A}.san-scope .san-chip.fallo{background:#FBEAE6;color:#B54D36}",
+    ".san-scope .san-pc .cu{display:none;padding:0 18px 18px}.san-scope .san-pc.abierta .cu{display:block}.san-scope .san-pc .cu p{margin:0 0 14px;font:500 14px/1.55 Montserrat,system-ui,sans-serif;color:#3E3F3F;white-space:pre-wrap;overflow-wrap:anywhere}",
+    ".san-scope .san-pc .bt{display:flex;flex-wrap:wrap;gap:8px}.san-scope .san-pc .bt button{border:0;cursor:pointer;padding:11px 16px;border-radius:999px;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;background:#3E3F3F;color:#FAF8F6}.san-scope .san-pc .bt button.sec{background:#F3EFEA;color:#3E3F3F}",
+    ".san-scope .san-pend-v{margin:auto;text-align:center;font:400 24px/1.3 Valky,Georgia,serif;color:#8A8580;padding:40px 20px}",
     ".san-scope .san-ob{position:relative;width:56px;height:56px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--san-ink);background:radial-gradient(120% 120% at 50% 20%,#F4F1EE 0%,#ECE8E3 55%,#E3DED8 100%);box-shadow:0 12px 18px -6px rgba(40,30,25,.4),0 3px 5px rgba(40,30,25,.16),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10);transition:transform .45s cubic-bezier(.3,1.35,.55,1)}",
     ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end svg{color:#D9583A}.san-scope .san-ob:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:4px}",
     ".san-scope .san-ob span{position:absolute;top:62px;left:50%;transform:translateX(-50%);font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.06em;color:#F5F1EC;white-space:nowrap;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
@@ -1116,6 +1129,7 @@
     ov.innerHTML = '<div class="san-ov-bg"></div><div class="san-rock" aria-label="Alma"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div></div>' +
       '<div class="san-ov-ui"><div class="san-ov-st"></div><div class="san-ov-cap" aria-live="polite"></div><div class="san-ov-btns">' +
       '<button type="button" class="san-ob" data-a="chat" aria-label="Pasar a chat">' + svg(P.chat, 21) + '<span>Chat</span></button>' +
+      '<button type="button" class="san-ob" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>', 21) + '<i class="san-badge"></i><span>Pendientes</span></button>' +
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
       '<div class="san-chat"><header><div class="asa"></div><div class="t"><b>Alma</b><small>Modo texto · te leo</small></div></header><div class="san-msgs"></div>' +
@@ -1127,10 +1141,15 @@
       '<button type="button" class="san-send" aria-label="Alma · un toque envía, mantén para una nota de voz, dos toques para una foto, tres para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span><b>1 toque</b>enviar</span><span><b>mantén</b>nota de voz</span><span><b>2 toques</b>foto</span><span><b>3 toques</b>hablar</span></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
+    ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que Claude dejó para ti</small></div>' +
+      '<button type="button" class="san-hb san-pend-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l"></div></div>');
     root.appendChild(ov);
     E.ov = ov; E.stone = ov.querySelector(".san-rock"); E.ost = ov.querySelector(".san-ov-st"); E.cap = ov.querySelector(".san-ov-cap"); E.msgs = ov.querySelector(".san-msgs");
     aX = S(0, true); aY = S(0, true); aS = S(0, true); aSq = S(0); aDX = S(0, true); aDY = S(0, true); aL = S(.06); aH = S(.5);
     ov.querySelector('[data-a="end"]').onclick = function () { almaEnd(false); };
+    ov.querySelector('[data-a="pend"]').onclick = function (e) { e.stopPropagation(); pendAbrir(true); };
+    ov.querySelector(".san-pend-x").onclick = function () { pendAbrir(false); };
+    setTimeout(pendCargar, 300);
     ov.querySelector('[data-a="chat"]').onclick = function () { if (AL.esc && !AL.on) escActivar(true); else almaChat(true); };
     chatBind(ov);
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
@@ -1205,6 +1224,39 @@
       im.src = r.result;
     };
     r.readAsDataURL(archivo);
+  }
+  /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id) }. Sin eso, el botón no existe. */
+  var pendT = 0;
+  function pendCargar() {
+    if (!E.ov || !cfg.pendientes || !cfg.pendientes.cargar) return;
+    clearTimeout(pendT); pendT = setTimeout(pendCargar, 90000);
+    Promise.resolve(cfg.pendientes.cargar()).then(function (r) { AL.pend = r && r.ok ? r.lista || [] : (AL.pend || []); pendPintar(); }, function () {});
+  }
+  function pendPintar() {
+    var b = E.ov.querySelector('[data-a="pend"]'), n = (AL.pend || []).length;
+    b.hidden = !n; b.querySelector(".san-badge").textContent = n > 9 ? "9+" : String(n);
+    if (E.ov.classList.contains("pend")) pendLista();
+  }
+  function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); if (on) pendCargar(); }
+  var PEND_TX = { listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo" };
+  function pendLista() {
+    var l = E.ov.querySelector(".san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
+    l.innerHTML = "";
+    if (!(AL.pend || []).length) { var v = d.createElement("div"); v.className = "san-pend-v"; v.textContent = "Todo al día."; l.appendChild(v); return; }
+    AL.pend.forEach(function (p) {
+      var c = d.createElement("div"); c.className = "san-pc" + (abiertas[p.id] ? " abierta" : ""); c.setAttribute("data-id", p.id);
+      var t = d.createElement("button"); t.type = "button";
+      var tt = d.createElement("span"); tt.className = "tt"; var b = d.createElement("b"); b.textContent = p.titulo; var em = d.createElement("em"); em.textContent = (p.fecha ? p.fecha + " · " : "") + (p.resumen || "");
+      tt.appendChild(b); tt.appendChild(em); var ch = d.createElement("span"); ch.className = "san-chip " + p.estado; ch.textContent = PEND_TX[p.estado] || p.estado;
+      t.appendChild(tt); t.appendChild(ch); t.onclick = function () { c.classList.toggle("abierta"); };
+      var cu = d.createElement("div"); cu.className = "cu";
+      if (p.instrucciones) { var pi = d.createElement("p"); pi.textContent = p.instrucciones; cu.appendChild(pi); }
+      var bt = d.createElement("div"); bt.className = "bt";
+      (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.textContent = (p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"); x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
+      if (cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice";
+        hx.onclick = function () { AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
+      cu.appendChild(bt); c.appendChild(t); c.appendChild(cu); l.appendChild(c);
+    });
   }
   function stoneTarget() { var eo = AL.esc ? AL.escO : null; if (AL.chat) { var sb = E.ov && E.ov.querySelector(".san-send"), rb = sb && sb.getBoundingClientRect(); if (rb && rb.width) return { x: rb.left + rb.width / 2, y: rb.top + rb.height / 2, s: 46 }; return { x: VW() - 40, y: VH() - 44, s: 46 }; }
     return { x: VW() / 2, y: VH() * (eo && eo.y || .42), s: Math.min(VW() * .66, VH() * .4, eo && eo.s || 270) }; }
@@ -1547,6 +1599,7 @@
       if (!root) { this.mount(c); return; }
       var rebuild = c.items && JSON.stringify(c.items) !== JSON.stringify(cfg.items);
       Object.assign(cfg, c);
+      if (c.pendientes && E.ov) setTimeout(pendCargar, 200);
       if (c.apps) allowed = c.apps.slice();
       if (c.appBadges && st.fan === "apps" && st.S !== 3 && st.S !== 4 && JSON.stringify(c.appBadges) !== root._ab) { root._ab = JSON.stringify(c.appBadges); buildFan("apps"); }
       if ("tint" in c) setTint(c.tint);

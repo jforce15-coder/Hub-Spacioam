@@ -141,6 +141,9 @@
     opHilo: function (email, de) { return call('opHilo', { email: email, de: de || '' }); },
     /* foto del chat de Alma: el Hub la describe (IA con visión) para que Alma sepa qué se ve */
     almaFoto: function (dataUrl) { return call('almaFoto', { foto: dataUrl }); },
+    /* app de Alma: lo que Claude dejó pendiente para el admin principal (botón «Pendientes») */
+    pendientesClaude: function () { return call('pendientesClaude', {}); },
+    pendienteHecho: function (id) { return call('pendienteHecho', { id: id }); },
     opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
     opLista: function (email) { return call('opLista', { email: email }); }
   };

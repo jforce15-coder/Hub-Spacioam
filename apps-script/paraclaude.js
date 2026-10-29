@@ -89,8 +89,9 @@ function conexiones_(ses, b) {
   if (g.claude) { if (!/^sk-ant-oat01-[\w-]{20,}$/.test(String(g.claude).trim())) return { ok: false, error: 'La llave de Claude empieza con sk-ant-oat01-' }; p.setProperty('CLAUDE_RUTINA_TOKEN', String(g.claude).trim()); }
   if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
+  if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_() };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')) };
   if (b.conectar === 'spotify') { var a = spotifyAutorizar_(); if (!a.ok) return a; out.url = a.url; }
   return out;
 }
@@ -241,4 +242,55 @@ function accionMarcar_(id) {
   var ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (r) { return String(r[0]); }), i = ids.indexOf(String(id));
   if (i < 0) return { ok: false, error: 'no existe' };
   sh.getRange(i + 2, 6).setValue('completada'); return { ok: true };
+}
+
+/* ═══ PENDIENTES DE CLAUDE (app de Alma) ═══════════════════════════════════════════════════════════════════
+   El botón «Pendientes» del inicio de la app de Alma: lo que Claude está haciendo o dejó listo para Juan, con sus
+   instrucciones y el cambio para unir. Cada uno desaparece solo cuando su PR se une (con GITHUB_PRS o GITHUB_TOKEN:
+   un token de GitHub de solo lectura de pull requests) o cuando Juan lo marca como hecho. */
+var PEND_ABIERTOS_ = /^(con Claude|PR listo|pregunta|fallo|pendiente)/;
+function paraClaudePrincipalSes_(ses) {
+  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
+  if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
+  return adm && esAdminPrincipal_(adm) ? adm : null;
+}
+/* ¿El PR ya se unió? (o se cerró). Se recuerda 5 min. */
+function paraClaudePrUnido_(url) {
+  var m = /github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/.exec(String(url || '')); if (!m) return null;
+  var p = PropertiesService.getScriptProperties(), tok = p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN'); if (!tok) return null;
+  var c = CacheService.getScriptCache(), k = 'prst_' + m[1] + '_' + m[2] + '_' + m[3], h = c.get(k); if (h) return h;
+  try {
+    var r = UrlFetchApp.fetch('https://api.github.com/repos/' + m[1] + '/' + m[2] + '/pulls/' + m[3], { muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+    if (r.getResponseCode() !== 200) return null;
+    var j = JSON.parse(r.getContentText()), st = j.merged_at ? 'unido' : j.state === 'closed' ? 'cerrado' : 'abierto';
+    c.put(k, st, 300); return st;
+  } catch (e) { return null; }
+}
+function paraClaudePendientes_(ses) {
+  if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
+  var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2) return { ok: true, lista: [] };
+  var n = Math.min(60, sh.getLastRow() - 1), ini = sh.getLastRow() - n + 1;
+  var v = sh.getRange(ini, 1, n, PARA_CLAUDE_CAB_.length).getValues(), lista = [], corte = Date.now() - 21 * 86400000;
+  v.forEach(function (r, i) {
+    var estado = String(r[8] || ''); if (!PEND_ABIERTOS_.test(estado)) return;
+    var f = r[1] instanceof Date ? r[1].getTime() : new Date(String(r[1]).replace(' ', 'T') + ':00-06:00').getTime(); if (f && f < corte) return;
+    var resp = String(r[11] || ''), enlaces = resp.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/g) || [];
+    var prs = enlaces.map(function (u) { return { url: u, estado: paraClaudePrUnido_(u) }; });
+    if (prs.length && prs.every(function (x) { return x.estado === 'unido' || x.estado === 'cerrado'; })) {   // ya se unió: desaparece
+      try { sh.getRange(ini + i, 9).setValue(prs.some(function (x) { return x.estado === 'unido'; }) ? 'unido' : 'cerrado'); } catch (e) {}
+      return;
+    }
+    var cuerpo = resp.split(/\n\n/).slice(1).join('\n\n').replace(/https:\/\/github\.com\/\S+/g, '').trim();   // sin el encabezado «Claude terminó · …»
+    var voz = cuerpo.split(/\n\n/)[0] || '', instr = cuerpo.split(/\n\n/).slice(1).join('\n\n').trim();
+    lista.push({ id: String(r[0]), titulo: String(r[6] || ''), fecha: String(r[1] instanceof Date ? Utilities.formatDate(r[1], CFG.TZ, 'd MMM') : String(r[1]).slice(0, 10)),
+      estado: /^PR listo/.test(estado) ? 'listo' : /^pregunta/.test(estado) ? 'pregunta' : /^fallo/.test(estado) ? 'fallo' : 'trabajando',
+      resumen: voz || (/^con Claude|^pendiente/.test(estado) ? 'Claude está trabajando en esto.' : ''), instrucciones: instr,
+      enlaces: prs.filter(function (x) { return x.estado !== 'unido' && x.estado !== 'cerrado'; }).map(function (x) { return x.url; }) });
+  });
+  return { ok: true, lista: lista.reverse() };
+}
+function paraClaudeHecho_(ses, id) {
+  if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
+  return paraClaudeMarcar_(id, 'hecho', 'lo marcó Juan en la app');
 }

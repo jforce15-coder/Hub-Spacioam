@@ -232,9 +232,9 @@
     ".san-scope .san-ov-btns{display:flex;gap:22px}.san-scope .san-ob[hidden]{display:none}",
     /* Pendientes de Claude (solo la app de Alma): tercer botón con su número y una lista que se abre a pantalla completa */
     ".san-scope .san-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#E9826A;color:#fff;font:700 9.5px/17px Montserrat,system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 3px 8px -3px rgba(233,130,106,.8)}",
-    /* la burbuja de pendientes: pequeña, en la esquina de arriba del círculo de Alma (la sigue al crecer o moverse) */
+    /* la burbuja de pendientes: arriba a la izquierda, con el mismo diseño del botón de Ajustes (arriba a la derecha) */
     ".san-scope .san-ov.suelta .san-pendb{opacity:0!important;pointer-events:none!important}",
-    ".san-scope .san-pendb{position:absolute;left:0;top:0;z-index:3;width:38px;height:38px;margin:-19px 0 0 -19px;border:0;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;pointer-events:auto;color:var(--san-ink);background:rgba(250,248,246,.78);-webkit-backdrop-filter:blur(12px) saturate(1.3);backdrop-filter:blur(12px) saturate(1.3);box-shadow:0 10px 22px -10px rgba(40,30,25,.45),inset 0 1px 2px rgba(255,255,255,.7);transition:opacity .4s ease}",
+    ".san-scope .san-pendb{position:fixed;left:max(16px,env(safe-area-inset-left));top:max(14px,calc(env(safe-area-inset-top) + 6px));z-index:3;width:40px;height:40px;margin:0;border:0;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;pointer-events:auto;color:#FFFDFB;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.35);transition:opacity .4s ease,scale .3s cubic-bezier(.3,1.35,.55,1)}",
     ".san-scope .san-pendb[hidden]{display:none}.san-scope .san-ov.chat .san-pendb,.san-scope .san-ov.pend .san-pendb{opacity:0;pointer-events:none}.san-scope .san-pendb:active{scale:.9}",
     ".san-scope .san-pend{position:absolute;inset:0;z-index:4;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
@@ -1165,7 +1165,7 @@
       '<button type="button" class="san-send" aria-label="Alma · un toque envía, mantén para una nota de voz, dos toques para una foto, tres para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span><b>1 toque</b>enviar</span><span><b>mantén</b>nota de voz</span><span><b>2 toques</b>foto</span><span><b>3 toques</b>hablar</span></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
-    ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 17) + '<i class="san-badge"></i></button>');
+    ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que Claude dejó para ti</small></div>' +
       '<button type="button" class="san-hb san-pend-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l"></div></div>');
     root.appendChild(ov);
@@ -1322,7 +1322,6 @@
     E.stone.style.setProperty("--sombra", clamp(.6 + .4 * (D - 74) / 196, .6, 1).toFixed(3));
     E.stone.style.setProperty("--lit", (aL.x + (quieta ? .35 * J.p : .3 * AL.bth) + aSq.x * .15 + (AL.on ? J.v * 1.6 : 0)).toFixed(3));
     E.stone.style.setProperty("--halo", clamp(aH.x * (quieta ? .45 + 1.05 * J.p : .72 + .3 * AL.bth + (AL.on ? J.v * 2.2 : 0)), 0, 1.5).toFixed(3));
-    if (E.pb && !E.pb.hidden) E.pb.style.transform = "translate(" + (aX.x + dx + D * .37).toFixed(1) + "px," + (aY.x + dy - D * .37).toFixed(1) + "px)";
   }
   /* respiración de la piedra: el mismo ciclo del menú más el volumen real de la voz de Alma (solo mientras hay llamada) */
   function almaLoop(t) {

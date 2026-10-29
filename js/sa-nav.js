@@ -233,6 +233,7 @@
     /* Pendientes de Claude (solo la app de Alma): tercer botón con su número y una lista que se abre a pantalla completa */
     ".san-scope .san-badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#E9826A;color:#fff;font:700 9.5px/17px Montserrat,system-ui,sans-serif;font-style:normal;text-align:center;box-shadow:0 3px 8px -3px rgba(233,130,106,.8)}",
     /* la burbuja de pendientes: pequeña, en la esquina de arriba del círculo de Alma (la sigue al crecer o moverse) */
+    ".san-scope .san-ov.suelta .san-pendb{opacity:0!important;pointer-events:none!important}",
     ".san-scope .san-pendb{position:absolute;left:0;top:0;z-index:3;width:38px;height:38px;margin:-19px 0 0 -19px;border:0;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;pointer-events:auto;color:var(--san-ink);background:rgba(250,248,246,.78);-webkit-backdrop-filter:blur(12px) saturate(1.3);backdrop-filter:blur(12px) saturate(1.3);box-shadow:0 10px 22px -10px rgba(40,30,25,.45),inset 0 1px 2px rgba(255,255,255,.7);transition:opacity .4s ease}",
     ".san-scope .san-pendb[hidden]{display:none}.san-scope .san-ov.chat .san-pendb,.san-scope .san-ov.pend .san-pendb{opacity:0;pointer-events:none}.san-scope .san-pendb:active{scale:.9}",
     ".san-scope .san-pend{position:absolute;inset:0;z-index:4;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
@@ -1423,7 +1424,7 @@
      Si la escena ya está, la piedra va a su nuevo lugar con su resorte. */
   function escena(o) {
     if (!root) return false;
-    if (AL.esc) { AL.escO = o || null; AL.escPos = null; if (!stoneDrag) E.ov.classList.remove("min"); var tn = stoneTarget(); aX.to(tn.x, .7, .8); aY.to(tn.y, .7, .8); aS.to(tn.s, .7, .72); return { x: tn.x, y: tn.y, s: tn.s / PB }; }
+    if (AL.esc) { AL.escO = o || null; AL.escPos = null; E.ov.classList.remove("suelta"); if (!stoneDrag) E.ov.classList.remove("min"); var tn = stoneTarget(); aX.to(tn.x, .7, .8); aY.to(tn.y, .7, .8); aS.to(tn.s, .7, .72); return { x: tn.x, y: tn.y, s: tn.s / PB }; }
     AL.escO = o || null;
     almaBuild(); AL.esc = true; root.classList.add("san-escena"); E.ov.classList.add("escena"); setS(1); clearTimeout(idleT); E.hint.classList.remove("on");
     var t = stoneTarget();
@@ -1485,7 +1486,7 @@
   function escPosPt() { var p = anchorPt(AL.escPos, true); return { x: p.x, y: p.y, s: 74 * K() }; }
   function escSuelta() { return !!(AL.esc && !AL.on && !AL.chat && cfg && typeof cfg.alSoltar === "function"); }
   function escSoltar(an, vx, vy) {
-    st.anchor = an; setCk("sa_nav_pos", an); AL.escPos = an;   // «min» se queda: sin los botones de abajo mientras es botón
+    st.anchor = an; setCk("sa_nav_pos", an); AL.escPos = an; E.ov.classList.add("suelta");   // los pendientes se quedan en el inicio   // «min» se queda: sin los botones de abajo mientras es botón
     var p = escPosPt(); aX.to(p.x, .55, .8, vx); aY.to(p.y, .55, .8, vy); aS.to(p.s, .55, .8); kick();
     if (navigator.vibrate) try { navigator.vibrate(6); } catch (x) {}
     try { cfg.alSoltar(an); } catch (x) { console.error(x); }

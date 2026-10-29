@@ -520,10 +520,11 @@ function vozDefHerramientas_(base) {
     var sec = t.name === 'secretaria';
     t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_error_handling_mode = 'auto';
     /* secretaria tarda 8 a 25 s: corre en paralelo (async) y la conversación sigue mientras trabaja; cuando llega la
-       respuesta, ALMA la introduce con naturalidad. Sin sonido de tecleo para que no suene encima de la charla. Si el
+       respuesta, ALMA la introduce con naturalidad. Ninguna herramienta usa sonido de tecleo (typewriter): los únicos sonidos
+       son el de inicio y el de despedida del anillo, iguales en todas las modalidades. Si el
        administrador habla mientras trabaja, el pedido no se pierde: sigue corriendo y su respuesta llega igual. */
     t.execution_mode = sec ? 'async' : 'post_tool_speech';
-    t.tool_call_sound = sec ? null : 'typing'; t.tool_call_sound_behavior = sec ? 'auto' : 'always';
+    t.tool_call_sound = null; t.tool_call_sound_behavior = 'auto';
     t.interruption_mode = 'allow';
     return t;
   });

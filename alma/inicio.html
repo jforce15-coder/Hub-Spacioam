@@ -236,7 +236,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-29q"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-29w"></script>
+<script src="../js/sa-nav.js?v=2026-10-29x"></script>
 <script>
 (function () {
   "use strict";
@@ -324,26 +324,30 @@
     return L;
   }
   var RES = resorte(48, .6, .7);   // se pasa apenas (~3 %): rebota sin chocar con sus vecinas
+  /* Abanico como el del Hub (js/sa-nav.js): cada esfera sale desde Alma, barre un arco mientras crece (escala .4 → 1, aparece con
+     el resorte) y llega a su lugar; entran escalonadas (60 ms + 55 ms cada una) y al cerrar regresan a Alma en orden inverso (35 ms). */
+  function orbitaPunto(g, i, q, u) {
+    var th = (-90 + i * 60) * Math.PI / 180, sm = Math.max(0, Math.min(1.1, u * u * (3 - 2 * Math.min(u, 1)))), ang = th - (1 - sm) * .9;
+    return { x: g.cx + Math.cos(ang) * g.R * q, y: g.cy + Math.sin(ang) * g.R * g.k * q };
+  }
   function orbitaEntrar(b, i, g) {
-    var ang = (-90 + i * 60) * Math.PI / 180, ux = Math.cos(ang), uy = Math.sin(ang) * g.k;
-    var tx = g.cx + ux * g.R, ty = g.cy + uy * g.R, lejos = Math.max(g.W, g.H) * .62, n = Math.hypot(ux, uy);
-    var fx = g.cx + ux / n * lejos, fy = g.cy + uy / n * lejos, dir = Math.atan2(uy, ux) * 180 / Math.PI;
+    var f = orbitaPunto(g, i, 1, 1);
     b.style.setProperty("--d", g.d.toFixed(1) + "px"); b.style.setProperty("--fs", Math.max(10, Math.min(15, g.d * .085)).toFixed(1) + "px");
-    b._fin = "translate(" + tx.toFixed(1) + "px," + ty.toFixed(1) + "px)"; b._lejos = "translate(" + fx.toFixed(1) + "px," + fy.toFixed(1) + "px)";
+    b._fin = "translate(" + f.x.toFixed(1) + "px," + f.y.toFixed(1) + "px)"; b._ctr = "translate(" + g.cx.toFixed(1) + "px," + g.cy.toFixed(1) + "px) scale(.4)"; b._g = g;
     b.getAnimations().forEach(function (a) { a.cancel(); });
     if (RM) { b.style.transform = b._fin; b.style.opacity = 1; return; }
     var kf = RES.map(function (p) {
-      var x = fx + (tx - fx) * p.x, y = fy + (ty - fy) * p.x, st = Math.max(-.12, Math.min(.15, p.v > 0 ? p.v * .03 : p.v * .1));   // al frenar y volver, se aplasta
-      return { offset: p.t, opacity: Math.min(1, p.t * 5), transform: "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) rotate(" + dir.toFixed(1) + "deg) scale(" + (1 + st).toFixed(3) + "," + (1 - st * .6).toFixed(3) + ") rotate(" + (-dir).toFixed(1) + "deg)" };
+      var q = p.x, pt = orbitaPunto(g, i, q, q);
+      return { offset: p.t, opacity: Math.max(0, Math.min(1, q * 1.5 - .2)), transform: "translate(" + pt.x.toFixed(1) + "px," + pt.y.toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")" };
     });
-    b.animate(kf, { duration: 1250, delay: 70 + i * 40, fill: "both" });
+    b.animate(kf, { duration: 1250, delay: 60 + i * 55, fill: "both" });
   }
-  function orbitaSalir(b, i) {
+  function orbitaSalir(b, i, n) {
     var de = b._fin || "translate(0,0)";
     b.getAnimations().forEach(function (a) { a.cancel(); });
     if (RM) { b.style.opacity = 0; return; }
-    b.animate([{ transform: de + " scale(1)", opacity: 1 }, { transform: de + " scale(1.06)", opacity: 1, offset: .25 }, { transform: b._lejos + " scale(1.1)", opacity: 0 }],
-      { duration: 420, delay: i * 20, easing: "cubic-bezier(.55,0,.75,.35)", fill: "both" });
+    b.animate([{ transform: de + " scale(1)", opacity: 1 }, { transform: b._ctr || de + " scale(.4)", opacity: 0 }],
+      { duration: 420, delay: (n - 1 - i) * 35, easing: "cubic-bezier(.55,0,.75,.35)", fill: "both" });
   }
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* Un toque a Alma quieta: las 6 áreas llegan desde afuera con su rebote y Alma se encoge. Otro toque a Alma: se van y
@@ -359,7 +363,7 @@
       if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
     } else {
       o.classList.remove("on"); document.body.classList.remove("orbita-on");
-      L.forEach(function (b, i) { orbitaSalir(b, i); });
+      L.forEach(function (b, i) { orbitaSalir(b, i, L.length); });
     }
   }
   addEventListener("resize", function () { if (!OR.abierta) return; var g = OR.geo = orbitaGeo(); SANav.escena({ y: g.cy / g.H, s: g.alma });
@@ -453,8 +457,8 @@
      la app la regresa al centro (SANav.escena(null)) si no se busca nada. */
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
     alSoltar: NATIVA ? function (pos) { orbita(false); nativa({ accion: "navegador", pos: pos }); } : null,
-    /* Alma quieta: el primer toque abre las áreas (si las hay); con las áreas abiertas, el toque empieza la conversación. */
-    alTocar: function () { if (!OR.armada) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return false; } orbita(true); return true; },
+    /* Alma quieta: 1 toque abre las áreas (si las hay) y otro toque las cierra; 2 toques activan la voz sin cambiar de estado (lo resuelve sa-nav.js). */
+    alTocar: function () { if (!OR.armada) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });

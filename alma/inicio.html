@@ -237,7 +237,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-29q"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-29y"></script>
+<script src="../js/sa-nav.js?v=2026-10-30a"></script>
 <script>
 (function () {
   "use strict";
@@ -312,74 +312,60 @@
     var alma = Math.max(64, Math.min(d * .62, 2 * (vec * R - d / 2 - gap)));
     return { W: W, H: H, d: d, R: R, k: k, cx: W / 2, cy: cy, alma: alma };
   }
-  /* El resorte de Alma: se pasa un poco, rebota y se asienta; mientras va rápido se estira en su dirección y al
-     frenar y regresar se aplasta (como la roca). Se calcula una vez y va como animación del navegador. */
-  function resorte(n, resp, amort) {
-    var w = 2 * Math.PI / resp, z = amort, wd = w * Math.sqrt(1 - z * z), L = [], T = 1.25;
-    for (var i = 0; i <= n; i++) {
-      var t = T * i / n, e = Math.exp(-z * w * t);
-      var x = 1 - e * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
-      var v = e * (w * w / wd) * Math.sin(wd * t);   // derivada exacta
-      L.push({ t: i / n, x: x, v: v });
-    }
-    return L;
+  /* Abanico con la mecánica exacta del abanico de apps del Hub (js/sa-nav.js): cada esfera tiene un resorte «q»
+     (0 = escondida detrás de Alma, 1 = en su lugar) y otro de vaivén «w». Abrir: q → 1 escalonadas (70 ms + 70 ms
+     cada una, respuesta .9, amortiguación .78) y al llegar un vaivén corto (.9 / .3); cerrar: q → 0 en orden inverso
+     (40 ms, .55 / 1). Salen de detrás de la roca (z-index menor), barren un arco mientras crecen (.4 → 1) y aparecen
+     con q. Como son resortes, abrir y cerrar a media animación no salta: sigue desde donde va. */
+  function Res(v) { this.x = v; this.v = 0; this.t = v; this.k = 0; this.c = 0; }
+  Res.prototype.to = function (t, resp, amort, vel) { if (RM) { resp = .2; amort = 1; } var wn = 2 * Math.PI / resp; this.t = t; this.k = wn * wn; this.c = 2 * amort * wn; if (vel != null) this.v = vel; orbitaLoop(); };
+  Res.prototype.paso = function (dt) { var f = -this.k * (this.x - this.t) - this.c * this.v; this.v += f * dt; this.x += this.v * dt; };
+  Res.prototype.quieto = function () { return Math.abs(this.x - this.t) < .0008 && Math.abs(this.v) < .006; };
+  var ES = [], ESP = [], esLoop = false, esUlt = 0;   // ES: resortes de cada esfera; ESP: cambios programados
+  function esLuego(r, t, ms, resp, amort, vel) { ESP.push({ r: r, t: t, at: performance.now() + ms, resp: resp, amort: amort, vel: vel }); orbitaLoop(); }
+  function orbitaLoop() { if (!esLoop) { esLoop = true; esUlt = performance.now(); requestAnimationFrame(orbitaCuadro); } }
+  function orbitaCuadro(now) {
+    var dt = Math.min(.05, (now - esUlt) / 1000); esUlt = now;
+    ESP = ESP.filter(function (p) { if (now >= p.at) { p.r.to(p.t, p.resp, p.amort, p.vel); return false; } return true; });
+    var n = Math.max(1, Math.round(dt / (1 / 240))), h = dt / n;
+    ES.forEach(function (e) { for (var i = 0; i < n; i++) { e.q.paso(h); e.w.paso(h); } });
+    orbitaPintar();
+    if (ESP.length || ES.some(function (e) { return !e.q.quieto() || !e.w.quieto(); })) requestAnimationFrame(orbitaCuadro); else esLoop = false;
   }
-  var RES = resorte(48, .6, .7);   // se pasa apenas (~3 %): rebota sin chocar con sus vecinas
-  /* Abanico como el del Hub (js/sa-nav.js): cada esfera sale desde Alma, barre un arco mientras crece (escala .4 → 1, aparece con
-     el resorte) y llega a su lugar; entran escalonadas (60 ms + 55 ms cada una) y al cerrar hacen el mismo recorrido al revés, en orden inverso (55 ms). */
-  function orbitaPunto(g, i, q, u) {
-    var th = (-90 + i * 60) * Math.PI / 180, sm = Math.max(0, Math.min(1.1, u * u * (3 - 2 * Math.min(u, 1)))), ang = th - (1 - sm) * .9;
-    return { x: g.cx + Math.cos(ang) * g.R * q, y: g.cy + Math.sin(ang) * g.R * g.k * q };
-  }
-  /* Los cuadros de la entrada; la salida usa los mismos al revés (mismo recorrido, misma curva, mismo tiempo). */
-  function orbitaKf(g, i, alReves) {
-    var kf = RES.map(function (p) {
-      var q = p.x, pt = orbitaPunto(g, i, q, q);
-      return { offset: alReves ? 1 - p.t : p.t, opacity: Math.max(0, Math.min(1, q * 1.5 - .2)), transform: "translate(" + pt.x.toFixed(1) + "px," + pt.y.toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")" };
+  var BARRE = .7;   // radianes que barre cada esfera mientras sale (el abanico del Hub barre desde su centro)
+  function orbitaPintar() {
+    var g = OR.geo; if (!g) return;
+    [].forEach.call($("orbita").children, function (b, i) {
+      var e = ES[i]; if (!e) return;
+      var q = e.q.x, u = Math.max(0, Math.min(1.2, q)), sm = Math.max(0, Math.min(1.1, u * u * (3 - 2 * Math.min(u, 1))));
+      var ang = (-90 + i * 60) * Math.PI / 180 - (1 - sm) * BARRE + e.w.x, r = g.R * q;
+      b.style.transform = "translate(" + (g.cx + Math.cos(ang) * r).toFixed(1) + "px," + (g.cy + Math.sin(ang) * r * g.k).toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")";
+      b.style.opacity = Math.max(0, Math.min(1, q * 1.5 - .2)).toFixed(3);
+      b.style.pointerEvents = OR.abierta && q > .6 ? "auto" : "none";
     });
-    return alReves ? kf.reverse() : kf;
-  }
-  function orbitaEntrar(b, i, g) {
-    var f = orbitaPunto(g, i, 1, 1);
-    b.style.setProperty("--d", g.d.toFixed(1) + "px"); b.style.setProperty("--fs", Math.max(10, Math.min(15, g.d * .085)).toFixed(1) + "px");
-    b._fin = "translate(" + f.x.toFixed(1) + "px," + f.y.toFixed(1) + "px)"; b._ctr = "translate(" + g.cx.toFixed(1) + "px," + g.cy.toFixed(1) + "px) scale(.4)"; b._g = g;
-    b.getAnimations().forEach(function (a) { a.cancel(); });
-    if (RM) { b.style.transform = b._fin; b.style.opacity = 1; return; }
-    var kf = orbitaKf(g, i, false);
-    b.animate(kf, { duration: 1250, delay: 60 + i * 55, fill: "both" });
-  }
-  function orbitaSalir(b, i, n) {
-    b.getAnimations().forEach(function (a) { a.cancel(); });
-    if (RM) { b.style.opacity = 0; return; }
-    if (!b._g) { b.style.opacity = 0; return; }
-    /* Salida propia: sin cola de resorte al revés (esa parte quieta se sentía como retraso). Arranca en el mismo cuadro del toque,
-       dura poco y frena con la curva de Apple (ease-out fuerte); apenas escalonadas (18 ms). */
-    var kf = [], g = b._g, P = 14;
-    for (var j = 0; j <= P; j++) {
-      var q = 1 - j / P, pt = orbitaPunto(g, i, q, q);
-      kf.push({ opacity: Math.max(0, Math.min(1, q * 1.5 - .2)), transform: "translate(" + pt.x.toFixed(1) + "px," + pt.y.toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")" });
-    }
-    b.animate(kf, { duration: 420, delay: (n - 1 - i) * 18, easing: "cubic-bezier(.32,.72,0,1)", fill: "both" });
   }
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  /* Un toque a Alma quieta: las 6 áreas llegan desde afuera con su rebote y Alma se encoge. Otro toque a Alma: se van y
-     empieza la conversación. */
+  /* Un toque a Alma quieta: Alma se encoge y las 6 áreas salen de detrás de ella. Otro toque: vuelven detrás y Alma crece. */
   function orbita(on) {
     if (on === OR.abierta) return; OR.abierta = on;
-    var o = $("orbita"), L = [].slice.call(o.children);
+    var o = $("orbita"), L = [].slice.call(o.children), n = L.length;
+    while (ES.length < n) ES.push({ q: new Res(0), w: new Res(0) });
+    ESP = [];   // lo programado por la orden anterior ya no va
     if (on) {
       var g = OR.geo = orbitaGeo();
+      L.forEach(function (b) { b.style.setProperty("--d", g.d.toFixed(1) + "px"); b.style.setProperty("--fs", Math.max(10, Math.min(15, g.d * .085)).toFixed(1) + "px"); });
       SANav.escena({ y: g.cy / g.H, s: g.alma });
       o.classList.add("on"); document.body.classList.add("orbita-on");
-      L.forEach(function (b, i) { orbitaEntrar(b, i, g); });
+      ES.forEach(function (e, j) { esLuego(e.q, 1, 70 + j * 70, .9, .78); esLuego(e.w, 0, 70 + j * 70 + 430, .9, .3, .32); });
       if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
     } else {
       o.classList.remove("on"); document.body.classList.remove("orbita-on");
-      L.forEach(function (b, i) { orbitaSalir(b, i, L.length); });
+      ES.forEach(function (e, j) { e.w.to(0, .3, 1, 0); esLuego(e.q, 0, (n - 1 - j) * 40, .55, 1); });
     }
+    orbitaPintar();
   }
   addEventListener("resize", function () { if (!OR.abierta) return; var g = OR.geo = orbitaGeo(); SANav.escena({ y: g.cy / g.H, s: g.alma });
-    [].forEach.call($("orbita").children, function (b, i) { orbitaEntrar(b, i, g); b.getAnimations().forEach(function (a) { a.finish(); }); }); });
+    [].forEach.call($("orbita").children, function (b) { b.style.setProperty("--d", g.d.toFixed(1) + "px"); }); orbitaPintar(); });
   /* Tocar fuera de Alma y de las esferas las cierra (Alma vuelve a su tamaño). */
   document.addEventListener("pointerdown", function (e) {
     if (!OR.abierta || AR.abierta) return;

@@ -79,6 +79,21 @@ function paraClaudeDesdeChat_(ses, texto) {
   var alma = opGuardar_(DESARROLLO_, 'alma', 'hub', r.claude ? 'Listo, ya se lo pasé a Claude. Te aviso aquí cuando responda.' : r.nota, []);
   return { ok: true, alma: alma };
 }
+/* hub.spacioam.com/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, Google Home). Solo el admin
+   principal con su sesión; las llaves nunca se devuelven, solo si están puestas. */
+function conexiones_(ses, b) {
+  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
+  if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
+  if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal puede ver las conexiones.' };
+  var p = PropertiesService.getScriptProperties(), g = b.guardar || {};
+  if (g.claude) { if (!/^sk-ant-oat01-[\w-]{20,}$/.test(String(g.claude).trim())) return { ok: false, error: 'La llave de Claude empieza con sk-ant-oat01-' }; p.setProperty('CLAUDE_RUTINA_TOKEN', String(g.claude).trim()); }
+  if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
+  if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
+  if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_() };
+  if (b.conectar === 'spotify') { var a = spotifyAutorizar_(); if (!a.ok) return a; out.url = a.url; }
+  return out;
+}
 /* hub.spacioam.com/claude.html: el admin principal pega ahí la llave de la tarea (la pantalla de Propiedades del script
    no deja agregar más de 50). Con llave vacía solo dice si ya hay una guardada; nunca la devuelve. */
 function paraClaudeLlave_(ses, llave) {

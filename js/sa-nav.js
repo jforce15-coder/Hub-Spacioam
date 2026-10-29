@@ -1573,4 +1573,35 @@
     },
     icons: Object.keys(P)
   };
+
+/* Enlaces que se pueden tocar: en los textos de las conversaciones (que llegan como texto plano), cada https://… pasa a ser un
+   enlace que abre en otra pestaña. Solo toca nodos de texto fuera de enlaces, campos y código. */
+(function (w, d) {
+  if (w.__saLinks) return; w.__saLinks = true;
+  var RX = /https?:\/\/[^\s<>"'«»]+[^\s<>"'«».,;:!?)\]]/g, NO = /^(A|INPUT|TEXTAREA|SCRIPT|STYLE|CODE|PRE|BUTTON|SELECT|OPTION)$/;
+  function nodo(t) {
+    var v = t.nodeValue; if (!v || v.indexOf("http") < 0) return;
+    for (var p = t.parentNode; p && p !== d.body; p = p.parentNode) { if (NO.test(p.nodeName) || p.isContentEditable) return; }
+    RX.lastIndex = 0; if (!RX.test(v)) return; RX.lastIndex = 0;
+    var f = d.createDocumentFragment(), i = 0, m;
+    while ((m = RX.exec(v))) {
+      if (m.index > i) f.appendChild(d.createTextNode(v.slice(i, m.index)));
+      var a = d.createElement("a"); a.href = m[0]; a.textContent = m[0]; a.target = "_blank"; a.rel = "noopener";
+      a.style.cssText = "color:inherit;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere;pointer-events:auto";
+      a.addEventListener("click", function (e) { e.stopPropagation(); }, true);
+      f.appendChild(a); i = m.index + m[0].length;
+    }
+    if (i < v.length) f.appendChild(d.createTextNode(v.slice(i)));
+    t.parentNode.replaceChild(f, t);
+  }
+  function barrer(r) {
+    if (!r) return; if (r.nodeType === 3) { nodo(r); return; } if (r.nodeType !== 1 || NO.test(r.nodeName)) return;
+    var tw = d.createTreeWalker(r, NodeFilter.SHOW_TEXT, null), l = [], x; while ((x = tw.nextNode())) l.push(x); l.forEach(nodo);
+  }
+  var cola = [], pend = 0;
+  function luego(n) { cola.push(n); if (pend) return; pend = 1; (w.requestAnimationFrame || setTimeout)(function () { pend = 0; var c = cola; cola = []; c.forEach(barrer); }); }
+  function iniciar() { barrer(d.body); new MutationObserver(function (ms) { ms.forEach(function (m) { if (m.type === "characterData") luego(m.target); else for (var k = 0; k < m.addedNodes.length; k++) luego(m.addedNodes[k]); }); })
+    .observe(d.body, { childList: true, subtree: true, characterData: true }); }
+  if (d.body) iniciar(); else d.addEventListener("DOMContentLoaded", iniciar);
+})(window, document);
 })(window, document);

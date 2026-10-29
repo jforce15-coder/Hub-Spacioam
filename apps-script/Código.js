@@ -657,6 +657,7 @@ function hubInbox_() {
 
 function doGet(e) {
   const q = (e && e.parameter) || {};
+  if (q.state && (q.code || q.error)) return spotifyVuelta_(q);   // Spotify vuelve después de autorizar (musica.js)
   if (q['hub.mode'] === 'subscribe') {
     const v = PropertiesService.getScriptProperties().getProperty('WA_VERIFY_TOKEN') || 'spacioam-alma';
     return ContentService.createTextOutput(q['hub.verify_token'] === v ? String(q['hub.challenge'] || '') : 'token incorrecto');
@@ -3066,7 +3067,8 @@ function hubApi_(body) {
     switch (body.action) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
-      case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
+      case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
+      case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
       case 'almaFoto': return json_(almaFoto_(ses, body.foto));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'vozAvisos': return json_(vozAvisos_(ses));                                    // app de iPhone: avisos para decir al oído
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero));                    // Alma por voz desde el menú (voz.js)

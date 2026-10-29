@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conexiones · Alma</title>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<link rel="stylesheet" href="ds/tokens/fonts.css">
+<link rel="stylesheet" href="ds/tokens/colors.css">
+<link rel="stylesheet" href="ds/tokens/typography.css">
+<link rel="stylesheet" href="ds/tokens/radius-shadow.css">
+<!--
+  Las conexiones de Alma (Claude, Spotify, Google Home). Archivo propio del repo (no lo toca el export de Claude Design).
+  Solo el admin principal. Las llaves van directo al Apps Script con la sesión firmada y nunca se vuelven a mostrar
+  (la pantalla de Propiedades del script no deja agregar más de 50).
+-->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FAF8F6; color: var(--fg, #3E3F3F); font-family: var(--font-sans, Montserrat, system-ui, sans-serif); font-size: 15px; line-height: 1.55; }
+  main { max-width: 560px; margin: 0 auto; padding: 56px 18px 48px; }
+  .eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #938B8A; margin: 0 0 6px; }
+  h1 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 40px; line-height: 1.05; margin: 0 0 10px; }
+  h1 i { display: block; }
+  .lead { margin: 0 0 28px; color: #6F6867; }
+  section { background: #fff; border-radius: 26px; padding: 22px 20px; margin-bottom: 22px; box-shadow: 0 30px 64px -34px rgba(70,50,40,.38), 0 2px 8px -4px rgba(70,50,40,.08); }
+  h2 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 26px; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .pill { font: 600 10px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; background: #F3EFEA; color: #8A8580; }
+  .pill.ok { background: #E9F3EC; color: #3d6b52; }
+  p { margin: 0 0 14px; }
+  ol { padding-left: 20px; margin: 0 0 16px; } li { margin-bottom: 8px; }
+  a { color: inherit; }
+  label { display: block; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #938B8A; margin: 12px 0 6px; }
+  input { width: 100%; font: inherit; font-size: 16px; padding: 13px 15px; border: 1px solid #E4DFDA; border-radius: 14px; background: #FDFCFB; color: inherit; }
+  .copiar { display: flex; gap: 8px; } .copiar input { font-size: 13px; color: #6F6867; }
+  button { font: 600 12px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; padding: 15px 20px; border: 0; border-radius: 999px; background: #2E3030; color: #fff; cursor: pointer; }
+  button.sec { background: #F3EFEA; color: #3E3F3F; }
+  button.peach { background: #E9826A; }
+  button:disabled { opacity: .5; }
+  .fila { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .msg { margin-top: 12px; font-size: 13.5px; min-height: 1em; } .msg.mal { color: #B54D36; } .msg.bien { color: #3d6b52; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">Alma · Conexiones</p>
+  <h1>Lo que Alma<i>puede usar</i></h1>
+  <p class="lead">Conecta una vez y Alma lo usa cuando se lo pides, por voz o por chat.</p>
+
+  <section id="s-spotify">
+    <h2>Spotify <span class="pill" id="e-spotify">Revisando…</span></h2>
+    <p>Para pedirle música a Alma: «pon algo tranquilo en la sala», «pon a Rosalía», «súbele». Suena en tus bocinas Nest, tu teléfono o donde tengas Spotify.</p>
+    <ol>
+      <li>Entra a <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> con tu cuenta de Spotify y toca <b>Create app</b>.</li>
+      <li>Nombre: <b>Alma</b>. En <b>Redirect URIs</b> pega esta dirección (toca Copiar) y marca <b>Web API</b>:
+        <div class="copiar"><input id="redir" readonly><button type="button" class="sec" id="b-copiar">Copiar</button></div></li>
+      <li>Guarda. En <b>Settings</b> copia el <b>Client ID</b> y el <b>Client Secret</b> y pégalos aquí.</li>
+    </ol>
+    <label for="sp-id">Client ID</label><input id="sp-id" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ya guardado si está conectado">
+    <label for="sp-sec">Client Secret</label><input id="sp-sec" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="••••••••">
+    <div class="fila"><button type="button" id="b-sp-guardar">Guardar</button><button type="button" class="peach" id="b-sp-conectar">Conectar Spotify</button></div>
+    <div class="msg" id="m-spotify"></div>
+  </section>
+
+  <section id="s-google">
+    <h2>Google Home <span class="pill">Pronto</span></h2>
+    <p>Para prender luces y controlar la casa desde Alma. Estamos registrando la app con Google; aquí aparecerá el botón para conectarlo.</p>
+  </section>
+
+  <section id="s-claude">
+    <h2>Claude <span class="pill" id="e-claude">Revisando…</span></h2>
+    <p>Para que Alma le pase tus mejoras del sistema a Claude. La llave sale de <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> → «Alma → Claude» → Editar → API → Generar token.</p>
+    <label for="cl">Llave</label><input id="cl" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-oat01-…">
+    <div class="fila"><button type="button" id="b-cl">Guardar</button></div>
+    <div class="msg" id="m-claude"></div>
+  </section>
+</main>
+<script>
+(function () {
+  var URL = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
+  var $ = function (id) { return document.getElementById(id); };
+  var ses = window.SASesion && SASesion.leer();
+  function msg(id, t, c) { var e = $(id); e.textContent = t; e.className = 'msg' + (c ? ' ' + c : ''); }
+  function pill(id, on, si, no) { var e = $(id); e.textContent = on ? si : no; e.className = 'pill' + (on ? ' ok' : ''); }
+  if (!ses) { msg('m-spotify', 'Entra primero al Hub con tu usuario y vuelve a abrir esta página.', 'mal'); return; }
+  function llamar(extra) {
+    return fetch(URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ hub: 1, action: 'conexiones', session: ses }, extra || {})) })
+      .then(function (r) { return r.json(); });
+  }
+  function pintar(r) {
+    if (!r || !r.ok) { msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); return r; }
+    pill('e-claude', r.claude, 'Conectado', 'Sin llave');
+    var sp = r.spotify || {}; $('redir').value = sp.redirect || '';
+    pill('e-spotify', sp.conectado, 'Conectado', sp.credenciales ? 'Falta conectar' : 'Sin conectar');
+    $('b-sp-conectar').textContent = sp.conectado ? 'Volver a conectar' : 'Conectar Spotify';
+    return r;
+  }
+  llamar().then(pintar).catch(function () { msg('m-spotify', 'No pude conectar con el Hub.', 'mal'); });
+  $('b-copiar').onclick = function () { var i = $('redir'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } msg('m-spotify', 'Dirección copiada.', 'bien'); };
+  $('b-sp-guardar').onclick = function () {
+    var id = $('sp-id').value.trim(), sec = $('sp-sec').value.trim(); if (!id || !sec) return msg('m-spotify', 'Pega el Client ID y el Client Secret.', 'mal');
+    msg('m-spotify', 'Guardando…'); llamar({ guardar: { spotifyId: id, spotifySecret: sec } }).then(function (r) { $('sp-sec').value = ''; if (pintar(r).ok) msg('m-spotify', 'Guardado. Ahora toca «Conectar Spotify».', 'bien'); });
+  };
+  $('b-sp-conectar').onclick = function () {
+    msg('m-spotify', 'Abriendo Spotify…'); llamar({ conectar: 'spotify' }).then(function (r) { if (r && r.ok && r.url) location.href = r.url; else msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  $('b-cl').onclick = function () {
+    var v = $('cl').value.trim(); if (!v) return msg('m-claude', 'Pega primero la llave.', 'mal');
+    llamar({ guardar: { claude: v } }).then(function (r) { $('cl').value = ''; if (pintar(r) && r.ok) msg('m-claude', 'Guardada.', 'bien'); else msg('m-claude', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+})();
+</script>
+</body>
+</html>

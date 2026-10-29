@@ -3068,11 +3068,11 @@ function hubApi_(body) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
-      case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
+      case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
       case 'almaFoto': return json_(almaFoto_(ses, body.foto));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'vozAvisos': return json_(vozAvisos_(ses));                                    // app de iPhone: avisos para decir al oído
-      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero));                    // Alma por voz desde el menú (voz.js)
-      case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id));
+      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
+      case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma'));
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());
       case 'acciones': return json_(accionesLista_());                                  // acciones pendientes del usuario (paraclaude.js)

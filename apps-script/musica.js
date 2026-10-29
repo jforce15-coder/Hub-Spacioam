@@ -1,7 +1,7 @@
 /* ═══ MÚSICA · SPOTIFY ═══════════════════════════════════════════════════════════════════════════════════════
    Alma pone música en Spotify (Premium): una canción, un artista, un álbum o un mood, en el dispositivo que digas
    (bocinas Nest y Google Home, el teléfono, la compu, el carro: todo lo que aparezca en «Conectar a un dispositivo»).
-   Se configura en hub.spacioam.com/conexiones.html (solo el admin principal):
+   Solo desde la app de Alma (las web apps no lo muestran). Se configura en hub.spacioam.com/alma/conexiones.html (solo el admin principal):
      1. App en developer.spotify.com/dashboard con Redirect URI = la dirección /exec de este Apps Script.
      2. Pegar Client ID y Client Secret → Guardar → «Conectar Spotify» (autorizas una vez).
    Propiedades: SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SPOTIFY_REFRESH. */
@@ -21,7 +21,7 @@ function spotifyAutorizar_() {
 function spotifyVuelta_(q) {
   var c = CacheService.getScriptCache(), ok = q.state && c.get('sp_state_' + q.state);
   var html = function (t, bien) { return HtmlService.createHtmlOutput('<meta name="viewport" content="width=device-width,initial-scale=1"><div style="font:16px/1.5 -apple-system,Montserrat,sans-serif;max-width:420px;margin:18vh auto;padding:0 22px;color:#3E3F3F;text-align:center"><div style="font:400 34px Georgia,serif;margin-bottom:12px">' + (bien ? 'Listo.' : 'No se pudo.') + '</div>' + t + '</div>').setTitle('Spotify · Alma'); };
-  if (!ok) return html('El enlace venció. Vuelve a tocar «Conectar Spotify» en hub.spacioam.com/conexiones.html.');
+  if (!ok) return html('El enlace venció. Vuelve a tocar «Conectar Spotify» en hub.spacioam.com/alma/conexiones.html.');
   c.remove('sp_state_' + q.state);
   if (q.error) return html('Spotify dijo: ' + String(q.error).slice(0, 80));
   var r = spotifyPedirToken_({ grant_type: 'authorization_code', code: String(q.code || ''), redirect_uri: spotifyRedirect_() });
@@ -71,7 +71,8 @@ function musicaDispositivo_(nombre) {
 function musica_(adm, inp) {
   inp = inp || {};
   if (!esAdminPrincipal_(adm)) return { error: 'La música está conectada a la cuenta de Spotify de Juan; solo él la usa.' };
-  if (!spotifyEstado_().conectado) return { error: 'Spotify aún no está conectado. Juan lo conecta en hub.spacioam.com/conexiones.html.' };
+  if (typeof AGENTE_APP_ !== 'undefined' && !AGENTE_APP_) return { error: 'La música solo está en la app de Alma.' };
+  if (!spotifyEstado_().conectado) return { error: 'Spotify aún no está conectado. Juan lo conecta en hub.spacioam.com/alma/conexiones.html.' };
   var acc = String(inp.accion || 'poner');
   if (acc === 'dispositivos') { var dv = musicaDispositivo_(''); return { dispositivos: (dv.lista || []).map(function (x) { return x.name + ' (' + x.type + (x.is_active ? ', sonando' : '') + ')'; }) }; }
   if (acc === 'que_suena') {

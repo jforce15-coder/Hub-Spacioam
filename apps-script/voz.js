@@ -795,6 +795,7 @@ function vozSecProcesar_() {
 function vozSecAvisar_(tel, adm, r) {
   var malas = (r.hechas || []).filter(function (h) { return h.error; });
   var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
+  try { vozAvisoPoner_(adm, vozAvisoCorto_(txt)); } catch (e) { console.error('vozAvisoPoner_: ' + e); }   // también al oído (app de iPhone)
   var w = waEnviarAlguien_(tel, 'Sobre lo que me pediste en la llamada:\n\n' + txt, { nombre: adm.nombre });
   if (!w.ok) console.error('vozSecAvisar_ WhatsApp: ' + w.error);
 }
@@ -1043,4 +1044,57 @@ function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
     JSON.stringify([{ tipo: 'llamada', resumen: titulo || 'Llamada', tema: titulo ? titulo.charAt(0).toLowerCase() + titulo.slice(1) : '' }]), id(0)]);
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
   try { SpreadsheetApp.flush(); contextoReciente_(adm); } catch (e) {}   // deja listo el tema: si vuelve a llamar enseguida, el saludo no espera
+}
+
+/* ═══ AVISOS EN EL AURICULAR ═══════════════════════════════════════════════════════════════════════════════
+   Cuando Alma termina algo que quedó en segundo plano (o Claude responde un pedido), además del WhatsApp deja un aviso
+   corto para la app de iPhone. Con «Alma con el anillo» la app pregunta cada 30 s (vozAvisos), suena la señal y Alma lo
+   dice en el auricular con su voz. Si después tocas dos veces el anillo, la conversación retoma ese aviso.
+   Propiedades: VOZ_AVISOS (cola por correo), VOZ_TTS_MODELO (por defecto eleven_multilingual_v2). */
+function vozAvisoPoner_(adm, texto) {
+  if (!adm || !adm.email || !String(texto || '').trim()) return;
+  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
+    var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
+    l.push({ id: 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) });
+    t[adm.email] = l.slice(-5); p.setProperty('VOZ_AVISOS', JSON.stringify(t));
+  } finally { lock.releaseLock(); }
+}
+/* Lo que Alma dirá: una o dos frases, sin enlaces. */
+function vozAvisoCorto_(texto) {
+  var s = String(texto || '').replace(/https?:\/\/\S+/g, '').replace(/[*_#>`]/g, '').replace(/\s+/g, ' ').trim();
+  if (s.length <= 220) return s;
+  var t = '';
+  try { t = String(claude_(CFG.MODELO_CLASIFICADOR, 120, 'Convierte este mensaje en un aviso hablado de 1 o 2 frases (máx. 30 palabras), en español, cálido y directo, como lo diría una asistente al oído. Sin enlaces ni listas. Devuelve solo el aviso.', s.slice(0, 3000), 0.3)).trim(); } catch (e) {}
+  return t || s.slice(0, 220).replace(/\s+\S*$/, '') + '…';
+}
+/* App de iPhone: los avisos pendientes de quien tiene la sesión, con su audio (voz de Alma). Se entregan una sola vez. */
+function vozAvisos_(ses) {
+  var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
+  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), mios = [];
+  lock.waitLock(10000);
+  try {
+    var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
+    mios = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
+    if (mios.length) { delete t[adm.email]; p.setProperty('VOZ_AVISOS', JSON.stringify(t)); }
+  } finally { lock.releaseLock(); }
+  return { ok: true, avisos: mios.map(function (a) { return { id: a.id, ts: a.ts, texto: a.texto, audio: vozTts_(a.texto) }; }) };
+}
+function vozTts_(texto) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !texto) return '';
+  try {
+    var voz = p.getProperty('VOZ_VOICE_ID');
+    if (!voz && agente) {
+      var a = JSON.parse(UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }).getContentText() || '{}');
+      voz = (((a.conversation_config || {}).tts) || {}).voice_id || ''; if (voz) p.setProperty('VOZ_VOICE_ID', voz);
+    }
+    if (!voz) return '';
+    var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+      payload: JSON.stringify({ text: texto, model_id: p.getProperty('VOZ_TTS_MODELO') || 'eleven_multilingual_v2', voice_settings: { stability: 0.65, similarity_boost: 0.8, speed: 1.05 } }) });
+    if (r.getResponseCode() !== 200) { console.error('vozTts_ ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200)); return ''; }
+    return Utilities.base64Encode(r.getBlob().getBytes());
+  } catch (e) { console.error('vozTts_: ' + e); return ''; }
 }

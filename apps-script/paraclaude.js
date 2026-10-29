@@ -248,24 +248,42 @@ function accionMarcar_(id) {
    El botón «Pendientes» del inicio de la app de Alma: lo que Claude está haciendo o dejó listo para Juan, con sus
    instrucciones y el cambio para unir. Cada uno desaparece solo cuando su PR se une (con GITHUB_PRS o GITHUB_TOKEN:
    un token de GitHub de solo lectura de pull requests) o cuando Juan lo marca como hecho. */
-var PEND_ABIERTOS_ = /^(con Claude|PR listo|pregunta|fallo|pendiente)/;
+var PEND_ABIERTOS_ = /^(con Claude|PR listo|pregunta|fallo|pendiente|publicado)/;
 function paraClaudePrincipalSes_(ses) {
   var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
   if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
   return adm && esAdminPrincipal_(adm) ? adm : null;
 }
-/* ¿El PR ya se unió? (o se cerró). Se recuerda 5 min. */
-function paraClaudePrUnido_(url) {
-  var m = /github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/.exec(String(url || '')); if (!m) return null;
+/* El estado de un PR en GitHub: abierto, unido o cerrado; si se unió, su commit (para seguir sus revisiones). */
+function paraClaudeGh_(ruta) {
   var p = PropertiesService.getScriptProperties(), tok = p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN'); if (!tok) return null;
-  var c = CacheService.getScriptCache(), k = 'prst_' + m[1] + '_' + m[2] + '_' + m[3], h = c.get(k); if (h) return h;
   try {
-    var r = UrlFetchApp.fetch('https://api.github.com/repos/' + m[1] + '/' + m[2] + '/pulls/' + m[3], { muteHttpExceptions: true,
-      headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
-    if (r.getResponseCode() !== 200) return null;
-    var j = JSON.parse(r.getContentText()), st = j.merged_at ? 'unido' : j.state === 'closed' ? 'cerrado' : 'abierto';
-    c.put(k, st, 300); return st;
+    var r = UrlFetchApp.fetch('https://api.github.com' + ruta, { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+    return r.getResponseCode() === 200 ? JSON.parse(r.getContentText()) : null;
   } catch (e) { return null; }
+}
+function paraClaudePrInfo_(url) {
+  var m = /github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/.exec(String(url || '')); if (!m) return null;
+  var c = CacheService.getScriptCache(), k = 'prinf_' + m[1] + '_' + m[2] + '_' + m[3], h = c.get(k); if (h) return JSON.parse(h);
+  var j = paraClaudeGh_('/repos/' + m[1] + '/' + m[2] + '/pulls/' + m[3]); if (!j) return null;
+  var o = { url: url, repo: m[1] + '/' + m[2], estado: j.merged_at ? 'unido' : j.state === 'closed' ? 'cerrado' : 'abierto', unido: j.merged_at || '', sha: j.merge_commit_sha || '' };
+  c.put(k, JSON.stringify(o), o.estado === 'abierto' ? 45 : 3600); return o;
+}
+/* Las revisiones de GitHub sobre el commit del Merge (Actions, Pages, TestFlight…): cuántas van y si alguna falló. */
+function paraClaudeChecks_(repo, sha) {
+  var c = CacheService.getScriptCache(), k = 'prck_' + repo + '_' + sha, h = c.get(k); if (h) return JSON.parse(h);
+  var cr = paraClaudeGh_('/repos/' + repo + '/commits/' + sha + '/check-runs?per_page=100'), st = paraClaudeGh_('/repos/' + repo + '/commits/' + sha + '/status');
+  if (!cr && !st) return null;
+  var o = { total: 0, ok: 0, corriendo: 0, fallas: 0 };
+  ((cr && cr.check_runs) || []).forEach(function (x) {
+    o.total++;
+    if (x.status !== 'completed') o.corriendo++;
+    else if (/^(success|skipped|neutral)$/.test(x.conclusion)) o.ok++;
+    else if (x.conclusion === 'action_required') o.corriendo++;
+    else o.fallas++;
+  });
+  ((st && st.statuses) || []).forEach(function (x) { o.total++; if (x.state === 'pending') o.corriendo++; else if (x.state === 'success') o.ok++; else o.fallas++; });
+  c.put(k, JSON.stringify(o), o.corriendo ? 15 : 600); return o;
 }
 /* Alma traduce a Claude: de lo técnico a lo simple, como para un niño. Se guarda en la columna «simple» (una vez por respuesta). */
 function paraClaudeSimple_(titulo, estado, resp) {
@@ -288,10 +306,24 @@ function paraClaudePendientes_(ses) {
     var estado = String(r[8] || ''); if (!PEND_ABIERTOS_.test(estado)) return;
     var f = r[1] instanceof Date ? r[1].getTime() : new Date(String(r[1]).replace(' ', 'T') + ':00-06:00').getTime(); if (f && f < corte) return;
     var resp = String(r[11] || ''), enlaces = resp.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/g) || [];
-    var prs = enlaces.map(function (u) { return { url: u, estado: paraClaudePrUnido_(u) }; });
-    if (prs.length && prs.every(function (x) { return x.estado === 'unido' || x.estado === 'cerrado'; })) {   // ya se unió: desaparece
-      try { sh.getRange(ini + i, 9).setValue(prs.some(function (x) { return x.estado === 'unido'; }) ? 'unido' : 'cerrado'); } catch (e) {}
-      return;
+    var prs = enlaces.map(function (u) { return paraClaudePrInfo_(u) || { url: u, estado: null }; });
+    /* Después del Merge: la lista sigue la publicación (las revisiones de GitHub) hasta que queda en verde. */
+    var pub = null;
+    if (prs.length && prs.every(function (x) { return x.estado === 'unido' || x.estado === 'cerrado'; })) {
+      var unidos = prs.filter(function (x) { return x.estado === 'unido'; });
+      if (!unidos.length) { try { sh.getRange(ini + i, 9).setValue('cerrado'); } catch (e) {} return; }
+      var listoDesde = /^publicado · (\S+)/.exec(estado);
+      if (listoDesde) { if (Date.now() - new Date(listoDesde[1]).getTime() > 20 * 60000) return; pub = { est: 'publicado' }; }
+      else {
+        var ultimo = Math.max.apply(null, unidos.map(function (x) { return new Date(x.unido).getTime() || 0; }));
+        if (Date.now() - ultimo > 3 * 3600000) { try { sh.getRange(ini + i, 9).setValue('unido'); } catch (e) {} return; }   // unido hace mucho: ya no se sigue
+        var t = { total: 0, ok: 0, corriendo: 0, fallas: 0 };
+        unidos.forEach(function (x) { var ck = x.sha && paraClaudeChecks_(x.repo, x.sha); if (ck) { t.total += ck.total; t.ok += ck.ok; t.corriendo += ck.corriendo; t.fallas += ck.fallas; } else t.corriendo++; });
+        if (t.fallas) pub = { est: 'fallo_pub', t: t };
+        else if (t.corriendo || (!t.total && Date.now() - ultimo < 180000)) pub = { est: 'publicando', t: t };
+        else { pub = { est: 'publicado' }; try { sh.getRange(ini + i, 9).setValue('publicado · ' + new Date().toISOString()); } catch (e) {} }
+      }
+      pub.app = unidos.some(function (x) { return /alma-app/i.test(x.repo); });
     }
     var cuerpo = resp.split(/\n\n/).slice(1).join('\n\n').replace(/https:\/\/github\.com\/\S+/g, '').trim();   // sin el encabezado «Claude terminó · …»
     var est = /^PR listo/.test(estado) ? 'listo' : /^pregunta/.test(estado) ? 'pregunta' : /^fallo/.test(estado) ? 'fallo' : 'trabajando';
@@ -299,6 +331,15 @@ function paraClaudePendientes_(ses) {
     var simple = null, huella = String(resp.length) + ':' + est; try { var sv = JSON.parse(String(r[13] || '{}')); if (sv.h === huella) simple = sv; } catch (e) {}
     if (!simple && traducidos < 4) { traducidos++; simple = paraClaudeSimple_(String(r[6] || ''), est, resp); if (simple) { simple.h = huella; try { sh.getRange(ini + i, 14).setValue(JSON.stringify(simple)); } catch (e) {} } }
     simple = simple || { titulo: String(r[6] || ''), que_es: est === 'trabajando' ? 'Claude está trabajando en esto.' : (cuerpo.split(/\n\n/)[0] || ''), pasos: [], pregunta: '' };
+    if (pub) {   // estados de la publicación: textos fijos y simples
+      var tt = pub.t || {}, de = tt.total ? ' (' + tt.ok + ' de ' + tt.total + ' listos)' : '';
+      var tx = { publicando: ['Ya lo uniste. GitHub lo está revisando y publicando' + de + '.', []],
+        publicado: [pub.app ? '¡Listo! Ya está publicado. La versión nueva llega a TestFlight en unos minutos.' : '¡Listo! Ya está publicado.', [pub.app ? 'Actualiza Alma en TestFlight y pruébalo.' : 'Pruébalo.']],
+        fallo_pub: ['Se unió, pero algo falló al publicarlo.', ['Escríbele a Claude en Desarrollo: «falló la publicación de ' + simple.titulo + '».']] }[pub.est];
+      lista.push({ id: String(r[0]), titulo: simple.titulo, fecha: '', estado: pub.est, resumen: tx[0], pasos: tx[1], pregunta: '', original: cuerpo, instrucciones: '',
+        progreso: tt.total ? tt.ok / tt.total : 0, enlaces: pub.est === 'fallo_pub' ? prs.map(function (x) { return x.url; }) : [] });
+      return;
+    }
     lista.push({ id: String(r[0]), titulo: simple.titulo, fecha: String(r[1] instanceof Date ? Utilities.formatDate(r[1], CFG.TZ, 'd MMM') : String(r[1]).slice(0, 10)),
       estado: est, resumen: simple.que_es, pasos: simple.pasos || [], pregunta: simple.pregunta || '', original: cuerpo, instrucciones: '',
       enlaces: prs.filter(function (x) { return x.estado !== 'unido' && x.estado !== 'cerrado'; }).map(function (x) { return x.url; }) });

@@ -250,6 +250,10 @@
     ".san-scope .san-pc ol li::before{content:counter(p);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:rgba(233,130,106,.16);color:#B3553E;font:700 12px/24px Montserrat,system-ui,sans-serif;text-align:center}",
     ".san-scope .san-pc .pq{margin:0 0 16px;padding:12px 14px;border-radius:16px;background:#EEF1F7;color:#3E4A66;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
     ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
+    ".san-scope .san-chip.publicando{background:#FBF3E2;color:#9A6B12}.san-scope .san-chip.publicado{background:#E6F2EA;color:#2F6B47}.san-scope .san-chip.fallo_pub{background:#FBEAE6;color:#B54D36}",
+    ".san-scope .san-chip.publicando::before{content:'';display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:currentColor;vertical-align:1px;animation:sanLate 1.2s ease-in-out infinite}@keyframes sanLate{50%{opacity:.25}}",
+    ".san-scope .san-pc.publicado{box-shadow:0 28px 60px -30px rgba(47,107,71,.4),0 0 0 1.5px rgba(47,107,71,.25)}",
+    ".san-scope .san-prog{height:5px;margin:0 18px 16px;border-radius:3px;background:#F3EFEA;overflow:hidden}.san-scope .san-prog i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#E9C27A,#E9826A);transition:width .8s cubic-bezier(.22,.61,.36,1)}",
     "body.san-hoja .hola,body.san-hoja .ajustes{opacity:0!important;pointer-events:none!important}",
     ".san-scope .san-pend-v{margin:auto;text-align:center;font:400 24px/1.3 Valky,Georgia,serif;color:#8A8580;padding:40px 20px}",
     ".san-scope .san-ob{position:relative;width:56px;height:56px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--san-ink);background:radial-gradient(120% 120% at 50% 20%,#F4F1EE 0%,#ECE8E3 55%,#E3DED8 100%);box-shadow:0 12px 18px -6px rgba(40,30,25,.4),0 3px 5px rgba(40,30,25,.16),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10);transition:transform .45s cubic-bezier(.3,1.35,.55,1)}",
@@ -1243,8 +1247,11 @@
   var pendT = 0;
   function pendCargar() {
     if (!E.ov || !cfg.pendientes || !cfg.pendientes.cargar) return;
-    clearTimeout(pendT); pendT = setTimeout(pendCargar, 90000);
-    Promise.resolve(cfg.pendientes.cargar()).then(function (r) { AL.pend = r && r.ok ? r.lista || [] : (AL.pend || []); pendPintar(); }, function () {});
+    /* mientras algo se publica y la lista está abierta, se actualiza cada 15 s; si no, cada 90 s */
+    var rapido = E.ov.classList.contains("pend") && (AL.pend || []).some(function (q) { return q.estado === "publicando"; });
+    clearTimeout(pendT); pendT = setTimeout(pendCargar, rapido ? 15000 : 90000);
+    Promise.resolve(cfg.pendientes.cargar()).then(function (r) { AL.pend = r && r.ok ? r.lista || [] : (AL.pend || []); pendPintar();
+      if ((AL.pend || []).some(function (q) { return q.estado === "publicando"; }) && E.ov.classList.contains("pend")) { clearTimeout(pendT); pendT = setTimeout(pendCargar, 15000); } }, function () {});
   }
   function pendPintar() {
     var b = E.pb, n = (AL.pend || []).length;
@@ -1254,7 +1261,7 @@
   function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); hoja(); if (on) pendCargar(); }
   /* Con una hoja abierta (chat o pendientes), la pantalla de atrás esconde su saludo y su engrane */
   function hoja() { d.body.classList.toggle("san-hoja", !!(E.ov && (E.ov.classList.contains("pend") || E.ov.classList.contains("chat")))); }
-  var PEND_TX = { listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo" };
+  var PEND_TX = { listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Listo ✓", fallo_pub: "Falló al publicar" };
   function pendLista() {
     var l = E.ov.querySelector(".san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
     l.innerHTML = "";
@@ -1265,6 +1272,7 @@
       var tt = d.createElement("span"); tt.className = "tt"; var b = d.createElement("b"); b.textContent = p.titulo; var em = d.createElement("em"); em.textContent = (p.fecha ? p.fecha + " · " : "") + (p.resumen || "");
       tt.appendChild(b); tt.appendChild(em); var ch = d.createElement("span"); ch.className = "san-chip " + p.estado; ch.textContent = PEND_TX[p.estado] || p.estado;
       t.appendChild(tt); t.appendChild(ch); t.onclick = function () { c.classList.toggle("abierta"); };
+      c.className += " " + p.estado;
       var cu = d.createElement("div"); cu.className = "cu";
       /* Lo que Juan tiene que hacer, en pasos de una línea (Alma ya lo tradujo de lo que dijo Claude) */
       if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claude te pregunta: " + p.pregunta; cu.appendChild(pq); }
@@ -1276,7 +1284,9 @@
         hx.onclick = function () { AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
       cu.appendChild(bt);
       if (p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
-      c.appendChild(t); c.appendChild(cu); l.appendChild(c);
+      c.appendChild(t);
+      if (p.estado === "publicando") { var pg = d.createElement("div"); pg.className = "san-prog"; var pi2 = d.createElement("i"); pi2.style.width = Math.max(8, Math.round((p.progreso || 0) * 100)) + "%"; pg.appendChild(pi2); c.appendChild(pg); }
+      c.appendChild(cu); l.appendChild(c);
     });
   }
   function stoneTarget() { var eo = AL.esc ? AL.escO : null; if (AL.chat) { var sb = E.ov && E.ov.querySelector(".san-send"), rb = sb && sb.getBoundingClientRect(); if (rb && rb.width) return { x: rb.left + rb.width / 2, y: rb.top + rb.height / 2, s: 46 }; return { x: VW() - 40, y: VH() - 44, s: 46 }; }

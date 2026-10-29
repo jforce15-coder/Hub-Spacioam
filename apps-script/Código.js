@@ -2329,17 +2329,29 @@ function deTurno_(fecha) {
   });
 }
 /* Devuelve { ok, error } (antes no devolvía nada y quien llamaba no sabía si Meta lo rechazó). */
-function waEnviar_(numero, texto) {
+/* Todo mensaje de WhatsApp sale por aquí. Si la persona no ha escrito en las últimas 24 h, WhatsApp no deja mandarle
+   texto libre (error 131047): en vez de mandarlo y que no llegue, se le manda la plantilla aprobada y el mensaje queda
+   guardado; en cuanto responde, se le envía (waRetomar_, contacto.js). o.yaVentana: quien llama ya revisó la ventana. */
+function waEnviar_(numero, texto, o) {
+  o = o || {};
   const p = PropertiesService.getScriptProperties();
   const token = p.getProperty('WA_TOKEN'), phoneId = p.getProperty('WA_PHONE_ID');
   if (!token || !phoneId || !numero) return { ok: false, error: 'sin configuración o sin número' };
+  const wa = String(numero).replace(/\D/g, '');
+  if (!o.yaVentana) { let abierta = true; try { abierta = waVentana_(wa); } catch (e) {} if (!abierta) return waRetomar_(wa, texto, o); }
   try {
     const r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token },
-      payload: JSON.stringify({ messaging_product: 'whatsapp', to: String(numero).replace(/\D/g, ''), type: 'text', text: { body: String(texto).slice(0, 4000) } })
+      payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'text', text: { body: String(texto).slice(0, 4000) } })
     });
-    if (r.getResponseCode() >= 300) { console.error('WhatsApp ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 300)); return { ok: false, error: r.getContentText().slice(0, 300) }; }
-    return { ok: true };
+    if (r.getResponseCode() >= 300) {
+      const err = r.getContentText().slice(0, 300); console.error('WhatsApp ' + r.getResponseCode() + ': ' + err);
+      if (/131047|re-engagement/i.test(err)) return waRetomar_(wa, texto, o);   // Meta dice que ya pasaron las 24 h
+      return { ok: false, error: err };
+    }
+    let id = ''; try { id = ((JSON.parse(r.getContentText()).messages || [])[0] || {}).id || ''; } catch (e) {}
+    waUltimoGuardar_(wa, id, texto, o);
+    return { ok: true, modo: 'texto' };
   } catch (e) { console.error('WhatsApp: ' + e); return { ok: false, error: String(e) }; }
 }
 /* Escala a quien esté de turno ahora (correo + WhatsApp si está configurado). Sin nadie de turno → correo de alertas. */

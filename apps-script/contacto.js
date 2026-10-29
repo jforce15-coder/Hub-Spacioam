@@ -12,10 +12,10 @@ var CONTACTO_PLANTILLA_ = 'contacto_alma';
 function waEnviarAlguien_(numero, texto, o) {
   o = o || {};
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'número inválido' };
-  var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
+  var abierta = false; if (!o.forzarPlantilla) { try { abierta = waVentana_(wa); } catch (e) {} }   // forzarPlantilla: Meta ya dijo que pasaron las 24 h
   if (abierta) {
-    var r = waEnviar_(wa, texto);
-    if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto); return { ok: true, modo: 'texto' }; }
+    var r = waEnviar_(wa, texto, { yaVentana: true });
+    if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto); return { ok: true, modo: r.modo || 'texto' }; }
     if (!(r && /131047|24 hour|re-engagement/i.test(r.error || ''))) return { ok: false, error: (r && r.error) || 'no salió' };
   }
   var tpl = contactoPlantillaOk_();
@@ -42,7 +42,56 @@ function waPendienteSoltar_(wa) {
   var pend = {}; try { pend = JSON.parse(raw); } catch (e) { return; }
   var k = fin8_(wa), L = pend[k]; if (!L || !L.length) return;
   delete pend[k]; p.setProperty('WA_PEND', JSON.stringify(pend));
-  L.forEach(function (m) { var r = waEnviar_(wa, m.texto); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
+  L.forEach(function (m) { var r = waEnviar_(wa, m.texto, { yaVentana: true }); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
+}
+
+/* ═══ FUERA DE LAS 24 H ═══════════════════════════════════════════════════════════════════════════════════
+   Cualquier mensaje a alguien que no ha escrito en 24 h: la plantilla aprobada («¿tienes un minuto?» si es un tema
+   personal de un administrador; la de primer contacto de Spacio AM en lo demás) y el mensaje guardado para cuando
+   responda. Lo usan waEnviar_ (antes de mandar) y el aviso de Meta 131047 (si igual se mandó y no llegó). */
+function waRetomar_(wa, texto, o) {
+  o = o || {}; wa = normTel_(wa); if (!wa) return { ok: false, error: 'número inválido' };
+  var rel = null; try { rel = personalDe_(wa); } catch (e) {}
+  var nombre = o.nombre || (rel && rel.nombre) || '';
+  var pend = function (etiqueta) {
+    var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
+    var k = fin8_(wa), tx = String(texto).slice(0, 3500);
+    m[k] = (m[k] || []).filter(function (x) { return x.texto !== tx; }); m[k].push({ texto: tx, ts: Date.now(), nombre: nombre });
+    Object.keys(m).forEach(function (x) { m[x] = m[x].filter(function (y) { return Date.now() - y.ts < 7 * 86400000; }).slice(-3); if (!m[x].length) delete m[x]; });
+    p.setProperty('WA_PEND', JSON.stringify(m));
+    contactoRegistrar_(wa, nombre, '[' + etiqueta + '] · pendiente: ' + texto);
+  };
+  if (rel && personalPlantillaOk_()) {
+    var W = waCfg_(), primer = /^[+\d]/.test(nombre) || !nombre ? '' : String(nombre).split(' ')[0];
+    var rr = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + W.token },
+      payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: PERSONAL_PLANTILLA_, language: { code: 'es' }, components: [
+        { type: 'body', parameters: [{ type: 'text', text: primer || 'qué tal' }, { type: 'text', text: rel.de || 'Juan' }] }] } }) });
+    if (rr.getResponseCode() >= 300) return { ok: false, error: 'Meta rechazó la plantilla: ' + rr.getContentText().slice(0, 200) };
+    pend('plantilla personal: ¿tienes un minuto?');
+    return { ok: true, modo: 'plantilla' };
+  }
+  var r = waEnviarAlguien_(wa, texto, { nombre: nombre, de: o.de || 'Spacio AM', forzarPlantilla: true });   // plantilla + guardado
+  return r;
+}
+
+/* El último texto libre a cada número (para retomarlo si Meta avisa después que no llegó por las 24 h). */
+function waUltimoGuardar_(wa, id, texto, o) {
+  try {
+    var p = PropertiesService.getScriptProperties(), m = {}; try { m = JSON.parse(p.getProperty('WA_ULTIMO') || '{}'); } catch (e) {}
+    m[fin8_(wa)] = { id: id, texto: String(texto).slice(0, 3500), ts: Date.now(), nombre: (o && o.nombre) || '' };
+    var ks = Object.keys(m); if (ks.length > 200) ks.sort(function (a, b) { return m[a].ts - m[b].ts; }).slice(0, ks.length - 200).forEach(function (x) { delete m[x]; });
+    p.setProperty('WA_ULTIMO', JSON.stringify(m));
+  } catch (e) {}
+}
+/* Meta avisó 131047 (pasaron las 24 h): se manda la plantilla con ese mismo mensaje guardado. true si se pudo. */
+function waRetomarFallido_(wa, idMsg) {
+  var c = CacheService.getScriptCache(), kc = 'wa_retomar_' + fin8_(wa); if (c.get(kc)) return false;
+  var m = {}; try { m = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_ULTIMO') || '{}'); } catch (e) {}
+  var u = m[fin8_(wa)]; if (!u || (idMsg && u.id && u.id !== idMsg) || Date.now() - u.ts > 6 * 3600000) return false;
+  c.put(kc, '1', 21600);
+  var r = waRetomar_(wa, u.texto, { nombre: u.nombre });
+  return !!(r && r.ok);
 }
 
 function contactoRegistrar_(wa, nombre, texto) {
@@ -88,10 +137,10 @@ function personalEnviar_(adm, persona, numero, texto, objetivo, contexto, proyec
   if (proyecto && prev.proy && prev.proy !== proy) prev.h = [];   // cambió de proyecto: la conversación empieza de nuevo
   personalRelay_(wa, { proy: proy, nombre: nombre || prev.nombre || '+' + wa, dest: (adm && (adm.tels || [])[0]) || CFG.WHATSAPP_JUAN || prev.dest || '', adm: (adm && adm.email) || prev.adm || '', de: de,
     objetivo: objetivo ? String(objetivo).slice(0, 1500) : (prev.objetivo || ''), ctx: contexto ? String(contexto).slice(0, 4000) : (prev.ctx || ''), h: prev.h || [], fin: objetivo ? false : !!prev.fin });
-  var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
+  var abierta = false; if (!o.forzarPlantilla) { try { abierta = waVentana_(wa); } catch (e) {} }   // forzarPlantilla: Meta ya dijo que pasaron las 24 h
   if (abierta) {
-    var r = waEnviar_(wa, texto);
-    if (r && r.ok) { contactoRegistrar_(wa, nombre, texto); personalNotar_(wa, 'alma', texto); return { ok: true, modo: 'texto' }; }
+    var r = waEnviar_(wa, texto, { yaVentana: true });
+    if (r && r.ok) { contactoRegistrar_(wa, nombre, texto); personalNotar_(wa, 'alma', texto); return { ok: true, modo: r.modo || 'texto' }; }
   }
   if (!personalPlantillaOk_()) return { ok: false, error: 'No ha escrito al número de ALMA en las últimas 24 h y la plantilla personal (' + PERSONAL_PLANTILLA_ + ') aún no está aprobada por Meta.' };
   var W = waCfg_();

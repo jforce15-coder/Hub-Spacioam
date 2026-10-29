@@ -66,6 +66,19 @@
     <p>Para prender luces y controlar la casa desde Alma. Estamos registrando la app con Google; aquí aparecerá el botón para conectarlo.</p>
   </section>
 
+  <section id="s-github">
+    <h2>GitHub <span class="pill" id="e-github">Revisando…</span></h2>
+    <p>Para que tus pendientes de Claude desaparezcan solos cuando unes el cambio. Es una llave de solo lectura.</p>
+    <ol>
+      <li>Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → nueva llave</a>. Nombre: <b>Alma pendientes</b>. Vence: 1 año.</li>
+      <li>En <b>Repository access</b> elige <b>All repositories</b>. En <b>Permissions → Pull requests</b> elige <b>Read-only</b>.</li>
+      <li>Toca <b>Generate token</b>, cópialo y pégalo aquí.</li>
+    </ol>
+    <label for="gh">Llave de GitHub</label><input id="gh" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
+    <div class="fila"><button type="button" id="b-gh">Guardar</button></div>
+    <div class="msg" id="m-github"></div>
+  </section>
+
   <section id="s-claude">
     <h2>Claude <span class="pill" id="e-claude">Revisando…</span></h2>
     <p>Para que Alma le pase tus mejoras del sistema a Claude. La llave sale de <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> → «Alma → Claude» → Editar → API → Generar token.</p>
@@ -89,6 +102,7 @@
   function pintar(r) {
     if (!r || !r.ok) { msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); return r; }
     pill('e-claude', r.claude, 'Conectado', 'Sin llave');
+    pill('e-github', r.github, 'Conectado', 'Sin llave');
     var sp = r.spotify || {}; $('redir').value = sp.redirect || '';
     pill('e-spotify', sp.conectado, 'Conectado', sp.credenciales ? 'Falta conectar' : 'Sin conectar');
     $('b-sp-conectar').textContent = sp.conectado ? 'Volver a conectar' : 'Conectar Spotify';
@@ -102,6 +116,10 @@
   };
   $('b-sp-conectar').onclick = function () {
     msg('m-spotify', 'Abriendo Spotify…'); llamar({ conectar: 'spotify' }).then(function (r) { if (r && r.ok && r.url) location.href = r.url; else msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  $('b-gh').onclick = function () {
+    var v = $('gh').value.trim(); if (!/^(github_pat_|ghp_)/.test(v)) return msg('m-github', 'La llave empieza con github_pat_', 'mal');
+    llamar({ guardar: { github: v } }).then(function (r) { $('gh').value = ''; if (pintar(r) && r.ok) msg('m-github', 'Guardada.', 'bien'); else msg('m-github', (r && r.error) || 'No se pudo.', 'mal'); });
   };
   $('b-cl').onclick = function () {
     var v = $('cl').value.trim(); if (!v) return msg('m-claude', 'Pega primero la llave.', 'mal');

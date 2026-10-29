@@ -22,6 +22,8 @@
   .viendo { margin-top: 6px; font-size: 13px; color: var(--fg-muted, #6f6867); overflow-wrap: anywhere; }
   .viendo a { color: inherit; }
   .sel { margin-top: 6px; font-size: 13px; padding: 6px 10px; border-left: 3px solid var(--accent, #B54D36); background: var(--bg-alt, #efe9e0); border-radius: 4px; max-height: 5.5em; overflow: auto; }
+  .captura { margin-top: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fg-muted, #6f6867); }
+  .captura img { width: 54px; height: 96px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--border-soft, #e4ded5); flex: none; }
   main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
   .m { max-width: 85%; padding: 10px 14px; border-radius: 16px; line-height: 1.45; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
   .yo { align-self: flex-end; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); border-bottom-right-radius: 4px; }
@@ -43,6 +45,7 @@
   <h1>Alma</h1>
   <div class="viendo" id="viendo">Abierta sin página de origen.</div>
   <div class="sel" id="sel" hidden></div>
+  <div class="captura" id="captura" hidden></div>
 </header>
 <main id="hilo"><div class="nota">Cargando…</div></main>
 <footer id="pie">
@@ -84,6 +87,22 @@
   var ctx = desde ? ("Estoy viendo la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " y seleccioné este texto: «" + sel + "»" : "") + ".") : "";
   var ctxEnviado = false;
 
+  /* Triple toque a Alma en el navegador de la app: la app manda una captura de la pantalla. Alma la «ve» (el Hub la
+     describe) y toda la conversación va con ese contexto: en el primer mensaje escrito y en la voz. */
+  var captura = "", capturaP = null;
+  window.AlmaCaptura = function (du) {
+    if (!/^data:image\//.test(String(du || ""))) return;
+    var c = $("captura"); c.hidden = false; c.innerHTML = "";
+    var img = document.createElement("img"); img.src = du; img.alt = "Captura de la pantalla"; c.appendChild(img);
+    var t = document.createElement("span"); t.textContent = "Alma está viendo tu pantalla…"; c.appendChild(t);
+    $("txt").placeholder = "Pregúntale a Alma sobre lo que ves…";
+    capturaP = ALMA.almaFoto(du, true).then(function (j) {
+      captura = j && j.ok && j.texto ? j.texto : "";
+      t.textContent = captura ? "Alma ya vio tu pantalla." : "No pude leer la captura.";
+      if (captura) { ctxEnviado = false; ctx = (ctx ? ctx + " " : "") + "[Te mando una captura de mi pantalla. Lo que se ve: " + captura + "]"; }
+    }, function () { t.textContent = "No pude leer la captura."; });
+  };
+
   function pinta(lista) {
     var h = $("hilo"); h.innerHTML = "";
     if (!lista.length) { var n = document.createElement("div"); n.className = "nota"; n.textContent = desde ? "Pregúntale lo que quieras sobre esta página." : "Escríbele a Alma o tócale el micrófono."; h.appendChild(n); }
@@ -95,6 +114,7 @@
 
   function enviar() {
     var t = $("txt").value.trim(); if (!t) return;
+    if (capturaP && !captura) { $("enviar").disabled = true; capturaP.then(function () { capturaP = null; $("enviar").disabled = false; enviar(); }); return; }
     var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
     $("txt").value = ""; $("enviar").disabled = true;
     mensajes = mensajes.concat([{ de: "yo", texto: t }, { de: "alma", texto: "…" }]); pinta(mensajes);
@@ -110,7 +130,7 @@
   /* Voz: el mismo agente del Hub; lo que hay en pantalla es la página de origen. */
   var voz = SAAlmaVoz.crear({ contexto: function () {
     return "EN PANTALLA: abrió a Alma desde «Alma aquí»" + (desde ? ", mientras veía la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " con este texto seleccionado: «" + sel + "»" : "") : "") +
-      ". Úsalo como contexto de lo que pregunte.";
+      (captura ? ". Mandó una captura de su pantalla; lo que se ve: " + captura : "") + ". Úsalo como contexto de lo que pregunte.";
   } });
   var llamada = null;
   $("voz").onclick = function () {

@@ -71,16 +71,34 @@
   .nota-g { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 0; padding: 0 16px 12px; }
   .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
 
-  /* ── Áreas de vida: el botón arriba a la izquierda y su hoja (solo el administrador principal, por ahora) ── */
-  .b-areas { position: fixed; left: max(16px, env(safe-area-inset-left)); top: max(14px, calc(env(safe-area-inset-top) + 6px)); z-index: 2147482500;
-    height: 40px; padding: 0 14px 0 10px; border-radius: 999px; border: 0; display: flex; align-items: center; gap: 7px; cursor: pointer; color: #FFFDFB;
-    font: 600 12px Montserrat, system-ui, sans-serif; letter-spacing: .04em;
-    background: rgba(255,255,255,.18); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
-    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.35); opacity: 0; pointer-events: none; transition: opacity .8s ease, transform .3s cubic-bezier(.3,1.35,.55,1); }
-  .b-areas.on { opacity: 1; pointer-events: auto; }
-  body.san-hoja .b-areas { opacity: 0 !important; pointer-events: none !important; }
-  .b-areas:active { transform: scale(.94); }
-  .b-areas svg { width: 20px; height: 20px; }
+  /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
+  .orbita { position: fixed; inset: 0; z-index: 2147481000; pointer-events: none; }
+  .esf { position: absolute; left: 0; top: 0; width: 76px; height: 76px; margin: -38px 0 0 -38px; border: 0; padding: 0; background: none; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; opacity: 0; pointer-events: none;
+    transform: translate(var(--x0), var(--y0)) scale(1.35);
+    transition: transform .9s cubic-bezier(.3,1.25,.5,1) var(--d), opacity .5s ease var(--d); }
+  body.orbita-on .esf { opacity: 1; pointer-events: auto; transform: translate(var(--x), var(--y)) scale(1); }
+  body.orbita-sale .esf { transition: transform .45s cubic-bezier(.55,0,.7,.4), opacity .35s ease; transform: translate(var(--x0), var(--y0)) scale(1.2); opacity: 0; }
+  .esf:active .cuerpo-e { transform: scale(.92); }
+  .esf .halo { position: absolute; inset: -22px; border-radius: 50%; background: radial-gradient(circle, var(--c) 0%, transparent 68%); filter: blur(8px); opacity: .75;
+    animation: esf-respira 3.6s ease-in-out infinite; animation-delay: var(--d); }
+  .esf .anillo { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 200deg, var(--c), var(--c2), var(--c), var(--c2), var(--c));
+    box-shadow: 0 16px 24px -10px rgba(40,25,25,.4), 0 0 18px -2px var(--c); }
+  .esf .cuerpo-e { position: absolute; inset: 3px; border-radius: 50%; display: grid; place-items: center; transition: transform .3s cubic-bezier(.3,1.35,.55,1);
+    background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 42%, #E5E0DB 78%, #D6D0CA 100%);
+    box-shadow: inset 0 -6px 10px rgba(110,90,80,.12), inset 0 4px 8px rgba(255,255,255,.7); }
+  .esf svg { width: 28px; height: 28px; color: var(--c3); filter: drop-shadow(0 1px 0 rgba(255,255,255,.85)); }
+  .esf .nom { position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); white-space: nowrap;
+    font: 600 11px Montserrat, system-ui, sans-serif; letter-spacing: .04em; color: #FFFDFB; text-shadow: 0 1px 8px rgba(40,25,25,.55); }
+  @keyframes esf-respira { 0%, 100% { transform: scale(1); opacity: .7; } 50% { transform: scale(1.12); opacity: .95; } }
+  .esf.proposito { --c: #E9826A; --c2: #F2B08F; --c3: #C9705E; }
+  .esf.relaciones { --c: #D99AA0; --c2: #F0C4C3; --c3: #B06F7A; }
+  .esf.finanzas { --c: #8FB38C; --c2: #C3D9B8; --c3: #5F8A5E; }
+  .esf.health { --c: #E3A47F; --c2: #F3CDA6; --c3: #C47E52; }
+  .esf.comunidad { --c: #8FA5C8; --c2: #C2D0E6; --c3: #5F7BA8; }
+  .esf.espiritualidad { --c: #A9A4CC; --c2: #D5D1EA; --c3: #7C76A8; }
+  body.orbita-on #sa-nav-root .san-ov-ui { opacity: 0 !important; pointer-events: none !important; }
+  @media (prefers-reduced-motion: reduce) { .esf, body.orbita-sale .esf { transition: opacity .3s ease; } .esf .halo { animation: none; } }
   .areas { position: fixed; inset: 0; z-index: 2147483400; background: #FAF8F6; color: #3E3F3F; display: flex; flex-direction: column;
     padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); box-sizing: border-box;
     opacity: 0; transform: translateY(24px); pointer-events: none; transition: opacity .45s cubic-bezier(.45,0,.55,1), transform .6s cubic-bezier(.3,1.15,.55,1); }
@@ -160,7 +178,7 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<button type="button" class="b-areas" id="b-areas" aria-label="Tus áreas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="6.2" r="2.6"/><circle cx="17" cy="9.1" r="2.6"/><circle cx="17" cy="14.9" r="2.6"/><circle cx="12" cy="17.8" r="2.6"/><circle cx="7" cy="14.9" r="2.6"/><circle cx="7" cy="9.1" r="2.6"/></svg>Áreas</button>
+<div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
   <header>
     <button type="button" class="redondo" id="a-atras" aria-label="Volver" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -216,7 +234,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-29q"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-29t"></script>
+<script src="../js/sa-nav.js?v=2026-10-29u"></script>
 <script>
 (function () {
   "use strict";
@@ -254,7 +272,56 @@
     if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
     return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) AR.datos = r.areas; return r; }, function () { AR.cargando = null; return null; }));
   }
-  function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) $("b-areas").classList.add("on"); }); }
+  function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
+
+  /* Las esferas: sus íconos (trazo como los del Hub) y su lugar alrededor de Alma. */
+  var ICON = {
+    proposito: '<circle cx="12" cy="12" r="8.5"/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z"/>',
+    relaciones: '<path d="M12 19.5s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 7 2.3c0 5.2-7 9.6-7 9.6z"/>',
+    finanzas: '<ellipse cx="12" cy="7" rx="6.5" ry="2.6"/><path d="M5.5 7v5c0 1.4 2.9 2.6 6.5 2.6s6.5-1.2 6.5-2.6V7"/><path d="M5.5 12v5c0 1.4 2.9 2.6 6.5 2.6s6.5-1.2 6.5-2.6v-5"/>',
+    health: '<path d="M3.5 12.5h4l2-5 4 10 2-5h5"/>',
+    comunidad: '<circle cx="8.5" cy="9" r="2.6"/><circle cx="15.5" cy="9" r="2.6"/><path d="M3.8 18.5c.6-2.8 2.4-4.3 4.7-4.3s4.1 1.5 4.7 4.3M11 15.6c.9-.9 2.6-1.4 4.5-1.4 2.3 0 4.1 1.5 4.7 4.3"/>',
+    espiritualidad: '<path d="M12 19c-3.5-1.6-5.5-4.4-5.5-7.6 1.9.2 3.9 1.3 5.5 3.3 1.6-2 3.6-3.1 5.5-3.3 0 3.2-2 6-5.5 7.6z"/><path d="M12 14.7c-1.2-1.6-1.6-4-1-6.7 1 .2 1.9.9 2.6 1.9.4-1 .9-1.9 1.6-2.6.9 2.5.4 5.3-1.6 7.4"/>'
+  };
+  var OR = { abierta: false, armada: false, t: 0 };
+  function orbitaArmar() {
+    if (OR.armada || !AR.datos) return; OR.armada = true;
+    var o = $("orbita");
+    AR.datos.forEach(function (a, i) {
+      var b = el("button", "esf " + a.k); b.type = "button"; b.setAttribute("aria-label", a.n); b.style.setProperty("--d", (i * 45) + "ms");
+      b.innerHTML = '<span class="halo"></span><span class="anillo"></span><span class="cuerpo-e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + (ICON[a.k] || "") + '</svg></span>';
+      b.appendChild(el("span", "nom", a.n));
+      b.onclick = function () { if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {} areasAbrir(true, a.k); };
+      o.appendChild(b);
+    });
+  }
+  function orbitaColocar(c) {
+    var W = innerWidth, H = innerHeight, R = Math.min(W * .37, H * .2, 150), lejos = Math.max(W, H) * .75;
+    [].forEach.call($("orbita").children, function (b, i) {
+      var ang = (-90 + i * 60) * Math.PI / 180, cx = Math.cos(ang), cy = Math.sin(ang);
+      b.style.setProperty("--x", (c.x + cx * R) + "px"); b.style.setProperty("--y", (c.y + cy * R) + "px");
+      b.style.setProperty("--x0", (c.x + cx * lejos) + "px"); b.style.setProperty("--y0", (c.y + cy * lejos) + "px");
+    });
+  }
+  /* Un toque a Alma quieta: las 6 áreas llegan desde afuera y la encogen. Otro toque a Alma: se van y empieza la conversación. */
+  function orbita(on) {
+    if (on === OR.abierta) return; OR.abierta = on; clearTimeout(OR.t);
+    var b = document.body;
+    if (on) {
+      var t = SANav.escena({ y: .44, s: 112 }) || { x: innerWidth / 2, y: innerHeight * .44 };
+      b.classList.remove("orbita-sale"); orbitaColocar(t); void $("orbita").offsetWidth;
+      b.classList.add("orbita-on"); if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
+    } else {
+      b.classList.add("orbita-sale"); b.classList.remove("orbita-on");
+      OR.t = setTimeout(function () { b.classList.remove("orbita-sale"); }, 500);
+    }
+  }
+  /* Tocar fuera de Alma y de las esferas las cierra (Alma vuelve a su tamaño). */
+  document.addEventListener("pointerdown", function (e) {
+    if (!OR.abierta || AR.abierta) return;
+    if (e.target.closest && (e.target.closest(".esf") || e.target.closest(".san-rock") || e.target.closest(".ajustes") || e.target.closest(".panel"))) return;
+    orbita(false); SANav.escena(null);
+  }, true);
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
   function cuando(ts) {
     var d = new Date(ts); if (!ts || isNaN(d)) return "";
@@ -326,11 +393,10 @@
     if (pi >= 0) { var p = src.proyectos.splice(pi, 1)[0]; p.area = a; dst.proyectos.push(p); }
     areasPintar(); ALMA.areaMover(clave, a);
   }
-  function areasAbrir(on) {
+  function areasAbrir(on, area) {
     AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true");
-    if (on) { AR.area = null; areasPintar(); areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
+    if (on) { AR.area = area || null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
   }
-  $("b-areas").onclick = function () { areasAbrir(true); };
   $("a-cerrar").onclick = function () { areasAbrir(false); };
   $("a-atras").onclick = function () { AR.area = null; areasPintar(); };
 
@@ -338,7 +404,9 @@
   /* En la app: llevar a Alma hacia los lados (una de las 8 posiciones) abre el navegador con la búsqueda lista;
      la app la regresa al centro (SANav.escena(null)) si no se busca nada. */
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
-    alSoltar: NATIVA ? function (pos) { nativa({ accion: "navegador", pos: pos }); } : null,
+    alSoltar: NATIVA ? function (pos) { orbita(false); nativa({ accion: "navegador", pos: pos }); } : null,
+    /* Alma quieta: el primer toque abre las áreas (si las hay); con las áreas abiertas, el toque empieza la conversación. */
+    alTocar: function () { if (!OR.armada) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return false; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });

@@ -1469,9 +1469,20 @@
       if (stoneDrag) { endStoneDrag(); return; }
       aSq.to(0, .5, .55); aDX.to(0, .55, .6); aDY.to(0, .55, .6);
       if (sEnd) { sEnd = false; E.ov.classList.remove("ending"); E.ph.classList.remove("on"); almaEnd(false); }
-      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) { var tomo = false; try { tomo = !!(cfg.alTocar && cfg.alTocar() === true); } catch (x) {} if (!tomo) escActivar(false); } else if (AL.chat) almaChat(false); }
+      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) escToque(); else if (AL.chat) almaChat(false); }
     }
     el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  }
+  /* Alma quieta con escena: si la página tiene cfg.alTocar, 1 toque es de la página (abre/cierra sus áreas; si no lo toma, empieza la voz) y
+     2 toques seguidos activan la voz sin cambiar lo que se ve. Sin cfg.alTocar, el toque empieza la voz de una vez. */
+  var escTapT = 0;
+  function escToque() {
+    if (typeof cfg.alTocar !== "function") { escActivar(false); return; }
+    if (escTapT) { clearTimeout(escTapT); escTapT = 0; escActivar(false); return; }
+    escTapT = setTimeout(function () {
+      escTapT = 0; var tomo = false; try { tomo = !!(cfg.alTocar() === true); } catch (x) {}
+      if (!tomo) escActivar(false);
+    }, TAP_MS - 40);
   }
   function startStoneDrag() {
     stoneDrag = true; sHist = []; aSq.to(0, .3, 1); aDX.x = aDX.t = aDY.x = aDY.t = 0; aS.to(Math.max(110, faceD() * 1.6), .4, .85); E.ov.classList.add("min");

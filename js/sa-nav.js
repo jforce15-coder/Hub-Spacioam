@@ -1460,7 +1460,7 @@
       if (stoneDrag) { endStoneDrag(); return; }
       aSq.to(0, .5, .55); aDX.to(0, .55, .6); aDY.to(0, .55, .6);
       if (sEnd) { sEnd = false; E.ov.classList.remove("ending"); E.ph.classList.remove("on"); almaEnd(false); }
-      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) escActivar(false); else if (AL.chat) almaChat(false); }
+      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) { var tomo = false; try { tomo = !!(cfg.alTocar && cfg.alTocar() === true); } catch (x) {} if (!tomo) escActivar(false); } else if (AL.chat) almaChat(false); }
     }
     el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
   }
@@ -1477,6 +1477,7 @@
     if (escSuelta()) { escSoltar(an, vx, vy); return; }
     minimizarEn(an, vx, vy, true);
   }
+  /* cfg.alTocar(): la página puede quedarse con el toque a Alma quieta (la app abre sus áreas); devuelve true si lo tomó. */
   /* App de Alma (inicio): sin llamada, la piedra de la escena se puede llevar a una de las 8 posiciones; ahí queda como
      botón y la página decide qué sigue (cfg.alSoltar(posición): la app abre el navegador). SANav.escena(null) la regresa. */
   function escPosPt() { var p = anchorPt(AL.escPos, true); return { x: p.x, y: p.y, s: 74 * K() }; }

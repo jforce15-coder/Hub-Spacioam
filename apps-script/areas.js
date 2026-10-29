@@ -5,6 +5,7 @@
        → Propósito; The Gentle Stoic Parent → Relaciones; Mi (Conta) → Finanzas (y también dentro de Spacio AM);
        Health de la app → Health.
      · Lo personal (los encargos de «escríbele a…» y los proyectos personales como «Boda»), lo clasifica Alma una vez.
+     · Cada conversación del usuario con Alma (chat, voz, WhatsApp) también: Alma le pone área y título.
      · Cualquier conversación se puede mover a otra área con un toque (queda como la dejaste: «manual»).
    Hoja ALMA_AREAS: lo que Alma clasificó o tú moviste, y la memoria de las conversaciones personales
    (el relay de WhatsApp las olvida a los 7 días; aquí se quedan). */
@@ -58,6 +59,41 @@ function areasClasificar_(filas, pendientes) {
   });
 }
 
+/* Las conversaciones con Alma (chat del Hub y de la app, llamadas y WhatsApp con ella), de la hoja ALMA_OPERATIVO.
+   Una conversación = mensajes seguidos; una pausa de más de 45 min empieza otra. Las de los últimos 60 días. */
+function areasSesiones_(adm) {
+  var desde = Date.now() - 60 * 86400000, L = [], cur = null;
+  var filas = []; try { filas = opFilas_(String(adm.email || '').toLowerCase(), 2000); } catch (e) { console.error('areas op: ' + e); }
+  filas.forEach(function (m) {
+    var ms = areasMs_(m.ts); if (ms < desde || !String(m.texto || '').trim()) return;
+    if (!cur || ms - cur.fin > 45 * 60000) { cur = { id: m.id || String(ms), ini: ms, fin: ms, canales: {}, msgs: [] }; L.push(cur); }
+    cur.fin = ms; cur.canales[m.canal] = 1; cur.msgs.push({ de: m.de, t: String(m.texto) });
+  });
+  return L.filter(function (c) { return c.msgs.some(function (x) { return x.de === 'yo'; }); }).map(function (c) {
+    var k = Object.keys(c.canales), ult = c.msgs[c.msgs.length - 1];
+    return { clave: 'alma:' + c.id, ts: new Date(c.fin).toISOString(), n: c.msgs.length,
+      fuente: 'Alma · ' + (c.canales.llamada ? 'Voz' : c.canales.whatsapp && k.length === 1 ? 'WhatsApp' : 'Chat'),
+      texto: String(ult.t).replace(/\s+/g, ' ').slice(0, 220),
+      muestra: c.msgs.slice(0, 14).map(function (x) { return (x.de === 'yo' ? 'Juan: ' : 'Alma: ') + x.t.replace(/\s+/g, ' ').slice(0, 260); }).join('\n').slice(0, 1800) };
+  }).reverse();
+}
+/* Alma le pone área y un título corto a cada conversación con ella (una vez; lo nuevo primero, 12 por vuelta). */
+function areasClasificarAlma_(filas, sesiones) {
+  var pend = sesiones.filter(function (c) { return !filas[c.clave]; }).slice(0, 12); if (!pend.length) return;
+  var sys = 'Ordenas las conversaciones de Juan con su asistente Alma en una de 6 áreas de vida: proposito (su trabajo: Spacio AM, apartamentos, huéspedes, equipo, proveedores, proyectos y desarrollo de las apps), ' +
+    'relaciones (familia, pareja, hijos, amigos), finanzas (dinero personal o del negocio, pagos, facturas, impuestos, inversiones), health (salud, ejercicio, sueño, comida, médicos), ' +
+    'comunidad (ayudar a otros, voluntariado, vecinos, grupos, iglesia como comunidad), espiritualidad (fe, oración, meditación, sentido, gratitud). ' +
+    'Elige el área del tema PRINCIPAL. Dale a cada una un título de 2 a 5 palabras en español, claro y sin comillas. ' +
+    'Responde SOLO un JSON: {"1":{"a":"finanzas","t":"Pago del IVA de octubre"},"2":{…}}.';
+  var lista = pend.map(function (c, i) { return '### ' + (i + 1) + '\n' + c.muestra; }).join('\n\n');
+  var r = ''; try { r = claude_(CFG.MODELO_REDACTOR, 700, sys, lista, 0, []); } catch (e) { console.error('areas alma: ' + e); }
+  var j = {}; try { j = JSON.parse(String(r || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch (e) {}
+  pend.forEach(function (c, i) {
+    var o = j[String(i + 1)] || {}, a = String(o.a || '').toLowerCase(); if (!areaOk_(a)) return;   // sin respuesta: se intenta la próxima vez
+    areasGuardar_(filas, { clave: c.clave, area: a, como: 'alma', titulo: String(o.t || '').replace(/["«»]/g, '').slice(0, 80) || 'Conversación con Alma', fuente: c.fuente, texto: c.texto, ts: c.ts });
+  });
+}
+
 function areasMs_(t) { var d = new Date(t); return isNaN(d) ? 0 : d.getTime(); }
 
 /* Todo junto: las 6 áreas con sus proyectos y conversaciones. */
@@ -76,6 +112,7 @@ function areas_(ses) {
   var proys = []; try { proys = proyFilas_().filter(function (p) { return p.estado !== 'cerrado'; }); } catch (e) {}
   proys.forEach(function (p) { var clave = 'proy:' + p.proyecto; if (!filas[clave]) pend.push({ clave: clave, titulo: p.proyecto, fuente: 'Proyecto personal', texto: p.resumen || p.objetivo, ts: p.actualizado instanceof Date ? p.actualizado.toISOString() : String(p.actualizado || '') }); });
   areasClasificar_(filas, pend);
+  var sesiones = areasSesiones_(adm); areasClasificarAlma_(filas, sesiones);
   Object.keys(filas).forEach(function (c) { if (c.indexOf('pers:') === 0) personal[c.slice(5)] = 1; });
 
   /* 3 · Las conversaciones de Spacio AM (bandeja del Hub: Hospitable, Airbnb, Booking y el WhatsApp de Spacio AM), del último mes */
@@ -98,7 +135,10 @@ function areas_(ses) {
     }
   } catch (e) { console.error('areas bandeja: ' + e); }
 
-  /* 4 · Lo personal (ya clasificado) */
+  /* 4 · Las conversaciones con Alma (ya clasificadas; lo que dice se toma vivo de la conversación) */
+  sesiones.forEach(function (c) { var f = filas[c.clave]; if (f && areaOk_(f.area)) convs.push({ clave: c.clave, area: f.area, como: f.como, titulo: f.titulo || 'Conversación con Alma', fuente: c.fuente, texto: c.texto, ts: c.ts }); });
+
+  /* 5 · Lo personal (ya clasificado) */
   var proyPers = [];
   Object.keys(filas).forEach(function (c) {
     var f = filas[c];
@@ -129,7 +169,7 @@ function areas_(ses) {
 function areaMover_(ses, clave, area) {
   if (!areasAdmin_(ses)) return { ok: false, error: 'solo admin principal' };
   clave = String(clave || ''); area = String(area || '');
-  if (!/^(conv|pers|proy):/.test(clave) || !areaOk_(area)) return { ok: false, error: 'datos' };
+  if (!/^(conv|pers|proy|alma):/.test(clave) || !areaOk_(area)) return { ok: false, error: 'datos' };
   areasGuardar_(areasFilas_(), { clave: clave, area: area, como: 'manual' });
   return { ok: true };
 }

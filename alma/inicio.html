@@ -326,10 +326,18 @@
   }
   var RES = resorte(48, .6, .7);   // se pasa apenas (~3 %): rebota sin chocar con sus vecinas
   /* Abanico como el del Hub (js/sa-nav.js): cada esfera sale desde Alma, barre un arco mientras crece (escala .4 → 1, aparece con
-     el resorte) y llega a su lugar; entran escalonadas (60 ms + 55 ms cada una) y al cerrar regresan a Alma en orden inverso (35 ms). */
+     el resorte) y llega a su lugar; entran escalonadas (60 ms + 55 ms cada una) y al cerrar hacen el mismo recorrido al revés, en orden inverso (55 ms). */
   function orbitaPunto(g, i, q, u) {
     var th = (-90 + i * 60) * Math.PI / 180, sm = Math.max(0, Math.min(1.1, u * u * (3 - 2 * Math.min(u, 1)))), ang = th - (1 - sm) * .9;
     return { x: g.cx + Math.cos(ang) * g.R * q, y: g.cy + Math.sin(ang) * g.R * g.k * q };
+  }
+  /* Los cuadros de la entrada; la salida usa los mismos al revés (mismo recorrido, misma curva, mismo tiempo). */
+  function orbitaKf(g, i, alReves) {
+    var kf = RES.map(function (p) {
+      var q = p.x, pt = orbitaPunto(g, i, q, q);
+      return { offset: alReves ? 1 - p.t : p.t, opacity: Math.max(0, Math.min(1, q * 1.5 - .2)), transform: "translate(" + pt.x.toFixed(1) + "px," + pt.y.toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")" };
+    });
+    return alReves ? kf.reverse() : kf;
   }
   function orbitaEntrar(b, i, g) {
     var f = orbitaPunto(g, i, 1, 1);
@@ -337,18 +345,14 @@
     b._fin = "translate(" + f.x.toFixed(1) + "px," + f.y.toFixed(1) + "px)"; b._ctr = "translate(" + g.cx.toFixed(1) + "px," + g.cy.toFixed(1) + "px) scale(.4)"; b._g = g;
     b.getAnimations().forEach(function (a) { a.cancel(); });
     if (RM) { b.style.transform = b._fin; b.style.opacity = 1; return; }
-    var kf = RES.map(function (p) {
-      var q = p.x, pt = orbitaPunto(g, i, q, q);
-      return { offset: p.t, opacity: Math.max(0, Math.min(1, q * 1.5 - .2)), transform: "translate(" + pt.x.toFixed(1) + "px," + pt.y.toFixed(1) + "px) scale(" + (.4 + .6 * q).toFixed(3) + ")" };
-    });
+    var kf = orbitaKf(g, i, false);
     b.animate(kf, { duration: 1250, delay: 60 + i * 55, fill: "both" });
   }
   function orbitaSalir(b, i, n) {
-    var de = b._fin || "translate(0,0)";
     b.getAnimations().forEach(function (a) { a.cancel(); });
     if (RM) { b.style.opacity = 0; return; }
-    b.animate([{ transform: de + " scale(1)", opacity: 1 }, { transform: b._ctr || de + " scale(.4)", opacity: 0 }],
-      { duration: 420, delay: (n - 1 - i) * 35, easing: "cubic-bezier(.55,0,.75,.35)", fill: "both" });
+    if (!b._g) { b.style.opacity = 0; return; }
+    b.animate(orbitaKf(b._g, i, true), { duration: 1250, delay: (n - 1 - i) * 55, fill: "both" });
   }
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* Un toque a Alma quieta: las 6 áreas llegan desde afuera con su rebote y Alma se encoge. Otro toque a Alma: se van y

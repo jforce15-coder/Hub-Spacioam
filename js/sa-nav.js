@@ -788,6 +788,12 @@
       if (pulling) { pullEnd(); return; }
       if (dragging) { endDrag(); return; }
       if (cancel || moved) return;
+      /* La página cuenta los toques (navegador de la app de Alma: 1 Alma · 2 escribe en el cuadro · 3 captura). */
+      if (cfg.alToques) {
+        taps++; clearTimeout(tapT);
+        tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; try { cfg.alToques(n); } catch (x) {} }, TAP_MS);
+        return;
+      }
       /* Encajado en el editor: 1 envía · 2 mejora · 3 llama o cuelga (también con la llamada en curso). */
       if (dock.on) {
         taps++; clearTimeout(tapT);
@@ -850,10 +856,10 @@
     moveTo(to, vx, vy, true);
     if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
   }
-  function moveTo(a, vx, vy, abrir) {
+  function moveTo(a, vx, vy, abrir, depaso) {
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     zoom.to(K(), .5, .8);
-    st.anchor = a; setCk("sa_nav_pos", a);
+    st.anchor = a; if (!depaso) setCk("sa_nav_pos", a);   // de paso: se aparta un momento, no cambia tu lugar
     var p = anchorPt(a); px.to(p.x, .46, .78, vx); py.to(p.y, .46, .78, vy); placeScrim();
     if (p.slot) { var sl = slotFor(a); if (sl) slotPush(sl.el); } else slotPull();
     setTimeout(dockSchedule, 700);
@@ -1667,6 +1673,15 @@
     portal: portal,
     ir: function (url, nueva) { irA(url, nueva); },
     hide: function (h) { if (root) this.update({ hidden: h !== false }); },
+    /* Navegador de la app de Alma: se aparta del cuadro de texto activo (a la posición más lejana, sin cambiar tu lugar),
+       vuelve a tu lugar al soltarlo, y brilla mientras escucha. r = { x, y, w, h } en la pantalla. */
+    apartar: function (r) {
+      if (!root || !r || dragging) return; var cx = r.x + r.w / 2, cy = r.y + r.h / 2, b = null, bd = -1;
+      ANCH.forEach(function (a) { var p = anchorPt(a, true), dd = Math.hypot(p.x - cx, p.y - cy); if (dd > bd) { bd = dd; b = a; } });
+      if (b && b !== st.anchor) moveTo(b, 0, 0, false, true);
+    },
+    volver: function () { if (!root || dragging) return; var a = getCk("sa_nav_pos"); if (a && ANCH.indexOf(a) >= 0 && a !== st.anchor) moveTo(a, 0, 0, false, true); },
+    escuchar: function (on) { if (E.core) E.core.classList.toggle("charge", !!on); },
     close: function () { if (root) setS(1); },
     tutoriales: function () { if (root) abrirTutoriales(); },
     unmount: function () {

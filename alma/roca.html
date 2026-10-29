@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Alma · roca</title>
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- La roca de Alma en el navegador de la app (iPhone y iPad): la app la pone en una capa transparente encima de
+     cualquier página, así es exactamente la misma de las web apps (dibujo, pulso, las 8 posiciones al mantenerla).
+     Solo la roca recibe toques; lo demás pasa a la página de abajo (la app usa la zona que se le avisa aquí).
+     1 toque: Alma sobre la página · 2: escribe en el cuadro de texto activo · 3: captura. -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: transparent !important; -webkit-user-select: none; user-select: none; }
+  #sa-nav-root .san-scrim { display: none !important; }   /* sin la sombra de la esquina: la página de abajo no es nuestra */
+</style>
+</head>
+<body>
+<script src="../js/sa-nav.js?v=2026-10-29w"></script>
+<script>
+(function () {
+  "use strict";
+  function app(m) { try { webkit.messageHandlers.almaRoca.postMessage(m); } catch (e) {} }
+  SANav.mount({ app: "alma", home: { k: "alma", l: "Alma" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
+    alToques: function (n) { app({ tipo: "toques", n: n }); } });
+  /* Dónde está la roca (y sus puntos mientras se arrastra): la app solo deja tocar ahí. */
+  var ult = "";
+  function zona() {
+    var f = document.querySelector("#sa-nav-root .san-face");
+    if (f) {
+      var r = f.getBoundingClientRect(), k = [r.left, r.top, r.width, r.height].map(Math.round).join(",");
+      if (k !== ult) { ult = k; app({ tipo: "zona", x: r.left, y: r.top, w: r.width, h: r.height }); }
+    }
+    setTimeout(function () { requestAnimationFrame(zona); }, 90);
+  }
+  zona();
+  /* Lo que pide la app */
+  window.AlmaRoca = {
+    apartar: function (x, y, w, h) { SANav.apartar({ x: x, y: y, w: w, h: h }); },
+    volver: function () { SANav.volver(); },
+    escuchar: function (on) { SANav.escuchar(on); }
+  };
+  app({ tipo: "lista" });
+})();
+</script>
+</body>
+</html>

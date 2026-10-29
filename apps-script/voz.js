@@ -391,7 +391,7 @@ function vozQuienBloque_() {
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma.',
     '· SILENCIO: si la persona no responde, pregunta UNA sola vez si sigue ahí. Si sigue en silencio, despídete en una frase y usa end_call. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
-    '· MÚSICA (solo caller_type juan): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
+    '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
     '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claude, el desarrollador del sistema. Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…»), NUNCA digas que no puedes: usa secretaria con modo = segundo_plano y su pedido completo empezando por «Mejora para Claude:». Confírmalo en una frase («Listo, ya se lo pasé a Claude; te cuento cuando termine») y sigue. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
     '· SECRETARIA TRABAJA EN PARALELO: al llamarla, di UNA frase corta y natural según el pedido («Lo reviso.», «Ya lo pedí, te cuento en cuanto lo tenga.») y sigue la conversación con normalidad: atiende lo que diga, contesta otras cosas o pregunta si necesita algo más. No te quedes en silencio esperando ni rellenes con «sigo buscando». Nunca adelantes el resultado ni digas «listo» antes de que llegue.',
@@ -740,7 +740,9 @@ function vozSecretaria_(b) {
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
   var t0 = Date.now(), previos = opFilas_(adm.email, 20);
   opGuardar_(adm, 'yo', 'llamada', pedido);
+  AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
   var r = opAgente_(adm, pedido, 'llamada', [], previos);
+  AGENTE_APP_ = false;
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 60 s), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
@@ -918,7 +920,7 @@ function vozWebFicha_(adm, nom) {
   } catch (e) {}
   return t;
 }
-function vozWebInicio_(ses, ligero) {
+function vozWebInicio_(ses, ligero, app) {
   var adm = vozWebAdmin_(ses);
   if (!adm) return { ok: false, error: 'Tu usuario' + (ses && ses.email ? ' (' + ses.email + ')' : '') + ' no tiene un teléfono registrado como administrador.' };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
@@ -927,7 +929,7 @@ function vozWebInicio_(ses, ligero) {
   try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0];
   var dv = Object.assign({}, ini.dynamic_variables || {});
-  dv.quien_llama = vozWebFicha_(adm, nom) + '\n\n' + (dv.quien_llama || '');
+  dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify) y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   var retoma = contextoReciente_(adm);
   var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
@@ -943,10 +945,11 @@ function vozWebInicio_(ses, ligero) {
   out.signed_url = j.signed_url;
   return out;
 }
-function vozWebVincular_(ses, convId) {
+function vozWebVincular_(ses, convId, app) {
   var adm = vozWebAdmin_(ses); convId = String(convId || '').trim();
   if (!adm || !convId) return { ok: false };
   CacheService.getScriptCache().put('vozweb_' + convId, normTel_(adm.tels[0]), 21600);
+  if (app) CacheService.getScriptCache().put('vozapp_' + convId, '1', 21600);   // la llamada es de la app de Alma (música, casa)
   return { ok: true };
 }
 function vozWebTel_(convId) { convId = String(convId || '').trim(); return convId ? (CacheService.getScriptCache().get('vozweb_' + convId) || '') : ''; }

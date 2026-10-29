@@ -79,7 +79,7 @@ function paraClaudeDesdeChat_(ses, texto) {
   var alma = opGuardar_(DESARROLLO_, 'alma', 'hub', r.claude ? 'Listo, ya se lo pasé a Claude. Te aviso aquí cuando responda.' : r.nota, []);
   return { ok: true, alma: alma };
 }
-/* hub.spacioam.com/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, Google Home). Solo el admin
+/* hub.spacioam.com/alma/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, Google Home). Solo el admin
    principal con su sesión; las llaves nunca se devuelven, solo si están puestas. */
 function conexiones_(ses, b) {
   var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;

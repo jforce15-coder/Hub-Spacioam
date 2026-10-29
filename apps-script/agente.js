@@ -85,6 +85,8 @@ function claudeTools_(modelo, system, messages, tools, maxTokens) {
 }
 
 /* ── Definición de herramientas ── */
+/* Herramientas solo de la app de Alma (música, casa): el Hub, WhatsApp y las web apps no las ven. */
+var AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
@@ -487,7 +489,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   if (msgs.length && msgs[msgs.length - 1].role === 'user') msgs.push({ role: 'assistant', content: '(continúo)' });
   msgs.push({ role: 'user', content: contenido });
   var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
-  var tools = agHerramientas_(), final = '';
+  var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; }), final = '';
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   for (var vuelta = 0; vuelta < 8; vuelta++) {
     var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);

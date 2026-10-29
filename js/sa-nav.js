@@ -213,7 +213,7 @@
     /* escena (inicio de la app de Alma): solo la piedra con sus botones sobre el fondo de la página */
     ".san-scope.san-escena>:not(.san-ov):not(.san-ph){display:none!important}",
     ".san-scope .san-ov.escena .san-ov-bg{background:radial-gradient(circle at 50% 62%,rgba(40,30,32,.2) 0px,rgba(40,30,32,.08) 260px,rgba(40,30,32,0) 520px)}",
-    ".san-scope .san-ov.escena .san-ov-tip{display:none}.san-scope .san-ov.quieta .san-ob.end{opacity:.38;pointer-events:none}",
+    ".san-scope .san-ov.escena .san-ov-tip{display:none}.san-scope .san-ov.quieta .san-ob.end{display:none}.san-scope .san-ob.start{display:none}.san-scope .san-ov.escena.quieta .san-ob.start{display:grid}.san-scope .san-ob.start svg{color:#2E9E6B}",
     ".san-scope .san-rock{position:absolute;left:0;top:0;width:0;height:0;border-radius:50%;visibility:hidden;will-change:transform;touch-action:none;cursor:pointer;pointer-events:auto;--halo:.5;--lit:.06;box-shadow:0 30px 44px -18px rgba(70,50,40,.45),0 8px 14px -6px rgba(70,50,40,.18)}",
     ".san-scope .san-st-ring,.san-scope .san-st-glow{position:absolute;border-radius:50%;pointer-events:none;background:var(--san-halo," + GRAD + ")}",
     ".san-scope .san-st-ring{inset:-9px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%)}",
@@ -1142,6 +1142,7 @@
     ov.innerHTML = '<div class="san-ov-bg"></div><div class="san-rock" aria-label="Alma"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div></div>' +
       '<div class="san-ov-ui"><div class="san-ov-st"></div><div class="san-ov-cap" aria-live="polite"></div><div class="san-ov-btns">' +
       '<button type="button" class="san-ob" data-a="chat" aria-label="Pasar a chat">' + svg(P.chat, 21) + '<span>Chat</span></button>' +
+      '<button type="button" class="san-ob start" data-a="start" aria-label="Iniciar llamada">' + svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>', 21) + '<span>Iniciar llamada</span></button>' +
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
       '<div class="san-chat"><header><div class="asa"></div><div class="t"><b>Alma</b><small>Modo texto · te leo</small></div></header><div class="san-msgs"></div>' +
@@ -1169,6 +1170,7 @@
     ov.querySelector(".san-pend-x").onclick = function () { pendAbrir(false); };
     setTimeout(pendCargar, 300);
     ov.querySelector('[data-a="chat"]').onclick = function () { if (AL.esc && !AL.on) escActivar(true); else almaChat(true); };
+    ov.querySelector('[data-a="start"]').onclick = function () { if (AL.esc && !AL.on) escActivar(false); };
     chatBind(ov);
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
     bindStone();

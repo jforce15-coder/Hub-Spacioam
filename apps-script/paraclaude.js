@@ -15,7 +15,7 @@
      5. La respuesta queda en la conversación «Desarrollo» del Hub (solo la ve el principal), le llega por WhatsApp en una
         línea y Alma se la cuenta en voz corta en la próxima llamada (paraClaudeNovedades_). */
 
-var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave'];
+var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple'];
 var PARA_CLAUDE_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CLAUDE_RUTINA_DEF_ = 'trig_01VrusYxvHrU1MBz4x39RVEm';
 var HUB_EXEC_DEF_ = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
@@ -267,11 +267,23 @@ function paraClaudePrUnido_(url) {
     c.put(k, st, 300); return st;
   } catch (e) { return null; }
 }
+/* Alma traduce a Claude: de lo técnico a lo simple, como para un niño. Se guarda en la columna «simple» (una vez por respuesta). */
+function paraClaudeSimple_(titulo, estado, resp) {
+  var sys = 'Eres Alma, la asistente de Juan. Claude (el programador) le dejó un pendiente. Tradúcelo para Juan como si se lo explicaras a un niño de 10 años: palabras de todos los días, cero términos técnicos (nada de PR, Apps Script, commit, branch, código, archivo, merge: di «unir el cambio»). ' +
+    'Responde SOLO un JSON: {"titulo":"máx. 6 palabras, claro","que_es":"1 frase corta: qué cambia para él o qué está pasando","pasos":["1 a 3 pasos cortísimos que Juan debe hacer, ej. «Toca Ver cambio y luego el botón verde Merge»; vacío si no tiene que hacer nada"],"pregunta":"si Claude le pregunta algo, la pregunta en simple; si no, vacío"}';
+  var txt = 'Título del pedido: ' + titulo + '\nEstado: ' + estado + '\nLo que respondió Claude:\n' + String(resp || '(todavía no responde: está trabajando)').slice(0, 4000);
+  try {
+    var t = String(claude_(CFG.MODELO_REDACTOR, 400, sys, txt, 0.2) || ''), m = /\{[\s\S]*\}/.exec(t), j = m ? JSON.parse(m[0]) : null;
+    if (j && j.titulo) return { titulo: String(j.titulo).slice(0, 60), que_es: String(j.que_es || '').slice(0, 240), pasos: (j.pasos || []).map(String).slice(0, 3), pregunta: String(j.pregunta || '').slice(0, 240) };
+  } catch (e) { console.error('paraClaudeSimple_: ' + e); }
+  return null;
+}
 function paraClaudePendientes_(ses) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2) return { ok: true, lista: [] };
   var n = Math.min(60, sh.getLastRow() - 1), ini = sh.getLastRow() - n + 1;
-  var v = sh.getRange(ini, 1, n, PARA_CLAUDE_CAB_.length).getValues(), lista = [], corte = Date.now() - 21 * 86400000;
+  if (sh.getLastColumn() < PARA_CLAUDE_CAB_.length) sh.getRange(1, 1, 1, PARA_CLAUDE_CAB_.length).setValues([PARA_CLAUDE_CAB_]);
+  var v = sh.getRange(ini, 1, n, PARA_CLAUDE_CAB_.length).getValues(), lista = [], corte = Date.now() - 21 * 86400000, traducidos = 0;
   v.forEach(function (r, i) {
     var estado = String(r[8] || ''); if (!PEND_ABIERTOS_.test(estado)) return;
     var f = r[1] instanceof Date ? r[1].getTime() : new Date(String(r[1]).replace(' ', 'T') + ':00-06:00').getTime(); if (f && f < corte) return;
@@ -282,10 +294,13 @@ function paraClaudePendientes_(ses) {
       return;
     }
     var cuerpo = resp.split(/\n\n/).slice(1).join('\n\n').replace(/https:\/\/github\.com\/\S+/g, '').trim();   // sin el encabezado «Claude terminó · …»
-    var voz = cuerpo.split(/\n\n/)[0] || '', instr = cuerpo.split(/\n\n/).slice(1).join('\n\n').trim();
-    lista.push({ id: String(r[0]), titulo: String(r[6] || ''), fecha: String(r[1] instanceof Date ? Utilities.formatDate(r[1], CFG.TZ, 'd MMM') : String(r[1]).slice(0, 10)),
-      estado: /^PR listo/.test(estado) ? 'listo' : /^pregunta/.test(estado) ? 'pregunta' : /^fallo/.test(estado) ? 'fallo' : 'trabajando',
-      resumen: voz || (/^con Claude|^pendiente/.test(estado) ? 'Claude está trabajando en esto.' : ''), instrucciones: instr,
+    var est = /^PR listo/.test(estado) ? 'listo' : /^pregunta/.test(estado) ? 'pregunta' : /^fallo/.test(estado) ? 'fallo' : 'trabajando';
+    /* la traducción simple: se guarda con la huella de la respuesta (si Claude responde de nuevo, se vuelve a traducir) */
+    var simple = null, huella = String(resp.length) + ':' + est; try { var sv = JSON.parse(String(r[13] || '{}')); if (sv.h === huella) simple = sv; } catch (e) {}
+    if (!simple && traducidos < 4) { traducidos++; simple = paraClaudeSimple_(String(r[6] || ''), est, resp); if (simple) { simple.h = huella; try { sh.getRange(ini + i, 14).setValue(JSON.stringify(simple)); } catch (e) {} } }
+    simple = simple || { titulo: String(r[6] || ''), que_es: est === 'trabajando' ? 'Claude está trabajando en esto.' : (cuerpo.split(/\n\n/)[0] || ''), pasos: [], pregunta: '' };
+    lista.push({ id: String(r[0]), titulo: simple.titulo, fecha: String(r[1] instanceof Date ? Utilities.formatDate(r[1], CFG.TZ, 'd MMM') : String(r[1]).slice(0, 10)),
+      estado: est, resumen: simple.que_es, pasos: simple.pasos || [], pregunta: simple.pregunta || '', original: cuerpo, instrucciones: '',
       enlaces: prs.filter(function (x) { return x.estado !== 'unido' && x.estado !== 'cerrado'; }).map(function (x) { return x.url; }) });
   });
   return { ok: true, lista: lista.reverse() };

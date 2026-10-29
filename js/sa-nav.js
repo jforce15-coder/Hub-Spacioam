@@ -239,12 +239,18 @@
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
     ".san-scope .san-pend-l{flex:1;overflow:auto;padding:8px 16px 28px;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch}",
-    ".san-scope .san-pc{background:#fff;border-radius:24px;box-shadow:0 28px 60px -30px rgba(70,50,40,.36),0 2px 6px -3px rgba(70,50,40,.07);overflow:hidden}",
+    ".san-scope .san-pc{flex:none;background:#fff;border-radius:24px;box-shadow:0 28px 60px -30px rgba(70,50,40,.36),0 2px 6px -3px rgba(70,50,40,.07);overflow:hidden}",
     ".san-scope .san-pc>button{width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;font:inherit;color:#3E3F3F}",
     ".san-scope .san-pc .tt{flex:1;min-width:0}.san-scope .san-pc .tt b{display:block;font:600 15px/1.35 Montserrat,system-ui,sans-serif}.san-scope .san-pc .tt em{display:block;margin-top:4px;font:500 13px/1.45 Montserrat,system-ui,sans-serif;font-style:normal;color:#8A8580}",
     ".san-scope .san-chip{flex:none;font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:#F3EFEA;color:#8A8580}.san-scope .san-chip.listo{background:rgba(233,130,106,.14);color:#B3553E}.san-scope .san-chip.pregunta{background:#EEF1F7;color:#55668A}.san-scope .san-chip.fallo{background:#FBEAE6;color:#B54D36}",
     ".san-scope .san-pc .cu{display:none;padding:0 18px 18px}.san-scope .san-pc.abierta .cu{display:block}.san-scope .san-pc .cu p{margin:0 0 14px;font:500 14px/1.55 Montserrat,system-ui,sans-serif;color:#3E3F3F;white-space:pre-wrap;overflow-wrap:anywhere}",
     ".san-scope .san-pc .bt{display:flex;flex-wrap:wrap;gap:8px}.san-scope .san-pc .bt button{border:0;cursor:pointer;padding:11px 16px;border-radius:999px;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;background:#3E3F3F;color:#FAF8F6}.san-scope .san-pc .bt button.sec{background:#F3EFEA;color:#3E3F3F}",
+    ".san-scope .san-pc .tt em{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.san-scope .san-pc.abierta .tt em{display:block}",
+    ".san-scope .san-pc ol{margin:0 0 16px;padding:0;list-style:none;counter-reset:p}.san-scope .san-pc ol li{counter-increment:p;position:relative;padding:2px 0 10px 36px;font:500 14.5px/1.5 Montserrat,system-ui,sans-serif;color:#3E3F3F}",
+    ".san-scope .san-pc ol li::before{content:counter(p);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:rgba(233,130,106,.16);color:#B3553E;font:700 12px/24px Montserrat,system-ui,sans-serif;text-align:center}",
+    ".san-scope .san-pc .pq{margin:0 0 16px;padding:12px 14px;border-radius:16px;background:#EEF1F7;color:#3E4A66;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
+    ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
+    "body.san-hoja .hola,body.san-hoja .ajustes{opacity:0!important;pointer-events:none!important}",
     ".san-scope .san-pend-v{margin:auto;text-align:center;font:400 24px/1.3 Valky,Georgia,serif;color:#8A8580;padding:40px 20px}",
     ".san-scope .san-ob{position:relative;width:56px;height:56px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--san-ink);background:radial-gradient(120% 120% at 50% 20%,#F4F1EE 0%,#ECE8E3 55%,#E3DED8 100%);box-shadow:0 12px 18px -6px rgba(40,30,25,.4),0 3px 5px rgba(40,30,25,.16),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10);transition:transform .45s cubic-bezier(.3,1.35,.55,1)}",
     ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end svg{color:#D9583A}.san-scope .san-ob:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:4px}",
@@ -1245,7 +1251,9 @@
     b.hidden = !n; b.querySelector(".san-badge").textContent = n > 9 ? "9+" : String(n);
     if (E.ov.classList.contains("pend")) pendLista();
   }
-  function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); if (on) pendCargar(); }
+  function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); hoja(); if (on) pendCargar(); }
+  /* Con una hoja abierta (chat o pendientes), la pantalla de atrás esconde su saludo y su engrane */
+  function hoja() { d.body.classList.toggle("san-hoja", !!(E.ov && (E.ov.classList.contains("pend") || E.ov.classList.contains("chat")))); }
   var PEND_TX = { listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo" };
   function pendLista() {
     var l = E.ov.querySelector(".san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
@@ -1258,12 +1266,17 @@
       tt.appendChild(b); tt.appendChild(em); var ch = d.createElement("span"); ch.className = "san-chip " + p.estado; ch.textContent = PEND_TX[p.estado] || p.estado;
       t.appendChild(tt); t.appendChild(ch); t.onclick = function () { c.classList.toggle("abierta"); };
       var cu = d.createElement("div"); cu.className = "cu";
-      if (p.instrucciones) { var pi = d.createElement("p"); pi.textContent = p.instrucciones; cu.appendChild(pi); }
+      /* Lo que Juan tiene que hacer, en pasos de una línea (Alma ya lo tradujo de lo que dijo Claude) */
+      if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claude te pregunta: " + p.pregunta; cu.appendChild(pq); }
+      if ((p.pasos || []).length) { var ol = d.createElement("ol"); p.pasos.forEach(function (x) { var li = d.createElement("li"); li.textContent = x; ol.appendChild(li); }); cu.appendChild(ol); }
+      else if (p.instrucciones) { var pi = d.createElement("p"); pi.textContent = p.instrucciones; cu.appendChild(pi); }
       var bt = d.createElement("div"); bt.className = "bt";
       (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.textContent = (p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"); x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
       if (cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice";
         hx.onclick = function () { AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
-      cu.appendChild(bt); c.appendChild(t); c.appendChild(cu); l.appendChild(c);
+      cu.appendChild(bt);
+      if (p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
+      c.appendChild(t); c.appendChild(cu); l.appendChild(c);
     });
   }
   function stoneTarget() { var eo = AL.esc ? AL.escO : null; if (AL.chat) { var sb = E.ov && E.ov.querySelector(".san-send"), rb = sb && sb.getBoundingClientRect(); if (rb && rb.width) return { x: rb.left + rb.width / 2, y: rb.top + rb.height / 2, s: 46 }; return { x: VW() - 40, y: VH() - 44, s: 46 }; }
@@ -1381,13 +1394,13 @@
     E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); suelta(E.body);
     if (!E.ov) return;
     if (wasMin) { phMini("Llamada con Alma terminada"); if (navigator.vibrate) try { navigator.vibrate([8, 40, 8]); } catch (x) {} return; }
-    var r = E.face.getBoundingClientRect(); E.ov.classList.remove("on", "chat", "min", "ending");
+    var r = E.face.getBoundingClientRect(); E.ov.classList.remove("on", "chat", "min", "ending"); hoja();
     aX.to(r.left + r.width / 2, .62, .82); aY.to(r.top + r.height / 2, .62, .82); aS.to(r.width, .62, .8); aL.to(litFace(), .62, 1); aH.to(1, .62, .5);
     E.scrim.style.opacity = dock.on ? "0" : "";
     alReposo([aX, aY, aS], function () { if (AL.on || AL.min) return; hideCore(false); showStone(false); });
   }
   function almaChat(on) {
-    AL.chat = on; E.ov.classList.toggle("chat", on); if (on) chatQuieto(); else clearTimeout(chatT);
+    AL.chat = on; E.ov.classList.toggle("chat", on); hoja(); if (on) chatQuieto(); else clearTimeout(chatT);
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(on); } catch (x) {} }
     var t = stoneTarget(); aX.to(t.x, .6, .78); aY.to(t.y, .6, .78); aS.to(t.s, .6, on ? .76 : .7);
     if (on) setTimeout(function () { var i = E.ov.querySelector(".san-in"); if (i) try { i.focus(); } catch (x) {} E.msgs.scrollTop = E.msgs.scrollHeight; }, 400);

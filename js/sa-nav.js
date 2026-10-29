@@ -298,6 +298,10 @@
     ".san-scope .san-pcap{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(320px,82vw);text-align:center;font:500 15px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#6F6867;opacity:0;pointer-events:none}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
     ".san-scope.docked .san-hint{display:none}",
+    /* encajado en el editor: sus propios hints, encima del botón (las primeras veces) */
+    ".san-scope .san-dtips{position:fixed;z-index:calc(var(--san-z) + 12);display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none;opacity:0;transform:translate(-100%,-100%) translateY(6px);transition:opacity .3s ease,transform .45s cubic-bezier(.3,1.3,.55,1)}",
+    ".san-scope .san-dtips.on{opacity:1;transform:translate(-100%,-100%)}",
+    ".san-scope .san-dtips span{padding:8px 13px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:500 11.5px Montserrat,system-ui,sans-serif;white-space:nowrap;box-shadow:0 16px 32px -14px rgba(30,25,20,.6)}.san-scope .san-dtips b{font-weight:700;margin-right:6px}",
     "@media print{#sa-nav-root{display:none!important}}"
   ].join("\n");
 
@@ -595,7 +599,17 @@
   function setDocked(on) {
     if (dock.on === on) return; if (!on) hostOut(); dock.on = on;
     d.body.classList.toggle("san-docked", on); root.classList.toggle("docked", on);
-    if (on) { setS(1); E.scrim.style.opacity = "0"; } else { E.scrim.style.opacity = ""; var p = anchorPt(st.anchor); px.to(p.x, .55, .8); py.to(p.y, .55, .8); zoom.to(K(), .55, .8); }
+    if (on) { setS(1); E.scrim.style.opacity = "0"; try { var nt = +localStorage.getItem("san_dtips") || 0; if (nt < 4) { localStorage.setItem("san_dtips", nt + 1); setTimeout(function () { if (dock.on) dockTips(3800); }, 700); } } catch (x) {} } else { if (E.dtips) E.dtips.classList.remove("on"); E.scrim.style.opacity = ""; var p = anchorPt(st.anchor); px.to(p.x, .55, .8); py.to(p.y, .55, .8); zoom.to(K(), .55, .8); }
+  }
+  /* 1 toque envía · 2 mejora · 3 habla con Alma · mantén para moverlo: encima del botón encajado */
+  var dtT = 0;
+  function dockTips(ms) {
+    if (!root || !E.face) return;
+    if (!E.dtips) { E.dtips = d.createElement("div"); E.dtips.className = "san-dtips"; E.dtips.setAttribute("aria-hidden", "true");
+      E.dtips.innerHTML = "<span><b>1 toque</b>enviar</span><span><b>2 toques</b>mejorar con Alma</span><span><b>3 toques</b>hablar con Alma</span><span><b>mantén</b>mover</span>"; root.appendChild(E.dtips); }
+    var r = E.face.getBoundingClientRect(); if (!r.width) return;
+    E.dtips.style.left = Math.max(180, r.right) + "px"; E.dtips.style.top = (r.top - 10) + "px";
+    E.dtips.classList.add("on"); clearTimeout(dtT); dtT = setTimeout(function () { if (E.dtips) E.dtips.classList.remove("on"); }, ms || 3200);
   }
   function dockCheck() {
     if (!root) return;
@@ -749,7 +763,7 @@
     return null;
   }
   function onDock(n) {
-    activity();
+    activity(); if (E.dtips) E.dtips.classList.remove("on");
     if (n >= 3) { if (AL.min || AL.on) almaEnd(false); else if (almaOk()) almaMini(); else nope(); return; }
     var b = (n === 1 && dockEnviar()) || dock.el;
     try { b.click(); } catch (e) {} surge();
@@ -1201,6 +1215,7 @@
     var crecer = function () { i.style.height = "46px"; i.style.height = Math.min(140, i.scrollHeight) + "px"; };
     var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } else verTips(); };
     var tipT = 0, verTips = function (ms) { tips.classList.add("on"); clearTimeout(tipT); tipT = setTimeout(function () { tips.classList.remove("on"); }, ms || 2600); };
+    E.verTips = verTips;
     i.addEventListener("input", crecer);
     i.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !/iPhone|iPad|Android/.test(navigator.userAgent)) { e.preventDefault(); enviar(); } });
     i.addEventListener("focus", function () { var n = 0; try { n = +localStorage.getItem("san_tips") || 0; localStorage.setItem("san_tips", n + 1); } catch (x) {} if (n < 3) verTips(3200); });
@@ -1423,6 +1438,8 @@
   }
   function almaChat(on) {
     AL.chat = on; E.ov.classList.toggle("chat", on); hoja(); if (on) chatQuieto(); else clearTimeout(chatT);
+    /* los hints del botón roca (1 toque enviar · mantén nota de voz · 2 foto · 3 hablar), una vez cada vez que se abre la app */
+    if (on && E.verTips) { var vt = false; try { vt = !sessionStorage.getItem("san_tips_ses"); sessionStorage.setItem("san_tips_ses", "1"); } catch (x) { vt = true; } if (vt) setTimeout(function () { if (AL.chat) E.verTips(3600); }, 650); }
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(on); } catch (x) {} }
     var t = stoneTarget(); aX.to(t.x, .6, .78); aY.to(t.y, .6, .78); aS.to(t.s, .6, on ? .76 : .7);
     if (on) setTimeout(function () { var i = E.ov.querySelector(".san-in"); if (i) try { i.focus(); } catch (x) {} E.msgs.scrollTop = E.msgs.scrollHeight; }, 400);
@@ -1527,7 +1544,7 @@
   }
   /* Ir de paso a una posición (p. ej. abajo al centro mientras se escribe), sin cambiar tu lugar guardado. */
   function irDePaso(a) {
-    if (!root || ANCH.indexOf(a) < 0 || dragging || stoneDrag || dock.on || AL.on || AL.chat) return;
+    if (!root || ANCH.indexOf(a) < 0 || dragging || stoneDrag || dock.on || dock.el || AL.on || AL.chat) return;   // encajado en un editor: se queda ahí
     if (AL.esc) {
       if (!AL.escPos) return;                    // al centro del inicio no se mueve
       AL.escPos = a;
@@ -1575,7 +1592,8 @@
     var b = portalPt(), bI = o.hacia || b, bO = o.desde || b, cx = VW() / 2, cy = VH() * .45, sC = Math.hypot(VW(), VH()) * 1.2 / PB;
     var T = function (x, y, k) { return "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + k.toFixed(4) + ")"; };
     var tengo = !!(root && E.face); if (tengo) hideCore(true);
-    var fin = function () { if (pv._fin === null) return; pv._fin = null; if (pv.parentNode) pv.remove(); if (tengo && root) { hideCore(false); surge(); } };
+    /* al terminar, el botón vuelve; si mientras tanto se abrió Alma (la piedra está a la vista), se queda escondido: nunca dos rocas */
+    var fin = function () { if (pv._fin === null) return; pv._fin = null; if (pv.parentNode) pv.remove(); if (tengo && root) { if (!AL.vis) { hideCore(false); surge(); } } };
     pv._fin = fin;
     /* Red de seguridad: si el navegador pausó la animación (pestaña en segundo plano, iPhone bloqueado) y nunca terminó,
        la piedra del portal se queda pegada encima del botón y se ven dos. Al llegar, se quita sola. */

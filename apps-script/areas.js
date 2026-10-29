@@ -1,5 +1,5 @@
 /* ═══ ÁREAS DE VIDA (solo la app de Alma) ══════════════════════════════════════════════════════════════════
-   Cada usuario ordena su vida en 6 áreas: Propósito · Relaciones · Finanzas · Health · Comunidad · Espiritualidad.
+   Cada usuario ordena su vida en 6 áreas: Propósito · Relaciones · Finanzas · Health · Comunidad · Esencia (vida interior: fe, calma y presencia).
    Cada proyecto (con sus web apps) y cada conversación lleva una. Por ahora solo el administrador principal.
      · Fijo por de dónde viene: Spacio AM y todo lo que llega de Hospitable, Airbnb, Booking y el WhatsApp de Spacio AM
        → Propósito; The Gentle Stoic Parent → Relaciones; Mi (Conta) → Finanzas (y también dentro de Spacio AM);
@@ -16,7 +16,7 @@ var AREAS_ = [
   { k: 'finanzas', n: 'Finanzas', d: 'Tu dinero, cuentas y facturas' },
   { k: 'health', n: 'Health', d: 'Tu cuerpo, descanso y energía' },
   { k: 'comunidad', n: 'Comunidad', d: 'Lo que das y compartes con otros' },
-  { k: 'espiritualidad', n: 'Espiritualidad', d: 'Tu calma, fe y sentido' }
+  { k: 'espiritualidad', n: 'Esencia', d: 'Fe, calma y presencia' }   // la clave se queda (lo ya clasificado sigue aquí)
 ];
 var AREAS_CAB_ = ['clave', 'area', 'como', 'titulo', 'fuente', 'texto', 'ts', 'actualizado'];
 function hojaAreas_() { return hojaCrear_('ALMA_AREAS', AREAS_CAB_); }
@@ -49,7 +49,7 @@ function areasClasificar_(filas, pendientes) {
   var lista = pendientes.slice(0, 25).map(function (p, i) { return (i + 1) + '. ' + p.titulo + (p.texto ? ' — ' + String(p.texto).slice(0, 220) : ''); }).join('\n');
   var sys = 'Clasificas temas personales de Juan (fundador de Spacio AM) en una de 6 áreas de vida: proposito (trabajo, negocio, proyectos profesionales), ' +
     'relaciones (familia, pareja, hijos, amigos, celebraciones), finanzas (dinero, pagos, deudas, inversiones, impuestos), health (salud, ejercicio, médicos, descanso), ' +
-    'comunidad (voluntariado, vecinos, grupos, ayudar a otros), espiritualidad (fe, iglesia, meditación, sentido). Responde SOLO un JSON: {"1":"relaciones","2":"…"}. Si dudas, relaciones.';
+    'comunidad (voluntariado, vecinos, grupos, ayudar a otros), espiritualidad (vida interior: fe y religión de cualquier tipo, oración, meditación, mindfulness, respiración, gratitud, sentido). Responde SOLO un JSON: {"1":"relaciones","2":"…"}. Si dudas, relaciones.';
   var r = '';
   try { r = claude_(CFG.MODELO_REDACTOR, 300, sys, lista, 0, []); } catch (e) { console.error('areas: ' + e); }
   var j = {}; try { j = JSON.parse(String(r || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch (e) {}
@@ -82,7 +82,7 @@ function areasClasificarAlma_(filas, sesiones) {
   var pend = sesiones.filter(function (c) { return !filas[c.clave]; }).slice(0, 12); if (!pend.length) return;
   var sys = 'Ordenas las conversaciones de Juan con su asistente Alma en una de 6 áreas de vida: proposito (su trabajo: Spacio AM, apartamentos, huéspedes, equipo, proveedores, proyectos y desarrollo de las apps), ' +
     'relaciones (familia, pareja, hijos, amigos), finanzas (dinero personal o del negocio, pagos, facturas, impuestos, inversiones), health (salud, ejercicio, sueño, comida, médicos), ' +
-    'comunidad (ayudar a otros, voluntariado, vecinos, grupos, iglesia como comunidad), espiritualidad (fe, oración, meditación, sentido, gratitud). ' +
+    'comunidad (ayudar a otros, voluntariado, vecinos, grupos, iglesia como comunidad), espiritualidad (vida interior: fe y religión de cualquier tipo, oración, meditación, mindfulness, respiración, gratitud, sentido). ' +
     'Elige el área del tema PRINCIPAL. Dale a cada una un título de 2 a 5 palabras en español, claro y sin comillas. ' +
     'Responde SOLO un JSON: {"1":{"a":"finanzas","t":"Pago del IVA de octubre"},"2":{…}}.';
   var lista = pend.map(function (c, i) { return '### ' + (i + 1) + '\n' + c.muestra; }).join('\n\n');

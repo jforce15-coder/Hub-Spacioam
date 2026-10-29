@@ -69,6 +69,9 @@
       setTimeout(function () { try { c.close(); } catch (e) {} }, 800);
     } catch (e) {}
   }
+  /* Mismo par de sonidos que el modo anillo (app Alma): inicio al activarse, despedida al terminar. Solo en voz, no en el chat de texto. */
+  var SONIDOS = "https://hub.spacioam.com/assets/alma/sonidos/";
+  function sonido(n) { try { var a = new Audio(SONIDOS + n + ".wav"); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
   /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
   function limpiar(t) { return String(t || "").replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").replace(/\s+([,.;:!?…])/g, "$1").trim(); }
   function ficha() {
@@ -92,14 +95,16 @@
   var CANAL_NOTA = 'CANAL: CHAT · NOTA DE VOZ. La persona te está grabando una nota de voz dentro del chat. Espera a que termine y responde por escrito, como en el chat.';
   function start(h) {
     unlockAudio();
-    var enChat = false;
+    var enChat = false, sono = true;
+    sonido("alma-inicio");
+    function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
     function abrir(f, m) {
       var opt = {
         agentId: f.agent_id, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
         onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId) vincular(x.conversationId, 0); },
         onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
         onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
-        onDisconnect: function () { vivo = null; h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } },
+        onDisconnect: function () { vivo = null; despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } },
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
       if (o.herramientas) opt.clientTools = o.herramientas;
@@ -120,7 +125,7 @@
     }).then(function (conv) {
       vivo = conv;
       return {
-        end: function () { vivo = null; try { conv.endSession(); } catch (e) {} },
+        end: function () { vivo = null; despedida(); try { conv.endSession(); } catch (e) {} },
         level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
         sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
         mute: function (on) { try { conv.setMicMuted(!!on); } catch (e) {} },

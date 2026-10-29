@@ -87,8 +87,10 @@
   .esf .cuerpo-e { position: absolute; inset: 3.5%; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6%;
     background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 42%, #E5E0DB 78%, #D6D0CA 100%);
     box-shadow: inset 0 -8px 14px rgba(110,90,80,.12), inset 0 5px 10px rgba(255,255,255,.75); }
-  .esf svg { width: 30%; height: 30%; color: var(--c3); filter: drop-shadow(0 1px 0 rgba(255,255,255,.85)); }
-  .esf .nom { font: 600 var(--fs, 11px) Montserrat, system-ui, sans-serif; letter-spacing: .03em; color: var(--c3); white-space: nowrap; }
+  /* Grabados en la piedra, como el destello de Alma: gris cálido, luz abajo y sombra arriba */
+  .esf svg { width: 30%; height: 30%; color: #C4BCB3; filter: drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32)); }
+  .esf .nom { font: 600 var(--fs, 11px) Montserrat, system-ui, sans-serif; letter-spacing: .03em; color: #B3AAA0; white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255,255,255,.8), 0 -.6px 0 rgba(80,70,60,.28); }
   @keyframes esf-quieta { 0%, 100% { transform: scale(1); } 50% { transform: scale(.97); } }
   @keyframes esf-halo { 0%, 100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.1); opacity: .95; } }
   .esf.proposito { --c: #E9826A; --c2: #F2B08F; --c3: #C9705E; }
@@ -289,7 +291,7 @@
     var o = $("orbita");
     AR.datos.forEach(function (a, i) {
       var b = el("button", "esf " + a.k); b.type = "button"; b.setAttribute("aria-label", a.n); b.style.setProperty("--dl", (i * -600) + "ms");
-      b.innerHTML = '<span class="resp"><span class="halo"></span><span class="anillo"></span><span class="cuerpo-e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (ICON[a.k] || "") + '</svg></span></span>';
+      b.innerHTML = '<span class="resp"><span class="halo"></span><span class="anillo"></span><span class="cuerpo-e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (ICON[a.k] || "") + '</svg></span></span>';
       b.querySelector(".cuerpo-e").appendChild(el("span", "nom", a.n));
       b.onclick = function () { if (!OR.abierta) return; if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {} areasAbrir(true, a.k); };
       o.appendChild(b);

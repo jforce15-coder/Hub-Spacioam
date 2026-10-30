@@ -74,6 +74,10 @@
   /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
   /* z-index menor que el de la roca (--san-z 880 en js/sa-nav.js): las esferas salen y se esconden siempre DETRÁS del botón roca */
   .orbita { position: fixed; inset: 0; z-index: 870; pointer-events: none; }
+  /* las esferas van detrás de la capa de Alma (para salir de detrás de la roca), así que mientras están abiertas esa capa
+     deja pasar los toques; solo la roca los recibe. Sin esto, ninguna esfera abría su área. */
+  body.orbita-on #sa-nav-root .san-ov, body.orbita-on #sa-nav-root .san-ov-bg { pointer-events: none !important; }
+  body.orbita-on #sa-nav-root .san-rock { pointer-events: auto !important; }
   /* Cada esfera es como Alma: halo que respira, anillo de color y la piedra clara; su tamaño (--d) lo calcula la página
      para que sean casi del tamaño de Alma en el inicio sin tocarse entre ellas. Entran con resorte (orbita()). */
   .esf { position: absolute; left: 0; top: 0; width: var(--d, 120px); height: var(--d, 120px); margin: calc(var(--d, 120px) / -2) 0 0 calc(var(--d, 120px) / -2);

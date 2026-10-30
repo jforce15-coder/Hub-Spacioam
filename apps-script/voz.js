@@ -233,6 +233,11 @@ function vozPostCall_(body) {
   if (!vozMarcar_(convEL)) return { ok: true, duplicado: true };
   var t0 = Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), dur = Number(md.call_duration_secs || 0);
   var rel = null; try { rel = tel ? waReserva_(tel) : null; } catch (x) {}
+  /* Consumo de la llamada: queda en IA_USO (el panel de uso del Hub) con minutos, créditos de ElevenLabs y cuánto fue silencio al final. */
+  try {
+    var ch = md.charging || {}, cred = Number(ch.call_charge) || 0, tr = d.transcript || [], ult = tr.length ? Number(tr[tr.length - 1].time_in_call_secs || 0) : 0;
+    registrarUso_({ app: 'ALMA', funcion: 'Alma voz · llamada', detalle: (dur / 60).toFixed(1) + ' min · ' + cred + ' créditos · ' + tr.length + ' turnos · ' + Math.max(0, dur - ult) + ' s sin hablar al final', ref: convEL, modelo: 'elevenlabs-agente', usage: {}, usd: 0, minutos: dur / 60, ms: dur * 1000, ok: s_(md.termination_reason || '') !== 'error' });
+  } catch (x) { console.error('registrarUso_ voz: ' + x); }
   var convId = rel && rel.resId ? rel.resId : (tel ? 'wa:' + tel : 'llamada:' + convEL);
   var pre = {}; try { pre = rel && rel.resId ? (preContexto_(rel.resId) || {}) : {}; } catch (x) {}
   var quien = { tipo: 'externo' }; try { quien = vozQuien_(tel); } catch (x) {}

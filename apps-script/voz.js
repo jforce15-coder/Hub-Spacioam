@@ -252,6 +252,7 @@ function vozPostCall_(body) {
   var admC = null; try { admC = tel ? (adminPorTel_(tel) || (quien.tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] || null : null)) : null; } catch (x) {}
   var convHilo = admC ? 'op:' + admC.email : convId;
   if (admC) { try { opLlamadaGuardar_(admC, d, t0, dur, canal, motivo, resumen); } catch (x) { console.error('opLlamadaGuardar_: ' + x); } }
+  if (admC) { try { retDespuesLlamada_(admC, d.transcript); } catch (x) { console.error('retDespuesLlamada_: ' + x); } }   // ¿resolvieron algún tema por retomar?
   var sh = hojaWA_(), filas = [];
   filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convHilo, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
@@ -397,7 +398,7 @@ function vozQuienBloque_() {
     '· SECRETARIA TRABAJA EN PARALELO: al llamarla, di UNA frase corta y natural según el pedido («Lo reviso.», «Ya lo pedí, te cuento en cuanto lo tenga.») y sigue la conversación con normalidad: atiende lo que diga, contesta otras cosas o pregunta si necesita algo más. No te quedes en silencio esperando ni rellenes con «sigo buscando». Nunca adelantes el resultado ni digas «listo» antes de que llegue.',
     '· CUANDO LLEGA LA RESPUESTA de secretaria: si estás a mitad de una frase o de otro tema, termina tu idea y luego introdúcela con naturalidad («Por cierto, ya tengo lo de César: …», «Ah, y lo de las cancelaciones: …»). No interrumpas a la persona ni cortes lo que estabas diciendo. Si llegan varias, dalas en orden, una a la vez. Si la persona ya cambió de tema, dásela breve y vuelve a donde iban.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
-    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo y te confirmo por WhatsApp cuando esté listo», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas confirmar por WhatsApp sin haber usado el modo segundo_plano: es lo que hace que la confirmación llegue.',
+    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo; si necesito algo de ti te aviso en la app», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
@@ -745,11 +746,20 @@ function vozSecretaria_(b) {
   var t0 = Date.now(), previos = opFilas_(adm.email, 20);
   opGuardar_(adm, 'yo', 'llamada', pedido);
   AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
-  var r = opAgente_(adm, pedido, 'llamada', [], previos);
-  AGENTE_APP_ = false;
+  /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
+  AGENTE_PLAZO_ = t0 + vozTolerancia_(); AGENTE_PEDIDO_ = pedido;
+  var r;
+  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; }
+  if (r.seguira) {
+    opGuardar_(adm, 'alma', 'llamada', 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', r.hechas);
+    vozTrabajando_(adm, 1);
+    return { ok: true, en_proceso: true, resultado: 'TARDA MÁS DE LO NORMAL: ya lo sigues trabajando en segundo plano (no lo vuelvas a pedir ni esperes su respuesta en esta llamada). ' +
+      'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en la app cuando esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.' +
+      (r.hechas.length ? ' Lo que ya quedó hecho: ' + r.hechas.map(function (h) { return h.resumen || h.tipo; }).join('; ') + '.' : '') };
+  }
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 60 s), el resultado también va por WhatsApp. */
-  if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
+  if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
 
@@ -762,12 +772,13 @@ function vozSecEncolar_(tel, pedido) {
     cola.push({ tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() });
     p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
   } finally { lock.releaseLock(); }
+  try { var admE = adminPorTel_(tel); if (admE) vozTrabajando_(admE, 1); } catch (e) {}
   /* Espera breve: si en la misma llamada piden algo más (p. ej. «revisa también la imagen»), todo se hace junto en un solo WhatsApp. */
   try {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
     ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(45000).create();
   } catch (e) { console.error('trigger vozSecretariaPronto: ' + e); }
-  return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano y le confirmo por WhatsApp a este mismo número en cuanto esté listo. Ya puedes despedirte si no necesita nada más.' };
+  return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano; si al terminar necesito algo de él, le aviso en la app (notificación) y por WhatsApp. Si es solo una confirmación, no hace falta avisar. Ya puedes despedirte si no necesita nada más.' };
 }
 function vozSecretariaPronto() {
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
@@ -796,13 +807,18 @@ function vozSecProcesar_() {
       r = opAgente_(adm, pedido, 'segundo_plano', [], previos);
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [] }; }
-    try { vozSecAvisar_(grupo[0].tel, adm, r); } catch (e) { console.error('vozSecAvisar_: ' + e); }
+    try { vozSecAvisar_(grupo[0].tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }
-function vozSecAvisar_(tel, adm, r) {
+/* Terminó algo de segundo plano. Solo avisa si necesita algo de él (retomar.js): entonces queda como tema por retomar,
+   llega la notificación a la app y el resultado por escrito a WhatsApp. Si solo confirma algo hecho, queda en el chat. */
+function vozSecAvisar_(tel, adm, r, pedido) {
+  try { vozTrabajando_(adm, -1); } catch (e) {}
   var malas = (r.hechas || []).filter(function (h) { return h.error; });
   var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
-  try { vozAvisoPoner_(adm, vozAvisoCorto_(txt)); } catch (e) { console.error('vozAvisoPoner_: ' + e); }   // también al oído (app de iPhone)
+  var c = retClasificar_(pedido, txt, malas.length ? malas.map(function (h) { return h.resumen || h.tipo; }).join('; ') : '');
+  if (!c.requiere) return;
+  try { var it = retPoner_(adm, { texto: c.aviso, detalle: txt, importancia: c.importancia, origen: 'segundo_plano' }); vozAvisoPoner_(adm, c.aviso, it && it.id); } catch (e) { console.error('vozAvisoPoner_: ' + e); }
   var w = waEnviarAlguien_(tel, 'Sobre lo que me pediste en la llamada:\n\n' + txt, { nombre: adm.nombre });
   if (!w.ok) console.error('vozSecAvisar_ WhatsApp: ' + w.error);
 }
@@ -937,6 +953,13 @@ function vozWebInicio_(ses, ligero, app) {
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   var retoma = contextoReciente_(adm);
   var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+  /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
+     Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
+  var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }
+  if (ret) {
+    dv.quien_llama += ret.bloque; out.first_message = ret.saludo; out.retomar = ret.saludo; out.retomar_total = ret.total;
+    CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200);
+  }
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
   CacheService.getScriptCache().put('vozweb_pend', tel, 120);
@@ -954,6 +977,8 @@ function vozWebVincular_(ses, convId, app) {
   if (!adm || !convId) return { ok: false };
   CacheService.getScriptCache().put('vozweb_' + convId, normTel_(adm.tels[0]), 21600);
   if (app) CacheService.getScriptCache().put('vozapp_' + convId, '1', 21600);   // la llamada es de la app de Alma (música, casa)
+  var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
+  if (rid) { c.remove('vozret_' + adm.email); try { retMencionado_(adm, rid); } catch (e) {} }
   return { ok: true };
 }
 function vozWebTel_(convId) { convId = String(convId || '').trim(); return convId ? (CacheService.getScriptCache().get('vozweb_' + convId) || '') : ''; }
@@ -1054,18 +1079,18 @@ function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
   try { SpreadsheetApp.flush(); contextoReciente_(adm); } catch (e) {}   // deja listo el tema: si vuelve a llamar enseguida, el saludo no espera
 }
 
-/* ═══ AVISOS EN EL AURICULAR ═══════════════════════════════════════════════════════════════════════════════
-   Cuando Alma termina algo que quedó en segundo plano (o Claude responde un pedido), además del WhatsApp deja un aviso
-   corto para la app de iPhone. Con «Alma con el anillo» la app pregunta cada 30 s (vozAvisos), suena la señal y Alma lo
-   dice en el auricular con su voz. Si después tocas dos veces el anillo, la conversación retoma ese aviso.
-   Propiedades: VOZ_AVISOS (cola por correo), VOZ_TTS_MODELO (por defecto eleven_multilingual_v2). */
-function vozAvisoPoner_(adm, texto) {
+/* ═══ AVISOS EN LA APP ═════════════════════════════════════════════════════════════════════════════════════
+   Cuando Alma termina algo de segundo plano que necesita algo de ti (o Claude responde un pedido), deja un aviso para la
+   app de iPhone: la app pregunta cada 45 s (vozAvisos) y lo muestra como notificación. Alma no lo dice sola al oído:
+   lo cuenta al retomar, cuando vuelves a hablarle (temas por retomar, retomar.js).
+   Propiedades: VOZ_AVISOS (cola por correo), VOZ_TTS_MODELO (por defecto eleven_multilingual_v2, para vozTts_). */
+function vozAvisoPoner_(adm, texto, retId) {
   if (!adm || !adm.email || !String(texto || '').trim()) return;
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(); lock.waitLock(10000);
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
-    l.push({ id: 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) });
+    l.push({ id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) });
     t[adm.email] = l.slice(-5); p.setProperty('VOZ_AVISOS', JSON.stringify(t));
   } finally { lock.releaseLock(); }
 }
@@ -1077,7 +1102,8 @@ function vozAvisoCorto_(texto) {
   try { t = String(claude_(CFG.MODELO_CLASIFICADOR, 120, 'Convierte este mensaje en un aviso hablado de 1 o 2 frases (máx. 30 palabras), en español, cálido y directo, como lo diría una asistente al oído. Sin enlaces ni listas. Devuelve solo el aviso.', s.slice(0, 3000), 0.3)).trim(); } catch (e) {}
   return t || s.slice(0, 220).replace(/\s+\S*$/, '') + '…';
 }
-/* App de iPhone: los avisos pendientes de quien tiene la sesión, con su audio (voz de Alma). Se entregan una sola vez. */
+/* App de iPhone: los avisos nuevos (se muestran como notificación; se entregan una sola vez), cuántos temas hay por retomar
+   y cuántas cosas sigue trabajando Alma en segundo plano (mientras haya, la app queda lista para el anillo). */
 function vozAvisos_(ses) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), mios = [];
@@ -1087,7 +1113,17 @@ function vozAvisos_(ses) {
     mios = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
     if (mios.length) { delete t[adm.email]; p.setProperty('VOZ_AVISOS', JSON.stringify(t)); }
   } finally { lock.releaseLock(); }
-  return { ok: true, avisos: mios.map(function (a) { return { id: a.id, ts: a.ts, texto: a.texto, audio: vozTts_(a.texto) }; }) };
+  return { ok: true, avisos: mios.map(function (a) { return { id: a.id, ts: a.ts, texto: a.texto }; }), pendientes: retLeer_(adm).length, trabajando: vozTrabajando_(adm, 0) };
+}
+/* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
+   Cada una caduca a los 30 min por si algo se cayó a medio camino. */
+function vozTrabajando_(adm, delta) {
+  var c = CacheService.getScriptCache(), k = 'voztrab_' + Utilities.base64EncodeWebSafe(String(adm.email)).slice(0, 200), l = [];
+  try { l = JSON.parse(c.get(k) || '[]'); } catch (e) {}
+  l = l.filter(function (t) { return Date.now() - t < 30 * 60000; });
+  if (delta > 0) l.push(Date.now()); else if (delta < 0) l.shift();
+  if (delta) c.put(k, JSON.stringify(l), 1800);
+  return l.length;
 }
 function vozTts_(texto) {
   texto = vozSinNotas_(texto);   // sin [softly], [whispers] ni otras notas: la voz siempre clara

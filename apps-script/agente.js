@@ -88,6 +88,8 @@ function claudeTools_(modelo, system, messages, tools, maxTokens) {
 /* ── Definición de herramientas ── */
 /* Herramientas solo de la app de Alma (música, casa): el Hub, WhatsApp y las web apps no las ven. */
 var AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
+/* Tolerancia de una llamada (retomar.js): hasta cuándo puede esperar la voz y qué pidió, por si sigue en segundo plano. */
+var AGENTE_PLAZO_ = 0, AGENTE_PEDIDO_ = '';
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
@@ -506,14 +508,35 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; }), final = '';
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
-  for (var vuelta = 0; vuelta < 8; vuelta++) {
-    var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
-    if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
-    var bloques = j.content || [];
-    msgs.push({ role: 'assistant', content: bloques });
-    var usos = bloques.filter(function (b) { return b.type === 'tool_use'; });
-    if (j.stop_reason === 'pause_turn') continue;   // búsqueda web larga: el servidor pide continuar
-    if (!usos.length || j.stop_reason !== 'tool_use') { final = bloques.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('').trim(); break; }
+  return opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
+}
+/* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (la tolerancia de una
+   llamada, retomar.js) se detiene entre pasos cuando se acaba el tiempo: guarda dónde iba y lo termina en segundo plano
+   (devuelve { seguira: true }). seguir = true: retoma una conversación guardada (puede terminar en herramientas sin ejecutar). */
+function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
+  var final = '', usosDe = function (m) { return m && m.role === 'assistant' && Array.isArray(m.content) ? m.content.filter(function (b) { return b.type === 'tool_use'; }) : []; };
+  var vencido = function () { return AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_; };
+  var cortar = function () {
+    var id = vozSeguirGuardar_({ email: adm.email, system: system, msgs: msgs, hechas: ctx.hechas, app: AGENTE_APP_, pedido: AGENTE_PEDIDO_ });
+    return { respuesta: '', hechas: ctx.hechas, seguira: true, id: id };
+  };
+  if (seguir) {   // la llamada ya terminó: que lo sepa al pensar lo que falta
+    var ul = msgs[msgs.length - 1];
+    if (ul && ul.role === 'user' && Array.isArray(ul.content)) ul.content.push({ type: 'text', text: '(La llamada ya terminó: sigue y termina el pedido; tu respuesta final le llega por escrito.)' });
+  }
+  for (var vuelta = desde || 0; vuelta < 8; vuelta++) {
+    var usos = usosDe(msgs[msgs.length - 1]);
+    if (!usos.length) {
+      if (vuelta > (desde || 0) && vencido()) return cortar();
+      var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
+      if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
+      var bloques = j.content || [];
+      msgs.push({ role: 'assistant', content: bloques });
+      usos = bloques.filter(function (b) { return b.type === 'tool_use'; });
+      if (j.stop_reason === 'pause_turn') continue;   // búsqueda web larga: el servidor pide continuar
+      if (!usos.length || j.stop_reason !== 'tool_use') { final = bloques.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('').trim(); break; }
+      if (vencido()) return cortar();   // las herramientas se ejecutan en segundo plano
+    }
     msgs.push({ role: 'user', content: usos.map(function (u) {
       var res; try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen

@@ -160,7 +160,7 @@ function paraClaudeAvisar_(titulo, voz, estado) {
   p.setProperty('DESARROLLO_NOVEDADES', JSON.stringify(nov.slice(-5)));
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
-    try { vozAvisoPoner_(jefe, voz); } catch (e) {}   // y al oído, en la app de iPhone
+    try { var it = retPoner_(jefe, { texto: voz, importancia: 2, origen: 'claude' }); vozAvisoPoner_(jefe, voz, it && it.id); } catch (e) {}   // tema por retomar y notificación en la app de iPhone
     if (jefe && jefe.tels.length) waEnviar_(jefe.wa || jefe.tels[0], voz + (estado === 'listo' ? '\n\nEl detalle está en el Hub, conversación Desarrollo.' : ''));
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }
 }

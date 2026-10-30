@@ -136,6 +136,15 @@
   .area.health { background: linear-gradient(150deg, #E3A47F, #C88761); }
   .area.comunidad { background: linear-gradient(150deg, #8FA5C8, #6E86AC); }
   .area.espiritualidad { background: linear-gradient(150deg, #B8B6C8, #8D8AA6); }
+  /* Cajones del archivo: más bajos y en tonos de arena (no son áreas de vida) */
+  .rejilla.cajones { grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .area.cajon { min-height: 104px; padding: 13px; border-radius: 22px; color: #3E3F3F; }
+  .area.cajon b { font-size: 19px; text-shadow: none; }
+  .area.cajon span { font-size: 10.5px; opacity: .75; }
+  .area.cajon em { background: rgba(62,63,63,.1); }
+  .area.ideas { background: linear-gradient(150deg, #F3E3D3, #E8CDB5); }
+  .area.interes { background: linear-gradient(150deg, #EFE9DF, #DCD3C4); }
+  .area.ocio { background: linear-gradient(150deg, #EDE6E4, #D9CCC8); }
   .sec-t { margin: 22px 4px 10px; font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; }
   .tarjeta { background: #fff; border-radius: 22px; padding: 16px; margin-bottom: 10px; box-shadow: 0 22px 44px -30px rgba(70,50,40,.45); }
   .tarjeta h4 { margin: 0; font: 600 16px Montserrat, system-ui, sans-serif; }
@@ -282,7 +291,7 @@
   var AR = { datos: null, area: null, abierta: false, cargando: null };
   function areasCargar() {
     if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
-    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) AR.datos = r.areas; return r; }, function () { AR.cargando = null; return null; }));
+    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; } return r; }, function () { AR.cargando = null; return null; }));
   }
   function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
 
@@ -408,9 +417,24 @@
         b.onclick = function () { AR.area = a.k; areasPintar(); c.scrollTop = 0; };
         g.appendChild(b);
       });
-      c.appendChild(g); return;
+      c.appendChild(g);
+      /* El archivo: lo que no es un área de vida (lo ordena el departamento de Archivo) */
+      if (AR.cajones && AR.cajones.length) {
+        c.appendChild(el("div", "sec-t", "Archivo"));
+        var gc = el("div", "rejilla cajones");
+        AR.cajones.forEach(function (a) {
+          var b = el("button", "area cajon " + a.k); b.type = "button";
+          if (a.total) b.appendChild(el("em", "", String(a.total)));
+          b.appendChild(el("b", "", a.n)); b.appendChild(el("span", "", a.d));
+          b.onclick = function () { AR.area = a.k; areasPintar(); c.scrollTop = 0; };
+          gc.appendChild(b);
+        });
+        c.appendChild(gc);
+        if (AR.sin) c.appendChild(el("div", "vacio", AR.sin === 1 ? "Una conversación todavía sin lugar: el departamento de Archivo la revisa en su próxima ronda." : AR.sin + " conversaciones todavía sin lugar: el departamento de Archivo las revisa en su próxima ronda."));
+      }
+      return;
     }
-    var a = AR.datos.filter(function (x) { return x.k === AR.area; })[0]; if (!a) { AR.area = null; areasPintar(); return; }
+    var a = todas().filter(function (x) { return x.k === AR.area; })[0]; if (!a) { AR.area = null; areasPintar(); return; }
     $("a-tit").textContent = a.n; $("a-sub").textContent = a.d;
     if (a.proyectos.length) {
       c.appendChild(el("div", "sec-t", "Proyectos"));
@@ -430,17 +454,19 @@
     a.conversaciones.forEach(function (v) {
       var t = el("div", "tarjeta"), b = el("button", "conv"); b.type = "button";
       var arr = el("div", "arr"); arr.appendChild(el("h4", "", v.titulo)); arr.appendChild(el("small", "", cuando(v.ts))); b.appendChild(arr);
-      b.appendChild(el("div", "de", v.fuente)); if (v.texto) b.appendChild(el("p", "", v.texto));
+      b.appendChild(el("div", "de", v.fuente + (v.tipo === "permanente" ? " · para quedarse" : v.tipo === "proceso" ? " · proceso" : ""))); if (v.texto) b.appendChild(el("p", "", v.texto));
       if (v.url) b.onclick = function () { abrirLink(v.url); };
       t.appendChild(b); t.appendChild(botonMover(v.clave, a.k)); c.appendChild(t);
     });
   }
-  /* «Mover a otra área»: las seis como botones; la actual marcada. */
+  /* Las seis áreas y los cajones del archivo (Ideas, Interés, Ocio). */
+  function todas() { return (AR.datos || []).concat(AR.cajones || []); }
+  /* «Mover a otra área»: las seis y los cajones como botones; la actual marcada. */
   function botonMover(clave, actual) {
     var w = el("div"), b = el("button", "b-mov", "Mover a otra área"); b.type = "button"; w.appendChild(b);
     b.onclick = function () {
-      w.innerHTML = ""; var m = el("div", "mover"); m.appendChild(el("span", "lbl", "¿A qué área va?"));
-      AR.datos.forEach(function (a) {
+      w.innerHTML = ""; var m = el("div", "mover"); m.appendChild(el("span", "lbl", "¿A dónde va?"));
+      todas().forEach(function (a) {
         var x = el("button", a.k === actual ? "ya" : "", a.n); x.type = "button";
         x.onclick = function () { if (a.k === actual) { w.innerHTML = ""; w.appendChild(b); return; } moverA(clave, actual, a.k); };
         m.appendChild(x);
@@ -451,7 +477,7 @@
   }
   /* Se mueve al instante en pantalla; el Hub lo guarda (queda como lo dejaste). */
   function moverA(clave, de, a) {
-    var src = AR.datos.filter(function (x) { return x.k === de; })[0], dst = AR.datos.filter(function (x) { return x.k === a; })[0];
+    var src = todas().filter(function (x) { return x.k === de; })[0], dst = todas().filter(function (x) { return x.k === a; })[0];
     if (!src || !dst) return;
     var ci = src.conversaciones.findIndex(function (v) { return v.clave === clave; });
     if (ci >= 0) { var v = src.conversaciones.splice(ci, 1)[0]; v.area = a; src.total--; dst.total++; dst.conversaciones.unshift(v); }

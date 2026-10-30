@@ -108,6 +108,8 @@ function vozQuien_(tel) {
   if (u) return { tipo: 'equipo', nombre: nombre, rol: roles || 'equipo' };
   var tec = false; try { tec = waCfg_().equipo.some(function (x) { return fin8_(x) === fin8_(tel); }); } catch (e) {}
   if (tec) return { tipo: 'equipo', nombre: nombre, rol: 'equipo operativo (técnicos / escalamiento)' };
+  /* La familia de Juan (ALMA_CONTACTOS tipo «familia», la guarda Juan con guardar_familia): nunca es huésped. */
+  try { var ct = contactoFicha_(tel); if (ct && ct.tipo === 'familia') return { tipo: 'familia', nombre: String(ct.nombre || '').trim().split(/\s+/)[0], rol: ct.rol || 'familia de Juan' }; } catch (e) {}
   return { tipo: 'externo' };
 }
 
@@ -136,6 +138,8 @@ function vozLookup_(b) {
     for (var x in base) if (x !== 'IMPORTANTE') o[x] = base[x];
     return o;
   }
+  if (q.tipo === 'familia') return { ok: true, caller_type: 'familia', team_member: false, caller_name: q.nombre, caller_role: q.rol, identified: true, today: vozHoy_(),
+    IMPORTANTE: 'NO ES HUÉSPED. Es ' + q.nombre + ' (' + q.rol + '). Ya está identificada por su número: no le pidas reserva ni datos. Trátala como indica QUIÉN LLAMA para caller_type = familia.' };
   var out = vozLookupHuesped_(b); out.caller_type = q.tipo;
   try { var enc0 = encargoAbierto_(tel0); if (enc0) { out.ENCARGO = encargoInstruccion_(enc0); } } catch (e) {}
   return out;
@@ -395,7 +399,7 @@ function vozQuienBloque_() {
   return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type). Tu PRIMERA acción en cada llamada, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número, consúltalo con la herramienta antes de contestar.',
     '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
-    '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma.',
+    '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma. Si no tienes cómo hacer algo que te piden, dilo en tu primera respuesta, no al final.',
     '· ESPERAR EN SILENCIO: no hables mientras la persona no haya dicho algo concreto. Si hay una pausa, un silencio, una muletilla («eh», «mmm») o una frase a medias («con el tema de los…»), no respondas ni la completes: usa skip_turn y espera a que termine la idea. Solo contestas cuando ya formuló una petición o pregunta clara; si dudas de si terminó, espera.',
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego no responde a una pregunta tuya, pregunta UNA sola vez si sigue ahí. Si sigue en silencio, despídete en una frase y usa end_call. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
@@ -406,6 +410,7 @@ function vozQuienBloque_() {
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
     '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo; si necesito algo de ti te aviso en la app», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
+    '· caller_type = familia: es de la familia de Juan (p. ej. su esposa). Llámala por su nombre y háblale en el idioma en que te hable (si te habla en inglés, en inglés). Aquí eres Alma, la asistente de Juan: nunca menciones Spacio AM. Puede pedirte todo lo PERSONAL de Juan (viajes, vuelos, agenda, proyectos personales) y que se lo mandes: usa secretaria con su pedido completo y confirma solo lo que secretaria confirme. Nada de Spacio AM (huéspedes, reservas, dinero, equipo): eso, que lo vea con Juan.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
@@ -646,6 +651,9 @@ function vozInicio_(b) {
     saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma… ¿En qué te ayudo?';
   } else if (tipo === 'registro') {
     ficha = 'Es un número de registros (edificio o contacto que solo comparte información de registros). Trátalo como indica QUIÉN LLAMA para caller_type = registro.';
+  } else if (tipo === 'familia') {
+    ficha = 'Es ' + (r.caller_name || 'alguien de la familia') + ' (' + (r.caller_role || 'familia de Juan') + '). No es huésped. Trátala como indica QUIÉN LLAMA para caller_type = familia.';
+    saludo = '¡Hola' + (r.caller_name ? ', ' + r.caller_name : '') + '! Soy Alma, la asistente de Juan. ¿En qué te ayudo?';
   } else if (tipo === 'propietario') {
     ficha = 'Es un socio o propietario de Spacio AM. Trátalo como indica QUIÉN LLAMA para caller_type = propietario.';
   } else if (r.verified && r.code) {
@@ -751,6 +759,7 @@ function vozTranscript_(id) {
    Queda registrado en su chat operativo (canal llamada). */
 function vozSecretaria_(b) {
   var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
+  if (!adm && tel) { var qf = vozQuien_(tel); if (qf.tipo === 'familia') return vozFamilia_(tel, qf, b); }
   if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
   /* Lo que es para Claude no espera la cola: se manda ya (paraclaude.js) y Alma confirma solo cuando Claude lo recibió. */
@@ -774,6 +783,24 @@ function vozSecretaria_(b) {
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 60 s), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+}
+
+/* Alguien de la familia de Juan pide algo (por llamada). Corre como Juan, pero solo con herramientas personales: nada
+   de Spacio AM. Lo que pide y lo que Alma responde quedan en el chat de Juan, con su nombre. */
+var FAMILIA_HERR_ = ['proyectos_personales', 'ver_proyecto', 'ver_conversacion_personal', 'mensaje_personal'];
+function vozFamilia_(tel, q, b) {
+  var jefe = adminsOp_().filter(function (a) { return a.principal; })[0];
+  var pedido = String(b.pedido || '').trim();
+  if (!jefe || !pedido) return { ok: false, error: 'NO SE HIZO NADA: falta el pedido.' };
+  var wa = normTel_(tel), texto = 'PEDIDO DE ' + q.nombre + ' (' + q.rol + '), por llamada desde su WhatsApp ' + wa + '. No es Juan: es su familia y puede tener todo lo PERSONAL de Juan ' +
+    '(viajes, vuelos, agenda, proyectos personales y lo que Juan pidió para ella), nunca nada de Spacio AM (huéspedes, reservas, dinero, equipo). Busca la información en la conversación con Juan y en sus proyectos personales. ' +
+    'Si pide que se lo mandes, mándaselo a su WhatsApp (' + wa + ') con mensaje_personal, como Alma, la asistente de Juan, en el idioma en que habla. Responde en una o dos frases para decírselo por voz.\n\n' + pedido;
+  var previos = opFilas_(jefe.email, 30);
+  opGuardar_(jefe, 'yo', 'llamada', q.nombre + ' (por llamada): ' + pedido);
+  AGENTE_PERMITIDAS_ = FAMILIA_HERR_;
+  var r; try { r = opAgente_(jefe, texto, 'llamada', [], previos); } finally { AGENTE_PERMITIDAS_ = null; }
+  opGuardar_(jefe, 'alma', 'llamada', r.respuesta, r.hechas);
+  return { ok: true, resultado: r.respuesta, acciones: (r.hechas || []).map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
 
 /* «Mejora para Claude: …» dicho en una llamada. Antes iba a la cola de segundo plano y dependía de que la secretaria

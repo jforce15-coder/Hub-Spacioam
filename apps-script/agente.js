@@ -90,6 +90,8 @@ function claudeTools_(modelo, system, messages, tools, maxTokens) {
 /* ── Definición de herramientas ── */
 /* Herramientas solo de la app de Alma (música, casa): el Hub, WhatsApp y las web apps no las ven. */
 var AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
+/* Si no es null, solo esas herramientas (p. ej. la familia de Juan: vozFamilia_ en voz.js). */
+var AGENTE_PERMITIDAS_ = null;
 /* Tolerancia de una llamada (retomar.js): hasta cuándo puede esperar la voz y qué pidió, por si sigue en segundo plano. */
 var AGENTE_PLAZO_ = 0, AGENTE_PEDIDO_ = '';
 function agHerramientas_() {
@@ -179,6 +181,10 @@ function agHerramientas_() {
       { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
         tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
         ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] } }, ['titulo', 'app', 'tipo', 'que_quiere']),
+    T('enviar_correo', 'Manda un correo a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
+      { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
+    T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
+      { nombre: s('Nombre de la persona'), relacion: s('Qué es de Juan: «esposa de Juan», «mamá de Juan»…'), numero: s('WhatsApp con código de país (opcional si ya hay conversación)') }, ['nombre', 'relacion']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ];
@@ -251,7 +257,8 @@ function agCancelaciones_(desde, hasta) {
   return out;
 }
 function agEjecutar_(adm, nombre, inp, ctx) {
-  inp = inp || {}; var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
+  inp = inp || {}; if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
+  var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
       var q = n(inp.texto), f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
@@ -476,6 +483,23 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var ids = /tod/.test(nums) ? 'todas' : nums.split(/[^0-9]+/).filter(String).map(function (k) { var p = P[Number(k) - 1]; return p ? p.id : ''; }).filter(String);
       var rd = agDecidir_(adm, ids, inp.aprobar !== false); if (rd.ok) ctx.hechas.push({ tipo: 'agente', resumen: (inp.aprobar !== false ? 'Aprobado' : 'Rechazado') + ' · ' + (rd.decididas || []).length + ' propuesta(s)' }); return rd;
     }
+    case 'enviar_correo': {
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que mande correos.' };
+      var paraC = String(inp.para || '').trim();
+      if (!/^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i.test(paraC)) return { error: 'Necesito un correo válido (p. ej. hola@spacioam.com).' };
+      var rc = correoSimple_(paraC, inp.asunto, inp.texto);
+      if (rc.ok) ctx.hechas.push({ tipo: 'correo', resumen: 'Correo a ' + paraC + ' · ' + String(inp.asunto || '').slice(0, 60) });
+      return rc;
+    }
+    case 'guardar_familia': {
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede decir quién es de su familia.' };
+      var nomF = String(inp.nombre || '').trim(), numF = normTel_(inp.numero || '') || familiaNumero_(nomF);
+      if (!nomF) return { error: 'Falta el nombre.' };
+      if (!numF) return { error: 'No encuentro el WhatsApp de ' + nomF + '. Pídele a Juan el número con código de país.' };
+      contactoGuardar_(numF, { nombre: nomF, tipo: 'familia', rol: inp.relacion || 'familia de Juan', origen: 'Juan' });
+      ctx.hechas.push({ tipo: 'familia', resumen: nomF + ' guardada como familia (' + (inp.relacion || '') + ')' });
+      return { ok: true, nombre: nomF, numero: numF, nota: 'Desde ahora Alma la reconoce cuando llama, la trata por su nombre y le ayuda con lo personal de Juan.' };
+    }
     case 'mejora_para_claude': { var rm = paraClaudeCrear_(adm, inp); if (rm.ok) ctx.hechas.push({ tipo: 'mejora', resumen: 'Para Claude · ' + String(inp.titulo).slice(0, 80) }); return rm; }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
@@ -521,7 +545,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   if (msgs.length && msgs[msgs.length - 1].role === 'user') msgs.push({ role: 'assistant', content: '(continúo)' });
   msgs.push({ role: 'user', content: contenido });
   var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
-  var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; }), final = '';
+  var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
   return opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
@@ -811,4 +835,15 @@ function pulirMsgHuesped_(texto, canal) {
   });
   if (actual.length) parrafos.push(actual.join(' '));
   return parrafos.join('\n\n');
+}
+
+/* Un correo que Juan pidió mandar (enviar_correo): texto simple, desde hola@spacioam.com si el alias existe. Queda en ALMA_CORREOS. */
+function correoSimple_(para, asunto, texto) {
+  asunto = String(asunto || '').trim().slice(0, 150) || 'Mensaje de Alma'; texto = String(texto || '').trim();
+  if (!texto) return { error: 'Falta el texto del correo.' };
+  var o = { name: 'Alma' }, yo = Session.getEffectiveUser().getEmail(), desde = yo, estado = 'enviado';
+  try { if (yo !== CFG.EMAIL_DESDE && GmailApp.getAliases().indexOf(CFG.EMAIL_DESDE) !== -1) { o.from = CFG.EMAIL_DESDE; desde = CFG.EMAIL_DESDE; } } catch (e) {}
+  try { GmailApp.sendEmail(para, asunto, texto, o); } catch (e) { estado = 'error: ' + String(e).slice(0, 200); console.error('correoSimple_: ' + e); }
+  try { hojaCrear_('ALMA_CORREOS', ['fecha', 'tipo', 'para', 'desde', 'asunto', 'propiedad', 'codigo', 'estado', 'texto', 'html']).appendRow([new Date().toISOString(), 'pedido de Juan', para, desde, asunto, '', '', estado, texto.slice(0, 4000), '']); } catch (e) {}
+  return estado === 'enviado' ? { ok: true, enviado_a: para, desde: desde } : { error: 'No salió el correo: ' + estado };
 }

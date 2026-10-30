@@ -58,6 +58,14 @@
   .forma label input { width: 18px; height: 18px; accent-color: var(--durazno); }
   .estado { font: 600 10px Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #EFEBE6; color: var(--suave); }
   .estado.listo { background: #FBE3DA; color: #A6503C; } .estado.env { background: #E6EFE3; color: #4E7A4C; }
+  .resumen { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+  .resumen span { font: 600 11.5px Montserrat, sans-serif; padding: 6px 10px; border-radius: 999px; background: #fff; box-shadow: 0 8px 18px -14px rgba(70,50,40,.5); color: #5A5856; }
+  .resumen span.fuerte { background: var(--durazno); color: #fff; }
+  .urg { display: inline-block; font: 700 10px Montserrat, sans-serif; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; background: #F7E1DA; color: #A6503C; margin-top: 6px; }
+  .sec .btn { margin-left: auto; min-height: 32px; padding: 6px 12px; font-size: 11.5px; letter-spacing: 0; text-transform: none; }
+  .entrega { margin-top: 8px; font: 500 12px/1.5 Montserrat, sans-serif; color: #5A5856; }
+  .entrega b { font-weight: 600; } .entrega .ok { color: #4E7A4C; } .entrega .mal { color: #A6503C; }
+  .entrega ul { margin: 6px 0 0; padding-left: 18px; }
   .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
     font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
   .msg.on { opacity: 1; }
@@ -129,10 +137,12 @@
         bt.appendChild(boton("Enviar", "si", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "enviar", texto: ta.value }, base)).then(function (r) { if (r && r.ok) { aviso("Enviada: sale en unos minutos desde " + h.cuenta); setTimeout(cargar, 600); } else { b.disabled = false; aviso((r && r.error) || "No se pudo"); } }); }));
         bt.appendChild(boton("Descartar", "", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "descartar" }, base)).then(function () { quitar(c); }); }));
       }
+      if (h.seguimiento) { c.insertBefore(el("span", "urg", "Sin respuesta hace días"), bt); bt.appendChild(boton("Que Alma dé seguimiento", "si", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "seguimiento" }, base)).then(function (r) { if (r && r.ok) { aviso("Alma te deja el seguimiento listo en unos minutos"); setTimeout(cargar, 600); } else { b.disabled = false; aviso((r && r.error) || "No se pudo"); } }); })); }
       bt.appendChild(boton("Dejar de seguirlo", "", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "soltar" }, base)).then(function () { aviso("Alma ya no sigue ese hilo"); quitar(c); }); }));
       c.appendChild(bt); raiz.appendChild(c);
     });
   }
+  function posponer(m, c) { return boton("Mañana", "", function (b) { hacer({ que: "posponer", id: m.id, dias: 1 }, b, function () { aviso("Te lo recuerdo mañana a las 8"); quitar(c); }); }); }
   function quitar(card) { card.style.transition = "opacity .3s"; card.style.opacity = "0"; setTimeout(function () { card.remove(); }, 300); }
 
   function correo(m, extra) {
@@ -163,7 +173,19 @@
 
   function pintar() {
     raiz.innerHTML = "";
+    var rs = D.resumen || {}, chips = [[rs.responder, "por responder", true], [rs.autorizacion, "autorización", true], [rs.seguimiento, "sin respuesta", false], [rs.leer, "para leer", false], [rs.fyi, "solo para que sepas", false]].filter(function (x) { return x[0]; });
+    if (chips.length) { var rz = el("div", "resumen"); chips.forEach(function (x) { rz.appendChild(el("span", x[2] ? "fuerte" : "", x[0] + " " + x[1])); }); raiz.appendChild(rz); }
+    else if (D.cuentas.length) raiz.appendChild(el("div", "resumen")).appendChild(el("span", "", "Bandeja en cero ✓"));
     hilos();
+    if (D.responder && D.responder.length) {
+      raiz.appendChild(sec("Por responder", D.responder.length));
+      D.responder.forEach(function (m) {
+        raiz.appendChild(correo(m, function (bt, c) {
+          if (m.urgente === "si") c.insertBefore(el("span", "urg", "Urgente"), bt);
+          var f = involucrar(m, bt); bt.appendChild(posponer(m, c)); bt.appendChild(boton("Archivar", "", function (b) { hacer({ que: "archivar", id: m.id }, b, function () { quitar(c); }); })); c.appendChild(f);
+        }));
+      });
+    }
     if (D.codigos.length) {
       raiz.appendChild(sec("Códigos", D.codigos.length));
       D.codigos.forEach(function (m) {
@@ -192,17 +214,37 @@
         d.appendChild(l); raiz.appendChild(d);
       });
     }
+    if (D.fyi && D.fyi.length) {
+      var sf = sec("Solo para que sepas", D.fyi.length);
+      sf.appendChild(boton("Archivar todos", "", function (b) { hacer({ que: "archivar", ids: D.fyi.map(function (m) { return m.id; }) }, b, function () { aviso("Archivados también en Gmail"); setTimeout(cargar, 400); }); }));
+      raiz.appendChild(sf);
+      var dg = el("details", "grupo"), sm = el("summary", "", "Avisos, recibos y notificaciones"); sm.appendChild(el("em", "", String(D.fyi.length))); dg.appendChild(sm);
+      var lf = el("div", "lista"); D.fyi.forEach(function (m) { var x = el("div"); x.appendChild(el("h4", "", m.asunto || "(sin asunto)")); x.appendChild(el("small", "", (m.de_nombre || m.de) + " · " + cuando(m.fecha) + " · a " + m.cuenta)); lf.appendChild(x); });
+      dg.appendChild(lf); raiz.appendChild(dg);
+    }
     if (D.spam.length) { raiz.appendChild(sec("Posible spam", D.spam.length)); D.spam.forEach(function (r) { raiz.appendChild(remitente(r, true)); }); }
-    if (D.promociones.length) { raiz.appendChild(sec("Promociones y descuentos", D.promociones.length)); D.promociones.forEach(function (r) { raiz.appendChild(remitente(r, false)); }); }
-    if (D.cuentas.length && !D.codigos.length && !D.autorizacion.length && !D.verificacion.length && !D.proyectos.length && !D.spam.length && !D.promociones.length)
-      raiz.appendChild(el("div", "vacio", "Todo en orden: no hay correos nuevos."));
+    if (D.promociones.length) {
+      var sp = sec("Promociones y descuentos", D.promociones.length);
+      sp.appendChild(boton("Archivar todas", "", function (b) { var ids = []; D.promociones.forEach(function (r) { r.correos.forEach(function (m) { ids.push(m.id); }); }); hacer({ que: "archivar", ids: ids }, b, function () { aviso("Promociones archivadas también en Gmail"); setTimeout(cargar, 400); }); }));
+      raiz.appendChild(sp); D.promociones.forEach(function (r) { raiz.appendChild(remitente(r, false)); }); }
+
     cuentas();
   }
 
   /* Cuentas conectadas y conectar otra: la app arma el puente con su llave; se pega una vez en script.google.com con esa cuenta. */
   function cuentas() {
     raiz.appendChild(sec("Tus cuentas", D.cuentas.length || ""));
-    D.cuentas.forEach(function (c) { var k = el("div", "card"), de = el("div", "de", c.proyecto || "Personal"); de.appendChild(el("span", "", c.ultima ? "revisó " + cuando(c.ultima) : "esperando el puente")); k.appendChild(de); k.appendChild(el("h4", "", c.cuenta)); raiz.appendChild(k); });
+    D.cuentas.forEach(function (c) { var k = el("div", "card"), de = el("div", "de", c.proyecto || "Personal"); de.appendChild(el("span", "", c.ultima ? "revisó " + cuando(c.ultima) : "esperando el puente")); k.appendChild(de); k.appendChild(el("h4", "", c.cuenta));
+      var e = c.entrega || {};
+      if (e.dominio) {
+        var en = el("div", "entrega"), marca = function (ok, t) { var x = el("span", ok ? "ok" : "mal", (ok ? "✓ " : "✗ ") + t); return x; };
+        en.appendChild(el("b", "", "Para que tus respuestas lleguen bien · " + e.dominio + ": "));
+        en.appendChild(marca(e.spf && e.spf_google, "SPF")); en.appendChild(document.createTextNode(" · ")); en.appendChild(marca(e.dkim, "DKIM")); en.appendChild(document.createTextNode(" · "));
+        en.appendChild(marca(e.dmarc === "quarantine" || e.dmarc === "reject", "DMARC" + (e.dmarc ? " (" + e.dmarc + ")" : "")));
+        if (e.consejos && e.consejos.length) { var ul = el("ul"); e.consejos.forEach(function (t) { ul.appendChild(el("li", "", t)); }); en.appendChild(ul); }
+        k.appendChild(en);
+      }
+      raiz.appendChild(k); });
     var f = el("div", "card conectar"); f.appendChild(el("h4", "", D.cuentas.length ? "Conectar otro correo" : "Conecta tu primer correo"));
     var i1 = el("input"); i1.type = "email"; i1.placeholder = "tu@gmail.com"; i1.autocomplete = "email";
     var i2 = el("input"); i2.placeholder = "Proyecto (vacío si es personal)";

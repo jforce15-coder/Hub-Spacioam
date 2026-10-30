@@ -30,7 +30,7 @@ function revisar() {
       var lu = '', lup = ''; try { lu = m.getHeader('List-Unsubscribe') || ''; lup = m.getHeader('List-Unsubscribe-Post') || ''; } catch (e) {}
       correos.push({ t: t, id: m.getId(), hilo: h.getId(), de: dir, de_nombre: dm ? dm[1] : '', asunto: m.getSubject(), fecha: m.getDate().toISOString(),
         cuerpo: String(m.getPlainBody() || '').slice(0, 1500),
-        unsub_url: (lu.match(/<(https?:[^>]+)>/) || [])[1] || '', unsub_mailto: (lu.match(/<mailto:([^>]+)>/) || [])[1] || '', unsub_un_clic: /one-click/i.test(lup) });
+        unsub_url: (lu.match(/<(https?:[^>]+)>/) || [])[1] || '', unsub_mailto: (lu.match(/<mailto:([^>]+)>/) || [])[1] || '', unsub_un_clic: /one-click/i.test(lup), auto: automatico(m) });
     });
   });
   correos.sort(function (a, b) { return a.t - b.t; }); correos = correos.slice(0, 60);   // lo más viejo primero; lo demás en la próxima vuelta
@@ -44,13 +44,21 @@ function revisar() {
   if (leer.length) {
     var hilos = leer.slice(0, 5).map(function (id) {
       var h = GmailApp.getThreadById(id); if (!h) return null;
-      return { hilo: id, mensajes: h.getMessages().slice(-8).map(function (m) { return { de: m.getFrom(), fecha: m.getDate().toISOString(), cuerpo: String(m.getPlainBody() || '').slice(0, 3000) }; }) };
+      return { hilo: id, mensajes: h.getMessages().slice(-8).map(function (m) { return { de: m.getFrom(), fecha: m.getDate().toISOString(), cuerpo: String(m.getPlainBody() || '').slice(0, 3000), auto: automatico(m) }; }) };
     }).filter(Boolean);
     var r2 = UrlFetchApp.fetch(HUB, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true,
       payload: JSON.stringify({ correoPuente: 1, cuenta: CUENTA, llave: LLAVE, correos: [], hilos: hilos }) });
     var j2 = {}; try { j2 = JSON.parse(r2.getContentText() || '{}'); } catch (e) {}
     hacer(j2.acciones || []);
   }
+}
+
+/* ¿Lo mandó una máquina? (respuesta automática, fuera de oficina, aviso masivo): Alma no le contesta, así no hay bucles. */
+function automatico(m) {
+  var h = function (n) { try { return String(m.getHeader(n) || ''); } catch (e) { return ''; } };
+  var as = h('Auto-Submitted').toLowerCase();
+  return (as && as !== 'no') || /^(bulk|junk|list|auto_reply)$/i.test(h('Precedence').trim()) || !!h('X-Autoreply') || !!h('X-Autorespond') ||
+    /^(respuesta automática|automatic reply|auto(matic)?[ -]?reply|out of (the )?office|fuera de la oficina)/i.test(m.getSubject());
 }
 
 /* Lo que Alma pidió: spam, archivar, responder (al último mensaje que no es tuyo) o leer (devuelve los hilos a traer). */

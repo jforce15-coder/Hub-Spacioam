@@ -40,10 +40,16 @@
   .ajustes svg { width: 20px; height: 20px; }
   /* Modo conferencia: el mismo botón que Ajustes, junto a «Iniciar llamada», un poco más abajo y separado (lo ubica confUbicar) */
   .ajustes.conf { right: auto; top: 0; left: 0; }
-  .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 0 rgba(233,130,106,.55); animation: confLate 2.4s ease-in-out infinite; }
-  .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #FFFDFB; }
-  @keyframes confLate { 50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 7px rgba(233,130,106,0); } }
-  @media (prefers-reduced-motion: reduce) { .ajustes.conf.activa { animation: none; } }
+  .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
+  .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: #FFFDFB; }
+  /* «Alma está escuchando»: un solo puntito durazno que respira, sin palabras. Bajo la roca (inicio con escucha activa) y en
+     la esquina del botón del modo conferencia. Es el mismo en los dos lados. */
+  .escucha-p { position: fixed; z-index: 2147482500; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; pointer-events: none; background: #E9826A;
+    box-shadow: 0 0 6px 1px rgba(233,130,106,.45); opacity: 0; transition: opacity .8s ease; }
+  .escucha-p.on, .ajustes.conf.escucha::before { animation: escResp 3.2s ease-in-out infinite; }
+  .ajustes.conf.escucha::before { content: ""; position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 6px 1px rgba(233,130,106,.45); }
+  @keyframes escResp { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
+  @media (prefers-reduced-motion: reduce) { .escucha-p.on, .ajustes.conf.escucha::before { animation: none; opacity: .7; } }
   .velo { position: fixed; inset: 0; z-index: 2147483100; background: rgba(40,30,32,.28); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .velo.on { opacity: 1; pointer-events: auto; }
   .panel { position: fixed; left: 50%; bottom: 0; z-index: 2147483200; width: min(460px, 100%); box-sizing: border-box; max-height: 86vh; overflow: auto;
@@ -204,6 +210,7 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<span class="escucha-p" id="escucha-p" aria-hidden="true"></span>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
@@ -226,6 +233,10 @@
   </div>
   <div class="grupo" id="g-face" hidden>
     <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
+  </div>
+  <div class="grupo" id="g-escucha" hidden>
+    <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
+    <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El puntito bajo la roca te dice que está escuchando.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
@@ -662,12 +673,33 @@
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
+    b.classList.toggle("escucha", CONF.activa && !e.enLlamada);   // escuchando la reunión (en la llamada, no)
     b.classList.toggle("activa", CONF.activa); b.classList.toggle("voces", !!e.voces); b.setAttribute("aria-pressed", CONF.activa ? "true" : "false");
     b.setAttribute("aria-label", e.error ? e.error : CONF.activa ? (e.voces ? "Modo conferencia: reunión, con voces" : "Modo conferencia: escuchando") + (e.minutos ? " · " + e.minutos + " min" : "") : "Modo conferencia");
     if (e.error) try { alert(e.error); } catch (x) {}
   } };
   $("b-conf").onclick = function () { vozConfig(); nativa({ accion: "conferencia", que: CONF.activa ? "off" : "on" }); };
   if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
+  /* Inicio con escucha activa (EscuchaInicio.swift): la app escucha mientras el inicio está a la vista y quieto (sin chat,
+     Pendientes, notificaciones ni llamada) y despierta al oír «Alma». La página le dice cuándo; la app, si está escuchando. */
+  var ESC = { quieto: null, escuchando: false };
+  function escUbicar() {
+    var p = $("escucha-p"), st = document.querySelector("#sa-nav-root .san-ov-st"), r = st && st.getBoundingClientRect();
+    var visible = !!(r && r.width) && +getComputedStyle(st).opacity > .5 && getComputedStyle(st).visibility !== "hidden";
+    var quieto = visible && hay() && !document.hidden && !document.body.classList.contains("san-hoja") && !document.body.classList.contains("orbita-on");
+    if (quieto !== ESC.quieto) { ESC.quieto = quieto; nativa({ accion: "escucha", que: "pagina", on: quieto }); }
+    p.classList.toggle("on", ESC.escuchando && quieto); p.style.opacity = ESC.escuchando && quieto ? "" : "0";
+    if (visible) { p.style.left = (r.left + r.width / 2) + "px"; p.style.top = (r.top - 26) + "px"; }   // entre la roca y «Toca a Alma»
+  }
+  window.AlmaEscucha = { evento: function (e) {
+    if (!e) return; $("g-escucha").hidden = false; $("i-escucha").checked = !!e.activada;
+    ESC.escuchando = !!e.escuchando; escUbicar();
+  } };
+  $("i-escucha").onchange = function () { nativa({ accion: "escucha", que: "activar", on: this.checked }); };
+  if (NATIVA) {
+    setTimeout(function () { nativa({ accion: "escucha", que: "estado" }); escUbicar(); }, 1200); setInterval(escUbicar, 700);
+    document.addEventListener("visibilitychange", escUbicar); addEventListener("pagehide", function () { nativa({ accion: "escucha", que: "pagina", on: false }); });
+  }
   $("i-anillo").onchange = function () { vozConfig(); nativa({ accion: "voz", que: "anillo", on: this.checked }); };
   /* Probar con la app abierta: si aquí funciona y bloqueado no, el problema es del segundo plano */
   $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };

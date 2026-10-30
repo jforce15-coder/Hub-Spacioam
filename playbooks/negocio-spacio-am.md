@@ -20,4 +20,5 @@
 - `archivo` — ordenar conversaciones, archivos y correos; reglas de guardado
 - `correos` — bandeja de correos, responder hilos, desuscribir, spam
 - `desarrollo` — cambios al sistema (pedidos para Claude) y la retro
+- `mejora` — el equipo de mejora continua: gastar menos sin quitar funciones ni bajar la calidad
 - `hub`, `api`, `app-alma`, `hola`, `epi`, `grow`, `mi`, `docs` — cada app y su subdepartamento de Desarrollo

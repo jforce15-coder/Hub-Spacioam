@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Tu equipo · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- El equipo de agentes detrás de Alma (apps-script/agentes.js): Alma habla con todos; ellos revisan y proponen.
+     Aquí se ve el organigrama, lo que cada uno hizo y lo que espera tu sí. Solo el administrador principal. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --linea: rgba(62,63,63,.12); --durazno: #E9826A; --durazno-t: #B5624E; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FAF8F6; color: var(--tinta); font: 15px/1.5 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 680px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 18px max(40px, env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  header .t { flex: 1; }
+  h1 { margin: 0; font: 400 32px/1.05 Valky, Georgia, serif; }
+  header small { display: block; margin-top: 6px; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; }
+  .redondo { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; display: grid; place-items: center; color: var(--tinta); text-decoration: none;
+    box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); }
+  .redondo svg { width: 20px; height: 20px; }
+  /* organigrama: Alma arriba, sus agentes debajo */
+  .org { position: relative; margin: 18px 0 8px; }
+  .alma { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 26px; }
+  .piedra { width: 64px; height: 64px; border-radius: 50%; position: relative; display: grid; place-items: center;
+    background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 45%, #E4DFD9 80%, #D3CDC6 100%);
+    box-shadow: 0 16px 24px -12px rgba(40,28,24,.42), inset 0 -6px 10px rgba(110,90,80,.12), inset 0 4px 8px rgba(255,255,255,.8); }
+  .piedra::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: linear-gradient(180deg, #8FA5C8, #B8B6C8 30%, #E9826A 56%, #E3A47F 74%, #A98C93);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px)); }
+  .piedra svg { width: 22px; height: 22px; color: #CBC4BC; filter: drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32)); }
+  .alma b { font: 400 22px Valky, Georgia, serif; }
+  .alma span { font: 500 12px Montserrat, sans-serif; color: var(--suave); margin-top: -6px; }
+  .alma::after { content: ""; position: absolute; left: 50%; top: 104px; width: 1px; height: 14px; background: var(--linea); }
+  .equipo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 520px) { .equipo { grid-template-columns: 1fr; } }
+  .ag { background: #fff; border-radius: 22px; padding: 16px; box-shadow: 0 22px 44px -30px rgba(70,50,40,.45); display: flex; flex-direction: column; gap: 8px; }
+  .ag.pausado { opacity: .6; }
+  .ag .arr { display: flex; align-items: center; gap: 8px; }
+  .ag h3 { margin: 0; flex: 1; font: 400 21px/1.1 Valky, Georgia, serif; }
+  .ag .rol { font: 500 12px Montserrat, sans-serif; color: var(--suave); margin-top: -4px; }
+  .chip { font: 600 10px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; border: 0; cursor: pointer; }
+  .chip.on { background: #E6EFE3; color: #4E7A4C; } .chip.off { background: #EFEBE6; color: #8A8580; }
+  .meta { font: 500 12px Montserrat, sans-serif; color: var(--suave); }
+  .barra { height: 4px; border-radius: 2px; background: #EFEBE6; overflow: hidden; } .barra i { display: block; height: 100%; background: var(--durazno); border-radius: 2px; }
+  .inf { font: 500 13px/1.5 Montserrat, sans-serif; color: #5A5856; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .inf.abierto { -webkit-line-clamp: unset; }
+  .btn { align-self: flex-start; font: 600 12.5px Montserrat, sans-serif; padding: 9px 14px; border-radius: 14px; border: 0; cursor: pointer; background: #F3EFEA; color: var(--tinta); }
+  .btn:disabled { opacity: .55; }
+  .btn.si { background: var(--durazno); color: #fff; } .btn.no { background: #F3EFEA; }
+  .sec { margin: 28px 4px 10px; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; display: flex; align-items: center; gap: 10px; }
+  .sec .btn { margin-left: auto; }
+  .prop { background: #fff; border-radius: 20px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 18px 36px -28px rgba(70,50,40,.45); }
+  .prop .de { font: 600 10.5px Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--durazno-t); }
+  .prop h4 { margin: 4px 0 4px; font: 600 15px/1.4 Montserrat, sans-serif; }
+  .prop p { margin: 0 0 10px; font: 500 13px/1.5 Montserrat, sans-serif; color: var(--suave); }
+  .prop .bt { display: flex; gap: 8px; }
+  .vacio { text-align: center; padding: 18px; font: 500 13.5px Montserrat, sans-serif; color: #A39B93; }
+  .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
+    font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
+  .msg.on { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="t"><h1>Tu equipo</h1><small>Alma habla · ellos trabajan</small></div>
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></a>
+  </header>
+  <div class="org">
+    <div class="alma"><div class="piedra"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg></div><b>Alma</b><span>Habla con todos por ti</span></div>
+    <div class="equipo" id="equipo"><div class="vacio">Cargando tu equipo…</div></div>
+  </div>
+  <div class="sec" id="sec-p">Esperan tu sí</div>
+  <div id="props"></div>
+</main>
+<div class="msg" id="msg"></div>
+<script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
+<script src="../js/alma-client.js?v=2026-10-30a"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function aviso(t) { var m = $("msg"); m.textContent = t; m.classList.add("on"); clearTimeout(aviso.t); aviso.t = setTimeout(function () { m.classList.remove("on"); }, 2600); }
+  function horas(h) { return String(h || "").split(/[,\s]+/).filter(String).map(function (x) { return x + ":00"; }).join(" · "); }
+  function dias(d) { var D = ["", "lun", "mar", "mié", "jue", "vie", "sáb", "dom"], L = String(d || "").split(/[,\s]+/).filter(String); return L.length >= 7 ? "todos los días" : L.map(function (x) { return D[+x] || x; }).join(", "); }
+  function cuando(ts) { var d = new Date(ts); if (!ts || isNaN(d)) return "todavía no"; var h = (Date.now() - d) / 36e5; return h < 1 ? "hace un momento" : h < 24 ? "hace " + Math.round(h) + " h" : d.toLocaleDateString("es", { day: "numeric", month: "short" }); }
+  var D = null;
+  function pintar() {
+    var eq = $("equipo"); eq.innerHTML = "";
+    D.agentes.forEach(function (a) {
+      var c = el("div", "ag" + (a.estado === "pausado" ? " pausado" : ""));
+      var arr = el("div", "arr"); arr.appendChild(el("h3", "", a.nombre));
+      var ch = el("button", "chip " + (a.estado === "pausado" ? "off" : "on"), a.estado === "pausado" ? "Pausado" : "Activo"); ch.type = "button";
+      ch.onclick = function () { var nuevo = a.estado === "pausado" ? "activo" : "pausado"; a.estado = nuevo; pintar(); ALMA.agentes({ agente: a.id, estado: nuevo }); aviso(a.nombre + (nuevo === "pausado" ? " en pausa" : " trabajando otra vez")); };
+      arr.appendChild(ch); c.appendChild(arr);
+      c.appendChild(el("div", "rol", a.rol));
+      c.appendChild(el("div", "meta", "Revisa a las " + horas(a.horas) + " · " + dias(a.dias) + " · última: " + cuando(a.ultima)));
+      var pct = a.presupuesto_usd ? Math.min(100, a.gasto_mes / a.presupuesto_usd * 100) : 0, b = el("div", "barra"), i = el("i"); i.style.width = pct.toFixed(1) + "%"; b.appendChild(i); c.appendChild(b);
+      c.appendChild(el("div", "meta", "US$" + a.gasto_mes.toFixed(2) + " de US$" + a.presupuesto_usd + " este mes"));
+      if (a.informe) { var inf = el("div", "inf", a.informe); inf.onclick = function () { inf.classList.toggle("abierto"); }; c.appendChild(inf); }
+      var r = el("button", "btn", "Revisar ahora"); r.type = "button";
+      r.onclick = function () {
+        r.disabled = true; r.textContent = "Revisando…";
+        ALMA.agentes({ correr: a.id }).then(function (x) {
+          r.disabled = false; r.textContent = "Revisar ahora";
+          if (!x || !x.ok) { aviso((x && x.error) || "No pude correrlo ahora"); return; }
+          aviso(a.nombre + " terminó" + (x.propuestas && x.propuestas.length ? " · " + x.propuestas.length + " propuesta(s)" : "")); cargar();
+        });
+      };
+      c.appendChild(r); eq.appendChild(c);
+    });
+    var P = D.propuestas || [], pp = $("props"); pp.innerHTML = "";
+    var sec = $("sec-p"); sec.innerHTML = ""; sec.appendChild(document.createTextNode("Esperan tu sí" + (P.length ? " · " + P.length : "")));
+    if (P.length > 1) { var t = el("button", "btn si", "Aprobar todas"); t.type = "button"; t.onclick = function () { decidir("todas", true); }; sec.appendChild(t); }
+    if (!P.length) { pp.appendChild(el("div", "vacio", "Nada pendiente. Cuando tus agentes propongan algo, Alma te avisa y aparece aquí.")); return; }
+    P.forEach(function (p) {
+      var c = el("div", "prop"); c.appendChild(el("div", "de", p.agente)); c.appendChild(el("h4", "", p.titulo)); if (p.porque) c.appendChild(el("p", "", p.porque));
+      var bt = el("div", "bt"), si = el("button", "btn si", "Sí, hazlo"), no = el("button", "btn no", "No"); si.type = no.type = "button";
+      si.onclick = function () { decidir([p.id], true); }; no.onclick = function () { decidir([p.id], false); };
+      bt.appendChild(si); bt.appendChild(no); c.appendChild(bt); pp.appendChild(c);
+    });
+  }
+  function decidir(ids, aprobar) {
+    ALMA.agentes({ decidir: { ids: ids, aprobar: aprobar } }).then(function (r) {
+      if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); return; }
+      var err = (r.decididas || []).filter(function (d) { return d.estado === "error"; });
+      aviso(err.length ? "No se pudo hacer: " + err[0].titulo : aprobar ? "Hecho" : "Descartado"); cargar();
+    });
+  }
+  function cargar() {
+    ALMA.agentes({}).then(function (r) {
+      if (!r || !r.ok) { $("equipo").innerHTML = ""; $("equipo").appendChild(el("div", "vacio", (r && r.error) || "No pude cargar tu equipo.")); return; }
+      D = r; pintar();
+    });
+  }
+  cargar();
+})();
+</script>
+</body>
+</html>

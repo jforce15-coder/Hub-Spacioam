@@ -71,7 +71,9 @@
   }
   /* Mismo par de sonidos que el modo anillo (app Alma): inicio al activarse, despedida al terminar. Solo en voz, no en el chat de texto. */
   var SONIDOS = "https://hub.spacioam.com/assets/alma/sonidos/";
-  function sonido(n) { try { var a = new Audio(SONIDOS + n + ".wav"); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
+  /* En la app de Alma la señal la toca la app (suena aunque la página esté tomando el micrófono); en el navegador, la página. */
+  function sonido(n) { try { if (w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma) { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "sonido", n: n }); return; } } catch (e) {}
+    try { var a = new Audio(SONIDOS + n + ".wav"); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
   /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
   function limpiar(t) { return String(t || "").replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").replace(/\s+([,.;:!?…])/g, "$1").trim(); }
   function ficha() {

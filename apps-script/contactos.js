@@ -9,7 +9,7 @@
    la secretaria la consulta con buscar_contacto, que trae también todo el historial con ese número. */
 
 var CONTACTOS_CAB_ = ['tel', 'nombre', 'tipo', 'rol', 'empresa', 'propiedades', 'estado', 'resumen', 'actualizado', 'origen'];
-var CONTACTO_TIPOS_ = { proveedor: 'Proveedor', tecnico: 'Técnico', socio: 'Socio', potencial_socio: 'Potencial socio', recepcion: 'Recepción', equipo: 'Equipo', otro: 'Contacto' };
+var CONTACTO_TIPOS_ = { proveedor: 'Proveedor', tecnico: 'Técnico', socio: 'Socio', potencial_socio: 'Potencial socio', recepcion: 'Recepción', equipo: 'Equipo', familia: 'Familia', otro: 'Contacto' };
 function hojaContactos_() { return hojaCrear_('ALMA_CONTACTOS', CONTACTOS_CAB_); }
 function contactosTodos_() {
   var c = CacheService.getScriptCache(), hit = c.get('contactos_v1'); if (hit) { try { return JSON.parse(hit); } catch (e) {} }
@@ -45,6 +45,7 @@ function contactoClasificar_(wa, contexto, forzar) {
   try { if (adminPorTel_(wa)) return null; } catch (e) {}
   try { if (JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_RELAY') || '{}')[fin8_(wa)]) return null; } catch (e) {}   // contactos personales: no son de la empresa
   var prev = contactoFicha_(wa) || {}, hist = contactoHistorial_(wa, 30);
+  if (prev.tipo === 'familia') return null;   // la familia de Juan la guarda él (guardar_familia): no se reclasifica
   var lineas = hist.map(function (m) { return m.de + ' (' + m.ts.slice(0, 10) + '): ' + m.texto.replace(/\s+/g, ' ').slice(0, 400); }).join('\n').slice(-7000);
   if (!lineas && !contexto) return null;
   var sys = 'Llevas la libreta de contactos de Spacio AM (alojamientos de estancia corta en Guatemala). Clasificas a una persona con la que la empresa habla por WhatsApp fuera de las reservas y mantienes su ficha. Responde SOLO JSON:\n' +
@@ -130,4 +131,13 @@ function contactosConocidosSiToca_() {
   var sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return;
   var ids = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues().map(function (v) { return String(v[0]); });
   ids.forEach(function (id) { if (Date.now() - t0 > 20000 || id.indexOf('wa:') !== 0 || !conocidos[fin8_(id.slice(3))]) return; try { contactoAsegurar_(id.slice(3)); } catch (e) {} });
+}
+
+/* El WhatsApp de alguien con quien Alma ya habló (por su nombre), para guardar a la familia sin dictar el número. */
+function familiaNumero_(nombre) {
+  var sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'); nombre = String(nombre || '').trim();
+  if (!sh || nombre.length < 3 || sh.getLastRow() < 2) return '';
+  var hits = sh.getRange(2, 3, sh.getLastRow() - 1, 1).createTextFinder(nombre).matchCase(false).findAll();
+  if (!hits.length) return '';
+  return normTel_(String(sh.getRange(hits[hits.length - 1].getRow(), 2).getValue()));
 }

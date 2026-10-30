@@ -2902,6 +2902,7 @@ function proponerAutomejora_(info, prop) {
 
 // Disparador cada hora (lo crea configurar()).
 function aprender() {
+  try { agentesLatido_(); } catch (e) { console.error('agentesLatido_: ' + e); }   // el equipo de agentes detrás de Alma (agentes.js)
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   if (!automejoraOn_()) return;
@@ -3090,6 +3091,7 @@ function hubApi_(body) {
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
       case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
+      case 'agentes': return json_(agAccion_(ses, body));                                    // equipo de agentes detrás de Alma (agentes.js · alma/agentes.html)
       case 'areas': return json_(areas_(ses));                                            // app de Alma: las 6 áreas de vida (areas.js)
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)

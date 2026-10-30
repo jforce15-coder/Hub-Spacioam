@@ -107,6 +107,7 @@
     agentes: function (b) { return call('agentes', b || {}); },
     correos: function (b) { return call('correos', b || {}); },
     usoIA: function (dias) { return call('usoIA', { dias: dias || 30 }); },
+    usoMensual: function (mes) { return call('usoMensual', { mes: mes || '' }); },
     mejoraEditar: function (id, cambios, resumen) { return call('mejoraEditar', { id: id, cambios: cambios, resumen: resumen }); },
     mejoraEliminar: function (id) { return call('mejoraEliminar', { id: id }); },
     mejoraVerificar: function (id) { return call('mejoraVerificar', { id: id }); },

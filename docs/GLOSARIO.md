@@ -26,6 +26,7 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Puntito de escucha** | El punto durazno que respira cuando Alma está escuchando: bajo la roca (inicio con escucha activa) y en la esquina del botón del modo conferencia. Sin palabras. | luz, indicador del micrófono |
 | **Beep** | El sonido corto de Alma (alma-inicio) que suena siempre que empieza a escuchar: anillo, roca, llamada, «Alma» en el inicio o en una reunión, tres toques en una página, dictado. Al terminar suena alma-fin. | beat, señal, campana, tono |
 | **Temporal** | Donde quedan las grabaciones del modo conferencia que no tienen sentido (por error, ruido): no van a Pendientes, se pueden buscar con Alma y se borran solas a los 7 días si nadie las consulta. | papelera, borrador |
+| **Reporte mensual de consumo** | El día 1 de cada mes Alma le manda a Juan por WhatsApp cuánto gastó la IA el mes anterior, por esfera y subcategoría, por app y por tipo (entrada, salida, caché); el Hub lo consulta. La esfera de cada función sale de la hoja IA_CATEGORIAS, que Juan corrige. | factura, informe de tokens |
 | **Equipo de mejora continua** | El agente que cada semana busca cómo gastar menos sin quitar funciones ni bajar la calidad. | optimización, ahorro |
 | **Esfera** | Una de las 6 áreas de vida del inicio (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia); cada pendiente lleva una. | categoría, área |
 | **Área** | Una de las 6 áreas de vida: Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia. | categoría |

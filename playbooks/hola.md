@@ -1,4 +1,5 @@
 # Playbook · Desarrollo · Hola
+> Cuándo: Hola: registro de huéspedes (subdepartamento de Desarrollo).
 
 **Su app:** hola.spacioam.com (repo hola-spacioam). Es dueño de esta app y de nada más: lo que encuentre de otra, lo anota para su subdepartamento.
 

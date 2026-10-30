@@ -111,7 +111,9 @@ var FAMILIA_VOZ_CLARA_ = 'VOZ CLARA (prevalece sobre todo lo anterior)\n· Nunca
 /* Prompt completo del agente familiar: enfoque familiar + la voz de Alma (la misma fila VOZ_HUMANA de las llamadas). */
 function familiaPromptCompleto_() {
   var fam = String(prompt_('FAMILIA') || '').trim() || SEMILLA_FAMILIA_;
-  var humana = String(prompt_('VOZ_HUMANA') || '').trim();
+  /* La misma Alma, en otro negocio: su personalidad (playbook alma) con The Gentle Stoic Parent puesto. */
+  var humana = ''; try { humana = almaPersona_('voz', { negocio: 'The Gentle Stoic Parent', dueño: 'Juan' }); } catch (e) {}
+  if (!humana) humana = String(prompt_('VOZ_HUMANA') || '').trim();
   var weebo = ''; try { weebo = weeboVozBloque_(true); } catch (e) {}
   return [fam, FAMILIA_MODOS_, weebo, humana ? '--- CÓMO SUENAS (la misma voz de Alma en todos lados) ---\nEn la app familiar no te presentas como Spacio AM ni hablas del portal, de reservas ni de WhatsApp de huéspedes: esas líneas no aplican aquí. Todo lo demás, sí.\n\n' + humana : '', FAMILIA_VOZ_CLARA_].filter(Boolean).join('\n\n');
 }

@@ -1,4 +1,5 @@
 # Playbook · Desarrollo · API
+> Cuándo: el Apps Script (la API) (subdepartamento de Desarrollo).
 
 **Su app:** el Apps Script del Hub y de Alma (apps-script/ en Hub-Spacioam). Es dueño de esta app y de nada más: lo que encuentre de otra, lo anota para su subdepartamento.
 

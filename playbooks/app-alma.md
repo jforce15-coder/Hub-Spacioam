@@ -1,4 +1,5 @@
 # Playbook · Desarrollo · App de Alma
+> Cuándo: la app de iPhone de Alma y sus páginas (subdepartamento de Desarrollo).
 
 **Su app:** la app de iPhone (repo alma-app, SwiftUI) y sus páginas (alma/*.html en el Hub). Es dueño de esta app y de nada más: lo que encuentre de otra, lo anota para su subdepartamento.
 

@@ -1,4 +1,5 @@
 # Playbook · Desarrollo · Mi
+> Cuándo: Mi: finanzas y conta (subdepartamento de Desarrollo).
 
 **Su app:** mi.spacioam.com (repo mi-spacioam). Es dueño de esta app y de nada más: lo que encuentre de otra, lo anota para su subdepartamento.
 

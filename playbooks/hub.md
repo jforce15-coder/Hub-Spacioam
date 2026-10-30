@@ -1,4 +1,5 @@
 # Playbook · Desarrollo · Hub
+> Cuándo: el Hub: bandeja, conversación, la roca (subdepartamento de Desarrollo).
 
 **Su app:** hub.spacioam.com (repo Hub-Spacioam: index.html, js/sa-nav.js, js/alma-client.js). Es dueño de esta app y de nada más: lo que encuentre de otra, lo anota para su subdepartamento.
 

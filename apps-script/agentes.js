@@ -16,7 +16,7 @@
    playbook claro): misión (la meta), pasos (en orden), reglas (incluye las que Juan va agregando) y «listo significa»
    (la lista que el agente revisa antes de entregar: su prueba). Cuando algo sale mal no se corrige en el chat: Alma lo
    agrega a su playbook (ajustar_playbook) y queda para siempre. */
-var AG_CAB_ = ['id', 'nombre', 'rol', 'mision', 'horas', 'dias', 'presupuesto_usd', 'estado', 'ultima', 'mes', 'gasto_mes', 'herramientas', 'tipo', 'app', 'pasos', 'reglas', 'listo'];
+var AG_CAB_ = ['id', 'nombre', 'rol', 'mision', 'horas', 'dias', 'presupuesto_usd', 'estado', 'ultima', 'mes', 'gasto_mes', 'herramientas', 'tipo', 'app', 'pasos', 'reglas', 'listo', 'caja'];
 var AGT_CAB_ = ['id', 'agente', 'creado', 'origen', 'pedido', 'estado', 'informe', 'propuestas', 'costo_usd', 'terminado'];
 var AGP_CAB_ = ['id', 'tarea', 'agente', 'creado', 'titulo', 'porque', 'herramienta', 'entrada', 'estado', 'resultado', 'decidio', 'decidido'];
 
@@ -222,6 +222,7 @@ function agDecidir_(adm, ids, aprobar) {
     var r; try { r = agEjecutar_(adm, p.herramienta, inp, ctx); } catch (e) { r = { ok: false, error: String(e) }; }
     var ok = r && r.ok !== false && !r.error;
     p.estado = ok ? 'hecha' : 'error'; p.resultado = JSON.stringify(r || {}).slice(0, 800); agGuardar_(sh, AGP_CAB_, p);
+    if (ok) { try { agCajaGuardar_(p, inp); } catch (e) {} }   // lo aprobado queda en su caja: la próxima vez lo reúsa
     out.push({ id: p.id, titulo: p.titulo, estado: p.estado, error: ok ? '' : (r && r.error) || 'no salió' });
   });
   return { ok: true, decididas: out };
@@ -235,7 +236,12 @@ function agPropuestas_() {
 }
 /* El playbook en el prompt: pasos en orden, reglas (las de Juan incluidas) y la prueba antes de entregar. */
 function agPlaybookTexto_(a) {
-  return (a.pasos ? 'TUS PASOS (en orden): ' + a.pasos + '\n' : '') +
+  /* el playbook del departamento (playbooks/<id>.md) manda; la hoja guarda lo que el dueño agrega y lo que ya aprobó */
+  var md = ''; try { md = playbookLeer_(a.app ? AG_DEV_PLAYBOOK_[a.app] : a.id); } catch (e) {}
+  var caja = a.caja ? 'TU CAJA DE HERRAMIENTAS (lo que Juan ya aprobó: úsalo como plantilla y no lo rehagas): ' + a.caja + '\n' : '';
+  if (md) return 'TU PLAYBOOK:\n' + md.replace(/^> .*\n/m, '').trim() + '\n' + (a.reglas ? 'REGLAS QUE TE DIO JUAN (cúmplelas siempre): ' + a.reglas + '\n' : '') + caja +
+    'Antes de tu informe revisa tu «listo significa» punto por punto y termina con «Listo: ✓ …» o «Falta: ✗ …».\n\n';
+  return caja + (a.pasos ? 'TUS PASOS (en orden): ' + a.pasos + '\n' : '') +
     (a.reglas ? 'REGLAS QUE TE DIO JUAN (cúmplelas siempre): ' + a.reglas + '\n' : '') +
     (a.listo ? 'LISTO SIGNIFICA (tu prueba): antes de tu informe revisa cada punto y termina el informe con una línea «Listo: ✓ …» o «Falta: ✗ …»: ' + a.listo + '\n' : '') + '\n';
 }
@@ -250,6 +256,14 @@ function agAjustarPlaybook_(id, cambio, campo) {
   agGuardar_(hojaAg_(), AG_CAB_, a);
   return { ok: true, agente: a.nombre, campo: campo, playbook: { pasos: a.pasos, reglas: a.reglas, listo: a.listo } };
 }
+/* La caja de herramientas: lo que Juan aprobó de un agente (las últimas 8), para reusarlo como plantilla. */
+function agCajaGuardar_(p, inp) {
+  var a = agente_(p.agente); if (!a) return;
+  var muestra = String(inp.texto || inp.mensaje || inp.descripcion || inp.titulo || '').replace(/\s+/g, ' ').slice(0, 160);
+  var item = Utilities.formatDate(ahora_(), CFG.TZ, 'd MMM') + ': ' + p.titulo + ' (' + p.herramienta + ')' + (muestra ? ' — «' + muestra + '»' : '');
+  var L = String(a.caja || '').split(' ¦ ').filter(String); L.push(item);
+  a.caja = L.slice(-8).join(' ¦ '); agGuardar_(hojaAg_(), AG_CAB_, a);
+}
 function agTablero_(ses) {
   var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
   if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
@@ -257,7 +271,7 @@ function agTablero_(ses) {
   var T = agFilas_(hojaAgT_(), AGT_CAB_);
   return { ok: true, alma: 'Alma · habla con todos', agentes: agentes_().map(function (a) {
     var ult = T.filter(function (t) { return t.agente === a.id; }).slice(-1)[0] || null;
-    return { id: a.id, tipo: a.tipo || '', app: a.app || '', pasos: a.pasos || '', reglas: a.reglas || '', listo: a.listo || '', nombre: a.nombre, rol: a.rol, mision: a.mision, horas: a.horas, dias: a.dias, estado: a.estado, presupuesto_usd: Number(a.presupuesto_usd || 0),
+    return { id: a.id, tipo: a.tipo || '', app: a.app || '', pasos: a.pasos || '', reglas: a.reglas || '', listo: a.listo || '', caja: a.caja || '', nombre: a.nombre, rol: a.rol, mision: a.mision, horas: a.horas, dias: a.dias, estado: a.estado, presupuesto_usd: Number(a.presupuesto_usd || 0),
       gasto_mes: a.mes === Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM') ? Number(a.gasto_mes || 0) : 0, ultima: a.ultima, informe: ult ? ult.informe : '' };
   }), propuestas: agPropuestas_() };
 }

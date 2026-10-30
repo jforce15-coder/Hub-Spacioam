@@ -454,7 +454,9 @@ function vozPromptCompleto_() {
   var base = prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + mejorasBloque_('REDACTOR');
   if (!String(base).trim()) return { error: 'El prompt REDACTOR está vacío en ALMA_INSTRUCCIONES.' };
   var extra = sinCab_(prompt_('REGLAS_EXTRA'));
-  var humana = String(prompt_('VOZ_HUMANA') || '').trim();
+  /* Cómo suena: la personalidad de Alma (playbook alma). La fila VOZ_HUMANA queda solo de respaldo si el playbook no carga. */
+  var humana = ''; try { humana = almaPersona_('voz'); } catch (e) {}
+  if (!humana) humana = String(prompt_('VOZ_HUMANA') || '').trim();
   var weebo = ''; try { weebo = weeboVozBloque_(false); } catch (e) {}
   /* Al final, para que prevalezca sobre lo que diga la fila VOZ_HUMANA (editable): nunca susurrar (familia.js) */
   return { clave: 'REDACTOR', texto: [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, weebo, humana, FAMILIA_VOZ_CLARA_].filter(Boolean).join('\n\n') };

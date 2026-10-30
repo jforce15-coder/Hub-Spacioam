@@ -235,7 +235,11 @@
     /* la burbuja de pendientes: arriba a la izquierda, con el mismo diseño del botón de Ajustes (arriba a la derecha) */
     ".san-scope .san-ov.suelta .san-pendb{opacity:0!important;pointer-events:none!important}",
     ".san-scope .san-pendb{position:fixed;left:max(16px,env(safe-area-inset-left));top:max(14px,calc(env(safe-area-inset-top) + 6px));z-index:3;width:40px;height:40px;margin:0;border:0;padding:0;border-radius:50%;display:grid;place-items:center;cursor:pointer;pointer-events:auto;color:#FFFDFB;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.35);transition:opacity .4s ease,scale .3s cubic-bezier(.3,1.35,.55,1)}",
-    ".san-scope .san-pendb[hidden]{display:none}.san-scope .san-ov.chat .san-pendb,.san-scope .san-ov.pend .san-pendb{opacity:0;pointer-events:none}.san-scope .san-pendb:active{scale:.9}",
+    ".san-scope .san-pendb[hidden]{display:none}.san-scope .san-ov.chat .san-pendb,.san-scope .san-ov.pend .san-pendb,.san-scope .san-ov.noti .san-pendb{opacity:0;pointer-events:none}.san-scope .san-pendb:active{scale:.9}",
+    /* notificaciones: la misma burbuja, junto a la de pendientes; su hoja es la misma de pendientes */
+    ".san-scope .san-pendb.san-notib{left:calc(max(16px,env(safe-area-inset-left)) + 50px)}.san-scope .san-notib .san-badge:empty{display:none}",
+    ".san-scope .san-ov.pend .san-noti{opacity:0;transform:translateY(24px);pointer-events:none}.san-scope .san-ov.noti .san-noti{opacity:1;transform:none;pointer-events:auto}",
+    ".san-scope .san-nt{flex:none;background:#fff;border-radius:20px;padding:14px 18px;box-shadow:0 18px 40px -26px rgba(70,50,40,.32);border:0;text-align:left;cursor:pointer;width:100%;font:inherit;color:#3E3F3F}.san-scope .san-nt small{display:block;margin-bottom:4px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#938B8A}.san-scope .san-nt span{display:block;font:500 14px/1.5 Montserrat,system-ui,sans-serif}.san-scope .san-nt.nuevo small{color:#B54D36}",
     ".san-scope .san-pend{position:absolute;inset:0;z-index:4;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
@@ -1208,11 +1212,14 @@
       '<button type="button" class="san-send" aria-label="Alma · un toque envía, mantén para una nota de voz, dos toques para una foto, tres para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
+    ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
+    ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Lo que te avisó Alma · 3 días</small></div>' +
+      '<button type="button" class="san-hb san-noti-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l san-noti-l"></div></div>');
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que Alma resolvió para ti</small></div>' +
       '<button type="button" class="san-hb san-pend-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l"></div></div>');
     root.appendChild(ov);
-    E.ov = ov; E.pb = ov.querySelector(".san-pendb"); E.stone = ov.querySelector(".san-rock"); E.ost = ov.querySelector(".san-ov-st"); E.cap = ov.querySelector(".san-ov-cap"); E.msgs = ov.querySelector(".san-msgs");
+    E.ov = ov; E.pb = ov.querySelector('[data-a="pend"]'); E.stone = ov.querySelector(".san-rock"); E.ost = ov.querySelector(".san-ov-st"); E.cap = ov.querySelector(".san-ov-cap"); E.msgs = ov.querySelector(".san-msgs");
     aX = S(0, true); aY = S(0, true); aS = S(0, true); aSq = S(0); aDX = S(0, true); aDY = S(0, true); aL = S(.06); aH = S(.5);
     ov.querySelector('[data-a="end"]').onclick = function () { almaEnd(false); };
     /* La burbuja se mueve con la respiración de Alma: el «click» del toque puede caer fuera de ella. Se abre al soltar. */
@@ -1222,6 +1229,10 @@
     pb.addEventListener("pointercancel", function () { pbDown = false; });
     pb.addEventListener("click", function (e) { e.stopPropagation(); });
     ov.querySelector(".san-pend-x").onclick = function () { pendAbrir(false); };
+    var nb = ov.querySelector('[data-a="noti"]');
+    nb.addEventListener("pointerdown", function (e) { e.stopPropagation(); }); nb.addEventListener("click", function (e) { e.stopPropagation(); notiAbrir(true); });
+    ov.querySelector(".san-noti-x").onclick = function () { notiAbrir(false); };
+    setTimeout(notiCargar, 500);
     setTimeout(pendCargar, 300);
     ov.querySelector('[data-a="chat"]').onclick = function () { if (AL.esc && !AL.on) escActivar(true); else almaChat(true); };
     ov.querySelector('[data-a="start"]').onclick = function () { if (AL.esc && !AL.on) escActivar(false); };
@@ -1323,7 +1334,35 @@
   }
   function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); hoja(); if (on) pendCargar(); }
   /* Con una hoja abierta (chat o pendientes), la pantalla de atrás esconde su saludo y su engrane */
-  function hoja() { d.body.classList.toggle("san-hoja", !!(E.ov && (E.ov.classList.contains("pend") || E.ov.classList.contains("chat")))); }
+  function hoja() { d.body.classList.toggle("san-hoja", !!(E.ov && (E.ov.classList.contains("pend") || E.ov.classList.contains("noti") || E.ov.classList.contains("chat")))); }
+  /* Notificaciones: lo que Alma ya avisó (la app las muestra una vez; aquí se pueden volver a leer). cfg.notificaciones = { cargar() } */
+  var notiT = 0;
+  function notiVisto() { try { return +localStorage.getItem("sa_noti_visto") || 0; } catch (e) { return 0; } }
+  function notiCargar() {
+    if (!E.ov || !cfg.notificaciones || !cfg.notificaciones.cargar) return;
+    clearTimeout(notiT); notiT = setTimeout(notiCargar, 60000);
+    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.noti = r.lista || []; notiPintar(); } }, function () {});
+  }
+  function notiPintar() {
+    var b = E.ov.querySelector('[data-a="noti"]'), v = notiVisto(), n = (AL.noti || []).filter(function (x) { return x.ts > v; }).length;
+    b.hidden = false; b.querySelector(".san-badge").textContent = n ? (n > 9 ? "9+" : String(n)) : "";
+    if (E.ov.classList.contains("noti")) notiLista();
+  }
+  function notiLista() {
+    var l = E.ov.querySelector(".san-noti-l"), v = AL.notiVistoAntes || 0; l.innerHTML = "";
+    if (!(AL.noti || []).length) { var e0 = d.createElement("div"); e0.className = "san-pend-v"; e0.textContent = "Sin notificaciones."; l.appendChild(e0); return; }
+    AL.noti.forEach(function (x) {
+      var c = d.createElement("button"); c.type = "button"; c.className = "san-nt" + (x.ts > v ? " nuevo" : "");
+      var m = Math.round((Date.now() - x.ts) / 60000), cu = m < 1 ? "ahora" : m < 60 ? "hace " + m + " min" : m < 1440 ? "hace " + Math.round(m / 60) + " h" : new Date(x.ts).toLocaleDateString("es", { day: "numeric", month: "short" });
+      var sm = d.createElement("small"); sm.textContent = cu; var sp = d.createElement("span"); sp.textContent = x.texto; c.appendChild(sm); c.appendChild(sp);
+      c.onclick = function () { notiAbrir(false); if (cfg.pendientes) pendAbrir(true); };   // el detalle vive en Pendientes
+      l.appendChild(c);
+    });
+  }
+  function notiAbrir(on) {
+    if (on) { AL.notiVistoAntes = notiVisto(); try { localStorage.setItem("sa_noti_visto", String(Date.now())); } catch (e) {} notiLista(); notiCargar(); }
+    E.ov.classList.toggle("noti", on); hoja(); notiPintar();
+  }
   var PEND_TX = { revisando: "Revisando", listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Listo ✓", fallo_pub: "Falló al publicar" };
   /* ── Pendientes por esfera ── */
   var PEND_SEC = [["atencion", "Necesita tu sí"], ["leer", "Para leer"], ["listo", "Listo hoy"]];
@@ -1877,6 +1916,7 @@
       var rebuild = c.items && JSON.stringify(c.items) !== JSON.stringify(cfg.items);
       Object.assign(cfg, c);
       if (c.pendientes && E.ov) setTimeout(pendCargar, 200);
+      if (c.notificaciones && E.ov) setTimeout(notiCargar, 300);
       if (c.apps) allowed = c.apps.slice();
       if (c.appBadges && st.fan === "apps" && st.S !== 3 && st.S !== 4 && JSON.stringify(c.appBadges) !== root._ab) { root._ab = JSON.stringify(c.appBadges); buildFan("apps"); }
       if ("tint" in c) setTint(c.tint);

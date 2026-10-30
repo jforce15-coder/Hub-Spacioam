@@ -20,6 +20,7 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Segundo plano** | Lo que Alma sigue trabajando después de colgar (más de 20 s). | backend, después |
 | **Tema por retomar** | Algo terminado en segundo plano que necesita algo de Juan; Alma empieza la próxima llamada por el más importante. | pendiente, notificación |
 | **Pendientes** | La lista de la app de Alma con todo lo que Alma resolvió para Juan, lo de Claude y los cambios por unir, por esfera y proyecto. Tres secciones: «Necesita tu sí» (se queda hasta resolverse), «Para leer» y «Listo hoy» (se van solas a la hora). | tareas, temas, notificaciones |
+| **Notificaciones** | El historial de lo que Alma te avisó en la app (campana junto a Pendientes, últimos 3 días). El detalle vive en Pendientes. | avisos, alertas |
 | **Esfera** | Una de las 6 áreas de vida del inicio (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia); cada pendiente lleva una. | categoría, área |
 | **Área** | Una de las 6 áreas de vida: Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia. | categoría |
 | **Cajón** | Ideas, Interés u Ocio: lo que no es de un área. | carpeta, área |

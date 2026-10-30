@@ -152,6 +152,7 @@
     pendienteHecho: function (id) { return call('pendienteHecho', { id: id }); },
     unirPr: function (ref) { return call('unirPr', { ref: ref }); },
     pendientes: function () { return call('pendientes', {}); },
+    notificaciones: function () { return call('notificaciones', {}); },
     pendienteResolver: function (id) { return call('pendienteResolver', { id: id }); },
     opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
     opLista: function (email) { return call('opLista', { email: email }); }

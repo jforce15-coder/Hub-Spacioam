@@ -138,7 +138,11 @@ async function revisar(page, tapados) {
 
 /* ── Un bot en una página ── */
 async function probar(browser, base, pag, bot) {
-  const hallazgos = [], anota = (nivel, que, detalle) => hallazgos.push({ pagina: pag, bot: bot.nombre, nivel, que, detalle: String(detalle || '').slice(0, 300) });
+  let sinRed = false;   // Carla apaga el internet a propósito: lo que no descarga después no es un error de la página
+  const hallazgos = [], anota = (nivel, que, detalle) => {
+    if (sinRed && /Imágenes rotas|Archivo que no carga|Error en la consola/.test(que)) return;
+    hallazgos.push({ pagina: pag, bot: bot.nombre, nivel, que, detalle: String(detalle || '').slice(0, 300) });
+  };
   const ctx = await browser.newContext({ ...bot.disp, locale: 'es-GT', timezoneId: 'America/Guatemala', serviceWorkers: 'block' });
   // la sesión ficticia (el «login» lo contesta el servidor falso)
   const ses = Buffer.from(JSON.stringify({ e: PERFIL.email, n: PERFIL.nombre, p: PERFIL, exp: Date.now() + 864e5 })).toString('base64url') + '.firma-de-prueba';
@@ -181,7 +185,7 @@ async function probar(browser, base, pag, bot) {
     if (r.chicos.length && momento === 'al abrir') anota('leve', 'Botones muy chicos para el dedo (menos de 30 px)', r.chicos.join(' · '));
   };
   await mirar('al abrir');
-  if (bot.estilo === 'sin_red') await ctx.setOffline(true);
+  if (bot.estilo === 'sin_red') { await ctx.setOffline(true); sinRed = true; }
   // escribir: lo normal o, a propósito, cosas raras
   const campos = await page.$$('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]), textarea');
   for (const [i, c] of campos.slice(0, 6).entries()) {

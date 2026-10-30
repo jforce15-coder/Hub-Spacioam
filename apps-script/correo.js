@@ -23,7 +23,7 @@
    responde a direcciones no-reply, a respuestas automáticas (evita bucles) ni a quien marcaste como spam o te desuscribiste;
    las respuestas solas tienen un tope diario por cuenta (lo demás queda como borrador); y para los dominios propios
    (spacioam.com) revisa SPF, DKIM y DMARC y te dice qué falta.
-   Hojas: ALMA_CORREO_CUENTAS (cada cuenta conectada y su llave), ALMA_CORREOS y ALMA_CORREO_HILOS (los hilos de Alma). */
+   Hojas: ALMA_CORREO_CUENTAS (cada cuenta conectada y su llave), ALMA_CORREO_BANDEJA y ALMA_CORREO_HILOS (los hilos de Alma). */
 
 var CORREO_CUENTAS_CAB_ = ['cuenta', 'nombre', 'proyecto', 'llave', 'creada', 'ultima', 'acciones'];
 var CORREOS_CAB_ = ['id', 'cuenta', 'hilo', 'de', 'de_nombre', 'asunto', 'fecha', 'fragmento', 'categoria', 'codigo', 'enlace', 'proyecto', 'area',
@@ -31,7 +31,7 @@ var CORREOS_CAB_ = ['id', 'cuenta', 'hilo', 'de', 'de_nombre', 'asunto', 'fecha'
 var CORREO_CATS_ = ['codigo', 'verificacion', 'autorizacion', 'promocion', 'spam', 'normal'];
 function hojaCorreoCuentas_() { return hojaCrear_('ALMA_CORREO_CUENTAS', CORREO_CUENTAS_CAB_); }
 function hojaCorreos_() {
-  var sh = hojaCrear_('ALMA_CORREOS', CORREOS_CAB_);
+  var sh = hojaCrear_('ALMA_CORREO_BANDEJA', CORREOS_CAB_);   // ALMA_CORREOS es el registro de lo que el Hub manda: otra hoja
   if (sh.getLastColumn() < CORREOS_CAB_.length) sh.getRange(1, 1, 1, CORREOS_CAB_.length).setValues([CORREOS_CAB_]);   // columnas nuevas (bandeja en cero)
   return sh;
 }

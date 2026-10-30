@@ -18,7 +18,7 @@ Bandeja en cero: lo que pide respuesta, primero.
 - (Las reglas que el dueño agrega por medio de Alma se suman a estas.)
 
 ## Caja de herramientas
-- Puente de cada cuenta, ALMA_CORREOS, ALMA_CORREO_HILOS
+- Puente de cada cuenta, ALMA_CORREO_BANDEJA, ALMA_CORREO_HILOS (ALMA_CORREOS es el registro de lo que manda el Hub)
 - Lo que el dueño ya aprobó (en su hoja): úsalo como plantilla, no lo rehagas.
 
 ## Listo significa

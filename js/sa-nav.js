@@ -603,17 +603,17 @@
     d.body.classList.toggle("san-docked", on); root.classList.toggle("docked", on);
     if (on) { setS(1); E.scrim.style.opacity = "0"; setTimeout(function () { if (dock.on) dockTips(); }, 700); } else { if (E.rotD) E.rotD.parar(); E.scrim.style.opacity = ""; var p = anchorPt(st.anchor); px.to(p.x, .55, .8); py.to(p.y, .55, .8); zoom.to(K(), .55, .8); }
   }
-  /* Hints que rotan: una burbuja a la vez, sin parar. 1 toque se queda más (3.2 s), 2 toques menos (2.4 s), 3 toques menos
-     (1.8 s), y vuelve a empezar; entre una y otra, un respiro de .35 s. dondeFn: se llama antes de cada burbuja (por si el
+  /* Hints que rotan: una burbuja a la vez, sin parar. 1 toque se queda más (8 s), 2 toques menos (6.5 s), 3 toques menos
+     (5 s), y vuelve a empezar; entre una y otra, un respiro de .9 s (más lento: que se lean con calma). dondeFn: se llama antes de cada burbuja (por si el
      botón se movió). */
   function rotador(cont, textos, dondeFn) {
     cont.innerHTML = textos.map(function (t) { return "<span>" + t + "</span>"; }).join("");
-    var DUR = [3200, 2400, 1800], i = -1, t = 0, on = false;
+    var DUR = [8000, 6500, 5000], i = -1, t = 0, on = false;
     function paso() {
       if (!on) return;
       var L = cont.children; for (var k = 0; k < L.length; k++) L[k].classList.remove("on");
       i = (i + 1) % L.length; var s = L[i];
-      t = setTimeout(function () { if (!on) return; if (dondeFn) dondeFn(); s.classList.add("on"); t = setTimeout(paso, DUR[i % DUR.length]); }, 350);
+      t = setTimeout(function () { if (!on) return; if (dondeFn) dondeFn(); s.classList.add("on"); t = setTimeout(paso, DUR[i % DUR.length]); }, 900);
     }
     return { andar: function () { if (on) return; on = true; i = -1; paso(); },
       parar: function () { on = false; clearTimeout(t); for (var k = 0; k < cont.children.length; k++) cont.children[k].classList.remove("on"); },

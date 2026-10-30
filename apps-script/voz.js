@@ -400,7 +400,7 @@ function vozQuienBloque_() {
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego no responde a una pregunta tuya, pregunta UNA sola vez si sigue ahí. Si sigue en silencio, despídete en una frase y usa end_call. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
-    '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claude, el desarrollador del sistema. Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…»), NUNCA digas que no puedes: usa secretaria con modo = segundo_plano y su pedido completo empezando por «Mejora para Claude:». Confírmalo en una frase («Listo, ya se lo pasé a Claude; te cuento cuando termine») y sigue. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
+    '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claude, el desarrollador del sistema. Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…»), NUNCA digas que no puedes: usa secretaria con modo = segundo_plano y su pedido completo empezando por «Mejora para Claude:». Antes de la respuesta di solo «Se lo paso a Claude»; confírmalo («Listo, Claude ya lo tiene») únicamente cuando secretaria diga que lo recibió, y si dice que no le llegó, díselo tal cual. Un pedido para Claude va solo, no junto con otros pedidos. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
     '· SECRETARIA TRABAJA EN PARALELO: al llamarla, di UNA frase corta y natural según el pedido («Lo reviso.», «Ya lo pedí, te cuento en cuanto lo tenga.») y sigue la conversación con normalidad: atiende lo que diga, contesta otras cosas o pregunta si necesita algo más. No te quedes en silencio esperando ni rellenes con «sigo buscando». Nunca adelantes el resultado ni digas «listo» antes de que llegue.',
     '· CUANDO LLEGA LA RESPUESTA de secretaria: si estás a mitad de una frase o de otro tema, termina tu idea y luego introdúcela con naturalidad («Por cierto, ya tengo lo de César: …», «Ah, y lo de las cancelaciones: …»). No interrumpas a la persona ni cortes lo que estabas diciendo. Si llegan varias, dalas en orden, una a la vez. Si la persona ya cambió de tema, dásela breve y vuelve a donde iban.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
@@ -753,6 +753,8 @@ function vozSecretaria_(b) {
   var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
   if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
+  /* Lo que es para Claude no espera la cola: se manda ya (paraclaude.js) y Alma confirma solo cuando Claude lo recibió. */
+  if (/^\s*mejora para claude\s*:/i.test(pedido) && esAdminPrincipal_(adm)) return vozParaClaude_(adm, pedido);
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
   var t0 = Date.now(), previos = opFilas_(adm.email, 20);
   opGuardar_(adm, 'yo', 'llamada', pedido);
@@ -774,6 +776,22 @@ function vozSecretaria_(b) {
   return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
 
+/* «Mejora para Claude: …» dicho en una llamada. Antes iba a la cola de segundo plano y dependía de que la secretaria
+   llamara a mejora_para_claude: si no lo hacía (p. ej. con varios pedidos juntos), Alma ya había dicho «se lo pasé» y no
+   llegaba nada. Ahora se crea al momento y la respuesta dice si Claude lo recibió; queda el aviso en Pendientes. */
+function vozParaClaude_(adm, pedido) {
+  var texto = String(pedido).replace(/^\s*mejora para claude\s*:\s*/i, '').trim();
+  if (!texto) return { ok: false, error: 'Falta qué quiere Juan que cambie Claude.' };
+  var titulo = texto.replace(/\s+/g, ' ').split(/[.!?]\s/)[0].slice(0, 80);
+  var r = paraClaudeCrear_(adm, { titulo: titulo, app: 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: texto });
+  try {
+    pendCrear_(adm, { tipo: r.ok && r.claude ? 'aviso' : 'atencion', area: 'proposito', proyecto: 'Desarrollo', importancia: r.ok && r.claude ? 1 : 2,
+      titulo: r.ok && r.claude ? 'Claude recibió tu pedido' : 'Tu pedido no le llegó a Claude', resumen: '«' + titulo + '»' + (r.ok ? (r.claude ? '' : ' · quedó guardado, sin conexión directa') : ' · ' + (r.error || '')),
+      aviso: r.ok ? '' : 'Tu pedido para Claude no se pudo enviar: ' + titulo }, { origen: 'claude', detalle: texto, push: !(r.ok && r.claude) });
+  } catch (e) { console.error('vozParaClaude_ aviso: ' + e); }
+  if (!r.ok) return { ok: false, error: 'NO LE LLEGÓ A CLAUDE: ' + (r.error || 'error') + '. Díselo a Juan tal cual.' };
+  return { ok: true, resultado: r.claude ? 'Claude ya lo recibió y está trabajando en eso. Dile en una frase: «Listo, Claude ya lo tiene; te aviso cuando responda».' : r.nota };
+}
 /* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
    y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
 function vozSecEncolar_(tel, pedido) {

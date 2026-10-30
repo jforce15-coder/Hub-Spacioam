@@ -832,7 +832,7 @@ function vozSecAvisar_(tel, adm, r, pedido) {
   var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
   var c = retClasificar_(pedido, txt, malas.length ? malas.map(function (h) { return h.resumen || h.tipo; }).join('; ') : '');
   if (!c.requiere) return;
-  try { var it = retPoner_(adm, { texto: c.aviso, detalle: txt, importancia: c.importancia, origen: 'segundo_plano' }); vozAvisoPoner_(adm, c.aviso, it && it.id); } catch (e) { console.error('vozAvisoPoner_: ' + e); }
+  try { var it = retPoner_(adm, { texto: c.aviso, tema: c.tema, detalle: txt, importancia: c.importancia, origen: 'segundo_plano' }); vozAvisoPoner_(adm, c.aviso, it && it.id); } catch (e) { console.error('vozAvisoPoner_: ' + e); }
   var w = waEnviarAlguien_(tel, 'Sobre lo que me pediste en la llamada:\n\n' + txt, { nombre: adm.nombre });
   if (!w.ok) console.error('vozSecAvisar_ WhatsApp: ' + w.error);
 }
@@ -971,8 +971,8 @@ function vozWebInicio_(ses, ligero, app) {
      Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }
   if (ret) {
-    dv.quien_llama += ret.bloque; out.first_message = ret.saludo; out.retomar = ret.saludo; out.retomar_total = ret.total;
-    CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200);
+    dv.quien_llama += ret.bloque; out.retomar_total = ret.total;
+    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200); }
   }
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */

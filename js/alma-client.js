@@ -154,6 +154,8 @@
     pendientes: function () { return call('pendientes', {}); },
     notificaciones: function () { return call('notificaciones', {}); },
     pendienteResolver: function (id) { return call('pendienteResolver', { id: id }); },
+    pendienteResponder: function (id, texto) { return call('pendienteResponder', { id: id, texto: texto }); },
+    pendienteNota: function (o) { return call('pendienteNota', { audio: o.audio, mime: o.mime }); },
     opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
     opLista: function (email) { return call('opLista', { email: email }); }
   };

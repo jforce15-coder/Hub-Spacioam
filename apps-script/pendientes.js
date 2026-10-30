@@ -100,7 +100,7 @@ function pendCrear_(adm, c, o) {
   var it = null;
   /* Lo que necesita a Juan también queda como tema por retomar (Alma empieza por ahí en la próxima llamada). */
   if (c.tipo === 'atencion' && o.push) {
-    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
+    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
     titulo: String(c.titulo || '').slice(0, 80), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
@@ -137,14 +137,15 @@ function pendientesTodo_(ses) {
     if (String(x.email).toLowerCase() !== String(adm.email).toLowerCase() || !pendVivo_(x, ahora)) return;
     var tj = null, ac = []; try { tj = x.tarjeta ? JSON.parse(x.tarjeta) : null; } catch (e) {} try { ac = JSON.parse(x.acciones || '[]'); } catch (e) {}
     items.push({ id: String(x.id), fuente: 'alma', seccion: PEND_SECCION_[x.tipo] || 'leer', area: x.area, proyecto: x.proyecto, titulo: x.titulo, resumen: x.resumen,
-      detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion' });
+      detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion', responder: x.tipo === 'atencion' });
   });
   /* Lo de Claude y los cambios por unir: Propósito · Desarrollo */
   var claude = []; try { var rc = paraClaudePendientes_(ses); claude = rc.ok ? rc.lista : []; } catch (e) { console.error('pendientesTodo_ claude: ' + e); }
   claude.forEach(function (p) {
     var sec = (p.unir || []).length || p.estado === 'pregunta' || p.estado === 'fallo' || p.estado === 'fallo_pub' ? 'atencion' : p.estado === 'publicado' ? 'listo' : 'leer';
     items.push({ id: p.id, fuente: p.pr ? 'pr' : 'claude', seccion: sec, area: 'proposito', proyecto: 'Desarrollo', titulo: p.titulo, resumen: p.resumen, etiqueta: p.fecha, estado: p.estado,
-      pasos: p.pasos, pregunta: p.pregunta, original: p.original, enlaces: p.enlaces, unir: p.unir, progreso: p.progreso, ts: 0, importancia: 2, hecho: !p.pr });
+      pasos: p.pasos, pregunta: p.pregunta, original: p.original, enlaces: p.enlaces, unir: p.unir, progreso: p.progreso, ts: 0, importancia: 2, hecho: !p.pr,
+      responder: !p.pr && (p.estado === 'pregunta' || p.estado === 'fallo') });
   });
   var orden = function (a, b) { return (b.importancia - a.importancia) || (b.ts - a.ts); };
   var areas = AREAS_.map(function (a) { return { k: a.k, n: a.n, total: items.filter(function (x) { return x.area === a.k; }).length,
@@ -153,4 +154,36 @@ function pendientesTodo_(ses) {
     atencion: items.filter(function (x) { return x.seccion === 'atencion'; }).sort(orden),
     leer: items.filter(function (x) { return x.seccion === 'leer'; }).sort(orden),
     listo: items.filter(function (x) { return x.seccion === 'listo'; }).sort(orden) };
+}
+
+/* «Responder» en una tarjeta que necesita algo de Juan. Lo de Claude (una pregunta o algo que falló) le llega a Claude como
+   seguimiento, con lo que pidió y lo que respondió; lo de Alma lo atiende Alma como un mensaje del chat, con la tarjeta de
+   contexto. En los dos casos la tarjeta se cierra: lo que siga aparece como una tarjeta nueva. */
+function pendResponder_(ses, b) {
+  var adm = paraClaudePrincipalSes_(ses); if (!adm) return { ok: false, error: 'Solo el administrador principal.' };
+  var texto = String(b.texto || '').trim(), id = String(b.id || ''); if (!texto || !id) return { ok: false, error: 'faltan datos' };
+  var x = pendFilas_().filter(function (r) { return String(r.id) === id; })[0];
+  if (x) {
+    var nota = 'Juan responde desde Pendientes a esta tarjeta tuya: «' + x.titulo + '». ' + (x.resumen || '') + (x.detalle ? '\nLo que habías dicho: ' + String(x.detalle).slice(0, 1500) : '') +
+      '\nAtiende su respuesta como siguiente paso de ese tema.';
+    var r = opProcesar_(adm, texto, 'hub', [], nota);
+    if (!r.ok) return r;
+    try { pendResolver_(ses, id); } catch (e) {}
+    return { ok: true, a: 'alma', respuesta: r.alma && r.alma.texto || '' };
+  }
+  var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'), v = sh && sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, PARA_CLAUDE_CAB_.length).getValues() : [];
+  var c = v.filter(function (r) { return String(r[0]) === id; })[0]; if (!c) return { ok: false, error: 'Ya no encuentro esa tarjeta.' };
+  var rc = paraClaudeCrear_(adm, { titulo: ('Respuesta: ' + c[6]).slice(0, 80), app: c[3] || 'Otro', tipo: c[4] || 'mejora', prioridad: c[5] || 'normal',
+    que_quiere: texto + '\n\nEs la respuesta de Juan (desde Pendientes) a lo que le dijiste sobre «' + c[6] + '».\nLO QUE PIDIÓ: ' + String(c[7] || '').slice(0, 2500) +
+      '\nLO QUE RESPONDISTE: ' + String(c[11] || '').slice(0, 3000) });
+  if (!rc.ok) return rc;
+  paraClaudeMarcar_(id, 'hecho', 'Juan respondió en Pendientes');
+  return { ok: true, a: 'claude', respuesta: rc.claude ? 'Listo, ya se lo pasé a Claude. Su respuesta aparece aquí.' : rc.nota || '' };
+}
+/* La nota de voz de «Responder»: llega en base64 y vuelve en texto, para que Juan la vea antes de enviarla. */
+function pendNota_(ses, b) {
+  if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
+  if (!b.audio || String(b.audio).length > 12000000) return { ok: false, error: 'La nota está vacía o es muy larga.' };
+  var t = transcribir_(Utilities.newBlob(Utilities.base64Decode(String(b.audio)), String(b.mime || 'audio/mp4').split(';')[0], 'nota'));
+  return t ? { ok: true, texto: t } : { ok: false, error: 'No te entendí. ¿La grabas otra vez o la escribes?' };
 }

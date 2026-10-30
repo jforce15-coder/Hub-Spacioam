@@ -262,9 +262,9 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-10-31e"></script>
+<script src="../js/alma-client.js?v=2026-11-01a"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-31e"></script>
+<script src="../js/sa-nav.js?v=2026-11-01a"></script>
 <script>
 (function () {
   "use strict";
@@ -293,7 +293,7 @@
     /* Solo en la app de Alma: el tercer botón con lo que Claude dejó pendiente (si es el admin principal) */
     /* Pendientes por esfera (pendientes.js): lo que Alma resolvió, lo de Claude y los cambios por unir, con los íconos de las esferas del inicio */
     if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes(); }, hecho: function (id) { return ALMA.pendienteHecho(id); },
-      resolver: function (id) { return ALMA.pendienteResolver(id); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
+      resolver: function (id) { return ALMA.pendienteResolver(id); }, responder: function (id, t) { return ALMA.pendienteResponder(id, t); }, nota: function (o) { return ALMA.pendienteNota(o); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
       notificaciones: { cargar: function () { return ALMA.notificaciones(); } } });
     setTimeout(function () { $("b-ajustes").classList.add("on"); areasIniciar(); }, 900);
   }

@@ -254,6 +254,10 @@
     ".san-scope .san-pc ol{margin:0 0 16px;padding:0;list-style:none;counter-reset:p}.san-scope .san-pc ol li{counter-increment:p;position:relative;padding:2px 0 10px 36px;font:500 14.5px/1.5 Montserrat,system-ui,sans-serif;color:#3E3F3F}",
     ".san-scope .san-pc ol li::before{content:counter(p);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:rgba(233,130,106,.16);color:#B3553E;font:700 12px/24px Montserrat,system-ui,sans-serif;text-align:center}",
     ".san-scope .san-pc .pq{margin:0 0 16px;padding:12px 14px;border-radius:16px;background:#EEF1F7;color:#3E4A66;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
+    /* «Responder» en la tarjeta: escribes o mandas una nota de voz (la ves en texto antes de enviarla) */
+    ".san-scope .san-rp{padding:0 18px 16px}.san-scope .san-rp[hidden]{display:none}.san-scope .san-rp textarea{width:100%;box-sizing:border-box;min-height:84px;resize:none;border:1px solid #E6E1DB;border-radius:18px;padding:12px 14px;font:500 14.5px/1.5 Montserrat,system-ui,sans-serif;color:#3E3F3F;background:#FBFAF8;outline:none}.san-scope .san-rp textarea:focus{border-color:#E9826A;background:#fff}",
+    ".san-scope .san-rp .fi{display:flex;align-items:center;gap:10px;margin-top:10px}.san-scope .san-rp .st{flex:1;min-width:0;font:500 12.5px/1.4 Montserrat,system-ui,sans-serif;color:#8A8580}.san-scope .san-rp .mic{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:#F3EFEA;color:#3E3F3F}.san-scope .san-rp .mic.on{background:#E9826A;color:#fff;animation:sanLate 1.2s ease-in-out infinite}",
+    ".san-scope .san-rp .ev{flex:none;border:0;cursor:pointer;padding:12px 18px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase}.san-scope .san-rp .ev:disabled{opacity:.45}.san-scope .san-rp .ok{margin:0;padding:12px 14px;border-radius:16px;background:#E6F2EA;color:#2F6B47;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
     ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
     ".san-scope .san-chip.publicando,.san-scope .san-chip.revisando{background:#FBF3E2;color:#9A6B12}.san-scope .san-chip.publicado{background:#E6F2EA;color:#2F6B47}.san-scope .san-chip.fallo_pub{background:#FBEAE6;color:#B54D36}",
     ".san-scope .san-chip.publicando::before{content:'';display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:currentColor;vertical-align:1px;animation:sanLate 1.2s ease-in-out infinite}@keyframes sanLate{50%{opacity:.25}}",
@@ -1313,7 +1317,7 @@
     };
     r.readAsDataURL(archivo);
   }
-  /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id), unir(url) }. Sin eso, el botón no existe. */
+  /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id), unir(url), responder(id, texto), nota({audio, mime}) }. Sin eso, el botón no existe. */
   var pendT = 0;
   function pendCargar() {
     if (!E.ov || !cfg.pendientes || !cfg.pendientes.cargar) return;
@@ -1330,7 +1334,12 @@
   function pendPintar() {
     var b = E.pb, n = (AL.pend || []).length;
     b.hidden = !n; b.querySelector(".san-badge").textContent = n > 9 ? "9+" : String(n);
-    if (E.ov.classList.contains("pend")) pendLista();
+    if (E.ov.classList.contains("pend") && !pendOcupado()) pendLista();
+  }
+  /* mientras respondes una tarjeta (escribiendo, grabando o leyendo la confirmación) la lista no se repinta sola */
+  function pendOcupado() {
+    return Array.prototype.some.call(E.ov.querySelectorAll(".san-pend:not(.san-noti) .san-rp:not([hidden])"), function (r) {
+      var ta = r.querySelector("textarea"); return !ta || ta.value.trim() || ta === d.activeElement || r.querySelector(".mic.on"); });
   }
   function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); hoja(); if (on) pendCargar(); }
   /* Con una hoja abierta (chat o pendientes), la pantalla de atrás esconde su saludo y su engrane */
@@ -1442,9 +1451,60 @@
     if (p.resolver && cfg.pendientes.resolver) { var rx = d.createElement("button"); rx.type = "button"; rx.className = "sec"; rx.textContent = "Ya está"; rx.onclick = function () { quita(); try { cfg.pendientes.resolver(p.id); } catch (e) {} }; bt.appendChild(rx); }
     if (p.hecho && cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice"; hx.onclick = function () { quita(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
     if (p.detalle || p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = p.fuente === "alma" ? "Lo que respondió Alma" : "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.detalle || p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
+    var rp = p.responder && cfg.pendientes.responder ? pendResponder(p, quita) : null;
+    if (rp) { var rb = d.createElement("button"); rb.type = "button"; rb.setAttribute("data-a", "responder"); rb.textContent = "Responder";
+      rb.onclick = function () { rp.hidden = !rp.hidden; if (!rp.hidden) { c.classList.add("abierta"); try { rp.querySelector("textarea").focus(); } catch (e) {} } }; bt.insertBefore(rb, bt.firstChild); }
     if (bt.childNodes.length) c.appendChild(bt);   // los botones siempre a la vista; lo demás se abre con un toque
     c.appendChild(cu);
+    if (rp) c.appendChild(rp);   // debajo de la pregunta: lees y respondes
     return c;
+  }
+  /* «Responder»: la respuesta va a quien preguntó (Claude o Alma, lo decide el Hub). La nota de voz se graba aquí, el Hub la
+     pasa a texto y queda en el cuadro para que la revises antes de enviar. */
+  function pendResponder(p, quita) {
+    var rp = d.createElement("div"); rp.className = "san-rp"; rp.hidden = true;
+    var ta = d.createElement("textarea"); ta.placeholder = p.pregunta ? "Tu respuesta a Claude…" : "Tu respuesta…";
+    var fi = d.createElement("div"); fi.className = "fi";
+    var mic = d.createElement("button"); mic.type = "button"; mic.className = "mic"; mic.setAttribute("aria-label", "Nota de voz: toca para grabar y otra vez para terminar");
+    mic.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+    var st = d.createElement("span"); st.className = "st"; st.textContent = "Escribe o toca el micrófono.";
+    var ev = d.createElement("button"); ev.type = "button"; ev.className = "ev"; ev.textContent = "Enviar";
+    fi.appendChild(mic); fi.appendChild(st); fi.appendChild(ev); rp.appendChild(ta); rp.appendChild(fi);
+    var rec = null, partes = [];
+    mic.onclick = function () {
+      if (rec) { rec.stop(); return; }
+      if (!navigator.mediaDevices || !w.MediaRecorder || !cfg.pendientes.nota) { st.textContent = "Aquí no puedo grabar; escríbelo."; return; }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (flujo) {
+        var tipo = ["audio/mp4", "audio/webm"].filter(function (t) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
+        partes = []; rec = new MediaRecorder(flujo, tipo ? { mimeType: tipo } : undefined);
+        rec.ondataavailable = function (e) { if (e.data && e.data.size) partes.push(e.data); };
+        rec.onstop = function () {
+          flujo.getTracks().forEach(function (t) { t.stop(); }); var mime = rec.mimeType || tipo || "audio/mp4"; rec = null; mic.classList.remove("on");
+          if (!partes.length) { st.textContent = "No se grabó nada."; return; }
+          st.textContent = "Pasándola a texto…"; ev.disabled = true;
+          var fr = new FileReader();
+          fr.onload = function () {
+            Promise.resolve(cfg.pendientes.nota({ audio: String(fr.result).split(",")[1], mime: mime })).then(function (r) {
+              ev.disabled = false;
+              if (r && r.ok) { ta.value = (ta.value ? ta.value.replace(/\s+$/, "") + " " : "") + r.texto; st.textContent = "Revísala y toca Enviar."; }
+              else st.textContent = (r && r.error) || "No te entendí. ¿Otra vez?";
+            }, function () { ev.disabled = false; st.textContent = "No se pudo. ¿Otra vez?"; });
+          };
+          fr.readAsDataURL(new Blob(partes, { type: mime }));
+        };
+        rec.start(); mic.classList.add("on"); st.textContent = "Te escucho… toca para terminar.";
+      }, function () { st.textContent = "Sin permiso del micrófono; escríbelo."; });
+    };
+    ev.onclick = function () {
+      var t = ta.value.trim(); if (!t) { ta.focus(); return; }
+      ev.disabled = true; mic.disabled = true; st.textContent = "Enviando…";
+      Promise.resolve(cfg.pendientes.responder(p.id, t)).then(function (r) {
+        if (!r || !r.ok) { ev.disabled = false; mic.disabled = false; st.textContent = (r && r.error) || "No se pudo enviar."; return; }
+        rp.innerHTML = ""; var ok = d.createElement("p"); ok.className = "ok"; ok.textContent = r.respuesta || "Listo, ya lo pasé."; rp.appendChild(ok);
+        setTimeout(function () { quita(); setTimeout(pendCargar, 1500); }, 5000);
+      }, function () { ev.disabled = false; mic.disabled = false; st.textContent = "No se pudo enviar."; });
+    };
+    return rp;
   }
   /* «Unir» sin entrar a GitHub: el Hub lo une con la llave de Conexiones y la lista lo sigue mientras se publica */
   function pendBotonesUnir(p, bt, cu) {

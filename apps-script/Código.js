@@ -3100,6 +3100,8 @@ function hubApi_(body) {
       case 'notificaciones': return json_(vozNotificaciones_(ses));                        // app de Alma: botón «Notificaciones» (historial de avisos, voz.js)
       case 'pendientes': return json_(pendientesTodo_(ses));                               // app de Alma: Pendientes por esfera (pendientes.js)
       case 'pendienteResolver': return json_(pendResolver_(ses, body.id));
+      case 'pendienteResponder': return json_(pendResponder_(ses, body));                   // Pendientes: «Responder» con texto a quien preguntó (pendientes.js)
+      case 'pendienteNota': return json_(pendNota_(ses, body));                             // Pendientes: la nota de voz de «Responder», en texto (pendientes.js)
       case 'unirPr': return json_(unirPrSes_(ses, body.ref));                                 // app de Alma: botón «Unir» de Pendientes (unir.js)
       case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
       case 'agentes': return json_(agAccion_(ses, body));                                    // equipo de agentes detrás de Alma (agentes.js · alma/agentes.html)

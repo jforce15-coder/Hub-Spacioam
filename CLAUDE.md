@@ -28,14 +28,15 @@ Apps Script + hoja y se puede probar solo. Un ticket listo para el agente = sin 
 El contexto tiene una zona buena (cabeza limpia); se ensucia con logs, diffs y chats viejos. Un ticket por vez con
 contexto limpio (un subagente por ticket si son varios). Todos los tickets del pedido van en **una sola rama y un PR**.
 
-## 6. Dos escritorios de revisión antes del PR
-Quien implementa no se revisa solo. Antes de abrir el PR (idealmente con un subagente que no escribió el código):
-1. **Contra el spec / el pedido:** ¿falta algo? ¿hay algo que nadie pidió? ¿algo que *parece* hecho pero está mal?
-2. **Contra [ESTANDARES.md](ESTANDARES.md):** nombres, tamaño, olores de código, las reglas del repo.
+## 6. Unir rápido; el equipo revisa después
+Juan no espera para unir. **Antes del PR** solo lo que tarda segundos: `node --check`, los checks de `estandares.yml`
+y un repaso propio contra el pedido y [ESTANDARES.md](ESTANDARES.md). **Después de unir**, atrás y sin que Juan espere:
+los bots de prueba prueban la versión publicada y, si encuentran algo, abren el aviso y Claude manda el arreglo en un PR
+corto. Nada lento (bots, navegadores, subagentes revisores) va como requisito antes de unir.
 
 ## 7. El PR es la imagen más chica posible, con prueba
-Usa la plantilla: Resumen corto · **Evidencia antes y después** (capturas, salida de los bots de prueba, simulación) ·
-Peligros al unir · Cómo probarlo. Corre `cd pruebas && npm install && node bots.mjs` si tocaste páginas.
+Usa la plantilla: Resumen corto · **Evidencia antes y después** (capturas, simulación) ·
+Peligros al unir · Cómo probarlo. Los bots de prueba corren solos después de unir.
 
 ## 8. Retro: lo que se repite se vuelve regla
 Cuando Juan corrige lo mismo dos veces, o algo falló después de unir, agrégalo a ESTANDARES.md. **Si una máquina puede

@@ -3,17 +3,13 @@
 # buscan errores, cosas que se salen de la pantalla, botones tapados, imágenes rotas y texto cortado.
 # No dejan ningún registro: todo lo que iría al servidor se contesta con datos de prueba y su navegador se borra.
 #
-# · En cada PR: prueban esa versión y dejan el informe como comentario. Si hay algo GRAVE (error de JavaScript,
-#   pantalla en blanco, código del usuario ejecutándose), el PR queda en rojo: no lo unas así.
+# Corren DESPUÉS de unir, nunca en el PR: Juan une sin esperar y el equipo se queda trabajando atrás.
 # · Al unir a main: esperan a que se publique y prueban hub.spacioam.com. Si encuentran problemas abren (o
 #   actualizan) el aviso «🤖 Bots de prueba» con la etiqueta bots-prueba; el Hub se lo pasa a Claude, que abre el PR
 #   con el arreglo. Cuando vuelven a probar y todo está bien, cierran el aviso solos.
 name: Bots de prueba
 
 on:
-  pull_request:
-    branches: [main]
-    paths: ["**.html", "js/**", "alma/**", "health/**", "anillo/**", "ds/**", "pruebas/**"]
   push:
     branches: [main]
     paths: ["**.html", "js/**", "alma/**", "health/**", "anillo/**", "ds/**", "pruebas/**"]
@@ -22,7 +18,6 @@ on:
 permissions:
   contents: read
   issues: write
-  pull-requests: write
 
 concurrency:
   group: bots-prueba-${{ github.ref }}
@@ -63,14 +58,7 @@ jobs:
           path: pruebas/salida/
           retention-days: 14
 
-      - name: Informe en el PR
-        if: github.event_name == 'pull_request' && always() && hashFiles('pruebas/salida/informe.md') != ''
-        run: |
-          { cat pruebas/salida/informe.md; echo; echo "_Capturas: [artefacto bots-de-prueba](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})._"; } > /tmp/cuerpo.md
-          gh pr comment ${{ github.event.pull_request.number }} --edit-last --body-file /tmp/cuerpo.md 2>/dev/null || gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/cuerpo.md
-
-      - name: Aviso para Claude (al unir a main)
-        if: github.event_name != 'pull_request'
+      - name: Aviso para Claude
         run: |
           N=$(node -e 'const j=require("./pruebas/salida/informe.json"); console.log(j.graves + j.medios)')
           gh label create bots-prueba --color E9826A --description "Lo que encontraron los bots de prueba" --force >/dev/null 2>&1 || true
@@ -79,12 +67,6 @@ jobs:
             if [ -n "$ABIERTO" ]; then gh issue comment "$ABIERTO" -b "✅ Los bots volvieron a probar hub.spacioam.com y todo está bien."; gh issue close "$ABIERTO"; fi
             exit 0
           fi
-          { cat pruebas/salida/informe.md; echo; echo "Claude: arregla lo grave y lo medio en un PR. Antes de abrirlo, corre \`cd pruebas && npm install && node bots.mjs\` y verifica que ya no aparezca. Capturas: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; } > /tmp/cuerpo.md
+          { cat pruebas/salida/informe.md; echo; echo "Claude: arregla lo grave y lo medio en un PR corto (sin correr los bots antes: vuelven a probar solos al unir). Capturas: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; } > /tmp/cuerpo.md
           if [ -n "$ABIERTO" ]; then gh issue edit "$ABIERTO" --body-file /tmp/cuerpo.md; gh issue comment "$ABIERTO" -b "Volvieron a probar: siguen $N problema(s) graves o medios."
           else gh issue create --title "🤖 Bots de prueba: $N problema(s) en hub.spacioam.com" --label bots-prueba --body-file /tmp/cuerpo.md; fi
-
-      - name: Rojo si hay algo grave (en el PR)
-        if: github.event_name == 'pull_request'
-        run: |
-          G=$(node -e 'console.log(require("./pruebas/salida/informe.json").graves)')
-          if [ "$G" != "0" ]; then echo "::error::Los bots encontraron $G problema(s) grave(s). Mira el comentario del PR."; exit 1; fi

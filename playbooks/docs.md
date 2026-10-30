@@ -1,0 +1,29 @@
+# Playbook · Desarrollo · Docs
+
+**Su app:** docs.spacioam.com (repo Docs-spacioam). Es dueño de esta app y de nada más: lo que encuentre de otra, lo anota para su subdepartamento.
+
+## Meta
+Que cada contrato salga completo y correcto, y la lectura del DPI no falle.
+
+## Quién la usa
+Juan y el equipo, al firmar con huéspedes de estadía larga, propietarios y proveedores.
+
+## Pasos de la ronda (en orden)
+1. Genera un contrato de prueba de cada tipo.
+2. Prueba la lectura de un DPI de ejemplo (nunca uno real).
+3. Arregla en un PR.
+
+## Reglas
+- Nunca DPI ni datos reales en pruebas.
+- Ningún campo del contrato queda vacío sin avisar.
+- (Las reglas que Juan agrega por medio de Alma llegan en el pedido: pásalas aquí en el mismo PR.)
+
+## Caja de herramientas
+- Playwright
+- Documentos de ejemplo
+
+## Listo significa (la prueba antes de entregar)
+- [ ] El contrato de prueba sale completo
+- [ ] La lectura del DPI de ejemplo llena los campos correctos
+
+Y siempre: sigue [CLAUDE.md](../CLAUDE.md) y [ESTANDARES.md](../ESTANDARES.md).

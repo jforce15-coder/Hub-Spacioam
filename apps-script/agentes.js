@@ -12,7 +12,11 @@
    Hojas: ALMA_AGENTES (quiénes son; misión, horas, días, presupuesto y estado se editan ahí), ALMA_AG_TAREAS (cada
    corrida) y ALMA_AG_PROPUESTAS (lo que esperan aprobación). */
 
-var AG_CAB_ = ['id', 'nombre', 'rol', 'mision', 'horas', 'dias', 'presupuesto_usd', 'estado', 'ultima', 'mes', 'gasto_mes', 'herramientas', 'tipo'];
+/* PLAYBOOK de cada agente (lección «AI delegation»: un agente bueno no es otro agente cableado a los demás, es un
+   playbook claro): misión (la meta), pasos (en orden), reglas (incluye las que Juan va agregando) y «listo significa»
+   (la lista que el agente revisa antes de entregar: su prueba). Cuando algo sale mal no se corrige en el chat: Alma lo
+   agrega a su playbook (ajustar_playbook) y queda para siempre. */
+var AG_CAB_ = ['id', 'nombre', 'rol', 'mision', 'horas', 'dias', 'presupuesto_usd', 'estado', 'ultima', 'mes', 'gasto_mes', 'herramientas', 'tipo', 'app', 'pasos', 'reglas', 'listo'];
 var AGT_CAB_ = ['id', 'agente', 'creado', 'origen', 'pedido', 'estado', 'informe', 'propuestas', 'costo_usd', 'terminado'];
 var AGP_CAB_ = ['id', 'tarea', 'agente', 'creado', 'titulo', 'porque', 'herramienta', 'entrada', 'estado', 'resultado', 'decidio', 'decidido'];
 
@@ -43,19 +47,52 @@ var AGENTES_SEMILLA_ = [
     mision: 'Que nada esté roto cuando llegue un huésped. Busca reparaciones que reportaron los huéspedes o el equipo (aire acondicionado, agua caliente, cerraduras, WiFi, electrodomésticos), fallas que se repiten en una misma propiedad y mantenimiento preventivo vencido. Encuentra el mejor momento para el técnico (entre una salida y la siguiente llegada) y propón la tarea, la cita en Epi o el aviso al técnico o proveedor, con la propiedad y la falla exactas.' },
   /* El equipo técnico: no corre aquí sino con Claude (el desarrollador), por el mismo canal de los pedidos de mejora. En cada
      ronda revisa dos de las apps (rotan) y abre PRs con lo que corrige; Juan los une (ese es su «sí»). */
-  { id: 'desarrollo', nombre: 'Desarrollo', rol: 'Equipo de desarrollo y diseño (Claude)', horas: '10', dias: '2,5', presupuesto_usd: 0, tipo: 'claude', herramientas: '',
+  { id: 'desarrollo', nombre: 'Desarrollo', rol: 'Jefe de Desarrollo: coordina los subdepartamentos y hace la retro', horas: '16', dias: '5', presupuesto_usd: 0, tipo: 'claude', herramientas: '',
     mision: 'Que todas las apps se vean y se sientan impecables en cualquier pantalla. Ronda de revisión de UI y UX: visibilidad en teléfonos chicos y grandes, iPad y computadora, textos cortados, contraste, botones que no se ven o son difíciles de tocar, animaciones que no se sienten bien, fallas de funciones y mejoras claras.' },
+  /* Subdepartamentos de Desarrollo: uno por app, cada uno dueño de su app y de su playbook (playbooks/<app>.md en el
+     Hub). No se hablan entre ellos: cada uno trabaja con Claude sobre su app y entrega PRs; Desarrollo coordina y hace la retro. */
+  { id: 'dev_hub', nombre: 'Desarrollo · Hub', rol: 'Subdepartamento del Hub (hub.spacioam.com)', app: 'Hub', horas: '10', dias: '1', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que el Hub (bandeja, conversación, roca y su menú) funcione y se vea impecable en cualquier pantalla.' },
+  { id: 'dev_api', nombre: 'Desarrollo · API', rol: 'Subdepartamento del Apps Script (la API de Alma y del Hub)', app: 'API', horas: '10', dias: '2', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que la API (Apps Script) responda rápido, sin errores y sin duplicar ni perder datos.' },
+  { id: 'dev_app', nombre: 'Desarrollo · App de Alma', rol: 'Subdepartamento de la app de iPhone y sus páginas', app: 'Alma app', horas: '10', dias: '3', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que la app de Alma (inicio, roca, voz, anillo, correos, áreas) se sienta nativa, fluida y no se corte.' },
+  { id: 'dev_hola', nombre: 'Desarrollo · Hola', rol: 'Subdepartamento de Hola (registro de huéspedes)', app: 'Hola', horas: '10', dias: '4', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que cada huésped complete su registro sin ayuda, en español o inglés, y llegue a recepción.' },
+  { id: 'dev_epi', nombre: 'Desarrollo · Epi', rol: 'Subdepartamento de Epi (operación del equipo)', app: 'Epi', horas: '10', dias: '5', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que el equipo programe, vea su ruta y reporte con fotos sin fricción desde el teléfono.' },
+  { id: 'dev_grow', nombre: 'Desarrollo · Grow', rol: 'Subdepartamento de Grow (proyectos y crecimiento)', app: 'Grow', horas: '10', dias: '6', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que cada proyecto avance por sus etapas y nada se quede detenido sin que se note.' },
+  { id: 'dev_mi', nombre: 'Desarrollo · Mi', rol: 'Subdepartamento de Mi (finanzas y conta)', app: 'Mi', horas: '15', dias: '1', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que facturas, conta y reportes cuadren y se lean fácil.' },
+  { id: 'dev_docs', nombre: 'Desarrollo · Docs', rol: 'Subdepartamento de Docs (contratos y DPI)', app: 'Docs', horas: '15', dias: '4', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que cada contrato salga completo y correcto, y la lectura del DPI no falle.' },
   /* El departamento de Archivo (archivista.js): solo ordena. No propone nada afuera; su trabajo se ve en las áreas y cajones. */
   { id: 'archivo', nombre: 'Archivo', rol: 'Departamento de archivo y orden', horas: '6,21', dias: '1,2,3,4,5,6,7', presupuesto_usd: 0, tipo: 'archivo', herramientas: '',
     mision: 'Que todo esté organizado: cada conversación, archivo y documento en su lugar. Clasifica lo nuevo, revisa con contexto lo que quedó sin clasificar, separa lo de procesos (se resuelve y termina) de lo permanente, y guarda aparte las ideas (proyectos en potencia), lo de interés y el ocio.' }
 ];
+
+/* Pasos y «listo significa» de los que ya existían (se llenan solos donde la hoja está vacía). */
+var AG_PLAYBOOK_ = {
+  operaciones: { pasos: '1. Llegadas y salidas de hoy y mañana · 2. Contra la ruta de Epi y las tareas abiertas · 3. Lo que falta o choca · 4. Propuestas', listo: 'Cada llegada de hoy y mañana tiene limpieza asignada · ninguna tarea vieja sin dueño · cada propuesta dice propiedad, fecha y persona' },
+  huespedes: { pasos: '1. Promesas abiertas · 2. Conversaciones con pendientes · 3. Llegadas de mañana con sus mensajes · 4. Salidas recientes para reseña', listo: 'Ninguna promesa vencida sin propuesta · cada mensaje propuesto tiene el texto final listo para enviar · sin datos personales en el informe' },
+  finanzas: { pasos: '1. Cancelaciones recientes · 2. Reservas de la semana · 3. Pagos o cobros mencionados con socios y proveedores', listo: 'Cada monto con su moneda y su fuente · nada mueve dinero · cada propuesta dice a quién y por qué' },
+  crecimiento: { pasos: '1. Huecos en las próximas dos semanas · 2. Datos que faltan en las fichas · 3. Proyectos de Grow detenidos', listo: 'Cada mejora dice la propiedad y el texto o dato exacto · nada inventado sobre la propiedad' },
+  marketing: { pasos: '1. Fechas con poca ocupación · 2. Lo que más elogian los huéspedes · 3. Qué destacar · 4. Ideas listas para usar', listo: 'Cada idea trae su texto final en el tono de Spacio AM · sin datos personales de huéspedes · nada publicado por su cuenta' },
+  mantenimiento: { pasos: '1. Fallas reportadas · 2. Fallas que se repiten por propiedad · 3. Preventivo vencido · 4. Ventana entre salida y llegada', listo: 'Cada propuesta dice propiedad, falla exacta, técnico o proveedor y el momento entre huéspedes' },
+  archivo: { pasos: '1. Clasificar lo nuevo · 2. Revisar lo sin clasificar con contexto · 3. Tipo y guardado · 4. Archivos de Drive · 5. Avisar ideas', listo: 'Nada queda sin lugar · lo manual no se toca · cada idea nueva avisada una vez' },
+  desarrollo: { pasos: '1. Coordina a los subdepartamentos (uno por app) · 2. Cada dos semanas, la retro: lo que se repitió se vuelve regla o check', listo: 'Cada regla nueva tiene su línea en ESTANDARES.md o su check · un solo PR por retro' }
+};
 
 /* La hoja de agentes: los que faltan de la semilla se agregan solos (lo que editaste en la hoja no se toca). */
 function hojaAg_() {
   var sh = hojaCrear_('ALMA_AGENTES', AG_CAB_), n = sh.getLastRow();
   if (sh.getLastColumn() < AG_CAB_.length) sh.getRange(1, 1, 1, AG_CAB_.length).setValues([AG_CAB_]);   // columnas nuevas (tipo)
   var ya = n >= 2 ? sh.getRange(2, 1, n - 1, 1).getValues().map(function (v) { return String(v[0]); }) : [];
-  AGENTES_SEMILLA_.forEach(function (a) { if (ya.indexOf(a.id) < 0) sh.appendRow(AG_CAB_.map(function (k) { return a[k] != null ? a[k] : k === 'estado' ? 'activo' : ''; })); });
+  AGENTES_SEMILLA_.forEach(function (a) { if (ya.indexOf(a.id) < 0) sh.appendRow(AG_CAB_.map(function (k) { var pb = AG_PLAYBOOK_[a.id] || {}; return a[k] != null ? a[k] : pb[k] != null ? pb[k] : k === 'estado' ? 'activo' : ''; })); });
+  /* columnas nuevas del playbook: se llenan donde están vacías (lo que escribiste no se toca) */
+  if (n >= 2) {
+    var cols = ['app', 'pasos', 'listo'].map(function (k) { return AG_CAB_.indexOf(k); }), v = sh.getRange(2, 1, n - 1, AG_CAB_.length).getValues(), cambio = false;
+    v.forEach(function (row) {
+      var sem = AGENTES_SEMILLA_.filter(function (x) { return x.id === String(row[0]); })[0] || {}, pb = AG_PLAYBOOK_[String(row[0])] || {};
+      cols.forEach(function (c) { var k = AG_CAB_[c], val = sem[k] != null ? sem[k] : pb[k]; if (!String(row[c]) && val) { row[c] = val; cambio = true; } });
+      /* Desarrollo pasa a ser el jefe (los subdepartamentos revisan cada app): deja su horario viejo de rondas */
+      if (row[0] === 'desarrollo' && String(row[4]) === '10' && String(row[5]) === '2,5') { row[2] = sem.rol; row[4] = sem.horas; row[5] = sem.dias; cambio = true; }
+    });
+    if (cambio) sh.getRange(2, 1, n - 1, AG_CAB_.length).setValues(v);
+  }
   return sh;
 }
 function hojaAgT_() { return hojaCrear_('ALMA_AG_TAREAS', AGT_CAB_); }
@@ -107,6 +144,7 @@ function agenteCorrer_(a, origen, pedido) {
     '· Estas herramientas NO se ejecutan al usarlas: quedan como PROPUESTA para que Juan la apruebe: ' + proponer.join(', ') + '. Antes de cada una, escribe en una frase por qué (eso es lo que Juan lee). Usa los datos exactos (código de reserva, propiedad, texto final del mensaje).\n' +
     '· Propón solo lo que de verdad vale la pena: máximo 4 propuestas, sin repetir lo que ya está pendiente.\n' +
     '· Al final escribe tu INFORME para Alma: 2 a 5 líneas, claras y concretas (qué revisaste, qué encontraste, qué propones). Si todo está en orden, dilo en una línea.\n\n' +
+    agPlaybookTexto_(a) +
     'HOY: ' + hoy + ' (hora de Guatemala).' + agPendientesTexto_(a.id);
   var msgs = [{ role: 'user', content: pedido ? 'PEDIDO DE JUAN (por medio de Alma): ' + pedido : 'Es tu hora de revisión (' + origen + '). Haz tu revisión.' }];
   var tarea = agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: new Date().toISOString(), origen: origen, pedido: pedido || '', estado: 'en_curso' });
@@ -195,6 +233,23 @@ function agPropuestas_() {
   return agFilas_(hojaAgP_(), AGP_CAB_).filter(function (p) { return p.estado === 'pendiente'; })
     .map(function (p, i) { return { n: i + 1, id: p.id, agente: A[p.agente] || p.agente, titulo: p.titulo, porque: p.porque, creado: p.creado }; });
 }
+/* El playbook en el prompt: pasos en orden, reglas (las de Juan incluidas) y la prueba antes de entregar. */
+function agPlaybookTexto_(a) {
+  return (a.pasos ? 'TUS PASOS (en orden): ' + a.pasos + '\n' : '') +
+    (a.reglas ? 'REGLAS QUE TE DIO JUAN (cúmplelas siempre): ' + a.reglas + '\n' : '') +
+    (a.listo ? 'LISTO SIGNIFICA (tu prueba): antes de tu informe revisa cada punto y termina el informe con una línea «Listo: ✓ …» o «Falta: ✗ …»: ' + a.listo + '\n' : '') + '\n';
+}
+/* «No parches el chat, arregla el playbook»: Alma agrega lo que Juan corrigió a las reglas (o pasos, o «listo significa»)
+   del agente; queda para todas sus rondas siguientes. En los subdepartamentos, Claude lo pasa a playbooks/<app>.md. */
+function agAjustarPlaybook_(id, cambio, campo) {
+  var a = agente_(id); if (!a) return { ok: false, error: 'No tengo ese agente. Tengo: ' + agentes_().map(function (x) { return x.id; }).join(', ') };
+  campo = ['reglas', 'pasos', 'listo'].indexOf(campo) >= 0 ? campo : 'reglas';
+  cambio = String(cambio || '').replace(/\s+/g, ' ').trim().slice(0, 400); if (!cambio) return { ok: false, error: 'Falta qué cambiar.' };
+  var f = Utilities.formatDate(ahora_(), CFG.TZ, 'd MMM');
+  a[campo] = (a[campo] ? a[campo] + ' · ' : '') + cambio + ' (' + f + ')';
+  agGuardar_(hojaAg_(), AG_CAB_, a);
+  return { ok: true, agente: a.nombre, campo: campo, playbook: { pasos: a.pasos, reglas: a.reglas, listo: a.listo } };
+}
 function agTablero_(ses) {
   var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
   if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
@@ -202,7 +257,7 @@ function agTablero_(ses) {
   var T = agFilas_(hojaAgT_(), AGT_CAB_);
   return { ok: true, alma: 'Alma · habla con todos', agentes: agentes_().map(function (a) {
     var ult = T.filter(function (t) { return t.agente === a.id; }).slice(-1)[0] || null;
-    return { id: a.id, tipo: a.tipo || '', nombre: a.nombre, rol: a.rol, mision: a.mision, horas: a.horas, dias: a.dias, estado: a.estado, presupuesto_usd: Number(a.presupuesto_usd || 0),
+    return { id: a.id, tipo: a.tipo || '', app: a.app || '', pasos: a.pasos || '', reglas: a.reglas || '', listo: a.listo || '', nombre: a.nombre, rol: a.rol, mision: a.mision, horas: a.horas, dias: a.dias, estado: a.estado, presupuesto_usd: Number(a.presupuesto_usd || 0),
       gasto_mes: a.mes === Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM') ? Number(a.gasto_mes || 0) : 0, ultima: a.ultima, informe: ult ? ult.informe : '' };
   }), propuestas: agPropuestas_() };
 }
@@ -219,6 +274,7 @@ function agAccion_(ses, b) {
 /* ── Desarrollo: la ronda de revisión la hace Claude (Claude Code, con los repos, Playwright y los skills de diseño) ── */
 var AG_DEV_OBJETIVOS_ = [
   { app: 'Hub', que: 'hub.spacioam.com (repo Hub-Spacioam): index.html, la bandeja, la conversación completa y su botón encajado, js/sa-nav.js (el botón roca, su menú y sus hints)' },
+  { app: 'API', que: 'el Apps Script (apps-script/ en Hub-Spacioam): la API del Hub y de Alma, sus disparadores, hojas y tiempos de respuesta' },
   { app: 'Alma app', que: 'la app de Alma: alma/inicio.html (esferas de áreas, piedra, chat, pendientes), alma/agentes.html, alma/roca.html y, en el repo alma-app, las pantallas SwiftUI (navegador, barra abajo, Health, llamada)' },
   { app: 'Hola', que: 'hola.spacioam.com (repo hola-spacioam): el formulario de registro del huésped paso a paso y su resumen, en español e inglés' },
   { app: 'Epi', que: 'epi.spacioam.com (repo Epi-spacioam): programación, rutas del día, reportes con fotos y tareas' },
@@ -245,29 +301,37 @@ function agDesarrolloRetro_(a, adm, origen) {
     informe: r.ok ? 'Retro enviada a Claude: convierte lo que se repitió en estándares, glosario y checks.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
   return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la retro a Claude. Te cuento qué reglas nuevas salen.' : r.error, propuestas: [], costo_usd: 0 };
 }
+/* Una ronda de Desarrollo. Cada subdepartamento revisa SU app con SU playbook (playbooks/<app>.md + las reglas que Juan
+   agregó en la hoja); el jefe de Desarrollo, en su horario, hace la retro cada dos semanas, y por pedido de Juan hace lo
+   que él diga. */
+var AG_DEV_PLAYBOOK_ = { 'Hub': 'hub', 'API': 'api', 'Alma app': 'app-alma', 'Hola': 'hola', 'Epi': 'epi', 'Grow': 'grow', 'Mi': 'mi', 'Docs': 'docs' };
 function agDesarrolloRonda_(a, adm, origen, pedido) {
-  var p = PropertiesService.getScriptProperties(), k = Number(p.getProperty('AG_DEV_RONDA') || 0), n = AG_DEV_OBJETIVOS_.length;
-  /* Cada cuarta ronda es una RETRO (lección «lo que se repite se vuelve regla»): en lugar de revisar apps, mira lo que se
-     corrigió en las últimas semanas y lo convierte en estándares, palabras del glosario y checks automáticos. */
-  var nR = Number(p.getProperty('AG_DEV_RETRO') || 0) + 1; if (!pedido) p.setProperty('AG_DEV_RETRO', String(nR));
-  if (!pedido && nR % 4 === 0) return agDesarrolloRetro_(a, adm, origen);
-  var obj = pedido ? null : [AG_DEV_OBJETIVOS_[k % n], AG_DEV_OBJETIVOS_[(k + 1) % n]];   // dos apps por ronda; rotan
-  if (!pedido) p.setProperty('AG_DEV_RONDA', String((k + 2) % n));
-  var donde = obj ? obj.map(function (o) { return o.app; }).join(' y ') : 'lo que pidió Juan';
+  var p = PropertiesService.getScriptProperties();
+  if (!a.app && !pedido) {   // el jefe: retro una semana sí y otra no
+    var nR = Number(p.getProperty('AG_DEV_RETRO') || 0) + 1; p.setProperty('AG_DEV_RETRO', String(nR));
+    if (nR % 2 === 0) return agDesarrolloRetro_(a, adm, origen);
+    a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
+    return { ok: true, agente: a.nombre, informe: 'Esta semana no toca retro; los subdepartamentos revisan cada uno su app.', propuestas: [], costo_usd: 0 };
+  }
+  var obj = a.app ? AG_DEV_OBJETIVOS_.filter(function (o) { return o.app === a.app; })[0] || { app: a.app, que: a.mision } : null;
+  var pb = obj ? AG_DEV_PLAYBOOK_[obj.app] : '';
+  var donde = obj ? obj.app : 'lo que pidió Juan';
   var que = [
-    'Eres el equipo de Desarrollo y diseño de Spacio AM, uno de los agentes que trabajan detrás de Alma. Esta es tu ronda de revisión (' + (pedido ? 'pedido de Juan' : origen) + ').',
-    '', pedido ? 'QUÉ PIDIÓ JUAN: ' + pedido : 'QUÉ REVISAS HOY:\n' + obj.map(function (o) { return '· ' + o.app + ': ' + o.que; }).join('\n'),
-    '', 'CÓMO',
+    'Eres ' + (obj ? 'el subdepartamento ' + a.nombre + ' de Spacio AM: dueño de ' + obj.app + ' y de nada más' : 'el equipo de Desarrollo de Spacio AM') + ', uno de los agentes que trabajan detrás de Alma. ' + (pedido ? 'Pedido de Juan.' : 'Tu ronda de revisión (' + origen + ').'),
+    '', pedido ? 'QUÉ PIDIÓ JUAN: ' + pedido : 'TU APP: ' + obj.app + ': ' + obj.que + (a.mision ? '\nTU META: ' + a.mision : ''),
+    pb ? '\nTU PLAYBOOK: lee playbooks/' + pb + '.md en jforce15-coder/Hub-Spacioam (meta, pasos, reglas, caja de herramientas y «listo significa») y síguelo en orden.' : '',
+    a.reglas ? 'REGLAS NUEVAS QUE JUAN DIO (cúmplelas y, en el mismo PR, pásalas a tu playbook): ' + a.reglas : '',
+    '', 'CÓMO (además de CLAUDE.md)',
     '1. Ábrelo de verdad: sírvelo localmente y míralo con Playwright en iPhone SE (375×667), iPhone 15 (390×844), iPhone Pro Max (430×932), iPad (820×1180) y computadora (1280×800). Donde haga falta sesión, usa datos de prueba, nunca datos reales de huéspedes.',
-    '2. Revisa con los skills de diseño: web-design-guidelines (accesibilidad y guías), apple-design (respuesta, resortes, materiales), emil-design-eng (los detalles finos), improve-animations y find-animation-opportunities (movimiento), design-taste-frontend (que no se vea genérico); para la app, ios-liquid-glass y write-swift. Respeta el sistema de diseño (ds/: alabastro, arena, durazno #E9826A, Valky y Montserrat).',
-    '3. Busca: textos cortados o que se salen, contraste bajo, botones que no se ven o miden menos de 44 px, cosas tapadas por la barra o el teclado, áreas seguras del iPhone, cargas sin transición, animaciones bruscas, funciones que fallan y textos confusos.',
-    '3b. En el Hub, corre también los bots de prueba (cd pruebas && npm install && node bots.mjs): usuarios ficticios que lo usan apurados, sin internet, con texto raro y con el servidor fallando, sin dejar registros.',
-    '4. Arregla lo claro y pequeño: máximo 2 PRs (uno por app), con lo que probaste y capturas de antes y después. Las reglas de siempre: PR en español, nunca a main, nunca unir tú.',
-    '5. En tu respuesta a Alma: un resumen corto (qué revisaste y qué arreglaste, con los enlaces a los PRs) y la lista de lo que encontraste y no tocaste, de mayor a menor importancia, para que Juan decida.'
-  ].join('\n');
-  var r = paraClaudeCrear_(adm, { titulo: 'Ronda de revisión · ' + donde, app: obj ? obj[0].app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
+    '2. Revisa con los skills de diseño: web-design-guidelines, apple-design, emil-design-eng, improve-animations y find-animation-opportunities, design-taste-frontend; para la app, ios-liquid-glass y write-swift. Respeta el sistema de diseño (ds/).',
+    '3. Busca: textos cortados o que se salen, contraste bajo, botones que no se ven o miden menos de 44 px, cosas tapadas por la barra o el teclado, áreas seguras, cargas sin transición, animaciones bruscas, funciones que fallan y textos confusos.',
+    '3b. Si tu app está en el Hub, corre los bots de prueba (cd pruebas && npm install && node bots.mjs).',
+    '4. Arregla lo claro y pequeño en UN PR de tu app, con evidencia antes y después. No toques otras apps: si encuentras algo de otra, anótalo para su subdepartamento.',
+    '5. Antes de responder, revisa el «listo significa» de tu playbook punto por punto. En tu respuesta a Alma: resumen corto con el enlace al PR, la línea «Listo: ✓ …» o «Falta: ✗ …», y lo que encontraste y no tocaste, de mayor a menor importancia.'
+  ].filter(String).join('\n');
+  var r = paraClaudeCrear_(adm, { titulo: (obj ? a.nombre + ' · ronda' : 'Desarrollo · ' + String(pedido).slice(0, 60)), app: obj ? obj.app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
   agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claude' : 'error',
-    informe: r.ok ? 'Ronda enviada a Claude: ' + donde + '. Cuando termine, Alma te cuenta en la conversación Desarrollo y sus PRs aparecen en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
+    informe: r.ok ? 'Ronda enviada a Claude: ' + donde + '. Cuando termine, Alma te cuenta en la conversación Desarrollo y su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
   return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda a Claude (' + donde + '). Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
 }

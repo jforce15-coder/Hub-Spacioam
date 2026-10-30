@@ -291,7 +291,7 @@
   var AR = { datos: null, area: null, abierta: false, cargando: null };
   function areasCargar() {
     if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
-    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; } return r; }, function () { AR.cargando = null; return null; }));
+    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; } return r; }, function () { AR.cargando = null; return null; }));
   }
   function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
 
@@ -419,6 +419,7 @@
       });
       c.appendChild(g);
       /* El archivo: lo que no es un área de vida (lo ordena el departamento de Archivo) */
+      AR.archivadas = AR.archivadas || 0;
       if (AR.cajones && AR.cajones.length) {
         c.appendChild(el("div", "sec-t", "Archivo"));
         var gc = el("div", "rejilla cajones");
@@ -430,6 +431,7 @@
           gc.appendChild(b);
         });
         c.appendChild(gc);
+        if (AR.archivadas) c.appendChild(el("div", "vacio", AR.archivadas + " ya cumplieron su tiempo y se archivaron (siguen completas en el chat)."));
         if (AR.sin) c.appendChild(el("div", "vacio", AR.sin === 1 ? "Una conversación todavía sin lugar: el departamento de Archivo la revisa en su próxima ronda." : AR.sin + " conversaciones todavía sin lugar: el departamento de Archivo las revisa en su próxima ronda."));
       }
       return;
@@ -454,10 +456,15 @@
     a.conversaciones.forEach(function (v) {
       var t = el("div", "tarjeta"), b = el("button", "conv"); b.type = "button";
       var arr = el("div", "arr"); arr.appendChild(el("h4", "", v.titulo)); arr.appendChild(el("small", "", cuando(v.ts))); b.appendChild(arr);
-      b.appendChild(el("div", "de", v.fuente + (v.tipo === "permanente" ? " · para quedarse" : v.tipo === "proceso" ? " · proceso" : ""))); if (v.texto) b.appendChild(el("p", "", v.texto));
+      b.appendChild(el("div", "de", v.fuente + guardadoTexto(v))); if (v.texto) b.appendChild(el("p", "", v.texto));
       if (v.url) b.onclick = function () { abrirLink(v.url); };
       t.appendChild(b); t.appendChild(botonMover(v.clave, a.k)); c.appendChild(t);
     });
+  }
+  /* Cómo se guarda (reglas del departamento de Archivo): para quedarse, o temporal hasta una fecha. */
+  function guardadoTexto(v) {
+    if (v.guardado === "temporal" && v.vence) { var d = Math.max(0, Math.ceil((new Date(v.vence) - Date.now()) / 864e5)); return " · temporal" + (d <= 30 ? " · " + (d <= 1 ? "se archiva mañana" : "se archiva en " + d + " días") : ""); }
+    return v.guardado === "guardar" ? " · para quedarse" : "";
   }
   /* Las seis áreas y los cajones del archivo (Ideas, Interés, Ocio). */
   function todas() { return (AR.datos || []).concat(AR.cajones || []); }

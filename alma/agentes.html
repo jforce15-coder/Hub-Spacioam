@@ -58,6 +58,10 @@
   .prop p { margin: 0 0 10px; font: 500 13px/1.5 Montserrat, sans-serif; color: var(--suave); }
   .prop .bt { display: flex; gap: 8px; }
   .vacio { text-align: center; padding: 18px; font: 500 13.5px Montserrat, sans-serif; color: #A39B93; }
+  .pb { font: 500 12.5px/1.5 Montserrat, sans-serif; color: #5A5856; }
+  .pb summary { cursor: pointer; font-weight: 600; color: var(--durazno-t); list-style: none; min-height: 32px; display: flex; align-items: center; }
+  .pb summary::-webkit-details-marker { display: none; }
+  .pb-f { margin: 6px 0 2px; } .pb-f b { display: block; font: 600 10px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #A39B93; } .pb-f span { white-space: pre-line; }
   .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
     font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
   .msg.on { opacity: 1; }
@@ -99,10 +103,16 @@
       arr.appendChild(ch); c.appendChild(arr);
       c.appendChild(el("div", "rol", a.rol));
       c.appendChild(el("div", "meta", "Revisa a las " + horas(a.horas) + " · " + dias(a.dias) + " · última: " + cuando(a.ultima)));
-      if (a.tipo === "claude") c.appendChild(el("div", "meta", "Trabaja con Claude · revisa dos apps por ronda y te deja sus PRs en Pendientes"));
+      if (a.tipo === "claude") c.appendChild(el("div", "meta", a.app ? "Subdepartamento de Desarrollo · dueño de " + a.app + " · trabaja con Claude y te deja su PR en Pendientes" : "Coordina los subdepartamentos (uno por app) y cada dos semanas hace la retro"));
       else if (a.tipo === "archivo") c.appendChild(el("div", "meta", "Solo ordena · lo ves en tus áreas y en los cajones Ideas, Interés y Ocio"));
       else { var pct = a.presupuesto_usd ? Math.min(100, a.gasto_mes / a.presupuesto_usd * 100) : 0, b = el("div", "barra"), i = el("i"); i.style.width = pct.toFixed(1) + "%"; b.appendChild(i); c.appendChild(b);
         c.appendChild(el("div", "meta", "US$" + a.gasto_mes.toFixed(2) + " de US$" + a.presupuesto_usd + " este mes")); }
+      /* su playbook: pasos, reglas (las tuyas incluidas) y lo que revisa antes de entregar */
+      if (a.pasos || a.reglas || a.listo) {
+        var pbk = el("details", "pb"), sm = el("summary", "", "Su playbook"); pbk.appendChild(sm);
+        [["Pasos", a.pasos], ["Reglas", a.reglas], ["Listo significa", a.listo]].forEach(function (x) { if (!x[1]) return; var d = el("div", "pb-f"); d.appendChild(el("b", "", x[0])); d.appendChild(el("span", "", String(x[1]).split(/\s+·\s+/).join("\n"))); pbk.appendChild(d); });
+        c.appendChild(pbk);
+      }
       if (a.informe) { var inf = el("div", "inf", a.informe); inf.onclick = function () { inf.classList.toggle("abierto"); }; c.appendChild(inf); }
       var r = el("button", "btn", a.tipo === "claude" ? "Pedir una ronda ahora" : a.tipo === "archivo" ? "Ordenar ahora" : "Revisar ahora"); r.type = "button";
       r.onclick = function () {

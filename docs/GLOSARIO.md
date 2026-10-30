@@ -10,6 +10,12 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Modo anillo** | Hablar con Alma con dos toques del anillo, también con el teléfono bloqueado. | modo amigo, manos libres |
 | **Llamada** | Una conversación de voz con Alma (por la roca, el anillo o WhatsApp). | sesión de voz |
 | **Agente** | Uno del equipo detrás de Alma (Operaciones, Huéspedes, Finanzas, Crecimiento, Marketing, Mantenimiento, Desarrollo, Archivo). Revisa y propone; no habla con nadie. | bot, robot |
+| **Playbook** | Cómo trabaja un agente: meta, pasos, reglas (las de Juan incluidas), caja de herramientas y «listo significa». Se arregla el playbook, no el chat. | instrucciones, prompt |
+| **Subdepartamento** | Un agente de Desarrollo dueño de una sola app (Hub, API, App de Alma, Hola, Epi, Grow, Mi, Docs), con su playbook. | equipo de la app |
+| **Personalidad de Alma** | Su playbook propio (`playbooks/alma.md`): cómo habla y se expresa. No nombra ningún negocio, así Alma se puede llevar a otro. | prompt de voz, tono |
+| **Playbook del negocio** | Lo de un negocio (`playbooks/negocio-<nombre>.md`): datos, voz de marca, cómo se dice y el índice de playbooks. | contexto, configuración |
+| **Caja de herramientas** | Lo que Juan ya aprobó de un agente; lo reúsa como plantilla en vez de rehacerlo. | ejemplos, historial |
+| **Listo significa** | La lista que un agente revisa antes de entregar: su prueba. | criterios, checklist |
 | **Propuesta** | Lo que un agente quiere hacer afuera y espera el «sí» de Juan. | sugerencia, tarea |
 | **Segundo plano** | Lo que Alma sigue trabajando después de colgar (más de 20 s). | backend, después |
 | **Tema por retomar** | Algo terminado en segundo plano que necesita algo de Juan; Alma empieza la próxima llamada por el más importante. | pendiente, notificación |

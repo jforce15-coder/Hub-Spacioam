@@ -560,8 +560,11 @@ function vozHerramientas_(k) {
   var ids = (pr.tool_ids || []).slice();
   hechas.forEach(function (t) { if (ids.indexOf(t.id) < 0) ids.push(t.id); });
   pr.tool_ids = ids; delete pr.tools;
-  pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr } } });
-  return vozEstado_({ herramientas: hechas });
+  /* Paciencia: Alma espera a que la persona termine la frase (turn_eagerness 'patient') y no la interrumpe al primer silencio.
+     Cada vez que se publican las herramientas se vuelve a dejar así, para que ningún cambio del agente la apure sin querer. */
+  var turn = Object.assign({}, (ag.conversation_config || {}).turn || {}, { turn_eagerness: 'patient' });
+  pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr }, turn: turn } });
+  return vozEstado_({ herramientas: hechas, turnos: turn.turn_eagerness });
 }
 
 /* Estado del agente tal como lo ve ElevenLabs (para comprobar que el prompt y las herramientas quedaron). */

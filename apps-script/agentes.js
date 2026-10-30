@@ -339,7 +339,7 @@ function agDesarrolloRonda_(a, adm, origen, pedido) {
     '1. Ábrelo de verdad: sírvelo localmente y míralo con Playwright en iPhone SE (375×667), iPhone 15 (390×844), iPhone Pro Max (430×932), iPad (820×1180) y computadora (1280×800). Donde haga falta sesión, usa datos de prueba, nunca datos reales de huéspedes.',
     '2. Revisa con los skills de diseño: web-design-guidelines, apple-design, emil-design-eng, improve-animations y find-animation-opportunities, design-taste-frontend; para la app, ios-liquid-glass y write-swift. Respeta el sistema de diseño (ds/).',
     '3. Busca: textos cortados o que se salen, contraste bajo, botones que no se ven o miden menos de 44 px, cosas tapadas por la barra o el teclado, áreas seguras, cargas sin transición, animaciones bruscas, funciones que fallan y textos confusos.',
-    '3b. Si tu app está en el Hub, corre los bots de prueba (cd pruebas && npm install && node bots.mjs).',
+    '3b. No corras los bots de prueba antes del PR: corren solos después de que Juan une. Mira su último aviso (etiqueta bots-prueba) por si dejaron algo de tu app.',
     '4. Arregla lo claro y pequeño en UN PR de tu app, con evidencia antes y después. No toques otras apps: si encuentras algo de otra, anótalo para su subdepartamento.',
     '5. Antes de responder, revisa el «listo significa» de tu playbook punto por punto. En tu respuesta a Alma: resumen corto con el enlace al PR, la línea «Listo: ✓ …» o «Falta: ✗ …», y lo que encontraste y no tocaste, de mayor a menor importancia.'
   ].filter(String).join('\n');

@@ -11,7 +11,7 @@ Juan (administrador principal) y el equipo: atienden conversaciones de Hospitabl
 
 ## Pasos de la ronda (en orden)
 1. Abre la bandeja, una conversación completa y la roca con su menú en los 5 tamaños de pantalla.
-2. Corre los bots de prueba (`cd pruebas && npm install && node bots.mjs`).
+2. Mira el último informe de los bots de prueba (corren solos después de unir; aviso con la etiqueta bots-prueba).
 3. Revisa con los skills de diseño lo que se ve y se mueve.
 4. Arregla lo claro y pequeño en un PR; lo demás va a la lista para Juan.
 

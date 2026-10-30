@@ -132,14 +132,15 @@
       var est = h.estado === "borrador" ? ["Respuesta lista", "listo"] : h.estado === "enviado" ? [h.sola ? "Responde sola" : "Enviada · sigue el hilo", "env"] : ["Leyendo el hilo…", ""];
       c.appendChild(el("span", "estado " + est[1], est[0]));
       var bt = el("div", "bt"), base = { accion: "hilo", cuenta: h.cuenta, hilo: h.hilo };
+      if (h.estado === "borrador") { var ta = el("textarea"); ta.value = h.borrador || ""; c.appendChild(ta); }
+      c.appendChild(bt);
       if (h.estado === "borrador") {
-        var ta = el("textarea"); ta.value = h.borrador || ""; c.appendChild(ta);
         bt.appendChild(boton("Enviar", "si", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "enviar", texto: ta.value }, base)).then(function (r) { if (r && r.ok) { aviso("Enviada: sale en unos minutos desde " + h.cuenta); setTimeout(cargar, 600); } else { b.disabled = false; aviso((r && r.error) || "No se pudo"); } }); }));
         bt.appendChild(boton("Descartar", "", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "descartar" }, base)).then(function () { quitar(c); }); }));
       }
       if (h.seguimiento) { c.insertBefore(el("span", "urg", "Sin respuesta hace días"), bt); bt.appendChild(boton("Que Alma dé seguimiento", "si", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "seguimiento" }, base)).then(function (r) { if (r && r.ok) { aviso("Alma te deja el seguimiento listo en unos minutos"); setTimeout(cargar, 600); } else { b.disabled = false; aviso((r && r.error) || "No se pudo"); } }); })); }
       bt.appendChild(boton("Dejar de seguirlo", "", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "soltar" }, base)).then(function () { aviso("Alma ya no sigue ese hilo"); quitar(c); }); }));
-      c.appendChild(bt); raiz.appendChild(c);
+      raiz.appendChild(c);
     });
   }
   function posponer(m, c) { return boton("Mañana", "", function (b) { hacer({ que: "posponer", id: m.id, dias: 1 }, b, function () { aviso("Te lo recuerdo mañana a las 8"); quitar(c); }); }); }
@@ -149,7 +150,7 @@
     var c = el("div", "card"), de = el("div", "de", m.de_nombre || m.de); de.appendChild(el("span", "", cuando(m.fecha))); c.appendChild(de);
     c.appendChild(el("h4", "", m.asunto || "(sin asunto)")); if (m.fragmento) c.appendChild(el("p", "", m.fragmento));
     c.appendChild(el("div", "para", "a " + m.cuenta));
-    if (extra) { var bt = el("div", "bt"); extra(bt, c); c.appendChild(bt); }
+    if (extra) { var bt = el("div", "bt"); c.appendChild(bt); extra(bt, c); }   // la fila de botones ya está en la tarjeta (las marcas «Urgente» van antes)
     return c;
   }
   /* una tarjeta por remitente: quién, a qué cuenta, cuántos; al tocarla, de qué te escribe */

@@ -1,0 +1,90 @@
+# Bots de prueba: usuarios ficticios (pruebas/bots.mjs) que usan cada página del Hub y de la app de Alma como personas
+# distintas — teléfono chico o grande, apurados, sin internet, escribiendo cosas raras, con el servidor fallando — y
+# buscan errores, cosas que se salen de la pantalla, botones tapados, imágenes rotas y texto cortado.
+# No dejan ningún registro: todo lo que iría al servidor se contesta con datos de prueba y su navegador se borra.
+#
+# · En cada PR: prueban esa versión y dejan el informe como comentario. Si hay algo GRAVE (error de JavaScript,
+#   pantalla en blanco, código del usuario ejecutándose), el PR queda en rojo: no lo unas así.
+# · Al unir a main: esperan a que se publique y prueban hub.spacioam.com. Si encuentran problemas abren (o
+#   actualizan) el aviso «🤖 Bots de prueba» con la etiqueta bots-prueba; el Hub se lo pasa a Claude, que abre el PR
+#   con el arreglo. Cuando vuelven a probar y todo está bien, cierran el aviso solos.
+name: Bots de prueba
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ["**.html", "js/**", "alma/**", "health/**", "anillo/**", "ds/**", "pruebas/**"]
+  push:
+    branches: [main]
+    paths: ["**.html", "js/**", "alma/**", "health/**", "anillo/**", "ds/**", "pruebas/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: bots-prueba-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Preparar el navegador de los bots
+        working-directory: pruebas
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Esperar a que se publique (al unir a main)
+        if: github.event_name == 'push'
+        run: sleep 150
+
+      - name: Que prueben los bots
+        working-directory: pruebas
+        run: node bots.mjs ${{ github.event_name == 'push' && '--vivo' || '' }}
+
+      - name: Guardar el informe y las capturas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bots-de-prueba
+          path: pruebas/salida/
+          retention-days: 14
+
+      - name: Informe en el PR
+        if: github.event_name == 'pull_request' && always() && hashFiles('pruebas/salida/informe.md') != ''
+        run: |
+          { cat pruebas/salida/informe.md; echo; echo "_Capturas: [artefacto bots-de-prueba](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})._"; } > /tmp/cuerpo.md
+          gh pr comment ${{ github.event.pull_request.number }} --edit-last --body-file /tmp/cuerpo.md 2>/dev/null || gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/cuerpo.md
+
+      - name: Aviso para Claude (al unir a main)
+        if: github.event_name != 'pull_request'
+        run: |
+          N=$(node -e 'const j=require("./pruebas/salida/informe.json"); console.log(j.graves + j.medios)')
+          gh label create bots-prueba --color E9826A --description "Lo que encontraron los bots de prueba" --force >/dev/null 2>&1 || true
+          ABIERTO=$(gh issue list --state open --label bots-prueba --json number -q '.[0].number' || true)
+          if [ "$N" = "0" ]; then
+            if [ -n "$ABIERTO" ]; then gh issue comment "$ABIERTO" -b "✅ Los bots volvieron a probar hub.spacioam.com y todo está bien."; gh issue close "$ABIERTO"; fi
+            exit 0
+          fi
+          { cat pruebas/salida/informe.md; echo; echo "Claude: arregla lo grave y lo medio en un PR. Antes de abrirlo, corre \`cd pruebas && npm install && node bots.mjs\` y verifica que ya no aparezca. Capturas: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"; } > /tmp/cuerpo.md
+          if [ -n "$ABIERTO" ]; then gh issue edit "$ABIERTO" --body-file /tmp/cuerpo.md; gh issue comment "$ABIERTO" -b "Volvieron a probar: siguen $N problema(s) graves o medios."
+          else gh issue create --title "🤖 Bots de prueba: $N problema(s) en hub.spacioam.com" --label bots-prueba --body-file /tmp/cuerpo.md; fi
+
+      - name: Rojo si hay algo grave (en el PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          G=$(node -e 'console.log(require("./pruebas/salida/informe.json").graves)')
+          if [ "$G" != "0" ]; then echo "::error::Los bots encontraron $G problema(s) grave(s). Mira el comentario del PR."; exit 1; fi

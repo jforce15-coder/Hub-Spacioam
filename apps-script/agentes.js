@@ -12,7 +12,7 @@
    Hojas: ALMA_AGENTES (quiénes son; misión, horas, días, presupuesto y estado se editan ahí), ALMA_AG_TAREAS (cada
    corrida) y ALMA_AG_PROPUESTAS (lo que esperan aprobación). */
 
-var AG_CAB_ = ['id', 'nombre', 'rol', 'mision', 'horas', 'dias', 'presupuesto_usd', 'estado', 'ultima', 'mes', 'gasto_mes', 'herramientas'];
+var AG_CAB_ = ['id', 'nombre', 'rol', 'mision', 'horas', 'dias', 'presupuesto_usd', 'estado', 'ultima', 'mes', 'gasto_mes', 'herramientas', 'tipo'];
 var AGT_CAB_ = ['id', 'agente', 'creado', 'origen', 'pedido', 'estado', 'informe', 'propuestas', 'costo_usd', 'terminado'];
 var AGP_CAB_ = ['id', 'tarea', 'agente', 'creado', 'titulo', 'porque', 'herramienta', 'entrada', 'estado', 'resultado', 'decidio', 'decidido'];
 
@@ -40,12 +40,17 @@ var AGENTES_SEMILLA_ = [
     mision: 'Que más gente conozca y reserve Spacio AM directo. Busca fechas con poca ocupación en las próximas semanas para promover, lo que más elogian los huéspedes en sus conversaciones (para contenido y testimonios), y propiedades o temporadas que conviene destacar. Propón ideas concretas y listas para usar: un post para Instagram con su texto, una promoción con fechas y propiedades, una historia de un huésped (sin datos personales). Todo en el tono de Spacio AM: cálido, editorial, calma. Nunca publiques ni escribas a huéspedes por tu cuenta: propón tareas o notas.' },
   { id: 'mantenimiento', nombre: 'Mantenimiento', rol: 'Jefe de mantenimiento', horas: '8,15', dias: '1,2,3,4,5,6', presupuesto_usd: 10,
     herramientas: 'tareas_abiertas,ruta_del_dia,buscar_reservas,ver_conversacion,ver_propiedad,memoria_propiedad,buscar_contacto,crear_tarea,agendar_en_epi,escribir_a_equipo,recordar_en_propiedad',
-    mision: 'Que nada esté roto cuando llegue un huésped. Busca reparaciones que reportaron los huéspedes o el equipo (aire acondicionado, agua caliente, cerraduras, WiFi, electrodomésticos), fallas que se repiten en una misma propiedad y mantenimiento preventivo vencido. Encuentra el mejor momento para el técnico (entre una salida y la siguiente llegada) y propón la tarea, la cita en Epi o el aviso al técnico o proveedor, con la propiedad y la falla exactas.' }
+    mision: 'Que nada esté roto cuando llegue un huésped. Busca reparaciones que reportaron los huéspedes o el equipo (aire acondicionado, agua caliente, cerraduras, WiFi, electrodomésticos), fallas que se repiten en una misma propiedad y mantenimiento preventivo vencido. Encuentra el mejor momento para el técnico (entre una salida y la siguiente llegada) y propón la tarea, la cita en Epi o el aviso al técnico o proveedor, con la propiedad y la falla exactas.' },
+  /* El equipo técnico: no corre aquí sino con Claude (el desarrollador), por el mismo canal de los pedidos de mejora. En cada
+     ronda revisa dos de las apps (rotan) y abre PRs con lo que corrige; Juan los une (ese es su «sí»). */
+  { id: 'desarrollo', nombre: 'Desarrollo', rol: 'Equipo de desarrollo y diseño (Claude)', horas: '10', dias: '2,5', presupuesto_usd: 0, tipo: 'claude', herramientas: '',
+    mision: 'Que todas las apps se vean y se sientan impecables en cualquier pantalla. Ronda de revisión de UI y UX: visibilidad en teléfonos chicos y grandes, iPad y computadora, textos cortados, contraste, botones que no se ven o son difíciles de tocar, animaciones que no se sienten bien, fallas de funciones y mejoras claras.' }
 ];
 
 /* La hoja de agentes: los que faltan de la semilla se agregan solos (lo que editaste en la hoja no se toca). */
 function hojaAg_() {
   var sh = hojaCrear_('ALMA_AGENTES', AG_CAB_), n = sh.getLastRow();
+  if (sh.getLastColumn() < AG_CAB_.length) sh.getRange(1, 1, 1, AG_CAB_.length).setValues([AG_CAB_]);   // columnas nuevas (tipo)
   var ya = n >= 2 ? sh.getRange(2, 1, n - 1, 1).getValues().map(function (v) { return String(v[0]); }) : [];
   AGENTES_SEMILLA_.forEach(function (a) { if (ya.indexOf(a.id) < 0) sh.appendRow(AG_CAB_.map(function (k) { return a[k] != null ? a[k] : k === 'estado' ? 'activo' : ''; })); });
   return sh;
@@ -83,6 +88,7 @@ function agentesLatido_() {
 /* ── Una corrida: revisa, propone y deja su informe ── */
 function agenteCorrer_(a, origen, pedido) {
   var adm = agPrincipal_(); if (!adm) return { ok: false, error: 'sin administrador principal' };
+  if (a.tipo === 'claude') return agDesarrolloRonda_(a, adm, origen, pedido);
   var mes = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM');
   if (a.mes !== mes) { a.mes = mes; a.gasto_mes = 0; }
   if (Number(a.gasto_mes || 0) >= Number(a.presupuesto_usd || 0)) return { ok: false, error: a.nombre + ' ya usó su presupuesto del mes (US$' + a.presupuesto_usd + ').' };
@@ -192,7 +198,7 @@ function agTablero_(ses) {
   var T = agFilas_(hojaAgT_(), AGT_CAB_);
   return { ok: true, alma: 'Alma · habla con todos', agentes: agentes_().map(function (a) {
     var ult = T.filter(function (t) { return t.agente === a.id; }).slice(-1)[0] || null;
-    return { id: a.id, nombre: a.nombre, rol: a.rol, mision: a.mision, horas: a.horas, dias: a.dias, estado: a.estado, presupuesto_usd: Number(a.presupuesto_usd || 0),
+    return { id: a.id, tipo: a.tipo || '', nombre: a.nombre, rol: a.rol, mision: a.mision, horas: a.horas, dias: a.dias, estado: a.estado, presupuesto_usd: Number(a.presupuesto_usd || 0),
       gasto_mes: a.mes === Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM') ? Number(a.gasto_mes || 0) : 0, ultima: a.ultima, informe: ult ? ult.informe : '' };
   }), propuestas: agPropuestas_() };
 }
@@ -204,4 +210,36 @@ function agAccion_(ses, b) {
   if (b.correr) { var a = agente_(b.correr); return a ? agenteCorrer_(a, 'a mano', String(b.pedido || '')) : { ok: false, error: 'no existe ese agente' }; }
   if (b.estado && b.agente) { var g = agente_(b.agente); if (!g) return { ok: false, error: 'no existe' }; g.estado = b.estado === 'pausado' ? 'pausado' : 'activo'; agGuardar_(hojaAg_(), AG_CAB_, g); return { ok: true }; }
   return agTablero_(ses);
+}
+
+/* ── Desarrollo: la ronda de revisión la hace Claude (Claude Code, con los repos, Playwright y los skills de diseño) ── */
+var AG_DEV_OBJETIVOS_ = [
+  { app: 'Hub', que: 'hub.spacioam.com (repo Hub-Spacioam): index.html, la bandeja, la conversación completa y su botón encajado, js/sa-nav.js (el botón roca, su menú y sus hints)' },
+  { app: 'Alma app', que: 'la app de Alma: alma/inicio.html (esferas de áreas, piedra, chat, pendientes), alma/agentes.html, alma/roca.html y, en el repo alma-app, las pantallas SwiftUI (navegador, barra abajo, Health, llamada)' },
+  { app: 'Hola', que: 'hola.spacioam.com (repo hola-spacioam): el formulario de registro del huésped paso a paso y su resumen, en español e inglés' },
+  { app: 'Epi', que: 'epi.spacioam.com (repo Epi-spacioam): programación, rutas del día, reportes con fotos y tareas' },
+  { app: 'Grow', que: 'grow.spacioam.com (repo Grow-spacioam): proyectos, etapas y visitas' },
+  { app: 'Mi', que: 'mi.spacioam.com (repo mi-spacioam): facturas, conta y reportes' },
+  { app: 'Docs', que: 'docs.spacioam.com (repo Docs-spacioam): contratos y lectura de DPI' }
+];
+function agDesarrolloRonda_(a, adm, origen, pedido) {
+  var p = PropertiesService.getScriptProperties(), k = Number(p.getProperty('AG_DEV_RONDA') || 0), n = AG_DEV_OBJETIVOS_.length;
+  var obj = pedido ? null : [AG_DEV_OBJETIVOS_[k % n], AG_DEV_OBJETIVOS_[(k + 1) % n]];   // dos apps por ronda; rotan
+  if (!pedido) p.setProperty('AG_DEV_RONDA', String((k + 2) % n));
+  var donde = obj ? obj.map(function (o) { return o.app; }).join(' y ') : 'lo que pidió Juan';
+  var que = [
+    'Eres el equipo de Desarrollo y diseño de Spacio AM, uno de los agentes que trabajan detrás de Alma. Esta es tu ronda de revisión (' + (pedido ? 'pedido de Juan' : origen) + ').',
+    '', pedido ? 'QUÉ PIDIÓ JUAN: ' + pedido : 'QUÉ REVISAS HOY:\n' + obj.map(function (o) { return '· ' + o.app + ': ' + o.que; }).join('\n'),
+    '', 'CÓMO',
+    '1. Ábrelo de verdad: sírvelo localmente y míralo con Playwright en iPhone SE (375×667), iPhone 15 (390×844), iPhone Pro Max (430×932), iPad (820×1180) y computadora (1280×800). Donde haga falta sesión, usa datos de prueba, nunca datos reales de huéspedes.',
+    '2. Revisa con los skills de diseño: web-design-guidelines (accesibilidad y guías), apple-design (respuesta, resortes, materiales), emil-design-eng (los detalles finos), improve-animations y find-animation-opportunities (movimiento), design-taste-frontend (que no se vea genérico); para la app, ios-liquid-glass y write-swift. Respeta el sistema de diseño (ds/: alabastro, arena, durazno #E9826A, Valky y Montserrat).',
+    '3. Busca: textos cortados o que se salen, contraste bajo, botones que no se ven o miden menos de 44 px, cosas tapadas por la barra o el teclado, áreas seguras del iPhone, cargas sin transición, animaciones bruscas, funciones que fallan y textos confusos.',
+    '4. Arregla lo claro y pequeño: máximo 2 PRs (uno por app), con lo que probaste y capturas de antes y después. Las reglas de siempre: PR en español, nunca a main, nunca unir tú.',
+    '5. En tu respuesta a Alma: un resumen corto (qué revisaste y qué arreglaste, con los enlaces a los PRs) y la lista de lo que encontraste y no tocaste, de mayor a menor importancia, para que Juan decida.'
+  ].join('\n');
+  var r = paraClaudeCrear_(adm, { titulo: 'Ronda de revisión · ' + donde, app: obj ? obj[0].app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
+  a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
+  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claude' : 'error',
+    informe: r.ok ? 'Ronda enviada a Claude: ' + donde + '. Cuando termine, Alma te cuenta en la conversación Desarrollo y sus PRs aparecen en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
+  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda a Claude (' + donde + '). Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
 }

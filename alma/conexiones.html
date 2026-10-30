@@ -97,7 +97,9 @@
   if (!ses) { msg('m-spotify', 'Entra primero al Hub con tu usuario y vuelve a abrir esta página.', 'mal'); return; }
   function llamar(extra) {
     return fetch(URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ hub: 1, action: 'conexiones', session: ses }, extra || {})) })
-      .then(function (r) { return r.json(); });
+      .then(function (r) { return r.json(); })
+      /* sin internet, un error del Hub o una respuesta rota: un aviso claro, nunca un error suelto (lo encontraron los bots de prueba) */
+      .catch(function () { return { ok: false, error: 'No pude conectar con el Hub. Revisa tu internet e intenta de nuevo.' }; });
   }
   function pintar(r) {
     if (!r || !r.ok) { msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); return r; }
@@ -116,7 +118,8 @@
     if (r && r.canje) { if (r.canje.ok) msg('m-spotify', '¡Listo! Alma ya puede poner tu música. Pídele: «pon algo tranquilo».', 'bien'); else msg('m-spotify', r.canje.error, 'mal'); }
     if (vuelta) { var s = $('s-spotify'); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'start' }); }
   }).catch(function () { msg('m-spotify', 'No pude conectar con el Hub.', 'mal'); });
-  $('b-copiar').onclick = function () { var i = $('redir'); i.select(); try { navigator.clipboard.writeText(i.value); } catch (e) { document.execCommand('copy'); } msg('m-spotify', 'Dirección copiada.', 'bien'); };
+  $('b-copiar').onclick = function () { var i = $('redir'); i.select(); var copiado = function () { msg('m-spotify', 'Dirección copiada.', 'bien'); }, aMano = function () { try { document.execCommand('copy'); copiado(); } catch (e) { msg('m-spotify', 'Mantén presionada la dirección para copiarla.', 'mal'); } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(i.value).then(copiado, aMano); else aMano(); };
   $('b-sp-guardar').onclick = function () {
     var id = $('sp-id').value.trim(), sec = $('sp-sec').value.trim(); if (!id || !sec) return msg('m-spotify', 'Pega el Client ID y el Client Secret.', 'mal');
     msg('m-spotify', 'Guardando…'); llamar({ guardar: { spotifyId: id, spotifySecret: sec } }).then(function (r) { $('sp-sec').value = ''; if (pintar(r).ok) msg('m-spotify', 'Guardado. Ahora toca «Conectar Spotify».', 'bien'); });

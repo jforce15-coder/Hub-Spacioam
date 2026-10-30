@@ -1,0 +1,8 @@
+{
+  "name": "bots-de-prueba",
+  "private": true,
+  "description": "Usuarios ficticios que prueban las páginas del Hub y de la app de Alma sin dejar ningún registro.",
+  "type": "module",
+  "scripts": { "bots": "node bots.mjs" },
+  "dependencies": { "playwright": "^1.50.0" }
+}

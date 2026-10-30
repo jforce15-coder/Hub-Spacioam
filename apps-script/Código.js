@@ -2904,6 +2904,7 @@ function proponerAutomejora_(info, prop) {
 // Disparador cada hora (lo crea configurar()).
 function aprender() {
   try { agentesLatido_(); } catch (e) { console.error('agentesLatido_: ' + e); }   // el equipo de agentes detrás de Alma (agentes.js)
+  try { botsPruebaRevisar_(); } catch (e) { console.error('botsPruebaRevisar_: ' + e); }   // lo que encontraron los bots de prueba → Claude (botsprueba.js)
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   if (!automejoraOn_()) return;

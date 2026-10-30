@@ -51,6 +51,13 @@
   .vacio { text-align: center; padding: 14px; font: 500 13px Montserrat, sans-serif; color: #A39B93; }
   .conectar input { width: 100%; font: 500 15px Montserrat, sans-serif; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--linea); background: #FAF8F6; margin-top: 8px; }
   .conectar ol { margin: 10px 0 0; padding-left: 20px; font: 500 13px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  .forma { margin-top: 10px; display: none; } .forma.on { display: block; }
+  .forma textarea, .hilo textarea { width: 100%; min-height: 70px; font: 500 14px/1.5 Montserrat, sans-serif; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--linea); background: #FAF8F6; resize: vertical; }
+  .hilo textarea { min-height: 150px; margin-top: 8px; }
+  .forma label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font: 500 12.5px Montserrat, sans-serif; color: #5A5856; }
+  .forma label input { width: 18px; height: 18px; accent-color: var(--durazno); }
+  .estado { font: 600 10px Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #EFEBE6; color: var(--suave); }
+  .estado.listo { background: #FBE3DA; color: #A6503C; } .estado.env { background: #E6EFE3; color: #4E7A4C; }
   .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
     font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
   .msg.on { opacity: 1; }
@@ -92,6 +99,40 @@
       if (despues) despues();
     }, function () { aviso("Sin conexión"); if (b) b.disabled = false; });
   }
+  /* «Que Alma responda»: qué quieres que diga (opcional) y si puede mandarla sola */
+  function involucrar(m, donde) {
+    var f = el("div", "forma"), ta = el("textarea"); ta.placeholder = "Qué quieres que diga (opcional): «dile que sí hay disponibilidad del 3 al 6»…";
+    var lb = el("label"), ck = el("input"); ck.type = "checkbox"; lb.appendChild(ck); lb.appendChild(document.createTextNode("Que la mande sola, sin preguntarme"));
+    f.appendChild(ta); f.appendChild(lb);
+    var bt = el("div", "bt"); bt.appendChild(boton("Involucrar a Alma", "si", function (b) {
+      b.disabled = true;
+      ALMA.correos({ accion: "involucrar", id: m.id, instruccion: ta.value, sola: ck.checked }).then(function (r) {
+        if (!r || !r.ok) { b.disabled = false; aviso((r && r.error) || "No se pudo"); return; }
+        aviso(ck.checked ? "Alma lo lee y responde en unos minutos" : "Alma lo lee y te deja la respuesta lista en unos minutos"); setTimeout(cargar, 800);
+      }, function () { b.disabled = false; aviso("Sin conexión"); });
+    })); f.appendChild(bt);
+    var abre = boton("Que Alma responda", "", function () { f.classList.toggle("on"); if (f.classList.contains("on")) ta.focus(); });
+    donde.appendChild(abre); return f;
+  }
+  /* Los hilos donde Alma está: esperando el hilo, con borrador listo (editar · enviar · descartar) o ya respondidos */
+  function hilos() {
+    if (!D.hilos || !D.hilos.length) return;
+    raiz.appendChild(sec("Alma responde", D.hilos.length));
+    D.hilos.forEach(function (h) {
+      var c = el("div", "card hilo"), de = el("div", "de", h.cuenta);
+      de.appendChild(el("span", "", cuando(h.actualizado))); c.appendChild(de); c.appendChild(el("h4", "", h.asunto || "(sin asunto)"));
+      var est = h.estado === "borrador" ? ["Respuesta lista", "listo"] : h.estado === "enviado" ? [h.sola ? "Responde sola" : "Enviada · sigue el hilo", "env"] : ["Leyendo el hilo…", ""];
+      c.appendChild(el("span", "estado " + est[1], est[0]));
+      var bt = el("div", "bt"), base = { accion: "hilo", cuenta: h.cuenta, hilo: h.hilo };
+      if (h.estado === "borrador") {
+        var ta = el("textarea"); ta.value = h.borrador || ""; c.appendChild(ta);
+        bt.appendChild(boton("Enviar", "si", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "enviar", texto: ta.value }, base)).then(function (r) { if (r && r.ok) { aviso("Enviada: sale en unos minutos desde " + h.cuenta); setTimeout(cargar, 600); } else { b.disabled = false; aviso((r && r.error) || "No se pudo"); } }); }));
+        bt.appendChild(boton("Descartar", "", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "descartar" }, base)).then(function () { quitar(c); }); }));
+      }
+      bt.appendChild(boton("Dejar de seguirlo", "", function (b) { b.disabled = true; ALMA.correos(Object.assign({ que: "soltar" }, base)).then(function () { aviso("Alma ya no sigue ese hilo"); quitar(c); }); }));
+      c.appendChild(bt); raiz.appendChild(c);
+    });
+  }
   function quitar(card) { card.style.transition = "opacity .3s"; card.style.opacity = "0"; setTimeout(function () { card.remove(); }, 300); }
 
   function correo(m, extra) {
@@ -122,6 +163,7 @@
 
   function pintar() {
     raiz.innerHTML = "";
+    hilos();
     if (D.codigos.length) {
       raiz.appendChild(sec("Códigos", D.codigos.length));
       D.codigos.forEach(function (m) {
@@ -133,7 +175,7 @@
     }
     if (D.autorizacion.length) {
       raiz.appendChild(sec("Piden tu autorización", D.autorizacion.length));
-      D.autorizacion.forEach(function (m) { raiz.appendChild(correo(m, function (bt, c) { if (m.enlace) bt.appendChild(boton("Abrir", "si", function () { abrir(m.enlace); })); bt.appendChild(boton("Ya lo vi", "", function (b) { hacer({ que: "leido", id: m.id }, b, function () { quitar(c); }); })); })); });
+      D.autorizacion.forEach(function (m) { raiz.appendChild(correo(m, function (bt, c) { if (m.enlace) bt.appendChild(boton("Abrir", "si", function () { abrir(m.enlace); })); bt.appendChild(boton("Ya lo vi", "", function (b) { hacer({ que: "leido", id: m.id }, b, function () { quitar(c); }); })); c.appendChild(involucrar(m, bt)); })); });
     }
     if (D.verificacion.length) {
       raiz.appendChild(sec("Verificación", D.verificacion.length));
@@ -143,7 +185,10 @@
       raiz.appendChild(sec("Por proyecto"));
       D.proyectos.forEach(function (g) {
         var d = el("details", "grupo"), s = el("summary", "", g.n); s.appendChild(el("em", "", String(g.total))); d.appendChild(s);
-        var l = el("div", "lista"); g.correos.forEach(function (m) { var x = el("div"); x.appendChild(el("h4", "", m.asunto || "(sin asunto)")); x.appendChild(el("small", "", (m.de_nombre || m.de) + " · " + cuando(m.fecha) + " · a " + m.cuenta)); l.appendChild(x); });
+        var l = el("div", "lista"); g.correos.forEach(function (m) {
+          var x = el("div"); x.appendChild(el("h4", "", m.asunto || "(sin asunto)")); x.appendChild(el("small", "", (m.de_nombre || m.de) + " · " + cuando(m.fecha) + " · a " + m.cuenta));
+          var bt = el("div", "bt"); x.appendChild(bt); x.appendChild(involucrar(m, bt)); l.appendChild(x);
+        });
         d.appendChild(l); raiz.appendChild(d);
       });
     }

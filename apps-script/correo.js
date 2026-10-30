@@ -12,7 +12,10 @@
      · spam          posible spam: lo marcas tú (y de una vez te desuscribes)
      · normal        lo demás: va a su proyecto (Spacio AM, The Gentle Stoic Parent, Mi, tus proyectos) o a su área de vida
    Las reglas de guardado del departamento de Archivo valen aquí también (un código dura un día; una promoción, dos semanas).
-   Hojas: ALMA_CORREO_CUENTAS (cada cuenta conectada y su llave) y ALMA_CORREOS. */
+   ALMA RESPONDE: desde la app puedes involucrar a Alma en un hilo. El puente le trae el hilo completo, Alma redacta la
+   respuesta (en nombre del proyecto de esa cuenta, p. ej. Spacio AM) y te la deja lista para enviar con un toque, o la
+   manda sola si así lo pediste. Mientras siga involucrada, cada respuesta nueva en ese hilo trae otro borrador.
+   Hojas: ALMA_CORREO_CUENTAS (cada cuenta conectada y su llave), ALMA_CORREOS y ALMA_CORREO_HILOS (los hilos de Alma). */
 
 var CORREO_CUENTAS_CAB_ = ['cuenta', 'nombre', 'proyecto', 'llave', 'creada', 'ultima', 'acciones'];
 var CORREOS_CAB_ = ['id', 'cuenta', 'hilo', 'de', 'de_nombre', 'asunto', 'fecha', 'fragmento', 'categoria', 'codigo', 'enlace', 'proyecto', 'area',
@@ -20,6 +23,15 @@ var CORREOS_CAB_ = ['id', 'cuenta', 'hilo', 'de', 'de_nombre', 'asunto', 'fecha'
 var CORREO_CATS_ = ['codigo', 'verificacion', 'autorizacion', 'promocion', 'spam', 'normal'];
 function hojaCorreoCuentas_() { return hojaCrear_('ALMA_CORREO_CUENTAS', CORREO_CUENTAS_CAB_); }
 function hojaCorreos_() { return hojaCrear_('ALMA_CORREOS', CORREOS_CAB_); }
+var CORREO_HILOS_CAB_ = ['hilo', 'cuenta', 'asunto', 'estado', 'instruccion', 'borrador', 'sola', 'actualizado', 'enviados'];
+function hojaCorreoHilos_() { return hojaCrear_('ALMA_CORREO_HILOS', CORREO_HILOS_CAB_); }
+function correoHilos_() { return agFilas_(hojaCorreoHilos_(), CORREO_HILOS_CAB_); }
+function correoHilo_(cuenta, hilo) { return correoHilos_().filter(function (h) { return h.cuenta === cuenta && h.hilo === hilo; })[0] || null; }
+/* Lo que el puente tiene que hacer en Gmail (se entrega en su próxima vuelta). */
+function correoEncolar_(c, accs) {
+  var acc = []; try { acc = JSON.parse(c.acciones || '[]'); } catch (e) {}
+  c.acciones = JSON.stringify(acc.concat(accs).slice(-200)); agGuardar_(hojaCorreoCuentas_(), CORREO_CUENTAS_CAB_, c);
+}
 
 /* ── Las cuentas ── */
 function correoCuentas_() { return agFilas_(hojaCorreoCuentas_(), CORREO_CUENTAS_CAB_); }
@@ -52,8 +64,15 @@ function correoPuente_(b) {
   var nuevos = (b.correos || []).slice(0, 60).filter(function (m) { return m && m.id && !ya[c.cuenta + '|' + m.id]; });
   var filas = correoClasificar_(c, nuevos).map(function (o) { return CORREOS_CAB_.map(function (k) { return o[k] != null ? o[k] : ''; }); });
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, CORREOS_CAB_.length).setValues(filas);
+  /* el puente trajo hilos completos que Alma tiene que responder */
+  var deHilos = [];
+  (b.hilos || []).slice(0, 5).forEach(function (h) { try { deHilos = deHilos.concat(correoRedactar_(c, h)); } catch (e) { console.error('correo redactar: ' + e); } });
+  /* alguien contestó en un hilo donde Alma está involucrada: que lo traiga para otro borrador */
+  var vivos = {}; correoHilos_().forEach(function (h) { if (h.cuenta === c.cuenta && (h.estado === 'enviado' || h.estado === 'borrador')) vivos[h.hilo] = h; });
+  var releer = {}; nuevos.forEach(function (m) { if (vivos[m.hilo]) releer[m.hilo] = 1; });
   /* lo que tiene que hacer el puente en su bandeja; se entrega una vez */
   var acciones = []; try { acciones = JSON.parse(c.acciones || '[]'); } catch (e) {}
+  acciones = acciones.concat(deHilos, Object.keys(releer).map(function (h) { return { hilo: h, accion: 'leer' }; }));
   c.acciones = '[]'; c.ultima = new Date().toISOString(); agGuardar_(hojaCorreoCuentas_(), CORREO_CUENTAS_CAB_, c);
   /* lo que necesita algo de ti (una autorización) también llega como tema por retomar y notificación */
   filas.forEach(function (f) {
@@ -61,6 +80,63 @@ function correoPuente_(b) {
     if (o.categoria === 'autorizacion') { try { var adm = agPrincipal_(), t = 'Te llegó un correo que pide tu autorización: «' + o.asunto + '» de ' + (o.de_nombre || o.de) + '.'; var it = retPoner_(adm, { texto: t, importancia: 3, origen: 'correo' }); vozAvisoPoner_(adm, t, it && it.id); } catch (e) {} }
   });
   return { ok: true, guardados: filas.length, acciones: acciones };
+}
+
+/* Involucrar a Alma en un hilo (desde la app): pide el hilo completo al puente. */
+function correoInvolucrar_(ses, b) {
+  if (!areasAdmin_(ses)) return { ok: false, error: 'solo admin principal' };
+  var sh = hojaCorreos_(), n = sh.getLastRow(), id = String(b.id || ''), m = null;
+  if (n >= 2) sh.getRange(2, 1, n - 1, CORREOS_CAB_.length).getValues().forEach(function (v) { if (v[0] === id) { m = {}; CORREOS_CAB_.forEach(function (k, i) { m[k] = String(v[i]); }); } });
+  if (!m || !m.hilo) return { ok: false, error: 'No encontré ese correo.' };
+  var c = correoCuenta_(m.cuenta); if (!c) return { ok: false, error: 'Esa cuenta ya no está conectada.' };
+  var h = correoHilo_(m.cuenta, m.hilo) || { hilo: m.hilo, cuenta: m.cuenta, enviados: 0 };
+  h.asunto = m.asunto; h.estado = 'esperando_hilo'; h.instruccion = String(b.instruccion || '').slice(0, 1000); h.sola = b.sola ? 'si' : ''; h.borrador = ''; h.actualizado = new Date().toISOString();
+  agGuardar_(hojaCorreoHilos_(), CORREO_HILOS_CAB_, h);
+  correoEncolar_(c, [{ hilo: m.hilo, accion: 'leer' }]);
+  return { ok: true };
+}
+/* Alma redacta la respuesta con el hilo completo. Firma como el proyecto de la cuenta (Spacio AM) o como asistente de Juan.
+   Si es «sola», devuelve la acción de responder para el puente; si no, deja el borrador para que lo apruebes. */
+function correoRedactar_(c, h) {
+  var row = correoHilo_(c.cuenta, String(h.hilo || '')); if (!row || row.estado === 'soltado' || row.estado === 'descartado') return [];
+  var msgs = (h.mensajes || []).slice(-8);
+  if (!msgs.length) return [];
+  var ult = msgs[msgs.length - 1];
+  if (String(ult.de || '').toLowerCase().indexOf(c.cuenta) >= 0 && row.estado !== 'esperando_hilo') return [];   // lo último es nuestro: nada que responder
+  var quien = c.proyecto ? 'Alma, del equipo de ' + c.proyecto : 'Alma, asistente de Juan';
+  var firma = c.proyecto ? '\n\nAlma\n' + c.proyecto : '\n\nAlma\nAsistente de Juan Ovalle';
+  var sys = 'Eres ' + quien + '. Respondes un hilo de correo en nombre de ' + (c.proyecto || 'Juan') + ' (Spacio AM: apartamentos de estadía corta en Guatemala). ' +
+    'Escribe SOLO el cuerpo del correo de respuesta, en el idioma del último mensaje, cálido, claro y breve, con saludo por el nombre. ' +
+    'No inventes datos (precios, fechas, disponibilidad, direcciones, códigos): si hace falta uno que no está en el hilo ni en las instrucciones, dilo con naturalidad («te confirmo en breve») y no lo prometas. ' +
+    'No firmes: la firma se agrega sola.' + (row.instruccion ? '\nINSTRUCCIONES DE JUAN: ' + row.instruccion : '');
+  try { sys += audienciaBloque_('externo'); } catch (e) {}
+  var hilo = msgs.map(function (x) { return 'De: ' + x.de + ' · ' + String(x.fecha || '').slice(0, 16) + '\n' + String(x.cuerpo || '').replace(/\n>.*$/gm, '').slice(0, 3000); }).join('\n\n---\n\n');
+  var t = String(claude_(CFG.MODELO_REDACTOR, 900, sys, 'Asunto: ' + row.asunto + '\n\n' + hilo, 0.4, []) || '').trim();
+  if (!t) return [];
+  t = t.replace(/\n+(saludos|atentamente|un abrazo)[^\n]*\n+alma[\s\S]*$/i, '') + firma;
+  row.actualizado = new Date().toISOString();
+  if (row.sola === 'si') {
+    row.estado = 'enviado'; row.borrador = t; row.enviados = Number(row.enviados || 0) + 1; agGuardar_(hojaCorreoHilos_(), CORREO_HILOS_CAB_, row);
+    return [{ hilo: row.hilo, accion: 'responder', texto: t }];
+  }
+  row.estado = 'borrador'; row.borrador = t; agGuardar_(hojaCorreoHilos_(), CORREO_HILOS_CAB_, row);
+  try { var adm = agPrincipal_(), av = 'Te dejé lista la respuesta al correo «' + row.asunto + '». Revísala en Tus correos y la mando con un toque.'; var it = retPoner_(adm, { texto: av, importancia: 2, origen: 'correo' }); vozAvisoPoner_(adm, av, it && it.id); } catch (e) {}
+  return [];
+}
+/* Lo que haces con un hilo de Alma: enviar (con tu edición), descartar el borrador o soltarlo (Alma deja de seguirlo). */
+function correoHiloAccion_(ses, b) {
+  if (!areasAdmin_(ses)) return { ok: false, error: 'solo admin principal' };
+  var h = correoHilo_(String(b.cuenta || '').toLowerCase(), String(b.hilo || '')); if (!h) return { ok: false, error: 'No encontré ese hilo.' };
+  var c = correoCuenta_(h.cuenta); if (!c) return { ok: false, error: 'Esa cuenta ya no está conectada.' };
+  if (b.que === 'enviar') {
+    var t = String(b.texto || h.borrador || '').trim(); if (!t) return { ok: false, error: 'No hay nada que enviar.' };
+    correoEncolar_(c, [{ hilo: h.hilo, accion: 'responder', texto: t }]);
+    h.estado = 'enviado'; h.borrador = t; h.enviados = Number(h.enviados || 0) + 1;
+  } else if (b.que === 'descartar') { h.estado = 'descartado'; h.borrador = ''; }
+  else if (b.que === 'soltar') { h.estado = 'soltado'; h.borrador = ''; }
+  else return { ok: false, error: 'acción' };
+  h.actualizado = new Date().toISOString(); agGuardar_(hojaCorreoHilos_(), CORREO_HILOS_CAB_, h);
+  return { ok: true, estado: h.estado };
 }
 
 /* Primero las reglas claras (códigos, desuscripción, palabras de promoción); lo demás lo decide el modelo rápido en lote. */
@@ -132,7 +208,10 @@ function correos_(ses) {
   normales.forEach(function (m) { var k = m.proyecto || (m.area ? 'area:' + m.area : 'Personal'); (proyectos[k] = proyectos[k] || []).push(m); });
   var nomArea = {}; AREAS_.forEach(function (a) { nomArea['area:' + a.k] = a.n; });
   var posibles = L.filter(function (m) { return m.categoria === 'spam' || (m.categoria !== 'codigo' && m.categoria !== 'verificacion' && Number(m.spam) >= .6); });
-  return { ok: true,
+  var hilos = correoHilos_().filter(function (h) { return h.estado === 'borrador' || h.estado === 'esperando_hilo' || h.estado === 'enviado'; })
+    .sort(function (a, b) { return String(b.actualizado).localeCompare(String(a.actualizado)); }).slice(0, 20)
+    .map(function (h) { return { hilo: h.hilo, cuenta: h.cuenta, asunto: h.asunto, estado: h.estado, borrador: h.borrador, sola: h.sola === 'si', actualizado: h.actualizado }; });
+  return { ok: true, hilos: hilos,
     cuentas: correoCuentas_().map(function (c) { return { cuenta: c.cuenta, nombre: c.nombre, proyecto: c.proyecto, ultima: c.ultima }; }),
     codigos: por('codigo').slice(0, 20), verificacion: por('verificacion').slice(0, 20), autorizacion: por('autorizacion').slice(0, 30),
     proyectos: Object.keys(proyectos).map(function (k) { return { k: k, n: nomArea[k] || k, correos: proyectos[k].slice(0, 40), total: proyectos[k].length }; }).sort(function (a, b) { return b.total - a.total; }),
@@ -190,5 +269,7 @@ function correoApi_(ses, b) {
   var a = String(b.accion || 'lista');
   if (a === 'conectar') return correoConectar_(ses, b);
   if (a === 'hacer') return correoAccion_(ses, b);
+  if (a === 'involucrar') return correoInvolucrar_(ses, b);
+  if (a === 'hilo') return correoHiloAccion_(ses, b);
   return correos_(ses);
 }

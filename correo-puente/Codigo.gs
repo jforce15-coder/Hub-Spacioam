@@ -2,7 +2,8 @@
    Este pedacito vive en TU cuenta de correo (script.google.com, con la sesión de esa cuenta). Cada 10 minutos lee lo
    nuevo de tu bandeja y se lo manda a Alma para que lo ordene (códigos, verificaciones, autorizaciones, promociones,
    posible spam y cada proyecto). Manda remitente, asunto y el principio del texto; Alma no guarda el cuerpo completo.
-   Al volver, hace en tu bandeja lo que le pediste en la app: mover a Spam o archivar.
+   Al volver, hace en tu bandeja lo que le pediste en la app: mover a Spam, archivar, o traerle a Alma un hilo completo
+   para que lo responda y mandar su respuesta (desde esta cuenta, en el mismo hilo).
 
    Instalar (una vez por cuenta):
      1. Abre script.google.com con esa cuenta → Nuevo proyecto → pega todo esto (la app ya pone tu llave abajo).
@@ -38,7 +39,34 @@ function revisar() {
   var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   if (!j.ok) throw new Error('Alma no recibió los correos: ' + (j.error || r.getResponseCode()));
   if (correos.length) p.setProperty('desde', String(correos[correos.length - 1].t));
-  (j.acciones || []).forEach(function (a) {
-    try { var h = GmailApp.getThreadById(a.hilo); if (!h) return; if (a.accion === 'spam') h.moveToSpam(); else if (a.accion === 'archivar') h.moveToArchive(); } catch (e) {}
+  var leer = hacer(j.acciones || []);
+  /* Alma pidió hilos completos para responderlos: se los lleva ahora mismo y manda lo que ella devuelva */
+  if (leer.length) {
+    var hilos = leer.slice(0, 5).map(function (id) {
+      var h = GmailApp.getThreadById(id); if (!h) return null;
+      return { hilo: id, mensajes: h.getMessages().slice(-8).map(function (m) { return { de: m.getFrom(), fecha: m.getDate().toISOString(), cuerpo: String(m.getPlainBody() || '').slice(0, 3000) }; }) };
+    }).filter(Boolean);
+    var r2 = UrlFetchApp.fetch(HUB, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true,
+      payload: JSON.stringify({ correoPuente: 1, cuenta: CUENTA, llave: LLAVE, correos: [], hilos: hilos }) });
+    var j2 = {}; try { j2 = JSON.parse(r2.getContentText() || '{}'); } catch (e) {}
+    hacer(j2.acciones || []);
+  }
+}
+
+/* Lo que Alma pidió: spam, archivar, responder (al último mensaje que no es tuyo) o leer (devuelve los hilos a traer). */
+function hacer(acciones) {
+  var leer = [];
+  acciones.forEach(function (a) {
+    try {
+      if (a.accion === 'leer') { if (leer.indexOf(a.hilo) < 0) leer.push(a.hilo); return; }
+      var h = GmailApp.getThreadById(a.hilo); if (!h) return;
+      if (a.accion === 'spam') h.moveToSpam();
+      else if (a.accion === 'archivar') h.moveToArchive();
+      else if (a.accion === 'responder' && a.texto) {
+        var ms = h.getMessages().filter(function (m) { return m.getFrom().toLowerCase().indexOf(CUENTA) < 0; });
+        if (ms.length) ms[ms.length - 1].reply(a.texto);
+      }
+    } catch (e) { console.error(a.accion + ': ' + e); }
   });
+  return leer;
 }

@@ -19,7 +19,8 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Propuesta** | Lo que un agente quiere hacer afuera y espera el «sí» de Juan. | sugerencia, tarea |
 | **Segundo plano** | Lo que Alma sigue trabajando después de colgar (más de 20 s). | backend, después |
 | **Tema por retomar** | Algo terminado en segundo plano que necesita algo de Juan; Alma empieza la próxima llamada por el más importante. | pendiente, notificación |
-| **Pendientes** | Lo que Claude dejó para que Juan una (PRs) en la app. Solo eso. | tareas, temas |
+| **Pendientes** | La lista de la app de Alma con todo lo que Alma resolvió para Juan, lo de Claude y los cambios por unir, por esfera y proyecto. Tres secciones: «Necesita tu sí» (se queda hasta resolverse), «Para leer» y «Listo hoy» (se van solas a la hora). | tareas, temas, notificaciones |
+| **Esfera** | Una de las 6 áreas de vida del inicio (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia); cada pendiente lleva una. | categoría, área |
 | **Área** | Una de las 6 áreas de vida: Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia. | categoría |
 | **Cajón** | Ideas, Interés u Ocio: lo que no es de un área. | carpeta, área |
 | **Proceso / Permanente** | Proceso: se resuelve y termina. Permanente: está para quedarse. | temporal (eso es un guardado) |

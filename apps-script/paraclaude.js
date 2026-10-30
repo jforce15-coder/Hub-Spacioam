@@ -161,7 +161,8 @@ function paraClaudeAvisar_(titulo, voz, estado) {
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
     try { var it = retPoner_(jefe, { texto: voz, importancia: 2, origen: 'claude' }); vozAvisoPoner_(jefe, voz, it && it.id); } catch (e) {}   // tema por retomar y notificación en la app de iPhone
-    if (jefe && jefe.tels.length) waEnviar_(jefe.wa || jefe.tels[0], voz + (estado === 'listo' ? '\n\nEl detalle está en el Hub, conversación Desarrollo.' : ''));
+    /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
+    if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe)) waEnviar_(jefe.wa || jefe.tels[0], voz + (estado === 'listo' ? '\n\nEl detalle está en el Hub, conversación Desarrollo.' : ''));
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }
 }
 /* Para la ficha de la llamada del principal: lo que Claude respondió desde la última llamada (y lo marca como contado). */

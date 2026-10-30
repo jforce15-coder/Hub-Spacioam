@@ -521,7 +521,7 @@ function vozDefHerramientas_(base) {
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller, conv_id: conv,
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
-        modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le confirma por WhatsApp al administrador; úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
+        modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le deja el resultado en Pendientes de la app (con notificación si necesita algo de él); úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
   ].map(function (t) {
     var sec = t.name === 'secretaria';
     t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_error_handling_mode = 'auto';
@@ -783,7 +783,7 @@ function vozSecEncolar_(tel, pedido) {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
     ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(45000).create();
   } catch (e) { console.error('trigger vozSecretariaPronto: ' + e); }
-  return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano; si al terminar necesito algo de él, le aviso en la app (notificación) y por WhatsApp. Si es solo una confirmación, no hace falta avisar. Ya puedes despedirte si no necesita nada más.' };
+  return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano; el resultado le queda en Pendientes de la app y, si necesito algo de él, le llega una notificación. Si es solo una confirmación, no hace falta avisar. Ya puedes despedirte si no necesita nada más.' };
 }
 function vozSecretariaPronto() {
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
@@ -811,7 +811,7 @@ function vozSecProcesar_() {
       opGuardar_(adm, 'yo', 'llamada', pedido + ' (en segundo plano)');
       r = opAgente_(adm, pedido, 'segundo_plano', [], previos);
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
-    } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [] }; }
+    } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
     try { vozSecAvisar_(grupo[0].tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }
@@ -819,6 +819,9 @@ function vozSecProcesar_() {
    llega la notificación a la app y el resultado por escrito a WhatsApp. Si solo confirma algo hecho, queda en el chat. */
 function vozSecAvisar_(tel, adm, r, pedido) {
   try { vozTrabajando_(adm, -1); } catch (e) {}
+  /* Al principal el resultado ya le llega a Pendientes (opAgente_ → pendientes.js, con notificación si necesita algo de él):
+     el WhatsApp queda solo para conversar. Si falló antes de responder, el aviso va directo. */
+  if (esAdminPrincipal_(adm)) { if (r.fallo) pendAvisar_(adm, r.respuesta, { origen: 'segundo_plano', pedido: pedido, tipo: 'atencion', fallo: r.fallo }); return; }
   var malas = (r.hechas || []).filter(function (h) { return h.error; });
   var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
   var c = retClasificar_(pedido, txt, malas.length ? malas.map(function (h) { return h.resumen || h.tipo; }).join('; ') : '');

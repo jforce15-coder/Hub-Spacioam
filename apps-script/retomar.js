@@ -44,6 +44,7 @@ function retMencionado_(adm, id) {
 function retResolver_(adm, ids) {
   if (!ids || !ids.length) return;
   retCambiar_(adm, function (l) { for (var i = l.length - 1; i >= 0; i--) if (ids.indexOf(l[i].id) >= 0) l.splice(i, 1); });
+  try { pendResolverRet_(ids); } catch (e) {}   // su tarjeta en Pendientes también (pendientes.js)
 }
 
 /* ¿Esto necesita algo de él? Lo decide el modelo rápido; ante la duda, sí (mejor avisar que perder algo). */

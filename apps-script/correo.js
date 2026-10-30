@@ -107,7 +107,7 @@ function correoPuente_(b) {
   /* lo que necesita algo de ti (una autorización) también llega como tema por retomar y notificación */
   filas.forEach(function (f) {
     var o = {}; CORREOS_CAB_.forEach(function (k, i) { o[k] = f[i]; });
-    if (o.categoria === 'autorizacion') { try { var adm = agPrincipal_(), t = 'Te llegó un correo que pide tu autorización: «' + o.asunto + '» de ' + (o.de_nombre || o.de) + '.'; var it = retPoner_(adm, { texto: t, importancia: 3, origen: 'correo' }); vozAvisoPoner_(adm, t, it && it.id); } catch (e) {} }
+    if (o.categoria === 'autorizacion') { try { var adm = agPrincipal_(), t = 'Te llegó un correo que pide tu autorización: «' + o.asunto + '» de ' + (o.de_nombre || o.de) + '.'; if (!pendAvisar_(adm, t, { origen: 'correo', tipo: 'atencion' })) { var it = retPoner_(adm, { texto: t, importancia: 3, origen: 'correo' }); vozAvisoPoner_(adm, t, it && it.id); } } catch (e) {} }
   });
   return { ok: true, guardados: filas.length, acciones: acciones };
 }
@@ -154,7 +154,7 @@ function correoRedactar_(c, h) {
     return [{ hilo: row.hilo, accion: 'responder', texto: t }];
   }
   row.estado = 'borrador'; row.borrador = t; agGuardar_(hojaCorreoHilos_(), CORREO_HILOS_CAB_, row);
-  try { var adm = agPrincipal_(), av = 'Te dejé lista la respuesta al correo «' + row.asunto + '». Revísala en Tus correos y la mando con un toque.'; var it = retPoner_(adm, { texto: av, importancia: 2, origen: 'correo' }); vozAvisoPoner_(adm, av, it && it.id); } catch (e) {}
+  try { var adm = agPrincipal_(), av = 'Te dejé lista la respuesta al correo «' + row.asunto + '». Revísala en Tus correos y la mando con un toque.'; if (!pendAvisar_(adm, av, { origen: 'correo', tipo: 'atencion' })) { var it = retPoner_(adm, { texto: av, importancia: 2, origen: 'correo' }); vozAvisoPoner_(adm, av, it && it.id); } } catch (e) {}
   return [];
 }
 /* Lo que haces con un hilo de Alma: enviar (con tu edición), descartar el borrador o soltarlo (Alma deja de seguirlo). */

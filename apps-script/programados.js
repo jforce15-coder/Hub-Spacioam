@@ -77,7 +77,8 @@ function progProcesar_() {
       if (adm) {
         var aviso = res.ok ? 'Mensaje programado enviado a ' + quien + (res.modo === 'plantilla' ? ' (no había escrito en 24 h: le llegó el primer contacto y el mensaje sale cuando responda).' : '.') : 'No pude enviar el mensaje programado a ' + quien + ': ' + (res.error || 'error') ;
         try { opGuardar_(adm, 'alma', 'whatsapp', aviso, [{ tipo: 'programado', resumen: (res.ok ? 'Programado enviado · ' : 'Programado falló · ') + quien, error: res.ok ? '' : (res.error || 'error') }]); } catch (e) {}
-        if (!res.ok && adm.tels && adm.tels[0]) { try { waEnviar_(adm.tels[0], aviso); } catch (e) {} }
+        var enPend = pendAvisar_(adm, aviso, { origen: 'programado', tipo: res.ok ? 'hecho' : 'atencion', push: !res.ok });   // al principal: a Pendientes
+        if (!enPend && !res.ok && adm.tels && adm.tels[0]) { try { waEnviar_(adm.tels[0], aviso); } catch (e) {} }
       }
     });
   } finally { try { progProximo_(); } catch (e) {} lock.releaseLock(); }

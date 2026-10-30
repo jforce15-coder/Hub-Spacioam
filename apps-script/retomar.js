@@ -24,10 +24,10 @@ function retCambiar_(adm, fn) {
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
   try { var l = retLeer_(adm), r = fn(l); retGuardar_(adm, l); return r; } finally { lock.releaseLock(); }
 }
-/* o: { texto (lo que Alma dirá, 1 o 2 frases), detalle, importancia 1 a 3, origen } */
+/* o: { texto (lo que Alma dirá, 1 o 2 frases), tema (3 a 6 palabras, para invitar a verlo), detalle, importancia 1 a 3, origen } */
 function retPoner_(adm, o) {
   if (!adm || !adm.email || !String(o.texto || '').trim()) return null;
-  var it = { id: 'rt' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), texto: String(o.texto).replace(/\s+/g, ' ').trim().slice(0, 300),
+  var it = { id: 'rt' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), texto: String(o.texto).replace(/\s+/g, ' ').trim().slice(0, 300), tema: String(o.tema || '').replace(/\s+/g, ' ').trim().slice(0, 60),
     detalle: String(o.detalle || '').replace(/\s+/g, ' ').trim().slice(0, 600), imp: Math.max(1, Math.min(3, Number(o.importancia) || 2)), veces: 0, ult: 0, origen: o.origen || '' };
   retCambiar_(adm, function (l) { l.push(it); });
   return it;
@@ -57,27 +57,38 @@ function retClasificar_(pedido, respuesta, fallo) {
       'requiere = false si solo confirma algo que ya quedó hecho y no hay nada que decidir (p. ej. «listo, ya creé la tarea»).\n' +
       'importancia: 3 = urgente o con dinero, huéspedes o fechas cercanas en juego · 2 = normal · 1 = puede esperar.\n' +
       'aviso: cómo Alma se lo dice al retomar, 1 o 2 frases (máx. 30 palabras), en español, cálida y directa, sin enlaces; di qué quedó y qué necesitas de él.\n' +
-      'Responde SOLO JSON: {"requiere":true|false,"importancia":1|2|3,"aviso":"…"}',
+      'tema: de qué se trata en 3 a 6 palabras, sin números (p. ej. «el vuelo a Lima», «la incidencia del 1104»).\n' +
+      'Responde SOLO JSON: {"requiere":true|false,"importancia":1|2|3,"aviso":"…","tema":"…"}',
       'PEDIDO: ' + String(pedido || '').slice(0, 1500) + '\n\nRESULTADO: ' + String(respuesta || '').slice(0, 3000) + (fallo ? '\n\nOJO, FALLÓ: ' + fallo : ''), 0) || '');
     var j = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
     out.requiere = j.requiere !== false || !!fallo;
     out.importancia = Math.max(1, Math.min(3, Number(j.importancia) || out.importancia));
-    out.aviso = String(j.aviso || '').trim();
+    out.aviso = String(j.aviso || '').trim(); out.tema = String(j.tema || '').trim();
   } catch (e) { console.error('retClasificar_: ' + e); }
   if (!out.aviso) out.aviso = vozAvisoCorto_(respuesta);
   return out;
 }
 
-/* Para la ficha de la llamada: con qué empezar y la lista completa (por si pregunta «¿qué más hay?»). */
+/* Para la ficha de la llamada. Los pendientes se ofrecen con suavidad: el saludo invita a verlos y nombra solo UNO (el más
+   importante que no se ofreció en las últimas RET_PAUSA_H_ horas), sin contar cuántos hay ni leer datos. Si ya se ofreció
+   hace poco, el saludo es el normal y Alma solo lo ofrece si encuentra una pausa natural. */
+var RET_PAUSA_H_ = 2;
+function retTema_(x) {
+  var t = String(x.tema || '').trim();
+  if (!t) { t = String(x.texto || '').split(/[:.;!?]|—| - /)[0].trim(); if (t.split(/\s+/).length > 8) t = t.split(/\s+/).slice(0, 8).join(' ') + '…'; }
+  return t.charAt(0).toLowerCase() + t.slice(1);
+}
 function retFicha_(adm, nom) {
   var l = retOrden_(retLeer_(adm)); if (!l.length) return null;
-  var top = l[0], n = l.length - 1;
-  var saludo = '¡Hola, ' + nom + '! ' + top.texto + (n ? ' Y tengo ' + (n === 1 ? 'otra cosita pendiente' : n + ' cosas más pendientes') + ' para cuando quieras.' : '');
-  var bloque = '\n\nTEMAS POR RETOMAR (cosas que trabajaste en segundo plano y necesitan algo de él; en orden de importancia). ' +
-    'Ya empezaste la llamada con el primero. Si dice «no te preocupes», «luego» o cambia de tema, síguelo sin insistir: queda guardado y se lo recuerdas otro día. ' +
-    'Si pregunta qué más hay, cuéntale los demás de uno en uno, el más importante primero.\n' +
-    l.map(function (x, i) { return (i + 1) + ') ' + x.texto + (x.detalle ? ' — detalle: ' + x.detalle : '') + ' (hace ' + retHace_(x.ts) + (x.veces ? ', ya se lo mencionaste ' + x.veces + ' vez' + (x.veces > 1 ? 'es' : '') : '') + ')'; }).join('\n');
-  return { id: top.id, total: l.length, saludo: saludo, bloque: bloque };
+  var corte = Date.now() - RET_PAUSA_H_ * 3600000, top = l.filter(function (x) { return !x.ult || x.ult < corte; })[0] || null;
+  var saludo = top ? '¡Hola, ' + nom + '! Aquí estoy. Cuando quieras vemos tus pendientes; el más importante es ' + retTema_(top) + '. ¿Lo retomamos?' : '';
+  var bloque = '\n\nPENDIENTES POR RETOMAR (lo que trabajaste en segundo plano y necesita algo de él; el más importante primero). CÓMO TRATARLOS: con suavidad, nunca de golpe. ' +
+    (top ? 'Ya lo invitaste en el saludo a ver «' + retTema_(top) + '». Si dice que sí, cuéntaselo en 1 o 2 frases sencillas y pregúntale lo que necesitas. '
+         : 'Ya se los ofreciste hace poco: NO empieces por ahí. Solo si hay una pausa natural, pregúntale una vez «¿quieres que veamos los pendientes?». ') +
+    'Si dice «luego», «no te preocupes» o cambia de tema, síguelo sin insistir: queda guardado. Nunca leas la lista, ni cuántos hay, ni números sueltos; ' +
+    'si pregunta qué más hay, nombra el siguiente (solo su tema) y pregunta si lo ven.\n' +
+    l.map(function (x, i) { return (i + 1) + ') ' + retTema_(x) + ': ' + x.texto + (x.detalle ? ' — detalle: ' + x.detalle.slice(0, 300) : '') + ' (hace ' + retHace_(x.ts) + ')'; }).join('\n');
+  return { id: top ? top.id : '', total: l.length, saludo: saludo, bloque: bloque };
 }
 function retHace_(ts) {
   var m = Math.max(1, Math.round((Date.now() - ts) / 60000));

@@ -1459,8 +1459,8 @@
       bt.appendChild(x); });
   }
   function pendLista() {
-    if (AL.pendData) { var lz = E.ov.querySelector(".san-pend-l"), st = lz.scrollTop; AL.pendAb = {}; Array.prototype.forEach.call(lz.querySelectorAll(".san-pc.abierta"), function (x) { AL.pendAb[x.getAttribute("data-id")] = 1; }); lz.innerHTML = ""; pendListaEsferas(lz, AL.pendData); lz.scrollTop = st; return; }
-    var l = E.ov.querySelector(".san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
+    if (AL.pendData) { var lz = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), st = lz.scrollTop; AL.pendAb = {}; Array.prototype.forEach.call(lz.querySelectorAll(".san-pc.abierta"), function (x) { AL.pendAb[x.getAttribute("data-id")] = 1; }); lz.innerHTML = ""; pendListaEsferas(lz, AL.pendData); lz.scrollTop = st; return; }
+    var l = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
     l.innerHTML = "";
     if (!(AL.pend || []).length) { var v = d.createElement("div"); v.className = "san-pend-v"; v.textContent = "Todo al día."; l.appendChild(v); return; }
     AL.pend.forEach(function (p) {

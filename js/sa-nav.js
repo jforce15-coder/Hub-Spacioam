@@ -251,7 +251,7 @@
     ".san-scope .san-pc ol li::before{content:counter(p);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:50%;background:rgba(233,130,106,.16);color:#B3553E;font:700 12px/24px Montserrat,system-ui,sans-serif;text-align:center}",
     ".san-scope .san-pc .pq{margin:0 0 16px;padding:12px 14px;border-radius:16px;background:#EEF1F7;color:#3E4A66;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
     ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
-    ".san-scope .san-chip.publicando{background:#FBF3E2;color:#9A6B12}.san-scope .san-chip.publicado{background:#E6F2EA;color:#2F6B47}.san-scope .san-chip.fallo_pub{background:#FBEAE6;color:#B54D36}",
+    ".san-scope .san-chip.publicando,.san-scope .san-chip.revisando{background:#FBF3E2;color:#9A6B12}.san-scope .san-chip.publicado{background:#E6F2EA;color:#2F6B47}.san-scope .san-chip.fallo_pub{background:#FBEAE6;color:#B54D36}",
     ".san-scope .san-chip.publicando::before{content:'';display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:currentColor;vertical-align:1px;animation:sanLate 1.2s ease-in-out infinite}@keyframes sanLate{50%{opacity:.25}}",
     ".san-scope .san-pc.publicado{box-shadow:0 28px 60px -30px rgba(47,107,71,.4),0 0 0 1.5px rgba(47,107,71,.25)}",
     ".san-scope .san-prog{height:5px;margin:0 18px 16px;border-radius:3px;background:#F3EFEA;overflow:hidden}.san-scope .san-prog i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#E9C27A,#E9826A);transition:width .8s cubic-bezier(.22,.61,.36,1)}",
@@ -1291,7 +1291,7 @@
     };
     r.readAsDataURL(archivo);
   }
-  /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id) }. Sin eso, el botón no existe. */
+  /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id), unir(url) }. Sin eso, el botón no existe. */
   var pendT = 0;
   function pendCargar() {
     if (!E.ov || !cfg.pendientes || !cfg.pendientes.cargar) return;
@@ -1309,7 +1309,7 @@
   function pendAbrir(on) { if (on) pendLista(); E.ov.classList.toggle("pend", on); hoja(); if (on) pendCargar(); }
   /* Con una hoja abierta (chat o pendientes), la pantalla de atrás esconde su saludo y su engrane */
   function hoja() { d.body.classList.toggle("san-hoja", !!(E.ov && (E.ov.classList.contains("pend") || E.ov.classList.contains("chat")))); }
-  var PEND_TX = { listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Listo ✓", fallo_pub: "Falló al publicar" };
+  var PEND_TX = { revisando: "Revisando", listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Listo ✓", fallo_pub: "Falló al publicar" };
   function pendLista() {
     var l = E.ov.querySelector(".san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
     l.innerHTML = "";
@@ -1327,8 +1327,17 @@
       if ((p.pasos || []).length) { var ol = d.createElement("ol"); p.pasos.forEach(function (x) { var li = d.createElement("li"); li.textContent = x; ol.appendChild(li); }); cu.appendChild(ol); }
       else if (p.instrucciones) { var pi = d.createElement("p"); pi.textContent = p.instrucciones; cu.appendChild(pi); }
       var bt = d.createElement("div"); bt.className = "bt";
-      (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.textContent = (p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"); x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
-      if (cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice";
+      /* «Unir» sin entrar a GitHub: el Hub lo une con la llave de Conexiones y la lista lo sigue mientras se publica */
+      if (cfg.pendientes.unir) (p.unir || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.textContent = p.unir.length > 1 ? "Unir " + (i + 1) : "Unir";
+        x.onclick = function () { x.disabled = true; x.textContent = "Uniendo…";
+          Promise.resolve(cfg.pendientes.unir(u)).then(function (r) {
+            var no = r && r.no_unidos && r.no_unidos[0];
+            if (r && r.ok) { p.estado = "publicando"; p.resumen = "Ya lo uniste. GitHub lo está publicando."; p.unir = []; pendLista(); setTimeout(pendCargar, 4000); }
+            else { x.disabled = false; x.textContent = "Unir"; var er = d.createElement("p"); er.className = "pq"; er.textContent = (no && no.error) || (r && r.error) || "No se pudo unir."; cu.insertBefore(er, bt); }
+          }, function () { x.disabled = false; x.textContent = "Unir"; }); };
+        bt.appendChild(x); });
+      (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; if ((p.unir || []).length) x.className = "sec"; x.textContent = (p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"); x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
+      if (cfg.pendientes.hecho && !p.pr) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice";
         hx.onclick = function () { AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
       cu.appendChild(bt);
       if (p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }

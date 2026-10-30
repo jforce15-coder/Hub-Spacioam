@@ -29,7 +29,7 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Hilo** | Una conversación de correo. «Involucrar a Alma» = que ella responda ese hilo. | thread, cadena |
 | **Bots de prueba** | Usuarios ficticios que prueban cada cambio sin dejar registros. | QA, tests |
 | **Pedido para Claude** | Lo que Juan le pide al desarrollador por medio de Alma («Mejora para Claude»). | ticket, issue |
-| **Unir** | Dar Merge a un PR: es el «sí» de Juan. | aprobar, mergear |
+| **Unir** | Dar Merge a un PR: es el «sí» de Juan. Se hace en GitHub, con «une» a Claude, con el botón «Unir» de Pendientes o pidiéndoselo a Alma. | aprobar, mergear |
 | **Huésped** | Quien se queda en un apartamento de Spacio AM. | cliente, inquilino |
 | **Reserva / código de reserva** | La estadía de un huésped y su identificador de Hospitable. | booking, ID |
 | **Equipo** | Las personas que trabajan en Spacio AM (limpieza, mantenimiento, administración). | staff, personal |

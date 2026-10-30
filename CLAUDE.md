@@ -43,7 +43,8 @@ Cuando Juan corrige lo mismo dos veces, o algo falló después de unir, agrégal
 detectarlo, conviértelo en un check** (`.github/workflows/estandares.yml`), no en una nota.
 
 ## Reglas fijas del repo
-- Todo cambio va por PR; nunca a `main` directo. Juan une. Español en commits, PRs y textos.
+- Todo cambio va por PR; nunca a `main` directo. Juan une: en GitHub, diciendo «une» en el chat de Claude (y Claude lo une),
+  con el botón «Unir» de Pendientes en la app de Alma o pidiéndoselo a Alma (`unir_cambio`). Nadie une sin que él lo pida. Español en commits, PRs y textos.
 - Commits terminan con las líneas de atribución que indique la sesión. Ningún identificador de modelo en commits ni PRs.
 - Apps Script junta todos los archivos: un nombre declarado dos veces lo tumba (hay un check).
 - Si cambias `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan (hay un check).

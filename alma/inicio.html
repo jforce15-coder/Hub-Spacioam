@@ -246,7 +246,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-30a"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-30d"></script>
+<script src="../js/sa-nav.js?v=2026-10-31a"></script>
 <script>
 (function () {
   "use strict";
@@ -267,7 +267,7 @@
 
   /* Alma lista para hablar (con sesión): tocarla abre la voz aquí mismo. */
   function conVoz(nombre) {
-    var v = window.SAAlmaVoz;
+    var v = NATIVA ? vozNativa() : window.SAAlmaVoz;
     nombre = String(nombre || "").trim().split(/\s+/)[0];
     if (nombre) { $("hola").textContent = "Hola, " + nombre; setTimeout(function () { $("hola").classList.add("on"); holaQuieto(); }, 900); }
     if (v && v.setContexto) { try { v.setContexto({ vista: "Inicio de la app de Alma", nombre: String(nombre || "").split(" ")[0] }); } catch (e) {} }
@@ -543,9 +543,53 @@
     if (!NATIVA || !hay() || !window.ALMA || !ALMA.destino) return;
     var d = ALMA.destino(); nativa({ accion: "voz", que: "configurar", url: d.url, token: d.token, sesion: SAAuth.session() });
   }
+  /* En la app de iPhone la roca del inicio habla con la voz de la app (VozNativa.swift), la misma del anillo: una sola
+     conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
+     roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
+  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "" };
+  function vozNativa() {
+    var web = window.SAAlmaVoz;
+    return {
+      prepare: function () { if (!VN.soporta && web && web.prepare) web.prepare(); },
+      setContexto: function (c) { if (web && web.setContexto) web.setContexto(c); },
+      start: function (h) {
+        if (!VN.soporta) return web.start(h);
+        VN.h = h; VN.nivel = 0; VN.dice = "";
+        if (!VN.activa) { vozConfig(); nativa({ accion: "voz", que: "hablar" }); }
+        else h.status(VN.estado === "conectando" ? "Conectando…" : "Te escucho");
+        return Promise.resolve({
+          end: function () { VN.h = null; nativa({ accion: "voz", que: "colgar" }); },
+          level: function () { return VN.nivel; },
+          sendText: function (t) { nativa({ accion: "voz", que: "texto", texto: t }); },
+          chat: function (on) { nativa({ accion: "voz", que: "mudo", on: !!on }); if (!on) h.status("Te escucho"); },
+          mute: function (on) { nativa({ accion: "voz", que: "mudo", on: !!on }); }
+        });
+      }
+    };
+  }
+  function vozNativaEvento(e) {
+    var h = VN.h;
+    if (e.tipo === "estado") {
+      if ("pausada" in e) VN.soporta = true;
+      var antes = VN.activa; VN.activa = e.estado === "hablando" || e.estado === "conectando"; VN.estado = e.estado;
+      if (VN.activa && !antes && !h && VN.soporta && window.SANav && SANav.alma) { SANav.alma(); return; }   // empezó con el anillo
+      if (!h) return;
+      if (antes && !VN.activa) { VN.h = null; h.ended(); }
+      else if (e.estado === "hablando") h.status(e.pausada ? "En pausa" : "Te escucho");
+      return;
+    }
+    if (!h) return;
+    if (e.tipo === "nivel") {
+      VN.nivel = Math.min(1, (+e.v || 0) / 2.6);
+      var d = e.alma ? "Alma habla" : "Te escucho"; if (d !== VN.dice) { VN.dice = d; h.status(d); }
+    } else if (e.tipo === "alma" && e.texto) h.message("ai", e.texto);
+    else if (e.tipo === "yo" && e.texto) h.message("user", e.texto);
+    else if (e.tipo === "error" && e.mensaje) h.error(e.mensaje);
+  }
   window.AlmaVoz = {
     evento: function (e) {
       if (!e) return;
+      try { vozNativaEvento(e); } catch (x) {}
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";

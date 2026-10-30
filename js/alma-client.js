@@ -105,6 +105,7 @@
     areaMover: function (clave, area) { return call('areaMover', { clave: clave, area: area }); },
     /* app de Alma: el equipo de agentes detrás de Alma (agentes.js) */
     agentes: function (b) { return call('agentes', b || {}); },
+    correos: function (b) { return call('correos', b || {}); },
     usoIA: function (dias) { return call('usoIA', { dias: dias || 30 }); },
     mejoraEditar: function (id, cambios, resumen) { return call('mejoraEditar', { id: id, cambios: cambios, resumen: resumen }); },
     mejoraEliminar: function (id) { return call('mejoraEliminar', { id: id }); },

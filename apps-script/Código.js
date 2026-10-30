@@ -121,6 +121,7 @@ function doPost(e) {
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
     if (body.mejora && body.action === 'respuesta') return json_(paraClaudeRespuesta_(body));   // Claude responde un pedido de Alma (llave de un solo uso, paraclaude.js)
     if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
+    if (body.correoPuente) return json_(correoPuente_(body));   // el puente de una cuenta de correo manda lo nuevo (llave propia, correo.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
     if (body.anilloPrueba) return json_(anilloGuardar_(body));   // prueba del anillo desde hub.spacioam.com/anillo/ (anillo.js)
@@ -3092,6 +3093,7 @@ function hubApi_(body) {
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
       case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
       case 'agentes': return json_(agAccion_(ses, body));                                    // equipo de agentes detrás de Alma (agentes.js · alma/agentes.html)
+      case 'correos': return json_(correoApi_(ses, body));                                 // app de Alma: correos ordenados (correo.js · alma/correos.html)
       case 'areas': return json_(areas_(ses));                                            // app de Alma: las 6 áreas de vida (areas.js)
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)

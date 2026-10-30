@@ -102,7 +102,13 @@ var ARCHIVISTA_REGLAS_SEMILLA_ = [
   ['archivo:documento', 'Archivos: PDF, contratos, facturas, documentos', 'alfabetico', 'guardar', ''],
   ['archivo:foto', 'Archivos: fotos (daños, reportes, capturas)', 'creacion', 'temporal', 180],
   ['archivo:audio', 'Archivos: notas de voz (ya quedan escritas en el chat)', 'creacion', 'temporal', 30],
-  ['archivo:otro', 'Archivos: lo demás', 'creacion', 'temporal', 90]
+  ['archivo:otro', 'Archivos: lo demás', 'creacion', 'temporal', 90],
+  ['correo:codigo', 'Correos: códigos de verificación', 'creacion', 'temporal', 1],
+  ['correo:verificacion', 'Correos: enlaces para verificar', 'creacion', 'temporal', 3],
+  ['correo:autorizacion', 'Correos que piden tu autorización', 'creacion', 'temporal', 30],
+  ['correo:promocion', 'Correos: promociones y descuentos', 'creacion', 'temporal', 14],
+  ['correo:spam', 'Correos: posible spam', 'creacion', 'temporal', 7],
+  ['correo:normal', 'Correos de tus proyectos y de tu vida', 'modificacion', 'temporal', 90]
 ];
 var ARCHIVISTA_ORDENES_ = ['alfabetico', 'creacion', 'modificacion'], ARCHIVISTA_GUARDADOS_ = ['guardar', 'temporal', 'no_guardar', 'segun_tipo'];
 function archivistaHoja_() {

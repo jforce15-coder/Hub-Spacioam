@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Correos · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Tus correos ordenados por Alma (apps-script/correo.js): códigos, verificaciones, autorizaciones, cada proyecto,
+     promociones y posible spam (con la desuscripción a un toque). Cada cuenta se conecta con su puente (correo-puente/). -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --linea: rgba(62,63,63,.12); --durazno: #E9826A; --durazno-t: #B5624E; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #FAF8F6; color: var(--tinta); font: 15px/1.5 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 680px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 18px max(40px, env(safe-area-inset-bottom)); }
+  header { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  header .t { flex: 1; }
+  h1 { margin: 0; font: 400 32px/1.05 Valky, Georgia, serif; }
+  header small { display: block; margin-top: 6px; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; }
+  .redondo { width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; display: grid; place-items: center; color: var(--tinta); text-decoration: none; box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); }
+  .redondo svg { width: 20px; height: 20px; }
+  .sec { margin: 26px 4px 10px; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; display: flex; align-items: center; gap: 8px; }
+  .sec em { font-style: normal; background: #EFEBE6; color: var(--suave); border-radius: 999px; padding: 2px 8px; letter-spacing: 0; }
+  .card { background: #fff; border-radius: 20px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 18px 36px -28px rgba(70,50,40,.45); }
+  .card .de { font: 600 10.5px Montserrat, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--durazno-t); display: flex; gap: 8px; }
+  .card .de span { margin-left: auto; color: #A39B93; letter-spacing: 0; text-transform: none; font-weight: 500; }
+  .card h4 { margin: 4px 0 2px; font: 600 14.5px/1.4 Montserrat, sans-serif; }
+  .card p { margin: 0; font: 500 12.5px/1.5 Montserrat, sans-serif; color: var(--suave); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .card .para { font: 500 11.5px Montserrat, sans-serif; color: #A39B93; margin-top: 2px; }
+  .bt { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .btn { font: 600 12.5px Montserrat, sans-serif; padding: 9px 14px; min-height: 40px; border-radius: 14px; border: 0; cursor: pointer; background: #F3EFEA; color: var(--tinta); text-decoration: none; display: inline-flex; align-items: center; }
+  .btn.si { background: var(--durazno); color: #fff; } .btn:disabled { opacity: .55; }
+  .codigo { display: flex; align-items: center; gap: 12px; }
+  .codigo b { font: 600 26px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em; color: var(--tinta); }
+  .codigo .btn { margin-left: auto; }
+  .rem { cursor: pointer; }
+  .rem .det { display: none; margin-top: 10px; border-top: 1px solid var(--linea); padding-top: 8px; }
+  .rem.abierto .det { display: block; }
+  .rem .det div { font: 500 12.5px/1.45 Montserrat, sans-serif; padding: 5px 0; color: #5A5856; }
+  .rem .det small { display: block; color: #A39B93; }
+  .riesgo { display: inline-block; font: 700 10px Montserrat, sans-serif; letter-spacing: .06em; padding: 3px 8px; border-radius: 999px; background: #F7E1DA; color: #A6503C; }
+  details.grupo { background: #fff; border-radius: 20px; margin-bottom: 10px; box-shadow: 0 18px 36px -28px rgba(70,50,40,.45); }
+  details.grupo summary { list-style: none; padding: 14px 16px; display: flex; gap: 10px; align-items: center; cursor: pointer; font: 400 19px Valky, Georgia, serif; }
+  details.grupo summary::-webkit-details-marker { display: none; }
+  details.grupo summary em { margin-left: auto; font: 600 11px Montserrat, sans-serif; font-style: normal; color: var(--suave); }
+  details.grupo .lista { padding: 0 16px 10px; }
+  details.grupo .lista > div { border-top: 1px solid var(--linea); padding: 9px 0; }
+  details.grupo .lista h4 { margin: 0; font: 600 13.5px/1.4 Montserrat, sans-serif; } details.grupo .lista small { color: #A39B93; font: 500 11.5px Montserrat, sans-serif; }
+  .vacio { text-align: center; padding: 14px; font: 500 13px Montserrat, sans-serif; color: #A39B93; }
+  .conectar input { width: 100%; font: 500 15px Montserrat, sans-serif; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--linea); background: #FAF8F6; margin-top: 8px; }
+  .conectar ol { margin: 10px 0 0; padding-left: 20px; font: 500 13px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
+    font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
+  .msg.on { opacity: 1; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="t"><h1>Correos</h1><small>Alma los ordena por ti</small></div>
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></a>
+  </header>
+  <div id="todo"><div class="vacio">Cargando tus correos…</div></div>
+</main>
+<div class="msg" id="msg"></div>
+<script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
+<script src="../js/alma-client.js?v=2026-10-31a"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function aviso(t) { var m = $("msg"); m.textContent = t; m.classList.add("on"); clearTimeout(aviso.t); aviso.t = setTimeout(function () { m.classList.remove("on"); }, 2800); }
+  function cuando(ts) { var d = new Date(ts); if (!ts || isNaN(d)) return ""; var h = (Date.now() - d) / 36e5; return h < 1 ? "hace " + Math.max(1, Math.round(h * 60)) + " min" : h < 24 ? "hace " + Math.round(h) + " h" : d.toLocaleDateString("es", { day: "numeric", month: "short" }); }
+  function abrir(url) { if (url) location.href = url; }
+  function sec(t, n) { var s = el("div", "sec", t); if (n) s.appendChild(el("em", "", String(n))); return s; }
+  var D = null, raiz = $("todo");
+
+  function boton(t, cls, fn) { var b = el("button", "btn" + (cls ? " " + cls : ""), t); b.type = "button"; b.onclick = function (e) { e.stopPropagation(); fn(b); }; return b; }
+  function hacer(o, b, despues) {
+    if (b) b.disabled = true;
+    ALMA.correos(Object.assign({ accion: "hacer" }, o)).then(function (r) {
+      if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); if (b) b.disabled = false; return; }
+      var d = r.desuscripcion;
+      if (d && d.hecha) aviso("Listo: te desuscribí.");
+      else if (d && d.abrir) { aviso("Te llevo a la página para desuscribirte"); setTimeout(function () { abrir(d.abrir); }, 600); }
+      else if (d && d.mailto) { aviso("Se desuscribe con un correo: te lo abro"); setTimeout(function () { abrir("mailto:" + d.mailto); }, 600); }
+      else if (o.que === "spam") aviso(d && d.solo_spam ? "Marcado como spam. No abrí su enlace de baja: en spam eso confirma tu correo." : "Marcado como spam");
+      else aviso("Listo");
+      if (despues) despues();
+    }, function () { aviso("Sin conexión"); if (b) b.disabled = false; });
+  }
+  function quitar(card) { card.style.transition = "opacity .3s"; card.style.opacity = "0"; setTimeout(function () { card.remove(); }, 300); }
+
+  function correo(m, extra) {
+    var c = el("div", "card"), de = el("div", "de", m.de_nombre || m.de); de.appendChild(el("span", "", cuando(m.fecha))); c.appendChild(de);
+    c.appendChild(el("h4", "", m.asunto || "(sin asunto)")); if (m.fragmento) c.appendChild(el("p", "", m.fragmento));
+    c.appendChild(el("div", "para", "a " + m.cuenta));
+    if (extra) { var bt = el("div", "bt"); extra(bt, c); c.appendChild(bt); }
+    return c;
+  }
+  /* una tarjeta por remitente: quién, a qué cuenta, cuántos; al tocarla, de qué te escribe */
+  function remitente(r, spam) {
+    var c = el("div", "card rem"), de = el("div", "de", r.de_nombre || r.de); de.appendChild(el("span", "", r.total + (r.total === 1 ? " correo" : " correos"))); c.appendChild(de);
+    c.appendChild(el("h4", "", r.de)); c.appendChild(el("div", "para", "Te escribe a " + r.cuenta));
+    if (spam && r.spam >= .6) { var k = el("span", "riesgo", "Posible spam"); c.appendChild(k); }
+    var det = el("div", "det"); r.correos.forEach(function (m) { var d = el("div", "", m.asunto || "(sin asunto)"); if (m.fragmento) d.appendChild(el("small", "", m.fragmento)); det.appendChild(d); });
+    c.appendChild(det); c.onclick = function () { c.classList.toggle("abierto"); };
+    var bt = el("div", "bt"), base = { cuenta: r.cuenta, de: r.de };
+    if (spam) {
+      bt.appendChild(boton("Es spam", "si", function (b) { hacer(Object.assign({ que: "spam" }, base), b, function () { quitar(c); }); }));
+      bt.appendChild(boton("No es spam", "", function (b) { hacer(Object.assign({ que: "no_spam" }, base), b, function () { quitar(c); }); }));
+    } else {
+      if (r.desuscribir) bt.appendChild(boton("Desuscribir", "si", function (b) { hacer(Object.assign({ que: "desuscribir" }, base), b, function () { quitar(c); }); }));
+      bt.appendChild(boton("Archivar", "", function (b) { hacer(Object.assign({ que: "archivar" }, base), b, function () { quitar(c); }); }));
+    }
+    c.appendChild(bt);
+    return c;
+  }
+
+  function pintar() {
+    raiz.innerHTML = "";
+    if (D.codigos.length) {
+      raiz.appendChild(sec("Códigos", D.codigos.length));
+      D.codigos.forEach(function (m) {
+        var c = el("div", "card"), de = el("div", "de", m.de_nombre || m.de); de.appendChild(el("span", "", cuando(m.fecha))); c.appendChild(de);
+        var cd = el("div", "codigo"); cd.appendChild(el("b", "", m.codigo || "—"));
+        if (m.codigo) cd.appendChild(boton("Copiar", "si", function () { try { navigator.clipboard.writeText(m.codigo); aviso("Código copiado"); } catch (e) { aviso(m.codigo); } }));
+        c.appendChild(cd); c.appendChild(el("div", "para", m.asunto + " · a " + m.cuenta)); raiz.appendChild(c);
+      });
+    }
+    if (D.autorizacion.length) {
+      raiz.appendChild(sec("Piden tu autorización", D.autorizacion.length));
+      D.autorizacion.forEach(function (m) { raiz.appendChild(correo(m, function (bt, c) { if (m.enlace) bt.appendChild(boton("Abrir", "si", function () { abrir(m.enlace); })); bt.appendChild(boton("Ya lo vi", "", function (b) { hacer({ que: "leido", id: m.id }, b, function () { quitar(c); }); })); })); });
+    }
+    if (D.verificacion.length) {
+      raiz.appendChild(sec("Verificación", D.verificacion.length));
+      D.verificacion.forEach(function (m) { raiz.appendChild(correo(m, function (bt, c) { if (m.enlace) bt.appendChild(boton("Verificar", "si", function () { abrir(m.enlace); })); bt.appendChild(boton("Listo", "", function (b) { hacer({ que: "leido", id: m.id }, b, function () { quitar(c); }); })); })); });
+    }
+    if (D.proyectos.length) {
+      raiz.appendChild(sec("Por proyecto"));
+      D.proyectos.forEach(function (g) {
+        var d = el("details", "grupo"), s = el("summary", "", g.n); s.appendChild(el("em", "", String(g.total))); d.appendChild(s);
+        var l = el("div", "lista"); g.correos.forEach(function (m) { var x = el("div"); x.appendChild(el("h4", "", m.asunto || "(sin asunto)")); x.appendChild(el("small", "", (m.de_nombre || m.de) + " · " + cuando(m.fecha) + " · a " + m.cuenta)); l.appendChild(x); });
+        d.appendChild(l); raiz.appendChild(d);
+      });
+    }
+    if (D.spam.length) { raiz.appendChild(sec("Posible spam", D.spam.length)); D.spam.forEach(function (r) { raiz.appendChild(remitente(r, true)); }); }
+    if (D.promociones.length) { raiz.appendChild(sec("Promociones y descuentos", D.promociones.length)); D.promociones.forEach(function (r) { raiz.appendChild(remitente(r, false)); }); }
+    if (D.cuentas.length && !D.codigos.length && !D.autorizacion.length && !D.verificacion.length && !D.proyectos.length && !D.spam.length && !D.promociones.length)
+      raiz.appendChild(el("div", "vacio", "Todo en orden: no hay correos nuevos."));
+    cuentas();
+  }
+
+  /* Cuentas conectadas y conectar otra: la app arma el puente con su llave; se pega una vez en script.google.com con esa cuenta. */
+  function cuentas() {
+    raiz.appendChild(sec("Tus cuentas", D.cuentas.length || ""));
+    D.cuentas.forEach(function (c) { var k = el("div", "card"), de = el("div", "de", c.proyecto || "Personal"); de.appendChild(el("span", "", c.ultima ? "revisó " + cuando(c.ultima) : "esperando el puente")); k.appendChild(de); k.appendChild(el("h4", "", c.cuenta)); raiz.appendChild(k); });
+    var f = el("div", "card conectar"); f.appendChild(el("h4", "", D.cuentas.length ? "Conectar otro correo" : "Conecta tu primer correo"));
+    var i1 = el("input"); i1.type = "email"; i1.placeholder = "tu@gmail.com"; i1.autocomplete = "email";
+    var i2 = el("input"); i2.placeholder = "Proyecto (vacío si es personal)";
+    f.appendChild(i1); f.appendChild(i2);
+    var bt = el("div", "bt"), paso = el("div");
+    bt.appendChild(boton("Preparar el puente", "si", function (b) {
+      b.disabled = true;
+      ALMA.correos({ accion: "conectar", cuenta: i1.value, proyecto: i2.value }).then(function (r) {
+        b.disabled = false;
+        if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); return; }
+        if (typeof r.puente !== "string") { aviso("No pude armar el puente; intenta de nuevo"); return; }
+        paso.innerHTML = ""; var ol = el("ol");
+        [["Copia el puente (ya lleva tu llave)."], ["Abre script.google.com con la cuenta " + r.cuenta + " y crea un proyecto nuevo."], ["Borra lo que trae, pega el puente y guarda."], ["Arriba elige «instalar» y toca Ejecutar. Acepta los permisos (es tu propio script)."], ["Listo: en unos minutos tus correos aparecen aquí."]]
+          .forEach(function (t) { ol.appendChild(el("li", "", t[0])); });
+        paso.appendChild(ol);
+        var b2 = el("div", "bt");
+        b2.appendChild(boton("Copiar el puente", "si", function () { navigator.clipboard.writeText(r.puente).then(function () { aviso("Puente copiado"); }, function () { aviso("No se pudo copiar"); }); }));
+        b2.appendChild(boton("Abrir script.google.com", "", function () { abrir("https://script.google.com/home/projects/create"); }));
+        paso.appendChild(b2);
+      }, function () { b.disabled = false; aviso("Sin conexión"); });
+    }));
+    f.appendChild(bt); f.appendChild(paso); raiz.appendChild(f);
+  }
+
+  function cargar() {
+    if (!window.ALMA || !ALMA.correos) { raiz.innerHTML = '<div class="vacio">Abre esta página desde la app de Alma.</div>'; return; }
+    ALMA.correos({ accion: "lista" }).then(function (r) {
+      if (!r || !r.ok) { raiz.innerHTML = ""; raiz.appendChild(el("div", "vacio", (r && r.error) || "No pude cargar tus correos.")); return; }
+      D = r; pintar();
+    }, function () { raiz.innerHTML = '<div class="vacio">Sin conexión. Intenta de nuevo.</div>'; });
+  }
+  cargar();
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && D) cargar(); });
+})();
+</script>
+</body>
+</html>

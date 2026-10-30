@@ -181,6 +181,8 @@ function agHerramientas_() {
       { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
         tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
         ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] } }, ['titulo', 'app', 'tipo', 'que_quiere']),
+    T('leer_correo', 'Abre un correo completo de la bandeja del Hub (la cuenta que manda desde hola@spacioam.com; ahí llega lo que Juan reenvía) para leerlo o usar sus datos: «el correo de los vuelos que te reenvié», «la confirmación de Delta». Devuelve remitente, asunto, fecha y el texto. Para mandar sus datos a alguien, usa después mensaje_personal o enviar_correo con los datos tal cual.',
+      { buscar: s('Palabras para encontrarlo: remitente, asunto o algo del texto (ej. «Delta HP7BWP», «vuelos Bozeman»)') }, ['buscar']),
     T('enviar_correo', 'Manda un correo a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
@@ -482,6 +484,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var P = agPropuestas_(), nums = String(inp.numeros || '').toLowerCase();
       var ids = /tod/.test(nums) ? 'todas' : nums.split(/[^0-9]+/).filter(String).map(function (k) { var p = P[Number(k) - 1]; return p ? p.id : ''; }).filter(String);
       var rd = agDecidir_(adm, ids, inp.aprobar !== false); if (rd.ok) ctx.hechas.push({ tipo: 'agente', resumen: (inp.aprobar !== false ? 'Aprobado' : 'Rechazado') + ' · ' + (rd.decididas || []).length + ' propuesta(s)' }); return rd;
+    }
+    case 'leer_correo': {
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que lea correos.' };
+      return correoLeer_(inp.buscar);
     }
     case 'enviar_correo': {
       if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que mande correos.' };
@@ -846,4 +852,20 @@ function correoSimple_(para, asunto, texto) {
   try { GmailApp.sendEmail(para, asunto, texto, o); } catch (e) { estado = 'error: ' + String(e).slice(0, 200); console.error('correoSimple_: ' + e); }
   try { hojaCrear_('ALMA_CORREOS', ['fecha', 'tipo', 'para', 'desde', 'asunto', 'propiedad', 'codigo', 'estado', 'texto', 'html']).appendRow([new Date().toISOString(), 'pedido de Juan', para, desde, asunto, '', '', estado, texto.slice(0, 4000), '']); } catch (e) {}
   return estado === 'enviado' ? { ok: true, enviado_a: para, desde: desde } : { error: 'No salió el correo: ' + estado };
+}
+
+/* leer_correo: el correo más reciente que coincide en la bandeja de la cuenta que corre el Hub (la que manda como
+   hola@spacioam.com). Primero la búsqueda tal cual; si no hay, cualquiera de sus palabras. Últimos 30 días. */
+function correoLeer_(q) {
+  q = String(q || '').replace(/["(){}]/g, ' ').replace(/\s+/g, ' ').trim(); if (!q) return { error: 'Dime qué correo busco.' };
+  var cuenta = ''; try { cuenta = Session.getEffectiveUser().getEmail(); } catch (e) {}
+  var hilos = [];
+  try { hilos = GmailApp.search(q + ' newer_than:30d', 0, 5); } catch (e) { return { error: 'No pude buscar en el correo: ' + String(e).slice(0, 150) }; }
+  var pal = q.split(' ').filter(function (w) { return w.length > 2; }).slice(0, 6);
+  if (!hilos.length && pal.length > 1) { try { hilos = GmailApp.search('{' + pal.join(' ') + '} newer_than:30d', 0, 5); } catch (e) {} }
+  if (!hilos.length) return { error: 'No encuentro ese correo en la bandeja del Hub (' + cuenta + '). Dile a Juan que lo reenvíe a hola@spacioam.com o que conecte esa cuenta en Tus correos.' };
+  var ms = hilos[0].getMessages(), m = ms[ms.length - 1];
+  var txt = String(m.getPlainBody() || '').replace(/\r/g, '').replace(/<https?:[^>\s]+>/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return { ok: true, de: m.getFrom(), asunto: m.getSubject(), fecha: Utilities.formatDate(m.getDate(), CFG.TZ, 'yyyy-MM-dd HH:mm'), texto: txt.slice(0, 3200),
+    recortado: txt.length > 3200, otros: hilos.slice(1).map(function (h) { return h.getFirstMessageSubject(); }) };
 }

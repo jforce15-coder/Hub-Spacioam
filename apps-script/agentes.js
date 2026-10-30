@@ -1,7 +1,7 @@
 /* ═══ EQUIPO DE AGENTES DETRÁS DE ALMA (versión ligera de Paperclip) ════════════════════════════════════════════
    Alma es la única que habla con las personas (Juan, el equipo, socios, huéspedes). Detrás de ella trabajan agentes,
    cada uno con su rol, su misión, sus horarios y su presupuesto:
-     · Operaciones · Huéspedes y reseñas · Finanzas · Crecimiento
+     · Operaciones · Huéspedes y reseñas · Finanzas · Crecimiento · Marketing · Mantenimiento
    Cada uno:
      · Despierta en sus horas (el latido va en el disparador de cada hora, aprender() → agentesLatido_) o cuando Juan
        le pide algo por medio de Alma (pedir_a_agente).
@@ -25,7 +25,7 @@ var AG_PROPONE_ = ['enviar_a_huesped', 'escribir_a_equipo', 'crear_tarea', 'cerr
 var AGENTES_SEMILLA_ = [
   { id: 'operaciones', nombre: 'Operaciones', rol: 'Jefe de operaciones', horas: '7,13,18', dias: '1,2,3,4,5,6,7', presupuesto_usd: 15,
     herramientas: 'buscar_reservas,ruta_del_dia,tareas_abiertas,ver_propiedad,memoria_propiedad,ver_conversacion,crear_tarea,cerrar_tarea,agendar_en_epi,escribir_a_equipo,recordar_en_propiedad',
-    mision: 'Que cada apartamento esté listo a tiempo. Revisa llegadas y salidas de hoy y mañana contra la ruta de Epi y las tareas abiertas: limpiezas que faltan o chocan, check-ins sin limpieza asignada, mantenimiento pendiente, tareas viejas sin cerrar. Propón crear o agendar lo que falte y avisar a quien corresponda.' },
+    mision: 'Que cada apartamento esté listo a tiempo. Revisa llegadas y salidas de hoy y mañana contra la ruta de Epi y las tareas abiertas: limpiezas que faltan o chocan, check-ins sin limpieza asignada, tareas viejas sin cerrar (las reparaciones las ve Mantenimiento). Propón crear o agendar lo que falte y avisar a quien corresponda.' },
   { id: 'huespedes', nombre: 'Huéspedes y reseñas', rol: 'Jefa de experiencia del huésped', horas: '8,16,21', dias: '1,2,3,4,5,6,7', presupuesto_usd: 15,
     herramientas: 'buscar_reservas,ver_conversacion,promesas_abiertas,programados_reserva,mensajes_programados,ver_propiedad,enviar_a_huesped,programar_mensaje,marcar_resuelta,escribir_a_equipo',
     mision: 'Que ningún huésped se quede sin respuesta ni con una promesa olvidada. Revisa las promesas abiertas, las conversaciones con pendientes, las llegadas de mañana (que tengan sus mensajes de llegada programados) y las salidas recientes (pedir reseña). Propón el mensaje exacto o el aviso al equipo.' },
@@ -34,10 +34,22 @@ var AGENTES_SEMILLA_ = [
     mision: 'Que el dinero cuadre. Revisa las cancelaciones recientes (reembolsos pendientes o cargos por cancelación), reservas de la semana y pendientes con socios y proveedores (pagos o cobros mencionados en sus conversaciones). Propón tareas o avisos concretos; nunca muevas dinero.' },
   { id: 'crecimiento', nombre: 'Crecimiento', rol: 'Jefe de crecimiento y anuncios', horas: '10', dias: '1,4', presupuesto_usd: 10,
     herramientas: 'buscar_reservas,ver_propiedad,memoria_propiedad,grow_proyectos,ver_proyecto,cancelaciones,crear_tarea,guardar_nota,grow_mover_etapa,grow_agendar_visita',
-    mision: 'Más ocupación y mejores anuncios. Busca propiedades con huecos en las próximas dos semanas, datos que faltan en las fichas (lo que el huésped pregunta seguido), y proyectos de Grow detenidos. Propón mejoras concretas (texto, dato, tarea, seguimiento a un proyecto).' }
+    mision: 'Más ocupación y mejores anuncios. Busca propiedades con huecos en las próximas dos semanas, datos que faltan en las fichas (lo que el huésped pregunta seguido), y proyectos de Grow detenidos. Propón mejoras concretas (texto, dato, tarea, seguimiento a un proyecto).' },
+  { id: 'marketing', nombre: 'Marketing', rol: 'Jefa de marketing y marca', horas: '11', dias: '2,5', presupuesto_usd: 10,
+    herramientas: 'buscar_reservas,cancelaciones,ver_propiedad,memoria_propiedad,ver_conversacion,grow_proyectos,crear_tarea,guardar_nota,escribir_a_equipo',
+    mision: 'Que más gente conozca y reserve Spacio AM directo. Busca fechas con poca ocupación en las próximas semanas para promover, lo que más elogian los huéspedes en sus conversaciones (para contenido y testimonios), y propiedades o temporadas que conviene destacar. Propón ideas concretas y listas para usar: un post para Instagram con su texto, una promoción con fechas y propiedades, una historia de un huésped (sin datos personales). Todo en el tono de Spacio AM: cálido, editorial, calma. Nunca publiques ni escribas a huéspedes por tu cuenta: propón tareas o notas.' },
+  { id: 'mantenimiento', nombre: 'Mantenimiento', rol: 'Jefe de mantenimiento', horas: '8,15', dias: '1,2,3,4,5,6', presupuesto_usd: 10,
+    herramientas: 'tareas_abiertas,ruta_del_dia,buscar_reservas,ver_conversacion,ver_propiedad,memoria_propiedad,buscar_contacto,crear_tarea,agendar_en_epi,escribir_a_equipo,recordar_en_propiedad',
+    mision: 'Que nada esté roto cuando llegue un huésped. Busca reparaciones que reportaron los huéspedes o el equipo (aire acondicionado, agua caliente, cerraduras, WiFi, electrodomésticos), fallas que se repiten en una misma propiedad y mantenimiento preventivo vencido. Encuentra el mejor momento para el técnico (entre una salida y la siguiente llegada) y propón la tarea, la cita en Epi o el aviso al técnico o proveedor, con la propiedad y la falla exactas.' }
 ];
 
-function hojaAg_() { var sh = hojaCrear_('ALMA_AGENTES', AG_CAB_); if (sh.getLastRow() < 2) AGENTES_SEMILLA_.forEach(function (a) { sh.appendRow(AG_CAB_.map(function (k) { return a[k] != null ? a[k] : k === 'estado' ? 'activo' : ''; })); }); return sh; }
+/* La hoja de agentes: los que faltan de la semilla se agregan solos (lo que editaste en la hoja no se toca). */
+function hojaAg_() {
+  var sh = hojaCrear_('ALMA_AGENTES', AG_CAB_), n = sh.getLastRow();
+  var ya = n >= 2 ? sh.getRange(2, 1, n - 1, 1).getValues().map(function (v) { return String(v[0]); }) : [];
+  AGENTES_SEMILLA_.forEach(function (a) { if (ya.indexOf(a.id) < 0) sh.appendRow(AG_CAB_.map(function (k) { return a[k] != null ? a[k] : k === 'estado' ? 'activo' : ''; })); });
+  return sh;
+}
 function hojaAgT_() { return hojaCrear_('ALMA_AG_TAREAS', AGT_CAB_); }
 function hojaAgP_() { return hojaCrear_('ALMA_AG_PROPUESTAS', AGP_CAB_); }
 function agFilas_(sh, cab) {

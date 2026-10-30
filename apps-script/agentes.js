@@ -226,8 +226,31 @@ var AG_DEV_OBJETIVOS_ = [
   { app: 'Mi', que: 'mi.spacioam.com (repo mi-spacioam): facturas, conta y reportes' },
   { app: 'Docs', que: 'docs.spacioam.com (repo Docs-spacioam): contratos y lectura de DPI' }
 ];
+function agDesarrolloRetro_(a, adm, origen) {
+  var que = [
+    'Eres el equipo de Desarrollo de Spacio AM. Esta ronda es una RETRO (' + origen + '): no revises apps; mira hacia atrás y convierte lo que se repite en reglas.',
+    '', 'QUÉ MIRAS (últimas 3 semanas, en jforce15-coder/Hub-Spacioam y jforce15-coder/alma-app):',
+    '· Los PRs unidos y cerrados: qué se arregló dos veces, qué se rompió después de unir, qué pidió Juan corregir.',
+    '· Los avisos con etiqueta bots-prueba y alma-mejora, y los comentarios de las revisiones.',
+    '', 'QUÉ HACES (un solo PR, siguiendo CLAUDE.md):',
+    '1. Por cada error que se repite: una línea en ESTANDARES.md. Si una máquina lo puede detectar, un check nuevo en .github/workflows/estandares.yml (prúebalo: que falle con el error y pase sin él).',
+    '2. Palabras que se usaron con dos significados: corrígelas en docs/GLOSARIO.md.',
+    '3. Si algo del método en CLAUDE.md no sirvió o faltó, ajústalo.',
+    '4. Descarta lo que sería un falso positivo; no agregues reglas por si acaso.',
+    '5. En tu respuesta a Alma: 3 a 5 líneas con lo que aprendimos y el enlace al PR.'
+  ].join('\n');
+  var r = paraClaudeCrear_(adm, { titulo: 'Retro de Desarrollo: lo que se repite se vuelve regla', app: 'Hub', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
+  a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
+  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: 'retro', estado: r.ok ? 'con Claude' : 'error',
+    informe: r.ok ? 'Retro enviada a Claude: convierte lo que se repitió en estándares, glosario y checks.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
+  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la retro a Claude. Te cuento qué reglas nuevas salen.' : r.error, propuestas: [], costo_usd: 0 };
+}
 function agDesarrolloRonda_(a, adm, origen, pedido) {
   var p = PropertiesService.getScriptProperties(), k = Number(p.getProperty('AG_DEV_RONDA') || 0), n = AG_DEV_OBJETIVOS_.length;
+  /* Cada cuarta ronda es una RETRO (lección «lo que se repite se vuelve regla»): en lugar de revisar apps, mira lo que se
+     corrigió en las últimas semanas y lo convierte en estándares, palabras del glosario y checks automáticos. */
+  var nR = Number(p.getProperty('AG_DEV_RETRO') || 0) + 1; if (!pedido) p.setProperty('AG_DEV_RETRO', String(nR));
+  if (!pedido && nR % 4 === 0) return agDesarrolloRetro_(a, adm, origen);
   var obj = pedido ? null : [AG_DEV_OBJETIVOS_[k % n], AG_DEV_OBJETIVOS_[(k + 1) % n]];   // dos apps por ronda; rotan
   if (!pedido) p.setProperty('AG_DEV_RONDA', String((k + 2) % n));
   var donde = obj ? obj.map(function (o) { return o.app; }).join(' y ') : 'lo que pidió Juan';

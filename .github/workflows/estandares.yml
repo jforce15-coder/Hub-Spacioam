@@ -1,0 +1,51 @@
+# Estándares que una máquina puede revisar (ESTANDARES.md, marcados ✅). «Un error que una máquina puede ver, se vuelve
+# un check»: cuando algo se corrige dos veces y se puede detectar solo, se agrega aquí.
+name: Revisar estándares
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  estandares:
+    runs-on: ubuntu-latest
+    env:
+      BASE: ${{ github.base_ref }}
+      CUERPO: ${{ github.event.pull_request.body }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Si cambió sa-nav.js o alma-client.js, su versión subió en las páginas
+        run: |
+          git fetch -q origin "$BASE"
+          fallo=0
+          for js in js/sa-nav.js js/alma-client.js; do
+            if git diff --quiet "origin/$BASE"...HEAD -- "$js"; then continue; fi
+            nombre=$(basename "$js")
+            for pag in $(grep -rl --include=*.html "$nombre?v=" . | grep -v node_modules); do
+              antes=$(git show "origin/$BASE:${pag#./}" 2>/dev/null | grep -o "$nombre?v=[^\"']*" | head -1)
+              ahora=$(grep -o "$nombre?v=[^\"']*" "$pag" | head -1)
+              if [ -n "$antes" ] && [ "$antes" = "$ahora" ]; then echo "::error file=$pag::Cambió $js pero $pag sigue cargando $ahora: sube el ?v= (si no, los teléfonos usan la versión vieja)"; fallo=1; fi
+            done
+          done
+          exit $fallo
+
+      - name: Ninguna llave en el código
+        run: |
+          git fetch -q origin "$BASE"
+          if git diff "origin/$BASE"...HEAD -U0 | grep -E '^\+' | grep -E 'sk-ant-[a-z0-9]{3,}-[A-Za-z0-9_-]{20,}|AIza[0-9A-Za-z_-]{35}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{40,}|xox[bap]-[0-9A-Za-z-]{20,}|EAA[A-Za-z0-9]{60,}'; then
+            echo "::error::Hay algo que parece una llave en el cambio. Las llaves van en las Propiedades del script o en los secretos de GitHub."; exit 1
+          fi
+          echo "Sin llaves."
+
+      - name: El PR trae evidencia (aviso)
+        run: |
+          if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then
+            echo "::warning::El PR no tiene la sección «Evidencia» (antes y después). Ver .github/pull_request_template.md."
+          fi

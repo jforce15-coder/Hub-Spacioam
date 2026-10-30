@@ -4120,11 +4120,15 @@ function waEntrante_(m, nombre) {
   const media = [];
   try {
     if (m.type === 'image' || (m.type === 'sticker' && m.sticker && !m.sticker.animated)) {
-      const f = waMedia_(m[m.type].id, nombre || wa);
+      /* Con el blob aunque Drive falle: antes, si no se podía guardar en Drive, la foto se perdía y ALMA no la veía. */
+      const f = waMedia_(m[m.type].id, nombre || wa, true);
       if (f) {
-        media.push(f.url);
-        const desc = describirFoto_(f.url, s_(m.image && m.image.caption));
-        texto = (s_(m.image && m.image.caption) ? s_(m.image.caption) + '\n' : '') + '[envió una foto' + (desc ? ': ' + desc : '') + ']';
+        if (f.url) media.push(f.url);
+        const cap = s_(m.image && m.image.caption), src = f.url || fotoDataUrl_(f.blob);
+        /* Un administrador suele mandar capturas (un vuelo, una factura): ALMA lee todo el texto, no solo una descripción. */
+        let adm = false; try { adm = fin8_(CFG.WHATSAPP_JUAN) === fin8_(wa) || !!adminPorTel_(wa); } catch (e) {}
+        const desc = src ? (adm ? fotoLeer_(src, cap) : describirFoto_(src, cap)) : '';
+        texto = (cap ? cap + '\n' : '') + '[envió una foto' + (desc ? ': ' + desc : '') + ']';
       }
     } else if (m.type === 'audio') {
       const f = waMedia_(m.audio.id, nombre || wa, true);
@@ -4214,11 +4218,26 @@ function waMedia_(mediaId, etiqueta, soloBlob) {
     try { if (cid) carpeta = DriveApp.getFolderById(cid); } catch (e) {}
     if (!carpeta) { carpeta = DriveApp.createFolder('ALMA · WhatsApp'); props.setProperty('WA_CARPETA', carpeta.getId()); }
     const f = carpeta.createFile(blob);
-    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    try { f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { console.error('waMedia_ compartir: ' + e); }   // ALMA la lee igual con DriveApp
     url = /^image\//.test(mime) ? 'https://drive.google.com/thumbnail?id=' + f.getId() + '&sz=w1200' : '';
     ver = 'https://drive.google.com/file/d/' + f.getId() + '/view';
   } catch (e) { console.error('waMedia_ drive: ' + e); if (!soloBlob) return null; }
   return { url: url, ver: ver, mime: mime, blob: blob };
+}
+/* La foto en memoria (cuando no quedó en Drive), para que ALMA la vea igual. Hasta 4,5 MB. */
+function fotoDataUrl_(blob) {
+  try {
+    const mt = String(blob.getContentType() || '').split(';')[0], b = blob.getBytes();
+    return /^image\/(jpeg|png|gif|webp)$/.test(mt) && b.length <= 4.5 * 1024 * 1024 ? 'data:' + mt + ';base64,' + Utilities.base64Encode(b) : '';
+  } catch (e) { return ''; }
+}
+/* Foto de un administrador: todo el texto que se ve (una captura de un vuelo, una factura, un chat), ordenado, y qué es. */
+function fotoLeer_(src, caption) {
+  const t = claude_(CFG.MODELO_CLASIFICADOR, 1500,
+    'Lees fotos y capturas que un administrador de Spacio AM le manda a ALMA, su asistente. Primero, en una frase, qué es. Después transcribe TODO el texto útil que se ve, ' +
+    'exacto (nombres, códigos, fechas, horas, números de vuelo, montos, direcciones), ordenado en líneas; las tablas, una fila por línea. No inventes ni completes lo que no se lee.',
+    caption ? 'Texto que acompaña la foto: ' + caption : 'Lee la foto.', 0, [src]);
+  return String(t || '').trim().slice(0, 3500);
 }
 /* Qué muestra la foto, en una o dos frases, para el clasificador, el resumen y el hilo. */
 function describirFoto_(url, caption) {

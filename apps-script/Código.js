@@ -719,6 +719,7 @@ function procesarCola() {
   try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
   try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
   try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
+  try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
 }
 function procesarColaNucleo_() {
@@ -3118,6 +3119,7 @@ function hubApi_(body) {
       case 'acciones': return json_(accionesLista_());                                  // acciones pendientes del usuario (paraclaude.js)
       case 'accionHecha': return json_(accionMarcar_(body.id));
       case 'usoIA': return json_(hubUsoIA_(body.dias));
+      case 'usoMensual': return json_(usoMensual_(body.mes));                          // reporte mensual por esfera (usomensual.js)
       case 'mejoraEditar': return json_(hubMejoraEditar_(body.id, body.cambios, body.resumen));
       case 'mejoraEliminar': return json_(hubMejoraEliminar_(body.id));
       case 'mejoraVerificar': return json_(hubMejoraVerificar_(body.id));

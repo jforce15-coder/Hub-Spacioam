@@ -71,7 +71,16 @@ jobs:
         run: |
           MSG="${{ github.event.head_commit.message || 'Publicación manual' }}"
           DESC="$(printf '%s' "$MSG" | head -n1 | cut -c1-90)"
-          OUT="$(clasp create-version "$DESC" 2>&1)"
+          # Si falla, que se vea por qué (antes «set -e» lo cortaba sin mostrar nada)
+          if ! OUT="$(clasp create-version "$DESC" 2>&1)"; then
+            echo "$OUT"
+            if printf '%s' "$OUT" | grep -qiE 'maximum|limit|200'; then
+              echo "::error::Google llegó al máximo de 200 versiones del Apps Script. Hay que borrar versiones viejas: script.google.com → el proyecto → Implementaciones → Gestionar → (o Historial del proyecto) y borrar las más antiguas. El código ya se subió; solo falta publicar."
+            else
+              echo "::error::No se pudo crear la versión: $(printf '%s' "$OUT" | tail -n3 | tr '\n' ' ')"
+            fi
+            exit 1
+          fi
           echo "$OUT"
           VERSION="$(printf '%s' "$OUT" | grep -oE '[0-9]+' | tail -n1)"
           if [ -z "$VERSION" ]; then

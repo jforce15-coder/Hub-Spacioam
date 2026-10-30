@@ -42,7 +42,7 @@ function paraClaudeCrear_(adm, inp) {
     (String(inp.que_pasa || '').trim() ? '### Qué pasa hoy\n' + String(inp.que_pasa).trim() + '\n\n' : '') +
     '### Cómo debería funcionar\n' + String(inp.que_quiere).trim() + '\n\n' +
     (String(inp.ejemplo || '').trim() ? '### Ejemplo\n' + String(inp.ejemplo).trim() + '\n\n' : '') +
-    '---\n_Lo dictó ' + quien + ' a ALMA. Claude: trabájalo en una rama nueva, abre un PR y enlázalo aquí. No incluyas datos personales de huéspedes._';
+    '---\n_Lo dictó ' + quien + ' a ALMA. Claude: sigue el método de CLAUDE.md (glosario, pregunta primero lo que es decisión de Juan, prototipos si es visual, spec y tickets si es grande, dos revisiones, evidencia en el PR). Trabájalo en una rama nueva, abre un PR y enlázalo aquí. No incluyas datos personales de huéspedes._';
   var issue = '';
   var tok = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
   if (tok) {

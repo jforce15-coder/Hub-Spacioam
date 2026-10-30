@@ -38,7 +38,7 @@
   .ajustes.on { opacity: 1; pointer-events: auto; }
   .ajustes:active { transform: scale(.9); }
   .ajustes svg { width: 20px; height: 20px; }
-  /* Modo conferencia: el mismo botón que Ajustes, a medio camino entre Ajustes y la roca (lo ubica confUbicar) */
+  /* Modo conferencia: el mismo botón que Ajustes, junto a «Iniciar llamada», un poco más abajo y separado (lo ubica confUbicar) */
   .ajustes.conf { right: auto; top: 0; left: 0; }
   .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 0 rgba(233,130,106,.55); animation: confLate 2.4s ease-in-out infinite; }
   .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #FFFDFB; }
@@ -204,7 +204,7 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg></button>
+<button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
   <header>
@@ -653,13 +653,12 @@
      el Hub nota que son varias personas, la reunión se transcribe con ElevenLabs (distingue las voces). Despierta al oír «Alma». */
   var CONF = { activa: false };
   function confUbicar() {
-    var b = $("b-conf"), a = $("b-ajustes").getBoundingClientRect(), r = document.querySelector(".san-rock"), rr = r && r.getBoundingClientRect();
-    if (!rr || !rr.width) { b.style.left = (innerWidth - 104) + "px"; b.style.top = a.top + 56 + "px"; return; }
-    /* a medio camino entre el borde de Ajustes y el borde de la roca, sobre la línea que los une */
-    var ax = a.left + a.width / 2, ay = a.top + a.height / 2, cx = rr.left + rr.width / 2, cy = rr.top + rr.height / 2, R = rr.width / 2;
-    var dx = ax - cx, dy = ay - cy, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
-    var px = cx + ux * R, py = cy + uy * R, qx = ax - ux * a.width / 2, qy = ay - uy * a.height / 2;
-    b.style.left = ((px + qx) / 2 - 20) + "px"; b.style.top = ((py + qy) / 2 - 20) + "px";
+    var b = $("b-conf"), c = document.querySelector(".san-ob.start"), r = c && c.getBoundingClientRect();
+    /* va con los botones de abajo: si ellos se esconden (chat, llamada), él también */
+    var se = !r || !r.width || +getComputedStyle(c).opacity < .5 || getComputedStyle(c).visibility === "hidden";
+    b.style.visibility = se ? "hidden" : ""; if (se) return;
+    /* a la derecha de «Iniciar llamada», con aire para su nombre, y un poco más abajo que su centro */
+    b.style.left = Math.min(innerWidth - 56, r.right + 30) + "px"; b.style.top = (r.top + r.height / 2 - 20 + 10) + "px";
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
@@ -668,7 +667,7 @@
     if (e.error) try { alert(e.error); } catch (x) {}
   } };
   $("b-conf").onclick = function () { vozConfig(); nativa({ accion: "conferencia", que: CONF.activa ? "off" : "on" }); };
-  if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setTimeout(confUbicar, 3000); addEventListener("resize", confUbicar); }
+  if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
   $("i-anillo").onchange = function () { vozConfig(); nativa({ accion: "voz", que: "anillo", on: this.checked }); };
   /* Probar con la app abierta: si aquí funciona y bloqueado no, el problema es del segundo plano */
   $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };

@@ -163,7 +163,7 @@
     "@keyframes san-core{0%,100%{scale:1}50%{scale:.97}}@keyframes san-glow{0%,100%{opacity:.32;transform:scale(.99)}50%{opacity:.68;transform:scale(1.01)}}@keyframes san-lit{0%,100%{opacity:0}50%{opacity:.8}}",
     ".san-scope .san-body{position:absolute;left:0;top:0;width:0;height:0;transition:transform .55s cubic-bezier(.3,1.25,.55,1)}",
     ".san-scope .san-led{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}",
-    ".san-scope .san-ring,.san-scope .san-glow,.san-scope .san-glowb{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:50%;pointer-events:none;background:" + GRAD + "}",
+    ".san-scope .san-ring,.san-scope .san-glow,.san-scope .san-glowb{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:50%;pointer-events:none;background:var(--san-halo," + GRAD + ")}",
     ".san-scope .san-ring{-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%)}",
     ".san-scope .san-glow{left:-64px;top:-64px;width:128px;height:128px;-webkit-mask:radial-gradient(closest-side,transparent 56%,rgba(0,0,0,.7) 71%,rgba(0,0,0,.18) 83%,transparent 97%);mask:radial-gradient(closest-side,transparent 56%,rgba(0,0,0,.7) 71%,rgba(0,0,0,.18) 83%,transparent 97%);" +
       "animation:san-glow 3.6s ease-in-out infinite;will-change:opacity,transform}",
@@ -284,8 +284,12 @@
     /* el botón roca: 1 toque envía · mantener graba una nota de voz · 2 toques, una foto */
     ".san-scope .san-send{width:46px;height:46px;flex:none;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;display:grid;place-items:center;color:#B36A57;touch-action:none;-webkit-user-select:none;user-select:none;background:transparent;border-radius:50%}",
     ".san-scope .san-send.graba{animation:sanGraba 1.2s ease-in-out infinite}@keyframes sanGraba{50%{box-shadow:0 0 0 14px rgba(233,130,106,.2)}}",
-    ".san-scope .san-tips{position:absolute;right:4px;bottom:64px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .3s ease,transform .45s cubic-bezier(.3,1.3,.55,1)}.san-scope .san-tips.on{opacity:1;transform:none}",
-    ".san-scope .san-tips span{padding:8px 13px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:500 11.5px Montserrat,system-ui,sans-serif;white-space:nowrap;box-shadow:0 16px 32px -14px rgba(30,25,20,.6)}.san-scope .san-tips b{color:#F2B4A2;font-weight:600;margin-right:6px}",
+    /* hints del botón roca: una burbuja a la vez que rota sin parar (1 toque → 2 toques → 3 toques → …), ver rotador() */
+    ".san-scope .san-tips{position:absolute;right:4px;bottom:64px;width:0;height:0;pointer-events:none}",
+    ".san-scope .san-tips span,.san-scope .san-dtips span{position:absolute;right:0;bottom:0;padding:8px 13px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:500 11.5px Montserrat,system-ui,sans-serif;white-space:nowrap;box-shadow:0 16px 32px -14px rgba(30,25,20,.6);" +
+      "opacity:0;transform:translateY(6px) scale(.94);transform-origin:100% 100%;transition:opacity .28s ease,transform .5s cubic-bezier(.3,1.35,.5,1)}",
+    ".san-scope .san-tips span.on,.san-scope .san-dtips span.on{opacity:1;transform:none}",
+    ".san-scope .san-tips b,.san-scope .san-dtips b{color:#F2A07E;font-weight:700;margin-right:6px}",
     ".san-scope .san-graba{position:absolute;left:62px;right:62px;top:50%;transform:translateY(-50%);font:500 14px Montserrat,system-ui,sans-serif;color:#B36A57;display:none}.san-scope form.grabando .san-graba{display:block}.san-scope form.grabando .san-in{visibility:hidden}",
     "body.san-docked [data-sa-dock]{visibility:hidden!important}[data-sa-dock].san-hosting{position:relative!important;overflow:visible!important}",
     "[data-sa-slot]{transition:padding-right .55s cubic-bezier(.34,1.45,.6,1)}[data-sa-slot].san-slotted{position:relative;padding-right:var(--san-slot-w)!important}",
@@ -299,9 +303,7 @@
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
     ".san-scope.docked .san-hint{display:none}",
     /* encajado en el editor: sus propios hints, encima del botón (las primeras veces) */
-    ".san-scope .san-dtips{position:fixed;z-index:calc(var(--san-z) + 12);display:flex;flex-direction:column;align-items:flex-end;gap:6px;pointer-events:none;opacity:0;transform:translate(-100%,-100%) translateY(6px);transition:opacity .3s ease,transform .45s cubic-bezier(.3,1.3,.55,1)}",
-    ".san-scope .san-dtips.on{opacity:1;transform:translate(-100%,-100%)}",
-    ".san-scope .san-dtips span{padding:8px 13px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:500 11.5px Montserrat,system-ui,sans-serif;white-space:nowrap;box-shadow:0 16px 32px -14px rgba(30,25,20,.6)}.san-scope .san-dtips b{font-weight:700;margin-right:6px}",
+    ".san-scope .san-dtips{position:fixed;z-index:calc(var(--san-z) + 12);width:0;height:0;pointer-events:none}",
     "@media print{#sa-nav-root{display:none!important}}"
   ].join("\n");
 
@@ -599,17 +601,31 @@
   function setDocked(on) {
     if (dock.on === on) return; if (!on) hostOut(); dock.on = on;
     d.body.classList.toggle("san-docked", on); root.classList.toggle("docked", on);
-    if (on) { setS(1); E.scrim.style.opacity = "0"; try { var nt = +localStorage.getItem("san_dtips") || 0; if (nt < 4) { localStorage.setItem("san_dtips", nt + 1); setTimeout(function () { if (dock.on) dockTips(3800); }, 700); } } catch (x) {} } else { if (E.dtips) E.dtips.classList.remove("on"); E.scrim.style.opacity = ""; var p = anchorPt(st.anchor); px.to(p.x, .55, .8); py.to(p.y, .55, .8); zoom.to(K(), .55, .8); }
+    if (on) { setS(1); E.scrim.style.opacity = "0"; setTimeout(function () { if (dock.on) dockTips(); }, 700); } else { if (E.rotD) E.rotD.parar(); E.scrim.style.opacity = ""; var p = anchorPt(st.anchor); px.to(p.x, .55, .8); py.to(p.y, .55, .8); zoom.to(K(), .55, .8); }
   }
-  /* 1 toque envía · 2 mejora · 3 habla con Alma · mantén para moverlo: encima del botón encajado */
-  var dtT = 0;
-  function dockTips(ms) {
+  /* Hints que rotan: una burbuja a la vez, sin parar. 1 toque se queda más (8 s), 2 toques menos (6.5 s), 3 toques menos
+     (5 s), y vuelve a empezar; entre una y otra, un respiro de .9 s (más lento: que se lean con calma). dondeFn: se llama antes de cada burbuja (por si el
+     botón se movió). */
+  function rotador(cont, textos, dondeFn) {
+    cont.innerHTML = textos.map(function (t) { return "<span>" + t + "</span>"; }).join("");
+    var DUR = [8000, 6500, 5000], i = -1, t = 0, on = false;
+    function paso() {
+      if (!on) return;
+      var L = cont.children; for (var k = 0; k < L.length; k++) L[k].classList.remove("on");
+      i = (i + 1) % L.length; var s = L[i];
+      t = setTimeout(function () { if (!on) return; if (dondeFn) dondeFn(); s.classList.add("on"); t = setTimeout(paso, DUR[i % DUR.length]); }, 900);
+    }
+    return { andar: function () { if (on) return; on = true; i = -1; paso(); },
+      parar: function () { on = false; clearTimeout(t); for (var k = 0; k < cont.children.length; k++) cont.children[k].classList.remove("on"); },
+      va: function () { return on; } };
+  }
+  /* Encajado en el editor (conversación completa del Hub): los hints rotan encima del botón mientras esté encajado. */
+  function dockTips() {
     if (!root || !E.face) return;
-    if (!E.dtips) { E.dtips = d.createElement("div"); E.dtips.className = "san-dtips"; E.dtips.setAttribute("aria-hidden", "true");
-      E.dtips.innerHTML = "<span><b>1 toque</b>enviar</span><span><b>2 toques</b>mejorar con Alma</span><span><b>3 toques</b>hablar con Alma</span><span><b>mantén</b>mover</span>"; root.appendChild(E.dtips); }
-    var r = E.face.getBoundingClientRect(); if (!r.width) return;
-    E.dtips.style.left = Math.max(180, r.right) + "px"; E.dtips.style.top = (r.top - 10) + "px";
-    E.dtips.classList.add("on"); clearTimeout(dtT); dtT = setTimeout(function () { if (E.dtips) E.dtips.classList.remove("on"); }, ms || 3200);
+    if (!E.dtips) { E.dtips = d.createElement("div"); E.dtips.className = "san-dtips"; E.dtips.setAttribute("aria-hidden", "true"); root.appendChild(E.dtips);
+      E.rotD = rotador(E.dtips, ["<b>1 toque</b>enviar", "<b>2 toques</b>mejorar con Alma", "<b>3 toques</b>hablar con Alma"], function () {
+        var r = E.face.getBoundingClientRect(); if (r.width) { E.dtips.style.left = r.right + "px"; E.dtips.style.top = (r.top - 18) + "px"; } }); }
+    E.rotD.andar();
   }
   function dockCheck() {
     if (!root) return;
@@ -763,12 +779,13 @@
     return null;
   }
   function onDock(n) {
-    activity(); if (E.dtips) E.dtips.classList.remove("on");
+    activity();
     if (n >= 3) { if (AL.min || AL.on) almaEnd(false); else if (almaOk()) almaMini(); else nope(); return; }
     var b = (n === 1 && dockEnviar()) || dock.el;
     try { b.click(); } catch (e) {} surge();
   }
-  function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
+  /* Regla general: si no hay pantallas en el menú, un toque no abre un menú vacío: va directo al inicio. */
+  function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1 && !(cfg.items && cfg.items.length)) { goHome(); return; } if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
   function onDouble() {
     activity();
     if (st.S === 2) { openSub(cfg.current); return; }   // estado 2: lo de adentro de la pantalla actual
@@ -877,7 +894,8 @@
   function moveTo(a, vx, vy, abrir, depaso) {
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     zoom.to(K(), .5, .8);
-    st.anchor = a; if (!depaso) setCk("sa_nav_pos", a);   // de paso: se aparta un momento, no cambia tu lugar
+    st.anchor = a; if (!depaso && !cfg.posFija) setCk("sa_nav_pos", a);   // de paso: se aparta un momento, no cambia tu lugar
+    if (!depaso && cfg.alMover) { try { cfg.alMover(a); } catch (x) {} }   // la página guarda su propio lugar
     var p = anchorPt(a); px.to(p.x, .46, .78, vx); py.to(p.y, .46, .78, vy); placeScrim();
     if (p.slot) { var sl = slotFor(a); if (sl) slotPush(sl.el); } else slotPull();
     setTimeout(dockSchedule, 700);
@@ -1177,7 +1195,7 @@
       '<form><button type="button" class="san-clip" aria-label="Mandar una foto">' + svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>', 20) + '</button>' +
       '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma"></textarea><span class="san-graba">Te escucho… suelta para enviar</span>' +
       '<button type="button" class="san-send" aria-label="Alma · un toque envía, mantén para una nota de voz, dos toques para una foto, tres para hablar"></button>' +
-      '<div class="san-tips" aria-hidden="true"><span><b>1 toque</b>enviar</span><span><b>mantén</b>nota de voz</span><span><b>2 toques</b>foto</span><span><b>3 toques</b>hablar</span></div>' +
+      '<div class="san-tips" aria-hidden="true"></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que Claude dejó para ti</small></div>' +
@@ -1214,11 +1232,13 @@
     var fotoOk = !!(w.ALMA && w.ALMA.almaFoto); clip.hidden = !fotoOk;
     var crecer = function () { i.style.height = "46px"; i.style.height = Math.min(140, i.scrollHeight) + "px"; };
     var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } else verTips(); };
-    var tipT = 0, verTips = function (ms) { tips.classList.add("on"); clearTimeout(tipT); tipT = setTimeout(function () { tips.classList.remove("on"); }, ms || 2600); };
+    /* los hints del botón roca rotan sin parar mientras el chat está abierto (y se pausan mientras grabas una nota de voz) */
+    E.rotC = rotador(tips, ["<b>1 toque</b>enviar · mantén: nota de voz", "<b>2 toques</b>foto", "<b>3 toques</b>hablar"]);
+    var verTips = function () { if (AL.chat && !grabando) E.rotC.andar(); };
     E.verTips = verTips;
     i.addEventListener("input", crecer);
     i.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !/iPhone|iPad|Android/.test(navigator.userAgent)) { e.preventDefault(); enviar(); } });
-    i.addEventListener("focus", function () { var n = 0; try { n = +localStorage.getItem("san_tips") || 0; localStorage.setItem("san_tips", n + 1); } catch (x) {} if (n < 3) verTips(3200); });
+    i.addEventListener("focus", function () { verTips(); });
     f.onsubmit = function (e) { e.preventDefault(); enviar(); };
     /* deslizar la cabecera hacia abajo cierra el chat */
     var hd = ov.querySelector(".san-chat header"), y0 = null;
@@ -1234,9 +1254,9 @@
     });
     /* nota de voz: mientras mantienes la roca, Alma te escucha (el micrófono de la conversación); al soltar, responde por escrito */
     var hold = 0, grabando = false, toques = 0, toqT = 0;
-    var empezar = function () { grabando = true; f.classList.add("grabando"); b.classList.add("graba"); tips.classList.remove("on"); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
+    var empezar = function () { grabando = true; f.classList.add("grabando"); b.classList.add("graba"); E.rotC.parar(); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
       if (AL.ses && AL.ses.nota) { try { AL.ses.nota(true); } catch (x) {} } };
-    var parar = function () { grabando = false; f.classList.remove("grabando"); b.classList.remove("graba");
+    var parar = function () { grabando = false; f.classList.remove("grabando"); b.classList.remove("graba"); setTimeout(verTips, 900);
       setTimeout(function () { if (AL.ses && AL.ses.nota) { try { AL.ses.nota(false); } catch (x) {} } }, 700); };
     b.addEventListener("pointerdown", function (e) { e.preventDefault(); clearTimeout(hold); aSq.to(1, .22, 1); hold = setTimeout(empezar, 380); });
     b.addEventListener("pointerup", function (e) {
@@ -1438,8 +1458,8 @@
   }
   function almaChat(on) {
     AL.chat = on; E.ov.classList.toggle("chat", on); hoja(); if (on) chatQuieto(); else clearTimeout(chatT);
-    /* los hints del botón roca (1 toque enviar · mantén nota de voz · 2 foto · 3 hablar), una vez cada vez que se abre la app */
-    if (on && E.verTips) { var vt = false; try { vt = !sessionStorage.getItem("san_tips_ses"); sessionStorage.setItem("san_tips_ses", "1"); } catch (x) { vt = true; } if (vt) setTimeout(function () { if (AL.chat) E.verTips(3600); }, 650); }
+    /* los hints del botón roca rotan mientras el chat está abierto; al cerrarlo, paran */
+    if (on && E.verTips) setTimeout(function () { if (AL.chat) E.verTips(); }, 650); else if (!on && E.rotC) E.rotC.parar();
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(on); } catch (x) {} }
     var t = stoneTarget(); aX.to(t.x, .6, .78); aY.to(t.y, .6, .78); aS.to(t.s, .6, on ? .76 : .7);
     if (on) setTimeout(function () { var i = E.ov.querySelector(".san-in"); if (i) try { i.focus(); } catch (x) {} E.msgs.scrollTop = E.msgs.scrollHeight; }, 400);
@@ -1689,6 +1709,7 @@
       build();
       /* posición: la que el usuario eligió (mantener y mover) o la inicial de la app (abajo al centro por defecto) */
       var sv = getCk("sa_nav_pos"); st.anchor = sv && ANCH.indexOf(sv) >= 0 ? sv : (cfg.pos && ANCH.indexOf(cfg.pos) >= 0 ? cfg.pos : "bc");
+      if (cfg.posFija && ANCH.indexOf(cfg.posFija) >= 0) st.anchor = cfg.posFija;   // un lugar propio (navegador de la app)
       if (LLEGADA && ANCH.indexOf(LLEGADA.a) >= 0) { st.anchor = LLEGADA.a; setCk("sa_nav_pos", st.anchor); }   // donde estaba en la otra app
       try { var ss = JSON.parse(sessionStorage.getItem("sa_nav_state") || "null"); if (ss && ss.S === 2 && Date.now() - ss.t < IDLE_MS) st.S = 2; } catch (e) {}
       var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1); zoom = S(K()); pullS = S(0, true);

@@ -74,6 +74,10 @@
   /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
   /* z-index menor que el de la roca (--san-z 880 en js/sa-nav.js): las esferas salen y se esconden siempre DETRÁS del botón roca */
   .orbita { position: fixed; inset: 0; z-index: 870; pointer-events: none; }
+  /* las esferas van detrás de la capa de Alma (para salir de detrás de la roca), así que mientras están abiertas esa capa
+     deja pasar los toques; solo la roca los recibe. Sin esto, ninguna esfera abría su área. */
+  body.orbita-on #sa-nav-root .san-ov, body.orbita-on #sa-nav-root .san-ov-bg { pointer-events: none !important; }
+  body.orbita-on #sa-nav-root .san-rock { pointer-events: auto !important; }
   /* Cada esfera es una piedra de Alma más chica: el mismo alabastro, un anillo fino de su color, su halo que respira y el
      ícono grabado; el nombre va debajo. Su tamaño (--d) y su lugar los calcula orbitaGeo(); la animación, orbita(). */
   .esf { position: absolute; left: 0; top: 0; width: var(--d, 76px); height: var(--d, 76px); margin: calc(var(--d, 76px) / -2) 0 0 calc(var(--d, 76px) / -2);
@@ -241,7 +245,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-10-29q"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-30a"></script>
+<script src="../js/sa-nav.js?v=2026-10-30d"></script>
 <script>
 (function () {
   "use strict";

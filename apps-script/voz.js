@@ -363,7 +363,7 @@ var SEMILLA_VOZ_HUMANA_ = [
   '· Nunca muletillas mientras dictas códigos, WiFi, direcciones, fechas o montos.',
   '',
   'EXPRESIÓN (etiquetas de voz)',
-  '· Solo [warm] al saludar o despedir y [softly] al disculparte o en un tema delicado. Máximo una por turno y muchas veces ninguna. No uses otras etiquetas.',
+  '· Solo [warm] al saludar o despedir, máximo una vez por llamada y muchas veces ninguna. Nunca [softly], [whispers] ni nada que baje la voz: en un tema delicado la calma va en las palabras, no en el volumen. No uses otras etiquetas.',
   '',
   'NÚMEROS Y FECHAS COMO PERSONA',
   '· Fechas: "el viernes veinticuatro", "mañana a las tres de la tarde". Nunca "24/10" ni "15:00".',
@@ -405,6 +405,8 @@ function vozQuienBloque_() {
     '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida o confirme que no necesita nada más.',
     '· NO REPITAS: nunca repitas ni parafrasees en voz alta lo que la persona acaba de decir («Te entiendo, me tengo que ir…»). Responde directo a lo que necesita.',
     '· DESPEDIDA: despídete UNA sola vez. Si ya te despediste y la persona responde con otra cortesía («gracias», «igualmente», «tú también», «adiós»), no vuelvas a despedirte ni a desear buen día: usa end_call de inmediato, sin decir nada más.',
+    '',
+    audienciaVozBloque_(),
     '',
     'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LOS PATRONES DE HUÉSPED',
     '· Es un equipo interno: trato cordial pero directo, dinámico y sin rodeos, como una compañera de trabajo eficiente. Nada de «el equipo te escribirá», «no te puedo dar esa información» ni validaciones.',
@@ -453,7 +455,8 @@ function vozPromptCompleto_() {
   var extra = sinCab_(prompt_('REGLAS_EXTRA'));
   var humana = String(prompt_('VOZ_HUMANA') || '').trim();
   var weebo = ''; try { weebo = weeboVozBloque_(false); } catch (e) {}
-  return { clave: 'REDACTOR', texto: [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, weebo, humana].filter(Boolean).join('\n\n') };
+  /* Al final, para que prevalezca sobre lo que diga la fila VOZ_HUMANA (editable): nunca susurrar (familia.js) */
+  return { clave: 'REDACTOR', texto: [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, weebo, humana, FAMILIA_VOZ_CLARA_].filter(Boolean).join('\n\n') };
 }
 function vozSyncSiToca_() {
   var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;
@@ -1087,6 +1090,7 @@ function vozAvisos_(ses) {
   return { ok: true, avisos: mios.map(function (a) { return { id: a.id, ts: a.ts, texto: a.texto, audio: vozTts_(a.texto) }; }) };
 }
 function vozTts_(texto) {
+  texto = vozSinNotas_(texto);   // sin [softly], [whispers] ni otras notas: la voz siempre clara
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !texto) return '';
   try {

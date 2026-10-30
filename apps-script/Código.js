@@ -1760,9 +1760,11 @@ function clasificar_(ctx) {
     const rt = routerWA_(ctx);
     ctx.ruta = rt.ruta; ctx.urgencia = rt.urgencia;
     try { vSet_('waruta_' + fin8_(String(ctx.resId).slice(3)), rt.ruta); } catch (e) {}
-    const reglas = reglasRuta_(rt.ruta, rt.urgencia);
+    let reglas = reglasRuta_(rt.ruta, rt.urgencia);
     if (rt.ruta !== 'huesped') {
       /* Rutas no-huésped: nunca ROJO (no hay estadía, códigos ni contención). Urgente → responde ya y avisa al de turno. */
+      /* socios y equipo por WhatsApp: personal, en nombre de la empresa (audiencia.js) */
+      reglas = reglas + audienciaBloque_(audienciaDe_({ actor: ctx.actor, ruta: rt.ruta, wa: String(ctx.resId || '').indexOf('wa:') === 0 ? String(ctx.resId).slice(3) : '' }));
       ctx.instrucciones = 'RUTA: ' + rt.ruta.toUpperCase() + ' · URGENCIA: ' + rt.urgencia.toUpperCase() + '. Quien escribe NO es un huésped: no apliques reglas de estadía, accesos ni códigos. Sigue estas reglas de la ruta:\n' + reglas + '\n' + prompt_('REGLAS_EXTRA');
       ctx.momento = 'ruta ' + rt.ruta + ' · ' + rt.urgencia;
       if (rt.urgencia === 'urgente') { try { escalar_('ALMA · urgente por WhatsApp (' + rt.ruta + ') · ' + (ctx.huesped || ''), (ctx.texto || '') + '\n\nRazón: ' + rt.razon); } catch (e) {} }

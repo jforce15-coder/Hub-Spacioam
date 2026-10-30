@@ -128,7 +128,8 @@ function contactoPlantillaCrear_() {
    huésped: se le reenvía a quien lo pidió (WhatsApp + su chat con ALMA) y él decide qué responder. */
 var PERSONAL_PLANTILLA_ = 'asistente_personal';
 
-function personalEnviar_(adm, persona, numero, texto, objetivo, contexto, proyecto) {
+function personalEnviar_(adm, persona, numero, texto, objetivo, contexto, proyecto, o) {
+  o = o || {};   // { forzarPlantilla }: sin esto, cada mensaje personal fallaba con «o is not defined»
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'número inválido' };
   var nombre = String(persona || '').trim(), primer = /^[+\d]/.test(nombre) || !nombre ? '' : nombre.split(' ')[0];
   var de = (adm && adm.nombre ? String(adm.nombre).split(' ')[0] : 'Juan');

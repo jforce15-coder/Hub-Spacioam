@@ -42,7 +42,7 @@
   .ajustes.conf { right: auto; top: 0; left: 0; }
   .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: #FFFDFB; }
-  /* «Alma está escuchando»: un solo puntito durazno que respira, sin palabras. Bajo la roca (inicio con escucha activa) y en
+  /* «Alma está escuchando»: un solo puntito durazno que respira, sin palabras. En la esquina superior derecha de «Iniciar llamada», afuera y con aire (inicio con escucha activa) y en
      la esquina del botón del modo conferencia. Es el mismo en los dos lados. */
   .escucha-p { position: fixed; z-index: 2147482500; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; pointer-events: none; background: #E9826A;
     box-shadow: 0 0 6px 1px rgba(233,130,106,.45); opacity: 0; transition: opacity .8s ease; }
@@ -236,7 +236,7 @@
   </div>
   <div class="grupo" id="g-escucha" hidden>
     <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
-    <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El puntito bajo la roca te dice que está escuchando.</p>
+    <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El puntito en la esquina de «Iniciar llamada» te dice que está escuchando.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
@@ -689,7 +689,8 @@
     var quieto = visible && hay() && !document.hidden && !document.body.classList.contains("san-hoja") && !document.body.classList.contains("orbita-on");
     if (quieto !== ESC.quieto) { ESC.quieto = quieto; nativa({ accion: "escucha", que: "pagina", on: quieto }); }
     p.classList.toggle("on", ESC.escuchando && quieto); p.style.opacity = ESC.escuchando && quieto ? "" : "0";
-    if (visible) { p.style.left = (r.left + r.width / 2) + "px"; p.style.top = (r.top - 26) + "px"; }   // entre la roca y «Toca a Alma»
+    var c = document.querySelector(".san-ob.start"), rc = c && c.getBoundingClientRect();
+    if (rc && rc.width) { p.style.left = (rc.right + 6 + 2.5) + "px"; p.style.top = (rc.top - 6 - 2.5) + "px"; }   // esquina superior derecha de «Iniciar llamada», afuera y a 6 px
   }
   window.AlmaEscucha = { evento: function (e) {
     if (!e) return; $("g-escucha").hidden = false; $("i-escucha").checked = !!e.activada;

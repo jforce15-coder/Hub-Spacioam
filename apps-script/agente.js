@@ -492,6 +492,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; }), final = '';
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
+  system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
   for (var vuelta = 0; vuelta < 8; vuelta++) {
     var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
     if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
@@ -611,6 +612,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
     'No inventes datos ni tomes decisiones por ' + de + ': si pregunta algo que no sabes o que debe decidir él, dile que lo consultas y ponlo en para_admin. ' +
     'Cuando tengas lo que pide el objetivo (o la persona no puede o no quiere dar más), agradece, despídete en una línea y marca completo. ' +
     'Responde SOLO JSON: {"respuesta":"mensaje para ' + quien + ' (vacío si no hace falta responder)","para_admin":"pregunta o dato urgente para ' + de + ' (vacío si nada)","completo":true|false,"resumen":"si completo: todo lo que reuniste, ordenado en líneas con ·, listo para usar"}';
+  sys += audienciaBloque_(audienciaDe_({ wa: wa }));   // socio o alguien del equipo: personal, en nombre de la empresa
   var usr = 'OBJETIVO DEL ENCARGO: ' + obj + '\n\nCONVERSACIÓN HASTA AHORA:\n' + hist.join('\n') + '\n\nÚLTIMO MENSAJE DE ' + quien + ': ' + texto;
   var out = {};
   try { var raw = String(claude_(CFG.MODELO_REDACTOR, 1200, sys, usr, 0.3) || ''); out = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (x) { out = {}; }

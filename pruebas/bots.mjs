@@ -167,9 +167,13 @@ async function probar(browser, base, pag, bot) {
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => anota('grave', 'Error de JavaScript', e.message));
-  page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR|favicon/i.test(m.text())) anota('media', 'Error en la consola', m.text()); });
+  /* Lo que no cuenta: el servidor falso que falla a propósito, la página de login de Google (respaldo sin sesión), y
+     los {{ … }} que el navegador pide un instante antes de que la página los llene. */
+  const ruido = (t) => /script\.google(usercontent)?\.com|accounts\.google\.com|%7B%7B|\{\{/.test(t);
+  page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|net::ERR|favicon/i.test(m.text()) && !ruido(m.text())) anota('media', 'Error en la consola', m.text()); });
   page.on('dialog', async (d) => { if (/xss-bot/.test(d.message())) anota('grave', 'Se ejecutó código escrito por el usuario (XSS)', d.message()); await d.dismiss().catch(() => {}); });
-  page.on('response', (r) => { const u = r.url(); if (r.status() >= 400 && (u.startsWith(base) || /hub\.spacioam\.com/.test(u)) && !/favicon/.test(u)) anota('media', 'Archivo que no carga (' + r.status() + ')', u.replace(base, '/')); });
+  /* Solo archivos de esta app (en vivo, base es '' y antes contaba cualquier dominio: las otras apps y el servidor falso). */
+  page.on('response', (r) => { const u = r.url(); if (r.status() >= 400 && ((base && u.startsWith(base)) || /^https:\/\/hub\.spacioam\.com\//.test(u)) && !/favicon/.test(u) && !ruido(u)) anota('media', 'Archivo que no carga (' + r.status() + ')', u.replace(base, '/')); });
   const url = (VIVO ? 'https://hub.spacioam.com/' : base) + pag;
   try { await page.goto(url, { waitUntil: 'load', timeout: 25000 }); } catch (e) { anota('grave', 'La página no carga', e.message); await ctx.close(); return hallazgos; }
   await page.waitForTimeout(1500);

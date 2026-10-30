@@ -1099,9 +1099,19 @@ function vozAvisoPoner_(adm, texto, retId) {
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
-    l.push({ id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) });
+    var nuevo = { id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) };
+    l.push(nuevo);
     t[adm.email] = l.slice(-5); p.setProperty('VOZ_AVISOS', JSON.stringify(t));
+    /* Historial (botón «Notificaciones» de la app): la cola de arriba se vacía al entregarse; esta se queda 3 días. */
+    var hk = 'VOZ_AVISOS_H_' + retClave_(adm).slice(8), h = []; try { h = JSON.parse(p.getProperty(hk) || '[]'); } catch (e) {}
+    h = h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; }); h.push(nuevo); p.setProperty(hk, JSON.stringify(h.slice(-30)));
   } finally { lock.releaseLock(); }
+}
+/* App de Alma: las notificaciones que ya llegaron (las últimas 30, de los últimos 3 días), la más nueva primero. */
+function vozNotificaciones_(ses) {
+  var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
+  var h = []; try { h = JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_AVISOS_H_' + retClave_(adm).slice(8)) || '[]'); } catch (e) {}
+  return { ok: true, lista: h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; }).reverse() };
 }
 /* Lo que Alma dirá: una o dos frases, sin enlaces. */
 function vozAvisoCorto_(texto) {

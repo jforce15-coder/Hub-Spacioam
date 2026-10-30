@@ -254,9 +254,9 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-10-31a"></script>
+<script src="../js/alma-client.js?v=2026-10-31b"></script>
 <script src="../js/alma-voz.js?v=2026-10-29a"></script>
-<script src="../js/sa-nav.js?v=2026-10-31a"></script>
+<script src="../js/sa-nav.js?v=2026-10-31b"></script>
 <script>
 (function () {
   "use strict";
@@ -283,7 +283,7 @@
     if (v && v.setContexto) { try { v.setContexto({ vista: "Inicio de la app de Alma", nombre: String(nombre || "").split(" ")[0] }); } catch (e) {} }
     SANav.update({ alma: v });
     /* Solo en la app de Alma: el tercer botón con lo que Claude dejó pendiente (si es el admin principal) */
-    if (window.ALMA && ALMA.pendientesClaude) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientesClaude(); }, hecho: function (id) { return ALMA.pendienteHecho(id); } } });
+    if (window.ALMA && ALMA.pendientesClaude) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientesClaude(); }, hecho: function (id) { return ALMA.pendienteHecho(id); }, unir: function (u) { return ALMA.unirPr(u); } } });
     setTimeout(function () { $("b-ajustes").classList.add("on"); areasIniciar(); }, 900);
   }
 

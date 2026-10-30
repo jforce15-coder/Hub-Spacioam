@@ -300,7 +300,7 @@ function paraClaudeSimple_(titulo, estado, resp) {
 }
 function paraClaudePendientes_(ses) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
-  var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2) return { ok: true, lista: [] };
+  var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2) return { ok: true, lista: pendientesPrs_([]) };
   var n = Math.min(60, sh.getLastRow() - 1), ini = sh.getLastRow() - n + 1;
   if (sh.getLastColumn() < PARA_CLAUDE_CAB_.length) sh.getRange(1, 1, 1, PARA_CLAUDE_CAB_.length).setValues([PARA_CLAUDE_CAB_]);
   var v = sh.getRange(ini, 1, n, PARA_CLAUDE_CAB_.length).getValues(), lista = [], corte = Date.now() - 21 * 86400000, traducidos = 0;
@@ -346,7 +346,28 @@ function paraClaudePendientes_(ses) {
       estado: est, resumen: simple.que_es, pasos: simple.pasos || [], pregunta: simple.pregunta || '', original: cuerpo, instrucciones: '',
       enlaces: prs.filter(function (x) { return x.estado !== 'unido' && x.estado !== 'cerrado'; }).map(function (x) { return x.url; }) });
   });
-  return { ok: true, lista: lista.reverse() };
+  return { ok: true, lista: pendientesPrs_(lista.reverse()) };
+}
+/* Todos los cambios abiertos de GitHub (también los que Claude abrió fuera del Hub) entran a la lista; los que ya
+   están en un pendiente de Claude no se repiten: ese pendiente recibe su botón «Unir» (unir.js). */
+function pendientesPrs_(lista) {
+  var prs = null; try { prs = prsAbiertos_(false); } catch (e) { console.error('pendientesPrs_: ' + e); }
+  if (!prs) return lista;
+  var porUrl = {}; prs.forEach(function (x) { porUrl[x.url] = x; });
+  var vistos = {};
+  lista.forEach(function (p) {
+    (p.enlaces || []).forEach(function (u) { vistos[u] = 1; });
+    p.unir = (p.enlaces || []).filter(function (u) { return porUrl[u] && porUrl[u].estado === 'listo'; });
+  });
+  var TX = { listo: 'Pasó sus revisiones: está listo para unir.', revisando: 'GitHub lo está revisando; en un momento queda listo.',
+    fallo: 'Algo falló en sus revisiones; Claude lo está arreglando.', choque: 'Choca con lo último que se unió; Claude tiene que ponerlo al día.', borrador: 'Todavía es un borrador.' };
+  var EST = { listo: 'listo', revisando: 'revisando', fallo: 'fallo', choque: 'fallo', borrador: 'trabajando' };
+  var nuevos = prs.filter(function (x) { return !vistos[x.url]; }).map(function (x) {
+    return { id: 'pr:' + x.repo + '#' + x.numero, pr: true, titulo: x.titulo, fecha: x.app + ' #' + x.numero, estado: EST[x.estado] || 'listo', resumen: TX[x.estado] || '',
+      pasos: x.estado === 'listo' ? ['Toca «Unir». O dile a Alma: «une el ' + x.numero + '».'] : [], pregunta: '', original: '', instrucciones: '',
+      enlaces: [x.url], unir: x.estado === 'listo' ? [x.url] : [] };
+  });
+  return nuevos.concat(lista);
 }
 function paraClaudeHecho_(ses, id) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };

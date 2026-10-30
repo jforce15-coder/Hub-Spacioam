@@ -3092,6 +3092,7 @@ function hubApi_(body) {
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
+      case 'unirPr': return json_(unirPrSes_(ses, body.ref));                                 // app de Alma: botón «Unir» de Pendientes (unir.js)
       case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
       case 'agentes': return json_(agAccion_(ses, body));                                    // equipo de agentes detrás de Alma (agentes.js · alma/agentes.html)
       case 'correos': return json_(correoApi_(ses, body));                                 // app de Alma: correos ordenados (correo.js · alma/correos.html)

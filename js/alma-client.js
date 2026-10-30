@@ -150,6 +150,7 @@
     /* app de Alma: lo que Claude dejó pendiente para el admin principal (botón «Pendientes») */
     pendientesClaude: function () { return call('pendientesClaude', {}); },
     pendienteHecho: function (id) { return call('pendienteHecho', { id: id }); },
+    unirPr: function (ref) { return call('unirPr', { ref: ref }); },
     opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
     opLista: function (email) { return call('opLista', { email: email }); }
   };

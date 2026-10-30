@@ -14,6 +14,10 @@ on:
       - ".clasp.json"
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 concurrency:
   group: apps-script
   cancel-in-progress: false
@@ -89,3 +93,19 @@ jobs:
           fi
           clasp update-deployment "$DEPLOYMENT_ID" -V "$VERSION" -d "$DESC"
           echo "Publicada la versión $VERSION en la implementación $DEPLOYMENT_ID" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Avisar antes de llegar al límite de 200 versiones
+        # Google no deja borrar versiones por API: hay que hacerlo a mano en el historial del proyecto. Se avisa con tiempo.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          N="$(clasp list-versions 2>&1 | head -n1 | grep -oE '[0-9]+' | head -n1 || true)"
+          echo "Versiones del Apps Script: ${N:-?} de 200"
+          if [ -n "$N" ] && [ "$N" -ge 180 ]; then
+            echo "::warning::El Apps Script lleva $N de 200 versiones."
+            if [ -z "$(gh issue list --state open --label apps-script-versiones --json number -q '.[0].number' 2>/dev/null)" ]; then
+              gh label create apps-script-versiones --color E9826A --description "Borrar versiones viejas del Apps Script" --force >/dev/null 2>&1 || true
+              gh issue create --label apps-script-versiones --title "Apps Script: $N de 200 versiones, hay que borrar las viejas" \
+                --body "Google permite 200 versiones; al llegar, el Hub deja de publicarse. Borra las más viejas en https://script.google.com/home/projects/1IGzA_-bFOqiC9Y6SEMkWs6DlyaaSmsXYP_vERsivCWRqd3UXRBZu-H2V/projecthistory (Historial del proyecto → borrado masivo). Deja las últimas 20." || true
+            fi
+          fi

@@ -706,7 +706,8 @@ function procesarCola() {
   try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
   try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
   try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
-  try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // lo que Alma resolvió → Pendientes (pendientes.js)
+  try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
+  try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
@@ -3093,6 +3094,7 @@ function hubApi_(body) {
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
+      case 'conferencia': return json_(conferencia_(ses, body));                            // app de Alma: modo conferencia (conferencia.js)
       case 'notificaciones': return json_(vozNotificaciones_(ses));                        // app de Alma: botón «Notificaciones» (historial de avisos, voz.js)
       case 'pendientes': return json_(pendientesTodo_(ses));                               // app de Alma: Pendientes por esfera (pendientes.js)
       case 'pendienteResolver': return json_(pendResolver_(ses, body.id));

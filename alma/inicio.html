@@ -220,6 +220,10 @@
   <div class="grupo" id="g-face" hidden>
     <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
   </div>
+  <div class="grupo" id="g-conf" hidden>
+    <div class="fila"><span class="et">Modo conferencia</span><label class="interruptor"><input type="checkbox" id="i-conf" aria-label="Modo conferencia"><span></span></label></div>
+    <p class="nota-g" id="n-conf">Alma escucha tu reunión o llamada en silencio y la transcribe en el teléfono, sin gastar créditos. Si alguien dice «Alma», te responde y vuelve a escuchar. Al apagarlo, te deja el resumen en Pendientes.</p>
+  </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
     <p class="nota-g" id="n-anillo">Dos toques en tu anillo y Alma te escucha, aunque el teléfono esté bloqueado. Otros dos toques la pausan. El anillo va en modo Music.</p>
@@ -548,7 +552,7 @@
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
-    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); }
+    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "conferencia", que: "estado" }); }
     $("velo").classList.add("on"); $("panel").classList.add("on"); $("panel").setAttribute("aria-hidden", "false");
   }
   function cerrarAjustes() { $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
@@ -642,6 +646,13 @@
       if (e.tipo === "error" && e.mensaje) { $("d-anillo").hidden = false; $("d-anillo").textContent = "Error: " + e.mensaje; }
     }
   };
+  /* Modo conferencia (Conferencia.swift en la app): escucha sin ElevenLabs y despierta al oír «Alma» */
+  window.AlmaConf = { evento: function (e) {
+    if (!e) return; $("g-conf").hidden = false; $("i-conf").checked = !!e.activa;
+    $("n-conf").textContent = e.error ? e.error : e.activa ? (e.enLlamada ? "Alma está respondiendo; luego vuelve a escuchar." : "Escuchando" + (e.minutos ? " · " + e.minutos + " min" : "") + ". Di «Alma» para hablarle. Apágalo al terminar y te dejo el resumen en Pendientes.")
+      : "Alma escucha tu reunión o llamada en silencio y la transcribe en el teléfono, sin gastar créditos. Si alguien dice «Alma», te responde y vuelve a escuchar. Al apagarlo, te deja el resumen en Pendientes.";
+  } };
+  $("i-conf").onchange = function () { vozConfig(); nativa({ accion: "conferencia", que: this.checked ? "on" : "off" }); };
   $("i-anillo").onchange = function () { vozConfig(); nativa({ accion: "voz", que: "anillo", on: this.checked }); };
   /* Probar con la app abierta: si aquí funciona y bloqueado no, el problema es del segundo plano */
   $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };

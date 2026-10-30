@@ -22,6 +22,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - Las palabras del glosario (`docs/GLOSARIO.md`), en español, simples.
 - Nombres para quien lee: `correoNoResponder_`, no `cnr_`. Módulos chicos antes que listos.
 - Los comentarios explican el porqué, con la densidad del archivo que tocas.
+- Al copiar código de otra función, revisa que cada variable exista en la nueva (p. ej. `o.forzarPlantilla` copiado sin el parámetro `o` tumbó todos los mensajes personales del 29 al 30-oct). Pruébala una vez con datos de ejemplo antes del PR.
 
 ## PRs
 - La plantilla completa: Resumen, Evidencia antes/después, Peligros al unir, Cómo probarlo. ✅ (aviso si falta Evidencia)

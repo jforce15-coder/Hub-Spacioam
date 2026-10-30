@@ -15,7 +15,7 @@ function botsPruebaRevisar_() {
     var cuerpo = String(i.body || ''), graves = Number((cuerpo.match(/\*\*(\d+) graves/) || [])[1] || 0);
     var r = paraClaudeCrear_(adm, { titulo: 'Arreglar lo que encontraron los bots de prueba (#' + i.number + ')', app: 'Hub', tipo: 'error', prioridad: graves ? 'alta' : 'normal',
       que_pasa: cuerpo.slice(0, 6000) + '\n\nAviso: ' + i.html_url,
-      que_quiere: 'Que los bots ya no encuentren nada grave ni medio. Arregla en un PR (nunca a main): corre `cd pruebas && npm install && node bots.mjs` antes y después, y pega el informe final en el PR. Lo leve (botones chicos, texto cortado) arréglalo solo si es claro y no cambia el diseño.' });
+      que_quiere: 'Que los bots ya no encuentren nada grave ni medio. Arregla en un PR corto (nunca a main) sin correr los bots antes: Juan lo une rápido y los bots vuelven a probar solos después de unir. Lo leve (botones chicos, texto cortado) arréglalo solo si es claro y no cambia el diseño.' });
     if (r && r.ok) { env[k] = { t: Date.now(), cambio: i.updated_at }; console.log('bots de prueba → Claude: #' + i.number); }
   });
   p.setProperty('BOTS_PRUEBA_ENVIADOS', JSON.stringify(env));

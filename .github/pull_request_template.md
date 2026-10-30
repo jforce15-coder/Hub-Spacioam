@@ -2,7 +2,7 @@
 <!-- La imagen más chica posible: qué cambia para Juan, en 1 a 3 líneas. -->
 
 ## Evidencia
-<!-- Prueba de antes y después: capturas, salida de los bots de prueba (pruebas/bots.mjs), simulación o pasos. -->
+<!-- Prueba de antes y después: capturas, simulación o pasos (los bots de prueba corren solos después de unir). -->
 - **Antes:**
 - **Después:**
 

@@ -13,7 +13,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 
 ## Web (GitHub Pages)
 - ✅ Si cambia `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan.
-- ✅ Los bots de prueba no encuentran nada grave (error de JavaScript, pantalla en blanco, código del usuario ejecutándose).
+- ✅ Los bots de prueba no encuentran nada grave (error de JavaScript, pantalla en blanco, código del usuario ejecutándose). Corren después de unir; lo que encuentren se arregla en un PR corto.
 - Nada se sale de la pantalla en un iPhone SE (375 px); los botones miden al menos 44 px; respeta las áreas seguras.
 - Colores, letras y radios del sistema de diseño (`ds/`): alabastro, arena, durazno #E9826A, Valky y Montserrat.
 

@@ -227,7 +227,7 @@
     ".san-scope .san-ov.on .san-ov-ui{opacity:1;scale:1;transition:opacity 1.1s cubic-bezier(.45,0,.55,1) .55s,scale 1.3s cubic-bezier(.22,.61,.36,1) .55s}",
     ".san-scope .san-ov.chat .san-ov-ui,.san-scope .san-ov.min .san-ov-ui{opacity:0;pointer-events:none;transition:opacity .16s ease}.san-scope .san-ov.ending .san-ov-ui{opacity:.25;transition:opacity .2s ease}",
     ".san-scope .san-ov-st{font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#F5F1EC;text-shadow:0 1px 6px rgba(40,30,25,.35)}",
-    ".san-scope .san-ov-cap{font:500 15px/1.45 Montserrat,system-ui,sans-serif;color:#FFFDFB;text-align:center;min-height:44px;max-height:30vh;overflow:auto;text-shadow:0 1px 8px rgba(40,30,25,.45);text-wrap:balance;transition:opacity .9s cubic-bezier(.45,0,.55,1),scale 1.1s cubic-bezier(.22,.61,.36,1)}",
+    ".san-scope .san-ov-cap{font:500 15px/1.45 Montserrat,system-ui,sans-serif;color:#FFFDFB;text-align:center;min-height:44px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;text-shadow:0 1px 8px rgba(40,30,25,.45);text-wrap:balance;transition:opacity .9s cubic-bezier(.45,0,.55,1),scale 1.1s cubic-bezier(.22,.61,.36,1)}",
     ".san-scope .san-ov-cap.in{opacity:0;scale:.97;transition:none}",
     ".san-scope .san-ov-btns{display:flex;gap:22px}.san-scope .san-ob[hidden]{display:none}",
     /* Pendientes de Claude (solo la app de Alma): tercer botón con su número y una lista que se abre a pantalla completa */
@@ -1388,7 +1388,32 @@
   function showStone(on) { AL.vis = on; E.stone.style.visibility = on ? "visible" : "hidden"; if (on) almaLoopOn(); }
   function hideCore(h) { E.face.style.visibility = h ? "hidden" : ""; E.core.querySelector(".san-led").style.opacity = h ? "0" : ""; }
   function status(t) { if (E.ost) E.ost.textContent = t || ""; }
-  function caption(t) { t = String(t).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!t) return; E.cap.classList.add("in"); E.cap.textContent = t; void E.cap.offsetWidth; E.cap.classList.remove("in"); }
+  /* Subtítulos: nunca más de dos líneas. Lo que Alma dice se parte en trozos cortos (por frase, ~84 letras) que se
+     muestran uno tras otro al ritmo de su voz (~15 letras por segundo); la conversación completa queda en el chat. */
+  var CAP = { q: [], t: 0 }, CAP_MAX = 84;
+  function capTrozos(t) {
+    var fr = String(t).match(/[^.!?…]+[.!?…]*["»”)]*\s*/g) || [t], out = [];
+    fr.forEach(function (f) {
+      f = f.trim(); if (!f) return;
+      while (f.length > CAP_MAX) {   // frase larga: se corta en la última coma o espacio que quepa
+        var c = f.lastIndexOf(", ", CAP_MAX); if (c < CAP_MAX * .5) c = f.lastIndexOf(" ", CAP_MAX); if (c < 20) c = CAP_MAX;
+        out.push(f.slice(0, c + (f.charAt(c) === "," ? 1 : 0)).trim()); f = f.slice(c + 1).trim();
+      }
+      var u = out[out.length - 1];
+      if (u && u.length < 34 && u.length + f.length + 1 <= CAP_MAX) out[out.length - 1] = u + " " + f;   // una frase muy corta va con la siguiente
+      else if (f) out.push(f);
+    });
+    return out;
+  }
+  function capSig() {
+    clearTimeout(CAP.t);
+    if (!AL.on && !AL.min) { CAP.q = []; return; }
+    var x = CAP.q.shift(); if (x == null) return;
+    E.cap.classList.add("in"); E.cap.textContent = x; void E.cap.offsetWidth; E.cap.classList.remove("in");
+    if (CAP.q.length) CAP.t = setTimeout(capSig, Math.max(1700, x.length * 66));
+  }
+  function capQuitar() { clearTimeout(CAP.t); CAP.q = []; }
+  function caption(t) { t = String(t).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!t) return; CAP.q = capTrozos(t); capSig(); }
   function addMsg(t, who) { var m = d.createElement("div"); m.className = "san-m " + who; m.textContent = t; E.msgs.appendChild(m); E.msgs.scrollTop = E.msgs.scrollHeight; }
 
   function almaOpen() {
@@ -1404,7 +1429,7 @@
     aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
     E.scrim.style.opacity = "0"; clearTimeout(idleT);
     if (resume) { status("Te escucho"); return; }
-    status("Conectando…"); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    status("Conectando…"); capQuitar(); E.cap.textContent = ""; E.msgs.innerHTML = "";
     almaSesion();
   }
   /* Conversación de voz (la misma para la piedra al centro y para el modo en el botón). */
@@ -1416,7 +1441,7 @@
         if (src !== "ai") chatQuieto();
         if (src === "ai") { x = String(x).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
       ended: function () { if (AL.on || AL.min) almaEnd(true); },
-      error: function (m) { status("No pude conectar con Alma"); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
+      error: function (m) { status("No pude conectar con Alma"); capQuitar(); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
     };
     almaSesion.dicho = 0;
     AL.ses = null;
@@ -1434,7 +1459,7 @@
   function almaMini() {
     if (AL.on || AL.min || !almaOk()) return;
     almaBuild(); setS(1); clearTimeout(idleT);
-    AL.min = true; AL.on = false; AL.chat = false; E.cap.textContent = ""; E.msgs.innerHTML = "";
+    AL.min = true; AL.on = false; AL.chat = false; capQuitar(); E.cap.textContent = ""; E.msgs.innerHTML = "";
     E.core.classList.add("alma-live"); almaLoopOn(); surge();
     if (navigator.vibrate) try { navigator.vibrate([6, 30, 6]); } catch (x) {}
     phMini("Conectando con Alma…");
@@ -1478,13 +1503,13 @@
     showStone(true); stoneRender(); E.ov.classList.add("on"); escQuieta();
     return { x: t.x, y: t.y, s: t.s / PB };   // dónde quedó la piedra (para que el portal de entrada termine justo ahí)
   }
-  function escQuieta() { E.ov.classList.add("quieta"); status("Toca a Alma"); E.cap.textContent = ""; aL.to(.2, .8, .9); aH.to(.5, .8, .9); }
+  function escQuieta() { E.ov.classList.add("quieta"); status("Toca a Alma"); capQuitar(); E.cap.textContent = ""; aL.to(.2, .8, .9); aH.to(.5, .8, .9); }
   function escActivar(chat) {
     if (AL.on || !almaOk()) return;
     AL.on = true; AL.chat = false; AL.mudo = false; E.ov.classList.remove("quieta", "chat");
     aSq.x = 1; aSq.to(0, .5, .55); aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
-    status("Conectando…"); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    status("Conectando…"); capQuitar(); E.cap.textContent = ""; E.msgs.innerHTML = "";
     almaSesion(); if (chat) almaChat(true);
   }
   /* piedra pesada: cede poco, se estira poco, rebote corto · mantener = minimizar · deslizar abajo = terminar */

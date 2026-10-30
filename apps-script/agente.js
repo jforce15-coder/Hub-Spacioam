@@ -557,7 +557,9 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
     }) });
   }
-  return { respuesta: final || (ctx.hechas.length ? 'Listo.' : 'Entendido.'), hechas: ctx.hechas };
+  var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
+  try { pendEncolar_(adm, texto, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), canal); } catch (e) {}   // a Pendientes (pendientes.js)
+  return { respuesta: respFinal, hechas: ctx.hechas };
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).
@@ -663,7 +665,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   var usr = 'OBJETIVO DEL ENCARGO: ' + obj + '\n\nCONVERSACIÓN HASTA AHORA:\n' + hist.join('\n') + '\n\nÚLTIMO MENSAJE DE ' + quien + ': ' + texto;
   var out = {};
   try { var raw = String(claude_(CFG.MODELO_REDACTOR, 1200, sys, usr, 0.3) || ''); out = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (x) { out = {}; }
-  var avisar = function (t, res) { if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, t); } catch (x) {} } };
+  var avisar = function (t, res) { if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, t); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
   if (!out || (out.respuesta == null && !out.completo)) { avisar(quien + ' respondió a tu encargo:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
   if (String(out.respuesta || '').trim()) { var w = waEnviar_(wa, String(out.respuesta).trim()); if (w && w.ok) contactoRegistrar_(wa, quien, String(out.respuesta).trim()); }
   /* Si con este mensaje el encargo ya terminó, la pregunta va dentro del resumen final: un solo WhatsApp, no dos. */
@@ -720,7 +722,7 @@ function encargoCerrar_(id, resultado, quien) {
   for (var i = 0; i < v.length; i++) if (String(v[i][0]) === id) {
     sh.getRange(i + 2, 8, 1, 3).setValues([['cumplido', String(resultado).slice(0, 2000), new Date().toISOString()]]);
     var adm = adminPorEmail_(String(v[i][2])), txt = 'Encargo cumplido (' + v[i][4] + '): ' + resultado;
-    if (adm && (!quien || adm.email !== quien.email)) { try { opGuardar_(adm, 'alma', 'whatsapp', txt, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + v[i][4] }]); } catch (e) {} var dest = normTel_(v[i][3]) || adm.tels[0]; if (dest) { try { waEnviar_(dest, txt); } catch (e) {} } }
+    if (adm && (!quien || adm.email !== quien.email)) { try { opGuardar_(adm, 'alma', 'whatsapp', txt, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + v[i][4] }]); } catch (e) {} if (pendAvisar_(adm, txt, { origen: 'encargo', pedido: 'Encargo: ' + v[i][4] })) return { ok: true }; var dest = normTel_(v[i][3]) || adm.tels[0]; if (dest) { try { waEnviar_(dest, txt); } catch (e) {} } }
     return { ok: true };
   }
   return { error: 'No encontré ese encargo.' };

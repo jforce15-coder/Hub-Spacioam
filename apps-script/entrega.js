@@ -59,6 +59,7 @@ function waEntregaFallo_(wa, motivo) {
   if (!adm) return;
   var txt = 'No le llegó tu mensaje a ' + nombre + ' (+' + wa + '): ' + motivo + '.\n\nNada de lo que dependía de su respuesta se ha hecho. ¿Lo intento por otra vía (correo o llamada), o prefieres escribirle tú?';
   try { opGuardar_(adm, 'alma', 'whatsapp', txt, [{ tipo: 'mensaje', resumen: 'No entregado · ' + nombre, error: motivo }]); } catch (e) {}
+  if (pendAvisar_(adm, txt, { origen: 'entrega', tipo: 'atencion', fallo: motivo })) return;   // al principal: a Pendientes, no por WhatsApp
   var d = (enc && normTel_(enc.solicitante_tel)) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, txt); } catch (e) {} }
 }
 /* Robot: plantillas (estado y categoría según Meta) y últimos estados de entrega. */

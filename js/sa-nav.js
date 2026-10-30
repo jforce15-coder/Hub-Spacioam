@@ -163,7 +163,7 @@
     "@keyframes san-core{0%,100%{scale:1}50%{scale:.97}}@keyframes san-glow{0%,100%{opacity:.32;transform:scale(.99)}50%{opacity:.68;transform:scale(1.01)}}@keyframes san-lit{0%,100%{opacity:0}50%{opacity:.8}}",
     ".san-scope .san-body{position:absolute;left:0;top:0;width:0;height:0;transition:transform .55s cubic-bezier(.3,1.25,.55,1)}",
     ".san-scope .san-led{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}",
-    ".san-scope .san-ring,.san-scope .san-glow,.san-scope .san-glowb{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:50%;pointer-events:none;background:" + GRAD + "}",
+    ".san-scope .san-ring,.san-scope .san-glow,.san-scope .san-glowb{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:50%;pointer-events:none;background:var(--san-halo," + GRAD + ")}",
     ".san-scope .san-ring{-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 10px),#000 calc(100% - 9px),#000 calc(100% - 3.5px),transparent 100%)}",
     ".san-scope .san-glow{left:-64px;top:-64px;width:128px;height:128px;-webkit-mask:radial-gradient(closest-side,transparent 56%,rgba(0,0,0,.7) 71%,rgba(0,0,0,.18) 83%,transparent 97%);mask:radial-gradient(closest-side,transparent 56%,rgba(0,0,0,.7) 71%,rgba(0,0,0,.18) 83%,transparent 97%);" +
       "animation:san-glow 3.6s ease-in-out infinite;will-change:opacity,transform}",
@@ -784,7 +784,8 @@
     var b = (n === 1 && dockEnviar()) || dock.el;
     try { b.click(); } catch (e) {} surge();
   }
-  function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
+  /* Regla general: si no hay pantallas en el menú, un toque no abre un menú vacío: va directo al inicio. */
+  function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1 && !(cfg.items && cfg.items.length)) { goHome(); return; } if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
   function onDouble() {
     activity();
     if (st.S === 2) { openSub(cfg.current); return; }   // estado 2: lo de adentro de la pantalla actual
@@ -893,7 +894,8 @@
   function moveTo(a, vx, vy, abrir, depaso) {
     if (dock.on || dock.el) { dock.out = true; setDocked(false); }
     zoom.to(K(), .5, .8);
-    st.anchor = a; if (!depaso) setCk("sa_nav_pos", a);   // de paso: se aparta un momento, no cambia tu lugar
+    st.anchor = a; if (!depaso && !cfg.posFija) setCk("sa_nav_pos", a);   // de paso: se aparta un momento, no cambia tu lugar
+    if (!depaso && cfg.alMover) { try { cfg.alMover(a); } catch (x) {} }   // la página guarda su propio lugar
     var p = anchorPt(a); px.to(p.x, .46, .78, vx); py.to(p.y, .46, .78, vy); placeScrim();
     if (p.slot) { var sl = slotFor(a); if (sl) slotPush(sl.el); } else slotPull();
     setTimeout(dockSchedule, 700);
@@ -1707,6 +1709,7 @@
       build();
       /* posición: la que el usuario eligió (mantener y mover) o la inicial de la app (abajo al centro por defecto) */
       var sv = getCk("sa_nav_pos"); st.anchor = sv && ANCH.indexOf(sv) >= 0 ? sv : (cfg.pos && ANCH.indexOf(cfg.pos) >= 0 ? cfg.pos : "bc");
+      if (cfg.posFija && ANCH.indexOf(cfg.posFija) >= 0) st.anchor = cfg.posFija;   // un lugar propio (navegador de la app)
       if (LLEGADA && ANCH.indexOf(LLEGADA.a) >= 0) { st.anchor = LLEGADA.a; setCk("sa_nav_pos", st.anchor); }   // donde estaba en la otra app
       try { var ss = JSON.parse(sessionStorage.getItem("sa_nav_state") || "null"); if (ss && ss.S === 2 && Date.now() - ss.t < IDLE_MS) st.S = 2; } catch (e) {}
       var p0 = anchorPt(st.anchor); px = S(p0.x, true); py = S(p0.y, true); arm = [S(0, true), S(0, true)]; barS = S(1); zoom = S(K()); pullS = S(0, true);

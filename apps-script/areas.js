@@ -8,7 +8,15 @@
      · Cada conversación del usuario con Alma (chat, voz, WhatsApp) también: Alma le pone área y título.
      · Cualquier conversación se puede mover a otra área con un toque (queda como la dejaste: «manual»).
    Hoja ALMA_AREAS: lo que Alma clasificó o tú moviste, y la memoria de las conversaciones personales
-   (el relay de WhatsApp las olvida a los 7 días; aquí se quedan). */
+   (el relay de WhatsApp las olvida a los 7 días; aquí se quedan).
+   ARCHIVO (además de las áreas): tres cajones para lo que no es un área de vida, y el tipo de cada cosa.
+     · Ideas: ideas de negocio o de proyectos, aunque todavía no tengan proyecto (proyectos en potencia).
+     · Interés: preguntas y temas que le dieron curiosidad.
+     · Ocio: bromas, charla casual, lo que no quedó claro o divagó.
+     · tipo: «proceso» (algo que se está resolviendo y termina) o «permanente» (está para quedarse: una decisión, un dato,
+       una idea, una referencia).
+     · Lo que Alma no logra clasificar queda «sin clasificar» y el departamento de Archivo (archivo.js) lo revisa con más
+       contexto. Nada se queda sin lugar. */
 
 var AREAS_ = [
   { k: 'proposito', n: 'Propósito', d: 'Tu trabajo y lo que construyes' },
@@ -18,9 +26,22 @@ var AREAS_ = [
   { k: 'comunidad', n: 'Comunidad', d: 'Lo que das y compartes con otros' },
   { k: 'espiritualidad', n: 'Esencia', d: 'Fe, calma y presencia' }   // la clave se queda (lo ya clasificado sigue aquí)
 ];
-var AREAS_CAB_ = ['clave', 'area', 'como', 'titulo', 'fuente', 'texto', 'ts', 'actualizado'];
-function hojaAreas_() { return hojaCrear_('ALMA_AREAS', AREAS_CAB_); }
+var CAJONES_ = [
+  { k: 'ideas', n: 'Ideas', d: 'Proyectos en potencia: ideas de negocio y de proyectos' },
+  { k: 'interes', n: 'Interés', d: 'Preguntas y temas que te dieron curiosidad' },
+  { k: 'ocio', n: 'Ocio', d: 'Bromas, charla casual y lo que no quedó claro' }
+];
+var AREAS_CAB_ = ['clave', 'area', 'como', 'titulo', 'fuente', 'texto', 'ts', 'actualizado', 'tipo', 'cajon'];
+function hojaAreas_() {
+  var sh = hojaCrear_('ALMA_AREAS', AREAS_CAB_);
+  if (sh.getLastColumn() < AREAS_CAB_.length) sh.getRange(1, 1, 1, AREAS_CAB_.length).setValues([AREAS_CAB_]);   // columnas nuevas (tipo, cajón)
+  return sh;
+}
 function areaOk_(a) { return AREAS_.some(function (x) { return x.k === a; }); }
+function cajonOk_(c) { return CAJONES_.some(function (x) { return x.k === c; }); }
+function tipoOk_(t) { return t === 'proceso' || t === 'permanente'; }
+/* Dónde va: un cajón (si tiene) o su área. «-» en cajón = sin cajón a propósito (lo movieron a un área). */
+function areasLugar_(f) { return f && cajonOk_(f.cajon) ? f.cajon : f && areaOk_(f.area) ? f.area : ''; }
 
 /* Solo el administrador principal (también con su correo alterno), como Conexiones. */
 function areasAdmin_(ses) {
@@ -84,15 +105,28 @@ function areasClasificarAlma_(filas, sesiones) {
     'relaciones (familia, pareja, hijos, amigos), finanzas (dinero personal o del negocio, pagos, facturas, impuestos, inversiones), health (salud, ejercicio, sueño, comida, médicos), ' +
     'comunidad (ayudar a otros, voluntariado, vecinos, grupos, iglesia como comunidad), espiritualidad (vida interior: fe y religión de cualquier tipo, oración, meditación, mindfulness, respiración, gratitud, sentido). ' +
     'Elige el área del tema PRINCIPAL. Dale a cada una un título de 2 a 5 palabras en español, claro y sin comillas. ' +
-    'Responde SOLO un JSON: {"1":{"a":"finanzas","t":"Pago del IVA de octubre"},"2":{…}}.';
+    AREAS_ARCHIVO_REGLAS_ +
+    'Responde SOLO un JSON: {"1":{"a":"finanzas","c":"","tipo":"proceso","t":"Pago del IVA de octubre"},"2":{"a":"","c":"ocio","tipo":"permanente","t":"Bromas sobre el clima"},…}.';
   var lista = pend.map(function (c, i) { return '### ' + (i + 1) + '\n' + c.muestra; }).join('\n\n');
   var r = ''; try { r = claude_(CFG.MODELO_REDACTOR, 700, sys, lista, 0, []); } catch (e) { console.error('areas alma: ' + e); }
   var j = {}; try { j = JSON.parse(String(r || '').replace(/^[^{]*/, '').replace(/[^}]*$/, '')); } catch (e) {}
   pend.forEach(function (c, i) {
-    var o = j[String(i + 1)] || {}, a = String(o.a || '').toLowerCase(); if (!areaOk_(a)) return;   // sin respuesta: se intenta la próxima vez
-    areasGuardar_(filas, { clave: c.clave, area: a, como: 'alma', titulo: String(o.t || '').replace(/["«»]/g, '').slice(0, 80) || 'Conversación con Alma', fuente: c.fuente, texto: c.texto, ts: c.ts });
+    var o = j[String(i + 1)]; if (!o) return;   // sin respuesta: se intenta la próxima vez
+    var a = String(o.a || '').toLowerCase(), cj = String(o.c || '').toLowerCase(), tp = String(o.tipo || '').toLowerCase();
+    var ok = areaOk_(a) || cajonOk_(cj);
+    /* Si no se pudo: queda «sin clasificar» (como = sin) y el departamento de Archivo la revisa con más contexto. */
+    areasGuardar_(filas, { clave: c.clave, area: areaOk_(a) ? a : '', cajon: cajonOk_(cj) ? cj : '', tipo: tipoOk_(tp) ? tp : '', como: ok ? 'alma' : 'sin',
+      titulo: String(o.t || '').replace(/["«»]/g, '').slice(0, 80) || 'Conversación con Alma', fuente: c.fuente, texto: c.texto, ts: c.ts });
   });
 }
+
+/* Lo que va en los cajones y el tipo (lo usan Alma al clasificar y el departamento de Archivo). */
+var AREAS_ARCHIVO_REGLAS_ = 'Además, si NO es un tema de un área sino algo de estos cajones, pon a = "" y c = el cajón: ' +
+  'ideas (una idea de negocio o de proyecto, aunque no tenga proyecto todavía: un proyecto en potencia), ' +
+  'interes (una pregunta o tema de curiosidad: cómo funciona algo, datos, cultura, noticias), ' +
+  'ocio (bromas, charla casual, saludos, algo que no quedó claro o en que divagó). Si es de un área, c = "". ' +
+  'Y tipo: "proceso" si es algo que se está resolviendo y termina (una gestión, una coordinación, un pendiente) o "permanente" si está para quedarse (una decisión, un dato, una idea, una referencia, una conversación que vale guardar). ' +
+  'Si de verdad no se entiende de qué se trata, deja a = "" y c = "" (lo revisa el departamento de Archivo). ';
 
 function areasMs_(t) { var d = new Date(t); return isNaN(d) ? 0 : d.getTime(); }
 
@@ -126,7 +160,7 @@ function areas_(ses) {
         if (!id || ms < desde) return;
         if (id.indexOf('wa:') === 0 && personal[fin8_(id.slice(3))]) return;   // lo personal no va con el trabajo
         var canal = String(v[ix('ultimo_canal')] || v[ix('canal')] || ''), clave = 'conv:' + id, f = filas[clave];
-        convs.push({ clave: clave, area: f && areaOk_(f.area) ? f.area : 'proposito', como: f ? f.como : 'auto', proyecto: 'spacio',
+        convs.push({ clave: clave, area: areasLugar_(f) || 'proposito', como: f ? f.como : 'auto', tipo: f ? f.tipo || '' : 'proceso', proyecto: 'spacio',
           titulo: String(v[ix('huesped')] || 'Conversación') + (v[ix('propiedad')] ? ' · ' + v[ix('propiedad')] : ''),
           fuente: canal === 'whatsapp' ? 'WhatsApp' : canal === 'airbnb' ? 'Airbnb' : canal === 'booking' ? 'Booking' : 'Hospitable',
           texto: String(v[ix('ultimo_texto')] || '').slice(0, 220), ts: new Date(ms).toISOString(),
@@ -136,13 +170,17 @@ function areas_(ses) {
   } catch (e) { console.error('areas bandeja: ' + e); }
 
   /* 4 · Las conversaciones con Alma (ya clasificadas; lo que dice se toma vivo de la conversación) */
-  sesiones.forEach(function (c) { var f = filas[c.clave]; if (f && areaOk_(f.area)) convs.push({ clave: c.clave, area: f.area, como: f.como, titulo: f.titulo || 'Conversación con Alma', fuente: c.fuente, texto: c.texto, ts: c.ts }); });
+  var sin = 0;
+  sesiones.forEach(function (c) {
+    var f = filas[c.clave], l = areasLugar_(f); if (f && !l) sin++;
+    if (l) convs.push({ clave: c.clave, area: l, como: f.como, tipo: f.tipo || '', titulo: f.titulo || 'Conversación con Alma', fuente: c.fuente, texto: c.texto, ts: c.ts });
+  });
 
   /* 5 · Lo personal (ya clasificado) */
   var proyPers = [];
   Object.keys(filas).forEach(function (c) {
     var f = filas[c];
-    if (c.indexOf('pers:') === 0) convs.push({ clave: c, area: areaOk_(f.area) ? f.area : 'relaciones', como: f.como, titulo: f.titulo, fuente: f.fuente || 'WhatsApp', texto: f.texto, ts: f.ts });
+    if (c.indexOf('pers:') === 0) convs.push({ clave: c, area: areasLugar_(f) || 'relaciones', como: f.como, tipo: f.tipo || '', titulo: f.titulo, fuente: f.fuente || 'WhatsApp', texto: f.texto, ts: f.ts });
     if (c.indexOf('proy:') === 0 && proys.some(function (p) { return 'proy:' + p.proyecto === c; }))
       proyPers.push({ k: c, area: areaOk_(f.area) ? f.area : 'relaciones', n: f.titulo, d: String(f.texto || '').slice(0, 160), mover: true });
   });
@@ -159,17 +197,18 @@ function areas_(ses) {
     { k: 'health', area: 'health', n: 'Health', d: 'Apple Salud en la app de Alma', apps: [{ n: 'Health', d: 'Apple Salud', nativa: 'health', url: 'https://hub.spacioam.com/health/' }] }
   ].concat(proyPers);
 
-  return { ok: true, areas: AREAS_.map(function (a) {
+  var grupo = function (a) {
     var c = convs.filter(function (x) { return x.area === a.k; });
     return { k: a.k, n: a.n, d: a.d, proyectos: proyectos.filter(function (p) { return p.area === a.k; }), conversaciones: c.slice(0, 60), total: c.length };
-  }) };
+  };
+  return { ok: true, areas: AREAS_.map(grupo), cajones: CAJONES_.map(grupo), sin_clasificar: sin };
 }
 
-/* Mover una conversación (o un proyecto personal) a otra área. */
+/* Mover una conversación (o un proyecto personal) a otra área o a un cajón del archivo. */
 function areaMover_(ses, clave, area) {
   if (!areasAdmin_(ses)) return { ok: false, error: 'solo admin principal' };
   clave = String(clave || ''); area = String(area || '');
-  if (!/^(conv|pers|proy|alma):/.test(clave) || !areaOk_(area)) return { ok: false, error: 'datos' };
-  areasGuardar_(areasFilas_(), { clave: clave, area: area, como: 'manual' });
+  if (!/^(conv|pers|proy|alma):/.test(clave) || !(areaOk_(area) || cajonOk_(area))) return { ok: false, error: 'datos' };
+  areasGuardar_(areasFilas_(), cajonOk_(area) ? { clave: clave, cajon: area, como: 'manual' } : { clave: clave, area: area, cajon: '-', como: 'manual' });
   return { ok: true };
 }

@@ -1,7 +1,7 @@
 /* ═══ EQUIPO DE AGENTES DETRÁS DE ALMA (versión ligera de Paperclip) ════════════════════════════════════════════
    Alma es la única que habla con las personas (Juan, el equipo, socios, huéspedes). Detrás de ella trabajan agentes,
    cada uno con su rol, su misión, sus horarios y su presupuesto:
-     · Operaciones · Huéspedes y reseñas · Finanzas · Crecimiento · Marketing · Mantenimiento
+     · Operaciones · Huéspedes y reseñas · Finanzas · Crecimiento · Marketing · Mantenimiento · Desarrollo (con Claude) · Archivo
    Cada uno:
      · Despierta en sus horas (el latido va en el disparador de cada hora, aprender() → agentesLatido_) o cuando Juan
        le pide algo por medio de Alma (pedir_a_agente).
@@ -44,7 +44,10 @@ var AGENTES_SEMILLA_ = [
   /* El equipo técnico: no corre aquí sino con Claude (el desarrollador), por el mismo canal de los pedidos de mejora. En cada
      ronda revisa dos de las apps (rotan) y abre PRs con lo que corrige; Juan los une (ese es su «sí»). */
   { id: 'desarrollo', nombre: 'Desarrollo', rol: 'Equipo de desarrollo y diseño (Claude)', horas: '10', dias: '2,5', presupuesto_usd: 0, tipo: 'claude', herramientas: '',
-    mision: 'Que todas las apps se vean y se sientan impecables en cualquier pantalla. Ronda de revisión de UI y UX: visibilidad en teléfonos chicos y grandes, iPad y computadora, textos cortados, contraste, botones que no se ven o son difíciles de tocar, animaciones que no se sienten bien, fallas de funciones y mejoras claras.' }
+    mision: 'Que todas las apps se vean y se sientan impecables en cualquier pantalla. Ronda de revisión de UI y UX: visibilidad en teléfonos chicos y grandes, iPad y computadora, textos cortados, contraste, botones que no se ven o son difíciles de tocar, animaciones que no se sienten bien, fallas de funciones y mejoras claras.' },
+  /* El departamento de Archivo (archivista.js): solo ordena. No propone nada afuera; su trabajo se ve en las áreas y cajones. */
+  { id: 'archivo', nombre: 'Archivo', rol: 'Departamento de archivo y orden', horas: '6,21', dias: '1,2,3,4,5,6,7', presupuesto_usd: 0, tipo: 'archivo', herramientas: '',
+    mision: 'Que todo esté organizado: cada conversación, archivo y documento en su lugar. Clasifica lo nuevo, revisa con contexto lo que quedó sin clasificar, separa lo de procesos (se resuelve y termina) de lo permanente, y guarda aparte las ideas (proyectos en potencia), lo de interés y el ocio.' }
 ];
 
 /* La hoja de agentes: los que faltan de la semilla se agregan solos (lo que editaste en la hoja no se toca). */
@@ -89,6 +92,7 @@ function agentesLatido_() {
 function agenteCorrer_(a, origen, pedido) {
   var adm = agPrincipal_(); if (!adm) return { ok: false, error: 'sin administrador principal' };
   if (a.tipo === 'claude') return agDesarrolloRonda_(a, adm, origen, pedido);
+  if (a.tipo === 'archivo') return archivoRonda_(a, adm, origen, pedido);
   var mes = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM');
   if (a.mes !== mes) { a.mes = mes; a.gasto_mes = 0; }
   if (Number(a.gasto_mes || 0) >= Number(a.presupuesto_usd || 0)) return { ok: false, error: a.nombre + ' ya usó su presupuesto del mes (US$' + a.presupuesto_usd + ').' };

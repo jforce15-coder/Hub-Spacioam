@@ -8,19 +8,24 @@
 <!-- La roca de Alma en el navegador de la app (iPhone y iPad): la app la pone en una capa transparente encima de
      cualquier página, así es exactamente la misma de las web apps (dibujo, pulso, las 8 posiciones al mantenerla).
      Solo la roca recibe toques; lo demás pasa a la página de abajo (la app usa la zona que se le avisa aquí).
-     1 toque: Alma sobre la página · 2: escribe en el cuadro de texto activo · 3: captura. -->
+     1 toque: vuelve al inicio (aquí no hay menú) · 2: escribe en el cuadro de texto activo o abre Alma sobre la página · 3: captura. -->
 <style>
+  /* el mismo halo de Alma que en el inicio de la app: al pasar al navegador no cambia de color */
+  :root { --san-halo: linear-gradient(180deg, #8FA5C8 0%, #B8B6C8 30%, #E9826A 56%, #E3A47F 74%, #A98C93 100%); }
   html, body { margin: 0; height: 100%; overflow: hidden; background: transparent !important; -webkit-user-select: none; user-select: none; }
   #sa-nav-root .san-scrim { display: none !important; }   /* sin la sombra de la esquina: la página de abajo no es nuestra */
 </style>
 </head>
 <body>
-<script src="../js/sa-nav.js?v=2026-10-30b"></script>
+<script src="../js/sa-nav.js?v=2026-10-30c"></script>
 <script>
 (function () {
   "use strict";
   function app(m) { try { webkit.messageHandlers.almaRoca.postMessage(m); } catch (e) {} }
-  SANav.mount({ app: "alma", home: { k: "alma", l: "Alma" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
+  /* En el navegador Alma vive a la derecha (o donde la dejes con un long press: se recuerda aquí, sin mover la de las web apps). */
+  var lugar = "mr"; try { lugar = localStorage.getItem("alma_roca_pos") || "mr"; } catch (e) {}
+  SANav.mount({ app: "alma", home: { k: "alma", l: "Alma" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false, posFija: lugar,
+    alMover: function (a) { lugar = a; try { localStorage.setItem("alma_roca_pos", a); } catch (e) {} },
     alToques: function (n) { app({ tipo: "toques", n: n }); } });
   /* Dónde está la roca (y sus puntos mientras se arrastra): la app solo deja tocar ahí. */
   var ult = "";
@@ -38,7 +43,7 @@
     /* Con un cuadro de texto activo (y el teclado arriba), Alma va abajo al centro, justo encima del teclado. */
     apartar: function () { SANav.ir("bc"); },
     ir: function (a) { SANav.ir(a); },
-    volver: function () { SANav.volver(); },
+    volver: function () { SANav.ir(lugar); },
     escuchar: function (on) { SANav.escuchar(on); }
   };
   app({ tipo: "lista" });

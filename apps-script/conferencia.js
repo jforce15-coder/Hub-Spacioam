@@ -7,7 +7,10 @@
      · Al terminar (o a los 20 min sin tramos), Alma la clasifica como todo lo que recibe: tipo (reunión, conferencia,
        llamada o memo), esfera, proyecto, resumen, acuerdos y lo que le toca a Juan; la deja en Pendientes y guardada en
        ALMA_CONFERENCIAS. El audio se borra en cuanto se transcribe. */
-var CONF_CAB_ = ['id', 'email', 'inicio', 'actualizado', 'estado', 'texto', 'tipo', 'area', 'proyecto', 'titulo', 'resumen', 'acuerdos', 'para_juan', 'modo', 'partes'];
+var CONF_CAB_ = ['id', 'email', 'inicio', 'actualizado', 'estado', 'texto', 'tipo', 'area', 'proyecto', 'titulo', 'resumen', 'acuerdos', 'para_juan', 'modo', 'partes', 'vence'];
+/* Temporal: lo que no tiene sentido (grabación por error, ruido, prueba) no va a Pendientes; se guarda unos días por si se
+   busca y, si nadie la consulta, se borra sola (confTempLimpiar_). Al consultarla con una búsqueda, se rescata. */
+var CONF_TEMP_DIAS_ = 7;
 var CONFA_CAB_ = ['id', 'n', 'archivo', 'estado', 'texto', 'ts'];
 var CONF_MAX_ = 45000;   // caracteres por celda (Sheets admite 50.000)
 
@@ -129,6 +132,7 @@ function confTextoVoces_(id, partes, forzar) {
 
 /* Respaldo (procesarCola): las que quedaron abiertas 20 min sin tramos se cierran solas (la app se apagó o perdió red). */
 function confCerrarViejas_() {
+  try { confTempLimpiar_(); } catch (e) { console.error('confTempLimpiar_: ' + e); }
   var sh = hojaConf_(), n = sh.getLastRow(); if (n < 2) return;
   var ini = Math.max(2, n - 49), v = sh.getRange(ini, 1, n - ini + 1, CONF_CAB_.length).getValues();
   v.forEach(function (r, i) {
@@ -153,13 +157,20 @@ function confCerrar_(c, adm, voces) {
     'tipo: "reunion", "conferencia", "llamada" o "memo" (si habla una sola persona para sí). area (una): proposito (trabajo, Spacio AM, apps), relaciones (familia, pareja, amigos, bodas y viajes con ellos), ' +
     'finanzas, health, comunidad, espiritualidad. proyecto: el nombre corto del proyecto; si es uno de estos, escríbelo igual: ' + (proys.join(' · ') || '(ninguno)') + '; si es de Spacio AM sin otro, «Spacio AM»; si no hay, "".\n' +
     'titulo: 3 a 7 palabras. resumen: 3 a 5 frases simples con lo importante (cifras y fechas incluidas). acuerdos: lo que se decidió, en frases cortas. para_juan: lo que le toca hacer a Juan o lo que Alma debería hacer por él (tareas concretas, con fecha si se dijo).\n' +
-    'Responde SOLO JSON: {"tipo":"reunion","area":"proposito","proyecto":"","titulo":"…","resumen":"…","acuerdos":["…"],"para_juan":["…"]}';
+    'valida: false si fue una grabación por error o no tiene contenido con sentido (ruido, el teléfono en el bolsillo, una prueba de micrófono, frases sueltas sin tema, solo charla sin propósito); true si hay algo que valga guardar.\n' +
+    'Responde SOLO JSON: {"valida":true,"tipo":"reunion","area":"proposito","proyecto":"","titulo":"…","resumen":"…","acuerdos":["…"],"para_juan":["…"]}';
   var j = null;
   try { var t = String(claude_(CFG.MODELO_REDACTOR, 1200, sys, 'TRANSCRIPCIÓN (con la hora de cada tramo):\n' + txt.slice(-30000), 0.2) || ''), m = /\{[\s\S]*\}/.exec(t); j = m ? JSON.parse(m[0]) : null; } catch (e) { console.error('confCerrar_ claude: ' + e); }
   j = j || { tipo: 'reunion', area: 'proposito', proyecto: '', titulo: 'Reunión del ' + Utilities.formatDate(new Date(), CFG.TZ, 'd MMM'), resumen: txt.slice(0, 400), acuerdos: [], para_juan: [] };
   if (!areaOk_(j.area)) j.area = 'proposito';
   var ac = (j.acuerdos || []).map(String).slice(0, 12), pj = (j.para_juan || []).map(String).slice(0, 12);
   var TIPO = { reunion: 'Reunión', conferencia: 'Conferencia', llamada: 'Llamada', memo: 'Memo' }[j.tipo] || 'Reunión';
+  /* No tiene sentido: a Temporal (no a Pendientes); se borra sola si nadie la consulta en unos días. */
+  if (j.valida === false) {
+    sh.getRange(c.fila, CONF_CAB_.indexOf('estado') + 1, 1, 9).setValues([['temporal', txt.slice(-CONF_MAX_), TIPO, j.area, String(j.proyecto || ''), String(j.titulo || '(sin tema)'), String(j.resumen || ''), '', '']]);
+    sh.getRange(c.fila, CONF_CAB_.indexOf('vence') + 1).setValue(new Date(Date.now() + CONF_TEMP_DIAS_ * 86400000).toISOString());
+    return;
+  }
   sh.getRange(c.fila, CONF_CAB_.indexOf('estado') + 1, 1, 9).setValues([['cerrada', txt.slice(-CONF_MAX_), TIPO, j.area, String(j.proyecto || ''), String(j.titulo || ''), String(j.resumen || ''), ac.join(' · '), pj.join(' · ')]]);
   /* A Pendientes, como todo lo que Alma recibe: con su esfera y proyecto. Si le toca algo a Juan, se queda hasta resolverse. */
   var detalle = TIPO + ' · ' + j.titulo + '\n\n' + j.resumen + (ac.length ? '\n\nAcuerdos:\n· ' + ac.join('\n· ') : '') + (pj.length ? '\n\nPara ti:\n· ' + pj.join('\n· ') : '');
@@ -168,11 +179,33 @@ function confCerrar_(c, adm, voces) {
     aviso: 'Te dejé el resumen de la ' + TIPO.toLowerCase() + ' en Pendientes' + (pj.length ? ', con ' + pj.length + (pj.length === 1 ? ' cosa' : ' cosas') + ' para ti.' : '.'), importancia: pj.length ? 2 : 1, tarjeta: null, acciones: [] } });
 }
 
-/* Para Alma (buscar_reuniones): las reuniones guardadas que coinciden con lo que busca (título, proyecto, resumen, texto). */
-function confBuscar_(q, n) {
+/* Para Alma (buscar_reuniones): las reuniones guardadas que coinciden con lo que busca (título, proyecto, resumen, texto).
+   temporales: las que quedaron en Temporal. Si se busca algo y aparece una temporal, se rescata (alguien la consultó). */
+function confBuscar_(q, n, temporales) {
   var sh = hojaConf_(), filas = sh.getLastRow(); if (filas < 2) return [];
-  var v = sh.getRange(Math.max(2, filas - 199), 1, Math.min(200, filas - 1), CONF_CAB_.length).getValues().filter(function (r) { return String(r[4]) === 'cerrada'; });
+  var ini = Math.max(2, filas - 199), est = CONF_CAB_.indexOf('estado');
+  var v = sh.getRange(ini, 1, filas - ini + 1, CONF_CAB_.length).getValues().map(function (r, i) { r.fila = ini + i; return r; })
+    .filter(function (r) { return temporales ? String(r[est]) === 'temporal' : String(r[est]) === 'cerrada' || String(r[est]) === 'temporal'; });
   var pal = String(q || '').toLowerCase().split(/\s+/).filter(function (w) { return w.length > 2; });
-  return v.reverse().filter(function (r) { var t = (r[9] + ' ' + r[8] + ' ' + r[10] + ' ' + r[5]).toLowerCase(); return !pal.length || pal.every(function (w) { return t.indexOf(w) >= 0; }); })
-    .slice(0, n || 5).map(function (r) { return { fecha: String(r[2]).slice(0, 16).replace('T', ' '), tipo: r[6], esfera: r[7], proyecto: r[8], titulo: r[9], resumen: r[10], acuerdos: r[11], para_juan: r[12] }; });
+  var hall = v.reverse().filter(function (r) {
+    if (!temporales && !pal.length && String(r[est]) === 'temporal') return false;   // sin búsqueda, solo las de verdad
+    var t = (r[9] + ' ' + r[8] + ' ' + r[10] + ' ' + r[5]).toLowerCase(); return !pal.length || pal.every(function (w) { return t.indexOf(w) >= 0; });
+  }).slice(0, n || 5);
+  if (pal.length) hall.forEach(function (r) { if (String(r[est]) === 'temporal') { sh.getRange(r.fila, est + 1).setValue('cerrada'); sh.getRange(r.fila, CONF_CAB_.indexOf('vence') + 1).setValue(''); } });
+  return hall.map(function (r) { return { fecha: String(r[2]).slice(0, 16).replace('T', ' '), tipo: r[6], esfera: r[7], proyecto: r[8], titulo: r[9], resumen: r[10], acuerdos: r[11], para_juan: r[12],
+    temporal: String(r[est]) === 'temporal' ? 'en Temporal: se borra el ' + String(r[15]).slice(0, 10) : '' }; });
+}
+/* Una vez por hora: borra las temporales vencidas que nadie consultó (y lo que quede de su audio). */
+function confTempLimpiar_() {
+  var p = PropertiesService.getScriptProperties(); if (Date.now() - Number(p.getProperty('CONF_TEMP_ULT') || 0) < 3600000) return;
+  p.setProperty('CONF_TEMP_ULT', String(Date.now()));
+  var sh = hojaConf_(), n = sh.getLastRow(); if (n < 2) return;
+  var v = sh.getRange(2, 1, n - 1, CONF_CAB_.length).getValues(), est = CONF_CAB_.indexOf('estado'), ven = CONF_CAB_.indexOf('vence'), ids = [];
+  for (var i = v.length - 1; i >= 0; i--) {
+    if (String(v[i][est]) === 'temporal' && v[i][ven] && new Date(String(v[i][ven])).getTime() < Date.now()) { ids.push(String(v[i][0])); sh.deleteRow(i + 2); }
+  }
+  if (!ids.length) return;
+  var sa = hojaConfA_(), m = sa.getLastRow(); if (m < 2) return;
+  var va = sa.getRange(2, 1, m - 1, 3).getValues();
+  for (var k = va.length - 1; k >= 0; k--) if (ids.indexOf(String(va[k][0])) >= 0) { try { DriveApp.getFileById(String(va[k][2])).setTrashed(true); } catch (e) {} sa.deleteRow(k + 2); }
 }

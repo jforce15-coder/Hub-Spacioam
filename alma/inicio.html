@@ -141,8 +141,7 @@
   .av-pil .t { flex: 1; min-width: 0; transition: opacity .25s ease; }
   .aviso.cambia .av-pil .t { opacity: 0; }
   .av-pil small { display: block; font: 700 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #6F6867; }
-  .av-pil b { display: block; margin-top: 3px; font: 500 14px Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .aviso.abierta .av-pil b { white-space: normal; }
+  .av-pil b { display: block; margin-top: 3px; font: 500 14px/1.35 Montserrat, system-ui, sans-serif; white-space: normal; overflow-wrap: anywhere; }   /* el título se lee entero, nunca cortado a mitad de frase */
   .av-pil .n { flex: none; font: 600 11px Montserrat, system-ui, sans-serif; color: #6F6867; font-variant-numeric: tabular-nums; }
   .av-cu { display: none; max-height: min(60vh, 520px); overflow: auto; padding: 0 12px 12px; -webkit-overflow-scrolling: touch; }
   .aviso.abierta .av-cu { display: block; }
@@ -316,7 +315,7 @@
 <script src="../js/alma-client.js?v=2026-11-04a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01a"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-08a"></script>
+<script src="../js/sa-nav.js?v=2026-11-08b"></script>
 <script>
 (function () {
   "use strict";
@@ -366,9 +365,21 @@
   var AR = { datos: null, area: null, abierta: false, cargando: null };
   function areasCargar() {
     if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
-    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { areasAplicar(r); fotoGuardar("areas", r); if (AR.abierta) areasPintar(); } return r; }, function () { AR.cargando = null; return null; }));
+    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { areasAplicar(r); fotoGuardar("areas", r); if (AR.abierta) areasPintar(); } else orbitaDesarmar(); return r; }, function () { AR.cargando = null; orbitaDesarmar(); return null; }));
   }
-  function areasAplicar(r) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; }
+  /* Las 6 áreas son fijas (apps-script/areas.js): si Juan toca a Alma antes de que lleguen los datos, las esferas salen
+     igual con estos nombres y los datos frescos se aplican por detrás. Si el Hub dice que no eres el administrador, se quitan. */
+  var AREAS_BASE = [["proposito", "Propósito"], ["relaciones", "Relaciones"], ["finanzas", "Finanzas"], ["health", "Health"], ["comunidad", "Comunidad"], ["espiritualidad", "Esencia"]];
+  function orbitaTemprano() {
+    if (OR.armada || AR.datos || !AR.cargando) return false;   // solo mientras las áreas vienen en camino
+    AR.datos = AREAS_BASE.map(function (z) { return { k: z[0], n: z[1], d: "", proyectos: [], total: 0 }; }); AR.temprano = true;
+    orbitaArmar(); return OR.armada;
+  }
+  function orbitaDesarmar() {
+    if (!AR.temprano) return;   // los datos eran de verdad: nada que quitar
+    AR.temprano = false; AR.datos = null; OR.armada = false; orbita(false); SANav.escena(null); $("orbita").innerHTML = ""; ES = [];
+  }
+  function areasAplicar(r) { AR.temprano = false; AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; }
   function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
 
   /* Las esferas: sus íconos (trazo como los del Hub) y su lugar alrededor de Alma. */
@@ -699,7 +710,7 @@
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
     alSoltar: NATIVA ? function (pos) { orbita(false); nativa({ accion: "navegador", pos: pos }); } : null,
     /* Alma quieta: 1 toque abre las áreas (si las hay) y otro toque las cierra; 2 toques activan la voz sin cambiar de estado (lo resuelve sa-nav.js). */
-    alTocar: function () { if (!OR.armada) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
+    alTocar: function () { if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
     alDatos: function () { avisoArmar(); }, alDoble: function () { if (OR.abierta) modoAvisos(); } });

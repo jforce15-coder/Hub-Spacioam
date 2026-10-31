@@ -34,6 +34,16 @@
     try { document.cookie = KEY + '=' + encodeURIComponent(s) + dominio() + '; path=/; max-age=' + MAX + '; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (e) {}
     try { localStorage.setItem(KEY, s); } catch (e) {}
   }
+  /* Rastro de salidas: cada vez que este archivo saca a alguien, apunta por qué (las 5 últimas, en este teléfono).
+     Las apps lo muestran en su login (SASesion.salidas()) para saber qué pasó sin adivinar. */
+  function anotar(motivo, extra) {
+    try {
+      var l = JSON.parse(localStorage.getItem('sa_salidas') || '[]');
+      l.unshift({ t: Date.now(), m: String(motivo || ''), x: String(extra || '').slice(0, 160), h: location.host });
+      localStorage.setItem('sa_salidas', JSON.stringify(l.slice(0, 5)));
+    } catch (e) {}
+  }
+  function salidas() { try { return JSON.parse(localStorage.getItem('sa_salidas') || '[]'); } catch (e) { return []; } }
   function borrar() {
     [dominio(), ''].forEach(function (d) { try { document.cookie = KEY + '=' + d + '; path=/; max-age=0'; } catch (e) {} });
     try { localStorage.removeItem(KEY); } catch (e) {}
@@ -54,7 +64,7 @@
         /* Solo es «inválida» si el login lo dice claro (firma mala, usuario borrado o suspendido). Un error del
            login (cupo, hoja ocupada) no saca a nadie: se queda como «red». */
         estado = j && j.ok === false && DEFINITIVOS[j.error] ? 'invalida' : 'red';
-        if (j && j.ok === false && j.error === 'session') borrar();
+        if (j && j.ok === false && j.error === 'session') { anotar('login: firma no válida', 'verify'); borrar(); }
         return null;
       })
       .catch(function () { estado = 'red'; return null; });
@@ -80,11 +90,12 @@
     verificar().then(function (p) {
       if (p && p.apps && (!appKey || p.apps[appKey])) return;
       if (!p && !(verif && verif.estado() === 'invalida')) return;   // sin red: no se cierra la sesión
+      anotar(p ? 'sin permiso en ' + appKey : 'login: sesión no válida al abrir', appKey);
       borrar();
       try { alFallar && alFallar(); } catch (e) {}
     });
   }
-  w.SASesion = { leer: leer, guardar: guardar, borrar: borrar, verificar: verificar, perfilRapido: perfilRapido, confirmar: confirmar };
+  w.SASesion = { salidas: salidas, leer: leer, guardar: guardar, borrar: borrar, verificar: verificar, perfilRapido: perfilRapido, confirmar: confirmar };
 
   var esAppsScript = function (u) { return /script\.google(usercontent)?\.com\/macros\//.test(String(u || '')); };
   /* Lector seguro de hojas (fase 2): las descargas gviz de las hojas de Spacio AM pasan por el login, que
@@ -109,7 +120,7 @@
      Como mucho una vez cada 10 minutos, para no entrar en un ciclo. */
   var VIEJAS = ['sam_sess', 'sa-session', 'SPACIO_GROW_SESION', 'spacio_admin_user', 'spacio_admin_sesion_v1',
                 'spacioam_admin_session', 'spacioam_admin_profile', 'sa_session'];
-  function sinPulsera() {
+  function sinPulsera(accion) {
     try {
       if (/[?&](firmar|datos)=/.test(location.search)) return;   // enlace de firma (Docs) o de datos del cliente (Grow)
       var hay = VIEJAS.filter(function (k) { return localStorage.getItem(k) != null; });
@@ -118,6 +129,7 @@
       var t = +sessionStorage.getItem('sa_sin_pulsera') || 0;
       if (Date.now() - t < 600000) return;
       sessionStorage.setItem('sa_sin_pulsera', String(Date.now()));
+      anotar('sin pulsera: el servidor pidió sesión y este teléfono no la tenía', String(accion || '') + ' · ' + (hay || []).join(','));
       VIEJAS.forEach(function (k) { try { localStorage.removeItem(k); } catch (e) {} });
       [dominio(), ''].forEach(function (d) { try { document.cookie = 'sa_session=' + d + '; path=/; max-age=0'; } catch (e) {} });
       try { w.dispatchEvent(new Event('sa-sesion-vencida')); } catch (e) {}
@@ -135,7 +147,7 @@
           return new Promise(function (ok) { setTimeout(ok, 1500); }).then(function () { return leerHoja(g[1]); });
         }).catch(function (e) {
           /* Sesión vencida o inválida: no tiene sentido leer directo (la hoja es privada). Se borra para que la app pida entrar de nuevo. */
-          if (e && e.sesion) { borrar(); try { w.dispatchEvent(new Event('sa-sesion-vencida')); } catch (x) {} throw e; }
+          if (e && e.sesion) { anotar('lector de hojas: sesión vencida', ''); borrar(); try { w.dispatchEvent(new Event('sa-sesion-vencida')); } catch (x) {} throw e; }
           try { console.warn('[sa-sesion] lector de hojas: ' + (e && e.message) + ' · se intenta directo'); } catch (x) {}
           return origFetch(input, init);
         });
@@ -167,9 +179,9 @@
                 /* Un backend dice «session»: antes de sacar a la persona se le pregunta al login. Solo si el login
                    confirma que la sesión ya no vale se cierra; si el login dice que vale o no contesta, se queda. */
                 verif = null;
-                verificar().then(function (p) { if (!p && verif && verif.estado() === 'invalida') { borrar(); location.reload(); } });
+                verificar().then(function (p) { if (!p && verif && verif.estado() === 'invalida') { anotar('el servidor dijo «session» y el login lo confirmó', accion); borrar(); location.reload(); } });
               }
-              else if (j.ok === false && j.error === 'session') sinPulsera();
+              else if (j.ok === false && j.error === 'session') sinPulsera(accion);
             }
           } catch (e) {}
           var h = { 'Content-Type': res.headers.get('Content-Type') || 'application/json; charset=utf-8' };   // solo el tipo: copiar longitud/compresión del original confunde a Safari

@@ -10,6 +10,8 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - Las llaves y tokens viven en las Propiedades del script, nunca en el código. ✅ (patrones de llaves conocidas)
 - Lo que cambia algo afuera (mensajes, cobros, datos de huéspedes) pasa por una propuesta o una confirmación.
 - No se guarda el cuerpo de correos ni datos de identidad completos; solo lo necesario.
+- Sin prueba no hay respuesta: lo que Alma afirma sale de una fuente que puede citar (el cerebro, una herramienta). Si no hay prueba lo dice («No lo encontré en nuestros documentos») y deja la pregunta al responsable (Pendientes) o, con un huésped, «lo confirmo con el equipo».
+- La audiencia se filtra en el código: quién puede ver qué sale de quién habla (`audienciaDe_`, `vozQuien_`) y se filtra dentro de la consulta (y otra vez al devolver), nunca de lo que diga el modelo. El modelo solo puede angostar una búsqueda, no ampliarla. Ante la duda, interno.
 
 ## Web (GitHub Pages)
 - ✅ Si cambia `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan.

@@ -23,7 +23,10 @@
  *   WA_PROPIETARIOS    (opcional: números extra de propietarios. Se leen solos del Control de usuarios por rol; o de SHEET_PROPIETARIOS_ID)
  *   WA_PRUEBA          (números del equipo que ALMA atiende como clientes, para pruebas)
  *   WA_EQUIPO          (opcional: números extra del equipo. Los de Control de usuarios, técnicos de EPI y ALMA_ESCALAMIENTO se toman solos)
- *   GEMINI_KEY         (transcribe notas de voz de WhatsApp; alternativa: OPENAI_KEY con Whisper)
+ *   GEMINI_KEY         (transcribe notas de voz de WhatsApp; alternativa: OPENAI_KEY con Whisper; también las huellas del cerebro de Alma)
+ *   BQ_PROYECTO        (cerebro de Alma: id del proyecto de Google Cloud con BigQuery y facturación activos)
+ *   BQ_CUENTA          (cerebro de Alma: la llave JSON completa de la cuenta de servicio, con BigQuery Data Editor + Job User.
+ *                      Sin BQ_PROYECTO o BQ_CUENTA el cerebro se apaga solo. Opcional: BQ_UBICACION, US por defecto)
  *   WEBHOOK_KEY        (lo genera configurar())
  *
  * Tras pegar: ejecuta configurar() una vez (agrega columnas nuevas al log y HUB_TOKEN) y vuelve a
@@ -2923,6 +2926,7 @@ function aprender() {
   try { botsPruebaRevisar_(); } catch (e) { console.error('botsPruebaRevisar_: ' + e); }   // lo que encontraron los bots de prueba → Claude (botsprueba.js)
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
+  try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
   if (!automejoraOn_()) return;
   try { aprenderSenales(); } catch (e) { console.error('aprenderSenales: ' + e); }
   try { amHoja_(); } catch (e) {}
@@ -3120,6 +3124,7 @@ function hubApi_(body) {
       case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
       case 'agentes': return json_(agAccion_(ses, body));                                    // equipo de agentes detrás de Alma (agentes.js · alma/agentes.html)
       case 'correos': return json_(correoApi_(ses, body));                                 // app de Alma: correos ordenados (correo.js · alma/correos.html)
+      case 'cerebro': return json_(cerebroAccion_(ses, body));                              // cerebro de Alma: estado y búsqueda de prueba, solo el principal (cerebro.js)
       case 'areas': return json_(areas_(ses));                                            // app de Alma: las 6 áreas de vida (areas.js)
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)

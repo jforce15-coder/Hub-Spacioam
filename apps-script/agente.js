@@ -189,7 +189,7 @@ function agHerramientas_() {
       { nombre: s('Nombre de la persona'), relacion: s('Qué es de Juan: «esposa de Juan», «mamá de Juan»…'), numero: s('WhatsApp con código de país (opcional si ya hay conversación)') }, ['nombre', 'relacion']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
-  ];
+  ].concat(cerebroHerramientas_(T, s));   // buscar_en_cerebro, solo si el cerebro está configurado (cerebro.js)
 }
 
 /* ── Ejecución ── */
@@ -476,6 +476,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'musica': { var mu = musica_(adm, inp); if (mu.ok && inp.accion === 'poner') ctx.hechas.push({ tipo: 'musica', resumen: 'Música · ' + (mu.sonando || '') + ' en ' + mu.en }); return mu; }
     case 'pedir_a_agente': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal trabaja con los agentes.' }; var ag = agente_(inp.agente); if (!ag) return { ok: false, error: 'No tengo ese agente. Tengo: ' + agentes_().map(function (a) { return a.id; }).join(', ') }; return agenteCorrer_(ag, 'pedido', String(inp.pedido || '')); }
     case 'leer_playbook': return leerPlaybookTool_(inp.nombre);
+    case 'buscar_en_cerebro': return cerebroHerramienta_(adm, inp);   // la audiencia sale de adm, nunca del modelo (cerebro.js)
     case 'enviar_archivo': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal recibe archivos.' }; var rf = archivoEnviar_(adm, inp); if (rf.ok) ctx.hechas.push({ tipo: 'archivo', resumen: 'Archivo enviado por WhatsApp · ' + rf.enviado }); return rf; }
     case 'unir_cambio': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal une cambios.' }; var ru = unirCambio_(inp.cual); (ru.unidos || []).forEach(function (x) { ctx.hechas.push({ tipo: 'cambio', resumen: 'Unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 60) }); }); return ru; }
     case 'ajustar_playbook': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ajusta a los agentes.' }; var rp = agAjustarPlaybook_(inp.agente, inp.cambio, inp.campo); if (rp.ok) ctx.hechas.push({ tipo: 'agente', resumen: 'Playbook de ' + rp.agente + ' · ' + String(inp.cambio).slice(0, 60) }); return rp; }

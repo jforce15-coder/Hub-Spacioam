@@ -52,3 +52,6 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Equipo** | Las personas que trabajan en Spacio AM (limpieza, mantenimiento, administración). | staff, personal |
 | **Asociado** | Socio o propietario: se le habla en nombre de la empresa. | partner |
 | **Copia en el teléfono** | Lo que el Hub guarda en el teléfono para pintar rápido Hoy, ALMA, las reviews y las conversaciones (nombres de huéspedes y fechas, sí; documentos, no). Una por persona, vence a las 24 h, se borra al cerrar sesión, y mientras se ve la pantalla dice «actualizando…». | caché, datos offline |
+| **Cerebro de Alma** | El índice común donde Alma busca con prueba: fichas y memoria de las propiedades y los playbooks (después, conversaciones, correos y Drive), en BigQuery, por significado y por palabras. Se sincroniza cada 15 min. Sin prueba no hay respuesta. | base de datos, RAG, índice vectorial |
+| **Pedazo** | Un trozo de unos 500 tokens de un documento del cerebro, cortado en sus títulos, con su ruta delante («Playbook · Operaciones › Pasos») y sus etiquetas: fuente, propiedad, área, audiencia y vigencia. | chunk, fragmento |
+| **Cuarentena** | Donde queda (hoja ALMA_CEREBRO_CUARENTENA, con el motivo) un documento cuyas etiquetas no encajan en las listas aprobadas: no entra al cerebro hasta que encaje. Nunca se adivina. | descartados, errores |

@@ -310,7 +310,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-04a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01a"></script>
-<script src="../js/sa-nav.js?v=2026-11-06a"></script>
+<script src="../js/sa-nav.js?v=2026-11-07a"></script>
 <script>
 (function () {
   "use strict";
@@ -330,6 +330,14 @@
   function hay() { return !!(window.SAAuth && SAAuth.session && SAAuth.session()); }
 
   /* Alma lista para hablar (con sesión): tocarla abre la voz aquí mismo. */
+  /* Lo último que viste, primero (ds/velocidad.md, regla 8): la «foto» del inicio (áreas, pendientes y notificaciones)
+     guardada en el teléfono, por persona y versión. Vence a las 24 h y se borra al cerrar sesión. Nada sensible: aquí solo
+     hay títulos y resúmenes de lo de Juan, nada de huéspedes ni documentos. */
+  var FOTO_V = "sa_foto:alma:1:";
+  function fotoClave(que) { var yo = sesion(), pp = yo.p || {}; var e = pp.email || yo.e || ""; return e ? FOTO_V + que + ":" + e : ""; }
+  function fotoLeer(que) { try { var k = fotoClave(que), f = k && JSON.parse(localStorage.getItem(k) || "null"); return f && f.t && Date.now() - f.t < 864e5 && f.datos ? f : null; } catch (e) { return null; } }
+  function fotoGuardar(que, r) { if (!r || !r.ok) return r; try { var k = fotoClave(que); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), datos: r })); } catch (e) {} return r; }
+  function fotoBorrar() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("sa_foto:alma:") === 0) localStorage.removeItem(k); }); } catch (e) {} }
   function conVoz(nombre) {
     var v = NATIVA ? vozNativa() : window.SAAlmaVoz;
     nombre = String(nombre || "").trim().split(/\s+/)[0];
@@ -338,10 +346,13 @@
     SANav.update({ alma: v ? vozConAvisos(v) : v });
     /* Solo en la app de Alma: el tercer botón con lo que Claude dejó pendiente (si es el admin principal) */
     /* Pendientes por esfera (pendientes.js): lo que Alma resolvió, lo de Claude y los cambios por unir, con los íconos de las esferas del inicio */
-    if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes(); }, hecho: function (id) { return ALMA.pendienteHecho(id); },
+    /* las áreas también salen de la foto, así las esferas abren al primer toque; las frescas llegan por detrás */
+    var fa = fotoLeer("areas"); if (fa && !AR.datos) { areasAplicar(fa.datos); orbitaArmar(); }
+    areasIniciar();   // nada en fila (regla 7): las áreas se piden junto con pendientes y notificaciones, sin esperar
+    if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes().then(function (r) { return fotoGuardar("pend", r); }); }, foto: fotoLeer("pend"), hecho: function (id) { return ALMA.pendienteHecho(id); },
       resolver: function (id) { return ALMA.pendienteResolver(id); }, responder: function (id, t) { return ALMA.pendienteResponder(id, t); }, nota: function (o) { return ALMA.pendienteNota(o); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
-      notificaciones: { cargar: function () { return ALMA.notificaciones(); } } });
-    setTimeout(function () { $("b-ajustes").classList.add("on"); areasIniciar(); }, 900);
+      notificaciones: { cargar: function () { return ALMA.notificaciones().then(function (r) { return fotoGuardar("noti", r); }); }, foto: fotoLeer("noti") } });
+    setTimeout(function () { $("b-ajustes").classList.add("on"); }, 900);
   }
 
   /* ── Áreas de vida (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia): proyectos y conversaciones de cada una.
@@ -349,8 +360,9 @@
   var AR = { datos: null, area: null, abierta: false, cargando: null };
   function areasCargar() {
     if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
-    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; } return r; }, function () { AR.cargando = null; return null; }));
+    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { areasAplicar(r); fotoGuardar("areas", r); if (AR.abierta) areasPintar(); } return r; }, function () { AR.cargando = null; return null; }));
   }
+  function areasAplicar(r) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; }
   function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
 
   /* Las esferas: sus íconos (trazo como los del Hub) y su lugar alrededor de Alma. */
@@ -867,6 +879,7 @@
     try { window.SAAuth && SAAuth.clearSession && SAAuth.clearSession(); } catch (e) {}
     try { window.SA && SA.logout && SA.logout(); } catch (e) {}
     try { localStorage.removeItem("sa_alma_voz_ficha"); } catch (e) {}
+    fotoBorrar();
     if (NATIVA) nativa({ accion: "voz", que: "anillo", on: false });
     location.reload();
   }

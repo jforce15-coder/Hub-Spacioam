@@ -16,6 +16,7 @@ Juan, con la app abierta o el teléfono bloqueado y el anillo.
 4. Un PR por repo, con el orden de unión si dependen uno del otro.
 
 ## Reglas
+- Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
 - El CI de alma-app compila sin firma en el PR: no lo dejes en rojo.
 - La roca de la app se comporta exactamente como la de sa-nav, en cada estado.
 - Alma habla simple y nunca susurra.

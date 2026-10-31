@@ -267,6 +267,10 @@
     ".san-scope .san-prog{height:5px;margin:0 18px 16px;border-radius:3px;background:#F3EFEA;overflow:hidden}.san-scope .san-prog i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#E9C27A,#E9826A);transition:width .8s cubic-bezier(.22,.61,.36,1)}",
     "body.san-hoja .hola,body.san-hoja .ajustes{opacity:0!important;pointer-events:none!important}",
     ".san-scope .san-pend-v{margin:auto;text-align:center;font:400 24px/1.3 Valky,Georgia,serif;color:#8A8580;padding:40px 20px}",
+    /* esqueleto (ds/velocidad.md): la forma de lo que viene, con un brillo lento que se apaga con reduced-motion */
+    ".san-scope .san-esq-arco{flex:none;height:150px;margin:6px 24px 0;border-radius:50% 50% 0 0/100% 100% 0 0;background:linear-gradient(90deg,#EFEBE6 0%,#F7F4F1 50%,#EFEBE6 100%);background-size:200% 100%;animation:sanEsq 1.6s ease-in-out infinite;opacity:.8}",
+    ".san-scope .san-esq{flex:none;background:#fff;border-radius:24px;padding:18px;display:grid;gap:10px;box-shadow:0 28px 60px -30px rgba(70,50,40,.24)}.san-scope .san-esq i{display:block;height:11px;border-radius:6px;background:linear-gradient(90deg,#EFEBE6 0%,#F7F4F1 50%,#EFEBE6 100%);background-size:200% 100%;animation:sanEsq 1.6s ease-in-out infinite}.san-scope .san-esq i:nth-child(1){width:38%;height:9px}.san-scope .san-esq i:nth-child(2){width:72%;height:14px}.san-scope .san-esq i:nth-child(3){width:90%}",
+    "@keyframes sanEsq{0%{background-position:100% 0}100%{background-position:-100% 0}}@media (prefers-reduced-motion:reduce){.san-scope .san-esq i,.san-scope .san-esq-arco{animation:none}}",
     /* Pendientes por esfera: semicírculo de las esferas del inicio con su conteo, secciones por urgencia y tarjetas. Los números van en Montserrat. */
     ".san-scope .san-arco{position:relative;flex:none;height:208px;margin:4px 0 0}.san-scope .san-arco .cn{position:absolute;left:0;right:0;text-align:center;pointer-events:none}.san-scope .san-arco .cn b{display:block;font:300 44px/1 Montserrat,system-ui,sans-serif;color:#3E3F3F;letter-spacing:-.02em}.san-scope .san-arco .cn span{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#938B8A}.san-scope .san-arco button{position:absolute;width:64px;margin-left:-32px;border:0;background:none;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:opacity .3s,transform .35s cubic-bezier(.3,1.3,.5,1)}",
     ".san-scope .san-arco .pz{position:relative;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#3E3F3F;background:radial-gradient(120% 120% at 50% 20%,#FFFFFF 0%,#F4F1EE 60%,#ECE8E3 100%);box-shadow:0 10px 18px -10px rgba(60,40,30,.45),inset 0 -3px 6px rgba(110,90,80,.12)}.san-scope .san-arco .pz svg{width:21px;height:21px}",
@@ -1328,6 +1332,7 @@
     clearTimeout(pendT); pendT = setTimeout(pendCargar, rapido ? 15000 : 90000);
     Promise.resolve(cfg.pendientes.cargar()).then(function (r) {
       /* forma nueva (por esfera): { areas, atencion, leer, listo }; la vieja: { lista } */
+      if (r && r.ok) AL.pendCargado = true;
       if (r && r.ok && r.areas) { AL.pendData = r; AL.pend = [].concat(r.atencion || [], r.leer || [], r.listo || []); }
       else { AL.pendData = null; AL.pend = r && r.ok ? r.lista || [] : (AL.pend || []); }
       pendPintar();
@@ -1352,7 +1357,7 @@
   function notiCargar() {
     if (!E.ov || !cfg.notificaciones || !cfg.notificaciones.cargar) return;
     clearTimeout(notiT); notiT = setTimeout(notiCargar, 60000);
-    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.noti = r.lista || []; AL.notiData = r.items && r.areas ? r : null; notiPintar(); } }, function () {});
+    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.notiCargado = true; AL.noti = r.lista || []; AL.notiData = r.items && r.areas ? r : null; notiPintar(); } }, function () {});
   }
   function notiPintar() {
     var b = E.ov.querySelector('[data-a="noti"]'), v = notiVisto(), n = ((AL.notiData && AL.notiData.items) || AL.noti || []).filter(function (x) { return x.ts > v; }).length;
@@ -1361,6 +1366,7 @@
   }
   function notiLista() {
     var l = E.ov.querySelector(".san-noti-l"), v = AL.notiVistoAntes || 0; l.innerHTML = "";
+    if (!AL.notiCargado) { esqueleto(l); return; }   // la forma antes que el contenido (ds/velocidad.md)
     if (AL.notiData) { notiEsferas(l, AL.notiData, v); return; }
     if (!(AL.noti || []).length) { var e0 = d.createElement("div"); e0.className = "san-pend-v"; e0.textContent = "Sin notificaciones."; l.appendChild(e0); return; }
     AL.noti.forEach(function (x) {
@@ -1529,12 +1535,16 @@
     };
     ev.onclick = function () {
       var t = ta.value.trim(); if (!t) { ta.focus(); return; }
-      ev.disabled = true; mic.disabled = true; st.textContent = "Enviando…";
+      /* el resultado primero (ds/velocidad.md): «Listo» al instante; si el Hub dice que no, vuelve el cuadro con el aviso */
+      ev.disabled = true; mic.disabled = true;
+      var antes = Array.prototype.slice.call(rp.childNodes), ok = d.createElement("p"); ok.className = "ok"; ok.textContent = "Listo, se lo pasé.";
+      rp.replaceChildren(ok);
+      var falla = function (e) { rp.replaceChildren.apply(rp, antes); ev.disabled = false; mic.disabled = false; st.textContent = e || "No se pudo enviar. Inténtalo de nuevo."; };
       Promise.resolve(cfg.pendientes.responder(p.id, t)).then(function (r) {
-        if (!r || !r.ok) { ev.disabled = false; mic.disabled = false; st.textContent = (r && r.error) || "No se pudo enviar."; return; }
-        rp.innerHTML = ""; var ok = d.createElement("p"); ok.className = "ok"; ok.textContent = r.respuesta || "Listo, ya lo pasé."; rp.appendChild(ok);
-        setTimeout(function () { quita(); setTimeout(pendCargar, 1500); }, 5000);
-      }, function () { ev.disabled = false; mic.disabled = false; st.textContent = "No se pudo enviar."; });
+        if (!r || !r.ok) { falla(r && r.error); return; }
+        if (r.respuesta) ok.textContent = r.respuesta;
+        setTimeout(function () { quita(); setTimeout(pendCargar, 1500); }, 4000);
+      }, function () { falla(); });
     };
     return rp;
   }
@@ -1550,7 +1560,14 @@
         }, function () { x.disabled = false; x.textContent = "Unir"; }); };
       bt.appendChild(x); });
   }
+  /* Rápido de sentir (ds/velocidad.md): mientras llegan los datos, la forma de lo que viene en gris; nunca «Todo al día»
+     antes de tiempo. */
+  function esqueleto(l) {
+    var a = d.createElement("div"); a.className = "san-esq-arco"; l.appendChild(a);
+    for (var i = 0; i < 3; i++) { var c = d.createElement("div"); c.className = "san-esq"; c.innerHTML = "<i></i><i></i><i></i>"; l.appendChild(c); }
+  }
   function pendLista() {
+    if (!AL.pendCargado) { var lq = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"); lq.innerHTML = ""; esqueleto(lq); return; }
     if (AL.pendData) { var lz = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), st = lz.scrollTop; AL.pendAb = {}; Array.prototype.forEach.call(lz.querySelectorAll(".san-pc.abierta"), function (x) { AL.pendAb[x.getAttribute("data-id")] = 1; }); lz.innerHTML = ""; pendListaEsferas(lz, AL.pendData); lz.scrollTop = st; return; }
     var l = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
     l.innerHTML = "";

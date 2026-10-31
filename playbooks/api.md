@@ -16,6 +16,7 @@ Todas las apps (Hub, app de Alma, Hola, Epi, Grow, Mi, Docs), WhatsApp, ElevenLa
 4. Arregla en un PR; lo grande va a la lista para Juan.
 
 ## Reglas
+- Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
 - Ningún nombre declarado dos veces entre archivos (hay un check).
 - Las llaves solo en las Propiedades del script.
 - Lo que cambia algo afuera pasa por propuesta o confirmación.

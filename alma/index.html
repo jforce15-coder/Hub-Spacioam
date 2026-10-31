@@ -29,7 +29,7 @@
   .yo { align-self: flex-end; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); border-bottom-right-radius: 4px; }
   .alma { align-self: flex-start; background: var(--surface, #fff); border: 1px solid var(--border-soft, #e4ded5); border-bottom-left-radius: 4px; }
   .nota { align-self: center; color: var(--fg-muted, #6f6867); font-size: 13px; text-align: center; }
-  /* El nuevo chat (#304): «+» · cuadro (hasta 5 líneas) · roca · micrófono (vacío) o enviar (con texto). Enter salta de línea. */
+  /* El nuevo chat (#304): «+» · cuadro (hasta 5 líneas) · micrófono (vacío) o enviar (con texto) · roca. Enter salta de línea. */
   footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: var(--surface, #fff); border-top: 1px solid var(--border-soft, #e4ded5); display: flex; gap: 6px; align-items: flex-end; }
   .caja { flex: 1; min-width: 0; position: relative; display: flex; border-radius: 24px; }
   textarea { flex: 1; min-width: 0; resize: none; font: inherit; font-size: 16px; line-height: 20px; height: 48px; padding: 13px 14px; box-sizing: border-box; border-radius: 24px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); max-height: 126px; overflow-y: hidden; outline: none; }
@@ -64,14 +64,14 @@
 <footer id="pie">
   <button id="mas" type="button" aria-label="Plantillas" title="Plantillas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
   <div class="caja" id="caja"><textarea id="txt" rows="1" placeholder="Escríbele a Alma…" enterkeyhint="enter" aria-label="Mensaje para Alma"></textarea></div>
-  <div class="rocaw"><span class="tip" aria-hidden="true">Mejorar</span><button id="roca" type="button" data-sa-dock="1" aria-label="Alma" title="Un toque: mejorar · dos toques: hablar con Alma"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E9826A" aria-hidden="true"><path d="M12 2.5c.7 4.7 2.8 6.8 7.5 7.5-4.7.7-6.8 2.8-7.5 7.5-.7-4.7-2.8-6.8-7.5-7.5 4.7-.7 6.8-2.8 7.5-7.5z"/></svg></button></div>
   <button id="mic" type="button" aria-label="Dictar: toca y habla" title="Dictar: toca y habla"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
   <button id="enviar" type="button" aria-label="Enviar" title="Enviar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
+  <div class="rocaw"><span class="tip" aria-hidden="true">Mejorar</span><button id="roca" type="button" data-sa-dock="1" aria-label="Alma" title="Un toque: mejorar · dos toques: hablar con Alma"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E9826A" aria-hidden="true"><path d="M12 2.5c.7 4.7 2.8 6.8 7.5 7.5-4.7.7-6.8 2.8-7.5 7.5-.7-4.7-2.8-6.8-7.5-7.5 4.7-.7 6.8-2.8 7.5-7.5z"/></svg></button></div>
 </footer>
 <script src="../js/sa-auth-client.js"></script>
 <script src="../js/alma-client.js"></script>
 <script src="../js/sa-compositor.js?v=2026-11-09a"></script>
-<script src="../js/sa-nav.js?v=2026-11-09a"></script>
+<script src="../js/sa-nav.js?v=2026-11-10a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01a"></script>
 <script>
 (function () {

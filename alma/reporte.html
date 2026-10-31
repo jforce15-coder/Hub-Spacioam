@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Reporte de llamadas · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- El reporte semanal del equipo «Mejora de llamadas» (apps-script/reporte_llamadas.js, spec #274): los números de la
+     semana contra la anterior y lo que el equipo propone. Lo que cambia lo que oyes o ves espera tu sí aquí mismo. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --papel: #fff;
+    --durazno: #E9826A; --durazno-t: #B5624E; --verde: #2F6B47; --rojo: #B54D36; --arena: #F3EFEA; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 760px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+  .barra { display: flex; align-items: center; gap: 12px; }
+  .barra .t { flex: 1; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
+  .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: var(--papel); display: grid; place-items: center; color: var(--tinta); text-decoration: none; box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); }
+  .redondo svg { width: 20px; height: 20px; }
+  select { font: 500 13px Montserrat, sans-serif; color: var(--tinta); background: var(--papel); border: 1px solid var(--linea); border-radius: 999px; padding: 8px 12px; max-width: 52vw; }
+  .portada { margin: 34px 0 30px; }
+  .portada small { display: block; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--durazno-t); }
+  .portada h1 { margin: 10px 0 14px; font: 400 clamp(38px, 9vw, 58px)/1.02 Valky, Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+  .portada p { margin: 0; max-width: 58ch; font: 400 17px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  .sec { margin: 44px 0 16px; display: flex; align-items: baseline; gap: 12px; border-top: 1px solid var(--linea); padding-top: 18px; }
+  .sec h2 { margin: 0; font: 400 28px/1.1 Valky, Georgia, serif; }
+  .sec span { margin-left: auto; font: 600 10px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--tenue); }
+  .nota { font: 500 12.5px/1.5 Montserrat, sans-serif; color: var(--suave); margin: 10px 0 0; }
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 22px 18px; }
+  .cifra b { display: block; font: 300 40px/1 Montserrat, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cifra span { display: block; margin-top: 8px; font: 500 12.5px/1.35 Montserrat, sans-serif; color: var(--suave); }
+  .cifra i { display: inline-block; margin-top: 6px; font: 600 11px Montserrat, sans-serif; font-style: normal; font-variant-numeric: tabular-nums; padding: 3px 8px; border-radius: 999px; background: var(--arena); color: var(--suave); }
+  .cifra i.bien { background: #E6F2EA; color: var(--verde); } .cifra i.mal { background: #FBEAE6; color: var(--rojo); }
+  .modo { background: var(--papel); border-radius: 24px; padding: 18px 20px; box-shadow: 0 26px 56px -32px rgba(70,50,40,.34); display: grid; gap: 12px; }
+  .modos { display: grid; gap: 14px; }
+  .modo .cab { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .modo h3 { margin: 0; font: 400 22px/1.15 Valky, Georgia, serif; flex: 1; min-width: 0; }
+  .chip { font: 600 9.5px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; padding: 5px 9px; border-radius: 999px; background: var(--arena); color: var(--suave); white-space: nowrap; }
+  .chip.bueno { background: #E6F2EA; color: var(--verde); } .chip.regular { background: #FBF3E2; color: #9A6B12; } .chip.malo { background: #FBEAE6; color: var(--rojo); }
+  .datos { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 500 12.5px Montserrat, sans-serif; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .datos b { color: var(--tinta); font-weight: 600; }
+  .barras { display: grid; gap: 7px; }
+  .bar { display: grid; grid-template-columns: 7.5rem 1fr 3.2rem; align-items: center; gap: 10px; font: 500 12px Montserrat, sans-serif; color: var(--suave); }
+  .bar .p { height: 8px; border-radius: 4px; background: var(--arena); overflow: hidden; } .bar .p i { display: block; height: 100%; border-radius: 4px; background: var(--durazno); }
+  .bar.relleno .p i { background: #C9A88A; } .bar.corte .p i { background: var(--rojo); }
+  .bar em { font-style: normal; text-align: right; color: var(--tinta); font-variant-numeric: tabular-nums; }
+  .niv { display: grid; gap: 12px; }
+  .niv .fila { display: grid; gap: 6px; }
+  .niv .fila b { font: 600 13px Montserrat, sans-serif; } .niv .fila small { font: 500 12px Montserrat, sans-serif; color: var(--suave); margin-left: 6px; }
+  .apil { display: flex; height: 26px; border-radius: 13px; overflow: hidden; background: var(--arena); }
+  .apil i { display: grid; place-items: center; font: 600 11px Montserrat, sans-serif; font-style: normal; color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+  .apil .n1 { background: #8FB38C; } .apil .n2 { background: #E3A47F; } .apil .n3 { background: var(--rojo); }
+  .ley { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 500 12px Montserrat, sans-serif; color: var(--suave); }
+  .ley i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .props { display: grid; gap: 14px; }
+  .prop { background: var(--papel); border-radius: 24px; padding: 20px; box-shadow: 0 26px 56px -32px rgba(70,50,40,.34); display: grid; gap: 10px; }
+  .prop .num { font: 300 30px/1 Montserrat, sans-serif; color: var(--durazno); }
+  .prop h3 { margin: 0; font: 400 21px/1.2 Valky, Georgia, serif; }
+  .prop p { margin: 0; font: 500 13.5px/1.55 Montserrat, sans-serif; color: #5A5856; }
+  .prop .ef { font: 600 12px Montserrat, sans-serif; color: var(--durazno-t); }
+  .prop .bt { display: flex; gap: 8px; flex-wrap: wrap; }
+  .prop button { border: 0; cursor: pointer; padding: 11px 16px; border-radius: 999px; font: 600 11px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; background: var(--tinta); color: var(--crema); }
+  .prop button.no { background: var(--arena); color: var(--tinta); }
+  .prop button:disabled { opacity: .5; }
+  .fines { display: grid; gap: 8px; }
+  .vacio { margin: 60px 0; text-align: center; font: 400 24px/1.3 Valky, Georgia, serif; color: var(--suave); }
+  .vacio p { font: 500 14px Montserrat, sans-serif; margin: 12px 0 0; }
+  .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--tinta); color: var(--crema); padding: 10px 16px; border-radius: 999px;
+    font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
+  .msg.on { opacity: 1; }
+  button:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--durazno); outline-offset: 2px; }
+  @media (max-width: 420px) { .bar { grid-template-columns: 6rem 1fr 3rem; } .cifra b { font-size: 34px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="barra">
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="t">Mejora de llamadas</div>
+    <select id="semana" aria-label="Semana" hidden></select>
+  </div>
+  <div id="cuerpo"><div class="vacio">Cargando el reporte…</div></div>
+</main>
+<div class="msg" id="msg"></div>
+<script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
+<script src="../js/alma-client.js?v=2026-11-04a"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function aviso(t) { var m = $("msg"); m.textContent = t; m.classList.add("on"); clearTimeout(aviso.t); aviso.t = setTimeout(function () { m.classList.remove("on"); }, 2600); }
+  var es = new Intl.NumberFormat("es-ES"), es1 = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
+  var MODOS = { llamada_app: "Llamada en la app", llamada_hub: "Llamada en el Hub", llamada_whatsapp: "Llamada por WhatsApp", conferencia: "Modo conferencia" };
+  var CANAL = { llamada: "Voz (llamadas)", whatsapp: "Chat de WhatsApp", app: "Chat en la app" };
+  var R = null;
+  function sec(t, extra) { var s = el("div", "sec"); s.appendChild(el("h2", "", t)); if (extra) s.appendChild(el("span", "", extra)); return s; }
+  /* Cómo va un modo: malo si casi la mitad es silencio o se cortan muchas; regular en medio. */
+  function estado(m) { if (m.pct_muerto > 40 || m.pct_cortes > 30) return "malo"; if (m.pct_muerto > 25 || m.pct_cortes > 10 || m.pct_relleno > 10) return "regular"; return "bueno"; }
+  function delta(v, p, menosEsMejor, suf) {
+    var i = el("i"); if (p == null || v == null || isNaN(p)) { i.textContent = "sin semana anterior"; return i; }
+    var d = Math.round((v - p) * 10) / 10; if (!d) { i.textContent = "igual que la semana pasada"; return i; }
+    if (menosEsMejor != null) i.className = (menosEsMejor ? d < 0 : d > 0) ? "bien" : "mal";   // null: ni mejor ni peor (p. ej. cuántas llamadas) i.textContent = (d > 0 ? "+" : "−") + es1.format(Math.abs(d)) + (suf || "") + " vs. semana pasada"; return i;
+  }
+  function cifra(caja, valor, texto, d) { var c = el("div", "cifra"); c.appendChild(el("b", "", valor)); c.appendChild(el("span", "", texto)); if (d) c.appendChild(d); caja.appendChild(c); }
+  function barra(t, v, cls) { var b = el("div", "bar " + (cls || "")); b.appendChild(el("span", "", t)); var p = el("div", "p"), i = el("i"); i.style.width = Math.max(1, Math.min(100, v || 0)) + "%"; p.appendChild(i); b.appendChild(p); b.appendChild(el("em", "", v == null ? "—" : es1.format(v) + " %")); return b; }
+  function pintar() {
+    var C = $("cuerpo"); C.innerHTML = "";
+    if (!R || !R.reporte) {
+      var v = el("div", "vacio", "Todavía no hay reportes."); v.appendChild(el("p", "", "El equipo de Mejora de llamadas arma el primero el lunes a primera hora."));
+      var b = el("button", "", "Armarlo ahora"); b.style.cssText = "margin-top:18px;border:0;cursor:pointer;padding:12px 18px;border-radius:999px;font:600 11px Montserrat,sans-serif;letter-spacing:.1em;text-transform:uppercase;background:#3E3F3F;color:#FAF8F6";
+      /* tarda uno o dos minutos: la página vuelve a mirar sola aunque la petición se corte antes */
+      b.onclick = function () { b.disabled = true; b.textContent = "Armándolo… vuelve en 2 minutos"; var listo = function () { cargar(); }; ALMA.agentes({ correr: "mejora_llamadas" }).then(listo, function () {}); setTimeout(listo, 100000); };
+      v.appendChild(b); C.appendChild(v); return;
+    }
+    var rep = R.reporte, D = rep.datos || {}, V = D.voz || {}, P = (D.previa || {}), PV = P.voz || {}, T = V.total_muestra || {}, PT = PV.total_muestra || {};
+    var ch = D.chat || {}, pch = P.chat || {}, cv = ch.llamada || {}, pcv = pch.llamada || {};
+    /* portada */
+    var po = el("div", "portada"); po.appendChild(el("small", "", "Reporte de llamadas · semana")); po.appendChild(el("h1", "", rep.semana));
+    if (D.lectura) po.appendChild(el("p", "", D.lectura)); C.appendChild(po);
+    /* cifras */
+    C.appendChild(sec("La semana en cifras", "contra la anterior"));
+    var cf = el("div", "cifras");
+    cifra(cf, V.llamadas == null ? "—" : es.format(V.llamadas), "llamadas · " + (V.minutos == null ? "—" : es1.format(V.minutos)) + " min", delta(V.llamadas, PV.llamadas, null, ""));
+    cifra(cf, T.pct_muerto == null ? "—" : es1.format(T.pct_muerto) + " %", "del tiempo en silencio", delta(T.pct_muerto, PT.pct_muerto, true, " pts"));
+    cifra(cf, T.pct_relleno == null ? "—" : es1.format(T.pct_relleno) + " %", "de los tokens en relleno", delta(T.pct_relleno, PT.pct_relleno, true, " pts"));
+    cifra(cf, V.pct_cortes == null ? "—" : es1.format(V.pct_cortes) + " %", "terminaron en corte o fallo", delta(V.pct_cortes, PV.pct_cortes, true, " pts"));
+    cifra(cf, T.creditos_min == null ? "—" : es.format(T.creditos_min), "créditos por minuto de voz", delta(T.creditos_min, PT.creditos_min, true, ""));
+    cifra(cf, cv.mediana_s == null ? "—" : es1.format(cv.mediana_s) + " s", "tarda Alma en responder", delta(cv.mediana_s, pcv.mediana_s, true, " s"));
+    cifra(cf, cv.pct_negativas == null ? "—" : es1.format(cv.pct_negativas) + " %", "respuestas negativas", delta(cv.pct_negativas, pcv.pct_negativas, true, " pts"));
+    C.appendChild(cf);
+    C.appendChild(el("p", "nota", "Silencio y relleno salen de " + (T.n || 0) + " llamadas leídas turno por turno; el silencio se estima por lo que dura lo dicho."));
+    /* propuestas */
+    var props = (rep.propuestas || []); var pend = props.filter(function (p) { return p.estado === "espera tu sí"; }).length;
+    var sp = sec("Lo que propone el equipo", pend ? pend + " esperan tu sí" : "decidido"); sp.id = "propuestas"; C.appendChild(sp);
+    var pc = el("div", "props");
+    if (!props.length) pc.appendChild(el("p", "nota", "Esta semana el equipo no tiene propuestas."));
+    props.forEach(function (p) {
+      var c = el("div", "prop"), cab = el("div", "cab"); cab.style.cssText = "display:flex;align-items:center;gap:12px";
+      cab.appendChild(el("span", "num", String(p.n).padStart(2, "0")));
+      var chip = el("span", "chip " + (p.tipo === "invisible" ? "bueno" : p.estado === "espera tu sí" ? "regular" : ""), p.tipo === "invisible" ? "Sin cambio para ti · " + p.estado : p.estado); cab.appendChild(chip);
+      c.appendChild(cab); c.appendChild(el("h3", "", p.titulo)); c.appendChild(el("p", "", p.porque)); c.appendChild(el("div", "ef", "Efecto esperado: " + p.efecto));
+      if (p.estado === "espera tu sí") {
+        var bt = el("div", "bt"), si = el("button", "", "Sí, hazlo"), no = el("button", "no", "No");
+        var decidir = function (ok) { si.disabled = no.disabled = true; ALMA.reporteLlamadas({ id: rep.id, decidir: { id: rep.id, n: p.n, si: ok } }).then(function (r) {
+          if (!r || !r.ok) { si.disabled = no.disabled = false; aviso((r && r.error) || "No se pudo"); return; } aviso(ok ? "Se lo pasé a Claude: su cambio llega a Pendientes" : "Descartada"); R = r; pintar(); }); };
+        si.onclick = function () { decidir(true); }; no.onclick = function () { decidir(false); };
+        bt.appendChild(si); bt.appendChild(no); c.appendChild(bt);
+      }
+      pc.appendChild(c);
+    });
+    C.appendChild(pc);
+    /* modos */
+    C.appendChild(sec("Cada modo, frente a frente"));
+    var mo = el("div", "modos"), M = V.modos || {};
+    Object.keys(MODOS).forEach(function (k) {
+      var m = M[k]; if (!m) return;
+      var e = estado(m), c = el("div", "modo"), cab = el("div", "cab"); cab.appendChild(el("h3", "", MODOS[k])); cab.appendChild(el("span", "chip " + e, e === "bueno" ? "Bien" : e === "regular" ? "Regular" : "Mal")); c.appendChild(cab);
+      var dt = el("div", "datos");
+      [["llamadas leídas", m.n], ["s de media", m.seg_medio], ["créditos/min", m.creditos_min], ["s de espera a herramientas", m.espera_herramientas_s], ["respuestas negativas", m.negativas]].forEach(function (x) {
+        var s = el("span"); s.appendChild(el("b", "", x[1] == null ? "—" : es1.format(x[1]))); s.appendChild(document.createTextNode(" " + x[0])); dt.appendChild(s); });
+      c.appendChild(dt);
+      var bs = el("div", "barras"); bs.appendChild(barra("Silencio", m.pct_muerto)); bs.appendChild(barra("Relleno", m.pct_relleno, "relleno")); bs.appendChild(barra("Cortadas", m.pct_cortes, "corte")); c.appendChild(bs);
+      mo.appendChild(c);
+    });
+    if (!mo.childNodes.length) mo.appendChild(el("p", "nota", "Sin llamadas leídas esta semana."));
+    C.appendChild(mo);
+    /* niveles */
+    C.appendChild(sec("Cuánto tarda en responder", "3 niveles"));
+    var ly = el("div", "ley"); [["#8FB38C", "Nivel 1 · hasta 10 s"], ["#E3A47F", "Nivel 2 · de 10 a 60 s"], ["#B54D36", "Nivel 3 · más de 60 s"]].forEach(function (x) { var s = el("span"), i = el("i"); i.style.background = x[0]; s.appendChild(i); s.appendChild(document.createTextNode(x[1])); ly.appendChild(s); }); C.appendChild(ly);
+    var nv = el("div", "niv"); nv.style.marginTop = "14px";
+    Object.keys(ch).forEach(function (k) {
+      var c = ch[k]; if (!c || !c.pedidos) return;
+      var f = el("div", "fila"), t = el("div"); t.appendChild(el("b", "", CANAL[k] || k)); t.appendChild(el("small", "", es.format(c.pedidos) + " pedidos · mediana " + (c.mediana_s == null ? "—" : es1.format(c.mediana_s) + " s"))); f.appendChild(t);
+      var ap = el("div", "apil"); [["n1", c.n1], ["n2", c.n2], ["n3", c.n3]].forEach(function (x) { var i = el("i", x[0], x[1] >= 9 ? Math.round(x[1]) + " %" : ""); i.style.width = (x[1] || 0) + "%"; ap.appendChild(i); }); f.appendChild(ap);
+      nv.appendChild(f);
+    });
+    C.appendChild(nv);
+    /* cómo terminaron */
+    C.appendChild(sec("Cómo terminaron las llamadas"));
+    var fn = el("div", "fines"), F = V.fines || {}, tot = V.llamadas || 1;
+    Object.keys(F).sort(function (a, b) { return F[b] - F[a]; }).forEach(function (k) {
+      var malo = ["Se cortó la conexión", "Silencio largo de la persona", "Filtro de seguridad", "Cuota agotada", "Otro corte"].indexOf(k) >= 0;
+      var b = barra(k + " · " + F[k], Math.round(1000 * F[k] / tot) / 10, malo ? "corte" : "relleno"); b.style.gridTemplateColumns = "minmax(9rem, 14rem) 1fr 3.2rem"; fn.appendChild(b);
+    });
+    C.appendChild(fn);
+    if (V.cortas_10s) C.appendChild(el("p", "nota", es.format(V.cortas_10s) + " llamadas duraron menos de 10 s (abiertas por error o que no conectaron)."));
+    /* conferencia */
+    var cfz = D.conferencia || {};
+    if (cfz.sesiones) {
+      C.appendChild(sec("Modo conferencia"));
+      var cc = el("div", "cifras");
+      cifra(cc, es.format(cfz.sesiones), "sesiones · " + es.format(cfz.minutos || 0) + " min escuchando");
+      cifra(cc, es.format((cfz.por_estado || {})["vacía"] || 0), "quedaron vacías");
+      cifra(cc, es.format(cfz.reunion || 0), "fueron reuniones");
+      cifra(cc, es.format(cfz.con_audio || 0), "con audio para separar voces");
+      C.appendChild(cc);
+    }
+    C.appendChild(el("p", "nota", "Fuentes: ElevenLabs (todas las llamadas de la semana y una muestra leída turno por turno) y la hoja del Hub (chat con Alma, modo conferencia). Lo arma el equipo de Mejora de llamadas cada lunes."));
+    if (location.hash === "#propuestas") { var px = document.getElementById("propuestas"); if (px) px.scrollIntoView(); }
+  }
+  function cargar(id) {
+    ALMA.reporteLlamadas(id ? { id: id } : {}).then(function (r) {
+      if (!r || !r.ok) { $("cuerpo").innerHTML = ""; $("cuerpo").appendChild(el("div", "vacio", (r && r.error) || "No pude cargar el reporte.")); return; }
+      R = r; var s = $("semana"); s.innerHTML = "";
+      (r.lista || []).forEach(function (x) { var o = el("option", "", x.semana); o.value = x.id; s.appendChild(o); });
+      s.hidden = (r.lista || []).length < 2; if (r.reporte) s.value = r.reporte.id;
+      pintar();
+    });
+  }
+  $("semana").onchange = function () { cargar(this.value); };
+  var q = new URLSearchParams(location.search); cargar(q.get("id") || "");
+})();
+</script>
+</body>
+</html>

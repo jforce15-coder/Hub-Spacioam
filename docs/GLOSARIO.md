@@ -7,6 +7,9 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 |---|---|---|
 | **Alma** | La asistente: la única que habla con las personas (Juan, equipo, socios, huéspedes). | bot, IA, sistema |
 | **La roca** | El botón de Alma que flota en las web apps y en la app (sa-nav); en el inicio, la piedra grande al centro. | botón, burbuja, círculo |
+| **El nuevo chat** | El cuadro para escribir copiado de WhatsApp (#304), igual en todos los lugares donde se escribe para enviar. Inactivo (vacío): «+» · cuadro · roca · micrófono. Activo (desde la primera letra): «+» · cuadro · roca · enviar. Solo envía el botón enviar (Enter salta de línea); crece hasta 5 líneas. La roca: 1 toque Mejorar, 2 toques hablar con Alma. | caja de chat, input |
+| **Plantilla** | Un texto personal que guardas desde el «+» («Guardar este texto como plantilla»); al tocarla se pone en el cuadro, sin enviarse. No es la plantilla de WhatsApp que se manda sola para retomar una conversación de más de 24 h. | respuesta rápida, snippet, atajo |
+| **Dictar** | El micrófono del cuadro: grabas con la onda donde va el texto, ✓ lo pasa a texto y queda escrito en el cuadro para revisarlo antes de enviar (× cancela). No manda audio. | nota de voz, grabar audio |
 | **Modo anillo** | Dos toques del anillo encienden o apagan el modo conferencia, también con el teléfono bloqueado (ya no abren una llamada propia). Si Alma está hablando, dos toques la pausan o la retoman. | modo amigo, manos libres |
 | **Llamada** | Una conversación de voz con Alma (por la roca, el anillo o WhatsApp). | sesión de voz |
 | **Agente** | Uno del equipo detrás de Alma (Operaciones, Huéspedes, Finanzas, Crecimiento, Marketing, Mantenimiento, Desarrollo, Archivo). Revisa y propone; no habla con nadie. | bot, robot |

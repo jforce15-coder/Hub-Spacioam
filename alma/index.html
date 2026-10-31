@@ -29,12 +29,23 @@
   .yo { align-self: flex-end; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); border-bottom-right-radius: 4px; }
   .alma { align-self: flex-start; background: var(--surface, #fff); border: 1px solid var(--border-soft, #e4ded5); border-bottom-left-radius: 4px; }
   .nota { align-self: center; color: var(--fg-muted, #6f6867); font-size: 13px; text-align: center; }
-  footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: var(--surface, #fff); border-top: 1px solid var(--border-soft, #e4ded5); display: flex; gap: 8px; align-items: flex-end; }
-  textarea { flex: 1; resize: none; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); max-height: 140px; }
-  button { font: inherit; border: 0; border-radius: 999px; height: 44px; min-width: 44px; padding: 0 16px; cursor: pointer; }
-  #enviar { background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); }
-  #voz { background: var(--accent, #B54D36); color: #fff; }
-  #voz.vivo { background: var(--color-error, #a33); }
+  /* El nuevo chat (#304): «+» · cuadro (hasta 5 líneas) · roca · micrófono (vacío) o enviar (con texto). Enter salta de línea. */
+  footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: var(--surface, #fff); border-top: 1px solid var(--border-soft, #e4ded5); display: flex; gap: 6px; align-items: flex-end; }
+  .caja { flex: 1; min-width: 0; position: relative; display: flex; border-radius: 24px; }
+  textarea { flex: 1; min-width: 0; resize: none; font: inherit; font-size: 16px; line-height: 20px; height: 48px; padding: 13px 14px; box-sizing: border-box; border-radius: 24px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); max-height: 126px; overflow-y: hidden; outline: none; }
+  button { font: inherit; border: 0; border-radius: 999px; height: 48px; min-width: 48px; padding: 0; cursor: pointer; display: grid; place-items: center; flex: none; -webkit-tap-highlight-color: transparent; transition: transform .1s, background .18s; }
+  button:active { transform: scale(.92); }
+  #mas { background: transparent; color: var(--fg, #1D1D1B); }
+  #mic, #enviar { width: 48px; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); }
+  #enviar { display: none; }
+  footer.lleno #mic { display: none; } footer.lleno #enviar { display: grid; }
+  .rocaw { position: relative; flex: none; }
+  #roca { width: 48px; border: 1px solid #E9826A; background: rgba(233,130,106,.14); }
+  #roca.vivo { background: #E9826A; animation: graba 1.2s ease-in-out infinite; }
+  #roca.vivo svg { fill: #fff; }
+  @keyframes graba { 50% { box-shadow: 0 0 0 10px rgba(233,130,106,.2); } }
+  .tip { position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%); padding: 6px 11px; border-radius: 999px; background: var(--fg, #1D1D1B); color: #fff; font-size: 11px; font-weight: 500; white-space: nowrap; pointer-events: none; display: none; }
+  footer.lleno .tip { display: block; }
   button:disabled { opacity: .45; }
   .entrar { margin: 40px auto; max-width: 360px; text-align: center; line-height: 1.5; }
   .entrar a { display: inline-block; margin-top: 12px; padding: 12px 20px; border-radius: 999px; background: var(--fg, #1D1D1B); color: #fff; text-decoration: none; }
@@ -50,12 +61,15 @@
 </header>
 <main id="hilo"><div class="sa-esq" aria-label="Cargando la conversación" style="width: 100%"><i class="b"></i><i class="b yo"></i><i class="b"></i></div></main>
 <footer id="pie">
-  <button id="voz" title="Hablar con Alma">🎙</button>
-  <textarea id="txt" rows="1" placeholder="Pregúntale a Alma sobre esta página…"></textarea>
-  <button id="enviar">Enviar</button>
+  <button id="mas" type="button" aria-label="Plantillas" title="Plantillas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <div class="caja" id="caja"><textarea id="txt" rows="1" placeholder="Pregúntale a Alma sobre esta página…" enterkeyhint="enter" aria-label="Mensaje para Alma"></textarea></div>
+  <div class="rocaw"><span class="tip" aria-hidden="true">Mejorar</span><button id="roca" type="button" data-sa-dock="1" aria-label="Alma" title="Un toque: mejorar · dos toques: hablar con Alma"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E9826A" aria-hidden="true"><path d="M12 2.5c.7 4.7 2.8 6.8 7.5 7.5-4.7.7-6.8 2.8-7.5 7.5-.7-4.7-2.8-6.8-7.5-7.5 4.7-.7 6.8-2.8 7.5-7.5z"/></svg></button></div>
+  <button id="mic" type="button" aria-label="Dictar: toca y habla" title="Dictar: toca y habla"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+  <button id="enviar" type="button" aria-label="Enviar" title="Enviar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
 </footer>
 <script src="../js/sa-auth-client.js"></script>
 <script src="../js/alma-client.js"></script>
+<script src="../js/sa-compositor.js?v=2026-11-09a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01a"></script>
 <script>
 (function () {
@@ -117,7 +131,7 @@
     var t = $("txt").value.trim(); if (!t) return;
     if (capturaP && !captura) { $("enviar").disabled = true; capturaP.then(function () { capturaP = null; $("enviar").disabled = false; enviar(); }); return; }
     var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
-    $("txt").value = ""; $("enviar").disabled = true;
+    $("txt").value = ""; crecer(); $("enviar").disabled = true;
     mensajes = mensajes.concat([{ de: "yo", texto: t }, { de: "alma", texto: "…" }]); pinta(mensajes);
     ALMA.opEnviar(yo, texto).then(function (r) {
       mensajes.pop();
@@ -125,27 +139,59 @@
       pinta(mensajes);
     }).finally(function () { $("enviar").disabled = false; });
   }
-  $("enviar").onclick = enviar;
-  $("txt").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); } });
+  $("enviar").onclick = enviar;   // solo el botón envía: Enter salta de línea (el nuevo chat, #304)
+
+  /* El cuadro crece hasta 5 líneas y luego hace scroll; con texto, el micrófono se cambia por enviar y aparece «Mejorar». */
+  function crecer() {
+    var t = $("txt"); t.style.height = "48px"; t.style.height = Math.min(126, t.scrollHeight + 2) + "px"; t.style.overflowY = t.scrollHeight + 2 > 126 ? "auto" : "hidden";
+    var lleno = !!t.value.trim(); $("pie").classList.toggle("lleno", lleno); $("roca").setAttribute("aria-label", lleno ? "Mejorar" : "Alma");
+  }
+  function poner(t) { var x = $("txt"); x.value = t; crecer(); try { x.focus(); x.setSelectionRange(t.length, t.length); } catch (e) {} }
+  $("txt").addEventListener("input", crecer);
+  /* El micrófono: dicta al cuadro (js/sa-compositor.js); lo dicho queda escrito para revisarlo antes de enviar. */
+  $("mic").onclick = function () {
+    if (!window.SAComp) return;
+    SAComp.dictar({ caja: $("caja"), onTexto: function (t) { var p = $("txt").value.replace(/\s+$/, ""); poner(p ? p + " " + t : t); } });
+  };
+  /* El «+»: mis plantillas (tocar una la pone en el cuadro, no la envía) y guardar este texto como plantilla. */
+  $("mas").onclick = function () { if (window.SAComp) SAComp.mas({ ancla: $("mas"), texto: function () { return $("txt").value; }, poner: poner }); };
 
   /* Voz: el mismo agente del Hub; lo que hay en pantalla es la página de origen. */
   var voz = SAAlmaVoz.crear({ contexto: function () {
     return "EN PANTALLA: abrió a Alma desde «Alma aquí»" + (desde ? ", mientras veía la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " con este texto seleccionado: «" + sel + "»" : "") : "") +
       (captura ? ". Mandó una captura de su pantalla; lo que se ve: " + captura : "") + ". Úsalo como contexto de lo que pregunte.";
   } });
-  var llamada = null;
-  $("voz").onclick = function () {
+  var llamada = null, abriendo = false;
+  function hablar() {
     if (llamada) { llamada.end(); return; }
-    $("voz").disabled = true;
+    if (abriendo) return; abriendo = true;
     voz.start({
-      status: function (s) { $("voz").title = s; },
+      status: function (s) { $("roca").title = s; },
       message: function (src, t) { mensajes.push({ de: src === "ai" ? "alma" : "yo", texto: t }); pinta(mensajes); },
-      ended: function () { llamada = null; $("voz").classList.remove("vivo"); $("voz").textContent = "🎙"; },
+      ended: function () { llamada = null; $("roca").classList.remove("vivo"); $("roca").title = "Un toque: mejorar · dos toques: hablar con Alma"; },
       error: function (m) { mensajes.push({ de: "alma", texto: m }); pinta(mensajes); }
-    }).then(function (c) { llamada = c; $("voz").classList.add("vivo"); $("voz").textContent = "■"; },
+    }).then(function (c) { llamada = c; $("roca").classList.add("vivo"); },
       function (e) { mensajes.push({ de: "alma", texto: (e && e.message) || "No pude abrir la voz." }); pinta(mensajes); })
-      .finally(function () { $("voz").disabled = false; });
+      .finally(function () { abriendo = false; });
+  }
+  /* La roca (data-sa-dock: si algún día esta página monta sa-nav, la roca oficial se encaja aquí y su clic es el 1 toque).
+     1 toque mejora el texto (ALMA.mejorarTexto) · 2 toques, hablar con Alma (o colgar). Aquí no hay sa-nav, así que los
+     toques se cuentan en la página. Con la llamada abierta, 1 toque cuelga. */
+  var mejorando = false;
+  function mejorar() {
+    var x = $("txt"), t = x.value.trim(); if (!t || mejorando || !ALMA.mejorarTexto) return;
+    mejorando = true; $("roca").style.opacity = ".5"; x.readOnly = true; var antes = x.value;
+    ALMA.mejorarTexto(t, { pagina: "Alma aquí" + (titulo ? " · " + titulo : ""), etiqueta: "Mensaje para Alma", url: desde }).then(function (r) {
+      mejorando = false; $("roca").style.opacity = ""; x.readOnly = false;
+      if (r && r.ok && r.texto && x.value === antes) poner(r.texto);
+    }, function () { mejorando = false; $("roca").style.opacity = ""; x.readOnly = false; });
+  }
+  var toques = 0, toqT = 0;
+  $("roca").onclick = function () {
+    toques++; clearTimeout(toqT);
+    toqT = setTimeout(function () { var n = toques; toques = 0; if (n >= 2 || llamada) hablar(); else mejorar(); }, 300);
   };
+  $("roca").addEventListener("dblclick", function (e) { e.preventDefault(); });
 })();
 </script>
 </body>

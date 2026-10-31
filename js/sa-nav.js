@@ -1577,7 +1577,7 @@
   }
   /* «Responder»: la respuesta va a quien preguntó (Claude o Alma, lo decide el Hub). El nuevo chat (#304): el micrófono dicta
      al cuadro (js/sa-compositor.js) y lo dicho queda escrito para revisarlo; el «+» trae mis plantillas. Solo envía el botón.
-     Si la página no tiene ALMA.dictar, el micrófono usa la nota de voz de la app (cfg.pendientes.nota), como antes. */
+     Si la página no tiene ALMA.dictar, el micrófono dicta con lo que da la app (cfg.pendientes.nota), como antes. */
   function pendResponder(p, quita) {
     var rp = d.createElement("div"); rp.className = "san-rp"; rp.hidden = true;
     var cj = d.createElement("div"); cj.className = "cj";

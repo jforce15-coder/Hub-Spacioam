@@ -79,6 +79,15 @@
     <div class="msg" id="m-github"></div>
   </section>
 
+  <section id="s-bq">
+    <h2>BigQuery <span class="pill" id="e-bq">Revisando…</span></h2>
+    <p>El cerebro de Alma: el índice donde busca rápido y con pruebas. Sigue los pasos en Google Cloud (proyecto, facturación, BigQuery API y una cuenta de servicio con los roles <b>Editor de datos de BigQuery</b> y <b>Usuario de trabajos de BigQuery</b>) y aquí pega el ID del proyecto y elige el archivo JSON de la clave.</p>
+    <label for="bq-p">ID del proyecto</label><input id="bq-p" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="alma-cerebro-123456">
+    <label for="bq-f" style="margin-top:12px">Archivo JSON de la clave</label><input id="bq-f" type="file" accept=".json,application/json">
+    <div class="fila"><button type="button" id="b-bq">Guardar</button></div>
+    <div class="msg" id="m-bq"></div>
+  </section>
+
   <section id="s-claude">
     <h2>Claude <span class="pill" id="e-claude">Revisando…</span></h2>
     <p>Para que Alma le pase tus mejoras del sistema a Claude. La llave sale de <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> → «Alma → Claude» → Editar → API → Generar token.</p>
@@ -105,6 +114,8 @@
     if (!r || !r.ok) { msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); return r; }
     pill('e-claude', r.claude, 'Conectado', 'Sin llave');
     pill('e-github', r.github, 'Conectado', 'Sin llave');
+    var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
+    if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
     var sp = r.spotify || {}; $('redir').value = sp.redirect || '';
     pill('e-spotify', sp.conectado, 'Conectado', sp.credenciales ? 'Falta conectar' : 'Sin conectar');
     $('b-sp-conectar').textContent = sp.conectado ? 'Volver a conectar' : 'Conectar Spotify';
@@ -130,6 +141,18 @@
   $('b-gh').onclick = function () {
     var v = $('gh').value.trim(); if (!/^(github_pat_|ghp_)/.test(v)) return msg('m-github', 'La llave empieza con github_pat_', 'mal');
     llamar({ guardar: { github: v } }).then(function (r) { $('gh').value = ''; if (pintar(r) && r.ok) msg('m-github', 'Guardada.', 'bien'); else msg('m-github', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  /* BigQuery: el archivo se lee aquí y va directo al Hub; nunca se muestra ni se guarda en el teléfono. */
+  $('b-bq').onclick = function () {
+    var pr = $('bq-p').value.trim(), f = $('bq-f').files && $('bq-f').files[0];
+    if (!pr && !f) return msg('m-bq', 'Pega el ID del proyecto y elige el archivo JSON.', 'mal');
+    var mandar = function (txt) {
+      msg('m-bq', 'Guardando…');
+      llamar({ guardar: { bqProyecto: pr, bqCuenta: txt || '' } }).then(function (r) { $('bq-f').value = '';
+        if (pintar(r) && r.ok) msg('m-bq', 'Guardado' + (r.bigquery && r.bigquery.cuenta ? ' · ' + r.bigquery.cuenta : '') + '. Ya puedes borrar el archivo JSON de tu teléfono o computadora.', 'bien'); else msg('m-bq', (r && r.error) || 'No se pudo.', 'mal'); });
+    };
+    if (!f) return mandar('');
+    var lr = new FileReader(); lr.onload = function () { mandar(String(lr.result || '')); }; lr.onerror = function () { msg('m-bq', 'No pude leer el archivo.', 'mal'); }; lr.readAsText(f);
   };
   $('b-cl').onclick = function () {
     var v = $('cl').value.trim(); if (!v) return msg('m-claude', 'Pega primero la llave.', 'mal');

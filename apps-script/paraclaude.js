@@ -90,13 +90,22 @@ function conexiones_(ses, b) {
   if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
   if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
+  /* El cerebro de Alma (BigQuery): el id del proyecto y la llave JSON de la cuenta de servicio. Se revisa que sea una
+     llave de cuenta de servicio de verdad; nunca se devuelve, solo el correo de la cuenta (no es secreto). */
+  if (g.bqProyecto) { if (!/^[a-z][a-z0-9-]{4,29}$/.test(String(g.bqProyecto).trim())) return { ok: false, error: 'El ID del proyecto va en minúsculas, con números y guiones (p. ej. alma-cerebro-123456).' }; p.setProperty('BQ_PROYECTO', String(g.bqProyecto).trim()); }
+  if (g.bqCuenta) {
+    var cj = null; try { cj = JSON.parse(String(g.bqCuenta)); } catch (e) {}
+    if (!cj || cj.type !== 'service_account' || !cj.private_key || !cj.client_email) return { ok: false, error: 'Ese no es el archivo de la cuenta de servicio: es un JSON que dice "type": "service_account".' };
+    p.setProperty('BQ_CUENTA', JSON.stringify(cj));
+  }
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')) };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p) };
   if (canje) out.canje = canje;
   if (b.conectar === 'spotify') { var a = spotifyAutorizar_(); if (!a.ok) return a; out.url = a.url; }
   return out;
 }
+function conexBq_(p) { var c = null; try { c = JSON.parse(p.getProperty('BQ_CUENTA') || 'null'); } catch (e) {} return { proyecto: p.getProperty('BQ_PROYECTO') || '', cuenta: c && c.client_email ? c.client_email : '' }; }
 /* hub.spacioam.com/claude.html: el admin principal pega ahí la llave de la tarea (la pantalla de Propiedades del script
    no deja agregar más de 50). Con llave vacía solo dice si ya hay una guardada; nunca la devuelve. */
 function paraClaudeLlave_(ses, llave) {

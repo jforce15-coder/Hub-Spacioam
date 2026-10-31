@@ -122,6 +122,38 @@
   /* con las áreas abiertas, «Toca a Alma» y los botones de abajo se van al instante (antes de que lleguen las esferas) */
   body.orbita-on #sa-nav-root .san-ov-ui, body.orbita-on #sa-nav-root .san-ov-st { opacity: 0 !important; pointer-events: none !important; transition: opacity .1s ease !important; }
   @media (prefers-reduced-motion: reduce) { .esf .halo, .esf .resp { animation: none; } }
+  /* ── Barra de avisos: arriba de las esferas, lo más importante de cada esfera, una a la vez. Al tocarla se abre con
+     sus botones (los mismos de Pendientes). La esfera del aviso crece y su halo brilla; las demás respiran más lento. ── */
+  .aviso { position: fixed; left: 16px; right: 16px; top: calc(max(14px, env(safe-area-inset-top) + 6px) + 58px); z-index: 2147482300; max-width: 520px; margin: 0 auto;
+    border-radius: 22px; background: rgba(255,255,255,.3); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2);
+    border: 1px solid rgba(255,255,255,.5); box-shadow: 0 10px 30px rgba(40,30,40,.15); color: #2F3030;
+    opacity: 0; transform: translateY(-8px); pointer-events: none; transition: opacity .35s ease, transform .5s cubic-bezier(.3,1.2,.5,1), background .3s ease; }
+  .aviso.on { opacity: 1; transform: none; pointer-events: auto; }
+  body.orbita-on .hola { opacity: 0 !important; }   /* el saludo no se asoma detrás de la barra */
+  .aviso.abierta { background: rgba(250,248,246,.9); }
+  .av-pil { display: flex; align-items: center; gap: 11px; width: 100%; padding: 12px 14px; border: 0; background: none; color: inherit; text-align: left; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; font: inherit; }
+  .av-pil .p { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--c, #E9826A); box-shadow: 0 0 10px var(--c, #E9826A); }
+  .av-pil .t { flex: 1; min-width: 0; transition: opacity .25s ease; }
+  .aviso.cambia .av-pil .t { opacity: 0; }
+  .av-pil small { display: block; font: 700 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #6F6867; }
+  .av-pil b { display: block; margin-top: 3px; font: 500 14px Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .aviso.abierta .av-pil b { white-space: normal; }
+  .av-pil .n { flex: none; font: 600 11px Montserrat, system-ui, sans-serif; color: #6F6867; font-variant-numeric: tabular-nums; }
+  .av-cu { display: none; max-height: min(60vh, 520px); overflow: auto; padding: 0 12px 12px; -webkit-overflow-scrolling: touch; }
+  .aviso.abierta .av-cu { display: block; }
+  .av-cu .san-pc { margin: 0 0 10px; }
+  .av-cu .tx { margin: 0 4px 10px; font: 400 14px/1.5 Montserrat, system-ui, sans-serif; color: #3E3F3F; white-space: pre-wrap; }
+  .av-cu .ir { display: flex; gap: 8px; justify-content: flex-end; }
+  .av-cu .ir button { border: 0; border-radius: 999px; padding: 9px 16px; font: 600 12.5px Montserrat, system-ui, sans-serif; cursor: pointer; background: #3E3F3F; color: #FAFAFA; }
+  .av-cu .ir button.sec { background: rgba(62,63,63,.08); color: #3E3F3F; }
+  .esf .pres { transition: transform .6s cubic-bezier(.3,1.3,.5,1); }
+  .esf.foco .pres { transform: scale(1.16); }
+  .esf.foco .halo { animation: esf-halo-foco 2.4s ease-in-out infinite; }
+  .esf.foco .piedra::after { opacity: 1; border-width: 2px; }
+  .orbita.foco .esf:not(.foco) .resp, .orbita.foco .esf:not(.foco) .halo { animation-duration: 6.4s; }
+  @keyframes esf-halo-foco { 0%, 100% { transform: scale(1.15); opacity: .85; } 50% { transform: scale(1.42); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .esf.foco .halo { animation: none; opacity: 1; transform: scale(1.3); } .aviso { transition: opacity .2s ease; transform: none; } }
   .areas { position: fixed; inset: 0; z-index: 2147483400; background: #FAF8F6; color: #3E3F3F; display: flex; flex-direction: column;
     padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); box-sizing: border-box;
     opacity: 0; transform: translateY(24px); pointer-events: none; transition: opacity .45s cubic-bezier(.45,0,.55,1), transform .6s cubic-bezier(.3,1.15,.55,1); }
@@ -214,6 +246,7 @@
 <span class="escucha-p" id="escucha-p" aria-hidden="true"></span>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
+<div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
   <header>
     <button type="button" class="redondo" id="a-atras" aria-label="Volver" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -277,7 +310,7 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-04a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01a"></script>
-<script src="../js/sa-nav.js?v=2026-11-05a"></script>
+<script src="../js/sa-nav.js?v=2026-11-07a"></script>
 <script>
 (function () {
   "use strict";
@@ -297,18 +330,29 @@
   function hay() { return !!(window.SAAuth && SAAuth.session && SAAuth.session()); }
 
   /* Alma lista para hablar (con sesión): tocarla abre la voz aquí mismo. */
+  /* Lo último que viste, primero (ds/velocidad.md, regla 8): la «foto» del inicio (áreas, pendientes y notificaciones)
+     guardada en el teléfono, por persona y versión. Vence a las 24 h y se borra al cerrar sesión. Nada sensible: aquí solo
+     hay títulos y resúmenes de lo de Juan, nada de huéspedes ni documentos. */
+  var FOTO_V = "sa_foto:alma:1:";
+  function fotoClave(que) { var yo = sesion(), pp = yo.p || {}; var e = pp.email || yo.e || ""; return e ? FOTO_V + que + ":" + e : ""; }
+  function fotoLeer(que) { try { var k = fotoClave(que), f = k && JSON.parse(localStorage.getItem(k) || "null"); return f && f.t && Date.now() - f.t < 864e5 && f.datos ? f : null; } catch (e) { return null; } }
+  function fotoGuardar(que, r) { if (!r || !r.ok) return r; try { var k = fotoClave(que); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), datos: r })); } catch (e) {} return r; }
+  function fotoBorrar() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("sa_foto:alma:") === 0) localStorage.removeItem(k); }); } catch (e) {} }
   function conVoz(nombre) {
     var v = NATIVA ? vozNativa() : window.SAAlmaVoz;
     nombre = String(nombre || "").trim().split(/\s+/)[0];
     if (nombre) { $("hola").textContent = "Hola, " + nombre; setTimeout(function () { $("hola").classList.add("on"); holaQuieto(); }, 900); }
     if (v && v.setContexto) { try { v.setContexto({ vista: "Inicio de la app de Alma", nombre: String(nombre || "").split(" ")[0] }); } catch (e) {} }
-    SANav.update({ alma: v });
+    SANav.update({ alma: v ? vozConAvisos(v) : v });
     /* Solo en la app de Alma: el tercer botón con lo que Claude dejó pendiente (si es el admin principal) */
     /* Pendientes por esfera (pendientes.js): lo que Alma resolvió, lo de Claude y los cambios por unir, con los íconos de las esferas del inicio */
-    if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes(); }, hecho: function (id) { return ALMA.pendienteHecho(id); },
+    /* las áreas también salen de la foto, así las esferas abren al primer toque; las frescas llegan por detrás */
+    var fa = fotoLeer("areas"); if (fa && !AR.datos) { areasAplicar(fa.datos); orbitaArmar(); }
+    areasIniciar();   // nada en fila (regla 7): las áreas se piden junto con pendientes y notificaciones, sin esperar
+    if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes().then(function (r) { return fotoGuardar("pend", r); }); }, foto: fotoLeer("pend"), hecho: function (id) { return ALMA.pendienteHecho(id); },
       resolver: function (id) { return ALMA.pendienteResolver(id); }, responder: function (id, t) { return ALMA.pendienteResponder(id, t); }, nota: function (o) { return ALMA.pendienteNota(o); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
-      notificaciones: { cargar: function () { return ALMA.notificaciones(); } } });
-    setTimeout(function () { $("b-ajustes").classList.add("on"); areasIniciar(); }, 900);
+      notificaciones: { cargar: function () { return ALMA.notificaciones().then(function (r) { return fotoGuardar("noti", r); }); }, foto: fotoLeer("noti") } });
+    setTimeout(function () { $("b-ajustes").classList.add("on"); }, 900);
   }
 
   /* ── Áreas de vida (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia): proyectos y conversaciones de cada una.
@@ -316,8 +360,9 @@
   var AR = { datos: null, area: null, abierta: false, cargando: null };
   function areasCargar() {
     if (!window.ALMA || !ALMA.areas) return Promise.resolve(null);
-    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; } return r; }, function () { AR.cargando = null; return null; }));
+    return AR.cargando || (AR.cargando = ALMA.areas().then(function (r) { AR.cargando = null; if (r && r.ok) { areasAplicar(r); fotoGuardar("areas", r); if (AR.abierta) areasPintar(); } return r; }, function () { AR.cargando = null; return null; }));
   }
+  function areasAplicar(r) { AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; }
   function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
 
   /* Las esferas: sus íconos (trazo como los del Hub) y su lugar alrededor de Alma. */
@@ -412,14 +457,14 @@
       o.classList.remove("on"); document.body.classList.remove("orbita-on");
       ES.forEach(function (e, j) { esLuego(e.q, 0, (n - 1 - j) * 24, .38, 1); });
     }
-    orbitaPintar();
+    orbitaPintar(); avisoArmar();   // las esferas ya están: la barra se arma con ellas
   }
   addEventListener("resize", function () { if (!OR.abierta) return; var g = OR.geo = orbitaGeo(); SANav.escena({ y: g.cy / g.H, s: g.alma });
     [].forEach.call($("orbita").children, function (b) { b.style.setProperty("--d", g.d.toFixed(1) + "px"); }); orbitaPintar(); });
   /* Tocar fuera de Alma y de las esferas las cierra (Alma vuelve a su tamaño). */
   document.addEventListener("pointerdown", function (e) {
     if (!OR.abierta || AR.abierta) return;
-    if (e.target.closest && (e.target.closest(".esf") || e.target.closest(".san-rock") || e.target.closest(".ajustes") || e.target.closest(".panel"))) return;
+    if (e.target.closest && (e.target.closest(".esf") || e.target.closest(".aviso") || e.target.closest(".san-rock") || e.target.closest(".ajustes") || e.target.closest(".panel"))) return;
     orbita(false); SANav.escena(null);
   }, true);
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -517,8 +562,126 @@
     if (pi >= 0) { var p = src.proyectos.splice(pi, 1)[0]; p.area = a; dst.proyectos.push(p); }
     areasPintar(); ALMA.areaMover(clave, a);
   }
+  /* ── Barra de avisos (glosario): de cada esfera, lo más importante. Primero lo que pide algo de ti (Pendientes); si no
+     hay, el aviso más nuevo de las últimas 24 h (Notificaciones). Rotan cada 6 s; la esfera del aviso crece y su halo brilla.
+     Al tocarla se abre con los mismos botones de Pendientes y un botón para verla en su hoja. ── */
+  var AV = { lista: [], esf: [], i: 0, t: 0, abierta: false, actual: null };
+  var AV_COLOR = { proposito: "#E9826A", relaciones: "#D99AA0", finanzas: "#8FB38C", health: "#E3A47F", comunidad: "#8FA5C8", espiritualidad: "#A9A4CC" };
+  function avNombre(k) { var a = (AR.datos || []).filter(function (z) { return z.k === k; })[0]; return a ? a.n : ""; }
+  function avisosTodos() {
+    var D = window.SANav && SANav.datos ? SANav.datos() : {}, out = [], lim = Date.now() - 864e5;
+    ((D.pend && D.pend.atencion) || []).forEach(function (p) { if (p.area) out.push({ tipo: "pend", id: p.id, area: p.area, titulo: p.titulo, texto: p.resumen || "", p: p }); });
+    ((D.noti && D.noti.items) || []).filter(function (x) { return x.area && !x.pendiente && x.ts > lim; }).sort(function (a, b) { return b.ts - a.ts; })
+      .forEach(function (x) { out.push({ tipo: "noti", id: x.id, area: x.area, titulo: x.titulo || x.texto, texto: x.titulo ? x.texto || "" : "", detalle: x.detalle || "", enlace: x.enlace || "", x: x }); });
+    return out;
+  }
+  function avisoArmar() {
+    AV.lista = avisosTodos();
+    var orden = (AR.datos || []).map(function (a) { return a.k; }), uno = {};
+    AV.lista.forEach(function (a) { if (!uno[a.area]) uno[a.area] = a; });
+    AV.esf = orden.filter(function (k) { return uno[k]; }).map(function (k) { return uno[k]; });
+    if (AV.actual && !AV.lista.some(function (a) { return a.id === AV.actual.id; })) { AV.actual = null; AV.abierta = false; }   // ya se resolvió
+    if (!AV.actual || !AV.abierta) { var j = AV.actual ? AV.esf.map(function (a) { return a.area; }).indexOf(AV.actual.area) : -1; AV.i = j >= 0 ? j : Math.min(AV.i, Math.max(0, AV.esf.length - 1)); }
+    avisoMostrar();
+  }
+  function avisoMostrar() {
+    var b = $("aviso"), hay = OR.abierta && !AR.abierta && (AV.esf.length || AM.on);
+    b.classList.toggle("on", !!hay);
+    clearTimeout(AV.t);
+    if (!hay) { avisoFoco(null); if (!OR.abierta) { AV.abierta = false; b.classList.remove("abierta"); } return; }
+    if (!AM.on && !AV.abierta) AV.actual = AV.esf[AV.i % AV.esf.length] || null;
+    avisoPintar();
+    if (!AM.on && !AV.abierta && AV.esf.length > 1) AV.t = setTimeout(function () {
+      b.classList.add("cambia"); setTimeout(function () { b.classList.remove("cambia"); AV.i = (AV.i + 1) % AV.esf.length; avisoMostrar(); }, 260);
+    }, 6000);
+  }
+  function avisoPintar() {
+    var a = AV.actual, b = $("aviso"); if (!a) { b.classList.remove("on"); avisoFoco(null); return; }
+    b.style.setProperty("--c", AV_COLOR[a.area] || "#E9826A");
+    $("av-tag").textContent = avNombre(a.area) + (a.tipo === "pend" ? " · Pendiente" : " · Aviso") + (AM.on ? " · Alma te cuenta" : "");
+    $("av-tit").textContent = a.titulo || "";
+    $("av-n").textContent = AM.on ? (AM.i + 1) + "/" + AM.L.length : AV.esf.length > 1 ? (AV.i % AV.esf.length + 1) + "/" + AV.esf.length : "";
+    b.classList.toggle("abierta", AV.abierta); $("av-pil").setAttribute("aria-expanded", AV.abierta ? "true" : "false");
+    if (AV.abierta) avisoCuerpo(a);
+    avisoFoco(a.area);
+  }
+  function avisoCuerpo(a) {
+    var c = $("av-cu"); c.innerHTML = "";
+    if (a.tipo === "pend" && SANav.tarjeta) c.appendChild(SANav.tarjeta(a.p, avNombre(a.area) + (a.p.proyecto ? " · " + a.p.proyecto : "")));
+    else { if (a.texto) c.appendChild(el("p", "tx", a.texto)); if (a.detalle) c.appendChild(el("p", "tx", a.detalle)); }
+    var ir = el("div", "ir");
+    if (a.enlace) { var ab = el("button", "sec", "Abrir"); ab.type = "button"; ab.onclick = function () { location.href = a.enlace; }; ir.appendChild(ab); }
+    var vb = el("button", "", a.tipo === "pend" ? "Ver en Pendientes" : "Ver en Notificaciones"); vb.type = "button";
+    vb.onclick = function () { AV.abierta = false; orbita(false); SANav.escena(null); SANav.ver(a.tipo, a.id, a.area); };
+    ir.appendChild(vb); c.appendChild(ir);
+  }
+  /* la esfera del aviso crece y su halo brilla; las demás respiran más lento */
+  function avisoFoco(k) {
+    var o = $("orbita"); o.classList.toggle("foco", !!k);
+    [].forEach.call(o.children, function (e) { e.classList.toggle("foco", !!k && e.classList.contains(k)); });
+  }
+  $("av-pil").onclick = function () {
+    if (!AV.actual) return;
+    AV.abierta = !AV.abierta;
+    if (AV.abierta && AM.on) amEnfocar(AV.actual);
+    avisoMostrar();
+  };
+
+  /* ── Modo avisos (2 toques a Alma con las esferas abiertas): Alma te cuenta tus avisos uno por uno y la barra muestra el que
+     está contando. La página lleva el ritmo: le pasa uno, espera a que termine de hablar y le pasa el siguiente. Si le hablas o
+     tocas la barra, deja la lista y se queda en ese aviso hasta que lo resuelvas. ── */
+  var AM = { on: false, L: [], i: 0, ses: null, enviado: "", hablo: false, t: 0, quieto: false };
+  var AM_INICIO = "[Modo avisos] Juan te pidió que le cuentes sus avisos; él los ve en la pantalla mientras hablas. Te los paso uno por uno. De cada uno dile en una o dos frases, simple, qué es y qué necesita de él; no le preguntes nada y espera el siguiente. Si Juan te habla o te pide algo, deja la lista y atiéndelo.";
+  function modoAvisos() {
+    AM.L = avisosTodos().slice(0, 8); AM.i = 0; AM.on = true; AM.quieto = false; AM.hablo = false; AM.enviado = "";
+    AV.abierta = false; if (AM.L.length) AV.actual = AM.L[0];
+    avisoMostrar();
+  }
+  function amTexto(a, i) {
+    return (i ? "" : AM_INICIO + "\n\n") + "Aviso " + (i + 1) + " de " + AM.L.length + " · " + avNombre(a.area) + (a.tipo === "pend" ? " · necesita algo de Juan" : " · para leer") + ": «" + a.titulo + "»" + (a.texto ? ". " + a.texto : "") + (a.detalle ? " " + a.detalle.slice(0, 300) : "");
+  }
+  function amMandar(t) { AM.enviado = t; AM.hablo = false; if (AM.ses && AM.ses.sendText) { try { AM.ses.sendText(t); } catch (e) {} } }
+  function amSiguiente() {
+    if (!AM.on || AM.quieto) return;
+    if (!AM.L.length) { amMandar(AM_INICIO + "\n\nNo hay avisos ni pendientes ahora. Díselo a Juan en una frase."); AM.quieto = true; return; }
+    if (AM.i >= AM.L.length) { amMandar("[Modo avisos] Ese era el último. Pregúntale a Juan, corto, si quiere ver alguno."); AM.quieto = true; return; }
+    AV.actual = AM.L[AM.i]; avisoMostrar(); amMandar(amTexto(AM.L[AM.i], AM.i));
+  }
+  /* Juan tocó la barra (o habló): Alma se queda en este aviso y lo acompaña */
+  function amEnfocar(a) {
+    if (!AM.on) return; AM.quieto = true; clearTimeout(AM.t); AM.t = 0;
+    if (a) amMandar("[Modo avisos] Juan abrió en la pantalla: «" + a.titulo + "». Deja la lista: enfócate solo en este, ayúdale a revisarlo o responderlo y espera lo que te diga.");
+  }
+  function amFin() { AM.on = false; AM.ses = null; clearTimeout(AM.t); avisoArmar(); }
+  /* Envuelve la voz (la de la página o la nativa) para saber cuándo Alma termina de hablar y cuándo Juan habla */
+  function vozConAvisos(v) {
+    var w2 = {}; Object.keys(v).forEach(function (k) { w2[k] = v[k]; });
+    w2.start = function (h) {
+      var h2 = {
+        status: function (s) {
+          h.status(s); if (!AM.on || AM.quieto) return;
+          if (s === "Alma habla") { AM.hablo = true; clearTimeout(AM.t); AM.t = 0; }
+          else if (s === "Te escucho" && AM.hablo && AM.enviado && !AM.t) AM.t = setTimeout(function () { AM.t = 0; AM.i++; amSiguiente(); }, 3200);
+        },
+        message: function (src, t) {
+          h.message(src, t);
+          if (!AM.on) return;
+          if (src === "ai" && !AM.enviado && !AM.quieto) { setTimeout(amSiguiente, 400); return; }   // terminó de saludar: el primero
+          if (src === "user" && t && t.indexOf("[Modo avisos]") < 0 && AM.enviado.indexOf(t.slice(0, 40)) < 0) { AM.quieto = true; clearTimeout(AM.t); AM.t = 0; }   // Juan habló: Alma lo atiende
+        },
+        ended: function () { h.ended(); amFin(); },
+        error: function (m) { h.error(m); }
+      };
+      Object.keys(h).forEach(function (k) { if (!(k in h2)) h2[k] = h[k]; });
+      return Promise.resolve(v.start(h2)).then(function (ses) {
+        if (AM.on) { AM.ses = ses; setTimeout(function () { if (AM.on && !AM.enviado) amSiguiente(); }, 5000); }   // por si no saluda
+        return ses;
+      });
+    };
+    return w2;
+  }
   function areasAbrir(on, area) {
-    AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true");
+    AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true"); avisoMostrar();
     if (on) { AR.area = area || null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
   }
   $("a-cerrar").onclick = function () { areasAbrir(false); };
@@ -531,7 +694,9 @@
     alSoltar: NATIVA ? function (pos) { orbita(false); nativa({ accion: "navegador", pos: pos }); } : null,
     /* Alma quieta: 1 toque abre las áreas (si las hay) y otro toque las cierra; 2 toques activan la voz sin cambiar de estado (lo resuelve sa-nav.js). */
     alTocar: function () { if (!OR.armada) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
-    alVolver: function () { nativa({ accion: "navegador", pos: "" }); } });
+    alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
+    /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
+    alDatos: function () { avisoArmar(); }, alDoble: function () { if (OR.abierta) modoAvisos(); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }
@@ -714,6 +879,7 @@
     try { window.SAAuth && SAAuth.clearSession && SAAuth.clearSession(); } catch (e) {}
     try { window.SA && SA.logout && SA.logout(); } catch (e) {}
     try { localStorage.removeItem("sa_alma_voz_ficha"); } catch (e) {}
+    fotoBorrar();
     if (NATIVA) nativa({ accion: "voz", que: "anillo", on: false });
     location.reload();
   }

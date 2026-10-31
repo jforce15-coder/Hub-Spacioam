@@ -999,6 +999,8 @@ function vozWebFicha_(adm, nom) {
   } catch (e) {}
   return t;
 }
+var VOZ_CONFERENCIA_TRAS_ = 180;   // segundos; pendiente de calibrar con los datos de las llamadas
+
 function vozWebInicio_(ses, ligero, app) {
   var adm = vozWebAdmin_(ses);
   if (!adm) return { ok: false, error: 'Tu usuario' + (ses && ses.email ? ' (' + ses.email + ')' : '') + ' no tiene un teléfono registrado como administrador.' };
@@ -1011,7 +1013,9 @@ function vozWebInicio_(ses, ligero, app) {
   dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify) y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   var retoma = contextoReciente_(adm);
-  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+  /* T de la llamada larga (app de Alma): pasados estos segundos, la primera pausa larga se cambia por una despedida y la
+     app pasa al modo conferencia. Sale de los datos de las llamadas (minuto en que deja de rendir); se ajusta aquí. */
+  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, conferencia_tras: VOZ_CONFERENCIA_TRAS_, first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
   /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
      Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }

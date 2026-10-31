@@ -2927,6 +2927,7 @@ function aprender() {
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
+  try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
   if (!automejoraOn_()) return;
   try { aprenderSenales(); } catch (e) { console.error('aprenderSenales: ' + e); }
   try { amHoja_(); } catch (e) {}

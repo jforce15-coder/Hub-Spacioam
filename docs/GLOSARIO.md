@@ -7,7 +7,7 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 |---|---|---|
 | **Alma** | La asistente: la única que habla con las personas (Juan, equipo, socios, huéspedes). | bot, IA, sistema |
 | **La roca** | El botón de Alma que flota en las web apps y en la app (sa-nav); en el inicio, la piedra grande al centro. | botón, burbuja, círculo |
-| **Modo anillo** | Hablar con Alma con dos toques del anillo, también con el teléfono bloqueado. | modo amigo, manos libres |
+| **Modo anillo** | Dos toques del anillo encienden o apagan el modo conferencia, también con el teléfono bloqueado (ya no abren una llamada propia). Si Alma está hablando, dos toques la pausan o la retoman. | modo amigo, manos libres |
 | **Llamada** | Una conversación de voz con Alma (por la roca, el anillo o WhatsApp). | sesión de voz |
 | **Agente** | Uno del equipo detrás de Alma (Operaciones, Huéspedes, Finanzas, Crecimiento, Marketing, Mantenimiento, Desarrollo, Archivo). Revisa y propone; no habla con nadie. | bot, robot |
 | **Playbook** | Cómo trabaja un agente: meta, pasos, reglas (las de Juan incluidas), caja de herramientas y «listo significa». Se arregla el playbook, no el chat. | instrucciones, prompt |

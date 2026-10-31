@@ -65,7 +65,7 @@ function pendAvisar_(adm, texto, o) {
 function pendClasificar_(pedido, respuesta, fallo) {
   var proys = []; try { proys = proyFilas_().filter(function (p) { return p.estado !== 'cerrado'; }).map(function (p) { return p.proyecto; }).slice(0, 30); } catch (e) {}
   var sys = 'Eres Alma, la asistente de Juan (dueño de Spacio AM, apartamentos de estadía corta en Guatemala). Le resolviste un pedido; ordénalo para su lista de pendientes.\n' +
-    'tipo: "atencion" si necesita algo de él (decidir, elegir, comprar, aprobar, responder, o algo falló); "aviso" si es información que pidió y no hay nada que hacer; ' +
+    'tipo: "atencion" SOLO si Juan tiene que hacer algo él mismo (decidir, elegir, comprar, aprobar, responder, darte un dato, o algo falló y sin él no se puede seguir); "aviso" si es información o un resultado y no tiene que hacer nada (ante la duda entre atencion y aviso, aviso); ' +
     '"hecho" si solo confirma algo que ya quedó hecho; "nada" si es charla, un saludo o no hay resultado.\n' +
     'area (una): proposito (su trabajo: Spacio AM, apartamentos, huéspedes, equipo, proveedores, desarrollo de las apps), relaciones (familia, pareja, amigos, bodas y viajes con ellos), ' +
     'finanzas (dinero, pagos, facturas, impuestos), health (salud, ejercicio, sueño, comida), comunidad (ayudar a otros, grupos), espiritualidad (fe, calma, meditación).\n' +
@@ -130,11 +130,13 @@ function pendResolverRet_(ids) {
 
 /* ── La lista para la app: los de Alma + lo de Claude + los cambios por unir, por urgencia y con conteo por esfera ── */
 var PEND_SECCION_ = { atencion: 'atencion', aviso: 'leer', hecho: 'listo' };
-function pendientesTodo_(ses) {
-  var adm = paraClaudePrincipalSes_(ses); if (!adm) return { ok: false, error: 'Solo el administrador principal.' };
+/* Todo lo de Juan (lo que Alma resolvió, lo de Claude y los cambios por unir), cada uno con su sección. */
+function pendItems_(ses, adm, noti) {
   var ahora = Date.now(), items = [];
   pendFilas_().forEach(function (x) {
-    if (String(x.email).toLowerCase() !== String(adm.email).toLowerCase() || !pendVivo_(x, ahora)) return;
+    /* en Notificaciones, lo que es para leer o ya quedó listo se queda 3 días (como el historial de avisos) */
+    var vivo = pendVivo_(x, ahora) || (noti && String(x.estado) === 'abierto' && x.tipo !== 'atencion' && ahora - x.ts < 3 * 86400000);
+    if (String(x.email).toLowerCase() !== String(adm.email).toLowerCase() || !vivo) return;
     var tj = null, ac = []; try { tj = x.tarjeta ? JSON.parse(x.tarjeta) : null; } catch (e) {} try { ac = JSON.parse(x.acciones || '[]'); } catch (e) {}
     items.push({ id: String(x.id), fuente: 'alma', seccion: PEND_SECCION_[x.tipo] || 'leer', area: x.area, proyecto: x.proyecto, titulo: x.titulo, resumen: x.resumen,
       detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion', responder: x.tipo === 'atencion' });
@@ -147,13 +149,40 @@ function pendientesTodo_(ses) {
       pasos: p.pasos, pregunta: p.pregunta, original: p.original, enlaces: p.enlaces, unir: p.unir, progreso: p.progreso, ts: 0, importancia: 2, hecho: !p.pr,
       responder: !p.pr && (p.estado === 'pregunta' || p.estado === 'fallo') });
   });
-  var orden = function (a, b) { return (b.importancia - a.importancia) || (b.ts - a.ts); };
-  var areas = AREAS_.map(function (a) { return { k: a.k, n: a.n, total: items.filter(function (x) { return x.area === a.k; }).length,
-    atencion: items.filter(function (x) { return x.area === a.k && x.seccion === 'atencion'; }).length }; });
-  return { ok: true, areas: areas, total: items.length,
-    atencion: items.filter(function (x) { return x.seccion === 'atencion'; }).sort(orden),
-    leer: items.filter(function (x) { return x.seccion === 'leer'; }).sort(orden),
-    listo: items.filter(function (x) { return x.seccion === 'listo'; }).sort(orden) };
+  return items;
+}
+var PEND_ORDEN_ = function (a, b) { return (b.importancia - a.importancia) || (b.ts - a.ts); };
+function pendAreas_(items) {
+  return AREAS_.map(function (a) { return { k: a.k, n: a.n, total: items.filter(function (x) { return x.area === a.k; }).length,
+    atencion: items.filter(function (x) { return x.area === a.k && (x.seccion === 'atencion' || x.pendiente); }).length }; });
+}
+/* Pendientes: SOLO lo que necesita una acción de Juan (decidir, responder, unir, comprar). Lo que es para leer o ya
+   quedó listo es una notificación: va a notificacionesTodo_. Las claves leer/listo quedan vacías por compatibilidad. */
+function pendientesTodo_(ses) {
+  var adm = paraClaudePrincipalSes_(ses); if (!adm) return { ok: false, error: 'Solo el administrador principal.' };
+  var items = pendItems_(ses, adm).filter(function (x) { return x.seccion === 'atencion'; }).sort(PEND_ORDEN_);
+  return { ok: true, areas: pendAreas_(items), total: items.length, atencion: items, leer: [], listo: [] };
+}
+/* Notificaciones (la campana): lo que no pide nada —para leer, ya listo, lo que Claude está trabajando o publicando— y
+   el historial de avisos de Alma (3 días), cada uno en su esfera. Los avisos de algo que sí pide acción se marcan
+   «pendiente» y llevan a Pendientes. `lista` sigue igual para las versiones viejas de la página. */
+function notificacionesTodo_(ses) {
+  var base = vozNotificaciones_(ses); if (!base.ok) return base;
+  var adm = paraClaudePrincipalSes_(ses), items = [];
+  if (adm) {
+    pendItems_(ses, adm, true).filter(function (x) { return x.seccion !== 'atencion'; }).forEach(function (x) {
+      items.push({ id: String(x.id), ts: x.ts || Date.now(), area: x.area, proyecto: x.proyecto || '', titulo: x.titulo || '', texto: x.resumen || '', estado: x.estado || '',
+        detalle: x.detalle || x.original || '', enlaces: x.enlaces || [], fuente: x.fuente });
+    });
+    var porRet = {}, ahora = Date.now(); pendFilas_().forEach(function (r) { if (r.ret_id) porRet[String(r.ret_id)] = r; });
+    (base.lista || []).forEach(function (a) {
+      var r = porRet[String(a.id)];
+      items.push({ id: 'av:' + a.id + ':' + a.ts, ts: a.ts, area: r ? r.area : '', proyecto: r ? String(r.proyecto || '') : '', titulo: r ? String(r.titulo || '') : '', texto: a.texto,
+        pendiente: !!(r && r.tipo === 'atencion' && pendVivo_(r, ahora)), fuente: 'aviso' });
+    });
+  }
+  items.sort(function (a, b) { return b.ts - a.ts; });
+  return { ok: true, lista: base.lista, items: items, areas: pendAreas_(items), total: items.length };
 }
 
 /* «Responder» en una tarjeta que necesita algo de Juan. Lo de Claude (una pregunta o algo que falló) le llega a Claude como

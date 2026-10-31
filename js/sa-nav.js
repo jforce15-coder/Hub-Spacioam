@@ -240,6 +240,8 @@
     ".san-scope .san-pendb.san-notib{left:calc(max(16px,env(safe-area-inset-left)) + 50px)}.san-scope .san-notib .san-badge:empty{display:none}",
     ".san-scope .san-ov.pend .san-noti{opacity:0;transform:translateY(24px);pointer-events:none}.san-scope .san-ov.noti .san-noti{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-nt{flex:none;background:#fff;border-radius:20px;padding:14px 18px;box-shadow:0 18px 40px -26px rgba(70,50,40,.32);border:0;text-align:left;cursor:pointer;width:100%;font:inherit;color:#3E3F3F}.san-scope .san-nt small{display:block;margin-bottom:4px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#938B8A}.san-scope .san-nt span{display:block;font:500 14px/1.5 Montserrat,system-ui,sans-serif}.san-scope .san-nt.nuevo small{color:#B54D36}",
+    ".san-scope .san-nt b{display:block;margin-bottom:2px;font:600 14.5px/1.35 Montserrat,system-ui,sans-serif;color:#3E3F3F}.san-scope .san-nt .det{display:none;margin:10px 0 0;font:500 13.5px/1.5 Montserrat,system-ui,sans-serif;color:#6F6867;white-space:pre-wrap;overflow-wrap:anywhere}.san-scope .san-nt.abierta .det{display:block}",
+    ".san-scope .san-nt .san-nt-p{display:inline-block;margin-top:8px;font:600 9.5px Montserrat,system-ui,sans-serif;font-style:normal;letter-spacing:.12em;text-transform:uppercase;padding:5px 9px;border-radius:999px;background:rgba(233,130,106,.16);color:#B3553E}",
     ".san-scope .san-pend{position:absolute;inset:0;z-index:4;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
@@ -1217,10 +1219,10 @@
       '<div class="san-tips" aria-hidden="true"></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
-    ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Lo que te avisó Alma · 3 días</small></div>' +
+    ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Sin nada que hacer · 3 días</small></div>' +
       '<button type="button" class="san-hb san-noti-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l san-noti-l"></div></div>');
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 20) + '<i class="san-badge"></i></button>');
-    ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que Alma resolvió para ti</small></div>' +
+    ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que necesita tu sí</small></div>' +
       '<button type="button" class="san-hb san-pend-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l"></div></div>');
     root.appendChild(ov);
     E.ov = ov; E.pb = ov.querySelector('[data-a="pend"]'); E.stone = ov.querySelector(".san-rock"); E.ost = ov.querySelector(".san-ov-st"); E.cap = ov.querySelector(".san-ov-cap"); E.msgs = ov.querySelector(".san-msgs");
@@ -1350,21 +1352,47 @@
   function notiCargar() {
     if (!E.ov || !cfg.notificaciones || !cfg.notificaciones.cargar) return;
     clearTimeout(notiT); notiT = setTimeout(notiCargar, 60000);
-    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.noti = r.lista || []; notiPintar(); } }, function () {});
+    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.noti = r.lista || []; AL.notiData = r.items && r.areas ? r : null; notiPintar(); } }, function () {});
   }
   function notiPintar() {
-    var b = E.ov.querySelector('[data-a="noti"]'), v = notiVisto(), n = (AL.noti || []).filter(function (x) { return x.ts > v; }).length;
+    var b = E.ov.querySelector('[data-a="noti"]'), v = notiVisto(), n = ((AL.notiData && AL.notiData.items) || AL.noti || []).filter(function (x) { return x.ts > v; }).length;
     b.hidden = false; b.querySelector(".san-badge").textContent = n ? (n > 9 ? "9+" : String(n)) : "";
     if (E.ov.classList.contains("noti")) notiLista();
   }
   function notiLista() {
     var l = E.ov.querySelector(".san-noti-l"), v = AL.notiVistoAntes || 0; l.innerHTML = "";
+    if (AL.notiData) { notiEsferas(l, AL.notiData, v); return; }
     if (!(AL.noti || []).length) { var e0 = d.createElement("div"); e0.className = "san-pend-v"; e0.textContent = "Sin notificaciones."; l.appendChild(e0); return; }
     AL.noti.forEach(function (x) {
       var c = d.createElement("button"); c.type = "button"; c.className = "san-nt" + (x.ts > v ? " nuevo" : "");
       var m = Math.round((Date.now() - x.ts) / 60000), cu = m < 1 ? "ahora" : m < 60 ? "hace " + m + " min" : m < 1440 ? "hace " + Math.round(m / 60) + " h" : new Date(x.ts).toLocaleDateString("es", { day: "numeric", month: "short" });
       var sm = d.createElement("small"); sm.textContent = cu; var sp = d.createElement("span"); sp.textContent = x.texto; c.appendChild(sm); c.appendChild(sp);
       c.onclick = function () { notiAbrir(false); if (cfg.pendientes) pendAbrir(true); };   // el detalle vive en Pendientes
+      l.appendChild(c);
+    });
+  }
+  /* Notificaciones por esfera, igual que Pendientes: el semicírculo arriba y abajo lo que llegó, por día (lo que no pide
+     nada de ti; un aviso de algo que sí lo pide lleva a Pendientes). */
+  function notiEsferas(l, D, v) {
+    pendArco(l, D, "notiFiltro", "notificaciones", notiLista);
+    var nombre = {}; (D.areas || []).forEach(function (z) { nombre[z.k] = z.n; });
+    var L = (D.items || []).filter(function (x) { return !AL.notiFiltro || x.area === AL.notiFiltro; });
+    if (!L.length) { var e0 = d.createElement("div"); e0.className = "san-pend-v"; e0.textContent = AL.notiFiltro ? "Nada aquí." : "Sin notificaciones."; l.appendChild(e0); return; }
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0); var grupo = "";
+    L.forEach(function (x) {
+      var g = x.ts >= hoy.getTime() ? "Hoy" : x.ts >= hoy.getTime() - 864e5 ? "Ayer" : "Antes";
+      if (g !== grupo) { grupo = g; var h = d.createElement("div"); h.className = "san-sec"; var hb = d.createElement("b"); hb.textContent = g; h.appendChild(hb); l.appendChild(h); }
+      var c = d.createElement("button"); c.type = "button"; c.className = "san-nt" + (x.ts > v ? " nuevo" : "");
+      var m = Math.round((Date.now() - x.ts) / 60000), cu = m < 1 ? "ahora" : m < 60 ? "hace " + m + " min" : m < 1440 ? "hace " + Math.round(m / 60) + " h" : new Date(x.ts).toLocaleDateString("es", { day: "numeric", month: "short" });
+      var sm = d.createElement("small"); sm.textContent = [cu, nombre[x.area], x.proyecto].filter(Boolean).join(" · "); c.appendChild(sm);
+      if (x.titulo) { var b = d.createElement("b"); b.textContent = x.titulo; c.appendChild(b); }
+      var sp = d.createElement("span"); sp.textContent = x.texto || ""; c.appendChild(sp);
+      if (x.pendiente) { var ch = d.createElement("i"); ch.className = "san-nt-p"; ch.textContent = "Necesita tu sí"; c.appendChild(ch); }
+      if (x.detalle && !x.pendiente) { var dt = d.createElement("p"); dt.className = "det"; dt.textContent = x.detalle; c.appendChild(dt); }
+      c.onclick = function () {
+        if (x.pendiente && cfg.pendientes) { notiAbrir(false); pendAbrir(true); return; }   // el detalle de lo que pide algo vive en Pendientes
+        if (x.detalle) c.classList.toggle("abierta");
+      };
       l.appendChild(c);
     });
   }
@@ -1375,21 +1403,23 @@
   var PEND_TX = { revisando: "Revisando", listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Listo ✓", fallo_pub: "Falló al publicar" };
   /* ── Pendientes por esfera ── */
   var PEND_SEC = [["atencion", "Necesita tu sí"], ["leer", "Para leer"], ["listo", "Listo hoy"]];
-  function pendArco(l, D) {
-    var ic = (cfg.pendientes && cfg.pendientes.iconos) || {}, a = d.createElement("div"); a.className = "san-arco" + (AL.pendFiltro ? " filtra" : "");
+  /* El semicírculo de esferas con su conteo. k: dónde se guarda el filtro (pendFiltro / notiFiltro); palabra: lo que se cuenta; repinta: al elegir una esfera. */
+  function pendArco(l, D, k, palabra, repinta) {
+    k = k || "pendFiltro"; palabra = palabra || "pendientes"; repinta = repinta || pendLista;
+    var ic = (cfg.pendientes && cfg.pendientes.iconos) || {}, a = d.createElement("div"); a.className = "san-arco" + (AL[k] ? " filtra" : "");
     var A = D.areas || [], W = Math.min(VW(), 560) - 32, n = A.length, R = Math.min(W / 2 - 34, 170), Ry = Math.min(124, R * .85);
     a.style.height = (Ry + 84) + "px";
     /* al centro del arco: cuántos hay (o de la esfera elegida) */
-    var fz = AL.pendFiltro && A.filter(function (z) { return z.k === AL.pendFiltro; })[0], cn = d.createElement("div"); cn.className = "cn";
+    var fz = AL[k] && A.filter(function (z) { return z.k === AL[k]; })[0], cn = d.createElement("div"); cn.className = "cn";
     cn.style.top = (Ry * .72) + "px"; cn.innerHTML = "<b></b><span></span>";
-    cn.querySelector("b").textContent = String(fz ? fz.total : D.total || 0); cn.querySelector("span").textContent = fz ? fz.n : "pendientes"; a.appendChild(cn);
+    cn.querySelector("b").textContent = String(fz ? fz.total : D.total || 0); cn.querySelector("span").textContent = fz ? fz.n : palabra; a.appendChild(cn);
     A.forEach(function (z, i) {
       var t = n > 1 ? Math.PI - i * Math.PI / (n - 1) : Math.PI / 2, b = d.createElement("button"); b.type = "button";
-      b.className = (z.total ? "" : "vacia") + (AL.pendFiltro === z.k ? " on" : ""); b.setAttribute("aria-label", z.n + ": " + z.total + " pendientes");
+      b.className = (z.total ? "" : "vacia") + (AL[k] === z.k ? " on" : ""); b.setAttribute("aria-label", z.n + ": " + z.total + " " + palabra);
       b.style.left = (W / 2 + R * Math.cos(t)) + "px"; b.style.top = (Ry - Ry * Math.sin(t) + 6) + "px";
       b.innerHTML = '<span class="pz">' + svg(ic[z.k] || '<circle cx="12" cy="12" r="5"/>', 21) + (z.total ? '<i class="ct' + (z.atencion ? " at" : "") + '">' + (z.total > 99 ? "99+" : z.total) + "</i>" : "") + '</span><span class="nm"></span>';
       b.querySelector(".nm").textContent = z.n;
-      b.onclick = function () { AL.pendFiltro = AL.pendFiltro === z.k ? null : z.k; pendLista(); };
+      b.onclick = function () { AL[k] = AL[k] === z.k ? null : z.k; repinta(); };
       a.appendChild(b);
     });
     l.appendChild(a);

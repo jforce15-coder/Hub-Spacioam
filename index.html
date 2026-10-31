@@ -399,6 +399,9 @@
             </div>
           </sc-for>
         </div>
+        <sc-if value="{{ hoyStatsCopia }}" hint-placeholder-val="{{ false }}">
+          <div role="status" data-a="hoy-copia" style="display:inline-flex; align-items:center; gap:7px; margin-top:10px; font-size:10.5px; letter-spacing:.04em; color:rgba(250,250,250,.82)"><span aria-hidden="true" class="sa-breathe" style="width:6px; height:6px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>{{ hoyStatsCopiaTxt }}</div>
+        </sc-if>
       </div>
         </button>
 
@@ -1098,6 +1101,9 @@
       </div>
     </div>
 
+    <sc-if value="{{ rv2EsCopia }}" hint-placeholder-val="{{ false }}">
+      <div role="status" data-a="rv2-copia" style="display:inline-flex; align-items:center; gap:7px; font-size:11px; letter-spacing:.04em; color:#6F6867"><span aria-hidden="true" class="sa-breathe" style="width:6px; height:6px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>{{ rv2CopiaTxt }}</div>
+    </sc-if>
     <sc-if value="{{ rv2Cargando }}" hint-placeholder-val="{{ true }}">
       <div role="status" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; padding:18px; box-shadow:0 1px 2px rgba(62,63,63,.04); display:flex; flex-direction:column; gap:12px">
         <span class="sa-skel" style="height:44px; width:40%; border-radius:12px; background:#F5F3F0"></span>
@@ -3450,7 +3456,7 @@ class Component extends DCLogic {
     autoConv: {}, insAbierto: false, insLista: null, insCargando: false, insSel: null, insGuardando: false, insError: "", insBusca: "",
     mejoraClave: "REDACTOR", mejoraTexto: "", mejoraBusy: false, mejoraAplicando: false, mejoraPropuesta: null, mejoraNota: "", mejorasHist: [],
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
-    almaHilos: (function () { try { var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.keys(o).forEach(function (k) { o[k].cache = true; }); return o; } catch (e) { return {}; } })(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
+    almaHilos: this.hilosCopiaLeer(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     mVista: "resumen", selG: null, abrirPend: null, razon: null,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, optim: {}, pieVer: {}, logVoto: {}, logResp: "Todas", convOrden: null, convSolo: "", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
     versionNueva: false, progEdit: {}, progConfirm: "", masMenu: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
@@ -3493,6 +3499,12 @@ class Component extends DCLogic {
   _hiloPre = {}; _hiloCola = []; _hiloOcupado = false; _hiloFresco = {};
   /* Los hilos se guardan en el dispositivo: al abrir el hub (20–30 veces al día) la conversación aparece al instante
      y se refresca por detrás. Se guardan las 80 más recientes. */
+  /* Los hilos guardados de esta persona (24 h); se marcan como copia y se refrescan al abrirlos. */
+  hilosCopiaLeer() {
+    var c = this.copiaLeer("sa_alma_hilos"), o = (c && c.hilos) || {}, lim = Date.now() - this.COPIA_MS, out = {};
+    Object.keys(o).forEach(function (k) { if (o[k] && (o[k].ts || 0) >= lim) out[k] = Object.assign({}, o[k], { cache: true }); });
+    return out;
+  }
   guardarHilo(rid, lista) {
     this._hiloFresco[rid] = Date.now();
     /* Los hitos (cambios de reserva) viajan aparte: no cuentan como mensajes para pendientes ni resúmenes. */
@@ -3508,10 +3520,11 @@ class Component extends DCLogic {
     clearTimeout(this._hilosGT);
     this._hilosGT = setTimeout(function () {
       var pend = self._hilosPend; self._hilosPend = {};
+      /* Copia de esta persona, sin documentos; los hilos de más de 24 h salen. */
       try {
-        var o = JSON.parse(localStorage.getItem("sa_alma_hilos") || "{}"); Object.assign(o, pend);
-        var ks = Object.keys(o).sort(function (x, y) { return (o[y].ts || 0) - (o[x].ts || 0); }); ks.slice(40).forEach(function (k) { delete o[k]; });
-        localStorage.setItem("sa_alma_hilos", JSON.stringify(o));
+        var c = self.copiaLeer("sa_alma_hilos"), o = Object.assign({}, (c && c.hilos) || {}, pend), lim = Date.now() - self.COPIA_MS;
+        var ks = Object.keys(o).filter(function (k) { if (!o[k] || (o[k].ts || 0) < lim) { delete o[k]; return false; } return true; }).sort(function (x, y) { return (o[y].ts || 0) - (o[x].ts || 0); }); ks.slice(40).forEach(function (k) { delete o[k]; });
+        self.copiaGuardar("sa_alma_hilos", { hilos: o });
       } catch (e) {}
     }, 3000);
   }
@@ -3675,6 +3688,8 @@ class Component extends DCLogic {
   componentDidMount() {
     var self = this;
     this.ptrInit();
+    /* Copias en el teléfono: sin sesión se borran todas; con sesión, las de otra persona y las vencidas. */
+    this.copiasRevisar();
     /* Actividad: cualquier toque renueva la marca; al volver tras 30 min sin uso se regresa al bento. */
     var act = function () { if (Date.now() - (self._actTs || 0) > 5000) { self._actTs = Date.now(); self.guardarUltima(); } };
     document.addEventListener("pointerdown", act, true); document.addEventListener("keydown", act, true);
@@ -4239,13 +4254,91 @@ class Component extends DCLogic {
      Epi: getConfig → schedules / vendors / props; getAll → reportes (historial de profundas).
      Hola: listCached → reservas con estado del formulario; getRegistration / getDocImage para el resumen. */
   hoyISO() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" }); }
-  /* Caché grande en IndexedDB (localStorage se llena con la bandeja completa y fallaba en silencio: todo cargaba desde cero). */
+  /* ── Copias en el teléfono (Hoy, ALMA, reviews, conversaciones, borradores) ──
+     Traen nombres de huéspedes y fechas de reserva para pintar rápido; por eso: una copia por persona (la clave lleva el
+     correo de la sesión), sin documentos (ni imágenes, ni enlaces a archivos, ni números de documento), vencen a las 24 h
+     y se borran todas al cerrar sesión o si la página abre sin sesión. Mientras se ve una copia, la pantalla dice «actualizando…». */
+  /* Getters (no campos): el estado inicial ya los usa al leer los hilos, antes de que corran los campos de más abajo. */
+  get COPIA_MS() { return 864e5; }
+  get COPIAS_LS() { return ["sa_alma_hilos", "sa_rv2", "sa_borradores", "sa_hoy_v1", "sa_alma_cache"]; }
+  /* Solo lo que Hoy necesita para pintar un registro de Hola: nada del formulario (huéspedes, documentos, contacto). */
+  get COPIA_REGISTRO() { return ["id", "code", "guestName", "propertyName", "propertyShort", "apartment", "checkin", "checkout", "statusForm", "status", "estado", "reservationStatus", "statusReserva", "started", "inProgress", "completedAt", "formAt", "maxCapacity", "assignedEmail"]; }
+  copiaDueno() { try { var s = window.SA && SA.session && SA.session(); return s && s.email && (!s.exp || s.exp > Date.now()) ? String(s.email).toLowerCase() : ""; } catch (e) { return ""; } }
+  copiaClave(base) { var e = this.copiaDueno(); return e ? base + ":" + e : ""; }
+  copiaLeer(base) { try { var k = this.copiaClave(base), c = k && JSON.parse(localStorage.getItem(k) || "null"); return c && c.t && Date.now() - c.t < this.COPIA_MS ? c : null; } catch (e) { return null; } }
+  copiaGuardar(base, datos) { try { var k = this.copiaClave(base); if (k) localStorage.setItem(k, JSON.stringify(Object.assign(this.sinDocs(datos) || {}, { t: Date.now() }))); } catch (e) {} }
+  /* Quita de una copia todo lo que sea documento: campos de imagen, archivo o documento (también dentro de textos JSON como
+     `datos`), imágenes en base64, enlaces a fotos o archivos dentro del texto y números de DPI. */
+  sinDocs(v) {
+    var CAMPO = /^(fotos?|images?|imagen(es)?|img|avatar|adjuntos?|attachments?|media|archivos?|files?|fileIds?|doc.*|dpi|cui|nit|pasaporte|passport|idNumber|id_number|numeroDocumento|nroDocumento|guests|huespedes|booker|contact|contacto)$/i;
+    var ENLACE = /https?:\/\/[^\s,"'\]]+/g, ES_ARCHIVO = /\.(jpe?g|png|webp|gif|heic|pdf)(\?|$)|image|photo|foto|attachment|media|drive\.google|docs\.google|googleusercontent|fileId|getDocImage|dpi|document/i;
+    var limpiar = function (x, hondo) {
+      if (hondo > 12 || x == null) return x;
+      if (typeof x === "string") {
+        if (/^data:/i.test(x)) return undefined;
+        var t = x.trim();
+        if ((t[0] === "{" || t[0] === "[") && t.length > 1) { try { return JSON.stringify(limpiar(JSON.parse(t), hondo + 1)); } catch (e) {} }
+        x = x.replace(ENLACE, function (u) { return ES_ARCHIVO.test(u) ? "[imagen adjunta]" : u; });
+        /* El DPI (13 cifras) solo se busca en texto libre: un id o una fecha en milisegundos no lleva espacios. */
+        return /\s/.test(x) ? x.replace(/\b\d{4}\s?\d{5}\s?\d{4}\b/g, "[documento]") : x;
+      }
+      if (Array.isArray(x)) return x.map(function (y) { return limpiar(y, hondo + 1); }).filter(function (y) { return y !== undefined; });
+      if (typeof x === "object") { var o = {}; Object.keys(x).forEach(function (k) { if (CAMPO.test(k)) return; var y = limpiar(x[k], hondo + 1); if (y !== undefined) o[k] = y; }); return o; }
+      return x;
+    };
+    return limpiar(v, 0);
+  }
+  copiaLimpia(key, val) {
+    var self = this;
+    if (key === "hoy" && val && Array.isArray(val.roster)) val = Object.assign({}, val, { roster: val.roster.map(function (x) { var o = {}; self.COPIA_REGISTRO.forEach(function (k) { if (x && x[k] != null) o[k] = x[k]; }); return o; }) });
+    return this.sinDocs(val);
+  }
+  /* Al cerrar sesión (y al abrir sin sesión): se borran todas. Espera al IndexedDB (máx. 1.5 s) para que no quede a medias. */
+  copiasBorrar() {
+    var pref = this.COPIAS_LS.concat(["sa_alma_voz_ficha"]);   /* la ficha de voz de Alma (alma-voz.js) también se va con la sesión */
+    try { Object.keys(localStorage).forEach(function (k) { if (pref.some(function (p) { return k === p || k.indexOf(p + ":") === 0; })) localStorage.removeItem(k); }); } catch (e) {}
+    return new Promise(function (ok) {
+      var t = setTimeout(ok, 1500), fin = function () { clearTimeout(t); ok(); };
+      try { var r = indexedDB.deleteDatabase("sa_hub"); r.onsuccess = r.onerror = r.onblocked = fin; } catch (e) { fin(); }
+    });
+  }
+  /* Al abrir: sin sesión, todo fuera; con sesión, fuera las de otra persona, las viejas sin correo y las vencidas. */
+  copiasRevisar() {
+    var yo = this.copiaDueno(), pref = this.COPIAS_LS, ms = this.COPIA_MS;
+    if (!yo) { this.copiasBorrar(); return; }
+    try { Object.keys(localStorage).forEach(function (k) { var p = pref.find(function (p) { return k === p || k.indexOf(p + ":") === 0; }); if (p && k !== p + ":" + yo) localStorage.removeItem(k); }); } catch (e) {}
+    try {
+      var r = indexedDB.open("sa_hub", 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore("kv"); };
+      r.onsuccess = function () {
+        var db = r.result;
+        try {
+          var tx = db.transaction("kv", "readwrite"), cur = tx.objectStore("kv").openCursor();
+          cur.onsuccess = function () { var c = cur.result; if (!c) return; var v = c.value; if (!/:/.test(String(c.key)) || String(c.key).slice(-(yo.length + 1)) !== ":" + yo || !v || !v.ts || Date.now() - v.ts >= ms) c.delete(); c.continue(); };
+          tx.oncomplete = tx.onabort = tx.onerror = function () { try { db.close(); } catch (x) {} };
+        } catch (e) { try { db.close(); } catch (x) {} }
+      };
+    } catch (e) {}
+  }
+  /* IndexedDB (localStorage se llena con la bandeja completa y fallaba en silencio). La clave lleva el correo de la sesión;
+     sin sesión no se lee ni se escribe nada. Lo que se guarda pasa por copiaLimpia; lo de más de 24 h no se lee. */
   idb(op, key, val) {
+    var self = this, k = this.copiaClave(key);
     return new Promise(function (res) {
+      if (!k) { res(null); return; }
       try {
         var r = indexedDB.open("sa_hub", 1);
         r.onupgradeneeded = function () { r.result.createObjectStore("kv"); };
-        r.onsuccess = function () { try { var db = r.result, tx = db.transaction("kv", op === "get" ? "readonly" : "readwrite"), os = tx.objectStore("kv"), q = op === "get" ? os.get(key) : os.put(val, key); q.onsuccess = function () { res(op === "get" ? q.result : true); }; q.onerror = function () { res(null); }; } catch (e) { res(null); } };
+        r.onsuccess = function () {
+          var db = r.result;
+          try {
+            var tx = db.transaction("kv", op === "get" ? "readonly" : "readwrite"), os = tx.objectStore("kv"), q = op === "get" ? os.get(k) : os.put(self.copiaLimpia(key, val), k);
+            q.onsuccess = function () { var v = q.result; res(op === "get" ? (v && v.ts && Date.now() - v.ts < self.COPIA_MS ? v : null) : true); };
+            q.onerror = function () { res(null); };
+            /* Se cierra al terminar: una conexión abierta frena el borrado al cerrar sesión. */
+            tx.oncomplete = tx.onabort = tx.onerror = function () { try { db.close(); } catch (x) {} };
+          } catch (e) { try { db.close(); } catch (x) {} res(null); }
+        };
         r.onerror = function () { res(null); };
       } catch (e) { res(null); }
     });
@@ -4262,8 +4355,8 @@ class Component extends DCLogic {
     if (H.cargando || (!forzar && H.ts && Date.now() - H.ts < 90000)) return;
     var base = {};
     if (!H.cfg && !H.roster) {
-      try { var c = JSON.parse(localStorage.getItem("sa_hoy_v1") || "null"); if (c && Date.now() - c.ts < 48 * 3600000) base = { cfg: c.cfg, roster: c.roster, hist: c.hist, tsOk: c.ts }; } catch (e) {}
-      if (!base.cfg) this.idb("get", "hoy").then(function (c) { var X = self.state.hoy || {}; if (c && c.ts && Date.now() - c.ts < 48 * 3600000 && !X.tsOk) self.hoySet({ cfg: X.cfg || c.cfg, roster: X.roster || c.roster, hist: X.hist || c.hist, tsOk: c.ts }); });
+      /* La copia de esta persona (24 h, sin documentos). cfgCopia marca que lo que se ve es la copia hasta que llega Epi. */
+      this.idb("get", "hoy").then(function (c) { var X = self.state.hoy || {}; if (c && !X.tsOk) self.hoySet({ cfg: X.cfg || c.cfg, cfgCopia: X.cfg ? null : c.cfg, roster: X.roster || c.roster, hist: X.hist || c.hist, tsOk: c.ts }); });
     }
     this.setState({ hoy: Object.assign({}, H, base, { cargando: true, errEpi: "", errHola: "", ts: Date.now() }) });
     var guardar = function () { var x = self.state.hoy || {}, o = { ts: Date.now(), cfg: x.cfg, roster: x.roster, hist: x.hist }; self.idb("put", "hoy", o); try { localStorage.removeItem("sa_hoy_v1"); } catch (e) {} };
@@ -4363,13 +4456,13 @@ class Component extends DCLogic {
   rv2Cargar(forzar) {
     var self = this, R = this.state.rv2 || {};
     if (R.cargando || (!forzar && R.ts && Date.now() - R.ts < 300000)) return;
-    if (!R.reviews) { try { var c = JSON.parse(localStorage.getItem("sa_rv2") || "null"); if (c && c.reviews) R = { reviews: c.reviews, ts: 0 }; } catch (e) {} }
+    if (!R.reviews) { var c = this.copiaLeer("sa_rv2"); if (c && Array.isArray(c.reviews)) R = { reviews: c.reviews, ts: 0, copia: c.t }; }
     this.setState({ rv2: Object.assign({}, R, { cargando: true, error: "" }) });
     this.gpost(this.EPI_URL, "getHeavy", {}, 90000).then(function (j) {
       var d = (j && (j.data || j)) || {}, revs = self.salvage(d.reviews);
       if (!Array.isArray(revs)) throw new Error("rv");
       self.setState({ rv2: { reviews: revs, ts: Date.now(), cargando: false, error: "" } });
-      try { localStorage.setItem("sa_rv2", JSON.stringify({ reviews: revs })); } catch (e) {}
+      self.copiaGuardar("sa_rv2", { reviews: revs });
     }).catch(function () { self.setState(function (s) { return { rv2: Object.assign({}, s.rv2, { cargando: false, ts: Date.now(), error: "No pudimos leer las reviews de Epi." + ((s.rv2 || {}).reviews ? " Se muestra lo último guardado." : "") }) }; }); });
   }
   /* Long press: 450 ms sostenido abre las acciones; también clic derecho y Enter. */
@@ -4470,6 +4563,8 @@ class Component extends DCLogic {
       return "A partir de las reviews de " + (it.prop || (propF !== "Todas" ? propF : "todas las propiedades")) + ": " + (it.tema ? lado + " " + String(it.tema).toLowerCase() + ". " : "") + it.titulo + ". " + (it.detalle || "") + "\nAjusta cómo ALMA informa y responde a los huéspedes sobre este tema (qué decir antes de la llegada, cómo responder si lo mencionan) sin prometer nada que el equipo no haya confirmado.";
     };
     return {
+      /* Lo que se ve es la copia del teléfono: se dice hasta que llegan las de Epi. */
+      rv2EsCopia: !!R.copia && all.length > 0, rv2CopiaTxt: R.copia ? "Lo guardado " + (Math.round((Date.now() - R.copia) / 60000) < 60 ? "hace " + Math.max(1, Math.round((Date.now() - R.copia) / 60000)) + " min" : "hace " + Math.round((Date.now() - R.copia) / 3600000) + " h") + (R.cargando ? " · actualizando…" : " · no se pudo actualizar") : "",
       rv2Cargando: !!R.cargando && !all.length, rv2HayError: !!R.error && !all.length, rv2Error: R.error || "", rv2Recargar: function () { self.rv2Cargar(true); },
       rv2Hay: base.length > 0, rv2Vacio: !R.cargando && !!R.ts && all.length > 0 && !base.length,
       rv2Periodos: [[30, "30 días"], [90, "90 días"], [365, "12 meses"]].map(function (p) { var on = dias === p[0]; return { label: p[1], aria: on ? "true" : "false", bg: on ? "#FFFFFF" : "transparent", fg: on ? "#3E3F3F" : "#6F6867", sh: on ? "0 1px 2px rgba(62,63,63,.06)" : "none", set: function () { self.setState({ rv2Dias: p[0], rv2VerN: 15 }); } }; }),
@@ -4896,6 +4991,18 @@ class Component extends DCLogic {
     var sc = document.createElement("script"); sc.src = "js/sa-registro-pdf.js?v=1"; sc.onload = arrancar; sc.onerror = function () { self.aviso("No se pudo cargar el generador de PDF."); fin(); };
     document.head.appendChild(sc);
   }
+  /* Los números del día (Epi): una sola cuenta para la pantalla Hoy y para la tarjeta Hoy del inicio. */
+  hoyDia() {
+    var H = this.state.hoy || {}, cfg = H.cfg || {}, hoy = this.hoyISO(), norm = this.hoyNorm;
+    var cancel = function (x) { return /cancel/i.test(String(x.status || x.estado || x.reservationStatus || x.statusReserva || "")); };
+    var hoySch = (cfg.schedules || []).filter(function (s) { return s && String(s.fecha || "").slice(0, 10) === hoy && !cancel(s); });
+    var esLimp = function (s) { return /limpieza|cleaning|profunda/i.test(String(s.tipo || "Limpieza")); };
+    var esMant = function (s) { return !esLimp(s) && /manten|revisi|repara/i.test(String(s.tipo || "")); };
+    var resEpi = cfg.reservas || [], entran = {};
+    resEpi.forEach(function (x) { if (String(x.checkIn || "").slice(0, 10) === hoy) entran[norm(x.propiedad)] = 1; });
+    var salen = resEpi.filter(function (x) { return String(x.checkOut || "").slice(0, 10) === hoy; });
+    return { listo: !!H.cfg, deCopia: !!H.cfg && H.cfg === H.cfgCopia, cancel: cancel, hoySch: hoySch, esLimp: esLimp, esMant: esMant, entran: entran, salen: salen };
+  }
   hoyVals() {
     var self = this, st = this.state, H = st.hoy || {}, hoy = this.hoyISO(), norm = this.hoyNorm;
     var cfg = H.cfg || {}, sch = cfg.schedules || [], vend = cfg.vendors || [], roster = (H.roster || []).map(function (x) { return Object.assign({}, x, { guestName: String(x.guestName || "").replace(/[\u2066-\u2069\u200e\u200f]/g, "").trim() }); });
@@ -4904,12 +5011,10 @@ class Component extends DCLogic {
     var vNom = function (v) { return v ? String(v.name || v.nombre || [v.firstName, v.lastName].filter(Boolean).join(" ") || v.email || "").trim() : ""; };
     var vPor = {}; vend.forEach(function (v) { if (!v) return; if (v.id != null) vPor["i" + v.id] = v; if (v.email) vPor["e" + String(v.email).toLowerCase()] = v; });
     var vDe = function (s) { return vPor["i" + s.vendorId] || vPor["e" + String(s.vendorEmail || "").toLowerCase()] || null; };
-    var cancel = function (x) { return /cancel/i.test(String(x.status || x.estado || x.reservationStatus || x.statusReserva || "")); };
-    var hoySch = sch.filter(function (s) { return s && String(s.fecha || "").slice(0, 10) === hoy && !cancel(s); });
-    var esLimp = function (s) { return /limpieza|cleaning|profunda/i.test(String(s.tipo || "Limpieza")); };
+    var dia = this.hoyDia(), cancel = dia.cancel, hoySch = dia.hoySch, esLimp = dia.esLimp;
     var rOk = roster.filter(function (x) { return x && !cancel(x); });
     /* Entradas y salidas del día: las reservas que Epi sincroniza de Hospitable (las mismas que usa su motor). */
-    var entran = {}; resEpi.forEach(function (x) { if (String(x.checkIn || "").slice(0, 10) === hoy) entran[norm(x.propiedad)] = 1; });
+    var entran = dia.entran;
     var conL = {}; hoySch.filter(esLimp).forEach(function (s) { conL[norm(s.propiedad)] = 1; });
     var tieneL = function (p) { var k = norm(p); return !!conL[k] || Object.keys(conL).some(function (x) { return x && k && (x.indexOf(k) >= 0 || k.indexOf(x) >= 0); }); };
     var entra = function (p) { var k = norm(p); return !!entran[k] || Object.keys(entran).some(function (x) { return x && k && (x.indexOf(k) >= 0 || k.indexOf(x) >= 0); }); };
@@ -4918,7 +5023,7 @@ class Component extends DCLogic {
       .map(function (v) { return { id: String(v.id), n: cnt[v.id] || 0, label: vNom(v) + " · " + (cnt[v.id] || 0) + " hoy" }; })
       .sort(function (a, b) { return a.n - b.n || a.label.localeCompare(b.label); });
     var visto = {};
-    var salen = resEpi.filter(function (x) { return String(x.checkOut || "").slice(0, 10) === hoy; }).map(function (x) {
+    var salen = dia.salen.map(function (x) {
       var hl = rOk.find(function (y) { return norm(y.propertyName) === norm(x.propiedad) && String(y.checkout || "").slice(0, 10) === hoy; });
       return { propertyName: x.propiedad, habitaciones: x.habitaciones, guestName: hl ? hl.guestName : "" };
     });
@@ -5182,7 +5287,8 @@ class Component extends DCLogic {
   /* Borradores: se guardan por conversación en este dispositivo (7 días) y vuelven al reabrirla. */
   borradores() {
     if (this._borr) return this._borr;
-    var o = {}; try { o = JSON.parse(localStorage.getItem("sa_borradores") || "{}") || {}; } catch (e) {}
+    /* Por persona y se borran al cerrar sesión (son textos para huéspedes); siguen durando 7 días. */
+    var k = this.copiaClave("sa_borradores"), o = {}; try { o = (k && (JSON.parse(localStorage.getItem(k) || "{}") || {}).b) || {}; } catch (e) {}
     var lim = Date.now() - 7 * 864e5; Object.keys(o).forEach(function (k) { if (!o[k] || o[k].ts < lim) delete o[k]; });
     return (this._borr = o);
   }
@@ -5191,7 +5297,7 @@ class Component extends DCLogic {
     var o = this.borradores(), self = this; t = String(t || "");
     if (t.trim()) o[k] = { t: t, ts: Date.now() }; else delete o[k];
     clearTimeout(this._borrT);
-    this._borrT = setTimeout(function () { try { localStorage.setItem("sa_borradores", JSON.stringify(self._borr || o)); } catch (e) {} }, 400);
+    this._borrT = setTimeout(function () { try { var k = self.copiaClave("sa_borradores"); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), b: self._borr || o })); } catch (e) {} }, 400);
   }
   /* Crece como WhatsApp: hasta ~7 líneas (40% de la pantalla en teléfono) y luego hace scroll por dentro.
      Solo vuelve a medir desde cero cuando el texto se acorta; al escribir basta comparar scrollHeight. Se agrupa por frame. */
@@ -5834,8 +5940,7 @@ class Component extends DCLogic {
       this._cacheLeido = true;
       /* La última lectura (hasta 24 h) se pinta al instante y luego solo se actualiza: nunca se vuelve a cargar desde cero. */
       var pintar = function (c0) { if (c0 && c0.data && Date.now() - c0.ts < 24 * 3600000 && !self.state.alma) { self._desdeCache = true; self.setState({ alma: c0.data, almaFuente: "Última lectura " + new Date(c0.ts).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }) + " · actualizando…" }); } };
-      try { pintar(JSON.parse(localStorage.getItem("sa_alma_cache") || "null")); } catch (e) {}
-      if (!this.state.alma) this.idb("get", "alma").then(pintar);
+      this.idb("get", "alma").then(pintar);
     }
     var guardar = function () {
       try { var a = self.state.alma; if (!a || a._demo) return; var o = {}; ["control", "cola", "log", "inbox", "resueltas", "resueltasVivo", "automejora", "correos", "escalamiento", "conocimiento"].forEach(function (k) { o[k] = a[k]; }); clearTimeout(self._guardT); self._guardT = setTimeout(function () { self.idb("put", "alma", { ts: Date.now(), data: o }); }, 800); try { localStorage.removeItem("sa_alma_cache"); } catch (x) {} } catch (e) {}
@@ -8777,7 +8882,8 @@ class Component extends DCLogic {
       salir: function () {
         if (window.SA && SA.logout) { try { SA.logout(); } catch (e) {} }
         if (window.SAAuth && SAAuth.clearSession) { try { SAAuth.clearSession(); } catch (e) {} }
-        location.href = self.APPS.home;
+        /* Las copias con datos de huéspedes se van con la sesión; se espera al IndexedDB antes de salir. */
+        self.copiasBorrar().then(function () { location.href = self.APPS.home; });
       },
 
       /* cabecera */
@@ -8803,12 +8909,19 @@ class Component extends DCLogic {
       fechaLarga: new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Guatemala" }),
       resumenDia: this.CHECKINS.length + " llegadas, " + turnosHoy.length + " turnos en Epi y " + (atrasados.length) + " cosas que ya te esperaban. Empecemos por ahí.",
       stats: stats,
-      hoyStats: [
-        { etiqueta: "Limpiezas", valor: String(nLimpiezas) },
-        { etiqueta: "Mantenim.", valor: String(nMantto) },
-        { etiqueta: "Check-in", valor: String(this.CHECKINS.length) },
-        { etiqueta: "Check-out", valor: String(this.CHECKOUTS.length) }
-      ],
+      /* La tarjeta Hoy del inicio: los mismos números de la pantalla Hoy (Epi). Mientras no llegan, «—». */
+      ...(function () {
+        var dia = self.hoyDia(), n = function (x) { return dia.listo ? String(x) : "—"; }, H = st.hoy || {};
+        return {
+          hoyStats: [
+            { etiqueta: "Limpiezas", valor: n(dia.hoySch.filter(dia.esLimp).length) },
+            { etiqueta: "Mantenim.", valor: n(dia.hoySch.filter(dia.esMant).length) },
+            { etiqueta: "Check-in", valor: n(Object.keys(dia.entran).length) },
+            { etiqueta: "Check-out", valor: n(dia.salen.length) }
+          ],
+          hoyStatsCopia: dia.deCopia, hoyStatsCopiaTxt: dia.deCopia ? (H.cargando ? "Lo guardado · actualizando…" : "Lo guardado · no se pudo actualizar") : ""
+        };
+      })(),
       proyectosActivos: String(this.PROYECTOS.length),
       appsDock: this.APPS_DOCK.map(function (ap) {
         var an = (st.appNotis || {})[ap.k], n = typeof an === "number" ? an : 0;

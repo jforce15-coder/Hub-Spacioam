@@ -70,6 +70,7 @@
     font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
   .msg.on { opacity: 1; }
 </style>
+<link rel="stylesheet" href="../ds/esqueleto.css">
 </head>
 <body>
 <main>
@@ -77,7 +78,7 @@
     <div class="t"><h1>Correos</h1><small>Alma los ordena por ti</small></div>
     <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></a>
   </header>
-  <div id="todo"><div class="vacio">Cargando tus correos…</div></div>
+  <div id="todo"><div class="sa-esq" aria-label="Cargando tus correos"><i class="corta"></i><i class="c"></i><i class="c"></i><i class="c"></i></div></div>
 </main>
 <div class="msg" id="msg"></div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>

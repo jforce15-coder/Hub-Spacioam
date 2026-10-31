@@ -12,6 +12,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - No se guarda el cuerpo de correos ni datos de identidad completos; solo lo necesario.
 - Sin prueba no hay respuesta: lo que Alma afirma sale de una fuente que puede citar (el cerebro, una herramienta). Si no hay prueba lo dice («No lo encontré en nuestros documentos») y deja la pregunta al responsable (Pendientes) o, con un huésped, «lo confirmo con el equipo».
 - Nada de documentos de identidad en el cerebro: ni DPI, ni pasaporte, ni cédula, ni contratos con datos personales. Lo que lo parezca (por su nombre, su carpeta o un número con forma de DPI) va a cuarentena con su motivo; en conversaciones y correos esos números, las tarjetas, los códigos y las claves se quitan antes de indexar (`cerLimpiarSensible_`).
+- En el SQL del cerebro, la columna `hash` va siempre entre acentos graves (\`hash\`): HASH es palabra reservada de BigQuery y sin ellos la carga falla (pasó con #302). Hay un check.
 - La prueba del cerebro tiene que dar **filtraciones = 0** (nada interno a un huésped, nada de conversaciones o correos a alguien de afuera). Si da más, se arregla antes de cualquier otra cosa del cerebro.
 - La audiencia se filtra en el código: quién puede ver qué sale de quién habla (`audienciaDe_`, `vozQuien_`) y se filtra dentro de la consulta (y otra vez al devolver), nunca de lo que diga el modelo. El modelo solo puede angostar una búsqueda, no ampliarla. Ante la duda, interno.
 

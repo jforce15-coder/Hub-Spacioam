@@ -44,6 +44,13 @@ jobs:
           fi
           echo "Sin llaves."
 
+      - name: En el SQL del cerebro, hash va entre acentos graves (palabra reservada de BigQuery)
+        run: |
+          if grep -nE "(SELECT|WHERE|ARRAY_AGG|GROUP BY|ORDER BY|DELETE).*[^\`.a-zA-Z_]hash[^\`a-zA-Z_]" apps-script/cerebro*.js | grep -v '^[^:]*:[0-9]*: *\(/\*\|\*\)'; then
+            echo "::error::Usa \`hash\` entre acentos graves en el SQL del cerebro: HASH es palabra reservada de BigQuery."; exit 1
+          fi
+          echo "Bien."
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

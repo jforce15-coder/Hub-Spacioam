@@ -40,7 +40,7 @@
   }
   /* Sesión única: comprueba la sesión firmada con el login y devuelve el perfil vigente (o null).
      Cada app la llama al arrancar, antes de mostrar su pantalla de login. Resultado en memoria 5 min. */
-  var verif = null;
+  var verif = null, DEFINITIVOS = { session: 1, no_user: 1, suspended: 1 };
   function verificar() {
     var s = leer(); if (!s) return Promise.resolve(null);
     if (verif && verif.s === s && Date.now() - verif.t < 300000) return verif.p;
@@ -51,7 +51,9 @@
     }).then(function (r) { return r.json(); })
       .then(function (j) {
         if (j && j.ok && j.profile) { estado = 'ok'; if (j.session) guardar(j.session); return j.profile; }
-        estado = 'invalida';
+        /* Solo es «inválida» si el login lo dice claro (firma mala, usuario borrado o suspendido). Un error del
+           login (cupo, hoja ocupada) no saca a nadie: se queda como «red». */
+        estado = j && j.ok === false && DEFINITIVOS[j.error] ? 'invalida' : 'red';
         if (j && j.ok === false && j.error === 'session') borrar();
         return null;
       })
@@ -161,7 +163,12 @@
             var j = JSON.parse(txt);
             if (j && typeof j === 'object') {
               if (j.ok && j.session && url.indexOf(LOGIN) >= 0 && (accion === 'login' || accion === 'setInitialPassword')) guardar(j.session);
-              else if (j.ok === false && j.error === 'session' && leer()) { borrar(); setTimeout(function () { location.reload(); }, 50); }
+              else if (j.ok === false && j.error === 'session' && leer()) {
+                /* Un backend dice «session»: antes de sacar a la persona se le pregunta al login. Solo si el login
+                   confirma que la sesión ya no vale se cierra; si el login dice que vale o no contesta, se queda. */
+                verif = null;
+                verificar().then(function (p) { if (!p && verif && verif.estado() === 'invalida') { borrar(); location.reload(); } });
+              }
               else if (j.ok === false && j.error === 'session') sinPulsera();
             }
           } catch (e) {}

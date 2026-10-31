@@ -1,6 +1,6 @@
 /* ═══ EL CEREBRO DE ALMA (issue #291 · T1–T6) ═══════════════════════════════════════════════════════════════════
    Un índice común para que Alma encuentre rápido y con prueba. Cada fuente se lee, se etiqueta, se corta en pedazos
-   y se guarda en BigQuery (alma_cerebro.pedazos) con su huella de significado (embeddings de Gemini). Alma busca por
+   y se guarda en BigQuery (alma_cerebro.pedazos) con su huella de significado (embeddings de Vertex AI, con la misma cuenta de servicio). Alma busca por
    significado y por palabras exactas a la vez, se queda con los 8 mejores y responde citando de dónde lo sacó.
      · La regla del tribunal: sin prueba no hay respuesta. Si no hay pedazos con puntaje suficiente, Alma lo dice y la
        pregunta queda en Pendientes para el responsable (o, con un huésped, «lo confirmo con el equipo»).
@@ -12,7 +12,8 @@
    PERMISOS: BigQuery se usa por REST con una CUENTA DE SERVICIO (JWT firmado aquí con Utilities), no con el servicio
    avanzado. Así appsscript.json no cambia, no hay permisos nuevos que Juan tenga que autorizar y la web app no se cae.
    Propiedades del script (ver Código.js): BQ_PROYECTO (id del proyecto de Google Cloud), BQ_CUENTA (la llave JSON de la
-   cuenta de servicio, completa), BQ_UBICACION (opcional, US por defecto) y GEMINI_KEY (la que ya existe).
+   cuenta de servicio, completa), BQ_UBICACION (opcional, US por defecto) y CER_VERTEX_REGION (opcional,
+   us-central1). Las huellas salen de Vertex AI con esa misma cuenta (rol «Usuario de Vertex AI»): ninguna llave más.
    Si falta BQ_PROYECTO o BQ_CUENTA, el cerebro se apaga en silencio: Alma sigue con sus herramientas de siempre.
 
    Sincronización: el activador cerebroSincronizar (cada 15 min; se instala solo desde aprender()). Por cada documento
@@ -55,25 +56,26 @@ function cerConfig_() {
   if (!proy || !cuenta || !/^[a-z][a-z0-9-]{4,61}[a-z0-9]$/.test(proy)) return null;   // el id va dentro del SQL: solo uno válido
   var j = null; try { j = JSON.parse(cuenta); } catch (e) { return null; }
   if (!j || !j.client_email || !j.private_key) return null;
-  var ubic = String(p.getProperty('BQ_UBICACION') || 'US').trim();
+  var ubic = String(p.getProperty('BQ_UBICACION') || 'US').trim(), reg = String(p.getProperty('CER_VERTEX_REGION') || 'us-central1').trim();
   return { proyecto: proy, email: String(j.client_email), llave: String(j.private_key), tokenUri: String(j.token_uri || 'https://oauth2.googleapis.com/token'),
-    ubicacion: /^[A-Za-z0-9-]{2,30}$/.test(ubic) ? ubic : 'US', gemini: String(p.getProperty('GEMINI_KEY') || '') };
+    ubicacion: /^[A-Za-z0-9-]{2,30}$/.test(ubic) ? ubic : 'US', region: /^[a-z]+-[a-z]+\d$/.test(reg) ? reg : 'us-central1' };
 }
-function cerebroActivo_() { try { var c = cerConfig_(); return !!(c && c.gemini); } catch (e) { return false; } }
+function cerebroActivo_() { try { var c = cerConfig_(); return !!c; } catch (e) { return false; } }
 function cerTablaSql_(c) { return '`' + c.proyecto + '.' + CER_DATASET_ + '.' + CER_TABLA_ + '`'; }
 function cerModelo_() {
   var m = String(PropertiesService.getScriptProperties().getProperty('CER_EMBED_MODELO') || 'gemini-embedding-001').trim();
   return /^[a-z0-9.-]{3,60}$/.test(m) ? m : 'gemini-embedding-001';
 }
 
-/* Token de la cuenta de servicio: JWT firmado (RS256) → oauth2.googleapis.com/token. 50 min en caché. */
+/* Token de la cuenta de servicio: JWT firmado (RS256) → oauth2.googleapis.com/token. 50 min en caché. El alcance
+   cloud-platform cubre BigQuery y Vertex AI; lo que la cuenta puede hacer lo deciden sus roles en Google Cloud. */
 function cerToken_(c) {
-  var cache = CacheService.getScriptCache(), k = 'cer_tok_' + c.email.replace(/[^a-z0-9]/gi, '').slice(0, 60), t = cache.get(k);
+  var cache = CacheService.getScriptCache(), k = 'cer_tok2_' + c.email.replace(/[^a-z0-9]/gi, '').slice(0, 60), t = cache.get(k);
   if (t) return t;
   var b64 = function (x) { return Utilities.base64EncodeWebSafe(x).replace(/=+$/, ''); };
   var ahora = Math.floor(Date.now() / 1000);
   var cab = b64(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  var cuerpo = b64(JSON.stringify({ iss: c.email, scope: 'https://www.googleapis.com/auth/bigquery', aud: c.tokenUri, iat: ahora, exp: ahora + 3600 }));
+  var cuerpo = b64(JSON.stringify({ iss: c.email, scope: 'https://www.googleapis.com/auth/cloud-platform', aud: c.tokenUri, iat: ahora, exp: ahora + 3600 }));
   var firma = b64(Utilities.computeRsaSha256Signature(cab + '.' + cuerpo, c.llave));
   var r = UrlFetchApp.fetch(c.tokenUri, { method: 'post', muteHttpExceptions: true,
     payload: { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: cab + '.' + cuerpo + '.' + firma } });
@@ -159,35 +161,61 @@ function cerAsegurarTabla_(c) {
   P.setProperty('CER_TABLA', marca);
 }
 
-/* Huellas de significado con Gemini (batchEmbedContents, lotes de 100, reintento corto). tarea: RETRIEVAL_DOCUMENT
-   para pedazos, RETRIEVAL_QUERY para preguntas. Se normalizan (con 768 dimensiones Gemini no lo hace solo). */
+/* Huellas de significado con Vertex AI (gemini-embedding-001, mismo modelo que Gemini, pagado en el mismo proyecto).
+   Vertex recibe un texto por llamada con este modelo: van 20 a la vez (fetchAll), con reintento corto en 429/5xx.
+   tarea: RETRIEVAL_DOCUMENT para pedazos, RETRIEVAL_QUERY para preguntas. Se normalizan (con 768 dimensiones no
+   vienen normalizadas). */
 function cerNormalizar_(v) {
   var s = 0; v.forEach(function (x) { s += x * x; }); s = Math.sqrt(s) || 1;
   return v.map(function (x) { return Math.round((x / s) * 1e7) / 1e7; });
 }
+function cerVertexUrl_(c, modelo) {
+  return 'https://' + c.region + '-aiplatform.googleapis.com/v1/projects/' + c.proyecto + '/locations/' + c.region + '/publishers/google/models/' + modelo + ':predict';
+}
 function cerEmbeddings_(c, textos, tarea, o) {
   o = o || {};
-  var modelo = cerModelo_(), out = [], tokens = 0, t0 = Date.now();
-  for (var i = 0; i < textos.length; i += 100) {
-    var lote = textos.slice(i, i + 100), r = null;
-    var cuerpo = { requests: lote.map(function (t) { return { model: 'models/' + modelo, content: { parts: [{ text: String(t).slice(0, 8000) }] }, taskType: tarea, outputDimensionality: CER_DIM_ }; }) };
-    for (var intento = 0; intento < 3; intento++) {
-      r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelo + ':batchEmbedContents', { method: 'post', contentType: 'application/json',
-        muteHttpExceptions: true, headers: { 'x-goog-api-key': c.gemini }, payload: JSON.stringify(cuerpo) });
-      if (r.getResponseCode() < 300 || [429, 500, 502, 503, 504].indexOf(r.getResponseCode()) < 0) break;
-      Utilities.sleep(800 * (intento + 1));
+  var modelo = cerModelo_(), url = cerVertexUrl_(c, modelo), out = new Array(textos.length), tokens = 0, t0 = Date.now();
+  var pedido = function (t) {
+    return { url: url, method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + cerToken_(c) },
+      payload: JSON.stringify({ instances: [{ content: String(t).slice(0, 8000), task_type: tarea }], parameters: { outputDimensionality: CER_DIM_, autoTruncate: true } }) };
+  };
+  for (var i = 0; i < textos.length; i += 20) {
+    var pendientes = []; for (var k = i; k < Math.min(i + 20, textos.length); k++) pendientes.push(k);
+    for (var intento = 0; intento < 4 && pendientes.length; intento++) {
+      if (intento) Utilities.sleep(1000 * intento);
+      var rs = UrlFetchApp.fetchAll(pendientes.map(function (n) { return pedido(textos[n]); })), otra = [];
+      rs.forEach(function (r, x) {
+        var n = pendientes[x], code = r.getResponseCode();
+        if (code < 300) {
+          var j = JSON.parse(r.getContentText() || '{}'), e = (((j.predictions || [])[0] || {}).embeddings || {});
+          out[n] = cerNormalizar_(e.values || []);
+        } else if ([429, 500, 502, 503, 504].indexOf(code) >= 0 && intento < 3) otra.push(n);
+        else throw new Error(cerVertexError_(code, r.getContentText()));
+      });
+      pendientes = otra;
     }
-    if (r.getResponseCode() >= 300) throw new Error('Gemini ' + r.getResponseCode() + ': ' + String(r.getContentText()).slice(0, 200));
-    var j = JSON.parse(r.getContentText() || '{}');
-    (j.embeddings || []).forEach(function (e) { out.push(cerNormalizar_(e.values || [])); });
-    lote.forEach(function (t) { tokens += Math.ceil(Math.min(8000, String(t).length) / 4); });
+    textos.slice(i, i + 20).forEach(function (t) { tokens += Math.ceil(Math.min(8000, String(t).length) / 4); });
   }
-  if (out.length !== textos.length) throw new Error('Gemini devolvió ' + out.length + ' de ' + textos.length + ' huellas');
+  if (out.some(function (v) { return !v || v.length !== CER_DIM_; })) throw new Error('Vertex AI no devolvió todas las huellas');
   if (o.registrar !== false) {
     try { registrarUso_({ app: 'ALMA', funcion: 'Cerebro · índice', detalle: textos.length + ' pedazos', modelo: modelo, usage: { input_tokens: tokens }, usd: tokens * 0.15 / 1e6, ms: Date.now() - t0, ok: true }); } catch (e) {}
   }
   out.tokens = tokens;
   return out;
+}
+
+/* El error de Vertex en palabras de Juan: lo de siempre es que falta activar la API o darle el rol a la cuenta. */
+function cerVertexError_(code, texto) {
+  var t = String(texto || ''), m = ''; try { m = String((JSON.parse(t).error || {}).message || ''); } catch (e) { m = t; }
+  if (code === 403 && /SERVICE_DISABLED|has not been used|is disabled/i.test(t)) return 'Vertex AI: falta activar «Vertex AI API» en el proyecto.';
+  if (code === 403) return 'Vertex AI: a la cuenta del cerebro le falta el rol «Usuario de Vertex AI».';
+  return 'Vertex AI ' + code + ': ' + m.slice(0, 200);
+}
+/* ¿Vertex responde? Una huella de prueba; si sale bien, no se vuelve a probar en 6 horas. Devuelve '' o el problema. */
+function cerVertexListo_(c) {
+  var cache = CacheService.getScriptCache(); if (cache.get('cer_vertex_ok')) return '';
+  try { cerEmbeddings_(c, ['prueba'], 'RETRIEVAL_QUERY', { registrar: false }); cache.put('cer_vertex_ok', '1', 21600); return ''; }
+  catch (e) { return String(e.message || e).slice(0, 200); }
 }
 
 /* Escritura por lotes: un load job desde NDJSON (lo cargado así se puede borrar con DML al instante; lo insertado por
@@ -445,7 +473,7 @@ function cerLeerDoc_(d, ctx, hashPrevio) {
 /* El activador (sin «_»: Apps Script no deja que un activador llame a una función privada). */
 function cerebroSincronizar() { return cerebroSincronizar_(); }
 function cerebroSincronizar_() {
-  var c = cerConfig_(); if (!c || !c.gemini) return { ok: true, apagado: true };
+  var c = cerConfig_(); if (!c) return { ok: true, apagado: true };
   /* Candado propio (no el LockService del script: lo usan los Pendientes y una tanda dura minutos). */
   var P = PropertiesService.getScriptProperties(), t0 = Date.now(), corriendo = Number(P.getProperty('CER_CORRIENDO') || 0);
   if (corriendo && t0 - corriendo < 7 * 60000) return { ok: true, ocupado: true };
@@ -525,7 +553,7 @@ function cerebroAsegurarActivador_() {
 }
 /* Para correr a mano en el editor después de pegar BQ_CUENTA y BQ_PROYECTO. */
 function cerebroInstalar() {
-  if (!cerebroActivo_()) { console.log('Cerebro apagado: faltan BQ_PROYECTO, BQ_CUENTA (llave JSON válida) o GEMINI_KEY en las Propiedades del script.'); return; }
+  if (!cerebroActivo_()) { console.log('Cerebro apagado: faltan BQ_PROYECTO o BQ_CUENTA (llave JSON válida) en las Propiedades del script.'); return; }
   console.log('Activador: ' + cerebroAsegurarActivador_());
   console.log(JSON.stringify(cerebroSincronizar_()));
 }
@@ -583,7 +611,7 @@ function cerEsPrueba_(f, nTerminos, umbral) {
    «crudas» (los 8 del SQL ya filtrados por audiencia) y «fugas_sql» (los que el SQL dejó pasar y paró la segunda llave). */
 function cerebroBuscar_(pregunta, audiencia, filtros, o) {
   o = o || {};
-  var c = cerConfig_(); if (!c || !c.gemini) return { ok: false, apagado: true, pedazos: [] };
+  var c = cerConfig_(); if (!c) return { ok: false, apagado: true, pedazos: [] };
   audiencia = CER_AUDIENCIAS_.indexOf(audiencia) >= 0 ? audiencia : 'externo';   // lo desconocido se trata como lo más cerrado
   filtros = filtros || {};
   var f0 = { fuente: CER_FUENTES_.indexOf(filtros.fuente) >= 0 ? filtros.fuente : '', propiedad: String(filtros.propiedad || '').slice(0, 120), area: String(filtros.area || '').slice(0, 40) };
@@ -677,11 +705,12 @@ function cerebroAccion_(ses, body) {
 }
 function cerebroEstado_() {
   var P = PropertiesService.getScriptProperties(), c = cerConfig_(), leer = function (k) { try { return JSON.parse(P.getProperty(k) || 'null'); } catch (e) { return null; } };
-  var out = { ok: true, activo: !!(c && c.gemini), falta: [!P.getProperty('BQ_PROYECTO') && 'BQ_PROYECTO', !c && P.getProperty('BQ_CUENTA') && 'BQ_CUENTA (no es una llave JSON válida)', !P.getProperty('BQ_CUENTA') && 'BQ_CUENTA', !P.getProperty('GEMINI_KEY') && 'GEMINI_KEY'].filter(Boolean),
+  var out = { ok: true, activo: !!c, falta: [!P.getProperty('BQ_PROYECTO') && 'BQ_PROYECTO', !c && P.getProperty('BQ_CUENTA') && 'BQ_CUENTA (no es una llave JSON válida)', !P.getProperty('BQ_CUENTA') && 'BQ_CUENTA'].filter(Boolean),
     ultima: leer('CER_ULTIMA'), en_curso: leer('CER_PASADA'), cuarentena: [], pedazos: [],
     fuentes: cerFuentesLista_(), areas: CER_AREAS_TRABAJO_, prueba: leer('CER_PRUEBA_ULTIMA'), umbral: cerUmbral_(), umbral_sugerido: Number(P.getProperty('CER_UMBRAL_SUGERIDO')) || null };
   try { var sh = ssAlma_().getSheetByName('ALMA_CEREBRO_CUARENTENA'); if (sh && sh.getLastRow() >= 2) out.cuarentena = sh.getRange(2, 1, sh.getLastRow() - 1, CER_CUAR_CAB_.length).getValues().map(function (r) { var o = {}; CER_CUAR_CAB_.forEach(function (k, i) { o[k] = String(r[i]); }); return o; }); } catch (e) {}
   if (!out.activo) return out;
+  out.vertex = cerVertexListo_(c);   // '' si las huellas funcionan; si no, qué falta en Google Cloud
   try { out.activador = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'cerebroSincronizar'; }); } catch (e) {}
   try {
     cerAsegurarTabla_(c);

@@ -104,7 +104,7 @@ function cerPct_(x) { return x[1] ? Math.round(100 * x[0] / x[1]) : null; }
 /* cerebroProbar_({ origen }) → { ok, metricas, umbral, umbral_sugerido, … }. No crea pendientes de «sin prueba». */
 function cerebroProbar_(o) {
   o = o || {};
-  var c = cerConfig_(); if (!c || !c.gemini) return { ok: false, apagado: true, error: 'El cerebro no está configurado.' };
+  var c = cerConfig_(); if (!c) return { ok: false, apagado: true, error: 'El cerebro no está configurado.' };
   var t0 = Date.now(), sembradas = 0;
   try { sembradas = cerPruebaSembrar_(c); } catch (e) { console.error('cerPruebaSembrar_: ' + e); }
   var qs = cerPruebaPreguntas_(); if (!qs.length) return { ok: false, error: 'La hoja ALMA_CEREBRO_PRUEBA no tiene preguntas.' };

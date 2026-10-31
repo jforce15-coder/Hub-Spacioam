@@ -493,7 +493,7 @@ function cerTanda_(c, t0) {
   est.tandas++;
   var ctx = cerCtx_(); ctx.t0 = t0;
   var cat = cerCatalogo_(ctx), docs = cat.docs, previos = {};
-  cerConsulta_(c, 'SELECT doc_id, ARRAY_AGG(hash ORDER BY actualizado DESC LIMIT 1)[OFFSET(0)] AS hash FROM ' + cerTablaSql_(c) + ' GROUP BY doc_id', [], { cache: false })
+  cerConsulta_(c, 'SELECT doc_id, ARRAY_AGG(`hash` ORDER BY actualizado DESC LIMIT 1)[OFFSET(0)] AS `hash` FROM ' + cerTablaSql_(c) + ' GROUP BY doc_id', [], { cache: false })
     .forEach(function (f) { previos[f.doc_id] = f.hash; });
   if (est.cursor === 0) {   // al empezar la pasada: lo que ya no existe se borra (solo de fuentes que se leyeron completas)
     var vivos = {}; docs.forEach(function (d) { vivos[d.id] = 1; });

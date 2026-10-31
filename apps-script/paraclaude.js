@@ -102,6 +102,10 @@ function conexiones_(ses, b) {
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
   var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p) };
   if (canje) out.canje = canje;
+  /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
+  if (out.bigquery.proyecto && out.bigquery.cuenta) {
+    try { if (b.cerebro === 'cargar') { cerebroAsegurarActivador_(); out.carga = cerebroSincronizar_(); } out.cerebro = cerebroEstado_(); } catch (e) { out.cerebro = { ok: false, error: String(e.message || e).slice(0, 200) }; }
+  }
   if (b.conectar === 'spotify') { var a = spotifyAutorizar_(); if (!a.ok) return a; out.url = a.url; }
   return out;
 }

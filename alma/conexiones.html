@@ -84,8 +84,9 @@
     <p>El cerebro de Alma: el índice donde busca rápido y con pruebas. Sigue los pasos en Google Cloud (proyecto, facturación, BigQuery API y una cuenta de servicio con los roles <b>Editor de datos de BigQuery</b> y <b>Usuario de trabajos de BigQuery</b>) y aquí pega el ID del proyecto y elige el archivo JSON de la clave.</p>
     <label for="bq-p">ID del proyecto</label><input id="bq-p" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="alma-cerebro-123456">
     <label for="bq-f" style="margin-top:12px">Archivo JSON de la clave</label><input id="bq-f" type="file" accept=".json,application/json">
-    <div class="fila"><button type="button" id="b-bq">Guardar</button></div>
+    <div class="fila"><button type="button" id="b-bq">Guardar</button><button type="button" class="peach" id="b-bq-cargar" hidden>Cargar ahora</button></div>
     <div class="msg" id="m-bq"></div>
+    <div class="msg" id="m-cerebro"></div>
   </section>
 
   <section id="s-claude">
@@ -116,6 +117,7 @@
     pill('e-github', r.github, 'Conectado', 'Sin llave');
     var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
     if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
+    $('b-bq-cargar').hidden = !(bq.proyecto && bq.cuenta); cerebroPintar(r.cerebro);
     var sp = r.spotify || {}; $('redir').value = sp.redirect || '';
     pill('e-spotify', sp.conectado, 'Conectado', sp.credenciales ? 'Falta conectar' : 'Sin conectar');
     $('b-sp-conectar').textContent = sp.conectado ? 'Volver a conectar' : 'Conectar Spotify';
@@ -141,6 +143,22 @@
   $('b-gh').onclick = function () {
     var v = $('gh').value.trim(); if (!/^(github_pat_|ghp_)/.test(v)) return msg('m-github', 'La llave empieza con github_pat_', 'mal');
     llamar({ guardar: { github: v } }).then(function (r) { $('gh').value = ''; if (pintar(r) && r.ok) msg('m-github', 'Guardada.', 'bien'); else msg('m-github', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  /* El estado del cerebro, en palabras: qué tiene, cuándo se actualizó y si algo falló. */
+  function cerebroPintar(c) {
+    if (!c) return msg('m-cerebro', '');
+    if (c.error) return msg('m-cerebro', 'El cerebro no pudo leer BigQuery: ' + c.error, 'mal');
+    if (c.falta && c.falta.length) return msg('m-cerebro', 'Falta: ' + c.falta.join(', '), 'mal');
+    var p = (c.pedazos || []).map(function (x) { return x.fuente + ' ' + x.pedazos + ' pedazos (' + x.documentos + ' documentos)'; }).join(' · ');
+    var u = c.ultima || {}, cuando = u.fin ? new Date(u.fin).toLocaleString('es') : '';
+    var t = (p ? 'Tiene: ' + p + '.' : 'Todavía está vacío: toca «Cargar ahora».') + (cuando ? ' Última carga: ' + cuando + '.' : '') +
+      (c.en_curso ? ' Hay una carga a medias; sigue sola cada 15 min.' : '') + (c.cuarentena && c.cuarentena.length ? ' En cuarentena: ' + c.cuarentena.length + '.' : '') +
+      (u.error ? ' Último error: ' + u.error : '') + (c.activador === false ? ' (Aún sin activador: «Cargar ahora» lo instala.)' : '');
+    msg('m-cerebro', t, u.error ? 'mal' : (p ? 'bien' : ''));
+  }
+  $('b-bq-cargar').onclick = function () {
+    msg('m-cerebro', 'Cargando… puede tardar unos minutos (lee fichas y playbooks y los indexa).');
+    llamar({ cerebro: 'cargar' }).then(function (r) { pintar(r); if (r && r.carga && r.carga.ok === false) msg('m-cerebro', 'No se pudo cargar: ' + (r.carga.error || ''), 'mal'); });
   };
   /* BigQuery: el archivo se lee aquí y va directo al Hub; nunca se muestra ni se guarda en el teléfono. */
   $('b-bq').onclick = function () {

@@ -676,7 +676,7 @@
     if (!E.dtips || !E.rotD || !E.rotD.va()) return;
     var r = E.face.getBoundingClientRect(), hay = dock.on && dock.el && /^Mejorar/.test(dock.el.getAttribute("aria-label") || "") && !AL.on && !AL.min;
     E.dtips.firstChild.classList.toggle("on", !!(hay && r.width));
-    if (r.width) { E.dtips.style.left = (r.left + r.width / 2 + 34) + "px"; E.dtips.style.top = (r.top - 12) + "px"; }
+    if (r.width) { E.dtips.style.left = Math.min(r.right, innerWidth - 8) + "px"; E.dtips.style.top = (r.top - 12) + "px"; }   // encima de la roca, alineado a su borde derecho
   }
   function dockCheck() {
     if (!root) return;
@@ -1244,9 +1244,9 @@
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claude que ">Mejorar el sistema</button></div></div>' +
       '<form><button type="button" class="san-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
       '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
-      '<button type="button" class="san-send" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
       '<button type="button" class="san-mic" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
       '<button type="submit" class="san-env" aria-label="Enviar">' + svg('<path d="M5 12h13M13 6l6 6-6 6"/>', 20) + '</button>' +
+      '<button type="button" class="san-send" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span>Mejorar</span></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
@@ -1277,8 +1277,8 @@
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
     bindStone();
   }
-  /* El chat (el nuevo chat de Alma, #304): «+» con plantillas y foto · cuadro de hasta 5 líneas · roca (1 toque mejora · 2, hablar) ·
-     micrófono que dicta al cuadro cuando está vacío o enviar cuando hay texto. Solo envía el botón. */
+  /* El chat (el nuevo chat de Alma, #304): «+» con plantillas y foto · cuadro de hasta 5 líneas · micrófono que dicta (vacío) o enviar (con texto) ·
+     y a la derecha la roca (1 toque mejora · 2, hablar). Solo envía el botón. */
   /* Chat sin actividad CHAT_INACTIVO_MS (3 min): la conversación termina sola (Alma no se queda preguntando «¿sigues ahí?»). */
   var CHAT_INACTIVO_MS = 180000, chatT = 0;
   function chatQuieto() { clearTimeout(chatT); if (AL.chat) chatT = setTimeout(function () { if (AL.chat && (AL.on || AL.min)) almaEnd(false); }, CHAT_INACTIVO_MS); }
@@ -1295,7 +1295,7 @@
     var crecer = function () { i.style.height = "46px"; i.style.height = Math.min(134, i.scrollHeight) + "px"; lleno(); colocarTip(); };   // hasta 5 líneas, como WhatsApp
     var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } };
     /* El único hint: «Mejorar», encima de la roca, mientras hay texto (CSS: form.lleno). */
-    var colocarTip = function () { var rb = b.getBoundingClientRect(), rf = f.getBoundingClientRect(); if (rb.width) { tips.style.left = (rb.left - rf.left + rb.width / 2 + 40) + "px"; tips.style.top = (rb.top - rf.top - 10) + "px"; } };
+    var colocarTip = function () { var rb = b.getBoundingClientRect(), rf = f.getBoundingClientRect(); if (rb.width) { tips.style.left = (rb.right - rf.left) + "px"; tips.style.top = (rb.top - rf.top - 10) + "px"; } };
     E.rotC = { andar: colocarTip, parar: function () {}, va: function () { return true; } };
     var verTips = colocarTip; E.verTips = verTips;
     i.addEventListener("input", crecer);

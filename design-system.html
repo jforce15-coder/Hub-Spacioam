@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="ds/tokens/radius-shadow.css">
 <link rel="stylesheet" href="ds/tokens/motion.css">
 <link rel="stylesheet" href="ds/tokens/base.css">
+<link rel="stylesheet" href="ds/esqueleto.css">
 <script src="js/sa-session.js?v=2026-10-20a"></script>
 <!--
   Panel de propuestas del design system — solo administrador principal.
@@ -93,7 +94,7 @@
     <button class="tab" data-f="aplicada" aria-pressed="false">Aplicadas<span class="n" id="n-aplicada"></span></button>
   </div>
 
-  <div id="lista" class="lista"><p class="vacio">Cargando…</p></div>
+  <div id="lista" class="lista"><div class="sa-esq" role="status" aria-label="Cargando propuestas"><i class="g"></i><i class="g"></i></div></div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -133,7 +134,7 @@
     (kids || []).forEach(function (c) { if (c) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
     return n;
   }
-  function toast(t) { var x = $('#toast'); x.textContent = t; x.classList.add('on'); setTimeout(function () { x.classList.remove('on'); }, 2400); }
+  var toastT; function toast(t) { var x = $('#toast'); x.textContent = t; x.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { x.classList.remove('on'); }, 3200); }
   function nombreApp(a) { return APPS[String(a || '').toLowerCase()] || a; }
   function fecha(s) { if (!s) return ''; var d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }); }
 
@@ -203,7 +204,7 @@
       var botones = el('div', { class: 'botones' });
       DECISIONES.concat([{ k: 'descartar', t: 'Descartar', d: 'No hacer nada.' }]).forEach(function (d) {
         var clase = 'btn' + (d.k === 'descartar' ? ' sutil' : (d.k === item.decision ? ' prim' : '')) + (d.k === p.recomendacion ? ' rec' : '');
-        botones.appendChild(el('button', { class: clase, title: d.d, onclick: function () { decidir(item, d.k, nota.value, botones); } }, [d.t]));
+        botones.appendChild(el('button', { class: clase, title: d.d, onclick: function () { decidir(item, d.k, nota.value); } }, [d.t]));
       });
       var est = item.estado === 'decidida'
         ? el('p', { class: 'estado' }, [el('b', { text: 'Decidida: ' + item.decision }), ' por ' + (item.quien || '—') + ' el ' + fecha(item.decidido_en) + '. Se aplicará en la próxima revisión; puedes cambiarla hasta entonces.'])
@@ -227,18 +228,19 @@
     lista.replaceChildren.apply(lista, vis.map(tarjeta));
   }
 
-  function decidir(item, decision, nota, botones) {
-    Array.prototype.forEach.call(botones.querySelectorAll('button'), function (b) { b.disabled = true; });
+  /* Rápido de sentir (ds/velocidad.md, regla 1): la decisión se ve guardada al instante y se confirma después.
+     Casi nunca falla; si falla, la propuesta vuelve a como estaba y se avisa. */
+  function decidir(item, decision, nota) {
+    var antes = { estado: item.estado, decision: item.decision, nota: item.nota, quien: item.quien, decidido_en: item.decidido_en };
+    item.estado = 'decidida'; item.decision = decision; item.nota = nota; item.quien = ses.nombre || ses.email; item.decidido_en = new Date().toISOString();
+    toast(decision === 'descartar' ? 'Descartada' : 'Guardado: ' + decision);
+    pintar();
     api('dsDecidir', { id: item.id, decision: decision, nota: nota, quien: ses.nombre || ses.email || '' })
-      .then(function (r) {
-        if (!r || !r.ok) throw new Error((r && r.error) || 'error');
-        item.estado = 'decidida'; item.decision = decision; item.nota = nota; item.quien = ses.nombre || ses.email; item.decidido_en = new Date().toISOString();
-        toast(decision === 'descartar' ? 'Descartada' : 'Guardado: ' + decision);
-        pintar();
-      })
+      .then(function (r) { if (!r || !r.ok) throw new Error((r && r.error) || 'error'); })
       .catch(function (e) {
-        toast('No se pudo guardar (' + e.message + ')');
-        Array.prototype.forEach.call(botones.querySelectorAll('button'), function (b) { b.disabled = false; });
+        Object.keys(antes).forEach(function (k) { item[k] = antes[k]; });
+        pintar();
+        toast('No se pudo guardar (' + e.message + '). La dejé como estaba.');
       });
   }
 

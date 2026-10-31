@@ -246,6 +246,7 @@
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
     ".san-scope .san-pend-l{flex:1;overflow:auto;padding:8px 16px 28px;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch}",
+    ".san-scope .san-foto{margin:0 0 10px;text-align:center;font:500 11.5px Montserrat,system-ui,sans-serif;color:#9C928A}",
     ".san-scope .san-visto{box-shadow:0 0 0 2px rgba(233,130,106,.55),0 10px 24px rgba(233,130,106,.18)!important;transition:box-shadow .6s ease}",
     ".san-scope .san-pc{flex:none;background:#fff;border-radius:24px;box-shadow:0 28px 60px -30px rgba(70,50,40,.36),0 2px 6px -3px rgba(70,50,40,.07);overflow:hidden}",
     ".san-scope .san-pc>button{width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;font:inherit;color:#3E3F3F}",
@@ -1332,12 +1333,26 @@
     var rapido = E.ov.classList.contains("pend") && (AL.pend || []).some(function (q) { return q.estado === "publicando"; });
     clearTimeout(pendT); pendT = setTimeout(pendCargar, rapido ? 15000 : 90000);
     Promise.resolve(cfg.pendientes.cargar()).then(function (r) {
-      /* forma nueva (por esfera): { areas, atencion, leer, listo }; la vieja: { lista } */
-      if (r && r.ok) AL.pendCargado = true;
-      if (r && r.ok && r.areas) { AL.pendData = r; AL.pend = [].concat(r.atencion || [], r.leer || [], r.listo || []); }
-      else { AL.pendData = null; AL.pend = r && r.ok ? r.lista || [] : (AL.pend || []); }
-      pendPintar();
+      if (r && r.ok) AL.pendFoto = 0;   // ya es lo fresco, no la copia del teléfono
+      pendAplicar(r);
       if ((AL.pend || []).some(function (q) { return q.estado === "publicando"; }) && E.ov.classList.contains("pend")) { clearTimeout(pendT); pendT = setTimeout(pendCargar, 15000); } }, function () {});
+  }
+  /* forma nueva (por esfera): { areas, atencion, leer, listo }; la vieja: { lista } */
+  function pendAplicar(r) {
+    if (r && r.ok) AL.pendCargado = true;
+    if (r && r.ok && r.areas) { AL.pendData = r; AL.pend = [].concat(r.atencion || [], r.leer || [], r.listo || []); }
+    else { AL.pendData = null; AL.pend = r && r.ok ? r.lista || [] : (AL.pend || []); }
+    pendPintar();
+  }
+  /* Lo último que viste, primero (ds/velocidad.md, regla 8): la página puede dar la copia guardada en el teléfono
+     ({ t, datos }); se pinta al instante con «actualizando…» y la fresca la reemplaza en cuanto llega. */
+  function fotoUsar(c) {
+    if (c.pendientes && c.pendientes.foto && !AL.pendCargado && c.pendientes.foto.datos) { AL.pendFoto = c.pendientes.foto.t || 1; pendAplicar(c.pendientes.foto.datos); }
+    if (c.notificaciones && c.notificaciones.foto && !AL.notiCargado && c.notificaciones.foto.datos) { AL.notiFoto = c.notificaciones.foto.t || 1; notiAplicar(c.notificaciones.foto.datos); }
+  }
+  function fotoAviso(l, t) {
+    if (!t) return; var m = Math.max(1, Math.round((Date.now() - t) / 60000));
+    var a = d.createElement("div"); a.className = "san-foto"; a.textContent = "Lo de hace " + (m < 60 ? m + " min" : Math.round(m / 60) + " h") + " · actualizando…"; l.appendChild(a);
   }
   /* la página puede seguir los datos (la barra de avisos del inicio): cfg.alDatos({ pend, noti }) */
   function aviseDatos() { if (typeof cfg.alDatos === "function") { try { cfg.alDatos({ pend: AL.pendData, noti: AL.notiData }); } catch (e) {} } }
@@ -1361,8 +1376,9 @@
   function notiCargar() {
     if (!E.ov || !cfg.notificaciones || !cfg.notificaciones.cargar) return;
     clearTimeout(notiT); notiT = setTimeout(notiCargar, 60000);
-    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.notiCargado = true; AL.noti = r.lista || []; AL.notiData = r.items && r.areas ? r : null; notiPintar(); } }, function () {});
+    Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) AL.notiFoto = 0; notiAplicar(r); }, function () {});
   }
+  function notiAplicar(r) { if (r && r.ok) { AL.notiCargado = true; AL.noti = r.lista || []; AL.notiData = r.items && r.areas ? r : null; notiPintar(); } }
   function notiPintar() {
     aviseDatos();
     var b = E.ov.querySelector('[data-a="noti"]'), v = notiVisto(), n = ((AL.notiData && AL.notiData.items) || AL.noti || []).filter(function (x) { return x.ts > v; }).length;
@@ -1372,6 +1388,7 @@
   function notiLista() {
     var l = E.ov.querySelector(".san-noti-l"), v = AL.notiVistoAntes || 0; l.innerHTML = "";
     if (!AL.notiCargado) { esqueleto(l); return; }   // la forma antes que el contenido (ds/velocidad.md)
+    fotoAviso(l, AL.notiFoto);
     if (AL.notiData) { notiEsferas(l, AL.notiData, v); return; }
     if (!(AL.noti || []).length) { var e0 = d.createElement("div"); e0.className = "san-pend-v"; e0.textContent = "Sin notificaciones."; l.appendChild(e0); return; }
     AL.noti.forEach(function (x) {
@@ -1573,7 +1590,7 @@
   }
   function pendLista() {
     if (!AL.pendCargado) { var lq = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"); lq.innerHTML = ""; esqueleto(lq); return; }
-    if (AL.pendData) { var lz = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), st = lz.scrollTop; AL.pendAb = {}; Array.prototype.forEach.call(lz.querySelectorAll(".san-pc.abierta"), function (x) { AL.pendAb[x.getAttribute("data-id")] = 1; }); lz.innerHTML = ""; pendListaEsferas(lz, AL.pendData); lz.scrollTop = st; return; }
+    if (AL.pendData) { var lz = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), st = lz.scrollTop; AL.pendAb = {}; Array.prototype.forEach.call(lz.querySelectorAll(".san-pc.abierta"), function (x) { AL.pendAb[x.getAttribute("data-id")] = 1; }); lz.innerHTML = ""; fotoAviso(lz, AL.pendFoto); pendListaEsferas(lz, AL.pendData); lz.scrollTop = st; return; }
     var l = E.ov.querySelector(".san-pend:not(.san-noti) .san-pend-l"), abiertas = {}; Array.prototype.forEach.call(l.querySelectorAll(".san-pc.abierta"), function (x) { abiertas[x.getAttribute("data-id")] = 1; });
     l.innerHTML = "";
     if (!(AL.pend || []).length) { var v = d.createElement("div"); v.className = "san-pend-v"; v.textContent = "Todo al día."; l.appendChild(v); return; }
@@ -2052,8 +2069,9 @@
       if (!root) { this.mount(c); return; }
       var rebuild = c.items && JSON.stringify(c.items) !== JSON.stringify(cfg.items);
       Object.assign(cfg, c);
-      if (c.pendientes && E.ov) setTimeout(pendCargar, 200);
-      if (c.notificaciones && E.ov) setTimeout(notiCargar, 300);
+      if (E.ov) fotoUsar(c);
+      if (c.pendientes && E.ov) setTimeout(pendCargar, 0);   // nada en fila (ds/velocidad.md, regla 7)
+      if (c.notificaciones && E.ov) setTimeout(notiCargar, 0);
       if (c.apps) allowed = c.apps.slice();
       if (c.appBadges && st.fan === "apps" && st.S !== 3 && st.S !== 4 && JSON.stringify(c.appBadges) !== root._ab) { root._ab = JSON.stringify(c.appBadges); buildFan("apps"); }
       if ("tint" in c) setTint(c.tint);

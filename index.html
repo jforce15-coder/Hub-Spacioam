@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <script src="ds/bundle.js"></script>
-<script src="js/sa-nav.js?v=2026-11-06a"></script>
+<script src="js/sa-nav.js?v=2026-11-07a"></script>
 <script src="js/alma-voz.js?v=2026-11-01a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
@@ -377,7 +377,9 @@
         <div style="min-width:0; flex:1">
           <div style="font-size:10.5px; letter-spacing:.24em; text-transform:uppercase; color:#6F6867; margin-bottom:8px; font-weight:500">{{ fechaLarga }}</div>
           <h1 style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(34px,5vw,46px); color:#3E3F3F; margin:0; line-height:1.04; letter-spacing:-.01em">{{ saludo }}.</h1>
-          
+          <sc-if value="{{ hayCopia }}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="display:inline-flex; align-items:center; gap:7px; margin-top:10px; font-size:11px; letter-spacing:.04em; color:#6F6867"><span aria-hidden="true" class="sa-breathe" style="width:6px; height:6px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>{{ copiaTxt }}</div>
+          </sc-if>
         </div>
       </div>
 
@@ -3727,7 +3729,8 @@ class Component extends DCLogic {
     };
     document.addEventListener("touchend", finSw, true); document.addEventListener("touchcancel", finSw, true);
     document.addEventListener("keydown", function (e) { if (e.key !== "Escape") return; var ds = document.querySelectorAll('[role="dialog"]'); if (ds.length) cerrarDlg(ds[ds.length - 1]); });
-    setTimeout(function () { self.cargarAppNotis(); }, 1200);
+    /* Nada en fila (ds/velocidad.md, regla 7): lo del arranque se pide de una vez, sin esperas fijas. */
+    self.cargarAppNotis();
     self.accionesCargar(); this._accT = setInterval(function () { if (document.visibilityState === "visible") self.accionesCargar(); }, 90000);
     this._appNotisT = setInterval(function () { if (document.visibilityState === "visible") self.cargarAppNotis(); }, 90000);
     /* Imágenes y archivos se ven en un popup, nunca en otra página. */
@@ -3782,9 +3785,11 @@ class Component extends DCLogic {
     /* Foto de perfil de ALMA: alterna cada hora con fundido; arranca en una foto según la hora del día. */
     this.setState({ almaFotoIdx: this.gtHora() % 11 });
     this._fotoT = setInterval(function () { if (self.state.vista === "alma") self.setState(function (s) { return { almaFotoIdx: (s.almaFotoIdx + 1) % 11 }; }); }, 3600000);
-    setTimeout(function () { self.resolverSesion(); }, 900);
-    /* El tile de ALMA muestra modo y cola en vivo; se refresca cada minuto. */
-    setTimeout(function () { self.almaCargar(); }, 1600);
+    /* No esperar al servidor para saber quién eres (regla 9): la sesión guardada en el teléfono basta para pintar; antes
+       se esperaban 900 ms fijos. El servidor la revisa en cada llamada y solo un «no autorizado» claro la cierra. */
+    this.resolverSesion();
+    /* El tile de ALMA muestra modo y cola en vivo; se pide junto con lo demás (antes esperaba 1.6 s fijos). */
+    self.almaCargar();
     /* En ALMA la cola se refresca cada 20 s (en vivo desde el Apps Script); en el hub, cada minuto. */
     this._almaN = 0;
     Object.defineProperty(this, "_enCola", { configurable: true, get: function () { return Date.now() - (this._enColaTs || 0) < 30000; } });
@@ -4120,7 +4125,7 @@ class Component extends DCLogic {
     if (k === "alma") { this.setMVistaV("resumen"); this.setState({ vista: "alma", menu: false }); if (!this.state.alma) this.almaCargar(); return; }
     this.setState({ vista: k, menu: false });
   }
-  componentDidUpdate(pp, ps, ancla) { this.navSync(); this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
+  componentDidUpdate(pp, ps, ancla) { this.fotoEscribir(); this.navSync(); this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
     if (this.state.vista !== this._vistaG) { this._vistaG = this.state.vista; this.guardarUltima(); }
     if (this.state.vista === "hoy" || this.state.vista === "hub" || this.state.vista === "tareas" || this.state.vista === "accion") this.hoyCargar();
     if (this._tareasOk && this.state.tareas !== this._tareasGuardadas) { this._tareasGuardadas = this.state.tareas; this.tareasGuardar(); } }
@@ -4363,18 +4368,19 @@ class Component extends DCLogic {
     var slim = function (p) { var o = {}; Object.keys(p || {}).forEach(function (k) { var v = p[k]; if (typeof v === "string" && v.length > 400) return; if (Array.isArray(v) && v.length > 30) return; o[k] = v; }); return o; };
     var pE = this.gpost(EPI, "getConfig", {}, 45000).then(function (j) {
       if (!j || j.ok === false) throw new Error("epi"); var d = j.data || j;
-      self.tareasDesdeSrv(d.hubTareas);
+      self.frescoMarcar("cfg", true); self.tareasDesdeSrv(d.hubTareas);
       self.hoySet({ cfg: { schedules: self.salvage(d.schedules), vendors: self.salvage(d.vendors), props: self.salvage(d.props).map(slim), reservas: self.salvage(d.reservas), codigos: d.codigos && typeof d.codigos === "object" ? d.codigos : {} } }); setTimeout(guardar, 0);
-    }).catch(function () { self.hoySet({ errEpi: "No pudimos leer el programa de Epi. Se muestra lo último guardado." }); });
+    }).catch(function () { self.frescoMarcar("cfg", false); self.hoySet({ errEpi: "No pudimos leer el programa de Epi. Se muestra lo último guardado." }); });
     var pH = this.gpost(HOLA, "listCached", {}, 180000).then(function (j) {
-      if (!j || j.ok === false) throw new Error("hola"); self.hoySet({ roster: j.reservations || [] }); setTimeout(guardar, 0);
-    }).catch(function () { self.hoySet({ errHola: "No pudimos leer los registros de Hola. Se muestra lo último guardado." }); });
+      if (!j || j.ok === false) throw new Error("hola"); self.frescoMarcar("roster", true); self.hoySet({ roster: j.reservations || [] }); setTimeout(guardar, 0);
+    }).catch(function () { self.frescoMarcar("roster", false); self.hoySet({ errHola: "No pudimos leer los registros de Hola. Se muestra lo último guardado." }); });
     Promise.all([pE, pH]).then(function () { self.hoySet({ cargando: false, tsOk: Date.now() }); guardar(); });
     if (!H.hist || forzar) this.gpost(EPI, "getAll", {}, 90000).then(function (j) {
       var reps = ((j && (j.data || j)) || {}).reports || [];
       var hist = reps.filter(function (r) { return /profunda/i.test(String(r.categoria || r.category || "")); }).map(function (r) { return { propiedad: r.propiedad || "", fecha: String(r.fecha || "").slice(0, 10), tipo: "Limpieza profunda" }; });
-      self.hoySet({ hist: hist }); guardar();
-    }).catch(function () {});
+      self.frescoMarcar("hist", true); self.hoySet({ hist: hist }); guardar();
+    }).catch(function () { self.frescoMarcar("hist", false); });
+    else this.frescoMarcar("hist", true);
   }
   tareasNorm(lista) {
     var hoy = this.hoyISO(), dif = function (iso) { var a = Date.parse(String(iso).slice(0, 10) + "T12:00:00"), b = Date.parse(hoy + "T12:00:00"); return isNaN(a) ? 0 : Math.round((a - b) / 86400000); };
@@ -4461,9 +4467,9 @@ class Component extends DCLogic {
     this.gpost(this.EPI_URL, "getHeavy", {}, 90000).then(function (j) {
       var d = (j && (j.data || j)) || {}, revs = self.salvage(d.reviews);
       if (!Array.isArray(revs)) throw new Error("rv");
-      self.setState({ rv2: { reviews: revs, ts: Date.now(), cargando: false, error: "" } });
+      self.frescoMarcar("rv", true); self.setState({ rv2: { reviews: revs, ts: Date.now(), cargando: false, error: "" } });
       self.copiaGuardar("sa_rv2", { reviews: revs });
-    }).catch(function () { self.setState(function (s) { return { rv2: Object.assign({}, s.rv2, { cargando: false, ts: Date.now(), error: "No pudimos leer las reviews de Epi." + ((s.rv2 || {}).reviews ? " Se muestra lo último guardado." : "") }) }; }); });
+    }).catch(function () { self.frescoMarcar("rv", false); self.setState(function (s) { return { rv2: Object.assign({}, s.rv2, { cargando: false, ts: Date.now(), error: "No pudimos leer las reviews de Epi." + ((s.rv2 || {}).reviews ? " Se muestra lo último guardado." : "") }) }; }); });
   }
   /* Long press: 450 ms sostenido abre las acciones; también clic derecho y Enter. */
   rv2Lp(item) {
@@ -5104,11 +5110,16 @@ class Component extends DCLogic {
       descargar: function () { var S1 = (self.state.hoy || {}).sum; if (!S1) return; if (S1.cargando) { self.hoySet(function (H2) { return { sum: Object.assign({}, H2.sum, { imprimir: true }) }; }); return; } self.hoyImprimir(); },
       reenviar: function () { self.hoyReenviar(D.h.code); }, reenviarWa: function () { self.hoyReenviar(D.h.code, "whatsapp"); }, cerrar: function () { self.hoySet({ sum: null }); },
       cerrarFondo: function (e) { if (e.target === e.currentTarget) self.hoySet({ sum: null }); } }) : { secciones: [], huespedes: [] };
+    /* Números de Hoy: los frescos se guardan en la foto; sin datos todavía, se ven los de la foto con «actualizando…». */
+    var hyS = [[ruta.length, "Limpiezas"], [Object.keys(nTec).length, "Técnicos"], [salen.length, "Check-out"], [Object.keys(entran).length, "Check-in"]].map(function (s) { return { n: s[0], l: s[1] }; });
+    var frH = this._fr || {}, hyFotoT = 0;
+    if (frH.cfg === 1 && frH.roster === 1) (this._fotoSale = this._fotoSale || {}).hy = hyS;
+    else if (!H.cfg && !H.roster) { var pHy = ((this._fotoIni || {}).datos || {}).hy; if (pHy && pHy.t && Date.now() - pHy.t < 864e5 && Array.isArray(pHy.v)) { hyS = pHy.v; hyFotoT = pHy.t; } }
     var fechaLarga = new Date().toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "America/Guatemala" });
     return {
       hyFechaLarga: fechaLarga.charAt(0).toUpperCase() + fechaLarga.slice(1),
       hyCargando: !!H.cargando, hyRecargar: function () { self.hoyCargar(true); },
-      hyEstadoTxt: H.cargando ? "Actualizando…" : mins == null ? "Actualizar" : mins < 1 ? "Al día" : "Hace " + (mins < 60 ? mins + " min" : Math.floor(mins / 60) + " h"),
+      hyEstadoTxt: hyFotoT ? "Lo de " + this.haceTxt(hyFotoT) + (H.cargando ? " · actualizando…" : " · no se pudo actualizar") : H.cargando ? "Actualizando…" : mins == null ? "Actualizar" : mins < 1 ? "Al día" : "Hace " + (mins < 60 ? mins + " min" : Math.floor(mins / 60) + " h"),
       hyError: [H.errEpi, H.errHola].filter(Boolean).join(" "), hyHayError: !!(H.errEpi || H.errHola),
       hyTabs: [["programa", "Programa", hoySch.length], ["registros", "Registros", regRows.length]].map(function (t) { var on = tab === t[0]; return { label: t[1], n: t[2] || "", on: on ? "true" : "false", bg: on ? "#FFFFFF" : "transparent", fg: on ? "#3E3F3F" : "#6F6867", sh: on ? "0 1px 2px rgba(62,63,63,.06)" : "none", pick: function () { self.hoySet({ tab: t[0] }); } }; }),
       hyEnPrograma: tab === "programa", hyEnRegistros: tab === "registros",
@@ -5125,7 +5136,7 @@ class Component extends DCLogic {
       hyHaySinLimp: sinLimp.length > 0, hySinLimp: sinLimp, hySinLimpTitulo: sinLimp.length + (sinLimp.length === 1 ? " checkout sin limpieza asignada" : " checkouts sin limpieza asignada"),
       hyRuta: ruta, hyRutaVacia: !ruta.length, hyRutaVaciaTxt: H.cfg ? "No hay limpiezas programadas para hoy." : H.cargando ? "Leyendo el programa de Epi…" : "Sin datos de Epi todavía.",
       hyRutaMeta: ruta.length + (ruta.length === 1 ? " limpieza" : " limpiezas") + " · " + Object.keys(nTec).length + " técnicos" + (periodo ? " · códigos del periodo " + periodo : ""),
-      hyStats: [[ruta.length, "Limpiezas"], [Object.keys(nTec).length, "Técnicos"], [salen.length, "Check-out"], [Object.keys(entran).length, "Check-in"]].map(function (s) { return { n: s[0], l: s[1] }; }),
+      hyStats: hyS,
       hyRutaModos: [["apto", "Por apartamento"], ["tec", "Por técnico"]].map(function (m) { var on = modo === m[0]; return { label: m[1], bg: on ? "#FFFFFF" : "transparent", fg: on ? "#3E3F3F" : "#6F6867", pick: function () { self.hoySet({ rutaModo: m[0] }); } }; }),
       hyProfAbierto: !!H.profAbierto, hyProfToggle: function () { self.hoySet(function (H2) { return { profAbierto: !H2.profAbierto }; }); }, hyProfRot: H.profAbierto ? "rotate(180deg)" : "none",
       hyProf: profRows, hyProfN: !H.hist ? "…" : porHacer + " por hacer", hyProfVacia: !profRows.length, hyProfVaciaTxt: !H.hist ? "Leyendo el historial de Epi…" : "Todas las propiedades están al día.",
@@ -5584,6 +5595,32 @@ class Component extends DCLogic {
       opEnviar: function () { self.opEnviar(self._opTa ? self._opTa.value : st.opTexto); }
     };
   }
+  /* ── Lo último que viste, primero (ds/velocidad.md, regla 8) ──
+     La «foto» del inicio: solo los números de las tarjetas (Necesita tu acción, Tareas, Reviews) y los de Hoy (limpiezas,
+     técnicos, check-in, check-out). Nada de huéspedes, llaves ni montos. Por persona y versión, vence a las 24 h y se borra
+     al cerrar sesión. Mientras se ve la copia la pantalla dice «actualizando…»; ningún botón decide con ella. */
+  FOTO_V = "sa_foto:hub:1:";
+  fotoClave(que) { var s = (window.SA && SA.session && SA.session()) || {}, e = String(s.email || "").toLowerCase(); return e ? this.FOTO_V + que + ":" + e : ""; }
+  fotoLeer(que) { try { var k = this.fotoClave(que), f = k && JSON.parse(localStorage.getItem(k) || "null"); return f && f.t && Date.now() - f.t < 864e5 && f.datos ? f : null; } catch (e) { return null; } }
+  fotoGuardar(que, datos) { try { var k = this.fotoClave(que); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), datos: datos })); } catch (e) {} }
+  fotoBorrar() { this._fotoIni = null; this._fotoMia = null; try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("sa_foto:hub:") === 0) localStorage.removeItem(k); }); } catch (e) {} }
+  /* Un número de la foto: el fresco en cuanto llega del servidor (y se guarda para la próxima vez); mientras no, el de la foto. */
+  deFoto(k, fresco, v) {
+    if (fresco) { (this._fotoSale = this._fotoSale || {})[k] = v; return v; }
+    var p = ((this._fotoIni || {}).datos || {})[k];
+    if (p && p.t && Date.now() - p.t < 864e5 && p.v != null) { this._copiaDesde = Math.min(this._copiaDesde || Infinity, p.t); return p.v; }
+    return v;
+  }
+  haceTxt(t) { var m = Math.round((Date.now() - t) / 60000); return m < 1 ? "hace un momento" : "hace " + (m < 60 ? m + " min" : Math.round(m / 60) + " h"); }
+  fotoEscribir() {
+    var nueva = this._fotoSale; if (!nueva) return;
+    var f = this._fotoMia || (this._fotoMia = this.fotoLeer("inicio") || { datos: {} }), d = Object.assign({}, f.datos), cambio = false, ahora = Date.now();
+    Object.keys(nueva).forEach(function (k) { var p = d[k]; if (!p || JSON.stringify(p.v) !== JSON.stringify(nueva[k]) || ahora - p.t > 600000) { d[k] = { v: nueva[k], t: ahora }; cambio = true; } });
+    if (!cambio) return;
+    this._fotoMia = { t: ahora, datos: d }; this.fotoGuardar("inicio", d);
+  }
+  /* Qué llegó fresco en esta visita: 1 = llegó (ya no se vuelve a la copia), -1 = falló (se sigue viendo la copia). */
+  frescoMarcar(k, ok) { this._fr = this._fr || {}; if (this._fr[k] !== 1) this._fr[k] = ok ? 1 : -1; }
   resolverSesion() {
     var tok = (window.SA && SA.getToken) ? SA.getToken() : this.cookie("sa_session");
     var valido = !!tok && (!(window.SA && SA.isValidSession) || SA.isValidSession(tok));
@@ -5591,12 +5628,14 @@ class Component extends DCLogic {
     var rol = (window.SA && SA.getRole && SA.getRole()) || null;
     /* Solo admin y admin2 viven aquí. Otro rol se queda en el login, sin redirigir. */
     if (valido && rol && rol !== "admin" && rol !== "admin2") {
+      this.fotoBorrar();
       this.setState({ vista: "login", loginError: "Este hub es del equipo administrador. Tu cuenta no tiene acceso aquí." });
       return;
     }
     this.setState({ calCuenta: this.leerGcal() });
     if (valido) {
       this.sello();
+      this._fotoIni = this.fotoLeer("inicio");
       /* Reanudar: si la última sesión fue hace menos de 30 min, se vuelve a la última pantalla; si no, al bento. */
       var ult = null; try { ult = JSON.parse(localStorage.getItem("sa_ultima") || "null"); } catch (e) {}
       var RE = { hub: 1, alma: 1, hoy: 1, reviews: 1, tareas: 1, accion: 1, calendario: 1, cuenta: 1 };
@@ -5605,7 +5644,8 @@ class Component extends DCLogic {
       this.perfilDeSesion(); return;
     }
     if ((this.props.vistaInicial || "login") === "hub") { this.setState({ vista: "hub" }); return; }
-    /* El hub NUNCA se auto-redirige: sin sesión se queda en el estado login. */
+    /* El hub NUNCA se auto-redirige: sin sesión se queda en el estado login (y la foto de quien estaba se borra). */
+    this.fotoBorrar();
     this.setState({ vista: "login" });
   }
   /* Sesión recuperada (cookie): el nombre sale del token y, si falta, del «Control de usuarios». */
@@ -6107,8 +6147,8 @@ class Component extends DCLogic {
   }
   /* Acciones que Claude le deja a Juan (unir un PR, etc.). El servidor da por hechas solas las de PR ya unido. */
   accionesCargar() {
-    var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.acciones) return;
-    ALMA.acciones().then(function (r) { if (r && r.ok) self.setState({ accSrv: { lista: r.acciones || [] } }); }).catch(function () {});
+    var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.acciones) { this.frescoMarcar("acc", true); return; }
+    ALMA.acciones().then(function (r) { self.frescoMarcar("acc", !!(r && r.ok)); if (r && r.ok) self.setState({ accSrv: { lista: r.acciones || [] } }); else self.forceUpdate(); }).catch(function () { self.frescoMarcar("acc", false); self.forceUpdate(); });
   }
   accionHecha(id) {
     var self = this;
@@ -8394,6 +8434,8 @@ class Component extends DCLogic {
 
   renderVals() {
     var self = this, st = this.state, rol = this.rol();
+    this._copiaDesde = 0; this._fotoSale = null;   /* la foto del inicio: qué números salen de la copia en este pintado */
+    var fr = this._fr || {};
     var esPrincipal = rol === "admin";
     var ir = function (u) { return function () { if (/^https:\/\/(epi|hola|mi|grow)\.spacioam\.com/i.test(u) && self.appDentro()) { self.abrirApp(u); return; } if (window.SANav && SANav.ir) SANav.ir(self.conSesion(u)); else location.href = self.conSesion(u); }; };
     var setV = function (v) { return function () { self.setState({ vista: v }); }; };
@@ -8880,6 +8922,7 @@ class Component extends DCLogic {
       botonLabel: st.needPass ? "Crear contraseña" : "Entrar",
       entrar: function () { self.ingresar(); },
       salir: function () {
+        self.fotoBorrar();
         if (window.SA && SA.logout) { try { SA.logout(); } catch (e) {} }
         if (window.SAAuth && SAAuth.clearSession) { try { SAAuth.clearSession(); } catch (e) {} }
         /* Las copias con datos de huéspedes se van con la sesión; se espera al IndexedDB antes de salir. */
@@ -8978,7 +9021,7 @@ class Component extends DCLogic {
       epiPendientes: nMantto + " por revisar",
       checkinsHoy: checkinsHoy,
       checkinResumen: listos + "/" + this.CHECKINS.length + " listos",
-      accionTotal: String(atrasados.length + pronto.length),
+      accionTotal: this.deFoto("accion", fr.cfg === 1 && fr.roster === 1 && fr.acc === 1 && fr.hist === 1, String(atrasados.length + pronto.length)),
       accionResumen: atrasados.length + " pasadas de fecha · " + pronto.length + " en los próximos 5 días",
       accionTop: atrasados.concat(pronto).slice(0, 3).map(function (a) {
         return { cuando: a.color === "#C0392B" ? "Tarde" : "Pronto", titulo: a.titulo, color: a.color === "#C0392B" ? "#B54D36" : "#6F6867" };
@@ -8988,7 +9031,7 @@ class Component extends DCLogic {
         return { nombre: p.nombre, avance: p.avance + "%", pct: p.avance + "%" };
       }),
       alertasGrow: this.ALERTAS_GROW,
-      tareasAbiertas: pend.length + " abiertas",
+      tareasAbiertas: this.deFoto("tareas", fr.cfg === 1, pend.length + " abiertas"),
       tareasPreview: visibles.slice(0, 3).map(function (t) {
         return { texto: t.texto, quien: t.quien, color: t.dias < 0 ? "#C0392B" : "#D8D4CE" };
       }),
@@ -9044,11 +9087,14 @@ class Component extends DCLogic {
       posponerNoti: function (n) { self.setState(function (s) { var d = Object.assign({}, s.descartadas); d[n.id] = 1; return { descartadas: d }; }); },
 
       /* reviews */
-      reviewPromedioGlobal: (function () {
+      reviewPromedioGlobal: this.deFoto("rv", fr.rv === 1, (function () {
         var rr = ((st.rv2 || {}).reviews || []), lim = Date.now() - 365 * 86400000;
         var xs = rr.filter(function (r) { return (Date.parse(String(r.reviewedAt || r.checkIn || "").slice(0, 10)) || 0) >= lim; }).map(function (r) { var g = parseFloat(r.ratingGeneral); return isNaN(g) ? parseFloat(r.ratingLimpieza) : g; }).filter(function (v) { return !isNaN(v); });
         return xs.length ? (xs.reduce(function (a, b) { return a + b; }, 0) / xs.length).toFixed(2) : (rr.length ? "—" : "…");
-      })(),
+      })()),
+      /* Va después de las tarjetas: dice en pantalla que lo de arriba es la copia, hasta que llega lo fresco. */
+      hayCopia: !!this._copiaDesde,
+      copiaTxt: this._copiaDesde ? "Lo de " + this.haceTxt(this._copiaDesde) + (["cfg", "roster", "acc", "rv", "hist"].some(function (k) { return !fr[k]; }) ? " · actualizando…" : " · no se pudo actualizar") : "",
       reviewConteoGlobal: todas12.length + " reviews · 6 propiedades",
       reviewDestacados: this.temas(todas12, "pos").slice(0, 3).map(function (t) {
         return { tema: t.tema, menciones: String(t.menciones), color: "#3d6b52" };

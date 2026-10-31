@@ -25,6 +25,22 @@ Principio del design system de Spacio AM (ver `readme.md` → Principios). Viene
 - **Movimiento:** `--ease`, `--d-med` y `--d-slow` (`tokens/motion.css`). El brillo del esqueleto se apaga con `prefers-reduced-motion`.
 - **Prohibido:** pantallas en blanco, «Cargando…» sin forma, rueditas sin contexto y estados vacíos («Todo al día», «Sin notificaciones») antes de que lleguen los datos.
 
+## Cargar rápido de verdad (no solo sentirlo)
+Viene del segundo video que pasó Juan («app load 10 times faster», 31-oct-2026). Lo que hizo el video tiene 3 ideas buenas. Aquí van con las correcciones para Spacio AM.
+
+| # | Regla | Qué es | El cuidado (lo que el video no dice) |
+|---|---|---|---|
+| 7 | **Nada en fila** | Lo que la pantalla necesita al abrir se pide junto, no uno detrás de otro ni con esperas fijas (`setTimeout` de arranque). | En Apps Script cada llamada cuesta ~1 s de arranque y hay un límite de ejecuciones a la vez por persona. Mejor **una sola llamada** que traiga todo lo de la pantalla que 20 llamadas en paralelo. |
+| 8 | **Lo último que viste, primero** | Se guarda en el teléfono una copia de la pantalla (la «foto») y al abrir se muestra al instante; el servidor la actualiza por detrás en cada apertura. | **Solo lo de la persona y nada sensible:** nada de DPI, documentos, llaves ni datos de huéspedes. Es una copia por persona y por versión (`sa_foto:<app>:<versión>:<correo>`), vence a las 24 h y se borra al cerrar sesión. **Se dice que es la copia** («actualizando…») hasta que llega la fresca, y nada se decide con ella: el servidor valida cada botón. |
+| 9 | **No esperar al servidor para saber quién eres** | La sesión firmada que ya está en el teléfono basta para pintar; el servidor la revisa en cada llamada. | Se cierra la sesión solo con un «no autorizado» claro del servidor, **nunca por falta de red**. Sin sesión guardada, a la pantalla de entrar de una vez. |
+
+**Lo que el video hace mal y aquí no:**
+- Guarda los datos en `UserDefaults`, que no es un lugar seguro.
+- Muestra datos viejos como si fueran de ahora: XP desactualizado, o el inicio visible con la suscripción vencida.
+- Cuenta «0 llamadas antes de pintar» como logro. La primera vez no hay foto, así que la regla 2 (esqueleto) sigue haciendo falta.
+
+**Medir:** el tiempo hasta ver la pantalla útil, antes y después, con red lenta (3G) y en frío. Va en la evidencia del PR.
+
 ## Revisión (para cada app, en la ronda de su subdepartamento)
 Para cada pantalla, pregúntate:
 - ¿Qué ve la persona en el primer momento?

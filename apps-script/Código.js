@@ -23,7 +23,7 @@
  *   WA_PROPIETARIOS    (opcional: números extra de propietarios. Se leen solos del Control de usuarios por rol; o de SHEET_PROPIETARIOS_ID)
  *   WA_PRUEBA          (números del equipo que ALMA atiende como clientes, para pruebas)
  *   WA_EQUIPO          (opcional: números extra del equipo. Los de Control de usuarios, técnicos de EPI y ALMA_ESCALAMIENTO se toman solos)
- *   GEMINI_KEY         (transcribe notas de voz de WhatsApp; alternativa: OPENAI_KEY con Whisper; también las huellas del cerebro de Alma)
+ *   GEMINI_KEY         (transcribe notas de voz de WhatsApp; alternativa: OPENAI_KEY con Whisper)
  *   BQ_PROYECTO        (cerebro de Alma: id del proyecto de Google Cloud con BigQuery y facturación activos)
  *   BQ_CUENTA          (cerebro de Alma: la llave JSON completa de la cuenta de servicio, con BigQuery Data Editor + Job User.
  *                      Sin BQ_PROYECTO o BQ_CUENTA el cerebro se apaga solo. Opcional: BQ_UBICACION, US por defecto)

@@ -91,16 +91,11 @@
 
   <section id="s-bq">
     <h2>BigQuery <span class="pill" id="e-bq">Revisando…</span></h2>
-    <p>El cerebro de Alma: el índice donde busca rápido y con pruebas. Sigue los pasos en Google Cloud (proyecto, facturación, BigQuery API y una cuenta de servicio con los roles <b>Editor de datos de BigQuery</b> y <b>Usuario de trabajos de BigQuery</b>) y aquí pega el ID del proyecto y elige el archivo JSON de la clave.</p>
+    <p>El cerebro de Alma: el índice donde busca rápido y con pruebas. Sigue los pasos en Google Cloud (proyecto, facturación, <b>BigQuery API</b> y <b>Vertex AI API</b> activadas, y una cuenta de servicio con los roles <b>Editor de datos de BigQuery</b>, <b>Usuario de trabajos de BigQuery</b> y <b>Usuario de Vertex AI</b>) y aquí pega el ID del proyecto y elige el archivo JSON de la clave.</p>
     <label for="bq-p">ID del proyecto</label><input id="bq-p" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="alma-cerebro-123456">
     <label for="bq-f" style="margin-top:12px">Archivo JSON de la clave</label><input id="bq-f" type="file" accept=".json,application/json">
     <div class="fila"><button type="button" id="b-bq">Guardar</button><button type="button" class="peach" id="b-bq-cargar" hidden>Cargar ahora</button></div>
     <div class="msg" id="m-bq"></div>
-    <label for="gm" style="margin-top:14px">Llave de Gemini <span class="pill" id="e-gm">Revisando…</span></label>
-    <p class="nota">Con ella el cerebro entiende el significado de los textos. Sale gratis de <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> → «Create API key» (elige el proyecto alma-cerebro) → cópiala y pégala aquí.</p>
-    <input id="gm" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza…">
-    <div class="fila"><button type="button" id="b-gm">Guardar llave de Gemini</button></div>
-    <div class="msg" id="m-gm"></div>
     <div class="msg" id="m-cerebro"></div>
     <div id="cer-extra" hidden>
       <h3>Carpetas de Drive</h3>
@@ -146,7 +141,6 @@
     if (!r || !r.ok) { msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); return r; }
     pill('e-claude', r.claude, 'Conectado', 'Sin llave');
     pill('e-github', r.github, 'Conectado', 'Sin llave');
-    pill('e-gm', r.gemini, 'Puesta', 'Falta');
     var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
     if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
     $('b-bq-cargar').hidden = !(bq.proyecto && bq.cuenta); $('cer-extra').hidden = !(bq.proyecto && bq.cuenta); cerebroPintar(r.cerebro);
@@ -181,7 +175,8 @@
     if (!c) return msg('m-cerebro', '');
     if (c.error) return msg('m-cerebro', 'El cerebro no pudo leer BigQuery: ' + c.error, 'mal');
     fuentesPintar(c); pruebaPintar(c);   // las carpetas y la prueba se ven aunque falte algo (antes el Área quedaba vacía)
-    if (c.falta && c.falta.length) return msg('m-cerebro', 'Falta: ' + c.falta.join(', ').replace('GEMINI_KEY', 'la llave de Gemini (abajo)'), 'mal');
+    if (c.falta && c.falta.length) return msg('m-cerebro', 'Falta: ' + c.falta.join(', '), 'mal');
+    if (c.vertex) return msg('m-cerebro', c.vertex + ' Después toca «Cargar ahora».', 'mal');
     var p = (c.pedazos || []).map(function (x) { return x.fuente + ' ' + x.pedazos + ' pedazos (' + x.documentos + ' documentos)'; }).join(' · ');
     var u = c.ultima || {}, cuando = u.fin ? new Date(u.fin).toLocaleString('es') : '';
     var t = (p ? 'Tiene: ' + p + '.' : 'Todavía está vacío: toca «Cargar ahora».') + (cuando ? ' Última carga: ' + cuando + '.' : '') +
@@ -251,10 +246,6 @@
     };
     if (!f) return mandar('');
     var lr = new FileReader(); lr.onload = function () { mandar(String(lr.result || '')); }; lr.onerror = function () { msg('m-bq', 'No pude leer el archivo.', 'mal'); }; lr.readAsText(f);
-  };
-  $('b-gm').onclick = function () {
-    var v = $('gm').value.trim(); if (!/^AIza[\w-]{30,}$/.test(v)) return msg('m-gm', 'La llave de Gemini empieza con AIza…', 'mal');
-    msg('m-gm', 'Guardando…'); llamar({ guardar: { gemini: v } }).then(function (r) { $('gm').value = ''; if (pintar(r) && r.ok) msg('m-gm', 'Guardada. Ahora toca «Cargar ahora».', 'bien'); else msg('m-gm', (r && r.error) || 'No se pudo.', 'mal'); });
   };
   $('b-cl').onclick = function () {
     var v = $('cl').value.trim(); if (!v) return msg('m-claude', 'Pega primero la llave.', 'mal');

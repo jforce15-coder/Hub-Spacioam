@@ -6810,7 +6810,7 @@ class Component extends DCLogic {
         headClase: rs.foco ? "sa-head-min" : "",
         /* El micrófono: la onda va donde va el texto; ✓ lo pasa a texto y queda en el cuadro para revisarlo. */
         respMic: function (e) {
-          var caja = e && e.currentTarget && e.currentTarget.parentElement && e.currentTarget.parentElement.querySelector("[data-composer]");
+          var caja = null; for (var p = e && e.currentTarget; p && p !== document.body && !caja; p = p.parentElement) caja = p.querySelector("[data-composer]");
           if (!(window.SAComp && caja)) { self.aviso("Aquí no puedo grabar; escríbelo."); return; }
           SAComp.dictar({ caja: caja, onTexto: function (t) {
             var prev = String(self._respDraft[convKey] || "").replace(/\s+$/, ""), nuevo = prev ? prev + " " + t : t;

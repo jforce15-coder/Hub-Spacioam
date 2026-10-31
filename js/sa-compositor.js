@@ -80,7 +80,7 @@
     function limpiar() {
       fin = true; clearInterval(reloj); cancelAnimationFrame(raf);
       try { if (flujo) flujo.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
-      try { if (ctx) ctx.close(); } catch (e) {}
+      var c0 = ctx; ctx = null; try { if (c0 && c0.state !== "closed") c0.close().catch(function () {}); } catch (e) {}
       if (actual === yo) actual = null;
     }
     function cerrar() { limpiar(); if (ui.parentNode) ui.parentNode.removeChild(ui); try { o.onFin && o.onFin(); } catch (e) {} }

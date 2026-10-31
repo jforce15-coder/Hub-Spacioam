@@ -90,6 +90,7 @@ function conexiones_(ses, b) {
   if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
   if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
+  if (g.gemini) { if (!/^AIza[\w-]{30,}$/.test(String(g.gemini).trim())) return { ok: false, error: 'La llave de Gemini empieza con AIza…' }; p.setProperty('GEMINI_KEY', String(g.gemini).trim()); }
   /* El cerebro de Alma (BigQuery): el id del proyecto y la llave JSON de la cuenta de servicio. Se revisa que sea una
      llave de cuenta de servicio de verdad; nunca se devuelve, solo el correo de la cuenta (no es secreto). */
   if (g.bqProyecto) { if (!/^[a-z][a-z0-9-]{4,29}$/.test(String(g.bqProyecto).trim())) return { ok: false, error: 'El ID del proyecto va en minúsculas, con números y guiones (p. ej. alma-cerebro-123456).' }; p.setProperty('BQ_PROYECTO', String(g.bqProyecto).trim()); }
@@ -100,7 +101,7 @@ function conexiones_(ses, b) {
   }
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p) };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), gemini: !!p.getProperty('GEMINI_KEY') };
   if (canje) out.canje = canje;
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {

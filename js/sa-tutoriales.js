@@ -409,7 +409,7 @@
     cerrarMenu();
     var el = capa("sat-hub", '<div class="sat-sheet"><div class="sat-hero"><div class="sat-stone"></div><button type="button" class="sat-x" aria-label="Cerrar">✕</button></div>' +
       '<div class="sat-body"><div class="sat-kick"><i></i><span>Tutoriales · equipo</span></div><div class="sat-h1">¿Quién ya los vio?</div>' +
-      '<p class="sat-sub">Cuenta como visto al llegar al 85 % del video. Solo aparece quien ya lo abrió al menos una vez.</p><div class="sat-rep"><p class="sat-sub" style="margin-top:18px">Cargando…</p></div></div></div>');
+      '<p class="sat-sub">Cuenta como visto al llegar al 85 % del video. Solo aparece quien ya lo abrió al menos una vez.</p><div class="sat-rep"><div class="sa-esq" role="status" aria-label="Cargando quién vio cada tutorial" style="margin-top:18px"><i class="c"></i><i class="c"></i><i class="c"></i></div></div></div></div>');
     function cerrar() { quitar(el); d.removeEventListener("keydown", tecla); }
     function tecla(e) { if (e.key === "Escape") cerrar(); }
     d.addEventListener("keydown", tecla);

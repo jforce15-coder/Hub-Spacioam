@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="ds/tokens/colors.css">
 <link rel="stylesheet" href="ds/tokens/typography.css">
 <link rel="stylesheet" href="ds/tokens/radius-shadow.css">
+<link rel="stylesheet" href="ds/esqueleto.css">
 <!--
   Reinicio de contraseña (respaldo). Archivo propio del repo: no lo toca el export de Claude Design.
   Solo el administrador principal. Genera un código temporal (48 h); el usuario entra con su correo + ese
@@ -78,7 +79,8 @@
   }
 
   var usuarios = [];
-  aviso(['Leyendo usuarios…']);
+  /* Rápido de sentir: la forma de la lista (buscador y filas) mientras llega la hoja. */
+  lista.innerHTML = '<div class="sa-esq" role="status" aria-label="Leyendo usuarios"><i style="height:44px; border-radius:999px"></i><i class="c" style="height:64px; border-radius:14px"></i><i class="c" style="height:64px; border-radius:14px"></i><i class="c" style="height:64px; border-radius:14px"></i><i class="c" style="height:64px; border-radius:14px"></i></div>';
   SASesion.leerHoja(USUARIOS).then(function (r) { return r.text(); }).then(function (t) {
     usuarios = csv(t).filter(function (u) { return u.email && u.email.indexOf('@') > 0; })
       .sort(function (a, b) { return (a.nombre || a.email).localeCompare(b.nombre || b.email, 'es'); });

@@ -246,6 +246,7 @@
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
     ".san-scope .san-pend-l{flex:1;overflow:auto;padding:8px 16px 28px;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch}",
+    ".san-scope .san-visto{box-shadow:0 0 0 2px rgba(233,130,106,.55),0 10px 24px rgba(233,130,106,.18)!important;transition:box-shadow .6s ease}",
     ".san-scope .san-pc{flex:none;background:#fff;border-radius:24px;box-shadow:0 28px 60px -30px rgba(70,50,40,.36),0 2px 6px -3px rgba(70,50,40,.07);overflow:hidden}",
     ".san-scope .san-pc>button{width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;font:inherit;color:#3E3F3F}",
     ".san-scope .san-pc .tt{flex:1;min-width:0}.san-scope .san-pc .tt b{display:block;font:600 15px/1.35 Montserrat,system-ui,sans-serif}.san-scope .san-pc .tt em{display:block;margin-top:4px;font:500 13px/1.45 Montserrat,system-ui,sans-serif;font-style:normal;color:#8A8580}",
@@ -1338,7 +1339,10 @@
       pendPintar();
       if ((AL.pend || []).some(function (q) { return q.estado === "publicando"; }) && E.ov.classList.contains("pend")) { clearTimeout(pendT); pendT = setTimeout(pendCargar, 15000); } }, function () {});
   }
+  /* la página puede seguir los datos (la barra de avisos del inicio): cfg.alDatos({ pend, noti }) */
+  function aviseDatos() { if (typeof cfg.alDatos === "function") { try { cfg.alDatos({ pend: AL.pendData, noti: AL.notiData }); } catch (e) {} } }
   function pendPintar() {
+    aviseDatos();
     var b = E.pb, n = (AL.pend || []).length;
     b.hidden = !n; b.querySelector(".san-badge").textContent = n > 9 ? "9+" : String(n);
     if (E.ov.classList.contains("pend") && !pendOcupado()) pendLista();
@@ -1360,6 +1364,7 @@
     Promise.resolve(cfg.notificaciones.cargar()).then(function (r) { if (r && r.ok) { AL.notiCargado = true; AL.noti = r.lista || []; AL.notiData = r.items && r.areas ? r : null; notiPintar(); } }, function () {});
   }
   function notiPintar() {
+    aviseDatos();
     var b = E.ov.querySelector('[data-a="noti"]'), v = notiVisto(), n = ((AL.notiData && AL.notiData.items) || AL.noti || []).filter(function (x) { return x.ts > v; }).length;
     b.hidden = false; b.querySelector(".san-badge").textContent = n ? (n > 9 ? "9+" : String(n)) : "";
     if (E.ov.classList.contains("noti")) notiLista();
@@ -1388,7 +1393,7 @@
     L.forEach(function (x) {
       var g = x.ts >= hoy.getTime() ? "Hoy" : x.ts >= hoy.getTime() - 864e5 ? "Ayer" : "Antes";
       if (g !== grupo) { grupo = g; var h = d.createElement("div"); h.className = "san-sec"; var hb = d.createElement("b"); hb.textContent = g; h.appendChild(hb); l.appendChild(h); }
-      var c = d.createElement("button"); c.type = "button"; c.className = "san-nt" + (x.ts > v ? " nuevo" : "");
+      var c = d.createElement("button"); c.type = "button"; c.className = "san-nt" + (x.ts > v ? " nuevo" : ""); if (x.id) c.setAttribute("data-id", x.id);
       var m = Math.round((Date.now() - x.ts) / 60000), cu = m < 1 ? "ahora" : m < 60 ? "hace " + m + " min" : m < 1440 ? "hace " + Math.round(m / 60) + " h" : new Date(x.ts).toLocaleDateString("es", { day: "numeric", month: "short" });
       var sm = d.createElement("small"); sm.textContent = [cu, nombre[x.area], x.proyecto].filter(Boolean).join(" · "); c.appendChild(sm);
       if (x.titulo) { var b = d.createElement("b"); b.textContent = x.titulo; c.appendChild(b); }
@@ -1815,7 +1820,7 @@
   var escTapT = 0;
   function escToque() {
     if (typeof cfg.alTocar !== "function") { escActivar(false); return; }
-    if (escTapT) { clearTimeout(escTapT); escTapT = 0; escActivar(false); return; }
+    if (escTapT) { clearTimeout(escTapT); escTapT = 0; if (typeof cfg.alDoble === "function") { try { cfg.alDoble(); } catch (x) {} } escActivar(false); return; }
     escTapT = setTimeout(function () {
       escTapT = 0; var tomo = false; try { tomo = !!(cfg.alTocar() === true); } catch (x) {}
       if (!tomo) escActivar(false);
@@ -1998,7 +2003,24 @@
   }
 
   /* ================= API ================= */
+  /* Ver una tarjeta en su hoja: tipo "pend" o "noti", ya filtrada en su esfera, abierta y a la vista */
+  function verTarjeta(tipo, id, area) {
+    if (!E.ov) return;
+    if (tipo === "noti") { AL.notiFiltro = area || null; if (E.ov.classList.contains("pend")) pendAbrir(false); notiAbrir(true); }
+    else { AL.pendFiltro = area || null; if (E.ov.classList.contains("noti")) notiAbrir(false); pendAbrir(true); }
+    setTimeout(function () {
+      var l = E.ov.querySelector(tipo === "noti" ? ".san-noti-l" : ".san-pend:not(.san-noti) .san-pend-l"), c = null;
+      Array.prototype.some.call(l.querySelectorAll("[data-id]"), function (x) { if (x.getAttribute("data-id") === String(id)) { c = x; return true; } });
+      if (!c) return;
+      c.classList.add("abierta", "san-visto"); try { c.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
+      setTimeout(function () { c.classList.remove("san-visto"); }, 2400);
+    }, 120);
+  }
   w.SANav = {
+    /* la barra de avisos del inicio: los datos de Pendientes y Notificaciones, una tarjeta con sus botones y abrirla en su hoja */
+    datos: function () { return { pend: AL.pendData, noti: AL.notiData }; },
+    tarjeta: function (p, tag) { var c = pendTarjeta(p, tag || ""); c.classList.add("abierta"); return c; },
+    ver: verTarjeta,
     mount: function (c) {
       if (root) { this.update(c); return; }
       /* Una sola piedra por página: si otro script dejó un menú montado, se quita antes de construir el nuevo. */

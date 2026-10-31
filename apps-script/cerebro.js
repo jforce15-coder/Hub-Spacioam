@@ -26,6 +26,21 @@ var CER_VERSION_CORTE_ = 'c1';      // si cambia el corte, las etiquetas o la hu
 var CER_VERSION_ESQUEMA_ = 'e1';
 var CER_MAX_ = 2000, CER_MIN_ = 350;   // ≈500 tokens por pedazo; los de menos de CER_MIN_ se unen al vecino
 var CER_PLAZO_MS_ = 240000;            // una tanda deja margen al límite de 6 min de Apps Script
+/* CUPO (31-oct): UrlFetch tiene un cupo DIARIO por cuenta de Google que comparten TODOS sus Apps Script (Hub, ALMA,
+   Hola, el login). El cerebro lo agotó (una llamada a Vertex por pedazo, cada 15 min) y se cayeron la voz, las sesiones y
+   los envíos. Ahora: tope propio de llamadas por día (CER_TOPE_DIA, propiedad; 2500 por defecto), una pasada completa
+   cada 6 h como mucho, y si Google dice «too many times» el cerebro se pausa 24 h (CER_PAUSA_HASTA). */
+var CER_TOPE_DIA_ = 2500, CER_CADA_MS_ = 6 * 3600000;
+function cerGasto_(n) {
+  var P = PropertiesService.getScriptProperties(), hoy = Utilities.formatDate(new Date(), 'America/Guatemala', 'yyyy-MM-dd'), g = {};
+  try { g = JSON.parse(P.getProperty('CER_GASTO') || '{}'); } catch (e) {}
+  if (g.dia !== hoy) g = { dia: hoy, n: 0 };
+  g.n += n || 0; P.setProperty('CER_GASTO', JSON.stringify(g));
+  var tope = Number(P.getProperty('CER_TOPE_DIA')) || CER_TOPE_DIA_;
+  if (g.n > tope) { var e = new Error('El cerebro llegó a su tope de ' + tope + ' llamadas de hoy; sigue mañana.'); e.cupo = true; throw e; }
+  return g.n;
+}
+function cerSinCupo_(e) { return !!(e && (e.cupo || /too many times|Bandwidth quota|urlfetch/i.test(String(e.message || e)))); }
 var CER_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CER_INSTRUCCION_ = 'Responde solo con esto y di de dónde lo sacaste; si no está, dilo.';
 
@@ -183,6 +198,7 @@ function cerEmbeddings_(c, textos, tarea, o) {
     var pendientes = []; for (var k = i; k < Math.min(i + 20, textos.length); k++) pendientes.push(k);
     for (var intento = 0; intento < 4 && pendientes.length; intento++) {
       if (intento) Utilities.sleep(1000 * intento);
+      cerGasto_(pendientes.length);
       var rs = UrlFetchApp.fetchAll(pendientes.map(function (n) { return pedido(textos[n]); })), otra = [];
       rs.forEach(function (r, x) {
         var n = pendientes[x], code = r.getResponseCode();
@@ -472,15 +488,22 @@ function cerLeerDoc_(d, ctx, hashPrevio) {
 
 /* El activador (sin «_»: Apps Script no deja que un activador llame a una función privada). */
 function cerebroSincronizar() { return cerebroSincronizar_(); }
-function cerebroSincronizar_() {
+function cerebroSincronizar_(o) {
+  o = o || {};
   var c = cerConfig_(); if (!c) return { ok: true, apagado: true };
   /* Candado propio (no el LockService del script: lo usan los Pendientes y una tanda dura minutos). */
   var P = PropertiesService.getScriptProperties(), t0 = Date.now(), corriendo = Number(P.getProperty('CER_CORRIENDO') || 0);
   if (corriendo && t0 - corriendo < 7 * 60000) return { ok: true, ocupado: true };
+  var pausa = Number(P.getProperty('CER_PAUSA_HASTA') || 0);
+  if (pausa > t0) return { ok: true, pausado: true, hasta: new Date(pausa).toISOString() };
+  /* Una pasada completa cada 6 h como mucho: si no hay una a medias y la última terminó hace menos, no se hace nada. */
+  if (!o.ahora && !P.getProperty('CER_PASADA')) { try { var ul = JSON.parse(P.getProperty('CER_ULTIMA') || '{}'); if (ul.fin && t0 - Date.parse(ul.fin) < CER_CADA_MS_) return { ok: true, espera: true }; } catch (e) {} }
+  try { cerGasto_(0); } catch (e) { return { ok: true, tope: true, error: e.message }; }
   P.setProperty('CER_CORRIENDO', String(t0));
   try { return cerTanda_(c, t0); }
   catch (e) {
     console.error('cerebroSincronizar_: ' + (e.stack || e));
+    if (cerSinCupo_(e) && !e.cupo) P.setProperty('CER_PAUSA_HASTA', String(t0 + 24 * 3600000));   // Google dijo «too many times»: 24 h quieto
     try { var u = JSON.parse(P.getProperty('CER_ULTIMA') || '{}'); u.error = String(e.message || e).slice(0, 300); u.error_ts = new Date().toISOString(); P.setProperty('CER_ULTIMA', JSON.stringify(u)); } catch (x) {}
     return { ok: false, error: String(e.message || e) };
   } finally { P.deleteProperty('CER_CORRIENDO'); }
@@ -517,7 +540,8 @@ function cerTanda_(c, t0) {
   for (; i < docs.length; i++) {
     if (Date.now() - t0 > CER_PLAZO_MS_) break;
     var d = docs[i], doc = null;
-    try { doc = cerLeerDoc_(d, ctx, previos[d.id]); } catch (e) { console.error('cerebro · ' + d.id + ': ' + e); continue; }   // no se pudo leer: se queda lo de antes
+    cerGasto_(1);
+    try { doc = cerLeerDoc_(d, ctx, previos[d.id]); } catch (e) { if (cerSinCupo_(e)) throw e; console.error('cerebro · ' + d.id + ': ' + e); continue; }   // no se pudo leer: se queda lo de antes
     if (!doc || (!doc.cuarentena && doc.hash === previos[d.id])) continue;
     var motivo = doc.cuarentena || cerValidar_(doc, ctx.nombres);
     if (motivo) {
@@ -548,7 +572,7 @@ function cerTanda_(c, t0) {
 function cerebroAsegurarActivador_() {
   if (!cerebroActivo_()) return false;
   if (ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'cerebroSincronizar'; })) return true;
-  ScriptApp.newTrigger('cerebroSincronizar').timeBased().everyMinutes(15).create();
+  ScriptApp.newTrigger('cerebroSincronizar').timeBased().everyMinutes(30).create();
   return true;
 }
 /* Para correr a mano en el editor después de pegar BQ_CUENTA y BQ_PROYECTO. */
@@ -699,7 +723,7 @@ function cerebroAccion_(ses, body) {
   body = body || {};
   var que = String(body.que || 'estado');
   if (que === 'buscar') return cerebroBuscar_(body.pregunta, CER_AUDIENCIAS_.indexOf(body.audiencia) >= 0 ? body.audiencia : 'principal', body.filtros || {});   // prueba: no crea pendientes
-  if (que === 'sincronizar') return cerebroSincronizar_();
+  if (que === 'sincronizar') return cerebroSincronizar_({ ahora: true });
   if (que === 'probar') return cerebroProbar_({ origen: 'hub' });
   return cerebroEstado_();
 }

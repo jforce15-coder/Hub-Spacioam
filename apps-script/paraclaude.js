@@ -105,7 +105,7 @@ function conexiones_(ses, b) {
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {
     try {
-      if (b.cerebro === 'cargar') { cerebroAsegurarActivador_(); out.carga = cerebroSincronizar_(); }
+      if (b.cerebro === 'cargar') { cerebroAsegurarActivador_(); out.carga = cerebroSincronizar_({ ahora: true }); }
       if (b.cerebro === 'probar') out.prueba = cerebroProbar_({ origen: 'conexiones' });           // la prueba del cerebro (cerebro_prueba.js)
       if (b.cerebro === 'umbral') out.umbral = cerUsarUmbralSugerido_();                          // solo cuando Juan lo toca
       /* Fuentes del cerebro: agregar o quitar una carpeta de Drive por su enlace (cerebro_fuentes.js) */

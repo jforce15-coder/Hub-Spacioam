@@ -3166,6 +3166,7 @@ function hubApi_(body) {
       case 'responder': if (String(body.resId || '') === 'op:desarrollo') return json_(paraClaudeDesdeChat_(ses, body.texto));   // responder en «Desarrollo» = seguimiento para Claude
         return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
       case 'responderWa': return json_(hubResponderSeguro_(body, ses));
+      case 'adjunto': return json_(adjSubir_(ses, body));                                    // el «+» del nuevo chat: sube una foto o un PDF para el huésped (adjuntos.js)
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
       case 'limpiezas': return json_(hubLimpiezas_(body.codigo));
@@ -3832,10 +3833,14 @@ function hubSetAuto_(resId, on, quien) {
   }
   return { ok: true, estado: on ? 'on' : 'off', ts: ts };
 }
-function hubResponder_(resId, texto, quien, canal) {
+function hubResponder_(resId, texto, quien, canal, adj) {
   texto = String(texto || '').trim();
   quien = String(quien || '').trim().slice(0, 80);
-  if (!resId || !texto) return { ok: false, error: 'faltan datos' };
+  /* Adjuntos del «+» (adjuntos.js): fotos por Hospitable o fotos y PDF por WhatsApp. Con adjuntos el texto puede ir vacío. */
+  const ad = adjLeer_(adj); if (!ad.ok) return { ok: false, error: ad.error };
+  const items = ad.items;
+  if (!resId || (!texto && !items.length)) return { ok: false, error: 'faltan datos' };
+  if (items.length && String(resId).indexOf('op:') === 0) return { ok: false, error: 'Aquí no se mandan archivos: usa la foto del chat de la roca.' };
   /* Chat operativo: el administrador escribe a ALMA desde la misma interfaz de conversaciones. */
   if (String(resId).indexOf('op:') === 0) { const adm = adminPorEmail_(String(resId).slice(3)); const r = opProcesar_(adm, texto, 'hub', []); return r.ok ? { ok: true, alma: r.alma } : r; }
   /* Se responde por el canal del último mensaje del huésped: WhatsApp o la plataforma de la reserva. */
@@ -3844,6 +3849,11 @@ function hubResponder_(resId, texto, quien, canal) {
   if (String(resId).indexOf('wa:') === 0) {
     const numW = normTel_(String(resId).slice(3)); if (!numW) return { ok: false, error: 'número inválido' };
     let nomW = ''; try { nomW = (waHilo_(resId).filter(m => m.tipo === 'guest' && m.nombre).pop() || {}).nombre || ''; } catch (e) {}
+    if (items.length) {
+      const ra = adjEnviarWa_(numW, texto, items, resId, quien || 'Equipo'); if (!ra.ok) return { ok: false, error: ra.error };
+      try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
+      return { ok: true, canal: 'whatsapp' };
+    }
     const rw = waEnviarAlguien_(numW, texto, { nombre: nomW, de: quien || 'Spacio AM' });
     if (!rw.ok) return { ok: false, error: rw.error || 'no salió' };
     try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
@@ -3854,13 +3864,18 @@ function hubResponder_(resId, texto, quien, canal) {
   let plantilla = false;
   /* Desde la conversación de la reserva se responde por la plataforma; WhatsApp tiene su propio chat (hubResponderWa_). */
   if (canal !== 'plataforma' && ug.canal === 'whatsapp' && ug.wa) {
-    const w = waResponder_(ug.wa, texto, resId, quien || 'Equipo', idiomaDe_(ug.texto), ug.nombre);
+    const w = items.length ? adjEnviarWa_(ug.wa, texto, items, resId, quien || 'Equipo') : waResponder_(ug.wa, texto, resId, quien || 'Equipo', idiomaDe_(ug.texto), ug.nombre);
     if (!w.ok) return { ok: false, error: 'WhatsApp: ' + w.error };
     plantilla = !!w.plantilla;
+  } else if (items.length) {
+    const env = adjEnviarHosp_(resId, texto, items);
+    if (env.code < 200 || env.code >= 300) return { ok: false, error: env.error || 'Hospitable HTTP ' + env.code };
+    texto = (texto || '📷') + ' [' + items.length + (items.length === 1 ? ' foto]' : ' fotos]');   // así queda en el registro
   } else {
     const env = hosp_('post', '/reservations/' + resId + '/messages', { body: texto });
     if (env.code < 200 || env.code >= 300) return { ok: false, error: 'Hospitable HTTP ' + env.code };
   }
+  if (!texto) texto = items.length === 1 ? (items[0].tipo === 'pdf' ? '📄 ' + items[0].nombre : '📷') : '📷 ' + items.length + ' adjuntos';
   const sh = hoja_(CFG.TAB_COLA);
   let d = null;
   if (sh.getLastRow() >= 2) {
@@ -4538,10 +4553,18 @@ function telsReserva_(resId) {
   return out;
 }
 /* Escribir por WhatsApp desde la conversación de una reserva: al número indicado o al más probable. */
-function hubResponderWa_(resId, texto, quien, wa) {
-  texto = String(texto || '').trim(); if (!resId || !texto) return { ok: false, error: 'faltan datos' };
+function hubResponderWa_(resId, texto, quien, wa, adj) {
+  texto = String(texto || '').trim();
+  const ad = adjLeer_(adj); if (!ad.ok) return { ok: false, error: ad.error };
+  if (!resId || (!texto && !ad.items.length)) return { ok: false, error: 'faltan datos' };
   const num = normTel_(wa || '') || ((telsReserva_(resId)[0] || {}).wa) || '';
   if (!num) return { ok: false, error: 'sin_numero' };
+  if (ad.items.length) {   // fotos o PDF del «+» (adjuntos.js): solo dentro de las 24 h
+    const ra = adjEnviarWa_(num, texto, ad.items, resId, String(quien || 'Equipo').slice(0, 80)); if (!ra.ok) return { ok: false, error: ra.error };
+    try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
+    try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) {}
+    return { ok: true, wa: num };
+  }
   let pre = {}; try { pre = preContexto_(resId) || {}; } catch (e) {}
   const ultG = waHilo_(resId).filter(m => m.tipo === 'guest' && !m.llamada).pop() || {};
   const w = waResponder_(num, texto, resId, String(quien || 'Equipo').slice(0, 80), idiomaDe_(ultG.texto || ''), pre.huesped || ultG.nombre || '');

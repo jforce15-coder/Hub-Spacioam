@@ -8,7 +8,7 @@
 function hubResponderSeguro_(body, ses) {
   const esWa = body.action === 'responderWa';
   let r;
-  try { r = esWa ? hubResponderWa_(body.resId, body.texto, body.quien, body.wa) : hubResponder_(body.resId, body.texto, body.quien, body.canal); }
+  try { r = esWa ? hubResponderWa_(body.resId, body.texto, body.quien, body.wa, body.adj) : hubResponder_(body.resId, body.texto, body.quien, body.canal, body.adj); }
   catch (e) { r = { ok: false, error: String((e && e.message) || e).slice(0, 200) }; }
   if (!(r && r.ok) && String(body.resId || '').indexOf('op:') !== 0) {
     try { hubAvisoNoEnviado_(ses, body, r && r.error); } catch (e) { console.error('hubAvisoNoEnviado_: ' + e); }

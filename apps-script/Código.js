@@ -3122,6 +3122,8 @@ function hubApi_(body) {
       case 'pendienteResponder': return json_(pendResponder_(ses, body));                   // Pendientes: «Responder» con texto a quien preguntó (pendientes.js)
       case 'pendienteNota': return json_(pendNota_(ses, body));                             // Pendientes: la nota de voz de «Responder», en texto (pendientes.js)
       case 'unirPr': return json_(unirPrSes_(ses, body.ref));                                 // app de Alma: botón «Unir» de Pendientes (unir.js)
+      case 'dictar': return json_(compDictar_(ses, body));                                  // el micrófono del cuadro de texto: audio → texto para revisar (compositor.js)
+      case 'plantillas': return json_(compPlantillas_(ses, body));                          // las plantillas personales del «+» (compositor.js)
       case 'mejorarCampo': return json_(mejorarCampo_(ses, body));                         // app de Alma: dos toques a Alma con un cuadro de texto activo (campo.js)
       case 'agentes': return json_(agAccion_(ses, body));                                    // equipo de agentes detrás de Alma (agentes.js · alma/agentes.html)
       case 'correos': return json_(correoApi_(ses, body));                                 // app de Alma: correos ordenados (correo.js · alma/correos.html)

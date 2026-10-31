@@ -309,7 +309,12 @@
     ".san-scope .san-sug{display:flex;flex-wrap:wrap;gap:10px}.san-scope .san-sug button{border:0;cursor:pointer;padding:11px 16px;border-radius:999px;background:#fff;color:#3E3F3F;font:500 13.5px Montserrat,system-ui,sans-serif;box-shadow:0 18px 38px -20px rgba(70,50,40,.36),0 1px 3px rgba(70,50,40,.05)}.san-scope .san-sug button:active{transform:scale(.96)}",
     ".san-scope .san-chat form{position:relative;margin:0 12px 12px;display:flex;align-items:flex-end;gap:6px;padding:7px;border-radius:30px;background:#fff;box-shadow:0 30px 64px -28px rgba(70,50,40,.42),0 4px 12px -6px rgba(70,50,40,.1)}",
     ".san-scope .san-in{flex:1;min-width:0;border:0;background:transparent;padding:12px 6px;font:500 16px/1.4 Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none;resize:none;height:46px;max-height:140px;box-sizing:border-box}.san-scope .san-in::placeholder{color:#B2AAA2}",
-    ".san-scope .san-clip{width:46px;height:46px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#F3EFEA;color:var(--san-ink)}.san-scope .san-clip[hidden]{display:none}",
+    /* el nuevo chat (#304): «+» · cuadro · roca · micrófono (vacío) o enviar (con texto). Enter nunca envía. */
+    ".san-scope .san-mas{width:40px;height:46px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:var(--san-ink)}.san-scope .san-mas:active{transform:scale(.92)}",
+    ".san-scope .san-mic,.san-scope .san-env{width:46px;height:46px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#3E3F3F;color:#FAF8F6}.san-scope .san-mic:active,.san-scope .san-env:active{transform:scale(.92)}",
+    ".san-scope .san-chat form.mejorando .san-in{opacity:.5}",
+    ".san-scope .san-chat form .san-env{display:none}.san-scope .san-chat form.lleno .san-env{display:grid}.san-scope .san-chat form.lleno .san-mic{display:none}",
+    ".san-scope .san-chat form .san-tips{right:auto;left:0;bottom:0;width:0;height:0;position:absolute}.san-scope .san-chat form.lleno:focus-within .san-tips span{opacity:1;transform:none}",
     /* el botón roca: 1 toque envía · mantener graba una nota de voz · 2 toques, una foto */
     ".san-scope .san-send{width:46px;height:46px;flex:none;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;display:grid;place-items:center;color:#B36A57;touch-action:none;-webkit-user-select:none;user-select:none;background:transparent;border-radius:50%}",
     ".san-scope .san-send.graba{animation:sanGraba 1.2s ease-in-out infinite}@keyframes sanGraba{50%{box-shadow:0 0 0 14px rgba(233,130,106,.2)}}",
@@ -319,7 +324,7 @@
       "opacity:0;transform:translateY(6px) scale(.94);transform-origin:100% 100%;transition:opacity .28s ease,transform .5s cubic-bezier(.3,1.35,.5,1)}",
     ".san-scope .san-tips span.on,.san-scope .san-dtips span.on{opacity:1;transform:none}",
     ".san-scope .san-tips b,.san-scope .san-dtips b{color:#F2A07E;font-weight:700;margin-right:6px}",
-    ".san-scope .san-graba{position:absolute;left:62px;right:62px;top:50%;transform:translateY(-50%);font:500 14px Montserrat,system-ui,sans-serif;color:#B36A57;display:none}.san-scope form.grabando .san-graba{display:block}.san-scope form.grabando .san-in{visibility:hidden}",
+
     "body.san-docked [data-sa-dock]{visibility:hidden!important}[data-sa-dock].san-hosting{position:relative!important;overflow:visible!important}",
     "[data-sa-slot]{transition:padding-right .55s cubic-bezier(.34,1.45,.6,1)}[data-sa-slot].san-slotted{position:relative;padding-right:var(--san-slot-w)!important}",
     ".san-slothost{position:absolute;top:50%;width:0;height:0;visibility:visible;z-index:5;pointer-events:none}.san-slothost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
@@ -579,8 +584,8 @@
   /* ================= encaje en el campo de texto =================
      Si la pantalla tiene un botón marcado con data-sa-dock (p. ej. «Mejorar con ALMA» del Hub), el menú se encaja ahí,
      a su tamaño. Mantener presionado lo saca a uno de los 8 puntos y vuelve a ser menú.
-     Encajado: 1 toque envía (el botón data-sa-dock-enviar del mismo editor; si no hay texto, hace lo del botón encajado),
-     2 toques hacen lo del botón encajado (Mejorar / Redactar con ALMA) y 3 toques llaman a Alma o cuelgan. */
+     Encajado (el nuevo chat, #304): 1 toque hace lo del botón encajado (Mejorar, o Redactar con ALMA si está vacío) y
+     2 toques llaman a Alma o cuelgan. Enviar es solo el botón de enviar del editor; el triple toque ya no existe. */
   var dock = { on: false, el: null, out: false, gone: 0, ox: 0, oy: 0 };
   /* ¿Se ve de verdad? El Hub pinta la conversación anterior y la siguiente justo fuera del área visible (paginador
      vertical): su botón tiene tamaño y cae dentro de la pantalla, pero queda recortado por el contenedor. Se descarta
@@ -648,13 +653,23 @@
       parar: function () { on = false; clearTimeout(t); for (var k = 0; k < cont.children.length; k++) cont.children[k].classList.remove("on"); },
       va: function () { return on; } };
   }
-  /* Encajado en el editor (conversación completa del Hub): los hints rotan encima del botón mientras esté encajado. */
+  /* Encajado en el editor: el único hint es «Mejorar», fijo encima de la roca y solo cuando hay texto que mejorar
+     (el botón encajado dice «Mejorar»; vacío dice «Redactar con ALMA») (#304). Se revisa cada 350 ms mientras está encajada. */
   function dockTips() {
     if (!root || !E.face) return;
-    if (!E.dtips) { E.dtips = d.createElement("div"); E.dtips.className = "san-dtips"; E.dtips.setAttribute("aria-hidden", "true"); root.appendChild(E.dtips);
-      E.rotD = rotador(E.dtips, ["<b>1 toque</b>enviar", "<b>2 toques</b>mejorar con Alma", "<b>3 toques</b>hablar con Alma"], function () {
-        var r = E.face.getBoundingClientRect(); if (r.width) { E.dtips.style.left = r.right + "px"; E.dtips.style.top = (r.top - 18) + "px"; } }); }
+    if (!E.dtips) {
+      E.dtips = d.createElement("div"); E.dtips.className = "san-dtips"; E.dtips.setAttribute("aria-hidden", "true"); E.dtips.innerHTML = "<span>Mejorar</span>"; root.appendChild(E.dtips);
+      var on = false, iv = 0;
+      E.rotD = { andar: function () { on = true; dockTipPos(); clearInterval(iv); iv = setInterval(dockTipPos, 350); },
+        parar: function () { on = false; clearInterval(iv); E.dtips.firstChild.classList.remove("on"); }, va: function () { return on; } };
+    }
     E.rotD.andar();
+  }
+  function dockTipPos() {
+    if (!E.dtips || !E.rotD || !E.rotD.va()) return;
+    var r = E.face.getBoundingClientRect(), hay = dock.on && dock.el && /^Mejorar/.test(dock.el.getAttribute("aria-label") || "") && !AL.on && !AL.min;
+    E.dtips.firstChild.classList.toggle("on", !!(hay && r.width));
+    if (r.width) { E.dtips.style.left = (r.left + r.width / 2 + 34) + "px"; E.dtips.style.top = (r.top - 12) + "px"; }
   }
   function dockCheck() {
     if (!root) return;
@@ -809,9 +824,8 @@
   }
   function onDock(n) {
     activity();
-    if (n >= 3) { if (AL.min || AL.on) almaEnd(false); else if (almaOk()) almaMini(); else nope(); return; }
-    var b = (n === 1 && dockEnviar()) || dock.el;
-    try { b.click(); } catch (e) {} surge();
+    if (n >= 2) { if (AL.min || AL.on) almaEnd(false); else if (almaOk()) almaMini(); else nope(); return; }
+    try { dock.el.click(); } catch (e) {} surge();
   }
   /* Regla general: si no hay pantallas en el menú, un toque no abre un menú vacío: va directo al inicio. */
   function onSingle() { if (dock.on) { onDock(1); return; } activity(); if (st.S === 1 && !(cfg.items && cfg.items.length)) { goHome(); return; } if (st.S === 1) setS(2); else if (st.S === 2) goHome(); else if (st.S === 3) setS(1); else setS(2); }
@@ -857,7 +871,7 @@
         tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; try { cfg.alToques(n); } catch (x) {} }, TAP_MS);
         return;
       }
-      /* Encajado en el editor: 1 envía · 2 mejora · 3 llama o cuelga (también con la llamada en curso). */
+      /* Encajado en el editor: 1 mejora (o redacta) · 2 llama o cuelga (también con la llamada en curso). */
       if (dock.on) {
         taps++; clearTimeout(tapT);
         tapT = setTimeout(function () { var n = taps; taps = 0; tapT = null; onDock(n); }, TAP_MS);
@@ -1098,7 +1112,7 @@
       status(AL.mudo ? "Micrófono en pausa · toca el anillo para seguir" : "Te escucho"); surge(); return;
     }
     if (AL.on && AL.chat) { if (n === 1) almaChat(false); return; }
-    if (dock.on) { onDock(n); return; }   // encajado en el editor: los mismos 1 · 2 · 3 toques que con el dedo
+    if (dock.on) { onDock(n); return; }   // encajado en el editor: los mismos 1 · 2 toques que con el dedo
     if (AL.min) { if (n === 1) { RING.rotar = false; almaOpen(); } else if (n === 2) almaEnd(false); return; }
     if (n >= 3) { if (almaOk()) { RING.rotar = false; almaMini(); } return; }
     if (n === 2) { onDouble(); anilloFocoInicial(); } else { onSingle(); anilloFocoInicial(); }
@@ -1218,13 +1232,15 @@
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
       '<div class="san-chat"><header><div class="asa"></div><div class="t"><b>Alma</b><small>Modo texto · te leo</small></div></header><div class="san-msgs"></div>' +
-      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme, mándame una foto o una nota de voz.</p><div class="san-sug">' +
+      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Con el + me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claude que ">Mejorar el sistema</button></div></div>' +
-      '<form><button type="button" class="san-clip" aria-label="Mandar una foto">' + svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>', 20) + '</button>' +
-      '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma"></textarea><span class="san-graba">Te escucho… suelta para enviar</span>' +
-      '<button type="button" class="san-send" aria-label="Alma · un toque envía, mantén para una nota de voz, dos toques para una foto, tres para hablar"></button>' +
-      '<div class="san-tips" aria-hidden="true"></div>' +
+      '<form><button type="button" class="san-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
+      '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
+      '<button type="button" class="san-send" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
+      '<button type="button" class="san-mic" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
+      '<button type="submit" class="san-env" aria-label="Enviar">' + svg('<path d="M5 12h13M13 6l6 6-6 6"/>', 20) + '</button>' +
+      '<div class="san-tips" aria-hidden="true"><span>Mejorar</span></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Sin nada que hacer · 3 días</small></div>' +
@@ -1254,7 +1270,8 @@
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
     bindStone();
   }
-  /* El chat: textarea que crece, sugerencias, foto y el botón roca (1 toque envía · mantener = nota de voz · 2 toques = foto). */
+  /* El chat (el nuevo chat de Alma, #304): «+» con plantillas y foto · cuadro de hasta 5 líneas · roca (1 toque mejora · 2, hablar) ·
+     micrófono que dicta al cuadro cuando está vacío o enviar cuando hay texto. Solo envía el botón. */
   /* Chat sin actividad CHAT_INACTIVO_MS (3 min): la conversación termina sola (Alma no se queda preguntando «¿sigues ahí?»). */
   var CHAT_INACTIVO_MS = 180000, chatT = 0;
   function chatQuieto() { clearTimeout(chatT); if (AL.chat) chatT = setTimeout(function () { if (AL.chat && (AL.on || AL.min)) almaEnd(false); }, CHAT_INACTIVO_MS); }
@@ -1264,23 +1281,24 @@
     return true;
   }
   function chatBind(ov) {
-    var f = ov.querySelector("form"), i = ov.querySelector(".san-in"), b = ov.querySelector(".san-send"), tips = ov.querySelector(".san-tips"), file = ov.querySelector(".san-file"), clip = ov.querySelector(".san-clip");
-    var fotoOk = !!(w.ALMA && w.ALMA.almaFoto); clip.hidden = !fotoOk;
-    var crecer = function () { i.style.height = "46px"; i.style.height = Math.min(140, i.scrollHeight) + "px"; };
-    var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } else verTips(); };
-    /* los hints del botón roca rotan sin parar mientras el chat está abierto (y se pausan mientras grabas una nota de voz) */
-    E.rotC = rotador(tips, ["<b>1 toque</b>enviar · mantén: nota de voz", "<b>2 toques</b>foto", "<b>3 toques</b>hablar"]);
-    var verTips = function () { if (AL.chat && !grabando) E.rotC.andar(); };
-    E.verTips = verTips;
+    var f = ov.querySelector("form"), i = ov.querySelector(".san-in"), b = ov.querySelector(".san-send"), tips = ov.querySelector(".san-tips"), file = ov.querySelector(".san-file"),
+      masB = ov.querySelector(".san-mas"), mic = ov.querySelector(".san-mic");
+    var fotoOk = !!(w.ALMA && w.ALMA.almaFoto);
+    var lleno = function () { f.classList.toggle("lleno", !!i.value.trim()); };
+    var crecer = function () { i.style.height = "46px"; i.style.height = Math.min(134, i.scrollHeight) + "px"; lleno(); colocarTip(); };   // hasta 5 líneas, como WhatsApp
+    var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } };
+    /* El único hint: «Mejorar», encima de la roca, mientras hay texto (CSS: form.lleno). */
+    var colocarTip = function () { var rb = b.getBoundingClientRect(), rf = f.getBoundingClientRect(); if (rb.width) { tips.style.left = (rb.left - rf.left + rb.width / 2 + 40) + "px"; tips.style.top = (rb.top - rf.top - 10) + "px"; } };
+    E.rotC = { andar: colocarTip, parar: function () {}, va: function () { return true; } };
+    var verTips = colocarTip; E.verTips = verTips;
     i.addEventListener("input", crecer);
-    i.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !/iPhone|iPad|Android/.test(navigator.userAgent)) { e.preventDefault(); enviar(); } });
-    i.addEventListener("focus", function () { verTips(); });
-    f.onsubmit = function (e) { e.preventDefault(); enviar(); };
+    i.addEventListener("focus", function () { colocarTip(); });
+    f.onsubmit = function (e) { e.preventDefault(); enviar(); try { i.focus(); } catch (x) {} };   // solo el botón enviar (Enter salta de línea)
     /* deslizar la cabecera hacia abajo cierra el chat */
     var hd = ov.querySelector(".san-chat header"), y0 = null;
     hd.addEventListener("pointerdown", function (e) { y0 = e.clientY; });
     hd.addEventListener("pointerup", function (e) { if (y0 != null && e.clientY - y0 > 70) almaEnd(false); y0 = null; });
-    /* la roca sigue al lugar de enviar (teclado que sube, texto que crece) */
+    /* la roca sigue a su lugar junto al cuadro (teclado que sube, texto que crece) */
     var fija = function () { if (!AL.chat) return; var t = stoneTarget(); aX.to(t.x, .25, 1); aY.to(t.y, .25, 1); aS.to(t.s, .25, 1); };
     if (w.visualViewport) { w.visualViewport.addEventListener("resize", fija); w.visualViewport.addEventListener("scroll", fija); }
     i.addEventListener("input", function () { setTimeout(fija, 0); });
@@ -1288,23 +1306,41 @@
     Array.prototype.forEach.call(ov.querySelectorAll(".san-sug button"), function (x) {
       x.onclick = function () { var t = x.getAttribute("data-s"); if (x.getAttribute("data-y")) { chatEnviar(t); return; } i.value = t; crecer(); try { i.focus(); i.setSelectionRange(t.length, t.length); } catch (e) {} };
     });
-    /* nota de voz: mientras mantienes la roca, Alma te escucha (el micrófono de la conversación); al soltar, responde por escrito */
-    var hold = 0, grabando = false, toques = 0, toqT = 0;
-    var empezar = function () { grabando = true; f.classList.add("grabando"); b.classList.add("graba"); E.rotC.parar(); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
-      if (AL.ses && AL.ses.nota) { try { AL.ses.nota(true); } catch (x) {} } };
-    var parar = function () { grabando = false; f.classList.remove("grabando"); b.classList.remove("graba"); setTimeout(verTips, 900);
-      setTimeout(function () { if (AL.ses && AL.ses.nota) { try { AL.ses.nota(false); } catch (x) {} } }, 700); };
-    b.addEventListener("pointerdown", function (e) { e.preventDefault(); clearTimeout(hold); aSq.to(1, .22, 1); hold = setTimeout(empezar, 380); });
+    /* La roca: 1 toque mejora tu texto (ALMA.mejorarTexto) · 2 toques, hablar con Alma. Sin texto, 1 toque no hace nada. */
+    var toques = 0, toqT = 0, mejorando = false;
+    var mejorar = function () {
+      var t = i.value.trim(); if (!t || mejorando) { nope(); return; }
+      if (!(w.ALMA && w.ALMA.mejorarTexto)) { nope(); return; }
+      mejorando = true; f.classList.add("mejorando"); i.readOnly = true; var antes = i.value;
+      w.ALMA.mejorarTexto(t, { pagina: "Chat con Alma", etiqueta: "Mensaje para Alma" }).then(function (r) {
+        mejorando = false; f.classList.remove("mejorando"); i.readOnly = false;
+        if (r && r.ok && r.texto && i.value === antes) { i.value = r.texto; crecer(); try { i.focus(); } catch (x) {} } else if (!(r && r.ok)) nope();
+      }, function () { mejorando = false; f.classList.remove("mejorando"); i.readOnly = false; nope(); });
+    };
+    b.addEventListener("pointerdown", function (e) { e.preventDefault(); aSq.to(1, .22, 1); });
     b.addEventListener("pointerup", function (e) {
-      e.preventDefault(); clearTimeout(hold); aSq.to(0, .5, .55); if (grabando) { parar(); return; }
+      e.preventDefault(); aSq.to(0, .5, .55);
       toques++; clearTimeout(toqT);
-      toqT = setTimeout(function () { var n = toques; toques = 0;
-        if (n >= 3) almaChat(false); else if (n === 2) { if (fotoOk) file.click(); else verTips(); } else enviar(); }, 300);
+      toqT = setTimeout(function () { var n = toques; toques = 0; if (n >= 2) almaChat(false); else mejorar(); }, 300);
     });
-    b.addEventListener("pointercancel", function () { clearTimeout(hold); aSq.to(0, .5, .55); if (grabando) parar(); });
+    b.addEventListener("pointercancel", function () { aSq.to(0, .5, .55); });
     b.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-    clip.onclick = function () { file.click(); };
+    /* El micrófono: dicta al cuadro (js/sa-compositor.js); lo dicho queda escrito para revisarlo antes de enviar. */
+    mic.onclick = function () { conComp(function () { w.SAComp.dictar({ caja: f, onTexto: function (t) { i.value = (i.value.replace(/\s+$/, "") ? i.value.replace(/\s+$/, "") + " " : "") + t; crecer(); try { i.focus(); } catch (x) {} } }); }); };
+    /* El «+»: mis plantillas, guardar este texto como plantilla y, aquí, mandarle una foto a Alma. */
+    masB.onclick = function () {
+      conComp(function () {
+        w.SAComp.mas({ ancla: masB, texto: function () { return i.value; }, poner: function (t) { i.value = t; crecer(); try { i.focus(); i.setSelectionRange(t.length, t.length); } catch (x) {} },
+          extras: fotoOk ? [{ txt: "Foto", icono: svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>', 18), fn: function () { file.click(); } }] : [] });
+      });
+    };
     file.onchange = function () { var x = file.files && file.files[0]; file.value = ""; if (x) chatFoto(x, i); };
+  }
+  /* El compositor compartido (js/sa-compositor.js) se carga solo la primera vez que se usa, junto a este archivo. */
+  function conComp(cb) {
+    if (w.SAComp) { cb(); return; }
+    var yo = d.querySelector('script[src*="sa-nav.js"]'), base = yo ? yo.src.replace(/sa-nav\.js.*$/, "") : "js/";
+    var s = d.createElement("script"); s.src = base + "sa-compositor.js?v=2026-11-09a"; s.onload = function () { if (w.SAComp) cb(); }; d.head.appendChild(s);
   }
   function chatFoto(archivo, i) {
     var r = new FileReader();

@@ -35,12 +35,13 @@
 <link rel="stylesheet" href="ds/movimiento.css">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-08b"></script>
+<script src="js/sa-nav.js?v=2026-11-09a"></script>
 <script src="js/alma-voz.js?v=2026-11-01a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-11-04a"></script>
+<script src="js/alma-client.js?v=2026-11-09a"></script>
+<script src="js/sa-compositor.js?v=2026-11-09a"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -216,7 +217,9 @@
     background:rgba(250,250,250,.58); -webkit-backdrop-filter:blur(26px) saturate(180%) brightness(1.06); backdrop-filter:blur(26px) saturate(180%) brightness(1.06);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 .5px rgba(62,63,63,.10), 0 18px 50px rgba(62,63,63,.16), 0 4px 14px rgba(62,63,63,.06);
     animation:sa-dock .7s cubic-bezier(.34,1.36,.64,1) .15s backwards; max-width:calc(100vw - 24px); box-sizing:border-box; }
-  body.san-docked [data-sa-dock-enviar]{ display:none !important; }   /* Alma encajada: 1 toque envía, no hace falta la flecha */
+  /* El nuevo chat (#304): con el cuadro enfocado, el encabezado de la conversación queda en lo mínimo (nombre y propiedad) */
+  .sa-head-min{ gap:0 !important; padding-top:6px !important; padding-bottom:6px !important; }
+  .sa-head-min [role=toolbar], .sa-head-min .sa-pasos, .sa-head-min .sa-head-av, .sa-head-min .sa-head-acc, .sa-head-min .sa-head-pill{ display:none !important; }
   @keyframes sa-dock{ from{ opacity:0; transform:translate(-50%,28px) scale(.94); } to{ opacity:1; transform:translate(-50%,0) scale(1); } }
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .app-dock{ background:rgba(250,250,250,.96); } }
   .app-lbl{ display:block; margin-top:6px; text-align:center; font-size:10.5px; font-weight:500; letter-spacing:.02em; line-height:1; color:#3E3F3F; transition:opacity .18s cubic-bezier(.22,.61,.36,1); }
@@ -1790,18 +1793,18 @@
             <sc-if value="{{ c.hayFrags }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; top:12px; right:14px; z-index:2; font-size:10.5px; font-weight:600; letter-spacing:.12em; border-radius:999px; padding:4px 9px; background:#3E3F3F; color:#FAFAFA; font-variant-numeric:tabular-nums">{{ c.fragPos }}</span></sc-if>
             <div data-alma-card="1" class="sa-conv-card" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; overflow:hidden; display:flex; flex-direction:column; height:100%; min-height:0; box-shadow:0 4px 16px rgba(62,63,63,.05)">
 
-              <div class="sa-conv-head" style="display:flex; flex-direction:column; gap:8px; padding:8px 12px 10px; border-bottom:none; box-shadow:0 1px 0 rgba(62,63,63,.06), 0 6px 12px -10px rgba(62,63,63,.18); position:relative; z-index:2; flex-shrink:0; background:#FFFFFF">
+              <div class="sa-conv-head {{ c.headClase }}" style="display:flex; flex-direction:column; gap:8px; padding:8px 12px 10px; border-bottom:none; box-shadow:0 1px 0 rgba(62,63,63,.06), 0 6px 12px -10px rgba(62,63,63,.18); position:relative; z-index:2; flex-shrink:0; background:#FFFFFF">
                 <div style="display:flex; align-items:center; gap:10px; min-width:0">
-                  <span style="width:36px; height:36px; margin:2px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 3.5px {{ c.color }}">{{ c.iniciales }}</span>
+                  <span class="sa-head-av" style="width:36px; height:36px; margin:2px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 3.5px {{ c.color }}">{{ c.iniciales }}</span>
                   <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
                     <div style="display:flex; align-items:center; gap:6px; min-width:0">
                       <span style="font-size:16px; font-weight:600; letter-spacing:-.01em; color:#3E3F3F; line-height:1.2; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ c.huesped }}</span>
-                      <span style="flex-shrink:0; font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; white-space:nowrap; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivelLabel }}</span>
-                      <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:2px 7px; white-space:nowrap; border:1px solid #E9826A; color:#B54D36; background:rgba(233,130,106,.12)">En cola</span></sc-if>
+                      <span class="sa-head-pill" style="flex-shrink:0; font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; white-space:nowrap; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivelLabel }}</span>
+                      <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}"><span class="sa-head-pill" style="flex-shrink:0; font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:2px 7px; white-space:nowrap; border:1px solid #E9826A; color:#B54D36; background:rgba(233,130,106,.12)">En cola</span></sc-if>
                     </div>
                     <div style="font-size:12px; letter-spacing:.01em; color:#6F6867; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"><span>{{ c.propiedad }}</span><sc-if value="{{ c.hayEstadia }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true"> · </span><span>{{ c.estadia }}</span></sc-if></div>
                   </div>
-                  <div style="display:flex; align-items:center; gap:6px; flex-shrink:0; padding-right: {{ c.fechaPad }}">
+                  <div class="sa-head-acc" style="display:flex; align-items:center; gap:6px; flex-shrink:0; padding-right: {{ c.fechaPad }}">
                     <button onClick="{{ c.toggleResuelta }}" data-k="resolver" title="Marcar resuelta (E)" style="display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 11px; white-space:nowrap; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import><span class="sa-res-lbl">{{ c.resLabel }}</span></button>
                     <div style="position:relative">
                       <button onClick="{{ c.masToggle }}" aria-label="Más acciones" aria-haspopup="menu" aria-expanded="{{ c.masAria }}" title="Más acciones" style="width:34px; height:34px; border-radius:50%; border:1px solid #D8D4CE; background: {{ c.masBg }}; display:grid; place-items:center; cursor:pointer; color:#3E3F3F; transition:border-color .18s cubic-bezier(.22,.61,.36,1), background .18s cubic-bezier(.22,.61,.36,1)" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><span aria-hidden="true" style="display:flex; gap:3px"><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span></span></button>
@@ -2049,6 +2052,7 @@
                     </div>
                   </sc-if>
                   <div style="display:flex; align-items:flex-end; gap:6px; flex-shrink:0">
+                    <button onClick="{{ c.respMas }}" aria-label="Plantillas y más" title="Plantillas y más" style="width:40px; height:48px; flex-shrink:0; margin-right:-2px; border-radius:50%; border:none; background:transparent; color:#3E3F3F; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:#F5F3F0" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="plus" size="22" color="currentColor" hint-size="22px,22px"></x-import></button>
                     <div style="flex:1; min-width:0; display:flex; align-items:flex-end; min-height:48px; border-radius:24px; background:#FAFAFA; border:1px solid #D8D4CE; padding:0 4px; transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1)" data-composer="1">
                       <textarea ref="{{ c.respRef }}" readOnly="{{ c.respReadOnly }}" onInput="{{ c.setRespTexto }}" onKeyDown="{{ c.respKey }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Escribe un mensaje…" aria-label="Escribe tu respuesta" enterKeyHint="enter" autoCapitalize="sentences" autoCorrect="on" spellCheck="true" style="flex:1; min-width:0; border:none; background:transparent; padding:13px 12px; font-family:inherit; font-size:16px; line-height:22px; letter-spacing:0; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:48px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
                       <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
@@ -2056,6 +2060,9 @@
                       </sc-if>
                     </div>
                     <button data-sa-dock="1" onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="{{ c.respMejorarLabel }}" title="{{ c.respHint }}" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import></button>
+                    <sc-if value="{{ c.respVacio }}" hint-placeholder-val="{{ true }}">
+                      <button onClick="{{ c.respMic }}" disabled="{{ c.respBusy }}" aria-label="Dictar: toca y habla" title="Dictar: toca y habla" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:none; background:#3E3F3F; color:#FAFAFA; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 16px rgba(62,63,63,.12); transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(1.12)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="20" color="currentColor" hint-size="20px,20px"></x-import></button>
+                    </sc-if>
                     <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
                       <button data-sa-dock-enviar="1" onClick="{{ c.respEnviar }}" disabled="{{ c.respEnviando }}" aria-label="{{ c.respEnviarLabel }}" title="{{ c.respEnviarLabel }}" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:none; background:#3E3F3F; color:#FAFAFA; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 16px rgba(62,63,63,.12); transition:filter .18s, transform .1s; opacity: {{ c.respEnviarOp }}; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(1.12)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="20" color="currentColor" hint-size="20px,20px"></x-import></button>
                     </sc-if>
@@ -5329,7 +5336,7 @@ class Component extends DCLogic {
     clearTimeout(this._borrT);
     this._borrT = setTimeout(function () { try { var k = self.copiaClave("sa_borradores"); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), b: self._borr || o })); } catch (e) {} }, 400);
   }
-  /* Crece como WhatsApp: hasta ~7 líneas (40% de la pantalla en teléfono) y luego hace scroll por dentro.
+  /* Crece como WhatsApp: hasta 5 líneas y luego hace scroll por dentro.
      Solo vuelve a medir desde cero cuando el texto se acorta; al escribir basta comparar scrollHeight. Se agrupa por frame. */
   altoResp(el, filasMax) {
     if (!el) return;
@@ -5338,7 +5345,7 @@ class Component extends DCLogic {
     el._altoRaf = requestAnimationFrame(function () {
       el._altoRaf = 0;
       var ancho = window.matchMedia && matchMedia("(min-width:1180px)").matches;
-      var filas = filasMax || (ancho ? 8 : 7), max = Math.min(22 * filas + 26, Math.round(window.innerHeight * (ancho ? 0.45 : 0.4)));
+      var filas = Math.min(filasMax || 5, 5), max = Math.min(22 * filas + 26, Math.round(window.innerHeight * (ancho ? 0.45 : 0.4)));   // como WhatsApp: hasta 5 líneas
       var len = el.value.length, prev = el._altoLen || 0; el._altoLen = len;
       if (len < prev || !el.style.height) el.style.height = "48px";
       var h = Math.max(48, Math.min(el.scrollHeight, max));
@@ -6797,13 +6804,27 @@ class Component extends DCLogic {
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target, (self.state.convResp[convKey] || {}).alma ? 10 : 0); self.guardarBorrador(convKey, v); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !llenoV || !!rs.enviando,
         respLleno: !!llenoV, respVacio: !llenoV, respEnviando: !!rs.enviando, respEnviarOp: rs.enviando ? ".5" : "1",
-        /* Escritorio: Enter envía, Shift+Enter salta línea. Teléfono: Enter es salto de línea, como WhatsApp. */
-        respKey: function (e) {
-          if (e.key === "Escape") { e.currentTarget.blur(); return; }
-          if (e.key !== "Enter" || e.shiftKey || e.altKey || e.isComposing) return;
-          var mod = e.metaKey || e.ctrlKey;
-          if (!mod && !(window.matchMedia && matchMedia("(min-width:1180px) and (hover:hover)").matches)) return;
-          e.preventDefault(); enviar(self._respDraft[convKey] || "");
+        /* El nuevo chat (#304): Enter siempre salta de línea; solo se envía con el botón (como WhatsApp en el teléfono). */
+        respKey: function (e) { if (e.key === "Escape") e.currentTarget.blur(); },
+        /* Con el cuadro enfocado, el encabezado queda en lo mínimo para ver más historial. */
+        headClase: rs.foco ? "sa-head-min" : "",
+        /* El micrófono: la onda va donde va el texto; ✓ lo pasa a texto y queda en el cuadro para revisarlo. */
+        respMic: function (e) {
+          var caja = e && e.currentTarget && e.currentTarget.parentElement && e.currentTarget.parentElement.querySelector("[data-composer]");
+          if (!(window.SAComp && caja)) { self.aviso("Aquí no puedo grabar; escríbelo."); return; }
+          SAComp.dictar({ caja: caja, onTexto: function (t) {
+            var prev = String(self._respDraft[convKey] || "").replace(/\s+$/, ""), nuevo = prev ? prev + " " + t : t;
+            ponerTexto(nuevo); self.guardarBorrador(convKey, nuevo);
+            setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(nuevo.length, nuevo.length); } catch (x) {} } }, 60);
+          } });
+        },
+        /* El «+»: mis plantillas (tocar una la pone en el cuadro, no la envía) y guardar el texto actual como plantilla. */
+        respMas: function (e) {
+          if (!window.SAComp) return;
+          SAComp.mas({ ancla: e && e.currentTarget, texto: function () { return self._respDraft[convKey] || ""; }, poner: function (t) {
+            ponerTexto(t); self.guardarBorrador(convKey, t);
+            setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(t.length, t.length); } catch (x) {} } }, 60);
+          } });
         },
         respMejorarLabel: rs.busy ? "Redactando…" : llenoV ? "Mejorar" : "Redactar con ALMA",
         respHint: llenoV ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",

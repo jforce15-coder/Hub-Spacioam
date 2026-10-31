@@ -28,6 +28,8 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 ## Velocidad percibida
 - Rápido de sentir ([ds/velocidad.md](ds/velocidad.md)). Ninguna pantalla en blanco ni «Cargando…» sin forma: esqueleto con la forma de lo que viene. Lo que casi nunca falla se muestra hecho al instante (y se deshace si falla). Las esperas largas llevan una barra que termina rápido y el trabajo real a la vista. Un estado vacío solo se muestra cuando ya llegaron los datos.
 
+- Cargar rápido de verdad (ds/velocidad.md, reglas 7–9): nada en fila al abrir (mejor una llamada que muchas); la «foto» de la pantalla se guarda por persona y versión, sin datos sensibles, vence a las 24 h, se borra al cerrar sesión y se dice «actualizando…» mientras llega la fresca; la sesión se cierra solo con un «no autorizado» claro, nunca por falta de red.
+
 ## Escritura
 - Las palabras del glosario (`docs/GLOSARIO.md`), en español, simples.
 - Nombres para quien lee: `correoNoResponder_`, no `cnr_`. Módulos chicos antes que listos.

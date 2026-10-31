@@ -1245,7 +1245,7 @@
       '<form><button type="button" class="san-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
       '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
       '<button type="button" class="san-mic" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
-      '<button type="submit" class="san-env" aria-label="Enviar">' + svg('<path d="M5 12h13M13 6l6 6-6 6"/>', 20) + '</button>' +
+      '<button type="submit" class="san-env" aria-label="Enviar">' + svg('<path d="M4.5 12 3 4.5l17.5 7.5L3 19.5z"/><path d="M4.5 12H11"/>', 20) + '</button>' +
       '<button type="button" class="san-send" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span>Mejorar</span></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';

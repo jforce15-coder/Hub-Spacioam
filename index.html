@@ -32,7 +32,9 @@
 <link rel="stylesheet" href="ds/tokens/base.css">
 <link rel="stylesheet" href="ds/styles.css">
 <link rel="stylesheet" href="ds/esqueleto.css">
+<link rel="stylesheet" href="ds/movimiento.css">
 <script src="ds/bundle.js"></script>
+<script src="ds/movimiento.js"></script>
 <script src="js/sa-nav.js?v=2026-11-08b"></script>
 <script src="js/alma-voz.js?v=2026-11-01a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
@@ -58,6 +60,11 @@
   [data-alma-chat] { scroll-padding-bottom:16px; }
   [data-composer]:focus-within { border-color:#3E3F3F !important; box-shadow:0 0 0 3px rgba(233,130,106,.25); }
   @media (prefers-reduced-motion: reduce){ *, *::before, *::after { animation-duration:1ms !important; animation-iteration-count:1 !important; transition-duration:1ms !important; scroll-behavior:auto !important; } }
+  /* Movimiento con sentido (ds/movimiento.md). 5 · la píldora viaja: cuando ya está puesta, la pestaña elegida no pinta su fondo. */
+  [data-pildora] > [role="tab"] { position:relative; z-index:1; }
+  [data-pildora="lista"] > [role="tab"] { background:transparent !important; box-shadow:none !important; }
+  /* 3 · el menú «Más» crece desde su botón (34 px, alineado a la derecha, 6 px arriba del menú) */
+  .sa-mas-menu { --origen: calc(100% - 17px) -23px; }
   @keyframes sa-cargar{ from{ width:4%; } to{ width:92%; } }
   @keyframes sa-rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
   @keyframes sa-fade { from { opacity:0; } to { opacity:1; } }
@@ -625,7 +632,8 @@
         <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:#3d6b52"><span class="sa-twinkle"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="14" hint-size="14px,14px"></x-import></span>Todo en orden para hoy: limpiezas asignadas y registros al día.</div>
       </sc-if>
     </div>
-    <div role="tablist" style="display:grid; grid-template-columns:1fr 1fr; background:#F5F3F0; border-radius:999px; padding:4px; gap:4px; width:100%; max-width:440px; box-sizing:border-box">
+    <div role="tablist" data-pildora="" style="position:relative; display:grid; grid-template-columns:1fr 1fr; background:#F5F3F0; border-radius:999px; padding:4px; gap:4px; width:100%; max-width:440px; box-sizing:border-box">
+      <i class="sa-pildora" aria-hidden="true" style="background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06)"></i>
       <sc-for list="{{ hyTabs }}" as="tb" hint-placeholder-count="2">
         <button role="tab" aria-selected="{{ tb.on }}" onClick="{{ tb.pick }}" style="border:none; border-radius:999px; min-height:40px; padding:0 18px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:background .18s, color .18s; background: {{ tb.bg }}; color: {{ tb.fg }}; box-shadow: {{ tb.sh }}">{{ tb.label }}<span style="font-variant-numeric:tabular-nums; letter-spacing:.04em; color:#6F6867">{{ tb.n }}</span></button>
       </sc-for>
@@ -807,7 +815,8 @@
         </div>
         <div style="flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch">
           <div style="width:100%; max-width:760px; margin:0 auto; padding:8px 16px calc(32px + env(safe-area-inset-bottom)); box-sizing:border-box; display:flex; flex-direction:column; gap:20px">
-            <div role="tablist" aria-label="Periodo" style="display:flex; gap:4px; background:#F5F3F0; border-radius:999px; padding:4px; align-self:flex-start">
+            <div role="tablist" aria-label="Periodo" data-pildora="" style="position:relative; display:flex; gap:4px; background:#F5F3F0; border-radius:999px; padding:4px; align-self:flex-start">
+              <i class="sa-pildora" aria-hidden="true" style="background:#3E3F3F"></i>
               <sc-for list="{{ iaPeriodos }}" as="p" hint-placeholder-count="3">
                 <button onClick="{{ p.pick }}" role="tab" aria-selected="{{ p.on }}" style="min-height:40px; border:none; border-radius:999px; padding:0 16px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; background: {{ p.bg }}; color: {{ p.fg }}">{{ p.label }}</button>
               </sc-for>
@@ -1091,7 +1100,8 @@
     </div>
 
     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center">
-      <div role="tablist" aria-label="Período" style="display:flex; gap:4px; padding:4px; border-radius:999px; background:#F5F3F0">
+      <div role="tablist" aria-label="Período" data-pildora="" style="position:relative; display:flex; gap:4px; padding:4px; border-radius:999px; background:#F5F3F0">
+        <i class="sa-pildora" aria-hidden="true" style="background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06)"></i>
         <sc-for list="{{ rv2Periodos }}" as="p" hint-placeholder-count="3">
           <button role="tab" aria-selected="{{ p.aria }}" onClick="{{ p.set }}" style="min-height:38px; padding:0 14px; border:none; border-radius:999px; background: {{ p.bg }}; color: {{ p.fg }}; box-shadow: {{ p.sh }}; font-family:inherit; font-size:12px; font-weight:600; letter-spacing:.02em; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), color .18s">{{ p.label }}</button>
         </sc-for>
@@ -1155,7 +1165,8 @@
         </div>
       </div>
 
-      <div role="tablist" aria-label="Análisis guiado" style="display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:4px; border-radius:18px; background:#F5F3F0">
+      <div role="tablist" aria-label="Análisis guiado" data-pildora="" style="position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:4px; padding:4px; border-radius:18px; background:#F5F3F0">
+        <i class="sa-pildora" aria-hidden="true" style="border-radius:14px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06)"></i>
         <sc-for list="{{ rv2Pasos }}" as="ps" hint-placeholder-count="4">
           <button role="tab" aria-selected="{{ ps.aria }}" onClick="{{ ps.set }}" style="min-height:52px; padding:6px 8px; border:none; border-radius:14px; background: {{ ps.bg }}; box-shadow: {{ ps.sh }}; color:#3E3F3F; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; transition:background .18s cubic-bezier(.22,.61,.36,1)">
             <span style="font-size:12.5px; font-weight:600; letter-spacing:.01em; color: {{ ps.fg }}">{{ ps.label }}</span>
@@ -1412,7 +1423,7 @@
       <div class="alma-acciones" data-sa-slot="tr" style="display:flex; align-items:center; gap:12px; flex-shrink:0">
         <div class="alma-tg-desk" style="position:relative; align-items:center; width:440px">
       <div role="tablist" aria-label="Vista" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.5fr 1fr; height:48px; padding:4px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
-        <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left .32s cubic-bezier(.22,.61,.36,1), width .32s cubic-bezier(.22,.61,.36,1); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
+        <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
         <sc-for list="{{ mTabs }}" as="v" hint-placeholder-count="3">
           <button role="tab" aria-selected="{{ v.activo }}" aria-haspopup="{{ v.popup }}" aria-expanded="{{ v.exp }}" onClick="{{ v.set }}" style="position:relative; z-index:1; min-width:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 6px; font-family:inherit; font-size:12px; font-weight:600; letter-spacing:.02em; white-space:nowrap; cursor:pointer; color: {{ v.fg }}; transition:color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.97)">
             <sc-if value="{{ v.punto }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:#F2755A; flex-shrink:0"></span></sc-if>
@@ -1469,7 +1480,7 @@
 
     <div class="alma-mbar" style="position:relative; align-items:center; ">
       <div role="tablist" aria-label="Vista" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.5fr 1fr; height:48px; padding:4px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
-        <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left .32s cubic-bezier(.22,.61,.36,1), width .32s cubic-bezier(.22,.61,.36,1); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
+        <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
         <sc-for list="{{ mTabs }}" as="v" hint-placeholder-count="3">
           <button role="tab" aria-selected="{{ v.activo }}" aria-haspopup="{{ v.popup }}" aria-expanded="{{ v.exp }}" onClick="{{ v.set }}" style="position:relative; z-index:1; min-width:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 6px; font-family:inherit; font-size:12px; font-weight:600; letter-spacing:.02em; white-space:nowrap; cursor:pointer; color: {{ v.fg }}; transition:color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.97)">
             <sc-if value="{{ v.punto }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:#F2755A; flex-shrink:0"></span></sc-if>
@@ -1796,8 +1807,8 @@
                       <button onClick="{{ c.masToggle }}" aria-label="Más acciones" aria-haspopup="menu" aria-expanded="{{ c.masAria }}" title="Más acciones" style="width:34px; height:34px; border-radius:50%; border:1px solid #D8D4CE; background: {{ c.masBg }}; display:grid; place-items:center; cursor:pointer; color:#3E3F3F; transition:border-color .18s cubic-bezier(.22,.61,.36,1), background .18s cubic-bezier(.22,.61,.36,1)" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><span aria-hidden="true" style="display:flex; gap:3px"><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span></span></button>
                       <sc-if value="{{ c.masAbierto }}" hint-placeholder-val="{{ false }}">
                         <div onClick="{{ c.masCerrar }}" style="position:fixed; inset:0; z-index:40"></div>
-                        <div role="menu" style="position:absolute; right:0; top:calc(100% + 6px); z-index:41; min-width:260px; padding:6px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; box-shadow:0 12px 40px rgba(62,63,63,.07), 0 1px 2px rgba(62,63,63,.06); display:flex; flex-direction:column; gap:2px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards">
-                          <button onClick="{{ c.autoToggle }}" role="switch" aria-checked="{{ c.autoOn }}" aria-label="Respuestas automáticas de ALMA en esta conversación" title="Respuestas automáticas de ALMA en esta conversación" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background:transparent; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><span aria-hidden="true" style="width:30px; height:18px; border-radius:999px; background: {{ c.autoBg }}; border:1px solid {{ c.autoBd }}; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1)"><span style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background: {{ c.autoFg }}; left: {{ c.autoKnob }}; transition:left .18s cubic-bezier(.22,.61,.36,1)"></span></span><span style="flex:1">Respuestas de ALMA</span><span style="font-size:11px; color:#6F6867">{{ c.autoLabel }}</span></button>
+                        <div role="menu" class="sa-desde sa-mas-menu" style="position:absolute; right:0; top:calc(100% + 6px); z-index:41; min-width:260px; padding:6px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; box-shadow:0 12px 40px rgba(62,63,63,.07), 0 1px 2px rgba(62,63,63,.06); display:flex; flex-direction:column; gap:2px">
+                          <button onClick="{{ c.autoToggle }}" role="switch" aria-checked="{{ c.autoOn }}" aria-label="Respuestas automáticas de ALMA en esta conversación" title="Respuestas automáticas de ALMA en esta conversación" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background:transparent; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><span aria-hidden="true" style="width:30px; height:18px; border-radius:999px; background: {{ c.autoBg }}; border:1px solid {{ c.autoBd }}; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1)"><span style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background: {{ c.autoFg }}; left: {{ c.autoKnob }}; transition:left var(--resorte-d) var(--resorte)"></span></span><span style="flex:1">Respuestas de ALMA</span><span style="font-size:11px; color:#6F6867">{{ c.autoLabel }}</span></button>
                           <button onClick="{{ c.toggleProg }}" data-k="prog" aria-label="Mensajes programados" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background: {{ c.progBtnBg }}; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import><span style="flex:1">Mensajes programados</span></button>
                         </div>
                       </sc-if>
@@ -2534,7 +2545,7 @@
               <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:12px 16px; display:flex; flex-direction:column; gap:8px">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
                   <button onClick="{{ k.toggle }}" aria-label="Activar o desactivar" style="width:36px; height:22px; border-radius:999px; border:none; cursor:pointer; position:relative; flex-shrink:0; background: {{ k.toggleBg }}">
-                    <span style="position:absolute; top:3px; width:16px; height:16px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); left: {{ k.toggleLeft }}"></span>
+                    <span style="position:absolute; top:3px; width:16px; height:16px; border-radius:50%; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.2); left: {{ k.toggleLeft }}; transition:left var(--resorte-d) var(--resorte)"></span>
                   </button>
                   <span style="font-size:14px; font-weight:600; letter-spacing:.01em; line-height:1.1; color: {{ k.temaColor }}">{{ k.tema }}</span>
                   <span style="font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background:#F5F3F0; color:#6F6867">{{ k.aplica }}</span>
@@ -2576,7 +2587,7 @@
           <div style="padding:14px 56px 8px 20px"><span style="font-size:10.5px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">Te toca a ti</span><div style="font-size:15px; font-weight:600; color:#3E3F3F; margin-top:2px">Acciones pendientes ({{ accN }})</div></div>
           <div style="overflow-y:auto; overscroll-behavior:contain; padding:6px 14px calc(18px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:8px; min-height:0">
             <sc-for each="{{ accLista }}" as="a">
-              <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; overflow:hidden">
+              <div data-fila="accion" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; overflow:hidden">
                 <button onClick="{{ a.alternar }}" aria-expanded="{{ a.abierta }}" style="width:100%; min-height:52px; display:flex; align-items:center; gap:10px; padding:10px 16px; border:none; background:transparent; font-family:inherit; text-align:left; cursor:pointer; color:#3E3F3F"><span style="flex:1; min-width:0; font-size:14px; font-weight:600; line-height:1.3">{{ a.titulo }}</span><span aria-hidden="true" style="font-size:12px; color:#6F6867">{{ a.flecha }}</span></button>
                 <sc-if value="{{ a.abierta }}" hint-placeholder-val="{{ false }}">
                   <div style="padding:0 16px 14px; display:flex; flex-direction:column; gap:12px">
@@ -2940,7 +2951,7 @@
     <div style="display:flex; flex-direction:column; gap:8px">
       <sc-for list="{{ tareasVisibles }}" as="t" hint-placeholder-count="5">
         <sc-if value="{{ t.haySep }}" hint-placeholder-val="{{ false }}"><div style="display:flex; align-items:baseline; gap:10px; margin:14px 2px 2px"><span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:19px; line-height:1.1; color:#3E3F3F">{{ t.sep }}</span><span style="font-size:11px; color:#6F6867; font-variant-numeric:tabular-nums">{{ t.sepN }}</span></div></sc-if>
-        <div style="position:relative; overflow:hidden; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:10px 14px 12px 12px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(62,63,63,.04)">
+        <div data-fila="tarea" style="position:relative; overflow:hidden; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; padding:10px 14px 12px 12px; display:flex; flex-direction:column; gap:10px; box-shadow:0 1px 2px rgba(62,63,63,.04)">
           <span aria-hidden="true" style="position:absolute; left:0; top:0; bottom:0; width:4px; background: {{ t.rail }}"></span>
           <div style="display:flex; align-items:flex-start; gap:8px">
             <button onClick="{{ t.toggle }}" aria-label="{{ t.checkAria }}" title="{{ t.checkAria }}" style="width:44px; height:44px; margin:-6px 0 -6px -4px; border:none; background:transparent; cursor:pointer; flex-shrink:0; display:grid; place-items:center; padding:0; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.92)">
@@ -3695,6 +3706,7 @@ class Component extends DCLogic {
   componentDidMount() {
     var self = this;
     this.ptrInit();
+    this.pildoras(); window.addEventListener("resize", function () { self.pildoras(); });
     /* Copias en el teléfono: sin sesión se borran todas; con sesión, las de otra persona y las vencidas. */
     this.copiasRevisar();
     /* Actividad: cualquier toque renueva la marca; al volver tras 30 min sin uso se regresa al bento. */
@@ -4130,7 +4142,7 @@ class Component extends DCLogic {
     if (k === "alma") { this.setMVistaV("resumen"); this.setState({ vista: "alma", menu: false }); if (!this.state.alma) this.almaCargar(); return; }
     this.setState({ vista: k, menu: false });
   }
-  componentDidUpdate(pp, ps, ancla) { this.fotoEscribir(); this.navSync(); this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
+  componentDidUpdate(pp, ps, ancla) { this.pildoras(); this.fotoEscribir(); this.navSync(); this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
     if (this.state.vista !== this._vistaG) { this._vistaG = this.state.vista; this.guardarUltima(); }
     if (this.state.vista === "hoy" || this.state.vista === "hub" || this.state.vista === "tareas" || this.state.vista === "accion") this.hoyCargar();
     if (this._tareasOk && this.state.tareas !== this._tareasGuardadas) { this._tareasGuardadas = this.state.tareas; this.tareasGuardar(); } }
@@ -4935,7 +4947,7 @@ class Component extends DCLogic {
       var numero = function () { return manual.style.display !== "none" ? manual.value.trim() : sel.value; };
       env.onclick = function () {
         var t = ta.value.trim(); if (!t) return; var wa = numero();
-        if (manual.style.display !== "none" && !wa) { nota.style.display = "block"; nota.textContent = "Escribe el número de WhatsApp."; return; }
+        if (manual.style.display !== "none" && !wa) { nota.style.display = "block"; nota.textContent = "Escribe el número de WhatsApp."; if (window.SAMov) SAMov.sacudir(manual); manual.focus(); return; }
         /* Como en las conversaciones: el mensaje aparece enviado al salir; si el servidor dice que no salió, vuelve al editor. */
         var m = { tipo: "host", canal: "whatsapp", texto: t, created: new Date().toISOString() }; o.msgs.push(m);
         var vacio = lista.querySelector("div[style*='margin:auto']"); if (vacio) vacio.remove();
@@ -5764,8 +5776,8 @@ class Component extends DCLogic {
     var self = this, st = this.state;
     var eE = document.getElementById("sa-login-email"), eP = document.getElementById("sa-login-pass");
     var email = ((eE && eE.value) || st.loginEmail || "").trim(), pass = (eP && eP.value) || st.loginPass || "";
-    if (!email || !pass) { this.setState({ loginError: "Nos falta tu correo y tu contraseña." }); return; }
-    if (st.needPass && pass.length < 6) { this.setState({ loginError: "La contraseña necesita al menos 6 caracteres." }); return; }
+    if (!email || !pass) { this.setState({ loginError: !email && !pass ? "Nos falta tu correo y tu contraseña." : !email ? "Nos falta tu correo." : "Nos falta tu contraseña." }); this.sacudirCampos([!email && "sa-login-email", !pass && "sa-login-pass"].filter(Boolean)); return; }
+    if (st.needPass && pass.length < 6) { this.setState({ loginError: "La contraseña necesita al menos 6 caracteres." }); this.sacudirCampos(["sa-login-pass"]); return; }
     this.setState({ busy: true, loginError: "" });
     var fallback = function (motivo) {
       if (!self.props.modoDemo) { self.setState({ busy: false, loginError: motivo }); return; }
@@ -5781,8 +5793,8 @@ class Component extends DCLogic {
       if (r && r.error === "inactive") { self.setState({ busy: false, loginError: "Tu acceso está desactivado. Escríbenos y lo revisamos." }); return; }
       /* Con modoDemo (revisión de diseño) entramos igual; en producción va apagado. */
       if (self.props.modoDemo) { fallback("Datos incorrectos. Revisa e intenta de nuevo."); return; }
-      /* Falla de login: nos quedamos aquí, nunca redirigimos. */
-      self.setState({ busy: false, loginError: "Datos incorrectos. Revisa e intenta de nuevo." });
+      /* Falla de login: nos quedamos aquí, nunca redirigimos. La contraseña se sacude. */
+      self.setState({ busy: false, loginError: "Datos incorrectos. Revisa e intenta de nuevo." }); self.sacudirCampos(["sa-login-pass"]);
     }).catch(function () { fallback("No pudimos conectar con el control de usuarios."); });
   }
   /* ═══ Entrar con Google o con Face ID (alternativas: la contraseña sigue igual) ═══
@@ -6157,10 +6169,40 @@ class Component extends DCLogic {
     var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.acciones) { this.frescoMarcar("acc", true); return; }
     ALMA.acciones().then(function (r) { self.frescoMarcar("acc", !!(r && r.ok)); if (r && r.ok) self.setState({ accSrv: { lista: r.acciones || [] } }); else self.forceUpdate(); }).catch(function () { self.frescoMarcar("acc", false); self.forceUpdate(); });
   }
-  accionHecha(id) {
+  accionHecha(id, fin) {
     var self = this;
-    this.setState(function (s) { return { accSrv: { lista: ((s.accSrv || {}).lista || []).filter(function (a) { return a.id !== id; }) } }; });
-    if (window.ALMA && ALMA.accionHecha) ALMA.accionHecha(id).catch(function () { self.accionesCargar(); });
+    this.setState(function (s) { return { accSrv: { lista: ((s.accSrv || {}).lista || []).filter(function (a) { return a.id !== id; }) } }; }, fin);
+    /* Se quita al instante; si el servidor no la acepta, vuelve a la lista y se dice (ds/movimiento.md: el movimiento nunca va solo). */
+    if (window.ALMA && ALMA.accionHecha) ALMA.accionHecha(id).catch(function () { self.aviso("No se pudo marcar. La acción volvió a la lista."); self.accionesCargar(); });
+  }
+  /* Nada salta (ds/movimiento.md, regla 6): la fila [data-fila] del botón tocado cierra su hueco y luego cambia el estado.
+     cambio(fin) hace el setState y llama fin al terminar: ahí la fila recupera su estilo, por si React reusa el nodo.
+     gap: el espacio del contenedor (flex gap), que también se cierra para que lo de abajo no brinque al final. */
+  quitarFila(e, cambio, gap) {
+    var el = e && e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest("[data-fila]") : null;
+    if (!el || !window.SAMov) { cambio(function () {}); return; }
+    var estilo = el.getAttribute("style") || "";
+    SAMov.quitar(el, function () { cambio(function () { el.classList.remove("sa-se-va"); el.setAttribute("style", estilo); }); });
+    if (gap && el.classList.contains("sa-se-va")) el.style.marginBottom = -gap + "px";
+  }
+  /* La píldora viaja (ds/movimiento.md, regla 5): en cada barra [data-pildora], el marcador va detrás de la pestaña elegida.
+     La primera vez se pone sin animar; después se desliza con el resorte. */
+  pildoras() {
+    if (!window.SAMov) return;
+    document.querySelectorAll("[data-pildora]").forEach(function (b) {
+      var on = b.querySelector('[role="tab"][aria-selected="true"]'), p = b.querySelector(".sa-pildora");
+      if (!on || !p || !on.offsetWidth) return;
+      var primera = !p.style.width;
+      if (primera) p.style.transition = "none";
+      SAMov.pildora(b, on);
+      if (primera) { void p.offsetWidth; p.style.transition = ""; }
+      if (b.getAttribute("data-pildora") !== "lista") b.setAttribute("data-pildora", "lista");
+    });
+  }
+  /* El no se ve antes de leerlo (ds/movimiento.md, regla 4): el campo se sacude y queda en rojo, con el texto del error, hasta que vuelvas a escribir. */
+  sacudirCampos(ids) {
+    if (!window.SAMov) return;
+    ids.forEach(function (id) { var el = document.getElementById(id); if (el) { SAMov.sacudir(el); el.setAttribute("aria-invalid", "true"); el.addEventListener("input", function f() { el.removeAttribute("aria-invalid"); el.removeEventListener("input", f); }); } });
   }
   mejHistCargar() {
     var self = this; if (!window.ALMA || !ALMA.hasApi() || !ALMA.mejoras) return;
@@ -8275,7 +8317,7 @@ class Component extends DCLogic {
 
       accHay: ((st.accSrv || {}).lista || []).length > 0, accN: ((st.accSrv || {}).lista || []).length, accAbierto: !!st.accAbierto && ((st.accSrv || {}).lista || []).length > 0,
       accToggle: function () { var ab = !st.accAbierto; self.setState({ accAbierto: ab, accExp: null }); if (ab) self.accionesCargar(); },
-      accLista: ((st.accSrv || {}).lista || []).map(function (a) { var ab = st.accExp === a.id; return { titulo: a.titulo, instruccion: a.instruccion || "Sin instrucciones.", enlace: a.enlace, hayEnlace: !!a.enlace, abierta: ab, flecha: ab ? "▲" : "▼", alternar: function () { self.setState({ accExp: ab ? null : a.id }); }, hecha: function () { self.accionHecha(a.id); } }; }),
+      accLista: ((st.accSrv || {}).lista || []).map(function (a) { var ab = st.accExp === a.id; return { titulo: a.titulo, instruccion: a.instruccion || "Sin instrucciones.", enlace: a.enlace, hayEnlace: !!a.enlace, abierta: ab, flecha: ab ? "▲" : "▼", alternar: function () { self.setState({ accExp: ab ? null : a.id }); }, hecha: function (e) { if (window.SAMov) SAMov.pop(e && e.currentTarget); self.quitarFila(e, function (fin) { self.accionHecha(a.id, fin); }, 8); } }; }),
       mejAbierto: st.mejAbierto, mejToggleAbierto: function () { var ab = !st.mejAbierto; self.setState({ mejAbierto: ab, ctrlAbierto: false, mejConf: null }); if (ab) self.mejHistCargar(); },
       versionNueva: st.versionNueva, recargarVersion: function () { if (!self.recargarSiSeguro(true)) location.replace(location.pathname + "?v=" + Date.now()); },
       resLineas: resLineas, resHay: !convCargando && resLineas.length > 0,
@@ -8670,14 +8712,14 @@ class Component extends DCLogic {
     var grupoDe = function (t) { return t.hecha ? "Hechas" : t.dias < 0 ? "Vencidas" : t.dias === 0 ? "Hoy" : t.dias === 1 ? "Mañana" : t.dias <= 7 ? "Esta semana" : "Más adelante"; };
     var nGrupo = {}; visibles.forEach(function (t) { var k = grupoDe(t); nGrupo[k] = (nGrupo[k] || 0) + 1; });
     var abiertasT = (st.tareas || []).filter(function (t) { return !t.hecha; }), vencT = abiertasT.filter(function (t) { return t.dias < 0; }).length, hoyT = abiertasT.filter(function (t) { return t.dias === 0; }).length;
-    var editarTarea = function (id, campo, val) {
+    var editarTarea = function (id, campo, val, fin) {
       /* TODO: PATCH /hub/tareas/:id — mismo contrato que TAREAS en Grow. */
       self.setState(function (s) {
         return { tareas: s.tareas.map(function (x) {
           if (x.id !== id) return x;
           var n = Object.assign({}, x); n[campo] = val; return n;
         }) };
-      });
+      }, fin);
     };
     var tareaVM = function (t) {
       var tarde = t.dias < 0, hoyv = t.dias === 0;
@@ -8742,12 +8784,19 @@ class Component extends DCLogic {
         comentarios: (t.comentarios || []).map(function (c) {
           return { iniciales: c.quien.slice(0, 2).toUpperCase(), texto: c.texto, meta: c.quien + " · hace " + c.hace };
         }),
-        toggle: function () { editarTarea(t.id, "hecha", !t.hecha); },
+        toggle: function (e) {
+          var b = e && e.currentTarget; if (window.SAMov && !t.hecha) SAMov.pop(b);
+          /* Con un filtro que esconde las hechas, la fila se va: su hueco se cierra suave (ds/movimiento.md, regla 6). */
+          if (!t.hecha && st.filtroTarea !== "Todas") { self.quitarFila(e, function (fin) { editarTarea(t.id, "hecha", true, fin); }, 8); return; }
+          editarTarea(t.id, "hecha", !t.hecha);
+        },
         abrir: function () { self.setState({ tareaAbierta: st.tareaAbierta === t.id ? null : t.id }); },
-        borrar: function () {
-          self.setState(function (s) {
-            return { tareaAbierta: null, tareas: s.tareas.filter(function (x) { return x.id !== t.id; }) };
-          });
+        borrar: function (e) {
+          self.quitarFila(e, function (fin) {
+            self.setState(function (s) {
+              return { tareaAbierta: null, tareas: s.tareas.filter(function (x) { return x.id !== t.id; }) };
+            }, fin);
+          }, 8);
         },
         comentar: function () {
           var txt = (self.state.comentarioTexto || "").trim();

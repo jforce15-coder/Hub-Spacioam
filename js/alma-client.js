@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, areas: 1, agentes: 1, dictar: 1, mejorarCampo: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, areas: 1, agentes: 1, dictar: 1, mejorarCampo: 1, adjunto: 1 };
   var SALEN = { responder: 1, responderWa: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
@@ -137,8 +137,10 @@
     setPropiedadDato: function (propiedad, campo, valor, meta) { return call('setPropiedadDato', { propiedad: propiedad, campo: campo, valor: valor, meta: meta || null }); },
     hilo: function (resId) { return call('hilo', { resId: resId }); },
     redactarHub: function (resId, texto, hilo) { return call('redactarHub', { resId: resId, texto: texto, hilo: hilo || [] }); },
-    responder: function (resId, texto, quien, canal) { return call('responder', { resId: resId, texto: texto, quien: quien || '', canal: canal || '' }); },
-    responderWa: function (resId, texto, quien, wa) { return call('responderWa', { resId: resId, texto: texto, quien: quien || '', wa: wa || '' }); },
+    responder: function (resId, texto, quien, canal, adj) { return call('responder', { resId: resId, texto: texto, quien: quien || '', canal: canal || '', adj: adj || [] }); },
+    responderWa: function (resId, texto, quien, wa, adj) { return call('responderWa', { resId: resId, texto: texto, quien: quien || '', wa: wa || '', adj: adj || [] }); },
+    /* El «+» del nuevo chat: sube una foto o un PDF para el huésped → { ok, id, nombre, mime, tipo } (adjuntos.js). */
+    adjunto: function (o) { return call('adjunto', { data: o.data, mime: o.mime, nombre: o.nombre || '' }); },
     waNumeros: function (resId) { return call('waNumeros', { resId: resId }); },
     limpiezas: function (codigo) { return call('limpiezas', { codigo: codigo }); },
     pasos: function (ids) { return call('pasos', { ids: ids }); },

@@ -1671,7 +1671,7 @@
     AL.ses = null;
     var pr; try { pr = cfg.alma.start(h); } catch (x) { pr = Promise.reject(x); }
     Promise.resolve(pr).then(function (s) {
-      if (!AL.on && !AL.min) { try { s && s.end && s.end(); } catch (x) {} return; }
+      if (!AL.on && !AL.min) { try { s && s.end && s.end(true); } catch (x) {} return; }
       AL.ses = s || null;
       if (s && AL.chat && s.chat) { try { s.chat(true); } catch (x) {} }
       if (s && AL.cola && s.sendText) { try { s.sendText(AL.cola); } catch (x) {} } AL.cola = null;

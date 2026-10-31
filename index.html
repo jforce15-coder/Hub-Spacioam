@@ -35,12 +35,13 @@
 <link rel="stylesheet" href="ds/movimiento.css">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-08b"></script>
+<script src="js/sa-nav.js?v=2026-11-09a"></script>
 <script src="js/alma-voz.js?v=2026-11-01a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-11-04a"></script>
+<script src="js/alma-client.js?v=2026-11-09a"></script>
+<script src="js/sa-compositor.js?v=2026-11-09a"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -216,7 +217,9 @@
     background:rgba(250,250,250,.58); -webkit-backdrop-filter:blur(26px) saturate(180%) brightness(1.06); backdrop-filter:blur(26px) saturate(180%) brightness(1.06);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 .5px rgba(62,63,63,.10), 0 18px 50px rgba(62,63,63,.16), 0 4px 14px rgba(62,63,63,.06);
     animation:sa-dock .7s cubic-bezier(.34,1.36,.64,1) .15s backwards; max-width:calc(100vw - 24px); box-sizing:border-box; }
-  body.san-docked [data-sa-dock-enviar]{ display:none !important; }   /* Alma encajada: 1 toque envía, no hace falta la flecha */
+  /* El nuevo chat (#304): con el cuadro enfocado, el encabezado de la conversación queda en lo mínimo (nombre y propiedad) */
+  .sa-head-min{ gap:0 !important; padding-top:6px !important; padding-bottom:6px !important; }
+  .sa-head-min [role=toolbar], .sa-head-min .sa-pasos, .sa-head-min .sa-head-av, .sa-head-min .sa-head-acc, .sa-head-min .sa-head-pill{ display:none !important; }
   @keyframes sa-dock{ from{ opacity:0; transform:translate(-50%,28px) scale(.94); } to{ opacity:1; transform:translate(-50%,0) scale(1); } }
   @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .app-dock{ background:rgba(250,250,250,.96); } }
   .app-lbl{ display:block; margin-top:6px; text-align:center; font-size:10.5px; font-weight:500; letter-spacing:.02em; line-height:1; color:#3E3F3F; transition:opacity .18s cubic-bezier(.22,.61,.36,1); }
@@ -1294,9 +1297,9 @@
         </sc-if>
         <sc-if value="{{ rv2Rs.hayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; line-height:1.5; color:#B54D36">{{ rv2Rs.error }}</span></sc-if>
         <sc-if value="{{ rv2Rs.hayBorrador }}" hint-placeholder-val="{{ false }}">
-          <textarea data-sync="1" data-v="{{ rv2Rs.borrador }}" defaultValue="{{ rv2Rs.borrador }}" onChange="{{ rv2RsSetTxt }}" rows="6" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.6; color:#3E3F3F; resize:vertical"></textarea>
+          <div data-campo="1" style="position:relative; display:flex; flex-direction:column; border-radius:14px"><textarea data-sync="1" data-v="{{ rv2Rs.borrador }}" defaultValue="{{ rv2Rs.borrador }}" onChange="{{ rv2RsSetTxt }}" rows="6" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.6; color:#3E3F3F; resize:vertical; padding-bottom:56px; width:100%; box-sizing:border-box"></textarea><div style="position:absolute; right:6px; bottom:6px; display:flex; align-items:center; gap:4px"><button type="button" data-sa-dock="1" onClick="{{ campoMejorar }}" data-etiqueta="Respuesta pública a la reseña" aria-label="Mejorar" title="Mejorar: Alma pule el texto, mismo idioma y tono" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, transform .1s" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></button><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div></div>
           <div style="display:flex; gap:8px; flex-wrap:wrap">
-            <input type="text" value="{{ rv2Rs.ajuste }}" onChange="{{ rv2RsSetAjuste }}" placeholder="Pídele un ajuste a ALMA…" autocomplete="off" style="flex:1 1 220px; height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 16px; font-family:inherit; font-size:13.5px; color:#3E3F3F">
+            <div data-campo="1" style="position:relative; flex:1 1 220px; min-width:0; display:flex; border-radius:999px"><input type="text" value="{{ rv2Rs.ajuste }}" onChange="{{ rv2RsSetAjuste }}" placeholder="Pídele un ajuste a ALMA…" autocomplete="off" style="flex:1; min-width:0; width:100%; height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 50px 0 16px; font-family:inherit; font-size:13.5px; color:#3E3F3F"><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="position:absolute; right:1px; top:1px; width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div>
             <button onClick="{{ rv2RsAjustar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid rgba(233,130,106,.55); background:rgba(233,130,106,.10); color:#3E3F3F">{{ rv2Rs.ajustarLabel }}</button>
           </div>
           <button onClick="{{ rv2RsPublicar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; background: {{ rv2Rs.pubBg }}; color:#FAFAFA">{{ rv2Rs.pubLabel }}</button>
@@ -1344,10 +1347,10 @@
             <sc-if value="{{ rv2Ap.hayMensaje }}" hint-placeholder-val="{{ false }}">
               <label style="display:flex; flex-direction:column; gap:6px">
                 <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Mensaje para soporte de Airbnb · inglés</span>
-                <textarea data-sync="1" data-v="{{ rv2Ap.mensaje }}" defaultValue="{{ rv2Ap.mensaje }}" onChange="{{ rv2ApSetMsg }}" rows="12" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:13.5px; line-height:1.6; color:#3E3F3F; resize:vertical"></textarea>
+                <div data-campo="1" style="position:relative; display:flex; flex-direction:column; border-radius:14px"><textarea data-sync="1" data-v="{{ rv2Ap.mensaje }}" defaultValue="{{ rv2Ap.mensaje }}" onChange="{{ rv2ApSetMsg }}" rows="12" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:13.5px; line-height:1.6; color:#3E3F3F; resize:vertical; padding-bottom:56px; width:100%; box-sizing:border-box"></textarea><div style="position:absolute; right:6px; bottom:6px; display:flex; align-items:center; gap:4px"><button type="button" data-sa-dock="1" onClick="{{ campoMejorar }}" data-etiqueta="Mensaje de apelación para soporte de Airbnb (en inglés)" aria-label="Mejorar" title="Mejorar: Alma pule el texto, mismo idioma y tono" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, transform .1s" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></button><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div></div>
               </label>
               <div style="display:flex; gap:8px; flex-wrap:wrap">
-                <input type="text" value="{{ rv2Ap.ajuste }}" onChange="{{ rv2ApSetAjuste }}" placeholder="Pídele un ajuste a ALMA…" autocomplete="off" style="flex:1 1 220px; height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 16px; font-family:inherit; font-size:13.5px; color:#3E3F3F">
+                <div data-campo="1" style="position:relative; flex:1 1 220px; min-width:0; display:flex; border-radius:999px"><input type="text" value="{{ rv2Ap.ajuste }}" onChange="{{ rv2ApSetAjuste }}" placeholder="Pídele un ajuste a ALMA…" autocomplete="off" style="flex:1; min-width:0; width:100%; height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 50px 0 16px; font-family:inherit; font-size:13.5px; color:#3E3F3F"><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="position:absolute; right:1px; top:1px; width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div>
                 <button onClick="{{ rv2ApAjustar }}" style="min-height:46px; padding:0 18px; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid rgba(233,130,106,.55); background:rgba(233,130,106,.10); color:#3E3F3F"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="14" hint-size="14px,14px"></x-import>{{ rv2Ap.ajustarLabel }}</button>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap">
@@ -1790,18 +1793,18 @@
             <sc-if value="{{ c.hayFrags }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; top:12px; right:14px; z-index:2; font-size:10.5px; font-weight:600; letter-spacing:.12em; border-radius:999px; padding:4px 9px; background:#3E3F3F; color:#FAFAFA; font-variant-numeric:tabular-nums">{{ c.fragPos }}</span></sc-if>
             <div data-alma-card="1" class="sa-conv-card" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; overflow:hidden; display:flex; flex-direction:column; height:100%; min-height:0; box-shadow:0 4px 16px rgba(62,63,63,.05)">
 
-              <div class="sa-conv-head" style="display:flex; flex-direction:column; gap:8px; padding:8px 12px 10px; border-bottom:none; box-shadow:0 1px 0 rgba(62,63,63,.06), 0 6px 12px -10px rgba(62,63,63,.18); position:relative; z-index:2; flex-shrink:0; background:#FFFFFF">
+              <div class="sa-conv-head {{ c.headClase }}" style="display:flex; flex-direction:column; gap:8px; padding:8px 12px 10px; border-bottom:none; box-shadow:0 1px 0 rgba(62,63,63,.06), 0 6px 12px -10px rgba(62,63,63,.18); position:relative; z-index:2; flex-shrink:0; background:#FFFFFF">
                 <div style="display:flex; align-items:center; gap:10px; min-width:0">
-                  <span style="width:36px; height:36px; margin:2px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 3.5px {{ c.color }}">{{ c.iniciales }}</span>
+                  <span class="sa-head-av" style="width:36px; height:36px; margin:2px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 3.5px {{ c.color }}">{{ c.iniciales }}</span>
                   <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
                     <div style="display:flex; align-items:center; gap:6px; min-width:0">
                       <span style="font-size:16px; font-weight:600; letter-spacing:-.01em; color:#3E3F3F; line-height:1.2; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ c.huesped }}</span>
-                      <span style="flex-shrink:0; font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; white-space:nowrap; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivelLabel }}</span>
-                      <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:2px 7px; white-space:nowrap; border:1px solid #E9826A; color:#B54D36; background:rgba(233,130,106,.12)">En cola</span></sc-if>
+                      <span class="sa-head-pill" style="flex-shrink:0; font-size:9px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; white-space:nowrap; background: {{ c.nivelBg }}; color: {{ c.nivelFg }}">{{ c.nivelLabel }}</span>
+                      <sc-if value="{{ c.esCola }}" hint-placeholder-val="{{ false }}"><span class="sa-head-pill" style="flex-shrink:0; font-size:9px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:2px 7px; white-space:nowrap; border:1px solid #E9826A; color:#B54D36; background:rgba(233,130,106,.12)">En cola</span></sc-if>
                     </div>
                     <div style="font-size:12px; letter-spacing:.01em; color:#6F6867; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"><span>{{ c.propiedad }}</span><sc-if value="{{ c.hayEstadia }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true"> · </span><span>{{ c.estadia }}</span></sc-if></div>
                   </div>
-                  <div style="display:flex; align-items:center; gap:6px; flex-shrink:0; padding-right: {{ c.fechaPad }}">
+                  <div class="sa-head-acc" style="display:flex; align-items:center; gap:6px; flex-shrink:0; padding-right: {{ c.fechaPad }}">
                     <button onClick="{{ c.toggleResuelta }}" data-k="resolver" title="Marcar resuelta (E)" style="display:inline-flex; align-items:center; gap:6px; min-height:34px; padding:0 11px; white-space:nowrap; border:1px solid {{ c.resBd }}; background: {{ c.resBg }}; color: {{ c.resFg }}; border-radius:999px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:background .18s, border-color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="14" color="currentColor" hint-size="14px,14px"></x-import><span class="sa-res-lbl">{{ c.resLabel }}</span></button>
                     <div style="position:relative">
                       <button onClick="{{ c.masToggle }}" aria-label="Más acciones" aria-haspopup="menu" aria-expanded="{{ c.masAria }}" title="Más acciones" style="width:34px; height:34px; border-radius:50%; border:1px solid #D8D4CE; background: {{ c.masBg }}; display:grid; place-items:center; cursor:pointer; color:#3E3F3F; transition:border-color .18s cubic-bezier(.22,.61,.36,1), background .18s cubic-bezier(.22,.61,.36,1)" style-hover="border-color:#3E3F3F" style-active="transform:scale(.94)"><span aria-hidden="true" style="display:flex; gap:3px"><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span><span style="width:4px; height:4px; border-radius:50%; background:#3E3F3F"></span></span></button>
@@ -2049,6 +2052,7 @@
                     </div>
                   </sc-if>
                   <div style="display:flex; align-items:flex-end; gap:6px; flex-shrink:0">
+                    <button onClick="{{ c.respMas }}" aria-label="Plantillas y más" title="Plantillas y más" style="width:40px; height:48px; flex-shrink:0; margin-right:-2px; border-radius:50%; border:none; background:transparent; color:#3E3F3F; display:grid; place-items:center; cursor:pointer; transition:background .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:#F5F3F0" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="plus" size="22" color="currentColor" hint-size="22px,22px"></x-import></button>
                     <div style="flex:1; min-width:0; display:flex; align-items:flex-end; min-height:48px; border-radius:24px; background:#FAFAFA; border:1px solid #D8D4CE; padding:0 4px; transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1)" data-composer="1">
                       <textarea ref="{{ c.respRef }}" readOnly="{{ c.respReadOnly }}" onInput="{{ c.setRespTexto }}" onKeyDown="{{ c.respKey }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Escribe un mensaje…" aria-label="Escribe tu respuesta" enterKeyHint="enter" autoCapitalize="sentences" autoCorrect="on" spellCheck="true" style="flex:1; min-width:0; border:none; background:transparent; padding:13px 12px; font-family:inherit; font-size:16px; line-height:22px; letter-spacing:0; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; height:48px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
                       <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
@@ -2056,6 +2060,9 @@
                       </sc-if>
                     </div>
                     <button data-sa-dock="1" onClick="{{ c.respMejorar }}" disabled="{{ c.respBusy }}" aria-label="{{ c.respMejorarLabel }}" title="{{ c.respHint }}" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import></button>
+                    <sc-if value="{{ c.respVacio }}" hint-placeholder-val="{{ true }}">
+                      <button onClick="{{ c.respMic }}" disabled="{{ c.respBusy }}" aria-label="Dictar: toca y habla" title="Dictar: toca y habla" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:none; background:#3E3F3F; color:#FAFAFA; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 16px rgba(62,63,63,.12); transition:filter .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(1.12)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="20" color="currentColor" hint-size="20px,20px"></x-import></button>
+                    </sc-if>
                     <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
                       <button data-sa-dock-enviar="1" onClick="{{ c.respEnviar }}" disabled="{{ c.respEnviando }}" aria-label="{{ c.respEnviarLabel }}" title="{{ c.respEnviarLabel }}" style="width:48px; height:48px; flex-shrink:0; border-radius:50%; border:none; background:#3E3F3F; color:#FAFAFA; display:grid; place-items:center; cursor:pointer; box-shadow:0 4px 16px rgba(62,63,63,.12); transition:filter .18s, transform .1s; opacity: {{ c.respEnviarOp }}; -webkit-tap-highlight-color:transparent" style-hover="filter:brightness(1.12)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="arrowRight" size="20" color="currentColor" hint-size="20px,20px"></x-import></button>
                     </sc-if>
@@ -2087,7 +2094,7 @@
                         <div style="display:flex; flex-direction:column; gap:8px">
                           <span style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Ajuste antes de enviar</span>
                           <div style="display:flex; gap:8px; flex-wrap:wrap">
-                            <input defaultValue="{{ c.ajuste }}" data-sync="1" data-v="{{ c.ajuste }}" onChange="{{ c.setAjuste }}" placeholder="Ej.: menciona que mañana a las 9 pasa Kevin" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
+                            <div data-campo="1" style="position:relative; flex:1 1 220px; min-width:0; display:flex; border-radius:10px"><input defaultValue="{{ c.ajuste }}" data-sync="1" data-v="{{ c.ajuste }}" onChange="{{ c.setAjuste }}" placeholder="Ej.: menciona que mañana a las 9 pasa Kevin" style="flex:1; min-width:0; width:100%; height:46px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:10px; background:#FAFAFA; padding:9px 50px 9px 11px; font-family:inherit; font-size:13px; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="position:absolute; right:1px; top:1px; width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div>
                             <button onClick="{{ c.aplicarAjuste }}" style="min-height:40px; border:1px solid #E9826A; border-radius:999px; background:rgba(233,130,106,.12); padding:9px 14px; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#3E3F3F; cursor:pointer" style-hover="background:rgba(233,130,106,.22)">{{ c.ajusteLabel }}</button>
                           </div>
                           <sc-if value="{{ c.hayPreview }}" hint-placeholder-val="{{ false }}">
@@ -2640,7 +2647,7 @@
         </select>
       </div>
       <div style="display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; position:relative">
-        <textarea defaultValue="{{ mejoraTexto }}" data-sync="1" data-v="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1 1 320px; min-width:0; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea>
+        <div data-campo="1" style="position:relative; flex:1 1 320px; min-width:0; display:flex; border-radius:16px"><textarea defaultValue="{{ mejoraTexto }}" data-sync="1" data-v="{{ mejoraTexto }}" onChange="{{ setMejoraTexto }}" rows="2" placeholder="Ej.: cuando pidan factura, pide NIT y razón social en el mismo mensaje" style="flex:1; min-width:0; width:100%; border:1px solid #D8D4CE; border-radius:16px; background:#FFFFFF; padding:14px 52px 14px 16px; font-family:inherit; font-size:15px; line-height:1.5; color:#3E3F3F; outline:none; resize:none; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)"></textarea><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="position:absolute; right:4px; bottom:4px; width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div>
         <button onClick="{{ prepararMejora }}" disabled="{{ mejoraBusy }}" style="flex:0 0 auto; align-self:stretch; border:none; border-radius:999px; background:#3E3F3F; padding:0 22px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#FAFAFA; cursor:pointer; min-height:52px; transition:filter .18s, transform .1s" style-hover="filter:brightness(.94)" style-active="transform:scale(.98)">{{ mejoraBtnLabel }}</button>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; position:relative">
@@ -3241,7 +3248,7 @@
         <sc-if value="{{ rvh.hayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#B54D36">{{ rvh.error }}</span></sc-if>
         <sc-if value="{{ rvh.redactando }}" hint-placeholder-val="{{ false }}"><div style="border-radius:14px; background:#F5F3F0; padding:14px; display:flex; flex-direction:column; gap:8px"><span style="font-size:12.5px; color:#6F6867">ALMA está preparando el review…</span><span style="height:10px; width:82%; border-radius:6px; background:#EAE6E0"></span><span style="height:10px; width:64%; border-radius:6px; background:#EAE6E0"></span></div></sc-if>
         <sc-if value="{{ rvh.hayTexto }}" hint-placeholder-val="{{ false }}">
-          <textarea data-sync="1" data-v="{{ rvh.texto }}" defaultValue="{{ rvh.texto }}" onChange="{{ rvhSetTxt }}" rows="6" aria-label="Review preparado por ALMA" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.6; color:#3E3F3F; resize:vertical"></textarea>
+          <div data-campo="1" style="position:relative; display:flex; flex-direction:column; border-radius:14px"><textarea data-sync="1" data-v="{{ rvh.texto }}" defaultValue="{{ rvh.texto }}" onChange="{{ rvhSetTxt }}" rows="6" aria-label="Review preparado por ALMA" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:12px 14px; font-family:inherit; font-size:14px; line-height:1.6; color:#3E3F3F; resize:vertical; padding-bottom:56px; width:100%; box-sizing:border-box"></textarea><div style="position:absolute; right:6px; bottom:6px; display:flex; align-items:center; gap:4px"><button type="button" data-sa-dock="1" onClick="{{ campoMejorar }}" data-etiqueta="Review del huésped para Airbnb" aria-label="Mejorar" title="Mejorar: Alma pule el texto, mismo idioma y tono" style="width:40px; height:40px; flex-shrink:0; border-radius:50%; border:1px solid #E9826A; background:rgba(233,130,106,.14); display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, transform .1s" style-hover="background:rgba(233,130,106,.26)" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="16" hint-size="16px,16px"></x-import></button><button type="button" onClick="{{ campoMic }}" aria-label="Dictar: toca y habla" title="Dictar" style="width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:transparent; color:#6F6867; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, color .18s, transform .1s" style-hover="background:#F5F3F0; color:#3E3F3F" style-active="transform:scale(.92)"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="mic" size="18" color="currentColor" hint-size="18px,18px"></x-import></button></div></div>
           <sc-if value="{{ rvh.enviadoOk }}" hint-placeholder-val="{{ false }}"><div style="display:flex; align-items:center; gap:8px; border-radius:14px; padding:10px 12px; background:rgba(61,107,82,.10); font-size:12.5px; color:#3d6b52; font-weight:500"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="check" size="16" color="#3d6b52" hint-size="16px,16px"></x-import>{{ rvh.enviadoTxt }}</div></sc-if>
           <sc-if value="{{ rvh.hayAviso }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px; color:#B54D36">{{ rvh.avisoTexto }}</span></sc-if>
           <sc-if value="{{ rvh.puedePublicar }}" hint-placeholder-val="{{ false }}">
@@ -4938,11 +4945,41 @@ class Component extends DCLogic {
       var numeros = [], sel = mk("select", "display:none; font-family:inherit; font-size:12px; padding:8px 10px; border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF; color:#3E3F3F");
       var manual = mk("input", "display:none; font-family:inherit; font-size:13px; padding:10px 12px; border:1px solid #D8D4CE; border-radius:12px; background:#FFFFFF");
       manual.placeholder = "Número de WhatsApp con código de país (ej. +502…)"; manual.inputMode = "tel";
-      var fila = mk("div", "display:flex; gap:8px; align-items:flex-end");
-      var ta = mk("textarea", "flex:1; min-height:44px; max-height:140px; resize:none; font-family:inherit; font-size:13.5px; line-height:1.45; padding:11px 14px; border:1px solid #D8D4CE; border-radius:18px; background:#FFFFFF; color:#3E3F3F; outline:none");
-      ta.placeholder = "Escribe por WhatsApp…"; ta.rows = 1;
-      ta.oninput = function () { ta.style.height = "auto"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; };
-      var env = mk("button", "width:44px; height:44px; flex-shrink:0; border-radius:50%; border:none; background:#E9826A; color:#FFFFFF; font-size:17px; cursor:pointer", "↑"); env.setAttribute("aria-label", "Enviar por WhatsApp");
+      /* El nuevo chat (#304): «+» · cuadro (hasta 5 líneas) · roca · micrófono (vacío) o enviar (con texto). Enter salta de línea. */
+      var fila = mk("div", "display:flex; gap:6px; align-items:flex-end");
+      var caja = mk("div", "flex:1; min-width:0; position:relative; display:flex; border-radius:24px");
+      var ta = mk("textarea", "flex:1; min-width:0; min-height:48px; max-height:126px; resize:none; overflow-y:hidden; font-family:inherit; font-size:16px; line-height:20px; padding:13px 14px; box-sizing:border-box; border:1px solid #D8D4CE; border-radius:24px; background:#FFFFFF; color:#3E3F3F; outline:none");
+      ta.placeholder = "Escribe por WhatsApp…"; ta.rows = 1; ta.setAttribute("enterkeyhint", "enter"); ta.setAttribute("aria-label", "Mensaje por WhatsApp");
+      var botonRedondo = function (css, html, etiqueta) { var b = mk("button", "width:44px; height:44px; flex-shrink:0; border-radius:50%; display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s, transform .1s; " + css); b.type = "button"; b.innerHTML = html; b.setAttribute("aria-label", etiqueta); b.title = etiqueta; return b; };
+      var C = window.SAComp && SAComp.SVG || {};
+      var masB = botonRedondo("border:none; background:transparent; color:#3E3F3F", C.mas || "+", "Plantillas");
+      /* La roca: data-sa-dock="2" hace que sa-nav encaje aquí la roca oficial (gana sobre la conversación de atrás). Encajada,
+         1 toque hace clic en este botón (Mejorar) y 2 toques hablan con Alma (lo hace sa-nav). El hint «Mejorar» lo pone sa-nav. */
+      var roca = botonRedondo("width:48px; height:48px; border:1px solid #E9826A; background:rgba(233,130,106,.14)", '<svg width="18" height="18" viewBox="0 0 24 24" fill="#E9826A" aria-hidden="true"><path d="M12 2.5c.7 4.7 2.8 6.8 7.5 7.5-4.7.7-6.8 2.8-7.5 7.5-.7-4.7-2.8-6.8-7.5-7.5 4.7-.7 6.8-2.8 7.5-7.5z"/></svg>', "Alma");
+      roca.setAttribute("data-sa-dock", "2");
+      var mic = botonRedondo("width:48px; height:48px; border:none; background:#3E3F3F; color:#FAFAFA", C.mic || "🎙", "Dictar: toca y habla");
+      var env = botonRedondo("width:48px; height:48px; border:none; background:#3E3F3F; color:#FAFAFA; display:none", '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>', "Enviar por WhatsApp");
+      /* Crece hasta 5 líneas y luego hace scroll por dentro; con texto, el micrófono se cambia por enviar y aparece «Mejorar». */
+      ta.oninput = function () {
+        ta.style.height = "48px"; var h = Math.min(126, ta.scrollHeight + 2); ta.style.height = h + "px"; ta.style.overflowY = ta.scrollHeight + 2 > 126 ? "auto" : "hidden";
+        var lleno = !!ta.value.trim(); mic.style.display = lleno ? "none" : "grid"; env.style.display = lleno ? "grid" : "none"; roca.setAttribute("aria-label", lleno ? "Mejorar" : "Alma"); roca.title = lleno ? "Mejorar" : "Alma";
+      };
+      var ponerTa = function (t) { ta.value = t; ta.oninput(); try { ta.focus(); ta.setSelectionRange(t.length, t.length); } catch (x) {} };
+      masB.onclick = function () { if (window.SAComp) SAComp.mas({ ancla: masB, texto: function () { return ta.value; }, poner: ponerTa }); };
+      mic.onclick = function () { if (!window.SAComp) { nota.style.display = "block"; nota.textContent = "Aquí no puedo grabar; escríbelo."; return; } SAComp.dictar({ caja: caja, onTexto: function (t) { var p = ta.value.replace(/\s+$/, ""); ponerTa(p ? p + " " + t : t); } }); };
+      /* 1 toque (o clic sin la roca encajada): mejora el texto con ALMA.mejorarTexto. */
+      var mejorando = false;
+      var mejorar = function () {
+        var t = ta.value.trim(); if (!t || mejorando) { if (window.SAMov) SAMov.sacudir(roca); return; }
+        if (!(window.ALMA && ALMA.mejorarTexto)) return;
+        mejorando = true; roca.style.opacity = ".5"; ta.readOnly = true; var antes = ta.value;
+        ALMA.mejorarTexto(t, { pagina: "Hub · WhatsApp con " + (o.huesped || "el huésped"), etiqueta: "Mensaje por WhatsApp para el huésped" }).then(function (r) {
+          mejorando = false; roca.style.opacity = "1"; ta.readOnly = false;
+          if (r && r.ok && r.texto && ta.value === antes) ponerTa(r.texto);
+          else if (!(r && r.ok)) { nota.style.display = "block"; nota.textContent = (r && r.error) || "No pude mejorarlo ahora."; }
+        }, function () { mejorando = false; roca.style.opacity = "1"; ta.readOnly = false; nota.style.display = "block"; nota.textContent = "Sin conexión. Tu texto sigue aquí."; });
+      };
+      roca.onclick = mejorar;
       var nota = mk("span", "display:none; font-size:11px; line-height:1.5; color:#6F6867");
       var numero = function () { return manual.style.display !== "none" ? manual.value.trim() : sel.value; };
       env.onclick = function () {
@@ -4971,8 +5008,8 @@ class Component extends DCLogic {
           ALMA.hilo(o.resId).then(function (h) { if (h && h.ok) self.guardarHilo(o.resId, h.hilo); });
         }, function () { quitar("Sin conexión. Tu texto volvió al editor."); });
       };
-      ta.onkeydown = function (e) { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) env.onclick(); };
-      fila.appendChild(ta); fila.appendChild(env);
+      caja.appendChild(ta);
+      fila.appendChild(masB); fila.appendChild(caja); fila.appendChild(roca); fila.appendChild(mic); fila.appendChild(env);
       pie.appendChild(sel); pie.appendChild(manual); pie.appendChild(fila); pie.appendChild(nota);
       ALMA.waNumeros(o.resId).then(function (r) {
         numeros = (r && r.numeros) || [];
@@ -5266,6 +5303,38 @@ class Component extends DCLogic {
     });
   }
   abrirBurbuja(info) { this.setState({ razon: info, rzAnot: "", rzProp: null, rzNota: "", rzBusy: false }); }
+  /* El nuevo chat (#304) en los formularios de texto largo: micrófono que dicta y «Mejorar» (la roca pequeña).
+     El botón vive dentro de una caja [data-campo] junto a su campo; el texto entra como si se escribiera, así el onChange
+     del campo (React) se entera y el estado queda igual que al teclear. data-etiqueta dice a Alma qué cuadro es. */
+  campoDe(e) {
+    var b = e && e.currentTarget, caja = b && b.closest && b.closest("[data-campo]");
+    return caja ? { caja: caja, el: caja.querySelector("textarea, input"), btn: b } : null;
+  }
+  campoPoner(el, v) {
+    var proto = el.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, "value").set.call(el, v);
+    el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true }));
+    try { el.focus(); el.setSelectionRange(v.length, v.length); } catch (x) {}
+  }
+  campoMic(e) {
+    var self = this, c = this.campoDe(e); if (!(c && c.el)) return;
+    if (!window.SAComp) { this.aviso("Aquí no puedo grabar; escríbelo."); return; }
+    SAComp.dictar({ caja: c.caja, onTexto: function (t) { var p = String(c.el.value || "").replace(/\s+$/, ""); self.campoPoner(c.el, p ? p + " " + t : t); } });
+  }
+  campoMejorar(e) {
+    var self = this, c = this.campoDe(e); if (!(c && c.el)) return;
+    var t = String(c.el.value || "").trim(), b = c.btn;
+    if (!t) { this.aviso("Escribe algo primero y te lo mejoro."); return; }
+    if (b._mejorando || !(window.ALMA && ALMA.mejorarTexto)) return;
+    b._mejorando = true; b.style.opacity = ".5"; c.el.readOnly = true; var antes = c.el.value;
+    var listo = function () { b._mejorando = false; b.style.opacity = ""; c.el.readOnly = false; };
+    ALMA.mejorarTexto(t, { pagina: "Hub", etiqueta: b.getAttribute("data-etiqueta") || "Texto" }).then(function (r) {
+      listo();
+      if (r && r.ok && r.texto && c.el.value === antes) self.campoPoner(c.el, r.texto);
+      else if (r && r.ok && r.decir) self.aviso(r.decir);
+      else if (!(r && r.ok)) self.aviso((r && r.error) || "No pude mejorarlo ahora.");
+    }, function () { listo(); self.aviso("Sin conexión. Tu texto sigue igual."); });
+  }
   aviso(t) { var self = this; clearTimeout(this._toastT); this.setState({ toast: "" }, function () { self.setState({ toast: t }); }); this._toastT = setTimeout(function () { self.setState({ toast: "" }); }, 2200); }
   /* Red de seguridad de formato: un bloque largo se parte en párrafos de 2–3 frases. */
   formatoMsg(t) {
@@ -5329,7 +5398,7 @@ class Component extends DCLogic {
     clearTimeout(this._borrT);
     this._borrT = setTimeout(function () { try { var k = self.copiaClave("sa_borradores"); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), b: self._borr || o })); } catch (e) {} }, 400);
   }
-  /* Crece como WhatsApp: hasta ~7 líneas (40% de la pantalla en teléfono) y luego hace scroll por dentro.
+  /* Crece como WhatsApp: hasta 5 líneas y luego hace scroll por dentro.
      Solo vuelve a medir desde cero cuando el texto se acorta; al escribir basta comparar scrollHeight. Se agrupa por frame. */
   altoResp(el, filasMax) {
     if (!el) return;
@@ -5338,7 +5407,7 @@ class Component extends DCLogic {
     el._altoRaf = requestAnimationFrame(function () {
       el._altoRaf = 0;
       var ancho = window.matchMedia && matchMedia("(min-width:1180px)").matches;
-      var filas = filasMax || (ancho ? 8 : 7), max = Math.min(22 * filas + 26, Math.round(window.innerHeight * (ancho ? 0.45 : 0.4)));
+      var filas = Math.min(filasMax || 5, 5), max = Math.min(22 * filas + 26, Math.round(window.innerHeight * (ancho ? 0.45 : 0.4)));   // como WhatsApp: hasta 5 líneas
       var len = el.value.length, prev = el._altoLen || 0; el._altoLen = len;
       if (len < prev || !el.style.height) el.style.height = "48px";
       var h = Math.max(48, Math.min(el.scrollHeight, max));
@@ -6797,13 +6866,27 @@ class Component extends DCLogic {
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target, (self.state.convResp[convKey] || {}).alma ? 10 : 0); self.guardarBorrador(convKey, v); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
         respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !llenoV || !!rs.enviando,
         respLleno: !!llenoV, respVacio: !llenoV, respEnviando: !!rs.enviando, respEnviarOp: rs.enviando ? ".5" : "1",
-        /* Escritorio: Enter envía, Shift+Enter salta línea. Teléfono: Enter es salto de línea, como WhatsApp. */
-        respKey: function (e) {
-          if (e.key === "Escape") { e.currentTarget.blur(); return; }
-          if (e.key !== "Enter" || e.shiftKey || e.altKey || e.isComposing) return;
-          var mod = e.metaKey || e.ctrlKey;
-          if (!mod && !(window.matchMedia && matchMedia("(min-width:1180px) and (hover:hover)").matches)) return;
-          e.preventDefault(); enviar(self._respDraft[convKey] || "");
+        /* El nuevo chat (#304): Enter siempre salta de línea; solo se envía con el botón (como WhatsApp en el teléfono). */
+        respKey: function (e) { if (e.key === "Escape") e.currentTarget.blur(); },
+        /* Con el cuadro enfocado, el encabezado queda en lo mínimo para ver más historial. */
+        headClase: rs.foco ? "sa-head-min" : "",
+        /* El micrófono: la onda va donde va el texto; ✓ lo pasa a texto y queda en el cuadro para revisarlo. */
+        respMic: function (e) {
+          var caja = null; for (var p = e && e.currentTarget; p && p !== document.body && !caja; p = p.parentElement) caja = p.querySelector("[data-composer]");
+          if (!(window.SAComp && caja)) { self.aviso("Aquí no puedo grabar; escríbelo."); return; }
+          SAComp.dictar({ caja: caja, onTexto: function (t) {
+            var prev = String(self._respDraft[convKey] || "").replace(/\s+$/, ""), nuevo = prev ? prev + " " + t : t;
+            ponerTexto(nuevo); self.guardarBorrador(convKey, nuevo);
+            setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(nuevo.length, nuevo.length); } catch (x) {} } }, 60);
+          } });
+        },
+        /* El «+»: mis plantillas (tocar una la pone en el cuadro, no la envía) y guardar el texto actual como plantilla. */
+        respMas: function (e) {
+          if (!window.SAComp) return;
+          SAComp.mas({ ancla: e && e.currentTarget, texto: function () { return self._respDraft[convKey] || ""; }, poner: function (t) {
+            ponerTexto(t); self.guardarBorrador(convKey, t);
+            setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(t.length, t.length); } catch (x) {} } }, 60);
+          } });
         },
         respMejorarLabel: rs.busy ? "Redactando…" : llenoV ? "Mejorar" : "Redactar con ALMA",
         respHint: llenoV ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
@@ -8861,6 +8944,8 @@ class Component extends DCLogic {
 
     return Object.assign(this.almaVals(), this._hv || this.hoyVals(), this.rv2Vals(), {
       /* vistas */
+      /* El nuevo chat (#304) en formularios: dictar y mejorar el campo de su caja [data-campo] */
+      campoMic: function (e) { self.campoMic(e); }, campoMejorar: function (e) { self.campoMejorar(e); },
       enCargando: st.vista === "cargando",
       enHoy: st.vista === "hoy",
       enCuenta: st.vista === "cuenta",

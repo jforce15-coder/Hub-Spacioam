@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, areas: 1, agentes: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, areas: 1, agentes: 1, dictar: 1, mejorarCampo: 1 };
   var SALEN = { responder: 1, responderWa: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
@@ -158,6 +158,11 @@
     reporteLlamadas: function (b) { return call('reporteLlamadas', b || {}); },
     pendienteResponder: function (id, texto) { return call('pendienteResponder', { id: id, texto: texto }); },
     pendienteNota: function (o) { return call('pendienteNota', { audio: o.audio, mime: o.mime }); },
+    /* El nuevo chat (js/sa-compositor.js): el micrófono dicta al cuadro y las plantillas personales del «+». */
+    dictar: function (o) { return call('dictar', { audio: o.audio, mime: o.mime }); },
+    plantillas: function (o) { return call('plantillas', o || {}); },
+    /* Mejorar cualquier texto (la roca del nuevo chat y los formularios): devuelve { ok, texto }. Es la misma acción del navegador de la app (campo.js). */
+    mejorarTexto: function (texto, donde) { donde = donde || {}; return call('mejorarCampo', { texto: texto, pagina: donde.pagina || '', etiqueta: donde.etiqueta || '', url: donde.url || '' }); },
     opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
     opLista: function (email) { return call('opLista', { email: email }); }
   };

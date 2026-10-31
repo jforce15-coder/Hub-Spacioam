@@ -863,9 +863,13 @@ function correoLeer_(q) {
   try { hilos = GmailApp.search(q + ' newer_than:30d', 0, 5); } catch (e) { return { error: 'No pude buscar en el correo: ' + String(e).slice(0, 150) }; }
   var pal = q.split(' ').filter(function (w) { return w.length > 2; }).slice(0, 6);
   if (!hilos.length && pal.length > 1) { try { hilos = GmailApp.search('{' + pal.join(' ') + '} newer_than:30d', 0, 5); } catch (e) {} }
-  if (!hilos.length) return { error: 'No encuentro ese correo en la bandeja del Hub (' + cuenta + '). Dile a Juan que lo reenvíe a hola@spacioam.com o que conecte esa cuenta en Tus correos.' };
+  if (!hilos.length) {   // también en archivados, spam y papelera, y solo por el código o la palabra más rara
+    var largo = pal.slice().sort(function (a, b) { return b.length - a.length; })[0] || q;
+    try { hilos = GmailApp.search('in:anywhere ' + largo + ' newer_than:30d', 0, 5); } catch (e) {}
+  }
+  if (!hilos.length) return { error: 'No encuentro ese correo en la bandeja del Hub, que es la cuenta ' + cuenta + ' (busqué «' + q + '» en los últimos 30 días, también en archivo y spam). Dile a Juan exactamente esto: que lo que llega a hola@spacioam.com no está entrando a ' + cuenta + ', y que lo reenvíe a ' + cuenta + ' o te mande una captura del correo por WhatsApp (ya puedes leer capturas).' };
   var ms = hilos[0].getMessages(), m = ms[ms.length - 1];
   var txt = String(m.getPlainBody() || '').replace(/\r/g, '').replace(/<https?:[^>\s]+>/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  return { ok: true, de: m.getFrom(), asunto: m.getSubject(), fecha: Utilities.formatDate(m.getDate(), CFG.TZ, 'yyyy-MM-dd HH:mm'), texto: txt.slice(0, 3200),
+  return { ok: true, cuenta: cuenta, de: m.getFrom(), asunto: m.getSubject(), fecha: Utilities.formatDate(m.getDate(), CFG.TZ, 'yyyy-MM-dd HH:mm'), texto: txt.slice(0, 3200),
     recortado: txt.length > 3200, otros: hilos.slice(1).map(function (h) { return h.getFirstMessageSubject(); }) };
 }

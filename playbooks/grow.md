@@ -15,6 +15,7 @@ Juan y el equipo de crecimiento.
 3. Arregla en un PR.
 
 ## Reglas
+- Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
 - Las etapas usan las mismas palabras que el agente Crecimiento.
 - (Las reglas que Juan agrega por medio de Alma llegan en el pedido: pásalas aquí en el mismo PR.)
 

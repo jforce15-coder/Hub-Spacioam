@@ -68,6 +68,15 @@
   .fines { display: grid; gap: 8px; }
   .vacio { margin: 60px 0; text-align: center; font: 400 24px/1.3 Valky, Georgia, serif; color: var(--suave); }
   .vacio p { font: 500 14px Montserrat, sans-serif; margin: 12px 0 0; }
+  .esq { display: grid; gap: 14px; margin-top: 34px; }
+  .esq i { display: block; height: 14px; border-radius: 8px; background: linear-gradient(90deg, #EFEBE6 0%, #F7F4F1 50%, #EFEBE6 100%); background-size: 200% 100%; animation: esq 1.6s ease-in-out infinite; }
+  .esq .e1 { width: 34%; height: 10px; } .esq .e2 { width: 78%; height: 46px; } .esq .e3 { width: 92%; } .esq .c { width: 60%; }
+  .esq .eg { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 22px 18px; margin-top: 30px; } .esq .eg i { height: 58px; }
+  @keyframes esq { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  .armando { margin-top: 22px; display: grid; gap: 10px; text-align: left; max-width: 420px; margin-inline: auto; }
+  .armando .pb { height: 8px; border-radius: 4px; background: var(--arena); overflow: hidden; } .armando .pb i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--durazno); transition: width .9s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  .armando span { font: 500 13px Montserrat, sans-serif; color: var(--suave); }
+  @media (prefers-reduced-motion: reduce) { .esq i { animation: none; } }
   .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--tinta); color: var(--crema); padding: 10px 16px; border-radius: 999px;
     font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); }
   .msg.on { opacity: 1; }
@@ -82,7 +91,8 @@
     <div class="t">Mejora de llamadas</div>
     <select id="semana" aria-label="Semana" hidden></select>
   </div>
-  <div id="cuerpo"><div class="vacio">Cargando el reporte…</div></div>
+  <!-- la forma antes que el contenido (ds/velocidad.md): la portada y las cifras en gris mientras llega el reporte -->
+  <div id="cuerpo"><div class="esq" aria-label="Cargando el reporte"><i class="e1"></i><i class="e2"></i><i class="e3"></i><i class="e3 c"></i><div class="eg"><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
 </main>
 <div class="msg" id="msg"></div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
@@ -112,8 +122,19 @@
     if (!R || !R.reporte) {
       var v = el("div", "vacio", "Todavía no hay reportes."); v.appendChild(el("p", "", "El equipo de Mejora de llamadas arma el primero el lunes a primera hora."));
       var b = el("button", "", "Armarlo ahora"); b.style.cssText = "margin-top:18px;border:0;cursor:pointer;padding:12px 18px;border-radius:999px;font:600 11px Montserrat,sans-serif;letter-spacing:.1em;text-transform:uppercase;background:#3E3F3F;color:#FAF8F6";
-      /* tarda uno o dos minutos: la página vuelve a mirar sola aunque la petición se corte antes */
-      b.onclick = function () { b.disabled = true; b.textContent = "Armándolo… vuelve en 2 minutos"; var listo = function () { cargar(); }; ALMA.agentes({ correr: "mejora_llamadas" }).then(listo, function () {}); setTimeout(listo, 100000); };
+      /* tarda uno o dos minutos (nivel 3): barra que arranca lento y termina rápido, y el trabajo real a la vista
+         (ds/velocidad.md, reglas 4 y 6). La página vuelve a mirar sola aunque la petición se corte antes. */
+      b.onclick = function () {
+        b.hidden = true;
+        var ar = el("div", "armando"), pb = el("div", "pb"), bi = el("i"), tx = el("span", "", "Leyendo las llamadas de la semana en ElevenLabs…"); pb.appendChild(bi); ar.appendChild(pb); ar.appendChild(tx); v.appendChild(ar);
+        var PASOS = [[0, "Leyendo las llamadas de la semana en ElevenLabs…"], [25, "Leyendo cada llamada turno por turno: silencios y relleno…"], [55, "Juntando el chat con Alma y el modo conferencia…"], [75, "Comparando con la semana anterior…"], [88, "El equipo está escribiendo sus propuestas…"]];
+        var t0 = Date.now(), DUR = 100000, fin = false;
+        var paso = function () { if (fin) return; var x = Math.min(1, (Date.now() - t0) / DUR), pct = Math.round(92 * Math.pow(x, 1.8));   // lento al empezar, más rápido al final
+          bi.style.width = pct + "%"; PASOS.forEach(function (p) { if (pct >= p[0]) tx.textContent = p[1]; }); if (x < 1) setTimeout(paso, 900); };
+        paso();
+        var listo = function () { if (fin) return; fin = true; bi.style.width = "100%"; tx.textContent = "Listo."; setTimeout(function () { cargar(); }, 600); };
+        ALMA.agentes({ correr: "mejora_llamadas" }).then(listo, function () {}); setTimeout(listo, DUR + 5000);
+      };
       v.appendChild(b); C.appendChild(v); return;
     }
     var rep = R.reporte, D = rep.datos || {}, V = D.voz || {}, P = (D.previa || {}), PV = P.voz || {}, T = V.total_muestra || {}, PT = PV.total_muestra || {};

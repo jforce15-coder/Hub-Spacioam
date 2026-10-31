@@ -1,4 +1,4 @@
-/* ═══ EL CEREBRO DE ALMA (issue #291 · T1–T4) ═══════════════════════════════════════════════════════════════════
+/* ═══ EL CEREBRO DE ALMA (issue #291 · T1–T6) ═══════════════════════════════════════════════════════════════════
    Un índice común para que Alma encuentre rápido y con prueba. Cada fuente se lee, se etiqueta, se corta en pedazos
    y se guarda en BigQuery (alma_cerebro.pedazos) con su huella de significado (embeddings de Gemini). Alma busca por
    significado y por palabras exactas a la vez, se queda con los 8 mejores y responde citando de dónde lo sacó.
@@ -6,7 +6,8 @@
        pregunta queda en Pendientes para el responsable (o, con un huésped, «lo confirmo con el equipo»).
      · Quién puede ver qué lo decide el CÓDIGO (la columna audiencia, filtrada dentro del SQL), nunca la IA: la
        audiencia sale de quién habla (audienciaDe_), no de lo que diga el modelo.
-     · Fuentes, en orden: propiedades (ficha + memoria) y playbooks. Después (T5): conversaciones, correos y Drive.
+     · Fuentes, en orden: propiedades (ficha + memoria) y playbooks; después (T5, cerebro_fuentes.js) conversaciones,
+       correos y las carpetas de Drive que Juan elige. La prueba semanal (T6) vive en cerebro_prueba.js.
 
    PERMISOS: BigQuery se usa por REST con una CUENTA DE SERVICIO (JWT firmado aquí con Utilities), no con el servicio
    avanzado. Así appsscript.json no cambia, no hay permisos nuevos que Juan tenga que autorizar y la web app no se cae.
@@ -396,6 +397,7 @@ function cerValidar_(doc, nombres) {
     if (!areaOk(p.area)) return 'Área no aprobada: ' + p.area;
     if (p.propiedad && nombres.indexOf(p.propiedad) < 0) return 'Propiedad que no está en PropiedadesInfo: ' + p.propiedad;
     if (!p.audiencia || !p.audiencia.length || p.audiencia.some(function (a) { return CER_AUDIENCIAS_.indexOf(a) < 0; })) return 'Audiencia no aprobada: ' + JSON.stringify(p.audiencia);
+    if ((p.fuente === 'conversacion' || p.fuente === 'correo') && p.audiencia.some(function (a) { return CER_INTERNO_.indexOf(a) < 0; })) return 'Una conversación o un correo solo puede ser interno (principal y equipo).';
     if (p.audiencia.indexOf('externo') >= 0 && cerPareceSecreto_(p.texto, doc.secretos)) return 'Un pedazo para huéspedes parece tener un código o una clave (' + p.titulo + ').';
     if (!String(p.texto || '').trim()) return 'Pedazo vacío.';
   }
@@ -422,10 +424,23 @@ function cerCatalogo_(ctx) {
   completo.propiedad = ctx.nombres.length > 0;
   try { cerPlaybooksLista_().forEach(function (pb) { docs.push({ id: 'playbook:' + pb.nombre, fuente: 'playbook', ref: pb.nombre, sha: pb.sha, url: pb.url }); }); completo.playbook = true; }
   catch (e) { console.error('cerebro · lista de playbooks: ' + e); }
+  /* T5 · conversaciones, correos y Drive (cerebro_fuentes.js). Cada una por su lado: si una falla, las demás siguen. */
+  try { cerConvCatalogo_(ctx).forEach(function (d) { docs.push(d); }); completo.conversacion = true; } catch (e) { console.error('cerebro · conversaciones: ' + e); }
+  try { cerCorreoCatalogo_(ctx).forEach(function (d) { docs.push(d); }); completo.correo = true; } catch (e) { console.error('cerebro · correos: ' + e); }
+  try { var dr = cerDriveCatalogo_(ctx, ctx.t0 || Date.now()); dr.docs.forEach(function (d) { docs.push(d); }); completo.drive = dr.completo; } catch (e) { console.error('cerebro · Drive: ' + e); }
   docs.sort(function (a, b) { return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; });
   return { docs: docs, completo: completo };
 }
-function cerLeerDoc_(d, ctx, hashPrevio) { return d.fuente === 'propiedad' ? cerDocPropiedad_(d.ref, ctx) : d.fuente === 'playbook' ? cerDocPlaybook_(d, hashPrevio) : null; }
+function cerLeerDoc_(d, ctx, hashPrevio) {
+  switch (d.fuente) {
+    case 'propiedad': return cerDocPropiedad_(d.ref, ctx);
+    case 'playbook': return cerDocPlaybook_(d, hashPrevio);
+    case 'conversacion': return cerDocConversacion_(d, ctx);
+    case 'correo': return cerDocCorreo_(d, ctx);
+    case 'drive': return cerDocDrive_(d, ctx, hashPrevio);
+  }
+  return null;
+}
 
 /* El activador (sin «_»: Apps Script no deja que un activador llame a una función privada). */
 function cerebroSincronizar() { return cerebroSincronizar_(); }
@@ -448,7 +463,8 @@ function cerTanda_(c, t0) {
   var est = null; try { est = JSON.parse(P.getProperty('CER_PASADA') || 'null'); } catch (e) {}
   est = est || { cursor: 0, inicio: new Date(t0).toISOString(), cambiados: 0, pedazos: 0, borrados: 0, cuarentena: 0, tandas: 0 };
   est.tandas++;
-  var ctx = cerCtx_(), cat = cerCatalogo_(ctx), docs = cat.docs, previos = {};
+  var ctx = cerCtx_(); ctx.t0 = t0;
+  var cat = cerCatalogo_(ctx), docs = cat.docs, previos = {};
   cerConsulta_(c, 'SELECT doc_id, ARRAY_AGG(hash ORDER BY actualizado DESC LIMIT 1)[OFFSET(0)] AS hash FROM ' + cerTablaSql_(c) + ' GROUP BY doc_id', [], { cache: false })
     .forEach(function (f) { previos[f.doc_id] = f.hash; });
   if (est.cursor === 0) {   // al empezar la pasada: lo que ya no existe se borra (solo de fuentes que se leyeron completas)
@@ -460,7 +476,10 @@ function cerTanda_(c, t0) {
       borrar.forEach(function (id) { try { cerCuarentena_(id, '', '', null); } catch (e) {} });
     }
   }
-  var version = 'v' + t0.toString(36), filas = [], cambiados = [], ahora = Utilities.formatDate(new Date(t0), 'UTC', 'yyyy-MM-dd HH:mm:ss') + ' UTC', i = est.cursor;
+  /* Se sigue por el id del último documento hecho (no por posición): si entra una conversación nueva, nada se salta. */
+  var i = est.cursor;
+  if (est.ultimo_id) { i = 0; while (i < docs.length && docs[i].id <= est.ultimo_id) i++; }
+  var version = 'v' + t0.toString(36), filas = [], cambiados = [], ahora = Utilities.formatDate(new Date(t0), 'UTC', 'yyyy-MM-dd HH:mm:ss') + ' UTC';
   var vaciar = function () {
     if (!cambiados.length) return;
     if (filas.length) { var emb = cerEmbeddings_(c, filas.map(function (f) { return f.texto; }), 'RETRIEVAL_DOCUMENT'); filas.forEach(function (f, k) { f.embedding = emb[k]; }); }
@@ -489,11 +508,11 @@ function cerTanda_(c, t0) {
   vaciar();
   if (i >= docs.length) {
     P.deleteProperty('CER_PASADA');
-    est.fin = new Date().toISOString(); est.docs = docs.length; delete est.cursor;
+    est.fin = new Date().toISOString(); est.docs = docs.length; delete est.cursor; delete est.ultimo_id;
     P.setProperty('CER_ULTIMA', JSON.stringify(est));
     return { ok: true, terminada: true, pasada: est };
   }
-  est.cursor = i; P.setProperty('CER_PASADA', JSON.stringify(est));
+  est.cursor = i; est.ultimo_id = i > 0 ? docs[i - 1].id : ''; P.setProperty('CER_PASADA', JSON.stringify(est));
   return { ok: true, terminada: false, van: i, de: docs.length };
 }
 
@@ -551,15 +570,19 @@ function cerParamsBuscar_(audiencia, filtros, vector, terminos) {
     cerParam_('vector', vector || [], 'FLOAT64'), cerParam_('terminos', terminos || [], 'STRING')];
 }
 /* ¿Es prueba? Cerca en significado o con la mayoría de las palabras de la pregunta. Ajustable: CER_DISTANCIA_MAX. */
-function cerEsPrueba_(f, nTerminos) {
-  var dmax = Number(PropertiesService.getScriptProperties().getProperty('CER_DISTANCIA_MAX')) || 0.35;
+function cerUmbral_() { return Number(PropertiesService.getScriptProperties().getProperty('CER_DISTANCIA_MAX')) || 0.35; }
+function cerEsPrueba_(f, nTerminos, umbral) {
+  var dmax = umbral != null ? umbral : cerUmbral_();
   var minAc = !nTerminos ? Infinity : nTerminos <= 2 ? nTerminos : Math.max(2, Math.ceil(nTerminos * 0.6));
   return (f.distancia != null && f.distancia <= dmax) || f.aciertos >= minAc;
 }
 
 /* cerebroBuscar_(pregunta, audiencia, filtros) → { ok, sin_prueba, pedazos: [{ titulo, ruta, fuente, texto }], area_cercana, ms }.
-   audiencia: principal | equipo | asociado | externo (la decide quien llama, desde quién habla). filtros: { fuente, propiedad, area }. */
-function cerebroBuscar_(pregunta, audiencia, filtros) {
+   audiencia: principal | equipo | asociado | externo (la decide quien llama, desde quién habla). filtros: { fuente, propiedad, area }.
+   o.detalle (solo la prueba del cerebro): cada pedazo trae además doc_id, audiencia, distancia y aciertos, y vienen
+   «crudas» (los 8 del SQL ya filtrados por audiencia) y «fugas_sql» (los que el SQL dejó pasar y paró la segunda llave). */
+function cerebroBuscar_(pregunta, audiencia, filtros, o) {
+  o = o || {};
   var c = cerConfig_(); if (!c || !c.gemini) return { ok: false, apagado: true, pedazos: [] };
   audiencia = CER_AUDIENCIAS_.indexOf(audiencia) >= 0 ? audiencia : 'externo';   // lo desconocido se trata como lo más cerrado
   filtros = filtros || {};
@@ -578,14 +601,19 @@ function cerebroBuscar_(pregunta, audiencia, filtros) {
     return { ok: false, error: String(e.message || e).slice(0, 200), pedazos: [] };
   }
   /* Segunda llave (además del WHERE del SQL): nada sale si su audiencia no incluye a quien pregunta. */
+  var nSql = filas.length;
   filas = filas.filter(function (f) { return (f.audiencia || []).indexOf(audiencia) >= 0; });
   var vistos = {}, pedazos = filas.filter(function (f) { return cerEsPrueba_(f, terminos.length); }).filter(function (f) { var k = cerHash_(f.texto); return !vistos[k] && (vistos[k] = 1); })
-    .map(function (f) { return { titulo: f.titulo, ruta: f.ruta, fuente: f.fuente, texto: f.texto }; });
+    .map(function (f) { var p = { titulo: f.titulo, ruta: f.ruta, fuente: f.fuente, texto: f.texto };
+      if (o.detalle) { p.doc_id = f.doc_id; p.audiencia = f.audiencia; p.distancia = f.distancia; p.aciertos = f.aciertos; } return p; });
   var ms = Date.now() - t0;
   try { registrarUso_({ app: 'ALMA', funcion: 'Cerebro · búsqueda', detalle: audiencia + ' · ' + pedazos.length + ' pedazos' + (pedazos.length ? '' : ' · sin prueba'), modelo: cerModelo_(), usage: { input_tokens: tokens }, usd: tokens * 0.15 / 1e6, ms: ms, ok: true }); } catch (e) {}
   /* El área del pedazo más cercano (si de verdad se parece) dice quién es el responsable cuando no hay prueba. */
   var cerca = filas.filter(function (f) { return f.aciertos >= 2 || (f.distancia != null && f.distancia <= 0.45); })[0];
-  return { ok: true, sin_prueba: !pedazos.length, pedazos: pedazos, area_cercana: cerca ? cerca.area : '', ms: ms };
+  var out = { ok: true, sin_prueba: !pedazos.length, pedazos: pedazos, area_cercana: cerca ? cerca.area : '', ms: ms };
+  if (o.detalle) { out.terminos = terminos.length; out.fugas_sql = nSql - filas.length;
+    out.crudas = filas.map(function (f) { return { doc_id: f.doc_id, titulo: f.titulo, fuente: f.fuente, distancia: f.distancia, aciertos: f.aciertos }; }); }
+  return out;
 }
 
 /* «Sin prueba» con alguien interno: la pregunta queda en Pendientes del responsable (el administrador principal), una vez cada 6 h. */
@@ -595,7 +623,7 @@ function cerPendienteSinPrueba_(pregunta, area, quien) {
   var jefe = adminsOp_().filter(function (a) { return a.principal; })[0]; if (!jefe) return null;
   var proyecto = CER_AREA_NOMBRE_[area] || 'Operaciones';
   var fila = pendCrear_(jefe, { tipo: 'atencion', area: 'proposito', proyecto: proyecto, importancia: 2, titulo: 'Sin respuesta en nuestros documentos: ' + String(pregunta).slice(0, 70),
-    resumen: (quien ? quien + ' preguntó' : 'Preguntaron') + ' y Alma no encontró prueba en las fichas ni en los playbooks. Respóndela o agrega el dato donde corresponde.' },
+    resumen: (quien ? quien + ' preguntó' : 'Preguntaron') + ' y Alma no encontró prueba en nuestros documentos (fichas, playbooks, conversaciones, correos ni Drive). Respóndela o agrega el dato donde corresponde.' },
     { origen: 'cerebro', detalle: 'Pregunta: ' + String(pregunta).slice(0, 1500) + (quien ? '\nQuién: ' + quien : ''), push: false });
   try { cache.put(k, '1', 21600); } catch (e) {}
   return fila ? { id: fila.id, para: jefe.nombre || 'Juan', proyecto: proyecto } : null;
@@ -605,10 +633,10 @@ function cerPendienteSinPrueba_(pregunta, area, quien) {
    el modelo solo puede ANGOSTAR la búsqueda (propiedad, fuente), nunca ampliar lo que se ve. */
 function cerebroHerramientas_(T, s) {
   if (!cerebroActivo_()) return [];
-  return [T('buscar_en_cerebro', 'Busca en el cerebro de Alma (fichas y memoria de las propiedades, y los playbooks de cada trabajo) y devuelve los pedazos que lo prueban, con su fuente. ' +
+  return [T('buscar_en_cerebro', 'Busca en el cerebro de Alma (fichas y memoria de las propiedades, playbooks de cada trabajo, conversaciones, correos y documentos de Drive) y devuelve los pedazos que lo prueban, con su fuente. ' +
     'Úsala ANTES de responder una pregunta sobre una propiedad o sobre cómo se hace algo. Responde solo con lo que devuelva y di de dónde lo sacaste. Si devuelve sin_prueba, dilo así y no inventes. ' +
     'Para códigos de acceso sigue usando codigo_acceso.',
-    { pregunta: s('La pregunta, con sus palabras'), propiedad: s('Opcional: la propiedad, si la pregunta es de una'), fuente: { type: 'string', enum: ['propiedad', 'playbook'], description: 'Opcional: buscar solo en fichas o solo en playbooks' } }, ['pregunta'])];
+    { pregunta: s('La pregunta, con sus palabras'), propiedad: s('Opcional: la propiedad, si la pregunta es de una'), fuente: { type: 'string', enum: CER_FUENTES_, description: 'Opcional: buscar solo en una fuente (fichas, playbooks, conversaciones, correos o Drive)' } }, ['pregunta'])];
 }
 function cerebroHerramienta_(adm, inp) {
   var aud = 'externo'; try { aud = audienciaDe_({ adm: adm }); } catch (e) {}
@@ -644,12 +672,14 @@ function cerebroAccion_(ses, body) {
   var que = String(body.que || 'estado');
   if (que === 'buscar') return cerebroBuscar_(body.pregunta, CER_AUDIENCIAS_.indexOf(body.audiencia) >= 0 ? body.audiencia : 'principal', body.filtros || {});   // prueba: no crea pendientes
   if (que === 'sincronizar') return cerebroSincronizar_();
+  if (que === 'probar') return cerebroProbar_({ origen: 'hub' });
   return cerebroEstado_();
 }
 function cerebroEstado_() {
   var P = PropertiesService.getScriptProperties(), c = cerConfig_(), leer = function (k) { try { return JSON.parse(P.getProperty(k) || 'null'); } catch (e) { return null; } };
   var out = { ok: true, activo: !!(c && c.gemini), falta: [!P.getProperty('BQ_PROYECTO') && 'BQ_PROYECTO', !c && P.getProperty('BQ_CUENTA') && 'BQ_CUENTA (no es una llave JSON válida)', !P.getProperty('BQ_CUENTA') && 'BQ_CUENTA', !P.getProperty('GEMINI_KEY') && 'GEMINI_KEY'].filter(Boolean),
-    ultima: leer('CER_ULTIMA'), en_curso: leer('CER_PASADA'), cuarentena: [], pedazos: [] };
+    ultima: leer('CER_ULTIMA'), en_curso: leer('CER_PASADA'), cuarentena: [], pedazos: [],
+    fuentes: cerFuentesLista_(), areas: CER_AREAS_TRABAJO_, prueba: leer('CER_PRUEBA_ULTIMA'), umbral: cerUmbral_(), umbral_sugerido: Number(P.getProperty('CER_UMBRAL_SUGERIDO')) || null };
   try { var sh = ssAlma_().getSheetByName('ALMA_CEREBRO_CUARENTENA'); if (sh && sh.getLastRow() >= 2) out.cuarentena = sh.getRange(2, 1, sh.getLastRow() - 1, CER_CUAR_CAB_.length).getValues().map(function (r) { var o = {}; CER_CUAR_CAB_.forEach(function (k, i) { o[k] = String(r[i]); }); return o; }); } catch (e) {}
   if (!out.activo) return out;
   try { out.activador = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'cerebroSincronizar'; }); } catch (e) {}

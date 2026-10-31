@@ -38,6 +38,16 @@
   button:disabled { opacity: .5; }
   .fila { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
   .msg { margin-top: 12px; font-size: 13.5px; min-height: 1em; } .msg.mal { color: #B54D36; } .msg.bien { color: #3d6b52; }
+  select { width: 100%; font: inherit; font-size: 16px; padding: 13px 15px; border: 1px solid #E4DFDA; border-radius: 14px; background: #FDFCFB; color: inherit; }
+  h3 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 20px; margin: 26px 0 4px; padding-top: 18px; border-top: 1px solid #F0EBE6; }
+  .nota { font-size: 13.5px; color: #6F6867; }
+  .carpetas { list-style: none; padding: 0; margin: 0 0 6px; }
+  .carpetas li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #F3EFEA; margin: 0; }
+  .carpetas li span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; } .carpetas li small { display: block; color: #938B8A; font-size: 12px; }
+  .carpetas button { padding: 12px 14px; min-height: 44px; }
+  .metricas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 4px; }
+  .metricas div { background: #FAF8F6; border-radius: 14px; padding: 10px 12px; font-size: 12px; color: #6F6867; } .metricas b { display: block; font-size: 20px; color: #3E3F3F; font-weight: 600; }
+  .metricas .mal b { color: #B54D36; }
 </style>
 </head>
 <body>
@@ -87,6 +97,22 @@
     <div class="fila"><button type="button" id="b-bq">Guardar</button><button type="button" class="peach" id="b-bq-cargar" hidden>Cargar ahora</button></div>
     <div class="msg" id="m-bq"></div>
     <div class="msg" id="m-cerebro"></div>
+    <div id="cer-extra" hidden>
+      <h3>Carpetas de Drive</h3>
+      <p class="nota">Alma solo lee las carpetas que pongas aquí, con sus subcarpetas: Docs, Sheets, texto, PDF y Word. Lo que parezca un DPI, un pasaporte o un contrato no entra.</p>
+      <ul class="carpetas" id="cer-carpetas"></ul>
+      <label for="cer-enlace">Enlace de la carpeta</label><input id="cer-enlace" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://drive.google.com/drive/folders/…">
+      <label for="cer-area">Área</label><select id="cer-area"></select>
+      <label for="cer-aud">Quién la puede ver</label>
+      <select id="cer-aud"><option value="equipo">Tú y el equipo</option><option value="principal">Solo tú</option><option value="asociado">También los socios</option><option value="externo">También los huéspedes</option></select>
+      <div class="fila"><button type="button" id="b-cer-agregar">Agregar carpeta</button></div>
+      <div class="msg" id="m-fuentes"></div>
+      <h3>Prueba del cerebro</h3>
+      <p class="nota">Cada lunes Alma se hace unas preguntas con respuesta conocida y mide qué tan bien encuentra. Las filtraciones tienen que ser 0.</p>
+      <div class="metricas" id="cer-metricas" hidden></div>
+      <div class="msg" id="m-prueba"></div>
+      <div class="fila"><button type="button" class="sec" id="b-cer-probar">Probar ahora</button><button type="button" class="peach" id="b-cer-umbral" hidden>Usar umbral sugerido</button></div>
+    </div>
   </section>
 
   <section id="s-claude">
@@ -117,7 +143,7 @@
     pill('e-github', r.github, 'Conectado', 'Sin llave');
     var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
     if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
-    $('b-bq-cargar').hidden = !(bq.proyecto && bq.cuenta); cerebroPintar(r.cerebro);
+    $('b-bq-cargar').hidden = !(bq.proyecto && bq.cuenta); $('cer-extra').hidden = !(bq.proyecto && bq.cuenta); cerebroPintar(r.cerebro);
     var sp = r.spotify || {}; $('redir').value = sp.redirect || '';
     pill('e-spotify', sp.conectado, 'Conectado', sp.credenciales ? 'Falta conectar' : 'Sin conectar');
     $('b-sp-conectar').textContent = sp.conectado ? 'Volver a conectar' : 'Conectar Spotify';
@@ -155,9 +181,57 @@
       (c.en_curso ? ' Hay una carga a medias; sigue sola cada 15 min.' : '') + (c.cuarentena && c.cuarentena.length ? ' En cuarentena: ' + c.cuarentena.length + '.' : '') +
       (u.error ? ' Último error: ' + u.error : '') + (c.activador === false ? ' (Aún sin activador: «Cargar ahora» lo instala.)' : '');
     msg('m-cerebro', t, u.error ? 'mal' : (p ? 'bien' : ''));
+    fuentesPintar(c); pruebaPintar(c);
   }
+  /* Fuentes del cerebro: las carpetas de Drive que eligió Juan. */
+  var AREAS = { operaciones: 'Operaciones', huespedes: 'Huéspedes', finanzas: 'Finanzas', crecimiento: 'Crecimiento', marketing: 'Marketing', mantenimiento: 'Mantenimiento',
+    desarrollo: 'Desarrollo', archivo: 'Archivo', correos: 'Correos', mejora: 'Mejora continua', alma: 'Alma', negocio: 'Negocio' };
+  var QUIEN = { equipo: 'tú y el equipo', principal: 'solo tú', asociado: 'también socios', externo: 'también huéspedes' };
+  function fuentesPintar(c) {
+    var sel = $('cer-area');
+    if (!sel.options.length) (c.areas || Object.keys(AREAS)).forEach(function (a) { var o = document.createElement('option'); o.value = a; o.textContent = AREAS[a] || a; sel.appendChild(o); });
+    var ul = $('cer-carpetas'); ul.textContent = '';
+    (c.fuentes || []).forEach(function (f) {
+      var li = document.createElement('li'), sp = document.createElement('span'), sm = document.createElement('small'), b = document.createElement('button');
+      sp.textContent = f.nombre || f.id; sm.textContent = (AREAS[f.area] || f.area) + ' · ' + (QUIEN[f.audiencia] || f.audiencia) + (f.activa ? '' : ' · apagada'); sp.appendChild(sm);
+      b.type = 'button'; b.className = 'sec'; b.textContent = 'Quitar'; b.setAttribute('data-a', 'quitar'); b.setAttribute('data-id', f.id);
+      li.appendChild(sp); li.appendChild(b); ul.appendChild(li);
+    });
+    if (!(c.fuentes || []).length) { var li = document.createElement('li'); li.textContent = 'Todavía no hay carpetas.'; li.className = 'nota'; ul.appendChild(li); }
+  }
+  function pruebaPintar(c) {
+    var u = c.prueba, box = $('cer-metricas'); box.textContent = ''; box.hidden = !u;
+    var sug = c.umbral_sugerido, ok = sug && Math.abs(sug - (c.umbral || 0)) > 0.001;
+    $('b-cer-umbral').hidden = !ok; if (ok) $('b-cer-umbral').textContent = 'Usar umbral sugerido (' + sug + ')';
+    if (!u) return msg('m-prueba', 'Todavía no hay prueba: toca «Probar ahora».');
+    var m = u.metricas || {}, uno = function (n, x, mal) { var d = document.createElement('div'), b = document.createElement('b'); if (mal) d.className = 'mal';
+      b.textContent = typeof x === 'number' ? String(x) : (x && x.de ? x.aciertos + '/' + x.de : '—'); d.appendChild(b); d.appendChild(document.createTextNode(n)); box.appendChild(d); };
+    uno('Página correcta', m.pagina_correcta); uno('Respaldado', m.respaldado); uno('Rechazo correcto', m.rechazo_correcto); uno('Filtraciones', m.filtraciones || 0, m.filtraciones > 0);
+    msg('m-prueba', 'Última prueba: ' + new Date(u.fecha).toLocaleString('es') + ' · ' + u.preguntas + ' preguntas. Umbral: ' + c.umbral + (sug ? ' · sugerido: ' + sug + (u.con_sugerido ? ' (con él: página ' + u.con_sugerido.pagina_correcta + ', rechazo ' + u.con_sugerido.rechazo_correcto + ')' : '') : '') + '.',
+      m.filtraciones > 0 ? 'mal' : '');
+  }
+  $('b-cer-agregar').onclick = function () {
+    var e = $('cer-enlace').value.trim(); if (!/drive\.google\.com|^[\w-]{10,}$/.test(e)) return msg('m-fuentes', 'Pega el enlace de la carpeta de Drive.', 'mal');
+    msg('m-fuentes', 'Revisando que el Hub pueda abrirla…');
+    llamar({ cerebroFuente: { enlace: e, area: $('cer-area').value, audiencia: $('cer-aud').value } }).then(function (r) { pintar(r); var f = r && r.fuente;
+      if (f && f.ok) { $('cer-enlace').value = ''; msg('m-fuentes', 'Agregada: ' + f.nombre + '. Entra al cerebro en la próxima carga (cada 15 min).', 'bien'); } else msg('m-fuentes', (f && f.error) || (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  $('cer-carpetas').onclick = function (ev) {
+    var b = ev.target && ev.target.closest && ev.target.closest('[data-a="quitar"]'); if (!b) return;
+    b.disabled = true; msg('m-fuentes', 'Quitando…');
+    llamar({ cerebroFuente: { quitar: b.getAttribute('data-id') } }).then(function (r) { pintar(r); var f = r && r.fuente;
+      msg('m-fuentes', f && f.ok ? 'Quitada. Sus pedazos salen en la próxima carga.' : (f && f.error) || (r && r.error) || 'No se pudo.', f && f.ok ? 'bien' : 'mal'); });
+  };
+  $('b-cer-probar').onclick = function () {
+    var b = this; b.disabled = true; msg('m-prueba', 'Probando… Alma se hace unas 15 preguntas (tarda menos de un minuto).');
+    llamar({ cerebro: 'probar' }).then(function (r) { b.disabled = false; pintar(r); if (r && r.prueba && r.prueba.ok === false) msg('m-prueba', 'No se pudo probar: ' + (r.prueba.error || ''), 'mal'); });
+  };
+  $('b-cer-umbral').onclick = function () {
+    msg('m-prueba', 'Cambiando el umbral…');
+    llamar({ cerebro: 'umbral' }).then(function (r) { pintar(r); if (r && r.umbral && r.umbral.ok) msg('m-prueba', 'Listo: el umbral ahora es ' + r.umbral.umbral + '.', 'bien'); else msg('m-prueba', (r && r.umbral && r.umbral.error) || 'No se pudo.', 'mal'); });
+  };
   $('b-bq-cargar').onclick = function () {
-    msg('m-cerebro', 'Cargando… puede tardar unos minutos (lee fichas y playbooks y los indexa).');
+    msg('m-cerebro', 'Cargando… puede tardar unos minutos (lee fichas, playbooks, conversaciones, correos y tus carpetas de Drive, y los indexa).');
     llamar({ cerebro: 'cargar' }).then(function (r) { pintar(r); if (r && r.carga && r.carga.ok === false) msg('m-cerebro', 'No se pudo cargar: ' + (r.carga.error || ''), 'mal'); });
   };
   /* BigQuery: el archivo se lee aquí y va directo al Hub; nunca se muestra ni se guarda en el teléfono. */

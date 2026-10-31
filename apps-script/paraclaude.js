@@ -104,7 +104,14 @@ function conexiones_(ses, b) {
   if (canje) out.canje = canje;
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {
-    try { if (b.cerebro === 'cargar') { cerebroAsegurarActivador_(); out.carga = cerebroSincronizar_(); } out.cerebro = cerebroEstado_(); } catch (e) { out.cerebro = { ok: false, error: String(e.message || e).slice(0, 200) }; }
+    try {
+      if (b.cerebro === 'cargar') { cerebroAsegurarActivador_(); out.carga = cerebroSincronizar_(); }
+      if (b.cerebro === 'probar') out.prueba = cerebroProbar_({ origen: 'conexiones' });           // la prueba del cerebro (cerebro_prueba.js)
+      if (b.cerebro === 'umbral') out.umbral = cerUsarUmbralSugerido_();                          // solo cuando Juan lo toca
+      /* Fuentes del cerebro: agregar o quitar una carpeta de Drive por su enlace (cerebro_fuentes.js) */
+      if (b.cerebroFuente) out.fuente = b.cerebroFuente.quitar ? cerFuenteQuitar_(b.cerebroFuente.quitar) : cerFuenteAgregar_(b.cerebroFuente);
+      out.cerebro = cerebroEstado_();
+    } catch (e) { out.cerebro = { ok: false, error: String(e.message || e).slice(0, 200) }; }
   }
   if (b.conectar === 'spotify') { var a = spotifyAutorizar_(); if (!a.ok) return a; out.url = a.url; }
   return out;

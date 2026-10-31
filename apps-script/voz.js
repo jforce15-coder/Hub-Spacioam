@@ -999,7 +999,7 @@ function vozWebFicha_(adm, nom) {
   } catch (e) {}
   return t;
 }
-var VOZ_CONFERENCIA_TRAS_ = 180;   // segundos; pendiente de calibrar con los datos de las llamadas
+var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pasa del 50 % y cada palabra útil cuesta el triple (27 llamadas, 24–31 oct 2026)
 
 function vozWebInicio_(ses, ligero, app) {
   var adm = vozWebAdmin_(ses);

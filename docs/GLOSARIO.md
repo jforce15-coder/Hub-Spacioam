@@ -50,3 +50,4 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Reserva / código de reserva** | La estadía de un huésped y su identificador de Hospitable. | booking, ID |
 | **Equipo** | Las personas que trabajan en Spacio AM (limpieza, mantenimiento, administración). | staff, personal |
 | **Asociado** | Socio o propietario: se le habla en nombre de la empresa. | partner |
+| **Copia en el teléfono** | Lo que el Hub guarda en el teléfono para pintar rápido Hoy, ALMA, las reviews y las conversaciones (nombres de huéspedes y fechas, sí; documentos, no). Una por persona, vence a las 24 h, se borra al cerrar sesión, y mientras se ve la pantalla dice «actualizando…». | caché, datos offline |

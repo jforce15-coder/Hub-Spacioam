@@ -21,6 +21,7 @@ Principio del design system de Spacio AM (ver `readme.md` → Principios). Viene
   - Nivel 2 (10–60 s): reglas 2, 3 y 6.
   - Nivel 3 (>60 s): reglas 4 y 6, y la tarea se manda a segundo plano con aviso al terminar.
 - **Honestidad:** la regla 1 solo vale donde casi nunca falla y se puede deshacer, y si falla se dice. La regla 6 muestra trabajo real, no números de adorno.
+- **Esqueleto listo para usar:** `ds/esqueleto.css` (clase `sa-esq` con líneas, títulos, tarjetas y burbujas). Las otras apps lo cargan desde `https://hub.spacioam.com/ds/esqueleto.css`.
 - **Movimiento:** `--ease`, `--d-med` y `--d-slow` (`tokens/motion.css`). El brillo del esqueleto se apaga con `prefers-reduced-motion`.
 - **Prohibido:** pantallas en blanco, «Cargando…» sin forma, rueditas sin contexto y estados vacíos («Todo al día», «Sin notificaciones») antes de que lleguen los datos.
 

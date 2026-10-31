@@ -206,6 +206,7 @@
   #gsi { display: flex; justify-content: center; min-height: 44px; }
   #gsi[hidden] { display: none; }
 </style>
+<link rel="stylesheet" href="../ds/esqueleto.css">
 </head>
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
@@ -430,7 +431,7 @@
   function abrirLink(u, nat) { if (nat && NATIVA) { nativa({ accion: nat }); return; } if (u) location.href = u; }
   function areasPintar() {
     var c = $("a-cuerpo"); c.innerHTML = ""; $("a-atras").hidden = !AR.area;
-    if (!AR.datos) { c.appendChild(el("div", "vacio", "Cargando tus áreas…")); return; }
+    if (!AR.datos) { var sq = el("div", "sa-esq dos"); sq.setAttribute("aria-label", "Cargando tus áreas"); for (var q = 0; q < 6; q++) sq.appendChild(el("i", "g")); c.appendChild(sq); return; }   // la forma antes que el contenido (ds/velocidad.md)
     if (!AR.area) {
       $("a-tit").textContent = "Tu vida"; $("a-sub").textContent = "Seis áreas";
       var g = el("div", "rejilla");

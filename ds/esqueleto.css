@@ -1,0 +1,18 @@
+/* Spacio AM — Esqueleto (ds/velocidad.md, regla 2: la forma antes que el contenido).
+   Mientras llegan los datos, la forma de lo que viene en gris con un brillo suave; nunca «Cargando…» suelto.
+   Uso: <div class="sa-esq" aria-label="Cargando …"><i class="t"></i><i></i><i class="c"></i></div>
+   Piezas: (nada) línea · .t título · .corta línea corta · .c tarjeta · .g tarjeta grande · .b burbuja · .b.yo burbuja propia.
+   .sa-esq.dos pone las tarjetas en dos columnas. Otras apps: https://hub.spacioam.com/ds/esqueleto.css */
+.sa-esq { display: grid; gap: 12px; }
+.sa-esq.dos { grid-template-columns: 1fr 1fr; }
+.sa-esq i { display: block; height: 14px; border-radius: 8px;
+  background: linear-gradient(90deg, #EFEBE6 0%, #F7F4F1 50%, #EFEBE6 100%); background-size: 200% 100%;
+  animation: sa-esq 1.6s ease-in-out infinite; }
+.sa-esq .t { width: 58%; height: 26px; }
+.sa-esq .corta { width: 40%; }
+.sa-esq .c { height: 76px; border-radius: 18px; }
+.sa-esq .g { height: 132px; border-radius: 26px; }
+.sa-esq .b { width: 62%; height: 40px; border-radius: 16px; }
+.sa-esq .b.yo { justify-self: end; width: 46%; }
+@keyframes sa-esq { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .sa-esq i { animation: none; } }

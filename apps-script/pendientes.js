@@ -78,7 +78,7 @@ function pendClasificar_(pedido, respuesta, fallo) {
   var usr = 'PEDIDO: ' + String(pedido || '(aviso de Alma)').slice(0, 1500) + '\n\nRESULTADO: ' + String(respuesta || '').slice(0, 3500) + (fallo ? '\n\nOJO, FALLÓ: ' + fallo : '');
   var j = null;
   try { var t = String(claude_(CFG.MODELO_CLASIFICADOR, 600, sys, usr, 0) || ''), m = /\{[\s\S]*\}/.exec(t); j = m ? JSON.parse(m[0]) : null; } catch (e) { console.error('pendClasificar_: ' + e); }
-  j = j || { tipo: fallo ? 'atencion' : 'aviso', area: 'proposito', proyecto: '', titulo: String(pedido || respuesta).slice(0, 40), resumen: String(respuesta).replace(/\s+/g, ' ').slice(0, 160), aviso: '', importancia: 2 };
+  j = j || { tipo: fallo ? 'atencion' : 'aviso', area: 'proposito', proyecto: '', titulo: tituloCorto_(pedido || respuesta, 70), resumen: String(respuesta).replace(/\s+/g, ' ').slice(0, 160), aviso: '', importancia: 2 };
   if (j.tipo !== 'nada' && PEND_TIPOS_.indexOf(j.tipo) < 0) j.tipo = 'aviso';
   if (!areaOk_(j.area)) j.area = 'proposito';
   j.importancia = Math.max(1, Math.min(3, Number(j.importancia) || 2));
@@ -103,7 +103,7 @@ function pendCrear_(adm, c, o) {
     try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
-    titulo: String(c.titulo || '').slice(0, 80), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
+    titulo: tituloCorto_(c.titulo, 100), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
     tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2 };
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
   try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { lock.releaseLock(); }
@@ -202,7 +202,7 @@ function pendResponder_(ses, b) {
   }
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'), v = sh && sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, PARA_CLAUDE_CAB_.length).getValues() : [];
   var c = v.filter(function (r) { return String(r[0]) === id; })[0]; if (!c) return { ok: false, error: 'Ya no encuentro esa tarjeta.' };
-  var rc = paraClaudeCrear_(adm, { titulo: ('Respuesta: ' + c[6]).slice(0, 80), app: c[3] || 'Otro', tipo: c[4] || 'mejora', prioridad: c[5] || 'normal',
+  var rc = paraClaudeCrear_(adm, { titulo: tituloCorto_('Respuesta: ' + c[6], 100), app: c[3] || 'Otro', tipo: c[4] || 'mejora', prioridad: c[5] || 'normal',
     que_quiere: texto + '\n\nEs la respuesta de Juan (desde Pendientes) a lo que le dijiste sobre «' + c[6] + '».\nLO QUE PIDIÓ: ' + String(c[7] || '').slice(0, 2500) +
       '\nLO QUE RESPONDISTE: ' + String(c[11] || '').slice(0, 3000) });
   if (!rc.ok) return rc;
@@ -215,4 +215,13 @@ function pendNota_(ses, b) {
   if (!b.audio || String(b.audio).length > 12000000) return { ok: false, error: 'La nota está vacía o es muy larga.' };
   var t = transcribir_(Utilities.newBlob(Utilities.base64Decode(String(b.audio)), String(b.mime || 'audio/mp4').split(';')[0], 'nota'));
   return t ? { ok: true, texto: t } : { ok: false, error: 'No te entendí. ¿La grabas otra vez o la escribes?' };
+}
+
+
+/** Título que nunca se corta a mitad de frase: si pasa del largo, se corta en la última palabra entera y lleva «…». */
+function tituloCorto_(t, max) {
+  t = String(t || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  var c = t.slice(0, max), i = c.lastIndexOf(' ');
+  return (i > max * 0.5 ? c.slice(0, i) : c).replace(/[\s,;:.\-–—]+$/, '') + '…';
 }

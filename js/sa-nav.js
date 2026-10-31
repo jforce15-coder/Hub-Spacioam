@@ -1361,7 +1361,7 @@
   function pendPintar() {
     aviseDatos();
     var b = E.pb, n = (AL.pend || []).length;
-    b.hidden = !n; b.querySelector(".san-badge").textContent = n > 9 ? "9+" : String(n);
+    b.hidden = !n && !!AL.pendCargado; b.querySelector(".san-badge").textContent = n > 9 ? "9+" : String(n);
     if (E.ov.classList.contains("pend") && !pendOcupado()) pendLista();
   }
   /* mientras respondes una tarjeta (escribiendo, grabando o leyendo la confirmación) la lista no se repinta sola */
@@ -2083,6 +2083,8 @@
       var rebuild = c.items && JSON.stringify(c.items) !== JSON.stringify(cfg.items);
       Object.assign(cfg, c);
       if (E.ov) fotoUsar(c);
+      /* los botones de Pendientes y Notificaciones aparecen al instante, sin esperar a los datos; el conteo llega después y, si no hay nada, Pendientes se esconde */
+      if (E.ov) { if (c.pendientes && !AL.pendCargado && E.pb) E.pb.hidden = false; if (c.notificaciones) { var nbx = E.ov.querySelector('[data-a="noti"]'); if (nbx) nbx.hidden = false; } }
       if (c.pendientes && E.ov) setTimeout(pendCargar, 0);   // nada en fila (ds/velocidad.md, regla 7)
       if (c.notificaciones && E.ov) setTimeout(notiCargar, 0);
       if (c.apps) allowed = c.apps.slice();

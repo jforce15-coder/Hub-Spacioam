@@ -246,6 +246,8 @@
     ".san-scope .san-ov.pend .san-pend{opacity:1;transform:none;pointer-events:auto}",
     ".san-scope .san-pend header{position:relative;display:flex;align-items:center;padding:18px 18px 12px;gap:10px}.san-scope .san-pend header .t{flex:1}.san-scope .san-pend header b{display:block;font:400 30px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-pend header small{display:block;margin-top:6px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
     ".san-scope .san-pend-l{flex:1;overflow:auto;padding:8px 16px 28px;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch}",
+    ".san-scope .san-pop{animation:sanPop .26s cubic-bezier(.3,1.3,.55,1)}@keyframes sanPop{35%{transform:scale(.9)}100%{transform:scale(1)}}",
+    ".san-scope .san-se-va{overflow:hidden;transition:height .24s cubic-bezier(.22,.61,.36,1),opacity .16s ease,margin .24s ease,padding .24s ease}",
     ".san-scope .san-visto{box-shadow:0 0 0 2px rgba(233,130,106,.55),0 10px 24px rgba(233,130,106,.18)!important;transition:box-shadow .6s ease}",
     ".san-scope .san-pc{flex:none;background:#fff;border-radius:24px;box-shadow:0 28px 60px -30px rgba(70,50,40,.36),0 2px 6px -3px rgba(70,50,40,.07);overflow:hidden}",
     ".san-scope .san-pc>button{width:100%;border:0;background:none;text-align:left;cursor:pointer;padding:16px 18px;display:flex;gap:12px;align-items:flex-start;font:inherit;color:#3E3F3F}",
@@ -1467,6 +1469,16 @@
     });
     if (!hay) { var v = d.createElement("div"); v.className = "san-pend-v"; v.textContent = AL.pendFiltro ? "Nada pendiente aquí." : "Todo al día."; l.appendChild(v); }
   }
+  /* Movimiento con sentido (ds/movimiento.md): el toque se siente (regla 2) y nada salta al quitar una tarjeta (regla 6) */
+  function quieto() { try { return w.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } }
+  function tocado(b) { if (quieto()) return; b.classList.remove("san-pop"); void b.offsetWidth; b.classList.add("san-pop"); }
+  function cerrarHueco(c, fin) {
+    if (quieto() || !c.offsetHeight || !c.isConnected) { fin(); return; }
+    c.style.height = c.offsetHeight + "px"; c.classList.add("san-se-va"); void c.offsetWidth;
+    setTimeout(function () { c.style.height = "0px"; c.style.opacity = "0"; c.style.marginTop = c.style.marginBottom = "0px"; c.style.paddingTop = c.style.paddingBottom = "0px"; }, 140);   // primero el pop, luego el hueco
+    var hecho = false, f = function () { if (hecho) return; hecho = true; fin(); };
+    c.addEventListener("transitionend", function (e) { if (e.propertyName === "height") f(); }); setTimeout(f, 480);
+  }
   function pendTarjeta(p, tag) {
     var c = d.createElement("div"); c.className = "san-pc " + (p.estado || p.seccion || ""); c.setAttribute("data-id", p.id);
     if ((AL.pendAb || {})[p.id]) c.classList.add("abierta");
@@ -1490,9 +1502,10 @@
     (vuelo || (p.tarjeta && p.tarjeta.precio) ? (p.acciones || []).slice(1) : (p.acciones || [])).forEach(function (a) { var x = d.createElement("button"); x.type = "button"; x.textContent = a.texto || "Abrir"; x.onclick = function () { w.open(a.url, "_blank", "noopener"); }; bt.appendChild(x); });
     pendBotonesUnir(p, bt, cu);
     (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.className = "sec"; x.textContent = p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"; x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
-    var quita = function () { ["atencion", "leer", "listo"].forEach(function (k) { if (AL.pendData && AL.pendData[k]) AL.pendData[k] = AL.pendData[k].filter(function (q) { return q.id !== p.id; }); }); AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); };
-    if (p.resolver && cfg.pendientes.resolver) { var rx = d.createElement("button"); rx.type = "button"; rx.className = "sec"; rx.textContent = "Ya está"; rx.onclick = function () { quita(); try { cfg.pendientes.resolver(p.id); } catch (e) {} }; bt.appendChild(rx); }
-    if (p.hecho && cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice"; hx.onclick = function () { quita(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
+    /* nada salta (ds/movimiento.md, regla 6): la tarjeta se cierra suave y lo de abajo sube; después se repinta la lista */
+    var quita = function () { cerrarHueco(c, function () { ["atencion", "leer", "listo"].forEach(function (k) { if (AL.pendData && AL.pendData[k]) AL.pendData[k] = AL.pendData[k].filter(function (q) { return q.id !== p.id; }); }); AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); }); };
+    if (p.resolver && cfg.pendientes.resolver) { var rx = d.createElement("button"); rx.type = "button"; rx.className = "sec"; rx.textContent = "Ya está"; rx.onclick = function () { tocado(rx); quita(); try { cfg.pendientes.resolver(p.id); } catch (e) {} }; bt.appendChild(rx); }
+    if (p.hecho && cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice"; hx.onclick = function () { tocado(hx); quita(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
     if (p.detalle || p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = p.fuente === "alma" ? "Lo que respondió Alma" : "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.detalle || p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
     var rp = p.responder && cfg.pendientes.responder ? pendResponder(p, quita) : null;
     if (rp) { var rb = d.createElement("button"); rb.type = "button"; rb.setAttribute("data-a", "responder"); rb.textContent = "Responder";

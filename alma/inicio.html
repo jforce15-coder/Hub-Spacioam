@@ -73,9 +73,13 @@
   .interruptor { position: relative; width: 51px; height: 31px; flex: none; }
   .interruptor input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
   .interruptor span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120,120,128,.24); transition: background .25s; pointer-events: none; }
-  .interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform .3s cubic-bezier(.3,1.3,.55,1); }
+  .interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform var(--resorte-d, .42s) var(--resorte, cubic-bezier(.3,1.3,.55,1)), width .18s ease; }
   .interruptor input:checked + span { background: #E9826A; }
   .interruptor input:checked + span::after { transform: translateX(20px); }
+  /* un resorte, no un deslizar (ds/movimiento.md, regla 1): al apretar la perilla se estira; al soltar llega y se asienta */
+  .interruptor span::after { border-radius: 14px; }
+  .interruptor input:active + span::after { width: 33px; }
+  .interruptor input:checked:active + span::after { transform: translateX(14px); }
   .fila.boton { cursor: pointer; justify-content: center; font-weight: 600; }
   .fila.boton.rojo { color: #D9583A; }
   .fila a { color: inherit; text-decoration: none; flex: 1; }
@@ -239,6 +243,7 @@
   #gsi[hidden] { display: none; }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
+<link rel="stylesheet" href="../ds/movimiento.css">
 </head>
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
@@ -310,7 +315,8 @@
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-04a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01a"></script>
-<script src="../js/sa-nav.js?v=2026-11-06a"></script>
+<script src="../ds/movimiento.js"></script>
+<script src="../js/sa-nav.js?v=2026-11-08a"></script>
 <script>
 (function () {
   "use strict";
@@ -875,7 +881,9 @@
 
   /* ── Entrar ── */
   var ocupado = false, crearPass = false;
-  function error(m) { $("err").textContent = m || ""; }
+  function error(m, campos) { $("err").textContent = m || "";
+    /* el no se ve antes de leerlo (ds/movimiento.md, regla 4): el campo se sacude y queda en rojo hasta que vuelvas a escribir */
+    if (m && campos && window.SAMov) campos.forEach(function (id) { SAMov.sacudir($(id)); }); }
   function ocupar(on) { ocupado = on; Array.prototype.forEach.call($("entrar").querySelectorAll("button"), function (b) { b.disabled = on; }); }
   function mostrarEntrar() {
     document.body.classList.add("entrando");
@@ -902,7 +910,7 @@
         : r && (r.error === "inactive" || r.error === "suspended") ? "Tu acceso está desactivado. Escríbenos y lo revisamos."
         : como === "face" ? "Face ID ya no sirve en este equipo. Entra con Google o con tu correo."
         : como === "google" ? "No pudimos entrar con Google. Intenta de nuevo o usa tu correo."
-        : "Correo o contraseña incorrectos.");
+        : "Correo o contraseña incorrectos.", como !== "correo" ? null : r && r.error === "no_user" ? ["i-email"] : r && /^(inactive|suspended)$/.test(r.error) ? null : ["i-pass"]);
       ocupar(false);
     }, function () { error("No pudimos conectar. Revisa tu internet e intenta de nuevo."); ocupar(false); });
   }
@@ -941,8 +949,8 @@
   $("f-correo").onsubmit = function (e) {
     e.preventDefault(); if (ocupado) return;
     var em = $("i-email").value.trim(), pw = $("i-pass").value;
-    if (!em || !pw) { error("Escribe tu correo y tu contraseña."); return; }
-    if (crearPass && pw.length < 6) { error("La contraseña necesita al menos 6 caracteres."); return; }
+    if (!em || !pw) { error("Escribe tu correo y tu contraseña.", [!em ? "i-email" : "i-pass"]); return; }
+    if (crearPass && pw.length < 6) { error("La contraseña necesita al menos 6 caracteres.", ["i-pass"]); return; }
     entrarCon(crearPass ? SAAuth.setInitialPassword(em, pw) : SAAuth.login(em, pw), "correo");
   };
 })();

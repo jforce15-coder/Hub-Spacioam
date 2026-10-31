@@ -17,6 +17,7 @@ Juan, con la app abierta o el teléfono bloqueado y el anillo.
 
 ## Reglas
 - Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
+- Movimiento con sentido (ds/movimiento.md): en cada ronda revisa qué dice cada movimiento de tu app y usa las piezas de `ds/movimiento.css` y `ds/movimiento.js`; empieza por los errores que no se sacuden y las filas que saltan al quitarlas.
 - El CI de alma-app compila sin firma en el PR: no lo dejes en rojo.
 - La roca de la app se comporta exactamente como la de sa-nav, en cada estado.
 - Alma habla simple y nunca susurra.

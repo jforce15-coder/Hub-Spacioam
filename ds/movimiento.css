@@ -1,0 +1,40 @@
+/* Spacio AM — Movimiento con sentido (ds/movimiento.md). Cada movimiento dice algo.
+   Otras apps: https://hub.spacioam.com/ds/movimiento.css (+ movimiento.js). */
+:root {
+  /* resorte calmado: llega, se pasa ~3 % y se asienta (regla 1). Sin linear(): cae al --ease de siempre. */
+  --resorte: cubic-bezier(.3, 1.3, .55, 1);
+  --resorte-d: 420ms;
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root { --resorte: linear(0, .24 8%, .6 18%, .89 30%, 1.03 42%, 1.04 50%, 1.01 64%, 1); }
+}
+/* 1 · interruptor con resorte: <label class="sa-interruptor"><input type="checkbox"><span></span></label> */
+.sa-interruptor { position: relative; display: inline-block; width: 51px; height: 31px; flex: none; }
+.sa-interruptor input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.sa-interruptor span { position: absolute; inset: 0; border-radius: 16px; background: rgba(120,120,128,.24); transition: background .25s; pointer-events: none; }
+.sa-interruptor span::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 14px; background: #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,.15); transition: transform var(--resorte-d) var(--resorte), width .18s ease; }
+.sa-interruptor input:checked + span { background: var(--accent, #E9826A); }
+.sa-interruptor input:checked + span::after { transform: translateX(20px); }
+.sa-interruptor input:active + span::after { width: 33px; }   /* se estira al apretar */
+.sa-interruptor input:checked:active + span::after { transform: translateX(14px); }
+.sa-interruptor input:focus-visible + span { outline: 2px solid var(--accent, #E9826A); outline-offset: 2px; }
+/* 2 · el toque se siente */
+.sa-pop { animation: sa-pop 260ms var(--resorte); }
+@keyframes sa-pop { 0% { transform: scale(1); } 35% { transform: scale(.9); } 100% { transform: scale(1); } }
+/* 3 · sale de donde tocaste: el que abre pone --origen (p. ej. "100% 0" o "40px 12px") */
+.sa-desde { transform-origin: var(--origen, 50% 0); animation: sa-desde 280ms var(--resorte) both; }
+@keyframes sa-desde { from { opacity: 0; transform: scale(.88); } to { opacity: 1; transform: none; } }
+/* 4 · el no se ve antes de leerlo */
+.sa-sacude { animation: sa-sacude 360ms cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes sa-sacude { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-7px); } 40%, 60% { transform: translateX(7px); } }
+.sa-mal { border-color: var(--color-error, #C0392B) !important; box-shadow: 0 0 0 3px rgba(192,57,43,.12) !important; }
+/* 5 · la píldora viaja: .sa-pildora dentro de la barra (position: relative); SAMov.pildora() la mueve */
+.sa-pildora { position: absolute; left: 0; top: 0; z-index: 0; border-radius: 999px; background: var(--fg, #3E3F3F); pointer-events: none;
+  transition: transform var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte), height .2s ease; }
+/* 6 · nada salta: SAMov.quitar() cierra el hueco */
+.sa-se-va { overflow: hidden; transition: height 240ms var(--ease, ease), opacity 160ms ease, margin 240ms var(--ease, ease), padding 240ms var(--ease, ease); }
+@media (prefers-reduced-motion: reduce) {
+  .sa-pop, .sa-desde, .sa-sacude { animation: none; }
+  .sa-interruptor span::after, .sa-pildora, .sa-se-va { transition: none; }
+}

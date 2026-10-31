@@ -18,6 +18,13 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - Nada se sale de la pantalla en un iPhone SE (375 px); los botones miden al menos 44 px; respeta las áreas seguras.
 - Colores, letras y radios del sistema de diseño (`ds/`): alabastro, arena, durazno #E9826A, Valky y Montserrat.
 
+## Movimiento con sentido
+- Cada movimiento dice algo (ds/movimiento.md). Si no dice nada, sobra. Piezas: `ds/movimiento.css` y `ds/movimiento.js` (`SAMov.sacudir`, `pop`, `quitar`, `pildora`, `desde`).
+- Error de un campo: se sacude, queda en rojo y lleva el texto. Nunca la sacudida sola.
+- Quitar una fila o tarjeta: el hueco se cierra suave (`SAMov.quitar`), nunca un repintado que salta.
+- Resorte solo en lo que la persona mueve o toca, y se pasa como mucho un 4 %. Lo que entra solo usa `--ease`.
+- Todo respeta `prefers-reduced-motion`.
+
 ## Velocidad percibida
 - Rápido de sentir ([ds/velocidad.md](ds/velocidad.md)). Ninguna pantalla en blanco ni «Cargando…» sin forma: esqueleto con la forma de lo que viene. Lo que casi nunca falla se muestra hecho al instante (y se deshace si falla). Las esperas largas llevan una barra que termina rápido y el trabajo real a la vista. Un estado vacío solo se muestra cuando ya llegaron los datos.
 

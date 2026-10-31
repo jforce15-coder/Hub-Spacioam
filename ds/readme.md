@@ -66,6 +66,8 @@ afinar cualquier diseño nuevo contra el producto que ya existe. Nada de lo que 
 
 **Una imagen, un gesto.** Toda imagen destacada lleva el brushstroke. Es la firma visual de la marca.
 
+**Movimiento con sentido: cada movimiento dice algo.** El resorte calmado en lo que mueves, el toque que se siente, lo que sale de donde tocaste, el «no» que se sacude, la píldora que viaja y nada que salte. Las 6 reglas y sus piezas (`movimiento.css`, `movimiento.js`): [`movimiento.md`](movimiento.md).
+
 **Rápido de sentir: la espera se diseña.** Nada de pantallas en blanco ni «Cargando…» sin forma. El resultado primero, la forma antes que el contenido, algo ahí desde el principio, la barra que termina rápido, el trabajo adelantado y que se vea el trabajo. Las 6 reglas y cómo aplicarlas están en [`velocidad.md`](velocidad.md).
 
 **Nadie escribe un color, radio o tamaño a mano.** Todo sale de un token, y el token se llama por lo que **hace** (`--fg-muted`), no por lo que **es** (`--color-earth`).

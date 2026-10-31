@@ -16,6 +16,7 @@ Juan y el contador.
 
 ## Reglas
 - Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
+- Movimiento con sentido (ds/movimiento.md): en cada ronda revisa qué dice cada movimiento de tu app y usa las piezas de `ds/movimiento.css` y `ds/movimiento.js`; empieza por los errores que no se sacuden y las filas que saltan al quitarlas.
 - Cada monto con su moneda.
 - Nunca se mueve dinero desde una prueba.
 - (Las reglas que Juan agrega por medio de Alma llegan en el pedido: pásalas aquí en el mismo PR.)

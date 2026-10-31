@@ -262,7 +262,7 @@
     ".san-scope .san-pc .pq{margin:0 0 16px;padding:12px 14px;border-radius:16px;background:#EEF1F7;color:#3E4A66;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
     /* «Responder» en la tarjeta: escribes o mandas una nota de voz (la ves en texto antes de enviarla) */
     ".san-scope .san-rp{padding:0 18px 16px}.san-scope .san-rp[hidden]{display:none}.san-scope .san-rp textarea{width:100%;box-sizing:border-box;min-height:84px;resize:none;border:1px solid #E6E1DB;border-radius:18px;padding:12px 14px;font:500 14.5px/1.5 Montserrat,system-ui,sans-serif;color:#3E3F3F;background:#FBFAF8;outline:none}.san-scope .san-rp textarea:focus{border-color:#E9826A;background:#fff}",
-    ".san-scope .san-rp .fi{display:flex;align-items:center;gap:10px;margin-top:10px}.san-scope .san-rp .st{flex:1;min-width:0;font:500 12.5px/1.4 Montserrat,system-ui,sans-serif;color:#8A8580}.san-scope .san-rp .mic{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:#F3EFEA;color:#3E3F3F}.san-scope .san-rp .mic.on{background:#E9826A;color:#fff;animation:sanLate 1.2s ease-in-out infinite}",
+    ".san-scope .san-rp .cj{position:relative;border-radius:18px}.san-scope .san-rp .mas{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:transparent;color:#3E3F3F}.san-scope .san-rp .mas[hidden]{display:none}.san-scope .san-rp .fi{display:flex;align-items:center;gap:10px;margin-top:10px}.san-scope .san-rp .st{flex:1;min-width:0;font:500 12.5px/1.4 Montserrat,system-ui,sans-serif;color:#8A8580}.san-scope .san-rp .mic{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:#F3EFEA;color:#3E3F3F}.san-scope .san-rp .mic.on{background:#E9826A;color:#fff;animation:sanLate 1.2s ease-in-out infinite}",
     ".san-scope .san-rp .ev{flex:none;border:0;cursor:pointer;padding:12px 18px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase}.san-scope .san-rp .ev:disabled{opacity:.45}.san-scope .san-rp .ok{margin:0;padding:12px 14px;border-radius:16px;background:#E6F2EA;color:#2F6B47;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
     ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
     ".san-scope .san-chip.publicando,.san-scope .san-chip.revisando{background:#FBF3E2;color:#9A6B12}.san-scope .san-chip.publicado{background:#E6F2EA;color:#2F6B47}.san-scope .san-chip.fallo_pub{background:#FBEAE6;color:#B54D36}",
@@ -602,11 +602,18 @@
     }
     return true;
   }
+  /* Varias pantallas pueden tener su lugar para la roca (#304: el nuevo chat va en todos los cuadros). Gana, en orden:
+     el del cuadro donde estás escribiendo, luego el de mayor data-sa-dock (una hoja encima usa "2"), luego el primero. */
   function dockTarget() {
-    var els = d.querySelectorAll("[data-sa-dock]");
-    var lim = Math.max(w.innerHeight, d.documentElement.clientHeight || 0);
-    for (var i = 0; i < els.length; i++) { var r = els[i].getBoundingClientRect(); if (r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < lim && dockShown(els[i], r)) return { el: els[i], r: r }; }
-    return null;
+    var els = d.querySelectorAll("[data-sa-dock]"), ae = d.activeElement, escribe = ae && /^(TEXTAREA|INPUT)$/.test(ae.tagName) ? ae : null;
+    var lim = Math.max(w.innerHeight, d.documentElement.clientHeight || 0), mejor = null, pts = -1;
+    for (var i = 0; i < els.length; i++) {
+      var r = els[i].getBoundingClientRect(); if (!(r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < lim && dockShown(els[i], r))) continue;
+      var p = (parseInt(els[i].getAttribute("data-sa-dock"), 10) || 1) * 10;
+      if (escribe) for (var a = els[i].parentElement, k = 0; a && k < 5; a = a.parentElement, k++) if (a.contains(escribe)) { p += 100; break; }
+      if (p > pts) { pts = p; mejor = { el: els[i], r: r }; }
+    }
+    return mejor;
   }
   /* El botón encajado vive DENTRO del botón real de la página: el navegador lo mantiene en su lugar al abrir una
      conversación, al hacer scroll o con el teclado, sin cálculos de coordenadas (en iPhone a veces quedaba arriba). */
@@ -1568,19 +1575,28 @@
     if (rp) c.appendChild(rp);   // debajo de la pregunta: lees y respondes
     return c;
   }
-  /* «Responder»: la respuesta va a quien preguntó (Claude o Alma, lo decide el Hub). La nota de voz se graba aquí, el Hub la
-     pasa a texto y queda en el cuadro para que la revises antes de enviar. */
+  /* «Responder»: la respuesta va a quien preguntó (Claude o Alma, lo decide el Hub). El nuevo chat (#304): el micrófono dicta
+     al cuadro (js/sa-compositor.js) y lo dicho queda escrito para revisarlo; el «+» trae mis plantillas. Solo envía el botón.
+     Si la página no tiene ALMA.dictar, el micrófono usa la nota de voz de la app (cfg.pendientes.nota), como antes. */
   function pendResponder(p, quita) {
     var rp = d.createElement("div"); rp.className = "san-rp"; rp.hidden = true;
-    var ta = d.createElement("textarea"); ta.placeholder = p.pregunta ? "Tu respuesta a Claude…" : "Tu respuesta…";
+    var cj = d.createElement("div"); cj.className = "cj";
+    var ta = d.createElement("textarea"); ta.placeholder = p.pregunta ? "Tu respuesta a Claude…" : "Tu respuesta…"; cj.appendChild(ta);
     var fi = d.createElement("div"); fi.className = "fi";
-    var mic = d.createElement("button"); mic.type = "button"; mic.className = "mic"; mic.setAttribute("aria-label", "Nota de voz: toca para grabar y otra vez para terminar");
+    var mas = d.createElement("button"); mas.type = "button"; mas.className = "mas"; mas.setAttribute("aria-label", "Plantillas");
+    mas.innerHTML = svg('<path d="M12 5v14M5 12h14"/>', 22); mas.hidden = !(w.ALMA && w.ALMA.plantillas);
+    var mic = d.createElement("button"); mic.type = "button"; mic.className = "mic"; mic.setAttribute("aria-label", "Dictar: toca y habla");
     mic.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
-    var st = d.createElement("span"); st.className = "st"; st.textContent = "Escribe o toca el micrófono.";
+    var st = d.createElement("span"); st.className = "st"; st.textContent = "Escribe o dicta con el micrófono.";
     var ev = d.createElement("button"); ev.type = "button"; ev.className = "ev"; ev.textContent = "Enviar";
-    fi.appendChild(mic); fi.appendChild(st); fi.appendChild(ev); rp.appendChild(ta); rp.appendChild(fi);
+    fi.appendChild(mas); fi.appendChild(mic); fi.appendChild(st); fi.appendChild(ev); rp.appendChild(cj); rp.appendChild(fi);
+    var poner = function (t) { ta.value = t; try { ta.focus(); ta.setSelectionRange(t.length, t.length); } catch (e) {} };
+    var sumar = function (t) { poner((ta.value.replace(/\s+$/, "") ? ta.value.replace(/\s+$/, "") + " " : "") + t); st.textContent = "Revísala y toca Enviar."; };
+    mas.onclick = function () { conComp(function () { w.SAComp.mas({ ancla: mas, texto: function () { return ta.value; }, poner: poner }); }); };
+    var dictaApi = function () { return !!(w.ALMA && w.ALMA.dictar && (!w.ALMA.hasApi || w.ALMA.hasApi())); };
     var rec = null, partes = [];
     mic.onclick = function () {
+      if (!rec && dictaApi()) { conComp(function () { w.SAComp.dictar({ caja: cj, onTexto: sumar }); }); return; }
       if (rec) { rec.stop(); return; }
       if (!navigator.mediaDevices || !w.MediaRecorder || !cfg.pendientes.nota) { st.textContent = "Aquí no puedo grabar; escríbelo."; return; }
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (flujo) {
@@ -1595,7 +1611,7 @@
           fr.onload = function () {
             Promise.resolve(cfg.pendientes.nota({ audio: String(fr.result).split(",")[1], mime: mime })).then(function (r) {
               ev.disabled = false;
-              if (r && r.ok) { ta.value = (ta.value ? ta.value.replace(/\s+$/, "") + " " : "") + r.texto; st.textContent = "Revísala y toca Enviar."; }
+              if (r && r.ok) sumar(r.texto);
               else st.textContent = (r && r.error) || "No te entendí. ¿Otra vez?";
             }, function () { ev.disabled = false; st.textContent = "No se pudo. ¿Otra vez?"; });
           };

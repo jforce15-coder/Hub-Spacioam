@@ -605,15 +605,21 @@
   /* Varias pantallas pueden tener su lugar para la roca (#304: el nuevo chat va en todos los cuadros). Gana, en orden:
      el del cuadro donde estás escribiendo, luego el de mayor data-sa-dock (una hoja encima usa "2"), luego el primero. */
   function dockTarget() {
-    var els = d.querySelectorAll("[data-sa-dock]"), ae = d.activeElement, escribe = ae && /^(TEXTAREA|INPUT)$/.test(ae.tagName) ? ae : null;
-    var lim = Math.max(w.innerHeight, d.documentElement.clientHeight || 0), mejor = null, pts = -1;
+    var els = d.querySelectorAll("[data-sa-dock]"); if (!els.length) return null;
+    var ae = d.activeElement, escribe = ae && /^(TEXTAREA|INPUT)$/.test(ae.tagName) ? ae : null;
+    var lim = Math.max(w.innerHeight, d.documentElement.clientHeight || 0), cand = [];
+    /* Primero lo barato (tamaño y lugar en pantalla, prioridad); dockShown sube por todos los ancestros con
+       getComputedStyle y es lo caro: se revisa solo en orden de prioridad hasta encontrar el primero que se ve
+       (antes se revisaba en todos, varias veces por segundo, y la roca iba a tirones en el Hub). */
     for (var i = 0; i < els.length; i++) {
-      var r = els[i].getBoundingClientRect(); if (!(r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < lim && dockShown(els[i], r))) continue;
+      var r = els[i].getBoundingClientRect(); if (!(r.width > 8 && r.height > 8 && r.bottom > 0 && r.top < lim)) continue;
       var p = (parseInt(els[i].getAttribute("data-sa-dock"), 10) || 1) * 10;
       if (escribe) for (var a = els[i].parentElement, k = 0; a && k < 5; a = a.parentElement, k++) if (a.contains(escribe)) { p += 100; break; }
-      if (p > pts) { pts = p; mejor = { el: els[i], r: r }; }
+      cand.push({ el: els[i], r: r, p: p, i: i });
     }
-    return mejor;
+    cand.sort(function (x, y) { return y.p - x.p || x.i - y.i; });   // misma regla de antes: mayor prioridad y, si empatan, el primero
+    for (var j = 0; j < cand.length; j++) if (dockShown(cand[j].el, cand[j].r)) return { el: cand[j].el, r: cand[j].r };
+    return null;
   }
   /* El botón encajado vive DENTRO del botón real de la página: el navegador lo mantiene en su lugar al abrir una
      conversación, al hacer scroll o con el teclado, sin cálculos de coordenadas (en iPhone a veces quedaba arriba). */
@@ -661,14 +667,15 @@
       va: function () { return on; } };
   }
   /* Encajado en el editor: el único hint es «Mejorar», fijo encima de la roca y solo cuando hay texto que mejorar
-     (el botón encajado dice «Mejorar»; vacío dice «Redactar con ALMA») (#304). Se revisa cada 350 ms mientras está encajada. */
+     (el botón encajado dice «Mejorar»; vacío dice «Redactar con ALMA») (#304). Se acomoda en cada revisión del encaje
+     (scroll, cambios de la página, al escribir y cada 1.5 s), sin un reloj propio que mida la pantalla cada 350 ms. */
   function dockTips() {
     if (!root || !E.face) return;
     if (!E.dtips) {
       E.dtips = d.createElement("div"); E.dtips.className = "san-dtips"; E.dtips.setAttribute("aria-hidden", "true"); E.dtips.innerHTML = "<span>Mejorar</span>"; root.appendChild(E.dtips);
-      var on = false, iv = 0;
-      E.rotD = { andar: function () { on = true; dockTipPos(); clearInterval(iv); iv = setInterval(dockTipPos, 350); },
-        parar: function () { on = false; clearInterval(iv); E.dtips.firstChild.classList.remove("on"); }, va: function () { return on; } };
+      var on = false;
+      E.rotD = { andar: function () { on = true; dockTipPos(); },
+        parar: function () { on = false; E.dtips.firstChild.classList.remove("on"); }, va: function () { return on; } };
     }
     E.rotD.andar();
   }
@@ -718,7 +725,7 @@
     if (dockRaf && Date.now() - dockRafAt > 700) { cancelAnimationFrame(dockRaf); dockRaf = 0; }   /* un cuadro que nunca llegó (app en segundo plano) */
     if (dockRaf || dockT) return;
     var wait = Math.max(0, 120 - (Date.now() - dockLast));
-    dockT = setTimeout(function () { dockT = null; dockRafAt = Date.now(); dockRaf = requestAnimationFrame(function () { dockRaf = 0; dockLast = Date.now(); dockCheck(); }); }, wait);
+    dockT = setTimeout(function () { dockT = null; dockRafAt = Date.now(); dockRaf = requestAnimationFrame(function () { dockRaf = 0; dockLast = Date.now(); dockCheck(); dockTipPos(); }); }, wait);
   }
   function dockWatch() {
     if (w.MutationObserver) { dockMO = new MutationObserver(dockSchedule); dockMO.observe(d.body, { childList: true, subtree: true }); }
@@ -729,6 +736,7 @@
     var back = function () { if (!root) return; if (dragging && !downAt) { dragging = false; } onResize(); dockSchedule(); };
     d.addEventListener("visibilitychange", function () { if (d.visibilityState === "visible") back(); });
     w.addEventListener("pageshow", back);
+    d.addEventListener("input", function () { if (dock.on) dockSchedule(); }, true);   // «Alma» ↔ «Mejorar» cambia al escribir
     d.addEventListener("focusin", function () { setTimeout(dockSchedule, 350); }); d.addEventListener("focusout", function () { setTimeout(back, 350); });
   }
   function placeScrim() { var a = st.anchor; E.scrim.dataset.e = isCorner(a) ? a : a === "bc" ? "b" : a === "tc" ? "t" : a === "ml" ? "l" : "r"; }
@@ -1805,6 +1813,9 @@
     };
     almaSesion.dicho = 0;
     AL.ses = null;
+    /* Un dictado abierto (js/sa-compositor.js) suelta el micrófono antes de que Alma lo pida: en iPhone solo una
+       grabación a la vez tiene el micrófono, y la llamada quedaba sin audio. */
+    try { if (w.SAComp && w.SAComp.cancelar) w.SAComp.cancelar(); } catch (x) {}
     var pr; try { pr = cfg.alma.start(h); } catch (x) { pr = Promise.reject(x); }
     Promise.resolve(pr).then(function (s) {
       if (!AL.on && !AL.min) { try { s && s.end && s.end(true); } catch (x) {} return; }
@@ -1823,6 +1834,7 @@
     E.core.classList.add("alma-live"); almaLoopOn(); surge();
     if (navigator.vibrate) try { navigator.vibrate([6, 30, 6]); } catch (x) {}
     phMini("Conectando con Alma…");
+    dockTipPos();   // el hint «Mejorar» se esconde en cuanto empieza la llamada
     almaSesion();
   }
   function almaEnd(remote) {

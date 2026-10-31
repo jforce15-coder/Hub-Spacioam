@@ -71,8 +71,11 @@
   }
   /* Mismo par de sonidos que el modo anillo (app Alma): inicio al activarse, despedida al terminar. Solo en voz, no en el chat de texto. */
   var SONIDOS = "https://hub.spacioam.com/assets/alma/sonidos/";
-  /* En la app de Alma la señal la toca la app (suena aunque la página esté tomando el micrófono); en el navegador, la página. */
-  function sonido(n) { try { if (w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma) { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "sonido", n: n }); return; } } catch (e) {}
+  /* En la app de Alma la señal de despedida la toca la app (suena aunque la página aún tenga el micrófono); en el navegador,
+     la página. La de inicio la toca SIEMPRE la página: pedírsela a la app justo cuando la página abre el micrófono y el
+     audio de la llamada (31-oct) coincidía con llamadas web que conectaban sin sonido y sin micrófono (0 s de audio en
+     ElevenLabs). Así queda como funcionaba el 29-oct. */
+  function sonido(n, pagina) { try { if (!pagina && w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma) { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "sonido", n: n }); return; } } catch (e) {}
     try { var a = new Audio(SONIDOS + n + ".wav"); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
   /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
   function limpiar(t) { return String(t || "").replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").replace(/\s+([,.;:!?…])/g, "$1").trim(); }
@@ -98,7 +101,7 @@
   function start(h) {
     unlockAudio();
     var enChat = false, sono = true;
-    sonido("alma-inicio");
+    sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
     function abrir(f, m) {
       var opt = {

@@ -98,7 +98,8 @@
       if (fin) { f.getTracks().forEach(function (t) { t.stop(); }); return; }
       flujo = f;
       var tipo = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm"].filter(function (t) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t); })[0];
-      rec = new MediaRecorder(f, tipo ? { mimeType: tipo } : undefined);
+      /* si el grabador no arranca, el micrófono no se queda tomado (antes el error dejaba la pista abierta) */
+      try { rec = new MediaRecorder(f, tipo ? { mimeType: tipo } : undefined); } catch (e) { limpiar(); mostrar("Aquí no puedo grabar; escríbelo."); return; }
       rec.ondataavailable = function (e) { if (e.data && e.data.size) partes.push(e.data); };
       rec.onstop = function () {
         var mime = rec.mimeType || tipo || "audio/mp4";
@@ -198,5 +199,9 @@
     return { cerrar: cerrar };
   }
 
-  w.SAComp = { dictar: dictar, mas: mas, SVG: SVG };
+  /* Cancelar el dictado en curso (si hay): suelta el micrófono y cierra la onda. Lo usa la llamada con Alma antes de
+     abrir el suyo, y la página al irse (en iPhone el micrófono quedaba tomado por una pestaña que ya no se veía). */
+  function cancelar() { if (actual) { try { actual.cancelar(); } catch (e) {} } }
+  w.addEventListener("pagehide", cancelar);
+  w.SAComp = { dictar: dictar, mas: mas, cancelar: cancelar, SVG: SVG };
 })(window, document);

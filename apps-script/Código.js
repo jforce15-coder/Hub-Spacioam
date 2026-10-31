@@ -882,6 +882,18 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     return log_(ctx, '', 'sin respuesta: el equipo está gestionando');
   }
 
+  /* Contacto externo que sigue sin aclarar lo que pide: Alma responde cada vez más tarde hasta apagarse sola (espaciado.js). */
+  if (espaciadoAplica_(ctx)) {
+    let esp = { accion: 'responder' }; try { esp = espaciadoDecidir_(ctx); } catch (e) { console.error('espaciadoDecidir_: ' + e); }
+    if (esp.accion === 'esperar') { paso_(pKey, 'Sigue sin aclararse · respondo más tarde'); return set_(sh, lider, { proximo: new Date(esp.hasta).toISOString(), nota: 'espaciado: respuesta más tarde' }); }
+    if (esp.accion === 'apagar') {
+      ctx.nivel = 'SILENCIO'; ctx.razon = 'la conversación sigue sin aclararse tras ' + esp.n + ' mensajes: se apaga sola';
+      marcarTodos('silencio', 'espaciado: conversación apagada');
+      observar_(ctx, '');
+      return log_(ctx, '', 'sin respuesta: la conversación se apagó sola por falta de claridad');
+    }
+  }
+
   if (codigoPendiente_(ctx, hilo)) { paso_(pKey, 'Código de acceso pendiente · avisando a los administradores', true); return manejarCodigo_(sh, lider, otros, ctx); }
 
   /* Avance visible en el Hub (columna nota, prefijo ⏳): qué está haciendo ALMA mientras piensa. */

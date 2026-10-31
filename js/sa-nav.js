@@ -1580,10 +1580,16 @@
   function almaLoop(t) {
     if (!AL.vis && !AL.min) { AL.loop = false; return; }
     var lv = 0; if (AL.ses && AL.ses.level) { try { lv = clamp((AL.ses.level() || 0) * 2.6, 0, 1); } catch (x) {} }
-    jStep(t, lv); AL.breath = J.env;
-    AL.bth = .55 * J.p + J.env * .7;
-    if (AL.vis) stoneRender();
-    if (AL.min) { E.core.style.setProperty("--voice", AL.breath.toFixed(3)); if (!pulling && !pullS.x) { var bs = 1 + .015 * J.p + J.v * .75; E.body.style.scale = (bs + J.w * .8).toFixed(4) + " " + (bs - J.w * .7).toFixed(4); } }
+    if (!isFinite(lv)) lv = 0;   /* un nivel inválido contagiaba a la gelatina (NaN) y la roca se quedaba quieta para siempre */
+    /* Un error en un cuadro no puede cortar la cadena de cuadros: antes AL.loop quedaba en true sin nadie que lo reanudara y la roca se congelaba a media conversación. */
+    try {
+      jStep(t, lv);
+      if (![J.env, J.slow, J.v, J.vv, J.w, J.wv, J.p].every(isFinite)) { jReset(); J.p = 0; }
+      AL.breath = J.env;
+      AL.bth = .55 * J.p + J.env * .7;
+      if (AL.vis) stoneRender();
+      if (AL.min) { E.core.style.setProperty("--voice", AL.breath.toFixed(3)); if (!pulling && !pullS.x) { var bs = 1 + .015 * J.p + J.v * .75; E.body.style.scale = (bs + J.w * .8).toFixed(4) + " " + (bs - J.w * .7).toFixed(4); } }
+    } catch (x) { jReset(); }
     requestAnimationFrame(almaLoop);
   }
   function almaLoopOn() { if (!AL.loop) { AL.loop = true; AL.bth = 0; jReset(); requestAnimationFrame(almaLoop); } }

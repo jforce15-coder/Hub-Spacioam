@@ -1,4 +1,5 @@
-/* MOVIMIENTO — un solo easing. Fades y desplazamientos cortos; nunca bounce. */
+/* MOVIMIENTO — un easing para lo que entra (fades y desplazamientos cortos, nunca bounce) y un resorte calmado
+   (--resorte en ds/movimiento.css) solo para lo que la persona mueve o toca. Ver ds/movimiento.md. */
 :root{
   --ease:cubic-bezier(0.22,0.61,0.36,1); /* @kind other */
   --d-fast:180ms; /* @kind other */ --d-med:360ms; /* @kind other */ --d-slow:720ms; /* @kind other */

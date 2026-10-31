@@ -17,6 +17,7 @@ Juan (administrador principal) y el equipo: atienden conversaciones de Hospitabl
 
 ## Reglas
 - Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
+- Movimiento con sentido (ds/movimiento.md): en cada ronda revisa qué dice cada movimiento de tu app y usa las piezas de `ds/movimiento.css` y `ds/movimiento.js`; empieza por los errores que no se sacuden y las filas que saltan al quitarlas.
 - La roca se comporta igual en todas las web apps: si tocas `js/sa-nav.js`, prueba también alma/inicio.html y alma/roca.html, y sube su `?v=`.
 - index.html es una exportación de Claude Design: no rompas sus marcadores `{{ }}` ni quites sa-sesion.js.
 - Nada de datos reales de huéspedes en capturas.

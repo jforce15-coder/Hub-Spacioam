@@ -17,6 +17,7 @@ Huéspedes en su teléfono, muchas veces con poca señal y sin saber español.
 
 ## Reglas
 - Rápido de sentir (ds/velocidad.md): en cada ronda revisa qué ve la persona en el primer momento, a los 2 s y al terminar cada espera de tu app, y aplica las 6 reglas; las de nivel 2 y 3 primero.
+- Movimiento con sentido (ds/movimiento.md): en cada ronda revisa qué dice cada movimiento de tu app y usa las piezas de `ds/movimiento.css` y `ds/movimiento.js`; empieza por los errores que no se sacuden y las filas que saltan al quitarlas.
 - Nunca datos reales de huéspedes en pruebas ni capturas.
 - Cada texto existe en español e inglés.
 - Un paso a la vez; el botón de seguir siempre visible sobre el teclado.

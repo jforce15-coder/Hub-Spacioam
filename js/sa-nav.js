@@ -1388,9 +1388,11 @@
       if (x.titulo) { var b = d.createElement("b"); b.textContent = x.titulo; c.appendChild(b); }
       var sp = d.createElement("span"); sp.textContent = x.texto || ""; c.appendChild(sp);
       if (x.pendiente) { var ch = d.createElement("i"); ch.className = "san-nt-p"; ch.textContent = "Necesita tu sí"; c.appendChild(ch); }
-      if (x.detalle && !x.pendiente) { var dt = d.createElement("p"); dt.className = "det"; dt.textContent = x.detalle; c.appendChild(dt); }
+      if (x.enlace && !x.pendiente) { var ab = d.createElement("i"); ab.className = "san-nt-p"; ab.textContent = "Abrir"; c.appendChild(ab); }
+      if (x.detalle && !x.pendiente && !x.enlace) { var dt = d.createElement("p"); dt.className = "det"; dt.textContent = x.detalle; c.appendChild(dt); }
       c.onclick = function () {
         if (x.pendiente && cfg.pendientes) { notiAbrir(false); pendAbrir(true); return; }   // el detalle de lo que pide algo vive en Pendientes
+        if (x.enlace) { if (/^https:\/\/hub\.spacioam\.com\//.test(x.enlace)) location.href = x.enlace; else w.open(x.enlace, "_blank", "noopener"); return; }   // p. ej. el reporte de llamadas
         if (x.detalle) c.classList.toggle("abierta");
       };
       l.appendChild(c);

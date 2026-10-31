@@ -61,6 +61,9 @@ var AGENTES_SEMILLA_ = [
   /* Equipo de mejora continua (mejora.js): cada miércoles busca cómo gastar menos sin quitar funciones ni bajar la calidad. */
   { id: 'mejora', nombre: 'Mejora continua', rol: 'Equipo de mejora continua: ahorra sin quitar funciones ni bajar la calidad', horas: '9', dias: '3', presupuesto_usd: 0, tipo: 'claude', herramientas: '',
     mision: 'Que Alma y el Hub cuesten menos cada semana (créditos de voz de ElevenLabs, modelo, lo que Alma relee en cada respuesta, la IA del Hub) sin que Juan note ningún cambio en cómo funcionan o suenan.' },
+  /* Subequipo de mejora continua: las llamadas (reporte_llamadas.js). Cada lunes arma el reporte de la semana y propone mejoras. */
+  { id: 'mejora_llamadas', nombre: 'Mejora de llamadas', rol: 'Subequipo de mejora continua: llamadas mejores y más eficientes', horas: '7', dias: '1', presupuesto_usd: 0, tipo: 'claude', herramientas: '',
+    mision: 'Que las llamadas con Alma salgan bien y cuesten lo justo: menos silencios y relleno, menos cortes y respuestas negativas, respuestas más rápidas, sin ahorrar a costa de la conversación. Cada lunes, el reporte de la semana y sus propuestas.' },
   { id: 'dev_docs', nombre: 'Desarrollo · Docs', rol: 'Subdepartamento de Docs (contratos y DPI)', app: 'Docs', horas: '15', dias: '4', presupuesto_usd: 0, tipo: 'claude', herramientas: '', mision: 'Que cada contrato salga completo y correcto, y la lectura del DPI no falle.' },
   /* El departamento de Archivo (archivista.js): solo ordena. No propone nada afuera; su trabajo se ve en las áreas y cajones. */
   { id: 'archivo', nombre: 'Archivo', rol: 'Departamento de archivo y orden', horas: '6,21', dias: '1,2,3,4,5,6,7', presupuesto_usd: 0, tipo: 'archivo', herramientas: '',
@@ -131,7 +134,7 @@ function agentesLatido_() {
 /* ── Una corrida: revisa, propone y deja su informe ── */
 function agenteCorrer_(a, origen, pedido) {
   var adm = agPrincipal_(); if (!adm) return { ok: false, error: 'sin administrador principal' };
-  if (a.tipo === 'claude') return a.id === 'mejora' ? agMejoraRonda_(a, adm, origen, pedido) : agDesarrolloRonda_(a, adm, origen, pedido);   // mejora.js
+  if (a.tipo === 'claude') return a.id === 'mejora' ? agMejoraRonda_(a, adm, origen, pedido) : a.id === 'mejora_llamadas' ? agMejoraLlamadasRonda_(a, adm, origen, pedido) : agDesarrolloRonda_(a, adm, origen, pedido);   // mejora.js · reporte_llamadas.js
   if (a.tipo === 'archivo') return archivoRonda_(a, adm, origen, pedido);
   var mes = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM');
   if (a.mes !== mes) { a.mes = mes; a.gasto_mes = 0; }

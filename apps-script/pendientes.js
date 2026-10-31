@@ -172,7 +172,7 @@ function notificacionesTodo_(ses) {
   if (adm) {
     pendItems_(ses, adm, true).filter(function (x) { return x.seccion !== 'atencion'; }).forEach(function (x) {
       items.push({ id: String(x.id), ts: x.ts || Date.now(), area: x.area, proyecto: x.proyecto || '', titulo: x.titulo || '', texto: x.resumen || '', estado: x.estado || '',
-        detalle: x.detalle || x.original || '', enlaces: x.enlaces || [], fuente: x.fuente });
+        detalle: x.detalle || x.original || '', enlaces: x.enlaces || [], fuente: x.fuente, enlace: ((x.acciones || [])[0] || {}).url || '' });
     });
     var porRet = {}, ahora = Date.now(); pendFilas_().forEach(function (r) { if (r.ret_id) porRet[String(r.ret_id)] = r; });
     (base.lista || []).forEach(function (a) {

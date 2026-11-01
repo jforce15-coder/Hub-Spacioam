@@ -115,6 +115,14 @@
     </div>
   </section>
 
+  <section id="s-login">
+    <h2>Respaldo del inicio de sesión <span class="pill" id="e-login">Revisando…</span></h2>
+    <p>Copia el valor de <b>SESSION_SECRET</b> de las Propiedades del script del login (Apps Script «Control de usuarios») y pégalo aquí. Sirve para que puedas entrar aunque se acabe el cupo de Google.</p>
+    <label for="ls">Llave del login</label><input id="ls" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="SESSION_SECRET">
+    <div class="fila"><button type="button" id="b-ls">Guardar</button></div>
+    <div class="msg" id="m-login"></div>
+  </section>
+
   <section id="s-claude">
     <h2>Claude <span class="pill" id="e-claude">Revisando…</span></h2>
     <p>Para que Alma le pase tus mejoras del sistema a Claude. La llave sale de <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> → «Alma → Claude» → Editar → API → Generar token.</p>
@@ -141,6 +149,7 @@
     if (!r || !r.ok) { msg('m-spotify', (r && r.error) || 'No se pudo.', 'mal'); return r; }
     pill('e-claude', r.claude, 'Conectado', 'Sin llave');
     pill('e-github', r.github, 'Conectado', 'Sin llave');
+    pill('e-login', r.loginSecreto, 'Listo', 'Sin llave');
     var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
     if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
     $('b-bq-cargar').hidden = !(bq.proyecto && bq.cuenta); $('cer-extra').hidden = !(bq.proyecto && bq.cuenta); cerebroPintar(r.cerebro);
@@ -246,6 +255,11 @@
     };
     if (!f) return mandar('');
     var lr = new FileReader(); lr.onload = function () { mandar(String(lr.result || '')); }; lr.onerror = function () { msg('m-bq', 'No pude leer el archivo.', 'mal'); }; lr.readAsText(f);
+  };
+  /* Respaldo del inicio de sesión: la llave va directo al Hub y no se vuelve a mostrar. */
+  $('b-ls').onclick = function () {
+    var v = $('ls').value.trim(); if (v.length < 32) return msg('m-login', 'Pega el valor completo de SESSION_SECRET (es un texto largo).', 'mal');
+    llamar({ guardar: { loginSecreto: v } }).then(function (r) { $('ls').value = ''; if (pintar(r) && r.ok) msg('m-login', 'Guardada. Si el login no contesta, el Hub comprueba tu sesión él mismo.', 'bien'); else msg('m-login', (r && r.error) || 'No se pudo.', 'mal'); });
   };
   $('b-cl').onclick = function () {
     var v = $('cl').value.trim(); if (!v) return msg('m-claude', 'Pega primero la llave.', 'mal');

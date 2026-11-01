@@ -12,7 +12,7 @@ function unirGh_(metodo, ruta, cuerpo) {
   if (!tok) return { codigo: 0, j: null };
   var o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } };
   if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
-  try { var r = UrlFetchApp.fetch('https://api.github.com' + ruta, o), t = r.getContentText(); return { codigo: r.getResponseCode(), j: t ? JSON.parse(t) : null }; }
+  try { var r = uf_('https://api.github.com' + ruta, o), t = r.getContentText(); return { codigo: r.getResponseCode(), j: t ? JSON.parse(t) : null }; }
   catch (e) { return { codigo: -1, j: null, error: String(e) }; }
 }
 function unirNombreRepo_(repo) { var n = String(repo).split('/')[1] || repo; return UNIR_NOMBRES_[n.toLowerCase()] || n; }

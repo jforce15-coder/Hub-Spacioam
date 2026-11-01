@@ -118,12 +118,14 @@ function agNorm_(x) { return String(x || '').toLowerCase().normalize('NFD').repl
 function agPrincipal_() { return adminsOp_().filter(function (a) { return a.principal; })[0] || adminsOp_()[0] || null; }
 
 /* ── El latido: cada hora, despierta a quien le toca (su hora y su día, activo y con presupuesto) ── */
-function agentesLatido_() {
+/* solo: lista de ids para correr solo esos (con el cupo de Google en pausa corre solo Operaciones: rutas y limpiezas nunca se pausan, cupo.js). */
+function agentesLatido_(solo) {
   var ahora = ahora_(), h = Number(Utilities.formatDate(ahora, CFG.TZ, 'H')), dia = Number(Utilities.formatDate(ahora, CFG.TZ, 'u')), hoy = Utilities.formatDate(ahora, CFG.TZ, 'yyyy-MM-dd');
   if (PropertiesService.getScriptProperties().getProperty('AGENTES_ON') === '0') return;
   var corridos = 0;
   agentes_().forEach(function (a) {
     if (corridos >= 2 || a.estado !== 'activo') return;   // máximo 2 por latido (el disparador tiene 6 min)
+    if (solo && solo.indexOf(a.id) < 0) return;
     var horas = String(a.horas).split(/[,\s]+/).map(Number), dias = String(a.dias || '1,2,3,4,5,6,7').split(/[,\s]+/).map(Number);
     if (horas.indexOf(h) < 0 || dias.indexOf(dia) < 0) return;
     if (String(a.ultima).slice(0, 13) === Utilities.formatDate(ahora, CFG.TZ, "yyyy-MM-dd'T'HH")) return;   // ya corrió esta hora

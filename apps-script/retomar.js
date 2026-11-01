@@ -143,6 +143,7 @@ function vozSeguirLeer_(id) {
 }
 /* Pedidos que la llamada dejó a medias: se terminan aquí, uno por uno (nunca se repiten: se sacan antes de seguir). */
 function vozSeguirPronto() {
+  cupoCanal_('Voz');
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSeguirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock();
   for (var n = 0; n < 4; n++) {

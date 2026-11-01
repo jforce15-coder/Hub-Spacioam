@@ -288,6 +288,7 @@
     <div class="fila"><a href="reporte.html" id="p-reportes">Reportes</a><span class="va">›</span></div>
     <div class="fila"><a href="correos.html" id="p-correos">Tus correos</a><span class="va">›</span></div>
     <div class="fila"><a href="conexiones.html" id="p-conexiones">Conexiones</a><span class="va">›</span></div>
+    <div class="fila" id="p-uso-f" hidden><a href="uso.html" id="p-uso">Uso</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
   </div>
   <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
@@ -748,6 +749,8 @@
     $("p-tel-f").hidden = !p.tel; $("p-tel").textContent = p.tel;
     /* Health (anillo, ritmo cardíaco, pasos): por ahora solo el administrador principal. */
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
+    /* Uso (cupo de Google e IA, alma/uso.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
+    $("p-uso-f").hidden = $("p-health-f").hidden;
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); }

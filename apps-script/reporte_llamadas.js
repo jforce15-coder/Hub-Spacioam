@@ -52,7 +52,7 @@ function rllElevenLabs_(desde, hasta) {
   for (var i = 0; i < 10; i++) {
     var u = 'https://api.elevenlabs.io/v1/convai/conversations?page_size=100&call_start_after_unix=' + Math.floor(desde / 1000) + '&call_start_before_unix=' + Math.floor(hasta / 1000) +
       (ag ? '&agent_id=' + ag : '') + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
-    var j = JSON.parse(UrlFetchApp.fetch(u, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
+    var j = JSON.parse(uf_(u, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
     lista = lista.concat(j.conversations || []); if (!j.has_more || !j.next_cursor) break; cursor = j.next_cursor;
   }
   var fines = {}, porFuente = {};
@@ -73,7 +73,7 @@ function rllElevenLabs_(desde, hasta) {
 }
 /* Una llamada leída turno por turno. El silencio se estima por lo que dura lo dicho (no con el audio). */
 function rllUna_(c, h) {
-  var d = JSON.parse(UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversations/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
+  var d = JSON.parse(uf_('https://api.elevenlabs.io/v1/convai/conversations/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
   var md = d.metadata || {}, ch = md.charging || {}, dv = ((d.conversation_initiation_client_data || {}).dynamic_variables) || {};
   var seg = c.call_duration_secs || md.call_duration_secs || 0, habla = 0, tok = 0, tokRelleno = 0, herr = [], negativas = [], previoRelleno = false;
   (d.transcript || []).forEach(function (t) {

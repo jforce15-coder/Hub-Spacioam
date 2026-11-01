@@ -51,6 +51,13 @@ jobs:
           fi
           echo "Bien."
 
+      - name: Las llamadas a internet pasan por uf_ (cuentan el cupo de Google)
+        run: |
+          if grep -nE 'UrlFetchApp\.fetch(All)?\(' apps-script/*.js | grep -v '^apps-script/cupo\.js:'; then
+            echo "::error::Usa uf_(url, opciones, canal) o ufAll_(pedidos, canal) de apps-script/cupo.js: así la llamada cuenta en el cupo de Google."; exit 1
+          fi
+          echo "Bien."
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

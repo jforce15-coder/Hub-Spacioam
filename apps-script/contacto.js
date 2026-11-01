@@ -21,7 +21,7 @@ function waEnviarAlguien_(numero, texto, o) {
   var tpl = contactoPlantillaOk_();
   if (!tpl) return { ok: false, error: 'No le puedo escribir: no ha escrito al número de ALMA en las últimas 24 h y la plantilla de primer contacto (' + CONTACTO_PLANTILLA_ + ') aún no está aprobada por Meta.' };
   var W = waCfg_();
-  var rr = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token },
     payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: CONTACTO_PLANTILLA_, language: { code: 'es' }, components: [
       { type: 'body', parameters: [/^[+\d]/.test(String(o.nombre || '')) || !o.nombre ? 'qué tal' : String(o.nombre).split(' ')[0], String(o.de || 'Spacio AM')].map(function (v) { return { type: 'text', text: v.slice(0, 60) }; }) }] } }) });
@@ -63,7 +63,7 @@ function waRetomar_(wa, texto, o) {
   };
   if (rel && personalPlantillaOk_()) {
     var W = waCfg_(), primer = /^[+\d]/.test(nombre) || !nombre ? '' : String(nombre).split(' ')[0];
-    var rr = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + W.token },
       payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: PERSONAL_PLANTILLA_, language: { code: 'es' }, components: [
         { type: 'body', parameters: [{ type: 'text', text: primer || 'qué tal' }, { type: 'text', text: rel.de || 'Juan' }] }] } }) });
@@ -102,7 +102,7 @@ function contactoPlantillaOk_() {
   var c = CacheService.getScriptCache(), hit = c.get('tpl_contacto'); if (hit) return hit === '1';
   var W = waCfg_(), waba = PropertiesService.getScriptProperties().getProperty('WA_WABA_ID'), ok = false;
   try {
-    var j = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates?name=' + CONTACTO_PLANTILLA_ + '&fields=name,status,language', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText());
+    var j = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates?name=' + CONTACTO_PLANTILLA_ + '&fields=name,status,language', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText());
     ok = (j.data || []).some(function (t) { return t.name === CONTACTO_PLANTILLA_ && t.status === 'APPROVED'; });
   } catch (e) {}
   c.put('tpl_contacto', ok ? '1' : '0', ok ? 21600 : 600);
@@ -116,7 +116,7 @@ function contactoPlantillaCrear_() {
     { type: 'BODY', text: 'Hola {{1}}, soy Alma, la asistente virtual de Spacio AM. {{2}} me pidió contactarte por un tema pendiente. ¿Me respondes este mensaje para darte los detalles? Gracias.',
       example: { body_text: [['Lucía', 'Juan Ovalle']] } },
     { type: 'FOOTER', text: 'Spacio AM' } ] };
-  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var r = uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(body) });
   return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), respuesta: r.getContentText().slice(0, 300) };
 }
@@ -145,7 +145,7 @@ function personalEnviar_(adm, persona, numero, texto, objetivo, contexto, proyec
   }
   if (!personalPlantillaOk_()) return { ok: false, error: 'No ha escrito al número de ALMA en las últimas 24 h y la plantilla personal (' + PERSONAL_PLANTILLA_ + ') aún no está aprobada por Meta.' };
   var W = waCfg_();
-  var rr = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token },
     payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: PERSONAL_PLANTILLA_, language: { code: 'es' }, components: [
       { type: 'body', parameters: [{ type: 'text', text: primer || 'qué tal' }, { type: 'text', text: de }] }] } }) });
@@ -236,7 +236,7 @@ function personalPlantillaOk_() {
   var c = CacheService.getScriptCache(), hit = c.get('tpl_personal'); if (hit) return hit === '1';
   var W = waCfg_(), waba = PropertiesService.getScriptProperties().getProperty('WA_WABA_ID'), ok = false;
   try {
-    var j = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates?name=' + PERSONAL_PLANTILLA_ + '&fields=name,status', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText());
+    var j = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates?name=' + PERSONAL_PLANTILLA_ + '&fields=name,status', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText());
     ok = (j.data || []).some(function (t) { return t.name === PERSONAL_PLANTILLA_ && t.status === 'APPROVED'; });
   } catch (e) {}
   c.put('tpl_personal', ok ? '1' : '0', ok ? 21600 : 600);
@@ -248,7 +248,7 @@ function personalPlantillaCrear_() {
   CacheService.getScriptCache().remove('tpl_personal');
   var body = { name: PERSONAL_PLANTILLA_, language: 'es', category: 'UTILITY', components: [
     { type: 'BODY', text: 'Hola {{1}}, soy Alma, la asistente de {{2}}. ¿Tienes un minuto? Tengo un mensaje de su parte para ti.', example: { body_text: [['Lucía', 'Juan']] } } ] };
-  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var r = uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(body) });
   return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), respuesta: r.getContentText().slice(0, 300) };
 }
@@ -281,7 +281,7 @@ function contactoReenviar_(tel, nombre, texto, plantilla) {
   if (personal ? !personalPlantillaOk_() : !contactoPlantillaOk_()) return { ok: false, error: 'plantilla ' + tpl + ' no aprobada' };
   var W = waCfg_(), primer = String(nombre || '').split(' ')[0] || 'qué tal';
   var params = personal ? [primer, 'Juan'] : [primer, 'Juan Ovalle'];
-  var rr = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token },
     payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: tpl, language: { code: 'es' }, components: [
       { type: 'body', parameters: params.map(function (v) { return { type: 'text', text: String(v).slice(0, 60) }; }) }] } }) });

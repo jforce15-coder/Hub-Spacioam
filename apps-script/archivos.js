@@ -19,11 +19,11 @@ function waEnviarDocumento_(numero, blob, leyenda) {
   var wa = String(numero || '').replace(/\D/g, ''); if (!wa) return { ok: false, error: 'sin número' };
   var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
   if (!abierta) return { ok: false, error: 'ventana', detalle: 'Pasaron más de 24 h desde el último mensaje de esa persona: WhatsApp no deja mandar archivos hasta que escriba a Alma.' };
-  var up = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
+  var up = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: { messaging_product: 'whatsapp', type: blob.getContentType(), file: blob } });
   var mid = ''; try { mid = JSON.parse(up.getContentText()).id || ''; } catch (e) {}
   if (!mid) return { ok: false, error: 'Meta no aceptó el archivo · HTTP ' + up.getResponseCode() + ' · ' + up.getContentText().slice(0, 200) };
-  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token },
     payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'document', document: { id: mid, filename: blob.getName(), caption: String(leyenda || '').slice(0, 1000) } }) });
   var ok = r.getResponseCode() < 300;

@@ -38,7 +38,7 @@ function distGoogle_(o, destino, key) {
     var cuerpo = { origins: [{ waypoint: { location: { latLng: { latitude: o.lat, longitude: o.lng } } } }],
       destinations: [{ waypoint: { address: destino + ', Guatemala' } }], travelMode: modo, languageCode: 'es', regionCode: 'GT' };
     if (modo === 'DRIVE') cuerpo.routingPreference = 'TRAFFIC_AWARE';
-    var r = UrlFetchApp.fetch('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    var r = uf_('https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': 'duration,condition,status' }, payload: JSON.stringify(cuerpo) });
     var j = JSON.parse(r.getContentText() || '[]'); if (!Array.isArray(j)) { console.error('Routes API: ' + r.getContentText().slice(0, 300)); return null; }
     var e = j[0]; if (!e || e.condition !== 'ROUTE_EXISTS' || !e.duration) return null;
@@ -58,15 +58,15 @@ function distOSM_(o, destino) {
     [true, false].some(function (cerca) {
       if (g.length) return true;
       var u = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=gt&email=hola@spacioam.com&q=' + encodeURIComponent(variantes[i]) + (cerca ? '&bounded=1&viewbox=' + vb : '');
-      try { g = JSON.parse(UrlFetchApp.fetch(u, { muteHttpExceptions: true, headers: { 'Accept-Language': 'es' } }).getContentText() || '[]'); } catch (e) { g = []; }
+      try { g = JSON.parse(uf_(u, { muteHttpExceptions: true, headers: { 'Accept-Language': 'es' } }).getContentText() || '[]'); } catch (e) { g = []; }
       Utilities.sleep(1100);   // política de uso de Nominatim: 1 consulta por segundo
       return g.length > 0;
     });
   }
   if (!g.length) return null;
   var p = g[0], par = o.lng + ',' + o.lat + ';' + p.lon + ',' + p.lat;
-  var car = JSON.parse(UrlFetchApp.fetch('https://router.project-osrm.org/route/v1/driving/' + par + '?overview=false', { muteHttpExceptions: true }).getContentText() || '{}');
-  var pie = JSON.parse(UrlFetchApp.fetch('https://routing.openstreetmap.de/routed-foot/route/v1/driving/' + par + '?overview=false', { muteHttpExceptions: true }).getContentText() || '{}');
+  var car = JSON.parse(uf_('https://router.project-osrm.org/route/v1/driving/' + par + '?overview=false', { muteHttpExceptions: true }).getContentText() || '{}');
+  var pie = JSON.parse(uf_('https://routing.openstreetmap.de/routed-foot/route/v1/driving/' + par + '?overview=false', { muteHttpExceptions: true }).getContentText() || '{}');
   if (!car.routes || !car.routes.length) return null;
   /* Sin tráfico real: se suma un margen (la ciudad casi nunca va a velocidad libre). */
   return { carro: Math.round(distMin_(car.routes[0].duration) * 1.4 + 3), caminando: pie.routes && pie.routes.length ? distMin_(pie.routes[0].duration) : null,

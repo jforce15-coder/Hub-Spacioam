@@ -39,10 +39,10 @@ function fotoSiguiente_(p) {
 function fotoAppId_(p, token) {
   let id = p.getProperty('WA_APP_ID');
   if (id) return id;
-  let r = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/app?access_token=' + encodeURIComponent(token), { muteHttpExceptions: true }).getContentText() || '{}');
+  let r = JSON.parse(uf_('https://graph.facebook.com/v21.0/app?access_token=' + encodeURIComponent(token), { muteHttpExceptions: true }).getContentText() || '{}');
   id = r && r.id;
   if (!id) {
-    r = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/debug_token?input_token=' + encodeURIComponent(token) + '&access_token=' + encodeURIComponent(token), { muteHttpExceptions: true }).getContentText() || '{}');
+    r = JSON.parse(uf_('https://graph.facebook.com/v21.0/debug_token?input_token=' + encodeURIComponent(token) + '&access_token=' + encodeURIComponent(token), { muteHttpExceptions: true }).getContentText() || '{}');
     id = r && r.data && r.data.app_id;
   }
   if (!id) throw new Error('No se pudo saber el ID de la app de Meta: ' + JSON.stringify(r).slice(0, 200));
@@ -57,20 +57,20 @@ function fotoCambiar_(n) {
   if (!token || !phoneId) throw new Error('Falta WA_TOKEN o WA_PHONE_ID');
   if (!n) n = fotoSiguiente_(p);
   const url = FOTO_BASE_ + ('0' + n).slice(-2) + '.jpg';
-  const img = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+  const img = uf_(url, { muteHttpExceptions: true });
   if (img.getResponseCode() !== 200) throw new Error('No se pudo bajar ' + url + ' (' + img.getResponseCode() + ')');
   const bytes = img.getBlob().getBytes();
   const appId = fotoAppId_(p, token);
   // 1) sesión de subida
-  const s1 = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + appId + '/uploads?file_name=alma.jpg&file_length=' + bytes.length + '&file_type=image%2Fjpeg', {
+  const s1 = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + appId + '/uploads?file_name=alma.jpg&file_length=' + bytes.length + '&file_type=image%2Fjpeg', {
     method: 'post', headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true }).getContentText() || '{}');
   if (!s1.id) throw new Error('Subida (sesión): ' + JSON.stringify(s1).slice(0, 300));
   // 2) bytes de la imagen
-  const s2 = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + s1.id, {
+  const s2 = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + s1.id, {
     method: 'post', headers: { Authorization: 'OAuth ' + token, file_offset: '0' }, contentType: 'image/jpeg', payload: bytes, muteHttpExceptions: true }).getContentText() || '{}');
   if (!s2.h) throw new Error('Subida (archivo): ' + JSON.stringify(s2).slice(0, 300));
   // 3) se pone como foto del perfil
-  const s3 = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + phoneId + '/whatsapp_business_profile', {
+  const s3 = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + phoneId + '/whatsapp_business_profile', {
     method: 'post', contentType: 'application/json', headers: { Authorization: 'Bearer ' + token },
     payload: JSON.stringify({ messaging_product: 'whatsapp', profile_picture_handle: s2.h }), muteHttpExceptions: true }).getContentText() || '{}');
   if (!s3.success) throw new Error('Perfil: ' + JSON.stringify(s3).slice(0, 300));

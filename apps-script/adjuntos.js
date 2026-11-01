@@ -69,13 +69,13 @@ function adjEnviarWa_(numero, texto, items, convId, autor) {
   texto = String(texto || '').trim();
   for (var i = 0; i < items.length; i++) {
     var x = items[i], blob = x.archivo.getBlob();
-    var up = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
+    var up = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + W.token }, payload: { messaging_product: 'whatsapp', type: x.mime, file: blob } });
     var mid = ''; try { mid = JSON.parse(up.getContentText()).id || ''; } catch (e) {}
     if (!mid) return { ok: false, error: 'Meta no aceptó «' + x.nombre + '» (HTTP ' + up.getResponseCode() + ')' };
     var pie = i === 0 ? texto.slice(0, 1000) : '', cuerpo = { messaging_product: 'whatsapp', to: wa, type: x.tipo === 'pdf' ? 'document' : 'image' };
     cuerpo[cuerpo.type] = x.tipo === 'pdf' ? { id: mid, filename: x.nombre, caption: pie } : { id: mid, caption: pie };
-    var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    var r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(cuerpo) });
     var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
     if (r.getResponseCode() >= 300) return { ok: false, error: (j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + r.getResponseCode() };

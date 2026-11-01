@@ -508,7 +508,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       ctx.hechas.push({ tipo: 'familia', resumen: nomF + ' guardada como familia (' + (inp.relacion || '') + ')' });
       return { ok: true, nombre: nomF, numero: numF, nota: 'Desde ahora Alma la reconoce cuando llama, la trata por su nombre y le ayuda con lo personal de Juan.' };
     }
-    case 'mejora_para_claude': { var rm = paraClaudeCrear_(adm, inp); if (rm.ok) ctx.hechas.push({ tipo: 'mejora', resumen: 'Para Claude · ' + String(inp.titulo).slice(0, 80) }); return rm; }
+    case 'mejora_para_claude': { var rm = paraClaudeCrear_(adm, Object.assign({}, inp, { sinChat: true })); if (rm.ok) ctx.hechas.push({ tipo: 'mejora', resumen: 'Para Claude · ' + String(inp.titulo).slice(0, 80) }); return rm; }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };
@@ -528,7 +528,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
   if (!(ult in o) && CAMPOS_PROPIEDAD_.indexOf(campo) < 0) return { error: 'El campo ' + campo + ' no existe en la ficha. Revisa los nombres con ver_propiedad.' };
   var antes = o[ult]; o[ult] = String(valor == null ? '' : valor).trim();
   sh.getRange(i + 2, cJ).setValue(JSON.stringify(j));
-  try { regMejora_({ por: adm.nombre, origen: 'chat operativo', tipo: 'dato', clave: 'DATO', resumen: nombres[i] + ' · ' + campo, cambios: [{ tipo: 'dato', campo: campo, antes: antes == null ? '' : String(antes), despues: o[ult] }] }); } catch (e) {}
+  try { regMejora_({ por: adm.nombre, origen: 'Chat con Alma', tipo: 'dato', clave: 'DATO', resumen: nombres[i] + ' · ' + campo, cambios: [{ tipo: 'dato', campo: campo, antes: antes == null ? '' : String(antes), despues: o[ult] }] }); } catch (e) {}
   try { log_({ codigo: '', propiedad: nombres[i], nivel: 'DATO', razon: campo, texto: 'antes: ' + (antes == null ? '' : antes), modo: 'HUB' }, o[ult], 'DATO actualizado por ALMA (pedido de ' + adm.nombre + ')'); } catch (e) {}
   return { ok: true, propiedad: nombres[i], campo: campo, antes: antes == null ? '' : String(antes), despues: o[ult] };
 }
@@ -558,6 +558,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
+  system += chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
   return opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
 }
 /* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (la tolerancia de una
@@ -596,9 +597,11 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
     }) });
   }
+  /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
+  var et = chatSacarEtiqueta_(final); final = et.texto;
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
   try { pendEncolar_(adm, texto, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), canal); } catch (e) {}   // a Pendientes (pendientes.js)
-  return { respuesta: respFinal, hechas: ctx.hechas };
+  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria };
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).

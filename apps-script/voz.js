@@ -766,7 +766,7 @@ function vozSecretaria_(b) {
   if (/^\s*mejora para claude\s*:/i.test(pedido) && esAdminPrincipal_(adm)) return vozParaClaude_(adm, pedido);
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
   var t0 = Date.now(), previos = opFilas_(adm.email, 20);
-  opGuardar_(adm, 'yo', 'llamada', pedido);
+  var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
   AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
   AGENTE_PLAZO_ = t0 + vozTolerancia_(); AGENTE_PEDIDO_ = pedido;
@@ -779,7 +779,9 @@ function vozSecretaria_(b) {
       'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en la app cuando esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.' +
       (r.hechas.length ? ' Lo que ya quedó hecho: ' + r.hechas.map(function (h) { return h.resumen || h.tipo; }).join('; ') + '.' : '') };
   }
-  opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
+  /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, directo a Claude (o a Juan). */
+  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r); r.respuesta = turno.texto || r.respuesta;
+  opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 60 s), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
@@ -796,10 +798,12 @@ function vozFamilia_(tel, q, b) {
     '(viajes, vuelos, agenda, proyectos personales y lo que Juan pidió para ella), nunca nada de Spacio AM (huéspedes, reservas, dinero, equipo). Busca la información en la conversación con Juan y en sus proyectos personales. ' +
     'Si pide que se lo mandes, mándaselo a su WhatsApp (' + wa + ') con mensaje_personal, como Alma, la asistente de Juan, en el idioma en que habla. Responde en una o dos frases para decírselo por voz.\n\n' + pedido;
   var previos = opFilas_(jefe.email, 30);
-  opGuardar_(jefe, 'yo', 'llamada', q.nombre + ' (por llamada): ' + pedido);
+  var yoF = opGuardar_(jefe, 'yo', 'llamada', q.nombre + ' (por llamada): ' + pedido);
   AGENTE_PERMITIDAS_ = FAMILIA_HERR_;
   var r; try { r = opAgente_(jefe, texto, 'llamada', [], previos); } finally { AGENTE_PERMITIDAS_ = null; }
-  opGuardar_(jefe, 'alma', 'llamada', r.respuesta, r.hechas);
+  /* La familia nunca pide cambios al sistema en nombre de Juan: solo se guarda la esfera. */
+  var turno = chatTurnoCerrar_(jefe, [yoF.id], pedido, r, { sinDesarrollo: true });
+  opGuardar_(jefe, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
   return { ok: true, resultado: r.respuesta, acciones: (r.hechas || []).map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
 
@@ -860,9 +864,10 @@ function vozSecProcesar_() {
     var r;
     try {
       var previos = opFilas_(adm.email, 20);
-      opGuardar_(adm, 'yo', 'llamada', pedido + ' (en segundo plano)');
+      var yoF = opGuardar_(adm, 'yo', 'llamada', pedido + ' (en segundo plano)');
       r = opAgente_(adm, pedido, 'segundo_plano', [], previos);
-      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
+      var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r); r.respuesta = turno.texto || r.respuesta;
+      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
     try { vozSecAvisar_(grupo[0].tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
@@ -1131,14 +1136,16 @@ function ctxTema_(adm, filas, lineas) {
 function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
   var sh = hojaOp_(), filas = [], mmss = Math.floor(dur / 60) + ':' + ('0' + (dur % 60)).slice(-2);
   var titulo = s_((d.analysis || {}).call_summary_title) || motivo || '';
+  /* Chat único: toda la llamada lleva una esfera (la de sus turnos con la secretaria o la de su resumen, chat.js). */
+  var clas = { esfera: '', subcategoria: '' }; try { clas = chatClasLlamada_(adm, t0, dur, titulo, resumen); } catch (e) { console.error('chatClasLlamada_: ' + e); }
   var id = function (i) { return 'opl' + s_(d.conversation_id).slice(-10) + '_' + i; };
   var tx = function (x) { x = String(x || '').slice(0, 4000); return /^[=+\-@]/.test(x) || /^\d[\d\s.]*$/.test(x) ? "'" + x : x; };
   (d.transcript || []).forEach(function (m, i) {
     var t = s_(m.message).trim(); if (m.role === 'agent') t = vozSinNotas_(t); if (!t) return;
-    filas.push([new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString(), adm.email, adm.nombre, m.role === 'agent' ? 'alma' : 'yo', 'llamada', tx(t), '', id(i + 1)]);
+    filas.push([new Date(t0 + Number(m.time_in_call_secs || 0) * 1000).toISOString(), adm.email, adm.nombre, m.role === 'agent' ? 'alma' : 'yo', 'llamada', tx(t), '', id(i + 1), clas.esfera, clas.esfera ? clas.subcategoria : '']);
   });
   filas.push([new Date(t0 + dur * 1000).toISOString(), adm.email, adm.nombre, 'alma', 'llamada', tx('📞 Llamada por ' + canal + ' · ' + mmss + (titulo ? ' · ' + titulo : '') + (resumen ? '\n' + resumen : '')),
-    JSON.stringify([{ tipo: 'llamada', resumen: titulo || 'Llamada', tema: titulo ? titulo.charAt(0).toLowerCase() + titulo.slice(1) : '' }]), id(0)]);
+    JSON.stringify([{ tipo: 'llamada', resumen: titulo || 'Llamada', tema: titulo ? titulo.charAt(0).toLowerCase() + titulo.slice(1) : '' }]), id(0), clas.esfera, clas.esfera ? clas.subcategoria : '']);
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
   try { SpreadsheetApp.flush(); contextoReciente_(adm); } catch (e) {}   // deja listo el tema: si vuelve a llamar enseguida, el saludo no espera
 }

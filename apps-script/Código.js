@@ -713,6 +713,7 @@ function procesarCola() {
   try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
   try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
   try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
+  try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
   try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
   try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
@@ -1586,7 +1587,7 @@ const NOTAS_PROMPTS = {
   RUTA_ESTRATEGICO: 'Conversación estratégica con Juan (fundador).', RUTA_PERSONAL: 'Agenda personal de Juan.',
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
-  SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el chat operativo (Hub y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
+  SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el Chat con Alma (Hub, app y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
   WEEBO: 'Modo Weebo: la personalidad de Alma (humor, emoción, opinión) y lo que nunca hace. El nivel lo pone el Hub según la confianza de cada conversación (weebo.js). Edítalo libremente.',
   FAMILIA: 'Alma en The Gentle Stoic Parent (vida familiar, no trabajo): enfoque, metodologías (Gentle Stoic Parenting, Montessori, Relato Espejo, Stillwater) y reglas. Se le suma VOZ_HUMANA y se copia sola al agente «Alma · Familia». Edítalo libremente.',
   VOZ_HUMANA: 'Llamadas: cómo suena Alma para que se escuche como una persona (ritmo, reacciones, muletillas, etiquetas de voz, fechas y números). Va al final del prompt de voz. Edítalo libremente.',
@@ -2094,7 +2095,7 @@ function claveUsoIA() {
   return k;
 }
 const FUENTES_IA_ = [
-  { app: 'ALMA', nombre: 'ALMA · hub', donde: 'Apps Script de ALMA', que: 'Clasifica, redacta y verifica respuestas, consultas, auto mejora, reviews, chat operativo y notas de voz.', como: 'Se registra solo.' },
+  { app: 'ALMA', nombre: 'ALMA · hub', donde: 'Apps Script de ALMA', que: 'Clasifica, redacta y verifica respuestas, consultas, auto mejora, reviews, el Chat con Alma y notas de voz.', como: 'Se registra solo.' },
   { app: 'EPI', nombre: 'EPI', donde: 'Apps Script de EPI · acción «ai»', que: 'Resúmenes con IA dentro de la app de operación.', como: 'Pega el bloque de registro en su Apps Script.' },
   { app: 'Hola', nombre: 'Hola', donde: 'Backend de Hola · «readDocument»', que: 'Lee DPI y pasaportes en el check-in. Hasta 3 lecturas por documento si la foto viene girada o con reflejos.', como: 'Pega el bloque de registro en su Apps Script.' },
   { app: 'mi', nombre: 'mi', donde: 'Conta · facturas', que: 'Usa la IA del entorno de diseño. En producción no consume tokens.', como: 'Nada que conectar.' },
@@ -3183,9 +3184,10 @@ function hubApi_(body) {
       case 'purgarAutomejora': return json_(hubPurgarAutomejora_());
       case 'setConocimiento': return json_(hubSetConocimiento_(body.fila, body.tema, body.contenido, body.aplica, body.activo, body.meta));
       case 'setPropiedadDato': return json_(hubSetPropiedadDato_(body.propiedad, body.campo, body.valor, body.meta));
-      case 'hilo': return json_(hubHilo_(body.resId));
+      case 'hilo': if (String(body.resId || '').indexOf('op:') === 0) return json_(chatHiloOp_(ses, body.resId));   // chat con Alma: con la sesión (chat.js)
+        return json_(hubHilo_(body.resId));
       case 'redactarHub': return json_(hubRedactar_(body.resId, body.texto, body.hilo));
-      case 'responder': if (String(body.resId || '') === 'op:desarrollo') return json_(paraClaudeDesdeChat_(ses, body.texto));   // responder en «Desarrollo» = seguimiento para Claude
+      case 'responder': if (String(body.resId || '').indexOf('op:') === 0) return json_(chatResponderOp_(ses, body));   // chat con Alma: solo el suyo; op:desarrollo = Pedido para Claude (chat.js)
         return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
       case 'responderWa': return json_(hubResponderSeguro_(body, ses));
       case 'adjunto': return json_(adjSubir_(ses, body));                                    // el «+» del nuevo chat: sube una foto o un PDF para el huésped (adjuntos.js)
@@ -3208,9 +3210,9 @@ function hubApi_(body) {
       case 'setEscalamiento': return json_(hubSetEscalamiento_(body.lista));
       case 'foto': return json_(hubFoto_(body.url));
       case 'votar': return json_(hubVotar_(Number(body.fila), body.voto));
-      case 'opHilo': return json_(hubOpHilo_(body.email, body.de));
-      case 'opEnviar': return json_(hubOpEnviar_(body.email, body.texto));
-      case 'opLista': return json_(hubOpLista_(body.email));
+      case 'opHilo': return json_(chatHilo_(ses, body));                                    // chat único con Alma: la persona sale de la sesión, nunca de body.email (chat.js)
+      case 'opEnviar': return json_(chatEnviar_(ses, body));                                // { texto, canal: 'hub' | 'app' }
+      case 'opLista': return json_(chatLista_(ses));
       case 'dsPropuestas': return json_(dsPropuestas_());
       case 'dsDecidir': return json_(dsDecidir_(body.id, body.decision, body.nota, body.quien));
       default: return json_({ ok: false, error: 'accion' });
@@ -4777,12 +4779,22 @@ function hubReviewHuesped_(resId, recomendar, contexto, ajuste, previo) {
    Un chat por administrador con ALMA. Entra por su WhatsApp registrado (Control de usuarios) o desde el hub
    (tap en la foto de ALMA). No aparece en la lista general de conversaciones: vive en ALMA_OPERATIVO.
    ALMA responde, toma notas y ejecuta: crear/cerrar/comentar tareas del equipo (Epi · hubTareas) y agendar trabajos en Epi (schedules).
-   Hoy solo administradores; técnicos y socios quedan para después (OP_ROLES). */
-const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id'];
+   Hoy solo administradores; técnicos y socios quedan para después (OP_ROLES).
+   Chat único (#334, chat.js): un solo chat por persona; cada fila lleva esfera y subcategoría (al final de la hoja). */
+const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id', 'esfera', 'subcategoria'];
 const EPI_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec';
 const SEMILLA_OPERATIVO_ = "Eres ALMA, la asistente operativa interna de Spacio AM (hospitalidad boutique en Guatemala). Hablas con un ADMINISTRADOR del equipo, no con un huésped. Tono: directo, cálido, de tú, frases cortas, sin emoji, sin despedidas ni firma. Primero el dato, luego el contexto.\n\nPUEDES:\n· Responder preguntas usando el contexto que te damos (tareas abiertas, programa de Epi, propiedades, equipo).\n· Crear tareas del equipo, cerrarlas o comentarlas.\n· Agendar un trabajo en Epi (limpieza, limpieza profunda, mantenimiento, supervisión) en una propiedad y fecha.\n· Guardar una nota para recordar algo (preferencias, acuerdos, datos que te piden recordar).\n\nREGLAS:\n· Solo ejecutas lo que se pide claro. Si falta un dato imprescindible (propiedad, fecha), pregunta en una sola frase y no ejecutes.\n· Fechas relativas (hoy, mañana, el viernes) se convierten a YYYY-MM-DD con la fecha de HOY que te damos.\n· La propiedad debe ser una de la lista, escrita igual. Para tareas, quien es un nombre de la lista del equipo o vacío.\n· Confirma en la respuesta lo que hiciste, en una línea por acción.\n· Nunca inventes datos de reservas, códigos ni montos.\n\nDevuelve SOLO JSON:\n{\"respuesta\":\"texto para el administrador\",\"acciones\":[{\"tipo\":\"tarea\",\"texto\":\"\",\"prop\":\"\",\"quien\":\"\",\"vence\":\"YYYY-MM-DD\",\"nota\":\"\"},{\"tipo\":\"hecha\",\"id\":\"\"},{\"tipo\":\"comentario\",\"id\":\"\",\"texto\":\"\"},{\"tipo\":\"epi\",\"fecha\":\"YYYY-MM-DD\",\"hora\":\"HH:MM\",\"propiedad\":\"\",\"trabajo\":\"Limpieza|Limpieza Profunda|Mantenimiento|Supervisión\",\"tecnico\":\"\",\"notas\":\"\"},{\"tipo\":\"nota\",\"texto\":\"\"}]}\nSi no hay nada que ejecutar, acciones es [].";
-let OP_ADM_ = null;
-function hojaOp_() { return hojaCrear_('ALMA_OPERATIVO', OP_CAB_); }
+let OP_ADM_ = null, OP_CAB_LISTA_ = false;
+/* La hoja ya existe con 8 columnas: se le agregan esfera y subcategoria al final (una vez por ejecución lo revisa). */
+function hojaOp_() {
+  const sh = hojaCrear_('ALMA_OPERATIVO', OP_CAB_);
+  if (!OP_CAB_LISTA_) {
+    if (sh.getMaxColumns() < OP_CAB_.length) sh.insertColumnsAfter(sh.getMaxColumns(), OP_CAB_.length - sh.getMaxColumns());
+    if (sh.getLastColumn() < OP_CAB_.length) sh.getRange(1, 1, 1, OP_CAB_.length).setValues([OP_CAB_]);
+    OP_CAB_LISTA_ = true;
+  }
+  return sh;
+}
 function opActivo_() { return String(PropertiesService.getScriptProperties().getProperty('OP_ACTIVO') || '1') !== '0'; }
 function epiUrl_() { return PropertiesService.getScriptProperties().getProperty('EPI_URL') || EPI_URL_DEF_; }
 /* Administradores con acceso al hub, desde Control de usuarios: correo, nombre, teléfonos y si es principal. Cacheado 30 min. */
@@ -4823,14 +4835,15 @@ function opFilas_(email, n) {
   const sh = hojaOp_(), last = sh.getLastRow(); if (last < 2) return [];
   const desde = Math.max(2, last - 2999), v = sh.getRange(desde, 1, last - desde + 1, OP_CAB_.length).getValues();
   return v.map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
-    acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]) }))
+    acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || '') }))
     .filter(m => !email || m.usuario === email).slice(-(n || 3000));
 }
-function opGuardar_(adm, de, canal, texto, acciones) {
+/* clas = { esfera, subcategoria } (chat.js); sin clas la fila queda sin esfera. */
+function opGuardar_(adm, de, canal, texto, acciones, clas) {
   const id = 'op' + Date.now() + Math.floor(Math.random() * 1000), ts = new Date().toISOString();
-  const tx = String(texto || '').slice(0, 4000);
-  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, /^[=+\-@]/.test(tx) || /^\d[\d\s.]*$/.test(tx) ? "'" + tx : tx, acciones && acciones.length ? JSON.stringify(acciones) : '', id]);
-  return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [] };
+  const tx = String(texto || '').slice(0, 4000), esf = (clas && clas.esfera) || '', sub = (clas && clas.esfera && clas.subcategoria) || '';
+  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, /^[=+\-@]/.test(tx) || /^\d[\d\s.]*$/.test(tx) ? "'" + tx : tx, acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub]);
+  return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [], esfera: esf, subcategoria: sub };
 }
 /* Llave del robot: Epi y Hola reconocen así las llamadas del Hub (servidor a servidor, sin sesión de una persona). */
 function llaveRobot_() { return PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN') || undefined; }
@@ -4871,7 +4884,7 @@ function opMatch_(txt, lista) {
 function opProcesar_(adm, texto, canal, fotos, nota) {
   texto = String(texto || '').trim(); if (!adm || !texto) return { ok: false, error: 'faltan datos' };
   /* Tocó una opción de una decisión del equipo en la tarjeta del chat: queda elegida y el borrador espera en la conversación (decisiones.js). */
-  if (canal === 'hub') { try { const dc = decisionDesdeChat_(adm, texto); if (dc) return dc; } catch (e) { console.error('decisionDesdeChat_: ' + e); } }
+  if (canal === 'hub' || canal === 'app') { try { const dc = decisionDesdeChat_(adm, texto); if (dc) return dc; } catch (e) { console.error('decisionDesdeChat_: ' + e); } }
   const yo = opGuardar_(adm, 'yo', canal, texto);
   const pedido = nota ? nota + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
@@ -4896,21 +4909,27 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
         '\n\nCONVERSACIÓN ACTIVA (últimas 6 h):\n' + (nuevos.map(quien).join('\n') || '(empieza aquí: si solo saluda, salúdalo y pregúntale en qué le ayudas)');
     })() +
     '\n\nMENSAJE NUEVO:\n' + pedido;
-  let r = {}, hechas = [];
+  let r = {}, hechas = [], ag = null;
   if (opAgenteActivo_()) {
-    /* ALMA secretaria: herramientas reales con permisos por rol (agente.js). */
-    try { const ag = opAgente_(adm, pedido, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
+    /* ALMA secretaria: herramientas reales con permisos por rol (agente.js). Su respuesta trae la esfera del turno. */
+    try { ag = opAgente_(adm, pedido, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
     catch (e) { console.error('opAgente_: ' + (e.stack || e)); r = { respuesta: 'Tuve un problema procesando tu mensaje. Intenta de nuevo.' }; }
   } else {
     const raw = claude_(CFG.MODELO_REDACTOR, 900, prompt_('OPERATIVO'), user, 0.2, fotos || []);
     try { r = JSON.parse(String(raw).match(/\{[\s\S]*\}/)[0]); } catch (e) { r = { respuesta: s_(raw) || 'No pude procesarlo. Intenta de nuevo.', acciones: [] }; }
     hechas = errEpi ? [] : opEjecutar_(adm, Array.isArray(r.acciones) ? r.acciones : [], cfg, props);
   }
-  let resp = formatearMensaje_(s_(r.respuesta) || (hechas.length ? 'Listo.' : 'Entendido.'));
+  /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan). */
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria) });
+  yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
+  let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
-  const alma = opGuardar_(adm, 'alma', canal, resp, hechas);
+  const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
   if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp);
-  return { ok: true, yo: yo, alma: alma };
+  const out = { ok: true, yo: yo, alma: alma };
+  if (turno.claude) out.claude = turno.claude;
+  if (turno.paraJuan) out.paraJuan = true;
+  return out;
 }
 /* WhatsApp del administrador: ALMA espera OP_AGRUPAR_SEG (20 s) de silencio y responde una sola vez a todo el bloque.
    Así, varios mensajes reenviados de otro chat más la instrucción del final se leen como un solo pedido. Mientras esperan,
@@ -4999,33 +5018,16 @@ function opEjecutar_(adm, acciones, cfg, props) {
   } finally { try { lock.releaseLock(); } catch (e) {} }
   return out;
 }
-function hubOpHilo_(email, de) {
-  const yo = adminPorEmail_(email); if (!yo) return { ok: false, error: 'usuario' };
-  const objetivo = de && de !== yo.email ? (yo.principal || adminsOp_().length === 0 ? adminPorEmail_(de) : null) : yo;
-  if (!objetivo) return { ok: false, error: 'solo el admin principal ve otros chats' };
-  return { ok: true, usuario: objetivo.email, nombre: objetivo.nombre, tieneWA: objetivo.tels.length > 0, mensajes: opFilas_(objetivo.email, 200) };
-}
-function hubOpEnviar_(email, texto) {
-  const adm = adminPorEmail_(email); if (!adm) return { ok: false, error: 'usuario' };
-  return opProcesar_(adm, texto, 'hub', []);
-}
-/* Lista para el admin principal: un chat por administrador, con su último mensaje. */
-function hubOpLista_(email) {
-  const yo = adminPorEmail_(email); if (!yo || (!yo.principal && adminsOp_().some(a => a.principal))) return { ok: false, error: 'solo admin principal' };
-  const filas = opFilas_('', 3000), ult = {}, n = {};
-  filas.forEach(m => { ult[m.usuario] = m; n[m.usuario] = (n[m.usuario] || 0) + 1; });
-  const lista = adminsOp_().map(a => ({ email: a.email, nombre: a.nombre, principal: a.principal, tieneWA: a.tels.length > 0, ultimo: ult[a.email] || null, total: n[a.email] || 0 }));
-  Object.keys(ult).forEach(e => { if (!lista.some(x => x.email === e)) lista.push({ email: e, nombre: ult[e].nombre, principal: false, tieneWA: false, ultimo: ult[e], total: n[e] }); });
-  lista.sort((a, b) => String(b.ultimo ? b.ultimo.ts : '').localeCompare(String(a.ultimo ? a.ultimo.ts : '')));
-  return { ok: true, lista: lista };
-}
+/* opHilo, opEnviar y opLista viven en chat.js (chatHilo_, chatEnviar_, chatLista_): toman a la persona de la sesión. */
 /* Hilo operativo con la forma del hilo de huéspedes: ALMA a la izquierda (tipo guest), el administrador a la derecha (tipo host). */
-function opHiloHub_(email) {
-  const adm = adminPorEmail_(email), filas = opFilas_(String(email || '').toLowerCase(), 300);
+/* filtro = { esfera, subcategoria } opcional (p. ej. solo Propósito · Desarrollo para las apps viejas). */
+function opHiloHub_(email, filtro) {
+  const adm = adminPorEmail_(email), fe = filtro && filtro.esfera, fs = filtro && filtro.subcategoria;
+  const filas = opFilas_(String(email || '').toLowerCase(), 3000).filter(m => (!fe || (m.esfera || 'Propósito') === fe) && (!fs || m.subcategoria === fs)).slice(-300);
   const ICON = { tarea: 'Tarea creada', hecha: 'Tarea cerrada', comentario: 'Comentario', epi: 'Agendado en Epi', nota: 'Nota guardada' };
   const out = filas.map(m => ({ tipo: m.de === 'alma' ? 'guest' : 'host', auto: false, alma: false, nombre: m.de === 'alma' ? 'ALMA' : (adm ? adm.nombre : ''), canal: m.canal === 'whatsapp' ? 'whatsapp' : 'hospitable',
     texto: m.texto + ((m.acciones || []).length ? '\n\n' + m.acciones.map(a => '· ' + (a.error ? 'No se pudo · ' : (ICON[a.tipo] || 'Hecho') + ' · ') + a.resumen + (a.error ? ' (' + a.error + ')' : '')).join('\n') : ''),
-    created: m.ts, fotos: [] }));
+    created: m.ts, fotos: [], esfera: m.esfera, subcategoria: m.subcategoria }));
   if (!out.length) {
     const n = adm ? String(adm.nombre || '').split(' ')[0] : '';
     out.push({ tipo: 'guest', auto: false, nombre: 'ALMA', canal: 'hospitable', created: new Date().toISOString(), fotos: [],

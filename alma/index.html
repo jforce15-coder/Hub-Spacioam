@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../ds/tokens/fonts.css">
 <link rel="stylesheet" href="../ds/tokens/colors.css">
 <link rel="stylesheet" href="../ds/tokens/typography.css">
-<link rel="stylesheet" href="../ds/chat.css?v=2026-11-12a">
+<link rel="stylesheet" href="../ds/chat.css?v=2026-11-15a">
 <!-- «Alma aquí»: Alma sola, abierta desde cualquier página con el atajo de Compartir o el marcador
      (instalar.html). Recibe qué estaba viendo la persona (?t=título&sel=texto&desde=<url>, desde al final)
      y se lo pasa a Alma como contexto, en el chat y en la voz. -->
@@ -20,15 +20,19 @@
   body { margin: 0; background: #FFFFFF; color: #222222; font-family: "Montserrat", var(--font-sans, -apple-system, system-ui, sans-serif);
     min-height: 100dvh; display: flex; flex-direction: column; }
   header { padding: max(14px, env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid #EEEEEE; background: #FFFFFF; }
+  /* El hilo ocupa lo que queda: encabezado y fila de esferas arriba, el cuadro abajo (sin que se vaya la página). */
+  body { height: 100dvh; }
+  header, footer { flex: none; }
   .tit { display: flex; align-items: center; gap: 10px; }
   .tit .sa-chat-avatar { width: 32px; height: 32px; }
+  .tit .sa-chat-avatar-w { margin-right: 8px; }   /* la insignia con el total no toca el nombre */
   h1 { font-family: "Montserrat", var(--font-sans, system-ui, sans-serif); font-weight: 600; font-size: 16px; margin: 0; color: #222222; }
   .viendo { margin-top: 8px; font-size: 12.5px; color: #8A8A8A; overflow-wrap: anywhere; }
   .viendo a { color: inherit; }
   .sel { margin-top: 6px; font-size: 13px; padding: 6px 10px; border-left: 3px solid var(--accent, #B54D36); background: var(--bg-alt, #efe9e0); border-radius: 4px; max-height: 5.5em; overflow: auto; }
   .captura { margin-top: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fg-muted, #6f6867); }
   .captura img { width: 54px; height: 96px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--border-soft, #e4ded5); flex: none; }
-  main { flex: 1; overflow-y: auto; padding: 16px; }
+  main { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; }
   /* El nuevo chat (#304), el mismo cuadro de la app y del Hub (ds/chat.css): vacío, cuadro · micrófono · roca; con texto, «+» · cuadro · enviar · roca.
      Cuadro con borde fino (radio 21, Montserrat 15/20; 16 en iPhone). Enter salta de línea. */
   footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: #FFFFFF; border-top: 1px solid #EEEEEE; }
@@ -54,12 +58,13 @@
 </head>
 <body>
 <header>
-  <div class="tit"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><h1>Alma</h1></div>
+  <div class="tit"><span class="sa-chat-avatar-w"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><i class="sa-chat-total" id="total" hidden></i></span><h1>Alma</h1></div>
   <div class="viendo" id="viendo">Abierta sin página de origen.</div>
   <div class="sel" id="sel" hidden></div>
   <div class="captura" id="captura" hidden></div>
 </header>
-<main id="hilo"><div class="sa-esq" aria-label="Cargando la conversación" style="width: 100%"><i class="b"></i><i class="b yo"></i><i class="b"></i></div></main>
+<div class="sa-chat-esferas" id="esferas" hidden></div>
+<main id="hilo"></main>
 <footer id="pie" class="sa-chat-pie" data-lleno="0">
   <button id="mas" class="sa-chat-mas" type="button" aria-label="Plantillas" title="Plantillas"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
   <div class="caja" id="caja"><textarea id="txt" rows="1" placeholder="Escríbele a Alma…" enterkeyhint="enter" aria-label="Mensaje para Alma"></textarea></div>
@@ -68,11 +73,11 @@
   <div class="rocaw"><span class="tip" aria-hidden="true">Mejorar</span><button id="roca" class="sa-chat-roca" type="button" data-sa-dock="1" aria-label="Alma" title="Un toque: mejorar · dos toques: hablar con Alma"><svg width="18" height="18" viewBox="0 0 24 24" fill="#E9826A" aria-hidden="true"><path d="M12 2.5c.7 4.7 2.8 6.8 7.5 7.5-4.7.7-6.8 2.8-7.5 7.5-.7-4.7-2.8-6.8-7.5-7.5 4.7-.7 6.8-2.8 7.5-7.5z"/></svg></button></div>
 </footer>
 <script src="../js/sa-auth-client.js"></script>
-<script src="../js/alma-client.js"></script>
+<script src="../js/alma-client.js?v=2026-11-15a"></script>
 <script src="../js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="../js/sa-nav.js?v=2026-11-14a"></script>
-<script src="../js/alma-voz.js?v=2026-11-12a"></script>
-<script src="../js/sa-chat.js?v=2026-11-11b"></script>
+<script src="../js/sa-nav.js?v=2026-11-15d"></script>
+<script src="../js/alma-voz.js?v=2026-11-15d"></script>
+<script src="../js/sa-chat.js?v=2026-11-15c"></script>
 <script>
 (function () {
   "use strict";
@@ -120,36 +125,30 @@
     }, function () { t.textContent = "No pude leer la captura."; });
   };
 
-  /* El hilo con el estilo A (js/sa-chat.js): burbujas agrupadas, tarjeta de acción con las opciones de Alma (al tocar una
-     se envía como tu mensaje), filas con «›» para reservas y enlaces, y «pensando» mientras responde. */
-  var hilo = SAChat.pintor($("hilo"), { alElegir: function (t) { enviarTexto(t); } });
-  /* Sin las etiquetas de voz ([risa]); conserva los saltos de línea (las opciones vienen en lista) y [[opciones]]. */
-  var limpio = function (t) { return String(t || "").replace(/\[(?!\[)[^\[\]\n]{1,40}\](?!\])/g, "").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim(); };
-  var tiempo = function (m) { var t = Date.parse(m && m.ts || ""); return isNaN(t) ? 0 : t; };
-  var listo = false, notaVacia = null;
-  /* Lo primero que llega (la historia o lo que escribes) quita el esqueleto; la nota de bienvenida se va con tu primer mensaje. */
-  function empezar() { if (!listo) { listo = true; hilo.vaciar(); } if (notaVacia) { notaVacia.remove(); notaVacia = null; } }
-  ALMA.opHilo(yo, "").then(function (r) { pintaHistoria(((r && r.mensajes) || []).slice(-30)); }, function () { pintaHistoria([]); });
-  function pintaHistoria(lista) {
-    if (listo) return;   // ya escribiste algo: no se borra lo que está en pantalla
-    listo = true; hilo.vaciar();
-    if (!lista.length) notaVacia = hilo.nota(desde ? "Pregúntale lo que quieras sobre esta página." : "Escríbele a Alma o tócale el micrófono.");
-    lista.forEach(function (m) { if (m.de === "yo") hilo.yo(m.texto, tiempo(m)); else hilo.alma(limpio(m.texto), tiempo(m)); });
-  }
+  /* Chat único con Alma (#334): el mismo chat de la app y del Hub, guardado en vivo (js/sa-chat.js, SAChat.unico).
+     Abre limpio con su saludo y «Cargar historial» arriba; la fila de esferas filtra; la insignia junto a Alma es el total.
+     Tarjeta de acción con las opciones de Alma (al tocar una se envía como tu mensaje), filas con «›» y «pensando». */
+  var hilo = SAChat.unico({ hilo: $("hilo"), fila: $("esferas"), insignia: $("total"),
+    saludo: desde ? "Pregúntale lo que quieras sobre esta página." : "Escríbele a Alma o tócale el micrófono.",
+    api: { hilo: function (q) { return ALMA.opHilo(q); }, enviar: function (t) { return ALMA.opEnviar({ texto: t, canal: "app" }); } },
+    alElegir: function (t) { enviarTexto(t); },
+    alEnviar: function () { $("enviar").disabled = true; }, alResponder: function () { $("enviar").disabled = false; } });
+  /* ?esfera=Finanzas: abre el chat ya filtrado en esa esfera y la pide al servidor («Abrir el chat» de una pregunta
+     sin responder en Pendientes). */
+  var esferaUrl = (p.get("esfera") || "").slice(0, 40);
+  if (esferaUrl && SAChat.esfera(esferaUrl)) hilo.filtro(esferaUrl, true);
 
   function enviar() {
     var t = $("txt").value.trim(); if (!t) return;
     $("txt").value = ""; crecer(); enviarTexto(t);
   }
-  /* Tu mensaje sale al instante con «pensando»; si la captura aún se está leyendo, espera a tenerla para mandarlo. */
-  function enviarTexto(t, yaPintado) {
-    if (!yaPintado) { empezar(); hilo.yo(t); hilo.pensando(true); }
-    if (capturaP && !captura) { $("enviar").disabled = true; capturaP.then(function () { capturaP = null; enviarTexto(t, true); }); return; }
+  /* Tu mensaje sale al instante con «pensando»; si la captura aún se está leyendo, espera a tenerla para mandarlo.
+     El contexto de la página (y de la captura) va solo en el primero, sin pintarse. */
+  function enviarTexto(t, m) {
+    if (!m) { m = hilo.yo(t); if (!m) return; }
+    if (capturaP && !captura) { hilo.pensando(true); $("enviar").disabled = true; capturaP.then(function () { capturaP = null; enviarTexto(t, m); }); return; }
     var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
-    $("enviar").disabled = true;
-    ALMA.opEnviar(yo, texto).then(function (r) {
-      hilo.alma(r && r.ok && r.alma ? limpio(r.alma.texto) : "No pude responder ahora (" + ((r && r.error) || "sin conexión") + "). Intenta de nuevo.");
-    }, function () { hilo.alma("No pude responder ahora (sin conexión). Intenta de nuevo."); }).finally(function () { $("enviar").disabled = false; });
+    hilo.mandar(m, texto);
   }
   $("enviar").onclick = enviar;   // solo el botón envía: Enter salta de línea (el nuevo chat, #304)
 
@@ -181,7 +180,7 @@
     if (abriendo) return; abriendo = true;
     voz.start({
       status: function (s) { $("roca").title = s; },
-      message: function (src, t) { empezar(); if (src === "ai") hilo.alma(t); else hilo.yo(t); },
+      message: function (src, t) { hilo.voz(src === "ai" ? "alma" : "yo", t); },
       ended: function () { llamada = null; $("roca").classList.remove("vivo"); $("roca").title = "Un toque: mejorar · dos toques: hablar con Alma"; },
       error: function (m) { hilo.pensando(false); hilo.nota(m); }
     }).then(function (c) { llamada = c; $("roca").classList.add("vivo"); },

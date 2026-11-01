@@ -325,10 +325,10 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-11-09b"></script>
-<script src="../js/alma-voz.js?v=2026-11-12a"></script>
+<script src="../js/alma-client.js?v=2026-11-15a"></script>
+<script src="../js/alma-voz.js?v=2026-11-15d"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-14a"></script>
+<script src="../js/sa-nav.js?v=2026-11-15d"></script>
 <script>
 (function () {
   "use strict";
@@ -816,7 +816,7 @@
           end: function (auto) { VN.h = null; if (!auto) nativa({ accion: "voz", que: "colgar" }); },   // auto: la página se cerró sola, no cuelga la llamada que sigue en la app
           level: function () { return VN.nivel; },
           sendText: function (t) { nativa({ accion: "voz", que: "texto", texto: t }); },
-          chat: function (on) { nativa({ accion: "voz", que: "mudo", on: !!on }); if (!on) h.status("Te escucho"); },
+          chat: function (on) { nativa({ accion: "voz", que: "sinvoz", on: !!on }); if (!on) h.status("Te escucho"); },   // modo chat: la app sigue oyendo, Alma no suena (app nativa, sinvoz)
           mute: function (on) { nativa({ accion: "voz", que: "mudo", on: !!on }); }
         });
       }

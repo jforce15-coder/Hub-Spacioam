@@ -33,17 +33,17 @@
 <link rel="stylesheet" href="ds/styles.css">
 <link rel="stylesheet" href="ds/esqueleto.css">
 <link rel="stylesheet" href="ds/movimiento.css">
-<link rel="stylesheet" href="ds/chat.css?v=2026-11-12a">
+<link rel="stylesheet" href="ds/chat.css?v=2026-11-15a">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-14a"></script>
-<script src="js/alma-voz.js?v=2026-11-12a"></script>
+<script src="js/sa-nav.js?v=2026-11-15d"></script>
+<script src="js/alma-voz.js?v=2026-11-15d"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-11-09b"></script>
+<script src="js/alma-client.js?v=2026-11-15a"></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="js/sa-chat.js?v=2026-11-11b"></script>
+<script src="js/sa-chat.js?v=2026-11-15c"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -1417,7 +1417,7 @@
             </sc-for></sc-if>
           </div>
           <span style="position:absolute; right:4%; bottom:4%; width:18px; height:18px; border-radius:50%; border:3px solid #FAFAFA; box-sizing:border-box; background: {{ almaDotBg }}; box-shadow:0 1px 2px rgba(62,63,63,.2)"></span>
-          <button onClick="{{ opTapFoto }}" aria-label="Chat operativo con ALMA" title="Toca para tu chat con ALMA · mantén presionado para el control" style="position:absolute; inset:0; padding:0; border:none; border-radius:50%; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="background:rgba(62,63,63,.12)"></button>
+          <button onClick="{{ opTapFoto }}" aria-label="Chat con Alma" title="Toca para tu chat con Alma · mantén presionado para el control" style="position:absolute; inset:0; padding:0; border:none; border-radius:50%; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="background:rgba(62,63,63,.12)"></button>
         </div>
         <button onClick="{{ ctrlToggleAbierto }}" aria-label="Centro de control de ALMA" style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0; border:none; background:transparent; padding:0; font-family:inherit; text-align:left; cursor:pointer; color:#3E3F3F; -webkit-tap-highlight-color:transparent" style-active="opacity:.6">
           <span class="alma-nombre" style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(32px,5vw,42px); line-height:1">ALMA</span>
@@ -1797,7 +1797,9 @@
 
               <div class="sa-conv-head {{ c.headClase }}" style="display:flex; flex-direction:column; gap:8px; padding:8px 12px 10px; border-bottom:1px solid #EEEEEE; box-shadow:none; position:relative; z-index:2; flex-shrink:0; background:#FFFFFF">
                 <div style="display:flex; align-items:center; gap:10px; min-width:0">
-                  <span class="sa-head-av" style="width:36px; height:36px; margin:2px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 3.5px {{ c.color }}">{{ c.iniciales }}</span>
+                  <sc-if value="{{ c.noOpChat }}" hint-placeholder-val="{{ true }}"><span class="sa-head-av" style="width:36px; height:36px; margin:2px; border-radius:50%; flex-shrink:0; display:grid; place-items:center; background:rgba(233,130,106,.22); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 3.5px {{ c.color }}">{{ c.iniciales }}</span></sc-if>
+                  <!-- Chat con Alma (#334): Alma con la insignia del total de mensajes, como en la app. -->
+                  <sc-if value="{{ c.opChat }}" hint-placeholder-val="{{ false }}"><span class="sa-head-av sa-chat-avatar-w" style="margin:2px 10px 2px 2px"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true" style="width:36px; height:36px"></span><sc-if value="{{ c.opTotalHay }}" hint-placeholder-val="{{ false }}"><i class="sa-chat-total" aria-label="{{ c.opTotalAria }}">{{ c.opTotal }}</i></sc-if></span></sc-if>
                   <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
                     <div style="display:flex; align-items:center; gap:6px; min-width:0">
                       <span style="font-size:16px; font-weight:600; letter-spacing:-.01em; color:#3E3F3F; line-height:1.2; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ c.huesped }}</span>
@@ -1856,6 +1858,8 @@
                 </sc-if>
               </div>
 
+              <!-- Chat con Alma (#334): la fila de esferas (ícono, color y cuántos mensajes) filtra el hilo; la pinta SAChat.filaEsferas. -->
+              <sc-if value="{{ c.opEsfHay }}" hint-placeholder-val="{{ false }}"><div ref="{{ c.opEsfRef }}" data-op-esferas="{{ c.resId }}" class="sa-chat-esferas"></div></sc-if>
               <sc-if value="{{ c.progAbierto }}" hint-placeholder-val="{{ false }}">
                   <div data-alma-scroll="1" style="flex-shrink:0; max-height:42%; overflow-y:auto; border-bottom:1px solid #EAE6E0; background:#F5F3F0; padding:10px 14px; display:flex; flex-direction:column; gap:8px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards">
                     <span style="font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">Programados en Hospitable</span>
@@ -1930,6 +1934,8 @@
                     <sc-if value="{{ c.hiloReintentable }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.hiloReintentar }}" style="align-self:center; min-height:40px; padding:0 16px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1), transform .1s" style-hover="border-color:#3E3F3F" style-active="transform:scale(.97)">Reintentar</button></sc-if>
                   </sc-if>
                   <sc-if value="{{ c.hayHiloLista }}" hint-placeholder-val="{{ false }}"><span style="align-self:center; font-size:10px; letter-spacing:.06em; color:#6F6867">Mantén presionado un mensaje para ver su análisis</span></sc-if>
+                  <sc-if value="{{ c.opPildoraHay }}" hint-placeholder-val="{{ false }}"><button type="button" class="sa-chat-pildora" data-a="op-historial" onClick="{{ c.opPildora }}" disabled="{{ c.opPildoraBusy }}" aria-busy="{{ c.opPildoraBusy }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg><span>{{ c.opPildoraTxt }}</span></button></sc-if>
+                  <sc-if value="{{ c.opVacio }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-nota">{{ c.opVacioTxt }}</span></sc-if>
                   <sc-if value="{{ c.hayAnteriores }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.verAnteriores }}" style="align-self:center; display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#6F6867; font-family:inherit; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:border-color .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; color:#3E3F3F" style-active="transform:scale(.97)">{{ c.anterioresTxt }}</button></sc-if>
                   <sc-for list="{{ c.hilo }}" as="m" hint-placeholder-count="0">
                     <sc-if value="{{ m.esHito }}" hint-placeholder-val="{{ false }}">
@@ -1946,9 +1952,9 @@
                     <sc-if value="{{ m.noHito }}" hint-placeholder-val="{{ true }}">
                     <div class="sa-chat-msg {{ m.ladoClase }}" style="animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) backwards; margin-top: {{ m.gapTop }}">
                       <sc-if value="{{ m.diaHay }}" hint-placeholder-val="{{ false }}"><span role="separator" style="align-self:center; margin:8px 0 6px; padding:4px 12px; border-radius:999px; background:#F3F3F3; font-size:10.5px; font-weight:500; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ m.dia }}</span></sc-if>
-                      <sc-if value="{{ m.etiquetaHay }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-etiqueta">{{ m.etiqueta }}</span></sc-if>
+                      <sc-if value="{{ m.etiquetaHay }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-etiqueta">{{ m.etiqueta }}<sc-if value="{{ m.esfHay }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-etiqueta-esfera" style="color: {{ m.esfTinta }}">{{ m.esfTxt }}</span></sc-if>{{ m.etiquetaFin }}</span></sc-if>
                       <div class="sa-chat-fila">
-                        <sc-if value="{{ m.esOtro }}" hint-placeholder-val="{{ true }}"><span class="sa-chat-slot"><sc-if value="{{ m.avatarHay }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-avatar {{ m.avatarClase }}" aria-hidden="true">{{ m.avatarIni }}</span></sc-if></span></sc-if>
+                        <sc-if value="{{ m.esOtro }}" hint-placeholder-val="{{ true }}"><span class="sa-chat-slot"><sc-if value="{{ m.avatarHay }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-avatar {{ m.avatarClase }}" aria-hidden="true">{{ m.avatarIni }}</span><sc-if value="{{ m.esfHay }}" hint-placeholder-val="{{ false }}"><i class="sa-chat-esf-punto" aria-hidden="true" style="background: {{ m.esfColor }}"></i></sc-if></sc-if></span></sc-if>
                         <div class="sa-chat-cuerpo">
                           <sc-if value="{{ m.hayTexto }}" hint-placeholder-val="{{ true }}"><div class="sa-chat-burbuja {{ m.burbujaClase }}" onPointerDown="{{ m.lpDown }}" onPointerMove="{{ m.lpMove }}" onPointerUp="{{ m.lpUp }}" onPointerCancel="{{ m.lpUp }}" onPointerLeave="{{ m.lpUp }}" onContextMenu="{{ m.lpMenu }}" style="-webkit-touch-callout:none; -webkit-user-select:none; user-select:none">{{ m.texto }}<sc-if value="{{ m.plegable }}" hint-placeholder-val="{{ false }}"><button class="sa-chat-vermas" onClick="{{ m.toggleVer }}">{{ m.verMasTxt }}</button></sc-if></div></sc-if>
                           <sc-if value="{{ m.hayFotos }}" hint-placeholder-val="{{ false }}">
@@ -3539,7 +3545,7 @@ class Component extends DCLogic {
     mVista: "resumen", selG: null, abrirPend: null, razon: null,
     convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, decLocal: {}, optim: {}, pieVer: {}, logVoto: {}, logResp: "Todas", convOrden: null, convSolo: "", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
     versionNueva: false, progEdit: {}, progConfirm: "", masMenu: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
-    opAbierto: false, opModo: "chat", opDe: "", opHilos: {}, opLista: null, opCargando: false, opPensando: false, opTexto: "", opErr: "",
+    opAbierto: false, opModo: "chat", opDe: "", opHilos: {}, opLista: null, opCargando: false, opPensando: false, opTexto: "", opErr: "", opFiltro: {}, opMas: {},
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
     resMan: (function () { try { return JSON.parse(localStorage.getItem("sa_alma_resman") || "{}"); } catch (e) { return {}; } })(),
     kbAbierto: null, kbEdit: {}, kbBusy: null, kbNota: "", kbNuevo: false, kbNuevoTema: "", kbNuevoAplica: "*", kbNuevoContenido: "",
@@ -3586,6 +3592,9 @@ class Component extends DCLogic {
   }
   guardarHilo(rid, lista) {
     this._hiloFresco[rid] = Date.now();
+    /* Chat con Alma (#334): lleva su página (conteo por esfera, si hay más atrás). Si el sondeo trae lo mismo, no se repinta. */
+    var opM = String(rid).indexOf("op:") === 0 && this._opMeta ? this._opMeta[rid] : null, opSig = opM ? this.opFirma(lista, opM) : "";
+    if (opM) { var yaOp = this.state.almaHilos[rid]; if (yaOp && !yaOp.cache && yaOp.opSig === opSig) return; }
     /* Los hitos (cambios de reserva) viajan aparte: no cuentan como mensajes para pendientes ni resúmenes. */
     var hitos = (lista || []).filter(function (m) { return m && m.tipo === "hito"; });
     /* La decisión del equipo (#325, apps-script/decisiones.js) también viaja aparte: no es un mensaje. */
@@ -3594,6 +3603,7 @@ class Component extends DCLogic {
     /* En memoria solo los 60 hilos más recientes (antes crecía sin límite y el iPhone terminaba cerrando la app). */
     this.setState(function (s) {
       var n = Object.assign({}, s.almaHilos); n[rid] = { lista: lista, hitos: hitos, decision: dec, ts: Date.now() };
+      if (opM) { n[rid].op = opM; n[rid].opSig = opSig; }
       var ks = Object.keys(n); if (ks.length > 60) ks.sort(function (x, y) { return ((n[y] && n[y].ts) || 0) - ((n[x] && n[x].ts) || 0); }).slice(60).forEach(function (k) { delete n[k]; });
       return { almaHilos: n };
     });
@@ -3616,7 +3626,7 @@ class Component extends DCLogic {
     var self = this, rid = this._hiloCola.shift(), intento = 0;
     this._hiloOcupado = true;
     var pedir = function () {
-      ALMA.hilo(rid).then(function (res) {
+      self.hiloPedir(rid).then(function (res) {
         if (res && res.ok) { self.guardarHilo(rid, res.hilo); } else if (intento++ < 1) { return setTimeout(pedir, 1500); }
         else { delete self._hiloPre[rid]; }
         delete self._hiloPre[rid]; self._hiloOcupado = false; setTimeout(function () { self.hiloPrefetch(); }, 400);
@@ -3744,7 +3754,7 @@ class Component extends DCLogic {
     var self = this; if (!rid || !window.ALMA || !ALMA.hilo) return Promise.resolve(0);
     this._hiloFresco[rid] = Date.now();
     var antes = ((this.state.almaHilos[rid] || {}).lista || []).length;
-    return ALMA.hilo(rid).then(function (r) {
+    return this.hiloPedir(rid).then(function (r) {
       if (!(r && r.ok && (r.hilo || []).length)) return 0;
       self.guardarHilo(rid, r.hilo);
       return Math.max(0, r.hilo.filter(function (m) { return m && m.tipo !== "hito" && m.tipo !== "decision"; }).length - antes);
@@ -3838,9 +3848,16 @@ class Component extends DCLogic {
     };
     document.addEventListener("keydown", this._atajos);
     /* ?conv=<conversación> o ?conv=<código de reserva HM…> (las filas «›» del chat de la roca, #317). */
-    var irConv = function (k) { if (/^HM[A-Z0-9]{8}$/i.test(k)) self.irAReserva(k); else self.irAConv(k); };
-    var convLink = this.convDeUrl(location.href); if (convLink) setTimeout(function () { irConv(convLink); }, 0);
-    window.addEventListener("sa-push-click", function (e) { var k = self.convDeUrl((e && e.detail) || ""); if (k) irConv(k); });
+    /* ?conv=op:<correo>&esfera=Finanzas: el Chat con Alma ya filtrado en esa esfera (una pregunta sin responder, #334). */
+    var irConv = function (k, esf) {
+      if (/^HM[A-Z0-9]{8}$/i.test(k)) { self.irAReserva(k); return; }
+      var z = esf && /^op:/.test(k) && window.SAChat ? SAChat.esfera(esf) : null;
+      if (z) self.setState(function (s) { var o = Object.assign({}, s.opFiltro); o[k] = z.n; return { opFiltro: o }; });
+      self.irAConv(k);
+    };
+    var esfDeUrl = function (u) { try { return new URL(u, location.href).searchParams.get("esfera") || ""; } catch (e) { return ""; } };
+    var convLink = this.convDeUrl(location.href), esfLink = esfDeUrl(location.href); if (convLink) setTimeout(function () { irConv(convLink, esfLink); }, 0);
+    window.addEventListener("sa-push-click", function (e) { var u = (e && e.detail) || "", k = self.convDeUrl(u); if (k) irConv(k, esfDeUrl(u)); });
     /* Cualquier enlace a epi / hola / mi / grow lleva la sesión, para no volver a iniciar sesión. */
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;
@@ -5075,7 +5092,7 @@ class Component extends DCLogic {
           bEl.style.opacity = "1";
           nota.style.display = r.plantilla ? "block" : "none";
           nota.textContent = r.plantilla ? "Pasaron más de 24 h desde su último mensaje: se envió la plantilla para retomar la conversación. Tu mensaje queda guardado." : "";
-          ALMA.hilo(o.resId).then(function (h) { if (h && h.ok) self.guardarHilo(o.resId, h.hilo); });
+          self.hiloPedir(o.resId).then(function (h) { if (h && h.ok) self.guardarHilo(o.resId, h.hilo); });
         }, function () { quitar("Sin conexión. Tu texto volvió al editor."); });
       };
       caja.appendChild(ta);
@@ -5363,12 +5380,14 @@ class Component extends DCLogic {
     ALMA.reservaInfo(resId).then(function (r) { if (r && r.ok) put({ data: r }); else put({ error: (r && r.error) || "No se pudo leer la reserva en Hospitable." }); })
       .catch(function () { put({ error: "Sin conexión. Intenta de nuevo." }); });
   }
-  hiloMas(key, total) {
-    var self = this, cur = (this.state.hiloVer || {})[key] || 30;
+  /* vk: la clave de cuántos se ven (por defecto la del chat; el chat con Alma filtrado lleva la suya, «clave|esfera»). */
+  hiloMas(key, total, vk) {
+    vk = vk || key;
+    var self = this, cur = (this.state.hiloVer || {})[vk] || 30;
     if (this._hmBusy || cur >= total) return;
     var el = document.querySelector('[data-alma-chat][data-conv="' + key + '"]'), h0 = el ? el.scrollHeight : 0, t0 = el ? el.scrollTop : 0;
     this._hmBusy = true;
-    this.setState(function (s) { var o = Object.assign({}, s.hiloVer); o[key] = cur + 30; return { hiloVer: o }; }, function () {
+    this.setState(function (s) { var o = Object.assign({}, s.hiloVer); o[vk] = cur + 30; return { hiloVer: o }; }, function () {
       requestAnimationFrame(function () { if (el) el.scrollTop = t0 + (el.scrollHeight - h0); setTimeout(function () { self._hmBusy = false; }, 120); });
     });
   }
@@ -5710,7 +5729,7 @@ class Component extends DCLogic {
   quienSoy() {
     try { var s = window.SA && SA.session ? SA.session() : null; return (s && (s.nombre || s.email)) || ""; } catch (e) { return ""; }
   }
-  /* ── Chat operativo: un chat por administrador con ALMA (WhatsApp + hub). Solo el admin principal ve los de los demás. ── */
+  /* ── Chat con Alma: un chat por persona (Hub, app, WhatsApp y llamadas). Solo el admin principal ve los de los demás. ── */
   opEmail() { try { var s = window.SA && SA.session ? SA.session() : null; return String((s && s.email) || this.props.correoAdmin || "").trim().toLowerCase(); } catch (e) { return String(this.props.correoAdmin || "").trim().toLowerCase(); } }
   opApi() { return !!(window.ALMA && ALMA.hasApi && ALMA.hasApi() && ALMA.opHilo); }
   opAbrir(modo, de) {
@@ -5729,7 +5748,7 @@ class Component extends DCLogic {
       .catch(function () { self.setState({ opCargando: false, opErr: "Sin conexión con ALMA." }); });
   }
   opCargarHilo(who, silencioso) {
-    var self = this; if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para usar el chat operativo." }); return; }
+    var self = this; if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para usar el chat con Alma." }); return; }
     if (!silencioso) this.setState({ opCargando: true });
     ALMA.opHilo(this.opEmail(), who).then(function (r) {
       if (!r || !r.ok) { self.setState({ opCargando: false, opErr: (r && r.error) === "usuario" ? "Tu correo no está en Control de usuarios." : (r && r.error) || "No se pudo leer el chat." }); return; }
@@ -5742,7 +5761,7 @@ class Component extends DCLogic {
   opEnviar(txt) {
     var self = this, texto = String(txt != null ? txt : this.state.opTexto || "").trim(), yo = this.opEmail();
     if (!texto || this.state.opPensando) return;
-    if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para usar el chat operativo." }); return; }
+    if (!this.opApi()) { this.setState({ opErr: "Conecta ALMA (Apps Script) para usar el chat con Alma." }); return; }
     var tmp = { id: "tmp" + Date.now(), de: "yo", canal: "hub", texto: texto, ts: new Date().toISOString(), acciones: [], _pend: true };
     var put = function (fn) { self.setState(function (s) { var o = Object.assign({}, s.opHilos), h = Object.assign({ mensajes: [] }, o[yo]); h.mensajes = fn(h.mensajes || []); o[yo] = h; return { opHilos: o }; }, function () { self.opBajar(); }); };
     if (this._opTa) { this._opTa.value = ""; this._opTa.style.height = ""; }
@@ -5758,20 +5777,150 @@ class Component extends DCLogic {
     });
   }
   opInboxRows(esPrincipal) {
-    var yo = this.opEmail(), lista = (this.state.opLista || []).filter(function (u) { return esPrincipal || u.email === yo; });
+    /* Un chat con Alma por persona; ya no hay fila «Desarrollo» (va dentro del chat como Propósito · Desarrollo). */
+    var yo = this.opEmail(), lista = (this.state.opLista || []).filter(function (u) { return u.email && u.email !== "desarrollo" && (esPrincipal || u.email === yo); });
     if (!lista.some(function (u) { return u.email === yo; }) && yo) lista = [{ email: yo, nombre: this.quienSoy() || yo, ultimo: null }].concat(lista);
     var lim = Date.now() - ((this.state.convDias || 2) * 86400000) + 60000;
     return lista.map(function (u) {
       var ul = u.ultimo, ts = ul && Date.parse(ul.ts) ? Math.max(Date.parse(ul.ts), lim) : Date.now() - 60000, iso = new Date(ts).toISOString(), mio = u.email === yo;
-      return { conv_id: "op:" + u.email, huesped: mio ? "ALMA" : "ALMA · " + String(u.nombre || u.email).split(" ")[0], propiedad: mio ? "Chat operativo · tú" : "Chat operativo · " + (u.nombre || u.email),
+      return { conv_id: "op:" + u.email, huesped: mio ? "Alma" : "Alma · " + String(u.nombre || u.email).split(" ")[0], propiedad: mio ? "Chat con Alma · tú" : "Chat con Alma · " + (u.nombre || u.email),
         tipo: "operativo", ultimo_texto: ul ? String(ul.texto || "").slice(0, 300) : "¿En qué te ayudo?", ultimo_de: "host", ultimo_ts: iso, ultimo_host_ts: iso, canal: "", codigo: "" };
     });
   }
   opRefrescar(esPrincipal, forzar) {
     var self = this, yo = this.opEmail(); if (!yo || !this.opApi()) return;
     if (!forzar && this._opRefTs && Date.now() - this._opRefTs < 60000) return; this._opRefTs = Date.now();
-    if (esPrincipal && ALMA.opLista) ALMA.opLista(yo).then(function (r) { if (r && r.ok) self.setState({ opLista: r.lista || [] }); }).catch(function () {});
-    else ALMA.opHilo(yo, yo).then(function (r) { if (r && r.ok) { var m = (r.mensajes || []), ul = m[m.length - 1] || null; self.setState({ opLista: [{ email: yo, nombre: r.nombre, ultimo: ul }] }); } }).catch(function () {});
+    if (esPrincipal && ALMA.opLista) ALMA.opLista(yo).then(function (r) { if (!(r && r.ok)) return; var L = r.lista || [], f = function (l) { return (l || []).map(function (u) { return u.email + ":" + ((u.ultimo && (u.ultimo.id || u.ultimo.ts)) || ""); }).join(","); }; if (self.state.opLista && f(self.state.opLista) === f(L)) return; self.setState({ opLista: L }); }).catch(function () {});
+    else ALMA.opHilo({ n: 1 }).then(function (r) { if (r && r.ok) { var m = (r.mensajes || []), ul = m[m.length - 1] || null, a = (self.state.opLista || [])[0]; if (a && a.email === yo && ((a.ultimo && a.ultimo.id) || "") === ((ul && ul.id) || "")) return; self.setState({ opLista: [{ email: yo, nombre: r.nombre, ultimo: ul }] }); } }).catch(function () {});
+  }
+  /* ── Chat con Alma en el Hub (#334): un solo chat por persona. Se pide con opHilo (la sesión dice quién eres; «de» solo
+     sirve al principal): la última página (40) llega sola —el Hub es el escritorio—; «Cargar historial» arriba trae la
+     anterior con «antes». La fila de esferas filtra; con un filtro, el historial se pide de esa esfera. ── */
+  hiloPedir(rid) {
+    if (String(rid || "").indexOf("op:") !== 0 || !ALMA.opHilo) return ALMA.hilo(rid);
+    var self = this;
+    return ALMA.opHilo(this.opParams(rid, { n: 40 })).then(function (r) {
+      if (!(r && r.ok)) return r;
+      var nuevos = self.opAHub(r.mensajes || [], r.nombre), ya = self.state.almaHilos[rid], yaOp = ya && !ya.cache && ya.op;
+      var meta = { conteo: r.conteo || (yaOp && yaOp.conteo) || null, hayMas: !!r.hayMas, antes: r.antes || "", historial: false, esf: (yaOp && yaOp.esf) || {} };
+      var lista = nuevos;
+      /* Si ya cargaste historial, lo de antes de esta página se queda (y su «hay más»). */
+      if (yaOp && yaOp.historial && (r.mensajes || []).length) {
+        var t0 = Date.parse(nuevos[0].created) || 0, viejos = (ya.lista || []).filter(function (m) { return (Date.parse(m.created) || 0) < t0; });
+        if (viejos.length) { lista = viejos.concat(nuevos); meta.hayMas = yaOp.hayMas; meta.antes = yaOp.antes; meta.historial = true; }
+      }
+      (self._opMeta = self._opMeta || {})[rid] = meta;
+      return { ok: true, hilo: lista };
+    });
+  }
+  /* «de» solo cuando es el chat de otra persona (el principal mirando). */
+  opParams(rid, q) { var de = String(rid).slice(3); if (de && de !== this.opEmail()) q.de = de; return q; }
+  /* Mensaje de opHilo → la forma de los hilos del Hub (como opHiloHub_ en el Apps Script). */
+  opAHub(mensajes, nombre) {
+    var ICON = { tarea: "Tarea creada", hecha: "Tarea cerrada", comentario: "Comentario", epi: "Agendado en Epi", nota: "Nota guardada" };
+    var out = (mensajes || []).map(function (m) {
+      var acc = m.acciones || [];
+      return { tipo: m.de === "alma" ? "guest" : "host", auto: false, alma: false, nombre: m.de === "alma" ? "ALMA" : (nombre || ""), canal: m.canal === "whatsapp" ? "whatsapp" : "hospitable",
+        texto: String(m.texto || "") + (acc.length ? "\n\n" + acc.map(function (a) { return "· " + (a.error ? "No se pudo · " : (ICON[a.tipo] || "Hecho") + " · ") + a.resumen + (a.error ? " (" + a.error + ")" : ""); }).join("\n") : ""),
+        created: m.ts, fotos: [], id: m.id || "", esfera: m.esfera || "", subcategoria: m.subcategoria || "" };
+    });
+    if (!out.length) {
+      var n = String(nombre || "").split(" ")[0];
+      out.push({ tipo: "guest", auto: false, nombre: "ALMA", canal: "hospitable", created: new Date().toISOString(), fotos: [], id: "saludo",
+        texto: (n ? n + ", ¿en qué te ayudo?" : "¿En qué te ayudo?") + "\n\nPuedo crear tareas para el equipo, agendar trabajos en Epi, contarte qué hay en el programa o guardar una nota. Te confirmo cada acción aquí." });
+    }
+    return out;
+  }
+  /* Lo que cambia la pantalla: mensajes (cuántos, el primero y el último), el conteo y si hay más. */
+  opFirma(lista, meta) {
+    var L = lista || [], a = L[0] || {}, z = L[L.length - 1] || {};
+    return [L.length, a.id || a.created, z.id || z.created, String(z.texto || "").length, JSON.stringify(meta.conteo || {}), meta.hayMas ? 1 : 0, meta.historial ? 1 : 0].join("|");
+  }
+  opEsferaDe(m) { var z = window.SAChat ? SAChat.esfera(m.esfera) : null; return z ? z.n : "Propósito"; }
+  /* Lo que se ve con el filtro: lo ya cargado de esa esfera más lo que se pidió de ella hacia atrás. Memo por lista. */
+  opVista(rid, hSt) {
+    var e = (this.state.opFiltro || {})[rid] || "";
+    if (!e || !hSt || !hSt.lista) return null;
+    var M = this._opVistaM || (this._opVistaM = {}), ev = hSt.op && hSt.op.esf && hSt.op.esf[e], k = M[rid];
+    if (k && k.src === hSt.lista && k.ev === ev && k.e === e) return k.out;
+    var self = this, visto = {}, L = hSt.lista.filter(function (m) { return m.id !== "saludo" && self.opEsferaDe(m) === e; });
+    L.forEach(function (m) { visto[m.id || m.created] = 1; });
+    if (ev) { ev.lista.forEach(function (m) { if (!visto[m.id || m.created]) L.push(m); }); L.sort(function (x, y) { return (Date.parse(x.created) || 0) - (Date.parse(y.created) || 0); }); }
+    var out = { lista: L, e: e, hayMas: ev ? ev.hayMas : (Number((hSt.op && hSt.op.conteo || {})[e]) || 0) > L.length };
+    M[rid] = { src: hSt.lista, ev: ev, e: e, out: out };
+    return out;
+  }
+  /* Tocar una esfera filtra; tocarla otra vez = todas. */
+  opFiltrar(rid, e) {
+    var cur = (this.state.opFiltro || {})[rid] || "";
+    this.setState(function (s) { var o = Object.assign({}, s.opFiltro); o[rid] = cur === e ? "" : e; return { opFiltro: o }; });
+  }
+  /* La fila de esferas: se pinta por DOM (SAChat.filaEsferas). La función ref cambia solo si cambia el conteo o el filtro. */
+  opEsfRefDe(rid, conteo, e) {
+    var M = this._opEsfRefs || (this._opEsfRefs = {}), k = JSON.stringify(conteo || {}) + "|" + e, self = this;
+    if (M[rid] && M[rid].k === k) return M[rid].fn;
+    var fn = function (el) {
+      if (!el || !window.SAChat || !SAChat.filaEsferas) return;
+      if (!el._saFila) el._saFila = SAChat.filaEsferas(el, { alElegir: function (n) { self.opFiltrar(el.getAttribute("data-op-esferas"), n); } });
+      el._saFila.pintar(conteo, e);
+    };
+    M[rid] = { k: k, fn: fn }; return fn;
+  }
+  /* «Cargar historial»: la página anterior (40) de lo que estás viendo (todas o la esfera filtrada). */
+  opHistorial(rid, key) {
+    var self = this, st = this.state, ya = st.almaHilos[rid], e = (st.opFiltro || {})[rid] || "";
+    if (!ya || !ya.op || !ya.lista || (st.opMas || {})[rid]) return;
+    var ocupado = function (v) { self.setState(function (s) { var o = Object.assign({}, s.opMas); if (v) o[rid] = 1; else delete o[rid]; return { opMas: o }; }); };
+    var iso = function (m) { var t = m && Date.parse(m.created); return t ? new Date(t).toISOString() : ""; };
+    var reales = ya.lista.filter(function (m) { return m.id !== "saludo"; });
+    var q = { n: 40 }, ev = e ? (ya.op.esf || {})[e] : null;
+    if (!e) q.antes = ya.op.antes || iso(reales[0]);
+    else { var v = this.opVista(rid, ya); q.esfera = e; q.antes = (ev && ev.antes) || iso(v && v.lista[0]); }
+    if (!q.antes) delete q.antes;
+    var el = document.querySelector('[data-alma-chat][data-conv="' + key + '"]'), h0 = el ? el.scrollHeight : 0, t0 = el ? el.scrollTop : 0;
+    ocupado(true);
+    ALMA.opHilo(this.opParams(rid, q)).then(function (r) {
+      ocupado(false);
+      if (!(r && r.ok)) { self.aviso(r && r.error === "session" ? "Tu sesión venció. Entra otra vez al Hub." : "No pude traer el historial. Intenta de nuevo."); return; }
+      var nuevos = (r.mensajes || []).length ? self.opAHub(r.mensajes, r.nombre) : [];
+      self.setState(function (s) {
+        var h = s.almaHilos[rid]; if (!h || !h.op) return null;
+        var n = Object.assign({}, s.almaHilos), op = Object.assign({}, h.op, { conteo: r.conteo || h.op.conteo }), lista = h.lista;
+        if (!e) {
+          var visto = {}; h.lista.forEach(function (m) { visto[m.id || m.created] = 1; });
+          lista = nuevos.filter(function (m) { return !visto[m.id || m.created]; }).concat(h.lista.filter(function (m) { return m.id !== "saludo"; }));
+          Object.assign(op, { hayMas: !!r.hayMas, antes: r.antes || op.antes, historial: true });
+        } else {
+          var prev = (op.esf || {})[e], esf = Object.assign({}, op.esf);
+          esf[e] = { lista: nuevos.concat(prev ? prev.lista : []), hayMas: !!r.hayMas, antes: r.antes || (prev && prev.antes) || "" };
+          op.esf = esf;
+        }
+        n[rid] = Object.assign({}, h, { lista: lista, op: op }); n[rid].opSig = self.opFirma(lista, op);
+        var hv = Object.assign({}, s.hiloVer), vk = key + (e ? "|" + e : ""); hv[vk] = (hv[vk] || 30) + nuevos.length;
+        return { almaHilos: n, hiloVer: hv };
+      }, function () {
+        /* Lo que estabas leyendo se queda en su lugar. */
+        if (el) requestAnimationFrame(function () { el.scrollTop = t0 + (el.scrollHeight - h0); });
+      });
+    }).catch(function () { ocupado(false); self.aviso("No pude traer el historial (sin conexión)."); });
+  }
+  /* La tarjeta del chat con Alma en la lista de conversaciones: Alma con el total, la fila de esferas, el filtro y
+     «Cargar historial» (primero muestra lo ya cargado de 30 en 30; después pide la página anterior al servidor). */
+  opCard(c, all, HV) {
+    var self = this, st = this.state, rid = c.resId, h = st.almaHilos[rid] || {}, op = h.op || null, e = (st.opFiltro || {})[rid] || "";
+    var vk = c.key + (e ? "|" + e : ""), ver = HV[vk] || 30;
+    var conteo = op && op.conteo, total = 0; if (conteo) Object.keys(conteo).forEach(function (k) { total += Number(conteo[k]) || 0; });
+    var v = e ? this.opVista(rid, h) : null, hayMasSrv = op ? (v ? v.hayMas : op.hayMas) : false, ocultos = all.length > ver, busy = !!(st.opMas || {})[rid];
+    var mas = function () { self.hiloMas(c.key, all.length, vk); };
+    var x = Object.assign({}, c, { opChat: true, noOpChat: false, hayAnteriores: false, anterioresTxt: "", verAnteriores: function () {},
+      hilo: ocultos ? all.slice(-ver) : all,
+      chatScroll: ocultos ? function (ev) { if (ev.currentTarget.scrollTop < 80) mas(); } : function () {},
+      opTotalHay: total > 0, opTotal: total > 999 ? "999+" : String(total), opTotalAria: total + " mensajes en total",
+      opEsfHay: !!conteo && total > 0, opEsfRef: conteo ? this.opEsfRefDe(rid, conteo, e) : null,
+      opPildoraHay: ocultos || hayMasSrv || busy, opPildoraBusy: busy, opPildoraTxt: busy ? "Cargando…" : "Cargar historial",
+      opPildora: ocultos ? mas : function () { self.opHistorial(rid, c.key); },
+      opVacio: !!v && !v.lista.length && !busy, opVacioTxt: e ? "Aún no hay mensajes de " + e + "." : "" });
+    return x;
   }
   opIrChat() {
     var self = this, yo = this.opEmail();
@@ -5782,10 +5931,11 @@ class Component extends DCLogic {
   }
   opVals(esPrincipal) {
     var self = this, st = this.state, yo = this.opEmail(), modo = st.opModo, who = st.opDe || yo, H = st.opHilos[who] || {}, esMio = who === yo;
-    var fmtH = function (t) { try { return new Date(t).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }); } catch (e) { return ""; } };
-    var diaK = function (t) { try { return new Date(t).toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }); } catch (e) { return ""; } };
+    var fH = this.fechaFmt("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: "America/Guatemala" }), fK = this.fechaFmt("es-GT", { timeZone: "America/Guatemala" }), fL = this.fechaFmt("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Guatemala" });
+    var fmtH = function (t) { var d = new Date(t); return isNaN(d) ? "" : fH(d); };
+    var diaK = function (t) { var d = new Date(t); return isNaN(d) ? "" : fK(d); };
     var hoyK = diaK(Date.now()), ayerK = diaK(Date.now() - 86400000);
-    var diaL = function (t) { var k = diaK(t); if (k === hoyK) return "Hoy"; if (k === ayerK) return "Ayer"; try { return new Date(t).toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Guatemala" }).replace(/\./g, ""); } catch (e) { return k; } };
+    var diaL = function (t) { var k = diaK(t); if (k === hoyK) return "Hoy"; if (k === ayerK) return "Ayer"; var d = new Date(t); return isNaN(d) ? k : fL(d).replace(/\./g, ""); };
     var ICO = { tarea: "check", hecha: "check", comentario: "pencil", epi: "calendar", nota: "file" };
     var msgs = (H.mensajes || []).map(function (m, i, a) {
       var p = a[i - 1], mio = m.de === "yo", sep = !p || diaK(p.ts) !== diaK(m.ts), mismo = p && !sep && p.de === m.de;
@@ -5810,7 +5960,7 @@ class Component extends DCLogic {
       opAbierto: !!st.opAbierto,
       op: {
         esLista: modo === "lista", esChat: modo !== "lista", hayVolver: modo !== "lista" && esPrincipal && !esMio, hayVerTodos: modo !== "lista" && esPrincipal && esMio,
-        eyebrow: modo === "lista" ? "Chat operativo · solo admin principal" : esMio ? "Tu chat con ALMA" : "Chat operativo · solo lectura",
+        eyebrow: modo === "lista" ? "Chat con Alma · solo admin principal" : esMio ? "Tu chat con Alma" : "Chat con Alma · solo lectura",
         titulo: modo === "lista" ? "Equipo" : esMio ? "ALMA" : (H.nombre || who),
         sub: modo === "lista" ? (st.opCargando && !st.opLista ? "Leyendo los chats…" : "Un chat por administrador. WhatsApp y hub en el mismo hilo.") : esMio ? (H.tieneWA ? "También le escribes desde tu WhatsApp registrado. Crea tareas, agenda en Epi y toma notas." : "Crea tareas, agenda en Epi y toma notas. Registra tu WhatsApp en Control de usuarios para escribirle desde ahí.") : (H.tieneWA ? "Escribe desde su WhatsApp registrado." : "Sin WhatsApp registrado."),
         lista: lista, listaVacia: !!st.opLista && !lista.length, listaVacioTexto: "No hay administradores con chat todavía.",
@@ -6628,7 +6778,7 @@ class Component extends DCLogic {
     var convCargando = !!window.ALMA && !this._vivoFallo && !(this._desdeCache && this.state.alma) && (!this._vivoTs || !this.state.alma || (!this._baseTs && !this._baseFallo));
     this._clasOk = !convCargando;
     var self = this, st = this.state, a = st.alma || { control: [], cola: [], log: [], instrucciones: [] };
-    /* Chat operativo: cada administrador es una conversación más (filtro «Equipo»), con ALMA al otro lado. */
+    /* Chat con Alma: cada persona es una conversación más (filtro «Equipo»), con Alma al otro lado. */
     var opRows = this.opInboxRows(esPrincipal); if (opRows.length) a = Object.assign({}, a, { inbox: (a.inbox || []).concat(opRows) });
     var ctrlO = this.almaCtrlOriginal(), ctrl = st.almaCtrl || ctrlO;
     var sinCambios = Object.keys(ctrlO).every(function (k) { return String(ctrl[k] == null ? "" : ctrl[k]) === String(ctrlO[k] == null ? "" : ctrlO[k]); });
@@ -6740,7 +6890,7 @@ class Component extends DCLogic {
         return m.tipo !== "guest" && m.tipo !== "nota" && !m.auto && textosAlma[normT(m.texto)] ? Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] }) : m;
       });
       var noop = function () {}, HITO_T = { fechas: "Cambio de fechas", huespedes: "Cambio de huéspedes", propiedad: "Cambio de propiedad", estado: "Estado de la reserva", solicitud: "Solicitud de cambio" };
-      /* Chat estilo A (#317): en el chat operativo el otro lado es Alma; en los demás, el huésped. */
+      /* Chat estilo A (#317): en el chat con Alma el otro lado es Alma; en los demás, el huésped. */
       var esOpH = String(resIdN || "").indexOf("op:") === 0;
       var iniH = String(nombre || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H";
       var salida = lista.map(function (m, iM) {
@@ -6765,9 +6915,13 @@ class Component extends DCLogic {
         if (!guest && !nota && !m.auto && textosAlma[normT(m.texto)]) m = Object.assign({}, m, { alma: true, _k: textosAlma[normT(m.texto)] });
         var esAlma = nota || !!m.alma, kR = m._k || "", txR = m.texto;
         /* Estilo A: el otro (huésped o Alma) a la izquierda en gris; lo nuestro (equipo, Alma hacia el huésped, automáticos) a la derecha en negro. */
+        /* Chat con Alma (#334): cada mensaje de Alma lleva su esfera: «Alma · Finanzas · Pagos · 9:05 a. m.» y un punto de su color. */
+        var zA = esOpH && guest && window.SAChat ? SAChat.esfera(m.esfera) : null, esfA = zA ? zA.n + (m.subcategoria ? " · " + m.subcategoria : "") : "";
         var ladoA = { ladoClase: guest ? "sa-chat-msg--otro" : "sa-chat-msg--mia", esOtro: guest,
           burbujaClase: guest ? "sa-chat-burbuja--otro" : nota ? "sa-chat-burbuja--nota" : m.auto ? "sa-chat-burbuja--auto" : "sa-chat-burbuja--mia",
-          etiqueta: (esOpH ? "Alma" : (nombre || "Huésped")) + (!esOpH && m.canal === "whatsapp" ? " · por WhatsApp" : "") + " · " + fmtHora(m.created),
+          esfHay: !!zA, esfTxt: esfA, esfTinta: zA ? zA.c3 : "", esfColor: zA ? zA.c : "", _esfK: esfA,
+          etiquetaFin: zA ? " · " + fmtHora(m.created) : "",
+          etiqueta: zA ? "Alma · " : (esOpH ? "Alma" : (nombre || "Huésped")) + (!esOpH && m.canal === "whatsapp" ? " · por WhatsApp" : "") + " · " + fmtHora(m.created),
           avatarClase: esOpH ? "sa-chat-avatar--alma" : "", avatarIni: esOpH ? "" : iniH,
           hayOpciones: false, opciones: [], hayEnlaces: false, enlaces: [] };
         var it = {
@@ -6847,7 +7001,7 @@ class Component extends DCLogic {
       var prevDia = "";
       return (out || []).map(function (it, i) {
         var dia = it._t ? diaDe(it._t) : "", pv = out[i - 1], nx = out[i + 1];
-        var junto = function (a1, b1) { return a1 && b1 && !a1.esHito && !b1.esHito && a1._q === b1._q && !a1._op && !b1._op && a1._t && b1._t && Math.abs(b1._t - a1._t) < 5 * 60000 && diaDe(a1._t) === diaDe(b1._t); };
+        var junto = function (a1, b1) { return a1 && b1 && !a1.esHito && !b1.esHito && a1._q === b1._q && (a1._esfK || "") === (b1._esfK || "") && !a1._op && !b1._op && a1._t && b1._t && Math.abs(b1._t - a1._t) < 5 * 60000 && diaDe(a1._t) === diaDe(b1._t); };
         var conSig = junto(it, nx), conAnt = junto(pv, it);
         var nuevoDia = !!dia && dia !== prevDia, siguePegado = conAnt && !nuevoDia;
         /* Estilo A (#317): del otro lado la etiqueta va arriba del grupo y el avatar en su última burbuja; del tuyo, la meta abajo.
@@ -6960,7 +7114,7 @@ class Component extends DCLogic {
         /* El servidor puede tardar más que el teléfono en esperar: se revisa el hilo unas veces antes de dudar. */
         var verificar = function (intento, er0) {
           var final = function () { if (er0 === "red") fallo("No pudimos confirmar que saliera. Tu texto volvió al editor; mira el hilo antes de reenviar."); else setOp("sinconf"); };
-          ALMA.hilo(rid).then(function (r2) {
+          self.hiloPedir(rid).then(function (r2) {
             var ya = r2 && r2.ok && (r2.hilo || []).slice(-8).some(function (m) { return m.tipo !== "guest" && normT(m.texto) === normT(t); });
             if (r2 && r2.ok) self.guardarHilo(rid, r2.hilo);
             if (ya) { setOp("enviado"); return; }
@@ -6979,8 +7133,8 @@ class Component extends DCLogic {
             return;
           }
           setOp("enviado");
-          /* Chat operativo: la respuesta de ALMA llega en la misma llamada; se relee el hilo para pintarla ya. */
-          if (String(rid).indexOf("op:") === 0) { self._opRefTs = 0; ALMA.hilo(rid).then(function (r2) { if (r2 && r2.ok) self.guardarHilo(rid, r2.hilo); }); self.opRefrescar(self.rol() === "admin", true); }
+          /* Chat con Alma: su respuesta llega en la misma llamada; se relee el hilo para pintarla ya. */
+          if (String(rid).indexOf("op:") === 0) { self._opRefTs = 0; self.hiloPedir(rid).then(function (r2) { if (r2 && r2.ok) self.guardarHilo(rid, r2.hilo); }); self.opRefrescar(self.rol() === "admin", true); }
           if (res.plantilla) self.aviso("Pasaron más de 24 h: WhatsApp solo permite la plantilla para retomar. Ya se envió; cuando responda, escribe tu mensaje.");
           else if (res.canal === "whatsapp") self.aviso("Enviado por WhatsApp");
           self.setState(function (s) {
@@ -6988,7 +7142,7 @@ class Component extends DCLogic {
             return { alma: Object.assign({}, s.alma, { cola: cola }) };
           });
           /* El hilo se refresca por detrás; la burbuja optimista se va sola cuando el servidor ya trae el mensaje. */
-          setTimeout(function () { ALMA.hilo(rid).then(function (r3) { if (r3 && r3.ok) self.guardarHilo(rid, r3.hilo); }); self.almaCargar(); }, 1500);
+          setTimeout(function () { self.hiloPedir(rid).then(function (r3) { if (r3 && r3.ok) self.guardarHilo(rid, r3.hilo); }); self.almaCargar(); }, 1500);
           setTimeout(function () { self.almaCargar(true); }, 6000);
           setTimeout(function () { setOp(null); }, 10 * 60000);
         }).catch(function () { fallo("No se envió. Revisa la conexión; tu texto volvió al editor."); });
@@ -7118,7 +7272,7 @@ class Component extends DCLogic {
         propRerun: function () { mejorar((self.state.convResp[convKey] || {}).base); },
         respMejorar: function () { mejorar(); },
         respEnviar: function () { enviar(self._respDraft[convKey] || ""); },
-        /* Chat operativo: sugerencias para empezar, como en la bienvenida de ALMA. */
+        /* Chat con Alma: sugerencias para empezar, como en la bienvenida de Alma. */
         haySugOp: !!info && String(info.resId || "").indexOf("op:") === 0 && !llenoV && (((st.almaHilos[info.resId] || {}).lista || []).length <= 2),
         sugOp: ["¿Qué tareas tengo abiertas?", "¿Qué hay en el programa de hoy?", "Agenda mantenimiento mañana en ", "Crea una tarea para "].map(function (t) { return { txt: t.trim(), usar: function () { ponerTexto(t); setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(t.length, t.length); } catch (e) {} } }, 60); } }; })
       };
@@ -7187,7 +7341,7 @@ class Component extends DCLogic {
       self._hiloFresco[resId] = Date.now();
       /* Con caché: se muestra ya y se refresca en silencio. Sin caché: indicador de carga. */
       if (!ya || ya.error) self.setState(function (s) { var n = Object.assign({}, s.almaHilos); n[resId] = { cargando: true }; return { almaHilos: n }; });
-      ALMA.hilo(resId).then(function (res) {
+      self.hiloPedir(resId).then(function (res) {
         /* Un hilo vacío nunca pisa uno con mensajes (Hospitable a veces responde 200 sin datos). */
         if (res && res.ok && (res.hilo || []).length) return self.guardarHilo(resId, res.hilo);
         if (res && res.ok && ya && ya.lista && ya.lista.length) return;
@@ -7512,6 +7666,8 @@ class Component extends DCLogic {
       var fL = String(l.fecha || ""), tsLog = (/^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(fL) ? Date.parse(fL.replace(" ", "T") + ":00-06:00") : Date.parse(fL)) || 0;
       var resIdLog = l.reservation_id || resIdPorCodigo[String(l.codigo || "").toUpperCase()] || (l.huesped && ibPorNombre[String(l.huesped).trim().toLowerCase()]) || "";
       var hiloStL = st.almaHilos[resIdLog];
+      /* Chat con Alma con un filtro de esfera: solo esa esfera (#334). */
+      var opVL = String(resIdLog).indexOf("op:") === 0 ? self.opVista(resIdLog, hiloStL) : null;
       var convKeyL = resIdLog ? "r" + resIdLog : "l" + key, enHiloL = true;
       var res = reservaDe(l.codigo), nombreCola = huespedPorCodigo[String(l.codigo || "").toUpperCase()] || "";
       var huesped = l.huesped || [res.guest_first_name, res.guest_last_name].filter(Boolean).join(" ") || res.guest_name || res.nombre || nombreCola || "Huésped";
@@ -7543,7 +7699,7 @@ class Component extends DCLogic {
         quien: quienDe(l), quienLabel: humano ? "Respondió " + (quienDe(l) === "Equipo" ? "el equipo" : quienDe(l)) : "",
         modoHilo: enHiloL, modoResumen: !enHiloL, hiloLabel: enHiloL ? "Ver resumen" : "Conversación completa", hiloBtnBg: enHiloL ? "#F5F3F0" : "#FFFFFF",
         toggleHilo: function () { var abre = !enHiloL; self.setState(function (s) { var o = Object.assign({}, s.convHilo); o[convKeyL] = abre; return { convHilo: o }; }); if (abre) cargarHiloDe(resIdLog); },
-        hilo: mapHilo(optimDe(hiloStL && hiloStL.lista && hiloStL.lista.length ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), resIdLog), huesped, hiloStL && hiloStL.lista ? resIdLog : ""),
+        hilo: mapHilo(optimDe(opVL ? opVL.lista : hiloStL && hiloStL.lista && hiloStL.lista.length ? hiloStL.lista : [{ tipo: "guest", texto: l.pregunta || "", created: String(l.fecha || "").replace(" ", "T") }].concat(l.respuesta && enviado ? [{ tipo: "host", texto: l.respuesta, created: String(l.fecha || "").replace(" ", "T") }] : []), resIdLog), huesped, hiloStL && hiloStL.lista ? resIdLog : ""),
         hiloCargando: !!(hiloStL && hiloStL.cargando),
         hiloNoDisponible: enHiloL && (!resIdLog || !(window.ALMA && ALMA.hasApi()) || !!(hiloStL && hiloStL.error)),
         hiloReintentable: !!(resIdLog && hiloStL && hiloStL.error), hiloReintentar: function () { delete self._hiloFresco[resIdLog]; cargarHiloDe(resIdLog); },
@@ -8178,9 +8334,10 @@ class Component extends DCLogic {
     var convPaginas = grupos.map(function (g, i) { return Object.assign({}, g, { _i: i }); }).filter(function (g) { return Math.abs(g._i - convIdx) <= 1; }).map(function (g) {
       g.fragsVista = (g.fragsVista || []).map(function (c) {
         var all = c.hilo || [], ver = HV[c.key] || 30;
-        if (all.length <= ver) return Object.assign({}, c, { hayAnteriores: false, anterioresTxt: "", verAnteriores: noopS, chatScroll: noopS });
+        if (String(c.resId || "").indexOf("op:") === 0) return self.opCard(c, all, HV);
+        if (all.length <= ver) return Object.assign({}, c, { noOpChat: true, opChat: false, hayAnteriores: false, anterioresTxt: "", verAnteriores: noopS, chatScroll: noopS });
         var mas = function () { self.hiloMas(c.key, all.length); };
-        return Object.assign({}, c, { hilo: all.slice(-ver), hayAnteriores: true, anterioresTxt: "Ver " + Math.min(30, all.length - ver) + " mensajes anteriores", verAnteriores: mas,
+        return Object.assign({}, c, { noOpChat: true, opChat: false, hilo: all.slice(-ver), hayAnteriores: true, anterioresTxt: "Ver " + Math.min(30, all.length - ver) + " mensajes anteriores", verAnteriores: mas,
           chatScroll: function (e) { if (e.currentTarget.scrollTop < 80) mas(); } });
       });
       return Object.assign(g, { pagTop: (g._i * pagPct) + "%", pagAlto: pagPct + "%" });
@@ -8603,7 +8760,7 @@ class Component extends DCLogic {
           ["EQWA", "Operación · equipo y recepciones", "#3E3F3F", cnt(esEquipoC), { convCanal: "equipoWa", convOrden: "Cronológico" }, cOn === "equipoWa"],
           ["PROV", "Proveedores y técnicos", "#5E5857", cnt(esProv), { convCanal: "proveedores", convOrden: "Cronológico" }, cOn === "proveedores"],
           ["SOC", "Socios", "#3B6691", cnt(esSocio), { convCanal: "socios", convOrden: "Cronológico" }, cOn === "socios"],
-          ["OP", esPrincipal ? "Equipo · chats con ALMA" : "Mi chat con ALMA", "#3E3F3F", null, { convCanal: "operativo", convOrden: "Cronológico" }, cOn === "operativo"]
+          ["OP", esPrincipal ? "Equipo · chats con Alma" : "Mi chat con Alma", "#3E3F3F", null, { convCanal: "operativo", convOrden: "Cronológico" }, cOn === "operativo"]
         ];
         var act = defs.filter(function (d) { return d[5]; })[0] || defs[1], ab = !!st.filtroMenu;
         self._almaCnt = {}; defs.forEach(function (d) { self._almaCnt[d[0]] = d[3] || 0; });   // números para el menú compartido

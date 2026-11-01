@@ -354,6 +354,6 @@ function agDesarrolloRonda_(a, adm, origen, pedido) {
   var r = paraClaudeCrear_(adm, { titulo: (obj ? a.nombre + ' · ronda' : 'Desarrollo · ' + String(pedido).slice(0, 60)), app: obj ? obj.app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
   agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claude' : 'error',
-    informe: r.ok ? 'Ronda enviada a Claude: ' + donde + '. Cuando termine, Alma te cuenta en la conversación Desarrollo y su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
+    informe: r.ok ? 'Ronda enviada a Claude: ' + donde + '. Cuando termine, Alma te cuenta en tu chat (Propósito · Desarrollo) y su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
   return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda a Claude (' + donde + '). Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
 }

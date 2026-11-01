@@ -108,7 +108,7 @@ function rllAgrupar_(M) {
 }
 /* El chat con Alma (ALMA_OPERATIVO): cuánto tarda en responder, en 3 niveles, y cuántas respuestas son negativas. */
 function rllChat_(desde, hasta) {
-  var F = opFilas_('', 3000).filter(function (m) { var t = new Date(m.ts).getTime(); return t >= desde && t < hasta && m.usuario !== DESARROLLO_.email && !/^📞/.test(m.texto); });
+  var F = opFilas_('', 3000).filter(function (m) { var t = new Date(m.ts).getTime(); return t >= desde && t < hasta && m.usuario !== DESARROLLO_.email && m.canal !== 'claude' && !/^📞/.test(m.texto); });   // lo de Claude no es una respuesta de Alma
   var canales = {};
   F.forEach(function (m, i) {
     var c = m.canal === 'llamada' ? 'llamada' : m.canal === 'whatsapp' ? 'whatsapp' : 'app';

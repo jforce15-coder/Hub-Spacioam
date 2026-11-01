@@ -50,7 +50,7 @@ function conferencia_(ses, b) {
   if (c && c.estado === 'abierta' && modo !== 'reunion') {
     var largo = String(c.texto || '').length;
     if ((!modo && largo >= 500) || (modo === 'dictado' && Math.floor(largo / 3000) > Math.floor(antes / 3000))) {
-      modo = confModo_(String(c.texto)); hojaConf_().getRange(c.fila, CONF_CAB_.indexOf('modo') + 1).setValue(modo);
+      modo = confModo_(String(c.texto)); hojaConf_().getRange(c.fila, CONF_CAB_.indexOf('modo') + 1).setValue(modo); c.modo = modo;
     }
   }
   if (b.que === 'fin' && c && c.estado === 'abierta') {
@@ -156,9 +156,9 @@ function confCerrar_(c, adm, voces) {
     'abajo está la transcripción automática (puede tener errores en nombres; corrígelos por contexto; si dice «Persona 1, Persona 2…», deduce quién es cada uno por lo que dicen y usa su nombre si se sabe). Ignora lo que no tenga que ver (charla, pruebas de micrófono, ruido).\n' +
     'tipo: "reunion", "conferencia", "llamada" o "memo" (si habla una sola persona para sí). area (una): proposito (trabajo, Spacio AM, apps), relaciones (familia, pareja, amigos, bodas y viajes con ellos), ' +
     'finanzas, health, comunidad, espiritualidad. proyecto: el nombre corto del proyecto; si es uno de estos, escríbelo igual: ' + (proys.join(' · ') || '(ninguno)') + '; si es de Spacio AM sin otro, «Spacio AM»; si no hay, "".\n' +
-    'titulo: 3 a 7 palabras. resumen: 3 a 5 frases simples con lo importante (cifras y fechas incluidas). acuerdos: lo que se decidió, en frases cortas. para_juan: lo que le toca hacer a Juan o lo que Alma debería hacer por él (tareas concretas, con fecha si se dijo).\n' +
+    'participantes: los nombres de quienes hablaron, si se saben (si no, "Persona 1", "Persona 2"…). titulo: 3 a 7 palabras. resumen: 3 a 5 frases simples con lo importante (cifras y fechas incluidas). acuerdos: lo que se decidió, en frases cortas. para_juan: lo que le toca hacer a Juan o lo que Alma debería hacer por él (tareas concretas, con fecha si se dijo).\n' +
     'valida: false si fue una grabación por error o no tiene contenido con sentido (ruido, el teléfono en el bolsillo, una prueba de micrófono, frases sueltas sin tema, solo charla sin propósito); true si hay algo que valga guardar.\n' +
-    'Responde SOLO JSON: {"valida":true,"tipo":"reunion","area":"proposito","proyecto":"","titulo":"…","resumen":"…","acuerdos":["…"],"para_juan":["…"]}';
+    'Responde SOLO JSON: {"valida":true,"tipo":"reunion","area":"proposito","proyecto":"","participantes":["…"],"titulo":"…","resumen":"…","acuerdos":["…"],"para_juan":["…"]}';
   var j = null;
   try { var t = String(claude_(CFG.MODELO_REDACTOR, 1200, sys, 'TRANSCRIPCIÓN (con la hora de cada tramo):\n' + txt.slice(-30000), 0.2) || ''), m = /\{[\s\S]*\}/.exec(t); j = m ? JSON.parse(m[0]) : null; } catch (e) { console.error('confCerrar_ claude: ' + e); }
   j = j || { tipo: 'reunion', area: 'proposito', proyecto: '', titulo: 'Reunión del ' + Utilities.formatDate(new Date(), CFG.TZ, 'd MMM'), resumen: txt.slice(0, 400), acuerdos: [], para_juan: [] };
@@ -177,6 +177,8 @@ function confCerrar_(c, adm, voces) {
   pendAvisar_(adm, detalle, { origen: 'conferencia', push: pj.length > 0, clasif: { tipo: pj.length ? 'atencion' : 'aviso', area: j.area, proyecto: String(j.proyecto || ''),
     titulo: TIPO + ' · ' + String(j.titulo || ''), resumen: pj.length ? 'Te toca: ' + pj.slice(0, 2).join('; ') : String(j.resumen || '').slice(0, 220),
     aviso: 'Te dejé el resumen de la ' + TIPO.toLowerCase() + ' en Pendientes' + (pj.length ? ', con ' + pj.length + (pj.length === 1 ? ' cosa' : ' cosas') + ' para ti.' : '.'), importancia: pj.length ? 2 : 1, tarjeta: null, acciones: [] } });
+  /* Varias personas (reunión): el resumen ejecutivo llega por correo (Juan, 1-nov). */
+  if (voces || String(c.modo) === 'reunion') { try { confResumenCorreo_(c, j, TIPO, ac, pj); } catch (e) { console.error('confResumenCorreo_: ' + e); } }
 }
 
 /* Para Alma (buscar_reuniones): las reuniones guardadas que coinciden con lo que busca (título, proyecto, resumen, texto).
@@ -208,4 +210,38 @@ function confTempLimpiar_() {
   var sa = hojaConfA_(), m = sa.getLastRow(); if (m < 2) return;
   var va = sa.getRange(2, 1, m - 1, 3).getValues();
   for (var k = va.length - 1; k >= 0; k--) if (ids.indexOf(String(va[k][0])) >= 0) { try { DriveApp.getFileById(String(va[k][2])).setTrashed(true); } catch (e) {} sa.deleteRow(k + 2); }
+}
+
+/* ── Resumen ejecutivo por correo (solo reuniones de varias personas) ──
+   Destino: propiedad CONF_RESUMEN_PARA (por defecto jovalle@spacioam.com). Sale como Alma, desde hola@spacioam.com si el
+   alias existe. Usa el cupo de correo de Gmail, no el de UrlFetch. Queda anotado en ALMA_CORREOS. */
+var CONF_RESUMEN_PARA_DEF_ = 'jovalle@spacioam.com';
+function confResumenCorreo_(c, j, tipo, ac, pj) {
+  var para = PropertiesService.getScriptProperties().getProperty('CONF_RESUMEN_PARA') || CONF_RESUMEN_PARA_DEF_;
+  var ini = new Date(String(c.inicio || '')), fin = new Date(String(c.actualizado || '')), min = Math.max(1, Math.round((fin - ini) / 60000));
+  var DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'], MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var f = isNaN(ini) ? null : Utilities.formatDate(ini, CFG.TZ, 'u|d|M|yyyy|HH:mm').split('|');   // en español a mano (formatDate sale en inglés)
+  var fecha = f ? DIAS[Number(f[0]) % 7] + ' ' + f[1] + ' de ' + MESES[Number(f[2]) - 1] + ' ' + f[3] + ', ' + f[4] : '';
+  var parts = (j.participantes || []).map(String).filter(String).slice(0, 12);
+  var ESF = { proposito: 'Propósito', relaciones: 'Relaciones', finanzas: 'Finanzas', health: 'Health', comunidad: 'Comunidad', espiritualidad: 'Esencia' };
+  var esf = (ESF[j.area] || 'Propósito') + (j.proyecto ? ' · ' + j.proyecto : '');
+  var titulo = String(j.titulo || tipo), asunto = 'Resumen ejecutivo · ' + titulo + (f ? ' · ' + f[1] + ' ' + MESES[Number(f[2]) - 1].slice(0, 3) : '');
+  var e = function (x) { return String(x || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var lista = function (xs) { return '<ul style="margin:6px 0 0;padding-left:20px">' + xs.map(function (x) { return '<li style="margin:4px 0">' + e(x) + '</li>'; }).join('') + '</ul>'; };
+  var sec = function (t, cuerpo) { return '<h3 style="font:600 13px/1.3 Montserrat,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#E9826A;margin:22px 0 4px">' + t + '</h3>' + cuerpo; };
+  var html = '<div style="font:15px/1.55 Arial,sans-serif;color:#222;max-width:620px">' +
+    '<h2 style="font:600 20px/1.3 Montserrat,Arial,sans-serif;margin:0 0 6px">' + e(titulo) + '</h2>' +
+    '<div style="color:#6F6867;font-size:13px">' + e([tipo, fecha, min + ' min', esf].filter(String).join(' · ')) + '</div>' +
+    (parts.length ? '<div style="color:#6F6867;font-size:13px;margin-top:2px">Participantes: ' + e(parts.join(', ')) + '</div>' : '') +
+    sec('Resumen', '<p style="margin:6px 0 0">' + e(j.resumen) + '</p>') +
+    (ac.length ? sec('Acuerdos', lista(ac)) : '') +
+    (pj.length ? sec('Próximos pasos para ti', lista(pj)) : '') +
+    '<p style="color:#9A9392;font-size:12px;margin-top:26px">Alma lo armó con lo que escuchó en modo conferencia. Si algo no cuadra, pregúntale: «Alma, ¿qué se dijo en la reunión de ' + e(titulo) + '?»</p></div>';
+  var texto = titulo + '\n' + [tipo, fecha, min + ' min', esf].filter(String).join(' · ') + (parts.length ? '\nParticipantes: ' + parts.join(', ') : '') +
+    '\n\nRESUMEN\n' + j.resumen + (ac.length ? '\n\nACUERDOS\n· ' + ac.join('\n· ') : '') + (pj.length ? '\n\nPRÓXIMOS PASOS PARA TI\n· ' + pj.join('\n· ') : '');
+  var o = { name: 'Alma', htmlBody: html }, yo = Session.getEffectiveUser().getEmail(), desde = yo, estado = 'enviado';
+  try { if (yo !== CFG.EMAIL_DESDE && GmailApp.getAliases().indexOf(CFG.EMAIL_DESDE) !== -1) { o.from = CFG.EMAIL_DESDE; desde = CFG.EMAIL_DESDE; } } catch (x) {}
+  try { GmailApp.sendEmail(para, asunto, texto, o); } catch (x) { estado = 'error: ' + String(x).slice(0, 200); console.error('confResumenCorreo_: ' + x); }
+  try { hojaCrear_('ALMA_CORREOS', ['fecha', 'tipo', 'para', 'desde', 'asunto', 'propiedad', 'codigo', 'estado', 'texto', 'html']).appendRow([new Date().toISOString(), 'resumen de reunión', para, desde, asunto, '', '', estado, texto.slice(0, 4000), '']); } catch (x) {}
+  return estado === 'enviado';
 }

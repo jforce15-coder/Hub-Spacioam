@@ -528,7 +528,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
   if (!(ult in o) && CAMPOS_PROPIEDAD_.indexOf(campo) < 0) return { error: 'El campo ' + campo + ' no existe en la ficha. Revisa los nombres con ver_propiedad.' };
   var antes = o[ult]; o[ult] = String(valor == null ? '' : valor).trim();
   sh.getRange(i + 2, cJ).setValue(JSON.stringify(j));
-  try { regMejora_({ por: adm.nombre, origen: 'chat operativo', tipo: 'dato', clave: 'DATO', resumen: nombres[i] + ' · ' + campo, cambios: [{ tipo: 'dato', campo: campo, antes: antes == null ? '' : String(antes), despues: o[ult] }] }); } catch (e) {}
+  try { regMejora_({ por: adm.nombre, origen: 'Chat con Alma', tipo: 'dato', clave: 'DATO', resumen: nombres[i] + ' · ' + campo, cambios: [{ tipo: 'dato', campo: campo, antes: antes == null ? '' : String(antes), despues: o[ult] }] }); } catch (e) {}
   try { log_({ codigo: '', propiedad: nombres[i], nivel: 'DATO', razon: campo, texto: 'antes: ' + (antes == null ? '' : antes), modo: 'HUB' }, o[ult], 'DATO actualizado por ALMA (pedido de ' + adm.nombre + ')'); } catch (e) {}
   return { ok: true, propiedad: nombres[i], campo: campo, antes: antes == null ? '' : String(antes), despues: o[ult] };
 }

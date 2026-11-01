@@ -241,3 +241,108 @@ function chatClasLlamada_(adm, t0, dur, titulo, resumen) {
   var c = chatSacarEtiqueta_(t);
   return { esfera: c.esfera, subcategoria: c.subcategoria };
 }
+
+/* ── Pregunta sin responder (#334, T4) ─────────────────────────────────────────────────────────────────────
+   Si Alma deja en el Chat con Alma del administrador principal una pregunta CON OPCIONES (las mismas que pinta la
+   tarjeta de acción: SAChat.opciones en js/sa-chat.js) y pasan 10 minutos sin que él escriba nada en ese chat, queda
+   un Pendiente «Necesita tu sí» con aviso al teléfono (pendCrear_ con push). Lleva la esfera y la subcategoría del
+   mensaje de Alma y el botón «Abrir el chat» (el chat filtrado en esa esfera). Se cierra solo cuando él escribe en el
+   chat después de la pregunta (cualquier mensaje suyo, también por voz), y «Responder» en la tarjeta escribe en el
+   mismo chat (pendResponder_). Una por pregunta: las ya vistas quedan en la propiedad CHAT_PREGUNTAS.
+   Barato: solo lee las últimas filas de ALMA_OPERATIVO (sin IA ni internet), así que corre cada minuto aunque el cupo
+   de Google esté en riesgo. Fuera: lo de las llamadas (se responde hablando), lo de Claude (sus preguntas ya llegan a
+   Pendientes) y las decisiones del equipo (tienen su propia tarjeta y las resuelve cualquiera del equipo). */
+var CHAT_PREG_ESPERA_ = 10 * 60000, CHAT_PREG_VENTANA_ = 2 * 3600000, CHAT_PREG_PROP_ = 'CHAT_PREGUNTAS';
+var CHAT_PREG_VINETA_ = /^\s*(?:[•\-*–]|\d{1,2}[.)])\s+(.+?)\s*$/;
+
+/* La pregunta y sus opciones (2 a 5), como SAChat.opciones: un bloque [[opciones]] a | b [[/opciones]], o una línea
+   con «?» seguida de 2 a 5 viñetas cortas («• », «- », «1.»). Sin opciones: null. */
+function chatOpciones_(texto) {
+  texto = String(texto == null ? '' : texto).replace(/\r\n?/g, '\n'); if (!texto.trim()) return null;
+  var titulo = function (t) {
+    t = String(t || '').replace(/\*\*|__/g, '').replace(/\s+/g, ' ').trim(); if (!t) return '';
+    var m = t.match(/^(.+?)\s+[—–-]\s+(.+)$/); return (m ? m[1] : t).replace(/[.;,]$/, '').trim();
+  };
+  var b = texto.match(/\[\[opciones\]\]([\s\S]*?)\[\[\/opciones\]\]/i);
+  if (b) {
+    var ops = b[1].split(/\||\n/).map(titulo).filter(Boolean);
+    if (ops.length >= 2 && ops.length <= 5) {
+      var antes = texto.slice(0, b.index).split('\n').map(function (x) { return x.trim(); }).filter(Boolean);
+      var q = antes.filter(function (x) { return /\?/.test(x); }).pop() || antes.pop() || '';
+      return { pregunta: q, opciones: ops };
+    }
+  }
+  var L = texto.split('\n');
+  for (var i = 0; i < L.length; i++) {
+    if (!/\?\s*:?\s*$/.test(L[i])) continue;
+    var j = i + 1; while (j < L.length && !L[j].trim()) j++;
+    var lista = [], k = j;
+    for (; k < L.length; k++) { var mv = L[k].match(CHAT_PREG_VINETA_); if (!mv) break; lista.push(mv[1]); }
+    if (lista.length < 2 || lista.length > 5 || lista.some(function (x) { return x.length > 90; })) continue;
+    var k2 = k; while (k2 < L.length && !L[k2].trim()) k2++;
+    if (k2 < L.length && CHAT_PREG_VINETA_.test(L[k2])) continue;   // la lista sigue: es una lista larga, no opciones
+    var tit = lista.map(titulo).filter(Boolean);
+    if (tit.length >= 2) return { pregunta: L[i].trim(), opciones: tit };
+  }
+  return null;
+}
+/* La clave de Pendientes (areas.js) de una esfera del chat: «Esencia» → espiritualidad. Sin esfera: Propósito. */
+function chatAreaDe_(esfera) { var a = AREAS_.filter(function (x) { return x.n === esfera; })[0]; return a ? a.k : 'proposito'; }
+/* El enlace que abre el chat filtrado en esa esfera: «Alma aquí» (alma/index.html?esfera=…). La app y el Hub lo
+   abren en su lugar con a.chat (js/sa-nav.js · SANav.chat); el Hub, en su Chat con Alma (?conv=op:<correo>&esfera=…). */
+function chatEnlace_(esfera) {
+  return 'https://hub.spacioam.com/alma/index.html' + (esfera ? '?esfera=' + encodeURIComponent(esfera) : '');
+}
+
+/* Cada minuto (procesarCola): crea los Pendientes de las preguntas que esperan y cierra los ya respondidos. */
+function chatPreguntasRevisar_(ahora) {
+  ahora = ahora || Date.now();
+  var jefe = chatPrincipal_(); if (!jefe) return { creadas: 0, cerradas: 0 };
+  var cache = CacheService.getScriptCache(); if (cache.get('chat_preg_corre')) return { creadas: 0, cerradas: 0 };
+  cache.put('chat_preg_corre', '1', 50);   // candado corto: dos corridas a la vez no crean la misma tarjeta
+  try {
+    var P = PropertiesService.getScriptProperties(), vistas = {};
+    try { vistas = JSON.parse(P.getProperty(CHAT_PREG_PROP_) || '{}') || {}; } catch (e) { vistas = {}; }
+    var sh = hojaOp_(), n = sh.getLastRow(), filas = [];
+    if (n >= 2) {
+      var desde = Math.max(2, n - 399);
+      filas = sh.getRange(desde, 1, n - desde + 1, OP_CAB_.length).getValues().map(function (r) {
+        var t = r[0] instanceof Date ? r[0].getTime() : new Date(r[0]).getTime();
+        return { t: isNaN(t) ? 0 : t, usuario: String(r[1]).trim().toLowerCase(), de: String(r[3]), canal: String(r[4]), texto: String(r[5]), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || '') };
+      }).filter(function (m) { return m.usuario === jefe.email && m.t; });
+    }
+    var yoTs = filas.filter(function (m) { return m.de === 'yo'; }).map(function (m) { return m.t; });
+    var respondida = function (t) { return yoTs.some(function (y) { return y > t; }); };
+    var out = { creadas: 0, cerradas: 0 }, cambio = false;
+    /* 1 · Cerrar: él escribió en el chat después de la pregunta, o la tarjeta ya se resolvió a mano. */
+    Object.keys(vistas).forEach(function (id) {
+      var v = vistas[id]; if (!v || v.c) return;
+      if (respondida(v.t)) { if (v.p) pendCerrar_(v.p); v.c = 1; cambio = true; out.cerradas++; }
+      else if (v.p && !pendAbierto_(v.p)) { v.c = 1; cambio = true; }
+    });
+    /* 2 · Crear: una tarjeta por pregunta con opciones de más de 10 min (y menos de 2 h) que nadie respondió. */
+    filas.forEach(function (m) {
+      if (m.de !== 'alma' || vistas[m.id] || m.canal === 'llamada' || m.canal === 'claude') return;
+      if (ahora - m.t < CHAT_PREG_ESPERA_ || ahora - m.t > CHAT_PREG_VENTANA_) return;
+      if (/\[\[opciones\]\]/i.test(m.texto) && /\?conv=/.test(m.texto)) return;   // decisión del equipo (decisiones.js)
+      var op = chatOpciones_(m.texto); if (!op) return;
+      if (respondida(m.t)) { vistas[m.id] = { t: m.t, c: 1 }; cambio = true; return; }
+      var esf = chatEsfera_(m.esfera) || 'Propósito', sub = m.esfera ? m.subcategoria : '';
+      var pq = op.pregunta.replace(/\*\*|__/g, '').replace(/\s+/g, ' ').trim() || 'Alma te hizo una pregunta';
+      var f = null;
+      try {
+        f = pendCrear_(jefe, { tipo: 'atencion', area: chatAreaDe_(esf), proyecto: sub, titulo: pq, importancia: 2,
+          resumen: 'Alma te preguntó en el chat y espera tu respuesta: ' + op.opciones.join(' · '),
+          aviso: 'Te dejé una pregunta en el chat: ' + tituloCorto_(pq, 120),
+          tarjeta: { tipo: 'pregunta', mensaje: m.id, esfera: esf, subcategoria: sub, opciones: op.opciones },
+          acciones: [{ texto: 'Abrir el chat', url: chatEnlace_(esf), chat: { esfera: esf, conv: 'op:' + jefe.email } }] },
+          { origen: 'pregunta', detalle: m.texto, push: true });
+      } catch (e) { console.error('chatPreguntasRevisar_: ' + e); return; }
+      vistas[m.id] = { t: m.t, p: f ? f.id : '' }; cambio = true; out.creadas++;
+    });
+    /* Lo cerrado se olvida pasadas 3 h (ya salió de la ventana); lo abierto, a los 30 días (cuando la tarjeta vence). */
+    Object.keys(vistas).forEach(function (id) { var v = vistas[id]; if (ahora - v.t > (v.c ? 3 * 3600000 : 30 * 86400000)) { delete vistas[id]; cambio = true; } });
+    if (cambio) P.setProperty(CHAT_PREG_PROP_, JSON.stringify(vistas));
+    return out;
+  } finally { cache.remove('chat_preg_corre'); }
+}

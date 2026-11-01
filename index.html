@@ -36,14 +36,14 @@
 <link rel="stylesheet" href="ds/chat.css?v=2026-11-15a">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-15b"></script>
+<script src="js/sa-nav.js?v=2026-11-15c"></script>
 <script src="js/alma-voz.js?v=2026-11-12a"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
 <script src="js/alma-client.js?v=2026-11-15a"></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="js/sa-chat.js?v=2026-11-15b"></script>
+<script src="js/sa-chat.js?v=2026-11-15c"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -3848,9 +3848,16 @@ class Component extends DCLogic {
     };
     document.addEventListener("keydown", this._atajos);
     /* ?conv=<conversación> o ?conv=<código de reserva HM…> (las filas «›» del chat de la roca, #317). */
-    var irConv = function (k) { if (/^HM[A-Z0-9]{8}$/i.test(k)) self.irAReserva(k); else self.irAConv(k); };
-    var convLink = this.convDeUrl(location.href); if (convLink) setTimeout(function () { irConv(convLink); }, 0);
-    window.addEventListener("sa-push-click", function (e) { var k = self.convDeUrl((e && e.detail) || ""); if (k) irConv(k); });
+    /* ?conv=op:<correo>&esfera=Finanzas: el Chat con Alma ya filtrado en esa esfera (una pregunta sin responder, #334). */
+    var irConv = function (k, esf) {
+      if (/^HM[A-Z0-9]{8}$/i.test(k)) { self.irAReserva(k); return; }
+      var z = esf && /^op:/.test(k) && window.SAChat ? SAChat.esfera(esf) : null;
+      if (z) self.setState(function (s) { var o = Object.assign({}, s.opFiltro); o[k] = z.n; return { opFiltro: o }; });
+      self.irAConv(k);
+    };
+    var esfDeUrl = function (u) { try { return new URL(u, location.href).searchParams.get("esfera") || ""; } catch (e) { return ""; } };
+    var convLink = this.convDeUrl(location.href), esfLink = esfDeUrl(location.href); if (convLink) setTimeout(function () { irConv(convLink, esfLink); }, 0);
+    window.addEventListener("sa-push-click", function (e) { var u = (e && e.detail) || "", k = self.convDeUrl(u); if (k) irConv(k, esfDeUrl(u)); });
     /* Cualquier enlace a epi / hola / mi / grow lleva la sesión, para no volver a iniciar sesión. */
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;

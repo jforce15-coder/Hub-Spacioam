@@ -713,6 +713,7 @@ function procesarCola() {
   try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
   try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
   try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
+  try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
   try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
   try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
@@ -1586,7 +1587,7 @@ const NOTAS_PROMPTS = {
   RUTA_ESTRATEGICO: 'Conversación estratégica con Juan (fundador).', RUTA_PERSONAL: 'Agenda personal de Juan.',
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
-  SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el chat operativo (Hub y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
+  SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el Chat con Alma (Hub, app y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
   WEEBO: 'Modo Weebo: la personalidad de Alma (humor, emoción, opinión) y lo que nunca hace. El nivel lo pone el Hub según la confianza de cada conversación (weebo.js). Edítalo libremente.',
   FAMILIA: 'Alma en The Gentle Stoic Parent (vida familiar, no trabajo): enfoque, metodologías (Gentle Stoic Parenting, Montessori, Relato Espejo, Stillwater) y reglas. Se le suma VOZ_HUMANA y se copia sola al agente «Alma · Familia». Edítalo libremente.',
   VOZ_HUMANA: 'Llamadas: cómo suena Alma para que se escuche como una persona (ritmo, reacciones, muletillas, etiquetas de voz, fechas y números). Va al final del prompt de voz. Edítalo libremente.',
@@ -2094,7 +2095,7 @@ function claveUsoIA() {
   return k;
 }
 const FUENTES_IA_ = [
-  { app: 'ALMA', nombre: 'ALMA · hub', donde: 'Apps Script de ALMA', que: 'Clasifica, redacta y verifica respuestas, consultas, auto mejora, reviews, chat operativo y notas de voz.', como: 'Se registra solo.' },
+  { app: 'ALMA', nombre: 'ALMA · hub', donde: 'Apps Script de ALMA', que: 'Clasifica, redacta y verifica respuestas, consultas, auto mejora, reviews, el Chat con Alma y notas de voz.', como: 'Se registra solo.' },
   { app: 'EPI', nombre: 'EPI', donde: 'Apps Script de EPI · acción «ai»', que: 'Resúmenes con IA dentro de la app de operación.', como: 'Pega el bloque de registro en su Apps Script.' },
   { app: 'Hola', nombre: 'Hola', donde: 'Backend de Hola · «readDocument»', que: 'Lee DPI y pasaportes en el check-in. Hasta 3 lecturas por documento si la foto viene girada o con reflejos.', como: 'Pega el bloque de registro en su Apps Script.' },
   { app: 'mi', nombre: 'mi', donde: 'Conta · facturas', que: 'Usa la IA del entorno de diseño. En producción no consume tokens.', como: 'Nada que conectar.' },

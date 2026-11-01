@@ -1393,7 +1393,7 @@
   }
   /* Las piezas del chat estilo A (ds/chat.css y js/sa-chat.js) se cargan la primera vez que se abre Alma, junto a este
      archivo (las páginas que ya las tienen no las vuelven a pedir). Sin ellas el chat pinta texto simple. */
-  var CHAT_V = "2026-11-15b", chatCb = [], chatCargando = false, chatSin = false;
+  var CHAT_V = "2026-11-15c", chatCb = [], chatCargando = false, chatSin = false;
   function conChat(cb) {
     if (w.SAChat && w.SAChat.pintor) { cb(true); return; }
     if (chatSin) { cb(false); return; }
@@ -1646,7 +1646,7 @@
     if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claude te pregunta: " + p.pregunta; cu.appendChild(pq); }
     if ((p.pasos || []).length) { var ol = d.createElement("ol"); p.pasos.forEach(function (x) { var li = d.createElement("li"); li.textContent = x; ol.appendChild(li); }); cu.appendChild(ol); }
     var bt = d.createElement("div"); bt.className = "bt";
-    (vuelo || (p.tarjeta && p.tarjeta.precio) ? (p.acciones || []).slice(1) : (p.acciones || [])).forEach(function (a) { var x = d.createElement("button"); x.type = "button"; x.textContent = a.texto || "Abrir"; x.onclick = function () { w.open(a.url, "_blank", "noopener"); }; bt.appendChild(x); });
+    (vuelo || (p.tarjeta && p.tarjeta.precio) ? (p.acciones || []).slice(1) : (p.acciones || [])).forEach(function (a) { var x = d.createElement("button"); x.type = "button"; x.textContent = a.texto || "Abrir"; x.onclick = function () { if (a.chat) { tocado(x); chatEn({ esfera: a.chat.esfera, conv: a.chat.conv, url: a.url }); return; } w.open(a.url, "_blank", "noopener"); }; bt.appendChild(x); });
     pendBotonesUnir(p, bt, cu);
     (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.className = "sec"; x.textContent = p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"; x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
     /* nada salta (ds/movimiento.md, regla 6): la tarjeta se cierra suave y lo de abajo sube; después se repinta la lista */
@@ -2206,7 +2206,26 @@
       setTimeout(function () { c.classList.remove("san-visto"); }, 2400);
     }, 120);
   }
+  /* Abre el Chat con Alma en una esfera («Abrir el chat» de una pregunta sin responder en Pendientes, #334).
+     En el Hub: su Chat con Alma con el filtro (?conv=op:<correo>&esfera=…). En la app: el chat de la roca, filtrado y
+     con esa esfera pedida al servidor. Donde no hay chat único, abre «Alma aquí» filtrado (o.url). */
+  function chatEn(o) {
+    o = o || {}; var e = String(o.esfera || "");
+    if (cfg && cfg.app === "hub" && o.conv) {
+      var u = HUB + "/?conv=" + encodeURIComponent(o.conv) + (e ? "&esfera=" + encodeURIComponent(e) : "");
+      if (E.ov && E.ov.classList.contains("pend")) pendAbrir(false);
+      try { w.dispatchEvent(new CustomEvent("sa-push-click", { detail: u })); } catch (x) {} return true;
+    }
+    if (!E.ov || !AL.esc || !chatServidor()) { if (o.url) w.open(o.url, "_blank", "noopener"); return false; }
+    if (E.ov.classList.contains("pend")) pendAbrir(false);
+    if (E.ov.classList.contains("noti")) notiAbrir(false);
+    if (!AL.on) escActivar(true); else if (!AL.chat) almaChat(true);
+    chatPintar(function () { if (E.u) E.u.filtro(e, true); });
+    return true;
+  }
   w.SANav = {
+    /* Abre el Chat con Alma filtrado en una esfera: SANav.chat({ esfera: "Finanzas" }) (también para la app nativa). */
+    chat: function (o) { return root ? chatEn(o) : false; },
     /* la barra de avisos del inicio: los datos de Pendientes y Notificaciones, una tarjeta con sus botones y abrirla en su hoja */
     datos: function () { return { pend: AL.pendData, noti: AL.notiData }; },
     tarjeta: function (p, tag) { var c = pendTarjeta(p, tag || ""); c.classList.add("abierta"); return c; },

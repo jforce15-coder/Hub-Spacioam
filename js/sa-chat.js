@@ -381,14 +381,15 @@
           if (S.v === v) pintar(true);
         }, function () { v.pidiendo = false; if (S.v === v) { pintar(true); pt.nota("No pude traer el historial (sin conexión)."); } });
       },
-      /* Filtra por una esfera («Finanzas») o "" = todas. Si ya pediste historial, la esfera se pide al servidor. */
-      filtro: function (e) {
+      /* Filtra por una esfera («Finanzas») o "" = todas. Si ya pediste historial, la esfera se pide al servidor.
+         traer: la pide al servidor ya (abrir el chat en una esfera, p. ej. desde una pregunta sin responder en Pendientes). */
+      filtro: function (e, traer) {
         var z = esfera(e); e = z ? z.n : "";
-        if (e === S.v.esfera) return;
+        if (e === S.v.esfera) { if (traer && e && !S.v.cargado) u.cargar(); return; }
         if (!e) { S.v = S.todas; pintar(); return; }
         var v = vista(e); v.msgs = S.todas.msgs.filter(function (m) { return esDe(m, e); });
         S.v = v; pintar();
-        if (S.historial) u.cargar();
+        if (S.historial || traer) u.cargar();
       },
       esfera: function () { return S.v.esfera; },
       /* Lo tuyo, al instante (devuelve el mensaje para mandar() después). */

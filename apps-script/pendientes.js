@@ -122,6 +122,14 @@ function pendResolver_(ses, id) {
   if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
   return { ok: true };
 }
+/* Cierra una tarjeta sin sesión (lo hace Alma sola, p. ej. una pregunta del chat que ya se respondió: chat.js). */
+function pendCerrar_(id) {
+  var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; if (!x || String(x.estado) !== 'abierto') return false;
+  hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto');
+  if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
+  return true;
+}
+function pendAbierto_(id) { var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; return !!x && pendVivo_(x, Date.now()); }
 /* Si un tema por retomar se resolvió en una llamada, su pendiente también. */
 function pendResolverRet_(ids) {
   if (!ids || !ids.length) return;
@@ -193,9 +201,13 @@ function pendResponder_(ses, b) {
   var texto = String(b.texto || '').trim(), id = String(b.id || ''); if (!texto || !id) return { ok: false, error: 'faltan datos' };
   var x = pendFilas_().filter(function (r) { return String(r.id) === id; })[0];
   if (x) {
-    var nota = 'Juan responde desde Pendientes a esta tarjeta tuya: «' + x.titulo + '». ' + (x.resumen || '') + (x.detalle ? '\nLo que habías dicho: ' + String(x.detalle).slice(0, 1500) : '') +
-      '\nAtiende su respuesta como siguiente paso de ese tema.';
-    var r = opProcesar_(adm, texto, 'hub', [], nota);
+    /* Una pregunta sin responder del chat (chat.js): es la respuesta a esa pregunta, en el mismo chat. */
+    var nota = x.origen === 'pregunta'
+      ? 'Juan responde desde Pendientes a la pregunta que le dejaste en este chat: «' + String(x.detalle || x.titulo).slice(0, 1500) + '»\nAtiende su respuesta como respuesta a esa pregunta.'
+      : 'Juan responde desde Pendientes a esta tarjeta tuya: «' + x.titulo + '». ' + (x.resumen || '') + (x.detalle ? '\nLo que habías dicho: ' + String(x.detalle).slice(0, 1500) : '') +
+        '\nAtiende su respuesta como siguiente paso de ese tema.';
+    /* Pendientes vive en la app de Alma: su respuesta entra a su Chat con Alma con canal «app» (el Hub puede mandar «hub»). */
+    var r = opProcesar_(adm, texto, String(b.canal || '') === 'hub' ? 'hub' : 'app', [], nota);
     if (!r.ok) return r;
     try { pendResolver_(ses, id); } catch (e) {}
     return { ok: true, a: 'alma', respuesta: r.alma && r.alma.texto || '' };

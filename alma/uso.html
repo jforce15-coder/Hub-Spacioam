@@ -130,7 +130,8 @@
     C.appendChild(sec("Qué lo gasta", tb));
     var lista = ((R.canales || {})[vista] || []).slice();
     C.appendChild(barras(lista, function (x) { return x.llamadas; }, function (x) { return es.format(x.llamadas); }));
-    C.appendChild(el("p", "nota", "Llamadas de Alma y el Hub a internet. El cupo es de la cuenta de Google: lo comparten Hola, Epi, el login y las demás apps."));
+    C.appendChild(el("p", "nota", "Llamadas a internet de toda la cuenta de Google: el Hub y Alma, y lo que gastan Hola, Epi, Grow, Docs y Mi por su lado («App …»). «Hola» y «Epi» solos son lo que el Hub les pide."));
+    if (R.sinDatos && R.sinDatos.length) C.appendChild(el("p", "nota", "Sin datos de: " + R.sinDatos.join(", ") + ". No contestó; su gasto no está en la batería."));
     /* IA */
     var ia = R.ia || {}, iv = ia[vista] || {};
     C.appendChild(sec(vista === "hoy" ? "IA de hoy" : "IA de 7 días"));

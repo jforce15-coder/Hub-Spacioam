@@ -12,7 +12,7 @@ function mejoraDatos_() {
       var desde = Math.floor(Date.now() / 1000) - 7 * 86400, h = { 'xi-api-key': key }, lista = [], cursor = '';
       for (var i = 0; i < 3; i++) {
         var u = 'https://api.elevenlabs.io/v1/convai/conversations?page_size=100&call_start_after_unix=' + desde + (ag ? '&agent_id=' + ag : '') + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
-        var j = JSON.parse(UrlFetchApp.fetch(u, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
+        var j = JSON.parse(uf_(u, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
         lista = lista.concat(j.conversations || []); if (!j.has_more || !j.next_cursor) break; cursor = j.next_cursor;
       }
       var porOrigen = {};
@@ -21,7 +21,7 @@ function mejoraDatos_() {
       var largas = lista.slice().sort(function (a, b) { return (b.call_duration_secs || 0) - (a.call_duration_secs || 0); }).slice(0, 5);
       var muestra = largas.slice(0, 3).map(function (c) {
         try {
-          var d = JSON.parse(UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversations/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
+          var d = JSON.parse(uf_('https://api.elevenlabs.io/v1/convai/conversations/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText() || '{}');
           var ch = (d.metadata || {}).charging || {}, turnos = (d.transcript || []).filter(function (t) { return t.llm_usage; }).length;
           return { id: c.conversation_id, segundos: c.call_duration_secs, creditos: (d.metadata || {}).cost, de_minutos: ch.call_charge, del_modelo: ch.llm_charge, turnos: turnos };
         } catch (e) { return { id: c.conversation_id, error: String(e).slice(0, 80) }; }

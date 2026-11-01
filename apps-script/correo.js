@@ -80,7 +80,7 @@ function correoConectar_(ses, b) {
 function correoPuenteCodigo_(c) {
   var url = ScriptApp.getService().getUrl();
   var src = '';
-  try { src = UrlFetchApp.fetch('https://hub.spacioam.com/correo-puente/Codigo.gs', { muteHttpExceptions: true }).getContentText(); } catch (e) {}
+  try { src = uf_('https://hub.spacioam.com/correo-puente/Codigo.gs', { muteHttpExceptions: true }).getContentText(); } catch (e) {}
   if (!/function revisar/.test(src)) return { error: 'No pude leer el puente; ábrelo en hub.spacioam.com/correo-puente/Codigo.gs', url: url };
   return src.replace("var HUB = '';", "var HUB = '" + url + "';").replace("var CUENTA = '';", "var CUENTA = '" + c.cuenta + "';").replace("var LLAVE = '';", "var LLAVE = '" + c.llave + "';");
 }
@@ -307,7 +307,7 @@ function correoAccion_(ses, b) {
 function correoDesuscribir_(url, mailto, unClic, soloUnClic) {
   if (url && unClic && /^https:\/\//i.test(url)) {
     try {
-      var r = UrlFetchApp.fetch(url, { method: 'post', contentType: 'application/x-www-form-urlencoded', payload: 'List-Unsubscribe=One-Click', muteHttpExceptions: true, followRedirects: true });
+      var r = uf_(url, { method: 'post', contentType: 'application/x-www-form-urlencoded', payload: 'List-Unsubscribe=One-Click', muteHttpExceptions: true, followRedirects: true });
       if (r.getResponseCode() < 400) return { hecha: true, como: 'un clic' };
     } catch (e) { console.error('desuscribir: ' + e); }
   }
@@ -323,7 +323,7 @@ function correoDominio_(cuenta) {
   var dom = String(cuenta || '').split('@')[1] || ''; if (!dom || /^(gmail|googlemail)\.com$/.test(dom)) return {};
   var cache = CacheService.getScriptCache(), k = 'dom_' + dom, c0 = cache.get(k); if (c0) return JSON.parse(c0);
   var txt = function (n) {
-    try { var r = UrlFetchApp.fetch('https://dns.google/resolve?type=TXT&name=' + encodeURIComponent(n), { muteHttpExceptions: true });
+    try { var r = uf_('https://dns.google/resolve?type=TXT&name=' + encodeURIComponent(n), { muteHttpExceptions: true });
       return (JSON.parse(r.getContentText() || '{}').Answer || []).map(function (a) { return String(a.data || '').replace(/"\s*"/g, '').replace(/^"|"$/g, ''); }); } catch (e) { return null; }
   };
   var raiz = txt(dom), dmarc = txt('_dmarc.' + dom), dkim = txt('google._domainkey.' + dom);

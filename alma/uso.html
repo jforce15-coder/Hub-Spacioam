@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Uso · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Ajustes → Uso (issue #318): cuánto queda hoy del cupo de Google (lo comparten todas las apps de la cuenta), qué lo
+     gasta, cuánto va de IA y qué se pausa en cada nivel. Solo el administrador principal (apps-script/cupo.js, acción «uso»). -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --papel: #fff;
+    --durazno: #E9826A; --durazno-t: #B5624E; --verde: #2F6B47; --verde-c: #8FB38C; --ambar: #9A6B12; --ambar-c: #E3A47F; --rojo: #B54D36; --arena: #F3EFEA; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 760px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+  .barra { display: flex; align-items: center; gap: 12px; }
+  .barra .t { flex: 1; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
+  .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: var(--papel); display: grid; place-items: center; color: var(--tinta); text-decoration: none; box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); cursor: pointer; }
+  .redondo svg { width: 20px; height: 20px; }
+  .portada { margin: 34px 0 22px; }
+  .portada small { display: block; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--durazno-t); }
+  .portada h1 { margin: 10px 0 12px; font: 400 clamp(38px, 9vw, 58px)/1.02 Valky, Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+  .portada p { margin: 0; max-width: 58ch; font: 400 17px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  /* La batería: lo que queda del cupo de hoy */
+  .bateria { display: flex; align-items: center; gap: 6px; margin: 6px 0 10px; }
+  .bateria .cuerpo { flex: 1; height: 86px; border-radius: 24px; background: var(--papel); padding: 8px; box-shadow: 0 26px 56px -32px rgba(70,50,40,.34), inset 0 0 0 1px var(--linea); }
+  .bateria .carga { height: 100%; border-radius: 17px; background: var(--verde-c); min-width: 6px; transition: width .9s var(--ease, cubic-bezier(.22,.61,.36,1)); display: flex; align-items: center; justify-content: flex-end; padding: 0 16px; }
+  .bateria .carga b { font: 300 34px/1 Montserrat, sans-serif; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -.02em; white-space: nowrap; }
+  .bateria .carga.poca { justify-content: flex-start; } .bateria .carga.poca b { color: var(--tinta); transform: translateX(calc(100% + 16px)); }
+  .bateria .polo { width: 10px; height: 34px; border-radius: 0 6px 6px 0; background: var(--papel); box-shadow: inset 0 0 0 1px var(--linea); }
+  .bateria.fondo .carga { background: var(--ambar-c); } .bateria.critico .carga { background: var(--rojo); }
+  .estado { display: inline-block; font: 600 10px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px; background: #E6F2EA; color: var(--verde); }
+  .estado.fondo { background: #FBF3E2; color: var(--ambar); } .estado.critico { background: #FBEAE6; color: var(--rojo); }
+  .lin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font: 500 12.5px Montserrat, sans-serif; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .sec { margin: 44px 0 16px; display: flex; align-items: baseline; gap: 12px; border-top: 1px solid var(--linea); padding-top: 18px; flex-wrap: wrap; }
+  .sec h2 { margin: 0; font: 400 28px/1.1 Valky, Georgia, serif; flex: 1; min-width: 0; }
+  .nota { font: 500 12.5px/1.5 Montserrat, sans-serif; color: var(--suave); margin: 12px 0 0; }
+  .cifras { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 22px 18px; margin-top: 26px; }
+  .cifra b { display: block; font: 300 36px/1 Montserrat, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cifra span { display: block; margin-top: 8px; font: 500 12.5px/1.35 Montserrat, sans-serif; color: var(--suave); }
+  .tabs { display: inline-flex; background: var(--arena); border-radius: 999px; padding: 3px; }
+  .tabs button { border: 0; background: transparent; cursor: pointer; min-height: 38px; padding: 0 14px; border-radius: 999px; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--suave); }
+  .tabs button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 6px 14px -8px rgba(70,50,40,.4); }
+  .barras { display: grid; gap: 10px; }
+  .bar { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr 4.6rem; align-items: center; gap: 12px; font: 500 13px Montserrat, sans-serif; color: var(--tinta); }
+  .bar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar .p { height: 10px; border-radius: 5px; background: var(--arena); overflow: hidden; } .bar .p i { display: block; height: 100%; border-radius: 5px; background: var(--durazno); }
+  .bar em { font-style: normal; text-align: right; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .ia { background: var(--papel); border-radius: 24px; padding: 20px; box-shadow: 0 26px 56px -32px rgba(70,50,40,.34); }
+  .ia .cifras { margin-top: 0; margin-bottom: 18px; }
+  .niveles { display: grid; gap: 10px; }
+  .nivel { display: grid; grid-template-columns: 14px 1fr; gap: 4px 12px; align-items: baseline; padding: 14px 16px; border-radius: 18px; background: transparent; }
+  .nivel i { width: 12px; height: 12px; border-radius: 50%; background: var(--verde-c); align-self: center; }
+  .nivel.fondo i { background: var(--ambar-c); } .nivel.critico i { background: var(--rojo); }
+  .nivel b { font: 600 13.5px Montserrat, sans-serif; } .nivel b small { font-weight: 500; color: var(--suave); margin-left: 6px; }
+  .nivel p { grid-column: 2; margin: 0; font: 500 13px/1.5 Montserrat, sans-serif; color: #5A5856; }
+  .nivel.ahora { background: var(--papel); box-shadow: 0 18px 40px -28px rgba(70,50,40,.4); }
+  .vacio { margin: 60px 0; text-align: center; font: 400 24px/1.3 Valky, Georgia, serif; color: var(--suave); }
+  .vacio p { font: 500 14px Montserrat, sans-serif; margin: 12px 0 0; }
+  .esq { display: grid; gap: 14px; margin-top: 34px; }
+  .esq i { display: block; height: 14px; border-radius: 8px; background: linear-gradient(90deg, #EFEBE6 0%, #F7F4F1 50%, #EFEBE6 100%); background-size: 200% 100%; animation: esq 1.6s ease-in-out infinite; }
+  .esq .e1 { width: 34%; height: 10px; } .esq .e2 { width: 70%; height: 46px; } .esq .e3 { width: 100%; height: 86px; border-radius: 24px; } .esq .e4 { width: 80%; }
+  @keyframes esq { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .esq i { animation: none; } .bateria .carga { transition: none; } }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--durazno); outline-offset: 2px; }
+  @media (max-width: 420px) { .bar { grid-template-columns: 6.6rem 1fr 4rem; font-size: 12.5px; } .cifra b { font-size: 30px; } .bateria .cuerpo { height: 74px; } .bateria .carga b { font-size: 28px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="barra">
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="t">Ajustes · Uso</div>
+    <button type="button" class="redondo" id="b-recargar" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+  </div>
+  <!-- la forma antes que el contenido (ds/velocidad.md): portada, batería y cifras en gris mientras llegan los datos -->
+  <div id="cuerpo"><div class="esq" aria-label="Cargando el uso"><i class="e1"></i><i class="e2"></i><i class="e4"></i><i class="e3"></i><i class="e4"></i><i class="e4"></i></div></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var URL = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  var es = new Intl.NumberFormat("es-ES"), usd = function (x) { return "US$ " + (x >= 10 ? Math.round(x) : (Math.round((x || 0) * 100) / 100).toFixed(2)); };
+  var NIVEL = { verde: "Bien", fondo: "Riesgo", critico: "Crítico" };
+  var R = null, vista = "hoy";
+  function pedir() {
+    if (window.ALMA_USO) return window.ALMA_USO();   // para probar la página con datos de ejemplo
+    var ses = window.SASesion && SASesion.leer && SASesion.leer();
+    if (!ses) return Promise.resolve({ ok: false, error: "Entra primero al Hub con tu usuario y vuelve a abrir esta página." });
+    return fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify({ hub: 1, action: "uso", session: ses }) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet e intenta de nuevo." }; });
+  }
+  function sec(t, extra) { var s = el("div", "sec"); s.appendChild(el("h2", "", t)); if (extra) s.appendChild(extra); return s; }
+  function cifra(caja, valor, texto) { var c = el("div", "cifra"); c.appendChild(el("b", "", valor)); c.appendChild(el("span", "", texto)); caja.appendChild(c); }
+  function barras(lista, valor, texto) {
+    var caja = el("div", "barras"), max = Math.max.apply(null, lista.map(valor).concat([1]));
+    lista.forEach(function (x) { var b = el("div", "bar"); b.appendChild(el("span", "", x.canal || x.nombre)); var p = el("div", "p"), i = el("i"); i.style.width = Math.max(1.5, 100 * valor(x) / max) + "%"; p.appendChild(i); b.appendChild(p); b.appendChild(el("em", "", texto(x))); caja.appendChild(b); });
+    if (!lista.length) caja.appendChild(el("p", "nota", "Todavía no hay datos de este periodo."));
+    return caja;
+  }
+  function pintar() {
+    var C = $("cuerpo"); C.innerHTML = "";
+    var H = R.hoy || {}, queda = Math.max(0, Math.round(100 - (H.pct || 0)));
+    /* portada */
+    var pt = el("div", "portada"); pt.appendChild(el("small", "", "Cupo de Google · hoy"));
+    pt.appendChild(el("h1", "", "Te queda " + queda + " %"));
+    pt.appendChild(el("p", "", H.alcanza ? "A este ritmo alcanza para hoy." : "A este ritmo se acaba a las " + H.horaAgotado + ". Lo de fondo ya se cuida solo; mira abajo qué lo gasta."));
+    C.appendChild(pt);
+    /* batería */
+    var bt = el("div", "bateria " + (H.nivel || "verde")); bt.setAttribute("role", "img"); bt.setAttribute("aria-label", "Queda " + queda + " % del cupo de hoy");
+    var cu = el("div", "cuerpo"), ca = el("div", "carga" + (queda < 22 ? " poca" : "")); ca.style.width = "0%"; ca.appendChild(el("b", "", queda + " %")); cu.appendChild(ca); bt.appendChild(cu); bt.appendChild(el("div", "polo")); C.appendChild(bt);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { ca.style.width = Math.max(2, queda) + "%"; }); });
+    var ln = el("div", "lin"); ln.appendChild(el("span", "estado " + (H.nivel || "verde"), NIVEL[H.nivel] || "Bien"));
+    ln.appendChild(el("span", "", es.format(H.usado || 0) + " de " + es.format(H.limite || 0) + " llamadas usadas")); C.appendChild(ln);
+    var cf = el("div", "cifras");
+    cifra(cf, es.format(H.restante || 0), "llamadas libres hoy");
+    cifra(cf, es.format(H.porHora || 0), "por hora, en promedio");
+    cifra(cf, es.format(H.proyeccionFinDia || 0), "al final del día, a este ritmo (" + Math.round(H.proyeccionPct || 0) + " %)");
+    cifra(cf, Math.round(H.pct24 || 0) + " %", "usado en las últimas 24 h (con esto se decide el nivel)");
+    C.appendChild(cf);
+    /* canales */
+    var tb = el("div", "tabs"); [["hoy", "Hoy"], ["semana", "7 días"]].forEach(function (x) { var b = el("button", "", x[1]); b.type = "button"; b.setAttribute("data-v", x[0]); b.setAttribute("aria-pressed", String(vista === x[0])); tb.appendChild(b); });
+    tb.onclick = function (ev) { var b = ev.target.closest && ev.target.closest("[data-v]"); if (!b || b.getAttribute("data-v") === vista) return; vista = b.getAttribute("data-v"); pintar(); };
+    C.appendChild(sec("Qué lo gasta", tb));
+    var lista = ((R.canales || {})[vista] || []).slice();
+    C.appendChild(barras(lista, function (x) { return x.llamadas; }, function (x) { return es.format(x.llamadas); }));
+    C.appendChild(el("p", "nota", "Llamadas de Alma y el Hub a internet. El cupo es de la cuenta de Google: lo comparten Hola, Epi, el login y las demás apps."));
+    /* IA */
+    var ia = R.ia || {}, iv = ia[vista] || {};
+    C.appendChild(sec(vista === "hoy" ? "IA de hoy" : "IA de 7 días"));
+    var box = el("div", "ia"), ic = el("div", "cifras");
+    cifra(ic, usd(iv.usd || 0), "gastado en IA"); cifra(ic, es.format(Math.round((iv.tokens || 0) / 1000)) + " mil", "tokens"); cifra(ic, es.format(iv.n || 0), "pedidos a la IA");
+    box.appendChild(ic);
+    if (ia.ok === false) box.appendChild(el("p", "nota", "No pude leer IA_USO: " + (ia.error || "")));
+    else box.appendChild(barras(iv.funciones || [], function (x) { return x.usd; }, function (x) { return usd(x.usd); }));
+    C.appendChild(box);
+    /* niveles */
+    C.appendChild(sec("Qué se pausa"));
+    var nv = el("div", "niveles");
+    (R.niveles || []).forEach(function (n) {
+      var f = el("div", "nivel " + n.nivel + (n.nivel === H.nivel ? " ahora" : "")), t = el("b", "", NIVEL[n.nivel] || n.nivel);
+      t.appendChild(el("small", "", n.desde ? "desde " + n.desde + " %" : "menos de 60 %")); if (n.nivel === H.nivel) t.appendChild(el("small", "", "· ahora"));
+      f.appendChild(el("i")); f.appendChild(t); f.appendChild(el("p", "", n.texto)); nv.appendChild(f);
+    });
+    C.appendChild(nv);
+    C.appendChild(el("p", "nota", (R.nunca || "") + (R.pausas === false ? " Las pausas están apagadas (CUPO_PAUSAR = 0): solo se cuenta." : "") + " Te aviso cuando cambia el nivel y si a este ritmo el día pasa del 80 %."));
+    C.appendChild(el("p", "nota", "Actualizado: " + new Date(R.actualizado || Date.now()).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) + "."));
+  }
+  function cargar() {
+    pedir().then(function (r) {
+      if (!r || !r.ok) { var C = $("cuerpo"); C.innerHTML = ""; var v = el("div", "vacio", "No pude cargar el uso."); v.appendChild(el("p", "", (r && r.error) || "Intenta de nuevo en un momento.")); C.appendChild(v); return; }
+      R = r; pintar();
+    });
+  }
+  $("b-recargar").onclick = cargar;
+  cargar();
+})();
+</script>
+</body>
+</html>

@@ -40,7 +40,7 @@ function spotifyPedirToken_(datos) {
   var p = PropertiesService.getScriptProperties();
   var auth = Utilities.base64Encode(p.getProperty('SPOTIFY_CLIENT_ID') + ':' + p.getProperty('SPOTIFY_CLIENT_SECRET'));
   try {
-    var r = UrlFetchApp.fetch('https://accounts.spotify.com/api/token', { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Basic ' + auth }, payload: datos });
+    var r = uf_('https://accounts.spotify.com/api/token', { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Basic ' + auth }, payload: datos });
     return JSON.parse(r.getContentText() || '{}');
   } catch (e) { return { error: String(e) }; }
 }
@@ -57,7 +57,7 @@ function spotifyApi_(metodo, ruta, cuerpo) {
   var t = spotifyAcceso_(); if (!t) return { code: 401, j: { error: 'sin conexión' } };
   var o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + t } };
   if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
-  var r = UrlFetchApp.fetch('https://api.spotify.com/v1' + ruta, o), j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
+  var r = uf_('https://api.spotify.com/v1' + ruta, o), j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   return { code: r.getResponseCode(), j: j };
 }
 function spotifyEstado_() {

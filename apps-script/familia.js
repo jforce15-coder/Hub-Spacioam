@@ -126,12 +126,12 @@ function vozSubirPrompt_(agente, texto, claveHuella, claveEstado, forzar) {
   var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, texto, Utilities.Charset.UTF_8));
   if (!forzar && huella === p.getProperty(claveHuella)) return { ok: true, sin_cambios: true };
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
-  var g = UrlFetchApp.fetch(url, { headers: h, muteHttpExceptions: true });
+  var g = uf_(url, { headers: h, muteHttpExceptions: true });
   if (g.getResponseCode() !== 200) return guardar({ ok: false, error: 'GET agente HTTP ' + g.getResponseCode(), detalle: g.getContentText().slice(0, 200) });
   var ag = JSON.parse(g.getContentText()), prompt = (((ag.conversation_config || {}).agent || {}).prompt) || {};
   prompt.prompt = texto;
   if (prompt.tool_ids && prompt.tool_ids.length) delete prompt.tools;   // la API no acepta los dos a la vez
-  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
+  var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
     payload: JSON.stringify({ conversation_config: { agent: { prompt: prompt } } }) });
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });
   p.setProperty(claveHuella, huella);
@@ -145,8 +145,8 @@ function familiaSyncPrompt_(forzar) {
 function familiaPase_(body) {
   var pase = String(body.gspPase || '').trim(); if (!/^[\w-]{20,80}$/.test(pase)) return { ok: false, error: 'pase' };
   var url = PropertiesService.getScriptProperties().getProperty('GSP_API_URL') || GSP_API_;
-  var r = UrlFetchApp.fetch(url, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
-    payload: JSON.stringify({ action: 'almaVerificar', payload: { pase: pase } }) });
+  var r = uf_(url, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+    payload: JSON.stringify({ action: 'almaVerificar', payload: { pase: pase } }) }, 'Otras apps');
   var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   var d = j && j.ok && j.data; if (!d || !d.emails) return { ok: false, error: 'pase no válido' };
   var adm = adminPorCorreos_(d.emails);

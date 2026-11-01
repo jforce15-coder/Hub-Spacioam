@@ -118,15 +118,16 @@ function doPost(e) {
   try {
     const props = PropertiesService.getScriptProperties();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    cupoCanal_('Huéspedes');   // canal de la ejecución para el cupo de Google (cupo.js); abajo cambia según quién llama
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
     if (body.mejora && body.action === 'respuesta') return json_(paraClaudeRespuesta_(body));   // Claude responde un pedido de Alma (llave de un solo uso, paraclaude.js)
-    if ((e && e.parameter && e.parameter.voz) || body.voz) return vozApi_(e, body);   // ALMA voz (ElevenLabs), sección 15 (voz.js)
-    if (body.correoPuente) return json_(correoPuente_(body));   // el puente de una cuenta de correo manda lo nuevo (llave propia, correo.js)
+    if ((e && e.parameter && e.parameter.voz) || body.voz) { cupoCanal_('Voz'); return vozApi_(e, body); }   // ALMA voz (ElevenLabs), sección 15 (voz.js)
+    if (body.correoPuente) { cupoCanal_('Otros'); return json_(correoPuente_(body)); }   // el puente de una cuenta de correo manda lo nuevo (llave propia, correo.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
-    if (body.object === 'whatsapp_business_account') return waWebhook_(body);   // WhatsApp Cloud API (sección 11)
+    if (body.object === 'whatsapp_business_account') { cupoCanal_('WhatsApp'); return waWebhook_(body); }   // WhatsApp Cloud API (sección 11)
     if (body.anilloPrueba) return json_(anilloGuardar_(body));   // prueba del anillo desde hub.spacioam.com/anillo/ (anillo.js)
     if (body.tutorial) return json_(tutorialApi_(body));   // tutoriales: avance de cada persona (tutoriales.js)
     if (body.recepcionEstado) return json_(recepcionEstados_(body.codes));   // Hola: estado del envío a recepción por código
@@ -686,6 +687,7 @@ function programarPronto_(texto) {
   } catch (e) { console.error('programarPronto_: ' + e); }
 }
 function procesarColaPronto() {
+  cupoCanal_('Huéspedes');
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'procesarColaPronto').forEach(t => ScriptApp.deleteTrigger(t));
   procesarColaNucleo_();   // solo la cola: el mantenimiento lo hace el disparador de cada minuto
 }
@@ -702,6 +704,7 @@ function saludAlma_() {
 }
 function procesarCola() {
   pulso_();
+  cupoCanal_('Huéspedes');   // lo de huéspedes, documentos, Epi y limpieza nunca se pausa por cupo (CUPO_NUNCA_, cupo.js)
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
   try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
   try { opWaProcesar_(); } catch (e) { console.error('opWaProcesar_: ' + e); }   // respaldo si el disparador de 20 s no corrió
@@ -715,15 +718,20 @@ function procesarCola() {
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
   try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
-  try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
-  try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
   try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
-  try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
-  try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
-  try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
-  try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
-  try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // lo más lento, al final
+  /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
+  if (cupoPermite_('fondo')) {
+    cupoCanal_('Mejoras y fondo');
+    try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
+    try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
+    try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
+    try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
+    try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
+    try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
+  }
+  cupoCanal_('Epi');
+  try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
 }
 function procesarColaNucleo_() {
   const props = PropertiesService.getScriptProperties();
@@ -2011,7 +2019,7 @@ function claude_(modelo, maxTokens, system, user, temp, imagenes) {
   const content = (imagenes || []).slice(0, 4).map(imgBloque_).filter(Boolean);
   content.push({ type: 'text', text: user });
   const t0 = Date.now();
-  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+  const r = uf_('https://api.anthropic.com/v1/messages', {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     payload: JSON.stringify({ model: modelo, max_tokens: maxTokens, temperature: temp === undefined ? 0.3 : temp,
@@ -2124,7 +2132,7 @@ function usoAnthropic_(desdeMs) {
   const k = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_ADMIN_KEY'); if (!k) return { ok: false, sinLlave: true };
   const s0 = Utilities.formatDate(new Date(desdeMs), 'UTC', "yyyy-MM-dd'T'00:00:00'Z'"), e0 = Utilities.formatDate(new Date(Date.now() + 86400000), 'UTC', "yyyy-MM-dd'T'00:00:00'Z'");
   const ck = 'usoAnt_' + s0.slice(0, 10), cache = CacheService.getScriptCache(), c0 = cache.get(ck); if (c0) { try { return JSON.parse(c0); } catch (e) {} }
-  const get = u => { const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/organizations/' + u, { muteHttpExceptions: true, headers: { 'x-api-key': k, 'anthropic-version': '2023-06-01' } }); const c = r.getResponseCode(); let j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} return c === 200 ? j : { _err: c, msg: (j.error && j.error.message) || '' }; };
+  const get = u => { const r = uf_('https://api.anthropic.com/v1/organizations/' + u, { muteHttpExceptions: true, headers: { 'x-api-key': k, 'anthropic-version': '2023-06-01' } }); const c = r.getResponseCode(); let j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {} return c === 200 ? j : { _err: c, msg: (j.error && j.error.message) || '' }; };
   const nombres = {}; const ks = get('api_keys?limit=100'); (ks.data || []).forEach(x => nombres[x.id] = x.name || x.id);
   const llaves = {}; let page = '', g = 0, err = '';
   do {
@@ -2166,12 +2174,12 @@ function hosp_(metodo, ruta, payload) {
   try {
     // Consultas previas a la reserva (Pre-approved / Inquiry): Hospitable las expone en /inquiries/{uuid}.
     ruta = String(ruta).replace(/^\/reservations\/inq:/, '/inquiries/');
-    let r = UrlFetchApp.fetch(CFG.HOSPITABLE_API + ruta, opt);
+    let r = uf_(CFG.HOSPITABLE_API + ruta, opt);
     /* 429 (límite de Hospitable): hasta 2 reintentos con espera corta, respetando Retry-After si es breve. */
     for (let k = 0; k < 2 && r.getResponseCode() === 429; k++) {
       const ra = Number((r.getHeaders() || {})['Retry-After'] || (r.getHeaders() || {})['retry-after']) || 0;
       Utilities.sleep(Math.min(6000, ra ? ra * 1000 : 1500 * (k + 1)) + Math.floor(Math.random() * 400));
-      r = UrlFetchApp.fetch(CFG.HOSPITABLE_API + ruta, opt);
+      r = uf_(CFG.HOSPITABLE_API + ruta, opt);
     }
     let json = null; try { json = JSON.parse(r.getContentText()); } catch (e) { }
     const code = r.getResponseCode();
@@ -2362,7 +2370,7 @@ function waEnviar_(numero, texto, o) {
   const wa = String(numero).replace(/\D/g, '');
   if (!o.yaVentana) { let abierta = true; try { abierta = waVentana_(wa); } catch (e) {} if (!abierta) return waRetomar_(wa, texto, o); }
   try {
-    const r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
+    const r = uf_('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token },
       payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'text', text: { body: String(texto).slice(0, 4000) } })
     });
@@ -2408,7 +2416,7 @@ function pushA_(emails, titulo, cuerpo, url) {
       chrome_web_icon: CFG.HUB_URL + '/assets/icons/icon-192.png', ttl: 3600 };
     if (emails && emails.length) body.include_aliases = { external_id: emails.map(e => String(e).toLowerCase()) };
     /* Llaves nuevas (os_v2_…) usan 'Key'; las REST API Key antiguas, 'Basic'. Se prueba una y si OneSignal rechaza, la otra. */
-    const enviar = b2 => { const f = pref => UrlFetchApp.fetch('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: pref + ' ' + key }, payload: JSON.stringify(b2) }); const p1 = /^os_v2_/.test(key) ? 'Key' : 'Basic'; let x = f(p1); if (x.getResponseCode() === 401 || x.getResponseCode() === 403) x = f(p1 === 'Key' ? 'Basic' : 'Key'); return x; };
+    const enviar = b2 => { const f = pref => uf_('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: pref + ' ' + key }, payload: JSON.stringify(b2) }); const p1 = /^os_v2_/.test(key) ? 'Key' : 'Basic'; let x = f(p1); if (x.getResponseCode() === 401 || x.getResponseCode() === 403) x = f(p1 === 'Key' ? 'Basic' : 'Key'); return x; };
     let r;
     let alTodos = !(emails && emails.length);
     if (!alTodos) {
@@ -2449,7 +2457,7 @@ function pushNuevo_(convId, quien, propiedad, texto) {
     const body = { app_id: app, target_channel: 'push', headings: { en: t, es: t }, contents: { en: b, es: b },
       url: CFG.HUB_URL + '/?conv=' + encodeURIComponent(convId), chrome_web_icon: CFG.HUB_URL + '/assets/icons/icon-192.png', ttl: 1800,
       web_push_topic: 'conv-' + String(convId).replace(/[^\w-]/g, '').slice(0, 60), filters: [{ field: 'tag', key: 'nuevos', relation: '!=', value: '0' }, { operator: 'OR' }, { field: 'tag', key: 'nuevos', relation: 'not_exists' }] };   // activado por defecto: solo se excluye a quien lo apagó
-    const f = pref => UrlFetchApp.fetch('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: pref + ' ' + key }, payload: JSON.stringify(body) });
+    const f = pref => uf_('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: pref + ' ' + key }, payload: JSON.stringify(body) });
     const p1 = /^os_v2_/.test(key) ? 'Key' : 'Basic'; let r = f(p1); if (r.getResponseCode() === 401 || r.getResponseCode() === 403) r = f(p1 === 'Key' ? 'Basic' : 'Key');
     if (r.getResponseCode() >= 300) console.error('pushNuevo_ ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 200));
   } catch (e) { console.error('pushNuevo_: ' + e); }
@@ -2500,7 +2508,7 @@ function notificar_(whatsapp, asunto, texto) {
   const token = p.getProperty('WA_TOKEN'), phoneId = p.getProperty('WA_PHONE_ID');
   if (!token || !phoneId || !whatsapp) return;
   try {
-    const r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
+    const r = uf_('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + token },
       payload: JSON.stringify({ messaging_product: 'whatsapp', to: whatsapp.replace(/\D/g, ''), type: 'text', text: { body: texto.slice(0, 4000) } })
@@ -2922,6 +2930,13 @@ function proponerAutomejora_(info, prop) {
 
 // Disparador cada hora (lo crea configurar()).
 function aprender() {
+  cupoCanal_('Mejoras y fondo');
+  try { cupoVolcar_(); } catch (e) { console.error('cupoVolcar_: ' + e); }   // el cupo de Google: las horas cerradas a GOOGLE_USO (cupo.js)
+  /* Todo lo de aquí es de fondo y se pausa con el cupo en 60 % o más, salvo el agente de Operaciones (rutas y limpiezas: CUPO_NUNCA_). */
+  if (!cupoPermite_('fondo')) {
+    try { agentesLatido_(['operaciones']); } catch (e) { console.error('agentesLatido_ operaciones: ' + e); }
+    console.log('aprender: lo de fondo en pausa por cupo de Google (' + Math.round(cupoNivel_().pct) + ' %)'); return;
+  }
   try { agentesLatido_(); } catch (e) { console.error('agentesLatido_: ' + e); }   // el equipo de agentes detrás de Alma (agentes.js)
   try { botsPruebaRevisar_(); } catch (e) { console.error('botsPruebaRevisar_: ' + e); }   // lo que encontraron los bots de prueba → Claude (botsprueba.js)
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
@@ -3084,8 +3099,8 @@ function aplicarCambiosPrompt_(prompt, cambios) {
 function hubFoto_(url) {
   url = String(url || ''); if (!/^https:\/\//.test(url)) return { ok: false, error: 'url' };
   const token = PropertiesService.getScriptProperties().getProperty('HOSPITABLE_TOKEN');
-  let r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
-  if (r.getResponseCode() >= 300 && /hospitable/i.test(url)) r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: { Authorization: 'Bearer ' + token } });
+  let r = uf_(url, { muteHttpExceptions: true, followRedirects: true });
+  if (r.getResponseCode() >= 300 && /hospitable/i.test(url)) r = uf_(url, { muteHttpExceptions: true, followRedirects: true, headers: { Authorization: 'Bearer ' + token } });
   if (r.getResponseCode() >= 300) return { ok: false, error: 'http ' + r.getResponseCode() };
   const b = r.getBlob(), bytes = b.getBytes(); if (bytes.length > 4 * 1024 * 1024) return { ok: false, error: 'grande' };
   return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(bytes) };
@@ -3106,8 +3121,12 @@ function hubApi_(body) {
     if (p.getProperty('HUB_SOLO_SESION') === '1' || !tok || body.token !== tok) return json_({ ok: false, error: body.session ? 'session' : 'token' });
     marcaAcceso_('HUB_ULTIMA_LLAVE');
   }
+  /* Cupo de Google (cupo.js): el canal de esta llamada y, en crítico, Alma (chat y voz) en pausa con un aviso amable. */
+  cupoCanal_(cupoCanalAccion_(body.action));
+  if (CUPO_ACC_ALMA_.indexOf(body.action) >= 0 && !cupoPermite_('alma')) return json_({ ok: false, error: CUPO_PAUSA_ALMA_, cupo: true });
   try {
     switch (body.action) {
+      case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
@@ -4239,10 +4258,10 @@ function waEntrante_(m, nombre) {
 function waMedia_(mediaId, etiqueta, soloBlob) {
   const W = waCfg_(); if (!mediaId || !W.token) return null;
   const h = { Authorization: 'Bearer ' + W.token };
-  const meta = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + mediaId, { muteHttpExceptions: true, headers: h });
+  const meta = uf_('https://graph.facebook.com/v21.0/' + mediaId, { muteHttpExceptions: true, headers: h });
   if (meta.getResponseCode() !== 200) { console.error('waMedia_ meta ' + meta.getResponseCode() + ' ' + meta.getContentText()); return null; }
   const mj = JSON.parse(meta.getContentText() || '{}');
-  const bin = UrlFetchApp.fetch(mj.url, { muteHttpExceptions: true, headers: h });
+  const bin = uf_(mj.url, { muteHttpExceptions: true, headers: h });
   if (bin.getResponseCode() !== 200) { console.error('waMedia_ bin ' + bin.getResponseCode()); return null; }
   const mime = String(mj.mime_type || bin.getHeaders()['Content-Type'] || 'application/octet-stream').split(';')[0];
   const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/aac': 'aac', 'audio/amr': 'amr', 'application/pdf': 'pdf' })[mime] || 'bin';
@@ -4289,7 +4308,7 @@ function transcribir_(blob) {
   const bytes = blob.getBytes(); if (bytes.length > 18 * 1024 * 1024) return '';
   if (gk) {
     try {
-      const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + (p.getProperty('GEMINI_MODELO') || 'gemini-2.0-flash') + ':generateContent?key=' + gk, {
+      const r = uf_('https://generativelanguage.googleapis.com/v1beta/models/' + (p.getProperty('GEMINI_MODELO') || 'gemini-2.0-flash') + ':generateContent?key=' + gk, {
         method: 'post', contentType: 'application/json', muteHttpExceptions: true,
         payload: JSON.stringify({ contents: [{ parts: [
           { text: 'Transcribe literalmente esta nota de voz, en el idioma en que se habla. Solo la transcripción, sin comentarios ni marcas de tiempo. Si no se entiende nada, responde exactamente: [inaudible]' },
@@ -4305,7 +4324,7 @@ function transcribir_(blob) {
   }
   if (ok) {
     try {
-      const r = UrlFetchApp.fetch('https://api.openai.com/v1/audio/transcriptions', { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ok },
+      const r = uf_('https://api.openai.com/v1/audio/transcriptions', { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + ok },
         payload: { model: 'whisper-1', file: blob.setName('nota.ogg') } });
       const j = JSON.parse(r.getContentText() || '{}');
       try { registrarUso_({ app: 'ALMA', funcion: 'Notas de voz · transcripción', modelo: 'whisper-1', usage: {}, minutos: Math.max(0.1, bytes.length / 2000 / 60), ok: !!j.text }); } catch (e) {}
@@ -4317,7 +4336,7 @@ function transcribir_(blob) {
   const ek = p.getProperty('ELEVENLABS_KEY');
   if (ek) {
     try {
-      const r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'post', muteHttpExceptions: true, headers: { 'xi-api-key': ek },
+      const r = uf_('https://api.elevenlabs.io/v1/speech-to-text', { method: 'post', muteHttpExceptions: true, headers: { 'xi-api-key': ek },
         payload: { model_id: 'scribe_v1', file: blob.setName('nota.ogg') } });
       const j = JSON.parse(r.getContentText() || '{}');
       try { registrarUso_({ app: 'ALMA', funcion: 'Notas de voz · transcripción', modelo: 'elevenlabs-scribe', usage: {}, minutos: Math.max(0.1, bytes.length / 2000 / 60), ok: !!j.text }); } catch (e) {}
@@ -4585,7 +4604,7 @@ function waResponder_(wa, texto, convId, autor, idioma, nombre) {
       components: [{ type: 'body', parameters: [{ type: 'text', text: String(nombre || '').trim().split(/\s+/)[0] || (en ? 'there' : 'hola') }] }] } };
     guardado = '[plantilla para retomar: ' + W.plantilla + '] · pendiente de enviar cuando responda: ' + texto;
   }
-  const r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  const r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(payload) });
   const code = r.getResponseCode(); let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   if (code >= 300) return { ok: false, code: code, error: (j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + code };
@@ -4605,14 +4624,14 @@ function enviarCanal_(d, texto, autor) {
 function probarWhatsApp() {
   const W = waCfg_();
   if (!W.token || !W.phoneId) { console.log('Falta WA_TOKEN o WA_PHONE_ID en Propiedades del script.'); return; }
-  const r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '?fields=display_phone_number,verified_name,quality_rating', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } });
+  const r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '?fields=display_phone_number,verified_name,quality_rating', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } });
   console.log('Meta → HTTP ' + r.getResponseCode() + ' · ' + r.getContentText());
   console.log('Propietarios detectados (' + waPropietarios_().length + '): ' + waPropietarios_().map(x => '…' + x.slice(-4)).join(', '));
   console.log('Números del equipo detectados (' + telefonosEquipo_().length + '): ' + telefonosEquipo_().map(x => '…' + x.slice(-4)).join(', '));
   console.log('Verify token del webhook: ' + (PropertiesService.getScriptProperties().getProperty('WA_VERIFY_TOKEN') || 'spacioam-alma'));
   console.log('URL del webhook: usa la URL que termina en /exec (Implementar → Gestionar implementaciones → Aplicación web). La que termina en /dev NO sirve para Meta. Desde el editor se ve: ' + ScriptApp.getService().getUrl());
   const waba = PropertiesService.getScriptProperties().getProperty('WA_WABA_ID');
-  if (waba) { const s = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/subscribed_apps', { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }); console.log('Suscripción de la cuenta de WhatsApp a la app → HTTP ' + s.getResponseCode() + ' · ' + s.getContentText()); }
+  if (waba) { const s = uf_('https://graph.facebook.com/v21.0/' + waba + '/subscribed_apps', { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }); console.log('Suscripción de la cuenta de WhatsApp a la app → HTTP ' + s.getResponseCode() + ' · ' + s.getContentText()); }
   else console.log('Falta WA_WABA_ID (WhatsApp Business Account ID, en API Setup). Sin suscribir la cuenta, Meta no manda los mensajes al webhook.');
   const P = PropertiesService.getScriptProperties();
   console.log('Notas de voz: ' + (P.getProperty('GEMINI_KEY') ? 'Gemini' : P.getProperty('OPENAI_KEY') ? 'Whisper (OpenAI)' : 'SIN TRANSCRIPTOR · agrega GEMINI_KEY u OPENAI_KEY'));
@@ -4642,7 +4661,7 @@ function reporteDanoEpi_(ctx) {
     danios: [{ desc: txt.slice(0, 900), fotos: fotos, origen: etiqueta, reparacion: '', comentarios: '', fotos2: [], cobrado: false, quienPaga: '' }],
     hayDanios: true
   };
-  const r = UrlFetchApp.fetch(EPI_API_URL, { method: 'post', contentType: 'text/plain;charset=utf-8', payload: JSON.stringify({ action: 'saveReport', data: rep, robot: llaveRobot_() }), muteHttpExceptions: true, followRedirects: true });
+  const r = uf_(EPI_API_URL, { method: 'post', contentType: 'text/plain;charset=utf-8', payload: JSON.stringify({ action: 'saveReport', data: rep, robot: llaveRobot_() }), muteHttpExceptions: true, followRedirects: true }, 'Epi');
   const ok = r.getResponseCode() < 300 && !/"ok"\s*:\s*false/.test(r.getContentText() || '');
   if (ok) { vSet_(clave, String(id)); ctx.razon = (ctx.razon ? ctx.razon + ' · ' : '') + 'reporte de daño creado en EPI'; }
   else console.warn('EPI saveReport respondió ' + r.getResponseCode() + ': ' + String(r.getContentText() || '').slice(0, 200));
@@ -4814,7 +4833,7 @@ const ACCESOS_APPS_ = {
 function accesosApps_() {
   const llave = llaveRobot_(); if (!llave) return { ok: false, error: 'falta ROBOT_TOKEN en el Hub' };
   const apps = Object.keys(ACCESOS_APPS_);
-  const rs = UrlFetchApp.fetchAll(apps.map(app => ({ url: ACCESOS_APPS_[app](), method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: '__accesos', token: llave }) })));
+  const rs = ufAll_(apps.map(app => ({ url: ACCESOS_APPS_[app](), method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: '__accesos', token: llave }) })), 'Otras apps');
   const out = { ok: true, apps: {} };
   apps.forEach((app, i) => {
     try { const j = JSON.parse(rs[i].getContentText() || '{}'); out.apps[app] = j.ok ? j.accesos : { error: j.error || 'HTTP ' + rs[i].getResponseCode() }; }
@@ -4823,7 +4842,7 @@ function accesosApps_() {
   return out;
 }
 function epiPost_(action, payload) {
-  const r = UrlFetchApp.fetch(epiUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ action: action, robot: llaveRobot_() }, payload || {})) });
+  const r = uf_(epiUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ action: action, robot: llaveRobot_() }, payload || {})) }, 'Epi');
   if (r.getResponseCode() >= 300) throw new Error('Epi HTTP ' + r.getResponseCode());
   const j = JSON.parse(r.getContentText() || '{}'); if (j && j.ok === false) throw new Error('Epi: ' + (j.error || 'rechazó'));
   return j;
@@ -4890,6 +4909,7 @@ function opWaProgramar_(seg) {
   } catch (e) { console.error('opWaProgramar_: ' + e); }
 }
 function opWaPronto() {
+  cupoCanal_('WhatsApp');
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'opWaPronto').forEach(t => ScriptApp.deleteTrigger(t));
   opWaProcesar_();
 }
@@ -5279,13 +5299,38 @@ function sesionLoginRemota_(session, k) {
   const cache = CacheService.getScriptCache();
   let prof = null;
   try {
-    const r = UrlFetchApp.fetch(LOGIN_URL_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
-      payload: JSON.stringify({ action: 'verify', token: PropertiesService.getScriptProperties().getProperty('LOGIN_TOKEN') || 'SpacioAM2026!', session: session }) });
+    const r = uf_(LOGIN_URL_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+      payload: JSON.stringify({ action: 'verify', token: PropertiesService.getScriptProperties().getProperty('LOGIN_TOKEN') || 'SpacioAM2026!', session: session }) }, 'Login');
     const j = JSON.parse(r.getContentText() || '{}');
     if (j.ok && j.profile) prof = j.profile;
-  } catch (e) { console.warn('sesionLogin_: ' + e); return null; }   // error de red: no se cachea el negativo
+  } catch (e) {
+    /* El login no contestó (sin cupo de Google, red o error, issue #318): se comprueba la firma aquí, con la misma llave.
+       Lo que dé la comprobación local se guarda 10 min como mucho, y un «no» no se guarda (el login puede volver). */
+    console.warn('sesionLogin_: ' + e);
+    const loc = sesionLocal_(session);
+    if (loc) cache.put(k, JSON.stringify(loc), 600);
+    return loc;
+  }
   cache.put(k, prof ? JSON.stringify(prof) : '-', prof ? 3600 : 600);
   return prof;
+}
+/* Comprobación local de la sesión firmada del login (login/apps-script/03-auth-endpoint.js, _verificarSesion): HMAC-SHA256
+   del cuerpo con LOGIN_SECRETO (el mismo valor que SESSION_SECRET del login; se pega en Conexiones), comparación en tiempo
+   constante y vencimiento. Devuelve el perfil o null. Sin LOGIN_SECRETO, null (como antes). */
+function sesionLocal_(session) {
+  try {
+    const sec = PropertiesService.getScriptProperties().getProperty('LOGIN_SECRETO'); if (!sec) return null;
+    const tok = String(session || ''), i = tok.lastIndexOf('.'); if (i < 1) return null;
+    const cuerpo = tok.slice(0, i), firma = tok.slice(i + 1);
+    const b64u = bytes => Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, '');
+    const esperada = b64u(Utilities.computeHmacSha256Signature(cuerpo, sec));
+    if (firma.length !== esperada.length) return null;
+    let dif = 0; for (let n = 0; n < firma.length; n++) dif |= firma.charCodeAt(n) ^ esperada.charCodeAt(n);
+    if (dif !== 0) return null;
+    const d = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(cuerpo + '==='.slice((cuerpo.length + 3) % 4))).getDataAsString());
+    if (!d || !d.e || !d.exp || d.exp < Date.now()) return null;
+    return d.p && d.p.email ? d.p : { email: d.e, nombre: d.n || '', apps: d.apps || {} };
+  } catch (e) { console.warn('sesionLocal_: ' + e); return null; }
 }
 /* Última vez que se entró con sesión y con la llave antigua: sirve para saber cuándo se puede apagar la llave. */
 function marcaAcceso_(clave) {

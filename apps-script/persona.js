@@ -16,7 +16,7 @@ function playbookLeer_(nombre) {
   var c = CacheService.getScriptCache(), k = 'pb_' + nombre, v = c.get(k); if (v != null) return v;
   var p = PropertiesService.getScriptProperties(), txt = '';
   try {
-    var r = UrlFetchApp.fetch((p.getProperty('PLAYBOOKS_URL') || PLAYBOOKS_URL_) + nombre + '.md', { muteHttpExceptions: true, followRedirects: true });
+    var r = uf_((p.getProperty('PLAYBOOKS_URL') || PLAYBOOKS_URL_) + nombre + '.md', { muteHttpExceptions: true, followRedirects: true });
     if (r.getResponseCode() === 200) txt = r.getContentText();
   } catch (e) { console.error('playbook ' + nombre + ': ' + e); }
   if (txt) { try { if (txt.length < 8500) p.setProperty('PB_' + nombre, txt); } catch (e) {} }

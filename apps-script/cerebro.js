@@ -92,8 +92,8 @@ function cerToken_(c) {
   var cab = b64(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   var cuerpo = b64(JSON.stringify({ iss: c.email, scope: 'https://www.googleapis.com/auth/cloud-platform', aud: c.tokenUri, iat: ahora, exp: ahora + 3600 }));
   var firma = b64(Utilities.computeRsaSha256Signature(cab + '.' + cuerpo, c.llave));
-  var r = UrlFetchApp.fetch(c.tokenUri, { method: 'post', muteHttpExceptions: true,
-    payload: { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: cab + '.' + cuerpo + '.' + firma } });
+  var r = uf_(c.tokenUri, { method: 'post', muteHttpExceptions: true,
+    payload: { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: cab + '.' + cuerpo + '.' + firma } }, 'Cerebro');
   var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   if (r.getResponseCode() >= 300 || !j.access_token) throw new Error('Cuenta de servicio: no dio token (' + r.getResponseCode() + ' ' + String(j.error_description || j.error || '').slice(0, 120) + ')');
   cache.put(k, j.access_token, 3000);
@@ -104,7 +104,7 @@ function cerToken_(c) {
 function cerBq_(c, metodo, ruta, cuerpo) {
   var o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + cerToken_(c) } };
   if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
-  var r = UrlFetchApp.fetch('https://bigquery.googleapis.com/bigquery/v2/projects/' + c.proyecto + ruta, o);
+  var r = uf_('https://bigquery.googleapis.com/bigquery/v2/projects/' + c.proyecto + ruta, o, 'Cerebro');
   var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   return { code: r.getResponseCode(), json: j };
 }
@@ -199,7 +199,7 @@ function cerEmbeddings_(c, textos, tarea, o) {
     for (var intento = 0; intento < 4 && pendientes.length; intento++) {
       if (intento) Utilities.sleep(1000 * intento);
       cerGasto_(pendientes.length);
-      var rs = UrlFetchApp.fetchAll(pendientes.map(function (n) { return pedido(textos[n]); })), otra = [];
+      var rs = ufAll_(pendientes.map(function (n) { return pedido(textos[n]); }), 'Cerebro'), otra = [];
       rs.forEach(function (r, x) {
         var n = pendientes[x], code = r.getResponseCode();
         if (code < 300) {
@@ -243,8 +243,8 @@ function cerCargar_(c, filas) {
     jobReference: { projectId: c.proyecto, location: c.ubicacion } };
   var cuerpo = '--' + limite + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(cfg) + '\r\n--' + limite +
     '\r\nContent-Type: application/octet-stream\r\n\r\n' + filas.map(function (f) { return JSON.stringify(f); }).join('\n') + '\r\n--' + limite + '--';
-  var r = UrlFetchApp.fetch('https://bigquery.googleapis.com/upload/bigquery/v2/projects/' + c.proyecto + '/jobs?uploadType=multipart', { method: 'post',
-    contentType: 'multipart/related; boundary=' + limite, payload: Utilities.newBlob(cuerpo).getBytes(), headers: { Authorization: 'Bearer ' + cerToken_(c) }, muteHttpExceptions: true });
+  var r = uf_('https://bigquery.googleapis.com/upload/bigquery/v2/projects/' + c.proyecto + '/jobs?uploadType=multipart', { method: 'post',
+    contentType: 'multipart/related; boundary=' + limite, payload: Utilities.newBlob(cuerpo).getBytes(), headers: { Authorization: 'Bearer ' + cerToken_(c) }, muteHttpExceptions: true }, 'Cerebro');
   var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   if (r.getResponseCode() >= 300) throw new Error('BigQuery carga ' + r.getResponseCode() + ': ' + cerError_(j));
   cerEsperarJob_(c, j.jobReference || {});
@@ -412,7 +412,7 @@ function cerGithubCab_() {
 }
 function cerPlaybooksLista_() {
   var h = cerGithubCab_(); h.Accept = 'application/vnd.github+json';
-  var r = UrlFetchApp.fetch('https://api.github.com/repos/' + CER_REPO_ + '/contents/playbooks?ref=main', { muteHttpExceptions: true, headers: h });
+  var r = uf_('https://api.github.com/repos/' + CER_REPO_ + '/contents/playbooks?ref=main', { muteHttpExceptions: true, headers: h }, 'Cerebro');
   if (r.getResponseCode() !== 200) throw new Error('GitHub ' + r.getResponseCode());
   return JSON.parse(r.getContentText()).filter(function (x) { return x.type === 'file' && /\.md$/i.test(x.name); }).map(function (x) {
     return { nombre: x.name.replace(/\.md$/i, '').toLowerCase(), sha: x.sha, url: 'https://raw.githubusercontent.com/' + CER_REPO_ + '/main/playbooks/' + encodeURIComponent(x.name) };
@@ -421,7 +421,7 @@ function cerPlaybooksLista_() {
 function cerDocPlaybook_(d, hashPrevio) {
   var hash = cerHash_(CER_VERSION_CORTE_ + ':' + d.sha);   // la huella del archivo en git: si no cambió, ni se descarga
   if (hash === hashPrevio) return { hash: hash };
-  var r = UrlFetchApp.fetch(d.url, { muteHttpExceptions: true, headers: cerGithubCab_() });
+  var r = uf_(d.url, { muteHttpExceptions: true, headers: cerGithubCab_() }, 'Cerebro');
   if (r.getResponseCode() !== 200) throw new Error('playbook ' + d.ref + ': HTTP ' + r.getResponseCode());
   return cerDocPlaybookMd_(d.ref, r.getContentText(), hash);
 }
@@ -491,6 +491,9 @@ function cerebroSincronizar() { return cerebroSincronizar_(); }
 function cerebroSincronizar_(o) {
   o = o || {};
   var c = cerConfig_(); if (!c) return { ok: true, apagado: true };
+  cupoCanal_('Cerebro');
+  /* Cupo de Google (cupo.js): el cerebro es lo primero que se pausa (con 60 % o más de las últimas 24 h). */
+  if (!cupoPermite_('fondo')) return { ok: false, pausa: 'cupo', error: 'El cupo de Google de hoy va en ' + Math.round(cupoNivel_().pct) + ' %: el cerebro espera a que baje.' };
   /* Candado propio (no el LockService del script: lo usan los Pendientes y una tanda dura minutos). */
   var P = PropertiesService.getScriptProperties(), t0 = Date.now(), corriendo = Number(P.getProperty('CER_CORRIENDO') || 0);
   if (corriendo && t0 - corriendo < 7 * 60000) return { ok: true, ocupado: true };

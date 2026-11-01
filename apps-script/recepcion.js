@@ -61,7 +61,7 @@ function recepcionEnviar_(code, soloA) {
   var robot = PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN');
   if (!robot) return { ok: false, error: 'falta ROBOT_TOKEN en el Hub' };
   var W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'WhatsApp de ALMA sin configurar' };
-  var rr = UrlFetchApp.fetch(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+  var rr = uf_(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
     payload: JSON.stringify({ action: 'regPdfRobot', code: code, robot: robot }) });
   var d = {}; try { d = JSON.parse(rr.getContentText()); } catch (e) { return { ok: false, error: 'Hola no respondió', reintentar: true }; }
   if (!d.ok) return { ok: false, error: 'Hola: ' + (d.error || 'sin registro'), reintentar: d.error !== 'registro-no-encontrado' && d.error !== 'token' };
@@ -69,7 +69,7 @@ function recepcionEnviar_(code, soloA) {
   if (!nums.length) return { ok: false, error: 'la propiedad no tiene WhatsApp de recepción' };
   if (soloA) nums = [String(soloA).replace(/\D/g, '')];   // prueba: solo a este número
   var blob = Utilities.newBlob(Utilities.base64Decode(d.pdfB64), 'application/pdf', d.filename || ('Registro-' + code + '.pdf'));
-  var up = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
+  var up = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: { messaging_product: 'whatsapp', type: 'application/pdf', file: blob } });
   var mid = ''; try { mid = JSON.parse(up.getContentText()).id || ''; } catch (e) {}
   if (!mid) return { ok: false, error: 'Meta no aceptó el PDF · HTTP ' + up.getResponseCode() + ' · ' + up.getContentText().slice(0, 200), reintentar: true };
@@ -79,7 +79,7 @@ function recepcionEnviar_(code, soloA) {
     ? [m.propiedad, m.principal || '—', code, m.ingreso, m.salida, String(m.noches || '—'), String(m.huespedes || 0)]
     : [m.propiedad, code, m.ingreso, m.salida, String(m.huespedes || 0)];
   var res = nums.map(function (n) {
-    var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    var r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + W.token },
       payload: JSON.stringify({ messaging_product: 'whatsapp', to: n, type: 'template', template: { name: tpl, language: { code: 'es' }, components: [
         { type: 'header', parameters: [{ type: 'document', document: { id: mid, filename: blob.getName() } }] },
@@ -118,7 +118,7 @@ function recepcionNumeros_() {
   if (!hola) {
     hola = {};
     try {
-      var r = UrlFetchApp.fetch(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: 'listContacts', robot: llaveRobot_() }) });
+      var r = uf_(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: 'listContacts', robot: llaveRobot_() }) }, 'Hola');
       var j = JSON.parse(r.getContentText());
       (j.properties || []).forEach(function (pr) { (pr.whatsapps || []).forEach(function (w) { hola[fin8_(w)] = { n: String(w).replace(/\D/g, ''), prop: pr.name || '' }; }); });
       if (j.admin) delete hola[fin8_(j.admin)];
@@ -155,7 +155,7 @@ function recepcionPlantillas_() {
   var c = CacheService.getScriptCache(), hit = c.get('recep_tpl'); if (hit) { try { return JSON.parse(hit); } catch (e) {} }
   var W = waCfg_(), waba = PropertiesService.getScriptProperties().getProperty('WA_WABA_ID'), out = {};
   if (!W.token || !waba) return out;
-  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates?fields=name,status,language,rejected_reason&limit=200', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } });
+  var r = uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates?fields=name,status,language,rejected_reason&limit=200', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } });
   var j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
   (j.data || []).forEach(function (t) { if ((t.name === RECEP_PLANTILLA_ || t.name === RECEP_PLANTILLA_VIEJA_) && String(t.language || '').indexOf('es') === 0) out[t.name] = { status: t.status, motivo: t.rejected_reason || '' }; });
   if (j.error) out._error = String(j.error.message || '').slice(0, 200);
@@ -174,14 +174,14 @@ function recepcionPlantillaCrear_() {
   CacheService.getScriptCache().remove('recep_tpl');
   var ya = recepcionPlantillas_(); if (ya[RECEP_PLANTILLA_]) return { ok: true, ya: ya[RECEP_PLANTILLA_] };
   var appId = p.getProperty('WA_APP_ID') || '';
-  if (!appId) { try { appId = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/app', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText()).id || ''; } catch (e) {} }
+  if (!appId) { try { appId = JSON.parse(uf_('https://graph.facebook.com/v21.0/app', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText()).id || ''; } catch (e) {} }
   if (!appId) return { ok: false, error: 'no encontré el ID de la app de Meta (agrega WA_APP_ID)' };
   var html = '<html><body style="font-family:Arial;padding:40px"><h2>Spacio AM · Registro de ingreso</h2><p>Propiedad: Ejemplo</p><p>Reserva: HMEJEMPLO</p></body></html>';
   var bytes = Utilities.newBlob(html, 'text/html', 'e.html').getAs('application/pdf').getBytes();
-  var ses = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + appId + '/uploads?file_name=registro-ejemplo.pdf&file_length=' + bytes.length + '&file_type=application/pdf',
+  var ses = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + appId + '/uploads?file_name=registro-ejemplo.pdf&file_length=' + bytes.length + '&file_type=application/pdf',
     { method: 'post', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText() || '{}');
   if (!ses.id) return { ok: false, error: 'Meta no abrió la subida del ejemplo: ' + JSON.stringify(ses).slice(0, 300) };
-  var up = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + ses.id, { method: 'post', muteHttpExceptions: true, contentType: 'application/pdf',
+  var up = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + ses.id, { method: 'post', muteHttpExceptions: true, contentType: 'application/pdf',
     headers: { Authorization: 'OAuth ' + W.token, file_offset: '0' }, payload: bytes }).getContentText() || '{}');
   if (!up.h) return { ok: false, error: 'Meta no aceptó el PDF de ejemplo: ' + JSON.stringify(up).slice(0, 300) };
   var body = {
@@ -193,7 +193,7 @@ function recepcionPlantillaCrear_() {
       { type: 'FOOTER', text: 'Spacio AM · hola.spacioam.com' }
     ]
   };
-  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var r = uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(body) });
   CacheService.getScriptCache().remove('recep_tpl');
   return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), respuesta: r.getContentText().slice(0, 400) };

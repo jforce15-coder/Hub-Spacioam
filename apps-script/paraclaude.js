@@ -47,7 +47,7 @@ function paraClaudeCrear_(adm, inp) {
   var pg = PropertiesService.getScriptProperties(), tok = pg.getProperty('GITHUB_TOKEN') || pg.getProperty('GITHUB_PRS');   // la llave de Conexiones también sirve
   if (tok) {
     try {
-      var r = UrlFetchApp.fetch('https://api.github.com/repos/' + PARA_CLAUDE_REPO_ + '/issues', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      var r = uf_('https://api.github.com/repos/' + PARA_CLAUDE_REPO_ + '/issues', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
         headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
         payload: JSON.stringify({ title: '[' + (inp.app || 'Otro') + '] ' + titulo, body: cuerpo, labels: ['alma-mejora', String(inp.tipo || 'mejora'), 'prioridad-' + (inp.prioridad || 'normal')] }) });
       if (r.getResponseCode() < 300) issue = JSON.parse(r.getContentText()).html_url || '';
@@ -90,6 +90,9 @@ function conexiones_(ses, b) {
   if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
   if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
+  /* Respaldo del inicio de sesión (issue #318): el SESSION_SECRET del login, para comprobar la sesión aquí si el login no
+     contesta (sin cupo de Google). Nunca se devuelve: solo si está puesto. */
+  if (g.loginSecreto) { var ls = String(g.loginSecreto).trim(); if (ls.length < 32 || /\s/.test(ls)) return { ok: false, error: 'Esa no parece la llave: SESSION_SECRET es un texto largo, sin espacios (32 letras o más).' }; p.setProperty('LOGIN_SECRETO', ls); }
   /* El cerebro de Alma (BigQuery): el id del proyecto y la llave JSON de la cuenta de servicio. Se revisa que sea una
      llave de cuenta de servicio de verdad; nunca se devuelve, solo el correo de la cuenta (no es secreto). */
   if (g.bqProyecto) { if (!/^[a-z][a-z0-9-]{4,29}$/.test(String(g.bqProyecto).trim())) return { ok: false, error: 'El ID del proyecto va en minúsculas, con números y guiones (p. ej. alma-cerebro-123456).' }; p.setProperty('BQ_PROYECTO', String(g.bqProyecto).trim()); }
@@ -100,7 +103,7 @@ function conexiones_(ses, b) {
   }
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p) };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO') };
   if (canje) out.canje = canje;
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {
@@ -136,7 +139,7 @@ function paraClaudeDisparar_(pedido) {
   var p = PropertiesService.getScriptProperties(), tok = p.getProperty('CLAUDE_RUTINA_TOKEN'), rutina = p.getProperty('CLAUDE_RUTINA_ID') || CLAUDE_RUTINA_DEF_;
   if (!tok) return { ok: false, error: 'falta CLAUDE_RUTINA_TOKEN' };
   try {
-    var r = UrlFetchApp.fetch('https://api.anthropic.com/v1/claude_code/routines/' + rutina + '/fire', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    var r = uf_('https://api.anthropic.com/v1/claude_code/routines/' + rutina + '/fire', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + tok, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'experimental-cc-routine-2026-04-01' },
       payload: JSON.stringify({ text: JSON.stringify(pedido).slice(0, 65000) }) });
     var c = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
@@ -240,7 +243,7 @@ function accionPrCerrado_(enlace) {
   try {
     var tok = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN'), h = { Accept: 'application/vnd.github+json' };
     if (tok) h.Authorization = 'Bearer ' + tok;
-    var r = UrlFetchApp.fetch('https://api.github.com/repos/' + m[1] + '/pulls/' + m[2], { headers: h, muteHttpExceptions: true });
+    var r = uf_('https://api.github.com/repos/' + m[1] + '/pulls/' + m[2], { headers: h, muteHttpExceptions: true });
     if (r.getResponseCode() !== 200) return null;
     var pr = JSON.parse(r.getContentText()); return pr.state === 'closed' || !!pr.merged;
   } catch (e) { return null; }
@@ -281,7 +284,7 @@ function paraClaudePrincipalSes_(ses) {
 function paraClaudeGh_(ruta) {
   var p = PropertiesService.getScriptProperties(), tok = p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN'); if (!tok) return null;
   try {
-    var r = UrlFetchApp.fetch('https://api.github.com' + ruta, { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+    var r = uf_('https://api.github.com' + ruta, { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
     return r.getResponseCode() === 200 ? JSON.parse(r.getContentText()) : null;
   } catch (e) { return null; }
 }

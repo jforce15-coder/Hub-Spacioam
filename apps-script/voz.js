@@ -488,12 +488,12 @@ function vozSyncPrompt_(forzar) {
   var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, pc.texto, Utilities.Charset.UTF_8));
   if (!forzar && huella === p.getProperty('VOZ_PROMPT_HUELLA')) return { ok: true, sin_cambios: true };
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
-  var g = UrlFetchApp.fetch(url, { headers: h, muteHttpExceptions: true });
+  var g = uf_(url, { headers: h, muteHttpExceptions: true });
   if (g.getResponseCode() !== 200) return guardar({ ok: false, error: 'GET agente HTTP ' + g.getResponseCode(), detalle: g.getContentText().slice(0, 200) });
   var ag = JSON.parse(g.getContentText()), prompt = (((ag.conversation_config || {}).agent || {}).prompt) || {};
   prompt.prompt = pc.texto;   // solo cambia el texto; herramientas, LLM y demás quedan como están
   if (prompt.tool_ids && prompt.tool_ids.length) delete prompt.tools;   // la API no acepta los dos a la vez
-  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
+  var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
     payload: JSON.stringify({ conversation_config: { agent: { prompt: prompt } } }) });
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });
   p.setProperty('VOZ_PROMPT_HUELLA', huella);
@@ -556,7 +556,7 @@ function vozHerramientas_(k) {
   var pedir = function (metodo, ruta, cuerpo) {
     var o = { method: metodo, headers: h, muteHttpExceptions: true };
     if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
-    var r = UrlFetchApp.fetch(api + ruta, o), c = r.getResponseCode(), t = r.getContentText();
+    var r = uf_(api + ruta, o), c = r.getResponseCode(), t = r.getContentText();
     if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
     return t ? JSON.parse(t) : {};
   };
@@ -582,7 +582,7 @@ function vozHerramientas_(k) {
 function vozEstado_(extra) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
-  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  var r = uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { ok: false, error: 'GET agente HTTP ' + r.getResponseCode() };
   var ag = JSON.parse(r.getContentText()), pr = ((ag.conversation_config || {}).agent || {}).prompt || {};
   var o = { ok: true, agente: ag.name, prompt_caracteres: String(pr.prompt || '').length, prompt_inicio: String(pr.prompt || '').slice(0, 80),
@@ -607,14 +607,14 @@ function vozRecoger_(forzar) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
   var h = { 'xi-api-key': key }, api = 'https://api.elevenlabs.io/v1/convai/conversations';
-  var r = UrlFetchApp.fetch(api + '?page_size=20&agent_id=' + encodeURIComponent(agente), { headers: h, muteHttpExceptions: true });
+  var r = uf_(api + '?page_size=20&agent_id=' + encodeURIComponent(agente), { headers: h, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { ok: false, error: 'lista HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 200) };
   var hechas = []; try { hechas = JSON.parse(p.getProperty('VOZ_HECHAS') || '[]'); } catch (e) {}
   var desde = Date.now() / 1000 - 3 * 86400, nuevas = [], vistas = 0;
   (JSON.parse(r.getContentText()).conversations || []).forEach(function (cv) {
     vistas++;
     if (hechas.indexOf(cv.conversation_id) >= 0 || !/done|failed/i.test(String(cv.status)) || Number(cv.start_time_unix_secs || 0) < desde) return;
-    var d = UrlFetchApp.fetch(api + '/' + encodeURIComponent(cv.conversation_id), { headers: h, muteHttpExceptions: true });
+    var d = uf_(api + '/' + encodeURIComponent(cv.conversation_id), { headers: h, muteHttpExceptions: true });
     if (d.getResponseCode() !== 200) return;
     var out = vozPostCall_({ type: 'post_call_transcription', data: JSON.parse(d.getContentText()) });
     if (!out.duplicado) nuevas.push(cv.conversation_id);
@@ -628,13 +628,13 @@ function vozTurnos_(eag) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
-  var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), cc = ag.conversation_config || {};
+  var ag = JSON.parse(uf_(url, { headers: h }).getContentText()), cc = ag.conversation_config || {};
   var antes = { turn: cc.turn || {}, interrupcion: ((cc.conversation || {}).client_events || []).indexOf('interruption') >= 0 };
   if (!eag) return { ok: true, antes: antes };
   var turn = Object.assign({}, cc.turn || {}, { turn_eagerness: String(eag) });
-  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ conversation_config: { turn: turn } }) });
+  var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ conversation_config: { turn: turn } }) });
   if (r.getResponseCode() >= 300) return { ok: false, error: 'PATCH HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 300), antes: antes };
-  var ag2 = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText());
+  var ag2 = JSON.parse(uf_(url, { headers: h }).getContentText());
   return { ok: true, antes: antes, despues: (ag2.conversation_config || {}).turn || {} };
 }
 
@@ -681,18 +681,18 @@ function vozConfigInicio_(k) {
         .map(function (x) { return ('0' + (x & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
-  var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText());
+  var ag = JSON.parse(uf_(url, { headers: h }).getContentText());
   var cc = ag.conversation_config || {}, a = cc.agent || {}, dv = a.dynamic_variables || {}, ph = Object.assign({}, dv.dynamic_variable_placeholders || {}, { quien_llama: VOZ_DESCONOCIDO_ });
   var ps = ag.platform_settings || {}, ov = JSON.parse(JSON.stringify(ps.overrides || {})), wo = JSON.parse(JSON.stringify(ps.workspace_overrides || {}));
   ov.enable_conversation_initiation_client_data_from_webhook = true;
   ov.conversation_config_override = ov.conversation_config_override || {}; ov.conversation_config_override.agent = ov.conversation_config_override.agent || {};
   ov.conversation_config_override.agent.first_message = true;
   wo.conversation_initiation_client_data_webhook = { url: VOZ_PUENTE_ + '?voz=1&k=' + encodeURIComponent(k) + '&h=inicio', request_headers: {} };
-  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({
+  var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({
     conversation_config: { agent: { dynamic_variables: { dynamic_variable_placeholders: ph } } },
     platform_settings: { overrides: ov, workspace_overrides: wo } }) });
   if (r.getResponseCode() >= 300) return { ok: false, error: 'PATCH HTTP ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 400) };
-  var ag2 = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), ps2 = ag2.platform_settings || {};
+  var ag2 = JSON.parse(uf_(url, { headers: h }).getContentText()), ps2 = ag2.platform_settings || {};
   var listo = !!((ps2.workspace_overrides || {}).conversation_initiation_client_data_webhook || {}).url &&
     !!(((ag2.conversation_config || {}).agent || {}).dynamic_variables || {}).dynamic_variable_placeholders.quien_llama;
   if (listo) { p.setProperty('VOZ_INICIO_OK', '1'); try { CacheService.getScriptCache().remove('voz_sync_ok'); } catch (e) {} var sy = vozSyncPrompt_(true); }
@@ -705,10 +705,10 @@ function vozConfigInicio_(k) {
 function vozInicioOff_() {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
-  var ag = JSON.parse(UrlFetchApp.fetch(url, { headers: h }).getContentText()), ov = JSON.parse(JSON.stringify((ag.platform_settings || {}).overrides || {}));
+  var ag = JSON.parse(uf_(url, { headers: h }).getContentText()), ov = JSON.parse(JSON.stringify((ag.platform_settings || {}).overrides || {}));
   ov.enable_conversation_initiation_client_data_from_webhook = false;
   p.deleteProperty('VOZ_INICIO_OK');
-  var r = UrlFetchApp.fetch(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ platform_settings: { overrides: ov } }) });
+  var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({ platform_settings: { overrides: ov } }) });
   var sy = r.getResponseCode() < 300 ? vozSyncPrompt_(true) : null;
   return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), sync: sy };
 }
@@ -716,9 +716,9 @@ function vozInicioOff_() {
 function vozConv_(n) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'), h = { 'xi-api-key': key };
   var api = 'https://api.elevenlabs.io/v1/convai/conversations';
-  var l = JSON.parse(UrlFetchApp.fetch(api + '?page_size=' + (n || 5) + '&agent_id=' + encodeURIComponent(agente), { headers: h }).getContentText()).conversations || [];
+  var l = JSON.parse(uf_(api + '?page_size=' + (n || 5) + '&agent_id=' + encodeURIComponent(agente), { headers: h }).getContentText()).conversations || [];
   return { ok: true, conv: l.map(function (c) {
-    var d = {}; try { d = JSON.parse(UrlFetchApp.fetch(api + '/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText()); } catch (e) {}
+    var d = {}; try { d = JSON.parse(uf_(api + '/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText()); } catch (e) {}
     var md = d.metadata || {};
     return { id: c.conversation_id, status: c.status, inicio: new Date(Number(c.start_time_unix_secs || 0) * 1000).toISOString(), dur: md.call_duration_secs,
       fin: md.termination_reason, error: md.error, turnos: (d.transcript || []).length, init: JSON.stringify(md.conversation_initiation_source || md.initiation_webhook || '').slice(0, 200),
@@ -746,8 +746,8 @@ function vozCodigoPorTelHola_(tel) {
 /* Robot voz_transcript: transcripción de una conversación (o la última), con llamadas y resultados de herramientas. */
 function vozTranscript_(id) {
   var p = PropertiesService.getScriptProperties(), h = { 'xi-api-key': p.getProperty('ELEVENLABS_KEY') }, api = 'https://api.elevenlabs.io/v1/convai/conversations';
-  if (!id) id = (JSON.parse(UrlFetchApp.fetch(api + '?page_size=1&agent_id=' + encodeURIComponent(p.getProperty('ELEVENLABS_AGENT_ID')), { headers: h }).getContentText()).conversations || [{}])[0].conversation_id;
-  var d = JSON.parse(UrlFetchApp.fetch(api + '/' + encodeURIComponent(id), { headers: h }).getContentText());
+  if (!id) id = (JSON.parse(uf_(api + '?page_size=1&agent_id=' + encodeURIComponent(p.getProperty('ELEVENLABS_AGENT_ID')), { headers: h }).getContentText()).conversations || [{}])[0].conversation_id;
+  var d = JSON.parse(uf_(api + '/' + encodeURIComponent(id), { headers: h }).getContentText());
   return { ok: true, id: id, turnos: (d.transcript || []).map(function (t) {
     return { r: t.role, s: t.time_in_call_secs, m: t.message || '',
       tools: (t.tool_calls || []).map(function (c) { return c.tool_name + ' ' + String(c.params_as_json || '').slice(0, 200); }),
@@ -837,6 +837,7 @@ function vozSecEncolar_(tel, pedido) {
   return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano; el resultado le queda en Pendientes de la app y, si necesito algo de él, le llega una notificación. Si es solo una confirmación, no hace falta avisar. Ya puedes despedirte si no necesita nada más.' };
 }
 function vozSecretariaPronto() {
+  cupoCanal_('Voz');
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
   vozSecProcesar_();
 }
@@ -891,7 +892,7 @@ function vozSecAvisar_(tel, adm, r, pedido) {
 function vozGraph_(metodo, ruta, cuerpo) {
   var W = waCfg_(), o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } };
   if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
-  var r = UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + ruta, o), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
+  var r = uf_('https://graph.facebook.com/v21.0/' + ruta, o), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
   return { code: r.getResponseCode(), j: j, txt: r.getContentText().slice(0, 500) };
 }
 function vozPermiso_(tel) {
@@ -908,7 +909,7 @@ function vozPedirPermiso_(tel, texto) {
 }
 function vozPhoneId_() {
   var p = PropertiesService.getScriptProperties(), id = p.getProperty('ELEVENLABS_PHONE_ID'); if (id) return id;
-  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/phone-numbers', { headers: { 'xi-api-key': p.getProperty('ELEVENLABS_KEY') }, muteHttpExceptions: true });
+  var r = uf_('https://api.elevenlabs.io/v1/convai/phone-numbers', { headers: { 'xi-api-key': p.getProperty('ELEVENLABS_KEY') }, muteHttpExceptions: true });
   var l = []; try { l = JSON.parse(r.getContentText()); } catch (e) {}
   l = Array.isArray(l) ? l : (l.phone_numbers || []);
   var hit = l.filter(function (x) { return /50231280966|whatsapp/i.test(String(x.phone_number || '') + ' ' + String(x.label || '')); })[0];
@@ -927,7 +928,7 @@ function vozLlamar_(tel, motivo) {
   if (!phone) return { ok: false, error: 'No encontré el número de WhatsApp en ElevenLabs (ELEVENLABS_PHONE_ID).' };
   var ini = {}; try { ini = vozInicio_({ caller_id: tel, saliente: true }); delete ini._tipo; } catch (e) {}
   if (motivo) { ini.dynamic_variables = ini.dynamic_variables || {}; ini.dynamic_variables.quien_llama = (ini.dynamic_variables.quien_llama || '') + '\n\nESTA LLAMADA LA HACES TÚ (saliente). Motivo: ' + motivo; }
-  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+  var r = uf_('https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
     payload: JSON.stringify({ agent_id: agente, agent_phone_number_id: phone, to_number: '+' + tel, conversation_initiation_client_data: ini }) });
   var j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
   p.deleteProperty('VOZ_PEND_' + fin8_(tel));
@@ -1028,7 +1029,7 @@ function vozWebInicio_(ses, ligero, app) {
   CacheService.getScriptCache().put('vozweb_pend', tel, 120);
   /* ligero: el navegador se conecta directo con agent_id (el agente es público) y guarda esta ficha; sin URL firmada. */
   if (ligero) return out;
-  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
   var j = JSON.parse(r.getContentText() || '{}'); if (!j.signed_url) return { ok: false, error: 'sin URL firmada' };
   CacheService.getScriptCache().put('vozweb_pend', tel, 90);
@@ -1075,7 +1076,7 @@ function vozWebTokenTel_(tok) {
 function vozWebTelDeConv_(conv) { return vozWebConvInfo_(conv).tel; }
 function vozWebConvInfo_(conv) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'); if (!key || !/^conv_/.test(conv)) return { tel: '', otro: false };
-  var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/conversations/' + encodeURIComponent(conv), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  var r = uf_('https://api.elevenlabs.io/v1/convai/conversations/' + encodeURIComponent(conv), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { tel: '', otro: false };
   var j = JSON.parse(r.getContentText() || '{}'), dv = ((j.conversation_initiation_client_data || {}).dynamic_variables) || {};
   var mio = p.getProperty('ELEVENLABS_AGENT_ID');
@@ -1205,11 +1206,11 @@ function vozTts_(texto) {
   try {
     var voz = p.getProperty('VOZ_VOICE_ID');
     if (!voz && agente) {
-      var a = JSON.parse(UrlFetchApp.fetch('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }).getContentText() || '{}');
+      var a = JSON.parse(uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }).getContentText() || '{}');
       voz = (((a.conversation_config || {}).tts) || {}).voice_id || ''; if (voz) p.setProperty('VOZ_VOICE_ID', voz);
     }
     if (!voz) return '';
-    var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
+    var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
       payload: JSON.stringify({ text: texto, model_id: p.getProperty('VOZ_TTS_MODELO') || 'eleven_multilingual_v2', voice_settings: { stability: 0.65, similarity_boost: 0.8, speed: 1.05 } }) });
     if (r.getResponseCode() !== 200) { console.error('vozTts_ ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200)); return ''; }

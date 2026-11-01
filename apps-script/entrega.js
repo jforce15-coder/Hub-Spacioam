@@ -66,7 +66,7 @@ function waEntregaFallo_(wa, motivo) {
 function waDiag_() {
   var W = waCfg_(), waba = PropertiesService.getScriptProperties().getProperty('WA_WABA_ID'), tpl = [];
   try {
-    var j = JSON.parse(UrlFetchApp.fetch('https://graph.facebook.com/v21.0/' + waba + '/message_templates?fields=name,status,category,language&limit=60', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText());
+    var j = JSON.parse(uf_('https://graph.facebook.com/v21.0/' + waba + '/message_templates?fields=name,status,category,language&limit=60', { muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + W.token } }).getContentText());
     tpl = (j.data || []).map(function (t) { return t.name + ' · ' + t.language + ' · ' + t.status + ' · ' + t.category; });
   } catch (e) { tpl = ['error: ' + e]; }
   var m = waEntregaMapa_();

@@ -72,7 +72,7 @@ function opAgenteActivo_() { return String(PropertiesService.getScriptProperties
 /* Llamada a Claude con herramientas y conversación (messages ya armados). Devuelve el JSON completo. */
 function claudeTools_(modelo, system, messages, tools, maxTokens) {
   var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), t0 = Date.now();
-  var r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+  var r = uf_('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }], messages: messages, tools: tools }) });
   var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
@@ -791,8 +791,8 @@ function growApi_(op, datos) {
   var P = PropertiesService.getScriptProperties(), tok = P.getProperty('GROW_TOKEN');
   if (!tok) return { ok: false, error: 'Grow no está conectado todavía (falta GROW_TOKEN).' };
   try {
-    var r = UrlFetchApp.fetch(P.getProperty('GROW_URL') || GROW_URL_DEF_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
-      payload: JSON.stringify(Object.assign({}, datos || {}, { action: '__secretaria', token: tok, op: op })) });
+    var r = uf_(P.getProperty('GROW_URL') || GROW_URL_DEF_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+      payload: JSON.stringify(Object.assign({}, datos || {}, { action: '__secretaria', token: tok, op: op })) }, 'Otras apps');
     var t = r.getContentText();
     try { return JSON.parse(t); } catch (e) { return { ok: false, error: 'Grow respondió ' + r.getResponseCode() + ': ' + t.slice(0, 200) }; }
   } catch (e) { return { ok: false, error: 'Grow no respondió: ' + e }; }

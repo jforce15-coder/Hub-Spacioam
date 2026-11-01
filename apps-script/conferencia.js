@@ -94,7 +94,7 @@ function confAudioProcesar_() {
     var fila = i + 2, texto = '', estado = 'listo';
     try {
       var f = DriveApp.getFileById(String(v[i][2]));
-      var r = UrlFetchApp.fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'post', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+      var r = uf_('https://api.elevenlabs.io/v1/speech-to-text', { method: 'post', muteHttpExceptions: true, headers: { 'xi-api-key': key },
         payload: { model_id: 'scribe_v1', diarize: 'true', language_code: 'spa', file: f.getBlob() } });
       var j = JSON.parse(r.getContentText() || '{}');
       if (r.getResponseCode() !== 200) throw new Error(r.getResponseCode() + ' ' + r.getContentText().slice(0, 200));

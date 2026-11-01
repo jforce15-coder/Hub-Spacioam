@@ -301,7 +301,7 @@
     ".san-scope .san-ov.chat .san-st-glow{inset:-14px;opacity:calc(var(--halo)*.4);-webkit-mask:radial-gradient(closest-side,transparent 52%,rgba(0,0,0,.85) 66%,rgba(0,0,0,.3) 82%,transparent 98%);mask:radial-gradient(closest-side,transparent 52%,rgba(0,0,0,.85) 66%,rgba(0,0,0,.3) 82%,transparent 98%)}",
     ".san-scope .san-ov.chat .san-st-ring{inset:-3px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3.6px),#000 calc(100% - 3px),#000 calc(100% - 1.2px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 3.6px),#000 calc(100% - 3px),#000 calc(100% - 1.2px),transparent 100%)}",
     ".san-scope .san-ov.chat .san-st-ring{opacity:.6}",
-    ".san-scope .san-ov.chat .san-st-lit{opacity:calc(var(--lit)*.8)}",
+    ".san-scope .san-ov.chat .san-st-lit{opacity:calc(var(--lit)*.25)}",
     ".san-scope .san-ov.chat .san-st-spark svg{width:30%;height:30%}",
     ".san-scope .san-chat header{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:14px 64px 12px;min-height:64px;box-sizing:border-box;border-bottom:1px solid #EEEEEE;touch-action:none;transition:padding .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header .asa{position:absolute;top:5px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:3px;background:rgba(0,0,0,.10)}.san-scope .san-chat header .t{min-width:0}",
     ".san-scope .san-chat header .sa-chat-avatar{width:40px;height:40px;transition:width .3s cubic-bezier(.22,.61,.36,1),height .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header b{display:block;font:600 15px/1.2 Montserrat,system-ui,sans-serif;color:#222222}",
@@ -344,6 +344,8 @@
     ".san-scope.docked .san-hint{display:none}",
     /* Modo chat (Juan): la roca encajada en el cuadro lleva el halo más suave que la del centro: late igual, pero más tenue y más cerca. */
     "@keyframes san-glow-suave{0%,100%{opacity:.14;transform:scale(.86)}50%{opacity:.3;transform:scale(.88)}}",
+    "@keyframes san-lit-suave{0%,100%{opacity:0}50%{opacity:.22}}",
+    ".san-dockhost .san-lit{opacity:calc(.06 + .08*var(--pull,0))!important}.san-dockhost .san-lit::after{animation-name:san-lit-suave}",
     ".san-dockhost .san-glow{animation-name:san-glow-suave}.san-dockhost .san-glowb{transform:scale(.88)}.san-dockhost .san-ring{opacity:.6}",
     /* encajado en el editor: sus propios hints, encima del botón (las primeras veces) */
     ".san-scope .san-dtips{position:fixed;z-index:calc(var(--san-z) + 12);width:0;height:0;pointer-events:none}",

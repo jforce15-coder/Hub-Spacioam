@@ -290,28 +290,28 @@
     ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end svg{color:#D9583A}.san-scope .san-ob:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:4px}",
     ".san-scope .san-ob span{position:absolute;top:62px;left:50%;transform:translateX(-50%);font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.06em;color:#F5F1EC;white-space:nowrap;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
     ".san-scope .san-ov-tip{font:500 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:rgba(245,241,236,.8);text-align:center;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
-    /* Chat: un lienzo alabastro de pantalla completa. Alma sube a la cabecera en «modo texto»; las secciones se separan con sombras amplias y difusas. */
-    ".san-scope .san-chat{position:absolute;inset:0;z-index:2;background:#FAF8F6;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
+    /* Chat de la roca, estilo A (#317, «Airbnb fiel»): fondo blanco, encabezado simple con una línea fina y el hilo con las piezas
+       de ds/chat.css (burbujas, etiqueta, avatar, tarjeta de acción, filas con «›» y «pensando»), pintado por SAChat.pintor (js/sa-chat.js). */
+    ".san-scope .san-chat{position:absolute;inset:0;z-index:2;background:#FFFFFF;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
     ".san-scope .san-ov.chat .san-chat{opacity:1;transform:none;pointer-events:auto}.san-scope .san-ov.chat .san-rock{z-index:3;pointer-events:none}.san-scope .san-ov.chat .san-st-glow{opacity:.28;transition:opacity .6s ease}",
     /* En el chat la roca toma el peach del Hub (#E9826A) */
     ".san-scope .san-ov.chat .san-st-body{background:radial-gradient(circle at 40% 34%,#F2A08B 0%,#E9826A 55%,#DB6F57 100%)}.san-scope .san-ov.chat .san-st-spark{color:#fff}.san-scope .san-ov.chat .san-st-ring,.san-scope .san-ov.chat .san-st-glow{background:#E9826A}",
-    ".san-scope .san-chat header{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px 16px 10px;min-height:64px;box-sizing:border-box;touch-action:none}.san-scope .san-chat header .asa{position:absolute;top:8px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:rgba(62,63,63,.14)}.san-scope .san-chat header .t{flex:1;min-width:0}",
-    ".san-scope .san-chat header b{display:block;font:400 27px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-chat header small{display:block;margin-top:5px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#A39B93}",
+    ".san-scope .san-chat header{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:14px 64px 12px;min-height:64px;box-sizing:border-box;border-bottom:1px solid #EEEEEE;touch-action:none;transition:padding .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header .asa{position:absolute;top:5px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:3px;background:rgba(0,0,0,.10)}.san-scope .san-chat header .t{min-width:0}",
+    ".san-scope .san-chat header .sa-chat-avatar{width:40px;height:40px;transition:width .3s cubic-bezier(.22,.61,.36,1),height .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header b{display:block;font:600 15px/1.2 Montserrat,system-ui,sans-serif;color:#222222}",
+    /* con el cuadro enfocado el encabezado se encoge: avatar chico y el nombre al lado */
+    ".san-scope .san-chat:has(.san-in:focus) header{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 64px}.san-scope .san-chat:has(.san-in:focus) header .sa-chat-avatar{width:32px;height:32px}",
+    ".san-scope .san-chat header .san-atras{position:absolute;left:8px;top:50%;margin-top:-22px;width:44px;height:44px;border:0;border-radius:50%;padding:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:#222222}.san-scope .san-chat header .san-atras:active{transform:scale(.92);background:#F3F3F3}",
     ".san-scope .san-hb{width:42px;height:42px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#fff;color:var(--san-ink);box-shadow:0 12px 26px -14px rgba(60,45,35,.4),0 1px 3px rgba(60,45,35,.06)}.san-scope .san-hb:active{transform:scale(.92)}",
-    ".san-scope .san-msgs{flex:1;overflow:auto;padding:18px 18px 26px;display:flex;flex-direction:column;gap:16px;-webkit-overflow-scrolling:touch}",
-    ".san-scope .san-m{max-width:82%;padding:13px 17px;border-radius:22px;font:500 15px/1.5 Montserrat,system-ui,sans-serif;-webkit-user-select:text;user-select:text;white-space:pre-wrap;overflow-wrap:anywhere;animation:sanMsg .5s cubic-bezier(.22,.61,.36,1) both}",
-    ".san-scope .san-m.a{background:#fff;color:#3E3F3F;border-bottom-left-radius:8px;align-self:flex-start;box-shadow:0 24px 50px -24px rgba(70,50,40,.3),0 2px 6px -2px rgba(70,50,40,.06)}",
-    ".san-scope .san-m.u{background:#3E3F3F;color:#FAF8F6;border-bottom-right-radius:8px;align-self:flex-end;box-shadow:0 22px 44px -24px rgba(30,25,20,.55)}",
-    ".san-scope .san-m.foto{padding:6px}.san-scope .san-m.foto img{display:block;max-width:220px;max-height:280px;border-radius:17px}.san-scope .san-m.info{align-self:center;background:none;box-shadow:none;padding:2px 8px;font-size:12px;color:#A39B93}",
-    "@keyframes sanMsg{from{opacity:0;transform:translateY(8px)}}",
-    ".san-scope .san-vacio{padding:0 18px 16px;display:flex;flex-direction:column;gap:14px}.san-scope .san-chat:has(.san-m.u) .san-vacio{display:none}",
-    ".san-scope .san-vacio h3{margin:0;font:400 32px/1.1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-vacio p{margin:0;font:500 13px/1.5 Montserrat,system-ui,sans-serif;color:#8A8580}",
-    ".san-scope .san-sug{display:flex;flex-wrap:wrap;gap:10px}.san-scope .san-sug button{border:0;cursor:pointer;padding:11px 16px;border-radius:999px;background:#fff;color:#3E3F3F;font:500 13.5px Montserrat,system-ui,sans-serif;box-shadow:0 18px 38px -20px rgba(70,50,40,.36),0 1px 3px rgba(70,50,40,.05)}.san-scope .san-sug button:active{transform:scale(.96)}",
-    ".san-scope .san-chat form{position:relative;margin:0 12px 12px;display:flex;align-items:flex-end;gap:6px;padding:7px;border-radius:30px;background:#fff;box-shadow:0 30px 64px -28px rgba(70,50,40,.42),0 4px 12px -6px rgba(70,50,40,.1)}",
-    ".san-scope .san-in{flex:1;min-width:0;border:0;background:transparent;padding:12px 6px;font:500 16px/1.4 Montserrat,system-ui,sans-serif;color:#3E3F3F;outline:none;resize:none;height:46px;max-height:140px;box-sizing:border-box}.san-scope .san-in::placeholder{color:#B2AAA2}",
-    /* el nuevo chat (#304): «+» · cuadro · roca · micrófono (vacío) o enviar (con texto). Enter nunca envía. */
-    ".san-scope .san-mas{width:40px;height:46px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:var(--san-ink)}.san-scope .san-mas:active{transform:scale(.92)}",
-    ".san-scope .san-mic,.san-scope .san-env{width:46px;height:46px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#3E3F3F;color:#FAF8F6}.san-scope .san-mic:active,.san-scope .san-env:active{transform:scale(.92)}",
+    ".san-scope .san-msgs{flex:1;overflow:auto;padding:16px 16px 20px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch;-webkit-user-select:text;user-select:text}",
+    ".san-scope .san-vacio{padding:0 16px 14px;display:flex;flex-direction:column;gap:12px}.san-scope .san-chat:has(.sa-chat-msg--mia) .san-vacio{display:none}",
+    ".san-scope .san-vacio h3{margin:0;font:600 22px/1.2 Montserrat,system-ui,sans-serif;letter-spacing:-.01em;color:#222222}.san-scope .san-vacio p{margin:0;font:400 13.5px/1.5 Montserrat,system-ui,sans-serif;color:#8A8A8A}",
+    ".san-scope .san-sug{display:flex;flex-wrap:wrap;gap:8px}.san-scope .san-sug button{border:1px solid #DDDDDD;cursor:pointer;padding:10px 15px;min-height:44px;border-radius:999px;background:#fff;color:#222222;font:500 13.5px Montserrat,system-ui,sans-serif}.san-scope .san-sug button:active{transform:scale(.96);background:#F7F7F7}",
+    /* el nuevo chat (#304), estilo A: «+» · cuadro con borde fino (radio 21, Montserrat 15/20; 16 en iPhone) · micrófono (vacío) o enviar (con texto) · roca. Enter nunca envía. */
+    ".san-scope .san-chat form{position:relative;margin:0;display:flex;align-items:flex-end;gap:8px;padding:10px 12px 12px;background:#fff;border-top:1px solid #EEEEEE}",
+    ".san-scope .san-in{flex:1;min-width:0;border:1px solid #DDDDDD;border-radius:21px;background:#fff;padding:11px 16px;font:400 15px/20px Montserrat,system-ui,sans-serif;color:#222222;outline:none;resize:none;height:44px;max-height:126px;overflow-y:hidden;box-sizing:border-box;transition:border-color .18s cubic-bezier(.22,.61,.36,1)}.san-scope .san-in:focus{border-color:#222222}.san-scope .san-in::placeholder{color:#8A8A8A}",
+    "@supports (-webkit-touch-callout:none){.san-scope .san-in{font-size:16px}}",
+    ".san-scope .san-mas{width:44px;height:44px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#F3F3F3;color:#222222}.san-scope .san-mas:active{transform:scale(.92)}",
+    ".san-scope .san-mic,.san-scope .san-env{width:44px;height:44px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:#222222}.san-scope .san-env{background:#1F1F1F;color:#FFFFFF}.san-scope .san-mic:active,.san-scope .san-env:active{transform:scale(.92)}",
     ".san-scope .san-chat form.mejorando .san-in{opacity:.5}",
     ".san-scope .san-chat form .san-env{display:none}.san-scope .san-chat form.lleno .san-env{display:grid}.san-scope .san-chat form.lleno .san-mic{display:none}",
     ".san-scope .san-chat form .san-tips{right:auto;left:0;bottom:0;width:0;height:0;position:absolute}.san-scope .san-chat form.lleno:focus-within .san-tips span{opacity:1;transform:none}",
@@ -1246,7 +1246,8 @@
       '<button type="button" class="san-ob start" data-a="start" aria-label="Iniciar llamada">' + svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>', 21) + '<span>Iniciar llamada</span></button>' +
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
-      '<div class="san-chat"><header><div class="asa"></div><div class="t"><b>Alma</b><small>Modo texto · te leo</small></div></header><div class="san-msgs"></div>' +
+      '<div class="san-chat"><header><div class="asa"></div><button type="button" class="san-atras" aria-label="Cerrar el chat">' + svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 22) + '</button>' +
+      '<span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><div class="t"><b>Alma</b></div></header><div class="san-msgs"></div>' +
       '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Con el + me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claude que ">Mejorar el sistema</button></div></div>' +
@@ -1281,7 +1282,7 @@
     setTimeout(pendCargar, 300);
     ov.querySelector('[data-a="chat"]').onclick = function () { if (AL.esc && !AL.on) escActivar(true); else almaChat(true); };
     ov.querySelector('[data-a="start"]').onclick = function () { if (AL.esc && !AL.on) escActivar(false); };
-    chatBind(ov);
+    chatBind(ov); conChat(function () {});   // las piezas del chat estilo A se piden ya, antes del primer mensaje
     ov.querySelector(".san-ov-bg").onclick = function () { if (!AL.chat && !stoneDrag && !AL.esc) almaEnd(false); };
     bindStone();
   }
@@ -1291,7 +1292,7 @@
   var CHAT_INACTIVO_MS = 180000, chatT = 0;
   function chatQuieto() { clearTimeout(chatT); if (AL.chat) chatT = setTimeout(function () { if (AL.chat && (AL.on || AL.min)) almaEnd(false); }, CHAT_INACTIVO_MS); }
   function chatEnviar(v) {
-    v = String(v || "").trim(); if (!v) return false; addMsg(v, "u"); chatQuieto();
+    v = String(v || "").trim(); if (!v) return false; addMsg(v, "u"); chatQuieto(); chatPensando(true);
     if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} } else AL.cola = v;   // aún conectando: va en cuanto conecte
     return true;
   }
@@ -1300,7 +1301,7 @@
       masB = ov.querySelector(".san-mas"), mic = ov.querySelector(".san-mic");
     var fotoOk = !!(w.ALMA && w.ALMA.almaFoto);
     var lleno = function () { f.classList.toggle("lleno", !!i.value.trim()); };
-    var crecer = function () { i.style.height = "46px"; i.style.height = Math.min(134, i.scrollHeight) + "px"; lleno(); colocarTip(); };   // hasta 5 líneas, como WhatsApp
+    var crecer = function () { i.style.height = "44px"; var h = i.scrollHeight + 2; i.style.height = Math.min(124, h) + "px"; i.style.overflowY = h > 124 ? "auto" : "hidden"; lleno(); colocarTip(); };   // hasta 5 líneas, como WhatsApp
     var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } };
     /* El único hint: «Mejorar», encima de la roca, mientras hay texto (CSS: form.lleno). */
     var colocarTip = function () { var rb = b.getBoundingClientRect(), rf = f.getBoundingClientRect(); if (rb.width) { tips.style.left = (rb.right - rf.left) + "px"; tips.style.top = (rb.top - rf.top - 10) + "px"; } };
@@ -1311,7 +1312,8 @@
     f.onsubmit = function (e) { e.preventDefault(); enviar(); try { i.focus(); } catch (x) {} };   // solo el botón enviar (Enter salta de línea)
     /* deslizar la cabecera hacia abajo cierra el chat */
     var hd = ov.querySelector(".san-chat header"), y0 = null;
-    hd.addEventListener("pointerdown", function (e) { y0 = e.clientY; });
+    hd.querySelector(".san-atras").onclick = function (e) { e.stopPropagation(); almaEnd(false); };
+    hd.addEventListener("pointerdown", function (e) { if (e.target.closest && e.target.closest(".san-atras")) return; y0 = e.clientY; });
     hd.addEventListener("pointerup", function (e) { if (y0 != null && e.clientY - y0 > 70) almaEnd(false); y0 = null; });
     /* la roca sigue a su lugar junto al cuadro (teclado que sube, texto que crece) */
     var fija = function () { if (!AL.chat) return; var t = stoneTarget(); aX.to(t.x, .25, 1); aY.to(t.y, .25, 1); aS.to(t.s, .25, 1); };
@@ -1357,6 +1359,40 @@
     var yo = d.querySelector('script[src*="sa-nav.js"]'), base = yo ? yo.src.replace(/sa-nav\.js.*$/, "") : "js/";
     var s = d.createElement("script"); s.src = base + "sa-compositor.js?v=2026-11-09a"; s.onload = function () { if (w.SAComp) cb(); }; d.head.appendChild(s);
   }
+  /* Las piezas del chat estilo A (ds/chat.css y js/sa-chat.js) se cargan la primera vez que se abre Alma, junto a este
+     archivo (las páginas que ya las tienen no las vuelven a pedir). Sin ellas el chat pinta texto simple. */
+  var CHAT_V = "2026-11-11b", chatCb = [], chatCargando = false, chatSin = false;
+  function conChat(cb) {
+    if (w.SAChat && w.SAChat.pintor) { cb(true); return; }
+    if (chatSin) { cb(false); return; }
+    chatCb.push(cb); if (chatCargando) return; chatCargando = true;
+    var yo = d.querySelector('script[src*="sa-nav.js"]'), base = yo ? yo.src.replace(/js\/sa-nav\.js.*$/, "") : "";
+    if (!d.querySelector('link[href*="ds/chat.css"]')) { var l = d.createElement("link"); l.rel = "stylesheet"; l.href = base + "ds/chat.css?v=" + CHAT_V; d.head.appendChild(l); }
+    var fin = function (ok) { chatCargando = false; if (!ok) chatSin = true; var l2 = chatCb; chatCb = []; l2.forEach(function (f) { try { f(ok); } catch (e) { console.error(e); } }); };
+    if (w.SAChat && w.SAChat.pintor) { fin(true); return; }
+    var s = d.createElement("script"); s.src = base + "js/sa-chat.js?v=" + CHAT_V; s.onload = function () { fin(!!(w.SAChat && w.SAChat.pintor)); }; s.onerror = function () { fin(false); }; d.head.appendChild(s);
+  }
+  /* El pintor del hilo (SAChat.pintor sobre .san-msgs). cb(p): p es null si las piezas no cargaron. En orden de llegada. */
+  function chatPintar(cb) {
+    conChat(function (ok) {
+      if (ok && !E.pt) E.pt = w.SAChat.pintor(E.msgs, { alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir });
+      cb(ok ? E.pt : null);
+    });
+  }
+  /* «Pensando» (#317): desde que mandas hasta que llega la respuesta de Alma (o 45 s, por si no llega). */
+  var pensT = 0;
+  function chatPensando(on) {
+    clearTimeout(pensT); if (on) pensT = setTimeout(function () { chatPensando(false); }, 45000);
+    chatPintar(function (p) { if (p) p.pensando(on); });
+  }
+  /* Una fila con «›»: el enlace en otra pestaña; la reserva, en su conversación del Hub (?conv=<código>). En el Hub mismo
+     se abre ahí (cierra el chat de la roca para dejarla a la vista). */
+  function chatAbrir(f) {
+    if (f.tipo === "url") { w.open(f.url, "_blank", "noopener"); return; }
+    var u = HUB + "/?conv=" + encodeURIComponent(f.codigo);
+    if (cfg.app === "hub") { almaEnd(false); try { w.dispatchEvent(new CustomEvent("sa-push-click", { detail: u })); } catch (x) {} return; }
+    w.open(u, "_blank", "noopener");
+  }
   function chatFoto(archivo, i) {
     var r = new FileReader();
     r.onload = function () {
@@ -1364,15 +1400,14 @@
       im.onload = function () {
         var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = d.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
         c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); var du = c.toDataURL("image/jpeg", .8);
-        var m = d.createElement("div"); m.className = "san-m u foto"; var img = d.createElement("img"); img.src = du; img.alt = "Foto"; m.appendChild(img); E.msgs.appendChild(m);
-        var nota = i.value.trim(); if (nota) { i.value = ""; addMsg(nota, "u"); }
-        var info = d.createElement("div"); info.className = "san-m info"; info.textContent = "Alma está viendo la foto…"; E.msgs.appendChild(info); E.msgs.scrollTop = E.msgs.scrollHeight;
+        chatPintar(function (p) { if (p) p.foto(du); });
+        var nota = i.value.trim(); if (nota) { i.value = ""; i.dispatchEvent(new Event("input")); addMsg(nota, "u"); }
+        chatQuieto(); chatPensando(true);   // «pensando» mientras Alma ve la foto y hasta que responde
         w.ALMA.almaFoto(du).then(function (j) {
-          info.remove();
           var desc = j && j.ok && j.texto ? j.texto : "";
           var t = "[Te mando una foto" + (desc ? ". Lo que se ve: " + desc : ", pero no pude describirla") + "]" + (nota ? " " + nota : "");
           if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(t); } catch (x) {} } else AL.cola = t;
-        }, function () { info.textContent = "No pude mandar la foto. Intenta de nuevo."; });
+        }, function () { chatPensando(false); chatPintar(function (p) { if (p) p.nota("No pude mandar la foto. Intenta de nuevo."); }); });
       };
       im.src = r.result;
     };
@@ -1782,7 +1817,16 @@
   }
   function capQuitar() { clearTimeout(CAP.t); CAP.q = []; }
   function caption(t) { t = String(t).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!t) return; CAP.q = capTrozos(t); capSig(); }
-  function addMsg(t, who) { var m = d.createElement("div"); m.className = "san-m " + who; m.textContent = t; E.msgs.appendChild(m); E.msgs.scrollTop = E.msgs.scrollHeight; }
+  /* Un mensaje al hilo del chat (estilo A, SAChat.pintor). Sin las piezas, una línea de texto simple. */
+  function addMsg(t, who) {
+    if (who === "a") clearTimeout(pensT);   // llegó la respuesta: el pintor quita «pensando»
+    chatPintar(function (p) {
+      if (p) { if (who === "a") p.alma(t); else p.yo(t); return; }
+      var m = d.createElement("div"); m.style.cssText = "max-width:82%;padding:9px 15px;border-radius:20px;white-space:pre-wrap;font:400 15px/1.42 Montserrat,system-ui,sans-serif;" + (who === "a" ? "align-self:flex-start;background:#F3F3F3;color:#222" : "align-self:flex-end;background:#1F1F1F;color:#fff");
+      m.textContent = t; E.msgs.appendChild(m); E.msgs.scrollTop = E.msgs.scrollHeight;
+    });
+  }
+  function chatVaciar() { clearTimeout(pensT); if (E.pt) E.pt.vaciar(); else E.msgs.innerHTML = ""; }
 
   function almaOpen() {
     if (AL.on) return; almaBuild(); var resume = AL.min;
@@ -1797,7 +1841,7 @@
     aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
     E.scrim.style.opacity = "0"; clearTimeout(idleT);
     if (resume) { status("Te escucho"); return; }
-    status("Conectando…"); capQuitar(); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    status("Conectando…"); capQuitar(); E.cap.textContent = ""; chatVaciar();
     almaSesion();
   }
   /* Conversación de voz (la misma para la piedra al centro y para el modo en el botón). */
@@ -1807,7 +1851,7 @@
       message: function (src, x) { if (!x || (!AL.on && !AL.min)) return;
         if (src !== "ai" && /^[\s.…]*$/.test(x)) return;   // «…»: la señal de silencio del agente, no algo que dijo la persona
         if (src !== "ai") chatQuieto();
-        if (src === "ai") { x = String(x).replace(/\[[^\]\n]{1,40}\]/g, "").replace(/\s{2,}/g, " ").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
+        if (src === "ai") { x = String(x).replace(/\[(?!\[)[^\[\]\n]{1,40}\](?!\])/g, "").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
       ended: function () { if (AL.on || AL.min) almaEnd(true); },
       error: function (m) { status("No pude conectar con Alma"); capQuitar(); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
     };
@@ -1830,7 +1874,7 @@
   function almaMini() {
     if (AL.on || AL.min || !almaOk()) return;
     almaBuild(); setS(1); clearTimeout(idleT);
-    AL.min = true; AL.on = false; AL.chat = false; capQuitar(); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    AL.min = true; AL.on = false; AL.chat = false; capQuitar(); E.cap.textContent = ""; chatVaciar();
     E.core.classList.add("alma-live"); almaLoopOn(); surge();
     if (navigator.vibrate) try { navigator.vibrate([6, 30, 6]); } catch (x) {}
     phMini("Conectando con Alma…");
@@ -1881,7 +1925,7 @@
     AL.on = true; AL.chat = false; AL.mudo = false; E.ov.classList.remove("quieta", "chat");
     aSq.x = 1; aSq.to(0, .5, .55); aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
-    status("Conectando…"); capQuitar(); E.cap.textContent = ""; E.msgs.innerHTML = "";
+    status("Conectando…"); capQuitar(); E.cap.textContent = ""; chatVaciar();
     almaSesion(); if (chat) almaChat(true);
   }
   /* piedra pesada: cede poco, se estira poco, rebote corto · mantener = minimizar · deslizar abajo = terminar */

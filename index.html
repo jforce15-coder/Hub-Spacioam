@@ -33,17 +33,17 @@
 <link rel="stylesheet" href="ds/styles.css">
 <link rel="stylesheet" href="ds/esqueleto.css">
 <link rel="stylesheet" href="ds/movimiento.css">
-<link rel="stylesheet" href="ds/chat.css?v=2026-11-11a">
+<link rel="stylesheet" href="ds/chat.css?v=2026-11-11b">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-10c"></script>
+<script src="js/sa-nav.js?v=2026-11-11a"></script>
 <script src="js/alma-voz.js?v=2026-11-01b"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
 <script src="js/alma-client.js?v=2026-11-09b"></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="js/sa-chat.js?v=2026-11-11a"></script>
+<script src="js/sa-chat.js?v=2026-11-11b"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
 <script src="js/sched-engine.js?v=2026-10-18a"></script>
 <style>
@@ -3816,8 +3816,10 @@ class Component extends DCLogic {
       if (el && !el.disabled) { e.preventDefault(); el.click(); }
     };
     document.addEventListener("keydown", this._atajos);
-    var convLink = this.convDeUrl(location.href); if (convLink) setTimeout(function () { self.irAConv(convLink); }, 0);
-    window.addEventListener("sa-push-click", function (e) { var k = self.convDeUrl((e && e.detail) || ""); if (k) self.irAConv(k); });
+    /* ?conv=<conversación> o ?conv=<código de reserva HM…> (las filas «›» del chat de la roca, #317). */
+    var irConv = function (k) { if (/^HM[A-Z0-9]{8}$/i.test(k)) self.irAReserva(k); else self.irAConv(k); };
+    var convLink = this.convDeUrl(location.href); if (convLink) setTimeout(function () { irConv(convLink); }, 0);
+    window.addEventListener("sa-push-click", function (e) { var k = self.convDeUrl((e && e.detail) || ""); if (k) irConv(k); });
     /* Cualquier enlace a epi / hola / mi / grow lleva la sesión, para no volver a iniciar sesión. */
     document.addEventListener("click", function (e) {
       var a = e.target && e.target.closest && e.target.closest("a[href]"); if (!a) return;
@@ -5533,8 +5535,11 @@ class Component extends DCLogic {
   }
   /* Fila «Ver reserva HM…» del chat con Alma (#317): abre la conversación de esa reserva si está en el Hub. */
   irAReserva(codigo) {
-    var c = String(codigo || "").trim().toUpperCase(), a = this.state.alma || {}, cr = this.state.codRes || {}, rid = "";
+    var self = this, c = String(codigo || "").trim().toUpperCase(), a = this.state.alma || {}, cr = this.state.codRes || {}, rid = "";
     if (!c) return;
+    /* Abierto desde un enlace (?conv=HM…) antes de que llegue la bandeja: espera a tenerla (hasta ~12 s) para encontrar la reserva. */
+    if (!this.state.alma && (this._irResN = (this._irResN || 0) + 1) <= 20) { setTimeout(function () { self.irAReserva(c); }, 600); return; }
+    this._irResN = 0;
     (a.inbox || []).some(function (r) { if (r.conv_id && String(r.codigo || r.code || "").toUpperCase() === c) { rid = r.conv_id; return true; } return false; });
     if (!rid) (a.cola || []).some(function (r) { try { var d = JSON.parse(r.datos || "{}"); if (r.reservation_id && String(d.codigo || "").toUpperCase() === c) { rid = r.reservation_id; return true; } } catch (e) {} return false; });
     if (!rid) (a.log || []).some(function (l) { if (l.reservation_id && String(l.codigo || "").toUpperCase() === c) { rid = l.reservation_id; return true; } return false; });

@@ -98,3 +98,17 @@
 .sa-chat-campo::placeholder, .sa-chat-cuadro textarea::placeholder{ color:var(--chat-tenue); }
 /* En el iPhone, Safari acerca la pantalla si la letra de un campo es menor de 16 px: ahí se queda en 16. */
 @supports (-webkit-touch-callout: none){ .sa-chat-cuadro textarea, .sa-chat-campo{ font-size:16px; } }
+
+/* ── Hilo pintado con SAChat.pintor (chat de la roca y «Alma aquí»): 14 px entre grupos, 4 px dentro del grupo. ── */
+.sa-chat-hilo{ display:flex; flex-direction:column; gap:14px; }
+.sa-chat-hilo > .sa-chat-msg--sigue{ margin-top:-10px; }
+.sa-chat-hilo > .sa-chat-msg{ animation:sa-chat-entra .32s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes sa-chat-entra{ from{ opacity:0; transform:translateY(6px); } }
+@media (prefers-reduced-motion: reduce){ .sa-chat-hilo > .sa-chat-msg{ animation:none; } }
+/* La opción elegida, de tu lado: la misma fila de la tarjeta, sin tocar. */
+.sa-chat-tarjeta--elegida{ width:auto; max-width:min(286px,100%); margin-top:0; }
+.sa-chat-opcion--fija{ cursor:default; padding-right:20px; }
+.sa-chat-opcion--fija:active{ transform:none; background:transparent; }
+@media (hover:hover){ .sa-chat-opcion--fija:hover{ background:transparent; } }
+.sa-chat-foto img{ display:block; max-width:220px; max-height:280px; border-radius:20px; }
+.sa-chat-nota{ align-self:center; text-align:center; padding:2px 8px; font-family:var(--chat-sans); font-size:12px; line-height:1.4; color:var(--chat-tenue); }

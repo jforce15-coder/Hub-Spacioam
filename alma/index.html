@@ -9,38 +9,42 @@
 <link rel="stylesheet" href="../ds/tokens/fonts.css">
 <link rel="stylesheet" href="../ds/tokens/colors.css">
 <link rel="stylesheet" href="../ds/tokens/typography.css">
+<link rel="stylesheet" href="../ds/chat.css?v=2026-11-11b">
 <!-- «Alma aquí»: Alma sola, abierta desde cualquier página con el atajo de Compartir o el marcador
      (instalar.html). Recibe qué estaba viendo la persona (?t=título&sel=texto&desde=<url>, desde al final)
      y se lo pasa a Alma como contexto, en el chat y en la voz. -->
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg, #F4F1EC); color: var(--fg, #1D1D1B); font-family: var(--font-sans, -apple-system, system-ui, sans-serif);
+  /* Estilo A del chat (#317): fondo blanco, encabezado simple con una línea fina, burbujas y tarjetas de ds/chat.css. */
+  body { margin: 0; background: #FFFFFF; color: #222222; font-family: "Montserrat", var(--font-sans, -apple-system, system-ui, sans-serif);
     min-height: 100dvh; display: flex; flex-direction: column; }
-  header { padding: max(16px, env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid var(--border-soft, #e4ded5); background: var(--surface, #fff); }
-  h1 { font-family: var(--font-serif, Georgia, serif); font-weight: 400; font-size: 26px; margin: 0; }
-  .viendo { margin-top: 6px; font-size: 13px; color: var(--fg-muted, #6f6867); overflow-wrap: anywhere; }
+  header { padding: max(14px, env(safe-area-inset-top)) 16px 12px; border-bottom: 1px solid #EEEEEE; background: #FFFFFF; }
+  .tit { display: flex; align-items: center; gap: 10px; }
+  .tit .sa-chat-avatar { width: 32px; height: 32px; }
+  h1 { font-family: "Montserrat", var(--font-sans, system-ui, sans-serif); font-weight: 600; font-size: 16px; margin: 0; color: #222222; }
+  .viendo { margin-top: 8px; font-size: 12.5px; color: #8A8A8A; overflow-wrap: anywhere; }
   .viendo a { color: inherit; }
   .sel { margin-top: 6px; font-size: 13px; padding: 6px 10px; border-left: 3px solid var(--accent, #B54D36); background: var(--bg-alt, #efe9e0); border-radius: 4px; max-height: 5.5em; overflow: auto; }
   .captura { margin-top: 8px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--fg-muted, #6f6867); }
   .captura img { width: 54px; height: 96px; object-fit: cover; object-position: top; border-radius: 8px; border: 1px solid var(--border-soft, #e4ded5); flex: none; }
-  main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
-  .m { max-width: 85%; padding: 10px 14px; border-radius: 16px; line-height: 1.45; font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .yo { align-self: flex-end; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); border-bottom-right-radius: 4px; }
-  .alma { align-self: flex-start; background: var(--surface, #fff); border: 1px solid var(--border-soft, #e4ded5); border-bottom-left-radius: 4px; }
-  .nota { align-self: center; color: var(--fg-muted, #6f6867); font-size: 13px; text-align: center; }
-  /* El nuevo chat (#304): «+» · cuadro (hasta 5 líneas) · micrófono (vacío) o enviar (con texto) · roca. Enter salta de línea. */
-  footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: var(--surface, #fff); border-top: 1px solid var(--border-soft, #e4ded5); display: flex; gap: 6px; align-items: flex-end; }
-  .caja { flex: 1; min-width: 0; position: relative; display: flex; border-radius: 24px; }
-  textarea { flex: 1; min-width: 0; resize: none; font: inherit; font-size: 16px; line-height: 20px; height: 48px; padding: 13px 14px; box-sizing: border-box; border-radius: 24px; border: 1px solid var(--border, #d6cfc4); background: var(--bg, #F4F1EC); max-height: 126px; overflow-y: hidden; outline: none; }
-  button { font: inherit; border: 0; border-radius: 999px; height: 48px; min-width: 48px; padding: 0; cursor: pointer; display: grid; place-items: center; flex: none; -webkit-tap-highlight-color: transparent; transition: transform .1s, background .18s; }
+  main { flex: 1; overflow-y: auto; padding: 16px; }
+  /* El nuevo chat (#304), estilo A: «+» gris · cuadro con borde fino (radio 21, Montserrat 15/20; 16 en iPhone) · micrófono (vacío) o enviar (con texto) · roca. Enter salta de línea. */
+  footer { padding: 10px 12px max(12px, env(safe-area-inset-bottom)); background: #FFFFFF; border-top: 1px solid #EEEEEE; display: flex; gap: 8px; align-items: flex-end; }
+  .caja { flex: 1; min-width: 0; position: relative; display: flex; border-radius: 21px; }
+  textarea { flex: 1; min-width: 0; resize: none; font-family: "Montserrat", var(--font-sans, system-ui, sans-serif); font-size: 15px; line-height: 20px; color: #222222; height: 44px; padding: 11px 16px; box-sizing: border-box; border-radius: 21px; border: 1px solid #DDDDDD; background: #FFFFFF; max-height: 124px; overflow-y: hidden; outline: none; transition: border-color .18s cubic-bezier(.22,.61,.36,1); }
+  textarea:focus { border-color: #222222; }
+  textarea::placeholder { color: #8A8A8A; }
+  @supports (-webkit-touch-callout: none) { textarea { font-size: 16px; } }
+  button { font: inherit; border: 0; border-radius: 999px; height: 44px; min-width: 44px; padding: 0; cursor: pointer; display: grid; place-items: center; flex: none; -webkit-tap-highlight-color: transparent; transition: transform .1s, background .18s; }
   button:active { transform: scale(.92); }
-  #mas { background: transparent; color: var(--fg, #1D1D1B); }
-  #mic, #enviar { width: 48px; background: var(--fg, #1D1D1B); color: var(--fg-inverse, #fff); }
+  #mas { width: 44px; background: #F3F3F3; color: #222222; }
+  #mic { width: 44px; background: transparent; color: #222222; }
+  #enviar { width: 44px; background: #1F1F1F; color: #FFFFFF; }
   #enviar { display: none; }
   footer.lleno #mic { display: none; } footer.lleno #enviar { display: grid; }
   .rocaw { position: relative; flex: none; }
-  #roca { width: 48px; border: 1px solid #E9826A; background: rgba(233,130,106,.14); }
+  #roca { width: 48px; height: 48px; border: 1px solid #E9826A; background: rgba(233,130,106,.14); }
   #roca.vivo { background: #E9826A; animation: graba 1.2s ease-in-out infinite; }
   #roca.vivo svg { fill: #fff; }
   @keyframes graba { 50% { box-shadow: 0 0 0 10px rgba(233,130,106,.2); } }
@@ -55,7 +59,7 @@
 </head>
 <body>
 <header>
-  <h1>Alma</h1>
+  <div class="tit"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><h1>Alma</h1></div>
   <div class="viendo" id="viendo">Abierta sin página de origen.</div>
   <div class="sel" id="sel" hidden></div>
   <div class="captura" id="captura" hidden></div>
@@ -71,8 +75,9 @@
 <script src="../js/sa-auth-client.js"></script>
 <script src="../js/alma-client.js"></script>
 <script src="../js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="../js/sa-nav.js?v=2026-11-10c"></script>
+<script src="../js/sa-nav.js?v=2026-11-11a"></script>
 <script src="../js/alma-voz.js?v=2026-11-01b"></script>
+<script src="../js/sa-chat.js?v=2026-11-11b"></script>
 <script>
 (function () {
   "use strict";
@@ -120,32 +125,42 @@
     }, function () { t.textContent = "No pude leer la captura."; });
   };
 
-  function pinta(lista) {
-    var h = $("hilo"); h.innerHTML = "";
-    if (!lista.length) { var n = document.createElement("div"); n.className = "nota"; n.textContent = desde ? "Pregúntale lo que quieras sobre esta página." : "Escríbele a Alma o tócale el micrófono."; h.appendChild(n); }
-    lista.forEach(function (m) { var d = document.createElement("div"); d.className = "m " + (m.de === "yo" ? "yo" : "alma"); d.textContent = SAAlmaVoz.limpiar(m.texto || ""); h.appendChild(d); });
-    h.scrollTop = h.scrollHeight;
+  /* El hilo con el estilo A (js/sa-chat.js): burbujas agrupadas, tarjeta de acción con las opciones de Alma (al tocar una
+     se envía como tu mensaje), filas con «›» para reservas y enlaces, y «pensando» mientras responde. */
+  var hilo = SAChat.pintor($("hilo"), { alElegir: function (t) { enviarTexto(t); } });
+  /* Sin las etiquetas de voz ([risa]); conserva los saltos de línea (las opciones vienen en lista) y [[opciones]]. */
+  var limpio = function (t) { return String(t || "").replace(/\[(?!\[)[^\[\]\n]{1,40}\](?!\])/g, "").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim(); };
+  var tiempo = function (m) { var t = Date.parse(m && m.ts || ""); return isNaN(t) ? 0 : t; };
+  var listo = false, notaVacia = null;
+  /* Lo primero que llega (la historia o lo que escribes) quita el esqueleto; la nota de bienvenida se va con tu primer mensaje. */
+  function empezar() { if (!listo) { listo = true; hilo.vaciar(); } if (notaVacia) { notaVacia.remove(); notaVacia = null; } }
+  ALMA.opHilo(yo, "").then(function (r) { pintaHistoria(((r && r.mensajes) || []).slice(-30)); }, function () { pintaHistoria([]); });
+  function pintaHistoria(lista) {
+    if (listo) return;   // ya escribiste algo: no se borra lo que está en pantalla
+    listo = true; hilo.vaciar();
+    if (!lista.length) notaVacia = hilo.nota(desde ? "Pregúntale lo que quieras sobre esta página." : "Escríbele a Alma o tócale el micrófono.");
+    lista.forEach(function (m) { if (m.de === "yo") hilo.yo(m.texto, tiempo(m)); else hilo.alma(limpio(m.texto), tiempo(m)); });
   }
-  var mensajes = [];
-  ALMA.opHilo(yo, "").then(function (r) { mensajes = ((r && r.mensajes) || []).slice(-30); pinta(mensajes); }, function () { pinta([]); });
 
   function enviar() {
     var t = $("txt").value.trim(); if (!t) return;
-    if (capturaP && !captura) { $("enviar").disabled = true; capturaP.then(function () { capturaP = null; $("enviar").disabled = false; enviar(); }); return; }
+    $("txt").value = ""; crecer(); enviarTexto(t);
+  }
+  /* Tu mensaje sale al instante con «pensando»; si la captura aún se está leyendo, espera a tenerla para mandarlo. */
+  function enviarTexto(t, yaPintado) {
+    if (!yaPintado) { empezar(); hilo.yo(t); hilo.pensando(true); }
+    if (capturaP && !captura) { $("enviar").disabled = true; capturaP.then(function () { capturaP = null; enviarTexto(t, true); }); return; }
     var texto = !ctxEnviado && ctx ? ctx + "\n\n" + t : t; ctxEnviado = true;
-    $("txt").value = ""; crecer(); $("enviar").disabled = true;
-    mensajes = mensajes.concat([{ de: "yo", texto: t }, { de: "alma", texto: "…" }]); pinta(mensajes);
+    $("enviar").disabled = true;
     ALMA.opEnviar(yo, texto).then(function (r) {
-      mensajes.pop();
-      mensajes.push({ de: "alma", texto: r && r.ok && r.alma ? r.alma.texto : "No pude responder ahora (" + ((r && r.error) || "sin conexión") + "). Intenta de nuevo." });
-      pinta(mensajes);
-    }).finally(function () { $("enviar").disabled = false; });
+      hilo.alma(r && r.ok && r.alma ? limpio(r.alma.texto) : "No pude responder ahora (" + ((r && r.error) || "sin conexión") + "). Intenta de nuevo.");
+    }, function () { hilo.alma("No pude responder ahora (sin conexión). Intenta de nuevo."); }).finally(function () { $("enviar").disabled = false; });
   }
   $("enviar").onclick = enviar;   // solo el botón envía: Enter salta de línea (el nuevo chat, #304)
 
   /* El cuadro crece hasta 5 líneas y luego hace scroll; con texto, el micrófono se cambia por enviar y aparece «Mejorar». */
   function crecer() {
-    var t = $("txt"); t.style.height = "48px"; t.style.height = Math.min(126, t.scrollHeight + 2) + "px"; t.style.overflowY = t.scrollHeight + 2 > 126 ? "auto" : "hidden";
+    var t = $("txt"); t.style.height = "44px"; t.style.height = Math.min(124, t.scrollHeight + 2) + "px"; t.style.overflowY = t.scrollHeight + 2 > 124 ? "auto" : "hidden";
     var lleno = !!t.value.trim(); $("pie").classList.toggle("lleno", lleno); $("roca").setAttribute("aria-label", lleno ? "Mejorar" : "Alma");
   }
   function poner(t) { var x = $("txt"); x.value = t; crecer(); try { x.focus(); x.setSelectionRange(t.length, t.length); } catch (e) {} }
@@ -169,11 +184,11 @@
     if (abriendo) return; abriendo = true;
     voz.start({
       status: function (s) { $("roca").title = s; },
-      message: function (src, t) { mensajes.push({ de: src === "ai" ? "alma" : "yo", texto: t }); pinta(mensajes); },
+      message: function (src, t) { empezar(); if (src === "ai") hilo.alma(t); else hilo.yo(t); },
       ended: function () { llamada = null; $("roca").classList.remove("vivo"); $("roca").title = "Un toque: mejorar · dos toques: hablar con Alma"; },
-      error: function (m) { mensajes.push({ de: "alma", texto: m }); pinta(mensajes); }
+      error: function (m) { hilo.pensando(false); hilo.nota(m); }
     }).then(function (c) { llamada = c; $("roca").classList.add("vivo"); },
-      function (e) { mensajes.push({ de: "alma", texto: (e && e.message) || "No pude abrir la voz." }); pinta(mensajes); })
+      function (e) { hilo.nota((e && e.message) || "No pude abrir la voz."); })
       .finally(function () { abriendo = false; });
   }
   /* La roca oficial (sa-nav, con su halo) se encaja en #roca y le pasa los toques a la página (alToques):

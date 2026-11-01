@@ -45,7 +45,7 @@ var CUPO_ACCIONES_ = {
   chat: 'opEnviar opHilo opLista almaFoto mejorarCampo dictar plantillas',
   voz: 'vozWeb vozWebVincular conferencia conferenciaAudio reporteLlamadas',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
-    'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador',
+    'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision',
   cerebro: 'cerebro conexiones',
   fondo: 'mejoras automejora purgarAutomejora mejoraEditar mejoraEliminar mejoraVerificar proponerMejora prompts setPrompt agentes correos usoIA usoMensual uso ' +
     'setConocimiento setPropiedadDato dsPropuestas dsDecidir'

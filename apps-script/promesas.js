@@ -38,6 +38,7 @@ function promesaRegistrar_(c, texto, origen) {
     var vence = new Date(ahora + p.horas * 3600000).toISOString(), id = 'pr' + ahora + Math.floor(Math.random() * 1000);
     d.sh.appendRow([id, new Date(ahora).toISOString(), convId, c.huesped || '', c.propiedad || '', p.canal, p.que, vence, 'abierta', origen || 'texto', String(texto).slice(0, 1500), 1, '', '']);
     try { inboxUpsert_(convId, { promesa: p.que, promesa_vence: vence, promesa_id: id, promesa_estado: 'abierta' }); } catch (e) {}
+    try { decisionCrear_(Object.assign({}, c, { resId: convId }), 'promesa', p.que); } catch (e) { console.error('decisionCrear_ promesa: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
     /* Sin aviso al crearla: el seguimiento queda en el Hub y, si vence, entra en el resumen periódico (promesasRevisar_). */
     return { id: id, que: p.que, vence: vence };
   } finally { try { lock.releaseLock(); } catch (e) {} }

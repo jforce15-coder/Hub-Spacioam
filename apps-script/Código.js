@@ -720,6 +720,7 @@ function procesarCola() {
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
   try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
+  try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {
     cupoCanal_('Mejoras y fondo');
@@ -1923,6 +1924,7 @@ function extraerSeguimiento_(txt) {
 }
 function avisarSeguimiento_(c) {
   if (!c || !c.seguimiento) return;
+  try { decisionCrear_(c, 'seguimiento', c.seguimiento); } catch (e) { console.error('decisionCrear_ seguimiento: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
   notificar_(CFG.WHATSAPP_JUAN, 'ALMA · seguimiento · ' + (c.propiedad || ''), 'El huésped ' + (c.huesped || '') + ' (' + (c.codigo || '') + ') eligió algo que requiere al equipo:\n\n' + c.seguimiento + '\n\nPregunta:\n' + (c.texto || ''));
 }
 
@@ -2042,7 +2044,7 @@ const USO_CAB_ = ['ts', 'app', 'funcion', 'detalle', 'ref', 'modelo', 'input', '
 const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · decidir ruta', redactar_: 'Redactar respuestas', redactarVerificado_: 'Redactar respuestas', verificar_: 'Control de calidad',
   inquiryResponder_: 'Consultas (inquiries)', revisarSinRespuesta_: 'Revisar «sin respuesta»', aprender: 'Auto mejora · comparar con el equipo', compararRespuestas_: 'Auto mejora · comparar con el equipo',
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
-  opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación' };
+  opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];
@@ -2399,6 +2401,7 @@ function escalar_(asunto, texto, o) {
 }
 function avisarRojo_(ctx, asunto, texto, sinWa) {
   if (sinWa) { pushA_(null, asunto, texto); return; }   // seguimiento de un ROJO ya avisado: no repite el WhatsApp
+  try { decisionCrear_(ctx, ctx && ctx.escalar ? 'escalado' : 'rojo', (ctx && (ctx.motivoEscalar || ctx.razon)) || ''); } catch (e) { console.error('decisionCrear_ rojo: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
   if (ctx && ctx.escalar) return escalar_(asunto, texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente'));
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   pushA_(null, asunto, texto);
@@ -3188,6 +3191,7 @@ function hubApi_(body) {
       case 'adjunto': return json_(adjSubir_(ses, body));                                    // el «+» del nuevo chat: sube una foto o un PDF para el huésped (adjuntos.js)
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
+      case 'decision': return json_(decisionApi_(ses, body));                                // decisión del equipo: leer, elegir o enviada (decisiones.js)
       case 'limpiezas': return json_(hubLimpiezas_(body.codigo));
       case 'pasos': return json_(hubPasos_(body.ids));
       case 'waNumeros': return json_({ ok: true, numeros: telsReserva_(body.resId) });
@@ -3584,6 +3588,7 @@ function hubResolver_(key, estado, quien, tsCli) {
   const ms = Math.max(Date.now(), Number(tsCli) || 0);
   sh.appendRow([String(key), estado === 'abierta' ? 'abierta' : 'resuelta', new Date().toISOString(), String(quien || '').slice(0, 80), ms]);
   if (estado !== 'abierta') { try { promesasCumplir_(key, quien, 'resuelta'); } catch (e) {} }   // resolverla cierra lo que ALMA prometió
+  if (estado !== 'abierta') { try { decisionCerrar_(key, quien); } catch (e) {} }               // y la decisión del equipo que esperaba (decisiones.js)
   return { ok: true, ts: ms };
 }
 function resueltasVivo_() {
@@ -3911,6 +3916,7 @@ function hubResponder_(resId, texto, quien, canal, adj) {
     observar_(d, d.borrador || '');
   } else hubDespuesEncolar_(resId, texto, quien);   // armar el contexto es lento: se registra en la siguiente pasada (envio.js)
   try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) { console.error('promesasCumplir_: ' + e); }
+  try { decisionAlResponder_(resId, quien || 'Equipo'); } catch (e) { console.error('decisionAlResponder_: ' + e); }   // la decisión del equipo queda enviada (decisiones.js)
   return { ok: true, plantilla: plantilla, canal: ug.canal === 'whatsapp' ? 'whatsapp' : 'hospitable' };
 }
 
@@ -3980,7 +3986,9 @@ function hubHilo_(resId) {
   const r = hiloConv_(resId);
   if (r.code !== 200) return { ok: false, error: 'HTTP ' + r.code };
   let hitos = []; try { hitos = hitosDe_(resId); } catch (e) { console.error('hitosDe_: ' + e); }
-  return { ok: true, hilo: r.hilo.slice(-300).map(m => Object.assign({ tipo: m.tipo, auto: !!m.auto, texto: m.texto, created: m.created, fotos: m.fotos || [], canal: m.canal || 'hospitable' }, m.canal === 'whatsapp' ? { wa: m.wa || '', llamada: !!m.llamada, llamadaId: m.llamadaId || '', alma: !!m.alma } : {})).concat(hitos) };
+  /* La decisión del equipo viaja al final del hilo, sin texto (el Hub la separa en guardarHilo, como los hitos). */
+  let dec = []; try { const dd = decisionLeer_(resId); if (dd) dec = [{ tipo: 'decision', created: dd.creado, decision: dd }]; } catch (e) { console.error('decisionLeer_: ' + e); }
+  return { ok: true, hilo: r.hilo.slice(-300).map(m => Object.assign({ tipo: m.tipo, auto: !!m.auto, texto: m.texto, created: m.created, fotos: m.fotos || [], canal: m.canal || 'hospitable' }, m.canal === 'whatsapp' ? { wa: m.wa || '', llamada: !!m.llamada, llamadaId: m.llamadaId || '', alma: !!m.alma } : {})).concat(hitos).concat(dec) };
 }
 
 /* ── HITOS DE RESERVA: Hospitable avisa (webhook reservation.changed) cuando cambian fechas, huéspedes, propiedad o
@@ -4163,6 +4171,8 @@ function waEntrante_(m, nombre) {
   const wa = s_(m.from).replace(/\D/g, ''); if (!wa || !m.id) return;
   const cache = CacheService.getScriptCache(); if (cache.get('wa_' + m.id)) return; cache.put('wa_' + m.id, '1', 21600);
   try { waPendienteSoltar_(wa); } catch (e) { console.error('waPendienteSoltar_: ' + e); }   // respondió a la plantilla de primer contacto (contacto.js)
+  /* El responsable toca un botón de una decisión del equipo (A/B/C, Enviar, Editar en el Hub) o escribe otra respuesta (decisiones.js). */
+  try { if (decisionWaEntrante_(m, wa, m.timestamp ? new Date(Number(m.timestamp) * 1000).toISOString() : '')) return; } catch (e) { console.error('decisionWaEntrante_: ' + e); }
   const T = { image: '[envió una imagen]', audio: '[envió una nota de voz]', video: '[envió un video]', document: '[envió un documento]', sticker: '[sticker]', contacts: '[compartió un contacto]', reaction: '', unsupported: '[Mensaje que WhatsApp no deja leer aquí: suele ser un código de verificación o un mensaje con botones. Ábrelo en el teléfono]', system: '[aviso de WhatsApp: cambio de número o de cuenta]', order: '[envió un pedido del catálogo]', request_welcome: '[abrió el chat]' };
   let texto = '';
   if (m.type === 'text') texto = s_(m.text && m.text.body);
@@ -4445,7 +4455,7 @@ function waReserva_(wa) {
   if (shW && shW.getLastRow() >= 2) {
     const n = shW.getLastRow(), desde = Math.max(2, n - 2000);
     const prev = shW.getRange(desde, 1, n - desde + 1, WA_CAB_.length).getValues().reverse()
-      .find(v => fin8_(v[1]) === k8 && s_(v[6]) && s_(v[6]).indexOf('wa:') !== 0 && new Date(v[0]).getTime() > lim);
+      .find(v => fin8_(v[1]) === k8 && s_(v[6]) && !/^(wa|op|dec):/.test(s_(v[6])) && new Date(v[0]).getTime() > lim);   // op: chat con Alma · dec: decisión del equipo (decisiones.js)
     if (prev) return guardar({ resId: s_(prev[6]) });
   }
   const inbox = hubInbox_();
@@ -4582,6 +4592,7 @@ function hubResponderWa_(resId, texto, quien, wa, adj) {
     const ra = adjEnviarWa_(num, texto, ad.items, resId, String(quien || 'Equipo').slice(0, 80)); if (!ra.ok) return { ok: false, error: ra.error };
     try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
     try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) {}
+    try { decisionAlResponder_(resId, quien || 'Equipo'); } catch (e) {}
     return { ok: true, wa: num };
   }
   let pre = {}; try { pre = preContexto_(resId) || {}; } catch (e) {}
@@ -4590,6 +4601,7 @@ function hubResponderWa_(resId, texto, quien, wa, adj) {
   if (!w.ok) return { ok: false, error: w.error };
   try { CacheService.getScriptCache().removeAll(['hf_' + resId]); } catch (e) {}
   try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) {}
+  try { decisionAlResponder_(resId, quien || 'Equipo'); } catch (e) {}
   return { ok: true, wa: num, plantilla: !!w.plantilla };
 }
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {
@@ -4858,6 +4870,8 @@ function opMatch_(txt, lista) {
 /* Un mensaje del administrador (WhatsApp o hub): se guarda, ALMA responde con el contexto real y ejecuta lo que pidió. */
 function opProcesar_(adm, texto, canal, fotos, nota) {
   texto = String(texto || '').trim(); if (!adm || !texto) return { ok: false, error: 'faltan datos' };
+  /* Tocó una opción de una decisión del equipo en la tarjeta del chat: queda elegida y el borrador espera en la conversación (decisiones.js). */
+  if (canal === 'hub') { try { const dc = decisionDesdeChat_(adm, texto); if (dc) return dc; } catch (e) { console.error('decisionDesdeChat_: ' + e); } }
   const yo = opGuardar_(adm, 'yo', canal, texto);
   const pedido = nota ? nota + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';

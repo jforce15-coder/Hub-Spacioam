@@ -7849,6 +7849,8 @@ class Component extends DCLogic {
     };
     this._canalVM = canalVM;
     var esOp = function (g) { return String(g.key).indexOf("op:") === 0; }, gruposOp = grupos.filter(esOp);
+    /* Todos los grupos recién armados (antes de filtros): la conversación abierta que salió del filtro se pinta con su versión de hoy, no con una copia vieja. */
+    var gruposPorK = {}; grupos.forEach(function (g) { gruposPorK[g.key] = g; });
     grupos = grupos.filter(function (g) { return !esOp(g); });
     var gruposSinCanal = grupos;
     if (st.convCanal === "operativo") grupos = gruposOp.sort(function (x, y) { return (y.ts || 0) - (x.ts || 0); });
@@ -8017,7 +8019,7 @@ class Component extends DCLogic {
       if (fz && fz.k === fzK) {
         var porK = {}, vistoK = {}, fzOut = [];
         grupos.forEach(function (g) { porK[g.key] = g; });
-        fz.keys.forEach(function (k) { var g = porK[k] || fz.obj[k]; if (g && !vistoK[k]) { fzOut.push(g); vistoK[k] = 1; } });
+        fz.keys.forEach(function (k) { var g = porK[k] || gruposPorK[k] || fz.obj[k]; if (g && !vistoK[k]) { fzOut.push(g); vistoK[k] = 1; } });
         grupos.forEach(function (g) { if (!vistoK[g.key]) fzOut.push(g); });
         grupos = fzOut; gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; });
         this._convGrupos = grupos; this._convTotal = grupos.length;
@@ -8045,7 +8047,7 @@ class Component extends DCLogic {
     else if (grupos[ciQ] && grupos[ciQ].key !== selK || !grupos[ciQ]) {
       var jSel = gIdx[selK];
       if (jSel == null && this._convSelG && this._convSelG.key === selK) {
-        grupos.splice(ciQ, 0, this._convSelG); gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; }); jSel = ciQ; this._convStale = { at: ciQ };
+        grupos.splice(ciQ, 0, gruposPorK[selK] || this._convSelG); gIdx = {}; grupos.forEach(function (g, q) { gIdx[g.key] = q; }); jSel = ciQ; this._convStale = { at: ciQ };
         this._convGrupos = grupos; this._convTotal = grupos.length;
       }
       if (jSel != null && jSel !== ciQ) {

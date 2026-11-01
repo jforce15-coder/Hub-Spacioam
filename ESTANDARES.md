@@ -7,7 +7,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 ## Apps Script
 - ✅ Ningún nombre (función, var, let, const) declarado dos veces entre archivos.
 - ✅ Todo `.js` es JavaScript válido.
-- ✅ Toda llamada a internet pasa por `uf_` / `ufAll_` (`apps-script/cupo.js`), nunca `UrlFetchApp.fetch` directo: así se cuenta el cupo de Google por canal (el 31-oct se acabó y nadie sabía qué lo gastaba). Lo de fondo nuevo pregunta antes `cupoPermite_('fondo')`; lo que nunca se pausa va en `CUPO_NUNCA_`.
+- ✅ Toda llamada a internet pasa por `uf_` / `ufAll_` (`apps-script/cupo.js`), nunca `UrlFetchApp.fetch` directo: así se cuenta el cupo de Google por canal (el 31-oct se acabó y nadie sabía qué lo gastaba). Lo de fondo nuevo pregunta antes `cupoPermite_('fondo')`; lo que nunca se pausa va en `CUPO_NUNCA_`. La voz y el chat de Alma nunca se pausan por cupo (el 1-nov la pausa en crítico dejó la app sin llamadas ni chat).
 - Las llaves y tokens viven en las Propiedades del script, nunca en el código. ✅ (patrones de llaves conocidas)
 - Lo que cambia algo afuera (mensajes, cobros, datos de huéspedes) pasa por una propuesta o una confirmación.
 - No se guarda el cuerpo de correos ni datos de identidad completos; solo lo necesario.

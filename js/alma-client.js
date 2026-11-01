@@ -147,7 +147,14 @@
     promesas: function (todas) { return call('promesas', { todas: !!todas }); },
     promesaCerrar: function (id, quien) { return call('promesaCerrar', { id: id, quien: quien || '' }); },
     votar: function (fila, voto) { return call('votar', { fila: fila, voto: voto }); },
-    opHilo: function (email, de) { return call('opHilo', { email: email, de: de || '' }); },
+    /* Chat único con Alma (#334): la persona sale de la sesión; nunca se manda el correo.
+       opHilo({ antes?, n?, esfera?, subcategoria?, de? }) → { ok, mensajes, conteo, hayMas, antes }. La forma vieja
+       opHilo(correo, de) del Hub sigue sirviendo (solo pasa «de», que el servidor respeta solo para el principal). */
+    opHilo: function (a, de) {
+      var o = a && typeof a === 'object' ? a : { de: de || '' }, b = {};
+      ['de', 'antes', 'n', 'esfera', 'subcategoria'].forEach(function (k) { if (o[k] != null && o[k] !== '') b[k] = o[k]; });
+      return call('opHilo', b);
+    },
     /* foto del chat de Alma: el Hub la describe (IA con visión) para que Alma sepa qué se ve */
     almaFoto: function (dataUrl, captura) { return call('almaFoto', { foto: dataUrl, captura: !!captura }); },
     /* app de Alma: lo que Claude dejó pendiente para el admin principal (botón «Pendientes») */
@@ -165,7 +172,11 @@
     plantillas: function (o) { return call('plantillas', o || {}); },
     /* Mejorar cualquier texto (la roca del nuevo chat y los formularios): devuelve { ok, texto }. Es la misma acción del navegador de la app (campo.js). */
     mejorarTexto: function (texto, donde) { donde = donde || {}; return call('mejorarCampo', { texto: texto, pagina: donde.pagina || '', etiqueta: donde.etiqueta || '', url: donde.url || '' }); },
-    opEnviar: function (email, texto) { return call('opEnviar', { email: email, texto: texto }); },
-    opLista: function (email) { return call('opLista', { email: email }); }
+    /* opEnviar({ texto, canal: 'app' | 'hub' }) → { ok, yo, alma, claude?, paraJuan? }. Forma vieja: opEnviar(correo, texto) = canal hub. */
+    opEnviar: function (a, texto) {
+      var o = a && typeof a === 'object' ? a : { texto: texto };
+      return call('opEnviar', { texto: o.texto, canal: o.canal === 'app' ? 'app' : 'hub' });
+    },
+    opLista: function () { return call('opLista', {}); }
   };
 })(window);

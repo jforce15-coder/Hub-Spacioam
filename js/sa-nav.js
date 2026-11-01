@@ -306,11 +306,11 @@
     ".san-scope .san-chat header{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:14px 64px 12px;min-height:64px;box-sizing:border-box;border-bottom:1px solid #EEEEEE;touch-action:none;transition:padding .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header .asa{position:absolute;top:5px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:3px;background:rgba(0,0,0,.10)}.san-scope .san-chat header .t{min-width:0}",
     ".san-scope .san-chat header .sa-chat-avatar{width:40px;height:40px;transition:width .3s cubic-bezier(.22,.61,.36,1),height .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header b{display:block;font:600 15px/1.2 Montserrat,system-ui,sans-serif;color:#222222}",
     /* con el cuadro enfocado el encabezado se encoge: avatar chico y el nombre al lado */
-    ".san-scope .san-chat:has(.san-in:focus) header{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 64px}.san-scope .san-chat:has(.san-in:focus) header .sa-chat-avatar{width:32px;height:32px}",
+    ".san-scope .san-chat:has(.san-in:focus) header{flex-direction:row;justify-content:flex-start;gap:10px;padding:10px 64px}.san-scope .san-chat:has(.san-in:focus) header .sa-chat-avatar{width:32px;height:32px}.san-scope .san-chat:has(.san-in:focus) header .sa-chat-avatar-w{margin-right:8px}",
     ".san-scope .san-chat header .san-atras{position:absolute;left:8px;top:50%;margin-top:-22px;width:44px;height:44px;border:0;border-radius:50%;padding:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:#222222}.san-scope .san-chat header .san-atras:active{transform:scale(.92);background:#F3F3F3}",
     ".san-scope .san-hb{width:42px;height:42px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#fff;color:var(--san-ink);box-shadow:0 12px 26px -14px rgba(60,45,35,.4),0 1px 3px rgba(60,45,35,.06)}.san-scope .san-hb:active{transform:scale(.92)}",
     ".san-scope .san-msgs{flex:1;overflow:auto;padding:16px 16px 20px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch;-webkit-user-select:text;user-select:text}",
-    ".san-scope .san-vacio{padding:0 16px 14px;display:flex;flex-direction:column;gap:12px}.san-scope .san-chat:has(.sa-chat-msg--mia) .san-vacio{display:none}",
+    ".san-scope .san-vacio{padding:0 16px 14px;display:flex;flex-direction:column;gap:12px}.san-scope .san-chat:has(.sa-chat-msg--mia) .san-vacio,.san-scope .san-chat:has(.sa-chat-hilo--historial) .san-vacio{display:none}",
     ".san-scope .san-vacio h3{margin:0;font:600 22px/1.2 Montserrat,system-ui,sans-serif;letter-spacing:-.01em;color:#222222}.san-scope .san-vacio p{margin:0;font:400 13.5px/1.5 Montserrat,system-ui,sans-serif;color:#8A8A8A}",
     ".san-scope .san-sug{display:flex;flex-wrap:wrap;gap:8px}.san-scope .san-sug button{border:1px solid #DDDDDD;cursor:pointer;padding:10px 15px;min-height:44px;border-radius:999px;background:#fff;color:#222222;font:500 13.5px Montserrat,system-ui,sans-serif}.san-scope .san-sug button:active{transform:scale(.96);background:#F7F7F7}",
     /* El nuevo chat (#304), un solo cuadro en la app y en el Hub: vacío, cuadro · micrófono · roca; con texto, «+» · cuadro · enviar · roca.
@@ -810,20 +810,20 @@
   }
   function abrirTutoriales() {
     if (typeof cfg.tutoriales === "function") { try { cfg.tutoriales(); } catch (e) { console.error(e); } return; }
-    conTutoriales(function () { w.SATutoriales.centro({ app: cfg.app }); });
+    conTutoriales(function () { if (w.SATutoriales) w.SATutoriales.centro({ app: cfg.app }); });
   }
   /* Cuando el menú se ve: el «?» flotante (si la app no tiene centro propio) y el video del botón roca
      en pantalla completa hasta que la persona lo haya visto. */
   function tutBoton(on) {
     if (typeof cfg.tutoriales === "function" || cfg.tutoriales === false) return;
-    if (on) conTutoriales(function () { if (root && !root.hidden) w.SATutoriales.boton(true, cfg.app); });
+    if (on) conTutoriales(function () { if (w.SATutoriales && root && !root.hidden) w.SATutoriales.boton(true, cfg.app); });   // si el archivo no trae SATutoriales (red, copia vieja), no se cae
     else if (w.SATutoriales) w.SATutoriales.boton(false);
   }
   function bienvenida() {
     if (!root || root.hidden) return;
     tutBoton(true);
     if (tutPrimera || cfg.bienvenida === false || cfg.tutoriales === false) return; tutPrimera = true;
-    setTimeout(function () { if (root && !root.hidden) conTutoriales(function () { w.SATutoriales.primeraVez(cfg.app); }); else tutPrimera = false; }, 1600);
+    setTimeout(function () { if (root && !root.hidden) conTutoriales(function () { if (w.SATutoriales) w.SATutoriales.primeraVez(cfg.app); }); else tutPrimera = false; }, 1600);
   }
   function goHub() {
     /* Las apps se abren desde el Hub en otra pestaña: si esta pestaña la abrió el Hub, se cierra y vuelve a él. */
@@ -1258,7 +1258,8 @@
       '<button type="button" class="san-ob end" data-a="end" aria-label="Terminar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 21) + '<span>Terminar</span></button></div>' +
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
       '<div class="san-chat"><header><div class="asa"></div><button type="button" class="san-atras" aria-label="Cerrar el chat">' + svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 22) + '</button>' +
-      '<span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><div class="t"><b>Alma</b></div></header><div class="san-msgs"></div>' +
+      '<span class="sa-chat-avatar-w"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><i class="sa-chat-total" hidden></i></span><div class="t"><b>Alma</b></div></header>' +
+      '<div class="sa-chat-esferas san-esferas" hidden></div><div class="san-msgs"></div>' +
       '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claude que ">Mejorar el sistema</button></div></div>' +
@@ -1301,12 +1302,30 @@
      y a la derecha la roca (1 toque mejora · 2, hablar). Solo envía el botón. */
   /* Chat sin actividad CHAT_INACTIVO_MS (3 min): la conversación termina sola (Alma no se queda preguntando «¿sigues ahí?»). */
   var CHAT_INACTIVO_MS = 180000, chatT = 0;
-  function chatQuieto() { clearTimeout(chatT); if (AL.chat) chatT = setTimeout(function () { if (AL.chat && (AL.on || AL.min)) almaEnd(false); }, CHAT_INACTIVO_MS); }
+  /* Con el chat único (#334) el texto va por el Hub y no hay llamada abierta: el chat se queda. Si quedó una llamada
+     muda detrás (se pasó de la voz al chat), solo esa se cuelga; el chat sigue abierto. */
+  function chatQuieto() {
+    clearTimeout(chatT);
+    if (AL.chat) chatT = setTimeout(function () {
+      if (!AL.chat || !(AL.on || AL.min)) return;
+      if (chatServidor()) { if (AL.ses) vozSoltar(); return; }
+      almaEnd(false);
+    }, CHAT_INACTIVO_MS);
+  }
+  /* Chat único con Alma (#334): en el chat el texto va al Hub (ALMA.opEnviar, canal app) y se guarda en vivo en el mismo
+     chat del Hub; la respuesta trae su esfera. La voz sigue por ElevenLabs y se guarda como llamada. Sin el cliente del
+     Hub (páginas sin alma-client.js), el texto va a la llamada como antes. */
+  function chatServidor() { return !!(w.ALMA && w.ALMA.opEnviar && w.ALMA.opHilo && w.SAChat && w.SAChat.unico); }
+  function chatCanal() { return cfg.app === "hub" ? "hub" : "app"; }
   function chatEnviar(v) {
-    v = String(v || "").trim(); if (!v) return false; addMsg(v, "u"); chatQuieto(); chatPensando(true);
+    v = String(v || "").trim(); if (!v) return false; chatQuieto();
+    if (AL.chat && chatServidor()) { chatPintar(function () { if (E.u) E.u.enviar(v); }); return true; }
+    addMsg(v, "u"); chatPensando(true);
     if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} } else AL.cola = v;   // aún conectando: va en cuanto conecte
     return true;
   }
+  /* Cuelga la llamada sin cerrar el chat (su «terminó» ya no cierra nada: el turno de esa llamada pasó). */
+  function vozSoltar() { var s = AL.ses; AL.ses = null; AL.sesTok = 0; AL.cola = null; if (s) { try { s.end(); } catch (x) {} } }
   function chatBind(ov) {
     var f = ov.querySelector("form"), i = ov.querySelector(".san-in"), b = ov.querySelector(".san-send"), tips = ov.querySelector(".san-tips"), file = ov.querySelector(".san-file"),
       masB = ov.querySelector(".san-mas"), mic = ov.querySelector(".san-mic");
@@ -1374,7 +1393,7 @@
   }
   /* Las piezas del chat estilo A (ds/chat.css y js/sa-chat.js) se cargan la primera vez que se abre Alma, junto a este
      archivo (las páginas que ya las tienen no las vuelven a pedir). Sin ellas el chat pinta texto simple. */
-  var CHAT_V = "2026-11-12a", chatCb = [], chatCargando = false, chatSin = false;
+  var CHAT_V = "2026-11-15a", chatCb = [], chatCargando = false, chatSin = false;
   function conChat(cb) {
     if (w.SAChat && w.SAChat.pintor) { cb(true); return; }
     if (chatSin) { cb(false); return; }
@@ -1388,7 +1407,17 @@
   /* El pintor del hilo (SAChat.pintor sobre .san-msgs). cb(p): p es null si las piezas no cargaron. En orden de llegada. */
   function chatPintar(cb) {
     conChat(function (ok) {
-      if (ok && !E.pt) E.pt = w.SAChat.pintor(E.msgs, { alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir });
+      if (ok && !E.pt) {
+        if (chatServidor()) {
+          /* El chat único: «Cargar historial», la fila de esferas y la insignia con el total (js/sa-chat.js). */
+          E.u = w.SAChat.unico({ hilo: E.msgs, fila: E.ov.querySelector(".san-esferas"), insignia: E.ov.querySelector(".san-chat .sa-chat-total"),
+            api: { hilo: function (q) { return w.ALMA.opHilo(q); }, enviar: function (t) { return w.ALMA.opEnviar({ texto: t, canal: chatCanal() }); } },
+            alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir,
+            alEnviar: function () { clearTimeout(pensT); pensT = setTimeout(function () { chatPensando(false); }, 90000); },
+            alResponder: function () { clearTimeout(pensT); chatQuieto(); } });
+          E.pt = E.u.pintor;
+        } else E.pt = w.SAChat.pintor(E.msgs, { alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir });
+      }
       cb(ok ? E.pt : null);
     });
   }
@@ -1413,12 +1442,14 @@
       im.onload = function () {
         var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = d.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
         c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); var du = c.toDataURL("image/jpeg", .8);
-        chatPintar(function (p) { if (p) p.foto(du); });
-        var nota = i.value.trim(); if (nota) { i.value = ""; i.dispatchEvent(new Event("input")); addMsg(nota, "u"); }
+        var srv = AL.chat && chatServidor();
+        chatPintar(function (p) { if (E.u && srv) E.u.foto(du); else if (p) p.foto(du); });
+        var nota = i.value.trim(), mNota = null; if (nota) { i.value = ""; i.dispatchEvent(new Event("input")); if (srv && E.u) mNota = E.u.yo(nota); else addMsg(nota, "u"); }
         chatQuieto(); chatPensando(true);   // «pensando» mientras Alma ve la foto y hasta que responde
         w.ALMA.almaFoto(du).then(function (j) {
           var desc = j && j.ok && j.texto ? j.texto : "";
           var t = "[Te mando una foto" + (desc ? ". Lo que se ve: " + desc : ", pero no pude describirla") + "]" + (nota ? " " + nota : "");
+          if (srv && E.u) { E.u.pensando(false); E.u.mandar(mNota, t); return; }   // chat único: va al Hub como un mensaje más
           if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(t); } catch (x) {} } else AL.cola = t;
         }, function () { chatPensando(false); chatPintar(function (p) { if (p) p.nota("No pude mandar la foto. Intenta de nuevo."); }); });
       };
@@ -1834,12 +1865,13 @@
   function addMsg(t, who) {
     if (who === "a") clearTimeout(pensT);   // llegó la respuesta: el pintor quita «pensando»
     chatPintar(function (p) {
+      if (E.u) { E.u.voz(who === "a" ? "alma" : "yo", t); return; }
       if (p) { if (who === "a") p.alma(t); else p.yo(t); return; }
       var m = d.createElement("div"); m.style.cssText = "max-width:82%;padding:9px 15px;border-radius:20px;white-space:pre-wrap;font:400 15px/1.42 Montserrat,system-ui,sans-serif;" + (who === "a" ? "align-self:flex-start;background:#F3F3F3;color:#222" : "align-self:flex-end;background:#1F1F1F;color:#fff");
       m.textContent = t; E.msgs.appendChild(m); E.msgs.scrollTop = E.msgs.scrollHeight;
     });
   }
-  function chatVaciar() { clearTimeout(pensT); if (E.pt) E.pt.vaciar(); else E.msgs.innerHTML = ""; }
+  function chatVaciar() { clearTimeout(pensT); if (E.u) E.u.vaciar(); else if (E.pt) E.pt.vaciar(); else E.msgs.innerHTML = ""; }
 
   function almaOpen() {
     if (AL.on) return; almaBuild(); var resume = AL.min;
@@ -1859,14 +1891,16 @@
   }
   /* Conversación de voz (la misma para la piedra al centro y para el modo en el botón). */
   function almaSesion() {
+    /* Cada llamada lleva su turno: si se colgó desde el chat (vozSoltar), su «terminó» o su error ya no cierran el chat. */
+    var tok = AL.sesTok = (AL.sesN = (AL.sesN || 0) + 1), viva = function () { return AL.sesTok === tok; };
     var h = {
       status: function (x) { if (AL.on || AL.min) status(x); if (AL.min && !AL.on && x === "Te escucho" && !almaSesion.dicho) { almaSesion.dicho = 1; phMini("Alma te escucha"); } },
       message: function (src, x) { if (!x || (!AL.on && !AL.min)) return;
         if (src !== "ai" && /^[\s.…]*$/.test(x)) return;   // «…»: la señal de silencio del agente, no algo que dijo la persona
         if (src !== "ai") chatQuieto();
         if (src === "ai") { x = String(x).replace(/\[(?!\[)[^\[\]\n]{1,40}\](?!\])/g, "").replace(/[ \t]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim(); if (!x) return; if (!AL.chat) caption(x); addMsg(x, "a"); } else addMsg(x, "u"); },
-      ended: function () { if (AL.on || AL.min) almaEnd(true); },
-      error: function (m) { status("No pude conectar con Alma"); capQuitar(); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
+      ended: function () { if (!viva()) return; if (AL.chat && chatServidor()) { AL.ses = null; AL.sesTok = 0; return; } if (AL.on || AL.min) almaEnd(true); },
+      error: function (m) { if (!viva()) return; if (AL.chat && chatServidor()) { AL.ses = null; AL.sesTok = 0; return; } status("No pude conectar con Alma"); capQuitar(); E.cap.textContent = m || ""; if (AL.min && !AL.on) phMini(m || "No pude conectar con Alma"); setTimeout(function () { if (AL.on || AL.min) almaEnd(true); }, 2600); }
     };
     almaSesion.dicho = 0;
     AL.ses = null;
@@ -1875,7 +1909,7 @@
     try { if (w.SAComp && w.SAComp.cancelar) w.SAComp.cancelar(); } catch (x) {}
     var pr; try { pr = cfg.alma.start(h); } catch (x) { pr = Promise.reject(x); }
     Promise.resolve(pr).then(function (s) {
-      if (!AL.on && !AL.min) { try { s && s.end && s.end(true); } catch (x) {} return; }
+      if ((!AL.on && !AL.min) || !viva()) { try { s && s.end && s.end(true); } catch (x) {} return; }
       AL.ses = s || null;
       if (s && AL.chat && s.chat) { try { s.chat(true); } catch (x) {} }
       if (s && AL.cola && s.sendText) { try { s.sendText(AL.cola); } catch (x) {} } AL.cola = null;
@@ -1896,11 +1930,11 @@
   }
   function almaEnd(remote) {
     if (AL.esc && E.ov) {
-      var se = AL.ses; AL.on = false; AL.ses = null; AL.breath = 0; AL.cola = null; jReset();
+      var se = AL.ses; AL.on = false; AL.ses = null; AL.sesTok = 0; AL.breath = 0; AL.cola = null; jReset();
       if (se && !remote) { try { se.end(); } catch (x) {} }
       if (AL.chat) almaChat(false); escQuieta(); return;
     }
-    var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.breath = 0; jReset();
+    var wasMin = AL.min, s = AL.ses; AL.on = false; AL.min = false; AL.ses = null; AL.sesTok = 0; AL.breath = 0; jReset();
     if (s && !remote) { try { s.end(); } catch (x) {} }
     E.core.classList.remove("alma-live"); E.core.style.setProperty("--voice", "0"); suelta(E.body);
     if (!E.ov) return;
@@ -1912,9 +1946,12 @@
   }
   function almaChat(on) {
     AL.chat = on; E.ov.classList.toggle("chat", on); hoja(); if (on) chatQuieto(); else clearTimeout(chatT);
+    if (on) chatPintar(function () {});   // el hilo (y «Cargar historial») listo al abrir
     /* los hints del botón roca rotan mientras el chat está abierto; al cerrarlo, paran */
     if (on && E.verTips) setTimeout(function () { if (AL.chat) E.verTips(); }, 650); else if (!on && E.rotC) E.rotC.parar();
     if (AL.ses && AL.ses.chat) { try { AL.ses.chat(on); } catch (x) {} }
+    /* Del chat a la voz sin llamada abierta (el chat único no la abre): empieza la llamada aquí. */
+    if (!on && AL.on && !AL.sesTok && chatServidor()) { status("Conectando…"); capQuitar(); E.cap.textContent = ""; almaSesion(); }
     var t = stoneTarget(); aX.to(t.x, .6, .78); aY.to(t.y, .6, .78); aS.to(t.s, .6, on ? .76 : .7);
     if (on) setTimeout(function () { var i = E.ov.querySelector(".san-in"); if (i) try { i.focus(); } catch (x) {} E.msgs.scrollTop = E.msgs.scrollHeight; }, 400);
   }
@@ -1938,8 +1975,10 @@
     AL.on = true; AL.chat = false; AL.mudo = false; E.ov.classList.remove("quieta", "chat");
     aSq.x = 1; aSq.to(0, .5, .55); aL.to(.5, .74, .32, 1.2); aH.to(.85, .74, .32, 1.4);
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) {}
-    status("Conectando…"); capQuitar(); E.cap.textContent = ""; chatVaciar();
-    almaSesion(); if (chat) almaChat(true);
+    capQuitar(); E.cap.textContent = ""; chatVaciar();
+    /* Chat único (#334): el chat va por el Hub, sin llamada; la llamada empieza al pasar a la voz. */
+    if (chat && chatServidor()) { status(""); almaChat(true); return; }
+    status("Conectando…"); almaSesion(); if (chat) almaChat(true);
   }
   /* piedra pesada: cede poco, se estira poco, rebote corto · mantener = minimizar · deslizar abajo = terminar */
   var stoneDrag = false, sHist = [], sDown = null, sLp = null, sEnd = false, sMov = 0;

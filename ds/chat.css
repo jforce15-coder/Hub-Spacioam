@@ -126,6 +126,7 @@
 .sa-chat-hilo{ display:flex; flex-direction:column; gap:14px; }
 .sa-chat-hilo > .sa-chat-msg--sigue{ margin-top:-10px; }
 .sa-chat-hilo > .sa-chat-msg{ animation:sa-chat-entra .32s cubic-bezier(.22,.61,.36,1) both; }
+.sa-chat-hilo > .sa-chat-ya{ animation:none; }
 @keyframes sa-chat-entra{ from{ opacity:0; transform:translateY(6px); } }
 @media (prefers-reduced-motion: reduce){ .sa-chat-hilo > .sa-chat-msg{ animation:none; } }
 /* La opción elegida, de tu lado: la misma fila de la tarjeta, sin tocar. */
@@ -135,3 +136,40 @@
 @media (hover:hover){ .sa-chat-opcion--fija:hover{ background:transparent; } }
 .sa-chat-foto img{ display:block; max-width:220px; max-height:280px; border-radius:20px; }
 .sa-chat-nota{ align-self:center; text-align:center; padding:2px 8px; font-family:var(--chat-sans); font-size:12px; line-height:1.4; color:var(--chat-tenue); }
+
+/* ── Chat único con Alma (#334, prototipo A con los cambios de Juan): fila de esferas bajo el encabezado (filtra el hilo),
+   insignia con el total junto a Alma, punto de color de la esfera en el avatar y la píldora «Cargar historial». ── */
+.sa-chat-esferas{ flex:none; display:flex; justify-content:space-between; gap:2px; padding:10px 12px 8px; background:#FCFBFA; border-bottom:1px solid var(--chat-linea); }
+.sa-chat-esferas[hidden]{ display:none; }
+.sa-chat-esf{ flex:1 1 0; min-width:0; min-height:44px; border:0; padding:0; background:transparent; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px; font-family:var(--chat-sans); -webkit-tap-highlight-color:transparent; }
+.sa-chat-esf-pz{ position:relative; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; color:#5A5555;
+  background:radial-gradient(120% 120% at 50% 20%,#FFFFFF 0%,#F4F1EE 60%,#ECE8E3 100%); box-shadow:0 8px 14px -8px rgba(60,40,30,.45),inset 0 -3px 6px rgba(110,90,80,.12);
+  transition:transform .2s cubic-bezier(.22,.61,.36,1), opacity .2s cubic-bezier(.22,.61,.36,1); }
+.sa-chat-esf-pz::after{ content:""; position:absolute; inset:-2.5px; border-radius:50%; border:1.5px solid var(--c); opacity:.8; }
+.sa-chat-esf-ct{ position:absolute; top:-6px; right:-9px; min-width:17px; height:17px; padding:0 5px; box-sizing:border-box; border-radius:9px; background:#3E3F3F; color:#fff; font:600 9.5px/17px var(--chat-sans); font-style:normal; text-align:center; font-variant-numeric:tabular-nums; }
+.sa-chat-esf-ct[hidden]{ display:none; }
+.sa-chat-esf-nm{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9.5px; font-weight:500; color:#6F6867; }
+.sa-chat-esf--vacia .sa-chat-esf-pz{ opacity:.55; }
+.sa-chat-esf:active .sa-chat-esf-pz{ transform:scale(.92); }
+/* Con un filtro: la elegida en su color, las demás atrás. */
+.sa-chat-esf--on .sa-chat-esf-pz{ opacity:1; color:#fff; background:var(--c); }
+.sa-chat-esf--on .sa-chat-esf-nm{ color:var(--chat-tinta); font-weight:600; }
+.sa-chat-esferas--filtro .sa-chat-esf:not(.sa-chat-esf--on){ opacity:.5; }
+.sa-chat-esf:focus-visible{ outline:2px solid #E9826A; outline-offset:2px; border-radius:12px; }
+/* El total de mensajes en el avatar de Alma del encabezado. */
+.sa-chat-avatar-w{ position:relative; display:inline-flex; flex:none; }
+.sa-chat-total{ position:absolute; top:-4px; right:-10px; min-width:18px; height:18px; padding:0 5px; box-sizing:border-box; border-radius:9px; border:2px solid #fff; background:#3E3F3F; color:#fff;
+  font:600 9.5px/14px var(--chat-sans); font-style:normal; text-align:center; font-variant-numeric:tabular-nums; }
+.sa-chat-total[hidden]{ display:none; }
+/* Punto de la esfera en el avatar de Alma (en el hilo). */
+.sa-chat-slot{ position:relative; }
+.sa-chat-esf-punto{ position:absolute; right:-3px; bottom:-1px; width:10px; height:10px; box-sizing:border-box; border-radius:50%; border:2px solid #fff; }
+.sa-chat-etiqueta-esfera{ font-weight:500; }
+/* «Cargar historial»: píldora gris arriba del hilo. */
+.sa-chat-pildora{ align-self:center; flex:none; display:inline-flex; align-items:center; gap:7px; min-height:36px; padding:8px 16px; border:0; border-radius:999px; background:#F3F3F3; color:var(--chat-tinta);
+  font:600 12.5px var(--chat-sans); cursor:pointer; margin-bottom:6px; }
+.sa-chat-pildora{ position:relative; }
+.sa-chat-pildora::before{ content:""; position:absolute; inset:-4px -2px; }   /* 44 px para el dedo, 36 a la vista */
+.sa-chat-pildora:active{ transform:scale(.96); }
+.sa-chat-pildora:disabled{ color:var(--chat-tenue); cursor:default; }
+@media (prefers-reduced-motion: reduce){ .sa-chat-esf-pz, .sa-chat-pildora{ transition:none; } .sa-chat-esf:active .sa-chat-esf-pz, .sa-chat-pildora:active{ transform:none; } }

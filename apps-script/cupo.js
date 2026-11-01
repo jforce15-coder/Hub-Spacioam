@@ -9,7 +9,7 @@
      lo ponen doPost, hubApi_ y los activadores) · el servidor al que se llama.
    · Límite: propiedad CUPO_DIA (20 000 por defecto, cuentas Gmail). Google no dice a qué hora reinicia el día, así que
      el nivel usa las últimas 24 h y la página muestra el día calendario de Guatemala.
-   · Niveles (T3): verde · fondo (≥ 60 %: se pausa lo de fondo) · crítico (≥ 85 %: también la voz y el chat de Alma).
+   · Niveles (T3): verde · fondo (≥ 60 %: se pausa lo de fondo) · crítico (≥ 85 %: aviso a Juan; la voz y el chat de Alma nunca se pausan).
      CUPO_NUNCA_ es lo que nunca se pausa. CUPO_PAUSAR = 0 apaga las pausas (solo cuenta). Aviso a Juan al cambiar de
      nivel y cuando la proyección del día pasa el 80 %, una vez por nivel por día.
    · Página «Uso» (T4): acción «uso» del Hub, solo el administrador principal → alma/uso.html.
@@ -35,7 +35,9 @@ var CUPO_APPS_ = [['hola', 'Hola', 'App Hola'], ['epi', 'Epi', 'App Epi'], ['gro
    limpieza. cupoPermite_ siempre dice que sí a estos. */
 var CUPO_NUNCA_ = ['login', 'sesion', 'huespedes', 'documentos', 'epi', 'limpieza'];
 /* Lo que sí se pausa y desde qué nivel. */
-var CUPO_PAUSAS_ = { fondo: ['fondo', 'critico'], alma: ['critico'] };
+/* La voz y el chat de Alma NO se pausan por cupo (Juan, 1-nov: en crítico la app dejaba de conectar las llamadas y no
+   respondía al chat, mientras el teléfono sí). Lo de fondo se pausa desde el 60 % justamente para dejarle el cupo a Alma. */
+var CUPO_PAUSAS_ = { fondo: ['fondo', 'critico'] };
 /* Acciones del Hub que son «Alma en el chat o en la voz»: en crítico devuelven un aviso amable (nunca error 'session'). */
 var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'vozWeb'];
 var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
@@ -215,7 +217,7 @@ function cupoAvisarSiToca_(o) {
     cambio = true;
     if (e.avisados.indexOf(o.nivel) < 0) {
       e.avisados.push(o.nivel);
-      if (o.nivel === 'critico') { critico = true; texto = 'El cupo de Google va en ' + Math.round(o.pct) + ' %. Pausé lo de fondo y también la voz y el chat de Alma un rato. Huéspedes, entrar, documentos, Epi y limpieza siguen normal.'; }
+      if (o.nivel === 'critico') { critico = true; texto = 'El cupo de Google va en ' + Math.round(o.pct) + ' %. Pausé lo de fondo; la voz y el chat de Alma siguen. Huéspedes, entrar, documentos, Epi y limpieza siguen normal.'; }
       else if (o.nivel === 'fondo') texto = 'El cupo de Google va en ' + Math.round(o.pct) + ' %. Pausé lo de fondo (cerebro, mejoras y sincronizaciones). Huéspedes, entrar, documentos, Epi y limpieza siguen normal.';
       else texto = 'El cupo de Google volvió a estar bien (' + Math.round(o.pct) + ' %). Ya corre todo otra vez.';
     }
@@ -258,7 +260,7 @@ function cupoUso_(ses) {
     niveles: [
       { nivel: 'verde', desde: 0, texto: 'Todo corre normal.' },
       { nivel: 'fondo', desde: CUPO_FONDO_PCT_, texto: 'Se pausa lo de fondo: cerebro, mejoras y sincronizaciones.' },
-      { nivel: 'critico', desde: CUPO_CRITICO_PCT_, texto: 'También se pausan la voz y el chat de Alma.' }
+      { nivel: 'critico', desde: CUPO_CRITICO_PCT_, texto: 'Lo de fondo sigue en pausa; la voz y el chat de Alma siguen.' }
     ],
     nunca: 'Nunca se pausa: entrar, responder a huéspedes, documentos, Epi y las rutas de limpieza.',
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0' };

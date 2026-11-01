@@ -714,6 +714,8 @@ function procesarCola() {
   try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
   try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
   try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
+  try { claudeBorradoresRevisar_(); } catch (e) { console.error('claudeBorradoresRevisar_: ' + e); }   // borrador para Claude sin «mándalo» en 24 h → Pendiente (chat.js); sin internet
+  try { chatMarcarCola_(); } catch (e) { console.error('chatMarcarCola_: ' + e); }   // esferas que una llamada dejó para después (chat.js)
   try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
   try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
   try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
@@ -4886,6 +4888,9 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   /* Tocó una opción de una decisión del equipo en la tarjeta del chat: queda elegida y el borrador espera en la conversación (decisiones.js). */
   if (canal === 'hub' || canal === 'app') { try { const dc = decisionDesdeChat_(adm, texto); if (dc) return dc; } catch (e) { console.error('decisionDesdeChat_: ' + e); } }
   const yo = opGuardar_(adm, 'yo', canal, texto);
+  /* Hay un borrador para Claude esperando su sí y este mensaje lo responde («mándalo», «agrégale…», «no lo envíes»):
+     se resuelve aquí, sin la IA, en cualquier canal (chat.js). */
+  try { const bc = chatBorradorTurno_(adm, yo, texto, canal); if (bc) return bc; } catch (e) { console.error('chatBorradorTurno_: ' + e); }
   const pedido = nota ? nota + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
   try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); }
@@ -4920,14 +4925,14 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
     hechas = errEpi ? [] : opEjecutar_(adm, Array.isArray(r.acciones) ? r.acciones : [], cfg, props);
   }
   /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan). */
-  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria) });
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria) }, { canal: canal });
   yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
   if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp);
   const out = { ok: true, yo: yo, alma: alma };
-  if (turno.claude) out.claude = turno.claude;
+  if (turno.borrador) out.borrador = turno.borrador;
   if (turno.paraJuan) out.paraJuan = true;
   return out;
 }

@@ -394,9 +394,15 @@ var SEMILLA_VOZ_HUMANA_ = [
 /* Reemplaza una sola vez la primera versión de la fila VOZ (citaba secciones de otro prompt). */
 var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
 
+/* La ficha de quien llama ({{quien_llama}}) cambia en cada llamada: va AL FINAL del prompt (vozFichaBloque_), para que
+   todo lo de antes sea igual en todas las llamadas y el modelo lo reuse de su caché (antes estaba en la línea 2 y ni un
+   solo token del prompt se reusaba). Las reglas la nombran «FICHA DE QUIEN LLAMA (al final)». */
+function vozFichaBloque_() {
+  if (!PropertiesService.getScriptProperties().getProperty('VOZ_INICIO_OK')) return '';
+  return ['FICHA DE QUIEN LLAMA (el Hub la identificó por su número o por su sesión antes de contestar; confía en ella y no vuelvas a preguntar lo que ya dice):', '{{quien_llama}}'].join('\n');
+}
 function vozQuienBloque_() {
-  var ficha = PropertiesService.getScriptProperties().getProperty('VOZ_INICIO_OK') ? ['FICHA DE QUIEN LLAMA (el Hub la identificó por su número antes de contestar; confía en ella y no vuelvas a preguntar lo que ya dice):', '{{quien_llama}}', ''] : [];
-  return ficha.concat(['QUIÉN LLAMA (lo indica lookup_reservation en caller_type). Tu PRIMERA acción en cada llamada, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número, consúltalo con la herramienta antes de contestar.',
+  return ['QUIÉN LLAMA (lo dice la FICHA DE QUIEN LLAMA, al final de estas instrucciones, o lookup_reservation en caller_type). Si la ficha ya dice quién es (Juan, alguien del equipo, un socio, la familia o un huésped con reserva validada), NO llames lookup_reservation: ya está identificado. Solo si no hay ficha o dice «Número no identificado», tu PRIMERA acción, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número y la ficha no lo dice, consúltalo con la herramienta antes de contestar.',
     '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma. Si no tienes cómo hacer algo que te piden, dilo en tu primera respuesta, no al final.',
@@ -404,9 +410,10 @@ function vozQuienBloque_() {
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego no responde a una pregunta tuya, pregunta UNA sola vez si sigue ahí. Si sigue en silencio, despídete en una frase y usa end_call. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
-    '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claude, el desarrollador del sistema. Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…»), NUNCA digas que no puedes: usa secretaria con modo = segundo_plano y su pedido completo empezando por «Mejora para Claude:». Antes de la respuesta di solo «Se lo paso a Claude»; confírmalo («Listo, Claude ya lo tiene») únicamente cuando secretaria diga que lo recibió, y si dice que no le llegó, díselo tal cual. Un pedido para Claude va solo, no junto con otros pedidos. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
-    '· SECRETARIA TRABAJA EN PARALELO: al llamarla, di UNA frase corta y natural según el pedido («Lo reviso.», «Ya lo pedí, te cuento en cuanto lo tenga.») y sigue la conversación con normalidad: atiende lo que diga, contesta otras cosas o pregunta si necesita algo más. No te quedes en silencio esperando ni rellenes con «sigo buscando». Nunca adelantes el resultado ni digas «listo» antes de que llegue.',
-    '· CUANDO LLEGA LA RESPUESTA de secretaria: si estás a mitad de una frase o de otro tema, termina tu idea y luego introdúcela con naturalidad («Por cierto, ya tengo lo de César: …», «Ah, y lo de las cancelaciones: …»). No interrumpas a la persona ni cortes lo que estabas diciendo. Si llegan varias, dalas en orden, una a la vez. Si la persona ya cambió de tema, dásela breve y vuelve a donde iban.',
+    '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claude, el desarrollador del sistema. Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…»), NUNCA digas que no puedes: usa secretaria con su pedido completo empezando por «Mejora para Claude:». Eso NO se lo manda: arma un BORRADOR. Léele en una frase corta lo que le pedirías a Claude y pregúntale «¿Se lo mando a Claude?». Nada le llega a Claude hasta que diga «mándalo» o «sí»: entonces usa secretaria con «Mejora para Claude: mándalo». Si dice «agrégale …», usa «Mejora para Claude: agrégale …» y vuelve a preguntar; si dice que no, «Mejora para Claude: no lo envíes». Nunca digas «Claude ya lo tiene» hasta que secretaria diga que lo recibió; si dice que no le llegó, díselo tal cual. Un pedido para Claude va solo, no junto con otros pedidos. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
+    '· ANTES DE USAR secretaria (siempre, la herramienta te lo pide): di primero UNA frase corta y natural según el pedido («Va, lo reviso.», «Dame un segundo, lo busco.», «Ya le escribo.») y en el mismo turno llama a secretaria. Mientras trabaja suena el tecleo: no hables encima ni rellenes con «sigo buscando», y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
+    '· TE PUEDEN INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto», «mejor a Gabriel»): escucha. Si corrige o agrega algo, llama a secretaria otra vez SOLO con la corrección o lo que agrega, dicho claro («Corrige el pedido anterior: el mensaje va para Gabriel, no para Jorge»), nunca con el mismo pedido repetido. Si dice «no, espera» y nada más, espera en silencio a que termine la idea.',
+    '· CUANDO LLEGA LA RESPUESTA de secretaria: dásela en 1 o 2 frases, con lo que de verdad hizo. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
     '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo; si necesito algo de ti te aviso en la app», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
@@ -426,7 +433,7 @@ function vozQuienBloque_() {
     '· Si la respuesta de lookup_reservation trae ENCARGO, ese es el motivo de la llamada para ti: cúmplelo con naturalidad (preséntate, explica, pregunta lo que pide) y al terminar despídete; el resumen le llega solo a quien te lo encargó.',
     '',
     'CON UN ADMINISTRADOR (reglas fijas, por encima de todo)',
-    '· Si la FICHA DE QUIEN LLAMA dice «LLAMADA DESDE LA APP DEL HUB», ya está identificado: no llames lookup_reservation para identificarle. Para pedidos del administrador nunca uses lookup_reservation ni hospitable_router: todo va por secretaria.',
+    '· NUNCA lookup_reservation NI hospitable_router CON EL EQUIPO: si la FICHA DE QUIEN LLAMA dice «LLAMADA DESDE LA APP DEL HUB» o que es alguien del equipo, ya está identificado. No llames lookup_reservation en ningún momento de la llamada (ni para identificarle, ni para buscar una reserva o un huésped) ni hospitable_router: cada consulta tarda y lo que pida va completo por secretaria.',
     '· Las personas del equipo (Jorge, Gabriel, Santiago, técnicos, recepciones de edificios) no son huéspedes: nunca busques «la reserva de» alguien del equipo.',
     '· En pedido pasa sus palabras tal cual, completas (nombres, números, apartamento, texto del mensaje). No las resumas ni cambies a quién va dirigido.',
     '· EN PANTALLA: si dice «el huésped», «la reserva», «escríbele» sin decir cuál, es la de EN PANTALLA. Si no hay EN PANTALLA o no está claro, pregunta cuál en una frase; nunca lo deduzcas del historial ni de llamadas anteriores.',
@@ -435,7 +442,7 @@ function vozQuienBloque_() {
     '· Un pedido va UNA sola vez a secretaria: nunca lo mandes en primer plano y además en segundo plano, ni lo repitas si ya respondió. Si dudas si salió, pregúntale a secretaria si se envió.',
     '· Si te pide un momento («dame un segundo», «déjame ver»), espera en silencio. Como mucho un recordatorio corto; nunca repitas la misma pregunta.',
     '· Con el equipo nada de frases de centro de llamadas («gracias por comunicarte», «gracias por confirmarlo», «con gusto le apoyo»). Directa y cálida, de tú.',
-    '· Al terminar con end_call no agregues otra despedida si ya te despediste, y nunca pongas etiquetas, notas de tono ([warm]) ni marcadores en lo que vas a decir.']).join('\n');
+    '· Al terminar con end_call no agregues otra despedida si ya te despediste, y nunca pongas etiquetas, notas de tono ([warm]) ni marcadores en lo que vas a decir.'].join('\n');
 }
 
 function vozInternos_() {
@@ -469,8 +476,15 @@ function vozPromptCompleto_() {
   var humana = ''; try { humana = almaPersona_('voz'); } catch (e) {}
   if (!humana) humana = String(prompt_('VOZ_HUMANA') || '').trim();
   var weebo = ''; try { weebo = weeboVozBloque_(false); } catch (e) {}
-  /* Al final, para que prevalezca sobre lo que diga la fila VOZ_HUMANA (editable): nunca susurrar (familia.js) */
-  return { clave: 'REDACTOR', texto: [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, weebo, humana, FAMILIA_VOZ_CLARA_].filter(Boolean).join('\n\n') };
+  /* Al final, para que prevalezca sobre lo que diga la fila VOZ_HUMANA (editable): nunca susurrar (familia.js).
+     Y después de todo, la ficha de quien llama: lo único que cambia entre llamadas (el resto se reusa de la caché). */
+  var texto = [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, weebo, humana, FAMILIA_VOZ_CLARA_, vozFichaBloque_()].filter(Boolean).join('\n\n');
+  return { clave: 'REDACTOR', texto: vozPromptCache_(texto) };
+}
+/* Variables de ElevenLabs a mitad del prompt cortan la caché en ese punto. {{system__caller_id}} no hace falta en el texto
+   (lookup_reservation ya lo recibe solo, como dynamic_variable): se cambia por palabras. Solo {{quien_llama}} queda, al final. */
+function vozPromptCache_(texto) {
+  return String(texto).replace(/\s*=\s*\{\{system__caller_id\}\}/g, ' (el número lo pone la herramienta sola)').replace(/\{\{system__caller_id\}\}/g, 'el número que llama');
 }
 function vozSyncSiToca_() {
   var c = CacheService.getScriptCache(); if (c.get('voz_sync_ok')) return;
@@ -512,7 +526,7 @@ function vozDefHerramientas_(base) {
   var conv = { type: 'string', dynamic_variable: 'system__conversation_id' };
   return [
     { name: 'lookup_reservation', response_timeout_secs: 20,
-      description: 'Ubica y valida la reserva de quien llama. Llámala SIEMPRE primero, solo con caller_id (valida por el número que llama). Si no queda validada, vuelve a llamarla con nombre, apellido y fecha de entrada (y lo que ya tengas). Devuelve caller_type (juan, equipo, propietario o externo), team_member, caller_name, found, verified, ambiguous, ask_next, zone_options, today, code, guest_name, check_in, check_out, property, form_status. Si team_member = true no hace falta validar reserva.',
+      description: 'Ubica y valida la reserva de quien llama. Llámala primero, solo con caller_id (valida por el número que llama), SOLO si la FICHA DE QUIEN LLAMA no dice quién es; nunca con Juan ni con alguien del equipo (con ellos todo va por secretaria). Si no queda validada, vuelve a llamarla con nombre, apellido y fecha de entrada (y lo que ya tengas). Devuelve caller_type (juan, equipo, propietario o externo), team_member, caller_name, found, verified, ambiguous, ask_next, zone_options, today, code, guest_name, check_in, check_out, property, form_status. Si team_member = true no hace falta validar reserva.',
       api_schema: { url: base + '&h=lookup_reservation', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id'], properties: {
         caller_id: caller,
         guest_first_name: s('Nombre del titular de la reserva, si ya lo dio.'),
@@ -527,25 +541,33 @@ function vozDefHerramientas_(base) {
         code: s('Código de la reserva validada (campo code de lookup_reservation).'),
         lang: s('Idioma de la llamada: es o en.'),
         caller_id: caller, conv_id: conv } } } },
-    { name: 'secretaria', response_timeout_secs: 60,
-      description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
+    { name: 'secretaria', response_timeout_secs: 40,   // el Hub contesta en 18 s (plazo duro, vozSecretaria_); 40 deja margen sin dejar a Juan un minuto en silencio
+      description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di siempre una frase corta («Va, lo reviso»). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» arma un borrador y NO lo envía hasta que Juan diga «mándalo». Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller, conv_id: conv,
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
-        modo: s('esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le deja el resultado en Pendientes de la app (con notificación si necesita algo de él); úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.') } } } }
+        modo: { type: 'string', enum: ['esperar', 'segundo_plano'], description: 'esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le deja el resultado en Pendientes de la app (con notificación si necesita algo de él); úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.' } } } } }
   ].map(function (t) {
     var sec = t.name === 'secretaria';
-    t.type = 'webhook'; t.pre_tool_speech = 'off'; t.tool_error_handling_mode = 'auto';
-    /* secretaria tarda 8 a 25 s: corre en paralelo (async) y la conversación sigue mientras trabaja; cuando llega la
-       respuesta, ALMA la introduce con naturalidad. Ninguna herramienta usa sonido de tecleo (typewriter): los únicos sonidos
-       son el de inicio y el de despedida del anillo, iguales en todas las modalidades. Si el
-       administrador habla mientras trabaja, el pedido no se pierde: sigue corriendo y su respuesta llega igual. */
-    t.execution_mode = sec ? 'async' : 'post_tool_speech';
-    t.tool_call_sound = null; t.tool_call_sound_behavior = 'auto';
-    t.interruption_mode = 'allow';
+    t.type = 'webhook'; t.tool_error_handling_mode = 'auto';
+    /* secretaria tarda 8 a 18 s (el Hub corta a los 18 s y sigue por detrás: vozSecretaria_). Decisión de Juan (1-nov-2026):
+       · ALMA SIEMPRE DICE UNA FRASE CORTA ANTES («Va, lo reviso…»): pre_tool_speech 'force' (el campo nuevo; el viejo
+         force_pre_tool_speech queda en true para la misma cosa) y execution_mode 'immediate': la herramienta arranca en
+         cuanto el modelo la pide, sin esperar a que termine la frase (con post_tool_speech esperaba a que callara).
+       · SE LE PUEDE INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto»): interruption_mode 'allow'.
+       · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta).
+       Antes era async (la conversación seguía y la respuesta llegaba suelta) y en vivo estaba post_tool_speech, sin
+       frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s. */
+    t.execution_mode = sec ? 'immediate' : 'post_tool_speech';
+    t.pre_tool_speech = sec ? 'force' : 'off'; t.force_pre_tool_speech = sec;
+    t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
+    t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
   });
 }
+/* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):
+   solo se les cambian estos campos; lo demás (URL, encabezados, secretos) queda como está allá y nunca pasa por aquí. */
+var VOZ_AJUSTES_AJENAS_ = { hospitable_router: { interruption_mode: 'allow', disable_interruptions: false } };
 
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
@@ -566,6 +588,12 @@ function vozHerramientas_(k) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];
     var r = ya ? pedir('patch', '/tools/' + ya.id, { tool_config: def }) : pedir('post', '/tools', { tool_config: def });
     hechas.push({ name: def.name, id: (r && r.id) || ya.id, accion: ya ? 'actualizada' : 'creada' });
+  });
+  Object.keys(VOZ_AJUSTES_AJENAS_).forEach(function (nombre) {
+    var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === nombre; })[0]; if (!ya) return;
+    var cfg = Object.assign({}, ya.tool_config, VOZ_AJUSTES_AJENAS_[nombre]);
+    pedir('patch', '/tools/' + ya.id, { tool_config: cfg });
+    hechas.push({ name: nombre, id: ya.id, accion: 'ajustada (' + Object.keys(VOZ_AJUSTES_AJENAS_[nombre]).join(', ') + ')' });
   });
   var ag = pedir('get', '/agents/' + encodeURIComponent(agente)), pr = ag.conversation_config.agent.prompt;
   var ids = (pr.tool_ids || []).slice();
@@ -756,20 +784,34 @@ function vozTranscript_(id) {
 }
 
 /* La secretaria por voz: el administrador pide algo en la llamada y ALMA lo ejecuta con las mismas herramientas del chat operativo.
-   Queda registrado en su chat operativo (canal llamada). */
+   Queda registrado en su chat operativo (canal llamada).
+   PLAZO DURO (VOZ_PLAZO_DURO_, 18 s): contesta antes, pase lo que pase. El bucle de la secretaria mira el plazo antes de
+   cada vuelta de Claude y de cada herramienta (agente.js); si no alcanza, guarda lo hecho, lo termina en segundo plano
+   (vozSeguirPronto, retomar.js) y Alma dice que le avisa al terminar. Si ya pasó el plazo al cerrar el turno, la esfera
+   se marca después (chatMarcarLuego_). Antes: hasta 8 vueltas de Sonnet y el issue de GitHub antes de contestar → dos
+   llamadas del 1-nov llegaron a los 60 s de ElevenLabs. */
+var VOZ_PLAZO_DURO_ = 18000;
 function vozSecretaria_(b) {
   var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
   if (!adm && tel) { var qf = vozQuien_(tel); if (qf.tipo === 'familia') return vozFamilia_(tel, qf, b); }
   if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
-  /* Lo que es para Claude no espera la cola: se manda ya (paraclaude.js) y Alma confirma solo cuando Claude lo recibió. */
-  if (/^\s*mejora para claude\s*:/i.test(pedido) && esAdminPrincipal_(adm)) return vozParaClaude_(adm, pedido);
+  var t0 = Date.now();
+  /* Pedido para Claude: siempre borrador y pregunta (chat.js). «Mejora para Claude: mándalo / agrégale … / no lo envíes»
+     responde al borrador; «Mejora para Claude: <pedido>» lo arma. Nada espera la cola ni va directo a Claude. */
+  if (esAdminPrincipal_(adm)) {
+    var esMejora = /^\s*mejora para claude\s*:/i.test(pedido);
+    var resto = esMejora ? pedido.replace(/^\s*mejora para claude\s*:\s*/i, '') : pedido;
+    var rv = vozBorradorTurno_(adm, resto, esMejora); if (rv) return rv;
+    if (esMejora && claudeBorradorIntencion_(resto, true)) return { ok: false, error: 'NO HAY NINGÚN BORRADOR PARA CLAUDE esperando su sí (no se envió nada). Pregúntale qué quiere pedirle a Claude.' };
+    if (esMejora) return vozParaClaude_(adm, pedido);
+  }
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
-  var t0 = Date.now(), previos = opFilas_(adm.email, 20);
+  var previos = opFilas_(adm.email, 20);
   var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
   AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
-  AGENTE_PLAZO_ = t0 + vozTolerancia_(); AGENTE_PEDIDO_ = pedido;
+  AGENTE_PLAZO_ = t0 + Math.min(vozTolerancia_(), VOZ_PLAZO_DURO_); AGENTE_PEDIDO_ = pedido;
   var r;
   try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; }
   if (r.seguira) {
@@ -779,12 +821,14 @@ function vozSecretaria_(b) {
       'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en la app cuando esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.' +
       (r.hechas.length ? ' Lo que ya quedó hecho: ' + r.hechas.map(function (h) { return h.resumen || h.tipo; }).join('; ') + '.' : '') };
   }
-  /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, directo a Claude (o a Juan). */
-  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r); r.respuesta = turno.texto || r.respuesta;
+  /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, el borrador para Claude con su pregunta (o a Juan). */
+  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: Date.now() - t0 > VOZ_PLAZO_DURO_ }); r.respuesta = turno.texto || r.respuesta;
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
-  /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 60 s), el resultado también va por WhatsApp. */
-  if (Date.now() - t0 > 50000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
-  return { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+  /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 40 s), el resultado también va por WhatsApp. */
+  if (Date.now() - t0 > 35000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
+  var out = { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+  if (turno.borrador) out.resultado += ' ' + VOZ_BORRADOR_DI_;
+  return out;
 }
 
 /* Alguien de la familia de Juan pide algo (por llamada). Corre como Juan, pero solo con herramientas personales: nada
@@ -807,21 +851,26 @@ function vozFamilia_(tel, q, b) {
   return { ok: true, resultado: r.respuesta, acciones: (r.hechas || []).map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
 
-/* «Mejora para Claude: …» dicho en una llamada. Antes iba a la cola de segundo plano y dependía de que la secretaria
-   llamara a mejora_para_claude: si no lo hacía (p. ej. con varios pedidos juntos), Alma ya había dicho «se lo pasé» y no
-   llegaba nada. Ahora se crea al momento y la respuesta dice si Claude lo recibió; queda el aviso en Pendientes. */
+/* «Mejora para Claude: …» dicho en una llamada. Siempre se pregunta antes (decisión de Juan, 1-nov-2026): queda como
+   borrador (chat.js) y Alma lo lee en corto y pregunta «¿Se lo mando a Claude?». El borrador y la pregunta quedan en su
+   Chat con Alma, así que puede confirmar después por el Hub, la app o WhatsApp. Antes iba directo a Claude. */
+var VOZ_BORRADOR_DI_ = 'BORRADOR LISTO, TODAVÍA NO SE ENVÍA. Léele en una frase corta lo que le pedirías a Claude y pregúntale «¿Se lo mando a Claude?». ' +
+  'Si dice «mándalo» o «sí», usa secretaria con «Mejora para Claude: mándalo»; si dice «agrégale …», con «Mejora para Claude: agrégale …»; si dice que no, con «Mejora para Claude: no lo envíes». Nunca digas que Claude ya lo tiene.';
 function vozParaClaude_(adm, pedido) {
   var texto = String(pedido).replace(/^\s*mejora para claude\s*:\s*/i, '').trim();
   if (!texto) return { ok: false, error: 'Falta qué quiere Juan que cambie Claude.' };
-  var titulo = texto.replace(/\s+/g, ' ').split(/[.!?]\s/)[0].slice(0, 80);
-  var r = paraClaudeCrear_(adm, { titulo: titulo, app: 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: texto });
-  try {
-    pendCrear_(adm, { tipo: r.ok && r.claude ? 'aviso' : 'atencion', area: 'proposito', proyecto: 'Desarrollo', importancia: r.ok && r.claude ? 1 : 2,
-      titulo: r.ok && r.claude ? 'Claude recibió tu pedido' : 'Tu pedido no le llegó a Claude', resumen: '«' + titulo + '»' + (r.ok ? (r.claude ? '' : ' · quedó guardado, sin conexión directa') : ' · ' + (r.error || '')),
-      aviso: r.ok ? '' : 'Tu pedido para Claude no se pudo enviar: ' + titulo }, { origen: 'claude', detalle: texto, push: !(r.ok && r.claude) });
-  } catch (e) { console.error('vozParaClaude_ aviso: ' + e); }
-  if (!r.ok) return { ok: false, error: 'NO LE LLEGÓ A CLAUDE: ' + (r.error || 'error') + '. Díselo a Juan tal cual.' };
-  return { ok: true, resultado: r.claude ? 'Claude ya lo recibió y está trabajando en eso. Dile en una frase: «Listo, Claude ya lo tiene; te aviso cuando responda».' : r.nota };
+  var b = claudeBorradorPoner_(adm, texto);
+  opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_);
+  opGuardar_(adm, 'alma', 'llamada', claudeBorradorConPregunta_('', b, 'llamada'), [], CHAT_DESARROLLO_);
+  return { ok: true, borrador: true, enviado: false, resultado: VOZ_BORRADOR_DI_ + ' Borrador: «' + claudeBorradorCorto_(b, 300) + '».' };
+}
+/* La respuesta a un borrador para Claude dicha en la llamada (mándalo, agrégale, no lo envíes): queda en su chat. */
+function vozBorradorTurno_(adm, texto, explicito) {
+  var rb = claudeBorradorResponder_(adm, texto, { canal: 'llamada', explicito: !!explicito }); if (!rb) return null;
+  opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_);
+  opGuardar_(adm, 'alma', 'llamada', rb.texto, [], CHAT_DESARROLLO_);
+  if (rb.claude && !rb.claude.ok) return { ok: false, error: rb.voz };
+  return { ok: true, resultado: rb.voz, borrador: rb.accion };
 }
 /* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
    y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
@@ -1007,21 +1056,36 @@ function vozWebFicha_(adm, nom) {
 }
 var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pasa del 50 % y cada palabra útil cuesta el triple (27 llamadas, 24–31 oct 2026)
 
+/* La ficha de la llamada desde la app o el Hub. Mide cuánto tarda cada paso (consola + propiedad VOZWEB_TIEMPOS, las
+   últimas 20) para ver qué demora el «Iniciar llamada». La URL firmada de ElevenLabs no depende de la ficha: se pide
+   primero (si falla, falla rápido). saludo_corto: «Dime, Juan» para cuando la app despierta a Alma con el anillo o con
+   «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual). */
 function vozWebInicio_(ses, ligero, app) {
+  var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
   var adm = vozWebAdmin_(ses);
   if (!adm) return { ok: false, error: 'Tu usuario' + (ses && ses.email ? ' (' + ses.email + ')' : '') + ' no tiene un teléfono registrado como administrador.' };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
-  var tel = normTel_(adm.tels[0]), ini = {};
+  var tel = normTel_(adm.tels[0]), ini = {}, firmada = '';
+  marca('admin');
+  if (!ligero) {
+    var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
+    var j = JSON.parse(r.getContentText() || '{}'); if (!j.signed_url) return { ok: false, error: 'sin URL firmada' };
+    firmada = j.signed_url; marca('url_firmada');
+  }
   try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
+  marca('inicio');
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0];
   var dv = Object.assign({}, ini.dynamic_variables || {});
   dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify) y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
+  marca('ficha');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
-  var retoma = contextoReciente_(adm);
+  var retoma = contextoReciente_(adm);   // ya calculado por vozInicio_ (misma ejecución): no vuelve a leer la hoja
   /* T de la llamada larga (app de Alma): pasados estos segundos, la primera pausa larga se cambia por una despedida y la
      app pasa al modo conferencia. Sale de los datos de las llamadas (minuto en que deja de rendir); se ajusta aquí. */
-  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, conferencia_tras: VOZ_CONFERENCIA_TRAS_, first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+  var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, conferencia_tras: VOZ_CONFERENCIA_TRAS_, saludo_corto: 'Dime' + (nom ? ', ' + nom : ''),
+    first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
   /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
      Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }
@@ -1029,17 +1093,24 @@ function vozWebInicio_(ses, ligero, app) {
     dv.quien_llama += ret.bloque; out.retomar_total = ret.total;
     if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200); }
   }
+  marca('retomar');
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
-  CacheService.getScriptCache().put('vozweb_pend', tel, 120);
+  CacheService.getScriptCache().put('vozweb_pend', tel, ligero ? 120 : 90);
   /* ligero: el navegador se conecta directo con agent_id (el agente es público) y guarda esta ficha; sin URL firmada. */
-  if (ligero) return out;
-  var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
-  if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
-  var j = JSON.parse(r.getContentText() || '{}'); if (!j.signed_url) return { ok: false, error: 'sin URL firmada' };
-  CacheService.getScriptCache().put('vozweb_pend', tel, 90);
-  out.signed_url = j.signed_url;
+  if (firmada) out.signed_url = firmada;
+  marca('total'); vozWebTiempos_(marcas, ligero, app);
+  out.tiempos = marcas;
   return out;
+}
+/* Los tiempos de los últimos 20 inicios (ms desde que entró): consola y propiedad VOZWEB_TIEMPOS. Barato y sin internet. */
+function vozWebTiempos_(marcas, ligero, app) {
+  try {
+    console.log('vozWebInicio_ tiempos ' + JSON.stringify(marcas));
+    var P = PropertiesService.getScriptProperties(), l = []; try { l = JSON.parse(P.getProperty('VOZWEB_TIEMPOS') || '[]'); } catch (e) {}
+    l.push(Object.assign({ t: new Date().toISOString(), ligero: !!ligero, app: !!app }, marcas));
+    P.setProperty('VOZWEB_TIEMPOS', JSON.stringify(l.slice(-20)));
+  } catch (e) {}
 }
 function vozWebVincular_(ses, convId, app) {
   var adm = vozWebAdmin_(ses); convId = String(convId || '').trim();
@@ -1096,13 +1167,33 @@ function vozWebConvInfo_(conv) {
 /* Solo un tema de hace poco (CTX_SALUDO_MIN, por defecto 10 min) se ofrece retomar en el saludo; lo de antes queda como contexto. */
 function ctxSaludoMin_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CTX_SALUDO_MIN')); return n >= 1 && n <= 120 ? n : 10; }
 function ctxRecienteMin_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CTX_RECIENTE_MIN')); return n >= 5 && n <= 720 ? n : 60; }
-function contextoReciente_(adm) {
+/* Corto a propósito (cada token entra en cada llamada): CTX_LINEAS_ líneas de CTX_LARGO_ caracteres como mucho. Una llamada
+   ya guardada se ve solo por su línea de resumen (📞 …), no turno por turno, y un texto repetido va una sola vez. */
+var CTX_LINEAS_ = 15, CTX_LARGO_ = 160, CTX_MEMO_ = {};
+function ctxFilas_(filas) {
+  /* Llamadas con su resumen (fila opl<conv>_0): sus turnos (opl<conv>_1, _2…) sobran. */
+  var conResumen = {};
+  filas.forEach(function (m) { var k = /^(opl.+)_0$/.exec(m.id); if (k) conResumen[k[1]] = 1; });
+  var vistos = {}, out = [];
+  filas.forEach(function (m) {
+    var k = /^(opl.+)_(\d+)$/.exec(m.id); if (k && k[2] !== '0' && conResumen[k[1]]) return;
+    var clave = m.de + '|' + chatNorm_(m.texto).slice(0, 200); if (vistos[clave]) return;
+    vistos[clave] = 1; out.push(m);
+  });
+  return out.slice(-CTX_LINEAS_);
+}
+function contextoReciente_(adm, fresco) {
   if (!adm || !adm.email) return null;
+  /* En una misma ejecución (vozWebInicio_ → vozInicio_ → vozWebFicha_) se calculaba 3 veces, con 3 lecturas de la hoja. */
+  if (!fresco && CTX_MEMO_.hasOwnProperty(adm.email)) return CTX_MEMO_[adm.email];
+  var r = contextoRecienteCalc_(adm); CTX_MEMO_[adm.email] = r; return r;
+}
+function contextoRecienteCalc_(adm) {
   var corte = Date.now() - ctxRecienteMin_() * 60000, nom = String(adm.nombre || '').trim().split(/\s+/)[0] || 'Él';
-  var filas = opFilas_(adm.email, 120).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }).slice(-40);
+  var filas = ctxFilas_(opFilas_(adm.email, 120).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }));
   if (!filas.length) return null;
-  var CAN = { whatsapp: 'WhatsApp', hub: 'Hub', llamada: 'llamada' };
-  var lineas = filas.map(function (m) { return '[' + (CAN[m.canal] || m.canal) + ' · ' + Utilities.formatDate(new Date(m.ts), CFG.TZ, 'HH:mm') + '] ' + (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, 320); });
+  var CAN = { whatsapp: 'WhatsApp', hub: 'Hub', llamada: 'llamada', app: 'app' };
+  var lineas = filas.map(function (m) { return '[' + (CAN[m.canal] || m.canal) + ' · ' + Utilities.formatDate(new Date(m.ts), CFG.TZ, 'HH:mm') + '] ' + (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, CTX_LARGO_); });
   var tema = ctxTema_(adm, filas, lineas);
   var ult = filas[filas.length - 1], hace = Math.max(1, Math.round((Date.now() - new Date(ult.ts).getTime()) / 60000));
   var fresco = hace <= ctxSaludoMin_();
@@ -1147,7 +1238,7 @@ function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
   filas.push([new Date(t0 + dur * 1000).toISOString(), adm.email, adm.nombre, 'alma', 'llamada', tx('📞 Llamada por ' + canal + ' · ' + mmss + (titulo ? ' · ' + titulo : '') + (resumen ? '\n' + resumen : '')),
     JSON.stringify([{ tipo: 'llamada', resumen: titulo || 'Llamada', tema: titulo ? titulo.charAt(0).toLowerCase() + titulo.slice(1) : '' }]), id(0), clas.esfera, clas.esfera ? clas.subcategoria : '']);
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
-  try { SpreadsheetApp.flush(); contextoReciente_(adm); } catch (e) {}   // deja listo el tema: si vuelve a llamar enseguida, el saludo no espera
+  try { SpreadsheetApp.flush(); contextoReciente_(adm, true); } catch (e) {}   // deja listo el tema: si vuelve a llamar enseguida, el saludo no espera
 }
 
 /* ═══ AVISOS EN LA APP ═════════════════════════════════════════════════════════════════════════════════════

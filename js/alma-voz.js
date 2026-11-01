@@ -95,7 +95,7 @@
   }
   /* El contexto de pantalla va en una variable del agente: en el Hub se suma a quien_llama; otra app puede usar la suya (o.campoContexto). */
   function conCtx(dv) { var r = {}; for (var k in dv) r[k] = dv[k]; if (o.campoContexto) r[o.campoContexto] = ctxTexto(ctx); else r.quien_llama = (r.quien_llama || "") + "\n\n" + ctxTexto(ctx); return r; }
-  var CANAL_CHAT = 'CANAL: CHAT DE TEXTO. La persona te escribe desde el chat de la app; no es una llamada. Responde por escrito, breve y claro (puedes usar saltos de línea). No digas «llamada», no ofrezcas colgar ni «te dejo continuar». Si no llega un mensaje nuevo, NO preguntes si sigue ahí: el silencio es normal en un chat (está leyendo o escribiendo); usa skip_turn y espera en silencio. Si mandas algo a segundo plano, di que se lo confirmas aquí en el chat o por WhatsApp. Cuando le ofrezcas elegir entre caminos o acciones, escribe la pregunta terminada en «?» y debajo de 2 a 5 opciones, una por línea, empezando con «• » y de 6 palabras como mucho (si hace falta aclarar, después de « — »): la app las muestra como botones. No uses «• » para otras listas.';
+  var CANAL_CHAT = 'CANAL: CHAT DE TEXTO. La persona está en el chat de la app: te escribe y también puede seguir hablándote (el micrófono sigue abierto), pero a ti no se te oye. Responde por escrito, breve y claro (puedes usar saltos de línea). No digas «llamada», no ofrezcas colgar ni «te dejo continuar». Si no llega un mensaje nuevo, NO preguntes si sigue ahí: el silencio es normal en un chat (está leyendo o escribiendo); usa skip_turn y espera en silencio. Si mandas algo a segundo plano, di que se lo confirmas aquí en el chat o por WhatsApp. Cuando le ofrezcas elegir entre caminos o acciones, escribe la pregunta terminada en «?» y debajo de 2 a 5 opciones, una por línea, empezando con «• » y de 6 palabras como mucho (si hace falta aclarar, después de « — »): la app las muestra como botones. No uses «• » para otras listas.';
   var CANAL_VOZ = 'CANAL: VOZ. La persona volvió a hablar contigo en voz alta: es una conversación hablada.';
   var CANAL_NOTA = 'CANAL: CHAT · NOTA DE VOZ. La persona te está grabando una nota de voz dentro del chat. Espera a que termine y responde por escrito, como en el chat.';
   function start(h) {
@@ -134,11 +134,12 @@
         level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
         sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
         mute: function (on) { try { conv.setMicMuted(!!on); } catch (e) {} },
-        /* Alma sabe por dónde le hablan: en el chat escribe (no hay llamada); al volver a la voz, habla. */
-        chat: function (on) { enChat = on; try { conv.setMicMuted(on); conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho");
+        /* Alma sabe por dónde le hablan. Modo chat de la llamada (#333, #334): el micrófono sigue (Alma te oye) pero no
+           suena (volumen 0) y responde por escrito en el hilo; al volver a la voz, habla otra vez. */
+        chat: function (on) { enChat = on; try { conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho");
           try { conv.sendContextualUpdate(on ? CANAL_CHAT : CANAL_VOZ); } catch (e) {} },
-        /* nota de voz dentro del chat: mientras se mantiene la roca, el micrófono escucha; Alma responde por escrito */
-        nota: function (on) { try { conv.setMicMuted(!on); } catch (e) {} if (on) { try { conv.sendContextualUpdate(CANAL_NOTA); } catch (e) {} } }
+        /* nota de voz dentro del chat: Alma responde por escrito. El micrófono ya sigue abierto en el chat: al soltar no se apaga. */
+        nota: function (on) { if (on) { try { conv.setMicMuted(false); conv.sendContextualUpdate(CANAL_NOTA); } catch (e) {} } }
       };
     });
   }

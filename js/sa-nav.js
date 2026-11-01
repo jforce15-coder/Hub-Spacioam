@@ -1302,30 +1302,27 @@
      y a la derecha la roca (1 toque mejora · 2, hablar). Solo envía el botón. */
   /* Chat sin actividad CHAT_INACTIVO_MS (3 min): la conversación termina sola (Alma no se queda preguntando «¿sigues ahí?»). */
   var CHAT_INACTIVO_MS = 180000, chatT = 0;
-  /* Con el chat único (#334) el texto va por el Hub y no hay llamada abierta: el chat se queda. Si quedó una llamada
-     muda detrás (se pasó de la voz al chat), solo esa se cuelga; el chat sigue abierto. */
+  /* Con el chat único (#334) nada termina solo: sin llamada el texto va por el Hub y el chat se queda; con la llamada
+     abierta (se pasó de la voz al chat), Alma sigue oyendo y la llamada sigue hasta que Juan cuelgue (decisión de Juan). */
   function chatQuieto() {
     clearTimeout(chatT);
-    if (AL.chat) chatT = setTimeout(function () {
-      if (!AL.chat || !(AL.on || AL.min)) return;
-      if (chatServidor()) { if (AL.ses) vozSoltar(); return; }
-      almaEnd(false);
-    }, CHAT_INACTIVO_MS);
+    if (AL.chat && !chatServidor()) chatT = setTimeout(function () { if (AL.chat && (AL.on || AL.min)) almaEnd(false); }, CHAT_INACTIVO_MS);
   }
   /* Chat único con Alma (#334): en el chat el texto va al Hub (ALMA.opEnviar, canal app) y se guarda en vivo en el mismo
      chat del Hub; la respuesta trae su esfera. La voz sigue por ElevenLabs y se guarda como llamada. Sin el cliente del
-     Hub (páginas sin alma-client.js), el texto va a la llamada como antes. */
+     Hub (páginas sin alma-client.js), el texto va a la llamada como antes.
+     Con una llamada abierta (o conectando), el chat es el modo chat de esa llamada: lo que escribes entra a la llamada
+     (una sola conversación, que al colgar se guarda como llamada con su esfera) y Alma responde por escrito, sin sonar. */
+  function enLlamada() { return !!(AL.sesTok && (AL.on || AL.min)); }
   function chatServidor() { return !!(w.ALMA && w.ALMA.opEnviar && w.ALMA.opHilo && w.SAChat && w.SAChat.unico); }
   function chatCanal() { return cfg.app === "hub" ? "hub" : "app"; }
   function chatEnviar(v) {
     v = String(v || "").trim(); if (!v) return false; chatQuieto();
-    if (AL.chat && chatServidor()) { chatPintar(function () { if (E.u) E.u.enviar(v); }); return true; }
+    if (AL.chat && chatServidor() && !enLlamada()) { chatPintar(function () { if (E.u) E.u.enviar(v); }); return true; }
     addMsg(v, "u"); chatPensando(true);
     if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} } else AL.cola = v;   // aún conectando: va en cuanto conecte
     return true;
   }
-  /* Cuelga la llamada sin cerrar el chat (su «terminó» ya no cierra nada: el turno de esa llamada pasó). */
-  function vozSoltar() { var s = AL.ses; AL.ses = null; AL.sesTok = 0; AL.cola = null; if (s) { try { s.end(); } catch (x) {} } }
   function chatBind(ov) {
     var f = ov.querySelector("form"), i = ov.querySelector(".san-in"), b = ov.querySelector(".san-send"), tips = ov.querySelector(".san-tips"), file = ov.querySelector(".san-file"),
       masB = ov.querySelector(".san-mas"), mic = ov.querySelector(".san-mic");
@@ -1442,7 +1439,7 @@
       im.onload = function () {
         var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = d.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
         c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); var du = c.toDataURL("image/jpeg", .8);
-        var srv = AL.chat && chatServidor();
+        var srv = AL.chat && chatServidor() && !enLlamada();   // con la llamada abierta, la foto entra a la llamada
         chatPintar(function (p) { if (E.u && srv) E.u.foto(du); else if (p) p.foto(du); });
         var nota = i.value.trim(), mNota = null; if (nota) { i.value = ""; i.dispatchEvent(new Event("input")); if (srv && E.u) mNota = E.u.yo(nota); else addMsg(nota, "u"); }
         chatQuieto(); chatPensando(true);   // «pensando» mientras Alma ve la foto y hasta que responde
@@ -1891,7 +1888,8 @@
   }
   /* Conversación de voz (la misma para la piedra al centro y para el modo en el botón). */
   function almaSesion() {
-    /* Cada llamada lleva su turno: si se colgó desde el chat (vozSoltar), su «terminó» o su error ya no cierran el chat. */
+    /* Cada llamada lleva su turno: una llamada vieja (se cerró y se abrió otra) ya no cierra nada con su «terminó» o su error.
+       Si termina con el chat único abierto, el chat se queda y lo que escribas vuelve a ir al Hub. */
     var tok = AL.sesTok = (AL.sesN = (AL.sesN || 0) + 1), viva = function () { return AL.sesTok === tok; };
     var h = {
       status: function (x) { if (AL.on || AL.min) status(x); if (AL.min && !AL.on && x === "Te escucho" && !almaSesion.dicho) { almaSesion.dicho = 1; phMini("Alma te escucha"); } },

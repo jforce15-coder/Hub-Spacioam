@@ -135,7 +135,7 @@
         sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
         mute: function (on) { try { conv.setMicMuted(!!on); } catch (e) {} },
         /* Alma sabe por dónde le hablan: en el chat escribe (no hay llamada); al volver a la voz, habla. */
-        chat: function (on) { enChat = on; try { conv.setMicMuted(on); conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho");
+        chat: function (on) { enChat = on; try { conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho");
           try { conv.sendContextualUpdate(on ? CANAL_CHAT : CANAL_VOZ); } catch (e) {} },
         /* nota de voz dentro del chat: mientras se mantiene la roca, el micrófono escucha; Alma responde por escrito */
         nota: function (on) { try { conv.setMicMuted(!on); } catch (e) {} if (on) { try { conv.sendContextualUpdate(CANAL_NOTA); } catch (e) {} } }

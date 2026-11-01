@@ -88,7 +88,7 @@
 @keyframes sa-chat-brillo{ 0%{ background-position:100% 0; } 100%{ background-position:-50% 0; } }
 @media (prefers-reduced-motion: reduce){ .sa-chat-barra{ animation:none; background:#E2E2E2; } }
 
-/* ── Cuadro de texto: borde fino gris, radio 21, Montserrat 15/20, fondo blanco. ── */
+/* ── Cuadro de texto: píldora con borde fino gris (1 px #DDDDDD), radio 21, Montserrat 15/20 (16 en iPhone), fondo blanco. ── */
 .sa-chat-cuadro{ background:#FFFFFF !important; border:1px solid var(--chat-borde-cuadro) !important; border-radius:21px !important; transition:border-color .18s cubic-bezier(.22,.61,.36,1); }
 .sa-chat-cuadro:focus-within{ border-color:var(--chat-tinta) !important; }
 .sa-chat-cuadro textarea, .sa-chat-campo{ font-family:var(--chat-sans); font-size:15px; line-height:20px; letter-spacing:0; color:var(--chat-tinta); }
@@ -98,6 +98,29 @@
 .sa-chat-campo::placeholder, .sa-chat-cuadro textarea::placeholder{ color:var(--chat-tenue); }
 /* En el iPhone, Safari acerca la pantalla si la letra de un campo es menor de 16 px: ahí se queda en 16. */
 @supports (-webkit-touch-callout: none){ .sa-chat-cuadro textarea, .sa-chat-campo{ font-size:16px; } }
+
+/* ── El nuevo chat (#304): un solo cuadro en la app y en el Hub. ──
+   Vacío: cuadro · micrófono · roca. Con texto: «+» · cuadro · (reloj, solo con huéspedes) · enviar · roca.
+   Fila: .sa-chat-pie con data-lleno="1" cuando hay texto; el «+» entra y sale con ancho y opacidad (180 ms), sin saltos.
+   La roca (.sa-chat-roca) es solo el área de toque: la piedra la pinta js/sa-nav.js encima (encajada o, en la app, E.stone). */
+.sa-chat-pie{ display:flex; align-items:flex-end; gap:8px; }
+.sa-chat-mas{ box-sizing:border-box; width:44px; height:44px; flex:none; padding:0; margin:0; border:0; border-radius:50%; background:#F3F3F3; color:#3E3F3F;
+  display:grid; place-items:center; overflow:hidden; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:width .18s cubic-bezier(.22,.61,.36,1), margin .18s cubic-bezier(.22,.61,.36,1), opacity .16s ease, transform .1s, visibility 0s; }
+.sa-chat-mas svg{ flex:none; }
+.sa-chat-pie:not([data-lleno="1"]) .sa-chat-mas{ width:0; margin-right:-8px; opacity:0; visibility:hidden; pointer-events:none;
+  transition:width .18s cubic-bezier(.22,.61,.36,1), margin .18s cubic-bezier(.22,.61,.36,1), opacity .12s ease, visibility 0s .18s; }
+.sa-chat-redondo{ box-sizing:border-box; width:44px; height:44px; flex:none; padding:0; margin:0; border:0; border-radius:50%; background:#1F1F1F; color:#FFFFFF;
+  display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:filter .18s, transform .1s, opacity .18s; }
+.sa-chat-reloj{ box-sizing:border-box; width:40px; height:40px; flex:none; padding:0; border:0; border-radius:50%; background:transparent; color:#8A8A8A;
+  display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:color .18s, transform .1s; }
+.sa-chat-roca{ box-sizing:border-box; width:46px; height:46px; flex:none; padding:0; margin:0; border:0; border-radius:50%; background:transparent; box-shadow:none; color:#E9826A;
+  display:grid; place-items:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:opacity .18s, transform .1s; }
+.sa-chat-mas:active, .sa-chat-redondo:active, .sa-chat-reloj:active, .sa-chat-roca:active{ transform:scale(.92); }
+@media (hover:hover){ .sa-chat-redondo:hover{ filter:brightness(1.25); } .sa-chat-mas:hover{ background:#ECECEC; } .sa-chat-reloj:hover{ color:#3E3F3F; } }
+.sa-chat-mas:focus-visible, .sa-chat-redondo:focus-visible, .sa-chat-reloj:focus-visible, .sa-chat-roca:focus-visible{ outline:2px solid var(--chat-tinta); outline-offset:2px; }
+.sa-chat-redondo:disabled{ opacity:.5; cursor:default; }
+@media (prefers-reduced-motion: reduce){ .sa-chat-mas, .sa-chat-pie:not([data-lleno="1"]) .sa-chat-mas{ transition:none; } }
 
 /* ── Hilo pintado con SAChat.pintor (chat de la roca y «Alma aquí»): 14 px entre grupos, 4 px dentro del grupo. ── */
 .sa-chat-hilo{ display:flex; flex-direction:column; gap:14px; }

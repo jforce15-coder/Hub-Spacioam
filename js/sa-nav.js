@@ -293,9 +293,15 @@
     /* Chat de la roca, estilo A (#317, «Airbnb fiel»): fondo blanco, encabezado simple con una línea fina y el hilo con las piezas
        de ds/chat.css (burbujas, etiqueta, avatar, tarjeta de acción, filas con «›» y «pensando»), pintado por SAChat.pintor (js/sa-chat.js). */
     ".san-scope .san-chat{position:absolute;inset:0;z-index:2;background:#FFFFFF;display:flex;flex-direction:column;opacity:0;transform:translateY(24px);pointer-events:none;transition:opacity .45s cubic-bezier(.45,0,.55,1),transform .6s cubic-bezier(.3,1.15,.55,1);padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}",
-    ".san-scope .san-ov.chat .san-chat{opacity:1;transform:none;pointer-events:auto}.san-scope .san-ov.chat .san-rock{z-index:3;pointer-events:none}.san-scope .san-ov.chat .san-st-glow{opacity:.28;transition:opacity .6s ease}",
-    /* En el chat la roca toma el peach del Hub (#E9826A) */
-    ".san-scope .san-ov.chat .san-st-body{background:radial-gradient(circle at 40% 34%,#F2A08B 0%,#E9826A 55%,#DB6F57 100%)}.san-scope .san-ov.chat .san-st-spark{color:#fff}.san-scope .san-ov.chat .san-st-ring,.san-scope .san-ov.chat .san-st-glow{background:#E9826A}",
+    ".san-scope .san-ov.chat .san-chat{opacity:1;transform:none;pointer-events:auto}.san-scope .san-ov.chat .san-rock{z-index:3;pointer-events:none}",
+    /* En el chat la roca es la MISMA piedra del centro (cuerpo blanco, anillo y halo de siempre, que laten con su respiración),
+       solo que del tamaño del botón: el halo y la sombra se escalan al botón (38 px de piedra, como la roca encajada del Hub) (antes el halo de 96 px quedaba de un color plano
+       al 28 % y el cuerpo se pintaba durazno: se veía un círculo coral borroso). */
+    ".san-scope .san-ov.chat .san-rock{box-shadow:0 7px 12px -5px rgba(70,50,40,.38),0 2px 4px -1px rgba(70,50,40,.16)}",
+    ".san-scope .san-ov.chat .san-st-glow{inset:-16px;opacity:calc(var(--halo)*.9);-webkit-mask:radial-gradient(closest-side,transparent 52%,rgba(0,0,0,.85) 66%,rgba(0,0,0,.3) 82%,transparent 98%);mask:radial-gradient(closest-side,transparent 52%,rgba(0,0,0,.85) 66%,rgba(0,0,0,.3) 82%,transparent 98%)}",
+    ".san-scope .san-ov.chat .san-st-ring{inset:-3px;-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3.6px),#000 calc(100% - 3px),#000 calc(100% - 1.2px),transparent 100%);mask:radial-gradient(farthest-side,transparent calc(100% - 3.6px),#000 calc(100% - 3px),#000 calc(100% - 1.2px),transparent 100%)}",
+    ".san-scope .san-ov.chat .san-st-lit{opacity:calc(var(--lit)*.8)}",
+    ".san-scope .san-ov.chat .san-st-spark svg{width:30%;height:30%}",
     ".san-scope .san-chat header{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:14px 64px 12px;min-height:64px;box-sizing:border-box;border-bottom:1px solid #EEEEEE;touch-action:none;transition:padding .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header .asa{position:absolute;top:5px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:3px;background:rgba(0,0,0,.10)}.san-scope .san-chat header .t{min-width:0}",
     ".san-scope .san-chat header .sa-chat-avatar{width:40px;height:40px;transition:width .3s cubic-bezier(.22,.61,.36,1),height .3s cubic-bezier(.22,.61,.36,1)}.san-scope .san-chat header b{display:block;font:600 15px/1.2 Montserrat,system-ui,sans-serif;color:#222222}",
     /* con el cuadro enfocado el encabezado se encoge: avatar chico y el nombre al lado */
@@ -306,17 +312,16 @@
     ".san-scope .san-vacio{padding:0 16px 14px;display:flex;flex-direction:column;gap:12px}.san-scope .san-chat:has(.sa-chat-msg--mia) .san-vacio{display:none}",
     ".san-scope .san-vacio h3{margin:0;font:600 22px/1.2 Montserrat,system-ui,sans-serif;letter-spacing:-.01em;color:#222222}.san-scope .san-vacio p{margin:0;font:400 13.5px/1.5 Montserrat,system-ui,sans-serif;color:#8A8A8A}",
     ".san-scope .san-sug{display:flex;flex-wrap:wrap;gap:8px}.san-scope .san-sug button{border:1px solid #DDDDDD;cursor:pointer;padding:10px 15px;min-height:44px;border-radius:999px;background:#fff;color:#222222;font:500 13.5px Montserrat,system-ui,sans-serif}.san-scope .san-sug button:active{transform:scale(.96);background:#F7F7F7}",
-    /* el nuevo chat (#304), estilo A: «+» · cuadro con borde fino (radio 21, Montserrat 15/20; 16 en iPhone) · micrófono (vacío) o enviar (con texto) · roca. Enter nunca envía. */
+    /* El nuevo chat (#304), un solo cuadro en la app y en el Hub: vacío, cuadro · micrófono · roca; con texto, «+» · cuadro · enviar · roca.
+       El aspecto del «+», el micrófono, enviar y la roca sale de ds/chat.css (sa-chat-pie, sa-chat-mas, sa-chat-redondo, sa-chat-roca). Enter nunca envía. */
     ".san-scope .san-chat form{position:relative;margin:0;display:flex;align-items:flex-end;gap:8px;padding:10px 12px 12px;background:#fff;border-top:1px solid #EEEEEE}",
     ".san-scope .san-in{flex:1;min-width:0;border:1px solid #DDDDDD;border-radius:21px;background:#fff;padding:11px 16px;font:400 15px/20px Montserrat,system-ui,sans-serif;color:#222222;outline:none;resize:none;height:44px;max-height:126px;overflow-y:hidden;box-sizing:border-box;transition:border-color .18s cubic-bezier(.22,.61,.36,1)}.san-scope .san-in:focus{border-color:#222222}.san-scope .san-in::placeholder{color:#8A8A8A}",
     "@supports (-webkit-touch-callout:none){.san-scope .san-in{font-size:16px}}",
-    ".san-scope .san-mas{width:44px;height:44px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:#F3F3F3;color:#222222}.san-scope .san-mas:active{transform:scale(.92)}",
-    ".san-scope .san-mic,.san-scope .san-env{width:44px;height:44px;flex:none;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:transparent;color:#222222}.san-scope .san-env{background:#1F1F1F;color:#FFFFFF}.san-scope .san-mic:active,.san-scope .san-env:active{transform:scale(.92)}",
     ".san-scope .san-chat form.mejorando .san-in{opacity:.5}",
     ".san-scope .san-chat form .san-env{display:none}.san-scope .san-chat form.lleno .san-env{display:grid}.san-scope .san-chat form.lleno .san-mic{display:none}",
     ".san-scope .san-chat form .san-tips{right:auto;left:0;bottom:0;width:0;height:0;position:absolute}.san-scope .san-chat form.lleno:focus-within .san-tips span{opacity:1;transform:none}",
-    /* el botón roca: 1 toque envía · mantener graba una nota de voz · 2 toques, una foto */
-    ".san-scope .san-send{width:46px;height:46px;flex:none;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;display:grid;place-items:center;color:#B36A57;touch-action:none;-webkit-user-select:none;user-select:none;background:transparent;border-radius:50%}",
+    /* el lugar de la roca: transparente, solo el área de toque (la piedra de verdad, E.stone, se pinta encima). 1 toque mejora · 2 toques, hablar */
+    ".san-scope .san-send{width:46px;height:46px;flex:none;border-radius:50%;border:0;padding:0;cursor:pointer;position:relative;display:grid;place-items:center;touch-action:none;-webkit-user-select:none;user-select:none;background:transparent!important;box-shadow:none;outline-offset:4px}",
     ".san-scope .san-send.graba{animation:sanGraba 1.2s ease-in-out infinite}@keyframes sanGraba{50%{box-shadow:0 0 0 14px rgba(233,130,106,.2)}}",
     /* hints del botón roca: una burbuja a la vez que rota sin parar (1 toque → 2 toques → 3 toques → …), ver rotador() */
     ".san-scope .san-tips{position:absolute;right:4px;bottom:64px;width:0;height:0;pointer-events:none}",
@@ -1248,14 +1253,14 @@
       '<div class="san-ov-tip">Mantén la piedra para minimizarla · desliza hacia abajo para terminar</div></div>' +
       '<div class="san-chat"><header><div class="asa"></div><button type="button" class="san-atras" aria-label="Cerrar el chat">' + svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 22) + '</button>' +
       '<span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><div class="t"><b>Alma</b></div></header><div class="san-msgs"></div>' +
-      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Con el + me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
+      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claude que ">Mejorar el sistema</button></div></div>' +
-      '<form><button type="button" class="san-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
+      '<form class="sa-chat-pie" data-lleno="0"><button type="button" class="san-mas sa-chat-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
       '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
-      '<button type="button" class="san-mic" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
-      '<button type="submit" class="san-env" aria-label="Enviar">' + svg('<path d="M4.5 12 3 4.5l17.5 7.5L3 19.5z"/><path d="M4.5 12H11"/>', 20) + '</button>' +
-      '<button type="button" class="san-send" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
+      '<button type="button" class="san-mic sa-chat-redondo" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
+      '<button type="submit" class="san-env sa-chat-redondo" aria-label="Enviar">' + svg('<path d="M4.5 12 3 4.5l17.5 7.5L3 19.5z"/><path d="M4.5 12H11"/>', 20) + '</button>' +
+      '<button type="button" class="san-send sa-chat-roca" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span>Mejorar</span></div>' +
       '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
@@ -1300,8 +1305,10 @@
     var f = ov.querySelector("form"), i = ov.querySelector(".san-in"), b = ov.querySelector(".san-send"), tips = ov.querySelector(".san-tips"), file = ov.querySelector(".san-file"),
       masB = ov.querySelector(".san-mas"), mic = ov.querySelector(".san-mic");
     var fotoOk = !!(w.ALMA && w.ALMA.almaFoto);
-    var lleno = function () { f.classList.toggle("lleno", !!i.value.trim()); };
-    var crecer = function () { i.style.height = "44px"; var h = i.scrollHeight + 2; i.style.height = Math.min(124, h) + "px"; i.style.overflowY = h > 124 ? "auto" : "hidden"; lleno(); colocarTip(); };   // hasta 5 líneas, como WhatsApp
+    var alto = function () { i.style.height = "44px"; var h = i.scrollHeight + 2; i.style.height = Math.min(124, h) + "px"; i.style.overflowY = h > 124 ? "auto" : "hidden"; };   // hasta 5 líneas, como WhatsApp
+    /* Con texto sale el «+» (ds/chat.css, 180 ms): el cuadro se angosta, así que se vuelve a medir al terminar. */
+    var lleno = function () { var y = !!i.value.trim(); if (f.classList.contains("lleno") === y) return; f.classList.toggle("lleno", y); f.setAttribute("data-lleno", y ? "1" : "0"); setTimeout(function () { alto(); colocarTip(); }, 200); };
+    var crecer = function () { alto(); lleno(); colocarTip(); };
     var enviar = function () { if (chatEnviar(i.value)) { i.value = ""; crecer(); } };
     /* El único hint: «Mejorar», encima de la roca, mientras hay texto (CSS: form.lleno). */
     var colocarTip = function () { var rb = b.getBoundingClientRect(), rf = f.getBoundingClientRect(); if (rb.width) { tips.style.left = (rb.right - rf.left) + "px"; tips.style.top = (rb.top - rf.top - 10) + "px"; } };
@@ -1361,7 +1368,7 @@
   }
   /* Las piezas del chat estilo A (ds/chat.css y js/sa-chat.js) se cargan la primera vez que se abre Alma, junto a este
      archivo (las páginas que ya las tienen no las vuelven a pedir). Sin ellas el chat pinta texto simple. */
-  var CHAT_V = "2026-11-11b", chatCb = [], chatCargando = false, chatSin = false;
+  var CHAT_V = "2026-11-12a", chatCb = [], chatCargando = false, chatSin = false;
   function conChat(cb) {
     if (w.SAChat && w.SAChat.pintor) { cb(true); return; }
     if (chatSin) { cb(false); return; }
@@ -1734,7 +1741,7 @@
       c.appendChild(cu); l.appendChild(c);
     });
   }
-  function stoneTarget() { var eo = AL.esc ? AL.escO : null; if (AL.chat) { var sb = E.ov && E.ov.querySelector(".san-send"), rb = sb && sb.getBoundingClientRect(); if (rb && rb.width) return { x: rb.left + rb.width / 2, y: rb.top + rb.height / 2, s: 46 }; return { x: VW() - 40, y: VH() - 44, s: 46 }; }
+  function stoneTarget() { var eo = AL.esc ? AL.escO : null; if (AL.chat) { var sb = E.ov && E.ov.querySelector(".san-send"), rb = sb && sb.getBoundingClientRect(); if (rb && rb.width) return { x: rb.left + rb.width / 2, y: rb.top + rb.height / 2, s: 38 }; return { x: VW() - 40, y: VH() - 44, s: 38 }; }   // 38 + su anillo = la roca encajada del Hub en un botón de 46
     return { x: VW() / 2, y: VH() * (eo && eo.y || .42), s: Math.min(VW() * .66, VH() * .4, eo && eo.s || 270) }; }
   function faceD() { return 74 * zoom.x; }
   function stoneRender() {

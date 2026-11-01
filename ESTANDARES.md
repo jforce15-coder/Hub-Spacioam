@@ -23,6 +23,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - Un elemento se busca por su nombre propio (`data-a`, `id`), nunca por una clase de estilo que otro elemento puede compartir (pasó dos veces el 30 oct: el botón y la lista de Pendientes tomaban los de Notificaciones).
 - Nada se sale de la pantalla en un iPhone SE (375 px); los botones miden al menos 44 px; respeta las áreas seguras.
 - Colores, letras y radios del sistema de diseño (`ds/`): alabastro, arena, durazno #E9826A, Valky y Montserrat.
+- En el render del Hub (`index.html`), las fechas se escriben con `this.fechaFmt(idioma, opciones)`, nunca con `toLocaleDateString`/`toLocaleTimeString` con opciones: cada llamada arma un formateador nuevo y con 150 conversaciones eran segundos trabados por repintado en el iPhone (1-nov). Lo de fondo que casi siempre vuelve «sin cambios» no hace `setState`.
 
 ## Movimiento con sentido
 - Cada movimiento dice algo (ds/movimiento.md). Si no dice nada, sobra. Piezas: `ds/movimiento.css` y `ds/movimiento.js` (`SAMov.sacudir`, `pop`, `quitar`, `pildora`, `desde`).

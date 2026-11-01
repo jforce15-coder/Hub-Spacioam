@@ -78,6 +78,7 @@ function retTema_(x) {
   if (!t) { t = String(x.texto || '').split(/[:.;!?]|—| - /)[0].trim(); if (t.split(/\s+/).length > 8) t = t.split(/\s+/).slice(0, 8).join(' ') + '…'; }
   return t.charAt(0).toLowerCase() + t.slice(1);
 }
+var RET_FICHA_MAX_ = 3;
 function retFicha_(adm, nom) {
   var l = retOrden_(retLeer_(adm)); if (!l.length) return null;
   var corte = Date.now() - RET_PAUSA_H_ * 3600000, top = l.filter(function (x) { return !x.ult || x.ult < corte; })[0] || null;
@@ -87,7 +88,9 @@ function retFicha_(adm, nom) {
          : 'Ya se los ofreciste hace poco: NO empieces por ahí. Solo si hay una pausa natural, pregúntale una vez «¿quieres que veamos los pendientes?». ') +
     'Si dice «luego», «no te preocupes» o cambia de tema, síguelo sin insistir: queda guardado. Nunca leas la lista, ni cuántos hay, ni números sueltos; ' +
     'si pregunta qué más hay, nombra el siguiente (solo su tema) y pregunta si lo ven.\n' +
-    l.map(function (x, i) { return (i + 1) + ') ' + retTema_(x) + ': ' + x.texto + (x.detalle ? ' — detalle: ' + x.detalle.slice(0, 300) : '') + ' (hace ' + retHace_(x.ts) + ')'; }).join('\n');
+    /* Solo los 3 más importantes y en corto (cada token entra en cada llamada); el resto lo ve en Pendientes. */
+    l.slice(0, RET_FICHA_MAX_).map(function (x, i) { return (i + 1) + ') ' + retTema_(x) + ': ' + String(x.texto || '').replace(/\s+/g, ' ').slice(0, 140) + ' (hace ' + retHace_(x.ts) + ')'; }).join('\n') +
+    (l.length > RET_FICHA_MAX_ ? '\n(y ' + (l.length - RET_FICHA_MAX_) + ' más en Pendientes: si pregunta, dile que están ahí)' : '');
   return { id: top ? top.id : '', total: l.length, saludo: saludo, bloque: bloque };
 }
 function retHace_(ts) {
@@ -160,7 +163,7 @@ function vozSeguirPronto() {
     try {
       AGENTE_APP_ = !!o.app;
       var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; });
-      r = opAgenteBucle_(adm, o.system + vozSeguirCanal_(), o.msgs, tools, { hechas: o.hechas || [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } }, 0, true);
+      r = opAgenteBucle_(adm, o.system + vozSeguirCanal_(), o.msgs, tools, { hechas: o.hechas || [], parcial: o.parcial || null, _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } }, 0, true);
       AGENTE_APP_ = false;
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, { esfera: r.esfera, subcategoria: r.subcategoria });   // la esfera del turno (chat.js)
     } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [] }; }

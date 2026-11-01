@@ -178,7 +178,7 @@ function agHerramientas_() {
     T('propuestas_agentes', 'Lo que tus agentes proponen y espera el sí de Juan (numeradas). Úsala cuando pregunte qué hay pendiente de los agentes o antes de aprobar.', {}),
     T('decidir_propuestas', 'Aprueba (se hace en ese momento) o rechaza propuestas de los agentes. Solo cuando Juan lo dice claro («apruébalas», «solo la 2», «la 3 no»).',
       { numeros: s('Números de la lista de propuestas_agentes separados por coma, o «todas»'), aprobar: { type: 'boolean', description: 'true aprueba (y se hace), false rechaza' } }, ['numeros', 'aprobar']),
-    T('mejora_para_claude', 'Le pasa DIRECTO a Claude (el desarrollador que programa el Hub, Hola, Epi, Mi, Grow, Docs, la app de iPhone y a ti misma) un pedido para MEJORAR EL SISTEMA: una regla o un algoritmo que debe funcionar distinto, una función nueva, algo que falla. Úsala cuando el administrador principal diga «dile a Claude», «esto hay que mejorarlo», «cambia la regla de…», «esto está fallando» o describa cómo debería funcionar algo. NO es para pedir información, cambiar un dato (eso lo haces tú) ni tu tono (eso es guardar_nota). Solo el administrador principal puede usarla; a otros diles que se lo pidan a Juan. Antes de llamarla, tradúcelo a una instrucción clara y completa para un programador: qué pasa hoy, cómo debe funcionar exactamente (reglas, casos, límites), un ejemplo concreto y cómo se sabrá que quedó bien. Al confirmar, dilo en una frase corta («Listo, ya se lo pasé a Claude»), sin leer el pedido.',
+    T('mejora_para_claude', 'Arma el BORRADOR de un pedido para Claude (el desarrollador que programa el Hub, Hola, Epi, Mi, Grow, Docs, la app de iPhone y a ti misma) un pedido para MEJORAR EL SISTEMA: una regla o un algoritmo que debe funcionar distinto, una función nueva, algo que falla. Úsala cuando el administrador principal diga «dile a Claude», «esto hay que mejorarlo», «cambia la regla de…», «esto está fallando» o describa cómo debería funcionar algo. NO es para pedir información, cambiar un dato (eso lo haces tú) ni tu tono (eso es guardar_nota). Solo el administrador principal puede usarla; a otros diles que se lo pidan a Juan. Antes de llamarla, tradúcelo a una instrucción clara y completa para un programador: qué pasa hoy, cómo debe funcionar exactamente (reglas, casos, límites), un ejemplo concreto y cómo se sabrá que quedó bien. NO se envía: queda de borrador y el sistema le pregunta a Juan «¿Se lo mando a Claude?» (Mándalo · Agregar algo · No lo envíes); a Claude le llega solo cuando Juan dice «mándalo». Nunca digas que ya se lo pasaste.',
       { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
         tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
         ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] } }, ['titulo', 'app', 'tipo', 'que_quiere']),
@@ -508,7 +508,16 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       ctx.hechas.push({ tipo: 'familia', resumen: nomF + ' guardada como familia (' + (inp.relacion || '') + ')' });
       return { ok: true, nombre: nomF, numero: numF, nota: 'Desde ahora Alma la reconoce cuando llama, la trata por su nombre y le ayuda con lo personal de Juan.' };
     }
-    case 'mejora_para_claude': { var rm = paraClaudeCrear_(adm, Object.assign({}, inp, { sinChat: true })); if (rm.ok) ctx.hechas.push({ tipo: 'mejora', resumen: 'Para Claude · ' + String(inp.titulo).slice(0, 80) }); return rm; }
+    case 'mejora_para_claude': {
+      /* Siempre se pregunta antes (decisión de Juan, 1-nov-2026): queda de borrador y chatTurnoCerrar_ agrega la pregunta (chat.js). */
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo el administrador principal puede pedir cambios al sistema. Dile que se lo pida a Juan.' };
+      var txm = [String(inp.titulo || '').trim(), String(inp.que_pasa || '').trim() && 'Qué pasa hoy: ' + String(inp.que_pasa).trim(), String(inp.que_quiere || '').trim(),
+        String(inp.ejemplo || '').trim() && 'Ejemplo: ' + String(inp.ejemplo).trim()].filter(Boolean).join('\n');
+      if (!txm) return { error: 'Falta qué quiere que cambie.' };
+      claudeBorradorPoner_(adm, txm);
+      ctx.hechas.push({ tipo: 'borrador_claude', resumen: 'Borrador para Claude · ' + String(inp.titulo || txm).slice(0, 80) });
+      return { ok: true, borrador: true, enviado: false, nota: 'Quedó de BORRADOR: todavía no le llega a Claude. No digas que se lo pasaste; el sistema le pregunta a Juan «¿Se lo mando a Claude?».' };
+    }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };
@@ -561,14 +570,17 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   system += chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
   return opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
 }
-/* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (la tolerancia de una
-   llamada, retomar.js) se detiene entre pasos cuando se acaba el tiempo: guarda dónde iba y lo termina en segundo plano
-   (devuelve { seguira: true }). seguir = true: retoma una conversación guardada (puede terminar en herramientas sin ejecutar). */
+/* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (el plazo de una
+   llamada, retomar.js) se detiene cuando ya no alcanza el tiempo: antes de otra vuelta de Claude (si quedan menos de
+   AGENTE_MARGEN_VUELTA_) y antes de CADA herramienta (si quedan menos de AGENTE_MARGEN_HERR_). Guarda dónde iba, con las
+   herramientas que ya corrieron (parcial), y lo termina en segundo plano (devuelve { seguira: true }).
+   seguir = true: retoma una conversación guardada (puede terminar en herramientas sin ejecutar o a medias). */
+var AGENTE_MARGEN_VUELTA_ = 6000, AGENTE_MARGEN_HERR_ = 2500;
 function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
   var final = '', usosDe = function (m) { return m && m.role === 'assistant' && Array.isArray(m.content) ? m.content.filter(function (b) { return b.type === 'tool_use'; }) : []; };
-  var vencido = function () { return AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_; };
-  var cortar = function () {
-    var id = vozSeguirGuardar_({ email: adm.email, system: system, msgs: msgs, hechas: ctx.hechas, app: AGENTE_APP_, pedido: AGENTE_PEDIDO_ });
+  var vencido = function (margen) { return AGENTE_PLAZO_ && Date.now() + (margen || 0) > AGENTE_PLAZO_; };
+  var cortar = function (parcial) {
+    var id = vozSeguirGuardar_({ email: adm.email, system: system, msgs: msgs, hechas: ctx.hechas, app: AGENTE_APP_, pedido: AGENTE_PEDIDO_, parcial: parcial || null });
     return { respuesta: '', hechas: ctx.hechas, seguira: true, id: id };
   };
   if (seguir) {   // la llamada ya terminó: que lo sepa al pensar lo que falta
@@ -578,7 +590,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
   for (var vuelta = desde || 0; vuelta < 8; vuelta++) {
     var usos = usosDe(msgs[msgs.length - 1]);
     if (!usos.length) {
-      if (vuelta > (desde || 0) && vencido()) return cortar();
+      if (vuelta > (desde || 0) && vencido(AGENTE_MARGEN_VUELTA_)) return cortar();
       var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
       if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
       var bloques = j.content || [];
@@ -586,16 +598,23 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       usos = bloques.filter(function (b) { return b.type === 'tool_use'; });
       if (j.stop_reason === 'pause_turn') continue;   // búsqueda web larga: el servidor pide continuar
       if (!usos.length || j.stop_reason !== 'tool_use') { final = bloques.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('').trim(); break; }
-      if (vencido()) return cortar();   // las herramientas se ejecutan en segundo plano
     }
-    msgs.push({ role: 'user', content: usos.map(function (u) {
+    /* Herramienta por herramienta: antes de cada una se mira el plazo; las que ya corrieron no se repiten al seguir. */
+    var hechos = Array.isArray(ctx.parcial) ? ctx.parcial : []; ctx.parcial = null;
+    var resultados = [];
+    for (var iu = 0; iu < usos.length; iu++) {
+      var u = usos[iu], ya = hechos.filter(function (h) { return h && h.tool_use_id === u.id; })[0];
+      if (ya) { resultados.push(ya); continue; }
+      if (vencido(AGENTE_MARGEN_HERR_)) return cortar(resultados);   // lo que falta se ejecuta en segundo plano
       var res; try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen
         var bl = res._imgs.map(imgBloque_).filter(Boolean); delete res._imgs;
-        return { type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, 4000) }]) };
+        resultados.push({ type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, 4000) }]) });
+        continue;
       }
-      return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
-    }) });
+      resultados.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) });
+    }
+    msgs.push({ role: 'user', content: resultados });
   }
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
   var et = chatSacarEtiqueta_(final); final = et.texto;

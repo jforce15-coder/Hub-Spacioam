@@ -71,16 +71,18 @@ function paraClaudeCrear_(adm, inp) {
       issue ? 'Quedó enviado a Claude (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claude en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
 }
 /* Apps viejas que todavía responden en la conversación «Desarrollo» (resId op:desarrollo): el mensaje entra al chat del
-   principal como Propósito · Desarrollo y va directo a Claude (chatDesarrollo_, chat.js). Solo el principal, con su sesión. */
+   principal como Propósito · Desarrollo. Como en todo el chat (chat.js), queda de borrador y Alma pregunta
+   «¿Se lo mando a Claude?»; si el mensaje es la respuesta a esa pregunta, se resuelve. Solo el principal, con su sesión. */
 function paraClaudeDesdeChat_(ses, texto) {
   texto = String(texto || '').trim(); if (!texto) return { ok: false, error: 'faltan datos' };
   var adm = paraClaudePrincipalSes_(ses);
   if (!adm) return { ok: false, error: 'Solo el administrador principal puede pedirle cambios a Claude.' };
+  var rb = chatBorradorTurno_(adm, null, texto, 'hub');
+  if (rb) return rb.claude && !rb.claude.ok ? { ok: false, error: rb.alma.texto, alma: rb.alma } : rb;
   var yo = opGuardar_(adm, 'yo', 'hub', texto, [], CHAT_DESARROLLO_);
-  var d = chatDesarrollo_(adm, texto, '', []);
+  var d = chatDesarrollo_(adm, texto, '', [], { canal: 'hub' });
   var alma = opGuardar_(adm, 'alma', 'hub', d.texto, [], CHAT_DESARROLLO_);
-  if (d.claude && !d.claude.ok) return { ok: false, error: d.texto, alma: alma };
-  return { ok: true, yo: yo, alma: alma, claude: d.claude };
+  return { ok: true, yo: yo, alma: alma, borrador: d.borrador };
 }
 /* hub.spacioam.com/alma/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, Google Home). Solo el admin
    principal con su sesión; las llaves nunca se devuelven, solo si están puestas. */

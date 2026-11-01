@@ -201,6 +201,11 @@ function pendResponder_(ses, b) {
   var texto = String(b.texto || '').trim(), id = String(b.id || ''); if (!texto || !id) return { ok: false, error: 'faltan datos' };
   var x = pendFilas_().filter(function (r) { return String(r.id) === id; })[0];
   if (x) {
+    /* Un borrador para Claude sin enviar (chat.js): «Mándalo», «Agregar algo» o «No lo envíes» desde la tarjeta. */
+    if (x.origen === 'claude_borrador') {
+      var rb = chatBorradorTurno_(adm, null, texto, String(b.canal || '') === 'hub' ? 'hub' : 'app', { desdeTarjeta: true });
+      if (rb) { try { pendResolver_(ses, id); } catch (e) {} return { ok: true, a: 'alma', respuesta: rb.alma && rb.alma.texto || '' }; }
+    }
     /* Una pregunta sin responder del chat (chat.js): es la respuesta a esa pregunta, en el mismo chat. */
     var nota = x.origen === 'pregunta'
       ? 'Juan responde desde Pendientes a la pregunta que le dejaste en este chat: «' + String(x.detalle || x.titulo).slice(0, 1500) + '»\nAtiende su respuesta como respuesta a esa pregunta.'

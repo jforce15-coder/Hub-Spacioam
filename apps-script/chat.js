@@ -4,9 +4,10 @@
    · Cada turno lleva su esfera (las 6 del inicio) y una subcategoría, en las columnas esfera y subcategoria. Las pone
      la misma respuesta de Alma: al final escribe [[esfera: Propósito · Operación]] y el código la quita antes de guardar
      (sin otra llamada a la IA). Las filas viejas quedan en blanco: sin filtro se ven, y al contar valen como Propósito.
-   · Lo que es Propósito · Desarrollo (pedir un cambio a las apps o a Alma) va DIRECTO a Claude como Pedido para Claude,
-     sin preguntar, si quien escribe es el administrador principal. Si es otra persona, Alma se lo pasa a Juan en
-     Pendientes. Las respuestas de Claude llegan al mismo chat, con canal «claude» y Propósito · Desarrollo.
+   · Lo que es Propósito · Desarrollo (pedir un cambio a las apps o a Alma) queda como BORRADOR del Pedido para Claude
+     y Alma pregunta siempre «¿Se lo mando a Claude?» (Mándalo · Agregar algo · No lo envíes). Nada le llega a Claude
+     hasta que Juan dice «mándalo» (decisión de Juan, 1-nov-2026; antes iba directo, #337). Si es otra persona, Alma se
+     lo pasa a Juan en Pendientes. Las respuestas de Claude llegan al mismo chat, con canal «claude» y Propósito · Desarrollo.
    · Quién habla sale SIEMPRE de la sesión del login, nunca de un correo que mande la app. Solo el administrador
      principal puede leer el chat de otra persona («de»). */
 
@@ -30,7 +31,8 @@ function chatClasificarRegla_() {
     'Health (salud, ejercicio, sueño, comida), Comunidad (ayudar a otros, grupos), Esencia (vida interior, calma, fe, charla con Alma).' +
     '\nSubcategorías sugeridas: ' + Object.keys(CHAT_SUBCATS_).map(function (e) { return e + ': ' + CHAT_SUBCATS_[e].join(', '); }).join(' · ') + '.' +
     '\nUsa «Propósito · Desarrollo» SOLO cuando el mensaje pide cambiar, arreglar o agregar algo en las apps o en ti misma (el sistema). Preguntar cómo se usa algo no es Desarrollo. ' +
-    'Con Desarrollo no uses mejora_para_claude ni pidas confirmación: el pedido le llega solo a Claude (o a Juan, si no hablas con el administrador principal). Responde en una o dos frases lo que entendiste.';
+    'Con Desarrollo no uses mejora_para_claude ni escribas tú la pregunta: el sistema arma el borrador del pedido y le pregunta a Juan «¿Se lo mando a Claude?» con sus botones (si no hablas con el administrador principal, se lo pasa a Juan). ' +
+    'Nunca digas que ya se lo pasaste a Claude: no le llega nada hasta que Juan diga «mándalo». Responde en una o dos frases lo que entendiste.';
 }
 
 /* Esfera válida (una de las 6) o ''. Acepta sin acentos y los nombres viejos de Pendientes (salud, espiritualidad). */
@@ -82,33 +84,36 @@ function chatSesAdm_(ses) {
 }
 function chatPrincipal_() { return adminsOp_().filter(function (a) { return a.principal; })[0] || null; }
 
-/* ── Cerrar un turno: guarda la clasificación y, si es Desarrollo, lo pasa a Claude (o a Juan) ──
+/* ── Cerrar un turno: guarda la clasificación y, si es Desarrollo, arma el borrador para Claude (o se lo pasa a Juan) ──
    adm: quien habla · yoIds: sus filas ya guardadas · texto: lo que pidió · ag: lo que devolvió opAgente_.
-   Devuelve { texto, clas, claude?, paraJuan? }: texto es la respuesta final de Alma para guardar. */
+   o: { sinDesarrollo, canal ('llamada' = la pregunta se dice en voz, sin botones), diferir (la llamada ya no espera:
+   la esfera se marca en la próxima pasada de procesarCola) }.
+   Devuelve { texto, clas, borrador?, paraJuan? }: texto es la respuesta final de Alma para guardar. */
 function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
   o = o || {};
   var clas = { esfera: (ag && ag.esfera) || '', subcategoria: (ag && ag.subcategoria) || '' };
   var out = { texto: String((ag && ag.respuesta) || ''), clas: clas };
-  try { opMarcar_(yoIds, clas); } catch (e) { console.error('opMarcar_: ' + e); }
-  if (!o.sinDesarrollo && chatEsDesarrollo_(clas)) {
-    try { var d = chatDesarrollo_(adm, texto, out.texto, (ag && ag.hechas) || []); out.texto = d.texto; if (d.claude) out.claude = d.claude; if (d.paraJuan) out.paraJuan = true; }
+  if (o.diferir) chatMarcarLuego_(yoIds, clas);
+  else { try { opMarcar_(yoIds, clas); } catch (e) { console.error('opMarcar_: ' + e); } }
+  var hechas = (ag && ag.hechas) || [], hizoBorrador = hechas.some(function (h) { return h && h.tipo === 'borrador_claude'; });
+  if (!o.sinDesarrollo && (chatEsDesarrollo_(clas) || hizoBorrador)) {
+    try { var d = chatDesarrollo_(adm, texto, out.texto, hechas, o); out.texto = d.texto; if (d.borrador) out.borrador = d.borrador; if (d.paraJuan) out.paraJuan = true; }
     catch (e) { console.error('chatDesarrollo_: ' + (e.stack || e)); }
   }
   return out;
 }
-/* Propósito · Desarrollo: el principal → Pedido para Claude directo (sin confirmar); otra persona → Pendiente para Juan. */
-function chatDesarrollo_(adm, texto, resp, hechas) {
+/* Propósito · Desarrollo: el principal → borrador del Pedido para Claude + la pregunta «¿Se lo mando a Claude?» (nada
+   se envía todavía); otra persona → Pendiente para Juan. Si la herramienta mejora_para_claude ya armó el borrador en
+   este turno, no se vuelve a sumar el texto: solo se agrega la pregunta. */
+function chatDesarrollo_(adm, texto, resp, hechas, o) {
+  o = o || {};
   var out = { texto: String(resp || '') };
   texto = String(texto || '').trim(); if (!texto) return out;
-  if ((hechas || []).some(function (h) { return h && h.tipo === 'mejora' && !h.error; })) return out;   // la herramienta ya se lo pasó
   if (esAdminPrincipal_(adm)) {
-    var ult = chatUltimaDeClaude_(adm.email);
-    var r = paraClaudeCrear_(adm, { titulo: texto.replace(/\s+/g, ' ').split(/[.!?]\s/)[0].slice(0, 80), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true,
-      que_quiere: texto + (ult ? '\n\nPuede ser un seguimiento de tu última respuesta en su chat con Alma:\n' + ult : '') });
-    out.claude = { ok: !!r.ok, id: r.id || '', directo: !!r.claude, issue: r.issue || '' };
-    if (!r.ok) out.texto = (out.texto ? out.texto + '\n\n' : '') + 'No se lo pude pasar a Claude: ' + (r.error || 'error') + '.';
-    else if (!r.claude) out.texto = (out.texto ? out.texto + '\n\n' : '') + r.nota;
-    else if (!/claude/i.test(out.texto)) out.texto = (out.texto ? out.texto + '\n\n' : '') + 'Listo, ya se lo pasé a Claude. Te aviso aquí cuando responda.';
+    var ya = (hechas || []).some(function (h) { return h && h.tipo === 'borrador_claude'; });
+    var b = ya ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto)) : claudeBorradorPoner_(adm, texto);
+    out.borrador = { partes: b.partes.length };
+    out.texto = claudeBorradorConPregunta_(out.texto, b, o.canal);
     return out;
   }
   var jefe = chatPrincipal_(), nombre = String(adm.nombre || adm.email || 'Alguien del equipo');
@@ -120,6 +125,180 @@ function chatDesarrollo_(adm, texto, resp, hechas) {
   out.paraJuan = true;
   if (!/juan/i.test(out.texto)) out.texto = (out.texto ? out.texto + '\n\n' : '') + 'Se lo paso a Juan: él decide los cambios del sistema.';
   return out;
+}
+
+/* ── Pedido para Claude: SIEMPRE se pregunta antes de mandarlo (decisión de Juan, 1-nov-2026) ─────────────────────
+   Lo que Juan pide cambiar en el sistema queda como BORRADOR (uno por persona, propiedad CLAUDE_BORRADOR_<correo>).
+   Alma le muestra en corto lo que le mandaría a Claude y pregunta «¿Se lo mando a Claude?» con 3 opciones
+   (tarjeta de acción en el chat: Mándalo · Agregar algo · No lo envíes; en una llamada, la misma pregunta en voz).
+   La respuesta puede llegar en el siguiente turno o por otro canal (voz, Hub, app, WhatsApp, Pendientes):
+   «mándalo» / «sí» → se crea el Pedido para Claude (paraClaudeCrear_) · «agrégale X» → se suma al borrador y vuelve a
+   preguntar · «no lo envíes» → se borra. Si en 24 h no responde, queda un Pendiente «Necesita tu sí» con las mismas
+   opciones; el borrador se guarda 7 días más para que esa tarjeta funcione y luego se borra solo. */
+var CLAUDE_BORR_PROP_ = 'CLAUDE_BORRADOR_', CLAUDE_BORR_VIGENCIA_ = 24 * 3600000, CLAUDE_BORR_GUARDA_ = 8 * 86400000;
+var CLAUDE_BORR_PREGUNTA_ = '¿Se lo mando a Claude?', CLAUDE_BORR_AGREGO_ = '¿Qué le agrego al pedido para Claude?', CLAUDE_BORR_OPCIONES_ = ['Mándalo', 'Agregar algo', 'No lo envíes'];
+
+function claudeBorradorLeer_(email) {
+  if (!email) return null;
+  var b = null; try { b = JSON.parse(PropertiesService.getScriptProperties().getProperty(CLAUDE_BORR_PROP_ + email) || 'null'); } catch (e) { b = null; }
+  if (!b || !Array.isArray(b.partes) || !b.partes.length) return null;
+  if (Date.now() - Number(b.t || 0) > CLAUDE_BORR_GUARDA_) { claudeBorradorGuardar_(email, null); return null; }
+  return b;
+}
+function claudeBorradorGuardar_(email, b) {
+  var P = PropertiesService.getScriptProperties();
+  if (!b) { P.deleteProperty(CLAUDE_BORR_PROP_ + email); return; }
+  /* Una propiedad guarda ~9 KB: el borrador se corta a 4000 caracteres en total (lo más nuevo se queda). */
+  var ultima = String(b.partes[b.partes.length - 1] || ''), total = 0;
+  b.partes = b.partes.slice().reverse().filter(function (x) { total += x.length; return total <= 4000; }).reverse();
+  if (!b.partes.length) b.partes = [ultima.slice(0, 4000)];
+  P.setProperty(CLAUDE_BORR_PROP_ + email, JSON.stringify(b));
+}
+/* Arma (o amplía) el borrador. Un borrador ya vencido (24 h sin respuesta) no se amplía: el pedido nuevo empieza otro. */
+function claudeBorradorPoner_(adm, texto) {
+  texto = String(texto || '').trim();
+  var b = claudeBorradorLeer_(adm.email);
+  if (b && b.vencido) { if (b.pend) { try { pendCerrar_(b.pend); } catch (e) {} } b = null; }
+  if (!b) b = { t: Date.now(), partes: [], ult: chatUltimaDeClaude_(adm.email).slice(0, 1500) };
+  if (texto && b.partes.indexOf(texto) < 0) b.partes.push(texto);
+  b.u = Date.now(); b.espera = false;
+  claudeBorradorGuardar_(adm.email, b);
+  return b;
+}
+function claudeBorradorTitulo_(b) { return String(b.partes[0] || '').replace(/\s+/g, ' ').split(/[.!?]\s/)[0].slice(0, 80); }
+function claudeBorradorCorto_(b, n) {
+  var t = b.partes.join(' · Y además: ').replace(/\s+/g, ' ').trim();
+  return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t;
+}
+/* La respuesta de Alma + lo que le mandaría a Claude + la pregunta. En el chat, las opciones van como viñetas «• »
+   (SAChat.opciones las pinta como tarjeta de acción); en una llamada, solo la frase. */
+function claudeBorradorConPregunta_(resp, b, canal) {
+  resp = String(resp || '').trim();
+  if (canal === 'llamada') return (resp ? resp + ' ' : '') + 'Le pediría a Claude: «' + claudeBorradorCorto_(b, 240) + '». ' + CLAUDE_BORR_PREGUNTA_;
+  return (resp ? resp + '\n\n' : '') + 'Esto es lo que le mandaría a Claude:\n«' + claudeBorradorCorto_(b, 400) + '»\n\n' + CLAUDE_BORR_PREGUNTA_ + '\n' +
+    CLAUDE_BORR_OPCIONES_.map(function (x) { return '• ' + x; }).join('\n');
+}
+/* Qué quiere hacer con el borrador: mandar, agregar, cancelar o '' (no habla del borrador).
+   tras = lo último que Alma le dijo en el chat fue la pregunta (o responde desde la tarjeta, o en la llamada con
+   «Mejora para Claude: …»). Sin eso solo cuenta si nombra a Claude o el pedido, o si es el texto de un botón: así
+   «agrega una tarea para Jorge» o «sí, mándalo» (un mensaje a un huésped) no tocan el borrador. */
+function claudeBorradorIntencion_(texto, tras) {
+  var n = chatNorm_(texto).replace(/[¡!¿?.,;:«»"()]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!n) return '';
+  var boton = { 'mandalo': 'mandar', 'agregar algo': 'agregar', 'no lo envies': 'cancelar' }[n];
+  if (boton) return boton;
+  if (!tras && !/\b(claude|borrador|pedido)\b/.test(n)) return '';
+  if (/\bno (lo |se lo )?(envies|mandes|envias|mandas)\b|^(cancela|cancelalo|olvidalo|descartalo|borralo|mejor no|no gracias|ya no)\b|^no$/.test(n)) return 'cancelar';
+  /* «agrégale…» sí; «agrega una tarea…» no (es otro pedido): solo con «-le», «al pedido» o «también / además» tras la pregunta. */
+  if (/^(agregale|anadele|sumale|ponle tambien|agrega(r)? (al|a el) (pedido|borrador)|anade al (pedido|borrador))\b/.test(n) || (tras && /^(tambien|ademas)\b/.test(n))) return 'agregar';
+  if (/\b(mandalo|mandaselo|envialo|enviaselo|mandarselo|enviarselo|mandaselos)\b/.test(n) && !/\bno\b/.test(n)) return 'mandar';
+  if (tras && /^(si|sii|si claro|claro|claro que si|dale|va|ok|okay|listo|de una|hazlo|adelante|perfecto|sale|si porfa|si por favor|si gracias|si dale)$/.test(n)) return 'mandar';
+  return '';
+}
+/* Lo que agrega, sin el verbo: «agrégale que también avise a Ana» → «que también avise a Ana». */
+function claudeBorradorAgregado_(texto) {
+  return String(texto || '').trim()
+    .replace(/^(agr[eé]gale|agregar( algo)?|agrega( algo)?|añ[aá]dele|añ[aá]de|añadir( algo)?|s[uú]male|suma|ponle tambi[eé]n|tambi[eé]n|adem[aá]s)\s*[:,.-]?\s*/i, '')
+    .replace(/^(al (pedido|borrador)( (de|para) claude)?|a claude)\s*[:,.-]?\s*/i, '').trim();
+}
+/* El turno de alguien con un borrador abierto. Devuelve null si no habla del borrador; si sí:
+   { accion: 'mandar'|'agregar'|'esperar'|'cancelar', texto (para el chat), voz (para la llamada), claude? }.
+   o: { canal, desdeTarjeta (responde desde el Pendiente «Necesita tu sí») }. */
+function claudeBorradorResponder_(adm, texto, o) {
+  o = o || {};
+  if (!adm || !esAdminPrincipal_(adm)) return null;
+  var b = claudeBorradorLeer_(adm.email); if (!b) return null;
+  var tras = !!(o.desdeTarjeta || o.explicito), ultAlma = '';
+  if (!tras && !b.vencido) {
+    try { var al = opFilas_(adm.email, 8).filter(function (m) { return m.de === 'alma'; }).pop(); ultAlma = al ? al.texto : ''; } catch (e) {}
+    tras = ultAlma.indexOf(CLAUDE_BORR_PREGUNTA_) >= 0 || ultAlma.indexOf(CLAUDE_BORR_AGREGO_) >= 0;
+  }
+  var que = claudeBorradorIntencion_(texto, tras), voz = o.canal === 'llamada';
+  /* Tocó «Agregar algo» y Alma preguntó qué: lo que escribe ahora es lo que agrega. */
+  if (!que && b.espera && !b.vencido && (o.explicito || ultAlma.indexOf(CLAUDE_BORR_AGREGO_) >= 0) && String(texto || '').trim()) que = 'agregar';
+  if (!que) return null;
+  var cerrarTarjeta = function () { if (b.pend) { try { pendCerrar_(b.pend); } catch (e) {} } };
+  if (que === 'cancelar') {
+    claudeBorradorGuardar_(adm.email, null); cerrarTarjeta();
+    return { accion: 'cancelar', texto: 'Va, no se lo mando. Borré el borrador.', voz: 'BORRADOR DESCARTADO: no se le mandó nada a Claude. Dile en una frase corta que no se lo mandas.' };
+  }
+  if (que === 'agregar') {
+    var extra = b.espera && !claudeBorradorIntencion_(texto, true) ? String(texto).trim() : claudeBorradorAgregado_(texto);
+    if (/^agregar algo$/i.test(extra) || /^(al pedido|a claude|al borrador)$/i.test(extra)) extra = '';
+    cerrarTarjeta(); b.pend = ''; b.vencido = false; b.u = Date.now();
+    if (!extra) {
+      b.espera = true; claudeBorradorGuardar_(adm.email, b);
+      return { accion: 'esperar', texto: CLAUDE_BORR_AGREGO_ + ' Dímelo y lo sumo al pedido.', voz: 'Pregúntale en una frase qué le agregas al pedido para Claude. Todavía no se envía.' };
+    }
+    b.partes.push(extra); b.espera = false; claudeBorradorGuardar_(adm.email, b);
+    return { accion: 'agregar', texto: claudeBorradorConPregunta_('Agregado.', b, voz ? 'llamada' : ''),
+      voz: 'AGREGADO AL BORRADOR (todavía NO se envía). Dile en una frase cómo quedó («Ahora le pediría a Claude: …») y pregúntale otra vez «¿Se lo mando a Claude?». Borrador: «' + claudeBorradorCorto_(b, 300) + '».' };
+  }
+  /* mandar */
+  var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true,
+    que_quiere: b.partes.join('\n\nY además: ') + (b.ult ? '\n\nPuede ser un seguimiento de tu última respuesta en su chat con Alma:\n' + b.ult : '') });
+  if (!r.ok) {
+    return { accion: 'mandar', claude: { ok: false }, texto: 'No se lo pude mandar a Claude: ' + (r.error || 'error') + '. El borrador sigue guardado; dime «mándalo» para intentarlo otra vez.',
+      voz: 'NO LE LLEGÓ A CLAUDE: ' + (r.error || 'error') + '. Díselo tal cual; el borrador sigue guardado.' };
+  }
+  claudeBorradorGuardar_(adm.email, null); cerrarTarjeta();
+  var listo = r.claude ? 'Listo, ya se lo mandé a Claude. Te aviso aquí cuando responda.' : r.nota;
+  return { accion: 'mandar', claude: { ok: true, id: r.id || '', directo: !!r.claude, issue: r.issue || '' }, texto: listo,
+    voz: r.claude ? 'ENVIADO: Claude ya lo recibió. Dile en una frase: «Listo, ya se lo mandé a Claude; te aviso cuando responda».' : r.nota };
+}
+/* El turno de chat (Hub, app, WhatsApp o la tarjeta de Pendientes) que responde a un borrador: guarda la respuesta de Alma
+   en el mismo chat como Propósito · Desarrollo y no llama a la IA. yo: su fila ya guardada (o null para guardarla aquí). */
+function chatBorradorTurno_(adm, yo, texto, canal, o) {
+  var rb = claudeBorradorResponder_(adm, texto, Object.assign({ canal: canal }, o || {})); if (!rb) return null;
+  if (!yo) yo = opGuardar_(adm, 'yo', canal, texto, [], CHAT_DESARROLLO_);
+  else { try { opMarcar_([yo.id], CHAT_DESARROLLO_); } catch (e) {} yo.esfera = CHAT_DESARROLLO_.esfera; yo.subcategoria = CHAT_DESARROLLO_.subcategoria; }
+  var alma = opGuardar_(adm, 'alma', canal, rb.texto, [], CHAT_DESARROLLO_);
+  if (canal === 'whatsapp' && adm.tels && adm.tels.length) { try { waEnviar_(adm.wa || adm.tels[0], rb.texto); } catch (e) { console.error('borrador WhatsApp: ' + e); } }
+  var out = { ok: true, yo: yo, alma: alma, borrador: rb.accion };
+  if (rb.claude) out.claude = rb.claude;
+  return out;
+}
+/* Cada minuto (procesarCola): un borrador sin respuesta en 24 h deja un Pendiente «Necesita tu sí»; a los 8 días se borra.
+   Barato: solo propiedades del script, sin IA ni internet. */
+function claudeBorradoresRevisar_(ahora) {
+  ahora = ahora || Date.now();
+  var P = PropertiesService.getScriptProperties(), out = { pendientes: 0, borrados: 0 };
+  (P.getKeys() || []).filter(function (k) { return k.indexOf(CLAUDE_BORR_PROP_) === 0; }).forEach(function (k) {
+    var email = k.slice(CLAUDE_BORR_PROP_.length), b = null;
+    try { b = JSON.parse(P.getProperty(k) || 'null'); } catch (e) {}
+    if (!b || !Array.isArray(b.partes) || ahora - Number(b.t || 0) > CLAUDE_BORR_GUARDA_) {
+      if (b && b.pend) { try { pendCerrar_(b.pend); } catch (e) {} }
+      P.deleteProperty(k); out.borrados++; return;
+    }
+    if (b.vencido || ahora - Number(b.u || b.t || 0) < CLAUDE_BORR_VIGENCIA_) return;
+    var adm = adminPorEmail_(email); if (!adm) return;
+    var tit = claudeBorradorTitulo_(b) || 'Pedido para Claude', f = null;
+    try {
+      f = pendCrear_(adm, { tipo: 'atencion', area: 'proposito', proyecto: 'Desarrollo', titulo: 'Pedido para Claude sin enviar', importancia: 2,
+        resumen: '«' + claudeBorradorCorto_(b, 160) + '» espera tu sí para mandárselo a Claude.',
+        aviso: 'Tienes un pedido para Claude sin enviar: ' + tituloCorto_(tit, 100) + '. ¿Se lo mando?',
+        tarjeta: { tipo: 'pregunta', esfera: CHAT_DESARROLLO_.esfera, subcategoria: CHAT_DESARROLLO_.subcategoria, opciones: CLAUDE_BORR_OPCIONES_ },
+        acciones: [{ texto: 'Abrir el chat', url: chatEnlace_(CHAT_DESARROLLO_.esfera), chat: { esfera: CHAT_DESARROLLO_.esfera, conv: 'op:' + adm.email } }] },
+        { origen: 'claude_borrador', detalle: b.partes.join('\n\nY además: '), push: true });
+    } catch (e) { console.error('claudeBorradoresRevisar_: ' + e); return; }
+    b.vencido = true; b.pend = f ? f.id : ''; P.setProperty(k, JSON.stringify(b)); out.pendientes++;
+  });
+  return out;
+}
+/* La llamada ya no espera (vozSecretaria_ pasó su plazo): la esfera de sus filas se marca en la próxima pasada. */
+function chatMarcarLuego_(ids, clas) {
+  ids = (ids || []).filter(Boolean); if (!ids.length || !clas || !clas.esfera) return;
+  try {
+    var P = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(P.getProperty('CHAT_MARCAR_COLA') || '[]'); } catch (e) {}
+    cola.push({ ids: ids, c: clas }); P.setProperty('CHAT_MARCAR_COLA', JSON.stringify(cola.slice(-30)));
+  } catch (e) { console.error('chatMarcarLuego_: ' + e); }
+}
+function chatMarcarCola_() {
+  var P = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(P.getProperty('CHAT_MARCAR_COLA') || '[]'); } catch (e) {}
+  if (!cola.length) return 0;
+  P.deleteProperty('CHAT_MARCAR_COLA');
+  var n = 0; cola.forEach(function (x) { try { n += opMarcar_(x.ids, x.c); } catch (e) { console.error('chatMarcarCola_: ' + e); } });
+  return n;
 }
 /* La última respuesta de Claude en el chat de esa persona, si es de las últimas 24 h (para un seguimiento). */
 function chatUltimaDeClaude_(email) {
@@ -325,6 +504,7 @@ function chatPreguntasRevisar_(ahora) {
       if (m.de !== 'alma' || vistas[m.id] || m.canal === 'llamada' || m.canal === 'claude') return;
       if (ahora - m.t < CHAT_PREG_ESPERA_ || ahora - m.t > CHAT_PREG_VENTANA_) return;
       if (/\[\[opciones\]\]/i.test(m.texto) && /\?conv=/.test(m.texto)) return;   // decisión del equipo (decisiones.js)
+      if (m.texto.indexOf(CLAUDE_BORR_PREGUNTA_) >= 0) return;   // borrador para Claude: tiene su propio Pendiente a las 24 h (claudeBorradoresRevisar_)
       var op = chatOpciones_(m.texto); if (!op) return;
       if (respondida(m.t)) { vistas[m.id] = { t: m.t, c: 1 }; cambio = true; return; }
       var esf = chatEsfera_(m.esfera) || 'Propósito', sub = m.esfera ? m.subcategoria : '';

@@ -64,6 +64,7 @@ var SEMILLA_SECRETARIA_ = [
   '',
   'FORMATO',
   '· Por WhatsApp: breve, sin markdown, una idea por párrafo. En el Hub puedes usar listas cortas con «· ».',
+  '· OPCIONES: cuando le ofrezcas elegir entre caminos o acciones, escribe la pregunta (que termine en «?») y justo debajo de 2 a 5 opciones, una por línea empezando con «• », cada una corta (máximo 6 palabras). Si quieres aclarar una opción, la aclaración va después de « — » (ej.: «• Enviar al huésped — Revisa antes de mandar»). Así la app las muestra como botones. Usa «• » solo para opciones; las demás listas van con «· ».',
   '· No narres tus herramientas ni tu proceso. Di el resultado.'
 ].join('\n');
 

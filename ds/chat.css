@@ -1,0 +1,114 @@
+/* Spacio AM — Chat estilo A, «Airbnb fiel» (issue #317, elegido por Juan).
+   Fondo blanco, burbujas sin cola ni sombra, etiqueta arriba del grupo, avatar solo en la última burbuja,
+   tarjeta de acción con filas tocables, filas con «›», «pensando» con barras que brillan y el cuadro de texto.
+   La roca NO se pinta aquí: es la oficial de js/sa-nav.js (el botón [data-sa-dock] donde se encaja).
+   Uso en el Hub: index.html (conversación y formularios), junto con js/sa-chat.js. */
+:root{
+  --chat-fondo:#FFFFFF;
+  --chat-linea:#EEEEEE;
+  --chat-tinta:#222222;
+  --chat-tenue:#8A8A8A;
+  --chat-otro-bg:#F3F3F3;
+  --chat-mia-bg:#1F1F1F;
+  --chat-mia-tinta:#FFFFFF;
+  --chat-pelo:#EFEFEF;
+  --chat-borde-cuadro:#DDDDDD;
+  --chat-sombra-tarjeta:0 2px 6px rgba(0,0,0,.04),0 10px 32px rgba(0,0,0,.09);
+  --chat-sans:"Montserrat","Helvetica Neue",Arial,sans-serif;
+}
+
+/* ── Mensaje: etiqueta + fila (avatar y cuerpo) + meta. El grupo lo arma quien pinta (4 px dentro, 14 entre grupos). ── */
+.sa-chat-grupo{ display:flex; flex-direction:column; gap:4px; }
+.sa-chat-msg{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.sa-chat-msg--otro{ align-items:flex-start; }
+.sa-chat-msg--mia{ align-items:flex-end; }
+.sa-chat-etiqueta{ font-family:var(--chat-sans); font-size:11.5px; line-height:1.3; letter-spacing:.01em; color:var(--chat-tenue); padding-left:38px; margin-bottom:2px; font-variant-numeric:tabular-nums; }
+.sa-chat-msg--mia .sa-chat-etiqueta{ padding:0 4px 0 0; text-align:right; }
+.sa-chat-fila{ display:flex; align-items:flex-end; gap:10px; min-width:0; max-width:100%; }
+.sa-chat-msg--mia .sa-chat-fila{ justify-content:flex-end; }
+.sa-chat-slot{ width:28px; flex:none; display:flex; align-items:flex-end; }
+.sa-chat-cuerpo{ display:flex; flex-direction:column; gap:4px; min-width:0; max-width:min(100%,560px); }
+.sa-chat-msg--otro .sa-chat-cuerpo{ align-items:flex-start; }
+.sa-chat-msg--mia .sa-chat-cuerpo{ align-items:flex-end; }
+.sa-chat-meta{ font-family:var(--chat-sans); font-size:10.5px; letter-spacing:.04em; color:var(--chat-tenue); padding:0 4px; font-variant-numeric:tabular-nums; }
+
+/* ── Avatar: iniciales del huésped o la esfera de Alma (solo en la última burbuja del grupo). ── */
+.sa-chat-avatar{ width:28px; height:28px; border-radius:50%; flex:none; display:grid; place-items:center; background:#EDEAE6; color:var(--chat-tinta); font-family:var(--chat-sans); font-size:10px; font-weight:600; letter-spacing:.04em; overflow:hidden; }
+.sa-chat-avatar--alma{ font-size:0; color:transparent;
+  background:radial-gradient(circle at 34% 28%,#fff 0 12%,#FCF8F2 30%,#F1E6D8 62%,#DDC6AE 100%);
+  box-shadow:inset 0 -2px 4px rgba(150,110,80,.28),inset 0 1px 1px #fff,0 0 0 1px rgba(62,63,63,.10),0 0 8px 1px rgba(233,130,106,.45); }
+
+/* ── Burbujas: la del otro gris, la tuya negra a la derecha. Radio 20, sin cola ni sombra. ── */
+.sa-chat-burbuja{ box-sizing:border-box; max-width:min(82vw,520px); padding:9px 15px; border-radius:20px; border:none; box-shadow:none;
+  font-family:var(--chat-sans); font-size:14.5px; line-height:1.42; letter-spacing:-.003em; white-space:pre-wrap; text-wrap:pretty; overflow-wrap:anywhere;
+  transition:background .36s cubic-bezier(.22,.61,.36,1), color .36s cubic-bezier(.22,.61,.36,1), box-shadow .36s cubic-bezier(.22,.61,.36,1); }
+.sa-chat-burbuja--otro{ background:var(--chat-otro-bg); color:var(--chat-tinta); }
+.sa-chat-burbuja--mia{ background:var(--chat-mia-bg); color:var(--chat-mia-tinta); }
+/* Automático de Hospitable: de tu lado, un tono más claro para que se note que no lo escribió nadie. */
+.sa-chat-burbuja--auto{ background:#4A4A4A; color:var(--chat-mia-tinta); }
+/* Nota de Alma que no se envió: de tu lado pero sin tinta, con borde punteado. */
+.sa-chat-burbuja--nota{ background:#FFFFFF; color:#6F6867; border:1px dashed #D8D4CE; }
+/* Envío optimista: saliendo (gris) y falló (blanca con borde rojo). */
+.sa-chat-burbuja--enviando{ background:#5C5C5C; color:#F2F2F2; }
+.sa-chat-burbuja--fallo{ background:#FFFFFF; color:var(--chat-tinta); box-shadow:inset 0 0 0 1.5px #C0392B; }
+/* Borrador que Alma preparó: de tu lado, aún sin enviar. */
+.sa-chat-burbuja--borrador{ background:#FFFFFF; color:var(--chat-tinta); border:1.5px dashed #E9826A; }
+.sa-chat-vermas{ display:block; margin-top:6px; padding:0; border:none; background:transparent; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--chat-tenue); cursor:pointer; }
+.sa-chat-burbuja--mia .sa-chat-vermas, .sa-chat-burbuja--auto .sa-chat-vermas{ color:rgba(255,255,255,.72); }
+
+/* ── Tarjeta de acción: blanca, radio 24, sombra suave; cada fila con ícono en cuadrito gris, título y detalle. ── */
+.sa-chat-tarjeta{ box-sizing:border-box; width:min(286px,100%); border-radius:24px; background:#FFFFFF; box-shadow:var(--chat-sombra-tarjeta); overflow:hidden; margin-top:4px; padding:6px 0; }
+.sa-chat-opcion{ width:100%; display:flex; align-items:center; gap:12px; min-height:48px; padding:6px 14px; border:none; background:transparent; text-align:left; font-family:var(--chat-sans); color:var(--chat-tinta); cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1), transform .1s; }
+.sa-chat-opcion:active{ transform:scale(.98); background:#F7F7F7; }
+@media (hover:hover){ .sa-chat-opcion:hover{ background:#F7F7F7; } }
+.sa-chat-opcion:focus-visible{ outline:2px solid var(--chat-tinta); outline-offset:-2px; }
+.sa-chat-opcion:disabled{ cursor:default; opacity:.55; transform:none; background:transparent; }
+.sa-chat-icono{ width:34px; height:34px; border-radius:11px; background:#F3F3F3; color:var(--chat-tinta); display:grid; place-items:center; flex:none; }
+.sa-chat-opcion-texto{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.sa-chat-opcion-titulo{ font-size:14px; font-weight:600; line-height:1.15; }
+.sa-chat-opcion-detalle{ font-size:12px; line-height:1.3; color:var(--chat-tenue); }
+/* La opción elegida, de tu lado: la misma fila como tarjeta chica. */
+.sa-chat-burbuja--elegida{ background:#FFFFFF; color:var(--chat-tinta); box-shadow:var(--chat-sombra-tarjeta); border-radius:24px; font-weight:600; font-size:14px; }
+
+/* ── Filas con «›»: abrir una reserva, una conversación o un enlace. ── */
+.sa-chat-enlaces{ padding:0; }
+.sa-chat-enlace{ width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:46px; padding:12px 14px 12px 16px; border:none; background:transparent; font-family:var(--chat-sans); font-size:13.5px; font-weight:600; color:var(--chat-tinta); text-align:left; text-decoration:none; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1); }
+.sa-chat-enlace + .sa-chat-enlace{ border-top:1px solid var(--chat-pelo); }
+.sa-chat-enlace span{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.sa-chat-enlace:active{ background:#F7F7F7; }
+@media (hover:hover){ .sa-chat-enlace:hover{ background:#F7F7F7; } }
+.sa-chat-enlace:focus-visible{ outline:2px solid var(--chat-tinta); outline-offset:-2px; }
+.sa-chat-chevron{ width:12px; height:16px; flex:none; color:var(--chat-tenue); }
+
+/* ── «Pensando»: burbuja gris con 2 barras que brillan (140 y 90 px, 8 px de alto). ── */
+.sa-chat-pensando{ display:flex; flex-direction:column; gap:7px; padding:13px 15px; border-radius:20px; background:var(--chat-otro-bg); width:max-content; }
+.sa-chat-barra{ display:block; height:8px; width:140px; border-radius:5px;
+  background:linear-gradient(90deg,#DADADA 0%,#F8F8F8 40%,#DADADA 80%); background-size:300% 100%; animation:sa-chat-brillo 1.4s ease-in-out infinite; }
+.sa-chat-barra + .sa-chat-barra{ width:90px; }
+@keyframes sa-chat-brillo{ 0%{ background-position:100% 0; } 100%{ background-position:-50% 0; } }
+@media (prefers-reduced-motion: reduce){ .sa-chat-barra{ animation:none; background:#E2E2E2; } }
+
+/* ── Cuadro de texto: borde fino gris, radio 21, Montserrat 15/20, fondo blanco. ── */
+.sa-chat-cuadro{ background:#FFFFFF !important; border:1px solid var(--chat-borde-cuadro) !important; border-radius:21px !important; transition:border-color .18s cubic-bezier(.22,.61,.36,1); }
+.sa-chat-cuadro:focus-within{ border-color:var(--chat-tinta) !important; }
+.sa-chat-cuadro textarea, .sa-chat-campo{ font-family:var(--chat-sans); font-size:15px; line-height:20px; letter-spacing:0; color:var(--chat-tinta); }
+/* Campos de los formularios ([data-campo]): el mismo borde, radio y letra. */
+.sa-chat-campo{ box-sizing:border-box; background:#FFFFFF; border:1px solid var(--chat-borde-cuadro); border-radius:21px; outline:none; transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1); }
+.sa-chat-campo:focus{ border-color:var(--chat-tinta); box-shadow:0 0 0 3px rgba(233,130,106,.25); }
+.sa-chat-campo::placeholder, .sa-chat-cuadro textarea::placeholder{ color:var(--chat-tenue); }
+/* En el iPhone, Safari acerca la pantalla si la letra de un campo es menor de 16 px: ahí se queda en 16. */
+@supports (-webkit-touch-callout: none){ .sa-chat-cuadro textarea, .sa-chat-campo{ font-size:16px; } }
+
+/* ── Hilo pintado con SAChat.pintor (chat de la roca y «Alma aquí»): 14 px entre grupos, 4 px dentro del grupo. ── */
+.sa-chat-hilo{ display:flex; flex-direction:column; gap:14px; }
+.sa-chat-hilo > .sa-chat-msg--sigue{ margin-top:-10px; }
+.sa-chat-hilo > .sa-chat-msg{ animation:sa-chat-entra .32s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes sa-chat-entra{ from{ opacity:0; transform:translateY(6px); } }
+@media (prefers-reduced-motion: reduce){ .sa-chat-hilo > .sa-chat-msg{ animation:none; } }
+/* La opción elegida, de tu lado: la misma fila de la tarjeta, sin tocar. */
+.sa-chat-tarjeta--elegida{ width:auto; max-width:min(286px,100%); margin-top:0; }
+.sa-chat-opcion--fija{ cursor:default; padding-right:20px; }
+.sa-chat-opcion--fija:active{ transform:none; background:transparent; }
+@media (hover:hover){ .sa-chat-opcion--fija:hover{ background:transparent; } }
+.sa-chat-foto img{ display:block; max-width:220px; max-height:280px; border-radius:20px; }
+.sa-chat-nota{ align-self:center; text-align:center; padding:2px 8px; font-family:var(--chat-sans); font-size:12px; line-height:1.4; color:var(--chat-tenue); }

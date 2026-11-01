@@ -12,14 +12,15 @@
         Editar → Agregar disparador → API → Generar token; nunca va en el chat ni en GitHub).
      4. Claude programa el cambio en una rama con su PR y responde al Hub (paraClaudeRespuesta_) con una llave de un solo uso
         que viaja dentro del pedido: el Hub guarda solo su huella SHA-256.
-     5. La respuesta queda en la conversación «Desarrollo» del Hub (solo la ve el principal), le llega por WhatsApp en una
-        línea y Alma se la cuenta en voz corta en la próxima llamada (paraClaudeNovedades_). */
+     5. La respuesta queda en el chat con Alma de quien lo pidió (chat único, #334: canal «claude», Propósito · Desarrollo),
+        le llega por WhatsApp en una línea y Alma se la cuenta en voz corta en la próxima llamada (paraClaudeNovedades_). */
 
-var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple'];
+var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat'];
 var PARA_CLAUDE_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CLAUDE_RUTINA_DEF_ = 'trig_01VrusYxvHrU1MBz4x39RVEm';
 var HUB_EXEC_DEF_ = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
-/* La conversación aparte del chat de Alma: una fila más en ALMA_OPERATIVO con este «usuario». */
+/* El antiguo chat aparte «Desarrollo» (usuario «desarrollo» en ALMA_OPERATIVO). Desde el chat único (#334) ya no se
+   escribe aquí: chatMigrarDesarrollo_ (chat.js) pasa sus filas al chat del principal. Queda para reconocer lo viejo. */
 var DESARROLLO_ = { email: 'desarrollo', nombre: 'Desarrollo · mejoras del sistema', tels: [], principal: false };
 
 function paraClaudeHoja_() {
@@ -57,27 +58,29 @@ function paraClaudeCrear_(adm, inp) {
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_,
     quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: titulo, instruccion: cuerpo, issue: issue });
-  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '']); }
+  /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). */
+  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '']); }
   catch (e) { return { ok: false, error: 'No pude guardarlo: ' + e }; }
-  try { opGuardar_(DESARROLLO_, 'yo', 'hub', 'Pedido para Claude · ' + titulo + '\n\n' + String(inp.que_quiere).trim().slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claude: ' + disparo.error + '. Quedó en la lista de pedidos.)'), []); } catch (e) { console.error('Desarrollo: ' + e); }
+  /* Lo que no salió de un mensaje suyo (rondas de los agentes, bots de prueba, Pendientes) queda anotado en su chat.
+     Lo que sí salió de su chat (sinChat) ya está ahí: su mensaje y la respuesta de Alma. */
+  if (!inp.sinChat && adm && adm.email) {
+    try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claude · ' + titulo + '\n\n' + String(inp.que_quiere).trim().slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claude: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
+  }
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok,
-    nota: disparo.ok ? 'Ya se lo pasé a Claude. Está trabajando en eso; cuando termine te cuento en corto y queda en la conversación Desarrollo.' :
+    nota: disparo.ok ? 'Ya se lo pasé a Claude. Está trabajando en eso; cuando termine te cuento en corto aquí en tu chat.' :
       issue ? 'Quedó enviado a Claude (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claude en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
 }
-/* Responder en la conversación «Desarrollo» del Hub: el mensaje va directo a Claude como seguimiento, con su última
-   respuesta como contexto. Solo el administrador principal (con su sesión). */
+/* Apps viejas que todavía responden en la conversación «Desarrollo» (resId op:desarrollo): el mensaje entra al chat del
+   principal como Propósito · Desarrollo y va directo a Claude (chatDesarrollo_, chat.js). Solo el principal, con su sesión. */
 function paraClaudeDesdeChat_(ses, texto) {
   texto = String(texto || '').trim(); if (!texto) return { ok: false, error: 'faltan datos' };
-  var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
-  if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }
-  if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal puede pedirle cambios a Claude.' };
-  var ult = '';
-  try { var fs = opFilas_(DESARROLLO_.email, 20).filter(function (m) { return m.de === 'alma'; }); if (fs.length) ult = String(fs[fs.length - 1].texto || '').slice(0, 3000); } catch (e) {}
-  var r = paraClaudeCrear_(adm, { titulo: texto.replace(/\s+/g, ' ').slice(0, 80), app: 'Otro', tipo: 'mejora', prioridad: 'normal',
-    que_quiere: texto + (ult ? '\n\nEs un seguimiento de Juan a tu respuesta anterior en «Desarrollo»:\n' + ult : '') });
-  if (!r.ok) return r;
-  var alma = opGuardar_(DESARROLLO_, 'alma', 'hub', r.claude ? 'Listo, ya se lo pasé a Claude. Te aviso aquí cuando responda.' : r.nota, []);
-  return { ok: true, alma: alma };
+  var adm = paraClaudePrincipalSes_(ses);
+  if (!adm) return { ok: false, error: 'Solo el administrador principal puede pedirle cambios a Claude.' };
+  var yo = opGuardar_(adm, 'yo', 'hub', texto, [], CHAT_DESARROLLO_);
+  var d = chatDesarrollo_(adm, texto, '', []);
+  var alma = opGuardar_(adm, 'alma', 'hub', d.texto, [], CHAT_DESARROLLO_);
+  if (d.claude && !d.claude.ok) return { ok: false, error: d.texto, alma: alma };
+  return { ok: true, yo: yo, alma: alma, claude: d.claude };
 }
 /* hub.spacioam.com/alma/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, Google Home). Solo el admin
    principal con su sesión; las llaves nunca se devuelven, solo si están puestas. */
@@ -151,6 +154,7 @@ function paraClaudeDisparar_(pedido) {
 function paraClaudeRespuesta_(b) {
   b = b || {};
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2 || !b.id || !b.llave) return { ok: false, error: 'pedido' };
+  sh = paraClaudeHoja_();   // con la columna «chat» (las filas viejas la tienen vacía)
   var lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     var v = sh.getRange(2, 1, sh.getLastRow() - 1, PARA_CLAUDE_CAB_.length).getValues(), i = -1;
@@ -164,7 +168,9 @@ function paraClaudeRespuesta_(b) {
     if (estado === 'listo') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claude dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? 'PR listo' : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
-    opGuardar_(DESARROLLO_, 'alma', 'hub', paraClaudeFecha_() + ' · ' + texto, []);   // cada mensaje de Claude empieza con la fecha
+    /* En el chat con Alma de quien lo pidió (o del principal, para los pedidos viejos); cada mensaje empieza con la fecha. */
+    var dest = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_() || DESARROLLO_;
+    opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
     paraClaudeAvisar_(titulo, voz || texto.slice(0, 200), estado);
     return { ok: true };
   } finally { lock.releaseLock(); }
@@ -185,7 +191,7 @@ function paraClaudeAvisar_(titulo, voz, estado) {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
     try { var it = retPoner_(jefe, { texto: voz, importancia: 2, origen: 'claude' }); vozAvisoPoner_(jefe, voz, it && it.id); } catch (e) {}   // tema por retomar y notificación en la app de iPhone
     /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
-    if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe)) waEnviar_(jefe.wa || jefe.tels[0], voz + (estado === 'listo' ? '\n\nEl detalle está en el Hub, conversación Desarrollo.' : ''));
+    if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe)) waEnviar_(jefe.wa || jefe.tels[0], voz + (estado === 'listo' ? '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).' : ''));
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }
 }
 /* Para la ficha de la llamada del principal: lo que Claude respondió desde la última llamada (y lo marca como contado). */
@@ -361,7 +367,7 @@ function paraClaudePendientes_(ses) {
       var tt = pub.t || {}, de = tt.total ? ' (' + tt.ok + ' de ' + tt.total + ' listos)' : '';
       var tx = { publicando: ['Ya lo uniste. GitHub lo está revisando y publicando' + de + '.', []],
         publicado: [pub.app ? '¡Listo! Ya está publicado. La versión nueva llega a TestFlight en unos minutos.' : '¡Listo! Ya está publicado.', [pub.app ? 'Actualiza Alma en TestFlight y pruébalo.' : 'Pruébalo.']],
-        fallo_pub: ['Se unió, pero algo falló al publicarlo.', ['Escríbele a Claude en Desarrollo: «falló la publicación de ' + simple.titulo + '».']] }[pub.est];
+        fallo_pub: ['Se unió, pero algo falló al publicarlo.', ['Escríbele a Alma en tu chat: «falló la publicación de ' + simple.titulo + '».']] }[pub.est];
       lista.push({ id: String(r[0]), titulo: simple.titulo, fecha: '', estado: pub.est, resumen: tx[0], pasos: tx[1], pregunta: '', original: cuerpo, instrucciones: '',
         progreso: tt.total ? tt.ok / tt.total : 0, enlaces: pub.est === 'fallo_pub' ? prs.map(function (x) { return x.url; }) : [] });
       return;

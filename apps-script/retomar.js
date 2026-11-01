@@ -162,7 +162,7 @@ function vozSeguirPronto() {
       var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; });
       r = opAgenteBucle_(adm, o.system + vozSeguirCanal_(), o.msgs, tools, { hechas: o.hechas || [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } }, 0, true);
       AGENTE_APP_ = false;
-      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas);
+      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, { esfera: r.esfera, subcategoria: r.subcategoria });   // la esfera del turno (chat.js)
     } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [] }; }
     try { vozSecAvisar_(normTel_(adm.tels[0]), adm, r, o.pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }

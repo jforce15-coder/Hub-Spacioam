@@ -44,7 +44,9 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Temporal** | Donde quedan las grabaciones del modo conferencia que no tienen sentido (por error, ruido): no van a Pendientes, se pueden buscar con Alma y se borran solas a los 7 días si nadie las consulta. | papelera, borrador |
 | **Reporte mensual de consumo** | El día 1 de cada mes Alma le manda a Juan por WhatsApp cuánto gastó la IA el mes anterior, por esfera y subcategoría, por app y por tipo (entrada, salida, caché); el Hub lo consulta. La esfera de cada función sale de la hoja IA_CATEGORIAS, que Juan corrige. | factura, informe de tokens |
 | **Equipo de mejora continua** | El agente que cada semana busca cómo gastar menos sin quitar funciones ni bajar la calidad. | optimización, ahorro |
-| **Esfera** | Una de las 6 áreas de vida del inicio (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia); cada pendiente lleva una. | categoría, área |
+| **Esfera** | Una de las 6 áreas de vida del inicio (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia); cada pendiente y cada mensaje del chat con Alma lleva una. | categoría, área |
+| **Subcategoría** | Lo que afina la esfera de un mensaje del chat con Alma (p. ej. Propósito · Operación, Propósito · Desarrollo, Finanzas · Pagos). Alma la pone sola en cada respuesta. | etiqueta, tag |
+| **Chat con Alma** | Un solo chat por persona con Alma (hoja ALMA_OPERATIVO, `op:<correo>`): Hub, app, WhatsApp y llamadas. Ya no hay chat «Operativo» ni «Desarrollo» aparte. Cada mensaje lleva su esfera y subcategoría; quién habla sale de la sesión. Solo el administrador principal ve el de otra persona. | chat operativo, chat de desarrollo |
 | **Área** | Una de las 6 áreas de vida: Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia. | categoría |
 | **Cajón** | Ideas, Interés u Ocio: lo que no es de un área. | carpeta, área |
 | **Proceso / Permanente** | Proceso: se resuelve y termina. Permanente: está para quedarse. | temporal (eso es un guardado) |
@@ -53,7 +55,7 @@ palabra nueva, se agrega aquí en el mismo PR. La columna «Evitar» son los sin
 | **Puente** | El script pequeño que vive en cada cuenta de correo y le pasa lo nuevo a Alma. | conector, integración |
 | **Hilo** | Una conversación de correo. «Involucrar a Alma» = que ella responda ese hilo. | thread, cadena |
 | **Bots de prueba** | Usuarios ficticios que prueban cada cambio sin dejar registros. | QA, tests |
-| **Pedido para Claude** | Lo que Juan le pide al desarrollador por medio de Alma («Mejora para Claude»). | ticket, issue |
+| **Pedido para Claude** | Lo que Juan le pide al desarrollador por medio de Alma («Mejora para Claude»). En su chat con Alma, lo que ella clasifica como Propósito · Desarrollo le llega directo a Claude, sin preguntar, y la respuesta de Claude vuelve al mismo chat. Si lo pide otra persona, Alma se lo pasa a Juan en Pendientes. | ticket, issue |
 | **Unir** | Dar Merge a un PR: es el «sí» de Juan. Se hace en GitHub, con «une» a Claude, con el botón «Unir» de Pendientes o pidiéndoselo a Alma. | aprobar, mergear |
 | **Huésped** | Quien se queda en un apartamento de Spacio AM. | cliente, inquilino |
 | **Reserva / código de reserva** | La estadía de un huésped y su identificador de Hospitable. | booking, ID |

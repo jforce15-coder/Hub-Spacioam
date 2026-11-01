@@ -53,6 +53,15 @@
     62% { filter: saturate(.55) brightness(.82); box-shadow: inset 0 0 3px 0 rgba(255,236,226,.25), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 3px rgba(233,130,106,.08), 0 0 4px 0 rgba(233,130,106,.12); }
   }
   @media (prefers-reduced-motion: reduce) { .ajustes.conf.rec { animation: none; } }
+  /* Mudo (#b-mudo): el modo sigue encendido pero Alma no escucha. El REC queda en durazno fijo, sin titilar. */
+  .ajustes.conf.rec.rec-mudo { animation: none; filter: saturate(.8);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 3px rgba(233,130,106,.18); }
+  /* Silenciar el micrófono: el mismo botón que el de conferencia, en espejo, a la izquierda de «Chat» (lo ubica mudoUbicar).
+     Silenciado: micrófono tachado, fondo durazno tenue e ícono durazno. */
+  .ajustes.conf.mudo .tacha { display: none; }
+  .ajustes.conf.mudo.silencio { background: rgba(255,236,228,.9); color: #E9826A; box-shadow: inset 0 0 0 1px rgba(233,130,106,.6); }
+  .ajustes.conf.mudo.silencio svg { stroke-width: 1.9; }
+  .ajustes.conf.mudo.silencio .tacha { display: inline; }
   .velo { position: fixed; inset: 0; z-index: 2147483100; background: rgba(40,30,32,.28); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .velo.on { opacity: 1; pointer-events: auto; }
   .panel { position: fixed; left: 50%; bottom: 0; z-index: 2147483200; width: min(460px, 100%); box-sizing: border-box; max-height: 86vh; overflow: auto;
@@ -250,6 +259,7 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
@@ -852,6 +862,9 @@
   /* Modo conferencia (Conferencia.swift en la app): un toque lo enciende o lo apaga. Escucha con el dictado del iPhone; si
      el Hub nota que son varias personas, la reunión se transcribe con ElevenLabs (distingue las voces). Despierta al oír «Alma». */
   var CONF = { activa: false };
+  /* Silenciar (#b-mudo): con el modo conferencia o el inicio con escucha activa encendidos, Alma deja de escuchar sin que
+     el modo se apague. «esc»: se silenció el inicio (no la conferencia). No se guarda: al recargar vuelve a escuchar. */
+  var MUDO = { on: false, esc: false };
   function confUbicar() {
     var b = $("b-conf"), c = document.querySelector(".san-ob.start"), r = c && c.getBoundingClientRect();
     /* va con los botones de abajo: si ellos se esconden (chat, llamada), él también */
@@ -863,6 +876,8 @@
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
     CONF.enLlamada = !!e.enLlamada; recPintar();
+    if (e.mudo && !MUDO.on) nativa({ accion: "conferencia", que: "mudo", on: false });   // el mudo no sobrevive a recargar la página
+    if (MUDO.on) escUbicar();                                                                // si la conferencia se apagó, el mudo se quita solo
     b.classList.toggle("activa", CONF.activa); b.classList.toggle("voces", !!e.voces); b.setAttribute("aria-pressed", CONF.activa ? "true" : "false");
     b.setAttribute("aria-label", e.error ? e.error : CONF.activa ? (e.voces ? "Modo conferencia: reunión, con voces" : "Modo conferencia: escuchando") + (e.minutos ? " · " + e.minutos + " min" : "") : "Modo conferencia");
     if (e.error) try { alert(e.error); } catch (x) {}
@@ -875,13 +890,34 @@
     if (recOn()) {
       ESC.apagado = true; nativa({ accion: "escucha", que: "pagina", on: false }); ESC.quieto = false;
       if (CONF.activa) nativa({ accion: "conferencia", que: "off" });
+      MUDO.on = false; MUDO.esc = false; mudoPintar();
       CONF.activa = false; ESC.escuchando = false; recPintar(); grabadora(false);
     } else {
       ESC.apagado = false; nativa({ accion: "conferencia", que: "on" }); CONF.activa = true; recPintar(); grabadora(true);
     }
   };
-  function recOn() { return (CONF.activa && !CONF.enLlamada) || (ESC.escuchando && ESC.quieto && !ESC.apagado); }
-  function recPintar() { var b = $("b-conf"), on = recOn(); b.classList.toggle("rec", on); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+  function recOn() { return MUDO.on || (CONF.activa && !CONF.enLlamada) || (ESC.escuchando && ESC.quieto && !ESC.apagado); }
+  function recPintar() { var b = $("b-conf"), on = recOn(); b.classList.toggle("rec", on); b.classList.toggle("rec-mudo", on && MUDO.on); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+  /* Silenciar: en espejo del botón de conferencia, a la izquierda de «Chat». Solo se ve si algo escucha (o está en mudo). */
+  function mudoUbicar() {
+    var b = $("b-mudo"), c = document.querySelector('.san-ob[data-a="chat"]'), r = c && c.getBoundingClientRect();
+    var se = !(CONF.activa || ESC.escuchando || MUDO.on) || !r || !r.width || +getComputedStyle(c).opacity < .5 || getComputedStyle(c).visibility === "hidden";
+    b.style.visibility = se ? "hidden" : ""; if (se) return;
+    b.style.left = Math.max(16, r.left - 30 - 40) + "px"; b.style.top = (r.top + r.height / 2 - 20 + 10) + "px";
+  }
+  function mudoPintar() {
+    var b = $("b-mudo"); b.classList.toggle("silencio", MUDO.on); b.setAttribute("aria-pressed", MUDO.on ? "true" : "false");
+    b.setAttribute("aria-label", MUDO.on ? "Volver a escuchar" : "Silenciar el micrófono");
+  }
+  /* Pone o quita el mudo. El modo (conferencia o inicio) sigue encendido; solo el micrófono deja de oír. */
+  function mudoPoner(on, sinSonido) {
+    if (MUDO.on === on) return;
+    MUDO.on = on; MUDO.esc = on && !CONF.activa;
+    if (on) { ESC.quieto = false; nativa({ accion: "escucha", que: "pagina", on: false }); }
+    if (CONF.activa) nativa({ accion: "conferencia", que: "mudo", on: on });
+    mudoPintar(); recPintar(); mudoUbicar(); if (!sinSonido) clic(on);
+  }
+  $("b-mudo").onclick = function () { vozConfig(); mudoPoner(!MUDO.on); escUbicar(); };
   /* El sonido de una grabadora de casete (Web Audio, sin archivos): el golpe de la tecla, el clic del mecanismo y el motor
      que arranca (al grabar) o se apaga (al parar). Corto y bajo para no tapar la señal de Alma. */
   var AUD = null;
@@ -908,16 +944,34 @@
       m.start(t + .1); m.stop(t + .8);
     } catch (e) {}
   }
+  /* Un clic suave de tecla (sin motor) para el mudo: un poco más agudo al silenciar, más grave al volver a escuchar. */
+  function clic(on) {
+    try {
+      AUD = AUD || new (window.AudioContext || window.webkitAudioContext)(); var a = AUD; if (a.state === "suspended") a.resume();
+      var t = a.currentTime + .01, sal = a.createGain(); sal.gain.value = .4; sal.connect(a.destination);
+      var n = Math.floor(a.sampleRate * .025), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 4);
+      var src = a.createBufferSource(), f = a.createBiquadFilter(); src.buffer = buf; f.type = "bandpass"; f.frequency.value = on ? 2600 : 2100; f.Q.value = 1.4;
+      src.connect(f); f.connect(sal); src.start(t);
+      var o = a.createOscillator(), g = a.createGain(); o.type = "sine"; o.frequency.setValueAtTime(on ? 520 : 400, t); o.frequency.exponentialRampToValueAtTime(on ? 260 : 200, t + .04);
+      g.gain.setValueAtTime(.22, t); g.gain.exponentialRampToValueAtTime(.001, t + .06); o.connect(g); g.connect(sal); o.start(t); o.stop(t + .07);
+    } catch (e) {}
+  }
+  if (NATIVA) { $("b-mudo").hidden = false; setTimeout(function () { $("b-mudo").classList.add("on"); mudoUbicar(); }, 1000); setInterval(mudoUbicar, 1200); addEventListener("resize", mudoUbicar); }
   if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
   /* Inicio con escucha activa (EscuchaInicio.swift): la app escucha mientras el inicio está a la vista y quieto (sin chat,
      Pendientes, notificaciones ni llamada) y despierta al oír «Alma». La página le dice cuándo; la app, si está escuchando. */
-  var ESC = { quieto: null, escuchando: false, apagado: false };
+  var ESC = { quieto: null, escuchando: false, apagado: false, base: false };
   function escUbicar() {
     var st = document.querySelector("#sa-nav-root .san-ov-st"), r = st && st.getBoundingClientRect();
     var visible = !!(r && r.width) && +getComputedStyle(st).opacity > .5 && getComputedStyle(st).visibility !== "hidden";
-    var quieto = visible && hay() && !document.hidden && !document.body.classList.contains("san-hoja") && !document.body.classList.contains("orbita-on") && !ESC.apagado;   // apagado con el botón: no escucha
+    var base = visible && hay() && !document.hidden && !document.body.classList.contains("san-hoja") && !document.body.classList.contains("orbita-on") && !ESC.apagado;   // apagado con el botón: no escucha
+    ESC.base = base;
+    /* el mudo se quita solo si ya no hay nada que silenciar: la conferencia se apagó o el inicio dejó de estar quieto */
+    if (MUDO.on && !CONF.activa && !(MUDO.esc && base)) mudoPoner(false, true);
+    var quieto = base && !MUDO.on;   // en mudo la página sigue diciendo «no escuches», igual que apagado
     if (quieto !== ESC.quieto) { ESC.quieto = quieto; nativa({ accion: "escucha", que: "pagina", on: quieto }); }
-    recPintar();
+    recPintar(); mudoUbicar();
   }
   window.AlmaEscucha = { evento: function (e) {
     if (!e) return; $("g-escucha").hidden = false; $("i-escucha").checked = !!e.activada;

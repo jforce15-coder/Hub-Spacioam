@@ -42,14 +42,17 @@
   .ajustes.conf { right: auto; top: 0; left: 0; }
   .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: #FFFDFB; }
-  /* «Alma está escuchando»: un solo puntito durazno que respira, sin palabras. En la esquina superior derecha de «Iniciar llamada», afuera y con aire (inicio con escucha activa) y en
-     la esquina del botón del modo conferencia. Es el mismo en los dos lados. */
-  .escucha-p { position: fixed; z-index: 2147482500; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; pointer-events: none; background: #E9826A;
-    box-shadow: 0 0 6px 1px rgba(233,130,106,.45); opacity: 0; transition: opacity .8s ease; }
-  .escucha-p.on, .ajustes.conf.escucha::before { animation: escResp 3.2s ease-in-out infinite; }
-  .ajustes.conf.escucha::before { content: ""; position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 6px 1px rgba(233,130,106,.45); }
-  @keyframes escResp { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
-  @media (prefers-reduced-motion: reduce) { .escucha-p.on, .ajustes.conf.escucha::before { animation: none; opacity: .7; } }
+  /* «Alma está escuchando» (#REC): ya no hay puntito aparte. El botón del modo conferencia ES el indicador: con Alma
+     escuchando (inicio con escucha activa o modo conferencia) se enciende en durazno #E9826A, con halo e interior que
+     brilla, y titila como el «REC» de una cámara antigua (encendido largo, apagado corto, sin transición). */
+  .ajustes.conf.rec { background: radial-gradient(circle at 50% 45%, rgba(255,214,196,.95) 0%, rgba(233,130,106,.92) 55%, rgba(214,104,80,.9) 100%);
+    box-shadow: inset 0 0 8px 2px rgba(255,236,226,.75), inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 3px rgba(233,130,106,.22), 0 0 16px 4px rgba(233,130,106,.45);
+    animation: recTitila 1.6s steps(1, end) infinite; }
+  @keyframes recTitila {
+    0% { filter: none; box-shadow: inset 0 0 8px 2px rgba(255,236,226,.75), inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 3px rgba(233,130,106,.22), 0 0 16px 4px rgba(233,130,106,.45); }
+    62% { filter: saturate(.55) brightness(.82); box-shadow: inset 0 0 3px 0 rgba(255,236,226,.25), inset 0 0 0 1px rgba(255,255,255,.35), 0 0 0 3px rgba(233,130,106,.08), 0 0 4px 0 rgba(233,130,106,.12); }
+  }
+  @media (prefers-reduced-motion: reduce) { .ajustes.conf.rec { animation: none; } }
   .velo { position: fixed; inset: 0; z-index: 2147483100; background: rgba(40,30,32,.28); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .velo.on { opacity: 1; pointer-events: auto; }
   .panel { position: fixed; left: 50%; bottom: 0; z-index: 2147483200; width: min(460px, 100%); box-sizing: border-box; max-height: 86vh; overflow: auto;
@@ -247,7 +250,6 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<span class="escucha-p" id="escucha-p" aria-hidden="true"></span>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
@@ -274,7 +276,7 @@
   </div>
   <div class="grupo" id="g-escucha" hidden>
     <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
-    <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El puntito en la esquina de «Iniciar llamada» te dice que está escuchando.</p>
+    <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El botón de la reunión titila en durazno mientras te escucha; tócalo para que deje de escuchar y otra vez para que vuelva.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
@@ -860,24 +862,62 @@
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
-    b.classList.toggle("escucha", CONF.activa && !e.enLlamada);   // escuchando la reunión (en la llamada, no)
+    CONF.enLlamada = !!e.enLlamada; recPintar();
     b.classList.toggle("activa", CONF.activa); b.classList.toggle("voces", !!e.voces); b.setAttribute("aria-pressed", CONF.activa ? "true" : "false");
     b.setAttribute("aria-label", e.error ? e.error : CONF.activa ? (e.voces ? "Modo conferencia: reunión, con voces" : "Modo conferencia: escuchando") + (e.minutos ? " · " + e.minutos + " min" : "") : "Modo conferencia");
     if (e.error) try { alert(e.error); } catch (x) {}
   } };
-  $("b-conf").onclick = function () { vozConfig(); nativa({ accion: "conferencia", que: CONF.activa ? "off" : "on" }); };
+  /* Un toque: si Alma está escuchando (modo conferencia o el minuto del inicio con escucha activa) deja de escuchar del
+     todo —regla de Juan: aunque estemos en el primer minuto del inicio, apagar el botón apaga la escucha—; si no estaba
+     escuchando, enciende el modo conferencia. Suena como una grabadora antigua: «clac» y motor al grabar, al revés al parar. */
+  $("b-conf").onclick = function () {
+    vozConfig();
+    if (recOn()) {
+      ESC.apagado = true; nativa({ accion: "escucha", que: "pagina", on: false }); ESC.quieto = false;
+      if (CONF.activa) nativa({ accion: "conferencia", que: "off" });
+      CONF.activa = false; ESC.escuchando = false; recPintar(); grabadora(false);
+    } else {
+      ESC.apagado = false; nativa({ accion: "conferencia", que: "on" }); CONF.activa = true; recPintar(); grabadora(true);
+    }
+  };
+  function recOn() { return (CONF.activa && !CONF.enLlamada) || (ESC.escuchando && ESC.quieto && !ESC.apagado); }
+  function recPintar() { var b = $("b-conf"), on = recOn(); b.classList.toggle("rec", on); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+  /* El sonido de una grabadora de casete (Web Audio, sin archivos): el golpe de la tecla, el clic del mecanismo y el motor
+     que arranca (al grabar) o se apaga (al parar). Corto y bajo para no tapar la señal de Alma. */
+  var AUD = null;
+  function grabadora(on) {
+    try {
+      AUD = AUD || new (window.AudioContext || window.webkitAudioContext)(); var a = AUD; if (a.state === "suspended") a.resume();
+      var t = a.currentTime + .01, sal = a.createGain(); sal.gain.value = .55; sal.connect(a.destination);
+      var ruido = function (t0, dur, frec, q, vol) {
+        var n = Math.floor(a.sampleRate * dur), buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+        for (var i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3);
+        var src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(); src.buffer = buf; f.type = "bandpass"; f.frequency.value = frec; f.Q.value = q;
+        g.gain.value = vol; src.connect(f); f.connect(g); g.connect(sal); src.start(t0);
+      };
+      var golpe = function (t0, frec, vol) {
+        var o = a.createOscillator(), g = a.createGain(); o.type = "sine"; o.frequency.setValueAtTime(frec, t0); o.frequency.exponentialRampToValueAtTime(frec * .45, t0 + .09);
+        g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0 + .12); o.connect(g); g.connect(sal); o.start(t0); o.stop(t0 + .14);
+      };
+      ruido(t, .05, 1800, 1.2, .9); golpe(t, 140, .5);                 // la tecla que baja
+      ruido(t + .07, .03, 3200, 2, .55);                                // el clic del mecanismo
+      var m = a.createOscillator(), mf = a.createBiquadFilter(), mg = a.createGain(); m.type = "sawtooth"; mf.type = "lowpass"; mf.frequency.value = 420;
+      m.connect(mf); mf.connect(mg); mg.connect(sal);
+      if (on) { m.frequency.setValueAtTime(38, t + .1); m.frequency.exponentialRampToValueAtTime(92, t + .5); mg.gain.setValueAtTime(.0001, t + .1); mg.gain.exponentialRampToValueAtTime(.09, t + .3); mg.gain.exponentialRampToValueAtTime(.0001, t + .75); }
+      else { m.frequency.setValueAtTime(92, t + .1); m.frequency.exponentialRampToValueAtTime(30, t + .55); mg.gain.setValueAtTime(.08, t + .1); mg.gain.exponentialRampToValueAtTime(.0001, t + .6); ruido(t + .5, .04, 1400, 1.2, .5); }
+      m.start(t + .1); m.stop(t + .8);
+    } catch (e) {}
+  }
   if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
   /* Inicio con escucha activa (EscuchaInicio.swift): la app escucha mientras el inicio está a la vista y quieto (sin chat,
      Pendientes, notificaciones ni llamada) y despierta al oír «Alma». La página le dice cuándo; la app, si está escuchando. */
-  var ESC = { quieto: null, escuchando: false };
+  var ESC = { quieto: null, escuchando: false, apagado: false };
   function escUbicar() {
-    var p = $("escucha-p"), st = document.querySelector("#sa-nav-root .san-ov-st"), r = st && st.getBoundingClientRect();
+    var st = document.querySelector("#sa-nav-root .san-ov-st"), r = st && st.getBoundingClientRect();
     var visible = !!(r && r.width) && +getComputedStyle(st).opacity > .5 && getComputedStyle(st).visibility !== "hidden";
-    var quieto = visible && hay() && !document.hidden && !document.body.classList.contains("san-hoja") && !document.body.classList.contains("orbita-on");
+    var quieto = visible && hay() && !document.hidden && !document.body.classList.contains("san-hoja") && !document.body.classList.contains("orbita-on") && !ESC.apagado;   // apagado con el botón: no escucha
     if (quieto !== ESC.quieto) { ESC.quieto = quieto; nativa({ accion: "escucha", que: "pagina", on: quieto }); }
-    p.classList.toggle("on", ESC.escuchando && quieto); p.style.opacity = ESC.escuchando && quieto ? "" : "0";
-    var c = document.querySelector(".san-ob.start"), rc = c && c.getBoundingClientRect();
-    if (rc && rc.width) { p.style.left = (rc.right + 6 + 2.5) + "px"; p.style.top = (rc.top - 6 - 2.5) + "px"; }   // esquina superior derecha de «Iniciar llamada», afuera y a 6 px
+    recPintar();
   }
   window.AlmaEscucha = { evento: function (e) {
     if (!e) return; $("g-escucha").hidden = false; $("i-escucha").checked = !!e.activada;

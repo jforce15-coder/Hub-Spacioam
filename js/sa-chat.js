@@ -107,6 +107,35 @@
       : /espera|luego|después|recuérd/.test(t) ? "clock" : /envi|mand|escrib|respond|mensaje/.test(t) ? "chat" : "arrowUpRight";
   };
 
+  /* ── La fila de esferas (#334): ícono, color y cuántos mensajes de cada una; la elegida en su color y las demás atrás.
+     La usan el chat único (abajo) y el chat con Alma del Hub (index.html). Crea los 6 botones una vez; pintar() solo
+     cambia números y clases. o = { alElegir(nombre) }: quien la usa decide si filtra o quita el filtro. ── */
+  var filaEsferas = function (cont, o) {
+    var doc = cont.ownerDocument, botones = {};
+    var svg = function (p) { return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + "</svg>"; };
+    cont.innerHTML = ""; cont.classList.add("sa-chat-esferas"); cont.setAttribute("role", "toolbar"); cont.setAttribute("aria-label", "Filtrar por esfera");
+    ESFERAS.forEach(function (z) {
+      var b = doc.createElement("button"); b.type = "button"; b.className = "sa-chat-esf"; b.style.setProperty("--c", z.c);
+      b.innerHTML = '<span class="sa-chat-esf-pz">' + svg(z.i) + '<i class="sa-chat-esf-ct"></i></span><span class="sa-chat-esf-nm"></span>';
+      b.querySelector(".sa-chat-esf-nm").textContent = z.n;
+      b.onclick = function () { if (o && o.alElegir) o.alElegir(z.n); };
+      cont.appendChild(b); botones[z.n] = b;
+    });
+    return {
+      /* conteo = { Propósito: 12, … } · activa = la esfera filtrada o "". */
+      pintar: function (conteo, activa) {
+        cont.classList.toggle("sa-chat-esferas--filtro", !!activa);
+        ESFERAS.forEach(function (z) {
+          var b = botones[z.n], n = conteo ? Number(conteo[z.n]) || 0 : 0, ct = b.querySelector(".sa-chat-esf-ct"), on = activa === z.n;
+          ct.textContent = n > 99 ? "99+" : String(n); ct.hidden = !n;
+          b.classList.toggle("sa-chat-esf--vacia", !n); b.classList.toggle("sa-chat-esf--on", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+          b.setAttribute("aria-label", z.n + ": " + n + (n === 1 ? " mensaje" : " mensajes") + (on ? " · toca para ver todas" : ""));
+        });
+      }
+    };
+  };
+
   /* ── Pintor (DOM): el hilo del chat de la roca (js/sa-nav.js) y de «Alma aquí» (alma/index.html), con las clases de
      ds/chat.css. El Hub pinta con su propia plantilla. Agrupa: etiqueta arriba del grupo, avatar solo en la última burbuja
      de Alma, 4 px dentro del grupo y 14 entre grupos (.sa-chat-hilo). ── */
@@ -263,32 +292,14 @@
     var svg = function (p, s) { return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + "</svg>"; };
 
     /* La fila de esferas y la insignia: solo con mensajes y cuando ya se sabe el conteo. */
-    var botones = null;
+    var botones = o.fila ? filaEsferas(o.fila, { alElegir: function (n) { u.filtro(S.v.esfera === n ? "" : n); } }) : null;
     var fila = function () {
       var hay = S.todas.msgs.length > 0 || S.v.msgs.length > 0, C = S.conteo, total = 0;
       if (C) ESFERAS.forEach(function (z) { total += Number(C[z.n]) || 0; });
       if (o.insignia) { o.insignia.hidden = !(C && hay && total > 0); o.insignia.textContent = total > 999 ? "999+" : String(total); o.insignia.setAttribute("aria-label", total + " mensajes en total"); }
       if (!o.fila) return;
       o.fila.hidden = !(C && hay);
-      if (o.fila.hidden) return;
-      if (!botones) {
-        o.fila.innerHTML = ""; botones = {}; o.fila.setAttribute("role", "toolbar"); o.fila.setAttribute("aria-label", "Filtrar por esfera");
-        ESFERAS.forEach(function (z) {
-          var b = doc.createElement("button"); b.type = "button"; b.className = "sa-chat-esf"; b.style.setProperty("--c", z.c);
-          b.innerHTML = '<span class="sa-chat-esf-pz">' + svg(z.i, 16) + '<i class="sa-chat-esf-ct"></i></span><span class="sa-chat-esf-nm"></span>';
-          b.querySelector(".sa-chat-esf-nm").textContent = z.n;
-          b.onclick = function () { u.filtro(S.v.esfera === z.n ? "" : z.n); };
-          o.fila.appendChild(b); botones[z.n] = b;
-        });
-      }
-      ESFERAS.forEach(function (z) {
-        var b = botones[z.n], n = C ? Number(C[z.n]) || 0 : 0, ct = b.querySelector(".sa-chat-esf-ct");
-        ct.textContent = n > 99 ? "99+" : String(n); ct.hidden = !n;
-        b.classList.toggle("sa-chat-esf--vacia", !n); b.classList.toggle("sa-chat-esf--on", S.v.esfera === z.n);
-        o.fila.classList.toggle("sa-chat-esferas--filtro", !!S.v.esfera);
-        b.setAttribute("aria-pressed", S.v.esfera === z.n ? "true" : "false");
-        b.setAttribute("aria-label", z.n + ": " + n + (n === 1 ? " mensaje" : " mensajes") + (S.v.esfera === z.n ? " · toca para ver todas" : ""));
-      });
+      if (!o.fila.hidden) botones.pintar(C, S.v.esfera);
     };
     var contar = function () {
       if (S.conteo || S.contando || !o.api || !o.api.hilo) return;
@@ -410,7 +421,7 @@
     return u;
   };
 
-  var SAChat = { opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, ESFERAS: ESFERAS, esfera: esfera };
+  var SAChat = { opciones: opciones, enlaces: enlaces, iconoOpcion: iconoOpcion, pintor: pintor, unico: unico, filaEsferas: filaEsferas, ESFERAS: ESFERAS, esfera: esfera };
   if (typeof module !== "undefined" && module.exports) module.exports = SAChat;
   raiz.SAChat = SAChat;
 })(typeof window !== "undefined" ? window : globalThis);

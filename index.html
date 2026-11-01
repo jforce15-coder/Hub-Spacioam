@@ -4341,7 +4341,15 @@ class Component extends DCLogic {
   /* ════════ HOY · Programa (Epi) + Registros (Hola) ════════
      Epi: getConfig → schedules / vendors / props; getAll → reportes (historial de profundas).
      Hola: listCached → reservas con estado del formulario; getRegistration / getDocImage para el resumen. */
-  hoyISO() { return new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" }); }
+  /* Fechas a texto, rápido: cada toLocaleDateString/TimeString con opciones arma un formateador nuevo y era lo más caro
+     de cada repintado (miles por render con 150 conversaciones; en el iPhone, segundos). Se reutiliza un Intl.DateTimeFormat
+     por formato y se recuerda el texto de cada instante. Mismo texto que toLocaleDateString/TimeString. */
+  fechaFmt(loc, op) {
+    var C = this._fechaC || (this._fechaC = {}), k = loc + "|" + JSON.stringify(op || {}), e = C[k];
+    if (!e) e = C[k] = { f: new Intl.DateTimeFormat(loc, op), m: new Map() };
+    return function (t) { var ms = +t, v; if (isNaN(ms)) return "Invalid Date"; v = e.m.get(ms); if (v === undefined) { if (e.m.size > 5000) e.m.clear(); v = e.f.format(ms); e.m.set(ms, v); } return v; };
+  }
+  hoyISO() { return this.fechaFmt("en-CA", { timeZone: "America/Guatemala" })(Date.now()); }
   /* ── Copias en el teléfono (Hoy, ALMA, reviews, conversaciones, borradores) ──
      Traen nombres de huéspedes y fechas de reserva para pintar rápido; por eso: una copia por persona (la clave lleva el
      correo de la sesión), sin documentos (ni imágenes, ni enlaces a archivos, ni números de documento), vencen a las 24 h
@@ -4788,7 +4796,7 @@ class Component extends DCLogic {
     var lista = ((hl && hl.lista) || []).filter(function (m) { return m.tipo === "guest" && m.texto; });
     if (!lista.length) { var t0 = String((ib && ib.ultimo_de === "guest" && ib.ultimo_texto) || t.pregunta || ""); if (t0) lista = [{ texto: t0, created: (ib && ib.ultimo_guest_ts) || "" }]; }
     var ci = String((ib && ib.checkin) || t.checkin || "").slice(0, 10), co = String((ib && ib.checkout) || t.checkout || "").slice(0, 10);
-    var dia = function (x) { var d = new Date(x); return isNaN(d) ? "" : d.toLocaleDateString("en-CA", { timeZone: "America/Guatemala" }); };
+    var fDia = this.fechaFmt("en-CA", { timeZone: "America/Guatemala" }), dia = function (x) { var d = new Date(x); return isNaN(d) ? "" : fDia(d); };
     var etapa = function (m) { var d = dia(m.created); if (!d || !ci) return "estadia"; if (d <= ci) return "llegada"; if (co && d >= co) return "salida"; return "estadia"; };
     var E = { llegada: { neg: 0, pos: 0, fuerte: 0, imp: 0, n: 0 }, estadia: { neg: 0, pos: 0, fuerte: 0, imp: 0, n: 0 }, salida: { neg: 0, pos: 0, fuerte: 0, imp: 0, n: 0 } };
     lista.forEach(function (m) { var e = E[etapa(m)], x = String(m.texto); e.n++; if (NEG.test(x)) e.neg++; if (FUERTE.test(x)) e.fuerte++; if (POS.test(x) && !NEG.test(x)) e.pos++; if (IMP.test(x)) e.imp++; });
@@ -5633,7 +5641,7 @@ class Component extends DCLogic {
   }
   autoResuelta(ib, ug, uh) {
     if (!ib || ib.tipo === "operativo") return "";
-    var ahora = Date.now(), hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+    var ahora = Date.now(), hoy = this.hoyISO();
     if (this.noRequiere(ib)) return "ALMA revisó: " + (ib.revision_razon || "no requiere respuesta");
     if (ib.tipo !== "consulta" && ib.checkout) { var co1 = new Date(String(ib.checkout).slice(0, 10) + "T12:00:00"); co1.setDate(co1.getDate() + 1); if (!isNaN(co1) && co1.toISOString().slice(0, 10) < hoy) return "pasó 1 día del checkout"; }
     if (uh && uh >= ug && ahora - uh > 3 * 3600000) return "respondida hace más de 3 h";
@@ -6191,7 +6199,10 @@ class Component extends DCLogic {
     var self = this;
     if (this._cargandoVivo && soloVivo && Date.now() - (this._vivoInicio || 0) < 20000) return;
     var seq = this._seq = (this._seq || 0) + 1;
-    this.setState({ almaCargando: true, almaError: "" });
+    /* La revisión de fondo (cada 5–10 s en ALMA) no marca «cargando»: casi siempre vuelve «sin cambios» y esa marca
+       repintaba todo el Hub dos veces por revisión (en el iPhone, medio segundo trabado cada vez). */
+    var deFondo = soloVivo && this.state.alma && !this.state.alma._demo && !this.state.almaError;
+    if (!deFondo) this.setState({ almaCargando: true, almaError: "" });
     var listo = function (data, fuente) {
       var ctrl = {};
       (data.control || []).forEach(function (r) { ctrl[String(r.clave || "").trim().toUpperCase()] = String(r.valor || "").trim().toUpperCase(); });
@@ -6625,14 +6636,16 @@ class Component extends DCLogic {
     var on = ctrl.TOGGLE === "ON", ctrlLegible = !!ctrlO.TOGGLE;
     var pillStyle = function (activo) { return activo ? { bg: "#3E3F3F", fg: "#FAFAFA" } : { bg: "transparent", fg: "#6F6867" }; };
     var TZ = "America/Guatemala";
-    var fmtHora = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: TZ }); };
+    var fHora = self.fechaFmt("es-GT", { hour: "2-digit", minute: "2-digit", timeZone: TZ }), fDiaTz = self.fechaFmt("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: TZ }), fDiaLoc = self.fechaFmt("es-GT", { weekday: "short", day: "numeric", month: "short" });
+    var fCortaTz = self.fechaFmt("es-GT", { day: "numeric", month: "short", timeZone: TZ }), fCortaLoc = self.fechaFmt("es-GT", { day: "numeric", month: "short" });
+    var fmtHora = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : fHora(d); };
     var fmtDia = function (v) {
       if (!v) return "";
       var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v);
-      return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: String(v).length <= 10 ? undefined : TZ });
+      return isNaN(d) ? String(v) : (String(v).length <= 10 ? fDiaLoc : fDiaTz)(d);
     };
     /* Listados: fecha corta sin día de la semana, sin cortes de línea dentro de la fecha. */
-    var fmtCorta = function (v) { if (!v) return ""; var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v); return isNaN(d) ? String(v) : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: String(v).length <= 10 ? undefined : TZ }).replace(/\.$/, "").replace(/\s/g, "\u00a0"); };
+    var fmtCorta = function (v) { if (!v) return ""; var d = new Date(String(v).length <= 10 ? String(v) + "T12:00:00" : v); return isNaN(d) ? String(v) : (String(v).length <= 10 ? fCortaLoc : fCortaTz)(d).replace(/\.$/, "").replace(/\s/g, "\u00a0"); };
     var fmtRango = function (x, y) { var a1 = fmtCorta(x), b1 = fmtCorta(y); return a1 ? a1 + (b1 ? "\u00a0–\u00a0" + b1 : "") : ""; };
     var enMin = function (iso) { var d = new Date(iso); if (isNaN(d)) return null; return Math.round((d - Date.now()) / 60000); };
 
@@ -6823,9 +6836,11 @@ class Component extends DCLogic {
     };
     /* Memo: el hilo ya mapeado se reutiliza mientras la lista (misma referencia) y sus dependencias no cambien. */
     var memoH = self._hiloMemo || (self._hiloMemo = new WeakMap()), taN = null, fcN = Object.keys(st.fotoCache || {}).length;
+    var fDiaDe = self.fechaFmt("es-GT", { timeZone: "America/Guatemala" }), diaHoy = null, diaAyer = null;
     var diaDe = function (t) {
-      if (!t) return ""; var f = function (x) { return new Date(x).toLocaleDateString("es-GT", { timeZone: "America/Guatemala" }); };
-      return f(t) === f(Date.now()) ? "Hoy" : f(t) === f(Date.now() - 864e5) ? "Ayer" : new Date(t).toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Guatemala" });
+      if (!t) return ""; var f = function (x) { return fDiaDe(new Date(x)); };
+      if (diaHoy === null) { diaHoy = f(Date.now()); diaAyer = f(Date.now() - 864e5); }
+      return f(t) === diaHoy ? "Hoy" : f(t) === diaAyer ? "Ayer" : fDiaTz(new Date(t));
     };
     /* Como iMessage: mensajes seguidos de la misma persona (< 5 min) se agrupan y solo el último lleva la hora; separador por día. */
     var agrupar = function (out) {
@@ -7990,7 +8005,7 @@ class Component extends DCLogic {
     var ctLinea = function (g) { var ib = inboxPor[g.key]; if (String(g.key).indexOf("wa:") !== 0 || !ib) return ""; return [ib.contacto_empresa, ib.contacto_rol].filter(function (x) { return x && String(x).trim(); }).join(" · "); };
     var nombreDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped"; };
     var iniDe = function (n) { return String(n || "H").trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H"; };
-    var haceDe = function (ts) { var mn = Math.max(0, Math.round((ahora - ts) / 60000)); return !ts ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 1440 ? "hace " + Math.floor(mn / 60) + " h" : new Date(ts).toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" }); };
+    var haceDe = function (ts) { var mn = Math.max(0, Math.round((ahora - ts) / 60000)); return !ts ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 1440 ? "hace " + Math.floor(mn / 60) + " h" : fCortaTz(new Date(ts)); };
     /* Tema en pocas palabras + desenlace: "No podía entrar · ya ingresó", "Pregunta por el parqueo · ALMA respondió". */
     var temaDe = function (t) { return self.fraseCaso(t) || (t.esCola ? "Mensaje nuevo del huésped" : t.humano || t.enviado ? "Conversación con el huésped" : "El huésped escribió"); };
     var PASADO = { "No lo dejan entrar al edificio": "No lo dejaban entrar al edificio · ya ingresó", "No puede entrar al apartamento": "No podía entrar · ya ingresó", "Problemas con el internet": "Problema con el internet · resuelto", "Sin agua caliente": "No tenía agua caliente · resuelto", "Tiene una duda, aún no la dice": "Tenía una duda · se le respondió" };
@@ -8180,7 +8195,7 @@ class Component extends DCLogic {
         var est = g.resuelto ? "res" : pend ? "pend" : (ib || t.enviado || t.humano) ? "resp" : "pend";
         var E = { pend: ["Pendiente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"], resp: ["Respondida", "rgba(59,102,145,.12)", "#3B6691", "#3B6691"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"] }[est];
         var tsG = g.ts || t.ts || 0, d = new Date(tsG), mn = Math.max(0, Math.round((Date.now() - tsG) / 60000));
-        var hora = !tsG || isNaN(d) ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 24 * 60 ? "hace " + Math.floor(mn / 60) + " h" : d.toLocaleDateString("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
+        var hora = !tsG || isNaN(d) ? "" : mn < 1 ? "ahora" : mn < 60 ? "hace " + mn + " min" : mn < 24 * 60 ? "hace " + Math.floor(mn / 60) + " h" : fCortaTz(d);
         /* Resumen de la conversación (tema + desenlace), nunca el texto del último mensaje. */
         var temaL = t.esAuto ? "" : self.fraseCaso(t), almaL = g.frags.some(function (c) { return c.esLog ? (c.enviado && !c.humano && !c.esAuto) : c.estadoCola === "respondido"; }), eqL = g.frags.some(function (c) { return !!c.humano; });
         var desL = t.clasificando ? t.clasTxt : t.esCola ? "ALMA lo está atendiendo" : est === "pend" ? "sin respuesta" : est === "res" ? (g.autoRes ? "resuelta sola" : "resuelta") : eqL ? "respondió el equipo" : almaL ? "ALMA respondió" : ib && ib.ultimo_de !== "guest" ? "le respondimos" : "";
@@ -8189,7 +8204,7 @@ class Component extends DCLogic {
         if (g.autoUlt && ib) { var txA = String(ib.ultimo_auto_texto || "").replace(/\s+/g, " ").trim(); prev = "Automático de Hospitable" + (txA ? ": " + (txA.length > 90 ? txA.slice(0, 89) + "…" : txA) : "") + (t.esAuto ? "" : prev ? " · " + prev : ""); if (est === "resp" && t.esAuto) E = ["Automático", "#F5F3F0", "#6F6867", "#938B8A"]; }
         var nombre = (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped";
         var propR = (ib && ib.propiedad) || t.propRaw || "", estR = t.estadia || (ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : "");
-        var hoyISO = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
+        var hoyISO = self.hoyISO();
         var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
         var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
         if (prio && verN === "Todo" && !st.convSolo && (est !== "pend" || !propR)) return null;
@@ -8699,7 +8714,7 @@ class Component extends DCLogic {
   /* ── helpers ───────────────────────────────────────────────── */
   /* Reloj fijo en Guatemala (UTC−6, sin horario de verano): nunca depende de la zona del dispositivo. */
   gtPartes(t) {
-    var p = {}; new Intl.DateTimeFormat("en-US", { timeZone: "America/Guatemala", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hour12: false })
+    var p = {}; (this._gtFmt || (this._gtFmt = new Intl.DateTimeFormat("en-US", { timeZone: "America/Guatemala", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hour12: false })))
       .formatToParts(t == null ? new Date() : new Date(t)).forEach(function (x) { p[x.type] = Number(x.value); });
     return { y: p.year, m: p.month - 1, d: p.day, h: p.hour % 24, min: p.minute };
   }
@@ -8707,7 +8722,7 @@ class Component extends DCLogic {
   /* "Hoy" = medianoche local de la fecha de Guatemala; las cuentas de días y getters locales quedan alineados con GT. */
   hoy() { var g = this.gtPartes(); return new Date(g.y, g.m, g.d); }
   masDias(n) { var d = this.hoy(); d.setDate(d.getDate() + n); return d; }
-  fmtFecha(d) { return d.toLocaleDateString("es-GT", { day: "numeric", month: "short" }); }
+  fmtFecha(d) { return this.fechaFmt("es-GT", { day: "numeric", month: "short" })(d); }
   fmtISO(d) { var p = function (n) { return (n < 10 ? "0" : "") + n; }; return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()); }
   /* Mismo espíritu que fuzzyMatchVendor de Epi: nombre, correo o teléfono. */
   matchVendor(txt) {

@@ -388,14 +388,21 @@
   function kebabToCamel(s) {
     return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
   }
+  /* Cada render convertía de nuevo miles de style="…" iguales: se recuerda el objeto de cada texto (nadie lo modifica;
+     React solo lo lee y, si es el mismo, ni lo compara). */
+  const cssMemo = /* @__PURE__ */ new Map();
   function cssToObj(css) {
-    const o = {};
+    let o = cssMemo.get(css);
+    if (o) return o;
+    o = {};
     for (const decl of css.split(";")) {
       const i = decl.indexOf(":");
       if (i < 0) continue;
       const prop = decl.slice(0, i).trim();
       o[prop.startsWith("--") ? prop : kebabToCamel(prop)] = decl.slice(i + 1).trim();
     }
+    if (cssMemo.size > 5000) cssMemo.clear();
+    cssMemo.set(css, o);
     return o;
   }
   function compileAttr(raw) {

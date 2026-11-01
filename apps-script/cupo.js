@@ -12,7 +12,11 @@
    · Niveles (T3): verde · fondo (≥ 60 %: se pausa lo de fondo) · crítico (≥ 85 %: también la voz y el chat de Alma).
      CUPO_NUNCA_ es lo que nunca se pausa. CUPO_PAUSAR = 0 apaga las pausas (solo cuenta). Aviso a Juan al cambiar de
      nivel y cuando la proyección del día pasa el 80 %, una vez por nivel por día.
-   · Página «Uso» (T4): acción «uso» del Hub, solo el administrador principal → alma/uso.html. */
+   · Página «Uso» (T4): acción «uso» del Hub, solo el administrador principal → alma/uso.html.
+   · Las otras apps (T2): Hola, Epi, Grow, Docs y Mi cuentan las suyas (su propio cupo.js) y las dan con la acción
+     «__cupo» y la llave del robot. cupoApps_ las lee cada 15 min (canal «Otras apps») y se suman al nivel, a la
+     proyección y a «Uso» como canales «App Hola», «App Epi»… (los canales «Hola» y «Epi» son lo que el Hub les pide).
+     Si una app no contesta, se ignora y «Uso» lo dice (sinDatos). */
 
 var CUPO_LIMITE_DEF_ = 20000;
 var CUPO_HOJA_ = 'GOOGLE_USO';
@@ -24,6 +28,8 @@ var CUPO_CANALES_ = [
   ['cerebro', 'Cerebro'], ['fondo', 'Mejoras y fondo'], ['login', 'Login'], ['hola', 'Hola'], ['epi', 'Epi'],
   ['apps', 'Otras apps'], ['ia', 'IA · Claude'], ['otros', 'Otros']
 ];
+/* Las otras apps: id en ACCESOS_APPS_ (Código.js) · nombre corto (aviso «Sin datos de: …») · canal en «Uso». */
+var CUPO_APPS_ = [['hola', 'Hola', 'App Hola'], ['epi', 'Epi', 'App Epi'], ['grow', 'Grow', 'App Grow'], ['docs', 'Docs', 'App Docs'], ['mi', 'Mi', 'App Mi']];
 /* Lo que NUNCA se pausa, aunque el cupo esté en crítico (decisión de Juan): entrar y comprobar la sesión, responder a
    huéspedes (Hospitable y WhatsApp), descargar documentos, Epi y sus automatizaciones, y las rutas y asignaciones de
    limpieza. cupoPermite_ siempre dice que sí a estos. */
@@ -178,7 +184,9 @@ function cupoNivel_() {
   var c = CacheService.getScriptCache(), h = null;
   try { h = JSON.parse(c.get('cupo_nivel') || 'null'); } catch (e) {}
   if (h) return (CUPO_MEMO_ = h);
-  var o = cupoCalcular_(cupoLeer_(Date.now() - 24 * 3600000));
+  var desde = Date.now() - 24 * 3600000, horas = cupoLeer_(desde);
+  cupoSumarApps_(horas, desde);   // el cupo es de la cuenta: también lo de Hola, Epi, Grow, Docs y Mi
+  var o = cupoCalcular_(horas);
   try { c.put('cupo_nivel', JSON.stringify(o), 300); } catch (e) {}
   CUPO_MEMO_ = o;
   try { cupoAvisarSiToca_(o); } catch (e) { console.warn('cupoAvisarSiToca_: ' + e); }
@@ -236,7 +244,7 @@ function cupoAvisar_(texto, critico) {
 /* ── Página «Uso» (alma/uso.html) ── solo el administrador principal. */
 function cupoUso_(ses) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal puede ver el uso.' };
-  var ahora = Date.now(), horas = cupoLeer_(ahora - 7 * 86400000), o = cupoCalcular_(horas);
+  var ahora = Date.now(), horas = cupoLeer_(ahora - 7 * 86400000), sinDatos = cupoSumarApps_(horas, ahora - 7 * 86400000), o = cupoCalcular_(horas);
   var porCanal = function (desde) {
     var m = {}; Object.keys(horas).forEach(function (t) { if (Number(t) >= desde) Object.keys(horas[t]).forEach(function (k) { m[k] = (m[k] || 0) + horas[t][k]; }); });
     return Object.keys(m).map(function (k) { return { canal: k, llamadas: m[k] }; }).sort(function (a, b) { return b.llamadas - a.llamadas; });
@@ -246,7 +254,7 @@ function cupoUso_(ses) {
   return { ok: true, actualizado: new Date(ahora).toISOString(),
     hoy: { usado: o.usado, limite: o.limite, pct: o.pctHoy, restante: Math.max(0, o.limite - o.usado), porHora: o.porHora, ritmo: o.ritmo, proyeccionFinDia: o.proyeccionFinDia,
       proyeccionPct: o.proyeccion, horaAgotado: o.horaAgotado, alcanza: o.alcanza, nivel: o.nivel, usado24: o.usado24, pct24: o.pct },
-    porHora: lineaHoy, canales: { hoy: porCanal(o.hoyIni), semana: porCanal(ahora - 7 * 86400000) }, ia: cupoIA_(o.hoyIni),
+    porHora: lineaHoy, canales: { hoy: porCanal(o.hoyIni), semana: porCanal(ahora - 7 * 86400000) }, ia: cupoIA_(o.hoyIni), sinDatos: sinDatos,
     niveles: [
       { nivel: 'verde', desde: 0, texto: 'Todo corre normal.' },
       { nivel: 'fondo', desde: CUPO_FONDO_PCT_, texto: 'Se pausa lo de fondo: cerebro, mejoras y sincronizaciones.' },
@@ -254,6 +262,45 @@ function cupoUso_(ses) {
     ],
     nunca: 'Nunca se pausa: entrar, responder a huéspedes, documentos, Epi y las rutas de limpieza.',
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0' };
+}
+/* ── Las otras apps ── { horas: { inicio_ms: { 'App Hola': n, … } }, sinDatos: ['Grow', …] }. Cada app guarda 48 h.
+   Cacheado 15 min (también si alguna no contestó: no se reintenta en cada llamada). */
+function cupoApps_() {
+  var c = CacheService.getScriptCache(), h = null;
+  try { h = JSON.parse(c.get('cupo_apps') || 'null'); } catch (e) {}
+  if (h) return h;
+  var out = { horas: {}, sinDatos: [] }, llave = llaveRobot_(), rs = [];
+  if (llave) {
+    try {
+      rs = ufAll_(CUPO_APPS_.map(function (a) {
+        return { url: ACCESOS_APPS_[a[0]](), method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: '__cupo', token: llave }) };
+      }), 'Otras apps');
+    } catch (e) { console.warn('cupoApps_: ' + e); rs = []; }
+  }
+  CUPO_APPS_.forEach(function (a, i) {
+    var j = null;
+    try { j = rs[i] && rs[i].getResponseCode() === 200 ? JSON.parse(rs[i].getContentText() || '{}') : null; } catch (e) { j = null; }
+    if (!j || !j.ok || !j.horas || typeof j.horas !== 'object') { out.sinDatos.push(a[1]); return; }
+    Object.keys(j.horas).forEach(function (k) {
+      var n = Number(j.horas[k]) || 0; if (!(n > 0) || !/^\d{10}$/.test(k)) return;
+      var t; try { t = Utilities.parseDate(k, CFG.TZ, 'yyyyMMddHH').getTime(); } catch (e) { return; }
+      var H = out.horas[t] = out.horas[t] || {}; H[a[2]] = (H[a[2]] || 0) + n;
+    });
+  });
+  try { c.put('cupo_apps', JSON.stringify(out), 900); } catch (e) {}
+  return out;
+}
+/* Suma lo de las otras apps a «horas» (de cupoLeer_) desde «desde» (ms). Devuelve las que no contestaron. */
+function cupoSumarApps_(horas, desde) {
+  try {
+    var A = cupoApps_(), ini = cupoInicioHora_(desde);
+    Object.keys(A.horas || {}).forEach(function (t) {
+      if (Number(t) < ini) return;
+      var H = horas[t] = horas[t] || {};
+      Object.keys(A.horas[t]).forEach(function (k) { H[k] = (H[k] || 0) + A.horas[t][k]; });
+    });
+    return A.sinDatos || [];
+  } catch (e) { console.warn('cupoSumarApps_: ' + e); return CUPO_APPS_.map(function (a) { return a[1]; }); }
 }
 /* La IA (hoja IA_USO, la misma de usoIA y del reporte mensual): dólares y tokens por app · función, hoy y 7 días. */
 function cupoIA_(hoyIni) {

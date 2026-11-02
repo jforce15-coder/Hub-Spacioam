@@ -277,6 +277,71 @@
   .entrar .volver { background: none !important; box-shadow: none !important; height: 36px !important; color: rgba(255,253,251,.9) !important; font-weight: 500 !important; font-size: 13px !important; }
   #gsi { display: flex; justify-content: center; min-height: 44px; }
   #gsi[hidden] { display: none; }
+
+  /* ── Botón del avión (issue #376, apps-script/viajes.js): el mismo botón redondo de Ajustes, centrado entre la roca y
+     «Hola, Juan». Solo con un vuelo cerca (7 días antes del primer tramo hasta 5 días después del último). ── */
+  .ajustes.avion { right: auto; left: 50%; top: var(--vj-top, 30vh); margin-left: -20px; }
+  .ajustes.avion::before { content: ""; position: absolute; inset: -2px; border-radius: 50%; }   /* 44 px para el dedo */
+  .ajustes.avion.alerta::after { content: ""; position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
+  .ajustes.avion[hidden] { display: none; }
+  body.orbita-on .ajustes.avion { opacity: 0 !important; pointer-events: none !important; }
+  .panel.viaje { max-height: 92vh; padding-left: 14px; padding-right: 14px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; z-index: 2147483250; }
+  .panel.viaje h2 { margin-bottom: 10px; }
+  #vj-velo { z-index: 2147483240; }
+  .vj-card { background: #fff; border-radius: 24px; padding: 16px 16px 14px; margin-bottom: 12px; box-shadow: 0 22px 44px -30px rgba(70,50,40,.45); }
+  .vj-tag { display: flex; align-items: center; gap: 8px; font: 700 10px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #A39B93; }
+  .vj-tag .p { width: 8px; height: 8px; border-radius: 50%; background: #E9826A; flex: none; }
+  .vj-tag.foco { color: #C9705E; }
+  .vj-ruta { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+  .vj-ruta .a { min-width: 0; }
+  .vj-ruta .a:last-child { text-align: right; }
+  .vj-ruta b { display: block; font: 400 40px/1 Valky, Georgia, serif; color: #3E3F3F; letter-spacing: .01em; }
+  .vj-ruta small { display: block; margin-top: 4px; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vj-ruta .h { display: block; margin-top: 6px; font: 600 22px Montserrat, system-ui, sans-serif; color: #3E3F3F; font-variant-numeric: tabular-nums; }
+  .vj-ruta svg { flex: none; width: 26px; height: 26px; color: #E9826A; }
+  .vj-vuelo { margin-top: 10px; font: 600 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; }
+  .vj-vuelo span { font-weight: 500; color: #8A8580; }
+  .vj-datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .vj-datos div { background: #F6F2EE; border-radius: 14px; padding: 9px 10px; min-width: 0; }
+  .vj-datos small { display: block; font: 700 9px Montserrat, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #A39B93; }
+  .vj-datos b { display: block; margin-top: 3px; font: 600 17px Montserrat, system-ui, sans-serif; color: #3E3F3F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vj-nota { margin: 8px 2px 0; font: 500 12px/1.4 Montserrat, system-ui, sans-serif; color: #8A8580; }
+  .vj-llegar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(233,130,106,.12); color: #A9543F;
+    font: 600 14.5px/1.3 Montserrat, system-ui, sans-serif; }
+  .vj-llegar svg { width: 20px; height: 20px; flex: none; }
+  .vj-falta { margin-top: 8px; font: 600 13px Montserrat, system-ui, sans-serif; color: #C9705E; font-variant-numeric: tabular-nums; }
+  .vj-fila { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; box-sizing: border-box; background: rgba(255,255,255,.8); border-radius: 18px; margin-bottom: 10px; }
+  .vj-fila .et { flex: 1; min-width: 0; font: 500 14px/1.35 Montserrat, system-ui, sans-serif; color: #3E3F3F; }
+  .vj-fila .et small { display: block; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; margin-top: 2px; }
+  .vj-btn { flex: none; min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: #3E3F3F; color: #FAFAFA; font: 600 13px Montserrat, system-ui, sans-serif;
+    cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
+  .vj-btn.sec { background: rgba(62,63,63,.08); color: #3E3F3F; }
+  .vj-btn.dur { background: #E9826A; color: #fff; }
+  .vj-conf { width: 100%; border: 0; text-align: left; cursor: pointer; font: inherit; }
+  .vj-conf b { font: 600 18px Montserrat, system-ui, sans-serif; letter-spacing: .12em; }
+  .vj-pase { background: #fff; border-radius: 18px; padding: 12px; margin-bottom: 10px; text-align: center; }
+  .vj-pase img { display: block; width: 100%; height: auto; border-radius: 10px; background: #fff; }
+  .vj-pase .vj-btn { margin-top: 10px; }
+  .vj-it { margin-top: 6px; }
+  .vj-tray { background: rgba(255,255,255,.7); border-radius: 18px; margin-bottom: 10px; overflow: hidden; }
+  .vj-tray summary { list-style: none; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 14px; cursor: pointer; font: 600 14px Montserrat, system-ui, sans-serif; color: #3E3F3F; }
+  .vj-tray summary::-webkit-details-marker { display: none; }
+  .vj-tray summary span { flex: 1; min-width: 0; }
+  .vj-tray summary small { display: block; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; margin-top: 2px; }
+  .vj-tray summary::after { content: ""; width: 8px; height: 8px; border: solid #A39B93; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); margin: -4px 4px 0 0; transition: transform .3s ease; flex: none; }
+  .vj-tray[open] summary::after { transform: rotate(-135deg); margin-top: 4px; }
+  .vj-dia { padding: 4px 14px 2px; font: 700 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #A39B93; }
+  .vj-tr { display: grid; grid-template-columns: 56px 1fr auto; gap: 4px 10px; align-items: baseline; padding: 10px 14px; border-top: .5px solid rgba(62,63,63,.1); }
+  .vj-tr .hs { font: 600 15px Montserrat, system-ui, sans-serif; color: #3E3F3F; font-variant-numeric: tabular-nums; }
+  .vj-tr .hs small { display: block; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; }
+  .vj-tr .rt { min-width: 0; font: 600 14px Montserrat, system-ui, sans-serif; color: #3E3F3F; }
+  .vj-tr .rt small { display: block; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vj-tr .vu { font: 600 11.5px Montserrat, system-ui, sans-serif; color: #8A8580; white-space: nowrap; }
+  .vj-tr.ya { opacity: .45; }
+  .vj-tr.ahora .rt::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #E9826A; margin: 0 6px 1px 0; }
+  .vj-esc { padding: 0 14px 8px 80px; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
+  .vj-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 4px 4px; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #8A8580; }
+  .vj-pie button { min-height: 44px; border: 0; background: none; color: #8A8580; font: 600 12px Montserrat, system-ui, sans-serif; cursor: pointer; padding: 0 4px; }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
 <link rel="stylesheet" href="../ds/movimiento.css">
@@ -287,6 +352,7 @@
 <button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg></button>
+<button type="button" class="ajustes avion" id="b-avion" aria-label="Tu viaje" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
@@ -298,6 +364,8 @@
   <div class="cuerpo" id="a-cuerpo"></div>
 </div>
 <div class="velo" id="velo"></div>
+<div class="velo" id="vj-velo"></div>
+<div class="panel viaje" id="vj-panel" role="dialog" aria-label="Tu viaje" aria-hidden="true"><div class="asa"></div><h2>Tu viaje</h2><div id="vj-cu"></div></div>
 <div class="panel" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
   <div class="asa"></div>
   <h2>Ajustes</h2>
@@ -1209,6 +1277,228 @@
     if (crearPass && pw.length < 6) { error("La contraseña necesita al menos 6 caracteres.", ["i-pass"]); return; }
     entrarCon(crearPass ? SAAuth.setInitialPassword(em, pw) : SAAuth.login(em, pw), "correo");
   };
+})();
+</script>
+<script>
+/* ── Botón del avión y «Tu viaje» (issue #376, apps-script/viajes.js) ─────────────────────────────────────────────
+   Bloque aparte a propósito: no toca el arranque de Pendientes ni el de las áreas. Se enciende solo cuando hay sesión.
+   · La foto del viaje (sa_foto:alma:viajes:<correo>, se borra al cerrar sesión con las demás) hace que el botón aparezca
+     al instante; la fresca llega por detrás (el servidor revisa el correo como mucho cada 30 min; «Actualizar», cada minuto).
+     La foto no lleva el pase de abordar: solo el itinerario y la confirmación (sirve sin señal en el aeropuerto).
+   · Todo lo que depende de la hora se decide aquí con el reloj del teléfono: el próximo tramo, si el check-in ya abrió y
+     la vista centrada (2 h antes de salir hasta aterrizar). Las horas se muestran en la hora local de cada aeropuerto. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var H = 36e5, DIA = 864e5, VJ = { datos: null, pases: {}, cargando: null, reloj: 0, abierto: false };
+  var DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"], MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  var MESES_L = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function yo() {
+    try { var s = ses(); if (!s) return ""; var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
+      var j = JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4))))) || {}; return (j.p && j.p.email) || j.e || "";
+    } catch (e) { return ""; }
+  }
+  function fotoK() { var e = yo(); return e ? "sa_foto:alma:1:viajes:" + e : ""; }
+  function fotoLeer() { try { var k = fotoK(), f = k && JSON.parse(localStorage.getItem(k) || "null"); return f && f.t && Date.now() - f.t < DIA && f.datos ? f.datos : null; } catch (e) { return null; } }
+  function fotoGuardar(r) { try { var k = fotoK(); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), datos: r })); } catch (e) {} }
+  /* El Hub, con la misma sesión y destino que usa ALMA (alma-client.js), sin tocar ese archivo. */
+  function hub(accion, extra) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    var ctl = typeof AbortController !== "undefined" ? new AbortController() : null, reloj = setTimeout(function () { if (ctl) ctl.abort(); }, 90000);
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", signal: ctl ? ctl.signal : undefined,
+      body: JSON.stringify(Object.assign({ hub: 1, action: accion, token: d.token, session: ses() }, extra || {})) })
+      .then(function (r) { return r.json(); }).then(function (j) { clearTimeout(reloj); if (window.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); return j; })
+      .catch(function (e) { clearTimeout(reloj); return { ok: false, error: "red" }; });
+  }
+
+  /* ── Horas: «2026-11-03T05:55:00+01:00» → lo local del aeropuerto, tal cual ── */
+  function ms(iso) { return Date.parse(iso); }
+  function hora(iso) { var m = /T(\d{2}):(\d{2})/.exec(iso || ""); return m ? Number(m[1]) + ":" + m[2] : ""; }
+  function fecha(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? new Date(Date.UTC(+m[1], m[2] - 1, +m[3])) : null; }
+  function diaCorto(iso) { var d = fecha(iso); return d ? DIAS[d.getUTCDay()].slice(0, 3) + " " + d.getUTCDate() + " " + MESES[d.getUTCMonth()] : ""; }
+  function diaLargo(iso) { var d = fecha(iso); return d ? DIAS[d.getUTCDay()] + " " + d.getUTCDate() + " de " + MESES_L[d.getUTCMonth()] : ""; }
+  function diaRel(iso) {   // «hoy», «mañana» o «mar 3 nov», contra la fecha del teléfono
+    var d = fecha(iso); if (!d) return ""; var h = new Date(), hoy = Date.UTC(h.getFullYear(), h.getMonth(), h.getDate()), n = Math.round((d - hoy) / DIA);
+    return n === 0 ? "hoy" : n === 1 ? "mañana" : n === -1 ? "ayer" : diaCorto(iso);
+  }
+  /* Un instante en la hora local de otro ISO (mismo desfase): para «el check-in abre a las …» */
+  function enLocal(isoRef, t) {
+    var m = /([+-])(\d{2}):?(\d{2})$/.exec(isoRef || ""), off = m ? (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +m[3]) : 0;
+    return new Date(t + off * 6e4).toISOString().slice(0, 19);
+  }
+  function falta(t) {
+    var m = Math.max(0, Math.round((t - Date.now()) / 6e4)); if (m < 60) return m + " min";
+    var h = Math.floor(m / 60), r = m % 60; return h < 48 ? h + " h" + (r ? " " + r + " min" : "") : Math.round(h / 24) + " días";
+  }
+  function dura(a, b) { var m = Math.round((ms(b) - ms(a)) / 6e4), h = Math.floor(m / 60); return (h ? h + " h " : "") + (m % 60 ? (m % 60) + " min" : "").trim(); }
+
+  /* ── ¿Se ve el botón? Desde 7 días antes del primer tramo hasta 5 días después del último. ── */
+  function vigentes(d) {
+    var t = Date.now();
+    return ((d && d.viajes) || []).filter(function (v) { return v.tramos && v.tramos.length && t >= ms(v.desde) - 7 * DIA && t <= ms(v.hasta) + 5 * DIA; });
+  }
+  /* El próximo tramo (o el que va en el aire) y si toca la vista centrada. */
+  function proximo(vs) {
+    var t = Date.now(), p = null;
+    vs.forEach(function (v) { v.tramos.forEach(function (x, i) { if (ms(x.llega) > t && (!p || ms(x.sale) < ms(p.t.sale))) p = { v: v, i: i, t: x }; }); });
+    if (p) { p.foco = t >= ms(p.t.sale) - 2 * H; p.aire = t >= ms(p.t.sale); p.checkin = t >= ms(p.t.checkin_abre); }
+    return p;
+  }
+
+  function ubicar() {   // a mitad de camino entre el saludo y la roca
+    var b = $("b-avion"), hola = $("hola"), roca = document.querySelector("#sa-nav-root .san-rock");
+    if (!b) return;
+    var hb = hola ? hola.getBoundingClientRect() : null, rr = roca ? roca.getBoundingClientRect() : null;
+    var arriba = hb && hb.height ? hb.bottom : 110, abajo = rr && rr.height ? rr.top : window.innerHeight * 0.42;
+    document.documentElement.style.setProperty("--vj-top", Math.round(Math.max(arriba + 2, (arriba + abajo) / 2 - 20)) + "px");   // con poco espacio, pegado bajo el saludo
+  }
+  function pintarBoton() {
+    var b = $("b-avion"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
+    if (!vs.length) { b.classList.remove("on"); b.hidden = true; return; }
+    ubicar(); setTimeout(ubicar, 1500); setTimeout(ubicar, 4000);   // la roca termina de llegar a su lugar
+    b.hidden = false; b.classList.toggle("alerta", !!(p && (p.foco || (p.checkin && ms(p.t.sale) - Date.now() < 24 * H))));
+    requestAnimationFrame(function () { b.classList.add("on"); });
+    if (VJ.abierto) pintar();
+  }
+  function cargar(forzar) {
+    if (!ses()) return Promise.resolve(null);
+    if (VJ.cargando) return VJ.cargando;
+    VJ.cargando = hub("viajes", forzar ? { forzar: 1 } : {}).then(function (r) {
+      VJ.cargando = null;
+      if (r && r.ok) { VJ.datos = r; VJ.datos.recibido = Date.now(); fotoGuardar(r); pintarBoton(); }
+      else if (VJ.abierto) pintar(r && r.error);
+      return r;
+    });
+    if (VJ.abierto) pintar();
+    return VJ.cargando;
+  }
+
+  /* ── La hoja «Tu viaje» ── */
+  var IC_AVION = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h17"/><path d="M14 6l6 6-6 6"/></svg>';
+  var IC_RELOJ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function nombreLugar(l) { return l.ciudad ? l.ciudad.toLowerCase().replace(/(^|[\s-])(\S)/g, function (a, s, c) { return s + c.toUpperCase(); }) : l.iata; }   // «SEATTLE» → «Seattle»
+  function tarjeta(p) {
+    var t = p.t, v = p.v, tag = p.aire ? "En el aire" : p.foco ? "Tu vuelo de ahora" : "Próximo vuelo · " + diaRel(t.sale);
+    var term = t.origen.terminal, puerta = t.puerta;
+    var h = '<div class="vj-card"><div class="vj-tag' + (p.foco ? " foco" : "") + '"><span class="p"></span>' + esc(tag) + "</div>" +
+      '<div class="vj-ruta"><div class="a"><b>' + esc(t.origen.iata) + "</b><small>" + esc(nombreLugar(t.origen)) + '</small><span class="h">' + hora(t.sale) + "</span></div>" + IC_AVION +
+      '<div class="a"><b>' + esc(t.destino.iata) + "</b><small>" + esc(nombreLugar(t.destino)) + '</small><span class="h">' + hora(t.llega) + (t.llega.slice(0, 10) !== t.sale.slice(0, 10) ? '<sup style="font-size:11px"> +1</sup>' : "") + "</span></div></div>" +
+      '<div class="vj-vuelo">' + esc(t.vuelo) + (t.opera ? " <span>· opera " + esc(t.opera) + "</span>" : "") + " <span>· " + esc(diaCorto(t.sale)) + "</span></div>" +
+      '<div class="vj-datos"><div><small>Terminal</small><b>' + esc(term || "—") + "</b></div><div><small>Puerta</small><b>" + esc(puerta || "—") + "</b></div><div><small>Asiento</small><b>" + esc(t.asiento || "—") + "</b></div></div>";
+    if (!term || !puerta) h += '<p class="vj-nota">' + (!term && !puerta ? "La terminal y la puerta se confirman al hacer check-in." : !puerta ? "La puerta se confirma al hacer check-in." : "La terminal se confirma al hacer check-in.") + "</p>";
+    var primero = v.tramos.filter(function (x) { return x.trayecto === t.trayecto; })[0] === t;   // en una escala ya estás en el aeropuerto
+    if (!p.aire && primero && Date.now() < ms(t.llegar)) h += '<div class="vj-llegar">' + IC_RELOJ + "<span>Llega al aeropuerto a las " + hora(t.llegar) + (diaRel(t.llegar) !== "hoy" ? " (" + esc(diaRel(t.llegar)) + ")" : "") + "</span></div>";
+    h += '<div class="vj-falta" id="vj-falta">' + (p.aire ? "Aterriza en " + falta(ms(t.llega)) : "Sale en " + falta(ms(t.sale))) + "</div></div>";
+    /* check-in */
+    var ci = "";
+    if (!p.aire) {
+      var abre = ms(t.checkin_abre), url = v.checkin_url;
+      ci = '<div class="vj-fila"><span class="et">' + (p.checkin ? "El check-in está abierto" : "El check-in abre " + esc(diaRel(enLocal(t.sale, abre))) + " a las " + hora(enLocal(t.sale, abre)) +
+        "<small>Hora de " + esc(nombreLugar(v.tramos.filter(function (x) { return x.trayecto === t.trayecto; })[0].origen)) + "</small>") + "</span>" +
+        (url ? '<a class="vj-btn' + (p.checkin ? " dur" : " sec") + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + (p.checkin ? "Hacer check-in" : "Ver en " + esc((v.aerolinea || "la aerolínea").split(" ")[0])) + "</a>" : "") + "</div>";
+    }
+    /* el pase */
+    var pases = v.pases || [], ps = "";
+    if (pases.length) ps = pases.slice(-1).map(function (x) { return '<div class="vj-pase" data-pase="' + esc(x.id) + '"><div class="sa-esq" aria-label="Cargando tu pase"><i class="g"></i></div></div>'; }).join("");
+    else ps = '<div class="vj-fila"><span class="et">Tu pase de abordar<small>Aparece aquí cuando llegue por correo. Mientras, está en la app de ' + esc((v.aerolinea || "la aerolínea").split(" ")[0]) + ".</small></span></div>";
+    /* cerca de la hora (vista centrada), el pase va primero, listo para escanear */
+    h += p.foco ? ps + ci : ci + ps;
+    /* confirmación */
+    if (v.confirmacion) h += '<button type="button" class="vj-fila vj-conf" id="vj-conf" data-c="' + esc(v.confirmacion) + '"><span class="et">Confirmación<small id="vj-conf-n">Tócala para copiarla</small></span><b>' + esc(v.confirmacion) + "</b></button>";
+    return h;
+  }
+  function itinerario(vs, p) {
+    var t0 = Date.now(), h = '<div class="tit-g">Itinerario</div><div class="vj-it">';
+    vs.forEach(function (v) {
+      var grupos = []; v.tramos.forEach(function (x) { (grupos[x.trayecto] = grupos[x.trayecto] || []).push(x); });
+      grupos.forEach(function (g, gi) {
+        if (!g) return;
+        var abierto = !p.foco && p.v.id === v.id && p.t.trayecto === gi, a = g[0], z = g[g.length - 1];
+        h += '<details class="vj-tray"' + (abierto ? " open" : "") + "><summary><span>" + esc(nombreLugar(a.origen)) + " → " + esc(nombreLugar(z.destino)) +
+          "<small>" + esc(diaCorto(a.sale)) + " · " + g.length + (g.length === 1 ? " vuelo" : " vuelos") + (v.confirmacion ? " · " + esc(v.confirmacion) : "") + "</small></span></summary>";
+        var dia = "";
+        g.forEach(function (x, i) {
+          if (x.sale.slice(0, 10) !== dia) { dia = x.sale.slice(0, 10); h += '<div class="vj-dia">' + esc(diaLargo(x.sale)) + "</div>"; }
+          var ya = ms(x.llega) <= t0, ahora = p.t === x;
+          h += '<div class="vj-tr' + (ya ? " ya" : "") + (ahora ? " ahora" : "") + '"><span class="hs">' + hora(x.sale) + "<small>" + hora(x.llega) + (x.llega.slice(0, 10) !== x.sale.slice(0, 10) ? " +1" : "") + "</small></span>" +
+            '<span class="rt">' + esc(x.origen.iata) + " → " + esc(x.destino.iata) + "<small>" + esc(nombreLugar(x.origen)) + " → " + esc(nombreLugar(x.destino)) + "</small></span>" +
+            '<span class="vu">' + esc(x.vuelo) + "</span></div>";
+          var sig = g[i + 1]; if (sig) h += '<div class="vj-esc">Conexión de ' + esc(dura(x.llega, sig.sale)) + " en " + esc(nombreLugar(x.destino)) + "</div>";
+        });
+        h += "</details>";
+      });
+    });
+    return h + "</div>";
+  }
+  function pintar(error) {
+    var cu = $("vj-cu"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
+    if (!VJ.datos && VJ.cargando) { cu.innerHTML = '<div class="sa-esq" aria-label="Cargando tu viaje"><i class="g"></i><i class="c"></i><i class="c"></i></div>'; return; }
+    if (!p) { cu.innerHTML = '<p class="vacio">' + esc(error ? "No pude traer tu viaje ahora. Inténtalo en un rato." : "No tienes vuelos en los próximos días.") + "</p>"; return; }
+    var ab = {}; [].forEach.call(cu.querySelectorAll("details.vj-tray"), function (d, i) { ab[i] = d.open; });   // lo que abriste se queda abierto al repintar
+    var hace = VJ.datos.recibido ? Math.round((Date.now() - VJ.datos.recibido) / 6e4) : null;
+    cu.innerHTML = tarjeta(p) + itinerario(vs, p) +
+      '<div class="vj-pie"><span>' + (VJ.cargando ? "Actualizando…" : VJ.datos.pausa ? esc(VJ.datos.pausa) : hace == null ? "Del teléfono · actualizando…" : hace < 1 ? "Al día" : "Actualizado hace " + falta(Date.now() + hace * 6e4)) +
+      '</span><button type="button" id="vj-act">Actualizar</button></div>';
+    if (VJ.repintado) [].forEach.call(cu.querySelectorAll("details.vj-tray"), function (d, i) { if (i in ab) d.open = ab[i]; });
+    VJ.repintado = true;
+    $("vj-act").onclick = function () { cargar(true); };
+    var c = $("vj-conf"); if (c) c.onclick = function () {
+      var t = c.getAttribute("data-c"), listo = function () { $("vj-conf-n").textContent = "Copiada"; setTimeout(function () { var n = $("vj-conf-n"); if (n) n.textContent = "Tócala para copiarla"; }, 1800); };
+      try { navigator.clipboard.writeText(t).then(listo, listo); } catch (e) { listo(); }
+    };
+    [].forEach.call(cu.querySelectorAll(".vj-pase"), pase);
+  }
+  /* El pase: la imagen (o la primera página del PDF como imagen) se pide al abrir y se queda en memoria; no va a la foto. */
+  function pase(el) {
+    var id = el.getAttribute("data-pase"), r = VJ.pases[id];
+    var poner = function (r) {
+      if (!r || !r.ok) { el.innerHTML = '<p class="vj-nota">No pude abrir tu pase ahora.</p>'; return; }
+      var url = "data:" + r.mime + ";base64," + r.b64;
+      if (r.tipo === "imagen") el.innerHTML = '<img alt="Pase de abordar" src="' + url + '">' + (r.hay_pdf ? '<button type="button" class="vj-btn sec" data-pdf="1">Abrir el PDF</button>' : "");
+      else if (r.tipo === "pkpass") el.innerHTML = '<p class="vj-nota" style="margin-top:0">Tu pase de Wallet</p><a class="vj-btn dur" href="' + url + '" download="' + esc(r.nombre || "pase.pkpass") + '">Añadir a Wallet</a>';
+      else el.innerHTML = '<p class="vj-nota" style="margin-top:0">' + esc(r.nombre || "Pase de abordar") + '</p><button type="button" class="vj-btn dur" data-pdf="1">Abrir pase</button>';
+      var b = el.querySelector("[data-pdf]"); if (b) b.onclick = function () { abrirPdf(id, r); };
+    };
+    if (r) return poner(r);
+    hub("viajePase", { id: id }).then(function (x) { if (x && x.ok) VJ.pases[id] = x; poner(x); });
+  }
+  function abrirPdf(id, r) {
+    var ir = function (x) { if (!x || !x.ok) return; var bin = atob(x.b64), a = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+      window.open(URL.createObjectURL(new Blob([a], { type: "application/pdf" })), "_blank"); };
+    if (r.tipo === "pdf") return ir(r);
+    hub("viajePase", { id: id, pdf: 1 }).then(ir);
+  }
+  function abrir() {
+    VJ.abierto = true; VJ.repintado = false; pintar();
+    $("vj-velo").classList.add("on"); $("vj-panel").classList.add("on"); $("vj-panel").setAttribute("aria-hidden", "false"); $("vj-panel").scrollTop = 0;
+    clearInterval(VJ.reloj); VJ.reloj = setInterval(function () { var f = $("vj-falta"), p = proximo(vigentes(VJ.datos)); if (f && p) f.textContent = p.aire ? "Aterriza en " + falta(ms(p.t.llega)) : "Sale en " + falta(ms(p.t.sale)); }, 30000);
+    if (!VJ.datos || !VJ.datos.recibido || Date.now() - VJ.datos.recibido > 5 * 6e4) cargar(false);
+  }
+  function cerrar() { VJ.abierto = false; clearInterval(VJ.reloj); $("vj-velo").classList.remove("on"); $("vj-panel").classList.remove("on"); $("vj-panel").setAttribute("aria-hidden", "true"); }
+  $("b-avion").onclick = abrir;
+  $("vj-velo").onclick = cerrar;
+  (function () {   // deslizar hacia abajo cierra, como Ajustes
+    var y0 = null, pn = $("vj-panel");
+    pn.addEventListener("touchstart", function (e) { y0 = pn.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+    pn.addEventListener("touchmove", function (e) { if (y0 == null) return; var dy = e.touches[0].clientY - y0; if (dy > 0) { pn.style.transition = "none"; pn.style.transform = "translate(-50%," + dy + "px)"; } }, { passive: true });
+    pn.addEventListener("touchend", function (e) { if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null; pn.style.transition = ""; pn.style.transform = ""; if (dy > 90) cerrar(); });
+  })();
+
+  /* Arranque: con sesión, la foto al instante y la fresca por detrás; otra vez al volver a la app (si pasaron 10 min). */
+  var empezado = false;
+  function iniciar() {
+    if (empezado || !ses()) return; empezado = true;
+    var f = fotoLeer(); if (f) { VJ.datos = f; pintarBoton(); }
+    cargar(false);
+  }
+  setTimeout(iniciar, 1200);
+  try { new MutationObserver(function () { iniciar(); setTimeout(pintarBoton, 1000); }).observe($("hola"), { childList: true, characterData: true, subtree: true }); } catch (e) {}
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && empezado && (!VJ.datos || !VJ.datos.recibido || Date.now() - VJ.datos.recibido > 10 * 6e4)) cargar(false); else if (!document.hidden && VJ.datos) pintarBoton(); });
+  window.addEventListener("resize", function () { if (!$("b-avion").hidden) ubicar(); });
+  window.SAViajes = { abrir: abrir, cargar: cargar };   // para las pruebas y para que Alma lo abra algún día
 })();
 </script>
 </body>

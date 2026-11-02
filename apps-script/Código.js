@@ -2048,7 +2048,8 @@ const USO_CAB_ = ['ts', 'app', 'funcion', 'detalle', 'ref', 'modelo', 'input', '
 const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · decidir ruta', redactar_: 'Redactar respuestas', redactarVerificado_: 'Redactar respuestas', verificar_: 'Control de calidad',
   inquiryResponder_: 'Consultas (inquiries)', revisarSinRespuesta_: 'Revisar «sin respuesta»', aprender: 'Auto mejora · comparar con el equipo', compararRespuestas_: 'Auto mejora · comparar con el equipo',
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
-  opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones' };
+  opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
+  viajeExtraer_: 'Viajes · leer el itinerario' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];
@@ -3220,6 +3221,8 @@ function hubApi_(body) {
       case 'opLista': return json_(chatLista_(ses));
       case 'calle': return json_(calle_(ses, body));                                       // modo calle: una frase tras «Alma» → { hablar, conversar, audio? } (calle.js)
       case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: { usos: [...] } → filas de uso en ALMA_CALLE_USO (calle.js)
+      case 'viajes': return json_(viajes_(ses, body));                                     // botón del avión: { forzar? } → el viaje cercano de tu correo (viajes.js)
+      case 'viajePase': return json_(viajePase_(ses, body));                               // botón del avión: { id, pdf? } → el pase de abordar (imagen, PDF o Wallet)
       case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'dsPropuestas': return json_(dsPropuestas_());

@@ -1998,10 +1998,16 @@ function redactarVerificado_(ctx) {
 /* Imagen para Claude: URL pública (Hospitable) o foto de WhatsApp guardada en Drive (se envía en base64). */
 /* Chat de Alma (app y web apps): una foto que manda alguien del equipo. Alma (ElevenLabs) no ve imágenes: aquí se describe
    con todo lo útil (texto visible, números, problema, lugar) y Alma recibe esa descripción. Solo con sesión del equipo. */
-function almaFoto_(ses, foto, captura) {
+function almaFoto_(ses, foto, captura, voz) {
   if (!ses || !ses.email) return { ok: false, error: 'session' };
   foto = String(foto || ''); if (!/^data:image\/(jpeg|png|webp);base64,/.test(foto) || foto.length > 6000000) return { ok: false, error: 'foto' };
   /* captura: la pantalla del navegador de la app de Alma (triple toque a Alma): importa el texto, no la «foto» */
+  /* voz: la captura de los tres toques a la roca que abren Alma por voz (VozNativa.swift). La llamada ya está abierta y
+     espera: va con el modelo rápido y barato (Haiku), más corta, y llega a la llamada como contexto. */
+  if (captura && voz) {
+    var tv = claude_(CFG.MODELO_CLASIFICADOR, 600, 'Es una captura de la pantalla del teléfono de una persona del equipo de Spacio AM, que acaba de llamar por voz a su asistente Alma para hablar de lo que está viendo. Describe en español, en 3 a 6 frases: qué página o app es, qué dice (copia textual los títulos, montos, fechas, horas, nombres, errores y botones importantes) y qué parece estar intentando hacer. Solo lo que se ve; sin suponer.', 'Esta es la captura.', 0.2, [foto]);
+    return tv ? { ok: true, texto: String(tv).trim().slice(0, 2000) } : { ok: false, error: 'lectura' };
+  }
   if (captura) {
     var tc = claude_(CFG.MODELO_REDACTOR, 900, 'Es una captura de la pantalla del teléfono de una persona del equipo de Spacio AM, que se la manda a su asistente Alma para hablar de lo que está viendo. Describe en español, en 3 a 8 frases: qué página o app es, qué dice (copia textual los títulos, mensajes, errores, montos, fechas y botones importantes) y qué parece estar intentando hacer. Solo lo que se ve; sin suponer.', 'Esta es la captura.', 0.2, [foto]);
     return tc ? { ok: true, texto: String(tc).trim().slice(0, 2500) } : { ok: false, error: 'lectura' };
@@ -3161,7 +3167,7 @@ function hubApi_(body) {
       case 'areas': return json_(areas_(ses));                                            // app de Alma: las 6 áreas de vida (areas.js)
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
-      case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura));                          // foto del chat de Alma: la describe para que Alma la entienda
+      case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'vozAvisos': return json_(vozAvisos_(ses));                                    // app de iPhone: avisos para decir al oído
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma'));

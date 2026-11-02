@@ -52,6 +52,20 @@
   body.con-roca .tip { display: none !important; }
   button:disabled { opacity: .45; }
   .entrar { margin: 40px auto; max-width: 360px; text-align: center; line-height: 1.5; }
+  /* «Mostrar en el chat» (#381): la tarjeta con lo que Alma puso en pantalla durante la llamada (un itinerario, una lista, una tabla). */
+  .mostrado { margin: 14px 0 6px; padding: 14px 16px; border-radius: 18px; background: var(--chat-otro-bg, #F4F1EC); color: #222222; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; animation: mostrado-entra .35s cubic-bezier(.2,.8,.2,1) both; }
+  .mostrado-tit { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; margin-bottom: 8px; }
+  .mostrado-tit .sa-chat-avatar { width: 22px; height: 22px; flex: none; }
+  .mostrado p { margin: 0 0 8px; }
+  .mostrado h4 { margin: 12px 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #8A8A8A; }
+  .mostrado ul, .mostrado ol { margin: 0 0 8px; padding-left: 20px; }
+  .mostrado li { margin: 3px 0; }
+  .mostrado .md-tabla { overflow-x: auto; margin: 4px -4px 8px; }
+  .mostrado table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .mostrado th, .mostrado td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid #E6E1D9; overflow-wrap: normal; }
+  .mostrado th { font-weight: 600; color: #6F6867; }
+  @keyframes mostrado-entra { from { opacity: 0; transform: translateY(8px); } }
+  @media (prefers-reduced-motion: reduce) { .mostrado { animation: none; } }
   .entrar a { display: inline-block; margin-top: 12px; padding: 12px 20px; border-radius: 999px; background: var(--fg, #1D1D1B); color: #fff; text-decoration: none; }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
@@ -76,7 +90,7 @@
 <script src="../js/alma-client.js?v=2026-11-15a"></script>
 <script src="../js/sa-compositor.js?v=2026-11-09b"></script>
 <script src="../js/sa-nav.js?v=2026-11-15f"></script>
-<script src="../js/alma-voz.js?v=2026-11-15d"></script>
+<script src="../js/alma-voz.js?v=2026-11-15e"></script>
 <script src="../js/sa-chat.js?v=2026-11-15c"></script>
 <script>
 (function () {
@@ -133,6 +147,59 @@
     api: { hilo: function (q) { return ALMA.opHilo(q); }, enviar: function (t) { return ALMA.opEnviar({ texto: t, canal: "app" }); } },
     alElegir: function (t) { enviarTexto(t); },
     alEnviar: function () { $("enviar").disabled = true; }, alResponder: function () { $("enviar").disabled = false; } });
+  /* «Mostrar en el chat» (#381): lo que Alma pone en pantalla durante la llamada (herramienta mostrar_en_chat). La app de
+     iPhone lo pasa con AlmaMostrar({ titulo, contenido }); la voz de esta página, con su herramienta. Markdown sencillo
+     (títulos, listas, tablas y negritas) armado con nodos: el texto nunca entra como HTML. */
+  function enLinea(el, t) {
+    String(t).split(/(\*\*[^*]+\*\*)/).forEach(function (p) {
+      if (!p) return;
+      if (/^\*\*[^*]+\*\*$/.test(p)) { var b = document.createElement("strong"); b.textContent = p.slice(2, -2); el.appendChild(b); }
+      else el.appendChild(document.createTextNode(p));
+    });
+    return el;
+  }
+  function mdNodos(md) {
+    var box = document.createElement("div"), ls = String(md || "").replace(/\r/g, "").split("\n"), i = 0, lista = null, m;
+    var esFila = function (x) { return /^\|.*\|$/.test(x.trim()); }, esRaya = function (x) { return /^\|[\s:|-]+\|$/.test(x.trim()); };
+    var celdas = function (x) { return x.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); }); };
+    while (i < ls.length) {
+      var t = ls[i].trim();
+      if (!t) { lista = null; i++; continue; }
+      if (esFila(t)) {
+        lista = null; var filas = [];
+        while (i < ls.length && esFila(ls[i])) filas.push(ls[i++]);
+        var cab = filas.length > 1 && esRaya(filas[1]), tw = document.createElement("div"), tb = document.createElement("table");
+        tw.className = "md-tabla";
+        filas.forEach(function (f, n) {
+          if (esRaya(f)) return;
+          var tr = document.createElement("tr");
+          celdas(f).forEach(function (c) { tr.appendChild(enLinea(document.createElement(n === 0 && cab ? "th" : "td"), c)); });
+          tb.appendChild(tr);
+        });
+        tw.appendChild(tb); box.appendChild(tw); continue;
+      }
+      if ((m = /^#{1,4}\s+(.*)$/.exec(t))) { lista = null; box.appendChild(enLinea(document.createElement("h4"), m[1])); i++; continue; }
+      if ((m = /^([-*•]|\d+[.)])\s+(.*)$/.exec(t))) {
+        var tipo = /^\d/.test(m[1]) ? "OL" : "UL";
+        if (!lista || lista.tagName !== tipo) { lista = document.createElement(tipo); box.appendChild(lista); }
+        lista.appendChild(enLinea(document.createElement("li"), m[2])); i++; continue;
+      }
+      lista = null; box.appendChild(enLinea(document.createElement("p"), t)); i++;
+    }
+    return box;
+  }
+  window.AlmaMostrar = function (o) {
+    o = o || {}; var c = String(o.contenido || "").trim(); if (!c) return false;
+    var tj = document.createElement("section"), h = document.createElement("div"), av = document.createElement("span");
+    tj.className = "mostrado"; h.className = "mostrado-tit"; av.className = "sa-chat-avatar sa-chat-avatar--alma"; av.setAttribute("aria-hidden", "true");
+    h.appendChild(av); h.appendChild(document.createTextNode(String(o.titulo || "Alma").slice(0, 120)));
+    tj.setAttribute("aria-label", "Alma te muestra: " + String(o.titulo || ""));
+    tj.appendChild(h); tj.appendChild(mdNodos(c.slice(0, 20000)));
+    $("hilo").appendChild(tj);
+    setTimeout(function () { try { tj.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { tj.scrollIntoView(); } }, 60);
+    return true;
+  };
+
   /* ?esfera=Finanzas: abre el chat ya filtrado en esa esfera y la pide al servidor («Abrir el chat» de una pregunta
      sin responder en Pendientes). */
   var esferaUrl = (p.get("esfera") || "").slice(0, 40);
@@ -173,7 +240,9 @@
   var voz = SAAlmaVoz.crear({ contexto: function () {
     return "EN PANTALLA: abrió a Alma desde «Alma aquí»" + (desde ? ", mientras veía la página «" + (titulo || desde) + "» (" + desde + ")" + (sel ? " con este texto seleccionado: «" + sel + "»" : "") : "") +
       (captura ? ". Mandó una captura de su pantalla; lo que se ve: " + captura : "") + ". Úsalo como contexto de lo que pregunte.";
-  } });
+  }, herramientas: { mostrar_en_chat: function (x) {
+    return window.AlmaMostrar(x || {}) ? "Listo: ya está en el chat, en la pantalla. Resúmelo por voz en una sola frase; no lo leas completo." : "Llegó vacío: no se mostró nada.";
+  } } });
   var llamada = null, abriendo = false;
   function hablar() {
     if (llamada) { llamada.end(); return; }

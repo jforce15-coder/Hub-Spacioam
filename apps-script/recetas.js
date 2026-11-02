@@ -269,7 +269,8 @@ function recetasApi_(ses) {
     return { clave: r.clave, pedido: r.pedido || r.palabras, hace: r.pasos.map(function (p) { return RECETAS_HERR_TXT_[p.tool] || p.tool; }), cambia: r.vars.map(function (v) { return v.tipo; }),
       usos: r.usos, usada: r.usada || '', creada: r.creada || '', mia: r.mia, vence: r.mia ? '' : new Date(t + RECETAS_DIAS_ * 86400000).toISOString(), respuesta: r.respuesta };
   }).sort(function (a, b) { return (b.mia - a.mia) || String(b.usada || b.creada).localeCompare(String(a.usada || a.creada)); });
-  return { ok: true, on: recetasOn_(), recetas: lista, hoy: u.dia === recHoy_() ? (u.hoy || 0) : 0, total: u.total || 0, actualizado: new Date(ahora).toISOString() };
+  var inst = { hoy: 0, total: 0 }; try { inst = instUso_(); } catch (e) {}   // respuestas instantáneas (instantaneas.js)
+  return { ok: true, on: recetasOn_(), recetas: lista, hoy: u.dia === recHoy_() ? (u.hoy || 0) : 0, total: u.total || 0, instantaneas: inst, actualizado: new Date(ahora).toISOString() };
 }
 function recetaBorrarApi_(ses, clave) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };

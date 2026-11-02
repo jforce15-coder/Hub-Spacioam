@@ -272,6 +272,19 @@ function agCancelaciones_(desde, hasta) {
   try { cache.put(ck, JSON.stringify(out), 300); } catch (e) {}
   return out;
 }
+/* Los trabajos de Epi de un día (de todos o de una persona), en orden: los usan la herramienta ruta_del_dia y las
+   respuestas instantáneas (instantaneas.js), así las dos leen la ruta igual. Devuelve { error } o { persona, trabajos: [{ x, quien }] }. */
+function agRutaTrabajos_(cfg, fd, persona) {
+  var n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  var quienR = persona ? opMatch_(persona, cfg.vendors.map(vendNombre_)) : '';
+  var vend = quienR ? cfg.vendors.filter(function (v) { return vendNombre_(v) === quienR; })[0] : null;
+  if (persona && !vend) return { error: cfg.vendors.length ? 'No encontré a «' + persona + '» en el equipo de Epi. Personas: ' + cfg.vendors.map(vendNombre_).join(', ') : 'No pude leer Epi en este momento; intenta de nuevo en un minuto.' };
+  var del = cfg.schedules.filter(function (x) { return x && String(x.fecha || '').slice(0, 10) === fd && String(x.estado || '') !== 'cancelada' && String(x.estado || '') !== 'cancelado'; });
+  if (vend) del = del.filter(function (x) { return String(x.vendorEmail || '').toLowerCase() === String(vend.email || '').toLowerCase() || String(x.vendorId || '') === String(vend.id || '') || n(x.vendorRaw) === n(vendNombre_(vend)); });
+  del.sort(function (a, b) { return String(a.vendorRaw || '').localeCompare(String(b.vendorRaw || '')) || (a.orden || 0) - (b.orden || 0) || String(a.hora || '').localeCompare(String(b.hora || '')); });
+  var nomDe = function (x) { var v = cfg.vendors.filter(function (y) { return (x.vendorEmail && String(y.email || '').toLowerCase() === String(x.vendorEmail).toLowerCase()) || (x.vendorId && String(y.id || '') === String(x.vendorId)); })[0]; return v ? vendNombre_(v) : (x.vendorRaw || x.vendorEmail || 'sin asignar'); };
+  return { persona: vend ? vendNombre_(vend) : 'todos', trabajos: del.map(function (x) { return { x: x, quien: nomDe(x) }; }) };
+}
 function agEjecutar_(adm, nombre, inp, ctx) {
   inp = inp || {}; if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
@@ -386,15 +399,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió el aviso de primer contacto pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
     }
     case 'ruta_del_dia': {
-      var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), quienR = inp.persona ? opMatch_(inp.persona, cfg.vendors.map(vendNombre_)) : '';
-      var vend = quienR ? cfg.vendors.filter(function (v) { return vendNombre_(v) === quienR; })[0] : null;
-      var del = cfg.schedules.filter(function (x) { return x && String(x.fecha || '').slice(0, 10) === fd && String(x.estado || '') !== 'cancelada' && String(x.estado || '') !== 'cancelado'; });
-      if (vend) del = del.filter(function (x) { return String(x.vendorEmail || '').toLowerCase() === String(vend.email || '').toLowerCase() || String(x.vendorId || '') === String(vend.id || '') || n(x.vendorRaw) === n(vendNombre_(vend)); });
-      if (inp.persona && !vend) return { error: cfg.vendors.length ? 'No encontré a «' + inp.persona + '» en el equipo de Epi. Personas: ' + cfg.vendors.map(vendNombre_).join(', ') : 'No pude leer Epi en este momento; intenta de nuevo en un minuto.' };
-      del.sort(function (a, b) { return String(a.vendorRaw || '').localeCompare(String(b.vendorRaw || '')) || (a.orden || 0) - (b.orden || 0) || String(a.hora || '').localeCompare(String(b.hora || '')); });
-      var nomDe = function (x) { var v = cfg.vendors.filter(function (y) { return (x.vendorEmail && String(y.email || '').toLowerCase() === String(x.vendorEmail).toLowerCase()) || (x.vendorId && String(y.id || '') === String(x.vendorId)); })[0]; return v ? vendNombre_(v) : (x.vendorRaw || x.vendorEmail || 'sin asignar'); };
+      var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
+      if (rt.error) return { error: rt.error };
       var codDe = function (x) { try { var c = codigoEquipo_(x.propiedad, fd, cfg.schedules); return c && c.codigo ? 'código ' + c.codigo + ' (' + c.tipo + ')' : ''; } catch (e) { return ''; } };
-      return { fecha: fd, persona: vend ? vendNombre_(vend) : 'todos', trabajos: del.map(function (x) { return [x.hora || '', x.tipo || '', x.propiedad || '', nomDe(x), x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : '', codDe(x)].filter(Boolean).join(' · '); }) };
+      return { fecha: fd, persona: rt.persona, trabajos: rt.trabajos.map(function (t) { var x = t.x; return [x.hora || '', x.tipo || '', x.propiedad || '', t.quien, x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : '', codDe(x)].filter(Boolean).join(' · '); }) };
     }
     case 'tareas_abiertas': return { tareas: ctx.cfg().tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 40).map(function (t) { return [t.id, t.texto, t.prop || '-', t.quien || '-', 'vence ' + (t.vence || '-')].join(' · '); }) };
     case 'crear_tarea': case 'cerrar_tarea': case 'agendar_en_epi': {
@@ -568,6 +576,10 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var memo = null, textoPedido = texto;
   if (!(fotos && fotos.length)) { try { memo = recetaIntentar_(adm, texto, canal); } catch (e) { console.error('recetaIntentar_: ' + (e.stack || e)); } }
   if (memo && memo.ok) return memo.salida;
+  /* Respuestas instantáneas (instantaneas.js): las 5 preguntas de lectura de siempre (ruta, llegadas y salidas, una
+     reserva, un código, tareas) se contestan con el mismo ayudante de lectura y una frase fija, sin IA. Van DESPUÉS de las
+     recetas: un atajo que Juan enseñó gana. Si el pedido trae algo más o hay duda, null y sigue la IA como siempre. */
+  if (!memo && !(fotos && fotos.length)) { try { var inst = instAgente_(adm, texto, canal); if (inst) return inst; } catch (e) { console.error('instAgente_: ' + (e.stack || e)); } }
   if (memo && memo.fallo) texto = texto + '\n\n(' + memo.nota + ')';
   var nombrada = RECETAS_NOMBRADA_.exec(String(texto || ''));
   if (nombrada) texto = texto + '\n\n(Juan te enseña un atajo: haz AHORA con tus herramientas lo que pide; el sistema lo guarda y lo repetirá solo cuando diga «' + nombrada[1] + '». Confírmalo en una frase.)';

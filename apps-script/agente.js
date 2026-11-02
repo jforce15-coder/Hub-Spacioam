@@ -95,6 +95,9 @@ var AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
 var AGENTE_PERMITIDAS_ = null;
 /* Tolerancia de una llamada (retomar.js): hasta cuándo puede esperar la voz y qué pidió, por si sigue en segundo plano. */
 var AGENTE_PLAZO_ = 0, AGENTE_PEDIDO_ = '';
+/* El pedido y el canal del turno en curso (opAgente_): los usa opAgenteBucle_ al mandar el resultado a Pendientes.
+   Antes la llamada usaba variables que no existían en el bucle y fallaba en silencio desde el 30-oct (c7b98ab). */
+var AGENTE_TEXTO_ = '', AGENTE_CANAL_ = '';
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
@@ -544,6 +547,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 
 /* ── Bucle del agente ── */
 function opAgente_(adm, texto, canal, fotos, previos) {
+  AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
   /* Modo Weebo con el administrador: sensibilidad según el tema (serio, normal o estratégico). */
@@ -551,7 +555,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   /* Adaptación a la persona: +5 % cada 10 mensajes hasta el tope (adaptacion.js). */
   var adapt = ''; try { adapt = canal === 'segundo_plano' ? '' : adaptBloque_(adm.email, 'admin', texto); } catch (e) {}
   var system = secretariaPrompt_() + weebo + adapt + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
-    encargosTexto_(adm) + encargosPedidosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
+    encargosTexto_(adm) + encargosPedidosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'calle' ? CALLE_REGLA_ : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
   /* Un solo chat por administrador: Hub, WhatsApp y llamadas (cada turno de voz es corto, por eso caben más). */
@@ -619,7 +623,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
   var et = chatSacarEtiqueta_(final); final = et.texto;
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
-  try { pendEncolar_(adm, texto, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), canal); } catch (e) {}   // a Pendientes (pendientes.js)
+  try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_); } catch (e) {}   // a Pendientes (pendientes.js)
   return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria };
 }
 

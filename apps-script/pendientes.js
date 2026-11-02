@@ -109,7 +109,8 @@ function pendCrear_(adm, c, o) {
   try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { lock.releaseLock(); }
   /* Lo que no pide nada (Para leer, Listo hoy) también llega a la app como notificación de nivel 3 (calle.js), con el id
      de la tarjeta; no entra al historial porque Notificaciones ya la muestra. */
-  if (c.tipo !== 'atencion') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, { nivel: 3, historial: false, resultado: o.origen === 'segundo_plano' }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
+  /* Solo avisa lo que TERMINÓ (segundo plano); lo demás queda en la tarjeta sin notificación (Juan, 2-nov: nada de «ya se envió»). */
+  if (c.tipo !== 'atencion' && o.origen === 'segundo_plano') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, { nivel: 3, historial: false, resultado: true }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
   return fila;
 }
 

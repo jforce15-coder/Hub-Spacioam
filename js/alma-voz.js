@@ -112,7 +112,11 @@
         onDisconnect: function () { vivo = null; despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } },
         onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
-      if (o.herramientas) opt.clientTools = o.herramientas;
+      /* mostrar_en_chat (#381): la app de iPhone la atiende en su voz nativa. Aquí, si la página no trae la suya
+         (o.herramientas, p. ej. «Alma aquí»), se contesta enseguida que no se pudo: Alma lo dice por voz y nunca espera. */
+      var ht = { mostrar_en_chat: function () { return "Aquí no hay chat a la vista: no se mostró. Díselo por voz, en corto, solo lo más importante."; } };
+      if (o.herramientas) for (var k in o.herramientas) ht[k] = o.herramientas[k];
+      opt.clientTools = ht;
       var fm = f.first_message; if (o.primerMensaje) { try { fm = o.primerMensaje() || fm; } catch (e) {} }
       if (fm || f.language) { opt.overrides = { agent: {} }; if (fm) opt.overrides.agent.firstMessage = fm; if (f.language) opt.overrides.agent.language = f.language; }
       return m.Conversation.startSession(opt);

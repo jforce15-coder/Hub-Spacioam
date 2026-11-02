@@ -31,7 +31,8 @@ var VIAJES_VISTOS_HOJA_ = 'ALMA_VIAJES_CORREOS';
 var VIAJES_VISTOS_CAB_ = ['mensaje', 'email', 'viaje', 'fecha', 'asunto'];
 var VIAJES_CARPETA_ = 'Alma · Viajes';
 var VIAJES_BUSCA_ = '(from:(delta OR airfrance OR united OR american OR aa.com OR avianca OR copa OR iberia OR latam OR volaris OR jetblue OR klm OR lufthansa OR ryanair OR vueling OR "boarding pass") ' +
-  'OR subject:(itinerary OR itinerario OR "check in" OR "boarding pass" OR "pase de abordar" OR "flight receipt" OR "confirmación de vuelo" OR "e-ticket"))';
+  'OR subject:(itinerary OR itinerario OR "check in" OR "boarding pass" OR "pase de abordar" OR "flight receipt" OR "confirmación de vuelo" OR "e-ticket"))' +
+  ' -in:sent -category:promotions -from:samsung';   // fuera lo que mandamos (check-in a huéspedes) y las promociones de aerolíneas
 var VIAJES_DIAS_ = 60, VIAJES_REVISAR_MIN_ = 30, VIAJES_POR_VUELTA_ = 8;
 /* Dónde hacer check-in si el correo no trae el enlace (código IATA de la aerolínea). */
 var VIAJES_CHECKIN_ = { DL: 'https://www.delta.com/mytrips/', AF: 'https://wwws.airfrance.us/check-in', KL: 'https://www.klm.com/check-in', UA: 'https://www.united.com/en/us/checkin',
@@ -48,7 +49,7 @@ function viajes_(ses, b) {
   var ult = Number(c.get(clave) || 0), espera = (b.forzar ? 1 : VIAJES_REVISAR_MIN_) * 60000, out = { ok: true, cuenta: cuenta };
   if (ahora - ult >= espera) {
     var urgente = lista.some(function (v) { return viajeUrgente_(v, ahora); });
-    if (!urgente && !cupoPermite_('fondo')) out.pausa = 'Reviso tu correo cuando baje el uso de Google; te muestro lo que ya tenía.';
+    if (!urgente && lista.length && !cupoPermite_('fondo')) out.pausa = 'Reviso tu correo cuando baje el uso de Google; te muestro lo que ya tenía.';
     else {
       try { out.faltan = viajesRevisar_(cuenta); } catch (e) { console.error('viajesRevisar_: ' + (e.stack || e)); out.aviso = 'No pude revisar el correo ahora.'; }
       if (!out.faltan) c.put(clave, String(ahora), 21600);   // si quedaron correos por leer, la próxima vez sigue
@@ -75,14 +76,22 @@ function viajesRevisar_(cuenta) {
   var vistos = viajesVistos_(cuenta), nuevos = [];
   var hilos = GmailApp.search(VIAJES_BUSCA_ + ' newer_than:' + VIAJES_DIAS_ + 'd', 0, 40);
   hilos.forEach(function (h) { h.getMessages().forEach(function (m) { if (!vistos[m.getId()]) nuevos.push(m); }); });
-  nuevos.sort(function (a, b) { return a.getDate() - b.getDate(); });   // del más viejo al más nuevo: lo nuevo completa lo viejo
-  var tanda = nuevos.slice(0, VIAJES_POR_VUELTA_), shV = hojaCrear_(VIAJES_VISTOS_HOJA_, VIAJES_VISTOS_CAB_);
-  tanda.forEach(function (m) {
-    var id = m.getId(), asunto = String(m.getSubject() || '').slice(0, 150), vj = '', reintentar = false;
+  /* Lo más nuevo primero (el vuelo de mañana está en el correo de hoy); el filtro sin IA no gasta la tanda: solo cuentan
+     los correos que sí se leen con la IA. Dentro de la tanda, del más viejo al más nuevo: lo nuevo completa lo viejo. */
+  nuevos.sort(function (a, b) { return b.getDate() - a.getDate(); });
+  var shV = hojaCrear_(VIAJES_VISTOS_HOJA_, VIAJES_VISTOS_CAB_), conIa = [], resto = 0;
+  nuevos.forEach(function (m) {
+    var asunto = String(m.getSubject() || '').slice(0, 150), texto = '';
+    try { texto = String(m.getPlainBody() || ''); } catch (e) {}
+    if (!viajeParecido_(asunto, texto)) { shV.appendRow([m.getId(), cuenta, '', new Date().toISOString(), asunto]); return; }
+    if (conIa.length < VIAJES_POR_VUELTA_) conIa.push({ m: m, asunto: asunto, texto: texto }); else resto++;
+  });
+  conIa.reverse().forEach(function (x) {
+    var m = x.m, id = m.getId(), asunto = x.asunto, texto = x.texto, vj = '', reintentar = false;
     try {
-      var html = '', texto = String(m.getPlainBody() || '');
+      var html = '';
       try { html = String(m.getBody() || ''); } catch (e) {}
-      if (viajeParecido_(asunto, texto)) {
+      {
         USO_DET_ = 'Viajes · ' + asunto.slice(0, 80);
         var r = viajeLeerTexto_(cuenta, { id: id, de: m.getFrom(), asunto: asunto, fecha: m.getDate(), texto: texto, html: html });
         USO_DET_ = '';
@@ -92,7 +101,7 @@ function viajesRevisar_(cuenta) {
     } catch (e) { console.error('viajes correo ' + id + ': ' + e); }
     if (!reintentar) shV.appendRow([id, cuenta, vj, new Date().toISOString(), asunto]);
   });
-  return Math.max(0, nuevos.length - tanda.length);
+  return resto;
 }
 function viajesVistos_(cuenta) {
   var sh = hojaCrear_(VIAJES_VISTOS_HOJA_, VIAJES_VISTOS_CAB_), o = {};

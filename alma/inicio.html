@@ -1372,6 +1372,7 @@
     VJ.cargando = hub("viajes", forzar ? { forzar: 1 } : {}).then(function (r) {
       VJ.cargando = null;
       if (r && r.ok) { VJ.datos = r; VJ.datos.recibido = Date.now(); fotoGuardar(r); pintarBoton(); }
+      if (r && r.ok && r.faltan && (VJ.vueltas = (VJ.vueltas || 0) + 1) < 6) setTimeout(function () { cargar(true); }, 500);   // quedaron correos por leer: sigue solo
       else if (VJ.abierto) pintar(r && r.error);
       return r;
     });

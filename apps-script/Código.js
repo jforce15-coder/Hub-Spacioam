@@ -724,7 +724,8 @@ function procesarCola() {
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
   try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
-  try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
+  try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }
+  try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {
     cupoCanal_('Mejoras y fondo');
@@ -3144,6 +3145,10 @@ function hubApi_(body) {
   try {
     switch (body.action) {
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
+      case 'recetas': return json_(recetasApi_(ses));                                       // Ajustes → Lo que Alma aprendió: las recetas (recetas.js · alma/aprendio.html)
+      case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
+      case 'vigilancias': return json_(vigApi_(ses));                                       // lo que Alma vigila por ti (vigilancias.js · alma/aprendio.html)
+      case 'vigilanciaDejar': return json_(vigDejarApi_(ses, body.id));                     // { id } → deja de vigilar
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));

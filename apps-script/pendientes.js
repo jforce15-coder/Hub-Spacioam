@@ -121,6 +121,7 @@ function pendVivo_(x, ahora) {
 }
 function pendResolver_(ses, id) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
+  if (/^vg:/.test(String(id))) return vigDejarApi_(ses, String(id).slice(3));   // «Dejar de vigilar» en la tarjeta (vigilancias.js)
   var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; if (!x) return { ok: false, error: 'no existe' };
   hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto');
   if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
@@ -153,6 +154,8 @@ function pendItems_(ses, adm, noti) {
     items.push({ id: String(x.id), fuente: 'alma', seccion: PEND_SECCION_[x.tipo] || 'leer', area: x.area, proyecto: x.proyecto, titulo: x.titulo, resumen: x.resumen,
       detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion', responder: x.tipo === 'atencion' });
   });
+  /* Lo que Alma está vigilando (vigilancias.js): «Vigilando: …» con «Dejar de vigilar». */
+  try { if (!noti) vigTarjetas_(adm).forEach(function (x) { items.push(x); }); } catch (e) { console.error('pendItems_ vigilancias: ' + e); }
   /* Lo de Claude y los cambios por unir: Propósito · Desarrollo */
   var claude = []; try { var rc = paraClaudePendientes_(ses); claude = rc.ok ? rc.lista : []; } catch (e) { console.error('pendientesTodo_ claude: ' + e); }
   claude.forEach(function (p) {

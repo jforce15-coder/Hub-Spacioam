@@ -441,6 +441,9 @@ function paraClaudePendientes_(ses) {
     var estado = String(r[8] || ''); if (!PEND_ABIERTOS_.test(estado) || String(r[15] || '')) return;   // lo de un microproyecto va en su tarjeta
     var f = r[1] instanceof Date ? r[1].getTime() : new Date(String(r[1]).replace(' ', 'T') + ':00-06:00').getTime(); if (f && f < corte) return;
     var resp = String(r[11] || ''), enlaces = resp.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/g) || [];
+    /* «PR listo» sin ningún PR: era una consulta que Claudio ya contestó (la respuesta llegó al chat y al aviso).
+       No hay nada que unir: se cierra sola en vez de quedarse como «Unir» para siempre. */
+    if (/^PR listo/.test(estado) && !enlaces.length) { try { sh.getRange(ini + i, 9).setValue('hecho · consulta respondida'); } catch (e) {} return; }
     var prs = enlaces.map(function (u) { return paraClaudePrInfo_(u) || { url: u, estado: null }; });
     /* Después del Merge: la lista sigue la publicación (las revisiones de GitHub) hasta que queda en verde. */
     var pub = null;

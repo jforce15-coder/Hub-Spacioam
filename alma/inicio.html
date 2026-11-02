@@ -391,6 +391,9 @@
   function fotoClave(que) { var yo = sesion(), pp = yo.p || {}; var e = pp.email || yo.e || ""; return e ? FOTO_V + que + ":" + e : ""; }
   function fotoLeer(que) { try { var k = fotoClave(que), f = k && JSON.parse(localStorage.getItem(k) || "null"); return f && f.t && Date.now() - f.t < 864e5 && f.datos ? f : null; } catch (e) { return null; } }
   function fotoGuardar(que, r) { if (!r || !r.ok) return r; try { var k = fotoClave(que); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), datos: r })); } catch (e) {} return r; }
+  /* Una foto de Pendientes sin nada (la última vez estaba todo al día) no se usa: escondería el botón hasta que llegue
+     lo fresco (3–6 s del Apps Script) aunque ahora sí haya algo. Sin foto, el botón sale de una vez y el número llega después. */
+  function fotoConAlgo(f) { var x = f && f.datos; return x && [].concat(x.atencion || [], x.leer || [], x.listo || [], x.lista || []).length ? f : null; }
   function fotoBorrar() { try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf("sa_foto:alma:") === 0) localStorage.removeItem(k); }); } catch (e) {} }
   function conVoz(nombre) {
     var v = NATIVA ? vozNativa() : window.SAAlmaVoz;
@@ -403,7 +406,7 @@
     /* las áreas también salen de la foto, así las esferas abren al primer toque; las frescas llegan por detrás */
     var fa = fotoLeer("areas"); if (fa && !AR.datos) { areasAplicar(fa.datos); orbitaArmar(); }
     areasIniciar();   // nada en fila (regla 7): las áreas se piden junto con pendientes y notificaciones, sin esperar
-    if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes().then(function (r) { return fotoGuardar("pend", r); }); }, foto: fotoLeer("pend"), hecho: function (id) { return ALMA.pendienteHecho(id); },
+    if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes().then(function (r) { return fotoGuardar("pend", r); }); }, foto: fotoConAlgo(fotoLeer("pend")), hecho: function (id) { return ALMA.pendienteHecho(id); },
       resolver: function (id) { return ALMA.pendienteResolver(id); }, responder: function (id, t) { return ALMA.pendienteResponder(id, t); }, nota: function (o) { return ALMA.pendienteNota(o); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
       notificaciones: { cargar: function () { return ALMA.notificaciones().then(function (r) { return fotoGuardar("noti", r); }); }, foto: fotoLeer("noti") } });
     setTimeout(function () { $("b-ajustes").classList.add("on"); }, 900);

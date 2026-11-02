@@ -171,10 +171,10 @@ function claudeBorradorCorto_(b, n) {
   return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : t;
 }
 /* La respuesta de Alma + lo que le mandaría a Claude + la pregunta. En el chat, las opciones van como viñetas «• »
-   (SAChat.opciones las pinta como tarjeta de acción); en una llamada, solo la frase. */
+   (SAChat.opciones las pinta como tarjeta de acción); en una llamada o en el modo calle (calle.js), solo la frase. */
 function claudeBorradorConPregunta_(resp, b, canal) {
   resp = String(resp || '').trim();
-  if (canal === 'llamada') return (resp ? resp + ' ' : '') + 'Le pediría a Claude: «' + claudeBorradorCorto_(b, 240) + '». ' + CLAUDE_BORR_PREGUNTA_;
+  if (canal === 'llamada' || canal === 'calle') return (resp ? resp + ' ' : '') + 'Le pediría a Claude: «' + claudeBorradorCorto_(b, 240) + '». ' + CLAUDE_BORR_PREGUNTA_;
   return (resp ? resp + '\n\n' : '') + 'Esto es lo que le mandaría a Claude:\n«' + claudeBorradorCorto_(b, 400) + '»\n\n' + CLAUDE_BORR_PREGUNTA_ + '\n' +
     CLAUDE_BORR_OPCIONES_.map(function (x) { return '• ' + x; }).join('\n');
 }
@@ -213,7 +213,7 @@ function claudeBorradorResponder_(adm, texto, o) {
     try { var al = opFilas_(adm.email, 8).filter(function (m) { return m.de === 'alma'; }).pop(); ultAlma = al ? al.texto : ''; } catch (e) {}
     tras = ultAlma.indexOf(CLAUDE_BORR_PREGUNTA_) >= 0 || ultAlma.indexOf(CLAUDE_BORR_AGREGO_) >= 0;
   }
-  var que = claudeBorradorIntencion_(texto, tras), voz = o.canal === 'llamada';
+  var que = claudeBorradorIntencion_(texto, tras), voz = o.canal === 'llamada' || o.canal === 'calle';   // modo calle: también se dice en voz
   /* Tocó «Agregar algo» y Alma preguntó qué: lo que escribe ahora es lo que agrega. */
   if (!que && b.espera && !b.vencido && (o.explicito || ultAlma.indexOf(CLAUDE_BORR_AGREGO_) >= 0) && String(texto || '').trim()) que = 'agregar';
   if (!que) return null;

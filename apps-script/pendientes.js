@@ -107,6 +107,9 @@ function pendCrear_(adm, c, o) {
     tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2 };
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
   try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { lock.releaseLock(); }
+  /* Lo que no pide nada (Para leer, Listo hoy) también llega a la app como notificación de nivel 3 (calle.js), con el id
+     de la tarjeta; no entra al historial porque Notificaciones ya la muestra. */
+  if (c.tipo !== 'atencion') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, { nivel: 3, historial: false }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
   return fila;
 }
 
@@ -200,10 +203,12 @@ function pendResponder_(ses, b) {
   var adm = paraClaudePrincipalSes_(ses); if (!adm) return { ok: false, error: 'Solo el administrador principal.' };
   var texto = String(b.texto || '').trim(), id = String(b.id || ''); if (!texto || !id) return { ok: false, error: 'faltan datos' };
   var x = pendFilas_().filter(function (r) { return String(r.id) === id; })[0];
+  /* El canal del chat: «app» por defecto; el Hub manda «hub» y el modo calle (calle.js, respuesta hablada a una notificación) «calle». */
+  var canal = { hub: 'hub', calle: 'calle' }[String(b.canal || '')] || 'app';
   if (x) {
     /* Un borrador para Claude sin enviar (chat.js): «Mándalo», «Agregar algo» o «No lo envíes» desde la tarjeta. */
     if (x.origen === 'claude_borrador') {
-      var rb = chatBorradorTurno_(adm, null, texto, String(b.canal || '') === 'hub' ? 'hub' : 'app', { desdeTarjeta: true });
+      var rb = chatBorradorTurno_(adm, null, texto, canal, { desdeTarjeta: true });
       if (rb) { try { pendResolver_(ses, id); } catch (e) {} return { ok: true, a: 'alma', respuesta: rb.alma && rb.alma.texto || '' }; }
     }
     /* Una pregunta sin responder del chat (chat.js): es la respuesta a esa pregunta, en el mismo chat. */
@@ -212,10 +217,14 @@ function pendResponder_(ses, b) {
       : 'Juan responde desde Pendientes a esta tarjeta tuya: «' + x.titulo + '». ' + (x.resumen || '') + (x.detalle ? '\nLo que habías dicho: ' + String(x.detalle).slice(0, 1500) : '') +
         '\nAtiende su respuesta como siguiente paso de ese tema.';
     /* Pendientes vive en la app de Alma: su respuesta entra a su Chat con Alma con canal «app» (el Hub puede mandar «hub»). */
-    var r = opProcesar_(adm, texto, String(b.canal || '') === 'hub' ? 'hub' : 'app', [], nota);
+    var r = opProcesar_(adm, texto, canal, [], nota);
     if (!r.ok) return r;
     try { pendResolver_(ses, id); } catch (e) {}
-    return { ok: true, a: 'alma', respuesta: r.alma && r.alma.texto || '' };
+    var out = { ok: true, a: 'alma', respuesta: r.alma && r.alma.texto || '' };
+    if (r.conversar) out.conversar = true;
+    if (r.seguira) out.seguira = true;
+    if (r.borrador) out.borrador = r.borrador;
+    return out;
   }
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'), v = sh && sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, PARA_CLAUDE_CAB_.length).getValues() : [];
   var c = v.filter(function (r) { return String(r[0]) === id; })[0]; if (!c) return { ok: false, error: 'Ya no encuentro esa tarjeta.' };

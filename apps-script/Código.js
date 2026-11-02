@@ -2405,6 +2405,8 @@ function escalar_(asunto, texto, o) {
 function avisarRojo_(ctx, asunto, texto, sinWa) {
   if (sinWa) { pushA_(null, asunto, texto); return; }   // seguimiento de un ROJO ya avisado: no repite el WhatsApp
   try { decisionCrear_(ctx, ctx && ctx.escalar ? 'escalado' : 'rojo', (ctx && (ctx.motivoEscalar || ctx.razon)) || ''); } catch (e) { console.error('decisionCrear_ rojo: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
+  /* Notificación de nivel 1 (urgente) a la app del principal (calle.js): un huésped espera al equipo. */
+  try { const jefe = chatPrincipal_(); if (jefe) vozAvisoPoner_(jefe, 'Un huésped' + (ctx && ctx.propiedad ? ' del ' + ctx.propiedad : '') + ' necesita al equipo' + (ctx && ctx.escalar ? ': está escalado' : ': está en rojo') + '.', '', { nivel: 1 }); } catch (e) { console.error('avisarRojo_ aviso: ' + e); }
   if (ctx && ctx.escalar) return escalar_(asunto, texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente'));
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   pushA_(null, asunto, texto);
@@ -3215,6 +3217,9 @@ function hubApi_(body) {
       case 'opHilo': return json_(chatHilo_(ses, body));                                    // chat único con Alma: la persona sale de la sesión, nunca de body.email (chat.js)
       case 'opEnviar': return json_(chatEnviar_(ses, body));                                // { texto, canal: 'hub' | 'app' }
       case 'opLista': return json_(chatLista_(ses));
+      case 'calle': return json_(calle_(ses, body));                                       // modo calle: una frase tras «Alma» → { hablar, conversar, audio? } (calle.js)
+      case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: una fila de uso en ALMA_CALLE_USO (calle.js)
+      case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'dsPropuestas': return json_(dsPropuestas_());
       case 'dsDecidir': return json_(dsDecidir_(body.id, body.decision, body.nota, body.quien));
       default: return json_({ ok: false, error: 'accion' });
@@ -4924,9 +4929,19 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
     try { r = JSON.parse(String(raw).match(/\{[\s\S]*\}/)[0]); } catch (e) { r = { respuesta: s_(raw) || 'No pude procesarlo. Intenta de nuevo.', acciones: [] }; }
     hechas = errEpi ? [] : opEjecutar_(adm, Array.isArray(r.acciones) ? r.acciones : [], cfg, props);
   }
-  /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan). */
-  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria) }, { canal: canal });
+  /* Con plazo (modo calle, calle.js): no alcanzó el tiempo y el agente lo sigue en segundo plano (retomar.js). */
+  if (ag && ag.seguira) {
+    const sigue = opGuardar_(adm, 'alma', canal, 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', hechas);
+    try { vozTrabajando_(adm, 1); } catch (e) {}
+    return { ok: true, yo: yo, alma: sigue, seguira: true };
+  }
+  /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan).
+     Si ya pasó el plazo de la calle, la esfera se marca después para no hacerlo esperar más. */
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria) }, { canal: canal, diferir: !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });
   yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
+  /* Modo calle: la etiqueta [[conversar]] (hace falta hablarlo) sale del texto antes de guardarlo. */
+  let conversar = false;
+  if (canal === 'calle') { const cv = calleSacarConversar_(turno.texto); turno.texto = cv.texto; conversar = cv.conversar; }
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
@@ -4934,6 +4949,7 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   const out = { ok: true, yo: yo, alma: alma };
   if (turno.borrador) out.borrador = turno.borrador;
   if (turno.paraJuan) out.paraJuan = true;
+  if (conversar) out.conversar = true;
   return out;
 }
 /* WhatsApp del administrador: ALMA espera OP_AGRUPAR_SEG (20 s) de silencio y responde una sola vez a todo el bloque.

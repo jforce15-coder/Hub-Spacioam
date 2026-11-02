@@ -159,6 +159,11 @@ function avisoHablarDe_(a, rets, pends) {
   a = a || {};
   var pd = callePendDeAviso_(pends, a.id), nivel = avisoNivel_(a, rets, pends), importante = nivel <= 2;
   var base = calleLimpiar_(a.texto || (pd && (pd.resumen || pd.titulo)) || '');
+  /* Terminó algo de segundo plano (aviso con resultado): en modo conferencia la app lo dice sin que Juan la llame. */
+  if (a.resultado) {
+    base = calleCorto_(base, CALLE_PALABRAS_ - 8).replace(/[\s.!?…,;:]+$/, '');
+    return { hablar: 'Ya quedó listo' + (base ? ': ' + base : '') + '. ¿Quieres verlo ahora?', importante: importante, nivel: nivel };
+  }
   if (importante) {
     var sinPreg = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || []).filter(function (f) { return !/\?\s*["»”)]*\s*$/.test(f); }).join(' ').trim();
     base = calleCorto_(sinPreg || base, CALLE_PALABRAS_ - 3).replace(/[\s.!?…,;:]+$/, '');
@@ -166,7 +171,9 @@ function avisoHablarDe_(a, rets, pends) {
   }
   return { hablar: calleCorto_(base, CALLE_PALABRAS_), importante: false, nivel: nivel };
 }
-/* avisoHablar { aviso_id } → { ok, id, nivel, hablar, importante, audio? }. Busca en el historial de avisos (3 días). */
+/* avisoHablar { aviso_id, resultado? } → { ok, id, nivel, hablar, importante, audio? }. Busca en el historial de avisos
+   (3 días). resultado: la app sabe que terminó algo de segundo plano (lo de nivel 3 no entra al historial). Solo arma la
+   frase: no responde el aviso (eso es «calle» con { texto, aviso_id }). */
 function avisoHablar_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
@@ -174,6 +181,7 @@ function avisoHablar_(ses, b) {
   var a = calleAvisoHist_(adm, id), pends = pendFilas_();
   if (!a) { var pd = callePendDeAviso_(pends, id); if (pd) a = { id: id, texto: pd.resumen || pd.titulo }; }
   if (!a) return { ok: false, error: 'Ya no encuentro ese aviso.' };
+  if (b.resultado) a = Object.assign({}, a, { resultado: true });
   var h = avisoHablarDe_(a, retLeer_(adm), pends), t0 = Date.now();
   var out = { ok: true, id: id, nivel: h.nivel, hablar: h.hablar, importante: h.importante };
   var audio = calleAudio_(h.hablar, t0); if (audio) out.audio = audio;

@@ -411,6 +411,7 @@ function vozQuienBloque_() {
     '· PEDIDO PARA CLAUDIO SIN REPETIR: el pedido completo se confirma UNA sola vez (la primera). Si luego la persona pide un cambio, di solo el ajuste («ajustado», «listo, cambio aplicado») sin volver a decir todo el pedido. Cuando diga «mándalo», di solo «se lo mando a Claudio» y nada más.',
     '· VERIFICAR SIN LEER: cuando verifiques algo con la persona (un borrador, un pendiente, un mensaje por mandar), nunca leas el texto completo: di solo un título o superresumen de una frase y pregunta si lo confirma. Si pide el detalle, entonces lo lees.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
+    '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; por teléfono, WhatsApp o las web apps no hay pantalla): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), di una frase corta como «Te lo pongo en pantalla», usa mostrar_en_chat con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos) y después resume por voz en UNA sola frase; no leas en voz alta lo que pusiste en pantalla. La llamada sigue mientras Juan lo ve. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
     '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claudio, el desarrollador del sistema (Juan le dice «Claude» o «Claudio», es la misma persona: tómalo igual y en tu respuesta di siempre «Claudio»). Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…», «dile a Claudio…»), NUNCA digas que no puedes: usa secretaria con su pedido completo empezando por «Mejora para Claude:». Eso NO se lo manda: arma un BORRADOR. Léele en una frase corta lo que le pedirías a Claudio y pregúntale «¿Se lo mando a Claudio?» (si el sistema dice que va a un microproyecto, «¿Se lo agrego a … y se lo mando a Claudio?»). Nada le llega a Claudio hasta que diga «mándalo» o «sí»: entonces usa secretaria con «Mejora para Claude: mándalo». Si dice «agrégale …», usa «Mejora para Claude: agrégale …» y confirma SOLO el ajuste en una frase, sin repetir el pedido completo (el resumen completo se dice una sola vez, la primera); luego pregunta «¿Se lo reporto a Claudio?» y, si dice que sí, «se lo voy a reportar a Claudio»; si dice que no, «Mejora para Claude: no lo envíes»; si dice «no, es otro» o «es nuevo», «Mejora para Claude: es otro». Nunca digas «Claudio ya lo tiene» hasta que secretaria diga que lo recibió; si dice que no le llegó, díselo tal cual. Un pedido para Claudio va solo, no junto con otros pedidos. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
     '· ANTES DE USAR secretaria (siempre, la herramienta te lo pide): di primero UNA frase corta y natural según el pedido («Va, lo consulto con mi sistema.», «Dame un segundo, lo reviso en mi sistema.», «Ya le escribo.») y en el mismo turno llama a secretaria. NUNCA digas «secretaria» ni hables de una secretaria: para la persona es «mi sistema» («voy a consultar con mi sistema», «mi sistema dice…»). Mientras trabaja suena el tecleo: no hables encima ni rellenes con «sigo buscando», y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
@@ -566,7 +567,20 @@ function vozDefHerramientas_(base) {
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  });
+  }).concat([vozMostrarEnChat_()]);
+}
+/* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
+   trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al
+   cerrar ese chat, cuelga y la app vuelve al inicio (VozNativa.swift · ContentView.swift). La voz de las web apps la
+   contesta sola (js/alma-voz.js): la muestra donde hay chat («Alma aquí») y, si no, le dice a Alma que lo diga por voz.
+   La app siempre contesta enseguida (expects_response): Alma nunca se queda esperando. */
+function vozMostrarEnChat_() {
+  return { type: 'client', name: 'mostrar_en_chat', expects_response: true, response_timeout_secs: 5,
+    description: 'Pone en la pantalla de Juan, en el chat, información con muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo) mientras la llamada sigue. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». Antes di una frase corta («Te lo pongo en pantalla»); después resume por voz en una sola frase, sin leerlo completo. Si responde que no se pudo mostrar, dilo por voz en corto.',
+    parameters: { type: 'object', required: ['titulo', 'contenido'], properties: {
+      titulo: { type: 'string', description: 'Título corto de lo que se muestra (p. ej. «Tu viaje a Miami»).' },
+      contenido: { type: 'string', description: 'La información completa en markdown: listas con «- », pasos con «1. », tablas con «| a | b |», negritas con **…**, una idea por línea (horas, fechas, montos y nombres exactos).' } } },
+    disable_interruptions: false, force_pre_tool_speech: false };
 }
 /* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):
    solo se les cambian estos campos; lo demás (URL, encabezados, secretos) queda como está allá y nunca pasa por aquí. */

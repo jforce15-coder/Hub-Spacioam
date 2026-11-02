@@ -9,7 +9,7 @@
    La frase corta sale de la misma respuesta de Alma (CALLE_REGLA_ en el prompt, sin otra llamada a la IA) y
    calleHablar_ le quita lo que no se puede decir (markdown, listas, enlaces, etiquetas [[…]]).
    Plazo duro (CALLE_PLAZO_, 15 s): si no alcanza, el agente lo sigue en segundo plano (retomar.js) y Alma dice
-   «Va, te aviso cuando termine».
+   «Listo, te aviso cuando termine».
    audio (opcional): la frase con la voz de Alma (ElevenLabs, eleven_flash_v2_5), solo si llegó en 3 s o menos; si no,
    la app la dice con la voz del iPhone. Cuenta en el cupo como «Voz» (nunca se pausa).
 
@@ -24,7 +24,7 @@
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
 var CALLE_AUDIO_MS_ = 3000;        // el audio solo vale si ElevenLabs contestó en este tiempo
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
-var CALLE_SIGUE_ = 'Va, te aviso cuando termine.';
+var CALLE_SIGUE_ = 'Listo, te aviso cuando termine.';
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
@@ -160,9 +160,11 @@ function avisoHablarDe_(a, rets, pends) {
   var pd = callePendDeAviso_(pends, a.id), nivel = avisoNivel_(a, rets, pends), importante = nivel <= 2;
   var base = calleLimpiar_(a.texto || (pd && (pd.resumen || pd.titulo)) || '');
   /* Terminó algo de segundo plano (aviso con resultado): en modo conferencia la app lo dice sin que Juan la llame. */
-  if (a.resultado) {
+  if (a.resultado && !importante) {   // si pide algo de él, gana «¿Lo vemos?» (una sola pregunta, nunca «¿Le pago. ¿Quieres verlo…?»)
+    base = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || []).filter(function (f) { return !/\?\s*["»”)]*\s*$/.test(f); }).join(' ').trim() || base;
     base = calleCorto_(base, CALLE_PALABRAS_ - 8).replace(/[\s.!?…,;:]+$/, '');
-    return { hablar: 'Ya quedó listo' + (base ? ': ' + base : '') + '. ¿Quieres verlo ahora?', importante: importante, nivel: nivel };
+    var yaDice = /\b(list[oa]s?|termin\w*|qued[oó]|hecho)\b/i.test(base);   // «La limpieza quedó lista»: sin repetir «Ya quedó listo»
+    return { hablar: (base ? (yaDice ? base : 'Ya quedó listo: ' + base) : 'Ya quedó listo') + '. ¿Quieres verlo ahora?', importante: importante, nivel: nivel };
   }
   if (importante) {
     var sinPreg = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || []).filter(function (f) { return !/\?\s*["»”)]*\s*$/.test(f); }).join(' ').trim();

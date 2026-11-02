@@ -232,7 +232,7 @@ function claudeBorradorResponder_(adm, texto, o) {
     }
     b.partes.push(extra); b.espera = false; claudeBorradorGuardar_(adm.email, b);
     return { accion: 'agregar', texto: claudeBorradorConPregunta_('Agregado.', b, voz ? 'llamada' : ''),
-      voz: 'AGREGADO AL BORRADOR (todavía NO se envía). Dile en una frase cómo quedó («Ahora le pediría a Claude: …») y pregúntale otra vez «¿Se lo mando a Claude?». Borrador: «' + claudeBorradorCorto_(b, 300) + '».' };
+      voz: 'AGREGADO AL BORRADOR (todavía NO se envía). Confirma SOLO el ajuste que acaba de pedir («Anotado: ' + claudeBorradorCorto_({ partes: [extra] }, 120) + '») en una frase. NO repitas ni resumas el pedido completo. Cierra con «¿Se lo reporto a Claude?» y, si dice que sí, usa «Mejora para Claude: mándalo» y dile «se lo voy a reportar a Claude».' };
   }
   /* mandar */
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true,

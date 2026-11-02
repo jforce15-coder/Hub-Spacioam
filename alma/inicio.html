@@ -123,6 +123,15 @@
   #d-anillo { white-space: pre-line; font-size: 11px; color: #6F6867; }
   .nota-g { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 0; padding: 0 16px 12px; }
   .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
+  /* Atajos permitidos: cada atajo con su «Quitar», y abajo el cuadro para agregar otro */
+  .fila .quitar, .fila .agregar { min-height: 44px; min-width: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: rgba(62,63,63,.06);
+    font: 600 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; cursor: pointer; }
+  .fila .agregar { background: #E9826A; color: #fff; }
+  #l-atajos:not(:empty) + .fila { border-top: .5px solid rgba(62,63,63,.12); }
+  .fila .agregar:disabled { opacity: .45; }
+  .fila input.nuevo { flex: 1; min-width: 0; height: 40px; border: .5px solid rgba(62,63,63,.18); border-radius: 12px; padding: 0 12px;
+    font: 400 16px system-ui, sans-serif; color: #3E3F3F; background: rgba(255,255,255,.9); box-sizing: border-box; }
+  .fila input.nuevo:focus-visible, .fila .quitar:focus-visible, .fila .agregar:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; }
 
   /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
   /* z-index menor que el de la roca (--san-z 880 en js/sa-nav.js): las esferas salen y se esconden siempre DETRÁS del botón roca */
@@ -397,6 +406,13 @@
     <p class="nota-g" id="n-anillo">Dos toques en tu anillo encienden o apagan el modo conferencia, aunque el teléfono esté bloqueado; di «Alma» y te escucha. Si Alma está hablando, dos toques la pausan. El anillo va en modo Music.</p>
     <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
     <p class="nota-g" id="d-anillo" hidden></p>
+  </div>
+  <p class="tit-g" id="t-atajos" hidden>Atajos permitidos</p>
+  <div class="grupo" id="g-atajos" hidden>
+    <div id="l-atajos"></div>
+    <div class="fila"><input type="text" class="nuevo" id="i-atajo" placeholder="Nombre exacto del atajo" aria-label="Nombre del atajo para agregar" autocomplete="off" enterkeyhint="done"><button type="button" class="agregar" id="b-atajo" disabled>Agregar</button></div>
+    <div class="fila"><span class="et">Permitir todos</span><label class="interruptor"><input type="checkbox" id="i-atajos-todos" aria-label="Permitir todos los atajos"><span></span></label></div>
+    <p class="nota-g">Alma corre por voz los atajos de tu app Atajos que pongas aquí («Alma, pon mi atajo de música»). Escribe el nombre tal como está en Atajos. Con «Permitir todos», Alma puede correr cualquiera.</p>
   </div>
   <div class="grupo">
     <div class="fila" id="p-health-f" hidden><a href="../health/" id="a-health">Health</a><span class="va">›</span></div>
@@ -874,7 +890,7 @@
     $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
-    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); avisosReloj(true); }
+    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "atajos", que: "estado" }); avisosReloj(true); }
     $("velo").classList.add("on"); $("panel").classList.add("on"); $("panel").setAttribute("aria-hidden", "false");
   }
   function cerrarAjustes() { avisosReloj(false); $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
@@ -968,6 +984,33 @@
       if (e.tipo === "error" && e.mensaje) { $("d-anillo").hidden = false; $("d-anillo").textContent = "Error: " + e.mensaje; }
     }
   };
+  /* ── Atajos permitidos (AtajosIOS.swift en la app): los atajos de la app Atajos que Alma puede correr por voz. La lista
+     vive en el teléfono; aquí solo se pinta lo que cuenta AlmaAtajos.evento. Una app sin esto no contesta y no se ve. ── */
+  function atajosPintar(e) {
+    var l = $("l-atajos"); l.textContent = "";
+    (e.lista || []).forEach(function (n) {
+      var f = document.createElement("div"); f.className = "fila";
+      var et = document.createElement("span"); et.className = "et"; et.textContent = n;
+      var b = document.createElement("button"); b.type = "button"; b.className = "quitar"; b.textContent = "Quitar"; b.setAttribute("aria-label", "Quitar " + n);
+      b.onclick = function () { nativa({ accion: "atajos", que: "quitar", nombre: n }); };
+      f.appendChild(et); f.appendChild(b); l.appendChild(f);
+    });
+    $("i-atajos-todos").checked = !!e.todos;
+  }
+  window.AlmaAtajos = { evento: function (e) {
+    if (!e) return;
+    $("g-atajos").hidden = false; $("t-atajos").hidden = false;
+    atajosPintar(e);
+  } };
+  function atajoAgregar() {
+    var v = $("i-atajo").value.trim(); if (!v) return;
+    nativa({ accion: "atajos", que: "agregar", nombre: v });
+    $("i-atajo").value = ""; $("b-atajo").disabled = true;
+  }
+  $("i-atajo").oninput = function () { $("b-atajo").disabled = !this.value.trim(); };
+  $("i-atajo").onkeydown = function (ev) { if (ev.key === "Enter") { ev.preventDefault(); atajoAgregar(); } };
+  $("b-atajo").onclick = atajoAgregar;
+  $("i-atajos-todos").onchange = function () { nativa({ accion: "atajos", que: "todos", on: this.checked }); };
   /* Modo conferencia (Conferencia.swift en la app): un toque lo enciende o lo apaga. Escucha con el dictado del iPhone; si
      el Hub nota que son varias personas, la reunión se transcribe con ElevenLabs (distingue las voces). Despierta al oír «Alma». */
   var CONF = { activa: false };

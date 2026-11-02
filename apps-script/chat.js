@@ -187,7 +187,7 @@ function claudeBorradorIntencion_(texto, tras) {
   if (!n) return '';
   var boton = { 'mandalo': 'mandar', 'agregar algo': 'agregar', 'no lo envies': 'cancelar' }[n];
   if (boton) return boton;
-  if (!tras && !/\b(claude|borrador|pedido)\b/.test(n)) return '';
+  if (!tras && !/\b(claudio?|borrador|pedido)\b/.test(n)) return '';
   if (/\bno (lo |se lo )?(envies|mandes|envias|mandas)\b|^(cancela|cancelalo|olvidalo|descartalo|borralo|mejor no|no gracias|ya no)\b|^no$/.test(n)) return 'cancelar';
   /* «agrégale…» sí; «agrega una tarea…» no (es otro pedido): solo con «-le», «al pedido» o «también / además» tras la pregunta. */
   if (/^(agregale|anadele|sumale|ponle tambien|agrega(r)? (al|a el) (pedido|borrador)|anade al (pedido|borrador))\b/.test(n) || (tras && /^(tambien|ademas)\b/.test(n))) return 'agregar';
@@ -199,7 +199,7 @@ function claudeBorradorIntencion_(texto, tras) {
 function claudeBorradorAgregado_(texto) {
   return String(texto || '').trim()
     .replace(/^(agr[eé]gale|agregar( algo)?|agrega( algo)?|añ[aá]dele|añ[aá]de|añadir( algo)?|s[uú]male|suma|ponle tambi[eé]n|tambi[eé]n|adem[aá]s)\s*[:,.-]?\s*/i, '')
-    .replace(/^(al (pedido|borrador)( (de|para) claude)?|a claude)\s*[:,.-]?\s*/i, '').trim();
+    .replace(/^(al (pedido|borrador)( (de|para) claudio?)?|a claudio?)\s*[:,.-]?\s*/i, '').trim();
 }
 /* El turno de alguien con un borrador abierto. Devuelve null si no habla del borrador; si sí:
    { accion: 'mandar'|'agregar'|'esperar'|'cancelar', texto (para el chat), voz (para la llamada), claude? }.
@@ -224,7 +224,7 @@ function claudeBorradorResponder_(adm, texto, o) {
   }
   if (que === 'agregar') {
     var extra = b.espera && !claudeBorradorIntencion_(texto, true) ? String(texto).trim() : claudeBorradorAgregado_(texto);
-    if (/^agregar algo$/i.test(extra) || /^(al pedido|a claude|al borrador)$/i.test(extra)) extra = '';
+    if (/^agregar algo$/i.test(extra) || /^(al pedido|a claudio?|al borrador)$/i.test(extra)) extra = '';
     cerrarTarjeta(); b.pend = ''; b.vencido = false; b.u = Date.now();
     if (!extra) {
       b.espera = true; claudeBorradorGuardar_(adm.email, b);

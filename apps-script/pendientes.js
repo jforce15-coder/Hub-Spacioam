@@ -159,7 +159,7 @@ function pendItems_(ses, adm, noti) {
     var sec = (p.unir || []).length || p.estado === 'pregunta' || p.estado === 'fallo' || p.estado === 'fallo_pub' ? 'atencion' : p.estado === 'publicado' ? 'listo' : 'leer';
     items.push({ id: p.id, fuente: p.pr ? 'pr' : 'claude', seccion: sec, area: 'proposito', proyecto: 'Desarrollo', titulo: p.titulo, resumen: p.resumen, etiqueta: p.fecha, estado: p.estado,
       pasos: p.pasos, pregunta: p.pregunta, original: p.original, enlaces: p.enlaces, unir: p.unir, progreso: p.progreso, ts: 0, importancia: 2, hecho: !p.pr,
-      tarjeta: p.tarjeta || null, ajustes: p.ajustes || null, micro: p.micro || '',
+      tarjeta: p.tarjeta || null, ajustes: p.ajustes || null, micro: p.micro || '', modelo: p.modelo || '',
       responder: !p.pr && (p.estado === 'pregunta' || p.estado === 'fallo') });
   });
   return items;

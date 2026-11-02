@@ -288,6 +288,7 @@
     ".san-scope .san-arco .nm{font:500 10.5px Montserrat,system-ui,sans-serif;color:#6F6867;white-space:nowrap}.san-scope .san-arco .ct{position:absolute;top:-4px;right:-6px;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:#3E3F3F;color:#FAFAFA;font:600 11px/20px Montserrat,system-ui,sans-serif;text-align:center}",
     ".san-scope .san-arco .ct.at{background:#E9826A;color:#fff}.san-scope .san-arco button.vacia .pz{opacity:.55}.san-scope .san-arco.filtra button:not(.on){opacity:.4}.san-scope .san-arco button.on{transform:translateY(-4px)}.san-scope .san-arco button.on .pz{box-shadow:0 0 0 1.5px #E9826A,0 12px 20px -10px rgba(233,130,106,.6)}",
     ".san-scope .san-pc>.bt{padding:0 18px 16px}.san-scope .san-sec{display:flex;justify-content:space-between;align-items:baseline;margin:10px 4px -4px;font:600 10px Montserrat,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#938B8A}.san-scope .san-sec b{font-weight:600}",
+    ".san-scope .san-nivel{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font:600 9px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;vertical-align:1px}.san-scope .san-nivel.sonnet{background:#EEF1F7;color:#55668A}.san-scope .san-nivel.opus{background:#F1ECF6;color:#6E5A8C}",
     ".san-scope .san-pc .tag{display:block;margin-bottom:8px;font:500 11.5px Montserrat,system-ui,sans-serif;color:#6F6867}.san-scope .san-pc .tag::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#E9826A;margin-right:7px;vertical-align:1px}",
     ".san-scope .san-vu{padding:0 18px 4px}.san-scope .san-vu .rt{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}.san-scope .san-vu .ia{font:300 34px/1 Valky,Georgia,serif;color:#3E3F3F}.san-scope .san-vu .cd{margin-top:4px;font:500 11px Montserrat,system-ui,sans-serif;color:#6F6867}",
     ".san-scope .san-vu .md{flex:1;margin:0 4px 16px;border-top:1px dashed #D8D4CE;text-align:center}.san-scope .san-vu .md span{position:relative;top:-8px;background:#fff;padding:0 6px;font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#938B8A}",
@@ -1630,11 +1631,18 @@
     var hecho = false, f = function () { if (hecho) return; hecho = true; fin(); };
     c.addEventListener("transitionend", function (e) { if (e.propertyName === "height") f(); }); setTimeout(f, 480);
   }
+  /* Nivel del pedido (sencillo · complejo): con qué Claudio va el microproyecto, «Sonnet» u «Opus», como chip pequeño. */
+  function nivelChip(el, p) {
+    if (!p || (p.modelo !== "Sonnet" && p.modelo !== "Opus")) return;
+    var k = d.createElement("span"); k.className = "san-nivel " + p.modelo.toLowerCase(); k.textContent = p.modelo;
+    k.title = p.modelo === "Sonnet" ? "Pedido sencillo: va con Sonnet" : "Pedido complejo: va con Opus"; el.appendChild(k);
+  }
   function pendTarjeta(p, tag) {
     var c = d.createElement("div"); c.className = "san-pc " + (p.estado || p.seccion || ""); c.setAttribute("data-id", p.id);
     if ((AL.pendAb || {})[p.id]) c.classList.add("abierta");
     var t = d.createElement("button"); t.type = "button";
     var tt = d.createElement("span"); tt.className = "tt"; var tg = d.createElement("span"); tg.className = "tag"; tg.textContent = tag + (p.etiqueta ? " · " + p.etiqueta : "");
+    nivelChip(tg, p);
     var b = d.createElement("b"); b.textContent = p.titulo; tt.appendChild(tg); tt.appendChild(b);
     var vuelo = p.tarjeta && p.tarjeta.tipo === "vuelo", accion = (p.acciones || [])[0];
     if (!vuelo && p.resumen) { var em = d.createElement("em"); em.textContent = p.resumen; tt.appendChild(em); }

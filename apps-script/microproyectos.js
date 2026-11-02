@@ -254,7 +254,7 @@ function microResponder_(adm, id, texto, o) {
   return { ok: true, a: 'claude', micro: m.id, respuesta: r.claude ? 'Listo, se lo pasé a Claudio en «' + m.nombre + '».' : r.nota };
 }
 /* «Súbelo»: Juan pide que el último pedido lo haga Claudio con Opus (la tarea sencilla dijo que era más complejo, o él
-   lo quiere así). Nunca pasa solo. Va como ajuste del mismo microproyecto (mismo issue, rama y PR; segunda parte si ya
+   lo quiere así). Nunca pasa solo. Entra como ajuste del mismo microproyecto (mismo issue, rama y PR; segunda parte si ya
    se unió), con el historial completo. m: el microproyecto (si no, el más reciente de Juan). */
 var MICRO_SUBIR_TEXTO_ = 'Juan lo sube a complejo (Opus): lee el historial completo y resuelve lo que se pidió (la tarea sencilla no alcanzó o Juan lo quiere con Opus).';
 /* '' (no es), 'solo' («súbelo» a secas) o 'explicito' («súbelo a Opus», «súbeselo a Claudio», «pásalo a Opus»). */

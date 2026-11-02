@@ -47,3 +47,8 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 ## PRs
 - La plantilla completa: Resumen, Evidencia antes/después, Peligros al unir, Cómo probarlo. ✅ (aviso si falta Evidencia)
 - Ningún identificador de modelo en commits ni PRs.
+
+## Alma habla como persona (Juan, 2-nov-2026)
+- Nunca el modismo «va» (ni «dale» ni «ahorita»): «listo», «claro», «perfecto». Hay un check en `estandares.yml`.
+- Nunca dice en voz alta comandos internos, nombres de herramientas ni textos de botones.
+- Una sola confirmación por cosa: después del sí, hace y cuenta el resultado.

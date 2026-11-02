@@ -58,6 +58,12 @@ jobs:
           fi
           echo "Bien."
 
+      - name: Alma no usa el modismo «va» (Juan lo corrigió dos veces)
+        run: |
+          if grep -nE "(['\"«] *Va[,. ]|Va como )" apps-script/*.js playbooks/*.md; then
+            echo "::error::Alma no dice «va» (ni «Va,», ni «Va como»): usa «Listo», «Claro» o «Perfecto». Ver ESTANDARES.md."; exit 1
+          fi
+
       - name: Presupuesto de los prompts de voz y chat (lo medido + 15 %)
         run: node .github/presupuesto-prompts.js apps-script
 

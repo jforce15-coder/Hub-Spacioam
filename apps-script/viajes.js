@@ -45,6 +45,7 @@ function viajes_(ses, b) {
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var cuenta = viajesCuenta_();
   if (!viajesPuede_(adm, cuenta)) return { ok: true, viajes: [], conectar: 'Tu correo todavía no está conectado a Alma para leer tus vuelos.' };
+  try { viajesReparar_(cuenta); } catch (e) { console.error('viajesReparar_: ' + e); }
   var ahora = Date.now(), lista = viajesLeer_(cuenta), c = CacheService.getScriptCache(), clave = 'viajes_rev_' + cuenta;
   var ult = Number(c.get(clave) || 0), espera = (b.forzar ? 1 : VIAJES_REVISAR_MIN_) * 60000, out = { ok: true, cuenta: cuenta };
   if (ahora - ult >= espera) {
@@ -141,6 +142,7 @@ function viajeLeerTexto_(cuenta, correo) {
   nuevo.email = cuenta; nuevo.fuentes = [correo.id];
   if (!nuevo.checkin_url) nuevo.checkin_url = viajeCheckinUrl_(correo.html, nuevo.codigo_aerolinea);
   var antes = viajeMismo_(viajesLeer_(cuenta), nuevo);
+  if (!antes) nuevo.tramos = viajeSinDobles_(nuevo.tramos, nuevo.codigo_aerolinea);
   var v = antes ? viajeUnir_(antes, nuevo) : nuevo;
   viajeGuardar_(v);
   return v;
@@ -224,11 +226,15 @@ function viajeIsoLocal_(base, zona) {
 
 /* Juntar dos lecturas del mismo viaje: los tramos por vuelo y día; lo nuevo completa (no borra) terminal, puerta y asiento. */
 function viajeUnir_(viejo, nuevo) {
-  var v = JSON.parse(JSON.stringify(viejo)), clave = function (t) { return t.vuelo + '|' + String(t.sale).slice(0, 10); };
-  var por = {}; v.tramos.forEach(function (t) { por[clave(t)] = t; });
-  nuevo.tramos.forEach(function (t) {
-    var a = por[clave(t)];
-    if (!a) { v.tramos.push(t); por[clave(t)] = t; return; }
+  /* Un tramo es el mismo si tiene el mismo vuelo y la misma ruta (aunque cambie la fecha: la aerolínea movió el vuelo y
+     manda el correo más nuevo), o si sale a la misma hora por la misma ruta con otro número (código compartido: AF 1493 = DL 8632). */
+  var v = JSON.parse(JSON.stringify(viejo));
+  v.tramos = viajeSinDobles_(v.tramos, v.codigo_aerolinea || nuevo.codigo_aerolinea);
+  var ruta = function (t) { return (t.origen && t.origen.iata) + '>' + (t.destino && t.destino.iata); };
+  viajeSinDobles_(nuevo.tramos, v.codigo_aerolinea || nuevo.codigo_aerolinea).forEach(function (t) {
+    var a = v.tramos.filter(function (x) { return x.vuelo === t.vuelo && ruta(x) === ruta(t); })[0] ||
+      v.tramos.filter(function (x) { return ruta(x) === ruta(t) && Date.parse(x.sale) === Date.parse(t.sale); })[0];
+    if (!a) { v.tramos.push(t); return; }
     ['puerta', 'asiento', 'opera'].forEach(function (k) { if (t[k]) a[k] = t[k]; });
     ['origen', 'destino'].forEach(function (k) { ['terminal', 'ciudad', 'iata', 'pais', 'zona'].forEach(function (x) { if (t[k][x]) a[k][x] = t[k][x]; }); });
     if (t.sale) a.sale = t.sale; if (t.llega) a.llega = t.llega;   // la aerolínea cambió la hora: manda el correo más nuevo
@@ -238,6 +244,39 @@ function viajeUnir_(viejo, nuevo) {
   v.fuentes = (v.fuentes || []).concat((nuevo.fuentes || []).filter(function (f) { return (v.fuentes || []).indexOf(f) < 0; }));
   v.pases = (v.pases || []).concat((nuevo.pases || []).filter(function (p) { return !(v.pases || []).some(function (q) { return q.id === p.id; }); }));
   return v;
+}
+
+/* Una sola vez por cuenta (2-nov): los viajes leídos antes de este arreglo juntaban mal los tramos (código compartido
+   repetido y la vuelta vieja de un boleto que se cambió). Se borran el viaje y los correos vistos de esa cuenta para que
+   se vuelvan a leer, del más viejo al más nuevo, con la regla nueva. */
+var VIAJES_REPARA_ = 'VIAJES_REPARADO_2_';
+function viajesReparar_(cuenta) {
+  var p = PropertiesService.getScriptProperties(); if (!cuenta || p.getProperty(VIAJES_REPARA_ + cuenta)) return;
+  [[VIAJES_HOJA_, VIAJES_CAB_], [VIAJES_VISTOS_HOJA_, VIAJES_VISTOS_CAB_]].forEach(function (h) {
+    var sh = hojaCrear_(h[0], h[1]), n = sh.getLastRow(); if (n < 2) return;
+    var rg = sh.getRange(2, 1, n - 1, h[1].length), v = rg.getValues(), quedan = v.filter(function (r) { return String(r[1]) !== cuenta; });
+    if (quedan.length === v.length) return;
+    rg.clearContent();
+    if (quedan.length) sh.getRange(2, 1, quedan.length, h[1].length).setValues(quedan);
+  });
+  CacheService.getScriptCache().remove('viajes_rev_' + cuenta);
+  p.setProperty(VIAJES_REPARA_ + cuenta, new Date().toISOString());
+}
+
+/* Quita los tramos repetidos de un mismo correo: misma ruta y misma salida = el mismo vuelo con código compartido.
+   Se queda el número de la aerolínea del boleto (DL) y anota el otro en «tambien». */
+function viajeSinDobles_(tramos, codigo) {
+  var out = [];
+  (tramos || []).forEach(function (t) {
+    var r = (t.origen && t.origen.iata) + '>' + (t.destino && t.destino.iata);
+    var a = out.filter(function (x) { return (x.origen && x.origen.iata) + '>' + (x.destino && x.destino.iata) === r && Date.parse(x.sale) === Date.parse(t.sale); })[0];
+    if (!a) { out.push(t); return; }
+    var mio = function (x) { return codigo && String(x.vuelo || '').indexOf(codigo) === 0; };
+    if (mio(t) && !mio(a)) { var otro = a.vuelo; Object.keys(t).forEach(function (k) { if (t[k]) a[k] = t[k]; }); a.tambien = otro; }
+    else if (t.vuelo !== a.vuelo) a.tambien = t.vuelo;
+    ['puerta', 'asiento'].forEach(function (k) { if (!a[k] && t[k]) a[k] = t[k]; });
+  });
+  return out;
 }
 
 /* ── Lo calculado (no depende de la hora): trayecto, internacional, a qué hora llegar y cuándo abre el check-in ── */
@@ -302,7 +341,8 @@ function viajeCheckinUrl_(html, codigo) {
 /* ── La hoja ── */
 function viajesLeer_(cuenta) {
   var sh = hojaCrear_(VIAJES_HOJA_, VIAJES_CAB_); if (sh.getLastRow() < 2) return [];
-  return sh.getRange(2, 1, sh.getLastRow() - 1, VIAJES_CAB_.length).getValues().filter(function (r) { return String(r[1]) === cuenta; }).map(viajeDeFila_).filter(Boolean);
+  return sh.getRange(2, 1, sh.getLastRow() - 1, VIAJES_CAB_.length).getValues().filter(function (r) { return String(r[1]) === cuenta; }).map(viajeDeFila_).filter(Boolean)
+    .map(function (v) { v.tramos = viajeSinDobles_(v.tramos, v.codigo_aerolinea); return v; });
 }
 function viajeDeFila_(r) {
   try {

@@ -58,6 +58,9 @@ jobs:
           fi
           echo "Bien."
 
+      - name: Presupuesto de los prompts de voz y chat (lo medido + 15 %)
+        run: node .github/presupuesto-prompts.js apps-script
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

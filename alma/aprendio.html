@@ -9,7 +9,8 @@
 <link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
 <link rel="stylesheet" href="../ds/tokens/fonts.css">
 <!-- Ajustes → Lo que Alma aprendió (issue #396): las recetas que Alma repite sin IA (apps-script/recetas.js, acciones
-     «recetas» y «recetaBorrar») y lo que está vigilando por ti (apps-script/vigilancias.js). Solo el administrador principal. -->
+     «recetas» y «recetaBorrar») y lo que está vigilando por ti (apps-script/vigilancias.js, «vigilancias» y
+     «vigilanciaDejar»). Solo el administrador principal. -->
 <style>
   :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --papel: #fff;
     --durazno: #E9826A; --durazno-t: #B5624E; --arena: #F3EFEA; --rojo: #B54D36; --ease: cubic-bezier(.22,.61,.36,1); }
@@ -105,7 +106,26 @@
     if (!(R.recetas || []).length) caja.appendChild(el("div", "vacio", caja.getAttribute("data-vacio")));
     C.appendChild(caja);
   }
-  function pintar(R) {
+  var QUE = { vuelo: "Vuelo", huesped_responde: "Huésped", pr_unido: "Cambio por unir", reserva_cambia: "Reserva", pagina_dice: "Página" };
+  function hora(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }); }
+  /* Lo que Alma vigila: revisa sola, sin IA, y te avisa cuando pasa. */
+  function pintarVigilancias(C, V) {
+    seccion(C, "Lo que Alma vigila", "Dile «avísame cuando…» (tu vuelo, un huésped que responde, un cambio por unir, una reserva o una página). Alma revisa sola, sin gastar IA, y te avisa cuando pasa.");
+    var caja = el("div", "lista"); caja.setAttribute("data-vacio", "No está vigilando nada ahora.");
+    var L = (V && V.ok && V.vigilancias) || [];
+    L.forEach(function (x) {
+      var f = el("div", "item"), q = el("div", "q");
+      q.appendChild(document.createTextNode(x.resumen.charAt(0).toUpperCase() + x.resumen.slice(1))); q.appendChild(el("span", "chip", QUE[x.que] || x.que));
+      f.appendChild(q);
+      f.appendChild(el("div", "d", ["cada " + x.cada_min + " min", "hasta el " + hora(x.vence), x.pedido ? "al pasar: " + x.pedido : "al pasar te avisa"].join(" · ")));
+      var b = el("button", "", "Dejar de vigilar"); b.type = "button"; b.setAttribute("data-a", "dejar-vigilancia"); b.setAttribute("aria-label", "Dejar de vigilar " + x.resumen);
+      b.onclick = function () { quitar(f, "vigilanciaDejar", { id: x.id }, caja); };
+      f.appendChild(b); caja.appendChild(f);
+    });
+    if (!L.length) caja.appendChild(el("div", "vacio", V && V.ok === false ? (V.error || "No pude leer lo que vigila.") : caja.getAttribute("data-vacio")));
+    C.appendChild(caja);
+  }
+  function pintar(R, V) {
     var C = $("cuerpo"); C.innerHTML = "";
     var pt = el("div", "portada"); pt.appendChild(el("small", "", "Ajustes"));
     pt.appendChild(el("h1", "", "Lo que Alma aprendió"));
@@ -115,11 +135,14 @@
     [[R.hoy || 0, "hechas de memoria hoy"], [R.total || 0, "en total, sin IA"], [(R.recetas || []).length, "recetas guardadas"]].forEach(function (x) { var c = el("div", "cifra"); c.appendChild(el("b", "", String(x[0]))); c.appendChild(el("span", "", x[1])); cf.appendChild(c); });
     C.appendChild(cf);
     pintarRecetas(C, R);
+    pintarVigilancias(C, V);
   }
   function cargar() {
-    pedir("recetas").then(function (r) {
+    /* las dos a la vez, no una tras otra (ds/velocidad.md, regla 7) */
+    Promise.all([pedir("recetas"), pedir("vigilancias")]).then(function (x) {
+      var r = x[0];
       if (!r || !r.ok) { var C = $("cuerpo"); C.innerHTML = ""; var v = el("div", "portada"); v.appendChild(el("h1", "", "No pude cargarlo.")); v.appendChild(el("p", "", (r && r.error) || "Intenta de nuevo en un momento.")); C.appendChild(v); return; }
-      pintar(r);
+      pintar(r, x[1]);
     });
   }
   $("b-recargar").onclick = cargar;

@@ -26,7 +26,7 @@ var CUPO_FONDO_PCT_ = 60, CUPO_CRITICO_PCT_ = 85, CUPO_PROY_PCT_ = 80;
 var CUPO_CANALES_ = [
   ['inicio', 'Modo inicio'], ['chat', 'Chat de Alma'], ['voz', 'Voz'], ['huespedes', 'Huéspedes'], ['whatsapp', 'WhatsApp'],
   ['cerebro', 'Cerebro'], ['fondo', 'Mejoras y fondo'], ['login', 'Login'], ['hola', 'Hola'], ['epi', 'Epi'],
-  ['apps', 'Otras apps'], ['ia', 'IA · Claude'], ['viajes', 'Viajes'], ['otros', 'Otros']
+  ['apps', 'Otras apps'], ['ia', 'IA · Claude'], ['viajes', 'Viajes'], ['vigilar', 'Vigilancias'], ['otros', 'Otros']
 ];
 /* Las otras apps: id en ACCESOS_APPS_ (Código.js) · nombre corto (aviso «Sin datos de: …») · canal en «Uso». */
 var CUPO_APPS_ = [['hola', 'Hola', 'App Hola'], ['epi', 'Epi', 'App Epi'], ['grow', 'Grow', 'App Grow'], ['docs', 'Docs', 'App Docs'], ['mi', 'Mi', 'App Mi']];
@@ -43,7 +43,7 @@ var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'vozWeb'];
 var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
 /* Canal de cada acción del Hub (hubApi_). Lo que no está aquí cuenta como «Otros». */
 var CUPO_ACCIONES_ = {
-  inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos tutoriales recetas recetaBorrar',
+  inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos tutoriales recetas recetaBorrar vigilancias vigilanciaDejar',
   chat: 'opEnviar opHilo opLista almaFoto mejorarCampo dictar plantillas',
   voz: 'vozWeb vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer avisoHablar',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +

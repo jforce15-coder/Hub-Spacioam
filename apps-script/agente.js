@@ -195,6 +195,13 @@ function agHerramientas_() {
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
       { nombre: s('Nombre de la persona'), relacion: s('Qué es de Juan: «esposa de Juan», «mamá de Juan»…'), numero: s('WhatsApp con código de país (opcional si ya hay conversación)') }, ['nombre', 'relacion']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
+    /* Vigilancias (vigilancias.js): la revisión es código, sin IA; tú solo la armas y actúas al final. */
+    T('vigilar', 'Para «avísame cuando…»: deja vigilando algo y avisa a Juan cuando pase, sin gastar IA mientras espera. que: vuelo (cambia puerta, terminal u hora; objetivo = confirmación o número de vuelo de ver_vuelos), huesped_responde (objetivo = código de reserva, conv_id o número de WhatsApp), pr_unido (objetivo = enlace del PR), reserva_cambia (fechas, estado o huéspedes; objetivo = código de reserva) o pagina_dice (objetivo = https://…, texto = lo que debe decir). Solo el administrador principal.',
+      { que: { type: 'string', enum: ['vuelo', 'huesped_responde', 'pr_unido', 'reserva_cambia', 'pagina_dice'] }, objetivo: s('Qué vigilar (ver «que»)'), texto: s('Solo pagina_dice: el texto que debe aparecer'),
+        cada_min: { type: 'number', description: 'Opcional: cada cuántos minutos (mínimo 5; la página, 15)' }, vence: s('Opcional: horas (número) o «AAAA-MM-DD HH:MM». Por defecto 48 h (un vuelo, hasta que sale); máximo 14 días'),
+        al_pasar: { type: 'object', description: 'Qué hacer al pasar', properties: { avisar: s('El aviso para Juan, corto'), pedido: s('Opcional: lo que harás tú cuando pase («escríbele a Gabriel que…»), con todos los datos') } } }, ['que', 'objetivo']),
+    T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
+    T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ].concat(cerebroHerramientas_(T, s));   // buscar_en_cerebro, solo si el cerebro está configurado (cerebro.js)
 }
@@ -525,6 +532,9 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       ctx.hechas.push({ tipo: 'borrador_claude', resumen: 'Borrador para Claude · ' + String(inp.titulo || txm).slice(0, 80) });
       return { ok: true, borrador: true, enviado: false, nota: 'Quedó de BORRADOR: todavía no le llega a Claudio. No digas que se lo pasaste; el sistema le pregunta a Juan «¿Se lo mando a Claudio?».' };
     }
+    case 'vigilar': { var rv = vigCrear_(adm, inp); if (rv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Vigilando · ' + rv.vigilando }); return rv; }
+    case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
+    case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };

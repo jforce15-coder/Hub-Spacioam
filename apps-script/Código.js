@@ -561,11 +561,12 @@ function cacheEntrante_(convId, d) {
     c.put(k, JSON.stringify(L.slice(-10)), 7200); c.removeAll(['hf_' + convId]);
   } catch (e) { console.error('cacheEntrante_: ' + e); }
 }
-/* Cada ~2 min re-lee de Hospitable las conversaciones que se movieron en las últimas 48 h (cubre mensajes que
+/* Cada ~10 min (Juan, 2-nov: antes 2 min y era lo que más gastaba el cupo de Google; los mensajes de huéspedes
+   igual entran al instante por el webhook, esto es solo el respaldo) re-lee de Hospitable las conversaciones que se movieron en las últimas 48 h (cubre mensajes que
    el equipo escribe directo en Hospitable si ese webhook no llega) y las de la cola/log sin fila en la bandeja. */
 function sincronizarInbox_() {
   const props = PropertiesService.getScriptProperties();
-  if (Date.now() - Number(props.getProperty('INBOX_SYNC') || 0) < 2 * 60000) return;
+  if (Date.now() - Number(props.getProperty('INBOX_SYNC') || 0) < 10 * 60000) return;
   props.setProperty('INBOX_SYNC', String(Date.now()));
   if (Date.now() - Number(props.getProperty('INQ_FIX') || 0) > 10 * 60000) { props.setProperty('INQ_FIX', String(Date.now())); try { repararConsultas(8); } catch (e) { console.error('repararConsultas: ' + e); } try { repararHilosConsultas(6); } catch (e) { console.error('repararHilosConsultas: ' + e); } }
   const sh = hojaInbox_(), n = sh.getLastRow(), limite = Date.now() - 48 * 3600000, ids = {};

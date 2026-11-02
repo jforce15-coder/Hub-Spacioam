@@ -18,14 +18,14 @@
    audio. Si contesta, la app llama a «calle» con { texto, aviso_id }: la respuesta va a esa tarjeta de Pendientes
    (pendResponder_: entra al Chat con Alma y la tarjeta se cierra).
 
-   calleUso: una fila por salida en ALMA_CALLE_USO (cuánto duró, batería, cuántas veces despertó y cuántas fueron falsas). */
+   calleUso: una fila por salida en ALMA_CALLE_USO (cuánto duró, batería, cuántas veces despertó y cuántas fueron falsas);
+   calleUsoLeer las muestra en Ajustes → Uso de la app. */
 
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
 var CALLE_AUDIO_MS_ = 3000;        // el audio solo vale si ElevenLabs contestó en este tiempo
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
 var CALLE_SIGUE_ = 'Va, te aviso cuando termine.';
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
-var CALLE_USO_CAB_ = ['ts', 'usuario', 'inicio', 'fin', 'minutos', 'bateria_ini', 'bateria_fin', 'bateria_gastada', 'despertares', 'falsos'];
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
   'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma en UNA frase muy corta que empiece con «Listo, …» (p. ej. «Listo, anotado», «Listo, le escribí a Flor»). ' +
@@ -194,22 +194,76 @@ function calleAviso_(ses, adm, texto, avisoId) {
   return ro;
 }
 
-/* ── calleUso { inicio, fin, bateria_ini, bateria_fin, despertares, falsos } → una fila en ALMA_CALLE_USO ── */
+/* ── calleUso: una fila por salida en ALMA_CALLE_USO ──
+   La app manda { usos: [{ inicio, fin, minutos, gatillos, despertares, descartes, falsos, pedidos, llamadas, avisos,
+   errores, despertaresHora, falsosHora, gatillosHora, bateriaInicio?, bateriaFin?, bateriaGastada?, bateriaHora?,
+   detector }] } con las que todavía no llegaron (la batería en %). Se acepta también la forma vieja, plana:
+   { inicio, fin, bateria_ini, bateria_fin, despertares, falsos } (batería de 0 a 1 → se guarda en %).
+   La app reintenta lo que no recibió «ok»: una salida que ya está (mismo usuario e inicio) no se repite. */
+var CALLE_USO_CAB_ = ['ts', 'usuario', 'inicio', 'fin', 'minutos', 'bateria_ini', 'bateria_fin', 'bateria_gastada', 'despertares', 'falsos',
+  'bateria_hora', 'despertares_hora', 'falsos_hora', 'gatillos', 'gatillos_hora', 'descartes', 'pedidos', 'llamadas', 'avisos', 'errores', 'detector'];
+function calleUsoHoja_() {
+  var sh = hojaCrear_('ALMA_CALLE_USO', CALLE_USO_CAB_), n = CALLE_USO_CAB_.length;
+  /* Una hoja hecha con la cabecera vieja (10 columnas): las nuevas van al final, lo de antes no se mueve. */
+  if (sh.getLastColumn() < n) {
+    if (sh.getMaxColumns() < n) sh.insertColumnsAfter(sh.getMaxColumns(), n - sh.getMaxColumns());
+    sh.getRange(1, 1, 1, n).setValues([CALLE_USO_CAB_]);
+  }
+  return sh;
+}
+function calleUsoFecha_(x) {
+  if (x === '' || x == null) return null;
+  var d = new Date(typeof x === 'number' || /^\d+$/.test(String(x)) ? Number(x) : String(x));
+  return isNaN(d.getTime()) ? null : d;
+}
+function calleUsoNum_(x) { return x === '' || x == null || isNaN(Number(x)) ? '' : Number(x); }
+/* Una salida (forma nueva o vieja) → la fila, o null si no trae inicio. */
+function calleUsoFila_(email, u) {
+  u = u || {};
+  var num = calleUsoNum_, ini = calleUsoFecha_(u.inicio), fin = calleUsoFecha_(u.fin);
+  if (!ini) return null;
+  var plana = u.bateriaInicio == null && u.bateriaFin == null && (u.bateria_ini != null || u.bateria_fin != null);
+  var pct = function (x) { x = num(x); return x === '' ? '' : (plana && x <= 1 ? Math.round(x * 1000) / 10 : x); };
+  var bi = pct(plana ? u.bateria_ini : u.bateriaInicio), bf = pct(plana ? u.bateria_fin : u.bateriaFin);
+  var min = num(u.minutos); if (min === '' && fin) min = Math.round((fin.getTime() - ini.getTime()) / 6000) / 10;
+  var horas = min !== '' && min > 0 ? Math.max(min / 60, 1 / 60) : 0;
+  var porHora = function (n, dado) { dado = num(dado); if (dado !== '') return dado; n = num(n); return n === '' || !horas ? '' : Math.round(n / horas * 10) / 10; };
+  var gastada = num(u.bateriaGastada); if (gastada === '' && bi !== '' && bf !== '') gastada = Math.round((bi - bf) * 10) / 10;
+  return [new Date().toISOString(), email, ini.toISOString(), fin ? fin.toISOString() : '', min, bi, bf, gastada,
+    num(u.despertares), num(u.falsos), porHora(gastada, u.bateriaHora), porHora(u.despertares, u.despertaresHora), porHora(u.falsos, u.falsosHora),
+    num(u.gatillos), porHora(u.gatillos, u.gatillosHora), num(u.descartes), num(u.pedidos), num(u.llamadas), num(u.avisos), num(u.errores),
+    String(u.detector || '').slice(0, 60)];
+}
 function calleUso_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
-  var fecha = function (x) {
-    if (x === '' || x == null) return null;
-    var d = new Date(typeof x === 'number' || /^\d+$/.test(String(x)) ? Number(x) : String(x));
-    return isNaN(d.getTime()) ? null : d;
-  };
-  var num = function (x) { return x === '' || x == null || isNaN(Number(x)) ? '' : Number(x); };
-  var ini = fecha(b.inicio), fin = fecha(b.fin);
-  if (!ini) return { ok: false, error: 'falta inicio' };
-  var bi = num(b.bateria_ini), bf = num(b.bateria_fin);
-  var fila = [new Date().toISOString(), adm.email, ini.toISOString(), fin ? fin.toISOString() : '',
-    fin ? Math.round((fin.getTime() - ini.getTime()) / 6000) / 10 : '', bi, bf, bi !== '' && bf !== '' ? Math.round((bi - bf) * 1000) / 1000 : '',
-    num(b.despertares), num(b.falsos)];
-  hojaCrear_('ALMA_CALLE_USO', CALLE_USO_CAB_).appendRow(fila);
-  return { ok: true };
+  var lista = Array.isArray(b.usos) ? b.usos.slice(0, 60) : [b];
+  var filas = lista.map(function (u) { return calleUsoFila_(adm.email, u); }).filter(Boolean);
+  if (!filas.length) return { ok: false, error: 'falta inicio' };
+  var sh = calleUsoHoja_(), ya = {};
+  if (sh.getLastRow() > 1) sh.getRange(2, 2, sh.getLastRow() - 1, 2).getValues().forEach(function (r) { ya[r[0] + '|' + (r[1] instanceof Date ? r[1].toISOString() : String(r[1]))] = true; });
+  var nuevas = filas.filter(function (f) { var k = f[1] + '|' + f[2]; if (ya[k]) return false; ya[k] = true; return true; });
+  if (nuevas.length) sh.getRange(sh.getLastRow() + 1, 1, nuevas.length, CALLE_USO_CAB_.length).setValues(nuevas);
+  return { ok: true, guardadas: nuevas.length };
+}
+/* calleUsoLeer { n? } → { ok, usos: [{ inicio, minutos, bateriaGastada, bateriaHora, despertares, falsos, despertaresHora,
+   falsosHora, pedidos }] }: las últimas salidas del principal, la más nueva primero (Ajustes → Uso de la app). Solo lee la hoja. */
+function calleUsoLeer_(ses, b) {
+  var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
+  if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal.' };
+  var n = Math.max(1, Math.min(30, Number(b && b.n) || 8));
+  var sh = ssAlma_().getSheetByName('ALMA_CALLE_USO');
+  if (!sh || sh.getLastRow() < 2) return { ok: true, usos: [] };
+  var cab = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String), col = {};
+  cab.forEach(function (c, i) { col[c] = i; });
+  var mios = [adm.email].concat(adm.alternos || []);
+  var v = sh.getRange(2, 1, sh.getLastRow() - 1, cab.length).getValues().filter(function (r) { return mios.indexOf(String(r[col.usuario])) >= 0; });
+  var de = function (r, k) { return col[k] == null || r[col[k]] === '' ? null : r[col[k]]; };
+  var usos = v.slice(-n).reverse().map(function (r) {
+    var ini = de(r, 'inicio');
+    return { inicio: ini instanceof Date ? ini.toISOString() : String(ini || ''), minutos: de(r, 'minutos'), bateriaGastada: de(r, 'bateria_gastada'),
+      bateriaHora: de(r, 'bateria_hora'), despertares: de(r, 'despertares'), falsos: de(r, 'falsos'),
+      despertaresHora: de(r, 'despertares_hora'), falsosHora: de(r, 'falsos_hora'), pedidos: de(r, 'pedidos') };
+  });
+  return { ok: true, usos: usos };
 }

@@ -337,12 +337,15 @@ function chatPagina_(filas, b) {
   var pag = L.slice(-n);
   return { mensajes: pag, conteo: conteo, hayMas: L.length > pag.length, antes: pag.length ? pag[0].id : '' };
 }
-/* opEnviar { texto, canal? }: escribe en SU chat. canal 'app' (la app de Alma) o 'hub' (por defecto). */
+/* opEnviar { texto, canal? }: escribe en SU chat. canal 'app' (la app de Alma), 'calle' (la app en Modo calle: la
+   respuesta sale corta, para el oído, y sin [[conversar]]) o 'hub' (por defecto). La persona sale de la sesión. */
 function chatEnviar_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
-  var canal = String(b.canal || '') === 'app' ? 'app' : 'hub';
-  return opProcesar_(adm, b.texto, canal, []);
+  var c = String(b.canal || ''), canal = c === 'app' || c === 'calle' ? c : 'hub';
+  if (canal !== 'calle') return opProcesar_(adm, b.texto, canal, []);
+  AGENTE_APP_ = true;   // Modo calle: viene de la app de Alma (como calle_)
+  try { return opProcesar_(adm, b.texto, canal, []); } finally { AGENTE_APP_ = false; }
 }
 /* opLista: un chat por persona con su último mensaje (solo el principal). Ya no hay fila «desarrollo». */
 function chatLista_(ses) {

@@ -45,7 +45,7 @@ var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
 var CUPO_ACCIONES_ = {
   inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos tutoriales',
   chat: 'opEnviar opHilo opLista almaFoto mejorarCampo dictar plantillas',
-  voz: 'vozWeb vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso avisoHablar',
+  voz: 'vozWeb vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer avisoHablar',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
     'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision',
   cerebro: 'cerebro conexiones',

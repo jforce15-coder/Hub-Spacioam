@@ -3215,10 +3215,11 @@ function hubApi_(body) {
       case 'foto': return json_(hubFoto_(body.url));
       case 'votar': return json_(hubVotar_(Number(body.fila), body.voto));
       case 'opHilo': return json_(chatHilo_(ses, body));                                    // chat único con Alma: la persona sale de la sesión, nunca de body.email (chat.js)
-      case 'opEnviar': return json_(chatEnviar_(ses, body));                                // { texto, canal: 'hub' | 'app' }
+      case 'opEnviar': return json_(chatEnviar_(ses, body));                                // { texto, canal: 'hub' | 'app' | 'calle' }
       case 'opLista': return json_(chatLista_(ses));
       case 'calle': return json_(calle_(ses, body));                                       // modo calle: una frase tras «Alma» → { hablar, conversar, audio? } (calle.js)
-      case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: una fila de uso en ALMA_CALLE_USO (calle.js)
+      case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: { usos: [...] } → filas de uso en ALMA_CALLE_USO (calle.js)
+      case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'dsPropuestas': return json_(dsPropuestas_());
       case 'dsDecidir': return json_(dsDecidir_(body.id, body.decision, body.nota, body.quien));

@@ -11,8 +11,10 @@
 <link rel="stylesheet" href="ds/tokens/radius-shadow.css">
 <!--
   Conexión directa Alma → Claude Code. Archivo propio del repo (no lo toca el export de Claude Design).
-  El admin principal pega aquí la llave de la tarea de Claude (CLAUDE_RUTINA_TOKEN): la pantalla de Propiedades
-  del script no deja agregar más de 50. La llave va directo al Apps Script con la sesión firmada y nunca se vuelve a mostrar.
+  El admin principal pega aquí las llaves de las DOS tareas de Claude (nivel del pedido, docs/GLOSARIO.md):
+  la compleja con Opus (CLAUDE_RUTINA_TOKEN) y la sencilla con Sonnet (CLAUDE_RUTINA_TOKEN_SENCILLO). La pantalla de
+  Propiedades del script no deja agregar más de 50. Las llaves van directo al Apps Script con la sesión firmada y nunca
+  se vuelven a mostrar: solo sus 4 últimas letras.
 -->
 <style>
   * { box-sizing: border-box; }
@@ -29,42 +31,58 @@
   button:disabled { opacity: .5; }
   .estado { margin-top: 18px; padding: 14px 16px; border-radius: var(--r-md, 12px); background: var(--bg-alt, #F5F3F0); font-size: 14px; }
   .ok { background: #E9F3EC; } .mal { background: #FBEAE6; }
+  label { display: block; margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  label small { display: block; font-weight: 400; color: var(--fg-muted, #938B8A); }
+  .llave { margin-bottom: 22px; }
+  .llave .estado { margin-top: 10px; }
 </style>
 </head>
 <body>
 <main>
   <p class="eyebrow">Alma · Desarrollo</p>
   <h1>Alma habla<i>con Claude</i></h1>
-  <p>Con esta llave, cuando le pidas a Alma una mejora del sistema, ella te pregunta «¿Se lo mando a Claude?» y, con tu sí, se la pasa directo a Claude y te cuenta el resultado.</p>
+  <p>Cuando le pidas algo a Claudio, Alma te pregunta «¿Se lo mando a Claudio?» y te dice el nivel: lo sencillo va con Sonnet y lo complejo con Opus, para cuidar el uso. Cada tarea tiene su propia llave.</p>
   <ol>
-    <li>Abre <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> → «Alma → Claude · mejoras del sistema» → Editar.</li>
+    <li>Abre <a href="https://claude.ai/code/routines" target="_blank" rel="noopener">tus tareas de Claude</a> y entra a la tarea (la compleja o la sencilla) → Editar.</li>
     <li>En disparadores toca <b>+</b> → <b>API</b> → <b>Generar token</b> y cópialo.</li>
-    <li>Pégalo aquí y toca Guardar.</li>
+    <li>Pégalo en su lugar aquí abajo y toca Guardar.</li>
   </ol>
-  <input id="llave" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-oat01-…">
+  <div class="llave">
+    <label for="llave">Llave de la tarea compleja (Opus)<small>Cambios con lógica, funciones nuevas, errores y consultas complejas.</small></label>
+    <input id="llave" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-oat01-…">
+    <div id="estado" class="estado">Revisando…</div>
+  </div>
+  <div class="llave">
+    <label for="sencilla">Llave de la tarea sencilla (Sonnet)<small>Preguntas, revisar datos y cambios chicos. Sin esta llave, todo va a la compleja.</small></label>
+    <input id="sencilla" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="sk-ant-oat01-…">
+    <div id="estado2" class="estado">Revisando…</div>
+  </div>
   <button id="guardar">Guardar</button>
-  <div id="estado" class="estado">Revisando…</div>
 </main>
 <script>
 (function () {
   var URL = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
-  var $ = function (id) { return document.getElementById(id); }, est = $('estado'), btn = $('guardar');
-  function pintar(t, c) { est.textContent = t; est.className = 'estado' + (c ? ' ' + c : ''); }
+  var $ = function (id) { return document.getElementById(id); }, est = $('estado'), est2 = $('estado2'), btn = $('guardar');
+  function pintar(t, c, el) { el = el || est; el.textContent = t; el.className = 'estado' + (c ? ' ' + c : ''); }
+  function ambas(t, c) { pintar(t, c); pintar(t, c, est2); }
   var ses = window.SASesion && SASesion.leer();
-  if (!ses) { pintar('Entra primero al Hub con tu usuario y vuelve a abrir esta página.', 'mal'); btn.disabled = true; return; }
-  function llamar(llave) {
-    return fetch(URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ hub: 1, action: 'llaveClaude', session: ses, llave: llave || '' }) })
+  if (!ses) { ambas('Entra primero al Hub con tu usuario y vuelve a abrir esta página.', 'mal'); btn.disabled = true; return; }
+  function llamar(llave, sencilla) {
+    return fetch(URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ hub: 1, action: 'llaveClaude', session: ses, llave: llave || '', sencilla: sencilla || '' }) })
       .then(function (r) { return r.json(); });
   }
   function mostrar(r) {
-    if (!r || !r.ok) return pintar((r && r.error) || 'No se pudo.', 'mal');
-    pintar(r.guardada ? 'Lista. Alma ya puede hablar con Claude (llave …' + r.termina + ').' : 'Todavía no hay llave guardada.', r.guardada ? 'ok' : '');
+    if (!r || !r.ok) return pintar((r && r.error) || 'No se pudo.', 'mal', /sencilla/.test((r && r.error) || '') ? est2 : est);
+    pintar(r.guardada ? 'Lista: termina en ••••' + r.termina + '.' : 'Todavía no hay llave guardada.', r.guardada ? 'ok' : '');
+    var s = r.sencilla || {};
+    pintar(s.guardada ? 'Lista: termina en ••••' + s.termina + '.' : 'Todavía no hay llave: lo sencillo también va con Opus.', s.guardada ? 'ok' : '', est2);
   }
-  llamar('').then(mostrar).catch(function () { pintar('No pude conectar con el Hub.', 'mal'); });
+  llamar('', '').then(mostrar).catch(function () { ambas('No pude conectar con el Hub.', 'mal'); });
   btn.onclick = function () {
-    var v = $('llave').value.trim(); if (!v) return pintar('Pega primero la llave.', 'mal');
-    btn.disabled = true; pintar('Guardando…');
-    llamar(v).then(function (r) { $('llave').value = ''; mostrar(r); }).catch(function () { pintar('No pude conectar con el Hub.', 'mal'); }).then(function () { btn.disabled = false; });
+    var v = $('llave').value.trim(), v2 = $('sencilla').value.trim();
+    if (!v && !v2) return pintar('Pega primero una llave.', 'mal');
+    btn.disabled = true; if (v) pintar('Guardando…'); if (v2) pintar('Guardando…', '', est2);
+    llamar(v, v2).then(function (r) { if (r && r.ok) { $('llave').value = ''; $('sencilla').value = ''; } mostrar(r); }).catch(function () { ambas('No pude conectar con el Hub.', 'mal'); }).then(function () { btn.disabled = false; });
   };
 })();
 </script>

@@ -12,9 +12,12 @@
    Estados: en trabajo → Claude pregunta → listo para unir → unido (o cerrado). Los cambian las respuestas de Claude
    (paraClaudeRespuesta_), el «Unir» (unir.js) y una revisión de fondo cada 10 min (microRevisar_, respeta el cupo).
    El borrador (antes del «mándalo») vive en el borrador para Claude (chat.js), no en esta hoja.
-   Pendientes muestra una tarjeta por microproyecto (microTarjetas_), con sus ajustes y, si Claude pregunta, botones. */
+   Pendientes muestra una tarjeta por microproyecto (microTarjetas_), con sus ajustes y, si Claude pregunta, botones.
+   Nivel (sencillo · complejo, paraclaude.js): la columna «nivel» guarda con qué tarea corrió lo último (Sonnet u Opus);
+   los ajustes lo heredan salvo que Juan o Alma digan otro, y la tarjeta lo muestra como chip. Filas viejas: complejo.
+   «Súbelo» (microSubir_) vuelve a mandar el más reciente como complejo, con su historial, como ajuste del mismo. */
 
-var MICRO_CAB_ = ['id', 'nombre', 'estado', 'creado', 'actualizado', 'quien', 'issue', 'pr', 'rama', 'sesion', 'ajustes', 'ultima_pregunta', 'opciones', 'parte', 'unido'];
+var MICRO_CAB_ = ['id', 'nombre', 'estado', 'creado', 'actualizado', 'quien', 'issue', 'pr', 'rama', 'sesion', 'ajustes', 'ultima_pregunta', 'opciones', 'parte', 'unido', 'nivel'];
 var MICRO_ABIERTO_DIAS_ = 7;   // un microproyecto unido o cerrado sigue «abierto» para ajustes 7 días
 var MICRO_ESTADOS_ = { trabajo: 'en trabajo', pregunta: 'Claude pregunta', listo: 'listo para unir', unido: 'unido', cerrado: 'cerrado' };
 var MICRO_VACIAS_ = ('para como esta este esto estos estas tambien ademas cuando donde porque quiero quieres puedes puede ' +
@@ -34,6 +37,7 @@ function microDe_(r, fila) {
   try { o.ajustes = JSON.parse(String(o.ajustes || '[]')) || []; } catch (e) { o.ajustes = []; }
   try { o.opciones = JSON.parse(String(o.opciones || '[]')) || []; } catch (e) { o.opciones = []; }
   o.parte = Number(o.parte) || 1;
+  o.nivel = claudeNivel_(o.nivel);   // filas viejas (sin nivel): complejo
   o.creado = Number(o.creado) || 0; o.actualizado = Number(o.actualizado) || o.creado;
   return o;
 }
@@ -73,7 +77,7 @@ function microNombre_(t) {
 function microCrear_(adm, nombre) {
   var m = { id: 'mp' + Date.now().toString(36) + Math.floor(Math.random() * 1e3), nombre: microNombre_(nombre), estado: MICRO_ESTADOS_.trabajo,
     creado: Date.now(), actualizado: Date.now(), quien: (adm && adm.email) || '', issue: '', pr: '', rama: '', sesion: '', ajustes: [],
-    ultima_pregunta: '', opciones: [], parte: 1, unido: '' };
+    ultima_pregunta: '', opciones: [], parte: 1, unido: '', nivel: '' };
   return m;   // se guarda al disparar (paraClaudeCrear_): un pedido que no sale no deja fila
 }
 /* Abiertos para sumar ajustes: los que no han terminado, o terminaron (unido o cerrado) hace menos de 7 días. */
@@ -132,8 +136,8 @@ function microBloque_(adm) {
   if (!adm || !esAdminPrincipal_(adm)) return '';
   var L = []; try { L = microAbiertos_(adm.email).slice(0, 8); } catch (e) { return ''; }
   if (!L.length) return '';
-  return '\n\nMICROPROYECTOS ABIERTOS PARA CLAUDE (id · nombre · estado · lo último):\n' + L.map(function (m) {
-    var u = m.ajustes[m.ajustes.length - 1]; return '· ' + m.id + ' · ' + m.nombre + ' · ' + m.estado + (u ? ' · ' + String(u.texto).replace(/\s+/g, ' ').slice(0, 110) : '');
+  return '\n\nMICROPROYECTOS ABIERTOS PARA CLAUDE (id · nombre · estado · nivel · lo último):\n' + L.map(function (m) {
+    var u = m.ajustes[m.ajustes.length - 1]; return '· ' + m.id + ' · ' + m.nombre + ' · ' + m.estado + ' · ' + m.nivel + (u ? ' · ' + String(u.texto).replace(/\s+/g, ' ').slice(0, 110) : '');
   }).join('\n') +
     '\nSOLO cuando el turno sea Propósito · Desarrollo, agrega antes de la etiqueta de esfera otra línea: [[micro: <id>]] si es un ajuste o seguimiento de uno de esos ' +
     '(«agrégale…», «sí», «también que…», responde a lo que Claude preguntó), [[micro: nuevo · <nombre corto de 2 a 4 palabras>]] si es otra cosa, o [[micro: duda <id>]] si no estás segura. ' +
@@ -242,11 +246,31 @@ function microResponder_(adm, id, texto, o) {
   o = o || {};
   var m = microLeer_(id); if (!m) return { ok: false, error: 'Ya no encuentro ese microproyecto.' };
   texto = String(texto || '').trim(); if (!texto) return { ok: false, error: 'faltan datos' };
+  if (microEsSubelo_(texto)) return microSubir_(adm, m, o);   // «Súbelo» en la tarjeta: lo mismo, pero con Opus
   var q = m.ultima_pregunta;
-  var r = paraClaudeCrear_(adm, { micro: m.id, titulo: m.nombre, app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: !!o.sinChat,
+  var r = paraClaudeCrear_(adm, { micro: m.id, titulo: m.nombre, app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: !!o.sinChat, nivel: o.nivel || '',
     que_quiere: (q ? 'Juan responde a tu pregunta («' + q + '»): ' : '') + texto });
   if (!r.ok) return r;
   return { ok: true, a: 'claude', micro: m.id, respuesta: r.claude ? 'Listo, se lo pasé a Claudio en «' + m.nombre + '».' : r.nota };
+}
+/* «Súbelo»: Juan pide que el último pedido lo haga Claudio con Opus (la tarea sencilla dijo que era más complejo, o él
+   lo quiere así). Nunca pasa solo. Va como ajuste del mismo microproyecto (mismo issue, rama y PR; segunda parte si ya
+   se unió), con el historial completo. m: el microproyecto (si no, el más reciente de Juan). */
+var MICRO_SUBIR_TEXTO_ = 'Juan lo sube a complejo (Opus): lee el historial completo y resuelve lo que se pidió (la tarea sencilla no alcanzó o Juan lo quiere con Opus).';
+/* '' (no es), 'solo' («súbelo» a secas) o 'explicito' («súbelo a Opus», «súbeselo a Claudio», «pásalo a Opus»). */
+function microEsSubelo_(texto) {
+  var n = chatNorm_(texto).replace(/[¡!¿?.,;:«»"()]/g, ' ').replace(/\s+/g, ' ').trim();
+  var m = /^(?:si |ok |va |dale |entonces )?(subelo|subeselo|subelo a claudio|subeselo a claudio|subelo a (?:opus|complejo)|subelo con opus|pasalo a opus|pasaselo a opus)(?: porfa| por favor)?$/.exec(n);
+  return !m ? '' : /^sube(lo|selo)$/.test(m[1]) ? 'solo' : 'explicito';
+}
+function microSubir_(adm, m, o) {
+  o = o || {};
+  if (!m) m = microAbiertos_(adm && adm.email)[0] || null;   // el más reciente (aunque ya haya respondido: una consulta queda «cerrado»)
+  if (!m) return { ok: false, error: 'No encuentro ningún pedido reciente para Claudio que pueda subir.' };
+  var r = paraClaudeCrear_(adm, { micro: m.id, titulo: m.nombre, app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: !!o.sinChat, nivel: 'complejo', que_quiere: MICRO_SUBIR_TEXTO_ });
+  if (!r.ok) return r;
+  return { ok: true, a: 'claude', micro: m.id, nombre: m.nombre, claude: !!r.claude,
+    respuesta: r.claude ? 'Listo, se lo pasé a Claudio con Opus en «' + m.nombre + '», con todo su historial. Te aviso aquí cuando responda.' : r.nota };
 }
 /* En el chat, tocar una opción de la pregunta de Claude (su mensaje trae «• » opciones): va directo a ese microproyecto.
    Solo si el texto es exactamente una de las opciones del que está preguntando (el más reciente). */
@@ -267,7 +291,7 @@ function microTarjetas_(adm) {
     if (info && info.estado === 'unido' && m.estado !== MICRO_ESTADOS_.unido) { microUnido_(m.pr); m.estado = MICRO_ESTADOS_.unido; m.unido = info.unido || new Date().toISOString(); }
     if (info && info.estado === 'cerrado' && m.estado === MICRO_ESTADOS_.listo) { m.estado = MICRO_ESTADOS_.cerrado; microGuardar_(m); return; }
     var ajustes = m.ajustes.slice(-12).map(function (a) { return { ts: a.ts, de: a.de, texto: String(a.texto).slice(0, 400) }; });
-    var base = { id: 'mp:' + m.id, micro: m.id, titulo: m.nombre, fecha: m.parte > 1 ? 'Parte ' + m.parte : '', ajustes: ajustes, pasos: [], pregunta: '', instrucciones: '', hecho: true,
+    var base = { id: 'mp:' + m.id, micro: m.id, titulo: m.nombre, nivel: m.nivel, modelo: CLAUDE_MODELO_NIVEL_[m.nivel], fecha: m.parte > 1 ? 'Parte ' + m.parte : '', ajustes: ajustes, pasos: [], pregunta: '', instrucciones: '', hecho: true,
       original: (m.ajustes.filter(function (a) { return a.de === 'claude'; }).pop() || {}).texto || '', enlaces: [], ts: m.actualizado };
     if (m.estado === MICRO_ESTADOS_.unido) {
       /* Unido: sigue la publicación un rato y la tarjeta se cierra sola (sin pregunta abierta). */

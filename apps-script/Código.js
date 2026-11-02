@@ -3146,7 +3146,7 @@ function hubApi_(body) {
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
-      case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave));
+      case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
       case 'conferencia': return json_(conferencia_(ses, body));
@@ -4949,7 +4949,7 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   }
   /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan).
      Si ya pasó el plazo de la calle, la esfera se marca después para no hacerlo esperar más. */
-  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '' }, { canal: canal, diferir: !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '', nivel: ag ? ag.nivel : '' }, { canal: canal, diferir: !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });
   yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
   /* Modo calle: la etiqueta [[conversar]] (hace falta hablarlo) sale del texto antes de guardarlo. */
   let conversar = false;

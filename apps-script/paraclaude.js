@@ -13,11 +13,44 @@
      4. Claude programa el cambio en una rama con su PR y responde al Hub (paraClaudeRespuesta_) con una llave de un solo uso
         que viaja dentro del pedido: el Hub guarda solo su huella SHA-256.
      5. La respuesta queda en el chat con Alma de quien lo pidió (chat único, #334: canal «claude», Propósito · Desarrollo),
-        le llega por WhatsApp en una línea y Alma se la cuenta en voz corta en la próxima llamada (paraClaudeNovedades_). */
+        le llega por WhatsApp en una línea y Alma se la cuenta en voz corta en la próxima llamada (paraClaudeNovedades_).
 
-var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro'];
+   NIVEL DEL PEDIDO (sencillo · complejo), para cuidar el uso: hay DOS tareas de Claude Code, cada una con su llave.
+     · complejo → la tarea de siempre con Opus (CLAUDE_RUTINA_TOKEN · CLAUDE_RUTINA_ID): cambios con lógica, funciones
+       nuevas, errores, lo de varias partes o delicado, y las consultas o análisis complejos.
+     · sencillo → la tarea con Sonnet (CLAUDE_RUTINA_TOKEN_SENCILLO · CLAUDE_RUTINA_ID_SENCILLO): preguntas simples,
+       leer o revisar datos, análisis cortos, cambios chicos y claros (un texto, un color, una línea obvia). Si resulta
+       difícil, responde «fallo» y le dice a Juan «dime "súbelo"».
+   Alma lo clasifica (con duda, complejo) y se lo dice a Juan al preguntar; Juan lo cambia con «con Opus» / «con Sonnet»,
+   y «súbelo» vuelve a mandar el último microproyecto como complejo, con su historial (chat.js). Nunca sube solo.
+   Un ajuste hereda el nivel de su microproyecto salvo que Juan o Alma digan otro. Sin la llave de la sencilla, va a la
+   compleja y se avisa (así nada se rompe antes de que Juan la pegue en hub.spacioam.com/claude.html). */
+
+var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro', 'nivel'];
 var PARA_CLAUDE_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CLAUDE_RUTINA_DEF_ = 'trig_01VrusYxvHrU1MBz4x39RVEm';
+var CLAUDE_RUTINA_SENCILLO_DEF_ = 'trig_01Vdg8SQEvDKV2aywfmBtQ1X';
+var CLAUDE_MODELO_NIVEL_ = { sencillo: 'Sonnet', complejo: 'Opus' };
+/* La regla para clasificar (la usan la herramienta mejora_para_claude, la etiqueta [[nivel: …]] del chat y la voz). */
+var CLAUDE_NIVEL_REGLA_ = 'sencillo (va con Sonnet): una pregunta simple, leer o revisar datos, un análisis corto, un cambio chico y claro (un texto, un color, una línea obvia). ' +
+  'complejo (va con Opus): cambios con lógica, funciones nuevas, errores, lo que toca varias partes o es delicado, y las consultas o análisis complejos. Con duda, complejo.';
+/* Filas viejas (sin nivel) y cualquier cosa rara: complejo. */
+function claudeNivel_(x) { return String(x || '').trim().toLowerCase() === 'sencillo' ? 'sencillo' : 'complejo'; }
+function claudeNivelTexto_(n) { n = claudeNivel_(n); return n + ' (' + CLAUDE_MODELO_NIVEL_[n] + ')'; }
+/* Lo que Juan pide al hablar: «con Opus» / «con Sonnet» (o «como complejo» / «como sencillo»). Devuelve el nivel o ''. */
+var CLAUDE_NIVEL_FRASE_ = /\b(?:con|en|a|por)\s+(opus|sonnet)\b|\bcomo\s+(complejo|sencillo)\b/i;
+function claudeNivelPedido_(texto) {
+  var m = CLAUDE_NIVEL_FRASE_.exec(chatNorm_(texto)); if (!m) return '';
+  return (m[1] || m[2]) === 'opus' || m[2] === 'complejo' ? 'complejo' : 'sencillo';
+}
+function claudeNivelQuitar_(texto) { return String(texto || '').replace(new RegExp(CLAUDE_NIVEL_FRASE_.source, 'gi'), ' ').replace(/\s+/g, ' ').replace(/^[\s,.;:]+|[\s,.;:]+$/g, '').trim(); }
+/* La etiqueta [[nivel: sencillo|complejo]] que Alma pone en su respuesta (agente.js): sale del texto antes de que nadie la vea. */
+function claudeNivelSacarEtiqueta_(texto) {
+  var nivel = '';
+  var limpio = String(texto || '').replace(/\[\[\s*nivel\s*:?\s*([^\]]*?)\s*\]\]/gi, function (_, adentro) { var a = chatNorm_(adentro); nivel = /sencill/.test(a) ? 'sencillo' : /complej/.test(a) ? 'complejo' : nivel; return ''; })
+    .replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+  return { texto: limpio, nivel: nivel };
+}
 var HUB_EXEC_DEF_ = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
 /* El antiguo chat aparte «Desarrollo» (usuario «desarrollo» en ALMA_OPERATIVO). Desde el chat único (#334) ya no se
    escribe aquí: chatMigrarDesarrollo_ (chat.js) pasa sus filas al chat del principal. Queda para reconocer lo viejo. */
@@ -45,6 +78,8 @@ function paraClaudeCrear_(adm, inp) {
   if (m && microPrTermino_(m)) { segunda = true; prAnterior = m.pr; m.parte = (Number(m.parte) || 1) + 1; m.pr = ''; m.rama = ''; m.unido = ''; }
   if (!m) m = microCrear_(adm, inp.nombre || titulo);
   var queQuiere = String(inp.que_quiere).trim();
+  /* Nivel: lo que dijeron Juan o Alma (inp.nivel); si no, un ajuste hereda el de su microproyecto; si no, complejo. */
+  var nivel = inp.nivel ? claudeNivel_(inp.nivel) : ajuste ? claudeNivel_(m.nivel) : 'complejo';
   m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + queQuiere });
   var como = microComoSeguir_(m, segunda, prAnterior);
   var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + '### Lo nuevo\n' + queQuiere + '\n\n'
@@ -54,6 +89,7 @@ function paraClaudeCrear_(adm, inp) {
     '### Cómo debería funcionar\n' + queQuiere + '\n\n' +
     (String(inp.ejemplo || '').trim() ? '### Ejemplo\n' + String(inp.ejemplo).trim() + '\n\n' : '')) +
     '**Microproyecto:** «' + m.nombre + '» (' + m.id + (m.parte > 1 ? ' · parte ' + m.parte : '') + '). ' + como + '\n\n' +
+    '**Nivel:** ' + claudeNivelTexto_(nivel) + '\n\n' +
     '---\n_Lo dictó ' + quien + ' a ALMA. Claude: sigue el método de CLAUDE.md (glosario, pregunta primero lo que es decisión de Juan, prototipos si es visual, spec y tickets si es grande, dos revisiones, evidencia en el PR). ' +
     (ajuste ? 'Es parte de un trabajo que ya empezó: lee el historial completo antes de tocar nada.' : 'Trabájalo en una rama nueva, abre un PR y enlázalo aquí.') + ' No incluyas datos personales de huéspedes._';
   var issue = m.issue || '';
@@ -74,20 +110,22 @@ function paraClaudeCrear_(adm, inp) {
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_,
     quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: ajuste ? m.nombre + ' · ' + (segunda ? 'segunda parte' : 'ajuste') : titulo,
-    instruccion: instruccion, issue: issue, micro: microParaClaude_(m, { ajuste: ajuste, segunda: segunda, como: como, sesionAnterior: sesionAnterior }) });
+    instruccion: instruccion, issue: issue, micro: microParaClaude_(m, { ajuste: ajuste, segunda: segunda, como: como, sesionAnterior: sesionAnterior }) }, nivel);
+  if (disparo.ok) nivel = claudeNivel_(disparo.nivel);   // sin la llave de la sencilla corrió la compleja: el chip dice la verdad
+  m.nivel = nivel;
   if (disparo.ok) { m.estado = MICRO_ESTADOS_.trabajo; m.ultima_pregunta = ''; m.opciones = []; if (disparo.url) m.sesion = disparo.url; }
   else if (!ajuste) m.estado = MICRO_ESTADOS_.trabajo;   // quedó en la lista (y en el issue); la tarjeta lo muestra igual
   try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); }
   /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). micro: su microproyecto. */
-  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id]); }
+  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id, nivel]); }
   catch (e) { return { ok: false, error: 'No pude guardarlo: ' + e }; }
   /* Lo que no salió de un mensaje suyo (rondas de los agentes, bots de prueba, Pendientes) queda anotado en su chat.
      Lo que sí salió de su chat (sinChat) ya está ahí: su mensaje y la respuesta de Alma. */
   if (!inp.sinChat && adm && adm.email) {
     try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queQuiere.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
-  return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte },
-    nota: disparo.ok ? 'Ya se lo pasé a Claudio. Está trabajando en eso; cuando termine te cuento en corto aquí en tu chat.' :
+  return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel },
+    nota: disparo.ok ? 'Ya se lo pasé a Claudio (' + claudeNivelTexto_(nivel) + '). Está trabajando en eso; cuando termine te cuento en corto aquí en tu chat.' + (disparo.nota ? ' ' + disparo.nota : '') :
       issue ? 'Quedó enviado a Claudio (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claudio en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
 }
 /* Apps viejas que todavía responden en la conversación «Desarrollo» (resId op:desarrollo): el mensaje entra al chat del
@@ -128,7 +166,7 @@ function conexiones_(ses, b) {
   }
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO') };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), claudeSencillo: !!p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO') };
   if (canje) out.canje = canje;
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {
@@ -145,32 +183,44 @@ function conexiones_(ses, b) {
   return out;
 }
 function conexBq_(p) { var c = null; try { c = JSON.parse(p.getProperty('BQ_CUENTA') || 'null'); } catch (e) {} return { proyecto: p.getProperty('BQ_PROYECTO') || '', cuenta: c && c.client_email ? c.client_email : '' }; }
-/* hub.spacioam.com/claude.html: el admin principal pega ahí la llave de la tarea (la pantalla de Propiedades del script
-   no deja agregar más de 50). Con llave vacía solo dice si ya hay una guardada; nunca la devuelve. */
-function paraClaudeLlave_(ses, llave) {
+/* hub.spacioam.com/claude.html: el admin principal pega ahí las llaves de las dos tareas (la pantalla de Propiedades del
+   script no deja agregar más de 50): la compleja (Opus, CLAUDE_RUTINA_TOKEN) y la sencilla (Sonnet,
+   CLAUDE_RUTINA_TOKEN_SENCILLO). Con llaves vacías solo dice si ya hay; nunca las devuelve, solo sus 4 últimas letras.
+   llave: la de la compleja (como siempre) · sencilla: la de la sencilla. */
+function paraClaudeLlave_(ses, llave, sencilla) {
   var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
   if (adm && !adm.principal) { try { adm = vozWebAdmin_(ses) || adm; } catch (e) {} }   // también con su correo alterno
   if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal puede guardar esta llave.' };
-  var p = PropertiesService.getScriptProperties(); llave = String(llave || '').trim();
-  if (llave) {
-    if (!/^sk-ant-oat01-[\w-]{20,}$/.test(llave)) return { ok: false, error: 'Esa no parece la llave de la tarea: empieza con sk-ant-oat01-' };
-    p.setProperty('CLAUDE_RUTINA_TOKEN', llave);
-  }
-  var t = p.getProperty('CLAUDE_RUTINA_TOKEN') || '';
-  return { ok: true, guardada: !!t, termina: t ? t.slice(-4) : '' };
+  var p = PropertiesService.getScriptProperties(); llave = String(llave || '').trim(); sencilla = String(sencilla || '').trim();
+  var valida = /^sk-ant-oat01-[\w-]{20,}$/;
+  if (llave && !valida.test(llave)) return { ok: false, error: 'Esa no parece la llave de la tarea compleja: empieza con sk-ant-oat01-' };
+  if (sencilla && !valida.test(sencilla)) return { ok: false, error: 'Esa no parece la llave de la tarea sencilla: empieza con sk-ant-oat01-' };
+  if (llave) p.setProperty('CLAUDE_RUTINA_TOKEN', llave);
+  if (sencilla) p.setProperty('CLAUDE_RUTINA_TOKEN_SENCILLO', sencilla);
+  var t = p.getProperty('CLAUDE_RUTINA_TOKEN') || '', ts = p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO') || '';
+  return { ok: true, guardada: !!t, termina: t ? t.slice(-4) : '', sencilla: { guardada: !!ts, termina: ts ? ts.slice(-4) : '' } };
 }
-/* Dispara la tarea de Claude Code. Devuelve { ok, url } o { ok:false, error }. Sin reintentos: cada disparo abre una sesión. */
-function paraClaudeDisparar_(pedido) {
-  var p = PropertiesService.getScriptProperties(), tok = p.getProperty('CLAUDE_RUTINA_TOKEN'), rutina = p.getProperty('CLAUDE_RUTINA_ID') || CLAUDE_RUTINA_DEF_;
-  if (!tok) return { ok: false, error: 'falta CLAUDE_RUTINA_TOKEN' };
+/* Dispara la tarea de Claude Code del nivel (sencillo → Sonnet, complejo → Opus). Devuelve { ok, url, nivel, nota } o
+   { ok:false, error, nivel }. nivel = el que de verdad corrió: sin la llave de la sencilla va a la compleja y nota lo dice.
+   Sin reintentos: cada disparo abre una sesión. Las llaves nunca se registran ni se devuelven. */
+function paraClaudeDisparar_(pedido, nivel) {
+  var p = PropertiesService.getScriptProperties(), tok = '', rutina = '', nota = '';
+  nivel = claudeNivel_(nivel);
+  if (nivel === 'sencillo') {
+    tok = p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO'); rutina = p.getProperty('CLAUDE_RUTINA_ID_SENCILLO') || CLAUDE_RUTINA_SENCILLO_DEF_;
+    if (!tok) { nivel = 'complejo'; nota = 'Fue con Opus: la tarea sencilla todavía no tiene su llave.'; console.log('paraClaudeDisparar_: sin llave de la tarea sencilla, va a la compleja'); }
+  }
+  if (nivel === 'complejo') { tok = p.getProperty('CLAUDE_RUTINA_TOKEN'); rutina = p.getProperty('CLAUDE_RUTINA_ID') || CLAUDE_RUTINA_DEF_; }
+  if (!tok) return { ok: false, error: 'falta CLAUDE_RUTINA_TOKEN', nivel: nivel };
+  pedido = Object.assign({}, pedido, { nivel: nivel });
   try {
     var r = uf_('https://api.anthropic.com/v1/claude_code/routines/' + rutina + '/fire', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
       headers: { Authorization: 'Bearer ' + tok, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'experimental-cc-routine-2026-04-01' },
       payload: JSON.stringify({ text: JSON.stringify(pedido).slice(0, 65000) }) });
     var c = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
-    if (c >= 300) { console.error('Rutina Claude ' + c + ': ' + r.getContentText().slice(0, 300)); return { ok: false, error: 'Claudio respondió ' + c + ((j.error && j.error.message) ? ' (' + String(j.error.message).slice(0, 120) + ')' : '') }; }
-    return { ok: true, url: j.claude_code_session_url || '' };
-  } catch (e) { console.error('paraClaudeDisparar_: ' + e); return { ok: false, error: String(e).slice(0, 160) }; }
+    if (c >= 300) { console.error('Rutina Claude (' + nivel + ') ' + c + ': ' + r.getContentText().slice(0, 300)); return { ok: false, nivel: nivel, error: 'Claudio respondió ' + c + ((j.error && j.error.message) ? ' (' + String(j.error.message).slice(0, 120) + ')' : '') }; }
+    return { ok: true, url: j.claude_code_session_url || '', nivel: nivel, nota: nota };
+  } catch (e) { console.error('paraClaudeDisparar_: ' + e); return { ok: false, nivel: nivel, error: String(e).slice(0, 160) }; }
 }
 /* Claude responde (doPost con {mejora:1, action:'respuesta'}). La llave es de un solo uso: se borra al aceptarla. */
 function paraClaudeRespuesta_(b) {

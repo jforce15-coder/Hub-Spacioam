@@ -186,7 +186,8 @@ function agHerramientas_() {
       { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
         tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
         ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] },
-        microproyecto: s('Si es un ajuste de un microproyecto abierto (lista MICROPROYECTOS ABIERTOS), su id; «nuevo · <nombre corto>» si es otra cosa; «duda <id>» si no estás segura') }, ['titulo', 'app', 'tipo', 'que_quiere']),
+        microproyecto: s('Si es un ajuste de un microproyecto abierto (lista MICROPROYECTOS ABIERTOS), su id; «nuevo · <nombre corto>» si es otra cosa; «duda <id>» si no estás segura'),
+        nivel: { type: 'string', enum: ['sencillo', 'complejo'], description: 'Nivel del pedido: a qué Claudio va, para cuidar el uso. ' + CLAUDE_NIVEL_REGLA_ + ' En un ajuste de un microproyecto abierto, déjalo vacío para que siga con el nivel de ese microproyecto, salvo que el ajuste cambie claramente de nivel. Si Juan dice «con Opus» es complejo; «con Sonnet», sencillo. No le digas tú el nivel: el sistema se lo dice al preguntar.' } }, ['titulo', 'app', 'tipo', 'que_quiere']),
     T('leer_correo', 'Abre un correo completo de la bandeja del Hub (la cuenta que manda desde hola@spacioam.com; ahí llega lo que Juan reenvía) para leerlo o usar sus datos: «el correo de los vuelos que te reenvié», «la confirmación de Delta». Devuelve remitente, asunto, fecha y el texto. Para mandar sus datos a alguien, usa después mensaje_personal o enviar_correo con los datos tal cual.',
       { buscar: s('Palabras para encontrarlo: remitente, asunto o algo del texto (ej. «Delta HP7BWP», «vuelos Bozeman»)') }, ['buscar']),
     T('enviar_correo', 'Manda un correo a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
@@ -520,7 +521,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var txm = [String(inp.titulo || '').trim(), String(inp.que_pasa || '').trim() && 'Qué pasa hoy: ' + String(inp.que_pasa).trim(), String(inp.que_quiere || '').trim(),
         String(inp.ejemplo || '').trim() && 'Ejemplo: ' + String(inp.ejemplo).trim()].filter(Boolean).join('\n');
       if (!txm) return { error: 'Falta qué quiere que cambie.' };
-      claudeBorradorPoner_(adm, txm, { micro: inp.microproyecto });
+      claudeBorradorPoner_(adm, txm, { micro: inp.microproyecto, nivel: inp.nivel === 'sencillo' || inp.nivel === 'complejo' ? inp.nivel : '' });
       ctx.hechas.push({ tipo: 'borrador_claude', resumen: 'Borrador para Claude · ' + String(inp.titulo || txm).slice(0, 80) });
       return { ok: true, borrador: true, enviado: false, nota: 'Quedó de BORRADOR: todavía no le llega a Claudio. No digas que se lo pasaste; el sistema le pregunta a Juan «¿Se lo mando a Claudio?».' };
     }
@@ -627,12 +628,12 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
     msgs.push({ role: 'user', content: resultados });
   }
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
-  var mt = microSacarEtiqueta_(final), et = chatSacarEtiqueta_(mt.texto); final = et.texto;   // [[micro: …]] (microproyectos.js) y [[esfera: …]]
+  var mt = microSacarEtiqueta_(final), nv = claudeNivelSacarEtiqueta_(mt.texto), et = chatSacarEtiqueta_(nv.texto); final = et.texto;   // [[micro: …]] (microproyectos.js), [[nivel: …]] (paraclaude.js) y [[esfera: …]]
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
   /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una
      tarjeta o notificación por cada turno era ruido (Juan, 2-nov). */
   if (AGENTE_CANAL_ === 'segundo_plano') try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_); } catch (e) {}   // a Pendientes (pendientes.js)
-  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro };
+  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro, nivel: nv.nivel };
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).

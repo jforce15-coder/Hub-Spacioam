@@ -8,6 +8,8 @@
      y Alma pregunta siempre «¿Se lo mando a Claude?» (Mándalo · Agregar algo · No lo envíes). Nada le llega a Claude
      hasta que Juan dice «mándalo» (decisión de Juan, 1-nov-2026; antes iba directo, #337). Si es otra persona, Alma se
      lo pasa a Juan en Pendientes. Las respuestas de Claude llegan al mismo chat, con canal «claude» y Propósito · Desarrollo.
+     La pregunta dice el nivel del pedido («Va como sencillo (Sonnet).»): Alma lo clasifica con [[nivel: …]] y Juan lo
+     cambia con «con Opus» / «con Sonnet»; «súbelo» vuelve a mandar el último microproyecto con Opus (paraclaude.js).
    · Quién habla sale SIEMPRE de la sesión del login, nunca de un correo que mande la app. Solo el administrador
      principal puede leer el chat de otra persona («de»). */
 
@@ -33,6 +35,8 @@ function chatClasificarRegla_() {
     '\nUsa «Propósito · Desarrollo» SOLO cuando el mensaje pide cambiar, arreglar o agregar algo en las apps o en ti misma (el sistema). Preguntar cómo se usa algo no es Desarrollo. ' +
     'Con Desarrollo no uses mejora_para_claude ni escribas tú la pregunta: el sistema arma el borrador del pedido y le pregunta a Juan «¿Se lo mando a Claudio?» con sus botones (si no hablas con el administrador principal, se lo pasa a Juan). ' +
     'El pedido completo se confirma una sola vez; los cambios siguientes solo confirman el ajuste, sin repetirlo todo. Nunca digas que ya se lo pasaste: no le llega nada hasta que Juan diga «mándalo». Responde en una o dos frases lo que entendiste. ' +
+    'Con Desarrollo agrega también, antes de la etiqueta de esfera, otra línea: [[nivel: sencillo]] o [[nivel: complejo]] (a qué Claudio va, para cuidar el uso). ' + CLAUDE_NIVEL_REGLA_ +
+    ' Si es un ajuste de un microproyecto abierto, no la pongas (sigue con su nivel) salvo que el ajuste cambie claramente de nivel. Nadie la ve: el sistema la quita y le dice a Juan el nivel. ' +
     'Al desarrollador (Claude) llámalo siempre «Claudio» cuando le hablas a la persona.';
 }
 
@@ -98,7 +102,7 @@ function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
   else { try { opMarcar_(yoIds, clas); } catch (e) { console.error('opMarcar_: ' + e); } }
   var hechas = (ag && ag.hechas) || [], hizoBorrador = hechas.some(function (h) { return h && h.tipo === 'borrador_claude'; });
   if (!o.sinDesarrollo && (chatEsDesarrollo_(clas) || hizoBorrador)) {
-    try { var d = chatDesarrollo_(adm, texto, out.texto, hechas, Object.assign({}, o, { micro: (ag && ag.micro) || '' })); out.texto = d.texto; if (d.borrador) out.borrador = d.borrador; if (d.paraJuan) out.paraJuan = true; }
+    try { var d = chatDesarrollo_(adm, texto, out.texto, hechas, Object.assign({}, o, { micro: (ag && ag.micro) || '', nivel: (ag && ag.nivel) || '' })); out.texto = d.texto; if (d.borrador) out.borrador = d.borrador; if (d.paraJuan) out.paraJuan = true; }
     catch (e) { console.error('chatDesarrollo_: ' + (e.stack || e)); }
   }
   return out;
@@ -112,7 +116,7 @@ function chatDesarrollo_(adm, texto, resp, hechas, o) {
   texto = String(texto || '').trim(); if (!texto) return out;
   if (esAdminPrincipal_(adm)) {
     var ya = (hechas || []).some(function (h) { return h && h.tipo === 'borrador_claude'; });
-    var b = ya ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto, { micro: o.micro })) : claudeBorradorPoner_(adm, texto, { micro: o.micro });
+    var b = ya ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto, { micro: o.micro, nivel: o.nivel })) : claudeBorradorPoner_(adm, texto, { micro: o.micro, nivel: o.nivel });
     out.borrador = { partes: b.partes.length };
     out.texto = claudeBorradorConPregunta_(out.texto, b, o.canal);
     return out;
@@ -177,9 +181,23 @@ function claudeBorradorPoner_(adm, texto, o) {
     if (el && el.id) { if (el.seguro) b.micro = el.id; else b.microDuda = el.id; b.microNombre = el.nombre; }
     else { if (el && el.nombre) b.nombreNuevo = el.nombre; b.ult = chatUltimaDeClaude_(adm.email).slice(0, 1500); }
   }
+  claudeBorradorNivel_(b, texto, o.nivel);
   if (texto && b.partes.indexOf(texto) < 0) b.partes.push(texto);
   b.u = Date.now(); b.espera = false;
   claudeBorradorGuardar_(adm.email, b);
+  return b;
+}
+/* Nivel del borrador (sencillo · complejo, paraclaude.js). Manda lo que diga Juan («con Opus» / «con Sonnet»), luego lo
+   que clasificó Alma, luego el de su microproyecto (un ajuste lo hereda); sin nada, complejo. b.nivelDe: juan · alma · hereda · ''. */
+function claudeBorradorNivel_(b, texto, nivelAlma) {
+  var pide = claudeNivelPedido_(texto);
+  if (pide) { b.nivel = pide; b.nivelDe = 'juan'; return b; }
+  if (b.nivelDe === 'juan') return b;
+  if (nivelAlma) { b.nivel = claudeNivel_(nivelAlma); b.nivelDe = 'alma'; return b; }
+  if (b.nivelDe === 'alma') return b;
+  var m = null; if (b.micro) { try { m = microLeer_(b.micro); } catch (e) {} }
+  if (m) { b.nivel = claudeNivel_(m.nivel); b.nivelDe = 'hereda'; return b; }
+  b.nivel = 'complejo'; b.nivelDe = '';
   return b;
 }
 function claudeBorradorTitulo_(b) { return String(b.partes[0] || '').replace(/\s+/g, ' ').split(/[.!?]\s/)[0].slice(0, 80); }
@@ -189,11 +207,21 @@ function claudeBorradorCorto_(b, n) {
 }
 /* La respuesta de Alma + lo que le mandaría a Claude + la pregunta. En el chat, las opciones van como viñetas «• »
    (SAChat.opciones las pinta como tarjeta de acción); en una llamada o en el modo calle (calle.js), solo la frase. */
+/* La pregunta del borrador con su nivel. En voz: «¿Se lo mando a Claudio? Va como sencillo (Sonnet).». En el chat el nivel
+   va antes, en la misma línea («Va como sencillo (Sonnet). ¿Se lo mando a Claudio?»): la tarjeta de botones (chatOpciones_,
+   SAChat.opciones) toma como pregunta la línea que termina en «?» justo antes de las viñetas. Con duda de microproyecto,
+   primero se pregunta a dónde va (sin nivel todavía). */
+function claudeBorradorPregunta_(b, voz) {
+  var nom = '«' + (b.microNombre || '') + '»';
+  if (b.microDuda) return '¿Es parte de ' + nom + ' o es nuevo?';
+  var preg = b.micro ? '¿Se lo agrego a ' + nom + ' y se lo mando a Claudio?' : CLAUDE_BORR_PREGUNTA_, va = 'Va como ' + claudeNivelTexto_(b.nivel) + '.';
+  return voz ? preg + ' ' + va : va + ' ' + preg;
+}
 function claudeBorradorConPregunta_(resp, b, canal) {
   resp = String(resp || '').trim();
   var voz = canal === 'llamada' || canal === 'calle', nom = '«' + (b.microNombre || '') + '»';
   /* Microproyecto (#374): un ajuste dice a cuál va; con duda, se pregunta antes de nada. */
-  var preg = b.microDuda ? '¿Es parte de ' + nom + ' o es nuevo?' : b.micro ? '¿Se lo agrego a ' + nom + ' y se lo mando a Claudio?' : CLAUDE_BORR_PREGUNTA_;
+  var preg = claudeBorradorPregunta_(b, voz);
   var lo = b.micro ? 'Lo agrego a ' + nom + '.' : '';
   if (voz) return [resp, lo, (b.micro ? 'Le agregaría: «' : 'Le pediría a Claudio: «') + claudeBorradorCorto_(b, 240) + '».', preg].filter(Boolean).join(' ');
   return (resp ? resp + '\n\n' : '') + (lo ? lo + '\n' : '') + (b.micro ? 'Esto es lo que le agregaría:' : 'Esto es lo que le mandaría a Claudio:') + '\n«' + claudeBorradorCorto_(b, 400) + '»\n\n' + preg + '\n' +
@@ -201,10 +229,10 @@ function claudeBorradorConPregunta_(resp, b, canal) {
 }
 /* Tras el primer repaso completo, cada cambio solo confirma el ajuste puntual («Ajustado: …») y repite la pregunta,
    sin volver a poner todo el pedido. En el chat, las opciones siguen como viñetas «• ». */
-function claudeBorradorAjuste_(extra, b, canal) {
-  var voz = canal === 'llamada' || canal === 'calle', nom = '«' + (b.microNombre || '') + '»';
-  var preg = b.microDuda ? '¿Es parte de ' + nom + ' o es nuevo?' : b.micro ? '¿Se lo agrego a ' + nom + ' y se lo mando a Claudio?' : CLAUDE_BORR_PREGUNTA_;
-  var ajuste = 'Ajustado: «' + claudeBorradorCorto_({ partes: [extra] }, 120) + '».';
+function claudeBorradorAjuste_(extra, b, canal, ajuste) {
+  var voz = canal === 'llamada' || canal === 'calle';
+  var preg = claudeBorradorPregunta_(b, voz);
+  ajuste = ajuste || 'Ajustado: «' + claudeBorradorCorto_({ partes: [extra] }, 120) + '».';
   if (voz) return ajuste + ' ' + preg;
   return ajuste + '\n\n' + preg + '\n' + claudeBorradorOpciones_(b).map(function (x) { return '• ' + x; }).join('\n');
 }
@@ -251,7 +279,23 @@ function claudeBorradorResponder_(adm, texto, o) {
     try { var al = opFilas_(adm.email, 8).filter(function (m) { return m.de === 'alma'; }).pop(); ultAlma = al ? al.texto : ''; } catch (e) {}
     tras = claudeBorradorPreguntaEn_(ultAlma);
   }
-  var que = claudeBorradorIntencion_(texto, tras, b), voz = o.canal === 'llamada' || o.canal === 'calle';   // modo calle: también se dice en voz
+  var voz = o.canal === 'llamada' || o.canal === 'calle';   // modo calle: también se dice en voz
+  /* Nivel (paraclaude.js): «con Opus» / «con Sonnet» (o «súbelo» justo tras la pregunta) cambia el nivel del borrador.
+     Solo, o con «mándalo» («mándalo con Opus»): entonces también se manda. */
+  var pide = claudeNivelPedido_(texto), resto = pide ? claudeNivelQuitar_(texto) : '';
+  if (!pide && tras && microEsSubelo_(texto)) pide = 'complejo';
+  if (pide && resto && !/^(y|pero|mejor|va|ok|si|dale|que vaya|que sea|ahora|porfa|por favor)$/.test(chatNorm_(resto).replace(/[¡!¿?.,;:«»"()]/g, '').trim())
+    && claudeBorradorIntencion_(resto, true, b) !== 'mandar') pide = '';   // «con Opus» dentro de otra frase: no es el cambio de nivel
+  if (pide) {
+    b.nivel = pide; b.nivelDe = 'juan'; b.u = Date.now(); claudeBorradorGuardar_(adm.email, b);
+    if (!(resto && claudeBorradorIntencion_(resto, true, b) === 'mandar')) {
+      var cambio = 'Va, cambiado: va como ' + claudeNivelTexto_(pide) + '.';
+      return { accion: 'nivel', texto: claudeBorradorAjuste_('', b, voz ? 'llamada' : '', cambio),
+        voz: 'NIVEL CAMBIADO a ' + claudeNivelTexto_(pide) + ' (todavía NO se envía). Dile en una frase «' + cambio + '» y pregúntale de nuevo: «' + claudeBorradorPregunta_(b, true) + '».' };
+    }
+    texto = resto;
+  }
+  var que = claudeBorradorIntencion_(texto, tras, b);
   /* Tocó «Agregar algo» y Alma preguntó qué: lo que escribe ahora es lo que agrega. */
   if (!que && b.espera && !b.vencido && (o.explicito || ultAlma.indexOf(CLAUDE_BORR_AGREGO_) >= 0) && String(texto || '').trim()) que = 'agregar';
   if (!que) return null;
@@ -291,7 +335,7 @@ function claudeBorradorResponder_(adm, texto, o) {
       voz: 'AGREGADO AL BORRADOR (todavía NO se envía). Confirma SOLO el ajuste que acaba de pedir («Anotado: ' + claudeBorradorCorto_({ partes: [extra] }, 120) + '») en una frase. NO repitas ni resumas el pedido completo. Cierra con «¿Se lo reporto a Claudio?» y, si dice que sí, usa «Mejora para Claude: mándalo» y dile «se lo voy a reportar a Claudio».' };
   }
   /* mandar */
-  var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '',
+  var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
     que_quiere: b.partes.join('\n\nY además: ') + (b.ult && !b.micro ? '\n\nPuede ser un seguimiento de tu última respuesta en su chat con Alma:\n' + b.ult : '') });
   if (!r.ok) {
     return { accion: 'mandar', claude: { ok: false }, texto: 'No se lo pude mandar a Claudio: ' + (r.error || 'error') + '. El borrador sigue guardado; dime «mándalo» para intentarlo otra vez.',
@@ -299,14 +343,16 @@ function claudeBorradorResponder_(adm, texto, o) {
   }
   claudeBorradorGuardar_(adm.email, null); cerrarTarjeta();
   var mi = r.micro || {}, donde = mi.segunda ? ' como segunda parte de «' + mi.nombre + '» (lo anterior ya se había unido)' : mi.ajuste ? ' en «' + mi.nombre + '»' : '';
-  var listo = r.claude ? 'Listo, ya se lo mandé a Claudio' + donde + '. Te aviso aquí cuando responda.' : r.nota;
-  return { accion: 'mandar', claude: { ok: true, id: r.id || '', directo: !!r.claude, issue: r.issue || '', micro: mi.id || '' }, texto: listo,
-    voz: r.claude ? 'ENVIADO: Claudio ya lo recibió' + donde + '. Dile en una frase: «Listo, ya se lo mandé a Claudio; te aviso cuando responda».' : r.nota };
+  var con = ' con ' + CLAUDE_MODELO_NIVEL_[claudeNivel_(r.nivel)], aviso = r.nivelNota ? ' ' + r.nivelNota : '';   // sin la llave de la sencilla, fue con Opus y se dice
+  var listo = r.claude ? 'Listo, ya se lo mandé a Claudio' + con + donde + '.' + aviso + ' Te aviso aquí cuando responda.' : r.nota;
+  return { accion: 'mandar', claude: { ok: true, id: r.id || '', directo: !!r.claude, issue: r.issue || '', micro: mi.id || '', nivel: r.nivel || '' }, texto: listo,
+    voz: r.claude ? 'ENVIADO: Claudio ya lo recibió' + con + donde + '.' + aviso + ' Dile en una frase: «Listo, ya se lo mandé a Claudio' + con + '; te aviso cuando responda».' : r.nota };
 }
 /* El turno de chat (Hub, app, WhatsApp o la tarjeta de Pendientes) que responde a un borrador: guarda la respuesta de Alma
    en el mismo chat como Propósito · Desarrollo y no llama a la IA. yo: su fila ya guardada (o null para guardarla aquí). */
 function chatBorradorTurno_(adm, yo, texto, canal, o) {
   var rb = claudeBorradorResponder_(adm, texto, Object.assign({ canal: canal }, o || {}));
+  if (!rb) rb = claudeSubirResponder_(adm, texto);
   if (!rb) {
     /* Tocó en el chat una opción de lo que Claude preguntó (#374): va directo a ese microproyecto, sin IA ni borrador. */
     var mo = null; try { mo = microOpcionChat_(adm, texto); } catch (e) {}
@@ -321,6 +367,19 @@ function chatBorradorTurno_(adm, yo, texto, canal, o) {
   var out = { ok: true, yo: yo, alma: alma, borrador: rb.accion };
   if (rb.claude) out.claude = rb.claude;
   return out;
+}
+/* «Súbelo» (sin borrador esperando): el último microproyecto vuelve a Claudio con Opus, con su historial (microSubir_).
+   Solo el principal. Devuelve null si no es «súbelo»; si sí, { accion: 'subir', texto, voz, claude? }. */
+function claudeSubirResponder_(adm, texto) {
+  if (!adm || !esAdminPrincipal_(adm)) return null;
+  var forma = microEsSubelo_(texto); if (!forma) return null;
+  /* «súbelo» a secas también puede ser otra cosa (la música): solo cuenta si lo último de Claudio fue con Sonnet.
+     «súbelo a Opus» / «súbeselo a Claudio» siempre. */
+  var ult = null; if (forma === 'solo') { try { ult = microAbiertos_(adm.email)[0] || null; } catch (e) {} if (!ult || ult.nivel !== 'sencillo') return null; }
+  var r = microSubir_(adm, ult, { sinChat: true });
+  if (!r.ok) return { accion: 'subir', texto: r.error || 'No pude subirlo.', voz: 'NO SE SUBIÓ: ' + (r.error || 'error') + '. Díselo tal cual.' };
+  return { accion: 'subir', claude: { ok: true, directo: r.claude, micro: r.micro, nivel: 'complejo' }, texto: r.respuesta,
+    voz: r.claude ? 'SUBIDO: Claudio con Opus ya lo tiene, en «' + r.nombre + '», con todo su historial. Dile en una frase: «Listo, se lo pasé a Claudio con Opus; te aviso cuando responda».' : r.respuesta };
 }
 /* Cada minuto (procesarCola): un borrador sin respuesta en 24 h deja un Pendiente «Necesita tu sí»; a los 8 días se borra.
    Barato: solo propiedades del script, sin IA ni internet. */
@@ -339,7 +398,7 @@ function claudeBorradoresRevisar_(ahora) {
     var tit = claudeBorradorTitulo_(b) || 'Pedido para Claudio', f = null;
     try {
       f = pendCrear_(adm, { tipo: 'atencion', area: 'proposito', proyecto: 'Desarrollo', titulo: 'Pedido para Claudio sin enviar', importancia: 2,
-        resumen: '«' + claudeBorradorCorto_(b, 160) + '» espera tu sí para mandárselo a Claudio' + (b.micro ? ' (en «' + b.microNombre + '»)' : '') + '.',
+        resumen: '«' + claudeBorradorCorto_(b, 160) + '» espera tu sí para mandárselo a Claudio' + (b.micro ? ' (en «' + b.microNombre + '»)' : '') + '. Va como ' + claudeNivelTexto_(b.nivel) + '.',
         aviso: 'Tienes un pedido para Claudio sin enviar: ' + tituloCorto_(tit, 100) + '. ¿Se lo mando?',
         tarjeta: { tipo: 'pregunta', esfera: CHAT_DESARROLLO_.esfera, subcategoria: CHAT_DESARROLLO_.subcategoria, opciones: claudeBorradorOpciones_(b) },
         acciones: [{ texto: 'Abrir el chat', url: chatEnlace_(CHAT_DESARROLLO_.esfera), chat: { esfera: CHAT_DESARROLLO_.esfera, conv: 'op:' + adm.email } }] },

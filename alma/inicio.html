@@ -421,6 +421,7 @@
     <div class="fila"><a href="correos.html" id="p-correos">Tus correos</a><span class="va">›</span></div>
     <div class="fila"><a href="conexiones.html" id="p-conexiones">Conexiones</a><span class="va">›</span></div>
     <div class="fila" id="p-uso-f" hidden><a href="uso.html" id="p-uso">Uso</a><span class="va">›</span></div>
+    <div class="fila" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio">Lo que Alma aprendió</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
   </div>
   <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
@@ -448,7 +449,7 @@
 <script src="../js/alma-client.js?v=2026-11-15a"></script>
 <script src="../js/alma-voz.js?v=2026-11-15e"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-15f"></script>
+<script src="../js/sa-nav.js?v=2026-11-15g"></script>
 <script>
 (function () {
   "use strict";
@@ -886,6 +887,7 @@
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
     /* Uso (cupo de Google e IA, alma/uso.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
     $("p-uso-f").hidden = $("p-health-f").hidden;
+    $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "atajos", que: "estado" }); avisosReloj(true); }

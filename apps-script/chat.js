@@ -281,6 +281,7 @@ function claudeBorradorResponder_(adm, texto, o) {
     tras = claudeBorradorPreguntaEn_(ultAlma);
   }
   var voz = o.canal === 'llamada' || o.canal === 'calle';   // modo calle: también se dice en voz
+  var ajusteVoz = '';   // en voz, el ajuste que se acaba de aplicar y se manda de inmediato (sin volver a preguntar)
   /* Nivel (paraclaude.js): «con Opus» / «con Sonnet» (o «súbelo» justo tras la pregunta) cambia el nivel del borrador.
      Solo, o con «mándalo» («mándalo con Opus»): entonces también se manda. */
   var pide = claudeNivelPedido_(texto), resto = pide ? claudeNivelQuitar_(texto) : '';
@@ -289,14 +290,16 @@ function claudeBorradorResponder_(adm, texto, o) {
     && claudeBorradorIntencion_(resto, true, b) !== 'mandar') pide = '';   // «con Opus» dentro de otra frase: no es el cambio de nivel
   if (pide) {
     b.nivel = pide; b.nivelDe = 'juan'; b.u = Date.now(); claudeBorradorGuardar_(adm.email, b);
-    if (!(resto && claudeBorradorIntencion_(resto, true, b) === 'mandar')) {
+    /* En voz (llamada o modo calle) el ajuste se manda de inmediato: una sola confirmación (ajusteVoz). */
+    if (!voz && !(resto && claudeBorradorIntencion_(resto, true, b) === 'mandar')) {
       var cambio = 'Va, cambiado: va como ' + claudeNivelTexto_(pide) + '.';
       return { accion: 'nivel', texto: claudeBorradorAjuste_('', b, voz ? 'llamada' : '', cambio),
         voz: 'NIVEL CAMBIADO a ' + claudeNivelTexto_(pide) + ' (todavía NO se envía). Dile en una frase «' + cambio + '» y pregúntale de nuevo: «' + claudeBorradorPregunta_(b, true) + '».' };
     }
     texto = resto;
+    if (voz && !claudeBorradorIntencion_(texto, true, b)) { texto = ''; ajusteVoz = 'Cambiado: va como ' + claudeNivelTexto_(pide) + '.'; }
   }
-  var que = claudeBorradorIntencion_(texto, tras, b);
+  var que = texto ? claudeBorradorIntencion_(texto, tras, b) : (ajusteVoz ? 'mandar' : '');
   /* Tocó «Agregar algo» y Alma preguntó qué: lo que escribe ahora es lo que agrega. */
   if (!que && b.espera && !b.vencido && (o.explicito || ultAlma.indexOf(CLAUDE_BORR_AGREGO_) >= 0) && String(texto || '').trim()) que = 'agregar';
   if (!que) return null;
@@ -308,19 +311,16 @@ function claudeBorradorResponder_(adm, texto, o) {
   if (que === 'separar') {
     cerrarTarjeta(); b.pend = ''; b.vencido = false; b.u = Date.now();
     b.micro = ''; b.microDuda = ''; b.microNombre = ''; b.nuevo = true; b.ult = chatUltimaDeClaude_(adm.email).slice(0, 1500); claudeBorradorGuardar_(adm.email, b);
-    return { accion: 'separar', texto: claudeBorradorConPregunta_('Va, lo dejo como un pedido nuevo para Claudio.', b, voz ? 'llamada' : ''),
+    if (voz) { que = 'mandar'; ajusteVoz = 'Va como pedido nuevo.'; }
+    else return { accion: 'separar', texto: claudeBorradorConPregunta_('Va, lo dejo como un pedido nuevo para Claudio.', b, voz ? 'llamada' : ''),
       voz: 'SEPARADO: va como microproyecto nuevo (todavía NO se envía). Dile en una frase que lo dejas aparte y pregúntale «¿Se lo mando a Claudio?».' };
   }
   if (que === 'unirmicro') {
     cerrarTarjeta(); b.pend = ''; b.vencido = false; b.u = Date.now();
     b.micro = b.microDuda; b.microDuda = ''; b.ult = ''; claudeBorradorGuardar_(adm.email, b);
-    return { accion: 'unirmicro', texto: claudeBorradorConPregunta_('', b, voz ? 'llamada' : ''),
+    if (voz) { que = 'mandar'; ajusteVoz = 'Lo agrego a «' + b.microNombre + '».'; }
+    else return { accion: 'unirmicro', texto: claudeBorradorConPregunta_('', b, voz ? 'llamada' : ''),
       voz: 'SE SUMA A «' + b.microNombre + '» (todavía NO se envía). Pregúntale en una frase: «¿Se lo agrego a ' + b.microNombre + ' y se lo mando a Claudio?».' };
-  }
-  if (que === 'mandar' && b.microDuda) {   // primero dónde va: a un microproyecto abierto o uno nuevo
-    claudeBorradorGuardar_(adm.email, b);
-    return { accion: 'esperar', texto: claudeBorradorConPregunta_('Antes dime a dónde va.', b, voz ? 'llamada' : ''),
-      voz: 'TODAVÍA NO SE ENVÍA: pregúntale si es parte de «' + b.microNombre + '» o es nuevo.' };
   }
   if (que === 'agregar') {
     var extra = b.espera && !claudeBorradorIntencion_(texto, true, b) ? String(texto).trim() : claudeBorradorAgregado_(texto);
@@ -331,23 +331,32 @@ function claudeBorradorResponder_(adm, texto, o) {
       return { accion: 'esperar', texto: CLAUDE_BORR_AGREGO_ + ' Dímelo y lo sumo al pedido.', voz: 'Pregúntale en una frase qué le agregas al pedido para Claude. Todavía no se envía.' };
     }
     b.partes.push(extra); b.espera = false; claudeBorradorGuardar_(adm.email, b);
-    /* Solo el ajuste puntual: el pedido completo se confirmó una vez y no se repite en cada cambio. */
-    return { accion: 'agregar', texto: claudeBorradorAjuste_(extra, b, voz ? 'llamada' : ''),
+    /* Solo el ajuste puntual: el pedido completo se confirmó una vez y no se repite en cada cambio.
+       En voz, además, no se vuelve a preguntar: el ajuste se aplica y se manda de inmediato (pedido de Juan, 2-nov-2026). */
+    if (voz) { que = 'mandar'; ajusteVoz = 'Ajustado: «' + claudeBorradorCorto_({ partes: [extra] }, 120) + '».'; }
+    else return { accion: 'agregar', texto: claudeBorradorAjuste_(extra, b, voz ? 'llamada' : ''),
       voz: 'AGREGADO AL BORRADOR (todavía NO se envía). Confirma SOLO el ajuste que acaba de pedir («Anotado: ' + claudeBorradorCorto_({ partes: [extra] }, 120) + '») en una frase. NO repitas ni resumas el pedido completo. Cierra con «¿Se lo reporto a Claudio?» y, si dice que sí, usa «Mejora para Claude: mándalo» y dile «se lo voy a reportar a Claudio».' };
+  }
+  if (que === 'mandar' && b.microDuda) {   // primero dónde va: a un microproyecto abierto o uno nuevo
+    claudeBorradorGuardar_(adm.email, b);
+    return { accion: 'esperar', texto: claudeBorradorConPregunta_((ajusteVoz ? ajusteVoz + ' ' : '') + 'Antes dime a dónde va.', b, voz ? 'llamada' : ''),
+      voz: (ajusteVoz ? 'AJUSTE ANOTADO (' + ajusteVoz + '). ' : '') + 'TODAVÍA NO SE ENVÍA: pregúntale solo si es parte de «' + b.microNombre + '» o es nuevo; con su respuesta se manda, sin otra pregunta.' };
   }
   /* mandar */
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
     que_quiere: b.partes.join('\n\nY además: ') + (b.ult && !b.micro ? '\n\nPuede ser un seguimiento de tu última respuesta en su chat con Alma:\n' + b.ult : '') });
   if (!r.ok) {
     return { accion: 'mandar', claude: { ok: false }, texto: 'No se lo pude mandar a Claudio: ' + (r.error || 'error') + '. El borrador sigue guardado; dime «mándalo» para intentarlo otra vez.',
-      voz: 'NO LE LLEGÓ A CLAUDIO: ' + (r.error || 'error') + '. Díselo tal cual; el borrador sigue guardado.' };
+      voz: (ajusteVoz ? 'AJUSTE GUARDADO (' + ajusteVoz + ') PERO ' : '') + 'NO LE LLEGÓ A CLAUDIO: ' + (r.error || 'error') + '. Díselo tal cual; el borrador sigue guardado.' };
   }
   claudeBorradorGuardar_(adm.email, null); cerrarTarjeta();
   var mi = r.micro || {}, donde = mi.segunda ? ' como segunda parte de «' + mi.nombre + '» (lo anterior ya se había unido)' : mi.ajuste ? ' en «' + mi.nombre + '»' : '';
   var con = ' con ' + CLAUDE_MODELO_NIVEL_[claudeNivel_(r.nivel)], aviso = r.nivelNota ? ' ' + r.nivelNota : '';   // sin la llave de la sencilla, fue con Opus y se dice
   var listo = r.claude ? 'Listo, ya se lo mandé a Claudio' + con + donde + '.' + aviso + ' Te aviso aquí cuando responda.' : r.nota;
+  if (ajusteVoz) listo = ajusteVoz + ' ' + listo;
   return { accion: 'mandar', claude: { ok: true, id: r.id || '', directo: !!r.claude, issue: r.issue || '', micro: mi.id || '', nivel: r.nivel || '' }, texto: listo,
-    voz: r.claude ? 'ENVIADO: Claudio ya lo recibió' + con + donde + '.' + aviso + ' Dile en una frase: «Listo, ya se lo mandé a Claudio' + con + '; te aviso cuando responda».' : r.nota };
+    voz: r.claude ? (ajusteVoz ? 'AJUSTADO Y ENVIADO (sin volver a preguntar): ' : 'ENVIADO: ') + 'Claudio ya lo recibió' + con + donde + '.' + aviso +
+      ' Dile en una frase: «' + (ajusteVoz ? ajusteVoz + ' ' : '') + 'Listo, ya se lo mandé a Claudio' + con + '; te aviso cuando responda». No repitas el pedido ni vuelvas a preguntar.' : r.nota };
 }
 /* El turno de chat (Hub, app, WhatsApp o la tarjeta de Pendientes) que responde a un borrador: guarda la respuesta de Alma
    en el mismo chat como Propósito · Desarrollo y no llama a la IA. yo: su fila ya guardada (o null para guardarla aquí). */

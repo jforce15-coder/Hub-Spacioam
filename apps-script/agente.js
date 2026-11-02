@@ -623,7 +623,9 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
   var et = chatSacarEtiqueta_(final); final = et.texto;
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
-  try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_); } catch (e) {}   // a Pendientes (pendientes.js)
+  /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una
+     tarjeta o notificación por cada turno era ruido (Juan, 2-nov). */
+  if (AGENTE_CANAL_ === 'segundo_plano') try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_); } catch (e) {}   // a Pendientes (pendientes.js)
   return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria };
 }
 

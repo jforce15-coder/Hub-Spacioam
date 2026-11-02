@@ -15,7 +15,7 @@
      5. La respuesta queda en el chat con Alma de quien lo pidió (chat único, #334: canal «claude», Propósito · Desarrollo),
         le llega por WhatsApp en una línea y Alma se la cuenta en voz corta en la próxima llamada (paraClaudeNovedades_). */
 
-var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat'];
+var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro'];
 var PARA_CLAUDE_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CLAUDE_RUTINA_DEF_ = 'trig_01VrusYxvHrU1MBz4x39RVEm';
 var HUB_EXEC_DEF_ = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
@@ -38,37 +38,57 @@ function paraClaudeCrear_(adm, inp) {
   if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal puede pedir cambios al sistema. Dile que se lo pida a Juan.' };
   var titulo = String(inp.titulo || '').trim().slice(0, 100); if (!titulo || !String(inp.que_quiere || '').trim()) return { ok: false, error: 'Falta el título o qué se quiere.' };
   var quien = (adm && adm.nombre) || 'Equipo', id = 'pc' + Date.now(), fecha = Utilities.formatDate(new Date(), CFG.TZ, 'yyyy-MM-dd HH:mm');
-  var cuerpo = '**Pedido de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' +
+  /* Microproyecto (#374): un ajuste se suma al suyo (mismo issue como comentario, misma rama y PR, historial completo);
+     si su PR ya se unió, es la «segunda parte» (PR nuevo, mismo historial). Un pedido nuevo abre uno. */
+  var m = null; try { m = inp.micro ? microLeer_(inp.micro) : null; } catch (e) { console.error('microLeer_: ' + e); }
+  var ajuste = !!m, segunda = false, prAnterior = '', sesionAnterior = m ? m.sesion : '';
+  if (m && microPrTermino_(m)) { segunda = true; prAnterior = m.pr; m.parte = (Number(m.parte) || 1) + 1; m.pr = ''; m.rama = ''; m.unido = ''; }
+  if (!m) m = microCrear_(adm, inp.nombre || titulo);
+  var queQuiere = String(inp.que_quiere).trim();
+  m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + queQuiere });
+  var como = microComoSeguir_(m, segunda, prAnterior);
+  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + '### Lo nuevo\n' + queQuiere + '\n\n'
+    : '**Pedido de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' +
     '**Dónde:** ' + (inp.app || 'Otro') + ' · **Tipo:** ' + String(inp.tipo || 'mejora').replace('_', ' ') + ' · **Prioridad:** ' + (inp.prioridad || 'normal') + '\n\n' +
     (String(inp.que_pasa || '').trim() ? '### Qué pasa hoy\n' + String(inp.que_pasa).trim() + '\n\n' : '') +
-    '### Cómo debería funcionar\n' + String(inp.que_quiere).trim() + '\n\n' +
-    (String(inp.ejemplo || '').trim() ? '### Ejemplo\n' + String(inp.ejemplo).trim() + '\n\n' : '') +
-    '---\n_Lo dictó ' + quien + ' a ALMA. Claude: sigue el método de CLAUDE.md (glosario, pregunta primero lo que es decisión de Juan, prototipos si es visual, spec y tickets si es grande, dos revisiones, evidencia en el PR). Trabájalo en una rama nueva, abre un PR y enlázalo aquí. No incluyas datos personales de huéspedes._';
-  var issue = '';
+    '### Cómo debería funcionar\n' + queQuiere + '\n\n' +
+    (String(inp.ejemplo || '').trim() ? '### Ejemplo\n' + String(inp.ejemplo).trim() + '\n\n' : '')) +
+    '**Microproyecto:** «' + m.nombre + '» (' + m.id + (m.parte > 1 ? ' · parte ' + m.parte : '') + '). ' + como + '\n\n' +
+    '---\n_Lo dictó ' + quien + ' a ALMA. Claude: sigue el método de CLAUDE.md (glosario, pregunta primero lo que es decisión de Juan, prototipos si es visual, spec y tickets si es grande, dos revisiones, evidencia en el PR). ' +
+    (ajuste ? 'Es parte de un trabajo que ya empezó: lee el historial completo antes de tocar nada.' : 'Trabájalo en una rama nueva, abre un PR y enlázalo aquí.') + ' No incluyas datos personales de huéspedes._';
+  var issue = m.issue || '';
   var pg = PropertiesService.getScriptProperties(), tok = pg.getProperty('GITHUB_TOKEN') || pg.getProperty('GITHUB_PRS');   // la llave de Conexiones también sirve
-  if (tok) {
+  if (tok && issue) { try { microComentar_(issue, cuerpo); } catch (e) { console.error('paraClaude comentario: ' + e); } }   // el ajuste va como comentario, no otro issue
+  else if (tok) {
     try {
       var r = uf_('https://api.github.com/repos/' + PARA_CLAUDE_REPO_ + '/issues', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
         headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
-        payload: JSON.stringify({ title: '[' + (inp.app || 'Otro') + '] ' + titulo, body: cuerpo, labels: ['alma-mejora', String(inp.tipo || 'mejora'), 'prioridad-' + (inp.prioridad || 'normal')] }) });
+        payload: JSON.stringify({ title: '[' + (inp.app || 'Otro') + '] ' + (ajuste ? m.nombre : titulo), body: cuerpo, labels: ['alma-mejora', String(inp.tipo || 'mejora'), 'prioridad-' + (inp.prioridad || 'normal')] }) });
       if (r.getResponseCode() < 300) issue = JSON.parse(r.getContentText()).html_url || '';
       else console.error('GitHub issue ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
     } catch (e) { console.error('paraClaude GitHub: ' + e); }
   }
+  m.issue = issue;
+  /* La instrucción lleva el historial completo: cada disparo abre una sesión nueva de Claude, sin memoria. */
+  var instruccion = cuerpo + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + '\n\n' + MICRO_RESPONDER_;
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_,
-    quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: titulo, instruccion: cuerpo, issue: issue });
-  /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). */
-  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '']); }
+    quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: ajuste ? m.nombre + ' · ' + (segunda ? 'segunda parte' : 'ajuste') : titulo,
+    instruccion: instruccion, issue: issue, micro: microParaClaude_(m, { ajuste: ajuste, segunda: segunda, como: como, sesionAnterior: sesionAnterior }) });
+  if (disparo.ok) { m.estado = MICRO_ESTADOS_.trabajo; m.ultima_pregunta = ''; m.opciones = []; if (disparo.url) m.sesion = disparo.url; }
+  else if (!ajuste) m.estado = MICRO_ESTADOS_.trabajo;   // quedó en la lista (y en el issue); la tarjeta lo muestra igual
+  try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); }
+  /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). micro: su microproyecto. */
+  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id]); }
   catch (e) { return { ok: false, error: 'No pude guardarlo: ' + e }; }
   /* Lo que no salió de un mensaje suyo (rondas de los agentes, bots de prueba, Pendientes) queda anotado en su chat.
      Lo que sí salió de su chat (sinChat) ya está ahí: su mensaje y la respuesta de Alma. */
   if (!inp.sinChat && adm && adm.email) {
-    try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claude · ' + titulo + '\n\n' + String(inp.que_quiere).trim().slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claude: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
+    try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queQuiere.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
-  return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok,
-    nota: disparo.ok ? 'Ya se lo pasé a Claude. Está trabajando en eso; cuando termine te cuento en corto aquí en tu chat.' :
-      issue ? 'Quedó enviado a Claude (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claude en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
+  return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte },
+    nota: disparo.ok ? 'Ya se lo pasé a Claudio. Está trabajando en eso; cuando termine te cuento en corto aquí en tu chat.' :
+      issue ? 'Quedó enviado a Claudio (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claudio en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
 }
 /* Apps viejas que todavía responden en la conversación «Desarrollo» (resId op:desarrollo): el mensaje entra al chat del
    principal como Propósito · Desarrollo. Como en todo el chat (chat.js), queda de borrador y Alma pregunta
@@ -76,7 +96,7 @@ function paraClaudeCrear_(adm, inp) {
 function paraClaudeDesdeChat_(ses, texto) {
   texto = String(texto || '').trim(); if (!texto) return { ok: false, error: 'faltan datos' };
   var adm = paraClaudePrincipalSes_(ses);
-  if (!adm) return { ok: false, error: 'Solo el administrador principal puede pedirle cambios a Claude.' };
+  if (!adm) return { ok: false, error: 'Solo el administrador principal puede pedirle cambios a Claudio.' };
   var rb = chatBorradorTurno_(adm, null, texto, 'hub');
   if (rb) return rb.claude && !rb.claude.ok ? { ok: false, error: rb.alma.texto, alma: rb.alma } : rb;
   var yo = opGuardar_(adm, 'yo', 'hub', texto, [], CHAT_DESARROLLO_);
@@ -148,7 +168,7 @@ function paraClaudeDisparar_(pedido) {
       headers: { Authorization: 'Bearer ' + tok, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'experimental-cc-routine-2026-04-01' },
       payload: JSON.stringify({ text: JSON.stringify(pedido).slice(0, 65000) }) });
     var c = r.getResponseCode(), j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) {}
-    if (c >= 300) { console.error('Rutina Claude ' + c + ': ' + r.getContentText().slice(0, 300)); return { ok: false, error: 'Claude respondió ' + c + ((j.error && j.error.message) ? ' (' + String(j.error.message).slice(0, 120) + ')' : '') }; }
+    if (c >= 300) { console.error('Rutina Claude ' + c + ': ' + r.getContentText().slice(0, 300)); return { ok: false, error: 'Claudio respondió ' + c + ((j.error && j.error.message) ? ' (' + String(j.error.message).slice(0, 120) + ')' : '') }; }
     return { ok: true, url: j.claude_code_session_url || '' };
   } catch (e) { console.error('paraClaudeDisparar_: ' + e); return { ok: false, error: String(e).slice(0, 160) }; }
 }
@@ -165,15 +185,20 @@ function paraClaudeRespuesta_(b) {
     var estado = /^(listo|pregunta|fallo)$/.test(String(b.estado)) ? String(b.estado) : 'listo', titulo = String(v[i][6]);
     var voz = String(b.voz || '').replace(/\s+/g, ' ').trim().slice(0, 240);
     var enlaces = (Array.isArray(b.enlaces) ? b.enlaces : []).map(String).filter(function (u) { return /^https:\/\/github\.com\//.test(u); }).slice(0, 6);
-    var texto = (estado === 'pregunta' ? 'Claude pregunta · ' : estado === 'fallo' ? 'Claude no pudo · ' : 'Claude terminó · ') + titulo + '\n\n' +
-      (voz ? voz + '\n\n' : '') + String(b.detalle || '').trim().slice(0, 3000) + (enlaces.length ? '\n\n' + enlaces.join('\n') : '');
-    if (estado === 'listo') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claude dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
-    sh.getRange(i + 2, 9).setValue(estado === 'listo' ? 'PR listo' : estado);
+    var cuerpoR = (voz ? voz + '\n\n' : '') + String(b.detalle || '').trim().slice(0, 3000);
+    /* Su microproyecto (#374): la respuesta entra al historial y cambia el estado (pregunta, listo para unir…). */
+    var m = null; if (v[i][15]) { try { m = microRespuesta_(String(v[i][15]), { estado: estado, voz: voz, detalle: b.detalle, enlaces: enlaces, rama: b.rama }, cuerpoR); } catch (e) { console.error('microRespuesta_: ' + e); } }
+    if (m) titulo = m.nombre;
+    var texto = (estado === 'pregunta' ? 'Claudio pregunta · ' : estado === 'fallo' ? 'Claudio no pudo · ' : 'Claudio terminó · ') + titulo + '\n\n' +
+      cuerpoR + (enlaces.length ? '\n\n' + enlaces.join('\n') : '');
+    var conPr = enlaces.some(function (u) { return /\/pull\/\d+/.test(u); }) || !!(m && m.estado === MICRO_ESTADOS_.listo);
+    if (estado === 'listo') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
+    sh.getRange(i + 2, 9).setValue(estado === 'listo' ? (conPr ? 'PR listo' : 'respondido') : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
     /* En el chat con Alma de quien lo pidió (o del principal, para los pedidos viejos); cada mensaje empieza con la fecha. */
     var dest = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_() || DESARROLLO_;
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
-    paraClaudeAvisar_(titulo, voz || texto.slice(0, 200), estado);
+    paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado);
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -183,17 +208,32 @@ function paraClaudeFecha_() {
   var dia = Utilities.formatDate(d, 'America/Guatemala', 'd'), mes = Number(Utilities.formatDate(d, 'America/Guatemala', 'M')) - 1;
   return dia + ' ' + m[mes] + ' ' + Utilities.formatDate(d, 'America/Guatemala', 'yyyy');
 }
-/* WhatsApp de una línea al principal + novedad pendiente para su próxima llamada con Alma. */
+/* Avisos de Claude (decisión de Juan, #374): solo lo que sirve, nunca un acuse («se lo mandé», «lo recibió»).
+     pregunta → nivel 2 «Claudio pregunta sobre «X»» (las opciones van en su tarjeta de Pendientes)
+     listo    → nivel 2 «Claudio terminó «X»: está en Pendientes para que lo unas» (hay un PR)
+     fallo    → nivel 2 «Claudio no pudo con «X»»
+     consulta → nivel 3 (respondió sin PR: solo para leer)
+     unido    → nivel 3 «Quedó unido «X»» (microUnido_)
+   Lo de nivel 2 también queda como tema por retomar. Además, novedad para su próxima llamada con Alma. */
+function paraClaudeAvisarTexto_(titulo, voz, estado) {
+  var t = '«' + titulo + '»';
+  return estado === 'pregunta' ? 'Claudio pregunta sobre ' + t + (voz ? ': ' + voz : '.')
+    : estado === 'fallo' ? 'Claudio no pudo con ' + t + (voz ? ': ' + voz : '.')
+    : estado === 'unido' ? 'Quedó unido ' + t + '.'
+    : estado === 'consulta' ? 'Claudio respondió sobre ' + t + (voz ? ': ' + voz : '.')
+    : 'Claudio terminó ' + t + ': está en Pendientes para que lo unas.';
+}
 function paraClaudeAvisar_(titulo, voz, estado) {
-  var p = PropertiesService.getScriptProperties(), nov = [];
+  var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo|listo)$/.test(String(estado)) ? 2 : 3;
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
-  nov.push({ ts: new Date().toISOString(), titulo: titulo, voz: voz, estado: estado });
+  nov.push({ ts: new Date().toISOString(), titulo: titulo, voz: texto, estado: estado });
   p.setProperty('DESARROLLO_NOVEDADES', JSON.stringify(nov.slice(-5)));
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
-    try { var it = retPoner_(jefe, { texto: voz, importancia: 2, origen: 'claude' }); vozAvisoPoner_(jefe, voz, it && it.id, { nivel: estado === 'pregunta' || /fallo/.test(String(estado || '')) ? 2 : 3 }); } catch (e) {}   // tema por retomar y notificación en la app de iPhone
+    /* tema por retomar (solo lo que pide algo de Juan) y notificación en la app de iPhone */
+    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; vozAvisoPoner_(jefe, texto, it && it.id, { nivel: nivel }); } catch (e) {}
     /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
-    if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe)) waEnviar_(jefe.wa || jefe.tels[0], voz + (estado === 'listo' ? '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).' : ''));
+    if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe) && nivel === 2) waEnviar_(jefe.wa || jefe.tels[0], texto + '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).');
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }
 }
 /* Para la ficha de la llamada del principal: lo que Claude respondió desde la última llamada (y lo marca como contado). */
@@ -203,8 +243,8 @@ function paraClaudeNovedades_(adm) {
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   if (!nov.length) return '';
   p.deleteProperty('DESARROLLO_NOVEDADES');
-  return '\nNOVEDADES DE CLAUDE (desarrollo del sistema): cuéntaselas en una frase cada una, sin leer detalles, cuando termine su primer pedido o si pregunta qué hay nuevo:\n' +
-    nov.map(function (n) { return '· ' + n.titulo + ': ' + n.voz; }).join('\n');
+  return '\nNOVEDADES DE CLAUDIO (Claude, el desarrollador del sistema; dile «Claudio»): cuéntaselas en una frase cada una, sin leer detalles, cuando termine su primer pedido o si pregunta qué hay nuevo:\n' +
+    nov.map(function (n) { return '· ' + n.voz; }).join('\n');
 }
 /* Robot: los pedidos (por defecto los pendientes) y marcar uno como hecho. */
 function paraClaudeLista_(todos) {
@@ -321,7 +361,7 @@ function paraClaudeChecks_(repo, sha) {
 }
 /* Alma traduce a Claude: de lo técnico a lo simple, como para un niño. Se guarda en la columna «simple» (una vez por respuesta). */
 function paraClaudeSimple_(titulo, estado, resp) {
-  var sys = 'Eres Alma, la asistente de Juan. Claude (el programador) le dejó un pendiente. Tradúcelo para Juan como si se lo explicaras a un niño de 10 años: palabras de todos los días, cero términos técnicos (nada de PR, Apps Script, commit, branch, código, archivo, merge: di «unir el cambio»). ' +
+  var sys = 'Eres Alma, la asistente de Juan. Claude (el programador; a Juan dile siempre «Claudio») le dejó un pendiente. Tradúcelo para Juan como si se lo explicaras a un niño de 10 años: palabras de todos los días, cero términos técnicos (nada de PR, Apps Script, commit, branch, código, archivo, merge: di «unir el cambio»). ' +
     'Responde SOLO un JSON: {"titulo":"máx. 6 palabras, claro","que_es":"1 frase corta: qué cambia para él o qué está pasando","pasos":["1 a 3 pasos cortísimos que Juan debe hacer, ej. «Toca Ver cambio y luego el botón verde Merge»; vacío si no tiene que hacer nada"],"pregunta":"si Claude le pregunta algo, la pregunta en simple; si no, vacío"}';
   var txt = 'Título del pedido: ' + titulo + '\nEstado: ' + estado + '\nLo que respondió Claude:\n' + String(resp || '(todavía no responde: está trabajando)').slice(0, 4000);
   try {
@@ -332,12 +372,14 @@ function paraClaudeSimple_(titulo, estado, resp) {
 }
 function paraClaudePendientes_(ses) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
-  var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2) return { ok: true, lista: pendientesPrs_([]) };
+  /* Microproyectos (#374): una tarjeta por microproyecto, no una por pedido o respuesta. */
+  var micros = []; try { micros = microTarjetas_(paraClaudePrincipalSes_(ses)); } catch (e) { console.error('microTarjetas_: ' + e); }
+  var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2) return { ok: true, lista: pendientesPrs_(micros) };
   var n = Math.min(60, sh.getLastRow() - 1), ini = sh.getLastRow() - n + 1;
   if (sh.getLastColumn() < PARA_CLAUDE_CAB_.length) sh.getRange(1, 1, 1, PARA_CLAUDE_CAB_.length).setValues([PARA_CLAUDE_CAB_]);
   var v = sh.getRange(ini, 1, n, PARA_CLAUDE_CAB_.length).getValues(), lista = [], corte = Date.now() - 21 * 86400000, traducidos = 0;
   v.forEach(function (r, i) {
-    var estado = String(r[8] || ''); if (!PEND_ABIERTOS_.test(estado)) return;
+    var estado = String(r[8] || ''); if (!PEND_ABIERTOS_.test(estado) || String(r[15] || '')) return;   // lo de un microproyecto va en su tarjeta
     var f = r[1] instanceof Date ? r[1].getTime() : new Date(String(r[1]).replace(' ', 'T') + ':00-06:00').getTime(); if (f && f < corte) return;
     var resp = String(r[11] || ''), enlaces = resp.match(/https:\/\/github\.com\/[^\s)]+\/pull\/\d+/g) || [];
     var prs = enlaces.map(function (u) { return paraClaudePrInfo_(u) || { url: u, estado: null }; });
@@ -364,7 +406,7 @@ function paraClaudePendientes_(ses) {
     /* la traducción simple: se guarda con la huella de la respuesta (si Claude responde de nuevo, se vuelve a traducir) */
     var simple = null, huella = String(resp.length) + ':' + est; try { var sv = JSON.parse(String(r[13] || '{}')); if (sv.h === huella) simple = sv; } catch (e) {}
     if (!simple && traducidos < 4) { traducidos++; simple = paraClaudeSimple_(String(r[6] || ''), est, resp); if (simple) { simple.h = huella; try { sh.getRange(ini + i, 14).setValue(JSON.stringify(simple)); } catch (e) {} } }
-    simple = simple || { titulo: String(r[6] || ''), que_es: est === 'trabajando' ? 'Claude está trabajando en esto.' : (cuerpo.split(/\n\n/)[0] || ''), pasos: [], pregunta: '' };
+    simple = simple || { titulo: String(r[6] || ''), que_es: est === 'trabajando' ? 'Claudio está trabajando en esto.' : (cuerpo.split(/\n\n/)[0] || ''), pasos: [], pregunta: '' };
     if (pub) {   // estados de la publicación: textos fijos y simples
       var tt = pub.t || {}, de = tt.total ? ' (' + tt.ok + ' de ' + tt.total + ' listos)' : '';
       var tx = { publicando: ['Ya lo uniste. GitHub lo está revisando y publicando' + de + '.', []],
@@ -378,7 +420,7 @@ function paraClaudePendientes_(ses) {
       estado: est, resumen: simple.que_es, pasos: simple.pasos || [], pregunta: simple.pregunta || '', original: cuerpo, instrucciones: '',
       enlaces: prs.filter(function (x) { return x.estado !== 'unido' && x.estado !== 'cerrado'; }).map(function (x) { return x.url; }) });
   });
-  return { ok: true, lista: pendientesPrs_(lista.reverse()) };
+  return { ok: true, lista: pendientesPrs_(micros.concat(lista.reverse())) };
 }
 /* Todos los cambios abiertos de GitHub (también los que Claude abrió fuera del Hub) entran a la lista; los que ya
    están en un pendiente de Claude no se repiten: ese pendiente recibe su botón «Unir» (unir.js). */
@@ -392,7 +434,7 @@ function pendientesPrs_(lista) {
     p.unir = (p.enlaces || []).filter(function (u) { return porUrl[u] && porUrl[u].estado === 'listo'; });
   });
   var TX = { listo: 'Pasó sus revisiones: está listo para unir.', revisando: 'GitHub lo está revisando; en un momento queda listo.',
-    fallo: 'Algo falló en sus revisiones; Claude lo está arreglando.', choque: 'Choca con lo último que se unió; Claude tiene que ponerlo al día.', borrador: 'Todavía es un borrador.' };
+    fallo: 'Algo falló en sus revisiones; Claudio lo está arreglando.', choque: 'Choca con lo último que se unió; Claudio tiene que ponerlo al día.', borrador: 'Todavía es un borrador.' };
   var EST = { listo: 'listo', revisando: 'revisando', fallo: 'fallo', choque: 'fallo', borrador: 'trabajando' };
   var nuevos = prs.filter(function (x) { return !vistos[x.url]; }).map(function (x) {
     return { id: 'pr:' + x.repo + '#' + x.numero, pr: true, titulo: x.titulo, fecha: x.app + ' #' + x.numero, estado: EST[x.estado] || 'listo', resumen: TX[x.estado] || '',
@@ -403,5 +445,6 @@ function pendientesPrs_(lista) {
 }
 function paraClaudeHecho_(ses, id) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
+  if (/^mp:/.test(String(id))) return microCerrar_(String(id).slice(3));   // «Ya lo hice» en la tarjeta de un microproyecto
   return paraClaudeMarcar_(id, 'hecho', 'lo marcó Juan en la app');
 }

@@ -265,6 +265,13 @@
     ".san-scope .san-rp .cj{position:relative;border-radius:18px}.san-scope .san-rp .mas{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:transparent;color:#3E3F3F}.san-scope .san-rp .mas[hidden]{display:none}.san-scope .san-rp .fi{display:flex;align-items:center;gap:10px;margin-top:10px}.san-scope .san-rp .st{flex:1;min-width:0;font:500 12.5px/1.4 Montserrat,system-ui,sans-serif;color:#8A8580}.san-scope .san-rp .mic{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:#F3EFEA;color:#3E3F3F}.san-scope .san-rp .mic.on{background:#E9826A;color:#fff;animation:sanLate 1.2s ease-in-out infinite}",
     ".san-scope .san-rp .ev{flex:none;border:0;cursor:pointer;padding:12px 18px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase}.san-scope .san-rp .ev:disabled{opacity:.45}.san-scope .san-rp .ok{margin:0;padding:12px 14px;border-radius:16px;background:#E6F2EA;color:#2F6B47;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
     ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
+    /* Las opciones de una pregunta (de Claudio, de Alma o del borrador) como la tarjeta de acción del chat (ds/chat.css): filas con ícono y título; al tocar una se envía como respuesta (#374). */
+    ".san-scope .san-ops{margin:0 14px 14px;padding:4px 0;border-radius:20px;background:#FFFFFF;box-shadow:0 2px 6px rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.08)}.san-scope .san-op{width:100%;display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px;border:0;background:transparent;text-align:left;cursor:pointer;font:600 14px/1.2 Montserrat,system-ui,sans-serif;color:#222;-webkit-tap-highlight-color:transparent;transition:background .18s cubic-bezier(.22,.61,.36,1),transform .1s}",
+    /* Teléfono angosto: el estado va en su propia línea arriba, así el título no queda en una columna estrecha («Claudio pregunta», «Listo para unir»). */
+    "@media (max-width:440px){.san-scope .san-pc>button{flex-wrap:wrap;row-gap:8px}.san-scope .san-pc>button .san-chip{order:-1}.san-scope .san-pc>button .tt{flex-basis:100%}}",
+    ".san-scope .san-op .ic{width:34px;height:34px;border-radius:11px;background:#F3F3F3;display:grid;place-items:center;flex:none}.san-scope .san-op:active{transform:scale(.98);background:#F7F7F7}.san-scope .san-op:disabled{cursor:default;opacity:.5;transform:none}.san-scope .san-op.on,.san-scope .san-op.on:disabled{opacity:1;background:#F7F7F7}.san-scope .san-op:focus-visible{outline:2px solid #222;outline-offset:-2px}",
+    ".san-scope .san-ops .ok{margin:6px 14px 8px;font:500 13px/1.45 Montserrat,system-ui,sans-serif;color:#2F6B47}.san-scope .san-ops .er{margin:6px 14px 8px;font:500 13px/1.45 Montserrat,system-ui,sans-serif;color:#B54D36}",
+    ".san-scope .san-pc .aj{margin:10px 0 0;padding:0;list-style:none}.san-scope .san-pc .aj li{margin:0 0 8px;font:500 12.5px/1.45 Montserrat,system-ui,sans-serif;color:#6F6867;overflow-wrap:anywhere}.san-scope .san-pc .aj li b{font-weight:600;color:#3E3F3F}",
     ".san-scope .san-chip.publicando,.san-scope .san-chip.revisando{background:#FBF3E2;color:#9A6B12}.san-scope .san-chip.publicado{background:#E6F2EA;color:#2F6B47}.san-scope .san-chip.fallo_pub{background:#FBEAE6;color:#B54D36}",
     ".san-scope .san-chip.publicando::before{content:'';display:inline-block;width:6px;height:6px;margin-right:6px;border-radius:50%;background:currentColor;vertical-align:1px;animation:sanLate 1.2s ease-in-out infinite}@keyframes sanLate{50%{opacity:.25}}",
     ".san-scope .san-pc.publicado{box-shadow:0 28px 60px -30px rgba(47,107,71,.4),0 0 0 1.5px rgba(47,107,71,.25)}",
@@ -1262,7 +1269,7 @@
       '<div class="sa-chat-esferas san-esferas" hidden></div><div class="san-msgs"></div>' +
       '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
-      '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claude que ">Mejorar el sistema</button></div></div>' +
+      '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claudio que ">Mejorar el sistema</button></div></div>' +
       '<form class="sa-chat-pie" data-lleno="0"><button type="button" class="san-mas sa-chat-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
       '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
       '<button type="button" class="san-mic sa-chat-redondo" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
@@ -1273,7 +1280,7 @@
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Sin nada que hacer · 3 días</small></div>' +
       '<button type="button" class="san-hb san-noti-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l san-noti-l"></div></div>');
-    ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes de Claude" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 20) + '<i class="san-badge"></i></button>');
+    ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb" data-a="pend" aria-label="Pendientes" hidden>' + svg('<path d="M9 7h10M9 12h10M9 17h10M5 7h.01M5 12h.01M5 17h.01"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend" role="dialog" aria-label="Pendientes"><header><div class="t"><b>Pendientes</b><small>Lo que necesita tu sí</small></div>' +
       '<button type="button" class="san-hb san-pend-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l"></div></div>');
     root.appendChild(ov);
@@ -1559,7 +1566,7 @@
     if (on) { AL.notiVistoAntes = notiVisto(); try { localStorage.setItem("sa_noti_visto", String(Date.now())); } catch (e) {} notiLista(); notiCargar(); }
     E.ov.classList.toggle("noti", on); hoja(); notiPintar();
   }
-  var PEND_TX = { revisando: "Revisando", listo: "Para unir", trabajando: "Claude trabaja", pregunta: "Pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Listo ✓", fallo_pub: "Falló al publicar" };
+  var PEND_TX = { revisando: "Revisando", listo: "Listo para unir", trabajando: "En trabajo", pregunta: "Claudio pregunta", fallo: "No se pudo", publicando: "Publicando", publicado: "Unido ✓", fallo_pub: "Falló al publicar" };
   /* ── Pendientes por esfera ── */
   var PEND_SEC = [["atencion", "Necesita tu sí"], ["leer", "Para leer"], ["listo", "Listo hoy"]];
   /* El semicírculo de esferas con su conteo. k: dónde se guarda el filtro (pendFiltro / notiFiltro); palabra: lo que se cuenta; repinta: al elegir una esfera. */
@@ -1640,7 +1647,7 @@
     if (p.estado === "publicando") { var pg = d.createElement("div"); pg.className = "san-prog"; var pi2 = d.createElement("i"); pi2.style.width = Math.max(8, Math.round((p.progreso || 0) * 100)) + "%"; pg.appendChild(pi2); c.appendChild(pg); }
     var cu = d.createElement("div"); cu.className = "cu";
     if (vuelo && p.resumen) { var rs = d.createElement("p"); rs.textContent = p.resumen; cu.appendChild(rs); }
-    if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claude te pregunta: " + p.pregunta; cu.appendChild(pq); }
+    if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claudio te pregunta: " + p.pregunta; cu.appendChild(pq); }
     if ((p.pasos || []).length) { var ol = d.createElement("ol"); p.pasos.forEach(function (x) { var li = d.createElement("li"); li.textContent = x; ol.appendChild(li); }); cu.appendChild(ol); }
     var bt = d.createElement("div"); bt.className = "bt";
     (vuelo || (p.tarjeta && p.tarjeta.precio) ? (p.acciones || []).slice(1) : (p.acciones || [])).forEach(function (a) { var x = d.createElement("button"); x.type = "button"; x.textContent = a.texto || "Abrir"; x.onclick = function () { if (a.chat) { tocado(x); chatEn({ esfera: a.chat.esfera, conv: a.chat.conv, url: a.url }); return; } w.open(a.url, "_blank", "noopener"); }; bt.appendChild(x); });
@@ -1648,16 +1655,53 @@
     (p.enlaces || []).forEach(function (u, i) { var x = d.createElement("button"); x.type = "button"; x.className = "sec"; x.textContent = p.enlaces.length > 1 ? "Ver cambio " + (i + 1) : "Ver cambio"; x.onclick = function () { w.open(u, "_blank", "noopener"); }; bt.appendChild(x); });
     /* nada salta (ds/movimiento.md, regla 6): la tarjeta se cierra suave y lo de abajo sube; después se repinta la lista */
     var quita = function () { cerrarHueco(c, function () { ["atencion", "leer", "listo"].forEach(function (k) { if (AL.pendData && AL.pendData[k]) AL.pendData[k] = AL.pendData[k].filter(function (q) { return q.id !== p.id; }); }); AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); }); };
+    /* Una pregunta con opciones: botones como la tarjeta de acción del chat. Sin opciones en la tarjeta, se leen de lo que
+       dijo Claudio con SAChat.opciones (js/sa-chat.js); si no hay, queda «Responder» como siempre. */
+    var ops = p.tarjeta && p.tarjeta.tipo === "pregunta" ? (p.tarjeta.opciones || []) : [];
+    if (!ops.length && p.estado === "pregunta" && p.original && w.SAChat && w.SAChat.opciones) { var so = w.SAChat.opciones(p.original); if (so) ops = so.opciones.map(function (o) { return o.titulo; }); }
+    var opsEl = ops.length >= 2 && cfg.pendientes.responder ? pendOpciones(p, ops.slice(0, 5), quita) : null;
+    /* Microproyecto: los ajustes (lo que pidió Juan y lo que respondió Claudio), plegados. */
+    if ((p.ajustes || []).length) { var aj = d.createElement("details"); aj.className = "og"; var as = d.createElement("summary"); as.textContent = "Ajustes · " + p.ajustes.length; var ul = d.createElement("ul"); ul.className = "aj";
+      p.ajustes.forEach(function (a) { var li = d.createElement("li"), bb = d.createElement("b"); bb.textContent = (a.de === "claude" ? "Claudio" : "Tú") + (a.ts ? " · " + pendFecha(a.ts) : "") + ": "; li.appendChild(bb); li.appendChild(d.createTextNode(a.texto || "")); ul.appendChild(li); });
+      aj.appendChild(as); aj.appendChild(ul); cu.appendChild(aj); }
     if (p.resolver && cfg.pendientes.resolver) { var rx = d.createElement("button"); rx.type = "button"; rx.className = "sec"; rx.textContent = "Ya está"; rx.onclick = function () { tocado(rx); quita(); try { cfg.pendientes.resolver(p.id); } catch (e) {} }; bt.appendChild(rx); }
     if (p.hecho && cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice"; hx.onclick = function () { tocado(hx); quita(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
-    if (p.detalle || p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = p.fuente === "alma" ? "Lo que respondió Alma" : "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.detalle || p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
+    if (p.detalle || p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = p.fuente === "alma" ? "Lo que respondió Alma" : "Lo que dijo Claudio"; var po = d.createElement("p"); po.textContent = p.detalle || p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
     var rp = p.responder && cfg.pendientes.responder ? pendResponder(p, quita) : null;
-    if (rp) { var rb = d.createElement("button"); rb.type = "button"; rb.setAttribute("data-a", "responder"); rb.textContent = "Responder";
+    if (rp) { var rb = d.createElement("button"); rb.type = "button"; rb.setAttribute("data-a", "responder"); rb.textContent = opsEl ? "Otra respuesta" : "Responder"; if (opsEl) rb.className = "sec";
       rb.onclick = function () { rp.hidden = !rp.hidden; if (!rp.hidden) { c.classList.add("abierta"); try { rp.querySelector("textarea").focus(); } catch (e) {} } }; bt.insertBefore(rb, bt.firstChild); }
+    if (opsEl) c.appendChild(opsEl);   // las opciones, a la vista: un toque responde
     if (bt.childNodes.length) c.appendChild(bt);   // los botones siempre a la vista; lo demás se abre con un toque
     c.appendChild(cu);
     if (rp) c.appendChild(rp);   // debajo de la pregunta: lees y respondes
     return c;
+  }
+  var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  function pendFecha(ts) { var f = new Date(Number(ts)); return isNaN(f) ? "" : f.getDate() + " " + MESES[f.getMonth()]; }
+  var OP_IC = { check: '<path d="M5 12.5l4.2 4.2L19 7"/>', x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>', chat: '<path d="M5 6h14v9H9l-4 3.5z"/>', pencil: '<path d="M5 19l1-4 9.5-9.5 3 3L9 18z"/>',
+    calendar: '<rect x="4.5" y="5.5" width="15" height="14" rx="2.5"/><path d="M4.5 10h15M9 3.5v4M15 3.5v4"/>', clock: '<circle cx="12" cy="12" r="7.5"/><path d="M12 8v4.5l3 2"/>', file: '<path d="M7 3.5h7l4 4V20H7z"/><path d="M14 3.5V8h4"/>', arrowUpRight: '<path d="M7.5 16.5l9-9M9 7.5h7.5V15"/>' };
+  /* Las opciones de una pregunta: al tocar una se envía como respuesta (va a quien preguntó: Claudio, Alma o el borrador)
+     y la tarjeta se cierra suave. Si el Hub dice que no, las opciones vuelven con el aviso. */
+  function pendOpciones(p, ops, quita) {
+    var tj = d.createElement("div"); tj.className = "san-ops"; tj.setAttribute("role", "group"); tj.setAttribute("aria-label", "Opciones"); tj.setAttribute("data-a", "opciones");
+    var botones = [], aviso = null;
+    var soltar = function (on) { botones.forEach(function (x) { x.disabled = !on; if (on) x.classList.remove("on"); }); };
+    ops.forEach(function (t) {
+      var b = d.createElement("button"); b.type = "button"; b.className = "san-op";
+      var ic = (w.SAChat && w.SAChat.iconoOpcion) ? w.SAChat.iconoOpcion(t) : (/^(no|cancel)/i.test(t) ? "x" : /^(s[ií]|m[aá]ndalo|dale|ok)/i.test(t) ? "check" : "arrowUpRight");
+      b.innerHTML = '<span class="ic">' + svg(OP_IC[ic] || OP_IC.arrowUpRight, 18) + '</span><span class="tx"></span>'; b.querySelector(".tx").textContent = t;
+      b.onclick = function () {
+        if (b.disabled) return; tocado(b); soltar(false); b.classList.add("on"); if (aviso) { aviso.remove(); aviso = null; }
+        var falla = function (e) { soltar(true); aviso = d.createElement("p"); aviso.className = "er"; aviso.textContent = e || "No se pudo enviar. Inténtalo de nuevo."; tj.appendChild(aviso); };
+        Promise.resolve(cfg.pendientes.responder(p.id, t)).then(function (r) {
+          if (!r || !r.ok) { falla(r && r.error); return; }
+          var ok = d.createElement("p"); ok.className = "ok"; ok.textContent = r.respuesta || "Listo, se lo pasé."; tj.appendChild(ok);
+          setTimeout(function () { quita(); setTimeout(pendCargar, 1500); }, 2600);
+        }, function () { falla(); });
+      };
+      botones.push(b); tj.appendChild(b);
+    });
+    return tj;
   }
   /* «Responder»: la respuesta va a quien preguntó (Claude o Alma, lo decide el Hub). El nuevo chat (#304): el micrófono dicta
      al cuadro (js/sa-compositor.js) y lo dicho queda escrito para revisarlo; el «+» trae mis plantillas. Solo envía el botón.
@@ -1665,7 +1709,7 @@
   function pendResponder(p, quita) {
     var rp = d.createElement("div"); rp.className = "san-rp"; rp.hidden = true;
     var cj = d.createElement("div"); cj.className = "cj";
-    var ta = d.createElement("textarea"); ta.placeholder = p.pregunta ? "Tu respuesta a Claude…" : "Tu respuesta…"; cj.appendChild(ta);
+    var ta = d.createElement("textarea"); ta.placeholder = p.pregunta ? "Tu respuesta a Claudio…" : "Tu respuesta…"; cj.appendChild(ta);
     var fi = d.createElement("div"); fi.className = "fi";
     var mas = d.createElement("button"); mas.type = "button"; mas.className = "mas"; mas.setAttribute("aria-label", "Plantillas");
     mas.innerHTML = svg('<path d="M12 5v14M5 12h14"/>', 22); mas.hidden = !(w.ALMA && w.ALMA.plantillas);
@@ -1752,7 +1796,7 @@
       c.className += " " + p.estado;
       var cu = d.createElement("div"); cu.className = "cu";
       /* Lo que Juan tiene que hacer, en pasos de una línea (Alma ya lo tradujo de lo que dijo Claude) */
-      if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claude te pregunta: " + p.pregunta; cu.appendChild(pq); }
+      if (p.pregunta) { var pq = d.createElement("div"); pq.className = "pq"; pq.textContent = "Claudio te pregunta: " + p.pregunta; cu.appendChild(pq); }
       if ((p.pasos || []).length) { var ol = d.createElement("ol"); p.pasos.forEach(function (x) { var li = d.createElement("li"); li.textContent = x; ol.appendChild(li); }); cu.appendChild(ol); }
       else if (p.instrucciones) { var pi = d.createElement("p"); pi.textContent = p.instrucciones; cu.appendChild(pi); }
       var bt = d.createElement("div"); bt.className = "bt";
@@ -1769,7 +1813,7 @@
       if (cfg.pendientes.hecho && !p.pr) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice";
         hx.onclick = function () { AL.pend = AL.pend.filter(function (q) { return q.id !== p.id; }); pendPintar(); pendLista(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
       cu.appendChild(bt);
-      if (p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = "Lo que dijo Claude"; var po = d.createElement("p"); po.textContent = p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
+      if (p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = "Lo que dijo Claudio"; var po = d.createElement("p"); po.textContent = p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
       c.appendChild(t);
       if (p.estado === "publicando") { var pg = d.createElement("div"); pg.className = "san-prog"; var pi2 = d.createElement("i"); pi2.style.width = Math.max(8, Math.round((p.progreso || 0) * 100)) + "%"; pg.appendChild(pi2); c.appendChild(pg); }
       c.appendChild(cu); l.appendChild(c);

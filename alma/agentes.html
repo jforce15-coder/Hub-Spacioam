@@ -104,7 +104,7 @@
       arr.appendChild(ch); c.appendChild(arr);
       c.appendChild(el("div", "rol", a.rol));
       c.appendChild(el("div", "meta", "Revisa a las " + horas(a.horas) + " · " + dias(a.dias) + " · última: " + cuando(a.ultima)));
-      if (a.tipo === "claude") c.appendChild(el("div", "meta", a.app ? "Subdepartamento de Desarrollo · dueño de " + a.app + " · trabaja con Claude y te deja su PR en Pendientes" : "Coordina los subdepartamentos (uno por app) y cada dos semanas hace la retro"));
+      if (a.tipo === "claude") c.appendChild(el("div", "meta", a.app ? "Subdepartamento de Desarrollo · dueño de " + a.app + " · trabaja con Claudio y te deja su PR en Pendientes" : "Coordina los subdepartamentos (uno por app) y cada dos semanas hace la retro"));
       else if (a.tipo === "archivo") c.appendChild(el("div", "meta", "Solo ordena · lo ves en tus áreas y en los cajones Ideas, Interés y Ocio"));
       else { var pct = a.presupuesto_usd ? Math.min(100, a.gasto_mes / a.presupuesto_usd * 100) : 0, b = el("div", "barra"), i = el("i"); i.style.width = pct.toFixed(1) + "%"; b.appendChild(i); c.appendChild(b);
         c.appendChild(el("div", "meta", "US$" + a.gasto_mes.toFixed(2) + " de US$" + a.presupuesto_usd + " este mes")); }

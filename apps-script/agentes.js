@@ -319,9 +319,9 @@ function agDesarrolloRetro_(a, adm, origen) {
   ].join('\n');
   var r = paraClaudeCrear_(adm, { titulo: 'Retro de Desarrollo: lo que se repite se vuelve regla', app: 'Hub', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
-  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: 'retro', estado: r.ok ? 'con Claude' : 'error',
-    informe: r.ok ? 'Retro enviada a Claude: convierte lo que se repitió en estándares, glosario y checks.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
-  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la retro a Claude. Te cuento qué reglas nuevas salen.' : r.error, propuestas: [], costo_usd: 0 };
+  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: 'retro', estado: r.ok ? 'con Claudio' : 'error',
+    informe: r.ok ? 'Retro enviada a Claudio: convierte lo que se repitió en estándares, glosario y checks.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
+  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la retro a Claudio. Te cuento qué reglas nuevas salen.' : r.error, propuestas: [], costo_usd: 0 };
 }
 /* Una ronda de Desarrollo. Cada subdepartamento revisa SU app con SU playbook (playbooks/<app>.md + las reglas que Juan
    agregó en la hoja); el jefe de Desarrollo, en su horario, hace la retro cada dos semanas, y por pedido de Juan hace lo
@@ -353,7 +353,7 @@ function agDesarrolloRonda_(a, adm, origen, pedido) {
   ].filter(String).join('\n');
   var r = paraClaudeCrear_(adm, { titulo: (obj ? a.nombre + ' · ronda' : 'Desarrollo · ' + String(pedido).slice(0, 60)), app: obj ? obj.app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
-  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claude' : 'error',
-    informe: r.ok ? 'Ronda enviada a Claude: ' + donde + '. Cuando termine, Alma te cuenta en tu chat (Propósito · Desarrollo) y su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
-  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda a Claude (' + donde + '). Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
+  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claudio' : 'error',
+    informe: r.ok ? 'Ronda enviada a Claudio: ' + donde + '. Cuando termine, Alma te cuenta en tu chat (Propósito · Desarrollo) y su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });
+  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda a Claudio (' + donde + '). Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
 }

@@ -58,7 +58,12 @@ function calleRespuesta_(adm, r) {
   /* Un pedido para Claude queda de borrador: se dice en corto y se contesta con la próxima frase («Alma, mándalo»). */
   if (r.borrador && (typeof r.borrador === 'object' || r.borrador === 'agregar')) {
     var bc = null; try { bc = claudeBorradorLeer_(adm.email); } catch (e) {}
-    if (bc) return { ok: true, hablar: 'Le pediría a Claude: «' + claudeBorradorCorto_(bc, 90) + '». ¿Se lo mando?', conversar: false };
+    if (bc) {
+      var nm = '«' + (bc.microNombre || '') + '»';   // microproyecto (#374): a cuál va, o la duda
+      var h = bc.microDuda ? '«' + claudeBorradorCorto_(bc, 90) + '». ¿Es parte de ' + nm + ' o es nuevo?'
+        : bc.micro ? 'Lo agrego a ' + nm + ': «' + claudeBorradorCorto_(bc, 90) + '». ¿Se lo mando?' : 'Le pediría a Claudio: «' + claudeBorradorCorto_(bc, 90) + '». ¿Se lo mando?';
+      return { ok: true, hablar: h, conversar: false };
+    }
   }
   if (r.conversar || calleTieneOpciones_(texto)) return { ok: true, hablar: calleEntrada_(texto), conversar: true };
   return { ok: true, hablar: calleHablar_(texto) || 'Listo.', conversar: false };

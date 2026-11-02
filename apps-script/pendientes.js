@@ -158,6 +158,7 @@ function pendItems_(ses, adm, noti) {
     var sec = (p.unir || []).length || p.estado === 'pregunta' || p.estado === 'fallo' || p.estado === 'fallo_pub' ? 'atencion' : p.estado === 'publicado' ? 'listo' : 'leer';
     items.push({ id: p.id, fuente: p.pr ? 'pr' : 'claude', seccion: sec, area: 'proposito', proyecto: 'Desarrollo', titulo: p.titulo, resumen: p.resumen, etiqueta: p.fecha, estado: p.estado,
       pasos: p.pasos, pregunta: p.pregunta, original: p.original, enlaces: p.enlaces, unir: p.unir, progreso: p.progreso, ts: 0, importancia: 2, hecho: !p.pr,
+      tarjeta: p.tarjeta || null, ajustes: p.ajustes || null, micro: p.micro || '',
       responder: !p.pr && (p.estado === 'pregunta' || p.estado === 'fallo') });
   });
   return items;
@@ -202,6 +203,9 @@ function notificacionesTodo_(ses) {
 function pendResponder_(ses, b) {
   var adm = paraClaudePrincipalSes_(ses); if (!adm) return { ok: false, error: 'Solo el administrador principal.' };
   var texto = String(b.texto || '').trim(), id = String(b.id || ''); if (!texto || !id) return { ok: false, error: 'faltan datos' };
+  /* La tarjeta de un microproyecto (#374): una opción o «Responder» a lo que Claude preguntó es un ajuste del mismo
+     microproyecto y le llega a Claude con el historial (microproyectos.js). */
+  if (/^mp:/.test(id)) return microResponder_(adm, id.slice(3), texto);
   var x = pendFilas_().filter(function (r) { return String(r.id) === id; })[0];
   /* El canal del chat: «app» por defecto; el Hub manda «hub» y el modo calle (calle.js, respuesta hablada a una notificación) «calle». */
   var canal = { hub: 'hub', calle: 'calle' }[String(b.canal || '')] || 'app';
@@ -228,12 +232,13 @@ function pendResponder_(ses, b) {
   }
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'), v = sh && sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, PARA_CLAUDE_CAB_.length).getValues() : [];
   var c = v.filter(function (r) { return String(r[0]) === id; })[0]; if (!c) return { ok: false, error: 'Ya no encuentro esa tarjeta.' };
+  if (c[15]) { var rm = microResponder_(adm, String(c[15]), texto); if (rm.ok) paraClaudeMarcar_(id, 'hecho', 'Juan respondió en Pendientes'); return rm; }
   var rc = paraClaudeCrear_(adm, { titulo: tituloCorto_('Respuesta: ' + c[6], 100), app: c[3] || 'Otro', tipo: c[4] || 'mejora', prioridad: c[5] || 'normal',
     que_quiere: texto + '\n\nEs la respuesta de Juan (desde Pendientes) a lo que le dijiste sobre «' + c[6] + '».\nLO QUE PIDIÓ: ' + String(c[7] || '').slice(0, 2500) +
       '\nLO QUE RESPONDISTE: ' + String(c[11] || '').slice(0, 3000) });
   if (!rc.ok) return rc;
   paraClaudeMarcar_(id, 'hecho', 'Juan respondió en Pendientes');
-  return { ok: true, a: 'claude', respuesta: rc.claude ? 'Listo, ya se lo pasé a Claude. Su respuesta aparece aquí.' : rc.nota || '' };
+  return { ok: true, a: 'claude', respuesta: rc.claude ? 'Listo, ya se lo pasé a Claudio. Su respuesta aparece aquí.' : rc.nota || '' };
 }
 /* La nota de voz de «Responder»: llega en base64 y vuelve en texto, para que Juan la vea antes de enviarla. */
 function pendNota_(ses, b) {

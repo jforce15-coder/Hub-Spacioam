@@ -66,6 +66,12 @@
   @keyframes esq { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
   @media (prefers-reduced-motion: reduce) { .esq i { animation: none; } .bateria .carga { transition: none; } }
   button:focus-visible, a:focus-visible { outline: 2px solid var(--durazno); outline-offset: 2px; }
+  /* Modo calle: una línea por salida (la más nueva arriba) */
+  .calle { display: grid; gap: 0; background: var(--papel); border-radius: 20px; padding: 4px 16px; box-shadow: 0 18px 40px -28px rgba(70,50,40,.4); }
+  .calle .sal { padding: 12px 0; display: grid; gap: 3px; }
+  .calle .sal + .sal { border-top: 1px solid var(--linea); }
+  .calle .sal b { font: 600 13.5px Montserrat, sans-serif; } .calle .sal b small { font-weight: 500; color: var(--suave); margin-left: 6px; }
+  .calle .sal span { font: 500 12.5px/1.45 Montserrat, sans-serif; color: #5A5856; font-variant-numeric: tabular-nums; }
   @media (max-width: 420px) { .bar { grid-template-columns: 6.6rem 1fr 4rem; font-size: 12.5px; } .cifra b { font-size: 30px; } .bateria .cuerpo { height: 74px; } .bateria .carga b { font-size: 28px; } }
 </style>
 </head>
@@ -87,12 +93,12 @@
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
   var es = new Intl.NumberFormat("es-ES"), usd = function (x) { return "US$ " + (x >= 10 ? Math.round(x) : (Math.round((x || 0) * 100) / 100).toFixed(2)); };
   var NIVEL = { verde: "Bien", fondo: "Riesgo", critico: "Crítico" };
-  var R = null, vista = "hoy";
-  function pedir() {
-    if (window.ALMA_USO) return window.ALMA_USO();   // para probar la página con datos de ejemplo
+  var R = null, vista = "hoy", CU = null;
+  function pedir(accion) {
+    if (window.ALMA_USO) return window.ALMA_USO(accion || "uso");   // para probar la página con datos de ejemplo
     var ses = window.SASesion && SASesion.leer && SASesion.leer();
     if (!ses) return Promise.resolve({ ok: false, error: "Entra primero al Hub con tu usuario y vuelve a abrir esta página." });
-    return fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify({ hub: 1, action: "uso", session: ses }) })
+    return fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify({ hub: 1, action: accion || "uso", session: ses }) })
       .then(function (r) { return r.json(); })
       .catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet e intenta de nuevo." }; });
   }
@@ -141,6 +147,8 @@
     if (ia.ok === false) box.appendChild(el("p", "nota", "No pude leer IA_USO: " + (ia.error || "")));
     else box.appendChild(barras(iv.funciones || [], function (x) { return x.usd; }, function (x) { return usd(x.usd); }));
     C.appendChild(box);
+    /* Modo calle: llega aparte (calleUsoLeer) y se pinta cuando está */
+    var cb = el("div"); cb.id = "calle"; C.appendChild(cb); pintarCalle();
     /* niveles */
     C.appendChild(sec("Qué se pausa"));
     var nv = el("div", "niveles");
@@ -153,7 +161,27 @@
     C.appendChild(el("p", "nota", (R.nunca || "") + (R.pausas === false ? " Las pausas están apagadas (CUPO_PAUSAR = 0): solo se cuenta." : "") + " Te aviso cuando cambia el nivel y si a este ritmo el día pasa del 80 %."));
     C.appendChild(el("p", "nota", "Actualizado: " + new Date(R.actualizado || Date.now()).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) + "."));
   }
+  /* Las últimas salidas con el Modo calle (ALMA_CALLE_USO): cuánto duró, cuánta batería se fue por hora y cuántas veces
+     despertó (y cuántas fueron falsas) por hora. Sin salidas, no se muestra nada. */
+  function n1(x) { return x == null || x === "" ? "—" : es.format(Math.round(+x * 10) / 10); }
+  function pintarCalle() {
+    var cb = $("calle"); if (!cb) return; cb.innerHTML = "";
+    var u = CU && CU.ok && CU.usos || []; if (!u.length) return;
+    cb.appendChild(sec("Modo calle"));
+    var box = el("div", "calle");
+    u.forEach(function (x) {
+      var d = new Date(x.inicio), f = el("div", "sal"), t = el("b", "", isNaN(d) ? "Salida" : d.toLocaleDateString("es", { weekday: "short", day: "numeric", month: "short" }));
+      if (!isNaN(d)) t.appendChild(el("small", "", d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) + " · " + n1(x.minutos) + " min"));
+      f.appendChild(t);
+      f.appendChild(el("span", "", "Batería: " + (x.bateriaHora != null ? n1(x.bateriaHora) + " % por hora" : "sin dato") + (x.bateriaGastada != null ? " (" + n1(x.bateriaGastada) + " % en total)" : "")));
+      f.appendChild(el("span", "", "Despertó " + n1(x.despertaresHora) + " por hora · falsos " + n1(x.falsosHora) + " por hora" + (x.pedidos != null ? " · " + n1(x.pedidos) + " pedidos" : "")));
+      box.appendChild(f);
+    });
+    cb.appendChild(box);
+    cb.appendChild(el("p", "nota", "Lo mide la app al apagar el Modo calle. Falsos: despertó con algo que no era «Alma»."));
+  }
   function cargar() {
+    pedir("calleUsoLeer").then(function (r) { CU = r; pintarCalle(); });   // a la vez que el uso, no después
     pedir().then(function (r) {
       if (!r || !r.ok) { var C = $("cuerpo"); C.innerHTML = ""; var v = el("div", "vacio", "No pude cargar el uso."); v.appendChild(el("p", "", (r && r.error) || "Intenta de nuevo en un momento.")); C.appendChild(v); return; }
       R = r; pintar();

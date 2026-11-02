@@ -62,6 +62,16 @@
   .ajustes.conf.mudo.silencio { background: rgba(255,236,228,.9); color: #E9826A; box-shadow: inset 0 0 0 1px rgba(233,130,106,.6); }
   .ajustes.conf.mudo.silencio svg { stroke-width: 1.9; }
   .ajustes.conf.mudo.silencio .tacha { display: inline; }
+  /* Modo calle (#b-calle): el mismo botón que el de conferencia, encima de él (lo ubica confUbicar). Esperando «Alma»:
+     un durazno tenue que respira lento; oyendo, pensando, hablando o en llamada: durazno lleno; en pausa (iOS tomó el audio
+     o hubo un error): aro durazno y un punto, sin respirar. */
+  .ajustes.conf.calle.esperando { background: rgba(233,130,106,.26); box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); animation: calleRespira 4.2s ease-in-out infinite; }
+  @keyframes calleRespira { 0%, 100% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.5), 0 0 0 0 rgba(233,130,106,0); } 50% { box-shadow: inset 0 0 0 1px rgba(255,255,255,.7), 0 0 0 5px rgba(233,130,106,.2); } }
+  .ajustes.conf.calle.activo { background: radial-gradient(circle at 50% 45%, rgba(255,214,196,.95) 0%, rgba(233,130,106,.92) 55%, rgba(214,104,80,.9) 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), 0 0 0 3px rgba(233,130,106,.22), 0 0 16px 4px rgba(233,130,106,.4); }
+  .ajustes.conf.calle.pausa { background: rgba(255,255,255,.14); box-shadow: inset 0 0 0 1.5px rgba(233,130,106,.85); }
+  .ajustes.conf.calle.pausa::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
+  @media (prefers-reduced-motion: reduce) { .ajustes.conf.calle.esperando { animation: none; } }
   .velo { position: fixed; inset: 0; z-index: 2147483100; background: rgba(40,30,32,.28); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .velo.on { opacity: 1; pointer-events: auto; }
   .panel { position: fixed; left: 50%; bottom: 0; z-index: 2147483200; width: min(460px, 100%); box-sizing: border-box; max-height: 86vh; overflow: auto;
@@ -95,6 +105,21 @@
   .fila.boton { cursor: pointer; justify-content: center; font-weight: 600; }
   .fila.boton.rojo { color: #D9583A; }
   .fila a { color: inherit; text-decoration: none; flex: 1; }
+  .tit-g { margin: 18px 4px 8px; font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #8A8580; }
+  /* Notificaciones: el nivel con un selector nativo (en el iPhone abre la rueda) y, si baja de «Todo», por cuánto tiempo */
+  .fila .et.n { white-space: nowrap; }
+  .fila .sel { position: relative; flex: 0 1 auto; min-width: 0; max-width: 62%; }
+  .fila .sel select { -webkit-appearance: none; appearance: none; border: 0; background: transparent; font: 500 14px Montserrat, system-ui, sans-serif; color: #8A8580;
+    text-align: right; text-align-last: right; padding: 12px 20px 12px 4px; margin: -12px 0; width: 100%; max-width: 100%; text-overflow: ellipsis; cursor: pointer; }
+  .fila .sel::after { content: ""; position: absolute; right: 4px; top: 50%; width: 7px; height: 7px; margin-top: -6px; border: solid #A39B93; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); pointer-events: none; }
+  .fila .sel select:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; border-radius: 8px; }
+  .fila.cuanto { flex-wrap: wrap; gap: 8px; padding-top: 4px; border-top: 0 !important; }
+  .fila.cuanto .et { flex: 1 0 100%; font-size: 13px; color: #6F6867; }
+  .fila.cuanto button { flex: 1; min-height: 44px; border-radius: 12px; border: 0; background: rgba(62,63,63,.06); font: 600 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; cursor: pointer; }
+  .fila.cuanto button { white-space: nowrap; padding: 0 8px; } .fila.cuanto button[data-por="manana"] { flex: 1.5; }
+  .fila.cuanto button[aria-pressed="true"] { background: #E9826A; color: #fff; }
+  .vuelve { margin: -4px 0 0; padding: 0 16px 12px; font-size: 12.5px; color: #B5624E; }
+  .vuelve[hidden] { display: none; }
   #d-anillo { white-space: pre-line; font-size: 11px; color: #6F6867; }
   .nota-g { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 0; padding: 0 16px 12px; }
   .nota-p { text-align: center; font-size: 11.5px; color: #8A8580; margin: 4px 0 0; }
@@ -261,6 +286,7 @@
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 <button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
+<button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
@@ -287,6 +313,16 @@
   <div class="grupo" id="g-escucha" hidden>
     <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
     <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El botón de la reunión titila en durazno mientras te escucha; tócalo para que deje de escuchar y otra vez para que vuelva.</p>
+  </div>
+  <p class="tit-g" id="t-avisos" hidden>Notificaciones</p>
+  <div class="grupo" id="g-avisos" hidden>
+    <div class="fila"><span class="et n" id="et-hablado">Habladas</span><span class="sel"><select id="s-hablado" aria-labelledby="et-hablado"></select></span></div>
+    <div class="fila cuanto" id="q-hablado" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
+    <p class="vuelve" id="v-hablado" hidden></p>
+    <div class="fila"><span class="et n" id="et-telefono">En el teléfono</span><span class="sel"><select id="s-telefono" aria-labelledby="et-telefono"></select></span></div>
+    <div class="fila cuanto" id="q-telefono" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
+    <p class="vuelve" id="v-telefono" hidden></p>
+    <p class="nota-g">Habladas: las que Alma te dice al oído en el Modo calle. En el teléfono: las que suenan. Si bajas el nivel, vuelve solo a «Todo».</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
@@ -765,10 +801,10 @@
     $("p-uso-f").hidden = $("p-health-f").hidden;
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
-    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); }
+    if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); avisosReloj(true); }
     $("velo").classList.add("on"); $("panel").classList.add("on"); $("panel").setAttribute("aria-hidden", "false");
   }
-  function cerrarAjustes() { $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
+  function cerrarAjustes() { avisosReloj(false); $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
   $("b-ajustes").onclick = abrirAjustes;
   /* Health es nativo en la app: se abre encima, sin cargar la página. Si la app es anterior y no contesta, va a la versión web. */
   window.AlmaHealth = { abierto: function () { window.__healthOk = true; cerrarAjustes(); } };
@@ -869,9 +905,11 @@
     var b = $("b-conf"), c = document.querySelector(".san-ob.start"), r = c && c.getBoundingClientRect();
     /* va con los botones de abajo: si ellos se esconden (chat, llamada), él también */
     var se = !r || !r.width || +getComputedStyle(c).opacity < .5 || getComputedStyle(c).visibility === "hidden";
-    b.style.visibility = se ? "hidden" : ""; if (se) return;
+    var k = $("b-calle"); b.style.visibility = k.style.visibility = se ? "hidden" : ""; if (se) return;
     /* a la derecha de «Iniciar llamada», con aire para su nombre, y un poco más abajo que su centro */
     b.style.left = Math.min(innerWidth - 56, r.right + 30) + "px"; b.style.top = (r.top + r.height / 2 - 20 + 10) + "px";
+    /* el del Modo calle, encima del de conferencia, en la misma columna */
+    k.style.left = b.style.left; k.style.top = (r.top + r.height / 2 - 20 + 10 - 54) + "px";
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
@@ -894,6 +932,7 @@
       CONF.activa = false; ESC.escuchando = false; recPintar(); grabadora(false);
     } else {
       ESC.apagado = false; nativa({ accion: "conferencia", que: "on" }); CONF.activa = true; recPintar(); grabadora(true);
+      if (CALLE.activa) { CALLE.activa = false; callePintar("quieta"); setTimeout(function () { nativa({ accion: "calle", que: "estado" }); }, 400); }   // uno a la vez: la app apaga el Modo calle
     }
   };
   function recOn() { return MUDO.on || (CONF.activa && !CONF.enLlamada) || (ESC.escuchando && ESC.quieto && !ESC.apagado); }
@@ -959,6 +998,102 @@
   }
   if (NATIVA) { $("b-mudo").hidden = false; setTimeout(function () { $("b-mudo").classList.add("on"); mudoUbicar(); }, 1000); setInterval(mudoUbicar, 1200); addEventListener("resize", mudoUbicar); }
   if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
+  /* ── Modo calle (ModoCalle.swift): con el teléfono bloqueado y audífonos, dices «Alma» y una frase. Un toque lo enciende
+     o lo apaga. La app no deja el Modo calle y la conferencia a la vez; aquí solo se pinta lo que ella cuenta
+     (AlmaCalle.evento). El botón aparece cuando la app contesta: una versión vieja, sin Modo calle, no lo muestra. ── */
+  var CALLE = { activa: false, fase: "quieta", error: "" };
+  var CALLE_FASE = { esperando: "esperando «Alma»", verificando: "te oí", oyendo: "te escucho", pensando: "pensando", hablando: "hablando", llamada: "en llamada", pausa: "en pausa" };
+  function callePintar(fase, e) {
+    var b = $("b-calle"), activo = CALLE.activa && /^(verificando|oyendo|pensando|hablando|llamada)$/.test(fase);
+    b.classList.toggle("esperando", CALLE.activa && fase === "esperando");
+    b.classList.toggle("activo", activo);
+    b.classList.toggle("pausa", CALLE.activa && fase === "pausa");
+    b.setAttribute("aria-pressed", CALLE.activa ? "true" : "false");
+    var et = "Modo calle" + (CALLE.activa ? ": " + (CALLE_FASE[fase] || "encendido") + (e && e.minutos ? " · " + e.minutos + " min" : "") : "");
+    if (CALLE.activa && fase === "pausa" && e && e.error) et += ". " + e.error;
+    b.setAttribute("aria-label", et); b.title = et;
+  }
+  window.AlmaCalle = { evento: function (e) {
+    if (!e || e.tipo === "error") return;
+    var b = $("b-calle");
+    if (b.hidden) { b.hidden = false; setTimeout(function () { b.classList.add("on"); confUbicar(); }, 30); }
+    var antes = CALLE.activa; CALLE.activa = !!e.activa; CALLE.fase = String(e.fase || (CALLE.activa ? "esperando" : "quieta"));
+    callePintar(CALLE.fase, e);
+    if (CALLE.activa && !antes && CONF.activa) nativa({ accion: "conferencia", que: "estado" });   // la app apagó la conferencia
+    /* un error nuevo se dice una vez (como el de la conferencia); el mismo no se repite en cada evento */
+    if (e.error && e.error !== CALLE.error) try { alert(e.error); } catch (x) {}
+    CALLE.error = e.error || "";
+  } };
+  $("b-calle").onclick = function () {
+    vozConfig();
+    var on = !CALLE.activa; CALLE.activa = on; CALLE.fase = on ? "esperando" : "quieta";
+    callePintar(CALLE.fase); grabadora(on);   // se ve al instante; la app confirma con AlmaCalle.evento
+    if (on && CONF.activa) { CONF.activa = false; $("b-conf").classList.remove("activa", "voces"); recPintar(); }
+    nativa({ accion: "calle", que: on ? "on" : "off" });
+    if (on) setTimeout(function () { nativa({ accion: "conferencia", que: "estado" }); }, 400);
+  };
+  if (NATIVA) setTimeout(function () { nativa({ accion: "calle", que: "estado" }); }, 1100);
+
+  /* ── Notificaciones (Ajustes): hasta qué nivel te las dice Alma al oído y hasta cuál suena el teléfono. La app guarda el
+     nivel (NivelAvisos) y lo devuelve a «Todo» sola cuando vence; aquí se pinta lo que cuenta AlmaAvisos.evento. ── */
+  var NIVELES = ["Silencio", "Solo urgente", "Lo que pide algo de ti", "Todo"];
+  var AVISOS = { hablado: { nivel: 3 }, telefono: { nivel: 3 }, t: null };
+  ["hablado", "telefono"].forEach(function (tipo) {
+    var sel = $("s-" + tipo);
+    NIVELES.forEach(function (n, i) { var o = document.createElement("option"); o.value = String(i); o.textContent = n; sel.appendChild(o); });
+    sel.value = "3";
+    sel.onchange = function () {
+      var n = +sel.value;
+      /* bajar de «Todo» queda por 4 h de entrada; la pregunta deja cambiarlo a 1 h o hasta mañana */
+      AVISOS[tipo] = n >= 3 ? { nivel: 3 } : { nivel: n, hasta: avisosFin("4h") };
+      avisosPintar(tipo, n < 3 ? "4h" : "");
+      nativa({ accion: "avisos", que: "poner", tipo: tipo, nivel: n, por: "4h" });
+    };
+    $("q-" + tipo).onclick = function (ev) {
+      var bt = ev.target.closest && ev.target.closest("[data-por]"); if (!bt) return;
+      var por = bt.getAttribute("data-por"), n = AVISOS[tipo].nivel; if (n >= 3) return;
+      AVISOS[tipo] = { nivel: n, hasta: avisosFin(por) }; avisosPintar(tipo, por);
+      nativa({ accion: "avisos", que: "poner", tipo: tipo, nivel: n, por: por });
+    };
+  });
+  /* Cuándo vuelve a «Todo» (igual que NivelAvisos.fin en la app): 1 h, 4 h o mañana a las 7:00 */
+  function avisosFin(por) {
+    if (por === "1h") return Date.now() + 3600000;
+    if (por === "manana") { var d = new Date(); if (d.getHours() >= 7) d.setDate(d.getDate() + 1); d.setHours(7, 0, 0, 0); return d.getTime(); }
+    return Date.now() + 4 * 3600000;
+  }
+  /* «2 h 10 min», «45 min» */
+  function cuantoFalta(min) { min = Math.max(1, Math.ceil(min)); var h = Math.floor(min / 60), m = min % 60; return (h ? h + " h" : "") + (h && m ? " " : "") + (m || !h ? m + " min" : ""); }
+  /* tipo: hablado | telefono · por: la duración que acabas de elegir (marca su botón); "" = sin pregunta abierta */
+  function avisosPintar(tipo, por) {
+    var x = AVISOS[tipo] || { nivel: 3 }, q = $("q-" + tipo), v = $("v-" + tipo);
+    var n = x.nivel == null || isNaN(+x.nivel) ? 3 : Math.max(0, Math.min(3, Math.round(+x.nivel)));
+    $("s-" + tipo).value = String(n);
+    if (por !== undefined) { q.hidden = n >= 3 || !por; q.querySelectorAll("[data-por]").forEach(function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-por") === por ? "true" : "false"); }); }
+    if (n >= 3) q.hidden = true;
+    var min = x.hasta ? (x.hasta - Date.now()) / 60000 : x.minutos;
+    v.hidden = n >= 3 || !(min > 0); v.textContent = v.hidden ? "" : "Vuelve a «Todo» en " + cuantoFalta(min) + ".";
+  }
+  window.AlmaAvisos = { evento: function (e) {
+    if (!e) return;
+    $("g-avisos").hidden = false; $("t-avisos").hidden = false;
+    ["hablado", "telefono"].forEach(function (t) {
+      var x = e[t]; if (!x) return;
+      var y = { nivel: +x.nivel }; if (x.hasta) y.hasta = +x.hasta; else if (x.minutos != null) y.hasta = Date.now() + x.minutos * 60000;
+      AVISOS[t] = y; avisosPintar(t);
+    });
+  } };
+  /* con Ajustes abiertos el «vuelve a Todo en …» se pone al día cada 30 s; si ya venció, se le pregunta a la app */
+  function avisosReloj(on) {
+    clearInterval(AVISOS.t); AVISOS.t = null;
+    if (!on) { $("q-hablado").hidden = $("q-telefono").hidden = true; return; }   // la pregunta ya quedó contestada (4 h de entrada)
+    if (!NATIVA) return;
+    nativa({ accion: "avisos", que: "estado" });
+    AVISOS.t = setInterval(function () {
+      var vencio = ["hablado", "telefono"].some(function (t) { var x = AVISOS[t]; return x.nivel < 3 && x.hasta && x.hasta <= Date.now(); });
+      if (vencio) nativa({ accion: "avisos", que: "estado" }); else { avisosPintar("hablado"); avisosPintar("telefono"); }
+    }, 30000);
+  }
   /* Inicio con escucha activa (EscuchaInicio.swift): la app escucha mientras el inicio está a la vista y quieto (sin chat,
      Pendientes, notificaciones ni llamada) y despierta al oír «Alma». La página le dice cuándo; la app, si está escuchando. */
   var ESC = { quieto: null, escuchando: false, apagado: false, base: false };

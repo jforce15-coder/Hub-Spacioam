@@ -191,9 +191,9 @@ function rllGenerar_(adm, pedido) {
   /* el aviso: notificación con el enlace; lo que espera su sí también queda en Pendientes */
   if (adm) {
     var vis = prop.propuestas.filter(function (x) { return x.tipo === 'visible'; }).length, url = RLL_URL_ + '?id=' + encodeURIComponent(sem.id);
-    try { vozAvisoPoner_(adm, 'Tu reporte de llamadas de la semana está listo' + (vis ? ': el equipo tiene ' + vis + (vis === 1 ? ' propuesta' : ' propuestas') + ' para ti.' : '.')); } catch (e) {}
+    /* la notificación sale de la tarjeta «Para leer» (pendCrear_, nivel 3), con este aviso */
     try { pendCrear_(adm, { tipo: 'aviso', area: 'proposito', proyecto: 'Mejora de llamadas', titulo: 'Reporte de llamadas · ' + sem.semana, resumen: prop.lectura || 'Los números de la semana y lo que propone el equipo.',
-      acciones: [{ texto: 'Ver el reporte', url: url }], importancia: 2 }, { origen: 'mejora_llamadas', push: false }); } catch (e) { console.error('rll aviso: ' + e); }
+      aviso: 'Tu reporte de llamadas de la semana está listo' + (vis ? ': el equipo tiene ' + vis + (vis === 1 ? ' propuesta' : ' propuestas') + ' para ti.' : '.'), acciones: [{ texto: 'Ver el reporte', url: url }], importancia: 2 }, { origen: 'mejora_llamadas', push: false }); } catch (e) { console.error('rll aviso: ' + e); }
     if (vis) { try { pendCrear_(adm, { tipo: 'atencion', area: 'proposito', proyecto: 'Mejora de llamadas', titulo: 'Propuestas de mejora de llamadas', resumen: vis + (vis === 1 ? ' propuesta espera' : ' propuestas esperan') + ' tu sí en el reporte de la semana.',
       acciones: [{ texto: 'Decidir', url: url + '#propuestas' }], importancia: 2 }, { origen: 'mejora_llamadas', push: false }); } catch (e) { console.error('rll pendiente: ' + e); } }
   }

@@ -1244,21 +1244,35 @@ function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
 
 /* ═══ AVISOS EN LA APP ═════════════════════════════════════════════════════════════════════════════════════
    Cuando Alma termina algo de segundo plano que necesita algo de ti (o Claude responde un pedido), deja un aviso para la
-   app de iPhone: la app pregunta cada 45 s (vozAvisos) y lo muestra como notificación. Alma no lo dice sola al oído:
-   lo cuenta al retomar, cuando vuelves a hablarle (temas por retomar, retomar.js).
-   Propiedades: VOZ_AVISOS (cola por correo), VOZ_TTS_MODELO (por defecto eleven_multilingual_v2, para vozTts_). */
-function vozAvisoPoner_(adm, texto, retId) {
+   app de iPhone: la app pregunta cada 45 s (vozAvisos) y lo muestra como notificación. Con la notificación hablada
+   (calle.js) la app dice al oído los de nivel 1 y 2 y escucha la respuesta; lo demás Alma lo cuenta al retomar, cuando
+   vuelves a hablarle (temas por retomar, retomar.js).
+   Propiedades: VOZ_AVISOS (cola por correo), VOZ_TTS_MODELO (por defecto eleven_multilingual_v2, para vozTts_).
+   Nivel de notificaciones (calle.js, avisoNivel_): o.nivel 1 urgente · 2 acción · 3 aviso; sin nivel se calcula al leer.
+   o.historial = false: no entra al historial de Notificaciones (lo que ya se ve ahí como tarjeta, p. ej. un «Para leer»).
+   La cola guarda hasta VOZ_AVISOS_MAX_; si se llena, sale primero lo de nivel 3 más viejo. El mismo id no entra dos veces. */
+var VOZ_AVISOS_MAX_ = 10;
+function vozAvisoPoner_(adm, texto, retId, o) {
+  o = o || {};
   if (!adm || !adm.email || !String(texto || '').trim()) return;
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(); lock.waitLock(10000);
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
     var nuevo = { id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) };
+    if ([1, 2, 3].indexOf(Number(o.nivel)) >= 0) nuevo.nivel = Number(o.nivel);
+    if (retId && l.some(function (a) { return String(a.id) === String(retId); })) return;
     l.push(nuevo);
-    t[adm.email] = l.slice(-5); p.setProperty('VOZ_AVISOS', JSON.stringify(t));
+    while (l.length > VOZ_AVISOS_MAX_) {
+      var k = -1; l.forEach(function (a, i) { if (k < 0 && a.nivel === 3) k = i; });
+      l.splice(k < 0 ? 0 : k, 1);
+    }
+    t[adm.email] = l; p.setProperty('VOZ_AVISOS', JSON.stringify(t));
+    if (o.historial === false) return;
     /* Historial (botón «Notificaciones» de la app): la cola de arriba se vacía al entregarse; esta se queda 3 días. */
     var hk = 'VOZ_AVISOS_H_' + retClave_(adm).slice(8), h = []; try { h = JSON.parse(p.getProperty(hk) || '[]'); } catch (e) {}
-    h = h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; }); h.push(nuevo); p.setProperty(hk, JSON.stringify(h.slice(-30)));
+    h = h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; });
+    if (!h.some(function (a) { return retId && String(a.id) === String(retId); })) { h.push(nuevo); p.setProperty(hk, JSON.stringify(h.slice(-30))); }
   } finally { lock.releaseLock(); }
 }
 /* App de Alma: las notificaciones que ya llegaron (las últimas 30, de los últimos 3 días), la más nueva primero. */
@@ -1286,7 +1300,10 @@ function vozAvisos_(ses) {
     mios = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
     if (mios.length) { delete t[adm.email]; p.setProperty('VOZ_AVISOS', JSON.stringify(t)); }
   } finally { lock.releaseLock(); }
-  return { ok: true, avisos: mios.map(function (a) { return { id: a.id, ts: a.ts, texto: a.texto }; }), pendientes: retLeer_(adm).length, trabajando: vozTrabajando_(adm, 0) };
+  /* Notificación hablada (calle.js): cada aviso trae su nivel (1 urgente · 2 acción · 3 aviso), su frase corta para decirla
+     al oído e importante (nivel 1 o 2: pide algo de él). */
+  var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
+  return { ok: true, avisos: mios.map(function (a) { var h = avisoHablarDe_(a, rets, pends); return { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante }; }), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */
@@ -1298,17 +1315,22 @@ function vozTrabajando_(adm, delta) {
   if (delta) c.put(k, JSON.stringify(l), 1800);
   return l.length;
 }
+/* La voz de Alma: la del agente de ElevenLabs (se pregunta una vez y queda en VOZ_VOICE_ID). También la usa el modo calle (calle.js). */
+function vozVozId_() {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  var voz = p.getProperty('VOZ_VOICE_ID');
+  if (!voz && key && agente) {
+    var a = JSON.parse(uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }, 'Voz').getContentText() || '{}');
+    voz = (((a.conversation_config || {}).tts) || {}).voice_id || ''; if (voz) p.setProperty('VOZ_VOICE_ID', voz);
+  }
+  return voz || '';
+}
 function vozTts_(texto) {
   texto = vozSinNotas_(texto);   // sin [softly], [whispers] ni otras notas: la voz siempre clara
-  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY');
   if (!key || !texto) return '';
   try {
-    var voz = p.getProperty('VOZ_VOICE_ID');
-    if (!voz && agente) {
-      var a = JSON.parse(uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }).getContentText() || '{}');
-      voz = (((a.conversation_config || {}).tts) || {}).voice_id || ''; if (voz) p.setProperty('VOZ_VOICE_ID', voz);
-    }
-    if (!voz) return '';
+    var voz = vozVozId_(); if (!voz) return '';
     var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
       payload: JSON.stringify({ text: texto, model_id: p.getProperty('VOZ_TTS_MODELO') || 'eleven_multilingual_v2', voice_settings: { stability: 0.65, similarity_boost: 0.8, speed: 1.05 } }) });

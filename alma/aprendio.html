@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Lo que Alma aprendió · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Ajustes → Lo que Alma aprendió (issue #396): las recetas que Alma repite sin IA (apps-script/recetas.js, acciones
+     «recetas» y «recetaBorrar») y lo que está vigilando por ti (apps-script/vigilancias.js). Solo el administrador principal. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --papel: #fff;
+    --durazno: #E9826A; --durazno-t: #B5624E; --arena: #F3EFEA; --rojo: #B54D36; --ease: cubic-bezier(.22,.61,.36,1); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 760px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .barra { display: flex; align-items: center; gap: 12px; }
+  .barra .t { flex: 1; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
+  .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: var(--papel); display: grid; place-items: center; color: var(--tinta); text-decoration: none; box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); cursor: pointer; }
+  .redondo svg { width: 20px; height: 20px; }
+  .portada { margin: 34px 0 18px; }
+  .portada small { display: block; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--durazno-t); }
+  .portada h1 { margin: 10px 0 12px; font: 400 clamp(34px, 8.5vw, 52px)/1.04 Valky, Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+  .portada p { margin: 0; max-width: 58ch; font: 400 16px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  .cifras { display: flex; flex-wrap: wrap; gap: 18px 28px; margin: 22px 0 6px; }
+  .cifra b { display: block; font: 300 34px/1 Montserrat, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cifra span { display: block; margin-top: 6px; font: 500 12.5px/1.35 Montserrat, sans-serif; color: var(--suave); }
+  .sec { margin: 38px 0 14px; border-top: 1px solid var(--linea); padding-top: 18px; }
+  .sec h2 { margin: 0; font: 400 26px/1.1 Valky, Georgia, serif; }
+  .sec p { margin: 6px 0 0; font: 500 12.5px/1.5 Montserrat, sans-serif; color: var(--suave); }
+  .lista { display: grid; gap: 10px; }
+  .item { background: var(--papel); border-radius: 20px; padding: 14px 14px 14px 16px; box-shadow: 0 18px 40px -28px rgba(70,50,40,.4); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; overflow: hidden; }
+  .item .q { font: 600 14.5px/1.35 Montserrat, sans-serif; min-width: 0; overflow-wrap: anywhere; }
+  .item .q i { font-style: normal; color: var(--durazno-t); }
+  .item .d { grid-column: 1; font: 500 12.5px/1.45 Montserrat, sans-serif; color: #5A5856; min-width: 0; overflow-wrap: anywhere; }
+  .item .chip { display: inline-block; margin-left: 6px; font: 600 9.5px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #FBEDE8; color: var(--durazno-t); vertical-align: 2px; }
+  .item button { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--arena); color: var(--tinta); font: 600 11px Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+  .item button:active { transform: scale(.96); }
+  .item.se-va { transition: opacity .2s var(--ease), height .28s var(--ease), padding .28s var(--ease), margin .28s var(--ease); opacity: 0; }
+  .vacio { padding: 18px 16px; border-radius: 20px; background: rgba(255,255,255,.6); font: 500 13.5px/1.5 Montserrat, sans-serif; color: var(--suave); }
+  .aviso { margin-top: 12px; font: 500 12.5px Montserrat, sans-serif; color: var(--rojo); }
+  .esq { display: grid; gap: 14px; margin-top: 34px; }
+  .esq i { display: block; height: 14px; border-radius: 8px; background: linear-gradient(90deg, #EFEBE6 0%, #F7F4F1 50%, #EFEBE6 100%); background-size: 200% 100%; animation: esq 1.6s ease-in-out infinite; }
+  .esq .e1 { width: 34%; height: 10px; } .esq .e2 { width: 70%; height: 46px; } .esq .e3 { width: 100%; height: 64px; border-radius: 20px; } .esq .e4 { width: 80%; }
+  @keyframes esq { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .esq i { animation: none; } .item.se-va { transition: none; } }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--durazno); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="barra">
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="t">Ajustes · Lo que Alma aprendió</div>
+    <button type="button" class="redondo" id="b-recargar" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+  </div>
+  <!-- la forma antes que el contenido (ds/velocidad.md) -->
+  <div id="cuerpo"><div class="esq" aria-label="Cargando"><i class="e1"></i><i class="e2"></i><i class="e4"></i><i class="e3"></i><i class="e3"></i></div></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var URL = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  var CAMBIA = { nombre: "otro nombre", fecha: "otra fecha", num: "otro número" };
+  function pedir(accion, extra) {
+    if (window.ALMA_APRENDIO) return window.ALMA_APRENDIO(accion, extra || {});   // para probar la página con datos de ejemplo
+    var ses = window.SASesion && SASesion.leer && SASesion.leer();
+    if (!ses) return Promise.resolve({ ok: false, error: "Entra primero al Hub con tu usuario y vuelve a abrir esta página." });
+    return fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify(Object.assign({ hub: 1, action: accion, session: ses }, extra || {})) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet e intenta de nuevo." }; });
+  }
+  function fecha(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es", { day: "numeric", month: "short" }); }
+  /* Quitar una fila: se va suave y el hueco se cierra (ds/movimiento.md); si el Hub dice que no, vuelve con el aviso. */
+  function quitar(fila, accion, extra, caja) {
+    var b = fila.querySelector("button"); b.disabled = true;
+    pedir(accion, extra).then(function (r) {
+      if (!r || !r.ok) { b.disabled = false; var a = el("p", "aviso", (r && r.error) || "No se pudo. Intenta de nuevo."); fila.after(a); setTimeout(function () { a.remove(); }, 4000); return; }
+      fila.style.height = fila.offsetHeight + "px"; fila.classList.add("se-va"); void fila.offsetWidth;
+      fila.style.height = "0px"; fila.style.paddingTop = fila.style.paddingBottom = "0px";
+      setTimeout(function () { fila.remove(); if (!caja.querySelector(".item")) caja.appendChild(el("div", "vacio", caja.getAttribute("data-vacio"))); }, 300);
+    });
+  }
+  function seccion(C, titulo, nota) { var s = el("div", "sec"); s.appendChild(el("h2", "", titulo)); if (nota) s.appendChild(el("p", "", nota)); C.appendChild(s); }
+  function pintarRecetas(C, R) {
+    seccion(C, "Recetas", "Lo que pediste y salió bien. Si lo vuelves a pedir igual, o igual con otro nombre o fecha, Alma lo hace al instante y te dice «lo hice de memoria». Las que no usas en 30 días se borran solas; las que tú nombraste se quedan.");
+    var caja = el("div", "lista"); caja.setAttribute("data-vacio", "Todavía no aprendió nada. Pídele algo que se repita, como poner tu música o mandarle un recordatorio a alguien del equipo.");
+    (R.recetas || []).forEach(function (x) {
+      var f = el("div", "item"), q = el("div", "q");
+      q.appendChild(document.createTextNode("«" + x.pedido + "»")); if (x.mia) q.appendChild(el("span", "chip", "Tuya"));
+      f.appendChild(q);
+      var d = [x.hace.join(" · ")];
+      if ((x.cambia || []).length) d.push("sirve con " + x.cambia.map(function (c) { return CAMBIA[c] || c; }).join(", "));
+      d.push(x.usos ? "usada " + x.usos + (x.usos === 1 ? " vez" : " veces") : "aún sin usar");
+      if (x.vence) d.push("se borra el " + fecha(x.vence) + " si no la usas");
+      f.appendChild(el("div", "d", d.join(" · ")));
+      var b = el("button", "", "Borrar"); b.type = "button"; b.setAttribute("data-a", "borrar-receta"); b.setAttribute("aria-label", "Borrar la receta «" + x.pedido + "»");
+      b.onclick = function () { quitar(f, "recetaBorrar", { clave: x.clave }, caja); };
+      f.appendChild(b); caja.appendChild(f);
+    });
+    if (!(R.recetas || []).length) caja.appendChild(el("div", "vacio", caja.getAttribute("data-vacio")));
+    C.appendChild(caja);
+  }
+  function pintar(R) {
+    var C = $("cuerpo"); C.innerHTML = "";
+    var pt = el("div", "portada"); pt.appendChild(el("small", "", "Ajustes"));
+    pt.appendChild(el("h1", "", "Lo que Alma aprendió"));
+    pt.appendChild(el("p", "", R.on === false ? "Las recetas están apagadas (RECETAS_ON = 0): Alma no aprende ni repite nada." : "Lo que haces seguido, Alma lo repite sin gastar IA."));
+    C.appendChild(pt);
+    var cf = el("div", "cifras");
+    [[R.hoy || 0, "hechas de memoria hoy"], [R.total || 0, "en total, sin IA"], [(R.recetas || []).length, "recetas guardadas"]].forEach(function (x) { var c = el("div", "cifra"); c.appendChild(el("b", "", String(x[0]))); c.appendChild(el("span", "", x[1])); cf.appendChild(c); });
+    C.appendChild(cf);
+    pintarRecetas(C, R);
+  }
+  function cargar() {
+    pedir("recetas").then(function (r) {
+      if (!r || !r.ok) { var C = $("cuerpo"); C.innerHTML = ""; var v = el("div", "portada"); v.appendChild(el("h1", "", "No pude cargarlo.")); v.appendChild(el("p", "", (r && r.error) || "Intenta de nuevo en un momento.")); C.appendChild(v); return; }
+      pintar(r);
+    });
+  }
+  $("b-recargar").onclick = cargar;
+  cargar();
+})();
+</script>
+</body>
+</html>

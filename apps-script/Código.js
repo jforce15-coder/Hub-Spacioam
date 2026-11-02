@@ -3144,6 +3144,8 @@ function hubApi_(body) {
   try {
     switch (body.action) {
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
+      case 'recetas': return json_(recetasApi_(ses));                                       // Ajustes → Lo que Alma aprendió: las recetas (recetas.js · alma/aprendio.html)
+      case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));

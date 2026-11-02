@@ -553,6 +553,14 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 var AGENTE_MI_SISTEMA_ = '\n\nMI SISTEMA (regla fija): nunca digas «secretaria» ni hables de «la secretaria» o de tus herramientas por su nombre. Si vas a consultar algo, di «lo reviso en mi sistema» o «voy a consultar con mi sistema»; si citas un resultado, «mi sistema dice…». Al desarrollador (Claude) llámalo «Claudio».';
 function opAgente_(adm, texto, canal, fotos, previos) {
   AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
+  /* Recetas (recetas.js): si Juan ya pidió esto y salió bien, se repite sin IA. Si un paso falla, la receta se olvida y la
+     IA sigue en este mismo turno sabiendo lo que ya quedó hecho. */
+  var memo = null, textoPedido = texto;
+  if (!(fotos && fotos.length)) { try { memo = recetaIntentar_(adm, texto, canal); } catch (e) { console.error('recetaIntentar_: ' + (e.stack || e)); } }
+  if (memo && memo.ok) return memo.salida;
+  if (memo && memo.fallo) texto = texto + '\n\n(' + memo.nota + ')';
+  var nombrada = RECETAS_NOMBRADA_.exec(String(texto || ''));
+  if (nombrada) texto = texto + '\n\n(Juan te enseña un atajo: haz AHORA con tus herramientas lo que pide; el sistema lo guarda y lo repetirá solo cuando diga «' + nombrada[1] + '». Confírmalo en una frase.)';
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
   /* Modo Weebo con el administrador: sensibilidad según el tema (serio, normal o estratégico). */
@@ -572,14 +580,17 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var contenido = (fotos || []).slice(0, 4).map(imgBloque_).filter(Boolean); contenido.push({ type: 'text', text: texto });
   if (msgs.length && msgs[msgs.length - 1].role === 'user') msgs.push({ role: 'assistant', content: '(continúo)' });
   msgs.push({ role: 'user', content: contenido });
-  var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
+  var ctx = { hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
+  ctx.hechasAntes = ctx.hechas.length;
   var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
   system += chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
   system += AGENTE_MI_SISTEMA_;   // nunca «la secretaria» ni nombres de herramientas: «mi sistema» (decisión de Juan, #374)
   try { system += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
-  return opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
+  var res = opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
+  try { recetaAprender_(adm, textoPedido, ctx, res); } catch (e) { console.error('recetaAprender_: ' + (e.stack || e)); }   // salió bien y se puede repetir: queda como receta
+  return res;
 }
 /* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (el plazo de una
    llamada, retomar.js) se detiene cuando ya no alcanza el tiempo: antes de otra vuelta de Claude (si quedan menos de
@@ -607,6 +618,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       var bloques = j.content || [];
       msgs.push({ role: 'assistant', content: bloques });
       usos = bloques.filter(function (b) { return b.type === 'tool_use'; });
+      if (bloques.some(function (b) { return b.type === 'server_tool_use'; })) ctx.webBusco = true;   // buscó en internet: lo que haga después depende de eso (no se aprende)
       if (j.stop_reason === 'pause_turn') continue;   // búsqueda web larga: el servidor pide continuar
       if (!usos.length || j.stop_reason !== 'tool_use') { final = bloques.filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('').trim(); break; }
     }
@@ -618,6 +630,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       if (ya) { resultados.push(ya); continue; }
       if (vencido(AGENTE_MARGEN_HERR_)) return cortar(resultados);   // lo que falta se ejecuta en segundo plano
       var res; try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
+      if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });   // para las recetas (recetas.js)
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen
         var bl = res._imgs.map(imgBloque_).filter(Boolean); delete res._imgs;
         resultados.push({ type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, 4000) }]) });

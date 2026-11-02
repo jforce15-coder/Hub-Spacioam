@@ -32,7 +32,7 @@ function chatClasificarRegla_() {
     '\nSubcategorías sugeridas: ' + Object.keys(CHAT_SUBCATS_).map(function (e) { return e + ': ' + CHAT_SUBCATS_[e].join(', '); }).join(' · ') + '.' +
     '\nUsa «Propósito · Desarrollo» SOLO cuando el mensaje pide cambiar, arreglar o agregar algo en las apps o en ti misma (el sistema). Preguntar cómo se usa algo no es Desarrollo. ' +
     'Con Desarrollo no uses mejora_para_claude ni escribas tú la pregunta: el sistema arma el borrador del pedido y le pregunta a Juan «¿Se lo mando a Claudio?» con sus botones (si no hablas con el administrador principal, se lo pasa a Juan). ' +
-    'Nunca digas que ya se lo pasaste: no le llega nada hasta que Juan diga «mándalo». Responde en una o dos frases lo que entendiste. ' +
+    'El pedido completo se confirma una sola vez; los cambios siguientes solo confirman el ajuste, sin repetirlo todo. Nunca digas que ya se lo pasaste: no le llega nada hasta que Juan diga «mándalo». Responde en una o dos frases lo que entendiste. ' +
     'Al desarrollador (Claude) llámalo siempre «Claudio» cuando le hablas a la persona.';
 }
 
@@ -199,6 +199,15 @@ function claudeBorradorConPregunta_(resp, b, canal) {
   return (resp ? resp + '\n\n' : '') + (lo ? lo + '\n' : '') + (b.micro ? 'Esto es lo que le agregaría:' : 'Esto es lo que le mandaría a Claudio:') + '\n«' + claudeBorradorCorto_(b, 400) + '»\n\n' + preg + '\n' +
     claudeBorradorOpciones_(b).map(function (x) { return '• ' + x; }).join('\n');
 }
+/* Tras el primer repaso completo, cada cambio solo confirma el ajuste puntual («Ajustado: …») y repite la pregunta,
+   sin volver a poner todo el pedido. En el chat, las opciones siguen como viñetas «• ». */
+function claudeBorradorAjuste_(extra, b, canal) {
+  var voz = canal === 'llamada' || canal === 'calle', nom = '«' + (b.microNombre || '') + '»';
+  var preg = b.microDuda ? '¿Es parte de ' + nom + ' o es nuevo?' : b.micro ? '¿Se lo agrego a ' + nom + ' y se lo mando a Claudio?' : CLAUDE_BORR_PREGUNTA_;
+  var ajuste = 'Ajustado: «' + claudeBorradorCorto_({ partes: [extra] }, 120) + '».';
+  if (voz) return ajuste + ' ' + preg;
+  return ajuste + '\n\n' + preg + '\n' + claudeBorradorOpciones_(b).map(function (x) { return '• ' + x; }).join('\n');
+}
 /* Qué quiere hacer con el borrador: mandar, agregar, cancelar o '' (no habla del borrador).
    tras = lo último que Alma le dijo en el chat fue la pregunta (o responde desde la tarjeta, o en la llamada con
    «Mejora para Claude: …»). Sin eso solo cuenta si nombra a Claude o el pedido, o si es el texto de un botón: así
@@ -277,7 +286,8 @@ function claudeBorradorResponder_(adm, texto, o) {
       return { accion: 'esperar', texto: CLAUDE_BORR_AGREGO_ + ' Dímelo y lo sumo al pedido.', voz: 'Pregúntale en una frase qué le agregas al pedido para Claude. Todavía no se envía.' };
     }
     b.partes.push(extra); b.espera = false; claudeBorradorGuardar_(adm.email, b);
-    return { accion: 'agregar', texto: claudeBorradorConPregunta_('Agregado.', b, voz ? 'llamada' : ''),
+    /* Solo el ajuste puntual: el pedido completo se confirmó una vez y no se repite en cada cambio. */
+    return { accion: 'agregar', texto: claudeBorradorAjuste_(extra, b, voz ? 'llamada' : ''),
       voz: 'AGREGADO AL BORRADOR (todavía NO se envía). Confirma SOLO el ajuste que acaba de pedir («Anotado: ' + claudeBorradorCorto_({ partes: [extra] }, 120) + '») en una frase. NO repitas ni resumas el pedido completo. Cierra con «¿Se lo reporto a Claudio?» y, si dice que sí, usa «Mejora para Claude: mándalo» y dile «se lo voy a reportar a Claudio».' };
   }
   /* mandar */

@@ -63,6 +63,22 @@ function viajes_(ses, b) {
   return out;
 }
 
+/* Para Alma (herramienta ver_vuelos): los mismos vuelos que Juan ve en el botón del avión, leídos de lo ya guardado (no
+   revisa el correo ni gasta IA). Devuelve por tramo: vuelo, aerolínea, origen, destino, salida, llegada, puerta, asiento y cuándo abre el check-in. */
+function viajesParaAlma_(adm) {
+  if (!adm) return { ok: false, error: 'session' };
+  var cuenta = viajesCuenta_(), ahora = Date.now();
+  if (!viajesPuede_(adm, cuenta)) return { ok: true, viajes: [], nota: 'Tu correo todavía no está conectado a Alma para leer tus vuelos.' };
+  var viajes = viajesLeer_(cuenta).filter(function (v) { return viajeVigente_(v, ahora); }).map(function (v) { return viajeCalcular_(v); })
+    .sort(function (x, y) { return String(x.desde).localeCompare(String(y.desde)); });
+  var lugar = function (l) { return (l.ciudad || '') + (l.iata ? ' (' + l.iata + ')' : '') + (l.terminal ? ' · terminal ' + l.terminal : ''); };
+  return { ok: true, revisado_en: 'lo ya guardado del botón del avión', viajes: viajes.map(function (v) {
+    return { confirmacion: v.confirmacion, aerolinea: v.aerolinea, pasajero: v.pasajero, checkin_url: v.checkin_url,
+      tramos: v.tramos.map(function (t) { return { vuelo: t.vuelo, opera: t.opera || v.aerolinea, desde: lugar(t.origen), hasta: lugar(t.destino), sale: t.sale, llega: t.llega,
+        llegar_al_aeropuerto: t.llegar, checkin_abre: t.checkin_abre, puerta: t.puerta, asiento: t.asiento }; }) };
+  }) };
+}
+
 /* El buzón que el Hub puede leer: el de la cuenta que lo corre. */
 function viajesCuenta_() { try { return String(Session.getEffectiveUser().getEmail() || '').toLowerCase(); } catch (e) { return ''; } }
 function viajesPuede_(adm, cuenta) {

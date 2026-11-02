@@ -113,6 +113,7 @@ function agHerramientas_() {
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la conversación de WhatsApp de ALMA con cualquier número (socio, contacto de trabajo, alguien del equipo): pasa el número con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp (ej. +1 908 447 1404)') }, ['codigo']),
     T('buscar_reuniones', 'Busca en las reuniones, conferencias, llamadas y memos que Alma escuchó en modo conferencia (la app del iPhone): su resumen, acuerdos y lo que le tocó a Juan. Úsala cuando pregunte «¿qué quedamos en la reunión con…?», «¿qué se dijo de…?». Sin búsqueda, las últimas. Lo que no tenía sentido (grabaciones por error, ruido) queda en Temporal unos días y se borra solo si nadie lo consulta: con temporales=true las ves; si Juan busca algo y aparece una temporal, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
+    T('ver_vuelos', 'Lee los vuelos que Juan ve en el botón del avión de la app (de su correo): número de vuelo, aerolínea, origen, destino, horas de salida y llegada, puerta, asiento y cuándo abre el check-in. Úsala cuando pregunte por su vuelo, su próximo viaje, a qué hora sale o llega, o la puerta. Solo el administrador principal.', {}, []),
     T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número.', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Mira las imágenes y fotos que mandó el huésped en la conversación de una reserva (capturas, comprobantes, datos de facturación, fotos de un problema). Devuelve las más recientes para que las leas tú mismo. Úsala cuando el administrador mencione una imagen o cuando ver_conversacion marque [imagen].',
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
@@ -320,6 +321,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         promesas_abiertas: pr.map(function (p) { return p.que + ' (vence ' + p.vence + ')'; }) };
     }
     case 'buscar_reuniones': return { ok: true, reuniones: confBuscar_(inp.buscar, 5, !!inp.temporales) };   // conferencia.js
+    case 'ver_vuelos': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve los vuelos.' }; return viajesParaAlma_(adm); }   // viajes.js
     case 'buscar_contacto': {
       var fichas = contactoBuscar_(inp.texto);
       if (!fichas.length && normTel_(inp.texto) && String(inp.texto).replace(/\D/g, '').length >= 8) { try { var nueva = contactoClasificar_(normTel_(inp.texto), '', true); if (nueva) fichas = [nueva]; } catch (e) {} }

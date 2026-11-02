@@ -415,7 +415,7 @@ function vozQuienBloque_() {
     '· TE PUEDEN INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto», «mejor a Gabriel»): escucha. Si corrige o agrega algo, llama a secretaria otra vez SOLO con la corrección o lo que agrega, dicho claro («Corrige el pedido anterior: el mensaje va para Gabriel, no para Jorge»), nunca con el mismo pedido repetido. Si dice «no, espera» y nada más, espera en silencio a que termine la idea.',
     '· CUANDO LLEGA LA RESPUESTA de secretaria: dásela en 1 o 2 frases, con lo que de verdad hizo. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
-    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo; si necesito algo de ti te aviso en la app», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
+    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo; si necesito algo de ti te aviso en cuanto esté», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. En la app de Alma, si la llamada sigue abierta (modo conferencia), el resultado te lo dice la app por voz en la misma llamada: nunca digas que se mandará a la app; di «te lo digo aquí en cuanto esté». Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
     '· caller_type = familia: es de la familia de Juan (p. ej. su esposa). Llámala por su nombre y háblale en el idioma en que te hable (si te habla en inglés, en inglés). Aquí eres Alma, la asistente de Juan: nunca menciones Spacio AM. Puede pedirte todo lo PERSONAL de Juan (viajes, vuelos, agenda, proyectos personales) y que se lo mandes: usa secretaria con su pedido completo y confirma solo lo que secretaria confirme. Nada de Spacio AM (huéspedes, reservas, dinero, equipo): eso, que lo vea con Juan.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
@@ -819,7 +819,7 @@ function vozSecretaria_(b) {
     opGuardar_(adm, 'alma', 'llamada', 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', r.hechas);
     vozTrabajando_(adm, 1);
     return { ok: true, en_proceso: true, resultado: 'TARDA MÁS DE LO NORMAL: ya lo sigues trabajando en segundo plano (no lo vuelvas a pedir ni esperes su respuesta en esta llamada). ' +
-      'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en la app cuando esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.' +
+      'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en cuanto esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.' +
       (r.hechas.length ? ' Lo que ya quedó hecho: ' + r.hechas.map(function (h) { return h.resumen || h.tipo; }).join('; ') + '.' : '') };
   }
   /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, el borrador para Claude con su pregunta (o a Juan). */
@@ -1261,6 +1261,7 @@ function vozAvisoPoner_(adm, texto, retId, o) {
     var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
     var nuevo = { id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) };
     if ([1, 2, 3].indexOf(Number(o.nivel)) >= 0) nuevo.nivel = Number(o.nivel);
+    if (o.resultado) nuevo.resultado = true;   // terminó algo de segundo plano: en modo conferencia la app lo dice por voz en la llamada
     if (retId && l.some(function (a) { return String(a.id) === String(retId); })) return;
     l.push(nuevo);
     while (l.length > VOZ_AVISOS_MAX_) {
@@ -1290,7 +1291,7 @@ function vozAvisoCorto_(texto) {
   return t || s.slice(0, 220).replace(/\s+\S*$/, '') + '…';
 }
 /* App de iPhone: los avisos nuevos (se muestran como notificación; se entregan una sola vez), cuántos temas hay por retomar
-   y cuántas cosas sigue trabajando Alma en segundo plano (mientras haya, la app queda lista para el anillo). */
+   y cuántas cosas sigue trabajando Alma en segundo plano (mientras haya, la app queda lista para el anillo). resultado = terminó algo de segundo plano: en modo conferencia la app lo dice por voz en la llamada, sea cual sea su nivel. */
 function vozAvisos_(ses) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), mios = [];
@@ -1303,7 +1304,7 @@ function vozAvisos_(ses) {
   /* Notificación hablada (calle.js): cada aviso trae su nivel (1 urgente · 2 acción · 3 aviso), su frase corta para decirla
      al oído e importante (nivel 1 o 2: pide algo de él). */
   var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
-  return { ok: true, avisos: mios.map(function (a) { var h = avisoHablarDe_(a, rets, pends); return { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante }; }), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  return { ok: true, avisos: mios.map(function (a) { var h = avisoHablarDe_(a, rets, pends); return { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado }; }), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */

@@ -100,7 +100,7 @@ function pendCrear_(adm, c, o) {
   var it = null;
   /* Lo que necesita a Juan también queda como tema por retomar (Alma empieza por ahí en la próxima llamada). */
   if (c.tipo === 'atencion' && o.push) {
-    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
+    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id, { resultado: o.origen === 'segundo_plano' }); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
     titulo: tituloCorto_(c.titulo, 100), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
@@ -109,7 +109,7 @@ function pendCrear_(adm, c, o) {
   try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { lock.releaseLock(); }
   /* Lo que no pide nada (Para leer, Listo hoy) también llega a la app como notificación de nivel 3 (calle.js), con el id
      de la tarjeta; no entra al historial porque Notificaciones ya la muestra. */
-  if (c.tipo !== 'atencion') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, { nivel: 3, historial: false }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
+  if (c.tipo !== 'atencion') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, { nivel: 3, historial: false, resultado: o.origen === 'segundo_plano' }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
   return fila;
 }
 

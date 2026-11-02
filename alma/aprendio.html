@@ -89,7 +89,7 @@
   function seccion(C, titulo, nota) { var s = el("div", "sec"); s.appendChild(el("h2", "", titulo)); if (nota) s.appendChild(el("p", "", nota)); C.appendChild(s); }
   function pintarRecetas(C, R) {
     seccion(C, "Recetas", "Lo que pediste y salió bien. Si lo vuelves a pedir igual, o igual con otro nombre o fecha, Alma lo hace al instante y te dice «lo hice de memoria». Las que no usas en 30 días se borran solas; las que tú nombraste se quedan.");
-    var caja = el("div", "lista"); caja.setAttribute("data-vacio", "Todavía no aprendió nada. Pídele algo que se repita, como poner tu música o mandarle un recordatorio a alguien del equipo.");
+    var caja = el("div", "lista"); caja.setAttribute("data-vacio", "Todavía no aprendió nada. Pídele algo que se repita, como poner tu música o crear una tarea.");
     (R.recetas || []).forEach(function (x) {
       var f = el("div", "item"), q = el("div", "q");
       q.appendChild(document.createTextNode("«" + x.pedido + "»")); if (x.mia) q.appendChild(el("span", "chip", "Tuya"));

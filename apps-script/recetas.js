@@ -8,7 +8,7 @@
      (el mismo ejecutor de siempre), la respuesta guardada se adapta y termina con «(lo hice de memoria)»: sin IA.
    · Nunca aprende si: no pudo confirmar el resultado (un paso con error, una respuesta que dice que no pudo o que pregunta),
      el pedido depende del momento («esto», «eso», «aquí», «ahí»), hubo que leer o buscar algo (los datos de la acción
-     pueden salir de esa lectura), es un mensaje a un huésped, o es borrar o pagar.
+     pueden salir de esa lectura), es un mensaje (a un huésped, al equipo o programado: la IA lo redactó para ese día), o es borrar o pagar.
    · Si un paso repetido falla, la receta se olvida y el mismo turno sigue con la IA (sabiendo lo que ya quedó hecho).
    · Las que no se usan en 30 días se borran; las que Juan nombra («cuando diga X, haz Y») se quedan (mia).
    · RECETAS_ON = 0 apaga todo (por defecto encendido). Ajustes → Lo que Alma aprendió (alma/aprendio.html) las lista y
@@ -18,16 +18,16 @@ var RECETAS_HOJA_ = 'ALMA_RECETAS';
 var RECETAS_CAB_ = ['clave', 'palabras', 'molde', 'vars', 'pasos', 'respuesta', 'esfera', 'subcategoria', 'creada', 'usada', 'usos', 'mia', 'pedido'];
 var RECETAS_DIAS_ = 30, RECETAS_MAX_PALABRAS_ = 14, RECETAS_MAX_VARS_ = 3;
 /* Lo que se puede repetir tal cual: herramienta → true o una función que mira los datos. Lo que no está aquí (leer,
-   buscar, mensajes a huéspedes o personales, borrar, cancelar, pagar, unir, pedidos a Claude) nunca se aprende. */
+   buscar, mensajes a huéspedes, al equipo o personales, borrar, cancelar, pagar, unir, pedidos a Claude) nunca se aprende. */
 var RECETAS_REPETIBLES_ = {
   musica: function (i) { return ['poner', 'pausar', 'seguir', 'siguiente', 'anterior', 'volumen'].indexOf(String(i.accion || '')) >= 0; },
   crear_tarea: true,
   agendar_en_epi: true,
-  escribir_a_equipo: function (i) { return !i.al_responder && !i.numero; },   // con al_responder deja un encargo que depende del momento
-  programar_mensaje: true,
+  /* escribir_a_equipo y programar_mensaje NO: su texto lo redacta la IA para ese día (la ruta de hoy, una hora) y
+     repetirlo mandaría información vieja a una persona. */
   enviar_archivo: true
 };
-var RECETAS_HERR_TXT_ = { musica: 'Música', crear_tarea: 'Tarea', agendar_en_epi: 'Epi', escribir_a_equipo: 'WhatsApp al equipo', programar_mensaje: 'Mensaje programado', enviar_archivo: 'Archivo por WhatsApp' };
+var RECETAS_HERR_TXT_ = { musica: 'Música', crear_tarea: 'Tarea', agendar_en_epi: 'Epi', enviar_archivo: 'Archivo por WhatsApp' };
 /* Campos donde un nombre del pedido es un dato (no texto libre): si la palabra está aquí, es variable. */
 var RECETAS_CAMPOS_NOMBRE_ = ['persona', 'propiedad', 'tecnico', 'quien', 'consulta', 'dispositivo', 'trabajo'];
 /* Palabras vacías: no cambian el pedido. «no» sí cambia, por eso no está. */
@@ -49,7 +49,12 @@ function recHoy_() { return Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd')
    Las fechas se resuelven al día de hoy: «mañana», «pasado mañana», «el viernes», «5 de noviembre», 2026-11-05, 5/11. */
 function recPalabras_(texto) {
   var t = String(texto || '').replace(/^\s*m[uú]sica\s*:\s*/i, '');   // la voz antepone «Música:» (voz.js)
-  var crudas = t.match(/[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9:\/-]*/g) || [], w = crudas.map(function (s) { return { s: s, n: recNorm_(s).replace(/[^a-z0-9:\/-]/g, '') }; });
+  var crudas = t.match(/[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9:\/-]*/g) || [], w = crudas.map(function (s) {
+    /* «:» y «/» solo cuentan entre números (9:30, 5/11): «Joselyn:» es «joselyn». */
+    var s2 = s.replace(/[:\/-]+$/, ''), n = recNorm_(s2).replace(/[^a-z0-9:\/-]/g, '');
+    if (!/^[\d:\/-]+$/.test(n)) n = n.replace(/[:\/]/g, '');
+    return { s: s2, n: n };
+  });
   var hoy = recHoy_(), out = [];
   for (var i = 0; i < w.length; i++) {
     var a = w[i], b = w[i + 1], c = w[i + 2], prev = out.length ? out[out.length - 1].n : '', f = '';

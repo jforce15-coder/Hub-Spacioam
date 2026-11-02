@@ -33,6 +33,7 @@ function chatClasificarRegla_() {
     'Health (salud, ejercicio, sueño, comida), Comunidad (ayudar a otros, grupos), Esencia (vida interior, calma, fe, charla con Alma).' +
     '\nSubcategorías sugeridas: ' + Object.keys(CHAT_SUBCATS_).map(function (e) { return e + ': ' + CHAT_SUBCATS_[e].join(', '); }).join(' · ') + '.' +
     '\nUsa «Propósito · Desarrollo» SOLO cuando el mensaje pide cambiar, arreglar o agregar algo en las apps o en ti misma (el sistema). Preguntar cómo se usa algo no es Desarrollo. ' +
+    'Usa también «Propósito · Desarrollo» cuando lo que pide choca con tus límites: ' + CLAUDE_DERIVAR_REGLA_ + ' ' +
     'Con Desarrollo no uses mejora_para_claude ni escribas tú la pregunta: el sistema arma el borrador del pedido y le pregunta a Juan «¿Se lo mando a Claudio?» con sus botones (si no hablas con el administrador principal, se lo pasa a Juan). ' +
     'El pedido completo se confirma una sola vez; los cambios siguientes solo confirman el ajuste, sin repetirlo todo. Nunca digas que ya se lo pasaste: no le llega nada hasta que Juan diga «mándalo». Responde en una o dos frases lo que entendiste. ' +
     'Con Desarrollo agrega también, antes de la etiqueta de esfera, otra línea: [[nivel: sencillo]] o [[nivel: complejo]] (a qué Claudio va, para cuidar el uso). ' + CLAUDE_NIVEL_REGLA_ +

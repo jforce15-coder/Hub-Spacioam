@@ -34,6 +34,15 @@ var CLAUDE_MODELO_NIVEL_ = { sencillo: 'Sonnet', complejo: 'Opus' };
 /* La regla para clasificar (la usan la herramienta mejora_para_claude, la etiqueta [[nivel: …]] del chat y la voz). */
 var CLAUDE_NIVEL_REGLA_ = 'sencillo (va con Sonnet): una pregunta simple, leer o revisar datos, un análisis corto, un cambio chico y claro (un texto, un color, una línea obvia). ' +
   'complejo (va con Opus): cambios con lógica, funciones nuevas, errores, lo que toca varias partes o es delicado, y las consultas o análisis complejos. Con duda, complejo.';
+/* DERIVAR A CLAUDIO (pedido de Juan, microproyecto «Modo conferencia: no repetir pedido», parte 3): cuando Alma choca con
+   un límite suyo (búsqueda en internet, procesar datos, un reporte, una consulta externa), arma de inmediato el borrador
+   para Claudio en vez de alargarlo o decir que no se puede. Sigue siendo borrador: a Claudio le llega con el sí de Juan.
+   La usan la voz (voz.js), el chat (chat.js) y la herramienta mejora_para_claude (agente.js). */
+var CLAUDE_DERIVAR_REGLA_ = 'DERIVAR A CLAUDIO (solo con el administrador principal): Claudio es desarrollo y el cerebro de la operación. ' +
+  'Si para cumplir lo que te pide chocas con un límite tuyo (una búsqueda en internet que no alcanza o no encuentra lo que pide, procesar muchos datos, ' +
+  'generar un reporte o cualquier consulta externa que tus herramientas no resuelven), no lo alargues, no improvises ni digas que no se puede: ' +
+  'de inmediato pásalo como pedido para Claudio, con lo que necesita y para qué (queda de borrador: le llega cuando Juan dice «mándalo»). ' +
+  'Lo que tus herramientas sí resuelven rápido (un dato de las hojas, una búsqueda corta) lo haces tú.';
 /* Filas viejas (sin nivel) y cualquier cosa rara: complejo. */
 function claudeNivel_(x) { return String(x || '').trim().toLowerCase() === 'sencillo' ? 'sencillo' : 'complejo'; }
 function claudeNivelTexto_(n) { n = claudeNivel_(n); return n + ' (' + CLAUDE_MODELO_NIVEL_[n] + ')'; }

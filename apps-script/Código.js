@@ -2417,7 +2417,7 @@ function pushA_(emails, titulo, cuerpo, url) {
   try {
     const p = PropertiesService.getScriptProperties(), app = p.getProperty('ONESIGNAL_APP_ID'), key = p.getProperty('ONESIGNAL_KEY');
     if (!app || !key) { logPush_(emails, titulo, 0, '', 0, 'Faltan ONESIGNAL_APP_ID u ONESIGNAL_KEY en Propiedades del script'); return { ok: false, error: 'Faltan ONESIGNAL_APP_ID u ONESIGNAL_KEY en el Apps Script' }; }
-    const t = sinEmoji_(titulo).slice(0, 120), b = String(cuerpo || '').replace(/\s+/g, ' ').slice(0, 240) || t;
+    const t = sinEmoji_(titulo).slice(0, 120), b = String(cuerpo || '').replace(/\s+/g, ' ').slice(0, 700) || t;
     const body = { app_id: app, target_channel: 'push', headings: { en: t, es: t }, contents: { en: b, es: b }, url: url || CFG.HUB_URL,
       chrome_web_icon: CFG.HUB_URL + '/assets/icons/icon-192.png', ttl: 3600 };
     if (emails && emails.length) body.include_aliases = { external_id: emails.map(e => String(e).toLowerCase()) };

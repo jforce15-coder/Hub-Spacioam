@@ -62,7 +62,7 @@ function agMejoraRonda_(a, adm, origen, pedido) {
   ].filter(String).join('\n');
   var r = paraClaudeCrear_(adm, { titulo: 'Mejora continua · ronda', app: 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
-  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claude' : 'error',
-    informe: r.ok ? 'Ronda enviada a Claude con los números de la semana. Su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: '' });
-  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda de mejora continua a Claude con los números de la semana. Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
+  agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claudio' : 'error',
+    informe: r.ok ? 'Ronda enviada a Claudio con los números de la semana. Su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: '' });
+  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda de mejora continua a Claudio con los números de la semana. Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
 }

@@ -167,7 +167,7 @@
       if (p.estado === "espera tu sí") {
         var bt = el("div", "bt"), si = el("button", "", "Sí, hazlo"), no = el("button", "no", "No");
         var decidir = function (ok) { si.disabled = no.disabled = true; ALMA.reporteLlamadas({ id: rep.id, decidir: { id: rep.id, n: p.n, si: ok } }).then(function (r) {
-          if (!r || !r.ok) { si.disabled = no.disabled = false; aviso((r && r.error) || "No se pudo"); return; } aviso(ok ? "Se lo pasé a Claude: su cambio llega a Pendientes" : "Descartada"); R = r; pintar(); }); };
+          if (!r || !r.ok) { si.disabled = no.disabled = false; aviso((r && r.error) || "No se pudo"); return; } aviso(ok ? "Se lo pasé a Claudio: su cambio llega a Pendientes" : "Descartada"); R = r; pintar(); }); };
         si.onclick = function () { decidir(true); }; no.onclick = function () { decidir(false); };
         bt.appendChild(si); bt.appendChild(no); c.appendChild(bt);
       }

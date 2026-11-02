@@ -47,8 +47,8 @@ function prsElegir_(cual, lista) {
 }
 
 function prUnirUno_(pr) {
-  if (pr.estado === 'fallo') return { ok: false, pr: pr.app + ' #' + pr.numero, error: 'Sus revisiones fallaron; Claude lo arregla primero.' };
-  if (pr.estado === 'choque') return { ok: false, pr: pr.app + ' #' + pr.numero, error: 'Choca con lo último de main; Claude tiene que ponerlo al día.' };
+  if (pr.estado === 'fallo') return { ok: false, pr: pr.app + ' #' + pr.numero, error: 'Sus revisiones fallaron; Claudio lo arregla primero.' };
+  if (pr.estado === 'choque') return { ok: false, pr: pr.app + ' #' + pr.numero, error: 'Choca con lo último de main; Claudio tiene que ponerlo al día.' };
   if (pr.estado === 'borrador') return { ok: false, pr: pr.app + ' #' + pr.numero, error: 'Todavía es un borrador.' };
   var r = unirGh_('put', '/repos/' + pr.repo + '/pulls/' + pr.numero + '/merge', { merge_method: 'merge' });
   if (r.codigo === 200) return { ok: true, pr: pr.app + ' #' + pr.numero, titulo: pr.titulo, url: pr.url };
@@ -69,6 +69,8 @@ function unirCambio_(cual) {
   if (elegidos.length > 1 && !/^tod[oa]s?$/i.test(String(cual).trim())) return { ok: false, error: 'Hay varios que coinciden; pregúntale cuál.', abiertos: elegidos.map(function (x) { return { cual: x.app + ' #' + x.numero, titulo: x.titulo, estado: x.estado }; }) };
   var res = elegidos.map(prUnirUno_);
   try { CacheService.getScriptCache().remove('prs_abiertos'); } catch (e) {}
+  /* Su microproyecto queda «unido» (#374): la tarjeta de Pendientes sigue la publicación y se cierra sola. */
+  res.forEach(function (x) { if (x.ok && x.url) { try { microUnido_(x.url); } catch (e) { console.error('microUnido_: ' + e); } } });
   return { ok: res.some(function (x) { return x.ok; }), unidos: res.filter(function (x) { return x.ok; }), no_unidos: res.filter(function (x) { return !x.ok; }),
     nota: 'Al unirse se publica solo; los bots de prueba lo revisan después.' };
 }

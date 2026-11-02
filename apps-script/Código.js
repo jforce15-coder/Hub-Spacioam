@@ -734,6 +734,7 @@ function procesarCola() {
     try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
     try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
     try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
+    try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
   }
   cupoCanal_('Epi');
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
@@ -4939,7 +4940,7 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   }
   /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan).
      Si ya pasó el plazo de la calle, la esfera se marca después para no hacerlo esperar más. */
-  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria) }, { canal: canal, diferir: !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '' }, { canal: canal, diferir: !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });
   yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
   /* Modo calle: la etiqueta [[conversar]] (hace falta hablarlo) sale del texto antes de guardarlo. */
   let conversar = false;

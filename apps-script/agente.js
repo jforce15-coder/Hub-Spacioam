@@ -41,7 +41,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· CIERRE CON PENDIENTES (solo con administradores, en voz y en chat): cuando la conversación llega a su cierre natural (ya resolviste lo pedido y no queda nada abierto en ella), en aproximadamente 1 de cada 3 o 4 cierres —no siempre, y nunca dos veces seguidas— ofrece repasar los pendientes en lugar del «¿algo más?» habitual: «¿Quieres que revisemos juntos los pendientes? Tenemos tres cosas importantes.». Antes de ofrecerlo, consulta con tareas_abiertas, promesas_abiertas, mensajes_programados y ENCARGOS PENDIENTES CONTIGO y nombra en una frase corta las 3 más relevantes (encargos abiertos, promesas a huéspedes, mensajes del equipo sin respuesta, tareas vencidas). Si no hay pendientes reales, no lo ofrezcas ni inventes ninguno. Si responde que no o lo pospone («después», «no ahorita», «luego»), acéptalo sin insistir y cierra normal. Si dice que sí, repásalos uno por uno, breve.' +
   '\n· Reviews, recordatorios y mensajes automáticos de UNA reserva: programados_reserva para verlos y cancelar_programados_reserva para quitarlos (filtro review para los de reseña). No digas que no puedes.';
 var SEMILLA_SECRETARIA_ = [
-  'Eres ALMA, la secretaria virtual del equipo administrativo de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala).',
+  'Eres ALMA, la asistente virtual del equipo administrativo de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala).',
   'Hablas con un administrador (te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
   '',
   'CÓMO TRABAJAS',
@@ -181,10 +181,11 @@ function agHerramientas_() {
     T('propuestas_agentes', 'Lo que tus agentes proponen y espera el sí de Juan (numeradas). Úsala cuando pregunte qué hay pendiente de los agentes o antes de aprobar.', {}),
     T('decidir_propuestas', 'Aprueba (se hace en ese momento) o rechaza propuestas de los agentes. Solo cuando Juan lo dice claro («apruébalas», «solo la 2», «la 3 no»).',
       { numeros: s('Números de la lista de propuestas_agentes separados por coma, o «todas»'), aprobar: { type: 'boolean', description: 'true aprueba (y se hace), false rechaza' } }, ['numeros', 'aprobar']),
-    T('mejora_para_claude', 'Arma el BORRADOR de un pedido para Claude (Juan también le dice «Claudio»; es la misma persona: el desarrollador que programa el Hub, Hola, Epi, Mi, Grow, Docs, la app de iPhone y a ti misma) un pedido para MEJORAR EL SISTEMA: una regla o un algoritmo que debe funcionar distinto, una función nueva, algo que falla. Úsala cuando el administrador principal diga «dile a Claude», «dile a Claudio», «esto hay que mejorarlo», «cambia la regla de…», «esto está fallando» o describa cómo debería funcionar algo. NO es para pedir información, cambiar un dato (eso lo haces tú) ni tu tono (eso es guardar_nota). Solo el administrador principal puede usarla; a otros diles que se lo pidan a Juan. Antes de llamarla, tradúcelo a una instrucción clara y completa para un programador: qué pasa hoy, cómo debe funcionar exactamente (reglas, casos, límites), un ejemplo concreto y cómo se sabrá que quedó bien. NO se envía: queda de borrador y el sistema le pregunta a Juan «¿Se lo mando a Claude?» (Mándalo · Agregar algo · No lo envíes); a Claude le llega solo cuando Juan dice «mándalo». Nunca digas que ya se lo pasaste.',
+    T('mejora_para_claude', 'Arma el BORRADOR de un pedido para Claude (Juan también le dice «Claudio» y tú siempre le dices «Claudio»; es la misma persona: el desarrollador que programa el Hub, Hola, Epi, Mi, Grow, Docs, la app de iPhone y a ti misma) un pedido para MEJORAR EL SISTEMA: una regla o un algoritmo que debe funcionar distinto, una función nueva, algo que falla. Úsala cuando el administrador principal diga «dile a Claude», «dile a Claudio», «esto hay que mejorarlo», «cambia la regla de…», «esto está fallando» o describa cómo debería funcionar algo. NO es para pedir información, cambiar un dato (eso lo haces tú) ni tu tono (eso es guardar_nota). Solo el administrador principal puede usarla; a otros diles que se lo pidan a Juan. Antes de llamarla, tradúcelo a una instrucción clara y completa para un programador: qué pasa hoy, cómo debe funcionar exactamente (reglas, casos, límites), un ejemplo concreto y cómo se sabrá que quedó bien. NO se envía: queda de borrador y el sistema le pregunta a Juan «¿Se lo mando a Claude?» (Mándalo · Agregar algo · No lo envíes); a Claude le llega solo cuando Juan dice «mándalo». Nunca digas que ya se lo pasaste.',
       { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
         tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
-        ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] } }, ['titulo', 'app', 'tipo', 'que_quiere']),
+        ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] },
+        microproyecto: s('Si es un ajuste de un microproyecto abierto (lista MICROPROYECTOS ABIERTOS), su id; «nuevo · <nombre corto>» si es otra cosa; «duda <id>» si no estás segura') }, ['titulo', 'app', 'tipo', 'que_quiere']),
     T('leer_correo', 'Abre un correo completo de la bandeja del Hub (la cuenta que manda desde hola@spacioam.com; ahí llega lo que Juan reenvía) para leerlo o usar sus datos: «el correo de los vuelos que te reenvié», «la confirmación de Delta». Devuelve remitente, asunto, fecha y el texto. Para mandar sus datos a alguien, usa después mensaje_personal o enviar_correo con los datos tal cual.',
       { buscar: s('Palabras para encontrarlo: remitente, asunto o algo del texto (ej. «Delta HP7BWP», «vuelos Bozeman»)') }, ['buscar']),
     T('enviar_correo', 'Manda un correo a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
@@ -517,9 +518,9 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var txm = [String(inp.titulo || '').trim(), String(inp.que_pasa || '').trim() && 'Qué pasa hoy: ' + String(inp.que_pasa).trim(), String(inp.que_quiere || '').trim(),
         String(inp.ejemplo || '').trim() && 'Ejemplo: ' + String(inp.ejemplo).trim()].filter(Boolean).join('\n');
       if (!txm) return { error: 'Falta qué quiere que cambie.' };
-      claudeBorradorPoner_(adm, txm);
+      claudeBorradorPoner_(adm, txm, { micro: inp.microproyecto });
       ctx.hechas.push({ tipo: 'borrador_claude', resumen: 'Borrador para Claude · ' + String(inp.titulo || txm).slice(0, 80) });
-      return { ok: true, borrador: true, enviado: false, nota: 'Quedó de BORRADOR: todavía no le llega a Claude. No digas que se lo pasaste; el sistema le pregunta a Juan «¿Se lo mando a Claude?».' };
+      return { ok: true, borrador: true, enviado: false, nota: 'Quedó de BORRADOR: todavía no le llega a Claudio. No digas que se lo pasaste; el sistema le pregunta a Juan «¿Se lo mando a Claudio?».' };
     }
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
@@ -546,6 +547,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 }
 
 /* ── Bucle del agente ── */
+var AGENTE_MI_SISTEMA_ = '\n\nMI SISTEMA (regla fija): nunca digas «secretaria» ni hables de «la secretaria» o de tus herramientas por su nombre. Si vas a consultar algo, di «lo reviso en mi sistema» o «voy a consultar con mi sistema»; si citas un resultado, «mi sistema dice…». Al desarrollador (Claude) llámalo «Claudio».';
 function opAgente_(adm, texto, canal, fotos, previos) {
   AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
@@ -572,6 +574,8 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
   system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
   system += chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
+  system += AGENTE_MI_SISTEMA_;   // nunca «la secretaria» ni nombres de herramientas: «mi sistema» (decisión de Juan, #374)
+  try { system += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
   return opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
 }
 /* El bucle: Claude piensa, usa herramientas y vuelve a pensar (máx. 8 vueltas). Con AGENTE_PLAZO_ (el plazo de una
@@ -621,12 +625,12 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
     msgs.push({ role: 'user', content: resultados });
   }
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
-  var et = chatSacarEtiqueta_(final); final = et.texto;
+  var mt = microSacarEtiqueta_(final), et = chatSacarEtiqueta_(mt.texto); final = et.texto;   // [[micro: …]] (microproyectos.js) y [[esfera: …]]
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
   /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una
      tarjeta o notificación por cada turno era ruido (Juan, 2-nov). */
   if (AGENTE_CANAL_ === 'segundo_plano') try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_); } catch (e) {}   // a Pendientes (pendientes.js)
-  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria };
+  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro };
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).

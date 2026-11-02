@@ -156,7 +156,7 @@ function rllProponer_(datos, previa) {
   try {
     var t = String(claude_(CFG.MODELO_REDACTOR, 1600, sys, usr, 0.3) || ''), j = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
     var P = (j.propuestas || []).slice(0, 6).map(function (x, i) { return { n: i + 1, titulo: String(x.titulo || '').slice(0, 90), porque: String(x.porque || '').slice(0, 300), efecto: String(x.efecto || '').slice(0, 200),
-      tipo: x.tipo === 'invisible' ? 'invisible' : 'visible', para_claude: String(x.para_claude || '').slice(0, 900), estado: x.tipo === 'invisible' ? 'con Claude' : 'espera tu sí' }; });
+      tipo: x.tipo === 'invisible' ? 'invisible' : 'visible', para_claude: String(x.para_claude || '').slice(0, 900), estado: x.tipo === 'invisible' ? 'con Claudio' : 'espera tu sí' }; });
     return { lectura: String(j.lectura || '').slice(0, 400), propuestas: P };
   } catch (e) { console.error('rllProponer_: ' + e); return { lectura: '', propuestas: [] }; }
 }
@@ -181,7 +181,7 @@ function rllGenerar_(adm, pedido) {
       que_quiere: 'Eres el equipo «Mejora de llamadas». Lee playbooks/mejora-llamadas.md y síguelo. Implementa en UN PR estas mejoras que no cambian nada de lo que Juan oye o ve; mide antes y después:\n' +
         inv.map(function (x) { return x.n + ') ' + x.titulo + ' — ' + x.para_claude + ' (efecto esperado: ' + x.efecto + ')'; }).join('\n') +
         (pedido ? '\n\nQUÉ PIDIÓ JUAN: ' + pedido : '') + '\n\nNúmeros de la semana (resumen): ' + JSON.stringify(rllResumen_(datos)).slice(0, 5000) });
-    inv.forEach(function (x) { x.estado = rc.ok ? 'con Claude' : 'no se pudo enviar'; });
+    inv.forEach(function (x) { x.estado = rc.ok ? 'con Claudio' : 'no se pudo enviar'; });
   }
   var sh = hojaRll_(), ya = rllReportes_().filter(function (r) { return r.id === sem.id; })[0];
   var row = { id: sem.id, semana: sem.semana, desde: sem.desde.toISOString(), hasta: sem.hasta.toISOString(), creado: new Date().toISOString(),
@@ -219,7 +219,7 @@ function reporteLlamadas_(ses, b) {
     if (b.decidir.si) {
       var rc = paraClaudeCrear_(adm, { titulo: 'Mejora de llamadas · ' + p.titulo, app: 'Alma voz', tipo: 'mejora', prioridad: 'normal',
         que_quiere: 'Juan aprobó esta propuesta del equipo «Mejora de llamadas» (lee playbooks/mejora-llamadas.md): ' + p.titulo + '. ' + p.para_claude + ' Efecto esperado: ' + p.efecto + '. Mide antes y después.' });
-      p.estado = rc.ok ? 'aprobada · con Claude' : 'aprobada · no se pudo enviar';
+      p.estado = rc.ok ? 'aprobada · con Claudio' : 'aprobada · no se pudo enviar';
     } else p.estado = 'no';
     r0.propuestas = JSON.stringify(P); agGuardar_(hojaRll_(), RLL_CAB_, r0);
     if (!P.some(function (x) { return x.estado === 'espera tu sí'; })) { try { pendFilas_().forEach(function (x) { if (x.origen === 'mejora_llamadas' && x.tipo === 'atencion' && x.estado === 'abierto') hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto'); }); } catch (e) {} }

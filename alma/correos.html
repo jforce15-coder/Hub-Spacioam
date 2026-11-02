@@ -50,7 +50,8 @@
   details.grupo .lista h4 { margin: 0; font: 600 13.5px/1.4 Montserrat, sans-serif; } details.grupo .lista small { color: #A39B93; font: 500 11.5px Montserrat, sans-serif; }
   .vacio { text-align: center; padding: 14px; font: 500 13px Montserrat, sans-serif; color: #A39B93; }
   .conectar input { width: 100%; font: 500 15px Montserrat, sans-serif; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--linea); background: #FAF8F6; margin-top: 8px; }
-  .conectar ol { margin: 10px 0 0; padding-left: 20px; font: 500 13px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  .espera { margin-top: 6px; font: 500 12.5px/1.5 Montserrat, sans-serif; color: #5A5856; }
+  .conectar ol, .card ol { margin: 10px 0 0; padding-left: 20px; font: 500 13px/1.6 Montserrat, sans-serif; color: #5A5856; }
   .forma { margin-top: 10px; display: none; } .forma.on { display: block; }
   .forma textarea, .hilo textarea { width: 100%; min-height: 70px; font: 500 14px/1.5 Montserrat, sans-serif; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--linea); background: #FAF8F6; resize: vertical; }
   .hilo textarea { min-height: 150px; margin-top: 8px; }
@@ -233,10 +234,35 @@
     cuentas();
   }
 
+  /* Arma el puente de una cuenta (con su llave de siempre) y muestra los pasos para pegarlo en esa cuenta. */
+  function prepararPuente(b, datos, paso) {
+    b.disabled = true;
+    ALMA.correos({ accion: "conectar", cuenta: datos.cuenta, proyecto: datos.proyecto }).then(function (r) {
+      b.disabled = false;
+      if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); return; }
+      if (typeof r.puente !== "string") { aviso("No pude armar el puente; intenta de nuevo"); return; }
+      paso.innerHTML = ""; var ol = el("ol");
+      ["Copia el puente (ya lleva tu llave).", "Abre script.google.com con la cuenta " + r.cuenta + " y crea un proyecto nuevo.", "Borra lo que trae, pega el puente y guarda.", "Arriba elige «instalar» y toca Ejecutar. Acepta los permisos (es tu propio script).", "Listo: en unos minutos tus correos aparecen aquí."]
+        .forEach(function (t) { ol.appendChild(el("li", "", t)); });
+      paso.appendChild(ol);
+      var b2 = el("div", "bt");
+      b2.appendChild(boton("Copiar el puente", "si", function () { navigator.clipboard.writeText(r.puente).then(function () { aviso("Puente copiado"); }, function () { aviso("No se pudo copiar"); }); }));
+      b2.appendChild(boton("Abrir script.google.com", "", function () { abrir("https://script.google.com/home/projects/create"); }));
+      paso.appendChild(b2);
+    }, function () { b.disabled = false; aviso("Sin conexión"); });
+  }
+
   /* Cuentas conectadas y conectar otra: la app arma el puente con su llave; se pega una vez en script.google.com con esa cuenta. */
   function cuentas() {
     raiz.appendChild(sec("Tus cuentas", D.cuentas.length || ""));
     D.cuentas.forEach(function (c) { var k = el("div", "card"), de = el("div", "de", c.proyecto || "Personal"); de.appendChild(el("span", "", c.ultima ? "revisó " + cuando(c.ultima) : "esperando el puente")); k.appendChild(de); k.appendChild(el("h4", "", c.cuenta));
+      /* «esperando el puente»: la cuenta ya tiene su llave, pero su puente nunca ha mandado nada (no se pegó o no se instaló) */
+      if (!c.ultima) {
+        k.appendChild(el("div", "espera", "Todavía no llega nada de esta cuenta. Falta pegar el puente en script.google.com con " + c.cuenta + " y ejecutar «instalar». Si ya lo hiciste, revisa que no tenga errores."));
+        var pk = el("div"), bk = el("div", "bt");
+        bk.appendChild(boton("Preparar el puente otra vez", "", function (b) { prepararPuente(b, { cuenta: c.cuenta, proyecto: c.proyecto }, pk); }));
+        k.appendChild(bk); k.appendChild(pk);
+      }
       var e = c.entrega || {};
       if (e.dominio) {
         var en = el("div", "entrega"), marca = function (ok, t) { var x = el("span", ok ? "ok" : "mal", (ok ? "✓ " : "✗ ") + t); return x; };
@@ -252,22 +278,7 @@
     var i2 = el("input"); i2.placeholder = "Proyecto (vacío si es personal)";
     f.appendChild(i1); f.appendChild(i2);
     var bt = el("div", "bt"), paso = el("div");
-    bt.appendChild(boton("Preparar el puente", "si", function (b) {
-      b.disabled = true;
-      ALMA.correos({ accion: "conectar", cuenta: i1.value, proyecto: i2.value }).then(function (r) {
-        b.disabled = false;
-        if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); return; }
-        if (typeof r.puente !== "string") { aviso("No pude armar el puente; intenta de nuevo"); return; }
-        paso.innerHTML = ""; var ol = el("ol");
-        [["Copia el puente (ya lleva tu llave)."], ["Abre script.google.com con la cuenta " + r.cuenta + " y crea un proyecto nuevo."], ["Borra lo que trae, pega el puente y guarda."], ["Arriba elige «instalar» y toca Ejecutar. Acepta los permisos (es tu propio script)."], ["Listo: en unos minutos tus correos aparecen aquí."]]
-          .forEach(function (t) { ol.appendChild(el("li", "", t[0])); });
-        paso.appendChild(ol);
-        var b2 = el("div", "bt");
-        b2.appendChild(boton("Copiar el puente", "si", function () { navigator.clipboard.writeText(r.puente).then(function () { aviso("Puente copiado"); }, function () { aviso("No se pudo copiar"); }); }));
-        b2.appendChild(boton("Abrir script.google.com", "", function () { abrir("https://script.google.com/home/projects/create"); }));
-        paso.appendChild(b2);
-      }, function () { b.disabled = false; aviso("Sin conexión"); });
-    }));
+    bt.appendChild(boton("Preparar el puente", "si", function (b) { prepararPuente(b, { cuenta: i1.value, proyecto: i2.value }, paso); }));
     f.appendChild(bt); f.appendChild(paso); raiz.appendChild(f);
   }
 

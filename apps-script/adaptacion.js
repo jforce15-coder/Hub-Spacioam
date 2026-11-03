@@ -11,16 +11,24 @@ var ADAPT_TEMAS_ = { limpieza: /limpie|aseo|sucio/i, mantenimiento: /mantenim|re
   cobros: /cobro|pago|factura|reembolso|dep[óo]sito|precio|tarifa/i, tareas: /tarea|pendiente|asign|recordatorio/i, familia: /ni[ñn]os|familia|escuela|viaje|vuelo/i, ideas: /idea|estrategia|proyecto|crecer|marca/i };
 function adaptTope_(rol) {
   var p = PropertiesService.getScriptProperties();
-  var v = Number(p.getProperty(rol === 'huesped' ? 'ALMA_ADAPTACION_TOPE_HUESPED' : 'ALMA_ADAPTACION_TOPE'));
-  if (!isFinite(v) || v <= 0) v = rol === 'huesped' ? 20 : 60;
+  var raw = p.getProperty(rol === 'huesped' ? 'ALMA_ADAPTACION_TOPE_HUESPED' : 'ALMA_ADAPTACION_TOPE');
+  var v = raw == null || raw === '' ? NaN : Number(raw);   // 0 % vale (Alma siempre neutra); sin propiedad, el de siempre
+  if (!isFinite(v) || v < 0) v = rol === 'huesped' ? 20 : 60;
   return Math.max(0, Math.min(100, Math.round(v)));
 }
-/* Solo el administrador principal fija el tope (lo llamará el Hub en el siguiente ticket). */
+/* Solo el administrador principal fija el tope (Ajustes → Personalidad de Alma: personalidadFijar, medidores.js). */
 function adaptFijarTope_(adm, rol, valor) {
   if (!adm || !adm.principal) return { ok: false, error: 'Solo el administrador principal fija el tope.' };
   var v = Math.max(0, Math.min(100, Math.round(Number(valor)))); if (!isFinite(v)) return { ok: false, error: 'valor' };
   PropertiesService.getScriptProperties().setProperty(rol === 'huesped' ? 'ALMA_ADAPTACION_TOPE_HUESPED' : 'ALMA_ADAPTACION_TOPE', String(v));
   return { ok: true, tope: v };
+}
+/* Solo leer (sin contar un mensaje): el nivel de hoy con el tope de hoy, para Ajustes y la llamada (medidores.js). */
+function adaptLeer_(clave, rol) {
+  clave = String(clave || '').toLowerCase().trim(); var tope = adaptTope_(rol), msgs = 0;
+  var sh = clave ? ssAlma_().getSheetByName('ALMA_ADAPTACION') : null, n = sh ? sh.getLastRow() : 0;
+  if (n >= 2) { var v = sh.getRange(2, 1, n - 1, 3).getValues(); for (var i = 0; i < v.length; i++) if (String(v[i][0]) === clave) { msgs = Number(v[i][2]) || 0; break; } }
+  return { nivel: Math.min(tope, Math.floor(msgs / ADAPT_CADA_) * ADAPT_PASO_), tope: tope, mensajes: msgs };
 }
 function adaptJ_(s, def) { try { return JSON.parse(s) || def; } catch (e) { return def; } }
 /* Cuenta un mensaje de la persona. Devuelve el estado { nivel, tope, mensajes }. */

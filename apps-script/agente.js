@@ -591,7 +591,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE d MMM HH:mm');
   var notas = previos.filter(function (m) { return m.acciones.some(function (a) { return a.tipo === 'nota'; }); }).map(function (m) { return m.acciones.filter(function (a) { return a.tipo === 'nota'; }).map(function (a) { return '· ' + a.texto; }).join('\n'); });
   /* Modo Weebo con el administrador: sensibilidad según el tema (serio, normal o estratégico). */
-  var weebo = ''; try { var corteW = Date.now() - 6 * 3600000; weebo = weeboBloque_({ contexto: 'admin', texto: texto, historial: previos.filter(function (m) { return m.de === 'yo' && new Date(m.ts).getTime() >= corteW; }).map(function (m) { return m.texto; }) }); } catch (e) {}
+  var weebo = ''; try { var corteW = Date.now() - 6 * 3600000; weebo = weeboBloque_({ contexto: 'admin', principal: !!adm.principal, clave: adm.email, texto: texto, historial: previos.filter(function (m) { return m.de === 'yo' && new Date(m.ts).getTime() >= corteW; }).map(function (m) { return m.texto; }) }); } catch (e) {}
   /* Adaptación a la persona: +5 % cada 10 mensajes hasta el tope (adaptacion.js). */
   var adapt = ''; try { adapt = canal === 'segundo_plano' ? '' : adaptBloque_(adm.email, 'admin', texto); } catch (e) {}
   var system = secretariaPrompt_() + weebo + adapt + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +

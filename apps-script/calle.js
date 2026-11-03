@@ -15,6 +15,12 @@
    frases repetidas («Listo.», «Sigo en eso…») quedan 6 h en caché. Cuenta en el cupo como «Voz» (nunca se pausa).
    calleVoz { texto }: solo la voz de Alma para una frase que la app dice sin audio (sus propios avisos de error, la
    respuesta del chat); la voz del iPhone (femenina, elegida por la app) queda solo para cuando no hay internet.
+   POR QUÉ NO HUBO VOZ (Juan, 3-nov-2026, TestFlight 142: «el Hub no mandó la voz» y nadie sabía por qué): calleAudio_
+   deja el motivo en CALLE_VOZ_MOTIVO_ (sin llave, apagada, sin permiso «Text to Speech» en la llave, sin créditos, la voz
+   no existe, ElevenLabs falló…) y calleVoz lo devuelve en `motivo`: la app lo pone en el diagnóstico («el Hub no mandó la
+   voz: <motivo>»). Si ElevenLabs dice que la llave no tiene permiso o no hay créditos, no se le vuelve a preguntar en 5 min
+   (calle_voz_no, en caché): contesta al instante con el mismo motivo. Si rechaza el modelo rápido para esta voz (400/422),
+   se intenta una vez con VOZ_TTS_MODELO (o eleven_multilingual_v2). Nunca se escribe la llave: solo si falta.
 
    NOTIFICACIÓN HABLADA: la app dice al oído los avisos importantes (los que piden algo de Juan) y escucha 8 s.
    vozAvisos (voz.js) trae en cada aviso su frase corta (hablar) e importante; avisoHablar { aviso_id } da además el
@@ -35,6 +41,9 @@ var CALLE_VOZ_MAX_ = 400;          // calleVoz: lo más largo que se convierte e
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
 var CALLE_SIGUE_ = 'Sigo en eso; te aviso al terminar.';   // todavía no está hecho: nada de «Listo» (Juan, 3-nov-2026)
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
+var CALLE_TTS_MODELO_ = 'eleven_flash_v2_5';   // el modelo rápido (la Propiedad CALLE_TTS_MODELO lo cambia)
+var CALLE_VOZ_NO_MIN_ = 5;         // sin permiso o sin créditos: minutos sin volver a preguntarle a ElevenLabs
+var CALLE_VOZ_MOTIVO_ = '';        // por qué la última frase salió sin audio ('' si salió bien)
 var CALLE_SILENCIO_S_ = 6;         // sueño: segundos de silencio de Juan, después de que Alma habló, para colgar
 var CALLE_TOPE_S_ = 45;            // sueño: segundos sin que Alma hable para colgar aunque haya ruido o gente cerca
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
@@ -56,7 +65,7 @@ function calle_(ses, b) {
   finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; }
   if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false };
   var out = calleRespuesta_(adm, r);
-  var audio = calleAudio_(out.hablar, t0); if (audio) out.audio = audio;
+  var audio = calleAudio_(out.hablar, t0); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
   return out;
 }
 
@@ -128,43 +137,76 @@ function calleEntrada_(t) {
   return calleCorto_(una || base, CALLE_PALABRAS_) || 'Mejor lo hablamos.';
 }
 
-/* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya pasó CALLE_AUDIO_PLAZO_ o si ElevenLabs falló.
-   Las frases cortas quedan 6 h en la caché (una sola parte de 90 KB como mucho: más larga, no se guarda). */
+/* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya pasó CALLE_AUDIO_PLAZO_ o si ElevenLabs falló; el
+   porqué queda en CALLE_VOZ_MOTIVO_. Las frases cortas quedan 6 h en la caché (una sola parte de 90 KB como mucho: más
+   larga, no se guarda). */
 function calleAudio_(hablar, t0) {
+  CALLE_VOZ_MOTIVO_ = '';
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY');
   var texto = ''; try { texto = vozSinNotas_(hablar); } catch (e) { texto = String(hablar || ''); }
   texto = String(texto || '').trim();
-  if (!key || !texto || p.getProperty('CALLE_AUDIO') === '0') return '';
-  if (t0 && Date.now() - t0 > CALLE_AUDIO_PLAZO_) return '';   // la app está por dejar de esperar: que hable el iPhone
+  if (!texto) { CALLE_VOZ_MOTIVO_ = 'la frase venía vacía'; return ''; }
+  if (!key) { CALLE_VOZ_MOTIVO_ = 'falta ELEVENLABS_KEY en las Propiedades del script'; return ''; }
+  if (p.getProperty('CALLE_AUDIO') === '0') { CALLE_VOZ_MOTIVO_ = 'la voz está apagada (Propiedad CALLE_AUDIO = 0)'; return ''; }
+  if (t0 && Date.now() - t0 > CALLE_AUDIO_PLAZO_) { CALLE_VOZ_MOTIVO_ = 'la respuesta tardó más de ' + (CALLE_AUDIO_PLAZO_ / 1000) + ' s'; return ''; }   // la app está por dejar de esperar
   var voz = '', c = CacheService.getScriptCache(), k = '';
   try {
+    var no = c.get('calle_voz_no'); if (no) { CALLE_VOZ_MOTIVO_ = no; return ''; }   // sin permiso o sin créditos: no se insiste
     voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
     k = 'callevoz_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voz + '|' + texto, Utilities.Charset.UTF_8));
     var ya = c.get(k); if (ya) return ya;
   } catch (e) { console.error('calleAudio_ caché: ' + e); }
-  var ini = Date.now();
-  try {
-    var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz || CALLE_VOZ_RESPALDO_) + '?output_format=mp3_44100_64', {
-      method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
-      payload: JSON.stringify({ text: texto, model_id: 'eleven_flash_v2_5', voice_settings: { stability: 0.6, similarity_boost: 0.8, speed: 1.05 } }) }, 'Voz');
-    var ms = Date.now() - ini;
-    if (r.getResponseCode() !== 200) { console.error('calleAudio_ ' + r.getResponseCode() + ': ' + String(r.getContentText()).slice(0, 200)); return ''; }
-    if (ms > 3000) console.warn('calleAudio_: ElevenLabs tardó ' + ms + ' ms (el audio igual se manda)');
-    var b64 = Utilities.base64Encode(r.getBlob().getBytes());
-    if (k && b64.length <= 90000) { try { c.put(k, b64, 21600); } catch (e) {} }
-    return b64;
-  } catch (e) { console.error('calleAudio_: ' + e); return ''; }
+  voz = voz || CALLE_VOZ_RESPALDO_;
+  var rapido = p.getProperty('CALLE_TTS_MODELO') || CALLE_TTS_MODELO_, otro = p.getProperty('VOZ_TTS_MODELO') || 'eleven_multilingual_v2';
+  var modelos = otro !== rapido ? [rapido, otro] : [rapido];
+  for (var i = 0; i < modelos.length; i++) {
+    var ini = Date.now(), r;
+    try {
+      r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+        payload: JSON.stringify({ text: texto, model_id: modelos[i], voice_settings: { stability: 0.6, similarity_boost: 0.8, speed: 1.05 } }) }, 'Voz');
+    } catch (e) { CALLE_VOZ_MOTIVO_ = 'no pude llamar a ElevenLabs (' + String(e).slice(0, 90) + ')'; console.error('calleAudio_: ' + e); return ''; }
+    var ms = Date.now() - ini, code = r.getResponseCode();
+    if (code === 200) {
+      if (ms > 3000) console.warn('calleAudio_: ElevenLabs tardó ' + ms + ' ms (el audio igual se manda)');
+      if (i > 0) console.warn('calleAudio_: ' + modelos[0] + ' no sirvió con la voz ' + voz + '; salió con ' + modelos[i]);
+      var b64 = Utilities.base64Encode(r.getBlob().getBytes());
+      if (k && b64.length <= 90000) { try { c.put(k, b64, 21600); } catch (e) {} }
+      return b64;
+    }
+    var cuerpo = String(r.getContentText() || '').slice(0, 400), m = calleVozMotivo_(code, cuerpo, voz, modelos[i]);
+    console.error('calleAudio_ ' + code + ' (' + modelos[i] + '): ' + cuerpo.slice(0, 200));
+    CALLE_VOZ_MOTIVO_ = m.motivo;
+    if (m.pausar) { try { c.put('calle_voz_no', m.motivo, CALLE_VOZ_NO_MIN_ * 60); } catch (e) {} }
+    if (!m.otroModelo) return '';
+  }
+  return '';
+}
+/* Lo que contestó ElevenLabs → { motivo, pausar, otroModelo }: el motivo en palabras simples para el diagnóstico,
+   si conviene dejar de preguntar unos minutos (permiso o créditos) y si vale la pena intentar con otro modelo. */
+function calleVozMotivo_(code, cuerpo, voz, modelo) {
+  var d = {}; try { d = (JSON.parse(cuerpo || '{}') || {}).detail || {}; } catch (e) {}
+  if (typeof d === 'string') d = { message: d };
+  var st = String(d.status || d.code || '').toLowerCase(), msg = String(d.message || d.msg || (Array.isArray(d) && d[0] && d[0].msg) || '').slice(0, 120);
+  var todo = (st + ' ' + msg + ' ' + String(cuerpo || '')).toLowerCase();
+  if (/missing_permissions|permission/.test(todo)) return { motivo: 'la llave de ElevenLabs no tiene el permiso «Text to Speech» (actívalo en ElevenLabs → API keys)', pausar: true, otroModelo: false };
+  if (/quota_exceeded|credits|insufficient/.test(todo) || code === 402) return { motivo: 'se acabaron los créditos de ElevenLabs', pausar: true, otroModelo: false };
+  if (/invalid_api_key|api key/.test(todo) || code === 401) return { motivo: 'ElevenLabs no acepta la llave ELEVENLABS_KEY (401' + (st ? ' ' + st : '') + ')', pausar: true, otroModelo: false };
+  if (code === 429) return { motivo: 'ElevenLabs está ocupada (429: demasiadas a la vez)', pausar: false, otroModelo: false };
+  if (/voice_not_found/.test(todo) || code === 404) return { motivo: 'ElevenLabs no encuentra la voz ' + voz, pausar: false, otroModelo: false };
+  if (code === 400 || code === 422) return { motivo: 'ElevenLabs rechazó ' + modelo + ' con la voz ' + voz + ' (' + code + (msg ? ': ' + msg : st ? ': ' + st : '') + ')', pausar: false, otroModelo: true };
+  return { motivo: 'ElevenLabs respondió ' + code + (msg ? ': ' + msg : st ? ': ' + st : ''), pausar: false, otroModelo: false };
 }
 
 /* calleVoz { texto } → { ok, audio } — la voz de Alma para una frase que la app iba a decir sin audio. Sin audio
-   (sin llave o ElevenLabs falló): { ok: false } y la app usa la voz del iPhone. */
+   (sin llave o ElevenLabs falló): { ok: false, motivo } y la app usa la voz del iPhone y anota el motivo. */
 function calleVoz_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var texto = String(b.texto || '').trim().slice(0, CALLE_VOZ_MAX_);
   if (!texto) return { ok: false, error: 'falta el texto' };
   var audio = calleAudio_(texto, 0);
-  return audio ? { ok: true, audio: audio } : { ok: false, error: 'sin audio' };
+  return audio ? { ok: true, audio: audio } : { ok: false, error: 'sin audio', motivo: CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio' };
 }
 
 /* Los segundos del sueño para la ficha de la llamada (vozWebInicio_). Se ajustan sin otra versión con las Propiedades del
@@ -241,7 +283,7 @@ function avisoHablar_(ses, b) {
   if (b.resultado) a = Object.assign({}, a, { resultado: true });
   var h = avisoHablarDe_(a, retLeer_(adm), pends), t0 = Date.now();
   var out = { ok: true, id: id, nivel: h.nivel, hablar: h.hablar, importante: h.importante };
-  var audio = calleAudio_(h.hablar, t0); if (audio) out.audio = audio;
+  var audio = calleAudio_(h.hablar, t0); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
   return out;
 }
 function calleAvisoHist_(adm, id) {

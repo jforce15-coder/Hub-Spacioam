@@ -3251,6 +3251,7 @@ function hubApi_(body) {
       case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: { usos: [...] } → filas de uso en ALMA_CALLE_USO (calle.js)
       case 'viajes': return json_(viajes_(ses, body));                                     // botón del avión: { forzar? } → el viaje cercano de tu correo (viajes.js)
       case 'viajePase': return json_(viajePase_(ses, body));                               // botón del avión: { id, pdf? } → el pase de abordar (imagen, PDF o Wallet)
+      case 'vueloVivo': return json_(vueloVivoAccion_(ses));                               // tarjeta del vuelo: puerta, embarque y número al día (vuelovivo.js, FlightAware)
       case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'dsPropuestas': return json_(dsPropuestas_());

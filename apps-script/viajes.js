@@ -61,6 +61,9 @@ function viajes_(ses, b) {
   out.viajes = lista.filter(function (v) { return viajeVigente_(v, ahora); }).map(function (v) { return viajeCalcular_(v); })
     .sort(function (x, y) { return String(x.desde).localeCompare(String(y.desde)); });
   out.proximo = viajeProximo_(out.viajes, ahora);
+  /* El próximo tramo lleva lo vivo (vuelovivo.js): puerta, embarque y número de quien lo vuela. FlightAware solo se
+     pregunta dentro de su ventana; fuera de ella sale lo del correo y lo último guardado. */
+  if (out.proximo) { var pv = out.viajes.filter(function (v) { return v.id === out.proximo.viaje; })[0]; if (pv) pv.tramos[out.proximo.tramo].vivo = vueloVivo_(pv, pv.tramos[out.proximo.tramo], ahora); }
   return out;
 }
 
@@ -75,8 +78,9 @@ function viajesParaAlma_(adm) {
   var lugar = function (l) { return (l.ciudad || '') + (l.iata ? ' (' + l.iata + ')' : '') + (l.terminal ? ' · terminal ' + l.terminal : ''); };
   return { ok: true, revisado_en: 'lo ya guardado del botón del avión', viajes: viajes.map(function (v) {
     return { confirmacion: v.confirmacion, aerolinea: v.aerolinea, pasajero: v.pasajero, checkin_url: v.checkin_url,
-      tramos: v.tramos.map(function (t) { return { vuelo: t.vuelo, opera: t.opera || v.aerolinea, desde: lugar(t.origen), hasta: lugar(t.destino), sale: t.sale, llega: t.llega,
-        llegar_al_aeropuerto: t.llegar, checkin_abre: t.checkin_abre, puerta: t.puerta, asiento: t.asiento }; }) };
+      tramos: v.tramos.map(function (t) { var vv = vueloVivo_(v, t, ahora, { soloGuardado: true }) || {};   // lo último de FlightAware, sin preguntar
+        return { vuelo: vv.numero || t.vuelo, boleto: t.vuelo, opera: t.opera || v.aerolinea, desde: lugar(t.origen), hasta: lugar(t.destino), sale: vv.sale || t.sale, llega: t.llega,
+        llegar_al_aeropuerto: t.llegar, checkin_abre: t.checkin_abre, puerta: vv.puerta || t.puerta, puerta_antes: vv.puerta_antes || undefined, embarque_aprox: vv.embarque, estado: vv.estado || undefined, asiento: t.asiento }; }) };
   }) };
 }
 

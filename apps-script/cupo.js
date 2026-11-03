@@ -49,7 +49,7 @@ var CUPO_ACCIONES_ = {
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
     'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision',
   cerebro: 'cerebro conexiones',
-  viajes: 'viajes viajePase',   // botón del avión (viajes.js): leer el correo con la IA se pausa como lo de fondo, salvo con un tramo en 48 h
+  viajes: 'viajes viajePase vueloVivo',   // botón del avión (viajes.js): leer el correo con la IA se pausa como lo de fondo, salvo con un tramo en 48 h
   fondo: 'mejoras automejora purgarAutomejora mejoraEditar mejoraEliminar mejoraVerificar proponerMejora prompts setPrompt agentes correos usoIA usoMensual uso ' +
     'setConocimiento setPropiedadDato dsPropuestas dsDecidir'
 };

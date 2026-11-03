@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../ds/tokens/typography.css">
 <link rel="stylesheet" href="../ds/tokens/radius-shadow.css">
 <!--
-  Las conexiones de Alma (Claude, Spotify, Google Home). Archivo propio del repo (no lo toca el export de Claude Design).
+  Las conexiones de Alma (Claude, Spotify, FlightAware, Google Home). Archivo propio del repo (no lo toca el export de Claude Design).
   Solo el admin principal. Las llaves van directo al Apps Script con la sesión firmada y nunca se vuelven a mostrar
   (la pantalla de Propiedades del script no deja agregar más de 50).
 -->
@@ -69,6 +69,19 @@
     <label for="sp-sec">Client Secret</label><input id="sp-sec" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="••••••••">
     <div class="fila"><button type="button" id="b-sp-guardar">Guardar</button><button type="button" class="peach" id="b-sp-conectar">Conectar Spotify</button></div>
     <div class="msg" id="m-spotify"></div>
+  </section>
+
+  <section id="s-flightaware">
+    <h2>FlightAware <span class="pill" id="e-fa">Revisando…</span></h2>
+    <p>Para la tarjeta de tu vuelo en el inicio de la app: la puerta y el embarque al día, y el número de la aerolínea que de verdad lo vuela. Sin esta llave se ve lo de tus correos.</p>
+    <ol>
+      <li>Entra a <a href="https://www.flightaware.com/aeroapi/portal/" target="_blank" rel="noopener">flightaware.com/aeroapi/portal</a> y crea tu cuenta (o entra con la de FlightAware).</li>
+      <li>Elige el plan <b>Personal</b> (trae $5 gratis al mes). Pide una tarjeta, pero solo cobra si pasas de los $5.</li>
+      <li>En <b>API Keys</b> toca <b>Create API Key</b>, ponle de nombre <b>Alma</b>, cópiala y pégala aquí.</li>
+    </ol>
+    <label for="fa">Llave de FlightAware</label><input id="fa" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Letras y números">
+    <div class="fila"><button type="button" id="b-fa">Guardar</button></div>
+    <div class="msg" id="m-fa"></div>
   </section>
 
   <section id="s-google">
@@ -150,6 +163,8 @@
     pill('e-claude', r.claude, 'Conectado', 'Sin llave');
     pill('e-github', r.github, 'Conectado', 'Sin llave');
     pill('e-login', r.loginSecreto, 'Listo', 'Sin llave');
+    var fa = r.flightaware || {}; pill('e-fa', fa.llave, 'Conectado', 'Sin llave');
+    if (fa.llave && !$('m-fa').textContent) msg('m-fa', 'Este mes: ' + (fa.consultas || 0) + ' consultas (≈ $' + Number(fa.costo || 0).toFixed(2) + ' de los $5 gratis).' + (fa.error ? ' Último error: ' + fa.error + '.' : ''), fa.error ? 'mal' : '');
     var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
     if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
     $('b-bq-cargar').hidden = !(bq.proyecto && bq.cuenta); $('cer-extra').hidden = !(bq.proyecto && bq.cuenta); cerebroPintar(r.cerebro);
@@ -260,6 +275,12 @@
   $('b-ls').onclick = function () {
     var v = $('ls').value.trim(); if (v.length < 32) return msg('m-login', 'Pega el valor completo de SESSION_SECRET (es un texto largo).', 'mal');
     llamar({ guardar: { loginSecreto: v } }).then(function (r) { $('ls').value = ''; if (pintar(r) && r.ok) msg('m-login', 'Guardada. Si el login no contesta, el Hub comprueba tu sesión él mismo.', 'bien'); else msg('m-login', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  /* FlightAware: la llave va directo al Hub (Propiedad FLIGHTAWARE_KEY) y no se vuelve a mostrar. */
+  $('b-fa').onclick = function () {
+    var v = $('fa').value.trim(); if (!/^[A-Za-z0-9]{20,64}$/.test(v)) return msg('m-fa', 'Pega la llave completa: son letras y números, sin espacios.', 'mal');
+    msg('m-fa', 'Guardando…');
+    llamar({ guardar: { flightaware: v } }).then(function (r) { $('fa').value = ''; if (pintar(r) && r.ok) msg('m-fa', 'Guardada. La tarjeta de tu vuelo se actualiza sola desde 3 h antes de salir.', 'bien'); else msg('m-fa', (r && r.error) || 'No se pudo.', 'mal'); });
   };
   $('b-cl').onclick = function () {
     var v = $('cl').value.trim(); if (!v) return msg('m-claude', 'Pega primero la llave.', 'mal');

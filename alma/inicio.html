@@ -294,6 +294,42 @@
   .ajustes.avion.alerta::after { content: ""; position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
   .ajustes.avion[hidden] { display: none; }
   body.orbita-on .ajustes.avion { opacity: 0 !important; pointer-events: none !important; }
+  /* ── Tarjeta del vuelo (vuelovivo.js): de 1 h antes de la salida a 15 min después, el pase de abordar compacto entre
+     «Hola, Juan» y la roca (sin moverla). Izquierda: número de quien vuela, vendido por · opera, estado y asiento.
+     Derecha: puerta y embarque. Alabastro sólido con su corte y sus muescas. Tocarla abre «Tu viaje». ── */
+  .vj-vivo { position: fixed; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); top: var(--vv-top, 132px); z-index: 2147482400;
+    max-width: 520px; margin: 0 auto; height: 90px; display: flex; padding: 0; border: 0; border-radius: 20px; text-align: left; cursor: pointer; color: #3E3F3F;
+    font-family: Montserrat, system-ui, sans-serif; background: rgba(250,250,250,.96); -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 18px 36px -22px rgba(70,50,40,.55), inset 0 0 0 .5px rgba(255,255,255,.8);
+    -webkit-mask: radial-gradient(circle 8px at var(--vv-corte) 0, transparent 7.5px, #000 8px) top / 100% 51% no-repeat, radial-gradient(circle 8px at var(--vv-corte) 100%, transparent 7.5px, #000 8px) bottom / 100% 51% no-repeat;
+    mask: radial-gradient(circle 8px at var(--vv-corte) 0, transparent 7.5px, #000 8px) top / 100% 51% no-repeat, radial-gradient(circle 8px at var(--vv-corte) 100%, transparent 7.5px, #000 8px) bottom / 100% 51% no-repeat;
+    --vv-corte: 136px; opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity .6s var(--ease, cubic-bezier(.22,.61,.36,1)), transform .6s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  .vj-vivo.on { opacity: 1; transform: none; pointer-events: auto; }
+  .vj-vivo:active { transform: scale(.985); }
+  .vj-vivo[hidden] { display: none; }
+  body.orbita-on .vj-vivo { opacity: 0 !important; pointer-events: none !important; }
+  body.vv-arriba .hola { opacity: 0 !important; }   /* pantalla chica (iPhone SE): la tarjeta toma el lugar del saludo */
+  .vj-vivo .izq { flex: none; width: var(--vv-corte); padding: 14px 8px 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0;
+    border-right: 1.5px dashed rgba(62,63,63,.16); }
+  .vj-vivo .num { display: block; font: 600 21px/1 Montserrat, system-ui, sans-serif; letter-spacing: .02em; white-space: nowrap; }
+  .vj-vivo .por { display: block; margin-top: 4px; font: 500 10px/1.25 Montserrat, system-ui, sans-serif; color: #6F6867; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vj-vivo .meta { display: flex; align-items: center; gap: 5px; font: 600 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #938B8A; white-space: nowrap; overflow: hidden; }
+  .vj-vivo .meta .p { flex: none; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .vj-vivo .meta .e { overflow: hidden; text-overflow: ellipsis; }
+  .vj-vivo .meta .e.ok { color: #3d6b52; } .vj-vivo .meta .e.tarde, .vj-vivo .meta .e.mal { color: #B54D36; }
+  .vj-vivo .der { flex: 1; min-width: 0; display: grid; grid-template-columns: 1fr 1fr; padding: 14px 0 12px; }
+  .vj-vivo .cel { padding: 0 8px; display: flex; flex-direction: column; min-width: 0; }
+  .vj-vivo .cel + .cel { border-left: .5px solid rgba(62,63,63,.12); }
+  .vj-vivo .et { font: 600 9px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #938B8A; white-space: nowrap; }
+  .vj-vivo .val { margin-top: 5px; font: 400 30px/1 Valky, Georgia, serif; letter-spacing: .01em; white-space: nowrap; }
+  .vj-vivo .val.h { margin-top: 3px; font: 500 25px/1.2 Montserrat, system-ui, sans-serif; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .vj-vivo .val.pend { margin-top: 7px; font: 500 13px/1.3 Montserrat, system-ui, sans-serif; color: #6F6867; white-space: normal; }
+  .vj-vivo .nota { margin-top: auto; display: flex; align-items: center; gap: 4px; font: 500 9px/1.2 Montserrat, system-ui, sans-serif; color: #938B8A; white-space: nowrap; overflow: hidden; }
+  .vj-vivo .nota.cambio { color: #B54D36; }
+  .vj-vivo .nota.cambio::before { content: ""; flex: none; width: 5px; height: 5px; border-radius: 50%; background: #E9826A; }
+  .vj-vivo .nota s { color: #938B8A; }
+  @media (max-width: 380px) { .vj-vivo .val.h { font-size: 23px; } .vj-vivo .val { font-size: 28px; } .vj-vivo .nota { font-size: 8.5px; } }
+  @media (prefers-reduced-motion: reduce) { .vj-vivo { transition: opacity .2s ease; transform: none; } }
   .panel.viaje { max-height: 92vh; padding-left: 14px; padding-right: 14px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; z-index: 2147483250; }
   .panel.viaje h2 { margin-bottom: 10px; }
   #vj-velo { z-index: 2147483240; }
@@ -310,9 +346,12 @@
   .vj-ruta svg { flex: none; width: 26px; height: 26px; color: #E9826A; }
   .vj-vuelo { margin-top: 10px; font: 600 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; }
   .vj-vuelo span { font-weight: 500; color: #8A8580; }
-  .vj-datos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
-  .vj-datos div { background: #F6F2EE; border-radius: 14px; padding: 9px 10px; min-width: 0; }
-  .vj-datos small { display: block; font: 700 9px Montserrat, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #A39B93; }
+  .vj-vuelo small { display: block; margin-top: 2px; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; }
+  .vj-datos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .vj-datos div { background: #F6F2EE; border-radius: 14px; padding: 9px 8px; min-width: 0; }
+  .vj-datos small { display: block; font: 700 9px Montserrat, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #A39B93; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vj-datos i { display: block; margin-top: 2px; font: 500 10px Montserrat, system-ui, sans-serif; font-style: normal; color: #8A8580; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vj-datos i.cambio { color: #B54D36; }
   .vj-datos b { display: block; margin-top: 3px; font: 600 17px Montserrat, system-ui, sans-serif; color: #3E3F3F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .vj-nota { margin: 8px 2px 0; font: 500 12px/1.4 Montserrat, system-ui, sans-serif; color: #8A8580; }
   .vj-llegar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 16px; background: rgba(233,130,106,.12); color: #A9543F;
@@ -418,6 +457,7 @@
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg></button>
 <button type="button" class="ajustes avion" id="b-avion" aria-label="Tu viaje" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></button>
+<button type="button" class="vj-vivo" id="vj-vivo" aria-label="Tu vuelo" hidden></button>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
@@ -1484,7 +1524,8 @@
   }
   function pintarBoton() {
     var b = $("b-avion"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
-    if (!vs.length) { b.classList.remove("on"); b.hidden = true; return; }
+    var conTarjeta = pintarVivo();
+    if (!vs.length || conTarjeta) { b.classList.remove("on"); b.hidden = true; if (VJ.abierto) pintar(); return; }
     ubicar(); setTimeout(ubicar, 1500); setTimeout(ubicar, 4000);   // la roca termina de llegar a su lugar
     b.hidden = false; b.classList.toggle("alerta", !!(p && (p.foco || (p.checkin && ms(p.t.sale) - Date.now() < 24 * H))));
     requestAnimationFrame(function () { b.classList.add("on"); });
@@ -1495,7 +1536,7 @@
     if (VJ.cargando) return VJ.cargando;
     VJ.cargando = hub("viajes", forzar ? { forzar: 1 } : {}).then(function (r) {
       VJ.cargando = null;
-      if (r && r.ok) { VJ.datos = r; VJ.datos.recibido = Date.now(); fotoGuardar(r); pintarBoton(); }
+      if (r && r.ok) { VJ.datos = r; VJ.datos.recibido = Date.now(); VV.ultimo = Date.now(); fotoGuardar(r); pintarBoton(); }
       if (r && r.ok && r.faltan && (VJ.vueltas = (VJ.vueltas || 0) + 1) < 6) setTimeout(function () { cargar(true); }, 500);   // quedaron correos por leer: sigue solo
       else if (VJ.abierto) pintar(r && r.error);
       return r;
@@ -1504,22 +1545,79 @@
     return VJ.cargando;
   }
 
+  /* ── Tarjeta del vuelo (apps-script/vuelovivo.js) ───────────────────────────────────────────────────────────────
+     El próximo tramo trae «vivo»: número de quien vuela, vendido por · opera, puerta (y la de antes), embarque aprox.,
+     estado. Si el servidor no lo trae (sin llave de FlightAware o falló), se arma igual con lo del correo.
+     Se ve de 1 h antes de la salida (la estimada, si hay retraso) a 15 min después. Mientras se ve, pide «vueloVivo»
+     cada 5 min (el servidor decide si de verdad le pregunta a FlightAware). */
+  var VV = { ultimo: 0, cargando: false };
+  function vivoDe(p) {
+    var t = p.t; if (t.vivo) return t.vivo;
+    var dura = (ms(t.llega) - ms(t.sale)) / 6e4, opera = String(t.opera || "").replace(/[!*]+$/, "").trim();
+    return { numero: t.vuelo, vendido: "", opera: opera && opera.toLowerCase() !== String(p.v.aerolinea || "").split(" ")[0].toLowerCase() ? opera : "",
+      puerta: t.puerta || "", puerta_antes: "", terminal: t.origen.terminal || "", asiento: t.asiento || "", sale: t.sale,
+      embarque: enLocal(t.sale, ms(t.sale) - (dura > 0 && dura <= 120 ? 30 : 40) * 6e4), embarque_aprox: true, estado: "", estado_tipo: "" };
+  }
+  function porTexto(x) { var a = []; if (x.vendido) a.push("Vendido por " + x.vendido); if (x.opera) a.push((a.length ? "opera " : "Opera ") + x.opera); return a; }
+  function vivoVentana(p) { if (!p) return false; var s = ms(vivoDe(p).sale), t = Date.now(); return t >= s - H && t <= s + 15 * 6e4; }
+  function pintarVivo() {
+    var el = $("vj-vivo"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
+    if (!vivoVentana(p)) { el.classList.remove("on"); el.hidden = true; document.body.classList.remove("vv-arriba"); return false; }
+    var x = vivoDe(p), por = porTexto(x), ret = /(\d+)/.exec(x.estado || "");
+    var est = x.estado_tipo === "tarde" && ret ? "+" + ret[1] + " min" : x.estado || (p.aire ? "En el aire" : "Sale en " + falta(ms(x.sale)));
+    el.innerHTML = '<span class="izq"><span><b class="num">' + esc(x.numero) + "</b>" + (por.length ? '<span class="por">' + por.map(esc).join("<br>") + "</span>" : "") + "</span>" +
+      '<span class="meta"><span class="p e ' + esc(x.estado_tipo || "") + '"></span><span class="e ' + esc(x.estado_tipo || "") + '">' + esc(est) + "</span>" + (x.asiento ? "<span>·</span><span>" + esc(x.asiento) + "</span>" : "") + "</span></span>" +
+      '<span class="der"><span class="cel"><span class="et">Puerta</span>' +
+      (x.puerta ? '<span class="val">' + esc(x.puerta) + "</span>" + (x.puerta_antes ? '<span class="nota cambio">antes <s>' + esc(x.puerta_antes) + "</s></span>" : x.terminal ? '<span class="nota">Terminal ' + esc(x.terminal) + "</span>" : "")
+        : '<span class="val pend">Por asignar</span>' + (x.terminal ? '<span class="nota">Terminal ' + esc(x.terminal) + "</span>" : "")) + "</span>" +
+      '<span class="cel"><span class="et">Embarque</span><span class="val h">' + hora(x.embarque) + '</span><span class="nota">aprox. · sale ' + hora(x.sale) + "</span></span></span>";
+    el.setAttribute("aria-label", "Tu vuelo " + x.numero + ". " + (x.puerta ? "Puerta " + x.puerta + (x.puerta_antes ? ", antes " + x.puerta_antes : "") : "Puerta por asignar") +
+      ". Embarque aproximado " + hora(x.embarque) + ". Sale " + hora(x.sale) + ". " + (x.estado || est) + ".");
+    var nuevo = el.hidden; el.hidden = false; ubicarVivo();
+    if (nuevo) { setTimeout(ubicarVivo, 1500); setTimeout(ubicarVivo, 4000); }   // la roca termina de llegar a su lugar
+    requestAnimationFrame(function () { el.classList.add("on"); });
+    return true;
+  }
+  /* Entre «Hola, Juan» y la roca, centrada en el hueco. Si no cabe (iPhone SE), sube al lugar del saludo y lo esconde. */
+  function ubicarVivo() {
+    var el = $("vj-vivo"), hola = $("hola"), roca = document.querySelector("#sa-nav-root .san-rock"), aj = $("b-ajustes"), alto = 90;
+    var hb = hola ? hola.getBoundingClientRect() : null, rr = roca ? roca.getBoundingClientRect() : null;
+    var arriba = hb && hb.height ? hb.bottom : 110, abajo = rr && rr.height ? rr.top : window.innerHeight * 0.3, top, sobre = false;
+    if (abajo - arriba >= alto + 12) top = arriba + (abajo - arriba - alto) / 2;
+    else { top = Math.max(abajo - alto - 8, aj ? aj.getBoundingClientRect().bottom + 8 : 0); sobre = true; }
+    document.documentElement.style.setProperty("--vv-top", Math.round(top) + "px");
+    document.body.classList.toggle("vv-arriba", sobre);
+  }
+  function vivoTic() {
+    if (!pintarVivo() || document.hidden || VV.cargando || Date.now() - VV.ultimo < 5 * 6e4) return;
+    VV.cargando = true; VV.ultimo = Date.now();
+    hub("vueloVivo").then(function (r) {
+      VV.cargando = false; if (!r || !r.ok || !r.vivo || !VJ.datos) return;
+      var v = (VJ.datos.viajes || []).filter(function (x) { return x.id === r.viaje; })[0];
+      if (!v || !v.tramos[r.tramo]) return;
+      v.tramos[r.tramo].vivo = r.vivo; fotoGuardar(VJ.datos); pintarBoton();
+    });
+  }
+  setInterval(vivoTic, 30000);
+  $("vj-vivo").onclick = function () { abrir(); };
+
   /* ── La hoja «Tu viaje» ── */
   var IC_AVION = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h17"/><path d="M14 6l6 6-6 6"/></svg>';
   var IC_RELOJ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   function nombreLugar(l) { return l.ciudad ? l.ciudad.toLowerCase().replace(/(^|[\s-])(\S)/g, function (a, s, c) { return s + c.toUpperCase(); }) : l.iata; }   // «SEATTLE» → «Seattle»
   function tarjeta(p) {
     var t = p.t, v = p.v, tag = p.aire ? "En el aire" : p.foco ? "Tu vuelo de ahora" : "Próximo vuelo · " + diaRel(t.sale);
-    var term = t.origen.terminal, puerta = t.puerta;
+    var x = vivoDe(p), term = x.terminal, puerta = x.puerta, por = porTexto(x).join(" · ");
     var h = '<div class="vj-card"><div class="vj-tag' + (p.foco ? " foco" : "") + '"><span class="p"></span>' + esc(tag) + "</div>" +
-      '<div class="vj-ruta"><div class="a"><b>' + esc(t.origen.iata) + "</b><small>" + esc(nombreLugar(t.origen)) + '</small><span class="h">' + hora(t.sale) + "</span></div>" + IC_AVION +
+      '<div class="vj-ruta"><div class="a"><b>' + esc(t.origen.iata) + "</b><small>" + esc(nombreLugar(t.origen)) + '</small><span class="h">' + hora(x.sale) + "</span></div>" + IC_AVION +
       '<div class="a"><b>' + esc(t.destino.iata) + "</b><small>" + esc(nombreLugar(t.destino)) + '</small><span class="h">' + hora(t.llega) + (t.llega.slice(0, 10) !== t.sale.slice(0, 10) ? '<sup style="font-size:11px"> +1</sup>' : "") + "</span></div></div>" +
-      '<div class="vj-vuelo">' + esc(t.vuelo) + (t.opera ? " <span>· opera " + esc(t.opera) + "</span>" : "") + " <span>· " + esc(diaCorto(t.sale)) + "</span></div>" +
-      '<div class="vj-datos"><div><small>Terminal</small><b>' + esc(term || "—") + "</b></div><div><small>Puerta</small><b>" + esc(puerta || "—") + "</b></div><div><small>Asiento</small><b>" + esc(t.asiento || "—") + "</b></div></div>";
+      '<div class="vj-vuelo">' + esc(x.numero) + (x.estado ? " <span>· " + esc(x.estado) + "</span>" : "") + " <span>· " + esc(diaCorto(t.sale)) + "</span>" + (por ? "<small>" + esc(por) + "</small>" : "") + "</div>" +
+      '<div class="vj-datos"><div><small>Terminal</small><b>' + esc(term || "—") + "</b></div><div><small>Puerta</small><b>" + esc(puerta || "—") + "</b>" + (x.puerta_antes ? '<i class="cambio">antes ' + esc(x.puerta_antes) + "</i>" : "") + "</div>" +
+      "<div><small>Embarque</small><b>" + hora(x.embarque) + "</b><i>aprox.</i></div><div><small>Asiento</small><b>" + esc(t.asiento || "—") + "</b></div></div>";
     if (!term || !puerta) h += '<p class="vj-nota">' + (!term && !puerta ? "La terminal y la puerta se confirman al hacer check-in." : !puerta ? "La puerta se confirma al hacer check-in." : "La terminal se confirma al hacer check-in.") + "</p>";
     var primero = v.tramos.filter(function (x) { return x.trayecto === t.trayecto; })[0] === t;   // en una escala ya estás en el aeropuerto
     if (!p.aire && primero && Date.now() < ms(t.llegar)) h += '<div class="vj-llegar">' + IC_RELOJ + "<span>Llega al aeropuerto a las " + hora(t.llegar) + (diaRel(t.llegar) !== "hoy" ? " (" + esc(diaRel(t.llegar)) + ")" : "") + "</span></div>";
-    h += '<div class="vj-falta" id="vj-falta">' + (p.aire ? "Aterriza en " + falta(ms(t.llega)) : "Sale en " + falta(ms(t.sale))) + "</div></div>";
+    h += '<div class="vj-falta" id="vj-falta">' + (p.aire ? "Aterriza en " + falta(ms(t.llega)) : "Sale en " + falta(ms(x.sale))) + "</div></div>";
     /* check-in */
     var ci = "";
     if (!p.aire) {
@@ -1602,7 +1700,7 @@
   function abrir() {
     VJ.abierto = true; VJ.repintado = false; pintar();
     $("vj-velo").classList.add("on"); $("vj-panel").classList.add("on"); $("vj-panel").setAttribute("aria-hidden", "false"); $("vj-panel").scrollTop = 0;
-    clearInterval(VJ.reloj); VJ.reloj = setInterval(function () { var f = $("vj-falta"), p = proximo(vigentes(VJ.datos)); if (f && p) f.textContent = p.aire ? "Aterriza en " + falta(ms(p.t.llega)) : "Sale en " + falta(ms(p.t.sale)); }, 30000);
+    clearInterval(VJ.reloj); VJ.reloj = setInterval(function () { var f = $("vj-falta"), p = proximo(vigentes(VJ.datos)); if (f && p) f.textContent = p.aire ? "Aterriza en " + falta(ms(p.t.llega)) : "Sale en " + falta(ms(vivoDe(p).sale)); }, 30000);
     if (!VJ.datos || !VJ.datos.recibido || Date.now() - VJ.datos.recibido > 5 * 6e4) cargar(false);
   }
   function cerrar() { VJ.abierto = false; clearInterval(VJ.reloj); $("vj-velo").classList.remove("on"); $("vj-panel").classList.remove("on"); $("vj-panel").setAttribute("aria-hidden", "true"); }
@@ -1624,8 +1722,8 @@
   }
   setTimeout(iniciar, 1200);
   try { new MutationObserver(function () { iniciar(); setTimeout(pintarBoton, 1000); }).observe($("hola"), { childList: true, characterData: true, subtree: true }); } catch (e) {}
-  document.addEventListener("visibilitychange", function () { if (!document.hidden && empezado && (!VJ.datos || !VJ.datos.recibido || Date.now() - VJ.datos.recibido > 10 * 6e4)) cargar(false); else if (!document.hidden && VJ.datos) pintarBoton(); });
-  window.addEventListener("resize", function () { if (!$("b-avion").hidden) ubicar(); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && empezado && (!VJ.datos || !VJ.datos.recibido || Date.now() - VJ.datos.recibido > 10 * 6e4)) cargar(false); else if (!document.hidden && VJ.datos) { pintarBoton(); vivoTic(); } });
+  window.addEventListener("resize", function () { if (!$("b-avion").hidden) ubicar(); if (!$("vj-vivo").hidden) ubicarVivo(); });
   window.SAViajes = { abrir: abrir, cargar: cargar };   // para las pruebas y para que Alma lo abra algún día
 })();
 </script>

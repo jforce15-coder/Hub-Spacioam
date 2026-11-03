@@ -162,6 +162,9 @@ function conexiones_(ses, b) {
   if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
   if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
+  /* FlightAware AeroAPI (vuelovivo.js): la llave del plan Personal, para la puerta y el embarque al día. */
+  if (g.flightaware) { var fa = String(g.flightaware).trim(); if (!/^[A-Za-z0-9]{20,64}$/.test(fa)) return { ok: false, error: 'Esa no parece la llave de FlightAware: son letras y números, sin espacios (unas 32).' }; p.setProperty('FLIGHTAWARE_KEY', fa); }
+  if (b.desconectar === 'flightaware') p.deleteProperty('FLIGHTAWARE_KEY');
   /* Respaldo del inicio de sesión (issue #318): el SESSION_SECRET del login, para comprobar la sesión aquí si el login no
      contesta (sin cupo de Google). Nunca se devuelve: solo si está puesto. */
   if (g.loginSecreto) { var ls = String(g.loginSecreto).trim(); if (ls.length < 32 || /\s/.test(ls)) return { ok: false, error: 'Esa no parece la llave: SESSION_SECRET es un texto largo, sin espacios (32 letras o más).' }; p.setProperty('LOGIN_SECRETO', ls); }
@@ -175,7 +178,7 @@ function conexiones_(ses, b) {
   }
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), claudeSencillo: !!p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO') };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), claudeSencillo: !!p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO'), flightaware: vueloVivoEstado_(p) };
   if (canje) out.canje = canje;
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {

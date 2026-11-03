@@ -509,6 +509,7 @@
     <div class="fila"><span class="et">Fuerza de la última</span><span class="va" id="cp-fuerza">—</span></div>
     <div class="fila col"><span class="et">El dictado</span><span class="cp-txt" id="cp-dictado">—</span></div>
     <div class="fila"><span class="et">Modelo</span><span class="va" id="cp-modelo">—</span></div>
+    <div class="fila col"><span class="et">Voz de la última respuesta</span><span class="cp-txt" id="cp-voz">—</span></div>
   </div>
   <p class="cp-error" id="cp-error" role="alert" hidden></p>
   <p class="tit-g">Calibrar</p>
@@ -1396,6 +1397,7 @@
     $("cp-fuerza").textContent = d.fuerza != null ? d.fuerza + " % o más" : (d.golpeHace != null && d.golpeHace < 12 ? "menos de 5 %" : "—");
     $("cp-dictado").textContent = d.veredicto ? d.veredicto + (d.dictado && d.veredicto.indexOf("«") < 0 ? " · «" + d.dictado + "»" : "") : "Todavía nada: di «Alma».";
     $("cp-modelo").textContent = d.modelo || "—";
+    $("cp-voz").textContent = d.voz || "Todavía no habla.";
     var er = $("cp-error"); er.hidden = !CALLE.error; er.textContent = CALLE.error;
     var su = $("cp-umbral"), sp = $("cp-puntaje");
     if (document.activeElement !== su && d.umbral != null) su.value = String(Number(d.umbral) === Number(d.umbralFabrica) ? 0 : CP_UMBRAL.indexOf(Number(d.umbral)) >= 0 ? d.umbral : 0);
@@ -1412,7 +1414,7 @@
     var t = ["Modo calle: " + calleFaseTxt(), CALLE.error ? "Error: " + CALLE.error : "", "Micrófono: " + (d.mic || "—") + " · nivel " + (d.nivel != null ? d.nivel + " %" : "—") + (d.audioHace != null ? " · último audio hace " + d.audioHace + " s" : "") + " · trozos " + (d.tramos != null ? d.tramos : "—"),
       "Detector: oyó «Alma» " + (d.golpes != null ? d.golpes : "—") + " veces" + (d.fuerza != null ? " · fuerza " + d.fuerza + " %" : "") + " · umbral " + d.umbral + " · puntaje " + d.puntaje + " · línea " + d.linea,
       "Modelo: " + (d.modelo || "—"), "Dictado: " + (d.dictadoEnTelefono ? "en el teléfono" : "con internet") + (d.veredicto ? " · " + d.veredicto : "") + (d.dictado ? " · «" + d.dictado + "»" : ""),
-      "Pasos:"].concat(d.eventos || []).filter(Boolean).join("\n");
+      "Voz de la última respuesta: " + (d.voz || "todavía no habla"), "Pasos:"].concat(d.eventos || []).filter(Boolean).join("\n");
     var listo = function () { b.textContent = "Copiado"; setTimeout(function () { b.textContent = "Copiar el diagnóstico"; }, 1800); };
     try { navigator.clipboard.writeText(t).then(listo, function () { copiarViejo(t); listo(); }); } catch (x) { copiarViejo(t); listo(); }
   };

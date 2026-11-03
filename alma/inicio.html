@@ -72,6 +72,30 @@
   .ajustes.conf.calle.pausa { background: rgba(255,255,255,.14); box-shadow: inset 0 0 0 1.5px rgba(233,130,106,.85); }
   .ajustes.conf.calle.pausa::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
   @media (prefers-reduced-motion: reduce) { .ajustes.conf.calle.esperando { animation: none; } }
+  .ajustes.conf.calle { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* el toque largo abre «Probar» */
+  /* La línea del Modo calle (#calle-linea): a la izquierda del botón del caminante, en qué va y cualquier error (Juan,
+     3-nov-2026: «no responde» y no se sabía por qué; nada se calla). Tocarla abre «Probar el Modo calle». */
+  .calle-linea { position: fixed; z-index: 2147482500; max-width: min(220px, calc(100vw - 100px)); min-height: 44px; box-sizing: border-box;
+    display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; padding: 4px 0; margin: 0;
+    border: 0; background: none; cursor: pointer; font: 500 11px/1.35 Montserrat, system-ui, sans-serif; letter-spacing: .02em;
+    color: #FFFDFB; text-shadow: 0 1px 6px rgba(40,30,32,.45); }
+  .calle-linea[hidden] { display: none; }
+  .calle-linea .e { margin-top: 2px; font-weight: 600; color: #FFE3D9; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .calle-linea .e:empty { display: none; }
+  /* «Probar el Modo calle» (#cp-panel): lo que oye el micrófono, la fuerza del detector, el dictado y lo que pasó. */
+  #cp-velo { z-index: 2147483240; }
+  .panel.cp { z-index: 2147483250; }
+  .panel.cp h2 { margin-bottom: 8px; }
+  .cp-guia { font-size: 13px; line-height: 1.45; color: #6E6A66; margin: 0 4px 14px; text-align: center; }
+  .cp-nivel { flex: 0 0 72px; height: 6px; border-radius: 3px; background: rgba(62,63,63,.12); overflow: hidden; }
+  .cp-nivel i { display: block; height: 100%; width: 0; background: #E9826A; border-radius: 3px; transition: width .25s linear; }
+  @media (prefers-reduced-motion: reduce) { .cp-nivel i { transition: none; } }
+  .fila.col { flex-direction: column; align-items: stretch; gap: 4px; }
+  .cp-txt { font-size: 13px; line-height: 1.4; color: #6E6A66; overflow-wrap: anywhere; }
+  .cp-error { margin: -4px 4px 14px; padding: 10px 14px; border-radius: 14px; background: rgba(233,130,106,.14); color: #B4452A; font-size: 13px; line-height: 1.4; }
+  .cp-error[hidden] { display: none; }
+  .cp-pasos { margin: 0; padding: 10px 16px 10px 34px; font-size: 12px; line-height: 1.5; color: #6E6A66; max-height: 190px; overflow: auto; overflow-wrap: anywhere; }
+  .cp-pasos:empty { display: none; }
   .velo { position: fixed; inset: 0; z-index: 2147483100; background: rgba(40,30,32,.28); opacity: 0; pointer-events: none; transition: opacity .35s ease; }
   .velo.on { opacity: 1; pointer-events: auto; }
   .panel { position: fixed; left: 50%; bottom: 0; z-index: 2147483200; width: min(460px, 100%); box-sizing: border-box; max-height: 86vh; overflow: auto;
@@ -455,6 +479,7 @@
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 <button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
+<button type="button" class="calle-linea" id="calle-linea" aria-label="Probar el Modo calle" hidden><span class="f" id="calle-fase" aria-live="polite"></span><span class="e" id="calle-error" role="alert"></span></button>
 <button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg></button>
 <button type="button" class="ajustes avion" id="b-avion" aria-label="Tu viaje" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></button>
 <button type="button" class="vj-vivo" id="vj-vivo" aria-label="Tu vuelo" hidden></button>
@@ -473,6 +498,28 @@
 <button type="button" class="pp-chips" id="pp-chips" aria-label="Personalidad de Alma en esta llamada" hidden><span class="pp-chip" id="pp-c-w">✨ Weebo 1</span><span class="pp-chip" id="pp-c-a">🪞 Adaptación 0 %</span></button>
 <div class="velo" id="pp-velo"></div>
 <div class="panel pp" id="pp-panel" role="dialog" aria-label="Personalidad de Alma" aria-hidden="true"><div class="asa"></div><h2>Personalidad</h2><div id="pp-hoja"></div></div>
+<div class="velo" id="cp-velo"></div>
+<div class="panel cp" id="cp-panel" role="dialog" aria-label="Probar el Modo calle" aria-hidden="true"><div class="asa"></div><h2>Probar el Modo calle</h2>
+  <p class="cp-guia">Di «Alma» como lo dirías en la calle. Aquí ves si el micrófono te oye, con qué fuerza te oyó el detector y qué entendió el dictado.</p>
+  <div class="grupo">
+    <div class="fila"><span class="et">Estado</span><span class="va" id="cp-estado">—</span></div>
+    <div class="fila"><span class="et">Micrófono</span><span class="cp-nivel" aria-hidden="true"><i id="cp-nivel-b"></i></span><span class="va" id="cp-nivel">—</span></div>
+    <div class="fila"><span class="et">Entrada</span><span class="va" id="cp-mic">—</span></div>
+    <div class="fila"><span class="et">El detector oyó «Alma»</span><span class="va" id="cp-golpes">—</span></div>
+    <div class="fila"><span class="et">Fuerza de la última</span><span class="va" id="cp-fuerza">—</span></div>
+    <div class="fila col"><span class="et">El dictado</span><span class="cp-txt" id="cp-dictado">—</span></div>
+    <div class="fila"><span class="et">Modelo</span><span class="va" id="cp-modelo">—</span></div>
+  </div>
+  <p class="cp-error" id="cp-error" role="alert" hidden></p>
+  <p class="tit-g">Calibrar</p>
+  <div class="grupo">
+    <div class="fila"><span class="et n" id="et-cp-umbral">Umbral</span><span class="sel"><select id="cp-umbral" aria-labelledby="et-cp-umbral"></select></span></div>
+    <div class="fila"><span class="et n" id="et-cp-puntaje">Puntaje</span><span class="sel"><select id="cp-puntaje" aria-labelledby="et-cp-puntaje"></select></span></div>
+    <p class="nota-g">Si despierta con otras palabras, sube el umbral sin pasar la fuerza con que te oye a ti. Si no te oye (fuerza «menos de 5 %» o nada), sube el puntaje.</p>
+  </div>
+  <p class="tit-g">Lo que pasó</p>
+  <div class="grupo"><ol class="cp-pasos" id="cp-pasos"></ol><div class="fila boton" id="cp-copiar" role="button" tabindex="0">Copiar el diagnóstico</div></div>
+</div>
 <div class="panel viaje" id="vj-panel" role="dialog" aria-label="Tu viaje" aria-hidden="true"><div class="asa"></div><h2>Tu viaje</h2><div id="vj-cu"></div></div>
 <div class="panel" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
   <div class="asa"></div>
@@ -499,6 +546,11 @@
     <div class="fila cuanto" id="q-telefono" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
     <p class="vuelve" id="v-telefono" hidden></p>
     <p class="nota-g">Habladas: las que Alma te dice al oído en el Modo calle. En el teléfono: las que suenan. Si bajas el nivel, vuelve solo a «Todo».</p>
+  </div>
+  <p class="tit-g" id="t-calle" hidden>Modo calle</p>
+  <div class="grupo" id="g-calle" hidden>
+    <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
+    <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También con un toque largo en el botón del caminante.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
@@ -1140,11 +1192,12 @@
     var b = $("b-conf"), c = document.querySelector(".san-ob.start"), r = c && c.getBoundingClientRect();
     /* va con los botones de abajo: si ellos se esconden (chat, llamada), él también */
     var se = !r || !r.width || +getComputedStyle(c).opacity < .5 || getComputedStyle(c).visibility === "hidden";
-    var k = $("b-calle"); b.style.visibility = k.style.visibility = se ? "hidden" : ""; if (se) return;
+    var k = $("b-calle"); b.style.visibility = k.style.visibility = se ? "hidden" : ""; if (se) { calleLinea(); return; }
     /* a la derecha de «Iniciar llamada», con aire para su nombre, y un poco más abajo que su centro */
     b.style.left = Math.min(innerWidth - 56, r.right + 30) + "px"; b.style.top = (r.top + r.height / 2 - 20 + 10) + "px";
     /* el del Modo calle, encima del de conferencia, en la misma columna */
     k.style.left = b.style.left; k.style.top = (r.top + r.height / 2 - 20 + 10 - 54) + "px";
+    calleLinea();
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
@@ -1236,38 +1289,134 @@
   /* ── Modo calle (ModoCalle.swift): con el teléfono bloqueado y audífonos, dices «Alma» y una frase. Un toque lo enciende
      o lo apaga. La app no deja el Modo calle y la conferencia a la vez; aquí solo se pinta lo que ella cuenta
      (AlmaCalle.evento). El botón aparece cuando la app contesta: una versión vieja, sin Modo calle, no lo muestra. ── */
-  var CALLE = { activa: false, fase: "quieta", error: "" };
+  /* diag (la app, 3-nov-2026): micrófono, nivel, cuántas veces el detector oyó «Alma», el dictado y el último error. La línea
+     junto al botón dice en qué va y el error; nada se calla (antes un error en pausa solo quedaba en el aria-label). */
+  var CALLE = { activa: false, encendiendo: false, fase: "quieta", error: "", aviso: "", diag: null, largo: false, probando: false };
   var CALLE_FASE = { esperando: "esperando «Alma»", verificando: "te oí", oyendo: "te escucho", pensando: "pensando", hablando: "hablando", llamada: "en llamada", pausa: "en pausa" };
+  function calleOn() { return CALLE.activa || CALLE.encendiendo; }
+  function calleFaseTxt() { return CALLE.activa ? (CALLE_FASE[CALLE.fase] || "encendido") : CALLE.encendiendo ? "encendiendo…" : "apagado"; }
   function callePintar(fase, e) {
-    var b = $("b-calle"), activo = CALLE.activa && /^(verificando|oyendo|pensando|hablando|llamada)$/.test(fase);
-    b.classList.toggle("esperando", CALLE.activa && fase === "esperando");
+    var b = $("b-calle"), on = calleOn(), activo = CALLE.activa && /^(verificando|oyendo|pensando|hablando|llamada)$/.test(fase);
+    b.classList.toggle("esperando", on && (fase === "esperando" || !CALLE.activa));
     b.classList.toggle("activo", activo);
     b.classList.toggle("pausa", CALLE.activa && fase === "pausa");
-    b.setAttribute("aria-pressed", CALLE.activa ? "true" : "false");
-    var et = "Modo calle" + (CALLE.activa ? ": " + (CALLE_FASE[fase] || "encendido") + (e && e.minutos ? " · " + e.minutos + " min" : "") : "");
-    if (CALLE.activa && fase === "pausa" && e && e.error) et += ". " + e.error;
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    var et = "Modo calle" + (on ? ": " + calleFaseTxt() + (e && e.minutos ? " · " + e.minutos + " min" : "") : "");
+    if (CALLE.error) et += ". " + CALLE.error;
     b.setAttribute("aria-label", et); b.title = et;
+    calleLinea();
+  }
+  /* La línea a la izquierda del botón: «Modo calle · esperando «Alma»» y, debajo, el error si hay. Se ve con el Modo calle
+     encendido o con un error; va y se esconde con el botón. */
+  function calleLinea() {
+    var l = $("calle-linea"), b = $("b-calle");
+    var ve = !b.hidden && b.style.visibility !== "hidden" && (calleOn() || !!CALLE.error);
+    l.hidden = !ve; if (!ve) return;
+    $("calle-fase").textContent = "Modo calle · " + calleFaseTxt();
+    if ($("calle-error").textContent !== CALLE.error) $("calle-error").textContent = CALLE.error;
+    var r = b.getBoundingClientRect();
+    /* abajo alineada con el botón y crece hacia arriba: un error largo no tapa «Iniciar llamada» */
+    l.style.right = Math.round(innerWidth - r.left + 10) + "px"; l.style.bottom = Math.round(innerHeight - r.bottom - 2) + "px";
   }
   window.AlmaCalle = { evento: function (e) {
-    if (!e || e.tipo === "error") return;
+    if (!e) return;
     var b = $("b-calle");
-    if (b.hidden) { b.hidden = false; setTimeout(function () { b.classList.add("on"); confUbicar(); }, 30); }
-    var antes = CALLE.activa; CALLE.activa = !!e.activa; CALLE.fase = String(e.fase || (CALLE.activa ? "esperando" : "quieta"));
+    if (b.hidden) { b.hidden = false; $("t-calle").hidden = $("g-calle").hidden = false; setTimeout(function () { b.classList.add("on"); confUbicar(); }, 30); }
+    /* Un aviso de error suelto (de cualquier forma) también se muestra: antes la página lo ignoraba. */
+    if (e.tipo === "error") {
+      var m = String(e.error || e.mensaje || e.texto || "El Modo calle tuvo un error.");
+      if (m !== CALLE.aviso) try { alert(m); } catch (x) {}
+      CALLE.aviso = CALLE.error = m; callePintar(CALLE.fase); cpPintar(); return;
+    }
+    var antes = CALLE.activa; CALLE.activa = !!e.activa; CALLE.encendiendo = !!e.encendiendo; CALLE.diag = e.diag || null;
+    CALLE.fase = String(e.fase || (CALLE.activa ? "esperando" : "quieta"));
+    /* el error que impide encender viene en e.error (con aviso, una vez); el de mientras está encendido, en diag.error (en la línea) */
+    if (e.error && e.error !== CALLE.aviso) try { alert(e.error); } catch (x) {}
+    CALLE.aviso = e.error || (CALLE.activa || CALLE.encendiendo ? "" : CALLE.aviso);
+    CALLE.error = e.error || (CALLE.diag && CALLE.diag.error) || "";
     callePintar(CALLE.fase, e);
     if (CALLE.activa && !antes && CONF.activa) nativa({ accion: "conferencia", que: "estado" });   // la app apagó la conferencia
-    /* un error nuevo se dice una vez (como el de la conferencia); el mismo no se repite en cada evento */
-    if (e.error && e.error !== CALLE.error) try { alert(e.error); } catch (x) {}
-    CALLE.error = e.error || "";
+    cpPintar();
   } };
   $("b-calle").onclick = function () {
+    if (CALLE.largo) { CALLE.largo = false; return; }   // fue un toque largo: abrió «Probar», no cambia el Modo calle
     vozConfig();
-    var on = !CALLE.activa; CALLE.activa = on; CALLE.fase = on ? "esperando" : "quieta";
+    var on = !calleOn(); CALLE.activa = on; CALLE.encendiendo = false; CALLE.fase = on ? "esperando" : "quieta"; CALLE.error = "";
     callePintar(CALLE.fase); grabadora(on);   // se ve al instante; la app confirma con AlmaCalle.evento
     if (on && CONF.activa) { CONF.activa = false; $("b-conf").classList.remove("activa", "voces"); recPintar(); }
     nativa({ accion: "calle", que: on ? "on" : "off" });
     if (on) setTimeout(function () { nativa({ accion: "conferencia", que: "estado" }); }, 400);
   };
   if (NATIVA) setTimeout(function () { nativa({ accion: "calle", que: "estado" }); }, 1100);
+  $("calle-linea").onclick = function () { cpAbrir(); };
+  $("b-calle-probar").onclick = function () { cpAbrir(); };
+  /* Toque largo en el botón del caminante: abre «Probar el Modo calle» (sin encenderlo ni apagarlo con el toque). */
+  (function () {
+    var b = $("b-calle"), t = null;
+    b.addEventListener("pointerdown", function () {
+      CALLE.largo = false; clearTimeout(t);
+      t = setTimeout(function () { CALLE.largo = true; cpAbrir(); }, 650);
+    });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (n) { b.addEventListener(n, function () { clearTimeout(t); }); });
+    b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
+  })();
+  /* ── «Probar el Modo calle»: la app manda su estado cada segundo (accion calle, que probar) y, mientras está abierta, corre
+     otros detectores con umbrales de 50, 30, 15 y 5 %: la «fuerza» es el más alto que oyó «Alma». Si el Modo calle estaba
+     apagado, la prueba lo enciende y lo apaga al cerrarse. ── */
+  var CP_UMBRAL = [0, 0.005, 0.02, 0.05, 0.1, 0.15, 0.3], CP_PUNTAJE = [0, 8, 10, 20, 25, 30];
+  function cpPct(x) { x = Number(x) * 100; return (x < 1 ? Math.round(x * 10) / 10 : Math.round(x)) + " %"; }
+  (function () {
+    var su = $("cp-umbral"), sp = $("cp-puntaje");
+    CP_UMBRAL.forEach(function (u) { var o = document.createElement("option"); o.value = String(u); o.textContent = u ? cpPct(u) : "De fábrica"; su.appendChild(o); });
+    CP_PUNTAJE.forEach(function (p) { var o = document.createElement("option"); o.value = String(p); o.textContent = p ? String(p) : "De fábrica"; sp.appendChild(o); });
+    su.onchange = function () { nativa({ accion: "calle", que: "calibrar", umbral: Number(su.value) }); };
+    sp.onchange = function () { nativa({ accion: "calle", que: "calibrar", puntaje: Number(sp.value) }); };
+  })();
+  function cpAbrir() {
+    if (!NATIVA) return;
+    CALLE.probando = true; nativa({ accion: "calle", que: "probar", on: true });
+    $("cp-velo").classList.add("on"); $("cp-panel").classList.add("on"); $("cp-panel").setAttribute("aria-hidden", "false"); $("cp-panel").scrollTop = 0;
+    cpPintar();
+  }
+  function cpCerrar() {
+    if (!CALLE.probando) return;
+    CALLE.probando = false; nativa({ accion: "calle", que: "probar", on: false });
+    $("cp-velo").classList.remove("on"); $("cp-panel").classList.remove("on"); $("cp-panel").setAttribute("aria-hidden", "true");
+  }
+  $("cp-velo").onclick = cpCerrar;
+  function cpPintar() {
+    if (!CALLE.probando) return;
+    var d = CALLE.diag || {}, n = Number(d.nivel) || 0;
+    $("cp-estado").textContent = calleFaseTxt();
+    var sinAudio = Number(d.audioHace) > 2;
+    $("cp-nivel-b").style.width = (sinAudio ? 0 : Math.min(100, n)) + "%";
+    $("cp-nivel").textContent = d.mic == null ? "—" : d.mic === "cerrado" ? "cerrado" : sinAudio ? "sin audio hace " + Math.round(d.audioHace) + " s" : n + " %";
+    $("cp-mic").textContent = d.mic || "—";
+    $("cp-golpes").textContent = d.golpes == null ? "—" : d.golpes + (d.golpes === 1 ? " vez" : " veces") + (d.golpeHace != null ? " · hace " + d.golpeHace + " s" : "");
+    $("cp-fuerza").textContent = d.fuerza != null ? d.fuerza + " % o más" : (d.golpeHace != null && d.golpeHace < 12 ? "menos de 5 %" : "—");
+    $("cp-dictado").textContent = d.veredicto ? d.veredicto + (d.dictado && d.veredicto.indexOf("«") < 0 ? " · «" + d.dictado + "»" : "") : "Todavía nada: di «Alma».";
+    $("cp-modelo").textContent = d.modelo || "—";
+    var er = $("cp-error"); er.hidden = !CALLE.error; er.textContent = CALLE.error;
+    var su = $("cp-umbral"), sp = $("cp-puntaje");
+    if (document.activeElement !== su && d.umbral != null) su.value = String(Number(d.umbral) === Number(d.umbralFabrica) ? 0 : CP_UMBRAL.indexOf(Number(d.umbral)) >= 0 ? d.umbral : 0);
+    if (document.activeElement !== sp && d.puntaje != null) sp.value = String(Number(d.puntaje) === Number(d.puntajeFabrica) ? 0 : CP_PUNTAJE.indexOf(Number(d.puntaje)) >= 0 ? d.puntaje : 0);
+    var ol = $("cp-pasos"), ev = (d.eventos || []).slice().reverse();   // lo más nuevo arriba
+    if (ol.getAttribute("data-k") !== ev.join("\n")) {
+      ol.setAttribute("data-k", ev.join("\n")); ol.textContent = "";
+      ev.forEach(function (t) { var li = document.createElement("li"); li.textContent = t; ol.appendChild(li); });
+    }
+  }
+  /* Copiar el diagnóstico (para mandárselo a Claude): el estado y lo que pasó, en texto. */
+  $("cp-copiar").onclick = function () {
+    var d = CALLE.diag || {}, b = this;
+    var t = ["Modo calle: " + calleFaseTxt(), CALLE.error ? "Error: " + CALLE.error : "", "Micrófono: " + (d.mic || "—") + " · nivel " + (d.nivel != null ? d.nivel + " %" : "—") + (d.audioHace != null ? " · último audio hace " + d.audioHace + " s" : "") + " · trozos " + (d.tramos != null ? d.tramos : "—"),
+      "Detector: oyó «Alma» " + (d.golpes != null ? d.golpes : "—") + " veces" + (d.fuerza != null ? " · fuerza " + d.fuerza + " %" : "") + " · umbral " + d.umbral + " · puntaje " + d.puntaje + " · línea " + d.linea,
+      "Modelo: " + (d.modelo || "—"), "Dictado: " + (d.dictadoEnTelefono ? "en el teléfono" : "con internet") + (d.veredicto ? " · " + d.veredicto : "") + (d.dictado ? " · «" + d.dictado + "»" : ""),
+      "Pasos:"].concat(d.eventos || []).filter(Boolean).join("\n");
+    var listo = function () { b.textContent = "Copiado"; setTimeout(function () { b.textContent = "Copiar el diagnóstico"; }, 1800); };
+    try { navigator.clipboard.writeText(t).then(listo, function () { copiarViejo(t); listo(); }); } catch (x) { copiarViejo(t); listo(); }
+  };
+  function copiarViejo(t) { try { var a = document.createElement("textarea"); a.value = t; a.style.position = "fixed"; a.style.opacity = "0"; document.body.appendChild(a); a.select(); document.execCommand("copy"); a.remove(); } catch (x) {} }
 
   /* ── Notificaciones (Ajustes): hasta qué nivel te las dice Alma al oído y hasta cuál suena el teléfono. La app guarda el
      nivel (NivelAvisos) y lo devuelve a «Todo» sola cuando vence; aquí se pinta lo que cuenta AlmaAvisos.evento. ── */

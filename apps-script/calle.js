@@ -244,12 +244,15 @@ function calleAviso_(ses, adm, texto, avisoId) {
 /* ── calleUso: una fila por salida en ALMA_CALLE_USO ──
    La app manda { usos: [{ inicio, fin, minutos, gatillos, despertares, descartes, falsos, pedidos, llamadas, avisos,
    errores, despertaresHora, falsosHora, gatillosHora, bateriaInicio?, bateriaFin?, bateriaGastada?, bateriaHora?,
-   detector, llamadaSeg?, llamadasSleep?, llamadasCorte? }] } con las que todavía no llegaron (la batería en %). Se acepta también la forma vieja, plana:
+   detector, llamadaSeg?, llamadasSleep?, llamadasCorte?, diag? }] } con las que todavía no llegaron (la batería en %). Se acepta también la forma vieja, plana:
    { inicio, fin, bateria_ini, bateria_fin, despertares, falsos } (batería de 0 a 1 → se guarda en %).
+   `diag` (3-nov-2026): el diagnóstico de la salida en una línea (micrófono, cuántas veces el detector oyó «Alma», el
+   último veredicto del dictado y el último error), para saber por qué no respondió sin tener el teléfono en la mano.
    La app reintenta lo que no recibió «ok»: una salida que ya está (mismo usuario e inicio) no se repite. */
 var CALLE_USO_CAB_ = ['ts', 'usuario', 'inicio', 'fin', 'minutos', 'bateria_ini', 'bateria_fin', 'bateria_gastada', 'despertares', 'falsos',
   'bateria_hora', 'despertares_hora', 'falsos_hora', 'gatillos', 'gatillos_hora', 'descartes', 'pedidos', 'llamadas', 'avisos', 'errores', 'detector',
-  'llamada_seg', 'llamadas_sleep', 'llamadas_corte'];   // lo que se gasta en ElevenLabs (al final: lo de antes no se mueve)
+  'llamada_seg', 'llamadas_sleep', 'llamadas_corte',   // lo que se gasta en ElevenLabs (al final: lo de antes no se mueve)
+  'diagnostico'];
 function calleUsoHoja_() {
   var sh = hojaCrear_('ALMA_CALLE_USO', CALLE_USO_CAB_), n = CALLE_USO_CAB_.length;
   /* Una hoja hecha con una cabecera vieja (10 o 21 columnas): las nuevas van al final, lo de antes no se mueve. */
@@ -280,7 +283,8 @@ function calleUsoFila_(email, u) {
   return [new Date().toISOString(), email, ini.toISOString(), fin ? fin.toISOString() : '', min, bi, bf, gastada,
     num(u.despertares), num(u.falsos), porHora(gastada, u.bateriaHora), porHora(u.despertares, u.despertaresHora), porHora(u.falsos, u.falsosHora),
     num(u.gatillos), porHora(u.gatillos, u.gatillosHora), num(u.descartes), num(u.pedidos), num(u.llamadas), num(u.avisos), num(u.errores),
-    String(u.detector || '').slice(0, 60), num(u.llamadaSeg), num(u.llamadasSleep), num(u.llamadasCorte)];
+    String(u.detector || '').slice(0, 60), num(u.llamadaSeg), num(u.llamadasSleep), num(u.llamadasCorte),
+    celdaTexto_(String(u.diag || '').slice(0, 1800))];
 }
 function calleUso_(ses, b) {
   b = b || {};

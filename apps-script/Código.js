@@ -737,7 +737,8 @@ function procesarCola() {
     try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
     try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
     try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
-    try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
+    try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }
+    try { socioPlantillaAsegurar_(false); } catch (e) { console.error('socioPlantillaAsegurar_: ' + e); }   // la plantilla para socios se crea y se activa sola (socios.js)   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
   }
   cupoCanal_('Epi');
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
@@ -5176,6 +5177,7 @@ function dsBotApi_(body) {
       case 'foto_config': return json_(fotoConfig_(body));
       case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
+      case 'socio_plantilla': return json_(socioPlantillaAsegurar_(true));
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
       case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));
       case 'proy_ver': return json_(proyVer_(String(body.proyecto || ''), !!body.actualizar, 'Juan'));

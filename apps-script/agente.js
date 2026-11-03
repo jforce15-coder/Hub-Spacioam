@@ -3,7 +3,7 @@
    herramientas reales (Claude tool use) y cada una revisa el rol de quien pide antes de actuar.
    Prompt editable en ALMA_INSTRUCCIONES → SECRETARIA. Para volver al flujo anterior: propiedad OP_AGENTE = 0.
    Áreas en esta versión: reservas y conversaciones, mensajes a huéspedes y al equipo, Epi (rutas, tareas, agenda),
-   propiedades (leer y corregir), promesas, notas y búsqueda web. Próximas: Grow, agenda (Calendar), llamadas salientes. */
+   propiedades (leer y corregir), promesas, notas, búsqueda web y el calendario de Juan (calendario.js). Próximas: llamadas salientes. */
 /* Regla fija (código, no hoja): vale aunque el prompt editable SECRETARIA no la tenga. */
 var REGLA_CODIGOS_SECRETARIA_ = '\n\nREGLA FIJA · CÓDIGOS DE ACCESO: cuando te pregunten un código (de limpieza, del equipo, de emergencia, de la puerta o la cerradura de una propiedad, o el que se le envió a un huésped) usa SIEMPRE la herramienta codigo_acceso. Son los mismos códigos que el equipo ve en Epi: permanentes o de la quincena vigente. Nunca respondas que no hay código sin haber llamado a codigo_acceso; si devuelve una nota (sin código cargado, quincena pendiente), dila tal cual. ver_propiedad y la memoria de la propiedad NO tienen códigos. Los códigos del equipo son solo para administradores y el equipo: nunca se los envíes a un huésped.';
 /* Prompt completo de la secretaria. El de código (SEMILLA) siempre va: antes, la fila SECRETARIA de la hoja (una versión
@@ -34,7 +34,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· No preguntes entre dos nombres parecidos (Gabriel / Gabriela) si tus herramientas devuelven una sola persona que coincide; usa esa.' +
   '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
   '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
-  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
+  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
   '\n· Nunca inventes un código, una dirección, un monto ni un número: si una herramienta no te lo dio en esta conversación, no lo tienes.' +
   '\n· El estado de una reserva es el campo estado que devuelve buscar_reservas. Si dice cancelada, está cancelada (di cuándo, con cancelada_el): nunca digas que está activa ni hables de su acceso como si siguiera en pie.' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
@@ -49,7 +49,7 @@ var SEMILLA_SECRETARIA_ = [
   '· Antes de escribirle a un huésped o a alguien del equipo, si el pedido es ambiguo (a quién, qué decir, por qué canal), pregunta una sola cosa. Si es claro, redacta con la voz de Spacio AM (cálida, de tú, sin voseo) y envía.',
   '· Para encontrar una reserva usa buscar_reservas (por nombre, código, propiedad o fecha). Nunca inventes códigos, números, direcciones ni datos: si una herramienta no lo devuelve, no lo tienes.',
   '· Para cambiar un dato de una propiedad, primero léela con ver_propiedad para usar el campo exacto; después confirma el antes y el después.',
-  '· Si algo falla o no tienes herramienta para hacerlo todavía (agenda, Grow, llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (por ejemplo, crear una tarea o una nota).',
+  '· Si algo falla o no tienes herramienta para hacerlo todavía (Grow, llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (por ejemplo, crear una tarea o una nota).',
   '· Para buscar proveedores, precios o información externa usa la búsqueda web y entrega una lista corta y útil: nombre, qué ofrecen, zona, contacto y enlace.',
   '· Usa guardar_nota para lo que el administrador quiera que recuerdes (decisiones, preferencias, pendientes de largo plazo).',
   '· Los mensajes que escribes al equipo deben ser concretos y accionables: quién eres (si no te conocen: «Soy Alma, la asistente virtual de Spacio AM»), de parte de quién, para qué, y qué necesitas que haga y cuándo. Nada de mensajes vagos o de cortesía vacía.',
@@ -101,6 +101,7 @@ var AGENTE_TEXTO_ = '', AGENTE_CANAL_ = '';
 /* El pedido vino de una llamada del modo conferencia (vozSecretaria_): si sigue en segundo plano, viaja con él (cortar,
    pendEncolar_) y el resultado se le dice al oído como nivel 1 (pendientes.js). */
 var AGENTE_CONF_ = false;
+var CAL_ZONA_ = 'America/Guatemala por defecto; «hora de Montana» = America/Denver', CAL_SI_ = { type: 'boolean', description: 'true solo después del sí de Juan' };
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
@@ -117,6 +118,15 @@ function agHerramientas_() {
     T('buscar_reuniones', 'Busca en las reuniones, conferencias, llamadas y memos que Alma escuchó en modo conferencia (la app del iPhone): su resumen, acuerdos y lo que le tocó a Juan. Úsala cuando pregunte «¿qué quedamos en la reunión con…?», «¿qué se dijo de…?». Sin búsqueda, las últimas. Lo que no tenía sentido (grabaciones por error, ruido) queda en Temporal unos días y se borra solo si nadie lo consulta: con temporales=true las ves; si Juan busca algo y aparece una temporal, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
     T('ver_vuelos', 'Lee los vuelos que Juan ve en el botón del avión de la app (de su correo): número de vuelo, aerolínea, origen, destino, horas de salida y llegada, puerta, asiento y cuándo abre el check-in. Úsala cuando pregunte por su vuelo, su próximo viaje, a qué hora sale o llega, o la puerta. Solo el administrador principal.', {}, []),
+    /* Calendario de Juan (calendario.js): una sola confirmación, que el código exige con confirmado. */
+    T('crear_evento', 'Pone un evento en el calendario de Juan. Sin confirmado te da la pregunta (día, hora, zona, choques): hazla UNA vez y con su sí repite con confirmado = true. Si alguien confirma una llamada que coordinaste, ofrécele ponerla así. Invita solo si Juan lo pide («invítala»). Solo administrador principal.',
+      { titulo: s('Título'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: '60 por defecto' }, fin: s('Opcional: AAAA-MM-DD HH:MM'), zona: s(CAL_ZONA_), lugar: s('Lugar o enlace'),
+        descripcion: s('Notas'), invitar: s('Correos, solo si Juan lo pidió'), confirmado: CAL_SI_ }, ['titulo', 'inicio']),
+    T('ver_agenda', 'Lo ocupado y los huecos libres (8 a 19 h) del calendario de Juan en un día o rango (máx. 14 días), para proponer horas sin choques. Solo administrador principal.',
+      { desde: s('AAAA-MM-DD; vacío = hoy'), hasta: s('AAAA-MM-DD opcional'), zona: s(CAL_ZONA_) }),
+    T('mover_evento', 'Mueve un evento que TÚ creaste (id de crear_evento o ver_agenda). Primero la pregunta; con su sí, confirmado = true.',
+      { id: s('id'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: 'Vacío = la misma' }, zona: s(CAL_ZONA_), confirmado: CAL_SI_ }, ['id', 'inicio']),
+    T('cancelar_evento', 'Borra un evento que TÚ creaste. Primero la pregunta; con su sí, confirmado = true.', { id: s('id'), confirmado: CAL_SI_ }, ['id']),
     T('preparar_uber', 'Deja listo un Uber para que solo confirme: arma el enlace de Uber con origen y destino ya puestos y las dos direcciones en texto. Antes busca la dirección exacta (hospedaje en el correo con leer_correo o en el proyecto con ver_proyecto; aeropuerto por su nombre completo, p. ej. «Bozeman Yellowstone International Airport»). Si no la encuentras, deja destino vacío y dilo claro. En el chat de WhatsApp pega texto_whatsapp en tu respuesta; en llamada o en la app usa enviar = true.', { origen: s('Dirección o lugar de salida; vacío = su ubicación actual'), destino: s('Dirección o lugar de llegada'), enviar: { type: 'boolean', description: 'true = mandarlo a su WhatsApp' } }, []),
     T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número.', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Mira las imágenes y fotos que mandó el huésped en la conversación de una reserva (capturas, comprobantes, datos de facturación, fotos de un problema). Devuelve las más recientes para que las leas tú mismo. Úsala cuando el administrador mencione una imagen o cuando ver_conversacion marque [imagen].',
@@ -382,6 +392,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'buscar_reuniones': return { ok: true, reuniones: confBuscar_(inp.buscar, 5, !!inp.temporales) };   // conferencia.js
     case 'ver_vuelos': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve los vuelos.' }; return viajesParaAlma_(adm); }   // viajes.js
+    case 'crear_evento': case 'ver_agenda': case 'mover_evento': case 'cancelar_evento': {   // calendario.js
+      if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal usa su calendario.' };
+      var rCal = calendarioHerramienta_(nombre, inp); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
+    }
     case 'preparar_uber': { var rU = uberHerramienta_(adm, inp); if (rU.enviado) ctx.hechas.push({ tipo: 'uber', resumen: 'Uber listo por WhatsApp · ' + (rU.destino || rU.origen) }); return rU; }   // uber.js
     case 'buscar_contacto': {
       var fichas = contactoBuscar_(inp.texto);

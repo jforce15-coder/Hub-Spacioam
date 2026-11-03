@@ -208,7 +208,11 @@ function personalEntrante_(wa, nombre, texto, ts, media, msgId, rel) {
   personalNotar_(wa, 'ella', texto);
   var quien = rel.nombre || nombre || ('+' + wa), de = rel.de || 'Juan';
   if (esRespuestaAutomatica_(texto)) return;   // «Gracias por contactarnos · horarios de atención…»: no se le reenvía a Juan
-  if (!rel.objetivo || rel.fin) { personalAvisar_(rel, quien + ' respondió:\n\n' + texto + '\n\n(Dime qué le contesto y se lo escribo.)', 'Respuesta de ' + quien); return; }
+  /* Datos de hecho («es el 1203»): se anotan solos y el aviso va al final del mensaje a Juan (datoshecho.js). */
+  var dh = []; try { dh = datosHechoDeRespuesta_(wa, quien, texto, rel.adm ? adminPorEmail_(rel.adm) : null); } catch (e) {}
+  var dhTxt = dh.length ? '\n\n' + dh.join('\n') : '';
+  if (!rel.objetivo || rel.fin) { personalAvisar_(rel, quien + ' respondió:\n\n' + texto + '\n\n(Dime qué le contesto y se lo escribo.)' + dhTxt, 'Respuesta de ' + quien); return; }
+  if (dhTxt) personalAvisar_(rel, dhTxt.trim(), 'Datos anotados · ' + quien);
   var r2 = personalDe_(wa) || rel, hist = (r2.h || []).map(function (x) { return (x.q === 'alma' ? 'ALMA' : quien) + ': ' + x.t; }).join('\n');
   var sys = 'Eres Alma, la asistente personal de ' + de + '. Conversas por WhatsApp con ' + quien + ' para cumplir un encargo PERSONAL de ' + de + ' (no es tema de ningún negocio: nunca menciones Spacio AM ni hables de alquileres). ' +
     'Tono cálido, natural y breve, como una asistente de confianza; tutea si la otra persona tutea. Una o dos preguntas por mensaje, no un formulario. ' +

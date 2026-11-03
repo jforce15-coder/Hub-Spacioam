@@ -7,7 +7,13 @@
 var ARCH_REGLAS_ = [
   { tab: 'ALMA_COLA', dias: 7, col: 'recibido', soloFinales: true },
   { tab: 'ALMA_LOG', dias: 30, col: 'fecha' },
-  { tab: 'ALMA_OPERATIVO', dias: 45, col: 'ts' }
+  { tab: 'ALMA_OPERATIVO', dias: 45, col: 'ts' },
+  /* IA_USO suma una fila por cada llamada a la IA (también en la voz) y nunca se vaciaba: el libro entero tiene tope de
+     celdas de Google y, al llegar, ninguna hoja acepta filas nuevas. 100 días cubren lo que se lee: usoIA (hasta 90),
+     el reporte del mes anterior contra el de antes y la ronda de mejora (7). */
+  { tab: 'IA_USO', dias: 100, col: 'ts' },
+  /* ALMA_PUSH: el Hub solo mira las últimas 200 filas (hubPushLog_). */
+  { tab: 'ALMA_PUSH', dias: 30, col: 'fecha' }
 ];
 function archivoSS_() {
   var P = PropertiesService.getScriptProperties(), id = P.getProperty('ALMA_ARCHIVO_ID');

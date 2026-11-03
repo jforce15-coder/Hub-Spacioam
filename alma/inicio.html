@@ -1670,8 +1670,10 @@
     if (PP.enLlamada && PP.vivo && PP.vivo.weebo != null) return PP.vivo.weebo;
     return w ? (w.modo === "fijo" ? w.nivel_fijo : w.nivel_actual) : null;
   }
+  /* Solo se guarda una respuesta con sus dos partes: si falta «adapt» o «weebo», la pantalla no se rompe. */
+  function completa(r) { return !!(r && r.ok && r.adapt && r.weebo); }
   function pintar() {
-    var d = PP.datos; if (!d || !d.ok) return;
+    var d = PP.datos; if (!completa(d)) return;
     var a = d.adapt, w = d.weebo, ahora = nivelVivo();
     $("pp-adapt").textContent = a.nivel_juan + " %";
     $("pp-lleva").style.width = Math.max(0, Math.min(100, a.nivel_juan)) + "%";
@@ -1707,11 +1709,11 @@
   function mostrar(on) { ["t-pers", "g-pers", "g-weebo", "g-huesp"].forEach(function (id) { $(id).hidden = !on; }); }
   function cargar() {
     if (!principal()) { mostrar(false); return; }
-    var f = fotoLeer(); if (f && f.ok && !PP.datos) { PP.datos = f; mostrar(true); pintar(); }   // la foto primero; la fresca llega por detrás
+    var f = fotoLeer(); if (completa(f) && !PP.datos) { PP.datos = f; mostrar(true); pintar(); }   // la foto primero; la fresca llega por detrás
     if (!PP.datos) { mostrar(true); $("g-pers").classList.add("cargando"); $("g-weebo").classList.add("cargando"); }
     hub("personalidad").then(function (r) {
       $("g-pers").classList.remove("cargando"); $("g-weebo").classList.remove("cargando");
-      if (r && r.ok) { PP.datos = r; fotoGuardar(r); mostrar(true); pintar(); }
+      if (completa(r)) { PP.datos = r; fotoGuardar(r); mostrar(true); pintar(); }
       else if (r && r.error !== "red" && r.error !== "no_url") mostrar(false);   // no es el principal: no se ve
     });
   }
@@ -1731,7 +1733,7 @@
     var n = ++PP.guardando;
     hub("personalidadFijar", cambio).then(function (r) {
       if (n !== PP.guardando) return;
-      if (r && r.ok) { PP.datos = r; fotoGuardar(r); pintar(); return; }
+      if (r && r.ok) { if (completa(r)) { PP.datos = r; fotoGuardar(r); } pintar(); return; }
       PP.datos = antes; pintar();
       var t = $(nota); t.textContent = r && r.error === "red" ? "Sin conexión: no se guardó. Vuelve a intentar." : "No se guardó" + (r && r.error ? ": " + r.error : ".");
       t.classList.add("error"); if (window.SAMov && SAMov.sacudir) SAMov.sacudir(t);
@@ -1804,7 +1806,7 @@
     var h = $("pp-hoja"); h.appendChild($("g-weebo")); h.appendChild($("g-pers"));
     $("g-weebo").hidden = false; $("g-pers").hidden = false; PP.hoja = true; pintarChips();
     $("pp-velo").classList.add("on"); $("pp-panel").classList.add("on"); $("pp-panel").setAttribute("aria-hidden", "false");
-    if (!PP.datos || Date.now() - (PP.leido || 0) > 30000) { PP.leido = Date.now(); hub("personalidad").then(function (r) { if (r && r.ok) { PP.datos = r; fotoGuardar(r); pintar(); } }); }
+    if (!PP.datos || Date.now() - (PP.leido || 0) > 30000) { PP.leido = Date.now(); hub("personalidad").then(function (r) { if (completa(r)) { PP.datos = r; fotoGuardar(r); pintar(); } }); }
   }
   function cerrarHoja() {
     var huesp = $("g-huesp"); huesp.parentNode.insertBefore($("g-pers"), huesp); huesp.parentNode.insertBefore($("g-weebo"), huesp);   // vuelven a Ajustes
@@ -1827,7 +1829,7 @@
       PP.vivo = { weebo: e.weebo == null ? null : +e.weebo, cambio: +e.cambio || 0, adapt: e.adapt == null ? null : +e.adapt, modo: e.modo || "" };
       if (PP.vivo.cambio) flechaSeVa();
       if (PP.datos && e.tope != null) PP.datos.adapt.tope = +e.tope;
-      if (PP.datos) pintar(); else { if (!PP.pidio) { PP.pidio = true; hub("personalidad").then(function (r) { if (r && r.ok) { PP.datos = r; fotoGuardar(r); pintar(); } }); } pintarChips(); }
+      if (PP.datos) pintar(); else { if (!PP.pidio) { PP.pidio = true; hub("personalidad").then(function (r) { if (completa(r)) { PP.datos = r; fotoGuardar(r); pintar(); } }); } pintarChips(); }
     }
   };
   /* hub.spacioam.com/alma/inicio.html#ajustes-personalidad (la pantalla de la llamada de la app la abre así): Ajustes abiertos en esta sección. */

@@ -326,7 +326,8 @@ function viajeHoraTexto_(iso, nombre) {
 
 /* El momento del tramo, UNA sola regla para la tarjeta (en la app, con las mismas cuentas), AirLabs y Alma.
    salida = la estimada del proveedor (si hay) o la del correo, ya en UTC. */
-var VIAJE_TARJETA_ANTES_ = 60 * 60000, VIAJE_VIVO_ANTES_ = 180 * 60000, VIAJE_DESPUES_ = 15 * 60000;
+var VIAJE_TARJETA_ANTES_ = 100 * 60000,   // 1 h antes del embarque (embarque ≈ salida − 40 min)
+    VIAJE_VIVO_ANTES_ = 180 * 60000, VIAJE_DESPUES_ = 15 * 60000;
 function viajeMomento_(t, vivo, ahora) {
   var prog = Date.parse(t.sale), est = vivo && vivo.sale ? Date.parse(vivo.sale) : prog;
   if (isNaN(est)) est = prog;

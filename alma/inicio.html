@@ -318,7 +318,7 @@
   .ajustes.avion.alerta::after { content: ""; position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
   .ajustes.avion[hidden] { display: none; }
   body.orbita-on .ajustes.avion { opacity: 0 !important; pointer-events: none !important; }
-  /* ── Tarjeta del vuelo (vuelovivo.js): de 1 h antes de la salida a 15 min después, el pase de abordar compacto entre
+  /* ── Tarjeta del vuelo (vuelovivo.js): de 1 h antes del embarque a 15 min después de la salida, el pase de abordar compacto entre
      «Hola, Juan» y la roca (sin moverla). Izquierda: número de quien vuela, vendido por · opera, estado y asiento.
      Derecha: puerta y embarque. Alabastro sólido con su corte y sus muescas. Tocarla abre «Tu viaje». ── */
   .vj-vivo { position: fixed; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); top: var(--vv-top, 132px); z-index: 2147482400;
@@ -1703,7 +1703,7 @@
   /* ── Tarjeta del vuelo (apps-script/vuelovivo.js) ───────────────────────────────────────────────────────────────
      El próximo tramo trae «vivo»: número de quien vuela, vendido por · opera, puerta (y la de antes), embarque aprox.,
      estado. Si el servidor no lo trae (sin llave de AirLabs ni FlightAware, o falló), se arma igual con lo del correo.
-     Se ve de 1 h antes de la salida (la estimada, si hay retraso) a 15 min después: la misma regla que viajeMomento_ (viajes.js),
+     Se ve de 1 h antes del embarque (1 h 40 min antes de la salida estimada) a 15 min después: la misma regla que viajeMomento_ (viajes.js),
      con el instante real (el ISO trae el desfase del aeropuerto, no el de Guatemala ni el del teléfono). Mientras se ve, pide «vueloVivo»
      cada 5 min (el servidor decide si de verdad le pregunta a AirLabs o FlightAware). */
   var VV = { ultimo: 0, cargando: false };
@@ -1715,7 +1715,7 @@
       embarque: enLocal(t.sale, ms(t.sale) - (dura > 0 && dura <= 120 ? 30 : 40) * 6e4), embarque_aprox: true, estado: "", estado_tipo: "" };
   }
   function porTexto(x) { var a = []; if (x.vendido) a.push("Vendido por " + x.vendido); if (x.opera) a.push((a.length ? "opera " : "Opera ") + x.opera); return a; }
-  function vivoVentana(p) { if (!p) return false; var s = ms(vivoDe(p).sale), t = Date.now(); return t >= s - H && t <= s + 15 * 6e4; }
+  function vivoVentana(p) { if (!p) return false; var s = ms(vivoDe(p).sale), t = Date.now(); return t >= s - H - 40 * 6e4 && t <= s + 15 * 6e4; }   // 1 h antes del embarque (≈ salida − 40 min)
   function pintarVivo() {
     var el = $("vj-vivo"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
     if (!vivoVentana(p)) { el.classList.remove("on"); el.hidden = true; document.body.classList.remove("vv-arriba"); return false; }

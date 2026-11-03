@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="../ds/tokens/typography.css">
 <link rel="stylesheet" href="../ds/tokens/radius-shadow.css">
 <!--
-  Las conexiones de Alma (Claude, Spotify, FlightAware, Google Home). Archivo propio del repo (no lo toca el export de Claude Design).
+  Las conexiones de Alma (Claude, Spotify, AirLabs, FlightAware, Google Home). Archivo propio del repo (no lo toca el export de Claude Design).
   Solo el admin principal. Las llaves van directo al Apps Script con la sesión firmada y nunca se vuelven a mostrar
   (la pantalla de Propiedades del script no deja agregar más de 50).
 -->
@@ -71,9 +71,27 @@
     <div class="msg" id="m-spotify"></div>
   </section>
 
+  <section id="s-airlabs">
+    <h2>AirLabs <span class="pill" id="e-al">Revisando…</span></h2>
+    <p>Para la tarjeta de tu vuelo en el inicio de la app: la puerta y el embarque al día, y el número de la aerolínea que de verdad lo vuela. Es gratis y no pide tarjeta (unas 1,000 consultas al mes; un vuelo gasta como mucho unas 30). Sin esta llave se ve lo de tus correos.</p>
+    <ol>
+      <li>Entra a <a href="https://airlabs.co/signup" target="_blank" rel="noopener">airlabs.co</a> y crea tu cuenta con el plan <b>Free</b>. Confirma tu correo.</li>
+      <li>En tu cuenta (<b>Account</b> → <b>API Key</b>) copia la llave y pégala aquí.</li>
+    </ol>
+    <label for="al">Llave de AirLabs</label><input id="al" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Letras, números y guiones">
+    <div class="fila"><button type="button" id="b-al">Guardar</button></div>
+    <div class="msg" id="m-al"></div>
+    <div id="al-prueba" hidden>
+      <p class="nota" style="margin-top:18px">Prueba: escribe un vuelo de hoy o de mañana y mira si AirLabs ya da la puerta. Gasta 1 consulta.</p>
+      <label for="al-num">Número del vuelo</label><input id="al-num" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AF1234">
+      <div class="fila"><button type="button" class="sec" id="b-al-probar">Probar</button></div>
+      <div class="msg" id="m-al-prueba"></div>
+    </div>
+  </section>
+
   <section id="s-flightaware">
     <h2>FlightAware <span class="pill" id="e-fa">Revisando…</span></h2>
-    <p>Para la tarjeta de tu vuelo en el inicio de la app: la puerta y el embarque al día, y el número de la aerolínea que de verdad lo vuela. Sin esta llave se ve lo de tus correos.</p>
+    <p>Opcional. Solo se usa si AirLabs no tiene llave o no encuentra el vuelo. Su cuenta pide tarjeta; si ya tienes AirLabs, no hace falta.</p>
     <ol>
       <li>Entra a <a href="https://www.flightaware.com/aeroapi/portal/" target="_blank" rel="noopener">flightaware.com/aeroapi/portal</a> y crea tu cuenta (o entra con la de FlightAware).</li>
       <li>Elige el plan <b>Personal</b> (trae $5 gratis al mes). Pide una tarjeta, pero solo cobra si pasas de los $5.</li>
@@ -163,7 +181,9 @@
     pill('e-claude', r.claude, 'Conectado', 'Sin llave');
     pill('e-github', r.github, 'Conectado', 'Sin llave');
     pill('e-login', r.loginSecreto, 'Listo', 'Sin llave');
-    var fa = r.flightaware || {}; pill('e-fa', fa.llave, 'Conectado', 'Sin llave');
+    var al = r.airlabs || {}; pill('e-al', al.llave, 'Conectado', 'Sin llave'); $('al-prueba').hidden = !al.llave;
+    if (al.llave && !$('m-al').textContent) msg('m-al', 'Este mes: ' + (al.consultas || 0) + ' de ' + Number(al.gratis || 1000).toLocaleString('en-US') + ' consultas gratis.' + (al.error ? ' Último error: ' + al.error + '.' : ''), al.error ? 'mal' : '');
+    var fa = r.flightaware || {}; pill('e-fa', fa.llave, 'Conectado', 'Opcional');
     if (fa.llave && !$('m-fa').textContent) msg('m-fa', 'Este mes: ' + (fa.consultas || 0) + ' consultas (≈ $' + Number(fa.costo || 0).toFixed(2) + ' de los $5 gratis).' + (fa.error ? ' Último error: ' + fa.error + '.' : ''), fa.error ? 'mal' : '');
     var bq = r.bigquery || {}; pill('e-bq', bq.proyecto && bq.cuenta, 'Conectado', bq.proyecto || bq.cuenta ? 'Falta una parte' : 'Sin llave');
     if (bq.proyecto && !$('bq-p').value) $('bq-p').value = bq.proyecto;
@@ -276,7 +296,28 @@
     var v = $('ls').value.trim(); if (v.length < 32) return msg('m-login', 'Pega el valor completo de SESSION_SECRET (es un texto largo).', 'mal');
     llamar({ guardar: { loginSecreto: v } }).then(function (r) { $('ls').value = ''; if (pintar(r) && r.ok) msg('m-login', 'Guardada. Si el login no contesta, el Hub comprueba tu sesión él mismo.', 'bien'); else msg('m-login', (r && r.error) || 'No se pudo.', 'mal'); });
   };
-  /* FlightAware: la llave va directo al Hub (Propiedad FLIGHTAWARE_KEY) y no se vuelve a mostrar. */
+  /* AirLabs: la llave va directo al Hub (Propiedad AIRLABS_KEY) y no se vuelve a mostrar. */
+  $('b-al').onclick = function () {
+    var v = $('al').value.trim(); if (!/^[A-Za-z0-9-]{20,64}$/.test(v)) return msg('m-al', 'Pega la llave completa: son letras, números y guiones, sin espacios.', 'mal');
+    msg('m-al', 'Guardando…');
+    llamar({ guardar: { airlabs: v } }).then(function (r) { $('al').value = ''; if (pintar(r) && r.ok) msg('m-al', 'Guardada. La tarjeta de tu vuelo se actualiza sola desde 3 h antes de salir.', 'bien'); else msg('m-al', (r && r.error) || 'No se pudo.', 'mal'); });
+  };
+  /* Prueba de AirLabs: qué datos da para un número (sobre todo, si trae la puerta). */
+  $('b-al-probar').onclick = function () {
+    var v = $('al-num').value.replace(/\s/g, '').toUpperCase(); if (!/^[A-Z0-9]{2}\d{1,4}[A-Z]?$/.test(v)) return msg('m-al-prueba', 'Escribe el número del vuelo, como AF1234.', 'mal');
+    msg('m-al-prueba', 'Preguntando a AirLabs…');
+    llamar({ vueloPrueba: v }).then(function (r) {
+      var p = r && r.vueloPrueba; if (p) $('m-al').textContent = ''; pintar(r);
+      if (!p) return msg('m-al-prueba', (r && r.error) || 'No se pudo.', 'mal');
+      if (!p.ok) return msg('m-al-prueba', p.error || 'No se pudo.', 'mal');
+      if (!p.encontrado) return msg('m-al-prueba', p.numero + ': ' + p.aviso + ' Van ' + p.consultas_mes + ' consultas este mes.', '');
+      var m = p.muestra || {};
+      msg('m-al-prueba', p.numero + ': ' + (p.trae_puerta ? 'sí trae la puerta (' + p.puerta + ').' : 'no trae la puerta todavía (se queda la de tu correo).') +
+        ' Estado: ' + (m.status || '—') + '. Terminal: ' + (m.dep_terminal || '—') + '. Vino con dato: ' + (p.con_dato || []).join(', ') + '.' +
+        ((p.vacios || []).length ? ' Vacíos: ' + p.vacios.join(', ') + '.' : '') + ' Van ' + p.consultas_mes + ' consultas este mes.', p.trae_puerta ? 'bien' : '');
+    });
+  };
+  /* FlightAware (opcional): la llave va directo al Hub (Propiedad FLIGHTAWARE_KEY) y no se vuelve a mostrar. */
   $('b-fa').onclick = function () {
     var v = $('fa').value.trim(); if (!/^[A-Za-z0-9]{20,64}$/.test(v)) return msg('m-fa', 'Pega la llave completa: son letras y números, sin espacios.', 'mal');
     msg('m-fa', 'Guardando…');

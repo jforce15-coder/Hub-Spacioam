@@ -1547,9 +1547,9 @@
 
   /* ── Tarjeta del vuelo (apps-script/vuelovivo.js) ───────────────────────────────────────────────────────────────
      El próximo tramo trae «vivo»: número de quien vuela, vendido por · opera, puerta (y la de antes), embarque aprox.,
-     estado. Si el servidor no lo trae (sin llave de FlightAware o falló), se arma igual con lo del correo.
+     estado. Si el servidor no lo trae (sin llave de AirLabs ni FlightAware, o falló), se arma igual con lo del correo.
      Se ve de 1 h antes de la salida (la estimada, si hay retraso) a 15 min después. Mientras se ve, pide «vueloVivo»
-     cada 5 min (el servidor decide si de verdad le pregunta a FlightAware). */
+     cada 5 min (el servidor decide si de verdad le pregunta a AirLabs o FlightAware). */
   var VV = { ultimo: 0, cargando: false };
   function vivoDe(p) {
     var t = p.t; if (t.vivo) return t.vivo;

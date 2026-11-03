@@ -70,3 +70,45 @@ function waErrorMeta_(code, cuerpo, wa, esSocio) {
   return 'Meta rechazó la plantilla' + (c ? ' (código ' + c + ')' : '') + ': ' + msg +
     (masUno && !esSocio ? ' · Es un número de EE. UU. o Canadá (+1): ahí Meta no entrega plantillas de marketing. Si es socio, regístralo como socio y uso la plantilla para socios.' : '');
 }
+
+/* ── La plantilla para socios se crea sola (Juan, 3-nov: «¿no me la puedes crear tú?») ──
+   Con WA_TOKEN y WA_WABA_ID (los mismos que ya usa contactoPlantillaCrear_), el Hub la manda a Meta en español e inglés,
+   revisa cada 30 min si ya la aprobaron y, cuando está APROBADA como Utilidad, llena WA_PLANTILLA_SOCIO y sus idiomas.
+   Si Meta la rechaza o la pasa a Marketing, le avisa a Juan. No hace nada si WA_PLANTILLA_SOCIO ya está puesta. */
+var SOCIO_TPL_TEXTOS_ = {
+  es: { cuerpo: 'Hola {{1}}, tenemos una actualización sobre tu cuenta del {{2}} con Spacio AM. Responde a este mensaje y te comparto el detalle.', ej: ['Lucía', 'apartamento 1508'], boton: 'Ver detalle' },
+  en: { cuerpo: 'Hi {{1}}, we have an update about your {{2}} account with Spacio AM. Reply to this message and I\'ll share the details.', ej: ['Lucia', 'apartment 1508'], boton: 'See details' }
+};
+function socioPlantillaAsegurar_(forzar) {
+  var p = PropertiesService.getScriptProperties();
+  if (p.getProperty('WA_PLANTILLA_SOCIO')) return { ok: true, lista: true };
+  if (!forzar && Date.now() - Number(p.getProperty('SOCIO_TPL_REV') || 0) < 30 * 60000) return { ok: true, espera: true };
+  p.setProperty('SOCIO_TPL_REV', String(Date.now()));
+  var W = waCfg_(), waba = p.getProperty('WA_WABA_ID');
+  if (!W.token || !waba) return { ok: false, error: 'faltan WA_TOKEN o WA_WABA_ID' };
+  var h = { Authorization: 'Bearer ' + W.token }, nom = SOCIO_PLANTILLA_SUGERIDA_, base = 'https://graph.facebook.com/v21.0/' + waba + '/message_templates';
+  var hay = []; try { hay = JSON.parse(uf_(base + '?name=' + nom + '&fields=name,status,language,category', { muteHttpExceptions: true, headers: h }).getContentText()).data || []; } catch (e) {}
+  var out = { ok: true, creadas: [], estado: {} };
+  ['es', 'en'].forEach(function (lg) {
+    var t = hay.filter(function (x) { return x.name === nom && x.language === lg; })[0];
+    if (!t) {
+      var tx = SOCIO_TPL_TEXTOS_[lg], body = { name: nom, language: lg, category: 'UTILITY', components: [
+        { type: 'BODY', text: tx.cuerpo, example: { body_text: [tx.ej] } }, { type: 'FOOTER', text: 'Spacio AM' },
+        { type: 'BUTTONS', buttons: [{ type: 'QUICK_REPLY', text: tx.boton }] }] };
+      var r = uf_(base, { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: h, payload: JSON.stringify(body) });
+      out.creadas.push(lg + ':' + r.getResponseCode()); out.estado[lg] = r.getResponseCode() < 300 ? 'PENDING' : 'error ' + r.getContentText().slice(0, 160);
+    } else out.estado[lg] = t.status + (t.category && t.category !== 'UTILITY' ? ' · ' + t.category : '');
+  });
+  var es = out.estado.es || '', en = out.estado.en || '', aviso = function (txt, nivel) {
+    try { var adm = adminsOp_().filter(function (a) { return a.principal; })[0]; if (adm) vozAvisoPoner_(adm, txt, null, { nivel: nivel }); } catch (e) { console.error('socio aviso: ' + e); }
+  };
+  if (es === 'APPROVED') {
+    p.setProperty('WA_PLANTILLA_SOCIO', nom); p.setProperty('WA_PLANTILLA_SOCIO_IDIOMA', 'es');
+    if (en === 'APPROVED') p.setProperty('WA_PLANTILLA_SOCIO_IDIOMA_EN', 'en');
+    aviso('Meta aprobó la plantilla para socios: ya puedo escribirles por WhatsApp, también a los números de Estados Unidos.', 3);
+  } else if (/REJECTED|MARKETING/.test(es) && !p.getProperty('SOCIO_TPL_AVISO')) {
+    p.setProperty('SOCIO_TPL_AVISO', '1');
+    aviso('Meta no aprobó la plantilla para socios como Utilidad (' + es + '). Hay que revisarla en WhatsApp Manager.', 2);
+  }
+  return out;
+}

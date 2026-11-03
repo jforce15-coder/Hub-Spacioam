@@ -9,7 +9,7 @@
    La frase corta sale de la misma respuesta de Alma (CALLE_REGLA_ en el prompt, sin otra llamada a la IA) y
    calleHablar_ le quita lo que no se puede decir (markdown, listas, enlaces, etiquetas [[…]]).
    Plazo duro (CALLE_PLAZO_, 15 s): si no alcanza, el agente lo sigue en segundo plano (retomar.js) y Alma dice
-   «Listo, te aviso cuando termine».
+   «Sigo en eso; te aviso al terminar» (nunca «Listo»: todavía no está hecho).
    audio (opcional): la frase con la voz de Alma (ElevenLabs, eleven_flash_v2_5), solo si llegó en 3 s o menos; si no,
    la app la dice con la voz del iPhone. Cuenta en el cupo como «Voz» (nunca se pausa).
 
@@ -24,7 +24,7 @@
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
 var CALLE_AUDIO_MS_ = 3000;        // el audio solo vale si ElevenLabs contestó en este tiempo
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
-var CALLE_SIGUE_ = 'Listo, te aviso cuando termine.';
+var CALLE_SIGUE_ = 'Sigo en eso; te aviso al terminar.';   // todavía no está hecho: nada de «Listo» (Juan, 3-nov-2026)
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
@@ -55,13 +55,13 @@ function calleRespuesta_(adm, r) {
   var texto = String((r.alma && r.alma.texto) || ''), acc = (r.alma && r.alma.acciones) || [];
   var falla = acc.filter(function (a) { return a && a.error; })[0];
   if (falla) return { ok: true, hablar: calleCorto_('No se pudo: ' + calleLimpiar_(falla.resumen || falla.tipo || 'lo que pediste'), CALLE_PALABRAS_), conversar: false };
-  /* Un pedido para Claude queda de borrador: se dice en corto y se contesta con la próxima frase («Alma, mándalo»). */
+  /* Un borrador viejo (del 1 al 3-nov) que sigue esperando: solo la pregunta, sin leerlo. Los pedidos nuevos salen solos. */
   if (r.borrador && (typeof r.borrador === 'object' || r.borrador === 'agregar')) {
     var bc = null; try { bc = claudeBorradorLeer_(adm.email); } catch (e) {}
     if (bc) {
       var nm = '«' + (bc.microNombre || '') + '»';   // microproyecto (#374): a cuál va, o la duda
       var h = bc.microDuda ? '«' + claudeBorradorCorto_(bc, 90) + '». ¿Es parte de ' + nm + ' o es nuevo?'
-        : bc.micro ? 'Lo agrego a ' + nm + ': «' + claudeBorradorCorto_(bc, 90) + '». ¿Se lo mando?' : 'Le pediría a Claudio: «' + claudeBorradorCorto_(bc, 90) + '». ¿Se lo mando?';
+        : bc.micro ? '¿Lo sumo a ' + nm + ' y lo pido?' : '¿Lo pido?';   // sin leer el pedido de vuelta (Juan, 3-nov-2026)
       return { ok: true, hablar: h, conversar: false };
     }
   }

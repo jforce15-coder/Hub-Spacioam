@@ -249,7 +249,7 @@ function pendResponder_(ses, b) {
       '\nLO QUE RESPONDISTE: ' + String(c[11] || '').slice(0, 3000) });
   if (!rc.ok) return rc;
   paraClaudeMarcar_(id, 'hecho', 'Juan respondió en Pendientes');
-  return { ok: true, a: 'claude', respuesta: rc.claude ? 'Listo, ya se lo pasé a Claudio. Su respuesta aparece aquí.' : rc.nota || '' };
+  return { ok: true, a: 'claude', respuesta: rc.claude ? 'Listo, quedó tu respuesta.' : rc.nota || '' };
 }
 /* La nota de voz de «Responder»: llega en base64 y vuelve en texto, para que Juan la vea antes de enviarla. */
 function pendNota_(ses, b) {

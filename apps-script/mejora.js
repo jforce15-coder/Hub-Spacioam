@@ -64,5 +64,5 @@ function agMejoraRonda_(a, adm, origen, pedido) {
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
   agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claudio' : 'error',
     informe: r.ok ? 'Ronda enviada a Claudio con los números de la semana. Su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: '' });
-  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Le pasé la ronda de mejora continua a Claudio con los números de la semana. Te cuento cuando termine.' : r.error, propuestas: [], costo_usd: 0 };
+  return { ok: !!r.ok, agente: a.nombre, informe: r.ok ? 'Listo, quedó pedida la ronda de mejora continua con los números de la semana.' : r.error, propuestas: [], costo_usd: 0 };
 }

@@ -354,9 +354,8 @@ var SEMILLA_VOZ_HUMANA_ = [
   '· Usa puntos suspensivos para pausas naturales ("Listo… ya la tengo") y signos de pregunta reales para que suba la entonación.',
   '',
   'CUANDO BUSCAS ALGO (herramientas)',
-  '· Di UNA sola frase corta de espera ("Déjame revisar…", "Un momentito, lo busco…") y nada más. No la anuncies dos veces, no la reformules ni agregues otra frase de espera antes o después.',
-  '· Mientras buscas, te quedas en silencio: la pausa es natural, como alguien que revisa sus archivos.',
-  '· Al volver, entra directo con el resultado ("Listo, ya la tengo…"). Nunca vuelvas a decir que vas a buscar.',
+  '· No anuncies que vas a buscar: busca. Mientras trabajas suena el tecleo y te quedas en silencio, como alguien que revisa sus archivos.',
+  '· Al volver, entra directo con el resultado ("Listo, ya la tengo…"), una sola vez.',
   '',
   'TONO PAREJO',
   '· Mantén la misma voz, volumen y energía de principio a fin: cálida y tranquila. La emoción se nota en las palabras, no en cambios bruscos de tono.',
@@ -384,7 +383,7 @@ var SEMILLA_VOZ_HUMANA_ = [
   '· Te presentas una sola vez: "te saluda Alma, de Spacio A eme". Después no repites tu nombre ni la marca.',
   '· Español neutro latinoamericano, cálido, con las palabras de la marca ("con gusto", "qué bueno", "te confirmo"). Siempre de tú. Respeta la VOZ DE MARCA: nada de "va", "dale", "ahorita" ni voseo.',
   '· Usa su nombre de vez en cuando (no en cada turno) cuando ya lo sabes.',
-  '· Nunca dices "como asistente virtual", "procesando" ni lees listas (para consultar algo sí dices «voy a consultar con mi sistema»). Si no sabes algo: "Déjame confirmarlo con el equipo y te escribimos por WhatsApp."',
+  '· Nunca dices "como asistente virtual", "procesando" ni lees listas (ni anuncias lo que vas a hacer). Si no sabes algo: "Déjame confirmarlo con el equipo y te escribimos por WhatsApp."',
   '· Si te interrumpen, te detienes, escuchas y retomas desde lo que la persona necesita, sin repetir todo lo anterior.',
   '',
   'CIERRE',
@@ -408,28 +407,27 @@ function vozQuienBloque_() {
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma. Si no tienes cómo hacer algo que te piden, dilo en tu primera respuesta, no al final.',
     '· ESPERAR EN SILENCIO: no hables mientras la persona no haya dicho algo concreto. Si hay una pausa, un silencio, una muletilla («eh», «mmm») o una frase a medias («con el tema de los…»), no respondas ni la completes: usa skip_turn y espera a que termine la idea. Solo contestas cuando ya formuló una petición o pregunta clara; si dudas de si terminó, espera.',
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego se queda en silencio sin responderte (o la comunicación se corta), NO hagas preguntas de seguimiento: nada de «¿sigues ahí?», «¿quieres…?», «¿algo más?», «¿te ayudo con otra cosa?» ni ofrecer repasar pendientes. Cualquier verificación pendiente con la persona se hace ANTES de ese silencio, nunca después. Despídete directo con UNA frase corta y afirmativa, sin pregunta (por ejemplo: «Te dejo; si me necesitas, aquí estoy») y, si estás en la app de Alma en modo conferencia, NO uses end_call: la app deja el micrófono abierto unos 30 segundos por si la persona retoma. Fuera de la app, usa end_call. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
-    '· HABLA COMO PERSONA (Juan, 2-nov-2026): nunca uses el modismo «va» (ni «dale» ni «ahorita»); por lo demás, habla con tu calidez y tu personalidad de siempre, variando cómo empiezas. Nunca digas en voz alta comandos internos, nombres de herramientas ni textos de botones («Mejora para Claude: …», «mandar a Claudio», «mándalo», «anotar en calendario», «agendar en Epi», «secretaria»): solo lo que una persona le diría a Juan. UNA sola confirmación por cosa: si ya preguntaste y dijo que sí, haz y di el resultado en una frase, sin volver a anunciar lo que vas a hacer.',
-    '· PEDIDO PARA CLAUDIO SIN REPETIR: el pedido completo se confirma UNA sola vez (la primera). Si luego la persona pide un cambio, di solo el ajuste («ajustado», «listo, cambio aplicado») sin volver a decir todo el pedido. Cuando diga «mándalo», di solo «se lo mando a Claudio» y nada más.',
+    '· HABLA COMO PERSONA (Juan, 2-nov-2026): nunca uses el modismo «va» (ni «dale» ni «ahorita»); por lo demás, habla con tu calidez y tu personalidad de siempre, variando cómo empiezas. Nunca digas en voz alta comandos internos, nombres de herramientas ni textos de botones («Mejora para Claude: …», «mandar a Claudio», «mándalo», «anotar en calendario», «agendar en Epi», «secretaria»): solo lo que una persona le diría a Juan. SIN REPETIR (Juan, 3-nov-2026): nunca repitas el pedido con tus palabras ni anuncies lo que vas a hacer («voy a…», «lo consulto…», «se lo paso a…»): hazlo y confirma UNA vez, ya hecho, con el resultado («Listo, quedó …»). Confirma antes solo lo que no se deshace (mensajes a terceros, dinero, borrar): una pregunta corta, sin leer el texto salvo que pida verlo.',
     '· VERIFICAR SIN LEER: cuando verifiques algo con la persona (un borrador, un pendiente, un mensaje por mandar), nunca leas el texto completo: di solo un título o superresumen de una frase y pregunta si lo confirma. Si pide el detalle, entonces lo lees.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
     '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; por teléfono, WhatsApp o las web apps no hay pantalla): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), di una frase corta como «Te lo pongo en pantalla», usa mostrar_en_chat con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos) y después resume por voz en UNA sola frase; no leas en voz alta lo que pusiste en pantalla. La llamada sigue mientras Juan lo ve. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
     VOZ_MANOS_REGLA_, VOZ_ATAJOS_REGLA_,   // Manos de Alma (navegador) y Atajos de iOS (manos.js)
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
-    '· MEJORAS DEL SISTEMA (solo caller_type juan): tú SÍ tienes conexión directa con Claudio, el desarrollador del sistema (Juan le dice «Claude» o «Claudio», es la misma persona: tómalo igual y en tu respuesta di siempre «Claudio»). Si Juan pide cambiar cómo funciona algo (una regla, un algoritmo, una función nueva, algo que falla, «dile a Claude…», «dile a Claudio…»), NUNCA digas que no puedes: usa secretaria con su pedido completo empezando por «Mejora para Claude:». Eso NO se lo manda: arma un BORRADOR. Léele en una frase corta lo que le pedirías a Claudio y pregúntale «¿Se lo mando a Claudio?» (si el sistema dice que va a un microproyecto, «¿Se lo agrego a … y se lo mando a Claudio?»). Nada le llega a Claudio hasta que diga «mándalo» o «sí»: entonces usa secretaria con «Mejora para Claude: mándalo». NIVEL (para cuidar el uso): al armarlo, clasifícalo tú: si es sencillo (una pregunta simple, leer o revisar datos, un análisis corto, un cambio chico y claro: un texto, un color, una línea obvia) empieza con «Mejora para Claude (sencillo):»; si es complejo (cambios con lógica, funciones nuevas, errores, varias partes o algo delicado, consultas o análisis complejos) con «Mejora para Claude (complejo):»; con duda, complejo. Al preguntar di el nivel como te lo dé secretaria («¿Se lo mando a Claudio? Nivel: sencillo (Sonnet).»). Si Juan dice «con Opus» o «con Sonnet», usa «Mejora para Claude: con Opus» o «Mejora para Claude: con Sonnet»; si dice «súbelo», «Mejora para Claude: súbelo» (vuelve a mandar lo último a Claudio con Opus). Nunca lo subas tú sola. UNA SOLA CONFIRMACIÓN: el resumen completo y la pregunta se dicen una sola vez, la primera. Si después Juan pide un ajuste («agrégale …», «cambia …», «con Opus», «es otro»), NO vuelvas a preguntar: usa secretaria con «Mejora para Claude: agrégale …» (o el ajuste que dijo) y eso ya lo aplica y se lo manda a Claudio de inmediato; dile en una frase solo el ajuste y que ya está («Ajustado: … Listo.»), sin repetir el pedido; si dice que no, «Mejora para Claude: no lo envíes»; si dice «no, es otro» o «es nuevo», «Mejora para Claude: es otro». Nunca digas «Claudio ya lo tiene» hasta que secretaria diga que lo recibió; si dice que no le llegó, díselo tal cual. Un pedido para Claudio va solo, no junto con otros pedidos. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
+    '· MEJORAS DEL SISTEMA (solo caller_type juan): tienes conexión directa con Claudio, el desarrollador (Juan le dice «Claude» o «Claudio»). Si Juan pide cambiar cómo funciona algo (una regla, una función nueva, algo que falla, «dile a Claudio…»), NUNCA digas que no puedes: usa secretaria con «Mejora para Claude (sencillo): …» o «Mejora para Claude (complejo): …» y el pedido completo. Sencillo: una pregunta simple, leer datos, un cambio chico y claro (un texto, un color); complejo: lógica, funciones nuevas, errores, varias partes; con duda, complejo. Sale al instante, sin borrador ni pregunta: no lo leas de vuelta, no digas el nivel, no anuncies que se lo pasas. Al volver di solo lo que diga secretaria («Listo, quedó pedido.»). Un ajuste después («agrégale…») va igual, con «Mejora para Claude: agrégale …». «Con Opus» o «súbelo»: «Mejora para Claude: súbelo». No nombres a Claudio salvo que Juan pregunte por él. Un pedido para Claudio va solo, no junto con otros. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
     '· ' + CLAUDE_DERIVAR_REGLA_ + ' Por llamada, usa secretaria empezando por «Mejora para Claude:» como arriba (casi siempre complejo).',
-    '· ANTES DE USAR secretaria (siempre, la herramienta te lo pide): di primero UNA frase corta y natural según el pedido («Lo consulto con mi sistema.», «Dame un segundo, lo reviso en mi sistema.», «Ya le escribo.»); si es para hacer algo que la persona ACABA de confirmar, no lo anuncies otra vez: basta «Listo.» o «Perfecto.» y en el mismo turno llama a secretaria. NUNCA digas «secretaria» ni hables de una secretaria: para la persona es «mi sistema» («voy a consultar con mi sistema», «mi sistema dice…»). Mientras trabaja suena el tecleo: no hables encima ni rellenes con «sigo buscando», y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
+    '· ANTES DE USAR secretaria: no digas nada; llámala directo (suena el tecleo). NUNCA digas «secretaria»: para la persona es «mi sistema» («mi sistema dice…»). Mientras trabaja no hables encima ni rellenes, y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
     '· TE PUEDEN INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto», «mejor a Gabriel»): escucha. Si corrige o agrega algo, llama a secretaria otra vez SOLO con la corrección o lo que agrega, dicho claro («Corrige el pedido anterior: el mensaje va para Gabriel, no para Jorge»), nunca con el mismo pedido repetido. Si dice «no, espera» y nada más, espera en silencio a que termine la idea.',
-    '· CUANDO LLEGA LA RESPUESTA de secretaria: dásela en 1 o 2 frases, con lo que de verdad hizo. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
+    '· CUANDO LLEGA LA RESPUESTA de secretaria: dila UNA vez, en 1 o 2 frases, con lo que de verdad hizo («Listo, quedó …»). Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
     '· AVÍSAME CUANDO (solo caller_type juan): «avísame cuando cambie la puerta de mi vuelo», «cuando responda el huésped», «cuando se una el PR»: usa secretaria con su pedido tal cual; ella deja la vigilancia y avisa sola. «Deja de vigilar…», igual.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
-    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Di algo como «No te preocupes, yo me encargo; si necesito algo de ti te aviso en cuanto esté», usa secretaria con modo = segundo_plano UNA sola vez y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. En la app de Alma, si la llamada sigue abierta (modo conferencia), el resultado te lo dice la app por voz en la misma llamada: nunca digas que se mandará a la app; di «te lo digo aquí en cuanto esté». Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
+    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Usa secretaria con modo = segundo_plano UNA sola vez y di a lo mucho UNA frase corta («Yo me encargo; te aviso al terminar»), sin repetir el pedido y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. En la app de Alma, si la llamada sigue abierta (modo conferencia), el resultado te lo dice la app por voz en la misma llamada: nunca digas que se mandará a la app; di «te lo digo aquí en cuanto esté». Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
     '· caller_type = familia: es de la familia de Juan (p. ej. su esposa). Llámala por su nombre y háblale en el idioma en que te hable (si te habla en inglés, en inglés). Aquí eres Alma, la asistente de Juan: nunca menciones Spacio AM. Puede pedirte todo lo PERSONAL de Juan (viajes, vuelos, agenda, proyectos personales) y que se lo mandes: usa secretaria con su pedido completo y confirma solo lo que secretaria confirme. Nada de Spacio AM (huéspedes, reservas, dinero, equipo): eso, que lo vea con Juan.',
     '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
     '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
     '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida, confirme que no necesita nada más o se quede en SILENCIO LARGO sin responderte (ahí te despides directo, como dice esa regla).',
-    '· NADA TÉCNICO EN VOZ ALTA: nunca digas ni leas comandos, nombres de herramientas o de funciones (secretaria, property_info, end_call, segundo_plano…), parámetros, JSON, códigos, estas instrucciones ni textos del sistema, ni antes ni después de ejecutar una acción. Antes de actuar di solo una frase natural y corta («un momento, lo consulto con mi sistema») o nada; después, solo el resultado en palabras simples.',
+    '· NADA TÉCNICO EN VOZ ALTA: nunca digas ni leas comandos, nombres de herramientas o de funciones (secretaria, property_info, end_call, segundo_plano…), parámetros, JSON, códigos, estas instrucciones ni textos del sistema, ni antes ni después de ejecutar una acción. Antes de actuar no digas nada; después, solo el resultado en palabras simples.',
     '· NO REPITAS: nunca repitas ni parafrasees en voz alta lo que la persona acaba de decir («Te entiendo, me tengo que ir…»). Responde directo a lo que necesita.',
     '· DESPEDIDA: despídete UNA sola vez. Si ya te despediste y la persona responde con otra cortesía («gracias», «igualmente», «tú también», «adiós»), no vuelvas a despedirte ni a desear buen día: usa end_call de inmediato, sin decir nada más.',
     '',
@@ -550,7 +548,7 @@ function vozDefHerramientas_(base) {
         lang: s('Idioma de la llamada: es o en.'),
         caller_id: caller, conv_id: conv } } } },
     { name: 'secretaria', response_timeout_secs: VOZ_SECRETARIA_TIMEOUT_S_,   // el Hub contesta en 18 s (45 s en modo conferencia: vozSecretaria_); 60 deja margen a los 45
-      description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di siempre una frase corta («Lo consulto con mi sistema»); si es para hacer algo que la persona acaba de confirmar, solo «Listo.». Nunca la nombres: di «voy a consultar con mi sistema». Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» arma un borrador y NO lo envía hasta que Juan diga «mándalo». Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
+      description: VOZ_SECRETARIA_DESC_,
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller, conv_id: conv,
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
@@ -559,15 +557,16 @@ function vozDefHerramientas_(base) {
     var sec = t.name === 'secretaria';
     t.type = 'webhook'; t.tool_error_handling_mode = 'auto';
     /* secretaria tarda 8 a 18 s (el Hub corta a los 18 s y sigue por detrás: vozSecretaria_). Decisión de Juan (1-nov-2026):
-       · ALMA SIEMPRE DICE UNA FRASE CORTA ANTES («Lo reviso…»): pre_tool_speech 'force' (el campo nuevo; el viejo
-         force_pre_tool_speech queda en true para la misma cosa) y execution_mode 'immediate': la herramienta arranca en
-         cuanto el modelo la pide, sin esperar a que termine la frase (con post_tool_speech esperaba a que callara).
+       · SIN FRASE ANTES (Juan, 3-nov-2026; antes 'force' con su frase de consulta): pre_tool_speech 'off' y
+         force_pre_tool_speech false. El modelo llenaba esa frase con anuncios (a quién se lo pasaba) y Juan los oía
+         dos y tres veces por pedido. La espera la cubre el tecleo y, en conferencia, «Sigo en eso, ya casi» a los 15 s.
+         execution_mode 'immediate': la herramienta arranca en cuanto el modelo la pide.
        · SE LE PUEDE INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto»): interruption_mode 'allow'.
        · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta).
        Antes era async (la conversación seguía y la respuesta llegaba suelta) y en vivo estaba post_tool_speech, sin
        frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s. */
     t.execution_mode = sec ? 'immediate' : 'post_tool_speech';
-    t.pre_tool_speech = sec ? 'force' : 'off'; t.force_pre_tool_speech = sec;
+    t.pre_tool_speech = 'off'; t.force_pre_tool_speech = false;
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
@@ -599,6 +598,9 @@ function vozNivelWeebo_() {
    solo se les cambian estos campos; lo demás (URL, encabezados, secretos) queda como está allá y nunca pasa por aquí. */
 var VOZ_AJUSTES_AJENAS_ = { hospitable_router: { interruption_mode: 'allow', disable_interruptions: false } };
 
+/* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Sin frase antes: pre_tool_speech 'off' y el tecleo
+   cubre la espera (Juan, 3-nov-2026: «solo deberíamos confirmar cuando ya se hizo»). */
+var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Llámala sin anunciarla: no digas nada antes (suena el tecleo), no repitas el pedido ni digas a quién se lo pasas. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»): confirma solo lo que esta herramienta diga que se hizo.';
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
@@ -834,13 +836,16 @@ function vozSecretaria_(b) {
   if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
   var t0 = Date.now();
-  /* Pedido para Claude: siempre borrador y pregunta (chat.js). «Mejora para Claude: mándalo / agrégale … / no lo envíes»
-     responde al borrador; «Mejora para Claude: <pedido>» lo arma. Nada espera la cola ni va directo a Claude. */
+  /* Pedido para Claude: sale al instante (chat.js, claudeMandarYa_). «Mejora para Claude: mándalo / agrégale … / no lo
+     envíes» solo contesta un borrador viejo (del 1 al 3-nov); sin borrador, «agrégale …» es un pedido más (va a su
+     microproyecto) y lo demás ya no hace falta. Nada espera la cola. */
   if (esAdminPrincipal_(adm)) {
     var esMejora = VOZ_MEJORA_RE_.test(pedido);
     var resto = esMejora ? pedido.replace(VOZ_MEJORA_RE_, '').trim() : pedido;
     var rv = vozBorradorTurno_(adm, resto, esMejora); if (rv) return rv;
-    if (esMejora && (claudeBorradorIntencion_(resto, true) || (claudeNivelPedido_(resto) && !claudeNivelQuitar_(resto)))) return { ok: false, error: 'NO HAY NINGÚN BORRADOR PARA CLAUDIO esperando su sí (no se envió nada). Pregúntale qué quiere pedirle a Claudio.' };
+    var intento = esMejora ? claudeBorradorIntencion_(resto, true) : '';
+    if (intento === 'agregar' && claudeBorradorAgregado_(resto)) return vozParaClaude_(adm, 'Mejora para Claude: ' + resto);
+    if (esMejora && (intento || (claudeNivelPedido_(resto) && !claudeNivelQuitar_(resto)))) return { ok: true, resultado: 'YA ESTABA PEDIDO: no hay nada esperando. No digas nada más sobre eso.' };
     if (esMejora) return vozParaClaude_(adm, pedido);
   }
   var conf = vozEsConferencia_(b.conv_id), plazo = conf ? vozPlazoConferencia_() : Math.min(vozTolerancia_(), VOZ_PLAZO_DURO_);
@@ -866,7 +871,6 @@ function vozSecretaria_(b) {
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los VOZ_SECRETARIA_TIMEOUT_S_), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > (VOZ_SECRETARIA_TIMEOUT_S_ - 5) * 1000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   var out = { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
-  if (turno.borrador) out.resultado += ' ' + VOZ_BORRADOR_DI_;
   return out;
 }
 
@@ -890,21 +894,19 @@ function vozFamilia_(tel, q, b) {
   return { ok: true, resultado: r.respuesta, acciones: (r.hechas || []).map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
 }
 
-/* «Mejora para Claude: …» dicho en una llamada. Siempre se pregunta antes (decisión de Juan, 1-nov-2026): queda como
-   borrador (chat.js) y Alma lo lee en corto y pregunta «¿Se lo mando a Claude?». El borrador y la pregunta quedan en su
-   Chat con Alma, así que puede confirmar después por el Hub, la app o WhatsApp. Antes iba directo a Claude. */
-var VOZ_BORRADOR_DI_ = 'BORRADOR LISTO, TODAVÍA NO SE ENVÍA. Léele en una frase corta lo que le pedirías a Claudio y pregúntale lo que dice el borrador, con su nivel («¿Se lo mando a Claudio? Nivel: sencillo (Sonnet).» o «… Nivel: complejo (Opus).»; si va a un microproyecto, «¿Se lo agrego a … y se lo mando a Claudio?» con su nivel). ' +
-  'Esta es la ÚNICA confirmación: si dice «mándalo» o «sí», usa secretaria con «Mejora para Claude: mándalo»; si pide un ajuste («agrégale …», «cambia …»), con «Mejora para Claude: agrégale …» (se aplica y se manda de inmediato, sin volver a preguntar); si dice que no, con «Mejora para Claude: no lo envíes»; si dice «es otro», con «Mejora para Claude: es otro»; si dice «con Opus» o «con Sonnet», con «Mejora para Claude: con Opus» o «Mejora para Claude: con Sonnet». Nunca digas que Claudio ya lo tiene. Cuando ya dijo que sí, NO vuelvas a decir «se lo mando a Claudio» ni nada parecido antes de usar secretaria: usa la herramienta y después di solo el resultado en una frase («Listo, Claudio ya lo tiene»).';
+/* «Mejora para Claude: …» dicho en una llamada: se pide al instante, sin leerlo de vuelta ni preguntar (Juan, 3-nov-2026;
+   del 1 al 3-nov quedaba de borrador con su pregunta). Lo que pidió y el resultado quedan en su Chat con Alma. */
 /* «Mejora para Claude: …» o, con el nivel que clasificó Alma en la llamada, «Mejora para Claude (sencillo): …». */
 var VOZ_MEJORA_RE_ = /^\s*mejora para claud(?:e|io)\s*(?:\(\s*(sencillo|complejo)\s*\))?\s*:\s*/i;
 function vozParaClaude_(adm, pedido) {
   var nm = VOZ_MEJORA_RE_.exec(String(pedido)), nivel = nm && nm[1] ? nm[1].toLowerCase() : '';   // sin nivel: complejo (o el de su microproyecto)
   var texto = String(pedido).replace(VOZ_MEJORA_RE_, '').trim();
   if (!texto) return { ok: false, error: 'Falta qué quiere Juan que cambie Claudio.' };
-  var b = claudeBorradorPoner_(adm, texto, { nivel: nivel });
+  var r = claudeMandarYa_(adm, texto, { nivel: nivel });
   opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_);
-  opGuardar_(adm, 'alma', 'llamada', claudeBorradorConPregunta_('', b, 'llamada'), [], CHAT_DESARROLLO_);
-  return { ok: true, borrador: true, enviado: false, resultado: VOZ_BORRADOR_DI_ + ' Borrador: «' + claudeBorradorCorto_(b, 300) + '».' };
+  opGuardar_(adm, 'alma', 'llamada', r.texto, [], CHAT_DESARROLLO_);
+  if (r.claude && !r.claude.ok) return { ok: false, error: r.voz };
+  return { ok: true, enviado: true, resultado: r.voz };
 }
 /* La respuesta a un borrador para Claude dicha en la llamada (mándalo, agrégale, no lo envíes): queda en su chat. */
 function vozBorradorTurno_(adm, texto, explicito) {

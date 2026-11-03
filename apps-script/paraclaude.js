@@ -41,7 +41,7 @@ var CLAUDE_NIVEL_REGLA_ = 'sencillo (va con Sonnet): una pregunta simple, leer o
 var CLAUDE_DERIVAR_REGLA_ = 'DERIVAR A CLAUDIO (solo con el administrador principal): Claudio es desarrollo y el cerebro de la operación. ' +
   'Si para cumplir lo que te pide chocas con un límite tuyo (una búsqueda en internet que no alcanza o no encuentra lo que pide, procesar muchos datos, ' +
   'generar un reporte o cualquier consulta externa que tus herramientas no resuelven), no lo alargues, no improvises ni digas que no se puede: ' +
-  'de inmediato pásalo como pedido para Claudio, con lo que necesita y para qué (queda de borrador: le llega cuando Juan dice «mándalo»). ' +
+  'de inmediato pásalo como pedido para Claudio, con lo que necesita y para qué (sale al instante; tú solo di el resultado). ' +
   'Lo que tus herramientas sí resuelven rápido (un dato de las hojas, una búsqueda corta) lo haces tú.';
 /* Filas viejas (sin nivel) y cualquier cosa rara: complejo. */
 function claudeNivel_(x) { return String(x || '').trim().toLowerCase() === 'sencillo' ? 'sencillo' : 'complejo'; }
@@ -134,8 +134,8 @@ function paraClaudeCrear_(adm, inp) {
     try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queQuiere.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel },
-    nota: disparo.ok ? 'Ya se lo pasé a Claudio (' + claudeNivelTexto_(nivel) + '). Está trabajando en eso; cuando termine te cuento en corto aquí en tu chat.' + (disparo.nota ? ' ' + disparo.nota : '') :
-      issue ? 'Quedó enviado a Claudio (issue en GitHub). Cuando esté listo llega un PR para que Juan lo una.' : 'Quedó guardado para Claudio en la lista de pedidos. (La conexión directa aún no está activa: falta CLAUDE_RUTINA_TOKEN.)' };
+    nota: disparo.ok ? 'Listo, quedó pedido.' :
+      issue ? 'Listo, quedó pedido en la lista (el arranque directo falló); cuando esté, llega a Pendientes para unir.' : 'Quedó guardado en la lista de pedidos, pero no arrancó: falta CLAUDE_RUTINA_TOKEN.' };
 }
 /* Apps viejas que todavía responden en la conversación «Desarrollo» (resId op:desarrollo): el mensaje entra al chat del
    principal como Propósito · Desarrollo. Como en todo el chat (chat.js), queda de borrador y Alma pregunta
@@ -251,7 +251,7 @@ function paraClaudeRespuesta_(b) {
     /* Su microproyecto (#374): la respuesta entra al historial y cambia el estado (pregunta, listo para unir…). */
     var m = null; if (v[i][15]) { try { m = microRespuesta_(String(v[i][15]), { estado: estado, voz: voz, detalle: b.detalle, enlaces: enlaces, rama: b.rama }, cuerpoR); } catch (e) { console.error('microRespuesta_: ' + e); } }
     if (m) titulo = m.nombre;
-    var texto = (estado === 'pregunta' ? 'Claudio pregunta · ' : estado === 'fallo' ? 'Claudio no pudo · ' : 'Claudio terminó · ') + titulo + '\n\n' +
+    var texto = (estado === 'pregunta' ? 'Pregunta · ' : estado === 'fallo' ? 'No se pudo · ' : 'Listo · ') + titulo + '\n\n' +
       cuerpoR + (enlaces.length ? '\n\n' + enlaces.join('\n') : '');
     var conPr = enlaces.some(function (u) { return /\/pull\/\d+/.test(u); }) || !!(m && m.estado === MICRO_ESTADOS_.listo);
     if (estado === 'listo') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
@@ -271,19 +271,20 @@ function paraClaudeFecha_() {
   return dia + ' ' + m[mes] + ' ' + Utilities.formatDate(d, 'America/Guatemala', 'yyyy');
 }
 /* Avisos de Claude (decisión de Juan, #374): solo lo que sirve, nunca un acuse («se lo mandé», «lo recibió»).
-     pregunta → nivel 2 «Claudio pregunta sobre «X»» (las opciones van en su tarjeta de Pendientes)
-     listo    → nivel 2 «Claudio terminó «X»: está en Pendientes para que lo unas» (hay un PR)
-     fallo    → nivel 2 «Claudio no pudo con «X»»
+     pregunta → nivel 2 «Hay una pregunta sobre «X»» (las opciones van en su tarjeta de Pendientes)
+     listo    → nivel 2 «Listo, quedó «X»: está en Pendientes para que lo unas» (hay un PR)
+     fallo    → nivel 2 «No se pudo con «X»»
+   Sin «Claudio» en lo que se dice: el resultado, ya hecho (Juan, 3-nov-2026).
      consulta → nivel 3 (respondió sin PR: solo para leer)
      unido    → nivel 3 «Quedó unido «X»» (microUnido_)
    Lo de nivel 2 también queda como tema por retomar. Además, novedad para su próxima llamada con Alma. */
 function paraClaudeAvisarTexto_(titulo, voz, estado) {
   var t = '«' + titulo + '»';
-  return estado === 'pregunta' ? 'Claudio pregunta sobre ' + t + (voz ? ': ' + voz : '.')
-    : estado === 'fallo' ? 'Claudio no pudo con ' + t + (voz ? ': ' + voz : '.')
+  return estado === 'pregunta' ? 'Hay una pregunta sobre ' + t + (voz ? ': ' + voz : '.')
+    : estado === 'fallo' ? 'No se pudo con ' + t + (voz ? ': ' + voz : '.')
     : estado === 'unido' ? 'Quedó unido ' + t + '.'
-    : estado === 'consulta' ? 'Claudio respondió sobre ' + t + (voz ? ': ' + voz : '.')
-    : 'Claudio terminó ' + t + ': está en Pendientes para que lo unas.';
+    : estado === 'consulta' ? 'Listo, ' + t + (voz ? ': ' + voz : '.')
+    : 'Listo, quedó ' + t + ': está en Pendientes para que lo unas.';
 }
 function paraClaudeAvisar_(titulo, voz, estado) {
   var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo|listo)$/.test(String(estado)) ? 2 : 3;
@@ -305,7 +306,7 @@ function paraClaudeNovedades_(adm) {
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   if (!nov.length) return '';
   p.deleteProperty('DESARROLLO_NOVEDADES');
-  return '\nNOVEDADES DE CLAUDIO (Claude, el desarrollador del sistema; dile «Claudio»): cuéntaselas en una frase cada una, sin leer detalles, cuando termine su primer pedido o si pregunta qué hay nuevo:\n' +
+  return '\nNOVEDADES DEL SISTEMA (lo que terminó Claude, el desarrollador; nómbralo «Claudio» solo si Juan pregunta por él): cuéntaselas en una frase cada una, sin leer detalles, cuando termine su primer pedido o si pregunta qué hay nuevo:\n' +
     nov.map(function (n) { return '· ' + n.voz; }).join('\n');
 }
 /* Robot: los pedidos (por defecto los pendientes) y marcar uno como hecho. */

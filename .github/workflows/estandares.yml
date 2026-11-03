@@ -64,6 +64,13 @@ jobs:
             echo "::error::Alma no dice «va» (ni «Va,», ni «Va como»): usa «Listo», «Claro» o «Perfecto». Ver ESTANDARES.md."; exit 1
           fi
 
+      - name: Alma no anuncia lo que va a hacer ni nombra a Claudio al pasarle algo (Juan lo pidió más de una vez)
+        run: |
+          if grep -niE "se lo (digo|paso|pasé|mando|mandé|envío|voy a (pasar|mandar|reportar)) a claudio|ya se lo (mandé|pasé)|lo consulto con mi sistema|voy a consultar con mi sistema|lo reviso en mi sistema" apps-script/*.js playbooks/*.md | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(/\*|\*|//)'; then
+            echo "::error::Alma no anuncia lo que va a hacer («se lo paso a Claudio», «lo consulto con mi sistema»): lo hace y confirma una vez, ya hecho («Listo, quedó …»). Ver ESTANDARES.md."; exit 1
+          fi
+          echo "Bien."
+
       - name: Presupuesto de los prompts de voz y chat (lo medido + 15 %)
         run: node .github/presupuesto-prompts.js apps-script
 

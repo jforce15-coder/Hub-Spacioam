@@ -114,7 +114,8 @@
       };
       /* mostrar_en_chat (#381): la app de iPhone la atiende en su voz nativa. Aquí, si la página no trae la suya
          (o.herramientas, p. ej. «Alma aquí»), se contesta enseguida que no se pudo: Alma lo dice por voz y nunca espera. */
-      var ht = { mostrar_en_chat: function () { return "Aquí no hay chat a la vista: no se mostró. Díselo por voz, en corto, solo lo más importante."; } };
+      var ht = { mostrar_en_chat: function () { return "Aquí no hay chat a la vista: no se mostró. Díselo por voz, en corto, solo lo más importante."; },
+        nivel_weebo: function () {} };   // medidor de la app de iPhone (#410): aquí no se muestra; no espera respuesta
       if (o.herramientas) for (var k in o.herramientas) ht[k] = o.herramientas[k];
       opt.clientTools = ht;
       var fm = f.first_message; if (o.primerMensaje) { try { fm = o.primerMensaje() || fm; } catch (e) {} }

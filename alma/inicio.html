@@ -351,6 +351,62 @@
   .vj-esc { padding: 0 14px 8px 80px; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
   .vj-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 4px 4px; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #8A8580; }
   .vj-pie button { min-height: 44px; border: 0; background: none; color: #8A8580; font: 600 12px Montserrat, system-ui, sans-serif; cursor: pointer; padding: 0 4px; }
+  /* ── Medidor de personalidad (issue #410, apps-script/medidores.js): Adaptación y Modo Weebo, en Ajustes (A) y en vivo
+     durante la llamada (B, los chips bajo los botones de la llamada). Solo el administrador principal. ── */
+  .pp-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 16px 0; }
+  .pp-cab b { font: 600 15px Montserrat, system-ui, sans-serif; color: #3E3F3F; min-width: 0; }
+  .pp-cab .v { flex: none; font: 600 14px Montserrat, system-ui, sans-serif; color: #8A8580; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pp-ahora { display: inline-flex; align-items: center; gap: 6px; margin: 8px 16px 0; padding: 4px 10px; border-radius: 999px; background: rgba(233,130,106,.14); color: #A9543F;
+    font: 600 12px Montserrat, system-ui, sans-serif; white-space: nowrap; }
+  .pp-ahora .flecha { font-size: 10px; }
+  /* la barra: lo que lleva (durazno) y el tope (la raya oscura, que se arrastra: el input ocupa 44 px de alto) */
+  .pp-barra { position: relative; margin: 6px 16px 0; height: 44px; }
+  .pp-barra .riel { position: absolute; left: 0; right: 0; top: 50%; height: 10px; margin-top: -5px; border-radius: 6px; background: rgba(62,63,63,.08); overflow: hidden; }
+  .pp-barra .lleva { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 6px; background: linear-gradient(90deg, #F6C9B8, #E9826A); transition: width .6s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  .pp-barra input { position: absolute; inset: 0; width: 100%; height: 44px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; touch-action: pan-y; }
+  .pp-barra input::-webkit-slider-runnable-track { height: 44px; background: transparent; }
+  .pp-barra input::-moz-range-track { height: 44px; background: transparent; }
+  .pp-barra input::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 30px; margin-top: 7px; border-radius: 6px;
+    background: linear-gradient(90deg, transparent 11px, #3E3F3F 11px, #3E3F3F 17px, transparent 17px); }
+  .pp-barra input::-moz-range-thumb { width: 28px; height: 30px; border: 0; border-radius: 6px; background: linear-gradient(90deg, transparent 11px, #3E3F3F 11px, #3E3F3F 17px, transparent 17px); }
+  .pp-barra input:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; border-radius: 10px; }
+  .pp-esc { display: flex; justify-content: space-between; gap: 8px; margin: 0 16px; font: 500 12px Montserrat, system-ui, sans-serif; color: #8A8580; font-variant-numeric: tabular-nums; }
+  .pp-esc .t { color: #3E3F3F; font-weight: 600; }
+  /* los niveles 0–3 y Automático / Fijo: botones de 44 px como los de «¿Por cuánto tiempo?» */
+  .pp-seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 10px 16px 0; }
+  .pp-seg.dos { grid-template-columns: 1fr 1fr; }
+  .pp-seg button { min-height: 48px; min-width: 0; padding: 4px 2px; border: 0; border-radius: 12px; background: rgba(62,63,63,.06); color: #3E3F3F; cursor: pointer;
+    font: 600 14px/1.1 Montserrat, system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    transition: background .25s ease, color .25s ease, box-shadow .25s ease; }
+  .pp-seg.dos button { min-height: 44px; font-size: 13.5px; }
+  .pp-seg button small { font: 500 11px Montserrat, system-ui, sans-serif; color: #8A8580; transition: color .25s ease; }
+  .pp-seg button[aria-pressed="true"] { background: #3E3F3F; color: #FAFAFA; }
+  .pp-seg button[aria-pressed="true"] small { color: rgba(250,250,250,.75); }
+  .pp-seg.dos button[aria-pressed="true"] { background: #fff; color: #3E3F3F; box-shadow: inset 0 0 0 2px #E9826A; }
+  .pp-seg button:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; }
+  .pp-seg button:active { transform: scale(.97); }
+  .pp-seg button:disabled { opacity: .5; cursor: default; }
+  .pp-nota { font-size: 12px; line-height: 1.45; color: #8A8580; margin: 10px 0 0; padding: 0 16px 14px; }
+  .pp-nota.error { color: #D9583A; }
+  .pp-fija { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 0 16px 12px; font: 500 13px Montserrat, system-ui, sans-serif; color: #6F6867; }
+  .pp-fija b { font-weight: 600; color: #3E3F3F; white-space: nowrap; }
+  #g-pers.cargando .pp-barra, #g-weebo.cargando .pp-seg { opacity: .45; }
+  /* B · los chips en vivo durante la llamada: bajo «Chat» y «Terminar» (los ubica ppUbicar), encima de la llamada de la roca */
+  .pp-chips { position: fixed; left: 50%; top: var(--pp-top, 80vh); z-index: 900; display: flex; gap: 8px; transform: translate(-50%, 6px); opacity: 0; pointer-events: none;
+    padding: 0; border: 0; background: none; cursor: pointer; transition: opacity .35s ease, transform .45s var(--ease, cubic-bezier(.22,.61,.36,1)); max-width: calc(100% - 32px); }
+  .pp-chips.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .pp-chips[hidden] { display: none; }
+  .pp-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px; white-space: nowrap; box-sizing: border-box;
+    background: rgba(255,253,251,.9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 8px 22px -12px rgba(40,30,25,.5);
+    font: 600 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; font-variant-numeric: tabular-nums; }
+  .pp-chip .fl { color: #E9826A; font-size: 11px; display: inline-block; }
+  .pp-chip .fl.baja { color: #8A8580; }
+  .pp-chip .fl.salta { animation: ppSalta .9s var(--ease, cubic-bezier(.22,.61,.36,1)) 2; }
+  @keyframes ppSalta { 0%, 100% { opacity: 1; transform: none; } 50% { opacity: .35; transform: translateY(-2px); } }
+  #pp-velo { z-index: 2147483240; }
+  .panel.pp { z-index: 2147483250; }
+  .panel.pp h2 { margin-bottom: 10px; }
+  @media (prefers-reduced-motion: reduce) { .pp-chip .fl.salta { animation: none; } .pp-chips, .pp-barra .lleva { transition: none; } }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
 <link rel="stylesheet" href="../ds/movimiento.css">
@@ -374,6 +430,9 @@
 </div>
 <div class="velo" id="velo"></div>
 <div class="velo" id="vj-velo"></div>
+<button type="button" class="pp-chips" id="pp-chips" aria-label="Personalidad de Alma en esta llamada" hidden><span class="pp-chip" id="pp-c-w">✨ Weebo 1</span><span class="pp-chip" id="pp-c-a">🪞 Adaptación 0 %</span></button>
+<div class="velo" id="pp-velo"></div>
+<div class="panel pp" id="pp-panel" role="dialog" aria-label="Personalidad de Alma" aria-hidden="true"><div class="asa"></div><h2>Personalidad</h2><div id="pp-hoja"></div></div>
 <div class="panel viaje" id="vj-panel" role="dialog" aria-label="Tu viaje" aria-hidden="true"><div class="asa"></div><h2>Tu viaje</h2><div id="vj-cu"></div></div>
 <div class="panel" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
   <div class="asa"></div>
@@ -414,6 +473,25 @@
     <div class="fila"><span class="et">Permitir todos</span><label class="interruptor"><input type="checkbox" id="i-atajos-todos" aria-label="Permitir todos los atajos"><span></span></label></div>
     <p class="nota-g">Alma corre por voz los atajos de tu app Atajos que pongas aquí («Alma, pon mi atajo de música»). Escribe el nombre tal como está en Atajos. Con «Permitir todos», Alma puede correr cualquiera.</p>
   </div>
+  <p class="tit-g" id="t-pers" hidden>Personalidad de Alma</p>
+  <div class="grupo" id="g-pers" hidden>
+    <div class="pp-cab"><b>Adaptación a ti</b><span class="v" id="pp-adapt">—</span></div>
+    <div class="pp-barra"><div class="riel"><div class="lleva" id="pp-lleva"></div></div><input type="range" id="pp-tope" min="0" max="100" step="5" value="60" aria-label="Tope de adaptación"></div>
+    <div class="pp-esc"><span>0 · neutra</span><span class="t" id="pp-tope-v">tope 60 %</span><span>100</span></div>
+    <p class="pp-nota" id="pp-adapt-n">Se llena sola mientras le hablas (+5 % cada 10 mensajes). La raya oscura es el tope: arrástrala.</p>
+  </div>
+  <div class="grupo" id="g-weebo" hidden>
+    <div class="pp-cab"><b>Modo Weebo</b><span class="v">humor y chispa</span></div>
+    <span class="pp-ahora" id="pp-ahora" hidden></span>
+    <div class="pp-seg" id="pp-niveles" role="group" aria-label="Nivel de Modo Weebo"></div>
+    <div class="pp-seg dos" id="pp-modo" role="group" aria-label="Automático o fijo"><button type="button" data-pp-m="auto" aria-pressed="false">Automático</button><button type="button" data-pp-m="fijo" aria-pressed="false">Fijo</button></div>
+    <p class="pp-nota" id="pp-weebo-n">En automático sube y baja según la confianza de la conversación. En fijo se queda donde lo pongas (con un problema o una urgencia, Alma igual vuelve a su centro).</p>
+  </div>
+  <div class="grupo" id="g-huesp" hidden>
+    <div class="pp-cab"><b>Para huéspedes</b><span class="v" id="pp-h-v">tope 20 %</span></div>
+    <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
+    <div class="pp-fija"><span>Modo Weebo</span><b id="pp-h-w">máximo 1 · chispa</b></div>
+  </div>
   <div class="grupo">
     <div class="fila" id="p-health-f" hidden><a href="../health/" id="a-health">Health</a><span class="va">›</span></div>
     <div class="fila"><a href="agentes.html" id="p-agentes">Tu equipo de agentes</a><span class="va">›</span></div>
@@ -447,7 +525,7 @@
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-15a"></script>
-<script src="../js/alma-voz.js?v=2026-11-15e"></script>
+<script src="../js/alma-voz.js?v=2026-11-16a"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-15g"></script>
 <script>
@@ -970,6 +1048,7 @@
     evento: function (e) {
       if (!e) return;
       try { vozNativaEvento(e); } catch (x) {}
+      try { if (window.AlmaPersonalidad) AlmaPersonalidad.evento(e); } catch (x) {}   // medidores en vivo de la llamada (#410)
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
@@ -1548,6 +1627,211 @@
   document.addEventListener("visibilitychange", function () { if (!document.hidden && empezado && (!VJ.datos || !VJ.datos.recibido || Date.now() - VJ.datos.recibido > 10 * 6e4)) cargar(false); else if (!document.hidden && VJ.datos) pintarBoton(); });
   window.addEventListener("resize", function () { if (!$("b-avion").hidden) ubicar(); });
   window.SAViajes = { abrir: abrir, cargar: cargar };   // para las pruebas y para que Alma lo abra algún día
+})();
+</script>
+<script>
+/* ── Medidor de personalidad de Alma (issue #410, apps-script/medidores.js) ──────────────────────────────────────────
+   A · En Ajustes: «Personalidad de Alma» con la Adaptación a ti (la barra que se llena sola y el tope que se arrastra), el
+       Modo Weebo (nivel 0–3, Automático o Fijo) y los huéspedes aparte (su tope; Weebo máximo 1, fijo en el código).
+   B · En vivo durante la llamada de la app de iPhone: dos chips bajo «Chat» y «Terminar» («✨ Weebo 2 ▲», «🪞 Adaptación 35 %»).
+       El nivel lo cuenta Alma con la herramienta nivel_weebo (VozNativa.swift lo pasa como AlmaVoz.evento «personalidad»).
+       Al tocarlos se abre la hoja con los mismos controles (se mueven ahí mientras está abierta: un solo juego de botones).
+   Solo el administrador principal (el Hub lo vuelve a comprobar). Bloque aparte: no toca el arranque del inicio. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var NOMBRES = ["centro", "chispa", "suelta", "Weebo"];
+  var PP = { datos: null, vivo: null, enLlamada: false, guardando: 0, hoja: false, reloj: 0 };
+  var NATIVA = !!(window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma);
+  function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function perfil() {
+    try { var s = ses(); if (!s) return {}; var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
+      var j = JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4))))) || {}; return { email: (j.p && j.p.email) || j.e || "", apps: (j.p && j.p.apps) || j.apps || {} };
+    } catch (e) { return {}; }
+  }
+  function principal() { var a = perfil().apps || {}; return Object.keys(a).some(function (k) { return a[k] === "admin_principal"; }); }
+  function fotoK() { var e = perfil().email; return e ? "sa_foto:alma:1:personalidad:" + e : ""; }   // se borra al cerrar sesión con las demás fotos
+  function fotoLeer() { try { var k = fotoK(), f = k && JSON.parse(localStorage.getItem(k) || "null"); return f && f.t && Date.now() - f.t < 864e5 ? f.datos : null; } catch (e) { return null; } }
+  function fotoGuardar(r) { try { var k = fotoK(); if (k) localStorage.setItem(k, JSON.stringify({ t: Date.now(), datos: r })); } catch (e) {} }
+  /* El Hub, con la misma sesión y destino que usa ALMA (alma-client.js), sin tocar ese archivo. */
+  function hub(accion, extra) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: accion, token: d.token, session: ses() }, extra || {})) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (window.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); return j; })
+      .catch(function () { return { ok: false, error: "red" }; });
+  }
+
+  /* ── Pintar (A y la hoja B usan los mismos elementos) ── */
+  function nivelVivo() {
+    var d = PP.datos, w = d && d.weebo;
+    if (PP.enLlamada && PP.vivo && PP.vivo.weebo != null) return PP.vivo.weebo;
+    return w ? (w.modo === "fijo" ? w.nivel_fijo : w.nivel_actual) : null;
+  }
+  function pintar() {
+    var d = PP.datos; if (!d || !d.ok) return;
+    var a = d.adapt, w = d.weebo, ahora = nivelVivo();
+    $("pp-adapt").textContent = a.nivel_juan + " %";
+    $("pp-lleva").style.width = Math.max(0, Math.min(100, a.nivel_juan)) + "%";
+    if (!PP.arrastrando) $("pp-tope").value = a.tope;
+    $("pp-tope-v").textContent = "tope " + a.tope + " %";
+    $("pp-adapt-n").classList.remove("error");
+    $("pp-adapt-n").textContent = a.nivel_juan >= a.tope && a.tope > 0 ? "Llegó a su tope. Súbelo si quieres que se parezca más a tu manera; bájalo y vuelve hacia su centro neutro."
+      : "Se llena sola mientras le hablas (+" + (a.paso || 5) + " % cada " + (a.cada || 10) + " mensajes). La raya oscura es el tope: arrástrala.";
+    if (!PP.arrastrandoH) $("pp-tope-h").value = a.tope_huesped;
+    $("pp-h-v").textContent = "tope " + a.tope_huesped + " %";
+    $("pp-h-w").textContent = "máximo " + w.max_huesped + " · " + NOMBRES[w.max_huesped];
+    var niv = $("pp-niveles");
+    if (!niv.firstChild) for (var i = 0; i < 4; i++) {
+      var b = document.createElement("button"); b.type = "button"; b.setAttribute("data-pp-w", String(i)); b.setAttribute("aria-pressed", "false");
+      b.innerHTML = "<span>" + i + "</span><small>" + NOMBRES[i] + "</small>"; b.setAttribute("aria-label", "Nivel " + i + ", " + NOMBRES[i]);
+      niv.appendChild(b);
+    }
+    var marcado = w.modo === "fijo" ? w.nivel_fijo : ahora;
+    Array.prototype.forEach.call(niv.children, function (b) { b.setAttribute("aria-pressed", String(+b.getAttribute("data-pp-w") === marcado)); });
+    Array.prototype.forEach.call($("pp-modo").children, function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-pp-m") === w.modo)); });
+    var pill = $("pp-ahora");
+    if (ahora == null) pill.hidden = true;
+    else {
+      pill.hidden = false;
+      var fl = PP.enLlamada && PP.vivo && PP.vivo.cambio ? (PP.vivo.cambio > 0 ? " ▲" : " ▼") : "";
+      pill.textContent = (PP.enLlamada ? "en la llamada: " : "ahora: ") + ahora + " · " + NOMBRES[ahora] + fl;
+    }
+    $("pp-weebo-n").classList.remove("error");
+    $("pp-weebo-n").textContent = w.modo === "fijo" ? "Fijo en " + w.nivel_fijo + " · " + NOMBRES[w.nivel_fijo] + ": Alma se queda ahí contigo (con un problema o una urgencia vuelve a su centro). Toca «Automático» para que lo mida ella."
+      : "En automático sube y baja según la confianza de la conversación. Toca un nivel para fijarlo ahí.";
+    pintarChips();
+  }
+  function mostrar(on) { ["t-pers", "g-pers", "g-weebo", "g-huesp"].forEach(function (id) { $(id).hidden = !on; }); }
+  function cargar() {
+    if (!principal()) { mostrar(false); return; }
+    var f = fotoLeer(); if (f && f.ok && !PP.datos) { PP.datos = f; mostrar(true); pintar(); }   // la foto primero; la fresca llega por detrás
+    if (!PP.datos) { mostrar(true); $("g-pers").classList.add("cargando"); $("g-weebo").classList.add("cargando"); }
+    hub("personalidad").then(function (r) {
+      $("g-pers").classList.remove("cargando"); $("g-weebo").classList.remove("cargando");
+      if (r && r.ok) { PP.datos = r; fotoGuardar(r); mostrar(true); pintar(); }
+      else if (r && r.error !== "red" && r.error !== "no_url") mostrar(false);   // no es el principal: no se ve
+    });
+  }
+  /* Se ve hecho al instante y se deshace si el Hub dice que no (ds/velocidad.md). */
+  function fijar(cambio, nota) {
+    var antes = JSON.parse(JSON.stringify(PP.datos)), d = PP.datos;
+    if ("adapt_tope" in cambio) { d.adapt.tope = cambio.adapt_tope; }
+    if ("adapt_tope_huesped" in cambio) d.adapt.tope_huesped = cambio.adapt_tope_huesped;
+    if ("weebo_modo" in cambio) d.weebo.modo = cambio.weebo_modo;
+    if ("weebo_nivel" in cambio) d.weebo.nivel_fijo = cambio.weebo_nivel;
+    if (PP.enLlamada && PP.vivo && d.weebo.modo === "fijo" && PP.vivo.weebo !== d.weebo.nivel_fijo) {   // el chip sigue lo que le acabas de pedir a Alma
+      PP.vivo.cambio = PP.vivo.weebo == null ? 0 : d.weebo.nivel_fijo > PP.vivo.weebo ? 1 : -1; PP.vivo.weebo = d.weebo.nivel_fijo; flechaSeVa();
+    }
+    pintar();
+    /* En una llamada de la app, Alma se entera ya (contextual_update): no espera a la próxima llamada. */
+    if (NATIVA && PP.enLlamada && ("weebo_modo" in cambio || "weebo_nivel" in cambio)) nativa({ accion: "voz", que: "personalidad", modo: d.weebo.modo, nivel: d.weebo.nivel_fijo });
+    var n = ++PP.guardando;
+    hub("personalidadFijar", cambio).then(function (r) {
+      if (n !== PP.guardando) return;
+      if (r && r.ok) { PP.datos = r; fotoGuardar(r); pintar(); return; }
+      PP.datos = antes; pintar();
+      var t = $(nota); t.textContent = r && r.error === "red" ? "Sin conexión: no se guardó. Vuelve a intentar." : "No se guardó" + (r && r.error ? ": " + r.error : ".");
+      t.classList.add("error"); if (window.SAMov && SAMov.sacudir) SAMov.sacudir(t);
+    });
+  }
+  $("pp-niveles").onclick = function (e) {
+    var b = e.target.closest("[data-pp-w]"); if (!b || !PP.datos) return;
+    fijar({ weebo_modo: "fijo", weebo_nivel: +b.getAttribute("data-pp-w") }, "pp-weebo-n");
+  };
+  $("pp-modo").onclick = function (e) {
+    var b = e.target.closest("[data-pp-m]"); if (!b || !PP.datos) return;
+    var m = b.getAttribute("data-pp-m"); if (m === PP.datos.weebo.modo) return;
+    var c = { weebo_modo: m }; if (m === "fijo") { var v = nivelVivo(); c.weebo_nivel = v == null ? PP.datos.weebo.nivel_fijo : v; }   // fija donde va ahora
+    fijar(c, "pp-weebo-n");
+  };
+  function barra(id, clave, nota, marca) {
+    var i = $(id);
+    i.addEventListener("input", function () {
+      PP[marca] = true;
+      if (clave === "adapt_tope") { $("pp-tope-v").textContent = "tope " + i.value + " %"; $("pp-lleva").style.width = Math.min(+i.value, PP.datos ? PP.datos.adapt.nivel_juan : 0) + "%"; }
+      else $("pp-h-v").textContent = "tope " + i.value + " %";
+    });
+    i.addEventListener("change", function () {
+      PP[marca] = false; if (!PP.datos) return;
+      var c = {}; c[clave] = +i.value;
+      if (clave === "adapt_tope") PP.datos.adapt.nivel_juan = Math.min(PP.datos.adapt.nivel_juan, +i.value);   // el tope corta en vivo
+      fijar(c, nota);
+    });
+  }
+  barra("pp-tope", "adapt_tope", "pp-adapt-n", "arrastrando");
+  barra("pp-tope-h", "adapt_tope_huesped", "pp-adapt-n", "arrastrandoH");
+  $("b-ajustes").addEventListener("click", cargar);
+
+  /* ── B · En vivo: los chips de la llamada y su hoja ── */
+  /* La flecha ▲/▼ se ve unos segundos después de un cambio y se va (dice «cambió», no se queda para siempre). */
+  function flechaSeVa() {
+    clearTimeout(PP.flechaT); var v = PP.vivo;
+    PP.flechaT = setTimeout(function () { if (PP.vivo === v && v && v.cambio) { v.cambio = 0; pintarChips(); if (PP.datos) pintar(); } }, 6000);
+  }
+  function pintarChips() {
+    var c = $("pp-chips"), v = PP.vivo;
+    if (!PP.enLlamada || !v || !principal()) { c.classList.remove("on"); clearInterval(PP.reloj); PP.reloj = 0; setTimeout(function () { if (!c.classList.contains("on")) c.hidden = true; }, 400); return; }
+    var w = v.weebo != null ? v.weebo : nivelVivo(), a = v.adapt != null ? v.adapt : (PP.datos ? PP.datos.adapt.nivel_juan : 0);
+    var fl = v.cambio > 0 ? '<span class="fl salta" aria-label="subió">▲</span>' : v.cambio < 0 ? '<span class="fl baja salta" aria-label="bajó">▼</span>' : "";
+    $("pp-c-w").innerHTML = "✨ Weebo " + (w == null ? "–" : w) + (fl ? " " + fl : "");
+    $("pp-c-a").textContent = "🪞 Adaptación " + a + " %";
+    c.hidden = false; ubicar();
+    requestAnimationFrame(function () { c.classList.toggle("on", visibleLlamada()); });
+    if (!PP.reloj) PP.reloj = setInterval(function () { ubicar(); c.classList.toggle("on", visibleLlamada()); }, 600);   // la roca pasa a chat, pendientes o se achica
+  }
+  /* Solo con la llamada a la vista en la roca (no en modo chat, ni con Pendientes o Notificaciones encima). */
+  function visibleLlamada() {
+    var ov = document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov");
+    if (!ov || !ov.classList.contains("on")) return false;
+    return !/(^|\s)(chat|min|pend|noti|ending)(\s|$)/.test(ov.className) && !$("panel").classList.contains("on") && !PP.hoja;
+  }
+  /* Bajo «Chat» y «Terminar» (con sus nombres); si no cabe sobre el borde de abajo (iPhone SE), arriba, entre los botones
+     redondos de arriba y la roca, donde ya no está «Hola, Juan» (se va solo). */
+  function ubicar() {
+    var c = $("pp-chips"), bt = document.querySelector(".san-ov-btns"), rk = document.querySelector(".san-ov .san-rock"), aj = $("b-ajustes");
+    if (!bt) return;
+    var fondo = bt.getBoundingClientRect().bottom;
+    Array.prototype.forEach.call(bt.querySelectorAll("span"), function (x) { fondo = Math.max(fondo, x.getBoundingClientRect().bottom); });
+    var alto = c.offsetHeight || 44, top = fondo + 14, fin = window.innerHeight - 12;
+    if (top + alto > fin && rk) { var arriba = aj ? aj.getBoundingClientRect().bottom : 60; top = (arriba + rk.getBoundingClientRect().top - alto) / 2; }
+    document.documentElement.style.setProperty("--pp-top", Math.round(Math.max(0, top)) + "px");
+  }
+  function abrirHoja() {
+    if (!PP.datos) { cargar(); }
+    var h = $("pp-hoja"); h.appendChild($("g-weebo")); h.appendChild($("g-pers"));
+    $("g-weebo").hidden = false; $("g-pers").hidden = false; PP.hoja = true; pintarChips();
+    $("pp-velo").classList.add("on"); $("pp-panel").classList.add("on"); $("pp-panel").setAttribute("aria-hidden", "false");
+    if (!PP.datos || Date.now() - (PP.leido || 0) > 30000) { PP.leido = Date.now(); hub("personalidad").then(function (r) { if (r && r.ok) { PP.datos = r; fotoGuardar(r); pintar(); } }); }
+  }
+  function cerrarHoja() {
+    var huesp = $("g-huesp"); huesp.parentNode.insertBefore($("g-pers"), huesp); huesp.parentNode.insertBefore($("g-weebo"), huesp);   // vuelven a Ajustes
+    PP.hoja = false; $("pp-velo").classList.remove("on"); $("pp-panel").classList.remove("on"); $("pp-panel").setAttribute("aria-hidden", "true"); pintarChips();
+  }
+  $("pp-chips").onclick = abrirHoja;
+  $("pp-velo").onclick = cerrarHoja;
+  /* Lo que cuenta la app (VozNativa.swift): { tipo: "personalidad", weebo, cambio, adapt, tope, modo } y el estado de la llamada. */
+  window.AlmaPersonalidad = {
+    evento: function (e) {
+      if (!e) return;
+      if (e.tipo === "estado") {
+        var en = e.estado === "hablando" || e.estado === "conectando";
+        if (en !== PP.enLlamada) { PP.enLlamada = en; if (!en) { PP.vivo = null; if (PP.hoja) cerrarHoja(); } pintarChips(); if (PP.datos) pintar(); }
+        if (e.personalidad) this.evento(Object.assign({ tipo: "personalidad" }, e.personalidad));
+        return;
+      }
+      if (e.tipo !== "personalidad") return;
+      PP.enLlamada = true;
+      PP.vivo = { weebo: e.weebo == null ? null : +e.weebo, cambio: +e.cambio || 0, adapt: e.adapt == null ? null : +e.adapt, modo: e.modo || "" };
+      if (PP.vivo.cambio) flechaSeVa();
+      if (PP.datos && e.tope != null) PP.datos.adapt.tope = +e.tope;
+      if (PP.datos) pintar(); else { if (!PP.pidio) { PP.pidio = true; hub("personalidad").then(function (r) { if (r && r.ok) { PP.datos = r; fotoGuardar(r); pintar(); } }); } pintarChips(); }
+    }
+  };
+  /* hub.spacioam.com/alma/inicio.html#ajustes-personalidad (la pantalla de la llamada de la app la abre así): Ajustes abiertos en esta sección. */
+  if (location.hash === "#ajustes-personalidad") setTimeout(function () { if (!ses()) return; $("b-ajustes").click(); setTimeout(function () { $("t-pers").scrollIntoView({ block: "start", behavior: "smooth" }); }, 500); }, 1200);
 })();
 </script>
 </body>

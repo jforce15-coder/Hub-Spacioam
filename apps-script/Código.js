@@ -3149,6 +3149,8 @@ function hubApi_(body) {
       case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
       case 'vigilancias': return json_(vigApi_(ses));                                       // lo que Alma vigila por ti (vigilancias.js · alma/aprendio.html)
       case 'vigilanciaDejar': return json_(vigDejarApi_(ses, body.id));                     // { id } → deja de vigilar
+      case 'personalidad': return json_(personalidadApi_(ses));                             // Ajustes → Personalidad de Alma: adaptación y Modo Weebo, solo el principal (medidores.js)
+      case 'personalidadFijar': return json_(personalidadFijarApi_(ses, body));             // { adapt_tope?, adapt_tope_huesped?, weebo_modo?, weebo_nivel? }
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));

@@ -79,9 +79,35 @@ function weeboMedir_(o) {
   return { contexto: clave, nombre: C.nombre, confianza: c, sensibilidad: s, nivel: nivel, razones: raz };
 }
 
-/* Bloque para el prompt: el carácter (fila WEEBO) + la medición de esta conversación. */
+/* ── Medidor de personalidad (#410): Juan puede dejar el Modo Weebo en automático (lo de arriba) o fijarlo en un nivel.
+   Propiedades del script WEEBO_MODO ('auto' | 'fijo') y WEEBO_NIVEL_FIJO (0–3); solo el administrador principal las
+   cambia (personalidadFijar, medidores.js) y el nivel fijo vale solo en sus conversaciones: el equipo sigue en automático
+   y los huéspedes nunca pasan de su máximo (WEEBO_CTX_.huesped.max). Un problema o una urgencia siguen pidiendo el centro. */
+function weeboModo_() {
+  var p = PropertiesService.getScriptProperties(), modo = p.getProperty('WEEBO_MODO') === 'fijo' ? 'fijo' : 'auto';
+  var n = Number(p.getProperty('WEEBO_NIVEL_FIJO')); if (!isFinite(n) || p.getProperty('WEEBO_NIVEL_FIJO') == null) n = 1;
+  return { modo: modo, nivel_fijo: Math.max(0, Math.min(3, Math.round(n))) };
+}
+function weeboFijar_(adm, modo, nivel) {
+  if (!adm || !adm.principal) return { ok: false, error: 'Solo el administrador principal fija el Modo Weebo.' };
+  var p = PropertiesService.getScriptProperties();
+  if (modo != null) { if (modo !== 'auto' && modo !== 'fijo') return { ok: false, error: 'modo' }; p.setProperty('WEEBO_MODO', modo); }
+  if (nivel != null && nivel !== '') { var n = Math.round(Number(nivel)); if (!isFinite(n) || n < 0 || n > 3) return { ok: false, error: 'nivel' }; p.setProperty('WEEBO_NIVEL_FIJO', String(n)); }
+  return Object.assign({ ok: true }, weeboModo_());
+}
+/* El último nivel medido en los mensajes de una persona (6 h), para que Ajustes muestre «ahora: 2». */
+function weeboUltimo_(clave) {
+  try { var j = JSON.parse(CacheService.getScriptCache().get('weebo_ult_' + String(clave || '').toLowerCase()) || 'null'); return j && isFinite(j.nivel) ? j.nivel : null; } catch (e) { return null; }
+}
+
+/* Bloque para el prompt: el carácter (fila WEEBO) + la medición de esta conversación.
+   o.principal = true (Juan): si el Modo Weebo está fijo, ese nivel manda. o.clave: el correo, para guardar el último nivel. */
 function weeboBloque_(o) {
   var m; try { m = weeboMedir_(o); } catch (e) { return ''; }
+  if (o && o.principal && o.contexto !== 'huesped' && o.contexto !== 'familia') {
+    var f = weeboModo_(); if (f.modo === 'fijo') { m.nivel = f.nivel_fijo; m.razones = ['fijado por Juan; si hay un problema o urgencia, vuelve al centro']; }
+  }
+  if (o && o.clave) { try { CacheService.getScriptCache().put('weebo_ult_' + String(o.clave).toLowerCase(), JSON.stringify({ nivel: m.nivel, t: Date.now() }), 21600); } catch (e) {} }
   var base = ''; try { base = String(prompt_('WEEBO') || '').trim(); } catch (e) {}
   if (!base) base = SEMILLA_WEEBO_;
   var extra = m.contexto === 'huesped' ? ' Con huéspedes, el nivel 1 es como mucho UNA chispa en toda la conversación: si en el hilo ya hubo una, hoy vas en nivel 0.'
@@ -99,6 +125,8 @@ function weeboVozBloque_(familia) {
     : ['MEDICIÓN EN LA LLAMADA: mide la confianza en silencio en cada turno (risas, bromas, tono relajado la suben; urgencia, problemas, quejas o prisa la bajan a 0 al instante).',
        '· Huésped: nivel 0; como mucho UNA chispa en toda la llamada (nivel 1) si la persona está relajada y contenta. Luego vuelves al centro.',
        '· Juan o el equipo con un problema, una urgencia o coordinando: nivel 0–1; si quieres, una sonrisa al cerrar cuando quedó resuelto.',
-       '· Juan o el equipo en algo relajado o estratégico: nivel 1–2, y 3 solo si ya hay complicidad clara en la llamada.'];
+       '· Juan o el equipo en algo relajado o estratégico: nivel 1–2, y 3 solo si ya hay complicidad clara en la llamada.',
+       '· Si la ficha dice «MODO WEEBO FIJO», usa ese nivel toda la llamada (un problema o una urgencia siguen pidiendo el centro).',
+       '· En la app (la ficha dice «ESTÁS EN LA APP DE ALMA»): al empezar y cada vez que tu nivel cambie, llama a nivel_weebo con el nivel, en silencio: no lo digas ni esperes respuesta.'];
   return base + '\n\n' + reglas.join('\n');
 }

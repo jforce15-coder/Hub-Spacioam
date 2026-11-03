@@ -5092,7 +5092,8 @@ function opWaProcesar_() {
     const textos = g.map(x => s_(x.r[4])).filter(Boolean);
     const nota = textos.length > 1 ? '(' + textos.length + ' mensajes seguidos por WhatsApp. Léelos juntos como un solo pedido y responde una vez: los marcados [reenviado] vienen de otro chat y suelen ser el material; la instrucción casi siempre va al final.)' : '';
     const fotos = [].concat.apply([], g.map(x => s_(x.r[9]).split(/\s+/))).filter(u => /thumbnail/.test(u));
-    try { opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, nota); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
+    let notaCaso = ''; try { notaCaso = decNotaAgente_(wa); } catch (e) {}   // un caso espera su decisión: Alma lo sabe, sin tomar esto como respuesta (decisiones.js)
+    try { opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, [nota, notaCaso].filter(Boolean).join('\n')); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
   });
 }
 function opEjecutar_(adm, acciones, cfg, props) {

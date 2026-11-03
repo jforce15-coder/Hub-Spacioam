@@ -3,8 +3,8 @@
    escalado, o el huésped eligió algo que requiere al equipo), la IA propone 3 respuestas cortas, A, B y C, más
    «Otra respuesta» para escribir a mano. Se muestran en la conversación del Hub (tarjeta de acción), en el chat con
    Alma (op:) y en el chat de la app (bloque [[opciones]]), y por WhatsApp al responsable de turno (3 botones).
-   En el Hub y en el chat con Alma, elegir deja un borrador para revisar. Por WhatsApp no: tocar una opción (o escribir
-   la respuesta propia) es el envío con deshacer: Alma muestra el texto con «Deshacer» y sale solo al minuto
+   En el Hub y en el chat con Alma, elegir deja un borrador para revisar. Por WhatsApp no: tocar una opción (o responder
+   CITANDO el aviso con la respuesta propia) es el envío con deshacer: Alma muestra el texto con «Deshacer» y sale solo al minuto
    (decSalidaProgramar_ → decisionesSalir_). Una sola decisión por conversación: lo que se elige o envía en un canal cierra los demás
    («Resuelto por Ana · opción B»).
    Hoja DECISIONES. Estados: abierta → elegida → enviada. La salida sola (sale_estado): programado → enviando → enviado,
@@ -13,12 +13,16 @@
    confirmo con el equipo») y avisarSeguimiento_ (el huésped eligió algo que requiere al equipo). decisionCrear_ solo
    anota el caso (rápido, dentro de la cola de huéspedes); las opciones con IA y los avisos salen en la siguiente
    pasada de procesarCola (decisionesProcesar_), que es de huéspedes y nunca se pausa por cupo. */
-var DEC_CAB_ = ['id', 'resId', 'creado', 'opciones', 'estado', 'quien', 'opcion', 'cuando', 'origen', 'motivo', 'contexto', 'borrador', 'intentos', 'enviado_por', 'enviado_ts', 'sale_ts', 'sale_wa', 'sale_estado'];
+var DEC_CAB_ = ['id', 'resId', 'creado', 'opciones', 'estado', 'quien', 'opcion', 'cuando', 'origen', 'motivo', 'contexto', 'borrador', 'intentos', 'enviado_por', 'enviado_ts', 'sale_ts', 'sale_wa', 'sale_estado', 'texto_libre', 'sin_texto'];
 var DEC_LETRAS_ = ['A', 'B', 'C'];
 var DEC_ACCIONES_ = ['tarea', 'devolucion', 'ninguna'];
-var DEC_WA_MIN_ = 20;   // minutos en que un texto suelto del responsable se toma como «otra respuesta»
+var DEC_WA_MIN_ = 20;   // minutos después del aviso en que un texto sin citar PUEDE ser la respuesta al caso (lo decide decEsParaCaso_)
 var DEC_SALE_MS_ = 60000;   // envío con deshacer: lo elegido por WhatsApp sale solo a este tiempo, si no tocan «Deshacer»
 var DEC_DESHACER_RE_ = /^(deshacer|desh[aá]zlo|no lo mandes|no lo env[ií]es|no lo envies|cancela(lo)?|det[eé]nlo)[.!]*$/i;
+/* «no era para Alejandra», «no es el caso», «es otro tema»: el texto anterior no era para el huésped (3-nov). */
+var DEC_CORRIGE_RE_ = /\bno (era|es|iba|va) (para|dirigid[oa] a)\b|\bno (era|es) (el|ese|del|de ese|para el) caso\b|\bno es (la|una) respuesta\b|\b(es )?(otro|un) tema( aparte| distinto| diferente)?\b|\btema aparte\b|\bno tiene (nada )?que ver\b|\bno se lo (mandes|env[ií]es) a\b/i;
+/* Órdenes para Alma («escríbele a…», «manda…», «recuérdame…»): nunca son la respuesta al caso. */
+var DEC_ORDEN_RE_ = /^\W*(oye,? |alma,? |porfa,? |por favor,? )?(escr[ií]b[ea]?le|escribe|m[aá]nda(le|me|lo)?|env[ií]a(le|me|lo)?|recu[eé]rda(me|le)|ll[aá]ma(le|me)?|av[ií]sa(le|me)|dile|d[ií]gale|preg[uú]nta(le)?|agenda(me)?|crea|programa|busca(me)?|revisa|necesito que|quiero que|p[ií]de(le)?|cot[ií]za(me)?|reserva|ag[eé]ndame|apunta|anota|contacta)\b/i;
 
 function hojaDec_() {
   var sh = hojaCrear_('DECISIONES', DEC_CAB_);
@@ -285,9 +289,12 @@ function waBotones_(wa, cuerpo, botones) {
 /* Qué decisión espera respuesta de cada responsable (para tomar su texto como «otra respuesta»). */
 function decWaMapa_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('DEC_WA') || '{}') || {}; } catch (e) { return {}; } }
 function decWaMarcar_(wa, id, msgId) {
-  var m = decWaMapa_(), lim = Date.now() - 24 * 3600000;
-  Object.keys(m).forEach(function (k) { if (!(m[k].ts > lim)) delete m[k]; });
-  if (id) m[fin8_(wa)] = { id: id, msg: msgId || '', ts: Date.now() }; else delete m[fin8_(wa)];
+  var m = decWaMapa_(), lim = Date.now() - 24 * 3600000, k = fin8_(wa), prev = m[k];
+  Object.keys(m).forEach(function (x) { if (!(m[x].ts > lim)) delete m[x]; });
+  /* msgs: el aviso del caso y sus borradores. Citar cualquiera de ellos es responder al caso. */
+  var msgs = prev && prev.id === id ? (prev.msgs || [prev.msg]).filter(Boolean) : [];
+  if (msgId && msgs.indexOf(msgId) < 0) msgs.push(msgId);
+  if (id) m[k] = { id: id, msg: msgId || '', msgs: msgs.slice(-8), ts: Date.now() }; else delete m[k];
   PropertiesService.getScriptProperties().setProperty('DEC_WA', JSON.stringify(m));
 }
 function decTextoWa_(f) {
@@ -295,7 +302,7 @@ function decTextoWa_(f) {
   return 'Un caso espera tu decisión · ' + (c.huesped || 'huésped') + (c.propiedad ? ' · ' + c.propiedad : '') + '\n' + (f.motivo ? f.motivo + '\n' : '') +
     (c.texto ? '\nEl huésped dijo: «' + String(c.texto).slice(0, 300) + '»\n' : '') + '\n' +
     ops.map(function (o) { return o.letra + ') ' + o.titulo + (o.detalle ? ' — ' + o.detalle : ''); }).join('\n') +
-    '\n\nToca una opción y sale en 1 minuto; te dejo «Deshacer». Para otra respuesta, escríbela aquí.';
+    '\n\nToca una opción y sale en 1 minuto; te dejo «Deshacer». Para otra respuesta, responde a este mensaje.';
 }
 function decisionAvisarWa_(f) {
   var ops = decOpciones_(f); if (ops.length !== 3) return;
@@ -420,20 +427,112 @@ function decisionSalirPronto() {
   decisionesSalir_();
 }
 
+/* ── Texto libre del responsable: ¿es la respuesta al caso? (3-nov, Alejandra y Diana) ──
+   Antes, cualquier texto en los 20 min siguientes al aviso se tomaba como «tu respuesta» para el huésped: el pedido de
+   Juan de escribirle a una socia salió como mensaje para Alejandra. Ahora el texto es la respuesta al caso solo si:
+   1. cita (responde a) el aviso del caso o uno de sus borradores, o
+   2. sin citar, el modelo clasificador dice que va claramente dirigido al huésped sobre ese tema.
+   Una orden («escríbele a…», «manda…»), un número de teléfono, un caso marcado «no contestar con texto libre» o la
+   duda: no es respuesta al caso; sigue a Alma (el agente), que recibe el caso pendiente como contexto (decNotaAgente_). */
+/* El id de la decisión de un mensaje citado: el aviso o un borrador (la marca, o la hoja de WhatsApp, columna dec:<id>). */
+function decCitada_(msgId, marca) {
+  msgId = String(msgId || ''); if (!msgId) return '';
+  if (marca && (marca.msgs || [marca.msg]).indexOf(msgId) >= 0) return marca.id;
+  try {
+    var sh = hojaWA_(), n = sh.getLastRow(); if (n < 2) return '';
+    var desde = Math.max(2, n - 399), v = sh.getRange(desde, 1, n - desde + 1, 7).getValues();
+    for (var i = v.length - 1; i >= 0; i--) if (String(v[i][5]) === msgId) { var mm = String(v[i][6] || '').match(/^dec:([\w-]+)$/); return mm ? mm[1] : ''; }
+  } catch (e) { console.error('decCitada_: ' + e); }
+  return '';
+}
+/* Una orden para Alma o un texto que habla de otra persona (un número de teléfono): nunca es para el huésped del caso. */
+function decEsOrden_(texto) {
+  var t = String(texto || '').replace(/\s+/g, ' ').trim();
+  if (DEC_ORDEN_RE_.test(t)) return true;
+  if (/\+\s?\d[\d\s().\-]{6,}\d|\b\d{4}[\s\-]?\d{4}\b/.test(t)) return true;   // trae un número: es de otra persona
+  return false;
+}
+/* Sin citar: el modelo clasificador (barato) decide. Solo «sí» claro cuenta; la duda o un error es «no». */
+function decEsParaCaso_(f, texto) {
+  var c = decCtx_(f);
+  var sys = 'Eres el filtro de Alma (Spacio AM). Un caso de un huésped espera la decisión del equipo y un administrador acaba de escribirle a Alma por WhatsApp SIN citar el aviso del caso. ' +
+    'Decide si ese texto es, claramente, lo que hay que contestarle a ESE huésped sobre ESE tema (una respuesta para él). ' +
+    'Es NO si: es una orden o pedido para Alma (escribir, mandar, recordar, llamar, preguntar a alguien), habla de otra persona, otro número, otro apartamento u otro tema, ' +
+    'corrige a Alma, es una pregunta para Alma, o no estás seguro. Responde SOLO JSON: {"caso": true} o {"caso": false}.';
+  var usr = 'HUÉSPED DEL CASO: ' + (c.huesped || 'huésped') + '\nPROPIEDAD: ' + (c.propiedad || '-') + '\nQUÉ ESPERA: ' + (f.motivo || '-') +
+    '\nLO QUE DIJO EL HUÉSPED: ' + String(c.texto || '-').slice(0, 400) + '\n\nTEXTO DEL ADMINISTRADOR:\n' + String(texto).slice(0, 1200);
+  try {
+    USO_REF_ = s_(f.resId);
+    var raw = String(claude_(CFG.MODELO_CLASIFICADOR, 30, sys, usr, 0) || '');
+    return /"caso"\s*:\s*true/.test(raw);
+  } catch (e) { console.error('decEsParaCaso_: ' + e); return false; }
+}
+/* Para Alma (el agente): el caso que sigue esperando, como contexto. '' si no hay. */
+function decNotaAgente_(wa) {
+  try {
+    var marca = decWaMapa_()[fin8_(wa)]; if (!marca) return '';
+    var f = decFilas_().filas.filter(function (x) { return x.id === marca.id; })[0]; if (!f || !decViva_(f)) return '';
+    var c = decCtx_(f);
+    return '(Contexto: sigue esperando su decisión el caso de ' + (c.huesped || 'un huésped') + (c.propiedad ? ' · ' + c.propiedad : '') + (f.motivo ? ': ' + f.motivo : '') +
+      '. Este mensaje NO se tomó como respuesta a ese caso. Atiende el mensaje tal como es. Solo si parece ser para ese huésped, pregúntale en una línea si quiere mandárselo: para eso responde (cita) el aviso del caso o toca una opción.)';
+  } catch (e) { return ''; }
+}
+/* El texto de un administrador vuelve a entrar como un pedido normal para Alma (su chat operativo por WhatsApp). */
+function decAlAgente_(wa, texto, msgId) {
+  var adm = null;
+  try { adm = opActivo_() ? (adminPorTel_(wa) || (fin8_(CFG.WHATSAPP_JUAN) === fin8_(wa) ? (adminsOp_().filter(function (a) { return a.principal; })[0] || null) : null)) : null; } catch (e) {}
+  if (!adm) return false;
+  hojaWA_().appendRow([new Date().toISOString(), wa, adm.nombre || '', 'in', String(texto).slice(0, 4000), String(msgId || '') + ':otra_vez', 'op:' + adm.email, 'text', 'operativo_pend', '']);
+  PropertiesService.getScriptProperties().setProperty('OP_WA_PEND', '1');
+  try { opWaProgramar_(); } catch (e) { console.error('decAlAgente_: ' + e); }
+  return true;
+}
+/* «no era para Alejandra»: detiene lo que iba a salir, el caso vuelve a esperar (sin texto libre hasta que citen el aviso
+   o toquen una opción) y el texto desviado vuelve a Alma como un pedido normal. */
+function decCorregir_(wa, f) {
+  var c = decCtx_(f), libre = null, salio = false;
+  var soltar = decCandado_(); if (!soltar) { waEnviar_(wa, 'No pude detenerlo, intenta otra vez.', { yaVentana: true }); return; }
+  try {
+    var d = decFila_(f.id), g = d.f || f;
+    try { libre = JSON.parse(g.texto_libre || 'null'); } catch (e) {}
+    salio = g.opcion === 'otra' && (g.sale_estado === 'enviado' || g.sale_estado === 'enviando');
+    var cambios = { sin_texto: new Date().toISOString(), texto_libre: '' };
+    if (g.sale_estado === 'programado') { cambios.sale_estado = 'deshecho'; cambios.sale_ts = ''; }   // lo que iba a salir, no sale
+    if (g.estado === 'elegida' && g.opcion === 'otra' && !salio) Object.assign(cambios, { estado: 'abierta', quien: '', opcion: '', cuando: '', borrador: '' });   // el caso vuelve a esperar
+    if (d.f) { decGuardar_(d.sh, d.f, cambios); decSaleProximo_(d.filas); }
+  } finally { soltar(); }
+  var linea = 'Entendido, no era para ' + (c.huesped || 'el huésped') + '.';
+  if (salio) linea += ' Ese mensaje ya le había salido; revísalo en su conversación:\n' + decEnlace_(f.resId);
+  waEnviar_(wa, linea, { yaVentana: true });
+  if (libre && libre.texto) decAlAgente_(wa, libre.texto, libre.msg);
+}
+
 /* Webhook: ¿este mensaje del responsable es parte de una decisión? (botón o texto como «otra respuesta»). true = atendido. */
 function decisionWaEntrante_(m, wa, ts) {
   var boton = m.type === 'interactive' && m.interactive && m.interactive.button_reply ? s_(m.interactive.button_reply.id) : '';
   var mb = boton.match(/^dec:([\w-]+):(A|B|C|enviar|hub|deshacer)$/);
   var marca = decWaMapa_()[fin8_(wa)], texto = m.type === 'text' ? s_(m.text && m.text.body).trim() : '';
-  var esOtra = !mb && !!texto && !!marca && ((m.context && m.context.id && m.context.id === marca.msg) || Date.now() - marca.ts < DEC_WA_MIN_ * 60000);
-  if (!mb && !esOtra) return false;
-  var id = mb ? mb[1] : marca.id, f = decFilas_().filas.filter(function (x) { return x.id === id; })[0];
+  if (!mb && !texto) return false;
+  var citada = !mb && m.context && m.context.id ? decCitada_(m.context.id, marca) : '';
+  if (!mb && !citada && !marca) return false;
+  var id = mb ? mb[1] : citada || marca.id, f = decFilas_().filas.filter(function (x) { return x.id === id; })[0];
   if (!f) return false;
+  var t1 = texto.replace(/\s+/g, ' ');
   /* «deshacer» escrito a mano mientras algo está por salir es «Deshacer», nunca una respuesta para el huésped. */
-  var deshacerEscrito = !mb && DEC_DESHACER_RE_.test(texto.replace(/\s+/g, ' '));
-  if (!mb && !deshacerEscrito && !decViva_(f)) { decWaMarcar_(wa, null); return false; }   // ya se resolvió: su texto sigue su camino normal
+  var deshacerEscrito = !mb && DEC_DESHACER_RE_.test(t1);
+  var corrige = !mb && !deshacerEscrito && DEC_CORRIGE_RE_.test(t1) && !!(f.texto_libre || f.sin_texto || f.sale_estado === 'programado');
+  var esCaso = !!mb || deshacerEscrito || corrige || !!citada;
+  if (!esCaso) {
+    if (!decViva_(f)) { decWaMarcar_(wa, null); return false; }   // ya se resolvió: su texto sigue su camino normal
+    if (f.sin_texto) return false;                                  // «no era para…»: hasta que citen el aviso o toquen una opción
+    if (!(Date.now() - marca.ts < DEC_WA_MIN_ * 60000)) return false;
+    if (decEsOrden_(texto)) return false;                           // una orden para Alma: al agente
+    if (!decEsParaCaso_(f, texto)) return false;                    // la duda: al agente, con el caso como contexto
+  }
+  if (!mb && !deshacerEscrito && !corrige && !decViva_(f)) { decWaMarcar_(wa, null); return false; }
   var quien = decNombreWa_(wa);
   try { hojaWA_().appendRow([ts || new Date().toISOString(), wa, quien, 'in', (mb ? '[botón] ' + s_(m.interactive.button_reply.title) : texto).slice(0, 4000), s_(m.id), 'dec:' + id, s_(m.type), 'decision', '']); } catch (e) {}
+  if (corrige) { decCorregir_(wa, f); return true; }
   var accion = mb ? mb[2] : deshacerEscrito ? 'deshacer' : 'otra';
   if (accion === 'deshacer') {
     var pd = decSalidaParar_(f.id, 'deshecho');
@@ -460,12 +559,15 @@ function decisionWaEntrante_(m, wa, ts) {
     if (!e0.ok) { waEnviar_(wa, (e0.error || 'No pude tomarla') + '.', { yaVentana: true }); return true; }
     var pul = null; try { pul = hubRedactar_(f.resId, texto, []); } catch (e) { console.error('decision otra: ' + e); }
     var final = pul && pul.ok ? pul.texto : texto;
-    var d2 = decFilas_(), f2 = d2.filas.filter(function (x) { return x.id === f.id; })[0]; if (f2) { decGuardar_(d2.sh, f2, { borrador: String(final).slice(0, 3000) }); f = f2; }
+    /* texto_libre: lo que escribió, para devolvérselo a Alma si después dice «no era para…». */
+    var d2 = decFilas_(), f2 = d2.filas.filter(function (x) { return x.id === f.id; })[0];
+    if (f2) { decGuardar_(d2.sh, f2, { borrador: String(final).slice(0, 3000), texto_libre: JSON.stringify({ texto: texto.slice(0, 3000), msg: s_(m.id) }), sin_texto: '' }); f = f2; }
     decMostrarSalida_(wa, f, final);
     return true;
   }
   var r2 = decisionElegir_({ nombre: quien }, f.id, accion);
   if (!r2.ok) { waEnviar_(wa, (r2.error || 'No pude elegirla') + (r2.resuelta ? '. Ya no hace falta elegir.' : '.'), { yaVentana: true }); return true; }
+  try { var d3 = decFila_(f.id); if (d3.f && (d3.f.sin_texto || d3.f.texto_libre)) decGuardar_(d3.sh, d3.f, { sin_texto: '', texto_libre: '' }); } catch (e) {}   // tocó una opción: el caso vuelve a aceptar texto libre
   var f3 = decFilas_().filas.filter(function (x) { return x.id === f.id; })[0] || f;
   decMostrarSalida_(wa, f3, r2.mensaje);
   return true;

@@ -20,6 +20,8 @@
  *   WA_WABA_ID         (WhatsApp Business Account ID: probarWhatsApp suscribe la cuenta a la app)
  *   WA_VERIFY_TOKEN    (texto que pegas en Meta → Webhooks → Verify token; por defecto spacioam-alma)
  *   WA_PLANTILLA       (nombre de la plantilla aprobada para retomar conversaciones fuera de las 24 h; opcional WA_PLANTILLA_IDIOMA_ES / _EN)
+ *   WA_PLANTILLA_SOCIO (plantilla para socios: Utilidad, {{1}} primer nombre · {{2}} propiedad; la usan los socios y propietarios
+ *                       fuera de las 24 h, también con números +1. Idioma: WA_PLANTILLA_SOCIO_IDIOMA (es) y opcional _EN · socios.js)
  *   WA_PROPIETARIOS    (opcional: números extra de propietarios. Se leen solos del Control de usuarios por rol; o de SHEET_PROPIETARIOS_ID)
  *   WA_PRUEBA          (números del equipo que ALMA atiende como clientes, para pruebas)
  *   WA_EQUIPO          (opcional: números extra del equipo. Los de Control de usuarios, técnicos de EPI y ALMA_ESCALAMIENTO se toman solos)
@@ -4418,9 +4420,9 @@ function waPropietarios_() {
   return accesosPorRol_().propietarios.concat(extra).map(normTel_).filter(Boolean);
 }
 function accesosPorRol_() {
-  const cache = CacheService.getScriptCache(), c0 = cache.get('acc_roles_v2');
+  const cache = CacheService.getScriptCache(), c0 = cache.get('acc_roles_v3');
   if (c0) { try { return JSON.parse(c0); } catch (e) {} }
-  const out = { equipo: [], propietarios: [] };
+  const out = { equipo: [], propietarios: [], socios: [] };   // socios: { tel, nombre, propiedad } para la plantilla para socios (socios.js)
   const norm = k => String(k).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const esTel = k => /^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/.test(norm(k));
   const esRol = k => /^(rol|roles|role|tipo|tipo_usuario|perfil)$/.test(norm(k));
@@ -4440,6 +4442,8 @@ function accesosPorRol_() {
       const lleno = x => { const t = String(x || '').trim().toLowerCase(); return !!t && t !== 'no' && t !== 'false' && t !== '0'; };
       const cEst = cab.findIndex(c => /^(estado|activo|active)$/i.test(c));
       const hojaProp = forzarProp || esProp(sh.getName());
+      const cNom = ['nombre', 'name', 'primer_nombre'].map(x => cab.findIndex(c => norm(c) === x)).filter(i => i >= 0)[0];
+      const cProp = cab.findIndex(c => /^(propiedad|propiedades|apartamento|apartamentos|unidad|unidades|property|properties)$/.test(norm(c)));
       v.slice(1).forEach(r => {
         if (cEst >= 0 && /inactiv|baja|no|false/i.test(String(r[cEst]))) return;
         /* Propietario = rol dice propietario/socio, o solo tiene acceso a mi.spacioam (perm_mi) y a ninguna app operativa. */
@@ -4447,7 +4451,10 @@ function accesosPorRol_() {
         if (est >= 0 && /inactiv|baja|bloque|suspend/.test(norm(r[est]))) return;
         /* Columnas es_dueno / es_socio mandan: «sí» en cualquiera de las dos = propietario. */
         const prop = hojaProp || (flags.length ? flags.some(i => esSi(r[i])) : (soloMi || roles.some(i => esProp(r[i]))));
-        tels.forEach(i => telsDe_(r[i]).forEach(d => (prop ? out.propietarios : out.equipo).push(d)));
+        tels.forEach(i => telsDe_(r[i]).forEach(d => {
+          (prop ? out.propietarios : out.equipo).push(d);
+          if (prop) out.socios.push({ tel: d, nombre: cNom >= 0 ? String(r[cNom] || '').trim() : '', propiedad: cProp >= 0 ? String(r[cProp] || '').trim() : '' });
+        }));
       });
     });
   };
@@ -4457,7 +4464,8 @@ function accesosPorRol_() {
   const P = {}; out.propietarios.forEach(x => P[fin8_(x)] = 1);
   out.equipo = out.equipo.filter(x => !P[fin8_(x)]);   // si alguien es propietario, no cuenta como equipo
   out.equipo = out.equipo.filter((v, i, a) => a.indexOf(v) === i); out.propietarios = out.propietarios.filter((v, i, a) => a.indexOf(v) === i);
-  try { cache.put('acc_roles_v2', JSON.stringify(out), 1800); } catch (e) {}
+  out.socios = out.socios.filter((x, i, a) => a.findIndex(y => fin8_(y.tel) === fin8_(x.tel)) === i);
+  try { cache.put('acc_roles_v3', JSON.stringify(out), 1800); } catch (e) {}
   return out;
 }
 function routerWA_(ctx) {
@@ -4638,10 +4646,15 @@ function hubResponderWa_(resId, texto, quien, wa, adj) {
 }
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   const W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'falta WA_TOKEN o WA_PHONE_ID' };
-  const abierta = waVentana_(wa);
+  const abierta = waVentana_(wa), soc = abierta ? null : socioSeguro_(wa);
   let payload, guardado = String(texto);
   if (abierta) payload = { messaging_product: 'whatsapp', to: wa, type: 'text', text: { body: String(texto).slice(0, 4096), preview_url: true } };
-  else {
+  else if (soc) {   // socio o propietario: la plantilla para socios (Utilidad), no WA_PLANTILLA (socios.js)
+    const sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || nombre, propiedad: soc.propiedad, idioma: idioma });
+    if (sp.error) return { ok: false, error: sp.error };
+    payload = sp.payload;
+    guardado = '[plantilla para socios: ' + sp.nombre + '] · pendiente de enviar cuando responda: ' + texto;
+  } else {
     if (!W.plantilla) return { ok: false, error: 'pasaron más de 24 h desde su último mensaje y no hay plantilla configurada (WA_PLANTILLA)' };
     const en = String(idioma || '').slice(0, 2) === 'en';
     payload = { messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: W.plantilla, language: { code: en ? W.idEN : W.idES },
@@ -4651,7 +4664,7 @@ function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   const r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(payload) });
   const code = r.getResponseCode(); let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
-  if (code >= 300) return { ok: false, code: code, error: (j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + code };
+  if (code >= 300) return { ok: false, code: code, error: abierta ? ((j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + code) : waErrorMeta_(code, j, wa, !!soc) };
   const ts = new Date().toISOString();
   hojaWA_().appendRow([ts, wa, '', 'out', guardado.slice(0, 4000), s_(j.messages && j.messages[0] && j.messages[0].id), String(convId || 'wa:' + wa), abierta ? 'text' : 'template', autor || 'alma', '']);
   try { inboxUpsert_(String(convId || 'wa:' + wa), { ultimo_texto: guardado.slice(0, 300), ultimo_de: 'host', ultimo_ts: ts, ultimo_host_ts: ts, ultimo_canal: 'whatsapp', wa: wa }); } catch (e) {}

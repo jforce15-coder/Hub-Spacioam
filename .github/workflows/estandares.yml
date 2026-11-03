@@ -98,3 +98,7 @@ jobs:
 
       - name: La voz del Modo calle dice por qué no hubo audio (dobles de ElevenLabs)
         run: node .github/calle-voz.js apps-script
+
+      - name: Casos por WhatsApp, el texto libre solo es respuesta si cita el aviso o es claramente para el huésped (dobles)
+        # 3-nov: «Escríbele a Diana…» salió como respuesta para Alejandra. Segunda vez con casos/borradores (ver #419).
+        run: node .github/decision-texto.js apps-script

@@ -815,7 +815,7 @@ function encargoCerrarConLlamada_(tel, d, resumen) {
    con ella hasta cumplir el objetivo (como en los encargos personales) y, al terminar: cierra el encargo, le manda el
    resumen a quien lo pidió y hace en su nombre lo que dejó pedido para después (tarea, reporte, asignación…). */
 function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
-  try { hojaWA_().appendRow([ts, wa, nombre, 'in', String(texto).slice(0, 4000), msgId, 'wa:' + wa, 'text', 'encargo', (media || []).join(' ')]); } catch (x) {}
+  try { hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_(String(texto).slice(0, 4000)), msgId, 'wa:' + wa, 'text', 'encargo', (media || []).join(' ')]); } catch (x) {}
   var adm = adminPorEmail_(e.solicitante) || {}, quien = e.persona || nombre || ('+' + wa), de = adm.nombre || 'el equipo';
   try { inboxUpsert_('wa:' + wa, { huesped: quien, propiedad: 'WhatsApp · Encargo de ' + de, tipo: 'interno', canal: 'whatsapp', wa: wa, ultimo_canal: 'whatsapp', ultimo_texto: String(texto).slice(0, 300), ultimo_de: 'guest', ultimo_ts: ts, ultimo_guest_ts: ts }); } catch (x) {}
   /* «Cuando responda: …» (escribir_a_equipo) o, en un encargo de conversación (encargar_conversacion), lo que quede del objetivo después de hablar. */

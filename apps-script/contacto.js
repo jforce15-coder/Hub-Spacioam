@@ -204,7 +204,7 @@ function personalAvisar_(rel, texto, resumen) {
      inventar ni decidir nada; si pregunta algo que solo Juan sabe, se lo pasa. Al terminar, le manda el resumen.
    · Sin objetivo (o ya cumplido): lo que escriba se le reenvía a Juan tal cual. */
 function personalEntrante_(wa, nombre, texto, ts, media, msgId, rel) {
-  try { hojaWA_().appendRow([ts, wa, nombre, 'in', String(texto).slice(0, 4000), msgId, 'wa:' + wa, 'text', 'personal', (media || []).join(' ')]); } catch (e) {}
+  try { hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_(String(texto).slice(0, 4000)), msgId, 'wa:' + wa, 'text', 'personal', (media || []).join(' ')]); } catch (e) {}
   personalNotar_(wa, 'ella', texto);
   var quien = rel.nombre || nombre || ('+' + wa), de = rel.de || 'Juan';
   if (esRespuestaAutomatica_(texto)) return;   // «Gracias por contactarnos · horarios de atención…»: no se le reenvía a Juan

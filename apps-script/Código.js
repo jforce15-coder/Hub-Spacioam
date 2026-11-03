@@ -2661,6 +2661,10 @@ function protegido_(sh, f, fn) {
 
 function ahora_() { return new Date(); }
 function s_(v) { return (v === null || v === undefined || typeof v === 'object') ? '' : String(v); }
+/* Texto que va a una celda tal cual. Lo que empieza con = + - @ Sheets lo toma como fórmula y guarda «#ERROR!»: el 3-nov
+   Juan mandó «+502 …» (número de una socia nueva) en la primera línea y Alma nunca lo vio. Un número solo se volvería
+   número. El apóstrofo lo deja como texto y no aparece al leer la celda. */
+function celdaTexto_(x) { const t = s_(x); return /^\s*[=+\-@]/.test(t) || /^\d[\d\s.]*$/.test(t) ? "'" + t : t; }
 function ok_(msg) { return ContentService.createTextOutput(JSON.stringify({ ok: true, msg: msg })).setMimeType(ContentService.MimeType.JSON); }
 function vence_(f, ahora) { return !f.v[C.proximo] || new Date(f.v[C.proximo]).getTime() <= ahora.getTime(); }
 function enVentana_(d) {
@@ -4257,7 +4261,7 @@ function waEntrante_(m, nombre) {
   /* Meta / Facebook (códigos de verificación) o tipos que la API no entrega: se guardan y se ven en el hub, pero no se clasifican ni se responden. */
   const esSistema = m.type === 'unsupported' || m.type === 'system' || (Array.isArray(m.errors) && m.errors.length) || /^(facebook|meta|whatsapp|instagram)\b/i.test(s_(nombre)) || /\b(c[oó]digo de (verificaci[oó]n|confirmaci[oó]n)|verification code|is your (facebook|whatsapp|meta|instagram) code)\b/i.test(texto);
   if (esSistema) {
-    hojaWA_().appendRow([ts, wa, nombre, 'in', texto.slice(0, 4000), s_(m.id), 'wa:' + wa, s_(m.type), 'sistema', media.join(' ')]);
+    hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_(texto.slice(0, 4000)), s_(m.id), 'wa:' + wa, s_(m.type), 'sistema', media.join(' ')]);
     inboxUpsert_('wa:' + wa, { huesped: nombre || '+' + wa, propiedad: 'WhatsApp · Mensaje del sistema', tipo: 'sistema', canal: 'whatsapp', wa: wa, ultimo_canal: 'whatsapp',
       ultimo_texto: texto.slice(0, 300), ultimo_de: 'guest', ultimo_ts: ts, ultimo_guest_ts: ts });
     log_({ resId: 'wa:' + wa, huesped: nombre || '+' + wa, propiedad: 'WhatsApp · Mensaje del sistema', canal: 'whatsapp', nivel: 'SILENCIO', texto: texto, razon: 'mensaje del sistema de WhatsApp / Meta: no se clasifica ni se responde' }, '', 'SISTEMA · no se responde');
@@ -4282,12 +4286,14 @@ function waEntrante_(m, nombre) {
   if (admOp) {
     /* No responde mensaje por mensaje: espera a que deje de escribir y contesta todo junto (opWaProcesar_). */
     const reenv = m.context && (m.context.forwarded || m.context.frequently_forwarded) ? '[reenviado] ' : '';
-    hojaWA_().appendRow([ts, wa, nombre, 'in', (reenv + texto).slice(0, 4000), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo_pend', media.join(' ')]);
+    /* Respondió citando un mensaje: Meta solo manda el id del citado; se busca su texto para que Alma sepa a qué responde. */
+    const cita = !reenv && m.context && m.context.id ? waCitado_(m.context.id) : '';
+    hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_((reenv + (cita ? '[respondiendo a: «' + cita + '»] ' : '') + texto).slice(0, 4000)), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo_pend', media.join(' ')]);
     PropertiesService.getScriptProperties().setProperty('OP_WA_PEND', '1');
     opWaProgramar_();
     return;
   }
-  hojaWA_().appendRow([ts, wa, nombre, 'in', texto.slice(0, 4000), s_(m.id), convId, s_(m.type), '', media.join(' ')]);
+  hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_(texto.slice(0, 4000)), s_(m.id), convId, s_(m.type), '', media.join(' ')]);
   if (!res && (actor !== 'externo' || cat !== 'reserva')) { try { contactoEncolar_(wa, ''); } catch (e) {} }   // proveedor, técnico, socio… (contactos.js)
   let pre = {}; try { pre = preContexto_(convId); } catch (e) {}
   inboxUpsert_(convId, { codigo: pre.codigo, huesped: pre.huesped || nombre || '+' + wa, foto: pre.foto, propiedad: res ? (pre.propiedad || 'Reserva') : (RUTA_NOMBRE_[cat] || 'WhatsApp · Posible reserva'),
@@ -4669,7 +4675,7 @@ function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   const code = r.getResponseCode(); let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   if (code >= 300) return { ok: false, code: code, error: abierta ? ((j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + code) : waErrorMeta_(code, j, wa, !!soc) };
   const ts = new Date().toISOString();
-  hojaWA_().appendRow([ts, wa, '', 'out', guardado.slice(0, 4000), s_(j.messages && j.messages[0] && j.messages[0].id), String(convId || 'wa:' + wa), abierta ? 'text' : 'template', autor || 'alma', '']);
+  hojaWA_().appendRow([ts, wa, '', 'out', celdaTexto_(guardado.slice(0, 4000)), s_(j.messages && j.messages[0] && j.messages[0].id), String(convId || 'wa:' + wa), abierta ? 'text' : 'template', autor || 'alma', '']);
   try { inboxUpsert_(String(convId || 'wa:' + wa), { ultimo_texto: guardado.slice(0, 300), ultimo_de: 'host', ultimo_ts: ts, ultimo_host_ts: ts, ultimo_canal: 'whatsapp', wa: wa }); } catch (e) {}
   return { ok: true, code: 200, plantilla: !abierta };
 }
@@ -4875,6 +4881,27 @@ function adminsOp_() {
   try { cache.put('op_admins3', JSON.stringify(out), 1800); } catch (e) {}
   return (OP_ADM_ = out);
 }
+/* Texto (recortado) del mensaje de WhatsApp con ese id, entre los últimos 400. '' si no está. */
+function waCitado_(msgId) {
+  try {
+    const sh = hojaWA_(), n = sh.getLastRow(); if (n < 2 || !msgId) return '';
+    const desde = Math.max(2, n - 399), v = sh.getRange(desde, 1, n - desde + 1, 6).getValues();
+    for (let i = v.length - 1; i >= 0; i--) if (s_(v[i][5]) === String(msgId)) return s_(v[i][4]).replace(/\s+/g, ' ').trim().slice(0, 200);
+  } catch (e) { console.error('waCitado_: ' + e); }
+  return '';
+}
+/* Teléfonos escritos en un mensaje («+502 4768 6741», «+1 (908) 555-0101», «4768-6741»), normalizados y sin repetir.
+   Fechas, montos y códigos cortos no cuentan: piden «+» o la forma de 8 dígitos de Guatemala. */
+function telsEnTexto_(t) {
+  const m = String(t || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').match(/\+\s?\d[\d\s().\-\u2011]{6,}\d|\b\d{4}[\s\-\u2011]?\d{4}\b/g) || [];
+  return m.map(normTel_).filter((x, i, a) => x && a.indexOf(x) === i);
+}
+/* Si el mensaje trae teléfonos, Alma los recibe como los de este pedido: el 3-nov confundió el de una socia nueva con
+   los de otro socio que estaban más arriba en el historial. */
+function opNotaNumeros_(texto) {
+  const tels = telsEnTexto_(texto); if (!tels.length) return '';
+  return '(Números que vienen en este mensaje: ' + tels.map(x => '+' + x).join(', ') + '. Si el pedido es escribirle, llamarle o programarle un mensaje a alguien, usa este número: tiene prioridad sobre cualquier otro. Los números del historial son de otras personas y no son de esta persona salvo que el mensaje lo diga.)';
+}
 function adminPorTel_(wa) { const k = fin8_(wa); return adminsOp_().find(a => a.tels.some(t => fin8_(t) === k)) || null; }
 function adminPorEmail_(email) { email = String(email || '').trim().toLowerCase(); return adminsOp_().find(a => a.email === email) || (email ? { email: email, nombre: nombreAcceso_(email) || email.split('@')[0], tels: [], principal: false } : null); }
 function opFilas_(email, n) {
@@ -4888,7 +4915,7 @@ function opFilas_(email, n) {
 function opGuardar_(adm, de, canal, texto, acciones, clas) {
   const id = 'op' + Date.now() + Math.floor(Math.random() * 1000), ts = new Date().toISOString();
   const tx = String(texto || '').slice(0, 4000), esf = (clas && clas.esfera) || '', sub = (clas && clas.esfera && clas.subcategoria) || '';
-  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, /^[=+\-@]/.test(tx) || /^\d[\d\s.]*$/.test(tx) ? "'" + tx : tx, acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub]);
+  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, celdaTexto_(tx), acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub]);
   return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [], esfera: esf, subcategoria: sub };
 }
 /* Llave del robot: Epi y Hola reconocen así las llamadas del Hub (servidor a servidor, sin sesión de una persona). */
@@ -4935,7 +4962,8 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   /* Hay un borrador para Claude esperando su sí y este mensaje lo responde («mándalo», «agrégale…», «no lo envíes»):
      se resuelve aquí, sin la IA, en cualquier canal (chat.js). */
   try { const bc = chatBorradorTurno_(adm, yo, texto, canal); if (bc) return bc; } catch (e) { console.error('chatBorradorTurno_: ' + e); }
-  const pedido = nota ? nota + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
+  const notaT = [nota, opNotaNumeros_(texto)].filter(Boolean).join('\n');
+  const pedido = notaT ? notaT + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
   try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); }
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE HH:mm');

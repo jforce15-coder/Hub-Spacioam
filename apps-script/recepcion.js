@@ -134,7 +134,7 @@ function recepcionDe_(wa) {
 /* La recepción respondió al número de ALMA. */
 function recepcionEntrante_(wa, nombre, texto, ts, media, msgId, rec) {
   var conv = 'wa:' + wa, edificio = (rec && rec.prop) || '';
-  hojaWA_().appendRow([ts, wa, nombre, 'in', String(texto).slice(0, 4000), msgId, conv, 'text', 'recepcion', (media || []).join(' ')]);
+  hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_(String(texto).slice(0, 4000)), msgId, conv, 'text', 'recepcion', (media || []).join(' ')]);
   inboxUpsert_(conv, { huesped: nombre || ('Recepción ' + edificio).trim(), propiedad: 'Recepción' + (edificio ? ' · ' + edificio : ''), tipo: 'recepcion', canal: 'whatsapp', wa: wa,
     ultimo_canal: 'whatsapp', ultimo_texto: String(texto).slice(0, 300), ultimo_de: 'guest', ultimo_ts: ts, ultimo_guest_ts: ts });
   try { pushNuevo_(conv, 'Recepción' + (edificio ? ' · ' + edificio : ''), 'WhatsApp de ALMA', texto); } catch (e) {}

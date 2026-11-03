@@ -726,6 +726,7 @@ function procesarCola() {
   try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
   try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
   try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
+  try { decisionesSalir_(); } catch (e) { console.error('decisionesSalir_: ' + e); }   // envío con deshacer: lo elegido por WhatsApp que ya cumplió su minuto (respaldo del disparador corto)
   try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }
   try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
@@ -4208,7 +4209,7 @@ function waEntrante_(m, nombre) {
   const wa = s_(m.from).replace(/\D/g, ''); if (!wa || !m.id) return;
   const cache = CacheService.getScriptCache(); if (cache.get('wa_' + m.id)) return; cache.put('wa_' + m.id, '1', 21600);
   try { waPendienteSoltar_(wa); } catch (e) { console.error('waPendienteSoltar_: ' + e); }   // respondió a la plantilla de primer contacto (contacto.js)
-  /* El responsable toca un botón de una decisión del equipo (A/B/C, Enviar, Editar en el Hub) o escribe otra respuesta (decisiones.js). */
+  /* El responsable toca un botón de una decisión del equipo (A/B/C, Deshacer, Editar en el Hub) o escribe otra respuesta (decisiones.js). */
   try { if (decisionWaEntrante_(m, wa, m.timestamp ? new Date(Number(m.timestamp) * 1000).toISOString() : '')) return; } catch (e) { console.error('decisionWaEntrante_: ' + e); }
   const T = { image: '[envió una imagen]', audio: '[envió una nota de voz]', video: '[envió un video]', document: '[envió un documento]', sticker: '[sticker]', contacts: '[compartió un contacto]', reaction: '', unsupported: '[Mensaje que WhatsApp no deja leer aquí: suele ser un código de verificación o un mensaje con botones. Ábrelo en el teléfono]', system: '[aviso de WhatsApp: cambio de número o de cuenta]', order: '[envió un pedido del catálogo]', request_welcome: '[abrió el chat]' };
   let texto = '';

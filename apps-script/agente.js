@@ -199,6 +199,8 @@ function agHerramientas_() {
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
       { nombre: s('Nombre de la persona'), relacion: s('Qué es de Juan: «esposa de Juan», «mamá de Juan»…'), numero: s('WhatsApp con código de país (opcional si ya hay conversación)') }, ['nombre', 'relacion']),
+    T('dar_acceso_mi_ayudante', 'Da al ayudante de un socio su propio usuario de Mi (su correo y su contraseña) que ve las propiedades del socio. Primero sin aplicar: dile a Juan qué haría y pregunta; con su sí, otra vez con aplicar = true. Solo administrador principal.',
+      { socio: s('Correo del socio'), correo: s('Correo del ayudante'), nombre: s('Nombre del ayudante'), aplicar: { type: 'boolean', description: 'true solo después del sí de Juan' } }, ['socio', 'correo', 'nombre']),
     T('guardar_nota', 'Guarda algo para recordarlo en conversaciones futuras con este administrador.', { texto: s('Lo que hay que recordar') }, ['texto']),
     /* Vigilancias (vigilancias.js): la revisión es código, sin IA; tú solo la armas y actúas al final. */
     T('vigilar', 'Para «avísame cuando…»: deja vigilando algo y avisa a Juan cuando pase, sin gastar IA mientras espera. que: vuelo (cambia puerta, terminal u hora; objetivo = confirmación o número de vuelo de ver_vuelos), huesped_responde (objetivo = código de reserva, conv_id o número de WhatsApp), pr_unido (objetivo = enlace del PR), reserva_cambia (fechas, estado o huéspedes; objetivo = código de reserva) o pagina_dice (objetivo = https://…, texto = lo que debe decir). Solo el administrador principal.',
@@ -593,6 +595,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'vigilar': { var rv = vigCrear_(adm, inp); if (rv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Vigilando · ' + rv.vigilando }); return rv; }
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
+    case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }
   return { error: 'Herramienta desconocida: ' + nombre };

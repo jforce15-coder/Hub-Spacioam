@@ -27,6 +27,8 @@
  *   googleLogin  { credential }              -> entra con la cuenta de Google (correo principal o alterno)
  *   faceEnroll   { session }                 -> llave de este dispositivo para entrar con Face ID
  *   faceLogin    { email, llave }            -> entra con esa llave (el teléfono la libera solo tras Face ID)
+ *   accesoAyudanteMi { robot|session, socio_email, ayudante_email, nombre, aplicar }
+ *                                            -> usuario propio para el ayudante de un socio (ve las propiedades del socio en Mi)
  *
  * La respuesta SIEMPRE incluye { ok:true/false }. Nunca devuelve el hash.
  **********************************************************************/
@@ -60,6 +62,11 @@ function _handle(e){
     if(body.action === 'diagAlternos') return _diagAlternos(body.robot);
     if(body.action === 'resolverSocios') return _resolverSocios(body.robot, body.aplicar === true);
     if(body.action === 'crearContador') return _crearContador(body.robot, body.email, body.alternos, body.nombre, body.aplicar === true);
+    if(body.action === 'accesoAyudanteMi'){   // robot (el Hub) o la sesión firmada de un admin principal
+      var sesAyu = body.session ? _verificarSesion(body.session) : null;
+      if(!_esRobot(body.robot) && !(sesAyu && _esAdminPrincipal(sesAyu.e))) return {ok:false, error:'token'};
+      return _accesoAyudanteMi(body.socio_email, body.ayudante_email, body.nombre, body.aplicar === true);
+    }
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -678,6 +685,90 @@ function _crearContador(token, email, alternos, nombre, aplicar){
   sh.appendRow(row);
   CacheService.getScriptCache().remove('alt_mi');
   return {ok:true, creado:true};
+}
+
+/* Ayudante de socio (nov 2026): la persona que ayuda a un socio (p. ej. a subir facturas) entra a Mi con SU usuario
+   (su correo y su contraseña) y ve las mismas propiedades del socio. No es un correo secundario del socio: ese entra
+   a la fila del socio, con la contraseña del socio. Dos pasos, en este orden:
+   1) su fila en Control de usuarios (perm_mi socio, es_socio no, sin contraseña: la crea en su primer ingreso);
+   2) su correo en «secondary user email» de cada fila de SETUP del socio (así Mi la liga al socio por correo).
+   El orden importa: _findRow busca primero el correo directo; si el correo llegara a SETUP sin fila propia, entraría
+   como el socio. No toca a un administrador, a un socio o dueño, ni el correo alterno de otro usuario.
+   Sin aplicar, solo dice qué haría. */
+function _accesoAyudanteMi(socioEmail, ayudanteEmail, nombre, aplicar){
+  var norm=function(x){ return String(x||'').replace(/\s+/g,'').toLowerCase(); };
+  var lista=function(x){ return String(x||'').toLowerCase().split(/[\s,;]+/).map(norm).filter(function(e){ return e.indexOf('@')>0; }); };
+  var socio=norm(socioEmail), ayu=norm(ayudanteEmail); nombre=String(nombre||'').trim().replace(/\s+/g,' ');
+  if(socio.indexOf('@')<1 || ayu.indexOf('@')<1) return {ok:false, error:'bad_email'};
+  if(!nombre) return {ok:false, error:'needs_name'};
+  var d=_all(), sh=d.sh, H=d.H;
+  if(H.perm_mi==null) return {ok:false, error:'sin columna perm_mi'};
+  // Todos los correos y el código del socio: así sirve cualquiera de sus correos (principal, alterno o secundario de Mi).
+  var correosSocio={}, codigosSocio={}, fs=_findRow(socio), alt=_alternosMi();
+  correosSocio[socio]=1; if(alt[socio]) correosSocio[alt[socio]]=1;
+  if(fs){
+    var rs=fs.d.data[fs.i];
+    lista(rs[H.email]).concat(H.email_alterno!=null ? lista(rs[H.email_alterno]) : []).forEach(function(e){ correosSocio[e]=1; });
+    if(norm(rs[H.user_id])) codigosSocio[norm(rs[H.user_id])]=1;
+  }
+  if(correosSocio[ayu]) return {ok:false, error:'ese correo es del mismo socio'};
+  // El ayudante: su fila directa (si ya existe) y que su correo no sea de otro usuario.
+  var fila=-1;
+  for(var i=1;i<d.data.length;i++){
+    var r=d.data[i];
+    if(norm(r[H.email])===ayu){ fila=i; continue; }
+    if(H.email_alterno!=null && lista(r[H.email_alterno]).indexOf(ayu)>=0) return {ok:false, error:'ese correo ya es el correo alterno de otro usuario'};
+  }
+  var permPrev='';
+  if(fila>=0){
+    var ra=d.data[fila];
+    if(APP_KEYS.some(function(a){ return ROLES_ADMIN.indexOf(String(ra[H['perm_'+a]]||''))>=0; })) return {ok:false, error:'ese correo es de un administrador; no se cambia'};
+    if(ra[H.es_socio]==='sí' || ra[H.es_dueno]==='sí') return {ok:false, error:'ese correo es de un socio o dueño; no se cambia'};
+    permPrev=String(ra[H.perm_mi]||'');
+    if(permPrev && permPrev!=='socio') return {ok:false, error:'ese usuario ya tiene otro acceso a Mi ('+permPrev+'); no se cambia'};
+  }
+  // Las filas del socio en Mi (SETUP): por cualquiera de sus correos principales o por su código de socio.
+  var ms=SpreadsheetApp.openById(MI_SETUP_ID).getSheetByName('SETUP'), md=ms.getDataRange().getValues(), mh=md[0].map(function(x){ return String(x).trim().toLowerCase(); });
+  var cp=mh.indexOf('user email'), cs=mh.indexOf('secondary user email'), cu=mh.indexOf('usuario id'), cn=mh.indexOf('property_name');
+  if(cn<0) cn=mh.indexOf('property name');
+  if(cp<0 || cs<0) return {ok:false, error:'SETUP de Mi sin columnas de correo'};
+  var filasMi=[], deOtro=false;
+  for(var m=1;m<md.length;m++){
+    var ps=lista(md[m][cp]), code=cu>=0 ? norm(md[m][cu]) : '';
+    if(ps.some(function(e){ return correosSocio[e]; }) || (code && codigosSocio[code])) filasMi.push(m);
+    else if(ps.indexOf(ayu)>=0 || lista(md[m][cs]).indexOf(ayu)>=0) deOtro=true;
+  }
+  if(!filasMi.length) return {ok:false, error:'no encontré propiedades de ese socio en Mi'};
+  if(deOtro) return {ok:false, error:'ese correo ya está en las propiedades de otro socio en Mi'};
+  var faltan=filasMi.filter(function(m){ return lista(md[m][cs]).indexOf(ayu)<0; });
+  var propiedades=cn<0 ? [] : filasMi.map(function(m){ return String(md[m][cn]||'').trim(); }).filter(function(p, k, a){ return p && a.indexOf(p)===k; });
+  var plan={ usuario: fila<0 ? 'crear' : (permPrev==='socio' ? 'ya existe' : 'ya existe; se le da acceso a Mi'),
+             propiedades: propiedades, filas_mi: filasMi.length, filas_por_agregar: faltan.length };
+  if(!aplicar) return {ok:true, aplicado:false, plan:plan};
+  // 1) Su fila primero (ver arriba por qué).
+  var nota='Ayudante de socio: '+(fs ? String(fs.d.data[fs.i][H.email]||socio) : socio)+' ('+Utilities.formatDate(new Date(), 'America/Guatemala', 'yyyy-MM-dd')+')';
+  if(fila<0){
+    var row=[]; for(var k=0;k<sh.getLastColumn();k++) row.push('');
+    var set=function(col, v){ if(H[col]!=null) row[H[col]]=v; }, partes=nombre.split(' ');
+    set('user_id', 'U-' + Utilities.getUuid().slice(0, 8).toUpperCase()); set('nombre', nombre); set('email', ayu);
+    set('primer_nombre', partes[0]||''); set('primer_apellido', partes.length>1 ? partes[partes.length-1] : '');
+    set('estado', 'activo'); set('es_dueno', 'no'); set('es_socio', 'no'); set('perm_mi', 'socio'); set('password_hash', '');
+    set('notas', nota); set('creado', new Date()); set('actualizado', new Date());
+    sh.appendRow(row);
+  } else {
+    if(!permPrev) sh.getRange(fila+1, H.perm_mi+1).setValue('socio');
+    if(String(d.data[fila][H.estado]||'')==='suspendido') sh.getRange(fila+1, H.estado+1).setValue('activo');
+    if(H.notas!=null && String(d.data[fila][H.notas]||'').indexOf(nota.split(' (')[0])<0) sh.getRange(fila+1, H.notas+1).setValue([String(d.data[fila][H.notas]||'').trim(), nota].filter(String).join(' · '));
+    _touch(sh, H, fila);
+  }
+  SpreadsheetApp.flush();
+  // 2) Su correo como secundario en las filas del socio en Mi, sin repetir y sin tocar lo que ya había.
+  faltan.forEach(function(m){
+    var prev=String(md[m][cs]||'').trim().replace(/[\s,;]+$/,'');
+    ms.getRange(m+1, cs+1).setValue(prev ? prev+', '+ayu : ayu);
+  });
+  CacheService.getScriptCache().remove('alt_mi');
+  return {ok:true, aplicado:true, plan:plan};
 }
 
 

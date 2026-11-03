@@ -160,14 +160,20 @@ function vozSeguirPronto() {
     var o = vozSeguirLeer_(it.id), adm = o && adminsOp_().filter(function (a) { return a.email === o.email; })[0];
     if (!adm) continue;
     var r;
+    /* Esta ejecución es nueva (un disparador): sin AGENTE_CANAL_ = 'segundo_plano' el bucle no dejaba el resultado en
+       Pendientes, y al principal vozSecAvisar_ no le avisa por otro lado: lo que la llamada pasó a segundo plano terminaba
+       sin tarjeta, sin notificación y sin la notificación hablada del modo conferencia (Juan, 3-nov-2026). */
+    AGENTE_CANAL_ = 'segundo_plano'; AGENTE_TEXTO_ = String(o.pedido || ''); AGENTE_PEDIDO_ = String(o.pedido || ''); AGENTE_CONF_ = !!o.conf;
     try {
       AGENTE_APP_ = !!o.app;
       var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; });
       r = opAgenteBucle_(adm, o.system + vozSeguirCanal_(), o.msgs, tools, { hechas: o.hechas || [], parcial: o.parcial || null, _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } }, 0, true);
       AGENTE_APP_ = false;
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, { esfera: r.esfera, subcategoria: r.subcategoria });   // la esfera del turno (chat.js)
-    } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [] }; }
+    } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [], fallo: String(e).slice(0, 150) }; }
+    finally { AGENTE_CANAL_ = ''; AGENTE_TEXTO_ = ''; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; }
     try { vozSecAvisar_(normTel_(adm.tels[0]), adm, r, o.pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
+    try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // la tarjeta y su aviso ya, sin esperar al minuto de procesarCola
   }
 }
 function vozSeguirCanal_() {

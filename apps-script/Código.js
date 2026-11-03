@@ -3186,7 +3186,7 @@ function hubApi_(body) {
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'vozAvisos': return json_(vozAvisos_(ses));                                    // app de iPhone: avisos para decir al oído
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
-      case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma'));
+      case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz }: plazo largo y frase de espera (voz.js)
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());
       case 'acciones': return json_(accionesLista_());                                  // acciones pendientes del usuario (paraclaude.js)

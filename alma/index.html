@@ -89,7 +89,7 @@
 <script src="../js/sa-auth-client.js"></script>
 <script src="../js/alma-client.js?v=2026-11-15a"></script>
 <script src="../js/sa-compositor.js?v=2026-11-09b"></script>
-<script src="../js/sa-nav.js?v=2026-11-15g"></script>
+<script src="../js/sa-nav.js?v=2026-11-16a"></script>
 <script src="../js/alma-voz.js?v=2026-11-16a"></script>
 <script src="../js/sa-chat.js?v=2026-11-15c"></script>
 <script>
@@ -194,7 +194,7 @@
     tj.className = "mostrado"; h.className = "mostrado-tit"; av.className = "sa-chat-avatar sa-chat-avatar--alma"; av.setAttribute("aria-hidden", "true");
     h.appendChild(av); h.appendChild(document.createTextNode(String(o.titulo || "Alma").slice(0, 120)));
     tj.setAttribute("aria-label", "Alma te muestra: " + String(o.titulo || ""));
-    tj.appendChild(h); tj.appendChild(mdNodos(c.slice(0, 20000)));
+    tj.appendChild(h); tj.appendChild(window.SANav && SANav.md ? SANav.md(c.slice(0, 20000)) : mdNodos(c.slice(0, 20000)));   // el mismo de Pendientes (js/sa-nav.js); el de aquí, de respaldo
     $("hilo").appendChild(tj);
     setTimeout(function () { try { tj.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { tj.scrollIntoView(); } }, 60);
     return true;

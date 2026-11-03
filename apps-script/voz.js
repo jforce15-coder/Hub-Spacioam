@@ -549,7 +549,7 @@ function vozDefHerramientas_(base) {
         code: s('Código de la reserva validada (campo code de lookup_reservation).'),
         lang: s('Idioma de la llamada: es o en.'),
         caller_id: caller, conv_id: conv } } } },
-    { name: 'secretaria', response_timeout_secs: 40,   // el Hub contesta en 18 s (plazo duro, vozSecretaria_); 40 deja margen sin dejar a Juan un minuto en silencio
+    { name: 'secretaria', response_timeout_secs: VOZ_SECRETARIA_TIMEOUT_S_,   // el Hub contesta en 18 s (45 s en modo conferencia: vozSecretaria_); 60 deja margen a los 45
       description: 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di siempre una frase corta («Lo consulto con mi sistema»); si es para hacer algo que la persona acaba de confirmar, solo «Listo.». Nunca la nombres: di «voy a consultar con mi sistema». Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» arma un borrador y NO lo envía hasta que Juan diga «mándalo». Devuelve el resultado real: solo confirma lo que esta herramienta diga que se hizo.',
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller, conv_id: conv,
@@ -821,6 +821,13 @@ function vozTranscript_(id) {
    se marca después (chatMarcarLuego_). Antes: hasta 8 vueltas de Sonnet y el issue de GitHub antes de contestar → dos
    llamadas del 1-nov llegaron a los 60 s de ElevenLabs. */
 var VOZ_PLAZO_DURO_ = 18000;
+/* MODO CONFERENCIA (Juan, 3-nov-2026: «en conferencia necesito respuestas»): la llamada que abrió «Alma, …» en una reunión
+   espera más antes de pasar a segundo plano (VOZ_PLAZO_CONFERENCIA_S, de entrada 45 s; entre 20 y 55) y, si pasa de 15 s,
+   la app dice «Sigo en eso, ya casi» con la voz de Alma (vozEsperaAudio_). La app avisa que es conferencia al vincular la
+   llamada (vozWebVincular_ → vozconf_<conv>). ElevenLabs espera a la secretaria VOZ_SECRETARIA_TIMEOUT_S_ (vozDefHerramientas_). */
+var VOZ_SECRETARIA_TIMEOUT_S_ = 60;
+function vozPlazoConferencia_() { var n = Number(PropertiesService.getScriptProperties().getProperty('VOZ_PLAZO_CONFERENCIA_S')); return (n >= 20 && n <= 55 ? n : 45) * 1000; }
+function vozEsConferencia_(convId) { convId = String(convId || '').trim(); return !!convId && CacheService.getScriptCache().get('vozconf_' + convId) === '1'; }
 function vozSecretaria_(b) {
   var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
   if (!adm && tel) { var qf = vozQuien_(tel); if (qf.tipo === 'familia') return vozFamilia_(tel, qf, b); }
@@ -836,26 +843,28 @@ function vozSecretaria_(b) {
     if (esMejora && (claudeBorradorIntencion_(resto, true) || (claudeNivelPedido_(resto) && !claudeNivelQuitar_(resto)))) return { ok: false, error: 'NO HAY NINGÚN BORRADOR PARA CLAUDIO esperando su sí (no se envió nada). Pregúntale qué quiere pedirle a Claudio.' };
     if (esMejora) return vozParaClaude_(adm, pedido);
   }
-  if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido);
+  var conf = vozEsConferencia_(b.conv_id), plazo = conf ? vozPlazoConferencia_() : Math.min(vozTolerancia_(), VOZ_PLAZO_DURO_);
+  if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido, conf);
   var previos = opFilas_(adm.email, 20);
   var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
   AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
-  AGENTE_PLAZO_ = t0 + Math.min(vozTolerancia_(), VOZ_PLAZO_DURO_); AGENTE_PEDIDO_ = pedido;
+  AGENTE_PLAZO_ = t0 + plazo; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)
   var r;
-  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; }
+  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; }
   if (r.seguira) {
     opGuardar_(adm, 'alma', 'llamada', 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', r.hechas);
     vozTrabajando_(adm, 1);
     return { ok: true, en_proceso: true, resultado: 'TARDA MÁS DE LO NORMAL: ya lo sigues trabajando en segundo plano (no lo vuelvas a pedir ni esperes su respuesta en esta llamada). ' +
-      'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en cuanto esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.' +
+      (conf ? 'Estás en modo conferencia: dile en una sola frase, natural, algo como «Me está tomando más; en cuanto lo tenga te lo digo aquí mismo» (la app se lo dirá en voz alta cuando esté). Si en esa misma frase no te pide otra cosa, cuelga con end_call.'
+        : 'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en cuanto esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.') +
       (r.hechas.length ? ' Lo que ya quedó hecho: ' + r.hechas.map(function (h) { return h.resumen || h.tipo; }).join('; ') + '.' : '') };
   }
   /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, el borrador para Claude con su pregunta (o a Juan). */
-  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: Date.now() - t0 > VOZ_PLAZO_DURO_ }); r.respuesta = turno.texto || r.respuesta;
+  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: Date.now() - t0 > plazo }); r.respuesta = turno.texto || r.respuesta;
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
-  /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los 40 s), el resultado también va por WhatsApp. */
-  if (Date.now() - t0 > 35000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
+  /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los VOZ_SECRETARIA_TIMEOUT_S_), el resultado también va por WhatsApp. */
+  if (Date.now() - t0 > (VOZ_SECRETARIA_TIMEOUT_S_ - 5) * 1000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   var out = { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
   if (turno.borrador) out.resultado += ' ' + VOZ_BORRADOR_DI_;
   return out;
@@ -907,11 +916,12 @@ function vozBorradorTurno_(adm, texto, explicito) {
 }
 /* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
    y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
-function vozSecEncolar_(tel, pedido) {
+function vozSecEncolar_(tel, pedido, conf) {
   var lock = LockService.getScriptLock(); lock.waitLock(5000);
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
-    cola.push({ tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() });
+    var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;   // lo pidió en modo conferencia: el resultado se le dice al oído
+    cola.push(x);
     p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
   } finally { lock.releaseLock(); }
   try { var admE = adminPorTel_(tel); if (admE) vozTrabajando_(admE, 1); } catch (e) {}
@@ -926,6 +936,7 @@ function vozSecretariaPronto() {
   cupoCanal_('Voz');
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
   vozSecProcesar_();
+  try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // el resultado a Pendientes (y su aviso) ya, sin esperar al minuto
 }
 function vozSecProcesar_() {
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock();
@@ -947,7 +958,8 @@ function vozSecProcesar_() {
     try {
       var previos = opFilas_(adm.email, 20);
       var yoF = opGuardar_(adm, 'yo', 'llamada', pedido + ' (en segundo plano)');
-      r = opAgente_(adm, pedido, 'segundo_plano', [], previos);
+      AGENTE_CONF_ = grupo.some(function (x) { return x.conf; });
+      try { r = opAgente_(adm, pedido, 'segundo_plano', [], previos); } finally { AGENTE_CONF_ = false; }
       var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r); r.respuesta = turno.texto || r.respuesta;
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
@@ -1151,14 +1163,40 @@ function vozWebTiempos_(marcas, ligero, app) {
     P.setProperty('VOZWEB_TIEMPOS', JSON.stringify(l.slice(-20)));
   } catch (e) {}
 }
-function vozWebVincular_(ses, convId, app) {
+function vozWebVincular_(ses, convId, app, b) {
+  b = b || {};
   var adm = vozWebAdmin_(ses); convId = String(convId || '').trim();
   if (!adm || !convId) return { ok: false };
   CacheService.getScriptCache().put('vozweb_' + convId, normTel_(adm.tels[0]), 21600);
   if (app) CacheService.getScriptCache().put('vozapp_' + convId, '1', 21600);   // la llamada es de la app de Alma (música, casa)
+  var conf = !!app && (b.conferencia === true || b.conferencia === 1 || b.conferencia === '1');
+  if (conf) CacheService.getScriptCache().put('vozconf_' + convId, '1', 21600);   // abierta desde el modo conferencia: plazo largo (vozSecretaria_)
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
   if (rid) { c.remove('vozret_' + adm.email); try { retMencionado_(adm, rid); } catch (e) {} }
-  return { ok: true };
+  var out = { ok: true };
+  /* La frase de espera con la voz de Alma, en el formato de audio de la llamada: la app la dice si la secretaria pasa de
+     espera_tras segundos. Sin audio, la app no dice nada (queda el tecleo de siempre). */
+  if (conf) { var au = ''; try { au = vozEsperaAudio_(b.hz); } catch (e) { console.error('vozEsperaAudio_: ' + e); } if (au) out.espera = { audio: au, hz: Number(b.hz), texto: VOZ_ESPERA_FRASE_, tras: VOZ_ESPERA_TRAS_S_ }; }
+  return out;
+}
+/* «Sigo en eso, ya casi.» en PCM 16 bits (el formato de la llamada de ElevenLabs, sin cabecera: la app lo pone en la misma
+   salida que la voz del agente). Se hace una vez por formato y queda 6 h en caché, en partes (la caché guarda 100 KB por valor). */
+var VOZ_ESPERA_FRASE_ = 'Sigo en eso, ya casi.', VOZ_ESPERA_TRAS_S_ = 15, VOZ_ESPERA_HZ_ = [16000, 22050, 24000, 44100];
+function vozEsperaAudio_(hz) {
+  hz = Number(hz); if (VOZ_ESPERA_HZ_.indexOf(hz) < 0) return '';
+  var c = CacheService.getScriptCache(), k = 'vozespera_' + hz, n = Number(c.get(k) || 0);
+  if (n) { var ks = []; for (var i = 0; i < n; i++) ks.push(k + '_' + i); var v = c.getAll(ks), s = ks.map(function (x) { return v[x] || ''; }).join(''); if (ks.every(function (x) { return v[x]; })) return s; }
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'); if (!key) return '';
+  var voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
+  var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=pcm_' + hz, {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+    payload: JSON.stringify({ text: VOZ_ESPERA_FRASE_, model_id: 'eleven_flash_v2_5', voice_settings: { stability: 0.6, similarity_boost: 0.8, speed: 1.05 } }) }, 'Voz');
+  if (r.getResponseCode() !== 200) { console.error('vozEsperaAudio_ ' + r.getResponseCode() + ': ' + String(r.getContentText()).slice(0, 200)); return ''; }
+  var b64 = Utilities.base64Encode(r.getBlob().getBytes()), partes = {}, m = 0;
+  for (var j = 0; j < b64.length; j += 90000) partes[k + '_' + (m++)] = b64.slice(j, j + 90000);
+  partes[k] = String(m);
+  try { c.putAll(partes, 21600); } catch (e) {}
+  return b64;
 }
 function vozWebTel_(convId) { convId = String(convId || '').trim(); return convId ? (CacheService.getScriptCache().get('vozweb_' + convId) || '') : ''; }
 function vozWebIdentificar_(b) {
@@ -1300,6 +1338,7 @@ function vozAvisoPoner_(adm, texto, retId, o) {
     var nuevo = { id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) };
     if ([1, 2, 3].indexOf(Number(o.nivel)) >= 0) nuevo.nivel = Number(o.nivel);
     if (o.resultado) nuevo.resultado = true;   // terminó algo de segundo plano: en modo conferencia la app lo dice por voz en la llamada
+    if (o.conferencia) nuevo.conferencia = true;   // lo pidió él en una llamada del modo conferencia: se dice y suena siempre (nivel 1, salvo «Silencio»)
     if (retId && l.some(function (a) { return String(a.id) === String(retId); })) return;
     l.push(nuevo);
     while (l.length > VOZ_AVISOS_MAX_) {
@@ -1341,8 +1380,15 @@ function vozAvisos_(ses) {
   } finally { lock.releaseLock(); }
   /* Notificación hablada (calle.js): cada aviso trae su nivel (1 urgente · 2 acción · 3 aviso), su frase corta para decirla
      al oído e importante (nivel 1 o 2: pide algo de él). */
+  /* Con su tarjeta de Pendientes, la notificación lleva la respuesta: titulo y hasta 3 líneas cortas del resultado (avisoLineas_). */
   var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
-  return { ok: true, avisos: mios.map(function (a) { var h = avisoHablarDe_(a, rets, pends); return { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado }; }), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  return { ok: true, avisos: mios.map(function (a) {
+    var h = avisoHablarDe_(a, rets, pends), pd = callePendDeAviso_(pends, a.id);
+    var o = { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado };
+    if (a.conferencia) o.conferencia = true;
+    if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
+    return o;
+  }), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */

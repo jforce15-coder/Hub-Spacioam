@@ -33,7 +33,7 @@ var VIVO_PROP_ = 'VUELO_VIVO';            // { clave: lo último de ese tramo } 
 var VIVO_USO_PROP_ = 'VUELO_VIVO_USO';    // { mes, airlabs: { consultas, error }, flightaware: { consultas, error } } para Conexiones
 var VIVO_COSTO_ = 0.005;                  // USD por consulta de /flights/{ident} (FlightAware, plan Personal)
 var VIVO_MIN_ = 60000;
-var VIVO_ANTES_ = 180 * VIVO_MIN_, VIVO_DESPUES_ = 15 * VIVO_MIN_;      // la ventana de consultas
+/* La ventana de consultas (3 h antes → 15 min después) está en viajeMomento_ (viajes.js): la misma para la tarjeta y Alma. */
 var VIVO_CADA_ = 10 * VIVO_MIN_, VIVO_CADA_CERCA_ = 5 * VIVO_MIN_;      // cada cuánto, y en la última hora
 /* El nombre corto de quien opera, por su código IATA (lo que no esté aquí se muestra como lo da el correo). */
 var VIVO_AEROLINEAS_ = { A5: 'HOP', AF: 'Air France', KL: 'KLM', DL: 'Delta', OO: 'SkyWest', '9E': 'Endeavor', MQ: 'Envoy', OH: 'PSA', YX: 'Republic',
@@ -65,9 +65,9 @@ function vueloVivoClave_(t) { return String(t.vuelo || '').replace(/\s/g, '') + 
 /* ¿Toca preguntar? Dentro de la ventana (3 h antes de la salida → 15 min después; la salida programada o la estimada,
    la que dé más ventana) y si ya pasó el tiempo desde la última consulta (10 min; 5 en la última hora). */
 function vueloVivoToca_(t, g, ahora) {
-  var prog = Date.parse(t.sale), est = g && g.sale_ms ? g.sale_ms : prog;
-  if (!(ahora >= Math.min(prog, est) - VIVO_ANTES_ && ahora <= Math.max(prog, est) + VIVO_DESPUES_)) return false;
-  var cada = ahora >= Math.min(prog, est) - 60 * VIVO_MIN_ ? VIVO_CADA_CERCA_ : VIVO_CADA_;
+  var mo = viajeMomento_(t, g && g.sale_ms ? { sale: new Date(g.sale_ms).toISOString() } : null, ahora);   // la misma regla que la tarjeta y Alma (viajes.js)
+  if (!mo.vivo) return false;
+  var cada = ahora >= Math.min(Date.parse(t.sale), mo.sale_ms) - 60 * VIVO_MIN_ ? VIVO_CADA_CERCA_ : VIVO_CADA_;
   return !(g && g.consultado && ahora - g.consultado < cada);
 }
 
@@ -174,8 +174,13 @@ function vueloVivoDeAl_(f, v, t) {
   var st = String(f.status || '').toLowerCase(), num = vueloVivoAlNumeros_(f, v, t);
   var estado = st === 'cancelled' ? ['Cancelado', 'mal'] : (!isNaN(real) || st === 'active' || st === 'en-route' || st === 'landed') ? ['Salió', 'ok']
     : retraso >= 15 ? ['Retrasado ' + retraso + ' min', 'tarde'] : ['A tiempo', 'ok'];
+  /* El desfase del aeropuerto según AirLabs (dep_time local − dep_time_utc): manda sobre el del correo para escribir la hora. */
+  var loc = Date.parse(String(f.dep_time || '').trim().replace(' ', 'T') + (String(f.dep_time || '').trim().length === 16 ? ':00' : '') + 'Z');
+  var off = f.dep_time_utc && !isNaN(loc) && !isNaN(prog) ? Math.round((loc - prog) / VIVO_MIN_) : null;
+  if (off != null && (Math.abs(off) > 14 * 60 || off % 15)) off = null;
+  var escribir = function (ms) { return off != null ? viajeIsoCon_(ms, off) : viajeHoraIgual_(t.sale, ms); };
   return { puerta: String(f.dep_gate || '').trim().slice(0, 8), terminal: String(f.dep_terminal || '').trim().slice(0, 8),
-    sale: isNaN(salida) ? '' : viajeHoraIgual_(t.sale, salida), sale_ms: isNaN(salida) ? 0 : salida, numero: vueloVivoFormato_(num.vuela),
+    sale: isNaN(salida) ? '' : escribir(salida), sale_ms: isNaN(salida) ? 0 : salida, prog_ms: isNaN(prog) ? 0 : prog, desfase_min: off, numero: vueloVivoFormato_(num.vuela),
     opera_iata: num.aerolinea.slice(0, 3), codigos: num.otro ? [vueloVivoFormato_(num.otro)] : [], estado: estado[0], estado_tipo: estado[1],
     estado_original: st.slice(0, 40), fuente: 'airlabs' };
 }
@@ -227,11 +232,14 @@ function vueloVivoUnir_(v, t, g) {
   if (opera && duenoNum && opera.toLowerCase() === duenoNum.toLowerCase()) opera = '';   // un AF que vuela Air France: nada que aclarar
   var vendido = v.codigo_aerolinea && n.prefijo(numero) && v.codigo_aerolinea !== n.prefijo(numero) ? vende : '';
   if (opera && vende && opera.toLowerCase() === vende.toLowerCase()) opera = '';
-  var sale = g.sale || t.sale, dura = (Date.parse(t.llega) - Date.parse(t.sale)) / VIVO_MIN_;
-  var embarque = viajeHoraIgual_(t.sale, Date.parse(sale) - (dura > 0 && dura <= 120 ? 30 : 40) * VIVO_MIN_);
+  /* Las horas: el instante (UTC) del proveedor si lo hay, escrito en la hora local del aeropuerto. */
+  var ref = g.desfase_min != null ? null : t.sale, escribir = function (ms) { return ref ? viajeHoraIgual_(ref, ms) : viajeIsoCon_(ms, g.desfase_min); };
+  var sale = g.sale_ms ? escribir(g.sale_ms) : t.sale, dura = (Date.parse(t.llega) - Date.parse(t.sale)) / VIVO_MIN_;
+  var embarque = escribir(Date.parse(sale) - (dura > 0 && dura <= 120 ? 30 : 40) * VIVO_MIN_);
   return { numero: numero, boleto: t.vuelo, vendido: vendido, opera: opera,
     puerta: g.puerta || t.puerta || '', puerta_antes: g.puerta_antes || '', terminal: g.terminal || (t.origen && t.origen.terminal) || '',
-    asiento: t.asiento || '', sale: sale, sale_prog: t.sale, embarque: embarque, embarque_aprox: true,
+    asiento: t.asiento || '', sale: sale, sale_prog: g.prog_ms ? escribir(g.prog_ms) : t.sale, sale_utc: new Date(Date.parse(sale)).toISOString(),
+    zona_nombre: t.zona_nombre || '', embarque: embarque, embarque_aprox: true,
     estado: g.estado || '', estado_tipo: g.estado_tipo || '', fuente: g.fuente || 'correo',
     consultado: g.consultado ? new Date(g.consultado).toISOString() : '' };
 }

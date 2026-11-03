@@ -6,8 +6,12 @@
      puerta y asiento. Sin confirmación, el viaje se identifica por su primer vuelo.
    · Cada correo ya leído queda en ALMA_VIAJES_CORREOS (también los que no eran de un vuelo): nunca se paga dos veces.
    · Se revisa el correo como mucho cada 30 min (o al jalar hacia abajo, cada minuto). Lo demás sale de la hoja.
-   · Horas: la IA da la hora local de cada aeropuerto y su zona IANA; aquí se vuelve ISO con su desfase
-     («2026-11-03T05:55:00+01:00»). La app muestra la hora local tal cual (el texto) y compara con el reloj (el instante).
+   · Horas: la IA da la hora local de cada aeropuerto; aquí se vuelve ISO con el desfase de la zona DEL AEROPUERTO
+     («2026-11-03T05:55:00+01:00»). La zona sale de VIAJES_ZONAS_ (IATA → zona), luego de la que dio la IA y luego del
+     país; nunca de Guatemala por defecto. Al leer la hoja se vuelve a calcular (viajeTramoHoras_), así un tramo guardado
+     con el desfase equivocado se arregla solo. Cada tramo lleva sale_utc / llega_utc (el instante) y zona; la app muestra
+     la hora local tal cual («11:45 hora de París») y compara con el reloj (el instante).
+     3-nov-2026: un vuelo de Francia guardado con −06:00 corría 7 h tarde: ni tarjeta, ni AirLabs, ni Alma lo veían.
    · Lo que no depende de la hora va calculado: a qué hora llegar al aeropuerto (3 h antes si es internacional, 2 h si
      es nacional), cuándo abre el check-in (24 h antes del primer vuelo de cada trayecto) y el trayecto de cada tramo.
      La app decide con su reloj el próximo tramo, si el check-in ya abrió y si toca la vista centrada (2 h antes).
@@ -38,6 +42,32 @@ var VIAJES_DIAS_ = 60, VIAJES_REVISAR_MIN_ = 30, VIAJES_POR_VUELTA_ = 8;
 var VIAJES_CHECKIN_ = { DL: 'https://www.delta.com/mytrips/', AF: 'https://wwws.airfrance.us/check-in', KL: 'https://www.klm.com/check-in', UA: 'https://www.united.com/en/us/checkin',
   AA: 'https://www.aa.com/reservation/view/find-your-trip', IB: 'https://www.iberia.com/es/checkin-online/', AV: 'https://www.avianca.com/es/check-in/', CM: 'https://www.copaair.com/es-gs/check-in/',
   LA: 'https://www.latamairlines.com/us/es/check-in', B6: 'https://www.jetblue.com/check-in', LH: 'https://www.lufthansa.com/es/es/online-check-in', VY: 'https://www.vueling.com/es/servicios-vueling/check-in-online' };
+
+/* La zona horaria de los aeropuertos de siempre (IATA → IANA). Manda sobre la que dice la IA (a veces viene vacía o mal). */
+var VIAJES_ZONAS_ = (function () {
+  var z = {
+    'Europe/Paris': 'CDG ORY LYS NCE MRS TLS BOD NTE BES BIQ CFE MPL PUF LRT RNS SXB MLH BSL PGF LIL AJA BIA CLY PIS LRH LDE EGC FSC TLN BVA',
+    'Europe/Madrid': 'MAD BCN VLC AGP SVQ BIO PMI ALC IBZ MAH SCQ OVD SDR VGO GRX XRY LEI REU ZAZ',
+    'Atlantic/Canary': 'LPA TFN TFS ACE FUE SPC', 'Europe/Lisbon': 'LIS OPO FAO', 'Europe/London': 'LHR LGW STN LCY MAN EDI',
+    'Europe/Amsterdam': 'AMS', 'Europe/Brussels': 'BRU', 'Europe/Berlin': 'FRA MUC BER DUS HAM', 'Europe/Zurich': 'ZRH GVA',
+    'Europe/Rome': 'FCO MXP LIN VCE NAP', 'Europe/Dublin': 'DUB', 'Europe/Vienna': 'VIE', 'Europe/Copenhagen': 'CPH',
+    'America/Guatemala': 'GUA FRS', 'America/El_Salvador': 'SAL', 'America/Tegucigalpa': 'SAP TGU', 'America/Costa_Rica': 'SJO LIR',
+    'America/Panama': 'PTY', 'America/Bogota': 'BOG MDE CTG', 'America/Mexico_City': 'MEX GDL MTY', 'America/Cancun': 'CUN',
+    'America/New_York': 'ATL JFK LGA EWR BOS MIA FLL MCO TPA IAD DCA BWI CLT DTW PHL RDU PIT', 'America/Chicago': 'ORD MDW MSP DFW IAH AUS MSY STL',
+    'America/Denver': 'DEN SLC BZN MSO BIL GTF HLN FCA BTM JAC ABQ', 'America/Phoenix': 'PHX', 'America/Los_Angeles': 'LAX SFO SEA LAS SAN PDX SJC OAK',
+    'America/Toronto': 'YYZ YUL YOW', 'America/Vancouver': 'YVR'
+  }, out = {};
+  Object.keys(z).forEach(function (k) { z[k].split(' ').forEach(function (i) { out[i] = k; }); });
+  return out;
+})();
+/* Si el aeropuerto no está en la lista ni la IA dio zona: la del país. */
+var VIAJES_ZONA_PAIS_ = { FR: 'Europe/Paris', ES: 'Europe/Madrid', PT: 'Europe/Lisbon', GB: 'Europe/London', NL: 'Europe/Amsterdam', BE: 'Europe/Brussels',
+  DE: 'Europe/Berlin', CH: 'Europe/Zurich', IT: 'Europe/Rome', IE: 'Europe/Dublin', GT: 'America/Guatemala', SV: 'America/El_Salvador', HN: 'America/Tegucigalpa',
+  CR: 'America/Costa_Rica', PA: 'America/Panama', CO: 'America/Bogota', MX: 'America/Mexico_City' };
+/* Cómo se nombra la hora en la app y en Alma («11:45 hora de París»). */
+var VIAJES_ZONA_NOMBRE_ = { 'Europe/Paris': 'París', 'Europe/Madrid': 'Madrid', 'Atlantic/Canary': 'Canarias', 'Europe/Lisbon': 'Lisboa', 'Europe/London': 'Londres',
+  'Europe/Amsterdam': 'Ámsterdam', 'Europe/Berlin': 'Alemania', 'Europe/Rome': 'Roma', 'America/Guatemala': 'Guatemala', 'America/Denver': 'Montana',
+  'America/New_York': 'Nueva York', 'America/Chicago': 'Chicago', 'America/Los_Angeles': 'Los Ángeles', 'America/Mexico_City': 'México', 'America/Panama': 'Panamá' };
 
 /* ── Acción «viajes» ── { forzar? } → { ok, cuenta, viajes:[…], proximo?, revisado, faltan, pausa?, conectar? } */
 function viajes_(ses, b) {
@@ -76,12 +106,30 @@ function viajesParaAlma_(adm) {
   var viajes = viajesLeer_(cuenta).filter(function (v) { return viajeVigente_(v, ahora); }).map(function (v) { return viajeCalcular_(v); })
     .sort(function (x, y) { return String(x.desde).localeCompare(String(y.desde)); });
   var lugar = function (l) { return (l.ciudad || '') + (l.iata ? ' (' + l.iata + ')' : '') + (l.terminal ? ' · terminal ' + l.terminal : ''); };
-  return { ok: true, revisado_en: 'lo ya guardado del botón del avión', viajes: viajes.map(function (v) {
+  /* «Mi vuelo» = el que va ahora o el próximo (la misma regla que la tarjeta). Ese sí puede preguntarle a AirLabs si está en
+     su ventana; los demás, lo último guardado. */
+  var p = viajeProximo_(viajes, ahora), mio = null;
+  var tramo = function (v, t, i) {
+    var mi = !!(p && p.viaje === v.id && p.tramo === i), vv = vueloVivo_(v, t, ahora, mi ? {} : { soloGuardado: true }) || {};
+    var mo = viajeMomento_(t, vv, ahora), dest = VIAJES_ZONA_NOMBRE_[t.destino.zona] || viajeCiudad_(t.destino.ciudad);
+    var x = { vuelo: vv.numero || t.vuelo, boleto: t.vuelo, opera: t.opera || v.aerolinea, desde: lugar(t.origen), hasta: lugar(t.destino),
+      sale: viajeHoraTexto_(vv.sale || t.sale, t.zona_nombre) + ' · ' + String(vv.sale || t.sale).slice(0, 10), sale_utc: new Date(mo.sale_ms).toISOString(),
+      llega: viajeHoraTexto_(t.llega, dest) + ' · ' + String(t.llega).slice(0, 10),
+      embarque: vv.embarque ? viajeHoraTexto_(vv.embarque, t.zona_nombre) + ' (aprox.)' : undefined,
+      puerta: vv.puerta || t.puerta || 'por asignar', puerta_antes: vv.puerta_antes || undefined, terminal: vv.terminal || t.origen.terminal || undefined,
+      estado: vv.estado || (mo.aterrizo ? 'ya aterrizó' : mo.salio ? 'en el aire' : 'sale en ' + mo.faltan_min + ' min'),
+      llegar_al_aeropuerto: viajeHoraTexto_(t.llegar, t.zona_nombre), checkin_abre: t.checkin_abre, asiento: t.asiento,
+      datos: vv.fuente && vv.fuente !== 'correo' ? 'en vivo (' + vv.fuente + ', ' + vv.consultado + ')' : 'del correo (sin datos en vivo todavía: dilo así)' };
+    if (mi) mio = Object.assign({ es: p.en_el_aire ? 'el vuelo que va ahora' : 'tu próximo vuelo' }, x);
+    return x;
+  };
+  var out = viajes.map(function (v) {
     return { confirmacion: v.confirmacion, aerolinea: v.aerolinea, pasajero: v.pasajero, checkin_url: v.checkin_url,
-      tramos: v.tramos.map(function (t) { var vv = vueloVivo_(v, t, ahora, { soloGuardado: true }) || {};   // lo último de AirLabs o FlightAware, sin preguntar
-        return { vuelo: vv.numero || t.vuelo, boleto: t.vuelo, opera: t.opera || v.aerolinea, desde: lugar(t.origen), hasta: lugar(t.destino), sale: vv.sale || t.sale, llega: t.llega,
-        llegar_al_aeropuerto: t.llegar, checkin_abre: t.checkin_abre, puerta: vv.puerta || t.puerta, puerta_antes: vv.puerta_antes || undefined, embarque_aprox: vv.embarque, estado: vv.estado || undefined, asiento: t.asiento }; }) };
-  }) };
+      tramos: v.tramos.map(function (t, i) { return tramo(v, t, i); }) };
+  });
+  return { ok: true, ahora_utc: new Date(ahora).toISOString(), mi_vuelo: mio || undefined,
+    nota: 'Las horas son la hora local de cada aeropuerto (dice de dónde). «mi_vuelo» es su vuelo de ahora o el próximo: úsalo cuando diga «mi vuelo».',
+    viajes: out };
 }
 
 /* El buzón que el Hub puede leer: el de la cuenta que lo corre. */
@@ -202,6 +250,7 @@ function viajeNormalizar_(j, isoLocal) {
   var tramos = j.tramos.map(function (t) {
     t = t || {};
     var o = lugar(t.origen), d = lugar(t.destino);
+    o.zona = viajeZona_(o); d.zona = viajeZona_(d);
     var sale = viajeHora_(t.sale, o.zona, isoLocal), llega = viajeHora_(t.llega, d.zona, isoLocal);
     if (!sale || !(o.iata || o.ciudad) || !(d.iata || d.ciudad)) return null;
     return { vuelo: String(t.vuelo || '').replace(/\s+/g, ' ').trim().toUpperCase().slice(0, 12), opera: String(t.opera || '').trim().slice(0, 60), origen: o, destino: d,
@@ -214,18 +263,78 @@ function viajeNormalizar_(j, isoLocal) {
   return { id: 'vj_' + (conf || (tramos[0].vuelo.replace(/\s/g, '') + '_' + tramos[0].sale.slice(0, 10))), confirmacion: conf, aerolinea: String(j.aerolinea || '').trim().slice(0, 60),
     codigo_aerolinea: cod, pasajero: String(j.pasajero || '').trim().slice(0, 80), tramos: tramos, fuentes: [], checkin_url: /^https:\/\//.test(url) ? url.slice(0, 500) : '', pases: [] };
 }
-/* «2026-11-03T05:55» + «Europe/Madrid» → «2026-11-03T05:55:00+01:00». Si ya trae desfase, se respeta. */
+/* «2026-11-03T05:55» + «Europe/Madrid» → «2026-11-03T05:55:00+01:00». La hora escrita es SIEMPRE la local del aeropuerto
+   (así la pide el prompt): si ya trae un desfase, se ignora y se pone el de la zona (la IA a veces pone Z o el de otro lado). */
 function viajeHora_(local, zona, isoLocal) {
   var s = String(local || '').trim().replace(' ', 'T');
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:?\d{2})$/.test(s)) return s;
   var m = /^(\d{4}-\d{2}-\d{2})T(\d{1,2}):(\d{2})/.exec(s); if (!m) return '';
   var base = m[1] + 'T' + ('0' + m[2]).slice(-2) + ':' + m[3];
-  try { return isoLocal(base, zona || CFG.TZ); } catch (e) { return ''; }
+  if (!zona) return /(Z|[+-]\d{2}:?\d{2})$/.test(s) ? s : '';
+  try { return (isoLocal || viajeIsoLocal_)(base, zona); } catch (e) { return ''; }
 }
+/* La zona del aeropuerto: la lista (por IATA) → la que dio la IA (si existe) → la del país → '' (no se adivina). */
+function viajeZona_(l) {
+  l = l || {};
+  var iata = String(l.iata || '').toUpperCase(), z = String(l.zona || '').trim();
+  if (VIAJES_ZONAS_[iata]) return VIAJES_ZONAS_[iata];
+  if (z && viajeDesfaseMin_(z, Date.now()) != null) return z;
+  return VIAJES_ZONA_PAIS_[String(l.pais || '').toUpperCase()] || '';
+}
+/* El desfase (en minutos) de una zona en un instante, o null si la zona no existe. Sin Utilities.formatDate: con una zona
+   que no conoce, Apps Script devuelve GMT sin avisar. */
+function viajeDesfaseMin_(zona, ms) {
+  try {
+    var f = new Intl.DateTimeFormat('en-US', { timeZone: zona, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+    var p = {}; f.formatToParts(new Date(ms)).forEach(function (x) { p[x.type] = x.value; });
+    var w = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute);
+    return Math.round((w - Math.floor(ms / 60000) * 60000) / 60000);
+  } catch (e) {
+    if (typeof Utilities === 'undefined' || !VIAJES_ZONA_NOMBRE_[zona] && Object.keys(VIAJES_ZONAS_).every(function (k) { return VIAJES_ZONAS_[k] !== zona; })) return null;
+    try { var z = Utilities.formatDate(new Date(ms), zona, 'Z'); return (z[0] === '-' ? -1 : 1) * (Number(z.slice(1, 3)) * 60 + Number(z.slice(3, 5))); } catch (x) { return null; }
+  }
+}
+/* Un instante con un desfase dado → «2026-11-03T12:25:00+01:00». */
+function viajeIsoCon_(ms, off) {
+  var a = Math.abs(off), d = new Date(ms + off * 60000).toISOString().slice(0, 19);
+  return d + (off < 0 ? '-' : '+') + ('0' + Math.floor(a / 60)).slice(-2) + ':' + ('0' + (a % 60)).slice(-2);
+}
+/* «2026-11-03T12:25» en la zona → ISO con su desfase (también en el cambio de horario). */
 function viajeIsoLocal_(base, zona) {
-  var d = Utilities.parseDate(base.replace('T', ' '), zona, 'yyyy-MM-dd HH:mm');
-  var z = Utilities.formatDate(d, zona, 'Z');   // +0100
-  return base + ':00' + z.slice(0, 3) + ':' + z.slice(3);
+  var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(base), w = Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5]);
+  var off = viajeDesfaseMin_(zona, w); if (off == null) throw new Error('zona ' + zona);
+  var off2 = viajeDesfaseMin_(zona, w - off * 60000); if (off2 != null && off2 !== off) off = off2;
+  return viajeIsoCon_(w - off * 60000, off);
+}
+/* Al leer la hoja: la hora escrita del tramo + la zona de su aeropuerto → el desfase correcto, el instante en UTC y la zona.
+   Arregla los tramos que se guardaron con el desfase de Guatemala (o sin zona). */
+function viajeTramoHoras_(t) {
+  if (!t) return t;
+  ['origen', 'destino'].forEach(function (k) { var l = t[k] = t[k] || {}, z = viajeZona_(l); if (z) l.zona = z; });
+  var s = viajeHora_(t.sale, t.origen.zona), l = viajeHora_(t.llega, t.destino.zona);
+  if (s) t.sale = s; if (l) t.llega = l;
+  t.sale_utc = isNaN(Date.parse(t.sale)) ? '' : new Date(Date.parse(t.sale)).toISOString();
+  t.llega_utc = isNaN(Date.parse(t.llega)) ? '' : new Date(Date.parse(t.llega)).toISOString();
+  t.zona_nombre = VIAJES_ZONA_NOMBRE_[t.origen.zona] || viajeCiudad_(t.origen.ciudad) || t.origen.iata || '';
+  return t;
+}
+function viajeCiudad_(c) { return String(c || '').toLowerCase().replace(/(^|[\s-])(\S)/g, function (a, s, x) { return s + x.toUpperCase(); }); }
+/* «12:25 hora de París» (la hora escrita del ISO, que ya es la local del aeropuerto). */
+function viajeHoraTexto_(iso, nombre) {
+  var m = /T(\d{2}):(\d{2})/.exec(String(iso || '')); if (!m) return '';
+  return Number(m[1]) + ':' + m[2] + (nombre ? ' hora de ' + nombre : '');
+}
+
+/* El momento del tramo, UNA sola regla para la tarjeta (en la app, con las mismas cuentas), AirLabs y Alma.
+   salida = la estimada del proveedor (si hay) o la del correo, ya en UTC. */
+var VIAJE_TARJETA_ANTES_ = 60 * 60000, VIAJE_VIVO_ANTES_ = 180 * 60000, VIAJE_DESPUES_ = 15 * 60000;
+function viajeMomento_(t, vivo, ahora) {
+  var prog = Date.parse(t.sale), est = vivo && vivo.sale ? Date.parse(vivo.sale) : prog;
+  if (isNaN(est)) est = prog;
+  var desde = Math.min(prog, est), hasta = Math.max(prog, est);
+  return { sale_ms: est, faltan_min: Math.round((est - ahora) / 60000),
+    tarjeta: ahora >= desde - VIAJE_TARJETA_ANTES_ && ahora <= hasta + VIAJE_DESPUES_,
+    vivo: ahora >= desde - VIAJE_VIVO_ANTES_ && ahora <= hasta + VIAJE_DESPUES_,
+    salio: ahora >= est, aterrizo: ahora >= Date.parse(t.llega) };
 }
 
 /* Juntar dos lecturas del mismo viaje: los tramos por vuelo y día; lo nuevo completa (no borra) terminal, puerta y asiento. */
@@ -346,7 +455,7 @@ function viajeCheckinUrl_(html, codigo) {
 function viajesLeer_(cuenta) {
   var sh = hojaCrear_(VIAJES_HOJA_, VIAJES_CAB_); if (sh.getLastRow() < 2) return [];
   return sh.getRange(2, 1, sh.getLastRow() - 1, VIAJES_CAB_.length).getValues().filter(function (r) { return String(r[1]) === cuenta; }).map(viajeDeFila_).filter(Boolean)
-    .map(function (v) { v.tramos = viajeSinDobles_(v.tramos, v.codigo_aerolinea); return v; });
+    .map(function (v) { v.tramos = viajeSinDobles_((v.tramos || []).map(viajeTramoHoras_), v.codigo_aerolinea); return v; });
 }
 function viajeDeFila_(r) {
   try {

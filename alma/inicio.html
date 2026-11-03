@@ -1645,6 +1645,12 @@
     var m = /([+-])(\d{2}):?(\d{2})$/.exec(isoRef || ""), off = m ? (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +m[3]) : 0;
     return new Date(t + off * 6e4).toISOString().slice(0, 19);
   }
+  /* «hora de París» solo si el teléfono está en otra zona que el aeropuerto (si es la misma, la hora ya es la suya). */
+  function deZona(iso, nombre) {
+    var m = /([+-])(\d{2}):?(\d{2})$/.exec(iso || ""); if (!m || !nombre) return "";
+    var off = (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +m[3]);
+    return off === -new Date(ms(iso)).getTimezoneOffset() ? "" : "hora de " + nombre;
+  }
   function falta(t) {
     var m = Math.max(0, Math.round((t - Date.now()) / 6e4)); if (m < 60) return m + " min";
     var h = Math.floor(m / 60), r = m % 60; return h < 48 ? h + " h" + (r ? " " + r + " min" : "") : Math.round(h / 24) + " días";
@@ -1697,14 +1703,15 @@
   /* ── Tarjeta del vuelo (apps-script/vuelovivo.js) ───────────────────────────────────────────────────────────────
      El próximo tramo trae «vivo»: número de quien vuela, vendido por · opera, puerta (y la de antes), embarque aprox.,
      estado. Si el servidor no lo trae (sin llave de AirLabs ni FlightAware, o falló), se arma igual con lo del correo.
-     Se ve de 1 h antes de la salida (la estimada, si hay retraso) a 15 min después. Mientras se ve, pide «vueloVivo»
+     Se ve de 1 h antes de la salida (la estimada, si hay retraso) a 15 min después: la misma regla que viajeMomento_ (viajes.js),
+     con el instante real (el ISO trae el desfase del aeropuerto, no el de Guatemala ni el del teléfono). Mientras se ve, pide «vueloVivo»
      cada 5 min (el servidor decide si de verdad le pregunta a AirLabs o FlightAware). */
   var VV = { ultimo: 0, cargando: false };
   function vivoDe(p) {
     var t = p.t; if (t.vivo) return t.vivo;
     var dura = (ms(t.llega) - ms(t.sale)) / 6e4, opera = String(t.opera || "").replace(/[!*]+$/, "").trim();
     return { numero: t.vuelo, vendido: "", opera: opera && opera.toLowerCase() !== String(p.v.aerolinea || "").split(" ")[0].toLowerCase() ? opera : "",
-      puerta: t.puerta || "", puerta_antes: "", terminal: t.origen.terminal || "", asiento: t.asiento || "", sale: t.sale,
+      puerta: t.puerta || "", puerta_antes: "", terminal: t.origen.terminal || "", asiento: t.asiento || "", sale: t.sale, zona_nombre: t.zona_nombre || "",
       embarque: enLocal(t.sale, ms(t.sale) - (dura > 0 && dura <= 120 ? 30 : 40) * 6e4), embarque_aprox: true, estado: "", estado_tipo: "" };
   }
   function porTexto(x) { var a = []; if (x.vendido) a.push("Vendido por " + x.vendido); if (x.opera) a.push((a.length ? "opera " : "Opera ") + x.opera); return a; }
@@ -1712,16 +1719,16 @@
   function pintarVivo() {
     var el = $("vj-vivo"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
     if (!vivoVentana(p)) { el.classList.remove("on"); el.hidden = true; document.body.classList.remove("vv-arriba"); return false; }
-    var x = vivoDe(p), por = porTexto(x), ret = /(\d+)/.exec(x.estado || "");
+    var x = vivoDe(p), por = porTexto(x), ret = /(\d+)/.exec(x.estado || ""), zn = deZona(x.sale, x.zona_nombre || p.t.zona_nombre);
     var est = x.estado_tipo === "tarde" && ret ? "+" + ret[1] + " min" : x.estado || (p.aire ? "En el aire" : "Sale en " + falta(ms(x.sale)));
     el.innerHTML = '<span class="izq"><span><b class="num">' + esc(x.numero) + "</b>" + (por.length ? '<span class="por">' + por.map(esc).join("<br>") + "</span>" : "") + "</span>" +
       '<span class="meta"><span class="p e ' + esc(x.estado_tipo || "") + '"></span><span class="e ' + esc(x.estado_tipo || "") + '">' + esc(est) + "</span>" + (x.asiento ? "<span>·</span><span>" + esc(x.asiento) + "</span>" : "") + "</span></span>" +
       '<span class="der"><span class="cel"><span class="et">Puerta</span>' +
       (x.puerta ? '<span class="val">' + esc(x.puerta) + "</span>" + (x.puerta_antes ? '<span class="nota cambio">antes <s>' + esc(x.puerta_antes) + "</s></span>" : x.terminal ? '<span class="nota">Terminal ' + esc(x.terminal) + "</span>" : "")
         : '<span class="val pend">Por asignar</span>' + (x.terminal ? '<span class="nota">Terminal ' + esc(x.terminal) + "</span>" : "")) + "</span>" +
-      '<span class="cel"><span class="et">Embarque</span><span class="val h">' + hora(x.embarque) + '</span><span class="nota">aprox. · sale ' + hora(x.sale) + "</span></span></span>";
+      '<span class="cel"><span class="et">Embarque</span><span class="val h">' + hora(x.embarque) + '</span><span class="nota">aprox. · sale ' + hora(x.sale) + (zn ? "<br>" + esc(zn) : "") + "</span></span></span>";
     el.setAttribute("aria-label", "Tu vuelo " + x.numero + ". " + (x.puerta ? "Puerta " + x.puerta + (x.puerta_antes ? ", antes " + x.puerta_antes : "") : "Puerta por asignar") +
-      ". Embarque aproximado " + hora(x.embarque) + ". Sale " + hora(x.sale) + ". " + (x.estado || est) + ".");
+      ". Embarque aproximado " + hora(x.embarque) + ". Sale " + hora(x.sale) + (zn ? ", " + zn : "") + ". " + (x.estado || est) + ".");
     var nuevo = el.hidden; el.hidden = false; ubicarVivo();
     if (nuevo) { setTimeout(ubicarVivo, 1500); setTimeout(ubicarVivo, 4000); }   // la roca termina de llegar a su lugar
     requestAnimationFrame(function () { el.classList.add("on"); });
@@ -1760,7 +1767,7 @@
     var h = '<div class="vj-card"><div class="vj-tag' + (p.foco ? " foco" : "") + '"><span class="p"></span>' + esc(tag) + "</div>" +
       '<div class="vj-ruta"><div class="a"><b>' + esc(t.origen.iata) + "</b><small>" + esc(nombreLugar(t.origen)) + '</small><span class="h">' + hora(x.sale) + "</span></div>" + IC_AVION +
       '<div class="a"><b>' + esc(t.destino.iata) + "</b><small>" + esc(nombreLugar(t.destino)) + '</small><span class="h">' + hora(t.llega) + (t.llega.slice(0, 10) !== t.sale.slice(0, 10) ? '<sup style="font-size:11px"> +1</sup>' : "") + "</span></div></div>" +
-      '<div class="vj-vuelo">' + esc(x.numero) + (x.estado ? " <span>· " + esc(x.estado) + "</span>" : "") + " <span>· " + esc(diaCorto(t.sale)) + "</span>" + (por ? "<small>" + esc(por) + "</small>" : "") + "</div>" +
+      '<div class="vj-vuelo">' + esc(x.numero) + (x.estado ? " <span>· " + esc(x.estado) + "</span>" : "") + " <span>· " + esc(diaCorto(t.sale)) + (deZona(t.sale, t.zona_nombre) ? " · " + esc(deZona(t.sale, t.zona_nombre)) : "") + "</span>" + (por ? "<small>" + esc(por) + "</small>" : "") + "</div>" +
       '<div class="vj-datos"><div><small>Terminal</small><b>' + esc(term || "—") + "</b></div><div><small>Puerta</small><b>" + esc(puerta || "—") + "</b>" + (x.puerta_antes ? '<i class="cambio">antes ' + esc(x.puerta_antes) + "</i>" : "") + "</div>" +
       "<div><small>Embarque</small><b>" + hora(x.embarque) + "</b><i>aprox.</i></div><div><small>Asiento</small><b>" + esc(t.asiento || "—") + "</b></div></div>";
     if (!term || !puerta) h += '<p class="vj-nota">' + (!term && !puerta ? "La terminal y la puerta se confirman al hacer check-in." : !puerta ? "La puerta se confirma al hacer check-in." : "La terminal se confirma al hacer check-in.") + "</p>";

@@ -25,6 +25,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - ✅ Los bots de prueba no encuentran nada grave (error de JavaScript, pantalla en blanco, código del usuario ejecutándose). Corren después de unir; lo que encuentren se arregla en un PR corto.
 - Un elemento se busca por su nombre propio (`data-a`, `id`), nunca por una clase de estilo que otro elemento puede compartir (pasó dos veces el 30 oct: el botón y la lista de Pendientes tomaban los de Notificaciones).
 - Nada se sale de la pantalla en un iPhone SE (375 px); los botones miden al menos 44 px; respeta las áreas seguras.
+- ✅ Cada `<sc-for>` lee su lista con `list="{{ … }}"` (js/support.js no conoce `each=`): la ventana de «Acciones pendientes» salió vacía el 3-nov por eso. En el encabezado de Alma solo caben la lupa y ✦ junto al nombre en 375 px: lo demás va en su propia fila en el teléfono.
 - Colores, letras y radios del sistema de diseño (`ds/`): alabastro, arena, durazno #E9826A, Valky y Montserrat.
 - En el render del Hub (`index.html`), las fechas se escriben con `this.fechaFmt(idioma, opciones)`, nunca con `toLocaleDateString`/`toLocaleTimeString` con opciones: cada llamada arma un formateador nuevo y con 150 conversaciones eran segundos trabados por repintado en el iPhone (1-nov). Lo de fondo que casi siempre vuelve «sin cambios» no hace `setState`.
 

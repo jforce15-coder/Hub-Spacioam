@@ -132,9 +132,11 @@
     pt.appendChild(el("p", "", R.on === false ? "Las recetas están apagadas (RECETAS_ON = 0): Alma no aprende ni repite nada." : "Lo que haces seguido, Alma lo repite sin gastar IA."));
     C.appendChild(pt);
     var cf = el("div", "cifras");
-    [[R.hoy || 0, "hechas de memoria hoy"], [(R.instantaneas && R.instantaneas.hoy) || 0, "respuestas al instante hoy"], [R.total || 0, "en total, sin IA"], [(R.recetas || []).length, "recetas guardadas"]].forEach(function (x) { var c = el("div", "cifra"); c.appendChild(el("b", "", String(x[0]))); c.appendChild(el("span", "", x[1])); cf.appendChild(c); });
+    [[R.hoy || 0, "hechas de memoria hoy"], [(R.instantaneas && R.instantaneas.hoy) || 0, "respuestas al instante hoy"], [(R.total || 0) + ((R.instantaneas && R.instantaneas.total) || 0), "en total, sin IA"], [(R.recetas || []).length, "recetas guardadas"]].forEach(function (x) { var c = el("div", "cifra"); c.appendChild(el("b", "", String(x[0]))); c.appendChild(el("span", "", x[1])); cf.appendChild(c); });
     C.appendChild(cf);
     pintarRecetas(C, R);
+    /* 3-nov: el total no sumaba las respuestas al instante, y nadie sabía qué preguntas cuentan. */
+    seccion(C, "Respuestas instantáneas", "Cinco preguntas que Alma contesta sin IA si las dices solas, sin nada más en la frase: «¿qué ruta tiene Sucely hoy?», «¿quién llega mañana?», «¿cuándo llega Marcela?», «código del 1102» y «¿qué tareas tengo abiertas?». Si el pedido trae algo más, lo contesta la IA como siempre." + (R.instantaneas && R.instantaneas.total ? " Llevas " + R.instantaneas.total + " en total." : ""));
     pintarVigilancias(C, V);
   }
   function cargar() {

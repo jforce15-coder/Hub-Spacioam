@@ -81,7 +81,13 @@ function recClave_(gist) { return gist.map(function (p) { return p.n; }).sort().
 function recDeictico_(texto) { return RECETAS_DEICTICO_.test(' ' + recNorm_(texto).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ') + ' '); }
 
 /* ── La hoja ── */
-function recHoja_() { return hojaCrear_(RECETAS_HOJA_, RECETAS_CAB_); }
+/* La hoja ya existía vacía, sin cabecera (así estaba el 3-nov): la primera receta caía en la fila 1 y recFilas_ (que lee
+   desde la 2) nunca la veía. Si la fila 1 está vacía, se escribe la cabecera antes de usarla. */
+function recHoja_() {
+  var sh = hojaCrear_(RECETAS_HOJA_, RECETAS_CAB_);
+  if (!String(sh.getRange(1, 1).getValue() || '').trim()) { sh.getRange(1, 1, 1, RECETAS_CAB_.length).setValues([RECETAS_CAB_]); try { sh.setFrozenRows(1); } catch (e) {} }
+  return sh;
+}
 function recFilas_() {
   var sh = recHoja_(), n = sh.getLastRow(); if (n < 2) return [];
   return sh.getRange(2, 1, n - 1, RECETAS_CAB_.length).getValues().map(function (v, i) {

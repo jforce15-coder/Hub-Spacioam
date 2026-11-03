@@ -3360,9 +3360,10 @@ function mejorasFilas_() {
 }
 function mejorasBloque_(clave) {
   /* REDACTOR: las mejoras hasta la consolidación (playbooks/huespedes.json, T6) ya viven en sus reglas; solo suman las nuevas.
+     Desde el mismo día de «consolidado» (>=): las 40 consolidadas son hasta el 29-oct; con «>» una mejora aprobada el 3-nov no llegaba a nadie.
      Sin «GANA LA MEJORA» (T4): el único orden es el de la fuente única (seguridad primero). */
   const desde = clave === 'REDACTOR' ? String((HUESPEDES_FUENTE_ || {}).consolidado || '') : '';
-  let L = []; try { L = mejorasFilas_().filter(m => m.estado === 'activa' && m.tipo === 'prompt' && m.clave === clave && (!desde || String(m.fecha).slice(0, 10) > desde)).slice(-40); } catch (e) { return ''; }
+  let L = []; try { L = mejorasFilas_().filter(m => m.estado === 'activa' && m.tipo === 'prompt' && m.clave === clave && (!desde || String(m.fecha).slice(0, 10) >= desde)).slice(-40); } catch (e) { return ''; }
   const lineas = []; L.forEach(m => m.cambiosL.forEach(c => { const t = s_(c.despues).trim().replace(/^[·\-•]\s*/, ''); if (t && lineas.indexOf(t) < 0) lineas.push(t); }));
   return lineas.length ? '\n\nMEJORAS APROBADAS POR EL EQUIPO (las más recientes al final; nunca cambian la seguridad: códigos y datos de acceso solo con reserva confirmada, nada inventado, ningún marcador interno al huésped):\n' + lineas.map(t => '· ' + t).join('\n') : '';
 }

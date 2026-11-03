@@ -4890,7 +4890,7 @@ function waCitado_(msgId) {
   } catch (e) { console.error('waCitado_: ' + e); }
   return '';
 }
-/* Teléfonos escritos en un mensaje («+502 4768 6741», «+1 (908) 555-0101», «4768-6741»), normalizados y sin repetir.
+/* Teléfonos escritos en un mensaje («+502 5555 0101», «+1 (908) 555-0101», «5555-0101»), normalizados y sin repetir.
    Fechas, montos y códigos cortos no cuentan: piden «+» o la forma de 8 dígitos de Guatemala. */
 function telsEnTexto_(t) {
   const m = String(t || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').match(/\+\s?\d[\d\s().\-\u2011]{6,}\d|\b\d{4}[\s\-\u2011]?\d{4}\b/g) || [];

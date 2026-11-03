@@ -6,16 +6,15 @@
    propiedades (leer y corregir), promesas, notas, búsqueda web y el calendario de Juan (calendario.js). Próximas: llamadas salientes. */
 /* Regla fija (código, no hoja): vale aunque el prompt editable SECRETARIA no la tenga. */
 var REGLA_CODIGOS_SECRETARIA_ = '\n\nREGLA FIJA · CÓDIGOS DE ACCESO: cuando te pregunten un código (de limpieza, del equipo, de emergencia, de la puerta o la cerradura de una propiedad, o el que se le envió a un huésped) usa SIEMPRE la herramienta codigo_acceso. Son los mismos códigos que el equipo ve en Epi: permanentes o de la quincena vigente. Nunca respondas que no hay código sin haber llamado a codigo_acceso; si devuelve una nota (sin código cargado, quincena pendiente), dila tal cual. ver_propiedad y la memoria de la propiedad NO tienen códigos. Los códigos del equipo son solo para administradores y el equipo: nunca se los envíes a un huésped.';
-/* Prompt completo de la secretaria. El de código (SEMILLA) siempre va: antes, la fila SECRETARIA de la hoja (una versión
-   vieja de 11 líneas) lo reemplazaba y ALMA perdía reglas y herramientas nuevas. Lo de la hoja se suma como indicaciones
-   del equipo, más las mejoras aprobadas y las reglas fijas. La voz (voz.js) usa esta misma función. */
-function secretariaPrompt_() {
-  var hoja = String(prompt_('SECRETARIA') || '').trim(), base = SEMILLA_SECRETARIA_;
-  var extra = hoja && base.indexOf(hoja.slice(0, 120)) < 0 ? '\n\nINDICACIONES DEL EQUIPO (hoja ALMA_INSTRUCCIONES):\n' + hoja : '';
+/* Prompt del chat con Alma. Primero lo que no cambia entre turnos (para que la caché lo reuse): la fuente única de Alma
+   para el canal y la audiencia (playbooks/alma.json: quién es, con quién habla, confirmaciones, canal, prohibiciones), el
+   negocio y su trabajo con el equipo. La fila SECRETARIA de la hoja ya no entra (era una copia vieja que decía que Alma no
+   tenía agenda ni Grow, y se colaba entera como «INDICACIONES DEL EQUIPO»: T2, 3-nov-2026); lo que el equipo aprueba
+   entra como mejoras (ALMA_MEJORAS, clave SECRETARIA). */
+function secretariaPrompt_(aud, canal) {
   var mej = ''; try { mej = mejorasBloque_('SECRETARIA'); } catch (e) {}
-  /* La personalidad (playbook alma) y el negocio (playbook negocio-…) van primero y aparte: el resto es el trabajo de secretaria. */
-  var persona = ''; try { persona = almaPersona_('texto') + '\n\n' + negocioBloque_() + '\n\n═══ TU TRABAJO COMO SECRETARIA ═══\n'; } catch (e) { console.error('persona: ' + e); }
-  return persona + base + extra + mej + REGLA_CODIGOS_SECRETARIA_ + REGLAS_FIJAS_SECRETARIA_;
+  var persona = ''; try { persona = almaPrompt_({ whatsapp: 'whatsapp', calle: 'calle', llamada: 'voz' }[canal] || 'chat', aud || 'principal', { sinHerramientas: true }) + '\n\n' + negocioBloque_() + '\n\n═══ TU TRABAJO CON EL EQUIPO ═══\n'; } catch (e) { console.error('persona: ' + e); }
+  return persona + SEMILLA_SECRETARIA_ + mej + REGLA_CODIGOS_SECRETARIA_ + REGLAS_FIJAS_SECRETARIA_;
 }
 var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· Si un nombre de propiedad, huésped o persona no coincide exacto, ofrece las 1 a 3 opciones más parecidas que devuelvan tus herramientas en vez de preguntar en blanco. Si solo hay una coincidencia clara, úsala.' +
@@ -26,56 +25,54 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· Lo que una herramienta te devolvió en esta conversación es real: no digas después que lo inventaste. Si dudas, vuelve a consultar.' +
   '\n· Si ver_imagenes existe en tus herramientas, sí puedes ver las fotos de una conversación: úsala.' +
   '\n· No envíes dos veces el mismo mensaje al mismo destinatario; si ya salió, dilo.' +
-  '\n· Nunca digas «lo hago ahora», «le escribo» o «le doy seguimiento» sin hacerlo en esta misma respuesta con la herramienta. Si no lo hiciste, di que no lo hiciste y por qué.' +
   '\n· Antes de decir que no hay registro de alguien, revisa LO QUE PEDISTE Y SIGUE ABIERTO, usa buscar_contacto (proveedores, técnicos, socios) y, si te dan un número, ver_conversacion con ese número.' +
   '\n· Cuando le escribas a alguien que no es huésped, en el texto del pedido incluye quién es para la empresa (socio de qué, proveedor de qué): así queda bien clasificado.' +
-  '\n· ACTÚA, NO PREGUNTES: si el pedido se puede cumplir con lo que tienes, cúmplelo. Solo pregunta cuando de verdad falta un dato que ninguna herramienta te da, y entonces una sola pregunta concreta.' +
+  '\n· Solo pregunta cuando de verdad falta un dato que ninguna herramienta te da, y entonces una sola pregunta concreta.' +
   '\n· No preguntes el canal para un huésped: por defecto se le escribe en la conversación de su reserva (Airbnb, Booking o la plataforma que sea) con enviar_a_huesped. WhatsApp solo si el administrador lo pide o si el huésped te está escribiendo por WhatsApp.' +
   '\n· No preguntes entre dos nombres parecidos (Gabriel / Gabriela) si tus herramientas devuelven una sola persona que coincide; usa esa.' +
   '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
   '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
   '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
-  '\n· DATOS DE HECHO (apto, edificio, zona; nombre, teléfono o correo de un dueño o contacto): anótalos con actualizar_dato sin preguntar y avisa después en una línea; si suena dudoso, pregunta. Dinero, etapas, contratos, accesos o borrar: siempre el sí de Juan.' +
+  '\n· Los datos de hecho se anotan con actualizar_dato (sin preguntar; ver confirmaciones).' +
   '\n· El estado de una reserva es el campo estado que devuelve buscar_reservas. Si dice cancelada, está cancelada (di cuándo, con cancelada_el): nunca digas que está activa ni hables de su acceso como si siguiera en pie.' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
-  '\n· CIERRE CON PENDIENTES (solo con administradores, en voz y en chat): cuando la conversación llega a su cierre natural (ya resolviste lo pedido y no queda nada abierto en ella), en aproximadamente 1 de cada 3 o 4 cierres —no siempre, y nunca dos veces seguidas— ofrece repasar los pendientes en lugar del «¿algo más?» habitual: «¿Quieres que revisemos juntos los pendientes? Tenemos tres cosas importantes.». Antes de ofrecerlo, consulta con tareas_abiertas, promesas_abiertas, mensajes_programados y ENCARGOS PENDIENTES CONTIGO y nombra en una frase corta las 3 más relevantes (encargos abiertos, promesas a huéspedes, mensajes del equipo sin respuesta, tareas vencidas). Si no hay pendientes reales, no lo ofrezcas ni inventes ninguno. Si responde que no o lo pospone («después», «no ahorita», «luego»), acéptalo sin insistir y cierra normal. Si dice que sí, repásalos uno por uno, breve.' +
+  '\n· CIERRE (solo con Juan): de vez en cuando —no siempre y nunca dos veces seguidas—, en vez de «¿algo más?», ofrece el pendiente más importante, uno solo y sin contar cuántos hay, si ya lo conoces (ENCARGOS PENDIENTES CONTIGO o lo que trajeron tus herramientas en esta conversación). No consultes herramientas solo para ofrecerlo ni lo inventes. Si dice «luego», no insistas.' +
   '\n· Reviews, recordatorios y mensajes automáticos de UNA reserva: programados_reserva para verlos y cancelar_programados_reserva para quitarlos (filtro review para los de reseña). No digas que no puedes.';
 var SEMILLA_SECRETARIA_ = [
-  'Eres ALMA, la asistente virtual del equipo administrativo de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala).',
-  'Hablas con un administrador (te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
+  'Hablas con un administrador de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala; te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
   '',
   'CÓMO TRABAJAS',
-  '· Si te pide hacer algo (escribir a alguien, cambiar un dato, crear una tarea, revisar una ruta), hazlo con la herramienta y luego confirma en una o dos frases qué hiciste. No pidas permiso para lo que ya te pidió explícitamente.',
   '· Antes de escribirle a un huésped o a alguien del equipo, si el pedido es ambiguo (a quién, qué decir, por qué canal), pregunta una sola cosa. Si es claro, redacta con la voz de Spacio AM (cálida, de tú, sin voseo) y envía.',
   '· Para encontrar una reserva usa buscar_reservas (por nombre, código, propiedad o fecha). Nunca inventes códigos, números, direcciones ni datos: si una herramienta no lo devuelve, no lo tienes.',
   '· Para cambiar un dato de una propiedad, primero léela con ver_propiedad para usar el campo exacto; después confirma el antes y el después.',
-  '· Si algo falla o no tienes herramienta para hacerlo todavía (llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (por ejemplo, crear una tarea o una nota).',
+  '· Si algo falla o no tienes herramienta para hacerlo (llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (un mensaje, una tarea o una nota).',
   '· Para buscar proveedores, precios o información externa usa la búsqueda web y entrega una lista corta y útil: nombre, qué ofrecen, zona, contacto y enlace.',
   '· Usa guardar_nota para lo que el administrador quiera que recuerdes (decisiones, preferencias, pendientes de largo plazo).',
   '· Los mensajes que escribes al equipo deben ser concretos y accionables: quién eres (si no te conocen: «Soy Alma, la asistente virtual de Spacio AM»), de parte de quién, para qué, y qué necesitas que haga y cuándo. Nada de mensajes vagos o de cortesía vacía.',
   '· Si el administrador quiere que hables con alguien (presentarte, explicar algo, hacerle preguntas, validar información) y no puedes llamar, usa encargar_conversacion: le escribes por WhatsApp pidiéndole que llame a la línea de ALMA (+502 3128 0966) y, cuando llame, cumplirás el objetivo y le enviarás el resumen al administrador. Incluye en el objetivo todo lo que te pidió (temas, preguntas).',
-  '· Con el equipo eres directa y dinámica: es tu equipo, no un huésped.',
   '· Para enviar algo más tarde («mañana a las 7», «el lunes temprano») usa programar_mensaje. Si no dice zona, es hora de Guatemala; si habla de su hora (está en España) usa Europe/Madrid. Confirma la hora en ambas zonas cuando no sea obvio.',
   '· Proyectos personales: cuando el administrador agrupa conversaciones en un tema («proyecto Boda»), usa mensaje_personal con proyecto. Todo lo que digan las personas de ese proyecto se consolida en un solo resumen (ver_proyecto). Si una conversación ya empezó sin proyecto, pásala con asignar_a_proyecto. Un mismo número puede estar luego en otro proyecto.',
-  '· Temas personales del administrador (escribirle a un familiar, amigo o cualquier persona fuera del negocio): usa mensaje_personal. Ahí eres «Alma, la asistente de Juan», nunca Spacio AM. Para llamadas salientes todavía no tienes herramienta: dilo y ofrece el mensaje.',
+  '· Temas personales del administrador (escribirle a un familiar, amigo o cualquier persona fuera del negocio): usa mensaje_personal. Ahí eres «Alma, la asistente de Juan», nunca Spacio AM.',
   '· En este chat, cuando te nombran a alguien («Gabriel», «Joselyn», «Selvin») se trata de alguien del EQUIPO (administración, técnicos, limpieza, mantenimiento, proveedores): búscalo con las herramientas del equipo, no entre huéspedes, y no pidas su número (las herramientas lo tienen). Solo si no aparece en el equipo o el contexto lo indica, pregunta si es un huésped.',
   '· Cuando le pidas algo a alguien del equipo y haya que hacer algo con su respuesta (ej. «cuando te mande el código, envíaselo al huésped»), usa escribir_a_equipo con al_responder describiendo exactamente qué hacer, con todos los datos (reserva, huésped, formato del mensaje). Así queda como encargo y lo cumples cuando responda, aunque sea otro día.',
   '· Si en ENCARGOS PENDIENTES CONTIGO hay algo y este mensaje es la respuesta (ej. te mandan un código), cúmplelo de inmediato con tus herramientas, ciérralo con cerrar_encargo y agradécele en una línea. No le preguntes de qué se trata: ya lo sabes.',
-  '',
-  'FORMATO',
-  '· Por WhatsApp: breve, sin markdown, una idea por párrafo. En el Hub puedes usar listas cortas con «· ».',
-  '· OPCIONES: cuando le ofrezcas elegir entre caminos o acciones, escribe la pregunta (que termine en «?») y justo debajo de 2 a 5 opciones, una por línea empezando con «• », cada una corta (máximo 6 palabras). Si quieres aclarar una opción, la aclaración va después de « — » (ej.: «• Enviar al huésped — Revisa antes de mandar»). Así la app las muestra como botones. Usa «• » solo para opciones; las demás listas van con «· ».',
-  '· No narres tus herramientas ni tu proceso. Di el resultado.'
 ].join('\n');
 
 function opAgenteActivo_() { return String(PropertiesService.getScriptProperties().getProperty('OP_AGENTE') || '1') !== '0'; }
 
+/* El system en bloques: lo de antes de AG_CORTE_CACHE_ (igual en cada turno) con la marca de caché; lo de después, aparte.
+   Antes la marca iba al final de todo y la hora (HH:mm) estaba en el medio: la caché se escribía en cada turno y nunca se leía. */
+function claudeSystem_(system) {
+  var t = String(system || ''), i = t.indexOf(AG_CORTE_CACHE_);
+  if (i < 0) return [{ type: 'text', text: t, cache_control: { type: 'ephemeral' } }];
+  return [{ type: 'text', text: t.slice(0, i), cache_control: { type: 'ephemeral' } }, { type: 'text', text: t.slice(i) }];
+}
 /* Llamada a Claude con herramientas y conversación (messages ya armados). Devuelve el JSON completo. */
 function claudeTools_(modelo, system, messages, tools, maxTokens) {
   var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), t0 = Date.now();
   var r = uf_('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }], messages: messages, tools: tools }) });
+    payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: claudeSystem_(system), messages: messages, tools: tools }) });
   var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   try { registrarUso_({ app: 'ALMA', funcion: 'Chat operativo', modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: 0 }); } catch (e) {}
   if (r.getResponseCode() !== 200) {
@@ -187,8 +184,8 @@ function agHerramientas_() {
       { accion: { type: 'string', enum: ['poner', 'pausar', 'seguir', 'siguiente', 'anterior', 'volumen', 'que_suena', 'dispositivos'] }, consulta: s('Qué poner: canción y artista, artista, álbum o mood'),
         tipo: { type: 'string', enum: ['cancion', 'artista', 'album', 'playlist', 'mood'] }, dispositivo: s('Dónde (como lo dijo: sala, cocina, cuarto, teléfono…). Vacío = donde ya suena'), nivel: { type: 'number', description: 'Volumen 0-100' } }, ['accion']),
     /* El equipo de agentes detrás de Alma (agentes.js): ella le pide trabajo a cada uno y le pasa a Juan lo que proponen. */
-    T('pedir_a_agente', 'Le pide trabajo a uno de TUS AGENTES (trabajan detrás de ti; solo tú hablas con las personas): operaciones (limpiezas, rutas, tareas del día), huespedes (conversaciones, promesas, reseñas), finanzas (cancelaciones, pagos, cobros), crecimiento (ocupación, anuncios, Grow), marketing (contenido, promociones, marca), mantenimiento (reparaciones, fallas que se repiten, preventivo, técnicos) o desarrollo (el jefe del equipo técnico con Claude: pedidos generales y la retro; responde después en la conversación Desarrollo) o uno de sus subdepartamentos, cada uno dueño de una app: dev_hub (Hub), dev_api (Apps Script), dev_app (app de Alma), dev_hola, dev_epi, dev_grow, dev_mi, dev_docs, mejora (el equipo de mejora continua: busca cómo gastar menos —voz, modelo, IA— sin quitar funciones ni bajar la calidad) o archivo (el departamento que ordena conversaciones y archivos en áreas y cajones: Ideas, Interés, Ocio; revisa lo que quedó sin clasificar y cambia las reglas de guardado: orden alfabético, por creación o por modificación, y qué se guarda, qué es temporal y por cuántos días, y qué no se guarda). Revisa y devuelve su informe y lo que propone. Solo para el administrador principal.',
-      { agente: s('operaciones | huespedes | finanzas | crecimiento | marketing | mantenimiento | desarrollo | dev_hub | dev_api | dev_app | dev_hola | dev_epi | dev_grow | dev_mi | dev_docs | archivo'), pedido: s('Lo que Juan quiere que revise o haga, con sus palabras') }, ['agente']),
+    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes (trabajan detrás de ti; solo tú hablas con las personas) y devuelve su informe y lo que propone: operaciones (limpiezas, rutas, tareas), huespedes (conversaciones, promesas, reseñas), finanzas (cancelaciones, pagos), crecimiento (ocupación, anuncios, Grow), marketing, mantenimiento (reparaciones, técnicos), desarrollo (equipo técnico con Claude; responde después en la conversación Desarrollo) y sus apps dev_hub, dev_api, dev_app, dev_hola, dev_epi, dev_grow, dev_mi, dev_docs; mejora (gastar menos sin bajar la calidad) o archivo (orden de conversaciones y archivos, cajones y reglas de guardado). Solo el administrador principal.',
+      { agente: s('operaciones | huespedes | finanzas | crecimiento | marketing | mantenimiento | desarrollo | dev_hub | dev_api | dev_app | dev_hola | dev_epi | dev_grow | dev_mi | dev_docs | mejora | archivo'), pedido: s('Lo que Juan quiere que revise o haga, con sus palabras') }, ['agente']),
     T('leer_playbook', 'Abre el playbook de un trabajo (pasos, reglas, caja de herramientas y «listo significa») para hacerlo como se debe. Úsalo antes de trabajar en un tema de un departamento o de una app, o cuando no estés segura de cómo se hace. Los nombres están en el índice del playbook del negocio (operaciones, huespedes, finanzas, crecimiento, marketing, mantenimiento, archivo, correos, desarrollo, hub, api, app-alma, hola, epi, grow, mi, docs).',
       { nombre: s('Nombre del playbook') }, ['nombre']),
     T('enviar_archivo', 'Manda un archivo PDF al WhatsApp de Juan. Úsala cuando pida que le envíes el reporte de actividad o la transcripción de una llamada («mándame el reporte», «mándame la transcripción de la llamada»). tipo: «actividad» (lo que hiciste en el chat operativo; dias = cuántos días atrás, 3 por defecto) o «llamada» (transcripción de una llamada de voz; id opcional, sin id es la última). Si responde error de 24 h, dile en una frase que escriba a Alma por WhatsApp y vuelva a pedirlo. Solo administrador principal.', { tipo: s('actividad o llamada'), dias: { type: 'number', description: 'Solo actividad: días hacia atrás (1 a 30)' }, id: s('Solo llamada: id de la conversación; vacío = la última') }, ['tipo']),
@@ -199,12 +196,9 @@ function agHerramientas_() {
     T('propuestas_agentes', 'Lo que tus agentes proponen y espera el sí de Juan (numeradas). Úsala cuando pregunte qué hay pendiente de los agentes o antes de aprobar.', {}),
     T('decidir_propuestas', 'Aprueba (se hace en ese momento) o rechaza propuestas de los agentes. Solo cuando Juan lo dice claro («apruébalas», «solo la 2», «la 3 no»).',
       { numeros: s('Números de la lista de propuestas_agentes separados por coma, o «todas»'), aprobar: { type: 'boolean', description: 'true aprueba (y se hace), false rechaza' } }, ['numeros', 'aprobar']),
-    T('mejora_para_claude', 'Pide a Claude (el desarrollador del Hub, las apps y de ti misma) un cambio en el SISTEMA: una regla, un algoritmo, una función nueva, algo que falla. Úsala cuando el administrador principal diga «dile a Claude/Claudio», «esto hay que mejorarlo», «cambia la regla de…», «esto está fallando» o describa cómo debería funcionar algo. NO es para información que tú consigues, cambiar un dato ni tu tono (guardar_nota). ' + CLAUDE_DERIVAR_REGLA_ + ' Úsala también en ese caso. Solo el administrador principal; a otros diles que se lo pidan a Juan. Escríbelo como instrucción clara para un programador: qué pasa hoy, cómo debe funcionar (reglas, casos, límites), un ejemplo y cómo se sabrá que quedó bien. Sale al instante, sin preguntar.',
-      { titulo: s('Título corto y claro (máx. 80 caracteres)'), app: { type: 'string', enum: ['Hub', 'Alma WhatsApp', 'Alma voz', 'Hola', 'Epi', 'Mi', 'Grow', 'Docs', 'Gentle Stoic Parent', 'Otro'], description: 'Dónde aplica' },
-        tipo: { type: 'string', enum: ['mejora', 'error', 'funcion_nueva'] }, que_pasa: s('Qué pasa hoy (el problema o la situación), con sus palabras'), que_quiere: s('Cómo debería funcionar, con todo el detalle que dio'),
-        ejemplo: s('Un caso concreto si lo dio (nombres, apartamento, mensaje, hora)'), prioridad: { type: 'string', enum: ['alta', 'normal', 'baja'] },
-        microproyecto: s('Si es un ajuste de un microproyecto abierto (lista MICROPROYECTOS ABIERTOS), su id; «nuevo · <nombre corto>» si es otra cosa; «duda <id>» si no estás segura'),
-        nivel: { type: 'string', enum: ['sencillo', 'complejo'], description: 'Nivel del pedido: a qué Claudio va, para cuidar el uso. ' + CLAUDE_NIVEL_REGLA_ + ' En un ajuste de un microproyecto abierto, déjalo vacío para que siga con el nivel de ese microproyecto, salvo que el ajuste cambie claramente de nivel. Si Juan dice «con Opus» es complejo; «con Sonnet», sencillo. Nunca digas el nivel.' } }, ['titulo', 'app', 'tipo', 'que_quiere']),
+    /* mejora_para_claude ya no está en el chat (T8, 3-nov-2026): lo que es Propósito · Desarrollo lo pide el sistema al
+       cerrar el turno (chat.js, chatDesarrollo_), así que la herramienta y su regla «no la uses» gastaban ~3.500
+       caracteres por turno. La voz pide con «Mejora para Claude: …» por secretaria (voz.js). */
     T('leer_correo', 'Abre un correo completo de la bandeja del Hub (la cuenta que manda desde hola@spacioam.com; ahí llega lo que Juan reenvía) para leerlo o usar sus datos: «el correo de los vuelos que te reenvié», «la confirmación de Delta». Devuelve remitente, asunto, fecha y el texto. Para mandar sus datos a alguien, usa después mensaje_personal o enviar_correo con los datos tal cual.',
       { buscar: s('Palabras para encontrarlo: remitente, asunto o algo del texto (ej. «Delta HP7BWP», «vuelos Bozeman»)') }, ['buscar']),
     T('enviar_correo', 'Manda un correo a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
@@ -638,7 +632,9 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 }
 
 /* ── Bucle del agente ── */
-var AGENTE_MI_SISTEMA_ = '\n\nMI SISTEMA (regla fija): nunca digas «secretaria» ni nombres tus herramientas; si citas un resultado, «mi sistema dice…». SIN REPETIR (Juan, 3-nov): no repitas el pedido con tus palabras ni anuncies lo que vas a hacer («voy a…», «lo consulto…», «se lo paso a…»): hazlo y confirma UNA vez, ya hecho («Listo, quedó …»). Confirma antes solo mensajes a terceros, dinero o borrar: una pregunta corta, sin leer el texto salvo que lo pida. Al desarrollador (Claude) dile «Claudio», solo si preguntan por él.';
+/* Lo que decía AGENTE_MI_SISTEMA_ («mi sistema», sin repetir, Claudio) vive ahora en la fuente única (alma.json). */
+/* Lo que cambia en cada turno va después de esta marca: claudeTools_ deja en caché solo lo de antes (T8, 3-nov-2026). */
+var AG_CORTE_CACHE_ = '\n\n═══ ESTE TURNO ═══';
 function opAgente_(adm, texto, canal, fotos, previos) {
   AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
   /* Recetas (recetas.js): si Juan ya pidió esto y salió bien, se repite sin IA. Si un paso falla, la receta se olvida y la
@@ -659,7 +655,8 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var weebo = ''; try { var corteW = Date.now() - 6 * 3600000; weebo = weeboBloque_({ contexto: 'admin', principal: !!adm.principal, clave: adm.email, texto: texto, historial: previos.filter(function (m) { return m.de === 'yo' && new Date(m.ts).getTime() >= corteW; }).map(function (m) { return m.texto; }) }); } catch (e) {}
   /* Adaptación a la persona: +5 % cada 10 mensajes hasta el tope (adaptacion.js). */
   var adapt = ''; try { adapt = canal === 'segundo_plano' ? '' : adaptBloque_(adm.email, 'admin', texto); } catch (e) {}
-  var system = secretariaPrompt_() + weebo + adapt + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
+  var aud = audienciaDe_({ adm: adm });   // Juan: conversación personal · equipo: en nombre de la empresa (alma.json)
+  var turno = AG_CORTE_CACHE_ + weebo + adapt + '\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
     encargosTexto_(adm) + encargosPedidosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'calle' ? CALLE_REGLA_ : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
@@ -675,11 +672,12 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var ctx = { hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   ctx.hechasAntes = ctx.hechas.length;
   var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
-  system += '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.';
-  system += audienciaBloque_(audienciaDe_({ adm: adm }));   // Juan: conversación personal · equipo: en nombre de la empresa (audiencia.js)
-  system += chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
-  system += AGENTE_MI_SISTEMA_;   // nunca «la secretaria» ni nombres de herramientas: «mi sistema» (decisión de Juan, #374)
-  try { system += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
+  /* Primero lo que no cambia entre turnos (fuente única, trabajo, herramientas, esfera) y al final, después de
+     AG_CORTE_CACHE_, lo de este turno (Weebo, adaptación, quién, encargos, canal, notas, microproyectos y la hora). */
+  var system = secretariaPrompt_(aud, canal) + '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.' +
+    chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
+  try { turno += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
+  system += turno + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).';
   var res = opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
   try { recetaAprender_(adm, textoPedido, ctx, res); } catch (e) { console.error('recetaAprender_: ' + (e.stack || e)); }   // salió bien y se puede repetir: queda como receta
   return res;
@@ -840,7 +838,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   if (esRespuestaAutomatica_(texto)) return;   // respuesta automática de su WhatsApp Business: se espera la de verdad
   var obj = String(e.objetivo || ''), despues = /Cuando responda:/.test(obj) ? (obj.split('Cuando responda:')[1] || '').trim() : obj.trim();
   var hist = []; try { hist = waHilo_('wa:' + wa).slice(-18).map(function (m) { return (m.tipo === 'guest' ? quien : 'ALMA') + ': ' + String(m.texto || '').replace(/^\[plantilla[^\]]*\]\s*·\s*pendiente:\s*/, '[aviso de primer contacto] ').slice(0, 700); }); } catch (x) {}
-  var sys = 'Eres Alma, del equipo de Spacio AM (alojamientos boutique en Guatemala). Conversas por WhatsApp con ' + quien + ' por encargo de ' + de + '. ' +
+  var sys = almaIdentidad_() + ' Spacio AM: alojamientos boutique en Guatemala. Conversas por WhatsApp con ' + quien + ' por encargo de ' + de + '. ' +
     'Tono cálido, directo y breve, de tú, sin voseo ni «va», «dale» o «ahorita». Una o dos preguntas por mensaje, nunca un formulario. ' +
     'Si el mensaje completo acaba de salir y su respuesta es solo un saludo o un «sí, dime», no respondas (respuesta vacía): espera a que responda lo que se le pidió. ' +
     'No inventes datos ni tomes decisiones por ' + de + ': si pregunta algo que no sabes o que debe decidir él, dile que lo consultas y ponlo en para_admin. ' +

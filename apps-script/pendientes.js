@@ -70,7 +70,7 @@ function pendAvisar_(adm, texto, o) {
 /* El clasificador: esfera, proyecto, tipo y, si hay algo que comprar o reservar, la tarjeta y su enlace. */
 function pendClasificar_(pedido, respuesta, fallo) {
   var proys = []; try { proys = proyFilas_().filter(function (p) { return p.estado !== 'cerrado'; }).map(function (p) { return p.proyecto; }).slice(0, 30); } catch (e) {}
-  var sys = 'Eres Alma, la asistente de Juan (dueño de Spacio AM, apartamentos de estadía corta en Guatemala). Le resolviste un pedido; ordénalo para su lista de pendientes.\n' +
+  var sys = almaIdentidad_() + ' Juan es el dueño de Spacio AM (apartamentos de estadía corta en Guatemala). Le resolviste un pedido; ordénalo para su lista de pendientes.\n' +
     'tipo: "atencion" SOLO si Juan tiene que hacer algo él mismo (decidir, elegir, comprar, aprobar, responder, darte un dato, o algo falló y sin él no se puede seguir); "aviso" si es información o un resultado y no tiene que hacer nada (ante la duda entre atencion y aviso, aviso); ' +
     '"hecho" si solo confirma algo que ya quedó hecho; "nada" si es charla, un saludo o no hay resultado.\n' +
     'area (una): proposito (su trabajo: Spacio AM, apartamentos, huéspedes, equipo, proveedores, desarrollo de las apps), relaciones (familia, pareja, amigos, bodas y viajes con ellos), ' +

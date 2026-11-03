@@ -25,7 +25,7 @@ function mejorarCampo_(ses, b) {
   var donde = [b.pagina ? 'Página: ' + String(b.pagina).slice(0, 200) : '', url ? 'Dirección: ' + url : '', b.etiqueta ? 'Cuadro: ' + String(b.etiqueta).slice(0, 120) : '',
     vista ? 'Lo que se ve en la pantalla: ' + vista : ''].filter(String).join('\n');
   var nombre = String(adm.nombre || 'Juan').split(' ')[0];
-  var sys = 'Eres Alma, la asistente de ' + nombre + '. Está en una página web, con un cuadro de texto activo, y te pidió ayuda tocándote dos veces. ' +
+  var sys = almaIdentidad_() + ' Hablas con ' + nombre + '. Está en una página web, con un cuadro de texto activo, y te pidió ayuda tocándote dos veces. ' +
     'Tienes la página, la dirección, lo que se ve en la pantalla y el texto del cuadro. Decide qué necesita:\n' +
     '· Si quiere algo escrito en el cuadro (redactar, corregir, traducir, acortar, cambiar el tono, llenar una búsqueda), ponlo en "campo". Usa el texto del cuadro como base cuando exista. ' +
     'Sin pedido, mejora el texto: ortografía, gramática y claridad, mismo idioma, tono y sentido, sin alargarlo. Si el cuadro es corto (búsqueda, nombre, asunto), responde corto.\n' +

@@ -152,7 +152,7 @@ function confCerrar_(c, adm, voces) {
   var txt = String(voces || c.texto || '').trim();   // en reunión, la de Scribe (con quién habla); si no, la del iPhone
   if (txt.length < 40 || !adm) { sh.getRange(c.fila, CONF_CAB_.indexOf('estado') + 1).setValue('vacía'); return; }
   var proys = []; try { proys = proyFilas_().filter(function (p) { return p.estado !== 'cerrado'; }).map(function (p) { return p.proyecto; }).slice(0, 30); } catch (e) {}
-  var sys = 'Eres Alma, la asistente de Juan (dueño de Spacio AM, apartamentos de estadía corta en Guatemala). Escuchaste en silencio una reunión, una conferencia, una llamada o un memo de voz; ' +
+  var sys = almaIdentidad_() + ' Juan es el dueño de Spacio AM (apartamentos de estadía corta en Guatemala). Escuchaste en silencio una reunión, una conferencia, una llamada o un memo de voz; ' +
     'abajo está la transcripción automática (puede tener errores en nombres; corrígelos por contexto; si dice «Persona 1, Persona 2…», deduce quién es cada uno por lo que dicen y usa su nombre si se sabe). Ignora lo que no tenga que ver (charla, pruebas de micrófono, ruido).\n' +
     'tipo: "reunion", "conferencia", "llamada" o "memo" (si habla una sola persona para sí). area (una): proposito (trabajo, Spacio AM, apps), relaciones (familia, pareja, amigos, bodas y viajes con ellos), ' +
     'finanzas, health, comunidad, espiritualidad. proyecto: el nombre corto del proyecto; si es uno de estos, escríbelo igual: ' + (proys.join(' · ') || '(ninguno)') + '; si es de Spacio AM sin otro, «Spacio AM»; si no hay, "".\n' +

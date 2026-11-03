@@ -72,8 +72,10 @@ jobs:
         run: clasp push --force
 
       - name: Crear versión y actualizar la implementación
+        env:
+          MSG: ${{ github.event.head_commit.message || 'Publicación manual' }}
         run: |
-          MSG="${{ github.event.head_commit.message || 'Publicación manual' }}"
+          # El mensaje llega por env: con comillas invertidas (`así`) ya no se ejecuta como comando
           DESC="$(printf '%s' "$MSG" | head -n1 | cut -c1-90)"
           # Si falla, que se vea por qué (antes «set -e» lo cortaba sin mostrar nada)
           if ! OUT="$(clasp create-version "$DESC" 2>&1)"; then

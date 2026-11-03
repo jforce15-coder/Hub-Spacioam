@@ -122,8 +122,8 @@ function agHerramientas_() {
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Formato fácil de leer en el teléfono: saludo en su propia línea y párrafos cortos (una idea por párrafo) separados por una línea en blanco.',
       { codigo: s('Código de reserva o conv_id'), texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado') }, ['codigo', 'texto', 'canal']),
-    T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) por su nombre.',
-      { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
+    T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre.',
+      { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), propiedad: s('Opcional: apartamento del socio, si no ha escrito en 24 h'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
     T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
       { fecha: s('YYYY-MM-DD; por defecto hoy'), persona: s('Opcional: nombre del técnico') }),
     T('tareas_abiertas', 'Lista las tareas abiertas del equipo (Hub/Epi).', {}),
@@ -389,16 +389,17 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var p = agPersona_(inp.persona, ctx);
       if (normTel_(inp.numero || '')) p = { nombre: (p && p.nombre) || String(inp.persona || 'Contacto'), tel: normTel_(inp.numero) };
       if (!p) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp. Si es un contacto de trabajo (recepción, proveedor), pídele el número al administrador y vuelve a llamar con numero.' };
+      var bS = socioSoloPrincipal_(adm, p.tel); if (bS) return { error: bS };   // a un socio solo le escribe el administrador principal (socios.js)
       var cE = CacheService.getScriptCache(), kE = 'agwa_' + fin8_(p.tel);
       if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí.' };
       cE.put(kE, '1', 180);
-      var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), ok = !!rw.ok;
+      var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM', propiedad: inp.propiedad || '' }), ok = !!rw.ok;
       if (!ok) cE.remove(kE);
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
       if (ok) { try { contactoAsegurar_(p.tel); } catch (e) {} }
       if (ok) { try { contactoEncolar_(p.tel, 'Pedido de ' + ((adm && adm.nombre) || 'un administrador') + ' sobre ' + p.nombre + ': ' + String(inp.texto).slice(0, 600) + (inp.al_responder ? ' · Cuando responda: ' + String(inp.al_responder).slice(0, 400) : '')); } catch (e) {} }
       if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
-      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió el aviso de primer contacto pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
+      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió ' + (rw.socio ? 'la plantilla para socios' : 'el aviso de primer contacto') + ' pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
     }
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
@@ -438,6 +439,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'encargar_conversacion': {
       var pe = agPersona_(inp.persona, ctx) || (normTel_(inp.persona) ? { nombre: '+' + normTel_(inp.persona), tel: normTel_(inp.persona) } : null);
       if (!pe) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
+      var bSE = socioSoloPrincipal_(adm, pe.tel); if (bSE) return { error: bSE };
       var rwE = waEnviarAlguien_(pe.tel, String(inp.mensaje), { nombre: pe.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), okE = !!rwE.ok;
       var idE = encargoCrear_(adm, pe.nombre, normTel_(pe.tel), String(inp.objetivo));
       try { contactoEncolar_(pe.tel, 'Encargo de ' + ((adm && adm.nombre) || 'un administrador') + ' con ' + pe.nombre + ': ' + String(inp.objetivo).slice(0, 800)); } catch (e) {}
@@ -487,6 +489,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var pp = inp.numero ? null : (agPersona_(inp.persona || '', ctx) || (inp.persona ? personalPorNombre_(inp.persona) : null));
       var telP = normTel_(inp.numero || (pp && (pp.tel || pp.wa)) || '');
       if (!telP) return { error: 'No encontré el número de ' + (inp.persona || 'esa persona') + '. Pídeselo al administrador (con código de país).' };
+      var bSP = socioSoloPrincipal_(adm, telP); if (bSP) return { error: bSP };
       var rpg = progCrear_(adm, { persona: inp.persona || (pp && pp.nombre) || '', tel: telP, texto: inp.texto, cuando: inp.cuando, zona: inp.zona, tipo: inp.tipo });
       if (rpg.ok) ctx.hechas.push({ tipo: 'programado', resumen: 'Programado · ' + rpg.para + ' · ' + rpg.cuando });
       return rpg;
@@ -705,6 +708,8 @@ function agPersona_(nombre, ctx) {
      (proveedores, técnicos, socios): así «escríbele a la recepción de Ignacio» o «a Liliana» no termina en pedir el número. */
   try { var rn = recepcionNumeros_(); Object.keys(rn).forEach(function (k) { if (rn[k] && rn[k].prop) personas.push({ nombre: 'Recepción ' + rn[k].prop, tel: rn[k].n }); }); } catch (e) {}
   try { contactosTodos_().forEach(function (o) { if (o.nombre && normTel_(o.tel)) personas.push({ nombre: o.nombre + (o.rol ? ' (' + o.rol + ')' : ''), tel: o.tel }); }); } catch (e) {}
+  /* Los socios y propietarios del Control de usuarios, aunque todavía no tengan ficha de contacto. */
+  try { (accesosPorRol_().socios || []).forEach(function (o) { if (o.nombre) personas.push({ nombre: o.nombre + ' (socio' + (o.propiedad ? ' · ' + o.propiedad : '') + ')', tel: o.tel }); }); } catch (e) {}
   var m = opMatch_(nombre, personas.map(function (p) { return p.nombre; }));
   if (!m) { var b = bqMejor_(nombre, personas.map(function (p) { return p.nombre; })); if (b) m = b; }
   return personas.filter(function (x) { return x.nombre === m && normTel_(x.tel); })[0] || null;

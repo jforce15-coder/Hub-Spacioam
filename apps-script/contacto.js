@@ -18,22 +18,32 @@ function waEnviarAlguien_(numero, texto, o) {
     if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto); return { ok: true, modo: r.modo || 'texto' }; }
     if (!(r && /131047|24 hour|re-engagement/i.test(r.error || ''))) return { ok: false, error: (r && r.error) || 'no salió' };
   }
-  var tpl = contactoPlantillaOk_();
-  if (!tpl) return { ok: false, error: 'No le puedo escribir: no ha escrito al número de ALMA en las últimas 24 h y la plantilla de primer contacto (' + CONTACTO_PLANTILLA_ + ') aún no está aprobada por Meta.' };
+  /* Un socio o propietario recibe la plantilla para socios (Utilidad, sobre su cuenta; socios.js): la de primer
+     contacto Meta la trata como marketing y a los números +1 no se la entrega. */
+  var soc = socioSeguro_(wa), payload, etiqueta;
+  if (soc) {
+    var sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || o.nombre, propiedad: o.propiedad || soc.propiedad, idioma: o.idioma });
+    if (sp.error) return { ok: false, error: sp.error };
+    payload = sp.payload; etiqueta = 'plantilla para socios';
+  } else {
+    var tpl = contactoPlantillaOk_();
+    if (!tpl) return { ok: false, error: 'No le puedo escribir: no ha escrito al número de ALMA en las últimas 24 h y la plantilla de primer contacto (' + CONTACTO_PLANTILLA_ + ') aún no está aprobada por Meta.' };
+    payload = { messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: CONTACTO_PLANTILLA_, language: { code: 'es' }, components: [
+      { type: 'body', parameters: [/^[+\d]/.test(String(o.nombre || '')) || !o.nombre ? 'qué tal' : String(o.nombre).split(' ')[0], String(o.de || 'Spacio AM')].map(function (v) { return { type: 'text', text: v.slice(0, 60) }; }) }] } };
+    etiqueta = 'plantilla de primer contacto';
+  }
   var W = waCfg_();
   var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + W.token },
-    payload: JSON.stringify({ messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: CONTACTO_PLANTILLA_, language: { code: 'es' }, components: [
-      { type: 'body', parameters: [/^[+\d]/.test(String(o.nombre || '')) || !o.nombre ? 'qué tal' : String(o.nombre).split(' ')[0], String(o.de || 'Spacio AM')].map(function (v) { return { type: 'text', text: v.slice(0, 60) }; }) }] } }) });
-  if (rr.getResponseCode() >= 300) return { ok: false, error: 'Meta rechazó la plantilla: ' + rr.getContentText().slice(0, 200) };
+    headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(payload) });
+  if (rr.getResponseCode() >= 300) return { ok: false, error: waErrorMeta_(rr.getResponseCode(), rr.getContentText(), wa, !!soc) };
   var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
   /* Un seguimiento (volver a escribirle) no duplica el mensaje que le llegará: se guarda una sola vez, con la fecha del primero. */
   var k = fin8_(wa), tx = String(texto).slice(0, 3500), prev = (pend[k] || []).filter(function (m) { return m.texto === tx; })[0];
   pend[k] = (pend[k] || []).filter(function (m) { return m.texto !== tx; }); pend[k].push({ texto: tx, ts: prev ? prev.ts : Date.now(), nombre: o.nombre || '' });
   Object.keys(pend).forEach(function (x) { pend[x] = pend[x].filter(function (m) { return Date.now() - m.ts < 7 * 86400000; }).slice(-3); if (!pend[x].length) delete pend[x]; });
   p.setProperty('WA_PEND', JSON.stringify(pend));
-  contactoRegistrar_(wa, o.nombre, '[plantilla de primer contacto] · pendiente: ' + texto);
-  return { ok: true, modo: 'plantilla' };
+  contactoRegistrar_(wa, o.nombre, '[' + etiqueta + '] · pendiente: ' + texto);
+  return { ok: true, modo: 'plantilla', socio: !!soc };
 }
 
 /* Alguien respondió: si tenía mensajes guardados, se le envían ahora (ya hay ventana de 24 h). */

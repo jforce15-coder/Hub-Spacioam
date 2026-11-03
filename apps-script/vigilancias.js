@@ -207,7 +207,7 @@ function vigRevisar_(v, adm, urgente) {
       var b = ahora.filter(function (x) { return x.vuelo === a.vuelo; })[0]; if (!b) return;
       if (b.puerta && b.puerta !== a.puerta) cambios.push(a.vuelo + ': puerta ' + b.puerta + (a.puerta ? ' (antes ' + a.puerta + ')' : ''));
       if (b.terminal && b.terminal !== a.terminal) cambios.push(a.vuelo + ': terminal ' + b.terminal + (a.terminal ? ' (antes ' + a.terminal + ')' : ''));
-      if (b.sale && Date.parse(b.sale) !== Date.parse(a.sale)) cambios.push(a.vuelo + ': sale ' + String(b.sale).slice(11, 16) + ' (antes ' + String(a.sale).slice(11, 16) + ')');
+      if (b.sale && String(b.sale).slice(0, 16) !== String(a.sale).slice(0, 16)) cambios.push(a.vuelo + ': sale ' + String(b.sale).slice(11, 16) + ' (antes ' + String(a.sale).slice(11, 16) + ')');   // la hora escrita (local del aeropuerto): arreglar el desfase no es un cambio
     });
     return { paso: cambios.length > 0, detalle: cambios.join('; ') };
   }

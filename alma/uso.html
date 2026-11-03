@@ -164,6 +164,7 @@
   /* Las últimas salidas con el Modo calle (ALMA_CALLE_USO): cuánto duró, cuánta batería se fue por hora y cuántas veces
      despertó (y cuántas fueron falsas) por hora. Sin salidas, no se muestra nada. */
   function n1(x) { return x == null || x === "" ? "—" : es.format(Math.round(+x * 10) / 10); }
+  function durLlamada(s) { s = Math.round(s || 0); return s < 60 ? s + " s" : (Math.floor(s / 60) + " min " + (s % 60 ? (s % 60) + " s" : "")).trim(); }
   function pintarCalle() {
     var cb = $("calle"); if (!cb) return; cb.innerHTML = "";
     var u = CU && CU.ok && CU.usos || []; if (!u.length) return;
@@ -175,10 +176,13 @@
       f.appendChild(t);
       f.appendChild(el("span", "", "Batería: " + (x.bateriaHora != null ? n1(x.bateriaHora) + " % por hora" : "sin dato") + (x.bateriaGastada != null ? " (" + n1(x.bateriaGastada) + " % en total)" : "")));
       f.appendChild(el("span", "", "Despertó " + n1(x.despertaresHora) + " por hora · falsos " + n1(x.falsosHora) + " por hora" + (x.pedidos != null ? " · " + n1(x.pedidos) + " pedidos" : "")));
+      /* Lo que se gastó en ElevenLabs: los segundos de llamada y cuántas colgó sola (sueño); las salidas viejas no lo traen */
+      if (x.llamadaSeg != null) f.appendChild(el("span", "", "Llamadas: " + n1(x.llamadas || 0) + " · " + durLlamada(+x.llamadaSeg) + " con ElevenLabs" +
+        (x.llamadasSleep ? " · " + n1(x.llamadasSleep) + " colgó sola" : "") + (x.llamadasCorte ? " · " + n1(x.llamadasCorte) + " cortadas" : "")));
       box.appendChild(f);
     });
     cb.appendChild(box);
-    cb.appendChild(el("p", "nota", "Lo mide la app al apagar el Modo calle. Falsos: despertó con algo que no era «Alma»."));
+    cb.appendChild(el("p", "nota", "Lo mide la app al apagar el Modo calle. Falsos: despertó con algo que no era «Alma». Colgó sola: la llamada se cerró por silencio, «espera» o «es todo» y volvió a esperar «Alma»."));
   }
   function cargar() {
     pedir("calleUsoLeer").then(function (r) { CU = r; pintarCalle(); });   // a la vez que el uso, no después

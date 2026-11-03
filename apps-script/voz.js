@@ -1138,6 +1138,8 @@ function vozWebInicio_(ses, ligero, app) {
   /* Saludo variado y medidores de personalidad (medidores.js, #410): la app elige un saludo distinto cada vez y muestra los
      chips de Weebo y Adaptación; si Juan fijó el Weebo, Alma lo sabe por la ficha. */
   out.saludos = saludosVoz_(nom);
+  /* Sueño del Modo calle (calle.js): cuándo cuelga sola una llamada que abrió el Modo calle. */
+  try { var cs = calleSueno_(); out.calle_silencio_s = cs.silencio; out.calle_tope_s = cs.tope; } catch (e) { console.error('calleSueno_: ' + e); }
   try { var pf = personalidadFicha_(adm); if (pf) { dv.quien_llama += pf.bloque; delete pf.bloque; Object.assign(out, pf); } } catch (e) { console.error('personalidadFicha_: ' + e); }
   /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
      Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */

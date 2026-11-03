@@ -251,7 +251,7 @@ function microResponder_(adm, id, texto, o) {
   var r = paraClaudeCrear_(adm, { micro: m.id, titulo: m.nombre, app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: !!o.sinChat, nivel: o.nivel || '',
     que_quiere: (q ? 'Juan responde a tu pregunta («' + q + '»): ' : '') + texto });
   if (!r.ok) return r;
-  return { ok: true, a: 'claude', micro: m.id, respuesta: r.claude ? 'Listo, se lo pasé a Claudio en «' + m.nombre + '».' : r.nota };
+  return { ok: true, a: 'claude', micro: m.id, respuesta: r.claude ? 'Listo, quedó tu respuesta en «' + m.nombre + '».' : r.nota };
 }
 /* «Súbelo»: Juan pide que el último pedido lo haga Claudio con Opus (la tarea sencilla dijo que era más complejo, o él
    lo quiere así). Nunca pasa solo. Entra como ajuste del mismo microproyecto (mismo issue, rama y PR; segunda parte si ya
@@ -270,7 +270,7 @@ function microSubir_(adm, m, o) {
   var r = paraClaudeCrear_(adm, { micro: m.id, titulo: m.nombre, app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: !!o.sinChat, nivel: 'complejo', que_quiere: MICRO_SUBIR_TEXTO_ });
   if (!r.ok) return r;
   return { ok: true, a: 'claude', micro: m.id, nombre: m.nombre, claude: !!r.claude,
-    respuesta: r.claude ? 'Listo, se lo pasé a Claudio con Opus en «' + m.nombre + '», con todo su historial. Te aviso aquí cuando responda.' : r.nota };
+    respuesta: r.claude ? 'Listo, «' + m.nombre + '» quedó con Opus.' : r.nota };
 }
 /* En el chat, tocar una opción de la pregunta de Claude (su mensaje trae «• » opciones): va directo a ese microproyecto.
    Solo si el texto es exactamente una de las opciones del que está preguntando (el más reciente). */

@@ -1242,6 +1242,7 @@ function contextoWA_(convId, hilo, modo) {
     texto: turno.map(m => m.texto).join('\n'), fotos: [].concat.apply([], turno.map(m => m.fotos || [])),
     equipoActivo: equipoActivo_(hilo, ''), contencionReciente: false,
     ultimosNuestros: hilo.filter(m => m.tipo !== 'guest').slice(-3).map(m => m.texto),
+    yaSaludado: hilo.some(m => m.tipo !== 'guest' && !m.auto && Date.now() - new Date(m.created).getTime() < 24 * 3600000),   // saludo solo una vez (Juan, 3-nov)
     ultimoGuestAt: turno.length ? turno[turno.length - 1].created : '',
     hiloTexto: hilo.map(m => '[' + (m.tipo === 'guest' ? 'CONTACTO' : 'SPACIO AM') + '] ' + m.texto).join('\n---\n').slice(-8000),
     propiedadInfo: '(no tiene reserva: no hay datos de acceso, WiFi ni códigos que compartir)',
@@ -1294,6 +1295,9 @@ function contextoHosp_(resId, hilo, modo) {
     equipoActivo: equipoActivo_(hilo, codigo),
     contencionReciente: hilo.some(m => m.tipo !== 'guest' && esContencion_(m.texto) && Date.now() - new Date(m.created).getTime() < cfg_('CONTENCION_HORAS') * 3600000),
     ultimosNuestros: hilo.filter(m => m.tipo !== 'guest' && !m.auto).slice(-3).map(m => m.texto),
+    /* Saludo (Juan, 3-nov): «Hola, <nombre>» solo en el primer mensaje personal; los automáticos de Hospitable no cuentan.
+       Si ya le escribimos en persona en las últimas 24 h, se responde directo, sin saludo ni nombre al inicio. */
+    yaSaludado: hilo.some(m => m.tipo !== 'guest' && !m.auto && Date.now() - new Date(m.created).getTime() < 24 * 3600000),
     ultimoGuestAt: turno.length ? turno[turno.length - 1].created : '',
     hiloTexto: hilo.map(m => '[' + (m.tipo === 'guest' ? 'HUÉSPED' : (m.auto ? 'SPACIO AM · automático' : 'SPACIO AM')) + (m.llamada ? ' · en llamada' : m.canal === 'whatsapp' ? ' · por WhatsApp' : '') + '] ' + m.texto)
       .join('\n---\n').slice(-8000),
@@ -1838,6 +1842,8 @@ function redactar_(ctx, correccion) {
     '\nIDIOMA DE RESPUESTA: ' + (ctx.idioma || 'es') + ' (idioma asignado a la reserva: ' + (ctx.idiomaReserva || '?') + '). Regla: responde SIEMPRE en el idioma del ÚLTIMO mensaje que escribió el huésped' + (ctx.ultimoGuestTexto ? ' («' + ctx.ultimoGuestTexto.slice(0, 160) + '»)' : '') + '; si aún no ha escrito, usa el idioma asignado; si cambió de idioma, cambia tú también y sigue en el nuevo.' +
     '\nCÓDIGOS YA ENVIADOS EN ESTE CHAT: ' + textoCodigos_(ctx.codigos) +
     '\nMENSAJES AUTOMÁTICOS: los marcados «SPACIO AM · automático» son envíos programados; no cuentan como respuesta a lo que preguntó el huésped.' +
+    (ctx.yaSaludado ? '\nSALUDO: ya le escribimos en persona en las últimas 24 horas. NO empieces con «Hola» ni con su nombre: responde directo a lo que dijo (puedes usar su nombre más adelante si suena natural).'
+      : '\nSALUDO: es el primer mensaje personal (los automáticos no cuentan): empieza con «Hola, <su nombre>» una sola vez.') +
     '\n\nDISPONIBILIDAD (early check-in / late checkout):\n' + textoDisponibilidad_(ctx.disponibilidad) +
     '\n\nBASE DE CONOCIMIENTO SPACIO AM (políticas y datos vigentes):\n' + (ctx.conocimiento || '(vacía)') +
     '\n\nINFORMACIÓN DE ESTA PROPIEDAD (FICHA de PropiedadesInfo · fuente principal de WiFi, llegada, parqueo, cerradura; el anuncio NO es fuente):\n' + (ctx.propiedadInfo || '(ninguna)') +

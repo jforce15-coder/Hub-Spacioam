@@ -10,8 +10,11 @@
    calleHablar_ le quita lo que no se puede decir (markdown, listas, enlaces, etiquetas [[…]]).
    Plazo duro (CALLE_PLAZO_, 15 s): si no alcanza, el agente lo sigue en segundo plano (retomar.js) y Alma dice
    «Sigo en eso; te aviso al terminar» (nunca «Listo»: todavía no está hecho).
-   audio (opcional): la frase con la voz de Alma (ElevenLabs, eleven_flash_v2_5), solo si llegó en 3 s o menos; si no,
-   la app la dice con la voz del iPhone. Cuenta en el cupo como «Voz» (nunca se pausa).
+   audio: la frase con la voz de Alma (ElevenLabs, eleven_flash_v2_5). Si ElevenLabs tarda, el audio igual se manda (ya se
+   esperó: tirarlo solo hacía que hablara la voz del iPhone, una voz de hombre en el teléfono de Juan, 3-nov-2026). Las
+   frases repetidas («Listo.», «Sigo en eso…») quedan 6 h en caché. Cuenta en el cupo como «Voz» (nunca se pausa).
+   calleVoz { texto }: solo la voz de Alma para una frase que la app dice sin audio (sus propios avisos de error, la
+   respuesta del chat); la voz del iPhone (femenina, elegida por la app) queda solo para cuando no hay internet.
 
    NOTIFICACIÓN HABLADA: la app dice al oído los avisos importantes (los que piden algo de Juan) y escucha 8 s.
    vozAvisos (voz.js) trae en cada aviso su frase corta (hablar) e importante; avisoHablar { aviso_id } da además el
@@ -27,7 +30,8 @@
    y los segundos de llamada con ElevenLabs y cuántas colgó el sueño); calleUsoLeer las muestra en Ajustes → Uso de la app. */
 
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
-var CALLE_AUDIO_MS_ = 3000;        // el audio solo vale si ElevenLabs contestó en este tiempo
+var CALLE_AUDIO_PLAZO_ = 24000;    // con más de esto desde que llegó el pedido ya no se pide el audio (la app espera 30 s)
+var CALLE_VOZ_MAX_ = 400;          // calleVoz: lo más largo que se convierte en voz (caracteres)
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
 var CALLE_SIGUE_ = 'Sigo en eso; te aviso al terminar.';   // todavía no está hecho: nada de «Listo» (Juan, 3-nov-2026)
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
@@ -124,24 +128,43 @@ function calleEntrada_(t) {
   return calleCorto_(una || base, CALLE_PALABRAS_) || 'Mejor lo hablamos.';
 }
 
-/* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya tardó mucho o si ElevenLabs pasó de 3 s.
-   UrlFetch no se puede cortar a medio camino: si tarda, la respuesta igual espera y el audio se descarta. */
+/* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya pasó CALLE_AUDIO_PLAZO_ o si ElevenLabs falló.
+   Las frases cortas quedan 6 h en la caché (una sola parte de 90 KB como mucho: más larga, no se guarda). */
 function calleAudio_(hablar, t0) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY');
   var texto = ''; try { texto = vozSinNotas_(hablar); } catch (e) { texto = String(hablar || ''); }
+  texto = String(texto || '').trim();
   if (!key || !texto || p.getProperty('CALLE_AUDIO') === '0') return '';
-  if (t0 && Date.now() - t0 > CALLE_PLAZO_) return '';   // ya esperó bastante: que hable el iPhone
+  if (t0 && Date.now() - t0 > CALLE_AUDIO_PLAZO_) return '';   // la app está por dejar de esperar: que hable el iPhone
+  var voz = '', c = CacheService.getScriptCache(), k = '';
+  try {
+    voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
+    k = 'callevoz_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voz + '|' + texto, Utilities.Charset.UTF_8));
+    var ya = c.get(k); if (ya) return ya;
+  } catch (e) { console.error('calleAudio_ caché: ' + e); }
   var ini = Date.now();
   try {
-    var voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
-    var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
+    var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz || CALLE_VOZ_RESPALDO_) + '?output_format=mp3_44100_64', {
       method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
       payload: JSON.stringify({ text: texto, model_id: 'eleven_flash_v2_5', voice_settings: { stability: 0.6, similarity_boost: 0.8, speed: 1.05 } }) }, 'Voz');
     var ms = Date.now() - ini;
     if (r.getResponseCode() !== 200) { console.error('calleAudio_ ' + r.getResponseCode() + ': ' + String(r.getContentText()).slice(0, 200)); return ''; }
-    if (ms > CALLE_AUDIO_MS_) { console.warn('calleAudio_: tardó ' + ms + ' ms, sin audio'); return ''; }
-    return Utilities.base64Encode(r.getBlob().getBytes());
+    if (ms > 3000) console.warn('calleAudio_: ElevenLabs tardó ' + ms + ' ms (el audio igual se manda)');
+    var b64 = Utilities.base64Encode(r.getBlob().getBytes());
+    if (k && b64.length <= 90000) { try { c.put(k, b64, 21600); } catch (e) {} }
+    return b64;
   } catch (e) { console.error('calleAudio_: ' + e); return ''; }
+}
+
+/* calleVoz { texto } → { ok, audio } — la voz de Alma para una frase que la app iba a decir sin audio. Sin audio
+   (sin llave o ElevenLabs falló): { ok: false } y la app usa la voz del iPhone. */
+function calleVoz_(ses, b) {
+  b = b || {};
+  var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
+  var texto = String(b.texto || '').trim().slice(0, CALLE_VOZ_MAX_);
+  if (!texto) return { ok: false, error: 'falta el texto' };
+  var audio = calleAudio_(texto, 0);
+  return audio ? { ok: true, audio: audio } : { ok: false, error: 'sin audio' };
 }
 
 /* Los segundos del sueño para la ficha de la llamada (vozWebInicio_). Se ajustan sin otra versión con las Propiedades del

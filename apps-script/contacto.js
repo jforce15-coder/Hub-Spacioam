@@ -22,7 +22,7 @@ function waEnviarAlguien_(numero, texto, o) {
      contacto Meta la trata como marketing y a los números +1 no se la entrega. */
   var soc = socioSeguro_(wa), payload, etiqueta;
   if (soc) {
-    var sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || o.nombre, propiedad: o.propiedad || soc.propiedad, idioma: o.idioma });
+    var sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || o.nombre, propiedad: o.propiedad || soc.propiedad, idioma: o.idioma, texto: texto });   // el detalle ({{4}}) sale del mensaje real
     if (sp.error) return { ok: false, error: sp.error };
     payload = sp.payload; etiqueta = 'plantilla para socios';
   } else {

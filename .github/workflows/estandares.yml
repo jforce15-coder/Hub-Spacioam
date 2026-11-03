@@ -84,3 +84,6 @@ jobs:
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then
             echo "::warning::El PR no tiene la sección «Evidencia» (antes y después). Ver .github/pull_request_template.md."
           fi
+
+      - name: Plantilla para socios, con dobles de la API de Meta (crear, aprobada, pasada a Marketing)
+        run: node .github/socio-plantilla.js apps-script

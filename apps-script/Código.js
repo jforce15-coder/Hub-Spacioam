@@ -20,8 +20,9 @@
  *   WA_WABA_ID         (WhatsApp Business Account ID: probarWhatsApp suscribe la cuenta a la app)
  *   WA_VERIFY_TOKEN    (texto que pegas en Meta → Webhooks → Verify token; por defecto spacioam-alma)
  *   WA_PLANTILLA       (nombre de la plantilla aprobada para retomar conversaciones fuera de las 24 h; opcional WA_PLANTILLA_IDIOMA_ES / _EN)
- *   WA_PLANTILLA_SOCIO (plantilla para socios: Utilidad, {{1}} primer nombre · {{2}} propiedad; la usan los socios y propietarios
- *                       fuera de las 24 h, también con números +1. Idioma: WA_PLANTILLA_SOCIO_IDIOMA (es) y opcional _EN · socios.js)
+ *   WA_PLANTILLA_SOCIO (plantilla para socios estado_cuenta_socio, Utilidad: {{1}} primer nombre · {{2}} propiedad · {{3}} periodo ·
+ *                       {{4}} detalle; la usan los socios y propietarios fuera de las 24 h, también con números +1. La pone sola
+ *                       socioPlantillaAsegurar_ al aprobarse, con WA_PLANTILLA_SOCIO_IDIOMA (es) y _EN (en_US) · socios.js)
  *   WA_PROPIETARIOS    (opcional: números extra de propietarios. Se leen solos del Control de usuarios por rol; o de SHEET_PROPIETARIOS_ID)
  *   WA_PRUEBA          (números del equipo que ALMA atiende como clientes, para pruebas)
  *   WA_EQUIPO          (opcional: números extra del equipo. Los de Control de usuarios, técnicos de EPI y ALMA_ESCALAMIENTO se toman solos)
@@ -4685,7 +4686,7 @@ function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   let payload, guardado = String(texto);
   if (abierta) payload = { messaging_product: 'whatsapp', to: wa, type: 'text', text: { body: String(texto).slice(0, 4096), preview_url: true } };
   else if (soc) {   // socio o propietario: la plantilla para socios (Utilidad), no WA_PLANTILLA (socios.js)
-    const sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || nombre, propiedad: soc.propiedad, idioma: idioma });
+    const sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || nombre, propiedad: soc.propiedad, idioma: idioma, texto: texto });
     if (sp.error) return { ok: false, error: sp.error };
     payload = sp.payload;
     guardado = '[plantilla para socios: ' + sp.nombre + '] · pendiente de enviar cuando responda: ' + texto;
@@ -5232,7 +5233,7 @@ function dsBotApi_(body) {
       case 'foto_config': return json_(fotoConfig_(body));
       case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
-      case 'socio_plantilla': return json_(socioPlantillaAsegurar_(true));
+      case 'socio_plantilla': return json_(socioPlantillaAsegurar_(true));   // fuerza ya la creación y revisión de estado_cuenta_socio (sin esperar los 30 min; socios.js)
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
       case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));
       case 'proy_ver': return json_(proyVer_(String(body.proyecto || ''), !!body.actualizar, 'Juan'));

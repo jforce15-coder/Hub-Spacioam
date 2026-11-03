@@ -571,7 +571,7 @@ function vozDefHerramientas_(base) {
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  }).concat([vozMostrarEnChat_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS
+  }).concat([vozMostrarEnChat_(), vozNivelWeebo_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS
 }
 /* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
    trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al
@@ -585,6 +585,15 @@ function vozMostrarEnChat_() {
       titulo: { type: 'string', description: 'Título corto de lo que se muestra (p. ej. «Tu viaje a Miami»).' },
       contenido: { type: 'string', description: 'La información completa en markdown: listas con «- », pasos con «1. », tablas con «| a | b |», negritas con **…**, una idea por línea (horas, fechas, montos y nombres exactos).' } } },
     disable_interruptions: false, force_pre_tool_speech: false };
+}
+/* Medidor de personalidad en vivo (#410): herramienta de CLIENTE que Alma llama en silencio cuando su nivel de Modo Weebo
+   cambia (weeboVozBloque_). La app lo muestra en el chip «✨ Weebo N» con ▲/▼; no espera respuesta ni dice nada antes. */
+function vozNivelWeebo_() {
+  return { type: 'client', name: 'nivel_weebo', expects_response: false, response_timeout_secs: 1,
+    description: 'Avisa a la app de Alma en qué nivel de Modo Weebo vas (0 centro, 1 chispa, 2 suelta, 3 Weebo). Llámala en silencio al empezar y solo cuando tu nivel cambie, y solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». No digas nada antes ni después, y no esperes respuesta.',
+    parameters: { type: 'object', required: ['nivel'], properties: {
+      nivel: { type: 'integer', description: 'Tu nivel de Modo Weebo ahora: 0, 1, 2 o 3.' } } },
+    pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 /* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):
    solo se les cambian estos campos; lo demás (URL, encabezados, secretos) queda como está allá y nunca pasa por aquí. */
@@ -1096,7 +1105,8 @@ var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pa
 /* La ficha de la llamada desde la app o el Hub. Mide cuánto tarda cada paso (consola + propiedad VOZWEB_TIEMPOS, las
    últimas 20) para ver qué demora el «Iniciar llamada». La URL firmada de ElevenLabs no depende de la ficha: se pide
    primero (si falla, falla rápido). saludo_corto: «Dime, Juan» para cuando la app despierta a Alma con el anillo o con
-   «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual). */
+   «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual).
+   saludos: el Saludo variado (#410), la app de Alma elige uno; saludo_tema = el first_message trae un tema (retomar), no un hola. */
 function vozWebInicio_(ses, ligero, app) {
   var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
   var adm = vozWebAdmin_(ses);
@@ -1122,13 +1132,17 @@ function vozWebInicio_(ses, ligero, app) {
   /* T de la llamada larga (app de Alma): pasados estos segundos, la primera pausa larga se cambia por una despedida y la
      app pasa al modo conferencia. Sale de los datos de las llamadas (minuto en que deja de rendir); se ajusta aquí. */
   var out = { ok: true, agent_id: agente, dynamic_variables: dv, nombre: nom, conferencia_tras: VOZ_CONFERENCIA_TRAS_, conferencia_retoma: VOZ_CONFERENCIA_RETOMA_, saludo_corto: 'Dime' + (nom ? ', ' + nom : ''),
-    first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?' };
+    first_message: retoma && retoma.fresco ? retoma.saludo(nom) : '¡Hola, ' + nom + '! Aquí estoy. ¿Qué hacemos?', saludo_tema: !!(retoma && retoma.fresco) };
+  /* Saludo variado y medidores de personalidad (medidores.js, #410): la app elige un saludo distinto cada vez y muestra los
+     chips de Weebo y Adaptación; si Juan fijó el Weebo, Alma lo sabe por la ficha. */
+  out.saludos = saludosVoz_(nom);
+  try { var pf = personalidadFicha_(adm); if (pf) { dv.quien_llama += pf.bloque; delete pf.bloque; Object.assign(out, pf); } } catch (e) { console.error('personalidadFicha_: ' + e); }
   /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
      Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }
   if (ret) {
     dv.quien_llama += ret.bloque; out.retomar_total = ret.total;
-    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200); }
+    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; out.saludo_tema = true; CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200); }
   }
   marca('retomar');
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:

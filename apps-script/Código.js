@@ -20,6 +20,8 @@
  *   WA_WABA_ID         (WhatsApp Business Account ID: probarWhatsApp suscribe la cuenta a la app)
  *   WA_VERIFY_TOKEN    (texto que pegas en Meta → Webhooks → Verify token; por defecto spacioam-alma)
  *   WA_PLANTILLA       (nombre de la plantilla aprobada para retomar conversaciones fuera de las 24 h; opcional WA_PLANTILLA_IDIOMA_ES / _EN)
+ *   WA_PLANTILLA_SOCIO (plantilla para socios: Utilidad, {{1}} primer nombre · {{2}} propiedad; la usan los socios y propietarios
+ *                       fuera de las 24 h, también con números +1. Idioma: WA_PLANTILLA_SOCIO_IDIOMA (es) y opcional _EN · socios.js)
  *   WA_PROPIETARIOS    (opcional: números extra de propietarios. Se leen solos del Control de usuarios por rol; o de SHEET_PROPIETARIOS_ID)
  *   WA_PRUEBA          (números del equipo que ALMA atiende como clientes, para pruebas)
  *   WA_EQUIPO          (opcional: números extra del equipo. Los de Control de usuarios, técnicos de EPI y ALMA_ESCALAMIENTO se toman solos)
@@ -735,7 +737,8 @@ function procesarCola() {
     try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
     try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
     try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
-    try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
+    try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }
+    try { socioPlantillaAsegurar_(false); } catch (e) { console.error('socioPlantillaAsegurar_: ' + e); }   // la plantilla para socios se crea y se activa sola (socios.js)   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
   }
   cupoCanal_('Epi');
   try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
@@ -3155,6 +3158,8 @@ function hubApi_(body) {
       case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
       case 'vigilancias': return json_(vigApi_(ses));                                       // lo que Alma vigila por ti (vigilancias.js · alma/aprendio.html)
       case 'vigilanciaDejar': return json_(vigDejarApi_(ses, body.id));                     // { id } → deja de vigilar
+      case 'personalidad': return json_(personalidadApi_(ses));                             // Ajustes → Personalidad de Alma: adaptación y Modo Weebo, solo el principal (medidores.js)
+      case 'personalidadFijar': return json_(personalidadFijarApi_(ses, body));             // { adapt_tope?, adapt_tope_huesped?, weebo_modo?, weebo_nivel? }
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));
@@ -4418,9 +4423,9 @@ function waPropietarios_() {
   return accesosPorRol_().propietarios.concat(extra).map(normTel_).filter(Boolean);
 }
 function accesosPorRol_() {
-  const cache = CacheService.getScriptCache(), c0 = cache.get('acc_roles_v2');
+  const cache = CacheService.getScriptCache(), c0 = cache.get('acc_roles_v3');
   if (c0) { try { return JSON.parse(c0); } catch (e) {} }
-  const out = { equipo: [], propietarios: [] };
+  const out = { equipo: [], propietarios: [], socios: [] };   // socios: { tel, nombre, propiedad } para la plantilla para socios (socios.js)
   const norm = k => String(k).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   const esTel = k => /^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/.test(norm(k));
   const esRol = k => /^(rol|roles|role|tipo|tipo_usuario|perfil)$/.test(norm(k));
@@ -4440,6 +4445,8 @@ function accesosPorRol_() {
       const lleno = x => { const t = String(x || '').trim().toLowerCase(); return !!t && t !== 'no' && t !== 'false' && t !== '0'; };
       const cEst = cab.findIndex(c => /^(estado|activo|active)$/i.test(c));
       const hojaProp = forzarProp || esProp(sh.getName());
+      const cNom = ['nombre', 'name', 'primer_nombre'].map(x => cab.findIndex(c => norm(c) === x)).filter(i => i >= 0)[0];
+      const cProp = cab.findIndex(c => /^(propiedad|propiedades|apartamento|apartamentos|unidad|unidades|property|properties)$/.test(norm(c)));
       v.slice(1).forEach(r => {
         if (cEst >= 0 && /inactiv|baja|no|false/i.test(String(r[cEst]))) return;
         /* Propietario = rol dice propietario/socio, o solo tiene acceso a mi.spacioam (perm_mi) y a ninguna app operativa. */
@@ -4447,7 +4454,10 @@ function accesosPorRol_() {
         if (est >= 0 && /inactiv|baja|bloque|suspend/.test(norm(r[est]))) return;
         /* Columnas es_dueno / es_socio mandan: «sí» en cualquiera de las dos = propietario. */
         const prop = hojaProp || (flags.length ? flags.some(i => esSi(r[i])) : (soloMi || roles.some(i => esProp(r[i]))));
-        tels.forEach(i => telsDe_(r[i]).forEach(d => (prop ? out.propietarios : out.equipo).push(d)));
+        tels.forEach(i => telsDe_(r[i]).forEach(d => {
+          (prop ? out.propietarios : out.equipo).push(d);
+          if (prop) out.socios.push({ tel: d, nombre: cNom >= 0 ? String(r[cNom] || '').trim() : '', propiedad: cProp >= 0 ? String(r[cProp] || '').trim() : '' });
+        }));
       });
     });
   };
@@ -4457,7 +4467,8 @@ function accesosPorRol_() {
   const P = {}; out.propietarios.forEach(x => P[fin8_(x)] = 1);
   out.equipo = out.equipo.filter(x => !P[fin8_(x)]);   // si alguien es propietario, no cuenta como equipo
   out.equipo = out.equipo.filter((v, i, a) => a.indexOf(v) === i); out.propietarios = out.propietarios.filter((v, i, a) => a.indexOf(v) === i);
-  try { cache.put('acc_roles_v2', JSON.stringify(out), 1800); } catch (e) {}
+  out.socios = out.socios.filter((x, i, a) => a.findIndex(y => fin8_(y.tel) === fin8_(x.tel)) === i);
+  try { cache.put('acc_roles_v3', JSON.stringify(out), 1800); } catch (e) {}
   return out;
 }
 function routerWA_(ctx) {
@@ -4638,10 +4649,15 @@ function hubResponderWa_(resId, texto, quien, wa, adj) {
 }
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   const W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'falta WA_TOKEN o WA_PHONE_ID' };
-  const abierta = waVentana_(wa);
+  const abierta = waVentana_(wa), soc = abierta ? null : socioSeguro_(wa);
   let payload, guardado = String(texto);
   if (abierta) payload = { messaging_product: 'whatsapp', to: wa, type: 'text', text: { body: String(texto).slice(0, 4096), preview_url: true } };
-  else {
+  else if (soc) {   // socio o propietario: la plantilla para socios (Utilidad), no WA_PLANTILLA (socios.js)
+    const sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || nombre, propiedad: soc.propiedad, idioma: idioma });
+    if (sp.error) return { ok: false, error: sp.error };
+    payload = sp.payload;
+    guardado = '[plantilla para socios: ' + sp.nombre + '] · pendiente de enviar cuando responda: ' + texto;
+  } else {
     if (!W.plantilla) return { ok: false, error: 'pasaron más de 24 h desde su último mensaje y no hay plantilla configurada (WA_PLANTILLA)' };
     const en = String(idioma || '').slice(0, 2) === 'en';
     payload = { messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: W.plantilla, language: { code: en ? W.idEN : W.idES },
@@ -4651,7 +4667,7 @@ function waResponder_(wa, texto, convId, autor, idioma, nombre) {
   const r = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(payload) });
   const code = r.getResponseCode(); let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
-  if (code >= 300) return { ok: false, code: code, error: (j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + code };
+  if (code >= 300) return { ok: false, code: code, error: abierta ? ((j.error && (j.error.error_user_msg || j.error.message)) || 'HTTP ' + code) : waErrorMeta_(code, j, wa, !!soc) };
   const ts = new Date().toISOString();
   hojaWA_().appendRow([ts, wa, '', 'out', guardado.slice(0, 4000), s_(j.messages && j.messages[0] && j.messages[0].id), String(convId || 'wa:' + wa), abierta ? 'text' : 'template', autor || 'alma', '']);
   try { inboxUpsert_(String(convId || 'wa:' + wa), { ultimo_texto: guardado.slice(0, 300), ultimo_de: 'host', ultimo_ts: ts, ultimo_host_ts: ts, ultimo_canal: 'whatsapp', wa: wa }); } catch (e) {}
@@ -5161,6 +5177,7 @@ function dsBotApi_(body) {
       case 'foto_config': return json_(fotoConfig_(body));
       case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
+      case 'socio_plantilla': return json_(socioPlantillaAsegurar_(true));
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
       case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));
       case 'proy_ver': return json_(proyVer_(String(body.proyecto || ''), !!body.actualizar, 'Juan'));

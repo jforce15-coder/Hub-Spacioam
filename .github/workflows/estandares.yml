@@ -36,6 +36,14 @@ jobs:
           done
           exit $fallo
 
+      - name: Cada sc-for de las páginas lee su lista con list= (support.js no conoce each=)
+        # 3-nov: la ventana de «Acciones pendientes» usaba each= y salía vacía (la píldora decía 1, la lista 0).
+        run: |
+          if grep -rnE --include=*.html '<sc-for( [^>]*)?>' . | grep -v node_modules | grep -v 'list="'; then
+            echo "::error::Un <sc-for> sin list=\"{{ … }}\" no pinta nada (js/support.js lee solo list)."; exit 1
+          fi
+          echo "Bien."
+
       - name: Ninguna llave en el código
         run: |
           git fetch -q origin "$BASE"

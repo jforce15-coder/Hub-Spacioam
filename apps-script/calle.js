@@ -18,14 +18,21 @@
    audio. Si contesta, la app llama a «calle» con { texto, aviso_id }: la respuesta va a esa tarjeta de Pendientes
    (pendResponder_: entra al Chat con Alma y la tarjeta se cierra).
 
-   calleUso: una fila por salida en ALMA_CALLE_USO (cuánto duró, batería, cuántas veces despertó y cuántas fueron falsas);
-   calleUsoLeer las muestra en Ajustes → Uso de la app. */
+   SUEÑO (Juan, 3-nov-2026): la llamada que abre el Modo calle (por «Alma» o por un aviso) la cuelga la app sola, rápido,
+   para no gastar créditos de ElevenLabs: tras calle_silencio_s de silencio de Juan después de que Alma habló, si dice
+   «espera», «luego» o «es todo», a los calle_tope_s sin que Alma hable, o si otra llamada, Siri o los audífonos cortan el
+   audio. Luego vuelve a esperar «Alma» solo con el detector del teléfono. Los segundos van en la ficha (calleSueno_).
+
+   calleUso: una fila por salida en ALMA_CALLE_USO (cuánto duró, batería, cuántas veces despertó y cuántas fueron falsas,
+   y los segundos de llamada con ElevenLabs y cuántas colgó el sueño); calleUsoLeer las muestra en Ajustes → Uso de la app. */
 
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
 var CALLE_AUDIO_MS_ = 3000;        // el audio solo vale si ElevenLabs contestó en este tiempo
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
 var CALLE_SIGUE_ = 'Sigo en eso; te aviso al terminar.';   // todavía no está hecho: nada de «Listo» (Juan, 3-nov-2026)
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
+var CALLE_SILENCIO_S_ = 6;         // sueño: segundos de silencio de Juan, después de que Alma habló, para colgar
+var CALLE_TOPE_S_ = 45;            // sueño: segundos sin que Alma hable para colgar aunque haya ruido o gente cerca
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
   'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma en UNA frase muy corta que empiece con «Listo, …» (p. ej. «Listo, anotado», «Listo, le escribí a Flor»). ' +
@@ -137,6 +144,14 @@ function calleAudio_(hablar, t0) {
   } catch (e) { console.error('calleAudio_: ' + e); return ''; }
 }
 
+/* Los segundos del sueño para la ficha de la llamada (vozWebInicio_). Se ajustan sin otra versión con las Propiedades del
+   script CALLE_SILENCIO_S (3 a 30) y CALLE_TOPE_S (15 a 180). */
+function calleSueno_() {
+  var p = PropertiesService.getScriptProperties();
+  var num = function (k, d, min, max) { var n = Number(p.getProperty(k)); return n > 0 ? Math.max(min, Math.min(max, n)) : d; };
+  return { silencio: num('CALLE_SILENCIO_S', CALLE_SILENCIO_S_, 3, 30), tope: num('CALLE_TOPE_S', CALLE_TOPE_S_, 15, 180) };
+}
+
 /* ── Notificación hablada ── */
 /* La tarjeta de Pendientes de un aviso: el aviso lleva el id del tema por retomar (ret_id) o el de la tarjeta. */
 function callePendDeAviso_(pends, avisoId) {
@@ -229,14 +244,15 @@ function calleAviso_(ses, adm, texto, avisoId) {
 /* ── calleUso: una fila por salida en ALMA_CALLE_USO ──
    La app manda { usos: [{ inicio, fin, minutos, gatillos, despertares, descartes, falsos, pedidos, llamadas, avisos,
    errores, despertaresHora, falsosHora, gatillosHora, bateriaInicio?, bateriaFin?, bateriaGastada?, bateriaHora?,
-   detector }] } con las que todavía no llegaron (la batería en %). Se acepta también la forma vieja, plana:
+   detector, llamadaSeg?, llamadasSleep?, llamadasCorte? }] } con las que todavía no llegaron (la batería en %). Se acepta también la forma vieja, plana:
    { inicio, fin, bateria_ini, bateria_fin, despertares, falsos } (batería de 0 a 1 → se guarda en %).
    La app reintenta lo que no recibió «ok»: una salida que ya está (mismo usuario e inicio) no se repite. */
 var CALLE_USO_CAB_ = ['ts', 'usuario', 'inicio', 'fin', 'minutos', 'bateria_ini', 'bateria_fin', 'bateria_gastada', 'despertares', 'falsos',
-  'bateria_hora', 'despertares_hora', 'falsos_hora', 'gatillos', 'gatillos_hora', 'descartes', 'pedidos', 'llamadas', 'avisos', 'errores', 'detector'];
+  'bateria_hora', 'despertares_hora', 'falsos_hora', 'gatillos', 'gatillos_hora', 'descartes', 'pedidos', 'llamadas', 'avisos', 'errores', 'detector',
+  'llamada_seg', 'llamadas_sleep', 'llamadas_corte'];   // lo que se gasta en ElevenLabs (al final: lo de antes no se mueve)
 function calleUsoHoja_() {
   var sh = hojaCrear_('ALMA_CALLE_USO', CALLE_USO_CAB_), n = CALLE_USO_CAB_.length;
-  /* Una hoja hecha con la cabecera vieja (10 columnas): las nuevas van al final, lo de antes no se mueve. */
+  /* Una hoja hecha con una cabecera vieja (10 o 21 columnas): las nuevas van al final, lo de antes no se mueve. */
   if (sh.getLastColumn() < n) {
     if (sh.getMaxColumns() < n) sh.insertColumnsAfter(sh.getMaxColumns(), n - sh.getMaxColumns());
     sh.getRange(1, 1, 1, n).setValues([CALLE_USO_CAB_]);
@@ -264,7 +280,7 @@ function calleUsoFila_(email, u) {
   return [new Date().toISOString(), email, ini.toISOString(), fin ? fin.toISOString() : '', min, bi, bf, gastada,
     num(u.despertares), num(u.falsos), porHora(gastada, u.bateriaHora), porHora(u.despertares, u.despertaresHora), porHora(u.falsos, u.falsosHora),
     num(u.gatillos), porHora(u.gatillos, u.gatillosHora), num(u.descartes), num(u.pedidos), num(u.llamadas), num(u.avisos), num(u.errores),
-    String(u.detector || '').slice(0, 60)];
+    String(u.detector || '').slice(0, 60), num(u.llamadaSeg), num(u.llamadasSleep), num(u.llamadasCorte)];
 }
 function calleUso_(ses, b) {
   b = b || {};
@@ -279,7 +295,7 @@ function calleUso_(ses, b) {
   return { ok: true, guardadas: nuevas.length };
 }
 /* calleUsoLeer { n? } → { ok, usos: [{ inicio, minutos, bateriaGastada, bateriaHora, despertares, falsos, despertaresHora,
-   falsosHora, pedidos }] }: las últimas salidas del principal, la más nueva primero (Ajustes → Uso de la app). Solo lee la hoja. */
+   falsosHora, pedidos, llamadas, llamadaSeg, llamadasSleep, llamadasCorte }] }: las últimas salidas del principal, la más nueva primero (Ajustes → Uso de la app). Solo lee la hoja. */
 function calleUsoLeer_(ses, b) {
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal.' };
@@ -295,7 +311,8 @@ function calleUsoLeer_(ses, b) {
     var ini = de(r, 'inicio');
     return { inicio: ini instanceof Date ? ini.toISOString() : String(ini || ''), minutos: de(r, 'minutos'), bateriaGastada: de(r, 'bateria_gastada'),
       bateriaHora: de(r, 'bateria_hora'), despertares: de(r, 'despertares'), falsos: de(r, 'falsos'),
-      despertaresHora: de(r, 'despertares_hora'), falsosHora: de(r, 'falsos_hora'), pedidos: de(r, 'pedidos') };
+      despertaresHora: de(r, 'despertares_hora'), falsosHora: de(r, 'falsos_hora'), pedidos: de(r, 'pedidos'),
+      llamadas: de(r, 'llamadas'), llamadaSeg: de(r, 'llamada_seg'), llamadasSleep: de(r, 'llamadas_sleep'), llamadasCorte: de(r, 'llamadas_corte') };
   });
   return { ok: true, usos: usos };
 }

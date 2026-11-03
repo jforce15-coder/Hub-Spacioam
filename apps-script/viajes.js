@@ -124,7 +124,7 @@ function viajesParaAlma_(adm) {
     return x;
   };
   var out = viajes.map(function (v) {
-    return { confirmacion: v.confirmacion, aerolinea: v.aerolinea, pasajero: v.pasajero, checkin_url: v.checkin_url,
+    return { confirmacion: v.confirmacion, aerolinea: v.aerolinea, pasajero: v.pasajero, checkin_url: v.checkin_url, avisar_al_aterrizar: avlNombres_(v.id),
       tramos: v.tramos.map(function (t, i) { return tramo(v, t, i); }) };
   });
   return { ok: true, ahora_utc: new Date(ahora).toISOString(), mi_vuelo: mio || undefined,

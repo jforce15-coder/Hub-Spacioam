@@ -264,6 +264,7 @@
     ".san-scope .san-rp{padding:0 18px 16px}.san-scope .san-rp[hidden]{display:none}.san-scope .san-rp textarea{width:100%;box-sizing:border-box;min-height:84px;resize:none;border:1px solid #E6E1DB;border-radius:18px;padding:12px 14px;font:500 14.5px/1.5 Montserrat,system-ui,sans-serif;color:#3E3F3F;background:#FBFAF8;outline:none}.san-scope .san-rp textarea:focus{border-color:#E9826A;background:#fff}",
     ".san-scope .san-rp .cj{position:relative;border-radius:18px}.san-scope .san-rp .mas{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:transparent;color:#3E3F3F}.san-scope .san-rp .mas[hidden]{display:none}.san-scope .san-rp .fi{display:flex;align-items:center;gap:10px;margin-top:10px}.san-scope .san-rp .st{flex:1;min-width:0;font:500 12.5px/1.4 Montserrat,system-ui,sans-serif;color:#8A8580}.san-scope .san-rp .mic{flex:none;width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;display:grid;place-items:center;background:#F3EFEA;color:#3E3F3F}.san-scope .san-rp .mic.on{background:#E9826A;color:#fff;animation:sanLate 1.2s ease-in-out infinite}",
     ".san-scope .san-rp .ev{flex:none;border:0;cursor:pointer;padding:12px 18px;border-radius:999px;background:#3E3F3F;color:#FAF8F6;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase}.san-scope .san-rp .ev:disabled{opacity:.45}.san-scope .san-rp .ok{margin:0;padding:12px 14px;border-radius:16px;background:#E6F2EA;color:#2F6B47;font:500 14px/1.5 Montserrat,system-ui,sans-serif}",
+    ".san-scope .san-pc .og .md{margin-top:10px;font-size:13px;line-height:1.45;color:#5C5650;overflow-wrap:anywhere}.san-scope .san-pc .og .md p{margin:0 0 8px}.san-scope .san-pc .og .md h4{margin:10px 0 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#8A8580}.san-scope .san-pc .og .md ul,.san-scope .san-pc .og .md ol{margin:0 0 8px;padding-left:18px}.san-scope .san-pc .og .md li{margin:2px 0}.san-scope .san-pc .og .md .md-tabla{overflow-x:auto;margin:0 0 8px}.san-scope .san-pc .og .md table{border-collapse:collapse;font-size:12px}.san-scope .san-pc .og .md td,.san-scope .san-pc .og .md th{padding:4px 8px;border-bottom:1px solid #ECE6DF;text-align:left}" +
     ".san-scope .san-pc .og{margin-top:12px}.san-scope .san-pc .og summary{cursor:pointer;font:600 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#A39B93;list-style:none}.san-scope .san-pc .og p{margin:10px 0 0;font-size:12.5px;color:#8A8580}",
     /* Las opciones de una pregunta (de Claudio, de Alma o del borrador) como la tarjeta de acción del chat (ds/chat.css): filas con ícono y título; al tocar una se envía como respuesta (#374). */
     ".san-scope .san-ops{margin:0 14px 14px;padding:4px 0;border-radius:20px;background:#FFFFFF;box-shadow:0 2px 6px rgba(0,0,0,.04),0 10px 28px rgba(0,0,0,.08)}.san-scope .san-op{width:100%;display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 14px;border:0;background:transparent;text-align:left;cursor:pointer;font:600 14px/1.2 Montserrat,system-ui,sans-serif;color:#222;-webkit-tap-highlight-color:transparent;transition:background .18s cubic-bezier(.22,.61,.36,1),transform .1s}",
@@ -1674,7 +1675,9 @@
       aj.appendChild(as); aj.appendChild(ul); cu.appendChild(aj); }
     if (p.resolver && cfg.pendientes.resolver) { var rx = d.createElement("button"); rx.type = "button"; rx.className = "sec"; rx.textContent = p.resolver_texto || "Ya está";   /* «Dejar de vigilar» en una vigilancia (apps-script/vigilancias.js) */ rx.onclick = function () { tocado(rx); quita(); try { cfg.pendientes.resolver(p.id); } catch (e) {} }; bt.appendChild(rx); }
     if (p.hecho && cfg.pendientes.hecho) { var hx = d.createElement("button"); hx.type = "button"; hx.className = "sec"; hx.textContent = "Ya lo hice"; hx.onclick = function () { tocado(hx); quita(); try { cfg.pendientes.hecho(p.id); } catch (e) {} }; bt.appendChild(hx); }
-    if (p.detalle || p.original) { var og = d.createElement("details"); og.className = "og"; var sm = d.createElement("summary"); sm.textContent = p.fuente === "alma" ? "Lo que respondió Alma" : "Lo que dijo Claudio"; var po = d.createElement("p"); po.textContent = p.detalle || p.original; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
+    /* La respuesta completa, con sus listas y tablas (mdNodos, lo mismo que pinta «Mostrar en el chat»). Lo que terminó en
+       segundo plano (p.resultado) viene abierto: es la respuesta que pidió (Juan, 3-nov). */
+    if (p.detalle || p.original) { var og = d.createElement("details"); og.className = "og"; if (p.resultado) og.open = true; var sm = d.createElement("summary"); sm.textContent = p.fuente === "alma" ? (p.resultado ? "La respuesta completa" : "Lo que respondió Alma") : "Lo que dijo Claudio"; var po = mdNodos(String(p.detalle || p.original).replace(/\[\[[\s\S]*?\]\]/g, "").trim()); po.className = "md"; og.appendChild(sm); og.appendChild(po); cu.appendChild(og); }
     var rp = p.responder && cfg.pendientes.responder ? pendResponder(p, quita) : null;
     if (rp) { var rb = d.createElement("button"); rb.type = "button"; rb.setAttribute("data-a", "responder"); rb.textContent = opsEl ? "Otra respuesta" : "Responder"; if (opsEl) rb.className = "sec";
       rb.onclick = function () { rp.hidden = !rp.hidden; if (!rp.hidden) { c.classList.add("abierta"); try { rp.querySelector("textarea").focus(); } catch (e) {} } }; bt.insertBefore(rb, bt.firstChild); }
@@ -1685,6 +1688,46 @@
     return c;
   }
   var MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  /* Markdown sencillo (títulos, listas, tablas y negritas) armado con nodos: el texto nunca entra como HTML. Lo usan las
+     tarjetas de Pendientes y «Mostrar en el chat» (alma/index.html, SANav.md). */
+  function mdLinea(el, t) {
+    String(t).split(/(\*\*[^*]+\*\*)/).forEach(function (p) {
+      if (!p) return;
+      if (/^\*\*[^*]+\*\*$/.test(p)) { var b = d.createElement("strong"); b.textContent = p.slice(2, -2); el.appendChild(b); }
+      else el.appendChild(d.createTextNode(p));
+    });
+    return el;
+  }
+  function mdNodos(md) {
+    var box = d.createElement("div"), ls = String(md || "").replace(/\r/g, "").split("\n"), i = 0, lista = null, m;
+    var esFila = function (x) { return /^\|.*\|$/.test(x.trim()); }, esRaya = function (x) { return /^\|[\s:|-]+\|$/.test(x.trim()); };
+    var celdas = function (x) { return x.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (c) { return c.trim(); }); };
+    while (i < ls.length) {
+      var t = ls[i].trim();
+      if (!t) { lista = null; i++; continue; }
+      if (esFila(t)) {
+        lista = null; var filas = [];
+        while (i < ls.length && esFila(ls[i])) filas.push(ls[i++]);
+        var cab = filas.length > 1 && esRaya(filas[1]), tw = d.createElement("div"), tb = d.createElement("table");
+        tw.className = "md-tabla";
+        filas.forEach(function (f, n) {
+          if (esRaya(f)) return;
+          var tr = d.createElement("tr");
+          celdas(f).forEach(function (c) { tr.appendChild(mdLinea(d.createElement(n === 0 && cab ? "th" : "td"), c)); });
+          tb.appendChild(tr);
+        });
+        tw.appendChild(tb); box.appendChild(tw); continue;
+      }
+      if ((m = /^#{1,4}\s+(.*)$/.exec(t))) { lista = null; box.appendChild(mdLinea(d.createElement("h4"), m[1])); i++; continue; }
+      if ((m = /^([-*•·]|\d+[.)])\s+(.*)$/.exec(t))) {
+        var tipo = /^\d/.test(m[1]) ? "OL" : "UL";
+        if (!lista || lista.tagName !== tipo) { lista = d.createElement(tipo); box.appendChild(lista); }
+        lista.appendChild(mdLinea(d.createElement("li"), m[2])); i++; continue;
+      }
+      lista = null; box.appendChild(mdLinea(d.createElement("p"), t)); i++;
+    }
+    return box;
+  }
   function pendFecha(ts) { var f = new Date(Number(ts)); return isNaN(f) ? "" : f.getDate() + " " + MESES[f.getMonth()]; }
   var OP_IC = { check: '<path d="M5 12.5l4.2 4.2L19 7"/>', x: '<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>', chat: '<path d="M5 6h14v9H9l-4 3.5z"/>', pencil: '<path d="M5 19l1-4 9.5-9.5 3 3L9 18z"/>',
     calendar: '<rect x="4.5" y="5.5" width="15" height="14" rx="2.5"/><path d="M4.5 10h15M9 3.5v4M15 3.5v4"/>', clock: '<circle cx="12" cy="12" r="7.5"/><path d="M12 8v4.5l3 2"/>', file: '<path d="M7 3.5h7l4 4V20H7z"/><path d="M14 3.5V8h4"/>', arrowUpRight: '<path d="M7.5 16.5l9-9M9 7.5h7.5V15"/>' };
@@ -2279,6 +2322,8 @@
     /* la barra de avisos del inicio: los datos de Pendientes y Notificaciones, una tarjeta con sus botones y abrirla en su hoja */
     datos: function () { return { pend: AL.pendData, noti: AL.notiData }; },
     tarjeta: function (p, tag) { var c = pendTarjeta(p, tag || ""); c.classList.add("abierta"); return c; },
+    /* Markdown sencillo → nodos (sin HTML): SANav.md("- uno\n- dos") */
+    md: function (t) { return mdNodos(t); },
     ver: verTarjeta,
     mount: function (c) {
       if (root) { this.update(c); return; }

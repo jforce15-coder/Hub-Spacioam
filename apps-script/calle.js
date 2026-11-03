@@ -159,11 +159,12 @@ function avisoHablarDe_(a, rets, pends) {
   a = a || {};
   var pd = callePendDeAviso_(pends, a.id), nivel = avisoNivel_(a, rets, pends), importante = nivel <= 2;
   var base = calleLimpiar_(a.texto || (pd && (pd.resumen || pd.titulo)) || '');
-  /* Terminó algo de segundo plano (aviso con resultado): en modo conferencia la app lo dice sin que Juan la llame. */
-  if (a.resultado && !importante) {   // si pide algo de él, gana «¿Lo vemos?» (una sola pregunta, nunca «¿Le pago. ¿Quieres verlo…?»)
+  /* Terminó algo de segundo plano (aviso con resultado): en modo conferencia la app lo dice sin que Juan la llame. Lo que
+     pidió en una llamada del modo conferencia (a.conferencia) llega como nivel 1, pero se dice como resultado. */
+  if (a.resultado && (!importante || a.conferencia)) {   // si pide algo de él, gana «¿Lo vemos?» (una sola pregunta, nunca «¿Le pago. ¿Quieres verlo…?»)
     base = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || []).filter(function (f) { return !/\?\s*["»”)]*\s*$/.test(f); }).join(' ').trim() || base;
-    base = calleCorto_(base, CALLE_PALABRAS_ - 8).replace(/[\s.!?…,;:]+$/, '');
-    var yaDice = /\b(list[oa]s?|termin\w*|qued[oó]|hecho)\b/i.test(base);   // «La limpieza quedó lista»: sin repetir «Ya quedó listo»
+    base = calleCorto_(base, a.conferencia ? CALLE_PALABRAS_ : CALLE_PALABRAS_ - 8).replace(/[\s.!?…,;:]+$/, '');   // en conferencia lo que pidió: la respuesta, no solo el aviso
+    var yaDice = /\b(list[oa]s?|termin\w*|qued[oó]|hecho|ya tengo|ya est[aá])\b/i.test(base);   // «La limpieza quedó lista», «Ya tengo…»: sin repetir «Ya quedó listo»
     return { hablar: (base ? (yaDice ? base : 'Ya quedó listo: ' + base) : 'Ya quedó listo') + '. ¿Quieres verlo ahora?', importante: importante, nivel: nivel };
   }
   if (importante) {
@@ -172,6 +173,22 @@ function avisoHablarDe_(a, rets, pends) {
     return { hablar: (base ? base + '. ' : '') + '¿Lo vemos?', importante: true, nivel: nivel };
   }
   return { hablar: calleCorto_(base, CALLE_PALABRAS_), importante: false, nivel: nivel };
+}
+/* La respuesta en la notificación (Juan, 3-nov: «muy escueta»): hasta n líneas cortas del resultado, sin markdown, enlaces,
+   etiquetas [[…]], la lista de lo hecho ni textos internos. Sin IA. */
+var AVISO_LINEA_MAX_ = 110;
+function avisoLineas_(texto, n) {
+  var s = String(texto == null ? '' : texto).replace(/\r\n?/g, '\n').replace(/\n\s*Hecho:[\s\S]*$/, '')
+    .replace(/\[\[[\s\S]*?\]\]/g, ' ').replace(/```[\s\S]*?```/g, ' ')
+    .replace(/\[([^\]\n]+)\]\([^)\s]+\)/g, '$1').replace(/https?:\/\/\S+|www\.\S+/gi, '')
+    .replace(/\*\*|__|[*`~]/g, '');
+  var ls = s.split('\n').map(function (l) {
+    return l.replace(/^\s*(?:[-•·]|\d+[.)])\s+/, '').replace(/^\s*#+\s*/, '').replace(/^\s*>\s?/, '').replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
+  }).filter(function (l) {
+    return l.length > 2 && !/^[-:\s]+$/.test(l) && !/^[{\[]/.test(l) && !/\b(secretaria|end_call|segundo_plano|skip_turn|mostrar_en_chat|TARDA MÁS)\b/i.test(l);
+  });
+  if (ls.length === 1) ls = (ls[0].match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || ls).map(function (f) { return f.trim(); }).filter(Boolean);   // un solo párrafo: sus frases
+  return ls.slice(0, n || 3).map(function (l) { return l.length <= AVISO_LINEA_MAX_ ? l : l.slice(0, AVISO_LINEA_MAX_ - 1).replace(/\s+\S*$/, '') + '…'; });
 }
 /* avisoHablar { aviso_id, resultado? } → { ok, id, nivel, hablar, importante, audio? }. Busca en el historial de avisos
    (3 días). resultado: la app sabe que terminó algo de segundo plano (lo de nivel 3 no entra al historial). Solo arma la

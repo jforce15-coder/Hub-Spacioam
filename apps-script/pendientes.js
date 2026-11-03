@@ -27,12 +27,14 @@ function pendFilas_() {
 }
 
 /* ── Entrada 1: cada pedido a Alma (en cola; se clasifica en procesarCola) ── */
-function pendEncolar_(adm, pedido, respuesta, canal) {
+function pendEncolar_(adm, pedido, respuesta, canal, o) {
   if (!adm || !adm.email || !esAdminPrincipal_(adm) || !String(respuesta || '').trim()) return;
   var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return;
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('PEND_COLA') || '[]'); } catch (e) {}
-    cola.push({ email: adm.email, pedido: String(pedido || '').slice(0, 1500), respuesta: String(respuesta).slice(0, 3500), canal: canal || '', t: Date.now() });
+    var x = { email: adm.email, pedido: String(pedido || '').slice(0, 1500), respuesta: String(respuesta).slice(0, 3500), canal: canal || '', t: Date.now() };
+    if (o && o.conf) x.conf = 1;   // lo pidió en una llamada del modo conferencia
+    cola.push(x);
     p.setProperty('PEND_COLA', JSON.stringify(cola.slice(-25)));
   } finally { lock.releaseLock(); }
 }
@@ -42,7 +44,11 @@ function pendProcesar_() {
   try { try { cola = JSON.parse(p.getProperty('PEND_COLA') || '[]'); } catch (e) {} if (cola.length) p.deleteProperty('PEND_COLA'); } finally { lock.releaseLock(); }
   cola.slice(0, 8).forEach(function (x) {
     var adm = adminPorEmail_(x.email); if (!adm) return;
-    try { pendCrear_(adm, pendClasificar_(x.pedido, x.respuesta, ''), { origen: x.canal, detalle: x.respuesta, push: x.canal === 'segundo_plano' }); }
+    try {
+      var c = pendClasificar_(x.pedido, x.respuesta, '');
+      if (x.canal === 'segundo_plano' && c.tipo === 'nada') c.tipo = 'aviso';   // lo que pidió y terminó por detrás siempre deja su resultado
+      pendCrear_(adm, c, { origen: x.canal, detalle: x.respuesta, push: x.canal === 'segundo_plano', conf: !!x.conf });
+    }
     catch (e) { console.error('pendProcesar_: ' + e); }
   });
 }
@@ -100,7 +106,7 @@ function pendCrear_(adm, c, o) {
   var it = null;
   /* Lo que necesita a Juan también queda como tema por retomar (Alma empieza por ahí en la próxima llamada). */
   if (c.tipo === 'atencion' && o.push) {
-    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id, { resultado: o.origen === 'segundo_plano' }); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
+    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id, o.conf ? { resultado: true, conferencia: true, nivel: 1 } : { resultado: o.origen === 'segundo_plano' }); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
     titulo: tituloCorto_(c.titulo, 100), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
@@ -110,7 +116,8 @@ function pendCrear_(adm, c, o) {
   /* Lo que no pide nada (Para leer, Listo hoy) también llega a la app como notificación de nivel 3 (calle.js), con el id
      de la tarjeta; no entra al historial porque Notificaciones ya la muestra. */
   /* Solo avisa lo que TERMINÓ (segundo plano); lo demás queda en la tarjeta sin notificación (Juan, 2-nov: nada de «ya se envió»). */
-  if (c.tipo !== 'atencion' && o.origen === 'segundo_plano') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, { nivel: 3, historial: false, resultado: true }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
+  /* Lo que pidió en una llamada del modo conferencia se dice y suena siempre (nivel 1, salvo «Silencio»; Juan, 3-nov). */
+  if (c.tipo !== 'atencion' && o.origen === 'segundo_plano') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, o.conf ? { nivel: 1, historial: false, resultado: true, conferencia: true } : { nivel: 3, historial: false, resultado: true }); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
   return fila;
 }
 
@@ -152,7 +159,7 @@ function pendItems_(ses, adm, noti) {
     if (String(x.email).toLowerCase() !== String(adm.email).toLowerCase() || !vivo) return;
     var tj = null, ac = []; try { tj = x.tarjeta ? JSON.parse(x.tarjeta) : null; } catch (e) {} try { ac = JSON.parse(x.acciones || '[]'); } catch (e) {}
     items.push({ id: String(x.id), fuente: 'alma', seccion: PEND_SECCION_[x.tipo] || 'leer', area: x.area, proyecto: x.proyecto, titulo: x.titulo, resumen: x.resumen,
-      detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion', responder: x.tipo === 'atencion' });
+      detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion', responder: x.tipo === 'atencion', resultado: x.origen === 'segundo_plano' });
   });
   /* Lo que Alma está vigilando (vigilancias.js): «Vigilando: …» con «Dejar de vigilar». */
   try { if (!noti) vigTarjetas_(adm).forEach(function (x) { items.push(x); }); } catch (e) { console.error('pendItems_ vigilancias: ' + e); }

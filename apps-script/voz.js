@@ -917,7 +917,7 @@ function vozBorradorTurno_(adm, texto, explicito) {
 /* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
    y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
 function vozSecEncolar_(tel, pedido, conf) {
-  var lock = LockService.getScriptLock(); lock.waitLock(5000);
+  var lock = vozColaLock_(); lock.waitLock(10000);   // retomar.js: el del script lo tiene procesarCola con los huéspedes
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
     var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;   // lo pidió en modo conferencia: el resultado se le dice al oído
@@ -939,7 +939,7 @@ function vozSecretariaPronto() {
   try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // el resultado a Pendientes (y su aviso) ya, sin esperar al minuto
 }
 function vozSecProcesar_() {
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock();
+  var p = PropertiesService.getScriptProperties(), lock = vozColaLock_();
   for (var n = 0; n < 3; n++) {
     var grupo = [];
     if (!lock.tryLock(5000)) return;

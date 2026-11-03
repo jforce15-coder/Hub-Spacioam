@@ -121,12 +121,18 @@ function retDespuesLlamada_(adm, transcript) {
    lo trabaja por detrás y cuelga; el resultado llega como tema por retomar (y notificación) si necesita algo de ti. */
 function vozTolerancia_() { var n = Number(PropertiesService.getScriptProperties().getProperty('VOZ_TOLERANCIA_S')); return (n >= 8 && n <= 50 ? n : 20) * 1000; }
 
+/* El candado de las colas de la llamada (VOZ_SEGUIR aquí y VOZ_SEC_COLA en voz.js): el del usuario, no el del script.
+   El del script lo tiene procesarCola durante toda su pasada (las respuestas a huéspedes con Claude y hasta 40 s de espera
+   para un envío). El 2-nov a las 18:39 la llamada no lo consiguió en 5 s, la secretaria se cayó («error interno») y el
+   mensaje a la huésped no salió al primer intento. Todo corre como Juan (webapp USER_DEPLOYING y disparadores), así que
+   el del usuario protege lo mismo sin esperar a los huéspedes. */
+function vozColaLock_() { try { var l = LockService.getUserLock(); if (l) return l; } catch (e) {} return LockService.getScriptLock(); }
 function vozSeguirGuardar_(o) {
   var id = 'sg' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), s = JSON.stringify(o), c = CacheService.getScriptCache(), partes = {}, n = 0;
   for (var i = 0; i < s.length; i += 90000) partes[id + '_' + (n++)] = s.slice(i, i + 90000);
   partes[id] = String(n);
   c.putAll(partes, 21600);
-  var lock = LockService.getScriptLock(); lock.waitLock(5000);
+  var lock = vozColaLock_(); lock.waitLock(10000);
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEGUIR') || '[]'); } catch (e) {}
     cola.push({ id: id, email: o.email, t: Date.now() }); p.setProperty('VOZ_SEGUIR', JSON.stringify(cola.slice(-10)));
@@ -148,7 +154,7 @@ function vozSeguirLeer_(id) {
 function vozSeguirPronto() {
   cupoCanal_('Voz');
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSeguirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock();
+  var p = PropertiesService.getScriptProperties(), lock = vozColaLock_();
   for (var n = 0; n < 4; n++) {
     var it = null;
     if (!lock.tryLock(5000)) return;

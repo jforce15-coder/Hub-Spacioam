@@ -1819,7 +1819,7 @@
       if (e.tipo === "estado") {
         var en = e.estado === "hablando" || e.estado === "conectando";
         if (en !== PP.enLlamada) { PP.enLlamada = en; if (!en) { PP.vivo = null; if (PP.hoja) cerrarHoja(); } pintarChips(); if (PP.datos) pintar(); }
-        if (e.personalidad) this.evento(Object.assign({ tipo: "personalidad" }, e.personalidad));
+        if (e.personalidad && !PP.vivo) this.evento(Object.assign({ tipo: "personalidad" }, e.personalidad));   // la página se abrió a media llamada
         return;
       }
       if (e.tipo !== "personalidad") return;

@@ -4,13 +4,14 @@
    2. aprobada: llena WA_PLANTILLA_SOCIO y sus idiomas y avisa a Juan una vez que ya puede escribirle a Jorge;
    3. recategorizada a Marketing: avisa una sola vez con el motivo, apaga ese idioma y no la vuelve a mandar;
    4. el mensaje lleva las 4 variables con datos reales (propiedad, periodo, detalle) y un +1 va en inglés;
-   5. actualizacion_cuenta_socio (la vieja) ya no se usa.
+   5. actualizacion_cuenta_socio (la vieja, Marketing) no va a un +1; a los demás sí, solo mientras la nueva no esté aprobada.
    node .github/socio-plantilla.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 const JORGE = '17865550123';   // número de prueba (+1), no es el real
+const LUCIA = '50255550123';   // socia de prueba de Guatemala (+502)
 function caja() {
   const props = { WA_WABA_ID: 'waba1', WA_TOKEN: 'prueba', WA_PLANTILLA_SOCIO: 'actualizacion_cuenta_socio' };
   const meta = { plantillas: [], posts: [], gets: 0 };   // lo que «Meta» tiene
@@ -34,7 +35,7 @@ function caja() {
     fin8_: x => String(x || '').replace(/\D/g, '').slice(-8),
     normTel_: x => String(x || '').replace(/\D/g, ''),
     adminPorTel_: () => null,
-    accesosPorRol_: () => ({ socios: [{ tel: JORGE, nombre: 'Jorge Marroquín', propiedad: 'Brunelo 705' }] }),
+    accesosPorRol_: () => ({ socios: [{ tel: JORGE, nombre: 'Jorge Marroquín', propiedad: 'Brunelo 705' }, { tel: LUCIA, nombre: 'Lucía Pérez', propiedad: 'apartamento 1508' }] }),
     waPropietarios_: () => [], contactoFicha_: () => null, waHilo_: () => [], idiomaDe_: () => 'es',
     hojaEnc_: () => ({ getLastRow: () => 2, getRange: () => ({ getValues: () => [['en1', new Date().toISOString(), 'juan@x', '', 'Jorge Marroquín', JORGE, 'ESPERA SU RESPUESTA', 'abierto', '', '']] }) }),
     ENC_CAB_: ['id', 'creado', 'solicitante', 'solicitante_tel', 'persona', 'tel', 'objetivo', 'estado', 'resumen', 'cerrado']
@@ -47,7 +48,14 @@ function caja() {
 /* 5 · La vieja no se usa aunque siga puesta. */
 let C = caja();
 let pl = C.ctx.socioPlantillaPayload_(JORGE, { nombre: 'Jorge Marroquín', propiedad: 'Brunelo 705', texto: 'Hola Jorge, tu estado de cuenta de octubre está listo.' });
-ok(pl.error && /estado_cuenta_socio/.test(pl.error), 'actualizacion_cuenta_socio ya no se usa: sin la nueva aprobada, no sale nada y lo dice');
+ok(pl.error && /estado_cuenta_socio/.test(pl.error), 'actualizacion_cuenta_socio no va a un +1: sin la nueva aprobada, no sale nada y lo dice');
+pl = C.ctx.socioPlantillaPayload_(LUCIA, { nombre: 'Lucía Pérez', propiedad: 'apartamento 1508', texto: 'Hola Lucía, tu pago quedó registrado.' });
+ok(pl.payload && pl.payload.template.name === 'actualizacion_cuenta_socio' && pl.payload.template.language.code === 'es' &&
+  JSON.stringify(pl.payload.template.components[0].parameters.map(x => x.text)) === '["Lucía","apartamento 1508"]', 'sin +1 y sin la nueva aprobada, va la vieja (Marketing sí llega) con sus 2 variables');
+C.props.WA_PLANTILLA_SOCIO = '';
+pl = C.ctx.socioPlantillaPayload_(LUCIA, { nombre: 'Lucía Pérez', propiedad: 'apartamento 1508', texto: 'x' });
+ok(pl.payload && pl.payload.template.name === 'actualizacion_cuenta_socio', 'también si WA_PLANTILLA_SOCIO está vacía');
+C.props.WA_PLANTILLA_SOCIO = 'actualizacion_cuenta_socio';
 
 /* 1 · Crear. */
 let r = C.ctx.socioPlantillaAsegurar_(true);
@@ -80,6 +88,8 @@ C.ctx.contactoFicha_ = () => ({ resumen: 'Habla español', rol: 'socio' });
 pl = C.ctx.socioPlantillaPayload_(JORGE, { nombre: 'Jorge Marroquín', propiedad: 'Brunelo 705', texto: 'Registramos tu pago de noviembre' });
 ok(pl.payload.template.language.code === 'es' && / de \d{4}$/.test(pl.payload.template.components[0].parameters[2].text), 'si su ficha dice español, va en español con «noviembre de 2026»');
 C.ctx.contactoFicha_ = () => null;
+pl = C.ctx.socioPlantillaPayload_(LUCIA, { nombre: 'Lucía Pérez', propiedad: 'apartamento 1508', texto: 'Hola Lucía, registramos tu pago de noviembre.' });
+ok(pl.payload.template.name === 'estado_cuenta_socio' && pl.payload.template.components[0].parameters.length === 4, 'aprobada la nueva, también a los que no son +1 les va la nueva');
 ok(C.ctx.socioDetalle_('', false) && C.ctx.socioDetalle_('x'.repeat(300), false).length <= 101, 'el detalle nunca va vacío ni pasa de 100 letras');
 
 /* 3 · Meta la pasa a Marketing (como a la anterior). */
@@ -96,7 +106,9 @@ ok(pl.payload && pl.payload.template.language.code === 'es', 'con el inglés apa
 C.meta.plantillas.find(t => t.language === 'es').category = 'MARKETING';
 C.ctx.socioPlantillaAsegurar_(true);
 pl = C.ctx.socioPlantillaPayload_(JORGE, { nombre: 'Jorge', propiedad: 'Brunelo 705', texto: 'x' });
-ok(pl.error && C.avisos.length === 3, 'si los dos idiomas pasan a Marketing, no manda nada y avisa una vez más (español)');
+ok(pl.error && C.avisos.length === 3, 'si los dos idiomas pasan a Marketing, a un +1 no le manda nada y avisa una vez más (español)');
+pl = C.ctx.socioPlantillaPayload_(LUCIA, { nombre: 'Lucía Pérez', propiedad: 'apartamento 1508', texto: 'x' });
+ok(pl.payload && pl.payload.template.name === 'actualizacion_cuenta_socio', 'y a los que no son +1 les vuelve a ir la vieja');
 r = C.ctx.socioPlantillaAsegurar_(false);
 ok(r.espera, 'ya decidido cada idioma, revisa solo una vez al día');
 

@@ -3,7 +3,8 @@
    Las que había (contacto_alma, WA_PLANTILLA) Meta las trata como marketing, y a los números de EE. UU. (+1) Meta no
    les entrega marketing: el socio nunca recibía el mensaje. La plantilla para socios es de categoría Utilidad.
    La primera (actualizacion_cuenta_socio, #414) decía solo «tenemos una actualización sobre tu cuenta»: muy general, y
-   el 3-nov Meta la pasó a Marketing. Ya no se usa (sigue en Meta, no se borra). La de ahora, estado_cuenta_socio, nombra
+   el 3-nov Meta la pasó a Marketing. Sigue en Meta (no se borra) y solo se usa con números que no son +1 mientras la
+   nueva no esté aprobada (Marketing sí les llega). La de ahora, estado_cuenta_socio, nombra
    algo concreto de la cuenta del socio: la propiedad, el periodo y el detalle (Juan, 3-nov). El Hub la crea y la activa:
      WA_PLANTILLA_SOCIO            estado_cuenta_socio (la pone el Hub cuando Meta la aprueba como Utilidad)
      WA_PLANTILLA_SOCIO_IDIOMA     es, o «no» si la de español no quedó como Utilidad
@@ -17,7 +18,7 @@
    Solo el administrador principal puede escribirle a un socio desde Alma. */
 
 var SOCIO_PLANTILLA_SUGERIDA_ = 'estado_cuenta_socio';
-var SOCIO_PLANTILLA_VIEJA_ = 'actualizacion_cuenta_socio';   // Meta la pasó a Marketing el 3-nov: se ignora
+var SOCIO_PLANTILLA_VIEJA_ = 'actualizacion_cuenta_socio';   // Meta la pasó a Marketing el 3-nov: solo para números que no son +1, mientras la nueva no esté aprobada
 
 function socioPlantillaCfg_() {
   var p = PropertiesService.getScriptProperties(), nom = String(p.getProperty('WA_PLANTILLA_SOCIO') || '').trim();
@@ -91,7 +92,11 @@ function socioDetalle_(texto, en) {
    o: nombre, propiedad, texto (el mensaje completo, de ahí sale el detalle), detalle y periodo (opcionales), idioma. */
 function socioPlantillaPayload_(wa, o) {
   o = o || {};
-  var cfg = socioPlantillaCfg_(); if (!cfg.nombre || (!cfg.idES && !cfg.idEN)) { socioEsperaAnotar_(wa, o.nombre); return { error: socioPlantillaFalta_() }; }
+  var cfg = socioPlantillaCfg_();
+  if (!cfg.nombre || (!cfg.idES && !cfg.idEN)) {   // la nueva todavía no está aprobada como Utilidad
+    if (/^1\d{10}$/.test(String(normTel_(wa) || ''))) { socioEsperaAnotar_(wa, o.nombre); return { error: socioPlantillaFalta_() }; }
+    cfg = { nombre: SOCIO_PLANTILLA_VIEJA_, idES: 'es', idEN: 'en' };   // sin +1 la de Marketing sí llega: la vieja mientras tanto (Juan, 3-nov)
+  }
   var propiedad = socioParam_(o.propiedad);
   if (!propiedad) return { error: 'No sé de qué propiedad es ' + (socioParam_(o.nombre) || 'este socio') + ': dime el apartamento para la plantilla para socios.' };
   var quiereEn = socioIdioma_(wa, o) === 'en';

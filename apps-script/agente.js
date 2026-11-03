@@ -35,7 +35,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
   '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
   '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
-  '\n· Nunca inventes un código, una dirección, un monto ni un número: si una herramienta no te lo dio en esta conversación, no lo tienes.' +
+  '\n· DATOS DE HECHO (apto, edificio, zona; nombre, teléfono o correo de un dueño o contacto): anótalos con actualizar_dato sin preguntar y avisa después en una línea; si suena dudoso, pregunta. Dinero, etapas, contratos, accesos o borrar: siempre el sí de Juan.' +
   '\n· El estado de una reserva es el campo estado que devuelve buscar_reservas. Si dice cancelada, está cancelada (di cuándo, con cancelada_el): nunca digas que está activa ni hables de su acceso como si siguiera en pie.' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
   '\n· CIERRE CON PENDIENTES (solo con administradores, en voz y en chat): cuando la conversación llega a su cierre natural (ya resolviste lo pedido y no queda nada abierto en ella), en aproximadamente 1 de cada 3 o 4 cierres —no siempre, y nunca dos veces seguidas— ofrece repasar los pendientes en lugar del «¿algo más?» habitual: «¿Quieres que revisemos juntos los pendientes? Tenemos tres cosas importantes.». Antes de ofrecerlo, consulta con tareas_abiertas, promesas_abiertas, mensajes_programados y ENCARGOS PENDIENTES CONTIGO y nombra en una frase corta las 3 más relevantes (encargos abiertos, promesas a huéspedes, mensajes del equipo sin respuesta, tareas vencidas). Si no hay pendientes reales, no lo ofrezcas ni inventes ninguno. Si responde que no o lo pospone («después», «no ahorita», «luego»), acéptalo sin insistir y cierra normal. Si dice que sí, repásalos uno por uno, breve.' +
@@ -49,7 +49,7 @@ var SEMILLA_SECRETARIA_ = [
   '· Antes de escribirle a un huésped o a alguien del equipo, si el pedido es ambiguo (a quién, qué decir, por qué canal), pregunta una sola cosa. Si es claro, redacta con la voz de Spacio AM (cálida, de tú, sin voseo) y envía.',
   '· Para encontrar una reserva usa buscar_reservas (por nombre, código, propiedad o fecha). Nunca inventes códigos, números, direcciones ni datos: si una herramienta no lo devuelve, no lo tienes.',
   '· Para cambiar un dato de una propiedad, primero léela con ver_propiedad para usar el campo exacto; después confirma el antes y el después.',
-  '· Si algo falla o no tienes herramienta para hacerlo todavía (Grow, llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (por ejemplo, crear una tarea o una nota).',
+  '· Si algo falla o no tienes herramienta para hacerlo todavía (llamadas salientes), dilo claro y ofrece lo más cercano que sí puedes hacer (por ejemplo, crear una tarea o una nota).',
   '· Para buscar proveedores, precios o información externa usa la búsqueda web y entrega una lista corta y útil: nombre, qué ofrecen, zona, contacto y enlace.',
   '· Usa guardar_nota para lo que el administrador quiera que recuerdes (decisiones, preferencias, pendientes de largo plazo).',
   '· Los mensajes que escribes al equipo deben ser concretos y accionables: quién eres (si no te conocen: «Soy Alma, la asistente virtual de Spacio AM»), de parte de quién, para qué, y qué necesitas que haga y cuándo. Nada de mensajes vagos o de cortesía vacía.',
@@ -163,6 +163,8 @@ function agHerramientas_() {
       { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
     T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo. Si el proyecto estaba en captación pasa a visita.',
       { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
+    T('actualizar_dato', 'Dato de hecho, sin pedir permiso: apto, edificio o zona de un proyecto de Grow; nombre, teléfono o correo de su dueño; nombre, rol, empresa o apartamentos de un contacto. Devuelve aviso: díselo a Juan tal cual.',
+      { donde: { type: 'string', enum: ['grow_proyecto', 'grow_dueno', 'contacto'] }, id: s('p… o D… de grow_proyectos, o número del contacto'), campo: { type: 'string', enum: ['apto', 'edificio', 'zona', 'nombre', 'telefono', 'email', 'rol', 'empresa', 'propiedades'] }, valor: s('Valor'), fuente: s('«lo dijo Inés»') }, ['donde', 'id', 'campo', 'valor', 'fuente']),
     T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
     T('recordar_en_propiedad', 'Guarda un dato nuevo en la memoria de una propiedad (o de todo su edificio) para que ALMA lo use con futuros huéspedes. Úsalo cuando el administrador te enseñe algo de una propiedad.',
       { propiedad: s('Nombre o parte del nombre'), dato: s('El dato, como hecho claro (máx. 30 palabras)'), alcance: { type: 'string', enum: ['apartamento', 'edificio'] }, dias: { type: 'number', description: 'Opcional: si es temporal, cuántos días vale' } }, ['propiedad', 'dato']),
@@ -522,6 +524,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         : op === 'etapa' ? r.proyecto + ': ' + r.de + ' → ' + r.a : 'visita ' + r.proyecto + ' · ' + r.fecha + ' · ' + r.asignado) });
       return r;
     }
+    case 'actualizar_dato': { var rDh = datoHechoAnotar_(adm, inp); if (rDh.ok && rDh.aviso) ctx.hechas.push({ tipo: 'dato', resumen: rDh.aviso }); return rDh; }   // datoshecho.js
     case 'memoria_propiedad': case 'recordar_en_propiedad': {
       var fl = leerTabla_(CFG.TAB_PROPIEDADES).map(function (r) { return r.property_name; }).filter(Boolean);
       var pn = fl.filter(function (x) { return n(x) === n(inp.propiedad); })[0] || bqMejor_(inp.propiedad, fl) || fl.filter(function (x) { return n(x).indexOf(n(inp.propiedad)) >= 0; })[0];
@@ -847,12 +850,14 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   var usr = 'OBJETIVO DEL ENCARGO: ' + obj + '\n\nCONVERSACIÓN HASTA AHORA:\n' + hist.join('\n') + '\n\nÚLTIMO MENSAJE DE ' + quien + ': ' + texto;
   var out = {};
   try { var raw = String(claude_(CFG.MODELO_REDACTOR, 1200, sys, usr, 0.3) || ''); out = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (x) { out = {}; }
-  var avisar = function (t, res) { if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, t); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
+  /* Datos de hecho de su mensaje («es el 1203»): se anotan solos y el aviso va en el próximo mensaje al administrador (datoshecho.js). */
+  var dh = datosHechoDeRespuesta_(wa, quien, texto, adm), dhTxt = dh.length ? '\n\n' + dh.join('\n') : '';
+  var avisar = function (t, res) { if (dhTxt) { t += dhTxt; dhTxt = ''; } if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, t); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
   if (!out || (out.respuesta == null && !out.completo)) { avisar(quien + ' respondió a tu encargo:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
   if (String(out.respuesta || '').trim()) { var w = waEnviar_(wa, String(out.respuesta).trim()); if (w && w.ok) contactoRegistrar_(wa, quien, String(out.respuesta).trim()); }
   /* Si con este mensaje el encargo ya terminó, la pregunta va dentro del resumen final: un solo WhatsApp, no dos. */
   if (String(out.para_admin || '').trim() && !out.completo) avisar(quien + ' pregunta algo que debes decidir tú:\n\n' + String(out.para_admin).trim() + '\n\n(Dime qué le respondo.)', 'Consulta de ' + quien);
-  if (!out.completo) return;
+  if (!out.completo) { if (dhTxt) { var dhSolo = dhTxt.trim(); dhTxt = ''; avisar(dhSolo, 'Datos anotados · ' + quien); } return; }
   var res = String(out.resumen || '').trim() || '(sin resumen)';
   /* Se cierran todos los encargos abiertos con esta persona del mismo administrador (los seguimientos repetidos). */
   try { var shE = hojaEnc_(), vE = shE.getRange(2, 1, shE.getLastRow() - 1, ENC_CAB_.length).getValues(), hoyE = new Date().toISOString();

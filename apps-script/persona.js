@@ -13,7 +13,7 @@ var ALMA_PERSONA_MIN_ = '# Alma\nEres Alma, la asistente de {dueño} en {negocio
 
 function playbookLeer_(nombre) {
   nombre = String(nombre || '').toLowerCase().replace(/[^a-z0-9-]/g, ''); if (!nombre) return '';
-  var c = CacheService.getScriptCache(), k = 'pb3_' + nombre   /* pb3: cambia la clave cuando un playbook debe llegar ya (no esperar 6 h) */, v = c.get(k); if (v != null) return v;
+  var c = CacheService.getScriptCache(), k = 'pb4_' + nombre   /* pb4: cambia la clave cuando un playbook debe llegar ya (no esperar 6 h) */, v = c.get(k); if (v != null) return v;
   var p = PropertiesService.getScriptProperties(), txt = '';
   try {
     var r = uf_((p.getProperty('PLAYBOOKS_URL') || PLAYBOOKS_URL_) + nombre + '.md', { muteHttpExceptions: true, followRedirects: true });

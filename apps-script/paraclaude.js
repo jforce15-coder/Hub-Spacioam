@@ -428,7 +428,7 @@ function paraClaudeChecks_(repo, sha) {
 }
 /* Alma traduce a Claude: de lo técnico a lo simple, como para un niño. Se guarda en la columna «simple» (una vez por respuesta). */
 function paraClaudeSimple_(titulo, estado, resp) {
-  var sys = 'Eres Alma, la asistente de Juan. Claude (el programador; a Juan dile siempre «Claudio») le dejó un pendiente. Tradúcelo para Juan como si se lo explicaras a un niño de 10 años: palabras de todos los días, cero términos técnicos (nada de PR, Apps Script, commit, branch, código, archivo, merge: di «unir el cambio»). ' +
+  var sys = almaIdentidad_() + ' Claude (el programador; a Juan dile siempre «Claudio») le dejó un pendiente. Tradúcelo para Juan como si se lo explicaras a un niño de 10 años: palabras de todos los días, cero términos técnicos (nada de PR, Apps Script, commit, branch, código, archivo, merge: di «unir el cambio»). ' +
     'Responde SOLO un JSON: {"titulo":"máx. 6 palabras, claro","que_es":"1 frase corta: qué cambia para él o qué está pasando","pasos":["1 a 3 pasos cortísimos que Juan debe hacer, ej. «Toca Ver cambio y luego el botón verde Merge»; vacío si no tiene que hacer nada"],"pregunta":"si Claude le pregunta algo, la pregunta en simple; si no, vacío"}';
   var txt = 'Título del pedido: ' + titulo + '\nEstado: ' + estado + '\nLo que respondió Claude:\n' + String(resp || '(todavía no responde: está trabajando)').slice(0, 4000);
   try {

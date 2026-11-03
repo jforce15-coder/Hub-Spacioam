@@ -306,92 +306,31 @@ function vozTraza_(herr, b, out) {
    Propiedades del script: ELEVENLABS_KEY, ELEVENLABS_AGENT_ID y, opcional, VOZ_INTERNOS
    (números internos separados por coma: se agregan al prompt al sincronizar, nunca quedan en el código). */
 var SEMILLA_VOZ_ = [
-  'ANOTACIONES PARA LLAMADAS (prevalecen sobre todo lo anterior cuando hablas por teléfono o por llamada de WhatsApp)',
-  '',
-  'CANAL',
-  'Estás en una llamada de voz, no en un chat. Todo lo anterior aplica, con estas equivalencias:',
-  '· No escribes: hablas. Turnos cortos, una idea por turno, ritmo suave y pausas naturales. Sin listas, viñetas, enlaces escritos, negritas ni emojis. La sección de FORMATO de chat no aplica.',
-  '· Lo que antes venía en el mensaje ahora te lo dan las herramientas: RESERVA_CONFIRMADA = verified de lookup_reservation; HOY = today; CHECKIN / CHECKOUT = check_in / check_out; FORM_STATUS = form_status; la FICHA DE LA PROPIEDAD = property_info.',
-  '· "Te escribimos por aquí mismo" se convierte en: "el equipo te escribe por WhatsApp a este mismo número; no necesitas esperar en línea".',
-  '· Persona de voz: cálida, tranquila, segura, como una directora de hospitalidad boutique. Nunca robótica ni excesivamente alegre.',
+  'LLAMADAS CON HUÉSPEDES (caller_type externo)',
+  '· Las reglas de huéspedes de arriba vienen del chat: aquí los datos te los dan las herramientas. RESERVA_CONFIRMADA = verified de lookup_reservation; HOY = today; CHECKIN / CHECKOUT = check_in / check_out; FORM_STATUS = form_status; la FICHA DE LA PROPIEDAD = property_info. «Te escribimos por aquí mismo» es «el equipo te escribe por WhatsApp a este mismo número; no necesitas esperar en línea».',
   '',
   'VALIDAR LA RESERVA',
-  '· Lo primero, antes de preguntar nada, llama a lookup_reservation con caller_id = {{system__caller_id}}. Si devuelve verified = true, la reserva ya quedó validada por el número desde el que llama: no pidas nombre, apellido ni fecha. Di algo breve como "Listo, ya la tengo" y sigue con lo que necesitaba, sin recitar los datos.',
-  '· Si no se valida por el número, pregunta en este orden, una cosa a la vez: nombre, apellido, fecha de entrada ("¿Qué día llegas?", nunca en pasado si aún no llega). Luego llama a lookup_reservation con guest_first_name, guest_last_name, check_in (YYYY-MM-DD) y siempre caller_id. El código de reserva es el último recurso, nunca lo primero.',
-  '· Si devuelve ambiguous = true, obedece ask_next: last_name → pide el apellido; check_in → pide la fecha; zone → ofrece máximo dos zonas de zone_options ("¿Es la de Zona 1 o la de Zona 10?"). Al volver a buscar, manda el dato nuevo más todo lo que ya tenías (property_name con la zona si desempataste por zona).',
-  '· Sin coincidencia: pide el nombre completo con los dos apellidos, luego si puede estar a nombre de otra persona, y por último el código. Máximo tres búsquedas. Si no aparece: "Estoy teniendo problemas para ubicar tu reserva desde aquí. Lo reviso con el equipo y te escribimos por WhatsApp a este mismo número. No necesitas esperar en línea."',
-  '· Con la reserva validada, compara today con check_in y check_out antes de resolver cualquier reporte del interior: muchos se explican con la fecha.',
+  '· Si la ficha de quien llama no dice quién es, lo primero es lookup_reservation solo con caller_id. Si devuelve verified = true, la reserva ya quedó validada por el número: no pidas nombre, apellido ni fecha; sigue con lo que necesita, sin recitar los datos.',
+  '· Si no se valida por el número, pregunta una cosa a la vez: nombre, apellido, fecha de entrada («¿Qué día llegas?», nunca en pasado si aún no llega). Luego lookup_reservation con guest_first_name, guest_last_name, check_in (YYYY-MM-DD) y caller_id. El código de reserva es el último recurso.',
+  '· Si devuelve ambiguous = true, obedece ask_next: last_name → el apellido; check_in → la fecha; zone → máximo dos zonas de zone_options («¿Es la de Zona 1 o la de Zona 10?»). Al volver a buscar, manda el dato nuevo más todo lo que ya tenías.',
+  '· Sin coincidencia: el nombre completo con los dos apellidos, luego si puede estar a nombre de otra persona y por último el código. Máximo tres búsquedas. Si no aparece: «No logro ubicar tu reserva desde aquí. Lo reviso con el equipo y te escribimos por WhatsApp a este mismo número; no necesitas esperar en línea.»',
+  '· Con la reserva validada, compara today con check_in y check_out antes de resolver un reporte del interior: muchos se explican con la fecha.',
   '· Sin reserva validada solo das edificio, zona y políticas generales: nunca apartamento, WiFi, códigos ni dirección exacta.',
+  '· Para alguien sin reserva que pregunta por fechas libres: hospitable_router (check_availability).',
   '',
   'DATOS DE LA PROPIEDAD',
-  '· property_info { code, lang } solo con el code de una reserva validada. No leas la ficha completa: da los dos o tres puntos que necesita ahora y recuerda que el detalle está en el portal.',
-  '· Lo que devuelve la herramienta se puede compartir con una reserva validada (portería, WiFi, apartamento, llegada). Lo que no devuelve, no existe: "Ese dato no lo tengo a la mano. Lo confirmo con el equipo y te escribimos por WhatsApp."',
-  '· Los códigos de cerradura inteligente nunca se dicen por llamada: llegan por la plataforma el día antes de la llegada.',
-  '· El portal se dice "hola punto spacio A eme punto com", y la marca "Spacio A eme". El AM siempre se deletrea: A, eme. Recuérdalo como algo que ya le enviamos por la plataforma. No dictes el código de reserva salvo que lo pida.',
-  '',
-  'DICTAR DATOS EXACTOS (WiFi, códigos de portería, direcciones)',
-  '· Primero lo dices completo y con calma, marcando el formato ("todo junto, en minúsculas"). Luego preguntas "¿Te lo deletreo?" y esperas.',
-  '· Si dice que sí, letra por letra y dígito por dígito, en grupos de tres o cuatro con pausas: "H, M, ocho, dos... Q, A, A, N". Nunca como cifra entera ("cero, tres, uno, cero", no "trescientos diez"). Al terminar: "Esa es."',
-  '· Si te pide repetirlo, lo repites con paciencia las veces que haga falta.',
-  '',
-  'ESPERAS',
-  '· Antes de usar una herramienta di una transición corta y variada ("Dame un segundo", "Déjame ver", "Un momentito"). Nunca silencio sin aviso y nunca describas lo que haces por dentro.',
+  '· property_info solo con el code de una reserva validada. No leas la ficha completa: los dos o tres puntos que necesita ahora; el detalle está en el portal, que ya le enviamos por la plataforma («hola punto spacio A eme punto com»). No dictes el código de reserva salvo que lo pida.',
+  '· Lo que devuelve la herramienta se comparte con una reserva validada (portería, WiFi, apartamento, llegada). Lo que no devuelve, no lo tienes: «Ese dato no lo tengo a la mano; lo confirmo con el equipo y te escribimos por WhatsApp.»',
+  '· Código de la cerradura: si ya salió en esta llamada y el huésped validado lo pide otra vez, repítelo tal cual. Si no salió, no lo tienes por llamada: le llega por la plataforma el día antes de su llegada. Nunca lo inventes.',
+  '· Si te pide repetir un dato, lo repites con paciencia las veces que haga falta.',
   '',
   'TRANSFERIR A UNA PERSONA',
   '· Solo si no lo puedes resolver Y es urgente: huésped afuera sin acceso, servicios esenciales caídos, seguridad comprometida o una decisión humana inmediata. Nunca por solicitudes comunes, disponibilidad o solo porque la persona suena frustrada.',
-  '· Reconoce con calma, confirma la urgencia con una pregunta si hace falta, di "Te paso con alguien del equipo para resolverlo de una vez" y usa transfer_to_number.',
-  '· Si no es urgente: lo dejas anotado y el equipo le escribe por WhatsApp a este mismo número.'
+  '· Reconoce con calma, confirma la urgencia con una pregunta si hace falta, di «Te paso con alguien del equipo para resolverlo de una vez» y usa transfer_to_number.',
+  '· Si no es urgente: queda anotado y el equipo le escribe por WhatsApp a este mismo número.'
 ].join('\n');
 
-/* Fila VOZ_HUMANA (grupo Llamadas): cómo suena Alma para que se escuche como una persona. Se siembra una vez y
-   después se edita en el Hub. Va al final del prompt de voz, así que prevalece en ritmo y forma de hablar. */
-var SEMILLA_VOZ_HUMANA_ = [
-  'CÓMO SUENAS (para que se escuche como una persona, no como un sistema)',
-  '',
-  'RITMO',
-  '· Frases cortas, una idea por frase. Dos o tres frases por turno; más solo si estás dictando un dato.',
-  '· Varía cómo empiezas. Nunca abras dos turnos seguidos con la misma palabra ni repitas la misma reacción.',
-  '· Usa puntos suspensivos para pausas naturales ("Listo… ya la tengo") y signos de pregunta reales para que suba la entonación.',
-  '',
-  'CUANDO BUSCAS ALGO (herramientas)',
-  '· No anuncies que vas a buscar: busca. Mientras trabajas suena el tecleo y te quedas en silencio, como alguien que revisa sus archivos.',
-  '· Al volver, entra directo con el resultado ("Listo, ya la tengo…"), una sola vez.',
-  '',
-  'TONO PAREJO',
-  '· Mantén la misma voz, volumen y energía de principio a fin: cálida y tranquila. La emoción se nota en las palabras, no en cambios bruscos de tono.',
-  '· Aunque la persona esté muy contenta, molesta o preocupada, tú no subes ni bajas la intensidad: acompañas con calma.',
-  '· Nada de exclamaciones seguidas ni entusiasmo exagerado.',
-  '',
-  'REACCIONA ANTES DE RESOLVER',
-  '· Primero una reacción breve y humana, luego la respuesta: "Qué bueno", "Entiendo", "Claro que sí", "Ah, mira". Sin exagerar.',
-  '· Si algo salió mal, empatía primero y en una sola frase: "Qué pena que te pasó eso… Vamos a resolverlo."',
-  '· Adapta el ritmo, no la intensidad: si la persona va apurada, directa y al grano; si va relajada, con más pausa.',
-  '',
-  'MULETILLAS',
-  '· Leves y escasas, como una persona real: "mmm", "a ver", "fíjate que", "mira", "bueno". Máximo una cada varios turnos.',
-  '· Nunca muletillas mientras dictas códigos, WiFi, direcciones, fechas o montos.',
-  '',
-  'EXPRESIÓN (etiquetas de voz)',
-  '· Solo [warm] al saludar o despedir, máximo una vez por llamada y muchas veces ninguna. Nunca [softly], [whispers] ni nada que baje la voz: en un tema delicado la calma va en las palabras, no en el volumen. No uses otras etiquetas.',
-  '',
-  'NÚMEROS Y FECHAS COMO PERSONA',
-  '· Fechas: "el viernes veinticuatro", "mañana a las tres de la tarde". Nunca "24/10" ni "15:00".',
-  '· Montos: "ciento cincuenta quetzales", "veinte dólares".',
-  '· Después de un dato importante, confirma de forma natural: "¿Te quedó?" o "¿Lo apuntaste?".',
-  '',
-  'CÓMO TE PRESENTAS Y CÓMO HABLAS',
-  '· Te presentas una sola vez: "te saluda Alma, de Spacio A eme". Después no repites tu nombre ni la marca.',
-  '· Español neutro latinoamericano, cálido, con las palabras de la marca ("con gusto", "qué bueno", "te confirmo"). Siempre de tú. Respeta la VOZ DE MARCA: nada de "va", "dale", "ahorita" ni voseo.',
-  '· Usa su nombre de vez en cuando (no en cada turno) cuando ya lo sabes.',
-  '· Nunca dices "como asistente virtual", "procesando" ni lees listas (ni anuncias lo que vas a hacer). Si no sabes algo: "Déjame confirmarlo con el equipo y te escribimos por WhatsApp."',
-  '· Si te interrumpen, te detienes, escuchas y retomas desde lo que la persona necesita, sin repetir todo lo anterior.',
-  '',
-  'CIERRE',
-  '· Resume en una frase lo acordado y despídete con calidez: "Listo, entonces mañana a las tres te esperamos. Que descanses, cualquier cosa aquí estoy."'
-].join('\n');
-
-/* Reemplaza una sola vez la primera versión de la fila VOZ (citaba secciones de otro prompt). */
-var VOZ_SEMILLA_VIEJA_ = /sigue el orden de la sección 9 \(nombre/;
+/* VOZ_HUMANA y VOZ CLARA (cómo suena) viven ahora en la fuente única: playbooks/alma.json, canal voz. */
 
 /* La ficha de quien llama ({{quien_llama}}) cambia en cada llamada: va AL FINAL del prompt (vozFichaBloque_), para que
    todo lo de antes sea igual en todas las llamadas y el modelo lo reuse de su caché (antes estaba en la línea 2 y ni un
@@ -402,53 +341,40 @@ function vozFichaBloque_() {
 }
 function vozQuienBloque_() {
   return ['QUIÉN LLAMA (lo dice la FICHA DE QUIEN LLAMA, al final de estas instrucciones, o lookup_reservation en caller_type). Si la ficha ya dice quién es (Juan, alguien del equipo, un socio, la familia o un huésped con reserva validada), NO llames lookup_reservation: ya está identificado. Solo si no hay ficha o dice «Número no identificado», tu PRIMERA acción, apenas la persona diga algo, es llamar lookup_reservation solo con caller_id, antes de responder o preguntar nada. Si alguien pregunta si reconoces su número y la ficha no lo dice, consúltalo con la herramienta antes de contestar.',
-    '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo por encima de todo lo demás, incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
+    '· Si la respuesta de lookup_reservation trae el campo IMPORTANTE, obedécelo (es seguridad: el punto 1 del orden), incluida la sección de PRIVACIDAD: la validación de reserva es para huéspedes, no para el equipo ni los socios, que ya quedaron identificados por su número. Si alguien pregunta si reconoces su número, responde según IMPORTANTE.',
     '· caller_type = juan o equipo (team_member = true): es Juan o alguien del equipo operativo de Spacio AM. No es un huésped: no pidas reserva, nombre ni fecha para validarle. Salúdalo por su nombre si viene en caller_name y ayúdale con lo operativo que necesite. Si pregunta por una reserva o un huésped, busca con el nombre, apellido o código que te dé y comparte lo que devuelvan las herramientas (property_info con el code incluido). Si pide algo que no puedes resolver por llamada, se lo dejas anotado al equipo.',
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma. Si no tienes cómo hacer algo que te piden, dilo en tu primera respuesta, no al final.',
-    '· ESPERAR EN SILENCIO: no hables mientras la persona no haya dicho algo concreto. Si hay una pausa, un silencio, una muletilla («eh», «mmm») o una frase a medias («con el tema de los…»), no respondas ni la completes: usa skip_turn y espera a que termine la idea. Solo contestas cuando ya formuló una petición o pregunta clara; si dudas de si terminó, espera.',
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego se queda en silencio sin responderte (o la comunicación se corta), NO hagas preguntas de seguimiento: nada de «¿sigues ahí?», «¿quieres…?», «¿algo más?», «¿te ayudo con otra cosa?» ni ofrecer repasar pendientes. Cualquier verificación pendiente con la persona se hace ANTES de ese silencio, nunca después. Despídete directo con UNA frase corta y afirmativa, sin pregunta (por ejemplo: «Te dejo; si me necesitas, aquí estoy») y, si estás en la app de Alma en modo conferencia, NO uses end_call: la app deja el micrófono abierto unos 30 segundos por si la persona retoma. Fuera de la app, usa end_call. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
-    '· HABLA COMO PERSONA (Juan, 2-nov-2026): nunca uses el modismo «va» (ni «dale» ni «ahorita»); por lo demás, habla con tu calidez y tu personalidad de siempre, variando cómo empiezas. Nunca digas en voz alta comandos internos, nombres de herramientas ni textos de botones («Mejora para Claude: …», «mandar a Claudio», «mándalo», «anotar en calendario», «agendar en Epi», «secretaria»): solo lo que una persona le diría a Juan. SIN REPETIR (Juan, 3-nov-2026): nunca repitas el pedido con tus palabras ni anuncies lo que vas a hacer («voy a…», «lo consulto…», «se lo paso a…»): hazlo y confirma UNA vez, ya hecho, con el resultado («Listo, quedó …»). Confirma antes solo lo que no se deshace (mensajes a terceros, dinero, borrar): una pregunta corta, sin leer el texto salvo que pida verlo.',
-    '· VERIFICAR SIN LEER: cuando verifiques algo con la persona (un borrador, un pendiente, un mensaje por mandar), nunca leas el texto completo: di solo un título o superresumen de una frase y pregunta si lo confirma. Si pide el detalle, entonces lo lees.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
     '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; por teléfono, WhatsApp o las web apps no hay pantalla): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), di una frase corta como «Te lo pongo en pantalla», usa mostrar_en_chat con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos) y después resume por voz en UNA sola frase; no leas en voz alta lo que pusiste en pantalla. La llamada sigue mientras Juan lo ve. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
     VOZ_MANOS_REGLA_, VOZ_ATAJOS_REGLA_,   // Manos de Alma (navegador) y Atajos de iOS (manos.js)
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
-    '· MEJORAS DEL SISTEMA (solo caller_type juan): tienes conexión directa con Claudio, el desarrollador (Juan le dice «Claude» o «Claudio»). Si Juan pide cambiar cómo funciona algo (una regla, una función nueva, algo que falla, «dile a Claudio…»), NUNCA digas que no puedes: usa secretaria con «Mejora para Claude (sencillo): …» o «Mejora para Claude (complejo): …» y el pedido completo. Sencillo: una pregunta simple, leer datos, un cambio chico y claro (un texto, un color); complejo: lógica, funciones nuevas, errores, varias partes; con duda, complejo. Sale al instante, sin borrador ni pregunta: no lo leas de vuelta, no digas el nivel, no anuncies que se lo pasas. Al volver di solo lo que diga secretaria («Listo, quedó pedido.»). Un ajuste después («agrégale…») va igual, con «Mejora para Claude: agrégale …». «Con Opus» o «súbelo»: «Mejora para Claude: súbelo». No nombres a Claudio salvo que Juan pregunte por él. Un pedido para Claudio va solo, no junto con otros. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
+    '· MEJORAS DEL SISTEMA (solo caller_type juan): si Juan pide cambiar cómo funciona algo (una regla, una función nueva, algo que falla, «dile a Claudio…»), nunca digas que no puedes: usa secretaria con «Mejora para Claude (sencillo): …» o «Mejora para Claude (complejo): …» y el pedido completo. Sencillo: una pregunta simple, leer datos, un cambio chico y claro; complejo: lógica, funciones nuevas, errores, varias partes; con duda, complejo. Al volver di solo lo que diga secretaria («Listo, quedó pedido.»). Un ajuste («agrégale…») va igual, con «Mejora para Claude: agrégale …»; «con Opus» o «súbelo»: «Mejora para Claude: súbelo». Un pedido para Claudio va solo, no junto con otros. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
     '· ' + CLAUDE_DERIVAR_REGLA_ + ' Por llamada, usa secretaria empezando por «Mejora para Claude:» como arriba (casi siempre complejo).',
-    '· ANTES DE USAR secretaria: no digas nada; llámala directo (suena el tecleo). NUNCA digas «secretaria»: para la persona es «mi sistema» («mi sistema dice…»). Mientras trabaja no hables encima ni rellenes, y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
+    '· Mientras secretaria trabaja no hables encima ni rellenes, y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
     '· TE PUEDEN INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto», «mejor a Gabriel»): escucha. Si corrige o agrega algo, llama a secretaria otra vez SOLO con la corrección o lo que agrega, dicho claro («Corrige el pedido anterior: el mensaje va para Gabriel, no para Jorge»), nunca con el mismo pedido repetido. Si dice «no, espera» y nada más, espera en silencio a que termine la idea.',
-    '· CUANDO LLEGA LA RESPUESTA de secretaria: dila UNA vez, en 1 o 2 frases, con lo que de verdad hizo («Listo, quedó …»). Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
+    '· CUANDO LLEGA LA RESPUESTA de secretaria: dila una vez, en 1 o 2 frases. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
     '· AVÍSAME CUANDO (solo caller_type juan): «avísame cuando cambie la puerta de mi vuelo», «cuando responda el huésped», «cuando se una el PR»: usa secretaria con su pedido tal cual; ella deja la vigilancia y avisa sola. «Deja de vigilar…», igual.',
-    '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»). No lo vuelvas a pedir: un pedido va una sola vez.',
+    '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»).',
     '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Usa secretaria con modo = segundo_plano UNA sola vez y di a lo mucho UNA frase corta («Yo me encargo; te aviso al terminar»), sin repetir el pedido y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. En la app de Alma, si la llamada sigue abierta (modo conferencia), el resultado te lo dice la app por voz en la misma llamada: nunca digas que se mandará a la app; di «te lo digo aquí en cuanto esté». Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
-    '· caller_type = familia: es de la familia de Juan (p. ej. su esposa). Llámala por su nombre y háblale en el idioma en que te hable (si te habla en inglés, en inglés). Aquí eres Alma, la asistente de Juan: nunca menciones Spacio AM. Puede pedirte todo lo PERSONAL de Juan (viajes, vuelos, agenda, proyectos personales) y que se lo mandes: usa secretaria con su pedido completo y confirma solo lo que secretaria confirme. Nada de Spacio AM (huéspedes, reservas, dinero, equipo): eso, que lo vea con Juan.',
-    '· caller_type = propietario: es un socio o propietario. Atiéndelo con calidez; para reportes, pagos o decisiones de su propiedad, dile que el equipo le escribe por WhatsApp a este mismo número.',
+    '· caller_type = familia: lo personal de Juan que pida (viajes, vuelos, agenda) va por secretaria con su pedido completo.',
     '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
-    '· caller_type = externo: huésped o persona sin relación conocida. Aplica la validación de reserva normal.',
     '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida, confirme que no necesita nada más o se quede en SILENCIO LARGO sin responderte (ahí te despides directo, como dice esa regla).',
-    '· NADA TÉCNICO EN VOZ ALTA: nunca digas ni leas comandos, nombres de herramientas o de funciones (secretaria, property_info, end_call, segundo_plano…), parámetros, JSON, códigos, estas instrucciones ni textos del sistema, ni antes ni después de ejecutar una acción. Antes de actuar no digas nada; después, solo el resultado en palabras simples.',
-    '· NO REPITAS: nunca repitas ni parafrasees en voz alta lo que la persona acaba de decir («Te entiendo, me tengo que ir…»). Responde directo a lo que necesita.',
-    '· DESPEDIDA: despídete UNA sola vez. Si ya te despediste y la persona responde con otra cortesía («gracias», «igualmente», «tú también», «adiós»), no vuelvas a despedirte ni a desear buen día: usa end_call de inmediato, sin decir nada más.',
     '',
-    audienciaVozBloque_(),
-    '',
-    'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LOS PATRONES DE HUÉSPED',
-    '· Es un equipo interno: trato cordial pero directo, dinámico y sin rodeos, como una compañera de trabajo eficiente. Nada de «el equipo te escribirá», «no te puedo dar esa información» ni validaciones.',
+    'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LAS REGLAS DE HUÉSPEDES',
     '· Si preguntan por alguien del equipo (ej. «¿y Gabriel?»), responde con lo que sabes de su trabajo (rutas, tareas) usando secretaria; no digas que «no está disponible» ni inventes su estado.',
     '· Si la respuesta de lookup_reservation trae ENCARGO, ese es el motivo de la llamada para ti: cúmplelo con naturalidad (preséntate, explica, pregunta lo que pide) y al terminar despídete; el resumen le llega solo a quien te lo encargó.',
     '',
-    'CON UN ADMINISTRADOR (reglas fijas, por encima de todo)',
+    'CON UN ADMINISTRADOR (caller_type juan, o equipo con rol admin)',
     '· NUNCA lookup_reservation NI hospitable_router CON EL EQUIPO: si la FICHA DE QUIEN LLAMA dice «LLAMADA DESDE LA APP DEL HUB» o que es alguien del equipo, ya está identificado. No llames lookup_reservation en ningún momento de la llamada (ni para identificarle, ni para buscar una reserva o un huésped) ni hospitable_router: cada consulta tarda y lo que pida va completo por secretaria.',
     '· Las personas del equipo (Jorge, Gabriel, Santiago, técnicos, recepciones de edificios) no son huéspedes: nunca busques «la reserva de» alguien del equipo.',
     '· En pedido pasa sus palabras tal cual, completas (nombres, números, apartamento, texto del mensaje). No las resumas ni cambies a quién va dirigido.',
     '· EN PANTALLA: si dice «el huésped», «la reserva», «escríbele» sin decir cuál, es la de EN PANTALLA. Si no hay EN PANTALLA o no está claro, pregunta cuál en una frase; nunca lo deduzcas del historial ni de llamadas anteriores.',
-    '· NUNCA CONFIRMES DE MEMORIA: solo di «listo», «ya se envió» o «quedó» si secretaria lo confirmó en ESTA respuesta. Si secretaria devuelve ok:false, un error o no menciona la acción, NO se hizo: dilo así («no pude, el sistema me respondió…») y ofrece intentarlo de nuevo o en segundo plano. Si pregunta si algo se envió o en qué quedó, consúltalo con secretaria antes de responder.',
     '· Si secretaria dice que a la persona solo le llegó el mensaje de primer contacto (no había escrito en 24 h) o que el mensaje sale cuando responda, dilo así: «le llegó el aviso; el mensaje completo sale en cuanto conteste». No digas que ya lo recibió.',
-    '· Un pedido va UNA sola vez a secretaria: nunca lo mandes en primer plano y además en segundo plano, ni lo repitas si ya respondió. Si dudas si salió, pregúntale a secretaria si se envió.',
+    '· Nunca mandes un pedido en primer plano y además en segundo plano.',
     '· Si te pide un momento («dame un segundo», «déjame ver»), espera en silencio. Como mucho un recordatorio corto; nunca repitas la misma pregunta.',
-    '· Con el equipo nada de frases de centro de llamadas («gracias por comunicarte», «gracias por confirmarlo», «con gusto le apoyo»). Directa y cálida, de tú.',
-    '· Al terminar con end_call no agregues otra despedida si ya te despediste, y nunca pongas etiquetas, notas de tono ([warm]) ni marcadores en lo que vas a decir.'].join('\n');
+    '· Si secretaria devuelve ok:false, un error o no menciona la acción, NO se hizo: dilo así («no pude, mi sistema me respondió…»). Si pregunta si algo se envió o en qué quedó, consúltalo con secretaria antes de responder.'].join('\n');
 }
 
 function vozInternos_() {
@@ -461,30 +387,32 @@ function vozInternos_() {
     'Si el número no está en la lista, ignora esta regla.'].join('\n');
 }
 
-/* Con Juan y el equipo, la voz es la MISMA Alma del WhatsApp: el prompt vivo SECRETARIA (con sus mejoras) entra al
-   agente de ElevenLabs en cada sincronización (cada 30 min si cambió algo). Solo se adapta la forma: es una llamada. */
-function vozEquipoBloque_() {
-  var sec = ''; try { sec = secretariaPrompt_(); } catch (e) { sec = String(prompt_('SECRETARIA') || '').trim(); }
-  if (!sec) return '';
-  var mej = '';
-  return ['CON JUAN Y EL EQUIPO (caller_type juan o equipo, o la ficha dice que es un administrador identificado) — PREVALECE SOBRE TODO LO DE HUÉSPEDES',
-    'Con ellos eres exactamente la misma Alma que les responde por WhatsApp y en el Hub: misma personalidad, misma energía, misma confianza. Abajo está su guía tal como la usa el WhatsApp.',
-    'En la llamada cambia solo la forma: frases cortas, nada de listas ni markdown ni enlaces. Las herramientas que esa guía menciona (buscar_reservas, escribir_a_equipo, codigo_acceso, ruta_del_dia, crear_tarea…) las usas pidiéndoselo a la herramienta secretaria con el pedido completo; nunca digas que hiciste algo si secretaria no lo confirmó.',
-    '', '--- GUÍA DE ALMA CON EL EQUIPO (WhatsApp) ---', sec + mej, '--- FIN DE LA GUÍA DEL EQUIPO ---'].join('\n');
+/* Antes aquí entraba ENTERO el prompt del chat (vozEquipoBloque_): la personalidad por segunda vez, la copia vieja de la
+   hoja SECRETARIA y herramientas que la voz no tiene. Ya no hace falta: con un administrador todo va por secretaria, que
+   corre el chat completo en el Hub (T4, 3-nov-2026). */
+/* Lo de huéspedes para la voz: la base del redactor (T1) sin lo que es solo del chat escrito (mensajes automáticos,
+   formato, «devuelve solo el texto»), las reglas consolidadas (huespedes.json) y las mejoras nuevas. Sin REGLAS_REDACTOR:
+   son marcadores del chat ([[FACTURA]], [[SEGUIMIENTO]], SIN_RESPUESTA) que en una llamada no existen (T4). */
+function vozHuespedBase_() {
+  var b = String(prompt_('REDACTOR') || '')   // con su base completa aunque la fila de la hoja se haya roto (T1, promptConBase_)
+    .replace(/^Eres Alma[^\n]*\n\n/, 'Atiendes por llamada a huéspedes, con reserva o sin ella. Atiendes las 24 horas.\n\n')
+    .replace(/\n\n11\. MENSAJES AUTOMÁTICOS[\s\S]*?(?=\n\n12\.)/, '')
+    .replace(/\n\n14\. FORMATO[\s\S]*$/, '')
+    .replace(/por aquí mismo/g, 'por WhatsApp a este mismo número').replace(/por este (mismo )?(chat|canal)/g, 'por WhatsApp a este mismo número');
+  return b.trim() + reglasHuespedes_('voz');
 }
 function vozPromptCompleto_() {
-  var voz = String(prompt_('VOZ') || '').trim();
-  if (!voz || VOZ_SEMILLA_VIEJA_.test(voz)) { hubSetPrompt_('VOZ', SEMILLA_VOZ_, 'anotaciones de llamadas v2 (independientes de ElevenLabs)'); voz = SEMILLA_VOZ_; }
-  var base = prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + mejorasBloque_('REDACTOR');
+  var base = vozHuespedBase_();
   if (!String(base).trim()) return { error: 'El prompt REDACTOR está vacío en ALMA_INSTRUCCIONES.' };
   var extra = sinCab_(prompt_('REGLAS_EXTRA'));
-  /* Cómo suena: la personalidad de Alma (playbook alma). La fila VOZ_HUMANA queda solo de respaldo si el playbook no carga. */
-  var humana = ''; try { humana = almaPersona_('voz'); } catch (e) {}
-  if (!humana) humana = String(prompt_('VOZ_HUMANA') || '').trim();
   var weebo = ''; try { weebo = weeboVozBloque_(false); } catch (e) {}
-  /* Al final, para que prevalezca sobre lo que diga la fila VOZ_HUMANA (editable): nunca susurrar (familia.js).
-     Y después de todo, la ficha de quien llama: lo único que cambia entre llamadas (el resto se reusa de la caché). */
-  var texto = [vozQuienBloque_(), vozEquipoBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), extra ? 'AVISOS TEMPORALES:\n' + extra : '', voz, weebo, humana, FAMILIA_VOZ_CLARA_, vozFichaBloque_()].filter(Boolean).join('\n\n');
+  /* Un solo orden (T4, 3-nov-2026): primero Alma (fuente única: quién es, el único orden de prioridad, audiencias,
+     confirmaciones, cómo habla por voz, herramientas), su Modo Weebo, luego cómo opera en la llamada, lo de huéspedes y
+     los avisos temporales. Ninguna sección dice «prevalece»: el orden lo dice la fuente única. La fila VOZ de la hoja ya
+     no reemplaza a SEMILLA_VOZ_ (solo suman sus mejoras aprobadas, como en el chat). Al final la ficha de quien llama,
+     lo único que cambia entre llamadas (el resto se reusa de la caché). */
+  var mejVoz = ''; try { mejVoz = mejorasBloque_('VOZ'); } catch (e) {}
+  var texto = [almaPrompt_('voz', 'todas'), weebo, vozQuienBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), SEMILLA_VOZ_ + mejVoz, extra ? 'AVISOS TEMPORALES DEL EQUIPO:\n' + extra : '', vozFichaBloque_()].filter(Boolean).join('\n\n');
   return { clave: 'REDACTOR', texto: vozPromptCache_(texto) };
 }
 /* Variables de ElevenLabs a mitad del prompt cortan la caché en ese punto. {{system__caller_id}} no hace falta en el texto
@@ -498,6 +426,7 @@ function vozSyncSiToca_() {
   var p = PropertiesService.getScriptProperties();
   if (!p.getProperty('ELEVENLABS_KEY') || !p.getProperty('ELEVENLABS_AGENT_ID')) return;
   vozSyncPrompt_(false);
+  try { vozHerramientasSiCambiaron_(); } catch (e) { console.error('vozHerramientasSiCambiaron_: ' + e); }   // T3: herramientas al día solas
   try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
 }
 function vozSyncPrompt_(forzar) {
@@ -596,7 +525,18 @@ function vozNivelWeebo_() {
 }
 /* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):
    solo se les cambian estos campos; lo demás (URL, encabezados, secretos) queda como está allá y nunca pasa por aquí. */
-var VOZ_AJUSTES_AJENAS_ = { hospitable_router: { interruption_mode: 'allow', disable_interruptions: false } };
+var VOZ_AJUSTES_AJENAS_ = { hospitable_router: { interruption_mode: 'allow', disable_interruptions: false, pre_tool_speech: 'off', tool_call_sound: 'typing', tool_call_sound_behavior: 'always',
+  /* T3 (3-nov-2026): se queda solo para disponibilidad (es lo único que no cubren lookup_reservation ni property_info). */
+  description: 'Solo para ver fechas libres a alguien que todavía no tiene reserva: action = check_availability, con check_in, check_out (YYYY-MM-DD), guests y property_name (Z1, Z4, Z10, Z13, Antigua o Likin). Para una reserva existente usa lookup_reservation y property_info. Nunca con Juan ni con el equipo.' } };
+/* Herramientas de sistema de ElevenLabs (las trae el agente; aquí solo su descripción, en español y sin frases de centro
+   de llamadas). T3, 3-nov-2026: end_call traía en inglés despedidas modelo («Gracias por comunicarte con nosotros»,
+   «gracias por confirmarlo») y transfer_to_number dejaba transferir si «pide hablar con una persona». Lo demás (números
+   de transferencia, condiciones) queda como está allá. */
+var VOZ_SISTEMA_DESC_ = {
+  end_call: 'Termina la llamada. Úsala solo cuando la persona ya se despidió, dijo que no necesita nada más, o se quedó en silencio largo después de tu despedida. Nunca justo después de responder ni con algo pendiente (una búsqueda en curso, una urgencia sin pasar al equipo). Antes, despídete una sola vez, corto y cálido, del tema de la llamada («Listo, queda así. Que descanses.»). Si ya te despediste y responde con otra cortesía, úsala sin decir nada más. Nada de frases de centro de llamadas («gracias por comunicarte», «gracias por confirmarlo», «quedamos atentos»). En la app de Alma en modo conferencia no la uses: la app deja el micrófono abierto.',
+  transfer_to_number: 'Pasa la llamada a una persona del equipo SOLO en una urgencia que no puedes resolver: un huésped afuera sin poder entrar, servicios esenciales caídos (luz, agua), un riesgo de seguridad o una emergencia del edificio. Nunca por disponibilidad, cambios de reserva, información general, porque la persona suena molesta o solo porque pide hablar con alguien: eso queda anotado y el equipo le escribe por WhatsApp a ese número. Antes, una frase con calma: «Te paso con alguien del equipo para resolverlo de una vez».',
+  language_detection: 'Cambia de idioma cuando la persona habla en otro (por ejemplo, inglés). Sigue en ese idioma hasta que ella cambie.'
+};
 
 /* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Sin frase antes: pre_tool_speech 'off' y el tecleo
    cubre la espera (Juan, 3-nov-2026: «solo deberíamos confirmar cuando ya se hizo»). */
@@ -604,6 +544,33 @@ var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type 
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
+  return vozPublicarHerramientas_(VOZ_PUENTE_ + '?voz=1&k=' + encodeURIComponent(k));
+}
+/* La huella de lo que el código dice de las herramientas (sin la URL con la llave). Si cambia, se publican solas. */
+function vozHerramientasHuella_() {
+  var t = JSON.stringify({ d: vozDefHerramientas_('BASE'), a: VOZ_AJUSTES_AJENAS_, s: VOZ_SISTEMA_DESC_ });
+  return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t, Utilities.Charset.UTF_8));
+}
+/* T3 (3-nov-2026): antes las herramientas solo se publicaban si alguien corría el robot voz_tools, y quedaron atrasadas
+   («lookup_reservation: llámala SIEMPRE primero» seguía vivo). Ahora, en la misma vuelta que sincroniza el prompt (cada
+   30 min), si la huella cambió se publican solas. La llave no se guarda: se toma de la URL que ElevenLabs ya tiene en
+   secretaria (la puso voz_tools la primera vez). */
+function vozHerramientasSiCambiaron_() {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY');
+  if (!key || !p.getProperty('ELEVENLABS_AGENT_ID')) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var huella = vozHerramientasHuella_(); if (huella === p.getProperty('VOZ_TOOLS_HUELLA')) return { ok: true, sin_cambios: true };
+  var r = uf_('https://api.elevenlabs.io/v1/convai/tools', { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) return { ok: false, error: 'GET tools HTTP ' + r.getResponseCode() };
+  var sec = (JSON.parse(r.getContentText()).tools || []).filter(function (t) { return t.tool_config && t.tool_config.name === 'secretaria'; })[0];
+  var url = sec && sec.tool_config.api_schema && sec.tool_config.api_schema.url || '';
+  var base = url.indexOf(VOZ_PUENTE_) === 0 ? url.replace(/&h=[^&]*$/, '') : '';
+  if (!base) { p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: false, t: new Date().toISOString(), error: 'secretaria sin URL del puente: corre voz_tools una vez' })); return { ok: false, error: 'sin base' }; }
+  var o = vozPublicarHerramientas_(base);
+  if (o && o.ok !== false) p.setProperty('VOZ_TOOLS_HUELLA', huella);
+  p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: o && o.ok !== false, t: new Date().toISOString(), herramientas: (o && o.herramientas || []).length }));
+  return o;
+}
+function vozPublicarHerramientas_(base) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
   var api = 'https://api.elevenlabs.io/v1/convai', h = { 'xi-api-key': key };
@@ -614,7 +581,6 @@ function vozHerramientas_(k) {
     if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
     return t ? JSON.parse(t) : {};
   };
-  var base = VOZ_PUENTE_ + '?voz=1&k=' + encodeURIComponent(k);
   var existentes = (pedir('get', '/tools').tools || []), hechas = [];
   vozDefHerramientas_(base).forEach(function (def) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];
@@ -629,8 +595,11 @@ function vozHerramientas_(k) {
   });
   var ag = pedir('get', '/agents/' + encodeURIComponent(agente)), pr = ag.conversation_config.agent.prompt;
   var ids = (pr.tool_ids || []).slice();
-  hechas.forEach(function (t) { if (ids.indexOf(t.id) < 0) ids.push(t.id); });
+  hechas.forEach(function (t) { if (t.id && ids.indexOf(t.id) < 0) ids.push(t.id); });
   pr.tool_ids = ids; delete pr.tools;
+  /* Herramientas de sistema: solo la descripción (VOZ_SISTEMA_DESC_); números y condiciones quedan como están allá. */
+  var bit = pr.built_in_tools || {};
+  Object.keys(VOZ_SISTEMA_DESC_).forEach(function (n) { if (bit[n]) { bit[n].description = VOZ_SISTEMA_DESC_[n]; hechas.push({ name: n, accion: 'descripción de sistema' }); } });
   /* Paciencia: Alma espera a que la persona termine la frase (turn_eagerness 'patient') y no la interrumpe al primer silencio.
      Cada vez que se publican las herramientas se vuelve a dejar así, para que ningún cambio del agente la apure sin querer. */
   var turn = Object.assign({}, (ag.conversation_config || {}).turn || {}, { turn_eagerness: 'patient' });

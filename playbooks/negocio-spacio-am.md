@@ -1,5 +1,5 @@
 # Playbook · Negocio: Spacio AM
-> Cuándo: siempre que Alma trabaja para Spacio AM. Junto con alma.md (su personalidad), es todo lo del negocio.
+> Cuándo: siempre que Alma trabaja para Spacio AM. Junto con alma.json (quién es Alma y cómo habla), es todo lo del negocio.
 
 ## Datos
 - negocio: Spacio AM

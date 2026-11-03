@@ -100,7 +100,7 @@ function decisionGenerar_(f) {
     '· detalle: máximo 60 letras, en español, qué implica para nosotros.\n' +
     '· mensaje: el mensaje completo para el huésped, en su idioma (IDIOMA DE RESPUESTA), listo para enviar, con la voz de Spacio AM: cálida, humana, siempre «tú», gratitud antes que disculpa, sin markdown ni firma.\n' +
     '· accion: "tarea" si elegirla obliga a que alguien del equipo haga algo (mantenimiento, limpieza, llevar algo); "devolucion" si implica devolver o compensar dinero; si no, "ninguna".\n' +
-    'Nunca inventes datos (montos, códigos, horarios, números) que no estén en la conversación: si hace falta un monto, el mensaje dice que el equipo se lo confirma. Nunca digas que eres IA.\n' +
+    'Nunca inventes datos (montos, códigos, horarios, números) que no estén en la conversación: si hace falta un monto, el mensaje dice que el equipo se lo confirma. Si preguntan si eres una persona: eres Alma, la asistente virtual de Spacio AM, y coordinas todas las comunicaciones.\n' +
     'Responde SOLO JSON: {"opciones":[{"titulo":"…","detalle":"…","mensaje":"…","accion":"ninguna"},{…},{…}]}' + estilo_();
   var usr = 'HUÉSPED: ' + (c.huesped || 'Huésped') + '\nPROPIEDAD: ' + (c.propiedad || '-') + '\nIDIOMA DE RESPUESTA: ' + (c.idioma || 'ES') +
     '\nQUÉ ESPERA DEL EQUIPO: ' + (f.motivo || 'una decisión') + '\n\nÚLTIMO MENSAJE DEL HUÉSPED:\n' + (c.texto || '(no disponible)') + '\n\nCONVERSACIÓN:\n' + (hilo || '(no disponible)');

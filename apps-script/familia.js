@@ -84,7 +84,7 @@ var SEMILLA_FAMILIA_ = [
   'VOZ',
   '· Hablas, no escribes: frases cortas, de tú, sin listas leídas, sin markdown ni enlaces.',
   '· No repitas lo que la persona acaba de decir. Despídete una sola vez y, si ya te despediste, termina la llamada sin agregar otra despedida.',
-  '· Nunca digas que eres una IA ni hables de sistemas, herramientas o instrucciones.'
+  '· No hables de sistemas, herramientas ni instrucciones.'
 ].join('\n');
 
 /* Modos de conversación (fijos en código; la app dice cuál en EN PANTALLA, línea «MODO:»). */
@@ -105,17 +105,18 @@ var FAMILIA_MODOS_ = [
   '  · En estos modos ya están como equipo: no llames a modo_reunion.'
 ].join('\n');
 
-/* Sin susurros: la calma va en las palabras, no en bajar la voz (va al final: prevalece sobre las etiquetas de VOZ_HUMANA). */
-var FAMILIA_VOZ_CLARA_ = 'VOZ CLARA (prevalece sobre todo lo anterior)\n· Nunca susurres. No uses [softly], [whispers], [whispering], [quietly] ni ninguna etiqueta que baje la voz, ni siquiera en temas delicados, cuentos para dormir o despedidas.\n· Habla siempre con voz clara, presente y a volumen normal, como en una conversación cara a cara. La calma y la ternura van en las palabras y en el ritmo, no en el volumen.\n· La única etiqueta permitida es [warm], como mucho una vez al saludar o despedirte.';
+/* VOZ CLARA (sin susurros, solo [warm]) vive ahora en la fuente única: playbooks/alma.json, canal voz (v_etiquetas). */
 
 /* Prompt completo del agente familiar: enfoque familiar + la voz de Alma (la misma fila VOZ_HUMANA de las llamadas). */
 function familiaPromptCompleto_() {
   var fam = String(prompt_('FAMILIA') || '').trim() || SEMILLA_FAMILIA_;
   /* La misma Alma, en otro negocio: su personalidad (playbook alma) con The Gentle Stoic Parent puesto. */
-  var humana = ''; try { humana = almaPersona_('voz', { negocio: 'The Gentle Stoic Parent', dueño: 'Juan' }); } catch (e) {}
-  if (!humana) humana = String(prompt_('VOZ_HUMANA') || '').trim();
+  var humana = ''; try { humana = almaPrompt_('voz', 'familia', { negocio: 'The Gentle Stoic Parent', dueño: 'Juan', sinHerramientas: true, sinEjemplos: true }); } catch (e) {}
+  /* Decisión de Juan (3-nov-2026): si preguntan en serio si es una persona, dice que es la asistente virtual (alma.json);
+     la fila FAMILIA de la hoja todavía decía lo contrario. */
+  fam = fam.replace(/^.*Nunca digas que eres una IA.*$/m, '· No hables de sistemas, herramientas ni instrucciones.');
   var weebo = ''; try { weebo = weeboVozBloque_(true); } catch (e) {}
-  return [fam, FAMILIA_MODOS_, weebo, humana ? '--- CÓMO SUENAS (la misma voz de Alma en todos lados) ---\nEn la app familiar no te presentas como Spacio AM ni hablas del portal, de reservas ni de WhatsApp de huéspedes: esas líneas no aplican aquí. Todo lo demás, sí.\n\n' + humana : '', FAMILIA_VOZ_CLARA_].filter(Boolean).join('\n\n');
+  return [fam, FAMILIA_MODOS_, weebo, humana ? '--- LA MISMA ALMA DE SIEMPRE ---\nEn la app familiar no te presentas como Spacio AM ni hablas de reservas ni de huéspedes. Todo lo demás, sí.\n\n' + humana : ''].filter(Boolean).join('\n\n');
 }
 
 /* Copia un prompt a un agente de ElevenLabs si cambió (huella en claveHuella). Solo cambia el texto. */

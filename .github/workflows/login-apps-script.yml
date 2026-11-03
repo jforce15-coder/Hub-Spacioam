@@ -49,8 +49,10 @@ jobs:
 
       - name: Crear versión y actualizar la implementación
         working-directory: login
+        env:
+          MSG: ${{ github.event.head_commit.message || 'Publicación manual' }}
         run: |
-          MSG="${{ github.event.head_commit.message || 'Publicación manual' }}"
+          # El mensaje llega por env: con comillas invertidas (`así`) ya no se ejecuta como comando
           DESC="$(printf '%s' "$MSG" | head -n1 | cut -c1-90)"
           OUT="$(clasp create-version "$DESC" 2>&1)"
           echo "$OUT"

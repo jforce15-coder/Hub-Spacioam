@@ -332,6 +332,7 @@
   .vj-vivo:active { transform: scale(.985); }
   .vj-vivo[hidden] { display: none; }
   body.orbita-on .vj-vivo { opacity: 0 !important; pointer-events: none !important; }
+  body.san-hoja .vj-vivo, body.san-hoja .ajustes.avion { opacity: 0 !important; pointer-events: none !important; }   /* solo en la pantalla principal: no encima de Pendientes, Notificaciones ni el chat */
   body.vv-arriba .hola { opacity: 0 !important; }   /* pantalla chica (iPhone SE): la tarjeta toma el lugar del saludo */
   .vj-vivo .izq { flex: none; width: var(--vv-corte); padding: 14px 8px 12px 16px; display: flex; flex-direction: column; justify-content: space-between; min-width: 0;
     border-right: 1.5px dashed rgba(62,63,63,.16); }

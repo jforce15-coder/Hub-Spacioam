@@ -3,18 +3,22 @@
    escalado, o el huésped eligió algo que requiere al equipo), la IA propone 3 respuestas cortas, A, B y C, más
    «Otra respuesta» para escribir a mano. Se muestran en la conversación del Hub (tarjeta de acción), en el chat con
    Alma (op:) y en el chat de la app (bloque [[opciones]]), y por WhatsApp al responsable de turno (3 botones).
-   Al elegir queda un borrador para revisar: nada sale solo, salvo el botón «Enviar» de WhatsApp, que es la
-   confirmación explícita. Una sola decisión por conversación: lo que se elige o envía en un canal cierra los demás
+   En el Hub y en el chat con Alma, elegir deja un borrador para revisar. Por WhatsApp no: tocar una opción (o escribir
+   la respuesta propia) es el envío con deshacer: Alma muestra el texto con «Deshacer» y sale solo al minuto
+   (decSalidaProgramar_ → decisionesSalir_). Una sola decisión por conversación: lo que se elige o envía en un canal cierra los demás
    («Resuelto por Ana · opción B»).
-   Hoja DECISIONES. Estados: abierta → elegida → enviada.
+   Hoja DECISIONES. Estados: abierta → elegida → enviada. La salida sola (sale_estado): programado → enviando → enviado,
+   o deshecho / al_hub / error. «enviando» se marca con el candado antes de mandar: así nunca sale dos veces.
    Disparo (sin duplicar, una abierta por conversación): avisarRojo_ (rojo y escalados), promesaRegistrar_ («lo
    confirmo con el equipo») y avisarSeguimiento_ (el huésped eligió algo que requiere al equipo). decisionCrear_ solo
    anota el caso (rápido, dentro de la cola de huéspedes); las opciones con IA y los avisos salen en la siguiente
    pasada de procesarCola (decisionesProcesar_), que es de huéspedes y nunca se pausa por cupo. */
-var DEC_CAB_ = ['id', 'resId', 'creado', 'opciones', 'estado', 'quien', 'opcion', 'cuando', 'origen', 'motivo', 'contexto', 'borrador', 'intentos', 'enviado_por', 'enviado_ts'];
+var DEC_CAB_ = ['id', 'resId', 'creado', 'opciones', 'estado', 'quien', 'opcion', 'cuando', 'origen', 'motivo', 'contexto', 'borrador', 'intentos', 'enviado_por', 'enviado_ts', 'sale_ts', 'sale_wa', 'sale_estado'];
 var DEC_LETRAS_ = ['A', 'B', 'C'];
 var DEC_ACCIONES_ = ['tarea', 'devolucion', 'ninguna'];
 var DEC_WA_MIN_ = 20;   // minutos en que un texto suelto del responsable se toma como «otra respuesta»
+var DEC_SALE_MS_ = 60000;   // envío con deshacer: lo elegido por WhatsApp sale solo a este tiempo, si no tocan «Deshacer»
+var DEC_DESHACER_RE_ = /^(deshacer|desh[aá]zlo|no lo mandes|no lo env[ií]es|no lo envies|cancela(lo)?|det[eé]nlo)[.!]*$/i;
 
 function hojaDec_() {
   var sh = hojaCrear_('DECISIONES', DEC_CAB_);
@@ -29,9 +33,11 @@ function decFilas_() {
 function decGuardar_(sh, f, cambios) {
   Object.keys(cambios).forEach(function (k) { f[k] = cambios[k]; sh.getRange(f.fila, DEC_CAB_.indexOf(k) + 1).setValue(cambios[k]); });
 }
-/* Candado: si quien llama ya lo tiene (la cola de huéspedes, al avisar un rojo), no se suelta aquí. Devuelve cómo soltarlo, o null. */
+/* Candado: si quien llama ya lo tiene, no se suelta aquí. Devuelve cómo soltarlo, o null. Es el del usuario
+   (vozColaLock_, retomar.js), no el del script: procesarCola tiene ese toda su pasada y un toque de Juan en WhatsApp
+   («Deshacer», una opción) no puede esperar a las respuestas de los huéspedes (ESTANDARES, Apps Script). */
 function decCandado_() {
-  var lock = LockService.getScriptLock(), yaTenia = false;
+  var lock = vozColaLock_(), yaTenia = false;
   try { yaTenia = lock.hasLock(); if (!yaTenia) lock.waitLock(10000); } catch (e) { return null; }
   return function () { if (!yaTenia) { try { lock.releaseLock(); } catch (e) {} } };
 }
@@ -120,7 +126,7 @@ function decPublica_(f) {
   if (!f) return null;
   return { id: f.id, resId: f.resId, creado: f.creado, estado: f.estado, generando: !f.opciones && f.estado === 'abierta', motivo: f.motivo, origen: f.origen,
     opciones: decOpciones_(f), quien: f.quien, opcion: f.opcion, cuando: f.cuando, resuelto: f.estado === 'abierta' ? '' : decResueltoTxt_(f),
-    enviada: f.estado === 'enviada', borrador: f.opcion === 'otra' ? f.borrador : '' };
+    enviada: f.estado === 'enviada', borrador: f.opcion === 'otra' ? f.borrador : '', sale: f.sale_estado === 'programado' ? f.sale_ts : '' };
 }
 function decisionLeer_(resId) {
   resId = String(resId || ''); if (!resId) return null;
@@ -148,10 +154,12 @@ function decisionElegir_(ses, id, opcion, nombre) {
     var d = decFilas_(), f = d.filas.filter(function (x) { return x.id === String(id || ''); })[0];
     if (!f) return { ok: false, error: 'Ya no encuentro ese caso.' };
     /* Una sola decisión: si otra persona ya eligió o ya se envió, no se puede elegir de nuevo. Quien eligió sí puede cambiar. */
-    if (f.estado === 'enviada' || (f.estado === 'elegida' && f.quien !== quien)) return { ok: false, resuelta: true, error: decResueltoTxt_(f), decision: decPublica_(f) };
+    if (f.estado === 'enviada' || f.sale_estado === 'enviando' || (f.estado === 'elegida' && f.quien !== quien)) return { ok: false, resuelta: true, error: decResueltoTxt_(f), decision: decPublica_(f) };
     var op = decOpciones_(f).filter(function (o) { return o.letra === opcion; })[0];
     if (opcion !== 'otra' && !op) return { ok: false, error: 'Las opciones todavía se están preparando.' };
-    decGuardar_(d.sh, f, { estado: 'elegida', quien: quien, opcion: opcion, cuando: new Date().toISOString() });
+    var cambios = { estado: 'elegida', quien: quien, opcion: opcion, cuando: new Date().toISOString() };
+    if (f.sale_estado === 'programado') { cambios.sale_estado = ''; cambios.sale_ts = ''; }   // elegir otra cosa detiene la salida anterior; WhatsApp la vuelve a programar
+    decGuardar_(d.sh, f, cambios);
     return { ok: true, decision: decPublica_(f), mensaje: op ? op.mensaje : '', accion: op ? op.accion : 'ninguna' };
   } finally { soltar(); }
 }
@@ -287,7 +295,7 @@ function decTextoWa_(f) {
   return 'Un caso espera tu decisión · ' + (c.huesped || 'huésped') + (c.propiedad ? ' · ' + c.propiedad : '') + '\n' + (f.motivo ? f.motivo + '\n' : '') +
     (c.texto ? '\nEl huésped dijo: «' + String(c.texto).slice(0, 300) + '»\n' : '') + '\n' +
     ops.map(function (o) { return o.letra + ') ' + o.titulo + (o.detalle ? ' — ' + o.detalle : ''); }).join('\n') +
-    '\n\nToca una opción y te mando el borrador. Para otra respuesta, escríbela aquí.';
+    '\n\nToca una opción y sale en 1 minuto; te dejo «Deshacer». Para otra respuesta, escríbela aquí.';
 }
 function decisionAvisarWa_(f) {
   var ops = decOpciones_(f); if (ops.length !== 3) return;
@@ -302,34 +310,149 @@ function decisionAvisarWa_(f) {
     waEnviar_(p.wa, 'Un caso espera tu decisión · ' + (c.huesped || 'huésped') + (c.propiedad ? ' · ' + c.propiedad : '') + (f.motivo ? '\n' + f.motivo : '') + '\n\nAlma te dejó 3 opciones en su conversación:\n' + decEnlace_(f.resId));
   });
 }
-/* El borrador que el responsable confirma con «Enviar» o abre con «Editar en el Hub». */
-function decMandarBorradorWa_(wa, f, texto) {
-  var c = decCtx_(f);
-  var cuerpo = 'Borrador para ' + (c.huesped || 'el huésped') + ' (' + (f.opcion === 'otra' ? 'tu respuesta, pulida' : 'opción ' + f.opcion) + '):\n\n' + texto + '\n\nEditar: ' + decEnlace_(f.resId);
-  var r = waBotones_(wa, cuerpo, [{ id: 'dec:' + f.id + ':enviar', titulo: 'Enviar' }, { id: 'dec:' + f.id + ':hub', titulo: 'Editar en el Hub' }]);
-  if (r.ok) decWaMarcar_(wa, f.id, r.id); else waEnviar_(wa, cuerpo);
+/* ── Envío con deshacer (WhatsApp): lo elegido sale solo en DEC_SALE_MS_ si no tocan «Deshacer». ──
+   Alma muestra enseguida el texto que va a salir con «Deshacer» y «Editar en el Hub»; al minuto lo manda con
+   hubResponder_ (igual que «Enviar»: cierra la decisión y hace su acción) y confirma «Enviado a <huésped>». */
+function decTexto_(f) {
+  if (f.opcion === 'otra') return String(f.borrador || '');
+  var op = decOpciones_(f).filter(function (o) { return o.letra === f.opcion; })[0];
+  return op ? String(op.mensaje || '') : '';
 }
+function decFila_(id) { var d = decFilas_(); return { sh: d.sh, filas: d.filas, f: d.filas.filter(function (x) { return x.id === String(id || ''); })[0] }; }
+/* Cuándo vence la próxima salida (propiedad DEC_SALE): procesarCola no lee la hoja si no hay nada. */
+function decSaleProximo_(filas) {
+  var prox = 0;
+  (filas || []).forEach(function (f) { if (f.sale_estado === 'programado' && f.estado === 'elegida') { var t = Date.parse(f.sale_ts); if (t && (!prox || t < prox)) prox = t; } });
+  var P = PropertiesService.getScriptProperties();
+  if (prox) P.setProperty('DEC_SALE', String(prox)); else P.deleteProperty('DEC_SALE');
+  return prox;
+}
+/* Un disparador corto para que salga al minuto (procesarCola, cada minuto, es el respaldo). */
+function decSaleAgendar_(ms) {
+  try {
+    ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'decisionSalirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
+    ScriptApp.newTrigger('decisionSalirPronto').timeBased().after(Math.max(1000, Math.round(ms))).create();
+  } catch (e) { console.error('decSaleAgendar_: ' + e); }
+}
+/* Programa la salida de lo elegido (opción o respuesta propia). Devuelve { ok, ts } o { ok: false, error }. */
+function decSalidaProgramar_(id, wa) {
+  var soltar = decCandado_(); if (!soltar) return { ok: false, error: 'ocupado' };
+  var ts;
+  try {
+    var d = decFila_(id), f = d.f;
+    if (!f || f.estado !== 'elegida' || f.sale_estado === 'enviando') return { ok: false, error: f ? decResueltoTxt_(f) : 'Ya no encuentro ese caso.' };
+    if (!decTexto_(f)) return { ok: false, error: 'No tengo el texto' };
+    ts = new Date(Date.now() + DEC_SALE_MS_).toISOString();
+    decGuardar_(d.sh, f, { sale_ts: ts, sale_wa: String(wa || ''), sale_estado: 'programado' });
+    decSaleProximo_(d.filas);
+  } finally { soltar(); }
+  decSaleAgendar_(DEC_SALE_MS_ + 2000);
+  return { ok: true, ts: ts };
+}
+/* Lo que Alma le muestra al responsable: el texto que va a salir, con «Deshacer» y «Editar en el Hub». */
+function decMostrarSalida_(wa, f, texto) {
+  var c = decCtx_(f);
+  var cuerpo = 'Sale en 1 minuto para ' + (c.huesped || 'el huésped') + ' (' + (f.opcion === 'otra' ? 'tu respuesta, pulida' : 'opción ' + f.opcion) + '):\n\n' + texto +
+    '\n\nSi no quieres que salga, toca «Deshacer».';
+  var p = decSalidaProgramar_(f.id, wa);
+  if (!p.ok) { waEnviar_(wa, 'No lo pude dejar listo para salir (' + p.error + '). Ábrelo en el Hub:\n' + decEnlace_(f.resId), { yaVentana: true }); return; }
+  var r = waBotones_(wa, cuerpo, [{ id: 'dec:' + f.id + ':deshacer', titulo: 'Deshacer' }, { id: 'dec:' + f.id + ':hub', titulo: 'Editar en el Hub' }]);
+  if (r.ok) { decWaMarcar_(wa, f.id, r.id); return; }
+  /* Sin el botón no hay cómo deshacer: no sale solo, queda en el Hub. */
+  decSalidaParar_(f.id, 'al_hub');
+  waEnviar_(wa, 'Borrador para ' + (c.huesped || 'el huésped') + ':\n\n' + texto + '\n\nNo lo mandé: revísalo y envíalo desde el Hub:\n' + decEnlace_(f.resId), { yaVentana: true });
+}
+/* «Deshacer» o «Editar en el Hub»: detiene la salida. Devuelve 'parado' o 'salio' (ya había salido o está saliendo). */
+function decSalidaParar_(id, motivo) {
+  var soltar = decCandado_(); if (!soltar) return 'ocupado';
+  try {
+    var d = decFila_(id), f = d.f; if (!f) return 'parado';
+    if (f.estado === 'enviada' || f.sale_estado === 'enviando' || f.sale_estado === 'enviado') return 'salio';
+    if (f.sale_estado === 'programado') { decGuardar_(d.sh, f, { sale_estado: motivo || 'deshecho', sale_ts: '' }); decSaleProximo_(d.filas); }
+    return 'parado';
+  } finally { soltar(); }
+}
+/* Con el candado: la marca «enviando» antes de mandar. Solo una ejecución la consigue: nunca sale dos veces.
+   vence = true (la salida sola): solo si está programada y ya pasó su minuto. vence = false («Enviar» de antes): si está elegida. */
+function decSalidaTomar_(id, vence) {
+  var soltar = decCandado_(); if (!soltar) return null;
+  try {
+    var d = decFila_(id), f = d.f;
+    if (!f || f.estado !== 'elegida' || f.sale_estado === 'enviando' || f.sale_estado === 'enviado') return null;
+    if (vence && !(f.sale_estado === 'programado' && Date.parse(f.sale_ts) <= Date.now())) return null;
+    decGuardar_(d.sh, f, { sale_estado: 'enviando' });
+    decSaleProximo_(d.filas);
+    return f;
+  } finally { soltar(); }
+}
+/* Manda lo tomado con decSalidaTomar_ y deja el resultado en la hoja. Devuelve la respuesta de hubResponder_. */
+function decSalidaMandar_(f, quien) {
+  var r = null, msg = decTexto_(f);
+  try { r = msg ? hubResponder_(f.resId, msg, quien || f.quien || 'Equipo', '', null) : { ok: false, error: 'sin texto' }; }   // cierra la decisión (decisionAlResponder_) y hace la acción
+  catch (e) { r = { ok: false, error: String(e && e.message || e) }; }
+  var soltar = decCandado_() || function () {};
+  try { var d = decFila_(f.id); if (d.f) decGuardar_(d.sh, d.f, { sale_estado: r && r.ok ? 'enviado' : 'error' }); } finally { soltar(); }
+  return r;
+}
+/* procesarCola (cada minuto) y el disparador corto: manda lo que ya cumplió su minuto. */
+function decisionesSalir_() {
+  var prox = Number(PropertiesService.getScriptProperties().getProperty('DEC_SALE') || 0);
+  if (!prox || prox > Date.now()) return 0;
+  var vencidas = decFilas_().filas.filter(function (f) { return f.estado === 'elegida' && f.sale_estado === 'programado' && Date.parse(f.sale_ts) <= Date.now(); });
+  var n = 0;
+  vencidas.forEach(function (v) {
+    var f = decSalidaTomar_(v.id, true); if (!f) return;
+    var r = decSalidaMandar_(f, f.quien), c = decCtx_(f), wa = f.sale_wa;
+    n++;
+    if (!wa) return;
+    try { decWaMarcar_(wa, null); } catch (e) {}
+    try {
+      waEnviar_(wa, r && r.ok ? 'Enviado a ' + (c.huesped || 'el huésped') + '.' : 'No salió: ' + ((r && r.error) || 'error') + '. Ábrelo en el Hub:\n' + decEnlace_(f.resId), { yaVentana: true });
+    } catch (e) { console.error('decisionesSalir_ aviso: ' + e); }
+  });
+  var otra = decSaleProximo_(decFilas_().filas);
+  if (otra) decSaleAgendar_(otra - Date.now() + 2000);
+  return n;
+}
+function decisionSalirPronto() {
+  cupoCanal_('Huéspedes');   // es una respuesta a un huésped: nunca se pausa por cupo
+  ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'decisionSalirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  decisionesSalir_();
+}
+
 /* Webhook: ¿este mensaje del responsable es parte de una decisión? (botón o texto como «otra respuesta»). true = atendido. */
 function decisionWaEntrante_(m, wa, ts) {
   var boton = m.type === 'interactive' && m.interactive && m.interactive.button_reply ? s_(m.interactive.button_reply.id) : '';
-  var mb = boton.match(/^dec:([\w-]+):(A|B|C|enviar|hub)$/);
+  var mb = boton.match(/^dec:([\w-]+):(A|B|C|enviar|hub|deshacer)$/);
   var marca = decWaMapa_()[fin8_(wa)], texto = m.type === 'text' ? s_(m.text && m.text.body).trim() : '';
   var esOtra = !mb && !!texto && !!marca && ((m.context && m.context.id && m.context.id === marca.msg) || Date.now() - marca.ts < DEC_WA_MIN_ * 60000);
   if (!mb && !esOtra) return false;
   var id = mb ? mb[1] : marca.id, f = decFilas_().filas.filter(function (x) { return x.id === id; })[0];
   if (!f) return false;
-  if (!mb && !decViva_(f)) { decWaMarcar_(wa, null); return false; }   // ya se resolvió: su texto sigue su camino normal
+  /* «deshacer» escrito a mano mientras algo está por salir es «Deshacer», nunca una respuesta para el huésped. */
+  var deshacerEscrito = !mb && DEC_DESHACER_RE_.test(texto.replace(/\s+/g, ' '));
+  if (!mb && !deshacerEscrito && !decViva_(f)) { decWaMarcar_(wa, null); return false; }   // ya se resolvió: su texto sigue su camino normal
   var quien = decNombreWa_(wa);
   try { hojaWA_().appendRow([ts || new Date().toISOString(), wa, quien, 'in', (mb ? '[botón] ' + s_(m.interactive.button_reply.title) : texto).slice(0, 4000), s_(m.id), 'dec:' + id, s_(m.type), 'decision', '']); } catch (e) {}
-  var accion = mb ? mb[2] : 'otra';
-  if (accion === 'hub') { waEnviar_(wa, 'Ábrelo aquí, el borrador te espera en el cuadro:\n' + decEnlace_(f.resId), { yaVentana: true }); return true; }
-  if (accion === 'enviar') {
+  var accion = mb ? mb[2] : deshacerEscrito ? 'deshacer' : 'otra';
+  if (accion === 'deshacer') {
+    var pd = decSalidaParar_(f.id, 'deshecho');
+    waEnviar_(wa, pd === 'salio' ? 'Ya había salido.' : pd === 'ocupado' ? 'No pude detenerlo, intenta otra vez.' : 'Listo, no lo mandé.', { yaVentana: true });
+    return true;
+  }
+  if (accion === 'hub') {
+    var ph = decSalidaParar_(f.id, 'al_hub');
+    waEnviar_(wa, (ph === 'salio' ? 'Ya había salido. ' : ph === 'parado' && f.sale_estado === 'programado' ? 'Lo detuve: no sale solo. ' : '') + 'Ábrelo aquí, el borrador te espera en el cuadro:\n' + decEnlace_(f.resId), { yaVentana: true });
+    return true;
+  }
+  if (accion === 'enviar') {   // el botón de los borradores de antes del envío con deshacer
     if (f.estado === 'enviada' || (f.estado === 'elegida' && f.quien !== quien)) { waEnviar_(wa, decResueltoTxt_(f) + '. Ya no hace falta enviarlo.', { yaVentana: true }); return true; }
-    var op = decOpciones_(f).filter(function (o) { return o.letra === f.opcion; })[0], msg = f.opcion === 'otra' ? f.borrador : op ? op.mensaje : '';
-    if (!msg) { waEnviar_(wa, 'Primero elige una opción.', { yaVentana: true }); return true; }
-    var r = hubResponder_(f.resId, msg, quien, '', null);   // cierra la decisión (decisionAlResponder_) y hace la acción
+    if (!decTexto_(f)) { waEnviar_(wa, 'Primero elige una opción.', { yaVentana: true }); return true; }
+    var ft = decSalidaTomar_(f.id, false);
+    if (!ft) { waEnviar_(wa, 'Ya había salido.', { yaVentana: true }); return true; }
+    var r = decSalidaMandar_(ft, quien);
     decWaMarcar_(wa, null);
-    waEnviar_(wa, r && r.ok ? 'Listo: se lo envié a ' + (decCtx_(f).huesped || 'el huésped') + '.' : 'No salió: ' + ((r && r.error) || 'error') + '. Ábrelo en el Hub:\n' + decEnlace_(f.resId), { yaVentana: true });
+    waEnviar_(wa, r && r.ok ? 'Enviado a ' + (decCtx_(f).huesped || 'el huésped') + '.' : 'No salió: ' + ((r && r.error) || 'error') + '. Ábrelo en el Hub:\n' + decEnlace_(f.resId), { yaVentana: true });
     return true;
   }
   if (accion === 'otra') {
@@ -338,12 +461,12 @@ function decisionWaEntrante_(m, wa, ts) {
     var pul = null; try { pul = hubRedactar_(f.resId, texto, []); } catch (e) { console.error('decision otra: ' + e); }
     var final = pul && pul.ok ? pul.texto : texto;
     var d2 = decFilas_(), f2 = d2.filas.filter(function (x) { return x.id === f.id; })[0]; if (f2) { decGuardar_(d2.sh, f2, { borrador: String(final).slice(0, 3000) }); f = f2; }
-    decMandarBorradorWa_(wa, f, final);
+    decMostrarSalida_(wa, f, final);
     return true;
   }
   var r2 = decisionElegir_({ nombre: quien }, f.id, accion);
   if (!r2.ok) { waEnviar_(wa, (r2.error || 'No pude elegirla') + (r2.resuelta ? '. Ya no hace falta elegir.' : '.'), { yaVentana: true }); return true; }
   var f3 = decFilas_().filas.filter(function (x) { return x.id === f.id; })[0] || f;
-  decMandarBorradorWa_(wa, f3, r2.mensaje);
+  decMostrarSalida_(wa, f3, r2.mensaje);
   return true;
 }

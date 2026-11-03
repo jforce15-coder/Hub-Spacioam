@@ -151,7 +151,7 @@ function paraClaudeDesdeChat_(ses, texto) {
   var alma = opGuardar_(adm, 'alma', 'hub', d.texto, [], CHAT_DESARROLLO_);
   return { ok: true, yo: yo, alma: alma, borrador: d.borrador };
 }
-/* hub.spacioam.com/alma/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, Google Home). Solo el admin
+/* hub.spacioam.com/alma/conexiones.html: las llaves de las conexiones de Alma (Claude, Spotify, AirLabs, Google Home). Solo el admin
    principal con su sesión; las llaves nunca se devuelven, solo si están puestas. */
 function conexiones_(ses, b) {
   var adm = ses && ses.email ? adminPorEmail_(ses.email) : null;
@@ -162,7 +162,10 @@ function conexiones_(ses, b) {
   if (g.spotifyId) p.setProperty('SPOTIFY_CLIENT_ID', String(g.spotifyId).trim());
   if (g.spotifySecret) p.setProperty('SPOTIFY_CLIENT_SECRET', String(g.spotifySecret).trim());
   if (g.github) p.setProperty('GITHUB_PRS', String(g.github).trim());
-  /* FlightAware AeroAPI (vuelovivo.js): la llave del plan Personal, para la puerta y el embarque al día. */
+  /* AirLabs (vuelovivo.js): la llave del plan gratis, para la puerta y el embarque al día. Es la principal. */
+  if (g.airlabs) { var al = String(g.airlabs).trim(); if (!/^[A-Za-z0-9-]{20,64}$/.test(al)) return { ok: false, error: 'Esa no parece la llave de AirLabs: son letras, números y guiones, sin espacios.' }; p.setProperty('AIRLABS_KEY', al); }
+  if (b.desconectar === 'airlabs') p.deleteProperty('AIRLABS_KEY');
+  /* FlightAware AeroAPI (vuelovivo.js), opcional: solo se usa si AirLabs no tiene llave o no encuentra el vuelo. */
   if (g.flightaware) { var fa = String(g.flightaware).trim(); if (!/^[A-Za-z0-9]{20,64}$/.test(fa)) return { ok: false, error: 'Esa no parece la llave de FlightAware: son letras y números, sin espacios (unas 32).' }; p.setProperty('FLIGHTAWARE_KEY', fa); }
   if (b.desconectar === 'flightaware') p.deleteProperty('FLIGHTAWARE_KEY');
   /* Respaldo del inicio de sesión (issue #318): el SESSION_SECRET del login, para comprobar la sesión aquí si el login no
@@ -178,8 +181,9 @@ function conexiones_(ses, b) {
   }
   if (b.desconectar === 'spotify') p.deleteProperty('SPOTIFY_REFRESH');
   var canje = b.spotifyCodigo ? spotifyCanjear_(b.spotifyCodigo) : null;
-  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), claudeSencillo: !!p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO'), flightaware: vueloVivoEstado_(p) };
+  var out = { ok: true, claude: !!p.getProperty('CLAUDE_RUTINA_TOKEN'), claudeSencillo: !!p.getProperty('CLAUDE_RUTINA_TOKEN_SENCILLO'), spotify: spotifyEstado_(), github: !!(p.getProperty('GITHUB_PRS') || p.getProperty('GITHUB_TOKEN')), bigquery: conexBq_(p), loginSecreto: !!p.getProperty('LOGIN_SECRETO'), airlabs: vueloVivoEstado_(p, 'airlabs'), flightaware: vueloVivoEstado_(p, 'flightaware') };
   if (canje) out.canje = canje;
+  if (b.vueloPrueba) out.vueloPrueba = vueloPrueba_(b.vueloPrueba);   // ¿el plan gratis de AirLabs da la puerta? (vuelovivo.js)
   /* El cerebro: «Cargar ahora» instala el activador y corre una tanda; con BigQuery puesto, siempre su estado. */
   if (out.bigquery.proyecto && out.bigquery.cuenta) {
     try {

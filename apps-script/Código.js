@@ -3251,7 +3251,7 @@ function hubApi_(body) {
       case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: { usos: [...] } → filas de uso en ALMA_CALLE_USO (calle.js)
       case 'viajes': return json_(viajes_(ses, body));                                     // botón del avión: { forzar? } → el viaje cercano de tu correo (viajes.js)
       case 'viajePase': return json_(viajePase_(ses, body));                               // botón del avión: { id, pdf? } → el pase de abordar (imagen, PDF o Wallet)
-      case 'vueloVivo': return json_(vueloVivoAccion_(ses));                               // tarjeta del vuelo: puerta, embarque y número al día (vuelovivo.js, FlightAware)
+      case 'vueloVivo': return json_(vueloVivoAccion_(ses));                               // tarjeta del vuelo: puerta, embarque y número al día (vuelovivo.js: AirLabs; FlightAware opcional)
       case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'dsPropuestas': return json_(dsPropuestas_());
@@ -5200,6 +5200,7 @@ function dsBotApi_(body) {
       case 'decisiones': return json_({ ok: true, propuestas: dsFilas_().filter(r => String(r.estado) === 'decidida').map(r => ({ id: String(r.id), decision: String(r.decision), nota: String(r.nota || ''), quien: String(r.quien || ''), propuesta: dsParse_(r.json) })) });
       case 'todas': return json_(dsPropuestas_());
       case 'aplicada': return json_(dsAplicada_(body.id, body.resultado));
+      case 'vuelo_prueba': return json_(vueloPrueba_(body.numero));   // ¿AirLabs da la puerta con el plan gratis? (vuelovivo.js)
       case 'guardar_robot': PropertiesService.getScriptProperties().setProperty('ROBOT_TOKEN', String(body.token)); return json_({ ok: true });
       case 'recepcion_estado': return json_(recepcionEstado_());
       case 'anillo': return json_(anilloLeer_(body.n));

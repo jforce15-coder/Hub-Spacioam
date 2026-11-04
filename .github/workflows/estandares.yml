@@ -118,3 +118,6 @@ jobs:
       - name: Tarjeta de la llamada, una sola cosa, sin repetir, solo la app y nunca la familia (dobles)
         # #446 T2: la tarjeta sale de lo que la secretaria ya leyó (sin IA ni Hospitable); el apartamento nunca lleva códigos.
         run: node .github/tarjeta-llamada.js apps-script
+      - name: Relevo de contacto, la respuesta que cita «X respondió» va a X y Alma encuentra a quien ya le escribió (dobles)
+        # 4-nov: Juan citó «Gustavo Peña respondió…» y Alma preguntó si era para Inés Flores y después pidió su número.
+        run: node .github/relevo-contacto.js apps-script

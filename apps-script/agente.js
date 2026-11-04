@@ -125,7 +125,7 @@ function agHerramientas_() {
       { id: s('id'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: 'Vacío = la misma' }, zona: s(CAL_ZONA_), confirmado: CAL_SI_ }, ['id', 'inicio']),
     T('cancelar_evento', 'Borra un evento que TÚ creaste. Primero la pregunta; con su sí, confirmado = true.', { id: s('id'), confirmado: CAL_SI_ }, ['id']),
     T('preparar_uber', 'Deja listo un Uber para que solo confirme: arma el enlace de Uber con origen y destino ya puestos y las dos direcciones en texto. Antes busca la dirección exacta (hospedaje en el correo con leer_correo o en el proyecto con ver_proyecto; aeropuerto por su nombre completo, p. ej. «Bozeman Yellowstone International Airport»). Si no la encuentras, deja destino vacío y dilo claro. En el chat de WhatsApp pega texto_whatsapp en tu respuesta; en llamada o en la app usa enviar = true.', { origen: s('Dirección o lugar de salida; vacío = su ubicación actual'), destino: s('Dirección o lugar de llegada'), enviar: { type: 'boolean', description: 'true = mandarlo a su WhatsApp' } }, []),
-    T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número.', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
+    T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número; también a quien le escribiste en 30 días (con su número: no lo pidas).', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Mira las imágenes y fotos que mandó el huésped en la conversación de una reserva (capturas, comprobantes, datos de facturación, fotos de un problema). Devuelve las más recientes para que las leas tú mismo. Úsala cuando el administrador mencione una imagen o cuando ver_conversacion marque [imagen].',
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
     T('marcar_resuelta', 'Marca la conversación de una reserva como RESUELTA en la bandeja del Hub (igual que el botón «Resuelta»): sale de pendientes, lo anterior queda como atendido y se cierran las promesas abiertas de ALMA en esa conversación. Un mensaje nuevo del huésped la reabre sola. Con reabrir = true la vuelve a abrir.',
@@ -173,7 +173,7 @@ function agHerramientas_() {
     T('ver_proyecto', 'Resumen consolidado de un proyecto personal (todo lo reunido con todas las personas, contradicciones y lo que falta).', { proyecto: s('Nombre del proyecto'), actualizar: { type: 'boolean', description: 'Rehacer el resumen con los últimos mensajes' } }, ['proyecto']),
     T('asignar_a_proyecto', 'Pasa una conversación personal ya iniciada (por nombre de la persona) a un proyecto, con todo lo que ya se habló.', { persona: s('Nombre'), proyecto: s('Proyecto'), objetivo: s('Opcional: qué se quiere lograr en el proyecto') }, ['persona', 'proyecto']),
     T('cerrar_proyecto', 'Cierra un proyecto personal terminado.', { proyecto: s('Nombre del proyecto') }, ['proyecto']),
-    T('ver_conversacion_personal', 'Lo que ALMA habló con alguien en un tema personal (por nombre), para usarlo o resumirlo.', { persona: s('Nombre') }, ['persona']),
+    T('ver_conversacion_personal', 'Lo que ALMA habló por WhatsApp con alguien (por nombre) en 30 días, personal o no: «revisa la conversación».', { persona: s('Nombre') }, ['persona']),
     T('programar_mensaje', 'Programa un WhatsApp para enviarse más tarde (a alguien del equipo operativo/administrativo, proveedor o un tema personal). Confirma siempre al administrador la fecha y hora con su zona.',
       { persona: s('Nombre de la persona (del equipo se busca su número solo)'), numero: s('Número con código de país si no es del equipo o no lo tengo'), texto: s('Mensaje final, tal cual se enviará'),
         cuando: s('AAAA-MM-DD HH:MM'), zona: s('Zona de esa hora: America/Guatemala (por defecto) o Europe/Madrid si el administrador habla de su hora en España'),
@@ -407,8 +407,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'buscar_contacto': {
       var fichas = contactoBuscar_(inp.texto);
       if (!fichas.length && normTel_(inp.texto) && String(inp.texto).replace(/\D/g, '').length >= 8) { try { var nueva = contactoClasificar_(normTel_(inp.texto), '', true); if (nueva) fichas = [nueva]; } catch (e) {} }
-      if (!fichas.length) return { error: 'No tengo ficha de «' + inp.texto + '». Si tienes su número, búscalo con el número.' };
-      return { contactos: fichas.slice(0, 3).map(function (o, i) {
+      /* También quien le escribió a Alma o le contestó en 30 días (relevo.js): un contacto personal no tiene ficha (4-nov, Gustavo Peña). */
+      var recientes = []; try { recientes = contactoRecientes_(inp.texto, 30).filter(function (r) { return !fichas.some(function (o) { return fin8_(o.tel) === fin8_(r.numero); }); }); } catch (e) { console.error('contactoRecientes_: ' + e); }
+      if (!fichas.length && !recientes.length) return { error: 'No tengo ficha de «' + inp.texto + '» ni le he escrito en los últimos 30 días. Si tienes su número, búscalo con el número.' };
+      return { recientes: recientes.length ? recientes : undefined, contactos: fichas.slice(0, 3).map(function (o, i) {
         var r = { nombre: o.nombre, numero: '+' + o.tel, tipo: CONTACTO_TIPOS_[o.tipo] || o.tipo, rol: o.rol, empresa: o.empresa, propiedades: o.propiedades, estado: o.estado, resumen: o.resumen, actualizado: String(o.actualizado).slice(0, 10), entrega_ultimo_mensaje: waEntregaTexto_(o.tel) };
         if (i === 0) r.historial = contactoHistorial_(o.tel, 40).map(function (m) { return m.ts.slice(0, 16).replace('T', ' ') + ' · ' + m.de + ': ' + m.texto.replace(/\s+/g, ' ').slice(0, 300); });
         return r;
@@ -464,7 +466,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM', propiedad: inp.propiedad || '' }), ok = !!rw.ok;
       if (!ok) cE.remove(kE);
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
-      if (ok) { try { contactoAsegurar_(p.tel); } catch (e) {} }
+      if (ok) { try { contactoAsegurar_(p.tel); relevoAtender_(p.tel); } catch (e) {} }
       if (ok) { try { contactoEncolar_(p.tel, 'Pedido de ' + ((adm && adm.nombre) || 'un administrador') + ' sobre ' + p.nombre + ': ' + String(inp.texto).slice(0, 600) + (inp.al_responder ? ' · Cuando responda: ' + String(inp.al_responder).slice(0, 400) : '')); } catch (e) {} }
       if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
       return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió ' + (rw.socio ? 'la plantilla para socios' : 'el aviso de primer contacto') + ' pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
@@ -548,11 +550,13 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'mensaje_personal': {
       var relP = !inp.numero && inp.persona ? personalPorNombre_(inp.persona) : null;
+      if (!inp.numero && !relP && inp.persona) { try { relP = relevoNumeroDe_(inp.persona); } catch (e) {} }   // ya le escribió en 30 días (relevo.js)
       var numP = normTel_(inp.numero || (relP && relP.wa) || '');
       if (!numP) return { error: 'Necesito el número de WhatsApp de ' + (inp.persona || 'esa persona') + ' (con código de país).' };
       var ctxP = inp.contexto_de && inp.contexto_de.length ? personalContextoDe_(inp.contexto_de) : '';
       var rp = personalEnviar_(adm, inp.persona || (relP && relP.nombre) || '', numP, String(inp.texto), inp.objetivo || '', ctxP, inp.proyecto || '');
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'Personal · ' + (inp.persona || '+' + numP) + ' · ' + String(inp.texto).slice(0, 80), error: rp.ok ? '' : rp.error });
+      if (rp.ok) { try { relevoAtender_(numP); } catch (e) {} }
       return rp.ok ? { ok: true, nota: rp.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?». En cuanto responda le envío el mensaje' + (inp.objetivo ? ', converso con ella hasta tener todo y te mando el resumen.' : ', y lo que conteste te llega.') : 'Mensaje entregado a WhatsApp. ' + (inp.objetivo ? 'Converso con ella hasta tener todo y te mando el resumen.' : 'Lo que conteste te llega.') } : { error: rp.error };
     }
     case 'programar_mensaje': {
@@ -570,7 +574,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ver_proyecto': return proyVer_(inp.proyecto, !!inp.actualizar, adm && adm.nombre);
     case 'asignar_a_proyecto': { var rpA = personalPorNombre_(inp.persona || ''); if (!rpA) return { error: 'No encontré una conversación personal reciente con ' + inp.persona + '.' }; var ra = proyAsignar_(adm, rpA.wa, inp.proyecto, inp.objetivo || ''); if (ra.ok) ctx.hechas.push({ tipo: 'proyecto', resumen: 'Proyecto ' + ra.proyecto + ' · ' + ra.persona }); return ra; }
     case 'cerrar_proyecto': return proyCerrar_(inp.proyecto);
-    case 'ver_conversacion_personal': { var cv = personalContextoDe_([inp.persona]); return cv ? { conversacion: cv } : { error: 'No encontré una conversación personal reciente con ' + inp.persona + '.' }; }
+    case 'ver_conversacion_personal': {
+      var cv = personalContextoDe_([inp.persona]); if (cv) return { conversacion: cv };
+      var rc = []; try { rc = contactoRecientes_(inp.persona, 30); } catch (e) {}   // «revisa la conversación» con alguien que no es personal (relevo.js)
+      return rc.length ? { conversaciones: rc } : { error: 'No encontré una conversación reciente con ' + inp.persona + '.' };
+    }
     case 'musica': { var mu = musica_(adm, inp); if (mu.ok && inp.accion === 'poner') ctx.hechas.push({ tipo: 'musica', resumen: 'Música · ' + (mu.sonando || '') + ' en ' + mu.en }); return mu; }
     case 'pedir_a_agente': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal trabaja con los agentes.' }; var ag = agente_(inp.agente); if (!ag) return { ok: false, error: 'No tengo ese agente. Tengo: ' + agentes_().map(function (a) { return a.id; }).join(', ') }; return agenteCorrer_(ag, 'pedido', String(inp.pedido || '')); }
     case 'leer_playbook': return leerPlaybookTool_(inp.nombre);
@@ -869,7 +877,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   try { var raw = String(claude_(CFG.MODELO_REDACTOR, 1200, sys, usr, 0.3) || ''); out = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (x) { out = {}; }
   /* Datos de hecho de su mensaje («es el 1203»): se anotan solos y el aviso va en el próximo mensaje al administrador (datoshecho.js). */
   var dh = datosHechoDeRespuesta_(wa, quien, texto, adm), dhTxt = dh.length ? '\n\n' + dh.join('\n') : '';
-  var avisar = function (t, res) { if (dhTxt) { t += dhTxt; dhTxt = ''; } if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { waEnviar_(d, t); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
+  var avisar = function (t, res) { if (dhTxt) { t += dhTxt; dhTxt = ''; } if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { var rv = waEnviar_(d, t); if (rv && rv.ok) relevoGuardar_(rv.id, d, { wa: wa, nombre: quien, pedido: obj, tipo: 'encargo', texto: t }); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
   if (!out || (out.respuesta == null && !out.completo)) { avisar(quien + ' respondió a tu encargo:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
   if (String(out.respuesta || '').trim()) { var w = waEnviar_(wa, String(out.respuesta).trim()); if (w && w.ok) contactoRegistrar_(wa, quien, String(out.respuesta).trim()); }
   /* Si con este mensaje el encargo ya terminó, la pregunta va dentro del resumen final: un solo WhatsApp, no dos. */
@@ -906,7 +914,7 @@ function encargosPedidosTexto_(adm) {
   var sueltos = Object.keys(pend).filter(function (k) { return conEnc.indexOf(k) < 0 && pend[k] && pend[k].length; });
   if (!l.length && !sueltos.length) return '';
   var f = function (t) { try { return Utilities.formatDate(new Date(t), CFG.TZ, "d MMM HH:mm"); } catch (e) { return ''; } };
-  var out = '\n\nLO QUE PEDISTE Y SIGUE ABIERTO (si pregunta «¿en qué quedó…?», «¿ya respondió…?» o pide seguimiento, la respuesta empieza aquí; para leer la conversación usa ver_conversacion con el número):';
+  var out = '\n\nLO QUE PEDISTE Y SIGUE ABIERTO (si pregunta «¿en qué quedó…?», «¿ya respondió…?» o pide seguimiento, la respuesta empieza aquí, salvo que el mensaje cite o nombre a otra persona o haya RESPUESTA CITADA o RESPUESTAS QUE ESPERAN TU INDICACIÓN; para leer la conversación usa ver_conversacion con el número):';
   l.forEach(function (e) {
     out += '\n· [' + e.id + '] ' + e.persona + ' (+' + normTel_(e.tel) + '), pedido el ' + f(e.creado) + ': ' + e.objetivo.replace(/\s+/g, ' ').slice(0, 300) +
       (e.esperando ? '\n  ESTADO: se le envió el aviso de primer contacto el ' + f(e.desde) + ' y AÚN NO RESPONDE; el mensaje completo sale en cuanto responda. Nada de lo que depende de su respuesta se ha hecho todavía.' : '\n  ESTADO: ya tiene el mensaje completo; revisa con ver_conversacion si respondió.') +

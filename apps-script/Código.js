@@ -2432,7 +2432,7 @@ function waEnviar_(numero, texto, o) {
     }
     let id = ''; try { id = ((JSON.parse(r.getContentText()).messages || [])[0] || {}).id || ''; } catch (e) {}
     waUltimoGuardar_(wa, id, texto, o);
-    return { ok: true, modo: 'texto' };
+    return { ok: true, modo: 'texto', id: id };   // id: el relevo de contacto lo guarda para reconocerlo si lo citan (relevo.js)
   } catch (e) { console.error('WhatsApp: ' + e); return { ok: false, error: String(e) }; }
 }
 /* Escala a quien esté de turno ahora (correo + WhatsApp si está configurado). Sin nadie de turno → correo de alertas. */
@@ -4340,6 +4340,9 @@ function waEntrante_(m, nombre) {
     const reenv = m.context && (m.context.forwarded || m.context.frequently_forwarded) ? '[reenviado] ' : '';
     /* Respondió citando un mensaje: Meta solo manda el id del citado; se busca su texto para que Alma sepa a qué responde. */
     const cita = !reenv && m.context && m.context.id ? waCitado_(m.context.id) : '';
+    /* Citó un relevo de contacto («Gustavo Peña respondió: …»): lo que diga es para esa persona (relevo.js; 4-nov). */
+    let rlv = null; try { rlv = !reenv && m.context && m.context.id ? relevoCitado_(m.context.id) : null; } catch (e) { console.error('relevoCitado_: ' + e); }
+    if (rlv) { try { cache.put('oprlv_' + m.id, JSON.stringify(rlv), 21600); relevoAtender_(rlv.wa); } catch (e) {} }
     hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_((reenv + (cita ? '[respondiendo a: «' + cita + '»] ' : '') + texto).slice(0, 4000)), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo_pend', media.join(' ')]);
     PropertiesService.getScriptProperties().setProperty('OP_WA_PEND', '1');
     opWaProgramar_();
@@ -5116,8 +5119,12 @@ function opWaProcesar_() {
     const textos = g.map(x => s_(x.r[4])).filter(Boolean);
     const nota = textos.length > 1 ? '(' + textos.length + ' mensajes seguidos por WhatsApp. Léelos juntos como un solo pedido y responde una vez: los marcados [reenviado] vienen de otro chat y suelen ser el material; la instrucción casi siempre va al final.)' : '';
     const fotos = [].concat.apply([], g.map(x => s_(x.r[9]).split(/\s+/))).filter(u => /thumbnail/.test(u));
-    let notaCaso = ''; try { notaCaso = decNotaAgente_(wa); } catch (e) {}   // un caso espera su decisión: Alma lo sabe, sin tomar esto como respuesta (decisiones.js)
-    try { opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, [nota, notaCaso].filter(Boolean).join('\n')); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
+    /* Relevo de contacto (relevo.js): si citó uno, el bloque con esa persona y su conversación (y nada del caso, que es de
+       otro); si no, los relevos que esperan su indicación, para no adivinar con otro pendiente (4-nov, Gustavo e Inés). */
+    let rlv = null; g.forEach(x => { try { const c = cache.get('oprlv_' + s_(x.r[5])); if (c) rlv = JSON.parse(c); } catch (e) {} });
+    let notaRel = ''; try { notaRel = rlv ? relevoNota_(rlv) : relevoNotaPendientes_(wa); } catch (e) { console.error('relevoNota_: ' + e); }
+    let notaCaso = ''; if (!rlv) { try { notaCaso = decNotaAgente_(wa); } catch (e) {} }   // un caso espera su decisión: Alma lo sabe, sin tomar esto como respuesta (decisiones.js)
+    try { opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, [nota, notaRel, notaCaso].filter(Boolean).join('\n')); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
   });
 }
 function opEjecutar_(adm, acciones, cfg, props) {

@@ -93,7 +93,10 @@ function viajes_(ses, b) {
   out.proximo = viajeProximo_(out.viajes, ahora);
   /* El próximo tramo lleva lo vivo (vuelovivo.js): puerta, embarque y número de quien lo vuela. AirLabs (o FlightAware) solo se
      pregunta dentro de su ventana; fuera de ella sale lo del correo y lo último guardado. */
-  if (out.proximo) { var pv = out.viajes.filter(function (v) { return v.id === out.proximo.viaje; })[0]; if (pv) pv.tramos[out.proximo.tramo].vivo = vueloVivo_(pv, pv.tramos[out.proximo.tramo], ahora); }
+  if (out.proximo) { var pv = out.viajes.filter(function (v) { return v.id === out.proximo.viaje; })[0]; if (pv) {
+    var pt = pv.tramos[out.proximo.tramo]; pt.vivo = vueloVivo_(pv, pt, ahora);
+    var sl = pt.vivo && salasDelTramo_(pt, pt.vivo, ahora, { soloGuardado: true }); if (sl) pt.vivo.salas = sl;   // salas.js: solo lo guardado (la búsqueda la hace «vueloVivo»)
+  } }
   return out;
 }
 
@@ -120,7 +123,7 @@ function viajesParaAlma_(adm) {
       estado: vv.estado || (mo.aterrizo ? 'ya aterrizó' : mo.salio ? 'en el aire' : 'sale en ' + mo.faltan_min + ' min'),
       llegar_al_aeropuerto: viajeHoraTexto_(t.llegar, t.zona_nombre), checkin_abre: t.checkin_abre, asiento: t.asiento,
       datos: vv.fuente && vv.fuente !== 'correo' ? 'en vivo (' + vv.fuente + ', ' + vv.consultado + ')' : 'del correo (sin datos en vivo todavía: dilo así)' };
-    if (mi) mio = Object.assign({ es: p.en_el_aire ? 'el vuelo que va ahora' : 'tu próximo vuelo' }, x);
+    if (mi) { mio = Object.assign({ es: p.en_el_aire ? 'el vuelo que va ahora' : 'tu próximo vuelo' }, x); mio.salas_priority_pass = salasParaAlma_(salasDelTramo_(t, vv, ahora)); }   // salas.js
     return x;
   };
   var out = viajes.map(function (v) {
@@ -128,7 +131,7 @@ function viajesParaAlma_(adm) {
       tramos: v.tramos.map(function (t, i) { return tramo(v, t, i); }) };
   });
   return { ok: true, ahora_utc: new Date(ahora).toISOString(), mi_vuelo: mio || undefined,
-    nota: 'Las horas son la hora local de cada aeropuerto (dice de dónde). «mi_vuelo» es su vuelo de ahora o el próximo: úsalo cuando diga «mi vuelo».',
+    nota: 'Las horas son la hora local de cada aeropuerto (dice de dónde). «mi_vuelo» es su vuelo de ahora o el próximo: úsalo cuando diga «mi vuelo». «salas_priority_pass» son las salas Priority Pass de su terminal (de prioritypass.com); si no viene, no las encontré para esa terminal.',
     viajes: out };
 }
 

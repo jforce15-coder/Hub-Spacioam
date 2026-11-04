@@ -950,6 +950,10 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
 
   if (ctx.nivel === 'ROJO') { paso_(pKey, 'Urgente · conteniendo al huésped y avisando al equipo', true); return manejarRojo_(sh, lider, otros, ctx); }
 
+  /* Respuesta con fuentes (fuentes.js): una pregunta sobre la propiedad que el clasificador dejó en AMARILLO se busca en la
+     ficha, Hospitable y las fotos (anuncio y limpieza) antes de pasarla al equipo. */
+  if (ctx.nivel === 'AMARILLO') { try { respuestaConFuentes_(ctx, t => paso_(pKey, t)); } catch (e) { console.error('respuestaConFuentes_: ' + e); } }
+
   paso_(pKey, 'Redactando la respuesta con la ficha y el historial');
   let red = redactarVerificado_(ctx);
   if (red && red.texto && !red.silencio) paso_(pKey, red.ok ? 'Revisé la respuesta: datos, tono y reglas en orden' : 'Control de calidad: ' + String(red.problema || 'revisar').slice(0, 140));
@@ -1287,7 +1291,7 @@ function contextoHosp_(resId, hilo, modo) {
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd');
 
   return {
-    resId: resId, codigo: codigo, estado: estado, modo: modo,
+    resId: resId, codigo: codigo, estado: estado, modo: modo, propId: s_(prop.id || prop.uuid),
     huesped: s_(res.guest && res.guest.first_name) || s_(turno[0] && turno[0].nombre),
     idioma: idiomaCtx, idiomaReserva: idiomaRes || '', ultimoGuestTexto: ultGuest ? String(ultGuest.texto || '').slice(0, 400) : '',
     propiedad: nombreProp,
@@ -2055,10 +2059,10 @@ function imgBloque_(u) {
     return { type: 'image', source: { type: 'base64', media_type: mt, data: Utilities.base64Encode(b.getBytes()) } };
   } catch (e) { console.error('imgBloque_: ' + e); return null; }
 }
-function claude_(modelo, maxTokens, system, user, temp, imagenes) {
+function claude_(modelo, maxTokens, system, user, temp, imagenes, maxFotos) {
   const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
-  // Las fotos del huésped viajan como bloques de imagen (máx. 4) delante del texto.
-  const content = (imagenes || []).slice(0, 4).map(imgBloque_).filter(Boolean);
+  // Las fotos del huésped viajan como bloques de imagen (máx. 4, o maxFotos: la respuesta con fuentes usa 8) delante del texto.
+  const content = (imagenes || []).slice(0, maxFotos || 4).map(imgBloque_).filter(Boolean);
   content.push({ type: 'text', text: user });
   const t0 = Date.now();
   const r = uf_('https://api.anthropic.com/v1/messages', {
@@ -2085,6 +2089,7 @@ const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · d
   inquiryResponder_: 'Consultas (inquiries)', revisarSinRespuesta_: 'Revisar «sin respuesta»', aprender: 'Auto mejora · comparar con el equipo', compararRespuestas_: 'Auto mejora · comparar con el equipo',
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
   opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
+  fuentesLeerTexto_: 'Respuesta con fuentes · lo escrito', fuentesVer_: 'Respuesta con fuentes · fotos',
   viajeExtraer_: 'Viajes · leer el itinerario' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
@@ -2700,7 +2705,7 @@ function compacto_(ctx, extra) {
     resId: ctx.resId, codigo: ctx.codigo, propiedad: ctx.propiedad, huesped: ctx.huesped, nivel: ctx.nivel,
     razon: ctx.razon, modo: ctx.modo, texto: String(ctx.texto).slice(0, 1500), ultimoGuestAt: ctx.ultimoGuestAt,
     checkin: ctx.checkin, checkout: ctx.checkout, apartamento: ctx.apartamento, fotos: ctx.fotos || [], seguimiento: ctx.seguimiento || '',
-    canal: ctx.canal || 'hospitable', wa: ctx.wa || '', idioma: ctx.idioma || ''
+    canal: ctx.canal || 'hospitable', wa: ctx.wa || '', idioma: ctx.idioma || '', fuentesNota: ctx.fuentesNota || ''
   }, extra || {});
 }
 

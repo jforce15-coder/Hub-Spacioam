@@ -103,5 +103,8 @@ jobs:
         # 3-nov: «Escríbele a Diana…» salió como respuesta para Alejandra. Segunda vez con casos/borradores (ver #419).
         run: node .github/decision-texto.js apps-script
 
+      - name: Respuesta con fuentes, Alma revisa la ficha y las fotos antes de llamar al equipo (dobles)
+        # 3 y 4-nov: un huésped preguntó si Ignacio 301 tiene TV en cada habitación; las fotos de limpieza lo mostraban (#446 T11).
+        run: node .github/respuesta-fuentes.js apps-script
       - name: Salas Priority Pass, filtro por terminal y caché de 30 días (dobles de la búsqueda y de la hoja)
         run: node .github/salas-pp.js apps-script

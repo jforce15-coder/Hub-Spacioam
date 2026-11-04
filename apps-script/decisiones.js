@@ -69,10 +69,11 @@ function decisionCrear_(ctx, origen, motivo, esc) {
     var id = 'dc' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
     var c = { huesped: s_(ctx.huesped), propiedad: s_(ctx.propiedad), codigo: s_(ctx.codigo), idioma: s_(ctx.idioma), canal: s_(ctx.canal), wa: s_(ctx.wa),
       texto: String(ctx.texto || ctx.pregunta || '').slice(0, 1500), hilo: String(ctx.hiloTexto || '').slice(-4000) };
+    if (ctx.fuentesNota) c.fuentes = String(ctx.fuentesNota).slice(0, 400);   // lo que Alma ya revisó antes de llamar al equipo (fuentes.js)
     if (esc && (esc.asunto || esc.texto)) c.esc = { asunto: String(esc.asunto || '').slice(0, 200), texto: String(esc.texto || '').slice(0, 1500) };
     d.sh.appendRow(DEC_CAB_.map(function (k) {
       return ({ id: id, resId: resId, creado: new Date().toISOString(), opciones: '', estado: 'abierta', quien: '', opcion: '', cuando: '', origen: String(origen || ''),
-        motivo: String(motivo || ctx.razon || '').slice(0, 400), contexto: JSON.stringify(c), borrador: '', intentos: 0, enviado_por: '', enviado_ts: '' })[k];
+        motivo: (String(motivo || ctx.razon || '') + (ctx.fuentesNota ? ' · ' + ctx.fuentesNota : '')).slice(0, 400), contexto: JSON.stringify(c), borrador: '', intentos: 0, enviado_por: '', enviado_ts: '' })[k];
     }));
     PropertiesService.getScriptProperties().setProperty('DEC_PEND', '1');
     return { id: id, ya: false };
@@ -116,7 +117,7 @@ function decisionGenerar_(f) {
     'Nunca inventes datos (montos, códigos, horarios, números) que no estén en la conversación: si hace falta un monto, el mensaje dice que el equipo se lo confirma. Si preguntan si eres una persona: eres Alma, la asistente virtual de Spacio AM, y coordinas todas las comunicaciones.\n' +
     'Responde SOLO JSON: {"opciones":[{"titulo":"…","detalle":"…","mensaje":"…","accion":"ninguna"},{…},{…}]}' + estilo_();
   var usr = 'HUÉSPED: ' + (c.huesped || 'Huésped') + '\nPROPIEDAD: ' + (c.propiedad || '-') + '\nIDIOMA DE RESPUESTA: ' + (c.idioma || 'ES') +
-    '\nQUÉ ESPERA DEL EQUIPO: ' + (f.motivo || 'una decisión') + '\n\nÚLTIMO MENSAJE DEL HUÉSPED:\n' + (c.texto || '(no disponible)') + '\n\nCONVERSACIÓN:\n' + (hilo || '(no disponible)');
+    '\nQUÉ ESPERA DEL EQUIPO: ' + (f.motivo || 'una decisión') + (c.fuentes ? '\nLO QUE ALMA YA REVISÓ: ' + c.fuentes : '') + '\n\nÚLTIMO MENSAJE DEL HUÉSPED:\n' + (c.texto || '(no disponible)') + '\n\nCONVERSACIÓN:\n' + (hilo || '(no disponible)');
   var raw = String(claude_(CFG.MODELO_REDACTOR, 1400, sys, usr, 0.4) || '');
   return decLimpiarOpciones_(raw);
 }

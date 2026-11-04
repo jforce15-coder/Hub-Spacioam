@@ -215,6 +215,10 @@ function agHerramientas_() {
         al_pasar: { type: 'object', description: 'Qué hacer al pasar', properties: { avisar: s('El aviso para Juan, corto'), pedido: s('Opcional: lo que harás tú cuando pase («escríbele a Gabriel que…»), con todos los datos') } } }, ['que', 'objetivo']),
     T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
     T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
+    /* Avisos de aterrizaje (avisovuelo.js): Juan elige por viaje a quién; el código vigila y escribe. */
+    T('avisar_aterrizaje', 'Para «avísale a Lucky cuando aterrice»: en ese viaje Alma le escribe a cada persona la nueva hora si se retrasa, cuando aterriza y luego cuánto tarda Juan en salir. quitar = true para dejar de avisar. Solo el administrador principal.',
+      { vuelo: s('Confirmación o número de vuelo (de ver_vuelos)'), personas: { type: 'array', items: { type: 'string' }, description: 'Nombres' }, numero: s('WhatsApp con código de país, si es una sola persona nueva'),
+        solo_en: s('Opcional: solo al llegar a esa ciudad o aeropuerto'), maleta: { type: 'boolean', description: 'Si lleva maleta documentada (si lo dijo)' }, quitar: { type: 'boolean' } }, ['vuelo']),
     { type: 'web_search_20250305', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', city: 'Guatemala City', timezone: 'America/Guatemala' } }
   ].concat(cerebroHerramientas_(T, s));   // buscar_en_cerebro, solo si el cerebro está configurado (cerebro.js)
 }
@@ -606,6 +610,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'vigilar': { var rv = vigCrear_(adm, inp); if (rv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Vigilando · ' + rv.vigilando }); return rv; }
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
+    case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
     case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
   }

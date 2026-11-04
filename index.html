@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="ds/styles.css">
 <link rel="stylesheet" href="ds/esqueleto.css">
 <link rel="stylesheet" href="ds/movimiento.css">
-<link rel="stylesheet" href="ds/chat.css?v=2026-11-15a">
+<link rel="stylesheet" href="ds/chat.css?v=2026-11-17a">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
 <script src="js/sa-nav.js?v=2026-11-16a"></script>
@@ -269,6 +269,84 @@
   @keyframes sa-tut-y { 0%,100% { transform:translateY(5px); } 50% { transform:translateY(-6px); } }
   @media (hover:hover) and (pointer:fine){ .sa-noti:hover{ transform:translateY(-1px); } }
   @media (prefers-reduced-motion:reduce){ .sp-img, .sa-breathe, .sa-twinkle, .bento > *, .sa-noti, .sa-skel{ animation:none !important; } .app-btn{ transition:none !important; } }
+  /* ── Calendario con barras (#446 T3 y T10): la entrada es en la tarde y la salida en la mañana, por eso las barras
+     empiezan y terminan a mitad del día, en diagonal. Un cambio el mismo día son dos diagonales juntas. Colores de estado
+     suaves (glosario, «Colores del calendario»), siempre con su nombre en la leyenda y en la barra. ── */
+  :root{ --cal-res:#D9E4EF; --cal-res-fg:#2C5175; --cal-esta:#3B6691; --cal-esta-fg:#FFFFFF; --cal-con:#F5E6BF; --cal-con-fg:#6F5210; --cal-consin:#E6DDF0; --cal-consin-fg:#5B4380; --cal-esta-consin:#7A62A0;
+    --cal-esta-con:#E2B65A; --cal-esta-con-fg:#3E3F3F; --cal-bloq:#F2DAD5; --cal-bloq2:#FBF1EF; --cal-bloq-fg:#9E3326; --cal-libre:#E1EEE5; --cal-libre-fg:#2F5B43;
+    --cal-gris:#ECEAE7; --cal-gris-fg:#6F6867; }
+  .cal-chips{ display:flex; gap:8px; }
+  .cal-chips > div{ flex:1; min-width:0; border:1px solid #EAE6E0; border-radius:14px; padding:9px 11px; display:flex; flex-direction:column; gap:2px; }
+  .cal-chips .k{ font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; }
+  .cal-chips .v{ font-size:13px; letter-spacing:0; text-transform:none; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-chips .d{ font-style:normal; font-size:11px; letter-spacing:0; text-transform:none; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cal-mes{ font-size:13px; font-weight:600; letter-spacing:.02em; color:#3E3F3F; text-transform:capitalize; padding:2px 0 8px; }
+  .cal-wk{ display:grid; grid-template-columns:repeat(7,1fr); padding-bottom:6px; }
+  .cal-wk span{ text-align:center; font-size:10px; font-weight:600; letter-spacing:.14em; color:#6F6867; }
+  .cal-fila{ position:relative; height:56px; border-top:1px solid #F0EDE8; }
+  .cal-d{ position:absolute; top:6px; width:calc(100% / 7); text-align:center; font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums; color:#3E3F3F; }
+  .cal-d[data-k="fuera"]{ color:#C9C3BC; } .cal-d[data-k="pasado"]{ color:#A8A09C; }
+  .cal-d[data-k="hoy"] b{ display:inline-grid; place-items:center; width:22px; height:22px; margin-top:-3px; border-radius:50%; background:#E9826A; color:#FFFFFF; font-weight:600; }
+  .cal-d b{ font-weight:inherit; }
+  .cal-bar{ position:absolute; top:28px; height:22px; display:flex; align-items:center; font-size:10.5px; font-weight:600; letter-spacing:.01em; white-space:nowrap; overflow:hidden; box-sizing:border-box; }
+  .cal-bar > span{ overflow:hidden; text-overflow:ellipsis; }
+  .cal-bar[data-t="res"]{ background:var(--cal-res); color:var(--cal-res-fg); }
+  .cal-bar[data-t="esta"]{ background:var(--cal-esta); color:var(--cal-esta-fg); }
+  .cal-bar[data-t="con"]{ background:var(--cal-con); color:var(--cal-con-fg); }
+  .cal-bar[data-t="estacon"]{ background:var(--cal-esta-con); color:var(--cal-esta-con-fg); }
+  .cal-bar[data-t="consin"]{ background:var(--cal-consin); color:var(--cal-consin-fg); }
+  .cal-bar[data-t="estaconsin"]{ background:var(--cal-esta-consin); color:#FFFFFF; }
+  .cal-bar[data-capa="baja"]{ top:51px; height:4px; padding:0 !important; background:var(--cal-consin-fg); opacity:.55; }
+  .cal-mini .cal-bar[data-capa="baja"]{ top:20px; height:3px; }
+  .cal-bar[data-t="bloq"]{ background:repeating-linear-gradient(135deg,var(--cal-bloq) 0 4px,var(--cal-bloq2) 4px 8px); color:var(--cal-bloq-fg); }
+  .cal-bar[data-t="libre"]{ background:var(--cal-libre); color:var(--cal-libre-fg); }
+  .cal-bar[data-t="nodisp"], .cal-bar[data-t="pasado"]{ background:var(--cal-gris); color:var(--cal-gris-fg); }
+  .cal-bar[data-t="nodisp"]{ background:repeating-linear-gradient(135deg,#E6E3DF 0 3px,#F3F1EE 3px 6px); }
+  .cal-lgd{ display:flex; flex-wrap:wrap; gap:8px 14px; font-size:11px; color:#6F6867; letter-spacing:.02em; }
+  .cal-lgd span{ display:inline-flex; align-items:center; gap:6px; }
+  .cal-lgd i{ width:18px; height:10px; display:inline-block; clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%); }
+  .cal-cerca{ padding:12px 14px; border-radius:14px; background:#F5F3F0; display:flex; flex-direction:column; gap:6px; font-size:12.5px; line-height:1.4; color:#3E3F3F; }
+  .cal-mini{ position:relative; height:24px; flex:none; width:126px; }
+  .cal-mini .cal-bar{ top:6px; height:12px; font-size:0; }
+  .cal-mini .cal-elegidas{ position:absolute; top:0; bottom:0; border:1.5px dashed #3d6b52; border-radius:6px; background:rgba(61,107,82,.07); box-sizing:border-box; }
+  .cal-mini .cal-elegidas[data-ok="0"]{ border-color:#9E3326; background:rgba(158,51,38,.05); }
+  /* ── Conversaciones (#446 T4): tarjetas que filtran arriba (C) y filas con la foto del huésped que se deslizan para resolver (B). ── */
+  .cv-rapidos{ display:flex; gap:8px; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:2px 2px 4px; margin:0 -2px; scroll-snap-type:x proximity; }
+  .cv-rapidos::-webkit-scrollbar{ display:none; }
+  .cv-rapido{ flex:none; scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; min-width:76px; height:58px; padding:0 10px; border-radius:16px; border:1px solid #EAE6E0; background:#FFFFFF; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1), border-color .18s, transform .1s; box-sizing:border-box; }
+  .cv-rapido:active{ transform:scale(.96); }
+  .cv-rapido .n{ font-size:18px; font-weight:600; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .cv-rapido .l{ font-size:9.5px; font-weight:600; letter-spacing:.06em; color:#6F6867; white-space:nowrap; }
+  .cv-rapido[aria-pressed="true"]{ background:#3E3F3F; border-color:#3E3F3F; }
+  .cv-rapido[aria-pressed="true"] .n, .cv-rapido[aria-pressed="true"] .l{ color:#FFFFFF !important; }
+  .cv-fila{ position:relative; overflow:hidden; content-visibility:auto; contain-intrinsic-size:auto 76px; }
+  .cv-fila + .cv-fila{ border-top:1px solid #F0EDE8; }
+  .cv-fondo{ position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#3d6b52; color:#FFFFFF; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; opacity:0; transition:opacity .12s; }
+  .cv-fondo > span{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .cv-fila[data-desliza="1"] .cv-fondo{ opacity:1; }
+  .cv-fila > button{ position:relative; touch-action:pan-y; will-change:transform; }
+  @media (prefers-reduced-motion:reduce){ .cv-fila > button{ transition:none !important; } .cv-rapido{ transition:none; } }
+  /* ── Calendario de propiedades (#446 T10) ── */
+  .cp-fechas{ display:flex; align-items:center; gap:12px; background:#3E3F3F; color:#FFFFFF; border-radius:20px; padding:12px 16px; border:none; width:100%; text-align:left; font-family:inherit; cursor:pointer; box-sizing:border-box; }
+  .cp-fechas b{ font-size:16px; font-weight:600; letter-spacing:.01em; }
+  .cp-fechas small{ display:block; font-size:9.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; opacity:.7; }
+  .cp-pills{ display:flex; gap:6px; flex-wrap:wrap; }
+  .cp-pill{ display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 13px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; font-family:inherit; font-size:12.5px; font-weight:500; color:#3E3F3F; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; box-sizing:border-box; max-width:100%; }
+  .cp-pill[aria-pressed="true"]{ background:#3E3F3F; border-color:#3E3F3F; color:#FAFAFA; }
+  .cp-sel{ position:relative; display:inline-flex; color:#3E3F3F; }
+  .cp-sel svg{ position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; }
+  select.cp-pill{ -webkit-appearance:none; appearance:none; padding-right:30px; }
+  .cp-rec{ display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px 0 4px; overscroll-behavior-x:contain; }
+  .cp-rec::-webkit-scrollbar{ display:none; }
+  .cp-rec button{ flex:none; display:flex; align-items:center; gap:6px; min-height:36px; padding:0 12px 0 9px; border-radius:999px; background:#FFFFFF; border:1px solid #EAE6E0; font-family:inherit; font-size:12px; font-weight:600; color:#3E3F3F; cursor:pointer; }
+  .cp-rec i{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .cp-zona{ content-visibility:auto; contain-intrinsic-size:auto 220px; }
+  .cp-box{ background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; overflow:hidden; }
+  .cp-fila{ width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; border-top:1px solid #F3F1EE; background:#FFFFFF; font-family:inherit; text-align:left; cursor:pointer; min-height:56px; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  .cp-fila:first-child{ border-top:0; }
+  .cp-fila:active{ background:#F5F3F0; }
+  .cp-ok{ width:26px; height:26px; border-radius:50%; display:grid; place-items:center; flex:none; }
+  @media (max-width:360px){ .cal-mini{ width:98px; } }
 </style>
 </helmet>
 
@@ -471,7 +549,7 @@
       </div>
       <div style="position:relative; z-index:2; margin-top:10px">
         <div style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:17.5px; line-height:1.05; letter-spacing:-.01em; color:#3E3F3F">Calendario</div>
-        <div style="font-size:10.5px; color:#6F6867; line-height:1.35; margin-top:4px; letter-spacing:.01em">Llegadas, turnos y vencimientos.</div>
+        <div style="font-size:10.5px; color:#6F6867; line-height:1.35; margin-top:4px; letter-spacing:.01em">Las propiedades libres por fecha y zona.</div>
       </div>
         </button>
 
@@ -1701,14 +1779,13 @@
 
       <sc-if value="{{ convVerLista }}" hint-placeholder-val="{{ true }}">
         <div style="flex:1; min-height:0; display:flex; flex-direction:column; gap:8px; transform-origin: {{ diveOrigin }}; animation:sa-surface .36s cubic-bezier(.22,.61,.36,1) backwards">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
-            <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ cronoPie }}</span>
-            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:10.5px; letter-spacing:.04em; color:#6F6867">
-              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; background:#F2755A"></span>Pendiente</span>
-              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; background:#3B6691"></span>Respondida</span>
-              <span style="display:inline-flex; align-items:center; gap:5px"><span style="width:8px; height:8px; border-radius:50%; background:#3d6b52"></span>Resuelta</span>
+          <!-- #446 T4: tarjetas que filtran (diseño C). -->
+          <sc-if value="{{ hayRapidos }}" hint-placeholder-val="{{ false }}">
+            <div class="cv-rapidos" role="group" aria-label="Filtrar la lista">
+              <sc-for list="{{ convRapidos }}" as="rq" hint-placeholder-count="5"><button type="button" class="cv-rapido" data-rapido="{{ rq.id }}" aria-pressed="{{ rq.on }}" onClick="{{ rq.tocar }}"><span class="n" style="color: {{ rq.fg }}">{{ rq.n }}</span><span class="l">{{ rq.label }}</span></button></sc-for>
             </div>
-          </div>
+          </sc-if>
+          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ cronoPie }} · desliza a la izquierda para resolver</span>
           <sc-if value="{{ cronoVacio }}" hint-placeholder-val="{{ false }}">
             <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px 24px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center">
               <span style="font-size:14px; font-weight:600; color:#3E3F3F; letter-spacing:.01em">{{ cronoVacioTitulo }}</span>
@@ -1744,32 +1821,34 @@
               </div>
             </sc-if>
             <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
-              <button onClick="{{ r.abrir }}" onPointerEnter="{{ r.precargar }}" onTouchStart="{{ r.precargar }}" data-gk="{{ r.gk }}" style="width:100%; display:flex; align-items:center; gap:14px; padding:12px 16px; border:none; border-top:1px solid {{ r.borde }}; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F5F3F0" style-active="background:#EFECE8">
-                <span style="position:relative; width:44px; height:44px; flex-shrink:0; border-radius:50%; margin:2px; box-shadow:0 0 0 2px #FFFFFF, 0 0 0 4px {{ r.color }}">
-                  <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" style="width:44px; height:44px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
-                  <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:44px; height:44px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
-                  <sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ r.canalDom }}" title="{{ r.canalNom }}" alt="{{ r.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:18px; height:18px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
-                  <sc-if value="{{ r.noLeido }}" hint-placeholder-val="{{ false }}"><span aria-label="Sin responder" style="position:absolute; left:-3px; top:-3px; width:11px; height:11px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF"></span></sc-if>
+              <div class="cv-fila" data-cv="fila">
+                <div class="cv-fondo" aria-hidden="true"><span></span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Resuelta</span></div>
+              <button onClick="{{ r.abrir }}" onPointerDown="{{ r.arrastre }}" onPointerEnter="{{ r.precargar }}" onTouchStart="{{ r.precargar }}" data-gk="{{ r.gk }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F7F5F2" style-active="background:#EFECE8">
+                <span style="position:relative; width:46px; height:46px; flex-shrink:0">
+                  <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" decoding="async" style="width:46px; height:46px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
+                  <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:46px; height:46px; border-radius:50%; display:grid; place-items:center; background: {{ r.iniBg }}; color:#3E3F3F; font-size:12.5px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
+                  <sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ r.canalDom }}" title="{{ r.canalNom }}" alt="{{ r.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:19px; height:19px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
+                  <sc-if value="{{ r.noLeido }}" hint-placeholder-val="{{ false }}"><span aria-label="Sin responder" style="position:absolute; left:-2px; top:-2px; width:12px; height:12px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF"></span></sc-if>
                 </span>
-                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px">
-                  <span style="display:flex; align-items:baseline; gap:8px; min-width:0">
-                    <span style="flex:1; min-width:0; font-size:15px; font-weight: {{ r.peso }}; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em">{{ r.huesped }}</span>
-                    <span style="font-size:11px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; font-variant-numeric:tabular-nums; letter-spacing:.02em; white-space:nowrap; flex-shrink:0">{{ r.hora }}</span>
+                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
+                  <span style="display:flex; align-items:baseline; gap:6px; min-width:0">
+                    <span style="flex:0 1 auto; min-width:0; max-width:62%; font-size:15px; font-weight: {{ r.peso }}; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em">{{ r.huesped }}</span>
+                    <span style="flex:1; min-width:0; font-size:12px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r.propCorto }}</span>
+                    <span style="font-size:11px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0">{{ r.hora }}</span>
                   </span>
-                  <sc-if value="{{ r.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px; color:#6F6867; letter-spacing:.03em">{{ r.etapa }}</span></sc-if>
-                  <span style="font-size:13px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.4">{{ r.preview }}</span>
+                  <span style="display:flex; align-items:center; gap:8px; min-width:0">
+                    <span style="flex:1; min-width:0; font-size:13px; color: {{ r.previewFg }}; font-weight: {{ r.pesoPrev }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4">{{ r.preview }}</span>
+                    <span style="flex-shrink:0; font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:3px 8px; white-space:nowrap; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
+                  </span>
                   <sc-if value="{{ r.clasificando }}" hint-placeholder-val="{{ false }}">
                     <span role="progressbar" aria-label="{{ r.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:3px; max-width:280px">
                       <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ r.clasPct }}"></span></span>
                       <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ r.clasTxt }}</span>
                     </span>
                   </sc-if>
-                  <span style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0"><sc-if value="{{ r.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:2px 7px; background:{{ r.etapa.bg }}; color:{{ r.etapa.fg }}; white-space:nowrap; line-height:1.4">{{ r.etapa.txt }}</span></sc-if><span style="min-width:0; font-size:11px; color:#6F6867; letter-spacing:.03em; line-height:1.45; text-wrap:pretty">{{ r.prop }}</span></span>
-                </span>
-                <span style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; align-self:center">
-                  <span style="font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; border-radius:999px; padding:3px 8px; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
                 </span>
               </button>
+              </div>
             </sc-for>
           </div>
         </div>
@@ -2020,9 +2099,10 @@
                         <span class="sa-chat-slot"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span></span>
                         <div class="sa-chat-cuerpo">
                           <div class="sa-chat-burbuja sa-chat-burbuja--otro">{{ c.decPregunta }}</div>
-                          <div class="sa-chat-tarjeta" role="group" aria-label="Opciones para responder al huésped">
+                          <!-- #446 T5A: píldoras de respuesta rápida (opción A del prototipo). -->
+                          <div class="sa-chat-pills" role="group" aria-label="Opciones para responder al huésped" data-elegida="{{ c.decElegida }}">
                             <sc-for list="{{ c.decOpciones }}" as="dop" hint-placeholder-count="4">
-                              <button type="button" class="sa-chat-opcion" onClick="{{ dop.elegir }}" disabled="{{ dop.apagada }}" aria-pressed="{{ dop.elegida }}" style="background: {{ dop.bg }}"><span class="sa-chat-icono" style="background: {{ dop.iconoBg }}; color: {{ dop.iconoFg }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="{{ dop.icono }}" size="17" color="currentColor" hint-size="17px,17px"></x-import></span><span class="sa-chat-opcion-texto"><span class="sa-chat-opcion-titulo">{{ dop.titulo }}</span><sc-if value="{{ dop.hayDetalle }}" hint-placeholder-val="{{ true }}"><span class="sa-chat-opcion-detalle">{{ dop.detalle }}</span></sc-if></span></button>
+                              <button type="button" class="sa-chat-pill {{ dop.clase }}" onClick="{{ dop.elegir }}" disabled="{{ dop.apagada }}" aria-pressed="{{ dop.elegida }}" aria-label="{{ dop.aria }}" title="{{ dop.detalle }}" style="animation-delay: {{ dop.delay }}"><sc-if value="{{ dop.hayLetra }}" hint-placeholder-val="{{ true }}"><i aria-hidden="true">{{ dop.letra }}</i></sc-if><span>{{ dop.titulo }}</span></button>
                             </sc-for>
                           </div>
                           <sc-if value="{{ c.decHayEstado }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-meta" role="status" style="color: {{ c.decEstadoFg }}">{{ c.decEstado }}</span></sc-if>
@@ -2266,7 +2346,7 @@
             <div style="display:flex; flex-direction:column; gap:6px; padding-right:48px">
               <span style="font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">{{ info.eyebrow }}</span>
               <span style="font-family:'Valky','Cormorant Garamond',serif; font-size:26px; line-height:1.1; color:#3E3F3F; text-wrap:pretty">{{ info.titulo }}</span>
-              <span style="font-size:12px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ info.sub }}</span>
+              <sc-if value="{{ info.haySub }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ info.sub }}</span></sc-if>
             </div>
             <sc-if value="{{ info.cargando }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex; flex-direction:column; gap:10px">
@@ -2276,20 +2356,30 @@
             </sc-if>
             <sc-if value="{{ info.hayError }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px; line-height:1.6; color:#6F6867; text-align:center; padding:24px 0">{{ info.error }}</span></sc-if>
             <sc-if value="{{ info.esCal }}" hint-placeholder-val="{{ false }}">
-              <div style="display:flex; flex-direction:column; gap:22px">
+              <div style="display:flex; flex-direction:column; gap:16px">
+                <sc-if value="{{ info.hayChips }}" hint-placeholder-val="{{ false }}">
+                  <div class="cal-chips"><sc-for list="{{ info.chips }}" as="ch" hint-placeholder-count="3"><div><span class="k">{{ ch.k }}</span><span class="v">{{ ch.v }}</span><span class="d">{{ ch.d }}</span></div></sc-for></div>
+                </sc-if>
                 <sc-for list="{{ info.meses }}" as="mes" hint-placeholder-count="0">
-                  <div style="display:flex; flex-direction:column; gap:10px">
-                    <span style="font-size:13px; font-weight:600; letter-spacing:.04em; color:#3E3F3F; text-transform:capitalize">{{ mes.titulo }}</span>
-                    <div style="display:grid; grid-template-columns:repeat(7, minmax(0,1fr)); gap:4px">
-                      <sc-for list="{{ info.semana }}" as="w" hint-placeholder-count="7"><span style="text-align:center; font-size:10.5px; font-weight:600; letter-spacing:.14em; color:#6F6867; padding-bottom:4px">{{ w }}</span></sc-for>
-                      <sc-for list="{{ mes.celdas }}" as="d" hint-placeholder-count="0">
-                        <span title="{{ d.aria }}" aria-label="{{ d.aria }}" style="aspect-ratio:1; display:grid; place-items:center; border-radius:10px; font-size:12.5px; font-variant-numeric:tabular-nums; box-sizing:border-box; border:1.5px solid {{ d.bd }}; background: {{ d.bg }}; color: {{ d.fg }}; opacity: {{ d.op }}; font-weight: {{ d.peso }}">{{ d.n }}</span>
-                      </sc-for>
-                    </div>
+                  <div>
+                    <div class="cal-mes">{{ mes.titulo }}</div>
+                    <div class="cal-wk"><sc-for list="{{ info.semana }}" as="w" hint-placeholder-count="7"><span>{{ w }}</span></sc-for></div>
+                    <sc-for list="{{ mes.semanas }}" as="sem" hint-placeholder-count="0">
+                      <div class="cal-fila">
+                        <sc-for list="{{ sem.dias }}" as="d" hint-placeholder-count="7"><span class="cal-d" data-k="{{ d.k }}" style="left: {{ d.izq }}"><b>{{ d.n }}</b></span></sc-for>
+                        <sc-for list="{{ sem.barras }}" as="br" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ br.t }}" data-capa="{{ br.capa }}" role="img" aria-label="{{ br.aria }}" title="{{ br.aria }}" style="left: {{ br.izq }}; right: {{ br.der }}; clip-path: {{ br.clip }}; padding-left: {{ br.pl }}"><span>{{ br.txt }}</span></span></sc-for>
+                      </div>
+                    </sc-for>
                   </div>
                 </sc-for>
-                <div style="display:flex; flex-wrap:wrap; gap:8px 16px; padding-top:4px; border-top:1px solid #F0EDE8">
-                  <sc-for list="{{ info.leyenda }}" as="lg" hint-placeholder-count="4"><span style="display:inline-flex; align-items:center; gap:6px; padding-top:12px; font-size:11px; letter-spacing:.04em; color:#6F6867"><span style="width:10px; height:10px; border-radius:3px; background: {{ lg.bg }}"></span>{{ lg.t }}</span></sc-for>
+                <sc-if value="{{ info.hayCerca }}" hint-placeholder-val="{{ false }}">
+                  <div class="cal-cerca">
+                    <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Libre cerca de esta estadía</span>
+                    <sc-for list="{{ info.cerca }}" as="lc" hint-placeholder-count="0"><span><b style="font-weight:600">{{ lc.rango }}</b> · {{ lc.noches }}</span></sc-for>
+                  </div>
+                </sc-if>
+                <div class="cal-lgd" style="padding-top:12px; border-top:1px solid #F0EDE8">
+                  <sc-for list="{{ info.leyenda }}" as="lg" hint-placeholder-count="6"><span><i class="cal-bar" data-t="{{ lg.tt }}" style="position:static"></i>{{ lg.t }}</span></sc-for>
                 </div>
               </div>
             </sc-if>
@@ -3128,95 +3218,118 @@
 </sc-if>
 
 <sc-if value="{{ enCalendario }}" hint-placeholder-val="{{ false }}">
-<div style="min-height:100vh; background:#FAFAFA; padding:0 0 64px">
-  <div class="alma-wrap" style="margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:20px">
+<!-- #446 T10: el calendario de todas las propiedades (opción B: primero las fechas, luego las libres por zona). -->
+<div style="min-height:100vh; background:#FAFAFA; padding:0 0 96px">
+  <div class="alma-wrap" style="margin:0 auto; max-width:640px; padding:clamp(22px,5vh,40px) 16px 0; display:flex; flex-direction:column; gap:12px; box-sizing:border-box">
     <button onClick="{{ volver }}" class="alma-volver" style="min-height:40px; align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
-
-    <div style="display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px">
+      <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:30px; line-height:1.1; color:#3E3F3F">Calendario</h2>
+      <sc-if value="{{ cp.listo }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px; color:#6F6867">{{ cp.total }} propiedades</span></sc-if>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <button class="cp-fechas" onClick="{{ cp.verEditar }}" aria-expanded="{{ cp.editar }}">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+        <span style="flex:1; min-width:0"><small>¿Qué fechas?</small><b>{{ cp.fechasTxt }}</b></span>
+        <span style="font-size:11px; opacity:.75; flex-shrink:0">Cambiar</span>
+      </button>
+      <sc-if value="{{ cp.editar }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; gap:8px; animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards">
+          <label style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Llega<input type="date" value="{{ cp.A }}" min="{{ cp.hoy }}" onChange="{{ cp.setA }}" style="box-sizing:border-box; width:100%; min-width:0; height:44px; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; font-family:inherit; font-size:14px; color:#3E3F3F; -webkit-appearance:none; appearance:none"></label>
+          <label style="flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; font-size:9.5px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">Sale<input type="date" value="{{ cp.B }}" min="{{ cp.A }}" onChange="{{ cp.setB }}" style="box-sizing:border-box; width:100%; min-width:0; height:44px; border:1px solid #D8D4CE; border-radius:14px; background:#FFFFFF; padding:0 12px; font-family:inherit; font-size:14px; color:#3E3F3F; -webkit-appearance:none; appearance:none"></label>
+        </div>
+      </sc-if>
+    </div>
+    <div class="cp-pills">
+      <button type="button" class="cp-pill" aria-pressed="{{ cp.solo }}" onClick="{{ cp.toggleSolo }}">Solo libres</button>
+      <span class="cp-sel"><select class="cp-pill" aria-label="Zona" value="{{ cp.zona }}" onChange="{{ cp.setZona }}"><sc-for list="{{ cp.zonasOps }}" as="zo" hint-placeholder-count="3"><option value="{{ zo.v }}">{{ zo.l }}</option></sc-for></select><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+      <span class="cp-sel"><select class="cp-pill" aria-label="Canal" value="{{ cp.canal }}" onChange="{{ cp.setCanal }}"><sc-for list="{{ cp.canalesOps }}" as="co" hint-placeholder-count="3"><option value="{{ co.v }}">{{ co.l }}</option></sc-for></select><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
+      <button type="button" class="cp-pill" aria-label="Buscar una propiedad" aria-pressed="{{ cp.buscaAbierta }}" onClick="{{ cp.toggleBusca }}" style="width:36px; padding:0; justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button>
+    </div>
+    <sc-if value="{{ cp.buscaAbierta }}" hint-placeholder-val="{{ false }}">
+      <input defaultValue="{{ cp.busca }}" data-sync="1" data-v="{{ cp.busca }}" onChange="{{ cp.setBusca }}" type="search" autoComplete="off" spellCheck="false" aria-label="Buscar una propiedad" placeholder="Edificio, número o zona" style="box-sizing:border-box; width:100%; height:44px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 16px; font-family:inherit; font-size:14px; color:#3E3F3F; outline:none">
+    </sc-if>
+    <sc-if value="{{ cp.hayRec }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex; flex-direction:column; gap:6px">
-        <span style="font-size:10px; font-weight:600; letter-spacing:.32em; text-transform:uppercase; color:#6F6867">Visitas, reuniones y tareas</span>
-        <h2 style="margin:0; font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(26px,5vw,36px); line-height:1.1">{{ mesActual }}</h2>
-      </div>
-      <div style="margin-left:auto; display:flex; gap:10px; flex-wrap:wrap; align-items:center">
-        <button onClick="{{ nuevaReunion }}" style="min-height:40px; display:inline-flex; align-items:center; gap:8px; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:11px 18px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer" style-hover="filter:brightness(.94)">Agregar reunión</button>
-      </div>
-    </div>
-
-    <div style="display:flex; flex-wrap:wrap; gap:14px; align-items:center; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:14px 16px">
-      <div style="display:flex; gap:16px; flex-wrap:wrap; flex:1">
-        <sc-for list="{{ leyenda }}" as="l" hint-placeholder-count="3">
-          <span style="display:inline-flex; align-items:center; gap:7px; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867">
-            <span style="width:7px; height:7px; border-radius:50%; background: {{ l.color }}"></span>{{ l.nombre }}
-          </span>
-        </sc-for>
-      </div>
-      <label style="display:inline-flex; align-items:center; gap:10px; cursor:pointer">
-        <span style="font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:#6F6867">Ver tareas</span>
-        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ verTareasCal }}" onChange="{{ setVerTareasCal }}" hint-size="46px,26px"></x-import>
-      </label>
-    </div>
-
-    <sc-if value="{{ formReunion }}" hint-placeholder-val="{{ false }}">
-      <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:18px; padding:16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center">
-        <input defaultValue="{{ reuTitulo }}" data-sync="1" data-v="{{ reuTitulo }}" onChange="{{ setReuTitulo }}" placeholder="¿De qué es la reunión?" style="flex:1 1 220px; min-width:0; border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:13.5px; letter-spacing:.03em; color:#3E3F3F; outline:none" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
-        <input type="date" value="{{ reuFecha }}" onChange="{{ setReuFecha }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none">
-        <input type="time" value="{{ reuHora }}" onChange="{{ setReuHora }}" style="border:1px solid #D8D4CE; border-radius:14px; background:#FAFAFA; padding:11px 14px; font-family:inherit; font-size:12.5px; color:#3E3F3F; outline:none; -webkit-appearance:none; appearance:none; min-width:0; max-width:100%; box-sizing:border-box !important">
-        <button onClick="{{ guardarReunion }}" style="min-height:40px; border:none; border-radius:999px; background:#3E3F3F; color:#FAFAFA; padding:11px 18px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; cursor:pointer">Guardar</button>
-        <button onClick="{{ nuevaReunion }}" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:11px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer">Cancelar</button>
+        <span style="font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#B54D36">Recientes</span>
+        <div class="cp-rec"><sc-for list="{{ cp.recientes }}" as="rc" hint-placeholder-count="5"><button type="button" onClick="{{ rc.abrir }}" aria-label="{{ rc.aria }}"><i style="background: {{ rc.punto }}"></i>{{ rc.nombre }}</button></sc-for></div>
       </div>
     </sc-if>
-
-    <div style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:22px; padding:16px">
-      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:8px">
-        <sc-for list="{{ diasSemana }}" as="d" hint-placeholder-count="7">
-          <span style="text-align:center; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867">{{ d }}</span>
-        </sc-for>
+    <sc-if value="{{ cp.cargando }}" hint-placeholder-val="{{ true }}">
+      <div class="sa-esq" role="status" aria-label="Cargando el calendario de las propiedades" style="display:flex; flex-direction:column; gap:10px; padding-top:6px">
+        <i class="b" style="height:34px; width:46%"></i><i class="b" style="height:150px; border-radius:18px"></i><i class="b" style="height:150px; border-radius:18px"></i>
       </div>
-      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:6px">
-        <sc-for list="{{ mesGrid }}" as="d" hint-placeholder-count="35">
-          <div style="min-height:66px; border-radius:10px; padding:7px; display:flex; flex-direction:column; gap:5px; background: {{ d.bg }}; border:1px solid {{ d.bd }}">
-            <span style="font-size:11px; font-variant-numeric:tabular-nums; color: {{ d.numColor }}; font-weight: {{ d.numWeight }}">{{ d.dia }}</span>
-            <div style="display:flex; flex-wrap:wrap; gap:3px">
-              <sc-for list="{{ d.puntos }}" as="p" hint-placeholder-count="2">
-                <span style="width:6px; height:6px; border-radius:50%; background: {{ p }}"></span>
+    </sc-if>
+    <sc-if value="{{ cp.hayError }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:22px; display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center"><span style="font-size:13px; color:#6F6867">{{ cp.error }}</span><button onClick="{{ cp.reintentar }}" class="cp-pill">Intentar de nuevo</button></div>
+    </sc-if>
+    <sc-if value="{{ cp.listo }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; padding:4px 2px 0"><span style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-size:30px; line-height:1; color:#3d6b52">{{ cp.libresTxt }}</span><span style="font-size:13px; color:#6F6867">{{ cp.deTxt }}</span></div>
+      <sc-if value="{{ cp.sinResultados }}" hint-placeholder-val="{{ false }}"><div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:22px; text-align:center; font-size:13px; color:#6F6867">Ninguna propiedad libre con esos filtros. Prueba otras fechas o quita «Solo libres».</div></sc-if>
+      <sc-for list="{{ cp.zonas }}" as="zn" hint-placeholder-count="3">
+        <section class="cp-zona" style="display:flex; flex-direction:column; gap:6px">
+          <button type="button" onClick="{{ zn.toggle }}" aria-expanded="{{ zn.aria }}" style="display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:44px; padding:6px 6px 2px; border:none; background:transparent; font-family:inherit; cursor:pointer; text-align:left">
+            <span style="min-width:0; font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ zn.titulo }}</span>
+            <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#6F6867; flex-shrink:0">{{ zn.cuenta }}<span aria-hidden="true" style="display:grid; transition:transform .18s cubic-bezier(.22,.61,.36,1); transform: {{ zn.chev }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span></span>
+          </button>
+          <sc-if value="{{ zn.hayFilas }}" hint-placeholder-val="{{ false }}">
+            <div class="cp-box">
+              <sc-for list="{{ zn.filas }}" as="pf" hint-placeholder-count="3">
+                <button type="button" class="cp-fila" data-prop="{{ pf.nombre }}" onClick="{{ pf.abrir }}">
+                  <span class="cp-ok" style="background: {{ pf.okBg }}"><sc-if value="{{ pf.libre }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3d6b52" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-label="Libre"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></sc-if><sc-if value="{{ pf.ocupada }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#B8B0AC" stroke-width="2.6" stroke-linecap="round" aria-label="Ocupada"><path d="M7 7l10 10M17 7L7 17"/></svg></sc-if></span>
+                  <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:1px">
+                    <span style="font-size:14px; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ pf.corto }}</span>
+                    <span style="font-size:11.5px; line-height:1.35; color: {{ pf.notaFg }}">{{ pf.nota }}</span>
+                  </span>
+                  <span class="cal-mini" aria-hidden="true">
+                    <span class="cal-elegidas" data-ok="{{ pf.elOk }}" style="left: {{ pf.elIzq }}; right: {{ pf.elDer }}"></span>
+                    <sc-for list="{{ pf.barras }}" as="mb" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ mb.t }}" data-capa="{{ mb.capa }}" style="left: {{ mb.izq }}; right: {{ mb.der }}; clip-path: {{ mb.clip }}"></span></sc-for>
+                  </span>
+                </button>
               </sc-for>
             </div>
+          </sc-if>
+        </section>
+      </sc-for>
+      <div class="cal-lgd" style="padding:8px 4px 0"><sc-for list="{{ cp.leyenda }}" as="lg" hint-placeholder-count="5"><span><i class="cal-bar" data-t="{{ lg.tt }}" style="position:static"></i>{{ lg.t }}</span></sc-for></div>
+    </sc-if>
+  </div>
+</div>
+<sc-if value="{{ cp.hayHoja }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed; inset:0; z-index:206; display:flex; flex-direction:column; justify-content:flex-end; align-items:center">
+    <div onClick="{{ cp.hoja.cerrar }}" style="position:absolute; inset:0; background:rgba(62,63,63,.45); animation:sa-fade .18s cubic-bezier(.22,.61,.36,1) backwards"></div>
+    <div role="dialog" aria-label="{{ cp.hoja.titulo }}" style="position:relative; width:min(100%,480px); max-height:92dvh; display:flex; flex-direction:column; background:#FFFFFF; border-radius:28px 28px 0 0; box-shadow:0 -10px 40px rgba(62,63,63,.12); animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards; overflow:hidden">
+      <button onClick="{{ cp.hoja.cerrar }}" aria-label="Cerrar" style="position:absolute; right:14px; top:14px; width:40px; height:40px; border-radius:50%; border:none; background:#F5F3F0; display:grid; place-items:center; cursor:pointer; z-index:1"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="16" color="#3E3F3F" hint-size="16px,16px"></x-import></button>
+      <div style="overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:22px 20px calc(24px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:16px; min-height:0">
+        <div style="display:flex; flex-direction:column; gap:4px; padding-right:48px">
+          <span style="font-size:10px; font-weight:600; letter-spacing:.24em; text-transform:uppercase; color:#6F6867">{{ cp.hoja.eyebrow }}</span>
+          <span style="font-family:'Valky','Cormorant Garamond',serif; font-size:26px; line-height:1.1; color:#3E3F3F">{{ cp.hoja.titulo }}</span>
+        </div>
+        <div class="cal-chips"><sc-for list="{{ cp.hoja.chips }}" as="ch" hint-placeholder-count="3"><div><span class="k">{{ ch.k }}</span><span class="v">{{ ch.v }}</span><span class="d">{{ ch.d }}</span></div></sc-for></div>
+        <span style="font-size:12.5px; color:#3E3F3F; margin-top:-6px">{{ cp.hoja.notaProp }}</span>
+        <sc-if value="{{ cp.hoja.hayNota }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:11.5px; color:#6F6867">{{ cp.hoja.nota }}</span></sc-if>
+        <sc-for list="{{ cp.hoja.meses }}" as="mes" hint-placeholder-count="0">
+          <div>
+            <div class="cal-mes">{{ mes.titulo }}</div>
+            <div class="cal-wk"><sc-for list="{{ cp.hoja.semana }}" as="w" hint-placeholder-count="7"><span>{{ w }}</span></sc-for></div>
+            <sc-for list="{{ mes.semanas }}" as="sem" hint-placeholder-count="0">
+              <div class="cal-fila">
+                <sc-for list="{{ sem.dias }}" as="d" hint-placeholder-count="7"><span class="cal-d" data-k="{{ d.k }}" style="left: {{ d.izq }}"><b>{{ d.n }}</b></span></sc-for>
+                <sc-for list="{{ sem.barras }}" as="br" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ br.t }}" data-capa="{{ br.capa }}" role="img" aria-label="{{ br.aria }}" title="{{ br.aria }}" style="left: {{ br.izq }}; right: {{ br.der }}; clip-path: {{ br.clip }}; padding-left: {{ br.pl }}"><span>{{ br.txt }}</span></span></sc-for>
+              </div>
+            </sc-for>
           </div>
         </sc-for>
-      </div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:8px">
-      <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Lo que viene</span>
-      <sc-if value="{{ sinEventos }}" hint-placeholder-val="{{ false }}">
-        <span style="font-size:12.5px; line-height:1.6; color:#6F6867; letter-spacing:.02em">Nada agendado en los próximos días.</span>
-      </sc-if>
-      <sc-for list="{{ proximos }}" as="e" hint-placeholder-count="4">
-        <div style="display:flex; align-items:center; gap:14px; padding:14px 16px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px">
-          <span style="width:7px; height:7px; border-radius:50%; flex-shrink:0; background: {{ e.color }}"></span>
-          <span style="font-size:11px; font-variant-numeric:tabular-nums; color:#6F6867; width:74px; flex-shrink:0">{{ e.cuando }}</span>
-          <span style="flex:1; font-size:13px; letter-spacing:.02em; text-wrap:pretty">{{ e.titulo }}</span>
-          <span style="font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#6F6867">{{ e.app }}</span>
-        </div>
-      </sc-for>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:10px">
-      <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap">
-        <span style="font-size:10.5px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:#6F6867">Google Calendar del equipo</span>
-        <sc-if value="{{ gcalEsDemo }}" hint-placeholder-val="{{ true }}">
-          <span style="font-size:11px; letter-spacing:.03em; color:#B54D36">Calendario de ejemplo · falta conectar el de Grow</span>
+        <sc-if value="{{ cp.hoja.hayCerca }}" hint-placeholder-val="{{ false }}">
+          <div class="cal-cerca">
+            <span style="font-size:9.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">Libre cerca de esas fechas</span>
+            <sc-for list="{{ cp.hoja.cerca }}" as="lc" hint-placeholder-count="0"><span><b style="font-weight:600">{{ lc.rango }}</b> · {{ lc.noches }}</span></sc-for>
+          </div>
         </sc-if>
-        <sc-if value="{{ gcalConectado }}" hint-placeholder-val="{{ false }}">
-          <span style="font-size:11px; letter-spacing:.03em; color:#6F6867">El mismo que ya está conectado en Grow</span>
-        </sc-if>
-      </div>
-      <div style="border:1px solid rgba(62,63,63,.08); border-radius:18px; overflow:hidden; background:#FFFFFF; box-shadow:0 4px 16px rgba(62,63,63,.05)">
-        <iframe src="{{ gcalSrc }}" title="Google Calendar · Spacio AM" style="width:100%; height:520px; border:none; display:block"></iframe>
+        <div class="cal-lgd" style="padding-top:12px; border-top:1px solid #F0EDE8"><sc-for list="{{ cp.leyenda }}" as="lg" hint-placeholder-count="5"><span><i class="cal-bar" data-t="{{ lg.tt }}" style="position:static"></i>{{ lg.t }}</span></sc-for></div>
       </div>
     </div>
   </div>
-</div>
+</sc-if>
 </sc-if>
 
 <x-import component="NotiPush" from="./js/noti-center.js?v=2026-10-24i" notis="{{ notisPush }}" store-key="hub:notiSeen" onOpen="{{ abrirNotis }}" hint-size="0px,0px"></x-import>
@@ -3557,7 +3670,7 @@ class Component extends DCLogic {
     logFiltro: "Todo", logQuien: "Todos", autoAbierto: false, logAbierto: null, logAnot: {}, logProp: {}, logBusy: null, logNota: {},
     almaHilos: this.hilosCopiaLeer(), autoEdit: {}, autoBusy: null, autoNota: {}, ctrlAbierto: false, mejAbierto: false,
     mVista: "resumen", selG: null, abrirPend: null, razon: null,
-    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, decLocal: {}, optim: {}, pieVer: {}, logVoto: {}, logResp: "Todas", convOrden: null, convSolo: "", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true,
+    convBusca: "", convDias: 2, convHilo: {}, convIdx: 0, convResp: {}, decLocal: {}, optim: {}, pieVer: {}, logVoto: {}, logResp: "Todas", convOrden: null, convSolo: "", filtroMenu: false, infoSheet: null, resInfo: {}, cronoLista: true, convRapido: "",
     versionNueva: false, progEdit: {}, progConfirm: "", masMenu: "", resMin: (function () { try { return localStorage.getItem("sa_res_min") === "1"; } catch (e) { return false; } })(), usuariosAcc: [], pushEstado: "", pushPreguntar: false, pushBusy: false, escEdit: null, escNota: "", escConfirm: null, fotoCache: {}, briefIdx: 0, briefOcultas: {}, briefUltimo: {}, briefDrag: null, almaFotoIdx: 0, lightbox: "",
     opAbierto: false, opModo: "chat", opDe: "", opHilos: {}, opLista: null, opCargando: false, opPensando: false, opTexto: "", opErr: "", opFiltro: {}, opMas: {},
     filtrosAbiertos: false, convVista: "", correosAbierto: false, correoVer: "", progAbierto: "", programados: {},
@@ -3957,6 +4070,9 @@ class Component extends DCLogic {
       if (s.lock !== "h") return;
       s.dx = dx;
       var stR = self.state, enLista = s.row && stR.cronoLista !== false && !stR.selG;
+      /* #446 T4: en la lista (filas data-cv="fila") solo deslizar a la izquierda resuelve (aparece «Resuelta» debajo); a la derecha vuelve sola. */
+      var cvF = enLista && s.row.parentElement && s.row.parentElement.getAttribute("data-cv") === "fila";
+      if (cvF) { s.res = true; self.cvDeslizar(s.row, dx); return; }
       if (enLista && dx > 0) { s.res = true; s.row.style.transition = "none"; s.row.style.transform = "translateX(" + Math.min(dx, 160) + "px)"; s.row.style.boxShadow = dx > 70 ? "inset 4px 0 0 #3d6b52" : ""; s.row.style.backgroundColor = dx > 70 ? "rgba(61,107,82,.12)" : ""; return; }
       if (s.res) { s.res = false; s.row.style.transform = ""; s.row.style.boxShadow = ""; s.row.style.backgroundColor = ""; }
       mueve(dx * (self.swipePuede(dx < 0 ? "izq" : "der", s.gk) ? 0.45 : 0.12), false);
@@ -3964,6 +4080,7 @@ class Component extends DCLogic {
     var fin = function () {
       var s = self._sw; self._sw = null; if (!s || s.lock !== "h") return;
       var v = Math.abs(s.dx) / Math.max(1, Date.now() - s.t), dir = s.dx < 0 ? "izq" : "der";
+      if (s.res && s.row.parentElement && s.row.parentElement.getAttribute("data-cv") === "fila") { self.cvSoltar(s.row, s.dx, v, s.gk); return; }
       if (s.res) {
         var r0 = s.row, ok = s.dx > 70 || (v > 0.45 && s.dx > 30);
         r0.style.transition = "transform .24s cubic-bezier(.22,.61,.36,1), background-color .24s"; r0.style.transform = ""; r0.style.boxShadow = ""; r0.style.backgroundColor = "";
@@ -4239,7 +4356,7 @@ class Component extends DCLogic {
     if (k === "alma") { this.setMVistaV("resumen"); this.setState({ vista: "alma", menu: false }); if (!this.state.alma) this.almaCargar(); return; }
     this.setState({ vista: k, menu: false });
   }
-  componentDidUpdate(pp, ps, ancla) { this.pildoras(); this.fotoEscribir(); this.navSync(); this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
+  componentDidUpdate(pp, ps, ancla) { if (this.state.vista === "calendario") this.cpCargar(); this.pildoras(); this.fotoEscribir(); this.navSync(); this.syncCampos(); if (this.state.vista === "alma") { this.opRefrescar(this.rol() === "admin"); this.anclarChats(); this.cargarUsuariosAcc(); this.animarVista(); this.anclarLista(ancla); this.flipListas(); } if (this.state.vista === "reviews" || this.state.vista === "hub") this.rv2Cargar();
     if (this.state.vista !== this._vistaG) { this._vistaG = this.state.vista; this.guardarUltima(); }
     if (this.state.vista === "hoy" || this.state.vista === "hub" || this.state.vista === "tareas" || this.state.vista === "accion") this.hoyCargar();
     if (this._tareasOk && this.state.tareas !== this._tareasGuardadas) { this._tareasGuardadas = this.state.tareas; this.tareasGuardar(); } }
@@ -5567,6 +5684,45 @@ class Component extends DCLogic {
       insAbrir: function () { self.insAbrir(); }
     };
   }
+  /* ═══ Deslizar para resolver (#446 T4, diseño B): dedo o mouse, solo a la izquierda; pasa de 70 px (o va rápido) y suelta = la
+     misma acción «resuelta» del Hub (resolverGk, con «Deshacer» 4 s). Si la fila se va de la lista, el hueco se cierra suave. ═══ */
+  cvDeslizar(row, dx) {
+    /* Solo a la izquierda resuelve (Juan, revisión de #453); a la derecha la fila apenas cede y vuelve sola. */
+    var fila = row.parentElement, x = dx > 0 ? Math.min(24, dx * .2) : dx < -120 ? -(120 + (-dx - 120) * .35) : dx;
+    row.style.transition = "none"; row.style.transform = "translateX(" + x + "px)";
+    if (fila && dx > 0) { fila.removeAttribute("data-desliza"); return; }
+    if (fila) { fila.setAttribute("data-desliza", "1"); var fo = fila.firstElementChild; if (fo) fo.style.background = Math.abs(dx) > 70 ? "#2F5A43" : "#3d6b52"; }
+  }
+  cvSoltar(row, dx, v, gk) {
+    var self = this, fila = row.parentElement, ok = dx < 0 && (-dx > 70 || (v > 0.45 && -dx > 30)), rm = this._rm;
+    var limpiar = function () { row.style.transition = ""; row.style.transform = ""; if (fila) { fila.removeAttribute("data-desliza"); fila.classList.remove("sa-se-va"); ["height", "opacity", "marginTop", "marginBottom", "paddingTop", "paddingBottom"].forEach(function (k) { fila.style[k] = ""; }); } };
+    if (!ok || !gk) { row.style.transition = rm ? "none" : "transform .24s cubic-bezier(.22,.61,.36,1)"; row.style.transform = ""; setTimeout(function () { if (fila) fila.removeAttribute("data-desliza"); }, rm ? 0 : 260); return; }
+    try { navigator.vibrate && navigator.vibrate(8); } catch (x) {}
+    if (!this._cvQuitaRes || rm || !window.SAMov) {
+      row.style.transition = rm ? "none" : "transform .24s cubic-bezier(.22,.61,.36,1)"; row.style.transform = "";
+      setTimeout(function () { if (fila) fila.removeAttribute("data-desliza"); }, rm ? 0 : 260);
+      this.resolverGk(gk); return;
+    }
+    row.style.transition = "transform .2s cubic-bezier(.22,.61,.36,1)"; row.style.transform = "translateX(-105%)";
+    /* La conversación «actual» se queda visible aunque salga del filtro (ver _convSelKey): al resolverla aquí se suelta. */
+    setTimeout(function () { SAMov.quitar(fila, function () { if (self._convSelKey === gk) { self._convSelKey = null; self._convSelG = null; } self.resolverGk(gk); setTimeout(limpiar, 40); }); }, 190);
+  }
+  /* Mouse: arrastrar la fila con el botón apretado; el clic que sigue a un arrastre no abre la conversación. */
+  cvMouse(e, gk) {
+    if (!e || e.pointerType !== "mouse" || e.button !== 0) return;
+    var self = this, row = e.currentTarget, x0 = e.clientX, y0 = e.clientY, t0 = Date.now(), lock = null, dx = 0;
+    var mover = function (ev) {
+      dx = ev.clientX - x0; var dy = ev.clientY - y0;
+      if (!lock) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; lock = Math.abs(dx) > Math.abs(dy) * 1.3 ? "h" : "v"; }
+      if (lock !== "h") return;
+      ev.preventDefault(); self._cvArrastro = true; self.cvDeslizar(row, dx);
+    };
+    var soltar = function () {
+      window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar); window.removeEventListener("pointercancel", soltar);
+      if (lock === "h") { self.cvSoltar(row, dx, Math.abs(dx) / Math.max(1, Date.now() - t0), gk); setTimeout(function () { self._cvArrastro = false; }, 0); }
+    };
+    window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar); window.addEventListener("pointercancel", soltar);
+  }
   swipePuede(dir, gk) { var st = this.state, chat = st.cronoLista === false, tar = !!st.selG && !chat; return dir === "izq" ? (!chat && (tar || !!gk)) : (chat || tar || !!gk); }
   /* Swipe a la derecha sobre una fila del listado = marcar resuelta (con deshacer). */
   resolverGk(gk) {
@@ -5637,6 +5793,265 @@ class Component extends DCLogic {
       .then(function (r) { return r.ok ? r.json() : { ok: false, error: "HTTP " + r.status }; })
       .then(function (j) { try { if (window.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); } catch (e) {} return j; })
       .catch(function () { return { ok: false, error: "red" }; });
+  }
+  /* Cualquier otra acción del Apps Script con la sesión (el calendario de propiedades), sin tocar alma-client.js. */
+  hubApi(action, b) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    var ses = null; try { ses = window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) {}
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: d.token, session: ses }, b || {})) })
+      .then(function (r) { return r.ok ? r.json() : { ok: false, error: "HTTP " + r.status }; })
+      .then(function (j) { try { if (window.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); } catch (e) {} return j; })
+      .catch(function () { return { ok: false, error: "red" }; });
+  }
+  /* ═══ Calendario con barras (#446 T3 en la conversación, T10 en el bloque Calendario) ═══
+     Cada noche cae en un tramo: esta reserva, reservado, consulta o solicitud, bloqueado, libre o no disponible. La barra de
+     un tramo empieza a mitad del día de llegada y termina a mitad del día de salida, en diagonal; así un cambio el mismo
+     día son dos diagonales juntas. Fechas como texto «AAAA-MM-DD» (mediodía UTC), sin Intl: se arman miles por pantalla. */
+  calSum(f, n) { var d = new Date(f + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
+  calDif(a, b) { return Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 864e5); }
+  calTxt(f, conDia) {
+    var d = new Date(String(f).slice(0, 10) + "T12:00:00Z"); if (isNaN(d)) return "";
+    return (conDia ? ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"][d.getUTCDay()] + " " : "") + d.getUTCDate() + " " + ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][d.getUTCMonth()];
+  }
+  calCorto(n) { var p = String(n || "").trim().split(/\s+/); return p.length > 1 ? p[0] + " " + p[1][0].toUpperCase() + "." : p[0] || ""; }
+  /* o: { desde, hasta (noches [desde, hasta)), hoy, estadias: [{checkin, checkout, huesped, canal, tipo, esta}], dias: {fecha: {libre, razon, min, sinEntrada}} } */
+  calTramos(o) {
+    var self = this, tomada = {}, tramos = [], desde = o.desde, hasta = o.hasta, hoy = o.hoy, dias = o.dias || {};
+    var PRI = function (e) { return e.esta ? 0 : e.tipo === "reserva" ? 1 : e.tipo === "solicitud" ? 2 : e.tipo === "bloqueo" ? 3 : 4; };
+    /* Pone las noches libres de [ci, co) en tramos seguidos; lo ya tomado gana (esta reserva, luego reservas, solicitudes, consultas). */
+    var poner = function (ci, co, meta) {
+      var a = ci < desde ? desde : ci, run = null;
+      for (var f = a; f < co && f < hasta; f = self.calSum(f, 1)) {
+        if (tomada[f]) { run = null; continue; }
+        /* Un tramo recortado por otro empieza o termina donde el otro sale o entra: también en diagonal (cambio el mismo día). */
+        if (!run) { run = Object.assign({}, meta, { ci: f, co: self.calSum(f, 1), cl: f === ci || f > desde }); tramos.push(run); } else run.co = self.calSum(f, 1);
+        run.cr = run.co === co || run.co < hasta; tomada[f] = run;
+      }
+    };
+    var ests = (o.estadias || []).filter(function (e) { return e && e.checkin && e.checkout && e.checkout > desde && e.checkin < hasta; })
+      .slice().sort(function (x, y) { return PRI(x) - PRI(y) || (x.checkin < y.checkin ? -1 : 1); });
+    var meta = function (e, t) { return { t: t, huesped: e.huesped || "", canal: e.canal || "", tipo: e.tipo, esta: !!e.esta, ci0: e.checkin, co0: e.checkout }; };
+    ests.filter(function (e) { return e.tipo !== "consulta"; }).forEach(function (e) {
+      var t = e.tipo === "bloqueo" ? "bloq" : e.tipo === "solicitud" ? (e.esta ? "estacon" : "con") : e.esta ? "esta" : "res";
+      poner(String(e.checkin).slice(0, 10), String(e.checkout).slice(0, 10), meta(e, t));
+    });
+    /* Lo que dice el calendario de Hospitable y ninguna estadía explica: reservado sin nombre o bloqueado. */
+    var suelto = function (raz, t) {
+      var ini = null;
+      for (var f = desde; f <= hasta; f = self.calSum(f, 1)) {
+        var x = dias[f], es = f < hasta && !tomada[f] && x && !x.libre && (x.razon === "RESERVADO") === (raz === "RESERVADO");
+        if (es && !ini) ini = f;
+        if (!es && ini) { poner(ini, f, { t: t, huesped: "", tipo: raz === "RESERVADO" ? "reserva" : "bloqueo", ci0: ini, co0: f }); ini = null; }
+      }
+    };
+    suelto("RESERVADO", "res"); suelto("BLOQUEADO", "bloq");
+    /* Consultas al final: amarillas si sus noches están libres; si chocan con una reserva, un bloqueo o una solicitud,
+       lila («Consulta sin disponibilidad») en lo que quede libre y una raya lila debajo de todas sus noches. */
+    ests.filter(function (e) { return e.tipo === "consulta"; }).forEach(function (e) {
+      var ci = String(e.checkin).slice(0, 10), co = String(e.checkout).slice(0, 10), choca = false;
+      for (var f = ci; f < co; f = self.calSum(f, 1)) { if (tomada[f] || (dias[f] && !dias[f].libre)) { choca = true; break; } }
+      if (!choca) { poner(ci, co, meta(e, e.esta ? "estacon" : "con")); return; }
+      poner(ci, co, Object.assign(meta(e, e.esta ? "estaconsin" : "consin"), { sinDisp: true }));
+      tramos.push(Object.assign(meta(e, "consin"), { ci: ci < desde ? desde : ci, co: co > hasta ? hasta : co, cl: ci >= desde, cr: co <= hasta, capa: "baja", sinDisp: true }));
+    });
+    /* Libre: lo que queda, desde hoy. Gris si no se puede reservar (menos noches que la estadía mínima o sin entrada ese día). */
+    var ini = null;
+    for (var f = hoy > desde ? hoy : desde; f <= hasta; f = this.calSum(f, 1)) {
+      var libre = f < hasta && !tomada[f];
+      if (libre && !ini) ini = f;
+      if (!libre && ini) {
+        var n = this.calDif(ini, f), x0 = dias[ini] || {}, nd = !!x0.sinEntrada || (x0.min > 1 && n < x0.min && f < hasta);
+        poner(ini, f, { t: nd ? "nodisp" : "libre", huesped: "", tipo: nd ? "nodisp" : "libre", ci0: ini, co0: f, min: x0.min || 0, cerrada: f < hasta });
+        ini = null;
+      }
+    }
+    tramos.forEach(function (t) { if (t.co <= hoy && !t.esta && t.t !== "libre" && !t.capa) t.t = "pasado"; });
+    return tramos;
+  }
+  calTipoNombre(t) { return { esta: "Esta reserva", estacon: "Esta consulta", estaconsin: "Esta consulta, sin disponibilidad", consin: "Consulta sin disponibilidad", res: "Reservado", con: "Consulta o solicitud", bloq: "Bloqueado", libre: "Libre", nodisp: "No disponible", pasado: "Ya pasó" }[t.t] || ""; }
+  /* Barras de los tramos en una fila de N días que empieza en w0. S = diagonal (px), g = medio hueco entre dos barras. */
+  calBarras(tramos, w0, N, S, g, conTexto) {
+    var self = this, out = [], pct = function (x) { return (Math.round(x / N * 100000) / 1000) + "%"; };
+    tramos.forEach(function (t) {
+      var a = self.calDif(w0, t.ci), b = self.calDif(w0, t.co);
+      if (b < 0 || a > N - 1 || (b === 0 && !t.cr)) return;
+      var cl = a >= 0 && t.cl !== false, cr = b <= N - 1 && t.cr !== false;
+      if (a < 0) cl = false; if (b > N - 1) cr = false;
+      var izq = a >= 0 ? (cl ? "calc(" + pct(a + .5) + " - " + (S / 2 - g) + "px)" : pct(a)) : "0";
+      var der = b <= N - 1 ? (cr ? "calc(" + pct(N - b - .5) + " - " + (S / 2 - g) + "px)" : pct(N - b)) : "0";
+      var clip = "polygon(" + (cl ? S + "px" : "0") + " 0, 100% 0, " + (cr ? "calc(100% - " + S + "px)" : "100%") + " 100%, 0 100%)";
+      var vis = Math.min(b, N) - Math.max(a, 0) + (cl ? -.5 : 0) + (cr ? .5 : 0), txt = "";
+      if (conTexto) {
+        var nom = self.calCorto(t.huesped), noches = self.calDif(t.ci0 || t.ci, t.co0 || t.co);
+        if (t.capa) txt = "";
+        else if (t.t === "esta" || t.t === "estacon" || t.t === "estaconsin") txt = vis >= 2.9 ? (nom ? nom + " · " : "") + noches + (noches === 1 ? " noche" : " noches") : vis >= 1.5 ? (nom || "Esta") : "";
+        else if (t.t === "libre") txt = vis >= 1.8 ? "Libre" : "";
+        else if (t.t === "bloq") txt = vis >= 2.5 ? "Bloqueado" : "";
+        else if (t.t === "nodisp") txt = vis >= 2.5 ? "No disponible" : "";
+        else txt = vis >= 1.8 ? (nom || (t.t === "con" ? "Consulta" : t.t === "consin" ? "Sin disponibilidad" : "Reservado")) : vis >= 1 && nom ? nom[0] : "";
+      }
+      out.push({ t: t.t, capa: t.capa || "", izq: izq, der: der, clip: clip, txt: txt, pl: (cl ? S + 4 : 7) + "px",
+        aria: self.calTipoNombre(t) + (t.huesped ? " · " + t.huesped : "") + " · " + self.calTxt(t.ci0 || t.ci) + " al " + self.calTxt(t.co0 || t.co) });
+    });
+    return out;
+  }
+  /* Meses con semanas (lunes a domingo): números del día y barras. */
+  calMeses(desdeMes, nMeses, tramos, hoy) {
+    var self = this, out = [], MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    for (var mi = 0; mi < nMeses; mi++) {
+      var d1 = new Date(desdeMes.slice(0, 8) + "01T12:00:00Z"); d1.setUTCMonth(d1.getUTCMonth() + mi);
+      var m1 = d1.toISOString().slice(0, 10), mm = m1.slice(0, 7), w0 = this.calSum(m1, -((d1.getUTCDay() + 6) % 7)), semanas = [];
+      for (var w = w0; w.slice(0, 7) <= mm || (w.slice(0, 7) < mm); w = this.calSum(w, 7)) {
+        if (w.slice(0, 7) > mm) break;
+        var diasF = [];
+        for (var c = 0; c < 7; c++) { var f = this.calSum(w, c); diasF.push({ n: String(+f.slice(8)), izq: (c * 100 / 7) + "%", k: f.slice(0, 7) !== mm ? "fuera" : f === hoy ? "hoy" : f < hoy ? "pasado" : "" }); }
+        semanas.push({ dias: diasF, barras: this.calBarras(tramos, w, 7, 10, 1.5, true) });
+      }
+      out.push({ titulo: MESES[d1.getUTCMonth()] + " " + d1.getUTCFullYear(), semanas: semanas });
+    }
+    return out;
+  }
+  calLeyenda(esInq) {
+    return [{ t: esInq === null ? "" : esInq ? "Esta consulta" : "Esta reserva", tt: esInq ? "estacon" : "esta" }, { t: "Reservado", tt: "res" }, { t: "Consulta o solicitud", tt: "con" },
+      { t: "Consulta sin disponibilidad", tt: "consin" }, { t: "Bloqueado", tt: "bloq" }, { t: "Libre", tt: "libre" }, { t: "Pasado o no disponible", tt: "pasado" }].filter(function (x) { return x.t; });
+  }
+  /* «Libre cerca»: los huecos libres más cercanos a [ci, co), hasta 3, con sus noches. */
+  calLibreCerca(tramos, ci, co) {
+    var self = this;
+    return tramos.filter(function (t) { return t.t === "libre"; }).map(function (t) {
+      var dist = t.co <= ci ? self.calDif(t.co, ci) : t.ci >= co ? self.calDif(co, t.ci) : 0;
+      return { t: t, dist: dist };
+    }).filter(function (x) { return x.dist <= 21; }).sort(function (a, b) { return a.dist - b.dist; }).slice(0, 3)
+      .sort(function (a, b) { return a.t.ci < b.t.ci ? -1 : 1; }).map(function (x) {
+        var n = self.calDif(x.t.ci, x.t.co);
+        return x.t.cerrada ? { rango: self.calTxt(x.t.ci, true) + " → " + self.calTxt(x.t.co, true), noches: n + (n === 1 ? " noche" : " noches") }
+          : { rango: "Desde " + self.calTxt(x.t.ci, true), noches: "sin reservas después" };
+      });
+  }
+  /* ═══ Calendario de propiedades (#446 T10, opción B): primero las fechas, luego las libres por zona ═══
+     Una sola llamada (calendarioProps, apps-script/calprops.js) trae propiedades, estadías, bloqueos conocidos y Recientes.
+     Solo se pintan las zonas abiertas (y cada zona fuera de la pantalla no se dibuja: content-visibility). */
+  /* «Z10 - Brunelo - 1203» → zona Z10, edificio Brunelo, corto «Brunelo 1203» (igual que calpPartes_ del Apps Script). */
+  calPartes(n) {
+    var p = String(n || "").split(/\s+-\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    return p.length >= 3 ? { zona: p[0], edificio: p[1], corto: p[1] + " " + p.slice(2).join(" ") } : p.length === 2 ? { zona: p[0], edificio: p[1], corto: p[1] } : { zona: "Otras", edificio: p[0] || "", corto: p[0] || "" };
+  }
+  calClave(n) { return String(n || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, ""); }
+  cpCargar(forzar) {
+    var self = this, C = this.state.cp || {};
+    if (C.cargando || (!forzar && (C.datos || C.error) && Date.now() - (C.t || 0) < 120000)) return;
+    this.setState({ cp: Object.assign({}, C, { cargando: true, error: "" }) });
+    this.hubApi("calendarioProps", {}).then(function (r) {
+      if (r && r.ok) self.setState({ cp: { datos: r, t: Date.now(), cargando: false, error: "" } });
+      else self.setState(function (s) { return { cp: Object.assign({}, s.cp, { cargando: false, t: Date.now(), error: r && r.error === "red" ? "Sin conexión. Intenta de nuevo." : "No pudimos leer el calendario." }) }; });
+    });
+  }
+  cpAbrir(nombre, por) {
+    var self = this, k = this.calClave(nombre), ya = (this.state.cpPropCal || {})[k];
+    this.setState(function (s) { var rec = [{ propiedad: nombre, ts: new Date().toISOString(), por: "visto" }].concat((s.cpRecLocal || []).filter(function (x) { return self.calClave(x.propiedad) !== k; })).slice(0, 5); return { cpProp: nombre, cpRecLocal: rec }; });
+    this.hubApi("calendarioVisto", { propiedad: nombre, por: por || "visto" });
+    if (ya && (ya.dias || ya.cargando)) return;
+    var put = function (v) { self.setState(function (s) { var n = Object.assign({}, s.cpPropCal); n[k] = v; return { cpPropCal: n }; }); };
+    put({ cargando: true });
+    this.hubApi("calendarioProp", { propiedad: nombre }).then(function (r) { put(r && r.ok ? { dias: r.dias || [] } : { error: (r && r.error) || "red" }); });
+  }
+  cpVM() {
+    var self = this, st = this.state, C = st.cp || {}, D = C.datos, hoy = this.hoyISO();
+    var A = st.cpA && st.cpA >= hoy ? st.cpA : hoy, B = st.cpB && st.cpB > A ? st.cpB : this.calSum(A, 1), nN = this.calDif(A, B);
+    var base = { cargando: !D && C.cargando !== false, hayError: !D && !!C.error, error: C.error || "", listo: !!D, zonas: [], recientes: [], hayRec: false, zonasOps: [], canalesOps: [], total: "0",
+      fechasTxt: this.calTxt(A, true) + " → " + this.calTxt(B, true) + "\u00a0·\u00a0" + nN + (nN === 1 ? "\u00a0noche" : "\u00a0noches"), A: A, B: B, hoy: hoy, editar: !!st.cpEditar,
+      verEditar: function () { self.setState({ cpEditar: !st.cpEditar }); },
+      setA: function (e) { var v = String(e.target.value || ""); if (!v) return; var o = { cpA: v }; if (!(st.cpB > v)) o.cpB = self.calSum(v, nN > 0 ? nN : 1); self.setState(o); },
+      setB: function (e) { var v = String(e.target.value || ""); if (v && v > A) self.setState({ cpB: v }); },
+      solo: st.cpSolo === false ? "false" : "true", toggleSolo: function () { self.setState({ cpSolo: st.cpSolo === false }); },
+      zona: st.cpZona || "", setZona: function (e) { self.setState({ cpZona: e.target.value }); }, canal: st.cpCanal || "", setCanal: function (e) { self.setState({ cpCanal: e.target.value }); },
+      busca: st.cpBusca || "", setBusca: function (e) { self.setState({ cpBusca: e.target.value }); }, buscaAbierta: !!st.cpBuscaAbierta || !!st.cpBusca,
+      toggleBusca: function () { self.setState({ cpBuscaAbierta: !st.cpBuscaAbierta, cpBusca: st.cpBuscaAbierta ? "" : st.cpBusca }); },
+      reintentar: function () { self.cpCargar(true); }, hoja: null, hayHoja: false, leyenda: this.calLeyenda(null), libresTxt: "", deTxt: "" };
+    if (!D) return base;
+    /* Estadías y bloqueos por propiedad (bloqueos: lo que el calendario de Hospitable ya dijo, 6 h). */
+    var estPor = {}, bloqPor = {}, CAN = { airbnb: "Airbnb", booking: "Booking", vrbo: "Vrbo", expedia: "Expedia", directa: "Directa" };
+    (D.estadias || []).forEach(function (e) { var k = self.calClave(e.propiedad); (estPor[k] = estPor[k] || []).push(e); });
+    var diasDe = function (k) {
+      var m = {}, b = (D.bloqueos || {})[k], vivo = (st.cpPropCal || {})[k];
+      if (b && b.d) b.d.forEach(function (x) { m[x[0]] = { libre: !!x[1], razon: x[2] === "B" ? "BLOQUEADO" : x[2] === "R" ? "RESERVADO" : "LIBRE", min: x[3] || 0, sinEntrada: !!x[4] }; });
+      if (vivo && vivo.dias) { m = {}; vivo.dias.forEach(function (x) { m[x.fecha] = x; }); }
+      return m;
+    };
+    var desdeV = this.calSum(A, -10), hastaV = this.calSum(B, 10);
+    var q = this.calClave(st.cpBusca || ""), zonaF = st.cpZona || "", canalF = st.cpCanal || "", solo = st.cpSolo !== false;
+    var N = Math.min(14, Math.max(7, nN + 4)), d0 = this.calSum(A, -2), pctN = function (x) { return (Math.round(x / N * 100000) / 1000) + "%"; };
+    var filas = (D.propiedades || []).map(function (p) {
+      var k = self.calClave(p.nombre), dias = diasDe(k), ests = estPor[k] || [];
+      var tr = self.calTramos({ desde: desdeV, hasta: hastaV, hoy: hoy, estadias: ests, dias: dias });
+      var noche = function (f) { return tr.filter(function (t) { return !t.capa && t.ci <= f && f < t.co; })[0]; };
+      var choque = null, cons = false;
+      for (var f = A; f < B; f = self.calSum(f, 1)) { var t = noche(f); if (!t || t.t === "libre") continue; if (t.tipo === "consulta") { cons = true; continue; } choque = choque || t; }
+      var minA = (dias[A] || {}).min || 0; if (!choque && minA > nN) choque = { t: "nodisp", min: minA };
+      if (!choque && (dias[A] || {}).sinEntrada) choque = { t: "nodisp", sinEntrada: true };
+      var libre = !choque, nota, notaFg = "#6F6867";
+      if (libre) {
+        var antes = tr.filter(function (t) { return t.co === A && t.t !== "libre"; })[0], despues = tr.filter(function (t) { return t.ci === B && t.t !== "libre"; })[0];
+        var hueco = tr.filter(function (t) { return t.t === "libre" && t.ci < A && t.co >= A; })[0], nAntes = hueco ? self.calDif(hueco.ci, A) : 0;
+        nota = antes && despues ? "Cambio el mismo día al llegar y al salir" : antes ? "Cambio el mismo día al llegar" : despues ? "Cambio el mismo día al salir"
+          : nAntes > 0 ? "Libre también " + (nAntes > 5 ? "más de 5 noches" : nAntes + (nAntes === 1 ? " noche" : " noches")) + " antes" : "Libre esas noches";
+        if (cons) { nota = "Hay una consulta en esas fechas · " + nota.charAt(0).toLowerCase() + nota.slice(1); notaFg = "#6F5210"; }
+      } else {
+        nota = choque.t === "bloq" ? "Bloqueada esas noches" : choque.t === "nodisp" ? (choque.sinEntrada ? "No se puede entrar ese día" : "Estadía mínima de " + (choque.min || dias[A] && dias[A].min || 2) + " noches")
+          : choque.t === "con" ? "Solicitud por aprobar" + (choque.huesped ? " · " + self.calCorto(choque.huesped) : "") : "Ocupada" + (choque.huesped ? " · " + self.calCorto(choque.huesped) : "") + " · " + self.calTxt(choque.ci0 || choque.ci) + " al " + self.calTxt(choque.co0 || choque.co);
+        notaFg = choque.t === "bloq" ? "#9E3326" : "#6F6867";
+      }
+      var canales = (p.canales && p.canales.length ? p.canales : ests.map(function (e) { return e.canal; })).filter(Boolean);
+      var bIni = Math.max(0, self.calDif(d0, A) + .5), bFin = Math.min(N, self.calDif(d0, B) + .5);
+      var pp = p.zona ? p : Object.assign({}, p, self.calPartes(p.nombre));
+      return { nombre: p.nombre, corto: pp.corto || p.nombre, zona: pp.zona || "Otras", edificio: pp.edificio || "", libre: libre, nota: nota, notaFg: notaFg, k: k, canales: canales,
+        barras: self.calBarras(tr, d0, N, 5, 1, false), elIzq: pctN(bIni), elDer: pctN(N - bFin), elOk: libre ? "1" : "0",
+        okBg: libre ? "#E8F2ED" : "#F5F3F0", ocupada: !libre,
+        abrir: function () { self.cpAbrir(p.nombre); } };
+    });
+    var porK = {}; filas.forEach(function (f) { porK[f.k] = f; });
+    /* Recientes: lo del servidor (abiertas, preguntadas por un huésped, nombradas en tu chat) y lo que abriste aquí. */
+    var rec = [], visto = {};
+    (st.cpRecLocal || []).concat(D.recientes || []).sort(function (a, b) { return a.ts < b.ts ? 1 : -1; }).forEach(function (r) {
+      var k = self.calClave(r.propiedad), f = porK[k]; if (!f || visto[k] || rec.length >= 5) return; visto[k] = 1;
+      rec.push({ nombre: f.corto, punto: f.libre ? "#3d6b52" : "#D8D4CE", aria: f.corto + (f.libre ? ", libre esas noches" : ", ocupada esas noches") + (r.por && r.por !== "visto" ? " · la mencionó " + (r.por === "tú" ? "tú" : r.por) : ""), abrir: function () { self.cpAbrir(f.nombre, "visto"); } });
+    });
+    var zonasT = {}; filas.forEach(function (f) { zonasT[f.zona] = 1; });
+    var ordZ = function (a, b) { var na = /^z(\d+)/i.exec(a), nb = /^z(\d+)/i.exec(b); return na && nb ? +na[1] - +nb[1] : na ? -1 : nb ? 1 : a < b ? -1 : 1; };
+    var canalesT = {}; filas.forEach(function (f) { f.canales.forEach(function (c) { canalesT[c] = 1; }); });
+    var vis = filas.filter(function (f) {
+      if (zonaF && f.zona !== zonaF) return false; if (canalF && f.canales.indexOf(canalF) < 0) return false;
+      if (q && self.calClave(f.nombre).indexOf(q) < 0) return false; return true;
+    });
+    var nLib = vis.filter(function (f) { return f.libre; }).length, ab = st.cpZonasAb || {};
+    var zonas = Object.keys(zonasT).sort(ordZ).map(function (z, iz) {
+      var todas = vis.filter(function (f) { return f.zona === z; }), lib = todas.filter(function (f) { return f.libre; }), ver = solo ? lib : todas;
+      if (!todas.length || (solo && !lib.length && !q)) return null;
+      var eds = []; todas.forEach(function (f) { if (f.edificio && eds.indexOf(f.edificio) < 0) eds.push(f.edificio); });
+      var abierta = ab[z] != null ? !!ab[z] : (solo || !!q || !!zonaF || iz < 2);
+      return { zona: z, titulo: z + (eds.length && eds.length <= 2 && eds[0] !== z ? " · " + eds.join(" · ") : ""), cuenta: lib.length + " de " + todas.length + " libres", abierta: abierta, aria: abierta ? "true" : "false",
+        chev: abierta ? "rotate(180deg)" : "rotate(0deg)", filas: abierta ? ver : [], hayFilas: abierta && ver.length > 0,
+        toggle: function () { self.setState(function (s) { var n = Object.assign({}, s.cpZonasAb); n[z] = !abierta; return { cpZonasAb: n }; }); } };
+    }).filter(Boolean);
+    /* La hoja de una propiedad: el mes con barras (mismo diseño que la conversación), desde el mes de las fechas elegidas. */
+    var hoja = null;
+    if (st.cpProp) {
+      var kH = this.calClave(st.cpProp), fH = porK[kH] || { nombre: st.cpProp, corto: st.cpProp, libre: false, nota: "" }, diasH = diasDe(kH), vivoH = (st.cpPropCal || {})[kH] || {};
+      var m1 = A.slice(0, 8) + "01", gIni = this.calSum(m1, -((new Date(m1 + "T12:00:00Z").getUTCDay() + 6) % 7)), m3 = new Date(m1 + "T12:00:00Z"); m3.setUTCMonth(m3.getUTCMonth() + 2);
+      var trH = this.calTramos({ desde: gIni, hasta: this.calSum(m3.toISOString().slice(0, 10), 7), hoy: hoy, estadias: estPor[kH] || [], dias: diasH });
+      hoja = { titulo: fH.corto, eyebrow: "Calendario · " + (fH.zona || ""), meses: this.calMeses(m1, 2, trH, hoy), semana: ["L", "M", "M", "J", "V", "S", "D"],
+        chips: [{ k: "Llega", v: this.calTxt(A, true), d: "en la tarde" }, { k: "Sale", v: this.calTxt(B, true), d: "en la mañana" }, { k: "Noches", v: String(nN), d: fH.libre ? "Libre" : "Ocupada" }], notaProp: fH.nota || "",
+        cerca: this.calLibreCerca(trH, A, B), hayCerca: false, cargandoVivo: !!vivoH.cargando, nota: vivoH.error ? "No pude leer los bloqueos de Hospitable ahora; se ve lo que ya sabíamos." : vivoH.cargando ? "Revisando bloqueos en Hospitable…" : "",
+        hayNota: !!(vivoH.error || vivoH.cargando), cerrar: function () { self.setState({ cpProp: "" }); } };
+      hoja.hayCerca = hoja.cerca.length > 0;
+    }
+    return Object.assign(base, { zonas: zonas, recientes: rec, hayRec: rec.length > 0, total: String((D.propiedades || []).length), libresTxt: nLib + (nLib === 1 ? " libre" : " libres"),
+      deTxt: "de " + vis.length + " · " + (nN === 1 ? "esa noche" : "esas " + nN + " noches"), sinResultados: !zonas.length,
+      zonasOps: [{ v: "", l: "Zona" }].concat(Object.keys(zonasT).sort(ordZ).map(function (z) { return { v: z, l: z }; })),
+      canalesOps: [{ v: "", l: "Canal" }].concat(Object.keys(canalesT).sort().map(function (c) { return { v: c, l: CAN[c] || c }; })),
+      hoja: hoja, hayHoja: !!hoja });
   }
   /* Ícono de cada opción de la tarjeta, por lo que dice. */
   iconoOpcion(t) {
@@ -7305,6 +7720,8 @@ class Component extends DCLogic {
       var mia = dec.estado === "elegida" && mismo(dec.quien, yo), abierta = dec.estado === "abierta" || mia;
       var poner = function (t) {
         ponerTexto(t); self.guardarBorrador(convKey, t);
+        /* El borrador sube al cuadro (#446 T5A); con movimiento reducido solo aparece. */
+        var elB = self._respEl[convKey]; if (elB && elB.classList) { elB.classList.remove("sa-chat-borrador-sube"); void elB.offsetWidth; elB.classList.add("sa-chat-borrador-sube"); }
         setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(t.length, t.length); } catch (x) {} } }, 60);
       };
       /* Si la elegiste en el chat con Alma o por WhatsApp, el borrador ya te espera en el cuadro. */
@@ -7329,19 +7746,19 @@ class Component extends DCLogic {
           });
         };
       };
-      var filas = dec.opciones.map(function (o) {
+      /* #446 T5A: píldoras (letra + título corto). El detalle va en el nombre accesible y al pasar el mouse. */
+      var filas = dec.opciones.map(function (o, i) {
         var sel = dec.estado !== "abierta" && dec.opcion === o.letra;
-        return { titulo: o.letra + " · " + o.titulo, detalle: o.detalle || "", hayDetalle: !!o.detalle, elegida: sel ? "true" : "false",
-          icono: o.accion === "tarea" ? "calendar" : o.accion === "devolucion" ? "file" : sel ? "check" : self.iconoOpcion(o.titulo),
-          iconoBg: sel ? "#3E3F3F" : "#F3F3F3", iconoFg: sel ? "#FAFAFA" : "#222222", bg: sel ? "#F7F7F7" : "transparent", apagada: !abierta, elegir: elegir(o) };
+        return { titulo: o.titulo, letra: o.letra, hayLetra: true, detalle: o.detalle || "", aria: "Opción " + o.letra + ": " + o.titulo + (o.detalle ? ". " + o.detalle : ""), elegida: sel ? "true" : "false",
+          clase: "", delay: (i * 50) + "ms", apagada: !abierta, elegir: elegir(o) };
       });
-      filas.push({ titulo: "Otra respuesta", detalle: "La escribes tú en el cuadro", hayDetalle: true, elegida: dec.estado !== "abierta" && dec.opcion === "otra" ? "true" : "false",
-        icono: "pencil", iconoBg: "#F3F3F3", iconoFg: "#222222", bg: "transparent", apagada: !abierta,
+      filas.push({ titulo: "Otra…", letra: "", hayLetra: false, detalle: "La escribes tú en el cuadro", aria: "Otra respuesta: la escribes tú en el cuadro", elegida: dec.estado !== "abierta" && dec.opcion === "otra" ? "true" : "false",
+        clase: "sa-chat-pill--otra", delay: (filas.length * 50) + "ms", apagada: !abierta,
         elegir: function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (!abierta) return; var el = self._respEl[convKey]; if (el) { el.focus(); } } });
       var estado = dec.estado === "abierta" ? "" : mia ? "Elegiste la opción " + (dec.opcion === "otra" ? "«otra respuesta»" : dec.opcion) + " · revisa el borrador y envía"
         : "Resuelto por " + (dec.quien || "el equipo") + (dec.opcion === "otra" ? " · otra respuesta" : dec.opcion && dec.opcion !== "—" ? " · opción " + dec.opcion : "");
       return { decHay: true, decId: dec.id, decPregunta: (dec.motivo ? String(dec.motivo).replace(/\s+/g, " ").slice(0, 160) + "\n\n" : "") + "¿Qué le respondemos?",
-        decOpciones: filas, decHayEstado: !!estado, decEstado: estado, decEstadoFg: mia ? "#B54D36" : "#6F6867" };
+        decOpciones: filas, decElegida: dec.estado !== "abierta" ? "1" : "0", decHayEstado: !!estado, decEstado: estado, decEstadoFg: mia ? "#B54D36" : "#6F6867" };
     };
     var composerSolo = composer;
     composer = function (convKey, info) { var c0 = composerSolo(convKey, info); return Object.assign(decisionVista(convKey, info), c0); };
@@ -8268,6 +8685,23 @@ class Component extends DCLogic {
       else if (enTodas && self._atnPrev != null && nAtn > self._atnPrev && !self._swF) self._swF = setTimeout(function () { self._swF = null; self._fijos = {}; self.setState({ convSolo: "ATENCION", convOrden: "Prioridad", convIdx: 0, briefIdx: 0 }); self.aviso("Entró una conversación que requiere atención"); }, 300);
       self._atnPrev = nAtn;
     }
+    /* #446 T4: tarjetas que filtran arriba de la lista (diseño C). Cuentan sobre lo que ya se ve; tocar una filtra, otra vez la quita. */
+    var hoyR = self.hoyISO(), mananaR = self.calSum(hoyR, 1), d10 = function (v) { return String(v || "").slice(0, 10); };
+    var ibR = function (g) { return inboxPor[g.key] || {}; }, esCons = function (g) { return ibR(g).tipo === "consulta" || String(g.key).indexOf("inq:") === 0; };
+    var RAP = [["", "Todas", "#3E3F3F", function () { return true; }], ["resp", "Por responder", "#B54D36", atnG],
+      ["llegan", "Llegan hoy", "#3d6b52", function (g) { return !esCons(g) && d10(ibR(g).checkin) === hoyR; }],
+      ["salen", "Salen hoy", "#3B6691", function (g) { return !esCons(g) && d10(ibR(g).checkout) === hoyR; }],
+      ["estadia", "En estadía", "#3B6691", function (g) { var x = ibR(g); return !esCons(g) && !!x.checkin && d10(x.checkin) < hoyR && hoyR < d10(x.checkout); }],
+      ["consultas", "Consultas", "#6F5210", esCons]];
+    var rapAct = RAP.filter(function (x) { return x[0] === (st.convRapido || ""); })[0] || RAP[0];
+    this._rapidosVM = RAP.map(function (x) {
+      var n = grupos.filter(x[3]).length, on = x === rapAct;
+      return { id: x[0], label: x[1], n: String(n), fg: x[2], on: on ? "true" : "false", ver: on || !x[0] || x[0] === "resp" || n > 0,
+        tocar: function () { self._fijos = {}; self.setState({ convRapido: on ? "" : x[0], convIdx: 0 }); } };
+    }).filter(function (x) { return x.ver; });
+    if (rapAct[0]) grupos = grupos.filter(keep(rapAct[3]));
+    /* Al deslizar para resolver: ¿la fila se va de esta lista? (entonces el hueco se cierra suave). */
+    this._cvQuitaRes = verN !== "VERDE" && (ordenEf !== "Cronológico" || rapAct[0] === "resp" || st.convSolo === "ATENCION" || st.convSolo === "SIN");
     gIdx = {}; grupos.forEach(function (g, i) { gIdx[g.key] = i; });
     this._convGrupos = grupos; this._convTotal = grupos.length;
     /* Precarga el hilo de los primeros casos urgentes/por confirmar del historial para saber si ya se resolvieron sin abrirlos. */
@@ -8386,14 +8820,24 @@ class Component extends DCLogic {
         var urg = !g.resuelto && enNivel(g, "ROJO"), necEq = !g.resuelto && !urg && enNivel(g, "AMARILLO"), prom = !urg && !necEq && promG(g), sinR = !g.resuelto && !urg && !necEq && !prom && !t.esCola && esSinG(g);
         if (urg) E = ["Urgente", "#C0392B", "#FFFFFF", "#C0392B"]; else if (necEq) E = ["Necesita equipo", "#B54D36", "#FFFFFF", "#E9826A"]; else if (prom) E = ["ALMA prometió", "#B54D36", "#FFFFFF", "#E9826A"]; else if (sinR) E = ["Sin responder", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"];
         var atn = urg || necEq || prom || sinR;
-        return { ...(self._canalVM ? self._canalVM(g) : {}), gk: g.key, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
+        /* #446 T4 (diseño B): sin nada que atender, la etiqueta dice en qué va la estadía. */
+        if (!atn && est === "resp" && ib) {
+          var ciE = d10(ib.checkin), coE = d10(ib.checkout), consE = ib.tipo === "consulta";
+          var EE = consE ? ["Consulta", "#F5E6BF", "#6F5210"] : ciE === hoyR ? ["Check-in hoy", "#E8F2ED", "#3d6b52"] : coE === hoyR ? ["Sale hoy", "#E8EDF3", "#3B6691"] : ciE === mananaR ? ["Llega mañana", "#E8EDF3", "#3B6691"]
+            : ciE && ciE < hoyR && hoyR < coE ? ["En estadía", "#E8EDF3", "#3B6691"] : coE && coE < hoyR ? ["Salió", "#F5F3F0", "#6F6867"] : null;
+          if (EE) E = [EE[0], EE[1], EE[2], E[3]];
+        }
+        var propCorto = String(propR || "").replace(/\s+-\s+/g, " ").replace(/^Z\d+\s+/i, "");
+        return { ...(self._canalVM ? self._canalVM(g) : {}), gk: g.key, propCorto: propCorto ? "· " + propCorto : "", estadia: estR, iniciales: String(nombre).trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0] || ""; }).join("").toUpperCase() || "H", huesped: nombre,
           etapa: (self._etapa && self._etapa(g.key, ib)) || { txt: "" }, hayEtapa: !!(self._etapa && self._etapa(g.key, ib)),
           prop: (propR || "Propiedad por confirmar") + (estR ? " · " + estR : ""), preview: prev || "Sin texto", hora: hora,
           hayFoto: !!foto, foto: foto, noFoto: !foto, etapa: etapa, hayEtapa: !!etapa, noLeido: est === "pend", motivoRes: g.resuelto && g.autoRes ? "Resuelta sola · " + g.autoRes : "",
           clasificando: !!t.clasificando, clasPct: t.clasPct || "0%", clasTxt: t.clasTxt || "", clasPasos: t.clasPasos || [], hayPasos: !!t.hayPasos, sinPasos: !t.hayPasos,
-          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" || atn ? "600" : "400", previewFg: est === "pend" || atn ? "#3E3F3F" : "#6F6867",
+          tag: E[0], tagBg: E[1], tagFg: E[2], color: E[3], peso: est === "pend" || atn ? "600" : "500", pesoPrev: est === "pend" || atn ? "500" : "400", previewFg: est === "pend" || atn ? "#3E3F3F" : "#6F6867",
+          iniBg: est === "pend" || atn ? "rgba(233,130,106,.2)" : "#EDEAE6",
           bg: atn ? "rgba(233,130,106,.08)" : "#FFFFFF", precargar: function () { if (t.cargarHilo) t.cargarHilo(); }, borde: i === 0 ? "transparent" : "#EAE6E0",
-          abrir: function (e) { self.abrirDesdeLista(e, t, i); } };
+          abrir: function (e) { if (self._cvArrastro) { self._cvArrastro = false; return; } self.abrirDesdeLista(e, t, i); },
+          arrastre: function (e) { self.cvMouse(e, g.key); } };
     }).filter(Boolean);
 
     var infoVM = null, IS = st.infoSheet;
@@ -8401,25 +8845,21 @@ class Component extends DCLogic {
       var RI = (st.resInfo || {})[IS.resId] || { cargando: true }, D = RI.data, esCalI = IS.modo === "cal";
       var hoyI = new Date().toLocaleDateString("en-CA", { timeZone: "America/Guatemala" });
       var esInqI = D ? D.tipo === "consulta" : String(IS.resId).indexOf("inq:") === 0;
-      var meses = [];
+      /* T3 (#446): el mes con barras diagonales y colores de estado, como el calendario de propiedades. */
+      var meses = [], chipsI = [], cercaI = [], tituloI = "", hayHoras = false;
       if (D && esCalI) {
         var mapD = {}; (D.dias || []).forEach(function (x) { mapD[x.fecha] = x; });
-        var y0 = +String(D.inicio).slice(0, 4), m0 = +String(D.inicio).slice(5, 7) - 1;
-        var pad = function (n) { return (n < 10 ? "0" : "") + n; };
-        for (var mi = 0; mi < 2; mi++) {
-          var fy = new Date(Date.UTC(y0, m0 + mi, 1, 12)), yy = fy.getUTCFullYear(), mm = fy.getUTCMonth(), nd = new Date(Date.UTC(yy, mm + 1, 0, 12)).getUTCDate();
-          var off = (fy.getUTCDay() + 6) % 7, celdas = [];
-          for (var b0 = 0; b0 < off; b0++) celdas.push({ vacio: true, n: "", bg: "transparent", fg: "transparent", bd: "transparent", op: "1", peso: "400", aria: "" });
-          for (var dd = 1; dd <= nd; dd++) {
-            var f = yy + "-" + pad(mm + 1) + "-" + pad(dd), x = mapD[f], est = D.checkin && f >= D.checkin && f < D.checkout;
-            var C = est ? (esInqI ? ["#9a5020", "#FFFFFF", "#9a5020", "Fechas de esta consulta"] : ["#3B6691", "#FFFFFF", "#3B6691", "Esta reserva"])
-              : !x ? ["transparent", "#938B8A", "transparent", "Sin datos"]
-              : x.libre ? ["rgba(61,107,82,.12)", "#3d6b52", "transparent", "Disponible"]
-              : x.razon === "RESERVADO" ? ["rgba(192,57,43,.12)", "#C0392B", "transparent", "Reservado"] : ["#F5F3F0", "#938B8A", "transparent", "Bloqueado"];
-            celdas.push({ vacio: false, n: String(dd), bg: C[0], fg: C[1], bd: f === hoyI ? "#3E3F3F" : C[2], op: f < hoyI ? ".4" : "1", peso: est ? "600" : "500", aria: dd + " · " + C[3] });
-          }
-          meses.push({ titulo: fy.toLocaleDateString("es-GT", { month: "long", year: "numeric", timeZone: "UTC" }), celdas: celdas });
-        }
+        var m1 = String(D.inicio || D.checkin || hoyI).slice(0, 8) + "01", gIni = self.calSum(m1, -((new Date(m1 + "T12:00:00Z").getUTCDay() + 6) % 7)), m3 = new Date(m1 + "T12:00:00Z");
+        m3.setUTCMonth(m3.getUTCMonth() + 2); var gFin = self.calSum(m3.toISOString().slice(0, 10), 7);
+        var estI = (D.estadias || []).length ? D.estadias : (D.checkin ? [{ checkin: D.checkin, checkout: D.checkout, huesped: "", tipo: esInqI ? "consulta" : "reserva", esta: true }] : []);
+        var trI = self.calTramos({ desde: gIni, hasta: gFin, hoy: hoyI, estadias: estI, dias: mapD });
+        meses = self.calMeses(m1, 2, trI, hoyI);
+        var estaI = estI.filter(function (e) { return e.esta; })[0] || {}, nI = D.checkin && D.checkout ? self.calDif(D.checkin, D.checkout) : 0;
+        var PLAT = { airbnb: "Airbnb", booking: "Booking", "booking.com": "Booking", vrbo: "Vrbo", homeaway: "Vrbo", direct: "Directa", manual: "Directa", directa: "Directa" };
+        if (D.checkin) chipsI = [{ k: "Llega", v: self.calTxt(D.checkin, true), d: D.horaIn ? "desde " + D.horaIn : "en la tarde" }, { k: "Sale", v: self.calTxt(D.checkout, true), d: D.horaOut ? "hasta " + D.horaOut : "en la mañana" },
+          { k: "Noches", v: String(nI), d: PLAT[String(D.plataforma || "").toLowerCase()] || (esInqI ? "Consulta" : "Reserva") }];
+        cercaI = D.checkin ? self.calLibreCerca(trI, D.checkin, D.checkout) : [];
+        tituloI = estaI.huesped ? (esInqI ? "La consulta de " : "La estadía de ") + String(estaI.huesped).trim().split(/\s+/)[0] : "";
       }
       var ING = D && D.ingreso, ladoI = IS.lado === "guest" && ING && ING.guest ? "guest" : "host", LD = ING && ING[ladoI];
       var fmM = function (v, mon) { if (v == null || isNaN(v)) return ""; return (v < 0 ? "−" : "") + (mon === "USD" || !mon ? "$" : mon + " ") + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
@@ -8428,12 +8868,13 @@ class Component extends DCLogic {
       var totI = LD ? (LD.total && (LD.total.txt || fmM(LD.total.monto, ING.moneda))) || fmM((LD.lineas || []).reduce(function (a0, l) { return a0 + (Number(l.monto) || 0); }, 0), ING.moneda) : "";
       var setLado = function (v) { return function () { self.setState(function (s) { return { infoSheet: Object.assign({}, s.infoSheet, { lado: v }) }; }); }; };
       infoVM = {
-        eyebrow: esCalI ? (esInqI ? "Consulta · calendario" : "Reserva · calendario") : (ING && ING.estimado ? "Consulta · estimado" : "Ingreso"),
-        titulo: D ? (D.propiedad || "Propiedad") : esCalI ? "Calendario" : "Ingreso",
-        sub: D && D.checkin ? fmtRango(D.checkin, D.checkout) : "",
+        eyebrow: esCalI ? "Calendario" + (D && D.propiedad && tituloI ? " · " + D.propiedad.replace(/\s+-\s+/g, " ").replace(/^Z\d+\s+/, "") : "") : (ING && ING.estimado ? "Consulta · estimado" : "Ingreso"),
+        titulo: esCalI && tituloI ? tituloI : D ? (D.propiedad || "Propiedad") : esCalI ? "Calendario" : "Ingreso",
+        sub: esCalI && chipsI.length ? "" : D && D.checkin ? fmtRango(D.checkin, D.checkout) : "", haySub: !(esCalI && chipsI.length) && !!(D && D.checkin),
+        chips: chipsI, hayChips: !!chipsI.length, cerca: cercaI, hayCerca: !!cercaI.length,
         cargando: !!RI.cargando, hayError: !!RI.error, error: RI.error || "",
         esCal: esCalI && !!D, meses: meses, semana: ["L", "M", "M", "J", "V", "S", "D"],
-        leyenda: [{ bg: esInqI ? "#9a5020" : "#3B6691", t: esInqI ? "Esta consulta" : "Esta reserva" }, { bg: "rgba(61,107,82,.35)", t: "Disponible" }, { bg: "rgba(192,57,43,.35)", t: "Reservado" }, { bg: "#D8D4CE", t: "Bloqueado" }],
+        leyenda: self.calLeyenda(esInqI),
         esIng: !esCalI && !!D, hayIngreso: !!LD, sinIngreso: !esCalI && !!D && !LD,
         haySeg: !!(ING && ING.guest), segHostBg: ladoI === "host" ? "#FFFFFF" : "transparent", segGuestBg: ladoI === "guest" ? "#FFFFFF" : "transparent",
         segHostSh: ladoI === "host" ? "0 1px 2px rgba(62,63,63,.08)" : "none", segGuestSh: ladoI === "guest" ? "0 1px 2px rgba(62,63,63,.08)" : "none",
@@ -8500,7 +8941,7 @@ class Component extends DCLogic {
     var mesk = window.matchMedia && matchMedia("(max-width:1179px)").matches;
     return {
       enAlma: st.vista === "alma",
-      infoAbierto: !!infoVM, info: infoVM || { meses: [], lineas: [], leyenda: [], semana: [] }, infoCerrar: function () { self.setState({ infoSheet: null }); },
+      infoAbierto: !!infoVM, info: infoVM || { meses: [], lineas: [], leyenda: [], semana: [], chips: [], cerca: [] }, infoCerrar: function () { self.setState({ infoSheet: null }); },
       rzAbierto: !!rz, rz: rz || { filas: [], chips: [], propCambios: [] },
       rzPuedeBorrar: !!rz && !!st.razon && /alma|equipo|auto/.test(String(st.razon.tipo || "")), rzBorrarUrl: "https://www.airbnb.com/hosting/messages", rzCerrar: function () { self.setState({ razon: null }); },
       hayToast: !!st.toast, toastTxt: st.toast || "",
@@ -8839,7 +9280,7 @@ class Component extends DCLogic {
       cronoVacioTitulo: prio ? "Nada urgente ahora" : "Sin conversaciones",
       cronoVacioTexto: prio ? "No hay casos pendientes. ALMA sigue atendiendo y te traemos aquí en cuanto algo necesite a alguien." : "No hay conversaciones con estos filtros.",
       cronoVacioBoton: prio, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
-      cronoFilas: convCargando ? [] : cronoFilas, convCargando: convCargando, canalFiltros: canalFiltros,
+      cronoFilas: convCargando ? [] : cronoFilas, convRapidos: convCargando ? [] : (self._rapidosVM || []), hayRapidos: !convCargando && (self._rapidosVM || []).length > 1, convCargando: convCargando, canalFiltros: canalFiltros,
       swResVisible: !!st.swRes, deshacerResolver: function () { self.deshacerResolver(); },
       convAltoVisor: convItems.some(function (c) { return (st.convResp[c.key] || {}).abierto; }) ? "clamp(360px, calc(100dvh - 150px), 780px)" : "clamp(280px, 52dvh, 520px)",
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",
@@ -9488,10 +9929,10 @@ class Component extends DCLogic {
       enHub: st.vista === "hub",
       enReviews: st.vista === "reviews",
       enTareas: st.vista === "tareas",
-      enCalendario: st.vista === "calendario",
+      enCalendario: st.vista === "calendario", cp: st.vista === "calendario" ? this.cpVM() : { zonas: [], recientes: [], zonasOps: [], canalesOps: [], leyenda: [], hoja: null },
       enAccion: st.vista === "accion",
       volver: setV("hub"),
-      verReviews: setV("reviews"), verTareas: setV("tareas"), verCalendario: setV("calendario"), verAccion: setV("accion"),
+      verReviews: setV("reviews"), verTareas: setV("tareas"), verCalendario: function () { self.setState({ vista: "calendario" }); self.cpCargar(); }, verAccion: setV("accion"),
 
       /* login */
       loginEmail: st.loginEmail, loginPass: st.loginPass, loginError: st.loginError,

@@ -173,3 +173,24 @@
 .sa-chat-pildora:active{ transform:scale(.96); }
 .sa-chat-pildora:disabled{ color:var(--chat-tenue); cursor:default; }
 @media (prefers-reduced-motion: reduce){ .sa-chat-esf-pz, .sa-chat-pildora{ transition:none; } .sa-chat-esf:active .sa-chat-esf-pz, .sa-chat-pildora:active{ transform:none; } }
+
+/* Opciones de Alma en píldoras de respuesta rápida (#446 T5A, opción A): cada una sube 8 px y crece de 96 % a 100 %
+   (260 ms, 50 ms entre una y otra). Al tocar una se encoge a 95 % y se pone negra; las demás bajan a 35 %; el borrador
+   sube al cuadro. Movimiento reducido: todo aparece sin moverse. */
+.sa-chat-pills{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; max-width:min(320px,100%); }
+.sa-chat-pill{ display:inline-flex; align-items:center; gap:8px; min-height:44px; max-width:100%; padding:0 15px 0 7px; box-sizing:border-box; border-radius:999px; background:#FFFFFF; border:1px solid #DDDDDD; font-family:var(--chat-sans); font-size:13.5px; font-weight:600; color:var(--chat-tinta); text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  animation:sa-pill-entra .26s cubic-bezier(.22,.61,.36,1) both; transition:opacity .2s cubic-bezier(.22,.61,.36,1), background-color .3s cubic-bezier(.22,.61,.36,1), color .3s, border-color .3s; }
+.sa-chat-pill > span{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sa-chat-pill i{ font-style:normal; flex:none; width:30px; height:30px; border-radius:50%; background:#F3F3F3; display:grid; place-items:center; font-size:11px; font-weight:700; color:#3E3F3F; transition:background-color .2s, color .2s; }
+.sa-chat-pill--otra{ padding:0 15px; color:#6F6867; font-weight:500; border-style:dashed; }
+@media (hover:hover){ .sa-chat-pill:not(:disabled):hover{ border-color:#222222; } }
+.sa-chat-pill:focus-visible{ outline:2px solid var(--chat-tinta); outline-offset:2px; }
+.sa-chat-pill[aria-pressed="true"]{ background:#1F1F1F; border-color:#1F1F1F; color:#FFFFFF; animation:sa-pill-toca .3s cubic-bezier(.22,.61,.36,1) both; }
+.sa-chat-pill[aria-pressed="true"] i{ background:#FFFFFF; color:#1F1F1F; }
+.sa-chat-pills[data-elegida="1"] .sa-chat-pill[aria-pressed="false"]{ opacity:.35; }
+.sa-chat-pill:disabled{ cursor:default; }
+@keyframes sa-pill-entra{ from{ opacity:0; transform:translateY(8px) scale(.96); } }
+@keyframes sa-pill-toca{ 30%{ transform:scale(.95); } 100%{ transform:scale(1); } }
+.sa-chat-borrador-sube{ animation:sa-borrador-sube .24s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes sa-borrador-sube{ from{ opacity:0; transform:translateY(10px); } }
+@media (prefers-reduced-motion: reduce){ .sa-chat-pill, .sa-chat-pill[aria-pressed="true"], .sa-chat-borrador-sube{ animation:none; } .sa-chat-pill{ transition:none; } }

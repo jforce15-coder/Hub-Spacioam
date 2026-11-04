@@ -18,6 +18,8 @@ var DEC_LETRAS_ = ['A', 'B', 'C'];
 var DEC_ACCIONES_ = ['tarea', 'devolucion', 'ninguna'];
 var DEC_WA_MIN_ = 20;   // minutos después del aviso en que un texto sin citar PUEDE ser la respuesta al caso (lo decide decEsParaCaso_)
 var DEC_SALE_MS_ = 60000;   // envío con deshacer: lo elegido por WhatsApp sale solo a este tiempo, si no tocan «Deshacer»
+/* Lo que contesta un botón viejo (de un caso que ya se cerró por otro lado: respuesta propia, Hub, conversación resuelta). */
+var DEC_RESUELTO_ = 'Ese caso ya quedó resuelto.';
 var DEC_DESHACER_RE_ = /^(deshacer|desh[aá]zlo|no lo mandes|no lo env[ií]es|no lo envies|cancela(lo)?|det[eé]nlo)[.!]*$/i;
 /* «no era para Alejandra», «no es el caso», «es otro tema»: el texto anterior no era para el huésped (3-nov). */
 var DEC_CORRIGE_RE_ = /\bno (era|es|iba|va) (para|dirigid[oa] a)\b|\bno (era|es) (el|ese|del|de ese|para el) caso\b|\bno es (la|una) respuesta\b|\b(es )?(otro|un) tema( aparte| distinto| diferente)?\b|\btema aparte\b|\bno tiene (nada )?que ver\b|\bno se lo (mandes|env[ií]es) a\b/i;
@@ -54,7 +56,9 @@ function decOpcionTxt_(f) { return f.opcion === 'otra' ? 'otra respuesta' : f.op
 function decResueltoTxt_(f) { return 'Resuelto por ' + (f.quien || 'el equipo') + (decOpcionTxt_(f) ? ' · ' + decOpcionTxt_(f) : ''); }
 
 /* ── Disparo: anota el caso (sin IA). Una sola decisión viva por conversación. ── */
-function decisionCrear_(ctx, origen, motivo) {
+/* esc (opcional, #446 T6): { asunto, texto } del escalamiento a quien está de turno. Ese WhatsApp ya no sale aparte: el
+   aviso del caso lo lleva, con sus botones (decTextoWa_); si las opciones no salen, se manda el texto solo (decEscalarTexto_). */
+function decisionCrear_(ctx, origen, motivo, esc) {
   ctx = ctx || {};
   var resId = String(ctx.resId || ctx.conv_id || '');
   if (!resId || /^op:/.test(resId)) return null;
@@ -65,6 +69,7 @@ function decisionCrear_(ctx, origen, motivo) {
     var id = 'dc' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
     var c = { huesped: s_(ctx.huesped), propiedad: s_(ctx.propiedad), codigo: s_(ctx.codigo), idioma: s_(ctx.idioma), canal: s_(ctx.canal), wa: s_(ctx.wa),
       texto: String(ctx.texto || ctx.pregunta || '').slice(0, 1500), hilo: String(ctx.hiloTexto || '').slice(-4000) };
+    if (esc && (esc.asunto || esc.texto)) c.esc = { asunto: String(esc.asunto || '').slice(0, 200), texto: String(esc.texto || '').slice(0, 1500) };
     d.sh.appendRow(DEC_CAB_.map(function (k) {
       return ({ id: id, resId: resId, creado: new Date().toISOString(), opciones: '', estado: 'abierta', quien: '', opcion: '', cuando: '', origen: String(origen || ''),
         motivo: String(motivo || ctx.razon || '').slice(0, 400), contexto: JSON.stringify(c), borrador: '', intentos: 0, enviado_por: '', enviado_ts: '' })[k];
@@ -81,7 +86,11 @@ function decisionesProcesar_() {
   if (!nuevas.length) { P.deleteProperty('DEC_PEND'); return; }
   nuevas.slice(0, 3).forEach(function (f) {
     var ops = null; try { ops = decisionGenerar_(f); } catch (e) { console.error('decisionGenerar_: ' + e); }
-    if (!ops) { decGuardar_(d.sh, f, { intentos: Number(f.intentos || 0) + 1 }); return; }
+    if (!ops) {
+      decGuardar_(d.sh, f, { intentos: Number(f.intentos || 0) + 1 });
+      try { decEscalarTexto_(d.sh, f); } catch (e) { console.error('decEscalarTexto_: ' + e); }   // escalado: el equipo no espera a las opciones
+      return;
+    }
     decGuardar_(d.sh, f, { opciones: JSON.stringify(ops) });
     try { decisionAvisarWa_(f); } catch (e) { console.error('decisionAvisarWa_: ' + e); }
     try { decisionAvisarChat_(f); } catch (e) { console.error('decisionAvisarChat_: ' + e); }
@@ -129,7 +138,7 @@ function decLimpiarOpciones_(raw) {
 function decPublica_(f) {
   if (!f) return null;
   return { id: f.id, resId: f.resId, creado: f.creado, estado: f.estado, generando: !f.opciones && f.estado === 'abierta', motivo: f.motivo, origen: f.origen,
-    opciones: decOpciones_(f), quien: f.quien, opcion: f.opcion, cuando: f.cuando, resuelto: f.estado === 'abierta' ? '' : decResueltoTxt_(f),
+    opciones: f.estado === 'enviada' ? [] : decOpciones_(f), quien: f.quien, opcion: f.opcion, cuando: f.cuando, resuelto: f.estado === 'abierta' ? '' : decResueltoTxt_(f),
     enviada: f.estado === 'enviada', borrador: f.opcion === 'otra' ? f.borrador : '', sale: f.sale_estado === 'programado' ? f.sale_ts : '' };
 }
 function decisionLeer_(resId) {
@@ -249,13 +258,13 @@ function decisionDesdeChat_(adm, texto) {
   var aviso = avisos.filter(function (x) { return otra ? /\notra respuesta/i.test(x.texto) : norm(x.texto).indexOf(norm(m[1] + ' · ' + m[2])) >= 0; })[0];
   if (!aviso) return null;
   var resId = decodeURIComponent((aviso.texto.match(/\?conv=([^\s&]+)/) || [])[1] || ''), dec = decisionLeer_(resId);
-  if (!dec) return null;
   var yo = opGuardar_(adm, 'yo', 'hub', t), r, resp;
-  if (otra) resp = 'Escríbela en su conversación y la reviso contigo antes de enviarla:\n' + decEnlace_(resId);
+  if (!dec || dec.estado === 'enviada') resp = DEC_RESUELTO_;   // una tarjeta vieja: el caso ya se cerró por otro lado
+  else if (otra) resp = 'Escríbela en su conversación y la reviso contigo antes de enviarla:\n' + decEnlace_(resId);
   else {
     r = decisionElegir_({ nombre: adm.nombre }, dec.id, m[1]);
     resp = r.ok ? 'Listo: opción ' + m[1] + '. Te dejé el borrador en su conversación para que lo revises y lo envíes:\n' + decEnlace_(resId)
-      : r.resuelta ? r.error + '. Ya no hace falta elegir.' : 'No pude elegirla: ' + (r.error || 'intenta de nuevo') + '.';
+      : r.resuelta ? (r.decision && r.decision.estado === 'enviada' ? DEC_RESUELTO_ : r.error + '. Ya no hace falta elegir.') : 'No pude elegirla: ' + (r.error || 'intenta de nuevo') + '.';
   }
   var alma = opGuardar_(adm, 'alma', 'hub', resp);
   return { ok: true, yo: yo, alma: alma };
@@ -297,9 +306,14 @@ function decWaMarcar_(wa, id, msgId) {
   if (id) m[k] = { id: id, msg: msgId || '', msgs: msgs.slice(-8), ts: Date.now() }; else delete m[k];
   PropertiesService.getScriptProperties().setProperty('DEC_WA', JSON.stringify(m));
 }
+/* Encabezado del aviso: un caso escalado a quien está de turno dice que Alma necesita al equipo (#446 T6). */
+function decTituloWa_(f) {
+  var c = decCtx_(f);
+  return (c.esc ? 'Alma necesita al equipo · ' : 'Un caso espera tu decisión · ') + (c.huesped || 'huésped') + (c.propiedad ? ' · ' + c.propiedad : '');
+}
 function decTextoWa_(f) {
   var c = decCtx_(f), ops = decOpciones_(f);
-  return 'Un caso espera tu decisión · ' + (c.huesped || 'huésped') + (c.propiedad ? ' · ' + c.propiedad : '') + '\n' + (f.motivo ? f.motivo + '\n' : '') +
+  return decTituloWa_(f) + '\n' + (f.motivo ? f.motivo + '\n' : '') +
     (c.texto ? '\nEl huésped dijo: «' + String(c.texto).slice(0, 300) + '»\n' : '') + '\n' +
     ops.map(function (o) { return o.letra + ') ' + o.titulo + (o.detalle ? ' — ' + o.detalle : ''); }).join('\n') +
     '\n\nToca una opción y sale en 1 minuto; te dejo «Deshacer». Para otra respuesta, responde a este mensaje.';
@@ -312,10 +326,25 @@ function decisionAvisarWa_(f) {
       var r = waBotones_(p.wa, decTextoWa_(f), ops.map(function (o) { return { id: 'dec:' + f.id + ':' + o.letra, titulo: o.titulo }; }));
       if (r.ok) { decWaMarcar_(p.wa, f.id, r.id); return; }
     }
-    /* Fuera de las 24 h (o si Meta rechazó los botones): solo texto con el enlace al Hub. */
+    /* Fuera de las 24 h (o si Meta rechazó los botones): solo texto con el enlace al Hub. waEnviar_ manda la plantilla
+       aprobada si pasaron las 24 h y el texto sale en cuanto responde (waRetomar_). Un escalado lleva su detalle completo. */
     var c = decCtx_(f);
-    waEnviar_(p.wa, 'Un caso espera tu decisión · ' + (c.huesped || 'huésped') + (c.propiedad ? ' · ' + c.propiedad : '') + (f.motivo ? '\n' + f.motivo : '') + '\n\nAlma te dejó 3 opciones en su conversación:\n' + decEnlace_(f.resId));
+    waEnviar_(p.wa, (c.esc && c.esc.texto ? c.esc.asunto + '\n\n' + c.esc.texto : decTituloWa_(f) + (f.motivo ? '\n' + f.motivo : '')) + '\n\nAlma te dejó 3 opciones en su conversación:\n' + decEnlace_(f.resId));
   });
+  decEscMarcar_(f);
+}
+/* Escalado sin opciones (la IA falló): el WhatsApp de siempre a quien está de turno, una sola vez. Sus opciones, si salen
+   en el siguiente intento, llegan después como cualquier caso. */
+function decEscalarTexto_(sh, f) {
+  var c = decCtx_(f); if (!c.esc || c.esc_av) return false;
+  decResponsables_().forEach(function (p) { waEnviar_(p.wa, c.esc.asunto + '\n\n' + c.esc.texto + '\n\nConversación: ' + decEnlace_(f.resId)); });
+  decEscMarcar_(f, sh);
+  return true;
+}
+function decEscMarcar_(f, sh) {
+  var c = decCtx_(f); if (!c.esc || c.esc_av) return;
+  c.esc_av = new Date().toISOString();
+  decGuardar_(sh || hojaDec_(), f, { contexto: JSON.stringify(c) });
 }
 /* ── Envío con deshacer (WhatsApp): lo elegido sale solo en DEC_SALE_MS_ si no tocan «Deshacer». ──
    Alma muestra enseguida el texto que va a salir con «Deshacer» y «Editar en el Hub»; al minuto lo manda con
@@ -516,6 +545,15 @@ function decisionWaEntrante_(m, wa, ts) {
   var citada = !mb && m.context && m.context.id ? decCitada_(m.context.id, marca) : '';
   if (!mb && !citada && !marca) return false;
   var id = mb ? mb[1] : citada || marca.id, f = decFilas_().filas.filter(function (x) { return x.id === id; })[0];
+  /* Un botón de un caso que ya se cerró (o tan viejo que ya no está en la hoja) no hace nada: una línea y listo (#446 T5B).
+     En WhatsApp no se puede borrar el mensaje ya enviado; así sus botones dejan de estorbar. «Deshacer» de algo que ya
+     salió sigue diciendo «Ya había salido.». */
+  if (mb && (!f || !decViva_(f))) {
+    var salio = f && mb[2] === 'deshacer' && (f.sale_estado === 'enviado' || f.sale_estado === 'enviando');
+    if (f && marca && marca.id === f.id) { try { decWaMarcar_(wa, null); } catch (e) {} }
+    waEnviar_(wa, salio ? 'Ya había salido.' : DEC_RESUELTO_, { yaVentana: true });
+    return true;
+  }
   if (!f) return false;
   var t1 = texto.replace(/\s+/g, ' ');
   /* «deshacer» escrito a mano mientras algo está por salir es «Deshacer», nunca una respuesta para el huésped. */
@@ -570,5 +608,45 @@ function decisionWaEntrante_(m, wa, ts) {
   try { var d3 = decFila_(f.id); if (d3.f && (d3.f.sin_texto || d3.f.texto_libre)) decGuardar_(d3.sh, d3.f, { sin_texto: '', texto_libre: '' }); } catch (e) {}   // tocó una opción: el caso vuelve a aceptar texto libre
   var f3 = decFilas_().filas.filter(function (x) { return x.id === f.id; })[0] || f;
   decMostrarSalida_(wa, f3, r2.mensaje);
+  return true;
+}
+
+/* ── Caso cerrado por otro lado (#446 T5B) ──────────────────────────────────────────────────────────────────────────
+   Juan (o el equipo) le contestó al huésped por su cuenta, desde el Hub o marcó la conversación como resuelta: el caso
+   queda «enviada» (decisionAlResponder_ / decisionCerrar_) y sus opciones dejan de estorbar en todas partes:
+   · WhatsApp: no se puede borrar lo ya enviado; sus botones contestan «Ese caso ya quedó resuelto.» (decisionWaEntrante_).
+   · Hub (conversación del huésped): decPublica_ ya no trae opciones y la tarjeta no se pinta.
+   · Chat con Alma y chat de la app: el bloque [[opciones]] del aviso se cambia por esa misma línea al leer el chat. */
+/* Los mensajes del chat (opFilas_) con el aviso de un caso que ya se cerró, sin sus opciones. Lee la hoja una sola vez. */
+function decChatSinOpciones_(mensajes) {
+  mensajes = mensajes || [];
+  var avisos = mensajes.filter(function (m) { return m && m.de === 'alma' && /\[\[opciones\]\]/.test(m.texto) && /\?conv=/.test(m.texto); });
+  if (!avisos.length) return mensajes;
+  var filas = []; try { filas = decFilas_().filas; } catch (e) { return mensajes; }
+  return mensajes.map(function (m) {
+    if (avisos.indexOf(m) < 0) return m;
+    var resId = decodeURIComponent((String(m.texto).match(/\?conv=([^\s&]+)/) || [])[1] || ''), t = Date.parse(m.ts) || Date.now();
+    /* La decisión de ese aviso: la última de esa conversación creada antes del aviso (el aviso sale después de crearla). */
+    var f = filas.filter(function (x) { return x.resId === resId && (Date.parse(x.creado) || 0) <= t + 60000; }).pop();
+    if (f && decViva_(f)) return m;
+    var n = Object.assign({}, m);
+    n.texto = String(m.texto).replace(/¿Qué le respondemos\?\s*\n?\[\[opciones\]\][\s\S]*?\[\[\/opciones\]\]/, DEC_RESUELTO_);
+    return n;
+  });
+}
+/* Webhook de Hospitable: alguien del equipo le escribió al huésped fuera del Hub (la app de Airbnb, Booking o
+   Hospitable). Lo que sale por la API (Alma y el Hub, que ya cierra el caso) llega como public_api; lo automático y la
+   contención de Alma tampoco cuentan. Solo cierra un caso creado al menos 2 min antes de ese mensaje. */
+function decisionHumanoHosp_(convId, d) {
+  convId = String(convId || ''); d = d || {};
+  if (!convId || /^op:/.test(convId) || String(d.sender_type || '').toLowerCase() === 'guest') return false;
+  var src = String(d.source || '').toLowerCase(), texto = s_(d.body).trim();
+  if (!texto || src === 'public_api' || /automat|schedul|rule|template|trigger/.test(src)) return false;
+  var f = decFilas_().filas.filter(function (x) { return x.resId === convId && decViva_(x); }).pop(); if (!f) return false;
+  var cuando = Date.parse(s_(d.created_at)) || Date.now();
+  if (cuando - (Date.parse(f.creado) || 0) < 2 * 60000) return false;
+  try { if (esAutoHosp_(d) || esContencion_(texto)) return false; } catch (e) {}
+  try { var pre = preContexto_(convId) || {}; if (textosAlma_(pre.codigo).indexOf(texto) >= 0) return false; } catch (e) {}
+  decisionAlResponder_(convId, 'Equipo');
   return true;
 }

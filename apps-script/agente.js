@@ -67,12 +67,27 @@ function claudeSystem_(system) {
   if (i < 0) return [{ type: 'text', text: t, cache_control: { type: 'ephemeral' } }];
   return [{ type: 'text', text: t.slice(0, i), cache_control: { type: 'ephemeral' } }, { type: 'text', text: t.slice(i) }];
 }
+/* Segunda marca de caché, al final de la conversación (Mejora continua, 4-nov-2026): en el bucle de herramientas cada
+   vuelta reenvía todo lo anterior (historial, ESTE TURNO, resultados de herramientas de hasta 12 000 caracteres) y se
+   cobraba completo cada vez. Con la marca en el último bloque, la vuelta siguiente lo lee de la caché (10 % del precio).
+   No cambia lo que Claude recibe: es una copia con la marca, msgs queda igual (se guarda para seguir en segundo plano). */
+var AG_CACHE_TIPOS_ = { text: 1, tool_result: 1, image: 1 };
+function claudeMsgsCache_(messages) {
+  var m = (messages || []).slice(), ul = m[m.length - 1];
+  if (!ul || ul.role !== 'user') return m;
+  var c = typeof ul.content === 'string' ? (ul.content ? [{ type: 'text', text: ul.content }] : []) : (Array.isArray(ul.content) ? ul.content.slice() : []);
+  var b = c[c.length - 1];
+  if (!b || !AG_CACHE_TIPOS_[b.type] || (b.type === 'text' && !b.text)) return m;
+  c[c.length - 1] = Object.assign({}, b, { cache_control: { type: 'ephemeral' } });
+  m[m.length - 1] = { role: ul.role, content: c };
+  return m;
+}
 /* Llamada a Claude con herramientas y conversación (messages ya armados). Devuelve el JSON completo. */
 function claudeTools_(modelo, system, messages, tools, maxTokens) {
   var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), t0 = Date.now();
   var r = uf_('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: claudeSystem_(system), messages: messages, tools: tools }) });
+    payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: claudeSystem_(system), messages: claudeMsgsCache_(messages), tools: tools }) });
   var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   try { registrarUso_({ app: 'ALMA', funcion: 'Chat operativo', modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: 0 }); } catch (e) {}
   if (r.getResponseCode() !== 200) {

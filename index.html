@@ -272,7 +272,7 @@
   /* ── Calendario con barras (#446 T3 y T10): la entrada es en la tarde y la salida en la mañana, por eso las barras
      empiezan y terminan a mitad del día, en diagonal. Un cambio el mismo día son dos diagonales juntas. Colores de estado
      suaves (glosario, «Colores del calendario»), siempre con su nombre en la leyenda y en la barra. ── */
-  :root{ --cal-res:#D9E4EF; --cal-res-fg:#2C5175; --cal-esta:#3B6691; --cal-esta-fg:#FFFFFF; --cal-con:#F5E6BF; --cal-con-fg:#6F5210;
+  :root{ --cal-res:#D9E4EF; --cal-res-fg:#2C5175; --cal-esta:#3B6691; --cal-esta-fg:#FFFFFF; --cal-con:#F5E6BF; --cal-con-fg:#6F5210; --cal-consin:#E6DDF0; --cal-consin-fg:#5B4380; --cal-esta-consin:#7A62A0;
     --cal-esta-con:#E2B65A; --cal-esta-con-fg:#3E3F3F; --cal-bloq:#F2DAD5; --cal-bloq2:#FBF1EF; --cal-bloq-fg:#9E3326; --cal-libre:#E1EEE5; --cal-libre-fg:#2F5B43;
     --cal-gris:#ECEAE7; --cal-gris-fg:#6F6867; }
   .cal-chips{ display:flex; gap:8px; }
@@ -294,6 +294,10 @@
   .cal-bar[data-t="esta"]{ background:var(--cal-esta); color:var(--cal-esta-fg); }
   .cal-bar[data-t="con"]{ background:var(--cal-con); color:var(--cal-con-fg); }
   .cal-bar[data-t="estacon"]{ background:var(--cal-esta-con); color:var(--cal-esta-con-fg); }
+  .cal-bar[data-t="consin"]{ background:var(--cal-consin); color:var(--cal-consin-fg); }
+  .cal-bar[data-t="estaconsin"]{ background:var(--cal-esta-consin); color:#FFFFFF; }
+  .cal-bar[data-capa="baja"]{ top:51px; height:4px; padding:0 !important; background:var(--cal-consin-fg); opacity:.55; }
+  .cal-mini .cal-bar[data-capa="baja"]{ top:20px; height:3px; }
   .cal-bar[data-t="bloq"]{ background:repeating-linear-gradient(135deg,var(--cal-bloq) 0 4px,var(--cal-bloq2) 4px 8px); color:var(--cal-bloq-fg); }
   .cal-bar[data-t="libre"]{ background:var(--cal-libre); color:var(--cal-libre-fg); }
   .cal-bar[data-t="nodisp"], .cal-bar[data-t="pasado"]{ background:var(--cal-gris); color:var(--cal-gris-fg); }
@@ -1781,7 +1785,7 @@
               <sc-for list="{{ convRapidos }}" as="rq" hint-placeholder-count="5"><button type="button" class="cv-rapido" data-rapido="{{ rq.id }}" aria-pressed="{{ rq.on }}" onClick="{{ rq.tocar }}"><span class="n" style="color: {{ rq.fg }}">{{ rq.n }}</span><span class="l">{{ rq.label }}</span></button></sc-for>
             </div>
           </sc-if>
-          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ cronoPie }} · desliza para resolver</span>
+          <span style="font-size:10.5px; letter-spacing:.05em; color:#6F6867">{{ cronoPie }} · desliza a la izquierda para resolver</span>
           <sc-if value="{{ cronoVacio }}" hint-placeholder-val="{{ false }}">
             <div style="background:#FFFFFF; border:1px dashed #D8D4CE; border-radius:16px; padding:28px 24px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center">
               <span style="font-size:14px; font-weight:600; color:#3E3F3F; letter-spacing:.01em">{{ cronoVacioTitulo }}</span>
@@ -1818,7 +1822,7 @@
             </sc-if>
             <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
               <div class="cv-fila" data-cv="fila">
-                <div class="cv-fondo" aria-hidden="true"><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Resuelta</span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Resuelta</span></div>
+                <div class="cv-fondo" aria-hidden="true"><span></span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Resuelta</span></div>
               <button onClick="{{ r.abrir }}" onPointerDown="{{ r.arrastre }}" onPointerEnter="{{ r.precargar }}" onTouchStart="{{ r.precargar }}" data-gk="{{ r.gk }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F7F5F2" style-active="background:#EFECE8">
                 <span style="position:relative; width:46px; height:46px; flex-shrink:0">
                   <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" decoding="async" style="width:46px; height:46px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
@@ -2363,7 +2367,7 @@
                     <sc-for list="{{ mes.semanas }}" as="sem" hint-placeholder-count="0">
                       <div class="cal-fila">
                         <sc-for list="{{ sem.dias }}" as="d" hint-placeholder-count="7"><span class="cal-d" data-k="{{ d.k }}" style="left: {{ d.izq }}"><b>{{ d.n }}</b></span></sc-for>
-                        <sc-for list="{{ sem.barras }}" as="br" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ br.t }}" role="img" aria-label="{{ br.aria }}" title="{{ br.aria }}" style="left: {{ br.izq }}; right: {{ br.der }}; clip-path: {{ br.clip }}; padding-left: {{ br.pl }}"><span>{{ br.txt }}</span></span></sc-for>
+                        <sc-for list="{{ sem.barras }}" as="br" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ br.t }}" data-capa="{{ br.capa }}" role="img" aria-label="{{ br.aria }}" title="{{ br.aria }}" style="left: {{ br.izq }}; right: {{ br.der }}; clip-path: {{ br.clip }}; padding-left: {{ br.pl }}"><span>{{ br.txt }}</span></span></sc-for>
                       </div>
                     </sc-for>
                   </div>
@@ -3278,7 +3282,7 @@
                   </span>
                   <span class="cal-mini" aria-hidden="true">
                     <span class="cal-elegidas" data-ok="{{ pf.elOk }}" style="left: {{ pf.elIzq }}; right: {{ pf.elDer }}"></span>
-                    <sc-for list="{{ pf.barras }}" as="mb" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ mb.t }}" style="left: {{ mb.izq }}; right: {{ mb.der }}; clip-path: {{ mb.clip }}"></span></sc-for>
+                    <sc-for list="{{ pf.barras }}" as="mb" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ mb.t }}" data-capa="{{ mb.capa }}" style="left: {{ mb.izq }}; right: {{ mb.der }}; clip-path: {{ mb.clip }}"></span></sc-for>
                   </span>
                 </button>
               </sc-for>
@@ -3310,7 +3314,7 @@
             <sc-for list="{{ mes.semanas }}" as="sem" hint-placeholder-count="0">
               <div class="cal-fila">
                 <sc-for list="{{ sem.dias }}" as="d" hint-placeholder-count="7"><span class="cal-d" data-k="{{ d.k }}" style="left: {{ d.izq }}"><b>{{ d.n }}</b></span></sc-for>
-                <sc-for list="{{ sem.barras }}" as="br" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ br.t }}" role="img" aria-label="{{ br.aria }}" title="{{ br.aria }}" style="left: {{ br.izq }}; right: {{ br.der }}; clip-path: {{ br.clip }}; padding-left: {{ br.pl }}"><span>{{ br.txt }}</span></span></sc-for>
+                <sc-for list="{{ sem.barras }}" as="br" hint-placeholder-count="0"><span class="cal-bar" data-t="{{ br.t }}" data-capa="{{ br.capa }}" role="img" aria-label="{{ br.aria }}" title="{{ br.aria }}" style="left: {{ br.izq }}; right: {{ br.der }}; clip-path: {{ br.clip }}; padding-left: {{ br.pl }}"><span>{{ br.txt }}</span></span></sc-for>
               </div>
             </sc-for>
           </div>
@@ -4066,7 +4070,7 @@ class Component extends DCLogic {
       if (s.lock !== "h") return;
       s.dx = dx;
       var stR = self.state, enLista = s.row && stR.cronoLista !== false && !stR.selG;
-      /* #446 T4: en la lista (filas .cv-fila) se desliza a los dos lados y debajo aparece «Resuelta»; en otras listas, solo a la derecha. */
+      /* #446 T4: en la lista (filas data-cv="fila") solo deslizar a la izquierda resuelve (aparece «Resuelta» debajo); a la derecha vuelve sola. */
       var cvF = enLista && s.row.parentElement && s.row.parentElement.getAttribute("data-cv") === "fila";
       if (cvF) { s.res = true; self.cvDeslizar(s.row, dx); return; }
       if (enLista && dx > 0) { s.res = true; s.row.style.transition = "none"; s.row.style.transform = "translateX(" + Math.min(dx, 160) + "px)"; s.row.style.boxShadow = dx > 70 ? "inset 4px 0 0 #3d6b52" : ""; s.row.style.backgroundColor = dx > 70 ? "rgba(61,107,82,.12)" : ""; return; }
@@ -5680,15 +5684,17 @@ class Component extends DCLogic {
       insAbrir: function () { self.insAbrir(); }
     };
   }
-  /* ═══ Deslizar para resolver (#446 T4, diseño B): dedo o mouse, a cualquier lado; pasa de 70 px (o va rápido) y suelta = la
+  /* ═══ Deslizar para resolver (#446 T4, diseño B): dedo o mouse, solo a la izquierda; pasa de 70 px (o va rápido) y suelta = la
      misma acción «resuelta» del Hub (resolverGk, con «Deshacer» 4 s). Si la fila se va de la lista, el hueco se cierra suave. ═══ */
   cvDeslizar(row, dx) {
-    var fila = row.parentElement, x = Math.abs(dx) > 120 ? (dx > 0 ? 1 : -1) * (120 + (Math.abs(dx) - 120) * .35) : dx;
+    /* Solo a la izquierda resuelve (Juan, revisión de #453); a la derecha la fila apenas cede y vuelve sola. */
+    var fila = row.parentElement, x = dx > 0 ? Math.min(24, dx * .2) : dx < -120 ? -(120 + (-dx - 120) * .35) : dx;
     row.style.transition = "none"; row.style.transform = "translateX(" + x + "px)";
+    if (fila && dx > 0) { fila.removeAttribute("data-desliza"); return; }
     if (fila) { fila.setAttribute("data-desliza", "1"); var fo = fila.firstElementChild; if (fo) fo.style.background = Math.abs(dx) > 70 ? "#2F5A43" : "#3d6b52"; }
   }
   cvSoltar(row, dx, v, gk) {
-    var self = this, fila = row.parentElement, ok = Math.abs(dx) > 70 || (v > 0.45 && Math.abs(dx) > 30), rm = this._rm;
+    var self = this, fila = row.parentElement, ok = dx < 0 && (-dx > 70 || (v > 0.45 && -dx > 30)), rm = this._rm;
     var limpiar = function () { row.style.transition = ""; row.style.transform = ""; if (fila) { fila.removeAttribute("data-desliza"); fila.classList.remove("sa-se-va"); ["height", "opacity", "marginTop", "marginBottom", "paddingTop", "paddingBottom"].forEach(function (k) { fila.style[k] = ""; }); } };
     if (!ok || !gk) { row.style.transition = rm ? "none" : "transform .24s cubic-bezier(.22,.61,.36,1)"; row.style.transform = ""; setTimeout(function () { if (fila) fila.removeAttribute("data-desliza"); }, rm ? 0 : 260); return; }
     try { navigator.vibrate && navigator.vibrate(8); } catch (x) {}
@@ -5697,7 +5703,7 @@ class Component extends DCLogic {
       setTimeout(function () { if (fila) fila.removeAttribute("data-desliza"); }, rm ? 0 : 260);
       this.resolverGk(gk); return;
     }
-    row.style.transition = "transform .2s cubic-bezier(.22,.61,.36,1)"; row.style.transform = "translateX(" + (dx > 0 ? "105%" : "-105%") + ")";
+    row.style.transition = "transform .2s cubic-bezier(.22,.61,.36,1)"; row.style.transform = "translateX(-105%)";
     /* La conversación «actual» se queda visible aunque salga del filtro (ver _convSelKey): al resolverla aquí se suelta. */
     setTimeout(function () { SAMov.quitar(fila, function () { if (self._convSelKey === gk) { self._convSelKey = null; self._convSelG = null; } self.resolverGk(gk); setTimeout(limpiar, 40); }); }, 190);
   }
@@ -5819,16 +5825,18 @@ class Component extends DCLogic {
       var a = ci < desde ? desde : ci, run = null;
       for (var f = a; f < co && f < hasta; f = self.calSum(f, 1)) {
         if (tomada[f]) { run = null; continue; }
-        if (!run) { run = Object.assign({}, meta, { ci: f, co: self.calSum(f, 1), cl: f === ci }); tramos.push(run); } else run.co = self.calSum(f, 1);
-        run.cr = run.co === co; tomada[f] = run;
+        /* Un tramo recortado por otro empieza o termina donde el otro sale o entra: también en diagonal (cambio el mismo día). */
+        if (!run) { run = Object.assign({}, meta, { ci: f, co: self.calSum(f, 1), cl: f === ci || f > desde }); tramos.push(run); } else run.co = self.calSum(f, 1);
+        run.cr = run.co === co || run.co < hasta; tomada[f] = run;
       }
     };
-    (o.estadias || []).filter(function (e) { return e && e.checkin && e.checkout && e.checkout > desde && e.checkin < hasta; })
-      .slice().sort(function (x, y) { return PRI(x) - PRI(y) || (x.checkin < y.checkin ? -1 : 1); })
-      .forEach(function (e) {
-        var t = e.tipo === "bloqueo" ? "bloq" : e.tipo === "consulta" || e.tipo === "solicitud" ? (e.esta ? "estacon" : "con") : e.esta ? "esta" : "res";
-        poner(String(e.checkin).slice(0, 10), String(e.checkout).slice(0, 10), { t: t, huesped: e.huesped || "", canal: e.canal || "", tipo: e.tipo, esta: !!e.esta, ci0: e.checkin, co0: e.checkout });
-      });
+    var ests = (o.estadias || []).filter(function (e) { return e && e.checkin && e.checkout && e.checkout > desde && e.checkin < hasta; })
+      .slice().sort(function (x, y) { return PRI(x) - PRI(y) || (x.checkin < y.checkin ? -1 : 1); });
+    var meta = function (e, t) { return { t: t, huesped: e.huesped || "", canal: e.canal || "", tipo: e.tipo, esta: !!e.esta, ci0: e.checkin, co0: e.checkout }; };
+    ests.filter(function (e) { return e.tipo !== "consulta"; }).forEach(function (e) {
+      var t = e.tipo === "bloqueo" ? "bloq" : e.tipo === "solicitud" ? (e.esta ? "estacon" : "con") : e.esta ? "esta" : "res";
+      poner(String(e.checkin).slice(0, 10), String(e.checkout).slice(0, 10), meta(e, t));
+    });
     /* Lo que dice el calendario de Hospitable y ninguna estadía explica: reservado sin nombre o bloqueado. */
     var suelto = function (raz, t) {
       var ini = null;
@@ -5839,6 +5847,15 @@ class Component extends DCLogic {
       }
     };
     suelto("RESERVADO", "res"); suelto("BLOQUEADO", "bloq");
+    /* Consultas al final: amarillas si sus noches están libres; si chocan con una reserva, un bloqueo o una solicitud,
+       lila («Consulta sin disponibilidad») en lo que quede libre y una raya lila debajo de todas sus noches. */
+    ests.filter(function (e) { return e.tipo === "consulta"; }).forEach(function (e) {
+      var ci = String(e.checkin).slice(0, 10), co = String(e.checkout).slice(0, 10), choca = false;
+      for (var f = ci; f < co; f = self.calSum(f, 1)) { if (tomada[f] || (dias[f] && !dias[f].libre)) { choca = true; break; } }
+      if (!choca) { poner(ci, co, meta(e, e.esta ? "estacon" : "con")); return; }
+      poner(ci, co, Object.assign(meta(e, e.esta ? "estaconsin" : "consin"), { sinDisp: true }));
+      tramos.push(Object.assign(meta(e, "consin"), { ci: ci < desde ? desde : ci, co: co > hasta ? hasta : co, cl: ci >= desde, cr: co <= hasta, capa: "baja", sinDisp: true }));
+    });
     /* Libre: lo que queda, desde hoy. Gris si no se puede reservar (menos noches que la estadía mínima o sin entrada ese día). */
     var ini = null;
     for (var f = hoy > desde ? hoy : desde; f <= hasta; f = this.calSum(f, 1)) {
@@ -5850,10 +5867,10 @@ class Component extends DCLogic {
         ini = null;
       }
     }
-    tramos.forEach(function (t) { if (t.co <= hoy && !t.esta && t.t !== "libre") t.t = "pasado"; });
+    tramos.forEach(function (t) { if (t.co <= hoy && !t.esta && t.t !== "libre" && !t.capa) t.t = "pasado"; });
     return tramos;
   }
-  calTipoNombre(t) { return { esta: "Esta reserva", estacon: "Esta consulta", res: "Reservado", con: "Consulta o solicitud", bloq: "Bloqueado", libre: "Libre", nodisp: "No disponible", pasado: "Ya pasó" }[t.t] || ""; }
+  calTipoNombre(t) { return { esta: "Esta reserva", estacon: "Esta consulta", estaconsin: "Esta consulta, sin disponibilidad", consin: "Consulta sin disponibilidad", res: "Reservado", con: "Consulta o solicitud", bloq: "Bloqueado", libre: "Libre", nodisp: "No disponible", pasado: "Ya pasó" }[t.t] || ""; }
   /* Barras de los tramos en una fila de N días que empieza en w0. S = diagonal (px), g = medio hueco entre dos barras. */
   calBarras(tramos, w0, N, S, g, conTexto) {
     var self = this, out = [], pct = function (x) { return (Math.round(x / N * 100000) / 1000) + "%"; };
@@ -5868,13 +5885,14 @@ class Component extends DCLogic {
       var vis = Math.min(b, N) - Math.max(a, 0) + (cl ? -.5 : 0) + (cr ? .5 : 0), txt = "";
       if (conTexto) {
         var nom = self.calCorto(t.huesped), noches = self.calDif(t.ci0 || t.ci, t.co0 || t.co);
-        if (t.t === "esta" || t.t === "estacon") txt = vis >= 2.9 ? (nom ? nom + " · " : "") + noches + (noches === 1 ? " noche" : " noches") : vis >= 1.5 ? (nom || "Esta") : "";
+        if (t.capa) txt = "";
+        else if (t.t === "esta" || t.t === "estacon" || t.t === "estaconsin") txt = vis >= 2.9 ? (nom ? nom + " · " : "") + noches + (noches === 1 ? " noche" : " noches") : vis >= 1.5 ? (nom || "Esta") : "";
         else if (t.t === "libre") txt = vis >= 1.8 ? "Libre" : "";
         else if (t.t === "bloq") txt = vis >= 2.5 ? "Bloqueado" : "";
         else if (t.t === "nodisp") txt = vis >= 2.5 ? "No disponible" : "";
-        else txt = vis >= 1.8 ? (nom || (t.t === "con" ? "Consulta" : "Reservado")) : vis >= 1 && nom ? nom[0] : "";
+        else txt = vis >= 1.8 ? (nom || (t.t === "con" ? "Consulta" : t.t === "consin" ? "Sin disponibilidad" : "Reservado")) : vis >= 1 && nom ? nom[0] : "";
       }
-      out.push({ t: t.t, izq: izq, der: der, clip: clip, txt: txt, pl: (cl ? S + 4 : 7) + "px",
+      out.push({ t: t.t, capa: t.capa || "", izq: izq, der: der, clip: clip, txt: txt, pl: (cl ? S + 4 : 7) + "px",
         aria: self.calTipoNombre(t) + (t.huesped ? " · " + t.huesped : "") + " · " + self.calTxt(t.ci0 || t.ci) + " al " + self.calTxt(t.co0 || t.co) });
     });
     return out;
@@ -5897,7 +5915,7 @@ class Component extends DCLogic {
   }
   calLeyenda(esInq) {
     return [{ t: esInq === null ? "" : esInq ? "Esta consulta" : "Esta reserva", tt: esInq ? "estacon" : "esta" }, { t: "Reservado", tt: "res" }, { t: "Consulta o solicitud", tt: "con" },
-      { t: "Bloqueado", tt: "bloq" }, { t: "Libre", tt: "libre" }, { t: "Pasado o no disponible", tt: "pasado" }].filter(function (x) { return x.t; });
+      { t: "Consulta sin disponibilidad", tt: "consin" }, { t: "Bloqueado", tt: "bloq" }, { t: "Libre", tt: "libre" }, { t: "Pasado o no disponible", tt: "pasado" }].filter(function (x) { return x.t; });
   }
   /* «Libre cerca»: los huecos libres más cercanos a [ci, co), hasta 3, con sus noches. */
   calLibreCerca(tramos, ci, co) {
@@ -5968,7 +5986,7 @@ class Component extends DCLogic {
     var filas = (D.propiedades || []).map(function (p) {
       var k = self.calClave(p.nombre), dias = diasDe(k), ests = estPor[k] || [];
       var tr = self.calTramos({ desde: desdeV, hasta: hastaV, hoy: hoy, estadias: ests, dias: dias });
-      var noche = function (f) { return tr.filter(function (t) { return t.ci <= f && f < t.co; })[0]; };
+      var noche = function (f) { return tr.filter(function (t) { return !t.capa && t.ci <= f && f < t.co; })[0]; };
       var choque = null, cons = false;
       for (var f = A; f < B; f = self.calSum(f, 1)) { var t = noche(f); if (!t || t.t === "libre") continue; if (t.tipo === "consulta") { cons = true; continue; } choque = choque || t; }
       var minA = (dias[A] || {}).min || 0; if (!choque && minA > nN) choque = { t: "nodisp", min: minA };

@@ -551,6 +551,8 @@
   </div>
   <p class="tit-g" id="t-calle" hidden>Modo calle</p>
   <div class="grupo" id="g-calle" hidden>
+    <div class="fila" id="f-calle-on" hidden><span class="et">Modo calle encendido</span><label class="interruptor"><input type="checkbox" id="i-calle" aria-label="Modo calle encendido"><span></span></label></div>
+    <p class="nota-g" id="n-calle-on" hidden>Encendido, Alma espera «Alma» con el teléfono bloqueado. El botón del caminante es para hablarle ya, sin decir «Alma» (encendido o apagado).</p>
     <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
     <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También con un toque largo en el botón del caminante.</p>
   </div>
@@ -1288,22 +1290,28 @@
   }
   if (NATIVA) { $("b-mudo").hidden = false; setTimeout(function () { $("b-mudo").classList.add("on"); mudoUbicar(); }, 1000); setInterval(mudoUbicar, 1200); addEventListener("resize", mudoUbicar); }
   if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
-  /* ── Modo calle (ModoCalle.swift): con el teléfono bloqueado y audífonos, dices «Alma» y una frase. Un toque lo enciende
-     o lo apaga. La app no deja el Modo calle y la conferencia a la vez; aquí solo se pinta lo que ella cuenta
+  /* ── Modo calle (ModoCalle.swift): con el teléfono bloqueado y audífonos, dices «Alma» y una frase. El botón del caminante
+     (Juan, 4-nov-2026): un toque y Alma escucha ya, sin «Alma» (que: "ahora"), con el Modo calle encendido o apagado; se
+     enciende y se apaga en Ajustes → Modo calle (o con Siri). Una app que todavía no sabe escuchar al tocar (no manda
+     e.ahora) sigue con el toque que enciende o apaga. La app no deja el Modo calle y la conferencia a la vez; aquí solo se pinta lo que ella cuenta
      (AlmaCalle.evento). El botón aparece cuando la app contesta: una versión vieja, sin Modo calle, no lo muestra. ── */
   /* diag (la app, 3-nov-2026): micrófono, nivel, cuántas veces el detector oyó «Alma», el dictado y el último error. La línea
      junto al botón dice en qué va y el error; nada se calla (antes un error en pausa solo quedaba en el aria-label). */
-  var CALLE = { activa: false, encendiendo: false, fase: "quieta", error: "", aviso: "", diag: null, largo: false, probando: false };
+  var CALLE = { activa: false, encendiendo: false, fase: "quieta", error: "", aviso: "", diag: null, largo: false, probando: false, ahora: false };
   var CALLE_FASE = { esperando: "esperando «Alma»", verificando: "te oí", oyendo: "te escucho", pensando: "pensando", hablando: "hablando", llamada: "en llamada", pausa: "en pausa" };
   function calleOn() { return CALLE.activa || CALLE.encendiendo; }
-  function calleFaseTxt() { return CALLE.activa ? (CALLE_FASE[CALLE.fase] || "encendido") : CALLE.encendiendo ? "encendiendo…" : "apagado"; }
+  function calleFaseTxt() {
+    if (!CALLE.activa && !CALLE.encendiendo && CALLE.ahora && /^(oyendo|pensando|hablando|llamada)$/.test(CALLE.fase)) return CALLE_FASE[CALLE.fase];   // el botón, con el Modo calle apagado
+    return CALLE.activa ? (CALLE_FASE[CALLE.fase] || "encendido") : CALLE.encendiendo ? "encendiendo…" : "apagado";
+  }
   function callePintar(fase, e) {
-    var b = $("b-calle"), on = calleOn(), activo = CALLE.activa && /^(verificando|oyendo|pensando|hablando|llamada)$/.test(fase);
+    var b = $("b-calle"), on = calleOn(), activo = (CALLE.activa || CALLE.ahora) && /^(verificando|oyendo|pensando|hablando|llamada)$/.test(fase);
     b.classList.toggle("esperando", on && (fase === "esperando" || !CALLE.activa));
     b.classList.toggle("activo", activo);
     b.classList.toggle("pausa", CALLE.activa && fase === "pausa");
     b.setAttribute("aria-pressed", on ? "true" : "false");
     var et = "Modo calle" + (on ? ": " + calleFaseTxt() + (e && e.minutos ? " · " + e.minutos + " min" : "") : "");
+    if (CALLE.ahora) et += ". Toca para hablarle a Alma";
     if (CALLE.error) et += ". " + CALLE.error;
     b.setAttribute("aria-label", et); b.title = et;
     calleLinea();
@@ -1312,7 +1320,7 @@
      encendido o con un error; va y se esconde con el botón. */
   function calleLinea() {
     var l = $("calle-linea"), b = $("b-calle");
-    var ve = !b.hidden && b.style.visibility !== "hidden" && (calleOn() || !!CALLE.error);
+    var ve = !b.hidden && b.style.visibility !== "hidden" && (calleOn() || !!CALLE.error || (CALLE.ahora && CALLE.fase !== "quieta"));
     l.hidden = !ve; if (!ve) return;
     $("calle-fase").textContent = "Modo calle · " + calleFaseTxt();
     if ($("calle-error").textContent !== CALLE.error) $("calle-error").textContent = CALLE.error;
@@ -1331,6 +1339,8 @@
       CALLE.aviso = CALLE.error = m; callePintar(CALLE.fase); cpPintar(); return;
     }
     var antes = CALLE.activa; CALLE.activa = !!e.activa; CALLE.encendiendo = !!e.encendiendo; CALLE.diag = e.diag || null;
+    if (e.ahora && !CALLE.ahora) { CALLE.ahora = true; $("f-calle-on").hidden = $("n-calle-on").hidden = false; }
+    $("i-calle").checked = calleOn();
     CALLE.fase = String(e.fase || (CALLE.activa ? "esperando" : "quieta"));
     /* el error que impide encender viene en e.error (con aviso, una vez); el de mientras está encendido, en diag.error (en la línea) */
     if (e.error && e.error !== CALLE.aviso) try { alert(e.error); } catch (x) {}
@@ -1340,14 +1350,21 @@
     if (CALLE.activa && !antes && CONF.activa) nativa({ accion: "conferencia", que: "estado" });   // la app apagó la conferencia
     cpPintar();
   } };
-  $("b-calle").onclick = function () {
-    if (CALLE.largo) { CALLE.largo = false; return; }   // fue un toque largo: abrió «Probar», no cambia el Modo calle
-    vozConfig();
-    var on = !calleOn(); CALLE.activa = on; CALLE.encendiendo = false; CALLE.fase = on ? "esperando" : "quieta"; CALLE.error = "";
+  /* Encender o apagar el Modo calle (Ajustes → Modo calle; antes, el toque del botón). */
+  function callePoner(on) {
+    CALLE.activa = on; CALLE.encendiendo = false; CALLE.fase = on ? "esperando" : "quieta"; CALLE.error = "";
     callePintar(CALLE.fase); grabadora(on);   // se ve al instante; la app confirma con AlmaCalle.evento
     if (on && CONF.activa) { CONF.activa = false; $("b-conf").classList.remove("activa", "voces"); recPintar(); }
     nativa({ accion: "calle", que: on ? "on" : "off" });
     if (on) setTimeout(function () { nativa({ accion: "conferencia", que: "estado" }); }, 400);
+  }
+  $("i-calle").onchange = function () { vozConfig(); callePoner(this.checked); };
+  $("b-calle").onclick = function () {
+    if (CALLE.largo) { CALLE.largo = false; return; }   // fue un toque largo: abrió «Probar», no cambia el Modo calle
+    vozConfig();
+    /* Escuchar ya: la app suena la señal, escucha sin «Alma», manda el pedido y contesta; no enciende ni apaga el Modo calle. */
+    if (CALLE.ahora) { CALLE.error = ""; CALLE.fase = "oyendo"; callePintar(CALLE.fase); nativa({ accion: "calle", que: "ahora" }); return; }
+    callePoner(!calleOn());   // una app vieja: el toque enciende o apaga
   };
   if (NATIVA) setTimeout(function () { nativa({ accion: "calle", que: "estado" }); }, 1100);
   $("calle-linea").onclick = function () { cpAbrir(); };

@@ -10,6 +10,8 @@
    calleHablar_ le quita lo que no se puede decir (markdown, listas, enlaces, etiquetas [[…]]).
    Plazo duro (CALLE_PLAZO_, 15 s): si no alcanza, el agente lo sigue en segundo plano (retomar.js) y Alma dice
    «Sigo en eso; te aviso al terminar» (nunca «Listo»: todavía no está hecho).
+   NUNCA EN SILENCIO (Juan, 4-nov-2026): la app espera la respuesta 25 s; si no llega, Alma dice «No me llegó la respuesta,
+   ¿me lo repites?» y el porqué queda en el diagnóstico. Por eso el audio se deja de pedir a los 20 s (CALLE_AUDIO_PLAZO_).
    audio: la frase con la voz de Alma (ElevenLabs, eleven_flash_v2_5). Si ElevenLabs tarda, el audio igual se manda (ya se
    esperó: tirarlo solo hacía que hablara la voz del iPhone, una voz de hombre en el teléfono de Juan, 3-nov-2026). Las
    frases repetidas («Listo.», «Sigo en eso…») quedan 6 h en caché. Cuenta en el cupo como «Voz» (nunca se pausa).
@@ -36,7 +38,7 @@
    y los segundos de llamada con ElevenLabs y cuántas colgó el sueño); calleUsoLeer las muestra en Ajustes → Uso de la app. */
 
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
-var CALLE_AUDIO_PLAZO_ = 24000;    // con más de esto desde que llegó el pedido ya no se pide el audio (la app espera 30 s)
+var CALLE_AUDIO_PLAZO_ = 20000;    // con más de esto desde que llegó el pedido ya no se pide el audio (la app espera 25 s y dice «No me llegó la respuesta…»)
 var CALLE_VOZ_MAX_ = 400;          // calleVoz: lo más largo que se convierte en voz (caracteres)
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
 var CALLE_SIGUE_ = 'Sigo en eso; te aviso al terminar.';   // todavía no está hecho: nada de «Listo» (Juan, 3-nov-2026)

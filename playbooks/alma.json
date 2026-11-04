@@ -144,7 +144,7 @@
   "herramientas": {
     "titulo": "Tus herramientas en la llamada (una línea cada una; el detalle está en la herramienta)",
     "lista": {
-      "secretaria": { "canales": ["voz"], "linea": "Hace lo que pide un administrador (mensajes, rutas, tareas, reservas, datos, música, vigilancias, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»." },
+      "secretaria": { "canales": ["voz"], "linea": "Hace lo que pide un administrador (mensajes, correos, rutas, tareas, reservas, datos, música, vigilancias, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»." },
       "lookup_reservation": { "canales": ["voz"], "linea": "Valida la reserva de un huésped. Solo si la ficha de quien llama no dice quién es; nunca con {dueño} ni con el equipo." },
       "property_info": { "canales": ["voz"], "linea": "Datos de la propiedad de una reserva ya validada." },
       "hospitable_router": { "canales": ["voz"], "linea": "Solo disponibilidad de fechas para quien todavía no tiene reserva. Nunca con el equipo." },

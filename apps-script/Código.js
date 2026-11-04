@@ -2050,6 +2050,8 @@ function almaFoto_(ses, foto, captura, voz) {
   return t ? { ok: true, texto: String(t).trim().slice(0, 1500) } : { ok: false, error: 'lectura' };
 }
 function imgBloque_(u) {
+  /* Un PDF (adjunto de un correo, correohilo.js) viaja como bloque de documento: el mismo modelo lo lee. */
+  if (String(u || '').indexOf('data:application/pdf;base64,') === 0) return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: String(u).slice(28) } };
   var dm = /^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/.exec(String(u || ''));
   if (dm) return { type: 'image', source: { type: 'base64', media_type: dm[1], data: dm[2] } };
   const id = (String(u || '').match(/drive\.google\.com\/thumbnail\?id=([\w-]+)/) || [])[1];
@@ -2091,7 +2093,7 @@ const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · d
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
   opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
   fuentesLeerTexto_: 'Respuesta con fuentes · lo escrito', fuentesVer_: 'Respuesta con fuentes · fotos',
-  viajeExtraer_: 'Viajes · leer el itinerario' };
+  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];

@@ -822,6 +822,7 @@ function vozSecretaria_(b) {
   var previos = opFilas_(adm.email, 20);
   var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
   AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
+  var esApp = AGENTE_APP_; TV_CANDIDATA_ = null;   // tarjeta de la llamada (tarjeta.js): la deja agEjecutar_ en este turno
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
   AGENTE_PLAZO_ = t0 + plazo; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)
   var r;
@@ -836,10 +837,12 @@ function vozSecretaria_(b) {
   }
   /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, el borrador para Claude con su pregunta (o a Juan). */
   var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: Date.now() - t0 > plazo }); r.respuesta = turno.texto || r.respuesta;
-  opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
+  /* Tarjeta de la llamada (tarjeta.js): solo en la app; con la pantalla a la vista, «EN PANTALLA» y la voz no lee los datos. */
+  var tv = null; try { tv = tvCerrar_(b.conv_id, esApp, conf); } catch (e) { console.error('tvCerrar_: ' + (e.stack || e)); }
+  opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas, tv ? tv.celda : '');
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los VOZ_SECRETARIA_TIMEOUT_S_), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > (VOZ_SECRETARIA_TIMEOUT_S_ - 5) * 1000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
-  var out = { ok: true, resultado: r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+  var out = { ok: true, resultado: (tv && tv.voz ? tv.voz + '\n\n' : '') + r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
   return out;
 }
 
@@ -1144,6 +1147,8 @@ function vozWebVincular_(ses, convId, app, b) {
   if (app) CacheService.getScriptCache().put('vozapp_' + convId, '1', 21600);   // la llamada es de la app de Alma (música, casa)
   var conf = !!app && (b.conferencia === true || b.conferencia === 1 || b.conferencia === '1');
   if (conf) CacheService.getScriptCache().put('vozconf_' + convId, '1', 21600);   // abierta desde el modo conferencia: plazo largo (vozSecretaria_)
+  /* Tarjeta de la llamada (tarjeta.js): la app dice si Juan ve la pantalla (Modo calle o anillo con el teléfono bloqueado: no). */
+  if (app && (b.pantalla === false || b.pantalla === 0 || b.pantalla === '0')) CacheService.getScriptCache().put('vozpant_' + convId, '0', 21600);
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
   if (rid) { c.remove('vozret_' + adm.email); try { retMencionado_(adm, rid); } catch (e) {} }
   var out = { ok: true };

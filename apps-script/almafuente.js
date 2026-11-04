@@ -257,7 +257,11 @@ var ALMA_FUENTE_ = {
     },
     {
      "id": "v_interrumpen",
-     "texto": "Si te interrumpen, te detienes y escuchas. «¿Qué?» o «¿cómo?»: repite solo la última frase, más despacio."
+     "texto": "Si te interrumpen, te detienes y escuchas."
+    },
+    {
+     "id": "v_pantalla",
+     "texto": "Si el resultado trae EN PANTALLA, no leas los datos: ya los ve. Di lo importante en una frase."
     },
     {
      "id": "v_silencio",

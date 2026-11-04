@@ -3224,7 +3224,9 @@ function hubApi_(body) {
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'vozAvisos': return json_(vozAvisos_(ses));                                    // app de iPhone: avisos para decir al oído
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
-      case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz }: plazo largo y frase de espera (voz.js)
+      case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)
+      case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)
+      case 'vozPantalla': return json_(vozPantallaApi_(ses, body));                       // app de iPhone: ¿Juan ve la pantalla? { conv_id, visible } (tarjeta.js)
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());
       case 'acciones': return json_(accionesLista_());                                  // acciones pendientes del usuario (paraclaude.js)
@@ -4883,7 +4885,7 @@ function hubReviewHuesped_(resId, recomendar, contexto, ajuste, previo) {
    ALMA responde, toma notas y ejecuta: crear/cerrar/comentar tareas del equipo (Epi · hubTareas) y agendar trabajos en Epi (schedules).
    Hoy solo administradores; técnicos y socios quedan para después (OP_ROLES).
    Chat único (#334, chat.js): un solo chat por persona; cada fila lleva esfera y subcategoría (al final de la hoja). */
-const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id', 'esfera', 'subcategoria'];
+const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id', 'esfera', 'subcategoria', 'tarjeta'];   // tarjeta: la de la llamada, { tipo, id, titulo } (tarjeta.js)
 const EPI_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec';
 const SEMILLA_OPERATIVO_ = "Eres ALMA, la asistente operativa interna de Spacio AM (hospitalidad boutique en Guatemala). Hablas con un ADMINISTRADOR del equipo, no con un huésped. Tono: directo, cálido, de tú, frases cortas, sin emoji, sin despedidas ni firma. Primero el dato, luego el contexto.\n\nPUEDES:\n· Responder preguntas usando el contexto que te damos (tareas abiertas, programa de Epi, propiedades, equipo).\n· Crear tareas del equipo, cerrarlas o comentarlas.\n· Agendar un trabajo en Epi (limpieza, limpieza profunda, mantenimiento, supervisión) en una propiedad y fecha.\n· Guardar una nota para recordar algo (preferencias, acuerdos, datos que te piden recordar).\n\nREGLAS:\n· Solo ejecutas lo que se pide claro. Si falta un dato imprescindible (propiedad, fecha), pregunta en una sola frase y no ejecutes.\n· Fechas relativas (hoy, mañana, el viernes) se convierten a YYYY-MM-DD con la fecha de HOY que te damos.\n· La propiedad debe ser una de la lista, escrita igual. Para tareas, quien es un nombre de la lista del equipo o vacío.\n· Confirma en la respuesta lo que hiciste, en una línea por acción.\n· Nunca inventes datos de reservas, códigos ni montos.\n\nDevuelve SOLO JSON:\n{\"respuesta\":\"texto para el administrador\",\"acciones\":[{\"tipo\":\"tarea\",\"texto\":\"\",\"prop\":\"\",\"quien\":\"\",\"vence\":\"YYYY-MM-DD\",\"nota\":\"\"},{\"tipo\":\"hecha\",\"id\":\"\"},{\"tipo\":\"comentario\",\"id\":\"\",\"texto\":\"\"},{\"tipo\":\"epi\",\"fecha\":\"YYYY-MM-DD\",\"hora\":\"HH:MM\",\"propiedad\":\"\",\"trabajo\":\"Limpieza|Limpieza Profunda|Mantenimiento|Supervisión\",\"tecnico\":\"\",\"notas\":\"\"},{\"tipo\":\"nota\",\"texto\":\"\"}]}\nSi no hay nada que ejecutar, acciones es [].";
 let OP_ADM_ = null, OP_CAB_LISTA_ = false;
@@ -4958,15 +4960,15 @@ function opFilas_(email, n) {
   const sh = hojaOp_(), last = sh.getLastRow(); if (last < 2) return [];
   const desde = Math.max(2, last - 2999), v = sh.getRange(desde, 1, last - desde + 1, OP_CAB_.length).getValues();
   return v.map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
-    acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || '') }))
+    acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || '') }))
     .filter(m => !email || m.usuario === email).slice(-(n || 3000));
 }
 /* clas = { esfera, subcategoria } (chat.js); sin clas la fila queda sin esfera. */
-function opGuardar_(adm, de, canal, texto, acciones, clas) {
+function opGuardar_(adm, de, canal, texto, acciones, clas, tarjeta) {
   const id = 'op' + Date.now() + Math.floor(Math.random() * 1000), ts = new Date().toISOString();
   const tx = String(texto || '').slice(0, 4000), esf = (clas && clas.esfera) || '', sub = (clas && clas.esfera && clas.subcategoria) || '';
-  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, celdaTexto_(tx), acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub]);
-  return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [], esfera: esf, subcategoria: sub };
+  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, celdaTexto_(tx), acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub, celdaTexto_(String(tarjeta || ''))]);
+  return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [], esfera: esf, subcategoria: sub, tarjeta: String(tarjeta || '') };
 }
 /* Llave del robot: Epi y Hola reconocen así las llamadas del Hub (servidor a servidor, sin sesión de una persona). */
 function llaveRobot_() { return PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN') || undefined; }
@@ -5166,7 +5168,7 @@ function opHiloHub_(email, filtro) {
   try { filas = decChatSinOpciones_(filas); } catch (e) { console.error('decChatSinOpciones_: ' + e); }   // casos ya cerrados: sin sus opciones (decisiones.js)
   const ICON = { tarea: 'Tarea creada', hecha: 'Tarea cerrada', comentario: 'Comentario', epi: 'Agendado en Epi', nota: 'Nota guardada' };
   const out = filas.map(m => ({ tipo: m.de === 'alma' ? 'guest' : 'host', auto: false, alma: false, nombre: m.de === 'alma' ? 'ALMA' : (adm ? adm.nombre : ''), canal: m.canal === 'whatsapp' ? 'whatsapp' : 'hospitable',
-    texto: m.texto + ((m.acciones || []).length ? '\n\n' + m.acciones.map(a => '· ' + (a.error ? 'No se pudo · ' : (ICON[a.tipo] || 'Hecho') + ' · ') + a.resumen + (a.error ? ' (' + a.error + ')' : '')).join('\n') : ''),
+    texto: m.texto + (m.tarjeta && tvLineaChat_(m.tarjeta) ? '\n\n' + tvLineaChat_(m.tarjeta) : '') + ((m.acciones || []).length ? '\n\n' + m.acciones.map(a => '· ' + (a.error ? 'No se pudo · ' : (ICON[a.tipo] || 'Hecho') + ' · ') + a.resumen + (a.error ? ' (' + a.error + ')' : '')).join('\n') : ''),
     created: m.ts, fotos: [], esfera: m.esfera, subcategoria: m.subcategoria }));
   if (!out.length) {
     const n = adm ? String(adm.nombre || '').split(' ')[0] : '';

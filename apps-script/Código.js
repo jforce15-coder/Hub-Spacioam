@@ -2454,6 +2454,8 @@ function avisarRojo_(ctx, asunto, texto, sinWa) {
   const textoEsc = ctx && ctx.escalar ? texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente') : '';
   let dc = null;
   try { dc = decisionCrear_(ctx, ctx && ctx.escalar ? 'escalado' : 'rojo', (ctx && (ctx.motivoEscalar || ctx.razon)) || '', ctx && ctx.escalar ? { asunto: asunto, texto: textoEsc } : null); } catch (e) { console.error('decisionCrear_ rojo: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
+  /* El mismo mensaje del huésped otra vez (reproceso o dos disparos): ya se avisó una vez; no se repite nada (3-nov). */
+  if (dc && dc.mismo) { console.warn('avisarRojo_: mismo mensaje, caso ' + dc.id + ' ya avisado'); return; }
   /* Notificación de nivel 1 (urgente) a la app del principal (calle.js): un huésped espera al equipo. */
   try { const jefe = chatPrincipal_(); if (jefe) vozAvisoPoner_(jefe, 'Un huésped' + (ctx && ctx.propiedad ? ' del ' + ctx.propiedad : '') + ' necesita al equipo' + (ctx && ctx.escalar ? ': está escalado' : ': está en rojo') + '.', '', { nivel: 1 }); } catch (e) { console.error('avisarRojo_ aviso: ' + e); }
   if (ctx && ctx.escalar) return escalar_(asunto, textoEsc, { waPorDecision: !!(dc && dc.id && !dc.ya) });

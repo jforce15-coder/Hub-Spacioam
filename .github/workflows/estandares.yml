@@ -103,6 +103,10 @@ jobs:
         # 3-nov: «Escríbele a Diana…» salió como respuesta para Alejandra. Segunda vez con casos/borradores (ver #419).
         run: node .github/decision-texto.js apps-script
 
+      - name: Un mensaje del huésped es un caso y un aviso, aunque dos disparos lo procesen a la vez (dobles)
+        # 3-nov: el caso de Alejandra (la biblia) llegó dos veces a Juan, con opciones A/B/C distintas: dos pasadas se cruzaron.
+        run: node .github/decision-unica.js apps-script
+
       - name: Respuesta con fuentes, Alma revisa la ficha y las fotos antes de llamar al equipo (dobles)
         # 3 y 4-nov: un huésped preguntó si Ignacio 301 tiene TV en cada habitación; las fotos de limpieza lo mostraban (#446 T11).
         run: node .github/respuesta-fuentes.js apps-script

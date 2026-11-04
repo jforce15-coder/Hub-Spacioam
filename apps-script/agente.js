@@ -32,7 +32,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· No preguntes entre dos nombres parecidos (Gabriel / Gabriela) si tus herramientas devuelven una sola persona que coincide; usa esa.' +
   '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
   '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
-  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
+  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*), las fotos de la visita de Grow (grow_fotos) y el PDF de su presupuesto (grow_presupuesto).' +
   '\n· Los datos de hecho se anotan con actualizar_dato (sin preguntar; ver confirmaciones).' +
   '\n· El estado de una reserva es el campo estado que devuelve buscar_reservas. Si dice cancelada, está cancelada (di cuándo, con cancelada_el): nunca digas que está activa ni hables de su acceso como si siguiera en pie.' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
@@ -175,6 +175,10 @@ function agHerramientas_() {
       { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
     T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo. Si el proyecto estaba en captación pasa a visita.',
       { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
+    T('grow_fotos', 'Grow: mira tú misma las fotos de la visita (levantamiento) de un proyecto, para revisarlas y hacerle recomendaciones al administrador. Sin apto ni zona trae las primeras; por_apto dice cuántas hay de cada apartamento. Vienen de a 4: si siguiente no es null, vuelve a llamarla con desde = siguiente. solo_en_telefono = fotos que quien visitó todavía no subió.',
+      { proyecto_id: s('id del proyecto (p…) de grow_proyectos'), apto: s('Opcional: apartamento (ej. A1)'), zona: s('Opcional: zona (Cocina, Baño, Mantenimiento…)'), desde: { type: 'integer', description: 'Opcional: para seguir viendo (el siguiente que devolvió)' } }, ['proyecto_id']),
+    T('grow_presupuesto', 'Grow: lee el presupuesto de un proyecto (ítems por categoría, fee, diseño, fotos pro y total en quetzales). Con pdf = true arma el PDF y se lo manda al WhatsApp de Juan para que él lo reenvíe al contacto externo. Si el proyecto tiene varios presupuestos y no sabes cuál, pregunta (cual = número). Solo administrador principal.',
+      { proyecto_id: s('id del proyecto (p…) de grow_proyectos'), cual: { type: 'integer', description: 'Opcional: número del presupuesto si hay varios (1, 2…)' }, pdf: { type: 'boolean', description: 'true para armar el PDF y mandarlo por WhatsApp' } }, ['proyecto_id']),
     T('actualizar_dato', 'Dato de hecho, sin pedir permiso: apto, edificio o zona de un proyecto de Grow; nombre, teléfono o correo de su dueño; nombre, rol, empresa o apartamentos de un contacto. Devuelve aviso: díselo a Juan tal cual.',
       { donde: { type: 'string', enum: ['grow_proyecto', 'grow_dueno', 'contacto'] }, id: s('p… o D… de grow_proyectos, o número del contacto'), campo: { type: 'string', enum: ['apto', 'edificio', 'zona', 'nombre', 'telefono', 'email', 'rol', 'empresa', 'propiedades'] }, valor: s('Valor'), fuente: s('«lo dijo Inés»') }, ['donde', 'id', 'campo', 'valor', 'fuente']),
     T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
@@ -539,6 +543,35 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
     case 'grow_proyectos': return growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
+    case 'grow_fotos': {   // las fotos viajan como bloques de imagen, igual que ver_imagenes
+      var rFo = growApi_('fotos', { proyecto_id: inp.proyecto_id, apto: inp.apto || '', zona: inp.zona || '', desde: inp.desde || 0 });
+      if (!rFo || !rFo.ok) return rFo || { error: 'Grow no respondió.' };
+      if (!rFo.total) return { ok: true, proyecto: rFo.proyecto, fotos: 0, solo_en_telefono: rFo.solo_en_telefono,
+        nota: 'Este proyecto no tiene fotos subidas de la visita' + (rFo.solo_en_telefono ? '; hay ' + rFo.solo_en_telefono + ' en el teléfono de quien visitó que todavía no se subieron (abrir Grow con señal las sube).' : '.') };
+      rFo._imgs = rFo.imagenes || []; delete rFo.imagenes;
+      return rFo;
+    }
+    case 'grow_presupuesto': {
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo el administrador principal ve los presupuestos de Grow.' };
+      var rPr = growApi_('presupuesto', { proyecto_id: inp.proyecto_id });
+      if (!rPr || !rPr.ok) return rPr || { error: 'Grow no respondió.' };
+      var lPr = rPr.presupuestos || [];
+      if (!lPr.length) return rPr;
+      var cualPr = Number(inp.cual) || 0;
+      if (!cualPr && lPr.length > 1) return { ok: true, proyecto: rPr.proyecto, varios: lPr.map(function (x) { return x.n + '. ' + x.nombre + (x.apto ? ' · apto ' + x.apto : '') + ' · ' + growQ_(x.total) + ' · ' + x.estado; }), nota: 'Hay varios presupuestos: pregunta cuál (cual = número).' };
+      var prE = lPr.filter(function (x) { return x.n === (cualPr || 1); })[0];
+      if (!prE) return { error: 'Ese proyecto solo tiene ' + lPr.length + ' presupuesto(s).' };
+      var breve = { ok: true, proyecto: rPr.proyecto, presupuesto: prE.nombre, estado: prE.estado, total: growQ_(prE.total),
+        resumen: prE.resumen.map(function (x) { return x.k + ': ' + growQ_(x.q); }), items: prE.items.length,
+        por_categoria: growPorCat_(prE.items).map(function (c) { return c.cat + ': ' + c.items.length + ' ítems · ' + growQ_(c.suma); }) };
+      if (!inp.pdf) return breve;
+      var telPr = (adm.tels || [])[0]; if (!telPr) return { error: 'No tengo tu WhatsApp registrado para mandarte el PDF.' };
+      var blobPr = growPresupuestoPdf_(rPr, prE), envPr = waEnviarDocumento_(telPr, blobPr, 'Presupuesto · ' + rPr.proyecto + ' · ' + growQ_(prE.total));
+      if (!envPr.ok) return { error: 'No se envió el PDF: ' + (envPr.detalle || envPr.error), resumen: breve };
+      ctx.hechas.push({ tipo: 'archivo', resumen: 'PDF del presupuesto de ' + rPr.proyecto + ' enviado a tu WhatsApp' });
+      breve.pdf = 'Enviado a tu WhatsApp: ' + blobPr.getName() + '. Reenvíalo desde ahí al contacto.';
+      return breve;
+    }
     case 'grow_crear_proyecto': case 'grow_mover_etapa': case 'grow_agendar_visita': {
       if (nombre === 'grow_mover_etapa' && inp.etapa === 'descartado' && !String(inp.motivo || '').trim()) return { error: 'Para descartar necesito el motivo.' };
       var op = { grow_crear_proyecto: 'crear', grow_mover_etapa: 'etapa', grow_agendar_visita: 'visita' }[nombre];
@@ -987,6 +1020,38 @@ function growApi_(op, datos) {
   } catch (e) { return { ok: false, error: 'Grow no respondió: ' + e }; }
 }
 
+
+/* Presupuesto de Grow en PDF (herramienta grow_presupuesto, pdf = true). Las cuentas vienen hechas desde Grow (op
+   presupuesto), igual que en su pestaña Presupuesto; aquí solo se pinta: ítems por categoría, resumen y total. */
+function growQ_(n) { return 'Q ' + Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function growPorCat_(items) {
+  var orden = [], m = {};
+  (items || []).forEach(function (i) { if (!m[i.cat]) { m[i.cat] = { cat: i.cat, items: [], suma: 0 }; orden.push(m[i.cat]); } m[i.cat].items.push(i); m[i.cat].suma += Number(i.subtotal) || 0; });
+  return orden;
+}
+function growPresupuestoPdf_(r, pr) {
+  var esc = function (t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'dd/MM/yyyy'), td = 'padding:4px 6px;border-bottom:1px solid #e6e1da;';
+  var lugar = [r.edificio, r.apto && r.apto !== '—' ? 'apto ' + r.apto : '', r.zona && r.zona !== '—' ? r.zona : ''].filter(Boolean).join(' · ');
+  var filas = growPorCat_(pr.items).map(function (c) {
+    return '<tr><td colspan="4" style="padding:10px 6px 4px;font-weight:bold;color:#7a4b3a">' + esc(c.cat) + '</td></tr>' +
+      c.items.map(function (i) { return '<tr><td style="' + td + '">' + esc(i.item) + '</td><td style="' + td + 'text-align:right">' + esc(i.cant) +
+        '</td><td style="' + td + 'text-align:right">' + growQ_(i.precio) + '</td><td style="' + td + 'text-align:right">' + growQ_(i.subtotal) + '</td></tr>'; }).join('') +
+      '<tr><td colspan="3" style="padding:4px 6px;text-align:right;color:#666">Subtotal ' + esc(c.cat) + '</td><td style="padding:4px 6px;text-align:right;color:#666">' + growQ_(c.suma) + '</td></tr>';
+  }).join('');
+  var resumen = pr.resumen.map(function (x) { return '<tr><td style="padding:3px 6px">' + esc(x.k) + '</td><td style="padding:3px 6px;text-align:right">' + growQ_(x.q) + '</td></tr>'; }).join('');
+  var html = '<html><body style="font-family:Arial;font-size:11px;color:#222">' +
+    '<div style="font-size:10px;letter-spacing:2px;color:#7a4b3a">SPACIO AM</div>' +
+    '<h2 style="margin:4px 0 2px">Presupuesto · ' + esc(r.proyecto) + '</h2>' +
+    '<div style="color:#555">' + esc([pr.nombre !== 'Presupuesto' ? pr.nombre : '', lugar, r.dueno ? 'Propietario: ' + r.dueno : '', hoy].filter(Boolean).join(' · ')) + '</div>' +
+    '<table style="width:100%;border-collapse:collapse;margin-top:12px"><tr style="background:#f4efe9"><th style="text-align:left;padding:5px 6px">Ítem</th><th style="text-align:right;padding:5px 6px">Cant.</th><th style="text-align:right;padding:5px 6px">Precio</th><th style="text-align:right;padding:5px 6px">Subtotal</th></tr>' +
+    filas + '</table>' +
+    '<table style="width:55%;margin:16px 0 0 auto;border-collapse:collapse">' + resumen +
+    '<tr><td style="padding:6px;font-weight:bold;border-top:2px solid #222">Total</td><td style="padding:6px;text-align:right;font-weight:bold;border-top:2px solid #222">' + growQ_(pr.total) + '</td></tr></table>' +
+    '<p style="margin-top:18px;color:#888;font-size:9px">Montos en quetzales. Fotos profesionales al tipo de cambio de Q 7.75 por dólar.</p></body></html>';
+  var nombre = ('Presupuesto ' + r.proyecto + (pr.nombre !== 'Presupuesto' ? ' ' + pr.nombre : '')).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return Utilities.newBlob(html, 'text/html', nombre + '.html').getAs('application/pdf').setName(nombre + '.pdf');
+}
 
 /* Pulido de los mensajes que ALMA manda a un huésped por encargo del equipo.
    1) Por la plataforma (Airbnb, Booking, Hospitable) no se presenta la empresa (el huésped ya está en su reserva),

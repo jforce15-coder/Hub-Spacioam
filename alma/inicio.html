@@ -355,6 +355,34 @@
   .vj-vivo .nota s { color: #938B8A; }
   @media (max-width: 380px) { .vj-vivo .val.h { font-size: 23px; } .vj-vivo .val { font-size: 28px; } .vj-vivo .nota { font-size: 8.5px; } }
   @media (prefers-reduced-motion: reduce) { .vj-vivo { transition: opacity .2s ease; transform: none; } }
+  /* ── Salas Priority Pass (apps-script/salas.js, #446): una pestaña chica colgando de la tarjeta, «Salas · Terminal 2E · 2».
+     Tocarla abre la lista (1 a 3 salas de esa terminal: nombre, horario, si es después de seguridad, dónde). Sin salas, no hay pestaña. ── */
+  .vj-salas { position: fixed; left: max(16px, env(safe-area-inset-left)); right: max(16px, env(safe-area-inset-right)); top: calc(var(--vv-top, 132px) + 90px); z-index: 2147482399;
+    max-width: 520px; margin: 0 auto; pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .6s var(--ease, cubic-bezier(.22,.61,.36,1)), transform .6s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  .vj-salas.on { opacity: 1; transform: none; }
+  .vj-salas[hidden] { display: none; }
+  body.orbita-on .vj-salas, body.san-hoja .vj-salas { opacity: 0 !important; pointer-events: none !important; }
+  body.orbita-on .vj-salas *, body.san-hoja .vj-salas * { pointer-events: none !important; }
+  .vj-salas .tab { pointer-events: auto; position: relative; margin-left: 18px; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 12px 1px; border: 0; cursor: pointer;
+    border-radius: 0 0 12px 12px; background: rgba(250,250,250,.96); color: #6F6867; font: 600 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase;
+    box-shadow: 0 12px 22px -16px rgba(70,50,40,.55); -webkit-tap-highlight-color: transparent; }
+  .vj-salas .tab::before { content: ""; position: absolute; inset: -6px -4px -12px; }   /* 44 px para el dedo */
+  .vj-salas .tab .p { flex: none; width: 5px; height: 5px; border-radius: 50%; background: #E9826A; }
+  .vj-salas .tab::after { content: ""; flex: none; width: 5px; height: 5px; border: solid #A39B93; border-width: 0 1.4px 1.4px 0; transform: rotate(45deg); margin: -3px 0 0 2px; transition: transform .3s var(--ease, ease); }
+  .vj-salas.abierta .tab::after { transform: rotate(-135deg); margin-top: 3px; }
+  .vj-salas .lista { pointer-events: auto; display: none; margin-top: 6px; padding: 2px 16px; border-radius: 18px; background: rgba(250,250,250,.97); color: #3E3F3F;
+    box-shadow: 0 18px 36px -22px rgba(70,50,40,.55), inset 0 0 0 .5px rgba(255,255,255,.8); }
+  .vj-salas.abierta .lista { display: block; animation: vjSlEntra .35s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  @keyframes vjSlEntra { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .vj-sl-r { padding: 11px 0; font-family: Montserrat, system-ui, sans-serif; }
+  .vj-sl-r + .vj-sl-r { border-top: .5px solid rgba(62,63,63,.12); }
+  .vj-sl-r b { display: block; font: 600 13.5px/1.25 Montserrat, system-ui, sans-serif; color: #3E3F3F; }
+  .vj-sl-r .m { display: block; margin-top: 3px; font: 500 11.5px/1.35 Montserrat, system-ui, sans-serif; color: #6F6867; }
+  .vj-sl-r .u { display: block; margin-top: 2px; font: 500 11px/1.35 Montserrat, system-ui, sans-serif; color: #938B8A; }
+  .vj-sl-r .n { display: block; margin-top: 3px; font: 600 10.5px/1.3 Montserrat, system-ui, sans-serif; color: #A9543F; }
+  .vj-sl-f { padding: 8px 0 10px; border-top: .5px solid rgba(62,63,63,.12); font: 500 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .06em; color: #A39B93; }
+  .vj-sl .vj-sl-r, .vj-sl .vj-sl-f { margin: 0 14px; }
+  @media (prefers-reduced-motion: reduce) { .vj-salas { transition: opacity .2s ease; transform: none; } .vj-salas.abierta .lista { animation: none; } .vj-salas .tab::after { transition: none; } }
   .panel.viaje { max-height: 92vh; padding-left: 14px; padding-right: 14px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; z-index: 2147483250; }
   .panel.viaje h2 { margin-bottom: 10px; }
   #vj-velo { z-index: 2147483240; }
@@ -484,6 +512,7 @@
 <button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg></button>
 <button type="button" class="ajustes avion" id="b-avion" aria-label="Tu viaje" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></button>
 <button type="button" class="vj-vivo" id="vj-vivo" aria-label="Tu vuelo" hidden></button>
+<div class="vj-salas" id="vj-salas" hidden><button type="button" class="tab" id="vj-salas-tab" aria-expanded="false" aria-controls="vj-salas-lista"></button><div class="lista" id="vj-salas-lista"></div></div>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
@@ -1738,7 +1767,7 @@
   function vivoVentana(p) { if (!p) return false; var s = ms(vivoDe(p).sale), t = Date.now(); return t >= s - H - 40 * 6e4 && t <= s + 15 * 6e4; }   // 1 h antes del embarque (≈ salida − 40 min)
   function pintarVivo() {
     var el = $("vj-vivo"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
-    if (!vivoVentana(p)) { el.classList.remove("on"); el.hidden = true; document.body.classList.remove("vv-arriba"); return false; }
+    if (!vivoVentana(p)) { el.classList.remove("on"); el.hidden = true; document.body.classList.remove("vv-arriba"); pintarSalas(null); return false; }
     var x = vivoDe(p), por = porTexto(x), ret = /(\d+)/.exec(x.estado || ""), zn = deZona(x.sale, x.zona_nombre || p.t.zona_nombre);
     var est = x.estado_tipo === "tarde" && ret ? "+" + ret[1] + " min" : x.estado || (p.aire ? "En el aire" : "Sale en " + falta(ms(x.sale)));
     el.innerHTML = '<span class="izq"><span><b class="num">' + esc(x.numero) + "</b>" + (por.length ? '<span class="por">' + por.map(esc).join("<br>") + "</span>" : "") + "</span>" +
@@ -1749,16 +1778,41 @@
       '<span class="cel"><span class="et">Embarque</span><span class="val h">' + hora(x.embarque) + '</span><span class="nota">aprox. · sale ' + hora(x.sale) + (zn ? "<br>" + esc(zn) : "") + "</span></span></span>";
     el.setAttribute("aria-label", "Tu vuelo " + x.numero + ". " + (x.puerta ? "Puerta " + x.puerta + (x.puerta_antes ? ", antes " + x.puerta_antes : "") : "Puerta por asignar") +
       ". Embarque aproximado " + hora(x.embarque) + ". Sale " + hora(x.sale) + (zn ? ", " + zn : "") + ". " + (x.estado || est) + ".");
-    var nuevo = el.hidden; el.hidden = false; ubicarVivo();
+    var nuevo = el.hidden; el.hidden = false; pintarSalas(x.salas); ubicarVivo();
     if (nuevo) { setTimeout(ubicarVivo, 1500); setTimeout(ubicarVivo, 4000); }   // la roca termina de llegar a su lugar
-    requestAnimationFrame(function () { el.classList.add("on"); });
+    requestAnimationFrame(function () { el.classList.add("on"); var s = $("vj-salas"); if (!s.hidden) s.classList.add("on"); });
     return true;
   }
+  /* ── Salas Priority Pass (apps-script/salas.js): la pestaña bajo la tarjeta y su lista. Sin salas (o si la búsqueda
+     falló), nada: ni pestaña ni aviso. ── */
+  function lado(x) { return x === "airside" ? "Después de seguridad" : x === "landside" ? "Antes de seguridad" : ""; }
+  function salasFilas(s) {
+    return s.salas.map(function (x) {
+      var m = [x.horario, lado(x.lado)].filter(Boolean).join(" · ");
+      return '<div class="vj-sl-r"><b>' + esc(x.nombre) + "</b>" + (m ? '<span class="m">' + esc(m) + "</span>" : "") + (x.ubicacion ? '<span class="u">' + esc(x.ubicacion) + "</span>" : "") +
+        (x.nota ? '<span class="n">' + esc(x.nota) + "</span>" : "") + "</div>";
+    }).join("") + '<div class="vj-sl-f">Priority Pass · de prioritypass.com</div>';
+  }
+  function pintarSalas(s) {
+    var el = $("vj-salas"), tab = $("vj-salas-tab");
+    if (!s || !s.salas || !s.salas.length) { el.classList.remove("on", "abierta"); el.hidden = true; VV.salasAbiertas = false; return; }
+    var clave = JSON.stringify(s);
+    if (clave !== VV.salasClave) {
+      VV.salasClave = clave;
+      tab.innerHTML = '<span class="p"></span><span>Salas · ' + esc(s.etiqueta) + (s.llegada ? " (llegada)" : "") + " · " + s.salas.length + "</span>";
+      tab.setAttribute("aria-label", "Salas Priority Pass en " + s.etiqueta + ": " + s.salas.length + ". Toca para ver");
+      $("vj-salas-lista").innerHTML = salasFilas(s);
+    }
+    el.classList.toggle("abierta", !!VV.salasAbiertas); tab.setAttribute("aria-expanded", VV.salasAbiertas ? "true" : "false");
+    el.hidden = false;
+  }
+  $("vj-salas-tab").onclick = function (e) { e.stopPropagation(); VV.salasAbiertas = !VV.salasAbiertas; var el = $("vj-salas"); el.classList.toggle("abierta", VV.salasAbiertas); this.setAttribute("aria-expanded", VV.salasAbiertas ? "true" : "false"); };
   /* Entre «Hola, Juan» y la roca, centrada en el hueco. Si no cabe (iPhone SE), sube al lugar del saludo y lo esconde. */
   function ubicarVivo() {
     var el = $("vj-vivo"), hola = $("hola"), roca = document.querySelector("#sa-nav-root .san-rock"), aj = $("b-ajustes"), alto = 90;
     var hb = hola ? hola.getBoundingClientRect() : null, rr = roca ? roca.getBoundingClientRect() : null;
     var arriba = hb && hb.height ? hb.bottom : 110, abajo = rr && rr.height ? rr.top : window.innerHeight * 0.3, top, sobre = false;
+    if (!$("vj-salas").hidden && abajo - arriba >= alto + 26 + 12) alto += 26;   // la pestaña de salas cuenta si cabe; si no, se asoma sobre la roca (nunca esconde el saludo)
     if (abajo - arriba >= alto + 12) top = arriba + (abajo - arriba - alto) / 2;
     else { top = Math.max(abajo - alto - 8, aj ? aj.getBoundingClientRect().bottom + 8 : 0); sobre = true; }
     document.documentElement.style.setProperty("--vv-top", Math.round(top) + "px");
@@ -1794,6 +1848,9 @@
     var primero = v.tramos.filter(function (x) { return x.trayecto === t.trayecto; })[0] === t;   // en una escala ya estás en el aeropuerto
     if (!p.aire && primero && Date.now() < ms(t.llegar)) h += '<div class="vj-llegar">' + IC_RELOJ + "<span>Llega al aeropuerto a las " + hora(t.llegar) + (diaRel(t.llegar) !== "hoy" ? " (" + esc(diaRel(t.llegar)) + ")" : "") + "</span></div>";
     h += '<div class="vj-falta" id="vj-falta">' + (p.aire ? "Aterriza en " + falta(ms(t.llega)) : "Sale en " + falta(ms(x.sale))) + "</div></div>";
+    /* las salas Priority Pass de su terminal (salas.js), plegadas */
+    if (x.salas && x.salas.salas && x.salas.salas.length) h += '<details class="vj-tray vj-sl"' + (VJ.slAbierta ? " open" : "") + "><summary><span>Salas Priority Pass · " + esc(x.salas.etiqueta) + (x.salas.llegada ? " (llegada)" : "") +
+      "<small>" + esc(x.salas.salas.map(function (z) { return z.nombre; }).join(" · ")) + "</small></span></summary>" + salasFilas(x.salas) + "</details>";
     /* check-in */
     var ci = "";
     if (!p.aire) {
@@ -1839,12 +1896,13 @@
     var cu = $("vj-cu"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
     if (!VJ.datos && VJ.cargando) { cu.innerHTML = '<div class="sa-esq" aria-label="Cargando tu viaje"><i class="g"></i><i class="c"></i><i class="c"></i></div>'; return; }
     if (!p) { cu.innerHTML = '<p class="vacio">' + esc(error ? "No pude traer tu viaje ahora. Inténtalo en un rato." : "No tienes vuelos en los próximos días.") + "</p>"; return; }
-    var ab = {}; [].forEach.call(cu.querySelectorAll("details.vj-tray"), function (d, i) { ab[i] = d.open; });   // lo que abriste se queda abierto al repintar
+    var ab = {}; [].forEach.call(cu.querySelectorAll("details.vj-tray:not(.vj-sl)"), function (d, i) { ab[i] = d.open; });
+    var sl = cu.querySelector("details.vj-sl"); if (sl) VJ.slAbierta = sl.open;   // lo que abriste se queda abierto al repintar
     var hace = VJ.datos.recibido ? Math.round((Date.now() - VJ.datos.recibido) / 6e4) : null;
     cu.innerHTML = tarjeta(p) + itinerario(vs, p) +
       '<div class="vj-pie"><span>' + (VJ.cargando ? "Actualizando…" : VJ.datos.pausa ? esc(VJ.datos.pausa) : hace == null ? "Del teléfono · actualizando…" : hace < 1 ? "Al día" : "Actualizado hace " + falta(Date.now() + hace * 6e4)) +
       '</span><button type="button" id="vj-act">Actualizar</button></div>';
-    if (VJ.repintado) [].forEach.call(cu.querySelectorAll("details.vj-tray"), function (d, i) { if (i in ab) d.open = ab[i]; });
+    if (VJ.repintado) [].forEach.call(cu.querySelectorAll("details.vj-tray:not(.vj-sl)"), function (d, i) { if (i in ab) d.open = ab[i]; });
     VJ.repintado = true;
     $("vj-act").onclick = function () { cargar(true); };
     var c = $("vj-conf"); if (c) c.onclick = function () {

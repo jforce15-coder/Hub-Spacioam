@@ -115,3 +115,6 @@ jobs:
       - name: Responder en el hilo, reenvíos de Gmail, iPhone y Outlook, nada sale sin el sí y adjuntos por el modelo (dobles)
         # 4-nov: Juan reenvía a Alma el correo de un socio y le dice qué contestar; la respuesta va al socio, en su hilo.
         run: node .github/correo-hilo.js apps-script
+      - name: Tarjeta de la llamada, una sola cosa, sin repetir, solo la app y nunca la familia (dobles)
+        # #446 T2: la tarjeta sale de lo que la secretaria ya leyó (sin IA ni Hospitable); el apartamento nunca lleva códigos.
+        run: node .github/tarjeta-llamada.js apps-script

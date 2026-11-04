@@ -351,7 +351,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'buscar_reservas': {
       var f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
       var parecido = {}, hits = agBuscarReservas_(inp.texto, f, !!inp.solo_llegadas, hoy, 12).map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
-      return { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
+      var outR = { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
         reservas: (function () { var vivos = 0; return hits.map(function (r) {
         var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
         var est = agEstadoReserva_(ib.conv_id, r, vivos++ < 5);
@@ -359,6 +359,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
           coincidencia: parecido[cod] || 'exacta', huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
       }).sort(function (a, b) { return (a.estado === 'cancelada') - (b.estado === 'cancelada'); }); })(), total: hits.length,
         aviso_estado: 'El campo estado viene de Hospitable en vivo para los primeros resultados. Si dice cancelada, la reserva está CANCELADA: dilo así y no la trates como activa.' };
+      /* Tarjeta de la llamada (tarjeta.js): un solo resultado es una tarjeta; una lista no (y borra la de antes). */
+      if (hits.length === 1 && outR.reservas.length === 1) tvCandidata_('reserva', function () { return tvReserva_(hits[0], outR.reservas[0], inbox); });
+      else if (hits.length > 1) tvCandidata_(null);
+      return outR;
     }
     case 'cancelaciones': return agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy);
     case 'programados_reserva': {
@@ -389,6 +393,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var h = hiloConv_(rid); if (h.code !== 200) return { error: 'No pude leer la conversación (HTTP ' + h.code + ').' };
       var pr = hubPromesas_(false).promesas.filter(function (p) { return p.conv_id === rid; });
       var entregaWa = /^wa:/.test(rid) ? waEntregaTexto_(rid.slice(3)) : '';
+      tvCandidata_('conversacion', function () { return tvConversacion_(rid, h.hilo, pr, hubInbox_()); });   // tarjeta de la llamada (tarjeta.js)
       return { conv_id: rid, entrega_ultimo_mensaje: entregaWa || undefined, mensajes: (h.hilo || []).slice(-15).map(function (m) { return (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' (llamada)' : m.canal === 'whatsapp' ? ' (WhatsApp)' : '') + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + ': ' + String(m.texto || '').slice(0, 500) + ((m.fotos || []).length ? ' [imagen' + (m.fotos.length > 1 ? 'es: ' + m.fotos.length : '') + ' — usa ver_imagenes]' : ''); }),
         promesas_abiertas: pr.map(function (p) { return p.que + ' (vence ' + p.vence + ')'; }) };
     }
@@ -490,6 +495,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       }
       var j = {}; try { j = JSON.parse(String(hitP.info_json || '{}')); } catch (e) {}
       var plano = {}; (function rec(o, pre) { Object.keys(o || {}).forEach(function (k) { var v = o[k], key = pre ? pre + '.' + k : k; if (v && typeof v === 'object' && !Array.isArray(v)) rec(v, key); else plano[key] = String(Array.isArray(v) ? JSON.stringify(v) : v).slice(0, 300); }); })(j, '');
+      tvCandidata_('apartamento', function () { return tvApartamento_(hitP.property_name, j, plano); });   // tarjeta de la llamada (tarjeta.js)
       return { propiedad: hitP.property_name, campos: plano };
     }
     case 'codigo_acceso': { var rC = codigosAcceso_(inp, ctx.cfg()); (rC.equipo || []).forEach(function (e) { ctx.hechas.push({ tipo: 'consulta', resumen: 'Código · ' + e.propiedad + ': ' + (e.codigo || 'sin código') + (e.tipo ? ' (' + e.tipo + ')' : '') }); }); return rC; }

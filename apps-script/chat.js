@@ -465,7 +465,7 @@ function chatPagina_(filas, b) {
     if (k < 0) { var t = new Date(b.antes).getTime(); if (!isNaN(t)) L = L.filter(function (m) { return new Date(m.ts).getTime() < t; }); else L = []; }
     else L = L.slice(0, k);
   }
-  var pag = L.slice(-n);
+  var pag = L.slice(-n).map(tvConLinea_);   // la tarjeta de la llamada, como una línea junto a esa llamada (tarjeta.js)
   return { mensajes: pag, conteo: conteo, hayMas: L.length > pag.length, antes: pag.length ? pag[0].id : '' };
 }
 /* opEnviar { texto, canal? }: escribe en SU chat. canal 'app' (la app de Alma), 'calle' (la app en Modo calle: la

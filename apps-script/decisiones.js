@@ -12,8 +12,15 @@
    Disparo (sin duplicar, una abierta por conversación): avisarRojo_ (rojo y escalados), promesaRegistrar_ («lo
    confirmo con el equipo») y avisarSeguimiento_ (el huésped eligió algo que requiere al equipo). decisionCrear_ solo
    anota el caso (rápido, dentro de la cola de huéspedes); las opciones con IA y los avisos salen en la siguiente
-   pasada de procesarCola (decisionesProcesar_), que es de huéspedes y nunca se pausa por cupo. */
-var DEC_CAB_ = ['id', 'resId', 'creado', 'opciones', 'estado', 'quien', 'opcion', 'cuando', 'origen', 'motivo', 'contexto', 'borrador', 'intentos', 'enviado_por', 'enviado_ts', 'sale_ts', 'sale_wa', 'sale_estado', 'texto_libre', 'sin_texto'];
+   pasada de procesarCola (decisionesProcesar_), que es de huéspedes y nunca se pausa por cupo.
+   Un mensaje del huésped = un caso = un aviso por persona (3-nov: el caso de Alejandra llegó dos veces a Juan, con
+   opciones A/B/C distintas: dos pasadas de procesarCola se cruzaron y cada una llamó a la IA y avisó). Por eso:
+   · clave: la conversación + el mensaje del huésped; el mismo mensaje procesado otra vez devuelve el mismo caso (24 h);
+   · reserva: con el candado, antes de llamar a la IA, la pasada marca el caso como suyo; otra pasada no lo toca;
+   · avisado: con el candado, antes de mandar; solo la pasada dueña de la reserva guarda las opciones y avisa. */
+var DEC_CAB_ = ['id', 'resId', 'creado', 'opciones', 'estado', 'quien', 'opcion', 'cuando', 'origen', 'motivo', 'contexto', 'borrador', 'intentos', 'enviado_por', 'enviado_ts', 'sale_ts', 'sale_wa', 'sale_estado', 'texto_libre', 'sin_texto', 'clave', 'reserva', 'avisado'];
+var DEC_RESERVA_MS_ = 5 * 60000;   // una reserva más vieja (la pasada se cayó a medias) la puede tomar otra pasada
+var DEC_CLAVE_MS_ = 24 * 3600000;   // el mismo mensaje del huésped, dentro de este tiempo, es el mismo caso
 var DEC_LETRAS_ = ['A', 'B', 'C'];
 var DEC_ACCIONES_ = ['tarea', 'devolucion', 'ninguna'];
 var DEC_WA_MIN_ = 20;   // minutos después del aviso en que un texto sin citar PUEDE ser la respuesta al caso (lo decide decEsParaCaso_)
@@ -28,6 +35,7 @@ var DEC_ORDEN_RE_ = /^\W*(oye,? |alma,? |porfa,? |por favor,? )?(escr[ií]b[ea]?
 
 function hojaDec_() {
   var sh = hojaCrear_('DECISIONES', DEC_CAB_);
+  try { if (sh.getMaxColumns && sh.getMaxColumns() < DEC_CAB_.length) sh.insertColumnsAfter(sh.getMaxColumns(), DEC_CAB_.length - sh.getMaxColumns()); } catch (e) {}
   if (sh.getLastColumn() < DEC_CAB_.length) sh.getRange(1, 1, 1, DEC_CAB_.length).setValues([DEC_CAB_]);
   return sh;
 }
@@ -55,6 +63,17 @@ function decOpcionTxt_(f) { return f.opcion === 'otra' ? 'otra respuesta' : f.op
 /* «Resuelto por Ana · opción B»: lo que ven los demás cuando alguien ya decidió. */
 function decResueltoTxt_(f) { return 'Resuelto por ' + (f.quien || 'el equipo') + (decOpcionTxt_(f) ? ' · ' + decOpcionTxt_(f) : ''); }
 
+/* Clave del mensaje del huésped: su id (si viene) o el texto normalizado, junto a la conversación. Sin texto, sin clave. */
+function decClave_(resId, ctx) {
+  ctx = ctx || {};
+  var m = String(ctx.msgId || ctx.msg_id || '').trim();
+  if (!m) {
+    var t = String(ctx.texto || ctx.pregunta || '').toLowerCase().replace(/\s+/g, ' ').trim(); if (!t) return '';
+    var h = 5381; for (var i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+    m = 't' + h.toString(36) + t.length.toString(36);
+  }
+  return String(resId) + '|' + m.slice(0, 120);
+}
 /* ── Disparo: anota el caso (sin IA). Una sola decisión viva por conversación. ── */
 /* esc (opcional, #446 T6): { asunto, texto } del escalamiento a quien está de turno. Ese WhatsApp ya no sale aparte: el
    aviso del caso lo lleva, con sus botones (decTextoWa_); si las opciones no salen, se manda el texto solo (decEscalarTexto_). */
@@ -64,7 +83,11 @@ function decisionCrear_(ctx, origen, motivo, esc) {
   if (!resId || /^op:/.test(resId)) return null;
   var soltar = decCandado_(); if (!soltar) return null;
   try {
-    var d = decFilas_(), viva = d.filas.filter(function (f) { return f.resId === resId && decViva_(f); }).pop();
+    var d = decFilas_(), clave = decClave_(resId, ctx), ahora = Date.now();
+    /* El mismo mensaje otra vez (reproceso de la cola, dos disparos): el mismo caso, aunque ya se haya resuelto. */
+    var mismo = clave ? d.filas.filter(function (f) { return f.resId === resId && f.clave === clave && ahora - Date.parse(f.creado) < DEC_CLAVE_MS_; }).pop() : null;
+    if (mismo) return { id: mismo.id, ya: true, mismo: true };
+    var viva = d.filas.filter(function (f) { return f.resId === resId && decViva_(f); }).pop();
     if (viva) return { id: viva.id, ya: true };
     var id = 'dc' + Date.now().toString(36) + Math.floor(Math.random() * 1e4);
     var c = { huesped: s_(ctx.huesped), propiedad: s_(ctx.propiedad), codigo: s_(ctx.codigo), idioma: s_(ctx.idioma), canal: s_(ctx.canal), wa: s_(ctx.wa),
@@ -73,26 +96,50 @@ function decisionCrear_(ctx, origen, motivo, esc) {
     if (esc && (esc.asunto || esc.texto)) c.esc = { asunto: String(esc.asunto || '').slice(0, 200), texto: String(esc.texto || '').slice(0, 1500) };
     d.sh.appendRow(DEC_CAB_.map(function (k) {
       return ({ id: id, resId: resId, creado: new Date().toISOString(), opciones: '', estado: 'abierta', quien: '', opcion: '', cuando: '', origen: String(origen || ''),
-        motivo: (String(motivo || ctx.razon || '') + (ctx.fuentesNota ? ' · ' + ctx.fuentesNota : '')).slice(0, 400), contexto: JSON.stringify(c), borrador: '', intentos: 0, enviado_por: '', enviado_ts: '' })[k];
+        motivo: (String(motivo || ctx.razon || '') + (ctx.fuentesNota ? ' · ' + ctx.fuentesNota : '')).slice(0, 400), contexto: JSON.stringify(c), borrador: '', intentos: 0, enviado_por: '', enviado_ts: '', clave: clave })[k];
     }));
     PropertiesService.getScriptProperties().setProperty('DEC_PEND', '1');
     return { id: id, ya: false };
   } finally { soltar(); }
 }
 
-/* ── procesarCola: las decisiones nuevas reciben sus opciones (IA) y se avisan (WhatsApp y chat con Alma). ── */
+/* ── procesarCola: las decisiones nuevas reciben sus opciones (IA) y se avisan (WhatsApp y chat con Alma). ──
+   La IA tarda y no se llama con el candado puesto (lo esperan las llamadas de voz): se reserva el caso con el candado,
+   se llama a la IA sin él, y con el candado otra vez se guarda y se marca «avisado» solo si la reserva sigue siendo suya. */
+function decReservaTs_(f) { var m = String(f.reserva || '').split('@')[1]; return m ? Date.parse(m) || 0 : 0; }
+function decReservar_(max) {
+  var soltar = decCandado_(); if (!soltar) return null;   // otra pasada lo tiene: ella se encarga
+  try {
+    var d = decFilas_(), ahora = Date.now(), tok = 'r' + ahora.toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+    var faltan = d.filas.filter(function (f) { return f.estado === 'abierta' && !f.opciones && !f.avisado && Number(f.intentos || 0) < 3; });
+    var mias = faltan.filter(function (f) { return !(ahora - decReservaTs_(f) < DEC_RESERVA_MS_); }).slice(0, max);
+    mias.forEach(function (f) { decGuardar_(d.sh, f, { reserva: tok + '@' + new Date(ahora).toISOString() }); });
+    return { tok: tok, mias: mias, faltan: faltan.length };
+  } finally { soltar(); }
+}
+/* Con el candado: si la reserva sigue siendo de esta pasada, aplica los cambios y devuelve la fila; si no, null. */
+function decSiEsMia_(id, tok, cambios) {
+  var soltar = decCandado_(); if (!soltar) return null;
+  try {
+    var x = decFila_(id), f = x.f;
+    if (!f || f.opciones || f.avisado || String(f.reserva || '').indexOf(tok + '@') !== 0) return null;
+    decGuardar_(x.sh, f, cambios);
+    return f;
+  } finally { soltar(); }
+}
 function decisionesProcesar_() {
   var P = PropertiesService.getScriptProperties(); if (P.getProperty('DEC_PEND') !== '1') return;
-  var d = decFilas_(), nuevas = d.filas.filter(function (f) { return f.estado === 'abierta' && !f.opciones && Number(f.intentos || 0) < 3; });
-  if (!nuevas.length) { P.deleteProperty('DEC_PEND'); return; }
-  nuevas.slice(0, 3).forEach(function (f) {
-    var ops = null; try { ops = decisionGenerar_(f); } catch (e) { console.error('decisionGenerar_: ' + e); }
+  var r = decReservar_(3); if (!r) return;
+  if (!r.faltan) { P.deleteProperty('DEC_PEND'); return; }
+  r.mias.forEach(function (f0) {
+    var ops = null; try { ops = decisionGenerar_(f0); } catch (e) { console.error('decisionGenerar_: ' + e); }
     if (!ops) {
-      decGuardar_(d.sh, f, { intentos: Number(f.intentos || 0) + 1 });
-      try { decEscalarTexto_(d.sh, f); } catch (e) { console.error('decEscalarTexto_: ' + e); }   // escalado: el equipo no espera a las opciones
+      var fx = decSiEsMia_(f0.id, r.tok, { intentos: Number(f0.intentos || 0) + 1, reserva: '' }); if (!fx) return;
+      try { decEscalarTexto_(hojaDec_(), fx); } catch (e) { console.error('decEscalarTexto_: ' + e); }   // escalado: el equipo no espera a las opciones
       return;
     }
-    decGuardar_(d.sh, f, { opciones: JSON.stringify(ops) });
+    var f = decSiEsMia_(f0.id, r.tok, { opciones: JSON.stringify(ops), avisado: new Date().toISOString() });
+    if (!f) { console.warn('decisionesProcesar_: ' + f0.id + ' ya lo avisó otra pasada'); return; }   // nunca dos avisos del mismo caso
     try { decisionAvisarWa_(f); } catch (e) { console.error('decisionAvisarWa_: ' + e); }
     try { decisionAvisarChat_(f); } catch (e) { console.error('decisionAvisarChat_: ' + e); }
   });

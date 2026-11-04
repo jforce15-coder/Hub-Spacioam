@@ -592,6 +592,8 @@ function decisionWaEntrante_(m, wa, ts) {
   if (!mb && !texto) return false;
   var citada = !mb && m.context && m.context.id ? decCitada_(m.context.id, marca) : '';
   if (!mb && !citada && !marca) return false;
+  /* Citó un relevo de contacto (relevo.js): es para esa persona, nunca para un caso de un huésped. */
+  if (!mb && !citada && m.context && m.context.id) { try { if (relevoCitado_(m.context.id)) return false; } catch (e) {} }
   var id = mb ? mb[1] : citada || marca.id, f = decFilas_().filas.filter(function (x) { return x.id === id; })[0];
   /* Un botón de un caso que ya se cerró (o tan viejo que ya no está en la hoja) no hace nada: una línea y listo (#446 T5B).
      En WhatsApp no se puede borrar el mensaje ya enviado; así sus botones dejan de estorbar. «Deshacer» de algo que ya

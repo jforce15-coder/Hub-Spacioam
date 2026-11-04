@@ -196,7 +196,11 @@ function personalNotar_(wa, quien, texto) {
 function personalAvisar_(rel, texto, resumen) {
   var adm = null; try { adm = rel.adm ? adminPorEmail_(rel.adm) : null; } catch (e) {}
   if (adm) { try { opGuardar_(adm, 'alma', 'whatsapp', texto, [{ tipo: 'mensaje', resumen: resumen }]); } catch (e) {} }
-  if (rel.dest) { var r = waEnviar_(rel.dest, texto); if (!(r && r.ok)) console.error('aviso personal: ' + (r && r.error)); }
+  if (rel.dest) {
+    var r = waEnviar_(rel.dest, texto); if (!(r && r.ok)) console.error('aviso personal: ' + (r && r.error));
+    /* Relevo de contacto: si lo responde citándolo, Alma sabe que es para esta persona (relevo.js). */
+    else { try { relevoGuardar_(r.id, rel.dest, { wa: rel.wa, nombre: rel.nombre, pedido: relevoPedido_(rel), tipo: 'personal', texto: texto }); } catch (e) { console.error('relevoGuardar_: ' + e); } }
+  }
 }
 
 /* La persona respondió (el mensaje guardado ya salió con waPendienteSoltar_).

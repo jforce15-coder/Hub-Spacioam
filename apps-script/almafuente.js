@@ -315,7 +315,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Hace lo que pide un administrador (mensajes, rutas, tareas, reservas, datos, música, vigilancias, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»."
+    "linea": "Hace lo que pide un administrador (mensajes, correos, rutas, tareas, reservas, datos, música, vigilancias, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»."
    },
    "lookup_reservation": {
     "canales": [

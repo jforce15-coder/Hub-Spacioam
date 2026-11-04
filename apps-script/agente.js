@@ -199,9 +199,11 @@ function agHerramientas_() {
     /* mejora_para_claude ya no está en el chat (T8, 3-nov-2026): lo que es Propósito · Desarrollo lo pide el sistema al
        cerrar el turno (chat.js, chatDesarrollo_), así que la herramienta y su regla «no la uses» gastaban ~3.500
        caracteres por turno. La voz pide con «Mejora para Claude: …» por secretaria (voz.js). */
-    T('leer_correo', 'Abre un correo completo de la bandeja del Hub (la cuenta que manda desde hola@spacioam.com; ahí llega lo que Juan reenvía) para leerlo o usar sus datos: «el correo de los vuelos que te reenvié», «la confirmación de Delta». Devuelve remitente, asunto, fecha y el texto. Para mandar sus datos a alguien, usa después mensaje_personal o enviar_correo con los datos tal cual.',
+    T('leer_correo', 'Abre un correo de la bandeja del Hub (ahí llega lo que Juan reenvía): el hilo entero, lo más reciente primero, sin historial citado ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, dale a Juan un resumen: de qué trata, qué piden y qué queda pendiente. Para mandar sus datos a alguien, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
       { buscar: s('Palabras para encontrarlo: remitente, asunto o algo del texto (ej. «Delta HP7BWP», «vuelos Bozeman»)') }, ['buscar']),
-    T('enviar_correo', 'Manda un correo a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
+    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, en el mismo hilo, desde hola@spacioam.com. Sin confirmado te da el borrador: muéstraselo a Juan COMPLETO (para, copia, asunto y texto) y espera su sí; con su sí, otra vez con confirmado = true y el mismo texto.',
+      { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
+    T('enviar_correo', 'Manda un correo NUEVO a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
       { nombre: s('Nombre de la persona'), relacion: s('Qué es de Juan: «esposa de Juan», «mamá de Juan»…'), numero: s('WhatsApp con código de país (opcional si ya hay conversación)') }, ['nombre', 'relacion']),
@@ -580,6 +582,12 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que lea correos.' };
       return correoLeer_(inp.buscar);
     }
+    case 'responder_correo': {   // correohilo.js: sin el sí de Juan en un mensaje nuevo, solo devuelve el borrador
+      if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que responda correos.' };
+      var rr = correoResponder_(adm, inp);
+      if (rr.enviado) ctx.hechas.push({ tipo: 'correo', resumen: 'Respuesta en el hilo a ' + rr.enviado_a + ' · ' + String(rr.asunto || '').slice(0, 60) });
+      return rr;
+    }
     case 'enviar_correo': {
       if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que mande correos.' };
       var paraC = String(inp.para || '').trim();
@@ -735,7 +743,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
         resultados.push({ type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, 4000) }]) });
         continue;
       }
-      resultados.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) });
+      resultados.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, u.name === 'leer_correo' ? 30000 : 12000), is_error: !!(res && res.error) });
     }
     msgs.push({ role: 'user', content: resultados });
   }
@@ -1007,24 +1015,4 @@ function correoSimple_(para, asunto, texto) {
   try { GmailApp.sendEmail(para, asunto, texto, o); } catch (e) { estado = 'error: ' + String(e).slice(0, 200); console.error('correoSimple_: ' + e); }
   try { hojaCrear_('ALMA_CORREOS', ['fecha', 'tipo', 'para', 'desde', 'asunto', 'propiedad', 'codigo', 'estado', 'texto', 'html']).appendRow([new Date().toISOString(), 'pedido de Juan', para, desde, asunto, '', '', estado, texto.slice(0, 4000), '']); } catch (e) {}
   return estado === 'enviado' ? { ok: true, enviado_a: para, desde: desde } : { error: 'No salió el correo: ' + estado };
-}
-
-/* leer_correo: el correo más reciente que coincide en la bandeja de la cuenta que corre el Hub (la que manda como
-   hola@spacioam.com). Primero la búsqueda tal cual; si no hay, cualquiera de sus palabras. Últimos 30 días. */
-function correoLeer_(q) {
-  q = String(q || '').replace(/["(){}]/g, ' ').replace(/\s+/g, ' ').trim(); if (!q) return { error: 'Dime qué correo busco.' };
-  var cuenta = ''; try { cuenta = Session.getEffectiveUser().getEmail(); } catch (e) {}
-  var hilos = [];
-  try { hilos = GmailApp.search(q + ' newer_than:30d', 0, 5); } catch (e) { return { error: 'No pude buscar en el correo: ' + String(e).slice(0, 150) }; }
-  var pal = q.split(' ').filter(function (w) { return w.length > 2; }).slice(0, 6);
-  if (!hilos.length && pal.length > 1) { try { hilos = GmailApp.search('{' + pal.join(' ') + '} newer_than:30d', 0, 5); } catch (e) {} }
-  if (!hilos.length) {   // también en archivados, spam y papelera, y solo por el código o la palabra más rara
-    var largo = pal.slice().sort(function (a, b) { return b.length - a.length; })[0] || q;
-    try { hilos = GmailApp.search('in:anywhere ' + largo + ' newer_than:30d', 0, 5); } catch (e) {}
-  }
-  if (!hilos.length) return { error: 'No encuentro ese correo en la bandeja del Hub, que es la cuenta ' + cuenta + ' (busqué «' + q + '» en los últimos 30 días, también en archivo y spam). Dile a Juan exactamente esto: que lo que llega a hola@spacioam.com no está entrando a ' + cuenta + ', y que lo reenvíe a ' + cuenta + ' o te mande una captura del correo por WhatsApp (ya puedes leer capturas).' };
-  var ms = hilos[0].getMessages(), m = ms[ms.length - 1];
-  var txt = String(m.getPlainBody() || '').replace(/\r/g, '').replace(/<https?:[^>\s]+>/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  return { ok: true, cuenta: cuenta, de: m.getFrom(), asunto: m.getSubject(), fecha: Utilities.formatDate(m.getDate(), CFG.TZ, 'yyyy-MM-dd HH:mm'), texto: txt.slice(0, 3200),
-    recortado: txt.length > 3200, otros: hilos.slice(1).map(function (h) { return h.getFirstMessageSubject(); }) };
 }

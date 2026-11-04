@@ -112,3 +112,6 @@ jobs:
         run: node .github/respuesta-fuentes.js apps-script
       - name: Salas Priority Pass, filtro por terminal y caché de 30 días (dobles de la búsqueda y de la hoja)
         run: node .github/salas-pp.js apps-script
+      - name: Responder en el hilo, reenvíos de Gmail, iPhone y Outlook, nada sale sin el sí y adjuntos por el modelo (dobles)
+        # 4-nov: Juan reenvía a Alma el correo de un socio y le dice qué contestar; la respuesta va al socio, en su hilo.
+        run: node .github/correo-hilo.js apps-script

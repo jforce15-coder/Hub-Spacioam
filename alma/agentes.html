@@ -24,7 +24,7 @@
   .redondo svg { width: 20px; height: 20px; }
   /* organigrama: Alma arriba, sus agentes debajo */
   .org { position: relative; margin: 18px 0 8px; }
-  .alma { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 26px; }
+  .alma { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 26px; }
   .piedra { width: 64px; height: 64px; border-radius: 50%; position: relative; display: grid; place-items: center;
     background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 45%, #E4DFD9 80%, #D3CDC6 100%);
     box-shadow: 0 16px 24px -12px rgba(40,28,24,.42), inset 0 -6px 10px rgba(110,90,80,.12), inset 0 4px 8px rgba(255,255,255,.8); }
@@ -33,7 +33,7 @@
   .piedra svg { width: 22px; height: 22px; color: #CBC4BC; filter: drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32)); }
   .alma b { font: 400 22px Valky, Georgia, serif; }
   .alma span { font: 500 12px Montserrat, sans-serif; color: var(--suave); margin-top: -6px; }
-  .alma::after { content: ""; position: absolute; left: 50%; top: 104px; width: 1px; height: 14px; background: var(--linea); }
+  .alma::after { content: ""; position: absolute; left: 50%; top: calc(100% + 6px); width: 1px; height: 14px; background: var(--linea); }
   .equipo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 520px) { .equipo { grid-template-columns: 1fr; } }
   .ag { background: #fff; border-radius: 22px; padding: 16px; box-shadow: 0 22px 44px -30px rgba(70,50,40,.45); display: flex; flex-direction: column; gap: 8px; }
@@ -41,13 +41,14 @@
   .ag .arr { display: flex; align-items: center; gap: 8px; }
   .ag h3 { margin: 0; flex: 1; font: 400 21px/1.1 Valky, Georgia, serif; }
   .ag .rol { font: 500 12px Montserrat, sans-serif; color: var(--suave); margin-top: -4px; }
-  .chip { font: 600 10px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 9px 12px; min-height: 32px; border-radius: 999px; border: 0; cursor: pointer; }
+  .chip { font: 600 10px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; padding: 9px 12px; min-height: 32px; border-radius: 999px; border: 0; cursor: pointer; position: relative; }
+  .chip::after { content: ""; position: absolute; inset: -6px 0; }   /* se ve de 32 px, se toca en 44 px */
   .chip.on { background: #E6EFE3; color: #4E7A4C; } .chip.off { background: #EFEBE6; color: #8A8580; }
   .meta { font: 500 12px Montserrat, sans-serif; color: var(--suave); }
   .barra { height: 4px; border-radius: 2px; background: #EFEBE6; overflow: hidden; } .barra i { display: block; height: 100%; background: var(--durazno); border-radius: 2px; }
   .inf { font: 500 13px/1.5 Montserrat, sans-serif; color: #5A5856; white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
   .inf.abierto { -webkit-line-clamp: unset; }
-  .btn { align-self: flex-start; font: 600 12.5px Montserrat, sans-serif; padding: 9px 14px; border-radius: 14px; border: 0; cursor: pointer; background: #F3EFEA; color: var(--tinta); }
+  .btn { align-self: flex-start; font: 600 12.5px Montserrat, sans-serif; padding: 9px 14px; min-height: 44px; border-radius: 14px; border: 0; cursor: pointer; background: #F3EFEA; color: var(--tinta); }
   .btn:disabled { opacity: .55; }
   .btn.si { background: var(--durazno); color: #fff; } .btn.no { background: #F3EFEA; }
   .sec { margin: 28px 4px 10px; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #A39B93; display: flex; align-items: center; gap: 10px; }
@@ -59,7 +60,7 @@
   .prop .bt { display: flex; gap: 8px; }
   .vacio { text-align: center; padding: 18px; font: 500 13.5px Montserrat, sans-serif; color: #A39B93; }
   .pb { font: 500 12.5px/1.5 Montserrat, sans-serif; color: #5A5856; }
-  .pb summary { cursor: pointer; font-weight: 600; color: var(--durazno-t); list-style: none; min-height: 32px; display: flex; align-items: center; }
+  .pb summary { cursor: pointer; font-weight: 600; color: var(--durazno-t); list-style: none; min-height: 44px; display: flex; align-items: center; }
   .pb summary::-webkit-details-marker { display: none; }
   .pb-f { margin: 6px 0 2px; } .pb-f b { display: block; font: 600 10px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #A39B93; } .pb-f span { white-space: pre-line; }
   .msg { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
@@ -96,7 +97,7 @@
   var D = null;
   function pintar() {
     var eq = $("equipo"); eq.innerHTML = "";
-    D.agentes.forEach(function (a) {
+    (D.agentes || []).forEach(function (a) {
       var c = el("div", "ag" + (a.estado === "pausado" ? " pausado" : ""));
       var arr = el("div", "arr"); arr.appendChild(el("h3", "", a.nombre));
       var ch = el("button", "chip " + (a.estado === "pausado" ? "off" : "on"), a.estado === "pausado" ? "Pausado" : "Activo"); ch.type = "button";
@@ -107,7 +108,7 @@
       if (a.tipo === "claude") c.appendChild(el("div", "meta", a.app ? "Subdepartamento de Desarrollo · dueño de " + a.app + " · trabaja con Claudio y te deja su PR en Pendientes" : "Coordina los subdepartamentos (uno por app) y cada dos semanas hace la retro"));
       else if (a.tipo === "archivo") c.appendChild(el("div", "meta", "Solo ordena · lo ves en tus áreas y en los cajones Ideas, Interés y Ocio"));
       else { var pct = a.presupuesto_usd ? Math.min(100, a.gasto_mes / a.presupuesto_usd * 100) : 0, b = el("div", "barra"), i = el("i"); i.style.width = pct.toFixed(1) + "%"; b.appendChild(i); c.appendChild(b);
-        c.appendChild(el("div", "meta", "US$" + a.gasto_mes.toFixed(2) + " de US$" + a.presupuesto_usd + " este mes")); }
+        c.appendChild(el("div", "meta", "US$" + (+a.gasto_mes || 0).toFixed(2) + " de US$" + a.presupuesto_usd + " este mes")); }
       /* su playbook: pasos, reglas (las tuyas incluidas) y lo que revisa antes de entregar */
       if (a.pasos || a.reglas || a.listo) {
         var pbk = el("details", "pb"), sm = el("summary", "", "Su playbook"); pbk.appendChild(sm);

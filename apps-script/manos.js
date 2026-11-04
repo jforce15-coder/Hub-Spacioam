@@ -13,7 +13,8 @@ function vozManosHerramientas_() {
   var b = function (d) { return { type: 'boolean', description: d }; };
   var cliente = function (nombre, segundos, descripcion, props, requeridos) {
     return { type: 'client', name: nombre, expects_response: true, response_timeout_secs: segundos, description: descripcion,
-      parameters: { type: 'object', required: requeridos || [], properties: props || {} }, disable_interruptions: false, force_pre_tool_speech: false };
+      parameters: { type: 'object', required: requeridos || [], properties: props || {} }, disable_interruptions: false,
+      pre_tool_speech: 'off', force_pre_tool_speech: false };   // sin frase antes (#446 T7: «Déjame revisar tu cuenta…» antes de abrir)
   };
   var solo = ' Úsala SOLO si la FICHA DE QUIEN LLAMA dice «NAVEGADOR DE ALMA».';
   return [

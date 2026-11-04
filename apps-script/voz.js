@@ -512,7 +512,7 @@ function vozMostrarEnChat_() {
     parameters: { type: 'object', required: ['titulo', 'contenido'], properties: {
       titulo: { type: 'string', description: 'Título corto de lo que se muestra (p. ej. «Tu viaje a Miami»).' },
       contenido: { type: 'string', description: 'La información completa en markdown: listas con «- », pasos con «1. », tablas con «| a | b |», negritas con **…**, una idea por línea (horas, fechas, montos y nombres exactos).' } } },
-    disable_interruptions: false, force_pre_tool_speech: false };
+    disable_interruptions: false, pre_tool_speech: 'off', force_pre_tool_speech: false };   // sin anuncio que agregue ElevenLabs: la frase la dice el modelo (#446 T7)
 }
 /* Medidor de personalidad en vivo (#410): herramienta de CLIENTE que Alma llama en silencio cuando su nivel de Modo Weebo
    cambia (weeboVozBloque_). La app lo muestra en el chip «✨ Weebo N» con ▲/▼; no espera respuesta ni dice nada antes. */
@@ -540,7 +540,7 @@ var VOZ_SISTEMA_DESC_ = {
 
 /* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Sin frase antes: pre_tool_speech 'off' y el tecleo
    cubre la espera (Juan, 3-nov-2026: «solo deberíamos confirmar cuando ya se hizo»). */
-var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Llámala sin anunciarla: no digas nada antes (suena el tecleo), no repitas el pedido ni digas a quién se lo pasas. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»): confirma solo lo que esta herramienta diga que se hizo.';
+var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Llámala sin anunciarla: no digas nada antes (suena el tecleo), no repitas el pedido ni digas a quién se lo pasas. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»): confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };

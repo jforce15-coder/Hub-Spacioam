@@ -449,6 +449,7 @@ function chatHilo_(ses, b) {
   if (!obj) return { ok: false, error: 'Solo el administrador principal ve el chat de otra persona.' };
   if (esAdminPrincipal_(yo)) { try { chatMigrarDesarrollo_(); } catch (e) { console.error('chatMigrarDesarrollo_: ' + e); } }
   var p = chatPagina_(opFilas_(obj.email, 3000), b);
+  try { p.mensajes = decChatSinOpciones_(p.mensajes); } catch (e) { console.error('decChatSinOpciones_: ' + e); }   // casos ya cerrados: sin sus opciones (decisiones.js)
   return { ok: true, usuario: obj.email, nombre: obj.nombre, tieneWA: (obj.tels || []).length > 0, mensajes: p.mensajes, conteo: p.conteo, hayMas: p.hayMas, antes: p.antes };
 }
 /* Una página del chat: los n mensajes (40 por defecto, máx. 200) antes de «antes» (id de un mensaje o fecha ISO),

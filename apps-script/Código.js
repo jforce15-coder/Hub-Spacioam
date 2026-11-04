@@ -148,7 +148,11 @@ function doPost(e) {
     try { cacheEntrante_(convId, d); } catch (x) {}
     if (String(convId).indexOf('inq:') === 0) { try { guardarMsgInq_(convId, d); } catch (x) { console.error('guardarMsgInq_: ' + x); } }
     if (String(d.sender_type || '').toLowerCase() === 'guest') { try { let pn = {}; try { pn = preContexto_(convId); } catch (x) {} const sn = d.sender || {}; pushNuevo_(convId, pn.huesped || [s_(sn.first_name), s_(sn.last_name)].filter(Boolean).join(' ') || s_(sn.full_name), pn.propiedad, s_(d.body) || (d.attachments && d.attachments.length ? 'Envió una foto' : '')); } catch (x) { console.error('pushNuevo hosp: ' + x); } }
-    if (String(d.sender_type || '').toLowerCase() !== 'guest') { try { if (d.source !== 'automated') observarHumano_(convId, s_(d.body)); } catch (x) { console.error('observarHumano_: ' + x); } return ok_('bandeja: mensaje nuestro'); }
+    if (String(d.sender_type || '').toLowerCase() !== 'guest') {
+      try { if (d.source !== 'automated') observarHumano_(convId, s_(d.body)); } catch (x) { console.error('observarHumano_: ' + x); }
+      try { decisionHumanoHosp_(convId, d); } catch (x) { console.error('decisionHumanoHosp_: ' + x); }   // le contestaron fuera del Hub: el caso se cierra (decisiones.js)
+      return ok_('bandeja: mensaje nuestro');
+    }
     const fotos = adjuntos_(d.attachments);
     const texto = s_(d.body) || (fotos.length ? '[el huésped envió una imagen]' : '');
     if (!texto) return ok_('ignorado: vacío');
@@ -2428,20 +2432,25 @@ function escalar_(asunto, texto, o) {
   o = o || {};
   /* Informativo (sinWa): notificación del Hub y correo, sin WhatsApp. */
   if (o.sinWa) { const tn = deTurno_(); pushA_(tn.length ? tn.map(p => p.email).filter(Boolean) : null, asunto, texto); tn.forEach(p => { if (p.email) { try { correo_(p.email, asunto, texto); } catch (e) {} } }); return; }
+  /* waPorDecision (#446 T6): el WhatsApp lo manda el aviso del caso con sus botones (decisiones.js); aquí, push y correo. */
   const turno = deTurno_();
-  if (!turno.length) { pushA_(null, asunto, texto); return notificar_(CFG.WHATSAPP_NOCTURNO, asunto + ' · sin nadie de turno', texto); }
+  if (!turno.length) { pushA_(null, asunto, texto); return notificar_(o.waPorDecision ? '' : CFG.WHATSAPP_NOCTURNO, asunto + ' · sin nadie de turno', texto); }
   pushA_(turno.map(p => p.email).filter(Boolean), asunto, texto);
   turno.forEach(p => {
     if (p.email) { try { correo_(p.email, asunto, texto); } catch (e) { console.error('escalar email: ' + e); } }
-    waEnviar_(p.telefono, asunto + '\n\n' + texto);
+    if (!o.waPorDecision) waEnviar_(p.telefono, asunto + '\n\n' + texto);
   });
 }
 function avisarRojo_(ctx, asunto, texto, sinWa) {
   if (sinWa) { pushA_(null, asunto, texto); return; }   // seguimiento de un ROJO ya avisado: no repite el WhatsApp
-  try { decisionCrear_(ctx, ctx && ctx.escalar ? 'escalado' : 'rojo', (ctx && (ctx.motivoEscalar || ctx.razon)) || ''); } catch (e) { console.error('decisionCrear_ rojo: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
+  /* Escalado (#446 T6): el WhatsApp a quien está de turno lo lleva el aviso del caso, con sus botones A/B/C (decisiones.js,
+     en la misma pasada de procesarCola). Aquí solo salen el push y el correo; si el caso ya estaba abierto, todo como antes. */
+  const textoEsc = ctx && ctx.escalar ? texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente') : '';
+  let dc = null;
+  try { dc = decisionCrear_(ctx, ctx && ctx.escalar ? 'escalado' : 'rojo', (ctx && (ctx.motivoEscalar || ctx.razon)) || '', ctx && ctx.escalar ? { asunto: asunto, texto: textoEsc } : null); } catch (e) { console.error('decisionCrear_ rojo: ' + e); }   // opciones A/B/C para el equipo (decisiones.js)
   /* Notificación de nivel 1 (urgente) a la app del principal (calle.js): un huésped espera al equipo. */
   try { const jefe = chatPrincipal_(); if (jefe) vozAvisoPoner_(jefe, 'Un huésped' + (ctx && ctx.propiedad ? ' del ' + ctx.propiedad : '') + ' necesita al equipo' + (ctx && ctx.escalar ? ': está escalado' : ': está en rojo') + '.', '', { nivel: 1 }); } catch (e) { console.error('avisarRojo_ aviso: ' + e); }
-  if (ctx && ctx.escalar) return escalar_(asunto, texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente'));
+  if (ctx && ctx.escalar) return escalar_(asunto, textoEsc, { waPorDecision: !!(dc && dc.id && !dc.ya) });
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   pushA_(null, asunto, texto);
 }
@@ -5140,7 +5149,8 @@ function opEjecutar_(adm, acciones, cfg, props) {
 /* filtro = { esfera, subcategoria } opcional (p. ej. solo Propósito · Desarrollo para las apps viejas). */
 function opHiloHub_(email, filtro) {
   const adm = adminPorEmail_(email), fe = filtro && filtro.esfera, fs = filtro && filtro.subcategoria;
-  const filas = opFilas_(String(email || '').toLowerCase(), 3000).filter(m => (!fe || (m.esfera || 'Propósito') === fe) && (!fs || m.subcategoria === fs)).slice(-300);
+  let filas = opFilas_(String(email || '').toLowerCase(), 3000).filter(m => (!fe || (m.esfera || 'Propósito') === fe) && (!fs || m.subcategoria === fs)).slice(-300);
+  try { filas = decChatSinOpciones_(filas); } catch (e) { console.error('decChatSinOpciones_: ' + e); }   // casos ya cerrados: sin sus opciones (decisiones.js)
   const ICON = { tarea: 'Tarea creada', hecha: 'Tarea cerrada', comentario: 'Comentario', epi: 'Agendado en Epi', nota: 'Nota guardada' };
   const out = filas.map(m => ({ tipo: m.de === 'alma' ? 'guest' : 'host', auto: false, alma: false, nombre: m.de === 'alma' ? 'ALMA' : (adm ? adm.nombre : ''), canal: m.canal === 'whatsapp' ? 'whatsapp' : 'hospitable',
     texto: m.texto + ((m.acciones || []).length ? '\n\n' + m.acciones.map(a => '· ' + (a.error ? 'No se pudo · ' : (ICON[a.tipo] || 'Hecho') + ' · ') + a.resumen + (a.error ? ' (' + a.error + ')' : '')).join('\n') : ''),

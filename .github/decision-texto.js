@@ -6,7 +6,12 @@
    4. «no era para Alejandra» detiene la salida, el caso vuelve a esperar, Alma dice una línea y el texto desviado
       vuelve a entrar como pedido normal; después, el texto sin citar ya no va al caso hasta que citen o toquen una opción;
    5. los botones A/B/C y «Deshacer» siguen igual;
-   6. el aviso dice «Para otra respuesta, responde a este mensaje.» y Alma recibe el caso pendiente como contexto.
+   6. el aviso dice «Para otra respuesta, responde a este mensaje.» y Alma recibe el caso pendiente como contexto;
+   7. (#446 T5B) un caso que se cerró por otro lado (respuesta propia, Hub, resuelto): sus botones viejos dicen
+      «Ese caso ya quedó resuelto.» y no hacen nada, el Hub ya no recibe sus opciones y el chat con Alma las quita;
+      un mensaje del equipo desde Airbnb o Hospitable lo cierra, uno de Alma (public_api) no;
+   8. (#446 T6) un escalado a quien está de turno sale UNA vez, con los botones A/B/C, y su elección vuelve al caso igual
+      que la de Juan (con «Deshacer»); si las opciones no salen, el escalamiento sale igual en texto, una sola vez.
    node .github/decision-texto.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -51,7 +56,9 @@ function caja(clasificaSi) {
     adminPorTel_: w => (w === JUAN ? { nombre: 'Juan Prueba', email: 'juan@prueba', tels: [JUAN], principal: true } : null),
     adminsOp_: () => [{ nombre: 'Juan Prueba', email: 'juan@prueba', tels: [JUAN], principal: true }],
     opActivo_: () => true, opWaProgramar_() {},
-    claude_: (modelo, max, sys, usr) => { clasif.push(usr); return clasificaSi(usr) ? '{"caso": true}' : '{"caso": false}'; },
+    claude_: (modelo, max, sys, usr) => { if (modelo === 'redactor') return ctx._redactor ? ctx._redactor() : ''; clasif.push(usr); return clasificaSi(usr) ? '{"caso": true}' : '{"caso": false}'; },
+    opGuardar_: () => ({}), esAutoHosp_: m => /automat/.test(String(m.source || '')), esContencion_: () => false,
+    preContexto_: () => ({ codigo: 'HM1' }), textosAlma_: () => ['Texto que mandó Alma'],
     hubRedactar_: (resId, t) => ({ ok: true, texto: 'Pulido: ' + t }),
     hubResponder_: () => ({ ok: true }),
     formatearMensaje_: t => t, limpiarSalida_: t => ({ texto: t }), estilo_: () => ''
@@ -137,5 +144,80 @@ const DIANA = 'Escríbele a diana de casa sol +502 5555 0101\n\nElla es la socia
   ok(rd === true && caso(c).sale_estado === 'deshecho' && c.enviados.pop().texto === 'Listo, no lo mandé.', '«Deshacer»: no sale, como antes');
   const rb = c.ctx.decisionWaEntrante_(boton('dec:dc1:C', 'No apareció'), JUAN, '');
   ok(rb === true && caso(c).opcion === 'C' && caso(c).sale_estado === 'programado', 'botón C después de deshacer: sale la C'); }
+
+/* 7 · #446 T5B: el caso se cerró por otro lado y los botones viejos ya no estorban. */
+{ const c = caja(() => false);
+  conCaso(c);
+  c.ctx.decisionAlResponder_('res-1', 'Juan');   // Juan le contestó a Alejandra desde el Hub
+  ok(caso(c).estado === 'enviada', 'responder desde el Hub cierra el caso');
+  const r = c.ctx.decisionWaEntrante_(boton('dec:dc1:B', 'Seguimos buscando'), JUAN, '');
+  const linea = c.enviados.pop();
+  ok(r === true && linea && linea.texto === 'Ese caso ya quedó resuelto.' && caso(c).opcion !== 'B' && !caso(c).sale_estado, 'botón viejo: «Ese caso ya quedó resuelto.» y no elige nada');
+  const rd = c.ctx.decisionWaEntrante_(boton('dec:dc1:deshacer', 'Deshacer'), JUAN, '');
+  ok(rd === true && c.enviados.pop().texto === 'Ese caso ya quedó resuelto.', '«Deshacer» viejo (nada estaba por salir): la misma línea');
+  const rx = c.ctx.decisionWaEntrante_(boton('dec:dcviejo:A', 'Algo'), JUAN, '');
+  ok(rx === true && c.enviados.pop().texto === 'Ese caso ya quedó resuelto.', 'botón de un caso que ya no está en la hoja: la misma línea');
+  const pub = c.ctx.decisionLeer_('res-1');
+  ok(pub && pub.opciones.length === 0 && pub.estado === 'enviada', 'el Hub ya no recibe sus opciones (la tarjeta no se pinta)');
+  const aviso = { de: 'alma', ts: new Date().toISOString(), texto: c.ctx.decTextoChat_(Object.assign({}, caso(c), { opciones: JSON.stringify(OPS) })) };
+  const otro = { de: 'alma', ts: aviso.ts, texto: 'Hola' };
+  const sin = c.ctx.decChatSinOpciones_([aviso, otro]);
+  ok(!/\[\[opciones\]\]/.test(sin[0].texto) && /Ese caso ya quedó resuelto\./.test(sin[0].texto) && /Alejandra/.test(sin[0].texto) && sin[1] === otro, 'chat con Alma: el aviso queda sin opciones, con la línea');
+  ok(/\[\[opciones\]\]/.test(aviso.texto), 'la fila guardada no se toca (solo se limpia al leer)'); }
+
+{ const c = caja(() => false);
+  conCaso(c);
+  const sh = c.ctx.hojaDec_(); sh.filas[1][c.ctx.DEC_CAB_.indexOf('creado')] = new Date(Date.now() - 10 * 60000).toISOString();
+  const vivo = { aviso: { de: 'alma', ts: new Date().toISOString(), texto: c.ctx.decTextoChat_(caso(c)) } };
+  ok(/\[\[opciones\]\]/.test(c.ctx.decChatSinOpciones_([vivo.aviso])[0].texto), 'caso abierto: el chat conserva sus opciones');
+  const ahora = new Date().toISOString();
+  ok(c.ctx.decisionHumanoHosp_('res-1', { sender_type: 'host', source: 'public_api', body: 'Hola Alejandra', created_at: ahora }) === false && caso(c).estado === 'abierta', 'Hospitable: lo que sale por la API (Alma o el Hub) no lo cierra');
+  ok(c.ctx.decisionHumanoHosp_('res-1', { sender_type: 'host', source: 'automated', body: 'Recordatorio', created_at: ahora }) === false, 'Hospitable: un automático no lo cierra');
+  ok(c.ctx.decisionHumanoHosp_('res-1', { sender_type: 'host', source: 'platform', body: 'Texto que mandó Alma', created_at: ahora }) === false, 'Hospitable: un texto que ya mandó Alma no lo cierra');
+  ok(c.ctx.decisionHumanoHosp_('res-1', { sender_type: 'host', source: 'platform', body: 'Hola Alejandra, la encontramos', created_at: ahora }) === true && caso(c).estado === 'enviada', 'Hospitable: Juan le contestó desde Airbnb → el caso se cierra');
+  const r = c.ctx.decisionWaEntrante_(boton('dec:dc1:A', 'Biblia encontrada'), JUAN, '');
+  ok(r === true && c.enviados.pop().texto === 'Ese caso ya quedó resuelto.', 'y su botón ya no hace nada'); }
+
+{ const c = caja(() => false);   // ya había salido: «Deshacer» sigue diciendo «Ya había salido.»
+  conCaso(c);
+  c.ctx.hubResponder_ = resId => { c.ctx.decisionAlResponder_(resId, 'Juan'); return { ok: true }; };   // como el de verdad: cierra el caso
+  c.ctx.decisionWaEntrante_(boton('dec:dc1:A', 'Biblia encontrada'), JUAN, '');
+  const sh = c.ctx.hojaDec_(); sh.filas[1][c.ctx.DEC_CAB_.indexOf('sale_ts')] = new Date(Date.now() - 1000).toISOString();
+  c.props.DEC_SALE = String(Date.now() - 1000);
+  ok(c.ctx.decisionesSalir_() === 1 && caso(c).estado === 'enviada' && caso(c).sale_estado === 'enviado', 'la opción A salió al minuto');
+  c.enviados.length = 0;
+  c.ctx.decisionWaEntrante_(boton('dec:dc1:deshacer', 'Deshacer'), JUAN, '');
+  ok(c.enviados.pop().texto === 'Ya había salido.', '«Deshacer» después de salir: «Ya había salido.»'); }
+
+/* 8 · #446 T6: escalado a quien está de turno, con botones. */
+const ANA = '50255550200';   // número de prueba
+function cajaTurno(redactor) {
+  const c = caja(() => false);
+  c.ctx.deTurno_ = () => [{ telefono: ANA, nombre: 'Ana', email: 'ana@prueba' }];
+  c.ctx.escalamiento_ = () => [{ telefono: ANA, nombre: 'Ana' }];
+  c.ctx._redactor = redactor;
+  c.ctx.decisionCrear_({ resId: 'res-9', huesped: 'Marta', propiedad: 'Z10 - Ignacio - 301', texto: 'No hay agua caliente', hiloTexto: '[HUÉSPED] No hay agua caliente' }, 'escalado', 'Sin agua caliente',
+    { asunto: 'ALMA ROJO · Z10 - Ignacio - 301', texto: 'Huésped: Marta\nMotivo: sin agua caliente\n\nEscalado por ALMA · motivo: urgente' });
+  c.ctx.decisionesProcesar_();
+  return c;
+}
+{ const c = cajaTurno(() => JSON.stringify({ opciones: OPS.map(o => Object.assign({}, o, { mensaje: o.mensaje.replace('Alejandra', 'Marta') })) }));
+  const avisos = c.enviados.filter(e => e.tipo === 'botones'), textos = c.enviados.filter(e => e.tipo === 'texto');
+  ok(avisos.length === 1 && !textos.length, 'el escalado sale una sola vez a quien está de turno, con botones (sin el texto aparte)');
+  ok(/^Alma necesita al equipo · Marta · Z10 - Ignacio - 301/.test(avisos[0].texto) && avisos[0].botones.length === 3, 'el aviso dice que Alma necesita al equipo y trae A/B/C: «' + avisos[0].texto.split('\n')[0] + '»');
+  ok(!!JSON.parse(caso(c).contexto).esc_av, 'queda anotado que el escalamiento ya salió');
+  c.enviados.length = 0;
+  const r = c.ctx.decisionWaEntrante_(boton('dec:' + caso(c).id + ':B', 'Seguimos buscando'), ANA, '');
+  const salida = c.enviados.filter(e => e.tipo === 'botones').pop();
+  ok(r === true && caso(c).opcion === 'B' && caso(c).sale_estado === 'programado' && caso(c).sale_wa === ANA && /Sale en 1 minuto para Marta/.test(salida.texto), 'Ana toca B: sale al minuto para Marta, como cuando elige Juan');
+  ok(caso(c).quien === 'Ana', 'queda «Resuelto por Ana»');
+  const rd = c.ctx.decisionWaEntrante_(boton('dec:' + caso(c).id + ':deshacer', 'Deshacer'), ANA, '');
+  ok(rd === true && caso(c).sale_estado === 'deshecho' && c.enviados.pop().texto === 'Listo, no lo mandé.', 'y Ana puede deshacerlo'); }
+
+{ const c = cajaTurno(() => 'no es JSON');   // la IA no dio opciones
+  const textos = c.enviados.filter(e => e.tipo === 'texto');
+  ok(textos.length === 1 && /^ALMA ROJO · Z10 - Ignacio - 301/.test(textos[0].texto) && /hub\.prueba\/\?conv=res-9/.test(textos[0].texto), 'sin opciones: el escalamiento sale igual, en texto');
+  c.ctx.decisionesProcesar_();
+  ok(c.enviados.filter(e => e.tipo === 'texto').length === 1, 'y no se repite en el siguiente intento'); }
 
 process.exit(fallo);

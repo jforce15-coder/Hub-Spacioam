@@ -3261,6 +3261,9 @@ function hubApi_(body) {
       case 'waNumeros': return json_({ ok: true, numeros: telsReserva_(body.resId) });
       case 'resolver': return json_(hubResolver_(body.key, body.estado, body.quien, body.ts));
       case 'reservaInfo': return json_(hubReservaInfo_(body.resId));
+      case 'calendarioProps': return json_(calpApi_(ses));                                  // bloque Calendario: las propiedades libres por fecha y zona (calprops.js)
+      case 'calendarioVisto': return json_(calpVisto_(ses, body.propiedad, body.por));        // abriste una propiedad → sube en tus Recientes
+      case 'calendarioProp': return json_(calpPropCal_(body.propiedad));                      // el calendario de Hospitable de UNA propiedad (bloqueos, estadía mínima)
       case 'programados': return json_(hubProgramados_(body.resId));
       case 'programar': return json_(hubProgramar_(body.resId, body.texto, body.envio, body.quien));
       case 'adelantar': return json_(hubAdelantar_(body.resId, body.id, body.texto));
@@ -4033,12 +4036,8 @@ function hubReservaInfo_(resId) {
   if (pid) {
     const c = hosp_('get', '/properties/' + pid + '/calendar?start_date=' + ini + '&end_date=' + fin);
     const cd = (c.json && c.json.data) || {}, lista = Array.isArray(cd) ? cd : (cd.days || []);
-    dias = lista.map(x => {
-      const st = x.status, disp = st && typeof st === 'object' ? st.available !== false : /avail/i.test(String(st || x.available));
-      const razon = String((st && st.reason) || st || '').toUpperCase();
-      const pr = x.price && typeof x.price === 'object' ? Number(x.price.amount) : Number(x.price);
-      return { fecha: s_(x.date).slice(0, 10), libre: !!disp, razon: disp ? 'LIBRE' : /RESERV|BOOK/.test(razon) ? 'RESERVADO' : 'BLOQUEADO', precio: isNaN(pr) ? null : pr / 100 };
-    }).filter(x => x.fecha);
+    dias = lista.map(calpDia_).filter(x => x.fecha);   // calprops.js: también la estadía mínima y si se puede entrar ese día
+    try { calpGuardarDias_(s_(prop.name || prop.public_name), dias); } catch (e) {}
   }
   const cur = s_((d.financials && d.financials.currency) || d.currency || 'USD');
   const linea = (k, o) => { if (!o || typeof o !== 'object') return null; const a = Number(o.amount); if (isNaN(a) && !o.formatted) return null; return { label: s_(o.label || o.name) || k, monto: isNaN(a) ? null : a / 100, txt: s_(o.formatted) }; };
@@ -4061,7 +4060,11 @@ function hubReservaInfo_(resId) {
     const noches = dias.filter(x => x.fecha >= ci && x.fecha < co && x.precio != null);
     if (noches.length) { const t = noches.reduce((a, x) => a + x.precio, 0); ingreso = { estimado: true, moneda: cur, noches: noches.length, host: { lineas: [{ label: noches.length + (noches.length === 1 ? ' noche' : ' noches'), monto: t }], total: { label: 'Total', monto: t } }, guest: null }; }
   }
-  return { ok: true, tipo: inq ? 'consulta' : 'reserva', codigo: s_(d.code || d.reservation_code || d.confirmation_code || ''), propiedad: s_(prop.name || prop.public_name), checkin: ci, checkout: co, inicio: ini, fin: fin, dias: dias, ingreso: ingreso, plataforma: s_(d.platform) };
+  /* T3 (#446): las estadías de la propiedad con su nombre (hoja Reservas y consultas) y las horas de entrada y salida. */
+  let estadias = []; try { estadias = calpEstadiasProp_(s_(prop.name || prop.public_name), ini, fin, id, ci, co); } catch (e) { console.error('calpEstadiasProp_: ' + e); }
+  const hora = v => { const m = s_(v).match(/T(\d\d:\d\d)/); return m && m[1] !== '00:00' ? m[1] : ''; };
+  return { ok: true, tipo: inq ? 'consulta' : 'reserva', codigo: s_(d.code || d.reservation_code || d.confirmation_code || ''), propiedad: s_(prop.name || prop.public_name), checkin: ci, checkout: co, inicio: ini, fin: fin, dias: dias, ingreso: ingreso, plataforma: s_(d.platform),
+    estadias: estadias, horaIn: hora(d.check_in || d.arrival_date), horaOut: hora(d.check_out || d.departure_date) };
 }
 function hubHilo_(resId) {
   if (!resId) return { ok: false, error: 'resId' };

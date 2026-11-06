@@ -4,7 +4,9 @@
    2. la llave sin el permiso «Text to Speech» (401 missing_permissions) → lo dice y no le vuelve a preguntar en 5 min;
    3. sin créditos (401 quota_exceeded) → lo dice;
    4. el modelo rápido rechazado para esta voz (400) → intenta una vez con el otro modelo y sale la voz;
-   5. todo bien → manda el audio, sin motivo.
+   5. todo bien → manda el audio, sin motivo;
+   6. la voz con el aviso (avisosConVoz_): solo si la app puede hablar ahora, solo lo que se va a decir (nivel o resultado en
+      conferencia), 3 como mucho, y sin audio dice por qué (vozMotivo).
    node .github/calle-voz.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -67,5 +69,26 @@ const ses = { email: 'juan@x' };
 { const c = caja({ ELEVENLABS_KEY: 'k', CALLE_AUDIO: '0' }, []);
   const r = c.ctx.calleVoz_(ses, { texto: 'Listo.' });
   ok(!r.ok && /apagada/.test(r.motivo), 'voz apagada: «' + r.motivo + '»'); }
+
+{ const c = caja({ ELEVENLABS_KEY: 'k' }, []);
+  const lista = () => [{ id: 'a1', hablar: 'Flor pregunta. ¿Lo vemos?', nivel: 2 }, { id: 'a2', hablar: 'Quedó unido.', nivel: 3 },
+    { id: 'a3', hablar: 'Ya quedó listo: la limpieza. ¿Quieres verlo ahora?', nivel: 3, resultado: true }];
+  let l = c.ctx.avisosConVoz_(lista(), {});
+  ok(!l.some(a => a.audio) && !c.llamadas.length, 'una app vieja (sin «ahora»): no se gasta ElevenLabs');
+  l = c.ctx.avisosConVoz_(lista(), { ahora: false, hablado: 3 });
+  ok(!l.some(a => a.audio) && !c.llamadas.length, 'la app no puede hablar ahora (bloqueada, sin Modo calle ni conferencia): sin audio');
+  l = c.ctx.avisosConVoz_(lista(), { ahora: true, hablado: 2 });
+  ok(l[0].audio && !l[1].audio && !l[2].audio && c.llamadas.length === 1, 'app abierta, «Lo que pide algo de ti»: audio solo del de nivel 2');
+  l = c.ctx.avisosConVoz_(lista(), { ahora: true, hablado: 2, conf: true });
+  ok(l[0].audio && !l[1].audio && l[2].audio, 'en conferencia también lo que terminó en segundo plano');
+  l = c.ctx.avisosConVoz_(lista(), { ahora: true, hablado: 0 });
+  ok(!l.some(a => a.audio), '«Silencio»: nada');
+  const muchos = [1, 2, 3, 4, 5].map(i => ({ id: 'm' + i, hablar: 'Aviso número ' + i + '.', nivel: 1 }));
+  l = c.ctx.avisosConVoz_(muchos, { ahora: true, hablado: 3 });
+  ok(l.filter(a => a.audio).length === 3 && !l[3].audio && !l[3].vozMotivo, 'tres como mucho por vuelta (el resto lo pide la app)'); }
+
+{ const c = caja({}, []);
+  const l = c.ctx.avisosConVoz_([{ id: 'a1', hablar: 'Flor pregunta. ¿Lo vemos?', nivel: 1 }], { ahora: true, hablado: 3 });
+  ok(!l[0].audio && /falta ELEVENLABS_KEY/.test(l[0].vozMotivo || ''), 'sin audio, el aviso dice por qué: «' + l[0].vozMotivo + '»'); }
 
 process.exit(fallo);

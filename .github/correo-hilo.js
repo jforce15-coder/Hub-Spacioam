@@ -10,6 +10,8 @@
    8. Buscar (6-nov, Casa Sol): con un doble de la búsqueda de Gmail que distingue tildes, el correo sale por asunto
       partido, con o sin tilde, por quién lo mandó (casasol, Diana) y por el reenvío o el original; si no está, dice qué
       buscó y en qué cuenta, y nunca pide reenviarlo. Responder a todos va en el mismo hilo del original.
+   9. Adjuntos por id de Drive (6-nov, los PDF del presupuesto de MONACO para Casa Sol): el borrador dice cuáles van; con
+      el sí salen con .reply() o, solo con el reenvío, en el correo con In-Reply-To (multipart); solo PDF y fotos.
    node .github/correo-hilo.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -48,6 +50,7 @@ function caja(o) {
       parseCsv: s => s.trim().split('\n').map(l => l.split(',')), unzip: b => b._partes || [] },
     hojaCrear_: (n, cab) => ({ getLastColumn: () => cab.length, appendRow: r => filas.push({ hoja: n, r }), getRange: () => ({ setValue() {} }) }),
     correoNoResponder_: () => '',
+    DriveApp: { getFileById: id => { const a = (o.drive || {})[id]; if (!a) throw new Error('No item with the given ID could be found'); return a; } },
     claude_: (mod, max, sys, usr, temp, imgs) => { modelo.push({ usr, imgs: imgs || [] }); return 'Resumen del adjunto: ' + usr; }
   };
   vm.createContext(ctx);
@@ -280,5 +283,35 @@ function gmailDoble(hilos) {
     c.R('correoResponder_', { email: YO }, { buscar: 'Seguimiento a rentas Actuales - Apartamentos para remodelación', texto: 'Hola Diana, gracias.', a_todos: true, confirmado: true });
     ok((orig.replies[0] || {}).tipo === 'replyAll' && !fwd.replies.length && !c.enviados.length, 'con el sí: .replyAll() en el mensaje de Casa Sol, no en el reenvío');
   }
+}
+/* ── 9. Adjuntos de Drive ── */
+{
+  const pdf = (id, n) => ({ getName: () => n, getMimeType: () => 'application/pdf', getSize: () => 52000, getBlob: () => ({ getName: () => n, getContentType: () => 'application/pdf', getBytes: () => Array.from(Buffer.from('%PDF-' + id)) }) });
+  const drive = { DB5xxxxxxxxxx: pdf('B5', 'Presupuesto MONACO Equipamiento B5 2026-11-06.pdf'), DA4xxxxxxxxxx: pdf('A4', 'Presupuesto MONACO Equipamiento A4 2026-11-06.pdf'),
+    HOJAxxxxxxxxx: { getName: () => 'Presupuesto edificio Mónaco Fase 2', getMimeType: () => 'application/vnd.google-apps.spreadsheet', getSize: () => 0 } };
+  const b = bandejaConOriginal(), c = caja({ hilos: [b.T1, b.T2], buscar: b.buscar, drive });
+  const r1 = c.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola Ana, te mando los presupuestos.', adjuntos: 'DB5xxxxxxxxxx, https://drive.google.com/file/d/DA4xxxxxxxxxx/view' });
+  ok(r1.falta_confirmar && /Equipamiento B5 .*\(51 KB\), .*Equipamiento A4/.test(r1.borrador.adjuntos) && /adjuntos/.test(r1.nota), 'el borrador dice qué adjuntos van (nombre y tamaño), por id o por enlace');
+  c.ctx.AGENTE_TEXTO_ = 'sí, mándalo';
+  const r2 = c.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola Ana, te mando los presupuestos.', confirmado: true });
+  const rep = b.orig.replies[0] || { op: {} };
+  ok(r2.enviado && r2.adjuntos === 2 && rep.tipo === 'reply' && (rep.op.attachments || []).length === 2 && rep.op.attachments[0].getName() === 'Presupuesto MONACO Equipamiento B5 2026-11-06.pdf', 'con el sí: .reply() en el hilo con los 2 PDF');
+  ok(/\[Adjuntos: Presupuesto MONACO Equipamiento B5/.test(c.filas[0].r[8]), 'ALMA_CORREOS anota qué adjuntos salieron');
+  const c2 = caja({ hilos: [b.T1, b.T2], buscar: b.buscar, drive });
+  c2.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola Ana.', adjuntos: ['DB5xxxxxxxxxx'] });
+  c2.ctx.AGENTE_TEXTO_ = 'sí';
+  const r3 = c2.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola Ana.', adjuntos: ['DB5xxxxxxxxxx', 'DA4xxxxxxxxxx'], confirmado: true });
+  ok(r3.falta_confirmar && !b.orig.replies.slice(1).length, 'cambiar los adjuntos al confirmar es un borrador nuevo: no sale');
+  const e1 = c2.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola', adjuntos: 'HOJAxxxxxxxxx' });
+  const e2 = c2.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola', adjuntos: 'NOEXISTExxxxx' });
+  ok(/no es un PDF ni una foto/.test(e1.error) && /No encuentro en Drive/.test(e2.error), 'una hoja no se adjunta y un id que no existe lo dice');
+  const e = REENVIOS['iPhone (es)'], fwd = mensaje({ id: 'm-f9', from: 'Juan <' + YO + '>', subject: e.asunto, body: e.body }), T = hilo('h-f9', [fwd]);
+  const c3 = caja({ hilos: [T], buscar: q => /^from:/.test(q) ? [] : [T], drive });
+  c3.R('correoResponder_', { email: YO }, { buscar: 'Factura', texto: 'Hola Ana, van los PDF.', adjuntos: 'DB5xxxxxxxxxx' });
+  c3.ctx.AGENTE_TEXTO_ = 'sí';
+  c3.R('correoResponder_', { email: YO }, { buscar: 'Factura', texto: 'Hola Ana, van los PDF.', confirmado: true });
+  const raw = c3.avanzado[0] || '';
+  ok(/^In-Reply-To: <abc123@mail\.socio\.test>$/m.test(raw) && /multipart\/mixed; boundary=/.test(raw) && /Content-Disposition: attachment; filename="=\?UTF-8\?B\?/.test(raw) && raw.indexOf(Buffer.from('%PDF-B5').toString('base64')) >= 0,
+    'solo el reenvío: el correo con In-Reply-To lleva el PDF (multipart)');
 }
 process.exit(fallo);

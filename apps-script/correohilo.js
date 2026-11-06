@@ -17,9 +17,13 @@
      envío pide confirmado = true en un mensaje NUEVO de Juan (otro turno), con el mismo texto. Es la confirmación del
      chat para mensajes a terceros (como el calendario), no el «Envío con deshacer» de decisiones.js: ese es para los
      casos de huéspedes por WhatsApp y manda por la conversación de la reserva, no por correo.
+       Con adjuntos (ids de Drive, p. ej. los PDF de grow_presupuesto_pdf, 6-nov): el borrador dice cuáles van (nombre y
+       tamaño) y salen con la respuesta. Solo PDF e imágenes, a lo mucho CORREO_ENV_ADJ_MAX_ y 20 MB: un id de otra cosa
+       (una hoja, un documento del cliente) no se adjunta. Cambiar los adjuntos es un borrador nuevo.
    Lo que sale queda en ALMA_CORREOS con tipo «respuesta», el destinatario y el hilo. */
 
 var CORREO_LEER_MAX_ = 20000, CORREO_MSG_MAX_ = 14000, CORREO_ADJ_MAX_ = 3, CORREO_ADJ_BYTES_ = 10 * 1024 * 1024, CORREO_ADJ_TEXTO_ = 1800;
+var CORREO_ENV_ADJ_MAX_ = 10, CORREO_ENV_ADJ_BYTES_ = 20 * 1024 * 1024;
 var CORREO_REGISTRO_CAB_ = ['fecha', 'tipo', 'para', 'desde', 'asunto', 'propiedad', 'codigo', 'estado', 'texto', 'html', 'hilo'];
 
 /* La dirección de «Nombre <a@b.com>», «a@b.com» o «Nombre [mailto:a@b.com]», en minúsculas. */
@@ -330,45 +334,81 @@ function correoNorm_(s) { return String(s || '').replace(/[“”«»"]/g, '"').
 function correoResponder_(adm, o) {
   o = o || {};
   var c = CacheService.getScriptCache(), k = 'CORREO_RESP_' + String((adm && adm.email) || '').toLowerCase(), turno = String(typeof AGENTE_TEXTO_ === 'undefined' ? '' : AGENTE_TEXTO_ || '');
-  var aTodos = o.a_todos === true, texto = String(o.texto || '').trim(), prev = null;
+  var aTodos = o.a_todos === true, texto = String(o.texto || '').trim(), prev = null, adjIds = correoAdjIds_(o.adjuntos);
   try { prev = JSON.parse(c.get(k) || 'null'); } catch (e) {}
-  if (o.confirmado === true && prev && turno && prev.turno !== turno && (!texto || correoNorm_(texto) === correoNorm_(prev.texto)) && (o.a_todos == null || aTodos === prev.a_todos)) {
+  if (o.confirmado === true && prev && turno && prev.turno !== turno && (!texto || correoNorm_(texto) === correoNorm_(prev.texto)) && (o.a_todos == null || aTodos === prev.a_todos)
+    && (o.adjuntos == null || adjIds.join(',') === (prev.adjuntos || []).join(','))) {
     c.remove(k);
     return correoResponderEnviar_(prev);
   }
   if (!texto) return { error: prev ? 'Falta el texto de la respuesta (el borrador pendiente era: «' + prev.texto.slice(0, 200) + '»).' : 'Falta el texto de la respuesta.' };
+  var adj = correoAdjDrive_(adjIds); if (adj.error) return adj;
   var d = correoDestino_(o.buscar, aTodos); if (d.error) return d;
   var no = ''; try { no = correoNoResponder_(correoCuentaHub_(), d.para); } catch (e) {}
   if (no) return { error: 'No le respondo a ' + d.para + ': ' + no + '.' };
-  var b = { texto: texto, a_todos: aTodos, turno: turno, modo: d.modo, para: d.para, cc: d.cc, asunto: d.asunto, msg: d.mensaje ? d.mensaje.getId() : '', hilo: d.hilo.getId(), mid: d.mid || '' };
+  var b = { texto: texto, a_todos: aTodos, turno: turno, modo: d.modo, para: d.para, cc: d.cc, asunto: d.asunto, msg: d.mensaje ? d.mensaje.getId() : '', hilo: d.hilo.getId(), mid: d.mid || '', adjuntos: adjIds, adj_nombres: adj.nombres };
   c.put(k, JSON.stringify(b), 3600);
   return { ok: true, falta_confirmar: true,
-    borrador: { para: d.para, copia: d.cc.length ? d.cc.join(', ') : 'nadie', asunto: d.asunto, texto: texto, como: d.modo === 'hilo' ? 'respuesta en el mismo hilo' : 'correo nuevo con «Re:» (solo tengo tu reenvío)' },
-    nota: 'Todavía NO salió.' + (o.confirmado === true ? ' El sí tiene que llegar en un mensaje nuevo de Juan, después de ver este borrador.' : '') + ' Muéstrale a Juan el borrador COMPLETO (para, copia, asunto y texto) y espera su sí. Con su sí, llama otra vez con confirmado = true y el mismo texto. Si cambia algo, es un borrador nuevo.' };
+    borrador: { para: d.para, copia: d.cc.length ? d.cc.join(', ') : 'nadie', asunto: d.asunto, texto: texto, adjuntos: adj.nombres.length ? adj.nombres.join(', ') : undefined, como: d.modo === 'hilo' ? 'respuesta en el mismo hilo' : 'correo nuevo con «Re:» (solo tengo tu reenvío)' },
+    nota: 'Todavía NO salió.' + (o.confirmado === true ? ' El sí tiene que llegar en un mensaje nuevo de Juan, después de ver este borrador.' : '') + ' Muéstrale a Juan el borrador COMPLETO (para, copia, asunto, texto y adjuntos) y espera su sí. Con su sí, llama otra vez con confirmado = true y el mismo texto. Si cambia algo, es un borrador nuevo.' };
 }
 function correoResponderEnviar_(b) {
   var yo = correoCuentaHub_(), desde = yo, o = { name: 'Alma' }, estado = 'enviado', como = b.modo === 'hilo' ? 'en el mismo hilo' : 'correo nuevo con Re:';
   try { if (yo !== CFG.EMAIL_DESDE && GmailApp.getAliases().indexOf(CFG.EMAIL_DESDE) !== -1) { o.from = CFG.EMAIL_DESDE; desde = CFG.EMAIL_DESDE; } } catch (e) {}
+  var blobs = [];
+  try { blobs = (b.adjuntos || []).map(function (id) { return DriveApp.getFileById(id).getBlob(); }); } catch (eA) { return { error: 'No pude abrir un adjunto en Drive, no salió nada: ' + String(eA).slice(0, 160) }; }
+  if (blobs.length) o.attachments = blobs;
   try {
     if (b.modo === 'hilo') { var m = GmailApp.getMessageById(b.msg); if (b.a_todos) m.replyAll(b.texto, o); else m.reply(b.texto, o); }
-    else if (b.mid && typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages) { correoEnviarConEncabezados_(b, desde); como = 'correo nuevo en el hilo del socio (In-Reply-To)'; }
+    else if (b.mid && typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages) { correoEnviarConEncabezados_(b, desde, blobs); como = 'correo nuevo en el hilo del socio (In-Reply-To)'; }
     else { if (b.a_todos && b.cc && b.cc.length) o.cc = b.cc.join(','); GmailApp.sendEmail(b.para, b.asunto, b.texto, o); }
   } catch (e) { estado = 'error: ' + String(e).slice(0, 200); console.error('correoResponderEnviar_: ' + e); }
   var para = b.para + (b.a_todos && b.cc && b.cc.length ? ', ' + b.cc.join(', ') : '');
   try {
     var sh = hojaCrear_('ALMA_CORREOS', CORREO_REGISTRO_CAB_);
     if (sh.getLastColumn && sh.getLastColumn() < CORREO_REGISTRO_CAB_.length) sh.getRange(1, CORREO_REGISTRO_CAB_.length).setValue('hilo');   // la hoja vieja no tenía «hilo»
-    sh.appendRow([new Date().toISOString(), 'respuesta', para, desde, b.asunto, '', '', estado, String(b.texto).slice(0, 4000), '', b.hilo]);
+    sh.appendRow([new Date().toISOString(), 'respuesta', para, desde, b.asunto, '', '', estado, String(b.texto).slice(0, 4000) + ((b.adj_nombres || []).length ? '\n[Adjuntos: ' + b.adj_nombres.join(', ') + ']' : ''), '', b.hilo]);
   } catch (e) {}
-  return estado === 'enviado' ? { ok: true, enviado: true, enviado_a: para, desde: desde, asunto: b.asunto, como: como } : { error: 'No salió la respuesta: ' + estado };
+  return estado === 'enviado' ? { ok: true, enviado: true, enviado_a: para, desde: desde, asunto: b.asunto, como: como, adjuntos: blobs.length || undefined } : { error: 'No salió la respuesta: ' + estado };
 }
 /* Solo el reenvío y con Message-ID: GmailApp no deja poner In-Reply-To ni References, el servicio avanzado de Gmail sí. */
-function correoEnviarConEncabezados_(b, desde) {
-  var U = Utilities.Charset.UTF_8;
+function correoEnviarConEncabezados_(b, desde, blobs) {
+  var U = Utilities.Charset.UTF_8, b64 = function (x) { return (x.match(/.{1,76}/g) || []).join('\r\n'); };
   var cab = ['From: Alma <' + desde + '>', 'To: ' + b.para];
   if (b.a_todos && b.cc && b.cc.length) cab.push('Cc: ' + b.cc.join(', '));
-  cab.push('Subject: =?UTF-8?B?' + Utilities.base64Encode(b.asunto, U) + '?=', 'In-Reply-To: ' + b.mid, 'References: ' + b.mid,
-    'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64');
-  var raw = cab.join('\r\n') + '\r\n\r\n' + (Utilities.base64Encode(b.texto, U).match(/.{1,76}/g) || []).join('\r\n');
+  cab.push('Subject: =?UTF-8?B?' + Utilities.base64Encode(b.asunto, U) + '?=', 'In-Reply-To: ' + b.mid, 'References: ' + b.mid, 'MIME-Version: 1.0');
+  var cuerpo = ['Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', b64(Utilities.base64Encode(b.texto, U))].join('\r\n'), raw;
+  if (!(blobs || []).length) raw = cab.join('\r\n') + '\r\n' + cuerpo;
+  else {   // con adjuntos: multipart/mixed, el texto primero y cada archivo en base64
+    var lim = 'alma' + Date.now().toString(36);
+    cab.push('Content-Type: multipart/mixed; boundary="' + lim + '"');
+    raw = cab.join('\r\n') + '\r\n\r\n--' + lim + '\r\n' + cuerpo + blobs.map(function (bl) {
+      var nom = '=?UTF-8?B?' + Utilities.base64Encode(String(bl.getName() || 'adjunto'), U) + '?=';
+      return '\r\n--' + lim + '\r\nContent-Type: ' + (bl.getContentType() || 'application/octet-stream') + '; name="' + nom + '"\r\nContent-Disposition: attachment; filename="' + nom +
+        '"\r\nContent-Transfer-Encoding: base64\r\n\r\n' + b64(Utilities.base64Encode(bl.getBytes()));
+    }).join('') + '\r\n--' + lim + '--';
+  }
   return Gmail.Users.Messages.send({ raw: Utilities.base64EncodeWebSafe(raw, U) }, 'me');
+}
+/* Adjuntos por id de Drive (o su enlace), sin repetir y en el orden en que llegaron. */
+function correoAdjIds_(v) {
+  var l = Array.isArray(v) ? v : String(v == null ? '' : v).split(/[\s,;]+/), out = [];
+  l.forEach(function (x) { var t = String(x || '').trim(), m = t.match(/\/d\/([\w-]{10,})|[?&]id=([\w-]{10,})/), id = m ? (m[1] || m[2]) : (/^[\w-]{10,}$/.test(t) ? t : ''); if (id && out.indexOf(id) < 0) out.push(id); });
+  return out;
+}
+/* Que cada uno exista, sea PDF o imagen y que todos juntos quepan en un correo. */
+function correoAdjDrive_(ids) {
+  if (!ids.length) return { nombres: [] };
+  if (ids.length > CORREO_ENV_ADJ_MAX_) return { error: 'Son ' + ids.length + ' adjuntos; en un correo van a lo mucho ' + CORREO_ENV_ADJ_MAX_ + '.' };
+  var nombres = [], tam = 0;
+  for (var i = 0; i < ids.length; i++) {
+    var f = null; try { f = DriveApp.getFileById(ids[i]); } catch (e) {}
+    if (!f) return { error: 'No encuentro en Drive el adjunto ' + ids[i] + ' (o esta cuenta no lo puede abrir). No preparé nada.' };
+    var mime = String(f.getMimeType() || ''), n = String(f.getName() || ids[i]);
+    if (!/^(application\/pdf|image\/(jpeg|png|gif|webp))$/.test(mime)) return { error: '«' + n + '» no es un PDF ni una foto: solo adjunto esos.' };
+    tam += Number(f.getSize()) || 0;
+    nombres.push(n + ' (' + Math.max(1, Math.round((Number(f.getSize()) || 0) / 1024)) + ' KB)');
+  }
+  if (tam > CORREO_ENV_ADJ_BYTES_) return { error: 'Los adjuntos pesan ' + Math.round(tam / 1048576) + ' MB; en un correo caben a lo mucho 20 MB.' };
+  return { nombres: nombres };
 }

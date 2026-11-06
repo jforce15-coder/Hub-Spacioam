@@ -227,8 +227,9 @@ function agDecidir_(adm, ids, aprobar) {
     p.decidio = adm.email; p.decidido = new Date().toISOString();
     if (!aprobar) { p.estado = 'rechazada'; agGuardar_(sh, AGP_CAB_, p); out.push({ id: p.id, titulo: p.titulo, estado: 'rechazada' }); return; }
     var inp = {}; try { inp = JSON.parse(p.entrada || '{}'); } catch (e) {}
-    var r; try { r = agEjecutar_(adm, p.herramienta, inp, ctx); } catch (e) { r = { ok: false, error: String(e) }; }
-    var ok = r && r.ok !== false && !r.error;
+    var r; CONSULTA_APROBADA_ = true;   // aprobarla es el sí de Juan (también a una consulta, consultas.js)
+    try { r = agEjecutar_(adm, p.herramienta, inp, ctx); } catch (e) { r = { ok: false, error: String(e) }; } finally { CONSULTA_APROBADA_ = false; }
+    var ok = r && r.ok !== false && !r.error && !r.falta_confirmar;
     p.estado = ok ? 'hecha' : 'error'; p.resultado = JSON.stringify(r || {}).slice(0, 800); agGuardar_(sh, AGP_CAB_, p);
     if (ok) { try { agCajaGuardar_(p, inp); } catch (e) {} }   // lo aprobado queda en su caja: la próxima vez lo reúsa
     out.push({ id: p.id, titulo: p.titulo, estado: p.estado, error: ok ? '' : (r && r.error) || 'no salió' });

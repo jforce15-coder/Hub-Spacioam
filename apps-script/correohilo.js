@@ -99,19 +99,93 @@ function correoLimpio_(txt) {
   return { texto: t, recortado: t.length < antes - 40 };
 }
 
-/* La búsqueda de siempre: tal cual, luego cualquiera de sus palabras, luego en todas partes por la palabra más rara. */
+/* ── Buscar el correo ──
+   6-nov-2026: Juan pidió contestar «Seguimiento a rentas Actuales - Apartamentos para remodelación» y Alma dijo que no
+   estaba en la bandeja del Hub, aunque estaba (el original y el reenvío de Juan, en el mismo hilo). El asunto real dice
+   «remodelacion», sin tilde, y la búsqueda de Gmail distingue tildes: «remodelación» da cero y «remodelacion» lo
+   encuentra (y al revés: «energia» no encuentra «energía»). La búsqueda de antes mandaba el texto tal cual, luego
+   cualquiera de sus palabras (con «para» salían 200 correos y se tomaba el más nuevo, otro correo) y luego la palabra
+   más larga; y si no encontraba, le decía a Alma que le pidiera a Juan reenviarlo. Ahora:
+   · las palabras se buscan con y sin tilde ({remodelación remodelacion}); sin comillas, guiones de negación ni
+     palabras vacías («a», «para», «correo»);
+   · from:/subject: del modelo se prueban tal cual y también como palabras sueltas («from:diana» no encuentra a
+     Casa Sol, que escribe como «administración Casa Sol», pero «Diana» sí está en la firma);
+   · cada candidato se califica aquí, sin tildes: cuántas de las palabras están en su asunto, en quién lo mandó o
+     recibió, o en el texto; gana el que más tiene, y si ninguno tiene al menos la mitad, no se adivina;
+   · si no lo encuentra, dice qué buscó y en qué cuenta, y nunca pide reenviar lo que ya llega a esta bandeja. */
+var CORREO_VACIAS_ = ['a', 'al', 'de', 'del', 'el', 'la', 'las', 'los', 'lo', 'le', 'y', 'o', 'u', 'e', 'en', 'con', 'por', 'para', 'que', 'un', 'una', 'mi', 'su', 'tu',
+  'es', 'se', 'sus', 'mis', 're', 'rv', 'fw', 'fwd', 'tr', 'correo', 'email', 'mail', 'asunto', 'the', 'of', 'and', 'to', 'for', 'from', 'subject'];
+var CORREO_OP_ = /^-?(from|to|cc|bcc|subject|has|in|is|label|filename|after|before|newer_than|older_than|newer|older|category|larger|smaller|deliveredto|list|rfc822msgid):/i;
+function correoSinTilde_(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+/* El pedido del modelo → { ops (operadores tal cual), palabras (sin vacías, sin repetir), fecha (si ya trae una) }. */
+function correoPalabras_(q) {
+  var ops = [], pal = [], vistas = {}, fecha = false;
+  String(q || '').replace(/[«»“”"'`(){}\[\]]/g, ' ').split(/\s+/).forEach(function (t) {
+    t = t.replace(/[.,;:!?¿¡]+$/, '');
+    if (!CORREO_OP_.test(t)) t = t.replace(/^[-–—.,;:!?¿¡]+/, '');   // «-Apartamentos» del asunto no es «sin Apartamentos»
+    if (!t) return;
+    if (CORREO_OP_.test(t)) {
+      if (/^(after|before|newer_than|older_than|newer|older):/i.test(t)) fecha = true;
+      ops.push(t);
+      var val = t.replace(CORREO_OP_, '');
+      if (/^(from|to|cc|subject):/i.test(t) && val) t = val; else return;   // su valor también sirve como palabra
+    }
+    var n = correoSinTilde_(t);
+    if (n.length < 3 && !/\d/.test(n) || CORREO_VACIAS_.indexOf(n) >= 0 || vistas[n]) return;
+    vistas[n] = 1; pal.push(t);
+  });
+  return { ops: ops, palabras: pal.slice(0, 8), fecha: fecha };
+}
+/* «remodelación» → «{remodelación remodelacion}»; «remodelacion» → «{remodelacion remodelación}» (-cion/-sion). */
+function correoVariantes_(w) {
+  var sin = correoSinTilde_(w), v = [w];
+  if (sin !== String(w).toLowerCase()) v.push(sin);
+  else if (/[cs]ion(es)?$/.test(sin)) v.push(sin.replace(/([cs])ion(es)?$/, function (m, c, es) { return es ? c + 'iones' : c + 'ión'; }));
+  return v.length > 1 ? '{' + v.join(' ') + '}' : w;
+}
+/* Cuántas palabras tiene el hilo: asunto y direcciones valen 2, el texto 1. El texto solo se lee si hace falta. */
+function correoPuntaje_(h, pal) {
+  var ms = h.getMessages(), cab = correoSinTilde_(h.getFirstMessageSubject() + ' ' + ms.map(function (m) { return m.getSubject() + ' ' + m.getFrom() + ' ' + m.getTo() + ' ' + m.getCc(); }).join(' '));
+  var txt = null, puntos = 0, tiene = 0;
+  pal.forEach(function (w) {
+    var re = new RegExp('(^|[^a-z0-9])' + correoSinTilde_(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    if (re.test(cab)) { puntos += 2; tiene++; return; }
+    if (txt === null) txt = correoSinTilde_([ms[0], ms[ms.length - 1]].map(function (m) { return String(m.getPlainBody() || '').slice(0, 8000); }).join(' '));
+    if (re.test(txt)) { puntos += 1; tiene++; }
+  });
+  return { puntos: puntos, tiene: tiene };
+}
 function correoBuscar_(q) {
-  q = String(q || '').replace(/["(){}]/g, ' ').replace(/\s+/g, ' ').trim(); if (!q) return { error: 'Dime qué correo busco.' };
-  var cuenta = correoCuentaHub_(), hilos = [];
-  try { hilos = GmailApp.search(q + ' newer_than:30d', 0, 5); } catch (e) { return { error: 'No pude buscar en el correo: ' + String(e).slice(0, 150) }; }
-  var pal = q.split(' ').filter(function (w) { return w.length > 2; }).slice(0, 6);
-  if (!hilos.length && pal.length > 1) { try { hilos = GmailApp.search('{' + pal.join(' ') + '} newer_than:30d', 0, 5); } catch (e) {} }
-  if (!hilos.length) {
-    var largo = pal.slice().sort(function (a, b) { return b.length - a.length; })[0] || q;
-    try { hilos = GmailApp.search('in:anywhere ' + largo + ' newer_than:30d', 0, 5); } catch (e) {}
+  q = String(q || '').replace(/\s+/g, ' ').trim(); if (!q) return { error: 'Dime qué correo busco.' };
+  var cuenta = correoCuentaHub_(), p = correoPalabras_(q), pal = p.palabras, vars = pal.map(correoVariantes_);
+  var ventana = p.fecha ? '' : ' newer_than:30d', otros = p.ops.filter(function (o) { return !/^(from|to|cc|subject):/i.test(o); }).join(' ');
+  var intentos = [
+    (p.ops.join(' ') + ' ' + vars.join(' ')).trim() + ventana,                        // tal cual, con y sin tildes
+    (otros + ' ' + vars.join(' ')).trim() + ventana,                                  // from:/subject: como palabras sueltas
+    pal.length > 1 ? (otros + ' {' + vars.join(' ').replace(/[{}]/g, '') + '}').trim() + ventana : '',   // cualquiera de ellas
+    pal.length ? 'in:anywhere {' + vars.join(' ').replace(/[{}]/g, '') + '}' + (p.fecha ? '' : ' newer_than:90d') : ''   // archivo y spam, 90 días
+  ].filter(function (x, i, arr) { return x && x !== ventana.trim() && arr.indexOf(x) === i; });
+  if (!pal.length && !p.ops.length) return { error: 'Dime qué correo busco: una palabra del asunto o quién lo mandó.' };
+  var minimo = Math.max(1, Math.ceil(pal.length / 2)), vistos = {}, cand = [], buscado = [], fallo = '';
+  for (var i = 0; i < intentos.length; i++) {
+    var hs = [];
+    try { hs = GmailApp.search(intentos[i], 0, i >= 2 ? 20 : 10) || []; } catch (e) { fallo = String(e).slice(0, 150); }
+    buscado.push(intentos[i]);
+    hs.forEach(function (h, k) {
+      var id = h.getId(); if (vistos[id]) return; vistos[id] = 1;
+      var s = pal.length ? correoPuntaje_(h, pal) : { puntos: 1, tiene: 1 };
+      cand.push({ h: h, puntos: s.puntos, tiene: s.tiene, orden: cand.length });
+    });
+    if (cand.some(function (c) { return c.tiene >= minimo && c.tiene === pal.length; })) break;   // ya está el que tiene todas
   }
-  if (!hilos.length) return { error: 'No encuentro ese correo en la bandeja del Hub, que es la cuenta ' + cuenta + ' (busqué «' + q + '» en los últimos 30 días, también en archivo y spam). Dile a Juan exactamente esto: que lo que llega a hola@spacioam.com no está entrando a ' + cuenta + ', y que lo reenvíe a ' + cuenta + ' o te mande una captura del correo por WhatsApp (ya puedes leer capturas).' };
-  return { ok: true, cuenta: cuenta, hilos: hilos, q: q };
+  var buenos = cand.filter(function (c) { return c.tiene >= minimo; }).sort(function (a, b) { return b.puntos - a.puntos || a.orden - b.orden; });
+  if (buenos.length) return { ok: true, cuenta: cuenta, hilos: buenos.slice(0, 5).map(function (c) { return c.h; }), q: q, buscado: buscado };
+  var parecidos = cand.slice(0, 3).map(function (c) { return c.h.getFirstMessageSubject(); });
+  return { error: 'No encontré ese correo en la bandeja del Hub, la cuenta ' + cuenta + '. Busqué en Gmail: ' + buscado.map(function (x) { return '«' + x + '»'; }).join(' · ') +
+      ' (con y sin tildes; los últimos 30 días y, en archivo y spam, 90).' + (fallo ? ' Gmail respondió: ' + fallo + '.' : '') +
+      (parecidos.length ? ' Lo más parecido, sin ser ese: ' + parecidos.map(function (x) { return '«' + x + '»'; }).join(', ') + '.' : '') +
+      ' Dile a Juan qué buscaste y en qué cuenta, y pídele otra palabra del asunto o quién lo mandó. No le pidas que lo reenvíe: lo que llega a su correo y a hola@spacioam.com ya entra a esta cuenta.',
+    cuenta: cuenta, buscado: buscado };
 }
 
 /* leer_correo: el hilo entero, lo más reciente primero, limpio, con lo que dicen sus adjuntos. */
@@ -239,12 +313,13 @@ function correoDestino_(q, aTodos) {
     for (var i = ms.length - 1; i >= 0; i--) if (!nuestra(ms[i].getFrom())) return enHilo(ms[i]);
     return { error: 'En ese correo no hay nada de otra persona ni un reenvío al que responder.' };
   }
-  /* Es un reenvío: ¿está el original en esta misma bandeja? */
+  /* Es un reenvío: ¿está el original en esta misma bandeja? Primero en el mismo hilo: Gmail junta el reenvío de Juan con
+     el original cuando los dos llegan a esta cuenta (pasó con Casa Sol, 6-nov), y entonces se responde ahí mismo. */
   var base = correoAsuntoBase_(rv.asunto).toLowerCase(), otros = [];
   try { otros = GmailApp.search('from:' + rv.de + ' newer_than:90d', 0, 20) || []; } catch (e) {}
+  otros = [hilo].concat(otros.filter(function (x) { return x.getId() !== hilo.getId(); }));
   for (var h = 0; h < otros.length; h++) {
-    if (otros[h].getId() === hilo.getId()) continue;
-    var om = otros[h].getMessages();
+    var om = otros[h] === hilo ? ms : otros[h].getMessages();
     for (var j = om.length - 1; j >= 0; j--) if (correoDir_(om[j].getFrom()) === rv.de && correoAsuntoBase_(om[j].getSubject()).toLowerCase() === base) { var d = enHilo(om[j]); d.hilo = otros[h]; return d; }
   }
   return { modo: 'reenvio', hilo: hilo, para: rv.de, asunto: 'Re: ' + correoAsuntoBase_(rv.asunto), mid: rv.mid, cc: aTodos ? copia([rv.para, rv.cc], [rv.de]) : [] };

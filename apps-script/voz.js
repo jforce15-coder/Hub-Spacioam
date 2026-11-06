@@ -1355,7 +1355,7 @@ function vozAvisoCorto_(texto) {
 }
 /* App de iPhone: los avisos nuevos (se muestran como notificación; se entregan una sola vez), cuántos temas hay por retomar
    y cuántas cosas sigue trabajando Alma en segundo plano (mientras haya, la app queda lista para el anillo). resultado = terminó algo de segundo plano: en modo conferencia la app lo dice por voz en la llamada, sea cual sea su nivel. */
-function vozAvisos_(ses) {
+function vozAvisos_(ses, b) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
   var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), mios = [];
   lock.waitLock(10000);
@@ -1368,13 +1368,14 @@ function vozAvisos_(ses) {
      al oído e importante (nivel 1 o 2: pide algo de él). */
   /* Con su tarjeta de Pendientes, la notificación lleva la respuesta: titulo y hasta 3 líneas cortas del resultado (avisoLineas_). */
   var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
-  return { ok: true, avisos: mios.map(function (a) {
+  /* La voz de Alma viene con el texto (avisosConVoz_, calle.js): la app la dice sin otra vuelta al Hub. */
+  return { ok: true, avisos: avisosConVoz_(mios.map(function (a) {
     var h = avisoHablarDe_(a, rets, pends), pd = callePendDeAviso_(pends, a.id);
     var o = { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado };
     if (a.conferencia) o.conferencia = true;
     if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
     return o;
-  }), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  }), b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */

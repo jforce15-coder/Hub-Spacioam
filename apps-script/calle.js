@@ -288,6 +288,28 @@ function avisoHablar_(ses, b) {
   var audio = calleAudio_(h.hablar, t0); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
   return out;
 }
+/* LA VOZ CON EL AVISO (Juan, 6-nov-2026: «con la voz de Alma, no la del iPhone, sobre todo con la app abierta»): vozAvisos
+   trae, junto con el texto, el audio de ElevenLabs de lo que la app va a decir, así suena sin otra vuelta al Hub (antes la
+   app pedía avisoHablar al momento y, si tardaba más de 12 s, terminaba la voz del iPhone). La app dice si ahora puede
+   hablar (b.ahora: Modo calle, conferencia o la app abierta), hasta qué nivel se dicen («Habladas», b.hablado 1–3) y si
+   está en conferencia (b.conf: ahí lo que terminó en segundo plano se dice sea cual sea su nivel). Solo los que se van a
+   decir, AVISO_AUDIO_MAX_ como mucho por vuelta (el resto lo pide la app con avisoHablar); sin audio va vozMotivo, que la
+   app pone en el diagnóstico. Una app vieja no manda b.ahora: no se gasta ElevenLabs. */
+var AVISO_AUDIO_MAX_ = 3;
+function avisosConVoz_(lista, b) {
+  b = b || {};
+  var hablado = Number(b.hablado);
+  if (b.ahora !== true || !(hablado >= 1) || !(lista || []).length) return lista;
+  var t0 = Date.now(), n = 0;
+  (lista || []).forEach(function (a) {
+    var dice = a && a.hablar && (Number(a.nivel) <= hablado || (b.conf === true && a.resultado));
+    if (!dice || n >= AVISO_AUDIO_MAX_) return;
+    n++;
+    var audio = calleAudio_(a.hablar, t0);   // la caché de 6 h sirve también para avisoHablar y calleVoz
+    if (audio) a.audio = audio; else a.vozMotivo = CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio';
+  });
+  return lista;
+}
 function calleAvisoHist_(adm, id) {
   var h = []; try { h = JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_AVISOS_H_' + retClave_(adm).slice(8)) || '[]'); } catch (e) {}
   return h.filter(function (a) { return a && String(a.id) === String(id); }).pop() || null;

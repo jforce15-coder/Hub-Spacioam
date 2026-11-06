@@ -445,8 +445,9 @@
   .vj-esc { padding: 0 14px 8px 80px; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
   .vj-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 4px 4px; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #8A8580; }
   .vj-pie button { min-height: 44px; border: 0; background: none; color: #8A8580; font: 600 12px Montserrat, system-ui, sans-serif; cursor: pointer; padding: 0 4px; }
-  /* ── Medidor de personalidad (issue #410, apps-script/medidores.js): Adaptación y Modo Weebo, en Ajustes (A) y en vivo
-     durante la llamada (B, los chips bajo los botones de la llamada). Solo el administrador principal. ── */
+  /* ── Medidor de personalidad (issue #410, apps-script/medidores.js): Adaptación y Modo Weebo, solo en Ajustes →
+     Personalidad de Alma (Juan, 6-nov-2026: «únicamente en los settings»; antes también como chips en la llamada). Solo el
+     administrador principal. ── */
   .pp-cab { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 16px 0; }
   .pp-cab b { font: 600 15px Montserrat, system-ui, sans-serif; color: #3E3F3F; min-width: 0; }
   .pp-cab .v { flex: none; font: 600 14px Montserrat, system-ui, sans-serif; color: #8A8580; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -485,22 +486,6 @@
   .pp-fija { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 0 16px 12px; font: 500 13px Montserrat, system-ui, sans-serif; color: #6F6867; }
   .pp-fija b { font-weight: 600; color: #3E3F3F; white-space: nowrap; }
   #g-pers.cargando .pp-barra, #g-weebo.cargando .pp-seg { opacity: .45; }
-  /* B · los chips en vivo durante la llamada: bajo «Chat» y «Terminar» (los ubica ppUbicar), encima de la llamada de la roca */
-  .pp-chips { position: fixed; left: 50%; top: var(--pp-top, 80vh); z-index: 900; display: flex; gap: 8px; transform: translate(-50%, 6px); opacity: 0; pointer-events: none;
-    padding: 0; border: 0; background: none; cursor: pointer; transition: opacity .35s ease, transform .45s var(--ease, cubic-bezier(.22,.61,.36,1)); max-width: calc(100% - 32px); }
-  .pp-chips.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-  .pp-chips[hidden] { display: none; }
-  .pp-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px; white-space: nowrap; box-sizing: border-box;
-    background: rgba(255,253,251,.9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 8px 22px -12px rgba(40,30,25,.5);
-    font: 600 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; font-variant-numeric: tabular-nums; }
-  .pp-chip .fl { color: #E9826A; font-size: 11px; display: inline-block; }
-  .pp-chip .fl.baja { color: #8A8580; }
-  .pp-chip .fl.salta { animation: ppSalta .9s var(--ease, cubic-bezier(.22,.61,.36,1)) 2; }
-  @keyframes ppSalta { 0%, 100% { opacity: 1; transform: none; } 50% { opacity: .35; transform: translateY(-2px); } }
-  #pp-velo { z-index: 2147483240; }
-  .panel.pp { z-index: 2147483250; }
-  .panel.pp h2 { margin-bottom: 10px; }
-  @media (prefers-reduced-motion: reduce) { .pp-chip .fl.salta { animation: none; } .pp-chips, .pp-barra .lleva { transition: none; } }
   /* ── Tarjeta de la llamada (#446 T2, apps-script/tarjeta.js): sube desde abajo sobre la roca, que se achica a 96 px; «Terminar»
      sigue a la vista. Va dentro de la llamada de la roca (sa-nav), antes de sus botones. La pestañita queda arriba al centro.
      Colores del calendario: los del glosario (los mismos de index.html). ── */
@@ -606,9 +591,6 @@
 </div>
 <div class="velo" id="velo"></div>
 <div class="velo" id="vj-velo"></div>
-<button type="button" class="pp-chips" id="pp-chips" aria-label="Personalidad de Alma en esta llamada" hidden><span class="pp-chip" id="pp-c-w">✨ Weebo 1</span><span class="pp-chip" id="pp-c-a">🪞 Adaptación 0 %</span></button>
-<div class="velo" id="pp-velo"></div>
-<div class="panel pp" id="pp-panel" role="dialog" aria-label="Personalidad de Alma" aria-hidden="true"><div class="asa"></div><h2>Personalidad</h2><div id="pp-hoja"></div></div>
 <div class="velo" id="cp-velo"></div>
 <div class="panel cp" id="cp-panel" role="dialog" aria-label="Probar el Modo calle" aria-hidden="true"><div class="asa"></div><h2>Probar el Modo calle</h2>
   <p class="cp-guia">Di «Alma» como lo dirías en la calle. Aquí ves si el micrófono te oye, con qué fuerza te oyó el detector y qué entendió el dictado.</p>
@@ -657,12 +639,12 @@
     <div class="fila"><span class="et n" id="et-telefono">En el teléfono</span><span class="sel"><select id="s-telefono" aria-labelledby="et-telefono"></select></span></div>
     <div class="fila cuanto" id="q-telefono" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
     <p class="vuelve" id="v-telefono" hidden></p>
-    <p class="nota-g">Habladas: las que Alma te dice al oído en el Modo calle. En el teléfono: las que suenan. Si bajas el nivel, vuelve solo a «Todo».</p>
+    <p class="nota-g">Habladas: las que Alma te dice al oído, con su voz, con la app abierta, en conferencia y en el Modo calle. En el teléfono: las que suenan. Si bajas el nivel, vuelve solo a «Todo».</p>
   </div>
   <p class="tit-g" id="t-calle" hidden>Modo calle</p>
   <div class="grupo" id="g-calle" hidden>
     <div class="fila" id="f-calle-on" hidden><span class="et">Modo calle encendido</span><label class="interruptor"><input type="checkbox" id="i-calle" aria-label="Modo calle encendido"><span></span></label></div>
-    <p class="nota-g" id="n-calle-on" hidden>Encendido, Alma espera «Alma» con el teléfono bloqueado. El botón del caminante es para hablarle ya, sin decir «Alma» (encendido o apagado).</p>
+    <p class="nota-g" id="n-calle-on" hidden>Encendido, Alma espera «Alma» con el teléfono bloqueado, y se queda así al volver a abrir la app hasta que lo apagues. El botón del caminante es para hablarle ya, sin decir «Alma» (encendido o apagado).</p>
     <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
     <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También con un toque largo en el botón del caminante.</p>
   </div>
@@ -1477,7 +1459,9 @@
     if (CALLE.ahora) { CALLE.error = ""; CALLE.fase = "oyendo"; callePintar(CALLE.fase); nativa({ accion: "calle", que: "ahora" }); return; }
     callePoner(!calleOn());   // una app vieja: el toque enciende o apaga
   };
-  if (NATIVA) setTimeout(function () { nativa({ accion: "calle", que: "estado" }); }, 1100);
+  /* Al cargar: si la página se recargó con «Probar el Modo calle» abierta, la prueba se cierra (y, si ella lo encendió, lo
+     apaga: antes quedaba encendido sin que Juan lo pidiera). Luego el estado: la app lo deja como Juan lo dejó. */
+  if (NATIVA) setTimeout(function () { nativa({ accion: "calle", que: "probar", on: false }); nativa({ accion: "calle", que: "estado" }); }, 1100);
   $("calle-linea").onclick = function () { cpAbrir(); };
   $("b-calle-probar").onclick = function () { cpAbrir(); };
   /* Toque largo en el botón del caminante: abre «Probar el Modo calle» (sin encenderlo ni apagarlo con el toque). */
@@ -2047,15 +2031,15 @@
 /* ── Medidor de personalidad de Alma (issue #410, apps-script/medidores.js) ──────────────────────────────────────────
    A · En Ajustes: «Personalidad de Alma» con la Adaptación a ti (la barra que se llena sola y el tope que se arrastra), el
        Modo Weebo (nivel 0–3, Automático o Fijo) y los huéspedes aparte (su tope; Weebo máximo 1, fijo en el código).
-   B · En vivo durante la llamada de la app de iPhone: dos chips bajo «Chat» y «Terminar» («✨ Weebo 2 ▲», «🪞 Adaptación 35 %»).
-       El nivel lo cuenta Alma con la herramienta nivel_weebo (VozNativa.swift lo pasa como AlmaVoz.evento «personalidad»).
-       Al tocarlos se abre la hoja con los mismos controles (se mueven ahí mientras está abierta: un solo juego de botones).
+   Solo ahí (Juan, 6-nov-2026: «únicamente en los settings»): ya no hay chips en la pantalla de inicio ni en la llamada. Con
+       Ajustes abiertos durante una llamada de la app, la píldora dice «en la llamada: 2» (el nivel lo cuenta Alma con la
+       herramienta nivel_weebo; VozNativa.swift lo pasa como AlmaVoz.evento «personalidad»).
    Solo el administrador principal (el Hub lo vuelve a comprobar). Bloque aparte: no toca el arranque del inicio. */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var NOMBRES = ["centro", "chispa", "suelta", "Weebo"];
-  var PP = { datos: null, vivo: null, enLlamada: false, guardando: 0, hoja: false, reloj: 0 };
+  var PP = { datos: null, vivo: null, enLlamada: false, guardando: 0 };
   var NATIVA = !!(window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma);
   function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
   function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
@@ -2078,7 +2062,7 @@
       .catch(function () { return { ok: false, error: "red" }; });
   }
 
-  /* ── Pintar (A y la hoja B usan los mismos elementos) ── */
+  /* ── Pintar ── */
   function nivelVivo() {
     var d = PP.datos, w = d && d.weebo;
     if (PP.enLlamada && PP.vivo && PP.vivo.weebo != null) return PP.vivo.weebo;
@@ -2118,7 +2102,6 @@
     $("pp-weebo-n").classList.remove("error");
     $("pp-weebo-n").textContent = w.modo === "fijo" ? "Fijo en " + w.nivel_fijo + " · " + NOMBRES[w.nivel_fijo] + ": Alma se queda ahí contigo (con un problema o una urgencia vuelve a su centro). Toca «Automático» para que lo mida ella."
       : "En automático sube y baja según la confianza de la conversación. Toca un nivel para fijarlo ahí.";
-    pintarChips();
   }
   function mostrar(on) { ["t-pers", "g-pers", "g-weebo", "g-huesp"].forEach(function (id) { $(id).hidden = !on; }); }
   function cargar() {
@@ -2138,7 +2121,7 @@
     if ("adapt_tope_huesped" in cambio) d.adapt.tope_huesped = cambio.adapt_tope_huesped;
     if ("weebo_modo" in cambio) d.weebo.modo = cambio.weebo_modo;
     if ("weebo_nivel" in cambio) d.weebo.nivel_fijo = cambio.weebo_nivel;
-    if (PP.enLlamada && PP.vivo && d.weebo.modo === "fijo" && PP.vivo.weebo !== d.weebo.nivel_fijo) {   // el chip sigue lo que le acabas de pedir a Alma
+    if (PP.enLlamada && PP.vivo && d.weebo.modo === "fijo" && PP.vivo.weebo !== d.weebo.nivel_fijo) {   // «en la llamada» sigue lo que le acabas de pedir a Alma
       PP.vivo.cambio = PP.vivo.weebo == null ? 0 : d.weebo.nivel_fijo > PP.vivo.weebo ? 1 : -1; PP.vivo.weebo = d.weebo.nivel_fijo; flechaSeVa();
     }
     pintar();
@@ -2181,60 +2164,19 @@
   barra("pp-tope-h", "adapt_tope_huesped", "pp-adapt-n", "arrastrandoH");
   $("b-ajustes").addEventListener("click", cargar);
 
-  /* ── B · En vivo: los chips de la llamada y su hoja ── */
+  /* ── La llamada en curso: solo cambia la píldora «en la llamada: N» de Ajustes (ya no hay chips en la pantalla) ── */
   /* La flecha ▲/▼ se ve unos segundos después de un cambio y se va (dice «cambió», no se queda para siempre). */
   function flechaSeVa() {
     clearTimeout(PP.flechaT); var v = PP.vivo;
-    PP.flechaT = setTimeout(function () { if (PP.vivo === v && v && v.cambio) { v.cambio = 0; pintarChips(); if (PP.datos) pintar(); } }, 6000);
+    PP.flechaT = setTimeout(function () { if (PP.vivo === v && v && v.cambio) { v.cambio = 0; if (PP.datos) pintar(); } }, 6000);
   }
-  function pintarChips() {
-    var c = $("pp-chips"), v = PP.vivo;
-    if (!PP.enLlamada || !v || !principal()) { c.classList.remove("on"); clearInterval(PP.reloj); PP.reloj = 0; setTimeout(function () { if (!c.classList.contains("on")) c.hidden = true; }, 400); return; }
-    var w = v.weebo != null ? v.weebo : nivelVivo(), a = v.adapt != null ? v.adapt : (PP.datos ? PP.datos.adapt.nivel_juan : 0);
-    var fl = v.cambio > 0 ? '<span class="fl salta" aria-label="subió">▲</span>' : v.cambio < 0 ? '<span class="fl baja salta" aria-label="bajó">▼</span>' : "";
-    $("pp-c-w").innerHTML = "✨ Weebo " + (w == null ? "–" : w) + (fl ? " " + fl : "");
-    $("pp-c-a").textContent = "🪞 Adaptación " + a + " %";
-    c.hidden = false; ubicar();
-    requestAnimationFrame(function () { c.classList.toggle("on", visibleLlamada()); });
-    if (!PP.reloj) PP.reloj = setInterval(function () { ubicar(); c.classList.toggle("on", visibleLlamada()); }, 600);   // la roca pasa a chat, pendientes o se achica
-  }
-  /* Solo con la llamada a la vista en la roca (no en modo chat, ni con Pendientes o Notificaciones encima). */
-  function visibleLlamada() {
-    var ov = document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov");
-    if (!ov || !ov.classList.contains("on")) return false;
-    return !/(^|\s)(chat|min|pend|noti|ending)(\s|$)/.test(ov.className) && !$("panel").classList.contains("on") && !PP.hoja && !document.documentElement.classList.contains("tv-on");   // con la tarjeta de la llamada abierta, los chips esperan
-  }
-  /* Bajo «Chat» y «Terminar» (con sus nombres); si no cabe sobre el borde de abajo (iPhone SE), arriba, entre los botones
-     redondos de arriba y la roca, donde ya no está «Hola, Juan» (se va solo). */
-  function ubicar() {
-    var c = $("pp-chips"), bt = document.querySelector(".san-ov-btns"), rk = document.querySelector(".san-ov .san-rock"), aj = $("b-ajustes");
-    if (!bt) return;
-    var fondo = bt.getBoundingClientRect().bottom;
-    Array.prototype.forEach.call(bt.querySelectorAll("span"), function (x) { fondo = Math.max(fondo, x.getBoundingClientRect().bottom); });
-    var alto = c.offsetHeight || 44, top = fondo + 14, fin = window.innerHeight - 12;
-    if (top + alto > fin && rk) { var arriba = aj ? aj.getBoundingClientRect().bottom : 60; top = (arriba + rk.getBoundingClientRect().top - alto) / 2; }
-    document.documentElement.style.setProperty("--pp-top", Math.round(Math.max(0, top)) + "px");
-  }
-  function abrirHoja() {
-    if (!PP.datos) { cargar(); }
-    var h = $("pp-hoja"); h.appendChild($("g-weebo")); h.appendChild($("g-pers"));
-    $("g-weebo").hidden = false; $("g-pers").hidden = false; PP.hoja = true; pintarChips();
-    $("pp-velo").classList.add("on"); $("pp-panel").classList.add("on"); $("pp-panel").setAttribute("aria-hidden", "false");
-    if (!PP.datos || Date.now() - (PP.leido || 0) > 30000) { PP.leido = Date.now(); hub("personalidad").then(function (r) { if (completa(r)) { PP.datos = r; fotoGuardar(r); pintar(); } }); }
-  }
-  function cerrarHoja() {
-    var huesp = $("g-huesp"); huesp.parentNode.insertBefore($("g-pers"), huesp); huesp.parentNode.insertBefore($("g-weebo"), huesp);   // vuelven a Ajustes
-    PP.hoja = false; $("pp-velo").classList.remove("on"); $("pp-panel").classList.remove("on"); $("pp-panel").setAttribute("aria-hidden", "true"); pintarChips();
-  }
-  $("pp-chips").onclick = abrirHoja;
-  $("pp-velo").onclick = cerrarHoja;
   /* Lo que cuenta la app (VozNativa.swift): { tipo: "personalidad", weebo, cambio, adapt, tope, modo } y el estado de la llamada. */
   window.AlmaPersonalidad = {
     evento: function (e) {
       if (!e) return;
       if (e.tipo === "estado") {
         var en = e.estado === "hablando" || e.estado === "conectando";
-        if (en !== PP.enLlamada) { PP.enLlamada = en; if (!en) { PP.vivo = null; if (PP.hoja) cerrarHoja(); } pintarChips(); if (PP.datos) pintar(); }
+        if (en !== PP.enLlamada) { PP.enLlamada = en; if (!en) PP.vivo = null; if (PP.datos) pintar(); }
         if (e.personalidad && !PP.vivo) this.evento(Object.assign({ tipo: "personalidad" }, e.personalidad));   // la página se abrió a media llamada
         return;
       }
@@ -2243,10 +2185,10 @@
       PP.vivo = { weebo: e.weebo == null ? null : +e.weebo, cambio: +e.cambio || 0, adapt: e.adapt == null ? null : +e.adapt, modo: e.modo || "" };
       if (PP.vivo.cambio) flechaSeVa();
       if (PP.datos && e.tope != null) PP.datos.adapt.tope = +e.tope;
-      if (PP.datos) pintar(); else { if (!PP.pidio) { PP.pidio = true; hub("personalidad").then(function (r) { if (completa(r)) { PP.datos = r; fotoGuardar(r); pintar(); } }); } pintarChips(); }
+      if (PP.datos) pintar();
     }
   };
-  /* hub.spacioam.com/alma/inicio.html#ajustes-personalidad (la pantalla de la llamada de la app la abre así): Ajustes abiertos en esta sección. */
+  /* hub.spacioam.com/alma/inicio.html#ajustes-personalidad: Ajustes abiertos en esta sección (un enlace directo). */
   if (location.hash === "#ajustes-personalidad") setTimeout(function () { if (!ses()) return; $("b-ajustes").click(); setTimeout(function () { $("t-pers").scrollIntoView({ block: "start", behavior: "smooth" }); }, 500); }, 1200);
 })();
 </script>

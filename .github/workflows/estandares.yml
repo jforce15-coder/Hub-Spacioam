@@ -112,8 +112,9 @@ jobs:
         run: node .github/respuesta-fuentes.js apps-script
       - name: Salas Priority Pass, filtro por terminal y caché de 30 días (dobles de la búsqueda y de la hoja)
         run: node .github/salas-pp.js apps-script
-      - name: Responder en el hilo, reenvíos de Gmail, iPhone y Outlook, nada sale sin el sí y adjuntos por el modelo (dobles)
+      - name: Responder en el hilo, reenvíos de Gmail, iPhone y Outlook, nada sale sin el sí, adjuntos y la búsqueda con y sin tildes (dobles)
         # 4-nov: Juan reenvía a Alma el correo de un socio y le dice qué contestar; la respuesta va al socio, en su hilo.
+        # 5-nov: «…para remodelación» (con tilde) no encontró «…remodelacion» y Alma le pidió a Juan reenviar lo que ya estaba.
         run: node .github/correo-hilo.js apps-script
       - name: Tarjeta de la llamada, una sola cosa, sin repetir, solo la app y nunca la familia (dobles)
         # #446 T2: la tarjeta sale de lo que la secretaria ya leyó (sin IA ni Hospitable); el apartamento nunca lleva códigos.

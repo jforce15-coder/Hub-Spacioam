@@ -219,8 +219,8 @@ function agHerramientas_() {
     /* mejora_para_claude ya no está en el chat (T8, 3-nov-2026): lo que es Propósito · Desarrollo lo pide el sistema al
        cerrar el turno (chat.js, chatDesarrollo_), así que la herramienta y su regla «no la uses» gastaban ~3.500
        caracteres por turno. La voz pide con «Mejora para Claude: …» por secretaria (voz.js). */
-    T('leer_correo', 'Abre un correo de la bandeja del Hub (ahí llega lo que Juan reenvía): el hilo entero, lo más reciente primero, sin historial citado ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, dale a Juan un resumen: de qué trata, qué piden y qué queda pendiente. Para mandar sus datos a alguien, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
-      { buscar: s('Palabras para encontrarlo: remitente, asunto o algo del texto (ej. «Delta HP7BWP», «vuelos Bozeman»)') }, ['buscar']),
+    T('leer_correo', 'Abre un correo de la bandeja del Hub (llega el de Juan y hola@): el hilo entero, lo más reciente primero, sin historial citado ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, dale a Juan un resumen: de qué trata, qué piden y qué queda pendiente. Para mandar sus datos a alguien, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
+      { buscar: s('Palabras sueltas del asunto, de quién lo mandó o del texto (ej. «Casa Sol remodelación»)') }, ['buscar']),
     T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, en el mismo hilo, desde hola@spacioam.com. Sin confirmado te da el borrador: muéstraselo a Juan COMPLETO (para, copia, asunto y texto) y espera su sí; con su sí, otra vez con confirmado = true y el mismo texto.',
       { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
     T('enviar_correo', 'Manda un correo NUEVO a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
@@ -827,7 +827,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });   // para las recetas (recetas.js)
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen
         var bl = res._imgs.map(imgBloque_).filter(Boolean); delete res._imgs;
-        resultados.push({ type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, 4000) }]) });
+        resultados.push({ type: 'tool_result', tool_use_id: u.id, content: bl.concat([{ type: 'text', text: JSON.stringify(res).slice(0, u.name === 'grow_fotos_visita' ? 9000 : 4000) }]) });   // Grow manda una línea por apartamento (aptos)
         continue;
       }
       resultados.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, u.name === 'leer_correo' ? 30000 : 12000), is_error: !!(res && res.error) });

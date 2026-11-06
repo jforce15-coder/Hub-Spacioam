@@ -7,6 +7,9 @@
    6. Correos largos: el hilo entero, lo más reciente primero, sin lo citado ni la firma, con tope y «recortado».
    7. Adjuntos: PDF y fotos pasan por el doble del modelo (el PDF como documento), CSV y Excel como tabla, lo demás
       «No puedo abrir este tipo», a lo mucho 3; releer no paga dos veces.
+   8. Buscar (6-nov, Casa Sol): con un doble de la búsqueda de Gmail que distingue tildes, el correo sale por asunto
+      partido, con o sin tilde, por quién lo mandó (casasol, Diana) y por el reenvío o el original; si no está, dice qué
+      buscó y en qué cuenta, y nunca pide reenviarlo. Responder a todos va en el mismo hilo del original.
    node .github/correo-hilo.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -201,5 +204,81 @@ function bandejaConOriginal() {
   const bl = caja2.imgBloque_ ? caja2.imgBloque_('data:application/pdf;base64,QUJD') : null;
   ok(bl && bl.type === 'document' && bl.source.media_type === 'application/pdf' && bl.source.data === 'QUJD', 'claude_ recibe el PDF como documento');
   ok(/correoAdjuntoVer_: 'Correo · leer adjuntos'/.test(cod), 'el costo queda en IA_USO con su nombre');
+}
+/* ── 8. Buscar como Gmail: distingue tildes, {a b} es «o», -x es «sin x», from: mira quién lo mandó ── */
+function gmailDoble(hilos) {
+  const tok = t => String(t || '').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const lados = h => h.getMessages().map(m => ({ de: String(m.getFrom()).toLowerCase(), asunto: tok(m.getSubject()),
+    todo: (m.getSubject() + ' ' + m.getFrom() + ' ' + m.getTo() + ' ' + m.getCc() + ' ' + m.getPlainBody()).toLowerCase() }));
+  const termino = (t, ls) => {
+    if (/^from:/i.test(t)) { const v = t.slice(5).toLowerCase(); return ls.some(l => l.de.indexOf(v) >= 0); }
+    if (/^subject:/i.test(t)) { const v = t.slice(8).toLowerCase(); return ls.some(l => l.asunto.indexOf(v) >= 0); }
+    if (/^(in|newer_than|older_than|has|is):/i.test(t)) return true;
+    const v = t.toLowerCase();
+    return ls.some(l => /[@.]/.test(v) ? l.todo.indexOf(v) >= 0 : tok(l.todo).indexOf(v) >= 0);
+  };
+  const buscados = [];
+  const buscar = (q, ini, max) => {
+    buscados.push(q);
+    const partes = String(q).match(/-?\{[^}]*\}|\S+/g) || [];
+    return hilos.filter(h => { const ls = lados(h); return partes.every(p => {
+      const neg = p[0] === '-' && p.length > 1, x = neg ? p.slice(1) : p;
+      const si = x[0] === '{' ? x.slice(1, -1).split(/\s+/).filter(Boolean).some(t => termino(t, ls)) : termino(x, ls);
+      return neg ? !si : si; }); }).slice(0, max || 500);
+  };
+  return { buscar, buscados };
+}
+{
+  const DIANA = 'administración Casa Sol <administracion@casasol.com.gt>', JUAN = 'Juan Ovalle | Spacio AM <' + YO + '>';
+  const ASUNTO = 'Seguimiento a rentas Actuales -Apartamentos para remodelacion.';
+  const orig = mensaje({ id: 'cs-1', from: DIANA, to: YO, cc: 'Casa Sol Bienes Raices <gerencia@casasol.com.gt>', subject: ASUNTO,
+    body: 'Buenas tardes, Juan:\nLe comparto el resumen de los apartamentos en uso y los disponibles para equipar.\n\nAtentamente,\nDiana Amaya\nAsistente de Administración' });
+  const fwd = mensaje({ id: 'cs-2', from: JUAN, to: HOLA, subject: 'Fwd: ' + ASUNTO,
+    body: '---------- Forwarded message ---------\nDe: administración Casa Sol <administracion@casasol.com.gt>\nDate: lun, 3 nov 2026\nSubject: ' + ASUNTO +
+      '\nTo: <' + YO + '>\nCc: Casa Sol Bienes Raices <gerencia@casasol.com.gt>\n\n\nBuenas tardes, Juan:\nLe comparto el resumen.\nDiana Amaya' });
+  const CASASOL = hilo('h-casasol', [orig, fwd]);
+  const nuevos = [hilo('h-bienvenida', [mensaje({ id: 'b1', from: 'Spacio AM <' + HOLA + '>', to: 'huesped@ejemplo.test', subject: '¡Bienvenido a Spacio AM! ✦ Tu registro está listo', body: 'Gracias por completar tu registro para tu estadía en los apartamentos.' })]),
+    hilo('h-promesas', [mensaje({ id: 'b2', from: HOLA, to: YO, subject: 'Promesas pendientes · 160', body: 'Resumen de lo que ALMA prometió para los huéspedes.' })])];
+  const viejos = [hilo('h-recibos', [mensaje({ id: 'r1', from: DIANA, to: YO, subject: 'Recibos de Luz Rentas Fijas', body: 'Adjunto los recibos de energía eléctrica para coordinar el pago.\nDiana Amaya' })])];
+  const g = gmailDoble(nuevos.concat([CASASOL], viejos));   // lo más nuevo primero, como Gmail
+  ok(!g.buscar('Seguimiento a rentas Actuales - Apartamentos para remodelación').length && g.buscar('remodelacion').length === 1 && !g.buscar('energia').length,
+    'el doble distingue tildes como Gmail («remodelación» no encuentra «remodelacion» ni «energia» a «energía»)');
+  const pedidos = {
+    'el asunto que dictó Juan, con tilde': 'Seguimiento a rentas Actuales - Apartamentos para remodelación',
+    'entre comillas latinas': '«Seguimiento a rentas Actuales - Apartamentos para remodelación»',
+    'asunto partido': 'rentas actuales remodelación',
+    'una sola palabra con tilde': 'remodelación',
+    'sin tilde': 'Apartamentos remodelacion',
+    'from: con el nombre de la firma': 'from:diana remodelación',
+    'quién lo mandó (dominio)': 'casasol seguimiento',
+    'Diana y Casa Sol': 'Diana Casa Sol apartamentos',
+    'subject: con el guion pegado': 'subject:"Seguimiento a rentas Actuales -Apartamentos para remodelación"',
+    'el reenvío': 'Fwd: Seguimiento a rentas',
+    'la dirección completa': 'administracion@casasol.com.gt'
+  };
+  Object.keys(pedidos).forEach(k => {
+    const c = caja({ hilos: [CASASOL], buscar: g.buscar }), r = c.R('correoLeer_', pedidos[k]);
+    ok(r.ok && r.asunto === ASUNTO && r.cuenta === YO, 'leer_correo lo encuentra: ' + k + ' («' + pedidos[k] + '»)' + (r.ok ? '' : ' → ' + String(r.error || r.asunto).slice(0, 160)));
+  });
+  {
+    const c = caja({ hilos: [CASASOL], buscar: g.buscar }), r = c.R('correoLeer_', 'Diana Casa Sol');
+    ok(r.ok && r.asunto === ASUNTO, 'con dos correos de Casa Sol, el más nuevo que tiene todas las palabras («Diana Casa Sol»)');
+  }
+  {
+    const c = caja({ hilos: [CASASOL], buscar: g.buscar }), r = c.R('correoLeer_', 'Factura Tigo octubre');
+    ok(r.error && r.error.indexOf(YO) >= 0 && /Busqué en Gmail: «[^»]*Factura[^»]*»/.test(r.error) && (r.buscado || []).length >= 2, 'si no está: dice la cuenta y exactamente qué buscó');
+    ok(!/Dile a Juan exactamente esto|que lo reenvíe a|no está entrando/.test(r.error) && /No le pidas que lo reenvíe/.test(r.error), 'si no está: nunca le pide a Juan que lo reenvíe');
+    const r3 = c.R('correoLeer_', 'apartamentos presupuesto techos Aktiva');
+    ok(r3.error && /Lo más parecido/.test(r3.error), 'con una sola palabra en común de cuatro no adivina otro correo: lo nombra como parecido');
+  }
+  {
+    const c = caja({ hilos: [CASASOL], buscar: g.buscar });
+    const r1 = c.R('correoResponder_', { email: YO }, { buscar: 'Seguimiento a rentas Actuales - Apartamentos para remodelación', texto: 'Hola Diana, gracias.', a_todos: true });
+    ok(r1.falta_confirmar && r1.borrador.para === 'administracion@casasol.com.gt' && r1.borrador.copia === 'gerencia@casasol.com.gt' && /mismo hilo/.test(r1.borrador.como),
+      'responder a todos con el reenvío y el original en el mismo hilo: a Casa Sol, copia a gerencia, en el mismo hilo');
+    c.ctx.AGENTE_TEXTO_ = 'sí, mándalo';
+    c.R('correoResponder_', { email: YO }, { buscar: 'Seguimiento a rentas Actuales - Apartamentos para remodelación', texto: 'Hola Diana, gracias.', a_todos: true, confirmado: true });
+    ok((orig.replies[0] || {}).tipo === 'replyAll' && !fwd.replies.length && !c.enviados.length, 'con el sí: .replyAll() en el mensaje de Casa Sol, no en el reenvío');
+  }
 }
 process.exit(fallo);

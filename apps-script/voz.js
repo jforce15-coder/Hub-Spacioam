@@ -346,7 +346,7 @@ function vozQuienBloque_() {
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma. Si no tienes cómo hacer algo que te piden, dilo en tu primera respuesta, no al final.',
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego se queda en silencio sin responderte (o la comunicación se corta), NO hagas preguntas de seguimiento: nada de «¿sigues ahí?», «¿quieres…?», «¿algo más?», «¿te ayudo con otra cosa?» ni ofrecer repasar pendientes. Cualquier verificación pendiente con la persona se hace ANTES de ese silencio, nunca después. Despídete directo con UNA frase corta y afirmativa, sin pregunta (por ejemplo: «Te dejo; si me necesitas, aquí estoy») y, si estás en la app de Alma en modo conferencia, NO uses end_call: la app deja el micrófono abierto unos 30 segundos por si la persona retoma. Fuera de la app, usa end_call. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
-    '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; por teléfono, WhatsApp o las web apps no hay pantalla): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), di una frase corta como «Te lo pongo en pantalla», usa mostrar_en_chat con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos) y después resume por voz en UNA sola frase; no leas en voz alta lo que pusiste en pantalla. La llamada sigue mientras Juan lo ve. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
+    '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; por teléfono, WhatsApp o las web apps no hay pantalla): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), usa mostrar_en_chat sin anunciarlo, con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos); solo si responde que se mostró, di «ya lo tienes en pantalla» y resume en UNA frase. Nunca prometas pantalla antes ni escribas tablas en lo que dices. La llamada sigue mientras Juan lo ve. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
     VOZ_MANOS_REGLA_, VOZ_ATAJOS_REGLA_,   // Manos de Alma (navegador) y Atajos de iOS (manos.js)
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
     '· MEJORAS DEL SISTEMA (solo caller_type juan): si Juan pide cambiar cómo funciona algo (una regla, una función nueva, algo que falla, «dile a Claudio…»), nunca digas que no puedes: usa secretaria con «Mejora para Claude (sencillo): …» o «Mejora para Claude (complejo): …» y el pedido completo. Sencillo: una pregunta simple, leer datos, un cambio chico y claro; complejo: lógica, funciones nuevas, errores, varias partes; con duda, complejo. Al volver di solo lo que diga secretaria («Listo, quedó pedido.»). Un ajuste («agrégale…») va igual, con «Mejora para Claude: agrégale …»; «con Opus» o «súbelo»: «Mejora para Claude: súbelo». Un pedido para Claudio va solo, no junto con otros. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
@@ -369,6 +369,7 @@ function vozQuienBloque_() {
     'CON UN ADMINISTRADOR (caller_type juan, o equipo con rol admin)',
     '· NUNCA lookup_reservation NI hospitable_router CON EL EQUIPO: si la FICHA DE QUIEN LLAMA dice «LLAMADA DESDE LA APP DEL HUB» o que es alguien del equipo, ya está identificado. No llames lookup_reservation en ningún momento de la llamada (ni para identificarle, ni para buscar una reserva o un huésped) ni hospitable_router: cada consulta tarda y lo que pida va completo por secretaria.',
     '· Las personas del equipo (Jorge, Gabriel, Santiago, técnicos, recepciones de edificios) no son huéspedes: nunca busques «la reserva de» alguien del equipo.',
+    '· CONSULTAS: «la interesada», «la consulta», «el inquiry», «la que acaba de entrar» es alguien que escribió por Airbnb sin reservar. Quien te habla sigue siendo el administrador: nunca le hables como a esa persona ni le ofrezcas propiedades. Pásale a secretaria su pedido tal cual (no redactes tú el mensaje): te devuelve el borrador; léeselo una vez y, con su sí, secretaria «Sí, envíalo». Nunca digas que salió ni que está en pantalla antes de que secretaria lo confirme.',
     '· En pedido pasa sus palabras tal cual, completas (nombres, números, apartamento, texto del mensaje). No las resumas ni cambies a quién va dirigido.',
     '· EN PANTALLA: si dice «el huésped», «la reserva», «escríbele» sin decir cuál, es la de EN PANTALLA. Si no hay EN PANTALLA o no está claro, pregunta cuál en una frase; nunca lo deduzcas del historial ni de llamadas anteriores.',
     '· Si secretaria dice que a la persona solo le llegó el mensaje de primer contacto (no había escrito en 24 h) o que el mensaje sale cuando responda, dilo así: «le llegó el aviso; el mensaje completo sale en cuanto conteste». No digas que ya lo recibió.',
@@ -442,8 +443,11 @@ function vozSyncPrompt_(forzar) {
   var ag = JSON.parse(g.getContentText()), prompt = (((ag.conversation_config || {}).agent || {}).prompt) || {};
   prompt.prompt = pc.texto;   // solo cambia el texto; herramientas, LLM y demás quedan como están
   if (prompt.tool_ids && prompt.tool_ids.length) delete prompt.tools;   // la API no acepta los dos a la vez
+  var agP = { prompt: prompt }, dvP = ((ag.conversation_config || {}).agent || {}).dynamic_variables || {}, phP = dvP.dynamic_variable_placeholders || {};
+  /* Si una llamada llega sin ficha, {{quien_llama}} vale VOZ_DESCONOCIDO_: se mantiene al día con el código. */
+  if (p.getProperty('VOZ_INICIO_OK') && phP.quien_llama !== VOZ_DESCONOCIDO_) agP.dynamic_variables = { dynamic_variable_placeholders: Object.assign({}, phP, { quien_llama: VOZ_DESCONOCIDO_ }) };
   var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
-    payload: JSON.stringify({ conversation_config: { agent: { prompt: prompt } } }) });
+    payload: JSON.stringify({ conversation_config: { agent: agP } }) });
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });
   p.setProperty('VOZ_PROMPT_HUELLA', huella);
   return guardar({ ok: true, clave_base: pc.clave, caracteres: pc.texto.length });
@@ -508,7 +512,7 @@ function vozDefHerramientas_(base) {
    La app siempre contesta enseguida (expects_response): Alma nunca se queda esperando. */
 function vozMostrarEnChat_() {
   return { type: 'client', name: 'mostrar_en_chat', expects_response: true, response_timeout_secs: 5,
-    description: 'Pone en la pantalla de Juan, en el chat, información con muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo) mientras la llamada sigue. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». Antes di una frase corta («Te lo pongo en pantalla»); después resume por voz en una sola frase, sin leerlo completo. Si responde que no se pudo mostrar, dilo por voz en corto.',
+    description: 'Pone en la pantalla de Juan, en el chat, información con muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo) mientras la llamada sigue. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». Llámala sin anunciarla: nunca prometas pantalla antes. Solo si responde que se mostró, resume por voz en una frase, sin leerlo completo; si no se pudo, dilo por voz en corto.',
     parameters: { type: 'object', required: ['titulo', 'contenido'], properties: {
       titulo: { type: 'string', description: 'Título corto de lo que se muestra (p. ej. «Tu viaje a Miami»).' },
       contenido: { type: 'string', description: 'La información completa en markdown: listas con «- », pasos con «1. », tablas con «| a | b |», negritas con **…**, una idea por línea (horas, fechas, montos y nombres exactos).' } } },
@@ -527,7 +531,7 @@ function vozNivelWeebo_() {
    solo se les cambian estos campos; lo demás (URL, encabezados, secretos) queda como está allá y nunca pasa por aquí. */
 var VOZ_AJUSTES_AJENAS_ = { hospitable_router: { interruption_mode: 'allow', disable_interruptions: false, pre_tool_speech: 'off', tool_call_sound: 'typing', tool_call_sound_behavior: 'always',
   /* T3 (3-nov-2026): se queda solo para disponibilidad (es lo único que no cubren lookup_reservation ni property_info). */
-  description: 'Solo para ver fechas libres a alguien que todavía no tiene reserva: action = check_availability, con check_in, check_out (YYYY-MM-DD), guests y property_name (Z1, Z4, Z10, Z13, Antigua o Likin). Para una reserva existente usa lookup_reservation y property_info. Nunca con Juan ni con el equipo.' } };
+  description: 'Solo para ver fechas libres a alguien que todavía no tiene reserva: action = check_availability, con check_in, check_out (YYYY-MM-DD), guests y property_name (la zona o el edificio que dijo la persona, tal cual; nunca uno que no dijo). Para una reserva existente usa lookup_reservation y property_info. Nunca con Juan ni con el equipo.' } };
 /* Herramientas de sistema de ElevenLabs (las trae el agente; aquí solo su descripción, en español y sin frases de centro
    de llamadas). T3, 3-nov-2026: end_call traía en inglés despedidas modelo («Gracias por comunicarte con nosotros»,
    «gracias por confirmarlo») y transfer_to_number dejaba transferir si «pide hablar con una persona». Lo demás (números
@@ -669,7 +673,9 @@ function vozTurnos_(eag) {
 
 /* ═══ Al empezar la llamada (webhook de inicio de ElevenLabs): el Hub identifica el número ANTES de que Alma hable ═══
    Devuelve la variable {{quien_llama}} y, si sabe quién es, un saludo con su nombre. */
-var VOZ_DESCONOCIDO_ = 'Número no identificado: puede ser un huésped. Valida la reserva como indican las anotaciones.';
+/* También es el valor por defecto de {{quien_llama}} cuando una llamada llega sin ficha (5-nov: una llamada de la app en
+   conferencia entró sin ficha, Alma trató a Juan como a la interesada de la que le hablaba y le inventó «Likin»). */
+var VOZ_DESCONOCIDO_ = 'Número no identificado: puede ser un huésped. Antes de responder, lookup_reservation solo con caller_id. Mientras no sepas quién es: no ofrezcas propiedades, precios ni pantalla, y si te habla de otra persona («la interesada», «el huésped»), no le hables como si fuera esa persona.';
 function vozInicio_(b) {
   var tel = b.caller_id || b.from || b.from_number || '';
   var r = {}; try { r = vozLookup_({ caller_id: tel }); } catch (e) { r = {}; }
@@ -1149,6 +1155,8 @@ function vozWebVincular_(ses, convId, app, b) {
   if (conf) CacheService.getScriptCache().put('vozconf_' + convId, '1', 21600);   // abierta desde el modo conferencia: plazo largo (vozSecretaria_)
   /* Tarjeta de la llamada (tarjeta.js): la app dice si Juan ve la pantalla (Modo calle o anillo con el teléfono bloqueado: no). */
   if (app && (b.pantalla === false || b.pantalla === 0 || b.pantalla === '0')) CacheService.getScriptCache().put('vozpant_' + convId, '0', 21600);
+  /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
+  if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
   if (rid) { c.remove('vozret_' + adm.email); try { retMencionado_(adm, rid); } catch (e) {} }
   var out = { ok: true };

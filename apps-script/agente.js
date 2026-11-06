@@ -118,8 +118,9 @@ function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
   return [
-    T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Cada resultado trae estado (confirmada, cancelada…) consultado en Hospitable: incluye las canceladas. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
-      { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' } }),
+    T('buscar_reservas', 'Busca reservas por nombre del huésped, código, propiedad o fecha. Cada resultado trae estado (confirmada, cancelada…) consultado en Hospitable: incluye las canceladas. Tolera errores de escritura y de transcripción de voz (Brunello/Brunelo, Erika/Ericka, un dígito distinto): manda lo que te dieron tal cual, nombre y propiedad juntos en una sola búsqueda; no hace falta probar variantes. Cada resultado trae coincidencia exacta o aproximada; si es aproximada y hay más de una, confirma cuál. También trae las consultas (inquiries: quien escribió sin reservar). Devuelve código, huésped, propiedad, fechas, estado del registro y conv_id.',
+      { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' },
+        consultas: { type: 'boolean', description: 'true: solo consultas, la más reciente primero («la que acaba de entrar»: sin texto)' } }),
     T('cancelaciones', 'Reservas CANCELADAS en un rango de fechas (según la fecha en que se canceló, en Hospitable en vivo). Úsala para «¿hubo cancelaciones ayer / esta semana / en los últimos 3 días?».',
       { desde: s('YYYY-MM-DD, inicio del rango (fecha de cancelación)'), hasta: s('YYYY-MM-DD, fin del rango (incluido). Si es un solo día, igual a desde') }, ['desde']),
     T('programados_reserva', 'Mensajes automáticos programados de UNA reserva en Hospitable (recordatorio de reseña/review, check-in, first morning, salida…) que aún no salen, y el estado de la reseña al huésped.',
@@ -145,9 +146,9 @@ function agHerramientas_() {
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
     T('marcar_resuelta', 'Marca la conversación de una reserva como RESUELTA en la bandeja del Hub (igual que el botón «Resuelta»): sale de pendientes, lo anterior queda como atendido y se cierran las promesas abiertas de ALMA en esa conversación. Un mensaje nuevo del huésped la reabre sola. Con reabrir = true la vuelve a abrir.',
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
-    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Formato fácil de leer en el teléfono: saludo en su propia línea y párrafos cortos (una idea por párrafo) separados por una línea en blanco.',
+    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Saludo en su propia línea y párrafos cortos separados por una línea en blanco. A una consulta (inquiry) sale solo con confirmado = true tras el sí de Juan al borrador.',
       { codigo: s('Código de reserva o conv_id, si lo tienes'), huesped: s('Sin código: nombre del huésped tal cual lo dijo (no hace falta buscar antes)'), propiedad: s('Sin código: propiedad y apartamento («Ignacio 1105»). Si hay más de una reserva posible no se envía y vuelven las opciones: pregunta cuál'),
-        texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado') }, ['texto', 'canal']),
+        texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), confirmado: CAL_SI_ }, ['texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre.',
       { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), propiedad: s('Opcional: apartamento del socio, si no ha escrito en 24 h'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
     T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
@@ -287,9 +288,13 @@ function agElegirReserva_(texto, hoy) {
   var vivas = hits.filter(function (x) { return fecha_(x.item.checkout_date) >= hoy; });
   var lista = vivas.length ? vivas : hits.filter(function (x) { return fecha_(x.item.checkout_date) >= sumarDias_(hoy, -14); });
   var exactas = lista.filter(function (x) { return x.coincidencia === 'exacta'; }); if (exactas.length) lista = exactas;
+  /* Consultas (consultas.js): quien escribió sin reservar. Gana si no hay reserva o si las reservas solo se parecen
+     (5-nov: «la interesada del 725» caía en reservas de Monaco que «no cuadraban»). */
+  var cons = null; try { cons = consultaElegir_(texto, inbox, hoy); } catch (e) { console.error('consultaElegir_: ' + e); }
+  if (cons && (!lista.length || (!exactas.length && !cons.ambiguo))) return cons;
   var hoyAqui = lista.filter(function (x) { return fecha_(x.item.checkin_date) <= hoy; });
   var ficha = function (r) { return { codigo: s_(r.code).toUpperCase(), huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date) }; };
-  if (!lista.length) return { error: 'NO SE ENVIÓ: no encontré una reserva actual o próxima de «' + texto + '» con conversación. Pídele el código de reserva o el nombre como aparece en la reserva.' };
+  if (!lista.length) return { error: 'NO SE ENVIÓ: no encontré una reserva actual o próxima ni una consulta de «' + texto + '» con conversación. Pídele el código de reserva o el nombre como aparece en Airbnb.' };
   var una = lista.length === 1 ? lista[0] : hoyAqui.length === 1 ? hoyAqui[0] : null;
   if (!una) return { error: 'NO SE ENVIÓ: hay ' + lista.length + ' reservas que coinciden con «' + texto + '». Pregúntale en una frase cuál es (nombre, apartamento o fechas) y vuelve a enviar con su código.', ambiguo: true, opciones: lista.slice(0, 5).map(function (x) { return ficha(x.item); }) };
   return Object.assign(ficha(una.item), { conv_id: conv(una.item) });
@@ -369,7 +374,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
   switch (nombre) {
     case 'buscar_reservas': {
       var f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
-      var parecido = {}, hits = agBuscarReservas_(inp.texto, f, !!inp.solo_llegadas, hoy, 12).map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
+      var soloC = inp.consultas === true;
+      var parecido = {}, hits = soloC ? [] : agBuscarReservas_(inp.texto, f, !!inp.solo_llegadas, hoy, 12).map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
+      /* Consultas (consultas.js): con texto, las que coinciden; con consultas = true, también las más recientes sin texto. */
+      var consH = soloC || String(inp.texto || '').trim() ? consultasBuscar_(inp.texto, f, inbox, hoy, soloC ? 5 : 3) : [], cons = consH.map(function (x) { return consultaFicha_(x.item); });
       var outR = { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
         reservas: (function () { var vivos = 0; return hits.map(function (r) {
         var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
@@ -378,9 +386,14 @@ function agEjecutar_(adm, nombre, inp, ctx) {
           coincidencia: parecido[cod] || 'exacta', huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
       }).sort(function (a, b) { return (a.estado === 'cancelada') - (b.estado === 'cancelada'); }); })(), total: hits.length,
         aviso_estado: 'El campo estado viene de Hospitable en vivo para los primeros resultados. Si dice cancelada, la reserva está CANCELADA: dilo así y no la trates como activa.' };
-      /* Tarjeta de la llamada (tarjeta.js): un solo resultado es una tarjeta; una lista no (y borra la de antes). */
-      if (hits.length === 1 && outR.reservas.length === 1) tvCandidata_('reserva', function () { return tvReserva_(hits[0], outR.reservas[0], inbox); });
-      else if (hits.length > 1) tvCandidata_(null);
+      if (cons.length) { outR.consultas = cons; outR.nota_consultas = 'Consultas: escribieron sin reservar. Para responder, enviar_a_huesped con su conv_id como codigo.'; }
+      else if (soloC) outR.nota = 'No hay consultas recientes en la bandeja.';
+      /* Tarjeta de la llamada (tarjeta.js): un solo resultado es una tarjeta; una lista no (y borra la de antes). Una consulta
+         exacta gana a reservas que solo se parecen. */
+      var unaC = cons.length === 1 && consH[0].coincidencia === 'exacta' && !hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'exacta'; });
+      if (hits.length === 1 && outR.reservas.length === 1 && !cons.length) tvCandidata_('reserva', function () { return tvReserva_(hits[0], outR.reservas[0], inbox); });
+      else if (unaC) tvCandidata_('consulta', function () { return tvConsulta_(consH[0].item); });
+      else if (hits.length + cons.length > 1) tvCandidata_(null);
       return outR;
     }
     case 'cancelaciones': return agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy);
@@ -412,7 +425,8 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var h = hiloConv_(rid); if (h.code !== 200) return { error: 'No pude leer la conversación (HTTP ' + h.code + ').' };
       var pr = hubPromesas_(false).promesas.filter(function (p) { return p.conv_id === rid; });
       var entregaWa = /^wa:/.test(rid) ? waEntregaTexto_(rid.slice(3)) : '';
-      tvCandidata_('conversacion', function () { return tvConversacion_(rid, h.hilo, pr, hubInbox_()); });   // tarjeta de la llamada (tarjeta.js)
+      if (/^inq:/.test(rid)) tvCandidata_('consulta', function () { return tvConsulta_(hubInbox_().filter(function (x) { return x.conv_id === rid; })[0] || { conv_id: rid }, h.hilo); });
+      else tvCandidata_('conversacion', function () { return tvConversacion_(rid, h.hilo, pr, hubInbox_()); });   // tarjeta de la llamada (tarjeta.js)
       return { conv_id: rid, entrega_ultimo_mensaje: entregaWa || undefined, mensajes: (h.hilo || []).slice(-15).map(function (m) { return (m.tipo === 'guest' ? 'HUÉSPED' : m.auto ? 'AUTOMÁTICO' : 'SPACIO AM') + (m.llamada ? ' (llamada)' : m.canal === 'whatsapp' ? ' (WhatsApp)' : '') + ' · ' + String(m.created || '').slice(0, 16).replace('T', ' ') + ': ' + String(m.texto || '').slice(0, 500) + ((m.fotos || []).length ? ' [imagen' + (m.fotos.length > 1 ? 'es: ' + m.fotos.length : '') + ' — usa ver_imagenes]' : ''); }),
         promesas_abiertas: pr.map(function (p) { return p.que + ' (vence ' + p.vence + ')'; }) };
     }
@@ -454,11 +468,23 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       /* Sin código (o con un código que no está en la bandeja): la reserva se busca aquí por huésped, propiedad y apartamento,
          en la misma vuelta. Si hay duda, no se envía nada y vuelven las opciones para preguntar. */
       var rid2 = agResId_(inp.codigo), elegida = null;
+      /* «Sí, envíalo» sin decir a quién: el borrador de consulta que espera su sí (consultas.js). */
+      if (!rid2 && inp.confirmado === true && !inp.huesped && !inp.propiedad) { var pendC = consultaPendiente_(adm); if (pendC) rid2 = pendC.conv_id; }
       if (!rid2) {
         var buscaH = [inp.huesped, inp.propiedad, inp.codigo].map(function (x) { return String(x || '').trim(); }).filter(Boolean).join(' ');
         if (!buscaH) return { error: 'NO SE ENVIÓ: falta a quién (código de reserva, o nombre del huésped y propiedad).' };
         elegida = agElegirReserva_(buscaH, hoy); if (elegida.error) return elegida;
         rid2 = elegida.conv_id;
+      }
+      /* Una consulta (inq:) es un tercero sin reserva: sale solo con el sí de Juan en otro turno (consultas.js). El borrador
+         se ve en la tarjeta de la llamada cuando se puede (tarjeta.js). */
+      if (/^inq:/.test(rid2)) {
+        var ibC = hubInbox_().filter(function (x) { return x.conv_id === rid2; })[0] || { conv_id: rid2 };
+        var fichaC = elegida && elegida.tipo === 'consulta' ? elegida : consultaFicha_(ibC);
+        var bC = consultaBorrador_(adm, fichaC, pulirMsgHuesped_(inp.texto, 'plataforma'), inp.confirmado);
+        if (!bC.enviar) { if (bC.ok) tvCandidata_('consulta', function () { return tvConsulta_(ibC, null, bC.borrador.texto); }); return bC; }
+        inp.texto = bC.texto; inp.canal = 'plataforma';
+        elegida = { codigo: '', huesped: fichaC.huesped, propiedad: fichaC.propiedad };
       }
       var cH = CacheService.getScriptCache(), kH = 'aghu_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, rid2 + '|' + String(inp.texto || '').trim().toLowerCase().slice(0, 300)));
       if (cH.get(kH)) return { ok: true, nota: 'Ese mismo mensaje ya se le envió a esta reserva hace menos de 3 minutos; no lo repetí.' };

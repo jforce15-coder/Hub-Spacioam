@@ -10,7 +10,12 @@
    · La app la pide con la acción vozTarjeta cuando le llega agent_tool_response de la secretaria. Mostrarla no llama a
      Hospitable: todo sale de lo que la herramienta ya leyó, de la hoja Reservas o de la caché del calendario de propiedades.
    · Nunca la misma cosa dos veces en una llamada (voztv_vistas_<conv_id>). Solo administradores: la familia nunca la ve.
-   · El apartamento nunca lleva códigos, claves ni el wifi. */
+   · El apartamento nunca lleva códigos, claves ni el wifi.
+   · Dónde sí (Juan, 6-nov-2026; tvPermitida_): SOLO en una llamada de la app de Alma o del Hub con la voz de Alma
+     EXPANDIDA (vozexp_), y solo con un administrador (el teléfono de la llamada es de un administrador). NUNCA por
+     WhatsApp, el chat escrito o en segundo plano (la candidata solo nace en el canal «llamada») y NUNCA con huéspedes.
+   · Consulta (inquiry): huésped, fechas, propiedad, su mensaje y el precio si lo hay; con un borrador, el texto que
+     saldría. Mismas reglas que las demás. */
 
 var TV_CANDIDATA_ = null;
 var TV_SEG_ = 600, TV_LLAMADA_SEG_ = 21600;
@@ -25,6 +30,7 @@ var TV_SECRETO_TEXTO_ = /(c[oó]digo|clave|contrase|password|passcode|\bpin\b|wi
    verdad se va a mostrar (el apartamento lee la semana del calendario). */
 function tvCandidata_(tipo, hacer) {
   if (typeof AGENTE_PERMITIDAS_ !== 'undefined' && AGENTE_PERMITIDAS_) return;   // la familia (vozFamilia_) nunca tiene tarjetas
+  if (tipo && (typeof AGENTE_CANAL_ === 'undefined' || AGENTE_CANAL_ !== 'llamada')) { TV_CANDIDATA_ = null; return; }   // WhatsApp, chat o segundo plano: nunca
   TV_CANDIDATA_ = tipo && typeof hacer === 'function' ? { tipo: tipo, hacer: hacer } : null;
 }
 
@@ -34,7 +40,7 @@ function tvCerrar_(convId, app, conf) {
   var cand = TV_CANDIDATA_; TV_CANDIDATA_ = null;
   convId = String(convId || '').trim();
   var c = CacheService.getScriptCache();
-  if (!app || !convId) return null;   // voztarjeta_ solo para las llamadas de la app
+  if (!convId || !tvPermitida_(convId, app)) return null;   // voztarjeta_ solo en la app o el Hub expandido, con un administrador
   if (!cand) { c.remove('voztarjeta_' + convId); return null; }
   var t = null; try { t = cand.hacer(); } catch (e) { console.error('tarjeta ' + cand.tipo + ': ' + (e.stack || e)); }
   if (!t || !t.clave) { c.remove('voztarjeta_' + convId); return null; }
@@ -70,6 +76,14 @@ function vozPantallaApi_(ses, b) {
   CacheService.getScriptCache().put('vozpant_' + conv, b.visible === false || b.visible === 0 || b.visible === '0' ? '0' : '1', TV_LLAMADA_SEG_);
   return { ok: true };
 }
+/* ¿Esta llamada puede tener tarjeta? La app de Alma (vozapp_) o el Hub con la voz expandida (vozexp_), y quien habla es un
+   administrador (vozweb_ lo dejó vozWebVincular_ con el teléfono de su sesión). Un huésped por teléfono no tiene ninguno. */
+function tvPermitida_(convId, app) {
+  var c = CacheService.getScriptCache();
+  if (!app && c.get('vozexp_' + convId) !== '1') return false;
+  var tel = vozWebTel_(convId);
+  return !!(tel && adminPorTel_(tel));
+}
 function tvDeLaLlamada_(adm, conv) {
   var tel = vozWebTel_(conv); if (!tel) return false;
   return (adm.tels || []).some(function (x) { return fin8_(x) === fin8_(tel); });
@@ -83,6 +97,7 @@ function tvLineaChat_(celda) {
   if (o.tipo === 'reserva') return 'Tarjeta de la llamada · reserva de ' + (o.titulo || 'un huésped') + cod;
   if (o.tipo === 'conversacion') return 'Tarjeta de la llamada · conversación con ' + (o.titulo || 'un huésped') + cod;
   if (o.tipo === 'apartamento') return 'Tarjeta de la llamada · apartamento ' + (o.titulo || '');
+  if (o.tipo === 'consulta') return 'Tarjeta de la llamada · consulta de ' + (o.titulo || 'un interesado');
   return '';
 }
 function tvConLinea_(m) {
@@ -158,6 +173,32 @@ function tvConversacion_(rid, hilo, promesas, inbox) {
     fechas: [], datos: [], mensajes: msgs, promesas: pr, semana: [], detalle: [],
     conv: cod || String(rid), tel: tel, wa: tel ? tel.replace(/\D/g, '') : '',
     resumen: 'los últimos mensajes de la conversación' + (nombre ? ' con ' + nombre : '') + (pr.length ? ' y sus promesas abiertas' : '')
+  };
+}
+
+/* Consulta (inquiry): quien escribió sin reservar. Sale de la fila de la bandeja (ib) y, si ya se leyó, de su hilo; con
+   un borrador, el texto que saldría (todavía no salió: lo dice el chip). Precio solo si algo ya lo trae. */
+function tvConsulta_(ib, hilo, borrador) {
+  ib = ib || {}; var rid = String(ib.conv_id || ''); if (rid.indexOf('inq:') !== 0) return null;
+  var nombre = tvTxt_(ib.huesped, 40), primer = nombre.split(' ')[0], canal = tvCanal_(ib.canal) || 'Airbnb';
+  var ent = String(ib.checkin || '').slice(0, 10), sal = String(ib.checkout || '').slice(0, 10), noches = tvNoches_(ent, sal), hues = Number(ib.huespedes) || 0;
+  var msgs = (hilo || []).filter(function (m) { return tvTxt_(m.texto); }).slice(-2).map(function (m) {
+    var de = m.tipo === 'guest' ? 'huesped' : m.auto ? 'auto' : 'equipo';
+    return { de: de, quien: de === 'huesped' ? (primer || 'Huésped') : de === 'auto' ? 'Automático' : 'Spacio AM', texto: tvTxt_(m.texto, 220), hora: tvHora_(m.created) };
+  });
+  if (!msgs.length && tvTxt_(ib.ultimo_texto)) msgs = [{ de: ib.ultimo_de === 'guest' ? 'huesped' : 'equipo', quien: ib.ultimo_de === 'guest' ? (primer || 'Huésped') : 'Spacio AM', texto: tvTxt_(ib.ultimo_texto, 220), hora: tvHora_(ib.ultimo_ts) }];
+  if (tvTxt_(borrador)) msgs.push({ de: 'equipo', quien: 'Borrador · sale con tu sí', texto: tvTxt_(borrador, 400), hora: '' });
+  var precio = tvCampo_(ib, /^(precio|price|total|monto|tarifa|quote)/i), datos = [];
+  if (precio && !isNaN(Number(precio)) && Number(precio) > 0) datos.push('Precio US$ ' + Math.round(Number(precio)));
+  datos.push('Sin reserva todavía');
+  return {
+    tipo: 'consulta', clave: 'consulta:' + rid + (tvTxt_(borrador) ? ':b' + tvTxt_(borrador).length : ''), ref: rid, etiqueta: 'Consulta · ' + canal,
+    titulo: nombre || 'Interesado', sub: [ib.propiedad ? tvLugar_(ib.propiedad) : '', canal].filter(Boolean).join(' · '),
+    chip: tvTxt_(borrador) ? 'Borrador' : 'Consulta', tono: 'aviso', foto: /^https:\/\//.test(String(ib.foto || '')) ? String(ib.foto) : '', iniciales: tvIniciales_(nombre),
+    fechas: ent ? [{ t: 'Llega', v: tvFecha_(ent), d: '' }, { t: 'Sale', v: tvFecha_(sal), d: '' }, { t: 'Noches', v: String(noches), d: hues ? hues + ' huésp.' : '' }] : [],
+    datos: datos, mensajes: msgs, promesas: [], semana: [], detalle: [tvTxt_(ib.propiedad)].filter(Boolean),
+    conv: rid, tel: '', wa: '',
+    resumen: (tvTxt_(borrador) ? 'el borrador para ' : 'la consulta de ') + (nombre || 'la persona') + ' (fechas, propiedad y su mensaje)'
   };
 }
 

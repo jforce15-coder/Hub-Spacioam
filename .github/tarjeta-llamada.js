@@ -34,7 +34,9 @@ function caja(o) {
     leerTabla_: () => o.reservas || [],
     hubInbox_: () => o.inbox || [],
     vozWebAdmin_: (ses) => (ses && ses.email === 'juan@spacioam.com' ? { email: ses.email, tels: ['50255550101'], principal: true } : null),
-    vozWebTel_: (conv) => (conv === 'conv-app' ? '50255550101' : conv === 'conv-otro' ? '50255559999' : ''),
+    vozWebTel_: (conv) => (conv === 'conv-app' || conv === 'conv-hub' ? '50255550101' : conv === 'conv-otro' ? '50255559999' : ''),
+    adminPorTel_: (tel) => (String(tel).slice(-8) === '55550101' ? { email: 'juan@spacioam.com', tels: ['50255550101'], principal: true } : null),
+    AGENTE_CANAL_: o.canal === undefined ? 'llamada' : o.canal,
     hosp_: () => { throw new Error('la tarjeta no llama a Hospitable'); },
     fecha_: (v) => String(v || '').slice(0, 10), sumarDias_: (f, n) => { const d = new Date(f + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   };
@@ -72,7 +74,7 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
   X.tvCandidata_(null);
   ok(X.tvCerrar_('conv-app', true, false) === null && !cache['voztarjeta_conv-app'], '2 · una lista después de un resultado: no hay tarjeta');
   const src = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8');
-  ok(/hits\.length === 1 && outR\.reservas\.length === 1\) tvCandidata_\('reserva'/.test(src) && /else if \(hits\.length > 1\) tvCandidata_\(null\)/.test(src), '2 · buscar_reservas: solo con un resultado; con varios, borra la candidata');
+  ok(/hits\.length === 1 && outR\.reservas\.length === 1 && !cons\.length\) tvCandidata_\('reserva'/.test(src) && /else if \(hits\.length \+ cons\.length > 1\) tvCandidata_\(null\)/.test(src), '2 · buscar_reservas: solo con un resultado; con varios (reservas o consultas), borra la candidata');
 }
 
 /* 3 · nunca lo mismo dos veces */

@@ -121,3 +121,6 @@ jobs:
       - name: Relevo de contacto, la respuesta que cita «X respondió» va a X y Alma encuentra a quien ya le escribió (dobles)
         # 4-nov: Juan citó «Gustavo Peña respondió…» y Alma preguntó si era para Inés Flores y después pidió su número.
         run: node .github/relevo-contacto.js apps-script
+      - name: Consultas (inquiries), Alma las encuentra, muestra el borrador y envía solo con el sí; tarjeta nunca por WhatsApp (dobles)
+        # 5-nov: Juan pidió tres veces escribirle a una consulta de Airbnb; Alma no la encontró, lo trató como a la interesada y habló de Likin.
+        run: node .github/consulta-inquiry.js apps-script

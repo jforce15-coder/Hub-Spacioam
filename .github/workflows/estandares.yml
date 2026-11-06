@@ -115,6 +115,7 @@ jobs:
       - name: Responder en el hilo, reenvíos de Gmail, iPhone y Outlook, nada sale sin el sí, adjuntos y la búsqueda con y sin tildes (dobles)
         # 4-nov: Juan reenvía a Alma el correo de un socio y le dice qué contestar; la respuesta va al socio, en su hilo.
         # 5-nov: «…para remodelación» (con tilde) no encontró «…remodelacion» y Alma le pidió a Juan reenviar lo que ya estaba.
+        # 6-nov: con adjuntos de Drive (los PDF del presupuesto de MONACO para Casa Sol), que el borrador nombra.
         run: node .github/correo-hilo.js apps-script
       - name: Tarjeta de la llamada, una sola cosa, sin repetir, solo la app y nunca la familia (dobles)
         # #446 T2: la tarjeta sale de lo que la secretaria ya leyó (sin IA ni Hospitable); el apartamento nunca lleva códigos.
@@ -128,3 +129,6 @@ jobs:
       - name: Promesas al huésped, se cierran solas con evidencia o porque ya no aplican, y no se repiten (dobles)
         # 6-nov: 95 de 147 promesas vencieron sin marca; el equipo contesta directo en Hospitable o WhatsApp y nada las cerraba.
         run: node .github/promesas-huesped.js apps-script
+      - name: Presupuesto de Grow por apartamento, importa sin duplicar y un PDF por llamada a WhatsApp y con su drive_id (dobles)
+        # 6-nov: el equipamiento de MONACO para 6 apartamentos y los PDF para el correo a Casa Sol.
+        run: node .github/grow-presupuesto.js apps-script

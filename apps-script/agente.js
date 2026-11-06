@@ -170,16 +170,17 @@ function agHerramientas_() {
     T('grow_proyectos', 'Grow (captación y montaje de apartamentos nuevos): busca proyectos por edificio, apartamento, zona o dueño, o lista los de una etapa. Sin filtros da el conteo por etapa. Devuelve id, etapa, dueño y visita.',
       { buscar: s('Opcional: edificio, apartamento, zona o nombre del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional: solo los de esta etapa' } }),
     T('grow_crear_proyecto', 'Grow: da de alta un apartamento nuevo (prospecto) con su dueño. Si el dueño trae correo, queda con acceso inmediato a Grow. Si ya existe ese edificio + apartamento, devuelve el existente.',
-      { edificio: s('Nombre del edificio'), apto: s('Número o nombre del apartamento'), zona: s('Opcional: zona (ej. Zona 14)'), hab: { type: 'number', description: 'Opcional: habitaciones' }, banos: { type: 'number', description: 'Opcional: baños' },
-        dueno_nombre: s('Opcional: nombre del dueño'), dueno_email: s('Opcional: correo del dueño'), dueno_tel: s('Opcional: teléfono del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional; por defecto desconocido' }, nota: s('Opcional: contexto') }, ['edificio']),
-    T('grow_mover_etapa', 'Grow: mueve un proyecto a otra etapa del embudo (usa el id de grow_proyectos). Para descartar usa etapa descartado con motivo.',
+      { edificio: s('Nombre del edificio'), apto: s('Número o nombre del apartamento'), zona: s('Opcional (ej. Zona 14)'), hab: { type: 'number', description: 'Opcional' }, banos: { type: 'number', description: 'Opcional' },
+        dueno_nombre: s('Opcional'), dueno_email: s('Opcional'), dueno_tel: s('Opcional'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional; por defecto desconocido' }, nota: s('Opcional: contexto') }, ['edificio']),
+    T('grow_mover_etapa', 'Grow: mueve un proyecto a otra etapa del embudo. Para descartar usa etapa descartado con motivo.',
       { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
-    T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo. Si el proyecto estaba en captación pasa a visita.',
+    T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo.',
       { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
-    T('grow_fotos_visita', 'Grow: mira tú misma las fotos del levantamiento (visita) de un proyecto, de a 6, con su zona, y los problemas de mantenimiento que anotó quien visitó. Úsala para revisarlas y recomendarle al administrador (qué arreglar, qué comprar, qué falta fotografiar). Si quedan más (siguen), pide las siguientes con desde.',
+    T('grow_fotos_visita', 'Grow: mira tú misma las fotos de la visita de un proyecto, de a 6, con su zona, y los problemas de mantenimiento que anotó quien visitó, para recomendar qué arreglar, comprar o fotografiar. Si quedan más (siguen), pide las siguientes con desde.',
       { proyecto_id: s('id del proyecto (p…)'), zona: s('Opcional: solo una zona (cocina, baño, sala, mantenimiento…)'), apto: s('Opcional: en edificios con varias unidades, el apartamento'), desde: { type: 'number', description: 'Opcional: cuántas saltar (0, 6, 12…)' } }, ['proyecto_id']),
-    T('grow_presupuesto_pdf', 'Grow: saca en PDF el presupuesto de un proyecto (ítems por categoría, resumen y total, como lo imprime Grow) para mandárselo a alguien de afuera. Te devuelve el enlace de solo lectura del PDF (dáselo al administrador) y se lo manda como archivo a su WhatsApp para que lo reenvíe. Solo administrador principal.',
-      { proyecto_id: s('id del proyecto (p…)'), whatsapp: { type: 'boolean', description: 'Opcional: false para no mandarlo a su WhatsApp (por defecto sí)' } }, ['proyecto_id']),
+    T('grow_presupuesto_pdf', 'Grow: PDF del presupuesto para alguien de afuera; a Juan le llega por WhatsApp y te da enlace y drive_id. Con hoja y aptos, primero copia esa plantilla como un presupuesto por apartamento (sin duplicar). Solo administrador principal.',
+      { proyecto_id: s('id del proyecto (p…)'), aptos: s('Opcional: «B5, A4»: un PDF por apartamento'), hoja: s('Opcional: enlace o nombre de la hoja plantilla'), pestana: s('Opcional: pestaña de la hoja'),
+        consolidado: { type: 'boolean', description: 'Opcional: uno más con todos' }, whatsapp: { type: 'boolean', description: 'Opcional: false para no mandarlo a su WhatsApp' } }, ['proyecto_id']),
     T('actualizar_dato', 'Dato de hecho, sin pedir permiso: apto, edificio o zona de un proyecto de Grow; nombre, teléfono o correo de su dueño; nombre, rol, empresa o apartamentos de un contacto. Devuelve aviso: díselo a Juan tal cual.',
       { donde: { type: 'string', enum: ['grow_proyecto', 'grow_dueno', 'contacto'] }, id: s('p… o D… de grow_proyectos, o número del contacto'), campo: { type: 'string', enum: ['apto', 'edificio', 'zona', 'nombre', 'telefono', 'email', 'rol', 'empresa', 'propiedades'] }, valor: s('Valor'), fuente: s('«lo dijo Inés»') }, ['donde', 'id', 'campo', 'valor', 'fuente']),
     T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
@@ -221,8 +222,8 @@ function agHerramientas_() {
        caracteres por turno. La voz pide con «Mejora para Claude: …» por secretaria (voz.js). */
     T('leer_correo', 'Abre un correo de la bandeja del Hub (llega el de Juan y hola@): el hilo entero, lo más reciente primero, sin historial citado ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, dale a Juan un resumen: de qué trata, qué piden y qué queda pendiente. Para mandar sus datos a alguien, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
       { buscar: s('Palabras sueltas del asunto, de quién lo mandó o del texto (ej. «Casa Sol remodelación»)') }, ['buscar']),
-    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, en el mismo hilo, desde hola@spacioam.com. Sin confirmado te da el borrador: muéstraselo a Juan COMPLETO (para, copia, asunto y texto) y espera su sí; con su sí, otra vez con confirmado = true y el mismo texto.',
-      { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
+    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, desde hola@spacioam.com. Sin confirmado te da el borrador: muéstraselo a Juan COMPLETO (para, copia, asunto y texto) y espera su sí; con su sí, otra vez con confirmado = true y el mismo texto.',
+      { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), adjuntos: s('Opcional: drive_id de PDF a adjuntar, con comas'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
     T('enviar_correo', 'Manda un correo NUEVO a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
     T('guardar_familia', 'Guarda a alguien de la familia de Juan (su esposa, sus hijos, sus padres…) para que Alma lo reconozca cuando llama o escribe, lo trate por su nombre y le ayude con lo personal de Juan. Úsala cuando Juan diga quién es («Christine es mi esposa»). Si ya le escribiste antes, basta el nombre.',
@@ -586,25 +587,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       rFv._imgs = fv.map(function (f) { return f.data; });
       return rFv;
     }
-    case 'grow_presupuesto_pdf': {
-      if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal saca el presupuesto en PDF.' };
-      var rPp = growApi_('presupuesto_pdf', { proyecto_id: inp.proyecto_id, por: (adm && adm.nombre) || '' });
-      if (!rPp || !rPp.ok) return rPp || { error: 'Grow no respondió.' };
-      var b64Pp = rPp.pdf_b64; delete rPp.pdf_b64;   // el PDF no entra a la conversación con el modelo: solo su enlace
-      rPp.whatsapp = 'no';
-      if (inp.whatsapp !== false && b64Pp) {
-        var telPp = (adm.tels || [])[0];
-        if (!telPp) rPp.whatsapp = 'No tengo su WhatsApp registrado.';
-        else {
-          var wPp = waEnviarDocumento_(telPp, Utilities.newBlob(Utilities.base64Decode(b64Pp), 'application/pdf', rPp.nombre || 'Presupuesto.pdf'), 'Presupuesto · ' + rPp.proyecto + ' · ' + rPp.total);
-          rPp.whatsapp = wPp.ok ? 'enviado' : (wPp.detalle || wPp.error || 'no salió');
-        }
-      }
-      if (!rPp.url && rPp.whatsapp !== 'enviado') return { ok: false, error: 'Armé el PDF pero no pude guardarlo en Drive ni mandarlo por WhatsApp: ' + rPp.whatsapp };
-      if (rPp.url && !rPp.compartido) rPp.nota = 'El enlace es privado (el Drive no deja compartir con enlace): para alguien de afuera reenvía el archivo de WhatsApp.';
-      ctx.hechas.push({ tipo: 'grow', resumen: 'Grow · presupuesto en PDF ' + rPp.proyecto + ' · ' + rPp.total + (rPp.whatsapp === 'enviado' ? ' · por WhatsApp' : '') });
-      return rPp;
-    }
+    case 'grow_presupuesto_pdf': return growPresupuestoPdf_(adm, inp, ctx);   // growpresupuesto.js: también uno por apartamento y la plantilla de una hoja
     case 'actualizar_dato': { var rDh = datoHechoAnotar_(adm, inp); if (rDh.ok && rDh.aviso) ctx.hechas.push({ tipo: 'dato', resumen: rDh.aviso }); return rDh; }   // datoshecho.js
     case 'memoria_propiedad': case 'recordar_en_propiedad': {
       var fl = leerTabla_(CFG.TAB_PROPIEDADES).map(function (r) { return r.property_name; }).filter(Boolean);

@@ -32,7 +32,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· No preguntes entre dos nombres parecidos (Gabriel / Gabriela) si tus herramientas devuelven una sola persona que coincide; usa esa.' +
   '\n· Para la recepción de un edificio, escribir_a_equipo con persona «Recepción <edificio o propiedad>»: ya tienes esos números. No los pidas.' +
   '\n· Nunca le pidas al administrador su propio número ni su correo: ya los tienes (es quien te habla). En un pedido en segundo plano, la respuesta va directo a él.' +
-  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*).' +
+  '\n· Nunca digas que no puedes hacer algo si una de tus herramientas lo hace: programar mensajes (programar_mensaje), su calendario (crear_evento), ver fotos (ver_imagenes), códigos (codigo_acceso), contactos (buscar_contacto), proyectos de Grow (grow_*: también ver las fotos de una visita y sacar el presupuesto en PDF).' +
   '\n· Los datos de hecho se anotan con actualizar_dato (sin preguntar; ver confirmaciones).' +
   '\n· El estado de una reserva es el campo estado que devuelve buscar_reservas. Si dice cancelada, está cancelada (di cuándo, con cancelada_el): nunca digas que está activa ni hables de su acceso como si siguiera en pie.' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
@@ -175,6 +175,10 @@ function agHerramientas_() {
       { proyecto_id: s('id del proyecto (p…)'), etapa: { type: 'string', enum: GROW_ETAPAS_ }, motivo: s('Obligatorio si es descartado') }, ['proyecto_id', 'etapa']),
     T('grow_agendar_visita', 'Grow: agenda (o reprograma) la visita de levantamiento de un proyecto y se la asigna a alguien del equipo de Grow; le llega un correo. Si el proyecto estaba en captación pasa a visita.',
       { proyecto_id: s('id del proyecto (p…)'), fecha: s('YYYY-MM-DD HH:mm (hora Guatemala)'), asignado: s('Nombre de la persona del equipo de Grow'), nota: s('Opcional: indicaciones para quien visita') }, ['proyecto_id', 'fecha', 'asignado']),
+    T('grow_fotos_visita', 'Grow: mira tú misma las fotos del levantamiento (visita) de un proyecto, de a 6, con su zona, y los problemas de mantenimiento que anotó quien visitó. Úsala para revisarlas y recomendarle al administrador (qué arreglar, qué comprar, qué falta fotografiar). Si quedan más (siguen), pide las siguientes con desde.',
+      { proyecto_id: s('id del proyecto (p…)'), zona: s('Opcional: solo una zona (cocina, baño, sala, mantenimiento…)'), apto: s('Opcional: en edificios con varias unidades, el apartamento'), desde: { type: 'number', description: 'Opcional: cuántas saltar (0, 6, 12…)' } }, ['proyecto_id']),
+    T('grow_presupuesto_pdf', 'Grow: saca en PDF el presupuesto de un proyecto (ítems por categoría, resumen y total, como lo imprime Grow) para mandárselo a alguien de afuera. Te devuelve el enlace de solo lectura del PDF (dáselo al administrador) y se lo manda como archivo a su WhatsApp para que lo reenvíe. Solo administrador principal.',
+      { proyecto_id: s('id del proyecto (p…)'), whatsapp: { type: 'boolean', description: 'Opcional: false para no mandarlo a su WhatsApp (por defecto sí)' } }, ['proyecto_id']),
     T('actualizar_dato', 'Dato de hecho, sin pedir permiso: apto, edificio o zona de un proyecto de Grow; nombre, teléfono o correo de su dueño; nombre, rol, empresa o apartamentos de un contacto. Devuelve aviso: díselo a Juan tal cual.',
       { donde: { type: 'string', enum: ['grow_proyecto', 'grow_dueno', 'contacto'] }, id: s('p… o D… de grow_proyectos, o número del contacto'), campo: { type: 'string', enum: ['apto', 'edificio', 'zona', 'nombre', 'telefono', 'email', 'rol', 'empresa', 'propiedades'] }, valor: s('Valor'), fuente: s('«lo dijo Inés»') }, ['donde', 'id', 'campo', 'valor', 'fuente']),
     T('memoria_propiedad', 'Lo que ALMA aprendió del equipo sobre una propiedad o su edificio (elevadores, tarjetas, accesos, dónde se pierden los huéspedes). Cada dato trae su id.', { propiedad: s('Nombre o parte del nombre de la propiedad') }, ['propiedad']),
@@ -546,6 +550,34 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (r && r.ok) ctx.hechas.push({ tipo: 'grow', resumen: 'Grow · ' + (op === 'crear' ? (r.ya_existia ? 'ya existía ' : 'nuevo proyecto ') + ((r.proyecto || {}).nombre || '')
         : op === 'etapa' ? r.proyecto + ': ' + r.de + ' → ' + r.a : 'visita ' + r.proyecto + ' · ' + r.fecha + ' · ' + r.asignado) });
       return r;
+    }
+    case 'grow_fotos_visita': {   // las fotos viajan como bloques de imagen (_imgs), igual que ver_imagenes
+      var rFv = growApi_('fotos', { proyecto_id: inp.proyecto_id, zona: inp.zona || '', apto: inp.apto || '', desde: Number(inp.desde) || 0 });
+      if (!rFv || !rFv.ok) return rFv || { error: 'Grow no respondió.' };
+      var fv = rFv.fotos || []; delete rFv.fotos;
+      if (!fv.length) { rFv.nota = rFv.total ? 'No hay fotos con ese filtro (o no se pudieron abrir).' : 'Ese proyecto todavía no tiene fotos de la visita en Grow.'; return rFv; }
+      rFv.detalle = fv.map(function (f) { return 'Foto ' + f.n + ': ' + f.zona + (f.apto ? ' · apto ' + f.apto : '') + (f.fecha ? ' · ' + f.fecha : ''); });
+      rFv._imgs = fv.map(function (f) { return f.data; });
+      return rFv;
+    }
+    case 'grow_presupuesto_pdf': {
+      if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal saca el presupuesto en PDF.' };
+      var rPp = growApi_('presupuesto_pdf', { proyecto_id: inp.proyecto_id, por: (adm && adm.nombre) || '' });
+      if (!rPp || !rPp.ok) return rPp || { error: 'Grow no respondió.' };
+      var b64Pp = rPp.pdf_b64; delete rPp.pdf_b64;   // el PDF no entra a la conversación con el modelo: solo su enlace
+      rPp.whatsapp = 'no';
+      if (inp.whatsapp !== false && b64Pp) {
+        var telPp = (adm.tels || [])[0];
+        if (!telPp) rPp.whatsapp = 'No tengo su WhatsApp registrado.';
+        else {
+          var wPp = waEnviarDocumento_(telPp, Utilities.newBlob(Utilities.base64Decode(b64Pp), 'application/pdf', rPp.nombre || 'Presupuesto.pdf'), 'Presupuesto · ' + rPp.proyecto + ' · ' + rPp.total);
+          rPp.whatsapp = wPp.ok ? 'enviado' : (wPp.detalle || wPp.error || 'no salió');
+        }
+      }
+      if (!rPp.url && rPp.whatsapp !== 'enviado') return { ok: false, error: 'Armé el PDF pero no pude guardarlo en Drive ni mandarlo por WhatsApp: ' + rPp.whatsapp };
+      if (rPp.url && !rPp.compartido) rPp.nota = 'El enlace es privado (el Drive no deja compartir con enlace): para alguien de afuera reenvía el archivo de WhatsApp.';
+      ctx.hechas.push({ tipo: 'grow', resumen: 'Grow · presupuesto en PDF ' + rPp.proyecto + ' · ' + rPp.total + (rPp.whatsapp === 'enviado' ? ' · por WhatsApp' : '') });
+      return rPp;
     }
     case 'actualizar_dato': { var rDh = datoHechoAnotar_(adm, inp); if (rDh.ok && rDh.aviso) ctx.hechas.push({ tipo: 'dato', resumen: rDh.aviso }); return rDh; }   // datoshecho.js
     case 'memoria_propiedad': case 'recordar_en_propiedad': {

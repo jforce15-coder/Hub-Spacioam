@@ -147,9 +147,9 @@ function agHerramientas_() {
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
     T('marcar_resuelta', 'Marca la conversación de una reserva como RESUELTA en la bandeja del Hub (igual que el botón «Resuelta»): sale de pendientes, lo anterior queda como atendido y se cierran las promesas abiertas de ALMA en esa conversación. Un mensaje nuevo del huésped la reabre sola. Con reabrir = true la vuelve a abrir.',
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
-    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas cuando haga falta (no te conocen), con «te saluda Alma»: «Hola Marcela, te saluda Alma.» Saludo en su propia línea y párrafos cortos separados por una línea en blanco. A una consulta (inquiry) sale solo con confirmado = true tras el sí de Juan al borrador.',
+    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Para mostrar el borrador: borrador = true. Con el sí de Juan: confirmado = true (una consulta sale solo así).',
       { codigo: s('Código de reserva o conv_id, si lo tienes'), huesped: s('Sin código: nombre del huésped tal cual lo dijo (no hace falta buscar antes)'), propiedad: s('Sin código: propiedad y apartamento («Ignacio 1105»). Si hay más de una reserva posible no se envía y vuelven las opciones: pregunta cuál'),
-        texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), confirmado: CAL_SI_ }, ['texto', 'canal']),
+        texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), borrador: { type: 'boolean', description: 'true = guarda el borrador con su reserva; no sale' }, confirmado: CAL_SI_ }, ['texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre.',
       { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), propiedad: s('Opcional: apartamento del socio, si no ha escrito en 24 h'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
     T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
@@ -258,7 +258,10 @@ function agResId_(codigo) {
   if (/^\+?[\d\s().-]{8,}$/.test(c) && normTel_(c)) return 'wa:' + normTel_(c);
   var C = c.toUpperCase().replace(/\s+/g, '');
   var hit = hubInbox_().filter(function (x) { return String(x.codigo || '').toUpperCase() === C && x.conv_id && !/^(wa|op|inq):/.test(x.conv_id); })[0];
-  return hit ? hit.conv_id : '';
+  if (hit) return hit.conv_id;
+  /* La bandeja a veces no tiene el código (7-nov, Oscar): la hoja Reservas y, si hace falta, Hospitable (enviohuesped.js). */
+  if (/^[A-Z0-9-]{6,16}$/.test(C)) { var rc = reservaConv_(C, undefined, true); if (rc.conv_id) return rc.conv_id; }
+  return '';
 }
 /* Reservas por nombre, código, propiedad o apartamento, como las dice Juan por voz («Claudia, la del 1105 de Ignacio»).
    Tolera acentos, mayúsculas, nombre parcial y errores de transcripción (bqBuscar_, buscar.js); el apartamento es el
@@ -288,8 +291,10 @@ function agBuscarReservas_(texto, f, soloLlegadas, hoy, max) {
    para que Alma pregunte cuál. Antes enviar_a_huesped solo aceptaba el código y la IA tenía que buscar primero (una
    vuelta más de Claude: con el plazo de la llamada eso pasaba a segundo plano). */
 function agElegirReserva_(texto, hoy) {
-  var inbox = hubInbox_(), conv = function (r) { var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod && x.conv_id && !/^(wa|op|inq):/.test(x.conv_id); })[0]; return ib ? ib.conv_id : ''; };
-  var hits = agBuscarReservas_(texto, '', false, hoy, 30).filter(function (x) { return !/cancel/i.test(s_(x.item.status)) && conv(x.item); });
+  /* Ya no se descartan las reservas cuya fila de la bandeja perdió el código (7-nov, Oscar): su conversación se busca
+     después, solo para la elegida (reservaConv_, enviohuesped.js). */
+  var inbox = hubInbox_();
+  var hits = agBuscarReservas_(texto, '', false, hoy, 30).filter(function (x) { return !/cancel/i.test(s_(x.item.status)); });
   var vivas = hits.filter(function (x) { return fecha_(x.item.checkout_date) >= hoy; });
   var lista = vivas.length ? vivas : hits.filter(function (x) { return fecha_(x.item.checkout_date) >= sumarDias_(hoy, -14); });
   var exactas = lista.filter(function (x) { return x.coincidencia === 'exacta'; }); if (exactas.length) lista = exactas;
@@ -302,7 +307,9 @@ function agElegirReserva_(texto, hoy) {
   if (!lista.length) return { error: 'NO SE ENVIÓ: no encontré una reserva actual o próxima ni una consulta de «' + texto + '» con conversación. Pídele el código de reserva o el nombre como aparece en Airbnb.' };
   var una = lista.length === 1 ? lista[0] : hoyAqui.length === 1 ? hoyAqui[0] : null;
   if (!una) return { error: 'NO SE ENVIÓ: hay ' + lista.length + ' reservas que coinciden con «' + texto + '». Pregúntale en una frase cuál es (nombre, apartamento o fechas) y vuelve a enviar con su código.', ambiguo: true, opciones: lista.slice(0, 5).map(function (x) { return ficha(x.item); }) };
-  return Object.assign(ficha(una.item), { conv_id: conv(una.item) });
+  var fu = ficha(una.item), rc = reservaConv_(fu.codigo, una.item, true, inbox);
+  if (!rc.conv_id) return { error: 'NO SE ENVIÓ: encontré la reserva ' + fu.codigo + ' (' + fu.huesped + ', ' + fu.propiedad + ') pero no ubiqué su conversación: ' + rc.error + '. Dile a Juan exactamente eso, sin otra causa.', reserva: fu };
+  return Object.assign(fu, { conv_id: rc.conv_id });
 }
 /* Estado real de una reserva: Hospitable en vivo (10 min en caché) para los primeros resultados; si no, lo que diga
    la hoja. La hoja puede tardar en enterarse de una cancelación, por eso se pregunta a Hospitable. */
@@ -384,8 +391,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       /* Consultas (consultas.js): con texto, las que coinciden; con consultas = true, también las más recientes sin texto. */
       var consH = soloC || String(inp.texto || '').trim() ? consultasBuscar_(inp.texto, f, inbox, hoy, soloC ? 5 : 3) : [], cons = consH.map(function (x) { return consultaFicha_(x.item); });
       var outR = { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
-        reservas: (function () { var vivos = 0; return hits.map(function (r) {
+        reservas: (function () { var vivos = 0, enVivo = 0; return hits.map(function (r) {
         var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
+        /* Sin la conversación en la bandeja (le falta el código, 7-nov): la hoja y, para las 3 primeras vigentes, Hospitable. */
+        if (!ib.conv_id) { var rcB = reservaConv_(cod, r, !/cancel/i.test(s_(r.status)) && fecha_(r.checkout_date) >= sumarDias_(hoy, -14) && enVivo++ < 3, inbox); ib = { conv_id: rcB.conv_id || '' }; }
         var est = agEstadoReserva_(ib.conv_id, r, vivos++ < 5);
         return { codigo: cod, estado: est.estado, cancelada_el: est.cancelada_el, huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date),
           coincidencia: parecido[cod] || 'exacta', huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
@@ -472,7 +481,16 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'enviar_a_huesped': {
       /* Sin código (o con un código que no está en la bandeja): la reserva se busca aquí por huésped, propiedad y apartamento,
          en la misma vuelta. Si hay duda, no se envía nada y vuelven las opciones para preguntar. */
-      var rid2 = agResId_(inp.codigo), elegida = null;
+      var rid2 = '', elegida = null, turnoA = String(typeof AGENTE_TEXTO_ === 'undefined' ? '' : AGENTE_TEXTO_ || '');
+      /* «Sí» a un borrador de reserva (enviohuesped.js): sale a la reserva exacta del borrador, sin volver a buscar por
+         nombre (7-nov: el «Si» de Juan para Oscar no encontró su reserva). El sí tiene que llegar en otro mensaje. */
+      var pendR = inp.confirmado === true && inp.borrador !== true ? reservaBorradorPendiente_(adm) : null;
+      if (pendR && reservaBorradorCoincide_(pendR, inp)) {
+        if (pendR.turno && pendR.turno === turnoA) return { ok: true, falta_confirmar: true, borrador: { para: pendR.huesped, propiedad: pendR.propiedad, codigo: pendR.codigo, texto: pendR.texto }, nota: 'Todavía NO salió: el sí tiene que llegar en un mensaje nuevo de Juan, después de ver este borrador.' };
+        rid2 = pendR.conv_id; elegida = { codigo: pendR.codigo, huesped: pendR.huesped, propiedad: pendR.propiedad };
+        if (!String(inp.texto || '').trim()) inp.texto = pendR.texto;
+        inp.canal = pendR.canal;   // el canal que Juan vio en el borrador; otro canal es otro borrador
+      } else rid2 = agResId_(inp.codigo);
       /* «Sí, envíalo» sin decir a quién: el borrador de consulta que espera su sí (consultas.js). */
       if (!rid2 && inp.confirmado === true && !inp.huesped && !inp.propiedad) { var pendC = consultaPendiente_(adm); if (pendC) rid2 = pendC.conv_id; }
       if (!rid2) {
@@ -491,15 +509,24 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         inp.texto = bC.texto; inp.canal = 'plataforma';
         elegida = { codigo: '', huesped: fichaC.huesped, propiedad: fichaC.propiedad };
       }
+      /* Borrador para Juan: se guarda con su reserva y no sale. */
+      if (inp.borrador === true && !/^inq:/.test(rid2)) {
+        if (!String(inp.texto || '').trim()) return { error: 'Falta el texto del borrador.' };
+        var fB = elegida && elegida.codigo ? Object.assign({ conv_id: rid2 }, elegida) : reservaFichaDeConv_(rid2, inp.codigo);
+        var bR = reservaBorradorGuardar_(adm, fB, pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma'), inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
+        return { ok: true, falta_confirmar: true, borrador: { para: bR.huesped, propiedad: bR.propiedad, codigo: bR.codigo, texto: bR.texto },
+          nota: 'Todavía NO salió. Muéstrale a Juan el borrador y a quién va; con su sí, enviar_a_huesped con confirmado = true (sale a esta misma reserva).' };
+      }
       var cH = CacheService.getScriptCache(), kH = 'aghu_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, rid2 + '|' + String(inp.texto || '').trim().toLowerCase().slice(0, 300)));
       if (cH.get(kH)) return { ok: true, nota: 'Ese mismo mensaje ya se le envió a esta reserva hace menos de 3 minutos; no lo repetí.' };
       var quien = 'ALMA · pedido de ' + adm.nombre;
       inp.texto = pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
       var r2 = inp.canal === 'whatsapp' ? hubResponderWa_(rid2, inp.texto, quien, inp.numero || '') : hubResponder_(rid2, inp.texto, quien, 'plataforma');
-      if (r2.ok) cH.put(kH, '1', 180);
+      if (r2.ok) { cH.put(kH, '1', 180); if (pendR && pendR.conv_id === rid2) reservaBorradorBorrar_(adm); }
       ctx.hechas.push({ tipo: 'mensaje', resumen: 'Mensaje al huésped (' + (inp.canal === 'whatsapp' ? 'WhatsApp' : 'plataforma') + ')' + (elegida ? ' · ' + elegida.huesped + ', ' + elegida.propiedad : '') + ' · ' + String(inp.texto).slice(0, 80), error: r2.ok ? '' : r2.error });
       var aQuien = elegida ? { codigo: elegida.codigo, huesped: elegida.huesped, propiedad: elegida.propiedad } : undefined;
-      return r2.ok ? { ok: true, plantilla: !!r2.plantilla, enviado_a: aQuien } : { error: r2.error === 'sin_numero' ? 'No hay número de WhatsApp para esa reserva; pide el número.' : r2.error, reserva: aQuien };
+      /* El error real, para que Alma lo repita tal cual (7-nov: dijo «no tiene conversación activa» sin que nadie lo dijera). */
+      return r2.ok ? { ok: true, plantilla: !!r2.plantilla, enviado_a: aQuien } : { error: r2.error === 'sin_numero' ? 'No hay número de WhatsApp para esa reserva; pide el número.' : 'NO SE ENVIÓ: ' + r2.error + '. Díselo a Juan así, sin otra causa.', reserva: aQuien };
     }
     case 'escribir_a_equipo': {
       var personas = [];

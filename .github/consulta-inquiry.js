@@ -53,7 +53,7 @@ function caja() {
     calpClave_: (n) => String(n).toLowerCase().replace(/[^a-z0-9]/g, '')
   };
   vm.createContext(ctx);
-  ['buscar.js', 'tarjeta.js', 'consultas.js', 'agente.js'].forEach((f) => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['buscar.js', 'tarjeta.js', 'consultas.js', 'enviohuesped.js', 'agente.js'].forEach((f) => vm.runInContext(leer(f), ctx, { filename: f }));
   return { X: ctx, cache, enviados };
 }
 const ADM = { email: 'juan@spacioam.com', nombre: 'Juan Ovalle', tels: ['50255550101'], principal: true };

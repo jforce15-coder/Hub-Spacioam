@@ -922,7 +922,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     }
   }
 
-  if (codigoPendiente_(ctx, hilo)) { paso_(pKey, 'Código de acceso pendiente · avisando a los administradores', true); return manejarCodigo_(sh, lider, otros, ctx); }
+  if (codigoPendiente_(ctx, hilo)) { paso_(pKey, 'Código de acceso pendiente · avisando a los administradores', true); return manejarCodigo_(sh, lider, otros, ctx, hilo); }
 
   /* Avance visible en el Hub (columna nota, prefijo ⏳): qué está haciendo ALMA mientras piensa. */
   const avance = t => { try { set_(sh, lider, { nota: '⏳ ' + t }); SpreadsheetApp.flush(); } catch (e) {} };
@@ -1145,14 +1145,20 @@ function avisarAdmins_(asunto, texto, critico) {
   if (CFG.WHATSAPP_RESPALDO && CFG.WHATSAPP_RESPALDO !== CFG.WHATSAPP_NOCTURNO) waEnviar_(CFG.WHATSAPP_RESPALDO, asunto + '\n\n' + texto);
   pushA_(null, asunto, texto);
 }
-function manejarCodigo_(sh, lider, otros, ctx) {
+function manejarCodigo_(sh, lider, otros, ctx, hilo) {
   otros.forEach(f => set_(sh, f, { estado: 'agrupado', nota: 'ver fila ' + lider.fila }));
   const min = Math.max(1, cfg_('CODIGO_REVISION_MIN') || 6);
   ctx.nivel = 'AMARILLO'; ctx.razon = 'Pide el código de acceso y en la conversación no consta que se haya enviado';
+  const pin = pinVenceAntes_(hilo, ctx.checkout);
   const alerta = 'Huésped: ' + ctx.huesped + '\nPropiedad: ' + ctx.propiedad + (ctx.apartamento ? ' (' + ctx.apartamento + ')' : '') +
     '\nCódigo de reserva: ' + ctx.codigo + '\nLlegada: ' + ctx.checkin + '\n\nMensaje:\n' + ctx.texto +
-    '\n\nEn la conversación no consta que se haya enviado el código de acceso. Si en ' + min + ' min sigue sin enviarse, ALMA enviará el código de emergencia.';
+    '\n\nEn la conversación no consta que se haya enviado el código de acceso. Si en ' + min + ' min sigue sin enviarse, ALMA enviará el código de emergencia.' + (pin ? '\n' + pinNota_(pin, ctx.checkout) : '');
   if (ctx.modo === 'SOMBRA') { set_(sh, lider, { estado: 'sombra', nota: 'CÓDIGO pendiente' }); return log_(ctx, '', 'SOMBRA: alertaría a ambos administradores y revisaría el código en ' + min + ' min'); }
+  /* Un solo aviso por reserva (7-nov, Estrella: cada mensaje suyo abría su propia revisión y Juan recibió la misma alerta
+     tres veces, la última después de que él ya le había contestado). Los mensajes siguientes no abren otra (codigoaviso.js). */
+  const ya = codigoAvisoAbierto_(ctx.resId);
+  if (ya) { set_(sh, lider, { estado: 'escalado', nota: 'CÓDIGO · ' + ya + ' · sin aviso nuevo' }); return log_(ctx, '', 'CÓDIGO pendiente: ' + ya + ' · sin aviso nuevo'); }
+  codigoAvisoMarcar_(ctx.resId, 'revision', (min + 15) * 60);
   avisarAdmins_('🔑 ALMA · el huésped no tiene su código · ' + ctx.propiedad, alerta);
   if (ctx.modo !== 'AUTO') { set_(sh, lider, { estado: 'escalado', nota: 'CÓDIGO pendiente · solo alerta' }); return log_(ctx, '', 'CÓDIGO pendiente: alerta a ambos administradores'); }
   const contencion = ctx.contencionReciente ? '' : contencion_(ctx.idioma, ctx.ultimosNuestros, ctx.hiloTexto);
@@ -1169,15 +1175,27 @@ function verificarCodigo_(sh, f) {
   const r = hiloConv_(d.resId);
   if (r.code !== 200) return reintentar_(sh, f, 'verificación código HTTP ' + r.code, 'esperando_codigo');
   if (codigoEnviadoEnHilo_(r.hilo)) { set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · ya se envió' }); return log_(d, '', 'CÓDIGO: ya se envió · revisión cerrada'); }
+  /* Alguien del equipo ya contestó en la conversación después de la contención (7-nov: Juan le escribió a Estrella a las
+     5:56 y el aviso salió igual a las 5:56 y a las 5:58): el equipo está en eso, no se avisa (codigoaviso.js). */
+  if (equipoRespondioCodigo_(r.hilo, d)) {
+    codigoAvisoMarcar_(d.resId, 'equipo');
+    set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · el equipo ya respondió en la conversación' });
+    return log_(d, '', 'CÓDIGO: el equipo respondió en la conversación · revisión cerrada sin aviso');
+  }
+  const ya = codigoAvisoAbierto_(d.resId, true);
+  if (ya) { set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · ' + ya + ' · sin aviso nuevo' }); return log_(d, '', 'CÓDIGO: ' + ya + ' · sin aviso nuevo'); }
+  const pin = pinVenceAntes_(r.hilo, d.checkout);
   const ce = codigoEmergencia_(d.propiedad, d.checkin);
   if (!ce) {
-    avisarAdmins_('🔑🔴 ALMA · sin código de emergencia · ' + d.propiedad, 'El huésped sigue sin su código y no encontré un código de limpieza vigente en EPI. Hay que enviarlo ya.\nHuésped: ' + d.huesped + ' · ' + d.codigo, true);
+    codigoAvisoMarcar_(d.resId, 'aviso');
+    avisarAdmins_('🔑🔴 ALMA · sin código de emergencia · ' + d.propiedad, 'El huésped sigue sin su código y no encontré un código de limpieza vigente en EPI. Hay que enviarlo ya.\nHuésped: ' + d.huesped + ' · ' + d.codigo + (pin ? '\n' + pinNota_(pin, d.checkout) : ''), true);
     set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · sin código de emergencia · admins avisados' });
     return log_(d, '', 'CÓDIGO: sigue sin enviarse y no hay código de emergencia · admins avisados');
   }
   const msg = mensajeEmergencia_(d.idioma, ce.codigo);
   const env = enviarCanal_(d, msg);
   d.emergenciaAt = new Date().toISOString();
+  codigoAvisoMarcar_(d.resId, 'aviso');
   avisarAdmins_('🔑 ALMA · código de emergencia enviado · ' + d.propiedad, 'A los ' + (cfg_('CODIGO_REVISION_MIN') || 6) + ' min el código de acceso seguía sin enviarse. ALMA envió el código de limpieza ' + ce.codigo + ' (' + ce.origen + ').\nHuésped: ' + d.huesped + '\nCódigo de reserva: ' + d.codigo + '\nEnvía el código definitivo y considera rotar el de limpieza.');
   set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · emergencia ' + (env.code < 300 ? 'enviada' : 'FALLÓ ' + env.code), datos: JSON.stringify(d) });
   return log_(d, msg, 'EMERGENCIA: código de limpieza enviado al huésped (' + ce.origen + ') · el código de acceso no se había enviado');
@@ -1389,7 +1407,8 @@ function normalizarHilo_(json) {
     texto: s_(m.body),
     nombre: s_(m.sender && m.sender.first_name),
     fotos: adjuntos_(m.attachments),
-    created: s_(m.created_at)
+    created: s_(m.created_at),
+    fuente: s_(m.source)   // public_api = ALMA o el Hub; hospitable / platform = el equipo desde Hospitable o Airbnb (codigoaviso.js)
   })).filter(m => m.texto || m.fotos.length).sort((a, b) => a.created.localeCompare(b.created));
 }
 
@@ -3986,11 +4005,12 @@ function hubResponder_(resId, texto, quien, canal, adj) {
     plantilla = !!w.plantilla;
   } else if (items.length) {
     const env = adjEnviarHosp_(resId, texto, items);
-    if (env.code < 200 || env.code >= 300) return { ok: false, error: env.error || 'Hospitable HTTP ' + env.code };
+    if (env.code < 200 || env.code >= 300) return { ok: false, error: env.error || hospErrorTexto_(env.code, env.json) };
     texto = (texto || '📷') + ' [' + items.length + (items.length === 1 ? ' foto]' : ' fotos]');   // así queda en el registro
   } else {
-    const env = hosp_('post', '/reservations/' + resId + '/messages', { body: texto });
-    if (env.code < 200 || env.code >= 300) return { ok: false, error: 'Hospitable HTTP ' + env.code };
+    /* Un error de paso (5xx, sin respuesta) se reintenta una vez; si sigue, el error real de Hospitable (enviohuesped.js). */
+    const env = hospEnviarMensaje_(resId, texto);
+    if (!env.ok) return { ok: false, error: env.error, code: env.code };
   }
   if (!texto) texto = items.length === 1 ? (items[0].tipo === 'pdf' ? '📄 ' + items[0].nombre : '📷') : '📷 ' + items.length + ' adjuntos';
   const sh = hoja_(CFG.TAB_COLA);

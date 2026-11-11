@@ -162,6 +162,8 @@ function agHerramientas_() {
     T('ver_propiedad', 'Ficha de una propiedad tal como la usa ALMA (dirección, WiFi, parqueo, llegada…) con el nombre exacto de cada campo editable.', { propiedad: s('Nombre o parte del nombre') }, ['propiedad']),
     T('codigo_acceso', 'Códigos de acceso de una propiedad tal como los ve el equipo en Epi (permanente o de la quincena vigente, con su vigencia) y, si das el código de reserva, los códigos que ya se le enviaron a ese huésped. Úsala para cualquier pregunta de códigos.',
       { propiedad: s('Nombre o parte del nombre de la propiedad (ej. «Bonadiez 1001»; «Brunelo» devuelve todas las de Brunelo)'), fecha: s('YYYY-MM-DD; por defecto hoy'), codigo_reserva: s('Opcional: código de reserva para ver el código que ya se le envió al huésped') }),
+    T('contactos_recepcion', 'Propiedades donde una persona es contacto de recepción en el formulario de ingreso de Hola, en dos grupos: principal (contacto 1) y secundario (contacto 2), por WhatsApp o correo. Sin persona: quien pregunta («¿dónde soy contacto de recepción?»). Dato de Hola, no de las fichas de ALMA.',
+      { persona: s('Opcional: nombre del administrador (ej. «Juan Ovalle»)'), numero: s('Opcional: WhatsApp con código de país'), correo: s('Opcional: correo') }),
     T('cambiar_dato_propiedad', 'Corrige un dato de la ficha de una propiedad. Usa el nombre de campo exacto que devolvió ver_propiedad.',
       { propiedad: s('Nombre exacto'), campo: s('Campo exacto (ej. address, wifiPass, std.es.parking)'), valor: s('Valor nuevo') }, ['propiedad', 'campo', 'valor']),
     T('encargar_conversacion', 'Para que ALMA hable con alguien (del equipo u otra persona) y se presente, explique, pregunte o valide algo: le escribe por WhatsApp para que llame a la línea de ALMA; en la llamada cumple el objetivo y le manda el resumen al administrador por WhatsApp.',
@@ -564,6 +566,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       out.forEach(function (o) { ctx.hechas.push(o); });
       return out[0] && !out[0].error ? { ok: true, hecho: out[0].resumen } : { error: (out[0] && out[0].error) || 'no se pudo' };
     }
+    case 'contactos_recepcion': return recepcionContactosDe_(inp, adm);   // recepcion.js
     case 'ver_propiedad': {
       var fil = leerTabla_(CFG.TAB_PROPIEDADES), np = n(inp.propiedad).replace(/[\s\-–_]/g, '');
       var hitP = fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '') === np; })[0] || fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '').indexOf(np) >= 0; })[0];

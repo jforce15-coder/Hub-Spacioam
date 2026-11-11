@@ -231,3 +231,49 @@ function recepcionEstados_(codes) {
   });
   return { ok: true, estados: out };
 }
+
+/* Contactos de recepción de Hola por persona (pedido pc1794429204847): en el formulario de ingreso cada propiedad tiene
+   contacto 1 = principal (correo 1 · WhatsApp 1) y contacto 2 = secundario (correo 2 · WhatsApp 2), en la pestaña
+   Estaciones de Hola (más la tabla del código). Lo lee con la llave del robot y separa las propiedades donde la persona
+   está como principal y como secundario. Sin número ni correo: busca a la persona entre los administradores; sin persona,
+   quien pregunta. Ojo: aparte de esto, Hola siempre le avisa por WhatsApp al administrador en todas las propiedades. */
+function recepcionContactosDe_(inp, adm) {
+  inp = inp || {};
+  var nrm = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim(); };
+  var tels = [], correos = [], nombre = String(inp.persona || '').trim();
+  if (String(inp.numero || '').replace(/\D/g, '').length >= 8) tels.push(fin8_(inp.numero));
+  if (/@/.test(String(inp.correo || ''))) correos.push(nrm(inp.correo));
+  if (!tels.length && !correos.length) {
+    var quien = null;
+    if (nombre) { var bn = nrm(nombre); quien = adminsOp_().filter(function (a) { return nrm(a.nombre).indexOf(bn) >= 0 || bn.indexOf(nrm(a.nombre)) >= 0; })[0] || null; }
+    else quien = adm || null;
+    if (!quien) return { error: 'No encontré a «' + nombre + '» entre los administradores. Dame su número de WhatsApp o su correo.' };
+    nombre = quien.nombre || nombre;
+    (quien.tels || []).forEach(function (t) { if (String(t).replace(/\D/g, '').length >= 8) tels.push(fin8_(t)); });
+    [quien.email].concat(quien.alternos || []).forEach(function (e) { if (/@/.test(String(e || ''))) correos.push(nrm(e)); });
+    if (!tels.length && !correos.length) return { error: 'No tengo número ni correo de ' + nombre + '. Dámelo y lo busco.' };
+  }
+  var llave = llaveRobot_(); if (!llave) return { error: 'Falta ROBOT_TOKEN en el Hub: no puedo leer Hola.' };
+  var j = {};
+  try {
+    var r = uf_(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: 'listStations', robot: llave }) }, 'Hola');
+    j = JSON.parse(r.getContentText());
+  } catch (e) { return { error: 'No pude leer Hola en este momento; intenta de nuevo en un minuto.' }; }
+  if (!j.ok) return { error: 'Hola no me dejó leer los contactos (' + (j.error || 'sin detalle') + ').' };
+  var esTel = function (x) { var d = String(x || '').replace(/\D/g, ''); return d.length >= 8 && tels.indexOf(fin8_(d)) >= 0; };
+  var esCorreo = function (x) { return !!String(x || '').trim() && correos.indexOf(nrm(x)) >= 0; };
+  var principal = [], secundario = [];
+  (j.stations || []).forEach(function (st) {
+    var nom = String(st.propertyName || '').trim(); if (!nom) return;
+    var p = [], s2 = [];
+    if (esTel(st.phone1)) p.push('WhatsApp'); if (esCorreo(st.email1)) p.push('correo');
+    if (esTel(st.phone2)) s2.push('WhatsApp'); if (esCorreo(st.email2)) s2.push('correo');
+    if (p.length) principal.push({ propiedad: nom, por: p.join(' y ') });
+    if (s2.length) secundario.push({ propiedad: nom, por: s2.join(' y ') });
+  });
+  var orden = function (a, b) { return a.propiedad.localeCompare(b.propiedad); };
+  principal.sort(orden); secundario.sort(orden);
+  return { persona: nombre || 'el número o correo indicado', propiedades_revisadas: (j.stations || []).length,
+    principal: principal, secundario: secundario,
+    nota: 'Contacto 1 = principal, contacto 2 = secundario, tal como están en el formulario de ingreso de Hola. Aparte, Hola siempre le avisa por WhatsApp al administrador en todas las propiedades.' };
+}

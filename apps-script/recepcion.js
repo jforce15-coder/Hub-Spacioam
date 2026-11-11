@@ -231,3 +231,43 @@ function recepcionEstados_(codes) {
   });
   return { ok: true, estados: out };
 }
+
+/* Contactos de recepción de Hola por persona (pedido de Juan, 11-nov-2026): en qué propiedades alguien es el contacto
+   PRINCIPAL (correo 1 / teléfono 1 en Estaciones de Hola) y en cuáles el SECUNDARIO (correo 2 / teléfono 2). Lee Hola en
+   vivo (listContacts con la llave de robot), sin caché, para que el listado sea el de hoy. «persona» es un nombre del equipo (ALMA_ESCALAMIENTO), un número o
+   un correo; vacío, busca al administrador que pregunta. El WhatsApp del administrador que Hola agrega a todas las propiedades no cuenta. */
+function recepcionContactosDe_(adm, inp) {
+  inp = inp || {};
+  var correos = [], tels = [], quien = '', dato = String(inp.persona || '').trim();
+  if (/@/.test(dato)) correos.push(dato);
+  else if (dato.replace(/\D/g, '').length >= 8) tels.push(dato);
+  else if (dato) {
+    var p = dato.toLowerCase(), fila = [];
+    try { fila = escalamiento_().filter(function (x) { return String(x.nombre || '').toLowerCase().indexOf(p) !== -1; }); } catch (e) {}
+    if (!fila.length) return { ok: false, error: 'No tengo el número ni el correo de «' + dato + '». Pídeme su número o su correo.' };
+    quien = fila[0].nombre; if (fila[0].email) correos.push(fila[0].email); if (fila[0].telefono) tels.push(fila[0].telefono);
+  }
+  if (!dato && adm) { quien = adm.nombre || adm.email || ''; if (adm.email) correos.push(adm.email); tels = tels.concat(adm.tels || []); }
+  correos = correos.map(function (c) { return String(c).trim().toLowerCase(); }).filter(Boolean);
+  tels = tels.map(fin8_).filter(function (t) { return t.length === 8; });
+  if (!tels.length && !correos.length) return { ok: false, error: 'Dime de quién: nombre, número o correo.' };
+  var j;
+  try {
+    var r = uf_(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: 'listContacts', robot: llaveRobot_() }) }, 'Hola');
+    j = JSON.parse(r.getContentText());
+  } catch (e) { return { ok: false, error: 'No pude leer Hola: ' + String(e && e.message || e).slice(0, 150) }; }
+  if (!j || !j.ok) return { ok: false, error: 'Hola no respondió bien' + (j && j.error ? ': ' + j.error : '') + '.' };
+  var lista = j.properties || [];
+  if (lista.length && !lista.some(function (x) { return 'phone1' in x || 'email1' in x; })) return { ok: false, error: 'Hola todavía no separa el contacto principal del secundario: falta unir el cambio de Hola.' };
+  var esEl = function (correo, tel) {
+    return (!!correo && correos.indexOf(String(correo).trim().toLowerCase()) !== -1) || (!!tel && tels.indexOf(fin8_(tel)) !== -1);
+  };
+  var principal = [], secundario = [];
+  lista.forEach(function (x) {
+    if (esEl(x.email1, x.phone1)) principal.push(x.name);
+    if (esEl(x.email2, x.phone2)) secundario.push(x.name);
+  });
+  var orden = function (a, b) { return String(a).localeCompare(String(b), 'es'); };
+  return { ok: true, persona: quien || undefined, principal: principal.sort(orden), secundario: secundario.sort(orden), propiedades_revisadas: lista.length,
+    nota: 'Principal = correo o teléfono 1 en Estaciones de Hola; secundario = correo o teléfono 2. Las propiedades sin ningún contacto no se revisan.' };
+}

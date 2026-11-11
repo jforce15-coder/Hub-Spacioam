@@ -142,6 +142,7 @@ function agHerramientas_() {
       { id: s('id'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: 'Vacío = la misma' }, zona: s(CAL_ZONA_), confirmado: CAL_SI_ }, ['id', 'inicio']),
     T('cancelar_evento', 'Borra un evento que TÚ creaste. Primero la pregunta; con su sí, confirmado = true.', { id: s('id'), confirmado: CAL_SI_ }, ['id']),
     T('preparar_uber', 'Deja listo un Uber para que solo confirme: arma el enlace de Uber con origen y destino ya puestos y las dos direcciones en texto. Antes busca la dirección exacta (hospedaje en el correo con leer_correo o en el proyecto con ver_proyecto; aeropuerto por su nombre completo, p. ej. «Bozeman Yellowstone International Airport»). Si no la encuentras, deja destino vacío y dilo claro. En el chat de WhatsApp pega texto_whatsapp en tu respuesta; en llamada o en la app usa enviar = true.', { origen: s('Dirección o lugar de salida; vacío = su ubicación actual'), destino: s('Dirección o lugar de llegada'), enviar: { type: 'boolean', description: 'true = mandarlo a su WhatsApp' } }, []),
+    T('contactos_recepcion_hola', 'Dónde alguien es contacto de recepción en Hola: principal y secundario. Vacío = quien pregunta.', { persona: s('Nombre, número o correo') }, []),
     T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número; también a quien le escribiste en 30 días (con su número: no lo pidas).', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Mira las imágenes y fotos que mandó el huésped en la conversación de una reserva (capturas, comprobantes, datos de facturación, fotos de un problema). Devuelve las más recientes para que las leas tú mismo. Úsala cuando el administrador mencione una imagen o cuando ver_conversacion marque [imagen].',
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
@@ -451,6 +452,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var rCal = calendarioHerramienta_(nombre, inp); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
     }
     case 'preparar_uber': { var rU = uberHerramienta_(adm, inp); if (rU.enviado) ctx.hechas.push({ tipo: 'uber', resumen: 'Uber listo por WhatsApp · ' + (rU.destino || rU.origen) }); return rU; }   // uber.js
+    case 'contactos_recepcion_hola': return recepcionContactosDe_(adm, inp);   // recepcion.js
     case 'buscar_contacto': {
       var fichas = contactoBuscar_(inp.texto);
       if (!fichas.length && normTel_(inp.texto) && String(inp.texto).replace(/\D/g, '').length >= 8) { try { var nueva = contactoClasificar_(normTel_(inp.texto), '', true); if (nueva) fichas = [nueva]; } catch (e) {} }

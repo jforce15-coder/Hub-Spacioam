@@ -1,5 +1,5 @@
 {
-  "nota": "Topes del texto armado que recibe Alma por canal (T9, 3-nov-2026): lo medido el 3-nov con la hoja vacía + 10 %, redondeado. Antes (2-nov) solo se medían constantes: voz 22.522 de un prompt real de 67.630, y al chat le quedaban 8 caracteres. Subir un tope es decisión de Juan.",
+  "nota": "Topes del texto armado que recibe Alma por canal (T9, 3-nov-2026): lo medido el 3-nov con la hoja vacía + 10 %, redondeado. Antes (2-nov) solo se medían constantes: voz 22.522 de un prompt real de 67.630, y al chat le quedaban 8 caracteres. Subir un tope es decisión de Juan. 11-nov-2026: chat_herramientas 39.200 → 39.500 por contactos_recepcion_hola (Juan lo aprueba al unir ese PR).",
   "medido": { "fecha": "2026-11-03", "voz": 38891, "chat_texto": 21730, "chat_herramientas": 35628, "whatsapp_texto": 21773, "calle_texto": 23612, "redactor": 15575 },
-  "topes": { "voz": 42800, "chat_texto": 23900, "chat_herramientas": 39200, "whatsapp_texto": 24000, "calle_texto": 26000, "redactor": 17100 }
+  "topes": { "voz": 42800, "chat_texto": 23900, "chat_herramientas": 39500, "whatsapp_texto": 24000, "calle_texto": 26000, "redactor": 17100 }
 }

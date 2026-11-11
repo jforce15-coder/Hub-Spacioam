@@ -143,6 +143,15 @@ function doPost(e) {
     if (body.action && /^reservation\./.test(body.action)) { try { return ok_(reservaCambio_(body.action, d)); } catch (x) { console.error('reservaCambio_: ' + x); return ok_('error cambio'); } }
     if (body.action && body.action !== 'message.created') return ok_('ignorado: evento');
     const convId = convId_(d);
+    /* Mensaje repetido (Hospitable reintenta el webhook o lo manda dos veces): se corta aquí, antes de guardar en ALMA_MSG_INQ,
+       avisar al equipo o tocar la bandeja. Antes el filtro iba al final y solo para el huésped: el reintento duplicaba la
+       fila de la consulta y el aviso «nuevo mensaje» (si pasaba más de 1 min). Vale para el huésped y para lo nuestro. */
+    const msgId = s_(d.id) || s_(body.id);
+    if (msgId) {
+      const cacheM = CacheService.getScriptCache();
+      if (cacheM.get('m_' + msgId)) return ok_('ignorado: duplicado');
+      cacheM.put('m_' + msgId, '1', 21600);
+    }
     // Bandeja: cada mensaje (huésped, equipo o automático) actualiza la conversación, igual que el inbox de Hospitable.
     try { inboxDesdeWebhook_(convId, d); } catch (x) { console.error('inbox: ' + x); }
     try { cacheEntrante_(convId, d); } catch (x) {}
@@ -157,12 +166,6 @@ function doPost(e) {
     const texto = s_(d.body) || (fotos.length ? '[el huésped envió una imagen]' : '');
     if (!texto) return ok_('ignorado: vacío');
 
-    const msgId = s_(d.id) || s_(body.id);
-    if (msgId) {
-      const cache = CacheService.getScriptCache();
-      if (cache.get('m_' + msgId)) return ok_('ignorado: duplicado');
-      cache.put('m_' + msgId, '1', 21600);
-    }
 
     // Datos básicos de la reserva desde el primer segundo: el hub muestra huésped, propiedad y estadía mientras clasifica.
     let pre = {}; try { pre = preContexto_(convId); } catch (x) { console.error('pre: ' + x); }

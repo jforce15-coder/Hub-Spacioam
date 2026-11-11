@@ -42,6 +42,10 @@
   .ajustes::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
   /* Modo conferencia: el mismo botón que Ajustes, junto a «Iniciar llamada», un poco más abajo y separado (lo ubica confUbicar) */
   .ajustes.conf { right: auto; top: 0; left: 0; }
+  /* La campana y Pendientes vienen de sa-nav: también se tocan en 44 px, y si Pendientes está escondido la campana
+     se pega al borde (como Ajustes a la derecha) en vez de dejar su hueco vacío. */
+  .san-scope .san-pendb::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
+  .san-scope .san-ov:has(.san-pendb[data-a="pend"][hidden]) .san-pendb.san-notib { left: max(16px, env(safe-area-inset-left)); }
   .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: #FFFDFB; }
   /* «Alma está escuchando» (#REC): ya no hay puntito aparte. El botón del modo conferencia ES el indicador: con Alma

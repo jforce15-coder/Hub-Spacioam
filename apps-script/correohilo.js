@@ -334,7 +334,9 @@ function correoNorm_(s) { return String(s || '').replace(/[“”«»"]/g, '"').
 function correoResponder_(adm, o) {
   o = o || {};
   var c = CacheService.getScriptCache(), k = 'CORREO_RESP_' + String((adm && adm.email) || '').toLowerCase(), turno = String(typeof AGENTE_TEXTO_ === 'undefined' ? '' : AGENTE_TEXTO_ || '');
-  var aTodos = o.a_todos === true, texto = String(o.texto || '').trim(), prev = null, adjIds = correoAdjIds_(o.adjuntos);
+  /* El borrador ya lleva los enlaces cortos (Juan ve lo que sale); como el mismo enlace da el mismo código, el sí con el
+     texto largo o con el corto es el mismo texto (enlaces.js). */
+  var aTodos = o.a_todos === true, texto = acortarEnTexto_(String(o.texto || '').trim(), 'correo'), prev = null, adjIds = correoAdjIds_(o.adjuntos);
   try { prev = JSON.parse(c.get(k) || 'null'); } catch (e) {}
   if (o.confirmado === true && prev && turno && prev.turno !== turno && (!texto || correoNorm_(texto) === correoNorm_(prev.texto)) && (o.a_todos == null || aTodos === prev.a_todos)
     && (o.adjuntos == null || adjIds.join(',') === (prev.adjuntos || []).join(','))) {
@@ -353,6 +355,7 @@ function correoResponder_(adm, o) {
     nota: 'Todavía NO salió.' + (o.confirmado === true ? ' El sí tiene que llegar en un mensaje nuevo de Juan, después de ver este borrador.' : '') + ' Muéstrale a Juan el borrador COMPLETO (para, copia, asunto, texto y adjuntos) y espera su sí. Con su sí, llama otra vez con confirmado = true y el mismo texto. Si cambia algo, es un borrador nuevo.' };
 }
 function correoResponderEnviar_(b) {
+  b = Object.assign({}, b, { texto: acortarEnTexto_(String(b.texto || ''), 'correo') });   // ya venía corto del borrador; por si acaso (enlaces.js)
   var yo = correoCuentaHub_(), desde = yo, o = { name: 'Alma' }, estado = 'enviado', como = b.modo === 'hilo' ? 'en el mismo hilo' : 'correo nuevo con Re:';
   try { if (yo !== CFG.EMAIL_DESDE && GmailApp.getAliases().indexOf(CFG.EMAIL_DESDE) !== -1) { o.from = CFG.EMAIL_DESDE; desde = CFG.EMAIL_DESDE; } } catch (e) {}
   var blobs = [];

@@ -11,6 +11,7 @@ var CONTACTO_PLANTILLA_ = 'contacto_alma';
 /* Devuelve { ok, modo: 'texto' | 'plantilla', error } */
 function waEnviarAlguien_(numero, texto, o) {
   o = o || {};
+  texto = acortarEnTexto_(texto, 'whatsapp');   // también lo que queda guardado para cuando responda (enlaces.js)
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'número inválido' };
   var abierta = false; if (!o.forzarPlantilla) { try { abierta = waVentana_(wa); } catch (e) {} }   // forzarPlantilla: Meta ya dijo que pasaron las 24 h
   if (abierta) {
@@ -61,6 +62,7 @@ function waPendienteSoltar_(wa) {
    responda. Lo usan waEnviar_ (antes de mandar) y el aviso de Meta 131047 (si igual se mandó y no llegó). */
 function waRetomar_(wa, texto, o) {
   o = o || {}; wa = normTel_(wa); if (!wa) return { ok: false, error: 'número inválido' };
+  texto = acortarEnTexto_(texto, 'whatsapp');   // lo guardado sale corto cuando responda (enlaces.js)
   var rel = null; try { rel = personalDe_(wa); } catch (e) {}
   var nombre = o.nombre || (rel && rel.nombre) || '';
   var pend = function (etiqueta) {
@@ -140,6 +142,7 @@ var PERSONAL_PLANTILLA_ = 'asistente_personal';
 
 function personalEnviar_(adm, persona, numero, texto, objetivo, contexto, proyecto, o) {
   o = o || {};   // { forzarPlantilla }: sin esto, cada mensaje personal fallaba con «o is not defined»
+  texto = acortarEnTexto_(texto, 'whatsapp');   // los enlaces largos salen cortos, también lo guardado (enlaces.js)
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'número inválido' };
   var nombre = String(persona || '').trim(), primer = /^[+\d]/.test(nombre) || !nombre ? '' : nombre.split(' ')[0];
   var de = (adm && adm.nombre ? String(adm.nombre).split(' ')[0] : 'Juan');
@@ -294,6 +297,7 @@ function contactoCancelar_(tel) {
   return { ok: true, mensajes_borrados: habia, encargos_cerrados: cerrados };
 }
 function contactoReenviar_(tel, nombre, texto, plantilla) {
+  texto = acortarEnTexto_(texto, 'whatsapp');   // lo guardado sale corto cuando responda (enlaces.js)
   var wa = normTel_(tel); if (!wa || !String(texto || '').trim()) return { ok: false, error: 'faltan número o texto' };
   var personal = plantilla === 'personal', tpl = personal ? PERSONAL_PLANTILLA_ : CONTACTO_PLANTILLA_;
   if (personal ? !personalPlantillaOk_() : !contactoPlantillaOk_()) return { ok: false, error: 'plantilla ' + tpl + ' no aprobada' };

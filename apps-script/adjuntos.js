@@ -66,7 +66,7 @@ function adjEnviarWa_(numero, texto, items, convId, autor) {
   var wa = normTel_(numero); if (!wa) return { ok: false, error: 'sin número' };
   var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
   if (!abierta) return { ok: false, error: 'Pasaron más de 24 h desde su último mensaje: WhatsApp no deja mandar fotos ni archivos hasta que te escriba. Manda solo el texto.' };
-  texto = String(texto || '').trim();
+  texto = acortarEnTexto_(String(texto || '').trim(), 'whatsapp');   // los enlaces largos salen cortos (enlaces.js)
   for (var i = 0; i < items.length; i++) {
     var x = items[i], blob = x.archivo.getBlob();
     var up = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,

@@ -332,6 +332,7 @@ function decNombreWa_(wa) {
 }
 /* Mensaje interactivo de Meta con hasta 3 botones (título ≤ 20 letras). Devuelve { ok, id }. */
 function waBotones_(wa, cuerpo, botones) {
+  cuerpo = acortarEnTexto_(String(cuerpo), 'whatsapp');   // «Editar en el Hub» y los demás enlaces salen cortos (enlaces.js)
   var W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'falta WA_TOKEN o WA_PHONE_ID' };
   var payload = { messaging_product: 'whatsapp', to: wa, type: 'interactive', interactive: { type: 'button', body: { text: String(cuerpo).slice(0, 1024) },
     action: { buttons: botones.slice(0, 3).map(function (b) { return { type: 'reply', reply: { id: String(b.id).slice(0, 256), title: String(b.titulo).slice(0, 20) } }; }) } } };

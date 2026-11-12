@@ -17,6 +17,7 @@ function archivoPdf_(titulo, lineas, nombre) {
 function waEnviarDocumento_(numero, blob, leyenda) {
   var W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'WhatsApp de ALMA sin configurar' };
   var wa = String(numero || '').replace(/\D/g, ''); if (!wa) return { ok: false, error: 'sin número' };
+  leyenda = acortarEnTexto_(String(leyenda || ''), 'whatsapp');   // los enlaces largos salen cortos (enlaces.js)
   var abierta = false; try { abierta = waVentana_(wa); } catch (e) {}
   if (!abierta) return { ok: false, error: 'ventana', detalle: 'Pasaron más de 24 h desde el último mensaje de esa persona: WhatsApp no deja mandar archivos hasta que escriba a Alma.' };
   var up = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,

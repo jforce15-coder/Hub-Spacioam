@@ -30,6 +30,7 @@ function caja() {
   const props = {}, avisos = [], chat = [];
   let n = 0, ia = 0, dec = null, candado = false;
   const ctx = {
+    acortarEnTexto_: t => t,   // los enlaces cortos se prueban en .github/enlaces.js
     console: { log() {}, warn() {}, error() {} }, JSON, Date, Math, String, Number, Object, Array, RegExp, encodeURIComponent, decodeURIComponent,
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); }, deleteProperty: k => { delete props[k]; } }) },
     CFG: { HUB_URL: 'https://hub.prueba', MODELO_CLASIFICADOR: 'clasificador', MODELO_REDACTOR: 'redactor', WHATSAPP_JUAN: JUAN, WHATSAPP_NOCTURNO: JUAN },

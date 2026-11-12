@@ -35,6 +35,7 @@ function caja(o) {
   const ctx = {
     console, JSON, Date, Math, String, Number, Object, Array, RegExp,
     esAdminPrincipal_: a => !!(a && a.principal), growApi_: grow,
+    acortar_: (u, por, app) => 'https://' + (app === 'grow' ? 'grow' : 'hub') + '.spacioam.com/c' + String(u).replace(/[^A-Za-z0-9]/g, '').slice(-4).toLowerCase(),   // el corto de mentira (enlaces.js)
     waEnviarDocumento_: (tel, blob, leyenda) => { wa.push({ tel, nombre: blob.nombre, leyenda }); return o.ventanaCerrada ? { ok: false, error: 'ventana', detalle: 'Pasaron más de 24 h' } : { ok: true }; },
     Utilities: { base64Decode: s => Buffer.from(s, 'base64'), newBlob: (b, mime, nombre) => ({ mime, nombre }) }
   };
@@ -53,6 +54,7 @@ const PEDIDO = { proyecto_id: 'MONACO', aptos: 'B5, A4, A1, B1, A3 y B3', hoja: 
   ok(r.ok && r.pdfs.length === 6 && r.pdfs.every(p => /^D[AB]\d$/.test(p.drive_id) && p.url && p.total === 'Q 20,582') && r.consolidado.drive_id === 'CONS' && r.consolidado.total === 'Q 123,490', 'vuelven 6 enlaces con su drive_id y el consolidado (Q 123,490)');
   ok(c.wa.length === 7 && r.whatsapp === 'enviados los 7' && /Equipamiento B5 · Q 20,582/.test(c.wa[0].leyenda) && /Consolidado Fase 2/.test(c.wa[6].leyenda), 'los 7 PDF a WhatsApp de Juan, cada uno con su nombre y total');
   ok(!JSON.stringify(r).includes('JVBERi0x'), 'el PDF no vuelve al modelo (solo enlaces)');
+  ok(r.pdfs.concat(r.consolidado).every(p => /^https:\/\/grow\.spacioam\.com\/c\w{4}$/.test(p.url)) && !JSON.stringify(r).includes('drive.google.com'), 'los enlaces vuelven cortos y de Grow (grow.spacioam.com/<código>: el PDF nace en Grow) y el drive_id sigue siendo el del archivo');
   ok(r.importados.creados.length === 6 && /Baños/.test(r.importados.avisos[0]) && /drive_id/.test(r.para_correo) && r._hechas.length === 2, 'dice los 6 creados, el aviso de Baños y cómo adjuntarlos al correo');
   const r2 = c.R(PEDIDO);
   ok(r2.ok && r2.importados.creados.length === 0 && r2.importados.ya_existian.length === 6 && r2.pdfs.length === 6 && r2._hechas.length === 1, 'otra vez: ya existían los 6 (nada nuevo) y salen sus PDF');

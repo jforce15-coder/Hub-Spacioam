@@ -123,6 +123,7 @@ function doPost(e) {
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     cupoCanal_('Huéspedes');   // canal de la ejecución para el cupo de Google (cupo.js); abajo cambia según quién llama
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
+    if (body.action === 'enlace' && !body.hub) { cupoCanal_('Otros'); return json_(enlacePublico_(body.codigo)); }   // enlace corto (pública: solo devuelve el enlace largo; la usa 404.html, enlaces.js)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
@@ -674,6 +675,7 @@ function hubInbox_() {
 function doGet(e) {
   const q = (e && e.parameter) || {};
   if (q.state && (q.code || q.error)) return spotifyVuelta_(q);   // Spotify vuelve después de autorizar (musica.js)
+  if (q.enlace) { cupoCanal_('Otros'); return json_(enlacePublico_(q.enlace)); }   // enlace corto (pública, enlaces.js)
   if (q['hub.mode'] === 'subscribe') {
     const v = PropertiesService.getScriptProperties().getProperty('WA_VERIFY_TOKEN') || 'spacioam-alma';
     return ContentService.createTextOutput(q['hub.verify_token'] === v ? String(q['hub.challenge'] || '') : 'token incorrecto');
@@ -2244,6 +2246,10 @@ function usoAnthropic_(desdeMs) {
 function hosp_(metodo, ruta, payload) {
   const token = PropertiesService.getScriptProperties().getProperty('HOSPITABLE_TOKEN');
   const opt = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } };
+  /* Todo mensaje a un huésped o a una consulta sale por aquí (también los programados que se mandan ya): los enlaces largos
+     van cortos (enlaces.js). Las reseñas no llevan enlaces y no se tocan. */
+  if (payload && typeof payload.body === 'string' && /^(post|patch)$/i.test(metodo) && /^\/(reservations|inquiries)\/[^\/?]+\/messages|^\/scheduled-messages\//.test(String(ruta)))
+    payload = Object.assign({}, payload, { body: acortarEnTexto_(payload.body, 'hospitable') });
   if (payload) { opt.contentType = 'application/json'; opt.payload = JSON.stringify(payload); }
   try {
     // Consultas previas a la reserva (Pre-approved / Inquiry): Hospitable las expone en /inquiries/{uuid}.
@@ -2366,6 +2372,7 @@ function hojaCrear_(nombre, cab) {
   return sh;
 }
 function correo_(para, asunto, texto) {
+  texto = acortarEnTexto_(String(texto || ''), 'correo');   // los enlaces largos salen cortos (enlaces.js)
   const tipo = tipoCorreo_(asunto), t = TIPOS_CORREO_[tipo], p = partirAlerta_(texto);
   const fila = k => (p.rows.find(r => r[0].toLowerCase() === k) || [])[1] || '';
   const built = emailShell_({ eyebrow: t.eyebrow, heading: t.heading, image: t.image, imageAlt: t.heading, preheader: sinEmoji_(asunto),
@@ -2438,6 +2445,7 @@ function deTurno_(fecha) {
    guardado; en cuanto responde, se le envía (waRetomar_, contacto.js). o.yaVentana: quien llama ya revisó la ventana. */
 function waEnviar_(numero, texto, o) {
   o = o || {};
+  texto = acortarEnTexto_(texto, 'whatsapp');   // los enlaces largos salen cortos (enlaces.js)
   const p = PropertiesService.getScriptProperties();
   const token = p.getProperty('WA_TOKEN'), phoneId = p.getProperty('WA_PHONE_ID');
   if (!token || !phoneId || !numero) return { ok: false, error: 'sin configuración o sin número' };
@@ -2583,6 +2591,7 @@ function hubSetEscalamiento_(lista) {
 }
 
 function notificar_(whatsapp, asunto, texto) {
+  texto = acortarEnTexto_(String(texto || ''), 'aviso');   // los enlaces largos salen cortos (enlaces.js)
   try {
     const email = CFG.EMAIL_ALERTAS || Session.getEffectiveUser().getEmail();
     if (email) correo_(email, asunto, texto);
@@ -3214,6 +3223,7 @@ function hubApi_(body) {
   if (CUPO_ACC_ALMA_.indexOf(body.action) >= 0 && !cupoPermite_('alma')) return json_({ ok: false, error: CUPO_PAUSA_ALMA_, cupo: true });
   try {
     switch (body.action) {
+      case 'acortar': return json_(enlaceAcortarApi_(ses, body.url));                       // enlace corto hub.spacioam.com/<código>, solo con sesión (enlaces.js)
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
       case 'recetas': return json_(recetasApi_(ses));                                       // Ajustes → Lo que Alma aprendió: las recetas (recetas.js · alma/aprendio.html)
       case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
@@ -4733,6 +4743,7 @@ function hubResponderWa_(resId, texto, quien, wa, adj) {
   return { ok: true, wa: num, plantilla: !!w.plantilla };
 }
 function waResponder_(wa, texto, convId, autor, idioma, nombre) {
+  texto = acortarEnTexto_(texto, 'whatsapp');   // los enlaces largos salen cortos (enlaces.js)
   const W = waCfg_(); if (!W.token || !W.phoneId) return { ok: false, error: 'falta WA_TOKEN o WA_PHONE_ID' };
   const abierta = waVentana_(wa), soc = abierta ? null : socioSeguro_(wa);
   let payload, guardado = String(texto);

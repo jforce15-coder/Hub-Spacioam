@@ -601,14 +601,14 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'reporte_mes': return reporteMes_(adm, inp);   // reportemes.js
     case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
-    case 'grow_proyectos': return growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
+    case 'grow_proyectos': return acortarEnObjeto_(growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' }), nombre, 'grow');   // lo de Grow, con grow.spacioam.com (enlaces.js)
     case 'grow_crear_proyecto': case 'grow_mover_etapa': case 'grow_agendar_visita': {
       if (nombre === 'grow_mover_etapa' && inp.etapa === 'descartado' && !String(inp.motivo || '').trim()) return { error: 'Para descartar necesito el motivo.' };
       var op = { grow_crear_proyecto: 'crear', grow_mover_etapa: 'etapa', grow_agendar_visita: 'visita' }[nombre];
       var r = growApi_(op, Object.assign({}, inp, { por: (adm && adm.nombre) || '' }));
       if (r && r.ok) ctx.hechas.push({ tipo: 'grow', resumen: 'Grow · ' + (op === 'crear' ? (r.ya_existia ? 'ya existía ' : 'nuevo proyecto ') + ((r.proyecto || {}).nombre || '')
         : op === 'etapa' ? r.proyecto + ': ' + r.de + ' → ' + r.a : 'visita ' + r.proyecto + ' · ' + r.fecha + ' · ' + r.asignado) });
-      return r;
+      return acortarEnObjeto_(r, nombre, 'grow');   // lo de Grow, con grow.spacioam.com (enlaces.js)
     }
     case 'grow_fotos_visita': {   // las fotos viajan como bloques de imagen (_imgs), igual que ver_imagenes
       var rFv = growApi_('fotos', { proyecto_id: inp.proyecto_id, zona: inp.zona || '', apto: inp.apto || '', desde: Number(inp.desde) || 0 });
@@ -617,7 +617,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!fv.length) { rFv.nota = rFv.total ? 'No hay fotos con ese filtro (o no se pudieron abrir).' : 'Ese proyecto todavía no tiene fotos de la visita en Grow.'; return rFv; }
       rFv.detalle = fv.map(function (f) { return 'Foto ' + f.n + ': ' + f.zona + (f.apto ? ' · apto ' + f.apto : '') + (f.fecha ? ' · ' + f.fecha : ''); });
       rFv._imgs = fv.map(function (f) { return f.data; });
-      return rFv;
+      return acortarEnObjeto_(rFv, nombre, 'grow');   // las fotos (_imgs) no se tocan; los enlaces, con grow.spacioam.com
     }
     case 'grow_presupuesto_pdf': return growPresupuestoPdf_(adm, inp, ctx);   // growpresupuesto.js: también uno por apartamento y la plantilla de una hoja
     case 'actualizar_dato': { var rDh = datoHechoAnotar_(adm, inp); if (rDh.ok && rDh.aviso) ctx.hechas.push({ tipo: 'dato', resumen: rDh.aviso }); return rDh; }   // datoshecho.js
@@ -1114,7 +1114,7 @@ function pulirMsgHuesped_(texto, canal) {
 
 /* Un correo que Juan pidió mandar (enviar_correo): texto simple, desde hola@spacioam.com si el alias existe. Queda en ALMA_CORREOS. */
 function correoSimple_(para, asunto, texto) {
-  asunto = String(asunto || '').trim().slice(0, 150) || 'Mensaje de Alma'; texto = String(texto || '').trim();
+  asunto = String(asunto || '').trim().slice(0, 150) || 'Mensaje de Alma'; texto = acortarEnTexto_(String(texto || '').trim(), 'correo');   // enlaces cortos (enlaces.js)
   if (!texto) return { error: 'Falta el texto del correo.' };
   var o = { name: 'Alma' }, yo = Session.getEffectiveUser().getEmail(), desde = yo, estado = 'enviado';
   try { if (yo !== CFG.EMAIL_DESDE && GmailApp.getAliases().indexOf(CFG.EMAIL_DESDE) !== -1) { o.from = CFG.EMAIL_DESDE; desde = CFG.EMAIL_DESDE; } } catch (e) {}

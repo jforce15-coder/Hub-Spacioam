@@ -34,15 +34,15 @@ var CLAUDE_MODELO_NIVEL_ = { sencillo: 'Sonnet', complejo: 'Opus' };
 /* La regla para clasificar (la usan la herramienta mejora_para_claude, la etiqueta [[nivel: …]] del chat y la voz). */
 var CLAUDE_NIVEL_REGLA_ = 'sencillo (va con Sonnet): una pregunta simple, leer o revisar datos, un análisis corto, un cambio chico y claro (un texto, un color, una línea obvia). ' +
   'complejo (va con Opus): cambios con lógica, funciones nuevas, errores, lo que toca varias partes o es delicado, y las consultas o análisis complejos. Con duda, complejo.';
-/* DERIVAR A CLAUDIO (pedido de Juan, microproyecto «Modo conferencia: no repetir pedido», parte 3): cuando Alma choca con
-   un límite suyo (búsqueda en internet, procesar datos, un reporte, una consulta externa), arma de inmediato el borrador
-   para Claudio en vez de alargarlo o decir que no se puede. Sigue siendo borrador: a Claudio le llega con el sí de Juan.
-   La usan la voz (voz.js), el chat (chat.js) y la herramienta mejora_para_claude (agente.js). */
+/* DERIVAR A CLAUDIO (pedido de Juan, microproyecto «Modo conferencia: no repetir pedido», parte 3; Juan, 12-nov-2026):
+   cuando Alma choca con un límite suyo, el pedido a Claudio sale en ese mismo turno, sin preguntarle ni ofrecerlo
+   («¿lo pido?»). Si igual lo dice o lo ofrece sin pedirlo, el código lo pide al cerrar el turno (escalar.js).
+   La usan la voz (voz.js) y el chat (chat.js). */
 var CLAUDE_DERIVAR_REGLA_ = 'DERIVAR A CLAUDIO (solo con el administrador principal): Claudio es desarrollo y el cerebro de la operación. ' +
-  'Si para cumplir lo que te pide chocas con un límite tuyo (una búsqueda en internet que no alcanza o no encuentra lo que pide, procesar muchos datos, ' +
-  'generar un reporte o cualquier consulta externa que tus herramientas no resuelven), no lo alargues, no improvises ni digas que no se puede: ' +
-  'de inmediato pásalo como pedido para Claudio, con lo que necesita y para qué (sale al instante; tú solo di el resultado). ' +
-  'Lo que tus herramientas sí resuelven rápido (un dato de las hojas, una búsqueda corta) lo haces tú.';
+  'Si para cumplir lo que te pide chocas con un límite tuyo (no tienes la herramienta o el dato, una búsqueda en internet que no alcanza, procesar muchos datos, ' +
+  'un reporte o cualquier consulta externa que tus herramientas no resuelven), no lo alargues, no improvises, no digas que no se puede y no le preguntes si lo pides: ' +
+  'en ese mismo turno pásalo como pedido para Claudio, con lo que necesita y para qué (tú solo di el resultado). ' +
+  'Lo que tus herramientas sí resuelven rápido lo haces tú.';
 /* Filas viejas (sin nivel) y cualquier cosa rara: complejo. */
 function claudeNivel_(x) { return String(x || '').trim().toLowerCase() === 'sencillo' ? 'sencillo' : 'complejo'; }
 function claudeNivelTexto_(n) { n = claudeNivel_(n); return n + ' (' + CLAUDE_MODELO_NIVEL_[n] + ')'; }
@@ -87,15 +87,20 @@ function paraClaudeCrear_(adm, inp) {
   if (m && microPrTermino_(m)) { segunda = true; prAnterior = m.pr; m.parte = (Number(m.parte) || 1) + 1; m.pr = ''; m.rama = ''; m.unido = ''; }
   if (!m) m = microCrear_(adm, inp.nombre || titulo);
   var queQuiere = String(inp.que_quiere).trim();
+  /* Pedido entre agentes en JSON (Juan, 12-nov-2026): Claude lo recibe tal cual; en el issue va como bloque json y en el
+     historial y el chat de Juan, en simple (inp.resumen o su «tarea»): el JSON es lenguaje interno. */
+  var pedJson = null; if (/^\{/.test(queQuiere)) { try { pedJson = JSON.parse(queQuiere); } catch (e) { pedJson = null; } }
+  var queSimple = String(inp.resumen || (pedJson && pedJson.tarea) || queQuiere).trim();
+  var queCuerpo = pedJson ? '```json\n' + queQuiere + '\n```' : queQuiere;
   /* Nivel: lo que dijeron Juan o Alma (inp.nivel); si no, un ajuste hereda el de su microproyecto; si no, complejo. */
   var nivel = inp.nivel ? claudeNivel_(inp.nivel) : ajuste ? claudeNivel_(m.nivel) : 'complejo';
-  m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + queQuiere });
+  m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + queSimple });
   var como = microComoSeguir_(m, segunda, prAnterior);
-  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + '### Lo nuevo\n' + queQuiere + '\n\n'
+  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + '### Lo nuevo\n' + queCuerpo + '\n\n'
     : '**Pedido de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' +
     '**Dónde:** ' + (inp.app || 'Otro') + ' · **Tipo:** ' + String(inp.tipo || 'mejora').replace('_', ' ') + ' · **Prioridad:** ' + (inp.prioridad || 'normal') + '\n\n' +
     (String(inp.que_pasa || '').trim() ? '### Qué pasa hoy\n' + String(inp.que_pasa).trim() + '\n\n' : '') +
-    '### Cómo debería funcionar\n' + queQuiere + '\n\n' +
+    (pedJson ? '### Pedido (JSON)\n' : '### Cómo debería funcionar\n') + queCuerpo + '\n\n' +
     (String(inp.ejemplo || '').trim() ? '### Ejemplo\n' + String(inp.ejemplo).trim() + '\n\n' : '')) +
     '**Microproyecto:** «' + m.nombre + '» (' + m.id + (m.parte > 1 ? ' · parte ' + m.parte : '') + '). ' + como + '\n\n' +
     '**Nivel:** ' + claudeNivelTexto_(nivel) + '\n\n' +
@@ -131,7 +136,7 @@ function paraClaudeCrear_(adm, inp) {
   /* Lo que no salió de un mensaje suyo (rondas de los agentes, bots de prueba, Pendientes) queda anotado en su chat.
      Lo que sí salió de su chat (sinChat) ya está ahí: su mensaje y la respuesta de Alma. */
   if (!inp.sinChat && adm && adm.email) {
-    try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queQuiere.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
+    try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queSimple.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel },
     nota: disparo.ok ? 'Listo, quedó pedido.' :
@@ -258,13 +263,16 @@ function paraClaudeRespuesta_(b) {
     var texto = (estado === 'pregunta' ? 'Pregunta · ' : estado === 'fallo' ? 'No se pudo · ' : 'Listo · ') + titulo + '\n\n' +
       cuerpoR + (enlaces.length ? '\n\n' + enlaces.join('\n') : '');
     var conPr = enlaces.some(function (u) { return /\/pull\/\d+/.test(u); }) || !!(m && m.estado === MICRO_ESTADOS_.listo);
-    if (estado === 'listo') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
+    /* Pedido que Alma escaló porque no podía (escalar.js): si trae PR, Alma lo une sola con las revisiones en verde y
+       entrega el resultado (Juan, 12-nov-2026); entonces ni «Unir el PR» ni «para que lo unas». */
+    var esc = ''; try { esc = escalarAlResponder_(String(v[i][15] || ''), estado, enlaces, cuerpoR); } catch (e) { console.error('escalarAlResponder_: ' + e); }
+    if (estado === 'listo' && esc !== 'unir') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? (conPr ? 'PR listo' : 'respondido') : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
     /* En el chat con Alma de quien lo pidió (o del principal, para los pedidos viejos); cada mensaje empieza con la fecha. */
     var dest = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_() || DESARROLLO_;
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
-    paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado);
+    if (esc !== 'unir') paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado);
     return { ok: true };
   } finally { lock.releaseLock(); }
 }

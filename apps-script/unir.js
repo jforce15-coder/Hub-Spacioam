@@ -1,5 +1,6 @@
 /* ═══ UNIR CAMBIOS SIN ENTRAR A GITHUB ══════════════════════════════════════════════════════════════════════
-   Juan decide; nadie más une. Los cambios abiertos (PR) de todos sus repos aparecen en «Pendientes» de la app de Alma
+   Juan decide; nadie más une. Única excepción (Juan, 12-nov-2026): la unión sola de escalar.js, el PR que hizo falta para
+   entregarle un pedido suyo que Alma no podía cumplir, con sus revisiones en verde. Los cambios abiertos (PR) de todos sus repos aparecen en «Pendientes» de la app de Alma
    con un botón «Unir», y Alma los une cuando Juan se lo pide por cualquier canal (voz, WhatsApp, chat) con unir_cambio.
    Usa la llave de GitHub de Conexiones (GITHUB_PRS o GITHUB_TOKEN); para unir necesita permiso de escritura en
    Pull requests y Contents. Si los checks fallaron o hay un choque con main, no une: dice por qué. */

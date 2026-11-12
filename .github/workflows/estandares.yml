@@ -142,3 +142,10 @@ jobs:
         # 7-nov: el «Si» de Juan para Oscar (Brunelo 1808) no salió y Alma dijo «no tiene conversación activa»; a Juan le llegó
         # tres veces «El huésped sigue sin su código» por Estrella (Ignacio 1206), después de haberle contestado.
         run: node .github/envio-huesped.js apps-script
+      - name: Alma escala sola cuando no puede, no promete sin hacerlo, pide en JSON y une sola solo lo que Juan necesita (dobles)
+        # 11-nov: Juan pidió sus contactos de recepción de Hola; Alma dijo «necesito pedírselo a Claudio… ¿Lo pido?» y no pidió
+        # nada hasta su «Si» 44 min después (y salió dos veces). 12-nov: Alma une sola solo lo necesario para un pedido de Juan.
+        run: node .github/escalar-sola.js apps-script
+      - name: Registro a recepción, los números salen a Meta con 502 y una sola vez (dobles)
+        # 12-nov: Brunelo dijo que no recibía; en Hola había recepciones escritas sin 502 y el administrador recibía dos veces.
+        run: node .github/recepcion-numeros.js apps-script

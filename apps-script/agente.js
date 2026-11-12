@@ -209,7 +209,7 @@ function agHerramientas_() {
       { accion: { type: 'string', enum: ['poner', 'pausar', 'seguir', 'siguiente', 'anterior', 'volumen', 'que_suena', 'dispositivos'] }, consulta: s('Qué poner: canción y artista, artista, álbum o mood'),
         tipo: { type: 'string', enum: ['cancion', 'artista', 'album', 'playlist', 'mood'] }, dispositivo: s('Dónde (como lo dijo: sala, cocina, cuarto, teléfono…). Vacío = donde ya suena'), nivel: { type: 'number', description: 'Volumen 0-100' } }, ['accion']),
     /* El equipo de agentes detrás de Alma (agentes.js): ella le pide trabajo a cada uno y le pasa a Juan lo que proponen. */
-    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes (trabajan detrás de ti; solo tú hablas con las personas) y devuelve su informe y lo que propone: operaciones (limpiezas, rutas, tareas), huespedes (conversaciones, promesas, reseñas), finanzas (cancelaciones, pagos), crecimiento (huecos, anuncios, Grow), marketing, mantenimiento (reparaciones, técnicos), desarrollo (equipo técnico con Claude; responde después en la conversación Desarrollo) y sus apps (dev_…); mejora (gastar menos sin bajar la calidad) o archivo (orden de conversaciones y archivos, cajones y reglas de guardado). Solo el administrador principal.',
+    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes (trabajan detrás de ti; solo tú hablas con las personas) y devuelve su informe y lo que propone: operaciones (limpiezas, rutas, tareas), huespedes (conversaciones, promesas, reseñas), finanzas (cancelaciones, pagos), crecimiento (huecos, anuncios, Grow), marketing, mantenimiento (reparaciones, técnicos), desarrollo (Claude: lo que tú no puedes; pídelo sin preguntarle a Juan) y sus apps (dev_…); mejora (gastar menos sin bajar la calidad) o archivo (orden de conversaciones y archivos, cajones y reglas de guardado). Solo el administrador principal.',
       { agente: s('operaciones | huespedes | finanzas | crecimiento | marketing | mantenimiento | desarrollo | dev_hub | dev_api | dev_app | dev_hola | dev_epi | dev_grow | dev_mi | dev_docs | mejora | archivo'), pedido: s('Lo que Juan quiere que revise o haga, con sus palabras') }, ['agente']),
     T('leer_playbook', 'Abre el playbook de un trabajo (pasos, reglas, caja de herramientas y «listo significa»). Úsalo antes de trabajar en un tema de un departamento o de una app, o si no estás segura de cómo se hace. Nombres: operaciones, huespedes, finanzas, crecimiento, marketing, mantenimiento, archivo, correos, desarrollo, hub, api, app-alma, hola, epi, grow, mi, docs.',
       { nombre: s('Nombre del playbook') }, ['nombre']),
@@ -668,7 +668,10 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rc.length ? { conversaciones: rc } : { error: 'No encontré una conversación reciente con ' + inp.persona + '.' };
     }
     case 'musica': { var mu = musica_(adm, inp); if (mu.ok && inp.accion === 'poner') ctx.hechas.push({ tipo: 'musica', resumen: 'Música · ' + (mu.sonando || '') + ' en ' + mu.en }); return mu; }
-    case 'pedir_a_agente': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal trabaja con los agentes.' }; var ag = agente_(inp.agente); if (!ag) return { ok: false, error: 'No tengo ese agente. Tengo: ' + agentes_().map(function (a) { return a.id; }).join(', ') }; return agenteCorrer_(ag, 'pedido', String(inp.pedido || '')); }
+    case 'pedir_a_agente': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal trabaja con los agentes.' }; var ag = agente_(inp.agente); if (!ag) return { ok: false, error: 'No tengo ese agente. Tengo: ' + agentes_().map(function (a) { return a.id; }).join(', ') }; var rAg = agenteCorrer_(ag, 'pedido', String(inp.pedido || ''));
+      /* A Desarrollo (Claude): ya salió en este turno; el cierre no lo vuelve a pedir (chat.js) y Alma no lo promete. */
+      if (ag.tipo === 'claude' && rAg && rAg.ok) ctx.hechas.push({ tipo: 'pedido_desarrollo', resumen: 'Pedido a ' + ag.nombre + ' · ' + String(inp.pedido || '').slice(0, 70) });
+      return rAg; }
     case 'leer_playbook': return leerPlaybookTool_(inp.nombre);
     case 'buscar_en_cerebro': return cerebroHerramienta_(adm, inp);   // la audiencia sale de adm, nunca del modelo (cerebro.js)
     case 'enviar_archivo': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal recibe archivos.' }; var rf = archivoEnviar_(adm, inp); if (rf.ok) ctx.hechas.push({ tipo: 'archivo', resumen: 'Archivo enviado por WhatsApp · ' + rf.enviado }); return rf; }
@@ -839,6 +842,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       if (ya) { resultados.push(ya); continue; }
       if (vencido(AGENTE_MARGEN_HERR_)) { var ch = cortar(resultados); if (ch) return ch; }   // lo que falta se ejecuta en segundo plano
       var res; try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
+      if (res && /^Herramienta desconocida/.test(String(res.error || ''))) (ctx.noPudo = ctx.noPudo || []).push(u.name);   // no tiene cómo: se escala al cerrar (escalar.js)
       if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });   // para las recetas (recetas.js)
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen
         var bl = res._imgs.map(imgBloque_).filter(Boolean); delete res._imgs;
@@ -855,7 +859,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
   /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una
      tarjeta o notificación por cada turno era ruido (Juan, 2-nov). */
   if (AGENTE_CANAL_ === 'segundo_plano') try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_, { conf: AGENTE_CONF_ }); } catch (e) {}   // a Pendientes (pendientes.js)
-  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro, nivel: nv.nivel };
+  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro, nivel: nv.nivel, noPudo: ctx.noPudo || [] };
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).

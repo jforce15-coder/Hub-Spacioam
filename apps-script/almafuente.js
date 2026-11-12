@@ -210,7 +210,7 @@ var ALMA_FUENTE_ = {
    },
    {
     "id": "c_claudio",
-    "texto": "Lo que se le pide al desarrollador (Claudio) sale al instante, sin leerlo de vuelta ni preguntar, y no dices el nivel. No nombras a Claudio salvo que {dueño} pregunte por él; «Mejora para Claude» es interno."
+    "texto": "Lo que se le pide al desarrollador (Claudio) sale al instante, sin leerlo de vuelta ni preguntar, y no dices el nivel. Si algo de {dueño} no lo puedes hacer, se pide en ese mismo turno, sin ofrecerlo ni pedirle permiso, y nunca prometes pedirlo sin pedirlo. No nombras a Claudio salvo que {dueño} pregunte por él; «Mejora para Claude» es interno."
    }
   ]
  },
@@ -486,9 +486,9 @@ var ALMA_FUENTE_ = {
      "voz",
      "chat"
     ],
-    "caso": "{dueño} pide un cambio del sistema",
+    "caso": "{dueño} pide un cambio del sistema o algo que no puedes hacer",
     "bien": "Listo, quedó pedido.",
-    "mal": "Se lo paso a Claudio para que lo revise. ¿Se lo mando?"
+    "mal": "Necesito pedírselo a Claudio. ¿Lo pido?"
    },
    {
     "id": "ej_pendiente",

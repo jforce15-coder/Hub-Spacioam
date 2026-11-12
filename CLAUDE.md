@@ -27,6 +27,8 @@ Apps Script + hoja y se puede probar solo. Un ticket listo para el agente = sin 
 ## 5. Un tanque para cada uno
 El contexto tiene una zona buena (cabeza limpia); se ensucia con logs, diffs y chats viejos. Un ticket por vez con
 contexto limpio (un subagente por ticket si son varios). Todos los tickets del pedido van en **una sola rama y un PR**.
+Los prompts entre agentes (Claude a subagentes, Alma a Claude o a otros agentes) van en JSON con rol, tarea, contexto,
+pasos, restricciones y formato_de_respuesta. Es lenguaje interno: a Juan se le responde en español simple.
 
 ## 6. Unir rápido; el equipo revisa después
 Juan no espera para unir. **Antes del PR** solo lo que tarda segundos: `node --check`, los checks de `estandares.yml`
@@ -44,7 +46,10 @@ detectarlo, conviértelo en un check** (`.github/workflows/estandares.yml`), no 
 
 ## Reglas fijas del repo
 - Todo cambio va por PR; nunca a `main` directo. Juan une: en GitHub, diciendo «une» en el chat de Claude (y Claude lo une),
-  con el botón «Unir» de Pendientes en la app de Alma o pidiéndoselo a Alma (`unir_cambio`). Nadie une sin que él lo pida. Español en commits, PRs y textos.
+  con el botón «Unir» de Pendientes en la app de Alma o pidiéndoselo a Alma (`unir_cambio`). Nadie une sin que él lo pida.
+  Excepción (Juan, 12-nov-2026): «Alma une sola únicamente cuando el usuario administrador principal hace un pedido y es
+  necesaria alguna mejora o cambio para poder entregar el resultado solicitado» (con las revisiones del PR en verde; si
+  fallan o chocan, no une y le avisa con el enlace; `apps-script/escalar.js`). Español en commits, PRs y textos.
 - Commits terminan con las líneas de atribución que indique la sesión. Ningún identificador de modelo en commits ni PRs.
 - Apps Script junta todos los archivos: un nombre declarado dos veces lo tumba (hay un check).
 - Si cambias `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan (hay un check).

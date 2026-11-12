@@ -87,6 +87,10 @@ jobs:
       - name: Presupuesto de los prompts, medido sobre el texto armado de cada canal
         run: node .github/presupuesto-prompts.js apps-script
 
+      - name: El prompt de cada canal llega en JSON válido y sin perder ninguna línea (voz, chat, WhatsApp, calle, redactor)
+        # 12-nov: Juan decidió que Alma reciba su prompt en JSON por secciones, con el mismo contenido (#498 T2).
+        run: node .github/prompts-json.js apps-script
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

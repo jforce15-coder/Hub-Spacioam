@@ -419,8 +419,15 @@ function vozPromptCompleto_() {
      no reemplaza a SEMILLA_VOZ_ (solo suman sus mejoras aprobadas, como en el chat). Al final la ficha de quien llama,
      lo único que cambia entre llamadas (el resto se reusa de la caché). */
   var mejVoz = ''; try { mejVoz = mejorasBloque_('VOZ'); } catch (e) {}
-  var texto = [almaPrompt_('voz', 'todas'), weebo, vozQuienBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), SEMILLA_VOZ_ + mejVoz, extra ? 'AVISOS TEMPORALES DEL EQUIPO:\n' + extra : '', vozFichaBloque_()].filter(Boolean).join('\n\n');
-  return { clave: 'REDACTOR', texto: vozPromptCache_(texto) };
+  /* En JSON (#498 T2, promptjson.js): el mismo texto de siempre, por secciones y en el mismo orden. La ficha va al
+     final, con {{quien_llama}} dentro de su texto (ElevenLabs la reemplaza como siempre). */
+  var o = promptObj_(almaPrompt_('voz', 'todas')), ficha = promptObj_(vozFichaBloque_());
+  pjPoner_(o, 'weebo', promptObj_(weebo));
+  pjPoner_(o, 'en_la_llamada', promptObj_(vozQuienBloque_()));
+  pjPoner_(o, 'con_huespedes', promptObj_('(caller_type externo) — todo lo que sigue es para huéspedes:\n\n' + base.trim() + '\n\n' + SEMILLA_VOZ_ + mejVoz));
+  if (extra) pjPoner_(o, 'avisos_temporales_del_equipo', promptObj_(extra));
+  Object.keys(ficha).forEach(function (k) { pjPoner_(o, k, ficha[k]); });
+  return { clave: 'REDACTOR', texto: vozPromptCache_(JSON.stringify(o)) };
 }
 /* Variables de ElevenLabs a mitad del prompt cortan la caché en ese punto. {{system__caller_id}} no hace falta en el texto
    (lookup_reservation ya lo recibe solo, como dynamic_variable): se cambia por palabras. Solo {{quien_llama}} queda, al final. */

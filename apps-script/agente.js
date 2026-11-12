@@ -62,11 +62,14 @@ var SEMILLA_SECRETARIA_ = [
 function opAgenteActivo_() { return String(PropertiesService.getScriptProperties().getProperty('OP_AGENTE') || '1') !== '0'; }
 
 /* El system en bloques: lo de antes de AG_CORTE_CACHE_ (igual en cada turno) con la marca de caché; lo de después, aparte.
-   Antes la marca iba al final de todo y la hora (HH:mm) estaba en el medio: la caché se escribía en cada turno y nunca se leía. */
+   Antes la marca iba al final de todo y la hora (HH:mm) estaba en el medio: la caché se escribía en cada turno y nunca se leía.
+   El chat de Alma (opAgente_: Hub, WhatsApp, calle, llamada y segundo plano; lleva AG_CORTE_CACHE_) le llega al modelo
+   en JSON, un objeto por bloque (#498 T2, promptjson.js): mismo contenido, otro formato. El system se arma y se guarda
+   como texto (retomar.js le suma el cambio de canal) y se convierte aquí, justo antes de mandarlo. */
 function claudeSystem_(system) {
   var t = String(system || ''), i = t.indexOf(AG_CORTE_CACHE_);
   if (i < 0) return [{ type: 'text', text: t, cache_control: { type: 'ephemeral' } }];
-  return [{ type: 'text', text: t.slice(0, i), cache_control: { type: 'ephemeral' } }, { type: 'text', text: t.slice(i) }];
+  return [{ type: 'text', text: promptJson_(t.slice(0, i)), cache_control: { type: 'ephemeral' } }, { type: 'text', text: promptJson_(t.slice(i)) }];
 }
 /* Segunda marca de caché, al final de la conversación (Mejora continua, 4-nov-2026): en el bucle de herramientas cada
    vuelta reenvía todo lo anterior (historial, ESTE TURNO, resultados de herramientas de hasta 12 000 caracteres) y se

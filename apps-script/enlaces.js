@@ -1,18 +1,21 @@
 /* ═══ ENLACES CORTOS (#488 · T2, el mismo diseño que Grow en T1) ═══════════════════════════════════════════════
-   hub.spacioam.com/k7q2m en vez de un enlace largo (un PDF de Drive, un formulario, una conversación del Hub).
-   · Hoja ENLACES (en la de Alma): codigo · url · app · creado · por · clics · ultimo. Se crea sola la primera vez.
-   · acortar_(url, por): para el código del Hub y de Alma. El mismo enlace da siempre el mismo código. Solo acorta
-     enlaces https de *.spacioam.com, drive.google.com y docs.google.com; cualquier otro vuelve tal cual. Nunca frena un
-     envío: si algo falla, devuelve el enlace largo.
-   · acortarEnTexto_(texto, por): cambia cada enlace acortable de un texto por su forma corta. Lo llama el punto final de
-     cada canal (WhatsApp, correo, Hospitable) para que nada se escape. No toca los que ya son cortos
-     (hub|grow|hola|docs|mi.spacioam.com/<5>), los de otros dominios, los que se escriben a mano (una dirección sola o
-     de menos de 40 letras) ni los códigos y números (no son enlaces).
+   Un enlace corto lleva la dirección de la app que lo genera (Juan, 12-nov-2026: «Cada web app tiene su propia página por
+   una razón y si el proceso se genera en grow debe salir desde la URL de esa web app»). Nunca hub.spacioam.com para algo
+   que no es del Hub.
+   · Lo del Hub (sus avisos, sus archivos, enlaces a hub.spacioam.com): hub.spacioam.com/<código>, hoja ENLACES (en la de
+     Alma: codigo · url · app · creado · por · clics · ultimo; se crea sola la primera vez).
+   · Lo de Grow (enlaces a grow.spacioam.com, los PDF de grow_presupuesto_pdf y lo que devuelven las herramientas grow_*):
+     grow.spacioam.com/<código>, que da Grow (growApi_ «acortar», su hoja 40_ENLACES). Si Grow falla, sale el largo.
+   · hola, docs y mi.spacioam.com (y las demás apps): tal cual, largos, hasta que sus tickets (T3–T5) los acorten con su
+     propia dirección.
+   · Drive y Docs de Google: con la app del proceso que los manda (acortarEnTexto_(texto, por, 'grow')); sin app, el Hub.
+   · acortar_(url, por, app) y acortarEnTexto_(texto, por, app): el mismo enlace da siempre el mismo código. Nunca frenan un
+     envío: si algo falla, sale el enlace largo. acortarEnTexto_ lo llama el punto final de cada canal (WhatsApp, correo,
+     Hospitable) para que nada se escape; no toca los ya cortos (hub|grow|hola|docs|mi.spacioam.com/<5>), los de otros
+     dominios, los que se escriben a mano (una dirección sola o de 40 letras o menos) ni los códigos y números.
    · enlacePublico_(codigo): la acción pública «enlace» (doGet y doPost). Solo devuelve el enlace largo y suma un clic.
      La usa 404.html, la página que GitHub Pages muestra para cualquier dirección que no existe.
-   · El código: 5 caracteres al azar de 23456789abcdefghjkmnpqrstuvwxyz (sin 0/o ni 1/l/i). Si choca, se sortea otro.
-   Un enlace de grow.spacioam.com que manda Alma también sale con hub.spacioam.com: el acortador de Grow pide su sesión
-   o su llave de robot y el Hub todavía no la tiene (queda para después, ver #488). */
+   · El código: 5 caracteres al azar de 23456789abcdefghjkmnpqrstuvwxyz (sin 0/o ni 1/l/i). Si choca, se sortea otro. */
 var ENLACES_HOJA_ = 'ENLACES';
 var ENLACES_CAB_ = ['codigo', 'url', 'app', 'creado', 'por', 'clics', 'ultimo'];
 var ENLACES_ABC_ = '23456789abcdefghjkmnpqrstuvwxyz';
@@ -20,6 +23,7 @@ var ENLACES_RX_ = /^[23456789abcdefghjkmnpqrstuvwxyz]{5}$/;
 var ENLACES_BASE_ = 'https://hub.spacioam.com/';
 var ENLACES_GOOGLE_ = ['drive.google.com', 'docs.google.com'];
 var ENLACES_YA_CORTO_ = /^https:\/\/(hub|grow|hola|docs|mi)\.spacioam\.com\/[23456789abcdefghjkmnpqrstuvwxyz]{5}\/?$/i;
+var ENLACES_GROW_ = /^https:\/\/grow\.spacioam\.com\/[23456789abcdefghjkmnpqrstuvwxyz]{5}$/;
 var ENLACES_MIN_ = 40;   // el corto mide 30: uno de 40 o menos se deja (y casi siempre es una dirección que se escribe a mano)
 
 /* La hoja, o null si no existe y no se pidió crearla. La columna del código va como texto: «22345» no se vuelve número. */
@@ -34,20 +38,34 @@ function enlacesHoja_(crear) {
   return sh || null;
 }
 
-/* El enlace limpio si se puede acortar por su dominio, o '' (otro dominio, sin https, con espacios, @ o puerto). */
-function enlaceValido_(url) {
+/* El dominio de un enlace https limpio (sin espacios, @ ni puerto), o '' si no lo es. */
+function enlaceHost_(url) {
   url = String(url == null ? '' : url).trim();
   if (!url || url.length > 2000 || /\s/.test(url)) return '';
   var m = url.match(/^https:\/\/([^\/?#:@]+)(?:[\/?#]|$)/i);
-  if (!m) return '';
-  var host = m[1].toLowerCase();
-  return ENLACES_GOOGLE_.indexOf(host) >= 0 || /^([a-z0-9-]+\.)+spacioam\.com$/.test(host) ? url : '';
+  return m ? m[1].toLowerCase() : '';
 }
 
-/* ¿Vale la pena acortarlo? Su dominio es nuestro, no es ya corto, no es solo una dirección y mide más de 40. */
-function enlaceAcortable_(url) {
-  var u = enlaceValido_(url);
-  return !!u && !ENLACES_YA_CORTO_.test(u) && !/^https:\/\/[^\/?#]+\/?$/i.test(u) && u.length > ENLACES_MIN_;
+/* El enlace limpio si el Hub lo guarda en su hoja (hub.spacioam.com, Drive o Docs), o ''. */
+function enlaceValido_(url) {
+  var h = enlaceHost_(url);
+  return h === 'hub.spacioam.com' || ENLACES_GOOGLE_.indexOf(h) >= 0 ? String(url).trim() : '';
+}
+
+/* Qué app da el corto: 'grow' para grow.spacioam.com, 'hub' para hub.spacioam.com, la app del proceso (o el Hub) para
+   Drive y Docs, y '' para lo demás (hola, docs, mi y las otras apps de spacioam.com, otros dominios: van tal cual). */
+function enlaceApp_(url, app) {
+  var h = enlaceHost_(url);
+  if (h === 'grow.spacioam.com') return 'grow';
+  if (h === 'hub.spacioam.com') return 'hub';
+  if (ENLACES_GOOGLE_.indexOf(h) >= 0) return app === 'grow' ? 'grow' : 'hub';
+  return '';
+}
+
+/* ¿Vale la pena acortarlo, y con qué app? No es ya corto, no es solo una dirección y mide más de 40. */
+function enlaceAcortable_(url, app) {
+  var u = String(url == null ? '' : url).trim(), a = enlaceApp_(u, app);
+  return a && !ENLACES_YA_CORTO_.test(u) && !/^https:\/\/[^\/?#]+\/?$/i.test(u) && u.length > ENLACES_MIN_ ? a : '';
 }
 
 function enlaceCodigoNuevo_(usados) {
@@ -63,17 +81,22 @@ function enlaceClaveCache_(u) {
   return 'enl_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u, Utilities.Charset.UTF_8));
 }
 
-/* El enlace corto de url (https://hub.spacioam.com/<código>), o url tal cual si no se acorta o algo falla.
-   El candado es el de usuario, no el del script: procesarCola tiene el del script toda su pasada y un mensaje en una
-   llamada no puede esperarlo (ESTANDARES.md). Si no se consigue en 5 s, sale el enlace largo. */
-function acortar_(url, por) {
-  var u = enlaceAcortable_(url) ? enlaceValido_(url) : '';
-  if (!u) return url;
+/* El enlace corto de url con la dirección de su app (hub o grow.spacioam.com/<código>), o url tal cual si no se acorta o
+   algo falla. app: la app del proceso que lo manda (solo cuenta para Drive y Docs; sin app, el Hub). */
+function acortar_(url, por, app) {
+  var a = enlaceAcortable_(url, app);
+  if (!a) return url;
+  return a === 'grow' ? enlaceGrow_(String(url).trim(), por) : enlaceHub_(String(url).trim(), por);
+}
+
+/* hub.spacioam.com/<código>. El candado es el de usuario, no el del script: procesarCola tiene el del script toda su
+   pasada y un mensaje en una llamada no puede esperarlo (ESTANDARES.md). Si no se consigue en 5 s, sale el enlace largo. */
+function enlaceHub_(u, por) {
   try {
     var cache = CacheService.getScriptCache(), k = enlaceClaveCache_(u), ya = cache.get(k);
     if (ya && ENLACES_RX_.test(ya)) return ENLACES_BASE_ + ya;
     var lock = LockService.getUserLock(), mio = !lock.hasLock();
-    if (mio && !lock.tryLock(5000)) return url;
+    if (mio && !lock.tryLock(5000)) return u;
     try {
       var sh = enlacesHoja_(true), v = sh.getDataRange().getValues(), usados = {};
       for (var i = 1; i < v.length; i++) {
@@ -88,12 +111,29 @@ function acortar_(url, por) {
       cache.put(k, codigo, 21600);
       return ENLACES_BASE_ + codigo;
     } finally { if (mio) lock.releaseLock(); }
-  } catch (e) { console.error('acortar_: ' + e); return url; }
+  } catch (e) { console.error('enlaceHub_: ' + e); return u; }
 }
 
-/* Cada enlace acortable del texto, por su forma corta. Los signos que cierran la frase (punto, coma, paréntesis que
-   no abrió el enlace, *negritas*) se quedan fuera del enlace. Sin enlaces https, el texto vuelve igual. */
-function acortarEnTexto_(texto, por) {
+/* grow.spacioam.com/<código>: se lo pide a Grow por la puerta de la secretaria (growApi_ «acortar», agente.js), que
+   guarda en su hoja y da el mismo código para el mismo enlace. Si Grow no responde o falla, sale el enlace largo (nunca
+   con la dirección del Hub) y por 10 min no se le vuelve a preguntar, para no trabar cada envío. */
+function enlaceGrow_(u, por) {
+  try {
+    var cache = CacheService.getScriptCache(), k = 'g' + enlaceClaveCache_(u), ya = cache.get(k);
+    if (ya && ENLACES_GROW_.test(ya)) return ya;
+    if (cache.get('enl_grow_caido')) return u;
+    var r = growApi_('acortar', { url: u, por: String(por || 'alma').slice(0, 60) });
+    var corto = r && r.ok ? String(r.corto || '') : '';
+    if (!ENLACES_GROW_.test(corto)) { cache.put('enl_grow_caido', '1', 600); console.warn('enlaceGrow_: ' + JSON.stringify(r).slice(0, 200)); return u; }
+    cache.put(k, corto, 21600);
+    return corto;
+  } catch (e) { console.error('enlaceGrow_: ' + e); return u; }
+}
+
+/* Cada enlace acortable del texto, por su forma corta con la dirección de su app. app: la del proceso que lo manda, si
+   se sabe (para Drive y Docs). Los signos que cierran la frase (punto, coma, paréntesis que no abrió el enlace,
+   *negritas*) se quedan fuera del enlace. Sin enlaces https, el texto vuelve igual. */
+function acortarEnTexto_(texto, por, app) {
   if (texto == null || String(texto).indexOf('https://') < 0) return texto;
   return String(texto).replace(/https:\/\/[^\s<>"'«»“”\[\]{}|\\^`]+/gi, function (m) {
     var url = m, cola = '';
@@ -101,8 +141,20 @@ function acortarEnTexto_(texto, por) {
       if (url.slice(-1) === ')' && url.split('(').length >= url.split(')').length) break;   // (…) del propio enlace
       cola = url.slice(-1) + cola; url = url.slice(0, -1);
     }
-    return enlaceAcortable_(url) ? acortar_(url, por) + cola : m;
+    return enlaceAcortable_(url, app) ? acortar_(url, por, app) + cola : m;
   });
+}
+
+/* Lo mismo dentro del resultado de una herramienta (p. ej. las grow_*): cada texto con su app; los campos que empiezan con
+   «_» (fotos en base64) y los drive_id no se tocan. */
+function acortarEnObjeto_(o, por, app, hondo) {
+  hondo = hondo || 0;
+  if (typeof o === 'string') return acortarEnTexto_(o, por, app);
+  if (!o || typeof o !== 'object' || hondo > 5) return o;
+  if (Array.isArray(o)) return o.map(function (x) { return acortarEnObjeto_(x, por, app, hondo + 1); });
+  var out = {};
+  Object.keys(o).forEach(function (k) { out[k] = /^_|drive_id|file_id/.test(k) ? o[k] : acortarEnObjeto_(o[k], por, app, hondo + 1); });
+  return out;
 }
 
 /* Acción pública «enlace» (doGet ?enlace=, doPost { action: 'enlace', codigo }): solo el enlace largo, y suma un clic.
@@ -136,7 +188,7 @@ function enlacePublico_(codigo) {
 /* Hub → «acortar» (con la sesión firmada del login; la llave vieja del Hub no basta porque viaja en la página). */
 function enlaceAcortarApi_(ses, url) {
   if (!ses) return { ok: false, error: 'Para acortar un enlace hace falta iniciar sesión.' };
-  if (!enlaceValido_(url)) return { ok: false, error: 'Ese enlace no se puede acortar: solo los de spacioam.com o de Google Drive y Docs.' };
+  if (!enlaceValido_(url)) return { ok: false, error: 'Ese enlace no se puede acortar aquí: solo los de hub.spacioam.com o de Google Drive y Docs.' };
   var corto = acortar_(String(url).trim(), String(ses.email || ses.nombre || 'sesión'));
   var m = /\/([23456789abcdefghjkmnpqrstuvwxyz]{5})$/.exec(corto);
   return m && corto.indexOf(ENLACES_BASE_) === 0 ? { ok: true, corto: corto, codigo: m[1] } : { ok: true, corto: corto, codigo: '', nota: 'Quedó el enlace tal cual (ya era corto o no se pudo acortar ahora).' };

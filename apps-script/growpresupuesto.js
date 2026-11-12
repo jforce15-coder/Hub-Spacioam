@@ -61,9 +61,9 @@ function growPresupuestoPdf_(adm, inp, ctx) {
     if (enviados) wa = enviados === todos.length ? 'enviado' + (enviados > 1 ? 's los ' + enviados : '') : 'enviados ' + enviados + ' de ' + todos.length + (wa !== 'no' ? ' (' + wa + ')' : '');
   }
   if (!todos.some(function (x) { return x.url; }) && !enviados) return { ok: false, error: 'Armé el PDF pero no pude guardarlo en Drive ni mandarlo por WhatsApp: ' + wa };
-  /* El enlace que vuelve al modelo ya es corto (hub.spacioam.com/<código>, enlaces.js): así sale igual en el chat, el
-     WhatsApp o el correo. El drive_id sigue siendo el del archivo (para adjuntarlo). */
-  var corto = function (u) { return u ? acortar_(u, 'grow_presupuesto_pdf') : u; };
+  /* El enlace que vuelve al modelo ya es corto y de Grow (grow.spacioam.com/<código>: el PDF nace en Grow; enlaces.js), así
+     sale igual en el chat, el WhatsApp o el correo. Si Grow no lo da, va el largo. El drive_id sigue siendo el del archivo. */
+  var corto = function (u) { return u ? acortar_(u, 'grow_presupuesto_pdf', 'grow') : u; };
   var limpio = function (x) { var o = { presupuesto: x.presupuesto || undefined, apto: x.apto || undefined, total: x.total, url: corto(x.url), drive_id: x.drive_id || undefined }; return o; };
   hechas.push({ tipo: 'grow', resumen: 'Grow · ' + (todos.length > 1 ? todos.length + ' PDF de presupuesto ' : 'presupuesto en PDF ') + proyecto + ' · ' + (cons ? cons.total : todos[0].total) + (enviados ? ' · por WhatsApp' : '') });
   var res = { ok: true, proyecto: proyecto, whatsapp: wa };

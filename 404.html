@@ -52,8 +52,8 @@
     var m = /^\/([23456789abcdefghjkmnpqrstuvwxyz]{5})\/?$/i.exec(location.pathname || "");
     if (!m) { fin(NO_ESTA, false); return; }
     var codigo = m[1].toLowerCase();
-    // Solo se abre un enlace de Spacio AM o de Google Drive / Docs (lo mismo que acepta el Apps Script).
-    var seguro = /^https:\/\/(([a-z0-9-]+\.)+spacioam\.com|drive\.google\.com|docs\.google\.com)([\/?#]|$)/i;
+    // Solo se abre un enlace del Hub o de Google Drive / Docs (lo mismo que guarda el Apps Script; los de Grow tienen su página).
+    var seguro = /^https:\/\/(hub\.spacioam\.com|drive\.google\.com|docs\.google\.com)([\/?#]|$)/i;
 
     function abrir() {
       fin("Abriendo tu enlace…", false); punto.hidden = false;

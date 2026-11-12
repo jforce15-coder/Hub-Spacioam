@@ -65,9 +65,15 @@ function recepcionEnviar_(code, soloA) {
     payload: JSON.stringify({ action: 'regPdfRobot', code: code, robot: robot }) });
   var d = {}; try { d = JSON.parse(rr.getContentText()); } catch (e) { return { ok: false, error: 'Hola no respondió', reintentar: true }; }
   if (!d.ok) return { ok: false, error: 'Hola: ' + (d.error || 'sin registro'), reintentar: d.error !== 'registro-no-encontrado' && d.error !== 'token' };
-  var nums = (d.whatsapps || []).map(function (n) { return String(n).replace(/\D/g, ''); }).filter(function (n) { return n.length >= 8; });
+  /* Los números pasan por normTel_ (Código.js), el único lugar del formato: «+502 5555 0101», «5555-0101» o sin 502
+     salen igual (502 + 8 dígitos) y el mismo número escrito de dos formas recibe una sola vez (12-nov-2026). */
+  var nums = [];
+  (d.whatsapps || []).forEach(function (n) { telsDe_(n).forEach(function (t) { if (nums.indexOf(t) === -1) nums.push(t); }); });
   if (!nums.length) return { ok: false, error: 'la propiedad no tiene WhatsApp de recepción' };
-  if (soloA) nums = [String(soloA).replace(/\D/g, '')];   // prueba: solo a este número
+  if (soloA) {   // prueba: solo a este número
+    nums = telsDe_(soloA).slice(0, 1);
+    if (!nums.length) return { ok: false, error: 'el número de prueba no es válido' };
+  }
   var blob = Utilities.newBlob(Utilities.base64Decode(d.pdfB64), 'application/pdf', d.filename || ('Registro-' + code + '.pdf'));
   var up = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/media', { method: 'post', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: { messaging_product: 'whatsapp', type: 'application/pdf', file: blob } });
@@ -98,7 +104,8 @@ function recepcionLog_(code, r) {
   try {
     var ss = ssAlma_(), sh = ss.getSheetByName('ALMA_RECEPCION');
     if (!sh) { sh = ss.insertSheet('ALMA_RECEPCION'); sh.appendRow(['fecha', 'codigo', 'resultado', 'enviados', 'plantilla', 'detalle']); }
-    sh.appendRow([new Date().toISOString(), code, r && r.ok ? 'OK' : 'ERROR', r && r.enviados != null ? r.enviados + ' de ' + r.total : '', (r && r.plantilla) || '', String((r && r.error) || '').slice(0, 400)]);
+    /* «2 de 2» solo, Sheets lo guardaba como fecha (2-feb): con «enviados» queda como texto. */
+    sh.appendRow([new Date().toISOString(), code, r && r.ok ? 'OK' : 'ERROR', r && r.enviados != null ? r.enviados + ' de ' + r.total + ' enviados' : '', (r && r.plantilla) || '', String((r && r.error) || '').slice(0, 400)]);
   } catch (e) { console.error('recepcionLog_: ' + e); }
 }
 
@@ -120,7 +127,7 @@ function recepcionNumeros_() {
     try {
       var r = uf_(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: 'listContacts', robot: llaveRobot_() }) }, 'Hola');
       var j = JSON.parse(r.getContentText());
-      (j.properties || []).forEach(function (pr) { (pr.whatsapps || []).forEach(function (w) { hola[fin8_(w)] = { n: String(w).replace(/\D/g, ''), prop: pr.name || '' }; }); });
+      (j.properties || []).forEach(function (pr) { (pr.whatsapps || []).forEach(function (w) { telsDe_(w).forEach(function (n) { hola[fin8_(n)] = { n: n, prop: pr.name || '' }; }); }); });
       if (j.admin) delete hola[fin8_(j.admin)];
       c.put('recep_nums', JSON.stringify(hola), 21600);
     } catch (e) { console.error('recepcionNumeros_: ' + e); }

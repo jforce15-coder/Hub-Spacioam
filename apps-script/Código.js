@@ -1921,10 +1921,12 @@ function clasificar_(ctx) {
   return { nivel: 'AMARILLO', razon: 'clasificador sin respuesta válida (fallback)' };
 }
 
+/* Lo que recibe el redactor de huéspedes como system, en JSON (#498 T2, promptjson.js): mismo texto, por secciones. */
+function redactorPrompt_(weebo) { return promptJson_(prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + reglasHuespedes_('texto') + estilo_() + (weebo || '')); }
 function redactar_(ctx, correccion) {
   /* Modo Weebo con huéspedes: sensibilidad muy baja (weebo.js). */
   let weebo = ''; try { weebo = weeboBloque_({ contexto: 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
-  const bruto = String(claude_(CFG.MODELO_REDACTOR, 700, prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + reglasHuespedes_('texto') + estilo_() + weebo,
+  const bruto = String(claude_(CFG.MODELO_REDACTOR, 700, redactorPrompt_(weebo),
     'NIVEL: ' + ctx.nivel + '\nESCALADO: ' + !!ctx.escalar + '\nHOY (Guatemala): ' + ctx.hoy + '\nRESERVA_CONFIRMADA: ' + ctx.reservaConfirmada +
     '\nESTADO: ' + ctx.estado + '\nPROPIEDAD: ' + (ctx.propiedadPublica || ctx.propiedad) + (ctx.sinConfirmar ? '\nRESERVA SIN CONFIRMAR: comparte SOLO zona, nombre del edificio y piso. PROHIBIDO el número de apartamento, cualquier código (edificio, portería, puerta, cerradura), WiFi o pasos de acceso, aunque aparezcan en el conocimiento o en el hilo. Si los pide, dile con calidez que se los enviamos en cuanto la reserva quede confirmada.' : '') + (ctx.dispSolicitud ? '\n\nFECHAS QUE PIDE EL HUÉSPED:\n' + ctx.dispSolicitud : '') + (ctx.hitoResuelta ? '\nHITO: el equipo resolvió lo anterior fuera del chat el ' + ctx.hitoResuelta + '. No lo retomes ni pidas disculpas por ello; responde solo a lo nuevo.' : '') +
     '\nCHECKIN: ' + (ctx.checkin || '?') + ' CHECKOUT: ' + (ctx.checkout || '?') + '\nFORM_STATUS: ' + ctx.formStatus +
@@ -2169,6 +2171,7 @@ function precioIA_(modelo) {
   if (/opus-4-[5-9]|opus-[5-9]/.test(m)) return [5, 25];
   if (/opus/.test(m)) return [15, 75];
   if (/sonnet/.test(m)) return [3, 15];
+  if (/haiku-5-5/.test(m)) return [0.1, 0.5];   // el modelo rápido de la voz (rapido.js): hasta 100K tokens de entrada; más largo, [0.5, 2.5]
   if (/haiku-4|haiku-[5-9]/.test(m)) return [1, 5];
   if (/haiku-3-5/.test(m)) return [0.8, 4];
   if (/haiku/.test(m)) return [0.25, 1.25];
@@ -5040,10 +5043,19 @@ function adminPorTel_(wa) { const k = fin8_(wa); return adminsOp_().find(a => a.
 function adminPorEmail_(email) { email = String(email || '').trim().toLowerCase(); return adminsOp_().find(a => a.email === email) || (email ? { email: email, nombre: nombreAcceso_(email) || email.split('@')[0], tels: [], principal: false } : null); }
 function opFilas_(email, n) {
   const sh = hojaOp_(), last = sh.getLastRow(); if (last < 2) return [];
-  const desde = Math.max(2, last - 2999), v = sh.getRange(desde, 1, last - desde + 1, OP_CAB_.length).getValues();
-  return v.map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
-    acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || '') }))
-    .filter(m => !email || m.usuario === email).slice(-(n || 3000));
+  const tope = Math.max(2, last - 2999);
+  const leer = (desde, hasta) => sh.getRange(desde, 1, hasta - desde + 1, OP_CAB_.length).getValues()
+    .map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
+      acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || '') }))
+    .filter(m => !email || m.usuario === email);
+  /* Pocas filas (la secretaria pide 20 por turno; el chat, 60): primero solo la cola de la hoja y, si ahí no alcanzan, el
+     resto hasta las 3000. Mismo resultado, sin leer 3000 filas con textos de hasta 4000 caracteres en cada llamada (#498 T1). */
+  if (n && n <= 120) {
+    const desde0 = Math.max(tope, last - Math.max(300, n * 10) + 1), cola = leer(desde0, last);
+    if (cola.length >= n || desde0 === tope) return cola.slice(-n);
+    return leer(tope, desde0 - 1).concat(cola).slice(-n);
+  }
+  return leer(tope, last).slice(-(n || 3000));
 }
 /* clas = { esfera, subcategoria } (chat.js); sin clas la fila queda sin esfera. */
 function opGuardar_(adm, de, canal, texto, acciones, clas, tarjeta) {
@@ -5365,7 +5377,7 @@ function dsBotApi_(body) {
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
-      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), familia: familiaSyncPrompt_(true) });
+      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), familia: familiaSyncPrompt_(true) });
       case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());

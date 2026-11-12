@@ -87,6 +87,20 @@ jobs:
       - name: Presupuesto de los prompts, medido sobre el texto armado de cada canal
         run: node .github/presupuesto-prompts.js apps-script
 
+      - name: El prompt de cada canal llega en JSON válido y sin perder ninguna línea (voz, chat, WhatsApp, calle, redactor)
+        # 12-nov: Juan decidió que Alma reciba su prompt en JSON por secciones, con el mismo contenido (#498 T2).
+        run: node .github/prompts-json.js apps-script
+
+      - name: Protección de las instrucciones de la voz, no cuelga y solo el principal habla del prompt, por la marca del Hub (dobles)
+        # 12-nov: la protección integrada «Prompt Injection» de ElevenLabs colgó una llamada de Juan mientras le pedía a Alma
+        # mejorar su prompt (#498 T3). Ahora es personalizada, con retry, y quién es el principal lo dice el Hub, no la llamada.
+        run: node .github/voz-proteccion.js apps-script
+
+      - name: Camino rápido de la voz, leer va al modelo rápido con solo herramientas de leer y lo demás al de siempre (dobles)
+        # 12-nov: Juan decidió usar el modelo más rápido para pedidos de leer en llamadas mientras llega Jev (#498 T4).
+        # Escribir va al de siempre; si el rápido no puede, pasa al de siempre; VOZ_RAPIDO = 0 lo apaga.
+        run: node .github/voz-rapido.js apps-script
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

@@ -20,6 +20,7 @@ function vozApi_(e, body) {
     .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
   if (h !== VOZ_HASH_) return json_({ ok: false, error: 'llave' });
   var herr = String(p.h || body.herramienta || (body.type === 'post_call_transcription' ? 'postcall' : '')).toLowerCase();
+  VOZ_T0_ = Date.now(); VOZ_MS_ = null;
   try {
     var out;
     vozWebIdentificar_(body);   // llamada desde el botón de Alma del Hub: sin número, se reconoce por su conversación
@@ -288,11 +289,17 @@ function vozPostCall_(body) {
   return { ok: true, conv_id: convId, mensajes: filas.length };
 }
 
-/* Diagnóstico: últimas 30 llamadas a herramientas (sin datos personales), en caché 6 h. */
+/* Diagnóstico: últimas 30 llamadas a herramientas (sin datos personales), en caché 6 h. ms: lo que tardó el Hub en
+   contestar; d (solo secretaria): antes de la IA, la IA (ia en ms y n vueltas), las herramientas (herr y nh), el resto
+   del turno (agente) y lo de después (despues). Robot voz_traza (#498 T1). Desde T4 (rapido.js), también qué modelo
+   contestó: via (rapido · completo · rapido>completo), motivo, modelo y rapido (ms en el camino rápido). */
+var VOZ_T0_ = 0, VOZ_MS_ = null;
 function vozTraza_(herr, b, out) {
   try {
     var c = CacheService.getScriptCache(), l = []; try { l = JSON.parse(c.get('voz_traza') || '[]'); } catch (x) {}
-    l.unshift({ t: new Date().toISOString(), h: herr, tel: fin8_(b.caller_id || b.telefono || '').slice(-4), ok: !!(out && out.ok), found: out && out.found, verified: out && out.verified, ask: out && out.ask_next, metodo: out && out.metodo, tipo: out && out.caller_type, err: out && (out.error || out.motivo) || '' });
+    l.unshift({ t: new Date().toISOString(), h: herr, tel: fin8_(b.caller_id || b.telefono || '').slice(-4), ok: !!(out && out.ok), found: out && out.found, verified: out && out.verified, ask: out && out.ask_next, metodo: out && out.metodo, tipo: out && out.caller_type, err: out && (out.error || out.motivo) || '',
+      ms: VOZ_T0_ ? Date.now() - VOZ_T0_ : undefined, d: VOZ_MS_ || undefined, en_proceso: out && out.en_proceso || undefined });
+    VOZ_MS_ = null;
     c.put('voz_traza', JSON.stringify(l.slice(0, 30)), 21600);
   } catch (x) {}
 }
@@ -413,8 +420,15 @@ function vozPromptCompleto_() {
      no reemplaza a SEMILLA_VOZ_ (solo suman sus mejoras aprobadas, como en el chat). Al final la ficha de quien llama,
      lo único que cambia entre llamadas (el resto se reusa de la caché). */
   var mejVoz = ''; try { mejVoz = mejorasBloque_('VOZ'); } catch (e) {}
-  var texto = [almaPrompt_('voz', 'todas'), weebo, vozQuienBloque_(), 'CON HUÉSPEDES (caller_type externo) — todo lo que sigue es para huéspedes:', base.trim(), SEMILLA_VOZ_ + mejVoz, extra ? 'AVISOS TEMPORALES DEL EQUIPO:\n' + extra : '', vozFichaBloque_()].filter(Boolean).join('\n\n');
-  return { clave: 'REDACTOR', texto: vozPromptCache_(texto) };
+  /* En JSON (#498 T2, promptjson.js): el mismo texto de siempre, por secciones y en el mismo orden. La ficha va al
+     final, con {{quien_llama}} dentro de su texto (ElevenLabs la reemplaza como siempre). */
+  var o = promptObj_(almaPrompt_('voz', 'todas')), ficha = promptObj_(vozFichaBloque_());
+  pjPoner_(o, 'weebo', promptObj_(weebo));
+  pjPoner_(o, 'en_la_llamada', promptObj_(vozQuienBloque_()));
+  pjPoner_(o, 'con_huespedes', promptObj_('(caller_type externo) — todo lo que sigue es para huéspedes:\n\n' + base.trim() + '\n\n' + SEMILLA_VOZ_ + mejVoz));
+  if (extra) pjPoner_(o, 'avisos_temporales_del_equipo', promptObj_(extra));
+  Object.keys(ficha).forEach(function (k) { pjPoner_(o, k, ficha[k]); });
+  return { clave: 'REDACTOR', texto: vozPromptCache_(JSON.stringify(o)) };
 }
 /* Variables de ElevenLabs a mitad del prompt cortan la caché en ese punto. {{system__caller_id}} no hace falta en el texto
    (lookup_reservation ya lo recibe solo, como dynamic_variable): se cambia por palabras. Solo {{quien_llama}} queda, al final. */
@@ -428,6 +442,7 @@ function vozSyncSiToca_() {
   if (!p.getProperty('ELEVENLABS_KEY') || !p.getProperty('ELEVENLABS_AGENT_ID')) return;
   vozSyncPrompt_(false);
   try { vozHerramientasSiCambiaron_(); } catch (e) { console.error('vozHerramientasSiCambiaron_: ' + e); }   // T3: herramientas al día solas
+  try { vozProteccionSiCambio_(false); } catch (e) { console.error('vozProteccionSiCambio_: ' + e); }   // #498 T3: protección de las instrucciones (vozproteccion.js)
   try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
 }
 function vozSyncPrompt_(forzar) {
@@ -490,16 +505,18 @@ function vozDefHerramientas_(base) {
     var sec = t.name === 'secretaria';
     t.type = 'webhook'; t.tool_error_handling_mode = 'auto';
     /* secretaria tarda 8 a 18 s (el Hub corta a los 18 s y sigue por detrás: vozSecretaria_). Decisión de Juan (1-nov-2026):
-       · SIN FRASE ANTES (Juan, 3-nov-2026; antes 'force' con su frase de consulta): pre_tool_speech 'off' y
-         force_pre_tool_speech false. El modelo llenaba esa frase con anuncios (a quién se lo pasaba) y Juan los oía
-         dos y tres veces por pedido. La espera la cubre el tecleo y, en conferencia, «Sigo en eso, ya casi» a los 15 s.
+       · FRASE DE ESPERA ANTES, SOLO EN secretaria (#498, 12-nov-2026: «me dice de inmediato que lo está revisando y no se
+         queda en silencio»): pre_tool_speech 'force'. Del 3 al 12-nov estuvo en 'off' porque el modelo llenaba esa frase
+         con anuncios (a quién se lo pasaba, el pedido de vuelta) y Juan los oía dos y tres veces; por eso la descripción
+         (VOZ_SECRETARIA_DESC_) y la regla v_espera de alma.json la dejan en una frase corta que no adelanta nada
+         («Déjame revisar…», «Dame un segundo…»). Las demás herramientas siguen en 'off'.
          execution_mode 'immediate': la herramienta arranca en cuanto el modelo la pide.
        · SE LE PUEDE INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto»): interruption_mode 'allow'.
        · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta).
        Antes era async (la conversación seguía y la respuesta llegaba suelta) y en vivo estaba post_tool_speech, sin
        frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s. */
     t.execution_mode = sec ? 'immediate' : 'post_tool_speech';
-    t.pre_tool_speech = 'off'; t.force_pre_tool_speech = false;
+    t.pre_tool_speech = sec ? 'force' : 'off'; t.force_pre_tool_speech = sec;   // force_pre_tool_speech está obsoleto en la API: va igual que pre_tool_speech
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
@@ -542,9 +559,9 @@ var VOZ_SISTEMA_DESC_ = {
   language_detection: 'Cambia de idioma cuando la persona habla en otro (por ejemplo, inglés). Sigue en ese idioma hasta que ella cambie.'
 };
 
-/* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Sin frase antes: pre_tool_speech 'off' y el tecleo
-   cubre la espera (Juan, 3-nov-2026: «solo deberíamos confirmar cuando ya se hizo»). */
-var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Llámala sin anunciarla: no digas nada antes (suena el tecleo), no repitas el pedido ni digas a quién se lo pasas. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»): confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
+/* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Antes, una frase de espera corta que no adelanta nada
+   (pre_tool_speech 'force', #498); el resultado se confirma solo cuando ya se hizo (Juan, 3-nov-2026). */
+var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di solo una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»): confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
@@ -620,7 +637,7 @@ function vozEstado_(extra) {
   var ag = JSON.parse(r.getContentText()), pr = ((ag.conversation_config || {}).agent || {}).prompt || {};
   var o = { ok: true, agente: ag.name, prompt_caracteres: String(pr.prompt || '').length, prompt_inicio: String(pr.prompt || '').slice(0, 80),
     tool_ids: pr.tool_ids || [], sistema: Object.keys(pr.built_in_tools || {}).filter(function (k) { return pr.built_in_tools[k]; }),
-    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '' };
+    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '', proteccion: vozProteccionResumen_((ag.platform_settings || {}).guardrails) };
   for (var x in (extra || {})) o[x] = extra[x];
   return o;
 }
@@ -705,7 +722,9 @@ function vozInicio_(b) {
     } catch (e) { console.error('contextoReciente_: ' + e); }
   }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
-  var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha }, _tipo: tipo };
+  /* Marca del principal (vozproteccion.js): el código solo si el Hub, por el número, sabe que es el administrador principal. */
+  var admM = null; if (tipo === 'juan' || tipo === 'equipo') { try { admM = adminPorTel_(tel) || (tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] : null); } catch (e) {} }
+  var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha, marca_principal: vozMarcaPara_(admM) }, _tipo: tipo };
   if (saludo) out.conversation_config_override = { agent: { first_message: saludo } };
   return out;
 }
@@ -810,7 +829,7 @@ function vozSecretaria_(b) {
   if (!adm && tel) { var qf = vozQuien_(tel); if (qf.tipo === 'familia') return vozFamilia_(tel, qf, b); }
   if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
-  var t0 = Date.now();
+  var t0 = Date.now(); VOZ_MS_ = { antes: 0, ia: 0, n: 0, herr: 0, nh: 0, agente: 0, despues: 0 };
   /* Pedido para Claude: sale al instante (chat.js, claudeMandarYa_). «Mejora para Claude: mándalo / agrégale … / no lo
      envíes» solo contesta un borrador viejo (del 1 al 3-nov); sin borrador, «agrégale …» es un pedido más (va a su
      microproyecto) y lo demás ya no hace falta. Nada espera la cola. */
@@ -831,8 +850,10 @@ function vozSecretaria_(b) {
   var esApp = AGENTE_APP_; TV_CANDIDATA_ = null;   // tarjeta de la llamada (tarjeta.js): la deja agEjecutar_ en este turno
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
   AGENTE_PLAZO_ = t0 + plazo; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)
-  var r;
-  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; }
+  var r, tA = Date.now(); VOZ_MS_.antes = tA - t0; AG_MS_ = VOZ_MS_;
+  AGENTE_RAPIDO_ = true;   // camino rápido (rapido.js, #498 T4): un pedido de leer lo contesta primero el modelo rápido
+  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; VOZ_MS_.agente = Date.now() - tA; }
+  var tD = Date.now();
   if (r.seguira) {
     opGuardar_(adm, 'alma', 'llamada', 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', r.hechas);
     vozTrabajando_(adm, 1);
@@ -841,14 +862,17 @@ function vozSecretaria_(b) {
         : 'Dile en una sola frase, natural, algo como «Esto me va a tomar un ratito; lo trabajo por detrás y te aviso en cuanto esté». Si en esa misma frase no te pide otra cosa, despídete corto y cuelga con end_call.') +
       (r.hechas.length ? ' Lo que ya quedó hecho: ' + r.hechas.map(function (h) { return h.resumen || h.tipo; }).join('; ') + '.' : '') };
   }
-  /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, el borrador para Claude con su pregunta (o a Juan). */
-  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: Date.now() - t0 > plazo }); r.respuesta = turno.texto || r.respuesta;
+  /* Chat único (chat.js): la esfera del turno y, si es Propósito · Desarrollo, el borrador para Claude con su pregunta (o a Juan).
+     diferir siempre (#498 T1): la esfera de la fila de su pedido se marca en la próxima pasada de procesarCola (un minuto) y la
+     llamada no espera a leer y escribir la hoja; la respuesta de Alma ya se guarda con su esfera (opGuardar_ de abajo). */
+  var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: true }); r.respuesta = turno.texto || r.respuesta;
   /* Tarjeta de la llamada (tarjeta.js): solo en la app; con la pantalla a la vista, «EN PANTALLA» y la voz no lee los datos. */
   var tv = null; try { tv = tvCerrar_(b.conv_id, esApp, conf); } catch (e) { console.error('tvCerrar_: ' + (e.stack || e)); }
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas, tv ? tv.celda : '');
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los VOZ_SECRETARIA_TIMEOUT_S_), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > (VOZ_SECRETARIA_TIMEOUT_S_ - 5) * 1000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   var out = { ok: true, resultado: (tv && tv.voz ? tv.voz + '\n\n' : '') + r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+  VOZ_MS_.despues = Date.now() - tD;
   return out;
 }
 
@@ -1108,6 +1132,7 @@ function vozWebInicio_(ses, ligero, app) {
   dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify), correr sus atajos permitidos de iOS y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
   marca('ficha');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
+  dv.marca_principal = vozMarcaPara_(adm);   /* por su sesión del Hub, no por el número (vozproteccion.js) */
   var retoma = contextoReciente_(adm);   // ya calculado por vozInicio_ (misma ejecución): no vuelve a leer la hoja
   /* T de la llamada larga (app de Alma): pasados estos segundos, la primera pausa larga se cambia por una despedida y la
      app pasa al modo conferencia. Sale de los datos de las llamadas (minuto en que deja de rendir); se ajusta aquí. */

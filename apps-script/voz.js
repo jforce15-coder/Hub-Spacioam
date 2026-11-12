@@ -441,6 +441,7 @@ function vozSyncSiToca_() {
   if (!p.getProperty('ELEVENLABS_KEY') || !p.getProperty('ELEVENLABS_AGENT_ID')) return;
   vozSyncPrompt_(false);
   try { vozHerramientasSiCambiaron_(); } catch (e) { console.error('vozHerramientasSiCambiaron_: ' + e); }   // T3: herramientas al día solas
+  try { vozProteccionSiCambio_(false); } catch (e) { console.error('vozProteccionSiCambio_: ' + e); }   // #498 T3: protección de las instrucciones (vozproteccion.js)
   try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
 }
 function vozSyncPrompt_(forzar) {
@@ -635,7 +636,7 @@ function vozEstado_(extra) {
   var ag = JSON.parse(r.getContentText()), pr = ((ag.conversation_config || {}).agent || {}).prompt || {};
   var o = { ok: true, agente: ag.name, prompt_caracteres: String(pr.prompt || '').length, prompt_inicio: String(pr.prompt || '').slice(0, 80),
     tool_ids: pr.tool_ids || [], sistema: Object.keys(pr.built_in_tools || {}).filter(function (k) { return pr.built_in_tools[k]; }),
-    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '' };
+    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '', proteccion: vozProteccionResumen_((ag.platform_settings || {}).guardrails) };
   for (var x in (extra || {})) o[x] = extra[x];
   return o;
 }
@@ -720,7 +721,9 @@ function vozInicio_(b) {
     } catch (e) { console.error('contextoReciente_: ' + e); }
   }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
-  var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha }, _tipo: tipo };
+  /* Marca del principal (vozproteccion.js): el código solo si el Hub, por el número, sabe que es el administrador principal. */
+  var admM = null; if (tipo === 'juan' || tipo === 'equipo') { try { admM = adminPorTel_(tel) || (tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] : null); } catch (e) {} }
+  var out = { type: 'conversation_initiation_client_data', dynamic_variables: { quien_llama: ficha, marca_principal: vozMarcaPara_(admM) }, _tipo: tipo };
   if (saludo) out.conversation_config_override = { agent: { first_message: saludo } };
   return out;
 }
@@ -1127,6 +1130,7 @@ function vozWebInicio_(ses, ligero, app) {
   dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify), correr sus atajos permitidos de iOS y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
   marca('ficha');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
+  dv.marca_principal = vozMarcaPara_(adm);   /* por su sesión del Hub, no por el número (vozproteccion.js) */
   var retoma = contextoReciente_(adm);   // ya calculado por vozInicio_ (misma ejecución): no vuelve a leer la hoja
   /* T de la llamada larga (app de Alma): pasados estos segundos, la primera pausa larga se cambia por una despedida y la
      app pasa al modo conferencia. Sale de los datos de las llamadas (minuto en que deja de rendir); se ajusta aquí. */

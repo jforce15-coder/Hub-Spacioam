@@ -1,14 +1,17 @@
-/* ═══ ENLACES CORTOS (#488 · T2, el mismo diseño que Grow en T1) ═══════════════════════════════════════════════
+/* ═══ ENLACES CORTOS (#488 · T2, el mismo diseño que Grow en T1; Hola, Docs y Mi en T3–T5) ═════════════════════
    Un enlace corto lleva la dirección de la app que lo genera (Juan, 12-nov-2026: «Cada web app tiene su propia página por
    una razón y si el proceso se genera en grow debe salir desde la URL de esa web app»). Nunca hub.spacioam.com para algo
    que no es del Hub.
    · Lo del Hub (sus avisos, sus archivos, enlaces a hub.spacioam.com): hub.spacioam.com/<código>, hoja ENLACES (en la de
      Alma: codigo · url · app · creado · por · clics · ultimo; se crea sola la primera vez).
    · Lo de Grow (enlaces a grow.spacioam.com, los PDF de grow_presupuesto_pdf y lo que devuelven las herramientas grow_*):
-     grow.spacioam.com/<código>, que da Grow (growApi_ «acortar», su hoja 40_ENLACES). Si Grow falla, sale el largo.
-   · hola, docs y mi.spacioam.com (y las demás apps): tal cual, largos, hasta que sus tickets (T3–T5) los acorten con su
-     propia dirección.
-   · Drive y Docs de Google: con la app del proceso que los manda (acortarEnTexto_(texto, por, 'grow')); sin app, el Hub.
+     grow.spacioam.com/<código>, que da Grow (growApi_ «acortar», su hoja 40_ENLACES).
+   · Lo de Hola, Docs y Mi (enlaces a hola, docs y mi.spacioam.com; T3–T5): <app>.spacioam.com/<código>, que da cada app
+     con su op «acortar» y la llave del robot (Hola por holaPost_; Docs y Mi por su Apps Script de ACCESOS_APPS_).
+   · Si la app no responde o no da un corto con su dirección, sale el largo (nunca con hub.spacioam.com) y por 10 min no
+     se le vuelve a preguntar. Las demás apps (epi…) y otros dominios: tal cual, largos.
+   · Drive y Docs de Google: con la app del proceso que los manda (acortarEnTexto_(texto, por, 'grow' | 'hola' | 'docs' |
+     'mi')); sin app, el Hub.
    · acortar_(url, por, app) y acortarEnTexto_(texto, por, app): el mismo enlace da siempre el mismo código. Nunca frenan un
      envío: si algo falla, sale el enlace largo. acortarEnTexto_ lo llama el punto final de cada canal (WhatsApp, correo,
      Hospitable) para que nada se escape; no toca los ya cortos (hub|grow|hola|docs|mi.spacioam.com/<5>), los de otros
@@ -23,7 +26,7 @@ var ENLACES_RX_ = /^[23456789abcdefghjkmnpqrstuvwxyz]{5}$/;
 var ENLACES_BASE_ = 'https://hub.spacioam.com/';
 var ENLACES_GOOGLE_ = ['drive.google.com', 'docs.google.com'];
 var ENLACES_YA_CORTO_ = /^https:\/\/(hub|grow|hola|docs|mi)\.spacioam\.com\/[23456789abcdefghjkmnpqrstuvwxyz]{5}\/?$/i;
-var ENLACES_GROW_ = /^https:\/\/grow\.spacioam\.com\/[23456789abcdefghjkmnpqrstuvwxyz]{5}$/;
+var ENLACES_APPS_ = ['grow', 'hola', 'docs', 'mi'];   // las apps con su acortador: cada una da el corto de lo suyo
 var ENLACES_MIN_ = 40;   // el corto mide 30: uno de 40 o menos se deja (y casi siempre es una dirección que se escribe a mano)
 
 /* La hoja, o null si no existe y no se pidió crearla. La columna del código va como texto: «22345» no se vuelve número. */
@@ -52,13 +55,13 @@ function enlaceValido_(url) {
   return h === 'hub.spacioam.com' || ENLACES_GOOGLE_.indexOf(h) >= 0 ? String(url).trim() : '';
 }
 
-/* Qué app da el corto: 'grow' para grow.spacioam.com, 'hub' para hub.spacioam.com, la app del proceso (o el Hub) para
-   Drive y Docs, y '' para lo demás (hola, docs, mi y las otras apps de spacioam.com, otros dominios: van tal cual). */
+/* Qué app da el corto: la de su dirección (hub, grow, hola, docs o mi.spacioam.com), la app del proceso (o el Hub) para
+   Drive y Docs, y '' para lo demás (las otras apps de spacioam.com y otros dominios: van tal cual). */
 function enlaceApp_(url, app) {
-  var h = enlaceHost_(url);
-  if (h === 'grow.spacioam.com') return 'grow';
+  var h = enlaceHost_(url), m = /^([a-z]+)\.spacioam\.com$/.exec(h);
   if (h === 'hub.spacioam.com') return 'hub';
-  if (ENLACES_GOOGLE_.indexOf(h) >= 0) return app === 'grow' ? 'grow' : 'hub';
+  if (m && ENLACES_APPS_.indexOf(m[1]) >= 0) return m[1];
+  if (ENLACES_GOOGLE_.indexOf(h) >= 0) return ENLACES_APPS_.indexOf(app) >= 0 ? app : 'hub';
   return '';
 }
 
@@ -81,12 +84,12 @@ function enlaceClaveCache_(u) {
   return 'enl_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, u, Utilities.Charset.UTF_8));
 }
 
-/* El enlace corto de url con la dirección de su app (hub o grow.spacioam.com/<código>), o url tal cual si no se acorta o
+/* El enlace corto de url con la dirección de su app (<app>.spacioam.com/<código>), o url tal cual si no se acorta o
    algo falla. app: la app del proceso que lo manda (solo cuenta para Drive y Docs; sin app, el Hub). */
 function acortar_(url, por, app) {
   var a = enlaceAcortable_(url, app);
   if (!a) return url;
-  return a === 'grow' ? enlaceGrow_(String(url).trim(), por) : enlaceHub_(String(url).trim(), por);
+  return a === 'hub' ? enlaceHub_(String(url).trim(), por) : enlaceDeApp_(a, String(url).trim(), por);
 }
 
 /* hub.spacioam.com/<código>. El candado es el de usuario, no el del script: procesarCola tiene el del script toda su
@@ -114,20 +117,35 @@ function enlaceHub_(u, por) {
   } catch (e) { console.error('enlaceHub_: ' + e); return u; }
 }
 
-/* grow.spacioam.com/<código>: se lo pide a Grow por la puerta de la secretaria (growApi_ «acortar», agente.js), que
-   guarda en su hoja y da el mismo código para el mismo enlace. Si Grow no responde o falla, sale el enlace largo (nunca
-   con la dirección del Hub) y por 10 min no se le vuelve a preguntar, para no trabar cada envío. */
-function enlaceGrow_(u, por) {
+/* <app>.spacioam.com/<código> (grow, hola, docs o mi): se lo pide a esa app (enlacePuerta_), que guarda en su hoja y da
+   el mismo código para el mismo enlace. Si la app no responde, falla o da un corto que no es de su dirección, sale el
+   enlace largo (nunca con la dirección del Hub ni de otra app) y por 10 min no se le vuelve a preguntar, para no trabar
+   cada envío. */
+function enlaceDeApp_(app, u, por) {
   try {
-    var cache = CacheService.getScriptCache(), k = 'g' + enlaceClaveCache_(u), ya = cache.get(k);
-    if (ya && ENLACES_GROW_.test(ya)) return ya;
-    if (cache.get('enl_grow_caido')) return u;
-    var r = growApi_('acortar', { url: u, por: String(por || 'alma').slice(0, 60) });
+    var cache = CacheService.getScriptCache(), k = app + ':' + enlaceClaveCache_(u), ya = cache.get(k);
+    var suyo = new RegExp('^https://' + app + '\\.spacioam\\.com/[23456789abcdefghjkmnpqrstuvwxyz]{5}$');
+    if (ya && suyo.test(ya)) return ya;
+    if (cache.get('enl_' + app + '_caido')) return u;
+    var r = enlacePuerta_(app, u, String(por || 'alma').slice(0, 60));
     var corto = r && r.ok ? String(r.corto || '') : '';
-    if (!ENLACES_GROW_.test(corto)) { cache.put('enl_grow_caido', '1', 600); console.warn('enlaceGrow_: ' + JSON.stringify(r).slice(0, 200)); return u; }
+    if (!suyo.test(corto)) { cache.put('enl_' + app + '_caido', '1', 600); console.warn('enlaceDeApp_ ' + app + ': ' + JSON.stringify(r).slice(0, 200)); return u; }
     cache.put(k, corto, 21600);
     return corto;
-  } catch (e) { console.error('enlaceGrow_: ' + e); return u; }
+  } catch (e) { console.error('enlaceDeApp_ ' + app + ': ' + e); return u; }
+}
+
+/* La puerta de cada app para su op «acortar»: Grow por la de la secretaria (growApi_, agente.js); Hola, Docs y Mi con la
+   llave del robot (la misma con la que el Hub ya les habla: holaPost_ en holaacceso.js y ACCESOS_APPS_ en Código.js). */
+function enlacePuerta_(app, u, por) {
+  if (app === 'grow') return growApi_('acortar', { url: u, por: por });
+  if (app === 'hola') return holaPost_({ action: 'acortar', url: u, por: por });
+  var url = ACCESOS_APPS_[app] ? ACCESOS_APPS_[app]() : '', llave = llaveRobot_();
+  if (!url || !llave) return { ok: false, error: 'sin puerta a ' + app + (llave ? '' : ' (falta ROBOT_TOKEN)') };
+  var r = uf_(url, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+    payload: JSON.stringify({ action: 'acortar', robot: llave, url: u, por: por }) }, 'Otras apps');
+  try { return JSON.parse(r.getContentText() || '{}'); }
+  catch (e) { return { ok: false, error: app + ' respondió ' + r.getResponseCode() }; }
 }
 
 /* Cada enlace acortable del texto, por su forma corta con la dirección de su app. app: la del proceso que lo manda, si

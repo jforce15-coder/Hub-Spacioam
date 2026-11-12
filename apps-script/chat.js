@@ -645,7 +645,7 @@ function chatPreguntasRevisar_(ahora) {
     });
     /* 2 · Crear: una tarjeta por pregunta con opciones de más de 10 min (y menos de 2 h) que nadie respondió. */
     filas.forEach(function (m) {
-      if (m.de !== 'alma' || vistas[m.id] || m.canal === 'llamada' || m.canal === 'claude') return;
+      if (m.de !== 'alma' || vistas[m.id] || m.canal === 'llamada' || m.canal === 'claude' || m.canal === 'instruccion') return;   // instruccion: la respuesta va al issue (paraalma.js)
       if (ahora - m.t < CHAT_PREG_ESPERA_ || ahora - m.t > CHAT_PREG_VENTANA_) return;
       if (/\[\[opciones\]\]/i.test(m.texto) && /\?conv=/.test(m.texto)) return;   // decisión del equipo (decisiones.js)
       if (claudeBorradorPreguntaEn_(m.texto)) return;   // borrador para Claude: tiene su propio Pendiente a las 24 h (claudeBorradoresRevisar_)

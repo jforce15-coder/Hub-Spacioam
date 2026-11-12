@@ -653,7 +653,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!telP) return { error: 'No encontré el número de ' + (inp.persona || 'esa persona') + '. Pídeselo al administrador (con código de país).' };
       var bSP = socioSoloPrincipal_(adm, telP); if (bSP) return { error: bSP };
       var rpg = progCrear_(adm, { persona: inp.persona || (pp && pp.nombre) || '', tel: telP, texto: inp.texto, cuando: inp.cuando, zona: inp.zona, tipo: inp.tipo });
-      if (rpg.ok) ctx.hechas.push({ tipo: 'programado', resumen: 'Programado · ' + rpg.para + ' · ' + rpg.cuando });
+      if (rpg.ok) ctx.hechas.push({ tipo: 'programado', resumen: 'Programado · ' + rpg.para + ' · ' + rpg.cuando, id: rpg.id });   // el id: la instrucción a Alma lo devuelve (paraalma.js)
       return rpg;
     }
     case 'mensajes_programados': return { programados: progLista_(adm, false) };

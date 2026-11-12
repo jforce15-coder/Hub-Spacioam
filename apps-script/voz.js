@@ -291,7 +291,8 @@ function vozPostCall_(body) {
 
 /* Diagnóstico: últimas 30 llamadas a herramientas (sin datos personales), en caché 6 h. ms: lo que tardó el Hub en
    contestar; d (solo secretaria): antes de la IA, la IA (ia en ms y n vueltas), las herramientas (herr y nh), el resto
-   del turno (agente) y lo de después (despues). Robot voz_traza (#498 T1). */
+   del turno (agente) y lo de después (despues). Robot voz_traza (#498 T1). Desde T4 (rapido.js), también qué modelo
+   contestó: via (rapido · completo · rapido>completo), motivo, modelo y rapido (ms en el camino rápido). */
 var VOZ_T0_ = 0, VOZ_MS_ = null;
 function vozTraza_(herr, b, out) {
   try {
@@ -850,7 +851,8 @@ function vozSecretaria_(b) {
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
   AGENTE_PLAZO_ = t0 + plazo; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)
   var r, tA = Date.now(); VOZ_MS_.antes = tA - t0; AG_MS_ = VOZ_MS_;
-  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; AG_MS_ = null; VOZ_MS_.agente = Date.now() - tA; }
+  AGENTE_RAPIDO_ = true;   // camino rápido (rapido.js, #498 T4): un pedido de leer lo contesta primero el modelo rápido
+  try { r = opAgente_(adm, pedido, 'llamada', [], previos); } finally { AGENTE_APP_ = false; AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; VOZ_MS_.agente = Date.now() - tA; }
   var tD = Date.now();
   if (r.seguira) {
     opGuardar_(adm, 'alma', 'llamada', 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', r.hechas);

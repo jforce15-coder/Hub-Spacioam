@@ -96,6 +96,11 @@ jobs:
         # mejorar su prompt (#498 T3). Ahora es personalizada, con retry, y quién es el principal lo dice el Hub, no la llamada.
         run: node .github/voz-proteccion.js apps-script
 
+      - name: Camino rápido de la voz, leer va al modelo rápido con solo herramientas de leer y lo demás al de siempre (dobles)
+        # 12-nov: Juan decidió usar el modelo más rápido para pedidos de leer en llamadas mientras llega Jev (#498 T4).
+        # Escribir va al de siempre; si el rápido no puede, pasa al de siempre; VOZ_RAPIDO = 0 lo apaga.
+        run: node .github/voz-rapido.js apps-script
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

@@ -86,20 +86,26 @@ function claudeMsgsCache_(messages) {
   m[m.length - 1] = { role: ul.role, content: c };
   return m;
 }
-/* Llamada a Claude con herramientas y conversación (messages ya armados). Devuelve el JSON completo. */
-function claudeTools_(modelo, system, messages, tools, maxTokens) {
+/* Llamada a Claude con herramientas y conversación (messages ya armados). Devuelve el JSON completo.
+   opc (camino rápido, rapido.js): sinTemperatura (el modelo rápido da 400 con temperature), esfuerzo (output_config.effort)
+   y funcion (cómo queda en IA_USO; si no, AG_USO_FUNCION_ o «Chat operativo»). */
+function claudeTools_(modelo, system, messages, tools, maxTokens, opc) {
+  opc = opc || {};
   var key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY'), t0 = Date.now();
+  var cuerpo = { model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: claudeSystem_(system), messages: claudeMsgsCache_(messages), tools: tools };
+  if (opc.sinTemperatura) delete cuerpo.temperature;
+  if (opc.esfuerzo) cuerpo.output_config = { effort: opc.esfuerzo };
   var r = uf_('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: claudeSystem_(system), messages: claudeMsgsCache_(messages), tools: tools }) });
+    payload: JSON.stringify(cuerpo) });
   var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   if (AG_MS_) { AG_MS_.ia += Date.now() - t0; AG_MS_.n++; }
-  try { registrarUso_({ app: 'ALMA', funcion: 'Chat operativo', modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: 0 }); } catch (e) {}
+  try { registrarUso_({ app: 'ALMA', funcion: opc.funcion || AG_USO_FUNCION_ || 'Chat operativo', modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: 0 }); } catch (e) {}
   if (r.getResponseCode() !== 200) {
     var err = r.getResponseCode() + ': ' + r.getContentText().slice(0, 400); console.error('claudeTools_ ' + err);
     try { CacheService.getScriptCache().put('ag_error', err, 3600); } catch (e) {}
     /* Si la búsqueda web no está habilitada en la cuenta de Anthropic, sigue sin ella. */
-    if (/web_search/i.test(r.getContentText()) && tools.some(function (t) { return t.type && /web_search/.test(t.type); })) return claudeTools_(modelo, system, messages, tools.filter(function (t) { return !(t.type && /web_search/.test(t.type)); }), maxTokens);
+    if (/web_search/i.test(r.getContentText()) && tools.some(function (t) { return t.type && /web_search/.test(t.type); })) return claudeTools_(modelo, system, messages, tools.filter(function (t) { return !(t.type && /web_search/.test(t.type)); }), maxTokens, opc);
     return null;
   }
   return j;
@@ -804,7 +810,11 @@ function opAgente_(adm, texto, canal, fotos, previos) {
     chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
   try { turno += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
   system += turno + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).';
-  var res = opAgenteBucle_(adm, system, msgs, tools, ctx, 0);
+  /* Camino rápido (rapido.js, #498 T4): en una llamada, un pedido de leer lo contesta primero el modelo rápido con solo
+     herramientas de leer. null = no era para él; false = no pudo y sigue el de siempre (que ya esperó: mira el plazo antes
+     de su primera vuelta). */
+  var res = null; try { res = rapidoIntentar_(adm, textoPedido, system, msgs, tools, ctx, { fotos: (fotos || []).length, hechas: ctx.hechas.length, nombrada: !!nombrada }); } catch (e) { console.error('rapidoIntentar_: ' + (e.stack || e)); res = false; }
+  if (!res) res = opAgenteBucle_(adm, system, msgs, tools, ctx, 0, false, res === false);
   try { recetaAprender_(adm, textoPedido, ctx, res); } catch (e) { console.error('recetaAprender_: ' + (e.stack || e)); }   // salió bien y se puede repetir: queda como receta
   return res;
 }
@@ -812,9 +822,10 @@ function opAgente_(adm, texto, canal, fotos, previos) {
    llamada, retomar.js) se detiene cuando ya no alcanza el tiempo: antes de otra vuelta de Claude (si quedan menos de
    AGENTE_MARGEN_VUELTA_) y antes de CADA herramienta (si quedan menos de AGENTE_MARGEN_HERR_). Guarda dónde iba, con las
    herramientas que ya corrieron (parcial), y lo termina en segundo plano (devuelve { seguira: true }).
-   seguir = true: retoma una conversación guardada (puede terminar en herramientas sin ejecutar o a medias). */
+   seguir = true: retoma una conversación guardada (puede terminar en herramientas sin ejecutar o a medias).
+   yaEspero = true: el camino rápido ya gastó tiempo (rapido.js): el plazo se mira también antes de la primera vuelta. */
 var AGENTE_MARGEN_VUELTA_ = 6000, AGENTE_MARGEN_HERR_ = 2500;
-function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
+function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) {
   var final = '', usosDe = function (m) { return m && m.role === 'assistant' && Array.isArray(m.content) ? m.content.filter(function (b) { return b.type === 'tool_use'; }) : []; };
   var vencido = function (margen) { return AGENTE_PLAZO_ && Date.now() + (margen || 0) > AGENTE_PLAZO_; };
   /* Si no se puede guardar para seguir después (candado ocupado, caché llena), no se cae el pedido: se sigue aquí mismo
@@ -832,7 +843,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
   for (var vuelta = desde || 0; vuelta < 8; vuelta++) {
     var usos = usosDe(msgs[msgs.length - 1]);
     if (!usos.length) {
-      if (vuelta > (desde || 0) && vencido(AGENTE_MARGEN_VUELTA_)) { var cv = cortar(); if (cv) return cv; }
+      if ((vuelta > (desde || 0) || yaEspero) && vencido(AGENTE_MARGEN_VUELTA_)) { var cv = cortar(); if (cv) return cv; }
       var j = claudeTools_(CFG.MODELO_REDACTOR, system, msgs, tools, 1600);
       if (!j) { final = 'No pude procesarlo ahora. Intenta de nuevo en un momento.'; break; }
       var bloques = j.content || [];
@@ -862,6 +873,10 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
     }
     msgs.push({ role: 'user', content: resultados });
   }
+  return agCerrarTurno_(adm, final, ctx);
+}
+/* El cierre de un turno del agente (el bucle de siempre y el camino rápido, rapido.js): etiquetas fuera y el resultado. */
+function agCerrarTurno_(adm, final, ctx) {
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
   var mt = microSacarEtiqueta_(final), nv = claudeNivelSacarEtiqueta_(mt.texto), et = chatSacarEtiqueta_(nv.texto); final = et.texto;   // [[micro: …]] (microproyectos.js), [[nivel: …]] (paraclaude.js) y [[esfera: …]]
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');

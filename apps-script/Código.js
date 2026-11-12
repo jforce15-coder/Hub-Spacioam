@@ -734,6 +734,7 @@ function saludAlma_() {
   return { ok: true, pulso: t ? new Date(t).toISOString() : '', pulso_min: min, sano: t > 0 && min <= 5 };
 }
 function procesarCola() {
+  const inicioCola = Date.now();
   pulso_();
   cupoCanal_('Huéspedes');   // lo de huéspedes, documentos, Epi y limpieza nunca se pausa por cupo (CUPO_NUNCA_, cupo.js)
   try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
@@ -758,6 +759,7 @@ function procesarCola() {
   try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }
   try { avlProcesar_(); } catch (e) { console.error('avlProcesar_: ' + e); }   // avisos de aterrizaje a quien Juan eligió por viaje (avisovuelo.js); su vuelo: nunca se pausa
   try { escalarRevisar_(); } catch (e) { console.error('escalarRevisar_: ' + e); }   // lo que Alma pidió porque no podía: une en verde, espera publicar y entrega (escalar.js); Juan espera: no se pausa
+  try { paraAlmaRevisar_(inicioCola); } catch (e) { console.error('paraAlmaRevisar_: ' + e); }   // instrucción a Alma desde una sesión de Claude (issue «para-alma», paraalma.js); es Juan pidiendo: no se pausa
   try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {

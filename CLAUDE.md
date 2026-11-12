@@ -44,6 +44,14 @@ Peligros al unir · Cómo probarlo. Los bots de prueba corren solos después de 
 Cuando Juan corrige lo mismo dos veces, o algo falló después de unir, agrégalo a ESTANDARES.md. **Si una máquina puede
 detectarlo, conviértelo en un check** (`.github/workflows/estandares.yml`), no en una nota.
 
+## 9. Pedirle algo a Alma desde una sesión de Claude
+Para que Alma haga algo de parte de Juan (programar un WhatsApp, escribirle al equipo, revisar un dato): abre un issue en
+jforce15-coder/Hub-Spacioam con la etiqueta `para-alma` y en el cuerpo un bloque ```json con
+`{"instruccion": "lo que Juan diría, en español simple", "responder_a": "whatsapp|chat", "hasta": "2026-11-12T08:55:00-06:00"}`
+(`hasta` es opcional; sin zona es hora de Guatemala; sin `hasta`, vence a las 24 h). Alma lo ejecuta en 1–2 min y responde
+en el issue. El repo es **público**: en la instrucción nada de teléfonos, correos ni datos de huéspedes; nombra a la persona
+como Alma la conoce («Recepción Brunelo»). Un issue = una ejecución: para corregir algo, abre otro (`apps-script/paraalma.js`).
+
 ## Reglas fijas del repo
 - Todo cambio va por PR; nunca a `main` directo. Juan une: en GitHub, diciendo «une» en el chat de Claude (y Claude lo une),
   con el botón «Unir» de Pendientes en la app de Alma o pidiéndoselo a Alma (`unir_cambio`). Nadie une sin que él lo pida.

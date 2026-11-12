@@ -153,3 +153,6 @@ jobs:
         # 7-nov: la fila de Oscar (Brunelo 1808) no tenía el código y Alma no encontraba su conversación; 95 filas de noviembre
         # igual, todas de consultas que se volvieron reservas. #475 lo esquivó al usarla; esto lo arregla en la fusión.
         run: node .github/bandeja-codigos.js apps-script
+      - name: Instrucción a Alma desde una sesión de Claude, solo del dueño, una vez, con error visible y sin datos en el issue (dobles)
+        # 12-nov: Juan quiso que Claude le pidiera a Alma programar un WhatsApp de prueba a Recepción Brunelo; no había por dónde.
+        run: node .github/para-alma.js apps-script

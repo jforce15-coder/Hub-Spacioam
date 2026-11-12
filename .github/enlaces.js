@@ -2,9 +2,9 @@
    1. Acortar dos veces el mismo enlace da el mismo código (también sin la caché); el código tiene 5 caracteres del
       alfabeto sin 0/o ni 1/l/i y la celda va como texto. Si el código sorteado ya existe, se sortea otro.
    2. El corto lleva la dirección de la app que lo genera (Juan, 12-nov): hub.spacioam.com y Drive/Docs sin app → Hub;
-      grow.spacioam.com y lo que nace en Grow → grow.spacioam.com/<código que da Grow>; hola, docs y mi.spacioam.com y otros
-      dominios → tal cual. Si el candado, la hoja o Grow fallan, sale el enlace largo (nunca con otra dirección ni frena
-      un envío).
+      grow.spacioam.com y lo que nace en Grow → grow.spacioam.com/<código que da Grow>; hola, docs y mi.spacioam.com (y lo
+      que nace en cada una) → <app>.spacioam.com/<código que da esa app> (#488 T3–T5); otras apps y otros dominios → tal
+      cual. Si el candado, la hoja o la app fallan, sale el enlace largo (nunca con otra dirección ni frena un envío).
    3. La acción pública «enlace» (doPost y doGet de Código.js): con un código válido devuelve solo el enlace y suma un
       clic; uno raro o que no existe da error y nada más, y nunca crea la hoja. «acortar» del Hub pide sesión.
    4. acortarEnTexto_ acorta los de Drive, Grow y el Hub dentro de un texto (cada uno con su app) y deja los ya cortos,
@@ -51,7 +51,15 @@ function hojaFalsa(filas) {
 
 function caja(o) {
   o = o || {};
-  const hojas = {}, cache = {}, enviados = [], correos = [], grow = [], growCodigos = {};
+  const hojas = {}, cache = {}, enviados = [], correos = [], grow = [], growCodigos = {}, apps = [], appCodigos = {};
+  /* Hola, Docs y Mi de mentira (su op «acortar» con la llave del robot): el mismo enlace da el mismo código; caída si
+     o.caida[app], y o.ajena[app] contesta un corto con otra dirección (no debe usarse). */
+  const PUERTAS = { docs: 'https://script.google.com/macros/s/docs-de-prueba/exec', mi: 'https://script.google.com/macros/s/mi-de-prueba/exec' };
+  const appFalsa = (app, d) => { apps.push({ app, d }); const caida = (o.caida || {})[app];
+    if (caida || !d.robot) return { ok: false, error: caida ? app + ' no respondió: timeout' : 'Para acortar un enlace hace falta iniciar sesión.' };
+    if (d.action !== 'acortar' || !new RegExp('^https://(' + app + '\\.spacioam\\.com|drive\\.google\\.com|docs\\.google\\.com)[/?#]').test(d.url)) return { ok: false, error: 'Ese enlace no se puede acortar' };
+    const c = appCodigos[app + d.url] || (appCodigos[app + d.url] = app.charAt(0) + crypto.createHash('md5').update(app + d.url).digest('hex').replace(/[^2-9a-hjkmnp-z]/g, '').slice(0, 4).padEnd(4, 'x'));
+    return { ok: true, codigo: c, corto: 'https://' + ((o.ajena || {})[app] ? 'hub' : app) + '.spacioam.com/' + c }; };
   if (o.filas) hojas.ENLACES = hojaFalsa(o.filas);
   const azar = (o.azar || []).slice();
   const M = Object.create(Math); M.random = () => (azar.length ? azar.shift() : Math.random());
@@ -67,7 +75,12 @@ function caja(o) {
       base64EncodeWebSafe: b => Buffer.from(b.map(x => x & 255)).toString('base64url') },
     ssAlma_: () => { if (o.hojaRota) throw new Error('Sheets no responde'); return { getSheetByName: n => hojas[n] || null, insertSheet: n => (hojas[n] = hojaFalsa([])) }; },
     cupoCanal_() {}, waVentana_: () => true, waUltimoGuardar_() {}, cacheEnvio_() {}, registrarEnvioInq_() {},
-    uf_: (url, op) => { enviados.push({ url, cuerpo: JSON.parse(op.payload || '{}') }); return { getResponseCode: () => 200, getContentText: () => '{"messages":[{"id":"wamid.1"}]}', getHeaders: () => ({}) }; },
+    uf_: (url, op) => { const app = Object.keys(PUERTAS).find(a => PUERTAS[a] === url);
+      if (app) { const j = appFalsa(app, JSON.parse(op.payload || '{}')); return { getResponseCode: () => 200, getContentText: () => JSON.stringify(j), getHeaders: () => ({}) }; }
+      enviados.push({ url, cuerpo: JSON.parse(op.payload || '{}') }); return { getResponseCode: () => 200, getContentText: () => '{"messages":[{"id":"wamid.1"}]}', getHeaders: () => ({}) }; },
+    ACCESOS_APPS_: { docs: () => PUERTAS.docs, mi: () => PUERTAS.mi, epi: () => 'https://script.google.com/macros/s/epi-de-prueba/exec' },
+    llaveRobot_: () => 'llave-del-robot',
+    holaPost_: body => appFalsa('hola', Object.assign({ robot: 'llave-del-robot' }, body)),
     Session: { getEffectiveUser: () => ({ getEmail: () => 'hola@ejemplo.com' }) },
     GmailApp: { getAliases: () => [], sendEmail: (para, asunto, texto) => correos.push({ para, asunto, texto }) },
     hojaCrear_: () => ({ appendRow() {} }),
@@ -83,7 +96,7 @@ function caja(o) {
   vm.runInContext(leer('enlaces.js'), ctx, { filename: 'enlaces.js' });
   const post = body => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(body) }, parameter: {} }).getContent());
   const get = q => JSON.parse(ctx.doGet({ parameter: q }).getContent());
-  return { ctx, hojas, cache, enviados, correos, grow, growCodigos, post, get, filas: () => (hojas.ENLACES ? hojas.ENLACES.filas : null) };
+  return { ctx, hojas, cache, enviados, correos, grow, growCodigos, apps, appCodigos, post, get, filas: () => (hojas.ENLACES ? hojas.ENLACES.filas : null) };
 }
 
 /* ── 1 ── */
@@ -113,8 +126,8 @@ function caja(o) {
     'https://evil.com@hub.spacioam.com/' + 'x'.repeat(40), 'https://hub.spacioam.com:8443/' + 'x'.repeat(40), 'javascript:alert(1)', 'https://spacioam.com.mx/' + 'x'.repeat(40)];
   ok(malos.every(u => c.ctx.acortar_(u, 'prueba') === u) && !c.hojas.ENLACES, 'un enlace de otro dominio, sin https, con @ o con puerto vuelve tal cual y no escribe nada');
   ok(CORTO.test(c.ctx.acortar_('https://docs.google.com/document/d/1AbCdEfGhIjKlMnOp/edit', 'prueba')), 'un Doc de Google sin app sale con el Hub');
-  const otras = ['https://hola.spacioam.com/?r=HMWM942RSN&k=abcdef1234567890', 'https://docs.spacioam.com/firmar?contrato=c-1234567890abcdef', 'https://mi.spacioam.com/reportes?propiedad=Z10-Brunelo-1203&mes=2026-10', 'https://epi.spacioam.com/rutas?dia=2026-11-12&quien=equipo'];
-  ok(otras.every(u => c.ctx.acortar_(u, 'prueba') === u && c.ctx.acortar_(u, 'prueba', 'grow') === u) && !c.grow.length, 'hola, docs, mi y las demás apps salen largas, tal cual (sus tickets les darán su dirección): ni Hub ni Grow');
+  const epi = 'https://epi.spacioam.com/rutas?dia=2026-11-12&quien=equipo';
+  ok(c.ctx.acortar_(epi, 'prueba') === epi && c.ctx.acortar_(epi, 'prueba', 'grow') === epi && !c.grow.length && !c.apps.length, 'las apps sin acortador (epi) salen largas, tal cual: ni Hub ni Grow');
   const g1 = c.ctx.acortar_(GROW, 'prueba'), g2 = c.ctx.acortar_(GROW, 'prueba');
   ok(CORTO_GROW.test(g1) && g1 === 'https://grow.spacioam.com/' + c.growCodigos[GROW] && g2 === g1 && c.grow.length === 1, 'un enlace de Grow sale con grow.spacioam.com y el código que da Grow (' + g1 + '); el segundo sale de la caché');
   const n0 = c.filas().length;
@@ -129,6 +142,32 @@ function caja(o) {
   ok(sc.ctx.acortar_(PDF, 'prueba') === PDF && !sc.hojas.ENLACES, 'sin el candado en 5 s: sale el enlace largo (nunca frena el envío)');
   const rota = caja({ hojaRota: true });
   ok(rota.ctx.acortar_(PDF, 'prueba') === PDF, 'si la hoja falla: sale el enlace largo'); }
+
+/* ── 2b ── Hola, Docs y Mi (#488 T3–T5): cada una da el corto de lo suyo, con su dirección. */
+{ const c = caja(), n0 = () => (c.filas() || [0]).length;
+  const PROPIAS = { hola: 'https://hola.spacioam.com/?lt=0123456789abcdef0123456789abcdef01234567', docs: 'https://docs.spacioam.com/index.html?firmar=dk7q2m9x4',
+    mi: 'https://mi.spacioam.com/?reporte=Z10-Prueba-905&mes=2026-10&vista=detalle' };
+  Object.keys(PROPIAS).forEach(app => {
+    const u = PROPIAS[app], r1 = c.ctx.acortar_(u, 'prueba'), r2 = c.ctx.acortar_(u, 'prueba');
+    const suyo = new RegExp('^https://' + app + '\\.spacioam\\.com/[23456789abcdefghjkmnpqrstuvwxyz]{5}$');
+    ok(suyo.test(r1) && r1 === 'https://' + app + '.spacioam.com/' + c.appCodigos[app + u] && r2 === r1, 'un enlace de ' + app + '.spacioam.com sale con su dirección y el código que da ' + app + ': ' + r1);
+    ok(c.apps.filter(x => x.app === app).length === 1 && c.apps.filter(x => x.app === app)[0].d.robot === 'llave-del-robot', '…se lo pide a ' + app + ' con la llave del robot, una sola vez (el segundo sale de la caché)');
+    const pdf = c.ctx.acortar_(PDF + '&' + app + '=1', 'prueba', app);
+    ok(suyo.test(pdf), 'un PDF de Drive que nace en ' + app + ' (app ' + app + ') sale con ' + app + '.spacioam.com');
+  });
+  ok(!c.filas() && !c.grow.length, 'nada de Hola, Docs ni Mi se guarda en la hoja del Hub ni se le pide a Grow');
+  const t = c.ctx.acortarEnTexto_('Tu registro: ' + PROPIAS.hola + '. Firma aquí: ' + PROPIAS.docs + ' · tu reporte (' + PROPIAS.mi + ')', 'prueba');
+  ok(/^Tu registro: https:\/\/hola\.spacioam\.com\/\w{5}\. Firma aquí: https:\/\/docs\.spacioam\.com\/\w{5} · tu reporte \(https:\/\/mi\.spacioam\.com\/\w{5}\)$/.test(t), 'en un texto, cada uno con la dirección de su app: ' + t);
+  ['hola', 'docs', 'mi'].forEach(app => {
+    const caida = caja({ caida: { [app]: true } }), u = PROPIAS[app];
+    const l1 = caida.ctx.acortar_(u, 'prueba'), l2 = caida.ctx.acortar_(u + '&x=2', 'prueba'), l3 = caida.ctx.acortar_(PDF, 'prueba', app);
+    ok(l1 === u && l2 === u + '&x=2' && l3 === PDF && !caida.hojas.ENLACES && caida.apps.length === 1, app + ' caída: sale largo (nunca con hub.spacioam.com) y por 10 min no se le vuelve a preguntar');
+    const ajena = caja({ ajena: { [app]: true } });
+    ok(ajena.ctx.acortar_(u, 'prueba') === u, 'si ' + app + ' contesta un corto con otra dirección, sale el largo');
+  });
+  const sinLlave = caja(); sinLlave.ctx.llaveRobot_ = () => undefined;
+  ok(sinLlave.ctx.acortar_(PROPIAS.docs, 'prueba') === PROPIAS.docs && sinLlave.ctx.acortar_(PROPIAS.mi, 'prueba') === PROPIAS.mi, 'sin la llave del robot (ROBOT_TOKEN), Docs y Mi salen largos');
+  ok(c.ctx.enlaceAcortarApi_({ email: 'equipo@ejemplo.com' }, PROPIAS.hola).ok === false, '«acortar» del Hub no da un corto del Hub para un enlace de Hola'); }
 
 /* ── 3 ── */
 { const c = caja({ filas: [CAB, ['k7q2m', PDF, 'hub', '2026-11-12', 'alma', 3, ''], ['zzzzz', 'https://evil.example.com/robo', 'hub', '', '', 0, ''], [22222, HUB, 'hub', '', '', 0, '']] });
@@ -162,9 +201,9 @@ function caja(o) {
   ok(T(t, 'prueba') === r, 'el mismo texto otra vez da los mismos códigos');
   ok(T(r, 'prueba') === r, 'un texto ya corto no cambia');
   const quieto = 'Ya corto: https://grow.spacioam.com/k7q2m y https://hola.spacioam.com/a2b3c/ · otro: https://www.airbnb.com/rooms/12345678901234567890?check_in=2026-11-20 · ' +
-    'registro: https://hola.spacioam.com/?r=HMWM942RSN&k=abcdef1234567890 · contrato: https://docs.spacioam.com/firmar?contrato=c-1234567890abcdef · ' +
-    'entra a https://hola.spacioam.com o https://hola.spacioam.com/registro · código de la puerta 482913# · WiFi Spacio2026 · reserva HMWM942RSN · +502 5555 0000';
-  ok(T(quieto, 'prueba') === quieto && c.filas().length === 3, 'deja los ya cortos, los de otros dominios, los de hola y docs (largos), las direcciones que se escriben a mano y los códigos y números');
+    'ruta: https://epi.spacioam.com/rutas?dia=2026-11-12&quien=equipo · ' +
+    'entra a https://hola.spacioam.com o https://hola.spacioam.com/registro o https://mi.spacioam.com · código de la puerta 482913# · WiFi Spacio2026 · reserva HMWM942RSN · +502 5555 0000';
+  ok(T(quieto, 'prueba') === quieto && c.filas().length === 3 && !c.apps.length, 'deja los ya cortos, los de otros dominios y apps sin acortador (epi), las direcciones que se escriben a mano y los códigos y números');
   const obj = c.ctx.acortarEnObjeto_({ ok: true, nota: 'Formulario: ' + GROW, _imgs: ['data:image/jpeg;base64,AAAA'], drive_id: 'DA4', lista: [{ url: PDF }] }, 'grow_proyectos', 'grow');
   ok(CORTO_GROW.test(obj.nota.replace('Formulario: ', '')) && CORTO_GROW.test(obj.lista[0].url) && obj._imgs[0] === 'data:image/jpeg;base64,AAAA' && obj.drive_id === 'DA4', 'el resultado de una herramienta grow_* sale con grow.spacioam.com; las fotos y el drive_id no se tocan');
   ok(T('', 'x') === '' && T(null, 'x') === null && T('Sin enlaces, gracias.', 'x') === 'Sin enlaces, gracias.', 'un texto sin enlaces vuelve igual');

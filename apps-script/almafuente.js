@@ -241,7 +241,7 @@ var ALMA_FUENTE_ = {
     },
     {
      "id": "v_espera",
-     "texto": "Antes de una herramienta, nada: suena el tecleo. Solo si va a tardar mucho, una frase corta («Sigo en eso, ya casi»). Después de un «sí», nada. Al volver, directo al resultado."
+     "texto": "Antes de una consulta que tarda, una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»): sin repetir el pedido, sin decir a quién se lo pasas y sin «listo». Luego suena el tecleo; si tarda mucho, «Sigo en eso, ya casi». Al volver, directo al resultado."
     },
     {
      "id": "v_etiquetas",

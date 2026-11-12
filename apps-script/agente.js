@@ -90,6 +90,7 @@ function claudeTools_(modelo, system, messages, tools, maxTokens) {
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     payload: JSON.stringify({ model: modelo, max_tokens: maxTokens || 1500, temperature: 0.2, system: claudeSystem_(system), messages: claudeMsgsCache_(messages), tools: tools }) });
   var j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
+  if (AG_MS_) { AG_MS_.ia += Date.now() - t0; AG_MS_.n++; }
   try { registrarUso_({ app: 'ALMA', funcion: 'Chat operativo', modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: 0 }); } catch (e) {}
   if (r.getResponseCode() !== 200) {
     var err = r.getResponseCode() + ': ' + r.getContentText().slice(0, 400); console.error('claudeTools_ ' + err);
@@ -114,6 +115,9 @@ var AGENTE_TEXTO_ = '', AGENTE_CANAL_ = '';
 /* El pedido vino de una llamada del modo conferencia (vozSecretaria_): si sigue en segundo plano, viaja con él (cortar,
    pendEncolar_) y el resultado se le dice al oído como nivel 1 (pendientes.js). */
 var AGENTE_CONF_ = false;
+/* Cronómetro de un turno de voz (#498 T1): vozSecretaria_ lo pone en { ia, n, herr, nh } y aquí se suman los ms de cada
+   vuelta de Claude y de cada herramienta. Queda en la traza de la voz (robot voz_traza) para ver en qué se van los segundos. */
+var AG_MS_ = null;
 var CAL_ZONA_ = 'America/Guatemala por defecto; «hora de Montana» = America/Denver', CAL_SI_ = { type: 'boolean', description: 'true solo después del sí de Juan' };
 function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
@@ -773,9 +777,10 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var weebo = ''; try { var corteW = Date.now() - 6 * 3600000; weebo = weeboBloque_({ contexto: 'admin', principal: !!adm.principal, clave: adm.email, texto: texto, historial: previos.filter(function (m) { return m.de === 'yo' && new Date(m.ts).getTime() >= corteW; }).map(function (m) { return m.texto; }) }); } catch (e) {}
   /* Adaptación a la persona: +5 % cada 10 mensajes hasta el tope (adaptacion.js). */
   var adapt = ''; try { adapt = canal === 'segundo_plano' ? '' : adaptBloque_(adm.email, 'admin', texto); } catch (e) {}
+  var encV = null; try { encV = encValores_(); } catch (e) { console.error('encValores_: ' + e); }   // una sola lectura de ALMA_ENCARGOS por turno
   var aud = audienciaDe_({ adm: adm });   // Juan: conversación personal · equipo: en nombre de la empresa (alma.json)
   var turno = AG_CORTE_CACHE_ + weebo + adapt + '\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
-    encargosTexto_(adm) + encargosPedidosTexto_(adm) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'calle' ? CALLE_REGLA_ : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
+    encargosTexto_(adm, encV) + encargosPedidosTexto_(adm, encV) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'calle' ? CALLE_REGLA_ : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
   /* Un solo chat por administrador: Hub, WhatsApp y llamadas (cada turno de voz es corto, por eso caben más). */
@@ -841,7 +846,8 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir) {
       var u = usos[iu], ya = hechos.filter(function (h) { return h && h.tool_use_id === u.id; })[0];
       if (ya) { resultados.push(ya); continue; }
       if (vencido(AGENTE_MARGEN_HERR_)) { var ch = cortar(resultados); if (ch) return ch; }   // lo que falta se ejecuta en segundo plano
-      var res; try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
+      var res, th = Date.now(); try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
+      if (AG_MS_) { AG_MS_.herr += Date.now() - th; AG_MS_.nh++; }
       if (res && /^Herramienta desconocida/.test(String(res.error || ''))) (ctx.noPudo = ctx.noPudo || []).push(u.name);   // no tiene cómo: se escala al cerrar (escalar.js)
       if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });   // para las recetas (recetas.js)
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen
@@ -985,22 +991,26 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
 }
 
 /* Encargos abiertos donde esta persona es a quien se le pidió algo (por sus teléfonos). */
-function encargosDe_(tels) {
+/* Las filas de ALMA_ENCARGOS (sin cabecera). Al armar un turno se leen una sola vez y se pasan a encargosTexto_ y
+   encargosPedidosTexto_ (antes cada una leía la hoja completa: #498 T1). */
+function encValores_() { var sh = hojaEnc_(), n = sh.getLastRow(); return n < 2 ? [] : sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues(); }
+function encargosDe_(tels, vals) {
   var ks = (tels || []).map(fin8_).filter(Boolean); if (!ks.length) return [];
-  var sh = hojaEnc_(), n = sh.getLastRow(); if (n < 2) return [];
-  return sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues().map(function (r, i) { return { fila: i + 2, id: String(r[0]), creado: r[1], solicitante: String(r[2]), solicitante_tel: String(r[3]), persona: String(r[4]), tel: String(r[5]), objetivo: String(r[6]), estado: String(r[7]) }; })
+  var v = vals || encValores_(); if (!v.length) return [];
+  return v.map(function (r, i) { return { fila: i + 2, id: String(r[0]), creado: r[1], solicitante: String(r[2]), solicitante_tel: String(r[3]), persona: String(r[4]), tel: String(r[5]), objetivo: String(r[6]), estado: String(r[7]) }; })
     .filter(function (e) { return e.estado === 'abierto' && ks.indexOf(fin8_(e.tel)) >= 0 && Date.now() - new Date(e.creado).getTime() < 7 * 86400000; });
 }
 /* Lo que este administrador le pidió a ALMA con otras personas y sigue abierto: para que un «¿en qué quedó…?» tenga respuesta. */
-function encargosPedidos_(adm) {
-  var sh = hojaEnc_(), n = sh.getLastRow(); if (n < 2 || !adm || !adm.email) return [];
+function encargosPedidos_(adm, vals) {
+  if (!adm || !adm.email) return [];
+  var v = vals || encValores_(); if (!v.length) return [];
   var pend = {}; try { pend = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {}
-  return sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues()
+  return v
     .filter(function (r) { return String(r[2]) === adm.email && String(r[7]) === 'abierto' && Date.now() - new Date(r[1]).getTime() < 14 * 86400000; })
     .map(function (r) { var p = pend[fin8_(r[5])]; return { id: String(r[0]), creado: r[1], persona: String(r[4]), tel: String(r[5]), objetivo: String(r[6]), esperando: !!(p && p.length), desde: p && p.length ? p[0].ts : 0 }; });
 }
-function encargosPedidosTexto_(adm) {
-  var l = []; try { l = encargosPedidos_(adm); } catch (e) {}
+function encargosPedidosTexto_(adm, vals) {
+  var l = []; try { l = encargosPedidos_(adm, vals); } catch (e) {}
   var pend = {}; try { pend = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {}
   var conEnc = l.map(function (e) { return fin8_(e.tel); });
   var sueltos = Object.keys(pend).filter(function (k) { return conEnc.indexOf(k) < 0 && pend[k] && pend[k].length; });
@@ -1015,8 +1025,8 @@ function encargosPedidosTexto_(adm) {
   sueltos.forEach(function (k) { var m = pend[k][0]; out += '\n· ' + (m.nombre || 'Contacto') + ': primer contacto el ' + f(m.ts) + ', AÚN NO RESPONDE. Entrega (Meta): ' + waEntregaTexto_(k) + '. Mensaje guardado: «' + String(m.texto).slice(0, 200) + '»'; });
   return out + '\n· Para dar seguimiento a alguien que no responde, vuelve a usar escribir_a_equipo con su número y el mismo pedido (le llega de nuevo el aviso; el encargo no se duplica).';
 }
-function encargosTexto_(adm) {
-  var l = []; try { l = encargosDe_(adm.tels || []); } catch (e) {}
+function encargosTexto_(adm, vals) {
+  var l = []; try { l = encargosDe_(adm.tels || [], vals); } catch (e) {}
   if (!l.length) return '';
   return '\n\nENCARGOS PENDIENTES CONTIGO (' + adm.nombre + '):\n' + l.map(function (e) { var a = adminPorEmail_(e.solicitante) || {}; return '· [' + e.id + '] De parte de ' + (a.nombre || e.solicitante) + ' (' + String(e.creado instanceof Date ? e.creado.toISOString() : e.creado).slice(0, 16).replace('T', ' ') + '): ' + e.objetivo; }).join('\n') + '\n';
 }

@@ -5040,10 +5040,19 @@ function adminPorTel_(wa) { const k = fin8_(wa); return adminsOp_().find(a => a.
 function adminPorEmail_(email) { email = String(email || '').trim().toLowerCase(); return adminsOp_().find(a => a.email === email) || (email ? { email: email, nombre: nombreAcceso_(email) || email.split('@')[0], tels: [], principal: false } : null); }
 function opFilas_(email, n) {
   const sh = hojaOp_(), last = sh.getLastRow(); if (last < 2) return [];
-  const desde = Math.max(2, last - 2999), v = sh.getRange(desde, 1, last - desde + 1, OP_CAB_.length).getValues();
-  return v.map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
-    acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || '') }))
-    .filter(m => !email || m.usuario === email).slice(-(n || 3000));
+  const tope = Math.max(2, last - 2999);
+  const leer = (desde, hasta) => sh.getRange(desde, 1, hasta - desde + 1, OP_CAB_.length).getValues()
+    .map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
+      acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || '') }))
+    .filter(m => !email || m.usuario === email);
+  /* Pocas filas (la secretaria pide 20 por turno; el chat, 60): primero solo la cola de la hoja y, si ahí no alcanzan, el
+     resto hasta las 3000. Mismo resultado, sin leer 3000 filas con textos de hasta 4000 caracteres en cada llamada (#498 T1). */
+  if (n && n <= 120) {
+    const desde0 = Math.max(tope, last - Math.max(300, n * 10) + 1), cola = leer(desde0, last);
+    if (cola.length >= n || desde0 === tope) return cola.slice(-n);
+    return leer(tope, desde0 - 1).concat(cola).slice(-n);
+  }
+  return leer(tope, last).slice(-(n || 3000));
 }
 /* clas = { esfera, subcategoria } (chat.js); sin clas la fila queda sin esfera. */
 function opGuardar_(adm, de, canal, texto, acciones, clas, tarjeta) {

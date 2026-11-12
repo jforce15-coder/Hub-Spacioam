@@ -139,3 +139,6 @@ jobs:
         # 7-nov: el «Si» de Juan para Oscar (Brunelo 1808) no salió y Alma dijo «no tiene conversación activa»; a Juan le llegó
         # tres veces «El huésped sigue sin su código» por Estrella (Ignacio 1206), después de haberle contestado.
         run: node .github/envio-huesped.js apps-script
+      - name: Registro a recepción, los números salen a Meta con 502 y una sola vez (dobles)
+        # 12-nov: Brunelo dijo que no recibía; en Hola había recepciones escritas sin 502 y el administrador recibía dos veces.
+        run: node .github/recepcion-numeros.js apps-script

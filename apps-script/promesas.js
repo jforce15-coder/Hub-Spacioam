@@ -284,7 +284,7 @@ function promesasRevisar_() {
     if (!l.quedan) P.setProperty('PROM_LIMPIEZA_V1', new Date().toISOString());
   } else if (leer) promesasRepasar_({});
   var cada = Math.max(1, Number(P.getProperty('PROM_AVISO_HORAS') || 6)), ult = Number(P.getProperty('PROM_ULT_AVISO') || 0);
-  var h = +Utilities.formatDate(new Date(), CFG.TZ, 'H');
+  var h = +Utilities.formatDate(new Date(ahora), CFG.TZ, 'H');   // la misma hora que «ahora» (la prueba fija el reloj; de noche fallaba)
   if (h < 7 || h >= 21 || ahora - ult < cada * 3600000) return;
   var venc = promFilas_().filas.filter(function (f) { return f.estado === 'vencida' && f.revisada; });
   if (!venc.length) return;

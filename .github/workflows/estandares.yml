@@ -143,3 +143,6 @@ jobs:
         # 11-nov: Juan pidió sus contactos de recepción de Hola; Alma dijo «necesito pedírselo a Claudio… ¿Lo pido?» y no pidió
         # nada hasta su «Si» 44 min después (y salió dos veces). 12-nov: Alma une sola solo lo necesario para un pedido de Juan.
         run: node .github/escalar-sola.js apps-script
+      - name: Registro a recepción, los números salen a Meta con 502 y una sola vez (dobles)
+        # 12-nov: Brunelo dijo que no recibía; en Hola había recepciones escritas sin 502 y el administrador recibía dos veces.
+        run: node .github/recepcion-numeros.js apps-script

@@ -190,24 +190,26 @@ function doPost(e) {
 function preContexto_(resId) {
   if (!resId) return {};
   if (String(resId).indexOf('wa:') === 0) return { propiedad: 'Sin reserva', tipo: 'whatsapp', canal: 'whatsapp', codigo: '' };
+  const esInq = String(resId).indexOf('inq:') === 0;
+  /* La consulta que ya se volvió reserva da los datos de la reserva (código, propiedad y fechas), nunca los de la consulta:
+     antes de la caché, que puede guardar la consulta hasta 6 h (bandejareserva.js). */
+  if (esInq) { const rid = vGet_('inqres_' + String(resId).slice(4)); if (rid && rid !== resId) return preContexto_(rid); }
   const cache = CacheService.getScriptCache(), ck = 'pre2_' + resId, c0 = cache.get(ck);
   if (c0) { try { return JSON.parse(c0); } catch (e) {} }
-  const esInq = String(resId).indexOf('inq:') === 0;
   if (esInq) { const q = inquiryDatos_(String(resId).slice(4)); if (!q) return {}; cache.put(ck, JSON.stringify(q), q.propiedad && q.checkin ? 21600 : 300); return q; }
   const r = hosp_('get', '/reservations/' + resId + '?include=properties,property,guest');
   if (r.code !== 200) return {};
-  const res = (r.json && r.json.data) || {}, prop = (res.properties && res.properties[0]) || res.property || {};
-  const codigo = esInq ? '' : (s_(res.code) || s_(res.platform_id));
+  const res = (r.json && r.json.data) || {}, b = bandejaDatosReserva_(res);   // lo mismo que toma la fila de la bandeja
+  const codigo = b.codigo;
   let fila = {}; try { fila = codigo ? (buscarReserva_(codigo) || {}) : {}; } catch (e) {}
   const gst = res.guest || {};
   const o = {
-    codigo: codigo, propiedad: s_(prop.name) || s_(prop.public_name) || s_(fila.property_name),
-    huesped: [s_(gst.first_name), s_(gst.last_name)].filter(Boolean).join(' ') || s_(gst.name),
-    foto: s_(gst.picture_url) || s_(gst.profile_picture) || s_(gst.thumbnail_url),
-    checkin: s_(res.check_in || res.arrival_date).slice(0, 10) || fecha_(fila.checkin_date),
-    checkout: s_(res.check_out || res.departure_date).slice(0, 10) || fecha_(fila.checkout_date),
+    codigo: codigo, propiedad: b.propiedad || s_(fila.property_name),
+    huesped: b.huesped, foto: b.foto,
+    checkin: b.checkin || fecha_(fila.checkin_date),
+    checkout: b.checkout || fecha_(fila.checkout_date),
     formStatus: s_(fila.status_form).toLowerCase(),
-    tipo: esInq ? 'consulta' : 'reserva', status: s_(res.status || res.reservation_status && res.reservation_status.current && res.reservation_status.current.category),
+    tipo: 'reserva', status: s_(res.status || res.reservation_status && res.reservation_status.current && res.reservation_status.current.category),
     canal: canalPlat_(res.platform || res.channel || res.source),
     tels: [].concat(gst.phone_numbers || [], gst.phone || [], gst.phone_number || []).map(x => String(typeof x === 'object' ? (x.number || x.phone || '') : x).replace(/\D/g, '')).filter(x => x.length >= 8)
   };
@@ -223,9 +225,14 @@ function convId_(d) {
   const r = s_(d.reservation_id) || s_(d.reservation && d.reservation.id);
   const cid = s_(d.conversation_id || (d.conversation && d.conversation.id));
   if (r) { if (cid) { try { vincularReserva_(cid, r); } catch (e) { console.error('vincularReserva_: ' + e); } } return r; }
+  /* Ya fusionada: lo que llegue sin reservation_id (con el id de la consulta o solo el conversation_id) va a la fila de la
+     reserva, nunca abre otra fila «inq:» sin código al lado (bandejareserva.js). Con inquiry_id manda esa consulta: una
+     consulta nueva en el mismo hilo de Airbnb no cae en la reserva anterior. */
   const q = s_(d.inquiry_id) || s_(d.inquiry && d.inquiry.id) || s_(d.inquiry_uuid);
+  const yaRes = q ? vGet_('inqres_' + q) : (cid && (vGet_('cres_' + cid) || vGet_('inqres_' + cid)));
+  if (yaRes) return yaRes;
   if (q) { if (cid) { try { recordarConv_(cid, q); } catch (e) {} } return 'inq:' + q; }
-  try { const u = inqDeConversacion_(d); if (u) return 'inq:' + u; } catch (e) { console.error('inqDeConversacion_: ' + e); }
+  try { const u = inqDeConversacion_(d); if (u) return vGet_('inqres_' + u) || 'inq:' + u; } catch (e) { console.error('inqDeConversacion_: ' + e); }
   if (cid) return 'inq:' + cid;
   return '';
 }
@@ -234,21 +241,27 @@ function recordarConv_(cid, inqU) {
   vSet_('inqcid_' + inqU, cid);
 }
 /* Consulta → reserva: la fila de la bandeja, la cola, el log, los hitos, las marcas de resuelta y los mensajes guardados
-   pasan del id de la consulta (inq:…) al de la reserva. Desde ahí el hilo completo sale de /reservations/{id}/messages. */
-function vincularReserva_(cid, resId) {
+   pasan del id de la consulta (inq:…) al de la reserva. Desde ahí el hilo completo sale de /reservations/{id}/messages.
+   Al final la fila toma el código, la propiedad y las fechas de la reserva (res: la reserva que ya llegó, si la hay);
+   antes se quedaba con los de la consulta y sin código (95 filas de noviembre, bandejareserva.js).
+   Los vínculos se guardan solo cuando la fila ya se movió: si el candado no se consiguió (procesarCola lo tiene toda su
+   pasada), el siguiente mensaje o la siguiente pasada lo vuelve a intentar. Antes se guardaban primero y la fila se
+   quedaba con «inq:» para siempre. */
+function vincularReserva_(cid, resId, res) {
   if (!cid || !resId || resId === cid) return;
   if (vGet_('cres_' + cid) === resId) return;
   const inqU = vGet_('cinq_' + cid) || cid;
   if (inqU === resId) return;
-  vSet_('cres_' + cid, resId); vSet_('inqres_' + inqU, resId); if (inqU !== cid) vSet_('inqres_' + cid, resId);
   const viejos = ['inq:' + inqU].concat(inqU !== cid ? ['inq:' + cid] : []);
   const lock = LockService.getScriptLock(); try { lock.waitLock(10000); } catch (e) { return; }
+  let movida = false;   // solo la fila que venía de la consulta se completa aquí; las demás, con su aviso (reservaCambio_)
   try {
     const ss = ssAlma_(), sh = ss.getSheetByName('ALMA_INBOX');
     if (sh && sh.getLastRow() >= 2) {
       const ix = k => INBOX_CAB_.indexOf(k), n = sh.getLastRow(), w = Math.max(INBOX_CAB_.length, sh.getLastColumn());
       const v = sh.getRange(2, 1, n - 1, w).getValues();
       const fi = v.findIndex(x => viejos.indexOf(String(x[0])) >= 0), fr = v.findIndex(x => String(x[0]) === resId);
+      movida = fi >= 0;
       if (fi >= 0 && fr < 0) { sh.getRange(fi + 2, 1).setValue(resId); sh.getRange(fi + 2, ix('tipo') + 1).setValue('reserva'); sh.getRange(fi + 2, ix('hosp_conv') + 1).setValue(cid); }
       else if (fi >= 0) {
         const a = v[fi], b = v[fr];
@@ -264,8 +277,10 @@ function vincularReserva_(cid, resId) {
       const cab = s2.getRange(1, 1, 1, s2.getLastColumn()).getValues()[0].map(x => String(x).trim());
       ['reservation_id', 'conv_id', 'res_key'].forEach(h => { const c = cab.indexOf(h); if (c < 0) return; const rg = s2.getRange(2, c + 1, s2.getLastRow() - 1, 1); viejos.forEach(old => { try { rg.createTextFinder(old).matchEntireCell(true).replaceAllWith(resId); } catch (e) {} }); });
     });
+    vSet_('cres_' + cid, resId); vSet_('inqres_' + inqU, resId); if (inqU !== cid) vSet_('inqres_' + cid, resId);   // con el candado: vSet_ no lo suelta
   } finally { lock.releaseLock(); }
-  try { CacheService.getScriptCache().removeAll(['pre2_' + resId, 'hf_' + resId, 'hr_' + resId].concat(viejos.map(x => 'hf_' + x))); } catch (e) {}
+  try { CacheService.getScriptCache().removeAll(['pre2_' + resId, 'hf_' + resId, 'hr_' + resId].concat(viejos.map(x => 'hf_' + x), viejos.map(x => 'pre2_' + x))); } catch (e) {}
+  if (movida) { try { bandejaReservaCompletar_(resId, res); } catch (e) { console.error('bandejaReservaCompletar_: ' + e); } }
 }
 /* ¿La consulta ya es reserva? GET /reservations?conversation_id=… (sin ventana de fechas). Negativo cacheado 10 min. */
 function reservaDeConsulta_(uid) {
@@ -275,7 +290,7 @@ function reservaDeConsulta_(uid) {
   const r = hosp_('get', '/reservations?conversation_id=' + encodeURIComponent(cid) + '&per_page=5');
   const d = r.code === 200 ? ((r.json && r.json.data) || []).filter(x => s_(x.id) && s_(x.id) !== uid && s_(x.id) !== cid) : [];
   if (!d.length) { cache.put('nores_' + uid, '1', 600); return ''; }
-  const id = s_(d[0].id); recordarConv_(cid, uid); vincularReserva_(cid, id);
+  const id = s_(d[0].id); recordarConv_(cid, uid); vincularReserva_(cid, id, d[0]);
   return id;
 }
 /* Todo lo que ALMA o el equipo envía a una consulta se guarda aquí: la API no deja leer el historial de una consulta,
@@ -435,6 +450,9 @@ function inboxUpsert_(convId, o) {
     const sh = hojaInbox_(), n = sh.getLastRow();
     let fila = 0;
     if (n >= 2) { const f = sh.getRange(2, 1, n - 1, 1).createTextFinder(convId).matchEntireCell(true).findNext(); if (f) fila = f.getRow(); }
+    /* _soloSiExiste: completar una fila (p. ej. el código de una consulta que se volvió reserva) sin abrir una nueva. */
+    const soloSiExiste = !!o._soloSiExiste; delete o._soloSiExiste;
+    if (!fila && soloSiExiste) return;
     const prev = fila ? sh.getRange(fila, 1, 1, INBOX_CAB_.length).getValues()[0] : INBOX_CAB_.map(() => '');
     const cur = {}; INBOX_CAB_.forEach((k, i) => cur[k] = prev[i]);
     const forzar = !!o._forzar; delete o._forzar;
@@ -746,6 +764,7 @@ function procesarCola() {
     cupoCanal_('Mejoras y fondo');
     try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
     try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
+    try { bandejaCodigosReparar_(); } catch (e) { console.error('bandejaCodigosReparar_: ' + e); }   // una sola vez: filas de reserva sin código (bandejareserva.js)
     try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
     try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
     try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
@@ -4139,7 +4158,7 @@ function snapReserva_(d) {
 function reservaCambio_(action, d) {
   d = d || {};
   const id = s_(d.id || d.uuid || d.reservation_id); if (!id) return 'cambio sin id';
-  try { const cid0 = s_(d.conversation_id || (d.conversation && d.conversation.id)); if (cid0) vincularReserva_(cid0, id); } catch (e) { console.error('vincular en cambio: ' + e); }
+  try { const cid0 = s_(d.conversation_id || (d.conversation && d.conversation.id)); if (cid0) vincularReserva_(cid0, id, d); } catch (e) { console.error('vincular en cambio: ' + e); }
   const k = 'rsnap_' + id, nuevo = snapReserva_(d);
   let prev = null; try { prev = JSON.parse(vGet_(k) || 'null'); } catch (e) {}
   if (!prev) {   // primera vez que la vemos: las fechas que tenía la bandeja sirven de punto de partida
@@ -4162,10 +4181,14 @@ function reservaCambio_(action, d) {
   nuevo.pideCambio = /alteration|modification|change_request/.test(nuevo.sub + ' ' + nuevo.estado) || /"(alteration|alterations|pending_alteration|alteration_request)"\s*:\s*(\{|\[\s*\{)/.test(crudo);
   if (nuevo.pideCambio && !(prev && prev.pideCambio)) cambios.push(['solicitud', 'Solicitud de modificación del huésped · apruébala o recházala en Hospitable']);
   vSet_(k, JSON.stringify(nuevo));
+  /* La fila que ya existe toma el código, la propiedad y las fechas que trae el aviso (sin ir a Hospitable): así una fila
+     que perdió el código lo recupera con el siguiente cambio de su reserva. Va después de comparar, para no tapar un
+     cambio de fechas real (bandejareserva.js). */
+  try { bandejaReservaCompletar_(id, d, true); } catch (e) { console.error('bandejaReservaCompletar_ cambio: ' + e); }
   if (!cambios.length) return 'cambio sin diferencias';
   const sh = hojaCrear_('ALMA_HITOS', HITOS_CAB_), ts = new Date().toISOString(), cod = s_(d.code || d.platform_id);
   cambios.forEach(c => sh.appendRow([ts, id, cod, c[0], c[1], action]));
-  try { inboxUpsert_(id, { checkin: nuevo.checkin, checkout: nuevo.checkout, propiedad: nuevo.propiedad }); } catch (e) {}
+  try { inboxUpsert_(id, { codigo: cod, tipo: cod ? 'reserva' : '', checkin: nuevo.checkin, checkout: nuevo.checkout, propiedad: nuevo.propiedad }); } catch (e) {}
   if (cambios.some(c => c[0] === 'solicitud' || c[0] === 'fechas' || c[0] === 'estado')) {
     let pre = {}; try { pre = preContexto_(id); } catch (e) {}
     try { pushA_(null, 'Cambio en reserva · ' + (pre.huesped || cod || 'huésped'), cambios.map(c => c[1]).join(' · '), CFG.HUB_URL + '/?conv=' + encodeURIComponent(id)); } catch (e) {}

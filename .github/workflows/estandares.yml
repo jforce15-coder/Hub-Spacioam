@@ -149,3 +149,7 @@ jobs:
       - name: Registro a recepción, los números salen a Meta con 502 y una sola vez (dobles)
         # 12-nov: Brunelo dijo que no recibía; en Hola había recepciones escritas sin 502 y el administrador recibía dos veces.
         run: node .github/recepcion-numeros.js apps-script
+      - name: Bandeja, la consulta que se vuelve reserva queda con código, propiedad y fechas, y la reparación corre una vez (dobles)
+        # 7-nov: la fila de Oscar (Brunelo 1808) no tenía el código y Alma no encontraba su conversación; 95 filas de noviembre
+        # igual, todas de consultas que se volvieron reservas. #475 lo esquivó al usarla; esto lo arregla en la fusión.
+        run: node .github/bandeja-codigos.js apps-script

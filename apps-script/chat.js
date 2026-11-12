@@ -90,8 +90,8 @@ function chatPrincipal_() { return adminsOp_().filter(function (a) { return a.pr
 
 /* ── Cerrar un turno: guarda la clasificación y, si es Desarrollo, arma el borrador para Claude (o se lo pasa a Juan) ──
    adm: quien habla · yoIds: sus filas ya guardadas · texto: lo que pidió · ag: lo que devolvió opAgente_.
-   o: { sinDesarrollo, canal ('llamada' = la pregunta se dice en voz, sin botones), diferir (la llamada ya no espera:
-   la esfera se marca en la próxima pasada de procesarCola) }.
+   o: { sinDesarrollo, sinEscalar (la entrega de escalar.js no vuelve a escalar), canal ('llamada' = la pregunta se dice
+   en voz, sin botones), diferir (la llamada ya no espera: la esfera se marca en la próxima pasada de procesarCola) }.
    Devuelve { texto, clas, borrador?, paraJuan? }: texto es la respuesta final de Alma para guardar. */
 function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
   o = o || {};
@@ -100,9 +100,15 @@ function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
   if (o.diferir) chatMarcarLuego_(yoIds, clas);
   else { try { opMarcar_(yoIds, clas); } catch (e) { console.error('opMarcar_: ' + e); } }
   var hechas = (ag && ag.hechas) || [], hizoBorrador = hechas.some(function (h) { return h && h.tipo === 'borrador_claude'; });
-  if (!o.sinDesarrollo && (chatEsDesarrollo_(clas) || hizoBorrador)) {
+  /* pedir_a_agente a Desarrollo ya lo pidió en este turno: no sale otra vez (11-nov salieron dos sesiones de Claude). */
+  var yaPidio = hechas.some(function (h) { return h && h.tipo === 'pedido_desarrollo'; });
+  if (!o.sinDesarrollo && !yaPidio && (chatEsDesarrollo_(clas) || hizoBorrador)) {
     try { var d = chatDesarrollo_(adm, texto, out.texto, hechas, Object.assign({}, o, { micro: (ag && ag.micro) || '', nivel: (ag && ag.nivel) || '' })); out.texto = d.texto; if (d.borrador) out.borrador = d.borrador; if (d.claude) out.claude = d.claude; if (d.paraJuan) out.paraJuan = true; }
     catch (e) { console.error('chatDesarrollo_: ' + (e.stack || e)); }
+  } else if (!o.sinDesarrollo && !yaPidio) {
+    /* Alma no pudo (lo dijo, lo prometió o lo ofreció) y nada salió: sale aquí, sin preguntarle (escalar.js). */
+    try { var esc = escalarCerrarTurno_(adm, texto, ag, o); if (esc) { out.texto = esc.texto; out.claude = esc.claude; out.escalo = esc.motivo; } }
+    catch (e) { console.error('escalarCerrarTurno_: ' + (e.stack || e)); }
   }
   return out;
 }
@@ -148,8 +154,12 @@ function claudeMandarYa_(adm, texto, o) {
 /* Manda el borrador b a Claude. ajusteVoz: lo que se acaba de ajustar en voz (va antes del resultado). Lo que se dice es
    solo el resultado, ya hecho, sin repetir el pedido ni nombrar a Claudio, el nivel ni el modelo (Juan, 3-nov-2026). */
 function claudeBorradorMandar_(adm, b, ajusteVoz) {
+  /* En JSON (Juan, 12-nov-2026), como todo pedido entre agentes. Es un cambio que pidió: se une con su «une». */
+  var juan = b.partes.join('\n\nY además: ');
+  var json = escalarJson_(adm, { pedido: juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
+    tarea: 'Haz el cambio del sistema que pidió ' + (adm.nombre || 'Juan') + ' (contexto.pedido_exacto).', seguimiento: b.ult && !b.micro ? 'Puede ser un seguimiento de tu última respuesta en su chat con Alma: ' + b.ult : '' });
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
-    que_quiere: b.partes.join('\n\nY además: ') + (b.ult && !b.micro ? '\n\nPuede ser un seguimiento de tu última respuesta en su chat con Alma:\n' + b.ult : '') });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan });
   if (!r.ok) {
     return { accion: 'mandar', claude: { ok: false }, texto: 'No se pudo pedir: ' + (r.error || 'error') + '. Quedó guardado; dime «mándalo» para intentarlo otra vez.',
       voz: (ajusteVoz ? 'AJUSTE GUARDADO (' + ajusteVoz + ') PERO ' : '') + 'NO SALIÓ: ' + (r.error || 'error') + '. Díselo en una frase; quedó guardado.' };

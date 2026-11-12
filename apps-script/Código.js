@@ -737,6 +737,7 @@ function procesarCola() {
   try { decisionesSalir_(); } catch (e) { console.error('decisionesSalir_: ' + e); }   // envío con deshacer: lo elegido por WhatsApp que ya cumplió su minuto (respaldo del disparador corto)
   try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }
   try { avlProcesar_(); } catch (e) { console.error('avlProcesar_: ' + e); }   // avisos de aterrizaje a quien Juan eligió por viaje (avisovuelo.js); su vuelo: nunca se pausa
+  try { escalarRevisar_(); } catch (e) { console.error('escalarRevisar_: ' + e); }   // lo que Alma pidió porque no podía: une en verde, espera publicar y entrega (escalar.js); Juan espera: no se pausa
   try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {

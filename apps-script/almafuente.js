@@ -522,7 +522,7 @@ var HUESPEDES_FUENTE_ = {
     "Mmvr0x68q8t",
     "Mmvr0ywofkk"
    ],
-   "texto": "Código de la cerradura del apartamento: si ya salió en esta conversación (CÓDIGOS YA ENVIADOS o el hilo) y el huésped de esta reserva lo pide otra vez, repítelo tal cual, sin rodeos. Si todavía no ha salido: «Te llega directamente por la plataforma, un día antes de tu llegada» (si el check-in es hoy, agrega: «si en unos minutos no lo ves, escríbenos por aquí mismo y lo revisamos»). Nunca lo des a quien no es el huésped de esa reserva (RESERVA_CONFIRMADA=false), nunca lo inventes y nunca digas que ya se envió si no está en el hilo."
+   "texto": "Código de la cerradura del apartamento: si ya salió en esta conversación (CÓDIGOS YA ENVIADOS o el hilo) y sigue vigente, y el huésped de esta reserva lo pide otra vez: primero dile que ya se le había enviado en un mensaje anterior, pero que con gusto se lo envías de nuevo, y repítelo tal cual. Si todavía no ha salido: «Te llega directamente por la plataforma, un día antes de tu llegada» (si el check-in es hoy, agrega: «si en unos minutos no lo ves, escríbenos por aquí mismo y lo revisamos»). Nunca lo des a quien no es el huésped de esa reserva (RESERVA_CONFIRMADA=false), nunca lo inventes y nunca digas que ya se envió si no está en el hilo."
   },
   {
    "id": "tiempo",

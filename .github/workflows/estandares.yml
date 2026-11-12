@@ -156,3 +156,7 @@ jobs:
       - name: Instrucción a Alma desde una sesión de Claude, solo del dueño, una vez, con error visible y sin datos en el issue (dobles)
         # 12-nov: Juan quiso que Claude le pidiera a Alma programar un WhatsApp de prueba a Recepción Brunelo; no había por dónde.
         run: node .github/para-alma.js apps-script
+      - name: Códigos de acceso, extensión pide el código nuevo una vez y el código ya enviado se reenvía sin emergencia (dobles)
+        # 12-nov: con una extensión el PIN de igloohome no se renueva (Estrella, Ignacio 1206; Luis, Ignacio 904) y salía el
+        # código de emergencia aunque el PIN ya estaba en la conversación (9 dígitos en su línea: nadie lo veía).
+        run: node .github/codigos-acceso.js apps-script

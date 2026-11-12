@@ -743,6 +743,7 @@ function procesarCola() {
   try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
   try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
   try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
+  try { extensionRevisar_(); } catch (e) { console.error('extensionRevisar_: ' + e); }   // extensión: pide el código nuevo 2 h antes de que venza el de la reserva original (codigoextension.js)
   try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
   try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
   try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
@@ -949,6 +950,9 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     }
   }
 
+  /* Pide el código y ya se le mandó uno vigente: se le reenvía ese con la frase (codigoaviso.js), sin emergencia. */
+  const vigReenvio = codigoReenvioAplica_(ctx, hilo);
+  if (vigReenvio) { paso_(pKey, 'Código ya enviado y vigente · se lo reenvío', true); return codigoReenviar_(sh, lider, otros, ctx, vigReenvio); }
   if (codigoPendiente_(ctx, hilo)) { paso_(pKey, 'Código de acceso pendiente · avisando a los administradores', true); return manejarCodigo_(sh, lider, otros, ctx, hilo); }
 
   /* Avance visible en el Hub (columna nota, prefijo ⏳): qué está haciendo ALMA mientras piensa. */
@@ -1147,8 +1151,10 @@ function mensajeEmergencia_(idioma, codigo) {
    hilo no consta que se haya enviado → alerta a ambos administradores (principal y secundario), contención breve
    y revisión a los CODIGO_REVISION_MIN. Si para entonces sigue sin enviarse, sale el código de emergencia. */
 const RX_PIDE_CODIGO_ = /(c[oó]digo|clave|contrase[nñ]a|\bpin\b|\bcode\b|passcode|keypad|cerradura|\block\b)/i;
-const RX_CODIGO_ENVIADO_ = /(c[oó]digo|clave|contrase[nñ]a|\bpin\b|\bcode\b|passcode)[^\d\n]{0,48}\d{4,8}\b/i;
-function codigoEnviadoEnHilo_(hilo) { return (hilo || []).some(m => m.tipo !== 'guest' && RX_CODIGO_ENVIADO_.test(String(m.texto || ''))); }
+/* ¿Ya tiene un código que le sirve? El último que le mandamos (el PIN de igloohome, el que el equipo mandó suelto o uno
+   con «código…») y que siga vigente (codigoaviso.js). Antes solo se veían «código 1234» de 4 a 8 dígitos: el PIN de
+   igloohome (9 dígitos en su propia línea) no contaba y salía el de emergencia con el código ya enviado (12-nov). */
+function codigoEnviadoEnHilo_(hilo, d) { d = d || {}; return !!codigoVigenteEnHilo_(hilo, { checkout: d.checkout, propiedad: d.propiedad }); }
 function codigoPendiente_(ctx, hilo) {
   if (!ctx || ctx.esWA || !ctx.reservaConfirmada || !ctx.checkin || !ctx.hoy) return false;
   if (ctx.hoy < ctx.checkin || (ctx.checkout && ctx.hoy > ctx.checkout)) return false;
@@ -1162,7 +1168,7 @@ function codigoPendiente_(ctx, hilo) {
   const desde = String(PropertiesService.getScriptProperties().getProperty('CODIGO_URGENTE_DESDE') || '14:30');
   const ahoraHM = Utilities.formatDate(new Date(), CFG.TZ, 'HH:mm');
   if (!enPuerta && ctx.hoy === ctx.checkin && ahoraHM < desde) return false;
-  return !codigoEnviadoEnHilo_(hilo);
+  return !codigoEnviadoEnHilo_(hilo, ctx);
 }
 /* WhatsApp a los administradores solo para lo de verdad relevante (critico = true). Lo demás va por notificación
    del Hub y correo: Juan pidió ver en WhatsApp de ALMA solo updates importantes. */
@@ -1201,7 +1207,7 @@ function verificarCodigo_(sh, f) {
   const d = JSON.parse(f.v[C.datos] || '{}');
   const r = hiloConv_(d.resId);
   if (r.code !== 200) return reintentar_(sh, f, 'verificación código HTTP ' + r.code, 'esperando_codigo');
-  if (codigoEnviadoEnHilo_(r.hilo)) { set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · ya se envió' }); return log_(d, '', 'CÓDIGO: ya se envió · revisión cerrada'); }
+  if (codigoEnviadoEnHilo_(r.hilo, d)) { set_(sh, f, { estado: 'escalado', nota: 'CÓDIGO · ya se envió' }); return log_(d, '', 'CÓDIGO: ya se envió · revisión cerrada'); }
   /* Alguien del equipo ya contestó en la conversación después de la contención (7-nov: Juan le escribió a Estrella a las
      5:56 y el aviso salió igual a las 5:56 y a las 5:58): el equipo está en eso, no se avisa (codigoaviso.js). */
   if (equipoRespondioCodigo_(r.hilo, d)) {
@@ -1238,6 +1244,12 @@ function verificarRojo_(sh, f) {
 
   // Sin acceso + estadía activa + nadie respondió: código de limpieza vigente, una sola vez.
   if (d.acceso && !d.emergenciaAt && cfg_('EMERGENCIA_MIN') > 0) {
+    /* Ya tiene un código vigente y no dijo que falla: se le reenvía ESE con la frase (Juan, 12-nov), no el de emergencia. */
+    if (!d.reenvioAt && codigoReenvioAntesDeEmergencia_(d, r.hilo)) {
+      escalar_('🔑 ALMA · código reenviado · ' + d.propiedad, 'El huésped no podía entrar y nadie respondió en ' + cfg_('EMERGENCIA_MIN') + ' min. Ya tenía un código vigente en su conversación: ALMA se lo reenvió (sin código de emergencia).\nHuésped: ' + d.huesped + '\nCódigo de reserva: ' + d.codigo, { sinWa: true });
+      const restante = Math.max(60, cfg_('ESPERA_ROJO_SEG') - cfg_('EMERGENCIA_MIN') * 60);
+      return set_(sh, f, { proximo: new Date(ahora_().getTime() + restante * 1000).toISOString(), nota: 'ROJO · código ya enviado: reenviado (sin emergencia)', datos: JSON.stringify(d) });
+    }
     const ce = codigoEmergencia_(d.propiedad, d.checkin);
     if (ce) {
       const msg = mensajeEmergencia_(d.idioma, ce.codigo);
@@ -1391,20 +1403,25 @@ function codigosEnHilo_(hilo) {
   const AP = /(apartamento|apto|puerta|cerradura|chapa|lock|door|unit|smart ?lock|teclado|keypad)/i;
   const WIFI = /(wi-?fi|red |internet|password de la red)/i;
   hilo.filter(m => m.tipo !== 'guest').forEach(m => {
-    const s = String(m.texto || ''), re = /(c[oó]digo|code|clave|pin|contraseña|passcode)[^0-9\n]{0,40}?(\d{4,10}#?)/gi; let x;
+    /* El PIN de igloohome y el código que el equipo manda solo en su línea («try this one ⏎ 123456789🔒») son del apartamento. */
+    const fecha = String(m.created || '').slice(0, 16).replace('T', ' ');
+    if (/igloohome/i.test(String(m.texto || ''))) { const p = pinVigencia_([m]); if (p && p.codigo) out.apto.push({ codigo: p.codigo, fecha: fecha, auto: !!m.auto, hasta: p.texto }); return; }
+    const s = String(m.texto || ''), re = /(c[oó]digo|code|clave|pin|contraseña|passcode)[^0-9\n]{0,40}?(\d{4,10}#?)/gi, vistos = []; let x;
     while ((x = re.exec(s))) {
       const antes = s.slice(Math.max(0, x.index - 90), x.index + x[0].length), cerca = s.slice(Math.max(0, x.index - 40), x.index + x[0].length + 40);
       if (WIFI.test(cerca)) continue;
       const item = { codigo: x[2], fecha: String(m.created || '').slice(0, 16).replace('T', ' '), auto: !!m.auto };
       const ed = ED.test(antes), ap = AP.test(antes);
       (ed && !ap ? out.edificio : ap && !ed ? out.apto : ed && ap ? (antes.search(ED) > antes.search(AP) ? out.edificio : out.apto) : out.otro).push(item);
+      vistos.push(x[2]);
     }
+    codigosHostEnMensaje_(s).filter(c => vistos.indexOf(c) < 0).forEach(c => out.apto.push({ codigo: c, fecha: fecha, auto: !!m.auto }));
   });
   return out;
 }
 function textoCodigos_(c) {
   if (!c) return 'no aplica';
-  const f = (l, n) => l.length ? n + ': sí, ' + l.slice(-1).map(x => x.codigo + ' (enviado ' + x.fecha + (x.auto ? ', automático' : '') + ')').join('') : n + ': no';
+  const f = (l, n) => l.length ? n + ': sí, ' + l.slice(-1).map(x => x.codigo + ' (enviado ' + x.fecha + (x.auto ? ', automático' : '') + (x.hasta ? ', igloohome, vale hasta ' + x.hasta : '') + ')').join('') : n + ': no';
   return [f(c.apto, 'apartamento'), f(c.edificio, 'edificio'), c.otro.length ? 'sin identificar: ' + c.otro.slice(-1).map(x => x.codigo + ' (' + x.fecha + ')').join('') + ' — revisa el hilo antes de decir de qué puerta es' : ''].filter(Boolean).join(' · ');
 }
 /* Mensajes programados de Hospitable (reglas: check-in, checkout, first morning, review reminder…) NO son respuestas del equipo.
@@ -4323,6 +4340,8 @@ function waEntrante_(m, nombre) {
   const wa = s_(m.from).replace(/\D/g, ''); if (!wa || !m.id) return;
   const cache = CacheService.getScriptCache(); if (cache.get('wa_' + m.id)) return; cache.put('wa_' + m.id, '1', 21600);
   try { waPendienteSoltar_(wa); } catch (e) { console.error('waPendienteSoltar_: ' + e); }   // respondió a la plantilla de primer contacto (contacto.js)
+  /* Un administrador responde con el código nuevo de una extensión (codigoextension.js): va al huésped, no a un caso. */
+  try { if (extensionWaEntrante_(m, wa)) return; } catch (e) { console.error('extensionWaEntrante_: ' + e); }
   /* El responsable toca un botón de una decisión del equipo (A/B/C, Deshacer, Editar en el Hub) o escribe otra respuesta (decisiones.js). */
   try { if (decisionWaEntrante_(m, wa, m.timestamp ? new Date(Number(m.timestamp) * 1000).toISOString() : '')) return; } catch (e) { console.error('decisionWaEntrante_: ' + e); }
   const T = { image: '[envió una imagen]', audio: '[envió una nota de voz]', video: '[envió un video]', document: '[envió un documento]', sticker: '[sticker]', contacts: '[compartió un contacto]', reaction: '', unsupported: '[Mensaje que WhatsApp no deja leer aquí: suele ser un código de verificación o un mensaje con botones. Ábrelo en el teléfono]', system: '[aviso de WhatsApp: cambio de número o de cuenta]', order: '[envió un pedido del catálogo]', request_welcome: '[abrió el chat]' };

@@ -37,6 +37,7 @@ function caja(clasificaSi) {
   const wa = hoja(['ts', 'wa', 'nombre', 'dir', 'texto', 'msg_id', 'conv_id', 'tipo', 'autor', 'media']);
   let dec = null;
   const ctx = {
+    acortarEnTexto_: t => t,   // los enlaces cortos se prueban en .github/enlaces.js
     console: { log() {}, warn() {}, error() {} }, JSON, Date, Math, String, Number, Object, Array, RegExp, encodeURIComponent, decodeURIComponent,
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); }, deleteProperty: k => { delete props[k]; } }) },
     ScriptApp: { getProjectTriggers: () => [], deleteTrigger() {}, newTrigger: () => ({ timeBased: () => ({ after: () => ({ create() {} }) }) }) },

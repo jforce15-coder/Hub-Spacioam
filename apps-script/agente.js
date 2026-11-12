@@ -1110,7 +1110,7 @@ function pulirMsgHuesped_(texto, canal) {
 
 /* Un correo que Juan pidió mandar (enviar_correo): texto simple, desde hola@spacioam.com si el alias existe. Queda en ALMA_CORREOS. */
 function correoSimple_(para, asunto, texto) {
-  asunto = String(asunto || '').trim().slice(0, 150) || 'Mensaje de Alma'; texto = String(texto || '').trim();
+  asunto = String(asunto || '').trim().slice(0, 150) || 'Mensaje de Alma'; texto = acortarEnTexto_(String(texto || '').trim(), 'correo');   // enlaces cortos (enlaces.js)
   if (!texto) return { error: 'Falta el texto del correo.' };
   var o = { name: 'Alma' }, yo = Session.getEffectiveUser().getEmail(), desde = yo, estado = 'enviado';
   try { if (yo !== CFG.EMAIL_DESDE && GmailApp.getAliases().indexOf(CFG.EMAIL_DESDE) !== -1) { o.from = CFG.EMAIL_DESDE; desde = CFG.EMAIL_DESDE; } } catch (e) {}

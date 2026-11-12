@@ -35,6 +35,7 @@ function caja(o) {
   const enviados = [], avanzado = [], filas = [], modelo = [], cache = {};
   const porId = {}; (o.hilos || []).forEach(h => h.getMessages().forEach(m => { porId[m.getId()] = m; }));
   const ctx = {
+    acortarEnTexto_: t => t,   // los enlaces cortos se prueban en .github/enlaces.js
     console: { log() {}, warn() {}, error() {} }, JSON, Date, Math, String, Number, Object, Array, RegExp, Buffer,
     CFG: { EMAIL_DESDE: HOLA, TZ: 'America/Guatemala', MODELO_REDACTOR: 'vision' },
     AGENTE_TEXTO_: 'Responde a Ana que sí',

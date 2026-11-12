@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Spacio AM</title>
+  <meta property="og:site_name" content="Spacio AM">
+  <meta property="og:title" content="Spacio AM">
+  <meta property="og:description" content="Abre tu enlace de Spacio AM.">
+  <!-- Enlaces cortos (#488 · T2, igual que grow.spacioam.com en T1): GitHub Pages muestra esta página para cualquier
+       dirección que no existe; las páginas del Hub (usuarios.html, alma/…, health/…) siguen saliendo como siempre.
+       Si la dirección es hub.spacioam.com/<código de 5>, se pregunta el enlace largo al Apps Script de Alma (la misma
+       URL de js/alma-client.js, acción pública «enlace») y se abre. Sin sa-sesion.js a propósito: quien abre el enlace
+       puede no tener sesión. Las rutas van desde la raíz porque esta página sale en cualquier dirección. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @font-face { font-family: "Valky"; src: url("/ds/fonts/Valky-Regular.otf") format("opentype"); font-weight: 400; font-display: swap; }
+    :root { --fondo: #FAFAFA; --arena: #F5F3F0; --tinta: #3E3F3F; --gris: #6F6867; --linea: #D8D4CE; --durazno: #E9826A; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { background: var(--fondo); color: var(--tinta); font-family: Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+    main { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+    .marca { font-family: Valky, Georgia, serif; font-size: 22px; letter-spacing: .04em; }
+    .punto { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--linea); border-top-color: var(--durazno); animation: girar 0.9s linear infinite; }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .punto { animation-duration: 3s; } }
+    p { font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+    a { color: var(--tinta); }
+    button { font: inherit; font-size: 14px; min-height: 44px; padding: 10px 22px; border-radius: 999px; border: 1px solid var(--tinta); background: var(--arena); color: var(--tinta); cursor: pointer; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="marca">Spacio AM</span>
+    <div class="punto" id="punto" aria-hidden="true"></div>
+    <p id="msg" role="status">Abriendo tu enlace…</p>
+    <button id="otra" type="button" hidden>Intentar de nuevo</button>
+  </main>
+  <script>
+  (function () {
+    // La misma API que usa js/alma-client.js (el Apps Script de Alma).
+    var API_URL = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+    var NO_ESTA = 'Este enlace ya no está disponible. Escríbenos a <a href="mailto:hola@spacioam.com">hola@spacioam.com</a>.';
+    var msg = document.getElementById("msg"), punto = document.getElementById("punto"), otra = document.getElementById("otra");
+    function fin(html, reintentar) { punto.hidden = true; msg.innerHTML = html; otra.hidden = !reintentar; }
+
+    var m = /^\/([23456789abcdefghjkmnpqrstuvwxyz]{5})\/?$/i.exec(location.pathname || "");
+    if (!m) { fin(NO_ESTA, false); return; }
+    var codigo = m[1].toLowerCase();
+    // Solo se abre un enlace de Spacio AM o de Google Drive / Docs (lo mismo que acepta el Apps Script).
+    var seguro = /^https:\/\/(([a-z0-9-]+\.)+spacioam\.com|drive\.google\.com|docs\.google\.com)([\/?#]|$)/i;
+
+    function abrir() {
+      fin("Abriendo tu enlace…", false); punto.hidden = false;
+      var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var t = setTimeout(function () { if (ctrl) ctrl.abort(); }, 20000);
+      fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "enlace", codigo: codigo }), signal: ctrl ? ctrl.signal : undefined })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          clearTimeout(t);
+          var url = j && j.ok && j.data && String(j.data.url || "");
+          if (url && seguro.test(url)) location.replace(url);
+          else fin(NO_ESTA, false);
+        })
+        .catch(function () {
+          clearTimeout(t);
+          fin("No pudimos abrir tu enlace. Revisa tu conexión e intenta de nuevo.", true);
+        });
+    }
+    otra.addEventListener("click", abrir);
+    abrir();
+  })();
+  </script>
+</body>
+</html>

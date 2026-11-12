@@ -45,6 +45,7 @@ function caja(opc) {
     if (f === 'HH:mm') return p(g.getUTCHours()) + ':' + p(g.getUTCMinutes()); return g.toISOString(); };
   const resp = (code, json) => ({ getResponseCode: () => code, getContentText: () => JSON.stringify(json || {}), getHeaders: () => ({}) });
   const ctx = {
+    acortarEnTexto_: t => t,   // los enlaces cortos se prueban en .github/enlaces.js
     console: { log() {}, warn() {}, error() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN, Boolean, encodeURIComponent, decodeURIComponent,
     Date: class extends Date { constructor(...a) { if (!a.length) super(AHORA); else super(...a); } static now() { return AHORA; } },
     CFG: { TZ: 'America/Guatemala', TAB_RESERVAS: 'Reservas', TAB_PROPIEDADES: 'Propiedades', TAB_COLA: 'ALMA_COLA', HOSPITABLE_API: 'https://hosp.example/v2' },

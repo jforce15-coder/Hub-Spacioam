@@ -135,6 +135,9 @@ jobs:
       - name: Reporte del mes, la ocupación y el neto salen de la hoja de Mi, nunca de un cálculo, y un mes que no está no se estima (dobles)
         # 7-nov: Alma dijo 26 % de ocupación de Rue 301 en octubre (eran 26 noches; la real, 83.9 %).
         run: node .github/reporte-mes.js apps-script
+      - name: Enlaces cortos, mismo enlace mismo código, «enlace» pública y todo WhatsApp, correo y Hospitable sale con el corto (dobles)
+        # #488 T2: los enlaces largos (los PDF de Drive, el formulario de Grow, el Hub) se veían raros y daban desconfianza.
+        run: node .github/enlaces.js apps-script
       - name: Envío a un huésped con el sí de Juan va a la reserva del borrador, error real de Hospitable y el aviso del código sale una vez (dobles)
         # 7-nov: el «Si» de Juan para Oscar (Brunelo 1808) no salió y Alma dijo «no tiene conversación activa»; a Juan le llegó
         # tres veces «El huésped sigue sin su código» por Estrella (Ignacio 1206), después de haberle contestado.

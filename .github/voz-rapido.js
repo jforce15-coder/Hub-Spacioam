@@ -11,6 +11,10 @@
    5. Si el rápido gastó el plazo de la llamada, el de siempre no empieza otra vuelta: sigue en segundo plano.
    6. Las herramientas del rápido existen y ninguna escribe; la decisión vive en un solo lugar; vozSecretaria_ lo enciende
       y lo apaga; el precio del modelo rápido está en la tabla.
+   7. El portero Jev (#498 T5), con una API de Jev de mentira: leer con confianza alta → rápido; leer con confianza baja,
+      hacer u otro → el de siempre; si Jev falla, tarda o contesta raro → las reglas de antes, y tras tardar o 3 fallos
+      seguidos se apaga 10 min; sin JEV_KEY o con VOZ_JEV = 0 → las reglas sin llamarlo; un verbo de hacer gana aunque Jev
+      diga leer; a Jev va solo el pedido, sin teléfonos ni correos; la llave nunca sale en registros, traza ni respuestas.
    node .github/voz-rapido.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -28,7 +32,21 @@ const ESCRIBEN = ['cancelar_programados_reserva', 'crear_evento', 'mover_evento'
 /* guion[modelo] = lista de respuestas (una por vuelta); una función recibe el cuerpo y devuelve la respuesta. */
 function caja(o) {
   o = o || {};
-  const props = Object.assign({ ANTHROPIC_KEY: 'k' }, o.props || {}), pedidos = [], usos = [], corridas = [];
+  const props = Object.assign({ ANTHROPIC_KEY: 'k' }, o.props || {}), pedidos = [], usos = [], corridas = [], jevs = [], logs = [], cache = {};
+  const jevGuion = (o.jev || []).slice(); let desfase = 0;
+  /* El reloj: Jev de mentira puede «tardar» sumando milisegundos sin esperar de verdad. */
+  const RealDate = Date;
+  const FakeDate = function (...a) { return a.length ? new RealDate(...a) : new RealDate(RealDate.now() + desfase); };
+  FakeDate.now = () => RealDate.now() + desfase; FakeDate.UTC = RealDate.UTC; FakeDate.parse = RealDate.parse; FakeDate.prototype = RealDate.prototype;
+  /* Jev de mentira: { choice, confianza } · { http } · { raro } · { lanza } · { tarda: ms } (además de contestar). */
+  const jevResp = (x) => {
+    if (x.tarda) desfase += x.tarda;
+    if (x.lanza) throw new Error('Address unavailable');
+    if (x.http) return { getResponseCode: () => x.http, getContentText: () => '{"detail":"error"}' };
+    if (x.raro) return { getResponseCode: () => 200, getContentText: () => (x.raro === 'json' ? '<html>' : JSON.stringify({ answers: { otra: {} } })) };
+    const probs = { leer: 0, hacer: 0, otro: 0 }; probs[x.choice] = x.confianza;
+    return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ model: 'jev-1.13.0', answers: { camino: { type: 'choice', choice: x.choice, confidence: x.confianza, probabilities: probs } }, usage: { input_tokens: 180, output_tokens: 12 } }) };
+  };
   const guion = { [RAPIDO]: (o.rapido || []).slice(), [SONNET]: (o.sonnet || [{ text: 'Respuesta del de siempre.' }]).slice() };
   const resp = (x, cuerpo) => {
     if (typeof x === 'function') x = x(cuerpo);
@@ -38,13 +56,14 @@ function caja(o) {
     return { getResponseCode: () => 200, getContentText: () => JSON.stringify(j) };
   };
   const ctx = {
-    console: { log() {}, warn() {}, error() {} }, JSON, Math, String, Number, Object, Array, RegExp, Error, Date, isNaN, encodeURIComponent,
+    console: { log: (...a) => logs.push(a.join(' ')), warn: (...a) => logs.push(a.join(' ')), error: (...a) => logs.push(a.join(' ')) }, JSON, Math, String, Number, Object, Array, RegExp, Error, Date: FakeDate, isNaN, encodeURIComponent,
     CFG: { TZ: 'America/Guatemala', MODELO_REDACTOR: SONNET, MODELO_CLASIFICADOR: 'claude-haiku-4-5-20251001' },
     Utilities: { formatDate: (d, tz, f) => (f === 'yyyy-MM-dd' ? '2026-11-12' : 'jueves 12 nov 10:00') },
     PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
-    CacheService: { getScriptCache: () => ({ get: () => null, put() {}, remove() {} }) },
+    CacheService: { getScriptCache: () => ({ get: (k) => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: (k) => { delete cache[k]; } }) },
     ahora_: () => new Date(),
     uf_: (url, op) => {
+      if (/typesafe\.ai/.test(url)) { const cuerpo = JSON.parse(op.payload); jevs.push({ url, op, cuerpo }); return jevResp(jevGuion.length ? jevGuion.shift() : { choice: 'leer', confianza: 0.95 }); }
       const cuerpo = JSON.parse(op.payload); pedidos.push(cuerpo);
       const g = guion[cuerpo.model]; if (!g) throw new Error('modelo inesperado: ' + cuerpo.model);
       if (!g.length) return resp({ text: 'Fin.' }, cuerpo);
@@ -78,7 +97,7 @@ function caja(o) {
     finally { ctx.AGENTE_RAPIDO_ = false; ctx.AG_USO_FUNCION_ = ''; ctx.AGENTE_PLAZO_ = 0; ctx.AG_MS_ = null; }
     return { r, ms };
   };
-  return { X: ctx, pedidos, usos, corridas, turno, de: (m) => pedidos.filter((p) => p.model === m) };
+  return { X: ctx, pedidos, usos, corridas, turno, jevs, logs, cache, props, de: (m) => pedidos.filter((p) => p.model === m) };
 }
 const nombres = (p) => p.tools.map((t) => t.name || t.type);
 const LEER = 'Verificar si Mariana López ya llegó';
@@ -175,5 +194,60 @@ const LEER = 'Verificar si Mariana López ya llegó';
     const d = X.rapidoDecide_(p, { nombrada: /^cuando diga/i.test(p) }); ok(!d.usar, '6 · no es de leer → el de siempre: «' + p + '» (' + d.motivo + ')');
   });
 }
+
+/* 7 · el portero Jev */
+const LLAVE = 'jev-llave-de-prueba-0123456789abcdef';
+const conJev = (jev, extra) => caja(Object.assign({ props: { JEV_KEY: LLAVE }, jev, rapido: [{ text: 'Sí, Mariana López llega hoy.' }] }, extra || {}));
+const sinLlave = (c, r, ms) => { const todo = JSON.stringify([r, ms, c.usos, c.logs, c.cache, c.pedidos]); return todo.indexOf(LLAVE) < 0; };
+{ const c = conJev([{ choice: 'leer', confianza: 0.93 }]); const { r, ms } = c.turno('Las llegadas de mañana en el 1102');
+  ok(c.jevs.length === 1 && c.de(RAPIDO).length === 1 && c.de(SONNET).length === 0, '7 · Jev dice leer con 93 %: va al rápido aunque las reglas no vean una pregunta (' + ms.motivo + ')');
+  ok(ms.via === 'rapido' && ms.portero === 'jev' && ms.jev_conf === 0.93 && ms.jev_ms >= 0, '7 · el cronómetro dice que decidió Jev, su confianza y sus ms: ' + JSON.stringify({ portero: ms.portero, jev_conf: ms.jev_conf, jev_ms: ms.jev_ms }));
+  const j = c.jevs[0], q = j.cuerpo.questions.camino;
+  ok(j.url === 'https://api.typesafe.ai/v1/systemone' && j.op.method === 'post' && j.op.muteHttpExceptions === true && j.op.headers.Authorization === 'Bearer ' + LLAVE && j.cuerpo.model === 'jev-1.13.0',
+    '7 · llama a /v1/systemone con la llave en Authorization y el modelo jev-1.13.0');
+  ok(q.type === 'choice' && Object.keys(q.criteria).join() === 'leer,hacer,otro' && JSON.stringify(Object.keys(j.cuerpo.state)) === '["pedido"]' && j.cuerpo.state.pedido === 'Las llegadas de mañana en el 1102',
+    '7 · una sola pregunta «camino» (leer · hacer · otro) y en state solo el pedido');
+  const u = c.usos.filter((x) => x.funcion === 'Voz · portero Jev');
+  ok(u.length === 1 && u[0].modelo === 'jev-1.13.0' && u[0].usage.input_tokens === 180 && u[0].ok === true && /estimado/.test(u[0].detalle), '7 · IA_USO: una fila «Voz · portero Jev» con el modelo, sus tokens y el precio marcado como estimado');
+  ok(sinLlave(c, r, ms), '7 · la llave no aparece en la respuesta, el cronómetro, IA_USO, los registros ni la caché'); }
+[['leer con confianza baja', [{ choice: 'leer', confianza: 0.6 }], /menos de 80/], ['hacer', [{ choice: 'hacer', confianza: 0.97 }], /Jev: hacer/], ['otro', [{ choice: 'otro', confianza: 0.9 }], /Jev: otro/]].forEach(([caso, jev, re]) => {
+  const c = conJev(jev); const { ms } = c.turno('¿Quién llega hoy?');
+  ok(c.jevs.length === 1 && c.de(RAPIDO).length === 0 && c.de(SONNET).length === 1 && ms.via === 'completo' && ms.portero === 'jev' && re.test(ms.motivo), '7 · Jev dice ' + caso + ': va al de siempre aunque las reglas digan leer (' + ms.motivo + ')');
+});
+{ const c = conJev([{ choice: 'leer', confianza: 0.99 }]); const { ms } = c.turno('Revisa la reserva de Mariana y escríbele que llegue a las 3');
+  ok(c.de(RAPIDO).length === 0 && c.de(SONNET).length === 1 && ms.portero === 'reglas' && /pide hacer algo/.test(ms.motivo) && c.jevs.length === 0, '7 · un verbo de hacer gana aunque Jev diga leer (ni se le pregunta: ' + ms.motivo + ')'); }
+[['sin JEV_KEY', { props: {} }], ['VOZ_JEV = 0', { props: { JEV_KEY: LLAVE, VOZ_JEV: '0' } }]].forEach(([caso, extra]) => {
+  const c = conJev([{ choice: 'hacer', confianza: 0.99 }], extra); const { ms } = c.turno(LEER);
+  ok(c.jevs.length === 0 && c.de(RAPIDO).length === 1 && ms.via === 'rapido' && ms.portero === 'reglas' && ms.motivo === 'leer', '7 · ' + caso + ': deciden las reglas de antes y Jev no se llama (' + (ms.jev_error || '') + ')');
+});
+[['error HTTP 401', { http: 401 }, /HTTP 401/], ['saturado (529)', { http: 529 }, /HTTP 529/], ['no responde', { lanza: 1 }, /no respondió/], ['JSON raro', { raro: 'json' }, /respuesta rara/], ['sin la respuesta «camino»', { raro: 1 }, /respuesta rara/],
+  ['tarda 2 s', { choice: 'leer', confianza: 0.99, tarda: 2000 }, /tardó/]].forEach(([caso, jev, re]) => {
+  const c = conJev([jev]); const { r, ms } = c.turno(LEER);
+  ok(c.jevs.length === 1 && c.de(RAPIDO).length === 1 && ms.via === 'rapido' && ms.portero === 'reglas' && ms.motivo === 'leer' && re.test(ms.jev_error), '7 · Jev ' + caso + ': deciden las reglas de antes (' + ms.jev_error + ')');
+  const c2 = conJev([jev]); const t2 = c2.turno('Hola, buenos días');
+  ok(c2.de(SONNET).length === 1 && t2.ms.portero === 'reglas' && /no es una pregunta/.test(t2.ms.motivo), '7 · Jev ' + caso + ': y lo que las reglas no ven de leer sigue al de siempre');
+  ok(c.usos.filter((u) => u.funcion === 'Voz · portero Jev').every((u) => u.ok === false) && sinLlave(c, r, ms), '7 · Jev ' + caso + ': IA_USO lo marca fallido y la llave no sale en ningún lado');
+});
+{ const c = conJev([{ choice: 'leer', confianza: 0.95, tarda: 1600 }, { choice: 'hacer', confianza: 0.99 }]); c.turno(LEER); const { ms } = c.turno(LEER);
+  ok(c.jevs.length === 1 && ms.portero === 'reglas' && ms.jev_error === 'en pausa' && c.cache.jev_pausa === '1', '7 · si Jev tardó de más, se apaga solo 10 min y la llamada siguiente no lo espera'); }
+{ const c = conJev([{ http: 500 }, { http: 500 }, { choice: 'leer', confianza: 0.95 }, { http: 500 }, { http: 500 }, { http: 500 }, { choice: 'hacer', confianza: 0.99 }]);
+  const malos = () => c.jevs.length;
+  c.turno(LEER); c.turno(LEER); const t3 = c.turno(LEER);   // dos fallos y uno bueno: vuelve a contar desde cero
+  ok(malos() === 3 && t3.ms.portero === 'jev' && !c.cache.jev_pausa && !c.cache.jev_fallos, '7 · un acierto de Jev borra los fallos seguidos');
+  c.turno(LEER); c.turno(LEER); c.turno(LEER); const t7 = c.turno(LEER);
+  ok(malos() === 6 && t7.ms.portero === 'reglas' && t7.ms.jev_error === 'en pausa' && c.cache.jev_pausa === '1', '7 · tres fallos seguidos lo apagan 10 min: el cuarto pedido ni lo llama');
+  ok(c.X.JEV_PAUSA_S_ === 600 && c.X.JEV_FALLOS_MAX_ === 3 && c.X.JEV_MS_MAX_ === 1500 && c.X.JEV_UMBRAL_ === 0.8, '7 · las cifras: umbral 0,8 · 1500 ms · 3 fallos · 10 min'); }
+{ const c = conJev([{ choice: 'leer', confianza: 0.9 }], { props: { JEV_KEY: LLAVE, JEV_MODELO: 'jev-latest' } }); c.turno('¿Quién llega al 1102? Su número es +00 1234 5678, correo nombre@dominio.test');
+  const st = c.jevs[0].cuerpo.state.pedido;
+  ok(c.jevs[0].cuerpo.model === 'jev-latest', '7 · JEV_MODELO cambia el modelo de Jev sin un PR');
+  ok(!/1234|5678|@|dominio/.test(st) && /\[teléfono\]/.test(st) && /\[correo\]/.test(st) && /1102/.test(st), '7 · a Jev no le llegan teléfonos ni correos (y sí el número del apartamento): «' + st + '»');
+  ok(c.X.jevLimpiar_('x'.repeat(2000)).length === 600, '7 · el pedido que va a Jev se corta a 600 letras'); }
+{ const c = caja({ props: { JEV_KEY: LLAVE }, jev: [{ choice: 'leer', confianza: 0.99 }] }); const { ms } = c.turno(LEER, { voz: false, canal: 'hub' });
+  ok(c.jevs.length === 0 && !ms.portero, '7 · fuera de la secretaria por voz Jev no se llama'); }
+{ const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), m = cod.match(/function precioIA_\(modelo\) \{[\s\S]*?\n\}/);
+  const precio = vm.runInContext('(' + m[0] + ')', vm.createContext({ PropertiesService: { getScriptProperties: () => ({ getProperty: () => null }) }, JSON, String, Object }));
+  ok(JSON.stringify(precio('jev-1.13.0')) === '[0.042,0]' && JSON.stringify(precio('jev-latest')) === '[0.042,0]', '7 · precioIA_: Jev a 0.042 USD por millón de entrada (estimado) y la salida sin costo');
+  const src = fs.readFileSync(path.join(DIR, 'rapido.js'), 'utf8');
+  ok(!/console\.[a-z]+\([^)]*\bkey\b/.test(src) && /split\(key\)\.join\('\*\*\*'\)/.test(src), '7 · rapido.js nunca registra la llave (y la tapa si un error la trae)'); }
 
 process.exit(fallo);

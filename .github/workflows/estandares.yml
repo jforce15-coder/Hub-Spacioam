@@ -192,3 +192,6 @@ jobs:
       - name: Pedidos en órbita, rápido cerca y largo lejos, check que se va, sin porcentajes ni datos sensibles y sin movimiento si se pide (dobles)
         # 13-nov: Juan quiere ver en el inicio lo que Alma sigue trabajando en segundo plano (#509 T3, prototipo «C · Órbita»).
         run: node .github/orbita.js apps-script
+      - name: Alma abre la conversación solo con un resultado de un pedido reciente del principal, una vez y sin datos sensibles (dobles)
+        # 13-nov: Juan quiere que Alma abra ella misma la conversación para contarle un resultado (#509 T4), sin gastar de más.
+        run: node .github/alma-abre.js apps-script

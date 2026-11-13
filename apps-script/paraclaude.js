@@ -130,6 +130,7 @@ function paraClaudeCrear_(adm, inp) {
   if (disparo.ok) { m.estado = MICRO_ESTADOS_.trabajo; m.ultima_pregunta = ''; m.opciones = []; if (disparo.url) m.sesion = disparo.url; }
   else if (!ajuste) m.estado = MICRO_ESTADOS_.trabajo;   // quedó en la lista (y en el issue); la tarjeta lo muestra igual
   try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); }
+  if (m.fila) { try { abrePedido_(adm && adm.email, m.id); } catch (e) { console.error('abrePedido_: ' + e); } }   // uno de sus pedidos recientes (almaabre.js)
   /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). micro: su microproyecto. */
   try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id, nivel]); }
   catch (e) { return { ok: false, error: 'No pude guardarlo: ' + e }; }
@@ -272,7 +273,7 @@ function paraClaudeRespuesta_(b) {
     /* En el chat con Alma de quien lo pidió (o del principal, para los pedidos viejos); cada mensaje empieza con la fecha. */
     var dest = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_() || DESARROLLO_;
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
-    if (esc !== 'unir') paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado);
+    if (esc !== 'unir') paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado, String(v[i][15] || ''));
     return { ok: true };
   } finally { lock.releaseLock(); }
 }
@@ -299,7 +300,8 @@ function paraClaudeAvisarTexto_(titulo, voz, estado) {
   var mas = a.datos.filter(function (d) { return !/^(Pedido|Dónde|Estado):/.test(d); });
   return a.texto + (mas.length ? ' ' + mas.join('. ') + '.' : '');
 }
-function paraClaudeAvisar_(titulo, voz, estado) {
+/* micro: su microproyecto, el pedido de la fila del que esto es resultado (Alma abre, almaabre.js). */
+function paraClaudeAvisar_(titulo, voz, estado, micro) {
   var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo|listo)$/.test(String(estado)) ? 2 : 3;
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   nov.push({ ts: new Date().toISOString(), titulo: titulo, voz: texto, estado: estado });
@@ -307,7 +309,7 @@ function paraClaudeAvisar_(titulo, voz, estado) {
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
     /* tema por retomar (solo lo que pide algo de Juan) y notificación en la app de iPhone */
-    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel }); } catch (e) {}
+    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel, pedidos: micro ? [String(micro)] : [] }); } catch (e) {}
     /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
     if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe) && nivel === 2) waEnviar_(jefe.wa || jefe.tels[0], texto + '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).');
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }

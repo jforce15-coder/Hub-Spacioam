@@ -113,12 +113,13 @@ function avisoTexto_(tipo, d) {
   out.texto = avisoSinDatos_(out.texto);
   out.voz = out.voz ? avisoSinDatos_(out.voz).replace(/([^.!?…])$/, '$1.') : '';
   out.datos = (out.datos || []).filter(Boolean).slice(0, 3);
+  out.tipo = tipo || '';   // Alma abre (almaabre.js): qué resultado es, por su tipo
   return out;
 }
 /* Pone la notificación con su forma humana: vozAvisoPoner_ (voz.js) con el texto, los datos y el título. o: lo de siempre
    (nivel, resultado, historial…). Devuelve el texto, para quien lo usa también en otro lado (tema por retomar, chat). */
 function avisoPoner_(adm, tipo, d, retId, o) {
   var a = avisoTexto_(tipo, d);
-  vozAvisoPoner_(adm, a.texto, retId, Object.assign({}, o || {}, { datos: a.datos, titulo: a.titulo, voz: a.voz }));
+  vozAvisoPoner_(adm, a.texto, retId, Object.assign({}, o || {}, { datos: a.datos, titulo: a.titulo, voz: a.voz, tipo: tipo }));
   return a.texto;
 }

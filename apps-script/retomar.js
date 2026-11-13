@@ -182,7 +182,7 @@ function vozSeguirPronto() {
     } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [], fallo: String(e).slice(0, 150) }; }
     finally { AGENTE_CANAL_ = ''; AGENTE_TEXTO_ = ''; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; ORBITA_ACTUAL_ = null; }
     try { orbitaTermina_(adm.email, [o.orb], r.fallo); } catch (e) { console.error('orbitaTermina_: ' + e); }
-    try { vozSecAvisar_(normTel_(adm.tels[0]), adm, r, o.pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
+    try { vozSecAvisar_(normTel_(adm.tels[0]), adm, r, o.pedido, [o.orb]); } catch (e) { console.error('vozSecAvisar_: ' + e); }
     try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // la tarjeta y su aviso ya, sin esperar al minuto de procesarCola
   }
 }

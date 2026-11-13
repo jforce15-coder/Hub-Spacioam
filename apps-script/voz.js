@@ -1357,27 +1357,36 @@ var VOZ_AVISOS_MAX_ = 10;
 function vozAvisoPoner_(adm, texto, retId, o) {
   o = o || {};
   if (!adm || !adm.email || !String(texto || '').trim()) return;
-  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(); lock.waitLock(10000);
+  var p = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock(), nuevo = null; lock.waitLock(10000);
   try {
     var t = {}; try { t = JSON.parse(p.getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
     var l = (t[adm.email] || []).filter(function (a) { return Date.now() - a.ts < 6 * 3600000; });
-    var nuevo = { id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) };
+    if (retId && l.some(function (a) { return String(a.id) === String(retId); })) return;
+    nuevo = { id: retId || 'av' + Date.now(), ts: Date.now(), texto: String(texto).replace(/\s+/g, ' ').trim().slice(0, 400) };
     if ([1, 2, 3].indexOf(Number(o.nivel)) >= 0) nuevo.nivel = Number(o.nivel);
     if (o.resultado) nuevo.resultado = true;   // terminó algo de segundo plano: en modo conferencia la app lo dice por voz en la llamada
     if (o.conferencia) nuevo.conferencia = true;   // lo pidió él en una llamada del modo conferencia: se dice y suena siempre (nivel 1, salvo «Silencio»)
-    if (retId && l.some(function (a) { return String(a.id) === String(retId); })) return;
+    /* Notificación humana (#509 T2, avisotexto.js): debajo de la frase de entrada, los datos ordenados (la app los pone
+       con viñetas, como las líneas de una tarjeta de Pendientes) y un título corto. */
+    var datos = (Array.isArray(o.datos) ? o.datos : []).map(function (d) { return String(d || '').replace(/\s+/g, ' ').trim().slice(0, 110); }).filter(Boolean).slice(0, 3);
+    if (datos.length) nuevo.datos = datos;
+    if (o.titulo) nuevo.titulo = String(o.titulo).replace(/\s+/g, ' ').trim().slice(0, 60);
+    if (o.voz) nuevo.voz = String(o.voz).replace(/\s+/g, ' ').trim().slice(0, 240);   // el detalle que se agrega al decirla
     l.push(nuevo);
     while (l.length > VOZ_AVISOS_MAX_) {
       var k = -1; l.forEach(function (a, i) { if (k < 0 && a.nivel === 3) k = i; });
       l.splice(k < 0 ? 0 : k, 1);
     }
     t[adm.email] = l; p.setProperty('VOZ_AVISOS', JSON.stringify(t));
-    if (o.historial === false) return;
-    /* Historial (botón «Notificaciones» de la app): la cola de arriba se vacía al entregarse; esta se queda 3 días. */
-    var hk = 'VOZ_AVISOS_H_' + retClave_(adm).slice(8), h = []; try { h = JSON.parse(p.getProperty(hk) || '[]'); } catch (e) {}
-    h = h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; });
-    if (!h.some(function (a) { return retId && String(a.id) === String(retId); })) { h.push(nuevo); p.setProperty(hk, JSON.stringify(h.slice(-30))); }
+    if (o.historial !== false) {
+      /* Historial (botón «Notificaciones» de la app): la cola de arriba se vacía al entregarse; esta se queda 3 días. */
+      var hk = 'VOZ_AVISOS_H_' + retClave_(adm).slice(8), h = []; try { h = JSON.parse(p.getProperty(hk) || '[]'); } catch (e) {}
+      h = h.filter(function (a) { return Date.now() - a.ts < 3 * 86400000; });
+      if (!h.some(function (a) { return retId && String(a.id) === String(retId); })) { h.push(nuevo); p.setProperty(hk, JSON.stringify(h.slice(-30))); }
+    }
   } finally { lock.releaseLock(); }
+  /* La voz lista antes (#509 T1, calle.js): su audio se arma en segundo plano, sin hacer esperar a quien la creó. */
+  if (nuevo) { try { avisoVozEncolar_(adm, nuevo); } catch (e) { console.error('avisoVozEncolar_: ' + e); } }
 }
 /* App de Alma: las notificaciones que ya llegaron (las últimas 30, de los últimos 3 días), la más nueva primero. */
 function vozNotificaciones_(ses) {
@@ -1390,7 +1399,7 @@ function vozAvisoCorto_(texto) {
   var s = String(texto || '').replace(/https?:\/\/\S+/g, '').replace(/[*_#>`]/g, '').replace(/\s+/g, ' ').trim();
   if (s.length <= 220) return s;
   var t = '';
-  try { t = String(claude_(CFG.MODELO_CLASIFICADOR, 120, 'Convierte este mensaje en un aviso hablado de 1 o 2 frases (máx. 30 palabras), en español, cálido y directo, como lo diría una asistente al oído. Sin enlaces ni listas. Devuelve solo el aviso.', s.slice(0, 3000), 0.3)).trim(); } catch (e) {}
+  try { t = String(claude_(CFG.MODELO_CLASIFICADOR, 120, 'Convierte este mensaje en un aviso hablado de 1 o 2 frases (máx. 30 palabras), en español simple, como se lo contarías a Juan en una conversación: primero qué pasó y después qué necesitas de él, con el dato clave (nombre, cifra o fecha). Sin enlaces, listas, teléfonos ni correos. Devuelve solo el aviso.', s.slice(0, 3000), 0.3)).trim(); } catch (e) {}
   return t || s.slice(0, 220).replace(/\s+\S*$/, '') + '…';
 }
 /* App de iPhone: los avisos nuevos (se muestran como notificación; se entregan una sola vez), cuántos temas hay por retomar
@@ -1410,10 +1419,11 @@ function vozAvisos_(ses, b) {
   var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
   /* La voz de Alma viene con el texto (avisosConVoz_, calle.js): la app la dice sin otra vuelta al Hub. */
   return { ok: true, avisos: avisosConVoz_(mios.map(function (a) {
-    var h = avisoHablarDe_(a, rets, pends), pd = callePendDeAviso_(pends, a.id);
+    var h = avisoHablarDe_(a, rets, pends, adm.nombre), pd = callePendDeAviso_(pends, a.id);
     var o = { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado };
     if (a.conferencia) o.conferencia = true;
     if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
+    else if (a.datos && a.datos.length) { o.titulo = String(a.titulo || ''); o.lineas = a.datos.slice(0, 3); }   // los datos ordenados del aviso (avisotexto.js)
     return o;
   }), b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
 }

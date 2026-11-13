@@ -193,7 +193,7 @@ function escalarUnir_(e) {
 function escalarNoUne_(e, adm, url, causa) {
   e.estado = 'no_unida'; e.causa = causa; e.fin = Date.now(); escalarGuardar_(e);
   try { accionCrear_('Unir el PR: ' + e.nombre, 'No lo uní sola: ' + causa + '. Revísalo y únelo cuando esté.', url, 'claude'); } catch (er) {}
-  escalarAvisar_(adm, e, 'No uní el cambio para «' + e.nombre + '»: ' + causa + '. ' + url, 2);
+  escalarAvisar_(adm, e, avisoTexto_('escalar_no_unido', { nombre: e.nombre, causa: causa, url: url }), 2);
   return 1;
 }
 /* La publicación: las revisiones del commit de cada unión (Actions, Publicar Apps Script, Pages). */
@@ -204,7 +204,7 @@ function escalarPublicacion_(e) {
     var ck = paraClaudeChecks_(inf.repo, inf.sha);
     if (ck && ck.fallas) {
       e.estado = 'fallo_pub'; e.fin = Date.now(); escalarGuardar_(e);
-      escalarAvisar_(adm, e, 'Uní el cambio para «' + e.nombre + '», pero falló al publicarse: ' + e.unidos[i], 2);
+      escalarAvisar_(adm, e, avisoTexto_('escalar_no_publico', { nombre: e.nombre, url: e.unidos[i] }), 2);
       return 1;
     }
     if (!ck || ck.corriendo || (!ck.total && Date.now() - Number(e.unido_t) < 180000)) return 0;
@@ -237,13 +237,16 @@ function escalarEntregar_(e) {
   e.estado = 'entregada'; e.fin = Date.now(); escalarGuardar_(e);
   try { opGuardar_(adm, 'alma', canal === 'segundo_plano' ? 'llamada' : canal, texto, hechas); } catch (er) { console.error('escalarEntregar_ chat: ' + er); }
   if (e.canal === 'whatsapp') escalarWhatsApp_(e, texto);
-  try { vozAvisoPoner_(adm, 'Ya está lo que pediste («' + e.nombre + '»): uní el cambio y te lo dejé en tu chat.', null, { nivel: 2 }); } catch (er) {}
+  try { avisoPoner_(adm, 'escalar_entregado', { nombre: e.nombre }, null, { nivel: 2 }); } catch (er) {}
   return 1;
 }
-function escalarAvisar_(adm, e, texto, nivel) {
-  try { opGuardar_(adm, 'alma', 'claude', texto, [], CHAT_DESARROLLO_); } catch (er) { console.error('escalarAvisar_ chat: ' + er); }
-  try { vozAvisoPoner_(adm, texto, null, { nivel: nivel || 2 }); } catch (er) {}
-  if (e && e.canal === 'whatsapp') escalarWhatsApp_(e, texto);
+/* aviso: el texto, o { texto, datos, titulo } de avisotexto.js (#509 T2): la entrada humana y, debajo, los datos. */
+function escalarAvisar_(adm, e, aviso, nivel) {
+  var a = typeof aviso === 'string' ? { texto: aviso, datos: [] } : aviso || { texto: '', datos: [] };
+  var conDatos = a.texto + ((a.datos || []).length ? '\n\n' + a.datos.map(function (d) { return '· ' + d; }).join('\n') : '');
+  try { opGuardar_(adm, 'alma', 'claude', conDatos, [], CHAT_DESARROLLO_); } catch (er) { console.error('escalarAvisar_ chat: ' + er); }
+  try { vozAvisoPoner_(adm, a.texto, null, { nivel: nivel || 2, datos: a.datos, titulo: a.titulo }); } catch (er) {}
+  if (e && e.canal === 'whatsapp') escalarWhatsApp_(e, conDatos);
 }
 /* Lo pidió por WhatsApp: el resultado y los avisos de su pedido vuelven por WhatsApp. */
 function escalarWhatsApp_(e, texto) {

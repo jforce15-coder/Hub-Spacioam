@@ -150,7 +150,7 @@ function avlTramo_(adm, a, calc, t, st, quienes, ahora) {
   var prog = Date.parse(t.llega), est = st.llega_est || prog, juan = String((adm && adm.nombre) || 'Juan').split(' ')[0];
   if (!st.aterrizo_ms && ahora > est + AVL_RENDIRSE_H_ * AVL_H_) {
     st.fin = 'sin_dato';
-    vozAvisoPoner_(adm, 'No supe a qué hora aterrizó el ' + t.vuelo + ': no le avisé a ' + avlLista_(quienes) + '.', 'avl:' + vueloVivoClave_(t) + ':sd', { nivel: 3 });
+    avisoPoner_(adm, 'vuelo_sin_hora', { vuelo: t.vuelo, quienes: avlLista_(quienes) }, 'avl:' + vueloVivoClave_(t) + ':sd', { nivel: 3 });
     return 0;
   }
   var cada = (st.aterrizo_ms || ahora >= est - 20 * AVL_MIN_ ? 3 : ahora < Date.parse(t.sale) ? 15 : 30) * AVL_MIN_ - 20000;
@@ -159,7 +159,7 @@ function avlTramo_(adm, a, calc, t, st, quienes, ahora) {
   var f = avlPreguntar_(calc, t) || {};
   if (f.cancelado) {
     st.fin = 'cancelado';
-    vozAvisoPoner_(adm, 'El proveedor dice que se canceló el ' + t.vuelo + '. No le avisé nada a ' + avlLista_(quienes) + '. ¿Le escribo?', 'avl:' + vueloVivoClave_(t) + ':cx', { nivel: 2 });
+    avisoPoner_(adm, 'vuelo_cancelado', { vuelo: t.vuelo, quienes: avlLista_(quienes) }, 'avl:' + vueloVivoClave_(t) + ':cx', { nivel: 2 });
     return 0;
   }
   /* 1 · Retraso: la nueva hora de llegada (solo antes de aterrizar y si falta más de 10 min). */
@@ -179,8 +179,7 @@ function avlTramo_(adm, a, calc, t, st, quienes, ahora) {
     st.aterrizo_ms = f.aterrizo_ms; st.aviso1 = ahora;
     var modos = avlMandarTodos_(adm, quienes, juan + ' acaba de aterrizar en ' + avlLugar_(t) + ', a las ' + avlHora_(t, f.aterrizo_ms) + '. En unos minutos te digo a qué hora calculo que sale.', st, t);
     var esperan = quienes.filter(function (q, i) { return modos[i] === 'plantilla' || modos[i] === 'pendiente'; });
-    vozAvisoPoner_(adm, 'Le avisé a ' + avlLista_(quienes) + ' que aterrizaste en ' + avlLugar_(t) + '.' +
-      (esperan.length ? ' ' + avlLista_(esperan) + ' no ha escrito en 24 h: le llega en cuanto conteste «¿Tienes un minuto?».' : ''), 'avl:' + vueloVivoClave_(t) + ':a1', { nivel: 3 });
+    avisoPoner_(adm, 'vuelo_aterrizo', { quienes: avlLista_(quienes), lugar: avlLugar_(t), esperan: esperan.length ? avlLista_(esperan) : '' }, 'avl:' + vueloVivoClave_(t) + ':a1', { nivel: 3 });
   }
   /* 3 · En la puerta (o 10 min después): cuánto tarda en salir, estimado con IA. */
   if (st.aviso1 && !st.aviso2 && (f.en_puerta_ms || ahora - st.aterrizo_ms >= AVL_PUERTA_MIN_ * AVL_MIN_)) {
@@ -282,6 +281,6 @@ function avlMandar_(adm, q, texto, st, t) {
   var r = { ok: false, error: '' };
   try { r = personalEnviar_(adm, q.nombre, q.wa, texto, '', '', ''); } catch (e) { r = { ok: false, error: String(e.message || e).slice(0, 200) }; }
   if (r.ok && r.modo === 'plantilla') st.plantilla[k] = Date.now();
-  if (!r.ok) vozAvisoPoner_(adm, 'No pude avisarle a ' + q.nombre + ' de tu vuelo ' + t.vuelo + ': ' + r.error, 'avl:' + vueloVivoClave_(t) + ':' + k + ':' + Date.now(), { nivel: 2 });
+  if (!r.ok) avisoPoner_(adm, 'vuelo_fallo', { nombre: q.nombre, vuelo: t.vuelo, error: r.error }, 'avl:' + vueloVivoClave_(t) + ':' + k + ':' + Date.now(), { nivel: 2 });
   return r.ok ? r.modo || 'texto' : 'error';
 }

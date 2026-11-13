@@ -290,7 +290,7 @@ function promesasRevisar_() {
   if (!venc.length) return;
   P.setProperty('PROM_ULT_AVISO', String(ahora));
   var lineas = venc.slice(-8).reverse().map(function (f) { return '· ' + (f.huesped || 'Huésped') + (f.propiedad ? ' (' + f.propiedad + ')' : '') + ': ' + String(f.que).slice(0, 140); });
-  try { var jefe = chatPrincipal_(); if (jefe) vozAvisoPoner_(jefe, (venc.length === 1 ? 'Hay una promesa a un huésped vencida' : 'Hay ' + venc.length + ' promesas a huéspedes vencidas') + ': ' + String(venc[venc.length - 1].que).slice(0, 80) + '.', '', { nivel: 1 }); } catch (e) {}   // notificación de nivel 1 (calle.js)
+  try { var jefe = chatPrincipal_(); if (jefe) avisoPoner_(jefe, 'promesa_vencida', { n: venc.length, que: venc[venc.length - 1].que }, '', { nivel: 1 }); } catch (e) {}   // notificación de nivel 1 (calle.js), con texto humano (avisotexto.js)
   try { escalar_('Promesas pendientes · ' + venc.length, 'Resumen de lo que ALMA prometió, sigue teniendo sentido y nadie cumplió (' + venc.length + '):\n\n' + lineas.join('\n') + (venc.length > 8 ? '\n· …y ' + (venc.length - 8) + ' más' : '') + '\n\nSe cierran solas cuando la conversación muestra que ya se cumplió (también lo que contesten directo en Hospitable o WhatsApp), al responderle desde el Hub o al marcar la conversación como resuelta. Próximo resumen en ' + cada + ' h como mínimo.\nhttps://hub.spacioam.com/', { sinWa: true }); } catch (e) { console.error('promesas resumen: ' + e); }
 }
 

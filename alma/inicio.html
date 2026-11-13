@@ -2799,8 +2799,9 @@
     c.appendChild(el); P.s[p.id] = x;
     return x;
   }
-  /* El ángulo actual de un anillo (radianes): contra las agujas del reloj, muy despacio; quieto con menos movimiento. */
-  function angulo(x, now) { return RM ? x.a0 : x.a0 - 2 * Math.PI * ((now - x.nace) / x.per); }
+  /* El ángulo actual de un anillo (radianes): conforme a las agujas del reloj (Juan, 13-nov-2026; en pantalla la «y» crece
+     hacia abajo, así que el ángulo sube), muy despacio; quieto con menos movimiento. */
+  function angulo(x, now) { return RM ? x.a0 : x.a0 + 2 * Math.PI * ((now - x.nace) / x.per); }
   /* Llega al lugar libre más lejos de los demás anillos, de las dos órbitas (para que ni ellos ni sus nombres nazcan encimados). */
   function lugar(x) {
     var now = performance.now(), otros = Object.keys(P.s).map(function (k) { return P.s[k]; }).filter(function (o) { return o !== x && !o.sale; }).map(function (o) { return angulo(o, now); });

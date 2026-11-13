@@ -3276,6 +3276,8 @@ function hubApi_(body) {
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));
+      case 'llaveEstado': return json_(llaveEstadoApi_(ses));                               // Ajustes → Llaves: si cada llave permitida está y sus 4 últimas letras, solo el principal con sesión (llaves.js)
+      case 'llaveGuardar': return json_(llaveGuardarApi_(ses, body.nombre, body.valor));      // { nombre, valor } → la guarda en las Propiedades del script; nunca devuelve el valor (llaves.js)
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
       case 'conferencia': return json_(conferencia_(ses, body));

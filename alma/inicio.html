@@ -162,6 +162,13 @@
   .fila input.nuevo { flex: 1; min-width: 0; height: 40px; border: .5px solid rgba(62,63,63,.18); border-radius: 12px; padding: 0 12px;
     font: 400 16px system-ui, sans-serif; color: #3E3F3F; background: rgba(255,255,255,.9); box-sizing: border-box; }
   .fila input.nuevo:focus-visible, .fila .quitar:focus-visible, .fila .agregar:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; }
+  /* Llaves (apps-script/llaves.js): cada llave permitida con su estado, y abajo el campo para guardarla (solo el principal) */
+  #l-llaves:not(:empty) + .fila { border-top: .5px solid rgba(62,63,63,.12); }
+  #l-llaves .fila { flex-wrap: wrap; row-gap: 2px; }
+  #l-llaves .fila > small { flex: 1 0 100%; font-size: 12px; line-height: 1.4; color: #8A8580; }
+  #l-llaves .va.falta { color: #D9583A; }
+  #l-llaves.cargando .va { opacity: .45; }
+  #n-llave.error { color: #D9583A; }
 
   /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
   /* z-index menor que el de la roca (--san-z 880 en js/sa-nav.js): las esferas salen y se esconden siempre DETRÁS del botón roca */
@@ -683,6 +690,13 @@
     <div class="pp-cab"><b>Para huéspedes</b><span class="v" id="pp-h-v">tope 20 %</span></div>
     <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
     <div class="pp-fija"><span>Modo Weebo</span><b id="pp-h-w">máximo 1 · chispa</b></div>
+  </div>
+  <p class="tit-g" id="t-llaves" hidden>Llaves</p>
+  <div class="grupo" id="g-llaves" hidden>
+    <div id="l-llaves"></div>
+    <div class="fila" id="f-llave-cual" hidden><span class="et n" id="et-llave">Cuál</span><span class="sel"><select id="s-llave" aria-labelledby="et-llave"></select></span></div>
+    <div class="fila"><input type="password" class="nuevo" id="i-llave" placeholder="Pega la llave" aria-label="Llave para guardar" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done"><button type="button" class="agregar" id="b-llave" disabled>Guardar</button></div>
+    <p class="nota-g" id="n-llave">Se guarda en el Hub. Nadie la vuelve a ver: aquí solo salen sus 4 últimas letras.</p>
   </div>
   <div class="grupo">
     <div class="fila" id="p-health-f" hidden><a href="../health/" id="a-health">Health</a><span class="va">›</span></div>
@@ -2194,6 +2208,80 @@
   };
   /* hub.spacioam.com/alma/inicio.html#ajustes-personalidad: Ajustes abiertos en esta sección (un enlace directo). */
   if (location.hash === "#ajustes-personalidad") setTimeout(function () { if (!ses()) return; $("b-ajustes").click(); setTimeout(function () { $("t-pers").scrollIntoView({ block: "start", behavior: "smooth" }); }, 500); }, 1200);
+})();
+</script>
+<script>
+/* ── Llaves (apps-script/llaves.js; Juan, 13-nov-2026, opción A) ───────────────────────────────────────────────────────
+   En Ajustes, solo el administrador principal: cada llave permitida con su estado («guardada · termina en ab12» o
+   «falta») y el campo para guardarla. La pantalla de Propiedades del script ya no deja agregar más. El valor sale de aquí
+   una sola vez, hacia el Hub: el campo se borra al enviar, no se guarda en el teléfono y el Hub nunca lo devuelve.
+   El Hub vuelve a comprobar que es el principal con su sesión. Bloque aparte: no toca el arranque del inicio. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var LL = { datos: null, guardando: false };
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function principal() {
+    try { var s = ses(); if (!s) return false; var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");
+      var j = JSON.parse(decodeURIComponent(escape(atob(c + "===".slice((c.length + 3) % 4))))) || {}, a = (j.p && j.p.apps) || j.apps || {};
+      return Object.keys(a).some(function (k) { return a[k] === "admin_principal"; });
+    } catch (e) { return false; }
+  }
+  /* El Hub, con la misma sesión y destino que usa ALMA (alma-client.js), sin tocar ese archivo. */
+  function hub(accion, extra) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: accion, token: d.token, session: ses() }, extra || {})) })
+      .then(function (r) { return r.json(); }).then(function (j) { if (window.SAAuth && SAAuth.checkResponse) SAAuth.checkResponse(j); return j; })
+      .catch(function () { return { ok: false, error: "red" }; });
+  }
+  function mostrar(on) { $("t-llaves").hidden = !on; $("g-llaves").hidden = !on; }
+  function estado(l) { return l.guardada ? "guardada · termina en " + l.termina_en : "falta"; }
+  function pintar() {
+    var L = (LL.datos && LL.datos.llaves) || [], lista = $("l-llaves"), sel = $("s-llave"), antes = sel.value;
+    lista.textContent = ""; sel.textContent = "";
+    L.forEach(function (l) {
+      var f = document.createElement("div"); f.className = "fila";
+      var et = document.createElement("span"); et.className = "et"; et.textContent = l.nombre;
+      var va = document.createElement("span"); va.className = "va" + (l.guardada ? "" : " falta"); va.textContent = estado(l);
+      var sm = document.createElement("small"); sm.textContent = l.para + (l.guardada && l.guardada_el ? " · guardada el " + l.guardada_el : "");
+      f.appendChild(et); f.appendChild(va); f.appendChild(sm); lista.appendChild(f);
+      var o = document.createElement("option"); o.value = l.nombre; o.textContent = l.nombre; sel.appendChild(o);
+    });
+    if (antes) sel.value = antes;
+    $("f-llave-cual").hidden = L.length < 2;   // con una sola llave no hace falta elegir
+    botonListo();
+  }
+  function nota(t, error) { var n = $("n-llave"); n.textContent = t; n.classList.toggle("error", !!error); if (error && window.SAMov && SAMov.sacudir) SAMov.sacudir(n); }
+  function botonListo() { $("b-llave").disabled = LL.guardando || !LL.datos || !$("i-llave").value.trim(); }
+  function cargar() {
+    if (!principal()) { mostrar(false); return; }
+    mostrar(true); $("l-llaves").classList.add("cargando");
+    hub("llaveEstado").then(function (r) {
+      $("l-llaves").classList.remove("cargando");
+      if (r && r.ok && Array.isArray(r.llaves)) { LL.datos = r; pintar(); }
+      else if (r && r.error !== "red" && r.error !== "no_url") mostrar(false);   // no es el principal: no se ve
+      else if (!LL.datos) nota("Sin conexión: no pude ver las llaves.", true);
+    });
+  }
+  function guardar() {
+    var i = $("i-llave"), v = i.value.trim(), L = (LL.datos && LL.datos.llaves) || [];
+    var nombre = L.length > 1 ? $("s-llave").value : (L[0] && L[0].nombre);
+    if (!v || !nombre || LL.guardando) return;
+    i.value = ""; LL.guardando = true; botonListo(); nota("Guardando…");
+    hub("llaveGuardar", { nombre: nombre, valor: v }).then(function (r) {
+      LL.guardando = false; v = "";
+      if (r && r.ok) {
+        L.forEach(function (l) { if (l.nombre === r.nombre) { l.guardada = true; l.termina_en = r.termina_en; l.guardada_el = r.guardada_el; } });
+        pintar(); nota("Listo, quedó guardada " + r.nombre + " · termina en " + r.termina_en + ".");
+      } else { botonListo(); nota(r && r.error === "red" ? "Sin conexión: no se guardó. Vuelve a pegarla." : "No se guardó" + (r && r.error ? ": " + r.error : "."), true); }
+    });
+  }
+  $("i-llave").oninput = botonListo;
+  $("i-llave").onkeydown = function (ev) { if (ev.key === "Enter") { ev.preventDefault(); guardar(); } };
+  $("b-llave").onclick = guardar;
+  $("b-ajustes").addEventListener("click", cargar);
 })();
 </script>
 <script>

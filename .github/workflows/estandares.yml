@@ -106,6 +106,10 @@ jobs:
         # Escribir va al de siempre; si el rápido no puede, pasa al de siempre; VOZ_RAPIDO = 0 lo apaga.
         run: node .github/voz-rapido.js apps-script
 
+      - name: Llaves desde Ajustes, solo el principal con sesión, solo la lista permitida y nunca devuelve el valor (dobles)
+        # 13-nov: la pantalla de Propiedades del script ya no deja agregar más (~50); Juan eligió guardarlas desde Ajustes (opción A).
+        run: node .github/llaves.js apps-script
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

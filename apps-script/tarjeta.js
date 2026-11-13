@@ -17,7 +17,10 @@
    · Consulta (inquiry): huésped, fechas, propiedad, su mensaje y el precio si lo hay; con un borrador, el texto que
      saldría. Mismas reglas que las demás.
    · Tablero bento (#508 T1): la reserva trae además cabeza y cuadros (tvCuadrosReserva_); la app nueva los acomoda con Alma
-     minimizada abajo a la derecha, y la app vieja sigue pintando la tarjeta con los campos de siempre. */
+     minimizada abajo a la derecha, y la app vieja sigue pintando la tarjeta con los campos de siempre.
+   · (#508 T2) El apartamento también (tvCuadrosApartamento_), y el edificio completo cuando se habla de él (tvEdificio_):
+     ver_propiedad con el nombre de un edificio («Brunelo») o con varias opciones del mismo edificio. Mismas fuentes: la
+     hoja, la caché del calendario y del catálogo, la de Epi y la de Hola; nada de Hospitable ni IA nueva. */
 
 var TV_CANDIDATA_ = null;
 var TV_SEG_ = 600, TV_LLAMADA_SEG_ = 21600;
@@ -27,6 +30,8 @@ var TV_CANAL_ = { airbnb: 'Airbnb', booking: 'Booking', vrbo: 'Vrbo', expedia: '
 /* Lo que parece un código, una clave o el wifi no entra a la tarjeta (ni su campo ni su texto). */
 var TV_SECRETO_CAMPO_ = /(code|codigo|código|clave|pass|pin\b|lock|cerradura|wifi|wi-fi|door|puerta_cod|token)/i;
 var TV_SECRETO_TEXTO_ = /(c[oó]digo|clave|contrase|password|passcode|\bpin\b|wi-?fi|cerradura)/i;
+/* Un teléfono (7 dígitos o más, con espacios, guiones o paréntesis) no sale en el tablero: de la recepción, solo el nombre. */
+var TV_TEL_ = /(\b(tel[eé]fono|tel|cel(ular)?|whats ?app|wa)\.?:?\s*)?\(?\+?\(?\d{1,4}\)?(?:[\s.-]?\(?\d{3,4}\)?)+/gi;
 
 /* agEjecutar_ deja la candidata del turno. tipo null = una lista: borra la de antes. hacer() arma la tarjeta solo si de
    verdad se va a mostrar (el apartamento lee la semana del calendario). */
@@ -99,6 +104,7 @@ function tvLineaChat_(celda) {
   if (o.tipo === 'reserva') return 'Tarjeta de la llamada · reserva de ' + (o.titulo || 'un huésped') + cod;
   if (o.tipo === 'conversacion') return 'Tarjeta de la llamada · conversación con ' + (o.titulo || 'un huésped') + cod;
   if (o.tipo === 'apartamento') return 'Tarjeta de la llamada · apartamento ' + (o.titulo || '');
+  if (o.tipo === 'edificio') return 'Tarjeta de la llamada · edificio ' + (o.titulo || '');
   if (o.tipo === 'consulta') return 'Tarjeta de la llamada · consulta de ' + (o.titulo || 'un interesado');
   return '';
 }
@@ -284,25 +290,30 @@ function tvConsulta_(ib, hilo, borrador) {
 }
 
 /* Apartamento: foto del anuncio, zona y edificio, cuartos, parqueo y portería, y la semana del calendario con los colores
-   del glosario («Colores del calendario»). Nunca códigos, claves ni wifi. */
+   del glosario («Colores del calendario»). Nunca códigos, claves, wifi ni teléfonos. */
 function tvApartamento_(nombre, j, plano) {
   nombre = tvTxt_(nombre); if (!nombre) return null;
   j = j || {}; plano = plano || {};
   var p = calpPartes_(nombre), std = (j.std && j.std.es) || {};
-  var limpio = function (campo, v, n) { v = tvTxt_(v, n || 90); return v && !tvSecreto_(campo, v) ? v : ''; };
+  var limpio = function (campo, v, n) { v = tvSinTel_(tvTxt_(v, n || 90)); return v && !tvSecreto_(campo, v) ? v : ''; };
   var deCampo = function (re, n) { var k = Object.keys(plano).filter(function (x) { return re.test(x) && !tvSecreto_(x, plano[x]) && tvTxt_(plano[x]); })[0]; return k ? limpio(k, plano[k], n) : ''; };
   var cuartos = deCampo(/(bedroom|habitaci|dormitor|cuartos|recamar)/i, 30);
   var parqueo = limpio('parking', std.parking, 110) || deCampo(/(parqueo|parking|estacionamiento)/i, 110);
   var porteria = deCampo(/(porter|lobby|recepci|garita|conserje|concierge|seguridad)/i, 90);
-  var datos = [cuartos ? (/^\d+$/.test(cuartos) ? cuartos + (cuartos === '1' ? ' habitación' : ' habitaciones') : cuartos) : '', parqueo ? 'Parqueo: ' + parqueo : '', porteria ? 'Portería: ' + porteria : ''].filter(Boolean);
-  var foto = tvFotoProp_(nombre) || deCampo(/(picture|photo|foto|imagen|image)/i, 400);
+  var hab = cuartos ? (/^\d+$/.test(cuartos) ? cuartos + (cuartos === '1' ? ' habitación' : ' habitaciones') : cuartos) : '';
+  var datos = [hab, parqueo ? 'Parqueo: ' + parqueo : '', porteria ? 'Portería: ' + porteria : ''].filter(Boolean);
+  var fotos = tvFotosLeidas_(j), foto = tvFotoProp_(nombre) || fotos[0] || '';
+  var est = tvEstadias_(), semana = tvSemana_(nombre, est);
   return {
     tipo: 'apartamento', clave: 'apartamento:' + calpClave_(nombre), ref: nombre, etiqueta: 'Apartamento' + (p.zona && p.zona !== 'Otras' ? ' · ' + p.zona : ''),
     titulo: p.corto || nombre, sub: [p.zona !== 'Otras' ? p.zona : '', p.edificio].filter(Boolean).join(' · '), chip: '', tono: '',
-    foto: /^https:\/\//.test(foto) ? foto : '', iniciales: tvIniciales_(p.edificio || nombre),
-    fechas: [], datos: datos, mensajes: [], promesas: [], semana: tvSemana_(nombre),
+    foto: foto, iniciales: tvIniciales_(p.edificio || nombre),
+    fechas: [], datos: datos, mensajes: [], promesas: [], semana: semana,
     detalle: [limpio('arrivalIntro', std.arrivalIntro, 220)].filter(Boolean), conv: '', tel: '', wa: '',
-    resumen: 'la ficha de ' + (p.corto || nombre) + ' y su semana del calendario'
+    resumen: 'la ficha de ' + (p.corto || nombre) + ' y su semana del calendario',
+    /* Tablero bento (#508 T2): la app nueva pinta estos cuadros; la vieja sigue con los campos de arriba. */
+    cabeza: p.corto || nombre,
+    cuadros: tvCuadrosApartamento_(nombre, { foto: foto, fotos: fotos, est: est, semana: semana, hab: hab, parqueo: parqueo, porteria: porteria })
   };
 }
 /* La foto del anuncio sale del catálogo de Hospitable que ya guardó el calendario de propiedades (sin llamarlo). */
@@ -314,11 +325,9 @@ function tvFotoProp_(nombre) {
   } catch (e) { return ''; }
 }
 /* Siete noches desde hoy: res (reservado, azul) · con (consulta o solicitud, amarillo) · bloq (bloqueado, rojo) · libre (verde). */
-function tvSemana_(nombre) {
-  var hoy = tvHoy_(), fin = tvMasDias_(hoy, 7), k = calpClave_(nombre), est = null;
-  try { var base = JSON.parse(CacheService.getScriptCache().get('calp_base_' + hoy) || 'null'); if (base && base.estadias) est = base.estadias; } catch (e) {}
-  if (!est) est = calpEstadias_(hoy, fin);
-  est = est.filter(function (e) { return calpClave_(e.propiedad) === k; });
+function tvSemana_(nombre, est) {
+  var hoy = tvHoy_(), k = calpClave_(nombre);
+  est = (est || tvEstadias_()).filter(function (e) { return calpClave_(e.propiedad) === k; });
   var bl = (calpBloqueos_([nombre])[k] || {}).d || [];
   var out = [];
   for (var i = 0; i < 7; i++) {
@@ -329,4 +338,187 @@ function tvSemana_(nombre) {
     out.push({ f: f, letra: TV_LETRA_[d.getUTCDay()], n: d.getUTCDate(), e: e, hoy: i === 0 });
   }
   return out;
+}
+
+/* ── Tablero bento del apartamento y del edificio (#508 T2) ─────────────────────────────────────────────────────────────
+   Mismo formato que la reserva (tipo, tam, prioridad); la app los acomoda igual. Dos tipos nuevos de cuadro:
+   · semana (ancho): las 7 noches desde hoy con los colores del calendario, como la ficha de siempre.
+   · lista (ancho): renglones cortos { t (etiqueta), v, d, tono, foto? } (pendientes, llegadas y salidas de hoy).
+   · galeria (ancho): 2 o 3 fotos más del anuncio, solo si ya venían en lo que leyó la herramienta (info_json).
+   Juan (13-nov): lo que más importa son las fotos. La de la propiedad siempre que exista (catálogo, o la primera que trajo la
+   herramienta) y la del huésped (ALMA_INBOX) en quien está hoy, quien llega y quien sale.
+   Fuentes, sin llamar a nadie: hoja Reservas o la caché del calendario (estadías), catálogo guardado (foto y coordenadas),
+   hoja de promesas, caché de Epi (tareas) y caché de Hola o RECEP_NUMS (si el edificio tiene recepción: solo su nombre).
+   Nunca códigos, claves, wifi ni teléfonos (tvSecreto_, tvSinTel_). */
+function tvSinTel_(t) {
+  return tvTxt_(String(t || '').replace(TV_TEL_, function (m) { return m.replace(/\D/g, '').length >= 7 ? ' ' : m; }))
+    .replace(/\s+([,.;:)])/g, '$1').replace(/\(\s*\)/g, '').replace(/[\s(:,;-]+$/, '').trim();
+}
+/* Las fotos del anuncio que ya trajo la herramienta (info_json de la hoja Propiedades): las direcciones https dentro de un
+   campo de foto, en su orden. Sin llamar a Hospitable. */
+function tvFotosLeidas_(j) {
+  var out = [];
+  (function rec(v, foto) {
+    if (out.length >= 8 || v === null || v === undefined) return;
+    if (typeof v === 'string') { if (foto && /^https:\/\/[^\s"'<>]+$/.test(v.trim()) && out.indexOf(v.trim()) < 0) out.push(v.trim()); return; }
+    if (Array.isArray(v)) { v.forEach(function (x) { rec(x, foto); }); return; }
+    if (typeof v === 'object') Object.keys(v).forEach(function (k) { if (!TV_SECRETO_CAMPO_.test(k)) rec(v[k], foto || /(picture|photo|foto|imagen|image|thumbnail)/i.test(k)); });
+  })(j || {}, false);
+  return out;
+}
+/* La foto del huésped (bandeja; viene de Hospitable y ya está guardada): por el código de la reserva o la conversación. */
+function tvFotoHuesped_(x, inbox) {
+  if (!x) return '';
+  var cod = String(x.codigo || '').toUpperCase(), conv = String(x.conv || '');
+  var ib = (inbox || []).filter(function (y) { return (cod && String(y.codigo || '').toUpperCase() === cod) || (conv && String(y.conv_id) === conv); })[0];
+  return ib && /^https:\/\/[^\s"'<>]+$/.test(String(ib.foto || '')) ? String(ib.foto) : '';
+}
+function tvInbox_() { try { return typeof hubInbox_ === 'function' ? hubInbox_() : []; } catch (e) { console.error('tvInbox_: ' + e); return []; } }
+/* Las estadías que ya juntó el calendario de propiedades (caché de 5 min) o, sin ella, la hoja Reservas y la bandeja. */
+function tvEstadias_() {
+  var hoy = tvHoy_(), est = null;
+  try { var base = JSON.parse(CacheService.getScriptCache().get('calp_base_' + hoy) || 'null'); if (base && base.estadias) est = base.estadias; } catch (e) {}
+  return est || calpEstadias_(tvMasDias_(hoy, -1), tvMasDias_(hoy, 60));
+}
+/* Quién está, quién llega y quién sale en un grupo de propiedades (claves de calpClave_). Las consultas no cuentan. */
+function tvMovimientos_(claves, est) {
+  var hoy = tvHoy_(), r = (est || []).filter(function (e) { return e && e.tipo !== 'consulta' && claves[calpClave_(e.propiedad)]; });
+  var por = function (a, b) { return a.checkin < b.checkin ? -1 : a.checkin > b.checkin ? 1 : 0; };
+  return { hoy: hoy, dentro: r.filter(function (e) { return e.checkin <= hoy && hoy < e.checkout; }).sort(por),
+    llegan: r.filter(function (e) { return e.checkin === hoy; }).sort(por), salen: r.filter(function (e) { return e.checkout === hoy; }).sort(por),
+    manana: { llegan: r.filter(function (e) { return e.checkin === tvMasDias_(hoy, 1); }).length, salen: r.filter(function (e) { return e.checkout === tvMasDias_(hoy, 1); }).length },
+    proxima: r.filter(function (e) { return e.checkin > hoy; }).sort(por)[0] || null };
+}
+/* «Hoy» · «Mañana» · «vie 14 nov». */
+function tvCuando_(f) { var hoy = tvHoy_(); f = String(f || '').slice(0, 10); return f === hoy ? 'Hoy' : f === tvMasDias_(hoy, 1) ? 'Mañana' : tvFecha_(f); }
+function tvQuien_(x) { return tvTxt_(x && x.huesped, 28) || (x && x.tipo === 'solicitud' ? 'Solicitud' : 'Un huésped'); }
+/* Las claves con que otras hojas nombran al apartamento: «Z10 - Brunelo - 1203» y «Brunelo 1203». */
+function tvClavesProp_(nombre) { var o = {}, p = calpPartes_(nombre); o[calpClave_(nombre)] = 1; if (p.unidad) o[calpClave_(p.corto)] = 1; return o; }
+
+function tvCuadrosApartamento_(nombre, o) {
+  o = o || {};
+  var p = calpPartes_(nombre), cl = tvClavesProp_(nombre), m = tvMovimientos_(cl, o.est), sem = o.semana || [], out = [];
+  var e0 = sem[0] ? sem[0].e : 'libre', dentro = m.dentro[0] || null, sale = m.salen[0] || null;
+  var inbox = dentro || m.proxima || sale ? tvInbox_() : [], fd = tvFotoHuesped_(dentro, inbox), fp = tvFotoHuesped_(m.proxima, inbox), fs = tvFotoHuesped_(sale, inbox);
+  var chip = dentro ? (dentro.tipo === 'solicitud' ? 'Por aprobar' : 'Ocupado') : e0 === 'bloq' ? 'Bloqueado' : e0 === 'con' ? 'Consulta' : 'Libre hoy';
+  var tono = dentro ? (dentro.tipo === 'solicitud' ? 'aviso' : 'info') : e0 === 'bloq' ? 'alerta' : e0 === 'con' ? 'aviso' : 'libre';
+  out.push({ id: 'foto', tipo: 'foto', tam: o.foto ? 'alto' : 'm', prioridad: 1, fondo: o.foto || '', de: o.foto ? 'propiedad' : '',
+    iniciales: p.unidad && p.unidad.length <= 5 ? p.unidad : tvIniciales_(p.edificio || nombre), alt: o.foto ? 'Foto de ' + (p.corto || nombre) : '', chip: chip, tono: tono });
+  /* La foto del huésped va en su cuadro (hoy, llegada, salida), no repetida encima de la del apartamento. */
+  if (dentro) out.push({ id: 'hoy', tipo: 'dato', tam: 's', prioridad: 2, k: dentro.checkin === m.hoy ? 'Llega hoy' : 'Hoy está', v: tvQuien_(dentro), foto: fd, iniciales: tvIniciales_(dentro.huesped),
+    d: 'sale ' + tvCuando_(dentro.checkout).replace(/^(Hoy|Mañana)$/, function (x) { return x.toLowerCase(); }) + ' · ' + tvNoches_(dentro.checkin, dentro.checkout) + ' noches' });
+  if (m.proxima) out.push({ id: 'llegada', tipo: 'dato', tam: 's', prioridad: 3, k: 'Llega', v: tvCuando_(m.proxima.checkin), foto: fp, iniciales: tvIniciales_(m.proxima.huesped),
+    d: tvQuien_(m.proxima) + ' · ' + tvNoches_(m.proxima.checkin, m.proxima.checkout) + ' noches' });
+  if (sale || dentro) out.push({ id: 'salida', tipo: 'dato', tam: 's', prioridad: 4, k: sale ? 'Sale hoy' : 'Sale', v: sale ? tvQuien_(sale) : tvCuando_(dentro.checkout), foto: sale ? fs : '', iniciales: sale ? tvIniciales_(sale.huesped) : '',
+    d: sale ? (sale.tipo === 'solicitud' ? 'solicitud' : 'check-out hoy') : tvQuien_(dentro) });
+  if (sem.length) {
+    var oc = sem.filter(function (d) { return d.e === 'res'; }).length;
+    out.push({ id: 'semana', tipo: 'semana', tam: 'ancho', prioridad: 5, k: 'Esta semana', d: oc ? oc + ' de 7 noches reservadas' : 'Libre toda la semana',
+      dias: sem.map(function (d) { return { letra: d.letra, n: d.n, e: d.e, hoy: !!d.hoy }; }) });
+  }
+  var gal = (o.fotos || []).filter(function (u) { return u !== o.foto; }).slice(0, 3);
+  if (o.foto && gal.length >= 2) out.push({ id: 'galeria', tipo: 'galeria', tam: 'ancho', prioridad: 6, fotos: gal, alt: 'Más fotos de ' + (p.corto || nombre) });
+  var pend = tvPendientes_(cl);
+  if (pend.length) out.push({ id: 'pendientes', tipo: 'lista', tam: 'ancho', prioridad: 6, k: 'Pendientes', chip: String(pend.length), items: tvRecortar_(pend, 3) });
+  var co = tvCoords_(nombre);
+  if (co) out.push({ id: 'mapa', tipo: 'mapa', tam: 'm', prioridad: 7, lat: co.lat, lng: co.lng, lugar: tvLugar_(nombre) });
+  var rec = tvRecepcion_([nombre]);
+  if (rec) out.push({ id: 'recepcion', tipo: 'dato', tam: 'm', prioridad: 8, k: 'Recepción', v: rec, d: o.porteria || 'Le escribe Alma' });
+  var ficha = [o.hab, o.parqueo ? 'Parqueo: ' + o.parqueo : '', !rec && o.porteria ? 'Portería: ' + o.porteria : ''].filter(Boolean);
+  if (ficha.length) out.push({ id: 'ficha', tipo: 'resumen', tam: 'm', prioridad: 9, k: 'El apartamento', texto: ficha.join('. ').replace(/\.?$/, '.') });
+  return out;
+}
+/* Promesas abiertas (hoja de promesas) y tareas abiertas (la caché de Epi que ya guardó Alma) de esas propiedades. */
+function tvPendientes_(claves) {
+  var out = [], vence = function (v) { v = tvTxt_(v); return /^\d{4}-\d\d-\d\dT/.test(v) ? tvHora_(v) : tvTxt_(v, 16); };
+  try {
+    if (typeof hubPromesas_ === 'function') (hubPromesas_(false).promesas || []).forEach(function (x) {
+      if (!claves[calpClave_(x.propiedad)] || !tvTxt_(x.que) || tvSecreto_('', x.que)) return;
+      out.push({ t: x.estado === 'vencida' ? 'Vencida' : 'Promesa', v: tvSinTel_(tvTxt_(x.que, 90)), d: vence(x.vence) ? 'vence ' + vence(x.vence) : '', tono: x.estado === 'vencida' ? 'alerta' : 'aviso' });
+    });
+  } catch (e) { console.error('tvPendientes_ promesas: ' + e); }
+  try {
+    var sn = JSON.parse(CacheService.getScriptCache().get('episnap') || 'null');
+    ((sn && sn.tareas) || []).forEach(function (t) {
+      if (!t || t.hecha || !claves[calpClave_(t.prop)] || !tvTxt_(t.texto) || tvSecreto_('', t.texto)) return;
+      out.push({ t: 'Tarea', v: tvSinTel_(tvTxt_(t.texto, 90)), d: [tvTxt_(t.quien, 20), vence(t.vence) ? 'vence ' + vence(t.vence) : ''].filter(Boolean).join(' · '), tono: '' });
+    });
+  } catch (e) { console.error('tvPendientes_ tareas: ' + e); }
+  return out;
+}
+function tvRecortar_(items, n) { return items.length <= n ? items : items.slice(0, n - 1).concat([{ t: '', v: 'y ' + (items.length - n + 1) + ' más', d: '', tono: '' }]); }
+/* ¿El edificio tiene recepción? Lo sabe Hola (la caché recep_nums) o RECEP_NUMS. Devuelve SOLO el nombre del edificio. */
+function tvRecepcion_(nombres) {
+  var m = {};
+  try { m = JSON.parse(CacheService.getScriptCache().get('recep_nums') || '{}') || {}; } catch (e) {}
+  try { if (typeof PropertiesService !== 'undefined') { var x = JSON.parse(PropertiesService.getScriptProperties().getProperty('RECEP_NUMS') || '{}'); Object.keys(x).forEach(function (k) { m[k] = x[k]; }); } } catch (e) {}
+  var claves = {}, eds = {};
+  (nombres || []).forEach(function (n) { claves[calpClave_(n)] = 1; var p = calpPartes_(n); if (p.edificio) eds[calpClave_(p.edificio)] = p.edificio; });
+  var hit = Object.keys(m).map(function (k) { return m[k]; }).filter(function (r) {
+    var pr = String((r && r.prop) || ''), pp = calpPartes_(pr); return pr && (claves[calpClave_(pr)] || eds[calpClave_(pp.edificio)] || eds[calpClave_(pr)]);
+  })[0];
+  if (!hit) return '';
+  var pp = calpPartes_(hit.prop);
+  return tvSinTel_(eds[calpClave_(pp.edificio)] || eds[calpClave_(hit.prop)] || pp.edificio || hit.prop);
+}
+
+/* ¿Se habla del edificio completo? texto: lo que se pidió («Brunelo», «edificio Brunelo», «Z10 Brunelo»); nombres: lo que
+   trajo la herramienta (opciones, todas del mismo edificio); todos: las propiedades de la hoja. Con 2 o más apartamentos
+   devuelve { zona, edificio, props }; si no, null. */
+function tvEdificioDe_(texto, nombres, todos) {
+  var grupos = {};
+  (todos || []).forEach(function (n) {
+    n = tvTxt_(n); var p = calpPartes_(n); if (!n || !p.unidad) return;
+    var g = calpClave_(p.zona + ' ' + p.edificio); (grupos[g] = grupos[g] || { zona: p.zona, edificio: p.edificio, props: [] }).props.push(n);
+  });
+  var q = calpClave_(texto), q2 = calpClave_(String(texto || '').replace(/\b(el|edificio)\b/gi, ' ')), elegido = null;
+  if (q) Object.keys(grupos).forEach(function (g) {
+    var e = calpClave_(grupos[g].edificio);
+    if ((g === q || g === q2 || e === q || e === q2) && (!elegido || grupos[g].props.length > elegido.props.length)) elegido = grupos[g];
+  });
+  if (!elegido && (nombres || []).length >= 2) {
+    var gs = nombres.map(function (n) { var p = calpPartes_(n); return p.unidad ? calpClave_(p.zona + ' ' + p.edificio) : ''; });
+    if (gs[0] && gs.every(function (g) { return g === gs[0]; })) elegido = grupos[gs[0]] || null;
+  }
+  if (!elegido || elegido.props.length < 2) return null;
+  return { zona: elegido.zona, edificio: elegido.edificio, props: elegido.props.slice().sort() };
+}
+/* El tablero del edificio: foto (la primera propiedad con foto), cuántos apartamentos, llegadas y salidas de hoy, mapa. */
+function tvEdificio_(e) {
+  if (!e || !e.props || e.props.length < 2) return null;
+  var claves = {}; e.props.forEach(function (n) { Object.keys(tvClavesProp_(n)).forEach(function (k) { claves[k] = 1; }); });
+  var m = tvMovimientos_(claves, tvEstadias_()), N = e.props.length, ocup = {};
+  m.dentro.forEach(function (x) { ocup[calpClave_(x.propiedad)] = 1; });
+  var nOcup = Object.keys(ocup).length, zona = e.zona && e.zona !== 'Otras' ? e.zona : '';
+  var nombre = /^(edificio|torre|residencial|condominio)\b/i.test(e.edificio) ? e.edificio : 'Edificio ' + e.edificio;
+  var foto = '', co = null;
+  e.props.some(function (n) { foto = tvFotoProp_(n); return !!foto; });
+  e.props.some(function (n) { co = tvCoords_(n); return !!co; });
+  var uni = function (x) { return calpPartes_(x.propiedad).unidad || tvLugar_(x.propiedad); };
+  var unis = function (xs) { var u = []; xs.forEach(function (x) { if (u.indexOf(uni(x)) < 0) u.push(uni(x)); }); return u.length > 4 ? u.slice(0, 3).join(' · ') + ' y ' + (u.length - 3) + ' más' : u.join(' · '); };
+  var cuenta = function (n, uno, varios) { return n === 1 ? '1 ' + uno : n + ' ' + varios; };
+  var cuadros = [
+    { id: 'foto', tipo: 'foto', tam: foto ? 'alto' : 'm', prioridad: 1, fondo: foto, de: foto ? 'propiedad' : '', iniciales: tvIniciales_(e.edificio), alt: foto ? 'Foto de ' + nombre : '', chip: zona, tono: 'info' },
+    { id: 'apartamentos', tipo: 'dato', tam: 's', prioridad: 2, k: 'Apartamentos', v: String(N), d: nOcup ? nOcup + ' ocupados esta noche' : 'Todos libres esta noche' },
+    { id: 'llegadas', tipo: 'dato', tam: 's', prioridad: 3, k: 'Llegadas hoy', v: m.llegan.length ? String(m.llegan.length) : 'Ninguna', d: unis(m.llegan) },
+    { id: 'salidas', tipo: 'dato', tam: 's', prioridad: 4, k: 'Salidas hoy', v: m.salen.length ? String(m.salen.length) : 'Ninguna', d: unis(m.salen) }
+  ];
+  var inbox = m.llegan.length || m.salen.length ? tvInbox_() : [];
+  var mov = m.llegan.map(function (x) { return { t: 'Llega', v: uni(x) + ' · ' + tvQuien_(x), d: tvNoches_(x.checkin, x.checkout) + ' noches', tono: 'info', foto: tvFotoHuesped_(x, inbox), iniciales: tvIniciales_(x.huesped) }; })
+    .concat(m.salen.map(function (x) { return { t: 'Sale', v: uni(x) + ' · ' + tvQuien_(x), d: '', tono: '', foto: tvFotoHuesped_(x, inbox), iniciales: tvIniciales_(x.huesped) }; }));
+  if (mov.length) cuadros.push({ id: 'hoy', tipo: 'lista', tam: 'ancho', prioridad: 5, k: 'Hoy en el edificio', chip: String(mov.length), items: tvRecortar_(mov, 5) });
+  if (co) cuadros.push({ id: 'mapa', tipo: 'mapa', tam: 'm', prioridad: 6, lat: co.lat, lng: co.lng, lugar: [zona, e.edificio].filter(Boolean).join(' · ') });
+  var rec = tvRecepcion_(e.props);
+  if (rec) cuadros.push({ id: 'recepcion', tipo: 'dato', tam: 'm', prioridad: 7, k: 'Recepción', v: rec, d: 'Le escribe Alma' });
+  var mn = m.manana;
+  cuadros.push({ id: 'resumen', tipo: 'resumen', tam: 'm', prioridad: 8, k: 'Mañana',
+    texto: !mn.llegan && !mn.salen ? 'Sin llegadas ni salidas.' : [mn.llegan ? cuenta(mn.llegan, 'llegada', 'llegadas') : '', mn.salen ? cuenta(mn.salen, 'salida', 'salidas') : ''].filter(Boolean).join(' y ') + '.' });
+  return {
+    tipo: 'edificio', clave: 'edificio:' + calpClave_(e.zona + ' ' + e.edificio), ref: e.edificio, etiqueta: 'Edificio' + (zona ? ' · ' + zona : ''),
+    titulo: nombre, sub: [zona, N + ' apartamentos'].filter(Boolean).join(' · '), chip: '', tono: '',
+    foto: foto, iniciales: tvIniciales_(e.edificio), fechas: [], mensajes: [], promesas: [], semana: [], detalle: [], conv: '', tel: '', wa: '',
+    datos: [N + ' apartamentos', nOcup + ' ocupados esta noche', m.llegan.length ? cuenta(m.llegan.length, 'llegada hoy', 'llegadas hoy') : 'Sin llegadas hoy', m.salen.length ? cuenta(m.salen.length, 'salida hoy', 'salidas hoy') : 'Sin salidas hoy'],
+    resumen: 'el ' + nombre.charAt(0).toLowerCase() + nombre.slice(1) + ' (apartamentos, llegadas y salidas de hoy)',
+    cabeza: nombre, cuadros: cuadros
+  };
 }

@@ -10,6 +10,10 @@
    8. Tablero bento de la reserva (#508 T1): los cuadros esperados con la reserva completa; sin pago, sin mensaje por
       responder, sin foto o sin mapa, ese cuadro no va y los demás crecen (el acomodo de alma/inicio.html); nunca códigos
       ni claves; la app vieja sigue con los campos de siempre y la nueva, sin cuadros, pinta la tarjeta de siempre.
+   9. Tablero bento del apartamento y del edificio (#508 T2): el apartamento completo (foto real con la del huésped de hoy,
+      quién está, próxima llegada y salida con sus fotos, semana, galería, pendientes, mapa, recepción y ficha); sin foto ni
+      coordenadas; el edificio («Brunelo» o varias opciones del mismo edificio): foto, apartamentos, llegadas y salidas de hoy
+      y mapa; nunca códigos, claves, wifi ni teléfonos; la app vieja sigue con sus campos y pinta la foto del edificio.
    node .github/tarjeta-llamada.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -36,6 +40,7 @@ function caja(o) {
     fin8_: (t) => String(t || '').replace(/\D/g, '').slice(-8),
     leerTabla_: () => o.reservas || [],
     hubInbox_: () => o.inbox || [],
+    hubPromesas_: o.promesas ? () => ({ ok: true, promesas: o.promesas }) : undefined,
     vozWebAdmin_: (ses) => (ses && ses.email === 'juan@spacioam.com' ? { email: ses.email, tels: ['50255550101'], principal: true } : null),
     vozWebTel_: (conv) => (conv === 'conv-app' || conv === 'conv-hub' ? '50255550101' : conv === 'conv-otro' ? '50255559999' : ''),
     adminPorTel_: (tel) => (String(tel).slice(-8) === '55550101' ? { email: 'juan@spacioam.com', tels: ['50255550101'], principal: true } : null),
@@ -206,6 +211,87 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
   ok(/function esBento\(t\) \{ return !!\(t && Array\.isArray\(t\.cuadros\)/.test(html) && /else if \(abierta && !tapada\(\)\) \{\s*var u = ui\(\)/.test(html), '8 · app nueva con un Hub viejo (sin cuadros): pinta la tarjeta de siempre');
   const nav = fs.readFileSync(path.join(DIR, '..', 'js', 'sa-nav.js'), 'utf8');
   ok(/x: VW\(\) \* \(eo && eo\.x \|\| \.5\)/.test(nav) && /AL\.escO && typeof AL\.escO\.tocar === "function"/.test(nav), '8 · sa-nav: la roca va a la esquina (x) y tocarla en plena llamada avisa al tablero (tocar)');
+}
+
+/* 9 · tablero bento del apartamento y del edificio */
+{ const AP = 'Z10 - Brunelo - 1203', AP2 = 'Z10 - Brunelo - 705', AP3 = 'Z10 - Brunelo - 902', OTRA = 'Z14 - Torre Demo - 804';
+  const EST = [
+    { propiedad: AP, checkin: '2026-11-02', checkout: '2026-11-06', huesped: 'Ana Prueba', tipo: 'reserva', codigo: 'HMPRUEBA01' },
+    { propiedad: AP, checkin: '2026-11-08', checkout: '2026-11-10', huesped: 'Luis Ejemplo', tipo: 'reserva', codigo: 'HMPRUEBA02' },
+    { propiedad: AP, checkin: '2026-11-11', checkout: '2026-11-12', huesped: 'Consulta X', tipo: 'consulta', conv: 'inq:1' },
+    { propiedad: AP2, checkin: '2026-11-04', checkout: '2026-11-07', huesped: 'Eva Demo', tipo: 'reserva', codigo: 'HMPRUEBA03' },
+    { propiedad: AP3, checkin: '2026-11-01', checkout: '2026-11-04', huesped: 'Tom Test', tipo: 'reserva', codigo: 'HMPRUEBA04' }];
+  const INB = [{ codigo: 'HMPRUEBA01', foto: 'https://a0.muscache.example/ana.jpg' }, { codigo: 'HMPRUEBA02', foto: 'https://a0.muscache.example/luis.jpg' }, { codigo: 'HMPRUEBA03', foto: 'https://a0.muscache.example/eva.jpg' }];
+  const CAT = [{ id: '1', nombre: AP, foto: 'https://fotos.example/b.jpg', lat: 14.596123, lng: -90.510234 }, { id: '2', nombre: AP2, foto: '', lat: 0, lng: 0 }];
+  const PROM = [{ propiedad: AP, que: 'Confirmar parqueo extra', vence: 'hoy 18:00', estado: 'abierta' }, { propiedad: AP, que: 'Mandar la clave 4821 de la puerta', vence: '', estado: 'abierta' }, { propiedad: AP2, que: 'Otra cosa', estado: 'abierta' }];
+  const SNAP = { tareas: [{ id: 't1', texto: 'Cambiar foco del baño', prop: 'Brunelo 1203', quien: 'Epi' }, { id: 't2', texto: 'Cambiar el código del wifi', prop: 'Brunelo 1203' }, { id: 't3', texto: 'Hecha', prop: 'Brunelo 1203', hecha: true }] };
+  const RECEP = { '00000000': { n: '50200000000', prop: AP } };
+  const J = { pictures: ['https://fotos.example/1.jpg', 'https://fotos.example/2.jpg', 'https://fotos.example/3.jpg', 'https://fotos.example/4.jpg'], wifiPass: 'Brunelo2026', doorCode: '4821', std: { es: { parking: 'Parqueo 2, sótano 1' } } };
+  const PLANO = { bedrooms: '2', porteria: 'Portería 24 h, tel 5555-1234', wifiPass: 'Brunelo2026', doorCode: '4821', 'std.es.parking': 'Parqueo 2, sótano 1' };
+  const llena = () => { const c = caja({ inbox: INB, promesas: PROM }); Object.assign(c.cache, { ['calp_base_' + HOY]: JSON.stringify({ estadias: EST }), calp_catalogo: JSON.stringify(CAT), episnap: JSON.stringify(SNAP), recep_nums: JSON.stringify(RECEP) }); return c; };
+  const ids = (t) => t.cuadros.map((c) => c.id).join(',');
+  const de = (t, id) => t.cuadros.filter((c) => c.id === id)[0];
+  const sinClave = (t) => { const o = Object.assign({}, t); delete o.clave; return JSON.stringify(o); };   // «clave» es el nombre del campo, no una clave
+  const SECRETO = /4821|Brunelo2026|5555|wifi|clave|c[oó]digo|contrase/i;
+  const a = llena().X.tvApartamento_(AP, J, PLANO);
+  ok(ids(a) === 'foto,hoy,llegada,salida,semana,galeria,pendientes,mapa,recepcion,ficha', '9 · apartamento completo: foto, hoy, llegada, salida, semana, galería, pendientes, mapa, recepción y ficha: ' + ids(a));
+  ok(a.cabeza === 'Brunelo 1203' && a.sub === 'Z10 · Brunelo' && a.cuadros.every((c) => c.tipo && c.tam && c.prioridad), '9 · arriba el apartamento, abajo zona · edificio; cada cuadro con tipo, tamaño y prioridad');
+  const f = de(a, 'foto');
+  ok(f.tam === 'alto' && f.fondo === 'https://fotos.example/b.jpg' && !f.avatar && f.chip === 'Ocupado' && f.tono === 'info', '9 · la foto real del anuncio, entera (la del huésped va en su cuadro), y «Ocupado»');
+  ok(de(a, 'hoy').v === 'Ana Prueba' && de(a, 'hoy').foto === 'https://a0.muscache.example/ana.jpg' && de(a, 'hoy').d === 'sale vie 6 nov · 4 noches', '9 · quién está hoy, con su foto: ' + de(a, 'hoy').d);
+  ok(de(a, 'llegada').v === 'dom 8 nov' && de(a, 'llegada').foto === 'https://a0.muscache.example/luis.jpg' && de(a, 'llegada').d === 'Luis Ejemplo · 2 noches', '9 · próxima llegada con la foto del huésped (las consultas no cuentan)');
+  ok(de(a, 'salida').k === 'Sale' && de(a, 'salida').v === 'vie 6 nov' && de(a, 'salida').d === 'Ana Prueba', '9 · próxima salida');
+  ok(de(a, 'semana').dias.length === 7 && de(a, 'semana').dias[0].hoy && de(a, 'semana').d === '4 de 7 noches reservadas' && de(a, 'semana').dias.map((d) => d.e).join() === 'res,res,libre,libre,res,res,libre', '9 · la semana como mini calendario: ' + de(a, 'semana').dias.map((d) => d.e).join(','));
+  ok(JSON.stringify(de(a, 'galeria').fotos) === JSON.stringify(['https://fotos.example/1.jpg', 'https://fotos.example/2.jpg', 'https://fotos.example/3.jpg']), '9 · galería: 3 fotos más que ya traía la herramienta');
+  ok(de(a, 'pendientes').items.map((x) => x.t + ':' + x.v).join(' | ') === 'Promesa:Confirmar parqueo extra | Tarea:Cambiar foco del baño', '9 · pendientes: promesas y tareas abiertas de ese apartamento (sin las que hablan de claves): ' + de(a, 'pendientes').items.map((x) => x.v).join(' | '));
+  ok(de(a, 'mapa').lat === 14.59612 && de(a, 'recepcion').v === 'Brunelo' && de(a, 'recepcion').d === 'Portería 24 h', '9 · mapa y recepción del edificio (solo el nombre): ' + de(a, 'recepcion').d);
+  ok(de(a, 'ficha').texto === '2 habitaciones. Parqueo: Parqueo 2, sótano 1.', '9 · ficha: ' + de(a, 'ficha').texto);
+  ok(!SECRETO.test(sinClave(a)), '9 · apartamento: nunca códigos, claves, wifi ni teléfonos (ni en los cuadros ni en los campos de siempre)');
+  ok(a.titulo === 'Brunelo 1203' && a.foto === 'https://fotos.example/b.jpg' && a.semana.length === 7 && a.datos[0] === '2 habitaciones' && a.datos.indexOf('Portería: Portería 24 h') >= 0, '9 · app vieja: los campos de siempre siguen (titulo, foto, semana, datos)');
+  /* sin foto ni coordenadas, y nadie en la semana */
+  const c0 = caja(); c0.cache['calp_base_' + HOY] = JSON.stringify({ estadias: [] });
+  const s = c0.X.tvApartamento_(OTRA, {}, { bedrooms: '1' });
+  ok(ids(s) === 'foto,semana,ficha' && de(s, 'foto').tam === 'm' && !de(s, 'foto').fondo && de(s, 'foto').iniciales === '804' && de(s, 'foto').chip === 'Libre hoy' && de(s, 'foto').tono === 'libre',
+    '9 · sin foto ni coordenadas: el número del apartamento sobre el degradado, «Libre hoy» en verde, sin mapa: ' + ids(s));
+  ok(de(s, 'semana').d === 'Libre toda la semana', '9 · semana libre');
+  const c1 = caja(); c1.cache['calp_base_' + HOY] = JSON.stringify({ estadias: [] });
+  const s2 = c1.X.tvApartamento_(OTRA, { photos: [{ url: 'https://fotos.example/x1.jpg' }, { url: 'https://fotos.example/x2.jpg' }] }, {});
+  ok(de(s2, 'foto').fondo === 'https://fotos.example/x1.jpg' && !de(s2, 'galeria') && s2.foto === 'https://fotos.example/x1.jpg', '9 · sin foto en el catálogo: la primera que trajo la herramienta; con una sola más, sin galería');
+  /* edificio */
+  const TODOS = [AP, AP2, AP3, OTRA];
+  const X = llena().X;
+  ok(X.tvEdificioDe_('Brunelo', [], TODOS) && X.tvEdificioDe_('edificio Brunelo', [], TODOS).props.length === 3 && X.tvEdificioDe_('Z10 Brunelo', [], TODOS), '9 · «Brunelo», «edificio Brunelo» y «Z10 Brunelo» son el edificio');
+  ok(!X.tvEdificioDe_('Brunelo 1203', [], TODOS) && !X.tvEdificioDe_('Torre Demo', [], TODOS) && !X.tvEdificioDe_('', [AP, OTRA], TODOS), '9 · un apartamento, un edificio con uno solo u opciones de edificios distintos: no es edificio');
+  ok(X.tvEdificioDe_('brunelo sin match', [AP2, AP3], TODOS).props.length === 3, '9 · varias opciones del mismo edificio: el edificio');
+  const e = X.tvEdificio_(X.tvEdificioDe_('Brunelo', [], TODOS));
+  ok(ids(e) === 'foto,apartamentos,llegadas,salidas,hoy,mapa,recepcion,resumen', '9 · edificio: foto, apartamentos, llegadas y salidas de hoy, quién, mapa, recepción y mañana: ' + ids(e));
+  ok(e.tipo === 'edificio' && e.cabeza === 'Edificio Brunelo' && e.sub === 'Z10 · 3 apartamentos' && e.clave === 'edificio:z10brunelo', '9 · cabeza «Edificio Brunelo» y su clave');
+  ok(de(e, 'foto').fondo === 'https://fotos.example/b.jpg' && de(e, 'foto').tam === 'alto', '9 · la foto del edificio es la primera propiedad con foto');
+  ok(de(e, 'apartamentos').v === '3' && de(e, 'apartamentos').d === '2 ocupados esta noche' && de(e, 'llegadas').v === '1' && de(e, 'llegadas').d === '705' && de(e, 'salidas').v === '1' && de(e, 'salidas').d === '902',
+    '9 · cuántos apartamentos, ocupados, llegadas y salidas de hoy');
+  ok(de(e, 'hoy').items.map((x) => x.t + ' ' + x.v + (x.foto ? ' [foto]' : '')).join(' | ') === 'Llega 705 · Eva Demo [foto] | Sale 902 · Tom Test', '9 · hoy en el edificio, con la foto de quien la tiene');
+  ok(de(e, 'mapa').lugar === 'Z10 · Brunelo' && de(e, 'resumen').texto === 'Sin llegadas ni salidas.', '9 · mapa del edificio y mañana');
+  ok(!SECRETO.test(sinClave(e)), '9 · edificio: nunca códigos, claves, wifi ni teléfonos');
+  ok(e.titulo === 'Edificio Brunelo' && e.datos.join(' | ') === '3 apartamentos | 2 ocupados esta noche | 1 llegada hoy | 1 salida hoy', '9 · app vieja: el edificio trae los campos de siempre: ' + e.datos.join(' | '));
+  ok(X.tvLineaChat_(JSON.stringify({ tipo: 'edificio', id: 'Brunelo', titulo: 'Edificio Brunelo' })) === 'Tarjeta de la llamada · edificio Edificio Brunelo', '9 · la línea del chat junto a la llamada');
+  const es = caja(); es.cache['calp_base_' + HOY] = JSON.stringify({ estadias: [] });
+  const e0 = es.X.tvEdificio_(es.X.tvEdificioDe_('Brunelo', [], TODOS));
+  ok(ids(e0) === 'foto,apartamentos,llegadas,salidas,resumen' && de(e0, 'foto').tam === 'm' && de(e0, 'llegadas').v === 'Ninguna', '9 · edificio sin fotos, sin coordenadas y sin movimiento: ' + ids(e0));
+  ok(X.tvSinTel_('Lobby (+502 5555 1234) 24h') === 'Lobby 24h' && X.tvSinTel_('Recepción WhatsApp: 55551234') === 'Recepción' && X.tvSinTel_('Nivel 3, apto 1203') === 'Nivel 3, apto 1203', '9 · los teléfonos se quitan y los números cortos quedan');
+  /* agEjecutar_ deja la candidata del edificio sin cambiar lo que devuelve ver_propiedad */
+  const src = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8'), vp = src.slice(src.indexOf("case 'ver_propiedad'"), src.indexOf("case 'codigo_acceso'"));
+  ok(/edifP = exactaP \? null : tvEdificioDe_\(inp\.propiedad, \[\], todasP\)/.test(vp) && /if \(edifP\) tvCandidata_\('edificio'/.test(vp) && /return \{ propiedad: hitP\.property_name, campos: plano \};/.test(vp) && /return \{ error: 'No encontré esa propiedad exacta\.', opciones: opP \};/.test(vp),
+    '9 · ver_propiedad deja la candidata del edificio y devuelve lo mismo de antes');
+  /* el acomodo de la app */
+  const html = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');
+  const i0 = html.indexOf('  function acomodar('), i1 = html.indexOf('    return filas;\n  }', i0);
+  const acomodar = vm.runInNewContext('(' + html.slice(i0, i1 + '    return filas;\n  }'.length).trim() + ')');
+  const forma = (fs) => fs.map((x) => x.hero ? 'hero[' + x.hero.id + ':' + x.cols + ':' + x.alto + '|' + x.pila.map((c) => c.id).join('+') + ']' : x.celdas.map((c) => c.id + ':' + x.span + 'x' + x.alto).join('+')).join(' / ');
+  ok(forma(acomodar(a.cuadros)) === 'hero[foto:1fr 1fr:3|hoy+llegada+salida] / semana:6x1 / galeria:6x2 / pendientes:6x1 / mapa:3x2+recepcion:3x2 / ficha:6x1', '9 · apartamento: ' + forma(acomodar(a.cuadros)));
+  ok(forma(acomodar(s.cuadros)) === 'hero[foto:1fr:2|] / semana:6x1 / ficha:6x1', '9 · apartamento con poco: la foto a lo ancho: ' + forma(acomodar(s.cuadros)));
+  ok(forma(acomodar(e.cuadros)) === 'hero[foto:1fr 1fr:3|apartamentos+llegadas+salidas] / hoy:6x1 / mapa:3x2+recepcion:3x2 / resumen:6x1', '9 · edificio: ' + forma(acomodar(e.cuadros)));
+  ok(/c\.tipo === "semana"/.test(html) && /c\.tipo === "lista"/.test(html) && /c\.tipo === "galeria"/.test(html), '9 · la app pinta semana, lista y galería');
+  ok(/\(t\.tipo === "apartamento" \|\| t\.tipo === "edificio"\) && t\.foto/.test(html), '9 · la tarjeta de siempre pinta la foto del edificio como la del apartamento');
 }
 
 process.exit(fallo);

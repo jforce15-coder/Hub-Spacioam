@@ -629,6 +629,28 @@
   .tvb-pin { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -19px 0 0 -8px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E9826A; box-shadow: 0 2px 6px rgba(0,0,0,.3); border: 2px solid #fff; }
   .tvb-lugar { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); box-sizing: border-box; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); font: 600 10px Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tvb-osm { position: absolute; right: 6px; top: 5px; font-size: 8px; color: #6F6867; background: rgba(255,255,255,.75); padding: 0 4px; border-radius: 4px; }
+  /* #508 T2 · apartamento y edificio: chip «Libre hoy» en verde, la semana, las listas cortas, la galería y las fotos de huésped. */
+  .tvb-chip[data-tono="libre"] { background: #E1EEE5; color: #2F5B43; }
+  .tvb-kf { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+  .tvb-kf .tvb-d { margin-top: 0; }
+  .tvb-semana .tv-dias { margin-top: 7px; }
+  .tvb-semana .tv-dia { font-size: 11.5px; padding: 5px 0 6px; }
+  .tvb-l { list-style: none; margin: 7px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .tvb-l li { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; line-height: 1.3; }
+  .tvb-l li > b { flex: none; font: 600 9.5px Montserrat, system-ui, sans-serif; padding: 3px 8px; border-radius: 999px; background: #ECEAE7; color: #3E3F3F; }
+  .tvb-l li[data-tono="info"] > b { background: rgba(232,237,243,.96); color: #3B6691; }
+  .tvb-l li[data-tono="aviso"] > b { background: #F5E6BF; color: #6F5210; }
+  .tvb-l li[data-tono="alerta"] > b { background: #F2DAD5; color: #9E3326; }
+  .tvb-l li > .tvb-tx { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvb-l li > small { flex: none; font-size: 10.5px; color: #6F6867; white-space: nowrap; }
+  .tvb-l li.mas { color: #6F6867; font-size: 11.5px; }
+  .tvb-cara { flex: none; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #C9B8A8, #8F7F74);
+    color: #fff; font: 600 9px Montserrat, system-ui, sans-serif; }
+  .tvb-cara img { width: 100%; height: 100%; object-fit: cover; }
+  .tvb-dato.con-cara { padding-right: 46px; }
+  .tvb-dato.con-cara > .tvb-cara { position: absolute; right: 10px; top: 50%; margin-top: -15px; width: 30px; height: 30px; font-size: 10px; }
+  .tvb-galeria { padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; background: #fff; }
+  .tvb-galeria > img { position: static; width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
   .tvb-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--g); }
   .tvb-acc .tv-acc, .tvb-acc .tv-preg { flex: 1 1 100%; margin-top: 0; }
   .tvb-acc .tv-btn { background: rgba(255,255,255,.94); border-color: transparent; }
@@ -2378,10 +2400,10 @@
     c.appendChild(asa);
     var cu = el("div", "tv-cuerpo"); cu.onclick = function () { hacer("detalle"); };
     var eti = el("div", "tv-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.etiqueta || NOMBRE[t.tipo] || "")); cu.appendChild(eti);
-    if (t.tipo === "apartamento" && t.foto) { var f = el("div", "tv-foto"); f.style.backgroundImage = 'url("' + String(t.foto).replace(/["\\\n]/g, "") + '")'; f.setAttribute("role", "img"); f.setAttribute("aria-label", "Foto de " + (t.titulo || "la propiedad")); cu.appendChild(f); }
+    if ((t.tipo === "apartamento" || t.tipo === "edificio") && t.foto) { var f = el("div", "tv-foto"); f.style.backgroundImage = 'url("' + String(t.foto).replace(/["\\\n]/g, "") + '")'; f.setAttribute("role", "img"); f.setAttribute("aria-label", "Foto de " + (t.titulo || "la propiedad")); cu.appendChild(f); }
     var cab = el("div", "tv-cab"), av = el("span", "tv-av");
-    if (t.tipo !== "apartamento" && t.foto) { var im = el("img"); im.src = t.foto; im.alt = ""; im.onerror = function () { av.textContent = t.iniciales || ""; }; av.appendChild(im); } else av.textContent = t.iniciales || "";
-    if (!(t.tipo === "apartamento" && t.foto)) cab.appendChild(av);
+    if (t.tipo !== "apartamento" && t.tipo !== "edificio" && t.foto) { var im = el("img"); im.src = t.foto; im.alt = ""; im.onerror = function () { av.textContent = t.iniciales || ""; }; av.appendChild(im); } else av.textContent = t.iniciales || "";
+    if (!((t.tipo === "apartamento" || t.tipo === "edificio") && t.foto)) cab.appendChild(av);
     var tt = el("div", "t"); tt.appendChild(el("b", "tv-nom", t.titulo || "")); if (t.sub) tt.appendChild(el("small", "tv-sub", t.sub)); cab.appendChild(tt);
     if (t.chip) { var ch = el("span", "tv-chip", t.chip); ch.setAttribute("data-tono", t.tono || "info"); cab.appendChild(ch); }
     cu.appendChild(cab);
@@ -2429,7 +2451,8 @@
   /* ── Tablero bento (#508 T1) ── El Hub manda los cuadros (tipo, tam, prioridad) y aquí se acomodan en 6 columnas:
      · la foto (tam alto) va a la izquierda con los datos chicos (tam s) apilados a la derecha; sin datos, ocupa todo el ancho;
        sin foto real (tam m) es más angosta y los datos crecen.
-     · los anchos (necesita respuesta) van solos en su fila; los medianos (mapa, resumen) de a dos, y uno solo ocupa la fila.
+     · los anchos (necesita respuesta, galería; semana y lista más bajos) van solos en su fila; los medianos (mapa, recepción,
+       resumen) de a dos, y uno solo ocupa la fila.
      Lo que no llega no se pinta: los demás crecen para llenar. */
   function esBento(t) { return !!(t && Array.isArray(t.cuadros) && t.cuadros.some(function (c) { return c && c.tipo; })); }
   function acomodar(cuadros) {
@@ -2445,7 +2468,7 @@
       if (c === foto || c.tam === "s") return;
       if (c.tam === "m") { medio.push(c); if (medio.length === 2) { filas.push({ celdas: medio, span: 3, alto: 2 }); medio = []; } return; }
       if (medio.length) { filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 }); medio = []; }
-      filas.push({ celdas: [c], span: 6, alto: 2 });
+      filas.push({ celdas: [c], span: 6, alto: c.tipo === "semana" || c.tipo === "lista" ? 1 : 2 });   // semana y lista: del alto de lo que traen
     });
     if (medio.length) filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 });   // un texto solo: del alto de lo que dice
     return filas;
@@ -2454,13 +2477,16 @@
   function seguro(u) { return /^https:\/\/[^\s"'<>]+$/.test(String(u || "")) ? String(u) : ""; }
   function cuadro(c, t) {
     var d = el("div", "tvb-t tvb-" + (c.tipo === "dato" ? "dato" : c.tipo === "mensaje" ? "msg" : c.tipo));
+    var cara = function (src, ini, alt) { var a = el("span", "tvb-cara"), u = seguro(src); if (u) a.appendChild(img(u, alt || "", function () { a.textContent = ini || ""; })); else a.textContent = ini || ""; a.setAttribute("aria-hidden", "true"); return a; };
     if (c.tipo === "foto") {
       var ini = function () { if (!d.querySelector(".tvb-av,.tvb-ini")) d.appendChild(el("span", "tvb-ini", c.iniciales || "")); };
       var fondo = seguro(c.fondo);
       if (fondo) { var f = img(fondo, c.alt, function () { var a = d.querySelector(".tvb-av"); if (a) a.parentNode.removeChild(a); ini(); }); d.appendChild(f); if (c.alt) d.setAttribute("role", "img"), d.setAttribute("aria-label", c.alt); }
-      if (fondo && c.de !== "huesped") {
-        var av = el("span", "tvb-av"), fa = seguro(c.avatar);
-        if (fa) av.appendChild(img(fa, "", function () { av.textContent = c.iniciales || ""; })); else av.textContent = c.iniciales || "";
+      /* Encima de la foto del apartamento, la del huésped: en la reserva siempre (o sus iniciales); en otros tableros, solo
+         si el Hub manda avatar (#508 T2). */
+      if (fondo && (c.de === "apartamento" || seguro(c.avatar))) {
+        var av = el("span", "tvb-av"), fa = seguro(c.avatar), ia = c.iniciales || "";
+        if (fa) av.appendChild(img(fa, "", function () { av.textContent = ia; })); else av.textContent = ia;
         d.appendChild(av);
       }
       if (!fondo) ini();
@@ -2482,8 +2508,34 @@
       d.setAttribute("role", "img"); d.setAttribute("aria-label", "Mapa" + (c.lugar ? " de " + c.lugar : ""));
       return d;
     }
+    if (c.tipo === "galeria") {
+      (c.fotos || []).map(seguro).filter(Boolean).slice(0, 3).forEach(function (u) { d.appendChild(img(u, "", function () { if (!d.querySelector("img") && d.parentNode) d.parentNode.removeChild(d); })); });
+      d.setAttribute("role", "img"); d.setAttribute("aria-label", c.alt || "Fotos");
+      return d;
+    }
+    if (c.tipo === "semana") {
+      var kf = el("div", "tvb-kf"); kf.appendChild(el("small", "tvb-k", c.k || "Esta semana")); if (c.d) kf.appendChild(el("small", "tvb-d", c.d)); d.appendChild(kf);
+      var ds = el("div", "tv-dias");
+      (c.dias || []).forEach(function (x) { var y = el("div", "tv-dia" + (x.hoy ? " hoy" : ""), x.letra); y.setAttribute("data-e", x.e); y.appendChild(el("small", "", String(x.n))); y.setAttribute("aria-label", (x.hoy ? "Hoy, " : "") + x.n + ": " + (EST[x.e] || x.e)); ds.appendChild(y); });
+      d.appendChild(ds); return d;
+    }
+    if (c.tipo === "lista") {
+      var kl = el("div", "tvb-kf"); kl.appendChild(el("small", "tvb-k", c.k || "")); if (c.chip) { var cl = el("span", "tvb-chip", c.chip); cl.setAttribute("data-tono", c.tono || "aviso"); kl.appendChild(cl); } d.appendChild(kl);
+      var ul = el("ul", "tvb-l");
+      (c.items || []).forEach(function (x) {
+        var li = el("li", x.t ? "" : "mas"); if (x.tono) li.setAttribute("data-tono", x.tono);
+        if (x.t) li.appendChild(el("b", "", x.t));
+        if (seguro(x.foto) || (x.foto !== undefined && x.iniciales)) li.appendChild(cara(x.foto, x.iniciales));
+        li.appendChild(el("span", "tvb-tx", x.v || "")); if (x.d) li.appendChild(el("small", "", x.d)); ul.appendChild(li);
+      });
+      d.appendChild(ul); return d;
+    }
     if (c.k) d.appendChild(el("small", "tvb-k", c.k));
-    if (c.tipo === "dato") { d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d)); return d; }
+    if (c.tipo === "dato") {
+      d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d));
+      if (seguro(c.foto)) { d.classList.add("con-cara"); d.appendChild(cara(c.foto, c.iniciales)); }   // la foto del huésped (#508 T2)
+      return d;
+    }
     if (c.tipo === "mensaje") {
       if (c.chip) { var cm = el("span", "tvb-chip", c.chip); cm.setAttribute("data-tono", c.tono || "aviso"); d.appendChild(cm); }
       d.appendChild(el("q", "", c.texto || ""));

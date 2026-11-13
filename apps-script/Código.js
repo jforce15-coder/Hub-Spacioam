@@ -2172,6 +2172,7 @@ function precioIA_(modelo) {
   if (/opus-4-[5-9]|opus-[5-9]/.test(m)) return [5, 25];
   if (/opus/.test(m)) return [15, 75];
   if (/sonnet/.test(m)) return [3, 15];
+  if (/^jev/.test(m)) return [0.042, 0];   // Jev, el portero de la voz (rapido.js): ESTIMADO de fuentes secundarias; la salida no se cobra
   if (/haiku-5-5/.test(m)) return [0.1, 0.5];   // el modelo rápido de la voz (rapido.js): hasta 100K tokens de entrada; más largo, [0.5, 2.5]
   if (/haiku-4|haiku-[5-9]/.test(m)) return [1, 5];
   if (/haiku-3-5/.test(m)) return [0.8, 4];

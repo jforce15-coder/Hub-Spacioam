@@ -104,6 +104,7 @@ jobs:
       - name: Camino rápido de la voz, leer va al modelo rápido con solo herramientas de leer y lo demás al de siempre (dobles)
         # 12-nov: Juan decidió usar el modelo más rápido para pedidos de leer en llamadas mientras llega Jev (#498 T4).
         # Escribir va al de siempre; si el rápido no puede, pasa al de siempre; VOZ_RAPIDO = 0 lo apaga.
+        # 13-nov: decide el portero Jev (#498 T5), con dobles de su API; si falla o tarda, las reglas de antes.
         run: node .github/voz-rapido.js apps-script
 
       - name: Llaves desde Ajustes, solo el principal con sesión, solo la lista permitida y nunca devuelve el valor (dobles)

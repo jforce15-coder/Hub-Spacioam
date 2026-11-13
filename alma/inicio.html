@@ -1295,7 +1295,7 @@
   /* En la app de iPhone la roca del inicio habla con la voz de la app (VozNativa.swift), la misma del anillo: una sola
      conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
      roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
-  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "" };
+  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null };
   function vozNativa() {
     var web = window.SAAlmaVoz;
     return {
@@ -1307,7 +1307,7 @@
         if (!VN.activa) { vozConfig(); nativa({ accion: "voz", que: "hablar" }); }
         else h.status(VN.estado === "conectando" ? "Conectando…" : "Te escucho");
         return Promise.resolve({
-          end: function (auto) { VN.h = null; if (!auto) nativa({ accion: "voz", que: "colgar" }); },   // auto: la página se cerró sola, no cuelga la llamada que sigue en la app
+          end: function (auto) { VN.h = null; if (VN.fin) { clearTimeout(VN.fin.t); VN.fin = null; } if (!auto) nativa({ accion: "voz", que: "colgar" }); },   // auto: la página se cerró sola, no cuelga la llamada que sigue en la app
           level: function () { return VN.nivel; },
           sendText: function (t) { nativa({ accion: "voz", que: "texto", texto: t }); },
           chat: function (on) { nativa({ accion: "voz", que: "sinvoz", on: !!on }); if (!on) h.status("Te escucho"); },   // modo chat: la app sigue oyendo, Alma no suena (app nativa, sinvoz)
@@ -1321,9 +1321,18 @@
     if (e.tipo === "estado") {
       if ("pausada" in e) VN.soporta = true;
       var antes = VN.activa; VN.activa = e.estado === "hablando" || e.estado === "conectando"; VN.estado = e.estado;
+      /* Volvió a empezar mientras el tablero de la llamada anterior esperaba (la conferencia oyó «Alma» otra vez): la misma roca sigue. */
+      if (VN.activa && !antes && VN.fin) { clearTimeout(VN.fin.t); h = VN.h = VN.fin.h; VN.fin = null; h.status(e.estado === "conectando" ? "Conectando…" : "Te escucho"); return; }
       if (VN.activa && !antes && !h && VN.soporta && window.SANav && SANav.alma) { SANav.alma(); return; }   // empezó con el anillo
       if (!h) return;
-      if (antes && !VN.activa) { VN.h = null; h.ended(); }
+      if (antes && !VN.activa) {
+        VN.h = null;
+        /* Tablero por estado (#508 T3): con un tablero a la vista, la llamada de la roca espera ~3 s antes de cerrarse
+           (se ve que terminó) y después vuelve al inicio. Sin tablero, se cierra enseguida como siempre. */
+        var sost = false; try { sost = !!(window.AlmaTarjeta && AlmaTarjeta.sostiene && AlmaTarjeta.sostiene()); } catch (x) {}
+        if (!sost) h.ended();
+        else { h.status("Llamada terminada"); VN.fin = { h: h, t: setTimeout(function () { var f = VN.fin; VN.fin = null; if (f) f.h.ended(); }, 3000) }; }
+      }
       else if (e.estado === "hablando") h.status(e.pausada ? "En pausa" : "Te escucho");
       return;
     }
@@ -2371,23 +2380,27 @@
 </script>
 <script>
 /* ── Tarjeta de la llamada (#446 T2, apps-script/tarjeta.js) ───────────────────────────────────────────────────────────
-   La app (VozNativa.swift) decide qué se ve y cuándo (una a la vez, se encoge a los 20 s o al cambiar de tema, nada con el
-   teléfono bloqueado) y lo cuenta con AlmaVoz.evento({ tipo: "tarjeta", vista, tarjeta }); aquí solo se pinta en la llamada
-   de la roca: la roca sube y se achica a 96 px, la tarjeta va antes de «Chat» y «Terminar», y la pestañita queda arriba.
+   La app (VozNativa.swift) decide qué se ve y cuándo (una a la vez, nada con el teléfono bloqueado) y lo cuenta con
+   AlmaVoz.evento({ tipo: "tarjeta", vista, tarjeta }); aquí solo se pinta en la llamada de la roca: la roca sube y se
+   achica a 96 px, la tarjeta va antes de «Chat» y «Terminar», y la pestañita queda arriba.
    Lo que Juan toca vuelve a la app (accion «voz», que «tarjeta»): toque · detalle · abrir · plegar · conv · llamar · whatsapp.
-   Si la tarjeta trae cuadros (#508 T1, Tablero bento), en vez de la ficha se pinta el tablero y la roca va a la esquina. */
+   Si la tarjeta trae cuadros (#508 T1, Tablero bento), en vez de la ficha se pinta el tablero y la roca va a la esquina.
+   Por ESTADO (#508 T3, Juan 13-nov-2026): el tablero se queda mientras dure la llamada (la app nueva ya no lo encoge a los
+   20 s; a la de antes, «vivo» le manda un toque cada 12 s); otra tarjeta lo reemplaza con un fundido; y cuando la llamada
+   termina (o la conferencia vuelve a esperar «Alma») se queda FIN_MS (~3 s) y la pantalla vuelve al inicio. */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
-  var TV = { t: null, vista: "nada", movida: false, reloj: 0, card: null, pest: null, preg: "" };
+  var TV = { t: null, vista: "nada", movida: false, reloj: 0, card: null, pest: null, preg: "", fin: 0 };
+  var FIN_MS = 3000;   // del fin de la llamada al cambio de pantalla (Juan: «un pequeño retraso»)
   var IC = {
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
     tel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>',
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -2425,7 +2438,7 @@
     if (detalle && (t.detalle || []).length) { var de = el("div", "tv-det"); t.detalle.forEach(function (x) { de.appendChild(el("p", "", x)); }); cu.appendChild(de); }
     c.appendChild(cu);
     var ac = acciones(t); if (ac) { c.appendChild(ac[0]); c.appendChild(ac[1]); }
-    c.appendChild(el("div", "tv-pista", detalle ? "Toca para ver menos · la llamada sigue" : "Toca la tarjeta para ver más · se encoge sola"));
+    c.appendChild(el("div", "tv-pista", detalle ? "Toca para ver menos · la llamada sigue" : "Toca la tarjeta para ver más · la llamada sigue"));
     c.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
     return c;
   }
@@ -2590,9 +2603,9 @@
   function alTocarAlma() { if (!TV.t || TV.movida !== "esquina") return; TV.vista = "pestana"; hacer("plegar"); pintar(); }
   window.addEventListener("resize", function () { abajo = 0; if (TV.movida === "esquina") roca("esquina"); });
   function quitarCard() {
-    var c = TV.card; TV.card = null; if (!c || !c.parentNode) return;
-    if (c.classList.contains("tvb")) { c.classList.remove("on"); c.classList.add("sale"); setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 260); }
-    else c.parentNode.removeChild(c);
+    var c = TV.card; TV.card = null; if (!c || !c.parentNode) return false;
+    if (c.classList.contains("tvb")) { c.classList.remove("on"); c.classList.add("sale"); setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 260); return true; }
+    c.parentNode.removeChild(c); return false;
   }
   function ov() { return document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov"); }
   /* La llamada pasó a chat, a Pendientes o se minimizó: la tarjeta espera (y vuelve después) */
@@ -2602,11 +2615,14 @@
     var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id), bento = esBento(t);
     /* El tablero bento: sobre el atardecer, debajo de la roca y de los botones; la misma tarjeta no se vuelve a armar. */
     if (bento && abierta && misma && TV.card.classList.contains("tvb") && TV.card.parentNode === ov()) { roca("esquina"); return vivo(true); }
-    quitarCard();
+    var salio = quitarCard();
     if (abierta && !tapada() && bento) {
       var o = ov(), bg = o && o.querySelector(".san-ov-bg");
-      if (o) { TV.card = pintarBento(t); TV.cardId = t.id; o.insertBefore(TV.card, bg ? bg.nextSibling : o.firstChild); raiz.classList.remove("tv-on"); raiz.classList.add("tvb-on"); roca("esquina");
-        requestAnimationFrame(function () { requestAnimationFrame(function () { if (TV.card) TV.card.classList.add("on"); }); }); }
+      /* Otro tablero en la misma llamada: el de antes se funde (260 ms) y el nuevo entra cuando ya casi se fue, cuadro a
+         cuadro; Alma se queda en la esquina. */
+      if (o) { var nuevo = TV.card = pintarBento(t); TV.cardId = t.id; o.insertBefore(nuevo, bg ? bg.nextSibling : o.firstChild); raiz.classList.remove("tv-on"); raiz.classList.add("tvb-on"); roca("esquina");
+        var entra = function () { requestAnimationFrame(function () { requestAnimationFrame(function () { if (TV.card === nuevo) nuevo.classList.add("on"); }); }); };
+        if (salio) setTimeout(entra, 180); else entra(); }
     }
     /* La tarjeta de siempre: dentro de la llamada de la roca, antes de los botones */
     else if (abierta && !tapada()) {
@@ -2632,23 +2648,36 @@
       if (abierta && !tp && (!TV.card || TV.card.parentNode !== (bento ? ov() : ui()))) pintar();
     }, 700);
   }
-  /* Mientras el tablero está a la vista, la app no lo encoge a los 20 s: se queda hasta que Juan toca a Alma o cambia el tema. */
+  /* Respaldo para la app de antes (la encogía a los 20 s): mientras el tablero está a la vista, un toque cada 12 s. La app
+     nueva lo ignora: el tablero ya se maneja por estado (#508 T3). */
   function vivo(on) {
     if (!on) { clearInterval(TV.vivo); TV.vivo = 0; return; }
     if (!TV.vivo) TV.vivo = setInterval(function () { if (TV.card && !tapada() && document.visibilityState !== "hidden") hacer("toque"); }, 12000);
   }
+  /* ¿Hay un tablero a la vista? (vozNativaEvento espera FIN_MS antes de cerrar la llamada de la roca) */
+  function enPantalla() { return !!(TV.fin || (TV.card && TV.card.classList.contains("tvb") && TV.card.classList.contains("on") && !tapada())); }
+  /* La llamada terminó: el tablero se queda FIN_MS y después se va (con la llamada de la roca). Sin tablero, enseguida. */
+  function soltar() {
+    if (TV.fin) return;
+    if (enPantalla()) { TV.fin = setTimeout(function () { TV.fin = 0; TV.t = null; TV.vista = "nada"; pintar(); }, FIN_MS); return; }
+    if (TV.t || TV.card) { TV.t = null; TV.vista = "nada"; pintar(); }
+  }
+  function seguir() { if (TV.fin) { clearTimeout(TV.fin); TV.fin = 0; } }
   window.AlmaTarjeta = {
     evento: function (e) {
       if (!e) return;
       if (e.tipo === "estado") {
         var en = e.estado === "hablando" || e.estado === "conectando";
-        if (!en) { if (TV.t) { TV.t = null; TV.vista = "nada"; pintar(); } return; }
-        if (e.tarjeta && e.tarjetaVista && (!TV.t || TV.t.id !== e.tarjeta.id || TV.vista !== e.tarjetaVista)) { TV.t = e.tarjeta; TV.vista = e.tarjetaVista; pintar(); }   // la página se abrió a media llamada
+        if (!en) { soltar(); return; }
+        if (e.tarjeta && e.tarjetaVista && (!TV.t || TV.t.id !== e.tarjeta.id || TV.vista !== e.tarjetaVista)) { seguir(); TV.t = e.tarjeta; TV.vista = e.tarjetaVista; pintar(); }   // la página se abrió a media llamada
         return;
       }
       if (e.tipo !== "tarjeta") return;
-      TV.t = e.tarjeta || null; TV.vista = e.vista || "nada"; pintar();
+      if (!e.tarjeta || (e.vista || "nada") === "nada") { soltar(); return; }
+      seguir(); TV.t = e.tarjeta; TV.vista = e.vista; pintar();
     },
+    /* La página de la llamada pregunta si debe esperar antes de cerrarse */
+    sostiene: function () { return enPantalla(); },
     /* Para las capturas y las pruebas: pinta una tarjeta de mentira */
     probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); }
   };

@@ -14,6 +14,11 @@
       quién está, próxima llegada y salida con sus fotos, semana, galería, pendientes, mapa, recepción y ficha); sin foto ni
       coordenadas; el edificio («Brunelo» o varias opciones del mismo edificio): foto, apartamentos, llegadas y salidas de hoy
       y mapa; nunca códigos, claves, wifi ni teléfonos; la app vieja sigue con sus campos y pinta la foto del edificio.
+  10. Por estado, conferencia y fotos (#508 T3): con la app nueva (tablero «estado») el tablero no se va por tiempo, se
+      reemplaza con otra cosa, vuelve a algo ya visto y lo mismo que ya está no se rearma; al terminar la llamada espera
+      ~3 s y se va (la página, con un DOM de mentira); en conferencia sale solo con la pantalla encendida; la galería y la
+      foto principal salen de las fotos del anuncio guardadas (sin llamar a Hospitable) y nada nuevo filtra códigos ni
+      teléfonos.
    node .github/tarjeta-llamada.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -118,7 +123,7 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
   delete cache['vozpant_conv-app'];
   X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
   const c = X.tvCerrar_('conv-app', true, true);
-  ok(c && !c.visible && !c.voz && !cache['voztarjeta_conv-app'], '5 · modo conferencia: tampoco se muestra');
+  ok(c && !c.visible && !c.voz && !cache['voztarjeta_conv-app'], '5 · modo conferencia sin el aviso de pantalla encendida (la app de antes): tampoco se muestra');
   X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
   ok(!!X.tvCerrar_('conv-app', true, false).visible, '5 · lo que no se vio bloqueado sí sale al volver a la pantalla');
   ok(X.tvLineaChat_(b.celda) === 'Tarjeta de la llamada · reserva de Mariana López (HM4K2Q9XAB)', '5 · la línea del chat junto a la llamada (el código se vuelve «Ver reserva ›»)');
@@ -292,6 +297,169 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
   ok(forma(acomodar(e.cuadros)) === 'hero[foto:1fr 1fr:3|apartamentos+llegadas+salidas] / hoy:6x1 / mapa:3x2+recepcion:3x2 / resumen:6x1', '9 · edificio: ' + forma(acomodar(e.cuadros)));
   ok(/c\.tipo === "semana"/.test(html) && /c\.tipo === "lista"/.test(html) && /c\.tipo === "galeria"/.test(html), '9 · la app pinta semana, lista y galería');
   ok(/\(t\.tipo === "apartamento" \|\| t\.tipo === "edificio"\) && t\.foto/.test(html), '9 · la tarjeta de siempre pinta la foto del edificio como la del apartamento');
+}
+
+/* 10 · por estado, conferencia y fotos (#508 T3) */
+{ const AP = 'Z10 - Brunelo - 1203', AP2 = 'Z10 - Brunelo - 705', AP3 = 'Z10 - Brunelo - 902';
+  const voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), vin = voz.slice(voz.indexOf('function vozWebVincular_'), voz.indexOf('function vozWebVincular_') + 2600);
+  ok(/b\.pantalla === true[^\n]*put\('vozpant_' \+ convId, '1'/.test(vin) && /b\.tablero === 'estado'\) CacheService\.getScriptCache\(\)\.put\('voztvest_' \+ convId, '1'/.test(vin),
+    '10 · vozWebVincular_ guarda la pantalla encendida («1») y que la app maneja el tablero por estado');
+  ok(/AGENTE_CANAL_ !== 'llamada'/.test(fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8')) && /opAgente_\(adm, pedido, 'llamada'/.test(voz) && /return vozSecEncolar_\(tel, pedido, conf\)/.test(voz),
+    '10 · la conferencia pasa por la misma secretaria (canal «llamada»); en segundo plano nunca hay tarjeta');
+  /* estado: la app nueva */
+  { const { X, cache } = caja();
+    cache['voztvest_conv-app'] = '1';
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, [])); const a = X.tvCerrar_('conv-app', true, false);
+    const id1 = JSON.parse(cache['voztarjeta_conv-app']).id;
+    ok(a && a.visible && JSON.parse(cache['voztv_actual_conv-app']).clave === 'reserva:HM4K2Q9XAB', '10 · estado: la reserva queda como lo que está en pantalla');
+    const sin = X.tvCerrar_('conv-app', true, false);
+    ok(sin === null && !cache['voztarjeta_conv-app'] && JSON.parse(cache['voztv_actual_conv-app']).id === id1, '10 · un turno sin tarjeta (otra pregunta, una lista) no la quita: la app la deja en pantalla');
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, [])); const b = X.tvCerrar_('conv-app', true, false);
+    ok(b && b.visible && /^EN PANTALLA: /.test(b.voz) && JSON.parse(cache['voztarjeta_conv-app']).id === id1, '10 · la misma que ya está en pantalla: mismo id (no se rearma) y la voz sabe que se ve');
+    X.tvCandidata_('apartamento', () => X.tvApartamento_(AP, {}, {})); const c = X.tvCerrar_('conv-app', true, false);
+    const id2 = JSON.parse(cache['voztarjeta_conv-app']).id;
+    ok(c && c.visible && c.tarjeta.tipo === 'apartamento' && id2 !== id1, '10 · otra cosa en la misma llamada la reemplaza (otro id)');
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, [])); const d = X.tvCerrar_('conv-app', true, false);
+    ok(d && d.visible && d.tarjeta.tipo === 'reserva' && d.tarjeta.id !== id1 && d.tarjeta.id !== id2, '10 · volver a la reserva después del apartamento la muestra otra vez');
+  }
+  /* conferencia: solo con la pantalla encendida */
+  { const { X, cache } = caja();
+    cache['voztvest_conv-app'] = '1'; cache['vozpant_conv-app'] = '1';
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, [])); const a = X.tvCerrar_('conv-app', true, true);
+    ok(a && a.visible && /^EN PANTALLA: /.test(a.voz) && cache['voztarjeta_conv-app'], '10 · conferencia con la pantalla encendida: el tablero sale y Alma no lee los datos');
+    X.vozPantallaApi_({ email: 'juan@spacioam.com' }, { conv_id: 'conv-app', visible: false });
+    X.tvCandidata_('apartamento', () => X.tvApartamento_(AP, {}, {})); const b = X.tvCerrar_('conv-app', true, true);
+    ok(b && !b.visible && !b.voz && !cache['voztarjeta_conv-app'] && JSON.parse(b.celda).tipo === 'apartamento', '10 · conferencia con el teléfono bloqueado: queda en el chat como hoy');
+    delete cache['vozpant_conv-app'];
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
+    ok(!X.tvCerrar_('conv-app', true, true).visible, '10 · conferencia sin aviso de la app (la de antes): no sale');
+    cache['vozpant_conv-app'] = '1';
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
+    ok(X.tvCerrar_('conv-tel', false, true) === null, '10 · conferencia en una llamada que no es de la app: nada');
+    X.AGENTE_PERMITIDAS_ = ['proyectos_personales'];
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
+    ok(X.tvCerrar_('conv-app', true, true) === null, '10 · conferencia con la familia: nunca');
+    X.AGENTE_PERMITIDAS_ = null;
+    const w = caja({ canal: 'whatsapp' }); w.cache['vozpant_conv-app'] = '1';
+    w.X.tvCandidata_('reserva', () => w.X.tvReserva_(FILA, ITEM, []));
+    ok(w.X.tvCerrar_('conv-app', true, true) === null, '10 · fuera de la llamada (WhatsApp, chat): nunca');
+  }
+  /* fotos guardadas: galería y foto principal sin llamar a Hospitable */
+  { const fu = fs.readFileSync(path.join(DIR, 'fuentes.js'), 'utf8'), fa = fu.slice(fu.indexOf('function fuentesFotosAnuncio_'), fu.indexOf('function fuentesMismaProp_'));
+    ok(/hosp_\('get', '\/properties\/' \+ propId \+ '\/images'\)/.test(fa) && /tvGuardarFotos_\(propId, orden\)/.test(fa), '10 · fuentes.js guarda las fotos del anuncio cuando ya las pide (sin llamadas nuevas)');
+    const tj = fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8');
+    ok(!/hosp_\(|UrlFetchApp|uf_\(/.test(tj), '10 · tarjeta.js no llama a Hospitable ni a internet');
+    const CAT = [{ id: 'p1', nombre: AP, foto: '', lat: 14.596, lng: -90.51 }, { id: 'p2', nombre: AP2, foto: 'https://fotos.example/705.jpg' }, { id: 'p3', nombre: AP3, foto: 'https://fotos.example/902.jpg' }];
+    const IMGS = [{ url: 'https://fotos.example/g1.jpg', thumbnail_url: 'https://fotos.example/g1-t.jpg', order: 1, caption: 'Código 4821 de la puerta' },
+      { url: 'http://inseguro.example/g2.jpg', order: 2 }, { url: 'javascript:alert(1)', order: 3 },
+      { url: 'https://fotos.example/g3.jpg', thumbnail_url: 'https://fotos.example/g3-t.jpg', order: 4 }, { url: 'https://fotos.example/g4.jpg', order: 5 },
+      { url: 'https://fotos.example/g5.jpg', order: 6 }];
+    const arma = () => { const c = caja(); c.cache.calp_catalogo = JSON.stringify(CAT); c.cache['calp_base_' + HOY] = JSON.stringify({ estadias: [] }); return c; };
+    const c0 = arma(); c0.X.tvGuardarFotos_('p1', IMGS);
+    const guard = JSON.parse(c0.cache.calp_fotos_p1);
+    ok(guard.length === 4 && guard.every((f) => /^https:\/\//.test(f.u) && /^https:\/\//.test(f.t)) && !/4821|caption|javascript|http:/.test(c0.cache.calp_fotos_p1), '10 · se guardan solo direcciones https (ni textos de las fotos, ni http, ni javascript)');
+    ok(c0.puestos.some((p) => p.k === 'calp_fotos_p1' && p.s === 21600), '10 · las fotos guardadas duran 6 h (como el catálogo)');
+    const ap = c0.X.tvApartamento_(AP, {}, {}), de = (t, id) => t.cuadros.filter((x) => x.id === id)[0];
+    ok(ap.foto === 'https://fotos.example/g1.jpg' && de(ap, 'foto').fondo === 'https://fotos.example/g1.jpg' && de(ap, 'foto').tam === 'alto', '10 · sin picture en el catálogo: la primera foto guardada es la principal');
+    ok(JSON.stringify(de(ap, 'galeria').fotos) === JSON.stringify(['https://fotos.example/g3-t.jpg', 'https://fotos.example/g4.jpg', 'https://fotos.example/g5.jpg']), '10 · galería del apartamento: 3 fotos guardadas (miniaturas), sin repetir la principal');
+    const re = c0.X.tvReserva_(Object.assign({}, FILA), ITEM, []);
+    ok(de(re, 'foto').fondo === 'https://fotos.example/g1.jpg' && de(re, 'galeria') && de(re, 'galeria').fotos.length === 3 && de(re, 'galeria').prioridad === 4, '10 · la reserva también trae la foto y la galería del apartamento');
+    const html = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');
+    const i0 = html.indexOf('  function acomodar('), i1 = html.indexOf('    return filas;\n  }', i0);
+    const acomodar = vm.runInNewContext('(' + html.slice(i0, i1 + '    return filas;\n  }'.length).trim() + ')');
+    const forma = (f) => f.map((x) => x.hero ? 'hero[' + x.hero.id + '|' + x.pila.map((c) => c.id).join('+') + ']' : x.celdas.map((c) => c.id + ':' + x.span + 'x' + x.alto).join('+')).join(' / ');
+    ok(forma(acomodar(re.cuadros)) === 'hero[foto|fechas+huespedes+pago] / galeria:6x2 / mapa:3x2+resumen:3x2', '10 · reserva con galería: ' + forma(acomodar(re.cuadros)));
+    const ed = c0.X.tvEdificio_(c0.X.tvEdificioDe_('Brunelo', [], [AP, AP2, AP3]));
+    ok(de(ed, 'galeria') && JSON.stringify(de(ed, 'galeria').fotos) === JSON.stringify(['https://fotos.example/705.jpg', 'https://fotos.example/902.jpg']), '10 · edificio: galería con las fotos de sus otros apartamentos');
+    const c1 = arma(); const ap1 = c1.X.tvApartamento_(AP, {}, {});
+    ok(!de(ap1, 'galeria') && !ap1.foto && de(ap1, 'foto').tam === 'm', '10 · sin fotos guardadas ni en la herramienta: sin galería y el número sobre el degradado');
+    const c2 = arma(); c2.X.tvGuardarFotos_('p1', IMGS.slice(0, 1));
+    const ap2 = c2.X.tvApartamento_(AP, { pictures: ['https://fotos.example/h1.jpg', 'https://fotos.example/h2.jpg'] }, {});
+    ok(ap2.foto === 'https://fotos.example/g1.jpg' && JSON.stringify(de(ap2, 'galeria').fotos) === JSON.stringify(['https://fotos.example/h1.jpg', 'https://fotos.example/h2.jpg']), '10 · si las guardadas no alcanzan, completa con las que trajo la herramienta');
+    const SECRETO = /4821|Brunelo2026|5555|wifi|clave|c[oó]digo|contrase/i, sinClave = (t) => { const o = Object.assign({}, t); delete o.clave; return JSON.stringify(o); };
+    ok(!SECRETO.test(sinClave(ap)) && !SECRETO.test(sinClave(re)) && !SECRETO.test(sinClave(ed)), '10 · nada nuevo filtra códigos, claves, wifi ni teléfonos');
+  }
+  /* la página: el tablero no se va por tiempo, se reemplaza con un fundido y al terminar espera ~3 s (DOM de mentira) */
+  { const html = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');
+    const i0 = html.indexOf('  window.AlmaTarjeta = {'), s0 = html.lastIndexOf('<script>', i0), s1 = html.indexOf('</script>', i0);
+    const codigo = html.slice(s0 + '<script>'.length, s1);
+    const v0 = html.indexOf('  function vozNativaEvento(e) {'), v1 = html.indexOf('  window.AlmaVoz = {', v0);
+    let reloj = 0, timers = [], idT = 0, mandado = [], escena = [];
+    const setT = (fn, ms, rep) => { const t = { id: ++idT, fn, at: reloj + (ms || 0), ms: ms || 0, rep }; timers.push(t); return t.id; };
+    const clearT = (id) => { timers = timers.filter((t) => t.id !== id); };
+    const avanza = (ms) => { const fin = reloj + ms; for (;;) { timers.sort((a, b) => a.at - b.at); const t = timers[0]; if (!t || t.at > fin) break; reloj = t.at; if (t.rep) t.at += Math.max(1, t.ms); else timers.shift(); t.fn(); } reloj = fin; };
+    class Cls { constructor(e) { this.e = e; } _l() { return this.e.className.split(/\s+/).filter(Boolean); } add(...c) { const l = this._l(); c.forEach((x) => { if (l.indexOf(x) < 0) l.push(x); }); this.e.className = l.join(' '); } remove(...c) { this.e.className = this._l().filter((x) => c.indexOf(x) < 0).join(' '); } contains(c) { return this._l().indexOf(c) >= 0; } toggle(c, on) { if (on === undefined) on = !this.contains(c); if (on) this.add(c); else this.remove(c); return on; } }
+    class El {
+      constructor(tag) { this.tagName = String(tag).toUpperCase(); this.className = ''; this.children = []; this.parentNode = null; this.attrs = {}; this._txt = ''; this.classList = new Cls(this); this.style = { setProperty() {} }; this.hidden = false; }
+      appendChild(c) { if (c.parentNode) c.parentNode.removeChild(c); c.parentNode = this; this.children.push(c); return c; }
+      insertBefore(c, ref) { if (c.parentNode) c.parentNode.removeChild(c); c.parentNode = this; const i = ref ? this.children.indexOf(ref) : -1; if (i < 0) this.children.push(c); else this.children.splice(i, 0, c); return c; }
+      removeChild(c) { this.children = this.children.filter((x) => x !== c); c.parentNode = null; return c; }
+      get firstChild() { return this.children[0] || null; } get nextSibling() { if (!this.parentNode) return null; const l = this.parentNode.children; return l[l.indexOf(this) + 1] || null; }
+      setAttribute(k, v) { this.attrs[k] = String(v); } getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
+      set textContent(v) { this.children = []; this._txt = String(v); } get textContent() { return this._txt + this.children.map((c) => c.textContent).join(''); }
+      set innerHTML(v) { this.children = []; this._txt = ''; } get innerHTML() { return ''; }
+      addEventListener() {} getBoundingClientRect() { return { bottom: 60, top: 0, left: 0, width: 0, height: 0 }; }
+      _match(sel) { return sel.split(',').some((one) => { const m = /^\.([\w-]+)(?:\[(\w+)=(\w+)\])?$/.exec(one.trim().split(/\s+/).pop()); return !!m && this.classList.contains(m[1]) && (!m[2] || this.attrs[m[2]] === m[3]); }); }
+      querySelectorAll(sel) { const out = []; const rec = (n) => n.children.forEach((c) => { if (c._match && c._match(sel)) out.push(c); rec(c); }); rec(this); return out; }
+      querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
+    }
+    const txtNode = (t) => { const n = new El('#text'); n._txt = String(t); return n; };
+    const body = new El('body'), raiz = new El('html'), ovEl = new El('div'); ovEl.className = 'san-ov on'; const bg = new El('div'); bg.className = 'san-ov-bg'; ovEl.appendChild(bg); body.appendChild(ovEl);
+    const document = { body, documentElement: raiz, visibilityState: 'visible', createElement: (t) => new El(t), createTextNode: txtNode, getElementById: () => null,
+      querySelector: (s) => body.querySelector(s), querySelectorAll: (s) => body.querySelectorAll(s) };
+    const win = { addEventListener() {}, innerWidth: 390, innerHeight: 844, SANav: { escena: (o) => escena.push(o ? 's' + o.s : 'centro') } };
+    const ctxW = { document, window: win, SANav: win.SANav, webkit: { messageHandlers: { alma: { postMessage: (m) => mandado.push(m.hacer || m.que) } } },
+      setTimeout: (f, ms) => setT(f, ms), clearTimeout: clearT, setInterval: (f, ms) => setT(f, ms, true), clearInterval: clearT, requestAnimationFrame: (f) => setT(f, 16),
+      console, JSON, Math, String, Number, Object, Array, RegExp, isFinite, Date };
+    win.document = document; vm.createContext(ctxW);
+    let errW = '';
+    try { vm.runInContext(codigo, ctxW); } catch (e) { errW = e.message; }
+    const AT = win.AlmaTarjeta;
+    ok(!errW && AT && typeof AT.sostiene === 'function', '10 · la página arma AlmaTarjeta con sostiene()' + (errW ? ': ' + errW : ''));
+    if (AT) {
+      const T1 = { id: 'tv1', tipo: 'reserva', clave: 'reserva:A', titulo: 'Ana Prueba', cabeza: 'Reserva de Ana Prueba', cuadros: [{ id: 'foto', tipo: 'foto', tam: 'm', prioridad: 1, iniciales: 'AP' }, { id: 'fechas', tipo: 'dato', tam: 's', prioridad: 2, k: 'Fechas', v: '6 → 9 nov' }] };
+      const T2 = { id: 'tv2', tipo: 'apartamento', clave: 'apartamento:b', titulo: 'Brunelo 1203', cabeza: 'Brunelo 1203', cuadros: [{ id: 'foto', tipo: 'foto', tam: 'm', prioridad: 1, iniciales: '1203' }] };
+      const tableros = () => ovEl.children.filter((c) => c.classList.contains('tvb'));
+      AT.evento({ tipo: 'tarjeta', vista: 'abierta', tarjeta: T1 }); avanza(100);
+      ok(tableros().length === 1 && tableros()[0].classList.contains('on') && raiz.classList.contains('tvb-on') && escena.pop() === 's74', '10 · página: el tablero entra y Alma va a la esquina');
+      avanza(5 * 60e3);
+      ok(tableros().length === 1 && tableros()[0].classList.contains('on') && raiz.classList.contains('tvb-on'), '10 · página: 5 minutos después sigue ahí (no se va por tiempo)');
+      AT.evento({ tipo: 'tarjeta', vista: 'abierta', tarjeta: T2 }); avanza(100);
+      const l = tableros();
+      ok(l.length === 2 && l.some((c) => c.classList.contains('sale')) && !l.some((c) => c.classList.contains('on')), '10 · página: otra tarjeta: el tablero de antes se funde y el nuevo espera');
+      avanza(400);
+      ok(tableros().length === 1 && tableros()[0].classList.contains('on') && /Brunelo 1203/.test(tableros()[0].textContent), '10 · página: … y entra el nuevo (transición suave entre tableros)');
+      AT.evento({ tipo: 'tarjeta', vista: 'nada', tarjeta: null }); AT.evento({ tipo: 'estado', estado: 'apagada' });
+      avanza(2900);
+      ok(tableros().length === 1 && AT.sostiene() && raiz.classList.contains('tvb-on'), '10 · página: la llamada terminó: el tablero se queda ~3 s');
+      avanza(500);
+      ok(tableros().length === 0 && !AT.sostiene() && !raiz.classList.contains('tvb-on') && escena.pop() === 'centro', '10 · página: … y vuelve a la pantalla de inicio');
+      AT.evento({ tipo: 'tarjeta', vista: 'abierta', tarjeta: T1 }); avanza(100);
+      AT.evento({ tipo: 'tarjeta', vista: 'nada', tarjeta: null }); avanza(1000);
+      AT.evento({ tipo: 'tarjeta', vista: 'abierta', tarjeta: T2 }); avanza(5000);
+      ok(tableros().length === 1 && /Brunelo 1203/.test(tableros()[0].textContent), '10 · página: si llega otra tarjeta mientras espera, se queda la nueva');
+      /* La llamada de la roca espera al tablero antes de cerrarse; si la conferencia vuelve a empezar, sigue la misma. */
+      const fn = vm.runInNewContext('(function (window, SANav, setTimeout, clearTimeout) { var VN = { h: null, activa: true, estado: "hablando", soporta: true, fin: null }; var AlmaTarjeta = window.AlmaTarjeta;' +
+        html.slice(v0, v1) + ' return { ev: vozNativaEvento, VN: VN }; })');
+      let fin = 0, est = [], alma = 0;
+      const vn = fn({ AlmaTarjeta: AT }, { alma: () => alma++ }, (f, ms) => setT(f, ms), clearT);
+      vn.VN.h = { ended: () => fin++, status: (x) => est.push(x) };
+      vn.ev({ tipo: 'estado', estado: 'apagada' });
+      ok(fin === 0 && est.pop() === 'Llamada terminada', '10 · roca: con el tablero a la vista, la llamada no se cierra enseguida');
+      avanza(3100);
+      ok(fin === 1, '10 · roca: a los ~3 s se cierra y queda el inicio');
+      vn.VN.activa = true; vn.VN.h = { ended: () => fin++, status: (x) => est.push(x) };
+      AT.evento({ tipo: 'tarjeta', vista: 'abierta', tarjeta: T1 }); avanza(400);
+      vn.ev({ tipo: 'estado', estado: 'apagada' }); avanza(1000);
+      vn.ev({ tipo: 'estado', estado: 'conectando' });
+      avanza(5000);
+      ok(fin === 1 && alma === 0 && vn.VN.h && est.pop() === 'Conectando…', '10 · roca: la conferencia vuelve a oír «Alma» antes de los 3 s: sigue la misma llamada de la roca');
+      AT.evento({ tipo: 'estado', estado: 'apagada' }); avanza(4000);
+      vn.VN.activa = true; const h3 = vn.VN.h; vn.ev({ tipo: 'estado', estado: 'apagada' });
+      ok(fin === 2 && h3, '10 · roca: sin tablero a la vista se cierra enseguida, como siempre');
+      ok(mandado.indexOf('plegar') < 0, '10 · página: nada de esto encoge el tablero por su cuenta');
+    }
+  }
 }
 
 process.exit(fallo);

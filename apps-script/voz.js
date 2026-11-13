@@ -1188,8 +1188,12 @@ function vozWebVincular_(ses, convId, app, b) {
   if (app) CacheService.getScriptCache().put('vozapp_' + convId, '1', 21600);   // la llamada es de la app de Alma (música, casa)
   var conf = !!app && (b.conferencia === true || b.conferencia === 1 || b.conferencia === '1');
   if (conf) CacheService.getScriptCache().put('vozconf_' + convId, '1', 21600);   // abierta desde el modo conferencia: plazo largo (vozSecretaria_)
-  /* Tarjeta de la llamada (tarjeta.js): la app dice si Juan ve la pantalla (Modo calle o anillo con el teléfono bloqueado: no). */
+  /* Tarjeta de la llamada (tarjeta.js): la app dice si Juan ve la pantalla (Modo calle o anillo con el teléfono bloqueado: no).
+     «1» solo cuando lo dice: en conferencia la tarjeta sale únicamente con ese aviso (la app de antes nunca lo manda ahí).
+     tablero «estado» (#508 T3): la app deja el tablero hasta que llega otro o se cuelga (tvCerrar_). */
   if (app && (b.pantalla === false || b.pantalla === 0 || b.pantalla === '0')) CacheService.getScriptCache().put('vozpant_' + convId, '0', 21600);
+  else if (app && (b.pantalla === true || b.pantalla === 1 || b.pantalla === '1')) CacheService.getScriptCache().put('vozpant_' + convId, '1', 21600);
+  if (app && b.tablero === 'estado') CacheService.getScriptCache().put('voztvest_' + convId, '1', 21600);
   /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
   if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);

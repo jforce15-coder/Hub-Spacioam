@@ -3,7 +3,8 @@
    vista, distribución), Alma revisa sus fuentes en este orden y se detiene en la primera que responde claro:
      1. Lo escrito: la ficha (PropiedadesInfo), la base de conocimiento y la memoria, los detalles de Hospitable
         (descripción, cuartos y camas, amenidades) y su knowledge hub. Un modelo rápido, solo texto.
-     2. Las fotos del anuncio (Hospitable · /properties/{id}/images, las miniaturas en el orden del anuncio).
+     2. Las fotos del anuncio (Hospitable · /properties/{id}/images, las miniaturas en el orden del anuncio). Quedan
+        guardadas 6 h para el tablero de la llamada (tvGuardarFotos_, tarjeta.js).
      3. Las fotos de los reportes de limpieza de Epi: hoja «Reportes» de Epi (columna fotosLimpieza, con llaves como
         fotosTv, fotosHabitaciones, fotosSalaGeneral) y los archivos en la carpeta de Drive de Epi. Las más recientes primero.
    En 2 y 3 el modelo con visión del Hub recibe a lo mucho 8 fotos y una pregunta concreta («¿cuántas TV se ven y en qué
@@ -116,7 +117,9 @@ function fuentesFotosAnuncio_(propId) {
   if (!propId) return [];
   try {
     var r = hosp_('get', '/properties/' + propId + '/images'); if (r.code !== 200) return [];
-    return ((r.json && r.json.data) || []).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); })
+    var orden = ((r.json && r.json.data) || []).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); });
+    try { if (typeof tvGuardarFotos_ === 'function') tvGuardarFotos_(propId, orden); } catch (e) {}   // las usa el tablero de la llamada 6 h (tarjeta.js, #508 T3)
+    return orden
       .map(function (x, i) { return { url: s_(x.thumbnail_url || x.url), etiqueta: 'foto ' + (i + 1) + ' del anuncio' + (x.caption ? ' (' + s_(x.caption) + ')' : '') }; })
       .filter(function (x) { return /^https?:/.test(x.url); }).slice(0, FUENTES_MAX_FOTOS_);
   } catch (e) { console.error('fuentesFotosAnuncio_: ' + e); return []; }

@@ -2533,7 +2533,7 @@ function avisarRojo_(ctx, asunto, texto, sinWa) {
   /* El mismo mensaje del huésped otra vez (reproceso o dos disparos): ya se avisó una vez; no se repite nada (3-nov). */
   if (dc && dc.mismo) { console.warn('avisarRojo_: mismo mensaje, caso ' + dc.id + ' ya avisado'); return; }
   /* Notificación de nivel 1 (urgente) a la app del principal (calle.js): un huésped espera al equipo. */
-  try { const jefe = chatPrincipal_(); if (jefe) vozAvisoPoner_(jefe, 'Un huésped' + (ctx && ctx.propiedad ? ' del ' + ctx.propiedad : '') + ' necesita al equipo' + (ctx && ctx.escalar ? ': está escalado' : ': está en rojo') + '.', '', { nivel: 1 }); } catch (e) { console.error('avisarRojo_ aviso: ' + e); }
+  try { const jefe = chatPrincipal_(); if (jefe) avisoPoner_(jefe, 'huesped_espera', { propiedad: ctx && ctx.propiedad, escalado: !!(ctx && ctx.escalar) }, '', { nivel: 1 }); } catch (e) { console.error('avisarRojo_ aviso: ' + e); }   // texto humano: avisotexto.js
   if (ctx && ctx.escalar) return escalar_(asunto, textoEsc, { waPorDecision: !!(dc && dc.id && !dc.ya) });
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   pushA_(null, asunto, texto);
@@ -3372,6 +3372,8 @@ function hubApi_(body) {
       case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
       case 'calleVoz': return json_(calleVoz_(ses, body));                                 // modo calle: { texto } → { audio } con la voz de Alma, para lo que la app dice sin audio (calle.js)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
+      case 'vozCaida': return json_(vozCaida_(ses, body));                                 // la app habló con la voz del iPhone: { donde, motivo, ms } a VOZ_CAIDAS (calle.js, #509)
+      case 'vozCaidas': return json_(vozCaidas_(ses, body));                               // por qué no sonó la voz de Alma: las últimas caídas, sin datos personales (solo el principal)
       case 'dsPropuestas': return json_(dsPropuestas_());
       case 'dsDecidir': return json_(dsDecidir_(body.id, body.decision, body.nota, body.quien));
       default: return json_({ ok: false, error: 'accion' });

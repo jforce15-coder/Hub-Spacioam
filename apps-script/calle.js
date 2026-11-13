@@ -28,6 +28,14 @@
    vozAvisos (voz.js) trae en cada aviso su frase corta (hablar) e importante; avisoHablar { aviso_id } da además el
    audio. Si contesta, la app llama a «calle» con { texto, aviso_id }: la respuesta va a esa tarjeta de Pendientes
    (pendResponder_: entra al Chat con Alma y la tarjeta se cierra).
+   LA VOZ LISTA ANTES (#509 T1, 13-nov-2026: «a veces sale la voz del iPhone»): el audio se armaba en la misma petición
+   en que la app lo pedía (Apps Script + hojas + ElevenLabs, en fila hasta 3 avisos) y la app esperaba 12 s (avisoHablar) u
+   8 s (calleVoz); el plazo de 20 s se compartía entre los 3 avisos de una vuelta, una frase de más de ~8 s de audio no
+   cabía en la caché (cada reintento volvía a empezar) y un 429 de ElevenLabs no se reintentaba. Ahora: al nacer el aviso
+   se encola y un disparador (avisoVozPronto) arma su audio en segundo plano; la caché guarda audios largos en partes; lo
+   que ya está en la caché se manda aunque haya pasado el plazo; un 429 se reintenta una vez. Cada vez que no hubo voz de
+   Alma, el porqué queda en VOZ_CAIDAS (sin textos ni datos personales: dónde, motivo y ms), que la app también llena con
+   sus propias caídas (acción vozCaida) y que se lee con vozCaidas (solo el principal).
 
    SUEÑO (Juan, 3-nov-2026): la llamada que abre el Modo calle (por «Alma» o por un aviso) la cuelga la app sola, rápido,
    para no gastar créditos de ElevenLabs: tras calle_silencio_s de silencio de Juan después de que Alma habló, si dice
@@ -46,6 +54,10 @@ var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si
 var CALLE_TTS_MODELO_ = 'eleven_flash_v2_5';   // el modelo rápido (la Propiedad CALLE_TTS_MODELO lo cambia)
 var CALLE_VOZ_NO_MIN_ = 5;         // sin permiso o sin créditos: minutos sin volver a preguntarle a ElevenLabs
 var CALLE_VOZ_MOTIVO_ = '';        // por qué la última frase salió sin audio ('' si salió bien)
+var CALLE_VOZ_CACHE_ = false;      // la última frase salió de la caché (no cuenta como una llamada a ElevenLabs)
+var CALLE_VOZ_PARTE_ = 90000;      // la caché guarda hasta 100 KB por clave: un audio largo va en partes de esto
+var CALLE_VOZ_PARTES_ = 4;         // y en 4 partes como mucho (~30 s de audio)
+var AVISO_AUDIO_PLAZO_ = 30000;    // vozAvisos: la app espera 40 s, así que se arma audio hasta los 30 s
 var CALLE_SILENCIO_S_ = 6;         // sueño: segundos de silencio de Juan, después de que Alma habló, para colgar
 var CALLE_TOPE_S_ = 45;            // sueño: segundos sin que Alma hable para colgar aunque haya ruido o gente cerca
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
@@ -67,7 +79,7 @@ function calle_(ses, b) {
   finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; }
   if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false };
   var out = calleRespuesta_(adm, r);
-  var audio = calleAudio_(out.hablar, t0); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
+  var audio = calleAudio_(out.hablar, t0, { donde: 'calle' }); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
   return out;
 }
 
@@ -139,50 +151,109 @@ function calleEntrada_(t) {
   return calleCorto_(una || base, CALLE_PALABRAS_) || 'Mejor lo hablamos.';
 }
 
-/* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya pasó CALLE_AUDIO_PLAZO_ o si ElevenLabs falló; el
-   porqué queda en CALLE_VOZ_MOTIVO_. Las frases cortas quedan 6 h en la caché (una sola parte de 90 KB como mucho: más
-   larga, no se guarda). */
-function calleAudio_(hablar, t0) {
-  CALLE_VOZ_MOTIVO_ = '';
+/* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya pasó el plazo o si ElevenLabs falló; el porqué
+   queda en CALLE_VOZ_MOTIVO_ y en VOZ_CAIDAS (vozCaidaAnotar_). La caché (6 h) va primero: lo que ya está listo se manda
+   aunque haya pasado el plazo (antes se miraba el plazo antes que la caché y un audio ya hecho se tiraba). Un audio largo
+   se guarda en partes (calleVozCacheGuardar_). o: { plazo (ms desde t0; CALLE_AUDIO_PLAZO_ si no viene), donde (para el
+   registro: «calle», «vozAvisos», «avisoHablar», «calleVoz», «al nacer») }. */
+function calleAudio_(hablar, t0, o) {
+  o = o || {};
+  CALLE_VOZ_MOTIVO_ = ''; CALLE_VOZ_CACHE_ = false;
+  var ini0 = Date.now(), donde = String(o.donde || '');
+  var falla = function (m) { CALLE_VOZ_MOTIVO_ = m; vozCaidaAnotar_(donde, m, Date.now() - ini0); return ''; };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY');
   var texto = ''; try { texto = vozSinNotas_(hablar); } catch (e) { texto = String(hablar || ''); }
   texto = String(texto || '').trim();
   if (!texto) { CALLE_VOZ_MOTIVO_ = 'la frase venía vacía'; return ''; }
-  if (!key) { CALLE_VOZ_MOTIVO_ = 'falta ELEVENLABS_KEY en las Propiedades del script'; return ''; }
-  if (p.getProperty('CALLE_AUDIO') === '0') { CALLE_VOZ_MOTIVO_ = 'la voz está apagada (Propiedad CALLE_AUDIO = 0)'; return ''; }
-  if (t0 && Date.now() - t0 > CALLE_AUDIO_PLAZO_) { CALLE_VOZ_MOTIVO_ = 'la respuesta tardó más de ' + (CALLE_AUDIO_PLAZO_ / 1000) + ' s'; return ''; }   // la app está por dejar de esperar
+  if (!key) return falla('falta ELEVENLABS_KEY en las Propiedades del script');
+  if (p.getProperty('CALLE_AUDIO') === '0') return falla('la voz está apagada (Propiedad CALLE_AUDIO = 0)');
   var voz = '', c = CacheService.getScriptCache(), k = '';
   try {
-    var no = c.get('calle_voz_no'); if (no) { CALLE_VOZ_MOTIVO_ = no; return ''; }   // sin permiso o sin créditos: no se insiste
     voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
     k = 'callevoz_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voz + '|' + texto, Utilities.Charset.UTF_8));
-    var ya = c.get(k); if (ya) return ya;
+    var ya = calleVozCacheLeer_(c, k); if (ya) { CALLE_VOZ_CACHE_ = true; return ya; }
   } catch (e) { console.error('calleAudio_ caché: ' + e); }
+  var plazo = Number(o.plazo) > 0 ? Number(o.plazo) : CALLE_AUDIO_PLAZO_;
+  if (t0 && Date.now() - t0 > plazo) return falla('la respuesta tardó más de ' + Math.round(plazo / 1000) + ' s');   // la app está por dejar de esperar
+  try { var no = c.get('calle_voz_no'); if (no) { CALLE_VOZ_MOTIVO_ = no; return ''; } } catch (e) {}   // sin permiso o sin créditos: no se insiste (ya quedó anotado)
   voz = voz || CALLE_VOZ_RESPALDO_;
   var rapido = p.getProperty('CALLE_TTS_MODELO') || CALLE_TTS_MODELO_, otro = p.getProperty('VOZ_TTS_MODELO') || 'eleven_multilingual_v2';
-  var modelos = otro !== rapido ? [rapido, otro] : [rapido];
+  var modelos = otro !== rapido ? [rapido, otro] : [rapido], ocupada = 0;
   for (var i = 0; i < modelos.length; i++) {
     var ini = Date.now(), r;
     try {
       r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
         method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
         payload: JSON.stringify({ text: texto, model_id: modelos[i], voice_settings: { stability: 0.6, similarity_boost: 0.8, speed: 1.05 } }) }, 'Voz');
-    } catch (e) { CALLE_VOZ_MOTIVO_ = 'no pude llamar a ElevenLabs (' + String(e).slice(0, 90) + ')'; console.error('calleAudio_: ' + e); return ''; }
+    } catch (e) { console.error('calleAudio_: ' + e); return falla('no pude llamar a ElevenLabs (' + String(e).slice(0, 90) + ')'); }
     var ms = Date.now() - ini, code = r.getResponseCode();
     if (code === 200) {
       if (ms > 3000) console.warn('calleAudio_: ElevenLabs tardó ' + ms + ' ms (el audio igual se manda)');
       if (i > 0) console.warn('calleAudio_: ' + modelos[0] + ' no sirvió con la voz ' + voz + '; salió con ' + modelos[i]);
       var b64 = Utilities.base64Encode(r.getBlob().getBytes());
-      if (k && b64.length <= 90000) { try { c.put(k, b64, 21600); } catch (e) {} }
+      if (k) calleVozCacheGuardar_(c, k, b64);
       return b64;
     }
     var cuerpo = String(r.getContentText() || '').slice(0, 400), m = calleVozMotivo_(code, cuerpo, voz, modelos[i]);
     console.error('calleAudio_ ' + code + ' (' + modelos[i] + '): ' + cuerpo.slice(0, 200));
-    CALLE_VOZ_MOTIVO_ = m.motivo;
+    /* 429 (ElevenLabs ocupada: p. ej. una llamada y una notificación a la vez): una sola vez más, después de un respiro. */
+    if (code === 429 && !ocupada++) { try { Utilities.sleep(1500); } catch (e) {} i--; continue; }
     if (m.pausar) { try { c.put('calle_voz_no', m.motivo, CALLE_VOZ_NO_MIN_ * 60); } catch (e) {} }
-    if (!m.otroModelo) return '';
+    if (!m.otroModelo || i === modelos.length - 1) return falla(m.motivo);
+    CALLE_VOZ_MOTIVO_ = m.motivo;
   }
-  return '';
+  return falla(CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio');
+}
+/* La caché de la voz: una clave hasta CALLE_VOZ_PARTE_ caracteres; más larga, «n:<partes>» y cada parte en <k>_<i>. */
+function calleVozCacheLeer_(c, k) {
+  var v = c.get(k); if (!v) return '';
+  var m = /^n:(\d+)$/.exec(v); if (!m) return v;
+  var ks = []; for (var i = 0; i < Number(m[1]); i++) ks.push(k + '_' + i);
+  var todo = c.getAll ? c.getAll(ks) : ks.reduce(function (o, x) { o[x] = c.get(x); return o; }, {});
+  var partes = ks.map(function (x) { return todo[x] || ''; });
+  return partes.every(Boolean) ? partes.join('') : '';
+}
+function calleVozCacheGuardar_(c, k, b64) {
+  try {
+    if (b64.length <= CALLE_VOZ_PARTE_) { c.put(k, b64, 21600); return true; }
+    var n = Math.ceil(b64.length / CALLE_VOZ_PARTE_); if (n > CALLE_VOZ_PARTES_) return false;
+    var o = {}; for (var i = 0; i < n; i++) o[k + '_' + i] = b64.slice(i * CALLE_VOZ_PARTE_, (i + 1) * CALLE_VOZ_PARTE_);
+    if (c.putAll) c.putAll(o, 21600); else Object.keys(o).forEach(function (x) { c.put(x, o[x], 21600); });
+    c.put(k, 'n:' + n, 21600);   // la cabecera al final: nunca apunta a partes que todavía no están
+    return true;
+  } catch (e) { console.error('calleVozCacheGuardar_: ' + e); return false; }
+}
+
+/* ── VOZ_CAIDAS: por qué no sonó la voz de Alma (#509 T1) ──
+   Una fila por caída, las últimas VOZ_CAIDAS_MAX_: { ts, donde, motivo, ms, de } (de: «hub» o «app»). Nunca el texto de la
+   frase ni datos personales: el motivo pasa por vozCaidaLimpiar_ (sin correos, números largos ni llaves). */
+var VOZ_CAIDAS_MAX_ = 40;
+function vozCaidaLimpiar_(s) {
+  return String(s == null ? '' : s).replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[correo]').replace(/\+?\d[\d\s().-]{5,}\d/g, '[número]')
+    .replace(/\b(sk|xi|key)[-_][A-Za-z0-9_-]{8,}/gi, '[llave]').replace(/\s+/g, ' ').trim().slice(0, 160);
+}
+function vozCaidaAnotar_(donde, motivo, ms, de) {
+  try {
+    var p = PropertiesService.getScriptProperties(), l = []; try { l = JSON.parse(p.getProperty('VOZ_CAIDAS') || '[]'); } catch (e) {}
+    l.push({ ts: new Date().toISOString(), donde: vozCaidaLimpiar_(donde).slice(0, 40), motivo: vozCaidaLimpiar_(motivo), ms: Math.round(Number(ms) || 0), de: de === 'app' ? 'app' : 'hub' });
+    p.setProperty('VOZ_CAIDAS', JSON.stringify(l.slice(-VOZ_CAIDAS_MAX_)));
+  } catch (e) { console.error('vozCaidaAnotar_: ' + e); }
+}
+/* vozCaida { donde, motivo, ms } — la app cuenta que habló con la voz del iPhone y por qué. */
+function vozCaida_(ses, b) {
+  b = b || {};
+  var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
+  if (!String(b.motivo || '').trim()) return { ok: false, error: 'falta el motivo' };
+  vozCaidaAnotar_(String(b.donde || 'app'), String(b.motivo), b.ms, 'app');
+  return { ok: true };
+}
+/* vozCaidas { n? } → { ok, caidas: [...] } la más nueva primero (solo el principal). */
+function vozCaidas_(ses, b) {
+  var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
+  if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal.' };
+  var n = Math.max(1, Math.min(VOZ_CAIDAS_MAX_, Number(b && b.n) || 20)), l = [];
+  try { l = JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_CAIDAS') || '[]'); } catch (e) {}
+  return { ok: true, caidas: l.slice(-n).reverse() };
 }
 /* Lo que contestó ElevenLabs → { motivo, pausar, otroModelo }: el motivo en palabras simples para el diagnóstico,
    si conviene dejar de preguntar unos minutos (permiso o créditos) y si vale la pena intentar con otro modelo. */
@@ -207,7 +278,7 @@ function calleVoz_(ses, b) {
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var texto = String(b.texto || '').trim().slice(0, CALLE_VOZ_MAX_);
   if (!texto) return { ok: false, error: 'falta el texto' };
-  var audio = calleAudio_(texto, 0);
+  var audio = calleAudio_(texto, 0, { donde: b.donde === 'aviso' ? 'calleVoz (aviso)' : 'calleVoz' });
   return audio ? { ok: true, audio: audio } : { ok: false, error: 'sin audio', motivo: CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio' };
 }
 
@@ -235,26 +306,34 @@ function avisoNivel_(a, rets, pends) {
   if (pd) return pd.tipo === 'atencion' && pendVivo_(pd, Date.now()) ? (CALLE_ORIGEN_URGENTE_.indexOf(String(pd.origen)) >= 0 ? 1 : 2) : 3;
   return (rets || []).some(function (x) { return x && String(x.id) === String(a && a.id); }) ? 2 : 3;
 }
-/* La frase de un aviso: corta, sin enlaces; si es de nivel 1 o 2 (pide algo de él) es importante y termina con
-   «¿Lo vemos?». Sin IA: sale del texto del aviso (o del resumen de la tarjeta). */
-function avisoHablarDe_(a, rets, pends) {
+/* La frase de un aviso (#509 T2; Juan, 13-nov-2026: «como parte de una conversación… que tenga toda la información pero
+   como un humano diciéndolo»): empieza con su nombre, como Alma le hablaría, y sigue con el texto del aviso, que ya trae
+   la entrada humana (avisotexto.js). Hasta AVISO_PALABRAS_ palabras, sin enlaces. Termina con UNA sola pregunta:
+     · si el aviso ya trae la suya al final («¿quieres que le escriba?»), esa;
+     · si pide algo de él (nivel 1 o 2), «¿Lo vemos ahora?» (nivel 1 empieza con «esto es urgente»);
+     · si terminó algo de segundo plano, «¿Quieres que te cuente?» (con «ya terminé lo que me pediste» si el texto no lo dice).
+   Lo de nivel 3 no pregunta nada. nombre: el de quien la escucha (el primero); sin él, como antes, sin saludo. Sin IA. */
+var AVISO_PALABRAS_ = 42;          // la notificación hablada: toda la información, en unos 15 s
+var AVISO_INICIO_MINUSCULA_ = /^(Ya|No|Un|Una|Unos|Hay|Te|Le|Lo|La|Las|El|Los|Revisé|Uní|Dejé|Terminé|Ojo|Listo|Lista|Tengo|Tenemos|Quedó|Pasó|Sobre|Necesito|Se|Algo|Esto|Me|Mañana|Hoy|Intenté|Hice|Encontré|Pude|Sigo|Falta|Faltan|Llegó|Avisé|Compré|Mandé|Escribí|Tu|Tus|Les|Nadie|Todo|Todavía)(?=[\s,;:.]|$)/;
+function avisoHablarDe_(a, rets, pends, nombre) {
   a = a || {};
   var pd = callePendDeAviso_(pends, a.id), nivel = avisoNivel_(a, rets, pends), importante = nivel <= 2;
-  var base = calleLimpiar_(a.texto || (pd && (pd.resumen || pd.titulo)) || '');
-  /* Terminó algo de segundo plano (aviso con resultado): en modo conferencia la app lo dice sin que Juan la llame. Lo que
-     pidió en una llamada del modo conferencia (a.conferencia) llega como nivel 1, pero se dice como resultado. */
-  if (a.resultado && (!importante || a.conferencia)) {   // si pide algo de él, gana «¿Lo vemos?» (una sola pregunta, nunca «¿Le pago. ¿Quieres verlo…?»)
-    base = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || []).filter(function (f) { return !/\?\s*["»”)]*\s*$/.test(f); }).join(' ').trim() || base;
-    base = calleCorto_(base, a.conferencia ? CALLE_PALABRAS_ : CALLE_PALABRAS_ - 8).replace(/[\s.!?…,;:]+$/, '');   // en conferencia lo que pidió: la respuesta, no solo el aviso
-    var yaDice = /\b(list[oa]s?|termin\w*|qued[oó]|hecho|ya tengo|ya est[aá])\b/i.test(base);   // «La limpieza quedó lista», «Ya tengo…»: sin repetir «Ya quedó listo»
-    return { hablar: (base ? (yaDice ? base : 'Ya quedó listo: ' + base) : 'Ya quedó listo') + '. ¿Quieres verlo ahora?', importante: importante, nivel: nivel };
-  }
-  if (importante) {
-    var sinPreg = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || []).filter(function (f) { return !/\?\s*["»”)]*\s*$/.test(f); }).join(' ').trim();
-    base = calleCorto_(sinPreg || base, CALLE_PALABRAS_ - 3).replace(/[\s.!?…,;:]+$/, '');
-    return { hablar: (base ? base + '. ' : '') + '¿Lo vemos?', importante: true, nivel: nivel };
-  }
-  return { hablar: calleCorto_(base, CALLE_PALABRAS_), importante: false, nivel: nivel };
+  var base = calleLimpiar_((a.texto || (pd && (pd.resumen || pd.titulo)) || '') + (a.voz ? ' ' + a.voz : ''));   // voz: el detalle (avisotexto.js)
+  var frases = base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g) || [];
+  var esPreg = function (f) { return /\?\s*["»”)]*\s*$/.test(f); };
+  var suya = frases.length && esPreg(frases[frases.length - 1]) ? frases[frases.length - 1].trim() : '';   // su propia pregunta, al final
+  var cuerpo = frases.filter(function (f) { return !esPreg(f); }).join(' ').trim();
+  var resultado = a.resultado && (!importante || a.conferencia);   // si pide algo de él, gana su pregunta (una sola, nunca dos)
+  var cierre = suya || (resultado ? '¿Quieres que te cuente?' : importante ? '¿Lo vemos ahora?' : '');
+  var max = AVISO_PALABRAS_ - (cierre ? cierre.split(/\s+/).length : 0) - 3;
+  cuerpo = calleCorto_(cuerpo || (suya ? '' : base), max).replace(/[\s.!?…,;:]+$/, '');
+  if (resultado && cuerpo && !/\b(list[oa]s?|termin|qued[oó]|hecho|ya tengo|ya est[aá]|ya te|ya le|un[ií])/i.test(cuerpo)) cuerpo = 'ya terminé lo que me pediste: ' + cuerpo.charAt(0).toLowerCase() + cuerpo.slice(1);
+  else if (resultado && !cuerpo) cuerpo = 'ya terminé lo que me pediste';
+  if (nivel === 1 && !resultado && cuerpo) cuerpo = 'esto es urgente: ' + cuerpo.charAt(0).toLowerCase() + cuerpo.slice(1);
+  var hablar = ((cuerpo ? cuerpo + (cierre ? '. ' : '.') : '') + cierre).trim(), n = String(nombre || '').trim().split(/\s+/)[0];
+  if (hablar) hablar = n ? n + ', ' + (AVISO_INICIO_MINUSCULA_.test(hablar) ? hablar.charAt(0).toLowerCase() + hablar.slice(1) : hablar)
+    : hablar.charAt(0).toUpperCase() + hablar.slice(1);
+  return { hablar: hablar || calleCorto_(base, CALLE_PALABRAS_), importante: importante, nivel: nivel };
 }
 /* La respuesta en la notificación (Juan, 3-nov: «muy escueta»): hasta n líneas cortas del resultado, sin markdown, enlaces,
    etiquetas [[…]], la lista de lo hecho ni textos internos. Sin IA. */
@@ -279,13 +358,14 @@ function avisoHablar_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var id = String(b.aviso_id || b.id || ''); if (!id) return { ok: false, error: 'falta aviso_id' };
-  var a = calleAvisoHist_(adm, id), pends = pendFilas_();
+  var t0 = Date.now(), a = calleAvisoHist_(adm, id) || avisoEnCola_(adm, id), pends = pendFilas_();
   if (!a) { var pd = callePendDeAviso_(pends, id); if (pd) a = { id: id, texto: pd.resumen || pd.titulo }; }
   if (!a) return { ok: false, error: 'Ya no encuentro ese aviso.' };
   if (b.resultado) a = Object.assign({}, a, { resultado: true });
-  var h = avisoHablarDe_(a, retLeer_(adm), pends), t0 = Date.now();
+  var h = avisoHablarDe_(a, retLeer_(adm), pends, adm.nombre);
   var out = { ok: true, id: id, nivel: h.nivel, hablar: h.hablar, importante: h.importante };
-  var audio = calleAudio_(h.hablar, t0); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
+  /* La app espera 30 s (antes 12): hasta 25 s se arma el audio; lo de la caché sale siempre. */
+  var audio = calleAudio_(h.hablar, t0, { plazo: 25000, donde: 'avisoHablar' }); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
   return out;
 }
 /* LA VOZ CON EL AVISO (Juan, 6-nov-2026: «con la voz de Alma, no la del iPhone, sobre todo con la app abierta»): vozAvisos
@@ -303,12 +383,71 @@ function avisosConVoz_(lista, b) {
   var t0 = Date.now(), n = 0;
   (lista || []).forEach(function (a) {
     var dice = a && a.hablar && (Number(a.nivel) <= hablado || (b.conf === true && a.resultado));
-    if (!dice || n >= AVISO_AUDIO_MAX_) return;
+    if (!dice) return;
+    /* Lo que ya armó el disparador al nacer el aviso (avisoVozPronto) sale de la caché y no cuenta en los 3. */
+    var c = CacheService.getScriptCache(), k = '';
+    try { k = 'callevoz_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, (vozVozId_() || CALLE_VOZ_RESPALDO_) + '|' + String(vozSinNotas_(a.hablar) || '').trim(), Utilities.Charset.UTF_8)); } catch (e) {}
+    var yaListo = k ? calleVozCacheLeer_(c, k) : '';
+    if (yaListo) { a.audio = yaListo; return; }
+    if (n >= AVISO_AUDIO_MAX_) return;
     n++;
-    var audio = calleAudio_(a.hablar, t0);   // la caché de 6 h sirve también para avisoHablar y calleVoz
+    var audio = calleAudio_(a.hablar, t0, { plazo: AVISO_AUDIO_PLAZO_, donde: 'vozAvisos' });   // la caché de 6 h sirve también para avisoHablar y calleVoz
     if (audio) a.audio = audio; else a.vozMotivo = CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio';
   });
   return lista;
+}
+
+/* ── La voz lista antes (#509 T1): al nacer un aviso que se puede decir, su audio se arma en segundo plano ──
+   vozAvisoPoner_ (voz.js) llama a avisoVozEncolar_: queda en AVISO_VOZ_COLA y un disparador de una vez (avisoVozPronto,
+   a los 2 s) arma la frase (avisoHablarDe_, con el nombre) y su audio, que queda 6 h en la caché. Cuando la app pregunta
+   (vozAvisos, cada 45 s) o lo pide (avisoHablar), el audio ya está y suena sin esperar. Solo lo que se dice casi siempre:
+   lo de nivel 1 o 2 y lo que terminó en segundo plano (lo de nivel 3 suelto se arma, como antes, cuando la app lo va a
+   decir). AVISO_VOZ_PREVIA = 0 lo apaga. */
+var AVISO_VOZ_COLA_MAX_ = 20;
+function avisoVozEncolar_(adm, a) {
+  try {
+    if (!adm || !adm.email || !a || !a.id) return false;
+    var p = PropertiesService.getScriptProperties();
+    if (String(p.getProperty('AVISO_VOZ_PREVIA') || '') === '0' || !p.getProperty('ELEVENLABS_KEY')) return false;
+    if (Number(a.nivel) === 3 && !a.resultado) return false;
+    var cola = []; try { cola = JSON.parse(p.getProperty('AVISO_VOZ_COLA') || '[]'); } catch (e) {}
+    if (cola.some(function (x) { return x.email === adm.email && String(x.id) === String(a.id); })) return false;
+    cola.push({ email: adm.email, id: String(a.id), t: Date.now() });
+    p.setProperty('AVISO_VOZ_COLA', JSON.stringify(cola.slice(-AVISO_VOZ_COLA_MAX_)));
+    var ya = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'avisoVozPronto'; });
+    if (!ya) ScriptApp.newTrigger('avisoVozPronto').timeBased().after(2000).create();
+    return true;
+  } catch (e) { console.error('avisoVozEncolar_: ' + e); return false; }
+}
+/* El disparador: saca la cola (con el candado del usuario, como las colas de la llamada) y arma cada audio. Un aviso que
+   la app ya recogió y ya tiene su audio en la caché no gasta nada (calleAudio_ mira la caché primero). */
+function avisoVozPronto() {
+  cupoCanal_('Voz');
+  try { ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'avisoVozPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); }); } catch (e) {}
+  var p = PropertiesService.getScriptProperties(), lock = vozColaLock_(), cola = [];
+  if (!lock.tryLock(5000)) return;
+  try { try { cola = JSON.parse(p.getProperty('AVISO_VOZ_COLA') || '[]'); } catch (e) {} p.setProperty('AVISO_VOZ_COLA', '[]'); } finally { lock.releaseLock(); }
+  avisoVozPreparar_(cola, adminsOp_());
+}
+function avisoVozPreparar_(cola, admins) {
+  var hechos = 0, pends = null, rets = {}, ini = Date.now();
+  (cola || []).forEach(function (x) {
+    if (Date.now() - ini > 240000 || Date.now() - Number(x.t || 0) > 6 * 3600000) return;   // 4 min por pasada; lo de más de 6 h ya se borró de la cola de avisos
+    var adm = (admins || []).filter(function (m) { return m && m.email === x.email; })[0]; if (!adm) return;
+    var a = avisoEnCola_(adm, x.id) || calleAvisoHist_(adm, x.id); if (!a) return;
+    try {
+      if (pends === null) pends = pendFilas_();
+      if (!rets[adm.email]) rets[adm.email] = retLeer_(adm);
+    } catch (e) { pends = pends || []; rets[adm.email] = rets[adm.email] || []; }
+    var h = avisoHablarDe_(a, rets[adm.email], pends, adm.nombre);
+    if (calleAudio_(h.hablar, 0, { donde: 'al nacer' })) hechos++;
+  });
+  return hechos;
+}
+/* Un aviso que sigue en la cola de la app (VOZ_AVISOS): lo de nivel 3 de segundo plano no entra al historial. */
+function avisoEnCola_(adm, id) {
+  var t = {}; try { t = JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_AVISOS') || '{}'); } catch (e) {}
+  return (t[adm.email] || []).filter(function (a) { return a && String(a.id) === String(id); }).pop() || null;
 }
 function calleAvisoHist_(adm, id) {
   var h = []; try { h = JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_AVISOS_H_' + retClave_(adm).slice(8)) || '[]'); } catch (e) {}

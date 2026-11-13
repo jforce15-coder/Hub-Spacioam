@@ -181,7 +181,7 @@ function vigVuelta_(p, ahora, t0, out, enCupo) {
     v.revisada = new Date().toISOString();
     if (r.error) {
       v.fallos++; v.nota = r.error;
-      if (v.fallos >= VIG_MAX_FALLOS_) { v.estado = 'detenida'; vozAvisoPoner_(adm, 'Dejé de vigilar ' + v.resumen + ': no pude leerlo tres veces seguidas (' + r.error + ').', 'vg:' + v.id, { nivel: 3 }); }
+      if (v.fallos >= VIG_MAX_FALLOS_) { v.estado = 'detenida'; avisoPoner_(adm, 'vigilancia_error', { resumen: v.resumen, error: r.error }, 'vg:' + v.id, { nivel: 3 }); }
       vigGuardar_(v); continue;
     }
     v.fallos = 0;
@@ -241,8 +241,7 @@ function vigRevisar_(v, adm, urgente) {
 }
 function vigDisparar_(v, adm, detalle) {
   v.estado = 'cumplida'; v.cumplida = new Date().toISOString(); v.nota = String(detalle || '').slice(0, 300); vigGuardar_(v);
-  var aviso = [v.al_pasar.avisar, detalle].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim() || ('Pasó lo que vigilaba: ' + v.resumen + '.');
-  try { vozAvisoPoner_(adm, aviso, 'vg:' + v.id, { nivel: 1 }); } catch (e) { console.error('vigDisparar_ aviso: ' + e); }
+  try { avisoPoner_(adm, 'vigilancia_paso', { resumen: v.resumen, avisar: v.al_pasar.avisar, detalle: detalle }, 'vg:' + v.id, { nivel: 1 }); } catch (e) { console.error('vigDisparar_ aviso: ' + e); }   // texto humano: avisotexto.js
   if (v.al_pasar.pedido) { try { vigPedido_(adm, v, detalle); } catch (e) { console.error('vigDisparar_ pedido: ' + e); } }
 }
 /* Lo que hay que hacer al pasar: al agente, en segundo plano (la única IA de una vigilancia). */
@@ -253,7 +252,7 @@ function vigPedido_(adm, v, detalle) {
 }
 function vigVencer_(v, adm) {
   v.estado = 'vencida'; v.nota = 'venció sin pasar'; vigGuardar_(v);
-  try { vozAvisoPoner_(adm, 'Dejé de vigilar ' + v.resumen + ': venció y no pasó nada.', 'vg:' + v.id, { nivel: 3 }); } catch (e) {}
+  try { avisoPoner_(adm, 'vigilancia_vencio', { resumen: v.resumen }, 'vg:' + v.id, { nivel: 3 }); } catch (e) {}
 }
 
 /* ── Pendientes: «Vigilando: …» con «Dejar de vigilar» ── */

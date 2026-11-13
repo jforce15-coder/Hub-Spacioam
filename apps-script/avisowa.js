@@ -46,7 +46,8 @@ function avisoWaTexto_(lista) {
   var ls = lista.slice(0, AVISO_WA_MAX_).map(linea).filter(Boolean);
   if (!ls.length) return '';
   var extra = lista.length - ls.length;
-  if (ls.length === 1 && !extra) return 'Alma · ' + ls[0];
+  /* Una sola: la entrada y, debajo, sus datos ordenados (notificaciones humanas, avisotexto.js, #509 T2). */
+  if (ls.length === 1 && !extra) return 'Alma · ' + ls[0] + ((lista[0].datos || []).length ? '\n' + lista[0].datos.slice(0, 3).map(function (d) { return '· ' + String(d).replace(/https?:\/\/\S+/g, '').trim(); }).join('\n') : '');
   return 'Alma · tienes ' + lista.length + ' avisos:\n' + ls.map(function (l) { return '· ' + l; }).join('\n') +
     (extra > 0 ? '\n· y ' + extra + ' más en la app' : '');
 }

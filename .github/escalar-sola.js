@@ -42,7 +42,7 @@ function caja() {
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) }
   };
   vm.createContext(ctx);
-  ['paraclaude.js', 'chat.js', 'agentes.js', 'escalar.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
+  ['avisotexto.js', 'paraclaude.js', 'chat.js', 'agentes.js', 'escalar.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   Object.assign(ctx, {
     adminsOp_: () => [JUAN, GABY], adminPorEmail_: e => [JUAN, GABY].filter(a => a.email === e)[0] || null, opMarcar_: () => 0, chatMarcarLuego_: () => {},
     paraClaudeCrear_: (adm, inp) => { log.claude.push({ adm, inp }); return { ok: true, id: 'pc' + log.claude.length, claude: true, issue: 'https://github.com/x/y/issues/1', micro: { id: 'mp' + log.claude.length, nombre: 'Contactos recepción Hola' }, nivel: 'complejo' }; },

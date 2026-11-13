@@ -56,7 +56,7 @@ function retClasificar_(pedido, respuesta, fallo) {
       'requiere = true si: tiene que decidir, elegir, aprobar, responder o hacer algo; le falta información o algo salió mal; o pidió información (opciones, datos, un resumen) que todavía no escuchó.\n' +
       'requiere = false si solo confirma algo que ya quedó hecho y no hay nada que decidir (p. ej. «listo, ya creé la tarea»).\n' +
       'importancia: 3 = urgente o con dinero, huéspedes o fechas cercanas en juego · 2 = normal · 1 = puede esperar.\n' +
-      'aviso: cómo Alma se lo dice al retomar, 1 o 2 frases (máx. 30 palabras), en español, cálida y directa, sin enlaces; di qué quedó y qué necesitas de él.\n' +
+      'aviso: cómo Alma se lo cuenta en una conversación, 1 o 2 frases simples (máx. 30 palabras): primero qué quedó y luego qué necesitas de él, con el dato clave (nombre, cifra o fecha); sin enlaces, teléfonos, correos ni códigos.\n' +
       'tema: de qué se trata en 3 a 6 palabras, sin números (p. ej. «el vuelo a Lima», «la incidencia del 1104»).\n' +
       'Responde SOLO JSON: {"requiere":true|false,"importancia":1|2|3,"aviso":"…","tema":"…"}',
       'PEDIDO: ' + String(pedido || '').slice(0, 1500) + '\n\nRESULTADO: ' + String(respuesta || '').slice(0, 3000) + (fallo ? '\n\nOJO, FALLÓ: ' + fallo : ''), 0) || '');

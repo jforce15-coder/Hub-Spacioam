@@ -282,21 +282,22 @@ function paraClaudeFecha_() {
   var dia = Utilities.formatDate(d, 'America/Guatemala', 'd'), mes = Number(Utilities.formatDate(d, 'America/Guatemala', 'M')) - 1;
   return dia + ' ' + m[mes] + ' ' + Utilities.formatDate(d, 'America/Guatemala', 'yyyy');
 }
-/* Avisos de Claude (decisión de Juan, #374): solo lo que sirve, nunca un acuse («se lo mandé», «lo recibió»).
-     pregunta → nivel 2 «Hay una pregunta sobre «X»» (las opciones van en su tarjeta de Pendientes)
-     listo    → nivel 2 «Listo, quedó «X»: está en Pendientes para que lo unas» (hay un PR)
-     fallo    → nivel 2 «No se pudo con «X»»
+/* Avisos de Claude (decisión de Juan, #374): solo lo que sirve, nunca un acuse («se lo mandé», «lo recibió»). Los textos,
+   humanos y con sus datos debajo, están en avisotexto.js (#509 T2):
+     pregunta → nivel 2 «Revisé lo que me pediste de «X» y tengo una duda antes de seguir…» (las opciones, en Pendientes)
+     listo    → nivel 2 «Ya quedó listo el cambio para «X»; solo falta que lo unas…» (hay un PR)
+     fallo    → nivel 2 «Intenté «X», pero no se pudo terminar; necesito que lo revises…»
    Sin «Claudio» en lo que se dice: el resultado, ya hecho (Juan, 3-nov-2026).
-     consulta → nivel 3 (respondió sin PR: solo para leer)
-     unido    → nivel 3 «Quedó unido «X»» (microUnido_)
+     consulta → nivel 3 «Ya tengo la respuesta a lo que preguntaste de «X»» (respondió sin PR: solo para leer)
+     unido    → nivel 3 «Ya quedó unido el cambio de «X»…» (microUnido_)
    Lo de nivel 2 también queda como tema por retomar. Además, novedad para su próxima llamada con Alma. */
+/* Notificaciones humanas (#509 T2, avisotexto.js): la entrada como Alma lo diría y los datos debajo. */
+function paraClaudeAvisoTipo_(estado) { return { pregunta: 'claude_pregunta', fallo: 'claude_fallo', unido: 'claude_unido', consulta: 'claude_consulta' }[estado] || 'claude_listo'; }
+/* En una sola línea (la ficha de la llamada, el tema por retomar y el WhatsApp): la entrada y el detalle. */
 function paraClaudeAvisarTexto_(titulo, voz, estado) {
-  var t = '«' + titulo + '»';
-  return estado === 'pregunta' ? 'Hay una pregunta sobre ' + t + (voz ? ': ' + voz : '.')
-    : estado === 'fallo' ? 'No se pudo con ' + t + (voz ? ': ' + voz : '.')
-    : estado === 'unido' ? 'Quedó unido ' + t + '.'
-    : estado === 'consulta' ? 'Listo, ' + t + (voz ? ': ' + voz : '.')
-    : 'Listo, quedó ' + t + ': está en Pendientes para que lo unas.';
+  var a = avisoTexto_(paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz });
+  var mas = a.datos.filter(function (d) { return !/^(Pedido|Dónde|Estado):/.test(d); });
+  return a.texto + (mas.length ? ' ' + mas.join('. ') + '.' : '');
 }
 function paraClaudeAvisar_(titulo, voz, estado) {
   var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo|listo)$/.test(String(estado)) ? 2 : 3;
@@ -306,7 +307,7 @@ function paraClaudeAvisar_(titulo, voz, estado) {
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
     /* tema por retomar (solo lo que pide algo de Juan) y notificación en la app de iPhone */
-    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; vozAvisoPoner_(jefe, texto, it && it.id, { nivel: nivel }); } catch (e) {}
+    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel }); } catch (e) {}
     /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
     if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe) && nivel === 2) waEnviar_(jefe.wa || jefe.tels[0], texto + '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).');
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }

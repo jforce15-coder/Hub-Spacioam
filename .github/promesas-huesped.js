@@ -51,6 +51,7 @@ function caja(o) {
     chatPrincipal_: () => 'juan', vozAvisoPoner_: (a, t) => avisos.push(t), escalar_: (t, cuerpo) => avisos.push(t + '\n' + cuerpo)
   };
   vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'avisotexto.js'), 'utf8'), ctx);   // las notificaciones humanas (#509)
   vm.runInContext(fs.readFileSync(path.join(DIR, 'promesas.js'), 'utf8'), ctx);
   return { ctx, inbox, avisos, props, hoja: () => sh };
 }

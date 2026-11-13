@@ -220,7 +220,7 @@ function microUnido_(url) {
     if (String(m.pr).replace(/\/+$/, '') !== url || m.estado === MICRO_ESTADOS_.unido) return;
     m.estado = MICRO_ESTADOS_.unido; m.unido = new Date().toISOString(); m.opciones = []; m.ultima_pregunta = '';
     microGuardar_(m); n++;
-    try { paraClaudeAvisar_(m.nombre, '', 'unido'); } catch (e) { console.error('aviso unido: ' + e); }   // nivel 3, corto
+    try { paraClaudeAvisar_(m.nombre, '', 'unido', m.id); } catch (e) { console.error('aviso unido: ' + e); }   // nivel 3, corto
   });
   return n;
 }

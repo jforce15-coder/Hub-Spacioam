@@ -57,6 +57,7 @@ function orbitaEmpieza_(email, pedido, fuente, paso, id) {
     l.push({ id: id, nombre: orbitaNombre_(pedido), paso: String(paso || ''), fuente: fuente || 'segundo_plano', estado: 'en_curso', desde: Date.now() });
     return true;
   });
+  if (ok) { try { abrePedido_(email, id); } catch (e) { console.error('abrePedido_: ' + e); } }   // uno de sus pedidos recientes (almaabre.js)
   return ok ? id : '';
 }
 /* La herramienta que Alma va a usar ahora (agente.js): solo escribe si el paso cambió. */

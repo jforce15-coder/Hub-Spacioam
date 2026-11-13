@@ -975,16 +975,16 @@ function vozSecProcesar_() {
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
     finally { ORBITA_ACTUAL_ = null; }
     try { orbitaTermina_(adm.email, orbs, r.fallo); } catch (e) { console.error('orbitaTermina_: ' + e); }
-    try { vozSecAvisar_(grupo[0].tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
+    try { vozSecAvisar_(grupo[0].tel, adm, r, pedido, orbs); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }
 /* Terminó algo de segundo plano. Solo avisa si necesita algo de él (retomar.js): entonces queda como tema por retomar,
    llega la notificación a la app y el resultado por escrito a WhatsApp. Si solo confirma algo hecho, queda en el chat. */
-function vozSecAvisar_(tel, adm, r, pedido) {
+function vozSecAvisar_(tel, adm, r, pedido, orbs) {
   try { vozTrabajando_(adm, -1); } catch (e) {}
   /* Al principal el resultado ya le llega a Pendientes (opAgente_ → pendientes.js, con notificación si necesita algo de él):
      el WhatsApp queda solo para conversar. Si falló antes de responder, el aviso va directo. */
-  if (esAdminPrincipal_(adm)) { if (r.fallo) pendAvisar_(adm, r.respuesta, { origen: 'segundo_plano', pedido: pedido, tipo: 'atencion', fallo: r.fallo }); return; }
+  if (esAdminPrincipal_(adm)) { if (r.fallo) pendAvisar_(adm, r.respuesta, { origen: 'segundo_plano', pedido: pedido, tipo: 'atencion', fallo: r.fallo, pedidos: orbs || [] }); return; }   // pedidos: Alma abre (almaabre.js)
   var malas = (r.hechas || []).filter(function (h) { return h.error; });
   var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
   var c = retClasificar_(pedido, txt, malas.length ? malas.map(function (h) { return h.resumen || h.tipo; }).join('; ') : '');
@@ -1203,7 +1203,11 @@ function vozWebVincular_(ses, convId, app, b) {
   /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
   if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
-  if (rid) { c.remove('vozret_' + adm.email); try { retMencionado_(adm, rid); } catch (e) {} }
+  /* Alma abre (#509 T4): la llamada empezó por un aviso (b.aviso_id), no por el saludo de retomar. Ese aviso cuenta como
+     dicho (su tema por retomar no vuelve a salir en el próximo saludo) y el tema del saludo, que no se dijo, sigue igual. */
+  var avisoId = String(b.aviso_id || '').slice(0, 80);
+  if (rid) { c.remove('vozret_' + adm.email); if (!avisoId) { try { retMencionado_(adm, rid); } catch (e) {} } }
+  if (avisoId) { try { retMencionado_(adm, avisoId); } catch (e) {} }
   var out = { ok: true };
   /* La frase de espera con la voz de Alma, en el formato de audio de la llamada: la app la dice si la secretaria pasa de
      espera_tras segundos. Sin audio, la app no dice nada (queda el tecleo de siempre). */
@@ -1378,6 +1382,9 @@ function vozAvisoPoner_(adm, texto, retId, o) {
     if (datos.length) nuevo.datos = datos;
     if (o.titulo) nuevo.titulo = String(o.titulo).replace(/\s+/g, ' ').trim().slice(0, 60);
     if (o.voz) nuevo.voz = String(o.voz).replace(/\s+/g, ' ').trim().slice(0, 240);   // el detalle que se agrega al decirla
+    /* Alma abre (#509 T4, almaabre.js): el tipo (¿es un resultado?) y de qué pedidos de la fila es resultado. */
+    if (o.tipo) nuevo.tipo = String(o.tipo).slice(0, 40);
+    try { var ped = abrePedidosDe_(adm, o); if (ped.length) nuevo.pedidos = ped; } catch (e) {}
     l.push(nuevo);
     while (l.length > VOZ_AVISOS_MAX_) {
       var k = -1; l.forEach(function (a, i) { if (k < 0 && a.nivel === 3) k = i; });
@@ -1424,14 +1431,18 @@ function vozAvisos_(ses, b) {
   /* Con su tarjeta de Pendientes, la notificación lleva la respuesta: titulo y hasta 3 líneas cortas del resultado (avisoLineas_). */
   var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
   /* La voz de Alma viene con el texto (avisosConVoz_, calle.js): la app la dice sin otra vuelta al Hub. */
-  return { ok: true, avisos: avisosConVoz_(mios.map(function (a) {
+  var salida = mios.map(function (a) {
     var h = avisoHablarDe_(a, rets, pends, adm.nombre), pd = callePendDeAviso_(pends, a.id);
     var o = { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado };
     if (a.conferencia) o.conferencia = true;
     if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
     else if (a.datos && a.datos.length) { o.titulo = String(a.titulo || ''); o.lineas = a.datos.slice(0, 3); }   // los datos ordenados del aviso (avisotexto.js)
     return o;
-  }), b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  });
+  /* Alma abre la conversación (#509 T4, almaabre.js): con la app en Modo calle o conferencia (b.abre), el resultado de un
+     pedido reciente del principal lleva { primer_mensaje, contexto }; cada aviso dice por qué sí o por qué no (abre_por). */
+  try { abreAvisos_(adm, mios, salida, b); } catch (e) { console.error('abreAvisos_: ' + e); }
+  return { ok: true, avisos: avisosConVoz_(salida, b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */

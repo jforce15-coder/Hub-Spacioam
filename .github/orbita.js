@@ -134,6 +134,7 @@ function caja() {
   ok(/classList\.contains\("tvb-on"\)[^\n]*return "contador"/.test(h), 'Con el tablero abierto, un contador junto a la roca');
   const rm = (h.match(/@media \(prefers-reduced-motion: reduce\) \{\s*\.pob-s[^}]*animation: none;/) || [])[0] || '';
   ok(/\.pob-s \.resp/.test(rm) && /svg\.arco/.test(rm) && /angulo\(x, now\) \{ return RM \? x\.a0/.test(h), 'prefers-reduced-motion: sin giro, sin pulso y los anillos quietos en su lugar');
+  ok(/x\.a0 \+ 2 \* Math\.PI \* \(\(now - x\.nace\) \/ x\.per\)/.test(h), 'Los anillos giran conforme a las agujas del reloj (el ángulo sube; en pantalla la «y» va hacia abajo)');
   const mod = h.slice(h.indexOf('Pedidos en órbita (#509 T3, Juan'), h.indexOf('window.AlmaOrbita'));
   ok(mod.length > 1000 && !/\+ ?"%"|"%"|progreso|porcentaje\s*[:=]/.test(mod.replace(/\/\*[\s\S]*?\*\//g, '')), 'La pantalla no inventa porcentajes (el arco gira, indeterminado)');
 }

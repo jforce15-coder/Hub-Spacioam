@@ -7,6 +7,9 @@
       el chat (columna tarjeta), sin «EN PANTALLA».
    6. Las tres tarjetas: reserva, conversación y apartamento (sin códigos, con la semana del calendario y sus colores).
    7. agEjecutar_ deja la candidata en buscar_reservas (un resultado), ver_conversacion y ver_propiedad.
+   8. Tablero bento de la reserva (#508 T1): los cuadros esperados con la reserva completa; sin pago, sin mensaje por
+      responder, sin foto o sin mapa, ese cuadro no va y los demás crecen (el acomodo de alma/inicio.html); nunca códigos
+      ni claves; la app vieja sigue con los campos de siempre y la nueva, sin cuadros, pinta la tarjeta de siempre.
    node .github/tarjeta-llamada.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -149,6 +152,60 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
   ok(/tvCandidata_\('conversacion'/.test(f) && /tvCandidata_\('apartamento'/.test(f) && /tvCandidata_\('reserva'/.test(f), '7 · agEjecutar_ deja las tres candidatas');
   const voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8');
   ok(/tvCerrar_\(b\.conv_id, esApp, conf\)/.test(voz) && /opGuardar_\(adm, 'alma', 'llamada', r\.respuesta, r\.hechas, turno\.clas, tv \? tv\.celda : ''\)/.test(voz), '7 · vozSecretaria_ cierra la tarjeta y la guarda en la fila de la llamada');
+}
+
+/* 8 · tablero bento de la reserva */
+{ const CAT = JSON.stringify([{ id: '1', nombre: 'Z10 - Brunelo - 1203', canales: ['airbnb'], foto: 'https://fotos.example/b.jpg', lat: 14.596123, lng: -90.510234 }]);
+  const IB = { conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López', foto: 'https://fotos.example/m.jpg', ultimo_de: 'guest', ultimo_texto: '¿Podemos llegar a las 11?',
+    ultimo_ts: '2026-11-04T15:42:00Z', ultimo_guest_ts: '2026-11-04T15:42:00Z', promesa: 'Confirmar early check-in', promesa_estado: 'abierta', promesa_vence: 'hoy 18:00' };
+  const arma = (cache, fila, item, ib) => { const c = caja(); Object.assign(c.cache, cache || {}); return c.X.tvReserva_(fila || FILA, item || ITEM, ib ? [ib] : []); };
+  const ids = (t) => t.cuadros.map((c) => c.id).join(',');
+  const de = (t, id) => t.cuadros.filter((c) => c.id === id)[0];
+  const t = arma({ calp_catalogo: CAT }, null, null, IB);
+  ok(ids(t) === 'foto,fechas,huespedes,pago,responder,mapa,resumen', '8 · reserva completa: foto, fechas, huéspedes, total, necesita respuesta, mapa y resumen: ' + ids(t));
+  ok(t.cabeza === 'Reserva de Mariana López' && t.cuadros.every((c) => c.tipo && c.tam && c.prioridad), '8 · cada cuadro trae tipo, tamaño y prioridad; arriba «Reserva de …»');
+  const f = de(t, 'foto');
+  ok(f.tam === 'alto' && f.fondo === 'https://fotos.example/b.jpg' && f.avatar === 'https://fotos.example/m.jpg' && f.iniciales === 'ML' && f.chip === 'Confirmada', '8 · foto alta del apartamento con la foto del huésped encima');
+  ok(de(t, 'fechas').v === '6 → 9 nov' && de(t, 'huespedes').v === '2 · 3' && de(t, 'pago').v === 'US$ 312', '8 · fechas, huéspedes · noches y total: ' + de(t, 'fechas').v);
+  ok(de(t, 'responder').texto === '«¿Podemos llegar a las 11?»' && de(t, 'responder').chip === 'hoy 9:42' && de(t, 'responder').tam === 'ancho', '8 · necesita respuesta: el último mensaje del huésped, a lo ancho');
+  ok(de(t, 'mapa').lat === 14.59612 && de(t, 'mapa').lng === -90.51023, '8 · mapa con las coordenadas que ya estaban guardadas (redondeadas)');
+  ok(/^Llega en 2 días\. Registro completo\. Promesa abierta: Confirmar early check-in \(vence hoy 18:00\)\.$/.test(de(t, 'resumen').texto), '8 · resumen breve: ' + de(t, 'resumen').texto);
+  ok(t.titulo === 'Mariana López' && t.fechas.length === 3 && t.datos.indexOf('Registro completo') >= 0 && t.foto === 'https://fotos.example/m.jpg' && t.iniciales === 'ML' && t.conv === 'HM4K2Q9XAB',
+    '8 · app vieja: los campos de siempre siguen iguales (titulo, fechas, datos, foto, conv)');
+  const filaSin = Object.assign({}, FILA); delete filaSin.total;
+  const s1 = arma({ calp_catalogo: CAT }, filaSin, null, IB);
+  ok(!de(s1, 'pago') && ids(s1) === 'foto,fechas,huespedes,responder,mapa,resumen', '8 · sin pago: no hay cuadro de total');
+  const s2 = arma({ calp_catalogo: CAT }, null, null, Object.assign({}, IB, { ultimo_de: 'host', ultimo_host_ts: '2026-11-04T15:50:00Z', ultimo_ts: '2026-11-04T15:50:00Z' }));
+  ok(!de(s2, 'responder') && / Le respondimos hoy 9:50\.$/.test(de(s2, 'resumen').texto), '8 · ya le respondimos: sin «necesita respuesta» (el resumen lo dice)');
+  const s3 = arma({ calp_catalogo: CAT }, null, null, Object.assign({}, IB, { no_requiere: '2026-11-04T15:42:00.000Z' }));
+  ok(!de(s3, 'responder'), '8 · Alma revisó que no necesita respuesta: sin ese cuadro');
+  const s4 = arma({}, null, null, { conv_id: 'r-1', codigo: 'HM4K2Q9XAB' });
+  ok(de(s4, 'foto').tam === 'm' && !de(s4, 'foto').fondo && de(s4, 'foto').iniciales === 'ML' && !de(s4, 'mapa') && !de(s4, 'responder'), '8 · sin foto: degradado con las iniciales (cuadro más angosto); sin coordenadas, sin mapa');
+  const s5 = arma({}, null, null, IB);
+  ok(de(s5, 'foto').tam === 'alto' && de(s5, 'foto').fondo === 'https://fotos.example/m.jpg' && de(s5, 'foto').de === 'huesped' && !de(s5, 'foto').avatar, '8 · sin la del apartamento: la foto del huésped ocupa el cuadro');
+  const s6 = arma({ dist_props: JSON.stringify([{ n: 'Z10 - Brunelo - 1203', lat: 14.6, lng: -90.5, dir: 'x' }]) });
+  ok(de(s6, 'mapa') && de(s6, 'mapa').lat === 14.6, '8 · coordenadas de distancias si el catálogo no las trae (sin llamar a Hospitable)');
+  const sc = arma({ calp_catalogo: CAT }, null, null, Object.assign({}, IB, { ultimo_texto: 'El código 4821 de la puerta no funciona', promesa: 'Mandar la clave del wifi Brunelo2026' }));
+  const todo = JSON.stringify(sc.cuadros);
+  ok(!/4821|Brunelo2026|wifi/i.test(todo) && /••••/.test(de(sc, 'responder').texto), '8 · nunca códigos ni claves: el número se tapa y la promesa con la clave no sale');
+  const sx = arma({ calp_catalogo: CAT }, null, Object.assign({}, ITEM, { estado: 'cancelada', cancelada_el: '2026-11-02' }), IB);
+  ok(!de(sx, 'responder') && de(sx, 'foto').chip === 'Cancelada' && de(sx, 'foto').tono === 'alerta' && /^Cancelada el lun 2 nov\./.test(de(sx, 'resumen').texto), '8 · cancelada: el chip lo dice y no pide respuesta');
+  /* El acomodo de la app (alma/inicio.html): se corre el mismo código con los cuadros de arriba. */
+  const html = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');
+  const i0 = html.indexOf('  function acomodar('), i1 = html.indexOf('    return filas;\n  }', i0);
+  const acomodar = i0 > 0 && i1 > 0 ? vm.runInNewContext('(' + html.slice(i0, i1 + '    return filas;\n  }'.length).trim() + ')') : null;
+  const forma = (fs) => fs.map((x) => x.hero ? 'hero[' + x.hero.id + ':' + x.cols + ':' + x.alto + '|' + x.pila.map((c) => c.id).join('+') + ']' : x.celdas.map((c) => c.id + ':' + x.span + 'x' + x.alto).join('+')).join(' / ');
+  ok(!!acomodar, '8 · el acomodo vive en alma/inicio.html (function acomodar)');
+  if (acomodar) {
+    ok(forma(acomodar(t.cuadros)) === 'hero[foto:1fr 1fr:3|fechas+huespedes+pago] / responder:6x2 / mapa:3x2+resumen:3x2', '8 · completa: foto alta con 3 datos, respuesta a lo ancho, mapa y resumen: ' + forma(acomodar(t.cuadros)));
+    ok(forma(acomodar(s1.cuadros)) === 'hero[foto:1fr 1fr:3|fechas+huespedes] / responder:6x2 / mapa:3x2+resumen:3x2', '8 · sin pago: los dos datos crecen junto a la foto');
+    ok(forma(acomodar(s2.cuadros)) === 'hero[foto:1fr 1fr:3|fechas+huespedes+pago] / mapa:3x2+resumen:3x2', '8 · sin mensaje: mapa y resumen suben');
+    ok(forma(acomodar(s4.cuadros)) === 'hero[foto:2fr 4fr:3|fechas+huespedes+pago] / resumen:6x1', '8 · sin foto ni mapa: la foto se angosta, los datos crecen y el resumen va a lo ancho: ' + forma(acomodar(s4.cuadros)));
+    ok(forma(acomodar([{ id: 'foto', tipo: 'foto', tam: 'alto', prioridad: 1 }, { id: 'r', tipo: 'resumen', tam: 'm', prioridad: 6 }])) === 'hero[foto:1fr:3|] / r:6x1', '8 · solo foto: ocupa todo el ancho (como el prototipo con poca información)');
+  }
+  ok(/function esBento\(t\) \{ return !!\(t && Array\.isArray\(t\.cuadros\)/.test(html) && /else if \(abierta && !tapada\(\)\) \{\s*var u = ui\(\)/.test(html), '8 · app nueva con un Hub viejo (sin cuadros): pinta la tarjeta de siempre');
+  const nav = fs.readFileSync(path.join(DIR, '..', 'js', 'sa-nav.js'), 'utf8');
+  ok(/x: VW\(\) \* \(eo && eo\.x \|\| \.5\)/.test(nav) && /AL\.escO && typeof AL\.escO\.tocar === "function"/.test(nav), '8 · sa-nav: la roca va a la esquina (x) y tocarla en plena llamada avisa al tablero (tocar)');
 }
 
 process.exit(fallo);

@@ -15,7 +15,9 @@
      EXPANDIDA (vozexp_), y solo con un administrador (el teléfono de la llamada es de un administrador). NUNCA por
      WhatsApp, el chat escrito o en segundo plano (la candidata solo nace en el canal «llamada») y NUNCA con huéspedes.
    · Consulta (inquiry): huésped, fechas, propiedad, su mensaje y el precio si lo hay; con un borrador, el texto que
-     saldría. Mismas reglas que las demás. */
+     saldría. Mismas reglas que las demás.
+   · Tablero bento (#508 T1): la reserva trae además cabeza y cuadros (tvCuadrosReserva_); la app nueva los acomoda con Alma
+     minimizada abajo a la derecha, y la app vieja sigue pintando la tarjeta con los campos de siempre. */
 
 var TV_CANDIDATA_ = null;
 var TV_SEG_ = 600, TV_LLAMADA_SEG_ = 21600;
@@ -150,8 +152,87 @@ function tvReserva_(r, x, inbox) {
     datos: datos, mensajes: [], promesas: [], semana: [],
     detalle: [tvTxt_(x.propiedad), canal ? 'Canal: ' + canal : '', hues ? hues + (hues === 1 ? ' huésped' : ' huéspedes') : '', ib.ultimo_texto ? 'Último mensaje: «' + tvTxt_(ib.ultimo_texto, 140) + '»' : ''].filter(Boolean),
     conv: cod || String(x.conv_id || ''), tel: tel, wa: tel ? tel.replace(/\D/g, '') : '',
-    resumen: 'la reserva de ' + (tvTxt_(x.huesped) || 'el huésped') + ' (fechas, noches, registro' + (datos.length > 1 ? ' y pago' : '') + ')'
+    resumen: 'la reserva de ' + (tvTxt_(x.huesped) || 'el huésped') + ' (fechas, noches, registro' + (datos.length > 1 ? ' y pago' : '') + ')',
+    /* Tablero bento (#508 T1): la app nueva pinta estos cuadros; la vieja sigue con los campos de arriba. */
+    cabeza: 'Reserva de ' + (tvTxt_(x.huesped, 40) || 'un huésped'),
+    cuadros: tvCuadrosReserva_(x, ib, {
+      chip: cancel ? 'Cancelada' : solic ? 'Por aprobar' : est ? est.charAt(0).toUpperCase() + est.slice(1) : 'Confirmada', tono: cancel ? 'alerta' : solic ? 'aviso' : 'info',
+      cancel: cancel, noches: noches, hues: hues, hLlega: hLlega, pago: pago && !isNaN(Number(pago)) && Number(pago) > 0 ? Math.round(Number(pago)) : 0
+    })
   };
+}
+
+/* ── Tablero bento de la reserva (#508 T1) ─────────────────────────────────────────────────────────────────────────────
+   Una lista de cuadros { id, tipo (foto|dato|mensaje|mapa|resumen), tam (s|m|alto|ancho), prioridad, ... }; la app los
+   acomoda (alma/inicio.html, AlmaTarjeta): lo que falta no se manda y los demás crecen para llenar.
+   · foto: la del apartamento (catálogo de propiedades guardado) con la foto del huésped (bandeja, viene de Hospitable) o sus
+     iniciales encima; sin la del apartamento, la del huésped; sin ninguna, un degradado de la marca con las iniciales
+     (tam m: un cuadro más angosto y los datos crecen). Nunca un cuadro vacío.
+   · Fechas, huéspedes · noches y total (solo si la hoja lo trae).
+   · Necesita respuesta: el último mensaje es del huésped, Alma no marcó que no lo necesita y la estadía no terminó.
+   · Mapa: las coordenadas que ya guardó el Hub (catálogo o distancias); sin ellas, no hay mapa.
+   · Resumen breve: cuándo llega, registro, promesa abierta y la última respuesta nuestra. Sin IA nueva.
+   Nada de esto lleva códigos, claves ni wifi (tvTapar_). */
+function tvCuadrosReserva_(x, ib, o) {
+  ib = ib || {}; o = o || {};
+  var out = [], apto = tvFotoProp_(x.propiedad), hues = /^https:\/\//.test(String(ib.foto || '')) ? String(ib.foto) : '';
+  var fondo = apto || hues;
+  out.push({ id: 'foto', tipo: 'foto', tam: fondo ? 'alto' : 'm', prioridad: 1, fondo: fondo, de: apto ? 'apartamento' : fondo ? 'huesped' : '',
+    avatar: apto ? hues : '', iniciales: tvIniciales_(x.huesped), alt: apto ? 'Foto de ' + tvLugar_(x.propiedad) : fondo ? 'Foto de ' + (tvTxt_(x.huesped) || 'el huésped') : '',
+    chip: o.chip || '', tono: o.tono || 'info' });
+  var rango = tvRango_(x.entrada, x.salida);
+  if (rango) out.push({ id: 'fechas', tipo: 'dato', tam: 's', prioridad: 2, k: 'Fechas', v: rango,
+    d: [tvFecha_(x.entrada).split(' ')[0], tvFecha_(x.salida).split(' ')[0]].filter(Boolean).join(' → ') + (o.hLlega ? ' · llega ' + o.hLlega : '') });
+  if (o.noches || o.hues) out.push({ id: 'huespedes', tipo: 'dato', tam: 's', prioridad: 3, k: o.hues ? 'Huéspedes · noches' : 'Noches', v: o.hues ? o.hues + ' · ' + o.noches : String(o.noches) });
+  if (o.pago) out.push({ id: 'pago', tipo: 'dato', tam: 's', prioridad: 4, k: 'Total', v: 'US$ ' + o.pago });
+  var pend = tvPorResponder_(ib, x.salida, o.cancel);
+  if (pend) out.push({ id: 'responder', tipo: 'mensaje', tam: 'ancho', prioridad: 2, k: 'Necesita respuesta', chip: pend.hora || 'Por responder', texto: pend.texto });
+  var co = tvCoords_(x.propiedad);
+  if (co) out.push({ id: 'mapa', tipo: 'mapa', tam: 'm', prioridad: 5, lat: co.lat, lng: co.lng, lugar: tvLugar_(x.propiedad) });
+  var res = tvResumenReserva_(x, ib, o, !!pend);
+  if (res) out.push({ id: 'resumen', tipo: 'resumen', tam: 'm', prioridad: 6, k: 'Resumen', texto: res });
+  return out;
+}
+/* «6 → 9 nov» · «30 nov → 2 dic». */
+function tvRango_(a, b) {
+  var x = tvDia_(a), y = tvDia_(b); if (!x) return '';
+  if (!y) return x.getUTCDate() + ' ' + TV_MESES_[x.getUTCMonth()];
+  return x.getUTCMonth() === y.getUTCMonth() ? x.getUTCDate() + ' → ' + y.getUTCDate() + ' ' + TV_MESES_[y.getUTCMonth()]
+    : x.getUTCDate() + ' ' + TV_MESES_[x.getUTCMonth()] + ' → ' + y.getUTCDate() + ' ' + TV_MESES_[y.getUTCMonth()];
+}
+/* Lo que parece un código dentro de un texto del huésped se tapa (los números largos), y el texto queda. */
+function tvTapar_(t) { t = tvTxt_(t); return tvSecreto_('', t) ? t.replace(/\d{3,}/g, '••••') : t; }
+/* El último mensaje de la bandeja, si es del huésped y espera respuesta (como «Por responder» del Hub: index.html noRequiere). */
+function tvPorResponder_(ib, salida, cancel) {
+  if (!ib || cancel || String(ib.ultimo_de) !== 'guest' || !tvTxt_(ib.ultimo_texto)) return null;
+  var ug = Date.parse(ib.ultimo_guest_ts || ib.ultimo_ts), nr = Date.parse(ib.no_requiere);
+  if (nr && ug && nr === ug) return null;                                      // Alma revisó: no necesita respuesta
+  if (salida && tvMasDias_(String(salida).slice(0, 10), 1) < tvHoy_()) return null;   // la estadía ya terminó
+  return { texto: '«' + tvTapar_(tvTxt_(ib.ultimo_texto, 180)) + '»', hora: tvHora_(ib.ultimo_guest_ts || ib.ultimo_ts) };
+}
+/* Coordenadas que el Hub ya guardó: el catálogo de propiedades (calprops.js) o las de distancias (distancia.js). Sin llamar. */
+function tvCoords_(nombre) {
+  var k = calpClave_(nombre), c = CacheService.getScriptCache(), hit = null;
+  try { hit = JSON.parse(c.get('calp_catalogo') || '[]').filter(function (y) { return calpClave_(y.nombre) === k && y.lat; })[0]; } catch (e) {}
+  if (!hit) try { hit = JSON.parse(c.get('dist_props') || '[]').filter(function (y) { return calpClave_(y.n) === k && y.lat; })[0]; } catch (e) {}
+  var lat = hit ? Number(hit.lat) : NaN, lng = hit ? Number(hit.lng) : NaN;
+  return isFinite(lat) && isFinite(lng) && (lat || lng) ? { lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5 } : null;
+}
+/* Resumen breve, con lo que ya se sabe: cuándo llega, el registro, la promesa abierta y nuestra última respuesta. */
+function tvResumenReserva_(x, ib, o, pend) {
+  var hoy = tvHoy_(), ent = String(x.entrada || '').slice(0, 10), sal = String(x.salida || '').slice(0, 10), fr = [];
+  if (o.cancel) fr.push(x.cancelada_el ? 'Cancelada el ' + tvFecha_(String(x.cancelada_el).slice(0, 10)) : 'Reserva cancelada');
+  else if (ent > hoy) { var n = tvNoches_(hoy, ent); fr.push(n === 1 ? 'Llega mañana' : 'Llega en ' + n + ' días'); }
+  else if (ent === hoy) fr.push('Llega hoy');
+  else if (sal > hoy) fr.push('En estadía · sale ' + (sal === tvMasDias_(hoy, 1) ? 'mañana' : tvFecha_(sal)));
+  else if (sal === hoy) fr.push('Sale hoy');
+  else if (sal) fr.push('Ya salió');
+  if (!o.cancel) fr.push(x.registro === 'completo' ? 'Registro completo' : 'Registro pendiente');
+  var pe = String(ib.promesa_estado || '');
+  if ((pe === 'abierta' || pe === 'vencida') && tvTxt_(ib.promesa) && !tvSecreto_('', ib.promesa))
+    fr.push('Promesa ' + pe + ': ' + tvTxt_(ib.promesa, 80) + (tvTxt_(ib.promesa_vence) ? ' (vence ' + tvTxt_(ib.promesa_vence, 16) + ')' : ''));
+  if (!pend && String(ib.ultimo_de) === 'host' && tvHora_(ib.ultimo_host_ts || ib.ultimo_ts)) fr.push('Le respondimos ' + tvHora_(ib.ultimo_host_ts || ib.ultimo_ts));
+  return fr.length ? fr.join('. ') + '.' : '';
 }
 
 /* Fragmento de conversación: los últimos 2 o 3 mensajes y las promesas abiertas (lo mismo que leyó ver_conversacion). */

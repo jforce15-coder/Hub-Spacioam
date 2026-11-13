@@ -34,7 +34,8 @@ function calpCatalogo_() {
     d.forEach(function (x) {
       var n = s_(x.name) || s_(x.public_name); if (!x.id || !n) return;
       var can = {}; (x.listings || []).forEach(function (l) { var c = canalPlat_(l.platform); if (c) can[c] = 1; });
-      out.push({ id: s_(x.id), nombre: n, canales: Object.keys(can), foto: /^https:\/\//.test(s_(x.picture)) ? s_(x.picture) : '' });   // foto: la de la tarjeta de la llamada (tarjeta.js)
+      var co = (x.address && x.address.coordinates) || {};   // foto y coordenadas: las del tablero bento de la llamada (tarjeta.js)
+      out.push({ id: s_(x.id), nombre: n, canales: Object.keys(can), foto: /^https:\/\//.test(s_(x.picture)) ? s_(x.picture) : '', lat: Number(co.latitude) || 0, lng: Number(co.longitude) || 0 });
     });
     if (d.length < 100) break; p++;
   }

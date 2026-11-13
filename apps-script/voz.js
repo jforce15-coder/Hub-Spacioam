@@ -443,6 +443,7 @@ function vozSyncSiToca_() {
   vozSyncPrompt_(false);
   try { vozHerramientasSiCambiaron_(); } catch (e) { console.error('vozHerramientasSiCambiaron_: ' + e); }   // T3: herramientas al día solas
   try { vozProteccionSiCambio_(false); } catch (e) { console.error('vozProteccionSiCambio_: ' + e); }   // #498 T3: protección de las instrucciones (vozproteccion.js)
+  try { vozAccesoSiCambio_(false); } catch (e) { console.error('vozAccesoSiCambio_: ' + e); }   // acceso cerrado: solo con URL firmada del Hub (vozacceso.js)
   try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
 }
 function vozSyncPrompt_(forzar) {
@@ -637,7 +638,8 @@ function vozEstado_(extra) {
   var ag = JSON.parse(r.getContentText()), pr = ((ag.conversation_config || {}).agent || {}).prompt || {};
   var o = { ok: true, agente: ag.name, prompt_caracteres: String(pr.prompt || '').length, prompt_inicio: String(pr.prompt || '').slice(0, 80),
     tool_ids: pr.tool_ids || [], sistema: Object.keys(pr.built_in_tools || {}).filter(function (k) { return pr.built_in_tools[k]; }),
-    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '', proteccion: vozProteccionResumen_((ag.platform_settings || {}).guardrails) };
+    llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '', proteccion: vozProteccionResumen_((ag.platform_settings || {}).guardrails),
+    acceso_cerrado: vozAccesoCerrado_((ag.platform_settings || {}).auth) };
   for (var x in (extra || {})) o[x] = extra[x];
   return o;
 }
@@ -1113,18 +1115,17 @@ var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pa
    saludos: el Saludo variado (#410), la app de Alma elige uno; saludo_tema = el first_message trae un tema (retomar), no un hola. */
 function vozWebInicio_(ses, ligero, app) {
   var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
+  /* Acceso cerrado (vozacceso.js): la voz solo se abre con la sesión verificada del Hub, nunca con la llave antigua. */
+  if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };   // no 'session': ese error cierra la sesión del navegador
   var adm = vozWebAdmin_(ses);
   if (!adm) return { ok: false, error: 'Tu usuario' + (ses && ses.email ? ' (' + ses.email + ')' : '') + ' no tiene un teléfono registrado como administrador.' };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
-  var tel = normTel_(adm.tels[0]), ini = {}, firmada = '';
+  var tel = normTel_(adm.tels[0]), ini = {};
   marca('admin');
-  if (!ligero) {
-    var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
-    if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
-    var j = JSON.parse(r.getContentText() || '{}'); if (!j.signed_url) return { ok: false, error: 'sin URL firmada' };
-    firmada = j.signed_url; marca('url_firmada');
-  }
+  /* Siempre con URL firmada (también la ficha «ligera» que la app web guarda): el agente pide autenticación. */
+  var uf = vozUrlFirmada_(); if (!uf.ok) return uf;
+  var firmada = uf.url; marca('url_firmada');
   try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
   marca('inicio');
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0];
@@ -1155,11 +1156,20 @@ function vozWebInicio_(ses, ligero, app) {
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
   CacheService.getScriptCache().put('vozweb_pend', tel, ligero ? 120 : 90);
-  /* ligero: el navegador se conecta directo con agent_id (el agente es público) y guarda esta ficha; sin URL firmada. */
-  if (firmada) out.signed_url = firmada;
+  /* ligero: la app web guarda esta ficha para la próxima llamada; la URL firmada la usa enseguida o la pide aparte (vozFirma). */
+  out.signed_url = firmada;
   marca('total'); vozWebTiempos_(marcas, ligero, app);
   out.tiempos = marcas;
   return out;
+}
+/* Solo la URL firmada, sin la ficha (acción vozFirma): la app web ya guarda la ficha y la pide por adelantado al abrir la
+   página, al volver a ella y al empezar a jalar el botón, para que el «Iniciar llamada» no espere al Hub. */
+var VOZ_SIN_SESION_ = 'Inicia sesión en el Hub para hablar con Alma.';
+function vozWebUrlApi_(ses) {
+  if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };
+  if (!vozWebAdmin_(ses)) return { ok: false, error: 'usuario' };
+  var uf = vozUrlFirmada_();
+  return uf.ok ? { ok: true, signed_url: uf.url } : uf;
 }
 /* Los tiempos de los últimos 20 inicios (ms desde que entró): consola y propiedad VOZWEB_TIEMPOS. Barato y sin internet. */
 function vozWebTiempos_(marcas, ligero, app) {

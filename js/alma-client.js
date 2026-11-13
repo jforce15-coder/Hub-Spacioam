@@ -94,6 +94,8 @@
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
     vozWeb: function (ligero) { return call('vozWeb', ligero ? { ligero: 1 } : {}); },
+    /* Solo la URL firmada de la voz (el agente pide autenticación): la app web la pide por adelantado (alma-voz.js). */
+    vozFirma: function () { return call('vozFirma', {}); },
     vozWebVincular: function (convId) { return call('vozWebVincular', { conv_id: convId }); },
     setEscalamiento: function (lista) { return call('setEscalamiento', { lista: lista }); },
     setPrompt: function (clave, prompt, nota, meta) { return call('setPrompt', { clave: clave, prompt: prompt, nota: nota, meta: meta || null }); },

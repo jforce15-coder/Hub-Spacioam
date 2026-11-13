@@ -117,6 +117,8 @@ function caja(props, agente) {
     calleSueno_: () => ({}), personalidadFicha_: () => null, retFicha_: () => null, vozWebToken_: () => 'tok', vozWebTiempos_: () => {}
   });
   mem.ELEVENLABS_KEY = 'k'; mem.ELEVENLABS_AGENT_ID = 'agente';
+  const ufBase = ctx.uf_;   // la ficha de la app trae siempre su URL firmada (vozacceso.js)
+  ctx.uf_ = (url, o) => (/get-signed-url/.test(url) ? { getResponseCode: () => 200, getContentText: () => '{"signed_url":"wss://firmada"}' } : ufBase(url, o));
   const marca = vm.runInContext('vozMarcaPrincipal_()', ctx);
   const tel = t => vm.runInContext('vozInicio_(' + JSON.stringify({ caller_id: t }) + ')', ctx).dynamic_variables.marca_principal;
   ok(tel('50211110000') === marca, 'por teléfono: el número del principal lleva el código');

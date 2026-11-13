@@ -1343,7 +1343,8 @@ function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
    Cuando Alma termina algo de segundo plano que necesita algo de ti (o Claude responde un pedido), deja un aviso para la
    app de iPhone: la app pregunta cada 45 s (vozAvisos) y lo muestra como notificación. Con la notificación hablada
    (calle.js) la app dice al oído los de nivel 1 y 2 y escucha la respuesta; lo demás Alma lo cuenta al retomar, cuando
-   vuelves a hablarle (temas por retomar, retomar.js).
+   vuelves a hablarle (temas por retomar, retomar.js). Si la app no la recoge en 10 min (cerrada o dormida), lo que pide algo
+   del principal o terminó en segundo plano le llega por WhatsApp (avisowa.js, marca `wa`).
    Propiedades: VOZ_AVISOS (cola por correo), VOZ_TTS_MODELO (por defecto eleven_multilingual_v2, para vozTts_).
    Nivel de notificaciones (calle.js, avisoNivel_): o.nivel 1 urgente · 2 acción · 3 aviso; sin nivel se calcula al leer.
    o.historial = false: no entra al historial de Notificaciones (lo que ya se ve ahí como tarjeta, p. ej. un «Para leer»).

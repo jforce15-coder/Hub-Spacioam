@@ -38,6 +38,8 @@ function waEntregaGuardar_(st) {
     /* 131047 (pasaron las 24 h): no se avisa como fallo; se manda la plantilla y el mensaje sale cuando responda. */
     var cod = Number((((st.errors || [])[0]) || {}).code) || 0, retomado = false;
     if (cod === 131047) { try { retomado = waRetomarFallido_(wa, s_(st.id)); } catch (e) { console.error('waRetomarFallido_: ' + e); } }
+    /* 131049 a un +1 (Meta lo trató como marketing): una vez, con la plantilla para socios o la de seguimiento (masuno.js). */
+    if (cod === 131049) { try { retomado = waReintentoMasUno_(wa, s_(st.id)); } catch (e) { console.error('waReintentoMasUno_: ' + e); } }
     if (!retomado) { try { waEntregaFallo_(wa, m[k].motivo); } catch (e) { console.error('waEntregaFallo_: ' + e); } }
   }
 }

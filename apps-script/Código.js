@@ -773,6 +773,7 @@ function procesarCola() {
     try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
     try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
     try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }
+    try { seguimPlantillaAsegurar_(false); } catch (e) { console.error('seguimPlantillaAsegurar_: ' + e); }   // la plantilla de seguimiento para nuevos socios +1 (masuno.js)
     try { socioPlantillaAsegurar_(false); } catch (e) { console.error('socioPlantillaAsegurar_: ' + e); }   // la plantilla para socios se crea y se activa sola (socios.js)   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
   }
   cupoCanal_('Epi');
@@ -5359,6 +5360,7 @@ function dsBotApi_(body) {
       case 'foto_config': return json_(fotoConfig_(body));
       case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
+      case 'seguim_plantilla': return json_(seguimPlantillaAsegurar_(true));   // fuerza ya la creación y revisión de seguimiento_socio (masuno.js)
       case 'socio_plantilla': return json_(socioPlantillaAsegurar_(true));   // fuerza ya la creación y revisión de estado_cuenta_socio (sin esperar los 30 min; socios.js)
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
       case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));

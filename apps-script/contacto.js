@@ -37,6 +37,7 @@ function waEnviarAlguien_(numero, texto, o) {
   var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(payload) });
   if (rr.getResponseCode() >= 300) return { ok: false, error: waErrorMeta_(rr.getResponseCode(), rr.getContentText(), wa, !!soc) };
+  masUnoMarcar_(rr, soc ? 'socio' : 'contacto');   // si Meta avisa 131049, el reintento sabe cuál falló (masuno.js)
   var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
   /* Un seguimiento (volver a escribirle) no duplica el mensaje que le llegará: se guarda una sola vez, con la fecha del primero. */
   var k = fin8_(wa), tx = String(texto).slice(0, 3500), prev = (pend[k] || []).filter(function (m) { return m.texto === tx; })[0];

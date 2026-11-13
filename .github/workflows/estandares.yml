@@ -120,6 +120,9 @@ jobs:
       - name: Plantilla para socios, con dobles de la API de Meta (crear, aprobada, pasada a Marketing)
         run: node .github/socio-plantilla.js apps-script
 
+      - name: Reintento a números +1 cuando Meta avisa 131049 (plantilla para socios o de seguimiento)
+        run: node .github/masuno-reintento.js apps-script
+
       - name: La voz del Modo calle dice por qué no hubo audio (dobles de ElevenLabs)
         run: node .github/calle-voz.js apps-script
 

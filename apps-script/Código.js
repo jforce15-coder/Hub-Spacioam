@@ -2286,7 +2286,8 @@ function usoAnthropic_(desdeMs) {
 
 /* ═══════════════════════════════ 5. HOSPITABLE ═══════════════════════════════ */
 
-function hosp_(metodo, ruta, payload) {
+/* o.sinReintentos: un 429 no se espera ni se reintenta (el tablero de la llamada no puede esperar; tarjeta.js). */
+function hosp_(metodo, ruta, payload, o) {
   const token = PropertiesService.getScriptProperties().getProperty('HOSPITABLE_TOKEN');
   const opt = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' } };
   /* Todo mensaje a un huésped o a una consulta sale por aquí (también los programados que se mandan ya): los enlaces largos
@@ -2299,7 +2300,7 @@ function hosp_(metodo, ruta, payload) {
     ruta = String(ruta).replace(/^\/reservations\/inq:/, '/inquiries/');
     let r = uf_(CFG.HOSPITABLE_API + ruta, opt);
     /* 429 (límite de Hospitable): hasta 2 reintentos con espera corta, respetando Retry-After si es breve. */
-    for (let k = 0; k < 2 && r.getResponseCode() === 429; k++) {
+    for (let k = 0; k < (o && o.sinReintentos ? 0 : 2) && r.getResponseCode() === 429; k++) {
       const ra = Number((r.getHeaders() || {})['Retry-After'] || (r.getHeaders() || {})['retry-after']) || 0;
       Utilities.sleep(Math.min(6000, ra ? ra * 1000 : 1500 * (k + 1)) + Math.floor(Math.random() * 400));
       r = uf_(CFG.HOSPITABLE_API + ruta, opt);

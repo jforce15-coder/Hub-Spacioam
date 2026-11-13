@@ -4,7 +4,8 @@
      1. Lo escrito: la ficha (PropiedadesInfo), la base de conocimiento y la memoria, los detalles de Hospitable
         (descripción, cuartos y camas, amenidades) y su knowledge hub. Un modelo rápido, solo texto.
      2. Las fotos del anuncio (Hospitable · /properties/{id}/images, las miniaturas en el orden del anuncio). Quedan
-        guardadas 6 h para el tablero de la llamada (tvGuardarFotos_, tarjeta.js).
+        guardadas 6 h para el tablero de la llamada (tvGuardarFotos_, tarjeta.js). El pedido (fuentesPedirFotos_) es el
+        mismo que usa el tablero cuando un apartamento no tiene ninguna foto.
      3. Las fotos de los reportes de limpieza de Epi: hoja «Reportes» de Epi (columna fotosLimpieza, con llaves como
         fotosTv, fotosHabitaciones, fotosSalaGeneral) y los archivos en la carpeta de Drive de Epi. Las más recientes primero.
    En 2 y 3 el modelo con visión del Hub recibe a lo mucho 8 fotos y una pregunta concreta («¿cuántas TV se ven y en qué
@@ -113,12 +114,21 @@ function fuentesLeerTexto_(tema, ctx, pregunta) {
 }
 
 /* ── 2 · Fotos del anuncio (Hospitable). ── */
+/* El pedido de las fotos del anuncio, en su orden, y guardadas 6 h para el tablero de la llamada (tvGuardarFotos_). Lo usan
+   las dos: Alma al responder sobre la propiedad (fuentesFotosAnuncio_) y el tablero cuando un apartamento no tiene
+   ninguna foto (tvPedirFotos_, tarjeta.js). Mismo pedido y mismo cupo (hosp_ → uf_). Devuelve la lista (puede venir
+   vacía) o null si Hospitable no respondió bien. o: lo que se le pasa a hosp_ (sinReintentos). */
+function fuentesPedirFotos_(propId, o) {
+  if (!propId) return null;
+  var r = hosp_('get', '/properties/' + propId + '/images', null, o); if (!r || r.code !== 200) return null;
+  var orden = ((r.json && r.json.data) || []).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); });
+  try { if (typeof tvGuardarFotos_ === 'function') tvGuardarFotos_(propId, orden); } catch (e) {}   // las usa el tablero de la llamada 6 h (tarjeta.js, #508 T3)
+  return orden;
+}
 function fuentesFotosAnuncio_(propId) {
   if (!propId) return [];
   try {
-    var r = hosp_('get', '/properties/' + propId + '/images'); if (r.code !== 200) return [];
-    var orden = ((r.json && r.json.data) || []).slice().sort(function (a, b) { return Number(a.order || 0) - Number(b.order || 0); });
-    try { if (typeof tvGuardarFotos_ === 'function') tvGuardarFotos_(propId, orden); } catch (e) {}   // las usa el tablero de la llamada 6 h (tarjeta.js, #508 T3)
+    var orden = fuentesPedirFotos_(propId); if (!orden) return [];
     return orden
       .map(function (x, i) { return { url: s_(x.thumbnail_url || x.url), etiqueta: 'foto ' + (i + 1) + ' del anuncio' + (x.caption ? ' (' + s_(x.caption) + ')' : '') }; })
       .filter(function (x) { return /^https?:/.test(x.url); }).slice(0, FUENTES_MAX_FOTOS_);

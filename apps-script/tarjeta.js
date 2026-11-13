@@ -9,6 +9,7 @@
      (columna tarjeta de ALMA_OPERATIVO), sin notificación.
    · La app la pide con la acción vozTarjeta cuando le llega agent_tool_response de la secretaria. Mostrarla no llama a
      Hospitable: todo sale de lo que la herramienta ya leyó, de la hoja Reservas o de la caché del calendario de propiedades.
+     Una sola excepción (Juan, 13-nov-2026): las fotos de un apartamento que no tiene ninguna (tvPedirFotos_).
    · Nunca la misma cosa dos veces en una llamada (voztv_vistas_<conv_id>). Solo administradores: la familia nunca la ve.
    · El apartamento nunca lleva códigos, claves ni el wifi.
    · Dónde sí (Juan, 6-nov-2026; tvPermitida_): SOLO en una llamada de la app de Alma o del Hub con la voz de Alma
@@ -32,7 +33,9 @@
      manda al vincular y con vozPantalla); sin ese aviso (la app de antes, o el teléfono bloqueado) queda en el chat.
    · (#508 T3) FOTOS: las del anuncio que Alma ya pidió a Hospitable para responder sobre la propiedad (fuentes.js) quedan
      guardadas 6 h (calp_fotos_<id>, tvGuardarFotos_); el tablero las usa como galería y como foto principal si el
-     catálogo no trae picture. Sin llamadas nuevas solo para la tarjeta. */
+     catálogo no trae picture.
+   · FOTOS QUE FALTAN (Juan, 13-nov-2026): si un apartamento del tablero no tiene ninguna foto, el Hub pide
+     /properties/{id}/images UNA vez cada 6 h, solo al armar el tablero (tvPedirFotos_). Es la única llamada de la tarjeta. */
 
 var TV_CANDIDATA_ = null;
 var TV_SEG_ = 600, TV_LLAMADA_SEG_ = 21600, TV_FOTOS_SEG_ = 21600, TV_FOTOS_MAX_ = 8;
@@ -61,7 +64,10 @@ function tvCerrar_(convId, app, conf) {
   var c = CacheService.getScriptCache();
   if (!convId || !tvPermitida_(convId, app)) return null;   // voztarjeta_ solo en la app o el Hub expandido, con un administrador
   if (!cand) { c.remove('voztarjeta_' + convId); return null; }
-  var t = null; try { t = cand.hacer(); } catch (e) { console.error('tarjeta ' + cand.tipo + ': ' + (e.stack || e)); }
+  /* Conferencia: solo con la pantalla encendida (vozpant_ «1», lo dice la app nueva). Fuera de conferencia: salvo bloqueada. */
+  var pant = c.get('vozpant_' + convId), visible = conf ? pant === '1' : pant !== '0';
+  var t = null; TV_SIN_PEDIR_ = !visible;   // lo que no se va a ver no pide fotos (tvPedirFotos_)
+  try { t = cand.hacer(); } catch (e) { console.error('tarjeta ' + cand.tipo + ': ' + (e.stack || e)); } finally { TV_SIN_PEDIR_ = false; }
   if (!t || !t.clave) { c.remove('voztarjeta_' + convId); return null; }
   /* Por estado (app nueva): lo que ya está en pantalla se queda (mismo id); otra cosa, o volver a algo ya visto, se muestra.
      App de antes: nunca lo mismo dos veces en la llamada. */
@@ -69,8 +75,6 @@ function tvCerrar_(convId, app, conf) {
   try { actual = JSON.parse(c.get('voztv_actual_' + convId) || 'null'); } catch (e) {}
   var vistas = []; try { vistas = JSON.parse(c.get('voztv_vistas_' + convId) || '[]'); } catch (e) {}
   if (!estado && vistas.indexOf(t.clave) >= 0) { c.remove('voztarjeta_' + convId); return null; }   // nunca lo mismo dos veces
-  /* Conferencia: solo con la pantalla encendida (vozpant_ «1», lo dice la app nueva). Fuera de conferencia: salvo bloqueada. */
-  var pant = c.get('vozpant_' + convId), visible = conf ? pant === '1' : pant !== '0';
   t.id = estado && visible && actual && actual.clave === t.clave && actual.id ? String(actual.id) : 'tv' + Date.now() + (vistas.length ? '-' + vistas.length : '');
   var out = { tarjeta: t, visible: visible, celda: JSON.stringify({ tipo: t.tipo, id: t.ref, titulo: t.titulo }), voz: '' };
   if (visible) {
@@ -157,6 +161,7 @@ function tvTel_(v) { var d = String(v || '').replace(/[^\d+]/g, ''); return d.re
 /* Reserva y huésped: la fila de la hoja Reservas (r), lo que devolvió buscar_reservas (x) y su conversación de la bandeja. */
 function tvReserva_(r, x, inbox) {
   x = x || {}; var cod = String(x.codigo || s_(r.code)).toUpperCase();
+  tvPedirFotos_([x.propiedad]);   // sin ninguna foto del apartamento: una vez cada 6 h
   var ib = (inbox || []).filter(function (y) { return String(y.codigo || '').toUpperCase() === cod; })[0] || {};
   var est = String(x.estado || ''), cancel = /cancel/i.test(est), solic = /solicit|request|pend|consulta/i.test(est);
   var canal = tvCanal_(s_(r.platform) || s_(r.source) || s_(r.channel) || ib.canal);
@@ -323,7 +328,9 @@ function tvApartamento_(nombre, j, plano) {
   var porteria = deCampo(/(porter|lobby|recepci|garita|conserje|concierge|seguridad)/i, 90);
   var hab = cuartos ? (/^\d+$/.test(cuartos) ? cuartos + (cuartos === '1' ? ' habitación' : ' habitaciones') : cuartos) : '';
   var datos = [hab, parqueo ? 'Parqueo: ' + parqueo : '', porteria ? 'Portería: ' + porteria : ''].filter(Boolean);
-  var fotos = tvFotosLeidas_(j), foto = tvFotoProp_(nombre) || fotos[0] || '';
+  var fotos = tvFotosLeidas_(j);
+  tvPedirFotos_([nombre], fotos);   // sin ninguna foto (ni guardada, ni picture, ni en la herramienta): una vez cada 6 h
+  var foto = tvFotoProp_(nombre) || fotos[0] || '';
   var est = tvEstadias_(), semana = tvSemana_(nombre, est);
   return {
     tipo: 'apartamento', clave: 'apartamento:' + calpClave_(nombre), ref: nombre, etiqueta: 'Apartamento' + (p.zona && p.zona !== 'Otras' ? ' · ' + p.zona : ''),
@@ -354,7 +361,7 @@ function tvCatalogoProp_(nombre) {
 /* ── Fotos del anuncio guardadas (#508 T3) ─────────────────────────────────────────────────────────────────────────────
    fuentes.js ya pide /properties/{id}/images cuando Alma revisa las fotos para responder sobre la propiedad: ahí mismo
    quedan guardadas 6 h (como calp_catalogo) en calp_fotos_<id>, en el orden del anuncio: { u (grande), t (miniatura) }.
-   La tarjeta solo las lee: sin llamadas nuevas a Hospitable. */
+   La tarjeta las lee; solo las pide ella misma cuando el apartamento no tiene ninguna (tvPedirFotos_, abajo). */
 function tvGuardarFotos_(propId, lista) {
   propId = String(propId || '').trim(); if (!propId) return;
   var out = [];
@@ -367,7 +374,7 @@ function tvGuardarFotos_(propId, lista) {
   try { if (out.length) CacheService.getScriptCache().put('calp_fotos_' + propId, JSON.stringify(out), TV_FOTOS_SEG_); } catch (e) { console.error('tvGuardarFotos_: ' + e); }
 }
 function tvFotosGuardadas_(nombre, cat) {
-  var x = cat === undefined ? tvCatalogoProp_(nombre) : cat; if (!x || !x.id) return [];
+  var x = cat === undefined ? tvCatalogoProp_(nombre) : cat; if (!x || !x.id || TV_FOTOS_TARDE_[x.id]) return [];
   try { return (JSON.parse(CacheService.getScriptCache().get('calp_fotos_' + x.id) || '[]') || []).filter(function (f) { return f && /^https:\/\//.test(String(f.u || '')); }); } catch (e) { return []; }
 }
 /* La galería: 2 o 3 fotos del anuncio que no son la principal (las guardadas y, si faltan, las que trajo la herramienta). */
@@ -377,6 +384,35 @@ function tvGaleria_(nombre, principal, leidas) {
   tvFotosGuardadas_(nombre).forEach(function (f) { mete(f.u, f.t); });
   (leidas || []).forEach(function (u) { mete(String(u), ''); });
   return out.length >= 2 ? out : [];
+}
+/* ── Fotos que faltan (Juan, 13-nov-2026) ───────────────────────────────────────────────────────────────────────────────
+   La ÚNICA llamada de la tarjeta a Hospitable. Al armar el tablero de una reserva, un apartamento o un edificio: si un
+   apartamento no tiene ninguna foto (ni guardada en calp_fotos_<id>, ni picture en el catálogo, ni en lo que trajo la
+   herramienta), pide /properties/{id}/images con el mismo pedido de fuentes.js (fuentesPedirFotos_: mismo cupo, y las
+   guarda 6 h con tvGuardarFotos_).
+   · Una vez cada 6 h por apartamento: el intento queda en calp_fotos_intento_<id> ANTES de pedir, así no se repite
+     aunque falle, venga vacía o se caiga a medias.
+   · Solo si el tablero no tiene ninguna foto, y a lo mucho un apartamento por tablero: el edificio pide solo el primero
+     sin intento (si ese falló, el próximo tablero prueba con el siguiente).
+   · Sin espera notable: un 429 no se reintenta y, si el pedido tarda más de 2 s, este tablero sale sin esas fotos
+     (TV_FOTOS_TARDE_); quedan guardadas y el próximo ya las trae.
+   · Nunca para un tablero que no se va a ver (pantalla bloqueada o conferencia sin pantalla: TV_SIN_PEDIR_, tvCerrar_). */
+var TV_FOTOS_ESPERA_MS_ = 2000;
+var TV_SIN_PEDIR_ = false;   // tvCerrar_: este tablero no se va a ver
+var TV_FOTOS_TARDE_ = {};    // ids cuyas fotos llegaron tarde para el tablero que se está armando
+function tvPedirFotos_(nombres, leidas) {
+  TV_FOTOS_TARDE_ = {};
+  if (TV_SIN_PEDIR_ || (leidas && leidas.length) || typeof fuentesPedirFotos_ !== 'function') return false;
+  var c = CacheService.getScriptCache(), cats = (nombres || []).map(function (n) { return { n: n, cat: tvCatalogoProp_(n) }; });
+  var tiene = function (y) { return !!y.cat && (/^https:\/\//.test(String(y.cat.foto || '')) || tvFotosGuardadas_(y.n, y.cat).length > 0); };
+  if (cats.some(tiene)) return false;   // el tablero ya tiene alguna foto: no hace falta pedir
+  var x = (cats.filter(function (y) { return y.cat && y.cat.id && !c.get('calp_fotos_intento_' + y.cat.id); })[0] || {}).cat;
+  if (!x) return false;
+  var id = String(x.id), t0 = Date.now(), lista = null;
+  try { c.put('calp_fotos_intento_' + id, '1', TV_FOTOS_SEG_); } catch (e) { return false; }   // sin poder marcar, no se pide
+  try { lista = fuentesPedirFotos_(id, { sinReintentos: true }); } catch (e) { console.error('tvPedirFotos_: ' + e); }
+  if (Date.now() - t0 > TV_FOTOS_ESPERA_MS_) TV_FOTOS_TARDE_[id] = 1;
+  return !!(lista && lista.length);
 }
 /* Siete noches desde hoy: res (reservado, azul) · con (consulta o solicitud, amarillo) · bloq (bloqueado, rojo) · libre (verde). */
 function tvSemana_(nombre, est) {
@@ -546,6 +582,7 @@ function tvEdificio_(e) {
   var nOcup = Object.keys(ocup).length, zona = e.zona && e.zona !== 'Otras' ? e.zona : '';
   var nombre = /^(edificio|torre|residencial|condominio)\b/i.test(e.edificio) ? e.edificio : 'Edificio ' + e.edificio;
   var foto = '', co = null;
+  tvPedirFotos_(e.props);   // solo el primer apartamento sin ninguna foto (uno por tablero)
   e.props.some(function (n) { foto = tvFotoProp_(n); return !!foto; });
   e.props.some(function (n) { co = tvCoords_(n); return !!co; });
   var uni = function (x) { return calpPartes_(x.propiedad).unidad || tvLugar_(x.propiedad); };

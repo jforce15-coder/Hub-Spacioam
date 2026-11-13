@@ -17,8 +17,11 @@
   10. Por estado, conferencia y fotos (#508 T3): con la app nueva (tablero «estado») el tablero no se va por tiempo, se
       reemplaza con otra cosa, vuelve a algo ya visto y lo mismo que ya está no se rearma; al terminar la llamada espera
       ~3 s y se va (la página, con un DOM de mentira); en conferencia sale solo con la pantalla encendida; la galería y la
-      foto principal salen de las fotos del anuncio guardadas (sin llamar a Hospitable) y nada nuevo filtra códigos ni
-      teléfonos.
+      foto principal salen de las fotos del anuncio guardadas y nada nuevo filtra códigos ni teléfonos.
+  11. Fotos que faltan (Juan, 13-nov-2026): la única llamada de la tarjeta a Hospitable. Sin ninguna foto: 1 pedido y se
+      guardan; otro armado en 6 h: 0; con fotos (guardadas, picture o de la herramienta): 0; si falla o viene vacía: no se
+      repite; nunca más de 1 por tablero (el edificio, solo si ninguno tiene fotos: el primero sin intento); si tarda más de 2 s el tablero sale sin
+      galería y el próximo la trae; con la pantalla bloqueada no se pide.
    node .github/tarjeta-llamada.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -27,7 +30,7 @@ let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { con
 const HOY = '2026-11-04';
 function caja(o) {
   o = o || {};
-  const cache = {}, puestos = [];
+  const cache = {}, puestos = [], pedidos = [], reloj = { ms: 0 };
   const fmt = (d, tz, f) => {   // Guatemala: UTC−6, sin horario de verano
     const g = new Date(d.getTime() - 6 * 3600e3), p = (n) => String(n).padStart(2, '0');
     if (f === 'yyyy-MM-dd') return g.getUTCFullYear() + '-' + p(g.getUTCMonth() + 1) + '-' + p(g.getUTCDate());
@@ -36,7 +39,7 @@ function caja(o) {
   };
   const ctx = {
     console: { log() {}, warn() {}, error() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN,
-    Date: class extends Date { constructor(...a) { if (!a.length) super(HOY + 'T16:00:00Z'); else super(...a); } static now() { return Date.parse(HOY + 'T16:00:00Z'); } },
+    Date: class extends Date { constructor(...a) { if (!a.length) super(HOY + 'T16:00:00Z'); else super(...a); } static now() { return Date.parse(HOY + 'T16:00:00Z') + reloj.ms; } },
     CFG: { TZ: 'America/Guatemala', TAB_RESERVAS: 'Reservas' },
     Utilities: { formatDate: fmt },
     CacheService: { getScriptCache: () => ({ get: (k) => (k in cache ? cache[k] : null), put: (k, v, s) => { cache[k] = String(v); puestos.push({ k, s }); }, remove: (k) => { delete cache[k]; }, getAll: (ks) => { const r = {}; ks.forEach((k) => { if (k in cache) r[k] = cache[k]; }); return r; } }) },
@@ -50,13 +53,15 @@ function caja(o) {
     vozWebTel_: (conv) => (conv === 'conv-app' || conv === 'conv-hub' ? '50255550101' : conv === 'conv-otro' ? '50255559999' : ''),
     adminPorTel_: (tel) => (String(tel).slice(-8) === '55550101' ? { email: 'juan@spacioam.com', tels: ['50255550101'], principal: true } : null),
     AGENTE_CANAL_: o.canal === undefined ? 'llamada' : o.canal,
-    hosp_: () => { throw new Error('la tarjeta no llama a Hospitable'); },
+    /* Hospitable: solo las fotos que faltan (11). Se anota cada pedido; sin o.hosp, no responde (como si se cayera). */
+    hosp_: (m, ruta, payload, op) => { pedidos.push({ m, ruta, op }); if (o.hosp) return o.hosp(ruta, reloj); throw new Error('Hospitable no responde en la prueba'); },
     fecha_: (v) => String(v || '').slice(0, 10), sumarDias_: (f, n) => { const d = new Date(f + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'calprops.js'), 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8'), ctx);
-  return { X: ctx, cache, puestos };
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'fuentes.js'), 'utf8'), ctx);   // fuentesPedirFotos_: el mismo pedido de las fotos
+  return { X: ctx, cache, puestos, pedidos, reloj };
 }
 
 const FILA = { code: 'HM4K2Q9XAB', guest_first_name: 'Mariana', guest_last_name: 'López', property_name: 'Z10 - Brunelo - 1203', checkin_date: '2026-11-06', checkout_date: '2026-11-09', guest_count: 2, platform: 'airbnb', total: 312 };
@@ -344,11 +349,10 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
     w.X.tvCandidata_('reserva', () => w.X.tvReserva_(FILA, ITEM, []));
     ok(w.X.tvCerrar_('conv-app', true, true) === null, '10 · fuera de la llamada (WhatsApp, chat): nunca');
   }
-  /* fotos guardadas: galería y foto principal sin llamar a Hospitable */
-  { const fu = fs.readFileSync(path.join(DIR, 'fuentes.js'), 'utf8'), fa = fu.slice(fu.indexOf('function fuentesFotosAnuncio_'), fu.indexOf('function fuentesMismaProp_'));
-    ok(/hosp_\('get', '\/properties\/' \+ propId \+ '\/images'\)/.test(fa) && /tvGuardarFotos_\(propId, orden\)/.test(fa), '10 · fuentes.js guarda las fotos del anuncio cuando ya las pide (sin llamadas nuevas)');
-    const tj = fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8');
-    ok(!/hosp_\(|UrlFetchApp|uf_\(/.test(tj), '10 · tarjeta.js no llama a Hospitable ni a internet');
+  /* fotos guardadas: galería y foto principal */
+  { const fu = fs.readFileSync(path.join(DIR, 'fuentes.js'), 'utf8'), fa = fu.slice(fu.indexOf('function fuentesPedirFotos_'), fu.indexOf('function fuentesMismaProp_'));
+    ok(/hosp_\('get', '\/properties\/' \+ propId \+ '\/images', null, o\)/.test(fa) && /tvGuardarFotos_\(propId, orden\)/.test(fa) && /fuentesPedirFotos_\(propId\)/.test(fa),
+      '10 · fuentes.js pide las fotos del anuncio con un solo pedido (fuentesPedirFotos_) y las guarda');
     const CAT = [{ id: 'p1', nombre: AP, foto: '', lat: 14.596, lng: -90.51 }, { id: 'p2', nombre: AP2, foto: 'https://fotos.example/705.jpg' }, { id: 'p3', nombre: AP3, foto: 'https://fotos.example/902.jpg' }];
     const IMGS = [{ url: 'https://fotos.example/g1.jpg', thumbnail_url: 'https://fotos.example/g1-t.jpg', order: 1, caption: 'Código 4821 de la puerta' },
       { url: 'http://inseguro.example/g2.jpg', order: 2 }, { url: 'javascript:alert(1)', order: 3 },
@@ -459,6 +463,88 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
       ok(fin === 2 && h3, '10 · roca: sin tablero a la vista se cierra enseguida, como siempre');
       ok(mandado.indexOf('plegar') < 0, '10 · página: nada de esto encoge el tablero por su cuenta');
     }
+  }
+}
+
+/* 11 · fotos que faltan (Juan, 13-nov-2026): la única llamada de la tarjeta a Hospitable */
+{ const AP = 'Z10 - Brunelo - 1203', AP2 = 'Z10 - Brunelo - 705', AP3 = 'Z10 - Brunelo - 902';
+  /* La regla, en un único lugar: tarjeta.js no llama a internet; solo tvPedirFotos_ pide, y por el pedido de fuentes.js. */
+  { const tj = fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8');
+    const f0 = tj.indexOf('function tvPedirFotos_'), f1 = tj.indexOf('\n}\n', f0), fn = tj.slice(f0, f1);
+    ok(!/hosp_\(|UrlFetchApp|uf_\(|ufAll_\(/.test(tj), '11 · tarjeta.js no llama a internet por su cuenta (ni hosp_, ni UrlFetchApp, ni uf_)');
+    ok((tj.match(/fuentesPedirFotos_\(/g) || []).length === 1 && /fuentesPedirFotos_\(id, \{ sinReintentos: true \}\)/.test(fn), '11 · un único lugar pide fotos: tvPedirFotos_, con el pedido de fuentes.js y sin reintentos');
+    ok((tj.match(/tvPedirFotos_\(/g) || []).length === 4, '11 · solo lo usan la reserva, el apartamento y el edificio (y su definición)');
+    const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), h = cod.slice(cod.indexOf('function hosp_('), cod.indexOf('function hosp_(') + 1600);
+    ok(/function hosp_\(metodo, ruta, payload, o\)/.test(h) && /o && o\.sinReintentos \? 0 : 2/.test(h) && /uf_\(CFG\.HOSPITABLE_API/.test(h), '11 · hosp_ cuenta en el cupo (uf_) y, sin reintentos, no espera un 429');
+  }
+  const IMGS = [{ url: 'https://fotos.example/g1.jpg', thumbnail_url: 'https://fotos.example/g1-t.jpg', order: 1 }, { url: 'https://fotos.example/g2.jpg', order: 2 },
+    { url: 'https://fotos.example/g3.jpg', order: 3 }, { url: 'https://fotos.example/g4.jpg', order: 4 }];
+  const CAT = [{ id: 'p1', nombre: AP, foto: '' }, { id: 'p2', nombre: AP2, foto: '' }, { id: 'p3', nombre: AP3, foto: '' }];
+  const bien = () => ({ code: 200, json: { data: IMGS } });
+  const arma = (hosp, cat) => { const c = caja({ hosp }); c.cache.calp_catalogo = JSON.stringify(cat || CAT); c.cache['calp_base_' + HOY] = JSON.stringify({ estadias: [] }); return c; };
+  const de = (t, id) => t.cuadros.filter((x) => x.id === id)[0];
+
+  { const c = arma(bien), a = c.X.tvApartamento_(AP, {}, {});
+    ok(c.pedidos.length === 1 && c.pedidos[0].ruta === '/properties/p1/images' && c.pedidos[0].op && c.pedidos[0].op.sinReintentos === true, '11 · sin ninguna foto: 1 pedido a /properties/p1/images (sin reintentos)');
+    ok(JSON.parse(c.cache.calp_fotos_p1 || '[]').length === 4 && c.puestos.some((p) => p.k === 'calp_fotos_p1' && p.s === 21600), '11 · las fotos quedan guardadas 6 h (calp_fotos_<id>)');
+    ok(c.cache.calp_fotos_intento_p1 && c.puestos.some((p) => p.k === 'calp_fotos_intento_p1' && p.s === 21600), '11 · el intento queda marcado 6 h (calp_fotos_intento_<id>)');
+    ok(a.foto === 'https://fotos.example/g1.jpg' && de(a, 'galeria') && de(a, 'galeria').fotos.length === 3, '11 · el mismo tablero ya sale con la foto y la galería');
+    c.X.tvApartamento_(AP, {}, {}); c.X.tvReserva_(FILA, ITEM, []);
+    ok(c.pedidos.length === 1, '11 · otro armado dentro de las 6 h (apartamento o reserva): 0 pedidos');
+    delete c.cache.calp_fotos_p1; c.X.tvApartamento_(AP, {}, {});
+    ok(c.pedidos.length === 1, '11 · aunque las fotos se borren de la caché, el intento no se repite en 6 h');
+  }
+  { const c = arma(bien); c.X.tvGuardarFotos_('p1', IMGS); c.X.tvApartamento_(AP, {}, {}); c.X.tvReserva_(FILA, ITEM, []);
+    ok(c.pedidos.length === 0, '11 · con fotos guardadas: 0 pedidos');
+    const d = arma(bien, [{ id: 'p1', nombre: AP, foto: 'https://fotos.example/b.jpg' }]); d.X.tvApartamento_(AP, {}, {}); d.X.tvReserva_(FILA, ITEM, []);
+    ok(d.pedidos.length === 0, '11 · con picture en el catálogo: 0 pedidos');
+    const e = arma(bien); e.X.tvApartamento_(AP, { pictures: ['https://fotos.example/h1.jpg'] }, {});
+    ok(e.pedidos.length === 0, '11 · con fotos de la herramienta (info_json): 0 pedidos');
+    const f = arma(bien, [{ nombre: AP, foto: '' }]); f.X.tvApartamento_(AP, {}, {});
+    ok(f.pedidos.length === 0, '11 · sin id del apartamento en el catálogo: no hay a quién pedir');
+  }
+  { const c = arma(() => ({ code: 500, json: null })), a = c.X.tvApartamento_(AP, {}, {});
+    ok(c.pedidos.length === 1 && !de(a, 'galeria') && !a.foto && c.cache.calp_fotos_intento_p1, '11 · si falla: el tablero sale sin galería y el intento queda marcado');
+    c.X.tvApartamento_(AP, {}, {}); c.X.tvReserva_(FILA, ITEM, []);
+    ok(c.pedidos.length === 1, '11 · falló: 0 pedidos repetidos en 6 h');
+    const s = arma(); s.X.tvApartamento_(AP, {}, {}); s.X.tvApartamento_(AP, {}, {});
+    ok(s.pedidos.length === 1, '11 · si Hospitable no responde (error): no se repite');
+    const v = arma(() => ({ code: 200, json: { data: [] } })); v.X.tvApartamento_(AP, {}, {}); v.X.tvApartamento_(AP, {}, {});
+    ok(v.pedidos.length === 1 && !v.cache.calp_fotos_p1, '11 · si viene vacía: no se guarda nada y no se repite');
+  }
+  { const c = arma(bien), ed = c.X.tvEdificio_(c.X.tvEdificioDe_('Brunelo', [], [AP, AP2, AP3]));
+    ok(c.pedidos.length === 1 && c.pedidos[0].ruta === '/properties/p1/images', '11 · edificio sin fotos: solo el primer apartamento (1 pedido)');
+    ok(ed.foto === 'https://fotos.example/g1.jpg' && de(ed, 'galeria'), '11 · el edificio sale con su foto y galería');
+    const n0 = c.pedidos.length; c.X.tvEdificio_(c.X.tvEdificioDe_('Brunelo', [], [AP, AP2, AP3]));
+    ok(c.pedidos.length - n0 === 0, '11 · otro armado del edificio con fotos: 0 pedidos');
+    const f = arma(() => ({ code: 500, json: null }));
+    let max = 0; for (let i = 0; i < 4; i++) { const k = f.pedidos.length; f.X.tvEdificio_(f.X.tvEdificioDe_('Brunelo', [], [AP, AP2, AP3])); max = Math.max(max, f.pedidos.length - k); }
+    ok(max === 1 && f.pedidos.length === 3 && new Set(f.pedidos.map((p) => p.ruta)).size === 3, '11 · si falla, nunca más de 1 por tablero y cada apartamento una sola vez en 6 h: ' + f.pedidos.map((p) => p.ruta.split('/')[2]).join(','));
+    const g = arma(bien, [{ id: 'p1', nombre: AP, foto: '' }, { id: 'p2', nombre: AP2, foto: 'https://fotos.example/705.jpg' }, { id: 'p3', nombre: AP3, foto: '' }]);
+    g.X.tvEdificio_(g.X.tvEdificioDe_('Brunelo', [], [AP, AP2, AP3]));
+    ok(g.pedidos.length === 0, '11 · edificio con la foto de uno de sus apartamentos: 0 pedidos');
+  }
+  { const c = arma(() => ({ code: 200, json: { data: IMGS } }));
+    c.X.tvReserva_(FILA, ITEM, []);
+    ok(c.pedidos.length === 1 && c.pedidos[0].ruta === '/properties/p1/images', '11 · la reserva pide las del apartamento de la reserva');
+  }
+  { const c = arma((ruta, reloj) => { reloj.ms += 2500; return bien(); }), a = c.X.tvApartamento_(AP, {}, {});
+    ok(c.pedidos.length === 1 && !de(a, 'galeria') && !a.foto, '11 · tarda más de 2 s: este tablero sale sin galería (no se usa lo que llegó tarde)');
+    ok(JSON.parse(c.cache.calp_fotos_p1 || '[]').length === 4, '11 · … pero quedan guardadas');
+    const b = c.X.tvApartamento_(AP, {}, {});
+    ok(c.pedidos.length === 1 && b.foto === 'https://fotos.example/g1.jpg' && de(b, 'galeria'), '11 · el próximo tablero ya las trae, sin pedir otra vez');
+  }
+  { const c = arma(bien); c.cache['vozpant_conv-app'] = '0';
+    c.X.tvCandidata_('apartamento', () => c.X.tvApartamento_(AP, {}, {}));
+    const r = c.X.tvCerrar_('conv-app', true, false);
+    ok(r && !r.visible && c.pedidos.length === 0 && !c.cache.calp_fotos_intento_p1, '11 · pantalla bloqueada (el tablero no se ve): 0 pedidos');
+    delete c.cache['vozpant_conv-app'];
+    c.X.tvCandidata_('apartamento', () => c.X.tvApartamento_(AP, {}, {}));
+    const v = c.X.tvCerrar_('conv-app', true, false), t = JSON.parse(c.cache['voztarjeta_conv-app'] || 'null');
+    ok(v && v.visible && c.pedidos.length === 1 && t && t.foto === 'https://fotos.example/g1.jpg', '11 · en pantalla: 1 pedido y la tarjeta ya lleva la foto');
+    c.X.tvCandidata_('conversacion', () => c.X.tvConversacion_('r-1', [], [], []));
+    c.X.tvCerrar_('conv-app', true, false);
+    ok(c.pedidos.length === 1, '11 · la conversación no pide fotos');
   }
 }
 

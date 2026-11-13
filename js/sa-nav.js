@@ -1871,7 +1871,7 @@
     });
   }
   function stoneTarget() { var eo = AL.esc ? AL.escO : null; if (AL.chat) { var sb = E.ov && E.ov.querySelector(".san-send"), rb = sb && sb.getBoundingClientRect(); if (rb && rb.width) return { x: rb.left + rb.width / 2, y: rb.top + rb.height / 2, s: 38 }; return { x: VW() - 40, y: VH() - 44, s: 38 }; }   // 38 + su anillo = la roca encajada del Hub en un botón de 46
-    return { x: VW() / 2, y: VH() * (eo && eo.y || .42), s: Math.min(VW() * .66, VH() * .4, eo && eo.s || 270) }; }
+    return { x: VW() * (eo && eo.x || .5), y: VH() * (eo && eo.y || .42), s: Math.min(VW() * .66, VH() * .4, eo && eo.s || 270) }; }
   function faceD() { return 74 * zoom.x; }
   function stoneRender() {
     var dx = aDX.x, dy = aDY.x, dd = Math.hypot(dx, dy), ang = Math.atan2(dy, dx), st2 = Math.min(.05, dd / 1100);
@@ -2050,7 +2050,8 @@
   }
   /* Escena (inicio de la app de Alma): la piedra grande al centro, quieta hasta que se toca; tocarla (o Chat) abre la
      conversación. Terminar la deja quieta en su lugar: no vuelve a un botón. */
-  /* o = { y: centro en fracción del alto, s: diámetro máximo } (p. ej. más arriba y más chica mientras se entra).
+  /* o = { x, y: centro en fracción del ancho y del alto, s: diámetro máximo, tocar: qué hace un toque en plena llamada }
+     (p. ej. más arriba y más chica mientras se entra; abajo a la derecha con el tablero bento de la llamada).
      Si la escena ya está, la piedra va a su nuevo lugar con su resorte. */
   function escena(o) {
     if (!root) return false;
@@ -2094,7 +2095,7 @@
       if (stoneDrag) { endStoneDrag(); return; }
       aSq.to(0, .5, .55); aDX.to(0, .55, .6); aDY.to(0, .55, .6);
       if (sEnd) { sEnd = false; E.ov.classList.remove("ending"); E.ph.classList.remove("on"); almaEnd(false); }
-      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) escToque(); else if (AL.chat) almaChat(false); }
+      else if (AL.esc && sMov < 12) { if (AL.escPos && !AL.on) { escena(AL.escO); try { cfg.alVolver && cfg.alVolver(); } catch (x) {} } else if (!AL.on) escToque(); else if (AL.chat) almaChat(false); else if (AL.escO && typeof AL.escO.tocar === "function") { try { AL.escO.tocar(); } catch (x) {} } }
     }
     el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
   }

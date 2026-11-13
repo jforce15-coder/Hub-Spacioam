@@ -579,15 +579,23 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'ver_propiedad': {
       var fil = leerTabla_(CFG.TAB_PROPIEDADES), np = n(inp.propiedad).replace(/[\s\-–_]/g, '');
-      var hitP = fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '') === np; })[0] || fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '').indexOf(np) >= 0; })[0];
+      var exactaP = fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '') === np; })[0];
+      var hitP = exactaP || fil.filter(function (r) { return n(r.property_name).replace(/[\s\-–_]/g, '').indexOf(np) >= 0; })[0];
+      /* «Brunelo» (o varias opciones del mismo edificio): la tarjeta de la llamada es el edificio completo (tarjeta.js, #508 T2). */
+      var todasP = fil.map(function (r) { return r.property_name; }), edifP = exactaP ? null : tvEdificioDe_(inp.propiedad, [], todasP);
       if (!hitP) {
         var par = bqBuscar_(inp.propiedad, fil, function (r) { return r.property_name; }, 6);
         if (par.length === 1 || (par.length > 1 && par[0].puntaje - par[1].puntaje >= 0.15)) hitP = par[0].item;
-        else return { error: 'No encontré esa propiedad exacta.', opciones: par.map(function (x) { return x.item.property_name; }) };
+        else {
+          var opP = par.map(function (x) { return x.item.property_name; }); edifP = edifP || tvEdificioDe_('', opP, todasP);
+          tvCandidata_(edifP ? 'edificio' : null, edifP ? function () { return tvEdificio_(edifP); } : null);
+          return { error: 'No encontré esa propiedad exacta.', opciones: opP };
+        }
       }
       var j = {}; try { j = JSON.parse(String(hitP.info_json || '{}')); } catch (e) {}
       var plano = {}; (function rec(o, pre) { Object.keys(o || {}).forEach(function (k) { var v = o[k], key = pre ? pre + '.' + k : k; if (v && typeof v === 'object' && !Array.isArray(v)) rec(v, key); else plano[key] = String(Array.isArray(v) ? JSON.stringify(v) : v).slice(0, 300); }); })(j, '');
-      tvCandidata_('apartamento', function () { return tvApartamento_(hitP.property_name, j, plano); });   // tarjeta de la llamada (tarjeta.js)
+      if (edifP) tvCandidata_('edificio', function () { return tvEdificio_(edifP); });
+      else tvCandidata_('apartamento', function () { return tvApartamento_(hitP.property_name, j, plano); });   // tarjeta de la llamada (tarjeta.js)
       return { propiedad: hitP.property_name, campos: plano };
     }
     case 'codigo_acceso': { var rC = codigosAcceso_(inp, ctx.cfg()); (rC.equipo || []).forEach(function (e) { ctx.hechas.push({ tipo: 'consulta', resumen: 'Código · ' + e.propiedad + ': ' + (e.codigo || 'sin código') + (e.tipo ? ' (' + e.tipo + ')' : '') }); }); return rC; }

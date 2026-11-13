@@ -576,6 +576,91 @@
   .tv-pest span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .tv-pest svg { flex: none; width: 14px; height: 14px; }
   @media (prefers-reduced-motion: reduce) { .tv-card { transform: none; transition: opacity .2s ease; } .tv-pest { transform: translate(-50%, 0); transition: opacity .2s ease; } .tv-btn:active { transform: none; } }
+  /* ── Tablero bento (#508 T1): cuando la tarjeta trae cuadros, Alma se minimiza abajo a la derecha (~74 px, con su halo) y el
+     tablero ocupa la pantalla sobre el atardecer, sin oscurecerlo: «Alma encontró», el título en Valky y una cuadrícula de 6
+     columnas. «Terminar» y lo que dice Alma quedan abajo a la izquierda. Tocar a Alma la regresa al centro y lo oculta. ── */
+  html.tvb-on #sa-nav-root .san-ov-ui { left: max(16px, env(safe-area-inset-left)); right: auto; top: auto; transform: none;
+    bottom: calc(max(34px, env(safe-area-inset-bottom) + 14px) + 9px); width: calc(100% - 140px); align-items: flex-start; gap: 10px; }
+  html.tvb-on #sa-nav-root .san-ov-st, html.tvb-on #sa-nav-root .san-ov-tip { display: none; }
+  html.tvb-on #sa-nav-root .san-ov-cap { min-height: 0; font-size: 13px; text-align: left; text-wrap: pretty; }
+  html.tvb-on #sa-nav-root .san-ov-btns { gap: 18px; }
+  html.tvb-on .hola, html.tvb-on .vj-vivo, html.tvb-on .vj-salas, html.tvb-on .aviso, html.tvb-on .calle-linea { opacity: 0 !important; pointer-events: none !important; }
+  .tvb { --r: clamp(54px, 15vw, 64px); --g: 8px; position: absolute; left: 0; right: 0; top: max(64px, calc(env(safe-area-inset-top) + 56px));
+    bottom: calc(max(34px, env(safe-area-inset-bottom) + 14px) + 128px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+    padding: 0 max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left)); box-sizing: border-box;
+    font: 500 12px/1.4 Montserrat, system-ui, sans-serif; color: #3E3F3F; text-align: left; transition: opacity .24s ease;
+    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 16px), transparent); }
+  #sa-nav-root .san-ov.chat .tvb, #sa-nav-root .san-ov.min .tvb, #sa-nav-root .san-ov.pend .tvb, #sa-nav-root .san-ov.noti .tvb { opacity: 0; pointer-events: none; }
+  #sa-nav-root .san-ov.ending .tvb { opacity: .25; }
+  .tvb.sale { opacity: 0; pointer-events: none; }
+  .tvb-cab { padding: 0 4px 14px; color: #fff; text-shadow: 0 1px 8px rgba(40,30,25,.22); }
+  .tvb-eti { display: block; font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .26em; text-transform: uppercase; }
+  .tvb-eti i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #E9826A; margin-right: 7px; vertical-align: 1px; }
+  .tvb-tit { display: block; margin-top: 10px; font: 400 clamp(25px, 7.4vw, 30px)/1.05 Valky, "Cormorant Garamond", Georgia, serif; overflow-wrap: anywhere; }
+  .tvb-sub { display: block; margin-top: 4px; font-size: 13px; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvb-g { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: minmax(var(--r), auto); gap: var(--g); }
+  .tvb-t { position: relative; min-width: 0; overflow: hidden; box-sizing: border-box; padding: 10px 12px; border-radius: 20px; background: rgba(255,255,255,.94);
+    box-shadow: 0 18px 40px -26px rgba(40,30,25,.5); }
+  .tvb-hero { display: grid; gap: var(--g); min-width: 0; }
+  .tvb-pila { display: flex; flex-direction: column; gap: var(--g); min-width: 0; }
+  .tvb-pila > .tvb-t { flex: 1 0 auto; display: flex; flex-direction: column; justify-content: center; padding: 8px 12px; }
+  .tvb-pila.tres .tvb-d { display: none; }   /* tres datos apilados: sin la línea chica, para que quepan junto a la foto */
+  .tvb-k { display: block; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: #6F6867; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvb-v { display: block; margin-top: 3px; font: 400 clamp(19px, 5.6vw, 23px)/1.05 Valky, "Cormorant Garamond", Georgia, serif; color: #3E3F3F; overflow-wrap: anywhere; }
+  .tvb-d { display: block; margin-top: 3px; font-size: 11px; color: #6F6867; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvb-p { margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; }
+  .tvb-chip { display: inline-block; font: 600 10px Montserrat, system-ui, sans-serif; padding: 4px 9px; border-radius: 999px; background: #F5E6BF; color: #6F5210; white-space: nowrap; }
+  .tvb-chip[data-tono="info"] { background: rgba(232,237,243,.96); color: #3B6691; }
+  .tvb-chip[data-tono="alerta"] { background: #F2DAD5; color: #9E3326; }
+  .tvb-foto { padding: 0; background: radial-gradient(120% 90% at 22% 18%, rgba(242,198,168,.95) 0%, rgba(233,130,106,.55) 38%, rgba(233,130,106,0) 70%), linear-gradient(155deg, #E9DED3 0%, #B9A493 52%, #8F7F74 100%); }
+  .tvb-foto > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tvb-foto .tvb-chip { position: absolute; top: 10px; left: 10px; box-shadow: 0 4px 12px -6px rgba(40,30,25,.4); }
+  .tvb-ini { position: absolute; inset: 0; display: grid; place-items: center; font: 400 clamp(34px, 11vw, 46px)/1 Valky, "Cormorant Garamond", Georgia, serif; color: #fff; letter-spacing: .04em; text-shadow: 0 2px 14px rgba(110,70,55,.35); }
+  .tvb-av { position: absolute; left: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; box-sizing: border-box;
+    border: 2px solid #fff; background: linear-gradient(135deg, #C9B8A8, #8F7F74); color: #fff; font: 600 15px Montserrat, system-ui, sans-serif; }
+  .tvb-av img { width: 100%; height: 100%; object-fit: cover; }
+  .tvb-msg { cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+  .tvb-msg .tvb-chip { align-self: flex-start; }
+  .tvb-msg q { quotes: none; font-size: 13px; line-height: 1.45; }
+  .tvb-ir { align-self: flex-end; margin-top: auto; font: 600 11px Montserrat, system-ui, sans-serif; color: #B54D36; }
+  .tvb-mapa { padding: 0; background: linear-gradient(90deg, transparent 47%, #fff 47%, #fff 53%, transparent 53%), linear-gradient(0deg, transparent 60%, #fff 60%, #fff 64%, transparent 64%),
+    linear-gradient(35deg, transparent 30%, #f1ece4 30%, #f1ece4 34%, transparent 34%), #e3e9dc; }
+  .tvb-mapa img { position: absolute; width: 128px; height: 128px; max-width: none; filter: saturate(.55) sepia(.12) brightness(1.04); }
+  .tvb-pin { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -19px 0 0 -8px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E9826A; box-shadow: 0 2px 6px rgba(0,0,0,.3); border: 2px solid #fff; }
+  .tvb-lugar { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); box-sizing: border-box; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); font: 600 10px Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvb-osm { position: absolute; right: 6px; top: 5px; font-size: 8px; color: #6F6867; background: rgba(255,255,255,.75); padding: 0 4px; border-radius: 4px; }
+  /* #508 T2 · apartamento y edificio: chip «Libre hoy» en verde, la semana, las listas cortas, la galería y las fotos de huésped. */
+  .tvb-chip[data-tono="libre"] { background: #E1EEE5; color: #2F5B43; }
+  .tvb-kf { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+  .tvb-kf .tvb-d { margin-top: 0; }
+  .tvb-semana .tv-dias { margin-top: 7px; }
+  .tvb-semana .tv-dia { font-size: 11.5px; padding: 5px 0 6px; }
+  .tvb-l { list-style: none; margin: 7px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .tvb-l li { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12.5px; line-height: 1.3; }
+  .tvb-l li > b { flex: none; font: 600 9.5px Montserrat, system-ui, sans-serif; padding: 3px 8px; border-radius: 999px; background: #ECEAE7; color: #3E3F3F; }
+  .tvb-l li[data-tono="info"] > b { background: rgba(232,237,243,.96); color: #3B6691; }
+  .tvb-l li[data-tono="aviso"] > b { background: #F5E6BF; color: #6F5210; }
+  .tvb-l li[data-tono="alerta"] > b { background: #F2DAD5; color: #9E3326; }
+  .tvb-l li > .tvb-tx { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvb-l li > small { flex: none; font-size: 10.5px; color: #6F6867; white-space: nowrap; }
+  .tvb-l li.mas { color: #6F6867; font-size: 11.5px; }
+  .tvb-cara { flex: none; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: linear-gradient(135deg, #C9B8A8, #8F7F74);
+    color: #fff; font: 600 9px Montserrat, system-ui, sans-serif; }
+  .tvb-cara img { width: 100%; height: 100%; object-fit: cover; }
+  .tvb-dato.con-cara { padding-right: 46px; }
+  .tvb-dato.con-cara > .tvb-cara { position: absolute; right: 10px; top: 50%; margin-top: -15px; width: 30px; height: 30px; font-size: 10px; }
+  .tvb-galeria { padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; background: #fff; }
+  .tvb-galeria > img { position: static; width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
+  .tvb-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--g); }
+  .tvb-acc .tv-acc, .tvb-acc .tv-preg { flex: 1 1 100%; margin-top: 0; }
+  .tvb-acc .tv-btn { background: rgba(255,255,255,.94); border-color: transparent; }
+  .tvb-acc .tv-btn.solido { background: #3E3F3F; }
+  .tvb-acc .tv-preg { padding: 12px; border-radius: 20px; background: rgba(255,255,255,.94); }
+  .tvb-t:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; }
+  /* Entrada: el tablero aparece y los cuadros suben de a poco (en orden); salida corta. */
+  .tvb .tvb-cab, .tvb .tvb-g > *, .tvb .tvb-acc { opacity: 0; transform: translateY(12px); transition: opacity .32s ease, transform .5s var(--ease, cubic-bezier(.22,.61,.36,1)); transition-delay: calc(var(--i, 0) * 45ms); }
+  .tvb.on .tvb-cab, .tvb.on .tvb-g > *, .tvb.on .tvb-acc { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .tvb .tvb-cab, .tvb .tvb-g > *, .tvb .tvb-acc { transform: none; transition: opacity .2s ease; transition-delay: 0s; } }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
 <link rel="stylesheet" href="../ds/movimiento.css">
@@ -733,7 +818,7 @@
 <script src="../js/alma-client.js?v=2026-11-16b"></script>
 <script src="../js/alma-voz.js?v=2026-11-16b"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-16a"></script>
+<script src="../js/sa-nav.js?v=2026-11-16b"></script>
 <script>
 (function () {
   "use strict";
@@ -1210,7 +1295,7 @@
   /* En la app de iPhone la roca del inicio habla con la voz de la app (VozNativa.swift), la misma del anillo: una sola
      conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
      roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
-  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "" };
+  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null };
   function vozNativa() {
     var web = window.SAAlmaVoz;
     return {
@@ -1222,7 +1307,7 @@
         if (!VN.activa) { vozConfig(); nativa({ accion: "voz", que: "hablar" }); }
         else h.status(VN.estado === "conectando" ? "Conectando…" : "Te escucho");
         return Promise.resolve({
-          end: function (auto) { VN.h = null; if (!auto) nativa({ accion: "voz", que: "colgar" }); },   // auto: la página se cerró sola, no cuelga la llamada que sigue en la app
+          end: function (auto) { VN.h = null; if (VN.fin) { clearTimeout(VN.fin.t); VN.fin = null; } if (!auto) nativa({ accion: "voz", que: "colgar" }); },   // auto: la página se cerró sola, no cuelga la llamada que sigue en la app
           level: function () { return VN.nivel; },
           sendText: function (t) { nativa({ accion: "voz", que: "texto", texto: t }); },
           chat: function (on) { nativa({ accion: "voz", que: "sinvoz", on: !!on }); if (!on) h.status("Te escucho"); },   // modo chat: la app sigue oyendo, Alma no suena (app nativa, sinvoz)
@@ -1236,9 +1321,18 @@
     if (e.tipo === "estado") {
       if ("pausada" in e) VN.soporta = true;
       var antes = VN.activa; VN.activa = e.estado === "hablando" || e.estado === "conectando"; VN.estado = e.estado;
+      /* Volvió a empezar mientras el tablero de la llamada anterior esperaba (la conferencia oyó «Alma» otra vez): la misma roca sigue. */
+      if (VN.activa && !antes && VN.fin) { clearTimeout(VN.fin.t); h = VN.h = VN.fin.h; VN.fin = null; h.status(e.estado === "conectando" ? "Conectando…" : "Te escucho"); return; }
       if (VN.activa && !antes && !h && VN.soporta && window.SANav && SANav.alma) { SANav.alma(); return; }   // empezó con el anillo
       if (!h) return;
-      if (antes && !VN.activa) { VN.h = null; h.ended(); }
+      if (antes && !VN.activa) {
+        VN.h = null;
+        /* Tablero por estado (#508 T3): con un tablero a la vista, la llamada de la roca espera ~3 s antes de cerrarse
+           (se ve que terminó) y después vuelve al inicio. Sin tablero, se cierra enseguida como siempre. */
+        var sost = false; try { sost = !!(window.AlmaTarjeta && AlmaTarjeta.sostiene && AlmaTarjeta.sostiene()); } catch (x) {}
+        if (!sost) h.ended();
+        else { h.status("Llamada terminada"); VN.fin = { h: h, t: setTimeout(function () { var f = VN.fin; VN.fin = null; if (f) f.h.ended(); }, 3000) }; }
+      }
       else if (e.estado === "hablando") h.status(e.pausada ? "En pausa" : "Te escucho");
       return;
     }
@@ -2286,22 +2380,27 @@
 </script>
 <script>
 /* ── Tarjeta de la llamada (#446 T2, apps-script/tarjeta.js) ───────────────────────────────────────────────────────────
-   La app (VozNativa.swift) decide qué se ve y cuándo (una a la vez, se encoge a los 20 s o al cambiar de tema, nada con el
-   teléfono bloqueado) y lo cuenta con AlmaVoz.evento({ tipo: "tarjeta", vista, tarjeta }); aquí solo se pinta en la llamada
-   de la roca: la roca sube y se achica a 96 px, la tarjeta va antes de «Chat» y «Terminar», y la pestañita queda arriba.
-   Lo que Juan toca vuelve a la app (accion «voz», que «tarjeta»): toque · detalle · abrir · plegar · conv · llamar · whatsapp. */
+   La app (VozNativa.swift) decide qué se ve y cuándo (una a la vez, nada con el teléfono bloqueado) y lo cuenta con
+   AlmaVoz.evento({ tipo: "tarjeta", vista, tarjeta }); aquí solo se pinta en la llamada de la roca: la roca sube y se
+   achica a 96 px, la tarjeta va antes de «Chat» y «Terminar», y la pestañita queda arriba.
+   Lo que Juan toca vuelve a la app (accion «voz», que «tarjeta»): toque · detalle · abrir · plegar · conv · llamar · whatsapp.
+   Si la tarjeta trae cuadros (#508 T1, Tablero bento), en vez de la ficha se pinta el tablero y la roca va a la esquina.
+   Por ESTADO (#508 T3, Juan 13-nov-2026): el tablero se queda mientras dure la llamada (la app nueva ya no lo encoge a los
+   20 s; a la de antes, «vivo» le manda un toque cada 12 s); otra tarjeta lo reemplaza con un fundido; y cuando la llamada
+   termina (o la conferencia vuelve a esperar «Alma») se queda FIN_MS (~3 s) y la pantalla vuelve al inicio. */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
-  var TV = { t: null, vista: "nada", movida: false, reloj: 0, card: null, pest: null, preg: "" };
+  var TV = { t: null, vista: "nada", movida: false, reloj: 0, card: null, pest: null, preg: "", fin: 0 };
+  var FIN_MS = 3000;   // del fin de la llamada al cambio de pantalla (Juan: «un pequeño retraso»)
   var IC = {
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
     tel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1z"/></svg>',
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -2314,10 +2413,10 @@
     c.appendChild(asa);
     var cu = el("div", "tv-cuerpo"); cu.onclick = function () { hacer("detalle"); };
     var eti = el("div", "tv-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.etiqueta || NOMBRE[t.tipo] || "")); cu.appendChild(eti);
-    if (t.tipo === "apartamento" && t.foto) { var f = el("div", "tv-foto"); f.style.backgroundImage = 'url("' + String(t.foto).replace(/["\\\n]/g, "") + '")'; f.setAttribute("role", "img"); f.setAttribute("aria-label", "Foto de " + (t.titulo || "la propiedad")); cu.appendChild(f); }
+    if ((t.tipo === "apartamento" || t.tipo === "edificio") && t.foto) { var f = el("div", "tv-foto"); f.style.backgroundImage = 'url("' + String(t.foto).replace(/["\\\n]/g, "") + '")'; f.setAttribute("role", "img"); f.setAttribute("aria-label", "Foto de " + (t.titulo || "la propiedad")); cu.appendChild(f); }
     var cab = el("div", "tv-cab"), av = el("span", "tv-av");
-    if (t.tipo !== "apartamento" && t.foto) { var im = el("img"); im.src = t.foto; im.alt = ""; im.onerror = function () { av.textContent = t.iniciales || ""; }; av.appendChild(im); } else av.textContent = t.iniciales || "";
-    if (!(t.tipo === "apartamento" && t.foto)) cab.appendChild(av);
+    if (t.tipo !== "apartamento" && t.tipo !== "edificio" && t.foto) { var im = el("img"); im.src = t.foto; im.alt = ""; im.onerror = function () { av.textContent = t.iniciales || ""; }; av.appendChild(im); } else av.textContent = t.iniciales || "";
+    if (!((t.tipo === "apartamento" || t.tipo === "edificio") && t.foto)) cab.appendChild(av);
     var tt = el("div", "t"); tt.appendChild(el("b", "tv-nom", t.titulo || "")); if (t.sub) tt.appendChild(el("small", "tv-sub", t.sub)); cab.appendChild(tt);
     if (t.chip) { var ch = el("span", "tv-chip", t.chip); ch.setAttribute("data-tono", t.tono || "info"); cab.appendChild(ch); }
     cu.appendChild(cab);
@@ -2338,7 +2437,13 @@
     if ((t.promesas || []).length) cu.appendChild(el("div", "tv-prom", "Promesa abierta: " + (detalle ? t.promesas.join(" · ") : t.promesas[0])));
     if (detalle && (t.detalle || []).length) { var de = el("div", "tv-det"); t.detalle.forEach(function (x) { de.appendChild(el("p", "", x)); }); cu.appendChild(de); }
     c.appendChild(cu);
-    /* Acciones: «Abrir conversación» no cuelga; «Llamar» y «WhatsApp» preguntan antes «¿Cuelgo a Alma?». */
+    var ac = acciones(t); if (ac) { c.appendChild(ac[0]); c.appendChild(ac[1]); }
+    c.appendChild(el("div", "tv-pista", detalle ? "Toca para ver menos · la llamada sigue" : "Toca la tarjeta para ver más · la llamada sigue"));
+    c.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
+    return c;
+  }
+  /* Acciones: «Abrir conversación» no cuelga; «Llamar» y «WhatsApp» preguntan antes «¿Cuelgo a Alma?». Devuelve [acc, preg] o null. */
+  function acciones(t, sinConv) {
     var acc = el("div", "tv-acc"), preg = el("div", "tv-preg"); preg.hidden = true;
     var boton = function (cls, ic, txt, fn) { var b = el("button", "tv-btn " + cls); b.type = "button"; b.innerHTML = ic; b.appendChild(document.createTextNode(txt)); b.onclick = function (e) { e.stopPropagation(); fn(); }; return b; };
     var preguntar = function (que, txt) {
@@ -2349,35 +2454,185 @@
       fi.appendChild(boton("solido", que === "llamar" ? IC.tel : IC.wa, txt, function () { TV.preg = ""; hacer(que); }));
       preg.appendChild(fi); hacer("toque");
     };
-    if (t.conv) acc.appendChild(boton("solido", IC.chat, "Abrir conversación", function () { hacer("conv"); }));
+    if (t.conv && !sinConv) acc.appendChild(boton("solido", IC.chat, "Abrir conversación", function () { hacer("conv"); }));
     if (t.tel) acc.appendChild(boton("", IC.tel, "Llamar", function () { preguntar("llamar", "Sí, cuelga y llama"); }));
     if (t.wa) acc.appendChild(boton("", IC.wa, t.conv && t.tel ? "" : "WhatsApp", function () { preguntar("whatsapp", "Sí, abre WhatsApp"); }));
     Array.prototype.forEach.call(acc.querySelectorAll(".tv-btn"), function (b) { if (!b.textContent) { b.setAttribute("aria-label", "WhatsApp"); b.style.padding = "0 14px"; } });
-    if (acc.children.length) { c.appendChild(acc); c.appendChild(preg); }
-    c.appendChild(el("div", "tv-pista", detalle ? "Toca para ver menos · la llamada sigue" : "Toca la tarjeta para ver más · se encoge sola"));
-    c.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
-    return c;
+    return acc.children.length ? [acc, preg] : null;
   }
-  function rocaArriba(on) {
+
+  /* ── Tablero bento (#508 T1) ── El Hub manda los cuadros (tipo, tam, prioridad) y aquí se acomodan en 6 columnas:
+     · la foto (tam alto) va a la izquierda con los datos chicos (tam s) apilados a la derecha; sin datos, ocupa todo el ancho;
+       sin foto real (tam m) es más angosta y los datos crecen.
+     · los anchos (necesita respuesta, galería; semana y lista más bajos) van solos en su fila; los medianos (mapa, recepción,
+       resumen) de a dos, y uno solo ocupa la fila.
+     Lo que no llega no se pinta: los demás crecen para llenar. */
+  function esBento(t) { return !!(t && Array.isArray(t.cuadros) && t.cuadros.some(function (c) { return c && c.tipo; })); }
+  function acomodar(cuadros) {
+    var cs = cuadros.filter(function (c) { return c && c.tipo; }).slice().sort(function (a, b) { return (a.prioridad || 9) - (b.prioridad || 9); });
+    var filas = [], foto = cs.filter(function (c) { return c.tipo === "foto"; })[0], chicos = cs.filter(function (c) { return c !== foto && c.tam === "s"; });
+    if (foto) {
+      var pila = chicos.splice(0, 3), real = foto.tam === "alto";
+      filas.push({ hero: foto, pila: pila, alto: real ? 3 : Math.max(2, pila.length), cols: !pila.length ? "1fr" : real ? "1fr 1fr" : "2fr 4fr" });
+    }
+    while (chicos.length) { var f = chicos.splice(0, chicos.length === 4 ? 2 : 3); filas.push({ celdas: f, span: 6 / f.length, alto: 1 }); }
+    var medio = [];
+    cs.forEach(function (c) {
+      if (c === foto || c.tam === "s") return;
+      if (c.tam === "m") { medio.push(c); if (medio.length === 2) { filas.push({ celdas: medio, span: 3, alto: 2 }); medio = []; } return; }
+      if (medio.length) { filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 }); medio = []; }
+      filas.push({ celdas: [c], span: 6, alto: c.tipo === "semana" || c.tipo === "lista" ? 1 : 2 });   // semana y lista: del alto de lo que traen
+    });
+    if (medio.length) filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 });   // un texto solo: del alto de lo que dice
+    return filas;
+  }
+  function img(src, alt, falla) { var i = el("img"); i.alt = alt || ""; i.decoding = "async"; i.referrerPolicy = "strict-origin-when-cross-origin"; i.onerror = function () { if (i.parentNode) i.parentNode.removeChild(i); if (falla) falla(); }; i.src = src; return i; }
+  function seguro(u) { return /^https:\/\/[^\s"'<>]+$/.test(String(u || "")) ? String(u) : ""; }
+  function cuadro(c, t) {
+    var d = el("div", "tvb-t tvb-" + (c.tipo === "dato" ? "dato" : c.tipo === "mensaje" ? "msg" : c.tipo));
+    var cara = function (src, ini, alt) { var a = el("span", "tvb-cara"), u = seguro(src); if (u) a.appendChild(img(u, alt || "", function () { a.textContent = ini || ""; })); else a.textContent = ini || ""; a.setAttribute("aria-hidden", "true"); return a; };
+    if (c.tipo === "foto") {
+      var ini = function () { if (!d.querySelector(".tvb-av,.tvb-ini")) d.appendChild(el("span", "tvb-ini", c.iniciales || "")); };
+      var fondo = seguro(c.fondo);
+      if (fondo) { var f = img(fondo, c.alt, function () { var a = d.querySelector(".tvb-av"); if (a) a.parentNode.removeChild(a); ini(); }); d.appendChild(f); if (c.alt) d.setAttribute("role", "img"), d.setAttribute("aria-label", c.alt); }
+      /* Encima de la foto del apartamento, la del huésped: en la reserva siempre (o sus iniciales); en otros tableros, solo
+         si el Hub manda avatar (#508 T2). */
+      if (fondo && (c.de === "apartamento" || seguro(c.avatar))) {
+        var av = el("span", "tvb-av"), fa = seguro(c.avatar), ia = c.iniciales || "";
+        if (fa) av.appendChild(img(fa, "", function () { av.textContent = ia; })); else av.textContent = ia;
+        d.appendChild(av);
+      }
+      if (!fondo) ini();
+      if (c.chip) { var ch = el("span", "tvb-chip", c.chip); ch.setAttribute("data-tono", c.tono || "info"); d.appendChild(ch); }
+      return d;
+    }
+    if (c.tipo === "mapa") {
+      var lat = Number(c.lat), lng = Number(c.lng);
+      if (isFinite(lat) && isFinite(lng)) {
+        var z = 17, n = Math.pow(2, z), xt = (lng + 180) / 360 * n, r = lat * Math.PI / 180, yt = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n;
+        var x0 = Math.floor(xt), y0 = Math.floor(yt), fx = xt - x0, fy = yt - y0;
+        for (var i = -1; i <= 1; i++) for (var j = -1; j <= 1; j++) {
+          var ti = img("https://tile.openstreetmap.org/" + z + "/" + (x0 + i) + "/" + (y0 + j) + ".png", "");
+          ti.style.left = "calc(50% + " + Math.round((i - fx) * 128) + "px)"; ti.style.top = "calc(50% + " + Math.round((j - fy) * 128) + "px)"; d.appendChild(ti);
+        }
+        d.appendChild(el("span", "tvb-osm", "© OpenStreetMap"));
+      }
+      d.appendChild(el("b", "tvb-pin")); if (c.lugar) d.appendChild(el("span", "tvb-lugar", c.lugar));
+      d.setAttribute("role", "img"); d.setAttribute("aria-label", "Mapa" + (c.lugar ? " de " + c.lugar : ""));
+      return d;
+    }
+    if (c.tipo === "galeria") {
+      (c.fotos || []).map(seguro).filter(Boolean).slice(0, 3).forEach(function (u) { d.appendChild(img(u, "", function () { if (!d.querySelector("img") && d.parentNode) d.parentNode.removeChild(d); })); });
+      d.setAttribute("role", "img"); d.setAttribute("aria-label", c.alt || "Fotos");
+      return d;
+    }
+    if (c.tipo === "semana") {
+      var kf = el("div", "tvb-kf"); kf.appendChild(el("small", "tvb-k", c.k || "Esta semana")); if (c.d) kf.appendChild(el("small", "tvb-d", c.d)); d.appendChild(kf);
+      var ds = el("div", "tv-dias");
+      (c.dias || []).forEach(function (x) { var y = el("div", "tv-dia" + (x.hoy ? " hoy" : ""), x.letra); y.setAttribute("data-e", x.e); y.appendChild(el("small", "", String(x.n))); y.setAttribute("aria-label", (x.hoy ? "Hoy, " : "") + x.n + ": " + (EST[x.e] || x.e)); ds.appendChild(y); });
+      d.appendChild(ds); return d;
+    }
+    if (c.tipo === "lista") {
+      var kl = el("div", "tvb-kf"); kl.appendChild(el("small", "tvb-k", c.k || "")); if (c.chip) { var cl = el("span", "tvb-chip", c.chip); cl.setAttribute("data-tono", c.tono || "aviso"); kl.appendChild(cl); } d.appendChild(kl);
+      var ul = el("ul", "tvb-l");
+      (c.items || []).forEach(function (x) {
+        var li = el("li", x.t ? "" : "mas"); if (x.tono) li.setAttribute("data-tono", x.tono);
+        if (x.t) li.appendChild(el("b", "", x.t));
+        if (seguro(x.foto) || (x.foto !== undefined && x.iniciales)) li.appendChild(cara(x.foto, x.iniciales));
+        li.appendChild(el("span", "tvb-tx", x.v || "")); if (x.d) li.appendChild(el("small", "", x.d)); ul.appendChild(li);
+      });
+      d.appendChild(ul); return d;
+    }
+    if (c.k) d.appendChild(el("small", "tvb-k", c.k));
+    if (c.tipo === "dato") {
+      d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d));
+      if (seguro(c.foto)) { d.classList.add("con-cara"); d.appendChild(cara(c.foto, c.iniciales)); }   // la foto del huésped (#508 T2)
+      return d;
+    }
+    if (c.tipo === "mensaje") {
+      if (c.chip) { var cm = el("span", "tvb-chip", c.chip); cm.setAttribute("data-tono", c.tono || "aviso"); d.appendChild(cm); }
+      d.appendChild(el("q", "", c.texto || ""));
+      if (t.conv) {
+        d.appendChild(el("span", "tvb-ir", "Abrir conversación ›")); d.setAttribute("role", "button"); d.tabIndex = 0;
+        d.setAttribute("aria-label", (c.k || "Mensaje") + ": " + (c.texto || "") + ". Abrir conversación");
+        d.onclick = function (e) { e.stopPropagation(); hacer("conv"); };
+        d.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hacer("conv"); } };
+      } else d.style.cursor = "default";
+      return d;
+    }
+    d.appendChild(el("p", "tvb-p", c.texto || c.v || ""));
+    return d;
+  }
+  function pintarBento(t) {
+    var b = el("section", "tvb"); b.setAttribute("role", "group"); b.setAttribute("aria-label", "Alma encontró: " + (t.cabeza || t.titulo || ""));
+    var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode("Alma encontró")); cab.appendChild(eti);
+    cab.appendChild(el("b", "tvb-tit", t.cabeza || t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub)); b.appendChild(cab);
+    var g = el("div", "tvb-g"), k = 0;
+    acomodar(t.cuadros).forEach(function (f) {
+      if (f.hero) {
+        var h = el("div", "tvb-hero"); h.style.gridColumn = "span 6"; h.style.gridRow = "span " + f.alto; h.style.gridTemplateColumns = f.cols; h.style.setProperty("--i", k++);
+        h.appendChild(cuadro(f.hero, t));
+        if (f.pila.length) { var p = el("div", "tvb-pila" + (f.pila.length > 2 ? " tres" : "")); f.pila.forEach(function (c) { p.appendChild(cuadro(c, t)); }); h.appendChild(p); }
+        g.appendChild(h); return;
+      }
+      f.celdas.forEach(function (c) { var d = cuadro(c, t); d.style.gridColumn = "span " + f.span; d.style.gridRow = "span " + f.alto; d.style.setProperty("--i", k++); g.appendChild(d); });
+    });
+    b.appendChild(g);
+    /* «Abrir conversación» ya está en «Necesita respuesta»; abajo quedan las demás (o todas, si no hay ese cuadro). */
+    var ac = acciones(t, !!g.querySelector(".tvb-msg[role=button]")); if (ac) { var a = el("div", "tvb-acc"); a.style.setProperty("--i", k); a.appendChild(ac[0]); a.appendChild(ac[1]); b.appendChild(a); }
+    b.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
+    return b;
+  }
+  /* Dónde va la roca: «arriba» (tarjeta de siempre: sube y se achica a 96 px) · «esquina» (tablero bento: abajo a la derecha,
+     74 px; tocarla la regresa al centro y oculta el tablero) · null (vuelve al centro). */
+  var abajo = 0;
+  function bordeAbajo() {
+    if (abajo) return abajo;
+    var p = el("div"); p.style.cssText = "position:fixed;visibility:hidden;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px)";
+    document.body.appendChild(p); abajo = Math.max(34, (p.offsetHeight || 0) + 14); document.body.removeChild(p); return abajo;
+  }
+  function roca(modo) {
     if (!window.SANav || !SANav.escena) return;
-    if (on) { var aj = $("b-ajustes"), arriba = aj ? aj.getBoundingClientRect().bottom : 60; SANav.escena({ y: (arriba + 14 + 48) / (window.innerHeight || 800), s: 96 }); TV.movida = true; }
+    var W = document.documentElement.clientWidth || window.innerWidth || 390, H = (window.visualViewport && window.visualViewport.height) || window.innerHeight || 800;
+    if (modo === "arriba") { var aj = $("b-ajustes"), arriba = aj ? aj.getBoundingClientRect().bottom : 60; SANav.escena({ y: (arriba + 14 + 48) / H, s: 96 }); TV.movida = modo; }
+    else if (modo === "esquina") { SANav.escena({ x: (W - 18 - 37) / W, y: (H - bordeAbajo() - 37) / H, s: 74, tocar: alTocarAlma }); TV.movida = modo; }
     else if (TV.movida) { TV.movida = false; SANav.escena(null); }
   }
-  function quitarCard() { if (TV.card && TV.card.parentNode) TV.card.parentNode.removeChild(TV.card); TV.card = null; }
+  function rocaArriba(on) { roca(on ? "arriba" : null); }
+  /* Tocar a Alma en la esquina: vuelve al centro y el tablero se guarda en la pestañita (la app lo sabe con «plegar»). */
+  function alTocarAlma() { if (!TV.t || TV.movida !== "esquina") return; TV.vista = "pestana"; hacer("plegar"); pintar(); }
+  window.addEventListener("resize", function () { abajo = 0; if (TV.movida === "esquina") roca("esquina"); });
+  function quitarCard() {
+    var c = TV.card; TV.card = null; if (!c || !c.parentNode) return false;
+    if (c.classList.contains("tvb")) { c.classList.remove("on"); c.classList.add("sale"); setTimeout(function () { if (c.parentNode) c.parentNode.removeChild(c); }, 260); return true; }
+    c.parentNode.removeChild(c); return false;
+  }
+  function ov() { return document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov"); }
   /* La llamada pasó a chat, a Pendientes o se minimizó: la tarjeta espera (y vuelve después) */
   function tapada() { var ov = document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov"); return !ov || !ov.classList.contains("on") || /(^|\s)(chat|min|pend|noti|ending)(\s|$)/.test(ov.className); }
   function pintar() {
     var t = TV.t, v = t ? TV.vista : "nada", abierta = v === "abierta" || v === "detalle";
-    var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id);
-    /* La tarjeta: dentro de la llamada de la roca, antes de los botones */
-    quitarCard();
-    if (abierta && !tapada()) {
+    var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id), bento = esBento(t);
+    /* El tablero bento: sobre el atardecer, debajo de la roca y de los botones; la misma tarjeta no se vuelve a armar. */
+    if (bento && abierta && misma && TV.card.classList.contains("tvb") && TV.card.parentNode === ov()) { roca("esquina"); return vivo(true); }
+    var salio = quitarCard();
+    if (abierta && !tapada() && bento) {
+      var o = ov(), bg = o && o.querySelector(".san-ov-bg");
+      /* Otro tablero en la misma llamada: el de antes se funde (260 ms) y el nuevo entra cuando ya casi se fue, cuadro a
+         cuadro; Alma se queda en la esquina. */
+      if (o) { var nuevo = TV.card = pintarBento(t); TV.cardId = t.id; o.insertBefore(nuevo, bg ? bg.nextSibling : o.firstChild); raiz.classList.remove("tv-on"); raiz.classList.add("tvb-on"); roca("esquina");
+        var entra = function () { requestAnimationFrame(function () { requestAnimationFrame(function () { if (TV.card === nuevo) nuevo.classList.add("on"); }); }); };
+        if (salio) setTimeout(entra, 180); else entra(); }
+    }
+    /* La tarjeta de siempre: dentro de la llamada de la roca, antes de los botones */
+    else if (abierta && !tapada()) {
       var u = ui(), btns = u && u.querySelector(".san-ov-btns");
-      if (u && btns) { TV.card = pintarCard(t, v === "detalle"); TV.cardId = t.id; u.insertBefore(TV.card, btns); raiz.classList.add("tv-on"); rocaArriba(true);
+      if (u && btns) { TV.card = pintarCard(t, v === "detalle"); TV.cardId = t.id; u.insertBefore(TV.card, btns); raiz.classList.remove("tvb-on"); raiz.classList.add("tv-on"); rocaArriba(true);
         if (misma) TV.card.classList.add("on");   // ver más / ver menos: sin volver a subir
         else requestAnimationFrame(function () { requestAnimationFrame(function () { if (TV.card) TV.card.classList.add("on"); }); }); }
     }
-    if (!abierta || !TV.card) { raiz.classList.remove("tv-on"); rocaArriba(false); }
+    if (!abierta || !TV.card) { raiz.classList.remove("tv-on", "tvb-on"); roca(null); }
+    vivo(!!(TV.card && bento));
     /* La pestañita */
     var p = TV.pest;
     if (!p) { p = TV.pest = el("button", "tv-pest"); p.type = "button"; p.hidden = true; p.onclick = function () { hacer("abrir"); }; document.body.appendChild(p); }
@@ -2390,21 +2645,39 @@
     if (v !== "nada") TV.reloj = setInterval(function () {
       var tp = tapada();
       if (TV.pest) TV.pest.style.visibility = tp ? "hidden" : "";
-      if (abierta && !tp && (!TV.card || TV.card.parentNode !== ui())) pintar();
+      if (abierta && !tp && (!TV.card || TV.card.parentNode !== (bento ? ov() : ui()))) pintar();
     }, 700);
   }
+  /* Respaldo para la app de antes (la encogía a los 20 s): mientras el tablero está a la vista, un toque cada 12 s. La app
+     nueva lo ignora: el tablero ya se maneja por estado (#508 T3). */
+  function vivo(on) {
+    if (!on) { clearInterval(TV.vivo); TV.vivo = 0; return; }
+    if (!TV.vivo) TV.vivo = setInterval(function () { if (TV.card && !tapada() && document.visibilityState !== "hidden") hacer("toque"); }, 12000);
+  }
+  /* ¿Hay un tablero a la vista? (vozNativaEvento espera FIN_MS antes de cerrar la llamada de la roca) */
+  function enPantalla() { return !!(TV.fin || (TV.card && TV.card.classList.contains("tvb") && TV.card.classList.contains("on") && !tapada())); }
+  /* La llamada terminó: el tablero se queda FIN_MS y después se va (con la llamada de la roca). Sin tablero, enseguida. */
+  function soltar() {
+    if (TV.fin) return;
+    if (enPantalla()) { TV.fin = setTimeout(function () { TV.fin = 0; TV.t = null; TV.vista = "nada"; pintar(); }, FIN_MS); return; }
+    if (TV.t || TV.card) { TV.t = null; TV.vista = "nada"; pintar(); }
+  }
+  function seguir() { if (TV.fin) { clearTimeout(TV.fin); TV.fin = 0; } }
   window.AlmaTarjeta = {
     evento: function (e) {
       if (!e) return;
       if (e.tipo === "estado") {
         var en = e.estado === "hablando" || e.estado === "conectando";
-        if (!en) { if (TV.t) { TV.t = null; TV.vista = "nada"; pintar(); } return; }
-        if (e.tarjeta && e.tarjetaVista && (!TV.t || TV.t.id !== e.tarjeta.id || TV.vista !== e.tarjetaVista)) { TV.t = e.tarjeta; TV.vista = e.tarjetaVista; pintar(); }   // la página se abrió a media llamada
+        if (!en) { soltar(); return; }
+        if (e.tarjeta && e.tarjetaVista && (!TV.t || TV.t.id !== e.tarjeta.id || TV.vista !== e.tarjetaVista)) { seguir(); TV.t = e.tarjeta; TV.vista = e.tarjetaVista; pintar(); }   // la página se abrió a media llamada
         return;
       }
       if (e.tipo !== "tarjeta") return;
-      TV.t = e.tarjeta || null; TV.vista = e.vista || "nada"; pintar();
+      if (!e.tarjeta || (e.vista || "nada") === "nada") { soltar(); return; }
+      seguir(); TV.t = e.tarjeta; TV.vista = e.vista; pintar();
     },
+    /* La página de la llamada pregunta si debe esperar antes de cerrarse */
+    sostiene: function () { return enPantalla(); },
     /* Para las capturas y las pruebas: pinta una tarjeta de mentira */
     probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); }
   };

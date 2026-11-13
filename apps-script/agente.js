@@ -868,6 +868,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
       var u = usos[iu], ya = hechos.filter(function (h) { return h && h.tool_use_id === u.id; })[0];
       if (ya) { resultados.push(ya); continue; }
       if (vencido(AGENTE_MARGEN_HERR_)) { var ch = cortar(resultados); if (ch) return ch; }   // lo que falta se ejecuta en segundo plano
+      if (typeof ORBITA_ACTUAL_ !== 'undefined' && ORBITA_ACTUAL_) { try { orbitaPaso_(u.name); } catch (e) {} }   // el paso del anillo en el inicio (orbita.js)
       var res, th = Date.now(); try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
       if (AG_MS_) { AG_MS_.herr += Date.now() - th; AG_MS_.nh++; }
       if (res && /^Herramienta desconocida/.test(String(res.error || ''))) (ctx.noPudo = ctx.noPudo || []).push(u.name);   // no tiene cómo: se escala al cerrar (escalar.js)

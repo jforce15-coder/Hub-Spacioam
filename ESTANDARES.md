@@ -60,6 +60,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - Quitar una fila o tarjeta: el hueco se cierra suave (`SAMov.quitar`), nunca un repintado que salta.
 - Resorte solo en lo que la persona mueve o toca, y se pasa como mucho un 4 %. Lo que entra solo usa `--ease`.
 - Todo respeta `prefers-reduced-motion`.
+- ✅ Lo que Alma sigue trabajando (Pedidos en órbita, #509 T3) se muestra con un indicador que gira, nunca con un porcentaje inventado; el paso solo si el Hub lo sabe por la herramienta que usa. Lo que va a la app es un nombre corto ya limpio: nunca el pedido completo, teléfonos, correos, enlaces ni códigos (`.github/orbita.js`).
 
 ## Velocidad percibida
 - Rápido de sentir ([ds/velocidad.md](ds/velocidad.md)). Ninguna pantalla en blanco ni «Cargando…» sin forma: esqueleto con la forma de lo que viene. Lo que casi nunca falla se muestra hecho al instante (y se deshace si falla). Las esperas largas llevan una barra que termina rápido y el trabajo real a la vista. Un estado vacío solo se muestra cuando ya llegaron los datos.

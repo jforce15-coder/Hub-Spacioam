@@ -43,7 +43,7 @@ var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'vozWeb', 'vozFirma'];
 var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
 /* Canal de cada acción del Hub (hubApi_). Lo que no está aquí cuenta como «Otros». */
 var CUPO_ACCIONES_ = {
-  inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos tutoriales recetas recetaBorrar vigilancias vigilanciaDejar llaveEstado llaveGuardar',
+  inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos pedidosOrbita tutoriales recetas recetaBorrar vigilancias vigilanciaDejar llaveEstado llaveGuardar',
   chat: 'opEnviar opHilo opLista almaFoto mejorarCampo dictar plantillas',
   voz: 'vozWeb vozFirma vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar vozCaida vozCaidas',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +

@@ -189,3 +189,6 @@ jobs:
         # 12-nov: con una extensión el PIN de igloohome no se renueva (Estrella, Ignacio 1206; Luis, Ignacio 904) y salía el
         # código de emergencia aunque el PIN ya estaba en la conversación (9 dígitos en su línea: nadie lo veía).
         run: node .github/codigos-acceso.js apps-script
+      - name: Pedidos en órbita, rápido cerca y largo lejos, check que se va, sin porcentajes ni datos sensibles y sin movimiento si se pide (dobles)
+        # 13-nov: Juan quiere ver en el inicio lo que Alma sigue trabajando en segundo plano (#509 T3, prototipo «C · Órbita»).
+        run: node .github/orbita.js apps-script

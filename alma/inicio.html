@@ -331,6 +331,10 @@
   .ajustes.avion.alerta::after { content: ""; position: absolute; top: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
   .ajustes.avion[hidden] { display: none; }
   body.orbita-on .ajustes.avion { opacity: 0 !important; pointer-events: none !important; }
+  /* En órbita (Juan, 13-nov-2026): el avión es un satélite más de la roca. Viaje por venir o en curso → órbita cercana;
+     ya pasó → órbita lejana. Su lugar (left/top) lo pone cada cuadro el bloque «Pedidos en órbita»; sin la clase .orb
+     (tablero abierto, roca minimizada) vuelve a su lugar de siempre, entre el saludo y la roca. */
+  .ajustes.avion.orb { margin-left: 0; }
   /* ── Tarjeta del vuelo (vuelovivo.js): de 1 h antes del embarque a 15 min después de la salida, el pase de abordar compacto entre
      «Hola, Juan» y la roca (sin moverla). Izquierda: número de quien vuela, vendido por · opera, estado y asiento.
      Derecha: puerta y embarque. Alabastro sólido con su corte y sus muescas. Tocarla abre «Tu viaje». ── */
@@ -1964,12 +1968,21 @@
   function pintarBoton() {
     var b = $("b-avion"), vs = vigentes(VJ.datos), p = vs.length ? proximo(vs) : null;
     var conTarjeta = pintarVivo();
-    if (!vs.length || conTarjeta) { b.classList.remove("on"); b.hidden = true; if (VJ.abierto) pintar(); return; }
+    if (!vs.length || conTarjeta) { b.classList.remove("on"); b.hidden = true; orbitaAvion(); if (VJ.abierto) pintar(); return; }
     ubicar(); setTimeout(ubicar, 1500); setTimeout(ubicar, 4000);   // la roca termina de llegar a su lugar
     b.hidden = false; b.classList.toggle("alerta", !!(p && (p.foco || (p.checkin && ms(p.t.sale) - Date.now() < 24 * H))));
     requestAnimationFrame(function () { b.classList.add("on"); });
+    orbitaAvion();
     if (VJ.abierto) pintar();
   }
+  /* La órbita del avión (Juan, 13-nov-2026): con un tramo que aún no aterriza (viaje próximo o en curso), la cercana;
+     cuando ya aterrizó el último, la lejana (hasta los 5 días en que el botón se va). El bloque «Pedidos en órbita» lo mueve. */
+  function orbitaAvion() {
+    var b = $("b-avion"), vs = b.hidden ? [] : vigentes(VJ.datos);
+    b.dataset.orbita = !vs.length ? "" : proximo(vs) ? "cerca" : "lejos";
+    if (window.AlmaOrbita && AlmaOrbita.andar) AlmaOrbita.andar();
+  }
+  setInterval(function () { if (!document.hidden && VJ.datos && !$("b-avion").hidden) orbitaAvion(); }, 60000);   // el viaje pasa a la lejana sin cerrar la app
   function cargar(forzar) {
     if (!ses()) return Promise.resolve(null);
     if (VJ.cargando) return VJ.cargando;
@@ -2759,6 +2772,19 @@
   /* Ángulos de llegada (grados; 0 = derecha, -90 = arriba): primero las diagonales de arriba, donde el nombre cabe. */
   var LUGARES = [-52, -128, 52, 128, -90, 90, -15, -165];
   var P = { s: {}, t: 0, raf: 0, ult: 0, geo: null, prueba: false, obst: [], obstT: 0, voz: "", modo: "", capa: null, orb: null, n: null };
+  /* El avión de «Tu viaje» (#b-avion) también orbita: cerca = viaje por venir o en curso; lejos = ya pasó (lo decide el
+     bloque del avión en data-orbita). Empieza arriba (donde estaba), da la vuelta en 3 min (cerca) o 4.5 min (lejos) y
+     cambia de órbita deslizándose. */
+  var AV = { a0: -Math.PI / 2, nace: 0, r: 0, en: false, PER: { rapido: 180000, largo: 270000 } };
+  function avion() {
+    var b = $("b-avion"), o = b && !b.hidden && b.dataset.orbita;
+    return o === "cerca" || o === "lejos" ? { el: b, tipo: o === "lejos" ? "largo" : "rapido" } : null;
+  }
+  function avionAngulo(now) { return RM ? AV.a0 : AV.a0 - 2 * Math.PI * ((now - AV.nace) / AV.per); }
+  function avionSuelta() {   // de vuelta a su lugar de siempre (sin órbita a la vista)
+    var b = $("b-avion"); if (!b || !AV.en) return;
+    AV.en = false; b.classList.remove("orb"); b.style.left = ""; b.style.top = "";
+  }
   var VISTOS = {};   // id → ya mostró su check: si el Hub lo vuelve a mandar en sus 10 min, no se repite
   try { VISTOS = JSON.parse(localStorage.getItem("pob_vistos") || "{}") || {}; } catch (e) { VISTOS = {}; }
   function vistoGuardar() {
@@ -2804,6 +2830,7 @@
   /* Llega al lugar libre más lejos de los demás anillos, de las dos órbitas (para que ni ellos ni sus nombres nazcan encimados). */
   function lugar(x) {
     var now = performance.now(), otros = Object.keys(P.s).map(function (k) { return P.s[k]; }).filter(function (o) { return o !== x && !o.sale; }).map(function (o) { return angulo(o, now); });
+    if (AV.en) otros.push(avionAngulo(now));   // tampoco encima del avión
     var mejor = LUGARES[0] * Math.PI / 180, dist = -1;
     LUGARES.forEach(function (g) {
       var a = g * Math.PI / 180, d = Math.PI * 2;
@@ -2878,7 +2905,7 @@
     document.querySelectorAll("button, .hola.on, .aviso, #sa-nav-root .san-ov-st, #sa-nav-root .san-ov-cap, #sa-nav-root .san-ob").forEach(function (e) {
       var b = e.getBoundingClientRect(); if (!b.width || !b.height || (!/BUTTON/.test(e.tagName) && !e.classList.contains("san-ob") && !(e.textContent || "").trim())) return;
       var cs = getComputedStyle(e); if (cs.visibility === "hidden" || +cs.opacity < .15 || e.hidden) return;
-      P.obst.push(b);
+      P.obst.push(e.id === "b-avion" ? { left: b.left, right: b.right, top: b.top, bottom: b.bottom, avion: true } : b);
     });
     return P.obst;
   }
@@ -2910,9 +2937,9 @@
   }
   function cuadro(now) {
     P.raf = 0;
-    var ids = Object.keys(P.s), c = P.capa; if (!c) return;
-    if (!ids.length) { c.className = "pob"; P.modo = ""; return; }
-    if (!RM && now - P.ult < 30) { P.raf = requestAnimationFrame(cuadro); return; }   // ~30 cuadros por segundo bastan: va muy despacio
+    var ids = Object.keys(P.s), av = avion(), c = montar(); if (!c) return;
+    if (!ids.length && !av) { c.className = "pob"; P.modo = ""; avionSuelta(); ["rapido", "largo"].forEach(function (t) { P.orb[t].classList.remove("on"); }); return; }
+    if ((!RM && now - P.ult < 30) || (!ids.length && now - P.ult < (RM ? 500 : 90))) { P.raf = requestAnimationFrame(cuadro); return; }   // ~30 cuadros por segundo bastan: va muy despacio; solo el avión, ~11
     P.ult = now;
     var g = roca(), modo = queModo(g);
     if (modo !== P.modo) { P.modo = modo; c.className = "pob " + modo; }
@@ -2926,8 +2953,20 @@
       n.style.transform = "translate3d(" + Math.round(x) + "px," + Math.round(y) + "px,0)";
       n.classList.toggle("on", ids.some(function (k) { return !P.s[k].sale; }));
     } else if (P.n) P.n.classList.remove("on");
+    if (modo !== "orbita") avionSuelta();
     if (modo === "orbita") {
-      var o = orbitas(g), obst = obstaculos(now).slice(), usadas = { rapido: 0, largo: 0 }, pos = [];
+      var o = orbitas(g), obst = obstaculos(now).filter(function (b) { return !b.avion; }), usadas = { rapido: 0, largo: 0 }, pos = [];
+      if (av) {
+        /* El avión: en su órbita, deslizándose del borde de la roca (al aparecer) o de la otra órbita (al cambiar). */
+        var ob = o[av.tipo], meta = (ob.rx + ob.ry) / 2;
+        if (!AV.en) { AV.en = true; AV.nace = now; AV.per = AV.PER[av.tipo]; AV.r = RM ? meta : g.R; av.el.classList.add("orb"); }
+        if (AV.per !== AV.PER[av.tipo]) { var a1 = avionAngulo(now); AV.per = AV.PER[av.tipo]; AV.a0 = a1; AV.nace = now; }   // sigue desde donde iba
+        AV.r = RM ? meta : AV.r + (meta - AV.r) * .06;
+        var k1 = AV.r / meta, aa = avionAngulo(now), ax = g.cx + Math.cos(aa) * ob.rx * k1, ay = g.cy + Math.sin(aa) * ob.ry * k1;
+        av.el.style.left = (ax - 20).toFixed(1) + "px"; av.el.style.top = (ay - 20).toFixed(1) + "px";
+        usadas[av.tipo]++;
+        obst.push({ left: ax - 23, right: ax + 23, top: ay - 23, bottom: ay + 23 });   // ningún nombre tapa el avión
+      }
       ids.forEach(function (k) {
         var x = P.s[k], ob = o[x.tipo], d = x.tipo === "largo" ? 30 : 34;
         if (!x.sale) usadas[x.tipo]++;
@@ -2956,7 +2995,7 @@
     }
     P.raf = requestAnimationFrame(cuadro);
   }
-  function andar() { if (!P.raf && Object.keys(P.s).length) P.raf = requestAnimationFrame(cuadro); }
+  function andar() { if (!P.raf && (Object.keys(P.s).length || avion())) P.raf = requestAnimationFrame(cuadro); }
   addEventListener("resize", function () { P.obstT = 0; Object.keys(P.s).forEach(function (k) { P.s[k].lw = 0; }); });
 
   /* ── Preguntarle al Hub ── */
@@ -2973,12 +3012,15 @@
   }
   document.addEventListener("visibilitychange", function () { if (!document.hidden && !P.prueba) pedir(); else if (document.hidden) { clearTimeout(P.t); P.t = 0; } });
   setTimeout(pedir, 2500);
+  setTimeout(andar, 1500);   // por si el avión ya pidió órbita antes de que este bloque existiera
   window.AlmaOrbita = {
     /* Pregunta ya (p. ej. al colgar una llamada que siguió en segundo plano). */
     pedir: function () { if (!P.prueba) pedir(); },
+    /* El bloque del avión avisa que cambió su órbita (o que ya no se ve). */
+    andar: andar,
     /* Para las capturas y las pruebas: pinta una lista de mentira (y deja de preguntarle al Hub). */
     probar: function (lista) { P.prueba = true; clearTimeout(P.t); aplicar(lista); },
-    estado: function () { return { modo: P.modo, anillos: Object.keys(P.s).map(function (k) { var x = P.s[k]; return { id: x.id, tipo: x.tipo, estado: x.estado, sale: !!x.sale }; }) }; }
+    estado: function () { var av = avion(); return { modo: P.modo, avion: av && AV.en ? av.tipo : "", anillos: Object.keys(P.s).map(function (k) { var x = P.s[k]; return { id: x.id, tipo: x.tipo, estado: x.estado, sale: !!x.sale }; }) }; }
   };
 })();
 </script>

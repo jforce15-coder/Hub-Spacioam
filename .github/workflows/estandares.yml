@@ -96,6 +96,11 @@ jobs:
         # mejorar su prompt (#498 T3). Ahora es personalizada, con retry, y quién es el principal lo dice el Hub, no la llamada.
         run: node .github/voz-proteccion.js apps-script
 
+      - name: Acceso cerrado a la voz, nadie abre la conversación con solo el id y el Hub deja enable_auth en true (dobles)
+        # 12-nov: el agente aceptaba llamadas con solo su id (público en el repo): cualquiera podía mandar una ficha falsa.
+        # Ahora toda llamada desde las apps lleva una URL firmada que el Hub da con la sesión verificada (vozacceso.js).
+        run: node .github/voz-acceso.js apps-script
+
       - name: Camino rápido de la voz, leer va al modelo rápido con solo herramientas de leer y lo demás al de siempre (dobles)
         # 12-nov: Juan decidió usar el modelo más rápido para pedidos de leer en llamadas mientras llega Jev (#498 T4).
         # Escribir va al de siempre; si el rápido no puede, pasa al de siempre; VOZ_RAPIDO = 0 lo apaga.

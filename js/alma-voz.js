@@ -2,7 +2,10 @@
    Al deslizar el botón del menú hacia el centro, el menú llama a SAAlmaVoz.start().
    Rápido y liviano:
    - SDK propio de ElevenLabs solo con websocket (js/vendor/eleven-ws.js, ~60 KB) en vez de 650 KB con WebRTC desde un CDN.
-   - Conexión directa al agente con su agent_id: no espera una URL firmada del Apps Script.
+   - El agente pide autenticación (apps-script/vozacceso.js): se conecta SIEMPRE con una URL firmada que da el Hub a
+     un administrador con sesión, nunca con solo el agent_id. Para no sumar espera, la URL se pide por adelantado (al
+     abrir la página, al volver a ella, al tocarla si ya venció, al empezar a jalar el botón y con cada ficha) y se
+     guarda 9 min, una sola vez.
    - La ficha del administrador (quién es, saludo) se guarda en el teléfono y se renueva en segundo plano;
      solo la primera vez se espera al Hub.
    - Si la conexión falla por la red, reintenta una vez sola. */
@@ -14,7 +17,8 @@
   /* Proveedor de voz para el menú compartido. El Hub usa el de siempre (SAAlmaVoz); otra app crea el suyo con
      SAAlmaVoz.crear({
        clave: "gsp_alma_ficha",              ficha guardada en el teléfono (cada app la suya)
-       ficha: () => Promise<{ ok, agent_id, dynamic_variables, first_message }>,   quién habla (lo da la app)
+       ficha: () => Promise<{ ok, agent_id, dynamic_variables, first_message, signed_url }>,   quién habla (lo da la app)
+       firma: () => Promise<{ ok, signed_url }>,   solo la URL firmada, sin la ficha (opcional: si falta, se pide la ficha)
        vincular: (conversationId) => Promise, liga la llamada en su servidor (opcional)
        contexto: (c) => texto,                qué hay en pantalla (opcional)
        campoContexto: "en_pantalla",          variable del agente donde va ese texto (opcional)
@@ -25,8 +29,8 @@
      }) */
   function crear(o) {
   o = o || {};
-  var KEY = o.clave || "sa_alma_voz_ficha", VIGENCIA = 12 * 3600e3;
-  var idP = null, idT = 0, ctx = null, ctxKey = "", vivo = null;
+  var KEY = o.clave || "sa_alma_voz_ficha", VIGENCIA = 12 * 3600e3, FIRMA_VIGENCIA = 9 * 60e3;
+  var idP = null, idT = 0, ctx = null, ctxKey = "", vivo = null, firmaP = null;
   /* Conversación abierta en pantalla (la pone el Hub): si Juan dice «escríbele…» sin decir a quién, es esta. */
   function ctxTexto(c) {
     if (o.contexto) return o.contexto(c);
@@ -47,19 +51,51 @@
   }
   function leerFicha() { try { var j = JSON.parse(localStorage.getItem(KEY) || "null"); return j && j.agent_id && Date.now() - j.t < VIGENCIA ? j : null; } catch (e) { return null; } }
   function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "", language: j.language || "" })); } catch (e) {} }
-  /* Pide la ficha al Hub (como mucho una vez cada 20 s). */
+  /* La URL firmada guardada: vale FIRMA_VIGENCIA (ElevenLabs da 15 min para conectarse) y se usa una sola vez. */
+  var FKEY = KEY + ":firma";   // «:» para que se borre con la ficha al cerrar sesión (index.html, copiasBorrar)
+  function leerFirma() { try { var j = JSON.parse(localStorage.getItem(FKEY) || "null"); return j && j.u && Date.now() - j.t < FIRMA_VIGENCIA ? j : null; } catch (e) { return null; } }
+  function guardarFirma(u) { if (u) { try { localStorage.setItem(FKEY, JSON.stringify({ t: Date.now(), u: u })); } catch (e) {} } }
+  function tomarFirma() { var f = leerFirma(); try { localStorage.removeItem(FKEY); } catch (e) {} return f ? f.u : ""; }
+  /* Pide la ficha al Hub (como mucho una vez cada 20 s). Trae también una URL firmada: queda para la próxima llamada. */
   function renovar() {
     if (idP && Date.now() - idT < 20000) return idP;
     idT = Date.now();
-    idP = (o.ficha ? Promise.resolve().then(o.ficha) : w.ALMA && w.ALMA.vozWeb ? w.ALMA.vozWeb(true) : Promise.resolve({ ok: false, error: "ALMA no disponible" })).then(function (j) {
-      if (j && j.ok && j.agent_id) guardarFicha(j);
+    idP = (o.ficha ? Promise.resolve().then(o.ficha) : w.ALMA && w.ALMA.vozWeb ? w.ALMA.vozWeb() : Promise.resolve({ ok: false, error: "ALMA no disponible" })).then(function (j) {
+      if (j && j.ok && j.agent_id) { guardarFicha(j); if (j.signed_url && !leerFirma()) guardarFirma(j.signed_url); }
       else idP = null;
       return j;
     }, function (e) { idP = null; throw e; });
     return idP;
   }
-  /* Se adelanta mientras el dedo todavía jala: SDK + ficha fresca. */
-  function prepare() { loadSdk().catch(function () {}); renovar().catch(function () {}); }
+  /* Solo la URL firmada (acción vozFirma, liviana). Si el Hub no la da (versión anterior, error), la trae la ficha. */
+  function pedirFirma() {
+    if (firmaP) return firmaP;
+    var pedir = o.firma ? Promise.resolve().then(o.firma) : o.ficha ? Promise.resolve(null) : w.ALMA && w.ALMA.vozFirma ? w.ALMA.vozFirma() : Promise.resolve(null);
+    firmaP = pedir.then(function (j) {
+      if (j && j.ok && j.signed_url) return j.signed_url;
+      idP = null;   // sin la liviana: la ficha completa también trae la URL firmada
+      return renovar().then(function (f) { if (f && f.ok && f.signed_url) { var g = leerFirma(); if (g && g.u === f.signed_url) tomarFirma(); return f.signed_url; } throw new Error((f && f.error === "timeout") ? "El Hub tardó en responder. Intenta de nuevo." : ((f && f.error) || "No pude abrir la sesión de voz")); });
+    }).then(function (u) { firmaP = null; return u; }, function (e) { firmaP = null; throw e; });
+    return firmaP;
+  }
+  /* La URL para esta llamada: la guardada si sigue vigente; si no, se pide (la llamada espera solo en ese caso). */
+  function firma() { var u = tomarFirma(); return u ? Promise.resolve(u) : pedirFirma(); }
+  /* Por adelantado: si no hay una URL vigente, se pide una y se guarda. Solo en un teléfono que ya habló con Alma
+     (tiene su ficha), para no llamar al Hub en cada página de quien nunca usa la voz. */
+  function precalentar() {
+    if (leerFirma() || firmaP || !leerFicha()) return;
+    pedirFirma().then(function (u) { if (!leerFirma()) guardarFirma(u); }, function () {});
+  }
+  try {
+    setTimeout(precalentar, 1500);
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") precalentar(); });
+    w.addEventListener("focus", precalentar);
+    /* Con el Hub abierto mucho rato: al tocar o teclear se renueva si ya venció (como mucho una vez cada 9 min). */
+    document.addEventListener("pointerdown", precalentar, { capture: true, passive: true });
+    document.addEventListener("keydown", precalentar, { capture: true, passive: true });
+  } catch (e) {}
+  /* Se adelanta mientras el dedo todavía jala: SDK + ficha fresca + URL firmada. */
+  function prepare() { loadSdk().catch(function () {}); renovar().catch(function () {}); precalentar(); }
   /* iPhone: el audio solo arranca si se "despierta" dentro del gesto del usuario. */
   function unlockAudio() {
     try {
@@ -103,9 +139,9 @@
     var enChat = false, sono = true;
     sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
-    function abrir(f, m) {
+    function abrir(f, m, u) {
       var opt = {
-        agentId: f.agent_id, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
+        signedUrl: u, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
         onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId) vincular(x.conversationId, 0); },
         onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
         onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
@@ -122,11 +158,13 @@
       if (fm || f.language) { opt.overrides = { agent: {} }; if (fm) opt.overrides.agent.firstMessage = fm; if (f.language) opt.overrides.agent.language = f.language; }
       return m.Conversation.startSession(opt);
     }
-    return Promise.all([ficha(), loadSdk()]).then(function (r) {
-      var f = r[0], m = r[1];
-      return abrir(f, m).catch(function (e) {
+    /* La ficha primero: la primera vez (sin ficha guardada) trae también la URL firmada y no hace falta otra vuelta al Hub. */
+    return Promise.all([ficha().then(function (f) { return firma().then(function (u) { return [f, u]; }); }), loadSdk()]).then(function (r) {
+      var f = r[0][0], u = r[0][1], m = r[1];
+      return abrir(f, m, u).catch(function (e) {
         if (e && (e.name === "NotAllowedError" || e.name === "SecurityError" || e.name === "NotFoundError")) throw e;
-        return new Promise(function (ok) { setTimeout(ok, 600); }).then(function () { return abrir(f, m); });
+        /* Reintento con otra URL firmada (cada una se usa una vez). */
+        return new Promise(function (ok) { setTimeout(ok, 600); }).then(firma).then(function (u2) { return abrir(f, m, u2); });
       });
     }).catch(function (e) {
       if (e && (e.name === "NotAllowedError" || e.name === "SecurityError")) throw new Error("Permite el micrófono para hablar con Alma.");

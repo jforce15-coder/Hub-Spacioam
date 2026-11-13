@@ -39,13 +39,13 @@ var CUPO_NUNCA_ = ['login', 'sesion', 'huespedes', 'documentos', 'epi', 'limpiez
    respondía al chat, mientras el teléfono sí). Lo de fondo se pausa desde el 60 % justamente para dejarle el cupo a Alma. */
 var CUPO_PAUSAS_ = { fondo: ['fondo', 'critico'] };
 /* Acciones del Hub que son «Alma en el chat o en la voz»: en crítico devuelven un aviso amable (nunca error 'session'). */
-var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'vozWeb'];
+var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'vozWeb', 'vozFirma'];
 var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
 /* Canal de cada acción del Hub (hubApi_). Lo que no está aquí cuenta como «Otros». */
 var CUPO_ACCIONES_ = {
   inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos tutoriales recetas recetaBorrar vigilancias vigilanciaDejar',
   chat: 'opEnviar opHilo opLista almaFoto mejorarCampo dictar plantillas',
-  voz: 'vozWeb vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar',
+  voz: 'vozWeb vozFirma vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
     'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision calendarioProps calendarioVisto calendarioProp',
   cerebro: 'cerebro conexiones',

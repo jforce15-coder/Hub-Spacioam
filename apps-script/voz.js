@@ -923,14 +923,17 @@ function vozBorradorTurno_(adm, texto, explicito) {
 /* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
    y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
 function vozSecEncolar_(tel, pedido, conf) {
+  var admE = null; try { admE = adminPorTel_(tel); } catch (e) {}
+  var orb = ''; try { if (admE) orb = orbitaEmpieza_(admE.email, pedido, 'segundo_plano', 'En fila'); } catch (e) {}   // su anillo en el inicio (orbita.js)
   var lock = vozColaLock_(); lock.waitLock(10000);   // retomar.js: el del script lo tiene procesarCola con los huéspedes
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
     var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;   // lo pidió en modo conferencia: el resultado se le dice al oído
+    if (orb) x.orb = orb;
     cola.push(x);
     p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
   } finally { lock.releaseLock(); }
-  try { var admE = adminPorTel_(tel); if (admE) vozTrabajando_(admE, 1); } catch (e) {}
+  try { if (admE) vozTrabajando_(admE, 1); } catch (e) {}
   /* Espera breve: si en la misma llamada piden algo más (p. ej. «revisa también la imagen»), todo se hace junto en un solo WhatsApp. */
   try {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
@@ -960,7 +963,8 @@ function vozSecProcesar_() {
     } finally { lock.releaseLock(); }
     var adm = adminPorTel_(grupo[0].tel); if (!adm) continue;
     var pedido = grupo.length === 1 ? grupo[0].pedido : 'Me pediste varias cosas en la misma llamada; resuélvelas juntas y respóndeme en un solo mensaje:\n' + grupo.map(function (x, i) { return (i + 1) + ') ' + x.pedido; }).join('\n');
-    var r;
+    var r, orbs = grupo.map(function (x) { return x.orb; }).filter(Boolean);
+    ORBITA_ACTUAL_ = { email: adm.email, ids: orbs };   // el paso de cada herramienta va a su anillo (orbita.js)
     try {
       var previos = opFilas_(adm.email, 20);
       var yoF = opGuardar_(adm, 'yo', 'llamada', pedido + ' (en segundo plano)');
@@ -969,6 +973,8 @@ function vozSecProcesar_() {
       var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r); r.respuesta = turno.texto || r.respuesta;
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
+    finally { ORBITA_ACTUAL_ = null; }
+    try { orbitaTermina_(adm.email, orbs, r.fallo); } catch (e) { console.error('orbitaTermina_: ' + e); }
     try { vozSecAvisar_(grupo[0].tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }

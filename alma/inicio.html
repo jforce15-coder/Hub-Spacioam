@@ -661,6 +661,61 @@
   .tvb .tvb-cab, .tvb .tvb-g > *, .tvb .tvb-acc { opacity: 0; transform: translateY(12px); transition: opacity .32s ease, transform .5s var(--ease, cubic-bezier(.22,.61,.36,1)); transition-delay: calc(var(--i, 0) * 45ms); }
   .tvb.on .tvb-cab, .tvb.on .tvb-g > *, .tvb.on .tvb-acc { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { .tvb .tvb-cab, .tvb .tvb-g > *, .tvb .tvb-acc { transform: none; transition: opacity .2s ease; transition-delay: 0s; } }
+  /* ── Pedidos en órbita (#509 T3, apps-script/orbita.js): lo que Alma sigue trabajando, como satélites de la roca ──────
+     Cada pedido es un anillo chico (una piedra de Alma en miniatura con un arco que gira, sin porcentajes) que orbita la
+     roca muy despacio, cada uno a su velocidad y con su radio. Órbita cercana: lo rápido (segundo plano del agente);
+     lejana: lo largo (desarrollo, con PR). Al terminar, el anillo se vuelve un check y se va solo a los 8 s. Con el
+     tablero bento abierto, solo un contador junto a la roca minimizada. Sin movimiento si el teléfono lo pide.
+     Va justo encima de la capa de Alma (z-index 891 > 890 de .san-ov en js/sa-nav.js; su fondo velaba los colores y el
+     check se veía gris) y debajo de todo lo demás de la página (Ajustes, avisos, el avión). Nunca recibe toques. */
+  .pob { position: fixed; inset: 0; z-index: 891; pointer-events: none; overflow: hidden; }
+  .pob.contador .pob-s, .pob.contador .pob-orb, .pob.nada .pob-s, .pob.nada .pob-orb, .pob.nada .pob-n { opacity: 0 !important; }
+  .pob-orb { position: absolute; left: 0; top: 0; border-radius: 50%; border: 1px dashed rgba(255,255,255,.34); opacity: 0; transition: opacity .8s ease; will-change: transform; }
+  .pob-orb.lejos { border-color: rgba(255,255,255,.22); }
+  .pob-orb.on { opacity: 1; }
+  .pob-s { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; transition: opacity .6s ease; }
+  .pob-s .an { position: absolute; width: var(--d, 30px); height: var(--d, 30px); left: calc(var(--d, 30px) / -2); top: calc(var(--d, 30px) / -2); transition: transform .6s cubic-bezier(.3,1.3,.55,1), opacity .5s ease; }
+  /* el pulso de los botones roca (san-core / esf-quieta: 3.6 s), cada uno desfasado */
+  .pob-s .resp { position: absolute; inset: 0; animation: esf-quieta 3.6s ease-in-out infinite; animation-delay: var(--dl, 0ms); }
+  .pob-s .halo { position: absolute; inset: -55%; border-radius: 50%; background: radial-gradient(circle, rgba(233,130,106,.75) 0%, rgba(242,198,168,.35) 38%, transparent 66%); filter: blur(6px);
+    opacity: .5; animation: esf-halo 3.6s ease-in-out infinite; animation-delay: var(--dl, 0ms); }
+  .pob-s .pie { position: absolute; inset: 5px; border-radius: 50%; display: grid; place-items: center; transition: background .6s ease;
+    background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 45%, #E4DFD9 80%, #D3CDC6 100%);
+    box-shadow: 0 8px 12px -6px rgba(40,28,24,.42), inset 0 -3px 5px rgba(110,90,80,.14), inset 0 2px 4px rgba(255,255,255,.85); }
+  .pob-s svg.arco { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; animation: pob-gira 2.8s linear infinite; }
+  .pob-s .arco circle { fill: none; stroke-width: 2.2; stroke-linecap: round; }
+  .pob-s .arco .base { stroke: rgba(255,255,255,.3); }
+  .pob-s .arco .va { stroke: #FFFDFB; stroke-dasharray: 26 100; filter: drop-shadow(0 0 2px rgba(255,255,255,.7)); transition: stroke-dasharray .7s ease, stroke .6s ease; }
+  .pob-s .marca { width: 58%; height: 58%; opacity: 0; transform: scale(.4); transition: opacity .35s ease .25s, transform .5s cubic-bezier(.3,1.5,.5,1) .25s; color: #fff; }
+  .pob-s.listo .pie { background: radial-gradient(circle at 40% 34%, #B9D3BC 0%, #93B78E 60%, #7EA37A 100%); }
+  .pob-s.fallo .pie { background: radial-gradient(circle at 40% 34%, #F4C3B4 0%, #E9826A 62%, #D46A52 100%); }
+  .pob-s.listo .arco, .pob-s.fallo .arco { animation: none; }
+  .pob-s.listo .arco .va, .pob-s.fallo .arco .va { stroke-dasharray: 100 0; }
+  .pob-s.listo .halo { background: radial-gradient(circle, rgba(147,183,142,.85) 0%, transparent 64%); }
+  .pob-s.listo .marca, .pob-s.fallo .marca { opacity: 1; transform: none; }
+  .pob-s.sale .an { transform: scale(.5); opacity: 0; }
+  .pob-s.sale .et { opacity: 0 !important; }
+  /* el nombre y el paso: hacia afuera de la roca (arriba o abajo del anillo); se desvanecen si tocarían la roca o un texto */
+  .pob-s .et { position: absolute; left: 0; top: 0; width: max-content; max-width: 132px; text-align: center; color: #FFFDFB; text-shadow: 0 1px 8px rgba(40,25,25,.5);
+    transition: opacity .45s ease, transform .5s ease; will-change: transform, opacity; }
+  .pob-s .et b { display: block; font: 600 11px/1.25 Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pob-s .et small { display: block; margin-top: 2px; font: 600 8.5px/1.2 Montserrat, system-ui, sans-serif; letter-spacing: .2em; text-transform: uppercase; opacity: .82; white-space: nowrap; }
+  .pob-s .et small:empty { display: none; }
+  /* con el tablero abierto: un contador junto a la roca minimizada */
+  .pob-n { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px 0 7px; border-radius: 999px; box-sizing: border-box;
+    background: rgba(255,255,255,.9); color: #3E3F3F; font: 600 11.5px Montserrat, system-ui, sans-serif; box-shadow: 0 6px 16px -8px rgba(40,28,24,.45);
+    opacity: 0; transform: scale(.8); transition: opacity .35s ease, transform .45s cubic-bezier(.3,1.3,.55,1); }
+  .pob-n.on { opacity: 1; transform: none; }
+  .pob-n svg { width: 16px; height: 16px; animation: pob-gira 2.8s linear infinite; }
+  .pob-n svg circle { fill: none; stroke-width: 2.2; stroke-linecap: round; }
+  .pob-n.listo svg { animation: none; }
+  @keyframes pob-gira { to { transform: rotate(360deg); } }
+  .pob-voz { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Sin movimiento: los anillos quietos en su lugar, sin giro ni pulso; el check aparece con un fundido */
+  @media (prefers-reduced-motion: reduce) {
+    .pob-s .resp, .pob-s .halo, .pob-s svg.arco, .pob-n svg { animation: none; }
+    .pob-s .an, .pob-s .marca, .pob-n { transition: opacity .3s ease; transform: none !important; }
+  }
 </style>
 <link rel="stylesheet" href="../ds/esqueleto.css">
 <link rel="stylesheet" href="../ds/movimiento.css">
@@ -676,6 +731,8 @@
 <button type="button" class="vj-vivo" id="vj-vivo" aria-label="Tu vuelo" hidden></button>
 <div class="vj-salas" id="vj-salas" hidden><button type="button" class="tab" id="vj-salas-tab" aria-expanded="false" aria-controls="vj-salas-lista"></button><div class="lista" id="vj-salas-lista"></div></div>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
+<div class="pob" id="pob" aria-hidden="true"></div>
+<div class="pob-voz" id="pob-voz" role="status" aria-live="polite"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
   <header>
@@ -2680,6 +2737,248 @@
     sostiene: function () { return enPantalla(); },
     /* Para las capturas y las pruebas: pinta una tarjeta de mentira */
     probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); }
+  };
+})();
+</script>
+<script>
+/* ── Pedidos en órbita (#509 T3, Juan 13-nov-2026; apps-script/orbita.js) ─────────────────────────────────────────────
+   Lo que Alma sigue trabajando en segundo plano se ve como anillos chicos que orbitan la roca, como satélites de un
+   planeta: rotación muy lenta, cada uno a su velocidad y con su radio, y el pulso de los botones roca. Dos órbitas: la
+   cercana para lo rápido (segundo plano del agente) y la lejana para lo largo (desarrollo, con PR). Sin porcentajes: el
+   arco gira (indeterminado) y lleva el nombre corto y el paso si el Hub lo sabe («Revisando», «Redactando»). Al terminar,
+   el anillo se vuelve un check y se va solo a los 8 s (SALE_MS). Con el tablero bento abierto, los anillos se esconden y
+   queda un contador junto a la roca minimizada; con el chat, Pendientes, Notificaciones o las áreas abiertas, nada.
+   prefers-reduced-motion: los anillos quietos en su lugar, sin giro ni pulso.
+   El Hub se consulta con `pedidosOrbita` (sesión de administrador): cada 15 s mientras algo está en curso, cada 45 s si no,
+   y solo con la app a la vista. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var RM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var SALE_MS = 8000, CADA_CURSO = 15000, CADA_NADA = 45000, MAX = 8;
+  /* Ángulos de llegada (grados; 0 = derecha, -90 = arriba): primero las diagonales de arriba, donde el nombre cabe. */
+  var LUGARES = [-52, -128, 52, 128, -90, 90, -15, -165];
+  var P = { s: {}, t: 0, raf: 0, ult: 0, geo: null, prueba: false, obst: [], obstT: 0, voz: "", modo: "", capa: null, orb: null, n: null };
+  var VISTOS = {};   // id → ya mostró su check: si el Hub lo vuelve a mandar en sus 10 min, no se repite
+  try { VISTOS = JSON.parse(localStorage.getItem("pob_vistos") || "{}") || {}; } catch (e) { VISTOS = {}; }
+  function vistoGuardar() {
+    var ahora = Date.now(); Object.keys(VISTOS).forEach(function (k) { if (ahora - VISTOS[k] > 20 * 60000) delete VISTOS[k]; });
+    try { localStorage.setItem("pob_vistos", JSON.stringify(VISTOS)); } catch (e) {}
+  }
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  /* El Hub, con la misma sesión y destino que usa ALMA (alma-client.js), sin tocar ese archivo. */
+  function hub(accion) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify({ hub: 1, action: accion, token: d.token, session: ses() }) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: "red" }; });
+  }
+  function hash(s) { var h = 0; s = String(s); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+  var MARCA = { listo: '<path d="M6.5 12.5l3.6 3.6 7.4-8"/>', fallo: '<path d="M12 6.5v7"/><path d="M12 17.3v.2"/>' };
+
+  function montar() {
+    if (P.capa) return P.capa;
+    var c = $("pob"); if (!c) return null;
+    c.innerHTML = '<div class="pob-orb cerca"></div><div class="pob-orb lejos"></div><div class="pob-n" role="img"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" stroke="rgba(62,63,63,.18)"/><circle cx="10" cy="10" r="7.5" stroke="#E9826A" stroke-dasharray="12 60"/></svg><span></span></div>';
+    P.capa = c; P.orb = { rapido: c.querySelector(".pob-orb.cerca"), largo: c.querySelector(".pob-orb.lejos") }; P.n = c.querySelector(".pob-n");
+    return c;
+  }
+  function crear(p) {
+    var c = montar(); if (!c) return null;
+    var el = document.createElement("div"); el.className = "pob-s";
+    el.innerHTML = '<div class="an"><div class="resp"><span class="halo"></span><span class="pie"><svg class="marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></svg></span>' +
+      '<svg class="arco" viewBox="0 0 36 36"><circle class="base" cx="18" cy="18" r="16.5"/><circle class="va" cx="18" cy="18" r="16.5" pathLength="100"/></svg></div></div><div class="et"><b></b><small></small></div>';
+    var h = hash(p.id), x = { id: p.id, el: el, et: el.querySelector(".et"), an: el.querySelector(".an"), nace: performance.now(), estado: "en_curso", tipo: p.tipo === "largo" ? "largo" : "rapido",
+      h: h, dr: [-6, -2, 2, 6][h % 4], lw: 0, lh: 0, a0: 0, r: 0 };
+    /* velocidad: la cercana da la vuelta en 2.5 a 3.2 min y la lejana en 4 a 5 min, cada anillo a la suya */
+    x.per = (x.tipo === "largo" ? 240 + (h % 5) * 15 : 150 + (h % 5) * 10) * 1000;
+    el.style.setProperty("--d", (x.tipo === "largo" ? 30 : 34) + "px");
+    el.style.setProperty("--dl", -((h % 36) * 100) + "ms");
+    x.a0 = lugar(x);
+    c.appendChild(el); P.s[p.id] = x;
+    return x;
+  }
+  /* El ángulo actual de un anillo (radianes): contra las agujas del reloj, muy despacio; quieto con menos movimiento. */
+  function angulo(x, now) { return RM ? x.a0 : x.a0 - 2 * Math.PI * ((now - x.nace) / x.per); }
+  /* Llega al lugar libre más lejos de los demás anillos, de las dos órbitas (para que ni ellos ni sus nombres nazcan encimados). */
+  function lugar(x) {
+    var now = performance.now(), otros = Object.keys(P.s).map(function (k) { return P.s[k]; }).filter(function (o) { return o !== x && !o.sale; }).map(function (o) { return angulo(o, now); });
+    var mejor = LUGARES[0] * Math.PI / 180, dist = -1;
+    LUGARES.forEach(function (g) {
+      var a = g * Math.PI / 180, d = Math.PI * 2;
+      otros.forEach(function (b) { var z = Math.abs(((a - b) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI); d = Math.min(d, z); });
+      if (d > dist + .2) { dist = d; mejor = a; }
+    });
+    return mejor;
+  }
+  function textos(x, p) {
+    var b = x.et.querySelector("b"), s = x.et.querySelector("small"), n = String(p.nombre || "Pedido en curso"), pa = String(p.paso || "");
+    if (b.textContent !== n || s.textContent !== pa) { b.textContent = n; s.textContent = pa; x.lw = x.et.offsetWidth; x.lh = x.et.offsetHeight; }
+  }
+  function terminar(x) {
+    x.el.classList.add(x.estado === "fallo" ? "fallo" : "listo");
+    x.el.querySelector(".marca").innerHTML = MARCA[x.estado === "fallo" ? "fallo" : "listo"];
+    VISTOS[x.id] = Date.now(); vistoGuardar();
+    clearTimeout(x.saleT); x.saleT = setTimeout(function () { quitar(x); }, SALE_MS);
+  }
+  function quitar(x) {
+    if (x.sale) return; x.sale = true; x.el.classList.add("sale");
+    setTimeout(function () { if (x.el.parentNode) x.el.parentNode.removeChild(x.el); if (P.s[x.id] === x) delete P.s[x.id]; voz(); }, 650);
+  }
+  function aplicar(lista) {
+    var vivos = {};
+    (lista || []).slice(0, MAX).forEach(function (p) {
+      if (!p || !p.id) return; vivos[p.id] = 1;
+      var x = P.s[p.id], estado = p.estado === "listo" || p.estado === "fallo" ? p.estado : "en_curso";
+      if (!x) { if (estado !== "en_curso" && VISTOS[p.id]) return; x = crear(p); if (!x) return; }
+      if (x.sale) return;
+      textos(x, p);
+      if (estado !== x.estado) { x.estado = estado; if (estado !== "en_curso") terminar(x); }
+    });
+    /* Lo que ya no viene y seguía en curso (se cayó o venció): se va sin check. */
+    Object.keys(P.s).forEach(function (id) { var x = P.s[id]; if (!vivos[id] && x.estado === "en_curso") quitar(x); });
+    voz(); andar();
+  }
+  /* Para lectores de pantalla: qué sigue trabajando y qué terminó. */
+  function voz() {
+    var l = Object.keys(P.s).map(function (k) { return P.s[k]; }).filter(function (x) { return !x.sale; });
+    var curso = l.filter(function (x) { return x.estado === "en_curso"; }).map(function (x) { var s = x.et.querySelector("small").textContent; return x.et.querySelector("b").textContent + (s ? " (" + s.toLowerCase() + ")" : ""); });
+    var listos = l.filter(function (x) { return x.estado === "listo"; }).map(function (x) { return x.et.querySelector("b").textContent; });
+    var t = (curso.length ? "Alma sigue trabajando en: " + curso.join(", ") + "." : "") + (listos.length ? " Listo: " + listos.join(", ") + "." : "");
+    if (t !== P.voz) { P.voz = t; var v = $("pob-voz"); if (v) v.textContent = t.trim(); }
+  }
+
+  /* ── Dónde está la roca y qué se ve ── */
+  function roca() {
+    var mejor = null;
+    document.querySelectorAll("#sa-nav-root .san-rock:not(.san-pp)").forEach(function (r) {
+      var b = r.getBoundingClientRect(); if (!b.width || getComputedStyle(r).visibility === "hidden") return;
+      if (!mejor || b.width > mejor.width) mejor = b;
+    });
+    if (!mejor) return null;
+    var g = { cx: mejor.left + mejor.width / 2, cy: mejor.top + mejor.height / 2, R: mejor.width / 2, W: innerWidth, H: innerHeight }, a = P.geo;
+    /* La roca respira (±3 %): las órbitas no la siguen en eso (los anillos tienen su propio pulso), solo cuando de verdad
+       se mueve o cambia de tamaño (escena, tablero, llamada). */
+    if (a && Math.abs(g.R - a.R) < 10 && Math.abs(g.cx - a.cx) < 6 && Math.abs(g.cy - a.cy) < 6) { a.W = g.W; a.H = g.H; return a; }
+    P.geo = g; return g;
+  }
+  function queModo(g) {
+    var ov = document.querySelector("#sa-nav-root .san-ov"), bc = document.body.classList;
+    if (!g || document.hidden) return "nada";
+    if (bc.contains("san-hoja") || bc.contains("orbita-on") || (ov && /(^|\s)(chat|pend|noti)(\s|$)/.test(ov.className))) return "nada";
+    if (document.querySelector("#sa-nav-root .tv-card:not(.tvb)")) return "nada";   // la tarjeta de la llamada ocupa ese lugar
+    if (document.documentElement.classList.contains("tvb-on") || g.R < 75) return "contador";   // tablero o roca minimizada
+    return "orbita";
+  }
+  /* Textos y botones que un nombre no debe tapar (se mide cada 600 ms, no en cada cuadro). */
+  function obstaculos(now) {
+    if (now - P.obstT < 600) return P.obst;
+    P.obstT = now; P.obst = [];
+    document.querySelectorAll("button, .hola.on, .aviso, #sa-nav-root .san-ov-st, #sa-nav-root .san-ov-cap, #sa-nav-root .san-ob").forEach(function (e) {
+      var b = e.getBoundingClientRect(); if (!b.width || !b.height || (!/BUTTON/.test(e.tagName) && !e.classList.contains("san-ob") && !(e.textContent || "").trim())) return;
+      var cs = getComputedStyle(e); if (cs.visibility === "hidden" || +cs.opacity < .15 || e.hidden) return;
+      P.obst.push(b);
+    });
+    return P.obst;
+  }
+  function choca(r, l) { for (var i = 0; i < l.length; i++) { var b = l[i]; if (r.x < b.right && r.x + r.w > b.left && r.y < b.bottom && r.y + r.h > b.top) return true; } return false; }
+  function tocaRoca(r, g) {
+    var nx = Math.max(r.x, Math.min(g.cx, r.x + r.w)), ny = Math.max(r.y, Math.min(g.cy, r.y + r.h));
+    return Math.hypot(nx - g.cx, ny - g.cy) < g.R + 4;
+  }
+  /* El nombre y el paso hacia afuera de la roca: arriba del anillo en la mitad de arriba, abajo en la de abajo; si ahí
+     tapa un texto o un botón, corrido hacia afuera, al lado o del otro lado. Si no cabe en ningún lado, se desvanece
+     hasta que el anillo llegue a un lugar con aire. Se queda donde estaba mientras siga cabiendo (no salta). */
+  function ubicar(x, px, py, d, g, obst) {
+    var w = x.lw, h = x.lh, izq = px < g.cx, arriba = py < g.cy;
+    var vy = arriba ? py - d / 2 - 7 - h : py + d / 2 + 7, oy = arriba ? py + d / 2 + 7 : py - d / 2 - 7 - h;
+    var c = [[px - w / 2, vy], [izq ? px + d / 2 - w : px - d / 2, vy], [izq ? px - d / 2 - 8 - w : px + d / 2 + 8, py - h / 2], [px - w / 2, oy]];
+    var orden = x.cand != null ? [x.cand, 0, 1, 2, 3] : [0, 1, 2, 3];
+    for (var i = 0; i < orden.length; i++) {
+      var k = orden[i], cx = Math.max(10, Math.min(g.W - 10 - w, c[k][0])), cy = Math.max(10, Math.min(g.H - 10 - h, c[k][1])), r = { x: cx, y: cy, w: w, h: h };
+      if (!tocaRoca(r, g) && !choca(r, obst)) { x.cand = k; return [cx, cy]; }
+    }
+    x.cand = null; return null;
+  }
+  function orbitas(g) {
+    var lado = Math.min(g.cx, g.W - g.cx) - 22;
+    var cerca = g.R + Math.max(20, g.R * .2), lejos = g.R + Math.max(48, g.R * .42);
+    var o = { rapido: { rx: Math.min(cerca, lado - 18), ry: cerca }, largo: { rx: Math.min(lejos, lado), ry: lejos } };
+    o.rapido.rx = Math.max(g.R + 17, o.rapido.rx);
+    return o;
+  }
+  function cuadro(now) {
+    P.raf = 0;
+    var ids = Object.keys(P.s), c = P.capa; if (!c) return;
+    if (!ids.length) { c.className = "pob"; P.modo = ""; return; }
+    if (!RM && now - P.ult < 30) { P.raf = requestAnimationFrame(cuadro); return; }   // ~30 cuadros por segundo bastan: va muy despacio
+    P.ult = now;
+    var g = roca(), modo = queModo(g);
+    if (modo !== P.modo) { P.modo = modo; c.className = "pob " + modo; }
+    var curso = ids.filter(function (k) { return P.s[k].estado === "en_curso" && !P.s[k].sale; }).length;
+    if (modo === "contador") {
+      var n = P.n, sp = n.querySelector("span"), txt = curso ? curso + " en curso" : "Listo";
+      if (sp.textContent !== txt) sp.textContent = txt;
+      n.classList.toggle("listo", !curso); n.setAttribute("aria-label", curso ? "Alma sigue trabajando en " + curso + (curso === 1 ? " pedido" : " pedidos") : "Alma terminó un pedido");
+      var w = n.offsetWidth || 90, x = g.cx - g.R - 12 - w, y = g.cy - 14;
+      if (x < 10) { x = Math.max(10, Math.min(g.W - 10 - w, g.cx - w / 2)); y = g.cy - g.R - 38; }
+      n.style.transform = "translate3d(" + Math.round(x) + "px," + Math.round(y) + "px,0)";
+      n.classList.toggle("on", ids.some(function (k) { return !P.s[k].sale; }));
+    } else if (P.n) P.n.classList.remove("on");
+    if (modo === "orbita") {
+      var o = orbitas(g), obst = obstaculos(now).slice(), usadas = { rapido: 0, largo: 0 }, pos = [];
+      ids.forEach(function (k) {
+        var x = P.s[k], ob = o[x.tipo], d = x.tipo === "largo" ? 30 : 34;
+        if (!x.sale) usadas[x.tipo]++;
+        var e = RM ? 1 : Math.min(1, (now - x.nace) / 1200), suave = 1 - Math.pow(1 - e, 3);
+        var rx = ob.rx + x.dr, ry = ob.ry + x.dr, a = angulo(x, now);
+        var k0 = (g.R / ry) + (1 - g.R / ry) * suave;   // nace en el borde de la roca y sube a su órbita
+        var px = g.cx + Math.cos(a) * rx * k0, py = g.cy + Math.sin(a) * ry * k0;
+        x.el.style.transform = "translate3d(" + px.toFixed(1) + "px," + py.toFixed(1) + "px,0)";
+        if (!x.sale) x.el.style.opacity = (RM ? 1 : suave).toFixed(2);
+        pos.push([x, px, py, d, e]);
+        obst.push({ left: px - d / 2 - 3, right: px + d / 2 + 3, top: py - d / 2 - 3, bottom: py + d / 2 + 3 });   // ningún nombre tapa un anillo
+      });
+      pos.forEach(function (q) {
+        var x = q[0], px = q[1], py = q[2];
+        if (!x.lw) { x.lw = x.et.offsetWidth; x.lh = x.et.offsetHeight; }
+        var u = q[4] >= 1 ? ubicar(x, px, py, q[3], g, obst) : null;
+        if (u) { x.et.style.transform = "translate3d(" + (u[0] - px).toFixed(1) + "px," + (u[1] - py).toFixed(1) + "px,0)"; obst.push({ left: u[0] - 4, right: u[0] + x.lw + 4, top: u[1] - 2, bottom: u[1] + x.lh + 2 }); }
+        x.et.style.opacity = u ? "1" : "0";
+      });
+      ["rapido", "largo"].forEach(function (t) {
+        var e = P.orb[t], ob = o[t];
+        e.style.width = (2 * ob.rx) + "px"; e.style.height = (2 * ob.ry) + "px";
+        e.style.transform = "translate3d(" + (g.cx - ob.rx).toFixed(1) + "px," + (g.cy - ob.ry).toFixed(1) + "px,0)";
+        e.classList.toggle("on", usadas[t] > 0);
+      });
+    }
+    P.raf = requestAnimationFrame(cuadro);
+  }
+  function andar() { if (!P.raf && Object.keys(P.s).length) P.raf = requestAnimationFrame(cuadro); }
+  addEventListener("resize", function () { P.obstT = 0; Object.keys(P.s).forEach(function (k) { P.s[k].lw = 0; }); });
+
+  /* ── Preguntarle al Hub ── */
+  function pedir() {
+    clearTimeout(P.t); P.t = 0;
+    if (P.prueba) return;
+    if (document.hidden || !ses()) { P.t = setTimeout(pedir, CADA_NADA); return; }
+    hub("pedidosOrbita").then(function (r) {
+      if (P.prueba) return;
+      if (r && r.ok && Array.isArray(r.pedidos)) aplicar(r.pedidos);
+      var hay = Object.keys(P.s).some(function (k) { return P.s[k].estado === "en_curso"; });
+      clearTimeout(P.t); P.t = setTimeout(pedir, hay ? CADA_CURSO : CADA_NADA);
+    });
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && !P.prueba) pedir(); else if (document.hidden) { clearTimeout(P.t); P.t = 0; } });
+  setTimeout(pedir, 2500);
+  window.AlmaOrbita = {
+    /* Pregunta ya (p. ej. al colgar una llamada que siguió en segundo plano). */
+    pedir: function () { if (!P.prueba) pedir(); },
+    /* Para las capturas y las pruebas: pinta una lista de mentira (y deja de preguntarle al Hub). */
+    probar: function (lista) { P.prueba = true; clearTimeout(P.t); aplicar(lista); },
+    estado: function () { return { modo: P.modo, anillos: Object.keys(P.s).map(function (k) { var x = P.s[k]; return { id: x.id, tipo: x.tipo, estado: x.estado, sale: !!x.sale }; }) }; }
   };
 })();
 </script>

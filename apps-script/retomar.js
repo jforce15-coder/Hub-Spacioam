@@ -128,6 +128,7 @@ function vozTolerancia_() { var n = Number(PropertiesService.getScriptProperties
    el del usuario protege lo mismo sin esperar a los huéspedes. */
 function vozColaLock_() { try { var l = LockService.getUserLock(); if (l) return l; } catch (e) {} return LockService.getScriptLock(); }
 function vozSeguirGuardar_(o) {
+  try { o.orb = orbitaId_(); } catch (e) {}   // su anillo en el inicio (orbita.js): se anota cuando ya quedó en la cola
   var id = 'sg' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), s = JSON.stringify(o), c = CacheService.getScriptCache(), partes = {}, n = 0;
   for (var i = 0; i < s.length; i += 90000) partes[id + '_' + (n++)] = s.slice(i, i + 90000);
   partes[id] = String(n);
@@ -137,6 +138,7 @@ function vozSeguirGuardar_(o) {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEGUIR') || '[]'); } catch (e) {}
     cola.push({ id: id, email: o.email, t: Date.now() }); p.setProperty('VOZ_SEGUIR', JSON.stringify(cola.slice(-10)));
   } finally { lock.releaseLock(); }
+  try { orbitaEmpieza_(o.email, o.pedido, 'segundo_plano', '', o.orb); } catch (e) { console.error('orbitaEmpieza_: ' + e); }
   try {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSeguirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
     ScriptApp.newTrigger('vozSeguirPronto').timeBased().after(5000).create();
@@ -170,6 +172,7 @@ function vozSeguirPronto() {
        Pendientes, y al principal vozSecAvisar_ no le avisa por otro lado: lo que la llamada pasó a segundo plano terminaba
        sin tarjeta, sin notificación y sin la notificación hablada del modo conferencia (Juan, 3-nov-2026). */
     AGENTE_CANAL_ = 'segundo_plano'; AGENTE_TEXTO_ = String(o.pedido || ''); AGENTE_PEDIDO_ = String(o.pedido || ''); AGENTE_CONF_ = !!o.conf;
+    ORBITA_ACTUAL_ = o.orb ? { email: adm.email, ids: [o.orb] } : null;   // el paso de cada herramienta va a su anillo (orbita.js)
     try {
       AGENTE_APP_ = !!o.app;
       var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; });
@@ -177,7 +180,8 @@ function vozSeguirPronto() {
       AGENTE_APP_ = false;
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, { esfera: r.esfera, subcategoria: r.subcategoria });   // la esfera del turno (chat.js)
     } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [], fallo: String(e).slice(0, 150) }; }
-    finally { AGENTE_CANAL_ = ''; AGENTE_TEXTO_ = ''; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; }
+    finally { AGENTE_CANAL_ = ''; AGENTE_TEXTO_ = ''; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; ORBITA_ACTUAL_ = null; }
+    try { orbitaTermina_(adm.email, [o.orb], r.fallo); } catch (e) { console.error('orbitaTermina_: ' + e); }
     try { vozSecAvisar_(normTel_(adm.tels[0]), adm, r, o.pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); }
     try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // la tarjeta y su aviso ya, sin esperar al minuto de procesarCola
   }

@@ -132,16 +132,17 @@ function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
   return [
-    T('buscar_reservas', 'Reservas por huésped, código, propiedad o fecha, con su estado en Hospitable (también canceladas) y las consultas (quien escribió sin reservar). Tolera errores de escritura y de voz (Brunello/Brunelo, Erika/Ericka, un dígito): manda lo que te dieron tal cual, nombre y propiedad juntos en una búsqueda, sin probar variantes. Si la coincidencia es aproximada y hay más de una, confirma cuál. Trae código, huésped, propiedad, fechas, registro y conv_id.',
+    T('buscar_reservas', 'Reservas por huésped, código, propiedad o fecha, con su estado en Hospitable (también canceladas) y las consultas (quien escribió sin reservar). Tolera errores de escritura y de voz (Brunello/Brunelo, un dígito): manda lo que te dieron tal cual, nombre y propiedad juntos en una búsqueda, sin probar variantes. Si la coincidencia es aproximada y hay más de una, confirma cuál.',
       { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' },
         consultas: { type: 'boolean', description: 'true: solo consultas, la más reciente primero («la que acaba de entrar»: sin texto)' } }),
     T('cancelaciones', 'Reservas CANCELADAS en un rango de fechas (según la fecha en que se canceló, en Hospitable en vivo). Úsala para «¿hubo cancelaciones ayer / esta semana / en los últimos 3 días?».',
       { desde: s('YYYY-MM-DD, inicio del rango (fecha de cancelación)'), hasta: s('YYYY-MM-DD, fin del rango (incluido). Si es un solo día, igual a desde') }, ['desde']),
+    T('historial_reserva', 'Fechas originales y cambios de una reserva, con su hora.', { codigo: s('Código o conv_id') }, ['codigo']),
     T('programados_reserva', 'Mensajes automáticos programados de UNA reserva en Hospitable (recordatorio de reseña/review, check-in, first morning, salida…) que aún no salen, y el estado de la reseña al huésped.',
       { codigo: s('Código de reserva o conv_id') }, ['codigo']),
-    T('cancelar_programados_reserva', 'Cancela mensajes programados de una reserva en Hospitable: los de reseña/review (filtro = review), todos (filtro = todos), los que contengan una palabra, o por ids de programados_reserva. Hospitable no permite posponerlos: si piden «posponer», cancélalos y ofrece programar uno nuevo con la fecha que digan.',
+    T('cancelar_programados_reserva', 'Cancela mensajes programados de una reserva en Hospitable: por filtro o por ids de programados_reserva. Hospitable no permite posponerlos: si piden «posponer», cancélalos y ofrece programar uno nuevo con la fecha que digan.',
       { codigo: s('Código de reserva o conv_id'), filtro: s('review, todos o una palabra del título'), ids: s('Opcional: ids separados por coma') }, ['codigo']),
-    T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la conversación de WhatsApp de ALMA con cualquier número (socio, contacto de trabajo, alguien del equipo): pasa el número con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp (ej. +1 908 447 1404)') }, ['codigo']),
+    T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la de WhatsApp de ALMA con cualquier número (socio, contacto, equipo), con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp') }, ['codigo']),
     T('buscar_reuniones', 'Reuniones, llamadas y memos que Alma escuchó en modo conferencia (app del iPhone): resumen, acuerdos y lo que le tocó a Juan («¿qué quedamos con…?», «¿qué se dijo de…?»). Sin búsqueda, las últimas. Lo sin sentido (grabación por error, ruido) queda unos días en Temporal y se borra solo si nadie lo consulta: temporales=true las muestra; si Juan busca algo y sale una temporal, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
     T('ver_vuelos', 'Vuelos del botón del avión (de su correo): vuelo, aerolínea, ruta, horas, puerta, asiento y apertura del check-in. «Mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), en su hora local. Solo administrador principal.', {}, []),
@@ -349,6 +350,40 @@ function agEstadoReserva_(uuid, fila, vivo) {
   try { c.put(k, JSON.stringify(out), 600); } catch (e) {}
   return out;
 }
+/* Historial de una reserva (pedido pc1794699131767, 14-nov): Hospitable no publica las fechas de antes de una
+   modificación; solo el estado con su hora (reservation_status.history). Los cambios de fechas, huéspedes y propiedad
+   los guarda Alma en ALMA_HITOS cada vez que llega el aviso reservation.changed (reservaCambio_, Código.js). Se juntan
+   los dos, en orden, y se dice con claridad qué no se puede saber. */
+function agHistorialReserva_(codigo) {
+  var cod = s_(codigo).toUpperCase().replace(/\s+/g, ''), uuid = agResId_(codigo);
+  if (!uuid || /^(wa|op|inq):/.test(uuid)) return { error: 'No encontré la reserva «' + s_(codigo) + '» en Hospitable. Búscala antes con buscar_reservas y usa su código.' };
+  var hora = function (x) { try { return Utilities.formatDate(new Date(x), CFG.TZ, 'yyyy-MM-dd HH:mm'); } catch (e) { return s_(x); } };
+  var out = { codigo: cod, eventos: [] }, fila = null;
+  try { fila = /^[A-Z0-9-]{6,16}$/.test(cod) ? reservaFila_(cod) : null; } catch (e) {}
+  var r = hosp_('get', '/reservations/' + uuid + '?include=properties'), d = r.code === 200 && r.json && r.json.data;
+  if (d) {
+    var sn = snapReserva_(d), noches = sn.checkin && sn.checkout ? Math.round((new Date(sn.checkout) - new Date(sn.checkin)) / 864e5) : '';
+    out.codigo = s_(d.code).toUpperCase() || out.codigo;
+    out.ahora = { estado: estadoEs_(sn.estado) || sn.estado, entrada: sn.checkin, salida: sn.checkout, noches: noches, huespedes: sn.huespedes || undefined, propiedad: sn.propiedad || undefined, plataforma: s_(d.platform) || undefined };
+    if (d.booking_date) out.eventos.push({ cuando: hora(d.booking_date), que: 'Reserva creada (fecha de reserva en Hospitable)' });
+    ((d.reservation_status && d.reservation_status.history) || []).forEach(function (h) {
+      var cat = s_(h.category).toLowerCase(), sub = s_(h.sub_category).toLowerCase();
+      if (h.changed_at) out.eventos.push({ cuando: hora(h.changed_at), que: (ESTADO_HITO_[cat] || ('Estado: ' + cat)) + (sub && sub !== cat ? ' (' + sub + ')' : '') });
+    });
+  } else out.aviso_hospitable = 'Hospitable no respondió ahora' + (r.code ? ' (' + r.code + ')' : '') + ': el estado en vivo falta; lo demás viene de lo que Alma guardó.';
+  var sh = ssAlma_().getSheetByName('ALMA_HITOS'), vistos = 0;
+  if (sh && sh.getLastRow() >= 2) sh.getRange(2, 1, sh.getLastRow() - 1, HITOS_CAB_.length).getValues().forEach(function (v) {
+    if (String(v[1]) !== uuid && (!out.codigo || s_(v[2]).toUpperCase() !== out.codigo)) return;
+    if (s_(v[3]) === 'estado' && d) return;   // el estado ya viene de Hospitable con su hora exacta
+    vistos++; out.eventos.push({ cuando: hora(v[0]), que: s_(v[4]) });
+  });
+  out.eventos.sort(function (a, b) { return a.cuando < b.cuando ? -1 : a.cuando > b.cuando ? 1 : 0; });
+  if (fila && out.ahora && (fecha_(fila.checkin_date) !== out.ahora.entrada || fecha_(fila.checkout_date) !== out.ahora.salida))
+    out.hoja_reservas = { entrada: fecha_(fila.checkin_date), salida: fecha_(fila.checkout_date), nota: 'La hoja Reservas tiene otras fechas: puede ser la versión anterior a un cambio que la hoja aún no recibió.' };
+  out.nota = vistos ? 'Los cambios de fechas, huéspedes o propiedad salen de los avisos de Hospitable que Alma guardó, con las fechas de antes → después.'
+    : 'Alma no registró cambios de fechas, huéspedes ni propiedad para esta reserva. Hospitable no publica las fechas de antes de una modificación: si hubo una antes de que Alma vigilara estos avisos, solo se ve en Airbnb (Reservaciones → la reserva → Historial de cambios). Revisa también ver_conversacion por si el huésped pidió el cambio por mensaje.';
+  return out;
+}
 /* Cancelaciones por la fecha en que se cancelaron (Hospitable en vivo). Se piden las reservas canceladas con entrada
    desde 60 días antes del rango hasta un año después, y se filtran por la fecha del cambio a «cancelled». */
 function agCancelaciones_(desde, hasta) {
@@ -427,6 +462,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return outR;
     }
     case 'cancelaciones': return agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy);
+    case 'historial_reserva': return agHistorialReserva_(inp.codigo);
     case 'programados_reserva': {
       var ridP = agResId_(inp.codigo); if (!ridP || /^(wa|op):/.test(ridP)) return { error: 'No encontré esa reserva. Búscala antes con buscar_reservas y usa su código.' };
       var pg = hubProgramados_(ridP); if (!pg.ok) return { error: 'No pude leer los programados (' + pg.error + ').' };

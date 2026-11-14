@@ -2780,7 +2780,7 @@
     var b = $("b-avion"), o = b && !b.hidden && b.dataset.orbita;
     return o === "cerca" || o === "lejos" ? { el: b, tipo: o === "lejos" ? "largo" : "rapido" } : null;
   }
-  function avionAngulo(now) { return RM ? AV.a0 : AV.a0 - 2 * Math.PI * ((now - AV.nace) / AV.per); }
+  function avionAngulo(now) { return RM ? AV.a0 : AV.a0 + 2 * Math.PI * ((now - AV.nace) / AV.per); }   // igual que los pedidos: a favor de las agujas del reloj
   function avionSuelta() {   // de vuelta a su lugar de siempre (sin órbita a la vista)
     var b = $("b-avion"); if (!b || !AV.en) return;
     AV.en = false; b.classList.remove("orb"); b.style.left = ""; b.style.top = "";

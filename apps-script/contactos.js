@@ -70,6 +70,8 @@ function contactoEncolar_(wa, contexto) {
   p.setProperty('CONTACTOS_COLA', JSON.stringify(q));
 }
 function contactosProcesar_() {
+  /* De paso (misma pasada, sin cambiar el ritmo): los WhatsApp a contactos que Meta todavía no confirmó (entrega.js). */
+  try { waVigilarRevisar_(); } catch (e) { console.error('waVigilarRevisar_: ' + e); }
   var p = PropertiesService.getScriptProperties(), q = {}; try { q = JSON.parse(p.getProperty('CONTACTOS_COLA') || '{}'); } catch (e) {}
   var ks = Object.keys(q); if (!ks.length) return;
   var t0 = Date.now();

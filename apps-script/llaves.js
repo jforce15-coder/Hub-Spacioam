@@ -6,7 +6,8 @@
    - El valor nunca se devuelve ni se registra: solo si está, cuándo se guardó y sus 4 últimas letras.
    - Queda la huella en ALMA_LOG (quién y cuándo, sin el valor), como los cambios de ALMA_CONTROL. */
 var LLAVES_PERMITIDAS_ = [
-  { nombre: 'JEV_KEY', para: 'Jev (TypeSafe): el camino rápido de la voz' }   // #498 T5
+  { nombre: 'JEV_KEY', para: 'Jev (TypeSafe): el camino rápido de la voz' },   // #498 T5
+  { nombre: 'PARA_ALMA_AVISO_KEY', para: 'Aviso de GitHub: las instrucciones para Alma llegan al instante' }   // #526 T5 (el mismo valor va en el secreto de GitHub)
 ];
 var LLAVES_META_ = 'LLAVES_GUARDADAS';   // { NOMBRE: { t, por } }: cuándo y quién, nunca el valor
 

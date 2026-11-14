@@ -12,6 +12,7 @@ on:
       - ".clasp.json"
       - "login/apps-script/**"
       - "login/.clasp.json"
+      - ".github/lector-hoja-mi.js"
 
 jobs:
   revisar:
@@ -75,3 +76,6 @@ jobs:
             if [ -z "$ahora" ]; then echo "✓ $dir sin funciones repetidas"; fi
           done < <(find . -path ./.git -prune -o -path '*/archivo/*' -prune -o -name appsscript.json -print0)
           exit $fallo
+      - name: Lector de hojas del login, la hoja de Mi solo para el admin principal de Mi (dobles)
+        # 14-nov-2026: la hoja de Mi deja de ser pública; antes cualquier sesión firmada (un socio, el equipo) la leía entera aquí.
+        run: node .github/lector-hoja-mi.js login/apps-script

@@ -134,6 +134,8 @@ function caja() {
   ok(/classList\.contains\("tvb-on"\)[^\n]*return "contador"/.test(h), 'Con el tablero abierto, un contador junto a la roca');
   const rm = (h.match(/@media \(prefers-reduced-motion: reduce\) \{\s*\.pob-s[^}]*animation: none;/) || [])[0] || '';
   ok(/\.pob-s \.resp/.test(rm) && /svg\.arco/.test(rm) && /angulo\(x, now\) \{ return RM \? x\.a0/.test(h), 'prefers-reduced-motion: sin giro, sin pulso y los anillos quietos en su lugar');
+  ok(/x\.a0 \+ 2 \* Math\.PI \* \(\(now - x\.nace\) \/ x\.per\)/.test(h), 'Los anillos giran conforme a las agujas del reloj (el ángulo sube; en pantalla la «y» va hacia abajo)');
+  ok(/AV\.a0 \+ 2 \* Math\.PI \* \(\(now - AV\.nace\) \/ AV\.per\)/.test(h), 'El avión de «Tu viaje» gira en el mismo sentido que los pedidos (a favor de las agujas del reloj)');
   ok(/dataset\.orbita = !vs\.length \? "" : proximo\(vs\) \? "cerca" : "lejos"/.test(h) && /o === "lejos" \? "largo" : "rapido"/.test(h) && /andar: andar/.test(h),
     'El avión de «Tu viaje» orbita: viaje por venir o en curso en la cercana, ya pasado en la lejana');
   const ini = h.indexOf('Pedidos en órbita (#509 T3, Juan'), mod = h.slice(ini, h.indexOf('window.AlmaOrbita', ini));   // el bloque del avión también nombra AlmaOrbita, antes

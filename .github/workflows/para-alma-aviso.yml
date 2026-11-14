@@ -1,0 +1,34 @@
+# Aviso para Alma (#526 T5): al abrir (o etiquetar) un issue «para-alma» del dueño del repo, le avisa al Hub para que lo
+# procese al instante, en vez de esperar a que el Hub revise GitHub (antes cada ~2 min: ~720 llamadas al día). El Hub
+# vuelve a revisar quién lo abrió y si alguien más lo editó, y lo hace una sola vez (apps-script/paraalma.js).
+# La llave PARA_ALMA_AVISO_KEY es un secreto de GitHub y el mismo valor va en el Hub (Ajustes → Llaves). Sin el secreto
+# este flujo no hace nada y el Hub sigue revisando GitHub por su cuenta. La llave nunca se imprime.
+name: Aviso para Alma
+
+on:
+  issues:
+    types: [opened, labeled, reopened]
+
+permissions: {}
+
+concurrency:
+  group: para-alma-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  avisar:
+    if: contains(github.event.issue.labels.*.name, 'para-alma') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Avisar al Hub
+        env:
+          LLAVE: ${{ secrets.PARA_ALMA_AVISO_KEY }}
+          NUM: ${{ github.event.issue.number }}
+          URL: https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec
+        run: |
+          if [ -z "$LLAVE" ]; then echo "Sin el secreto PARA_ALMA_AVISO_KEY: no aviso; el Hub revisa GitHub por su cuenta."; exit 0; fi
+          CUERPO=$(jq -cn --arg k "$LLAVE" --argjson n "$NUM" '{action: "paraAlmaAviso", llave: $k, issue: $n}')
+          R=$(curl -sSL -m 360 --data "$CUERPO" "$URL" || true)
+          echo "Respuesta del Hub: $(printf '%s' "$R" | head -c 300)"
+          if ! printf '%s' "$R" | grep -q '"ok":true'; then echo "::warning::El Hub no tomó el aviso; lo verá en su revisión de respaldo."; fi

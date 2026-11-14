@@ -15,7 +15,12 @@
      frase. El issue es público: la respuesta sale sin teléfonos, correos ni códigos (paraAlmaPublico_).
    · Una sola ejecución por issue: la marca va en la propiedad PARA_ALMA_ESTADO ANTES de llamar a la IA (dos pasadas de
      procesarCola pueden correr a la vez). Si falla, comenta el error real y deja el issue abierto con «para-alma-error»;
-     nunca se reintenta solo. Sin «hasta», vence a las 24 h de abierto (un issue viejo no manda nada a nadie). */
+     nunca se reintenta solo. Sin «hasta», vence a las 24 h de abierto (un issue viejo no manda nada a nadie).
+   · Aviso de GitHub (#526 T5): revisar GitHub cada ~2 min eran ~720 llamadas al día. El workflow para-alma-aviso.yml le avisa
+     al Hub al abrir (o etiquetar) el issue (acción «paraAlmaAviso» con la llave compartida PARA_ALMA_AVISO_KEY: secreto de
+     GitHub y propiedad del script, el mismo valor) y el Hub lo procesa al instante, con las mismas reglas de arriba. Con la
+     llave puesta en el Hub, la revisión periódica queda de respaldo cada 30 min (PARA_ALMA_RESPALDO_S_; antes 110 s, que
+     sigue sin la llave o con CUPO_AHORRO = 0). */
 
 var PARA_ALMA_REPO_ = 'jforce15-coder/Hub-Spacioam', PARA_ALMA_DUENO_ = 'jforce15-coder';
 var PARA_ALMA_ETIQUETA_ = 'para-alma', PARA_ALMA_ERROR_ = 'para-alma-error', PARA_ALMA_PROP_ = 'PARA_ALMA_ESTADO';
@@ -23,6 +28,8 @@ var PARA_ALMA_CANAL_ = 'instruccion';                 // el canal de la fila en 
 var PARA_ALMA_VIGENCIA_ = 24 * 3600000;               // sin «hasta»: no se ejecuta después de 24 h de abierto
 var PARA_ALMA_CORTADA_ = 15 * 60000;                  // «ejecutando» por más de 15 min: la ejecución se cortó
 var PARA_ALMA_TOPE_ = 150000;                         // no empieza una instrucción si la pasada ya lleva 2,5 min (el límite es 6)
+var PARA_ALMA_AVISO_PROP_ = 'PARA_ALMA_AVISO_KEY';     // la llave que comparte con el workflow de GitHub (nunca en el código)
+var PARA_ALMA_RESPALDO_S_ = 1800, PARA_ALMA_SIN_AVISO_S_ = 110;   // respaldo con el aviso puesto · sin él (lo de antes)
 var PARA_ALMA_NOTA_ = 'INSTRUCCIÓN DE JUAN A TRAVÉS DE CLAUDE (su sesión de desarrollo, con su cuenta). Hazla ahora con tus herramientas, ' +
   'como si Juan te la dijera: él ya la pidió, así que no le pidas confirmación ni le preguntes nada (nadie está esperando en el chat). ' +
   'A un huésped o a un tercero escríbele solo si la instrucción lo dice explícitamente. Si falta un dato que ninguna herramienta te da, no lo inventes: di qué falta. ' +
@@ -151,46 +158,75 @@ function paraAlmaEjecutar_(adm, inst) {
 /* La pasada (procesarCola, cada 2 min). inicio: cuándo empezó la pasada, para el tope de tiempo. Una instrucción por pasada. */
 function paraAlmaRevisar_(inicio) {
   if (!paraAlmaTok_()) return 0;
-  var c = CacheService.getScriptCache(); if (c.get('para_alma_t')) return 0; c.put('para_alma_t', '1', 110);
+  var c = CacheService.getScriptCache(); if (c.get('para_alma_t')) return 0; c.put('para_alma_t', '1', paraAlmaAvisoLlave_() && cupoAhorro_() ? PARA_ALMA_RESPALDO_S_ : PARA_ALMA_SIN_AVISO_S_);
   var r = paraAlmaGh_('get', '/repos/' + PARA_ALMA_REPO_ + '/issues?state=open&labels=' + PARA_ALMA_ETIQUETA_ + '&sort=created&direction=asc&per_page=20');
   if (r.code !== 200 || !Array.isArray(r.json)) return 0;
   var est = paraAlmaEstados_(), hecho = 0;
   var lista = r.json.filter(function (i) { return i && !i.pull_request && !(i.labels || []).some(function (l) { return String((l && l.name) || l) === PARA_ALMA_ERROR_; }); });
-  for (var k = 0; k < lista.length; k++) {
-    var i = lista[k], num = String(i.number), ya = est[num];
-    try {
-      if (ya && ya.e === 'listo') continue;   // una sola vez por issue, aunque lo vuelvan a abrir
-      if (ya && ya.e === 'por_avisar') { paraAlmaTerminar_(num, ya); continue; }   // ya se hizo: solo falta el aviso
-      if (ya && ya.e === 'ejecutando') {
-        if (Date.now() - Number(ya.t) > PARA_ALMA_CORTADA_) paraAlmaTerminar_(num, { texto: 'La ejecución se cortó a la mitad (' + paraAlmaFecha_(Number(ya.t)) + '). No la reintento para no repetir nada: revisa el chat de Juan y, si hace falta, abre otro issue.', etiqueta: PARA_ALMA_ERROR_ });
-        continue;
-      }
-      if (hecho) continue;   // una instrucción con IA por pasada; los avisos pendientes sí salen
-      var aut = paraAlmaAutorizado_(i);
-      if (aut.duda) {
-        if (Date.now() - new Date(i.created_at).getTime() > PARA_ALMA_CORTADA_) paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + aut.error + '.', etiqueta: PARA_ALMA_ERROR_ });
-        continue;
-      }
-      if (!aut.ok) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + aut.motivo + '.', cerrar: 'not_planned' }); continue; }
-      var inst = paraAlmaLeer_(i.body, i.created_at);
-      if (!inst.ok) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + inst.error + '. Formato: un bloque ```json con {"instruccion": "…", "responder_a": "whatsapp|chat", "hasta": "ISO opcional"}. No lo reintento: abre otro issue.', etiqueta: PARA_ALMA_ERROR_ }); continue; }
-      if (Date.now() > inst.hasta) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + (inst.conHasta ? 'vencía el ' : 'pasaron 24 h desde que se abrió (vencía el ') + paraAlmaFecha_(inst.hasta) + (inst.conHasta ? '' : ')') + ' y lo vi el ' + paraAlmaFecha_(Date.now()) + '.', cerrar: 'not_planned' }); continue; }
-      if (inicio && Date.now() - inicio > PARA_ALMA_TOPE_) continue;   // no alcanza el tiempo: en la próxima pasada
-      var adm = chatPrincipal_();
-      if (!adm || !esAdminPrincipal_(adm)) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: no encontré al administrador principal en Accesos.', etiqueta: PARA_ALMA_ERROR_ }); continue; }
-      /* Reserva primero: dos pasadas de procesarCola pueden correr a la vez. */
-      if (!paraAlmaMarcar_(num, { e: 'ejecutando' }, [''])) continue;
-      hecho = 1;
-      var res;
-      try { res = paraAlmaEjecutar_(adm, inst); }
-      catch (e) { res = { ok: false, texto: 'Falló: ' + String((e && e.message) || e).slice(0, 300) + '. No lo reintento sola: si hace falta, abre otro issue.', error: String((e && e.message) || e).slice(0, 200) }; }
-      if (!res.texto) res.texto = 'Falló: ' + res.error + '. No lo reintento sola: si hace falta, abre otro issue.';
-      if (inst.responder_a === 'whatsapp' && (adm.tels || []).length) {
-        var corto = inst.instruccion.replace(/\s+/g, ' ').slice(0, 140) + (inst.instruccion.length > 140 ? '…' : '');
-        try { waEnviar_(adm.wa || adm.tels[0], 'Claude me pidió de tu parte: «' + corto + '»; ' + (res.ok ? 'ya quedó.' : 'no se pudo: ' + String(res.error).slice(0, 200) + '.')); } catch (e) { console.error('paraAlma WhatsApp: ' + e); }
-      }
-      paraAlmaTerminar_(num, res.ok ? { texto: res.texto, cerrar: 'completed' } : { texto: res.texto, etiqueta: PARA_ALMA_ERROR_ });
-    } catch (e) { console.error('paraAlmaRevisar_ #' + num + ': ' + ((e && e.stack) || e)); }
-  }
+  for (var k = 0; k < lista.length; k++) hecho = paraAlmaUno_(lista[k], est, inicio, hecho) || hecho;
   return hecho;
+}
+
+/* Un issue: el aviso pendiente, la ejecución cortada o la instrucción (una con IA por pasada: yaHubo). 1 si la ejecutó. */
+function paraAlmaUno_(i, est, inicio, yaHubo) {
+  var num = String(i.number), ya = est[num];
+  try {
+    if (ya && ya.e === 'listo') return 0;   // una sola vez por issue, aunque lo vuelvan a abrir
+    if (ya && ya.e === 'por_avisar') { paraAlmaTerminar_(num, ya); return 0; }   // ya se hizo: solo falta el aviso
+    if (ya && ya.e === 'ejecutando') {
+      if (Date.now() - Number(ya.t) > PARA_ALMA_CORTADA_) paraAlmaTerminar_(num, { texto: 'La ejecución se cortó a la mitad (' + paraAlmaFecha_(Number(ya.t)) + '). No la reintento para no repetir nada: revisa el chat de Juan y, si hace falta, abre otro issue.', etiqueta: PARA_ALMA_ERROR_ });
+      return 0;
+    }
+    if (yaHubo) return 0;   // una instrucción con IA por pasada; los avisos pendientes sí salen
+    var aut = paraAlmaAutorizado_(i);
+    if (aut.duda) {
+      if (Date.now() - new Date(i.created_at).getTime() > PARA_ALMA_CORTADA_) paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + aut.error + '.', etiqueta: PARA_ALMA_ERROR_ });
+      return 0;
+    }
+    if (!aut.ok) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + aut.motivo + '.', cerrar: 'not_planned' }); return 0; }
+    var inst = paraAlmaLeer_(i.body, i.created_at);
+    if (!inst.ok) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + inst.error + '. Formato: un bloque ```json con {"instruccion": "…", "responder_a": "whatsapp|chat", "hasta": "ISO opcional"}. No lo reintento: abre otro issue.', etiqueta: PARA_ALMA_ERROR_ }); return 0; }
+    if (Date.now() > inst.hasta) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: ' + (inst.conHasta ? 'vencía el ' : 'pasaron 24 h desde que se abrió (vencía el ') + paraAlmaFecha_(inst.hasta) + (inst.conHasta ? '' : ')') + ' y lo vi el ' + paraAlmaFecha_(Date.now()) + '.', cerrar: 'not_planned' }); return 0; }
+    if (inicio && Date.now() - inicio > PARA_ALMA_TOPE_) return 0;   // no alcanza el tiempo: en la próxima pasada
+    var adm = chatPrincipal_();
+    if (!adm || !esAdminPrincipal_(adm)) { paraAlmaTerminar_(num, { texto: 'No lo ejecuté: no encontré al administrador principal en Accesos.', etiqueta: PARA_ALMA_ERROR_ }); return 0; }
+    /* Reserva primero: dos pasadas de procesarCola pueden correr a la vez. */
+    if (!paraAlmaMarcar_(num, { e: 'ejecutando' }, [''])) return 0;
+    var res;
+    try { res = paraAlmaEjecutar_(adm, inst); }
+    catch (e) { res = { ok: false, texto: 'Falló: ' + String((e && e.message) || e).slice(0, 300) + '. No lo reintento sola: si hace falta, abre otro issue.', error: String((e && e.message) || e).slice(0, 200) }; }
+    if (!res.texto) res.texto = 'Falló: ' + res.error + '. No lo reintento sola: si hace falta, abre otro issue.';
+    if (inst.responder_a === 'whatsapp' && (adm.tels || []).length) {
+      var corto = inst.instruccion.replace(/\s+/g, ' ').slice(0, 140) + (inst.instruccion.length > 140 ? '…' : '');
+      try { waEnviar_(adm.wa || adm.tels[0], 'Claude me pidió de tu parte: «' + corto + '»; ' + (res.ok ? 'ya quedó.' : 'no se pudo: ' + String(res.error).slice(0, 200) + '.')); } catch (e) { console.error('paraAlma WhatsApp: ' + e); }
+    }
+    paraAlmaTerminar_(num, res.ok ? { texto: res.texto, cerrar: 'completed' } : { texto: res.texto, etiqueta: PARA_ALMA_ERROR_ });
+    return 1;
+  } catch (e) { console.error('paraAlmaRevisar_ #' + num + ': ' + ((e && e.stack) || e)); }
+  return 0;
+}
+
+/* ── Aviso de GitHub (#526 T5) ── */
+function paraAlmaAvisoLlave_() { try { return String(PropertiesService.getScriptProperties().getProperty(PARA_ALMA_AVISO_PROP_) || '').trim(); } catch (e) { return ''; } }
+/* Compara sin cortar en la primera letra distinta (no deja adivinar la llave por el tiempo). */
+function paraAlmaLlaveIgual_(a, b) {
+  a = String(a || ''); b = String(b || ''); var d = a.length ^ b.length;
+  for (var i = 0; i < Math.max(a.length, b.length); i++) d |= (a.charCodeAt(i % (a.length || 1)) || 0) ^ (b.charCodeAt(i % (b.length || 1)) || 0);
+  return d === 0 && a.length > 0;
+}
+/* doPost { action: 'paraAlmaAviso', llave, issue }: el workflow avisa que se abrió o etiquetó un issue «para-alma». Sin la
+   llave del Hub, o con otra, no hace nada. Lee ese issue y lo procesa ya, con las mismas reglas (dueño, sin ediciones de
+   otros, una sola vez). Nunca devuelve la llave. */
+function paraAlmaAviso_(body) {
+  body = body || {};
+  var llave = paraAlmaAvisoLlave_(); if (!llave) return { ok: false, error: 'el Hub no tiene ' + PARA_ALMA_AVISO_PROP_ };
+  if (!paraAlmaLlaveIgual_(String(body.llave || ''), llave)) return { ok: false, error: 'llave incorrecta' };
+  var num = String(body.issue == null ? '' : body.issue).replace(/\D/g, ''); if (!num) return { ok: false, error: 'falta el número del issue' };
+  if (!paraAlmaTok_()) return { ok: false, error: 'el Hub no tiene GITHUB_TOKEN' };
+  var r = paraAlmaGh_('get', '/repos/' + PARA_ALMA_REPO_ + '/issues/' + num);
+  if (r.code !== 200 || !r.json) return { ok: false, error: 'GitHub respondió ' + (r.code || 'sin conexión') };
+  var i = r.json, et = (i.labels || []).map(function (l) { return String((l && l.name) || l); });
+  if (i.pull_request || i.state !== 'open' || et.indexOf(PARA_ALMA_ETIQUETA_) < 0 || et.indexOf(PARA_ALMA_ERROR_) >= 0) return { ok: true, procesado: false, nota: 'no es una instrucción abierta' };
+  var hecho = paraAlmaUno_(i, paraAlmaEstados_(), Date.now(), 0);
+  return { ok: true, procesado: !!hecho, issue: Number(num) };
 }

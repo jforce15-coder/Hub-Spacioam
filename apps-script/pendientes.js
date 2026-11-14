@@ -9,7 +9,7 @@
    no frenar la respuesta) o por pendAvisar_ (encargos, Claude, correos, entregas, programados).
    Algunos traen tarjeta (un vuelo: ruta, fecha, aerolínea, precio) y acciones («Comprar» abre la página; Juan paga ahí).
    Hoja ALMA_PENDIENTES. */
-var PEND_CAB_ = ['id', 'ts', 'email', 'tipo', 'area', 'proyecto', 'titulo', 'resumen', 'detalle', 'tarjeta', 'acciones', 'estado', 'origen', 'ret_id', 'importancia'];
+var PEND_CAB_ = ['id', 'ts', 'email', 'tipo', 'area', 'proyecto', 'titulo', 'resumen', 'detalle', 'tarjeta', 'acciones', 'estado', 'origen', 'ret_id', 'importancia', 'tema_id'];   // tema_id: temas.js (#526)
 var PEND_HORA_ = 3600000;
 var PEND_TIPOS_ = ['atencion', 'aviso', 'hecho'];
 
@@ -34,6 +34,7 @@ function pendEncolar_(adm, pedido, respuesta, canal, o) {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('PEND_COLA') || '[]'); } catch (e) {}
     var x = { email: adm.email, pedido: String(pedido || '').slice(0, 1500), respuesta: String(respuesta).slice(0, 3500), canal: canal || '', t: Date.now() };
     if (o && o.conf) x.conf = 1;   // lo pidió en una llamada del modo conferencia
+    try { var tm = temaActualId_(adm); if (tm) x.tema = tm; } catch (e) {}   // el tema del turno (temas.js)
     try { var ped = abrePedidosDe_(adm, o); if (ped.length) x.pedidos = ped; } catch (e) {}   // de qué pedidos es resultado (Alma abre, almaabre.js)
     cola.push(x);
     p.setProperty('PEND_COLA', JSON.stringify(cola.slice(-25)));
@@ -48,7 +49,7 @@ function pendProcesar_() {
     try {
       var c = pendClasificar_(x.pedido, x.respuesta, '');
       if (x.canal === 'segundo_plano' && c.tipo === 'nada') c.tipo = 'aviso';   // lo que pidió y terminó por detrás siempre deja su resultado
-      pendCrear_(adm, c, { origen: x.canal, detalle: x.respuesta, push: x.canal === 'segundo_plano', conf: !!x.conf, pedidos: x.pedidos || [] });
+      pendCrear_(adm, c, { origen: x.canal, detalle: x.respuesta, push: x.canal === 'segundo_plano', conf: !!x.conf, pedidos: x.pedidos || [], tema: x.tema || '' });
     }
     catch (e) { console.error('pendProcesar_: ' + e); }
   });
@@ -63,7 +64,8 @@ function pendAvisar_(adm, texto, o) {
     var c = o.clasif || pendClasificar_(o.pedido || '', texto, o.fallo || '');
     if (o.tipo) c.tipo = o.tipo; if (o.area) c.area = o.area; if (o.proyecto) c.proyecto = o.proyecto;
     if (c.tipo === 'nada') c.tipo = 'aviso';
-    pendCrear_(adm, c, { origen: o.origen || '', detalle: texto, push: o.push !== false, pedidos: o.pedidos || [] });
+    var tema = o.tema || ''; if (!tema) { try { tema = temaActualId_(adm); } catch (e) {} }
+    pendCrear_(adm, c, { origen: o.origen || '', detalle: texto, push: o.push !== false, pedidos: o.pedidos || [], tema: tema });
     return true;
   } catch (e) { console.error('pendAvisar_: ' + e); return false; }
 }
@@ -111,7 +113,9 @@ function pendCrear_(adm, c, o) {
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
     titulo: tituloCorto_(c.titulo, 100), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
-    tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2 };
+    tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2, tema_id: o.tema || '' };
+  /* Lo que espera a Juan es un tema (temas.js): el del turno o uno propio que se cierra cuando la tarjeta se resuelve. */
+  if (c.tipo === 'atencion' && !fila.tema_id) { try { fila.tema_id = temaCrear_(adm, { tipo: 'pendiente', titulo: fila.titulo, origen: 'pendiente', origen_id: fila.id, ultimo_paso: fila.resumen.slice(0, 200), espera: 'juan' }).id; } catch (e) { console.error('pendCrear_ tema: ' + e); } }
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
   try { hojaPend_().appendRow(PEND_CAB_.map(function (k) { return fila[k]; })); } finally { lock.releaseLock(); }
   /* Lo que no pide nada (Para leer, Listo hoy) también llega a la app como notificación de nivel 3 (calle.js), con el id
@@ -127,12 +131,14 @@ function pendVivo_(x, ahora) {
   if (String(x.estado) !== 'abierto') return false;
   return x.tipo === 'atencion' ? ahora - x.ts < 30 * 86400000 : ahora - x.ts < PEND_HORA_;
 }
-function pendResolver_(ses, id) {
+/* o.sinTema: la tarjeta se cierra porque Juan respondió (el tema sigue: responder no es el resultado). */
+function pendResolver_(ses, id, o) {
   if (!paraClaudePrincipalSes_(ses)) return { ok: false, error: 'Solo el administrador principal.' };
   if (/^vg:/.test(String(id))) return vigDejarApi_(ses, String(id).slice(3));   // «Dejar de vigilar» en la tarjeta (vigilancias.js)
   var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; if (!x) return { ok: false, error: 'no existe' };
   hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto');
   if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
+  if (!(o && o.sinTema)) { try { temaTarjetaResuelta_(x); } catch (e) { console.error('temaTarjetaResuelta_: ' + e); } }   // el tema que nació de la tarjeta (temas.js)
   return { ok: true };
 }
 /* Cierra una tarjeta sin sesión (lo hace Alma sola, p. ej. una pregunta del chat que ya se respondió: chat.js). */
@@ -140,6 +146,7 @@ function pendCerrar_(id) {
   var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; if (!x || String(x.estado) !== 'abierto') return false;
   hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto');
   if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
+  try { temaTarjetaResuelta_(x); } catch (e) { console.error('temaTarjetaResuelta_: ' + e); }
   return true;
 }
 function pendAbierto_(id) { var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; return !!x && pendVivo_(x, Date.now()); }
@@ -225,17 +232,18 @@ function pendResponder_(ses, b) {
     /* Un borrador para Claude sin enviar (chat.js): «Mándalo», «Agregar algo» o «No lo envíes» desde la tarjeta. */
     if (x.origen === 'claude_borrador') {
       var rb = chatBorradorTurno_(adm, null, texto, canal, { desdeTarjeta: true });
-      if (rb) { try { pendResolver_(ses, id); } catch (e) {} return { ok: true, a: 'alma', respuesta: rb.alma && rb.alma.texto || '' }; }
+      if (rb) { try { pendResolver_(ses, id, { sinTema: true }); } catch (e) {} return { ok: true, a: 'alma', respuesta: rb.alma && rb.alma.texto || '' }; }
     }
     /* Una pregunta sin responder del chat (chat.js): es la respuesta a esa pregunta, en el mismo chat. */
     var nota = x.origen === 'pregunta'
       ? 'Juan responde desde Pendientes a la pregunta que le dejaste en este chat: «' + String(x.detalle || x.titulo).slice(0, 1500) + '»\nAtiende su respuesta como respuesta a esa pregunta.'
       : 'Juan responde desde Pendientes a esta tarjeta tuya: «' + x.titulo + '». ' + (x.resumen || '') + (x.detalle ? '\nLo que habías dicho: ' + String(x.detalle).slice(0, 1500) : '') +
         '\nAtiende su respuesta como siguiente paso de ese tema.';
+    if (x.tema_id) { try { nota += temaNotaTarjeta_(String(x.tema_id)); } catch (e) {} }   // un pedido de socio: escribirle y cerrar al resolverse (temas.js)
     /* Pendientes vive en la app de Alma: su respuesta entra a su Chat con Alma con canal «app» (el Hub puede mandar «hub»). */
-    var r = opProcesar_(adm, texto, canal, [], nota);
+    var r = opProcesar_(adm, texto, canal, [], nota, x.tema_id ? { tema: String(x.tema_id), por: 'tarjeta' } : null);
     if (!r.ok) return r;
-    try { pendResolver_(ses, id); } catch (e) {}
+    try { pendResolver_(ses, id, { sinTema: true }); } catch (e) {}
     var out = { ok: true, a: 'alma', respuesta: r.alma && r.alma.texto || '' };
     if (r.conversar) out.conversar = true;
     if (r.seguira) out.seguira = true;

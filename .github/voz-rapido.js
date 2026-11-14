@@ -79,7 +79,7 @@ function caja(o) {
     vozSeguirGuardar_: () => 'seg-1', imgBloque_: () => null
   };
   vm.createContext(ctx);
-  ['promptjson.js', 'recetas.js', 'escalar.js', 'agente.js', 'rapido.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
+  ['promptjson.js', 'recetas.js', 'escalar.js', 'agente.js', 'rapido.js', 'temas.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   /* Después de cargar: estas viven en los archivos cargados y aquí van de mentira. */
   Object.assign(ctx, { recetaIntentar_: () => null, recetaAprender_: () => {}, secretariaPrompt_: () => '═══ ALMA ═══\nEres Alma, del equipo de Spacio AM.' });
   /* agEjecutar_ de mentira: lee sin tocar nada y cuenta lo que corre. Una de escribir deja una «hecha» (no debe correr en el rápido). */

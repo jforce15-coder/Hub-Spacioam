@@ -199,3 +199,7 @@ jobs:
         # 14-nov: el Hub gastaba 7 000–12 000 llamadas al día y «Huéspedes» (lo automático de procesarCola) era el 65–70 %,
         # casi plano de madrugada. Ahora cada llamada dice qué función la hizo y lo que se repetía sin necesidad se espacia.
         run: node .github/cupo-ahorro.js apps-script
+      - name: WhatsApp a socios, el número sale de Mi, fuera de 24 h siempre plantilla, «listo» solo con el estado de Meta y si escriben se les contesta (dobles)
+        # 13-nov: Juan pidió escribirle a dos socios; Alma no encontró sus números (le preguntó por el apartamento vecino),
+        # dijo que ya estaba sin confirmación (no salió nada) y un socio que escribe a veces se queda sin respuesta.
+        run: node .github/socios-whatsapp.js apps-script

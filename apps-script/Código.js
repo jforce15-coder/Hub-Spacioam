@@ -4377,7 +4377,10 @@ function waWebhook_(body) {
 function waEntrante_(m, nombre) {
   const wa = s_(m.from).replace(/\D/g, ''); if (!wa || !m.id) return;
   const cache = CacheService.getScriptCache(); if (cache.get('wa_' + m.id)) return; cache.put('wa_' + m.id, '1', 21600);
-  try { waPendienteSoltar_(wa); } catch (e) { console.error('waPendienteSoltar_: ' + e); }   // respondió a la plantilla de primer contacto (contacto.js)
+  /* Respondió a la plantilla de primer contacto: sale el mensaje guardado. Con lo que escribió, para que, si pide algo, su
+     mensaje siga siendo el turno que Alma contesta (contacto.js). */
+  const textoSoltar = m.type === 'text' ? s_(m.text && m.text.body) : m.type === 'button' ? s_(m.button && m.button.text) : '[' + s_(m.type) + ']';
+  try { waPendienteSoltar_(wa, { texto: textoSoltar, ts: m.timestamp ? new Date(Number(m.timestamp) * 1000).toISOString() : '' }); } catch (e) { console.error('waPendienteSoltar_: ' + e); }
   /* Un administrador responde con el código nuevo de una extensión (codigoextension.js): va al huésped, no a un caso. */
   try { if (extensionWaEntrante_(m, wa)) return; } catch (e) { console.error('extensionWaEntrante_: ' + e); }
   /* El responsable toca un botón de una decisión del equipo (A/B/C, Deshacer, Editar en el Hub) o escribe otra respuesta (decisiones.js). */
@@ -4420,7 +4423,8 @@ function waEntrante_(m, nombre) {
   /* WA_PRUEBA: números del equipo que ALMA trata como cliente, para probar el flujo completo. */
   const esJuan = !prueba && fin8_(CFG.WHATSAPP_JUAN) === fin8_(wa);
   const esEquipo = !prueba && !esJuan && W.equipo.some(x => fin8_(x) === fin8_(wa));
-  const esSocio = !prueba && !esJuan && !esEquipo && waPropietarios_().some(x => fin8_(x) === fin8_(wa));
+  /* Socio también si su ficha de contacto lo dice o Mi lo conoce (socios.js): así le contesta con las reglas de asociado. */
+  const esSocio = !prueba && !esJuan && !esEquipo && (waPropietarios_().some(x => fin8_(x) === fin8_(wa)) || (() => { try { return !!socioSeguro_(wa); } catch (e) { return false; } })());
   const actor = esJuan ? 'juan' : esEquipo ? 'equipo' : esSocio ? 'propietario' : 'externo';
   vSet_('waactor_' + fin8_(wa), actor);
   const res = actor !== 'externo' ? null : waReserva_(wa);
@@ -5154,7 +5158,8 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   /* Hay un borrador para Claude esperando su sí y este mensaje lo responde («mándalo», «agrégale…», «no lo envíes»):
      se resuelve aquí, sin la IA, en cualquier canal (chat.js). */
   try { const bc = chatBorradorTurno_(adm, yo, texto, canal); if (bc) return bc; } catch (e) { console.error('chatBorradorTurno_: ' + e); }
-  const notaT = [nota, opNotaNumeros_(texto)].filter(Boolean).join('\n');
+  let notaSoc = ''; try { notaSoc = socioDatosEnMensaje_(adm, texto); } catch (e) { console.error('socioDatosEnMensaje_: ' + e); }   // números de socios: a su ficha al llegar (sociosmi.js)
+  const notaT = [nota, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
   const pedido = notaT ? notaT + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
   try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); }

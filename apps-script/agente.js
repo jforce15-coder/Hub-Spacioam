@@ -25,7 +25,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· Lo que una herramienta te devolvió en esta conversación es real: no digas después que lo inventaste. Si dudas, vuelve a consultar.' +
   '\n· Si ver_imagenes existe en tus herramientas, sí puedes ver las fotos de una conversación: úsala.' +
   '\n· No envíes dos veces el mismo mensaje al mismo destinatario; si ya salió, dilo.' +
-  '\n· Antes de decir que no hay registro de alguien, revisa LO QUE PEDISTE Y SIGUE ABIERTO, usa buscar_contacto (proveedores, técnicos, socios) y, si te dan un número, ver_conversacion con ese número.' +
+  '\n· Antes de decir que no hay registro de alguien o pedir su número, revisa LO QUE PEDISTE Y SIGUE ABIERTO y usa buscar_contacto («socio de <apto>» trae el número de Mi o el que Juan ya dio). «Listo» solo con entrega enviado, entregado o leído; «¿le llegó?»: buscar_contacto y repite su estado.' +
   '\n· Cuando le escribas a alguien que no es huésped, en el texto del pedido incluye quién es para la empresa (socio de qué, proveedor de qué): así queda bien clasificado.' +
   '\n· Solo pregunta cuando de verdad falta un dato que ninguna herramienta te da, y entonces una sola pregunta concreta.' +
   '\n· No preguntes el canal para un huésped: por defecto se le escribe en la conversación de su reserva (Airbnb, Booking o la plataforma que sea) con enviar_a_huesped. WhatsApp solo si el administrador lo pide o si el huésped te está escribiendo por WhatsApp.' +
@@ -163,8 +163,8 @@ function agHerramientas_() {
     T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Para mostrar el borrador: borrador = true. Con el sí de Juan: confirmado = true (una consulta sale solo así).',
       { codigo: s('Código de reserva o conv_id, si lo tienes'), huesped: s('Sin código: nombre del huésped tal cual lo dijo (no hace falta buscar antes)'), propiedad: s('Sin código: propiedad y apartamento («Ignacio 1105»). Si hay más de una reserva posible no se envía y vuelven las opciones: pregunta cuál'),
         texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), borrador: { type: 'boolean', description: 'true = guarda el borrador con su reserva; no sale' }, confirmado: CAL_SI_ }, ['texto', 'canal']),
-    T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre.',
-      { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), propiedad: s('Opcional: apartamento del socio, si no ha escrito en 24 h'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
+    T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre o «socio de <apto>».',
+      { persona: s('Nombre de la persona del equipo o del contacto (ej. «Recepción Ignacio»)'), propiedad: s('Opcional: apartamento del socio'), numero: s('Opcional: número de WhatsApp con código de país, para contactos que no están en el equipo'), texto: s('Mensaje concreto y completo'), al_responder: s('Opcional: qué debes hacer cuando responda (con todos los datos). Queda como encargo pendiente.') }, ['persona', 'texto']),
     T('ruta_del_dia', 'Ruta / programación de Epi de un día: qué propiedades tiene asignadas cada técnico (o uno en particular), con hora, tipo y orden.',
       { fecha: s('YYYY-MM-DD; por defecto hoy'), persona: s('Opcional: nombre del técnico') }),
     T('tareas_abiertas', 'Lista las tareas abiertas del equipo (Hub/Epi).', {}),
@@ -469,9 +469,15 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!fichas.length && normTel_(inp.texto) && String(inp.texto).replace(/\D/g, '').length >= 8) { try { var nueva = contactoClasificar_(normTel_(inp.texto), '', true); if (nueva) fichas = [nueva]; } catch (e) {} }
       /* También quien le escribió a Alma o le contestó en 30 días (relevo.js): un contacto personal no tiene ficha (4-nov, Gustavo Peña). */
       var recientes = []; try { recientes = contactoRecientes_(inp.texto, 30).filter(function (r) { return !fichas.some(function (o) { return fin8_(o.tel) === fin8_(r.numero); }); }); } catch (e) { console.error('contactoRecientes_: ' + e); }
-      if (!fichas.length && !recientes.length) return { error: 'No tengo ficha de «' + inp.texto + '» ni le he escrito en los últimos 30 días. Si tienes su número, búscalo con el número.' };
-      return { recientes: recientes.length ? recientes : undefined, contactos: fichas.slice(0, 3).map(function (o, i) {
-        var r = { nombre: o.nombre, numero: '+' + o.tel, tipo: CONTACTO_TIPOS_[o.tipo] || o.tipo, rol: o.rol, empresa: o.empresa, propiedades: o.propiedades, estado: o.estado, resumen: o.resumen, actualizado: String(o.actualizado).slice(0, 10), entrega_ultimo_mensaje: waEntregaTexto_(o.tel) };
+      /* «el socio de Narama 633» o solo «Narama 633»: quién es según Mi y su número (sociosmi.js). */
+      var sB = null; try { sB = socioDelApartamento_(inp.texto); } catch (e) { console.error('socioDelApartamento_: ' + e); }
+      /* Con su número, lo que de verdad pasó por WhatsApp: «¿le llegó?», «¿le mandamos el mensaje al socio de…?» (entrega.js). */
+      var sociosB = sB && sB.socios ? sB.socios.map(function (x) { var st = null; if (x.tel) { try { st = waEstadoContacto_(x.tel); } catch (e) {} }
+        return { nombre: x.nombre || x.email, numero: x.tel ? '+' + x.tel : 'sin número (pídeselo a Juan una vez y va en numero con propiedad)', de_donde: x.fuente || 'Mi (sin teléfono)', propiedad: sB.propiedad, whatsapp: st ? st.resumen : undefined }; }) : sB && sB.opciones ? [{ opciones: sB.opciones }] : undefined;
+      if (!fichas.length && !recientes.length && !sociosB) return { error: 'No tengo ficha de «' + inp.texto + '» ni le he escrito en los últimos 30 días. Si tienes su número, búscalo con el número.' };
+      return { socios_del_apartamento: sociosB, recientes: recientes.length ? recientes : undefined, contactos: fichas.slice(0, 3).map(function (o, i) {
+        var st = null; if (i === 0) { try { st = waEstadoContacto_(o.tel); } catch (e) {} }   // el estado real de lo último que se le mandó (entrega.js)
+        var r = { nombre: o.nombre, numero: '+' + o.tel, tipo: CONTACTO_TIPOS_[o.tipo] || o.tipo, rol: o.rol, empresa: o.empresa, propiedades: o.propiedades, estado: o.estado, resumen: o.resumen, actualizado: String(o.actualizado).slice(0, 10), entrega_ultimo_mensaje: st ? st.resumen : waEntregaTexto_(o.tel) };
         if (i === 0) r.historial = contactoHistorial_(o.tel, 40).map(function (m) { return m.ts.slice(0, 16).replace('T', ' ') + ' · ' + m.de + ': ' + m.texto.replace(/\s+/g, ' ').slice(0, 300); });
         return r;
       }) };
@@ -546,20 +552,33 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       adminsOp_().forEach(function (a) { personas.push({ nombre: a.nombre, tel: a.tels[0] || '' }); });
       try { ctx.cfg().vendors.forEach(function (v) { personas.push({ nombre: vendNombre_(v), tel: String(v.phone || v.telefono || '') }); }); } catch (e) {}
       try { escalamiento_().forEach(function (p) { personas.push({ nombre: p.nombre, tel: p.telefono }); }); } catch (e) {}
-      var p = agPersona_(inp.persona, ctx);
+      /* «Al socio de Narama 633»: primero el socio que Mi tiene para ese apartamento (sociosmi.js); el parecido de nombres
+         llevaba a otro apartamento del edificio y el número se le pedía a Juan aunque ya lo había dado (13-nov). */
+      var sA = normTel_(inp.numero || '') ? null : agSocio_(inp.persona, inp.propiedad);
+      if (sA && sA.error) return { error: sA.error };
+      var p = sA ? { nombre: sA.nombre, tel: sA.tel } : agPersona_(inp.persona, ctx);
+      if (!p && !sA && inp.propiedad && !normTel_(inp.numero || '')) { sA = agSocio_('socio de ' + inp.propiedad, ''); if (sA && sA.error) return { error: sA.error }; if (sA) p = { nombre: sA.nombre, tel: sA.tel }; }   // solo el nombre + su apartamento
+      if (sA && !inp.propiedad) inp.propiedad = sA.propiedad;
       if (normTel_(inp.numero || '')) p = { nombre: (p && p.nombre) || String(inp.persona || 'Contacto'), tel: normTel_(inp.numero) };
       if (!p) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp. Si es un contacto de trabajo (recepción, proveedor), pídele el número al administrador y vuelve a llamar con numero.' };
+      /* Juan dio el número de un socio: queda en su ficha (socio de ese apartamento) aunque el mensaje no salga. */
+      if (normTel_(inp.numero || '') && inp.propiedad && SOCIO_MI_PALABRAS_.test(String(inp.persona || '') + ' ' + String(inp.texto || '').slice(0, 200))) { try { socioGuardarFicha_(inp.numero, String(inp.persona || '').replace(SOCIO_MI_PALABRAS_, '').replace(/\b(de|del)\b.*$/i, '').replace(/[,;·\s-]+$/, '').trim(), inp.propiedad, 'lo dio ' + ((adm && adm.nombre) || 'el administrador')); } catch (e) { console.error('socioGuardarFicha_: ' + e); } }
       var bS = socioSoloPrincipal_(adm, p.tel); if (bS) return { error: bS };   // a un socio solo le escribe el administrador principal (socios.js)
       var cE = CacheService.getScriptCache(), kE = 'agwa_' + fin8_(p.tel);
-      if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí.' };
+      if (cE.get(kE)) return { ok: true, enviado_a: p.nombre, nota: 'Ya le había escrito hace menos de 3 minutos; no lo repetí. Para saber si salió, usa buscar_contacto.' };
       cE.put(kE, '1', 180);
       var rw = waEnviarAlguien_(p.tel, String(inp.texto), { nombre: p.nombre, de: (adm && adm.nombre) || 'Spacio AM', propiedad: inp.propiedad || '' }), ok = !!rw.ok;
       if (!ok) cE.remove(kE);
-      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + String(inp.texto).slice(0, 80), error: ok ? '' : (rw.error || 'no salió') });
-      if (ok) { try { contactoAsegurar_(p.tel); relevoAtender_(p.tel); } catch (e) {} }
-      if (ok) { try { contactoEncolar_(p.tel, 'Pedido de ' + ((adm && adm.nombre) || 'un administrador') + ' sobre ' + p.nombre + ': ' + String(inp.texto).slice(0, 600) + (inp.al_responder ? ' · Cuando responda: ' + String(inp.al_responder).slice(0, 400) : '')); } catch (e) {} }
-      if (ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
-      return ok ? { ok: true, enviado_a: p.nombre, nota: rw.modo === 'plantilla' ? 'No había escrito en 24 h: se envió ' + (rw.socio ? 'la plantilla para socios' : 'el aviso de primer contacto') + ' pidiéndole que responda; el mensaje completo sale en cuanto responda. Meta confirma la entrega después: no digas que le llegó hasta verlo como ENTREGADO.' : 'Enviado a WhatsApp (Meta confirma la entrega después).' } : { error: 'No se pudo enviar: ' + (rw.error || '') };
+      /* Confirmación real de Meta antes de decir «listo» (entrega.js). */
+      var cf = ok ? waConfirmacion_(rw, waEntregaEsperar_(p.tel, rw.id), p.nombre) : null;
+      if (cf && cf.entrega === 'sin confirmación') waVigilarAnotar_(p.tel, rw.id, p.nombre, adm);
+      if (cf && !cf.ok) ok = false;
+      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + (cf ? cf.entrega + ' · ' : '') + String(inp.texto).slice(0, 80), error: ok ? '' : ((cf && cf.error) || rw.error || 'no salió') });
+      if (rw.ok) { try { contactoAsegurar_(p.tel); relevoAtender_(p.tel); } catch (e) {} }
+      if (rw.ok) { try { contactoEncolar_(p.tel, 'Pedido de ' + ((adm && adm.nombre) || 'un administrador') + ' sobre ' + p.nombre + ': ' + String(inp.texto).slice(0, 600) + (inp.al_responder ? ' · Cuando responda: ' + String(inp.al_responder).slice(0, 400) : '')); } catch (e) {} }
+      if (rw.ok && inp.al_responder) { encargoCrear_(adm, p.nombre, normTel_(p.tel), 'ESPERA SU RESPUESTA. Le escribiste: «' + String(inp.texto).slice(0, 600) + '». Cuando responda: ' + String(inp.al_responder)); ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · esperar respuesta de ' + p.nombre }); }
+      if (!rw.ok) return { error: 'NO SE ENVIÓ: ' + (rw.error || '') };
+      return Object.assign({ enviado_a: p.nombre, socio_de: sA ? sA.propiedad : undefined, numero_de: sA ? sA.fuente : undefined, aviso: rw.aviso }, cf);
     }
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
@@ -610,10 +629,13 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!pe) return { error: 'No encontré a «' + inp.persona + '» con un número de WhatsApp.' };
       var bSE = socioSoloPrincipal_(adm, pe.tel); if (bSE) return { error: bSE };
       var rwE = waEnviarAlguien_(pe.tel, String(inp.mensaje), { nombre: pe.nombre, de: (adm && adm.nombre) || 'Spacio AM' }), okE = !!rwE.ok;
+      var cfE = okE ? waConfirmacion_(rwE, waEntregaEsperar_(pe.tel, rwE.id), pe.nombre) : null;   // confirmación real de Meta (entrega.js)
+      if (cfE && cfE.entrega === 'sin confirmación') waVigilarAnotar_(pe.tel, rwE.id, pe.nombre, adm);
+      if (cfE && !cfE.ok) { okE = false; rwE = { error: cfE.error }; }
       var idE = encargoCrear_(adm, pe.nombre, normTel_(pe.tel), String(inp.objetivo));
       try { contactoEncolar_(pe.tel, 'Encargo de ' + ((adm && adm.nombre) || 'un administrador') + ' con ' + pe.nombre + ': ' + String(inp.objetivo).slice(0, 800)); } catch (e) {}
       ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo · ' + pe.nombre + ' · ' + String(inp.objetivo).slice(0, 80), error: okE ? '' : (rwE.error || 'el WhatsApp no salió') });
-      return { ok: okE, encargo: idE, persona: pe.nombre, nota: !okE ? 'Guardé el encargo pero el WhatsApp no salió: ' + (rwE.error || '') : rwE.modo === 'plantilla' ? 'No había escrito al número de ALMA en 24 h: se le envió el aviso de primer contacto (Meta confirma la entrega después); en cuanto responda le envío tu mensaje y sigo con el encargo.' : 'Mensaje enviado. Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.' };
+      return { ok: okE, encargo: idE, persona: pe.nombre, entrega: cfE ? cfE.entrega : undefined, nota: !okE ? 'Guardé el encargo pero el WhatsApp NO salió: ' + (rwE.error || '') : (cfE && cfE.entrega === 'sin confirmación' ? cfE.nota + ' ' : '') + (rwE.modo === 'plantilla' ? 'No había escrito al número de ALMA en 24 h: se le envió la plantilla de primer contacto; en cuanto responda le envío tu mensaje y sigo con el encargo.' : 'Cuando llame, cumplo el objetivo y te mando el resumen por WhatsApp.') };
     }
     case 'cerrar_encargo': {
       var rE = encargoCerrar_(String(inp.id), String(inp.resultado || ''), adm);
@@ -669,7 +691,8 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rp.ok ? { ok: true, nota: rp.modo === 'plantilla' ? 'No había escrito en 24 h: le llegó «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?». En cuanto responda le envío el mensaje' + (inp.objetivo ? ', converso con ella hasta tener todo y te mando el resumen.' : ', y lo que conteste te llega.') : 'Mensaje entregado a WhatsApp. ' + (inp.objetivo ? 'Converso con ella hasta tener todo y te mando el resumen.' : 'Lo que conteste te llega.') } : { error: rp.error };
     }
     case 'programar_mensaje': {
-      var pp = inp.numero ? null : (agPersona_(inp.persona || '', ctx) || (inp.persona ? personalPorNombre_(inp.persona) : null));
+      var sP = inp.numero ? null : agSocio_(inp.persona); if (sP && sP.error) return sP;   // «al socio de Narama 633»
+      var pp = inp.numero ? null : sP || (agPersona_(inp.persona || '', ctx) || (inp.persona ? personalPorNombre_(inp.persona) : null));
       var telP = normTel_(inp.numero || (pp && (pp.tel || pp.wa)) || '');
       if (!telP) return { error: 'No encontré el número de ' + (inp.persona || 'esa persona') + '. Pídeselo al administrador (con código de país).' };
       var bSP = socioSoloPrincipal_(adm, telP); if (bSP) return { error: bSP };
@@ -917,6 +940,8 @@ function epiSnap_(forzar) {
 }
 function epiSnapSiToca_() { var c = CacheService.getScriptCache(); if (c.get('episnap_t')) return; c.put('episnap_t', '1', 600); try { epiSnap_(true); } catch (e) { console.error('epiSnapSiToca_: ' + e); } }
 
+/* «El socio de Narama 633»: { nombre, tel, propiedad, fuente } o { error } desde Mi (sociosmi.js); null si no aplica. */
+function agSocio_(persona, propiedad) { try { return socioParaEscribir_(persona || '', propiedad || ''); } catch (e) { console.error('socioParaEscribir_: ' + e); return null; } }
 /* Persona del equipo por nombre (administradores, técnicos de Epi, escalamiento). */
 function agPersona_(nombre, ctx) {
   var personas = [];
@@ -931,6 +956,9 @@ function agPersona_(nombre, ctx) {
   try { (accesosPorRol_().socios || []).forEach(function (o) { if (o.nombre) personas.push({ nombre: o.nombre + ' (socio' + (o.propiedad ? ' · ' + o.propiedad : '') + ')', tel: o.tel }); }); } catch (e) {}
   var m = opMatch_(nombre, personas.map(function (p) { return p.nombre; }));
   if (!m) { var b = bqMejor_(nombre, personas.map(function (p) { return p.nombre; })); if (b) m = b; }
+  /* «el socio de Narama 633» nunca es el socio de Narama 623: si los dos nombran un apartamento, el número manda (13-nov). */
+  var nq = String(nombre || '').match(/\b\d{3,4}\b/g) || [], nm = String(m || '').match(/\b\d{3,4}\b/g) || [];
+  if (m && nq.length && nm.length && !nq.some(function (x) { return nm.indexOf(x) >= 0; })) m = '';
   return personas.filter(function (x) { return x.nombre === m && normTel_(x.tel); })[0] || null;
 }
 
@@ -961,6 +989,9 @@ function encargoInstruccion_(e) {
 }
 function encargoCerrarConLlamada_(tel, d, resumen) {
   var e = encargoAbierto_(tel); if (!e) return;
+  /* Un encargo con el mismo administrador que lo pidió («pídeme el número por WhatsApp») se cumple cuando él responde
+     en su chat, no con cualquier llamada suya: el 13-nov una llamada lo cerró y el mensaje al socio nunca salió. */
+  if (fin8_(e.solicitante_tel) && fin8_(e.solicitante_tel) === fin8_(tel)) return;
   var lineas = (d.transcript || []).map(function (m) { return (m.role === 'agent' ? 'ALMA' : e.persona) + ': ' + s_(m.message); }).filter(function (x) { return x.length > 6; }).join('\n').slice(-12000);
   if (!lineas) return;
   var res = String(claude_(CFG.MODELO_REDACTOR, 700, 'Resumes para un administrador de Spacio AM una llamada que ALMA tuvo por encargo suyo. Español, directo, para leer en WhatsApp: 1) si se cumplió el objetivo, 2) lo importante que dijo la persona (respuestas, datos, compromisos), 3) pendientes o siguientes pasos. Sin markdown, máximo 12 líneas.',
@@ -1003,7 +1034,14 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   /* Datos de hecho de su mensaje («es el 1203»): se anotan solos y el aviso va en el próximo mensaje al administrador (datoshecho.js). */
   var dh = datosHechoDeRespuesta_(wa, quien, texto, adm), dhTxt = dh.length ? '\n\n' + dh.join('\n') : '';
   var avisar = function (t, res) { if (dhTxt) { t += dhTxt; dhTxt = ''; } if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { var rv = waEnviar_(d, t); if (rv && rv.ok) relevoGuardar_(rv.id, d, { wa: wa, nombre: quien, pedido: obj, tipo: 'encargo', texto: t }); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
-  if (!out || (out.respuesta == null && !out.completo)) { avisar(quien + ' respondió a tu encargo:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return; }
+  if (!out || (out.respuesta == null && !out.completo)) {
+    var acuse = encargoRespuestaFalta_(texto, { para_admin: 'sí' }, quien, de);   // a la persona, al menos un «lo consulto y te confirmo»
+    if (acuse) { var wA = waEnviar_(wa, acuse); if (wA && wA.ok) contactoRegistrar_(wa, quien, acuse); }
+    avisar(quien + ' respondió a tu encargo:\n\n' + texto + '\n\n(No pude seguir la conversación sola; dime qué le contesto.)', 'Respuesta de ' + quien); return;
+  }
+  /* Escribió algo de verdad y el modelo no le contestó (el 4-nov un socio confirmó la hora y no recibió ni un gracias):
+     nunca se queda sin respuesta; lo que debe decidir el administrador va aparte (encargoRespuestaFalta_). */
+  if (!String(out.respuesta || '').trim()) out.respuesta = encargoRespuestaFalta_(texto, out, quien, de);
   if (String(out.respuesta || '').trim()) { var w = waEnviar_(wa, String(out.respuesta).trim()); if (w && w.ok) contactoRegistrar_(wa, quien, String(out.respuesta).trim()); }
   /* Si con este mensaje el encargo ya terminó, la pregunta va dentro del resumen final: un solo WhatsApp, no dos. */
   if (String(out.para_admin || '').trim() && !out.completo) avisar(quien + ' pregunta algo que debes decidir tú:\n\n' + String(out.para_admin).trim() + '\n\n(Dime qué le respondo.)', 'Consulta de ' + quien);
@@ -1017,6 +1055,15 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   if (despues && adm.tels && adm.tels[0]) { try { vozSecEncolar_(adm.tels[0], 'Terminé la conversación con ' + quien + ' (+' + normTel_(wa) + '). Esto es lo que reunió:\n' + res + '\n\nAhora haz lo que falte del encargo (lo que me pediste para después: tareas, reportes, asignaciones). No vuelvas a escribirle a ' + quien + '. Encargo: ' + despues); } catch (x) { console.error('encargo después: ' + x); } }
 }
 
+/* La respuesta mínima cuando el modelo no escribió nada: '' si su mensaje es solo un saludo o acuse («hola», «ok»). */
+function encargoRespuestaFalta_(texto, out, quien, de) {
+  if (esAcuseCorto_(texto) || esRespuestaAutomatica_(texto)) return '';
+  var en = idiomaDe_(texto) === 'en', n = String(quien || '').replace(/\(.*?\)/g, '').trim().split(/\s+/)[0], nom = /^[+\d]/.test(n) ? '' : n;
+  out = out || {};
+  if (out.completo) return en ? 'Thank you' + (nom ? ', ' + nom : '') + '! That is all I needed.' : '¡Gracias' + (nom ? ', ' + nom : '') + '! Con esto tengo lo que necesitaba.';
+  if (String(out.para_admin || '').trim()) return en ? 'Thank you' + (nom ? ', ' + nom : '') + '. I will check with ' + de + ' and get back to you here.' : 'Gracias' + (nom ? ', ' + nom : '') + '. Lo consulto con ' + de + ' y te confirmo por aquí.';
+  return en ? 'Thank you' + (nom ? ', ' + nom : '') + ', noted. I will get back to you here.' : 'Gracias' + (nom ? ', ' + nom : '') + ', anotado. Te confirmo por aquí.';
+}
 /* Encargos abiertos donde esta persona es a quien se le pidió algo (por sus teléfonos). */
 /* Las filas de ALMA_ENCARGOS (sin cabecera). Al armar un turno se leen una sola vez y se pasan a encargosTexto_ y
    encargosPedidosTexto_ (antes cada una leía la hoja completa: #498 T1). */

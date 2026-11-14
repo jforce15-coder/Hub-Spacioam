@@ -44,6 +44,10 @@ jobs:
           fi
           echo "Bien."
 
+      - name: La hoja de Mi es privada, nadie la lee por gviz ni por un CSV público
+        # 14-nov-2026: su id está en estos repos públicos; mientras se leía por gviz tenía que estar abierta a cualquiera.
+        run: node .github/hoja-mi-privada.js .
+
       - name: Ninguna llave en el código
         run: |
           git fetch -q origin "$BASE"

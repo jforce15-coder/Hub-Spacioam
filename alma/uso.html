@@ -48,6 +48,7 @@
   .bar { display: grid; grid-template-columns: minmax(7rem, 11rem) 1fr 4.6rem; align-items: center; gap: 12px; font: 500 13px Montserrat, sans-serif; color: var(--tinta); }
   .bar span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bar .p { height: 10px; border-radius: 5px; background: var(--arena); overflow: hidden; } .bar .p i { display: block; height: 100%; border-radius: 5px; background: var(--durazno); }
+  .barras.ancha .bar { grid-template-columns: minmax(9rem, 18rem) 1fr 4.6rem; } .barras.ancha .bar span { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
   .bar em { font-style: normal; text-align: right; color: var(--suave); font-variant-numeric: tabular-nums; }
   .ia { background: var(--papel); border-radius: 24px; padding: 20px; box-shadow: 0 26px 56px -32px rgba(70,50,40,.34); }
   .ia .cifras { margin-top: 0; margin-bottom: 18px; }
@@ -72,7 +73,7 @@
   .calle .sal + .sal { border-top: 1px solid var(--linea); }
   .calle .sal b { font: 600 13.5px Montserrat, sans-serif; } .calle .sal b small { font-weight: 500; color: var(--suave); margin-left: 6px; }
   .calle .sal span { font: 500 12.5px/1.45 Montserrat, sans-serif; color: #5A5856; font-variant-numeric: tabular-nums; }
-  @media (max-width: 420px) { .bar { grid-template-columns: 6.6rem 1fr 4rem; font-size: 12.5px; } .cifra b { font-size: 30px; } .bateria .cuerpo { height: 74px; } .bateria .carga b { font-size: 28px; } }
+  @media (max-width: 420px) { .bar { grid-template-columns: 6.6rem 1fr 4rem; font-size: 12.5px; } .barras.ancha .bar { grid-template-columns: 11rem 1fr 3.6rem; } .cifra b { font-size: 30px; } .bateria .cuerpo { height: 74px; } .bateria .carga b { font-size: 28px; } }
 </style>
 </head>
 <body>
@@ -106,7 +107,7 @@
   function cifra(caja, valor, texto) { var c = el("div", "cifra"); c.appendChild(el("b", "", valor)); c.appendChild(el("span", "", texto)); caja.appendChild(c); }
   function barras(lista, valor, texto) {
     var caja = el("div", "barras"), max = Math.max.apply(null, lista.map(valor).concat([1]));
-    lista.forEach(function (x) { var b = el("div", "bar"); b.appendChild(el("span", "", x.canal || x.nombre)); var p = el("div", "p"), i = el("i"); i.style.width = Math.max(1.5, 100 * valor(x) / max) + "%"; p.appendChild(i); b.appendChild(p); b.appendChild(el("em", "", texto(x))); caja.appendChild(b); });
+    lista.forEach(function (x) { var b = el("div", "bar"), et = el("span", "", x.canal || x.nombre); et.title = x.canal || x.nombre; b.appendChild(et); var p = el("div", "p"), i = el("i"); i.style.width = Math.max(1.5, 100 * valor(x) / max) + "%"; p.appendChild(i); b.appendChild(p); b.appendChild(el("em", "", texto(x))); caja.appendChild(b); });
     if (!lista.length) caja.appendChild(el("p", "nota", "Todavía no hay datos de este periodo."));
     return caja;
   }
@@ -138,6 +139,13 @@
     C.appendChild(barras(lista, function (x) { return x.llamadas; }, function (x) { return es.format(x.llamadas); }));
     C.appendChild(el("p", "nota", "Llamadas a internet de toda la cuenta de Google: el Hub y Alma, y lo que gastan Hola, Epi, Grow, Docs y Mi por su lado («App …»). «Hola» y «Epi» solos son lo que el Hub les pide."));
     if (R.sinDatos && R.sinDatos.length) C.appendChild(el("p", "nota", "Sin datos de: " + R.sinDatos.join(", ") + ". No contestó; su gasto no está en la batería."));
+    /* Por función: qué parte del Hub hizo cada llamada (cupo.js, desde el 14-nov). Sirve para decidir qué recortar. */
+    var fn = ((R.funciones || {})[vista] || []).map(function (x) { return { nombre: x.canal + " · " + x.funcion, llamadas: x.llamadas }; });
+    if (R.funciones) {
+      C.appendChild(sec("Por función"));
+      var bf = barras(fn, function (x) { return x.llamadas; }, function (x) { return es.format(x.llamadas); }); bf.classList.add("ancha"); C.appendChild(bf);
+      C.appendChild(el("p", "nota", "El mismo gasto del Hub, por la parte que lo hizo: un paso de la revisión de cada minuto, el webhook de Hospitable, una acción del Hub («hub · …») o un activador. «otra» es lo que no dijo su nombre. Solo el Hub: las otras apps cuentan aparte."));
+    }
     /* IA */
     var ia = R.ia || {}, iv = ia[vista] || {};
     C.appendChild(sec(vista === "hoy" ? "IA de hoy" : "IA de 7 días"));

@@ -238,8 +238,33 @@ function promReserva_(convId, ahora) {
   var pre = {}; try { pre = preContexto_(convId) || {}; } catch (e) {}
   return { hoy: hoy, checkin: String(pre.checkin || '').slice(0, 10), checkout: String(pre.checkout || '').slice(0, 10), status: String(pre.status || ''), tipo: pre.tipo || (/^inq:/.test(convId) ? 'consulta' : '') };
 }
-function promHilo_(convId) {
-  try { var h = hiloConv_(convId); return h && h.code === 200 ? (h.hilo || []) : null; } catch (e) { console.error('promHilo_: ' + e); return null; }
+/* El hilo de la conversación. 14-nov (ahorro del cupo, cupo.js): si la bandeja dice que no se movió desde el último repaso
+   de sus promesas (con 10 min de margen), se usa la última copia de Hospitable (hiloGuardado_) sin ir a internet; las
+   vencidas se repasan cada 30 min y casi nunca cambian. Con cualquier mensaje nuevo, o sin copia, se lee como siempre.
+   CUPO_AHORRO = 0 lo apaga. */
+function promHilo_(convId, revisadaMs, actividadMs) {
+  try {
+    var sinCambios = revisadaMs > 0 && actividadMs > 0 && actividadMs < revisadaMs - PROM_MARGEN_MS_;
+    if (sinCambios && typeof hiloGuardado_ === 'function' && (typeof cupoAhorro_ !== 'function' || cupoAhorro_())) {
+      var g = hiloGuardado_(convId); if (g && g.code === 200) return g.hilo || [];
+    }
+    var h = hiloConv_(convId); return h && h.code === 200 ? (h.hilo || []) : null;
+  } catch (e) { console.error('promHilo_: ' + e); return null; }
+}
+var PROM_MARGEN_MS_ = 10 * 60000;   // Hospitable puede tardar en mostrar un mensaje por la API: la copia vale solo con margen
+/* Última actividad de cada conversación según la bandeja (mensaje del huésped, nuestro o automático): { conv_id: ms }. */
+function promActividad_() {
+  var out = {};
+  try {
+    var sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return out;
+    var cols = ['ultimo_ts', 'ultimo_auto_ts', 'ultimo_guest_ts', 'ultimo_host_ts'].map(function (k) { return INBOX_CAB_.indexOf(k); });
+    var ms = function (x) { return x instanceof Date ? x.getTime() : promTs_(x); };
+    sh.getRange(2, 1, sh.getLastRow() - 1, INBOX_CAB_.length).getValues().forEach(function (v) {
+      var t = Math.max.apply(null, cols.map(function (i) { return i >= 0 ? ms(v[i]) : 0; }));
+      if (v[0]) out[String(v[0])] = t;
+    });
+  } catch (e) { return {}; }
+  return out;
 }
 
 /* Repasa las promesas vivas: una lectura del hilo por conversación, las vencidas primero. o.todas: sin esperar los 30 min
@@ -254,10 +279,11 @@ function promesasRepasar_(o) {
     var ra = Math.min.apply(null, porConv[a].map(function (f) { return promTs_(f.revisada); })), rb = Math.min.apply(null, porConv[b].map(function (f) { return promTs_(f.revisada); }));
     return va - vb || ra - rb;
   });
-  var hechas = 0;
+  var hechas = 0, act = convs.length && typeof ssAlma_ === 'function' ? promActividad_() : {};
   convs.slice(0, o.max || PROM_REPASO_MAX_).forEach(function (c) {
     if (o.hasta && Date.now() > o.hasta) return;
-    var hilo = promHilo_(c), res = promReserva_(c, ahora); hechas++;
+    var rev = Math.min.apply(null, porConv[c].map(function (f) { return promTs_(f.revisada); }));
+    var hilo = promHilo_(c, rev, act[c] || 0), res = promReserva_(c, ahora); hechas++;
     porConv[c].sort(function (a, b) { return promTs_(a.creada) - promTs_(b.creada); }).forEach(function (f) {
       var r = promEvaluar_(f, d.filas, hilo || [], res, ahora);
       if (!hilo && r.estado === 'vencida' && !res.checkout) r = null;   // sin hilo ni fechas no se decide que falló: se reintenta

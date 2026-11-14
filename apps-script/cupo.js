@@ -266,6 +266,20 @@ function cupoUso_(ses) {
     nunca: 'Nunca se pausa: entrar, responder a huéspedes, documentos, Epi y las rutas de limpieza.',
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0' };
 }
+/* ── Para Alma (herramienta cupo_google, agente.js) ── «¿cómo estamos con los cupos de Google?» por voz o chat, solo el
+   principal. Lo mismo que «Uso» pero corto: nivel, % de las últimas 24 h, lo de hoy, la proyección y qué más gasta. */
+function cupoParaAlma_(adm) {
+  if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve el cupo de Google.' };
+  var ahora = Date.now(), desde = ahora - 24 * 3600000, horas = cupoLeer_(desde), sinDatos = cupoSumarApps_(horas, desde), o = cupoCalcular_(horas), m = {};
+  Object.keys(horas).forEach(function (t) { if (Number(t) >= o.hoyIni) Object.keys(horas[t]).forEach(function (k) { m[k] = (m[k] || 0) + horas[t][k]; }); });
+  var top = Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).slice(0, 3).map(function (k) { return { canal: k, llamadas: m[k] }; });
+  var NIV = { verde: 'bien: todo corre normal', fondo: 'en riesgo: lo de fondo (cerebro, mejoras y sincronizaciones) está en pausa', critico: 'crítico: lo de fondo en pausa; la voz y el chat de Alma siguen' };
+  return { ok: true, nivel: o.nivel, como_va: NIV[o.nivel], pct_24h: o.pct, usado_24h: o.usado24, limite_dia: o.limite, restante: o.restante,
+    hoy: { usado: o.usado, pct: o.pctHoy, proyeccion_fin_dia_pct: o.proyeccion, se_acaba_hoy_cerca_de: o.horaAgotado || '', alcanza: o.alcanza },
+    lo_que_mas_gasta_hoy: top, sin_datos_de: sinDatos,
+    pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0',
+    nota: 'Dilo simple: «vamos en X % del cupo de hoy, estamos bien / en riesgo» y, si preguntan, qué más gasta. El detalle está en Ajustes → Uso.' };
+}
 /* ── Las otras apps ── { horas: { inicio_ms: { 'App Hola': n, … } }, sinDatos: ['Grow', …] }. Cada app guarda 48 h.
    Cacheado 15 min (también si alguna no contestó: no se reintenta en cada llamada). */
 function cupoApps_() {

@@ -9,6 +9,8 @@
       id, nombre, paso, tipo, estado, desde y fin. Sin sesión de administrador, nada.
    5. Los ganchos: vozSecEncolar_ y vozSeguirGuardar_ lo anotan, el bucle del agente pone el paso, al terminar se cierra,
       la acción pedidosOrbita existe y cuenta en el canal «inicio».
+   7. El nombre es un título de 2 o 3 palabras (Juan, 14-nov-2026): lo escribe el modelo una vez por pedido (caché), máximo
+      3 nuevos por consulta; si no responde o responde algo largo, las primeras 3 palabras del pedido.
    6. La pantalla: las dos órbitas alrededor de la roca, el check que se va a los 8 s, el contador con el tablero abierto y
       prefers-reduced-motion (sin giro, sin pulso, anillos quietos).
    node .github/orbita.js [carpeta apps-script] */
@@ -23,7 +25,7 @@ const GABY = { email: 'gaby@x.com', nombre: 'Gabriel', principal: false, tels: [
 function caja() {
   const cache = {}; let ahora = Date.parse('2026-11-13T15:00:00Z');
   const D = class extends Date { constructor(...a) { super(...(a.length ? a : [ahora])); } static now() { return ahora; } };
-  const dobles = { escalar: [], micros: [] };
+  const dobles = { escalar: [], micros: [], titulos: [], llamadas: 0 };
   const ctx = {
     console: { log() {}, error() {}, warn() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN, Date: D,
     Utilities: { base64EncodeWebSafe: b => Buffer.from(b).toString('base64url'), computeDigest: (a, t) => Array.from(require('crypto').createHash('md5').update(String(t)).digest()), DigestAlgorithm: { MD5: 'md5' } },
@@ -31,6 +33,8 @@ function caja() {
     vozColaLock_: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }),
     esAdminPrincipal_: a => !!(a && a.principal),
     vozWebAdmin_: ses => (ses && ses.email === JUAN.email ? JUAN : ses && ses.email === GABY.email ? GABY : null),
+    CFG: { MODELO_CLASIFICADOR: 'modelo-rapido' },
+    claude_: (modelo, max, sys, user) => { dobles.llamadas++; const t = dobles.titulos.filter(x => x[0].test(user))[0]; return t ? t[1] : ''; },
     escalarEntregas_: () => dobles.escalar, microFilas_: () => dobles.micros,
     MICRO_ESTADOS_: { trabajo: 'en trabajo', pregunta: 'Claude pregunta', listo: 'listo para unir', unido: 'unido', cerrado: 'cerrado' }
   };
@@ -42,11 +46,12 @@ function caja() {
 /* 1. La lista y la clasificación */
 {
   const { ctx, dobles, ahora } = caja();
+  dobles.titulos = [[/pagos de Amalfi/, 'Pagos de Amalfi'], [/limpieza/, 'Aviso a limpieza'], [/ocupación/, 'Reporte de ocupación']];
   const a = ctx.orbitaEmpieza_(JUAN.email, 'Alma, revisa los pagos de Amalfi de octubre', 'segundo_plano', 'En fila');
   const b = ctx.orbitaEmpieza_(JUAN.email, 'Escríbele al equipo de limpieza que mañana llegan temprano', 'segundo_plano');
   ctx.orbitaEmpieza_(GABY.email, 'Lo de Gabriel', 'segundo_plano');
   dobles.micros = [
-    { id: 'mp1', nombre: 'Reporte de ocupación', estado: 'en trabajo', quien: JUAN.email, creado: ahora() - 3600000, actualizado: ahora() - 600000, ajustes: [] },
+    { id: 'mp1', nombre: 'Reporte de ocupación', estado: 'en trabajo', quien: JUAN.email, creado: ahora() - 3600000, actualizado: ahora() - 600000, ajustes: [{ ts: ahora() - 3600000, de: 'juan', texto: 'Hazme el reporte de ocupación del mes por edificio' }] },
     { id: 'mp2', nombre: 'Viejo sin noticias', estado: 'en trabajo', quien: JUAN.email, creado: ahora() - 3 * 86400000, actualizado: ahora() - 2 * 86400000, ajustes: [] },
     { id: 'mp3', nombre: 'Cerrado a mano', estado: 'cerrado', quien: JUAN.email, creado: ahora() - 3600000, actualizado: ahora() - 60000, ajustes: [{ ts: ahora() - 3600000, de: 'juan', texto: 'x' }] },
     { id: 'mp4', nombre: 'Escalado', estado: 'en trabajo', quien: JUAN.email, creado: ahora() - 600000, actualizado: ahora() - 600000, ajustes: [] }
@@ -56,7 +61,7 @@ function caja() {
   ok(r.ok && l.length === 4, 'Juan ve sus 4 pedidos en curso (2 de segundo plano, 1 a Claude, 1 escalado), no los de Gabriel ni los viejos: ' + l.map(x => x.nombre).join(' · '));
   ok(por(a) && por(a).tipo === 'rapido' && por(b).tipo === 'rapido', 'Lo de segundo plano va en la órbita cercana (rapido)');
   ok(l.filter(x => x.tipo === 'largo').length === 2, 'Lo de desarrollo va en la órbita lejana (largo)');
-  ok(por(a).nombre === 'Revisa los pagos de Amalfi' && por(a).paso === 'En fila', 'Nombre corto del pedido («' + por(a).nombre + '») y su paso');
+  ok(por(a).nombre === 'Pagos de Amalfi' && por(a).paso === 'En fila', 'Título corto del pedido («' + por(a).nombre + '») y su paso');
   ok(!l.some(x => /Viejo|Cerrado a mano/.test(x.nombre)), 'Un pedido a Claude sin noticias en 24 h o cerrado a mano no orbita');
   const esc = l.filter(x => x.nombre === 'Contactos de recepción')[0];
   ok(esc && esc.paso === 'Publicando' && l.filter(x => x.nombre === 'Escalado').length === 0, 'Lo que Alma escaló sale una vez, con su paso («Publicando»), no también como pedido a Claude');
@@ -123,6 +128,28 @@ function caja() {
   ok(/orbitaEmpieza_\(/.test(fn(ret, 'vozSeguirGuardar_')) && /orbitaTermina_\(/.test(fn(ret, 'vozSeguirPronto')), 'Lo que la llamada o el Modo calle dejan en segundo plano también orbita y se cierra');
   ok(/orbitaPaso_\(u\.name\)/.test(fn(ag, 'opAgenteBucle_')), 'El bucle del agente pone el paso antes de cada herramienta');
   ok(/case 'pedidosOrbita': return json_\(orbitaApi_\(ses\)\)/.test(cod) && /\bpedidosOrbita\b/.test(cupo), 'La acción pedidosOrbita existe con sesión y cuenta en el canal «inicio»');
+}
+
+/* 7. Título de 2 o 3 palabras */
+{
+  const { ctx, dobles, ahora, limpiarCacheDesarrollo } = caja();
+  dobles.titulos = [[/orbitan la roca/, 'Títulos en órbita'], [/mensajes programados/, 'Claro, aquí tienes un buen título para este pedido']];
+  const pedido = 'En las notificaciones que orbitan la roca, generar y mostrar un título corto de dos o tres palabras como máximo en lugar del texto completo';
+  dobles.micros = [{ id: 'mp7', nombre: 'En las notificaciones que orbitan', estado: 'en trabajo', quien: JUAN.email, creado: ahora() - 60000, actualizado: ahora() - 60000,
+    ajustes: [{ ts: ahora() - 60000, de: 'juan', texto: pedido }] }];
+  const id = ctx.orbitaEmpieza_(JUAN.email, 'Revisa los mensajes programados de mañana para recepción', 'segundo_plano');
+  let l = ctx.orbitaLista_(JUAN), m = l.filter(x => x.id === 'mpmp7')[0], s2 = l.filter(x => x.id === id)[0];
+  ok(m && m.nombre === 'Títulos en órbita', 'Pedido a Claude: título del modelo hecho con el pedido completo («' + (m && m.nombre) + '»), no «En las notificaciones que orbitan»');
+  ok(s2 && s2.nombre === 'Revisa los mensajes programados'.split(' ').slice(0, 3).join(' ') && s2.nombre.split(' ').length <= 3, 'Si el modelo responde algo largo, las primeras 3 palabras («' + (s2 && s2.nombre) + '»)');
+  const n = dobles.llamadas; limpiarCacheDesarrollo(); ctx.orbitaLista_(JUAN); ctx.orbitaLista_(JUAN);
+  ok(n === 2 && dobles.llamadas === 2, 'El título se pide una vez por pedido y queda guardado (' + dobles.llamadas + ' llamadas)');
+  for (let i = 0; i < 6; i++) ctx.orbitaEmpieza_(JUAN.email, 'Pedido distinto número ' + 'abcdef'[i], 'segundo_plano');
+  const antes = dobles.llamadas; ctx.orbitaLista_(JUAN);
+  ok(dobles.llamadas - antes === 3, 'Máximo 3 títulos nuevos por consulta (la app no espera de más): ' + (dobles.llamadas - antes));
+  ok(ctx.orbitaLista_(JUAN).every(x => x.nombre.split(/\s+/).length <= 3), 'Todos los nombres tienen 3 palabras o menos');
+  const sinModelo = caja(); delete sinModelo.ctx.claude_;
+  sinModelo.ctx.orbitaEmpieza_(JUAN.email, 'Alma, revisa los pagos de Amalfi de octubre', 'segundo_plano');
+  ok(sinModelo.ctx.orbitaLista_(JUAN)[0].nombre === 'Revisa los pagos', 'Sin modelo: las primeras 3 palabras («' + sinModelo.ctx.orbitaLista_(JUAN)[0].nombre + '»)');
 }
 
 /* 6. La pantalla */

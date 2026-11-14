@@ -473,7 +473,7 @@ var HOJAS_PERMITIDAS = {
   '1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U': 'usuarios',   // Control de usuarios
   '1K8_MUCmJ4_Ks4DMKLSCbua1qC7X6QuilRaMvCquZ7kk': 'alma',       // ALMA (Hub)
   '12TF-FO6vld2VkzDr9YlUnHlNjh4d1u9Ss6qWz3F3KeQ': 'hola',       // Hola / reservas
-  '1l9wLH8880NlN9ac2jvne2U6cqej6gycqAD77Z25cLF4': 'epi',        // EPI / Mi
+  '1l9wLH8880NlN9ac2jvne2U6cqej6gycqAD77Z25cLF4': 'epi',        // Mi (Spacio AM 2025): solo el admin principal de Mi (_leeHojaMi)
   '1-SfKC-evkK24qfOrrvIrcDs6ckGAmRzSLS_IYB8cYZg': 'docs',       // Docs / reportes
   '1r__zfIAFLr6mxcuAN6HwQF1OmLTG-lce-jv_naGRDVU': 'docs2',      // Docs
   '11V5EoY84H8tDQ6DvZ9jqtIcoBarY7EODqueNmNr71iM': 'tgsp'        // The Gentle Stoic Parent
@@ -485,6 +485,7 @@ function _hoja(ses, q){
   if(!m) return {ok:false, error:'consulta'};
   var id=m[1], tipo=HOJAS_PERMITIDAS[id];
   if(!tipo) return {ok:false, error:'hoja_no_permitida'};
+  if(tipo==='epi' && !_leeHojaMi(ses)) return {ok:false, error:'hoja_no_permitida'};
   var cache=CacheService.getScriptCache(), ck='h_'+Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, q)).slice(0,40);
   var hit=cache.get(ck); if(hit!=null) return {ok:true, csv:hit, cache:true};
   var t0=Date.now(), code=0, csv='';
@@ -504,6 +505,15 @@ function _hoja(ses, q){
   if(tipo==='usuarios') csv=_sinColumna(csv, 'password_hash');
   if(csv.length<90000){ try{ cache.put(ck, csv, 30); }catch(e){} }
   return {ok:true, csv:csv};
+}
+/* La hoja de Mi es privada (14-nov-2026): tiene SETUP (correos de los socios) y los números del negocio. Mi la lee por su
+   propio Apps Script (leerHojas), que le da a cada quien solo lo suyo, y Epi pide solo nombre + enlace al suyo. Por aquí
+   la lee entera solo el administrador principal de Mi (hoy, el diagnóstico del lector); antes la leía cualquier sesión
+   firmada, de cualquier app y de cualquier socio. Se mira su permiso de hoy en Control de usuarios, no el de la sesión. */
+function _leeHojaMi(ses){
+  var f=_findRow(ses && ses.e); if(!f) return false;
+  var row=f.d.data[f.i], H=f.d.H;
+  return row[H.estado]!=='suspendido' && H.perm_mi!=null && String(row[H.perm_mi]||'')==='admin_principal';
 }
 /* Quita una columna de un CSV (por nombre de cabecera), respetando comillas. */
 function _lectorError(q, err, ms){

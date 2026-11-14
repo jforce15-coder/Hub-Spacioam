@@ -335,6 +335,11 @@
      ya pasó → órbita lejana. Su lugar (left/top) lo pone cada cuadro el bloque «Pedidos en órbita»; sin la clase .orb
      (tablero abierto, roca minimizada) vuelve a su lugar de siempre, entre el saludo y la roca. */
   .ajustes.avion.orb { margin-left: 0; }
+  /* En órbita, del mismo tamaño que los anillos de su órbita (--d: 34 px cercana, 30 px lejana; Juan, 14-nov-2026); se sigue
+     tocando en 44 px. */
+  .ajustes.avion.orb { width: var(--d, 34px); height: var(--d, 34px); }
+  .ajustes.avion.orb svg { width: 17px; height: 17px; }
+  .ajustes.avion.orb::before { inset: calc((var(--d, 34px) - 44px) / 2); }
   /* ── Tarjeta del vuelo (vuelovivo.js): de 1 h antes del embarque a 15 min después de la salida, el pase de abordar compacto entre
      «Hola, Juan» y la roca (sin moverla). Izquierda: número de quien vuela, vendido por · opera, estado y asiento.
      Derecha: puerta y embarque. Alabastro sólido con su corte y sus muescas. Tocarla abre «Tu viaje». ── */
@@ -879,7 +884,7 @@
 <script src="../js/alma-client.js?v=2026-11-16b"></script>
 <script src="../js/alma-voz.js?v=2026-11-16b"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-16b"></script>
+<script src="../js/sa-nav.js?v=2026-11-16c"></script>
 <script>
 (function () {
   "use strict";
@@ -2774,7 +2779,7 @@
   var P = { s: {}, t: 0, raf: 0, ult: 0, geo: null, prueba: false, obst: [], obstT: 0, voz: "", modo: "", capa: null, orb: null, n: null };
   /* El avión de «Tu viaje» (#b-avion) también orbita: cerca = viaje por venir o en curso; lejos = ya pasó (lo decide el
      bloque del avión en data-orbita). Empieza arriba (donde estaba), da la vuelta en 3 min (cerca) o 4.5 min (lejos) y
-     cambia de órbita deslizándose. */
+     cambia de órbita deslizándose. Gira como los anillos: en el sentido de las agujas del reloj. */
   var AV = { a0: -Math.PI / 2, nace: 0, r: 0, en: false, PER: { rapido: 180000, largo: 270000 } };
   function avion() {
     var b = $("b-avion"), o = b && !b.hidden && b.dataset.orbita;
@@ -2783,7 +2788,7 @@
   function avionAngulo(now) { return RM ? AV.a0 : AV.a0 + 2 * Math.PI * ((now - AV.nace) / AV.per); }   // igual que los pedidos: a favor de las agujas del reloj
   function avionSuelta() {   // de vuelta a su lugar de siempre (sin órbita a la vista)
     var b = $("b-avion"); if (!b || !AV.en) return;
-    AV.en = false; b.classList.remove("orb"); b.style.left = ""; b.style.top = "";
+    AV.en = false; b.classList.remove("orb"); b.style.left = ""; b.style.top = ""; b.style.removeProperty("--d");
   }
   var VISTOS = {};   // id → ya mostró su check: si el Hub lo vuelve a mandar en sus 10 min, no se repite
   try { VISTOS = JSON.parse(localStorage.getItem("pob_vistos") || "{}") || {}; } catch (e) { VISTOS = {}; }
@@ -2886,6 +2891,10 @@
     });
     if (!mejor) return null;
     var g = { cx: mejor.left + mejor.width / 2, cy: mejor.top + mejor.height / 2, R: mejor.width / 2, W: innerWidth, H: innerHeight }, a = P.geo;
+    /* Con la voz la roca crece hasta 20 % y se estira (gelatina): las órbitas no la siguen (Juan, 14-nov-2026). El radio sale
+       del tamaño de la roca sin voz ni respiración (SANav.piedra); el centro, de la caja medida (el pulso crece desde el centro). */
+    var pz = null; try { pz = window.SANav && SANav.piedra ? SANav.piedra() : null; } catch (e) { pz = null; }
+    if (pz && pz.s > 0) g.R = pz.s / 2;
     /* La roca respira (±3 %): las órbitas no la siguen en eso (los anillos tienen su propio pulso), solo cuando de verdad
        se mueve o cambia de tamaño (escena, tablero, llamada). */
     if (a && Math.abs(g.R - a.R) < 10 && Math.abs(g.cx - a.cx) < 6 && Math.abs(g.cy - a.cy) < 6) { a.W = g.W; a.H = g.H; return a; }
@@ -2964,7 +2973,9 @@
         if (AV.per !== AV.PER[av.tipo]) { var a1 = avionAngulo(now); AV.per = AV.PER[av.tipo]; AV.a0 = a1; AV.nace = now; }   // sigue desde donde iba
         AV.r = RM ? meta : AV.r + (meta - AV.r) * .06;
         var k1 = AV.r / meta, aa = avionAngulo(now), ax = g.cx + Math.cos(aa) * ob.rx * k1, ay = g.cy + Math.sin(aa) * ob.ry * k1;
-        av.el.style.left = (ax - 20).toFixed(1) + "px"; av.el.style.top = (ay - 20).toFixed(1) + "px";
+        var ad = av.tipo === "largo" ? 30 : 34;   // del tamaño de los anillos de su órbita
+        if (av.el.style.getPropertyValue("--d") !== ad + "px") av.el.style.setProperty("--d", ad + "px");
+        av.el.style.left = (ax - ad / 2).toFixed(1) + "px"; av.el.style.top = (ay - ad / 2).toFixed(1) + "px";
         usadas[av.tipo]++;
         obst.push({ left: ax - 23, right: ax + 23, top: ay - 23, bottom: ay + 23 });   // ningún nombre tapa el avión
       }

@@ -2326,6 +2326,9 @@
     /* Markdown sencillo → nodos (sin HTML): SANav.md("- uno\n- dos") */
     md: function (t) { return mdNodos(t); },
     ver: verTarjeta,
+    /* La roca de Alma sin voz, respiración ni gelatina: centro y diámetro (px) a los que va. Las órbitas del inicio la usan
+       para no seguir el pulso de la voz. null si la roca no está a la vista. */
+    piedra: function () { return root && E.stone && AL.vis && isFinite(aS.x) ? { x: aX.x, y: aY.x, s: aS.x } : null; },
     mount: function (c) {
       if (root) { this.update(c); return; }
       /* Una sola piedra por página: si otro script dejó un menú montado, se quita antes de construir el nuevo. */

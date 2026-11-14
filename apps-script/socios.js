@@ -49,6 +49,7 @@ function socioDe_(wa) {
   var esFicha = !!f && String(f.tipo || '') === 'socio';
   if (!esProp && !esFicha) return null;
   var prop = String((esFicha && f.propiedades) || (fila && fila.propiedad) || (f && f.propiedades) || '').split(/[,;\n]/)[0].trim();
+  if (!prop) { try { prop = socioPropDeTel_(wa); } catch (e) {} }   // el apartamento que Mi tiene para su correo (sociosmi.js)
   return { wa: normTel_(wa), nombre: String((fila && fila.nombre) || (f && f.nombre) || '').trim(), propiedad: prop };
 }
 function socioSeguro_(wa) { try { return socioDe_(wa); } catch (e) { return null; } }

@@ -16,7 +16,13 @@
    · Las otras apps (T2): Hola, Epi, Grow, Docs y Mi cuentan las suyas (su propio cupo.js) y las dan con la acción
      «__cupo» y la llave del robot. cupoApps_ las lee cada 15 min (canal «Otras apps») y se suman al nivel, a la
      proyección y a «Uso» como canales «App Hola», «App Epi»… (los canales «Hola» y «Epi» son lo que el Hub les pide).
-     Si una app no contesta, se ignora y «Uso» lo dice (sinDatos). */
+     Si una app no contesta, se ignora y «Uso» lo dice (sinDatos). Desde el 14-nov se leen cada CUPO_APPS_MIN (60 min).
+   · Por función (14-nov): además del canal, cada llamada cuenta la función que la hizo (cupoFuncion_: los pasos de
+     procesarCola, el webhook, la acción del Hub, el activador). Va en la misma caché horaria (una clave JSON por hora,
+     cupo_<hora>_fn = { canal: { función: n } }, sin lecturas extra: getAll/putAll), se vuelca a GOOGLE_USO_FUNCION y
+     «Uso» lo muestra en «Por función». No suma al nivel: el total sigue saliendo de los canales.
+   · Ahorro (14-nov, CUPO_INTERVALOS_): cada intervalo que se alargó para gastar menos, con su porqué y su valor de antes.
+     Una propiedad con el mismo nombre lo cambia sin PR; CUPO_AHORRO = 0 vuelve todo a como estaba. */
 
 var CUPO_LIMITE_DEF_ = 20000;
 var CUPO_HOJA_ = 'GOOGLE_USO';
@@ -54,7 +60,40 @@ var CUPO_ACCIONES_ = {
     'setConocimiento setPropiedadDato dsPropuestas dsDecidir'
 };
 
+var CUPO_FUNC_HOJA_ = 'GOOGLE_USO_FUNCION';
+var CUPO_FUNC_CAB_ = ['hora', 'canal', 'funcion', 'llamadas', 'inicio_ms'];
+/* ── Intervalos del ahorro (14-nov-2026): [ahora, antes, porqué]. Medido en GOOGLE_USO del 1 al 13-nov: «Huéspedes» era
+   el 65–70 % del Hub y casi plano de madrugada (~300–400 por hora), o sea lo automático de procesarCola, no las personas.
+   Nada de esto toca la respuesta a un mensaje que llega por webhook, lo de CUPO_NUNCA_, la voz ni el chat de Alma. */
+var CUPO_INTERVALOS_ = {
+  /* Cada cuánto corre el respaldo de la bandeja (sincronizarInbox_). Los mensajes entran al instante por el webhook y el
+     turno de Alma relee el hilo de Hospitable antes de responder: esto solo arregla la bandeja si un webhook no llegó
+     (p. ej. algo que el equipo escribió directo en Hospitable). Cada pasada lee hasta 15 conversaciones (~17 llamadas). */
+  CUPO_RESPALDO_MIN: [15, 10, 'el respaldo de la bandeja: los mensajes ya entran por el webhook'],
+  /* Una conversación quieta (sin movimiento en las últimas CUPO_RESPALDO_ACTIVA_H_ horas) se relee como mucho cada tanto;
+     las que se movieron hace poco, en cada pasada. Antes las 15 se releían en cada pasada aunque nadie escribiera. */
+  CUPO_RESPALDO_QUIETA_MIN: [60, 0, 'una conversación quieta casi nunca trae un webhook perdido'],
+  /* Cada cuánto se le pregunta a Hola, Epi, Grow, Docs y Mi su gasto (5 llamadas por vez). Solo mueve el nivel, que se
+     decide con las últimas 24 h: una hora de retraso no cambia la decisión. */
+  CUPO_APPS_MIN: [60, 15, 'el gasto de las otras apps solo mueve el nivel, que mira 24 h']
+};
+var CUPO_RESPALDO_ACTIVA_H_ = 2;   // «se movió hace poco»: actividad en las últimas 2 h
+/* Minutos de un intervalo: la propiedad del mismo nombre (si es un número ≥ 0) o el valor nuevo; CUPO_AHORRO = 0, el de antes. */
+function cupoIntervalo_(nombre) {
+  var x = CUPO_INTERVALOS_[nombre]; if (!x) return 0;
+  try {
+    var p = PropertiesService.getScriptProperties();
+    if (p.getProperty('CUPO_AHORRO') === '0') return x[1];
+    var v = p.getProperty(nombre);
+    if (v !== null && v !== '' && !isNaN(Number(v)) && Number(v) >= 0) return Number(v);
+  } catch (e) {}
+  return x[0];
+}
+/* ¿El ahorro está prendido? (CUPO_AHORRO = 0 lo apaga: todo vuelve a como estaba antes del 14-nov). */
+function cupoAhorro_() { try { return PropertiesService.getScriptProperties().getProperty('CUPO_AHORRO') !== '0'; } catch (e) { return true; } }
+
 var CUPO_CTX_ = '';          // canal de esta ejecución (cupoCanal_)
+var CUPO_FUNC_ = '';         // función de esta ejecución (cupoFuncion_): el detalle de «Uso» por función
 var CUPO_MEMO_ = null;       // nivel ya calculado en esta ejecución
 var CUPO_HORA_VISTA_ = '';   // hora ya revisada para el volcado en esta ejecución
 var CUPO_EN_AVISO_ = false;  // el aviso también llama a internet: que no se vuelva a revisar a sí mismo
@@ -71,6 +110,8 @@ function ufAll_(pedidos, canal) {
 }
 /* El canal de la ejecución: lo ponen doPost, hubApi_ y los activadores. */
 function cupoCanal_(nombre) { CUPO_CTX_ = cupoNombre_(nombre); }
+/* La función que está gastando ahora (un paso de procesarCola, el webhook, una acción del Hub, un activador). */
+function cupoFuncion_(nombre) { CUPO_FUNC_ = String(nombre || '').slice(0, 60); }
 function cupoCanalAccion_(accion) {
   var a = ' ' + String(accion || '') + ' ', ids = Object.keys(CUPO_ACCIONES_);
   for (var i = 0; i < ids.length; i++) if ((' ' + CUPO_ACCIONES_[ids[i]] + ' ').indexOf(a) >= 0) return cupoNombre_(ids[i]);
@@ -105,11 +146,16 @@ function cupoHora_(ms) { return Utilities.formatDate(new Date(ms), CFG.TZ, 'yyyy
 function cupoInicioHora_(ms) { return Math.floor(ms / 3600000) * 3600000; }   // Guatemala va en horas enteras respecto a UTC
 function cupoLimite_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CUPO_DIA') || 0); return n > 0 ? n : CUPO_LIMITE_DEF_; }
 
-/* ── El contador ── barato: una lectura y una escritura de caché por llamada; nunca rompe la llamada. */
+/* ── El contador ── barato: una lectura y una escritura de caché por llamada (el canal y la función van juntos con
+   getAll/putAll); nunca rompe la llamada. */
 function cupoContar_(canal, n) {
   try {
-    var c = CacheService.getScriptCache(), hora = cupoHora_(Date.now()), k = 'cupo_' + hora + '_' + cupoId_(canal);
-    c.put(k, String(Number(c.get(k) || 0) + (n || 1)), 21600);
+    var c = CacheService.getScriptCache(), hora = cupoHora_(Date.now()), k = 'cupo_' + hora + '_' + cupoId_(canal), kf = 'cupo_' + hora + '_fn';
+    var v = c.getAll([k, kf]), F = {}, nom = cupoNombre_(canal), fn = CUPO_FUNC_ || 'otra', put = {};
+    try { F = JSON.parse(v[kf] || '{}') || {}; } catch (e) { F = {}; }
+    F[nom] = F[nom] || {}; F[nom][fn] = (Number(F[nom][fn]) || 0) + (n || 1);
+    put[k] = String(Number(v[k] || 0) + (n || 1)); put[kf] = JSON.stringify(F);
+    c.putAll(put, 21600);
     if (CUPO_HORA_VISTA_ !== hora) {   // la primera llamada de la hora vuelca las horas que ya cerraron
       CUPO_HORA_VISTA_ = hora;
       if (c.get('cupo_hora') !== hora) { c.put('cupo_hora', hora, 21600); cupoVolcar_(); }
@@ -119,16 +165,24 @@ function cupoContar_(canal, n) {
 /* Vuelca a GOOGLE_USO las últimas horas cerradas que aún no estén en la hoja (las de la caché duran 6 h). */
 function cupoVolcar_() {
   try {
-    var c = CacheService.getScriptCache(), ahora = Date.now(), filas = [];
+    var c = CacheService.getScriptCache(), ahora = Date.now(), filas = [], filasF = [];
     for (var i = 1; i <= 5; i++) {
       var ms = ahora - i * 3600000, hora = cupoHora_(ms);
       if (c.get('cupo_v_' + hora)) continue;
       c.put('cupo_v_' + hora, '1', 21600);   // primero la marca: otra ejecución no la vuelca dos veces
-      var claves = CUPO_CANALES_.map(function (x) { return 'cupo_' + hora + '_' + x[0]; }), v = c.getAll(claves);
+      var claves = CUPO_CANALES_.map(function (x) { return 'cupo_' + hora + '_' + x[0]; }), kf = 'cupo_' + hora + '_fn', v = c.getAll(claves.concat([kf]));
+      var etiqueta = hora.slice(0, 4) + '-' + hora.slice(4, 6) + '-' + hora.slice(6, 8) + ' ' + hora.slice(8, 10) + ':00';
       CUPO_CANALES_.forEach(function (x, j) {
         var n = Number(v[claves[j]] || 0);
-        if (n > 0) filas.push([hora.slice(0, 4) + '-' + hora.slice(4, 6) + '-' + hora.slice(6, 8) + ' ' + hora.slice(8, 10) + ':00', x[1], n, cupoInicioHora_(ms)]);
+        if (n > 0) filas.push([etiqueta, x[1], n, cupoInicioHora_(ms)]);
       });
+      var F = {}; try { F = JSON.parse(v[kf] || '{}') || {}; } catch (e) { F = {}; }
+      Object.keys(F).forEach(function (canal) { Object.keys(F[canal] || {}).forEach(function (fn) { var n = Number(F[canal][fn]) || 0; if (n > 0) filasF.push([etiqueta, canal, fn, n, cupoInicioHora_(ms)]); }); });
+    }
+    if (filasF.length) {   // el detalle por función, en su propia hoja: no suma al total (ese sale de los canales)
+      var shF = hojaCrear_(CUPO_FUNC_HOJA_, CUPO_FUNC_CAB_);
+      shF.getRange(shF.getLastRow() + 1, 1, filasF.length, CUPO_FUNC_CAB_.length).setValues(filasF);
+      if (shF.getLastRow() > 30000) shF.deleteRows(2, 6000);
     }
     if (!filas.length) return 0;
     var sh = hojaCrear_(CUPO_HOJA_, CUPO_CAB_);
@@ -161,6 +215,39 @@ function cupoLeer_(desde) {
     }
   } catch (e) { console.warn('cupoLeer_ caché: ' + e); }
   return horas;
+}
+/* Lo mismo por función: { inicio_ms: { canal: { función: n } } } (GOOGLE_USO_FUNCION y la caché de las horas sin volcar). */
+function cupoLeerFunciones_(desde) {
+  var horas = {}, ahora = Date.now(), ini = cupoInicioHora_(desde);
+  var sumar = function (t, canal, fn, n) { var H = horas[t] = horas[t] || {}, C = H[canal] = H[canal] || {}; C[fn] = (C[fn] || 0) + n; };
+  try {
+    var sh = ssAlma_().getSheetByName(CUPO_FUNC_HOJA_);
+    if (sh && sh.getLastRow() >= 2) {
+      var n = sh.getLastRow(), i0 = Math.max(2, n - 12000);
+      sh.getRange(i0, 1, n - i0 + 1, CUPO_FUNC_CAB_.length).getValues().forEach(function (v) {
+        var t = Number(v[4]) || 0; if (t < ini) return; sumar(t, String(v[1]), String(v[2]), Number(v[3]) || 0);
+      });
+    }
+  } catch (e) { console.warn('cupoLeerFunciones_ hoja: ' + e); }
+  try {
+    var c = CacheService.getScriptCache();
+    for (var i = 0; i <= 5; i++) {
+      var ms = ahora - i * 3600000, t = cupoInicioHora_(ms); if (t < ini || horas[t]) continue;   // ya está en la hoja
+      var F = {}; try { F = JSON.parse(c.get('cupo_' + cupoHora_(ms) + '_fn') || '{}') || {}; } catch (e) { F = {}; }
+      Object.keys(F).forEach(function (canal) { Object.keys(F[canal] || {}).forEach(function (fn) { var n = Number(F[canal][fn]) || 0; if (n > 0) sumar(t, canal, fn, n); }); });
+    }
+  } catch (e) { console.warn('cupoLeerFunciones_ caché: ' + e); }
+  return horas;
+}
+/* Las funciones que más gastan desde «desde»: [{ canal, funcion, llamadas }], de mayor a menor. */
+function cupoTopFunciones_(horas, desde, max) {
+  var m = {};
+  Object.keys(horas).forEach(function (t) {
+    if (Number(t) < desde) return;
+    Object.keys(horas[t]).forEach(function (canal) { Object.keys(horas[t][canal]).forEach(function (fn) { var k = canal + '\u0001' + fn; m[k] = (m[k] || 0) + horas[t][canal][fn]; }); });
+  });
+  return Object.keys(m).map(function (k) { var p = k.split('\u0001'); return { canal: p[0], funcion: p[1], llamadas: m[k] }; })
+    .sort(function (a, b) { return b.llamadas - a.llamadas; }).slice(0, max || 30);
 }
 function cupoSuma_(horas, desde, hasta) {
   var s = 0; Object.keys(horas).forEach(function (t) { t = Number(t); if (t >= desde && (hasta == null || t < hasta)) Object.keys(horas[t]).forEach(function (k) { s += horas[t][k]; }); });
@@ -258,6 +345,7 @@ function cupoUso_(ses) {
     hoy: { usado: o.usado, limite: o.limite, pct: o.pctHoy, restante: Math.max(0, o.limite - o.usado), porHora: o.porHora, ritmo: o.ritmo, proyeccionFinDia: o.proyeccionFinDia,
       proyeccionPct: o.proyeccion, horaAgotado: o.horaAgotado, alcanza: o.alcanza, nivel: o.nivel, usado24: o.usado24, pct24: o.pct },
     porHora: lineaHoy, canales: { hoy: porCanal(o.hoyIni), semana: porCanal(ahora - 7 * 86400000) }, ia: cupoIA_(o.hoyIni), sinDatos: sinDatos,
+    funciones: (function () { var F = cupoLeerFunciones_(ahora - 7 * 86400000); return { hoy: cupoTopFunciones_(F, o.hoyIni, 30), semana: cupoTopFunciones_(F, ahora - 7 * 86400000, 30) }; })(),
     niveles: [
       { nivel: 'verde', desde: 0, texto: 'Todo corre normal.' },
       { nivel: 'fondo', desde: CUPO_FONDO_PCT_, texto: 'Se pausa lo de fondo: cerebro, mejoras y sincronizaciones.' },
@@ -267,7 +355,8 @@ function cupoUso_(ses) {
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0' };
 }
 /* ── Para Alma (herramienta cupo_google, agente.js) ── «¿cómo estamos con los cupos de Google?» por voz o chat, solo el
-   principal. Lo mismo que «Uso» pero corto: nivel, % de las últimas 24 h, lo de hoy, la proyección y qué más gasta. */
+   principal. Lo mismo que «Uso» pero corto: nivel, % de las últimas 24 h, lo de hoy, la proyección y qué más gasta
+   (por canal y, desde el ahorro del 14-nov, por función), y si el ahorro está prendido. */
 function cupoParaAlma_(adm) {
   if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve el cupo de Google.' };
   var ahora = Date.now(), desde = ahora - 24 * 3600000, horas = cupoLeer_(desde), sinDatos = cupoSumarApps_(horas, desde), o = cupoCalcular_(horas), m = {};
@@ -276,23 +365,25 @@ function cupoParaAlma_(adm) {
   var NIV = { verde: 'bien: todo corre normal', fondo: 'en riesgo: lo de fondo (cerebro, mejoras y sincronizaciones) está en pausa', critico: 'crítico: lo de fondo en pausa; la voz y el chat de Alma siguen' };
   return { ok: true, nivel: o.nivel, como_va: NIV[o.nivel], pct_24h: o.pct, usado_24h: o.usado24, limite_dia: o.limite, restante: o.restante,
     hoy: { usado: o.usado, pct: o.pctHoy, proyeccion_fin_dia_pct: o.proyeccion, se_acaba_hoy_cerca_de: o.horaAgotado || '', alcanza: o.alcanza },
-    lo_que_mas_gasta_hoy: top, sin_datos_de: sinDatos,
-    pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0',
+    lo_que_mas_gasta_hoy: top, funciones_que_mas_gastan_hoy: cupoTopFunciones_(cupoLeerFunciones_(o.hoyIni), o.hoyIni, 3), sin_datos_de: sinDatos,
+    pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0', ahorro: cupoAhorro_(),
     nota: 'Dilo simple: «vamos en X % del cupo de hoy, estamos bien / en riesgo» y, si preguntan, qué más gasta. El detalle está en Ajustes → Uso.' };
 }
 /* ── Las otras apps ── { horas: { inicio_ms: { 'App Hola': n, … } }, sinDatos: ['Grow', …] }. Cada app guarda 48 h.
-   Cacheado 15 min (también si alguna no contestó: no se reintenta en cada llamada). */
+   Cacheado CUPO_APPS_MIN (60 min; antes 15), también si alguna no contestó: no se reintenta en cada llamada. */
 function cupoApps_() {
   var c = CacheService.getScriptCache(), h = null;
   try { h = JSON.parse(c.get('cupo_apps') || 'null'); } catch (e) {}
   if (h) return h;
-  var out = { horas: {}, sinDatos: [] }, llave = llaveRobot_(), rs = [];
+  var out = { horas: {}, sinDatos: [] }, llave = llaveRobot_(), rs = [], fn0 = CUPO_FUNC_;
   if (llave) {
+    cupoFuncion_('cupoApps_');   // se cuenta como suya, no como el paso de procesarCola que preguntó el nivel
     try {
       rs = ufAll_(CUPO_APPS_.map(function (a) {
         return { url: ACCESOS_APPS_[a[0]](), method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify({ action: '__cupo', token: llave }) };
       }), 'Otras apps');
     } catch (e) { console.warn('cupoApps_: ' + e); rs = []; }
+    CUPO_FUNC_ = fn0;
   }
   CUPO_APPS_.forEach(function (a, i) {
     var j = null;
@@ -304,7 +395,7 @@ function cupoApps_() {
       var H = out.horas[t] = out.horas[t] || {}; H[a[2]] = (H[a[2]] || 0) + n;
     });
   });
-  try { c.put('cupo_apps', JSON.stringify(out), 900); } catch (e) {}
+  try { c.put('cupo_apps', JSON.stringify(out), Math.max(60, Math.min(21600, Math.round(cupoIntervalo_('CUPO_APPS_MIN') * 60)))); } catch (e) {}
   return out;
 }
 /* Suma lo de las otras apps a «horas» (de cupoLeer_) desde «desde» (ms). Devuelve las que no contestaron. */

@@ -122,6 +122,7 @@ function doPost(e) {
     const props = PropertiesService.getScriptProperties();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     cupoCanal_('Huéspedes');   // canal de la ejecución para el cupo de Google (cupo.js); abajo cambia según quién llama
+    cupoFuncion_('doPost');    // la función que gasta, para «Uso» por función (hubApi_ y el webhook la precisan abajo)
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
     if (body.action === 'enlace' && !body.hub) { cupoCanal_('Otros'); return json_(enlacePublico_(body.codigo)); }   // enlace corto (pública: solo devuelve el enlace largo; la usa 404.html, enlaces.js)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
@@ -139,6 +140,7 @@ function doPost(e) {
 
     const clave = props.getProperty('WEBHOOK_KEY');
     if (clave && (!e || !e.parameter || e.parameter.k !== clave)) return ok_('ignorado: clave');
+    cupoFuncion_('webhook Hospitable');
 
     const d = body.data || body;
     if (body.action && /^reservation\./.test(body.action)) { try { return ok_(reservaCambio_(body.action, d)); } catch (x) { console.error('reservaCambio_: ' + x); return ok_('error cambio'); } }
@@ -590,12 +592,17 @@ function cacheEntrante_(convId, d) {
     c.put(k, JSON.stringify(L.slice(-10)), 7200); c.removeAll(['hf_' + convId]);
   } catch (e) { console.error('cacheEntrante_: ' + e); }
 }
-/* Cada ~10 min (Juan, 2-nov: antes 2 min y era lo que más gastaba el cupo de Google; los mensajes de huéspedes
-   igual entran al instante por el webhook, esto es solo el respaldo) re-lee de Hospitable las conversaciones que se movieron en las últimas 48 h (cubre mensajes que
-   el equipo escribe directo en Hospitable si ese webhook no llega) y las de la cola/log sin fila en la bandeja. */
+/* Respaldo de la bandeja (Juan, 2-nov: antes 2 min y era lo que más gastaba el cupo de Google; los mensajes de huéspedes
+   igual entran al instante por el webhook, esto es solo el respaldo): re-lee de Hospitable las conversaciones que se
+   movieron en las últimas 48 h (cubre mensajes que el equipo escribe directo en Hospitable si ese webhook no llega) y las
+   de la cola/log sin fila en la bandeja. Las 15 más recientes, como siempre.
+   14-nov (ahorro, cupo.js): una pasada cada CUPO_RESPALDO_MIN (15 min; antes 10) y, dentro de la pasada, la conversación
+   que se movió en las últimas CUPO_RESPALDO_ACTIVA_H_ (2 h) se relee siempre; la quieta, como mucho cada
+   CUPO_RESPALDO_QUIETA_MIN (60 min; marca isync_<id> en caché). Antes las 15 se releían cada 10 min aunque nadie escribiera
+   (~17 llamadas por pasada, ~2 400 al día). CUPO_AHORRO = 0 vuelve a lo de antes. */
 function sincronizarInbox_() {
   const props = PropertiesService.getScriptProperties();
-  if (Date.now() - Number(props.getProperty('INBOX_SYNC') || 0) < 10 * 60000) return;
+  if (Date.now() - Number(props.getProperty('INBOX_SYNC') || 0) < cupoIntervalo_('CUPO_RESPALDO_MIN') * 60000) return;
   props.setProperty('INBOX_SYNC', String(Date.now()));
   if (Date.now() - Number(props.getProperty('INQ_FIX') || 0) > 10 * 60000) { props.setProperty('INQ_FIX', String(Date.now())); try { repararConsultas(8); } catch (e) { console.error('repararConsultas: ' + e); } try { repararHilosConsultas(6); } catch (e) { console.error('repararHilosConsultas: ' + e); } }
   const sh = hojaInbox_(), n = sh.getLastRow(), limite = Date.now() - 48 * 3600000, ids = {};
@@ -607,7 +614,9 @@ function sincronizarInbox_() {
     const desde = Math.max(2, m - 150);
     s2.getRange(desde, c + 1, m - desde + 1, 1).getValues().forEach(v => { const id = s_(v[0]); if (id && ids[id] == null) ids[id] = 0; });
   });
-  Object.keys(ids).sort((a, b) => ids[b] - ids[a]).slice(0, 15).forEach(id => {
+  const top = Object.keys(ids).sort((a, b) => ids[b] - ids[a]).slice(0, 15);
+  const leer = respaldoPorLeer_(top, ids, Date.now());
+  leer.forEach(id => {
     try {
       const hc = hiloConv_(id); if (hc.code !== 200) return;
       const hilo = hc.hilo; if (!hilo.length) return;
@@ -622,6 +631,22 @@ function sincronizarInbox_() {
         ultimo_guest_ts: ug ? ug.created : '', ultimo_host_ts: uh ? uh.created : '', _forzar: true });
     } catch (e) { console.error('sync ' + id + ': ' + e); }
   });
+}
+/* De las conversaciones del respaldo (las 15 más recientes), cuáles toca releer ahora: las que se movieron en las últimas
+   CUPO_RESPALDO_ACTIVA_H_ siempre; las quietas, si su última relectura (marca isync_<id>) tiene CUPO_RESPALDO_QUIETA_MIN o
+   más. Deja la marca de las que devuelve. Sin caché (o con QUIETA en 0) devuelve todas: mejor gastar que perder un mensaje. */
+function respaldoPorLeer_(top, actividad, ahora) {
+  const quieta = cupoIntervalo_('CUPO_RESPALDO_QUIETA_MIN') * 60000;
+  if (!top.length || !quieta) return top;
+  let c = null, marcas = {};
+  try { c = CacheService.getScriptCache(); marcas = c.getAll(top.map(id => 'isync_' + id)) || {}; } catch (e) { return top; }
+  const leer = top.filter(id => {
+    const activa = (Number(actividad[id]) || 0) >= ahora - CUPO_RESPALDO_ACTIVA_H_ * 3600000;
+    const ult = Number(marcas['isync_' + id] || 0);
+    return activa || !ult || ahora - ult >= quieta - 30000;   // 30 s de margen: el activador no cae justo al minuto
+  });
+  try { const put = {}; leer.forEach(id => { put['isync_' + id] = String(ahora); }); if (leer.length) c.putAll(put, 21600); } catch (e) {}
+  return leer;
 }
 /* Una vez: completa huésped, foto, propiedad y fechas de las consultas que entraron como "Propiedad sin nombre". */
 function repararConsultas(max) {
@@ -718,7 +743,7 @@ function programarPronto_(texto) {
   } catch (e) { console.error('programarPronto_: ' + e); }
 }
 function procesarColaPronto() {
-  cupoCanal_('Huéspedes');
+  cupoCanal_('Huéspedes'); cupoFuncion_('procesarColaPronto');
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'procesarColaPronto').forEach(t => ScriptApp.deleteTrigger(t));
   procesarColaNucleo_();   // solo la cola: el mantenimiento lo hace el disparador de cada minuto
 }
@@ -737,47 +762,48 @@ function procesarCola() {
   const inicioCola = Date.now();
   pulso_();
   cupoCanal_('Huéspedes');   // lo de huéspedes, documentos, Epi y limpieza nunca se pausa por cupo (CUPO_NUNCA_, cupo.js)
-  try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
-  try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
-  try { opWaProcesar_(); } catch (e) { console.error('opWaProcesar_: ' + e); }   // respaldo si el disparador de 20 s no corrió
-  try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
-  try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
-  try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
-  try { extensionRevisar_(); } catch (e) { console.error('extensionRevisar_: ' + e); }   // extensión: pide el código nuevo 2 h antes de que venza el de la reserva original (codigoextension.js)
-  try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
-  try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
-  try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
-  try { claudeBorradoresRevisar_(); } catch (e) { console.error('claudeBorradoresRevisar_: ' + e); }   // borrador para Claude sin «mándalo» en 24 h → Pendiente (chat.js); sin internet
-  try { chatMarcarCola_(); } catch (e) { console.error('chatMarcarCola_: ' + e); }   // esferas que una llamada dejó para después (chat.js)
-  try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
-  try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
-  try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
-  try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
-  try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
-  try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
-  try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
-  try { decisionesSalir_(); } catch (e) { console.error('decisionesSalir_: ' + e); }   // envío con deshacer: lo elegido por WhatsApp que ya cumplió su minuto (respaldo del disparador corto)
-  try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }
-  try { avlProcesar_(); } catch (e) { console.error('avlProcesar_: ' + e); }   // avisos de aterrizaje a quien Juan eligió por viaje (avisovuelo.js); su vuelo: nunca se pausa
-  try { escalarRevisar_(); } catch (e) { console.error('escalarRevisar_: ' + e); }   // lo que Alma pidió porque no podía: une en verde, espera publicar y entrega (escalar.js); Juan espera: no se pausa
-  try { paraAlmaRevisar_(inicioCola); } catch (e) { console.error('paraAlmaRevisar_: ' + e); }   // instrucción a Alma desde una sesión de Claude (issue «para-alma», paraalma.js); es Juan pidiendo: no se pausa
-  try { avisoWaRespaldo_(); } catch (e) { console.error('avisoWaRespaldo_: ' + e); }   // notificación que la app no recogió en 10 min → WhatsApp al principal (avisowa.js); Juan espera: no se pausa
-  try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
+  /* Cada paso dice su nombre (cupoFuncion_): «Uso» muestra cuánto gasta cada uno (cupo.js, por función). */
+  cupoFuncion_('enviarPropios_'); try { enviarPropios_(); } catch (e) { console.error('enviarPropios_: ' + e); }
+  cupoFuncion_('procesarColaNucleo_'); try { procesarColaNucleo_(); } catch (e) { console.error('procesarColaNucleo_: ' + e); }
+  cupoFuncion_('opWaProcesar_'); try { opWaProcesar_(); } catch (e) { console.error('opWaProcesar_: ' + e); }   // respaldo si el disparador de 20 s no corrió
+  cupoFuncion_('recepcionProcesar_'); try { recepcionProcesar_(); } catch (e) { console.error('recepcionProcesar_: ' + e); }
+  cupoFuncion_('progProcesar_'); try { progProcesar_(); } catch (e) { console.error('progProcesar_: ' + e); }
+  cupoFuncion_('earlyRevisar_'); try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
+  cupoFuncion_('extensionRevisar_'); try { extensionRevisar_(); } catch (e) { console.error('extensionRevisar_: ' + e); }   // extensión: pide el código nuevo 2 h antes de que venza el de la reserva original (codigoextension.js)
+  cupoFuncion_('vozSecProcesar_'); try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
+  cupoFuncion_('pendProcesar_'); try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
+  cupoFuncion_('chatPreguntasRevisar_'); try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
+  cupoFuncion_('claudeBorradoresRevisar_'); try { claudeBorradoresRevisar_(); } catch (e) { console.error('claudeBorradoresRevisar_: ' + e); }   // borrador para Claude sin «mándalo» en 24 h → Pendiente (chat.js); sin internet
+  cupoFuncion_('chatMarcarCola_'); try { chatMarcarCola_(); } catch (e) { console.error('chatMarcarCola_: ' + e); }   // esferas que una llamada dejó para después (chat.js)
+  cupoFuncion_('confAudioProcesar_'); try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
+  cupoFuncion_('confCerrarViejas_'); try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
+  cupoFuncion_('fotoProcesar_'); try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
+  cupoFuncion_('sincronizarInbox_'); try { sincronizarInbox_(); } catch (e) { console.error('sincronizarInbox_: ' + e); }
+  cupoFuncion_('revisarSinRespuesta_'); try { revisarSinRespuesta_(); } catch (e) { console.error('revisarSinRespuesta_: ' + e); }
+  cupoFuncion_('promesasRevisar_'); try { promesasRevisar_(); } catch (e) { console.error('promesasRevisar_: ' + e); }
+  cupoFuncion_('hubDespuesProcesar_'); try { hubDespuesProcesar_(); } catch (e) { console.error('hubDespuesProcesar_: ' + e); }   // registro de envíos del hub (envio.js)
+  cupoFuncion_('decisionesSalir_'); try { decisionesSalir_(); } catch (e) { console.error('decisionesSalir_: ' + e); }   // envío con deshacer: lo elegido por WhatsApp que ya cumplió su minuto (respaldo del disparador corto)
+  cupoFuncion_('decisionesProcesar_'); try { decisionesProcesar_(); } catch (e) { console.error('decisionesProcesar_: ' + e); }
+  cupoFuncion_('avlProcesar_'); try { avlProcesar_(); } catch (e) { console.error('avlProcesar_: ' + e); }   // avisos de aterrizaje a quien Juan eligió por viaje (avisovuelo.js); su vuelo: nunca se pausa
+  cupoFuncion_('escalarRevisar_'); try { escalarRevisar_(); } catch (e) { console.error('escalarRevisar_: ' + e); }   // lo que Alma pidió porque no podía: une en verde, espera publicar y entrega (escalar.js); Juan espera: no se pausa
+  cupoFuncion_('paraAlmaRevisar_'); try { paraAlmaRevisar_(inicioCola); } catch (e) { console.error('paraAlmaRevisar_: ' + e); }   // instrucción a Alma desde una sesión de Claude (issue «para-alma», paraalma.js); es Juan pidiendo: no se pausa
+  cupoFuncion_('avisoWaRespaldo_'); try { avisoWaRespaldo_(); } catch (e) { console.error('avisoWaRespaldo_: ' + e); }   // notificación que la app no recogió en 10 min → WhatsApp al principal (avisowa.js); Juan espera: no se pausa
+  cupoFuncion_('vigProcesar_'); try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {
     cupoCanal_('Mejoras y fondo');
-    try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
-    try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
-    try { bandejaCodigosReparar_(); } catch (e) { console.error('bandejaCodigosReparar_: ' + e); }   // una sola vez: filas de reserva sin código (bandejareserva.js)
-    try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
-    try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
-    try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
-    try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
-    try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }
-    try { socioPlantillaAsegurar_(false); } catch (e) { console.error('socioPlantillaAsegurar_: ' + e); }   // la plantilla para socios se crea y se activa sola (socios.js)   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
+    cupoFuncion_('vozRecoger_'); try { vozRecoger_(false); } catch (e) { console.error('vozRecoger_: ' + e); }
+    cupoFuncion_('archivoSiToca_'); try { archivoSiToca_(); } catch (e) { console.error('archivoSiToca_: ' + e); }
+    cupoFuncion_('bandejaCodigosReparar_'); try { bandejaCodigosReparar_(); } catch (e) { console.error('bandejaCodigosReparar_: ' + e); }   // una sola vez: filas de reserva sin código (bandejareserva.js)
+    cupoFuncion_('vozSyncSiToca_'); try { vozSyncSiToca_(); } catch (e) { console.error('vozSyncSiToca_: ' + e); }   // ALMA voz: mismo prompt vivo (voz.js)
+    cupoFuncion_('contactosProcesar_'); try { contactosProcesar_(); } catch (e) { console.error('contactosProcesar_: ' + e); }   // fichas de proveedores, técnicos y socios (contactos.js)
+    cupoFuncion_('contactosConocidosSiToca_'); try { contactosConocidosSiToca_(); } catch (e) { console.error('contactosConocidosSiToca_: ' + e); }   // equipo y recepciones con el nombre que les pusimos
+    cupoFuncion_('usoMensualSiToca_'); try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
+    cupoFuncion_('microRevisar_'); try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }
+    cupoFuncion_('socioPlantillaAsegurar_'); try { socioPlantillaAsegurar_(false); } catch (e) { console.error('socioPlantillaAsegurar_: ' + e); }   // la plantilla para socios se crea y se activa sola (socios.js)   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
   }
   cupoCanal_('Epi');
-  try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
+  cupoFuncion_('epiSnapSiToca_'); try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
 }
 function procesarColaNucleo_() {
   const props = PropertiesService.getScriptProperties();
@@ -3071,7 +3097,7 @@ function proponerAutomejora_(info, prop) {
 
 // Disparador cada hora (lo crea configurar()).
 function aprender() {
-  cupoCanal_('Mejoras y fondo');
+  cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
   try { cupoVolcar_(); } catch (e) { console.error('cupoVolcar_: ' + e); }   // el cupo de Google: las horas cerradas a GOOGLE_USO (cupo.js)
   /* Todo lo de aquí es de fondo y se pausa con el cupo en 60 % o más, salvo el agente de Operaciones (rutas y limpiezas: CUPO_NUNCA_). */
   if (!cupoPermite_('fondo')) {
@@ -3263,7 +3289,7 @@ function hubApi_(body) {
     marcaAcceso_('HUB_ULTIMA_LLAVE');
   }
   /* Cupo de Google (cupo.js): el canal de esta llamada y, en crítico, Alma (chat y voz) en pausa con un aviso amable. */
-  cupoCanal_(cupoCanalAccion_(body.action));
+  cupoCanal_(cupoCanalAccion_(body.action)); cupoFuncion_('hub · ' + String(body.action || '').slice(0, 40));
   if (CUPO_ACC_ALMA_.indexOf(body.action) >= 0 && !cupoPermite_('alma')) return json_({ ok: false, error: CUPO_PAUSA_ALMA_, cupo: true });
   try {
     switch (body.action) {
@@ -4750,6 +4776,17 @@ function hiloConv_(convId, hiloCliente) {
   try { hilo = mezclarEnvios_(id, hilo); } catch (e) {}
   return { code: 200, hilo: hilo };
 }
+/* El hilo con la última copia de Hospitable (la de respaldo, 6 h) sin ir a internet: lo mismo que hiloConv_ con su caché
+   fresca (más WhatsApp y lo recién enviado o recibido). Para quien ya sabe que la conversación no se movió desde esa copia
+   (promesas.js); null si no hay copia. */
+function hiloGuardado_(convId) {
+  const id = String(convId || ''); if (!id || /^(wa|llamada):/.test(id)) return null;
+  const fr = hiloCacheGet_(id, false); if (!fr) return null;
+  let hilo = fr; try { hilo = hilo.concat(waHilo_(id)); } catch (e) {}
+  hilo.sort((a, b) => new Date(a.created) - new Date(b.created));
+  try { hilo = mezclarEnvios_(id, hilo); } catch (e) {}
+  return { code: 200, hilo: hilo, cache: true };
+}
 function waVentana_(wa) {
   const sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'); if (!sh || sh.getLastRow() < 2) return false;
   const n = sh.getLastRow(), desde = Math.max(2, n - 2000), k8 = fin8_(wa);
@@ -5185,7 +5222,7 @@ function opWaProgramar_(seg) {
   } catch (e) { console.error('opWaProgramar_: ' + e); }
 }
 function opWaPronto() {
-  cupoCanal_('WhatsApp');
+  cupoCanal_('WhatsApp'); cupoFuncion_('opWaPronto');
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'opWaPronto').forEach(t => ScriptApp.deleteTrigger(t));
   opWaProcesar_();
 }

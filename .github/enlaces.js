@@ -74,7 +74,7 @@ function caja(o) {
       computeDigest: (alg, t) => Array.from(crypto.createHash(alg).update(String(t)).digest()).map(b => (b > 127 ? b - 256 : b)),
       base64EncodeWebSafe: b => Buffer.from(b.map(x => x & 255)).toString('base64url') },
     ssAlma_: () => { if (o.hojaRota) throw new Error('Sheets no responde'); return { getSheetByName: n => hojas[n] || null, insertSheet: n => (hojas[n] = hojaFalsa([])) }; },
-    cupoCanal_() {}, waVentana_: () => true, waUltimoGuardar_() {}, cacheEnvio_() {}, registrarEnvioInq_() {},
+    cupoCanal_() {}, cupoFuncion_() {}, waVentana_: () => true, waUltimoGuardar_() {}, cacheEnvio_() {}, registrarEnvioInq_() {},
     uf_: (url, op) => { const app = Object.keys(PUERTAS).find(a => PUERTAS[a] === url);
       if (app) { const j = appFalsa(app, JSON.parse(op.payload || '{}')); return { getResponseCode: () => 200, getContentText: () => JSON.stringify(j), getHeaders: () => ({}) }; }
       enviados.push({ url, cuerpo: JSON.parse(op.payload || '{}') }); return { getResponseCode: () => 200, getContentText: () => '{"messages":[{"id":"wamid.1"}]}', getHeaders: () => ({}) }; },

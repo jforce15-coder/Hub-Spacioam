@@ -274,6 +274,8 @@ function vozPostCall_(body) {
   if (filas.length) sh.getRange(sh.getLastRow() + 1, 1, filas.length, filas[0].length).setValues(filas);
   /* Si la llamada cumplía un encargo, el resumen le llega a quien lo pidió. */
   try { encargoCerrarConLlamada_(tel, d, resumen); } catch (x) { console.error('encargo voz: ' + x); }
+  /* Con un socio: si Alma retomó el detalle y lo personal que él contó van a su ficha (fichasocio.js, #522). */
+  if (quien.tipo === 'propietario' && !admC) { try { fichaDeLlamada_(tel, d.transcript); } catch (x) { console.error('ficha del socio (llamada): ' + x); } }
   /* Lo que ALMA prometió en la llamada queda como pendiente rastreable (promesas.js). */
   try { var dichoAlma = (d.transcript || []).filter(function (m) { return m.role === 'agent'; }).map(function (m) { return s_(m.message); }).join('\n'); if (dichoAlma) promesaRegistrar_({ resId: convId, huesped: pre.huesped || (tel ? '+' + tel : ''), propiedad: pre.propiedad || '', texto: resumen }, dichoAlma.slice(-3000), 'llamada'); } catch (x) { console.error('promesa voz: ' + x); }
   if (admC) return { ok: true, conv_id: convHilo, mensajes: filas.length, administrador: admC.email };   // no entra a la lista de conversaciones ni al registro de huéspedes
@@ -710,6 +712,7 @@ function vozInicio_(b) {
     saludo = '¡Hola' + (r.caller_name ? ', ' + r.caller_name : '') + '! Soy Alma, la asistente de Juan. ¿En qué te ayudo?';
   } else if (tipo === 'propietario') {
     ficha = 'Es un socio o propietario de Spacio AM. Trátalo como indica QUIÉN LLAMA para caller_type = propietario.';
+    try { var fsV = fichaVozBloque_(tel); if (fsV) ficha += ' ' + fsV; } catch (e) { console.error('fichaVozBloque_: ' + e); }   // lo que contó y el detalle por retomar (#522)
   } else if (r.verified && r.code) {
     ficha = 'Huésped con reserva YA VALIDADA por su número (no le pidas nombre, apellido ni fecha): ' + r.guest_name + '. Propiedad: ' + r.property + '. Entrada ' + r.check_in + ', salida ' + r.check_out + '. Hoy ' + r.today + ' (' + r.stay + '). Registro de llegada: ' + r.form_status + '. code = ' + r.code + ' (úsalo en property_info).';
     saludo = '¡Hola' + (nom(r.guest_name) ? ' ' + nom(r.guest_name) : '') + '! Te saluda Alma, de Spacio A eme… Cuéntame, ¿en qué te ayudo?';

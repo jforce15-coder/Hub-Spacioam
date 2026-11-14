@@ -11,6 +11,8 @@
       la acción pedidosOrbita existe y cuenta en el canal «inicio».
    6. La pantalla: las dos órbitas alrededor de la roca, el check que se va a los 8 s, el contador con el tablero abierto y
       prefers-reduced-motion (sin giro, sin pulso, anillos quietos).
+   7. Explicar (Juan, 14-nov-2026, #539): al tocar un anillo o preguntar por él, Alma cuenta qué pasó, qué se hizo y en qué
+      estado va (pedidos_en_orbita → orbitaExplicar_). El detalle se queda en el Hub: nunca va en la lista de la app.
    node .github/orbita.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -25,8 +27,8 @@ function caja() {
   const D = class extends Date { constructor(...a) { super(...(a.length ? a : [ahora])); } static now() { return ahora; } };
   const dobles = { escalar: [], micros: [] };
   const ctx = {
-    console: { log() {}, error() {}, warn() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN, Date: D,
-    Utilities: { base64EncodeWebSafe: b => Buffer.from(b).toString('base64url'), computeDigest: (a, t) => Array.from(require('crypto').createHash('md5').update(String(t)).digest()), DigestAlgorithm: { MD5: 'md5' } },
+    console: { log() {}, error() {}, warn() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN, Date: D, CFG: { TZ: 'America/Guatemala' },
+    Utilities: { formatDate: d => new Date(d).toISOString().slice(0, 16), base64EncodeWebSafe: b => Buffer.from(b).toString('base64url'), computeDigest: (a, t) => Array.from(require('crypto').createHash('md5').update(String(t)).digest()), DigestAlgorithm: { MD5: 'md5' } },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; } }) },
     vozColaLock_: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }),
     esAdminPrincipal_: a => !!(a && a.principal),
@@ -140,6 +142,47 @@ function caja() {
     'El avión de «Tu viaje» orbita: viaje por venir o en curso en la cercana, ya pasado en la lejana');
   const ini = h.indexOf('Pedidos en órbita (#509 T3, Juan'), mod = h.slice(ini, h.indexOf('window.AlmaOrbita', ini));   // el bloque del avión también nombra AlmaOrbita, antes
   ok(mod.length > 1000 && !/\+ ?"%"|"%"|progreso|porcentaje\s*[:=]/.test(mod.replace(/\/\*[\s\S]*?\*\//g, '')), 'La pantalla no inventa porcentajes (el arco gira, indeterminado)');
+}
+
+/* 7. Explicar: qué pasó, qué se hizo y en qué estado va */
+{
+  const { ctx, dobles, pasa, ahora } = caja();
+  const a = ctx.orbitaEmpieza_(JUAN.email, 'Alma, revisa los pagos de Amalfi de octubre y avísale a Lucky', 'segundo_plano');
+  ctx.orbitaEmpieza_(JUAN.email, 'Agenda la visita de Grow del lunes', 'segundo_plano');
+  ctx.ORBITA_ACTUAL_ = { email: JUAN.email, ids: [a] };
+  ctx.orbitaPaso_('buscar_reservas'); ctx.orbitaPaso_('escribir_a_equipo'); ctx.ORBITA_ACTUAL_ = null;
+  pasa(60000);
+  ctx.orbitaTermina_(JUAN.email, [a], '', { respuesta: 'Revisé los pagos: octubre está completo. Le escribí a Lucky.', hechas: [{ tipo: 'mensaje', resumen: 'Mensaje al equipo · Lucky' }] });
+  let r = ctx.orbitaExplicar_(JUAN, 'Revisa los pagos de Amalfi'), x = r.pedidos[0];
+  ok(r.ok && r.pedidos.length === 1 && x.nombre === 'Revisa los pagos de Amalfi', 'Busca el anillo por su nombre (el que se ve) y trae solo ese');
+  ok(/pagos de Amalfi/.test(x.que_pidio) && x.pasos_que_dio.join() === 'Revisando,Redactando' && /Lucky/.test(x.lo_que_hizo[0]) && /octubre está completo/.test(x.lo_que_respondio),
+    'Qué pasó (lo que pidió), qué se hizo (pasos y lo hecho) y lo que respondió');
+  ok(x.estado === 'terminado' && x.que_falta === 'Nada' && x.termino, 'En qué estado va y qué falta');
+  ok(/qué pasó.*qué se hizo.*estado/.test(r.nota), 'Le dice a Alma el orden para explicarlo');
+  const app = JSON.stringify(ctx.orbitaApi_({ email: JUAN.email }));
+  ok(!/pagos de Amalfi de octubre|Lucky|completo|Revisando,Redactando/.test(app), 'El detalle se queda en el Hub: la lista de la app sigue con nombre y paso nada más');
+  pasa(30 * 60000);
+  ok(ctx.orbitaLista_(JUAN).length === 0 && ctx.orbitaExplicar_(JUAN, 'pagos amalfi').pedidos.length === 1, 'Ya no orbita (10 min) pero se puede preguntar por él unas horas más');
+  const v = ctx.orbitaExplicar_(JUAN, 'visita de Grow').pedidos[0];
+  ok(v && v.estado === 'se quedó a medias' && /de nuevo/.test(v.que_falta), 'Un «en curso» que se cortó no se cuenta como si siguiera: «se quedó a medias»');
+  ok(ctx.orbitaExplicar_(JUAN, '').pedidos.length === 2, 'Sin nombre: todos los de hoy');
+  ok(ctx.orbitaExplicar_(GABY, 'pagos').pedidos.length === 0, 'Gabriel no ve lo de Juan');
+  const f = ctx.orbitaEmpieza_(JUAN.email, 'Manda el reporte', 'segundo_plano'); ctx.orbitaTermina_(JUAN.email, [f], 'sin conexión', { respuesta: 'No pude.' });
+  const y = ctx.orbitaExplicar_(JUAN, 'Manda el reporte').pedidos[0];
+  ok(y.estado === 'no se pudo' && y.por_que_fallo === 'sin conexión' && /intenta de nuevo/.test(y.que_falta), 'Si falló: por qué y qué falta');
+  dobles.micros = [{ id: 'mp7', nombre: 'Mensajes con fecha', estado: 'listo para unir', quien: JUAN.email, pr: 'https://github.com/x/y/pull/9', creado: ahora() - 7200000, actualizado: ahora() - 3600000,
+    ajustes: [{ ts: ahora() - 7200000, de: 'juan', texto: 'Que los mensajes lleven la fecha' }, { ts: ahora() - 3600000, de: 'claude', texto: 'Listo: cada mensaje lleva su fecha.' }] }];
+  const z = ctx.orbitaExplicar_(JUAN, 'mensajes con fecha').pedidos[0];
+  ok(z && /desarrollo/.test(z.tipo) && /lleven la fecha/.test(z.que_pidio) && /lleva su fecha/.test(z.claude.claude_respondio) && /una/.test(z.que_falta),
+    'Desarrollo de hace 1 h: lo que pidió, lo que respondió Claude y que falta unirlo');
+}
+{
+  const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
+  const ag = leer('agente.js'), rap = leer('rapido.js'), h = fs.readFileSync(path.join(RAIZ, 'alma', 'inicio.html'), 'utf8'), nav = fs.readFileSync(path.join(RAIZ, 'js', 'sa-nav.js'), 'utf8');
+  ok(/T\('pedidos_en_orbita'/.test(ag) && /case 'pedidos_en_orbita': return orbitaExplicar_\(adm, inp\.nombre\)/.test(ag) && /'pedidos_en_orbita'\]/.test(rap), 'Alma tiene la herramienta pedidos_en_orbita (también en el camino rápido de la llamada)');
+  ok(/orbitaTermina_\(adm\.email, orbs, r\.fallo, r\)/.test(leer('voz.js')) && /orbitaTermina_\(adm\.email, \[o\.orb\], r\.fallo, r\)/.test(leer('retomar.js')), 'Al terminar se guarda lo que respondió (para explicarlo)');
+  ok(/SANav\.chat\(\{ texto: pregunta\(x\) \}\)/.test(h) && /addEventListener\("click", toca\)/.test(h) && /\.pob\.orbita \.pob-s:not\(\.sale\) \.an/.test(h), 'Tocar un anillo abre el chat y le pregunta a Alma por ese pedido');
+  ok(/if \(o\.texto\) chatEnviar\(o\.texto\)/.test(nav), 'SANav.chat({ texto }) manda la pregunta al abrir el chat');
 }
 
 process.exit(fallo);

@@ -676,13 +676,17 @@
      lejana: lo largo (desarrollo, con PR). Al terminar, el anillo se vuelve un check y se va solo a los 8 s. Con el
      tablero bento abierto, solo un contador junto a la roca minimizada. Sin movimiento si el teléfono lo pide.
      Va justo encima de la capa de Alma (z-index 891 > 890 de .san-ov en js/sa-nav.js; su fondo velaba los colores y el
-     check se veía gris) y debajo de todo lo demás de la página (Ajustes, avisos, el avión). Nunca recibe toques. */
+     check se veía gris) y debajo de todo lo demás de la página (Ajustes, avisos, el avión). Solo el anillo, su nombre y el
+     contador reciben toques: abren el chat y le preguntan a Alma qué pasó (Juan, 14-nov-2026, #539); lo demás deja pasar. */
   .pob { position: fixed; inset: 0; z-index: 891; pointer-events: none; overflow: hidden; }
   .pob.contador .pob-s, .pob.contador .pob-orb, .pob.nada .pob-s, .pob.nada .pob-orb, .pob.nada .pob-n { opacity: 0 !important; }
   .pob-orb { position: absolute; left: 0; top: 0; border-radius: 50%; border: 1px dashed rgba(255,255,255,.34); opacity: 0; transition: opacity .8s ease; will-change: transform; }
   .pob-orb.lejos { border-color: rgba(255,255,255,.22); }
   .pob-orb.on { opacity: 1; }
   .pob-s { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; transition: opacity .6s ease; }
+  .pob.orbita .pob-s:not(.sale) .an, .pob.orbita .pob-s:not(.sale) .et, .pob.contador .pob-n.on { pointer-events: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .pob-s .an::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; }   /* el dedo cabe: ~50 px para tocar */
+  .pob-s .an:focus-visible, .pob-n:focus-visible { outline: 2px solid #FFFDFB; outline-offset: 3px; border-radius: 50%; }
   .pob-s .an { position: absolute; width: var(--d, 30px); height: var(--d, 30px); left: calc(var(--d, 30px) / -2); top: calc(var(--d, 30px) / -2); transition: transform .6s cubic-bezier(.3,1.3,.55,1), opacity .5s ease; }
   /* el pulso de los botones roca (san-core / esf-quieta: 3.6 s), cada uno desfasado */
   .pob-s .resp { position: absolute; inset: 0; animation: esf-quieta 3.6s ease-in-out infinite; animation-delay: var(--dl, 0ms); }
@@ -740,7 +744,7 @@
 <button type="button" class="vj-vivo" id="vj-vivo" aria-label="Tu vuelo" hidden></button>
 <div class="vj-salas" id="vj-salas" hidden><button type="button" class="tab" id="vj-salas-tab" aria-expanded="false" aria-controls="vj-salas-lista"></button><div class="lista" id="vj-salas-lista"></div></div>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
-<div class="pob" id="pob" aria-hidden="true"></div>
+<div class="pob" id="pob"></div>
 <div class="pob-voz" id="pob-voz" role="status" aria-live="polite"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
 <div class="areas" id="areas" role="dialog" aria-label="Tus áreas" aria-hidden="true">
@@ -884,7 +888,7 @@
 <script src="../js/alma-client.js?v=2026-11-16b"></script>
 <script src="../js/alma-voz.js?v=2026-11-16b"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-16c"></script>
+<script src="../js/sa-nav.js?v=2026-11-16d"></script>
 <script>
 (function () {
   "use strict";
@@ -2811,15 +2815,18 @@
   function montar() {
     if (P.capa) return P.capa;
     var c = $("pob"); if (!c) return null;
-    c.innerHTML = '<div class="pob-orb cerca"></div><div class="pob-orb lejos"></div><div class="pob-n" role="img"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" stroke="rgba(62,63,63,.18)"/><circle cx="10" cy="10" r="7.5" stroke="#E9826A" stroke-dasharray="12 60"/></svg><span></span></div>';
+    c.innerHTML = '<div class="pob-orb cerca"></div><div class="pob-orb lejos"></div><div class="pob-n"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.5" stroke="rgba(62,63,63,.18)"/><circle cx="10" cy="10" r="7.5" stroke="#E9826A" stroke-dasharray="12 60"/></svg><span></span></div>';
     P.capa = c; P.orb = { rapido: c.querySelector(".pob-orb.cerca"), largo: c.querySelector(".pob-orb.lejos") }; P.n = c.querySelector(".pob-n");
+    P.n.setAttribute("tabindex", "0"); P.n.setAttribute("role", "button");
+    var tocaN = function (e) { if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); e.stopPropagation(); preguntar(null); };
+    P.n.addEventListener("click", tocaN); P.n.addEventListener("keydown", tocaN);
     return c;
   }
   function crear(p) {
     var c = montar(); if (!c) return null;
     var el = document.createElement("div"); el.className = "pob-s";
-    el.innerHTML = '<div class="an"><div class="resp"><span class="halo"></span><span class="pie"><svg class="marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></svg></span>' +
-      '<svg class="arco" viewBox="0 0 36 36"><circle class="base" cx="18" cy="18" r="16.5"/><circle class="va" cx="18" cy="18" r="16.5" pathLength="100"/></svg></div></div><div class="et"><b></b><small></small></div>';
+    el.innerHTML = '<div class="an" role="button" tabindex="0"><div class="resp"><span class="halo"></span><span class="pie"><svg class="marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></svg></span>' +
+      '<svg class="arco" viewBox="0 0 36 36"><circle class="base" cx="18" cy="18" r="16.5"/><circle class="va" cx="18" cy="18" r="16.5" pathLength="100"/></svg></div></div><div class="et" aria-hidden="true"><b></b><small></small></div>';
     var h = hash(p.id), x = { id: p.id, el: el, et: el.querySelector(".et"), an: el.querySelector(".an"), nace: performance.now(), estado: "en_curso", tipo: p.tipo === "largo" ? "largo" : "rapido",
       h: h, dr: [-6, -2, 2, 6][h % 4], lw: 0, lh: 0, a0: 0, r: 0 };
     /* velocidad: la cercana da la vuelta en 2.5 a 3.2 min y la lejana en 4 a 5 min, cada anillo a la suya */
@@ -2827,8 +2834,23 @@
     el.style.setProperty("--d", (x.tipo === "largo" ? 30 : 34) + "px");
     el.style.setProperty("--dl", -((h % 36) * 100) + "ms");
     x.a0 = lugar(x);
+    var toca = function (e) { if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); e.stopPropagation(); preguntar(x); };
+    [x.an, x.et].forEach(function (z) { z.addEventListener("click", toca); });
+    x.an.addEventListener("keydown", toca);
     c.appendChild(el); P.s[p.id] = x;
     return x;
+  }
+  /* Al tocar un anillo (o su nombre), Alma explica qué pasó, qué se hizo y en qué estado va (Juan, 14-nov-2026, #539): se
+     abre el chat y le llega la pregunta con el nombre del anillo; ella lo busca con pedidos_en_orbita (apps-script/orbita.js).
+     El contador del tablero pregunta por todos. */
+  function pregunta(x) {
+    if (!x) return "¿Cómo van mis pedidos en órbita?";
+    var n = x.et.querySelector("b").textContent || "Pedido en curso";
+    return x.estado === "en_curso" ? "¿Cómo va «" + n + "»? Cuéntame qué pasó, qué has hecho y en qué estado está." : "¿Qué pasó con «" + n + "»? Cuéntame qué se hizo y en qué estado quedó.";
+  }
+  function preguntar(x) {
+    if (x && x.saleT && x.estado !== "en_curso") { clearTimeout(x.saleT); x.saleT = setTimeout(function () { quitar(x); }, SALE_MS); }   // no se va mientras lo miras
+    try { if (window.SANav && SANav.chat) SANav.chat({ texto: pregunta(x) }); } catch (e) {}
   }
   /* El ángulo actual de un anillo (radianes): conforme a las agujas del reloj (Juan, 13-nov-2026; en pantalla la «y» crece
      hacia abajo, así que el ángulo sube), muy despacio; quieto con menos movimiento. */
@@ -2847,7 +2869,7 @@
   }
   function textos(x, p) {
     var b = x.et.querySelector("b"), s = x.et.querySelector("small"), n = String(p.nombre || "Pedido en curso"), pa = String(p.paso || "");
-    if (b.textContent !== n || s.textContent !== pa) { b.textContent = n; s.textContent = pa; x.lw = x.et.offsetWidth; x.lh = x.et.offsetHeight; }
+    if (b.textContent !== n || s.textContent !== pa) { b.textContent = n; s.textContent = pa; x.lw = x.et.offsetWidth; x.lh = x.et.offsetHeight; x.an.setAttribute("aria-label", n + (pa ? ", " + pa.toLowerCase() : "") + ". Tócalo y Alma te explica qué pasó"); }
   }
   function terminar(x) {
     x.el.classList.add(x.estado === "fallo" ? "fallo" : "listo");
@@ -2996,7 +3018,7 @@
         if (!x.lw) { x.lw = x.et.offsetWidth; x.lh = x.et.offsetHeight; }
         var u = q[4] >= 1 ? ubicar(x, px, py, q[3], g, obst) : null;
         if (u) { x.et.style.transform = "translate3d(" + (u[0] - px).toFixed(1) + "px," + (u[1] - py).toFixed(1) + "px,0)"; obst.push({ left: u[0] - 4, right: u[0] + x.lw + 4, top: u[1] - 2, bottom: u[1] + x.lh + 2 }); }
-        x.et.style.opacity = u ? "1" : "0";
+        x.et.style.opacity = u ? "1" : "0"; x.et.style.pointerEvents = u ? "" : "none";   // escondido, no se toca
       });
       ["rapido", "largo"].forEach(function (t) {
         var e = P.orb[t], ob = o[t];

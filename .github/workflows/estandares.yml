@@ -203,3 +203,6 @@ jobs:
         # 13-nov: Juan pidió escribirle a dos socios; Alma no encontró sus números (le preguntó por el apartamento vecino),
         # dijo que ya estaba sin confirmación (no salió nada) y un socio que escribe a veces se queda sin respuesta.
         run: node .github/socios-whatsapp.js apps-script
+      - name: Ficha del socio, guarda lo personal permitido, nunca salud, religión, política ni banco, retoma una vez y solo con socios (dobles)
+        # 14-nov: Juan quiere que Alma recuerde lo que cada socio le cuenta (la boda de su hija) y se lo pregunte una vez (#522 T1 y T2).
+        run: node .github/ficha-socio.js apps-script

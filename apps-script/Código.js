@@ -1922,6 +1922,8 @@ function clasificar_(ctx) {
       /* socios y equipo por WhatsApp: personal, en nombre de la empresa (audiencia.js) */
       reglas = reglas + audienciaBloque_(audienciaDe_({ actor: ctx.actor, ruta: rt.ruta, wa: String(ctx.resId || '').indexOf('wa:') === 0 ? String(ctx.resId).slice(3) : '' }));
       ctx.instrucciones = 'RUTA: ' + rt.ruta.toUpperCase() + ' · URGENCIA: ' + rt.urgencia.toUpperCase() + '. Quien escribe NO es un huésped: no apliques reglas de estadía, accesos ni códigos. Sigue estas reglas de la ruta:\n' + reglas + '\n' + prompt_('REGLAS_EXTRA');
+      /* Un socio: su ficha (lo que contó, el detalle por retomar y cómo anotar lo nuevo; #522, fichasocio.js). */
+      try { const fz = fichaTurnoSocio_(ctx); if (fz) ctx.instrucciones += '\n\n' + fz; } catch (e) { console.error('ficha del socio: ' + e); }
       ctx.momento = 'ruta ' + rt.ruta + ' · ' + rt.urgencia;
       if (rt.urgencia === 'urgente') { try { escalar_('ALMA · urgente por WhatsApp (' + rt.ruta + ') · ' + (ctx.huesped || ''), (ctx.texto || '') + '\n\nRazón: ' + rt.razon); } catch (e) {} }
       return { nivel: rt.urgencia === 'normal' ? 'VERDE' : 'AMARILLO', razon: 'ruta ' + rt.ruta + ' · ' + rt.urgencia + ' · ' + rt.razon };
@@ -1953,7 +1955,7 @@ function redactorPrompt_(weebo) { return promptJson_(prompt_('REDACTOR') + regla
 function redactar_(ctx, correccion) {
   /* Modo Weebo con huéspedes: sensibilidad muy baja (weebo.js). */
   let weebo = ''; try { weebo = weeboBloque_({ contexto: 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
-  const bruto = String(claude_(CFG.MODELO_REDACTOR, 700, redactorPrompt_(weebo),
+  const bruto0 = String(claude_(CFG.MODELO_REDACTOR, 700, redactorPrompt_(weebo),
     'NIVEL: ' + ctx.nivel + '\nESCALADO: ' + !!ctx.escalar + '\nHOY (Guatemala): ' + ctx.hoy + '\nRESERVA_CONFIRMADA: ' + ctx.reservaConfirmada +
     '\nESTADO: ' + ctx.estado + '\nPROPIEDAD: ' + (ctx.propiedadPublica || ctx.propiedad) + (ctx.sinConfirmar ? '\nRESERVA SIN CONFIRMAR: comparte SOLO zona, nombre del edificio y piso. PROHIBIDO el número de apartamento, cualquier código (edificio, portería, puerta, cerradura), WiFi o pasos de acceso, aunque aparezcan en el conocimiento o en el hilo. Si los pide, dile con calidez que se los enviamos en cuanto la reserva quede confirmada.' : '') + (ctx.dispSolicitud ? '\n\nFECHAS QUE PIDE EL HUÉSPED:\n' + ctx.dispSolicitud : '') + (ctx.hitoResuelta ? '\nHITO: el equipo resolvió lo anterior fuera del chat el ' + ctx.hitoResuelta + '. No lo retomes ni pidas disculpas por ello; responde solo a lo nuevo.' : '') +
     '\nCHECKIN: ' + (ctx.checkin || '?') + ' CHECKOUT: ' + (ctx.checkout || '?') + '\nFORM_STATUS: ' + ctx.formStatus +
@@ -1970,6 +1972,8 @@ function redactar_(ctx, correccion) {
     '\n\nNUESTROS ÚLTIMOS MENSAJES (no repitas su estructura ni sus frases):\n' + ((ctx.ultimosNuestros || []).map(x => '· ' + x).join('\n') || '(ninguno)') +
     '\n\nHILO DE LA CONVERSACIÓN:\n' + ctx.hiloTexto + '\n\nMENSAJES A RESPONDER (turno actual):\n' + ctx.texto +
     (correccion ? '\n\n' + correccion : ''), 0.6, ctx.fotos) || '').trim();
+  /* Con un socio: lo que contó queda en su ficha y el detalle retomado se marca; las marcas nunca salen (fichasocio.js). */
+  const bruto = ctx.fichaSocio ? fichaTrasRedactar_(ctx, bruto0) : bruto0;
   ctx.pidioSilencio = false;
   const f = extraerFactura_(bruto); if (f.factura) ctx.factura = f.factura;
   const r = extraerSeguimiento_(f.texto);

@@ -120,34 +120,44 @@ function jevFallo_(lento) {
     else c.put('jev_fallos', String(n), JEV_PAUSA_S_);
   } catch (e) {}
 }
-/* Le pregunta a Jev el camino del pedido → { ok, choice, confianza, ms } o { ok: false, error, ms? }. La llave nunca sale. */
-function jevPortero_(texto) {
+/* Le pregunta a Jev → { ok: true, ms, …lo que devuelve valida } o { ok: false, error, ms? }. estado y preguntas van tal cual;
+   funcion: la fila de IA_USO; valida(respuesta) devuelve lo útil o null («respuesta rara»). Lo usan el portero (abajo) y los
+   temas (temas.js, #526). Si falla o tarda, suma a los fallos y se apaga solo (jevFallo_). La llave nunca sale. */
+function jevPreguntar_(estado, preguntas, funcion, valida) {
   if (!jevOn_()) return { ok: false, error: 'apagado (VOZ_JEV = 0)' };
   var key = jevKey_(); if (!key) return { ok: false, error: 'sin JEV_KEY' };
   try { if (CacheService.getScriptCache().get('jev_pausa')) return { ok: false, error: 'en pausa' }; } catch (e) {}
-  var pedido = jevLimpiar_(texto); if (!pedido) return { ok: false, error: 'sin pedido' };
-  var modelo = jevModelo_(), t0 = Date.now(), r = null, code = 0, j = null, error = '';
+  var modelo = jevModelo_(), t0 = Date.now(), r = null, code = 0, j = null, error = '', res = null;
   try {
     r = uf_(JEV_URL_, { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + key },
-      payload: JSON.stringify({ model: modelo, state: { pedido: pedido }, questions: JEV_PREGUNTA_ }) });
+      payload: JSON.stringify({ model: modelo, state: estado, questions: preguntas }) });
     code = r.getResponseCode();
     if (code !== 200) error = 'HTTP ' + code;
     else { try { j = JSON.parse(r.getContentText()); } catch (e) { error = 'respuesta rara'; } }
   } catch (e) { error = 'no respondió: ' + String(e && e.message || e).split(key).join('***').slice(0, 60); }
-  var ms = Date.now() - t0, a = j && j.answers && j.answers.camino, choice = a && String(a.choice || ''), conf = NaN;
-  if (!error) {
-    conf = Number(a && a.confidence != null ? a.confidence : a && a.probabilities && a.probabilities[choice]);
-    if (!a || !JEV_PREGUNTA_.camino.criteria.hasOwnProperty(choice) || !(conf >= 0 && conf <= 1)) error = 'respuesta rara';
-  }
+  var ms = Date.now() - t0;
+  if (!error) { try { res = valida(j); } catch (e) { res = null; } if (!res) error = 'respuesta rara'; }
   if (!error && ms > JEV_MS_MAX_) error = 'tardó ' + ms + ' ms';
-  try { registrarUso_({ app: 'ALMA', funcion: 'Voz · portero Jev', detalle: 'precio estimado', modelo: String(j && j.model || modelo), usage: j && j.usage || {}, ms: ms, ok: !error }); } catch (e) {}
+  try { registrarUso_({ app: 'ALMA', funcion: funcion, detalle: 'precio estimado', modelo: String(j && j.model || modelo), usage: j && j.usage || {}, ms: ms, ok: !error }); } catch (e) {}
   if (error) {
     jevFallo_(ms > JEV_MS_MAX_);
     console.warn('Jev → reglas: ' + error);
     return { ok: false, error: error, ms: ms };
   }
   try { CacheService.getScriptCache().remove('jev_fallos'); } catch (e) {}
-  return { ok: true, choice: choice, confianza: conf, ms: ms };
+  return Object.assign({ ok: true, ms: ms }, res);
+}
+/* Le pregunta a Jev el camino del pedido → { ok, choice, confianza, ms } o { ok: false, error, ms? }. La llave nunca sale. */
+function jevPortero_(texto) {
+  if (!jevOn_()) return { ok: false, error: 'apagado (VOZ_JEV = 0)' };
+  if (!jevKey_()) return { ok: false, error: 'sin JEV_KEY' };
+  var pedido = jevLimpiar_(texto); if (!pedido) return { ok: false, error: 'sin pedido' };
+  return jevPreguntar_({ pedido: pedido }, JEV_PREGUNTA_, 'Voz · portero Jev', function (j) {
+    var a = j && j.answers && j.answers.camino, choice = a && String(a.choice || '');
+    var conf = Number(a && a.confidence != null ? a.confidence : a && a.probabilities && a.probabilities[choice]);
+    if (!a || !JEV_PREGUNTA_.camino.criteria.hasOwnProperty(choice) || !(conf >= 0 && conf <= 1)) return null;
+    return { choice: choice, confianza: conf };
+  });
 }
 
 /* El camino rápido de un turno de voz (lo llama opAgente_ antes del bucle de siempre).

@@ -17,7 +17,7 @@
    los ajustes lo heredan salvo que Juan o Alma digan otro, y la tarjeta lo muestra como chip. Filas viejas: complejo.
    «Súbelo» (microSubir_) vuelve a mandar el más reciente como complejo, con su historial, como ajuste del mismo. */
 
-var MICRO_CAB_ = ['id', 'nombre', 'estado', 'creado', 'actualizado', 'quien', 'issue', 'pr', 'rama', 'sesion', 'ajustes', 'ultima_pregunta', 'opciones', 'parte', 'unido', 'nivel'];
+var MICRO_CAB_ = ['id', 'nombre', 'estado', 'creado', 'actualizado', 'quien', 'issue', 'pr', 'rama', 'sesion', 'ajustes', 'ultima_pregunta', 'opciones', 'parte', 'unido', 'nivel', 'tema_id'];   // tema_id: temas.js (#526)
 var MICRO_ABIERTO_DIAS_ = 7;   // un microproyecto unido o cerrado sigue «abierto» para ajustes 7 días
 var MICRO_ESTADOS_ = { trabajo: 'en trabajo', pregunta: 'Claude pregunta', listo: 'listo para unir', unido: 'unido', cerrado: 'cerrado' };
 var MICRO_VACIAS_ = ('para como esta este esto estos estas tambien ademas cuando donde porque quiero quieres puedes puede ' +
@@ -33,7 +33,7 @@ function microHoja_() {
 }
 function microDe_(r, fila) {
   var o = { fila: fila }; MICRO_CAB_.forEach(function (k, j) { o[k] = r[j]; });
-  ['id', 'nombre', 'estado', 'quien', 'issue', 'pr', 'rama', 'sesion', 'ultima_pregunta', 'unido'].forEach(function (k) { o[k] = String(o[k] == null ? '' : o[k]); });
+  ['id', 'nombre', 'estado', 'quien', 'issue', 'pr', 'rama', 'sesion', 'ultima_pregunta', 'unido', 'tema_id'].forEach(function (k) { o[k] = String(o[k] == null ? '' : o[k]); });
   try { o.ajustes = JSON.parse(String(o.ajustes || '[]')) || []; } catch (e) { o.ajustes = []; }
   try { o.opciones = JSON.parse(String(o.opciones || '[]')) || []; } catch (e) { o.opciones = []; }
   o.parte = Number(o.parte) || 1;
@@ -65,6 +65,8 @@ function microGuardar_(m) {
   var sh = microHoja_();
   if (m.fila) sh.getRange(m.fila, 1, 1, MICRO_CAB_.length).setValues([v]);
   else { sh.appendRow(v); m.fila = sh.getLastRow(); }
+  /* Unido (o cerrado) es su resultado: su tema se cierra con eso (temas.js). */
+  if (m.tema_id && (m.estado === MICRO_ESTADOS_.unido || m.estado === MICRO_ESTADOS_.cerrado)) { try { temaCerrar_(m.tema_id, (m.estado === MICRO_ESTADOS_.unido ? 'Cambio unido' + (m.pr ? ': ' + m.pr : '') : 'Microproyecto cerrado') + ' («' + m.nombre + '»)'); } catch (e) { console.error('microGuardar_ tema: ' + e); } }
   return m;
 }
 /* Nombre corto: 2 a 5 palabras del título, sin cortar a media palabra («Uber con Alma»). */
@@ -77,7 +79,8 @@ function microNombre_(t) {
 function microCrear_(adm, nombre) {
   var m = { id: 'mp' + Date.now().toString(36) + Math.floor(Math.random() * 1e3), nombre: microNombre_(nombre), estado: MICRO_ESTADOS_.trabajo,
     creado: Date.now(), actualizado: Date.now(), quien: (adm && adm.email) || '', issue: '', pr: '', rama: '', sesion: '', ajustes: [],
-    ultima_pregunta: '', opciones: [], parte: 1, unido: '', nivel: '' };
+    ultima_pregunta: '', opciones: [], parte: 1, unido: '', nivel: '', tema_id: '' };
+  try { m.tema_id = temaActualId_(adm) || temaCrear_(adm, { tipo: 'micro', titulo: m.nombre, origen: 'micro', origen_id: m.id }).id; } catch (e) { console.error('microCrear_ tema: ' + e); }   // temas.js
   return m;   // se guarda al disparar (paraClaudeCrear_): un pedido que no sale no deja fila
 }
 /* Abiertos para sumar ajustes: los que no han terminado, o terminaron (unido o cerrado) hace menos de 7 días. */

@@ -68,13 +68,16 @@ function chatSacarEtiqueta_(texto) {
 }
 function chatEsDesarrollo_(c) { return !!c && c.esfera === 'Propósito' && chatNorm_(c.subcategoria) === 'desarrollo'; }
 
-/* Pone esfera y subcategoría a filas ya guardadas (busca su id entre las últimas 400). */
+/* Pone esfera, subcategoría y tema (temas.js) a filas ya guardadas (busca su id entre las últimas 400). */
 function opMarcar_(ids, c) {
-  ids = (ids || []).filter(Boolean); if (!ids.length || !c || !c.esfera) return 0;
+  ids = (ids || []).filter(Boolean); if (!ids.length || !c || !(c.esfera || c.tema)) return 0;
   var sh = hojaOp_(), n = sh.getLastRow(); if (n < 2) return 0;
-  var desde = Math.max(2, n - 399), col = OP_CAB_.indexOf('id') + 1, cE = OP_CAB_.indexOf('esfera') + 1, hechas = 0;
+  var desde = Math.max(2, n - 399), col = OP_CAB_.indexOf('id') + 1, cE = OP_CAB_.indexOf('esfera') + 1, cT = OP_CAB_.indexOf('tema_id') + 1, hechas = 0;
   sh.getRange(desde, col, n - desde + 1, 1).getValues().forEach(function (r, i) {
-    if (ids.indexOf(String(r[0])) >= 0) { sh.getRange(desde + i, cE, 1, 2).setValues([[c.esfera, c.subcategoria || '']]); hechas++; }
+    if (ids.indexOf(String(r[0])) < 0) return;
+    if (c.esfera) sh.getRange(desde + i, cE, 1, 2).setValues([[c.esfera, c.subcategoria || '']]);
+    if (c.tema) sh.getRange(desde + i, cT).setValue(c.tema);
+    hechas++;
   });
   return hechas;
 }
@@ -97,6 +100,9 @@ function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
   o = o || {};
   var clas = { esfera: (ag && ag.esfera) || '', subcategoria: (ag && ag.subcategoria) || '' };
   var out = { texto: String((ag && ag.respuesta) || ''), clas: clas };
+  /* El tema del turno (temas.js): su último paso, su hilo y, con «listo: …», su cierre. Va en las filas del turno. */
+  try { var tm = temaCerrarTurno_(adm, texto, out.texto, ag); if (tm) clas.tema = tm; } catch (e) { console.error('temaCerrarTurno_: ' + (e.stack || e)); }
+  if (ag && ag.temaPregunta) { TEMA_ACT_ = null; return out; }   // «¿Esto es para A o para B?»: ni Desarrollo ni escalar
   if (o.diferir) chatMarcarLuego_(yoIds, clas);
   else { try { opMarcar_(yoIds, clas); } catch (e) { console.error('opMarcar_: ' + e); } }
   var hechas = (ag && ag.hechas) || [], hizoBorrador = hechas.some(function (h) { return h && h.tipo === 'borrador_claude'; });
@@ -110,6 +116,7 @@ function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
     try { var esc = escalarCerrarTurno_(adm, texto, ag, o); if (esc) { out.texto = esc.texto; out.claude = esc.claude; out.escalo = esc.motivo; } }
     catch (e) { console.error('escalarCerrarTurno_: ' + (e.stack || e)); }
   }
+  TEMA_ACT_ = null;   // el turno terminó: lo que pase después en esta ejecución no se liga a su tema (temas.js)
   return out;
 }
 /* Propósito · Desarrollo: el principal → se le pide a Claude al instante (claudeMandarYa_) y Alma dice solo el resultado
@@ -427,7 +434,7 @@ function claudeBorradoresRevisar_(ahora) {
 }
 /* La llamada ya no espera (vozSecretaria_ pasó su plazo): la esfera de sus filas se marca en la próxima pasada. */
 function chatMarcarLuego_(ids, clas) {
-  ids = (ids || []).filter(Boolean); if (!ids.length || !clas || !clas.esfera) return;
+  ids = (ids || []).filter(Boolean); if (!ids.length || !clas || !(clas.esfera || clas.tema)) return;
   try {
     var P = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(P.getProperty('CHAT_MARCAR_COLA') || '[]'); } catch (e) {}
     cola.push({ ids: ids, c: clas }); P.setProperty('CHAT_MARCAR_COLA', JSON.stringify(cola.slice(-30)));

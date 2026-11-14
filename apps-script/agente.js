@@ -576,7 +576,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var cf = ok ? waConfirmacion_(rw, waEntregaEsperar_(p.tel, rw.id), p.nombre) : null;
       if (cf && cf.entrega === 'sin confirmación') waVigilarAnotar_(p.tel, rw.id, p.nombre, adm);
       if (cf && !cf.ok) ok = false;
-      ctx.hechas.push({ tipo: 'mensaje', resumen: 'WhatsApp a ' + p.nombre + ' · ' + (cf ? cf.entrega + ' · ' : '') + String(inp.texto).slice(0, 80), error: ok ? '' : ((cf && cf.error) || rw.error || 'no salió') });
+      ctx.hechas.push({ tipo: 'mensaje', tel: normTel_(p.tel), nombre: p.nombre, propiedad: inp.propiedad || '', resumen: 'WhatsApp a ' + p.nombre + ' · ' + (cf ? cf.entrega + ' · ' : '') + String(inp.texto).slice(0, 80), error: ok ? '' : ((cf && cf.error) || rw.error || 'no salió') });
       if (rw.ok) { try { contactoAsegurar_(p.tel); relevoAtender_(p.tel); } catch (e) {} }
       if (ok) { try { fichaTrasEscribir_(p.tel, inp.texto); } catch (e) { console.error('fichaTrasEscribir_: ' + e); } }   // a un socio: ¿retomó el detalle? (fichasocio.js)
       if (rw.ok) { try { contactoEncolar_(p.tel, 'Pedido de ' + ((adm && adm.nombre) || 'un administrador') + ' sobre ' + p.nombre + ': ' + String(inp.texto).slice(0, 600) + (inp.al_responder ? ' · Cuando responda: ' + String(inp.al_responder).slice(0, 400) : '')); } catch (e) {} }
@@ -805,6 +805,11 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 var AG_CORTE_CACHE_ = '\n\n═══ ESTE TURNO ═══';
 function opAgente_(adm, texto, canal, fotos, previos) {
   AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
+  /* Temas (temas.js, #526): a qué tema va este mensaje. Con duda entre dos temas activos, Alma pregunta sin la IA; si responde
+     a esa pregunta, va el pedido original al tema que eligió. */
+  var tsel = null; try { tsel = AGENTE_PERMITIDAS_ ? (TEMA_ACT_ = null) : temaTurno_(adm, texto, canal); } catch (e) { console.error('temaTurno_: ' + (e.stack || e)); }   // la familia (herramientas limitadas) no toca los temas de Juan
+  if (tsel && tsel.pregunta) return temaPreguntaSalida_(tsel);
+  if (tsel && tsel.texto) texto = tsel.texto;
   /* Recetas (recetas.js): si Juan ya pidió esto y salió bien, se repite sin IA. Si un paso falla, la receta se olvida y la
      IA sigue en este mismo turno sabiendo lo que ya quedó hecho. */
   var memo = null, textoPedido = texto;
@@ -845,6 +850,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
      AG_CORTE_CACHE_, lo de este turno (Weebo, adaptación, quién, encargos, canal, notas, microproyectos y la hora). */
   var system = secretariaPrompt_(aud, canal) + '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.' +
     chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
+  try { turno += temaBloque_(adm, tsel); } catch (e) { console.error('temaBloque_: ' + e); }   // temas vivos y el hilo del tema de este mensaje (temas.js)
   try { turno += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
   system += turno + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).';
   /* Camino rápido (rapido.js, #498 T4): en una llamada, un pedido de leer lo contesta primero el modelo rápido con solo
@@ -916,12 +922,12 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
 /* El cierre de un turno del agente (el bucle de siempre y el camino rápido, rapido.js): etiquetas fuera y el resultado. */
 function agCerrarTurno_(adm, final, ctx) {
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
-  var mt = microSacarEtiqueta_(final), nv = claudeNivelSacarEtiqueta_(mt.texto), et = chatSacarEtiqueta_(nv.texto); final = et.texto;   // [[micro: …]] (microproyectos.js), [[nivel: …]] (paraclaude.js) y [[esfera: …]]
+  var mt = microSacarEtiqueta_(final), nv = claudeNivelSacarEtiqueta_(mt.texto), et = chatSacarEtiqueta_(nv.texto), tg = temaSacarEtiqueta_(et.texto); final = tg.texto;   // y [[tema: …]] (temas.js)   // [[micro: …]] (microproyectos.js), [[nivel: …]] (paraclaude.js) y [[esfera: …]]
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
   /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una
      tarjeta o notificación por cada turno era ruido (Juan, 2-nov). */
   if (AGENTE_CANAL_ === 'segundo_plano') try { pendEncolar_(adm, AGENTE_TEXTO_ || AGENTE_PEDIDO_, respFinal + (ctx.hechas.length ? '\n\nHecho: ' + ctx.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ''); }).join('; ') : ''), AGENTE_CANAL_, { conf: AGENTE_CONF_ }); } catch (e) {}   // a Pendientes (pendientes.js)
-  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro, nivel: nv.nivel, noPudo: ctx.noPudo || [] };
+  return { respuesta: respFinal, hechas: ctx.hechas, esfera: et.esfera, subcategoria: et.subcategoria, micro: mt.micro, nivel: nv.nivel, noPudo: ctx.noPudo || [], tema: tg.tag };
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).
@@ -971,14 +977,26 @@ function agPersona_(nombre, ctx) {
 /* ═══ ENCARGOS: conversaciones que un administrador le delega a ALMA («habla con Gabriel y explícale…»).
    ALMA le escribe a la persona pidiéndole que llame; cuando llama, el encargo entra en la ficha de la llamada y,
    al colgar, ALMA resume la conversación y se la envía a quien la pidió. ═══ */
-var ENC_CAB_ = ['id', 'creado', 'solicitante', 'solicitante_tel', 'persona', 'tel', 'objetivo', 'estado', 'resumen', 'cerrado'];
-function hojaEnc_() { return hojaCrear_('ALMA_ENCARGOS', ENC_CAB_); }
+var ENC_CAB_ = ['id', 'creado', 'solicitante', 'solicitante_tel', 'persona', 'tel', 'objetivo', 'estado', 'resumen', 'cerrado', 'tema_id'];   // tema_id: temas.js (#526)
+var ENC_OK_ = false;
+function hojaEnc_() { var sh = hojaCrear_('ALMA_ENCARGOS', ENC_CAB_); if (!ENC_OK_) { ENC_OK_ = true; temaCabecera_(sh, ENC_CAB_); } return sh; }
+/* El tema del encargo: el del turno en que se pidió (con la persona sumada) o uno propio. */
+function encargoTema_(adm, persona, tel, objetivo) {
+  try {
+    var id = temaActualId_(adm), t = id ? temaLeer_(id) : null;
+    if (!t) t = temaCrear_(adm, { tipo: 'encargo', titulo: 'Encargo · ' + persona, origen: 'encargo', ultimo_paso: String(objetivo || '').slice(0, 200) });
+    temaPersonaSumar_(t, persona, tel); t.actualizado = Date.now(); temaGuardar_(t);
+    return t.id;
+  } catch (e) { console.error('encargoTema_: ' + e); return ''; }
+}
+/* El encargo terminó con su resultado: su tema también (si no queda nada para después). */
+function encargoTemaCerrar_(temaId, resultado) { if (temaId) { try { temaCerrar_(temaId, resultado); } catch (e) { console.error('encargoTemaCerrar_: ' + e); } } }
 function encargoCrear_(adm, persona, tel, objetivo) {
   /* Si ya hay uno abierto del mismo administrador con la misma persona, se actualiza (seguimiento), no se duplica. */
   var ya = encargoAbierto_(tel);
   if (ya && String(ya.solicitante) === String(adm.email)) { hojaEnc_().getRange(ya.fila, 7).setValue((ya.objetivo + ' || SEGUIMIENTO ' + new Date().toISOString().slice(0, 16) + ': ' + objetivo).slice(-2000)); return ya.id; }
   var id = 'en' + Date.now();
-  hojaEnc_().appendRow([id, new Date().toISOString(), adm.email, adm.tels[0] || '', persona, tel, objetivo.slice(0, 2000), 'abierto', '', '']);
+  hojaEnc_().appendRow([id, new Date().toISOString(), adm.email, adm.tels[0] || '', persona, tel, objetivo.slice(0, 2000), 'abierto', '', '', encargoTema_(adm, persona, tel, objetivo)]);
   return id;
 }
 function encargoAbierto_(tel) {
@@ -986,7 +1004,7 @@ function encargoAbierto_(tel) {
   var sh = hojaEnc_(), n = sh.getLastRow(); if (n < 2) return null;
   var v = sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues();
   for (var i = v.length - 1; i >= 0; i--) if (fin8_(v[i][5]) === k && v[i][7] === 'abierto' && Date.now() - new Date(v[i][1]).getTime() < 7 * 86400000)
-    return { fila: i + 2, id: v[i][0], solicitante: v[i][2], solicitante_tel: String(v[i][3]), persona: v[i][4], objetivo: String(v[i][6]) };
+    return { fila: i + 2, id: v[i][0], solicitante: v[i][2], solicitante_tel: String(v[i][3]), persona: v[i][4], objetivo: String(v[i][6]), tema: String(v[i][10] || '') };
   return null;
 }
 function encargoInstruccion_(e) {
@@ -1007,9 +1025,10 @@ function encargoCerrarConLlamada_(tel, d, resumen) {
   sh.getRange(e.fila, 8, 1, 3).setValues([['cumplido', res.slice(0, 4000), new Date().toISOString()]]);
   var adm = adminPorEmail_(e.solicitante);
   var texto = 'Resumen de mi llamada con ' + e.persona + ':\n\n' + res;
-  if (adm) { try { opGuardar_(adm, 'alma', 'llamada', texto, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + e.persona }]); } catch (x) {} }
+  if (adm) { try { opGuardar_(adm, 'alma', 'llamada', texto, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + e.persona }], { tema: e.tema }); } catch (x) {} }
   var dest = normTel_(e.solicitante_tel) || (adm && adm.tels[0]);
-  if (dest) { try { waEnviar_(dest, texto); } catch (x) { console.error('encargo aviso: ' + x); } }
+  if (dest) { try { waEnviar_(dest, texto, { tema: e.tema }); } catch (x) { console.error('encargo aviso: ' + x); } }
+  if (!/(crea|crear|asign|reporte|tarea|program|agend)/i.test(e.objetivo)) encargoTemaCerrar_(e.tema, 'Llamada con ' + e.persona + ': ' + res.slice(0, 300));   // la llamada con la persona es su resultado (no una de Juan)
   /* Lo que el encargo dejaba para después de hablar (crear un reporte, una tarea, asignar a alguien) también se hace. */
   if (adm && adm.tels && adm.tels[0] && /(crea|crear|asign|reporte|tarea|program|agend)/i.test(e.objetivo)) { try { vozSecEncolar_(adm.tels[0], 'Terminé la llamada con ' + e.persona + '. Resumen:\n' + res + '\n\nAhora haz lo que falte del encargo (tareas, reportes, asignaciones). No vuelvas a contactar a ' + e.persona + '. Encargo: ' + e.objetivo); } catch (x) { console.error('encargo después: ' + x); } }
 }
@@ -1043,7 +1062,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   if (fS && fItems && out) { try { fichaGuardarTurno_(fS, fItems, out.ficha, out.retomado, 'encargo', texto); } catch (x) { console.error('ficha del socio (encargo): ' + x); } }
   /* Datos de hecho de su mensaje («es el 1203»): se anotan solos y el aviso va en el próximo mensaje al administrador (datoshecho.js). */
   var dh = datosHechoDeRespuesta_(wa, quien, texto, adm), dhTxt = dh.length ? '\n\n' + dh.join('\n') : '';
-  var avisar = function (t, res) { if (dhTxt) { t += dhTxt; dhTxt = ''; } if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }]); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { var rv = waEnviar_(d, t); if (rv && rv.ok) relevoGuardar_(rv.id, d, { wa: wa, nombre: quien, pedido: obj, tipo: 'encargo', texto: t }); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
+  var avisar = function (t, res) { if (dhTxt) { t += dhTxt; dhTxt = ''; } if (adm.email) { try { opGuardar_(adm, 'alma', 'whatsapp', t, [{ tipo: 'encargo', resumen: res }], { tema: e.tema }); } catch (x) {} } if (pendAvisar_(adm, t, { origen: 'encargo', pedido: 'Encargo: ' + obj, tema: e.tema })) return; var d = normTel_(e.solicitante_tel) || (adm.tels || [])[0]; if (d) { try { var rv = waEnviar_(d, t, { tema: e.tema }); if (rv && rv.ok) relevoGuardar_(rv.id, d, { wa: wa, nombre: quien, pedido: obj, tipo: 'encargo', texto: t }); } catch (x) {} } };   // al principal le llega a Pendientes, no por WhatsApp
   if (!out || (out.respuesta == null && !out.completo)) {
     var acuse = encargoRespuestaFalta_(texto, { para_admin: 'sí' }, quien, de);   // a la persona, al menos un «lo consulto y te confirmo»
     if (acuse) { var wA = waEnviar_(wa, acuse); if (wA && wA.ok) contactoRegistrar_(wa, quien, acuse); }
@@ -1060,6 +1079,7 @@ function encargoEntrante_(wa, nombre, texto, ts, media, msgId, e) {
   /* Se cierran todos los encargos abiertos con esta persona del mismo administrador (los seguimientos repetidos). */
   try { var shE = hojaEnc_(), vE = shE.getRange(2, 1, shE.getLastRow() - 1, ENC_CAB_.length).getValues(), hoyE = new Date().toISOString();
     vE.forEach(function (r, i) { if (fin8_(r[5]) === fin8_(wa) && r[7] === 'abierto' && String(r[2]) === String(e.solicitante)) shE.getRange(i + 2, 8, 1, 3).setValues([['cumplido', res.slice(0, 4000), hoyE]]); }); } catch (x) {}
+  if (!despues) encargoTemaCerrar_(e.tema, quien + ': ' + res.slice(0, 300));   // con lo que reunió: su resultado
   avisar('Listo, hablé con ' + quien + '. Esto es lo que reuní:\n\n' + res + (String(out.para_admin || '').trim() ? '\n\nNecesito que decidas: ' + String(out.para_admin).trim() : '') + (despues ? '\n\nAhora hago lo que me pediste para después y te confirmo.' : ''), 'Encargo cumplido · ' + quien);
   /* Lo que pidió para cuando respondiera: lo hace la secretaria en su nombre (en segundo plano) y le confirma por WhatsApp. */
   if (despues && adm.tels && adm.tels[0]) { try { vozSecEncolar_(adm.tels[0], 'Terminé la conversación con ' + quien + ' (+' + normTel_(wa) + '). Esto es lo que reunió:\n' + res + '\n\nAhora haz lo que falte del encargo (lo que me pediste para después: tareas, reportes, asignaciones). No vuelvas a escribirle a ' + quien + '. Encargo: ' + despues); } catch (x) { console.error('encargo después: ' + x); } }
@@ -1119,6 +1139,7 @@ function encargoCerrar_(id, resultado, quien) {
   var v = sh.getRange(2, 1, n - 1, ENC_CAB_.length).getValues();
   for (var i = 0; i < v.length; i++) if (String(v[i][0]) === id) {
     sh.getRange(i + 2, 8, 1, 3).setValues([['cumplido', String(resultado).slice(0, 2000), new Date().toISOString()]]);
+    encargoTemaCerrar_(String(v[i][10] || ''), resultado);
     var adm = adminPorEmail_(String(v[i][2])), txt = 'Encargo cumplido (' + v[i][4] + '): ' + resultado;
     if (adm && (!quien || adm.email !== quien.email)) { try { opGuardar_(adm, 'alma', 'whatsapp', txt, [{ tipo: 'encargo', resumen: 'Encargo cumplido · ' + v[i][4] }]); } catch (e) {} if (pendAvisar_(adm, txt, { origen: 'encargo', pedido: 'Encargo: ' + v[i][4] })) return { ok: true }; var dest = normTel_(v[i][3]) || adm.tels[0]; if (dest) { try { waEnviar_(dest, txt); } catch (e) {} } }
     return { ok: true };

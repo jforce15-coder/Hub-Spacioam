@@ -124,6 +124,7 @@ function doPost(e) {
     cupoCanal_('Huéspedes');   // canal de la ejecución para el cupo de Google (cupo.js); abajo cambia según quién llama
     cupoFuncion_('doPost');    // la función que gasta, para «Uso» por función (hubApi_ y el webhook la precisan abajo)
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
+    if (body.action === 'paraAlmaAviso' && !body.hub) { cupoCanal_('Chat de Alma'); cupoFuncion_('paraAlmaAviso_'); return json_(paraAlmaAviso_(body)); }   // GitHub avisa de un issue «para-alma» (llave propia, paraalma.js, #526 T5)
     if (body.action === 'enlace' && !body.hub) { cupoCanal_('Otros'); return json_(enlacePublico_(body.codigo)); }   // enlace corto (pública: solo devuelve el enlace largo; la usa 404.html, enlaces.js)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
@@ -775,6 +776,7 @@ function procesarCola() {
   cupoFuncion_('chatPreguntasRevisar_'); try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa
   cupoFuncion_('claudeBorradoresRevisar_'); try { claudeBorradoresRevisar_(); } catch (e) { console.error('claudeBorradoresRevisar_: ' + e); }   // borrador para Claude sin «mándalo» en 24 h → Pendiente (chat.js); sin internet
   cupoFuncion_('chatMarcarCola_'); try { chatMarcarCola_(); } catch (e) { console.error('chatMarcarCola_: ' + e); }   // esferas que una llamada dejó para después (chat.js)
+  cupoFuncion_('temasMigrar_'); try { temasMigrar_(); } catch (e) { console.error('temasMigrar_: ' + e); }   // una sola vez (TEMAS_V1): lo abierto de antes se liga a un tema; solo hojas (temas.js)
   cupoFuncion_('confAudioProcesar_'); try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
   cupoFuncion_('confCerrarViejas_'); try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
   cupoFuncion_('fotoProcesar_'); try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
@@ -1924,6 +1926,8 @@ function clasificar_(ctx) {
       ctx.instrucciones = 'RUTA: ' + rt.ruta.toUpperCase() + ' · URGENCIA: ' + rt.urgencia.toUpperCase() + '. Quien escribe NO es un huésped: no apliques reglas de estadía, accesos ni códigos. Sigue estas reglas de la ruta:\n' + reglas + '\n' + prompt_('REGLAS_EXTRA');
       /* Un socio: su ficha (lo que contó, el detalle por retomar y cómo anotar lo nuevo; #522, fichasocio.js). */
       try { const fz = fichaTurnoSocio_(ctx); if (fz) ctx.instrucciones += '\n\n' + fz; } catch (e) { console.error('ficha del socio: ' + e); }
+      /* Pedido de un socio que compromete fechas, costos o cambios: un tema con su apartamento que pasa por Pendientes (temas.js, #526 T4). */
+      if (rt.ruta === 'socio' && rt.pedido) { try { const ts = temaSocioPedido_(ctx); if (ts) ctx.instrucciones += '\n\n' + ts; } catch (e) { console.error('temaSocioPedido_: ' + e); } }
       ctx.momento = 'ruta ' + rt.ruta + ' · ' + rt.urgencia;
       if (rt.urgencia === 'urgente') { try { escalar_('ALMA · urgente por WhatsApp (' + rt.ruta + ') · ' + (ctx.huesped || ''), (ctx.texto || '') + '\n\nRazón: ' + rt.razon); } catch (e) {} }
       return { nivel: rt.urgencia === 'normal' ? 'VERDE' : 'AMARILLO', razon: 'ruta ' + rt.ruta + ' · ' + rt.urgencia + ' · ' + rt.razon };
@@ -2524,6 +2528,7 @@ function waEnviar_(numero, texto, o) {
   const token = p.getProperty('WA_TOKEN'), phoneId = p.getProperty('WA_PHONE_ID');
   if (!token || !phoneId || !numero) return { ok: false, error: 'sin configuración o sin número' };
   const wa = String(numero).replace(/\D/g, '');
+  if (o.tema) { try { texto = temaEtiquetar_(wa, texto, o.tema); } catch (e) { console.error('temaEtiquetar_: ' + e); } }   // «📍 tema:» solo al administrador con más de un tema (temas.js)
   if (!o.yaVentana) { let abierta = true; try { abierta = waVentana_(wa); } catch (e) {} if (!abierta) return waRetomar_(wa, texto, o); }
   try {
     const r = uf_('https://graph.facebook.com/v21.0/' + phoneId + '/messages', {
@@ -2537,6 +2542,7 @@ function waEnviar_(numero, texto, o) {
     }
     let id = ''; try { id = ((JSON.parse(r.getContentText()).messages || [])[0] || {}).id || ''; } catch (e) {}
     waUltimoGuardar_(wa, id, texto, o);
+    if (o.tema && id) { try { temaMsg_(o.tema, id); } catch (e) { console.error('temaMsg_: ' + e); } }   // si lo cita, su respuesta va a ese tema
     return { ok: true, modo: 'texto', id: id };   // id: el relevo de contacto lo guarda para reconocerlo si lo citan (relevo.js)
   } catch (e) { console.error('WhatsApp: ' + e); return { ok: false, error: String(e) }; }
 }
@@ -4315,11 +4321,11 @@ function hubAjustarBorrador_(borrador, ajuste, contexto) {
    suscrito al campo "messages". Cada mensaje entra a la misma cola que Hospitable: ALMA clasifica, redacta y
    responde por WhatsApp con las mismas reglas. Si el número coincide con un huésped con reserva, la conversación se
    une a la de Hospitable; si no, queda como "Sin reserva" y ALMA responde como asesora de ventas. */
-const WA_CAB_ = ['ts', 'wa', 'nombre', 'dir', 'texto', 'msg_id', 'conv_id', 'tipo', 'autor', 'media'];
+const WA_CAB_ = ['ts', 'wa', 'nombre', 'dir', 'texto', 'msg_id', 'conv_id', 'tipo', 'autor', 'media', 'tema_id'];   // tema_id: el tema del mensaje con el administrador (temas.js, #526)
 let WA_OK_ = false;
 function hojaWA_() {
   const sh = hojaCrear_('ALMA_WHATSAPP', WA_CAB_);
-  if (!WA_OK_) { WA_OK_ = true; if (sh.getLastColumn() < WA_CAB_.length) sh.getRange(1, 1, 1, WA_CAB_.length).setValues([WA_CAB_]); }
+  if (!WA_OK_) { WA_OK_ = true; temaCabecera_(sh, WA_CAB_); }
   return sh;
 }
 function waCfg_() {
@@ -4467,7 +4473,9 @@ function waEntrante_(m, nombre) {
     /* Citó un relevo de contacto («Gustavo Peña respondió: …»): lo que diga es para esa persona (relevo.js; 4-nov). */
     let rlv = null; try { rlv = !reenv && m.context && m.context.id ? relevoCitado_(m.context.id) : null; } catch (e) { console.error('relevoCitado_: ' + e); }
     if (rlv) { try { cache.put('oprlv_' + m.id, JSON.stringify(rlv), 21600); relevoAtender_(rlv.wa); } catch (e) {} }
-    hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_((reenv + (cita ? '[respondiendo a: «' + cita + '»] ' : '') + texto).slice(0, 4000)), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo_pend', media.join(' ')]);
+    /* Citó un mensaje de Alma (o un relevo): el tema de ese mensaje, sin IA (temas.js). */
+    let temaCita = ''; try { temaCita = !reenv && m.context && m.context.id ? temaPorMsg_(m.context.id, admOp.email) : ''; } catch (e) { console.error('temaPorMsg_: ' + e); }
+    hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_((reenv + (cita ? '[respondiendo a: «' + cita + '»] ' : '') + texto).slice(0, 4000)), s_(m.id), 'op:' + admOp.email, s_(m.type), 'operativo_pend', media.join(' '), temaCita]);
     PropertiesService.getScriptProperties().setProperty('OP_WA_PEND', '1');
     opWaProgramar_();
     return;
@@ -4658,7 +4666,7 @@ function accesosPorRol_() {
 }
 function routerWA_(ctx) {
   const actor = ctx.actor || 'externo';
-  const sys = prompt_('ROUTER') + '\n\nDevuelve SOLO JSON: {"ruta":"huesped|socio|interno|estrategico|personal","urgencia":"urgente|prioridad|normal","razon":"..."}';
+  const sys = prompt_('ROUTER') + '\n\nDevuelve SOLO JSON: {"ruta":"huesped|socio|interno|estrategico|personal","urgencia":"urgente|prioridad|normal","razon":"..."' + (actor === 'propietario' ? ',"pedido":true|false}. pedido: true si el socio pide algo que compromete fechas, costos o cambios (arreglar, comprar, bloquear o mover fechas, cambiar precio o reglas, una visita); false si solo pregunta o informa.' : '}');
   const txt = claude_(CFG.MODELO_CLASIFICADOR, 200, sys,
     'QUIÉN ESCRIBE (por su número): ' + ({ juan: 'Juan Ovalle, fundador y CEO de Spacio AM', equipo: 'alguien del equipo de Spacio AM (operación, limpieza, mantenimiento, supervisión)', propietario: 'un socio / propietario de apartamentos', externo: 'número externo (huésped, interesado, proveedor u otro)' })[actor] +
     '\nRUTA ANTERIOR DE ESTA CONVERSACIÓN: ' + (ctx.rutaPrev || '(ninguna)') + '\nHORA LOCAL: ' + ctx.horaLocal +
@@ -4667,7 +4675,7 @@ function routerWA_(ctx) {
   let ruta = RUTAS_.indexOf(r.ruta) >= 0 ? r.ruta : (ctx.rutaPrev || ({ juan: 'estrategico', equipo: 'interno', propietario: 'socio' })[actor] || 'huesped');
   if (actor !== 'juan' && (ruta === 'estrategico' || ruta === 'personal')) ruta = actor === 'equipo' ? 'interno' : actor === 'propietario' ? 'socio' : 'huesped';
   const urg = ['urgente', 'prioridad', 'normal'].indexOf(r.urgencia) >= 0 ? r.urgencia : 'prioridad';
-  return { ruta: ruta, urgencia: (ruta === 'estrategico' || ruta === 'personal') && urg === 'urgente' && ruta === 'estrategico' ? 'urgente' : urg, razon: s_(r.razon) || '-' };
+  return { ruta: ruta, urgencia: (ruta === 'estrategico' || ruta === 'personal') && urg === 'urgente' && ruta === 'estrategico' ? 'urgente' : urg, razon: s_(r.razon) || '-', pedido: actor === 'propietario' && (r.pedido === true || String(r.pedido) === 'true') };
 }
 function reglasRuta_(ruta, urg) {
   if (ruta === 'estrategico' || ruta === 'personal') return prompt_('RUTA_' + ruta.toUpperCase());
@@ -5024,7 +5032,7 @@ function hubReviewHuesped_(resId, recomendar, contexto, ajuste, previo) {
    ALMA responde, toma notas y ejecuta: crear/cerrar/comentar tareas del equipo (Epi · hubTareas) y agendar trabajos en Epi (schedules).
    Hoy solo administradores; técnicos y socios quedan para después (OP_ROLES).
    Chat único (#334, chat.js): un solo chat por persona; cada fila lleva esfera y subcategoría (al final de la hoja). */
-const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id', 'esfera', 'subcategoria', 'tarjeta'];   // tarjeta: la de la llamada, { tipo, id, titulo } (tarjeta.js)
+const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id', 'esfera', 'subcategoria', 'tarjeta', 'tema_id'];   // tema_id: temas.js (#526)   // tarjeta: la de la llamada, { tipo, id, titulo } (tarjeta.js)
 const EPI_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec';
 const SEMILLA_OPERATIVO_ = "Eres ALMA, la asistente operativa interna de Spacio AM (hospitalidad boutique en Guatemala). Hablas con un ADMINISTRADOR del equipo, no con un huésped. Tono: directo, cálido, de tú, frases cortas, sin emoji, sin despedidas ni firma. Primero el dato, luego el contexto.\n\nPUEDES:\n· Responder preguntas usando el contexto que te damos (tareas abiertas, programa de Epi, propiedades, equipo).\n· Crear tareas del equipo, cerrarlas o comentarlas.\n· Agendar un trabajo en Epi (limpieza, limpieza profunda, mantenimiento, supervisión) en una propiedad y fecha.\n· Guardar una nota para recordar algo (preferencias, acuerdos, datos que te piden recordar).\n\nREGLAS:\n· Solo ejecutas lo que se pide claro. Si falta un dato imprescindible (propiedad, fecha), pregunta en una sola frase y no ejecutes.\n· Fechas relativas (hoy, mañana, el viernes) se convierten a YYYY-MM-DD con la fecha de HOY que te damos.\n· La propiedad debe ser una de la lista, escrita igual. Para tareas, quien es un nombre de la lista del equipo o vacío.\n· Confirma en la respuesta lo que hiciste, en una línea por acción.\n· Nunca inventes datos de reservas, códigos ni montos.\n\nDevuelve SOLO JSON:\n{\"respuesta\":\"texto para el administrador\",\"acciones\":[{\"tipo\":\"tarea\",\"texto\":\"\",\"prop\":\"\",\"quien\":\"\",\"vence\":\"YYYY-MM-DD\",\"nota\":\"\"},{\"tipo\":\"hecha\",\"id\":\"\"},{\"tipo\":\"comentario\",\"id\":\"\",\"texto\":\"\"},{\"tipo\":\"epi\",\"fecha\":\"YYYY-MM-DD\",\"hora\":\"HH:MM\",\"propiedad\":\"\",\"trabajo\":\"Limpieza|Limpieza Profunda|Mantenimiento|Supervisión\",\"tecnico\":\"\",\"notas\":\"\"},{\"tipo\":\"nota\",\"texto\":\"\"}]}\nSi no hay nada que ejecutar, acciones es [].";
 let OP_ADM_ = null, OP_CAB_LISTA_ = false;
@@ -5100,7 +5108,7 @@ function opFilas_(email, n) {
   const tope = Math.max(2, last - 2999);
   const leer = (desde, hasta) => sh.getRange(desde, 1, hasta - desde + 1, OP_CAB_.length).getValues()
     .map(r => ({ ts: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), usuario: String(r[1]), nombre: String(r[2]), de: String(r[3]), canal: String(r[4]), texto: String(r[5]),
-      acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || '') }))
+      acciones: (() => { try { return r[6] ? JSON.parse(r[6]) : []; } catch (e) { return []; } })(), id: String(r[7]), esfera: String(r[8] || ''), subcategoria: String(r[9] || ''), tarjeta: String(r[10] || ''), tema: String(r[11] || '') }))
     .filter(m => !email || m.usuario === email);
   /* Pocas filas (la secretaria pide 20 por turno; el chat, 60): primero solo la cola de la hoja y, si ahí no alcanzan, el
      resto hasta las 3000. Mismo resultado, sin leer 3000 filas con textos de hasta 4000 caracteres en cada llamada (#498 T1). */
@@ -5111,12 +5119,12 @@ function opFilas_(email, n) {
   }
   return leer(tope, last).slice(-(n || 3000));
 }
-/* clas = { esfera, subcategoria } (chat.js); sin clas la fila queda sin esfera. */
+/* clas = { esfera, subcategoria, tema } (chat.js, temas.js); sin clas la fila queda sin esfera ni tema. */
 function opGuardar_(adm, de, canal, texto, acciones, clas, tarjeta) {
   const id = 'op' + Date.now() + Math.floor(Math.random() * 1000), ts = new Date().toISOString();
-  const tx = String(texto || '').slice(0, 4000), esf = (clas && clas.esfera) || '', sub = (clas && clas.esfera && clas.subcategoria) || '';
-  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, celdaTexto_(tx), acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub, celdaTexto_(String(tarjeta || ''))]);
-  return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [], esfera: esf, subcategoria: sub, tarjeta: String(tarjeta || '') };
+  const tx = String(texto || '').slice(0, 4000), esf = (clas && clas.esfera) || '', sub = (clas && clas.esfera && clas.subcategoria) || '', tema = (clas && clas.tema) || '';
+  hojaOp_().appendRow([ts, adm.email, adm.nombre, de, canal, celdaTexto_(tx), acciones && acciones.length ? JSON.stringify(acciones) : '', id, esf, sub, celdaTexto_(String(tarjeta || '')), tema]);
+  return { ts: ts, id: id, de: de, canal: canal, texto: String(texto || ''), acciones: acciones || [], esfera: esf, subcategoria: sub, tarjeta: String(tarjeta || ''), tema: tema };
 }
 /* Llave del robot: Epi y Hola reconocen así las llamadas del Hub (servidor a servidor, sin sesión de una persona). */
 function llaveRobot_() { return PropertiesService.getScriptProperties().getProperty('ROBOT_TOKEN') || undefined; }
@@ -5154,7 +5162,8 @@ function opMatch_(txt, lista) {
   return lista.find(x => n(x) === t) || lista.find(x => n(x).indexOf(t) >= 0) || lista.find(x => t.indexOf(n(x)) >= 0 && n(x).length > 3) || bqMejor_(txt, lista) || '';
 }
 /* Un mensaje del administrador (WhatsApp o hub): se guarda, ALMA responde con el contexto real y ejecuta lo que pidió. */
-function opProcesar_(adm, texto, canal, fotos, nota) {
+/* o: { tema } el tema que ya se sabe (la tarjeta de Pendientes, una cita por WhatsApp; temas.js). */
+function opProcesar_(adm, texto, canal, fotos, nota, o) {
   texto = String(texto || '').trim(); if (!adm || !texto) return { ok: false, error: 'faltan datos' };
   /* Tocó una opción de una decisión del equipo en la tarjeta del chat: queda elegida y el borrador espera en la conversación (decisiones.js). */
   if (canal === 'hub' || canal === 'app') { try { const dc = decisionDesdeChat_(adm, texto); if (dc) return dc; } catch (e) { console.error('decisionDesdeChat_: ' + e); } }
@@ -5190,6 +5199,7 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   let r = {}, hechas = [], ag = null;
   if (opAgenteActivo_()) {
     /* ALMA secretaria: herramientas reales con permisos por rol (agente.js). Su respuesta trae la esfera del turno. */
+    TEMA_PISTA_ = o && o.tema ? { tema: o.tema, por: o.por || 'tarjeta' } : null;
     try { ag = opAgente_(adm, pedido, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
     catch (e) { console.error('opAgente_: ' + (e.stack || e)); r = { respuesta: 'Tuve un problema procesando tu mensaje. Intenta de nuevo.' }; }
   } else {
@@ -5213,8 +5223,8 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
-  if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp);
-  const out = { ok: true, yo: yo, alma: alma };
+  if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp, { tema: turno.clas.tema || '' });
+  const out = { ok: true, yo: yo, alma: alma, tema: turno.clas.tema || '' };
   if (turno.borrador) out.borrador = turno.borrador;
   if (turno.paraJuan) out.paraJuan = true;
   if (conversar) out.conversar = true;
@@ -5270,7 +5280,11 @@ function opWaProcesar_() {
     let rlv = null; g.forEach(x => { try { const c = cache.get('oprlv_' + s_(x.r[5])); if (c) rlv = JSON.parse(c); } catch (e) {} });
     let notaRel = ''; try { notaRel = rlv ? relevoNota_(rlv) : relevoNotaPendientes_(wa); } catch (e) { console.error('relevoNota_: ' + e); }
     let notaCaso = ''; if (!rlv) { try { notaCaso = decNotaAgente_(wa); } catch (e) {} }   // un caso espera su decisión: Alma lo sabe, sin tomar esto como respuesta (decisiones.js)
-    try { opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, [nota, notaRel, notaCaso].filter(Boolean).join('\n')); } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
+    const temaCita = g.map(x => s_(x.r[10])).filter(Boolean).pop() || '';   // citó un mensaje de un tema (waEntrante_, temas.js)
+    try {
+      const rp = opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, [nota, notaRel, notaCaso].filter(Boolean).join('\n'), temaCita ? { tema: temaCita, por: 'cita' } : null);
+      if (rp && rp.tema) { try { temaMarcarWA_(g.map(x => x.fila), rp.tema); } catch (e) { console.error('temaMarcarWA_: ' + e); } }
+    } catch (e) { console.error('opProcesar_: ' + e); waEnviar_(wa, 'No pude procesar tu mensaje. Intenta de nuevo en un momento.'); }
   });
 }
 function opEjecutar_(adm, acciones, cfg, props) {

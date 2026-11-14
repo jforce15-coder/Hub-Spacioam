@@ -4351,7 +4351,10 @@ function waWebhook_(body) {
 function waEntrante_(m, nombre) {
   const wa = s_(m.from).replace(/\D/g, ''); if (!wa || !m.id) return;
   const cache = CacheService.getScriptCache(); if (cache.get('wa_' + m.id)) return; cache.put('wa_' + m.id, '1', 21600);
-  try { waPendienteSoltar_(wa); } catch (e) { console.error('waPendienteSoltar_: ' + e); }   // respondió a la plantilla de primer contacto (contacto.js)
+  /* Respondió a la plantilla de primer contacto: sale el mensaje guardado. Con lo que escribió, para que, si pide algo, su
+     mensaje siga siendo el turno que Alma contesta (contacto.js). */
+  const textoSoltar = m.type === 'text' ? s_(m.text && m.text.body) : m.type === 'button' ? s_(m.button && m.button.text) : '[' + s_(m.type) + ']';
+  try { waPendienteSoltar_(wa, { texto: textoSoltar, ts: m.timestamp ? new Date(Number(m.timestamp) * 1000).toISOString() : '' }); } catch (e) { console.error('waPendienteSoltar_: ' + e); }
   /* Un administrador responde con el código nuevo de una extensión (codigoextension.js): va al huésped, no a un caso. */
   try { if (extensionWaEntrante_(m, wa)) return; } catch (e) { console.error('extensionWaEntrante_: ' + e); }
   /* El responsable toca un botón de una decisión del equipo (A/B/C, Deshacer, Editar en el Hub) o escribe otra respuesta (decisiones.js). */
@@ -4394,7 +4397,8 @@ function waEntrante_(m, nombre) {
   /* WA_PRUEBA: números del equipo que ALMA trata como cliente, para probar el flujo completo. */
   const esJuan = !prueba && fin8_(CFG.WHATSAPP_JUAN) === fin8_(wa);
   const esEquipo = !prueba && !esJuan && W.equipo.some(x => fin8_(x) === fin8_(wa));
-  const esSocio = !prueba && !esJuan && !esEquipo && waPropietarios_().some(x => fin8_(x) === fin8_(wa));
+  /* Socio también si su ficha de contacto lo dice o Mi lo conoce (socios.js): así le contesta con las reglas de asociado. */
+  const esSocio = !prueba && !esJuan && !esEquipo && (waPropietarios_().some(x => fin8_(x) === fin8_(wa)) || (() => { try { return !!socioSeguro_(wa); } catch (e) { return false; } })());
   const actor = esJuan ? 'juan' : esEquipo ? 'equipo' : esSocio ? 'propietario' : 'externo';
   vSet_('waactor_' + fin8_(wa), actor);
   const res = actor !== 'externo' ? null : waReserva_(wa);

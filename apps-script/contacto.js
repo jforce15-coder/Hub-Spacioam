@@ -16,27 +16,37 @@ function waEnviarAlguien_(numero, texto, o) {
   var abierta = false; if (!o.forzarPlantilla) { try { abierta = waVentana_(wa); } catch (e) {} }   // forzarPlantilla: Meta ya dijo que pasaron las 24 h
   if (abierta) {
     var r = waEnviar_(wa, texto, { yaVentana: true });
-    if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto); return { ok: true, modo: r.modo || 'texto' }; }
+    if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto); return { ok: true, modo: r.modo || 'texto', id: r.id || '' }; }
     if (!(r && /131047|24 hour|re-engagement/i.test(r.error || ''))) return { ok: false, error: (r && r.error) || 'no salió' };
   }
   /* Un socio o propietario recibe la plantilla para socios (Utilidad, sobre su cuenta; socios.js): la de primer
-     contacto Meta la trata como marketing y a los números +1 no se la entrega. */
-  var soc = socioSeguro_(wa), payload, etiqueta;
+     contacto Meta la trata como marketing y a los números +1 no se la entrega. Si la de socios no se puede usar (no se
+     sabe el apartamento, todavía no está aprobada o Meta la rechaza), va la de primer contacto: fuera de las 24 h
+     siempre sale una plantilla (Juan, 13-nov). A un +1 no: Meta no le entrega la de primer contacto (Marketing). */
+  var soc = socioSeguro_(wa), W = waCfg_(), etiqueta, rr = null, aviso = '';
+  var primerContacto = function () {
+    if (!contactoPlantillaOk_()) return { error: 'No le puedo escribir: no ha escrito al número de ALMA en las últimas 24 h y la plantilla de primer contacto (' + CONTACTO_PLANTILLA_ + ') aún no está aprobada por Meta.' };
+    return { payload: { messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: CONTACTO_PLANTILLA_, language: { code: 'es' }, components: [
+      { type: 'body', parameters: [/^[+\d]/.test(String(o.nombre || '')) || !o.nombre ? 'qué tal' : String(o.nombre).split(' ')[0], String(o.de || 'Spacio AM')].map(function (v) { return { type: 'text', text: v.slice(0, 60) }; }) }] } } };
+  };
+  var mandar = function (pl) { return uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(pl) }); };
+  var masUno = /^1\d{10}$/.test(String(wa));
   if (soc) {
     var sp = socioPlantillaPayload_(wa, { nombre: soc.nombre || o.nombre, propiedad: o.propiedad || soc.propiedad, idioma: o.idioma, texto: texto });   // el detalle ({{4}}) sale del mensaje real
-    if (sp.error) return { ok: false, error: sp.error };
-    payload = sp.payload; etiqueta = 'plantilla para socios';
-  } else {
-    var tpl = contactoPlantillaOk_();
-    if (!tpl) return { ok: false, error: 'No le puedo escribir: no ha escrito al número de ALMA en las últimas 24 h y la plantilla de primer contacto (' + CONTACTO_PLANTILLA_ + ') aún no está aprobada por Meta.' };
-    payload = { messaging_product: 'whatsapp', to: wa, type: 'template', template: { name: CONTACTO_PLANTILLA_, language: { code: 'es' }, components: [
-      { type: 'body', parameters: [/^[+\d]/.test(String(o.nombre || '')) || !o.nombre ? 'qué tal' : String(o.nombre).split(' ')[0], String(o.de || 'Spacio AM')].map(function (v) { return { type: 'text', text: v.slice(0, 60) }; }) }] } };
-    etiqueta = 'plantilla de primer contacto';
+    if (!sp.error) {
+      rr = mandar(sp.payload); etiqueta = 'plantilla para socios';
+      if (rr.getResponseCode() >= 300 && masUno) return { ok: false, error: waErrorMeta_(rr.getResponseCode(), rr.getContentText(), wa, true) };
+      if (rr.getResponseCode() >= 300) { aviso = 'Meta rechazó la plantilla para socios; salió la de primer contacto.'; rr = null; }
+    } else if (masUno) return { ok: false, error: sp.error };   // a un +1 la de primer contacto (Marketing) no le llega
+    else aviso = 'Sin la plantilla para socios (' + sp.error + '): salió la de primer contacto.';
   }
-  var W = waCfg_();
-  var rr = uf_('https://graph.facebook.com/v21.0/' + W.phoneId + '/messages', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + W.token }, payload: JSON.stringify(payload) });
-  if (rr.getResponseCode() >= 300) return { ok: false, error: waErrorMeta_(rr.getResponseCode(), rr.getContentText(), wa, !!soc) };
+  if (!rr) {
+    var pc = primerContacto(); if (pc.error) return { ok: false, error: pc.error };
+    rr = mandar(pc.payload); etiqueta = 'plantilla de primer contacto';
+    if (rr.getResponseCode() >= 300) return { ok: false, error: waErrorMeta_(rr.getResponseCode(), rr.getContentText(), wa, !!soc) };
+  }
+  var idT = ''; try { idT = ((JSON.parse(rr.getContentText()).messages || [])[0] || {}).id || ''; } catch (e) {}
   var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
   /* Un seguimiento (volver a escribirle) no duplica el mensaje que le llegará: se guarda una sola vez, con la fecha del primero. */
   var k = fin8_(wa), tx = String(texto).slice(0, 3500), prev = (pend[k] || []).filter(function (m) { return m.texto === tx; })[0];
@@ -44,18 +54,29 @@ function waEnviarAlguien_(numero, texto, o) {
   Object.keys(pend).forEach(function (x) { pend[x] = pend[x].filter(function (m) { return Date.now() - m.ts < 7 * 86400000; }).slice(-3); if (!pend[x].length) delete pend[x]; });
   p.setProperty('WA_PEND', JSON.stringify(pend));
   contactoRegistrar_(wa, o.nombre, '[' + etiqueta + '] · pendiente: ' + texto);
-  return { ok: true, modo: 'plantilla', socio: !!soc };
+  return { ok: true, modo: 'plantilla', socio: etiqueta === 'plantilla para socios', plantilla: etiqueta, id: idT, aviso: aviso || undefined };
 }
 
-/* Alguien respondió: si tenía mensajes guardados, se le envían ahora (ya hay ventana de 24 h). */
-function waPendienteSoltar_(wa) {
-  var p = PropertiesService.getScriptProperties(), raw = p.getProperty('WA_PEND'); if (!raw || raw === '{}') return;
-  var pend = {}; try { pend = JSON.parse(raw); } catch (e) { return; }
-  var k = fin8_(wa), L = pend[k]; if (!L || !L.length) return;
+/* Alguien respondió: si tenía mensajes guardados, se le envían ahora (ya hay ventana de 24 h).
+   o = { texto, ts } de lo que acaba de escribir. Si es algo de verdad (no un «hola», «sí, dime»), el mensaje guardado
+   queda anotado justo ANTES de lo suyo: así su mensaje sigue siendo el turno pendiente y Alma le contesta. Antes quedaba
+   después y la cola lo daba por respondido («el equipo ya respondió»): la persona escribía primero y nadie le respondía. */
+function waPendienteSoltar_(wa, o) {
+  o = o || {};
+  var p = PropertiesService.getScriptProperties(), raw = p.getProperty('WA_PEND'); if (!raw || raw === '{}') return false;
+  var pend = {}; try { pend = JSON.parse(raw); } catch (e) { return false; }
+  var k = fin8_(wa), L = pend[k]; if (!L || !L.length) return false;
   delete pend[k]; p.setProperty('WA_PEND', JSON.stringify(pend));
-  L.forEach(function (m) { var r = waEnviar_(wa, m.texto, { yaVentana: true }); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
+  var tsIn = Date.parse(o.ts || '') || 0, antes = tsIn && !esAcuseCorto_(o.texto);
+  L.forEach(function (m, i) { var r = waEnviar_(wa, m.texto, { yaVentana: true }); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto, antes ? new Date(tsIn - (L.length - i) * 1000).toISOString() : ''); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
+  return true;
 }
-
+/* «Hola», «sí, dime», «ok», «buenas tardes»: un saludo o acuse que no pide nada (no hace falta contestarlo después de
+   que salió el mensaje completo). Una nota de voz, una foto o una pregunta sí piden respuesta. */
+function esAcuseCorto_(texto) {
+  var t = String(texto || '').trim(); if (!t || t.length > 45 || /\?|\[/.test(t)) return !t;
+  return /^(hola+|holi|buen[oa]s?( (d[ií]as|tardes|noches))?|qu[eé] tal|s[ií]+|ok+|okey|okay|va|vale|dale|claro|listo|perfecto|dime|d[ií]game|cu[eé]ntame|digame|gracias|muchas gracias|mucho gusto|hello|hi|hey|yes|sure|thanks?( you)?|good (morning|afternoon|evening))([\s,.!¡]+(hola|s[ií]|dime|d[ií]game|cu[eé]ntame|claro|gracias|alma|juan|buen[oa]s?( (d[ií]as|tardes|noches))?|en qu[eé] te (ayudo|puedo ayudar)|tell me))*[\s.!¡😊🙂👍🙏]*$/i.test(t);
+}
 /* ═══ FUERA DE LAS 24 H ═══════════════════════════════════════════════════════════════════════════════════
    Cualquier mensaje a alguien que no ha escrito en 24 h: la plantilla aprobada («¿tienes un minuto?» si es un tema
    personal de un administrador; la de primer contacto de Spacio AM en lo demás) y el mensaje guardado para cuando
@@ -106,8 +127,8 @@ function waRetomarFallido_(wa, idMsg) {
   return !!(r && r.ok);
 }
 
-function contactoRegistrar_(wa, nombre, texto) {
-  try { hojaWA_().appendRow([new Date().toISOString(), wa, nombre || '', 'out', String(texto).slice(0, 4000), '', 'wa:' + wa, 'text', 'alma', '']); } catch (e) {}
+function contactoRegistrar_(wa, nombre, texto, ts) {
+  try { hojaWA_().appendRow([ts || new Date().toISOString(), wa, nombre || '', 'out', String(texto).slice(0, 4000), '', 'wa:' + wa, 'text', 'alma', '']); } catch (e) {}
 }
 
 function contactoPlantillaOk_() {

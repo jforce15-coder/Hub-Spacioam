@@ -160,3 +160,20 @@ function socioPropDeTel_(wa) {
   if (!emails.length) return '';
   return socioMiSetup_().filter(function (s) { return s.emails.some(function (e) { return emails.indexOf(e) >= 0; }); }).map(function (s) { return s.propiedad; })[0] || '';
 }
+/* Un administrador manda por WhatsApp (o el chat) el número de un socio junto al apartamento («*Z4 Rue 301* · Teléfono de
+   socio: …»). El 13-nov ese mensaje llegó cuando el pedido ya no estaba a la vista de Alma (otra treintena de turnos en
+   medio y el encargo cerrado por una llamada) y lo tomó por un tema de huésped. Ahora cada número queda en la ficha del
+   socio de ese apartamento al llegar, y Alma recibe una nota con lo anotado. '' si el mensaje no trae datos de socios. */
+function socioDatosEnMensaje_(adm, texto) {
+  var t = String(texto || ''); if (!SOCIO_MI_PALABRAS_.test(t) || !telsEnTexto_(t).length) return '';
+  try { if (!esAdminOp_(adm)) return ''; } catch (e) { return ''; }
+  var nombres = []; try { nombres = socioMiSetup_().map(function (s) { return s.propiedad; }); } catch (e) { return ''; }
+  var hechos = [];
+  socioPropsEnTexto_(t, nombres).forEach(function (prop) {
+    var r = socioTelEnTexto_(t, prop, nombres); if (!r) return;
+    try { if (adminPorTel_(r.tel)) return; } catch (e) {}
+    socioGuardarFicha_(r.tel, r.nombre, prop, 'lo escribió ' + ((adm && adm.nombre) || 'el administrador'));
+    hechos.push(prop + ' → +' + r.tel + (r.nombre ? ' (' + r.nombre + ')' : ''));
+  });
+  return hechos.length ? '(Datos de socios que trae este mensaje, ya guardados en su ficha: ' + hechos.join('; ') + '. Si hay un pedido pendiente para esos socios (en LO QUE PEDISTE o en este chat), cúmplelo con escribir_a_equipo «socio de <apartamento>».)' : '';
+}

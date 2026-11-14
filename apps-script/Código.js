@@ -5121,7 +5121,8 @@ function opProcesar_(adm, texto, canal, fotos, nota) {
   /* Hay un borrador para Claude esperando su sí y este mensaje lo responde («mándalo», «agrégale…», «no lo envíes»):
      se resuelve aquí, sin la IA, en cualquier canal (chat.js). */
   try { const bc = chatBorradorTurno_(adm, yo, texto, canal); if (bc) return bc; } catch (e) { console.error('chatBorradorTurno_: ' + e); }
-  const notaT = [nota, opNotaNumeros_(texto)].filter(Boolean).join('\n');
+  let notaSoc = ''; try { notaSoc = socioDatosEnMensaje_(adm, texto); } catch (e) { console.error('socioDatosEnMensaje_: ' + e); }   // números de socios: a su ficha al llegar (sociosmi.js)
+  const notaT = [nota, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
   const pedido = notaT ? notaT + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
   try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); }

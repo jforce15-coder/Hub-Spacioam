@@ -10,6 +10,7 @@
       contacto, o lo que Juan ya escribió en su chat (y queda guardado); nunca el del apartamento vecino;
    3. fuera de 24 h siempre sale una plantilla: la de socios si se puede y, si no (sin apartamento, sin aprobar, Meta la
       rechaza), la de primer contacto; a un +1 sin la de socios, no (Meta no se la entrega);
+      un número que Juan manda por WhatsApp junto al apartamento queda en la ficha al llegar;
    4. si la persona escribe algo de verdad, Alma le contesta: el mensaje guardado queda antes del suyo, el encargo nunca
       la deja sin respuesta, un socio con ficha entra como socio y una llamada del mismo administrador no cierra su encargo.
    node .github/socios-whatsapp.js [carpeta apps-script] */
@@ -68,7 +69,7 @@ function caja(o) {
     },
     accesosPorRol_: () => ({ socios: o.accSocios || [] }), waPropietarios_: () => [], waHilo_: () => [],
     personalNotar_() {}, personalDe_: () => null, pendAvisar_: (adm, t) => { pend.push(t); return true; },
-    hubInbox_: () => [], esRespuestaAutomatica_: t => /gracias por contactar/i.test(t)
+    esAdminOp_: a => !!(a && a.email === 'juan@prueba'), hubInbox_: () => [], esRespuestaAutomatica_: t => /gracias por contactar/i.test(t)
   };
   vm.createContext(ctx);
   vm.runInContext(['telsEnTexto_', 'normTel_', 'telsDe_'].map(n => sacar(COD, n)).join('\n'), ctx, { filename: 'Código.js (extracto)' });
@@ -95,6 +96,12 @@ const r2 = C.ctx.socioParaEscribir_('socio de Edificio Alto 633');
 ok(r && r.tel === SOC_B && /chat/.test(r.fuente) && r2 && r2.tel === SOC_A, 'lo que Juan ya escribió en su chat: cada número con su apartamento (no el del siguiente)');
 ok(C.guardadas.some(g => g.tel === SOC_B && g.tipo === 'socio' && /Rue - 301/.test(g.propiedades)) && C.datos.length >= 1, 'y queda guardado en la ficha como socio de ese apartamento (dato de hecho)');
 
+C = caja();
+const MSG = '*Z4 Calle Rue 301*\n\nTeléfono de socio: +502 5555 0202\nNombre: Socio B Prueba\n\n*Z13 Edificio Alto 633*\n\nTeléfono de socio: +502 5555 0201\nNombre: Socio A Prueba\n\nPromesa para el apartamento: …';
+let nota = C.ctx.socioDatosEnMensaje_(C.ctx.adminsOp_()[0], MSG);
+ok(C.guardadas.length === 2 && C.guardadas.some(g => g.tel === SOC_B && /Rue - 301/.test(g.propiedades)) && C.guardadas.some(g => g.tel === SOC_A && /Alto - 633/.test(g.propiedades)) && /ya guardados/.test(nota),
+  'Juan manda por WhatsApp los números de dos socios con su apartamento: quedan en la ficha de cada uno al llegar y Alma recibe la nota (13-nov)');
+ok(C.ctx.socioDatosEnMensaje_({ email: 'otro@prueba' }, MSG) === '' && C.ctx.socioDatosEnMensaje_(C.ctx.adminsOp_()[0], 'Hola, ¿cómo va Calle Rue 301?') === '', 'solo de un administrador y solo si trae números de socios');
 C = caja();
 r = C.ctx.socioParaEscribir_('socio de Edificio Alto 633');
 ok(r && r.error && r.sin_numero && /socio\.a@prueba\.test/.test(r.error) && /UNA vez/.test(r.error), 'sin número en ningún lado: dice quién es según Mi y pide el número una sola vez');
@@ -168,6 +175,7 @@ ok(/solicitante_tel\) === fin8_\(tel\)\) return/.test(sacar(AGE, 'encargoCerrarC
 const esc = (/case 'escribir_a_equipo': \{[\s\S]*?\n    \}/.exec(AGE) || [''])[0];
 ok(esc.indexOf('agSocio_(') >= 0 && esc.indexOf('agSocio_(') < esc.indexOf('agPersona_(inp.persona'), 'escribir_a_equipo busca primero al socio del apartamento y después por nombre');
 ok(/waEntregaEsperar_\(p\.tel, rw\.id\)/.test(esc) && /waVigilarAnotar_/.test(esc) && /socioGuardarFicha_\(inp\.numero/.test(esc), 'escribir_a_equipo espera el estado de Meta, vigila si no llega y guarda el número de socio que da Juan');
+ok(/socioDatosEnMensaje_\(adm, texto\)/.test(sacar(COD, 'opProcesar_')), 'opProcesar_ anota los números de socios del mensaje antes de que Alma conteste');
 ok(/function contactosProcesar_\(\) \{\s*\/\*[^*]*\*\/\s*try \{ waVigilarRevisar_\(\)/.test(leer('contactos.js')), 'la vigilancia corre en la pasada de contactos (sin tocar el ritmo de procesarCola)');
 
 process.exit(fallo);

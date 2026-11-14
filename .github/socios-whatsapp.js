@@ -123,7 +123,7 @@ r = C.ctx.waEnviarAlguien_(USA, 'Hola.', { nombre: 'Sol Prueba' });
 ok(!r.ok && !C.posts.length, 'a un +1 sin la plantilla para socios aprobada no sale la de primer contacto (Meta no la entrega) y lo dice');
 C = caja({ ventana: true });
 r = C.ctx.waEnviarAlguien_(SOC_B, 'Hola.', {});
-ok(r.ok && r.modo === 'texto' && r.id, 'dentro de las 24 h: texto libre, con su id para confirmar');
+ok(r.ok && r.modo === 'texto' && r.id && C.wa[0][5] === r.id, 'dentro de las 24 h: texto libre, con su id para confirmar y anotado con ese id (si lo citan, se sabe a qué responde)');
 
 /* ── 1 · Confirmación real antes de «listo» ── */
 C = caja({ alDormir: (ctx, props) => { props.WA_ENTREGA = JSON.stringify({ [ctx.fin8_(SOC_A)]: { wa: SOC_A, id: 'wamid.x', estado: 'sent', ts: Date.now() } }); } });

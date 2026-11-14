@@ -16,7 +16,7 @@ function waEnviarAlguien_(numero, texto, o) {
   var abierta = false; if (!o.forzarPlantilla) { try { abierta = waVentana_(wa); } catch (e) {} }   // forzarPlantilla: Meta ya dijo que pasaron las 24 h
   if (abierta) {
     var r = waEnviar_(wa, texto, { yaVentana: true });
-    if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto); return { ok: true, modo: r.modo || 'texto', id: r.id || '' }; }
+    if (r && r.ok) { contactoRegistrar_(wa, o.nombre, texto, '', r.id); return { ok: true, modo: r.modo || 'texto', id: r.id || '' }; }
     if (!(r && /131047|24 hour|re-engagement/i.test(r.error || ''))) return { ok: false, error: (r && r.error) || 'no salió' };
   }
   /* Un socio o propietario recibe la plantilla para socios (Utilidad, sobre su cuenta; socios.js): la de primer
@@ -53,7 +53,7 @@ function waEnviarAlguien_(numero, texto, o) {
   pend[k] = (pend[k] || []).filter(function (m) { return m.texto !== tx; }); pend[k].push({ texto: tx, ts: prev ? prev.ts : Date.now(), nombre: o.nombre || '' });
   Object.keys(pend).forEach(function (x) { pend[x] = pend[x].filter(function (m) { return Date.now() - m.ts < 7 * 86400000; }).slice(-3); if (!pend[x].length) delete pend[x]; });
   p.setProperty('WA_PEND', JSON.stringify(pend));
-  contactoRegistrar_(wa, o.nombre, '[' + etiqueta + '] · pendiente: ' + texto);
+  contactoRegistrar_(wa, o.nombre, '[' + etiqueta + '] · pendiente: ' + texto, '', idT);
   return { ok: true, modo: 'plantilla', socio: etiqueta === 'plantilla para socios', plantilla: etiqueta, id: idT, aviso: aviso || undefined };
 }
 
@@ -68,7 +68,7 @@ function waPendienteSoltar_(wa, o) {
   var k = fin8_(wa), L = pend[k]; if (!L || !L.length) return false;
   delete pend[k]; p.setProperty('WA_PEND', JSON.stringify(pend));
   var tsIn = Date.parse(o.ts || '') || 0, antes = tsIn && !esAcuseCorto_(o.texto);
-  L.forEach(function (m, i) { var r = waEnviar_(wa, m.texto, { yaVentana: true }); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto, antes ? new Date(tsIn - (L.length - i) * 1000).toISOString() : ''); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
+  L.forEach(function (m, i) { var r = waEnviar_(wa, m.texto, { yaVentana: true }); if (r && r.ok) { contactoRegistrar_(wa, m.nombre, m.texto, antes ? new Date(tsIn - (L.length - i) * 1000).toISOString() : '', r.id); try { personalNotar_(wa, 'alma', m.texto); } catch (e) {} } });
   return true;
 }
 /* «Hola», «sí, dime», «ok», «buenas tardes»: un saludo o acuse que no pide nada (no hace falta contestarlo después de
@@ -127,8 +127,9 @@ function waRetomarFallido_(wa, idMsg) {
   return !!(r && r.ok);
 }
 
-function contactoRegistrar_(wa, nombre, texto, ts) {
-  try { hojaWA_().appendRow([ts || new Date().toISOString(), wa, nombre || '', 'out', String(texto).slice(0, 4000), '', 'wa:' + wa, 'text', 'alma', '']); } catch (e) {}
+/* id: el de Meta, para que una respuesta que lo CITE se asocie a este mensaje (waCitado_ busca por id; antes iba vacío). */
+function contactoRegistrar_(wa, nombre, texto, ts, id) {
+  try { hojaWA_().appendRow([ts || new Date().toISOString(), wa, nombre || '', 'out', String(texto).slice(0, 4000), id || '', 'wa:' + wa, 'text', 'alma', '']); } catch (e) {}
 }
 
 function contactoPlantillaOk_() {

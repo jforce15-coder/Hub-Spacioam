@@ -144,7 +144,7 @@ function agHerramientas_() {
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la conversación de WhatsApp de ALMA con cualquier número (socio, contacto de trabajo, alguien del equipo): pasa el número con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp (ej. +1 908 447 1404)') }, ['codigo']),
     T('buscar_reuniones', 'Reuniones, llamadas y memos que Alma escuchó en modo conferencia (app del iPhone): resumen, acuerdos y lo que le tocó a Juan («¿qué quedamos con…?», «¿qué se dijo de…?»). Sin búsqueda, las últimas. Lo sin sentido (grabación por error, ruido) queda unos días en Temporal y se borra solo si nadie lo consulta: temporales=true las muestra; si Juan busca algo y sale una temporal, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
-    T('ver_vuelos', 'Los vuelos del botón del avión de la app (de su correo): vuelo, aerolínea, origen, destino, salida y llegada, puerta, asiento y apertura del check-in. Para su vuelo, su viaje, sus horas o la puerta; «mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), con la hora local que trae. Solo el administrador principal.', {}, []),
+    T('ver_vuelos', 'Vuelos del botón del avión (de su correo): vuelo, aerolínea, ruta, horas, puerta, asiento y apertura del check-in. «Mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), en su hora local. Solo administrador principal.', {}, []),
     /* Calendario de Juan (calendario.js): una sola confirmación, que el código exige con confirmado. */
     T('crear_evento', 'Pone un evento en el calendario de Juan. Sin confirmado te da la pregunta (día, hora, zona, choques): hazla UNA vez y con su sí repite con confirmado = true. Si alguien confirma una llamada que coordinaste, ofrécele ponerla así. Invita solo si Juan lo pide («invítala»). Solo administrador principal.',
       { titulo: s('Título'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: '60 por defecto' }, fin: s('Opcional: AAAA-MM-DD HH:MM'), zona: s(CAL_ZONA_), lugar: s('Lugar o enlace'),
@@ -257,6 +257,7 @@ function agHerramientas_() {
         al_pasar: { type: 'object', description: 'Qué hacer al pasar', properties: { avisar: s('El aviso para Juan, corto'), pedido: s('Opcional: lo que harás tú cuando pase («escríbele a Gabriel que…»), con todos los datos') } } }, ['que', 'objetivo']),
     T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
     T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
+    T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
     /* Avisos de aterrizaje (avisovuelo.js): Juan elige por viaje a quién; el código vigila y escribe. */
     T('avisar_aterrizaje', 'Para «avísale a Lucky cuando aterrice»: en ese viaje Alma le escribe a cada persona la nueva hora si se retrasa, cuando aterriza y luego cuánto tarda Juan en salir. quitar = true para dejar de avisar. Solo el administrador principal.',
       { vuelo: s('Confirmación o número de vuelo (de ver_vuelos)'), personas: { type: 'array', items: { type: 'string' }, description: 'Nombres' }, numero: s('WhatsApp con código de país, si es una sola persona nueva'),
@@ -771,6 +772,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'vigilar': { var rv = vigCrear_(adm, inp); if (rv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Vigilando · ' + rv.vigilando }); return rv; }
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
+    case 'cupo_google': return cupoParaAlma_(adm);   // cupo.js
     case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
     case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };

@@ -21,7 +21,7 @@ var AGT_CAB_ = ['id', 'agente', 'creado', 'origen', 'pedido', 'estado', 'informe
 var AGP_CAB_ = ['id', 'tarea', 'agente', 'creado', 'titulo', 'porque', 'herramienta', 'entrada', 'estado', 'resultado', 'decidio', 'decidido'];
 
 /* Lo que pueden mirar (lectura) y lo que solo pueden proponer (escritura). */
-var AG_LECTURA_ = ['buscar_reservas', 'cancelaciones', 'programados_reserva', 'ver_conversacion', 'ruta_del_dia', 'tareas_abiertas',
+var AG_LECTURA_ = ['buscar_reservas', 'cancelaciones', 'historial_reserva', 'programados_reserva', 'ver_conversacion', 'ruta_del_dia', 'tareas_abiertas',
   'promesas_abiertas', 'mensajes_programados', 'ver_propiedad', 'memoria_propiedad', 'buscar_contacto', 'grow_proyectos', 'ver_proyecto', 'calcular_distancia'];
 var AG_PROPONE_ = ['enviar_a_huesped', 'escribir_a_equipo', 'crear_tarea', 'cerrar_tarea', 'agendar_en_epi', 'programar_mensaje', 'cancelar_programado',
   'marcar_resuelta', 'cambiar_dato_propiedad', 'recordar_en_propiedad', 'guardar_nota', 'grow_mover_etapa', 'grow_agendar_visita'];

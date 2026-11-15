@@ -214,3 +214,6 @@ jobs:
         # 13-nov: el pedido de Narama 633 quedó enterrado bajo 31 mensajes de otros temas y los números que Juan mandó por
         # WhatsApp, sin citar, se trataron como de otro tema (#524, #526).
         run: node .github/temas.js apps-script
+      - name: Alma no repite la misma muletilla ni la misma frase seguidas («Listo, entregado») y el resto del texto queda igual (dobles)
+        # 14-nov: Juan pidió que Alma varíe el fraseo y no caiga en bucles como «Listo, entregado» (pedido pc1794698090317).
+        run: node .github/variar-frases.js apps-script

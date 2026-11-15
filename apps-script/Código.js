@@ -5221,6 +5221,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   let conversar = false;
   if (canal === 'calle') { const cv = calleSacarConversar_(turno.texto); turno.texto = cv.texto; conversar = cv.conversar; }
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
+  try { resp = variarFrase_(resp, variarRecientes_(previos)); } catch (e) { console.error('variarFrase_: ' + e); }   // sin la misma muletilla dos veces seguidas (variar.js)
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
   if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp, { tema: turno.clas.tema || '' });

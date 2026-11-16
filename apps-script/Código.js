@@ -5501,6 +5501,7 @@ function dsBotApi_(body) {
         if (body.valor === '1' || body.valor === '0') pS.setProperty('HUB_SOLO_SESION', body.valor);
         return json_({ ok: true, solo_sesion: pS.getProperty('HUB_SOLO_SESION') === '1' });
       }
+      case 'inventario_ws': return json_(invWsInventario_(body));   // traslado a Workspace T1: solo lectura, nombres sin valores (inventariows.js)
       case 'accesos_apps': return json_(accesosApps_());   // fase 1c: ACCESOS de Epi, Hola, Mi, Grow y Docs
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
         const p = PropertiesService.getScriptProperties();

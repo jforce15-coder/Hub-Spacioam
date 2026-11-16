@@ -45,9 +45,9 @@ Cada repo publica su script al unir con `clasp` (`.clasp.json` → `scriptId`; `
 dominio. Abrir script.google.com con la cuenta nueva una vez y activar «API de Google Apps Script» en
 script.google.com/home/usersettings.
 
-**T1 · Inventario sin tocar nada.** Una acción del Hub (solo el administrador principal) que lista, por script: nombres de
+**T1 · Inventario sin tocar nada.** Una acción del robot del Hub («inventario_ws», solo lectura) que lista, por script: nombres de
 las Propiedades del script (sin valores), activadores vivos y hojas/carpetas que abre. Sale la lista exacta de qué compartir
-y qué copiar. Prueba: Juan la abre y ve las 7 filas.
+y qué copiar (`docs/specs/traslado-workspace-inventario.md`). Prueba: el inventario tiene las 7 filas.
 
 **T2 · Compartir.** Compartir como editor con la cuenta nueva cada hoja y carpeta del inventario (Juan con un clic por
 carpeta, o un script que lo haga). Prueba: con la cuenta nueva se abren todas.
@@ -66,8 +66,9 @@ Prueba: llamada de voz, chat, un WhatsApp de prueba y entrar a cada app.
 glosario y de `cupo.js`.
 
 ## Niebla (lo que falta decidir)
-- **El correo.** Hoy los scripts leen el Gmail de Juan (correos de reservas, vuelos, conferencias). Ya dueños de la cuenta
-  nueva, leerían el buzón nuevo. Recomendado: reenviar automáticamente el Gmail a la cuenta nueva (filtro de Gmail), así
-  Alma sigue viendo lo mismo. Alternativa: que Alma lea el Gmail con un permiso aparte (más trabajo y otra llave).
+- **El correo (tinta, Juan 16-nov-2026).** El correo de spacioam.com se queda en cPanel: la cuenta nueva no usa Gmail de
+  Google y no se reenvía nada. Los scripts siguen leyendo el **Gmail personal de Juan** (correos de reservas, vuelos,
+  conferencias) con un **permiso aparte** (opción b): una llave de acceso a ese Gmail guardada en las Propiedades del script,
+  nunca en el código ni en el chat. Se arma en T4, antes de mover el Hub; mientras tanto el Hub sigue en la cuenta Gmail.
 - **Desde qué dirección salen los correos** que mandan las apps (códigos de entrada, avisos): pasarían a salir de la cuenta
   nueva (`…@spacioam.com`). Se ve más profesional; solo hay que avisarle a quien filtre por remitente.

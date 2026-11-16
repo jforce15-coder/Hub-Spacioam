@@ -35,6 +35,7 @@ function caja(o) {
   o = o || {};
   const props = Object.assign({ GITHUB_TOKEN: 'tok' }, o.props || {}), cache = {}, gh = [], agentes = [], cierres = [], wa = [], chat = [];
   let ahora = AHORA; const candado = { espera: [], sueltas: 0, mio: false };
+  const temas = {}, cerrados = [];
   const DateF = function (...a) { return a.length ? new Date(...a) : new Date(ahora); };
   DateF.now = () => ahora; DateF.parse = Date.parse; DateF.UTC = Date.UTC; DateF.prototype = Date.prototype;
   const res = (code, j) => ({ getResponseCode: () => code, getContentText: () => JSON.stringify(j) });
@@ -71,7 +72,8 @@ function caja(o) {
       if (o.agenteFalla) throw new Error('Anthropic respondió 529 (sobrecargado)');
       return o.agente ? o.agente(pedido) : { respuesta: 'Listo, quedó programado para hoy a las 9:00 a Recepción Brunelo.', hechas: [{ tipo: 'programado', resumen: 'Programado · Recepción Brunelo · jueves 12 de noviembre, 09:00 (hora de Guatemala)', id: 'wp1731420000123' }] };
     },
-    chatTurnoCerrar_: (adm, ids, texto, ag, op) => { agentes[agentes.length - 1].cierre = op; return { texto: ag.respuesta }; },
+    chatTurnoCerrar_: (adm, ids, texto, ag, op) => { agentes[agentes.length - 1].cierre = op; const t = o.tema ? o.tema(ahora) : null; if (t) temas[t.id] = t; return { texto: ag.respuesta, clas: { tema: t ? t.id : '' } }; },
+    temaLeer_: id => temas[id] || null, temaCerrar_: (t, r) => { t.estado = 'cerrado'; t.resultado = r; cerrados.push(t.id); return { ok: true }; },
     formatearMensaje_: t => t,
     opGuardar_: (adm, de, canal, texto, hechas) => { chat.push({ de, canal, texto, hechas }); },
     waEnviar_: (n, t) => { wa.push({ n, t }); return { ok: true }; }
@@ -79,7 +81,7 @@ function caja(o) {
   vm.createContext(ctx);
   vm.runInContext(LIMPIAR + '\n' + leer('paraalma.js'), ctx);
   const pasada = (min) => { ahora += (min || 3) * 60000; delete cache.para_alma_t; return ctx.paraAlmaRevisar_(ahora); };
-  return { ctx, props, gh, agentes, cierres, wa, chat, pasada, candado, avanzar: min => { ahora += min * 60000; }, estados: () => JSON.parse(props.PARA_ALMA_ESTADO || '{}'),
+  return { ctx, props, gh, agentes, cierres, wa, chat, pasada, candado, temas, cerrados, avanzar: min => { ahora += min * 60000; }, estados: () => JSON.parse(props.PARA_ALMA_ESTADO || '{}'),
     comentarios: () => gh.filter(g => /\/comments$/.test(g.ruta)).map(g => g.b.body), etiquetas: () => gh.filter(g => /\/labels$/.test(g.ruta)).map(g => g.b.labels[0]) };
 }
 
@@ -258,5 +260,20 @@ for (const [n, body, por] of [[540, 'Programa un mensaje a Brunelo', 'no trae un
   ok(/has\("pendiente"\)/.test(y) && /\/comments/.test(y) && /avisado: true/.test(y) && /del\(\.pendiente\.texto\)/.test(y), 'el workflow deja el pendiente en el issue, confirma al Hub y no imprime el texto en el registro');
   ok(/github\.event\.issue\.user\.login == github\.repository_owner/.test(y) && !/\$\{\{\s*github\.event\.issue\.(title|body)/.test(y), 'solo con issues del dueño y sin meter el título ni el cuerpo en el script');
   ok(/case 'para_alma_estado': return json_\(paraAlmaDiag_\(\)\)/.test(leer('Código.js')), 'el robot tiene «para_alma_estado»'); }
+
+/* ── 10 ── Una instrucción que solo se respondió no deja un tema abierto en el chat de Juan. */
+{ const c = caja({ issues: () => [issue(580, { body: cuerpo({ instruccion: 'Prueba del canal: responde «Prueba recibida».', responder_a: 'chat' }) })], agente: () => ({ respuesta: 'Prueba recibida.', hechas: [] }),
+    tema: ahora => ({ id: 'tmNuevo', creado: ahora, estado: 'abierto', espera: '' }) });
+  c.pasada(0);
+  ok(c.cerrados.join() === 'tmNuevo' && /^Instrucción de Claude respondida: Prueba recibida/.test(c.temas.tmNuevo.resultado), 'solo respondió y el tema nació en este turno: se cierra con su resultado (16-nov: quedó abierto «Prueba canal 595»)'); }
+{ const c = caja({ issues: () => [issue(581)], tema: ahora => ({ id: 'tmNuevo', creado: ahora, estado: 'abierto', espera: '' }) });
+  c.pasada(0);
+  ok(c.cerrados.length === 0, 'si Alma hizo algo (programó un mensaje), su tema sigue abierto'); }
+{ const c = caja({ issues: () => [issue(582)], agente: () => ({ respuesta: 'Va en la ruta de hoy.', hechas: [] }), tema: ahora => ({ id: 'tmViejo', creado: ahora - 3600000, estado: 'abierto', espera: '' }) });
+  c.pasada(0);
+  ok(c.cerrados.length === 0, 'una consulta sobre un tema que ya existía no lo cierra'); }
+{ const c = caja({ issues: () => [issue(583)], agente: () => ({ respuesta: '¿A qué hora lo programo?', hechas: [] }), tema: ahora => ({ id: 'tmNuevo', creado: ahora, estado: 'abierto', espera: 'juan' }) });
+  c.pasada(0);
+  ok(c.cerrados.length === 0, 'si quedó esperando algo, el tema sigue abierto'); }
 
 process.exit(fallo);

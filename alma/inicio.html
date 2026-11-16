@@ -870,8 +870,15 @@
   <div class="grupo" id="g-calle" hidden>
     <div class="fila" id="f-calle-on" hidden><span class="et">Modo calle encendido</span><label class="interruptor"><input type="checkbox" id="i-calle" aria-label="Modo calle encendido"><span></span></label></div>
     <p class="nota-g" id="n-calle-on" hidden>Encendido, Alma espera «Alma» con el teléfono bloqueado, y se queda así al volver a abrir la app hasta que lo apagues. El botón del caminante es para hablarle ya, sin decir «Alma» (encendido o apagado).</p>
+    <div class="fila" id="f-calle-musica" hidden><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-calle-musica" aria-label="Bajar la música cuando Alma hable en el Modo calle"><span></span></label></div>
+    <p class="nota-g" id="n-calle-musica" hidden>Mientras Alma te oye, te contesta o habla contigo, la música de tus otras apps baja (no se pausa) y vuelve al terminar. Con el teléfono bloqueado puede quedarse baja hasta que abras Alma. Con «Alma con el anillo» encendido, la música se pausa: el anillo necesita el audio.</p>
     <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
     <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También con un toque largo en el botón del caminante.</p>
+  </div>
+  <p class="tit-g" id="t-conf-aj" hidden>Modo conferencia</p>
+  <div class="grupo" id="g-conf-aj" hidden>
+    <div class="fila"><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-conf-musica" aria-label="Bajar la música cuando Alma hable en el modo conferencia"><span></span></label></div>
+    <p class="nota-g">Apagado, Alma habla encima de la música y su llamada la pausa. Encendido, la música baja mientras Alma habla y vuelve al terminar.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
@@ -1550,6 +1557,8 @@
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
+    /* «Bajar la música cuando Alma hable» (AudioCalle.swift): solo si la app lo sabe (una versión vieja no lo manda). */
+    if (typeof e.musica === "boolean") { $("t-conf-aj").hidden = $("g-conf-aj").hidden = false; $("i-conf-musica").checked = e.musica; }
     CONF.enLlamada = !!e.enLlamada; recPintar();
     if (e.mudo && !MUDO.on) nativa({ accion: "conferencia", que: "mudo", on: false });   // el mudo no sobrevive a recargar la página
     if (MUDO.on) escUbicar();                                                                // si la conferencia se apagó, el mudo se quita solo
@@ -1685,6 +1694,7 @@
     }
     var antes = CALLE.activa; CALLE.activa = !!e.activa; CALLE.encendiendo = !!e.encendiendo; CALLE.diag = e.diag || null;
     if (e.ahora && !CALLE.ahora) { CALLE.ahora = true; $("f-calle-on").hidden = $("n-calle-on").hidden = false; }
+    if (typeof e.musica === "boolean") { $("f-calle-musica").hidden = $("n-calle-musica").hidden = false; $("i-calle-musica").checked = e.musica; }   // AudioCalle.swift
     $("i-calle").checked = calleOn();
     CALLE.fase = String(e.fase || (CALLE.activa ? "esperando" : "quieta"));
     /* el error que impide encender viene en e.error (con aviso, una vez); el de mientras está encendido, en diag.error (en la línea) */
@@ -1704,6 +1714,9 @@
     if (on) setTimeout(function () { nativa({ accion: "conferencia", que: "estado" }); }, 400);
   }
   $("i-calle").onchange = function () { vozConfig(); callePoner(this.checked); };
+  /* «Bajar la música cuando Alma hable»: encendido de fábrica en el Modo calle, apagado en conferencia (lo guarda la app). */
+  $("i-calle-musica").onchange = function () { nativa({ accion: "calle", que: "musica", on: this.checked }); };
+  $("i-conf-musica").onchange = function () { nativa({ accion: "conferencia", que: "musica", on: this.checked }); };
   $("b-calle").onclick = function () {
     if (CALLE.largo) { CALLE.largo = false; return; }   // fue un toque largo: abrió «Probar», no cambia el Modo calle
     vozConfig();

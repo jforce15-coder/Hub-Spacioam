@@ -12,7 +12,10 @@
    - Hablar con Claudio (#550): si Juan (el administrador principal) pide hablar con Claudio, Alma dice su frase y usa
      hablar_con_claudio; aquí se espera a que termine de hablar, se cierra su conversación y se abre la de Claudio (otro
      agente, otra voz, acción vozClaudio del Hub) en ~1 s, con el halo de la roca todo naranja. Claudio usa volver_con_alma
-     y regresa Alma con su voz y su halo. El halo es una variable de CSS (--san-halo) que lee la roca de sa-nav e inicio. */
+     y regresa Alma con su voz y su halo. El halo es una variable de CSS (--san-halo) que lee la roca de sa-nav e inicio.
+   - Panel de Claudio (apps-script/claudiopanel.js): con Claudio, avisa a la página («sa-voz-claudio») cuándo entra, cuándo
+     contesta una herramienta suya (claudio_…) y cuándo se va; la página pide el panel al Hub. Lo que Juan responde tocando
+     el panel le llega a Claudio como contexto («sa-claudio-contexto»). */
 (function (w) {
   "use strict";
   var SDK = new URL("vendor/eleven-ws.js?v=1.27.0a", (document.currentScript && document.currentScript.src) || location.href).href;
@@ -127,6 +130,8 @@
       w.dispatchEvent(new CustomEvent("sa-voz-agente", { detail: { agente: a === "claudio" ? "claudio" : "alma" } }));
     } catch (e) {}
   }
+  /* Panel de Claudio: la página (alma/inicio.html) lo pide al Hub con la conversación de Claudio. */
+  function avisoClaudio(que, conv) { try { w.dispatchEvent(new CustomEvent("sa-voz-claudio", { detail: { que: que, conv: conv || "" } })); } catch (e) {} }
   function sonido(n, pagina) { try { if (!pagina && w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma) { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "sonido", n: n }); return; } } catch (e) {}
     try { var a = new Audio(SONIDOS + n + ".wav"); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
   /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
@@ -157,16 +162,22 @@
     var enChat = false, sono = true;
     /* Hablar con Claudio: quién habla ahora, si está hablando (para no cortarle la frase) y la serie de la conversación
        vigente (la que se cierra al cambiar de agente no termina la llamada). */
-    var agente = "alma", habla = false, callada = 0, serie = 0, cambio = false, mod = null, colgo = false;
+    var agente = "alma", habla = false, callada = 0, serie = 0, cambio = false, mod = null, colgo = false, convClaudio = "";
+    /* Lo que Juan respondió tocando el Panel de Claudio: Claudio lo sabe en esta misma conversación. */
+    function alContexto(e) { var t = e && e.detail && e.detail.texto; if (!t || agente !== "claudio" || !vivo) return; try { vivo.sendContextualUpdate(String(t).slice(0, 600)); } catch (x) {} }
+    w.addEventListener("sa-claudio-contexto", alContexto);
+    function saleClaudio() { if (convClaudio || agente === "claudio") { convClaudio = ""; avisoClaudio("sale"); } }
     agenteHalo("alma");
     sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
-    function terminada() { vivo = null; agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
+    function terminada() { vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
     function abrir(f, m, u) {
       var yo = serie, claudio = agente === "claudio";
       var opt = {
         signedUrl: u, connectionType: "websocket", dynamicVariables: claudio ? (f.dynamic_variables || {}) : conCtx(f.dynamic_variables || {}),
-        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) vincular(x.conversationId, 0); },
+        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) vincular(x.conversationId, 0);
+          if (claudio && x && x.conversationId) { convClaudio = x.conversationId; avisoClaudio("entra", convClaudio); } },   // Panel de Claudio: la lista al entrar
+        onAgentToolResponse: function (r) { if (yo !== serie || !claudio || !convClaudio || !r || !/^claudio_/.test(String(r.tool_name || ""))) return; avisoClaudio("herramienta", convClaudio); },
         onMessage: function (x) { if (!x || yo !== serie) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
         onModeChange: function (x) { if (yo !== serie || !x) return; habla = x.mode === "speaking"; if (!habla) callada = Date.now(); if (!enChat) h.status(habla ? (claudio ? "Claudio habla" : "Alma habla") : "Te escucho"); },
         onDisconnect: function () { if (yo !== serie) return; terminada(); },
@@ -202,6 +213,7 @@
       Promise.all([pedir, termina, mod ? Promise.resolve(mod) : loadSdk()]).then(function (r) {
         if (colgo || !vivo) return;   // Juan colgó mientras tanto: no se abre nada
         var viejo = vivo; serie++; cerrada = true; vivo = null; habla = false;
+        if (nuevo !== "claudio") saleClaudio();   // vuelve Alma: el Panel de Claudio se quita
         try { viejo.endSession(); } catch (e) {}
         agente = nuevo; agenteHalo(nuevo); h.status("Conectando…");
         return abrir(r[0][0], r[2], r[0][1]).then(function (c) { vivo = c; });
@@ -227,7 +239,7 @@
       vivo = conv;
       /* Todo va a la conversación vigente (la de Alma o la de Claudio). */
       return {
-        end: function () { var c = vivo; colgo = true; vivo = null; agenteHalo("alma"); despedida(); try { c && c.endSession(); } catch (e) {} },
+        end: function () { var c = vivo; colgo = true; vivo = null; saleClaudio(); agenteHalo("alma"); despedida(); try { c && c.endSession(); } catch (e) {} },
         level: function () { try { return vivo ? vivo.getOutputVolume() : 0; } catch (e) { return 0; } },
         sendText: function (t) { try { vivo.sendUserMessage(t); } catch (e) {} },
         mute: function (on) { try { vivo.setMicMuted(!!on); } catch (e) {} },

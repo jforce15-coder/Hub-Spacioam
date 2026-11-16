@@ -5510,7 +5510,7 @@ function dsBotApi_(body) {
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
-      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true), claudio: claudioSyncSiToca_(true) });
+      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), herramientas: (function () { try { return vozHerramientasSiCambiaron_(); } catch (e) { return { ok: false, error: String(e) }; } })(), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true), claudio: claudioSyncSiToca_(true) });
       case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());

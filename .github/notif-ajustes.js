@@ -262,6 +262,7 @@ function caja(o) {
   const a1 = ctx.confSueno_(); ok(a1.silencio === 40 && a1.tope === 90, '8 · se ajustan con CONF_SILENCIO_S y CONF_TOPE_S');
   props.CONF_SILENCIO_S = '2'; props.CONF_TOPE_S = '9999';
   const a2 = ctx.confSueno_(); ok(a2.silencio === 10 && a2.tope === 300, '8 · con límites: nunca menos de 10 s ni más de 5 min abierta sin que Alma hable');
+  ok(/case 'voz_sync':[^\n]*vozHerramientasSiCambiaron_\(\)/.test(leer('Código.js')), '8 · el robot voz_sync también sube las descripciones de end_call y skip_turn (no esperan la vuelta de 30 min)');
   ok(/out\.conferencia_silencio_s = cf\.silencio; out\.conferencia_tope_s = cf\.tope/.test(VOZ), '8 · la ficha de la llamada los lleva (conferencia_silencio_s, conferencia_tope_s)');
 }
 

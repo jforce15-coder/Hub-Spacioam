@@ -88,6 +88,7 @@ function caja(o) {
   casos.forEach(([a, b]) => ok(X.temaTitulo_(a) === b, '1 · «' + a + '» → «' + X.temaTitulo_(a) + '»'));
   ok(X.microNombre_('Juan pregunta cómo estamos con los cupos de Google') === 'Cupos de Google' && X.microNombre_('') === 'Pedido para Claudio', '1 · el microproyecto usa la misma limpieza');
   ok(!X.temaLegible_('Juan pregunta cómo estamos con') && !X.temaLegible_('Pedido') && !X.temaLegible_('Cupos') && X.temaLegible_('Cupos de Google') && X.temaLegible_('Estoy probando el modo'), '1 · legible: 2 palabras o más, sin conector al final ni «Juan pregunta…»');
+  ok(X.temaLegible_('Narama 623') && !X.temaSePuedePreguntar_([{ apartamento: 'Ignacio 1102, Ignacio 1104, Mónaco B2' }, { apartamento: 'Narama 623' }]) && X.temaSePuedePreguntar_([{ apartamento: 'Narama 633' }, { apartamento: 'Monaco D4' }]), '1 · un nombre que ya es una lista no se usa para preguntar «¿A o B?» (16-nov: la pregunta salió con cuatro opciones); con dos nombres simples sí');
   ok(X.temaTitulo_('Juan pregunta cómo estamos con') === 'Pedido', '1 · sin nada que nombrar queda «Pedido» (y TEMAS_V2 busca otro origen)');
 }
 { const c = caja(), X = c.X;

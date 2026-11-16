@@ -71,6 +71,9 @@ function tvCerrar_(convId, app, conf) {
   /* Conferencia: solo con la pantalla encendida (vozpant_ «1», lo dice la app nueva). Fuera de conferencia: salvo bloqueada. */
   var pant = c.get('vozpant_' + convId), visible = conf ? pant === '1' : pant !== '0';
   if (visible && TV_TIPOS_AVISO_.indexOf(cand.tipo) >= 0 && !tvAppPinta_(convId, cand.tipo)) visible = false;   // la app de antes no lo pinta: solo el chat
+  /* Modo compañero (vivo.js, #607): si el otro dispositivo está mirando y pinta este tipo, se ve allá aunque aquí no. */
+  var mira = false; try { mira = typeof vivoMiraLlamada_ === 'function' && vivoMiraLlamada_(convId, cand.tipo); } catch (e) {}
+  visible = visible || mira;
   var t = null; TV_SIN_PEDIR_ = !visible;   // lo que no se va a ver no pide fotos (tvPedirFotos_)
   try { t = cand.hacer(); } catch (e) { console.error('tarjeta ' + cand.tipo + ': ' + (e.stack || e)); } finally { TV_SIN_PEDIR_ = false; }
   if (!t || !t.clave) { c.remove('voztarjeta_' + convId); return null; }
@@ -87,6 +90,7 @@ function tvCerrar_(convId, app, conf) {
     c.put('voztv_vistas_' + convId, JSON.stringify(vistas.slice(-40)), TV_LLAMADA_SEG_);
     c.put('voztv_actual_' + convId, JSON.stringify({ clave: t.clave, id: t.id }), TV_LLAMADA_SEG_);
     c.put('voztarjeta_' + convId, JSON.stringify(t), TV_SEG_);
+    try { if (typeof vivoTarjeta_ === 'function') vivoTarjeta_(convId, t); } catch (e) { console.error('vivoTarjeta_: ' + e); }   // y al compañero
     out.voz = 'EN PANTALLA: ' + t.resumen + '. Juan ya lo ve en la tarjeta de la llamada.';
   } else c.remove('voztarjeta_' + convId);
   return out;
@@ -120,7 +124,7 @@ function tvPermitida_(convId, app) {
 }
 /* Los tipos nuevos (#508 Fase 2) salen en pantalla solo si la app dijo al vincular que los pinta (vozWebVincular_, tipos):
    la app de antes descarta un tipo que no conoce y la voz habría dicho «EN PANTALLA» sin que nada se viera. */
-var TV_TIPOS_AVISO_ = ['socio'];
+var TV_TIPOS_AVISO_ = ['socio', 'datos'];   // «datos»: el tablero de datos (tablero.js, #607)
 function tvAppPinta_(convId, tipo) {
   var l = []; try { l = JSON.parse(CacheService.getScriptCache().get('voztvtipos_' + convId) || '[]') || []; } catch (e) {}
   return Array.isArray(l) && l.indexOf(tipo) >= 0;
@@ -141,6 +145,7 @@ function tvLineaChat_(celda) {
   if (o.tipo === 'edificio') return 'Tarjeta de la llamada · edificio ' + (o.titulo || '');
   if (o.tipo === 'consulta') return 'Tarjeta de la llamada · consulta de ' + (o.titulo || 'un interesado');
   if (o.tipo === 'socio') return 'Tarjeta de la llamada · socio ' + (o.titulo || '');
+  if (o.tipo === 'datos') return 'Tarjeta de la llamada · ' + (o.titulo || 'datos');
   return '';
 }
 function tvConLinea_(m) {

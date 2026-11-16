@@ -66,6 +66,7 @@ function microGuardar_(m) {
   if (m.fila) sh.getRange(m.fila, 1, 1, MICRO_CAB_.length).setValues([v]);
   else { sh.appendRow(v); m.fila = sh.getLastRow(); }
   /* Unido (o cerrado) es su resultado: su tema se cierra con eso (temas.js). */
+  if (m.estado === MICRO_ESTADOS_.unido || m.estado === MICRO_ESTADOS_.cerrado) { try { retQuitarRef_(m.id); } catch (e) { console.error('retQuitarRef_: ' + e); } }   // su tema por retomar ya no hace falta (retomar.js, #607)
   if (m.tema_id && (m.estado === MICRO_ESTADOS_.unido || m.estado === MICRO_ESTADOS_.cerrado)) { try { temaCerrar_(m.tema_id, (m.estado === MICRO_ESTADOS_.unido ? 'Cambio unido' + (m.pr ? ': ' + m.pr : '') : 'Microproyecto cerrado') + ' («' + m.nombre + '»)'); } catch (e) { console.error('microGuardar_ tema: ' + e); } }
   return m;
 }

@@ -166,9 +166,17 @@ function paraAlmaEjecutar_(adm, inst) {
   if (!opAgenteActivo_()) return { ok: false, error: 'Alma tiene el agente apagado (OP_AGENTE = 0): no tengo herramientas' };
   var pedido = PARA_ALMA_NOTA_ + inst.instruccion;
   /* Como la entrega de escalar.js: el pedido no se guarda como si Juan lo hubiera escrito. Sin escalar ni Desarrollo. */
+  var t0 = Date.now();
   var ag = opAgente_(adm, pedido, PARA_ALMA_CANAL_, [], opFilas_(adm.email, 20));
   var turno = chatTurnoCerrar_(adm, [], pedido, ag, { canal: PARA_ALMA_CANAL_, sinEscalar: true, sinDesarrollo: true });
   var resp = String((turno && turno.texto) || (ag && ag.respuesta) || '').trim(), hechas = (ag && ag.hechas) || [];
+  /* Una instrucción que solo se respondió no deja un tema abierto en el chat de Juan: el 16-nov una prueba del canal dejó el
+     tema «Prueba canal 595» y a Juan le podía salir «¿Esto es para … o para Prueba canal 595?». Se cierra solo el tema que
+     nació en este turno, si Alma no hizo nada con herramientas y no quedó esperando nada. */
+  try {
+    var tid = turno && turno.clas && turno.clas.tema, tt = tid && !hechas.length ? temaLeer_(tid) : null;
+    if (tt && Number(tt.creado) >= t0 && !tt.espera) temaCerrar_(tt, 'Instrucción de Claude respondida: ' + (resp || 'Listo.').replace(/\s+/g, ' ').slice(0, 140));
+  } catch (e) { console.error('paraAlma tema: ' + e); }
   try { resp = formatearMensaje_(resp); } catch (e) {}
   try { opGuardar_(adm, 'alma', PARA_ALMA_CANAL_, 'Claude me pidió (de tu parte): «' + inst.instruccion.slice(0, 400) + '»\n\n' + (resp || 'Listo.'), hechas); } catch (e) { console.error('paraAlma chat: ' + e); }
   var linea = function (h) { return '· ' + (h.resumen || h.tipo || 'acción') + (h.id ? ' · id ' + h.id : '') + (h.error ? ' · falló: ' + h.error : ''); };

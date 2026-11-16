@@ -58,6 +58,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 ## Web (GitHub Pages)
 - ✅ Si cambia `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan.
 - ✅ Los bots de prueba no encuentran nada grave (error de JavaScript, pantalla en blanco, código del usuario ejecutándose). Corren después de unir; lo que encuentren se arregla en un PR corto.
+- ✅ **Lo delicado va con la sesión, nunca con una llave escrita en la página** (16-nov-2026; `usuarios.html`, `.github/usuarios-reinicio.js`): reiniciar una contraseña sale solo con la sesión firmada de quien hoy es administrador principal; el login lo decide antes de mirar la llave compartida de las apps (esa llave está en el código público: para algo delicado ni hace falta ni alcanza). La página llevaba esa llave escrita y no mandaba la sesión, así que el botón nunca reiniciaba nada.
 - Un elemento se busca por su nombre propio (`data-a`, `id`), nunca por una clase de estilo que otro elemento puede compartir (pasó dos veces el 30 oct: el botón y la lista de Pendientes tomaban los de Notificaciones).
 - Nada se sale de la pantalla en un iPhone SE (375 px); los botones miden al menos 44 px; respeta las áreas seguras.
 - ✅ Cada `<sc-for>` lee su lista con `list="{{ … }}"` (js/support.js no conoce `each=`): la ventana de «Acciones pendientes» salió vacía el 3-nov por eso. En el encabezado de Alma solo caben la lupa y ✦ junto al nombre en 375 px: lo demás va en su propia fila en el teléfono.

@@ -114,8 +114,12 @@
   function reiniciar(u, boton) {
     if (!confirm('¿Reiniciar la contraseña de ' + (u.nombre || u.email) + '?\n\nSu contraseña actual dejará de funcionar hasta que cree una nueva con el código temporal.')) return;
     boton.disabled = true; boton.textContent = 'Generando…';
+    /* Va solo con tu sesión firmada: el login comprueba que hoy seas administrador principal. Aquí no va ninguna llave
+       (16-nov-2026: la página llevaba escrita la llave compartida y no mandaba la sesión, así que nunca reiniciaba). */
+    var sesion = SASesion.leer();
+    if (!sesion) { boton.disabled = false; boton.textContent = 'Reiniciar contraseña'; mostrarError(u, 'session'); return; }
     fetch(LOGIN, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'resetPassword', token: 'SpacioAM2026!', email: u.email }) })
+      body: JSON.stringify({ action: 'resetPassword', session: sesion, email: u.email }) })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         boton.disabled = false; boton.textContent = 'Reiniciar contraseña';

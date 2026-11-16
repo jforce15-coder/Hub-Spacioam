@@ -323,6 +323,9 @@ function temaPregunta_(email, texto, ops) {
 /* ¿Se puede preguntar «¿Esto es para A o para B?»? Solo con nombres legibles y distintos (#583 T2). */
 function temaSePuedePreguntar_(ops) {
   var n = (ops || []).map(temaNombre_), k = n.map(socioNorm_);
+  /* Un nombre que ya es una lista («Ignacio 1102, Ignacio 1104, Mónaco B2») no sirve para preguntar «¿A o B?»: el 16-nov la
+     pregunta salió con cuatro opciones («¿… Ignacio 1102, Ignacio 1104, Mónaco B2 o para Narama 623?»). Con eso, Alma elige. */
+  if (n.some(function (x) { return /[,;]/.test(x); })) return false;
   return n.length >= 2 && n.every(temaLegible_) && k.every(function (x, i) { return k.indexOf(x) === i; });
 }
 function temaElegir_(adm, texto, o) {

@@ -13,6 +13,8 @@
      correo a un tercero) sigue quedando en borrador. No escala a Desarrollo (sería pedirle a Claude lo que Claude le pidió).
    · Responde en el issue (qué hizo, con los ids de lo programado) y lo cierra; con «whatsapp», además le avisa a Juan en una
      frase. El issue es público: la respuesta sale sin teléfonos, correos ni códigos (paraAlmaPublico_).
+     Y sin nombres de personas: Alma las nombra por su rol (16-nov-2026: la respuesta a #589 traía el nombre completo de
+     alguien del equipo; se dejó a mano una versión sin el nombre).
    · Una sola ejecución por issue: la marca va en la propiedad PARA_ALMA_ESTADO ANTES de llamar a la IA (dos pasadas de
      procesarCola pueden correr a la vez). Si falla, comenta el error real y deja el issue abierto con «para-alma-error»;
      nunca se reintenta solo. Sin «hasta», vence a las 24 h de abierto (un issue viejo no manda nada a nadie).
@@ -39,7 +41,7 @@ var PARA_ALMA_RESPALDO_S_ = 1800, PARA_ALMA_SIN_AVISO_S_ = 110;   // respaldo co
 var PARA_ALMA_NOTA_ = 'INSTRUCCIÓN DE JUAN A TRAVÉS DE CLAUDE (su sesión de desarrollo, con su cuenta). Hazla ahora con tus herramientas, ' +
   'como si Juan te la dijera: él ya la pidió, así que no le pidas confirmación ni le preguntes nada (nadie está esperando en el chat). ' +
   'A un huésped o a un tercero escríbele solo si la instrucción lo dice explícitamente. Si falta un dato que ninguna herramienta te da, no lo inventes: di qué falta. ' +
-  'Tu respuesta queda en un issue público de GitHub: di qué hiciste, sin teléfonos, correos ni códigos.\n\nINSTRUCCIÓN:\n';
+  'Tu respuesta queda en un issue público de GitHub: di qué hiciste, sin teléfonos, correos ni códigos, y a cada persona nómbrala por su rol (la persona de limpieza, el huésped de Narama 623, el socio), sin nombres ni apellidos.\n\nINSTRUCCIÓN:\n';
 
 /* Las llaves de GitHub del Hub, sin repetir: primero la de Conexiones (GITHUB_PRS, la que Juan mantiene y con la que
    Alma une), después GITHUB_TOKEN. */
@@ -164,15 +166,23 @@ function paraAlmaEjecutar_(adm, inst) {
   if (!opAgenteActivo_()) return { ok: false, error: 'Alma tiene el agente apagado (OP_AGENTE = 0): no tengo herramientas' };
   var pedido = PARA_ALMA_NOTA_ + inst.instruccion;
   /* Como la entrega de escalar.js: el pedido no se guarda como si Juan lo hubiera escrito. Sin escalar ni Desarrollo. */
+  var t0 = Date.now();
   var ag = opAgente_(adm, pedido, PARA_ALMA_CANAL_, [], opFilas_(adm.email, 20));
   var turno = chatTurnoCerrar_(adm, [], pedido, ag, { canal: PARA_ALMA_CANAL_, sinEscalar: true, sinDesarrollo: true });
   var resp = String((turno && turno.texto) || (ag && ag.respuesta) || '').trim(), hechas = (ag && ag.hechas) || [];
+  /* Una instrucción que solo se respondió no deja un tema abierto en el chat de Juan: el 16-nov una prueba del canal dejó el
+     tema «Prueba canal 595» y a Juan le podía salir «¿Esto es para … o para Prueba canal 595?». Se cierra solo el tema que
+     nació en este turno, si Alma no hizo nada con herramientas y no quedó esperando nada. */
+  try {
+    var tid = turno && turno.clas && turno.clas.tema, tt = tid && !hechas.length ? temaLeer_(tid) : null;
+    if (tt && Number(tt.creado) >= t0 && !tt.espera) temaCerrar_(tt, 'Instrucción de Claude respondida: ' + (resp || 'Listo.').replace(/\s+/g, ' ').slice(0, 140));
+  } catch (e) { console.error('paraAlma tema: ' + e); }
   try { resp = formatearMensaje_(resp); } catch (e) {}
   try { opGuardar_(adm, 'alma', PARA_ALMA_CANAL_, 'Claude me pidió (de tu parte): «' + inst.instruccion.slice(0, 400) + '»\n\n' + (resp || 'Listo.'), hechas); } catch (e) { console.error('paraAlma chat: ' + e); }
   var linea = function (h) { return '· ' + (h.resumen || h.tipo || 'acción') + (h.id ? ' · id ' + h.id : '') + (h.error ? ' · falló: ' + h.error : ''); };
   var fallidas = hechas.filter(function (h) { return h && h.error; });
   var texto = (fallidas.length ? 'No salió todo. No lo reintento sola: si hace falta, abre otro issue.' : 'Listo, lo hice como si me lo pidiera Juan.') +
-    (hechas.length ? '\n\n**Lo que hice**\n' + hechas.map(linea).join('\n') : '\n\n**Lo que hice:** nada con herramientas (solo respondí).') +
+    (hechas.length ? '\n\n**Lo que hice**\n' + hechas.map(linea).join('\n') : '\n\n**Lo que hice:** no cambié nada ni le escribí a nadie (solo consulté y respondí).') +
     '\n\n**Lo que respondí**\n' + (resp || 'Listo.').split('\n').map(function (l) { return '> ' + l; }).join('\n');
   return { ok: !fallidas.length, texto: texto, error: fallidas.map(function (h) { return (h.resumen || h.tipo) + ': ' + h.error; }).join('; '), hechas: hechas };
 }

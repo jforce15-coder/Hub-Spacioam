@@ -20,7 +20,13 @@
      al Hub al abrir (o etiquetar) el issue (acción «paraAlmaAviso» con la llave compartida PARA_ALMA_AVISO_KEY: secreto de
      GitHub y propiedad del script, el mismo valor) y el Hub lo procesa al instante, con las mismas reglas de arriba. Con la
      llave puesta en el Hub, la revisión periódica queda de respaldo cada 30 min (PARA_ALMA_RESPALDO_S_; antes 110 s, que
-     sigue sin la llave o con CUPO_AHORRO = 0). */
+     sigue sin la llave o con CUPO_AHORRO = 0).
+   · La respuesta en el issue nunca se queda sin salir (16-nov-2026): del 12 al 16-nov Alma sí hizo las 4 instrucciones
+     (#496, #552, #554, #589) pero ninguna recibió su comentario ni se cerró, y nadie veía por qué. Ahora: (1) al escribir
+     en GitHub prueba las dos llaves del Hub (la de Conexiones, GITHUB_PRS, y GITHUB_TOKEN): si una no tiene permiso, va
+     la otra; (2) si ninguna puede, el aviso de GitHub recibe el texto ya limpio (pendiente) y el propio workflow comenta,
+     etiqueta y cierra con su permiso, y le confirma al Hub (avisado); (3) el estado guarda el código con que GitHub
+     rechazó (robot para_alma_estado, sin textos) y el candado ya no se suelta si lo tenía la pasada. */
 
 var PARA_ALMA_REPO_ = 'jforce15-coder/Hub-Spacioam', PARA_ALMA_DUENO_ = 'jforce15-coder';
 var PARA_ALMA_ETIQUETA_ = 'para-alma', PARA_ALMA_ERROR_ = 'para-alma-error', PARA_ALMA_PROP_ = 'PARA_ALMA_ESTADO';
@@ -35,17 +41,29 @@ var PARA_ALMA_NOTA_ = 'INSTRUCCIÓN DE JUAN A TRAVÉS DE CLAUDE (su sesión de d
   'A un huésped o a un tercero escríbele solo si la instrucción lo dice explícitamente. Si falta un dato que ninguna herramienta te da, no lo inventes: di qué falta. ' +
   'Tu respuesta queda en un issue público de GitHub: di qué hiciste, sin teléfonos, correos ni códigos.\n\nINSTRUCCIÓN:\n';
 
-function paraAlmaTok_() { var p = PropertiesService.getScriptProperties(); return p.getProperty('GITHUB_TOKEN') || p.getProperty('GITHUB_PRS') || ''; }
-/* GitHub con la llave del Hub. Devuelve { code, json }; un error de red es code 0. */
+/* Las llaves de GitHub del Hub, sin repetir: primero la de Conexiones (GITHUB_PRS, la que Juan mantiene y con la que
+   Alma une), después GITHUB_TOKEN. */
+function paraAlmaToks_() {
+  var p = PropertiesService.getScriptProperties(), l = [];
+  ['GITHUB_PRS', 'GITHUB_TOKEN'].forEach(function (k) { var v = String(p.getProperty(k) || '').trim(); if (v && l.indexOf(v) < 0) l.push(v); });
+  return l;
+}
+function paraAlmaTok_() { return paraAlmaToks_()[0] || ''; }
+/* GitHub con la llave del Hub. Devuelve { code, json }; un error de red es code 0. Si GitHub rechaza la llave (401, 403
+   o 404: sin permiso para eso) y hay otra, prueba con la otra: del 12 al 16-nov ningún comentario salió por eso. */
 function paraAlmaGh_(metodo, ruta, cuerpo) {
-  var tok = paraAlmaTok_(); if (!tok) return { code: 0, json: null };
-  var o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } };
-  if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
-  try {
-    var r = uf_('https://api.github.com' + ruta, o, 'Chat de Alma'), j = null;   // es Juan pidiendo: cuenta como el chat, que nunca se pausa
-    try { j = JSON.parse(r.getContentText() || 'null'); } catch (e) {}
-    return { code: r.getResponseCode(), json: j };
-  } catch (e) { return { code: 0, json: null, error: String(e) }; }
+  var toks = paraAlmaToks_(), ult = { code: 0, json: null };
+  for (var k = 0; k < toks.length; k++) {
+    var o = { method: metodo, muteHttpExceptions: true, headers: { Authorization: 'Bearer ' + toks[k], Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } };
+    if (cuerpo) { o.contentType = 'application/json'; o.payload = JSON.stringify(cuerpo); }
+    try {
+      var r = uf_('https://api.github.com' + ruta, o, 'Chat de Alma'), j = null;   // es Juan pidiendo: cuenta como el chat, que nunca se pausa
+      try { j = JSON.parse(r.getContentText() || 'null'); } catch (e) {}
+      ult = { code: r.getResponseCode(), json: j };
+    } catch (e) { ult = { code: 0, json: null, error: String(e) }; }
+    if ([401, 403, 404].indexOf(ult.code) < 0) return ult;
+  }
+  return ult;
 }
 
 function paraAlmaEstados_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(PARA_ALMA_PROP_) || '{}') || {}; } catch (e) { return {}; } }
@@ -56,13 +74,16 @@ function paraAlmaGuardarEstados_(est) {
 }
 /* Cambia el estado de un issue bajo el candado. desde: estados permitidos antes del cambio ('' = sin estado). false si otra pasada ganó. */
 function paraAlmaMarcar_(num, nuevo, desde) {
-  var lock = LockService.getScriptLock(); if (!lock.tryLock(5000)) return false;
+  /* procesarCola tiene el candado toda su pasada: desde el aviso de GitHub se espera hasta 30 s (con 5 s el resultado se
+     perdía en silencio), y si esta ejecución ya lo tiene (la pasada) no se suelta aquí. */
+  var lock = LockService.getScriptLock(), mio = !(typeof lock.hasLock === 'function' && lock.hasLock());
+  if (mio && !lock.tryLock(30000)) return false;
   try {
     var est = paraAlmaEstados_(), ya = est[num];
     if (desde && desde.indexOf(ya ? ya.e : '') < 0) return false;
     nuevo.t = Date.now(); est[num] = nuevo; paraAlmaGuardarEstados_(est);
     return true;
-  } finally { lock.releaseLock(); }
+  } finally { if (mio) lock.releaseLock(); }
 }
 
 /* Lo que sale a un issue público: sin correos, teléfonos ni códigos. */
@@ -119,21 +140,22 @@ function paraAlmaAvisar_(num, a) {
   var base = '/repos/' + PARA_ALMA_REPO_ + '/issues/' + num;
   if (!a.comentado) {
     var c = paraAlmaGh_('post', base + '/comments', { body: paraAlmaPublico_(a.texto) });
-    if (c.code < 200 || c.code >= 300) return false;
+    if (c.code < 200 || c.code >= 300) { a.codigo = 'comentar ' + c.code; return false; }
     a.comentado = 1;
   }
-  if (a.etiqueta && !a.etiquetado) { var l = paraAlmaGh_('post', base + '/labels', { labels: [a.etiqueta] }); if (l.code < 200 || l.code >= 300) return false; a.etiquetado = 1; }
-  if (a.cerrar) { var x = paraAlmaGh_('patch', base, { state: 'closed', state_reason: a.cerrar }); if (x.code < 200 || x.code >= 300) return false; }
+  if (a.etiqueta && !a.etiquetado) { var l = paraAlmaGh_('post', base + '/labels', { labels: [a.etiqueta] }); if (l.code < 200 || l.code >= 300) { a.codigo = 'etiquetar ' + l.code; return false; } a.etiquetado = 1; }
+  if (a.cerrar) { var x = paraAlmaGh_('patch', base, { state: 'closed', state_reason: a.cerrar }); if (x.code < 200 || x.code >= 300) { a.codigo = 'cerrar ' + x.code; return false; } }
+  delete a.codigo;
   return true;
 }
 /* Primero queda «por_avisar» con el texto (si GitHub falla, la próxima pasada solo repite el aviso, nunca la instrucción).
    Después de 10 intentos se da por terminado: un permiso que falta no hace llamadas cada 2 min para siempre. */
 function paraAlmaTerminar_(num, a) {
-  if (!paraAlmaMarcar_(num, Object.assign({}, a, { e: 'por_avisar' }), ['', 'ejecutando', 'por_avisar'])) return;
+  if (!paraAlmaMarcar_(num, Object.assign({}, a, { e: 'por_avisar' }), ['', 'ejecutando', 'por_avisar'])) { console.error('paraAlma #' + num + ': no pude guardar el aviso pendiente (candado u otro estado)'); return; }
   if (paraAlmaAvisar_(num, a)) { paraAlmaMarcar_(num, { e: 'listo' }, ['por_avisar']); return; }
   a.intentos = (Number(a.intentos) || 0) + 1;
-  if (a.intentos >= 10) { console.error('paraAlma #' + num + ': GitHub no dejó avisar en 10 intentos'); paraAlmaMarcar_(num, { e: 'listo', sinAviso: 1 }, ['por_avisar']); }
-  else paraAlmaMarcar_(num, Object.assign({}, a, { e: 'por_avisar' }), ['por_avisar']);   // guarda lo que sí salió (comentado, etiquetado)
+  if (a.intentos >= 10) { console.error('paraAlma #' + num + ': GitHub no dejó avisar en 10 intentos (' + (a.codigo || '') + ')'); paraAlmaMarcar_(num, { e: 'listo', sinAviso: 1, codigo: a.codigo || '' }, ['por_avisar']); }
+  else paraAlmaMarcar_(num, Object.assign({}, a, { e: 'por_avisar' }), ['por_avisar']);   // guarda lo que sí salió (comentado, etiquetado) y el código del rechazo
 }
 function paraAlmaFecha_(ms) { return Utilities.formatDate(new Date(ms), CFG.TZ, "d MMM yyyy, HH:mm") + ' (hora de Guatemala)'; }
 
@@ -222,11 +244,30 @@ function paraAlmaAviso_(body) {
   var llave = paraAlmaAvisoLlave_(); if (!llave) return { ok: false, error: 'el Hub no tiene ' + PARA_ALMA_AVISO_PROP_ };
   if (!paraAlmaLlaveIgual_(String(body.llave || ''), llave)) return { ok: false, error: 'llave incorrecta' };
   var num = String(body.issue == null ? '' : body.issue).replace(/\D/g, ''); if (!num) return { ok: false, error: 'falta el número del issue' };
+  /* El workflow ya comentó, etiquetó y cerró con su permiso lo que el Hub no pudo: queda listo y no se reintenta. */
+  if (body.avisado === true || String(body.avisado) === '1') return { ok: true, avisado: paraAlmaMarcar_(num, { e: 'listo', porWorkflow: 1 }, ['por_avisar']), issue: Number(num) };
   if (!paraAlmaTok_()) return { ok: false, error: 'el Hub no tiene GITHUB_TOKEN' };
   var r = paraAlmaGh_('get', '/repos/' + PARA_ALMA_REPO_ + '/issues/' + num);
   if (r.code !== 200 || !r.json) return { ok: false, error: 'GitHub respondió ' + (r.code || 'sin conexión') };
   var i = r.json, et = (i.labels || []).map(function (l) { return String((l && l.name) || l); });
   if (i.pull_request || i.state !== 'open' || et.indexOf(PARA_ALMA_ETIQUETA_) < 0 || et.indexOf(PARA_ALMA_ERROR_) >= 0) return { ok: true, procesado: false, nota: 'no es una instrucción abierta' };
-  var hecho = paraAlmaUno_(i, paraAlmaEstados_(), Date.now(), 0);
-  return { ok: true, procesado: !!hecho, issue: Number(num) };
+  var hecho = paraAlmaUno_(i, paraAlmaEstados_(), Date.now(), 0), out = { ok: true, procesado: !!hecho, issue: Number(num) };
+  var pen = paraAlmaPendiente_(num); if (pen) out.pendiente = pen;
+  return out;
+}
+/* Lo que el Hub no pudo dejar en el issue (GitHub rechazó sus llaves): el texto ya limpio y qué falta, para que lo haga
+   el workflow. Se entrega una vez cada 10 min (al abrir y al etiquetar llegan dos avisos seguidos: un solo comentario). */
+var PARA_ALMA_ENTREGA_MS_ = 10 * 60000;
+function paraAlmaPendiente_(num) {
+  var ya = paraAlmaEstados_()[String(num)];
+  if (!ya || ya.e !== 'por_avisar' || !ya.texto) return null;
+  if (ya.entregado && Date.now() - Number(ya.entregado) < PARA_ALMA_ENTREGA_MS_) return null;
+  if (!paraAlmaMarcar_(num, Object.assign({}, ya, { entregado: Date.now() }), ['por_avisar'])) return null;
+  return { texto: ya.comentado ? '' : paraAlmaPublico_(ya.texto), etiqueta: ya.etiquetado ? '' : (ya.etiqueta || ''), cerrar: ya.cerrar || '', codigo: ya.codigo || '' };
+}
+/* Robot «para_alma_estado»: en qué quedó cada instrucción, sin textos (qué pasó con el aviso y con qué código rechazó GitHub). */
+function paraAlmaDiag_() {
+  var est = paraAlmaEstados_(), out = {};
+  Object.keys(est).forEach(function (k) { var x = est[k] || {}; out[k] = { estado: x.e || '', cuando: x.t ? new Date(Number(x.t)).toISOString() : '', intentos: x.intentos || 0, codigo: x.codigo || '', comentado: !!x.comentado, sin_aviso: !!x.sinAviso, por_workflow: !!x.porWorkflow }; });
+  return { ok: true, llaves: paraAlmaToks_().length, aviso: !!paraAlmaAvisoLlave_(), issues: out };
 }

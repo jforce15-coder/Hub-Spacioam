@@ -12,7 +12,11 @@
    6. si GitHub falla al comentar, la próxima pasada repite solo el aviso, nunca la instrucción; y una ejecución cortada
       no se repite;
    7. lo que sale al issue (público) va sin teléfonos, correos ni códigos;
-   8. procesarCola lo llama y programar_mensaje devuelve el id.
+   8. procesarCola lo llama y programar_mensaje devuelve el id;
+   9. (16-nov-2026: del 12 al 16-nov ninguna respuesta llegó a su issue) si GitHub rechaza una llave del Hub al comentar,
+      va la otra; si rechaza las dos, el aviso de GitHub recibe el texto limpio una sola vez («pendiente») y, cuando el
+      workflow confirma («avisado»), queda listo sin repetir nada; el workflow tiene permiso para comentar; el candado
+      de la pasada no se suelta; y el robot ve el estado sin textos.
    node .github/para-alma.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -30,7 +34,7 @@ const issue = (n, o) => Object.assign({ number: n, user: { login: 'jforce15-code
 function caja(o) {
   o = o || {};
   const props = Object.assign({ GITHUB_TOKEN: 'tok' }, o.props || {}), cache = {}, gh = [], agentes = [], cierres = [], wa = [], chat = [];
-  let ahora = AHORA;
+  let ahora = AHORA; const candado = { espera: [], sueltas: 0, mio: false };
   const DateF = function (...a) { return a.length ? new Date(...a) : new Date(ahora); };
   DateF.now = () => ahora; DateF.parse = Date.parse; DateF.UTC = Date.UTC; DateF.prototype = Date.prototype;
   const res = (code, j) => ({ getResponseCode: () => code, getContentText: () => JSON.stringify(j) });
@@ -38,12 +42,14 @@ function caja(o) {
     console: { log() {}, warn() {}, error() {} }, JSON, Date: DateF, Math, String, Number, Object, Array, RegExp, Error,
     CFG: { TZ: 'America/Guatemala' },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
-    LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) },
+    LockService: { getScriptLock: () => ({ tryLock: ms => { candado.espera.push(ms); if (o.candadoOcupado) return false; candado.mio = true; return true; }, releaseLock() { candado.sueltas++; candado.mio = false; }, hasLock: () => !!o.candadoDeLaPasada || candado.mio }) },
     CacheService: { getScriptCache: () => ({ get: k => cache[k] || null, put: (k, v) => { cache[k] = v; } }) },
     Utilities: { formatDate: (d, tz, f) => new Date(d.getTime() - 6 * 3600000).toISOString().slice(0, 16).replace('T', ' ') },
     uf_: (url, op, canal) => {
       const metodo = op.method, ruta = url.replace('https://api.github.com', ''), b = op.payload ? JSON.parse(op.payload) : null;
-      gh.push({ metodo, ruta, b, canal });
+      const tok = String((op.headers || {}).Authorization || '').replace('Bearer ', '');
+      gh.push({ metodo, ruta, b, canal, tok });
+      if (o.rechaza) { const cod = o.rechaza(tok, metodo, ruta); if (cod) return res(cod, { message: 'Resource not accessible by personal access token' }); }
       if (metodo === 'get' && /\/issues\?/.test(ruta)) return res(200, o.issues ? o.issues() : []);
       if (ruta === '/graphql') {
         if (o.graphqlFalla) return res(502, {});
@@ -73,7 +79,7 @@ function caja(o) {
   vm.createContext(ctx);
   vm.runInContext(LIMPIAR + '\n' + leer('paraalma.js'), ctx);
   const pasada = (min) => { ahora += (min || 3) * 60000; delete cache.para_alma_t; return ctx.paraAlmaRevisar_(ahora); };
-  return { ctx, props, gh, agentes, cierres, wa, chat, pasada, estados: () => JSON.parse(props.PARA_ALMA_ESTADO || '{}'),
+  return { ctx, props, gh, agentes, cierres, wa, chat, pasada, candado, avanzar: min => { ahora += min * 60000; }, estados: () => JSON.parse(props.PARA_ALMA_ESTADO || '{}'),
     comentarios: () => gh.filter(g => /\/comments$/.test(g.ruta)).map(g => g.b.body), etiquetas: () => gh.filter(g => /\/labels$/.test(g.ruta)).map(g => g.b.labels[0]) };
 }
 
@@ -195,5 +201,57 @@ for (const [n, body, por] of [[540, 'Programa un mensaje a Brunelo', 'no trae un
   ok(/paraAlmaRevisar_\(inicioCola\)/.test(cola) && !/cupoPermite_\('fondo'\)[\s\S]*paraAlmaRevisar_/.test(cola), 'procesarCola revisa las instrucciones en cada pasada, fuera de lo de fondo (es Juan pidiendo)');
   ok(/case 'programar_mensaje'[\s\S]{0,900}id: rpg\.id/.test(leer('agente.js')), 'programar_mensaje devuelve el id de lo programado');
   ok(/m\.canal === 'instruccion'/.test(sacar(leer('chat.js'), 'chatPreguntasRevisar_')), 'una respuesta de una instrucción no se vuelve tarjeta de Pendientes'); }
+
+/* ── 9 ── La respuesta siempre llega al issue. */
+{ // Una llave sin permiso para comentar (403) y la de Conexiones sí puede: sale con la otra, una sola vez.
+  const c = caja({ issues: () => [issue(570)], props: { GITHUB_TOKEN: 'vieja', GITHUB_PRS: 'conexiones' }, rechaza: (tok, m) => tok === 'conexiones' && m !== 'get' && m !== 'post-graphql' ? 0 : 0 });
+  c.pasada(0);
+  ok(c.gh.filter(g => /\/comments$/.test(g.ruta))[0].tok === 'conexiones', 'primero va la llave de Conexiones (GITHUB_PRS), la que Juan mantiene'); }
+{ const c = caja({ issues: () => [issue(571)], props: { GITHUB_TOKEN: 'vieja', GITHUB_PRS: 'conexiones' }, rechaza: (tok, m, ruta) => tok === 'conexiones' && m !== 'get' && ruta !== '/graphql' ? 403 : 0 });
+  c.pasada(0);
+  const com = c.gh.filter(g => /\/comments$/.test(g.ruta));
+  ok(com.length === 2 && com[0].tok === 'conexiones' && com[1].tok === 'vieja' && c.estados()['571'].e === 'listo' && c.cierres.length === 1, 'GitHub rechaza una llave al comentar (403): sale con la otra y el issue queda comentado y cerrado');
+  ok(c.agentes.length === 1, 'y la instrucción se ejecutó una sola vez'); }
+{ const c = caja({ issues: () => [issue(572)], props: { GITHUB_TOKEN: 'igual', GITHUB_PRS: 'igual' }, rechaza: (tok, m, ruta) => m !== 'get' && ruta !== '/graphql' ? 403 : 0 });
+  c.pasada(0);
+  ok(c.gh.filter(g => /\/comments$/.test(g.ruta)).length === 1, 'la misma llave en las dos propiedades no se prueba dos veces'); }
+{ // Las dos llaves rechazadas: por el aviso de GitHub, el workflow recibe el texto limpio una vez y confirma.
+  const iss = issue(573);
+  const c = caja({ props: { GITHUB_TOKEN: 'vieja', GITHUB_PRS: 'conexiones', PARA_ALMA_AVISO_KEY: 'llave-aviso' }, rechaza: (tok, m, ruta) => m !== 'get' && ruta !== '/graphql' ? 403 : 0,
+    agente: () => ({ respuesta: 'Listo, le escribí a Recepción (+502 5555 0101).', hechas: [{ tipo: 'mensaje', resumen: 'Equipo · Recepción' }] }) });
+  const uf0 = c.ctx.uf_; c.ctx.uf_ = (url, op, canal) => /\/issues\/573$/.test(url) && op.method === 'get' ? { getResponseCode: () => 200, getContentText: () => JSON.stringify(Object.assign({ state: 'open' }, iss)) } : uf0(url, op, canal);
+  ok(c.ctx.paraAlmaAviso_({ llave: 'otra', issue: 573 }).ok === false && c.agentes.length === 0, 'el aviso con otra llave no hace nada');
+  const r1 = c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 573 });
+  ok(r1.ok && r1.procesado && c.agentes.length === 1 && c.estados()['573'].e === 'por_avisar' && c.estados()['573'].codigo === 'comentar 403', 'las dos llaves rechazadas: la instrucción se hizo, queda «por_avisar» y se guarda el código del rechazo (comentar 403)');
+  ok(r1.pendiente && /Listo/.test(r1.pendiente.texto) && r1.pendiente.cerrar === 'completed' && !/5555/.test(r1.pendiente.texto) && /\[número\]/.test(r1.pendiente.texto), 'el aviso devuelve «pendiente» con el texto ya limpio y cómo cerrar: ' + JSON.stringify(r1.pendiente).slice(0, 160));
+  const r2 = c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 573 });   // el segundo aviso (al etiquetar) llega segundos después
+  ok(r2.ok && !r2.procesado && !r2.pendiente && c.agentes.length === 1, 'el segundo aviso seguido no recibe el texto otra vez (un solo comentario) ni repite la instrucción');
+  const r3 = c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 573, avisado: true });
+  ok(r3.ok && r3.avisado === true && c.estados()['573'].e === 'listo' && c.estados()['573'].porWorkflow === 1, 'el workflow confirma («avisado»): queda listo');
+  const antes = c.gh.length; c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 573 });
+  ok(c.agentes.length === 1 && c.gh.slice(antes).every(g => g.metodo === 'get'), 'después de listo no se ejecuta ni se comenta otra vez');
+  ok(c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 999, avisado: true }).avisado === false, '«avisado» de un issue sin aviso pendiente no marca nada');
+  const d = c.ctx.paraAlmaDiag_();
+  ok(d.ok && d.llaves === 2 && d.issues['573'].estado === 'listo' && d.issues['573'].por_workflow === true && !/Listo|Recepción/.test(JSON.stringify(d)), 'el robot «para_alma_estado» da el estado sin textos: ' + JSON.stringify(d.issues['573'])); }
+{ // Si nadie confirma, a los 10 min el texto se puede volver a entregar (el workflow falló a la mitad).
+  const iss = issue(574);
+  const c = caja({ props: { GITHUB_TOKEN: 'vieja', PARA_ALMA_AVISO_KEY: 'llave-aviso' }, rechaza: (tok, m, ruta) => m !== 'get' && ruta !== '/graphql' ? 404 : 0 });
+  const uf0 = c.ctx.uf_; c.ctx.uf_ = (url, op, canal) => /\/issues\/574$/.test(url) && op.method === 'get' ? { getResponseCode: () => 200, getContentText: () => JSON.stringify(Object.assign({ state: 'open' }, iss)) } : uf0(url, op, canal);
+  const r1 = c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 574 });
+  c.avanzar(11);
+  const r2 = c.ctx.paraAlmaAviso_({ llave: 'llave-aviso', issue: 574 });
+  ok(!!r1.pendiente && !!r2.pendiente && c.agentes.length === 1, 'sin confirmación, a los 10 min el texto se entrega otra vez (la instrucción no se repite)'); }
+{ // El candado: desde el aviso espera hasta 30 s; si la pasada ya lo tiene, no lo suelta.
+  const c = caja({ issues: () => [issue(575)] });
+  c.pasada(0);
+  ok(c.candado.espera.length > 0 && c.candado.espera.every(ms => ms === 30000), 'fuera de la pasada espera el candado hasta 30 s (con 5 s el resultado se perdía en silencio)');
+  const c2 = caja({ issues: () => [issue(576)], candadoDeLaPasada: true });
+  c2.pasada(0);
+  ok(c2.agentes.length === 1 && c2.candado.sueltas === 0 && c2.candado.espera.length === 0 && c2.estados()['576'].e === 'listo', 'si la pasada ya tiene el candado, no lo vuelve a pedir ni lo suelta'); }
+{ const y = fs.readFileSync(path.join(DIR, '..', '.github', 'workflows', 'para-alma-aviso.yml'), 'utf8');
+  ok(/permissions:\s*\n\s+issues: write/.test(y) && !/contents: write|pull-requests: write/.test(y), 'el workflow tiene permiso solo para escribir en issues');
+  ok(/has\("pendiente"\)/.test(y) && /\/comments/.test(y) && /avisado: true/.test(y) && /del\(\.pendiente\.texto\)/.test(y), 'el workflow deja el pendiente en el issue, confirma al Hub y no imprime el texto en el registro');
+  ok(/github\.event\.issue\.user\.login == github\.repository_owner/.test(y) && !/\$\{\{\s*github\.event\.issue\.(title|body)/.test(y), 'solo con issues del dueño y sin meter el título ni el cuerpo en el script');
+  ok(/case 'para_alma_estado': return json_\(paraAlmaDiag_\(\)\)/.test(leer('Código.js')), 'el robot tiene «para_alma_estado»'); }
 
 process.exit(fallo);

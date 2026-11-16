@@ -65,7 +65,7 @@ function caja() {
     ctx.abreEstado_({ resultado: true, nivel: 2 }) === 'accion' && ['huesped_espera', 'vuelo_aterrizo', 'vigilancia_paso', 'correo_respuesta'].every(t => ctx.abreEstado_({ tipo: t, resultado: true }) === ''),
     '1 · terminó, necesita unir o necesita a Juan; un huésped, un vuelo, una vigilancia o un correo no son el resultado de un pedido');
   const ctxJ = JSON.parse(por('r1').abre.contexto.replace(/^ALMA ABRE: /, ''));
-  ok(ctxJ.alma_abre && ctxJ.alma_abre.pedido === 'Botón de facturas' && /una/.test(ctxJ.alma_abre.que_falta) && /end_call/.test(ctxJ.alma_abre.como_seguir),
+  ok(ctxJ.alma_abre && ctxJ.alma_abre.pedido === 'Botón de facturas' && /una/.test(ctxJ.alma_abre.que_falta) && /no cuelgues tú: la app cierra sola/.test(ctxJ.alma_abre.como_seguir) && !/end_call/.test(ctxJ.alma_abre.como_seguir),
     '1 · el contexto dice qué pedido es y qué falta («' + ctxJ.alma_abre.que_falta + '»), para que Alma siga la conversación');
 }
 

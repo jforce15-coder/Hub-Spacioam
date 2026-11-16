@@ -39,7 +39,7 @@ function anilloPasoLimpio_(t) {
 }
 function anilloPasosGuardar_(adm, pasos, anillo) {
   if (!adm || !adm.email || !Array.isArray(pasos)) return 0;
-  var nuevos = pasos.slice(-14).map(anilloPasoLimpio_).filter(Boolean); if (!nuevos.length) return 0;
+  var nuevos = pasos.slice(-30).map(anilloPasoLimpio_).filter(Boolean); if (!nuevos.length) return 0;
   var p = PropertiesService.getScriptProperties(), k = 'ANILLO_APP_' + retClave_(adm).slice(8), l = [];
   try { l = JSON.parse(p.getProperty(k) || '[]') || []; } catch (e) {}
   var f = new Date().toISOString();

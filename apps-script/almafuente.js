@@ -421,7 +421,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Cuelga cuando la persona se despidió o ya no necesita nada (nunca justo después de responder, salvo en Modo calle o conferencia: ahí cuelgas sin despedirte)."
+    "linea": "Cuelga cuando la persona se despidió o ya no necesita nada (nunca justo después de responder; en Modo calle o conferencia no cuelgas: la app cierra sola)."
    },
    "transfer_to_number": {
     "canales": [

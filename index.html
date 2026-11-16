@@ -41,7 +41,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-11-16d"></script>
+<script src="js/alma-client.js?v=2026-11-16-fotos"></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
 <script src="js/sa-chat.js?v=2026-11-15c"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
@@ -1958,6 +1958,9 @@
                         <div role="menu" class="sa-desde sa-mas-menu" style="position:absolute; right:0; top:calc(100% + 6px); z-index:41; min-width:260px; padding:6px; background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:14px; box-shadow:0 12px 40px rgba(62,63,63,.07), 0 1px 2px rgba(62,63,63,.06); display:flex; flex-direction:column; gap:2px">
                           <button onClick="{{ c.autoToggle }}" role="switch" aria-checked="{{ c.autoOn }}" aria-label="Respuestas automáticas de ALMA en esta conversación" title="Respuestas automáticas de ALMA en esta conversación" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background:transparent; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><span aria-hidden="true" style="width:30px; height:18px; border-radius:999px; background: {{ c.autoBg }}; border:1px solid {{ c.autoBd }}; position:relative; flex-shrink:0; transition:background .18s cubic-bezier(.22,.61,.36,1)"><span style="position:absolute; top:2px; width:12px; height:12px; border-radius:50%; background: {{ c.autoFg }}; left: {{ c.autoKnob }}; transition:left var(--resorte-d) var(--resorte)"></span></span><span style="flex:1">Respuestas de ALMA</span><span style="font-size:11px; color:#6F6867">{{ c.autoLabel }}</span></button>
                           <button onClick="{{ c.toggleProg }}" data-k="prog" aria-label="Mensajes programados" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background: {{ c.progBtnBg }}; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import><span style="flex:1">Mensajes programados</span></button>
+                          <!-- #567 T4 · La foto del contacto (WhatsApp sin foto de huésped, login ni reserva; solo el principal). -->
+                          <sc-if value="{{ c.fotoCtHay }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.fotoCtElegir }}" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="camera" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import><span style="flex:1">{{ c.fotoCtLabel }}</span></button></sc-if>
+                          <sc-if value="{{ c.fotoCtQuitarHay }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.fotoCtQuitar }}" style="width:100%; display:flex; align-items:center; gap:12px; min-height:44px; padding:0 12px; border:none; border-radius:10px; background:#FFFFFF; color:#3E3F3F; font-family:inherit; font-size:13px; font-weight:500; letter-spacing:.01em; text-align:left; cursor:pointer; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#F5F3F0"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="trash" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import><span style="flex:1">Quitar la foto del contacto</span></button></sc-if>
                         </div>
                       </sc-if>
                     </div>
@@ -4466,6 +4469,114 @@ class Component extends DCLogic {
     var fin = function (v) { self.setState(function (s) { var f = Object.assign({}, s.fotoCache); f[url] = v; return { fotoCache: f }; }); };
     p.then(function (r) { fin(r && r.ok && r.data ? r.data : "x"); }).catch(function () { fin("x"); });
   }
+  /* #567 T4 · Foto del contacto (familia, amigos, proveedores sin reserva): la fila trae foto_contacto («últimos 8.versión»;
+     también el mapa fotosCt de la bandeja, para las conversaciones quietas) y la foto se pide aparte, con sesión, de a 12
+     (apps-script/fotoscontacto.js). Es privada: vive solo en la memoria de esta pestaña, nunca como enlace público. */
+  _fotoCtPend = {}; _fotoCtPedidas = {};
+  fotoContacto(ib) {
+    if (!ib) return "";
+    var k = String(ib.foto_contacto || ((this.state.alma || {}).fotosCt || {})[ib.conv_id] || ""); if (!k) return "";
+    var c = (this.state.fotosCt || {})[k]; if (c) return c === "x" ? "" : c;
+    if (!this._fotoCtPedidas[k]) {
+      var self = this; this._fotoCtPedidas[k] = 1; this._fotoCtPend[k] = 1;
+      clearTimeout(this._fotoCtT); this._fotoCtT = setTimeout(function () { self.fotoContactoPedir(); }, 250);
+    }
+    return "";
+  }
+  fotoContactoPedir() {
+    var self = this, claves = Object.keys(this._fotoCtPend).slice(0, 12);
+    if (!claves.length || !(window.ALMA && ALMA.hasApi() && ALMA.fotosContacto)) return;
+    claves.forEach(function (k) { delete self._fotoCtPend[k]; });
+    ALMA.fotosContacto({ que: "ver", claves: claves }).then(function (r) {
+      /* Sin red o sin sesión: se vuelve a intentar en un minuto (mientras, iniciales). */
+      if (!r || !r.ok) { setTimeout(function () { claves.forEach(function (k) { delete self._fotoCtPedidas[k]; }); }, 60000); return; }
+      var f = r.fotos || {};
+      self.setState(function (s) { var n = Object.assign({}, s.fotosCt); claves.forEach(function (k) { n[k] = /^data:image\/jpeg;base64,/.test(f[k] || "") ? f[k] : "x"; }); return { fotosCt: n }; });
+      if (Object.keys(self._fotoCtPend).length) self.fotoContactoPedir();
+    });
+  }
+  /* La clave nueva de un contacto («» al quitarla), en la fila y en el mapa, sin esperar a la próxima lectura. */
+  fotoContactoLocal(gk, clave) {
+    this.setState(function (s) {
+      if (!s.alma) return null;
+      var d = Object.assign({}, s.alma), m = Object.assign({}, d.fotosCt); if (clave) m[gk] = clave; else delete m[gk]; d.fotosCt = m;
+      d.inbox = (d.inbox || []).map(function (r) { return r.conv_id === gk ? Object.assign({}, r, { foto_contacto: clave || "" }) : r; });
+      return { alma: d };
+    });
+  }
+  /* Una foto del teléfono o la computadora → cuadrada, 256 px como máximo, JPEG (así llega chica y sin enlace a ningún lado). */
+  fotoCuadrada(file, lado) {
+    return new Promise(function (ok, mal) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight, s = Math.min(w, h), L = Math.min(lado, s), cv = document.createElement("canvas");
+        if (!s) { URL.revokeObjectURL(url); mal(new Error("vacía")); return; }
+        cv.width = L; cv.height = L; var cx = cv.getContext("2d");
+        cx.fillStyle = "#FFFFFF"; cx.fillRect(0, 0, L, L);
+        cx.drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, L, L);
+        URL.revokeObjectURL(url); ok(cv.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); mal(new Error("img")); };
+      img.src = url;
+    });
+  }
+  /* Más acciones → «Subir una foto del contacto» (solo el principal, solo WhatsApp). La manual gana sobre la del iPhone y la de Google. */
+  fotoContactoElegir(gk) {
+    var self = this, tel = String(gk || "").replace(/^wa:/, ""), inp = document.createElement("input");
+    if (!tel || !(window.ALMA && ALMA.hasApi() && ALMA.fotosContacto)) return;
+    inp.type = "file"; inp.accept = "image/*";
+    inp.onchange = function () {
+      var f = inp.files && inp.files[0]; if (!f) return;
+      self.aviso("Guardando la foto…");
+      self.fotoCuadrada(f, 256).then(function (dataUrl) {
+        return ALMA.fotosContacto({ que: "subir", origen: "manual", fotos: [{ tel: tel, jpeg: dataUrl }] }).then(function (r) {
+          var x = r && r.ok && r.fotos && r.fotos[0];
+          if (!x || !x.ok || !x.clave) { self.aviso((x && x.error) || (r && r.error) || "No se guardó la foto. Intenta de nuevo."); return; }
+          self.setState(function (s) { var n = Object.assign({}, s.fotosCt); n[x.clave] = dataUrl; return { fotosCt: n }; });
+          self.fotoContactoLocal(gk, x.clave);
+          self.aviso("Listo, quedó la foto.");
+        });
+      }).catch(function () { self.aviso("No pude leer esa foto. Prueba con otra."); });
+    };
+    inp.click();
+  }
+  fotoContactoQuitar(gk) {
+    var self = this, tel = String(gk || "").replace(/^wa:/, "");
+    if (!tel || !(window.ALMA && ALMA.hasApi() && ALMA.fotosContacto)) return;
+    ALMA.fotosContacto({ que: "quitar", tel: tel }).then(function (r) {
+      if (!r || !r.ok) { self.aviso((r && r.error) || "No se quitó la foto. Intenta de nuevo."); return; }
+      self.fotoContactoLocal(gk, ""); self.aviso("Listo, quité la foto.");
+    });
+  }
+  /* Fotos de los Contactos del iPhone (#567 T4): solo en la app de Alma, solo el principal y a lo mucho cada 12 h. El Hub le
+     pasa a la app los números de la bandeja sin foto (no los que ya buscó esta semana); la app, con el permiso de Contactos
+     (iOS lo pide una vez), devuelve la foto de los que coinciden y aquí se suben. Nunca se lee ni se sube la agenda entera. */
+  fotosIphone() {
+    var h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.alma;
+    if (!h || this._fotosIph || this.rol() !== "admin" || !(window.ALMA && ALMA.hasApi() && ALMA.fotosContacto)) return;
+    var LS = "sa_fotos_iphone", st = {}; try { st = JSON.parse(localStorage.getItem(LS) || "{}") || {}; } catch (e) {}
+    var ahora = Date.now(), SEM = 7 * 864e5;
+    if ((st.negado && ahora - st.negado < SEM) || ahora - (st.ts || 0) < 12 * 3600000) return;
+    this._fotosIph = 1;
+    var vistos = {}; Object.keys(st.vistos || {}).forEach(function (k) { if (ahora - st.vistos[k] < SEM) vistos[k] = st.vistos[k]; });
+    var guardar = function (x) { try { localStorage.setItem(LS, JSON.stringify(x)); } catch (e) {} };
+    var k8 = function (t) { return String(t).replace(/\D/g, "").slice(-8); };
+    ALMA.fotosContacto({ que: "faltan" }).then(function (r) {
+      if (!r || !r.ok) return;
+      var tels = (r.tels || []).filter(function (t) { return k8(t) && !vistos[k8(t)]; }).slice(0, 40);
+      guardar({ ts: ahora, vistos: vistos });   /* una app vieja que no contesta no hace que se pregunte en cada carga */
+      if (!tels.length) return;
+      window.AlmaFotosCt = { evento: function (e) {
+        e = e || {};
+        if (e.permiso === "negado") { guardar({ ts: ahora, negado: ahora, vistos: vistos }); return; }
+        tels.forEach(function (t) { vistos[k8(t)] = ahora; }); guardar({ ts: ahora, vistos: vistos });
+        var fotos = (e.fotos || []).filter(function (f) { return f && f.tel && /^data:image\/jpeg;base64,/.test(f.jpeg || ""); });
+        var subir = function (i) { if (i >= fotos.length) return; ALMA.fotosContacto({ que: "subir", origen: "iphone", fotos: fotos.slice(i, i + 5) }).then(function () { subir(i + 5); }); };
+        subir(0);
+      } };
+      try { h.postMessage({ accion: "fotosContactos", numeros: tels }); } catch (x) {}
+    });
+  }
   fotoVista(u) {
     var self = this, url = typeof u === "string" ? u : (u && u.url) || "", c = (this.state.fotoCache || {})[url];
     return { url: url, src: c && c !== "x" ? c : url, ok: c !== "x", roto: c === "x", rotoTxt: "Foto no disponible en Hospitable",
@@ -6886,9 +6997,9 @@ class Component extends DCLogic {
       var d = Object.assign({}, base || self.state.alma || {});
       d.cola = self.recortar(d.cola, "recibido"); d.log = self.recortar(d.log, "fecha");
       var a0 = self.state.alma;
-      if (vivo && vivo.ok) { if (vivo.cola) d.cola = self.unirVentana(vivo.cola, d.cola, "recibido"); if (vivo.log && vivo.log.length) d.log = self.unirVentana(vivo.log, d.log, "fecha"); d.inbox = self.unirInbox(vivo.inbox, d.inbox); if (vivo.formsOk) d.formsOk = vivo.formsOk; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
+      if (vivo && vivo.ok) { if (vivo.cola) d.cola = self.unirVentana(vivo.cola, d.cola, "recibido"); if (vivo.log && vivo.log.length) d.log = self.unirVentana(vivo.log, d.log, "fecha"); d.inbox = self.unirInbox(vivo.inbox, d.inbox); if (vivo.formsOk) d.formsOk = vivo.formsOk; if (vivo.fotosCt) d.fotosCt = vivo.fotosCt; d.resueltasVivo = vivo.resueltas || (a0 && a0.resueltasVivo) || d.resueltasVivo; }
       /* La hoja (gviz) llega con minutos de atraso: nunca pisa conversaciones vivas recientes (ni las marcas de resuelta en vivo). */
-      else if (a0 && self._vivoTs && Date.now() - self._vivoTs < 300000) { d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; d.resueltasVivo = a0.resueltasVivo; }
+      else if (a0 && self._vivoTs && Date.now() - self._vivoTs < 300000) { d.cola = a0.cola; d.log = a0.log; d.inbox = a0.inbox; d.resueltasVivo = a0.resueltasVivo; d.fotosCt = a0.fotosCt; }
       return d;
     };
     /* 2. Lo vivo (cola, log, bandeja) y la hoja completa llegan en paralelo; cada uno pinta apenas llega. */
@@ -6897,12 +7008,12 @@ class Component extends DCLogic {
       ALMA.readLive(Math.max(48, (Number(self.state.convDias) || 2) * 24 + 12), self._vivoHash).then(function (l) {
         self._cargandoVivo = false;
         if (!l || !l.ok) { self.saludMarcar(false); self.setState({ almaCargando: false }); return; }
-        self.saludMarcar(true, l.pulso);
+        self.saludMarcar(true, l.pulso); self.fotosIphone();   /* #567 T4: a lo mucho cada 12 h, solo en la app y con el principal */
         /* Sin cambios desde la última lectura: no se descarga ni se repinta nada. */
         if (l.same) { self._vivoTs = Date.now(); if (self.state.almaCargando) self.setState({ almaCargando: false }); return; }
         if (l.auto) self.setState({ autoConv: Object.assign({}, l.auto, self._autoLocal || {}) });
         if (seq < (self._vivoSeq || 0)) return; self._vivoSeq = seq; self._vivoTs = Date.now(); self._vivoHash = l.hash || "";
-        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = self.unirVentana(l.cola, d.cola, "recibido"); if (l.log && l.log.length) d.log = self.unirVentana(l.log, d.log, "fecha"); d.inbox = self.unirInbox(l.inbox, d.inbox); if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas;
+        var d = Object.assign({}, self.state.alma); if (l.cola) d.cola = self.unirVentana(l.cola, d.cola, "recibido"); if (l.log && l.log.length) d.log = self.unirVentana(l.log, d.log, "fecha"); d.inbox = self.unirInbox(l.inbox, d.inbox); if (l.formsOk) d.formsOk = l.formsOk; if (l.resueltas) d.resueltasVivo = l.resueltas; if (l.fotosCt) d.fotosCt = l.fotosCt;
         listo(d, "En vivo · " + horaGT()); guardar();
       }).catch(function () { self._cargandoVivo = false; self.saludMarcar(false); self.setState({ almaCargando: false }); });
       return;
@@ -8571,6 +8682,13 @@ class Component extends DCLogic {
         c.masAbierto = st.masMenu === c.key; c.masAria = c.masAbierto ? "true" : "false"; c.masBg = c.masAbierto ? "#F5F3F0" : "#FFFFFF";
         c.masToggle = function () { self.setState(function (s) { return { masMenu: s.masMenu === c.key ? "" : c.key }; }); };
         c.masCerrar = function () { self.setState({ masMenu: "" }); };
+        /* #567 T4 · Subir (o quitar) la foto del contacto: solo WhatsApp sin foto de huésped, login ni reserva, y solo el principal. */
+        var ibCt = inboxPor[g.key] || null, ctClave = ibCt ? String(ibCt.foto_contacto || ((st.alma || {}).fotosCt || {})[g.key] || "") : "";
+        c.fotoCtHay = String(g.key).indexOf("wa:") === 0 && self.rol() === "admin" && !(ibCt && /^https?:/.test(ibCt.foto || ""));
+        c.fotoCtLabel = ctClave ? "Cambiar la foto del contacto" : "Subir una foto del contacto";
+        c.fotoCtQuitarHay = c.fotoCtHay && !!ctClave;
+        c.fotoCtElegir = function () { self.setState({ masMenu: "" }); self.fotoContactoElegir(g.key); };
+        c.fotoCtQuitar = function () { self.setState({ masMenu: "" }); self.fotoContactoQuitar(g.key); };
         c.progLista = (ps.lista || []).map(function (p) {
           var b = ps.busy === p.id, d = new Date(p.envio), ed = (st.progEdit || {})[p.id], editando = ed != null;
           var conf = st.progConfirm === p.id, cambio = editando && ed.trim() !== String(p.texto || "").trim();
@@ -8665,7 +8783,7 @@ class Component extends DCLogic {
       return Object.assign({ txt: "Hospedado" }, V);
     };
     var estadiaDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; if (t.estadia) return t.estadia; return ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : ""; };
-    var fotoDe = function (g) { var ib = inboxPor[g.key]; return ib && /^https?:/.test(ib.foto || "") ? ib.foto : ""; };
+    var fotoDe = function (g) { var ib = inboxPor[g.key]; return ib && /^https?:/.test(ib.foto || "") ? ib.foto : self.fotoContacto(ib); };   /* #567 T4: la foto del contacto antes de las iniciales */
     /* #567 T1 · Esfera de cada conversación (la manda el Hub con cada fila: bandejaesfera.js); sin dato, Propósito.
        Lo personal (otra esfera) no tiene propiedad, pero si espera respuesta también te toca a ti. */
     var ESF = self.ESFERAS, esfDe = function (g) { var k = String((inboxPor[g.key] || {}).esfera || ""); return ESF[k] ? k : "proposito"; };
@@ -8946,7 +9064,7 @@ class Component extends DCLogic {
         var propR = (ib && ib.propiedad) || t.propRaw || "", estR = t.estadia || (ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : "");
         var hoyISO = self.hoyISO();
         var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
-        var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
+        var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : self.fotoContacto(ib);
         if (prio && verN === "Todo" && !st.convSolo && (est !== "pend" || (!propR && !esPers(g)))) return null;
         if (prio) {
           var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Necesita equipo" ? ["Necesita equipo", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];

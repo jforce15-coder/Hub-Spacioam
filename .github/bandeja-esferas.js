@@ -24,7 +24,7 @@ const linea = (src, re) => { const m = re.exec(src); if (!m) throw new Error('no
 
 /* ── 1 y 2 · Lo que el Hub manda con cada conversación ── */
 function caja(o) {
-  const lecturas = { areas: 0, login: 0 }, cache = {};
+  const lecturas = { areas: 0, login: 0, ct: 0 }, cache = {};
   const ctx = {
     console, JSON, Object, String, Number, Math, Date, RegExp,
     SHEET_ACCESOS_ID: 'hoja-usuarios',
@@ -33,7 +33,8 @@ function caja(o) {
     SpreadsheetApp: { openById: (id) => { if (id !== 'hoja-usuarios') throw new Error('hoja'); lecturas.login++; return { getSheets: () => [
       { getDataRange: () => ({ getDisplayValues: () => [['Nombre', 'Email', 'Foto', 'Estado', 'Teléfono'], ...o.usuarios] }) },
       { getDataRange: () => ({ getDisplayValues: () => [['clave', 'valor']] }) }] }; } },
-    areasFilas_: () => { lecturas.areas++; return JSON.parse(JSON.stringify(o.areas || {})); }
+    areasFilas_: () => { lecturas.areas++; return JSON.parse(JSON.stringify(o.areas || {})); },
+    fctVersiones_: () => { lecturas.ct++; return JSON.parse(JSON.stringify(o.ct || {})); }   // fotoscontacto.js (#567 T4): últimos 8 → versión
   };
   vm.createContext(ctx);
   vm.runInContext([linea(COD, /const fin8_ = [^\n]*/), sacar(COD, 'normTel_'), sacar(COD, 'telsDe_'),
@@ -44,6 +45,7 @@ const U = (n, foto, estado, tel) => [n, n.toLowerCase() + '@x.com', foto, estado
 const datos = {
   relay: { '55550101': { nombre: 'Mamá' }, '55550109': { nombre: 'Vecino' } },
   areas: { 'pers:55550101': { area: 'relaciones' }, 'pers:55550102': { area: 'health' }, 'conv:r-movida': { area: 'finanzas' }, 'conv:r-cajon': { area: '', cajon: 'ideas' } },
+  ct: { '55550108': 'k1', '55550103': 'k2' },   // fotos del contacto guardadas (iPhone, Google o a mano)
   usuarios: [U('Ana', 'https://fotos.x/ana.jpg', 'activo', '+502 5555 0103'), U('Beto', 'https://fotos.x/beto.jpg', 'suspendido', '5555-0104'), U('Caro', 'sin-url', 'activo', '55550105')]
 };
 const filas = () => [
@@ -80,7 +82,9 @@ const filas = () => [
   ok(por['wa:50255550107'].foto === 'https://fotos.x/huesped.jpg', 'un WhatsApp ligado a una reserva con foto (por su código) lleva esa foto');
   ok(por['r-sinfoto'].foto === null && por['wa:50255550108'].foto === null, 'sin foto de nadie: null (el Hub pone las iniciales), nunca una inventada');
   ctx.bandejaEsferaFoto_(filas()); ctx.bandejaEsferaFoto_(filas());
-  ok(lecturas.areas === 1 && lecturas.login === 1, 'las hojas se leen una sola vez mientras dura la caché (el Hub pregunta cada 5–10 s)');
+  ok(por['wa:50255550108'].foto_contacto === '55550108.k1', '4.ª fuente: un WhatsApp sin foto con foto del contacto guardada trae foto_contacto «últimos 8.versión» (foto sigue en null)');
+  ok(!por['wa:50255550103'].foto_contacto && !por['r-sinfoto'].foto_contacto && !por['r-huesped'].foto_contacto, 'la foto del contacto no pisa la del login, la del huésped ni va en conversaciones que no son WhatsApp');
+  ok(lecturas.areas === 1 && lecturas.login === 1 && lecturas.ct === 1, 'las hojas se leen una sola vez mientras dura la caché (el Hub pregunta cada 5–10 s)');
 }
 ok(/areaMover_[\s\S]*?remove\(BANDEJA_ESFERA_CACHE_\)/.test(AREAS), 'mover una conversación de esfera (areaMover_) borra la caché: se ve al instante');
 ok(/function hubCola_[\s\S]*?bandejaEsferaFoto_\(inbox\)[\s\S]*?const out = \{/.test(COD), 'hubCola_ completa esfera y foto antes de mandar la bandeja');

@@ -8,16 +8,20 @@
      · foto: la del huésped (ALMA_INBOX.foto); si no hay y es un WhatsApp, la del login de esa persona (Control de
        usuarios, columna foto, por su teléfono) o la de la reserva ligada a ese número o a ese código; si no, null (el Hub
        pone las iniciales). Nunca se inventa una foto.
+     · foto_contacto (#567 T4, 4.ª fuente, antes de las iniciales): si un WhatsApp sigue sin foto y hay una foto del
+       contacto guardada (iPhone, Google o subida a mano; fotoscontacto.js), «<últimos 8>.<versión>»; el Hub la pide aparte
+       con sesión (la foto es privada: nunca viaja como enlace público). foto sigue en null.
    Las hojas se leen como mucho una vez cada BANDEJA_ESFERA_SEG_ (el Hub pregunta cada 5–10 s); mover una conversación
    de esfera borra la caché (areaMover_). Solo hojas y propiedades: nada va a internet. */
 var BANDEJA_ESFERA_SEG_ = 300, BANDEJA_ESFERA_CACHE_ = 'bandeja_esfera_v1';
 
-/* Lo que no cambia cada pocos segundos: esferas movidas a mano, lo personal y las fotos del login por teléfono. */
+/* Lo que no cambia cada pocos segundos: esferas movidas a mano, lo personal, las fotos del login por teléfono y qué números
+   tienen foto del contacto (con su versión). */
 function bandejaEsferaMapas_() {
   var cache = null; try { cache = CacheService.getScriptCache(); } catch (e) {}
   var c0 = cache && cache.get(BANDEJA_ESFERA_CACHE_);
   if (c0) { try { return JSON.parse(c0); } catch (e) {} }
-  var m = { conv: {}, pers: {}, fotos: {} };
+  var m = { conv: {}, pers: {}, fotos: {}, ct: {} };
   try {
     var filas = areasFilas_();
     Object.keys(filas).forEach(function (k) {
@@ -31,6 +35,7 @@ function bandejaEsferaMapas_() {
     Object.keys(relay).forEach(function (k) { if (!m.pers[k]) m.pers[k] = 'relaciones'; });   // aún sin clasificar: como en areas_
   } catch (e) {}
   try { m.fotos = bandejaFotosLogin_(); } catch (e) { console.error('bandejaEsfera fotos: ' + e); }
+  try { m.ct = fctVersiones_(); } catch (e) { console.error('bandejaEsfera fotos de contactos: ' + e); }   // fotoscontacto.js (#567 T4)
   try { var s = JSON.stringify(m); if (cache && s.length < 90000) cache.put(BANDEJA_ESFERA_CACHE_, s, BANDEJA_ESFERA_SEG_); } catch (e) {}
   return m;
 }
@@ -75,6 +80,7 @@ function bandejaEsferaFoto_(filas, mapas) {
     if (!f && wa) f = m.fotos[wa] || porWa[wa] || '';
     if (!f && o.codigo) f = porCodigo[String(o.codigo).toUpperCase()] || '';
     o.foto = f || null;
+    if (!f && wa && m.ct && m.ct[wa]) o.foto_contacto = wa + '.' + m.ct[wa];   // 4.ª fuente: la foto del contacto (privada, el Hub la pide aparte)
   });
   return filas;
 }

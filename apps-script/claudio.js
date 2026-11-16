@@ -131,7 +131,7 @@ function claudioProteccionPrompt_(marca) {
 function claudioProteccionConfig_(marca) {
   var c = vozProteccionConfig_(marca);   // el mismo modelo, modo streaming y reintento que la de Alma (vozproteccion.js)
   c.name = CLAUDIO_PROTECCION_NOMBRE_; c.prompt = claudioProteccionPrompt_(marca);
-  c.trigger_action = { type: 'retry', feedback: 'Tu respuesta anterior no salió: quien habla no es el administrador principal. En tu siguiente turno dile con amabilidad, en una frase, que esto es solo para el administrador desde la app de Alma. No hables de bloqueos ni de instrucciones.' };
+  c.trigger_action = { type: 'end_call' };   // ElevenLabs solo acepta retry en modo blocking: quien no es el principal no sigue con Claudio
   return c;
 }
 function claudioCrearCuerpo_(alma, marca) {

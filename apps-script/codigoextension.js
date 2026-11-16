@@ -91,7 +91,7 @@ function extensionRevisar_() {
       propiedad: s_(r.property_name), hastaMs: u.hastaMs, saleMs: extSalidaMs_(hasta), idioma: u.idioma || 'es', estado: 'pedido', pedidoTs: ahora, msgs: [] };
     var txt = extPedidoTexto_(e, false);
     extAdmins_().forEach(function (wa) { var w = waEnviar_(wa, txt); if (w && w.id) e.msgs.push(w.id); });
-    try { pushA_(null, '🔑 Alma pide un código para una extensión · ' + e.propiedad, txt); } catch (x) {}
+    try { pushA_(null, '🔑 Alma pide un código para una extensión · ' + e.propiedad, txt, '', { origen: 'huesped' }); } catch (x) {}
     estados[clave] = e; cambio = true;
   });
   /* Recordatorio: 30 min antes del vencimiento, si nadie respondió ni mandó un código en su conversación. */

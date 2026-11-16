@@ -144,7 +144,7 @@ function recepcionEntrante_(wa, nombre, texto, ts, media, msgId, rec) {
   hojaWA_().appendRow([ts, wa, nombre, 'in', celdaTexto_(String(texto).slice(0, 4000)), msgId, conv, 'text', 'recepcion', (media || []).join(' ')]);
   inboxUpsert_(conv, { huesped: nombre || ('Recepción ' + edificio).trim(), propiedad: 'Recepción' + (edificio ? ' · ' + edificio : ''), tipo: 'recepcion', canal: 'whatsapp', wa: wa,
     ultimo_canal: 'whatsapp', ultimo_texto: String(texto).slice(0, 300), ultimo_de: 'guest', ultimo_ts: ts, ultimo_guest_ts: ts });
-  try { pushNuevo_(conv, 'Recepción' + (edificio ? ' · ' + edificio : ''), 'WhatsApp de ALMA', texto); } catch (e) {}
+  try { pushNuevo_(conv, 'Recepción' + (edificio ? ' · ' + edificio : ''), 'WhatsApp de ALMA', texto, { origen: 'recepcion' }); } catch (e) {}
   var k = 'recep_resp_' + fin8_(wa);
   if (vGet_(k) && Date.now() - Number(vGet_(k)) < 12 * 3600000) return;
   var corto = /^\s*(ok|oki|okay|okey|listo|recibido|recibida|enterado|enterada|gracias|muchas gracias|perfecto|de acuerdo|va|sale|👍|🙏|✅|👌)[\s.!¡,🙏👍✅👌]*$/i.test(String(texto));

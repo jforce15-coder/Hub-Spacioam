@@ -1202,10 +1202,10 @@ function codigoPendiente_(ctx, hilo) {
 /* WhatsApp a los administradores solo para lo de verdad relevante (critico = true). Lo demás va por notificación
    del Hub y correo: Juan pidió ver en WhatsApp de ALMA solo updates importantes. */
 function avisarAdmins_(asunto, texto, critico) {
-  if (!critico) { pushA_(null, asunto, texto); try { correo_(CFG.EMAIL_ALERTAS || Session.getEffectiveUser().getEmail(), asunto, texto); } catch (e) {} return; }
+  if (!critico) { pushA_(null, asunto, texto, '', { origen: 'huesped', nivel: 2 }); try { correo_(CFG.EMAIL_ALERTAS || Session.getEffectiveUser().getEmail(), asunto, texto); } catch (e) {} return; }
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
   if (CFG.WHATSAPP_RESPALDO && CFG.WHATSAPP_RESPALDO !== CFG.WHATSAPP_NOCTURNO) waEnviar_(CFG.WHATSAPP_RESPALDO, asunto + '\n\n' + texto);
-  pushA_(null, asunto, texto);
+  pushA_(null, asunto, texto, '', { origen: 'huesped', nivel: 1 });
 }
 function manejarCodigo_(sh, lider, otros, ctx, hilo) {
   otros.forEach(f => set_(sh, f, { estado: 'agrupado', nota: 'ver fila ' + lider.fila }));
@@ -2550,18 +2550,18 @@ function waEnviar_(numero, texto, o) {
 function escalar_(asunto, texto, o) {
   o = o || {};
   /* Informativo (sinWa): notificación del Hub y correo, sin WhatsApp. */
-  if (o.sinWa) { const tn = deTurno_(); pushA_(tn.length ? tn.map(p => p.email).filter(Boolean) : null, asunto, texto); tn.forEach(p => { if (p.email) { try { correo_(p.email, asunto, texto); } catch (e) {} } }); return; }
+  if (o.sinWa) { const tn = deTurno_(); pushA_(tn.length ? tn.map(p => p.email).filter(Boolean) : null, asunto, texto, '', { origen: 'escalado', nivel: 2 }); tn.forEach(p => { if (p.email) { try { correo_(p.email, asunto, texto); } catch (e) {} } }); return; }
   /* waPorDecision (#446 T6): el WhatsApp lo manda el aviso del caso con sus botones (decisiones.js); aquí, push y correo. */
   const turno = deTurno_();
-  if (!turno.length) { pushA_(null, asunto, texto); return notificar_(o.waPorDecision ? '' : CFG.WHATSAPP_NOCTURNO, asunto + ' · sin nadie de turno', texto); }
-  pushA_(turno.map(p => p.email).filter(Boolean), asunto, texto);
+  if (!turno.length) { pushA_(null, asunto, texto, '', { origen: 'escalado', nivel: 1 }); return notificar_(o.waPorDecision ? '' : CFG.WHATSAPP_NOCTURNO, asunto + ' · sin nadie de turno', texto); }
+  pushA_(turno.map(p => p.email).filter(Boolean), asunto, texto, '', { origen: 'escalado', nivel: 1 });
   turno.forEach(p => {
     if (p.email) { try { correo_(p.email, asunto, texto); } catch (e) { console.error('escalar email: ' + e); } }
     if (!o.waPorDecision) waEnviar_(p.telefono, asunto + '\n\n' + texto);
   });
 }
 function avisarRojo_(ctx, asunto, texto, sinWa) {
-  if (sinWa) { pushA_(null, asunto, texto); return; }   // seguimiento de un ROJO ya avisado: no repite el WhatsApp
+  if (sinWa) { pushA_(null, asunto, texto, '', { origen: 'rojo', nivel: 2 }); return; }   // seguimiento de un ROJO ya avisado: no repite el WhatsApp
   /* Escalado (#446 T6): el WhatsApp a quien está de turno lo lleva el aviso del caso, con sus botones A/B/C (decisiones.js,
      en la misma pasada de procesarCola). Aquí solo salen el push y el correo; si el caso ya estaba abierto, todo como antes. */
   const textoEsc = ctx && ctx.escalar ? texto + '\n\nEscalado por ALMA · motivo: ' + (ctx.motivoEscalar || 'urgente') : '';
@@ -2573,13 +2573,23 @@ function avisarRojo_(ctx, asunto, texto, sinWa) {
   try { const jefe = chatPrincipal_(); if (jefe) avisoPoner_(jefe, 'huesped_espera', { propiedad: ctx && ctx.propiedad, escalado: !!(ctx && ctx.escalar) }, '', { nivel: 1 }); } catch (e) { console.error('avisarRojo_ aviso: ' + e); }   // texto humano: avisotexto.js
   if (ctx && ctx.escalar) return escalar_(asunto, textoEsc, { waPorDecision: !!(dc && dc.id && !dc.ya) });
   notificar_(CFG.WHATSAPP_NOCTURNO, asunto, texto);
-  pushA_(null, asunto, texto);
+  pushA_(null, asunto, texto, '', { origen: 'rojo', nivel: 1 });
 }
 
 /* ── Push (OneSignal) ──
    Propiedades del script: ONESIGNAL_APP_ID y ONESIGNAL_KEY (OneSignal → Settings → Keys & IDs → REST API Key).
    Cada dispositivo se vincula al correo de quien lo activó (external_id), así el aviso llega solo a quien esté de turno. */
-function pushA_(emails, titulo, cuerpo, url) {
+function pushA_(emails, titulo, cuerpo, url, de) {
+  /* Ajustes por tipo (#551, notifajustes.js): de = { origen, nivel } ubica el aviso en su tipo. Quien lo apagó no lo recibe y
+     quien eligió vista previa «nunca» o «solo desbloqueado» lo recibe sin el texto. Sin de, como siempre (p. ej. la prueba). */
+  if (de && emails && emails.length) {
+    try {
+      const w = notifWebPara_(emails, de);
+      if (w.oculto.length) pushA_(w.oculto, 'Alma', NOTIF_GENERICO_, url);
+      if (!w.si.length) { if (!w.oculto.length) logPush_(emails, titulo, 0, '', 0, 'apagado en sus ajustes (' + w.tipo + ')'); return { ok: true, ajustes: w.tipo }; }
+      emails = w.si;
+    } catch (e) { console.error('pushA_ ajustes: ' + e); }
+  }
   try {
     const p = PropertiesService.getScriptProperties(), app = p.getProperty('ONESIGNAL_APP_ID'), key = p.getProperty('ONESIGNAL_KEY');
     if (!app || !key) { logPush_(emails, titulo, 0, '', 0, 'Faltan ONESIGNAL_APP_ID u ONESIGNAL_KEY en Propiedades del script'); return { ok: false, error: 'Faltan ONESIGNAL_APP_ID u ONESIGNAL_KEY en el Apps Script' }; }
@@ -2598,7 +2608,16 @@ function pushA_(emails, titulo, cuerpo, url) {
       const sinNadie = r.getResponseCode() >= 300 || !j0.id || (j0.errors && /not subscribed|invalid_aliases|no.*subscri/i.test(JSON.stringify(j0.errors)));
       if (sinNadie) { logPush_(emails, t, r.getResponseCode(), s_(j0.id), 0, 'sin dispositivo para el correo · reenviado a todos'); alTodos = true; delete body.include_aliases; body.headings = { en: t, es: t }; body.contents = { en: '[Para ' + emails.join(', ') + '] ' + b, es: '[Para ' + emails.join(', ') + '] ' + b }; }
     }
-    if (alTodos) {
+    let envios = null;
+    if (alTodos && de) { try { envios = notifWebTodos_(de, null); if (!envios[0].filtros) envios = null; } catch (e) { envios = null; } }
+    if (envios) {
+      /* Alguien cambió este tipo (notifajustes.js): el completo a quien lo tiene igual, el genérico a quien lo ocultó y nada a quien lo apagó. */
+      envios.forEach(ev => {
+        const b3 = Object.assign({}, body, { filters: ev.filtros }); delete b3.include_aliases;
+        if (ev.generico) { b3.headings = { en: 'Alma', es: 'Alma' }; b3.contents = { en: NOTIF_GENERICO_, es: NOTIF_GENERICO_ }; }
+        const r3 = enviar(b3); if (!ev.generico || !r) r = r3;
+      });
+    } else if (alTodos) {
       /* "Todos": el nombre del segmento cambió en OneSignal; se prueba el nuevo, el clásico y, si no, todo dispositivo del hub (etiqueta rol). */
       const intentos = [{ included_segments: ['Total Subscriptions'] }, { included_segments: ['Subscribed Users'] }, { filters: [{ field: 'tag', key: 'rol', relation: 'exists' }] }];
       for (let i = 0; i < intentos.length; i++) {
@@ -2617,7 +2636,7 @@ function pushA_(emails, titulo, cuerpo, url) {
 }
 /* Mensaje nuevo de un huésped → push a todos los dispositivos salvo los que apagaron "Mensajes nuevos" (etiqueta nuevos=0).
    Una ráfaga del mismo huésped manda un solo aviso por minuto. Al tocarlo, el hub abre la conversación (?conv=). */
-function pushNuevo_(convId, quien, propiedad, texto) {
+function pushNuevo_(convId, quien, propiedad, texto, de) {
   try {
     if (!convId) return;
     const c = CacheService.getScriptCache(), k = 'pn_' + String(convId).slice(0, 200);
@@ -2626,12 +2645,19 @@ function pushNuevo_(convId, quien, propiedad, texto) {
     if (!app || !key) return;
     const t = sinEmoji_((quien || 'Huésped') + (propiedad ? ' · ' + propiedad : '')).slice(0, 120);
     const b = String(texto || '').replace(/\s+/g, ' ').slice(0, 240) || 'Mensaje nuevo';
-    const body = { app_id: app, target_channel: 'push', headings: { en: t, es: t }, contents: { en: b, es: b },
-      url: CFG.HUB_URL + '/?conv=' + encodeURIComponent(convId), chrome_web_icon: CFG.HUB_URL + '/assets/icons/icon-192.png', ttl: 1800,
-      web_push_topic: 'conv-' + String(convId).replace(/[^\w-]/g, '').slice(0, 60), filters: [{ field: 'tag', key: 'nuevos', relation: '!=', value: '0' }, { operator: 'OR' }, { field: 'tag', key: 'nuevos', relation: 'not_exists' }] };   // activado por defecto: solo se excluye a quien lo apagó
-    const f = pref => uf_('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: pref + ' ' + key }, payload: JSON.stringify(body) });
-    const p1 = /^os_v2_/.test(key) ? 'Key' : 'Basic'; let r = f(p1); if (r.getResponseCode() === 401 || r.getResponseCode() === 403) r = f(p1 === 'Key' ? 'Basic' : 'Key');
-    if (r.getResponseCode() >= 300) console.error('pushNuevo_ ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 200));
+    /* Mensajes nuevos: activado por defecto, solo se excluye a quien lo apagó. Y los ajustes por tipo (#551, notifajustes.js):
+       un huésped es «Huéspedes» y Recepción, «Equipo»; quien lo apagó no lo recibe y quien lo ocultó, sin el texto. */
+    const base = [[{ field: 'tag', key: 'nuevos', relation: '!=', value: '0' }], [{ field: 'tag', key: 'nuevos', relation: 'not_exists' }]];
+    let envios; try { envios = notifWebTodos_(de || { origen: 'mensaje' }, base); } catch (e) { envios = [{ generico: false, filtros: [base[0][0], { operator: 'OR' }, base[1][0]] }]; }
+    envios.forEach(ev => {
+      const tt = ev.generico ? 'Alma' : t, bb = ev.generico ? NOTIF_GENERICO_ : b;
+      const body = { app_id: app, target_channel: 'push', headings: { en: tt, es: tt }, contents: { en: bb, es: bb },
+        url: CFG.HUB_URL + '/?conv=' + encodeURIComponent(convId), chrome_web_icon: CFG.HUB_URL + '/assets/icons/icon-192.png', ttl: 1800,
+        web_push_topic: 'conv-' + String(convId).replace(/[^\w-]/g, '').slice(0, 60), filters: ev.filtros };
+      const f = pref => uf_('https://api.onesignal.com/notifications', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { Authorization: pref + ' ' + key }, payload: JSON.stringify(body) });
+      const p1 = /^os_v2_/.test(key) ? 'Key' : 'Basic'; let r = f(p1); if (r.getResponseCode() === 401 || r.getResponseCode() === 403) r = f(p1 === 'Key' ? 'Basic' : 'Key');
+      if (r.getResponseCode() >= 300) console.error('pushNuevo_ ' + r.getResponseCode() + ' ' + r.getContentText().slice(0, 200));
+    });
   } catch (e) { console.error('pushNuevo_: ' + e); }
 }
 /* ALMA_PUSH: cada aviso enviado, a quién, y qué respondió OneSignal. */
@@ -3338,6 +3364,8 @@ function hubApi_(body) {
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
+      case 'notifAjustes': return json_(notifAjustesApi_(ses));                            // Ajustes → Notificaciones por tipo, de quien tiene la sesión (notifajustes.js · alma/avisos.html)
+      case 'notifAjustesGuardar': return json_(notifAjustesGuardarApi_(ses, body));          // { tipo, ajuste } → lo guarda y deja al día sus etiquetas de OneSignal
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
@@ -4258,7 +4286,7 @@ function reservaCambio_(action, d) {
   try { inboxUpsert_(id, { codigo: cod, tipo: cod ? 'reserva' : '', checkin: nuevo.checkin, checkout: nuevo.checkout, propiedad: nuevo.propiedad }); } catch (e) {}
   if (cambios.some(c => c[0] === 'solicitud' || c[0] === 'fechas' || c[0] === 'estado')) {
     let pre = {}; try { pre = preContexto_(id); } catch (e) {}
-    try { pushA_(null, 'Cambio en reserva · ' + (pre.huesped || cod || 'huésped'), cambios.map(c => c[1]).join(' · '), CFG.HUB_URL + '/?conv=' + encodeURIComponent(id)); } catch (e) {}
+    try { pushA_(null, 'Cambio en reserva · ' + (pre.huesped || cod || 'huésped'), cambios.map(c => c[1]).join(' · '), CFG.HUB_URL + '/?conv=' + encodeURIComponent(id), { origen: 'reserva' }); } catch (e) {}
   }
   return 'hito: ' + cambios.length;
 }

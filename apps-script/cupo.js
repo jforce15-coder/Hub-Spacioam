@@ -49,7 +49,7 @@ var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'vozWeb', 'vozFirma'];
 var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
 /* Canal de cada acción del Hub (hubApi_). Lo que no está aquí cuenta como «Otros». */
 var CUPO_ACCIONES_ = {
-  inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos pedidosOrbita tutoriales recetas recetaBorrar vigilancias vigilanciaDejar llaveEstado llaveGuardar',
+  inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos notifAjustes notifAjustesGuardar pedidosOrbita tutoriales recetas recetaBorrar vigilancias vigilanciaDejar llaveEstado llaveGuardar',
   chat: 'opEnviar opHilo opLista almaFoto mejorarCampo dictar plantillas',
   voz: 'vozWeb vozFirma vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar vozCaida vozCaidas',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
@@ -326,7 +326,7 @@ function cupoAvisar_(texto, critico) {
     var adm = agPrincipal_(); if (!adm || !adm.email) return;
     /* En Notificaciones, sin pasar por la IA (la clasificación ya está hecha). */
     pendAvisar_(adm, texto, { origen: 'cupo', push: false, clasif: { tipo: 'aviso', area: 'proposito', proyecto: 'Spacio AM', titulo: 'Cupo de Google', resumen: texto, aviso: texto, importancia: critico ? 3 : 2, tarjeta: null, acciones: [] } });
-    try { pushA_([adm.email], 'Cupo de Google', texto, CFG.HUB_URL + '/alma/uso.html'); } catch (e) { console.warn('cupo push: ' + e); }
+    try { pushA_([adm.email], 'Cupo de Google', texto, CFG.HUB_URL + '/alma/uso.html', { origen: 'cupo' }); } catch (e) { console.warn('cupo push: ' + e); }
     if (critico && adm.tels && adm.tels[0]) { try { waEnviar_(adm.tels[0], 'Alma · ' + texto); } catch (e) { console.warn('cupo WhatsApp: ' + e); } }
   } catch (e) { console.warn('cupoAvisar_: ' + e); } finally { CUPO_EN_AVISO_ = false; }
 }

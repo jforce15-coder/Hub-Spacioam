@@ -76,10 +76,15 @@ jobs:
             echo "::error::Alma no dice «va» (ni «Va,», ni «Va como»): usa «Listo», «Claro» o «Perfecto». Ver ESTANDARES.md."; exit 1
           fi
 
-      - name: Alma no anuncia lo que va a hacer ni nombra a Claudio al pasarle algo (Juan lo pidió más de una vez)
+      - name: Alma no anuncia lo que va a hacer ni nombra a Claudio al pasarle algo; «te paso con Claudio» solo en Hablar con Claudio (Juan lo pidió más de una vez)
         run: |
           if grep -niE "se lo (digo|paso|pasé|mando|mandé|envío|voy a (pasar|mandar|reportar)) a claudio|ya se lo (mandé|pasé)|lo consulto con mi sistema|voy a consultar con mi sistema|lo reviso en mi sistema" apps-script/*.js playbooks/*.md | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(/\*|\*|//)' | grep -v '^apps-script/almafuente.js:'; then
             echo "::error::Alma no anuncia lo que va a hacer («se lo paso a Claudio», «lo consulto con mi sistema»): lo hace y confirma una vez, ya hecho («Listo, quedó …»). Ver ESTANDARES.md."; exit 1
+          fi
+          # 16-nov (#550): «te paso con Claudio» existe solo en Hablar con Claudio, con el administrador principal: la frase vive
+          # una sola vez en apps-script/claudio.js (CLAUDIO_FRASE_) y Alma la dice solo si su ficha trae CLAUDIO_PERMISO_.
+          if grep -niE "te (paso|comunico|transfiero) con claudio" apps-script/*.js playbooks/*.md playbooks/*.json | grep -vE '^[^:]+:[0-9]+:[[:space:]]*(/\*|\*|//)' | grep -v '^apps-script/claudio.js:'; then
+            echo "::error::«Te paso con Claudio» solo vive en apps-script/claudio.js (Hablar con Claudio, solo el administrador principal). Con huéspedes, socios, equipo y externos Claudio no existe. Ver ESTANDARES.md."; exit 1
           fi
           echo "Bien."
 
@@ -214,6 +219,10 @@ jobs:
         # 13-nov: el pedido de Narama 633 quedó enterrado bajo 31 mensajes de otros temas y los números que Juan mandó por
         # WhatsApp, sin citar, se trataron como de otro tema (#524, #526).
         run: node .github/temas.js apps-script
+      - name: Hablar con Claudio, el agente se crea una vez, la firma y la herramienta solo con el principal, no une sin «une» y Claudio no existe con otras audiencias (dobles)
+        # 16-nov: Juan quiere hablar por voz con el equipo de desarrollo desde la app de Alma (#550): otro agente, otra voz y el
+        # halo naranja; Claudio sigue sin existir para huéspedes, socios, equipo y externos.
+        run: node .github/hablar-claudio.js apps-script
       - name: Alma no repite la misma muletilla ni la misma frase seguidas («Listo, entregado») y el resto del texto queda igual (dobles)
         # 14-nov: Juan pidió que Alma varíe el fraseo y no caiga en bucles como «Listo, entregado» (pedido pc1794698090317).
         run: node .github/variar-frases.js apps-script

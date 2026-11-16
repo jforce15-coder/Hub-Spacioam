@@ -1,0 +1,164 @@
+/* Hablar con Claudio (apps-script/claudio.js, #550; Juan, 16-nov-2026), con dobles de ElevenLabs, de GitHub y de Google:
+   sin internet. Revisa:
+   1. el agente de Claudio se crea UNA vez, con la base del de Alma (modelo, idioma, turnos, oído), su voz, el acceso
+      cerrado y la protección con la marca del principal; si ya existe (por id o por nombre) no se crea otro, y si falla
+      no se reintenta en cada vuelta;
+   2. la URL firmada de Claudio (acción vozClaudio) solo con la sesión verificada del administrador principal;
+   3. la ficha de Alma trae el permiso de pasar a Claudio solo con el principal y solo si la app sabe cambiar de agente;
+      la herramienta de Alma (hablar_con_claudio) es de la app y se apoya en ese permiso;
+   4. las herramientas de Claudio solo atienden al principal, por la firma del Hub dentro de la conversación de Claudio;
+      un pedido sale solo con el sí de Juan y nada se une sin «une» (ni «¿qué falta unir?» ni «no lo unas»);
+   5. leer código es solo lectura (GET a GitHub) y corto;
+   6. su prompt es JSON con {{quien_llama}} al final, y Claudio no existe con otras audiencias: ni la frase ni el permiso
+      están en los prompts del chat, WhatsApp, calle, redactor ni en lo de huéspedes de la voz.
+   node .github/hablar-claudio.js [carpeta apps-script] */
+const fs = require('fs'), path = require('path'), vm = require('vm');
+const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
+let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
+const { armar } = require('./prompts-armados.js');
+const a = armar(DIR), ctx = a._ctx, R = c => vm.runInContext(c, ctx);
+const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
+
+/* Dobles comunes: propiedades en memoria, caché en memoria y un uf_ que anota todo lo que sale. */
+let mem = {}, cache = {}, salidas = [], resp = () => ({ codigo: 404, cuerpo: '' });
+ctx.PropertiesService = { getScriptProperties: () => ({ getProperty: k => (k in mem ? mem[k] : null), setProperty: (k, v) => { mem[k] = String(v); }, deleteProperty: k => { delete mem[k]; }, getKeys: () => Object.keys(mem) }) };
+ctx.CacheService = { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; }, getAll: () => ({}), putAll() {} }) };
+ctx.uf_ = (url, o) => { o = o || {}; const s = { url: String(url), metodo: String(o.method || 'get').toLowerCase(), cuerpo: o.payload ? JSON.parse(o.payload) : null, headers: o.headers || {} }; salidas.push(s); const r = resp(s);
+  return { getResponseCode: () => r.codigo, getContentText: () => (typeof r.cuerpo === 'string' ? r.cuerpo : JSON.stringify(r.cuerpo)) }; };
+ctx.Utilities = Object.assign({}, ctx.Utilities, { computeDigest: (alg, t) => Array.from(Buffer.from(require('crypto').createHash('sha256').update(String(t)).digest())), base64Encode: b => Buffer.from(b).toString('base64'),
+  base64Decode: s => Array.from(Buffer.from(s, 'base64')), newBlob: b => ({ getDataAsString: () => Buffer.from(b).toString('utf8') }), getUuid: () => 'ab12cd34ef56ab78cd90ef12ab34cd56' });
+const JUAN = { email: 'juan@x', nombre: 'Juan Prueba', principal: true, tels: ['50211110000'] };
+const ANA = { email: 'ana@x', nombre: 'Ana', principal: false, tels: ['50222220000'] };
+Object.assign(ctx, { adminsOp_: () => [JUAN, ANA], adminPorTel_: t => [JUAN, ANA].filter(x => String(t).slice(-8) === x.tels[0].slice(-8))[0] || null,
+  vozWebAdmin_: ses => (ses && ses.email === 'juan@x' ? JUAN : ses && ses.email === 'ana@x' ? ANA : null), normTel_: t => String(t || '').replace(/\D/g, ''),
+  vozWebToken_: t => 'firma:' + t, microAbiertos_: () => [], prsAbiertos_: () => [] });
+const ALMA = { agent_id: 'agent_alma', name: 'Alma', conversation_config: {
+  agent: { language: 'es', first_message: 'Hola', prompt: { prompt: '{"alma":1}', llm: 'gpt-4.1-mini', temperature: 0.3, tool_ids: ['tool_secretaria', 'tool_abrir'],
+    built_in_tools: { end_call: { name: 'end_call', description: 'de Alma', params: { system_tool_type: 'end_call' } }, transfer_to_number: { name: 'transfer_to_number' } } } },
+  tts: { model_id: 'eleven_v3_conversational', voice_id: 'voz_alma', stability: 0.65, supported_voices: [], suggested_audio_tags: [{ tag: 'warm' }] },
+  turn: { turn_eagerness: 'patient', turn_timeout: 7 }, asr: { quality: 'high' }, vad: { background_voice_detection: true }, conversation: { max_duration_seconds: 900 } },
+  platform_settings: { auth: { enable_auth: true }, data_collection: { motivo: {} } } };
+const VOZ = R('CLAUDIO_VOZ_ID_');
+
+/* 1. Crear el agente una vez */
+{ mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma' }; salidas = [];
+  resp = s => /\/agents\?/.test(s.url) ? { codigo: 200, cuerpo: { agents: [{ agent_id: 'agent_otro', name: 'Otro' }] } }
+    : /\/agents\/create$/.test(s.url) ? { codigo: 200, cuerpo: { agent_id: 'agent_claudio' } } : /\/agents\/agent_alma$/.test(s.url) ? { codigo: 200, cuerpo: ALMA } : { codigo: 404, cuerpo: '' };
+  const r = R('claudioCrearSiFalta_(false)'), posts = salidas.filter(s => s.metodo === 'post');
+  ok(r.ok && r.creado && mem.CLAUDIO_AGENT_ID === 'agent_claudio' && posts.length === 1, 'sin CLAUDIO_AGENT_ID: busca, no encuentra otro con su nombre, lo crea una vez y guarda el id');
+  const b = posts[0].cuerpo, cc = b.conversation_config, pr = cc.agent.prompt;
+  ok(cc.tts.voice_id === VOZ && VOZ === 'wRoroUVFu5pwV8ummDdd' && cc.tts.model_id === 'eleven_v3_conversational', 'con la voz de Claudio (wRoroUVFu5pwV8ummDdd) y el mismo modelo de voz que Alma');
+  ok(pr.llm === 'gpt-4.1-mini' && pr.temperature === 0.3 && cc.agent.language === 'es' && cc.turn.turn_eagerness === 'patient' && cc.asr.quality === 'high', 'la misma base que Alma: modelo, temperatura, idioma es, turnos y oído');
+  ok(!pr.tool_ids && !pr.built_in_tools.transfer_to_number && pr.built_in_tools.end_call && pr.built_in_tools.end_call.description !== 'de Alma' && !b.platform_settings.data_collection, 'no se copian herramientas ni datos de Alma (solo colgar, con su propia descripción)');
+  ok(b.platform_settings.auth.enable_auth === true, 'acceso cerrado: solo con URL firmada');
+  const g = b.platform_settings.guardrails, mia = g.custom.config.configs.filter(c => c.name === R('CLAUDIO_PROTECCION_NOMBRE_'))[0];
+  ok(g.prompt_injection.is_enabled === false && mia && mia.trigger_action.type === 'retry' && mia.prompt.indexOf('{{marca_principal}}') > 0 && mia.prompt.indexOf(R('vozMarcaPrincipal_()')) > 0, 'protección con la marca del principal, que reintenta y no cuelga');
+  ok(cc.agent.dynamic_variables.dynamic_variable_placeholders.marca_principal === 'ninguna' && /no es el administrador principal/.test(cc.agent.dynamic_variables.dynamic_variable_placeholders.quien_llama), 'sin ficha del Hub: «ninguna» y no es el principal');
+  ok(pr.prompt === R('claudioPromptCompleto_()'), 'nace con su prompt');
+  salidas = []; R('claudioCrearSiFalta_(true)');
+  ok(!salidas.length, 'con el id guardado no vuelve a crear (ni a preguntar)'); }
+{ mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma' }; salidas = [];
+  resp = s => /\/agents\?/.test(s.url) ? { codigo: 200, cuerpo: { agents: [{ agent_id: 'agent_ya', name: R('CLAUDIO_NOMBRE_') }] } } : { codigo: 200, cuerpo: ALMA };
+  R('claudioCrearSiFalta_(false)');
+  ok(mem.CLAUDIO_AGENT_ID === 'agent_ya' && !salidas.some(s => s.metodo === 'post'), 'si ya hay uno con su nombre (se creó y no se guardó), lo adopta sin crear otro'); }
+{ mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma' }; salidas = [];
+  resp = s => /\/agents\?/.test(s.url) ? { codigo: 200, cuerpo: { agents: [] } } : /create/.test(s.url) ? { codigo: 500, cuerpo: 'mal' } : { codigo: 200, cuerpo: ALMA };
+  const r = R('claudioCrearSiFalta_(false)');
+  ok(!r.ok && !mem.CLAUDIO_AGENT_ID, 'si ElevenLabs no lo crea: no guarda nada y lo dice');
+  salidas = []; R('claudioCrearSiFalta_(false)');
+  ok(!salidas.length, 'y no lo reintenta en cada vuelta (espera 6 h)');
+  R('claudioCrearSiFalta_(true)'); ok(salidas.some(s => /create/.test(s.url)), 'el robot voz_sync sí lo reintenta'); }
+{ mem = {}; salidas = []; ok(R('claudioCrearSiFalta_(false)').ok === false && !salidas.length, 'sin la llave de ElevenLabs no llama a nadie'); }
+
+/* 2. La URL firmada de Claudio, solo el principal */
+{ mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' };
+  resp = s => /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 'wss://firmada?' + s.url.split('agent_id=')[1] } } : { codigo: 404, cuerpo: '' };
+  const ini = (ses, motivo) => { salidas = []; ctx.SES_ = ses; ctx.MOT_ = motivo || ''; return R('claudioWebInicio_(SES_, MOT_)'); };
+  const j = ini({ email: 'juan@x' }, 'quiero cambiar el botón');
+  ok(j.ok && j.signed_url === 'wss://firmada?agent_claudio' && j.agent_id === 'agent_claudio', 'el principal recibe la URL firmada del agente de Claudio (no la de Alma)');
+  ok(j.dynamic_variables.marca_principal === R('vozMarcaPrincipal_()') && /firma:/.test(j.dynamic_variables.sa_web) && /administrador principal/.test(j.dynamic_variables.quien_llama), 'su ficha lleva la marca del principal y la firma del Hub');
+  ok(/quiero cambiar el botón/.test(j.dynamic_variables.quien_llama) && /Claudio/.test(j.first_message), 'lo que le dijo a Alma llega a Claudio y Claudio saluda');
+  const na = ini({ email: 'ana@x' });
+  ok(!na.ok && !salidas.length, 'otro administrador: no hay Claudio ni URL firmada');
+  ok(!ini(null).ok && !salidas.length && ini(null).error !== 'session', 'sin sesión: no (y sin el error «session» que cierra la sesión)');
+  ok(!ini({ email: 'nadie@x' }).ok && !salidas.length, 'una sesión que no es de administrador: no');
+  delete mem.CLAUDIO_AGENT_ID; ok(!ini({ email: 'juan@x' }).ok && !salidas.length, 'si el Hub todavía no lo creó, lo dice y no abre nada');
+  const cod = leer('Código.js'), cupo = leer('cupo.js');
+  ok(/case 'vozClaudio': return json_\(claudioWebInicio_\(ses, body\.motivo\)\)/.test(cod), 'la acción vozClaudio usa la sesión verificada');
+  ok(/CUPO_ACC_ALMA_ = \[[^\]]*'vozClaudio'/.test(cupo) && /voz: '[^']*\bvozClaudio\b/.test(cupo), 'vozClaudio cuenta como voz de Alma en el cupo (no se pausa)'); }
+
+/* 3. La ficha de Alma y su herramienta */
+{ mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma' };
+  resp = s => /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 'wss://alma' } } : { codigo: 404, cuerpo: '' };
+  Object.assign(ctx, { vozLookup_: () => ({}), contextoReciente_: () => null, encargoAbierto_: () => null, vozWebFicha_: () => 'ficha', saludosVoz_: () => [],
+    calleSueno_: () => ({}), personalidadFicha_: () => null, retFicha_: () => null, vozWebTiempos_: () => {}, vozInicio_: () => ({ dynamic_variables: {} }) });
+  const ficha = (email, claudio) => { ctx.SES_ = { email }; return R('vozWebInicio_(SES_, true, true, ' + claudio + ')').dynamic_variables.quien_llama; };
+  const P = R('CLAUDIO_PERMISO_');
+  ok(ficha('juan@x', true).indexOf(P) >= 0, 'el principal, en una app que sabe cambiar de agente: Alma puede pasarlo con Claudio');
+  ok(ficha('ana@x', true).indexOf(P) < 0, 'otro administrador: Alma no tiene permiso (Claudio no existe)');
+  ok(ficha('juan@x', false).indexOf(P) < 0, 'una app vieja que no sabe cambiar de agente: sin permiso (Alma no promete lo que la app no hace)');
+  const voz = leer('voz.js');
+  ok((voz.match(/claudioPermiso_\(/g) || []).length === 1 && /if \(claudio\) \{ var pc = claudioPermiso_\(adm\)/.test(voz), 'el permiso solo lo pone vozWebInicio_ (la app con sesión), nunca la llamada por teléfono');
+  ok(/case 'vozWeb': return json_\(vozWebInicio_\(ses, !!body\.ligero, body\.app === 'alma', !!body\.claudio\)\)/.test(leer('Código.js')), 'la app pide el permiso con «claudio» en vozWeb');
+  const h = R("vozDefHerramientas_('B')").filter(t => t.name === 'hablar_con_claudio')[0];
+  ok(h && h.type === 'client' && h.pre_tool_speech === 'off' && h.expects_response === false, 'hablar_con_claudio es de la app (cliente), sin frase que agregue ElevenLabs y sin esperar respuesta');
+  ok(h && h.description.indexOf('PUEDES PASARLO CON CLAUDIO') >= 0 && h.description.indexOf(R('CLAUDIO_FRASE_')) >= 0 && R('CLAUDIO_FRASE_') === 'Sí, no hay problema, te paso con Claudio.', 'se usa solo con el permiso de la ficha y con la frase de Juan'); }
+
+/* 4. Las herramientas de Claudio: solo el principal, por la firma de la conversación de Claudio */
+{ mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' }; cache = {};
+  let conv = { tel: '50211110000', otro: true, agente: 'agent_claudio' }; ctx.vozWebConvInfo_ = () => conv;
+  const H = (herr, b) => { ctx.B_ = b; return R("claudioHerramienta_('" + herr + "', B_)"); };
+  ok(H('claudio_estado', { conv_id: 'conv_1' }).ok === true, 'el principal, en una conversación de Claudio firmada por el Hub: sí');
+  cache = {}; conv = { tel: '50211110000', otro: false, agente: 'agent_alma' };
+  ok(H('claudio_estado', { conv_id: 'conv_2' }).ok === false, 'la firma en una conversación de Alma no sirve para las herramientas de Claudio');
+  cache = {}; conv = { tel: '50222220000', otro: true, agente: 'agent_claudio' };
+  ok(H('claudio_estado', { conv_id: 'conv_3' }).ok === false, 'otro administrador: no');
+  cache = {}; conv = { tel: '', otro: true, agente: 'agent_claudio' };
+  ok(H('claudio_estado', { conv_id: 'conv_4', caller_id: '50211110000' }).ok === false, 'sin firma del Hub no vale un caller_id (aunque sea el número de Juan)');
+  cache = {}; conv = { tel: '50211110000', otro: true, agente: 'agent_claudio' };
+  let unir = [], pedidos = [];
+  ctx.unirCambio_ = c => { unir.push(c); return { ok: true, unidos: [] }; };
+  ctx.claudeMandarYa_ = (adm, t) => { pedidos.push(t); return { texto: 'Listo, quedó pedido.', claude: { ok: true } }; };
+  ctx.opGuardar_ = () => ({});
+  [['¿Qué falta unir?', 'una pregunta'], ['No lo unas todavía', '«no lo unas»'], ['espera, no une nada', '«espera, no une»'], ['', 'sin palabras']].forEach(([d, q]) => {
+    unir = []; const r = H('claudio_unir', { conv_id: 'conv_5', dijo: d, cual: 'todos' });
+    ok(r.ok === false && !unir.length, 'no une con ' + q);
+  });
+  [['une', ''], ['Únelo, por favor', 'Hub #12'], ['une todo', 'todos']].forEach(([d, c]) => {
+    unir = []; H('claudio_unir', { conv_id: 'conv_5', dijo: d, cual: c });
+    ok(unir.length === 1 && unir[0] === c, 'une con «' + d + '»' + (c ? ' (' + c + ')' : ' (sin cual: devuelve la lista para preguntar)'));
+  });
+  pedidos = []; ok(H('claudio_pedido', { conv_id: 'conv_5', pedido: 'que el botón sea naranja', confirmado: false }).ok === false && !pedidos.length, 'un pedido sin el sí de Juan no sale');
+  const rp = H('claudio_pedido', { conv_id: 'conv_5', pedido: 'que el botón sea naranja', confirmado: true });
+  ok(rp.ok && pedidos.length === 1 && pedidos[0] === 'que el botón sea naranja' && /segundo plano/.test(rp.resultado) && /órbita/.test(rp.resultado), 'con el sí: sale una vez por el camino de siempre y Claudio dice que es en segundo plano y se ve en la órbita');
+  const api = leer('voz.js');
+  ok(/CLAUDIO_HERR_\.indexOf\(herr\) >= 0\) out = claudioHerramienta_\(herr, body\)/.test(api), 'vozApi_ manda las herramientas de Claudio a claudioHerramienta_ (con la llave de voz)');
+
+  /* 5. Leer código: solo GET a GitHub y corto */
+  mem.GITHUB_TOKEN = 'tok'; salidas = [];
+  resp = s => /search\/code/.test(s.url) ? { codigo: 200, cuerpo: { items: Array.from({ length: 9 }, (_, i) => ({ path: 'apps-script/a' + i + '.js', text_matches: [{ fragment: 'x'.repeat(900) }, { fragment: 'y' }, { fragment: 'z' }] })) } }
+    : /contents/.test(s.url) ? { codigo: 200, cuerpo: { content: Buffer.from(Array.from({ length: 400 }, (_, i) => 'linea ' + i + (i === 200 ? ' orbitaLista_' : '')).join('\n')).toString('base64') } } : { codigo: 404, cuerpo: '' };
+  const b1 = H('claudio_codigo', { conv_id: 'conv_5', buscar: 'órbita pedidos' });
+  const b2 = H('claudio_codigo', { conv_id: 'conv_5', buscar: 'orbitaLista_', archivo: 'apps-script/orbita.js' });
+  ok(salidas.length >= 2 && salidas.every(s => s.metodo === 'get' && /^https:\/\/api\.github\.com\//.test(s.url)), 'leer código: solo GET a la API de GitHub (nada se escribe)');
+  ok(b1.ok && b1.hallados.length <= 5 && b1.hallados.every(h => h.fragmentos.length <= 2 && h.fragmentos.every(f => f.length <= 300)), 'la búsqueda devuelve poco: 5 archivos, 2 fragmentos cortos cada uno');
+  ok(b2.ok && /orbitaLista_/.test(b2.parte) && b2.parte.length <= R('CLAUDIO_CODIGO_MAX_'), 'con el archivo: la parte que coincide, corta');
+  ok(/Hub-Spacioam/.test(salidas[0].url) && H('claudio_codigo', { conv_id: 'conv_5', buscar: 'VozNativa', repo: 'app' }) && /alma-app/.test(salidas[salidas.length - 1].url), 'el Hub por defecto y la app de iPhone si lo pide');
+}
+
+/* 6. Su prompt, y Claudio no existe con otras audiencias */
+{ const t = R('claudioPromptCompleto_()'); let o = null; try { o = JSON.parse(t); } catch (e) {}
+  ok(o && o.claudio && o.claudio.quien_eres && Object.keys(o).pop() === 'ficha_de_quien_llama', 'el prompt de Claudio es JSON por secciones con la ficha al final');
+  ok((t.match(/\{\{[^}]*\}\}/g) || []).join() === '{{quien_llama}}' && t.indexOf('marca_principal') < 0, 'solo {{quien_llama}} (la marca nunca va en el prompt)');
+  ok(/como explicándole a un niño/.test(t) && /espera su sí/.test(t) && /«une»/.test(t) && /segundo plano/.test(t) && /volver_con_alma/.test(t), 'habla simple, confirma antes de pedir, une solo con «une», dice lo de segundo plano y sabe volver con Alma');
+  const FR = /te (paso|comunico|transfiero) con claudio/i, P = 'PUEDES PASARLO CON CLAUDIO';
+  ['chat_texto', 'whatsapp_texto', 'calle_texto', 'redactor', 'chat_herramientas'].forEach(k => {
+    const x = a[k].join('\n'); ok(!FR.test(x) && x.indexOf(P) < 0 && x.indexOf('hablar_con_claudio') < 0, k + ': sin «te paso con Claudio» ni su permiso');
+  });
+  const voz = JSON.parse(a.voz[0]);
+  ok(!FR.test(a.voz[0]) && JSON.stringify(voz.con_huespedes || '').indexOf('Claudio') < 0, 'la voz de Alma: la frase no va en su prompt y lo de huéspedes no nombra a Claudio');
+  ok(/claudioSyncSiToca_\(false\)/.test((leer('voz.js').match(/function vozSyncSiToca_\(\) \{[\s\S]*?\n\}/) || [''])[0]), 'Claudio se crea y se sincroniza solo, cada 30 min con el prompt de Alma');
+  ok(/claudio: claudioSyncSiToca_\(true\)/.test(leer('Código.js')), 'el robot voz_sync también lo sincroniza'); }
+
+if (!fallo) console.log('Todo bien: Claudio solo con el principal, una vez, sin unir sin «une».');
+process.exit(fallo);

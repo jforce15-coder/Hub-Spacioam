@@ -30,9 +30,10 @@ function vozAccesoSiCambio_(forzar) {
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });
   return listo({ ok: true, enable_auth: true });
 }
-/* La URL firmada de ElevenLabs para abrir una conversación con el agente (vale 15 min para conectarse). */
-function vozUrlFirmada_() {
-  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+/* La URL firmada de ElevenLabs para abrir una conversación con el agente (vale 15 min para conectarse). Sin agente, el de
+   Alma; con uno, ese (Claudio, claudio.js). */
+function vozUrlFirmada_(otro) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = otro || p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
   var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };

@@ -93,7 +93,10 @@
         .then(function (r) { return { control: r[0], cola: r[1], log: r[2], instrucciones: r[3], reservas: r[4], automejora: r[5], conocimiento: r[6], propiedades: r[7], correos: r[8], resueltas: r[9], escalamiento: r[10] }; });
     },
     setControl: function (valores) { return call('setControl', { valores: valores }); },
-    vozWeb: function (ligero) { return call('vozWeb', ligero ? { ligero: 1 } : {}); },
+    /* claudio: esta voz sabe pasar a Claudio (alma-voz.js): el Hub se lo permite a Alma solo con el principal (#550). */
+    vozWeb: function (ligero) { return call('vozWeb', ligero ? { ligero: 1, claudio: 1 } : { claudio: 1 }); },
+    /* Hablar con Claudio: su conversación (URL firmada y ficha), solo el administrador principal (claudio.js). */
+    vozClaudio: function (motivo) { return call('vozClaudio', { motivo: motivo || '' }); },
     /* Solo la URL firmada de la voz (el agente pide autenticación): la app web la pide por adelantado (alma-voz.js). */
     vozFirma: function () { return call('vozFirma', {}); },
     vozWebVincular: function (convId) { return call('vozWebVincular', { conv_id: convId }); },

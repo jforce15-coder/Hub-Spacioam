@@ -96,7 +96,9 @@ function notifAjustesGuardarApi_(ses, b) {
 /* Acción notifPrueba (Juan, 16-nov-2026): «Probar con Siri» desde el Hub web (en la app, el botón la programa ella misma a
    los 15 s). Solo el administrador principal con su sesión. Deja en la cola de la app (VOZ_AVISOS) un aviso de prueba que
    no se dice en voz alta, no entra al historial ni gasta voz de ElevenLabs; la app lo recoge con vozAvisos (cada 45 s, si
-   está abierta o en segundo plano) y lo arma como mensaje de Alma con Siri (NotifArmar.swift, probarSiri). */
+   está abierta o en segundo plano) y lo arma como mensaje de Alma con Siri (NotifArmar.swift, probarSiri).
+   Con el push de la app listo (pushapp.js, Ticket #28) sale además por push al instante, aunque la app esté cerrada: así
+   se prueba de verdad con el teléfono bloqueado. push: true en la respuesta = ya salió por push. */
 var NOTIF_PRUEBA_TEXTO_ = 'Prueba: si Siri te lee esto, los anuncios funcionan.';
 function notifPruebaApi_(ses) {
   if (!ses || typeof ses !== 'object' || !String(ses.email || '').trim()) return { ok: false, error: 'Entra con tu usuario para probar.' };
@@ -104,8 +106,9 @@ function notifPruebaApi_(ses) {
   if (!prin) return { ok: false, error: 'Solo el administrador principal prueba los anuncios de Siri.' };
   var adm = null; try { adm = vozWebAdmin_(ses); } catch (e) {}
   adm = adm && adm.email ? adm : prin;
-  vozAvisoPoner_(adm, NOTIF_PRUEBA_TEXTO_, 'prueba-siri-' + Date.now(), { nivel: 3, historial: false, prueba: true, origen: 'prueba' });
-  return { ok: true, en: 45 };
+  var a = vozAvisoPoner_(adm, NOTIF_PRUEBA_TEXTO_, 'prueba-siri-' + Date.now(), { nivel: 3, historial: false, prueba: true, origen: 'prueba' });
+  var push = !!(a && a.push && a.pushRes && a.pushRes.ok);
+  return push ? { ok: true, en: 5, push: true } : { ok: true, en: 45 };
 }
 
 /* ── Hub web (OneSignal) ──────────────────────────────────────────────────────────────────────────────────────────

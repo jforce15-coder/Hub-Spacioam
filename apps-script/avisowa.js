@@ -21,7 +21,8 @@ function avisoWaRespaldo_() {
   var rets = [], pends = [];
   try { rets = retLeer_(jefe); } catch (e) {}
   try { pends = pendFilas_(); } catch (e) {}
-  var toca = viejos.filter(function (a) { return a.resultado || avisoNivel_(a, rets, pends) <= 2; });
+  /* Lo que ya salió como notificación push (pushapp.js) llegó al teléfono aunque la app dormía: no se repite por WhatsApp. */
+  var toca = viejos.filter(function (a) { return !a.push && (a.resultado || avisoNivel_(a, rets, pends) <= 2); });
   /* Lo que no toca también se marca: así no se vuelve a calcular su nivel en cada pasada. */
   var ids = {}; viejos.forEach(function (a) { ids[String(a.id)] = true; });
   var lock = LockService.getScriptLock(); lock.waitLock(10000);

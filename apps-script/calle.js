@@ -128,7 +128,7 @@ function calleMs_(t0, tA, ms, voz) {
 
 /* «Quiero hablar con Claudio», «pásame con el equipo de desarrollo»: la misma regla que la app (AgenteVoz.pideClaudio).
    Sobre el texto normalizado (sin acentos ni signos). «Dile a Claudio que…» no: eso es un pedido. «No quiero hablar…» no. */
-var CALLE_CLAUDIO_RE_ = /(?:^|\s)(?:hablar|habla|hablo|hablemos|platicar|platica|conversar|pasame|pasar|pasarme|comunicame|comunicar|comunicarme|conectame|conectar|conectarme|ponme|llama|llamale|llamar|marca|marcale)(?:\s+\S+){0,3}?\s+(?:con|a|al)\s+(?:el\s+|los\s+de\s+)?(?:claudio|equipo\s+de\s+desarrollo|desarrollo)(?:\s|$)/;
+var CALLE_CLAUDIO_RE_ = /(?:^|\s)(?:hablar|habla|hablo|hablemos|platicar|platica|conversar|pasame|pasas|pasar|pasarme|comunicame|comunicas|comunicar|comunicarme|conectame|conectas|conectar|conectarme|ponme|pones|llama|llamale|llamar|marca|marcale)(?:\s+\S+){0,3}?\s+(?:con|a|al)\s+(?:el\s+|los\s+de\s+)?(?:claudio|equipo\s+de\s+desarrollo|desarrollo)(?:\s|$)/;
 var CALLE_CLAUDIO_NO_RE_ = /(?:^|\s)no\s+(?:quiero\s+|necesito\s+|me\s+)?(?:hablar|habla|pases|pasar|pasame|comuniques|conectes|llames|llamar)(?:\s|$)/;
 function calleNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function calleClaudio_(texto) { var t = calleNorm_(texto); return !!t && CALLE_CLAUDIO_RE_.test(t) && !CALLE_CLAUDIO_NO_RE_.test(t); }

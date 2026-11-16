@@ -88,7 +88,7 @@ function calleCaja(o) {
 /* 3 · Hablar con Claudio */
 { const c = calleCaja(), X = c.X;
   ['quiero hablar con Claudio', 'Quiero hablar con el equipo de desarrollo', 'pásame con Claudio', 'Alma, pásame a Claudio', 'comunícame con los de desarrollo',
-    'quiero hablar un momento con Claudio sobre el botón de pagos', 'Ponme con Claudio'].forEach(t => ok(X.calleClaudio_(t), '3 · «' + t + '» pide hablar con Claudio'));
+    'quiero hablar un momento con Claudio sobre el botón de pagos', 'Ponme con Claudio', '¿Me pones con Claudio?'].forEach(t => ok(X.calleClaudio_(t), '3 · «' + t + '» pide hablar con Claudio'));
   ['dile a Claudio que cambie el botón', 'no quiero hablar con Claudio', 'Claudio ya terminó lo del botón?', 'habla con Flor sobre la limpieza', 'pide a desarrollo que arregle el botón'].forEach(t => ok(!X.calleClaudio_(t), '3 · «' + t + '» no abre a Claudio'));
   const r = X.calle_({ email: 'juan@x' }, { texto: 'Quiero hablar con Claudio' });
   ok(r.ok && r.claudio === true && r.conversar === true && !c.procesados.length, '3 · con el principal: { claudio: true } sin la IA ni un pedido de desarrollo');

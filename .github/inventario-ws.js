@@ -18,7 +18,8 @@ const archivo = (id, nombre, mime, dueno) => ({ getName: () => nombre, getMimeTy
 const ARCHIVOS = {
   ALMA0000000000000000000000: archivo('ALMA', 'ALMA', 'application/vnd.google-apps.spreadsheet', 'dueno@gmail.com'),
   hojaArchivo00000000000000: archivo('arch', 'ALMA · Archivo', 'application/vnd.google-apps.spreadsheet', 'dueno@gmail.com'),
-  extraHoja0000000000000000: archivo('ext', 'Hoja extra', 'application/vnd.google-apps.spreadsheet', 'otra@spacioam.com')
+  extraHoja0000000000000000: archivo('ext', 'Hoja extra', 'application/vnd.google-apps.spreadsheet', 'otra@spacioam.com'),
+  carpetaPorArchivo00000000: archivo('cpa', 'Documentos', 'application/vnd.google-apps.folder', 'dueno@gmail.com')
 };
 const CARPETAS = { carpetaWA0000000000000000: archivo('wa', 'ALMA · WhatsApp', 'application/vnd.google-apps.folder', 'dueno@gmail.com'),
   cerebro000000000000000000: archivo('cer', 'Manuales', 'application/vnd.google-apps.folder', 'dueno@gmail.com') };
@@ -59,5 +60,7 @@ ok(por('carpetaWA0000000000000000').tipo === 'carpeta' && por('hojaArchivo000000
 ok(por('cerebro000000000000000000').abre && por('noexiste00000000000000000').abre === false, 'incluye las carpetas del cerebro; la que no se abre sale con abre=false');
 ok(por('privada000000000000000000').abre === false && /no se puede abrir/.test(por('privada000000000000000000').error), 'una hoja que no se abre no rompe el resto');
 ok(por('extraHoja0000000000000000').propia === false && !por('corto'), 'acepta ids extra del robot (y descarta lo que no es un id)');
+const r2 = ctx.invWsInventario_({ ids: ['carpetaPorArchivo00000000'] }).archivos.filter(a => a.id === 'carpetaPorArchivo00000000')[0];
+ok(r2 && r2.tipo === 'carpeta', 'una carpeta que Drive también abre como archivo sale como carpeta (16-nov: salía «archivo»)');
 ok(escrituras === 0, 'solo lee: no escribe Propiedades, ni crea pestañas, carpetas u hojas');
 process.exit(fallo);

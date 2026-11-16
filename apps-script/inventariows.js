@@ -36,7 +36,10 @@ function invWsIds_(extra) {
 function invWsArchivo_(x, yo) {
   var o = { origen: x.origen, id: x.id, fin: x.id.slice(-6), abre: false };
   var f = null, tipo = '';
-  try { f = DriveApp.getFileById(x.id); tipo = String(f.getMimeType() || '').indexOf('spreadsheet') >= 0 ? 'hoja' : 'archivo'; } catch (e) { f = null; }
+  try {   // getFileById también abre carpetas: el tipo sale del mimeType
+    f = DriveApp.getFileById(x.id); var mt = String(f.getMimeType() || '');
+    tipo = mt.indexOf('folder') >= 0 ? 'carpeta' : mt.indexOf('spreadsheet') >= 0 ? 'hoja' : 'archivo';
+  } catch (e) { f = null; }
   if (!f) { try { f = DriveApp.getFolderById(x.id); f.getName(); tipo = 'carpeta'; } catch (e) { f = null; } }
   if (!f) { o.error = 'no se puede abrir'; return o; }
   o.abre = true; o.tipo = tipo;

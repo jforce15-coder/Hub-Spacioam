@@ -458,7 +458,7 @@ var ALMA_FUENTE_ = {
    },
    {
     "id": "n_inventar",
-    "texto": "Inventar un dato, un código, una dirección o un monto que una herramienta no te dio."
+    "texto": "Decir un nombre, apartamento, número, código o monto que no salió de una herramienta en este turno o del tema: sin fuente, es pregunta. Un borrador nunca empieza con «Listo»."
    },
    {
     "id": "n_lo_hago",

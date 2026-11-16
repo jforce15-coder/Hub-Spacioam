@@ -109,7 +109,7 @@ function pendCrear_(adm, c, o) {
   var it = null;
   /* Lo que necesita a Juan también queda como tema por retomar (Alma empieza por ahí en la próxima llamada). */
   if (c.tipo === 'atencion' && o.push) {
-    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id, Object.assign(o.conf ? { resultado: true, conferencia: true, nivel: 1 } : { resultado: o.origen === 'segundo_plano' }, { pedidos: o.pedidos || [] })); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
+    try { it = retPoner_(adm, { texto: c.aviso || c.resumen, tema: c.titulo, detalle: o.detalle, importancia: c.importancia, origen: o.origen }); vozAvisoPoner_(adm, c.aviso || c.resumen, it && it.id, Object.assign(o.conf ? { resultado: true, conferencia: true, nivel: 1 } : { resultado: o.origen === 'segundo_plano' }, { pedidos: o.pedidos || [], origen: o.origen || '' })); } catch (e) { console.error('pendCrear_ aviso: ' + e); }
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
     titulo: tituloCorto_(c.titulo, 100), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
@@ -122,7 +122,7 @@ function pendCrear_(adm, c, o) {
      de la tarjeta; no entra al historial porque Notificaciones ya la muestra. */
   /* Solo avisa lo que TERMINÓ (segundo plano); lo demás queda en la tarjeta sin notificación (Juan, 2-nov: nada de «ya se envió»). */
   /* Lo que pidió en una llamada del modo conferencia se dice y suena siempre (nivel 1, salvo «Silencio»; Juan, 3-nov). */
-  if (c.tipo !== 'atencion' && o.origen === 'segundo_plano') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, Object.assign(o.conf ? { nivel: 1, historial: false, resultado: true, conferencia: true } : { nivel: 3, historial: false, resultado: true }, { pedidos: o.pedidos || [] })); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
+  if (c.tipo !== 'atencion' && o.origen === 'segundo_plano') { try { vozAvisoPoner_(adm, c.aviso || c.resumen || c.titulo, fila.id, Object.assign(o.conf ? { nivel: 1, historial: false, resultado: true, conferencia: true } : { nivel: 3, historial: false, resultado: true }, { pedidos: o.pedidos || [], origen: o.origen || '' })); } catch (e) { console.error('pendCrear_ aviso 3: ' + e); } }
   return fila;
 }
 

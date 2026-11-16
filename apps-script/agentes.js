@@ -192,7 +192,7 @@ function agenteCorrer_(a, origen, pedido) {
     var txt = 'Tu agente de ' + a.nombre + (pedido ? ' terminó lo que le pediste.' : ' hizo su revisión.') + '\n\n' + String(final || '').trim() +
       (props.length ? '\n\nPropone (espera tu sí):\n' + props.map(function (p, i) { return (i + 1) + '. ' + p.titulo; }).join('\n') + '\n\nDime «apruébalas», «solo la 1» o «no», o revísalas en Agentes.' : '');
     try { opGuardar_(adm, 'alma', 'hub', txt, [{ tipo: 'agente', resumen: a.nombre + (props.length ? ' · ' + props.length + ' propuesta(s)' : ' · informe') }]); } catch (e) {}
-    try { pushA_([adm.email], 'Alma · ' + a.nombre, props.length ? props.length + ' propuesta(s) para tu aprobación' : 'Terminó lo que pediste'); } catch (e) {}
+    try { pushA_([adm.email], 'Alma · ' + a.nombre, props.length ? props.length + ' propuesta(s) para tu aprobación' : 'Terminó lo que pediste', '', { origen: 'segundo_plano' }); } catch (e) {}
   }
   return { ok: true, agente: a.nombre, informe: final, propuestas: props.map(function (p) { return { id: p.id, titulo: p.titulo }; }), costo_usd: tarea.costo_usd };
 }

@@ -441,6 +441,8 @@
                 <sc-if value="{{ pushPuedeProbar }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pushProbar }}" disabled="{{ pushBusy }}" style="border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; color:#3E3F3F; min-height:40px; padding:0 12px; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; cursor:pointer; flex-shrink:0" style-hover="border-color:#3E3F3F" style-active="transform:scale(.96)">Probar</button></sc-if>
                 <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Toggle" checked="{{ pushOn }}" onChange="{{ pushToggle }}" disabled="{{ pushBusy }}" aria-label="Notificaciones push" hint-size="44px,26px"></x-import>
               </div>
+              <!-- Ajustes por tipo (#551): los mismos de la app de Alma, guardados en el Hub por usuario (apps-script/notifajustes.js) -->
+              <a href="./alma/avisos.html" style="display:flex; align-items:center; gap:10px; width:100%; min-height:44px; padding:4px 14px 8px 40px; box-sizing:border-box; color:#3E3F3F; text-decoration:none; font-size:12.5px; letter-spacing:.06em" style-hover="background:#F5F3F0"><span style="flex:1">Notificaciones por tipo</span><span aria-hidden="true" style="color:#6F6867; font-size:16px">›</span></a>
               <sc-if value="{{ pushOn }}" hint-placeholder-val="{{ false }}">
                 <div style="display:flex; align-items:center; gap:10px; width:100%; padding:4px 14px 12px 40px; box-sizing:border-box; color:#3E3F3F">
                   <span style="display:flex; flex-direction:column; gap:2px; min-width:0; flex:1">

@@ -39,7 +39,7 @@ function hubAvisoNoEnviado_(ses, body, error) {
   const motivo = String(error || 'no hubo respuesta del servicio de mensajes').replace(/\s+/g, ' ').slice(0, 200);
   const txt = 'No se envió tu mensaje' + (a ? ' a ' + a : '') + '.\nMotivo: ' + motivo + '.\n\nEsto era lo que escribiste, para que lo reenvíes desde su conversación:\n' + texto.slice(0, 1500);
   try { opGuardar_(adm, 'alma', 'hub', txt, [{ tipo: 'mensaje', resumen: 'No enviado' + (a ? ' · ' + a : ''), error: motivo }]); } catch (e) {}
-  try { pushA_([adm.email], 'No se envió tu mensaje' + (a ? ' a ' + a.split(' (')[0] : ''), motivo + ' · Toca para abrir la conversación.', CFG.HUB_URL + '/?conv=' + encodeURIComponent(rid)); } catch (e) {}
+  try { pushA_([adm.email], 'No se envió tu mensaje' + (a ? ' a ' + a.split(' (')[0] : ''), motivo + ' · Toca para abrir la conversación.', CFG.HUB_URL + '/?conv=' + encodeURIComponent(rid), { origen: 'entrega' }); } catch (e) {}
 }
 
 /* Registro del caso (log + aprendizaje) cuando el envío no traía los datos a mano: se hace en la siguiente pasada. */

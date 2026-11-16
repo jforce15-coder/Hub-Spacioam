@@ -1391,6 +1391,7 @@ function vozAvisoPoner_(adm, texto, retId, o) {
     if (o.voz) nuevo.voz = String(o.voz).replace(/\s+/g, ' ').trim().slice(0, 240);   // el detalle que se agrega al decirla
     /* Alma abre (#509 T4, almaabre.js): el tipo (¿es un resultado?) y de qué pedidos de la fila es resultado. */
     if (o.tipo) nuevo.tipo = String(o.tipo).slice(0, 40);
+    if (o.origen) nuevo.origen = String(o.origen).slice(0, 30);   // de dónde viene: su tipo en Ajustes → Notificaciones (notifajustes.js)
     try { var ped = abrePedidosDe_(adm, o); if (ped.length) nuevo.pedidos = ped; } catch (e) {}
     l.push(nuevo);
     while (l.length > VOZ_AVISOS_MAX_) {
@@ -1449,7 +1450,10 @@ function vozAvisos_(ses, b) {
   /* Alma abre la conversación (#509 T4, almaabre.js): con la app en Modo calle o conferencia (b.abre), el resultado de un
      pedido reciente del principal lleva { primer_mensaje, contexto }; cada aviso dice por qué sí o por qué no (abre_por). */
   try { abreAvisos_(adm, mios, salida, b); } catch (e) { console.error('abreAvisos_: ' + e); }
-  return { ok: true, avisos: avisosConVoz_(salida, b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  var resp = { ok: true, avisos: avisosConVoz_(salida, b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  /* Ajustes por tipo (#551, notifajustes.js): el tipo de cada aviso, los ajustes de quien pregunta y el número del ícono. */
+  try { notifAvisos_(adm, mios, salida, rets, resp); } catch (e) { console.error('notifAvisos_: ' + e); }
+  return resp;
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */

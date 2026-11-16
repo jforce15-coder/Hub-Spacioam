@@ -4048,6 +4048,7 @@ function hubCola_(horas, hashPrev) {
     return sh.getRange(desde, 1, n - desde + 1, cab.length).getDisplayValues().map((v, k) => { const o = {}; cab.forEach((c, q) => { if (c) o[c] = v[q]; }); o._fila = desde + k; return o; });
   };
   let inbox = []; try { inbox = hubInbox_(); } catch (e) { console.error('hubInbox_: ' + e); }
+  try { bandejaEsferaFoto_(inbox); } catch (e) { console.error('bandejaEsferaFoto_: ' + e); }   // esfera y foto de cada conversación (bandejaesfera.js, #567)
   let auto = {}; try { auto = autoTodos_(); } catch (e) {}
   let resueltas = []; try { resueltas = resueltasVivo_(); } catch (e) { console.error('resueltasVivo_: ' + e); }
   let formsOk = []; try { formsOk = formsOk_(); } catch (e) { console.error('formsOk_: ' + e); }

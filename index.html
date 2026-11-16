@@ -119,7 +119,7 @@
   }
   .alma-foco .alma-side, .alma-foco .alma-filtros, .alma-foco .alma-titulo, .alma-foco .alma-mas { display:none !important; }
   .alma-foco .alma-split{ grid-template-rows:minmax(0,1fr) !important; }
-  @media (max-width:1179px){ .alma-foco .alma-head, .alma-foco .alma-acc-fila, .alma-foco .alma-volver, .alma-foco .alma-aviso { display:none !important; } .alma-foco .alma-wrap{ padding-top:12px !important; } }
+  @media (max-width:1179px){ .alma-foco .alma-head, .alma-foco .alma-volver, .alma-foco .alma-aviso { display:none !important; } .alma-foco .alma-wrap{ padding-top:12px !important; } }
   @media (min-width:1180px){ .alma-foco .alma-side{ display:block !important; } }
   .alma-head{ flex-wrap:nowrap !important; align-items:center !important; }
   .alma-res-toggle{ display:inline-flex; }
@@ -139,10 +139,20 @@
   @media (max-width:399px){ .alma-mej-label{ display:none !important; } }
   /* Móvil tipo app: Resumen → Tarjeta → Conversación (alma-foco). Escritorio sigue en dos columnas. */
   .alma-mbar{ display:none; }
-  /* Acciones pendientes: en el encabezado solo si hay lugar; en el teléfono va en su propia fila (3-nov: la píldora empujaba
-     la lupa y ✦ encima de «ALMA» y del estado). */
-  .alma-acc-fila{ display:none; }
-  @media (max-width:600px){ .alma-acc-cab{ display:none !important; } .alma-acc-fila{ display:flex; } }
+  /* «Te toca a ti N» (#567, A3): pastilla chica junto a la lupa, también en el teléfono. Cabe porque la foto de Alma pasó a
+     los círculos de arriba (el 3-nov la píldora larga «Acciones pendientes (N)» empujaba la lupa y ✦ encima de «ALMA»).
+     El «← Hub» de ALMA va en la misma fila: en el teléfono es un círculo con la flecha. */
+  @media (max-width:1179px){
+    .alma-head .alma-volver{ width:40px; height:40px; min-height:40px !important; padding:0 !important; border-radius:50% !important; display:grid; place-items:center; flex-shrink:0; }
+    .alma-head .alma-volver-txt{ display:none; }
+    .alma-head .alma-acciones{ gap:8px !important; }
+    .alma-head .alma-q{ width:40px; height:40px; }
+    .alma-head .alma-q-pill{ height:40px; width:40px; }
+    .alma-head .alma-q-ico{ width:38px; height:38px; }
+    .alma-head .alma-mej{ width:40px !important; height:40px !important; }
+    .alma-head .alma-estado2{ display:none !important; }
+  }
+  @media (min-width:1180px){ .alma-head .alma-volver-ico{ display:none; } }
   .alma-filtros{ display:none !important; }
   /* Buscador discreto: lupa en píldora de 48 px que se abre hacia la izquierda al tocarla (queda abierta si hay texto). */
   .alma-q{ position:relative; width:48px; height:48px; flex-shrink:0; z-index:42; }
@@ -171,7 +181,7 @@
     .m-resumen .alma-mbar, .m-lista .alma-mbar{ display:flex; }
     .m-resumen .alma-split, .m-lista .alma-split, .m-tarjeta .alma-split{ grid-template-rows:minmax(0,1fr) !important; }
     .m-resumen .alma-main, .m-tarjeta .alma-main, .m-lista .alma-side{ display:none !important; }
-    .m-resumen .alma-filtros, .m-tarjeta .alma-filtros, .m-tarjeta .alma-head, .m-tarjeta .alma-acc-fila, .m-tarjeta .alma-volver, .m-tarjeta .alma-aviso{ display:none !important; }
+    .m-resumen .alma-filtros, .m-tarjeta .alma-filtros, .m-tarjeta .alma-head, .m-tarjeta .alma-volver, .m-tarjeta .alma-aviso{ display:none !important; }
     .m-resumen .alma-brief, .m-resumen .alma-tarjeta, .m-resumen .alma-mas{ display:none !important; }
     .m-tarjeta .alma-reshead, .m-tarjeta .alma-reslista, .m-tarjeta .alma-brief, .m-tarjeta .alma-vacio{ display:none !important; }
     .alma-cont-ico{ display:grid !important; }
@@ -324,12 +334,68 @@
   .cv-rapido[aria-pressed="true"]{ background:#3E3F3F; border-color:#3E3F3F; }
   .cv-rapido[aria-pressed="true"] .n, .cv-rapido[aria-pressed="true"] .l{ color:#FFFFFF !important; }
   .cv-fila{ position:relative; overflow:hidden; content-visibility:auto; contain-intrinsic-size:auto 76px; }
-  .cv-fila + .cv-fila{ border-top:1px solid #F0EDE8; }
+  /* A3: la línea entre filas la pone .bj-cuerpo, como WhatsApp. */
   .cv-fondo{ position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; padding:0 22px; background:#3d6b52; color:#FFFFFF; font-size:10px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; opacity:0; transition:opacity .12s; }
   .cv-fondo > span{ display:flex; flex-direction:column; align-items:center; gap:3px; }
   .cv-fila[data-desliza="1"] .cv-fondo{ opacity:1; }
   .cv-fila > button{ position:relative; touch-action:pan-y; will-change:transform; }
   @media (prefers-reduced-motion:reduce){ .cv-fila > button{ transition:none !important; } .cv-rapido{ transition:none; } }
+  /* ── Bandeja A3 (#567 T1): círculos arriba (Alma primero; luego lo importante con el aro partido: arriba el estado,
+     abajo el color exacto de su esfera) y la lista como WhatsApp con un fondo muy tenue de su esfera. ── */
+  .alma-circulos{ display:flex; align-items:flex-start; gap:12px; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:none; scroll-snap-type:x proximity; scroll-padding-inline:2px; padding:6px 2px 2px; margin:-6px -2px -4px; }
+  .alma-circulos::-webkit-scrollbar{ display:none; }
+  .bj-circulo{ flex:none; width:72px; display:flex; flex-direction:column; align-items:center; gap:6px; border:none; background:transparent; padding:0; font-family:inherit; cursor:pointer; scroll-snap-align:start; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+    animation:bj-entra .26s var(--ease) backwards; animation-delay:calc(var(--i, 0) * 35ms); }
+  .bj-aro{ position:relative; display:block; width:66px; height:66px; border-radius:50%; padding:2.5px; box-sizing:border-box; background:conic-gradient(from -90deg, #FAFAFA 0 2deg, var(--c) 2deg 178deg, #FAFAFA 178deg 182deg, var(--e) 182deg 358deg, #FAFAFA 358deg); transition:transform .12s var(--ease); }
+  .bj-circulo:active .bj-aro{ transform:scale(.95); }
+  @media (hover:hover) and (pointer:fine){ .bj-circulo:hover .bj-nom{ color:#3E3F3F; } }
+  .bj-aro.bj-sol{ background:conic-gradient(from 210deg, #7E98C2, #A9B4CB, #E3BBA2, #E9826A, #C99A93, #8E9DC0, #7E98C2); }
+  .bj-hueco{ display:grid; place-items:center; width:100%; height:100%; border-radius:50%; background:#FAFAFA; }
+  .bj-hueco > img, .bj-hueco > .bj-ini{ width:55px; height:55px; border-radius:50%; object-fit:cover; object-position:50% 14%; display:grid; place-items:center; background:#EDE8E3; }
+  .bj-ini{ color:#3E3F3F; font-size:16px; font-weight:600; letter-spacing:.04em; }
+  .bj-ico{ position:absolute; right:-3px; bottom:-1px; width:24px; height:24px; border-radius:50%; background:var(--c); border:2.5px solid #FAFAFA; box-sizing:border-box; display:grid; place-items:center; z-index:2; }
+  .bj-vivo{ position:absolute; right:2px; bottom:2px; width:16px; height:16px; border-radius:50%; border:3px solid #FAFAFA; box-sizing:border-box; }
+  .bj-nom{ max-width:100%; font-size:11.5px; line-height:1.2; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bj-nom.fuerte{ color:#3E3F3F; font-weight:600; }
+  /* Urgente: el aro late 3 veces y se queda quieto (dice «esto es lo primero», no distrae después). */
+  .bj-aro.bj-late::after{ content:""; position:absolute; inset:-4px; border-radius:50%; border:2px solid var(--c); opacity:0; pointer-events:none; animation:bj-latido 1.8s var(--ease) .5s 3; }
+  @keyframes bj-entra{ from{ opacity:0; transform:scale(.92); } }
+  @keyframes bj-latido{ 0%{ opacity:.75; transform:scale(.97); } 100%{ opacity:0; transform:scale(1.18); } }
+  .alma-foco .alma-circulos, .m-tarjeta .alma-circulos, .m-chat .alma-circulos{ display:none !important; }
+  /* Filas A3: foto con el canal, nombre y hora, la última línea, el contador y las etiquetas de siempre con la propiedad. */
+  .bj-fila{ width:100%; display:flex; align-items:flex-start; gap:12px; padding:10px 14px 0; border:none; text-align:left; font-family:inherit; color:#3E3F3F; cursor:pointer; -webkit-tap-highlight-color:transparent; box-sizing:border-box; transition:background-color .15s var(--ease); }
+  .bj-fila:active{ background-color:#EFECE8 !important; }
+  @media (hover:hover) and (pointer:fine){ .bj-fila:hover{ background-image:linear-gradient(rgba(62,63,63,.025), rgba(62,63,63,.025)); } }
+  .bj-av{ position:relative; flex:none; width:50px; height:50px; }
+  .bj-av > img, .bj-av > .bj-ini{ width:50px; height:50px; border-radius:50%; object-fit:cover; object-position:50% 14%; display:grid; place-items:center; background:#EDE8E3; }
+  .bj-av > .bj-ini{ font-size:15px; }
+  .bj-canal{ position:absolute; right:-3px; bottom:-2px; width:19px; height:19px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; display:grid; place-items:center; color:#FFFFFF; font-size:8.5px; font-weight:700; line-height:1; }
+  .bj-cuerpo{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; padding-bottom:11px; border-bottom:1px solid rgba(62,63,63,.05); }
+  .bj-l1, .bj-l2, .bj-l3{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .bj-l1{ align-items:baseline; }
+  .bj-quien{ flex:1; min-width:0; font-size:15px; font-weight:600; letter-spacing:.005em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bj-hora{ flex:none; font-size:11.5px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .bj-pre{ flex:1; min-width:0; font-size:13.5px; line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bj-dealma{ font-weight:600; color:#6F6867; }
+  .bj-dealma svg{ display:inline-block; vertical-align:-1px; margin-right:3px; }
+  .bj-cuenta{ flex:none; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:#B54D36; color:#FFFFFF; font-size:11px; font-weight:700; display:grid; place-items:center; box-sizing:border-box; font-variant-numeric:tabular-nums; }
+  .bj-l3{ gap:6px; margin-top:3px; }
+  .bj-chip{ flex:none; font-size:9px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:3px 7px; white-space:nowrap; line-height:1.3; }
+  .bj-prop{ flex:1; min-width:0; font-size:11px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bj-fila .cv-clas{ margin-top:3px; }
+  /* «Te toca a ti N»: pastilla chica junto a la lupa. */
+  .alma-shell .alma-acc-cab{ height:40px; display:inline-flex; align-items:center; gap:6px; padding:0 12px; border-radius:999px; border:1px solid #E9826A; background:rgba(233,130,106,.12); color:#A8472F; font-family:inherit; font-size:11px; font-weight:600; letter-spacing:.02em; white-space:nowrap; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .12s var(--ease); }
+  .alma-shell .alma-acc-cab:active{ transform:scale(.96); }
+  .alma-shell .alma-acc-cab b{ font-variant-numeric:tabular-nums; }
+  @media (max-width:369px){ .alma-shell .alma-acc-cab .bj-toca-txt{ display:none; } }
+  @media (prefers-reduced-motion:reduce){
+    .bj-circulo{ animation:bj-fade .16s linear backwards; }
+    .bj-aro.bj-late::after{ animation:none; }
+    .bj-aro.bj-late{ box-shadow:0 0 0 2px #FAFAFA, 0 0 0 3.5px var(--c); }
+    .bj-aro, .bj-fila, .alma-shell .alma-acc-cab{ transition:none; }
+  }
+  @keyframes bj-fade{ from{ opacity:0; } }
+
   /* ── Calendario de propiedades (#446 T10) ── */
   .cp-fechas{ display:flex; align-items:center; gap:12px; background:#3E3F3F; color:#FFFFFF; border-radius:20px; padding:12px 16px; border:none; width:100%; text-align:left; font-family:inherit; cursor:pointer; box-sizing:border-box; }
   .cp-fechas b{ font-size:16px; font-weight:600; letter-spacing:.01em; }
@@ -1495,32 +1561,24 @@
   </sc-if>
   
   <div class="alma-wrap" style="margin:0 auto; padding:clamp(22px,5vh,40px) clamp(16px,4vw,28px) 0; display:flex; flex-direction:column; gap:22px; animation:sa-rise .36s cubic-bezier(.22,.61,.36,1) backwards">
-    <button onClick="{{ volver }}" class="alma-volver" style="min-height:40px; align-self:flex-start; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer" style-hover="color:#3E3F3F; border-color:#3E3F3F">← Hub</button>
     <div class="alma-head" style="display:flex; justify-content:space-between; align-items:center; gap:12px">
-      <div style="display:flex; align-items:center; gap:16px; min-width:0">
-        <div class="alma-avatar" role="button" tabIndex="0" aria-label="ALMA · toca para tu chat, mantén presionado para el control" title="Toca para tu chat con ALMA · mantén presionado para el control" onPointerDown="{{ avLpDown }}" onPointerUp="{{ avLpUp }}" onPointerLeave="{{ avLpUp }}" onPointerCancel="{{ avLpUp }}" onContextMenu="{{ avLpMenu }}" onKeyDown="{{ avLpKey }}" style="position:relative; width:96px; height:96px; flex-shrink:0; cursor:pointer; -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; transition:transform .18s cubic-bezier(.22,.61,.36,1)" style-active="transform:scale(.96)">
-          <div style="position:absolute; inset:0; border-radius:50%; overflow:hidden; background:#F5F3F0; box-shadow:0 12px 40px rgba(62,63,63,.07); border:3px solid #FFFFFF; box-sizing:border-box">
-            <sc-if value="{{ hayAlmaFotos }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ almaFotos }}" as="fotoAlmaFotos" hint-placeholder-count="0">
-              <img src="{{ fotoAlmaFotos.src }}" loading="lazy" alt="" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 12%; transition:opacity .72s cubic-bezier(.22,.61,.36,1); opacity: {{ fotoAlmaFotos.op }}">
-            </sc-for></sc-if>
-          </div>
-          <span style="position:absolute; right:4%; bottom:4%; width:18px; height:18px; border-radius:50%; border:3px solid #FAFAFA; box-sizing:border-box; background: {{ almaDotBg }}; box-shadow:0 1px 2px rgba(62,63,63,.2)"></span>
-          <button onClick="{{ opTapFoto }}" aria-label="Chat con Alma" title="Toca para tu chat con Alma · mantén presionado para el control" style="position:absolute; inset:0; padding:0; border:none; border-radius:50%; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-active="background:rgba(62,63,63,.12)"></button>
-        </div>
+      <div style="display:flex; align-items:center; gap:12px; min-width:0">
+        <button onClick="{{ volver }}" class="alma-volver" aria-label="Volver al Hub" style="min-height:40px; border:1px solid #D8D4CE; border-radius:999px; background:transparent; padding:9px 16px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; cursor:pointer; flex-shrink:0" style-hover="color:#3E3F3F; border-color:#3E3F3F"><span class="alma-volver-txt" aria-hidden="true">← Hub</span><svg class="alma-volver-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3E3F3F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
         <button onClick="{{ ctrlToggleAbierto }}" aria-label="Centro de control de ALMA" style="display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0; border:none; background:transparent; padding:0; font-family:inherit; text-align:left; cursor:pointer; color:#3E3F3F; -webkit-tap-highlight-color:transparent" style-active="opacity:.6">
           <span class="alma-nombre" style="font-family:'Valky','Cormorant Garamond',Georgia,serif; font-weight:400; font-size:clamp(32px,5vw,42px); line-height:1">ALMA</span>
           <span style="display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:#6F6867; white-space:nowrap">{{ almaEstadoCorto }}<x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronRight" size="12" color="#6F6867" hint-size="12px,12px"></x-import></span>
-          <span style="font-size:11px; letter-spacing:.03em; color:#6F6867; white-space:nowrap">{{ almaFuente }}</span>
+          <span class="alma-estado2" style="font-size:11px; letter-spacing:.03em; color:#6F6867; white-space:nowrap">{{ almaFuente }}</span>
         </button>
       </div>
       <div class="alma-acciones" data-sa-slot="tr" style="display:flex; align-items:center; gap:12px; flex-shrink:0">
         <div class="alma-tg-desk" style="position:relative; align-items:center; width:440px">
-      <div role="tablist" aria-label="Vista" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.5fr 1fr; height:48px; padding:4px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
-        <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
+      <div role="tablist" aria-label="Vista" class="bj-filtros" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.7fr 1fr; height:36px; padding:3px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
+        <span aria-hidden="true" style="position:absolute; top:3px; bottom:3px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
         <sc-for list="{{ mTabs }}" as="v" hint-placeholder-count="3">
-          <button role="tab" aria-selected="{{ v.activo }}" aria-haspopup="{{ v.popup }}" aria-expanded="{{ v.exp }}" onClick="{{ v.set }}" style="position:relative; z-index:1; min-width:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 6px; font-family:inherit; font-size:12px; font-weight:600; letter-spacing:.02em; white-space:nowrap; cursor:pointer; color: {{ v.fg }}; transition:color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.97)">
+          <button role="tab" aria-selected="{{ v.activo }}" aria-haspopup="{{ v.popup }}" aria-expanded="{{ v.exp }}" onClick="{{ v.set }}" style="position:relative; z-index:1; min-width:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 6px; font-family:inherit; font-size:11.5px; font-weight:600; letter-spacing:.01em; white-space:nowrap; cursor:pointer; color: {{ v.fg }}; transition:color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.97)">
             <sc-if value="{{ v.punto }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:#F2755A; flex-shrink:0"></span></sc-if>
             <span style="min-width:0; overflow:hidden; text-overflow:ellipsis">{{ v.label }}</span>
+            <sc-if value="{{ v.hayN }}" hint-placeholder-val="{{ false }}"><b style="flex-shrink:0; font-weight:600; font-variant-numeric:tabular-nums; color:#A8472F">{{ v.n }}</b></sc-if>
             <sc-if value="{{ v.menu }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="display:grid; place-items:center; flex-shrink:0; transition:transform .18s cubic-bezier(.22,.61,.36,1); transform: {{ v.chev }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="13" color="currentColor" hint-size="13px,13px"></x-import></span></sc-if>
           </button>
         </sc-for>
@@ -1539,6 +1597,9 @@
       </div>
     </div>
         <div class="alma-qm" style="display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0">
+        <sc-if value="{{ accHay }}" hint-placeholder-val="{{ false }}">
+        <button class="alma-acc-cab" onClick="{{ accToggle }}" aria-label="Te toca a ti · {{ accN }} acciones pendientes" title="Acciones pendientes"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:#E9826A; flex-shrink:0"></span><span class="bj-toca-txt">Te toca a ti</span><b>{{ accN }}</b></button>
+        </sc-if>
         <div class="alma-q" data-on="{{ convQOn }}">
           <label class="alma-q-pill" title="Buscar conversaciones">
             <span class="alma-q-ico" aria-hidden="true"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></span>
@@ -1546,28 +1607,32 @@
             <sc-if value="{{ convHayBusca }}" hint-placeholder-val="{{ false }}"><button onClick="{{ limpiarConvBusca }}" aria-label="Limpiar búsqueda" style="flex-shrink:0; width:28px; height:28px; border:none; border-radius:50%; background:#F5F3F0; cursor:pointer; display:grid; place-items:center; padding:0; margin-right:8px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="x" size="14" color="#6F6867" hint-size="14px,14px"></x-import></button></sc-if>
           </label>
         </div>
-        <button onClick="{{ mejToggleAbierto }}" aria-label="Mejoras · {{ autoPendientes }} pendientes" title="Mejoras" style="position:relative; width:48px; height:48px; flex-shrink:0; display:grid; place-items:center; padding:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; cursor:pointer; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; box-shadow:0 4px 16px rgba(62,63,63,.05)" style-active="transform:scale(.96)">
+        <button class="alma-mej" onClick="{{ mejToggleAbierto }}" aria-label="Mejoras · {{ autoPendientes }} pendientes" title="Mejoras" style="position:relative; width:48px; height:48px; flex-shrink:0; display:grid; place-items:center; padding:0; border-radius:50%; border:1px solid #D8D4CE; background:#FFFFFF; cursor:pointer; color:#3E3F3F; box-shadow:0 1px 2px rgba(62,63,63,.04); transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1), transform .1s; -webkit-tap-highlight-color:transparent" style-hover="border-color:#3E3F3F; box-shadow:0 4px 16px rgba(62,63,63,.05)" style-active="transform:scale(.96)">
           <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Sparkle" size="18" hint-size="18px,18px"></x-import>
           <sc-if value="{{ autoHayPendientes }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position:absolute; top:-7px; right:-7px; min-width:22px; height:22px; padding:0 6px; box-sizing:border-box; border-radius:999px; background:#3E3F3F; color:#FAFAFA; font-size:11px; font-weight:600; letter-spacing:.01em; display:grid; place-items:center; font-variant-numeric:tabular-nums; line-height:1; box-shadow:0 0 0 2px #FAFAFA; pointer-events:none">{{ autoPendientes }}</span></sc-if>
         </button>
-        <sc-if value="{{ accHay }}" hint-placeholder-val="{{ false }}">
-        <button class="alma-acc-cab" onClick="{{ accToggle }}" aria-label="Acciones pendientes · {{ accN }}" title="Acciones pendientes" style="position:relative; height:48px; flex-shrink:0; display:inline-flex; align-items:center; gap:8px; padding:0 16px; border-radius:999px; border:1px solid #E9826A; background:rgba(233,130,106,.12); cursor:pointer; color:#B54D36; font-family:inherit; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.96)">Acciones pendientes ({{ accN }})</button>
-        </sc-if>
         </div>
       </div>
     </div>
 
-    <sc-if value="{{ accHay }}" hint-placeholder-val="{{ false }}">
-      <button class="alma-acc-fila" onClick="{{ accToggle }}" aria-label="Acciones pendientes · {{ accN }}" style="align-items:center; gap:10px; width:100%; min-height:48px; margin-top:-8px; padding:0 16px; box-sizing:border-box; border-radius:999px; border:1px solid #E9826A; background:rgba(233,130,106,.12); cursor:pointer; color:#B54D36; font-family:inherit; text-align:left; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.98)">
-        <span aria-hidden="true" style="width:7px; height:7px; border-radius:50%; background:#E9826A; flex-shrink:0"></span>
-        <span style="flex:1; min-width:0; font-size:10.5px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">Te toca a ti · Acciones pendientes ({{ accN }})</span>
-        <x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronRight" size="14" color="#B54D36" hint-size="14px,14px"></x-import>
-      </button>
-    </sc-if>
     <sc-if value="{{ almaAviso }}" hint-placeholder-val="{{ false }}">
       <div class="alma-aviso" style="background:rgba(233,130,106,.12); border:1px solid rgba(233,130,106,.45); border-radius:14px; padding:12px 16px; font-size:12.5px; letter-spacing:.02em; color:#3E3F3F; line-height:1.5; text-wrap:pretty">{{ almaAvisoTexto }}</div>
     </sc-if>
 
+    <sc-if value="{{ bjHay }}" hint-placeholder-val="{{ false }}">
+      <div class="alma-circulos" role="list" aria-label="Conversaciones importantes">
+        <div role="listitem" style="display:contents"><button class="bj-circulo" onClick="{{ opTapFoto }}" onPointerDown="{{ avLpDown }}" onPointerUp="{{ avLpUp }}" onPointerLeave="{{ avLpUp }}" onPointerCancel="{{ avLpUp }}" onContextMenu="{{ avLpMenu }}" aria-label="Chat con Alma · mantén presionado para el control" title="Toca para tu chat con Alma · mantén presionado para el control" style="--i:0">
+          <span class="bj-aro bj-sol"><span class="bj-hueco"><img src="{{ bjAlmaFoto }}" alt="" width="55" height="55" decoding="async"></span><span class="bj-vivo" aria-hidden="true" style="background: {{ almaDotBg }}"></span></span>
+          <span class="bj-nom fuerte">Alma</span>
+        </button></div>
+        <sc-for list="{{ bjCirculos }}" as="c" hint-placeholder-count="0">
+          <div role="listitem" style="display:contents"><button class="bj-circulo" data-gk="{{ c.gk }}" onClick="{{ c.abrir }}" aria-label="{{ c.aria }}" style="--i: {{ c.i }}; --c: {{ c.c }}; --e: {{ c.e }}">
+            <span class="{{ c.aroCls }}"><span class="bj-hueco"><sc-if value="{{ c.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ c.foto }}" alt="" width="55" height="55" decoding="async"></sc-if><sc-if value="{{ c.noFoto }}" hint-placeholder-val="{{ true }}"><span class="bj-ini" style="background: {{ c.iniBg }}">{{ c.iniciales }}</span></sc-if></span><span class="bj-ico" aria-hidden="true"><sc-if value="{{ c.iUrg }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z" fill="#fff"/></svg></sc-if><sc-if value="{{ c.iSin }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5h16v10.5H9.5L5 19.5V16H4z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/></svg></sc-if><sc-if value="{{ c.iEq }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3" fill="#fff"/><path d="M3.5 19.5c.4-3.2 2.7-5 5.5-5s5.1 1.8 5.5 5z" fill="#fff"/><circle cx="17" cy="9.5" r="2.4" fill="#fff"/><path d="M15.6 14.4c2.6-.3 4.6 1.4 4.9 5.1h-4.3" fill="#fff"/></svg></sc-if><sc-if value="{{ c.iProm }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="#fff" stroke-width="2.4"/><path d="M12 7.8V12l3 2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></sc-if><sc-if value="{{ c.iCi }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" fill="none" stroke="#fff" stroke-width="2.4"/><path d="m11 12 8.5-8.5M16.5 6.5l2.2 2.2M14.2 8.8l2 2" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg></sc-if></span></span>
+            <span class="{{ c.nomCls }}">{{ c.corto }}</span>
+          </button></div>
+        </sc-for>
+      </div>
+    </sc-if>
     <div data-screen-label="ALMA · Filtros" class="alma-filtros" style="display:flex; flex-direction:column; gap:10px">
       <div style="display:flex; gap:8px; align-items:center">
       <label style="flex:1; min-width:0; display:flex; align-items:center; gap:8px; border:1px solid #D8D4CE; border-radius:999px; background:#FFFFFF; padding:0 14px; height:44px; box-sizing:border-box; transition:border-color .18s, box-shadow .18s" style-focus="border-color:#3E3F3F; box-shadow:0 0 0 3px rgba(233,130,106,.35)">
@@ -1579,12 +1644,13 @@
     </div>
 
     <div class="alma-mbar" style="position:relative; align-items:center; ">
-      <div role="tablist" aria-label="Vista" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.5fr 1fr; height:48px; padding:4px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
-        <span aria-hidden="true" style="position:absolute; top:4px; bottom:4px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
+      <div role="tablist" aria-label="Vista" class="bj-filtros" style="position:relative; flex:1; min-width:0; display:grid; grid-template-columns:1fr 1.7fr 1fr; height:36px; padding:3px; border-radius:999px; background:#F5F3F0; border:1px solid rgba(62,63,63,.06); box-sizing:border-box">
+        <span aria-hidden="true" style="position:absolute; top:3px; bottom:3px; border-radius:999px; background:#FFFFFF; box-shadow:0 1px 2px rgba(62,63,63,.06), 0 4px 16px rgba(62,63,63,.05); transition:left var(--resorte-d) var(--resorte), width var(--resorte-d) var(--resorte); left: {{ mTabThumbL }}; width: {{ mTabThumbW }}"></span>
         <sc-for list="{{ mTabs }}" as="v" hint-placeholder-count="3">
-          <button role="tab" aria-selected="{{ v.activo }}" aria-haspopup="{{ v.popup }}" aria-expanded="{{ v.exp }}" onClick="{{ v.set }}" style="position:relative; z-index:1; min-width:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 6px; font-family:inherit; font-size:12px; font-weight:600; letter-spacing:.02em; white-space:nowrap; cursor:pointer; color: {{ v.fg }}; transition:color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.97)">
+          <button role="tab" aria-selected="{{ v.activo }}" aria-haspopup="{{ v.popup }}" aria-expanded="{{ v.exp }}" onClick="{{ v.set }}" style="position:relative; z-index:1; min-width:0; border:none; background:transparent; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 6px; font-family:inherit; font-size:11.5px; font-weight:600; letter-spacing:.01em; white-space:nowrap; cursor:pointer; color: {{ v.fg }}; transition:color .18s, transform .1s; -webkit-tap-highlight-color:transparent" style-active="transform:scale(.97)">
             <sc-if value="{{ v.punto }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:#F2755A; flex-shrink:0"></span></sc-if>
             <span style="min-width:0; overflow:hidden; text-overflow:ellipsis">{{ v.label }}</span>
+            <sc-if value="{{ v.hayN }}" hint-placeholder-val="{{ false }}"><b style="flex-shrink:0; font-weight:600; font-variant-numeric:tabular-nums; color:#A8472F">{{ v.n }}</b></sc-if>
             <sc-if value="{{ v.menu }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="display:grid; place-items:center; flex-shrink:0; transition:transform .18s cubic-bezier(.22,.61,.36,1); transform: {{ v.chev }}"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="chevronDown" size="13" color="currentColor" hint-size="13px,13px"></x-import></span></sc-if>
           </button>
         </sc-for>
@@ -1637,23 +1703,13 @@
         <div class="alma-reslista" style="background:#FFFFFF; border:1px solid rgba(62,63,63,.08); border-radius:16px; display:flex; flex-direction:column; box-shadow:0 1px 2px rgba(62,63,63,.04); overflow:hidden">
           <span style="padding:14px 16px 10px; font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:#6F6867">{{ resSub }}</span>
           <sc-for list="{{ resLineas }}" as="l" hint-placeholder-count="4">
-            <button onClick="{{ l.ir }}" data-gk="{{ l.gk }}" style="display:grid; grid-template-columns:40px minmax(0,1fr); gap:12px; align-items:start; width:100%; padding:14px 16px; border:none; border-top:1px solid #F0EDE8; background: {{ l.bg }}; text-align:left; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .18s cubic-bezier(.22,.61,.36,1)" style-hover="background:#FAFAFA" style-active="background:#F5F3F0">
-              <span style="position:relative; width:40px; height:40px">
-                <sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" loading="lazy" style="width:40px; height:40px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
-                <sc-if value="{{ l.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:40px; height:40px; border-radius:50%; display:grid; place-items:center; background:rgba(233,130,106,.18); color:#3E3F3F; font-size:12px; font-weight:600; letter-spacing:.06em">{{ l.iniciales }}</span></sc-if>
-                <sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ l.canalDom }}" title="{{ l.canalNom }}" alt="{{ l.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:17px; height:17px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
-              </span>
-              <span style="min-width:0; display:flex; flex-direction:column; gap:3px">
-                <span style="display:flex; align-items:baseline; gap:10px; min-width:0">
-                  <span style="flex:1; min-width:0; font-size:14.5px; font-weight:600; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.01em; line-height:1.25">{{ l.quien }}</span>
-                  <span style="font-size:10.5px; color:#6F6867; font-variant-numeric:tabular-nums; white-space:nowrap; letter-spacing:.04em">{{ l.hace }}</span>
+            <button class="bj-fila" onClick="{{ l.ir }}" data-gk="{{ l.gk }}" aria-label="{{ l.aria }}" style="background-color: {{ l.bg }}">
+                <span class="bj-av"><sc-if value="{{ l.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ l.foto }}" alt="" width="50" height="50" loading="lazy" decoding="async"></sc-if><sc-if value="{{ l.noFoto }}" hint-placeholder-val="{{ true }}"><span class="bj-ini" style="background: {{ l.iniBg }}">{{ l.iniciales }}</span></sc-if><sc-if value="{{ l.canalHay }}" hint-placeholder-val="{{ false }}"><span class="bj-canal" title="{{ l.canalNom }}" aria-label="{{ l.canalNom }}" style="background: {{ l.canalBg }}"><sc-if value="{{ l.cnWa }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm4.4 12.3c-.2.6-1.1 1.1-1.6 1.2-.4 0-.9.1-2.9-.7-2.4-1-4-3.5-4.1-3.7-.1-.2-1-1.3-1-2.5s.6-1.8.9-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.2.1.7-.1 1.3z"/></svg></sc-if><sc-if value="{{ l.cnAir }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-1.2 0-1.9 1-3 3.4L4.6 16a3.4 3.4 0 0 0 5.2 3.6L12 17.6l2.2 2A3.4 3.4 0 0 0 19.4 16L15 6.4C13.9 4 13.2 3 12 3z"/><path d="M12 17.6c-2-2.1-3-3.8-3-5.2a3 3 0 0 1 6 0c0 1.4-1 3.1-3 5.2z"/></svg></sc-if><sc-if value="{{ l.cnLetra }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">{{ l.canalLetra }}</span></sc-if></span></sc-if></span>
+                <span class="bj-cuerpo">
+                  <span class="bj-l1"><span class="bj-quien">{{ l.huesped }}</span><span class="bj-hora" style="color: {{ l.horaFg }}; font-weight: {{ l.horaPeso }}">{{ l.hora }}</span></span>
+                  <span class="bj-l2"><span class="bj-pre" style="color: {{ l.previewFg }}; font-weight: {{ l.pesoPrev }}"><sc-if value="{{ l.deAlma }}" hint-placeholder-val="{{ false }}"><span class="bj-dealma"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.7 4.9 2.6 6.8 7.5 7.5v.2c-4.9.7-6.8 2.6-7.5 7.5h-.2c-.7-4.9-2.6-6.8-7.5-7.5v-.2c4.9-.7 6.8-2.6 7.5-7.5z" fill="#E9826A" transform="translate(0 2)"/></svg>Alma:</span> </sc-if>{{ l.preview }}</span><sc-if value="{{ l.hayNo }}" hint-placeholder-val="{{ false }}"><span class="bj-cuenta" aria-label="{{ l.noAria }}">{{ l.nNo }}</span></sc-if></span>
+                  <span class="bj-l3"><sc-if value="{{ l.hayChip1 }}" hint-placeholder-val="{{ false }}"><span class="bj-chip" style="background: {{ l.chip1Bg }}; color: {{ l.chip1Fg }}">{{ l.chip1 }}</span></sc-if><sc-if value="{{ l.hayChip2 }}" hint-placeholder-val="{{ false }}"><span class="bj-chip" style="background: {{ l.chip2Bg }}; color: {{ l.chip2Fg }}">{{ l.chip2 }}</span></sc-if><span class="bj-prop">{{ l.ctx }}</span></span>
                 </span>
-                <span style="display:flex; align-items:center; gap:6px; min-width:0"><sc-if value="{{ l.hayEtapa }}" hint-placeholder-val="{{ false }}"><span style="flex-shrink:0; font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:2px 7px; background:{{ l.etapa.bg }}; color:{{ l.etapa.fg }}; white-space:nowrap; line-height:1.4">{{ l.etapa.txt }}</span></sc-if><span style="min-width:0; font-size:11px; color:#6F6867; letter-spacing:.03em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4">{{ l.propLinea }}</span></span>
-                <span style="display:flex; align-items:center; gap:8px; min-width:0; margin-top:5px">
-                  <span style="flex-shrink:0; font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; border-radius:999px; padding:4px 8px; line-height:1; white-space:nowrap; background: {{ l.tagBg }}; color: {{ l.tagFg }}">{{ l.estado }}</span>
-                  <span style="flex:1; min-width:0; font-size:12.5px; line-height:1.35; letter-spacing:.01em; color:#3E3F3F; font-weight: {{ l.txtPeso }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ l.titulo }}</span>
-                </span>
-              </span>
             </button>
           </sc-for>
         </div>
@@ -1829,25 +1885,14 @@
             <sc-for list="{{ cronoFilas }}" as="r" hint-placeholder-count="6">
               <div class="cv-fila" data-cv="fila">
                 <div class="cv-fondo" aria-hidden="true"><span></span><span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Resuelta</span></div>
-              <button onClick="{{ r.abrir }}" onPointerDown="{{ r.arrastre }}" onPointerEnter="{{ r.precargar }}" onTouchStart="{{ r.precargar }}" data-gk="{{ r.gk }}" style="width:100%; display:flex; align-items:center; gap:12px; padding:11px 14px; border:none; background: {{ r.bg }}; text-align:left; font-family:inherit; cursor:pointer; transition:background .18s; -webkit-tap-highlight-color:transparent; box-sizing:border-box" style-hover="background:#F7F5F2" style-active="background:#EFECE8">
-                <span style="position:relative; width:46px; height:46px; flex-shrink:0">
-                  <sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" loading="lazy" decoding="async" style="width:46px; height:46px; border-radius:50%; object-fit:cover; display:block; background:#F5F3F0"></sc-if>
-                  <sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span style="width:46px; height:46px; border-radius:50%; display:grid; place-items:center; background: {{ r.iniBg }}; color:#3E3F3F; font-size:12.5px; font-weight:600; letter-spacing:.06em">{{ r.iniciales }}</span></sc-if>
-                  <sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><img src="https://www.google.com/s2/favicons?sz=64&amp;domain={{ r.canalDom }}" title="{{ r.canalNom }}" alt="{{ r.canalNom }}" loading="lazy" style="position:absolute; right:-3px; bottom:-3px; width:19px; height:19px; border-radius:50%; border:2px solid #FFFFFF; box-sizing:border-box; background:#FFFFFF; object-fit:cover; display:block"></sc-if>
-                  <sc-if value="{{ r.noLeido }}" hint-placeholder-val="{{ false }}"><span aria-label="Sin responder" style="position:absolute; left:-2px; top:-2px; width:12px; height:12px; border-radius:50%; background:#F2755A; border:2px solid #FFFFFF"></span></sc-if>
-                </span>
-                <span style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px">
-                  <span style="display:flex; align-items:baseline; gap:6px; min-width:0">
-                    <span style="flex:0 1 auto; min-width:0; max-width:62%; font-size:15px; font-weight: {{ r.peso }}; color:#3E3F3F; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:.005em">{{ r.huesped }}</span>
-                    <span style="flex:1; min-width:0; font-size:12px; color:#6F6867; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ r.propCorto }}</span>
-                    <span style="font-size:11px; color: {{ r.previewFg }}; font-weight: {{ r.peso }}; font-variant-numeric:tabular-nums; white-space:nowrap; flex-shrink:0">{{ r.hora }}</span>
-                  </span>
-                  <span style="display:flex; align-items:center; gap:8px; min-width:0">
-                    <span style="flex:1; min-width:0; font-size:13px; color: {{ r.previewFg }}; font-weight: {{ r.pesoPrev }}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.4">{{ r.preview }}</span>
-                    <span style="flex-shrink:0; font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; border-radius:999px; padding:3px 8px; white-space:nowrap; background: {{ r.tagBg }}; color: {{ r.tagFg }}">{{ r.tag }}</span>
-                  </span>
+              <button class="bj-fila" onClick="{{ r.abrir }}" onPointerDown="{{ r.arrastre }}" onPointerEnter="{{ r.precargar }}" onTouchStart="{{ r.precargar }}" data-gk="{{ r.gk }}" aria-label="{{ r.aria }}" style="background-color: {{ r.bg }}">
+                <span class="bj-av"><sc-if value="{{ r.hayFoto }}" hint-placeholder-val="{{ false }}"><img src="{{ r.foto }}" alt="" width="50" height="50" loading="lazy" decoding="async"></sc-if><sc-if value="{{ r.noFoto }}" hint-placeholder-val="{{ true }}"><span class="bj-ini" style="background: {{ r.iniBg }}">{{ r.iniciales }}</span></sc-if><sc-if value="{{ r.canalHay }}" hint-placeholder-val="{{ false }}"><span class="bj-canal" title="{{ r.canalNom }}" aria-label="{{ r.canalNom }}" style="background: {{ r.canalBg }}"><sc-if value="{{ r.cnWa }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm4.4 12.3c-.2.6-1.1 1.1-1.6 1.2-.4 0-.9.1-2.9-.7-2.4-1-4-3.5-4.1-3.7-.1-.2-1-1.3-1-2.5s.6-1.8.9-2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.8-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.4.2.5.3.1.2.1.7-.1 1.3z"/></svg></sc-if><sc-if value="{{ r.cnAir }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c-1.2 0-1.9 1-3 3.4L4.6 16a3.4 3.4 0 0 0 5.2 3.6L12 17.6l2.2 2A3.4 3.4 0 0 0 19.4 16L15 6.4C13.9 4 13.2 3 12 3z"/><path d="M12 17.6c-2-2.1-3-3.8-3-5.2a3 3 0 0 1 6 0c0 1.4-1 3.1-3 5.2z"/></svg></sc-if><sc-if value="{{ r.cnLetra }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true">{{ r.canalLetra }}</span></sc-if></span></sc-if></span>
+                <span class="bj-cuerpo">
+                  <span class="bj-l1"><span class="bj-quien">{{ r.huesped }}</span><span class="bj-hora" style="color: {{ r.horaFg }}; font-weight: {{ r.horaPeso }}">{{ r.hora }}</span></span>
+                  <span class="bj-l2"><span class="bj-pre" style="color: {{ r.previewFg }}; font-weight: {{ r.pesoPrev }}"><sc-if value="{{ r.deAlma }}" hint-placeholder-val="{{ false }}"><span class="bj-dealma"><svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5c.7 4.9 2.6 6.8 7.5 7.5v.2c-4.9.7-6.8 2.6-7.5 7.5h-.2c-.7-4.9-2.6-6.8-7.5-7.5v-.2c4.9-.7 6.8-2.6 7.5-7.5z" fill="#E9826A" transform="translate(0 2)"/></svg>Alma:</span> </sc-if>{{ r.preview }}</span><sc-if value="{{ r.hayNo }}" hint-placeholder-val="{{ false }}"><span class="bj-cuenta" aria-label="{{ r.noAria }}">{{ r.nNo }}</span></sc-if></span>
+                  <span class="bj-l3"><sc-if value="{{ r.hayChip1 }}" hint-placeholder-val="{{ false }}"><span class="bj-chip" style="background: {{ r.chip1Bg }}; color: {{ r.chip1Fg }}">{{ r.chip1 }}</span></sc-if><sc-if value="{{ r.hayChip2 }}" hint-placeholder-val="{{ false }}"><span class="bj-chip" style="background: {{ r.chip2Bg }}; color: {{ r.chip2Fg }}">{{ r.chip2 }}</span></sc-if><span class="bj-prop">{{ r.ctx }}</span></span>
                   <sc-if value="{{ r.clasificando }}" hint-placeholder-val="{{ false }}">
-                    <span role="progressbar" aria-label="{{ r.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:3px; max-width:280px">
+                    <span role="progressbar" aria-label="{{ r.clasTxt }}" style="display:flex; flex-direction:column; gap:4px; margin-top:2px; max-width:280px">
                       <span style="display:block; height:4px; border-radius:999px; background:#F5F3F0; overflow:hidden"><span style="display:block; height:100%; border-radius:999px; background:#E9826A; transition:width 5s linear; width: {{ r.clasPct }}"></span></span>
                       <span style="font-size:10.5px; letter-spacing:.06em; color:#6F6867; font-variant-numeric:tabular-nums">{{ r.clasTxt }}</span>
                     </span>
@@ -3816,6 +3861,25 @@ class Component extends DCLogic {
     return true;
   }
   REANUDAR_MIN = 30;
+  /* #567 T1 · Colores de las esferas en la bandeja: los MISMOS de alma/inicio.html (.esf.<clave> --c, --c2, --c3) y los
+     nombres del glosario. Hay un check que los compara (.github/bandeja-esferas.js). */
+  ESFERAS = {
+    proposito: { n: "Propósito", c: "#E9826A", c2: "#F2B08F", c3: "#C9705E" },
+    relaciones: { n: "Relaciones", c: "#D99AA0", c2: "#F0C4C3", c3: "#B06F7A" },
+    finanzas: { n: "Finanzas", c: "#8FB38C", c2: "#C3D9B8", c3: "#5F8A5E" },
+    health: { n: "Health", c: "#E3A47F", c2: "#F3CDA6", c3: "#C47E52" },
+    comunidad: { n: "Comunidad", c: "#8FA5C8", c2: "#C2D0E6", c3: "#5F7BA8" },
+    espiritualidad: { n: "Esencia", c: "#A9A4CC", c2: "#D5D1EA", c3: "#7C76A8" }
+  };
+  /* Orden de los círculos de la bandeja: por importancia (urgente → sin responder → necesita equipo → promesa → check-in
+     hoy) y lo más nuevo primero, sin agrupar por esfera. Si hay algo personal pendiente (esfera que no es Propósito), el
+     primero queda entre los 3 primeros círculos, aunque haya muchos urgentes de trabajo. */
+  circulosOrden(items, max) {
+    var o = (items || []).slice().sort(function (a, b) { return a.rank - b.rank || (b.ts || 0) - (a.ts || 0); });
+    var k = -1; for (var i = 0; i < o.length; i++) if (o[i].personal && o[i].rank < 4) { k = i; break; }
+    if (k > 2) o.splice(2, 0, o.splice(k, 1)[0]);
+    return o.slice(0, max || 12);
+  }
   guardarUltima() {
     var st = this.state, v = st.vista; if (!v || v === "login" || v === "cargando") return;
     try { localStorage.setItem("sa_ultima", JSON.stringify({ vista: v, mVista: st.mVista, hoyTab: (st.hoy || {}).tab, conv: v === "alma" && st.cronoLista === false ? (this._convSelKey || "") : "", ts: Date.now() })); } catch (e) {}
@@ -4200,6 +4264,13 @@ class Component extends DCLogic {
       if (red || !el.animate || !hay) return;
       if (prev[k] == null) el.animate([{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(.22,.61,.36,1)" });
       else if (Math.abs(prev[k] - y) > 2) el.animate([{ transform: "translateY(" + (prev[k] - y) + "px)" }, { transform: "none" }], { duration: 360, easing: "cubic-bezier(.22,.61,.36,1)" });
+    });
+    /* #567 T1 · Círculos de arriba: cuando uno se va (ya se atendió) o cambia de lugar, los demás se corren suave a cerrar el hueco. */
+    document.querySelectorAll(".alma-circulos [data-gk]").forEach(function (el) {
+      if (!el.offsetParent) return;
+      var k = "s:" + el.getAttribute("data-gk"), x = el.offsetLeft; next[k] = x;
+      if (red || !el.animate || !hay || prev[k] == null || Math.abs(prev[k] - x) < 2) return;
+      el.animate([{ transform: "translateX(" + (prev[k] - x) + "px)" }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(.22,.61,.36,1)" });
     });
     this._flip = next;
   }
@@ -8539,7 +8610,8 @@ class Component extends DCLogic {
     var canalVM = function (g) {
       var ib = inboxPor[g.key] || {}, k = ib.ultimo_canal === "whatsapp" || String(g.key).indexOf("wa:") === 0 ? "whatsapp" : (ib.canal || "");
       var C = CANAL[k]; if (!C) return { canalHay: false };
-      return { canalHay: true, canalNom: C[0] + (k === "whatsapp" && esHosp(g) ? " · también en " + ((CANAL[ib.canal] || CANAL.directa)[0]) : ""), canalLetra: C[1], canalBg: C[2], canalLogo: logoDe(C[3]), canalDom: C[3] };
+      return { canalHay: true, canalNom: C[0] + (k === "whatsapp" && esHosp(g) ? " · también en " + ((CANAL[ib.canal] || CANAL.directa)[0]) : ""), canalLetra: C[1], canalBg: C[2], canalLogo: logoDe(C[3]), canalDom: C[3],
+        cnWa: k === "whatsapp", cnAir: k === "airbnb", cnLetra: k !== "whatsapp" && k !== "airbnb" };
     };
     this._canalVM = canalVM;
     var esOp = function (g) { return String(g.key).indexOf("op:") === 0; }, gruposOp = grupos.filter(esOp);
@@ -8594,6 +8666,10 @@ class Component extends DCLogic {
     };
     var estadiaDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; if (t.estadia) return t.estadia; return ib && ib.checkin ? fmtRango(ib.checkin, ib.checkout) : ""; };
     var fotoDe = function (g) { var ib = inboxPor[g.key]; return ib && /^https?:/.test(ib.foto || "") ? ib.foto : ""; };
+    /* #567 T1 · Esfera de cada conversación (la manda el Hub con cada fila: bandejaesfera.js); sin dato, Propósito.
+       Lo personal (otra esfera) no tiene propiedad, pero si espera respuesta también te toca a ti. */
+    var ESF = self.ESFERAS, esfDe = function (g) { var k = String((inboxPor[g.key] || {}).esfera || ""); return ESF[k] ? k : "proposito"; };
+    var esPers = function (g) { return esfDe(g) !== "proposito"; };
     /* Contactos sin reserva: en vez de «Propiedad por confirmar», quién es para la empresa («EPI · Equipo de limpieza»). */
     var ctLinea = function (g) { var ib = inboxPor[g.key]; if (String(g.key).indexOf("wa:") !== 0 || !ib) return ""; return [ib.contacto_empresa, ib.contacto_rol].filter(function (x) { return x && String(x).trim(); }).join(" · "); };
     var nombreDe = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return (ib && ib.huesped) || (t.huesped && t.huesped !== "Huésped" ? t.huesped : "") || "Huésped"; };
@@ -8602,11 +8678,63 @@ class Component extends DCLogic {
     /* Tema en pocas palabras + desenlace: "No podía entrar · ya ingresó", "Pregunta por el parqueo · ALMA respondió". */
     var temaDe = function (t) { return self.fraseCaso(t) || (t.esCola ? "Mensaje nuevo del huésped" : t.humano || t.enviado ? "Conversación con el huésped" : "El huésped escribió"); };
     var PASADO = { "No lo dejan entrar al edificio": "No lo dejaban entrar al edificio · ya ingresó", "No puede entrar al apartamento": "No podía entrar · ya ingresó", "Problemas con el internet": "Problema con el internet · resuelto", "Sin agua caliente": "No tenía agua caliente · resuelto", "Tiene una duda, aún no la dice": "Tenía una duda · se le respondió" };
-    var esSinG = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && !!propDe(g) && (t.sinResp || g.pendAuto || (ib && ib.ultimo_de === "guest")); };
+    var esSinG = function (g) { var t = g.frags[0], ib = inboxPor[g.key]; return !g.resuelto && (!!propDe(g) || esPers(g)) && (t.sinResp || g.pendAuto || (ib && ib.ultimo_de === "guest")); };
     /* ALMA prometió que el equipo contactaría (promesas.js): la conversación queda por atender hasta que alguien responda o se marque resuelta. */
     var promG = function (g) { var ib = inboxPor[g.key], e = ib ? String(ib.promesa_estado || "") : ""; return !g.resuelto && (e === "abierta" || e === "vencida") && !!ib.promesa && !(self._promCerradas || {})[String(ib.promesa_id || "")]; };
     /* Requiere atención = urgentes + necesita equipo + promesas de ALMA + sin responder. Mismo criterio en el tile, el resumen y la pestaña. */
     var atnG = function (g) { return !g.resuelto && (enNivel(g, "ROJO") || enNivel(g, "AMARILLO") || promG(g) || esSinG(g)); };
+    /* #567 T1 · Bandeja A3: lo que comparten las filas (Resumen, Requiere atención y Ver todo) y los círculos de arriba.
+       Un estado por conversación, con su etiqueta y el color de la mitad de arriba del aro (la promesa, en dorado). */
+    var hoyA = self.hoyISO();
+    /* La promesa de Alma sigue en dorado mientras esté abierta, aunque la conversación se haya cerrado sola porque la
+       respuesta fue la promesa misma («ya se le respondió»); si la cerraste tú, no. */
+    var promA3 = function (g) { var ib = inboxPor[g.key], e = ib ? String(ib.promesa_estado || "") : ""; return (!g.resuelto || !!g.autoRes) && (e === "abierta" || e === "vencida") && !!ib.promesa && !(self._promCerradas || {})[String(ib.promesa_id || "")]; };
+    var estadoA3 = function (g) {
+      var t = g.frags[0];
+      if (!g.resuelto && enNivel(g, "ROJO")) return "urg"; if (!g.resuelto && enNivel(g, "AMARILLO")) return "eq";
+      if (promA3(g)) return "prom"; if (g.resuelto) return "res";
+      if (t.esCola) return "cola"; if (esSinG(g)) return "sin";
+      return "";
+    };
+    var EST3 = { urg: ["Urgente", "#C0392B", "#FFFFFF", "#C0392B"], sin: ["Sin responder", "rgba(242,117,90,.16)", "#A8472F", "#F2755A"], eq: ["Necesita equipo", "rgba(233,130,106,.16)", "#A8472F", "#E9826A"],
+      prom: ["Alma prometió", "#F5E6BF", "#6F5210", "#D4A23F"], res: ["Resuelta", "rgba(61,107,82,.14)", "#3d6b52", "#3d6b52"], cola: ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] };
+    /* Hora como WhatsApp: hoy la hora, ayer «Ayer», esta semana el día, antes la fecha. */
+    var fHoraA = self.fechaFmt("es-GT", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "America/Guatemala" }), fDiaA = self.fechaFmt("en-CA", { timeZone: "America/Guatemala" });
+    var fSemA = self.fechaFmt("es-GT", { weekday: "short", timeZone: "America/Guatemala" }), fFechaA = self.fechaFmt("es-GT", { day: "numeric", month: "short", timeZone: "America/Guatemala" });
+    var horaWa = function (ts) {
+      if (!ts) return ""; var dif = Math.round((Date.parse(hoyA + "T12:00:00Z") - Date.parse(fDiaA(ts) + "T12:00:00Z")) / 86400000);
+      if (dif <= 0) return fHoraA(ts); if (dif === 1) return "Ayer";
+      var w = String(dif < 7 ? fSemA(ts) : fFechaA(ts)).replace(/\./g, ""); return w.charAt(0).toUpperCase() + w.slice(1);
+    };
+    /* Texto de las etiquetas con contraste AA sobre el fondo de la esfera: el óxido de siempre, un tono más oscuro. */
+    var fgAA = function (c) { return String(c || "").toUpperCase() === "#B54D36" ? "#A8472F" : c; };
+    var filaA3 = function (g, ts, prevAlt) {
+      var t = g.frags[0], ib = inboxPor[g.key] || {}, ek = esfDe(g), E3 = ESF[ek], es = estadoA3(g), X = EST3[es] || null;
+      if (es === "cola" && t.clasificando) X = ["Clasificando"].concat(X.slice(1));
+      var et = self._etapa(g.key, inboxPor[g.key]), nom = nombreDe(g), foto = fotoDe(g);
+      /* La última línea de la conversación, como WhatsApp; «✦ Alma:» si la contestó ella. Sin texto, el resumen del caso. */
+      var txt = String(ib.ultimo_texto || "").replace(/\s+/g, " ").trim(), deAlma = false;
+      if (txt && ib.ultimo_de && ib.ultimo_de !== "guest") {
+        var th = Date.parse(ib.ultimo_host_ts) || Date.parse(ib.ultimo_ts) || 0;
+        deAlma = g.frags.some(function (c) { return c.esLog && c.enviado && !c.humano && !c.esAuto && (c.ts || 0) >= th - 180000; });
+      }
+      if (prevAlt) txt = prevAlt; else if (!txt) txt = self.fraseCaso(t) || "";
+      /* No leídos: los mensajes seguidos del huésped al final del hilo (si ya se cargó) o los casos sin respuesta. */
+      var nNo = 0;
+      if (es === "urg" || es === "eq" || es === "sin") {
+        var hl = t.resId && st.almaHilos[t.resId] && st.almaHilos[t.resId].lista;
+        if (hl && hl.length) for (var q = hl.length - 1; q >= 0 && hl[q] && hl[q].tipo === "guest"; q--) nNo++;
+        if (!nNo) nNo = Math.max(1, g.frags.filter(function (c) { return c.sinResp || ((c.nivel === "ROJO" || c.nivel === "AMARILLO") && !c.enviado && !c.humano); }).length);
+      }
+      var prop = String(propDe(g) || "").replace(/\s+-\s+/g, " · "), ctx = prop || ctLinea(g) || (ek !== "proposito" ? E3.n : "");
+      var hayEt = !!(et && et.txt) && !(X && et.txt === X[0]);
+      return { esf: ek, esfN: E3.n, bg: E3.c + "0F", iniBg: E3.c2, huesped: nom, iniciales: iniDe(nom), hayFoto: !!foto, foto: foto, noFoto: !foto,
+        hora: horaWa(ts), horaFg: nNo ? "#B54D36" : "#6F6867", horaPeso: nNo ? "600" : "400", preview: txt || "Sin texto", deAlma: deAlma,
+        previewFg: nNo ? "#3E3F3F" : "#6F6867", pesoPrev: nNo ? "500" : "400", hayNo: nNo > 0, nNo: String(nNo), noAria: nNo + (nNo === 1 ? " mensaje sin responder" : " mensajes sin responder"),
+        hayChip1: hayEt, chip1: hayEt ? et.txt : "", chip1Bg: hayEt ? et.bg : "", chip1Fg: hayEt ? fgAA(et.fg) : "",
+        hayChip2: !!X, chip2: X ? X[0] : "", chip2Bg: X ? X[1] : "", chip2Fg: X ? X[2] : "", ctx: ctx, estA3: es,
+        aria: [nom, X ? X[0] : "", hayEt ? et.txt : "", prop || ctLinea(g), "Esfera " + E3.n, nNo ? nNo + " sin responder" : ""].filter(Boolean).join(" · ") };
+    };
     var vistoR = {};
     /* Solo lo que tuvo movimiento en la ventana (8 h): nada viejo. */
     var atnRes = atnG;
@@ -8642,6 +8770,7 @@ class Component extends DCLogic {
         titulo: g.resuelto ? (PASADO[tema] || tema) : tema,
         txtFg: pide ? "#B54D36" : "#3E3F3F", txtPeso: pide ? "600" : "400", estado: est, tagBg: bg, tagFg: fg,
         bg: st.selG === g.key ? "#F5F3F0" : "#FFFFFF",
+        a3: filaA3(g, tsG(g)),
         tagAria: tipo === "alma" ? "Ver la respuesta de ALMA" : tipo === "cierre" ? "Ver el último hilo" : tipo === "chat" ? "Abrir la conversación" : "Ver el resumen",
         ir: function () { self.selConv(g.key, false); },
         tagIr: function () {
@@ -8650,7 +8779,7 @@ class Component extends DCLogic {
           else if (tipo === "chat") { self.setState({ selG: g.key }); self.abrirGrupo(g.key); }
           else self.selConv(g.key, false);
         } };
-    }).sort(function (x, y) { return x.pr - y.pr || y.ts - x.ts; }).slice(0, 40);
+    }).sort(function (x, y) { return x.pr - y.pr || y.ts - x.ts; }).slice(0, 40).map(function (l) { var a3 = l.a3, sel = l.bg !== "#FFFFFF"; delete l.a3; return Object.assign(l, a3, { quien: a3.huesped, bg: sel ? "#F5F3F0" : a3.bg }); });
     var tj = null, gSel = st.selG ? gruposTodos.find(function (g) { return g.key === st.selG; }) : null;
     if (gSel) {
       tj = armarBrief(gSel.frags[0], true) || null;
@@ -8818,7 +8947,7 @@ class Component extends DCLogic {
         var hoyISO = self.hoyISO();
         var etapa = !ib ? "" : ib.tipo === "consulta" ? "Consulta" : ib.checkin && hoyISO < String(ib.checkin).slice(0, 10) ? "Confirmada" : ib.checkout && hoyISO > String(ib.checkout).slice(0, 10) ? "Finalizada" : ib.checkin ? "Hospedado" : "";
         var foto = ib && /^https?:/.test(ib.foto || "") ? ib.foto : "";
-        if (prio && verN === "Todo" && !st.convSolo && (est !== "pend" || !propR)) return null;
+        if (prio && verN === "Todo" && !st.convSolo && (est !== "pend" || (!propR && !esPers(g)))) return null;
         if (prio) {
           var U = t.nivel === "ROJO" || t.nivelLabel === "Urgente" ? ["Urgente", "rgba(242,117,90,.16)", "#B54D36", "#F2755A"] : t.nivel === "AMARILLO" || t.nivelLabel === "Necesita equipo" ? ["Necesita equipo", "rgba(233,130,106,.14)", "#B54D36", "#E9826A"] : t.esCola ? ["En cola", "#F5F3F0", "#6F6867", "#938B8A"] : ["Sin responder", "rgba(242,117,90,.12)", "#B54D36", "#F2755A"];
           E = U; var fr = self.fraseCaso ? self.fraseCaso(t) : ""; if (fr) prev = fr;
@@ -8844,7 +8973,26 @@ class Component extends DCLogic {
           bg: atn ? "rgba(233,130,106,.08)" : "#FFFFFF", precargar: function () { if (t.cargarHilo) t.cargarHilo(); }, borde: i === 0 ? "transparent" : "#EAE6E0",
           abrir: function (e) { if (self._cvArrastro) { self._cvArrastro = false; return; } self.abrirDesdeLista(e, t, i); },
           arrastre: function (e) { self.cvMouse(e, g.key); } };
+    }).filter(Boolean).map(function (r) {
+      /* #567 T1 · Fila A3. En «Ver todo», si lo último fue un automático de Hospitable, se dice como antes. */
+      var g = gruposPorK[r.gk] || grupos.filter(function (x) { return x.key === r.gk; })[0]; if (!g) return r;
+      return Object.assign(r, filaA3(g, g.ts || g.frags[0].ts || 0, g.autoUlt ? r.preview : ""));
+    });
+    /* #567 T1 · Círculos de arriba: lo que te toca (urgente, sin responder, necesita equipo, promesa) y los check-in de hoy,
+       de todas las esferas mezcladas; el orden lo decide circulosOrden. */
+    var CIRC = { urg: [0, "#C0392B", "iUrg", "Urgente"], sin: [1, "#F2755A", "iSin", "Sin responder"], eq: [2, "#E9826A", "iEq", "Necesita equipo"], prom: [3, "#D4A23F", "iProm", "Alma prometió"], ci: [4, "#3d6b52", "iCi", "Check-in hoy"] };
+    var circItems = gruposTodos.map(function (g) {
+      var es = estadoA3(g), ib = inboxPor[g.key] || {};
+      if (!CIRC[es] && d10(ib.checkin) === hoyA && ib.tipo !== "consulta" && String(g.key).indexOf("inq:") !== 0) es = "ci";
+      return CIRC[es] ? { g: g, est: es, rank: CIRC[es][0], ts: g.ts || 0, personal: esPers(g) } : null;
     }).filter(Boolean);
+    var bjCirculos = convCargando ? [] : self.circulosOrden(circItems, 12).map(function (x, i) {
+      var g = x.g, C3 = CIRC[x.est], ek = esfDe(g), nom = nombreDe(g), foto = fotoDe(g);
+      var o = { gk: g.key, i: String(i + 1), c: C3[1], e: ESF[ek].c, aroCls: "bj-aro" + (x.est === "urg" ? " bj-late" : ""), nomCls: "bj-nom" + (x.rank < 3 ? " fuerte" : ""),
+        corto: String(nom).trim().split(/\s+/)[0] || nom, hayFoto: !!foto, foto: foto, noFoto: !foto, iniciales: iniDe(nom), iniBg: ESF[ek].c2,
+        aria: nom + " · " + C3[3] + " · Esfera " + ESF[ek].n, abrir: function () { self.abrirGrupo(g.key); } };
+      o[C3[2]] = true; return o;
+    });
 
     var infoVM = null, IS = st.infoSheet;
     if (IS) {
@@ -9203,12 +9351,12 @@ class Component extends DCLogic {
         var sub = st.convCanal === "operativo" ? "Equipo" : st.convCanal === "whatsapp" ? "WhatsApp" : st.convCanal === "hospitable" ? "Hospitable" : st.convCanal === "proveedores" ? "Proveedores y técnicos" : st.convCanal === "equipoWa" ? "Operación · equipo" : st.convCanal === "socios" ? "Socios" : st.convSolo === "ALMA" ? "Respondió ALMA" : st.convSolo === "EQUIPO" ? "Respondió equipo" : st.convVista === "resueltas" ? "Resueltas" : "Requiere atención";
         return [["resumen", "Resumen"], ["atencion", mv === "atencion" ? sub : "Requiere atención"], ["lista", "Ver todo"]].map(function (x) {
           var on = mv === x[0], esA = x[0] === "atencion";
-          return { label: x[1], activo: on ? "true" : "false", fg: on ? "#3E3F3F" : "#6F6867", menu: esA, popup: esA ? "listbox" : "false", exp: esA && ab ? "true" : "false", chev: esA && ab ? "rotate(180deg)" : "rotate(0deg)", punto: esA && !on && nAtn > 0,
+          return { label: x[1], hayN: esA && nAtn > 0, n: String(nAtn), activo: on ? "true" : "false", fg: on ? "#3E3F3F" : "#6F6867", menu: esA, popup: esA ? "listbox" : "false", exp: esA && ab ? "true" : "false", chev: esA && ab ? "rotate(180deg)" : "rotate(0deg)", punto: esA && !on && nAtn > 0,
             set: function () { if (esA && on) { self.setState({ filtroMenu: !ab }); return; } if (!on) self.setMVistaV(x[0]); else if (ab) self.setState({ filtroMenu: false }); } };
         });
       })(),
-      mTabThumbL: st.mVista === "atencion" ? "calc(4px + (100% - 8px) * .2857)" : st.mVista === "lista" ? "calc(4px + (100% - 8px) * .7143)" : "4px",
-      mTabThumbW: st.mVista === "atencion" ? "calc((100% - 8px) * .4286)" : "calc((100% - 8px) * .2857)",
+      mTabThumbL: st.mVista === "atencion" ? "calc(3px + (100% - 6px) * .2703)" : st.mVista === "lista" ? "calc(3px + (100% - 6px) * .7297)" : "3px",
+      mTabThumbW: st.mVista === "atencion" ? "calc((100% - 6px) * .4595)" : "calc((100% - 6px) * .2703)",
       fx: (function () {
         var base = { logFiltro: "Todo", convVista: "", convSolo: "", convCanal: "", logQuien: "Todos", logResp: "Todas", convOrden: null, convIdx: 0, briefIdx: 0, filtroMenu: false };
         var G = gruposSinCanal, cnt = function (f) { return G.filter(f).length; }, cOn = st.convCanal || "";
@@ -9286,7 +9434,8 @@ class Component extends DCLogic {
       cronoVacioTitulo: prio ? "Nada urgente ahora" : "Sin conversaciones",
       cronoVacioTexto: prio ? "No hay casos pendientes. ALMA sigue atendiendo y te traemos aquí en cuanto algo necesite a alguien." : "No hay conversaciones con estos filtros.",
       cronoVacioBoton: prio, cronoPie: grupos.length + (grupos.length === 1 ? " conversación" : " conversaciones") + " · la más reciente arriba",
-      cronoFilas: convCargando ? [] : cronoFilas, convRapidos: convCargando ? [] : (self._rapidosVM || []), hayRapidos: !convCargando && (self._rapidosVM || []).length > 1, convCargando: convCargando, canalFiltros: canalFiltros,
+      cronoFilas: convCargando ? [] : cronoFilas,
+      bjHay: !!st.alma, bjCirculos: bjCirculos, bjAlmaFoto: "assets/alma/a-" + String(((st.almaFotoIdx || 0) % 11) + 1).padStart(2, "0") + ".jpg", convRapidos: convCargando ? [] : (self._rapidosVM || []), hayRapidos: !convCargando && (self._rapidosVM || []).length > 1, convCargando: convCargando, canalFiltros: canalFiltros,
       swResVisible: !!st.swRes, deshacerResolver: function () { self.deshacerResolver(); },
       convAltoVisor: convItems.some(function (c) { return (st.convResp[c.key] || {}).abierto; }) ? "clamp(360px, calc(100dvh - 150px), 780px)" : "clamp(280px, 52dvh, 520px)",
       convEsPrimera: convIdx <= 0, convEsUltima: convIdx >= grupos.length - 1, convOpAnt: convIdx <= 0 ? ".35" : "1", convOpSig: convIdx >= convItems.length - 1 ? ".35" : "1",

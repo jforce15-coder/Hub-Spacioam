@@ -670,6 +670,64 @@
   .tvb .tvb-cab, .tvb .tvb-g > *, .tvb .tvb-acc { opacity: 0; transform: translateY(12px); transition: opacity .32s ease, transform .5s var(--ease, cubic-bezier(.22,.61,.36,1)); transition-delay: calc(var(--i, 0) * 45ms); }
   .tvb.on .tvb-cab, .tvb.on .tvb-g > *, .tvb.on .tvb-acc { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { .tvb .tvb-cab, .tvb .tvb-g > *, .tvb .tvb-acc { transform: none; transition: opacity .2s ease; transition-delay: 0s; } }
+  /* ── Panel de Claudio (#550, apps-script/claudiopanel.js; Juan, 16-nov-2026): con Claudio en la llamada, el mismo lugar del
+     tablero bento (Claudio minimizado abajo a la derecha con su halo naranja; «Terminar» y «Chat» abajo a la izquierda) y
+     cuadros blancos sobre el atardecer, con los colores de Claudio (#FFB25E → #E66A0E). A: un renglón por trabajo con su
+     barra de pasos (la etapa, nunca un porcentaje); el que pregunta, con borde naranja y sus opciones. B: los pasos del
+     trabajo del que se habla, listos para unir y fallaron, y la pregunta pendiente. ── */
+  .tvc .tvb-eti i { background: #E66A0E; box-shadow: 0 0 0 3px rgba(255,178,94,.35); }
+  .tvc-lista { grid-column: span 6; padding: 2px 14px; border-radius: 20px; background: rgba(255,255,255,.94); box-shadow: 0 18px 40px -26px rgba(40,30,25,.5); }
+  .tvc-it { display: flex; gap: 11px; padding: 12px 0; border-bottom: 1px solid #EEE9E4; }
+  .tvc-it:last-child { border-bottom: 0; }
+  .tvc-it.q { margin: 8px -6px; padding: 12px 10px; border: 1.5px solid #E66A0E; border-radius: 16px; }
+  .tvc-it.q + .tvc-it { border-top: 0; }
+  .tvc-av { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: #fff; font: 600 13px Montserrat, system-ui, sans-serif; background: #B9A493; }
+  .tvc-av[data-e="pregunta"] { background: linear-gradient(160deg, #FFB25E, #E66A0E); }
+  .tvc-av[data-e="listo"] { background: #8FB38C; }
+  .tvc-av[data-e="fallo"] { background: #C9584A; }
+  .tvc-av[data-e="revisando"] { background: #8FA5C8; }
+  .tvc-tx { flex: 1; min-width: 0; }
+  .tvc-n { display: block; font: 600 13.5px/1.3 Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tvc-p { display: block; margin-top: 2px; font-size: 11.5px; color: #6F6867; overflow-wrap: anywhere; }
+  .tvc-barra { display: flex; gap: 3px; height: 5px; margin-top: 7px; }
+  .tvc-barra i { flex: 1; border-radius: 3px; background: #EEE9E4; }
+  .tvc-barra i[data-e="hecho"] { background: #E66A0E; }
+  .tvc-barra i[data-e="en_curso"] { background: linear-gradient(90deg, #FFB25E, #E66A0E); animation: tvc-late 1.8s ease-in-out infinite; }
+  .tvc-barra i[data-e="espera"] { background: #FFB25E; }
+  .tvc-barra i[data-e="fallo"] { background: #C9584A; }
+  .tvc-chip { display: inline-block; margin-top: 8px; font: 600 10px Montserrat, system-ui, sans-serif; padding: 4px 9px; border-radius: 999px; background: #FCE3CC; color: #9A4A0B; }
+  .tvc-chip[data-tono="ok"] { background: #E3EFDD; color: #3D6B52; }
+  .tvc-chip[data-tono="info"] { background: rgba(232,237,243,.96); color: #3B6691; }
+  .tvc-q { margin: 7px 0 0; font-size: 13px; line-height: 1.4; color: #3E3F3F; }
+  .tvc-ops { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .tvc-op { min-height: 44px; width: 100%; box-sizing: border-box; text-align: left; border: 1px solid #EEE9E4; background: #fff; border-radius: 12px; padding: 8px 12px;
+    font: 500 13px Montserrat, system-ui, sans-serif; color: #3E3F3F; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: border-color .2s ease, background .2s ease, transform .12s ease; }
+  .tvc-op:active { transform: scale(.98); }
+  .tvc-op[aria-pressed="true"] { border-color: #E66A0E; background: #FFF4EA; }
+  .tvc-op:disabled { cursor: default; }
+  .tvc-op:disabled:not([aria-pressed="true"]) { opacity: .5; }
+  .tvc-op:focus-visible { outline: 2px solid #E66A0E; outline-offset: 2px; }
+  .tvc-res { margin: 8px 0 0; font-size: 12px; color: #3D6B52; }
+  .tvc-res.mal { color: #9E3326; }
+  .tvc-mas { padding: 8px 0 6px; font-size: 11.5px; color: #6F6867; text-align: center; }
+  .tvc-aviso { margin: 8px 4px 0; font-size: 11px; color: #fff; text-shadow: 0 1px 8px rgba(40,30,25,.3); }
+  .tvc-pasos .tvc-barra { margin-top: 8px; }
+  .tvc-st { display: flex; gap: 9px; margin-top: 8px; font-size: 13px; line-height: 1.3; color: #6F6867; }
+  .tvc-st > i { flex: none; width: 14px; height: 14px; margin-top: 1px; border-radius: 50%; border: 1.5px solid #D8D4CE; box-sizing: border-box; }
+  .tvc-st > span { min-width: 0; }
+  .tvc-st small { display: block; margin-top: 1px; font-size: 11px; color: #6F6867; font-weight: 500; }
+  .tvc-st[data-e="hecho"] > i { background: #8FB38C; border-color: #8FB38C; }
+  .tvc-st[data-e="en_curso"] { color: #3E3F3F; font-weight: 600; }
+  .tvc-st[data-e="en_curso"] > i { border-color: #E66A0E; border-top-color: transparent; animation: tvc-gira 1s linear infinite; }
+  .tvc-st[data-e="espera"] { color: #3E3F3F; font-weight: 600; }
+  .tvc-st[data-e="espera"] > i { background: #FFB25E; border-color: #FFB25E; }
+  .tvc-st[data-e="fallo"] { color: #9E3326; font-weight: 600; }
+  .tvc-st[data-e="fallo"] > i { background: #C9584A; border-color: #C9584A; }
+  .tvc-big { display: block; margin-top: 4px; font: 400 30px/1 Valky, "Cormorant Garamond", Georgia, serif; color: #3E3F3F; }
+  .tvc-preg { border: 1.5px solid #E66A0E; }
+  @keyframes tvc-late { 50% { opacity: .45; } }
+  @keyframes tvc-gira { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .tvc-barra i, .tvc-st > i { animation: none !important; } .tvc-op:active { transform: none; } }
   /* ── Pedidos en órbita (#509 T3, apps-script/orbita.js): lo que Alma sigue trabajando, como satélites de la roca ──────
      Cada pedido es un anillo chico (una piedra de Alma en miniatura con un arco que gira, sin porcentajes) que orbita la
      roca muy despacio, cada uno a su velocidad y con su radio. Órbita cercana: lo rápido (segundo plano del agente);
@@ -886,8 +944,8 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-11-16c"></script>
-<script src="../js/alma-voz.js?v=2026-11-16c"></script>
+<script src="../js/alma-client.js?v=2026-11-16d"></script>
+<script src="../js/alma-voz.js?v=2026-11-16d"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-16d"></script>
 <script>
@@ -2496,11 +2554,15 @@
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
-  function hacer(h) { nativa({ accion: "voz", que: "tarjeta", hacer: h }); }
+  /* TV.local: el Panel de Claudio que pidió esta página (la voz del navegador, sin la app): la pestañita se maneja aquí. */
+  function hacer(h) {
+    if (TV.local) { if (h === "abrir") { TV.vista = "abierta"; pintar(); } else if (h === "plegar") { TV.vista = "pestana"; pintar(); } return; }
+    nativa({ accion: "voz", que: "tarjeta", hacer: h });
+  }
   function ui() { return document.querySelector("#sa-nav-root .san-ov-ui") || document.querySelector(".san-ov-ui"); }
 
   function pintarCard(t, detalle) {
@@ -2679,6 +2741,130 @@
     b.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
     return b;
   }
+  /* ── Panel de Claudio (#550, apps-script/claudiopanel.js; Juan, 16-nov-2026) ── Mientras Juan habla con Claudio, el Hub
+     manda un panel (tipo «claudio») en vez de una tarjeta: va donde el tablero bento, con Claudio minimizado en la esquina.
+     · A (vista «lista»): un renglón por trabajo (nombre, paso actual y una barra con un tramo por paso: hecho, en curso,
+       espera o falló; nunca un porcentaje). El que pregunta va con borde naranja y sus opciones; lo listo dice
+       «Di "une" para publicarlo» y lo que Alma escaló, que ella lo une sola.
+     · B (vista «trabajo»): los pasos del trabajo del que se habla, al lado listos para unir y fallaron, abajo la pregunta.
+     Tocar una opción responde esa pregunta por el mismo camino de la tarjeta de Pendientes (pendienteResponder con su id
+     «mp:…»): queda marcada y Claudio se entera (la app nativa se lo dice y vuelve a pedir el panel; en el navegador, la
+     voz de la página). Llega por estado: se queda mientras dura la llamada con Claudio y lo reemplaza el siguiente. */
+  function esClaudio(t) { return !!(t && t.tipo === "claudio" && (t.vista === "lista" || t.vista === "trabajo")); }
+  var ETAPA = { pregunta: "Te pregunta", fallo: "Falló", listo: "Listo para unir", revisando: "Revisando", escribiendo: "Escribiendo" };
+  var AV = { pregunta: "?", listo: "✓", fallo: "!" };
+  var RESPONDIDAS = {};   // lo que Juan ya tocó en esta página: no se vuelve a ofrecer mientras el Hub se pone al día
+  function barra(pasos, etiqueta) {
+    var b = el("span", "tvc-barra"); b.setAttribute("role", "img"); b.setAttribute("aria-label", etiqueta || "");
+    (pasos || []).forEach(function (e) { var i = el("i"); i.setAttribute("data-e", typeof e === "string" ? e : e.e); b.appendChild(i); });
+    return b;
+  }
+  function chipC(txt, tono) { var c = el("span", "tvc-chip", txt); if (tono) c.setAttribute("data-tono", tono); return c; }
+  function avisarClaudio(p, op) {
+    /* La app nativa le cuenta a Claudio y vuelve a pedir el panel (una app de antes lo ignora). En el navegador, la voz de la página. */
+    nativa({ accion: "voz", que: "claudioPanel", hacer: "respondio", nombre: p.de || "", texto: op });
+    try { window.dispatchEvent(new CustomEvent("sa-claudio-contexto", { detail: { texto: "Juan respondió en pantalla a la pregunta de «" + (p.de || "un trabajo") + "»: «" + op + "». Ya le llegó a desarrollo; no se la vuelvas a preguntar." } })); } catch (x) {}
+    if (TV.local) setTimeout(pedirPanelWeb, 1500);
+  }
+  function responderClaudio(p, op, b, ops, res) {
+    if (ops.getAttribute("data-enviando")) return;
+    var botones = Array.prototype.slice.call(ops.querySelectorAll("button"));
+    ops.setAttribute("data-enviando", "1"); botones.forEach(function (x) { x.disabled = true; }); b.setAttribute("aria-pressed", "true");
+    res.hidden = false; res.className = "tvc-res"; res.textContent = "Enviando…";
+    var envio = window.ALMA && ALMA.pendienteResponder ? Promise.resolve(ALMA.pendienteResponder(p.id, op)) : Promise.reject(new Error("Sin conexión con el Hub."));
+    envio.then(function (r) {
+      if (!r || !r.ok) throw new Error((r && r.error) || "No se pudo enviar.");
+      RESPONDIDAS[p.id] = op; res.textContent = "Listo, le llegó a Claudio: «" + op + "».";
+      avisarClaudio(p, op);
+    }).catch(function (e) {
+      ops.removeAttribute("data-enviando"); botones.forEach(function (x) { x.disabled = false; }); b.setAttribute("aria-pressed", "false");
+      res.className = "tvc-res mal"; res.textContent = (e && e.message) || "No se pudo enviar.";
+      try { if (window.SAMov && SAMov.sacudir) SAMov.sacudir(ops); } catch (x) {}
+    });
+  }
+  function preguntaC(p) {
+    var caja = el("div", "tvc-pq");
+    caja.appendChild(el("p", "tvc-q", p.texto || ""));
+    var ya = RESPONDIDAS[p.id];
+    if (ya) { caja.appendChild(el("p", "tvc-res", "Ya le respondiste: «" + ya + "».")); return caja; }
+    if (!(p.opciones || []).length) { caja.appendChild(el("small", "tvc-p", "Respóndele a Claudio de voz.")); return caja; }
+    var ops = el("div", "tvc-ops"), res = el("p", "tvc-res"); res.hidden = true; res.setAttribute("aria-live", "polite");
+    ops.setAttribute("role", "group"); ops.setAttribute("aria-label", "Opciones para responder");
+    p.opciones.forEach(function (op) {
+      var b = el("button", "tvc-op", op); b.type = "button"; b.setAttribute("aria-pressed", "false");
+      b.onclick = function (e) { e.stopPropagation(); responderClaudio(p, op, b, ops, res); };
+      ops.appendChild(b);
+    });
+    caja.appendChild(ops); caja.appendChild(res);
+    return caja;
+  }
+  function filaC(w, n) {
+    var it = el("div", "tvc-it" + (w.pregunta ? " q" : "")); it.setAttribute("data-e", w.etapa);
+    var av = el("span", "tvc-av", AV[w.etapa] || String(n)); av.setAttribute("data-e", w.etapa); av.setAttribute("aria-hidden", "true"); it.appendChild(av);
+    var tx = el("div", "tvc-tx");
+    tx.appendChild(el("b", "tvc-n", w.nombre || ""));
+    if (!w.pregunta) tx.appendChild(el("small", "tvc-p", w.paso || ETAPA[w.etapa] || ""));
+    tx.appendChild(barra(w.pasos, (ETAPA[w.etapa] || "") + ": paso " + ((w.indice || 0) + 1) + " de " + (w.total || 0)));
+    if (w.pregunta) { tx.appendChild(chipC("Te pregunta")); tx.appendChild(preguntaC(w.pregunta)); }
+    else if (w.une) tx.appendChild(chipC("Di «une» para publicarlo", "ok"));
+    else if (w.sola) tx.appendChild(chipC("Alma lo une y lo entrega sola", "info"));
+    it.appendChild(tx);
+    return it;
+  }
+  function cuadroC(cls, span, k) {
+    var d = el("div", "tvb-t " + cls); d.style.gridColumn = "span " + span; d.style.setProperty("--i", k);
+    return d;
+  }
+  function pintarClaudio(t) {
+    var b = el("section", "tvb tvc"); b.setAttribute("role", "group"); b.setAttribute("aria-label", "Claudio: " + (t.titulo || ""));
+    var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.etiqueta || "Claudio · Desarrollo")); cab.appendChild(eti);
+    cab.appendChild(el("b", "tvb-tit", t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub)); b.appendChild(cab);
+    var g = el("div", "tvb-g"), k = 0;
+    if (t.vista === "trabajo") {
+      var w = t.trabajo || {}, ps = w.pasos || [];
+      var c1 = cuadroC("tvc-pasos", 6, k++);
+      c1.appendChild(el("small", "tvb-k", (ETAPA[w.etapa] || "") + " · paso " + ((w.indice || 0) + 1) + " de " + (w.total || ps.length)));
+      c1.appendChild(barra(ps, (ETAPA[w.etapa] || "") + ": paso " + ((w.indice || 0) + 1) + " de " + (w.total || ps.length)));
+      ps.forEach(function (p) { var st = el("div", "tvc-st"); st.setAttribute("data-e", p.e); st.appendChild(el("i")); var sp = el("span"); sp.appendChild(document.createTextNode(p.t)); if (p.d) sp.appendChild(el("small", "", p.d)); st.appendChild(sp); c1.appendChild(st); });
+      if (w.une) c1.appendChild(chipC("Di «une» para publicarlo", "ok")); else if (w.sola) c1.appendChild(chipC("Alma lo une y lo entrega sola", "info"));
+      g.appendChild(c1);
+      var li = t.listos || {}, fa = t.fallaron || {};
+      var c2 = cuadroC("tvc-cuenta", 3, k++); c2.appendChild(el("small", "tvb-k", "Listos para unir")); c2.appendChild(el("b", "tvc-big", String(li.n || 0)));
+      c2.appendChild(el("small", "tvb-d", (li.nombres || []).join(" · ") || "Ninguno por ahora")); g.appendChild(c2);
+      var c3 = cuadroC("tvc-cuenta", 3, k++); c3.appendChild(el("small", "tvb-k", "Fallaron")); c3.appendChild(el("b", "tvc-big", String(fa.n || 0)));
+      c3.appendChild(el("small", "tvb-d", fa.n ? [(fa.nombres || [])[0], fa.por_que].filter(Boolean).join(" · ") : "Todo en verde")); g.appendChild(c3);
+      if (t.pregunta) { var c4 = cuadroC("tvc-preg", 6, k++); c4.appendChild(el("small", "tvb-k", "Te pregunta · " + (t.pregunta.de || ""))); c4.appendChild(preguntaC(t.pregunta)); g.appendChild(c4); }
+    } else {
+      var l = el("div", "tvc-lista"); l.style.setProperty("--i", k++);
+      (t.trabajos || []).forEach(function (w, n) { l.appendChild(filaC(w, n + 1)); });
+      if (!(t.trabajos || []).length) l.appendChild(el("p", "tvc-mas", "Nada en curso. Cuéntale a Claudio qué hacemos."));
+      if (t.mas > 0) l.appendChild(el("p", "tvc-mas", "y " + t.mas + " más"));
+      g.appendChild(l);
+    }
+    b.appendChild(g);
+    if (t.aviso) b.appendChild(el("p", "tvc-aviso", t.aviso));
+    b.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
+    return b;
+  }
+  /* En el navegador (sin la app de iPhone) la voz de Claudio es la de la página (js/alma-voz.js): avisa cuándo entra
+     Claudio y cuándo contesta una herramienta suya («sa-voz-claudio»), y aquí se pide el panel al Hub (vozClaudioPanel). */
+  var CL = { conv: "", serie: 0 };
+  function pedirPanelWeb() {
+    if (!CL.conv || !window.ALMA || !ALMA.vozClaudioPanel) return;
+    var yo = ++CL.serie, conv = CL.conv;
+    Promise.resolve(ALMA.vozClaudioPanel(conv)).then(function (j) {
+      if (yo !== CL.serie || conv !== CL.conv || !j || !j.ok || !esClaudio(j.panel)) return;
+      if (TV.t && TV.t.id === j.panel.id && TV.vista === "abierta") return;   // el mismo: no se vuelve a armar
+      seguir(); TV.local = true; TV.t = j.panel; TV.vista = "abierta"; pintar();
+    }, function () {});
+  }
+  window.addEventListener("sa-voz-claudio", function (e) {
+    var d = (e && e.detail) || {};
+    if (d.que === "sale") { CL.conv = ""; CL.serie++; if (TV.local) { TV.local = false; TV.t = null; TV.vista = "nada"; pintar(); } return; }
+    if (d.conv) CL.conv = String(d.conv);
+    pedirPanelWeb();
+  });
+  /* ── fin del Panel de Claudio ── */
   /* Dónde va la roca: «arriba» (tarjeta de siempre: sube y se achica a 96 px) · «esquina» (tablero bento: abajo a la derecha,
      74 px; tocarla la regresa al centro y oculta el tablero) · null (vuelve al centro). */
   var abajo = 0;
@@ -2708,7 +2894,7 @@
   function tapada() { var ov = document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov"); return !ov || !ov.classList.contains("on") || /(^|\s)(chat|min|pend|noti|ending)(\s|$)/.test(ov.className); }
   function pintar() {
     var t = TV.t, v = t ? TV.vista : "nada", abierta = v === "abierta" || v === "detalle";
-    var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id), bento = esBento(t);
+    var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id), bento = esBento(t) || esClaudio(t);   // el Panel de Claudio va donde el tablero
     /* El tablero bento: sobre el atardecer, debajo de la roca y de los botones; la misma tarjeta no se vuelve a armar. */
     if (bento && abierta && misma && TV.card.classList.contains("tvb") && TV.card.parentNode === ov()) { roca("esquina"); return vivo(true); }
     var salio = quitarCard();
@@ -2716,7 +2902,7 @@
       var o = ov(), bg = o && o.querySelector(".san-ov-bg");
       /* Otro tablero en la misma llamada: el de antes se funde (260 ms) y el nuevo entra cuando ya casi se fue, cuadro a
          cuadro; Alma se queda en la esquina. */
-      if (o) { var nuevo = TV.card = pintarBento(t); TV.cardId = t.id; o.insertBefore(nuevo, bg ? bg.nextSibling : o.firstChild); raiz.classList.remove("tv-on"); raiz.classList.add("tvb-on"); roca("esquina");
+      if (o) { var nuevo = TV.card = esClaudio(t) ? pintarClaudio(t) : pintarBento(t); TV.cardId = t.id; o.insertBefore(nuevo, bg ? bg.nextSibling : o.firstChild); raiz.classList.remove("tv-on"); raiz.classList.add("tvb-on"); roca("esquina");
         var entra = function () { requestAnimationFrame(function () { requestAnimationFrame(function () { if (TV.card === nuevo) nuevo.classList.add("on"); }); }); };
         if (salio) setTimeout(entra, 180); else entra(); }
     }
@@ -2769,8 +2955,8 @@
         return;
       }
       if (e.tipo !== "tarjeta") return;
-      if (!e.tarjeta || (e.vista || "nada") === "nada") { soltar(); return; }
-      seguir(); TV.t = e.tarjeta; TV.vista = e.vista; pintar();
+      if (!e.tarjeta || (e.vista || "nada") === "nada") { if (!TV.local) soltar(); return; }
+      seguir(); TV.local = false; TV.t = e.tarjeta; TV.vista = e.vista; pintar();
     },
     /* La página de la llamada pregunta si debe esperar antes de cerrarse */
     sostiene: function () { return enPantalla(); },

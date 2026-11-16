@@ -3370,6 +3370,7 @@ function hubApi_(body) {
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
+      case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)
       case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)

@@ -100,6 +100,16 @@ function weeboUltimo_(clave) {
   try { var j = JSON.parse(CacheService.getScriptCache().get('weebo_ult_' + String(clave || '').toLowerCase()) || 'null'); return j && isFinite(j.nivel) ? j.nivel : null; } catch (e) { return null; }
 }
 
+/* ── Acento de España (Juan, 16-nov-2026, #571): solo con el administrador principal y solo en el nivel 3 del Modo Weebo.
+   Por escrito y por voz, palabras de España; en la llamada, además, la voz de España: una segunda voz del agente en
+   ElevenLabs (Propiedad VOZ_ESPANA_ID, etiqueta «Espana»; la sube vozAcentoSiCambio_, voz.js). Niveles 0–2: español neutro
+   latino. Nunca con huéspedes, equipo, socios ni familia, ni en lo que Alma les escribe a otros. */
+var WEEBO_ESPANA_TEXTO_ = 'ACENTO DE ESPAÑA (solo con Juan y solo en nivel 3): habla como alguien de España («vale», «tío», «qué guay», «mola», «vaya»). Solo en lo que le dices a Juan: lo que escribes a otras personas va en español neutro. Al bajar del nivel 3 vuelves al español neutro latino.';
+var WEEBO_ESPANA_ETIQUETA_ = 'Espana';
+function weeboVozEspanaId_() {
+  try { return String(PropertiesService.getScriptProperties().getProperty('VOZ_ESPANA_ID') || '').trim(); } catch (e) { return ''; }
+}
+
 /* Bloque para el prompt: el carácter (fila WEEBO) + la medición de esta conversación.
    o.principal = true (Juan): si el Modo Weebo está fijo, ese nivel manda. o.clave: el correo, para guardar el último nivel. */
 function weeboBloque_(o) {
@@ -112,6 +122,7 @@ function weeboBloque_(o) {
   if (!base) base = SEMILLA_WEEBO_;
   var extra = m.contexto === 'huesped' ? ' Con huéspedes, el nivel 1 es como mucho UNA chispa en toda la conversación: si en el hilo ya hubo una, hoy vas en nivel 0.'
     : m.contexto === 'admin_serio' ? ' Tema serio: resuelve primero; si quieres, una sola sonrisa al cerrar cuando ya quedó resuelto.' : '';
+  if (o && o.principal && m.nivel === 3 && /^admin/.test(m.contexto)) extra += '\n' + WEEBO_ESPANA_TEXTO_;
   return '\n\n' + base + '\n\nESTA CONVERSACIÓN: ' + m.nombre + ' · confianza ' + m.confianza + '/100 · sensibilidad ' + m.sensibilidad +
     ' · NIVEL ' + m.nivel + (m.razones.length ? ' (' + m.razones.join(', ') + ')' : '') + '.' + extra;
 }
@@ -127,6 +138,9 @@ function weeboVozBloque_(familia) {
        '· Juan o el equipo con un problema, una urgencia o coordinando: nivel 0–1; si quieres, una sonrisa al cerrar cuando quedó resuelto.',
        '· Juan o el equipo en algo relajado o estratégico: nivel 1–2, y 3 solo si ya hay complicidad clara en la llamada.',
        '· Si la ficha dice «MODO WEEBO FIJO», usa ese nivel toda la llamada (un problema o una urgencia siguen pidiendo el centro).',
+       '· ACENTO DE ESPAÑA (solo caller_type juan y solo en nivel 3): palabras de España («vale», «tío», «qué guay», «mola»)' +
+         (weeboVozEspanaId_() ? ' y todo lo que dices va dentro de <' + WEEBO_ESPANA_ETIQUETA_ + '>…</' + WEEBO_ESPANA_ETIQUETA_ + '> (tu voz de España)' : '') +
+         '. En niveles 0–2 y con cualquier otra persona, español neutro latino' + (weeboVozEspanaId_() ? ', sin etiqueta' : '') + '.',
        '· En la app (la ficha dice «ESTÁS EN LA APP DE ALMA»): al empezar y cada vez que tu nivel cambie, llama a nivel_weebo con el nivel, en silencio: no lo digas ni esperes respuesta.'];
   return base + '\n\n' + reglas.join('\n');
 }

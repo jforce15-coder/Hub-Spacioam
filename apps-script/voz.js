@@ -449,6 +449,28 @@ function vozSyncSiToca_() {
   try { vozAccesoSiCambio_(false); } catch (e) { console.error('vozAccesoSiCambio_: ' + e); }   // acceso cerrado: solo con URL firmada del Hub (vozacceso.js)
   try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
   try { claudioSyncSiToca_(false); } catch (e) { console.error('claudioSyncSiToca_: ' + e); }   // Hablar con Claudio (claudio.js): lo crea una vez y lo mantiene al día
+  try { vozAcentoSiCambio_(false); } catch (e) { console.error('vozAcentoSiCambio_: ' + e); }   // voz de España del nivel 3 del Modo Weebo (#571)
+}
+/* Acento de España (#571, weebo.js): la voz de España es una segunda voz del agente (tts.supported_voices, etiqueta
+   «Espana»); Alma la usa poniendo lo que dice dentro de <Espana>…</Espana>, solo con Juan en el nivel 3. La voz la elige
+   Juan escuchándola y su id va en la Propiedad VOZ_ESPANA_ID (no es una llave). Solo se toca la voz con esa etiqueta;
+   las demás voces del agente quedan como están. Sin VOZ_ESPANA_ID, se quita y queda solo con palabras. */
+function vozAcentoSiCambio_(forzar) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
+  if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
+  var voz = weeboVozEspanaId_();
+  if (!forzar && voz === (p.getProperty('VOZ_ESPANA_SYNC') || '')) return { ok: true, sin_cambios: true };
+  var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
+  var g = uf_(url, { headers: h, muteHttpExceptions: true }, 'Voz');
+  if (g.getResponseCode() !== 200) return { ok: false, error: 'GET agente HTTP ' + g.getResponseCode() };
+  var tts = ((JSON.parse(g.getContentText()).conversation_config || {}).tts) || {};
+  var lista = (tts.supported_voices || []).filter(function (v) { return v && v.label !== WEEBO_ESPANA_ETIQUETA_; });
+  if (voz) lista.push({ label: WEEBO_ESPANA_ETIQUETA_, voice_id: voz, description: 'Alma con acento de España: solo con Juan, en el nivel 3 del Modo Weebo.' });
+  var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true,
+    payload: JSON.stringify({ conversation_config: { tts: { supported_voices: lista } } }) }, 'Voz');
+  if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return { ok: false, error: 'PATCH voz de España HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) };
+  p.setProperty('VOZ_ESPANA_SYNC', voz);
+  return { ok: true, voz_espana: voz || null };
 }
 function vozSyncPrompt_(forzar) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');

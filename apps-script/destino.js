@@ -14,6 +14,9 @@
      5. el equipo (administradores, técnicos de Epi, escalamiento);
      6. las fichas de contacto (proveedores, socios, familia…);
      7. a quien Alma le escribió en 30 días (relevo.js), solo si nada de lo anterior lo encontró.
+   Varias personas posibles → antes de preguntar, lo reciente (memoriafresca.js, Juan 16-nov-2026): quien salió en las
+   últimas llamadas o en el tema activo y, si no, una conversación reciente de la bandeja. Si eso elige a una sola, es esa,
+   y su fuente lo dice («lo hablaron hace 10 min»); si no, se pregunta como siempre.
    Reglas: si se nombró un apartamento, la persona debe ser de ese apartamento (quien no tiene apartamento, como el equipo,
    pasa); un nombre coincide solo con palabras completas (o el inicio de una palabra de 4 letras o más), nunca un pedazo
    suelto; varias coincidencias → todas, sin elegir; el parecido por errores de escritura nunca es único; «los socios» →
@@ -86,6 +89,13 @@ function destinoResolver_(o) {
     /* Varios números de la misma recepción: es un solo destinatario, sale a todos (como el registro a recepción). */
     var edificio = function (c) { return socioClaveProp_(c.propiedad).filter(function (w) { return !/^\d+$/.test(w); }).join(' '); };
     if (lista.length > 1 && lista.every(function (c) { return c.rol === 'recepción' && edificio(c) === edificio(lista[0]); })) out.todos = true;
+    /* Lo reciente desempata (memoriafresca.js): «Amílcar» sin más es el que hablaron hace 10 min. */
+    if (lista.length > 1 && !out.todos) {
+      try {
+        var dr = mfDesempate_(o.adm || (o.ctx && o.ctx.adm) || null, lista);
+        if (dr && !lista[dr.i].parecido) { var el = lista[dr.i]; el.fuente = (el.fuente ? el.fuente + ' · ' : '') + dr.fuente; lista = [el]; out.reciente = dr.fuente; }
+      } catch (e) { if (typeof mfDesempate_ === 'function') console.error('destino reciente: ' + e); }
+    }
     out.candidatos = lista; out.unico = lista.length === 1 && !lista[0].parecido;
     return out;
   };
@@ -118,7 +128,7 @@ function destinoResolver_(o) {
   /* 2 · El huésped de la reserva activa o próxima (agElegirReserva_: si hay varias, no elige). */
   if (rolHuesped) {
     var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), q = [palabras.join(' '), out.apartamento || propiedad].filter(Boolean).join(' ');
-    var el = null; try { el = agElegirReserva_(q, hoy); } catch (e) { console.error('destino reserva: ' + e); }
+    var el = null; try { el = agElegirReserva_(q, hoy, o.adm || (o.ctx && o.ctx.adm) || null); } catch (e) { console.error('destino reserva: ' + e); }
     if (el && !el.error) add({ nombre: el.huesped, rol: 'huésped', propiedad: el.propiedad, tel: '', fuente: 'reserva ' + (el.codigo || ''), conv_id: el.conv_id, codigo: el.codigo, huesped: true });
     else if (el && el.opciones) el.opciones.forEach(function (x) { add({ nombre: x.huesped, rol: 'huésped', propiedad: x.propiedad, tel: '', fuente: 'reserva ' + x.codigo, codigo: x.codigo, huesped: true }); });
     return cierre();
@@ -187,4 +197,7 @@ function destinoElegir_(inp, ctx, tipo, o) {
   destinoAnotar_(ctx, [c]);
   return { destinos: [c], resolucion: r };
 }
-function destinoAnotar_(ctx, cs) { if (!ctx) return; ctx.destinos = (ctx.destinos || []).concat(cs.map(function (c) { return destinoDecir_(c); })).slice(-6); }
+function destinoAnotar_(ctx, cs) {
+  if (!ctx) return; ctx.destinos = (ctx.destinos || []).concat(cs.map(function (c) { return destinoDecir_(c); })).slice(-6);
+  try { mfAnotar_(ctx.adm, cs); } catch (e) {}   // memoria fresca: a quién se eligió, verificado (memoriafresca.js)
+}

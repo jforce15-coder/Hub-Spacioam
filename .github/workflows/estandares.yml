@@ -300,6 +300,9 @@ jobs:
         # 13-nov: Juan pidió escribirle al socio de Narama 633; Alma tomó la primera coincidencia por un pedazo del nombre (otro
         # apartamento) y antes dijo «El único Mayorga que tengo es …», inventado (#583 T3).
         run: node .github/destino.js apps-script
+      - name: Memoria fresca de las últimas 5 llamadas y lo reciente desempata («Amílcar» es el de hace 10 min) (dobles)
+        # 16-nov: Juan: «no estamos teniendo contexto de la llamada anterior»; con dos personas del mismo nombre, la de la llamada reciente.
+        run: node .github/memoria-fresca.js apps-script
       - name: Verificar antes de prometer, borrador al contacto con su sí, «listo» solo con un envío hecho, sin duplicados al huésped en 24 h y la llamada auditada (dobles)
         # 13-nov: el borrador al socio de Narama 633 nunca salió y Alma dijo «Listo, con ese cambio»; 16-nov: la misma huésped
         # recibió el mismo mensaje a las 12:01 y a las 12:28; en una llamada dijo «Listo, le llegó» antes de mandar nada (#583 T4).

@@ -229,7 +229,11 @@ function vozPostCall_(body) {
   /* El webhook de ElevenLabs es de toda la cuenta: las conversaciones de otros agentes (Alma · Familia de The Gentle Stoic Parent)
      son personales y no entran al Hub. */
   var miAgente = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_AGENT_ID');
-  if (d.agent_id && miAgente && s_(d.agent_id) !== miAgente) return { ok: true, ignorado: 'otro agente' };
+  if (d.agent_id && miAgente && s_(d.agent_id) !== miAgente) {
+    /* Claudio (claudio.js) no entra al Hub como llamada, pero sí a la memoria fresca de Juan (memoriafresca.js): lo que hizo. */
+    try { if (s_(d.agent_id) === claudioAgente_()) { var admCl = claudioQuien_({ conv_id: convEL, sa_web: dv.sa_web }); if (admCl) mfClaudio_(admCl, convEL, Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), Number(md.call_duration_secs || 0), s_((d.analysis || {}).call_summary_title)); } } catch (x) { console.error('mfClaudio_: ' + x); }
+    return { ok: true, ignorado: 'otro agente' };
+  }
   var tel = normTel_(pc.external_number || dv.system__caller_id || '');
   if (!convEL) return { ok: false, error: 'sin conversation_id' };
   /* Llamada sin número (prueba desde el navegador o el panel de ElevenLabs): es del administrador principal y va a su conversación. */
@@ -263,6 +267,7 @@ function vozPostCall_(body) {
   var admC = null; try { admC = tel ? (adminPorTel_(tel) || (quien.tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] || null : null)) : null; } catch (x) {}
   var convHilo = admC ? 'op:' + admC.email : convId;
   if (admC) { try { opLlamadaGuardar_(admC, d, t0, dur, canal, motivo, resumen); } catch (x) { console.error('opLlamadaGuardar_: ' + x); } }
+  if (admC) { try { mfLlamadaDeVoz_(admC, d, t0, dur, canal); } catch (x) { console.error('mfLlamadaDeVoz_: ' + x); } }   // las últimas 5 llamadas (memoriafresca.js)
   if (admC) { try { vivoFin_(admC, convEL); } catch (x) { console.error('vivoFin_: ' + x); } }   // el modo compañero ve que terminó (vivo.js, #607)
   if (admC) { try { retDespuesLlamada_(admC, d.transcript); } catch (x) { console.error('retDespuesLlamada_: ' + x); } }   // ¿resolvieron algún tema por retomar?
   if (admC) { try { prometerAuditarLlamada_(admC, d.transcript, convEL); } catch (x) { console.error('prometerAuditarLlamada_: ' + x); } }   // ¿dijo «le llegó» sin un envío hecho? (prometer.js, #583)
@@ -730,6 +735,7 @@ function vozInicio_(b) {
       var admI = adminPorTel_(tel) || (tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] : null);
       var cr = admI ? contextoReciente_(admI) : null;
       if (cr) { ficha += '\n\n' + cr.bloque; if (cr.fresco) saludo = cr.saludo(nom(r.caller_name || admI.nombre)); }
+      if (admI) ficha += mfBloque_(admI);   // memoria fresca: las últimas 5 llamadas del principal (memoriafresca.js)
     } catch (e) { console.error('contextoReciente_: ' + e); }
   }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
@@ -1146,7 +1152,7 @@ var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pa
    primero (si falla, falla rápido). saludo_corto: «Dime, Juan» para cuando la app despierta a Alma con el anillo o con
    «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual).
    saludos: el Saludo variado (#410), la app de Alma elige uno; saludo_tema = el first_message trae un tema (retomar), no un hola. */
-function vozWebInicio_(ses, ligero, app, claudio) {
+function vozWebInicio_(ses, ligero, app, claudio, vueltaDe) {
   var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
   /* Acceso cerrado (vozacceso.js): la voz solo se abre con la sesión verificada del Hub, nunca con la llave antigua. */
   if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };   // no 'session': ese error cierra la sesión del navegador
@@ -1191,6 +1197,9 @@ function vozWebInicio_(ses, ligero, app, claudio) {
     if (ret.id) CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200);
   }
   marca('retomar');
+  /* Vuelve de Claudio (claudio.js, Juan 16-nov-2026): Alma cierra en una frase con lo que Claudio de verdad hizo (sus
+     herramientas, no lo que se dijo) y la app cuelga si Juan no sigue hablando. */
+  if (vueltaDe) { try { var vu = claudioVuelta_(adm, vueltaDe); dv.quien_llama += vu.linea; out.vuelta = vu.frase; out.cerrar_tras_vuelta = true; } catch (e) { console.error('claudioVuelta_: ' + e); } }
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
   CacheService.getScriptCache().put('vozweb_pend', tel, ligero ? 120 : 90);

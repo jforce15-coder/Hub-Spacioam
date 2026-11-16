@@ -230,4 +230,15 @@
     } catch (e) {}
   }
   w.addEventListener('load', envolver);
+
+  /* Desliza para actualizar (Juan, 16-nov-2026): el estándar de todas las páginas viaja con este archivo,
+     que ya cargan todas las apps. Ver js/sa-tirar.js. */
+  try {
+    if (!w.SATirar && !document.getElementById('sa-tirar-js')) {
+      var st = document.createElement('script');
+      st.id = 'sa-tirar-js'; st.async = true;
+      st.src = 'https://hub.spacioam.com/js/sa-tirar.js?v=2026-11-16a';
+      (document.head || document.documentElement).appendChild(st);
+    }
+  } catch (e) {}
 })(window);

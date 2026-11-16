@@ -485,15 +485,19 @@ function chatPagina_(filas, b) {
   var pag = L.slice(-n).map(tvConLinea_);   // la tarjeta de la llamada, como una línea junto a esa llamada (tarjeta.js)
   return { mensajes: pag, conteo: conteo, hayMas: L.length > pag.length, antes: pag.length ? pag[0].id : '' };
 }
-/* opEnviar { texto, canal? }: escribe en SU chat. canal 'app' (la app de Alma), 'calle' (la app en Modo calle: la
-   respuesta sale corta, para el oído, y sin [[conversar]]) o 'hub' (por defecto). La persona sale de la sesión. */
+/* opEnviar { texto, canal?, orbita? }: escribe en SU chat. canal 'app' (la app de Alma), 'calle' (la app en Modo calle: la
+   respuesta sale corta, para el oído, y sin [[conversar]]) o 'hub' (por defecto). La persona sale de la sesión.
+   orbita (#583 T1): el id del anillo o de la notificación que tocó («mp…», «es…», «ob…», «tm…»): el mensaje va a su tema sin
+   adivinar y Alma recibe su estado ya cargado (orbitaTurno_, orbita.js). */
 function chatEnviar_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var c = String(b.canal || ''), canal = c === 'app' || c === 'calle' ? c : 'hub';
-  if (canal !== 'calle') return opProcesar_(adm, b.texto, canal, []);
+  var orb = null; if (b.orbita) { try { orb = orbitaTurno_(adm, String(b.orbita).slice(0, 90)); } catch (e) { console.error('orbitaTurno_: ' + (e.stack || e)); } }
+  var nota = orb ? orb.nota : '', o = orb ? orb.o : null;
+  if (canal !== 'calle') return opProcesar_(adm, b.texto, canal, [], nota, o);
   AGENTE_APP_ = true;   // Modo calle: viene de la app de Alma (como calle_)
-  try { return opProcesar_(adm, b.texto, canal, []); } finally { AGENTE_APP_ = false; }
+  try { return opProcesar_(adm, b.texto, canal, [], nota, o); } finally { AGENTE_APP_ = false; }
 }
 /* opLista: un chat por persona con su último mensaje (solo el principal). Ya no hay fila «desarrollo». */
 function chatLista_(ses) {

@@ -3,6 +3,11 @@
    el pedido de Narama 633 quedó enterrado bajo 31 mensajes de otros temas y los números que Juan mandó por WhatsApp, sin
    citar, se trataron como de otro tema. Ahora cada cosa es un TEMA con su id (hoja ALMA_TEMAS) y cada fila de
    ALMA_OPERATIVO y ALMA_WHATSAPP lleva su tema_id; la voz, la app y WhatsApp comparten el mismo tema.
+   · Un solo nombre (#583 T2, Juan 16-nov-2026): el título es corto y legible («Cupos de Google»), sin «Juan pregunta…» ni un
+     conector al final (temaNombreCorto_); el mismo en el anillo, el microproyecto y el chat. Al tocar un anillo o su
+     notificación llega su id (orbitaTema_, orbita.js) y el tema queda fijo sin adivinar. Si hay duda, Alma ELIGE (Juan:
+     «ejecuta, no esperes»): solo pregunta con dos nombres legibles y distintos; una consulta con duda no se pega a otro tema;
+     «el más reciente» nunca es un tema que espera el sí de un envío, salvo un acuse corto («sí», «mándalo»).
    · A qué tema va un mensaje (temaElegir_, el único lugar): la tarjeta de Pendientes o el socio que lo abrió → ese; cita un
      mensaje → el tema de ese mensaje; nombra un apartamento o una persona de un tema → ese; trae un número y un tema espera
      un número → ese; si no, Jev elige entre los temas vivos (umbral JEV_UMBRAL_). Si Jev duda y hay dos o más temas
@@ -26,7 +31,8 @@ var TEMA_COLS_LEER_ = 16;        // sin «hilo» (lo largo): se lee solo el del 
 var TEMA_VIVO_H_ = 72;           // con movimiento en las últimas 72 h: se muestra, se elige y cuenta para la etiqueta
 var TEMA_ACTIVO_H_ = 6;          // en las últimas 6 h: activo (sin Jev gana el más reciente; dos activos y Jev duda → pregunta)
 var TEMA_LISTA_ = 6, TEMA_JEV_MAX_ = 5, TEMA_HILO_ = 6, TEMA_MSGS_ = 12, TEMA_CORTO_MAX_ = 28, TEMA_DUDA_S_ = 1800;
-var TEMA_POR_ = { tarjeta: 'por la tarjeta', socio: 'pedido del socio', cita: 'por cita', aclaracion: 'lo aclaró', nombre: 'por nombre', numero: 'esperaba un número', jev: 'por contexto', reciente: 'el más reciente' };
+var TEMA_POR_ = { tarjeta: 'por la tarjeta', socio: 'pedido del socio', cita: 'por cita', aclaracion: 'lo aclaró', nombre: 'por nombre', numero: 'esperaba un número', jev: 'por contexto', reciente: 'el más reciente', orbita: 'tocó su anillo' };
+var TEMA_FIJOS_ = ['tarjeta', 'cita', 'socio', 'orbita'];   // el código ya sabe el tema: la etiqueta de Alma no lo cambia
 var TEMA_CANALES_PREGUNTA_ = ['whatsapp', 'hub', 'app', 'llamada', 'calle'];   // donde alguien puede contestar «¿Esto es para A o para B?»
 var TEMA_ACT_ = null;            // el tema de este turno { email, id | nuevo, por, … } (opAgente_); lo leen pendientes, encargos y microproyectos
 var TEMA_PISTA_ = null;          // lo que quien llama ya sabe: { tema } (tarjeta, cita en WhatsApp)
@@ -71,12 +77,44 @@ function temaGuardar_(t) {
   sh.getRange(t.fila, 1, 1, t.hilo ? TEMA_CAB_.length : TEMA_COLS_LEER_).setValues([t.hilo ? v : v.slice(0, TEMA_COLS_LEER_)]);
   return t;
 }
+/* ── Un nombre corto y legible (#583 T2) ──
+   El 16-nov el anillo decía «Cupos Google» y el tema «Juan pregunta cómo estamos con» (las primeras palabras del pedido, en
+   tercera persona): Alma preguntó «¿Esto es para Juan pregunta cómo estamos con o para Estoy probando el modo?». Ahora el
+   nombre sale sin quién lo pide («Juan pregunta…», «El usuario solicita…»), sin cortesías («Alma, por favor…»), sin la
+   pregunta de estado («cómo estamos con…») y sin un conector al final («…con», «…o», «…de»). Lo usan el tema, el
+   microproyecto (microNombre_) y la corrida única TEMAS_V2. ORBITA_SOBRA_ y ORBITA_COLA_ son de orbita.js. */
+var TEMA_QUIEN_ = /^(juan|el usuario|la usuaria|el administrador|el admin|el due[nñ]o|[eé]l)\s+(me\s+|nos\s+)?(pregunta|pide|quiere|solicita|necesita|dice|consulta|comenta|avisa|propone|sugiere|reporta)(\s+(si|que|por|saber|sobre|a))?\s+/i;
+var TEMA_ESTADO_RE_ = /^[¿¡\s]*(y\s+)?(c[oó]mo\s+(va|van|vamos|estamos|est[aá]|est[aá]n|sigue|siguen|qued[oó]|quedaron|anda|andamos|vas)|en\s+qu[eé]\s+(va|van|vamos|qued[oó]|est[aá]|quedamos)|qu[eé]\s+pas[oó]|qu[eé]\s+sabes|el\s+estado)(\s+(con|de|del|en))?(?=\s|$|[¿?¡!,.])\s*/i;
+var TEMA_ARTICULO_ = /^(lo\s+del?|el|la|los|las|un|una|unos|unas|mi|mis)\s+/i;
+var TEMA_CONECTOR_ = /^(de|del|la|las|el|los|a|al|en|y|o|con|para|por|que|un|una|su|sus|mi|mis|si|como|cómo)$/i;
+function temaNombreCorto_(x, max, largo) {
+  max = max || 6; largo = largo || 48;
+  var t = String(x || '').replace(/^\s*\[[^\]]*\]\s*/, '').replace(/\[[^\]]*\]/g, ' ').replace(/[«»"“”*_#`]/g, '').replace(/\+?\d[\d\s().\-]{6,}\d/g, '').replace(/\s+/g, ' ').trim();
+  t = t.replace(/(^|\s)(\S+)(\s+\2)+(?=\s|$)/gi, '$1$2');   // «o o» → «o»
+  for (var k = 0; k < 5; k++) {
+    var a = t;
+    t = t.replace(TEMA_QUIEN_, '').replace(ORBITA_SOBRA_, '').replace(TEMA_ESTADO_RE_, '').replace(TEMA_ARTICULO_, '').trim();
+    if (a === t) break;
+  }
+  t = t.split(/[?!\n]|\.(?:\s|$)|,\s|;\s/)[0].trim();
+  var p = t.split(' ').filter(Boolean).slice(0, max).join(' ');
+  if (p.length > largo) p = p.slice(0, largo).replace(/\s+\S*$/, '');
+  for (var j = 0; j < 5; j++) {
+    p = p.replace(/[.,;:!?¿¡\-–—·\s]+$/, '');
+    if (ORBITA_COLA_.test(p)) p = p.replace(ORBITA_COLA_, '');
+    else if (TEMA_CONECTOR_.test(p)) p = '';
+    else break;
+  }
+  p = p.trim();
+  return p ? p.charAt(0).toUpperCase() + p.slice(1) : '';
+}
 /* «Escríbele al socio de Narama 633 que…» → «Escríbele al socio de Narama 633» (2 a 6 palabras, sin cortar una a la mitad). */
-function temaTitulo_(x) {
-  var t = String(x || '').replace(/\[[^\]]*\]/g, ' ').replace(/[«»"“”*_]/g, '').replace(/\+?\d[\d\s().\-]{6,}\d/g, '').replace(/\s+/g, ' ').trim();
-  var p = t.split(' ').slice(0, 6).join(' ').replace(/[.,;:!?¿¡\-–—]+$/, '');
-  if (p.length > 48) p = p.slice(0, 48).replace(/\s+\S*$/, '');
-  return p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Pedido';
+function temaTitulo_(x) { return temaNombreCorto_(x, 6, 48) || 'Pedido'; }
+/* ¿Se entiende al leerlo? 2 palabras o más, sin un conector al final y sin «Juan pregunta…». */
+function temaLegible_(n) {
+  n = String(n || '').trim(); var w = n.split(/\s+/).filter(Boolean);
+  if (w.length < 2 || /^(el )?pedido( para claudio| en curso)?$/i.test(n)) return false;
+  return !TEMA_CONECTOR_.test(w[w.length - 1].replace(/[.,;:!?]+$/, '')) && !TEMA_QUIEN_.test(n + ' ');
 }
 function temaCrear_(adm, d) {
   d = d || {};
@@ -160,26 +198,86 @@ function temaPorTel_(tel, email, o) {
     .sort(function (a, b) { return b.actualizado - a.actualizado; });
   return l.length ? l[0].id : '';
 }
-/* Los temas que el texto nombra: el apartamento (todas sus palabras, o su número de 3+ cifras) o el nombre de una persona.
-   Gana el que coincide más (Rue 301 sobre Ignacio 301 si dice «Rue»). */
+/* Los temas que el texto nombra: el apartamento (todas sus palabras, o su número de 3+ cifras), el nombre de una persona y
+   (#583 T2) su nombre: el título, el del microproyecto o el que se ve en el anillo, con todas sus palabras, o lo citado
+   entre «…» o comillas (eso pesa más). Gana el que coincide más (Rue 301 sobre Ignacio 301 si dice «Rue»). */
+var TEMA_VACIAS_ = /^(con|los|las|del|una|uno|unos|unas|que|por|para|sus|mis|como|socio|socia|pedido|tema)$/;
+function temaPalabras_(n) { return socioNorm_(n).split(' ').filter(function (w) { return w.length > 2 && !TEMA_VACIAS_.test(w); }); }
+function temaCitas_(texto) {
+  var out = [], re = /[«"“]([^»"”]{2,80})[»"”]/g, m;
+  while ((m = re.exec(String(texto || '')))) { var q = socioNorm_(m[1]); if (q) out.push(q); }
+  return out;
+}
 function temaNombrados_(texto, lista) {
-  var tn = ' ' + socioNorm_(texto) + ' ', tiene = function (w) { return tn.indexOf(' ' + w + ' ') >= 0; };
+  var tn = ' ' + socioNorm_(texto) + ' ', tiene = function (w) { return tn.indexOf(' ' + w + ' ') >= 0; }, citas = temaCitas_(texto), alias = {};
+  try { alias = temaAliasDe_(lista) || {}; } catch (e) { alias = {}; }
   var pts = lista.map(function (t) {
     var p = 0, k = socioClaveProp_(t.apartamento), num = k.filter(function (w) { return /^\d{3,}$/.test(w); }), pal = k.filter(function (w) { return !/^\d+$/.test(w) && w.length > 2; });
     if (k.length && k.every(tiene)) p = 3;
     else if (num.length && num.every(tiene)) p = pal.length && !pal.some(tiene) ? 1 : 2;
     if (!p && (t.personas || []).some(function (x) { var w = socioNorm_(x.n).split(' ').filter(function (y) { return y.length > 3 && !/^(socio|socia|recepcion|contacto|equipo)$/.test(y); }); return w.length && tiene(w[0]); })) p = 2;
+    [t.titulo].concat(alias[t.id] || []).forEach(function (nom) {
+      var n = socioNorm_(nom); if (!n || !temaLegible_(nom)) return;
+      if (citas.some(function (q) { return q === n || (q.length >= 4 && (n.indexOf(q) >= 0 || q.indexOf(n) >= 0)); })) p = Math.max(p, 4);
+      var w = temaPalabras_(nom); if (w.length >= 2 && w.every(tiene)) p = Math.max(p, 3);
+    });
     return { t: t, p: p };
   }).filter(function (x) { return x.p; });
   var max = Math.max.apply(null, [0].concat(pts.map(function (x) { return x.p; })));
   return pts.filter(function (x) { return x.p === max; }).map(function (x) { return x.t; });
 }
+/* Los otros nombres de cada tema: el del microproyecto que lo lleva y el que se vio en su anillo (orbitaNombreGuardar_). */
+var TEMA_ALIAS_K_ = 'tema_alias', TEMA_MICROS_ = null;
+function temaAliasDe_(lista) {
+  var ids = {}, out = {}; (lista || []).forEach(function (t) { ids[t.id] = 1; });
+  try { var c = JSON.parse(CacheService.getScriptCache().get(TEMA_ALIAS_K_) || '{}') || {}; Object.keys(c).forEach(function (id) { if (ids[id]) out[id] = [].concat(c[id] || []); }); } catch (e) {}
+  if (!TEMA_MICROS_ && typeof microFilas_ === 'function') {   // una lectura por turno (temaTurno_ la olvida)
+    try { TEMA_MICROS_ = microFilas_().filter(function (m) { return m.tema_id && m.nombre; }).map(function (m) { return { tema: m.tema_id, nombre: m.nombre }; }); } catch (e) { TEMA_MICROS_ = []; }
+  }
+  (TEMA_MICROS_ || []).forEach(function (m) { if (ids[m.tema]) (out[m.tema] = out[m.tema] || []).push(m.nombre); });
+  return out;
+}
+function temaAliasSumar_(id, nombre) {
+  id = String(id || ''); nombre = String(nombre || '').trim(); if (!id || !temaLegible_(nombre)) return;
+  try {
+    var c = CacheService.getScriptCache(), m = JSON.parse(c.get(TEMA_ALIAS_K_) || '{}') || {};
+    var l = (m[id] || []).filter(function (x) { return socioNorm_(x) !== socioNorm_(nombre); }); l.push(nombre); m[id] = l.slice(-3);
+    var ks = Object.keys(m); if (ks.length > 40) ks.slice(0, ks.length - 40).forEach(function (k) { delete m[k]; });
+    c.put(TEMA_ALIAS_K_, JSON.stringify(m), 21600);
+  } catch (e) { console.error('temaAliasSumar_: ' + e); }
+}
 /* ¿Es un pedido (abre tema) o solo un saludo o acuse? */
-function temaEsPedido_(texto) { var t = String(texto || '').trim(); return !!t && !esAcuseCorto_(t) && socioNorm_(t).split(' ').length >= 3; }
+/* #583 T2: una frase de prueba o charla («Estoy probando el modo») no abre tema: 5 palabras o más, o un verbo de acción. */
+var TEMA_VERBO_ = /^(escrib|mand|envi|llam|agend|program|revis|busc|cambi|pon|quit|agreg|anad|crea|hac|haz|pid|pregunt|dile|dig|avis|recuerd|record|compr|pag|cancel|reserv|bloque|muev|mov|sub|baj|arregl|cotiz|confirm|respond|contest|cobr|factur|registr|anot|apunt|guard|borr|elimin|actualiz|prepar|redact|compart|verific|chequ|calcul|organiz|coordin|resuelv|soluc|abr|cierr|cerr|termin|activ|desactiv|apag|enciend|prend|notific|ayud)/;
+function temaVerbo_(texto) {
+  var w = socioNorm_(String(texto || '').replace(ORBITA_SOBRA_, '')).split(' ').filter(Boolean).slice(0, 3);
+  return w.some(function (x) { return x.length > 2 && TEMA_VERBO_.test(x); });
+}
+function temaEsPedido_(texto) {
+  var t = String(texto || '').trim(); if (!t || esAcuseCorto_(t)) return false;
+  var n = socioNorm_(t).split(' ').filter(Boolean).length;
+  return n >= 5 || (n >= 2 && temaVerbo_(t));
+}
+/* Una consulta pura: pregunta algo y no pide hacer nada («¿cómo va…?», «¿quién llega hoy?»). */
+function temaEsConsulta_(texto) {
+  var t = String(texto || '').trim(), n = socioNorm_(t);
+  return !!t && (/\?/.test(t) || /^(como|que|cuando|cuanto|cuantos|cuantas|donde|quien|quienes|cual|cuales|hay|ya)\b/.test(n)) && !temaVerbo_(t);
+}
+/* Un acuse corto que sí contesta la pregunta de un envío: «sí», «mándalo», «por WhatsApp», «dale». */
+function temaAcuse_(texto) {
+  var t = String(texto || '').trim(); if (esAcuseCorto_(t)) return true;
+  var n = socioNorm_(t); if (n.split(' ').length > 6) return false;
+  return /^((si|no|ok) )?(si|mandal[oae]s?|envial[oae]s?|mandaselo|enviaselo|dale|hazlo|adelante|asi esta bien|esta bien|por (la )?plataforma|por whatsapp|por correo|por airbnb|por booking|el primero|el segundo|ese|esa|no lo mandes|no lo envies|espera)( |$)/.test(n);
+}
+/* ¿El tema espera el sí de un envío? Su último paso fue un borrador o la pregunta del canal («¿por la plataforma o por WhatsApp?»). */
+function temaEsperaEnvio_(t) {
+  return !!t && (t.espera === 'respuesta' || t.espera === 'numero') && /borrador|plataforma|whatsapp|por correo|(lo|se lo|te lo|la|se la) (mando|envio|mandamos|enviamos)|mandarlo|enviarlo|mandarselo|enviarselo|asi le (escribo|digo)/.test(socioNorm_(t.ultimo_paso));
+}
 /* Lo que Alma espera después de su respuesta: un número, una respuesta o nada. */
 function temaEspera_(resp) {
   var t = socioNorm_(resp); if (String(resp || '').indexOf('?') < 0) return '';
-  return /\b(numero|telefono|whatsapp|celular|cel)\b/.test(t) ? 'numero' : 'respuesta';
+  /* «¿Se lo mando por la plataforma o por WhatsApp?» no pide un número (#583): solo «su número», «su WhatsApp», «su celular». */
+  return /\b(numero|telefono|celular|cel)\b/.test(t) || /\b(su|tu|el|un|otro) whatsapp\b/.test(t) ? 'numero' : 'respuesta';
 }
 
 /* ── Jev elige entre los temas vivos (rapido.js, mismo cliente). TEMA_JEV = 0 lo apaga. ── */
@@ -222,12 +320,21 @@ function temaPregunta_(email, texto, ops) {
 }
 
 /* ── A qué tema va un mensaje: el único lugar ── → { id | nuevo, por, lista, pregunta?, texto?, jev? } */
+/* ¿Se puede preguntar «¿Esto es para A o para B?»? Solo con nombres legibles y distintos (#583 T2). */
+function temaSePuedePreguntar_(ops) {
+  var n = (ops || []).map(temaNombre_), k = n.map(socioNorm_);
+  return n.length >= 2 && n.every(temaLegible_) && k.every(function (x, i) { return k.indexOf(x) === i; });
+}
 function temaElegir_(adm, texto, o) {
   o = o || {}; var email = adm.email, ahora = Date.now(), vivos = temaAbiertos_(email, ahora);
   var con = function (x) { return Object.assign({ lista: vivos }, x); };
   var fijo = o.tema ? temaLeer_(o.tema) : null; if (fijo && fijo.admin === email) return con({ id: fijo.id, por: o.por || 'tarjeta' });
-  /* Sin nadie que conteste (segundo plano, instrucción de GitHub, vigilancias): nunca pregunta; va el primero. */
-  var preguntar = function (ops, extra) { return o.sinPregunta ? Object.assign(con({ id: ops[0].id, por: 'reciente' }), extra || {}) : Object.assign(con({ pregunta: temaPregunta_(email, texto, ops) }), extra || {}); };
+  /* Sin nadie que conteste (segundo plano, instrucción de GitHub, vigilancias) o con nombres que no se leen bien (#583):
+     nunca pregunta; va el primero. */
+  var preguntar = function (ops, extra) {
+    if (o.sinPregunta || !temaSePuedePreguntar_(ops)) return Object.assign(con({ id: ops[0].id, por: 'reciente' }), extra || {});
+    return Object.assign(con({ pregunta: temaPregunta_(email, texto, ops) }), extra || {});
+  };
   var ac = temaDudaResolver_(email, texto, vivos); if (ac) return con(ac);
   var abiertos = temaFilas_().filter(function (t) { return t.estado === 'abierto' && t.admin === email; });
   var nom = temaNombrados_(texto, abiertos);
@@ -239,21 +346,33 @@ function temaElegir_(adm, texto, o) {
     var esp = vivos.filter(function (t) { return t.espera === 'numero'; })[0]; if (esp) return con({ id: esp.id, por: 'numero' });
   }
   var pedido = temaEsPedido_(texto), activos = vivos.filter(function (t) { return ahora - t.actualizado < TEMA_ACTIVO_H_ * 3600000; });
+  /* Lo que no es seguro (Jev con duda o «el más reciente») nunca cae en un tema que espera el sí de un envío, salvo un acuse
+     corto: el 16-nov «pásame con Claudio» se tomó como respuesta a «¿por la plataforma o por WhatsApp?». */
+  var acuse = temaAcuse_(texto), apto = function (t) { return acuse || !temaEsperaEnvio_(t); };
   var nuevo = function () { return pedido ? con({ nuevo: true, por: 'nuevo', titulo: temaTitulo_(texto), apartamento: temaAptoEnTexto_(texto) }) : con({}); };
   if (!vivos.length) return nuevo();
   var j = (vivos.length > 1 || pedido) ? temaJev_(texto, vivos.slice(0, TEMA_JEV_MAX_)) : { ok: false, error: 'un solo tema y no es un pedido' };
-  if (j.ok && j.confianza >= JEV_UMBRAL_) { var r = j.choice === 'nuevo' ? nuevo() : con({ id: j.choice, por: 'jev' }); r.jev = j; return r; }
-  if (j.ok && activos.length >= 2) {
-    var prim = vivos.filter(function (t) { return t.id === j.choice; })[0], ops = (prim ? [prim] : []).concat(activos.filter(function (t) { return t !== prim; })).slice(0, 2);
-    return preguntar(ops, { jev: j });
+  var conJev = function (r) { r.jev = j; return r; };
+  if (j.ok && j.confianza >= JEV_UMBRAL_) return conJev(j.choice === 'nuevo' ? nuevo() : con({ id: j.choice, por: 'jev' }));
+  /* Con duda, Alma elige (Juan, 16-nov: «ejecuta, no esperes»). Una consulta pura no se pega a otro tema. */
+  if (temaEsConsulta_(texto) && !acuse) return conJev(nuevo());
+  if (j.ok) {
+    var prim = vivos.filter(function (t) { return t.id === j.choice; })[0];
+    if (activos.length >= 2) {
+      var ops = (prim ? [prim] : []).concat(activos.filter(function (t) { return t !== prim; })).filter(apto).slice(0, 2);
+      if (ops.length === 2 && !o.sinPregunta && temaSePuedePreguntar_(ops)) return preguntar(ops, { jev: j });
+    }
+    if (j.choice === 'nuevo') return conJev(nuevo());
+    if (prim && apto(prim)) return conJev(con({ id: prim.id, por: 'jev' }));
   }
-  if (activos.length) return Object.assign(con({ id: activos[0].id, por: 'reciente' }), { jev: j });
-  return nuevo();
+  var rec = activos.filter(apto)[0];
+  if (rec) return conJev(con({ id: rec.id, por: 'reciente' }));
+  return conJev(nuevo());
 }
 
 /* ── El turno (opAgente_): elige, deja TEMA_ACT_ y arma el bloque para el prompt ── */
 function temaTurno_(adm, texto, canal) {
-  TEMA_ACT_ = null; TEMA_MEMO_ = null;
+  TEMA_ACT_ = null; TEMA_MEMO_ = null; TEMA_MICROS_ = null;
   if (!adm || !adm.email) return null;
   var pista = TEMA_PISTA_ || {}; TEMA_PISTA_ = null;
   var sel = temaElegir_(adm, texto, Object.assign({ sinPregunta: TEMA_CANALES_PREGUNTA_.indexOf(String(canal || '')) < 0 }, pista));
@@ -291,7 +410,7 @@ function temaSacarEtiqueta_(texto) {
    cierre. Devuelve el tema_id para las filas del turno ('' si no hay tema). */
 function temaCerrarTurno_(adm, texto, resp, ag) {
   var sel = TEMA_ACT_; if (!adm || !sel || sel.email !== adm.email || sel.pregunta || (ag && ag.temaPregunta)) return '';
-  var tag = (ag && ag.tema) || null, fijo = sel.por === 'tarjeta' || sel.por === 'cita' || sel.por === 'socio', t = null;
+  var tag = (ag && ag.tema) || null, fijo = TEMA_FIJOS_.indexOf(sel.por) >= 0, t = null;
   if (tag && tag.id && !fijo) { var tg = temaLeer_(tag.id); if (tg && tg.admin === adm.email) t = tg; }   // Alma lo corrige: otro tema
   if (!t && tag && tag.nuevo && !fijo) {
     if (sel.id && sel.por === 'nuevo') { t = temaLeer_(sel.id); if (t && tag.titulo) t.titulo = temaTitulo_(tag.titulo); }   // ya se creó en el turno (un encargo, un microproyecto)
@@ -308,6 +427,26 @@ function temaCerrarTurno_(adm, texto, resp, ag) {
   ((ag && ag.hechas) || []).forEach(function (h) { if (h && h.tel && !h.error) temaPersonaSumar_(t, h.nombre, h.tel); if (h && h.propiedad && !t.apartamento) t.apartamento = temaApto_(h.propiedad); });
   t.ultimo_paso = String(resp || '').replace(/\s+/g, ' ').trim().slice(0, 200); t.espera = temaEspera_(resp); t.actualizado = Date.now();
   if (tag && tag.listo && (!tag.id || tag.id === t.id)) temaCerrar_(t, tag.listo); else temaGuardar_(t);
+  return t.id;
+}
+
+/* Lo que terminó en segundo plano (#583 T2.4). El 16-nov el «sí, envíalo» se terminó por detrás (opProcesar_ con seguira,
+   y vozSeguirPronto en retomar.js) y el tema nunca supo que ya había salido: siguió esperando «respuesta», el siguiente
+   mensaje («pásame con Claudio») cayó ahí y el agente lo tomó como el sí. Ahora el resultado queda en el hilo («Ya salió: …»)
+   y, si algo salió, la espera se limpia. Devuelve el tema_id ('' si no hay). */
+function temaSumarResultado_(adm, id, r) {
+  var t = id ? temaLeer_(id) : null; if (!t || !adm || t.admin !== adm.email) return '';
+  r = r || {};
+  var hechas = r.hechas || [], bien = hechas.filter(function (h) { return h && !h.error && h.tipo !== 'consulta'; }), malas = hechas.filter(function (h) { return h && h.error; });
+  var res = String(r.respuesta || '').replace(/\s+/g, ' ').trim(), corto = function (h) { return String(h.resumen || h.tipo || '').replace(/\s+/g, ' ').slice(0, 90); };
+  var paso = r.fallo ? 'No se pudo terminar en segundo plano (' + String(r.fallo).slice(0, 100) + ')'
+    : (bien.length ? 'Ya salió: ' + bien.slice(0, 3).map(corto).join(' · ') : 'Terminado en segundo plano') + (malas.length ? ' · no salió: ' + malas.slice(0, 2).map(corto).join(' · ') : '');
+  var linea = paso + (res && !r.fallo ? ' — ' + res : '');
+  temaHiloSumar_(t, [{ d: 'alma', t: linea }]);
+  bien.forEach(function (h) { if (h.tel) temaPersonaSumar_(t, h.nombre, h.tel); if (h.propiedad && !t.apartamento) t.apartamento = temaApto_(h.propiedad); });
+  t.ultimo_paso = linea.slice(0, 200); t.espera = bien.length || r.fallo ? '' : temaEspera_(res); t.actualizado = Date.now();
+  if (t.estado !== 'abierto') { t.estado = 'abierto'; t.resultado = ''; t.cerrado = ''; }
+  temaGuardar_(t);
   return t.id;
 }
 
@@ -404,4 +543,33 @@ function temasMigrar_() {
   });
   if (!tope()) P.setProperty('TEMAS_V1', new Date().toISOString() + ' · ' + n + ' ligados en la última pasada');
   return { hecho: !tope(), ligados: n };
+}
+
+/* ── Una sola vez (TEMAS_V2, #583 T2): los nombres viejos se limpian con la misma función ──
+   «Juan pregunta cómo estamos con» → «Cupos de Google». Un microproyecto toma su nombre limpio o, si no se lee, el de lo
+   que pidió Juan; su tema toma ese mismo nombre (un solo nombre para el anillo, el microproyecto y el chat). Un tema suelto
+   toma su título limpio o, si no se lee, el de su primer mensaje. Solo escribe lo que cambia; se repite hasta terminar. */
+var TEMAS_V2_TOPE_ = 60;
+function temasRenombrar_() {
+  var P = PropertiesService.getScriptProperties(); if (P.getProperty('TEMAS_V2')) return { hecho: true, temas: 0, micros: 0 };
+  var n = 0, nT = 0, nM = 0, tope = function () { return n >= TEMAS_V2_TOPE_; };
+  var mejor = function (fn, fuentes) { for (var i = 0; i < fuentes.length; i++) { var x = fn(fuentes[i]); if (temaLegible_(x)) return x; } return ''; };
+  var porTema = {};
+  microFilas_().forEach(function (m) {
+    var pidio = String(((m.ajustes || []).filter(function (a) { return a.de !== 'claude'; })[0] || {}).texto || '');
+    var nuevo = mejor(microNombre_, [m.nombre, pidio]) || m.nombre;
+    if (nuevo !== m.nombre && !tope()) { microHoja_().getRange(m.fila, MICRO_CAB_.indexOf('nombre') + 1).setValue(nuevo); m.nombre = nuevo; n++; nM++; }
+    if (m.tema_id) porTema[m.tema_id] = { nombre: m.nombre, pidio: pidio };
+  });
+  TEMA_MEMO_ = null;
+  temaFilas_().forEach(function (t) {
+    if (tope() || t.tipo === 'socio') return;
+    var mi = porTema[t.id], primero = mi ? '' : String((temaHilo_(t).filter(function (h) { return h.d === 'yo'; })[0] || {}).t || '');
+    var nuevo = mi && (t.tipo === 'micro' || t.origen === 'micro' || !temaLegible_(t.titulo)) && temaLegible_(mi.nombre) ? mi.nombre
+      : mejor(temaTitulo_, [t.titulo].concat(mi ? [mi.nombre, mi.pidio] : [primero])) || t.titulo;
+    if (nuevo === t.titulo) return;
+    temaHoja_().getRange(t.fila, TEMA_CAB_.indexOf('titulo') + 1).setValue(celdaTexto_(nuevo)); t.titulo = nuevo; n++; nT++;
+  });
+  if (!tope()) P.setProperty('TEMAS_V2', new Date().toISOString() + ' · ' + nT + ' temas y ' + nM + ' microproyectos renombrados en la última pasada');
+  return { hecho: !tope(), temas: nT, micros: nM };
 }

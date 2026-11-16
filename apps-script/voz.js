@@ -1476,6 +1476,9 @@ function vozAvisoSalida_(a, rets, pends, nombre) {
   if (a.conferencia) o.conferencia = true;
   if (a.prueba) { o.prueba = true; o.hablar = ''; o.importante = false; }   // la prueba de Siri no se dice en voz alta
   if (a.push) o.push = true;
+  /* El id para abrir el chat al tocarla (#583 T1.3): el anillo del que es resultado o el tema de su tarjeta. */
+  var orb = (a.pedidos || [])[0] || (pd && pd.tema_id) || '';
+  if (orb) o.orbita = String(orb).slice(0, 90);
   if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
   else if (a.datos && a.datos.length) { o.titulo = String(a.titulo || ''); o.lineas = a.datos.slice(0, 3); }   // los datos ordenados del aviso (avisotexto.js)
   return o;

@@ -85,7 +85,7 @@ function caja(o) {
   vm.runInContext(['s_', 'celdaTexto_', 'normTel_', 'telsEnTexto_', 'waEnviar_', 'hojaWA_'].map(n => sacar(COD, n)).join('\n') +
     '\nvar fin8_ = x => String(x || "").replace(/\\D/g, "").slice(-8);\n' + /const WA_CAB_ = [^\n]*/.exec(COD)[0].replace('const', 'var') + '\nvar WA_OK_ = false;\n' +
     sacar(leer('contacto.js'), 'esAcuseCorto_') + sacar(leer('pendientes.js'), 'tituloCorto_'), ctx, { filename: 'extractos' });
-  ['sociosmi.js', 'rapido.js', 'paraalma.js', 'temas.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['sociosmi.js', 'rapido.js', 'paraalma.js', 'orbita.js', 'temas.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   /* El paso de una instrucción (paraalma.js) queda de mentira: aquí se prueba que el aviso llegue a él. */
   if (o.unoDeMentira) ctx.paraAlmaUno_ = (i) => { uno.push(i.number); return 1; };
   const reloj = ms => { ahora += ms; };

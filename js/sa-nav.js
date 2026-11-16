@@ -84,6 +84,13 @@
     mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", opus: "audio/ogg", wav: "audio/wav", amr: "audio/amr" };
   var DOC_ACCEPT = Object.keys(DOC_EXT).map(function (e) { return "." + e; }).join(",") + ",application/pdf,audio/*,image/*";
   var SPARK = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg>';
+  /* UNA ROCA (Juan, 16-nov-2026: «siempre tiene que ser la misma con diferentes tamaños»): el dibujo de la piedra vive solo
+     aquí. La llamada (la piedra al centro), el portal entre apps y la roca suelta de otras pantallas (SANav.roca, p. ej.
+     Health) usan este mismo marcado: el halo, el anillo, el alabastro con su luz, el borde y el destello. Lo revisa
+     .github/una-roca.js (en la app, Alma/RocaAlma.swift es su gemela). */
+  function piedraHTML(cls, attrs, extra) {
+    return '<div class="' + cls + '"' + (attrs || "") + '><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div>' + (extra || "") + '</div>';
+  }
   function svg(p, sz) { return '<svg viewBox="0 0 24 24" width="' + (sz || 19) + '" height="' + (sz || 19) + '" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
   function icon(i) { return i && i.indexOf("<") >= 0 ? i : svg(P[i] || P.grid); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -352,6 +359,9 @@
     /* portal: la piedra de Alma cubre la pantalla al irse a otra página y la recibe al llegar */
     ".san-scope.san-portal{position:fixed;inset:0;z-index:2147483600;overflow:hidden;pointer-events:auto;touch-action:none}",
     ".san-scope .san-rock.san-pp{width:140px;height:140px;margin:-70px 0 0 -70px;visibility:visible;--halo:.9;--lit:.55;--sombra:.6;pointer-events:none}",
+    /* La roca suelta (SANav.roca): la misma piedra en otra pantalla, de su tamaño (--d), con el halo del atardecer de Alma (el del inicio); respira siempre con el ciclo del botón (3.6 s, propiedad scale: no choca con el transform de quien la mueva o la agrande) */
+    ".san-scope .san-rock.san-rs{position:relative;left:auto;top:auto;width:var(--d,150px);height:var(--d,150px);visibility:visible;pointer-events:none;cursor:default;--halo:.42;--lit:.32;--sombra:.85;--san-halo:linear-gradient(180deg,#8FA5C8 0%,#B8B6C8 30%,#E9826A 56%,#E3A47F 74%,#A98C93 100%);animation:san-core 3.6s ease-in-out infinite}",
+    "@media (prefers-reduced-motion:reduce){.san-scope .san-rock.san-rs{animation:none}}",
     ".san-scope .san-pw{position:absolute;inset:-1px;border-radius:50%;background:#FAFAFA;opacity:0;pointer-events:none}",
     ".san-scope .san-pcap{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);width:min(320px,82vw);text-align:center;font:500 15px/1.5 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#6F6867;opacity:0;pointer-events:none}",
     ".san-dockhost{position:absolute;left:50%;top:50%;width:0;height:0;visibility:visible;z-index:2;pointer-events:none}.san-dockhost .san-nav{position:absolute!important;left:0!important;top:0!important;bottom:auto!important;pointer-events:auto}",
@@ -1265,7 +1275,7 @@
   function almaBuild() {
     if (AL.built) return; AL.built = true;
     var ov = d.createElement("div"); ov.className = "san-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", "Alma");
-    ov.innerHTML = '<div class="san-ov-bg"></div><div class="san-rock" aria-label="Alma"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div></div>' +
+    ov.innerHTML = '<div class="san-ov-bg"></div>' + piedraHTML("san-rock", ' aria-label="Alma"', "") +
       '<div class="san-ov-ui"><div class="san-ov-st"></div><div class="san-ov-cap" aria-live="polite"></div><div class="san-ov-btns">' +
       '<button type="button" class="san-ob" data-a="chat" aria-label="Pasar a chat">' + svg(P.chat, 21) + '<span>Chat</span></button>' +
       '<button type="button" class="san-ob start" data-a="start" aria-label="Iniciar llamada">' + svg('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>', 21) + '<span>Iniciar llamada</span></button>' +
@@ -2231,7 +2241,7 @@
     var DO = o.rapido ? 760 : 1150, DI = o.rapido ? 900 : 1250;
     portalBarrer(true);   // nunca dos piedras: si quedó un portal anterior (animación que el teléfono pausó), se quita
     var pv = d.createElement("div"); pv.className = "san-scope san-portal"; pv.setAttribute("aria-hidden", "true"); pv._t = Date.now(); pv._dir = dir;
-    pv.innerHTML = '<div class="san-rock san-pp"><span class="san-st-glow"></span><span class="san-st-ring"></span><div class="san-st-body"><div class="san-st-lit"></div></div><div class="san-st-rim"></div><div class="san-st-spark">' + SPARK + '</div><div class="san-pw"></div></div><div class="san-pcap"></div>';
+    pv.innerHTML = piedraHTML("san-rock san-pp", "", '<div class="san-pw"></div>') + '<div class="san-pcap"></div>';
     d.body.appendChild(pv);
     var rk = pv.firstChild, li = rk.querySelector(".san-st-lit"), lf = tengo0() ? Math.min(.6, litFace() * .5) : .06, sp = rk.querySelector(".san-st-spark"), pw = rk.querySelector(".san-pw"), gl = rk.querySelector(".san-st-glow"), cap = pv.lastChild; cap.textContent = o.texto || "";
     if (bl) pw.style.background = fondo;
@@ -2371,6 +2381,15 @@
     /* La roca de Alma sin voz, respiración ni gelatina: centro y diámetro (px) a los que va. Las órbitas del inicio la usan
        para no seguir el pulso de la voz. null si la roca no está a la vista. */
     piedra: function () { return root && E.stone && AL.vis && isFinite(aS.x) ? { x: aX.x, y: aY.x, s: aS.x } : null; },
+    /* UNA ROCA en otra pantalla (Health, Respira, conectar el anillo): la misma piedra, del tamaño que pidan, dentro de el.
+       SANav.roca(el, { d: 150 }) → la piedra (respira sola; quien la agrande o la mueva usa transform en el, no en ella). */
+    roca: function (el, o) {
+      if (!el) return null;
+      if (!d.getElementById("sa-nav-css")) { var cs = d.createElement("style"); cs.id = "sa-nav-css"; cs.textContent = CSS; d.head.appendChild(cs); }
+      var dm = Math.max(24, Math.min(600, Math.round(+(o && o.d) || 150)));
+      el.classList.add("san-scope"); el.innerHTML = piedraHTML("san-rock san-rs", ' aria-hidden="true" style="--d:' + dm + 'px"', "");
+      return el.firstChild;
+    },
     mount: function (c) {
       if (root) { this.update(c); return; }
       /* Una sola piedra por página: si otro script dejó un menú montado, se quita antes de construir el nuevo. */

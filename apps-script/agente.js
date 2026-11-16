@@ -718,6 +718,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'grow_proyectos': {   // lo de Grow, con grow.spacioam.com (enlaces.js)
       var rGp = growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
       try { tvGrowGuardar_(rGp); } catch (e) { console.error('tvGrowGuardar_: ' + e); }   // la etapa para el tablero del socio (tarjeta.js)
+      try { jvCandidataGrow_(rGp); } catch (e) { console.error('jvCandidataGrow_: ' + e); }   // UN proyecto: su tablero en la llamada (snapshot.js)
       return acortarEnObjeto_(rGp, nombre, 'grow');
     }
     case 'grow_crear_proyecto': case 'grow_mover_etapa': case 'grow_agendar_visita': {

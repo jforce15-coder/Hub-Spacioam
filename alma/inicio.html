@@ -206,6 +206,12 @@
     font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #FFFDFB; text-shadow: 0 1px 10px rgba(40,25,25,.5); }
   @keyframes esf-quieta { 0%, 100% { transform: scale(1); } 50% { transform: scale(.97); } }
   @keyframes esf-halo { 0%, 100% { transform: scale(1); opacity: .42; } 50% { transform: scale(1.12); opacity: .8; } }
+  /* UNA ROCA, UN PULSO (Juan, 16-nov-2026: «el pulse de la roca es súper importante […] sin ningún conflicto con las
+     animaciones de alrededor»): las esferas y los anillos en órbita respiran AL MISMO TIEMPO que la roca (SAPulso.enFase los
+     pone en la fase de su respiración, js/sa-nav.js PULSE) y, mientras hay una llamada (Alma o Claudio hablan y la roca sigue
+     la voz), se quedan quietos: el único pulso que se mueve es el de la roca. Capas separadas: ninguna comparte transform. */
+  html:has(#sa-nav-root .san-ov.on:not(.quieta)) .esf .resp, html:has(#sa-nav-root .san-ov.on:not(.quieta)) .esf .halo,
+  html:has(#sa-nav-root .san-ov.on:not(.quieta)) .pob-s .resp, html:has(#sa-nav-root .san-ov.on:not(.quieta)) .pob-s .halo { animation: none; }
   .esf.proposito { --c: #E9826A; --c2: #F2B08F; --c3: #C9705E; }
   .esf.relaciones { --c: #D99AA0; --c2: #F0C4C3; --c3: #B06F7A; }
   .esf.finanzas { --c: #8FB38C; --c2: #C3D9B8; --c3: #5F8A5E; }
@@ -688,6 +694,43 @@
   .tvb-ln span { min-width: 0; overflow-wrap: anywhere; }
   .tvb-ln small { grid-column: 2; font-size: 10.5px; color: #6F6867; }
   @media (prefers-reduced-motion: reduce) { .tvb-br i { transition: none; } }
+  /* Snapshot estilo Jarvis (Juan, 16-nov-2026; apps-script/snapshot.js): futurista pero cálido. Lo importante en una frase
+     bajo el título (vidrio con el destello de Alma); la experiencia como termómetro del coral al verde con su riesgo; lo que
+     le molesta y lo que lo tiene feliz lado a lado; el problema con lo que estamos haciendo; y los números grandes. */
+  .tvb-dest { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 0; padding: 10px 13px; border-radius: 16px; font: 500 13px/1.42 Montserrat, system-ui, sans-serif; color: #fff;
+    background: linear-gradient(120deg, rgba(255,255,255,.26), rgba(255,255,255,.12)); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 10px 26px -18px rgba(40,30,25,.55); text-shadow: 0 1px 6px rgba(40,30,25,.25); text-wrap: pretty; }
+  .tvb-dest svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: #FFE3D9; filter: drop-shadow(0 0 6px rgba(255,214,196,.8)); }
+  .tvb-dest[data-tono="alerta"] { background: linear-gradient(120deg, rgba(158,51,38,.42), rgba(233,130,106,.28)); }
+  .tvb-dest[data-tono="aviso"] { background: linear-gradient(120deg, rgba(201,154,46,.34), rgba(255,255,255,.14)); }
+  .tvb-termometro .tvb-v { font-size: clamp(22px, 6.4vw, 27px); }
+  .tvb-termometro .tvb-v[data-tono="alerta"] { color: #9E3326; }
+  .tvb-termometro .tvb-v[data-tono="aviso"] { color: #8A6413; }
+  .tvb-termometro .tvb-v[data-tono="libre"] { color: #2F5B43; }
+  .tvb-term { position: relative; height: 8px; margin: 10px 0 2px; border-radius: 4px; background: linear-gradient(90deg, #E36A55 0%, #E9A15C 45%, #A8C48F 75%, #6FA37F 100%); }
+  .tvb-term i { position: absolute; right: 0; top: 0; bottom: 0; width: calc(100% - var(--n)); border-radius: 0 4px 4px 0; background: rgba(236,234,231,.92); transition: width .9s var(--ease, cubic-bezier(.22,.61,.36,1)) .25s; }
+  .tvb-term b { position: absolute; top: 50%; left: var(--n); width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(233,130,106,.28), 0 2px 6px rgba(40,30,25,.35);
+    transition: left .9s var(--ease, cubic-bezier(.22,.61,.36,1)) .25s; }
+  .tvb:not(.on) .tvb-term i { width: 100%; } .tvb:not(.on) .tvb-term b { left: 0; }
+  .tvb-porque { color: #6F6867; margin-top: 6px; }
+  .tvb-animo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tvb-animo.uno { grid-template-columns: 1fr; }
+  .tvb-an ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .tvb-an li { position: relative; padding-left: 14px; font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
+  .tvb-an li::before { content: ""; position: absolute; left: 0; top: 5px; width: 7px; height: 7px; border-radius: 50%; }
+  .tvb-an.molesta li::before { background: #E36A55; box-shadow: 0 0 0 3px rgba(227,106,85,.18); }
+  .tvb-an.feliz li::before { background: #6FA37F; box-shadow: 0 0 0 3px rgba(111,163,127,.2); }
+  .tvb-an.molesta .tvb-k { color: #9E3326; } .tvb-an.feliz .tvb-k { color: #2F5B43; }
+  .tvb-prob { display: block; margin-top: 4px; font: 400 clamp(18px, 5vw, 21px)/1.2 Valky, "Cormorant Garamond", Georgia, serif; color: #3E3F3F; overflow-wrap: anywhere; text-wrap: pretty; }
+  .tvb-k2 { margin-top: 10px; }
+  .tvb-cifras { display: grid; grid-template-columns: repeat(var(--c, 3), minmax(0, 1fr)); gap: 0; padding: 12px 4px; }
+  .tvb-cif { min-width: 0; padding: 0 10px; }
+  .tvb-cif + .tvb-cif { border-left: 1px solid #ECEAE7; }
+  .tvb-cif .tvb-v { font-size: clamp(24px, 7.4vw, 32px); font-variant-numeric: tabular-nums; }
+  .tvb-cif .tvb-v.txt { font-size: clamp(18px, 5.2vw, 22px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 8px; }
+  .tvb .tvb-cif { opacity: 0; transform: translateY(6px); transition: opacity .4s ease, transform .55s var(--ease, cubic-bezier(.22,.61,.36,1)); transition-delay: calc(var(--i, 0) * 45ms + var(--j, 0) * 70ms + 120ms); }
+  .tvb.on .tvb-cif { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .tvb-term i, .tvb-term b { transition: none; } .tvb .tvb-cif { transform: none; transition: opacity .2s ease; transition-delay: 0s; } }
   /* Modo compañero (#607 T-C1, apps-script/vivo.js): este dispositivo muestra la llamada del otro, sin audio. */
   .comp { position: fixed; inset: 0; z-index: 2147482450; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity .35s ease;
     background: linear-gradient(180deg, rgba(40,30,32,.10), rgba(40,30,32,.30)), #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat; color: #fff; }
@@ -1011,7 +1054,31 @@
 <script src="../js/alma-client.js?v=2026-11-16-archivos"></script>
 <script src="../js/alma-voz.js?v=2026-11-16e"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-16-archivos"></script>
+<script src="../js/sa-nav.js?v=2026-11-16-una-roca"></script>
+<script>
+/* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
+   el reloj de la página (sa-nav.js: J.p = t % PULSE, 3.6 s); sus animaciones de CSS (esf-quieta, esf-halo) arrancan en ese
+   mismo cero, sin desfases propios. */
+window.SAPulso = {
+  enFase: function (raiz) {
+    try {
+      if (!raiz || !raiz.querySelectorAll || !document.getAnimations) return;
+      Array.prototype.forEach.call(raiz.querySelectorAll(".resp, .halo"), function (e) {
+        (e.getAnimations ? e.getAnimations() : []).forEach(function (a) { if (/^esf-(quieta|halo)$/.test(a.animationName || "")) a.startTime = 0; });
+      });
+    } catch (e) {}
+  }
+};
+/* Al terminar la llamada vuelven a respirar (sus animaciones se crean de nuevo): otra vez en la fase de la roca. */
+(function () {
+  var antes = false;
+  setInterval(function () {
+    var o = document.querySelector("#sa-nav-root .san-ov"), ahora = !!(o && o.classList.contains("on") && !o.classList.contains("quieta"));
+    if (antes && !ahora) requestAnimationFrame(function () { SAPulso.enFase(document.body); });
+    antes = ahora;
+  }, 700);
+})();
+</script>
 <script>
 (function () {
   "use strict";
@@ -1096,7 +1163,7 @@
     if (OR.armada || !AR.datos) return; OR.armada = true;
     var o = $("orbita");
     AR.datos.forEach(function (a, i) {
-      var b = el("button", "esf " + a.k); b.type = "button"; b.setAttribute("aria-label", a.n); b.style.setProperty("--dl", (i * -600) + "ms");
+      var b = el("button", "esf " + a.k); b.type = "button"; b.setAttribute("aria-label", a.n);
       b.innerHTML = '<span class="resp"><span class="pres"><span class="halo"></span><span class="piedra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (ICON[a.k] || "") + '</svg></span></span></span>';
       b.appendChild(el("span", "nom", a.n));
       /* respuesta en el dedo: se hunde al tocar, no al soltar */
@@ -1109,6 +1176,7 @@
       };
       o.appendChild(b);
     });
+    if (window.SAPulso) SAPulso.enFase(o);
   }
   /* Dónde va cada una: un círculo perfecto alrededor de Alma, que se encoge a una piedra mediana. Las esferas, más
      chicas que ella, quedan con aire entre ellas (nunca se tocan) y con su nombre debajo. */
@@ -2631,7 +2699,7 @@
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio", socio: "Socio" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio", socio: "Socio", recepcion: "Recepción", proyecto: "Proyecto", datos: "Datos" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -2716,7 +2784,7 @@
       if (c === foto || c.tam === "s") return;
       if (c.tam === "m") { medio.push(c); if (medio.length === 2) { filas.push({ celdas: medio, span: 3, alto: 2 }); medio = []; } return; }
       if (medio.length) { filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 }); medio = []; }
-      filas.push({ celdas: [c], span: 6, alto: /^(semana|lista|barras|linea)$/.test(c.tipo) ? 1 : 2 });   // semana, lista, barras y línea: del alto de lo que traen
+      filas.push({ celdas: [c], span: 6, alto: /^(semana|lista|barras|linea|termometro|animo|foco|cifras|resumen)$/.test(c.tipo) ? 1 : 2 });   // semana, lista, barras, línea y las piezas del snapshot: del alto de lo que traen
     });
     if (medio.length) filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 });   // un texto solo: del alto de lo que dice
     return filas;
@@ -2801,6 +2869,41 @@
       });
       d.appendChild(ln); return d;
     }
+    /* ── Snapshot estilo Jarvis (apps-script/snapshot.js) ── */
+    if (c.tipo === "termometro") {   // la experiencia: un termómetro del coral al verde, el riesgo de mala reseña y su porqué
+      var kt = el("div", "tvb-kf"); kt.appendChild(el("small", "tvb-k", c.k || "Experiencia"));
+      if (c.riesgo) { var cr = el("span", "tvb-chip", "Riesgo de mala reseña · " + c.riesgo); cr.setAttribute("data-tono", c.riesgoTono || "aviso"); kt.appendChild(cr); }
+      d.appendChild(kt);
+      var vt = el("b", "tvb-v", c.v || ""); vt.setAttribute("data-tono", c.tono || "info"); d.appendChild(vt);
+      var bar = el("div", "tvb-term"), niv = Math.max(4, Math.min(96, Number(c.nivel) || 50)); bar.style.setProperty("--n", niv + "%");
+      bar.setAttribute("role", "meter"); bar.setAttribute("aria-valuemin", "0"); bar.setAttribute("aria-valuemax", "100"); bar.setAttribute("aria-valuenow", String(Math.round(niv))); bar.setAttribute("aria-label", (c.k || "Experiencia") + ": " + (c.v || ""));
+      bar.appendChild(el("i")); bar.appendChild(el("b")); d.appendChild(bar);
+      if (c.porque) d.appendChild(el("p", "tvb-p tvb-porque", c.porque));
+      return d;
+    }
+    if (c.tipo === "animo") {   // lo que le molesta y lo que lo tiene feliz, lado a lado
+      [["molesta", "Le molesta"], ["feliz", "Lo tiene feliz"]].forEach(function (x) {
+        var l = c[x[0]] || []; if (!l.length) return;
+        var col = el("div", "tvb-an " + x[0]); col.appendChild(el("small", "tvb-k", x[1])); var ul = el("ul");
+        l.forEach(function (it) { ul.appendChild(el("li", "", it)); }); col.appendChild(ul); d.appendChild(col);
+      });
+      if (d.children.length === 1) d.classList.add("uno");
+      return d;
+    }
+    if (c.tipo === "foco") {   // el problema de ahora y lo que estamos haciendo
+      if (c.problema) { d.appendChild(el("small", "tvb-k", c.k || "El problema")); d.appendChild(el("b", "tvb-prob", c.problema)); }
+      if ((c.acciones || []).length) {
+        d.appendChild(el("small", "tvb-k tvb-k2", c.kAcciones || "Lo que estamos haciendo")); var ua = el("ul", "tvb-l");
+        c.acciones.forEach(function (x) { var li = el("li", x.t ? "" : "mas"); if (x.tono) li.setAttribute("data-tono", x.tono); if (x.t) li.appendChild(el("b", "", x.t)); li.appendChild(el("span", "tvb-tx", x.v || "")); if (x.d) li.appendChild(el("small", "", x.d)); ua.appendChild(li); });
+        d.appendChild(ua);
+      }
+      return d;
+    }
+    if (c.tipo === "cifras") {   // tres o cuatro números grandes
+      d.style.setProperty("--c", Math.max(2, Math.min(4, (c.items || []).length)));
+      (c.items || []).forEach(function (x, i) { var n = el("div", "tvb-cif"); n.style.setProperty("--j", i); n.appendChild(el("small", "tvb-k", x.k || "")); n.appendChild(el("b", "tvb-v" + (/^[\d−-]/.test(String(x.v)) ? "" : " txt"), String(x.v))); if (x.d) n.appendChild(el("small", "tvb-d", x.d)); d.appendChild(n); });
+      return d;
+    }
     if (c.k) d.appendChild(el("small", "tvb-k", c.k));
     if (c.tipo === "numero") {   // #607: un número grande
       d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d)); if (c.tono) d.setAttribute("data-tono", c.tono);
@@ -2828,7 +2931,10 @@
   function pintarBento(t, sinAcciones) {
     var b = el("section", "tvb"); b.setAttribute("role", "group"); b.setAttribute("aria-label", (t.eti || "Alma encontró") + ": " + (t.cabeza || t.titulo || ""));
     var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.eti || "Alma encontró")); cab.appendChild(eti);
-    cab.appendChild(el("b", "tvb-tit", t.cabeza || t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub)); b.appendChild(cab);
+    cab.appendChild(el("b", "tvb-tit", t.cabeza || t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub));
+    /* Snapshot (apps-script/snapshot.js): lo importante en una frase, debajo del título */
+    if (t.destacado && t.destacado.texto) { var de = el("p", "tvb-dest"); de.setAttribute("data-tono", t.destacado.tono || "info"); de.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg>'; de.appendChild(el("span", "", t.destacado.texto)); cab.appendChild(de); }
+    b.appendChild(cab);
     var g = el("div", "tvb-g"), k = 0;
     acomodar(t.cuadros).forEach(function (f) {
       if (f.hero) {
@@ -3081,7 +3187,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
-  var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos"];
+  var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos", "recepcion", "proyecto"];
   var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
   var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false };
   try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
@@ -3220,12 +3326,11 @@
     /* velocidad: la cercana da la vuelta en 2.5 a 3.2 min y la lejana en 4 a 5 min, cada anillo a la suya */
     x.per = (x.tipo === "largo" ? 240 + (h % 5) * 15 : 150 + (h % 5) * 10) * 1000;
     el.style.setProperty("--d", (x.tipo === "largo" ? 30 : 34) + "px");
-    el.style.setProperty("--dl", -((h % 36) * 100) + "ms");
     x.a0 = lugar(x);
     var toca = function (e) { if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); e.stopPropagation(); preguntar(x); };
     [x.an, x.et].forEach(function (z) { z.addEventListener("click", toca); });
     x.an.addEventListener("keydown", toca);
-    c.appendChild(el); P.s[p.id] = x;
+    c.appendChild(el); P.s[p.id] = x; if (window.SAPulso) SAPulso.enFase(el);
     return x;
   }
   /* Al tocar un anillo (o su nombre), Alma explica qué pasó, qué se hizo y en qué estado va (Juan, 14-nov-2026, #539): se

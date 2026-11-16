@@ -5531,6 +5531,7 @@ function dsBotApi_(body) {
       case 'contactos': return json_({ ok: true, contactos: contactosTodos_().map(c => ({ tel: '…' + String(c.tel).slice(-4), nombre: c.nombre, tipo: c.tipo, rol: c.rol, estado: c.estado, actualizado: String(c.actualizado).slice(0, 10) })) });
       case 'contactos_rellenar': return json_(contactosRellenar_());
       case 'para_claude': return json_(paraClaudeLista_(!!body.todos));
+      case 'para_alma_estado': return json_(paraAlmaDiag_());   // instrucciones «para-alma»: estado del aviso y código de GitHub, sin textos (paraalma.js)
       case 'para_claude_marcar': return json_(paraClaudeMarcar_(body.id, body.estado, body.nota));
       case 'contacto_clasificar': return json_({ ok: true, ficha: contactoClasificar_(String(body.tel || ''), String(body.contexto || ''), true) });
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos

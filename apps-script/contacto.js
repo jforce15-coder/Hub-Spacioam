@@ -22,7 +22,8 @@ function waEnviarAlguien_(numero, texto, o) {
   /* Un socio o propietario recibe la plantilla para socios (Utilidad, sobre su cuenta; socios.js): la de primer
      contacto Meta la trata como marketing y a los números +1 no se la entrega. Si la de socios no se puede usar (no se
      sabe el apartamento, todavía no está aprobada o Meta la rechaza), va la de primer contacto: fuera de las 24 h
-     siempre sale una plantilla (Juan, 13-nov). A un +1 no: Meta no le entrega la de primer contacto (Marketing). */
+     siempre sale una plantilla (Juan, 13-nov). A un +1 no: Meta no le entrega la de primer contacto (Marketing). Un +1 que
+     no es socio (nuevo o potencial socio) recibe la plantilla de seguimiento si está aprobada (masuno.js, #497). */
   var soc = socioSeguro_(wa), W = waCfg_(), etiqueta, rr = null, aviso = '';
   var primerContacto = function () {
     if (!contactoPlantillaOk_()) return { error: 'No le puedo escribir: no ha escrito al número de ALMA en las últimas 24 h y la plantilla de primer contacto (' + CONTACTO_PLANTILLA_ + ') aún no está aprobada por Meta.' };
@@ -41,12 +42,20 @@ function waEnviarAlguien_(numero, texto, o) {
     } else if (masUno) return { ok: false, error: sp.error };   // a un +1 la de primer contacto (Marketing) no le llega
     else aviso = 'Sin la plantilla para socios (' + sp.error + '): salió la de primer contacto.';
   }
+  if (!rr && !soc && masUno) {
+    var sg = seguimPayload_(wa, { nombre: o.nombre, propiedad: o.propiedad || seguimTema_(wa), idioma: o.idioma, texto: texto });
+    if (!sg.error) {
+      rr = mandar(sg.payload); etiqueta = 'plantilla de seguimiento';
+      if (rr.getResponseCode() >= 300) { aviso = 'Meta rechazó la plantilla de seguimiento; salió la de primer contacto.'; rr = null; }
+    }
+  }
   if (!rr) {
     var pc = primerContacto(); if (pc.error) return { ok: false, error: pc.error };
     rr = mandar(pc.payload); etiqueta = 'plantilla de primer contacto';
     if (rr.getResponseCode() >= 300) return { ok: false, error: waErrorMeta_(rr.getResponseCode(), rr.getContentText(), wa, !!soc) };
   }
   var idT = ''; try { idT = ((JSON.parse(rr.getContentText()).messages || [])[0] || {}).id || ''; } catch (e) {}
+  masUnoMarcar_(idT, etiqueta === 'plantilla para socios' ? 'socio' : etiqueta === 'plantilla de seguimiento' ? 'seguim' : '');   // un 131049 de esta no se reintenta con la misma
   var p = PropertiesService.getScriptProperties(), pend = {}; try { pend = JSON.parse(p.getProperty('WA_PEND') || '{}'); } catch (e) {}
   /* Un seguimiento (volver a escribirle) no duplica el mensaje que le llegará: se guarda una sola vez, con la fecha del primero. */
   var k = fin8_(wa), tx = String(texto).slice(0, 3500), prev = (pend[k] || []).filter(function (m) { return m.texto === tx; })[0];

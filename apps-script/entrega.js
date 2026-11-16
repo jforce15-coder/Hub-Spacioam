@@ -41,9 +41,11 @@ function waEntregaGuardar_(st) {
     p.setProperty('WA_ENTREGA', JSON.stringify(m));
   } finally { if (tengo) lock.releaseLock(); }
   if (est === 'failed') {
-    /* 131047 (pasaron las 24 h): no se avisa como fallo; se manda la plantilla y el mensaje sale cuando responda. */
+    /* 131047 (pasaron las 24 h): no se avisa como fallo; se manda la plantilla y el mensaje sale cuando responda.
+       131049 a un +1 (Meta lo trató como marketing): un reintento con la plantilla que sí le llega (masuno.js, #497). */
     var cod = Number((((st.errors || [])[0]) || {}).code) || 0, retomado = false;
     if (cod === 131047) { try { retomado = waRetomarFallido_(wa, s_(st.id)); } catch (e) { console.error('waRetomarFallido_: ' + e); } }
+    if (cod === 131049) { try { retomado = waReintentoMasUno_(wa, s_(st.id)); } catch (e) { console.error('waReintentoMasUno_: ' + e); } }
     if (!retomado) { try { waEntregaFallo_(wa, m[k].motivo); } catch (e) { console.error('waEntregaFallo_: ' + e); } }
   }
 }

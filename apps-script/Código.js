@@ -805,6 +805,7 @@ function procesarCola() {
     cupoFuncion_('usoMensualSiToca_'); try { usoMensualSiToca_(); } catch (e) { console.error('usoMensualSiToca_: ' + e); }   // reporte de consumo de IA el día 1 (usomensual.js)
     cupoFuncion_('microRevisar_'); try { microRevisar_(); } catch (e) { console.error('microRevisar_: ' + e); }
     cupoFuncion_('socioPlantillaAsegurar_'); try { socioPlantillaAsegurar_(false); } catch (e) { console.error('socioPlantillaAsegurar_: ' + e); }   // la plantilla para socios se crea y se activa sola (socios.js)   // microproyectos «listo para unir»: ¿ya se unió en GitHub? cada 10 min (microproyectos.js)
+    cupoFuncion_('seguimPlantillaAsegurar_'); try { seguimPlantillaAsegurar_(false); } catch (e) { console.error('seguimPlantillaAsegurar_: ' + e); }   // la plantilla de seguimiento para los +1 que no son socios (masuno.js, #497)
   }
   cupoCanal_('Epi');
   cupoFuncion_('epiSnapSiToca_'); try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
@@ -5484,6 +5485,7 @@ function dsBotApi_(body) {
       case 'foto_cambiar': try { return json_(fotoCambiar_(Number(body.foto) || 0)); } catch (e) { return json_({ ok: false, error: String(e) }); }
       case 'contacto_plantilla': return json_(contactoPlantillaCrear_());
       case 'socio_plantilla': return json_(socioPlantillaAsegurar_(true));   // fuerza ya la creación y revisión de estado_cuenta_socio (sin esperar los 30 min; socios.js)
+      case 'seguim_plantilla': return json_(seguimPlantillaAsegurar_(true));   // fuerza ya la creación y revisión de seguimiento_socio (masuno.js, #497)
       case 'personal_plantilla': return json_(personalPlantillaCrear_());
       case 'proy_asignar': return json_(proyAsignar_(adminsOp_().find(a => a.principal) || null, String(body.wa || ''), String(body.proyecto || ''), String(body.objetivo || '')));
       case 'proy_ver': return json_(proyVer_(String(body.proyecto || ''), !!body.actualizar, 'Juan'));

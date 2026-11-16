@@ -789,7 +789,9 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'leer_playbook': return leerPlaybookTool_(inp.nombre);
     case 'buscar_en_cerebro': return cerebroHerramienta_(adm, inp);   // la audiencia sale de adm, nunca del modelo (cerebro.js)
     case 'enviar_archivo': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal recibe archivos.' }; var rf = archivoEnviar_(adm, inp); if (rf.ok) ctx.hechas.push({ tipo: 'archivo', resumen: 'Archivo enviado por WhatsApp · ' + rf.enviado }); return rf; }
-    case 'unir_cambio': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal une cambios.' }; var ru = unirCambio_(inp.cual); (ru.unidos || []).forEach(function (x) { ctx.hechas.push({ tipo: 'cambio', resumen: 'Unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 60) }); }); return ru; }
+    case 'unir_cambio': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal une cambios.' };
+      var gu = unirGuardia_(inp.cual, AGENTE_TEXTO_); if (gu) return gu;   // sin un «une» claro en este mensaje no se une nada (unirorden.js)
+      var ru = unirCambio_(inp.cual); (ru.unidos || []).forEach(function (x) { ctx.hechas.push({ tipo: 'cambio', resumen: 'Unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 60) }); }); return ru; }
     case 'ajustar_playbook': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ajusta a los agentes.' }; var rp = agAjustarPlaybook_(inp.agente, inp.cambio, inp.campo); if (rp.ok) ctx.hechas.push({ tipo: 'agente', resumen: 'Playbook de ' + rp.agente + ' · ' + String(inp.cambio).slice(0, 60) }); return rp; }
     case 'propuestas_agentes': return { ok: true, propuestas: agPropuestas_() };
     case 'decidir_propuestas': {

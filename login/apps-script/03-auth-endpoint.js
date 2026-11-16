@@ -67,6 +67,10 @@ function _handle(e){
       if(!_esRobot(body.robot) && !(sesAyu && _esAdminPrincipal(sesAyu.e))) return {ok:false, error:'token'};
       return _accesoAyudanteMi(body.socio_email, body.ayudante_email, body.nombre, body.aplicar === true);
     }
+    /* Reiniciar una contraseña (16-nov-2026): solo con la sesión firmada y vigente de quien HOY es administrador
+       principal en Control de usuarios. La llave compartida está en el código público de todas las apps: para esto ni
+       hace falta ni alcanza, así que se decide antes de mirarla y la página de usuarios ya no la lleva escrita. */
+    if(body.action === 'resetPassword') return _resetPassword(body.session ? _verificarSesion(body.session) : null, body.email);
     if(body.token !== AUTH_TOKEN) return {ok:false, error:'token'};
     var ses = body.session ? _verificarSesion(body.session) : null;   // sesión firmada (si la app ya la envía)
     switch(body.action){
@@ -83,7 +87,6 @@ function _handle(e){
       case 'setPassword': return _setPassword(body.email, body.current, body.next);
       case 'setEmail':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setEmail(body.email, body.next);
       case 'setPhoto':    if(!_puedeEditar(ses, body.email)) return {ok:false, error:'session'}; return _setPhoto(body.email, body.url);
-      case 'resetPassword': return _resetPassword(ses, body.email);
       case 'googleLogin': return _googleLogin(body.credential);
       case 'faceEnroll':  return _faceEnroll(ses);
       case 'faceLogin':   return _faceLogin(body.email, body.llave);

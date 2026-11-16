@@ -39,7 +39,9 @@ function prsAbiertos_(fresco) {
 function prsElegir_(cual, lista) {
   var q = String(cual || '').trim(), m;
   if (!q) return [];
-  if (/^tod[oa]s?$/i.test(q)) return lista.filter(function (x) { return x.estado === 'listo'; });
+  /* «Todos» son los listos, menos el que en su título pide unirse aparte («unir solo con Juan presente»): el 16-nov una nota
+     de voz sobre un huésped unió uno de esos (unirorden.js). Ese se une nombrándolo. */
+  if (/^tod[oa]s?$/i.test(q)) return lista.filter(function (x) { return x.estado === 'listo' && !unirAparte_(x.titulo); });
   if ((m = /github\.com\/([^\/]+\/[^\/]+)\/pull\/(\d+)/.exec(q))) return lista.filter(function (x) { return x.repo.toLowerCase() === m[1].toLowerCase() && x.numero === +m[2]; });
   if ((m = /^([\w.-]+)\s*#\s*(\d+)$/.exec(q))) return lista.filter(function (x) { return (x.repo.split('/')[1].toLowerCase() === m[1].toLowerCase() || x.app.toLowerCase() === m[1].toLowerCase()) && x.numero === +m[2]; });
   if ((m = /^#?\s*(\d+)$/.exec(q))) return lista.filter(function (x) { return x.numero === +m[1]; });
@@ -66,6 +68,7 @@ function unirCambio_(cual) {
   if (!lista.length) return { ok: true, unidos: [], abiertos: [], nota: 'No hay cambios pendientes de unir.' };
   if (!cual) return { ok: true, unidos: [], abiertos: resumen, nota: 'Dile a Juan cuáles hay (en simple) y pregúntale cuál une, o si une todos los listos.' };
   var elegidos = prsElegir_(cual, lista);
+  if (!elegidos.length && /^tod[oa]s?$/i.test(String(cual).trim())) return { ok: false, error: 'Ninguno está listo para unir todavía' + (lista.some(function (x) { return x.estado === 'listo' && unirAparte_(x.titulo); }) ? ' (hay uno que pide unirse aparte: se une diciendo su número)' : '') + '.', abiertos: resumen };
   if (!elegidos.length) return { ok: false, error: 'No encontré ese cambio entre los abiertos.', abiertos: resumen };
   if (elegidos.length > 1 && !/^tod[oa]s?$/i.test(String(cual).trim())) return { ok: false, error: 'Hay varios que coinciden; pregúntale cuál.', abiertos: elegidos.map(function (x) { return { cual: x.app + ' #' + x.numero, titulo: x.titulo, estado: x.estado }; }) };
   var res = elegidos.map(prUnirUno_);

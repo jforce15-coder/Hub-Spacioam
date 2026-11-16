@@ -128,7 +128,11 @@ function chatDesarrollo_(adm, texto, resp, hechas, o) {
   texto = String(texto || '').trim(); if (!texto) return out;
   if (esAdminPrincipal_(adm)) {
     var ya = (hechas || []).some(function (h) { return h && h.tipo === 'borrador_claude'; });
+    /* «Une todo» se hace, no se pide (unirorden.js). Si la herramienta ya unió en este turno, queda lo que dijo Alma: el
+       16-nov unió dos cambios y la respuesta salió «Listo, quedó pedido», con un pedido de más a Desarrollo. */
+    if (!ya && unirOrden_(texto) && (hechas || []).some(function (h) { return h && h.tipo === 'cambio'; })) return out;
     var r = claudeMandarYa_(adm, texto, { micro: o.micro, nivel: o.nivel, yaArmado: ya });
+    if (r.unir && hechas) r.unir.unidos.forEach(function (x) { hechas.push({ tipo: 'cambio', resumen: 'Unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 60) }); });
     out.texto = r.texto; out.claude = r.claude;
     return out;
   }
@@ -150,6 +154,10 @@ function chatDesarrollo_(adm, texto, resp, hechas, o) {
 var CLAUDE_SIGUE_RE_ = /^(y |agregale|anadele|sumale|quitale|cambiale|ponle|tambien|ademas|ah y|y que)\b/;
 function claudeMandarYa_(adm, texto, o) {
   o = o || {};
+  /* Una orden de unir («une todo», «unir», «une el cambio de «…»») no es un pedido nuevo: se cumple aquí y se dice el
+     resultado real (unirorden.js; Juan, 16-nov-2026: «dice que resolvió y no está resolviendo nada»). */
+  var uo = unirOrdenHacer_(adm, texto);
+  if (uo) { if (o.yaArmado) { try { claudeBorradorGuardar_(adm.email, null); } catch (e) {} } return uo; }
   var b = o.yaArmado ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto, o)) : claudeBorradorPoner_(adm, texto, o);
   if (b.microDuda) {
     if (CLAUDE_SIGUE_RE_.test(chatNorm_(texto))) { b.micro = b.microDuda; b.ult = ''; }

@@ -1,7 +1,10 @@
 /* ═══ 15b · HABLAR CON CLAUDIO (#550; Juan, 16-nov-2026) ══════════════════════════════════════════════════════
-   En la app de Alma, Juan dice «hablar con Claudio» (o «con el equipo de desarrollo») y Alma contesta «Sí, no hay
-   problema, te paso con Claudio». La app cierra la conversación de Alma y abre la de Claudio en un segundo: otro agente de
-   voz de ElevenLabs, con otra voz (wRoroUVFu5pwV8ummDdd) y el halo de la roca todo naranja. «Volver con Alma» regresa.
+   En la app de Alma, Juan dice «hablar con Claudio» (o «con el equipo de desarrollo») y Alma lo pasa sin ceremonia: como
+   mucho «Te lo paso.» (Juan, 16-nov-2026: «que sea más rápido, no tanta confirmación»). La app cambia de inmediato a la
+   conversación de Claudio: otro agente de voz de ElevenLabs, con otra voz (wRoroUVFu5pwV8ummDdd) y el halo todo naranja.
+   Claudio llega como una persona a la que fueron a llamar («Hola, Juan, ¿cómo estás? Alma me dijo que me necesitabas»,
+   claudioSaludo_). Cuando termina (o Juan dice que eso era todo) usa volver_con_alma, nunca end_call: vuelve Alma y cierra
+   en una frase con lo que Claudio de verdad hizo (claudioVuelta_: el Hub lo sabe por sus herramientas) y la app cuelga.
 
    Qué hace Claudio en la llamada (el código nunca se escribe en vivo: se hace en segundo plano):
      claudio_pedido  → repite la instrucción, espera el sí de Juan y la vuelve un pedido de desarrollo (el mismo camino de
@@ -28,7 +31,7 @@
    ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 var CLAUDIO_VOZ_ID_ = 'wRoroUVFu5pwV8ummDdd';
 var CLAUDIO_NOMBRE_ = 'Claudio · Desarrollo de Spacio AM';
-var CLAUDIO_FRASE_ = 'Sí, no hay problema, te paso con Claudio.';
+var CLAUDIO_FRASE_ = 'Te lo paso.';
 /* La línea de la ficha de Alma que la deja pasar a Claudio (solo el principal, en una app que sabe cambiar de agente). */
 var CLAUDIO_PERMISO_ = 'PUEDES PASARLO CON CLAUDIO: es el administrador principal y la app sabe cambiar a Claudio (el equipo de desarrollo).';
 var CLAUDIO_PROTECCION_NOMBRE_ = 'Instrucciones de Claudio (solo el administrador principal)';
@@ -45,7 +48,7 @@ function claudioPermiso_(adm) { try { return adm && esAdminPrincipal_(adm) ? CLA
 /* ── La herramienta de Alma (cliente: la atiende la app, sin URL ni llave) ── */
 function vozHablarConClaudio_() {
   return { type: 'client', name: 'hablar_con_claudio', expects_response: false, response_timeout_secs: 1,
-    description: 'Pasa la conversación a Claudio (el equipo de desarrollo, con otra voz). Úsala SOLO si la FICHA DE QUIEN LLAMA dice «PUEDES PASARLO CON CLAUDIO» y Juan pide hablar con Claudio o con el equipo de desarrollo: no preguntes nada más; di solo «' + CLAUDIO_FRASE_ + '» y llámala. Después no digas nada: la app cambia la conversación. Sin esa línea en la ficha, Claudio no existe: no la uses ni lo nombres.',
+    description: 'Pasa la conversación a Claudio (el equipo de desarrollo, con otra voz). Úsala SOLO si la FICHA DE QUIEN LLAMA dice «PUEDES PASARLO CON CLAUDIO» y Juan pide hablar con Claudio o con el equipo de desarrollo: no confirmes ni anuncies nada: llámala en ese mismo turno diciendo como mucho «' + CLAUDIO_FRASE_ + '» (o nada). Después no digas nada: la app cambia la conversación al instante. Sin esa línea en la ficha, Claudio no existe: no la uses ni lo nombres.',
     parameters: { type: 'object', required: [], properties: {
       motivo: { type: 'string', description: 'Lo que Juan quiere hablar con Claudio, en sus palabras, si ya lo dijo. Puede ir vacío.' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
@@ -105,7 +108,7 @@ function claudioPromptObj_() {
       reglas: [
         'Confirmas lo que la herramienta dice que se hizo, nada más. Si algo falló, di el error real en simple.',
         'Si Juan pide algo que no es de desarrollo (un mensaje a un huésped, una reserva, una tarea del equipo), dile que eso lo hace Alma y ofrécele volver con ella.',
-        'Volver con Alma: cuando Juan lo pide («volver con Alma», «pásame con Alma», «regrésame»), di «Listo, te paso con Alma.» y usa volver_con_alma. Después no digas nada.',
+        'Volver con Alma: cuando Juan lo pide, cuando terminaron lo de desarrollo o dice que eso era todo («nada más», «gracias»), di «Listo, te paso con Alma.» y usa volver_con_alma, nunca end_call: Alma cierra. Después no digas nada.',
         'Solo hablas con el administrador principal. Si la ficha no lo dice, no haces pedidos, no unes ni lees código.'
       ],
       nunca: a.nunca,
@@ -143,7 +146,7 @@ function claudioDefHerramientas_(base) {
         archivo: s('Ruta de un archivo del repositorio, si ya la sabes (por ejemplo apps-script/orbita.js). Vacío para buscar.') },
       ['conv_id', 'buscar'], 25),
     { type: 'client', name: 'volver_con_alma', expects_response: false, response_timeout_secs: 1,
-      description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz. Úsala cuando Juan pida volver con Alma. Antes di solo «Listo, te paso con Alma.» y después nada.',
+      description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz; ella cierra con Juan. Úsala cuando Juan pida volver con Alma, cuando ya terminaron o cuando diga que eso era todo (en vez de colgar). Antes di solo «Listo, te paso con Alma.» y después nada.',
       parameters: { type: 'object', required: [], properties: { nota: { type: 'string', description: 'Vacío.' } } },
       pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false }
   ];
@@ -301,11 +304,54 @@ function claudioWebInicio_(ses, motivo) {
   motivo = String(motivo || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   if (motivo) ficha += '\nLO QUE LE DIJO A ALMA: «' + motivo + '». Empieza por ahí.';
   try { var res = claudioResumen_(adm); if (res) ficha += '\n' + res; } catch (e) { console.error('claudioResumen_: ' + e); }
+  try { ficha += mfBloque_(adm); } catch (e) { console.error('mfBloque_: ' + e); }   // las últimas 5 llamadas (memoriafresca.js)
   /* El mismo Modo Weebo y la misma adaptación a Juan que la ficha de Alma (medidores.js). */
   try { var pf = personalidadFicha_(adm); if (pf && pf.bloque) ficha += pf.bloque; } catch (e) { console.error('personalidadFicha_: ' + e); }
   return { ok: true, agent_id: agente, signed_url: uf.url, nombre: nom, agente: 'claudio',
-    first_message: motivo ? 'Hola, ' + nom + ', aquí Claudio. Cuéntame.' : 'Hola, ' + nom + ', aquí Claudio. ¿Qué hacemos?',
+    first_message: claudioSaludo_(nom, motivo),
     dynamic_variables: { quien_llama: ficha, sa_web: vozWebToken_(tel), marca_principal: vozMarcaPara_(adm) } };
+}
+/* El saludo de Claudio: como una persona a la que Alma fue a llamar, variado (Juan, 16-nov-2026: «Hola Juan, ¿cómo estás?
+   Alma me dijo que me necesitabas»). Con un motivo corto («sobre el botón de pagos») lo nombra; si no, «cuéntame». */
+var CLAUDIO_SALUDOS_ = ['Hola, {n}, ¿cómo estás? Alma me dijo que me necesitabas.', '¡Hola, {n}! ¿Qué tal? Me dijo Alma que me buscabas.', 'Hola, {n}, ¿cómo vas? Alma me contó que me necesitabas.'];
+function claudioMotivoCorto_(motivo) {
+  var m = /(?:^|\s)(?:sobre|acerca de|por lo de|lo de|por|para ver|para)\s+((?:el|la|los|las|un|una)\s+.{2,50}?)[\s.,;!?]*$/i.exec(String(motivo || ''));
+  var x = m ? m[1].trim() : ''; if (!x || x.split(/\s+/).length > 8) return '';
+  return x.replace(/^el\s/i, 'del ').replace(/^(la|los|las|un|una)\s/i, function (a) { return 'de ' + a.toLowerCase(); });
+}
+function claudioSaludo_(nom, motivo, i) {
+  var n = String(nom || 'Juan'), base = CLAUDIO_SALUDOS_[(i == null ? Math.floor(Math.random() * CLAUDIO_SALUDOS_.length) : i) % CLAUDIO_SALUDOS_.length].replace('{n}', n);
+  var corto = claudioMotivoCorto_(motivo);
+  if (corto) return base.replace(/\.$/, ' por lo ' + corto + '. Cuéntame.');
+  return motivo ? base + ' Cuéntame.' : base;
+}
+/* Lo que hizo Claudio en ESTA conversación, según sus herramientas (no lo que se dijo): lo leen la vuelta con Alma y la
+   memoria fresca. Solo del mismo administrador. */
+function claudioHizoAnotar_(adm, conv, que) {
+  conv = String(conv || '').trim(); if (!/^conv_/.test(conv)) return;
+  var c = CacheService.getScriptCache(), k = 'claudiohizo_' + conv, h = null;
+  try { h = JSON.parse(c.get(k) || 'null'); } catch (e) {}
+  h = h && h.email === adm.email ? h : { email: adm.email, pedidos: [], unidos: 0 };
+  if (que.pedido) h.pedidos = h.pedidos.concat([que.pedido]).slice(-3);
+  if (que.unidos) h.unidos += que.unidos;
+  try { c.put(k, JSON.stringify(h), 21600); } catch (e) {}
+}
+function claudioHizo_(conv, adm) {
+  var h = null; try { h = JSON.parse(CacheService.getScriptCache().get('claudiohizo_' + String(conv || '').trim()) || 'null'); } catch (e) {}
+  return h && adm && h.email === adm.email ? h : { pedidos: [], unidos: 0 };
+}
+/* Alma vuelve y cierra en una frase, con la verdad: «quedó pedido» solo si claudio_pedido lo confirmó. */
+function claudioVuelta_(adm, conv) {
+  var h = claudioHizo_(conv, adm), ok = h.pedidos.filter(function (p) { return p.ok; }), mal = h.pedidos.filter(function (p) { return !p.ok; });
+  var t1 = ok.length === 1 && ok[0].titulo && ok[0].titulo !== 'Pedido' ? ok[0].titulo.charAt(0).toLowerCase() + ok[0].titulo.slice(1) : '';
+  var frase = ok.length === 1 ? 'Listo, quedó pedido' + (t1 ? ' lo de ' + t1 : '') + '.'
+    : ok.length > 1 ? 'Listo, quedaron pedidos los ' + ok.length + ' cambios.'
+    : mal.length ? 'Ojo: el pedido no salió.'
+    : h.unidos ? 'Listo, quedó unido.' : 'Listo.';
+  frase += mal.length && ok.length ? ' Uno no salió; si quieres, lo intento de nuevo.' : mal.length ? ' Si quieres, lo intento de nuevo.' : '';
+  frase += ' Si necesitas algo más, aquí estoy.';
+  var hizo = h.pedidos.map(function (p) { return (p.ok ? 'pedido creado «' : 'pedido que NO salió «') + p.titulo + '»'; }).concat(h.unidos ? ['unió ' + h.unidos + ' cambio' + (h.unidos > 1 ? 's' : '')] : []);
+  return { frase: frase, hizo: hizo, linea: '\nVUELVES DE CLAUDIO (lo que hizo, según el Hub: ' + (hizo.join('; ') || 'nada') + '). Ya le dijiste «' + frase + '»: no saludes ni lo repitas. Si pide algo más, ayúdale; si no, no digas nada.' };
 }
 /* Lo que Claudio sabe al empezar, en dos líneas: sus pedidos abiertos más recientes (sin leer GitHub, que es lento). */
 function claudioResumen_(adm) {
@@ -349,7 +395,9 @@ function claudioPedido_(adm, b) {
   var nivel = /^(sencillo|complejo)$/.test(String(b.nivel || '')) ? String(b.nivel) : '';
   var r = claudeMandarYa_(adm, texto, { nivel: nivel });
   try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
-  if (r.claude && !r.claude.ok) return { ok: false, error: 'El pedido no salió: ' + String(r.texto || '').slice(0, 200) };
+  var titulo = temaTitulo_(texto);
+  if (r.claude && !r.claude.ok) { claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: false, titulo: titulo } }); return { ok: false, error: 'El pedido no salió: ' + String(r.texto || '').slice(0, 200) }; }
+  claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: true, titulo: titulo } });
   var mid = r.claude && r.claude.micro; claudioPanelCandidata_(mid ? 'trabajo' : 'lista', mid ? 'mp:' + mid : '');   // en pantalla: el trabajo nuevo
   return { ok: true, hecho: r.texto, resultado: 'HECHO. Dile en una o dos frases: «' + r.texto + '» y que lo haces en segundo plano; cuando esté, le avisas y lo ve en la órbita.' };
 }
@@ -390,6 +438,7 @@ function claudioUnir_(adm, b) {
   if (!claudioDijoUne_(b.dijo)) return { ok: false, unidos: [], error: 'Juan no dijo «une»: no se unió nada. Dile qué está listo y que, si quiere, diga «une».' };
   var r = unirCambio_(String(b.cual || '').trim());
   claudioPanelCandidata_('lista', '');   // en pantalla: la lista al día (lo unido ya no está)
+  if ((r.unidos || []).length) claudioHizoAnotar_(adm, b.conv_id, { unidos: r.unidos.length });
   try { (r.unidos || []).forEach(function (x) { opGuardar_(adm, 'alma', 'llamada', 'Claudio: unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 80), [], CHAT_DESARROLLO_); }); } catch (e) {}
   return r;
 }

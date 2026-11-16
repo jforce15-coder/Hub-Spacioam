@@ -313,7 +313,7 @@ function agBuscarReservas_(texto, f, soloLlegadas, hoy, max) {
    2 semanas). Si queda una (o una sola está hoy en el apartamento), esa; si quedan varias, NO elige: devuelve las opciones
    para que Alma pregunte cuál. Antes enviar_a_huesped solo aceptaba el código y la IA tenía que buscar primero (una
    vuelta más de Claude: con el plazo de la llamada eso pasaba a segundo plano). */
-function agElegirReserva_(texto, hoy) {
+function agElegirReserva_(texto, hoy, adm) {
   /* Ya no se descartan las reservas cuya fila de la bandeja perdió el código (7-nov, Oscar): su conversación se busca
      después, solo para la elegida (reservaConv_, enviohuesped.js). */
   var inbox = hubInbox_();
@@ -328,11 +328,17 @@ function agElegirReserva_(texto, hoy) {
   var hoyAqui = lista.filter(function (x) { return fecha_(x.item.checkin_date) <= hoy; });
   var ficha = function (r) { return { codigo: s_(r.code).toUpperCase(), huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date) }; };
   if (!lista.length) return { error: 'NO SE ENVIÓ: no encontré una reserva actual o próxima ni una consulta de «' + texto + '» con conversación. Pídele el código de reserva o el nombre como aparece en Airbnb.' };
-  var una = lista.length === 1 ? lista[0] : hoyAqui.length === 1 ? hoyAqui[0] : null;
+  var una = lista.length === 1 ? lista[0] : hoyAqui.length === 1 ? hoyAqui[0] : null, porReciente = '';
+  /* Varias reservas con ese nombre: lo reciente desempata (memoriafresca.js): la de la llamada de hace poco, el tema activo
+     o una conversación reciente de la bandeja. Si no decide, se pregunta como siempre. */
+  if (!una && lista.length > 1) {
+    try { var dr = mfDesempate_(adm, lista.map(function (x) { var f = ficha(x.item); return { nombre: f.huesped, propiedad: f.propiedad, codigo: f.codigo }; })); if (dr) { una = lista[dr.i]; porReciente = dr.fuente; } } catch (e) { console.error('agElegirReserva_ reciente: ' + e); }
+  }
   if (!una) return { error: 'NO SE ENVIÓ: hay ' + lista.length + ' reservas que coinciden con «' + texto + '». Pregúntale en una frase cuál es (nombre, apartamento o fechas) y vuelve a enviar con su código.', ambiguo: true, opciones: lista.slice(0, 5).map(function (x) { return ficha(x.item); }) };
   var fu = ficha(una.item), rc = reservaConv_(fu.codigo, una.item, true, inbox);
   if (!rc.conv_id) return { error: 'NO SE ENVIÓ: encontré la reserva ' + fu.codigo + ' (' + fu.huesped + ', ' + fu.propiedad + ') pero no ubiqué su conversación: ' + rc.error + '. Dile a Juan exactamente eso, sin otra causa.', reserva: fu };
-  return Object.assign(fu, { conv_id: rc.conv_id });
+  try { mfAnotar_(adm, [{ nombre: fu.huesped, rol: 'huésped', propiedad: fu.propiedad, codigo: fu.codigo, fuente: 'reserva ' + fu.codigo }]); } catch (e) {}
+  return Object.assign(fu, { conv_id: rc.conv_id }, porReciente ? { elegida_por: 'Había ' + lista.length + ' reservas con ese nombre; es la de ' + fu.huesped + ' (' + fu.propiedad + ') porque ' + porReciente + '. Dile a Juan cuál elegiste y por qué, en una frase.' } : {});
 }
 /* Estado real de una reserva: Hospitable en vivo (10 min en caché) para los primeros resultados; si no, lo que diga
    la hoja. La hoja puede tardar en enterarse de una cancelación, por eso se pregunta a Hospitable. */
@@ -570,7 +576,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!rid2) {
         var buscaH = [inp.huesped, inp.propiedad, inp.codigo].map(function (x) { return String(x || '').trim(); }).filter(Boolean).join(' ');
         if (!buscaH) return { error: 'NO SE ENVIÓ: falta a quién (código de reserva, o nombre del huésped y propiedad).' };
-        elegida = agElegirReserva_(buscaH, hoy); if (elegida.error) return elegida;
+        elegida = agElegirReserva_(buscaH, hoy, adm); if (elegida.error) return elegida;
         rid2 = elegida.conv_id;
       }
       /* Una consulta (inq:) es un tercero sin reserva: sale solo con el sí de Juan en otro turno (consultas.js). El borrador
@@ -583,6 +589,9 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         inp.texto = bC.texto; inp.canal = 'plataforma';
         elegida = { codigo: '', huesped: fichaC.huesped, propiedad: fichaC.propiedad };
       }
+      /* Elegida por lo reciente (memoriafresca.js): no sale sin que Juan vea a quién va; primero el borrador. */
+      var porRec = elegida && elegida.elegida_por ? elegida.elegida_por : '';
+      if (porRec && inp.confirmado !== true && String(inp.texto || '').trim()) inp.borrador = true;
       /* Borrador para Juan: se guarda con su reserva y no sale. */
       if (inp.borrador === true && !/^inq:/.test(rid2)) {
         if (!String(inp.texto || '').trim()) return { error: 'Falta el texto del borrador.' };
@@ -590,7 +599,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         var bR = reservaBorradorGuardar_(adm, fB, pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma'), inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
         ctx.borrador = { para: bR.huesped, texto: bR.texto };   // «Listo» sobre un borrador → «Todavía no salió» (prometer.js)
         return { ok: true, falta_confirmar: true, borrador: { para: bR.huesped, propiedad: bR.propiedad, codigo: bR.codigo, texto: bR.texto },
-          nota: 'Todavía NO salió. Muéstrale a Juan el borrador y a quién va; con su sí, enviar_a_huesped con confirmado = true (sale a esta misma reserva).' };
+          nota: (porRec ? porRec + ' ' : '') + 'Todavía NO salió. Muéstrale a Juan el borrador y a quién va; con su sí, enviar_a_huesped con confirmado = true (sale a esta misma reserva).' };
       }
       var quien = 'ALMA · pedido de ' + adm.nombre;
       inp.texto = pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
@@ -874,7 +883,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 /* Lo que cambia en cada turno va después de esta marca: claudeTools_ deja en caché solo lo de antes (T8, 3-nov-2026). */
 var AG_CORTE_CACHE_ = '\n\n═══ ESTE TURNO ═══';
 function opAgente_(adm, texto, canal, fotos, previos) {
-  AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
+  AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || ''); MF_ADM_ = AGENTE_PERMITIDAS_ ? null : adm;   // memoria fresca (memoriafresca.js)
   /* Temas (temas.js, #526): a qué tema va este mensaje. Con duda entre dos temas activos, Alma pregunta sin la IA; si responde
      a esa pregunta, va el pedido original al tema que eligió. */
   var tsel = null; try { tsel = AGENTE_PERMITIDAS_ ? (TEMA_ACT_ = null) : temaTurno_(adm, texto, canal); } catch (e) { console.error('temaTurno_: ' + (e.stack || e)); }   // la familia (herramientas limitadas) no toca los temas de Juan
@@ -913,7 +922,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var contenido = (fotos || []).slice(0, 4).map(imgBloque_).filter(Boolean); contenido.push({ type: 'text', text: texto });
   if (msgs.length && msgs[msgs.length - 1].role === 'user') msgs.push({ role: 'assistant', content: '(continúo)' });
   msgs.push({ role: 'user', content: contenido });
-  var ctx = { hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
+  var ctx = { adm: AGENTE_PERMITIDAS_ ? null : adm, hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   ctx.hechasAntes = ctx.hechas.length;
   var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
   /* Primero lo que no cambia entre turnos (fuente única, trabajo, herramientas, esfera) y al final, después de
@@ -921,7 +930,10 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var system = secretariaPrompt_(aud, canal) + '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.' +
     chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
   try { turno += temaBloque_(adm, tsel); } catch (e) { console.error('temaBloque_: ' + e); }   // temas vivos y el hilo del tema de este mensaje (temas.js)
-  try { turno += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
+  try { turno += microBloque_(adm); } catch (e) {}
+  /* Memoria fresca (memoriafresca.js): las últimas 5 llamadas del principal. En una llamada ya la tiene la voz (su ficha). */
+  if (!AGENTE_PERMITIDAS_ && canal !== 'llamada' && canal !== 'segundo_plano') { try { turno += mfBloque_(adm); } catch (e) { console.error('mfBloque_: ' + e); } }
+  if (canal === 'calle' && !AGENTE_PERMITIDAS_) { try { mfCalle_(adm, textoPedido); } catch (e) { console.error('mfCalle_: ' + e); } }   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
   system += turno + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).';
   /* Camino rápido (rapido.js, #498 T4): en una llamada, un pedido de leer lo contesta primero el modelo rápido con solo
      herramientas de leer. null = no era para él; false = no pudo y sigue el de siempre (que ya esperó: mira el plazo antes

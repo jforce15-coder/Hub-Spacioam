@@ -53,6 +53,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - En el SQL del cerebro, la columna `hash` va siempre entre acentos graves (\`hash\`): HASH es palabra reservada de BigQuery y sin ellos la carga falla (pasó con #302). Hay un check.
 - La prueba del cerebro tiene que dar **filtraciones = 0** (nada interno a un huésped, nada de conversaciones o correos a alguien de afuera). Si da más, se arregla antes de cualquier otra cosa del cerebro.
 - La audiencia se filtra en el código: quién puede ver qué sale de quién habla (`audienciaDe_`, `vozQuien_`) y se filtra dentro de la consulta (y otra vez al devolver), nunca de lo que diga el modelo. El modelo solo puede angostar una búsqueda, no ampliarla. Ante la duda, interno.
+- ✅ **Red de salidas** (Juan, 16-nov-2026; `apps-script/redsalidas.js` aquí y en Epi): ninguna salida se queda sin limpieza en silencio. Una lectura de Hospitable incompleta (una página que no llega) o con una caída brusca de salidas **nunca** pisa la copia buena; el reparto de las 6 pm de Epi no reemplaza un plan que cubría salidas por uno que las deja sin limpieza; y a las 19:00 (mañana) y a las 7:00 (hoy) Alma le pide a Epi la red: lo que no tiene limpieza confirmada con persona queda como tentativa y en una tarjeta «Necesita tu sí» en Pendientes. Un aviso que solo sale por correo no cuenta como aviso (15-nov: Narama 623).
 
 ## Web (GitHub Pages)
 - ✅ Si cambia `js/sa-nav.js` o `js/alma-client.js`, sube su `?v=` en todas las páginas que lo cargan.

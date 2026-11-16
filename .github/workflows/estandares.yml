@@ -290,3 +290,6 @@ jobs:
       - name: Números +1, la plantilla que sí les llega antes de mandar y un solo reintento cuando Meta los bloquea por marketing (dobles)
         # 12-nov: Juan pidió que, si Meta no entrega a un número de EE. UU. por marketing, se use sola la plantilla aprobada (#497).
         run: node .github/masuno-reintento.js apps-script
+      - name: Red de salidas, a las 19:00 y 7:00 cada salida con su limpieza confirmada en Epi; si no, una tarjeta en Pendientes y nunca se pausa (dobles)
+        # 15-nov: la salida de Narama 623 se quedó sin limpieza y el único aviso fue un correo de Epi que nadie vio.
+        run: node .github/red-salidas.js apps-script

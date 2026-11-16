@@ -3138,6 +3138,9 @@ function proponerAutomejora_(info, prop) {
 function aprender() {
   cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
   try { cupoVolcar_(); } catch (e) { console.error('cupoVolcar_: ' + e); }   // el cupo de Google: las horas cerradas a GOOGLE_USO (cupo.js)
+  /* Red de salidas (7:00 y 19:00): cada salida con su limpieza confirmada en Epi; si no, tarjeta en Pendientes. Nunca se pausa (redsalidas.js). */
+  try { redSalidasRevisar_(); } catch (e) { console.error('redSalidasRevisar_: ' + e); }
+  cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
   /* Todo lo de aquí es de fondo y se pausa con el cupo en 60 % o más, salvo el agente de Operaciones (rutas y limpiezas: CUPO_NUNCA_). */
   if (!cupoPermite_('fondo')) {
     try { agentesLatido_(['operaciones']); } catch (e) { console.error('agentesLatido_ operaciones: ' + e); }

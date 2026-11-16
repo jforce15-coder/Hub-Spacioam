@@ -65,7 +65,8 @@ var VOZ_RAPIDO_LEER_RE_ = /\?|\b(?:que|quien|quienes|cuando|cuanto|cuantos|cuant
 var VOZ_RAPIDO_HECHO_RE_ = /\b(?:listo|ya esta hecho|ya (?:lo |la |le |les )?(?:envie|mande|escribi|programe|agende|cree|cancele|cambie|guarde|anote|avise|uni|marque)|(?:quedo|queda|quedaron) (?:enviad|programad|agendad|cread|cancelad|guardad|anotad|cambiad|marcad|unid|listo))/;
 /* Dice que no sabe o no está segura (además de escalarNoPudo_: no tiene cómo, lo pedirá, ofrece pedirlo). */
 var VOZ_RAPIDO_NO_SABE_RE_ = /\bno (?:lo |la )?se\b|\bno estoy segura\b|\bno tengo (?:esa|ese) (?:informacion|dato)\b|\bno (?:tengo|cuento con) (?:acceso|herramienta)/;
-/* El turno en curso es una llamada de la secretaria (vozSecretaria_ lo enciende y lo apaga en su finally). */
+/* El turno en curso es de voz: una llamada de la secretaria (vozSecretaria_) o el Modo calle (calle_, 16-nov-2026). Cada uno
+   lo enciende y lo apaga en su finally. */
 var AGENTE_RAPIDO_ = false;
 /* La función con que claudeTools_ registra en IA_USO, si no la manda quien llama (el de siempre tras el rápido). */
 var AG_USO_FUNCION_ = '';
@@ -79,7 +80,7 @@ function rapidoNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').
 /* ¿Este pedido va por el modelo rápido? → { usar, motivo }. o: { fotos, hechas, nombrada } del turno. El único lugar. */
 function rapidoDecide_(texto, o) {
   o = o || {};
-  if (!AGENTE_RAPIDO_) return { usar: false, motivo: 'no es la secretaria por voz' };
+  if (!AGENTE_RAPIDO_) return { usar: false, motivo: 'no es un turno de voz' };
   if (!rapidoOn_()) return { usar: false, motivo: 'apagado (VOZ_RAPIDO = 0)' };
   if (AGENTE_PERMITIDAS_) return { usar: false, motivo: 'herramientas limitadas' };
   if (o.fotos) return { usar: false, motivo: 'trae fotos' };

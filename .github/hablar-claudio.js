@@ -1,8 +1,9 @@
 /* Hablar con Claudio (apps-script/claudio.js, #550; Juan, 16-nov-2026), con dobles de ElevenLabs, de GitHub y de Google:
    sin internet. Revisa:
    1. el agente de Claudio se crea UNA vez, con la base del de Alma (modelo, idioma, turnos, oído), su voz, el acceso
-      cerrado y la protección con la marca del principal; si ya existe (por id o por nombre) no se crea otro, y si falla
-      no se reintenta en cada vuelta;
+      cerrado, el permiso de que la app ponga su saludo (sin él ElevenLabs rechaza la llamada) y la protección con la
+      marca del principal; si ya existe (por id o por nombre) no se crea otro, y si falla no se reintenta en cada vuelta;
+      el que ya existe recibe ese permiso en la sincronización diaria;
    2. la URL firmada de Claudio (acción vozClaudio) solo con la sesión verificada del administrador principal;
    3. la ficha de Alma trae el permiso de pasar a Claudio solo con el principal y solo si la app sabe cambiar de agente;
       la herramienta de Alma (hablar_con_claudio) es de la app y se apoya en ese permiso;
@@ -51,6 +52,8 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(pr.llm === 'gpt-4.1-mini' && pr.temperature === 0.3 && cc.agent.language === 'es' && cc.turn.turn_eagerness === 'patient' && cc.asr.quality === 'high', 'la misma base que Alma: modelo, temperatura, idioma es, turnos y oído');
   ok(!pr.tool_ids && !pr.built_in_tools.transfer_to_number && pr.built_in_tools.end_call && pr.built_in_tools.end_call.description !== 'de Alma' && !b.platform_settings.data_collection, 'no se copian herramientas ni datos de Alma (solo colgar, con su propia descripción)');
   ok(b.platform_settings.auth.enable_auth === true, 'acceso cerrado: solo con URL firmada');
+  const ovc = ((b.platform_settings.overrides || {}).conversation_config_override || {}).agent || {};
+  ok(ovc.first_message === true && ovc.language === true, 'nace permitiendo lo que la app manda al abrir (su saludo y el idioma): sin eso ElevenLabs rechaza la llamada y Claudio nunca contesta (16-nov)');
   const g = b.platform_settings.guardrails, mia = g.custom.config.configs.filter(c => c.name === R('CLAUDIO_PROTECCION_NOMBRE_'))[0];
   ok(g.prompt_injection.is_enabled === false && mia && mia.trigger_action.type === 'end_call' && mia.prompt.indexOf('{{marca_principal}}') > 0 && mia.prompt.indexOf(R('vozMarcaPrincipal_()')) > 0, 'protección con la marca del principal, que cuelga a quien no lo es');
   ok(cc.agent.dynamic_variables.dynamic_variable_placeholders.marca_principal === 'ninguna' && /no es el administrador principal/.test(cc.agent.dynamic_variables.dynamic_variable_placeholders.quien_llama), 'sin ficha del Hub: «ninguna» y no es el principal');
@@ -69,6 +72,23 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(!salidas.length, 'y no lo reintenta en cada vuelta (espera 6 h)');
   R('claudioCrearSiFalta_(true)'); ok(salidas.some(s => /create/.test(s.url)), 'el robot voz_sync sí lo reintenta'); }
 { mem = {}; salidas = []; ok(R('claudioCrearSiFalta_(false)').ok === false && !salidas.length, 'sin la llave de ElevenLabs no llama a nadie'); }
+
+/* 1b. El agente que ya existe (creado el 16-nov sin el permiso del saludo): la sincronización diaria se lo pone sin
+   tocar lo demás, y si ya lo tiene no manda nada. */
+{ const cfgP = R('claudioProteccionConfig_(vozMarcaPrincipal_())'); ctx.CFG_ = cfgP;
+  const g0 = R('vozProteccionAplicar_({}, CFG_)');
+  const agente = ov => ({ agent_id: 'agent_claudio', conversation_config: { tts: { voice_id: VOZ } },
+    platform_settings: { auth: { enable_auth: true }, guardrails: g0, overrides: ov } });
+  let ag = agente({ conversation_config_override: { agent: { first_message: false, language: false }, conversation: { text_only: true } }, custom_llm_extra_body: false });
+  mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' }; salidas = [];
+  resp = s => /\/agents\/agent_claudio$/.test(s.url) && s.metodo === 'get' ? { codigo: 200, cuerpo: ag } : { codigo: 200, cuerpo: {} };
+  const r = R('claudioConfigSiCambio_(false)'), pa = salidas.filter(s => s.metodo === 'patch')[0];
+  const ovp = pa && pa.cuerpo.platform_settings.overrides, aa = ((ovp || {}).conversation_config_override || {}).agent || {};
+  ok(r.ok && pa && aa.first_message === true && aa.language === true, 'el agente sin el permiso del saludo: la sincronización se lo pone');
+  ok(ovp && ovp.conversation_config_override.conversation.text_only === true && ovp.custom_llm_extra_body === false, 'y deja igual los demás permisos que ya tenía');
+  ag = agente(R('claudioOverrides_({})')); mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' }; salidas = [];
+  const r2 = R('claudioConfigSiCambio_(false)');
+  ok(r2.ok && r2.al_dia && !salidas.some(s => s.metodo === 'patch'), 'con el permiso puesto, el acceso, la protección y la voz al día: no manda nada'); }
 
 /* 2. La URL firmada de Claudio, solo el principal */
 { mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' };

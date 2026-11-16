@@ -20,10 +20,10 @@
      agente, nunca lo que diga la llamada ni un caller_id.
 
    El agente lo crea y lo sincroniza el Hub (nada a mano en ElevenLabs): si falta la propiedad CLAUDIO_AGENT_ID, lo crea
-   por API con la misma base que el de Alma (modelo, idioma, turnos, oído, audio), su voz, el acceso cerrado (URL firmada)
-   y la protección de instrucciones con la marca del principal, y guarda el id. Después, cada 30 min con el prompt de
-   Alma (vozSyncSiToca_): su prompt si cambió, sus herramientas si cambió su definición y, una vez al día, su acceso, su
-   protección y su voz. Su post-call no entra al Hub (vozPostCall_ ignora otros agentes): lo que importa queda en los
+   por API con la misma base que el de Alma (modelo, idioma, turnos, oído, audio), su voz, el acceso cerrado (URL firmada),
+   el permiso de que la app ponga su saludo (claudioOverrides_) y la protección de instrucciones con la marca del
+   principal, y guarda el id. Después, cada 30 min con el prompt de Alma (vozSyncSiToca_): su prompt si cambió, sus
+   herramientas si cambió su definición y, una vez al día, su acceso, ese permiso, su protección y su voz. Su post-call no entra al Hub (vozPostCall_ ignora otros agentes): lo que importa queda en los
    pedidos y en el chat de Juan por las herramientas.
    ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 var CLAUDIO_VOZ_ID_ = 'wRoroUVFu5pwV8ummDdd';
@@ -134,6 +134,19 @@ function claudioProteccionConfig_(marca) {
   c.trigger_action = { type: 'end_call' };   // ElevenLabs solo acepta retry en modo blocking: quien no es el principal no sigue con Claudio
   return c;
 }
+/* Lo que la app cambia al abrir la llamada (conversation_config_override): su saludo (first_message, con o sin el motivo) y,
+   si la ficha lo trae, el idioma. ElevenLabs trae todo apagado en un agente nuevo y entonces rechaza la conversación antes
+   de empezar: el 16-nov la app pasó de Alma a Claudio y Claudio nunca contestó (0 conversaciones en su agente). */
+function claudioOverrides_(ov) {
+  var o = JSON.parse(JSON.stringify(ov || {}));
+  o.conversation_config_override = o.conversation_config_override || {};
+  o.conversation_config_override.agent = Object.assign({}, o.conversation_config_override.agent || {}, { first_message: true, language: true });
+  return o;
+}
+function claudioOverridesAlDia_(ov) {
+  var a = ((ov || {}).conversation_config_override || {}).agent || {};
+  return a.first_message === true && a.language === true;
+}
 function claudioCrearCuerpo_(alma, marca) {
   var cc = (alma && alma.conversation_config) || {}, ag = cc.agent || {}, pr = ag.prompt || {};
   var copia = function (o) { return o ? JSON.parse(JSON.stringify(o)) : undefined; };
@@ -150,7 +163,7 @@ function claudioCrearCuerpo_(alma, marca) {
         dynamic_variables: { dynamic_variable_placeholders: { quien_llama: CLAUDIO_SIN_FICHA_, marca_principal: VOZ_MARCA_NINGUNA_, sa_web: '' } } },
       tts: tts, turn: copia(cc.turn), asr: copia(cc.asr), vad: copia(cc.vad), conversation: copia(cc.conversation)
     },
-    platform_settings: { auth: { enable_auth: true }, guardrails: vozProteccionAplicar_({}, claudioProteccionConfig_(marca)) }
+    platform_settings: { auth: { enable_auth: true }, overrides: claudioOverrides_({}), guardrails: vozProteccionAplicar_({}, claudioProteccionConfig_(marca)) }
   };
 }
 /* Un solo agente: con el id guardado no hace nada; si no, busca uno con su nombre (por si se creó y no se alcanzó a
@@ -223,24 +236,25 @@ function claudioHerramientasSiCambiaron_(forzar) {
   p.setProperty('CLAUDIO_TOOLS_HUELLA', huella);
   return { ok: true, herramientas: ids.length };
 }
-/* Una vez al día (o si cambió lo que decide el código): acceso cerrado, protección con la marca del principal y su voz. */
+/* Una vez al día (o si cambió lo que decide el código): acceso cerrado, el saludo que manda la app, protección con la marca
+   del principal y su voz. */
 function claudioConfigSiCambio_(forzar) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = claudioAgente_();
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / CLAUDIO_AGENT_ID' };
   var cfg = claudioProteccionConfig_(vozMarcaPrincipal_());
-  var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify(cfg) + CLAUDIO_VOZ_ID_ + agente, Utilities.Charset.UTF_8));
+  var huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify(cfg) + CLAUDIO_VOZ_ID_ + agente + 'overrides:first_message,language', Utilities.Charset.UTF_8));
   if (!forzar && huella === p.getProperty('CLAUDIO_CONFIG_HUELLA') && Date.now() - Number(p.getProperty('CLAUDIO_CONFIG_T') || 0) < 24 * 3600000) return { ok: true, sin_cambios: true };
   var url = 'https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), h = { 'xi-api-key': key };
   var g = uf_(url, { headers: h, muteHttpExceptions: true }, 'Voz');
   if (g.getResponseCode() !== 200) return { ok: false, error: 'GET agente HTTP ' + g.getResponseCode() };
   var ag = JSON.parse(g.getContentText()), ps = ag.platform_settings || {}, tts = (ag.conversation_config || {}).tts || {};
   var listo = function (o) { p.setProperty('CLAUDIO_CONFIG_HUELLA', huella); p.setProperty('CLAUDIO_CONFIG_T', String(Date.now())); return o; };
-  if (vozAccesoCerrado_(ps.auth) && vozProteccionAlDia_(ps.guardrails, cfg) && tts.voice_id === CLAUDIO_VOZ_ID_) return listo({ ok: true, al_dia: true });
+  if (vozAccesoCerrado_(ps.auth) && claudioOverridesAlDia_(ps.overrides) && vozProteccionAlDia_(ps.guardrails, cfg) && tts.voice_id === CLAUDIO_VOZ_ID_) return listo({ ok: true, al_dia: true });
   var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({
-    platform_settings: { auth: vozAccesoAplicar_(ps.auth), guardrails: vozProteccionAplicar_(ps.guardrails, cfg) },
+    platform_settings: { auth: vozAccesoAplicar_(ps.auth), overrides: claudioOverrides_(ps.overrides), guardrails: vozProteccionAplicar_(ps.guardrails, cfg) },
     conversation_config: { tts: { voice_id: CLAUDIO_VOZ_ID_ } } }) }, 'Voz');
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return { ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) };
-  return listo({ ok: true, enable_auth: true, proteccion: cfg.name, voz: CLAUDIO_VOZ_ID_ });
+  return listo({ ok: true, enable_auth: true, saludo_permitido: true, proteccion: cfg.name, voz: CLAUDIO_VOZ_ID_ });
 }
 
 /* ── Acción vozClaudio: la conversación de Claudio para la app (solo el principal, con su sesión verificada) ──

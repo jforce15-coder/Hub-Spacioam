@@ -249,3 +249,7 @@ jobs:
       - name: Modo calle en un solo control, un toque escucha, un toque largo enciende o apaga y no hay interruptor en Ajustes
         # 16-nov: Juan quiere un solo botón del caminante en la pantalla principal; «Probar» queda en la línea y en Ajustes.
         run: node .github/calle-boton.js
+      - name: Diagnóstico del anillo por Bluetooth, solo con sesión, el último por usuario, sin datos personales, recortado para caber y el robot lo lee con «anillo» (dobles)
+        # 16-nov: el anillo llega como control de música y Spotify se lo quita; Juan aprobó leerlo directo por Bluetooth y antes
+        # hay que saber qué manda (ticket #29, paso 1). La app manda el registro y Claude lo lee para mapear los toques.
+        run: node .github/anillo-ble.js apps-script

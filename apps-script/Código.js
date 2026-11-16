@@ -3370,6 +3370,7 @@ function hubApi_(body) {
       case 'notifAjustesGuardar': return json_(notifAjustesGuardarApi_(ses, body));          // { tipo, ajuste } → lo guarda y deja al día sus etiquetas de OneSignal
       case 'notifPrueba': return json_(notifPruebaApi_(ses));                              // «Probar con Siri» desde el Hub web: solo el principal; la app la arma con Siri (notifajustes.js)
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
+      case 'anilloBle': return json_(anilloBleGuardar_(ses, body));                       // app de iPhone: el Diagnóstico del anillo (Bluetooth) { diagnostico } (anillo.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)

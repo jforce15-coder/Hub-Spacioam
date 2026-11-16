@@ -43,7 +43,27 @@
    audio. Luego vuelve a esperar «Alma» solo con el detector del teléfono. Los segundos van en la ficha (calleSueno_).
 
    calleUso: una fila por salida en ALMA_CALLE_USO (cuánto duró, batería, cuántas veces despertó y cuántas fueron falsas,
-   y los segundos de llamada con ElevenLabs y cuántas colgó el sueño); calleUsoLeer las muestra en Ajustes → Uso de la app. */
+   y los segundos de llamada con ElevenLabs y cuántas colgó el sueño); calleUsoLeer las muestra en Ajustes → Uso de la app.
+
+   RÁPIDO (Juan, 16-nov-2026: «Estoy probando el modo» tardó 28 s y la app ya se había rendido a los 25 s). Lo que costaba:
+     · opProcesar_ le pedía a Epi su configuración en CADA pedido (otra web app de Apps Script: varios segundos; la
+       completa tarda de 20 a 35 s) aunque el agente no la usa (la lee él solo si una herramienta la necesita, de la caché
+       episnap): ahora solo sin el agente;
+     · cada frase iba al modelo de siempre (de 3 a 8 s por vuelta): ahora una pregunta de leer va primero por el camino
+       rápido de la voz (rapido.js, el mismo de la llamada) y una frase de prueba («probando», «¿me escuchas?») se contesta
+       sin la IA (calleCharla_);
+     · el plazo de 15 s no se miraba antes de la primera vuelta: si lo de antes ya se comió el tiempo, ahora sigue en segundo
+       plano («Sigo en eso…») en vez de empezar otra vuelta que termina a los 25 s (AGENTE_PLAZO_PRIMERA_, agente.js);
+     · la esfera del turno se marca en la próxima pasada (chatMarcarLuego_), no mientras Juan espera;
+     · la voz: lo que ya se sabe que falla (sin permiso «Text to Speech», sin créditos, sin llave) va con vozPausa y la app
+       ya no la vuelve a pedir con calleVoz (otra vuelta de 2 a 4 s antes de hablar); los reintentos de ElevenLabs también
+       miran el plazo.
+   La respuesta trae `ms` (total, antes, agente, voz, via): la app lo pone en el diagnóstico para ver en qué se fue el tiempo.
+
+   HABLAR CON CLAUDIO DESDE LA CALLE (Juan, 16-nov-2026): «quiero hablar con Claudio» (o «con el equipo de desarrollo»)
+   abre la llamada de voz con Claudio. La app lo reconoce sola (AgenteVoz.pideClaudio) y pide vozClaudio; si una frase
+   igual llega aquí (una app vieja), calleClaudio_ contesta sin la IA { claudio: true, conversar: true } en vez de volverla
+   un pedido de desarrollo. Solo el administrador principal, igual que en la llamada; con los demás sigue como pedido. */
 
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
 var CALLE_AUDIO_PLAZO_ = 20000;    // con más de esto desde que llegó el pedido ya no se pide el audio (la app espera 25 s y dice «No me llegó la respuesta…»)
@@ -54,6 +74,7 @@ var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si
 var CALLE_TTS_MODELO_ = 'eleven_flash_v2_5';   // el modelo rápido (la Propiedad CALLE_TTS_MODELO lo cambia)
 var CALLE_VOZ_NO_MIN_ = 5;         // sin permiso o sin créditos: minutos sin volver a preguntarle a ElevenLabs
 var CALLE_VOZ_MOTIVO_ = '';        // por qué la última frase salió sin audio ('' si salió bien)
+var CALLE_VOZ_PAUSA_ = false;      // y si es algo que no se arregla solo en un rato (sin llave, apagada, sin permiso, sin créditos): la app no la vuelve a pedir
 var CALLE_VOZ_CACHE_ = false;      // la última frase salió de la caché (no cuenta como una llamada a ElevenLabs)
 var CALLE_VOZ_PARTE_ = 90000;      // la caché guarda hasta 100 KB por clave: un audio largo va en partes de esto
 var CALLE_VOZ_PARTES_ = 4;         // y en 4 partes como mucho (~30 s de audio)
@@ -66,21 +87,65 @@ var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audíf
   'Si pregunta algo, responde en una o dos frases cortas, de 20 palabras como mucho. Sin listas, sin markdown, sin enlaces, sin emojis. ' +
   'Si de verdad tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 
-/* calle { texto, aviso_id? } → { ok, hablar, conversar, audio?, seguira? } */
+/* calle { texto, aviso_id? } → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
 function calle_(ses, b) {
   b = b || {};
+  var t0 = Date.now();
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var texto = String(b.texto || '').trim().slice(0, 2000);
   if (!texto) return { ok: false, error: 'falta el texto', hablar: 'No te escuché bien. ¿Me lo repites?', conversar: false };
-  var t0 = Date.now(), r;
-  AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
-  try { r = b.aviso_id ? calleAviso_(ses, adm, texto, String(b.aviso_id)) : opProcesar_(adm, texto, 'calle', []); }
-  catch (e) { console.error('calle_: ' + (e.stack || e)); r = { ok: false, error: String(e) }; }
-  finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; }
-  if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false };
-  var out = calleRespuesta_(adm, r);
-  var audio = calleAudio_(out.hablar, t0, { donde: 'calle' }); if (audio) out.audio = audio; else out.vozMotivo = CALLE_VOZ_MOTIVO_;
+  var ms = { ia: 0, n: 0, herr: 0, nh: 0 }, r, tA = Date.now(), out = null;
+  if (!b.aviso_id) {
+    /* Hablar con Claudio (solo el principal) y las frases de prueba: sin la IA. */
+    if (calleClaudio_(texto) && esAdminPrincipal_(adm)) out = { ok: true, hablar: CLAUDIO_FRASE_, conversar: true, claudio: true, motivo: texto.slice(0, 300) };
+    else { var ch = calleCharla_(texto); if (ch) { out = { ok: true, hablar: ch, conversar: false }; calleGuardarCharla_(adm, texto, ch); } }
+    if (out) ms.via = 'sin IA';
+  }
+  if (!out) {
+    AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
+    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms;   // el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
+    try { r = b.aviso_id ? calleAviso_(ses, adm, texto, String(b.aviso_id)) : opProcesar_(adm, texto, 'calle', []); }
+    catch (e) { console.error('calle_: ' + (e.stack || e)); r = { ok: false, error: String(e) }; }
+    finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; AGENTE_PLAZO_PRIMERA_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; }
+    if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false, ms: calleMs_(t0, tA, ms, 0) };
+    out = calleRespuesta_(adm, r);
+  }
+  var tV = Date.now(), audio = calleAudio_(out.hablar, t0, { donde: 'calle' });
+  if (audio) out.audio = audio; else { out.vozMotivo = CALLE_VOZ_MOTIVO_; if (CALLE_VOZ_PAUSA_) out.vozPausa = true; }
+  out.ms = calleMs_(t0, tA, ms, Date.now() - tV);
   return out;
+}
+/* El cronómetro de un pedido (para el diagnóstico de la app): en qué se fueron los segundos. Sin textos. */
+function calleMs_(t0, tA, ms, voz) {
+  var total = Date.now() - t0, o = { total: total, antes: tA - t0, agente: Math.max(0, total - (tA - t0) - voz), voz: voz };
+  if (ms) {
+    o.ia = ms.ia || 0; o.vueltas = ms.n || 0; o.herr = ms.herr || 0; o.resto = Math.max(0, o.agente - o.ia - o.herr);   // resto: hojas, Epi y lo demás
+    if (ms.via) o.via = String(ms.via); if (ms.motivo) o.motivo = String(ms.motivo).slice(0, 80);
+  }
+  try { console.log('calle ms ' + JSON.stringify(o)); } catch (e) {}
+  return o;
+}
+
+/* «Quiero hablar con Claudio», «pásame con el equipo de desarrollo»: la misma regla que la app (AgenteVoz.pideClaudio).
+   Sobre el texto normalizado (sin acentos ni signos). «Dile a Claudio que…» no: eso es un pedido. «No quiero hablar…» no. */
+var CALLE_CLAUDIO_RE_ = /(?:^|\s)(?:hablar|habla|hablo|hablemos|platicar|platica|conversar|pasame|pasas|pasar|pasarme|comunicame|comunicas|comunicar|comunicarme|conectame|conectas|conectar|conectarme|ponme|pones|llama|llamale|llamar|marca|marcale)(?:\s+\S+){0,3}?\s+(?:con|a|al)\s+(?:el\s+|los\s+de\s+)?(?:claudio|equipo\s+de\s+desarrollo|desarrollo)(?:\s|$)/;
+var CALLE_CLAUDIO_NO_RE_ = /(?:^|\s)no\s+(?:quiero\s+|necesito\s+|me\s+)?(?:hablar|habla|pases|pasar|pasame|comuniques|conectes|llames|llamar)(?:\s|$)/;
+function calleNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function calleClaudio_(texto) { var t = calleNorm_(texto); return !!t && CALLE_CLAUDIO_RE_.test(t) && !CALLE_CLAUDIO_NO_RE_.test(t); }
+/* Una frase de prueba o de «¿me escuchas?», corta y sola: se contesta sin la IA (era una vuelta entera del modelo). */
+var CALLE_CHARLA_ = [
+  { re: /^(?:(?:hola|oye|bueno) )?(?:alma )?(?:(?:estoy|estamos|solo estoy|nada mas estoy) )?(?:probando|haciendo una prueba)(?: (?:el|la|esto|este|alma|modo|calle|app|voz|microfono|boton|uno|dos|tres|otra|vez))*$/, hablar: 'Te escucho bien.' },
+  { re: /^(?:(?:es|solo es) )?(?:una )?prueba(?: (?:uno|dos|tres))*$/, hablar: 'Te escucho bien.' },
+  { re: /^(?:(?:hola|oye) )?(?:alma )?(?:me (?:escuchas|oyes)|estas ahi|sigues ahi)$/, hablar: 'Sí, te escucho.' }
+];
+function calleCharla_(texto) {
+  var t = calleNorm_(texto); if (!t || t.split(' ').length > 8) return '';
+  for (var i = 0; i < CALLE_CHARLA_.length; i++) if (CALLE_CHARLA_[i].re.test(t)) return CALLE_CHARLA_[i].hablar;
+  return '';
+}
+/* Quedan en el Chat con Alma, como todo lo de la calle. */
+function calleGuardarCharla_(adm, texto, hablar) {
+  try { opGuardar_(adm, 'yo', 'calle', texto); opGuardar_(adm, 'alma', 'calle', hablar); } catch (e) { console.error('calleGuardarCharla_: ' + e); }
 }
 
 /* Lo que devuelve opProcesar_ (o pendResponder_) → la frase para el oído. */
@@ -158,15 +223,15 @@ function calleEntrada_(t) {
    registro: «calle», «vozAvisos», «avisoHablar», «calleVoz», «al nacer») }. */
 function calleAudio_(hablar, t0, o) {
   o = o || {};
-  CALLE_VOZ_MOTIVO_ = ''; CALLE_VOZ_CACHE_ = false;
+  CALLE_VOZ_MOTIVO_ = ''; CALLE_VOZ_CACHE_ = false; CALLE_VOZ_PAUSA_ = false;
   var ini0 = Date.now(), donde = String(o.donde || '');
-  var falla = function (m) { CALLE_VOZ_MOTIVO_ = m; vozCaidaAnotar_(donde, m, Date.now() - ini0); return ''; };
+  var falla = function (m, pausa) { CALLE_VOZ_MOTIVO_ = m; if (pausa) CALLE_VOZ_PAUSA_ = true; vozCaidaAnotar_(donde, m, Date.now() - ini0); return ''; };
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY');
   var texto = ''; try { texto = vozSinNotas_(hablar); } catch (e) { texto = String(hablar || ''); }
   texto = String(texto || '').trim();
   if (!texto) { CALLE_VOZ_MOTIVO_ = 'la frase venía vacía'; return ''; }
-  if (!key) return falla('falta ELEVENLABS_KEY en las Propiedades del script');
-  if (p.getProperty('CALLE_AUDIO') === '0') return falla('la voz está apagada (Propiedad CALLE_AUDIO = 0)');
+  if (!key) return falla('falta ELEVENLABS_KEY en las Propiedades del script', true);
+  if (p.getProperty('CALLE_AUDIO') === '0') return falla('la voz está apagada (Propiedad CALLE_AUDIO = 0)', true);
   var voz = '', c = CacheService.getScriptCache(), k = '';
   try {
     voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
@@ -175,11 +240,13 @@ function calleAudio_(hablar, t0, o) {
   } catch (e) { console.error('calleAudio_ caché: ' + e); }
   var plazo = Number(o.plazo) > 0 ? Number(o.plazo) : CALLE_AUDIO_PLAZO_;
   if (t0 && Date.now() - t0 > plazo) return falla('la respuesta tardó más de ' + Math.round(plazo / 1000) + ' s');   // la app está por dejar de esperar
-  try { var no = c.get('calle_voz_no'); if (no) { CALLE_VOZ_MOTIVO_ = no; return ''; } } catch (e) {}   // sin permiso o sin créditos: no se insiste (ya quedó anotado)
+  try { var no = c.get('calle_voz_no'); if (no) { CALLE_VOZ_MOTIVO_ = no; CALLE_VOZ_PAUSA_ = true; return ''; } } catch (e) {}   // sin permiso o sin créditos: no se insiste (ya quedó anotado)
   voz = voz || CALLE_VOZ_RESPALDO_;
   var rapido = p.getProperty('CALLE_TTS_MODELO') || CALLE_TTS_MODELO_, otro = p.getProperty('VOZ_TTS_MODELO') || 'eleven_multilingual_v2';
   var modelos = otro !== rapido ? [rapido, otro] : [rapido], ocupada = 0;
   for (var i = 0; i < modelos.length; i++) {
+    /* Otra vuelta (el otro modelo o tras un 429) solo si todavía hay tiempo: la app está esperando (16-nov-2026). */
+    if ((i > 0 || ocupada) && t0 && Date.now() - t0 > plazo) return falla(CALLE_VOZ_MOTIVO_ ? CALLE_VOZ_MOTIVO_ + '; ya no había tiempo para otro intento' : 'la respuesta tardó más de ' + Math.round(plazo / 1000) + ' s');
     var ini = Date.now(), r;
     try {
       r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
@@ -199,7 +266,7 @@ function calleAudio_(hablar, t0, o) {
     /* 429 (ElevenLabs ocupada: p. ej. una llamada y una notificación a la vez): una sola vez más, después de un respiro. */
     if (code === 429 && !ocupada++) { try { Utilities.sleep(1500); } catch (e) {} i--; continue; }
     if (m.pausar) { try { c.put('calle_voz_no', m.motivo, CALLE_VOZ_NO_MIN_ * 60); } catch (e) {} }
-    if (!m.otroModelo || i === modelos.length - 1) return falla(m.motivo);
+    if (!m.otroModelo || i === modelos.length - 1) return falla(m.motivo, m.pausar);
     CALLE_VOZ_MOTIVO_ = m.motivo;
   }
   return falla(CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio');
@@ -272,14 +339,17 @@ function calleVozMotivo_(code, cuerpo, voz, modelo) {
 }
 
 /* calleVoz { texto } → { ok, audio } — la voz de Alma para una frase que la app iba a decir sin audio. Sin audio
-   (sin llave o ElevenLabs falló): { ok: false, motivo } y la app usa la voz del iPhone y anota el motivo. */
+   (sin llave o ElevenLabs falló): { ok: false, motivo, pausa? } y la app usa la voz del iPhone y anota el motivo. */
 function calleVoz_(ses, b) {
   b = b || {};
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var texto = String(b.texto || '').trim().slice(0, CALLE_VOZ_MAX_);
   if (!texto) return { ok: false, error: 'falta el texto' };
   var audio = calleAudio_(texto, 0, { donde: b.donde === 'aviso' ? 'calleVoz (aviso)' : 'calleVoz' });
-  return audio ? { ok: true, audio: audio } : { ok: false, error: 'sin audio', motivo: CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio' };
+  if (audio) return { ok: true, audio: audio };
+  var out = { ok: false, error: 'sin audio', motivo: CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio' };
+  if (CALLE_VOZ_PAUSA_) out.pausa = true;   // no se arregla solo en un rato: la app deja de pedirla unos minutos
+  return out;
 }
 
 /* Los segundos del sueño para la ficha de la llamada (vozWebInicio_). Se ajustan sin otra versión con las Propiedades del

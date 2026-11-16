@@ -243,13 +243,15 @@ function claudioConfigSiCambio_(forzar) {
   return listo({ ok: true, enable_auth: true, proteccion: cfg.name, voz: CLAUDIO_VOZ_ID_ });
 }
 
-/* ── Acción vozClaudio: la conversación de Claudio para la app (solo el principal, con su sesión verificada) ── */
+/* ── Acción vozClaudio: la conversación de Claudio para la app (solo el principal, con su sesión verificada) ──
+   También la pide el Modo calle cuando Juan dice «quiero hablar con Claudio» (calle.js). Sin conversación, `codigo` dice
+   por qué en una palabra (no_principal · sin_agente · sin_url) para que la app sepa qué decir sin leer el texto. */
 function claudioWebInicio_(ses, motivo) {
   if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };   // no 'session': ese error cierra la sesión del navegador
   var adm = vozWebAdmin_(ses);
-  if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Claudio es solo para el administrador principal.' };
-  var agente = claudioAgente_(); if (!agente) return { ok: false, error: 'Claudio todavía no está listo (el Hub lo crea en la próxima vuelta).' };
-  var uf = vozUrlFirmada_(agente); if (!uf.ok) return uf;
+  if (!adm || !esAdminPrincipal_(adm)) return { ok: false, error: 'Claudio es solo para el administrador principal.', codigo: 'no_principal' };
+  var agente = claudioAgente_(); if (!agente) return { ok: false, error: 'Claudio todavía no está listo (el Hub lo crea en la próxima vuelta).', codigo: 'sin_agente' };
+  var uf = vozUrlFirmada_(agente); if (!uf.ok) return { ok: false, error: uf.error, codigo: 'sin_url' };
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0] || 'Juan', tel = normTel_(adm.tels[0]);
   var ficha = 'LLAMADA DESDE LA APP DE ALMA. Quien habla es ' + nom + ', el administrador principal, verificado por su sesión. Alma te pasó la llamada porque pidió hablar con desarrollo.';
   motivo = String(motivo || '').replace(/\s+/g, ' ').trim().slice(0, 300);

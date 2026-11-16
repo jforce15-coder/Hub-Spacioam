@@ -60,7 +60,7 @@ function caja(props, agente) {
 
 /* 2. La protección */
 { const c = caja({}, {}), m = c.ctx.vozMarcaPrincipal_(), cfg = c.ctx.vozProteccionConfig_(m);
-  ok(cfg.is_enabled === true && cfg.trigger_action.type === 'end_call', 'la personalizada está prendida y cuelga (ElevenLabs ya no acepta retry en streaming)');
+  ok(cfg.is_enabled === false && cfg.trigger_action.type === 'end_call', 'la personalizada queda guardada pero APAGADA: colgaba en el saludo (16-nov)');
   ok(cfg.execution_mode === 'streaming', 'en streaming: no suma espera a cada respuesta');
   ok(['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'claude-haiku-4-5', 'claude-sonnet-4-6', 'gpt-5.4-nano', 'gpt-5.4-mini'].indexOf(cfg.model) >= 0, 'un modelo que ElevenLabs acepta: ' + cfg.model);
   ok(cfg.history_message_count >= 1 && cfg.history_message_count <= 100, 've lo último que dijo la persona (history_message_count ' + cfg.history_message_count + ')');

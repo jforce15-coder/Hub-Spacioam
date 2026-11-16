@@ -49,9 +49,13 @@ function vozProteccionMarca_(marca) {
    streaming: corre al lado de la respuesta, sin sumar espera (T1 de #498 es voz rápida). end_call: cuelga. Desde nov-2026
    ElevenLabs solo acepta «retry» en modo blocking (que frena cada respuesta): se cuelga a quien no es el principal e intenta
    sacar o cambiar las instrucciones; con el principal nunca se activa (la marca). */
+/* APAGADA (Juan, 16-nov-2026): con «end_call» colgaba en el saludo (el juez la activaba en falso en llamadas de WhatsApp,
+   de la app y en conferencia), y «retry» ya solo se acepta en blocking, que frena cada respuesta. Queda guardada pero
+   apagada; las reglas de privacidad del prompt siguen. Para volver a probarla: true y blocking con retry. */
+var VOZ_PROTECCION_ACTIVA_ = false;
 function vozProteccionConfig_(marca) {
   return {
-    name: VOZ_PROTECCION_NOMBRE_, is_enabled: true, prompt: vozProteccionPrompt_(marca), model: 'gemini-3.1-flash-lite',
+    name: VOZ_PROTECCION_NOMBRE_, is_enabled: VOZ_PROTECCION_ACTIVA_, prompt: vozProteccionPrompt_(marca), model: 'gemini-3.1-flash-lite',
     execution_mode: 'streaming', history_message_count: 2,
     trigger_action: { type: 'end_call' }
   };
@@ -71,7 +75,7 @@ function vozProteccionAlDia_(actual, cfg) {
   var g = actual || {}, mia = (((g.custom || {}).config || {}).configs || []).filter(function (c) { return c && c.name === cfg.name; });
   if ((g.prompt_injection || {}).is_enabled !== false || mia.length !== 1) return false;
   var c = mia[0], ta = c.trigger_action || {};
-  return c.is_enabled === true && c.prompt === cfg.prompt && c.model === cfg.model && c.execution_mode === cfg.execution_mode &&
+  return c.is_enabled === cfg.is_enabled && c.prompt === cfg.prompt && c.model === cfg.model && c.execution_mode === cfg.execution_mode &&
     c.history_message_count === cfg.history_message_count && ta.type === cfg.trigger_action.type;
 }
 /* Cada 30 min con el prompt (vozSyncSiToca_): si la huella cambió, o una vez al día por si alguien la movió a mano,

@@ -3120,6 +3120,7 @@ function aprender() {
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
   try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
+  try { rutinaHora_(); } catch (e) { console.error('rutinaHora_: ' + e); }   // pendientes y promesas sin humano: resolver sola al menos el 60 % (rutinahora.js, #545)
   if (!automejoraOn_()) return;
   try { aprenderSenales(); } catch (e) { console.error('aprenderSenales: ' + e); }
   try { amHoja_(); } catch (e) {}
@@ -3339,7 +3340,8 @@ function hubApi_(body) {
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
-      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
+      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
+      case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)
       case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)
@@ -5221,6 +5223,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   let conversar = false;
   if (canal === 'calle') { const cv = calleSacarConversar_(turno.texto); turno.texto = cv.texto; conversar = cv.conversar; }
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
+  try { resp = variarFrase_(resp, variarRecientes_(previos)); } catch (e) { console.error('variarFrase_: ' + e); }   // sin la misma muletilla dos veces seguidas (variar.js)
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
   if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp, { tema: turno.clas.tema || '' });
@@ -5446,7 +5449,7 @@ function dsBotApi_(body) {
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
-      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true) });
+      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true), claudio: claudioSyncSiToca_(true) });
       case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());

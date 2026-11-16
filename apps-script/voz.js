@@ -28,6 +28,7 @@ function vozApi_(e, body) {
     else if (herr === 'property_info') out = vozPropertyInfo_(body);
     else if (herr === 'postcall') out = vozPostCall_(body);
     else if (herr === 'secretaria') out = vozSecretaria_(body);
+    else if (CLAUDIO_HERR_.indexOf(herr) >= 0) out = claudioHerramienta_(herr, body);   // Hablar con Claudio (claudio.js): solo el principal, por la firma de su conversación
     else if (herr === 'inicio') { out = vozInicio_(body); vozTraza_(herr, body, { ok: true, found: out._tipo }); delete out._tipo; return json_(out); }
     else out = { ok: false, error: 'herramienta desconocida: ' + herr };
     vozTraza_(herr, body, out);
@@ -447,6 +448,7 @@ function vozSyncSiToca_() {
   try { vozProteccionSiCambio_(false); } catch (e) { console.error('vozProteccionSiCambio_: ' + e); }   // #498 T3: protección de las instrucciones (vozproteccion.js)
   try { vozAccesoSiCambio_(false); } catch (e) { console.error('vozAccesoSiCambio_: ' + e); }   // acceso cerrado: solo con URL firmada del Hub (vozacceso.js)
   try { familiaSyncPrompt_(false); } catch (e) { console.error('familiaSyncPrompt_: ' + e); }   // Alma · Familia (familia.js)
+  try { claudioSyncSiToca_(false); } catch (e) { console.error('claudioSyncSiToca_: ' + e); }   // Hablar con Claudio (claudio.js): lo crea una vez y lo mantiene al día
 }
 function vozSyncPrompt_(forzar) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
@@ -523,7 +525,7 @@ function vozDefHerramientas_(base) {
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  }).concat([vozMostrarEnChat_(), vozNivelWeebo_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS
+  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozHablarConClaudio_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio
 }
 /* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
    trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al
@@ -1122,7 +1124,7 @@ var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pa
    primero (si falla, falla rápido). saludo_corto: «Dime, Juan» para cuando la app despierta a Alma con el anillo o con
    «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual).
    saludos: el Saludo variado (#410), la app de Alma elige uno; saludo_tema = el first_message trae un tema (retomar), no un hola. */
-function vozWebInicio_(ses, ligero, app) {
+function vozWebInicio_(ses, ligero, app, claudio) {
   var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
   /* Acceso cerrado (vozacceso.js): la voz solo se abre con la sesión verificada del Hub, nunca con la llave antigua. */
   if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };   // no 'session': ese error cierra la sesión del navegador
@@ -1140,6 +1142,8 @@ function vozWebInicio_(ses, ligero, app) {
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0];
   var dv = Object.assign({}, ini.dynamic_variables || {});
   dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify), correr sus atajos permitidos de iOS y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
+  /* Hablar con Claudio (claudio.js, #550): solo el principal y solo en una app que sabe cambiar de agente (la pide con «claudio»). */
+  if (claudio) { var pc = claudioPermiso_(adm); if (pc) dv.quien_llama += '\n' + pc; }
   marca('ficha');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   dv.marca_principal = vozMarcaPara_(adm);   /* por su sesión del Hub, no por el número (vozproteccion.js) */
@@ -1266,12 +1270,12 @@ function vozWebTokenTel_(tok) {
 }
 function vozWebTelDeConv_(conv) { return vozWebConvInfo_(conv).tel; }
 function vozWebConvInfo_(conv) {
-  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'); if (!key || !/^conv_/.test(conv)) return { tel: '', otro: false };
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'); if (!key || !/^conv_/.test(conv)) return { tel: '', otro: false, agente: '' };
   var r = uf_('https://api.elevenlabs.io/v1/convai/conversations/' + encodeURIComponent(conv), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
-  if (r.getResponseCode() !== 200) return { tel: '', otro: false };
+  if (r.getResponseCode() !== 200) return { tel: '', otro: false, agente: '' };
   var j = JSON.parse(r.getContentText() || '{}'), dv = ((j.conversation_initiation_client_data || {}).dynamic_variables) || {};
   var mio = p.getProperty('ELEVENLABS_AGENT_ID');
-  return { tel: vozWebTokenTel_(dv.sa_web), otro: !!(j.agent_id && mio && j.agent_id !== mio) };
+  return { tel: vozWebTokenTel_(dv.sa_web), otro: !!(j.agent_id && mio && j.agent_id !== mio), agente: String(j.agent_id || '') };
 }
 
 /* ═══ CONTEXTO RECIENTE ════════════════════════════════════════════════════════════════════════════════════

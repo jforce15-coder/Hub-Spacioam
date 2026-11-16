@@ -1,7 +1,8 @@
 /* Checks de la fuente única de Alma (playbooks/alma.json y huespedes.json; T7, 3-nov-2026). Revisa:
    1. que los dos JSON sean válidos y apps-script/almafuente.js esté al día (tools/alma-fuente.js);
    2. que ningún id se repita (una regla vive una sola vez);
-   3. que ningún texto use lo prohibido: el modismo «va», anunciar o nombrar a Claudio al pasarle algo, «secretaria»
+   3. que ningún texto use lo prohibido: el modismo «va», anunciar o nombrar a Claudio al pasarle algo, «te paso con
+      Claudio» (solo en claudio.js, #550), «secretaria»
       (fuera de la lista de prohibiciones, que justo los nombra), ni «prevalece» / «gana la mejora» (hay un solo orden);
    4. que cada herramienta del agente de voz tenga su línea en alma.json, y que no haya líneas de herramientas que ya
       no existen.
@@ -29,6 +30,7 @@ recorrer(A, 'alma.json'); recorrer(H, 'huespedes.json');
 const PROHIBIDO = [
   [/(^|[«"'¡\s])va([,.!»]|\s+como\b)/i, 'el modismo «va» (usa «listo», «claro», «perfecto»)'],
   [/se lo (digo|paso|pasé|mando|mandé|envío|voy a (pasar|mandar|reportar)) a claudio|ya se lo (mandé|pasé)|lo consulto con mi sistema|voy a consultar con mi sistema|lo reviso en mi sistema/i, 'anunciar o nombrar a Claudio al pasarle algo'],
+  [/te (paso|comunico|transfiero) con claudio/i, '«te paso con Claudio» (vive solo en apps-script/claudio.js: Hablar con Claudio, solo con el principal; #550)'],
   [/\bsecretaria\b/i, '«secretaria» (para la persona es «mi sistema»)'],
   [/prevalece|gana la mejora|por encima de todo/i, 'otro «esto manda sobre todo» (el único orden es alma.json → prioridad)']
 ];

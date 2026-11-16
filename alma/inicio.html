@@ -885,8 +885,8 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-11-16b"></script>
-<script src="../js/alma-voz.js?v=2026-11-16b"></script>
+<script src="../js/alma-client.js?v=2026-11-16c"></script>
+<script src="../js/alma-voz.js?v=2026-11-16c"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-16d"></script>
 <script>
@@ -1365,7 +1365,7 @@
   /* En la app de iPhone la roca del inicio habla con la voz de la app (VozNativa.swift), la misma del anillo: una sola
      conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
      roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
-  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null };
+  var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null, agente: "alma" };
   function vozNativa() {
     var web = window.SAAlmaVoz;
     return {
@@ -1409,15 +1409,26 @@
     if (!h) return;
     if (e.tipo === "nivel") {
       VN.nivel = Math.min(1, (+e.v || 0) / 2.6);
-      var d = e.alma ? "Alma habla" : "Te escucho"; if (d !== VN.dice) { VN.dice = d; h.status(d); }
+      var d = e.alma ? (VN.agente === "claudio" ? "Claudio habla" : "Alma habla") : "Te escucho"; if (d !== VN.dice) { VN.dice = d; h.status(d); }
     } else if (e.tipo === "alma" && e.texto) h.message("ai", e.texto);
     else if (e.tipo === "yo" && e.texto) h.message("user", e.texto);
     else if (e.tipo === "error" && e.mensaje) h.error(e.mensaje);
+  }
+  /* Hablar con Claudio (#550): la voz nativa cuenta con quién se habla («agente», también en cada «estado»); el halo de la
+     roca se pone todo naranja con Claudio y vuelve al de Alma al volver o al terminar (alma-voz.js, agenteHalo). */
+  function vozAgente(e) {
+    var a = e.agente === "claudio" && (e.tipo === "agente" || e.estado === "hablando" || e.estado === "conectando") ? "claudio" : "alma";
+    if (!("agente" in e) && !(e.tipo === "estado" && VN.agente === "claudio" && !VN.activa)) return;
+    if (a === VN.agente) return;
+    VN.agente = a; VN.dice = "";
+    try { if (window.SAAlmaVoz && SAAlmaVoz.agente) SAAlmaVoz.agente(a); } catch (x) {}
+    if (VN.h) VN.h.status(a === "claudio" ? "Conectando con Claudio…" : "Conectando…");
   }
   window.AlmaVoz = {
     evento: function (e) {
       if (!e) return;
       try { vozNativaEvento(e); } catch (x) {}
+      try { vozAgente(e); } catch (x) {}
       try { if (window.AlmaPersonalidad) AlmaPersonalidad.evento(e); } catch (x) {}   // medidores en vivo de la llamada (#410)
       try { if (window.AlmaTarjeta) AlmaTarjeta.evento(e); } catch (x) {}   // la tarjeta de la llamada (#446 T2)
       if (e.tipo === "estado") {

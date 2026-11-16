@@ -45,9 +45,9 @@ var JEV_PREGUNTA_ = { camino: { type: 'choice',
 var VOZ_RAPIDO_MODELO_ = 'claude-haiku-5-5';
 /* Solo herramientas de leer (ninguna envía, programa, une ni escribe en hojas por pedido del modelo). Cada una pasa por
    agEjecutar_, que revisa el rol igual que siempre (códigos y agenda solo del principal). */
-var VOZ_RAPIDO_HERR_ = ['buscar_reservas', 'cancelaciones', 'programados_reserva', 'ver_conversacion', 'ver_agenda', 'ruta_del_dia',
+var VOZ_RAPIDO_HERR_ = ['buscar_reservas', 'cancelaciones', 'historial_reserva', 'programados_reserva', 'ver_conversacion', 'ver_agenda', 'ruta_del_dia',
   'tareas_abiertas', 'promesas_abiertas', 'mensajes_programados', 'propuestas_agentes', 'vigilancias', 'ver_propiedad', 'codigo_acceso',
-  'memoria_propiedad', 'cupo_google', 'pedidos_en_orbita'];
+  'memoria_propiedad', 'cupo_google', 'buscar_en_mi_chat', 'pedidos_en_orbita'];
 var VOZ_RAPIDO_MS_ = 9000, VOZ_RAPIDO_VUELTAS_ = 3, VOZ_RAPIDO_MAX_LARGO_ = 300;
 /* Pedir hacer algo: la raíz de un verbo de hacer con su terminación (envía, mándale, programar, cancélalo, avisé…).
    «agenda», «pregunta» y «reserva» no están: también son sustantivos de leer («¿qué tengo en la agenda?»). Un nombre que

@@ -244,6 +244,7 @@ function caja(o) {
   ok(/sin CONVERSACIÓN CONTINUA, despídete y cuelga con end_call/.test(regla('SEGUNDO PLANO')), '8 · «TARDA MÁS DE LO NORMAL»: solo cuelga sin conversación continua');
   const ec = (VOZ.match(/end_call: '[^\n]*/) || [''])[0];
   ok(/Con CONVERSACIÓN CONTINUA \(MODO CALLE o MODO CONFERENCIA[^']*no la uses nunca/.test(ec) && !/apenas termines/.test(ec) && !/salvo en MODO CALLE/.test(ec), '8 · la descripción de end_call: con conversación continua no se usa');
+  ok(/Si la ficha trae la regla SIN DESPEDIDAS \(una versión anterior de la app, que no cierra sola\), cuelga como ella dice/.test(ec), '8 · una app de antes (que no cierra sola) sigue colgando: ninguna llamada queda abierta');
   const st = (VOZ.match(/skip_turn: '[^\n]*/) || [''])[0];
   ok(/MODO CALLE o MODO CONFERENCIA cuando ya respondiste/.test(st), '8 · la descripción de skip_turn: quedarse escuchando después de responder');
   /* Nada de la voz del Hub manda colgar en esos modos (así empezó «se corta en automático», 16-nov-2026). Lo decide la

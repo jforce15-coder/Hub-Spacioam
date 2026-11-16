@@ -36,12 +36,12 @@
 <link rel="stylesheet" href="ds/chat.css?v=2026-11-17a">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
-<script src="js/sa-nav.js?v=2026-11-16-orbita"></script>
+<script src="js/sa-nav.js?v=2026-11-16-archivos"></script>
 <script src="js/alma-voz.js?v=2026-11-16e"></script>
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-11-16-orbita"></script>
+<script src="js/alma-client.js?v=2026-11-16-archivos"></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
 <script src="js/sa-chat.js?v=2026-11-15c"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
@@ -6313,9 +6313,13 @@ class Component extends DCLogic {
       }
     }).catch(function () { upd({ busy: "", notaId: id, nota: "No se pudo. Revisa la conexión." }); });
   }
-  /* El «+» del nuevo chat: fotos (se achican a 1600 px en JPEG) o PDF (hasta 8 MB) que se suben a la carpeta de adjuntos
-     (ALMA.adjunto → apps-script/adjuntos.js) y quedan listos para mandarse con el mensaje. Máximo 3 por mensaje. */
+  /* El «+» del nuevo chat: fotos (se achican a 1600 px en JPEG) o, por WhatsApp, PDF, Word, Excel o audio (hasta 8 MB, #544)
+     que se suben a la carpeta de adjuntos (ALMA.adjunto → apps-script/adjuntos.js) y quedan listos para mandarse con el
+     mensaje. Máximo 3 por mensaje. El tipo sale de la extensión: el iPhone a veces no lo dice. */
   adjAgregar(convKey, archivos, upd) {
+    var ADJ_DOC_EXT = { pdf: "application/pdf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", opus: "audio/ogg", amr: "audio/amr" };
     var self = this, cur = ((this.state.convResp[convKey] || {}).adj || []).slice(), libres = 3 - cur.length;
     if (libres <= 0) { this.aviso("Máximo 3 adjuntos por mensaje."); return; }
     if (archivos.length > libres) this.aviso("Solo caben " + libres + " más: máximo 3 por mensaje.");
@@ -6323,11 +6327,12 @@ class Component extends DCLogic {
     var poner = function (k, patch) { var l = ((self.state.convResp[convKey] || {}).adj || []).map(function (x) { return x.k === k ? Object.assign({}, x, patch) : x; }); upd({ adj: l }); };
     var sacar = function (k) { upd({ adj: ((self.state.convResp[convKey] || {}).adj || []).filter(function (x) { return x.k !== k; }) }); };
     archivos.slice(0, libres).forEach(function (f, i) {
-      var k = "a" + Date.now() + i, esPdf = /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name);
+      var ext = String((/\.([a-z0-9]+)$/i.exec(f.name || "") || [])[1] || "").toLowerCase(), mimeDoc = ADJ_DOC_EXT[ext] || (/^audio\//.test(f.type) ? f.type.split(";")[0] : "");
+      var k = "a" + Date.now() + i, esPdf = !!mimeDoc && !/^image\//.test(f.type);   // esPdf: todo lo que no es foto (PDF, Word, Excel, audio)
       if (esPdf && f.size > 8e6) { self.aviso("«" + f.name + "» pasa de 8 MB."); return; }
-      if (!esPdf && !/^image\//.test(f.type)) { self.aviso("Solo fotos o PDF."); return; }
-      cur.push({ k: k, nombre: f.name || (esPdf ? "archivo.pdf" : "foto.jpg"), tipo: esPdf ? "pdf" : "foto", mini: "" });
-      var leer = esPdf ? new Promise(function (ok, no) { var r = new FileReader(); r.onload = function () { ok({ data: String(r.result), mime: "application/pdf" }); }; r.onerror = no; r.readAsDataURL(f); })
+      if (!esPdf && !/^image\//.test(f.type)) { self.aviso("Solo fotos, PDF, Word, Excel o audio."); return; }
+      cur.push({ k: k, nombre: f.name || (esPdf ? "archivo" : "foto.jpg"), tipo: esPdf ? (mimeDoc === "application/pdf" ? "pdf" : /^audio/.test(mimeDoc) ? "audio" : "documento") : "foto", mini: "" });
+      var leer = esPdf ? new Promise(function (ok, no) { var r = new FileReader(); r.onload = function () { ok({ data: String(r.result), mime: mimeDoc }); }; r.onerror = no; r.readAsDataURL(f); })
         : new Promise(function (ok, no) {
           var url = URL.createObjectURL(f), im = new Image();
           im.onload = function () { var q = Math.min(1, 1600 / Math.max(im.width, im.height)), c = document.createElement("canvas"); c.width = Math.round(im.width * q); c.height = Math.round(im.height * q);
@@ -7704,7 +7709,7 @@ class Component extends DCLogic {
         var adjE = ((self.state.convResp[convKey] || {}).adj || []).filter(function (x) { return x.id; });
         if ((self.state.convResp[convKey] || {}).adj && adjE.length < (self.state.convResp[convKey].adj || []).length) { upd({ nota: "Espera a que terminen de subir los adjuntos." }); return; }
         if (!t && !adjE.length) return;
-        var tVer = t || (adjE.length === 1 && adjE[0].tipo === "pdf" ? "📄 " + adjE[0].nombre : "📷");   // lo que se ve mientras sale
+        var tVer = t || (adjE.length === 1 && adjE[0].tipo !== "foto" ? (adjE[0].tipo === "audio" ? "🎧 " : "📄 ") + adjE[0].nombre : "📷");   // lo que se ve mientras sale
         var rid = info.resId;
         if (!(window.ALMA && ALMA.hasApi() && rid)) { upd({ nota: !rid ? "Esta conversación no tiene reserva en Hospitable." : "El hub no tiene la dirección del Apps Script. Revisa la configuración." }); return; }
         var opId = "o" + Date.now() + Math.random().toString(36).slice(2, 6), created = new Date().toISOString();
@@ -7856,21 +7861,21 @@ class Component extends DCLogic {
         /* El «+»: mis plantillas (tocar una la pone en el cuadro, no la envía) y guardar el texto actual como plantilla. */
         respMas: function (e) {
           if (!window.SAComp) return;
-          /* Qué deja mandar cada canal: Hospitable, hasta 3 fotos; WhatsApp, fotos y PDF (24 h); consultas, nada. */
+          /* Qué deja mandar cada canal: Hospitable, hasta 3 fotos; WhatsApp, fotos, PDF, Word, Excel y audio (24 h); consultas, nada. */
           var elegir = function (accept) {
             var inp = document.createElement("input"); inp.type = "file"; inp.accept = accept; inp.multiple = true; inp.style.display = "none"; document.body.appendChild(inp);
             inp.onchange = function () { var fs = Array.prototype.slice.call(inp.files || []); inp.remove(); if (fs.length) self.adjAgregar(convKey, fs, upd); };
             inp.click();
           };
           var extras = !adjPuede ? [] : [{ txt: "Foto", icono: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>', fn: function () { elegir("image/jpeg,image/png,image/webp,image/heic,image/*"); } }];
-          if (adjPuede && porWa) extras.push({ txt: "Archivo PDF", icono: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>', fn: function () { elegir("application/pdf"); } });
+          if (adjPuede && porWa) extras.push({ txt: "Archivo", icono: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>', fn: function () { elegir(".pdf,.doc,.docx,.xls,.xlsx,.mp3,.m4a,.aac,.ogg,.opus,.amr,application/pdf,audio/*"); } });
           SAComp.mas({ ancla: e && e.currentTarget, extras: extras, texto: function () { return self._respDraft[convKey] || ""; }, poner: function (t) {
             ponerTexto(t); self.guardarBorrador(convKey, t);
             setTimeout(function () { var el = self._respEl[convKey]; if (el) { el.focus(); try { el.setSelectionRange(t.length, t.length); } catch (x) {} } }, 60);
           } });
         },
         hayAdj: adjs.length > 0,
-        adjs: adjs.map(function (x) { return { nombre: x.nombre, mini: x.mini || "", esFoto: x.tipo !== "pdf", esPdf: x.tipo === "pdf", op: x.id ? "1" : ".5",
+        adjs: adjs.map(function (x) { return { nombre: x.nombre, mini: x.mini || "", esFoto: x.tipo === "foto", esPdf: x.tipo !== "foto", op: x.id ? "1" : ".5",
           quitar: function () { var l = ((self.state.convResp[convKey] || {}).adj || []).filter(function (y) { return y.k !== x.k; }); upd({ adj: l }); } }; }),
         respMejorarLabel: rs.busy ? "Redactando…" : llenoV ? "Mejorar" : "Redactar con ALMA",
         respHint: llenoV ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",

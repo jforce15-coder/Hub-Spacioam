@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, areas: 1, fotosContacto: 1, agentes: 1, dictar: 1, mejorarCampo: 1, adjunto: 1 };
+  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, almaArchivo: 1, areas: 1, fotosContacto: 1, agentes: 1, dictar: 1, mejorarCampo: 1, adjunto: 1 };
   var SALEN = { responder: 1, responderWa: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
@@ -166,6 +166,8 @@
     },
     /* foto del chat de Alma: el Hub la describe (IA con visión) para que Alma sepa qué se ve */
     almaFoto: function (dataUrl, captura) { return call('almaFoto', { foto: dataUrl, captura: !!captura }); },
+    /* Un archivo para Alma (PDF, Word, Excel, CSV, audio): el Hub lo guarda privado y le pasa lo que dice (adjuntos.js, #544). */
+    almaArchivo: function (o) { return call('almaArchivo', { data: o.data, mime: o.mime, nombre: o.nombre || '' }); },
     /* app de Alma: lo que Claude dejó pendiente para el admin principal (botón «Pendientes») */
     pendientesClaude: function () { return call('pendientesClaude', {}); },
     pendienteHecho: function (id) { return call('pendienteHecho', { id: id }); },

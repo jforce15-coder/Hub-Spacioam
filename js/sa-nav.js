@@ -78,6 +78,11 @@
     bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
     leaf: '<path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19l7-7"/>'
   };
+  /* Lo que el «+» → «Archivo» del chat de Alma acepta (#544), por extensión: el iPhone a veces no dice el tipo. */
+  var DOC_EXT = { pdf: "application/pdf", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", doc: "application/msword",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xls: "application/vnd.ms-excel", csv: "text/csv", txt: "text/plain",
+    mp3: "audio/mpeg", m4a: "audio/mp4", aac: "audio/aac", ogg: "audio/ogg", opus: "audio/ogg", wav: "audio/wav", amr: "audio/amr" };
+  var DOC_ACCEPT = Object.keys(DOC_EXT).map(function (e) { return "." + e; }).join(",") + ",application/pdf,audio/*,image/*";
   var SPARK = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg>';
   function svg(p, sz) { return '<svg viewBox="0 0 24 24" width="' + (sz || 19) + '" height="' + (sz || 19) + '" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
   function icon(i) { return i && i.indexOf("<") >= 0 ? i : svg(P[i] || P.grid); }
@@ -1269,7 +1274,7 @@
       '<div class="san-chat"><header><div class="asa"></div><button type="button" class="san-atras" aria-label="Cerrar el chat">' + svg('<path d="M19 12H5M11 6l-6 6 6 6"/>', 22) + '</button>' +
       '<span class="sa-chat-avatar-w"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span><i class="sa-chat-total" hidden></i></span><div class="t"><b>Alma</b></div></header>' +
       '<div class="sa-chat-esferas san-esferas" hidden></div><div class="san-msgs"></div>' +
-      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o usas tus plantillas.</p><div class="san-sug">' +
+      '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o un archivo, o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claudio que ">Mejorar el sistema</button></div></div>' +
       '<form class="sa-chat-pie" data-lleno="0"><button type="button" class="san-mas sa-chat-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
@@ -1278,7 +1283,7 @@
       '<button type="submit" class="san-env sa-chat-redondo" aria-label="Enviar">' + svg('<path d="M4.5 12 3 4.5l17.5 7.5L3 19.5z"/><path d="M4.5 12H11"/>', 20) + '</button>' +
       '<button type="button" class="san-send sa-chat-roca" aria-label="Alma · un toque mejora tu texto, dos toques para hablar"></button>' +
       '<div class="san-tips" aria-hidden="true"><span>Mejorar</span></div>' +
-      '<input type="file" accept="image/*" hidden class="san-file"></form></div>';
+      '<input type="file" accept="image/*" hidden class="san-file"><input type="file" accept="' + DOC_ACCEPT + '" hidden class="san-doc"></form></div>';
     ov.insertAdjacentHTML("beforeend", '<button type="button" class="san-pendb san-notib" data-a="noti" aria-label="Notificaciones" hidden>' + svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>', 20) + '<i class="san-badge"></i></button>');
     ov.insertAdjacentHTML("beforeend", '<div class="san-pend san-noti" role="dialog" aria-label="Notificaciones"><header><div class="t"><b>Notificaciones</b><small>Sin nada que hacer · 3 días</small></div>' +
       '<button type="button" class="san-hb san-noti-x" aria-label="Cerrar">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 18) + '</button></header><div class="san-pend-l san-noti-l"></div></div>');
@@ -1342,7 +1347,7 @@
   function chatBind(ov) {
     var f = ov.querySelector("form"), i = ov.querySelector(".san-in"), b = ov.querySelector(".san-send"), tips = ov.querySelector(".san-tips"), file = ov.querySelector(".san-file"),
       masB = ov.querySelector(".san-mas"), mic = ov.querySelector(".san-mic");
-    var fotoOk = !!(w.ALMA && w.ALMA.almaFoto);
+    var fotoOk = !!(w.ALMA && w.ALMA.almaFoto), docOk = !!(w.ALMA && w.ALMA.almaArchivo), doc = ov.querySelector(".san-doc");
     var alto = function () { i.style.height = "44px"; var h = i.scrollHeight + 2; i.style.height = Math.min(124, h) + "px"; i.style.overflowY = h > 124 ? "auto" : "hidden"; };   // hasta 5 líneas, como WhatsApp
     /* Con texto sale el «+» (ds/chat.css, 180 ms): el cuadro se angosta, así que se vuelve a medir al terminar. */
     var lleno = function () { var y = !!i.value.trim(); if (f.classList.contains("lleno") === y) return; f.classList.toggle("lleno", y); f.setAttribute("data-lleno", y ? "1" : "0"); setTimeout(function () { alto(); colocarTip(); }, 200); };
@@ -1393,10 +1398,12 @@
     masB.onclick = function () {
       conComp(function () {
         w.SAComp.mas({ ancla: masB, texto: function () { return i.value; }, poner: function (t) { i.value = t; crecer(); try { i.focus(); i.setSelectionRange(t.length, t.length); } catch (x) {} },
-          extras: fotoOk ? [{ txt: "Foto", icono: svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>', 18), fn: function () { file.click(); } }] : [] });
+          extras: (fotoOk ? [{ txt: "Foto", icono: svg('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/>', 18), fn: function () { file.click(); } }] : [])
+            .concat(docOk ? [{ txt: "Archivo", icono: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>', 18), fn: function () { doc.click(); } }] : []) });
       });
     };
     file.onchange = function () { var x = file.files && file.files[0]; file.value = ""; if (x) chatFoto(x, i); };
+    doc.onchange = function () { var x = doc.files && doc.files[0]; doc.value = ""; if (x) chatArchivo(x, i); };
   }
   /* El compositor compartido (js/sa-compositor.js) se carga solo la primera vez que se usa, junto a este archivo. */
   function conComp(cb) {
@@ -1468,6 +1475,31 @@
       };
       im.src = r.result;
     };
+    r.readAsDataURL(archivo);
+  }
+  /* «+» → «Archivo» (#544): PDF, Word, Excel, CSV, texto o audio; una foto elegida aquí va por chatFoto. El Hub lo guarda
+     en una carpeta privada de su Drive y le pasa a Alma lo que dice (apps-script/adjuntos.js, almaArchivo_). Hasta 8 MB. */
+  function chatArchivo(archivo, i) {
+    if (/^image\//.test(archivo.type)) { chatFoto(archivo, i); return; }
+    var nombre = archivo.name || "archivo", ext = String((/\.([a-z0-9]+)$/i.exec(nombre) || [])[1] || "").toLowerCase();
+    var mime = DOC_EXT[ext] || (/^audio\//.test(archivo.type) ? archivo.type.split(";")[0] : "");
+    var nota = function (t) { chatPintar(function (p) { if (p) p.nota(t); }); };
+    if (!mime) { nota("Ese tipo de archivo no lo puedo abrir. Mándame un PDF, Word, Excel, CSV, una foto o un audio."); return; }
+    if (archivo.size > 8e6) { nota("«" + nombre + "» pasa de 8 MB."); return; }
+    var r = new FileReader();
+    r.onload = function () {
+      var srv = AL.chat && chatServidor() && !enLlamada(), texto = i.value.trim(), ver = "📎 " + nombre + (texto ? "\n" + texto : ""), m = null;
+      if (texto) { i.value = ""; i.dispatchEvent(new Event("input")); }
+      if (srv && E.u) m = E.u.yo(ver); else addMsg(ver, "u");
+      chatQuieto(); chatPensando(true);
+      w.ALMA.almaArchivo({ data: String(r.result).split(",")[1] || "", mime: mime, nombre: nombre }).then(function (j) {
+        if (!(j && j.ok)) { chatPensando(false); if (E.u) E.u.pensando(false); nota((j && j.error) || "No pude mandar el archivo. Intenta de nuevo."); return; }
+        var t = "[Te mando el archivo «" + j.nombre + "» (quedó en el Drive del Hub, drive_id " + j.drive_id + ")" + (j.texto ? ". Lo que dice: " + j.texto : ". " + (j.nota || "")) + "]" + (texto ? " " + texto : "");
+        if (srv && E.u) { E.u.pensando(false); E.u.mandar(m, t); return; }   // chat único: va al Hub como un mensaje más
+        if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(t); } catch (x) {} } else AL.cola = t;
+      }, function () { chatPensando(false); nota("No pude mandar el archivo. Intenta de nuevo."); });
+    };
+    r.onerror = function () { nota("No pude leer «" + nombre + "»."); };
     r.readAsDataURL(archivo);
   }
   /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id), unir(url), responder(id, texto), nota({audio, mime}) }. Sin eso, el botón no existe. */

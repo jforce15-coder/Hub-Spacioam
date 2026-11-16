@@ -222,5 +222,6 @@ function areaMover_(ses, clave, area) {
   clave = String(clave || ''); area = String(area || '');
   if (!/^(conv|pers|proy|alma):/.test(clave) || !(areaOk_(area) || cajonOk_(area))) return { ok: false, error: 'datos' };
   areasGuardar_(areasFilas_(), cajonOk_(area) ? { clave: clave, cajon: area, como: 'manual' } : { clave: clave, area: area, cajon: '-', como: 'manual' });
+  try { CacheService.getScriptCache().remove(BANDEJA_ESFERA_CACHE_); } catch (e) {}   // la bandeja del Hub la pinta ya con su esfera nueva
   return { ok: true };
 }

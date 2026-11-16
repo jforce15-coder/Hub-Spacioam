@@ -237,3 +237,7 @@ jobs:
       - name: Notificaciones por tipo, una clasificación, ajustes por usuario con sesión, lo que la app recibe y el Hub web (dobles)
         # 16-nov: Juan quiere ajustes como los de WhatsApp, por tipo, y Siri sin pisar la voz de Alma (#551, diseño B).
         run: node .github/notif-ajustes.js apps-script
+      - name: Bandeja A3, cada conversación con su esfera y su foto (o null), los colores exactos del inicio, lo personal pendiente arriba y los filtros (dobles)
+        # 16-nov: Juan eligió el diseño A3 para la bandeja del Hub (#567 T1): círculos arriba con el aro partido (estado y esfera)
+        # y la lista como WhatsApp con un fondo muy tenue del color exacto de su esfera.
+        run: node .github/bandeja-esferas.js apps-script

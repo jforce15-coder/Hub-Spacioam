@@ -3,13 +3,17 @@
 # vuelve a revisar quién lo abrió y si alguien más lo editó, y lo hace una sola vez (apps-script/paraalma.js).
 # La llave PARA_ALMA_AVISO_KEY es un secreto de GitHub y el mismo valor va en el Hub (Ajustes → Llaves). Sin el secreto
 # este flujo no hace nada y el Hub sigue revisando GitHub por su cuenta. La llave nunca se imprime.
+# 16-nov-2026: del 12 al 16-nov Alma hizo las instrucciones pero ningún issue recibió su comentario (GitHub rechazaba la
+# llave del Hub al comentar). Si el Hub no pudo dejar su respuesta, la devuelve aquí ya limpia («pendiente») y este flujo
+# comenta, etiqueta y cierra con su propio permiso (issues: write), y le confirma al Hub para que no lo repita.
 name: Aviso para Alma
 
 on:
   issues:
     types: [opened, labeled, reopened]
 
-permissions: {}
+permissions:
+  issues: write   # solo para dejar en el issue la respuesta que el Hub no pudo comentar
 
 concurrency:
   group: para-alma-${{ github.event.issue.number }}
@@ -25,10 +29,35 @@ jobs:
         env:
           LLAVE: ${{ secrets.PARA_ALMA_AVISO_KEY }}
           NUM: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           URL: https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec
         run: |
           if [ -z "$LLAVE" ]; then echo "Sin el secreto PARA_ALMA_AVISO_KEY: no aviso; el Hub revisa GitHub por su cuenta."; exit 0; fi
           CUERPO=$(jq -cn --arg k "$LLAVE" --argjson n "$NUM" '{action: "paraAlmaAviso", llave: $k, issue: $n}')
           R=$(curl -sSL -m 360 --data "$CUERPO" "$URL" || true)
-          echo "Respuesta del Hub: $(printf '%s' "$R" | head -c 300)"
-          if ! printf '%s' "$R" | grep -q '"ok":true'; then echo "::warning::El Hub no tomó el aviso; lo verá en su revisión de respaldo."; fi
+          echo "Respuesta del Hub: $(printf '%s' "$R" | jq -c 'del(.pendiente.texto)' 2>/dev/null | head -c 300)"
+          if ! printf '%s' "$R" | grep -q '"ok":true'; then echo "::warning::El Hub no tomó el aviso; lo verá en su revisión de respaldo."; exit 0; fi
+          # El Hub no pudo dejar su respuesta en el issue: la deja este flujo. El texto ya viene sin teléfonos, correos ni códigos.
+          if [ "$(printf '%s' "$R" | jq -r 'has("pendiente")' 2>/dev/null)" != "true" ]; then exit 0; fi
+          API="https://api.github.com/repos/$REPO/issues/$NUM"
+          gh_() { curl -sS -o /dev/null -w '%{http_code}' -X "$1" -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" --data @"$3" "$2"; }
+          echo "::notice::GitHub rechazó la llave del Hub ($(printf '%s' "$R" | jq -r '.pendiente.codigo // "sin código"')): la respuesta la deja este flujo. Revisa la llave de GitHub en Conexiones (permiso «Issues: Read and write»)."
+          bien=1
+          if [ -n "$(printf '%s' "$R" | jq -r '.pendiente.texto // ""')" ]; then
+            printf '%s' "$R" | jq -c '{body: .pendiente.texto}' > cuerpo.json
+            c=$(gh_ POST "$API/comments" cuerpo.json); echo "Comentario: $c"; case "$c" in 2*) ;; *) bien=0;; esac
+          fi
+          ET=$(printf '%s' "$R" | jq -r '.pendiente.etiqueta // ""')
+          if [ "$bien" = 1 ] && [ -n "$ET" ]; then
+            jq -cn --arg e "$ET" '{labels: [$e]}' > etiqueta.json
+            c=$(gh_ POST "$API/labels" etiqueta.json); echo "Etiqueta: $c"; case "$c" in 2*) ;; *) bien=0;; esac
+          fi
+          CE=$(printf '%s' "$R" | jq -r '.pendiente.cerrar // ""')
+          if [ "$bien" = 1 ] && [ -n "$CE" ]; then
+            jq -cn --arg r "$CE" '{state: "closed", state_reason: $r}' > cerrar.json
+            c=$(gh_ PATCH "$API" cerrar.json); echo "Cierre: $c"; case "$c" in 2*) ;; *) bien=0;; esac
+          fi
+          if [ "$bien" != 1 ]; then echo "::warning::No pude dejar la respuesta en el issue; el Hub lo reintenta en su revisión de respaldo."; exit 0; fi
+          CONF=$(jq -cn --arg k "$LLAVE" --argjson n "$NUM" '{action: "paraAlmaAviso", llave: $k, issue: $n, avisado: true}')
+          echo "Confirmación al Hub: $(curl -sSL -m 120 --data "$CONF" "$URL" | head -c 200 || true)"

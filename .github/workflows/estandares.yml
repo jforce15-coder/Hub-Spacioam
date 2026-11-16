@@ -304,3 +304,6 @@ jobs:
       - name: «Une» se hace y no se pide, la orden de unir se cumple en el turno con su resultado real, un pedido de verdad sigue a Desarrollo y un mensaje sobre otra cosa no une nada (dobles)
         # 16-nov-2026: «une todo» salió más de diez veces como «Listo, quedó pedido» sin unir nada, y una nota de voz sobre un huésped unió dos cambios.
         run: node .github/unir-orden.js apps-script
+      - name: Inventario para el traslado a Workspace, solo lee, nombres de Propiedades sin valores, activadores y hojas y carpetas con su carpeta (dobles)
+        # 16-nov-2026: T1 del traslado a la cuenta Workspace (docs/specs/traslado-workspace.md): saber qué compartir sin tocar nada.
+        run: node .github/inventario-ws.js apps-script

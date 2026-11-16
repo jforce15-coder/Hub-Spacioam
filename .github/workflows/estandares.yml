@@ -287,3 +287,6 @@ jobs:
       - name: Archivos en los chats, Alma recibe PDF, Word, Excel y audio en privado y por WhatsApp salen como documento o audio (dobles)
         # 14-nov: Juan intentó agregar archivos en el chat y no los agregaba: el «+» solo aceptaba fotos (#544).
         run: node .github/archivos-chat.js apps-script
+      - name: Números +1, la plantilla que sí les llega antes de mandar y un solo reintento cuando Meta los bloquea por marketing (dobles)
+        # 12-nov: Juan pidió que, si Meta no entrega a un número de EE. UU. por marketing, se use sola la plantilla aprobada (#497).
+        run: node .github/masuno-reintento.js apps-script

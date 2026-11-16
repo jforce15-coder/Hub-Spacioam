@@ -296,6 +296,10 @@ jobs:
         # 16-nov: el anillo llega como control de música y Spotify se lo quita; Juan aprobó leerlo directo por Bluetooth y antes
         # hay que saber qué manda (ticket #29, paso 1). La app manda el registro y Claude lo lee para mapear los toques.
         run: node .github/anillo-ble.js apps-script
+      - name: Alma y el anillo, la Lectura del anillo solo con sesión y con su hora, sin datos personales, la herramienta del chat y las 5 de la voz (dobles)
+        # 16-nov: Juan quiere manejar el anillo QRing desde Alma (batería, pasos, ritmo, oxígeno, ajustes). En la app, en vivo;
+        # fuera de ella, lo último que leyó la app, siempre con su hora y sin inventar si no está conectado.
+        run: node .github/anillo-alma.js apps-script
       - name: Destinatario con su fuente, un solo resolvedor, el apartamento nombrado manda, varias personas se preguntan y «los socios» son todos (dobles)
         # 13-nov: Juan pidió escribirle al socio de Narama 633; Alma tomó la primera coincidencia por un pedazo del nombre (otro
         # apartamento) y antes dijo «El único Mayorga que tengo es …», inventado (#583 T3).

@@ -69,13 +69,9 @@ function microGuardar_(m) {
   if (m.tema_id && (m.estado === MICRO_ESTADOS_.unido || m.estado === MICRO_ESTADOS_.cerrado)) { try { temaCerrar_(m.tema_id, (m.estado === MICRO_ESTADOS_.unido ? 'Cambio unido' + (m.pr ? ': ' + m.pr : '') : 'Microproyecto cerrado') + ' («' + m.nombre + '»)'); } catch (e) { console.error('microGuardar_ tema: ' + e); } }
   return m;
 }
-/* Nombre corto: 2 a 5 palabras del título, sin cortar a media palabra («Uber con Alma»). */
-function microNombre_(t) {
-  t = String(t || '').replace(/^\s*\[[^\]]*\]\s*/, '').replace(/[«»"“”]/g, '').replace(/\s+/g, ' ').trim();
-  var p = t.split(' ').slice(0, 5).join(' ').replace(/[.,;:!?¿¡\-–—]+$/, '');
-  p = p.slice(0, 40).replace(/\s+\S*$/, function (x) { return p.length > 40 ? '' : x; });
-  return p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Pedido para Claudio';
-}
+/* Nombre corto: 2 a 5 palabras del título, sin cortar a media palabra («Uber con Alma»). Con la misma limpieza del tema
+   (temaNombreCorto_, temas.js; #583 T2): sin «Juan pregunta…» ni «cómo estamos con» y sin un conector al final. */
+function microNombre_(t) { return temaNombreCorto_(t, 5, 40) || 'Pedido para Claudio'; }
 function microCrear_(adm, nombre) {
   var m = { id: 'mp' + Date.now().toString(36) + Math.floor(Math.random() * 1e3), nombre: microNombre_(nombre), estado: MICRO_ESTADOS_.trabajo,
     creado: Date.now(), actualizado: Date.now(), quien: (adm && adm.email) || '', issue: '', pr: '', rama: '', sesion: '', ajustes: [],

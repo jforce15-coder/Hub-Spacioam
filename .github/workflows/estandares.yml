@@ -228,6 +228,13 @@ jobs:
         # 13-nov: el pedido de Narama 633 quedó enterrado bajo 31 mensajes de otros temas y los números que Juan mandó por
         # WhatsApp, sin citar, se trataron como de otro tema (#524, #526).
         run: node .github/temas.js apps-script
+      - name: Temas sin preguntas rotas, nombres cortos y legibles, con duda Alma elige y nada cae en el tema de un envío que ya salió (dobles)
+        # 16-nov: Alma preguntó «¿Esto es para Juan pregunta cómo estamos con o para Estoy probando el modo?» y «pásame con
+        # Claudio» cayó en el tema de una huésped cuyo «sí» se había terminado en segundo plano: el mensaje salió dos veces (#583 T2).
+        run: node .github/temas-elegir.js apps-script
+      - name: Tocar un anillo o su notificación manda su id, va a su tema con el estado ya cargado y una pregunta de estado no va a Claude (dobles)
+        # 16-nov: el toque del anillo «Cupos Google» mandaba solo el texto y el tema se adivinaba; tres nombres para lo mismo (#583 T1).
+        run: node .github/orbita-tema.js apps-script
       - name: Hablar con Claudio, el agente se crea una vez, la firma y la herramienta solo con el principal, no une sin «une» y Claudio no existe con otras audiencias (dobles)
         # 16-nov: Juan quiere hablar por voz con el equipo de desarrollo desde la app de Alma (#550): otro agente, otra voz y el
         # halo naranja; Claudio sigue sin existir para huéspedes, socios, equipo y externos.

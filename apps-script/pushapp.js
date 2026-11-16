@@ -84,6 +84,7 @@ function pushAppCuerpo_(adm, a, ll) {
   var texto = ver ? String(s.texto || '').replace(/\s+/g, ' ').trim().slice(0, 700) : NOTIF_GENERICO_;
   var datos = { id: String(a.id), tipo: tipo, aj: aj };
   if (a.prueba) datos.prueba = true;
+  if (s.orbita) datos.orbita = s.orbita;   // al tocarla, la app abre el chat con ese id (#583 T1.3, lo mismo que un anillo)
   if (ver && s.titulo && s.lineas && s.lineas.length) { datos.titulo = String(s.titulo).slice(0, 60); datos.lineas = s.lineas.slice(0, 3); }
   return { tipo: tipo, body: {
     app_id: ll.app, target_channel: 'push', include_aliases: { external_id: [pushAppExterno_(adm)] },

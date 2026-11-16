@@ -129,6 +129,8 @@ function vozTolerancia_() { var n = Number(PropertiesService.getScriptProperties
 function vozColaLock_() { try { var l = LockService.getUserLock(); if (l) return l; } catch (e) {} return LockService.getScriptLock(); }
 function vozSeguirGuardar_(o) {
   try { o.orb = orbitaId_(); } catch (e) {}   // su anillo en el inicio (orbita.js): se anota cuando ya quedó en la cola
+  /* Su tema (#583 T2.4): el del turno que se corta (si el turno abría uno, se crea ya). Al terminar se le suma lo que salió. */
+  if (!o.tema) { try { o.tema = temaActualId_({ email: o.email }) || ''; } catch (e) { console.error('temaActualId_: ' + e); } }
   var id = 'sg' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), s = JSON.stringify(o), c = CacheService.getScriptCache(), partes = {}, n = 0;
   for (var i = 0; i < s.length; i += 90000) partes[id + '_' + (n++)] = s.slice(i, i + 90000);
   partes[id] = String(n);
@@ -138,7 +140,7 @@ function vozSeguirGuardar_(o) {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEGUIR') || '[]'); } catch (e) {}
     cola.push({ id: id, email: o.email, t: Date.now() }); p.setProperty('VOZ_SEGUIR', JSON.stringify(cola.slice(-10)));
   } finally { lock.releaseLock(); }
-  try { orbitaEmpieza_(o.email, o.pedido, 'segundo_plano', '', o.orb); } catch (e) { console.error('orbitaEmpieza_: ' + e); }
+  try { orbitaEmpieza_(o.email, o.pedido, 'segundo_plano', '', o.orb, o.tema); } catch (e) { console.error('orbitaEmpieza_: ' + e); }
   try {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSeguirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
     ScriptApp.newTrigger('vozSeguirPronto').timeBased().after(5000).create();
@@ -178,10 +180,11 @@ function vozSeguirPronto() {
       var tools = agHerramientas_().filter(function (t) { return AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0; });
       r = opAgenteBucle_(adm, o.system + vozSeguirCanal_(), o.msgs, tools, { hechas: o.hechas || [], parcial: o.parcial || null, _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } }, 0, true);
       AGENTE_APP_ = false;
-      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, { esfera: r.esfera, subcategoria: r.subcategoria });   // la esfera del turno (chat.js)
+      opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, { esfera: r.esfera, subcategoria: r.subcategoria, tema: o.tema || '' });   // la esfera del turno (chat.js) y su tema
     } catch (e) { AGENTE_APP_ = false; r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos de nuevo?', hechas: [], fallo: String(e).slice(0, 150) }; }
     finally { AGENTE_CANAL_ = ''; AGENTE_TEXTO_ = ''; AGENTE_PEDIDO_ = ''; AGENTE_CONF_ = false; ORBITA_ACTUAL_ = null; }
     try { orbitaTermina_(adm.email, [o.orb], r.fallo, r); } catch (e) { console.error('orbitaTermina_: ' + e); }
+    if (o.tema) { try { temaSumarResultado_(adm, o.tema, r); } catch (e) { console.error('temaSumarResultado_: ' + e); } }   // el hilo dice que ya salió (temas.js, #583)
     try { vozSecAvisar_(normTel_(adm.tels[0]), adm, r, o.pedido, [o.orb]); } catch (e) { console.error('vozSecAvisar_: ' + e); }
     try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }   // la tarjeta y su aviso ya, sin esperar al minuto de procesarCola
   }

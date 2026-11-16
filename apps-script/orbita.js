@@ -16,7 +16,13 @@
    terminó; la herramienta `pedidos_en_orbita` (agente.js) lo lee con orbitaExplicar_. Nada de eso va a la app.
    El nombre (Juan, 14-nov-2026): un título de 2 o 3 palabras que resume el pedido («Pagos de Amalfi»), no el arranque
    del texto. Lo escribe el modelo rápido una vez por pedido (orbitaTitulo_, guardado 6 h en la caché); si no responde,
-   las primeras 3 palabras del pedido. */
+   las primeras 3 palabras del pedido.
+   Un solo nombre y su id (#583 T1, Juan 16-nov-2026): el anillo, el microproyecto y el tema se llaman igual (el título del
+   modelo se guarda una vez en el microproyecto y su tema, orbitaNombreGuardar_). Al tocar un anillo (o su notificación) la
+   app manda su id: orbitaTurno_ fija su tema (orbitaTema_: «mp…» microproyecto → tema; «es…» escalado → microproyecto →
+   tema; «ob…» el tema que se guardó al empezar; «tm…» el tema) y le da a Alma su estado ya cargado (orbitaContexto_), sin
+   herramientas. Una pregunta de estado escrita o dicha («¿cómo va X?») la contesta Alma con sus datos y no va a Claude
+   (orbitaEstadoPregunta_). */
 
 var ORBITA_TIPO_ = { segundo_plano: 'rapido', desarrollo: 'largo' };
 var ORBITA_FIN_MS_ = 10 * 60000;
@@ -60,11 +66,13 @@ function orbitaCambiar_(email, fn) {
 }
 /* Empieza un pedido de segundo plano. Devuelve su id ('' si no se pudo anotar). id: el que ya se guardó con el pedido. */
 function orbitaId_() { return 'ob' + Date.now().toString(36) + Math.floor(Math.random() * 1e4); }
-function orbitaEmpieza_(email, pedido, fuente, paso, id) {
+function orbitaEmpieza_(email, pedido, fuente, paso, id, tema) {
   id = id || orbitaId_();
   var ok = orbitaCambiar_(email, function (l) {
-    l.push({ id: id, nombre: orbitaNombre_(pedido), texto: orbitaLimpio_(pedido).slice(0, 600), paso: String(paso || ''), fuente: fuente || 'segundo_plano', estado: 'en_curso', desde: Date.now(),
-      pedido: String(pedido || '').slice(0, 400), pasos: [] });
+    var x = { id: id, nombre: orbitaNombre_(pedido), texto: orbitaLimpio_(pedido).slice(0, 600), paso: String(paso || ''), fuente: fuente || 'segundo_plano', estado: 'en_curso', desde: Date.now(),
+      pedido: String(pedido || '').slice(0, 400), pasos: [] };
+    if (tema) x.tema = String(tema);   // su tema (temas.js): al tocar el anillo, el mensaje va ahí
+    l.push(x);
     return true;
   });
   if (ok) { try { abrePedido_(email, id); } catch (e) { console.error('abrePedido_: ' + e); } }   // uno de sus pedidos recientes (almaabre.js)
@@ -143,17 +151,19 @@ function orbitaTituloLimpio_(t) {
   if (!n || n > ORBITA_TITULO_MAX_ || t.length > 32) return '';
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
-/* presupuesto: { n } cuántos títulos nuevos puede pedir todavía esta consulta. */
-function orbitaTitulo_(texto, nombre, presupuesto) {
+/* presupuesto: { n } cuántos títulos nuevos puede pedir todavía esta consulta. info: { modelo } true si el título es del
+   modelo (se guarda como el nombre del microproyecto y su tema); el respaldo se guarda con «~» delante. */
+function orbitaTitulo_(texto, nombre, presupuesto, info) {
   var base = orbitaLimpio_(texto || nombre).slice(0, 600), respaldo = orbitaCorto_(nombre || orbitaNombre_(texto));
   if (!base) return respaldo;
   var c = CacheService.getScriptCache(), k = 'orbt_' + orbitaClave_(base).slice(7), ya = c.get(k);
-  if (ya) return ya;
+  if (ya) { if (ya.charAt(0) === '~') return ya.slice(1) || respaldo; if (info) info.modelo = true; return ya; }
   if (!presupuesto || presupuesto.n <= 0 || typeof claude_ !== 'function') return respaldo;
   presupuesto.n--;
   var t = '';
   try { t = orbitaTituloLimpio_(claude_(CFG.MODELO_CLASIFICADOR, 20, ORBITA_TITULO_SYS_, 'PEDIDO:\n' + base, 0)); } catch (e) { console.error('orbitaTitulo_: ' + e); }
-  try { c.put(k, t || respaldo, t ? 21600 : 600); } catch (e) {}   // si falló, se reintenta en 10 min
+  try { c.put(k, t || '~' + respaldo, t ? 21600 : 600); } catch (e) {}   // si falló, se reintenta en 10 min
+  if (t && info) info.modelo = true;
   return t || respaldo;
 }
 
@@ -174,7 +184,7 @@ function orbitaDesarrollo_(adm, largo) {
     var fin = Number(e.fin || 0);
     if (estado !== 'en_curso' && ahora - fin >= VENTANA) { if (e.micro) vistos[e.micro] = 1; return; }
     if (e.micro) vistos[e.micro] = 1;
-    var oe = { id: 'es' + String(e.id || e.micro).replace(/\W/g, ''), nombre: e.nombre, texto: String(e.para_entregar || ''), paso: estado === 'fallo' ? 'No se pudo' : ORBITA_ESCALAR_PASO_[e.estado] || 'En desarrollo',
+    var oe = { id: 'es' + String(e.id || e.micro).replace(/\W/g, ''), mid: String(e.micro || ''), nombre: e.nombre, texto: String(e.para_entregar || ''), paso: estado === 'fallo' ? 'No se pudo' : ORBITA_ESCALAR_PASO_[e.estado] || 'En desarrollo',
       fuente: 'desarrollo', estado: estado, desde: Number(e.t || ahora), fin: estado === 'en_curso' ? 0 : fin };
     if (largo) oe.det = { como: 'Alma lo escaló a Claude y lo une y entrega sola', pedido: String(e.para_entregar || '').slice(0, 400), etapa: String(e.estado || ''),
       prs: (e.prs || []).slice(0, 3), unidos: (e.unidos || []).slice(0, 3), micro: e.micro ? microResumen_(e.micro, micros) : null };
@@ -185,7 +195,7 @@ function orbitaDesarrollo_(adm, largo) {
     if (vistos[m.id] || String(m.quien || '').toLowerCase() !== email) return;
     var act = Number(m.actualizado) || 0, est = String(m.estado || '');
     if (est === MICRO_ESTADOS_.trabajo) {
-      if (ahora - act < ORBITA_DESARROLLO_MS_) out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), nombre: m.nombre, texto: pedido, paso: 'En desarrollo', fuente: 'desarrollo', estado: 'en_curso', desde: Number(m.creado) || act, fin: 0,
+      if (ahora - act < ORBITA_DESARROLLO_MS_) out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), mid: String(m.id), nombre: m.nombre, texto: pedido, paso: 'En desarrollo', fuente: 'desarrollo', estado: 'en_curso', desde: Number(m.creado) || act, fin: 0,
         det: largo ? { como: 'Pedido a Claude', micro: microResumen_(m.id, micros) } : undefined });
       return;
     }
@@ -194,7 +204,7 @@ function orbitaDesarrollo_(adm, largo) {
     var ult = (m.ajustes || [])[(m.ajustes || []).length - 1], fin = ult && ult.de === 'claude' ? Number(ult.ts) || 0 : 0;
     if (!fin || ahora - fin >= VENTANA || (est === MICRO_ESTADOS_.unido && !largo)) return;
     var paso = est === MICRO_ESTADOS_.listo ? 'Listo para unir' : est === MICRO_ESTADOS_.pregunta ? 'Te pregunta algo' : est === MICRO_ESTADOS_.unido ? 'Unido' : 'Listo';
-    out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), nombre: m.nombre, texto: pedido, paso: paso, fuente: 'desarrollo', estado: 'listo', desde: Number(m.creado) || fin, fin: fin,
+    out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), mid: String(m.id), nombre: m.nombre, texto: pedido, paso: paso, fuente: 'desarrollo', estado: 'listo', desde: Number(m.creado) || fin, fin: fin,
       det: largo ? { como: 'Pedido a Claude', micro: microResumen_(m.id, micros) } : undefined });
   });
   if (!largo) try { c.put(k, JSON.stringify(out), 60); } catch (e) {}
@@ -221,13 +231,14 @@ function orbitaExplicar_(adm, buscar) {
   var q = n(buscar), elegidos = todos;
   if (q) {
     var pal = q.split(' ').filter(function (p) { return p.length > 2; });
-    var nota = function (x) { var t = n(x.nombre) + ' ' + n(x.pedido || (x.det && x.det.pedido) || ''); if (n(x.nombre) === q || String(x.id) === String(buscar)) return 99; return pal.filter(function (p) { return t.indexOf(p) >= 0; }).length; };
+    /* #583: el microproyecto guarda lo que pidió en x.texto y det.micro.pidio (no en x.pedido). */
+    var nota = function (x) { var d = x.det || {}, t = n(x.nombre) + ' ' + n(x.pedido || d.pedido || '') + ' ' + n(x.texto || '') + ' ' + n((d.micro && d.micro.pidio) || ''); if (n(x.nombre) === q || String(x.id) === String(buscar)) return 99; return pal.filter(function (p) { return t.indexOf(p) >= 0; }).length; };
     var mejor = Math.max.apply(null, [0].concat(todos.map(nota)));
     elegidos = mejor ? todos.filter(function (x) { return nota(x) === mejor; }) : [];
   }
   var lista = elegidos.slice(0, 5).map(function (x) {
     var falta = x.estado === 'fallo' ? 'Decidir si se intenta de nuevo' : x.estado === 'en_curso' ? 'Nada: Alma sigue trabajando y avisa al terminar' : 'Nada';
-    var o = { nombre: x.nombre, tipo: ORBITA_TIPO_[x.fuente] === 'largo' ? 'desarrollo (lleva un cambio con PR; tarda horas)' : 'segundo plano (Alma lo trabaja por detrás)',
+    var o = { id: String(x.id), nombre: x.nombre, tipo: ORBITA_TIPO_[x.fuente] === 'largo' ? 'desarrollo (lleva un cambio con PR; tarda horas)' : 'segundo plano (Alma lo trabaja por detrás)',
       estado: ORBITA_ESTADO_TXT_[x.estado] || x.estado, paso: x.paso || '', empezo: hora(x.desde), termino: x.estado === 'en_curso' ? '' : hora(x.fin) };
     if (x.pedido) o.que_pidio = x.pedido;
     if ((x.pasos || []).length) o.pasos_que_dio = x.pasos;
@@ -263,7 +274,9 @@ function orbitaLista_(adm) {
   var l = orbitaLeer_(adm.email).concat(orbitaDesarrollo_(adm));
   var orden = { en_curso: 0, fallo: 1, listo: 2 }, presupuesto = { n: ORBITA_TITULO_MAX_ };
   return l.sort(function (a, b) { return (orden[a.estado] - orden[b.estado]) || (b.desde - a.desde); }).slice(0, ORBITA_MAX_).map(function (x) {
-    var o = { id: String(x.id), nombre: orbitaLimpio_(orbitaTitulo_(x.texto, x.nombre, presupuesto)).slice(0, 32) || 'Pedido en curso', paso: orbitaLimpio_(x.paso).slice(0, 24),
+    var info = {}, nombre = orbitaLimpio_(orbitaTitulo_(x.texto, x.nombre, presupuesto, info)).slice(0, 32) || 'Pedido en curso';
+    if (info.modelo && (x.mid || x.tema)) orbitaNombreGuardar_(adm, x, nombre);   // un solo nombre: el del anillo (#583)
+    var o = { id: String(x.id), nombre: nombre, paso: orbitaLimpio_(x.paso).slice(0, 24),
       tipo: ORBITA_TIPO_[x.fuente] || 'rapido', estado: x.estado, desde: Number(x.desde) || 0 };
     if (x.estado !== 'en_curso') o.fin = Number(x.fin) || 0;
     return o;
@@ -273,4 +286,98 @@ function orbitaLista_(adm) {
 function orbitaApi_(ses) {
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
   return { ok: true, pedidos: orbitaLista_(adm), ahora: Date.now() };
+}
+
+/* ── Un solo nombre (#583 T1.2): el título del anillo es el del microproyecto y el de su tema ──
+   Una vez por título (6 h en caché): el microproyecto toma el nombre del anillo y su tema también, si es suyo (tipo u origen
+   micro) o su título no se lee bien o era el nombre viejo del microproyecto. Un anillo de segundo plano solo le suma el
+   nombre a su tema como otro nombre reconocible (temaAliasSumar_). */
+function orbitaNombreGuardar_(adm, x, nombre) {
+  if (!adm || !x || !nombre || nombre === x.nombre || typeof temaLegible_ !== 'function' || !temaLegible_(nombre)) return;
+  var c = CacheService.getScriptCache(), k = 'orbn_' + orbitaClave_(String(x.id) + '|' + nombre).slice(7);
+  if (c.get(k)) return;
+  try { c.put(k, '1', 21600); } catch (e) {}
+  try {
+    if (x.tema) temaAliasSumar_(x.tema, nombre);
+    if (!x.mid) return;
+    var m = microFilas_().filter(function (y) { return String(y.id) === String(x.mid); })[0]; if (!m) return;
+    var viejo = m.nombre;
+    if (viejo !== nombre && m.fila) microHoja_().getRange(m.fila, MICRO_CAB_.indexOf('nombre') + 1).setValue(nombre);
+    if (!m.tema_id) return;
+    temaAliasSumar_(m.tema_id, nombre);
+    TEMA_MEMO_ = null; var t = temaLeer_(m.tema_id);
+    if (t && t.titulo !== nombre && (t.tipo === 'micro' || t.origen === 'micro' || !temaLegible_(t.titulo) || socioNorm_(t.titulo) === socioNorm_(viejo))) { t.titulo = nombre; temaGuardar_(t); }
+  } catch (e) { console.error('orbitaNombreGuardar_: ' + e); }
+}
+
+/* ── El tema de un anillo (#583 T1.1): «mp…» microproyecto → tema; «es…» escalado → microproyecto → tema; «ob…» el tema
+   que se guardó al empezar; «tm…» el tema mismo. Solo lo de quien pregunta. '' si no tiene. Un microproyecto sin tema
+   (de antes de los temas) recibe uno con su nombre. ── */
+var ORBITA_ID_RE_ = /^(mp|es|ob|tm)[A-Za-z0-9]{2,80}$/;
+function orbitaTema_(adm, id) {
+  id = String(id || '').trim(); if (!adm || !adm.email || !ORBITA_ID_RE_.test(id)) return '';
+  var email = String(adm.email).toLowerCase();
+  var suyo = function (tid) { var t = tid ? temaLeer_(tid) : null; return t && String(t.admin).toLowerCase() === email ? t.id : ''; };
+  if (/^tm/.test(id)) return suyo(id);
+  if (/^ob/.test(id)) { var o = orbitaLeer_(adm.email, true).filter(function (x) { return x.id === id; })[0]; return suyo(o && o.tema); }
+  var mid = '';
+  if (/^es/.test(id)) {
+    var e = escalarEntregas_().filter(function (y) { return 'es' + String(y.id || y.micro).replace(/\W/g, '') === id; })[0];
+    if (!e || String(e.email || '').toLowerCase() !== email) return '';
+    mid = String(e.micro || ''); if (!mid) return '';
+  }
+  var m = microFilas_().filter(function (y) { return mid ? String(y.id) === mid : 'mp' + String(y.id).replace(/\W/g, '') === id; })[0];
+  if (!m || String(m.quien || '').toLowerCase() !== email) return '';
+  var tid = suyo(m.tema_id); if (tid) return tid;
+  var t = temaCrear_(adm, { tipo: 'micro', titulo: m.nombre, origen: 'micro', origen_id: m.id });
+  if (m.fila) microHoja_().getRange(m.fila, MICRO_CAB_.indexOf('tema_id') + 1).setValue(t.id);
+  return t.id;
+}
+/* El estado de un anillo en JSON corto para la nota del turno: qué pidió, qué se hizo, en qué estado va, PR o issue y qué
+   falta. null si no se encuentra. */
+function orbitaContexto_(adm, id) {
+  id = String(id || '');
+  if (/^tm/.test(id)) {
+    var t = temaLeer_(orbitaTema_(adm, id)); if (!t) return null;
+    return { nombre: t.titulo, estado: t.estado, ultimo_paso: String(t.ultimo_paso || '').slice(0, 200), que_falta: t.espera === 'numero' ? 'Un número' : t.espera ? 'Tu respuesta' : 'Nada' };
+  }
+  var r = orbitaExplicar_(adm, id), x = r && r.ok ? (r.pedidos || []).filter(function (p) { return p.id === id; })[0] : null;
+  if (!x) return null;
+  var c = x.claude || {}, hizo = (x.lo_que_hizo || []).join(' · ') || x.lo_que_respondio || c.claude_respondio || (x.pasos_que_dio || []).join(', ');
+  var o = { nombre: x.nombre, que_pidio: String(x.que_pidio || c.pidio || '').slice(0, 300), que_se_hizo: String(hizo || 'Nada todavía').slice(0, 500),
+    estado: x.estado + (x.etapa ? ' · ' + x.etapa : x.paso && x.paso !== 'Listo' ? ' · ' + x.paso : ''), que_falta: x.que_falta };
+  if (c.pregunta) o.pregunta_de_claude = String(c.pregunta).slice(0, 300);
+  if (c.pr) o.pr = c.pr; if (c.issue) o.issue = c.issue; if ((x.prs || []).length) o.prs = x.prs;
+  if (x.por_que_fallo) o.por_que_fallo = x.por_que_fallo;
+  return o;
+}
+var ORBITA_NOTA_ESTADO_ = 'Es una pregunta de estado: contéstala tú con estos datos en palabras simples (qué pidió, qué se hizo, en qué estado está y qué falta). No es un pedido para Claude ni un cambio.';
+/* Tocó un anillo o su notificación (chatEnviar_, chat.js): el tema fijo y el estado en la nota. o.estado: no va a Claude. */
+function orbitaTurno_(adm, id) {
+  id = String(id || '').trim(); if (!ORBITA_ID_RE_.test(id)) return null;
+  var tema = '', ctx = null;
+  try { tema = orbitaTema_(adm, id); } catch (e) { console.error('orbitaTema_: ' + e); }
+  try { ctx = orbitaContexto_(adm, id); } catch (e) { console.error('orbitaContexto_: ' + e); }
+  var nota = ctx ? 'TOCÓ EL ANILLO «' + ctx.nombre + '»: su estado ya está aquí, no lo busques otra vez. ' + ORBITA_NOTA_ESTADO_ + '\nESTADO: ' + JSON.stringify(ctx) : '';
+  var o = { orbita: id, estado: true }; if (tema) { o.tema = tema; o.por = 'orbita'; }
+  return { o: o, nota: nota };
+}
+/* «¿Cómo va X?», «¿cómo estamos con X?», «¿qué pasó con X?» (#583 T1.4): una pregunta de estado la contesta Alma con sus
+   datos y herramientas de leer (pedidos_en_orbita, cupo_google…); no abre un pedido para Claude. Si X es un anillo, su estado
+   va en la nota y su tema queda fijo. null si no es una pregunta de estado (o trae además algo que hacer). */
+function orbitaEstadoPregunta_(adm, texto) {
+  var t = String(texto || '').trim(); if (!adm || !adm.email || !t || t.length > 240 || !TEMA_ESTADO_RE_.test(t)) return null;
+  /* Lo que sigue a la pregunta no pide nada («¿cómo va X? y mándale…» no es solo estado); X puede ser «la reserva». */
+  var partes = t.split(/[?.!\n]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+  if (/^(si|que|a ser)\b/i.test(String(partes[0] || '').replace(TEMA_ESTADO_RE_, '')) || partes.slice(1).some(temaVerbo_)) return null;
+  var x = temaNombreCorto_(t, 8, 80), ctxs = [], tema = '';
+  if (x) {
+    var r = null; try { r = orbitaExplicar_(adm, x); } catch (e) { console.error('orbitaEstadoPregunta_: ' + e); }
+    (r && r.ok ? r.pedidos || [] : []).slice(0, 2).forEach(function (p) { try { var c = orbitaContexto_(adm, p.id); if (c) ctxs.push(c); } catch (e) {} });
+    if (r && r.ok && (r.pedidos || []).length === 1) { try { tema = orbitaTema_(adm, r.pedidos[0].id); } catch (e) {} }
+  }
+  var nota = 'PREGUNTA DE ESTADO' + (x ? ' sobre «' + x + '»' : '') + ': contéstala tú con tus datos y herramientas de leer (p. ej. pedidos_en_orbita o cupo_google). No es un pedido para Claude ni un cambio.' +
+    (ctxs.length ? '\nLO QUE YA SÉ: ' + JSON.stringify(ctxs.length === 1 ? ctxs[0] : ctxs) : '');
+  var o = { estado: true }; if (tema) { o.tema = tema; o.por = 'nombre'; }
+  return { o: o, nota: nota };
 }

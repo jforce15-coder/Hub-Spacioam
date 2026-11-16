@@ -1325,6 +1325,13 @@
   function enLlamada() { return !!(AL.sesTok && (AL.on || AL.min)); }
   function chatServidor() { return !!(w.ALMA && w.ALMA.opEnviar && w.ALMA.opHilo && w.SAChat && w.SAChat.unico); }
   function chatCanal() { return cfg.app === "hub" ? "hub" : "app"; }
+  /* El id del anillo o de la notificación que se tocó (#583 T1): viaja solo con ESE texto, una vez y en los próximos 20 s,
+     para que el Hub lo lleve a su tema y le dé a Alma su estado (chatEnviar_, apps-script/chat.js). */
+  function chatConOrbita(q) {
+    var o = E.orb; E.orb = null;
+    if (o && o.texto === q.texto && Date.now() - o.t < 20000) q.orbita = o.id;
+    return q;
+  }
   function chatEnviar(v) {
     v = String(v || "").trim(); if (!v) return false; chatQuieto();
     if (AL.chat && chatServidor() && !enLlamada()) { chatPintar(function () { if (E.u) E.u.enviar(v); }); return true; }
@@ -1417,7 +1424,7 @@
         if (chatServidor()) {
           /* El chat único: «Cargar historial», la fila de esferas y la insignia con el total (js/sa-chat.js). */
           E.u = w.SAChat.unico({ hilo: E.msgs, fila: E.ov.querySelector(".san-esferas"), insignia: E.ov.querySelector(".san-chat .sa-chat-total"),
-            api: { hilo: function (q) { return w.ALMA.opHilo(q); }, enviar: function (t) { return w.ALMA.opEnviar({ texto: t, canal: chatCanal() }); } },
+            api: { hilo: function (q) { return w.ALMA.opHilo(q); }, enviar: function (t) { return w.ALMA.opEnviar(chatConOrbita({ texto: t, canal: chatCanal() })); } },
             alElegir: function (t) { chatEnviar(t); }, alAbrir: chatAbrir,
             alEnviar: function () { clearTimeout(pensT); pensT = setTimeout(function () { chatPensando(false); }, 90000); },
             alResponder: function () { clearTimeout(pensT); chatQuieto(); } });
@@ -2314,12 +2321,14 @@
     if (E.ov.classList.contains("pend")) pendAbrir(false);
     if (E.ov.classList.contains("noti")) notiAbrir(false);
     if (!AL.on) escActivar(true); else if (!AL.chat) almaChat(true);
+    E.orb = o.texto && o.orbita ? { id: String(o.orbita).slice(0, 90), texto: String(o.texto).trim(), t: Date.now() } : null;   // con su id (#583 T1)
     chatPintar(function () { if (E.u) E.u.filtro(e, true); if (o.texto) chatEnviar(o.texto); });   // o.texto: lo pregunta ya (un anillo en órbita del inicio)
     return true;
   }
   w.SANav = {
     /* Abre el Chat con Alma filtrado en una esfera: SANav.chat({ esfera: "Finanzas" }) (también para la app nativa).
-       Con texto, además se lo manda a Alma: SANav.chat({ texto: "¿Qué pasó con «X»?" }) (al tocar un pedido en órbita). */
+       Con texto, además se lo manda a Alma: SANav.chat({ texto: "¿Qué pasó con «X»?", orbita: "mp…" }) (al tocar un pedido en
+       órbita o su notificación en la app de iPhone; orbita: su id, para que vaya a su tema con el estado ya cargado, #583). */
     chat: function (o) { return root ? chatEn(o) : false; },
     /* la barra de avisos del inicio: los datos de Pendientes y Notificaciones, una tarjeta con sus botones y abrirla en su hoja */
     datos: function () { return { pend: AL.pendData, noti: AL.notiData }; },

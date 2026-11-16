@@ -778,6 +778,7 @@ function procesarCola() {
   cupoFuncion_('claudeBorradoresRevisar_'); try { claudeBorradoresRevisar_(); } catch (e) { console.error('claudeBorradoresRevisar_: ' + e); }   // borrador para Claude sin «mándalo» en 24 h → Pendiente (chat.js); sin internet
   cupoFuncion_('chatMarcarCola_'); try { chatMarcarCola_(); } catch (e) { console.error('chatMarcarCola_: ' + e); }   // esferas que una llamada dejó para después (chat.js)
   cupoFuncion_('temasMigrar_'); try { temasMigrar_(); } catch (e) { console.error('temasMigrar_: ' + e); }   // una sola vez (TEMAS_V1): lo abierto de antes se liga a un tema; solo hojas (temas.js)
+  cupoFuncion_('temasRenombrar_'); try { temasRenombrar_(); } catch (e) { console.error('temasRenombrar_: ' + e); }   // una sola vez (TEMAS_V2, #583): nombres cortos y legibles en temas y microproyectos (temas.js)
   cupoFuncion_('confAudioProcesar_'); try { confAudioProcesar_(); } catch (e) { console.error('confAudioProcesar_: ' + e); }   // modo conferencia: Scribe con voces (conferencia.js)
   cupoFuncion_('confCerrarViejas_'); try { confCerrarViejas_(); } catch (e) { console.error('confCerrarViejas_: ' + e); }   // modo conferencia: cierra las que quedaron abiertas (conferencia.js)   // lo que Alma resolvió → Pendientes (pendientes.js)
   cupoFuncion_('fotoProcesar_'); try { fotoProcesar_(); } catch (e) { console.error('fotoProcesar_: ' + e); }
@@ -5201,7 +5202,8 @@ function opMatch_(txt, lista) {
   return lista.find(x => n(x) === t) || lista.find(x => n(x).indexOf(t) >= 0) || lista.find(x => t.indexOf(n(x)) >= 0 && n(x).length > 3) || bqMejor_(txt, lista) || '';
 }
 /* Un mensaje del administrador (WhatsApp o hub): se guarda, ALMA responde con el contexto real y ejecuta lo que pidió. */
-/* o: { tema } el tema que ya se sabe (la tarjeta de Pendientes, una cita por WhatsApp; temas.js). */
+/* o: { tema } el tema que ya se sabe (la tarjeta de Pendientes, una cita por WhatsApp; temas.js). o.estado (#583): es una
+   pregunta de estado (un anillo tocado o «¿cómo va X?»): Alma la contesta con sus datos y el turno no va a Claude. */
 function opProcesar_(adm, texto, canal, fotos, nota, o) {
   texto = String(texto || '').trim(); if (!adm || !texto) return { ok: false, error: 'faltan datos' };
   /* Tocó una opción de una decisión del equipo en la tarjeta del chat: queda elegida y el borrador espera en la conversación (decisiones.js). */
@@ -5211,7 +5213,10 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
      se resuelve aquí, sin la IA, en cualquier canal (chat.js). */
   try { const bc = chatBorradorTurno_(adm, yo, texto, canal); if (bc) return bc; } catch (e) { console.error('chatBorradorTurno_: ' + e); }
   let notaSoc = ''; try { notaSoc = socioDatosEnMensaje_(adm, texto); } catch (e) { console.error('socioDatosEnMensaje_: ' + e); }   // números de socios: a su ficha al llegar (sociosmi.js)
-  const notaT = [nota, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
+  /* «¿Cómo va X?» (#583 T1.4): pregunta de estado, con lo que ya se sabe de X; no va a Claude (orbita.js). */
+  let notaEst = '';
+  if (!(o && o.estado)) { try { const est = orbitaEstadoPregunta_(adm, texto); if (est) { notaEst = est.nota; o = Object.assign({}, est.o, o && o.tema ? { tema: o.tema, por: o.por } : {}); } } catch (e) { console.error('orbitaEstadoPregunta_: ' + e); } }
+  const notaT = [nota, notaEst, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
   const pedido = notaT ? notaT + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   /* La configuración de Epi (otra web app de Apps Script: varios segundos por pedido) solo la usa el flujo viejo sin agente. El agente lee Epi él solo,
      de la caché (epiSnap_), cuando una herramienta lo necesita: pedirla aquí sumaba segundos a cada mensaje (Modo calle,
@@ -5252,13 +5257,19 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   }
   /* Con plazo (modo calle, calle.js): no alcanzó el tiempo y el agente lo sigue en segundo plano (retomar.js). */
   if (ag && ag.seguira) {
-    const sigue = opGuardar_(adm, 'alma', canal, 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.', hechas);
+    /* El tema sabe que sigue por detrás (#583 T2.4): su hilo y su último paso, y ya no espera «respuesta»; al terminar,
+       vozSeguirPronto le suma lo que salió (temaSumarResultado_). */
+    const txtSigue = 'Esto toma un rato: lo sigo trabajando en segundo plano y te aviso cuando esté.';
+    let tmS = ''; try { tmS = temaCerrarTurno_(adm, texto, txtSigue, { hechas: hechas }); } catch (e) { console.error('temaCerrarTurno_ (seguira): ' + e); }
+    TEMA_ACT_ = null;
+    if (tmS) { try { opMarcar_([yo.id], { tema: tmS }); } catch (e) { console.error('opMarcar_: ' + e); } }
+    const sigue = opGuardar_(adm, 'alma', canal, txtSigue, hechas, tmS ? { tema: tmS } : null);
     try { vozTrabajando_(adm, 1); } catch (e) {}
     return { ok: true, yo: yo, alma: sigue, seguira: true };
   }
   /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan).
      Si ya pasó el plazo de la calle, la esfera se marca después para no hacerlo esperar más. */
-  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '', nivel: ag ? ag.nivel : '' }, { canal: canal, diferir: canal === 'calle' || !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });   // calle: la esfera se marca en la próxima pasada, Juan no la espera
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '', nivel: ag ? ag.nivel : '' }, { canal: canal, diferir: canal === 'calle' || !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_), sinDesarrollo: !!(o && o.estado) });   // calle: la esfera se marca en la próxima pasada, Juan no la espera
   yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
   /* Modo calle: la etiqueta [[conversar]] (hace falta hablarlo) sale del texto antes de guardarlo. */
   let conversar = false;

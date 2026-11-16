@@ -200,8 +200,9 @@
   @keyframes onda { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.55); opacity: 0; } }
   .conexion[data-paso="3"] .l-toque { animation: pulsa 1.2s ease-in-out infinite; }
   @keyframes pulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.025); } }
-  .orbe { position: absolute; width: 150px; height: 150px; border-radius: 50%; opacity: 0; transform: scale(.5); transition: opacity .9s var(--ease) .5s, transform 1.2s var(--ease) .5s;
-    background: radial-gradient(circle at 36% 30%, #FFFBF8 0%, #FCE6DC 38%, #F6C7B5 74%, #EFAE97 100%); box-shadow: 0 30px 60px -24px rgba(233,130,106,.6); }
+  /* UNA ROCA (Juan, 16-nov-2026): la de Alma, la misma de todas las pantallas (SANav.roca, js/sa-nav.js), no una esfera propia.
+     Aquí solo se agranda o se mueve el contenedor (transform); la piedra respira sola por dentro. */
+  .orbe { position: absolute; width: 150px; height: 150px; opacity: 0; transform: scale(.5); transition: opacity .9s var(--ease) .5s, transform 1.2s var(--ease) .5s; }
   .conexion[data-paso="4"] .orbe { opacity: 1; transform: scale(1); }
   .conexion[data-paso="4"] .l-alma { transition-delay: 0s; opacity: .0; }
   .texto-con { text-align: center; max-width: 340px; min-height: 128px; }
@@ -223,8 +224,7 @@
   .respira::before { content: ""; position: absolute; inset: 0; background: rgba(60,44,34,.28); }
   .respira.on { opacity: 1; pointer-events: auto; }
   .respira > * { position: relative; }
-  .respira .esfera { width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 36px; transition: transform 4s cubic-bezier(.45,0,.55,1);
-    background: radial-gradient(circle at 36% 30%, #FFFBF8 0%, #FCE6DC 38%, #F6C7B5 74%, #EFAE97 100%); box-shadow: 0 30px 80px -20px rgba(242,179,158,.9); }
+  .respira .esfera { width: 150px; height: 150px; margin: 0 auto 36px; transition: transform 4s cubic-bezier(.45,0,.55,1); }
   .respira h3 { margin: 0; font: 400 44px/1 var(--serif); }
   .respira p { margin: 10px 0 0; font-size: 13px; letter-spacing: .2em; text-transform: uppercase; opacity: .85; }
   .respira .cerrar { position: absolute; top: max(18px, env(safe-area-inset-top)); left: 18px; background: rgba(255,255,255,.16); color: #fff; }
@@ -404,6 +404,7 @@
   <div><div class="esfera" id="esfera"></div><h3 id="resp-t">Inhala</h3><p id="resp-p">4 segundos</p></div>
 </div>
 
+<script src="../js/sa-nav.js?v=2026-11-16-una-roca"></script>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script>
 (function () {
@@ -417,6 +418,8 @@
   function cmd(nombre, extra) { var m = { que: "comando", nombre: nombre }; for (var k in (extra || {})) m[k] = extra[k]; anillo(m); }
   function vibra(ms) { try { navigator.vibrate && navigator.vibrate(ms || 8); } catch (e) {} }
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  /* La roca de Alma (una sola, la de siempre): al conectar el anillo y en «Respira con Alma» crece o se encoge el contenedor. */
+  if (window.SANav && SANav.roca) { SANav.roca(document.querySelector(".conexion .orbe"), { d: 150 }); SANav.roca($("esfera"), { d: 150 }); }
   var CAPS = Array.prototype.slice.call(document.querySelectorAll(".cap"));
 
   /* ── Quién es (por ahora solo el administrador principal) ── */

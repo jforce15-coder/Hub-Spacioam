@@ -471,10 +471,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var unaC = cons.length === 1 && consH[0].coincidencia === 'exacta' && !hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'exacta'; });
       if (hits.length === 1 && outR.reservas.length === 1 && !cons.length) tvCandidata_('reserva', function () { return tvReserva_(hits[0], outR.reservas[0], inbox); });
       else if (unaC) tvCandidata_('consulta', function () { return tvConsulta_(consH[0].item); });
+      else if (hits.length > 1) tvCandidata_('datos', function () { return tdReservas_(outR.reservas, { inbox: inbox }); });   // varias: el tablero de datos (tablero.js, #607)
       else if (hits.length + cons.length > 1) tvCandidata_(null);
       return outR;
     }
-    case 'cancelaciones': return agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy);
+    case 'cancelaciones': { var rCa = agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy); if (rCa && !rCa.error) tvCandidata_('datos', function () { return tdCancelaciones_(rCa); }); return rCa; }
     case 'historial_reserva': return agHistorialReserva_(inp.codigo);
     case 'programados_reserva': {
       var ridP = agResId_(inp.codigo); if (!ridP || /^(wa|op):/.test(ridP)) return { error: 'No encontré esa reserva. Búscala antes con buscar_reservas y usa su código.' };
@@ -513,7 +514,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ver_vuelos': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve los vuelos.' }; return viajesParaAlma_(adm); }   // viajes.js
     case 'crear_evento': case 'ver_agenda': case 'mover_evento': case 'cancelar_evento': {   // calendario.js
       if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal usa su calendario.' };
-      var rCal = calendarioHerramienta_(nombre, inp); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
+      var rCal = calendarioHerramienta_(nombre, inp); if (nombre === 'ver_agenda' && rCal && rCal.ok) tvCandidata_('datos', function () { return tdAgenda_(rCal); }); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
     }
     case 'preparar_uber': { var rU = uberHerramienta_(adm, inp); if (rU.enviado) ctx.hechas.push({ tipo: 'uber', resumen: 'Uber listo por WhatsApp · ' + (rU.destino || rU.origen) }); return rU; }   // uber.js
     case 'buscar_en_mi_chat': return chatBuscar_(adm, inp);   // chatbuscar.js: solo el chat de quien habla
@@ -647,10 +648,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
       if (rt.error) return { error: rt.error };
+      tvCandidata_('datos', function () { return tdRuta_(rt, fd); });   // la ruta en pantalla, sin códigos (tablero.js, #607)
       var codDe = function (x) { try { var c = codigoEquipo_(x.propiedad, fd, cfg.schedules); return c && c.codigo ? 'código ' + c.codigo + ' (' + c.tipo + ')' : ''; } catch (e) { return ''; } };
       return { fecha: fd, persona: rt.persona, trabajos: rt.trabajos.map(function (t) { var x = t.x; return [x.hora || '', x.tipo || '', x.propiedad || '', t.quien, x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : '', codDe(x)].filter(Boolean).join(' · '); }) };
     }
-    case 'tareas_abiertas': return { tareas: ctx.cfg().tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 40).map(function (t) { return [t.id, t.texto, t.prop || '-', t.quien || '-', 'vence ' + (t.vence || '-')].join(' · '); }) };
+    case 'tareas_abiertas': tvCandidata_('datos', function () { return tdTareas_(ctx.cfg().tareas, hoy); }); return { tareas: ctx.cfg().tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 40).map(function (t) { return [t.id, t.texto, t.prop || '-', t.quien || '-', 'vence ' + (t.vence || '-')].join(' · '); }) };
     case 'crear_tarea': case 'cerrar_tarea': case 'agendar_en_epi': {
       var c2 = ctx.cfg(), props = c2.props.map(propNombre_).filter(Boolean);
       var acc = nombre === 'crear_tarea' ? { tipo: 'tarea', texto: inp.texto, prop: inp.propiedad, quien: inp.quien, vence: inp.vence }
@@ -706,13 +708,13 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo cumplido · ' + String(inp.resultado || '').slice(0, 80), error: rE.ok ? '' : rE.error });
       return rE;
     }
-    case 'reporte_mes': return reporteMes_(adm, inp);   // reportemes.js
+    case 'reporte_mes': { var rMe = reporteMes_(adm, inp); if (rMe && rMe.ok) tvCandidata_('datos', function () { return tdMes_(rMe); }); return rMe; }   // reportemes.js; el mes en pantalla (tablero.js)
     case 'ficha_socio': {   // fichasocio.js (#522); al verla en una llamada, el tablero del socio (tarjeta.js, #508 Fase 2)
       var fueraF = {}, rF = fichaHerramienta_(adm, inp, fueraF), sF = fueraF.s;
       if (sF && rF && !rF.error) tvCandidata_('socio', function () { return tvSocio_({ tel: sF.tel, nombre: sF.nombre, correo: sF.correo, props: [sF.propiedad] }, { principal: true, items: fueraF.items }); });
       return rF;
     }
-    case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
+    case 'promesas_abiertas': { var lPr = hubPromesas_(false).promesas; tvCandidata_('datos', function () { return tdPromesas_(lPr); }); return { promesas: lPr.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) }; }
     case 'grow_proyectos': {   // lo de Grow, con grow.spacioam.com (enlaces.js)
       var rGp = growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
       try { tvGrowGuardar_(rGp); } catch (e) { console.error('tvGrowGuardar_: ' + e); }   // la etapa para el tablero del socio (tarjeta.js)
@@ -840,7 +842,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
     case 'cupo_google': return cupoParaAlma_(adm);   // cupo.js
-    case 'pedidos_en_orbita': return orbitaExplicar_(adm, inp.nombre);   // orbita.js
+    case 'pedidos_en_orbita': { var rOr = orbitaExplicar_(adm, inp.nombre); if (rOr && rOr.ok) tvCandidata_('datos', function () { return tdPedido_(rOr); }); return rOr; }   // orbita.js; cómo va, en pantalla (tablero.js)
     case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
     case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };

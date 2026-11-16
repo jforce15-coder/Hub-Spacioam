@@ -309,7 +309,7 @@ function paraClaudeAvisar_(titulo, voz, estado, micro) {
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
     /* tema por retomar (solo lo que pide algo de Juan) y notificación en la app de iPhone */
-    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel, pedidos: micro ? [String(micro)] : [] }); } catch (e) {}
+    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude', ref: micro ? String(micro) : '' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel, pedidos: micro ? [String(micro)] : [] }); } catch (e) {}
     /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
     if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe) && nivel === 2) waEnviar_(jefe.wa || jefe.tels[0], texto + '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).');
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }
@@ -321,7 +321,7 @@ function paraClaudeNovedades_(adm) {
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   if (!nov.length) return '';
   p.deleteProperty('DESARROLLO_NOVEDADES');
-  return '\nNOVEDADES DEL SISTEMA (lo que terminó Claude, el desarrollador; nómbralo «Claudio» solo si Juan pregunta por él): cuéntaselas en una frase cada una, sin leer detalles, cuando termine su primer pedido o si pregunta qué hay nuevo:\n' +
+  return '\nNOVEDADES DEL SISTEMA (lo que terminó Claude, el desarrollador; nómbralo «Claudio» solo si Juan pregunta por él): cuéntaselas SOLO si pregunta qué hay nuevo o por desarrollo (#607: plática directa), en una frase cada una, sin leer detalles:\n' +
     nov.map(function (n) { return '· ' + n.voz; }).join('\n');
 }
 /* Robot: los pedidos (por defecto los pendientes) y marcar uno como hecho. */

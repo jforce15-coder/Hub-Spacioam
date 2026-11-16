@@ -666,6 +666,49 @@
   .tvb-cara img { width: 100%; height: 100%; object-fit: cover; }
   .tvb-dato.con-cara { padding-right: 46px; }
   .tvb-dato.con-cara > .tvb-cara { position: absolute; right: 10px; top: 50%; margin-top: -15px; width: 30px; height: 30px; font-size: 10px; }
+  /* Tablero de datos (#607, apps-script/tablero.js): número grande, barras y línea de tiempo, en el mismo bento. Un solo
+     color (el coral de Alma) para las barras; el valor va escrito al lado (sin leyenda ni eje). */
+  .tvb-numero { display: flex; flex-direction: column; justify-content: center; }
+  .tvb-numero .tvb-v { font-size: clamp(26px, 8vw, 34px); }
+  .tvb-numero[data-tono="alerta"] .tvb-v { color: #9E3326; }
+  .tvb-numero[data-tono="aviso"] .tvb-v { color: #6F5210; }
+  .tvb-br { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: minmax(56px, max-content) 1fr max-content; gap: 6px 8px; align-items: center; font-size: 12px; }
+  .tvb-br li { display: contents; }
+  .tvb-br span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #3E3F3F; }
+  .tvb-br i { display: block; height: 10px; border-radius: 0 6px 6px 0; background: #E9826A; min-width: 3px; width: 0; transition: width .7s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  .tvb.on .tvb-br i { width: var(--w); }
+  .tvb-br b { font: 600 11px Montserrat, system-ui, sans-serif; color: #3E3F3F; font-variant-numeric: tabular-nums; }
+  .tvb-ln { list-style: none; margin: 8px 0 0; padding: 0 0 0 14px; position: relative; display: flex; flex-direction: column; gap: 8px; }
+  .tvb-ln::before { content: ""; position: absolute; left: 4px; top: 4px; bottom: 4px; width: 2px; border-radius: 2px; background: #ECEAE7; }
+  .tvb-ln li { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 0 8px; font-size: 12.5px; line-height: 1.3; min-width: 0; }
+  .tvb-ln li::before { content: ""; position: absolute; left: -14px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid #E9826A; box-sizing: border-box; }
+  .tvb-ln li[data-tono="aviso"]::before { border-color: #C99A2E; }
+  .tvb-ln li[data-tono="alerta"]::before { border-color: #9E3326; background: #F2DAD5; }
+  .tvb-ln time { font: 600 11px Montserrat, system-ui, sans-serif; color: #6F6867; font-variant-numeric: tabular-nums; }
+  .tvb-ln span { min-width: 0; overflow-wrap: anywhere; }
+  .tvb-ln small { grid-column: 2; font-size: 10.5px; color: #6F6867; }
+  @media (prefers-reduced-motion: reduce) { .tvb-br i { transition: none; } }
+  /* Modo compañero (#607 T-C1, apps-script/vivo.js): este dispositivo muestra la llamada del otro, sin audio. */
+  .comp { position: fixed; inset: 0; z-index: 2147482450; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity .35s ease;
+    background: linear-gradient(180deg, rgba(40,30,32,.10), rgba(40,30,32,.30)), #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat; color: #fff; }
+  .comp.on { opacity: 1; pointer-events: auto; }
+  .comp-cab { display: flex; align-items: center; gap: 10px; padding: max(18px, calc(env(safe-area-inset-top) + 10px)) 80px 0 max(18px, env(safe-area-inset-left)); font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .24em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(40,30,25,.25); }
+  .comp-cab i { width: 8px; height: 8px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 4px rgba(233,130,106,.3); animation: compLate 1.8s ease-in-out infinite; }
+  .comp.fin .comp-cab i { animation: none; background: rgba(255,255,255,.7); box-shadow: none; }
+  @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
+  .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
+  .comp-tab { position: relative; flex: 1; min-height: 0; }
+  .comp .tvb { top: 18px; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto; }
+  .comp-vacio { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font: 400 clamp(22px, 4vw, 30px)/1.25 Valky, "Cormorant Garamond", Georgia, serif; opacity: .9; }
+  .comp-subs { flex: none; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; padding: 12px max(18px, env(safe-area-inset-right)) max(22px, calc(env(safe-area-inset-bottom) + 12px)) max(18px, env(safe-area-inset-left));
+    display: flex; flex-direction: column; gap: 6px; min-height: 96px; justify-content: flex-end; }
+  .comp-subs p { margin: 0; text-shadow: 0 1px 10px rgba(40,30,25,.35); animation: compSub .35s ease both; }
+  .comp-subs p.alma { font: 400 clamp(19px, 3vw, 24px)/1.3 Valky, "Cormorant Garamond", Georgia, serif; }
+  .comp-subs p.yo { font: 500 13px/1.35 Montserrat, system-ui, sans-serif; opacity: .82; }
+  .comp-subs p.yo::before { content: "Tú · "; font-weight: 600; }
+  @keyframes compSub { from { opacity: 0; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) { .comp-cab i, .comp-subs p { animation: none; } }
   .tvb-galeria { padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; background: #fff; }
   .tvb-galeria > img { position: static; width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
   .tvb-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--g); }
@@ -920,6 +963,11 @@
     <div class="pp-cab"><b>Para huéspedes</b><span class="v" id="pp-h-v">tope 20 %</span></div>
     <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
     <div class="pp-fija"><span>Modo Weebo</span><b id="pp-h-w">máximo 1 · chispa</b></div>
+  </div>
+  <p class="tit-g" id="t-comp">Modo compañero</p>
+  <div class="grupo" id="g-comp">
+    <div class="fila"><span class="et">Mostrar aquí la llamada de tu otro dispositivo</span><label class="interruptor"><input type="checkbox" id="i-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo"><span></span></label></div>
+    <p class="nota-g">Encendido en este dispositivo (por ejemplo, el iPad): cuando hablas con Alma desde el otro, aquí ves en vivo lo que ella te muestra y lo que dicen, sin sonido. El micrófono y el audio se quedan en el dispositivo donde empezaste la llamada.</p>
   </div>
   <p class="tit-g" id="t-llaves" hidden>Llaves</p>
   <div class="grupo" id="g-llaves" hidden>
@@ -2668,7 +2716,7 @@
       if (c === foto || c.tam === "s") return;
       if (c.tam === "m") { medio.push(c); if (medio.length === 2) { filas.push({ celdas: medio, span: 3, alto: 2 }); medio = []; } return; }
       if (medio.length) { filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 }); medio = []; }
-      filas.push({ celdas: [c], span: 6, alto: c.tipo === "semana" || c.tipo === "lista" ? 1 : 2 });   // semana y lista: del alto de lo que traen
+      filas.push({ celdas: [c], span: 6, alto: /^(semana|lista|barras|linea)$/.test(c.tipo) ? 1 : 2 });   // semana, lista, barras y línea: del alto de lo que traen
     });
     if (medio.length) filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 });   // un texto solo: del alto de lo que dice
     return filas;
@@ -2733,7 +2781,31 @@
       });
       d.appendChild(ul); return d;
     }
+    if (c.tipo === "barras") {   // #607: barras horizontales; la más larga es el 100 %
+      d.appendChild(el("small", "tvb-k", c.k || ""));
+      var its = (c.items || []).filter(function (x) { return x && x.t; }), mx = Math.max.apply(null, [0].concat(its.map(function (x) { return Number(x.n) || 0; })));
+      var br = el("ul", "tvb-br"); br.setAttribute("role", "list");
+      its.forEach(function (x) {
+        var li = el("li"); li.setAttribute("aria-label", x.t + ": " + (x.v == null ? x.n : x.v));
+        li.appendChild(el("span", "", x.t)); var bar = el("i"); bar.style.setProperty("--w", (mx ? Math.max(2, Math.round((Number(x.n) || 0) / mx * 100)) : 0) + "%"); li.appendChild(bar);
+        li.appendChild(el("b", "", String(x.v == null ? x.n : x.v))); br.appendChild(li);
+      });
+      d.appendChild(br); return d;
+    }
+    if (c.tipo === "linea") {   // #607: línea de tiempo (hora · qué · quién)
+      d.appendChild(el("small", "tvb-k", c.k || ""));
+      var ln = el("ol", "tvb-ln");
+      (c.items || []).forEach(function (x) {
+        if (!x || !x.t) return; var li = el("li"); if (x.tono) li.setAttribute("data-tono", x.tono);
+        li.appendChild(el("time", "", x.h || "")); li.appendChild(el("span", "", x.t)); if (x.d) li.appendChild(el("small", "", x.d)); ln.appendChild(li);
+      });
+      d.appendChild(ln); return d;
+    }
     if (c.k) d.appendChild(el("small", "tvb-k", c.k));
+    if (c.tipo === "numero") {   // #607: un número grande
+      d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d)); if (c.tono) d.setAttribute("data-tono", c.tono);
+      return d;
+    }
     if (c.tipo === "dato") {
       d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d));
       if (seguro(c.foto)) { d.classList.add("con-cara"); d.appendChild(cara(c.foto, c.iniciales)); }   // la foto del huésped (#508 T2)
@@ -2753,9 +2825,9 @@
     d.appendChild(el("p", "tvb-p", c.texto || c.v || ""));
     return d;
   }
-  function pintarBento(t) {
-    var b = el("section", "tvb"); b.setAttribute("role", "group"); b.setAttribute("aria-label", "Alma encontró: " + (t.cabeza || t.titulo || ""));
-    var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode("Alma encontró")); cab.appendChild(eti);
+  function pintarBento(t, sinAcciones) {
+    var b = el("section", "tvb"); b.setAttribute("role", "group"); b.setAttribute("aria-label", (t.eti || "Alma encontró") + ": " + (t.cabeza || t.titulo || ""));
+    var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.eti || "Alma encontró")); cab.appendChild(eti);
     cab.appendChild(el("b", "tvb-tit", t.cabeza || t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub)); b.appendChild(cab);
     var g = el("div", "tvb-g"), k = 0;
     acomodar(t.cuadros).forEach(function (f) {
@@ -2769,7 +2841,7 @@
     });
     b.appendChild(g);
     /* «Abrir conversación» ya está en «Necesita respuesta»; abajo quedan las demás (o todas, si no hay ese cuadro). */
-    var ac = acciones(t, !!g.querySelector(".tvb-msg[role=button]")); if (ac) { var a = el("div", "tvb-acc"); a.style.setProperty("--i", k); a.appendChild(ac[0]); a.appendChild(ac[1]); b.appendChild(a); }
+    var ac = sinAcciones ? null : acciones(t, !!g.querySelector(".tvb-msg[role=button]")); if (ac) { var a = el("div", "tvb-acc"); a.style.setProperty("--i", k); a.appendChild(ac[0]); a.appendChild(ac[1]); b.appendChild(a); }
     b.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
     return b;
   }
@@ -2993,8 +3065,89 @@
     /* La página de la llamada pregunta si debe esperar antes de cerrarse */
     sostiene: function () { return enPantalla(); },
     /* Para las capturas y las pruebas: pinta una tarjeta de mentira */
-    probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); }
+    probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); },
+    /* Modo compañero (#607): el mismo tablero, armado aparte y sin botones (desde aquí no se llama ni se abre nada) */
+    bento: function (t) { return esClaudio(t) ? pintarClaudio(t) : esBento(t) ? pintarBento(t, true) : null; }
   };
+})();
+</script>
+<script>
+/* ── Modo compañero (#607 T-C1, apps-script/vivo.js; Juan, 16-nov-2026: «hablamos desde el iPhone y en el iPad se
+   muestran las cosas») ── Con el interruptor encendido EN ESTE dispositivo (se guarda aquí), mientras no haya una llamada
+   aquí mismo, la página pide al Hub lo que pasa en la llamada del otro (vivoLeer): cada 1,5 s durante una llamada y cada
+   8 s si no hay, y nada con la pantalla oculta. Muestra el mismo tablero (sin botones), los subtítulos y el estado, sin
+   audio: el micrófono y el sonido se quedan en el dispositivo de la llamada. Al terminar, «Llamada terminada» ~3 s. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
+  var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos"];
+  var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
+  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false };
+  try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function hub(accion, extra) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: accion, token: d.token, session: ses() }, extra || {})) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: "red" }; });
+  }
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. */
+  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on")); }
+  function montar() {
+    if (C.capa) return C.capa;
+    var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
+    var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    c.appendChild(cab); c.appendChild(el("div", "comp-tab")); c.appendChild(el("div", "comp-subs"));
+    document.body.appendChild(c); return c;
+  }
+  function vacio() { var tab = C.capa.querySelector(".comp-tab"); if (!tab.firstChild) tab.appendChild(el("div", "comp-vacio", "Lo que Alma te muestre en la llamada aparece aquí")); }
+  function pintar(r) {
+    var c = montar();
+    if (C.fin) { clearTimeout(C.fin); C.fin = 0; }
+    c.classList.remove("fin");
+    if (r.conv !== C.conv) { C.conv = r.conv; C.desde = 0; C.tvId = ""; c.querySelector(".comp-subs").textContent = ""; c.querySelector(".comp-tab").textContent = ""; }
+    c.querySelector(".comp-de").textContent = "En vivo" + (r.dispositivo ? " · desde tu " + r.dispositivo : "");
+    c.querySelector(".comp-est").textContent = ESTADO[r.estado] || "En llamada";
+    var subs = c.querySelector(".comp-subs");
+    (r.subs || []).forEach(function (x) { C.desde = Math.max(C.desde, Number(x.n) || 0); subs.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t)); });
+    while (subs.children.length > 3) subs.removeChild(subs.firstChild);
+    var t = r.tarjeta, tab = c.querySelector(".comp-tab");
+    if (t && t.id !== C.tvId && window.AlmaTarjeta && AlmaTarjeta.bento) {
+      var nuevo = AlmaTarjeta.bento(t);
+      if (nuevo) { C.tvId = t.id; tab.textContent = ""; tab.appendChild(nuevo); requestAnimationFrame(function () { requestAnimationFrame(function () { nuevo.classList.add("on"); }); }); }
+    }
+    vacio();
+    c.classList.add("on");
+  }
+  function cerrar(fin) {
+    if (!C.capa || !C.capa.classList.contains("on") || C.fin) return;
+    if (fin) { C.capa.classList.add("fin"); C.capa.querySelector(".comp-est").textContent = ESTADO.fin; C.fin = setTimeout(function () { C.fin = 0; cerrar(false); }, FIN_MS); return; }
+    C.capa.classList.remove("on", "fin"); C.conv = ""; C.tvId = ""; C.desde = 0;
+  }
+  function ciclo() {
+    clearTimeout(C.t); C.t = 0;
+    if (C.prueba) return;
+    if (!C.on || !ses()) { cerrar(false); return; }
+    if (document.visibilityState === "hidden") return;   // vuelve con visibilitychange
+    if (llamadaAqui()) { cerrar(false); C.t = setTimeout(ciclo, CADA_NADA); return; }
+    if (C.pidiendo) return;
+    C.pidiendo = true;
+    hub("vivoLeer", { desde: C.desde, tipos: TIPOS }).then(function (r) {
+      C.pidiendo = false;
+      var vivo = !!(r && r.ok && r.en_llamada);
+      if (!C.on) return;
+      if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin"));
+      C.t = setTimeout(ciclo, vivo ? CADA_VIVO : CADA_NADA);
+    });
+  }
+  function poner(on) { C.on = !!on; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} ciclo(); }
+  var i = $("i-comp"); if (i) { i.checked = C.on; i.onchange = function () { poner(this.checked); }; }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") ciclo(); });
+  window.AlmaCompanero = { poner: poner, probar: function (r) { C.prueba = true; clearTimeout(C.t); pintar(r); } };   // para las capturas: sin pedir al Hub
+  setTimeout(ciclo, 1500);
 })();
 </script>
 <script>

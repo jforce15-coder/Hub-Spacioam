@@ -206,7 +206,7 @@ function caja() {
 {
   const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
   const ag = leer('agente.js'), rap = leer('rapido.js'), h = fs.readFileSync(path.join(RAIZ, 'alma', 'inicio.html'), 'utf8'), nav = fs.readFileSync(path.join(RAIZ, 'js', 'sa-nav.js'), 'utf8');
-  ok(/T\('pedidos_en_orbita'/.test(ag) && /case 'pedidos_en_orbita': return orbitaExplicar_\(adm, inp\.nombre\)/.test(ag) && /'pedidos_en_orbita'\]/.test(rap), 'Alma tiene la herramienta pedidos_en_orbita (también en el camino rápido de la llamada)');
+  ok(/T\('pedidos_en_orbita'/.test(ag) && /case 'pedidos_en_orbita': (return|\{ var rOr = )orbitaExplicar_\(adm, inp\.nombre\)/.test(ag) && /'pedidos_en_orbita'\]/.test(rap), 'Alma tiene la herramienta pedidos_en_orbita (también en el camino rápido de la llamada)');
   ok(/orbitaTermina_\(adm\.email, orbs, r\.fallo, r\)/.test(leer('voz.js')) && /orbitaTermina_\(adm\.email, \[o\.orb\], r\.fallo, r\)/.test(leer('retomar.js')), 'Al terminar se guarda lo que respondió (para explicarlo)');
   ok(/SANav\.chat\(\{ texto: pregunta\(x\), orbita: x \? x\.id : "" \}\)/.test(h) && /addEventListener\("click", toca\)/.test(h) && /\.pob\.orbita \.pob-s:not\(\.sale\) \.an/.test(h), 'Tocar un anillo abre el chat y le pregunta a Alma por ese pedido');
   ok(/if \(o\.texto\) chatEnviar\(o\.texto\)/.test(nav), 'SANav.chat({ texto }) manda la pregunta al abrir el chat');

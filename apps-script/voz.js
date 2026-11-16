@@ -263,6 +263,7 @@ function vozPostCall_(body) {
   var admC = null; try { admC = tel ? (adminPorTel_(tel) || (quien.tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] || null : null)) : null; } catch (x) {}
   var convHilo = admC ? 'op:' + admC.email : convId;
   if (admC) { try { opLlamadaGuardar_(admC, d, t0, dur, canal, motivo, resumen); } catch (x) { console.error('opLlamadaGuardar_: ' + x); } }
+  if (admC) { try { vivoFin_(admC, convEL); } catch (x) { console.error('vivoFin_: ' + x); } }   // el modo compañero ve que terminó (vivo.js, #607)
   if (admC) { try { retDespuesLlamada_(admC, d.transcript); } catch (x) { console.error('retDespuesLlamada_: ' + x); } }   // ¿resolvieron algún tema por retomar?
   if (admC) { try { prometerAuditarLlamada_(admC, d.transcript, convEL); } catch (x) { console.error('prometerAuditarLlamada_: ' + x); } }   // ¿dijo «le llegó» sin un envío hecho? (prometer.js, #583)
   var sh = hojaWA_(), filas = [];
@@ -1181,12 +1182,13 @@ function vozWebInicio_(ses, ligero, app, claudio) {
   /* Conversación continua en conferencia: cuándo cierra sola la app (confSueno_). */
   try { var cf = confSueno_(); out.conferencia_silencio_s = cf.silencio; out.conferencia_tope_s = cf.tope; } catch (e) { console.error('confSueno_: ' + e); }
   try { var pf = personalidadFicha_(adm); if (pf) { dv.quien_llama += pf.bloque; delete pf.bloque; Object.assign(out, pf); } } catch (e) { console.error('personalidadFicha_: ' + e); }
-  /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
-     Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
+  /* Pendientes (retomar.js, #607): el saludo es el normal; solo lo urgente va en la ficha para decirlo una vez. Ese cuenta
+     como mencionado solo cuando la llamada de verdad empieza (vozWebVincular): en 2 llamadas deja de ser urgente. */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }
   if (ret) {
     dv.quien_llama += ret.bloque; out.retomar_total = ret.total;
-    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; out.saludo_tema = true; CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200); }
+    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; out.saludo_tema = true; }
+    if (ret.id) CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200);
   }
   marca('retomar');
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
@@ -1234,6 +1236,7 @@ function vozWebVincular_(ses, convId, app, b) {
   if (app && Array.isArray(b.tipos)) CacheService.getScriptCache().put('voztvtipos_' + convId, JSON.stringify(b.tipos.map(String).filter(function (x) { return /^[a-z]{2,20}$/.test(x); }).slice(0, 20)), 21600);
   /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
   if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
+  try { vivoInicio_(adm, convId); } catch (e) { console.error('vivoInicio_: ' + e); }   // el modo compañero ve que empezó (vivo.js, #607)
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
   /* Alma abre (#509 T4): la llamada empezó por un aviso (b.aviso_id), no por el saludo de retomar. Ese aviso cuenta como
      dicho (su tema por retomar no vuelve a salir en el próximo saludo) y el tema del saludo, que no se dijo, sigue igual. */

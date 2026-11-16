@@ -9,6 +9,10 @@
    4. Hub web (pushA_ y pushNuevo_): quien lo apagó no lo recibe, quien lo ocultó recibe «Alma te dejó un mensaje» y, si
       nadie cambió ese tipo, el envío es exactamente el de antes.
    5. Los ganchos en el código y la pantalla (alma/avisos.html) con los componentes de Ajustes.
+   6. «Probar con Siri» (16-nov-2026): solo el principal con su sesión; la prueba llega a la app sin voz ni historial.
+   7. Los pasos del anillo (16-nov-2026): llegan con vozAvisos, se guardan los últimos 30 por usuario, con origen «app» y
+      sin datos personales.
+   8. Sin despedidas en Modo calle y conferencia (16-nov-2026): la voz del Hub lo dice en las tres reglas que chocaban.
    node .github/notif-ajustes.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -26,7 +30,7 @@ function caja(o) {
   const resp = (code, j) => ({ getResponseCode: () => code, getContentText: () => JSON.stringify(j || {}) });
   const ctx = {
     console: { log() {}, error() {}, warn() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN, Date,
-    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); }, deleteProperty: k => { delete props[k]; } }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); }, deleteProperty: k => { delete props[k]; }, getProperties: () => Object.assign({}, props) }) },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; }, getAll: () => ({}), putAll() {} }) },
     LockService: { getScriptLock: () => lock, getUserLock: () => lock },
     Utilities: { base64EncodeWebSafe: b => Buffer.from(typeof b === 'string' ? b : Buffer.from(b)).toString('base64url'),
@@ -36,13 +40,14 @@ function caja(o) {
     uf_: (url, op) => { const b = op && op.payload ? JSON.parse(op.payload) : null; llamadas.push({ url, metodo: op && op.method, auth: op && op.headers && op.headers.Authorization, body: b }); return resp(200, { id: 'n' + llamadas.length, recipients: 1 }); },
     adminsOp_: () => [JUAN, ANA], adminPorEmail_: e => [JUAN, ANA].filter(a => a.email === String(e).toLowerCase())[0] || null,
     esAdminPrincipal_: a => !!(a && a.principal), vozColaLock_: () => lock,
+    paraClaudePrincipalSes_: s => { const a = s && s.email ? [JUAN, ANA].filter(x => x.email === String(s.email).toLowerCase() || x.alternos.indexOf(String(s.email).toLowerCase()) >= 0)[0] : null; return a && a.principal ? a : null; },
     retClave_: a => 'VOZ_RET_' + a.email.replace(/\W/g, ''), retLeer_: () => o.rets || [], retMencionado_() {},
     pendFilas_: () => [], normTel_: t => String(t), tituloCorto_: (t, n) => String(t || '').slice(0, n),
     hojaCrear_: () => ({ getLastColumn: () => 15, appendRow() {}, getLastRow: () => 1, getRange: () => ({ setValues() {} }) }),
     sinEmoji_: s => String(s || ''), s_: x => (x == null ? '' : String(x)), logPush_: (...a) => logs.push(a)
   };
   vm.createContext(ctx);
-  ['avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js', 'notifajustes.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['avisotexto.js', 'calle.js', 'voz.js', 'orbita.js', 'pendientes.js', 'almaabre.js', 'notifajustes.js', 'anillo.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   /* pushA_ y pushNuevo_, sacadas de Código.js tal cual */
   const COD = leer('Código.js');
   const sacar = n => { const m = new RegExp('\\nfunction ' + n + '\\([^)]*\\) \\{[\\s\\S]*?\\n\\}').exec(COD); if (!m) throw new Error('no encontré ' + n + ' en Código.js'); return m[0]; };
@@ -192,6 +197,51 @@ function caja(o) {
   ok(['Bloqueada', 'Centro', 'Banner', 'Sonido', 'Número en el ícono', 'Anunciar con Siri', 'Vista previa', 'Agrupar', 'Solo desbloqueado', 'Automático', 'Por tipo'].every(t => H.indexOf(t) >= 0), '5 · todas las opciones del diseño B');
   ok(/if \(NATIVA\) g\.appendChild\(interruptor\("siri"/.test(H), '5 · en el Hub web no hay fila de Siri');
   ok(/href="avisos\.html"/.test(fs.readFileSync(path.join(RAIZ, 'alma', 'inicio.html'), 'utf8')) && /href="\.\/alma\/avisos\.html"/.test(fs.readFileSync(path.join(RAIZ, 'index.html'), 'utf8')), '5 · se entra desde Ajustes de la app y desde el menú del Hub');
+}
+
+/* ── 6. «Probar con Siri» desde el Hub web ── */
+{
+  const { ctx, props } = caja();
+  ok(!ctx.notifPruebaApi_(null).ok && !ctx.notifPruebaApi_({}).ok && !props.VOZ_AVISOS, '6 · sin sesión (la llave vieja del Hub) no hay prueba');
+  ok(!ctx.notifPruebaApi_({ email: ANA.email }).ok && !props.VOZ_AVISOS, '6 · otro administrador no la pide: solo el principal');
+  const r = ctx.notifPruebaApi_({ email: JUAN.email });
+  const cola = (JSON.parse(props.VOZ_AVISOS || '{}')[JUAN.email] || []);
+  ok(r.ok && cola.length === 1 && cola[0].prueba === true && cola[0].texto === 'Prueba: si Siri te lee esto, los anuncios funcionan.', '6 · el principal: queda en la cola de su app, con el texto de Juan');
+  ok(!Object.keys(props).some(k => /^VOZ_AVISOS_H_/.test(k)) && !props.AVISO_VOZ_COLA, '6 · no entra al historial ni gasta voz de ElevenLabs');
+  const v = ctx.vozAvisos_({ email: JUAN.email }, { hablado: 3, ahora: true }), a = (v.avisos || [])[0] || {};
+  ok(v.ok && a.prueba === true && !a.hablar && !a.audio, '6 · la app la recibe marcada como prueba, sin frase para decir ni audio');
+  ok(/case 'notifPrueba': return json_\(notifPruebaApi_\(ses\)\)/.test(leer('Código.js')) && /notifPrueba/.test(leer('cupo.js')), '6 · la acción, con la sesión, y cuenta en el cupo como «Inicio»');
+  const H = fs.readFileSync(path.join(RAIZ, 'alma', 'avisos.html'), 'utf8');
+  ok(/Probar con Siri/.test(H) && /que: "probarSiri"/.test(H) && /pedir\("notifPrueba"\)/.test(H) && /Bloquea el teléfono, ponte los AirPods y espera 15 segundos/.test(H), '6 · el botón en Ajustes → Notificaciones: la app la programa; en la web, el Hub');
+}
+
+/* ── 7. Los pasos del anillo ── */
+{
+  const { ctx, props } = caja();
+  const pasos = ['10:00:01 El anillo encendió el modo conferencia', '10:00:09 Aviso: Flor (flor@x.com) pagó https://x.co/a «hola»'];
+  ctx.vozAvisos_({ email: JUAN.email }, { pasos, anillo: true });
+  const k = Object.keys(props).filter(x => /^ANILLO_APP_/.test(x));
+  const l = k.length ? JSON.parse(props[k[0]]) : [];
+  ok(k.length === 1 && k[0].indexOf('@') < 0 && l.length === 2 && l.every(x => x.origen === 'app' && x.anillo === true && x.f), '7 · llegan con vozAvisos y se guardan por usuario (la clave no es el correo), con origen «app»');
+  ok(!/@|https?:|hola/.test(JSON.stringify(l)), '7 · sin correos, enlaces ni lo que va entre «»');
+  for (let i = 0; i < 5; i++) ctx.vozAvisos_({ email: JUAN.email }, { pasos: Array.from({ length: 14 }, (_, j) => '10:0' + i + ':' + j + ' paso ' + j) });
+  ok(JSON.parse(props[k[0]]).length === 30, '7 · solo los últimos 30');
+  ctx.vozAvisos_({ email: JUAN.email }, {});
+  ok(JSON.parse(props[k[0]]).length === 30, '7 · sin pasos nuevos no se toca nada');
+  ctx.ssAlma_ = () => ({ getSheetByName: () => null });
+  const leido = ctx.anilloLeer_(30);
+  ok(leido.ok && Object.keys(leido.app || {}).length === 1, '7 · el robot los lee con «anillo» aunque la hoja esté vacía');
+}
+
+/* ── 8. Sin despedidas en Modo calle y conferencia ── */
+{
+  const VOZ = leer('voz.js');
+  const regla = n => (VOZ.match(new RegExp("'· " + n + "[^\\n]*")) || [''])[0];
+  ok(/MODO CALLE o MODO CONFERENCIA[^']*no te despidas/.test(regla('SILENCIO LARGO')), '8 · SILENCIO LARGO: en Modo calle o conferencia no se despide y cuelga');
+  ok(/MODO CALLE o MODO CONFERENCIA[^']*sin despedirte/.test(regla('Nunca cuelgues tú primero')), '8 · «Nunca cuelgues tú primero» tiene la excepción');
+  ok(/Entendido, lo hago y te aviso cuando esté listo/.test(regla('SEGUNDO PLANO')), '8 · segundo plano en Modo calle o conferencia: la frase corta y cuelga');
+  const ec = (VOZ.match(/end_call: '[^\n]*/) || [''])[0];
+  ok(/MODO CALLE o MODO CONFERENCIA[^']*sin despedirte/.test(ec) && !/modo conferencia no la uses/.test(ec), '8 · la descripción de end_call: cuelga tras la respuesta corta, sin despedirse');
 }
 
 if (fallo) process.exit(1);

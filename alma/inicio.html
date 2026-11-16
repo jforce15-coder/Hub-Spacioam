@@ -974,6 +974,7 @@
     <p class="nota-g">Apagado, Alma habla encima de la música y su llamada la pausa. Encendido, la música baja mientras Alma habla y vuelve al terminar.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
+    <div class="fila boton" id="b-dispositivos" role="button" tabindex="0" hidden>Dispositivos: tu anillo y tus lentes</div>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
     <p class="nota-g" id="n-anillo">Dos toques en tu anillo encienden o apagan el modo conferencia, aunque el teléfono esté bloqueado; di «Alma» y te escucha. Si Alma está hablando, dos toques la pausan. El anillo va en modo Music.</p>
     <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
@@ -1626,6 +1627,7 @@ window.SAPulso = {
       try { if (window.AlmaGif) AlmaGif.evento(e); } catch (x) {}   // el GIF de la broma: un cuadro del tablero o el chat (js/alma-gif.js)
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
+        $("b-dispositivos").hidden = !e.dispositivos;   // solo una app que sabe abrir la pantalla Dispositivos (Dispositivos.swift)
         $("b-anillo-ble").hidden = $("n-anillo-ble").hidden = !e.diagBle;   // solo una app que sabe abrir el diagnóstico (DiagnosticoAnillo.swift)
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
         /* Diagnóstico: qué pasó la última vez (sirve para ver dónde se queda con el teléfono bloqueado) */
@@ -2018,6 +2020,8 @@ window.SAPulso = {
   $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };
   /* Diagnóstico del anillo (Bluetooth), ticket #29 paso 1: la app abre su pantalla nativa; vozConfig deja lista la sesión para «Mandar al Hub». */
   $("b-anillo-ble").onclick = function () { vozConfig(); nativa({ accion: "anilloBle" }); };
+  /* Dispositivos (Juan, 16-nov-2026): el anillo y los lentes, cada uno con su batería y sus ajustes; pantalla nativa. */
+  $("b-dispositivos").onclick = function () { vozConfig(); nativa({ accion: "dispositivos" }); };
   if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
 
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */

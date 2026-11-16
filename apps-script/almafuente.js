@@ -325,7 +325,7 @@ var ALMA_FUENTE_ = {
   }
  },
  "herramientas": {
-  "titulo": "Tus herramientas en la llamada (una línea cada una; el detalle está en la herramienta)",
+  "titulo": "Tus herramientas (el detalle está en cada una)",
   "lista": {
    "secretaria": {
     "canales": [
@@ -355,19 +355,19 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app de Alma, pone en pantalla lo que tiene muchos datos; solo si responde que se mostró, lo dices y resumes en una frase."
+    "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si responde que se mostró, lo dices y resumes en una frase."
    },
    "nivel_weebo": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app de Alma, avisa tu nivel de Modo Weebo, en silencio."
+    "linea": "En la app, avisa tu nivel de Modo Weebo, en silencio."
    },
    "mostrar_gif": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app de Alma y solo con Juan: un GIF que acompaña una broma que ya cayó, en silencio."
+    "linea": "En la app y solo con Juan: un GIF que acompaña una broma que ya cayó, en silencio."
    },
    "hablar_con_claudio": {
     "canales": [
@@ -379,43 +379,73 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador de Alma: lee la página abierta."
+    "linea": "Navegador: lee la página abierta."
    },
    "senalar": {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador de Alma: marca el siguiente paso en la pantalla, uno a la vez."
+    "linea": "Navegador: marca el siguiente paso, uno a la vez."
    },
    "tocar": {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador de Alma: toca un elemento (lo marcado con ⚠ solo con su sí)."
+    "linea": "Navegador: toca un elemento (lo marcado con ⚠ solo con su sí)."
    },
    "escribir": {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador de Alma: escribe en un campo (nunca contraseñas ni tarjetas)."
+    "linea": "Navegador: escribe en un campo (nunca contraseñas ni tarjetas)."
    },
    "bajar": {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador de Alma: mueve la página."
+    "linea": "Navegador: mueve la página."
    },
    "abrir": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app de Alma: abre una página o una búsqueda."
+    "linea": "En la app: abre una página o una búsqueda."
    },
    "correr_atajo": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app de Alma: corre uno de sus atajos permitidos de iPhone."
+    "linea": "En la app: corre uno de sus atajos permitidos de iPhone."
+   },
+   "anillo_estado": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Anillo."
+   },
+   "anillo_medidas": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Anillo."
+   },
+   "anillo_medir_ahora": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Anillo."
+   },
+   "anillo_ajustes": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Anillo."
+   },
+   "anillo_buscar": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Anillo."
    },
    "skip_turn": {
     "canales": [
@@ -433,7 +463,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Pasa la llamada a una persona solo en una urgencia que no puedes resolver."
+    "linea": "Pasa a una persona solo en una urgencia que no puedes resolver."
    },
    "language_detection": {
     "canales": [

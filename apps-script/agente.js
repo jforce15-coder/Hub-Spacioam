@@ -211,6 +211,7 @@ function agHerramientas_() {
     T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('ficha_socio', 'Ficha del socio en Mi: notas y detalles que importan (con fecha) de lo que él contó. Léela antes de escribirle o llamarle; si trae retomar, úsalo una vez. Nunca salud, religión, política ni banco.',
       { socio: s('«socio de <apto>», nombre o número'), accion: { type: 'string', enum: ['ver', 'anotar', 'corregir', 'borrar'] }, texto: s('anotar/corregir'), fecha: s('AAAA-MM-DD del evento'), id: s('de ver') }, ['socio']),
+    T('anillo', 'Lo último que la app de Alma leyó del anillo QRing de Juan (batería, pasos, ritmo, oxígeno) y de cuándo es. No es en vivo: di siempre la hora. Solo administrador principal.', {}),
     T('calcular_distancia', 'Tiempo en carro y caminando desde una propiedad hasta un lugar (USAC, aeropuerto, un centro comercial, el parque central…). Responde en minutos; caminando solo cuenta si son 15 min o menos.', { propiedad: s('Nombre o parte del nombre de la propiedad'), destino: s('Lugar, con ciudad si ayuda') }, ['propiedad', 'destino']),
     T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp como Alma, la asistente de Juan, sin mencionar Spacio AM. Sin mensajes suyos en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, al responder, este. Lo que conteste le llega al administrador.',
       { persona: AG_DEST_, numero: AG_NUM_, texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»)'), objetivo: s('Qué reunir o resolver («su itinerario: fechas, vuelos, hospedaje»): ALMA conversa hasta tenerlo y manda un resumen al administrador; sin objetivo, solo reenvía lo que conteste.'), proyecto: s('Proyecto personal («Boda Pamela»): todo se consolida en un solo resumen. Si el administrador lo nombra, úsalo siempre.'), contexto_de: { type: 'array', items: { type: 'string' }, description: 'Solo si no hay proyecto: nombres de personas con las que ya hablaste del mismo tema' } }, ['texto']),
@@ -718,6 +719,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rE;
     }
     case 'reporte_mes': { var rMe = reporteMes_(adm, inp); if (rMe && rMe.ok) tvCandidata_('datos', function () { return tdMes_(rMe); }); return rMe; }   // reportemes.js; el mes en pantalla (tablero.js)
+    case 'anillo': return anilloHerramienta_(adm);   // anillo.js: la Lectura del anillo que mandó la app
     case 'ficha_socio': {   // fichasocio.js (#522); al verla en una llamada, el tablero del socio (tarjeta.js, #508 Fase 2)
       var fueraF = {}, rF = fichaHerramienta_(adm, inp, fueraF), sF = fueraF.s;
       if (sF && rF && !rF.error) tvCandidata_('socio', function () { return tvSocio_({ tel: sF.tel, nombre: sF.nombre, correo: sF.correo, props: [sF.propiedad] }, { principal: true, items: fueraF.items }); });

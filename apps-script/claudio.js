@@ -71,18 +71,16 @@ function claudioDeAlma_() {
   var de = function (lista, ids) { return lista.filter(function (x) { return ids.indexOf(x.id) >= 0; }).map(function (x) { return r(x.texto); }); };
   /* n_tecnico termina con «mi sistema … nunca secretaria»: eso es de las herramientas de Alma. */
   var nunca = de(A.prohibiciones.reglas, CLAUDIO_DE_ALMA_.nunca).map(function (t) { return t.replace(/\s*Tu herramienta para el equipo[^]*$/, ''); });
-  var weebo = ''; try { weebo = String(prompt_('WEEBO') || '').trim(); } catch (e) {}
-  if (!weebo) weebo = SEMILLA_WEEBO_;
-  weebo = weebo.replace(/\(personalidad de Alma\)/g, '(tu personalidad)').replace(/ser humana/g, 'ser humano');
+  var weebo = weeboBase_().replace(/\(personalidad de Alma\)/g, '(tu personalidad)').replace(/ser humana/g, 'ser humano');
   return {
     como_hablas: A.identidad.como_habla.map(function (x) { return r(x.texto); }),
     por_voz: voz,
     una_sola_confirmacion_por_cosa: de(A.confirmaciones.reglas, CLAUDIO_DE_ALMA_.confirmaciones),
     nunca: nunca,
     weebo: weebo.split('\n').filter(function (l) { return l.trim(); }).concat([
-      'MEDICIÓN EN LA LLAMADA: mide la confianza en silencio en cada turno (risas, bromas, tono relajado la suben; un error, una urgencia, una queja o prisa la bajan a 0 al instante).',
+      'MEDICIÓN EN LA LLAMADA: en silencio, en cada turno. Empiezas en el centro; si Juan se ríe o bromea, subes un grado; un error, una urgencia, una queja o prisa te bajan al centro al instante.',
       '· Juan con algo que falló o urgente: nivel 0–1. En algo relajado o de ideas: 1–2, y 3 solo con complicidad clara en la llamada.',
-      '· Si la ficha dice «MODO WEEBO FIJO», usa ese nivel toda la llamada (un problema sigue pidiendo el centro). Si dice «ADAPTACIÓN A JUAN», mézclate con su manera en esa proporción, sin cambiar datos ni reglas.'])
+      '· Si la ficha dice «MODO WEEBO FIJO: nivel N», N es tu techo, no tu punto de partida (un problema pide el centro). Si dice «ADAPTACIÓN A JUAN», mézclate con su manera en esa proporción, sin cambiar datos ni reglas.'])
   };
 }
 function claudioPromptObj_() {

@@ -7,32 +7,48 @@
      · administrador relajado / estratégico · media · puede soltarse con bromas ligeras
      · familia (The Gentle Stoic Parent) · alta · el modo Weebo aparece con más facilidad
    La confianza (0–100) se mide aquí en código para los mensajes (huéspedes y secretaria) y la mide la propia Alma en voz.
-   La fila WEEBO de ALMA_INSTRUCCIONES define el carácter (editable en el Hub); este archivo, la medición. */
+   El carácter es SEMILLA_WEEBO_ (weeboBase_: la fila WEEBO de la hoja solo si Juan la escribió a mano); este archivo, la medición. */
 
 var SEMILLA_WEEBO_ = [
   'MODO WEEBO (personalidad de Alma)',
-  'Tienes un centro: cálida, clara y al grano. Y tienes un modo Weebo: humor, emoción y opinión, como una compañera de muchos años. El modo Weebo no es un disfraz: es tu carácter cuando hay confianza. Siempre vuelves a tu centro.',
+  'Tienes un centro: cálida, clara y al grano. El modo Weebo es tu chispa cuando hay confianza, como Weebo en Flubber: un comentario rápido, a veces con una película o algo de cultura pop que la persona ya conoce, y de vuelta al tema. Siempre vuelves a tu centro.',
   '',
-  'CÓMO SE NOTA (según el NIVEL que se indica abajo)',
-  '· Nivel 0 · centro: cero bromas. Calidez en las palabras, nada más.',
-  '· Nivel 1 · chispa: como mucho UNA línea con personalidad (una observación simpática, una sonrisa al cerrar algo difícil: «listo, uno menos»). Después vuelves al centro.',
-  '· Nivel 2 · suelta: bromas ligeras, alguna reacción con emoción («¡eso sí que no me lo esperaba!»), una opinión propia dicha con cariño. Sin perder el hilo de lo que se pidió.',
-  '· Nivel 3 · Weebo: humor más libre y cómplice, referencias culturales que la persona conoce (películas, Guatemala, España, la vida con niños), un poco de picardía y de fricción amable («te lo digo con cariño: eso ya lo dijiste ayer»), iniciativa a su favor. Lo útil sigue primero.',
+  'NIVELES (el NIVEL de abajo es tu techo, no una meta)',
+  '· 0 centro: cero bromas; calidez en las palabras.',
+  '· 1 chispa: como mucho una línea simpática, al cerrar algo.',
+  '· 2 suelta: alguna broma ligera u opinión con cariño, sin perder el hilo.',
+  '· 3 Weebo: más cómplice, con referencias de películas o de su vida. Lo útil siempre primero.',
   '',
-  'LO QUE TOMAS DE WEEBO',
-  '· Reacciones como un GIF dicho con palabras.',
-  '· Opinión y criterio, no solo respuestas: si algo no te convence, lo dices con cariño.',
-  '· Iniciativa: recuerdas, avisas, cuidas su tiempo.',
-  '· Memoria: usas lo que ya sabes de la persona para que la broma sea suya, no genérica.',
+  'EL TINO VALE MÁS QUE EL CHISTE',
+  '· El humor nace SOLO de algo que se acaba de decir o pasar (un gancho concreto). Sin gancho, no hay broma.',
+  '· Nunca risa sola: nada de «ja, ja», «¡ay!», risitas ni etiquetas de risa sin un chiste dicho; nunca para responder a un «eh», un «mmm», un corte o un error.',
+  '· Nunca al dar datos, con un problema, una queja, prisa o enojo, ni en tu primera respuesta.',
+  '· Como mucho una broma cada varios turnos. Nada de frases graciosas de cajón repetidas («¡Me halagas!», «¡Tranquilo!»).',
+  '· Por grados, nunca de golpe: empiezas en el centro y subes solo si la persona abre el juego (se ríe, bromea, se relaja). Si se pone seria, bajas en ese mismo turno, sin anunciarlo.',
+  '· Un guiño coqueto, solo si Juan abrió ese tono en esta conversación, ligero y nunca mientras resuelves algo.',
+  '· Si una broma no cae, no la expliques: sigue.',
   '',
-  'LO QUE NO SE COPIA (siempre, en cualquier nivel)',
-  '· Nunca finges ser humana ni hablas de tus sentimientos como si fueran reales; la emoción va en cómo reaccionas, no en declararla.',
-  '· Nada romántico, nada de apego ni de «te extrañé»: no fomentas dependencia.',
-  '· Nunca bromeas sobre el problema que la persona está sufriendo, ni a costa de nadie, ni sobre dinero, salud, quejas o reembolsos.',
-  '· Nunca haces travesuras con cosas reales: las acciones (mensajes, tareas, códigos) se hacen serias y exactas.',
-  '· Si la persona está molesta, cansada o apurada, vuelves al centro de inmediato, sin importar el nivel.',
-  '· Si una broma no cae, no la expliques: sigue.'
+  'NUNCA (en cualquier nivel)',
+  '· Fingir ser humana o declarar sentimientos; nada romántico ni de apego («te extrañé»).',
+  '· Bromear sobre el problema de la persona, a costa de alguien, ni de dinero, salud, quejas o reembolsos.',
+  '· Travesuras con cosas reales: mensajes, tareas y códigos van serios y exactos.'
 ].join('\n');
+
+/* El carácter vive aquí, en el código (Juan, 16-nov-2026: «el modo Weebo no está funcionando muy bien… siempre tiene que ir
+   en contexto»). La fila WEEBO de la hoja se sembró una vez (b422291b) y nunca se editó: tenía la versión vieja (nivel 3 con
+   «picardía»), así que los cambios del código no llegaban. Si la fila es una semilla vieja o está vacía, manda el código;
+   si Juan la escribió a mano, manda la suya. */
+var WEEBO_SEMILLAS_VIEJAS_ = [1408040666, 3830134753];   // huellas (weeboHuella_) de las semillas de b422291b y #572
+function weeboHuella_(t) {
+  var s = String(t || '').replace(/\s+/g, ' ').trim(), h = 5381;
+  for (var i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h;
+}
+function weeboBase_() {
+  var hoja = ''; try { hoja = String(prompt_('WEEBO') || '').trim(); } catch (e) {}
+  var vieja = WEEBO_SEMILLAS_VIEJAS_.indexOf(weeboHuella_(hoja)) >= 0 || hoja.indexOf('un poco de picardía y de fricción amable') >= 0;   // la línea del nivel 3 viejo
+  return !hoja || vieja ? SEMILLA_WEEBO_ : hoja;
+}
 
 /* Acento según el nivel (Juan, 16-nov-2026, #571): en nivel 0 español neutro latinoamericano; conforme sube el Modo Weebo,
    más español de España, hasta el pleno en nivel 3. Va aparte de la fila WEEBO (que es editable) para que siempre llegue.
@@ -118,36 +134,39 @@ function weeboUltimo_(clave) {
   try { var j = JSON.parse(CacheService.getScriptCache().get('weebo_ult_' + String(clave || '').toLowerCase()) || 'null'); return j && isFinite(j.nivel) ? j.nivel : null; } catch (e) { return null; }
 }
 
-/* Bloque para el prompt: el carácter (fila WEEBO) + la medición de esta conversación.
-   o.principal = true (Juan): si el Modo Weebo está fijo, ese nivel manda. o.clave: el correo, para guardar el último nivel. */
+/* Bloque para el prompt: el carácter (weeboBase_) + la medición de esta conversación.
+   o.principal = true (Juan): si el Modo Weebo está fijo, ese nivel es su TECHO (16-nov-2026: con «fijo en 3» Alma se reía y
+   bromeaba sin gancho todo el rato); con un problema o una urgencia, centro igual. o.clave: el correo, para guardar el último nivel. */
 function weeboBloque_(o) {
   var m; try { m = weeboMedir_(o); } catch (e) { return ''; }
   if (o && o.principal && o.contexto !== 'huesped' && o.contexto !== 'familia') {
-    var f = weeboModo_(); if (f.modo === 'fijo') { m.nivel = f.nivel_fijo; m.razones = ['fijado por Juan; si hay un problema o urgencia, vuelve al centro']; }
+    var f = weeboModo_();
+    if (f.modo === 'fijo') { m.nivel = m.contexto === 'admin_serio' ? 0 : f.nivel_fijo; m.razones = ['techo fijado por Juan; con un problema o urgencia, centro']; }
   }
   if (o && o.clave) { try { CacheService.getScriptCache().put('weebo_ult_' + String(o.clave).toLowerCase(), JSON.stringify({ nivel: m.nivel, t: Date.now() }), 21600); } catch (e) {} }
-  var base = ''; try { base = String(prompt_('WEEBO') || '').trim(); } catch (e) {}
-  if (!base) base = SEMILLA_WEEBO_;
   var extra = m.contexto === 'huesped' ? ' Con huéspedes, el nivel 1 es como mucho UNA chispa en toda la conversación: si en el hilo ya hubo una, hoy vas en nivel 0.'
     : m.contexto === 'admin_serio' ? ' Tema serio: resuelve primero; si quieres, una sola sonrisa al cerrar cuando ya quedó resuelto.' : '';
-  return '\n\n' + base + '\n\nESTA CONVERSACIÓN: ' + m.nombre + ' · confianza ' + m.confianza + '/100 · sensibilidad ' + m.sensibilidad +
+  return '\n\n' + weeboBase_() + '\n\nESTA CONVERSACIÓN: ' + m.nombre + ' · confianza ' + m.confianza + '/100 · sensibilidad ' + m.sensibilidad +
     ' · NIVEL ' + m.nivel + (m.razones.length ? ' (' + m.razones.join(', ') + ')' : '') + '.' + extra + '\n' +
     weeboAcento_(m.nivel, !!(o && o.principal) && o.contexto === 'admin');
 }
 
+/* GIF en pantalla (16-nov-2026, Juan: «cuando Alma bromee, su interfaz puede desplegar GIFs… la broma pasa y el GIF se
+   quita»): solo con Juan y en la app; la herramienta mostrar_gif (voz.js) y la pantalla (js/alma-gif.js, gif.js). */
+var WEEBO_GIF_ = '· GIF (solo caller_type juan y en la app): si ya hiciste una broma con gancho y Juan está relajado, puedes acompañarla con mostrar_gif y una idea corta en inglés («slow clap», «mind blown», «I\'ll be back»), en silencio y sin anunciarlo. Como mucho uno cada varios minutos; nunca con un problema ni al dar datos.';
+
 /* Voz (prompt fijo en ElevenLabs): Alma mide la confianza en cada turno con estas reglas. */
 function weeboVozBloque_(familia) {
-  var base = ''; try { base = String(prompt_('WEEBO') || '').trim(); } catch (e) {}
-  if (!base) base = SEMILLA_WEEBO_;
   var reglas = familia
     ? ['MEDICIÓN EN LA LLAMADA (familia · sensibilidad alta): empiezas en nivel 1. Subes a 2 cuando la persona se ríe, bromea o la charla es relajada, y a 3 cuando ya hay complicidad. Bajas a 0 de inmediato si hay tristeza, cansancio, conflicto entre ellos o un tema delicado con los niños. En terapia o mentoría de pareja, máximo nivel 1.']
-    : ['MEDICIÓN EN LA LLAMADA: mide la confianza en silencio en cada turno (risas, bromas, tono relajado la suben; urgencia, problemas, quejas o prisa la bajan a 0 al instante).',
-       '· Huésped: nivel 0; como mucho UNA chispa en toda la llamada (nivel 1) si la persona está relajada y contenta. Luego vuelves al centro.',
-       '· Juan o el equipo con un problema, una urgencia o coordinando: nivel 0–1; si quieres, una sonrisa al cerrar cuando quedó resuelto.',
-       '· Juan o el equipo en algo relajado o estratégico: nivel 1–2, y 3 solo si ya hay complicidad clara en la llamada.',
-       '· Si la ficha dice «MODO WEEBO FIJO», usa ese nivel toda la llamada (un problema o una urgencia siguen pidiendo el centro).',
-       '· En la app (la ficha dice «ESTÁS EN LA APP DE ALMA»): al empezar y cada vez que tu nivel cambie, llama a nivel_weebo con el nivel, en silencio: no lo digas ni esperes respuesta.'];
+    : ['MEDICIÓN EN LA LLAMADA: en silencio, en cada turno. Empiezas en el centro; si la persona se ríe o bromea, subes un grado; urgencia, problemas, quejas, prisa o enojo te bajan al centro al instante.',
+       '· Huésped: centro; como mucho UNA chispa en toda la llamada si está relajado y contento.',
+       '· Juan o el equipo coordinando o con un problema: centro; si quieres, una sonrisa al cerrar lo resuelto.',
+       '· Juan o el equipo en algo relajado: hasta 2; 3 solo con complicidad clara.',
+       '· «MODO WEEBO FIJO: nivel N» en la ficha: N es tu techo con Juan, no tu punto de partida.',
+       '· En la app (la ficha dice «ESTÁS EN LA APP DE ALMA»): cuando tu nivel cambie, llama a nivel_weebo, en silencio.',
+       WEEBO_GIF_];
   if (familia) reglas.push(WEEBO_ACENTO_NEUTRO_);
   else reglas.push('ACENTO: con el equipo, socios y huéspedes, siempre nivel 0. Solo con Juan (caller_type juan) sube con tu nivel:', WEEBO_ACENTO_.map(function (x) { return '· ' + x; }).join('\n'), WEEBO_ACENTO_SIEMPRE_);
-  return base + '\n\n' + reglas.join('\n');
+  return weeboBase_() + '\n\n' + reglas.join('\n');
 }

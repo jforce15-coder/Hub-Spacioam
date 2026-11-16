@@ -532,7 +532,7 @@ function vozDefHerramientas_(base) {
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozHablarConClaudio_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio
+  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozHablarConClaudio_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio
 }
 /* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
    trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al
@@ -554,6 +554,17 @@ function vozNivelWeebo_() {
     description: 'Avisa a la app de Alma en qué nivel de Modo Weebo vas (0 centro, 1 chispa, 2 suelta, 3 Weebo). Llámala en silencio al empezar y solo cuando tu nivel cambie, y solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». No digas nada antes ni después, y no esperes respuesta.',
     parameters: { type: 'object', required: ['nivel'], properties: {
       nivel: { type: 'integer', description: 'Tu nivel de Modo Weebo ahora: 0, 1, 2 o 3.' } } },
+    pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
+}
+/* GIF de la broma (Juan, 16-nov-2026): herramienta de CLIENTE que Alma llama en silencio, solo con Juan y en la app, para
+   acompañar una broma que ya cayó (weeboVozBloque_ · WEEBO_GIF_). La app (VozNativa.swift · GifBroma.swift) la pasa a la
+   página del inicio (js/alma-gif.js), que pide el GIF al Hub (gif.js: GIPHY con rating g o un emoji animado) y lo pone
+   unos segundos en UN cuadro del tablero, o en el chat si no hay tablero. No espera respuesta: no hace hablar a Alma. */
+function vozMostrarGif_() {
+  return { type: 'client', name: 'mostrar_gif', expects_response: false, response_timeout_secs: 1,
+    description: 'Muestra unos segundos un GIF que acompaña una broma que ya hiciste y que cayó en su contexto. Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA» y caller_type es juan; nunca con un problema, una queja o al dar datos. Como mucho uno cada varios minutos. Llámala en silencio: no la anuncies ni esperes respuesta.',
+    parameters: { type: 'object', required: ['idea'], properties: {
+      idea: { type: 'string', description: 'Lo que el GIF expresa, en 1 a 4 palabras en inglés (p. ej. «slow clap», «mind blown», «I\'ll be back», «mic drop»).' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 /* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):

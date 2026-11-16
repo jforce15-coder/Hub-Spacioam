@@ -238,6 +238,10 @@ jobs:
         # 16-nov: Juan quiere ajustes como los de WhatsApp, por tipo, y Siri sin pisar la voz de Alma (#551, diseño B). El mismo
         # día: probar si Siri anuncia, saber por qué el anillo deja de responder y que Alma no se despida en Modo calle ni conferencia.
         run: node .github/notif-ajustes.js apps-script
+      - name: Notificación push de la app, solo con la app dormida y su push listo, al external_id con el id del aviso, respeta el tipo, sin duplicados ni WhatsApp repetido y nada falla sin llave (dobles)
+        # 16-nov: Juan dijo sí a notificaciones push reales para la app de Alma (Ticket #28): con la app dormida no llegaba
+        # nada (solo avisos locales cada 45 s) y Siri no podía anunciarlas con el teléfono bloqueado.
+        run: node .github/push-app.js apps-script
       - name: Pendientes limpios, se cierran solos con su motivo cuando su origen se resolvió, lo informativo vence, la pregunta se repite una vez y la corrida única respalda (dobles)
         # 16-nov: en Pendientes 85 de 163 tarjetas seguían abiertas: temas ya cerrados, cambios ya unidos, el mismo aviso de
         # entrega 4 veces y avisos que nunca cambiaban de estado; las preguntas esperaban sin que nadie volviera a preguntar (#567 T2).

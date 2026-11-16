@@ -178,7 +178,8 @@
     notaPrueba("Pidiéndola…");
     pedir("notifPrueba").then(function (r) {
       if (b) b.disabled = false;
-      if (r && r.ok) notaPrueba("Listo. Te llega a la app de Alma en menos de un minuto: bloquea el teléfono y ponte los AirPods.");
+      if (r && r.ok && r.push) notaPrueba("Listo. Salió por push: te llega en segundos aunque la app de Alma esté cerrada. Bloquea el teléfono y ponte los AirPods.");
+      else if (r && r.ok) notaPrueba("Listo. Te llega a la app de Alma en menos de un minuto: bloquea el teléfono y ponte los AirPods.");
       else notaPrueba("No se pudo: " + ((r && r.error) || "sin respuesta") + ".", true);
     });
   }

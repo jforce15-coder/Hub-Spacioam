@@ -7,7 +7,9 @@
    - Queda la huella en ALMA_LOG (quién y cuándo, sin el valor), como los cambios de ALMA_CONTROL. */
 var LLAVES_PERMITIDAS_ = [
   { nombre: 'JEV_KEY', para: 'Jev (TypeSafe): el camino rápido de la voz' },   // #498 T5
-  { nombre: 'PARA_ALMA_AVISO_KEY', para: 'Aviso de GitHub: las instrucciones para Alma llegan al instante' }   // #526 T5 (el mismo valor va en el secreto de GitHub)
+  { nombre: 'PARA_ALMA_AVISO_KEY', para: 'Aviso de GitHub: las instrucciones para Alma llegan al instante' },   // #526 T5 (el mismo valor va en el secreto de GitHub)
+  { nombre: 'ONESIGNAL_IOS_APP_ID', para: 'Notificaciones push de la app de Alma: el App ID de su app de OneSignal (iPhone)' },   // Ticket #28 (pushapp.js)
+  { nombre: 'ONESIGNAL_IOS_KEY', para: 'Notificaciones push de la app de Alma: la REST API Key de esa misma app de OneSignal' }   // Ticket #28 (pushapp.js)
 ];
 var LLAVES_META_ = 'LLAVES_GUARDADAS';   // { NOMBRE: { t, por } }: cuándo y quién, nunca el valor
 

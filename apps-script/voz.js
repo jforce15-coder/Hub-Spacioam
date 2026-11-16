@@ -1364,7 +1364,8 @@ function opLlamadaGuardar_(adm, d, t0, dur, canal, motivo, resumen) {
 
 /* ═══ AVISOS EN LA APP ═════════════════════════════════════════════════════════════════════════════════════
    Cuando Alma termina algo de segundo plano que necesita algo de ti (o Claude responde un pedido), deja un aviso para la
-   app de iPhone: la app pregunta cada 45 s (vozAvisos) y lo muestra como notificación. Con la notificación hablada
+   app de iPhone: la app pregunta cada 45 s (vozAvisos) y lo muestra como notificación; si la app duerme, el aviso sale
+   además como notificación push (pushapp.js, Ticket #28) y llega aunque esté cerrada. Con la notificación hablada
    (calle.js) la app dice al oído los de nivel 1 y 2 y escucha la respuesta; lo demás Alma lo cuenta al retomar, cuando
    vuelves a hablarle (temas por retomar, retomar.js). Si la app no la recoge en 10 min (cerrada o dormida), lo que pide algo
    del principal o terminó en segundo plano le llega por WhatsApp (avisowa.js, marca `wa`).
@@ -1396,6 +1397,9 @@ function vozAvisoPoner_(adm, texto, retId, o) {
     if (o.origen) nuevo.origen = String(o.origen).slice(0, 30);   // de dónde viene: su tipo en Ajustes → Notificaciones (notifajustes.js)
     if (o.prueba) nuevo.prueba = true;   // «Probar con Siri» desde el Hub web (notifPruebaApi_): la app la arma con Siri y no la dice
     try { var ped = abrePedidosDe_(adm, o); if (ped.length) nuevo.pedidos = ped; } catch (e) {}
+    /* Notificación push (pushapp.js): con la app dormida y su push listo, sale también por OneSignal; la marca hace que la
+       app, al despertar, no arme otra notificación con el mismo aviso. */
+    try { if (pushAppToca_(adm, nuevo)) nuevo.push = true; } catch (e) { console.error('pushAppToca_: ' + e); }
     l.push(nuevo);
     while (l.length > VOZ_AVISOS_MAX_) {
       var k = -1; l.forEach(function (a, i) { if (k < 0 && a.nivel === 3) k = i; });
@@ -1411,6 +1415,8 @@ function vozAvisoPoner_(adm, texto, retId, o) {
   } finally { lock.releaseLock(); }
   /* La voz lista antes (#509 T1, calle.js): su audio se arma en segundo plano, sin hacer esperar a quien la creó. */
   if (nuevo && !nuevo.prueba) { try { avisoVozEncolar_(adm, nuevo); } catch (e) { console.error('avisoVozEncolar_: ' + e); } }
+  if (nuevo && nuevo.push) { try { nuevo.pushRes = pushAppMandar_(adm, nuevo); } catch (e) { console.error('pushAppMandar_: ' + e); } }
+  return nuevo;
 }
 /* App de Alma: las notificaciones que ya llegaron (las últimas 30, de los últimos 3 días), la más nueva primero. */
 function vozNotificaciones_(ses) {
@@ -1442,24 +1448,32 @@ function vozAvisos_(ses, b) {
   /* Con su tarjeta de Pendientes, la notificación lleva la respuesta: titulo y hasta 3 líneas cortas del resultado (avisoLineas_). */
   var rets = retLeer_(adm), pends = mios.length ? pendFilas_() : [];
   /* La voz de Alma viene con el texto (avisosConVoz_, calle.js): la app la dice sin otra vuelta al Hub. */
-  var salida = mios.map(function (a) {
-    var h = avisoHablarDe_(a, rets, pends, adm.nombre), pd = callePendDeAviso_(pends, a.id);
-    var o = { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado };
-    if (a.conferencia) o.conferencia = true;
-    if (a.prueba) { o.prueba = true; o.hablar = ''; o.importante = false; }   // la prueba de Siri no se dice en voz alta
-    if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
-    else if (a.datos && a.datos.length) { o.titulo = String(a.titulo || ''); o.lineas = a.datos.slice(0, 3); }   // los datos ordenados del aviso (avisotexto.js)
-    return o;
-  });
+  var salida = mios.map(function (a) { return vozAvisoSalida_(a, rets, pends, adm.nombre); });
   /* Alma abre la conversación (#509 T4, almaabre.js): con la app en Modo calle o conferencia (b.abre), el resultado de un
      pedido reciente del principal lleva { primer_mensaje, contexto }; cada aviso dice por qué sí o por qué no (abre_por). */
   try { abreAvisos_(adm, mios, salida, b); } catch (e) { console.error('abreAvisos_: ' + e); }
   var resp = { ok: true, avisos: avisosConVoz_(salida, b), pendientes: rets.length, trabajando: vozTrabajando_(adm, 0) };
+  /* Notificación push (pushapp.js): la app está despierta (o avisa que se duerme), dice si su push está listo y recibe
+     con qué registrarse (push: { app_id, externo }) solo si están las llaves de OneSignal del iPhone. */
+  try { pushAppAlPreguntar_(adm, b, resp); } catch (e) { console.error('pushAppAlPreguntar_: ' + e); }
   /* Ajustes por tipo (#551, notifajustes.js): el tipo de cada aviso, los ajustes de quien pregunta y el número del ícono. */
   try { notifAvisos_(adm, mios, salida, rets, resp); } catch (e) { console.error('notifAvisos_: ' + e); }
   /* Diagnóstico del anillo (anillo.js): los pasos nuevos de la voz de la app, ya sin datos personales. */
   if (b && Array.isArray(b.pasos) && b.pasos.length) { try { anilloPasosGuardar_(adm, b.pasos, b.anillo); } catch (e) { console.error('anilloPasosGuardar_: ' + e); } }
   return resp;
+}
+/* Un aviso de la cola como lo recibe la app: en vozAvisos y en la notificación push (pushapp.js), igual en los dos. Su nivel,
+   su frase y, con su tarjeta de Pendientes, el título y hasta 3 líneas cortas del resultado (avisoLineas_). push = ya salió
+   como notificación push: la app no arma otra. */
+function vozAvisoSalida_(a, rets, pends, nombre) {
+  var h = avisoHablarDe_(a, rets, pends, nombre), pd = callePendDeAviso_(pends, a.id);
+  var o = { id: a.id, ts: a.ts, texto: a.texto, nivel: h.nivel, hablar: h.hablar, importante: h.importante, resultado: !!a.resultado };
+  if (a.conferencia) o.conferencia = true;
+  if (a.prueba) { o.prueba = true; o.hablar = ''; o.importante = false; }   // la prueba de Siri no se dice en voz alta
+  if (a.push) o.push = true;
+  if (pd) { o.titulo = String(pd.titulo || '').slice(0, 80); o.lineas = avisoLineas_(pd.detalle || pd.resumen, 3); o.pendiente = String(pd.id); }
+  else if (a.datos && a.datos.length) { o.titulo = String(a.titulo || ''); o.lineas = a.datos.slice(0, 3); }   // los datos ordenados del aviso (avisotexto.js)
+  return o;
 }
 /* Cuántas cosas está trabajando Alma en segundo plano para él (delta +1 al empezar, −1 al terminar; 0 solo consulta).
    Cada una caduca a los 30 min por si algo se cayó a medio camino. */

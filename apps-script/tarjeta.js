@@ -124,7 +124,7 @@ function tvPermitida_(convId, app) {
 }
 /* Los tipos nuevos (#508 Fase 2) salen en pantalla solo si la app dijo al vincular que los pinta (vozWebVincular_, tipos):
    la app de antes descarta un tipo que no conoce y la voz habría dicho «EN PANTALLA» sin que nada se viera. */
-var TV_TIPOS_AVISO_ = ['socio', 'datos'];   // «datos»: el tablero de datos (tablero.js, #607)
+var TV_TIPOS_AVISO_ = ['socio', 'datos', 'recepcion', 'proyecto'];   // recepción y proyecto: el snapshot (snapshot.js)   // «datos»: el tablero de datos (tablero.js, #607)
 function tvAppPinta_(convId, tipo) {
   var l = []; try { l = JSON.parse(CacheService.getScriptCache().get('voztvtipos_' + convId) || '[]') || []; } catch (e) {}
   return Array.isArray(l) && l.indexOf(tipo) >= 0;
@@ -146,6 +146,8 @@ function tvLineaChat_(celda) {
   if (o.tipo === 'consulta') return 'Tarjeta de la llamada · consulta de ' + (o.titulo || 'un interesado');
   if (o.tipo === 'socio') return 'Tarjeta de la llamada · socio ' + (o.titulo || '');
   if (o.tipo === 'datos') return 'Tarjeta de la llamada · ' + (o.titulo || 'datos');
+  if (o.tipo === 'recepcion') return 'Tarjeta de la llamada · ' + (o.titulo || 'recepción');
+  if (o.tipo === 'proyecto') return 'Tarjeta de la llamada · proyecto ' + (o.titulo || '');
   return '';
 }
 function tvConLinea_(m) {
@@ -190,7 +192,7 @@ function tvReserva_(r, x, inbox) {
   if (cancel && x.cancelada_el) datos.push('Cancelada el ' + tvFecha_(String(x.cancelada_el).slice(0, 10)));
   var hLlega = tvTxt_(tvCampo_(r, /^(checkin_time|check_in_time|hora_llegada)$/i), 5), hSale = tvTxt_(tvCampo_(r, /^(checkout_time|check_out_time|hora_salida)$/i), 5);
   var tel = tvTel_(tvCampo_(r, /^(guest_phone|phone|telefono|guest_telefono)$/i) || (String(ib.conv_id || '').indexOf('wa:') === 0 ? String(ib.conv_id).slice(3) : '') || ib.wa);
-  return {
+  var tReserva = {
     tipo: 'reserva', clave: 'reserva:' + cod, ref: cod, etiqueta: 'Reserva · ' + cod,
     titulo: tvTxt_(x.huesped, 40) || 'Huésped', sub: [tvLugar_(x.propiedad), canal].filter(Boolean).join(' · '),
     chip: cancel ? 'Cancelada' : solic ? 'Por aprobar' : est ? est.charAt(0).toUpperCase() + est.slice(1) : 'Confirmada', tono: cancel ? 'alerta' : solic ? 'aviso' : 'info',
@@ -207,6 +209,10 @@ function tvReserva_(r, x, inbox) {
       cancel: cancel, noches: noches, hues: hues, hLlega: hLlega, pago: pago && !isNaN(Number(pago)) && Number(pago) > 0 ? Math.round(Number(pago)) : 0
     })
   };
+  /* Snapshot estilo Jarvis (snapshot.js): la experiencia, lo que le molesta y lo que lo tiene feliz, el problema y lo que
+     estamos haciendo, y lo importante arriba. */
+  return typeof jvHuesped_ === 'function' ? jvHuesped_(tReserva, { conv: ib.conv_id || x.conv_id, codigo: cod, cancel: cancel, registro: x.registro, entrada: x.entrada,
+    pend: tvPorResponder_(ib, x.salida, cancel) }) : tReserva;
 }
 
 /* ── Tablero bento de la reserva (#508 T1) ─────────────────────────────────────────────────────────────────────────────
@@ -232,7 +238,7 @@ function tvCuadrosReserva_(x, ib, o) {
   if (rango) out.push({ id: 'fechas', tipo: 'dato', tam: 's', prioridad: 2, k: 'Fechas', v: rango,
     d: [tvFecha_(x.entrada).split(' ')[0], tvFecha_(x.salida).split(' ')[0]].filter(Boolean).join(' → ') + (o.hLlega ? ' · llega ' + o.hLlega : '') });
   if (o.noches || o.hues) out.push({ id: 'huespedes', tipo: 'dato', tam: 's', prioridad: 3, k: o.hues ? 'Huéspedes · noches' : 'Noches', v: o.hues ? o.hues + ' · ' + o.noches : String(o.noches) });
-  if (o.pago) out.push({ id: 'pago', tipo: 'dato', tam: 's', prioridad: 4, k: 'Total', v: 'US$ ' + o.pago });
+  if (o.pago) out.push({ id: 'pago', tipo: 'dato', tam: 's', prioridad: 4, k: 'Total', v: 'US$ ' + o.pago, d: o.noches ? 'US$ ' + Math.round(o.pago / o.noches) + ' por noche' : '' });
   var pend = tvPorResponder_(ib, x.salida, o.cancel);
   if (pend) out.push({ id: 'responder', tipo: 'mensaje', tam: 'ancho', prioridad: 2, k: 'Necesita respuesta', chip: pend.hora || 'Por responder', texto: pend.texto });
   var gal = tvGaleria_(x.propiedad, apto);   // #508 T3: las fotos del apartamento siempre que existan
@@ -297,7 +303,7 @@ function tvConversacion_(rid, hilo, promesas, inbox) {
   var cod = String(ib.codigo || '').toUpperCase();
   var pr = (promesas || []).map(function (p) { return tvTxt_(p.que, 90) + (p.vence ? ' · vence ' + tvTxt_(p.vence, 16) : ''); }).slice(0, 3);
   var tel = String(rid).indexOf('wa:') === 0 ? tvTel_(String(rid).slice(3)) : '';
-  return {
+  var tConv = {
     tipo: 'conversacion', clave: 'conversacion:' + rid, ref: cod || String(rid), etiqueta: 'Conversación' + (cod ? ' · ' + cod : ''),
     titulo: nombre || 'Conversación', sub: [ib.propiedad ? tvLugar_(ib.propiedad) : '', tvCanal_(ib.canal) || (tel ? 'WhatsApp' : '')].filter(Boolean).join(' · '),
     chip: pr.length ? 'Promesa abierta' : '', tono: 'aviso', foto: /^https:\/\//.test(String(ib.foto || '')) ? String(ib.foto) : '', iniciales: tvIniciales_(nombre),
@@ -305,6 +311,20 @@ function tvConversacion_(rid, hilo, promesas, inbox) {
     conv: cod || String(rid), tel: tel, wa: tel ? tel.replace(/\D/g, '') : '',
     resumen: 'los últimos mensajes de la conversación' + (nombre ? ' con ' + nombre : '') + (pr.length ? ' y sus promesas abiertas' : '')
   };
+  /* Snapshot del huésped (Juan, 16-nov-2026): también la conversación es tablero: su foto (con la del apartamento), la
+     estadía, cuántos mensajes, el último del huésped y la lectura (snapshot.js). La app de antes sigue con los mensajes. */
+  if (typeof jvHuesped_ !== 'function') return tConv;
+  var apto = ib.propiedad ? tvFotoProp_(ib.propiedad) : '', fh = tConv.foto, fondo = apto || fh, ultG = msgs.filter(function (m) { return m.de === 'huesped'; }).pop();
+  var nMsgs = (hilo || []).filter(function (m) { return tvTxt_(m.texto) || (m.fotos || []).length; }).length, rango = tvRango_(ib.checkin, ib.checkout);
+  tConv.cabeza = nombre ? 'Conversación con ' + nombre : 'Conversación';
+  tConv.cuadros = [
+    { id: 'foto', tipo: 'foto', tam: fondo ? 'alto' : 'm', prioridad: 1, fondo: fondo, de: apto ? 'apartamento' : fondo ? 'huesped' : '', avatar: apto ? fh : '', iniciales: tConv.iniciales,
+      alt: fondo ? 'Foto de ' + (apto ? tvLugar_(ib.propiedad) : nombre || 'el huésped') : '', chip: pr.length ? 'Promesa abierta' : tvCanal_(ib.canal) || (tel ? 'WhatsApp' : ''), tono: pr.length ? 'aviso' : 'info' },
+    rango ? { id: 'fechas', tipo: 'dato', tam: 's', prioridad: 2, k: 'Estadía', v: rango, d: tvNoches_(ib.checkin, ib.checkout) ? tvNoches_(ib.checkin, ib.checkout) + ' noches' : '' } : null,
+    { id: 'mensajes', tipo: 'dato', tam: 's', prioridad: 3, k: 'Mensajes', v: String(nMsgs), d: msgs.length && msgs[msgs.length - 1].hora ? 'el último ' + msgs[msgs.length - 1].hora : '' },
+    ultG ? { id: 'ultimo', tipo: 'mensaje', tam: 'ancho', prioridad: 2, k: 'Lo último que dijo', chip: ultG.hora || primer || 'Huésped', tono: 'info', texto: '«' + tvTapar_(ultG.texto) + '»' } : null
+  ].filter(Boolean);
+  return jvHuesped_(tConv, { conv: rid, codigo: cod, hilo: hilo, entrada: ib.checkin, pend: tvPorResponder_(ib, ib.checkout, false) });
 }
 
 /* Consulta (inquiry): quien escribió sin reservar. Sale de la fila de la bandeja (ib) y, si ya se leyó, de su hilo; con
@@ -350,7 +370,7 @@ function tvApartamento_(nombre, j, plano) {
   tvPedirFotos_([nombre], fotos);   // sin ninguna foto (ni guardada, ni picture, ni en la herramienta): una vez cada 6 h
   var foto = tvFotoProp_(nombre) || fotos[0] || '';
   var est = tvEstadias_(), semana = tvSemana_(nombre, est);
-  return {
+  var tApto = {
     tipo: 'apartamento', clave: 'apartamento:' + calpClave_(nombre), ref: nombre, etiqueta: 'Apartamento' + (p.zona && p.zona !== 'Otras' ? ' · ' + p.zona : ''),
     titulo: p.corto || nombre, sub: [p.zona !== 'Otras' ? p.zona : '', p.edificio].filter(Boolean).join(' · '), chip: '', tono: '',
     foto: foto, iniciales: tvIniciales_(p.edificio || nombre),
@@ -361,6 +381,7 @@ function tvApartamento_(nombre, j, plano) {
     cabeza: p.corto || nombre,
     cuadros: tvCuadrosApartamento_(nombre, { foto: foto, fotos: fotos, est: est, semana: semana, hab: hab, parqueo: parqueo, porteria: porteria })
   };
+  return typeof jvApartamento_ === 'function' ? jvApartamento_(tApto, nombre, est) : tApto;   // snapshot (snapshot.js)
 }
 /* La foto del anuncio sale del catálogo de Hospitable que ya guardó el calendario de propiedades (sin llamarlo); si el
    catálogo no trae picture, la primera de las fotos del anuncio que ya están guardadas (#508 T3). */
@@ -627,7 +648,7 @@ function tvEdificio_(e) {
   var mn = m.manana;
   cuadros.push({ id: 'resumen', tipo: 'resumen', tam: 'm', prioridad: 8, k: 'Mañana',
     texto: !mn.llegan && !mn.salen ? 'Sin llegadas ni salidas.' : [mn.llegan ? cuenta(mn.llegan, 'llegada', 'llegadas') : '', mn.salen ? cuenta(mn.salen, 'salida', 'salidas') : ''].filter(Boolean).join(' y ') + '.' });
-  return {
+  var tEd = {
     tipo: 'edificio', clave: 'edificio:' + calpClave_(e.zona + ' ' + e.edificio), ref: e.edificio, etiqueta: 'Edificio' + (zona ? ' · ' + zona : ''),
     titulo: nombre, sub: [zona, N + ' apartamentos'].filter(Boolean).join(' · '), chip: '', tono: '',
     foto: foto, iniciales: tvIniciales_(e.edificio), fechas: [], mensajes: [], promesas: [], semana: [], detalle: [], conv: '', tel: '', wa: '',
@@ -635,6 +656,7 @@ function tvEdificio_(e) {
     resumen: 'el ' + nombre.charAt(0).toLowerCase() + nombre.slice(1) + ' (apartamentos, llegadas y salidas de hoy)',
     cabeza: nombre, cuadros: cuadros
   };
+  return typeof jvEdificio_ === 'function' ? jvEdificio_(tEd, e, tvEstadias_()) : tEd;   // snapshot (snapshot.js)
 }
 
 /* ── Tablero del socio (#508 Fase 2; Juan, 16-nov-2026: «estilo Jarvis») ────────────────────────────────────────────────
@@ -840,19 +862,24 @@ function tvSocio_(o, op) {
   var detalle = ped.slice(0, 3).map(function (x) { return 'Pedido: ' + x.v; })
     .concat(fi.slice(0, 4).map(function (x) { return x.t + ': ' + x.v + (x.d ? ' (' + x.d + ')' : ''); }), lle.slice(0, 3).map(function (x) { return 'Llega ' + x.t + ': ' + x.v; }));
   var partes = [mes ? 'el mes de sus apartamentos' : '', ped.length ? 'sus pedidos abiertos' : '', fi.length ? 'su ficha' : '', lle.length ? 'las próximas llegadas' : '', gr ? 'su proyecto en Grow' : ''].filter(Boolean);
-  return {
+  var tSocio = {
     tipo: 'socio', clave: 'socio:' + tvSocioHash_(fin8_(so.tel) || so.correo || calpClave_(nombre)), ref: nombre, etiqueta: 'Socio' + (cortos.length === 1 ? ' · ' + cortos[0] : ''),
     titulo: nombre, sub: cortos.length > 3 ? cortos.slice(0, 3).join(' · ') + ' y ' + (cortos.length - 3) + ' más' : cortos.join(' · '), chip: 'Socio', tono: 'info',
     foto: fo.foto, iniciales: cuadros[0].iniciales, fechas: [], datos: datos, mensajes: [], promesas: [], semana: [], detalle: detalle, conv: '', tel: '', wa: '',
     resumen: 'lo que sabemos de ' + nombre + (partes.length ? ' (' + partes.join(', ') + ')' : ''),
     cabeza: nombre, cuadros: cuadros
   };
+  return typeof jvSocio_ === 'function' ? jvSocio_(tSocio) : tSocio;   // snapshot (snapshot.js)
 }
 
 /* buscar_contacto: si trae UN socio (el del apartamento según Mi, o el primer contacto y es socio), es la candidata;
    con varios, una lista: borra la de antes. Otro tipo de contacto no la toca. */
 function tvCandidataContacto_(adm, fichas, sB) {
   if (sB && sB.opciones) return tvCandidata_(null);
+  /* Snapshot (snapshot.js): UNA recepción de edificio → su tablero (llegadas de hoy y si su registro le llegó). */
+  var r0 = (fichas || [])[0];
+  if (r0 && String(r0.tipo) === 'recepcion' && (fichas.length === 1 || String((fichas[1] || {}).tipo) !== 'recepcion') && typeof jvRecepcion_ === 'function' && !(sB && sB.socios && sB.socios.length))
+    return tvCandidata_('recepcion', function () { return jvRecepcion_(r0); });
   var socios = [], mete = function (o) { var k = fin8_(o.tel) || String(o.correo || '').toLowerCase() || calpClave_(o.nombre); if (k && !socios.some(function (x) { return x.k === k; })) { o.k = k; socios.push(o); } };
   if (sB && sB.socios) sB.socios.forEach(function (x) { mete({ tel: x.tel, nombre: x.nombre, correo: x.email, props: [sB.propiedad] }); });
   var f0 = (fichas || [])[0];

@@ -36,6 +36,14 @@ jobs:
           done
           exit $fallo
 
+      - name: Una sola roca por pantalla, siempre la misma y con su pulso (sa-nav.js la dibuja; nadie pinta otra)
+        # 16-nov-2026: Juan vio rocas distintas en Health y al probar el modo anillo, y pulsos que chocaban con las órbitas.
+        run: node .github/una-roca.js .
+
+      - name: Snapshot estilo Jarvis del tablero, piezas, cupo de IA y nada privado (dobles)
+        # 16-nov-2026: Juan pidió que el tablero sea un snapshot que se entienda de un vistazo, no cuadros con un número.
+        run: node .github/snapshot.js apps-script
+
       - name: Cada sc-for de las páginas lee su lista con list= (support.js no conoce each=)
         # 3-nov: la ventana de «Acciones pendientes» usaba each= y salía vacía (la píldora decía 1, la lista 0).
         run: |

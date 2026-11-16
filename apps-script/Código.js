@@ -2196,7 +2196,7 @@ const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · d
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
   opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
   fuentesLeerTexto_: 'Respuesta con fuentes · lo escrito', fuentesVer_: 'Respuesta con fuentes · fotos',
-  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos' };
+  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos', jvLectura_: 'Tablero · cómo va el huésped' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];

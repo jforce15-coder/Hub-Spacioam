@@ -266,3 +266,11 @@ jobs:
         # 16-nov: el anillo llega como control de música y Spotify se lo quita; Juan aprobó leerlo directo por Bluetooth y antes
         # hay que saber qué manda (ticket #29, paso 1). La app manda el registro y Claude lo lee para mapear los toques.
         run: node .github/anillo-ble.js apps-script
+      - name: Destinatario con su fuente, un solo resolvedor, el apartamento nombrado manda, varias personas se preguntan y «los socios» son todos (dobles)
+        # 13-nov: Juan pidió escribirle al socio de Narama 633; Alma tomó la primera coincidencia por un pedazo del nombre (otro
+        # apartamento) y antes dijo «El único Mayorga que tengo es …», inventado (#583 T3).
+        run: node .github/destino.js apps-script
+      - name: Verificar antes de prometer, borrador al contacto con su sí, «listo» solo con un envío hecho, sin duplicados al huésped en 24 h y la llamada auditada (dobles)
+        # 13-nov: el borrador al socio de Narama 633 nunca salió y Alma dijo «Listo, con ese cambio»; 16-nov: la misma huésped
+        # recibió el mismo mensaje a las 12:01 y a las 12:28; en una llamada dijo «Listo, le llegó» antes de mandar nada (#583 T4).
+        run: node .github/prometer.js apps-script

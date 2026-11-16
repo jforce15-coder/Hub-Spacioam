@@ -75,9 +75,9 @@ function avlCrear_(adm, inp, ctx) {
   var personas = [], faltan = [];
   nombres.forEach(function (n) {
     var x = avlPersona_(n, nombres.length === 1 ? inp.numero : '', ctx);
-    if (x) personas.push({ nombre: x.nombre, wa: x.wa, solo: String(inp.solo_en || '').trim().slice(0, 40) }); else faltan.push(n);
+    if (x && x.wa) personas.push({ nombre: x.nombre, wa: x.wa, solo: String(inp.solo_en || '').trim().slice(0, 40) }); else faltan.push((x && x.error) || n);
   });
-  if (faltan.length) return { ok: false, error: 'No encontré el WhatsApp de ' + faltan.join(', ') + '. Pídeselo a Juan (con código de país).' };
+  if (faltan.length) return { ok: false, error: 'No puse el aviso: ' + faltan.join(' · ') };
   var a = avlCambiar_(vj.id, function (a) {
     a = a || { email: adm.email, confirmacion: calc.confirmacion || '', personas: [], tramos: {} };
     personas.forEach(function (n) { a.personas = a.personas.filter(function (q) { return fin8_(q.wa) !== fin8_(n.wa); }).concat([n]); });
@@ -93,16 +93,14 @@ function avlCrear_(adm, inp, ctx) {
     maleta: a.maleta === true ? 'sí' : a.maleta === false ? 'no' : 'no se sabe',
     nota: 'Dile en una frase a quién avisarás y en qué llegadas: si se retrasa, la nueva hora; al aterrizar; y luego cuánto tarda en salir. Si la persona no ha escrito en 24 h, primero le llega «¿Tienes un minuto?» y lo demás cuando conteste.' };
 }
-/* Nombre (y número opcional) → { nombre, wa }. Primero las conversaciones personales recientes, luego los contactos y el equipo. */
+/* Nombre (y número opcional) → { nombre, wa } o { error } (#583 T3): el mismo resolvedor de destinatarios que las demás
+   herramientas (destino.js): fichas (la familia), conversaciones personales y a quien le escribí en 30 días, el equipo.
+   Varias personas con ese nombre: no elige, las nombra para que Juan diga cuál. */
 function avlPersona_(nombre, numero, ctx) {
-  var wa = normTel_(numero || ''), n = String(nombre || '').trim();
-  if (wa) return { nombre: /^\+/.test(n) ? '' : n, wa: wa };
-  var r = null; try { r = personalPorNombre_(n); } catch (e) {}
-  if (r && normTel_(r.wa)) return { nombre: n, wa: normTel_(r.wa) };
-  var pp = null; try { pp = ctx ? agPersona_(n, ctx) : null; } catch (e) {}
-  if (pp && normTel_(pp.tel)) return { nombre: n, wa: normTel_(pp.tel) };
-  var f = ''; try { f = familiaNumero_(n); } catch (e) {}
-  return f ? { nombre: n, wa: f } : null;
+  var n = String(nombre || '').trim();
+  var d = destinoElegir_({ persona: /^\+/.test(n) && !numero ? '' : n, numero: numero || (/^\+/.test(n) ? n : '') }, ctx || null, 'personal', { uno: true });
+  if (d.error) return { error: d.error.replace(/^NO SE ENVIÓ: /, '') };
+  return { nombre: /^\+/.test(n) ? '' : n, wa: normTel_(d.destinos[0].tel) };
 }
 /* Para ver_vuelos: a quién se le avisa en ese viaje. */
 function avlNombres_(viajeId) {

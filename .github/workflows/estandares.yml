@@ -241,3 +241,7 @@ jobs:
         # 16-nov: en Pendientes 85 de 163 tarjetas seguían abiertas: temas ya cerrados, cambios ya unidos, el mismo aviso de
         # entrega 4 veces y avisos que nunca cambiaban de estado; las preguntas esperaban sin que nadie volviera a preguntar (#567 T2).
         run: node .github/pendientes-limpios.js apps-script
+      - name: Bandeja A3, cada conversación con su esfera y su foto (o null), los colores exactos del inicio, lo personal pendiente arriba y los filtros (dobles)
+        # 16-nov: Juan eligió el diseño A3 para la bandeja del Hub (#567 T1): círculos arriba con el aro partido (estado y esfera)
+        # y la lista como WhatsApp con un fondo muy tenue del color exacto de su esfera.
+        run: node .github/bandeja-esferas.js apps-script

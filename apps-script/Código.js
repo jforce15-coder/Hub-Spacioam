@@ -1706,7 +1706,7 @@ const NOTAS_PROMPTS = {
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
   SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el Chat con Alma (Hub, app y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
-  WEEBO: 'Modo Weebo: la personalidad de Alma (humor, emoción, opinión) y lo que nunca hace. El nivel lo pone el Hub según la confianza de cada conversación (weebo.js). Edítalo libremente.',
+  WEEBO: 'Modo Weebo: la personalidad de Alma (humor, emoción, opinión) y lo que nunca hace. El nivel lo pone el Hub según la confianza de cada conversación (weebo.js). Si la dejas como la sembró el script, manda la versión del código (weeboBase_); si la escribes a mano, manda la tuya.',
   FAMILIA: 'Alma en The Gentle Stoic Parent (vida familiar, no trabajo): enfoque, metodologías (Gentle Stoic Parenting, Montessori, Relato Espejo, Stillwater) y reglas. Se le suma VOZ_HUMANA y se copia sola al agente «Alma · Familia». Edítalo libremente.',
   VOZ_HUMANA: 'Llamadas: cómo suena Alma para que se escuche como una persona (ritmo, reacciones, muletillas, etiquetas de voz, fechas y números). Va al final del prompt de voz. Edítalo libremente.',
   REGLAS_EXTRA: 'Avisos temporales que Alma debe tener en cuenta (una por línea). Ej.: "Brunelo: corte de agua el sábado de 8 a 12".',
@@ -3345,6 +3345,7 @@ function hubApi_(body) {
       case 'vigilanciaDejar': return json_(vigDejarApi_(ses, body.id));                     // { id } → deja de vigilar
       case 'personalidad': return json_(personalidadApi_(ses));                             // Ajustes → Personalidad de Alma: adaptación y Modo Weebo, solo el principal (medidores.js)
       case 'personalidadFijar': return json_(personalidadFijarApi_(ses, body));             // { adapt_tope?, adapt_tope_huesped?, weebo_modo?, weebo_nivel? }
+      case 'gif': return json_(gifApi_(ses, body.idea));                                    // { idea } → el GIF de la broma (GIPHY rating g o emoji animado), solo el principal (gif.js · js/alma-gif.js)
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));

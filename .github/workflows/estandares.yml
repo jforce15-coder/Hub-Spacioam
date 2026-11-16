@@ -310,6 +310,9 @@ jobs:
       - name: Acento de España solo con el administrador principal, neutro con equipo, socios, familia y huéspedes (dobles)
         # 16-nov: el acento sube con el Modo Weebo (#572), pero la voz de marca prohíbe «vale» y modismos de España con huéspedes.
         run: node .github/acento-principal.js apps-script
+      - name: Modo Weebo con tino (humor solo con gancho, nunca risa sola, el fijo es techo) y el GIF de la broma con rating g (dobles)
+        # 16-nov: Juan: «se da una carcajada que no correspondía a nada»; en una llamada, 7 de 7 [laugh] sin chiste (tras «eh», «mmm», un corte).
+        run: node .github/weebo-tino.js apps-script
       - name: Archivos en los chats, Alma recibe PDF, Word, Excel y audio en privado y por WhatsApp salen como documento o audio (dobles)
         # 14-nov: Juan intentó agregar archivos en el chat y no los agregaba: el «+» solo aceptaba fotos (#544).
         run: node .github/archivos-chat.js apps-script

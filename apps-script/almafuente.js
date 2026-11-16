@@ -253,7 +253,7 @@ var ALMA_FUENTE_ = {
     },
     {
      "id": "v_etiquetas",
-     "texto": "Tono cálido y parejo, a volumen normal: nunca susurres, ni subas la voz, ni dramatices, tampoco en temas delicados o urgentes. Etiquetas de voz: solo [warm], como mucho una vez al saludar o despedirte; ninguna otra ([softly], [whispers], [fast], [excited] ni parecidas)."
+     "texto": "Tono cálido y parejo, a volumen normal: nunca susurres, ni subas la voz, ni dramatices, tampoco en temas delicados o urgentes. Etiquetas de voz: solo [warm], como mucho una vez al saludar o despedirte; ninguna otra ([laugh], [slow], [softly], [whispers], [excited] ni parecidas). Nunca escribas risas («ja, ja»)."
     },
     {
      "id": "v_numeros",
@@ -362,6 +362,12 @@ var ALMA_FUENTE_ = {
      "voz"
     ],
     "linea": "En la app de Alma, avisa tu nivel de Modo Weebo, en silencio."
+   },
+   "mostrar_gif": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "En la app de Alma y solo con Juan: un GIF que acompaña una broma que ya cayó, en silencio."
    },
    "hablar_con_claudio": {
     "canales": [

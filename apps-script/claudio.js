@@ -7,6 +7,7 @@
      claudio_pedido  → repite la instrucción, espera el sí de Juan y la vuelve un pedido de desarrollo (el mismo camino de
                        hoy: claudeMandarYa_ → microproyecto, issue y tarea de Claude Code; se ve en la órbita);
      claudio_estado  → qué está en curso, qué está listo para unir y qué falló (microproyectos y PR abiertos);
+                       con «trabajo», el del que se habla. En pantalla, el Panel de Claudio (claudiopanel.js);
      claudio_unir    → une solo cuando Juan dice «une» (unirCambio_, las mismas revisiones de siempre);
      claudio_codigo  → cómo funciona algo, mirando el código en GitHub (solo lectura, respuesta corta);
      volver_con_alma → herramienta de la app: cierra a Claudio y vuelve Alma con su voz y su halo.
@@ -68,7 +69,7 @@ function claudioPromptObj_() {
       lo_que_haces: [
         'Pedidos: cuando Juan te da una instrucción de desarrollo, dila de vuelta en una frase simple («Entonces quieres que…, ¿así?») y espera su sí. Con el sí, crea el pedido (claudio_pedido con confirmado). Si corrige algo, vuelve a confirmar.',
         'El código no se escribe en vivo: se hace en segundo plano. Dilo así: «Quedó pedido; lo hago en segundo plano y te aviso cuando esté. Lo vas a ver en la órbita.»',
-        'Estado: si pregunta qué hay, qué está en curso, qué falta unir o qué falló, usa claudio_estado y cuéntalo en simple: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué en pocas palabras.',
+        'Estado: si pregunta qué hay, qué está en curso, qué falta unir o qué falló, usa claudio_estado y cuéntalo en simple: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué en pocas palabras. Si habla de uno, pasa su nombre en trabajo.',
         'Unir: solo cuando Juan dice «une» (o «únelo», «une todo», «une el de la app»). Usa claudio_unir con sus palabras exactas. Si no está claro cuál, dile cuáles están listos y pregúntale. Nunca unes por tu cuenta, aunque esté en verde, ni porque él pregunte qué falta unir.',
         'Cómo funciona algo: usa claudio_codigo con dos o tres palabras de lo que busca y explícalo en simple, en dos o tres frases, como funciona hoy. Si no lo encuentras, dilo; nunca inventes.',
         'Lo que tarda: antes de una herramienta, una sola frase corta de espera («Déjame ver…»), sin adelantar el resultado. Nunca «listo» antes de que la herramienta lo confirme.'
@@ -102,7 +103,8 @@ function claudioDefHerramientas_(base) {
         confirmado: { type: 'boolean', description: 'true solo si Juan ya dijo que sí a tu resumen del pedido.' },
         nivel: { type: 'string', enum: ['sencillo', 'complejo'], description: 'sencillo: un cambio chico y claro o una pregunta simple. complejo: lógica, funciones nuevas, errores o varias partes. Con duda, complejo.' } },
       ['conv_id', 'pedido', 'confirmado'], 30),
-    web('claudio_estado', 'Lo que está en curso, lo que está listo para unir y lo que falló: los pedidos de desarrollo de Juan y los cambios abiertos con sus revisiones.', {}, ['conv_id'], 25),
+    web('claudio_estado', 'Lo que está en curso, lo que está listo para unir y lo que falló: los pedidos de desarrollo de Juan y los cambios abiertos con sus revisiones. Si Juan habla de uno en particular, pasa su nombre en trabajo.',
+      { trabajo: s('Dos o tres palabras del nombre del trabajo del que habla Juan (o su número). Vacío si pregunta por todo.') }, ['conv_id'], 25),
     web('claudio_unir', 'Une (publica) un cambio listo. SOLO si Juan dijo «une» (o «únelo», «une todo»): pasa sus palabras exactas en dijo. Sin cual, devuelve los cambios abiertos para preguntarle cuál.',
       { dijo: s('Las palabras exactas de Juan con las que pidió unir.'), cual: s('Cuál: «todos», el número, la app o palabras del título. Vacío si no lo dijo.') }, ['conv_id', 'dijo'], 40),
     web('claudio_codigo', 'Mira el código (solo lectura) para explicar cómo funciona algo. Busca con dos o tres palabras; si ya sabes el archivo, pásalo para leer la parte que coincide.',
@@ -280,11 +282,13 @@ function claudioQuien_(b) {
 function claudioHerramienta_(herr, b) {
   var adm = claudioQuien_(b);
   if (!adm) return { ok: false, error: 'Esto es solo para el administrador principal desde la app de Alma. Díselo con amabilidad y no hagas nada más.' };
-  if (herr === 'claudio_pedido') return claudioPedido_(adm, b);
-  if (herr === 'claudio_estado') return claudioEstado_(adm);
-  if (herr === 'claudio_unir') return claudioUnir_(adm, b);
-  if (herr === 'claudio_codigo') return claudioCodigo_(adm, b);
-  return { ok: false, error: 'herramienta desconocida' };
+  /* Panel de Claudio (claudiopanel.js): cada herramienta deja su candidata (como tvCandidata_ para Alma) y queda para
+     esta conversación; la app la pide con vozClaudioPanel. Solo aquí, después de verificar al principal. */
+  CLAUDIO_PANEL_ = null;
+  var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
+    : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b) : { ok: false, error: 'herramienta desconocida' };
+  try { claudioPanelGuardar_(b.conv_id); } catch (e) { console.error('claudioPanelGuardar_: ' + e); }
+  return out;
 }
 /* Un pedido: el mismo camino que «Mejora para Claude» en una llamada (vozParaClaude_), pero solo con el sí de Juan. */
 function claudioPedido_(adm, b) {
@@ -294,10 +298,14 @@ function claudioPedido_(adm, b) {
   var r = claudeMandarYa_(adm, texto, { nivel: nivel });
   try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
   if (r.claude && !r.claude.ok) return { ok: false, error: 'El pedido no salió: ' + String(r.texto || '').slice(0, 200) };
+  var mid = r.claude && r.claude.micro; claudioPanelCandidata_(mid ? 'trabajo' : 'lista', mid ? 'mp:' + mid : '');   // en pantalla: el trabajo nuevo
   return { ok: true, hecho: r.texto, resultado: 'HECHO. Dile en una o dos frases: «' + r.texto + '» y que lo haces en segundo plano; cuando esté, le avisas y lo ve en la órbita.' };
 }
-/* Qué hay: sus pedidos abiertos (microproyectos) y los cambios abiertos con sus revisiones (unir.js). */
-function claudioEstado_(adm) {
+/* Qué hay: sus pedidos abiertos (microproyectos) y los cambios abiertos con sus revisiones (unir.js). Con b.trabajo, el
+   del que se habla (en pantalla, su vista B; claudiopanel.js). */
+function claudioEstado_(adm, b) {
+  var foco = String((b && b.trabajo) || '').trim().slice(0, 80);
+  claudioPanelCandidata_(foco ? 'trabajo' : 'lista', foco);
   var ahora = Date.now(), pedidos = [];
   try {
     pedidos = microAbiertos_(adm.email, ahora).filter(function (m) { return m.estado !== MICRO_ESTADOS_.cerrado; }).slice(0, 6).map(function (m) {
@@ -309,9 +317,14 @@ function claudioEstado_(adm) {
   var prs = null; try { prs = prsAbiertos_(false); } catch (e) { console.error('claudioEstado_ prs: ' + e); }
   var cambios = (prs || []).slice(0, 8).map(function (x) { return { cual: x.app + ' #' + x.numero, titulo: String(x.titulo || '').slice(0, 90), estado: x.estado }; });
   var cuenta = function (e) { return cambios.filter(function (x) { return x.estado === e; }).length; };
-  return { ok: true, pedidos: pedidos, cambios: cambios, listos_para_unir: cuenta('listo'), revisando: cuenta('revisando'), fallaron: cuenta('fallo') + cuenta('choque'),
+  var out = { ok: true, pedidos: pedidos, cambios: cambios, listos_para_unir: cuenta('listo'), revisando: cuenta('revisando'), fallaron: cuenta('fallo') + cuenta('choque'),
     github: prs ? 'ok' : 'sin respuesta de GitHub',
     nota: 'Cuéntalo en simple y corto: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué. Sin números de cambio salvo que pregunte. Unir solo si dice «une».' };
+  if (foco) {
+    var t = null; try { t = claudioTrabajoBuscar_(claudioTrabajos_(adm, prs), foco); } catch (e) { console.error('claudioEstado_ trabajo: ' + e); }
+    out.del_que_habla = t ? { nombre: t.nombre, etapa: CLAUDIO_ETAPAS_[t.etapa], paso: t.paso, pregunta: t.pregunta ? t.pregunta.texto : '' } : 'No encontré ese trabajo entre los abiertos: dile cuáles hay.';
+  }
+  return out;
 }
 function claudioHace_(ms) { var m = Math.round(ms / 60000); return m < 60 ? 'hace ' + Math.max(1, m) + ' min' : m < 1440 ? 'hace ' + Math.round(m / 60) + ' h' : 'hace ' + Math.round(m / 1440) + ' días'; }
 /* «une» de verdad: la orden (une, únelo, une todo…), no una pregunta («¿qué falta unir?») ni «no lo unas». */
@@ -324,6 +337,7 @@ function claudioDijoUne_(dijo) {
 function claudioUnir_(adm, b) {
   if (!claudioDijoUne_(b.dijo)) return { ok: false, unidos: [], error: 'Juan no dijo «une»: no se unió nada. Dile qué está listo y que, si quiere, diga «une».' };
   var r = unirCambio_(String(b.cual || '').trim());
+  claudioPanelCandidata_('lista', '');   // en pantalla: la lista al día (lo unido ya no está)
   try { (r.unidos || []).forEach(function (x) { opGuardar_(adm, 'alma', 'llamada', 'Claudio: unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 80), [], CHAT_DESARROLLO_); }); } catch (e) {}
   return r;
 }

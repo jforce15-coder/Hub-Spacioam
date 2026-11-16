@@ -227,6 +227,10 @@ jobs:
         # 16-nov: Juan quiere hablar por voz con el equipo de desarrollo desde la app de Alma (#550): otro agente, otra voz y el
         # halo naranja; Claudio sigue sin existir para huéspedes, socios, equipo y externos.
         run: node .github/hablar-claudio.js apps-script
+      - name: Panel de Claudio, A al entrar y con «qué están haciendo», B al hablar de un trabajo, sin porcentajes, la pregunta por el camino de Pendientes y solo el principal (dobles)
+        # 16-nov: Juan quiere ver en pantalla lo que hace desarrollo mientras habla con Claudio (#550, prototipos A y B, como el
+        # panel «Agent Huddle»): sin pasos reales de la sesión de Claude, la barra es la etapa, nunca un porcentaje.
+        run: node .github/panel-claudio.js apps-script
       - name: Alma no repite la misma muletilla ni la misma frase seguidas («Listo, entregado») y el resto del texto queda igual (dobles)
         # 14-nov: Juan pidió que Alma varíe el fraseo y no caiga en bucles como «Listo, entregado» (pedido pc1794698090317).
         run: node .github/variar-frases.js apps-script

@@ -97,6 +97,8 @@
     vozWeb: function (ligero) { return call('vozWeb', ligero ? { ligero: 1, claudio: 1 } : { claudio: 1 }); },
     /* Hablar con Claudio: su conversación (URL firmada y ficha), solo el administrador principal (claudio.js). */
     vozClaudio: function (motivo) { return call('vozClaudio', { motivo: motivo || '' }); },
+    /* Panel de Claudio: la lista de trabajos o el del que se habla en esta conversación de Claudio (claudiopanel.js). */
+    vozClaudioPanel: function (convId) { return call('vozClaudioPanel', { conv_id: convId || '' }); },
     /* Solo la URL firmada de la voz (el agente pide autenticación): la app web la pide por adelantado (alma-voz.js). */
     vozFirma: function () { return call('vozFirma', {}); },
     vozWebVincular: function (convId) { return call('vozWebVincular', { conv_id: convId }); },

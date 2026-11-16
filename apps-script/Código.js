@@ -5213,15 +5213,19 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   let notaSoc = ''; try { notaSoc = socioDatosEnMensaje_(adm, texto); } catch (e) { console.error('socioDatosEnMensaje_: ' + e); }   // números de socios: a su ficha al llegar (sociosmi.js)
   const notaT = [nota, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
   const pedido = notaT ? notaT + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
+  /* La configuración de Epi (otra web app de Apps Script: varios segundos por pedido) solo la usa el flujo viejo sin agente. El agente lee Epi él solo,
+     de la caché (epiSnap_), cuando una herramienta lo necesita: pedirla aquí sumaba segundos a cada mensaje (Modo calle,
+     16-nov-2026: 28 s para «Estoy probando el modo»). */
+  const conAgente = opAgenteActivo_();
   let cfg = { tareas: [], schedules: [], vendors: [], props: [] }, errEpi = '';
-  try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); }
+  if (!conAgente) { try { cfg = epiCfg_(); } catch (e) { errEpi = String(e.message || e); console.error('op epi: ' + e); } }
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE HH:mm');
   const props = cfg.props.map(propNombre_).filter(Boolean), equipo = adminsOp_().map(a => a.nombre).concat(cfg.vendors.map(vendNombre_)).filter(Boolean);
   const abiertas = cfg.tareas.filter(t => t && t.id && !t.hecha).slice(0, 40);
   const prox = cfg.schedules.filter(s => s && String(s.fecha || '') >= hoy && String(s.estado || '') !== 'cancelado').sort((a, b) => String(a.fecha + a.hora).localeCompare(String(b.fecha + b.hora))).slice(0, 30);
   const previos = opFilas_(adm.email, 60).filter(m => m.id !== yo.id);   // incluye los turnos de las llamadas
   const notas = previos.filter(m => m.acciones.some(a => a.tipo === 'nota')).map(m => m.acciones.filter(a => a.tipo === 'nota').map(a => '· ' + a.texto).join('\n'));
-  const user = 'HOY: ' + hoy + ' (' + dia + ', Guatemala)\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' (admin principal)' : '') +
+  const user = conAgente ? '' : 'HOY: ' + hoy + ' (' + dia + ', Guatemala)\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' (admin principal)' : '') +
     '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp: responde breve' : 'hub') + (errEpi ? '\nAVISO: no se pudo leer Epi (' + errEpi + '). No ejecutes acciones de Epi ni de tareas; dilo.' : '') +
     '\n\nPROPIEDADES:\n' + (props.join(' | ') || '(sin datos)') + '\n\nEQUIPO:\n' + (equipo.join(' | ') || '(sin datos)') +
     '\n\nTAREAS ABIERTAS (id · texto · propiedad · quién · vence):\n' + (abiertas.map(t => [t.id, t.texto, t.prop || '-', t.quien || '-', t.vence || '-'].join(' · ')).join('\n') || '(ninguna)') +
@@ -5236,7 +5240,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
     })() +
     '\n\nMENSAJE NUEVO:\n' + pedido;
   let r = {}, hechas = [], ag = null;
-  if (opAgenteActivo_()) {
+  if (conAgente) {
     /* ALMA secretaria: herramientas reales con permisos por rol (agente.js). Su respuesta trae la esfera del turno. */
     TEMA_PISTA_ = o && o.tema ? { tema: o.tema, por: o.por || 'tarjeta' } : null;
     try { ag = opAgente_(adm, pedido, canal, fotos || [], previos); r = { respuesta: ag.respuesta }; hechas = ag.hechas; }
@@ -5254,7 +5258,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   }
   /* Chat único (chat.js): la esfera del turno queda en las dos filas y, si es Propósito · Desarrollo, va a Claude (o a Juan).
      Si ya pasó el plazo de la calle, la esfera se marca después para no hacerlo esperar más. */
-  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '', nivel: ag ? ag.nivel : '' }, { canal: canal, diferir: !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });
+  const turno = chatTurnoCerrar_(adm, [yo.id], texto, { respuesta: s_(r.respuesta), hechas: hechas, esfera: ag ? ag.esfera : chatEsfera_(r.esfera), subcategoria: ag ? ag.subcategoria : s_(r.subcategoria), micro: ag ? ag.micro : '', nivel: ag ? ag.nivel : '' }, { canal: canal, diferir: canal === 'calle' || !!(AGENTE_PLAZO_ && Date.now() > AGENTE_PLAZO_) });   // calle: la esfera se marca en la próxima pasada, Juan no la espera
   yo.esfera = turno.clas.esfera; yo.subcategoria = turno.clas.esfera ? turno.clas.subcategoria : '';
   /* Modo calle: la etiqueta [[conversar]] (hace falta hablarlo) sale del texto antes de guardarlo. */
   let conversar = false;

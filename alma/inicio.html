@@ -78,7 +78,13 @@
   .ajustes.conf.calle.pausa { background: rgba(255,255,255,.14); box-shadow: inset 0 0 0 1.5px rgba(233,130,106,.85); }
   .ajustes.conf.calle.pausa::after { content: ""; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
   @media (prefers-reduced-motion: reduce) { .ajustes.conf.calle.esperando { animation: none; } }
-  .ajustes.conf.calle { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* el toque largo abre «Probar» */
+  .ajustes.conf.calle { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }   /* el toque largo enciende o apaga */
+  /* Un solo control (Juan, 16-nov-2026): con el Modo calle encendido (esperando «Alma» aunque bloquees), un punto durazno
+     abajo a la derecha, en cualquier fase; al encender o apagar con el toque largo, el botón da un saltito. */
+  .ajustes.conf.calle.encendido::before { content: ""; position: absolute; bottom: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 1.5px #FFFDFB; }
+  .ajustes.conf.calle.salto { animation: calleSalto .32s var(--ease, ease-out); }
+  @keyframes calleSalto { 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .ajustes.conf.calle.salto { animation: none; } }
   /* La línea del Modo calle (#calle-linea): a la izquierda del botón del caminante, en qué va y cualquier error (Juan,
      3-nov-2026: «no responde» y no se sabía por qué; nada se calla). Tocarla abre «Probar el Modo calle». */
   .calle-linea { position: fixed; z-index: 2147482500; max-width: min(220px, calc(100vw - 100px)); min-height: 44px; box-sizing: border-box;
@@ -623,6 +629,8 @@
   .tvb-chip[data-tono="alerta"] { background: #F2DAD5; color: #9E3326; }
   .tvb-foto { padding: 0; background: radial-gradient(120% 90% at 22% 18%, rgba(242,198,168,.95) 0%, rgba(233,130,106,.55) 38%, rgba(233,130,106,0) 70%), linear-gradient(155deg, #E9DED3 0%, #B9A493 52%, #8F7F74 100%); }
   .tvb-foto > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tvb-foto[data-esfera="proposito"] { background: linear-gradient(150deg, #E9826A, #C9705E); }   /* socio sin foto: sus iniciales sobre el color de su esfera (#508 Fase 2) */
+  .tvb-foto[data-esfera="finanzas"] { background: linear-gradient(150deg, #9DB59A, #6F8E6E); }
   .tvb-foto .tvb-chip { position: absolute; top: 10px; left: 10px; box-shadow: 0 4px 12px -6px rgba(40,30,25,.4); }
   .tvb-ini { position: absolute; inset: 0; display: grid; place-items: center; font: 400 clamp(34px, 11vw, 46px)/1 Valky, "Cormorant Garamond", Georgia, serif; color: #fff; letter-spacing: .04em; text-shadow: 0 2px 14px rgba(110,70,55,.35); }
   .tvb-av { position: absolute; left: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; box-sizing: border-box;
@@ -868,16 +876,24 @@
   </div>
   <p class="tit-g" id="t-calle" hidden>Modo calle</p>
   <div class="grupo" id="g-calle" hidden>
-    <div class="fila" id="f-calle-on" hidden><span class="et">Modo calle encendido</span><label class="interruptor"><input type="checkbox" id="i-calle" aria-label="Modo calle encendido"><span></span></label></div>
-    <p class="nota-g" id="n-calle-on" hidden>Encendido, Alma espera «Alma» con el teléfono bloqueado, y se queda así al volver a abrir la app hasta que lo apagues. El botón del caminante es para hablarle ya, sin decir «Alma» (encendido o apagado).</p>
+    <p class="nota-g" id="n-calle-on">Todo en el botón del caminante: un toque y Alma te escucha ya, sin decir «Alma». Un toque largo enciende o apaga el Modo calle: encendido, Alma espera «Alma» con el teléfono bloqueado (el botón respira en durazno y lleva un punto) y se queda así al volver a abrir la app hasta que lo apagues. También con Siri.</p>
+    <div class="fila" id="f-calle-musica" hidden><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-calle-musica" aria-label="Bajar la música cuando Alma hable en el Modo calle"><span></span></label></div>
+    <p class="nota-g" id="n-calle-musica" hidden>Mientras Alma te oye, te contesta o habla contigo, la música de tus otras apps baja (no se pausa) y vuelve al terminar. Con el teléfono bloqueado puede quedarse baja hasta que abras Alma. Con «Alma con el anillo» encendido, la música se pausa: el anillo necesita el audio.</p>
     <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
-    <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También con un toque largo en el botón del caminante.</p>
+    <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También tocando la línea junto al botón del caminante.</p>
+  </div>
+  <p class="tit-g" id="t-conf-aj" hidden>Modo conferencia</p>
+  <div class="grupo" id="g-conf-aj" hidden>
+    <div class="fila"><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-conf-musica" aria-label="Bajar la música cuando Alma hable en el modo conferencia"><span></span></label></div>
+    <p class="nota-g">Apagado, Alma habla encima de la música y su llamada la pausa. Encendido, la música baja mientras Alma habla y vuelve al terminar.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
     <p class="nota-g" id="n-anillo">Dos toques en tu anillo encienden o apagan el modo conferencia, aunque el teléfono esté bloqueado; di «Alma» y te escucha. Si Alma está hablando, dos toques la pausan. El anillo va en modo Music.</p>
     <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
     <p class="nota-g" id="d-anillo" hidden></p>
+    <div class="fila boton" id="b-anillo-ble" role="button" tabindex="0" hidden>Diagnóstico del anillo (Bluetooth)</div>
+    <p class="nota-g" id="n-anillo-ble" hidden>Mira qué manda tu anillo por Bluetooth cuando lo tocas y mándalo al Hub. No cambia cómo funciona hoy.</p>
   </div>
   <p class="tit-g" id="t-atajos" hidden>Atajos permitidos</p>
   <div class="grupo" id="g-atajos" hidden>
@@ -944,7 +960,7 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-11-16d"></script>
+<script src="../js/alma-client.js?v=2026-11-16-fotos"></script>
 <script src="../js/alma-voz.js?v=2026-11-16e"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-16d"></script>
@@ -1492,6 +1508,7 @@
       try { if (window.AlmaTarjeta) AlmaTarjeta.evento(e); } catch (x) {}   // la tarjeta de la llamada (#446 T2)
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
+        $("b-anillo-ble").hidden = $("n-anillo-ble").hidden = !e.diagBle;   // solo una app que sabe abrir el diagnóstico (DiagnosticoAnillo.swift)
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
         /* Diagnóstico: qué pasó la última vez (sirve para ver dónde se queda con el teléfono bloqueado) */
         var d = [];
@@ -1550,6 +1567,8 @@
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
+    /* «Bajar la música cuando Alma hable» (AudioCalle.swift): solo si la app lo sabe (una versión vieja no lo manda). */
+    if (typeof e.musica === "boolean") { $("t-conf-aj").hidden = $("g-conf-aj").hidden = false; $("i-conf-musica").checked = e.musica; }
     CONF.enLlamada = !!e.enLlamada; recPintar();
     if (e.mudo && !MUDO.on) nativa({ accion: "conferencia", que: "mudo", on: false });   // el mudo no sobrevive a recargar la página
     if (MUDO.on) escUbicar();                                                                // si la conferencia se apagó, el mudo se quita solo
@@ -1636,13 +1655,14 @@
   if (NATIVA) { $("b-mudo").hidden = false; setTimeout(function () { $("b-mudo").classList.add("on"); mudoUbicar(); }, 1000); setInterval(mudoUbicar, 1200); addEventListener("resize", mudoUbicar); }
   if (NATIVA) { $("b-conf").hidden = false; setTimeout(function () { $("b-conf").classList.add("on"); confUbicar(); nativa({ accion: "conferencia", que: "estado" }); }, 1000); setInterval(confUbicar, 1200); addEventListener("resize", confUbicar); }
   /* ── Modo calle (ModoCalle.swift): con el teléfono bloqueado y audífonos, dices «Alma» y una frase. El botón del caminante
-     (Juan, 4-nov-2026): un toque y Alma escucha ya, sin «Alma» (que: "ahora"), con el Modo calle encendido o apagado; se
-     enciende y se apaga en Ajustes → Modo calle (o con Siri). Una app que todavía no sabe escuchar al tocar (no manda
+     (Juan, 4-nov-2026): un toque y Alma escucha ya, sin «Alma» (que: "ahora"), con el Modo calle encendido o apagado. Un solo
+     control (Juan, 16-nov-2026): un toque largo lo enciende o lo apaga (ya no hay interruptor en Ajustes; Siri y
+     alma://calle siguen); «Probar el Modo calle» se abre tocando la línea junto al botón o desde Ajustes. Una app que todavía no sabe escuchar al tocar (no manda
      e.ahora) sigue con el toque que enciende o apaga. La app no deja el Modo calle y la conferencia a la vez; aquí solo se pinta lo que ella cuenta
      (AlmaCalle.evento). El botón aparece cuando la app contesta: una versión vieja, sin Modo calle, no lo muestra. ── */
   /* diag (la app, 3-nov-2026): micrófono, nivel, cuántas veces el detector oyó «Alma», el dictado y el último error. La línea
      junto al botón dice en qué va y el error; nada se calla (antes un error en pausa solo quedaba en el aria-label). */
-  var CALLE = { activa: false, encendiendo: false, fase: "quieta", error: "", aviso: "", diag: null, largo: false, probando: false, ahora: false };
+  var CALLE = { activa: false, encendiendo: false, fase: "quieta", error: "", aviso: "", diag: null, largo: false, probando: false, ahora: false, recien: 0 };
   var CALLE_FASE = { esperando: "esperando «Alma»", verificando: "te oí", oyendo: "te escucho", pensando: "pensando", hablando: "hablando", llamada: "en llamada", pausa: "en pausa" };
   function calleOn() { return CALLE.activa || CALLE.encendiendo; }
   function calleFaseTxt() {
@@ -1654,6 +1674,7 @@
     b.classList.toggle("esperando", on && (fase === "esperando" || !CALLE.activa));
     b.classList.toggle("activo", activo);
     b.classList.toggle("pausa", CALLE.activa && fase === "pausa");
+    b.classList.toggle("encendido", on);
     b.setAttribute("aria-pressed", on ? "true" : "false");
     var et = "Modo calle" + (on ? ": " + calleFaseTxt() + (e && e.minutos ? " · " + e.minutos + " min" : "") : "");
     if (CALLE.ahora) et += ". Toca para hablarle a Alma";
@@ -1665,7 +1686,7 @@
      encendido o con un error; va y se esconde con el botón. */
   function calleLinea() {
     var l = $("calle-linea"), b = $("b-calle");
-    var ve = !b.hidden && b.style.visibility !== "hidden" && (calleOn() || !!CALLE.error || (CALLE.ahora && CALLE.fase !== "quieta"));
+    var ve = !b.hidden && b.style.visibility !== "hidden" && (calleOn() || !!CALLE.error || (CALLE.ahora && CALLE.fase !== "quieta") || Date.now() < CALLE.recien);
     l.hidden = !ve; if (!ve) return;
     $("calle-fase").textContent = "Modo calle · " + calleFaseTxt();
     if ($("calle-error").textContent !== CALLE.error) $("calle-error").textContent = CALLE.error;
@@ -1684,8 +1705,8 @@
       CALLE.aviso = CALLE.error = m; callePintar(CALLE.fase); cpPintar(); return;
     }
     var antes = CALLE.activa; CALLE.activa = !!e.activa; CALLE.encendiendo = !!e.encendiendo; CALLE.diag = e.diag || null;
-    if (e.ahora && !CALLE.ahora) { CALLE.ahora = true; $("f-calle-on").hidden = $("n-calle-on").hidden = false; }
-    $("i-calle").checked = calleOn();
+    if (e.ahora && !CALLE.ahora) CALLE.ahora = true;
+    if (typeof e.musica === "boolean") { $("f-calle-musica").hidden = $("n-calle-musica").hidden = false; $("i-calle-musica").checked = e.musica; }   // AudioCalle.swift
     CALLE.fase = String(e.fase || (CALLE.activa ? "esperando" : "quieta"));
     /* el error que impide encender viene en e.error (con aviso, una vez); el de mientras está encendido, en diag.error (en la línea) */
     if (e.error && e.error !== CALLE.aviso) try { alert(e.error); } catch (x) {}
@@ -1695,17 +1716,22 @@
     if (CALLE.activa && !antes && CONF.activa) nativa({ accion: "conferencia", que: "estado" });   // la app apagó la conferencia
     cpPintar();
   } };
-  /* Encender o apagar el Modo calle (Ajustes → Modo calle; antes, el toque del botón). */
+  /* Encender o apagar el Modo calle (el toque largo del botón; en una app vieja, el toque). «Modo calle · apagado» se ve
+     unos segundos en la línea para que se note que se apagó. */
   function callePoner(on) {
-    CALLE.activa = on; CALLE.encendiendo = false; CALLE.fase = on ? "esperando" : "quieta"; CALLE.error = "";
+    CALLE.activa = on; CALLE.encendiendo = false; CALLE.fase = on ? "esperando" : "quieta"; CALLE.error = ""; CALLE.recien = Date.now() + 2500;
+    var b = $("b-calle"); b.classList.remove("salto"); void b.offsetWidth; b.classList.add("salto"); setTimeout(function () { b.classList.remove("salto"); }, 400);   // después vuelve a respirar
     callePintar(CALLE.fase); grabadora(on);   // se ve al instante; la app confirma con AlmaCalle.evento
+    setTimeout(calleLinea, 2600);
     if (on && CONF.activa) { CONF.activa = false; $("b-conf").classList.remove("activa", "voces"); recPintar(); }
     nativa({ accion: "calle", que: on ? "on" : "off" });
     if (on) setTimeout(function () { nativa({ accion: "conferencia", que: "estado" }); }, 400);
   }
-  $("i-calle").onchange = function () { vozConfig(); callePoner(this.checked); };
+  /* «Bajar la música cuando Alma hable»: encendido de fábrica en el Modo calle, apagado en conferencia (lo guarda la app). */
+  $("i-calle-musica").onchange = function () { nativa({ accion: "calle", que: "musica", on: this.checked }); };
+  $("i-conf-musica").onchange = function () { nativa({ accion: "conferencia", que: "musica", on: this.checked }); };
   $("b-calle").onclick = function () {
-    if (CALLE.largo) { CALLE.largo = false; return; }   // fue un toque largo: abrió «Probar», no cambia el Modo calle
+    if (CALLE.largo) { CALLE.largo = false; return; }   // fue un toque largo: ya encendió o apagó el Modo calle
     vozConfig();
     /* Escuchar ya: la app suena la señal, escucha sin «Alma», manda el pedido y contesta; no enciende ni apaga el Modo calle. */
     if (CALLE.ahora) { CALLE.error = ""; CALLE.fase = "oyendo"; callePintar(CALLE.fase); nativa({ accion: "calle", que: "ahora" }); return; }
@@ -1716,12 +1742,13 @@
   if (NATIVA) setTimeout(function () { nativa({ accion: "calle", que: "probar", on: false }); nativa({ accion: "calle", que: "estado" }); }, 1100);
   $("calle-linea").onclick = function () { cpAbrir(); };
   $("b-calle-probar").onclick = function () { cpAbrir(); };
-  /* Toque largo en el botón del caminante: abre «Probar el Modo calle» (sin encenderlo ni apagarlo con el toque). */
+  /* Toque largo en el botón del caminante: enciende o apaga el Modo calle (el que espera «Alma»). El toque corto que lo
+     sigue no escucha (CALLE.largo). «Probar» queda en la línea junto al botón y en Ajustes. */
   (function () {
     var b = $("b-calle"), t = null;
     b.addEventListener("pointerdown", function () {
       CALLE.largo = false; clearTimeout(t);
-      t = setTimeout(function () { CALLE.largo = true; cpAbrir(); }, 650);
+      t = setTimeout(function () { CALLE.largo = true; vozConfig(); callePoner(!calleOn()); }, 650);
     });
     ["pointerup", "pointercancel", "pointerleave"].forEach(function (n) { b.addEventListener(n, function () { clearTimeout(t); }); });
     b.addEventListener("contextmenu", function (ev) { ev.preventDefault(); });
@@ -1871,6 +1898,8 @@
   $("i-anillo").onchange = function () { vozConfig(); nativa({ accion: "voz", que: "anillo", on: this.checked }); };
   /* Probar con la app abierta: si aquí funciona y bloqueado no, el problema es del segundo plano */
   $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };
+  /* Diagnóstico del anillo (Bluetooth), ticket #29 paso 1: la app abre su pantalla nativa; vozConfig deja lista la sesión para «Mandar al Hub». */
+  $("b-anillo-ble").onclick = function () { vozConfig(); nativa({ accion: "anilloBle" }); };
   if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
 
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */
@@ -2554,7 +2583,7 @@
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio", socio: "Socio" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -2650,7 +2679,10 @@
     var d = el("div", "tvb-t tvb-" + (c.tipo === "dato" ? "dato" : c.tipo === "mensaje" ? "msg" : c.tipo));
     var cara = function (src, ini, alt) { var a = el("span", "tvb-cara"), u = seguro(src); if (u) a.appendChild(img(u, alt || "", function () { a.textContent = ini || ""; })); else a.textContent = ini || ""; a.setAttribute("aria-hidden", "true"); return a; };
     if (c.tipo === "foto") {
-      var ini = function () { if (!d.querySelector(".tvb-av,.tvb-ini")) d.appendChild(el("span", "tvb-ini", c.iniciales || "")); };
+      var ini = function () {
+        if (!d.querySelector(".tvb-av,.tvb-ini")) d.appendChild(el("span", "tvb-ini", c.iniciales || ""));
+        if (/^(proposito|finanzas)$/.test(c.esfera || "")) d.setAttribute("data-esfera", c.esfera);   // socio sin foto: el color de su esfera (#508 Fase 2)
+      };
       var fondo = seguro(c.fondo);
       if (fondo) { var f = img(fondo, c.alt, function () { var a = d.querySelector(".tvb-av"); if (a) a.parentNode.removeChild(a); ini(); }); d.appendChild(f); if (c.alt) d.setAttribute("role", "img"), d.setAttribute("aria-label", c.alt); }
       /* Encima de la foto del apartamento, la del huésped: en la reserva siempre (o sus iniciales); en otros tableros, solo

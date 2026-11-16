@@ -35,7 +35,9 @@
      guardadas 6 h (calp_fotos_<id>, tvGuardarFotos_); el tablero las usa como galería y como foto principal si el
      catálogo no trae picture.
    · FOTOS QUE FALTAN (Juan, 13-nov-2026): si un apartamento del tablero no tiene ninguna foto, el Hub pide
-     /properties/{id}/images UNA vez cada 6 h, solo al armar el tablero (tvPedirFotos_). Es la única llamada de la tarjeta. */
+     /properties/{id}/images UNA vez cada 6 h, solo al armar el tablero (tvPedirFotos_). Es la única llamada de la tarjeta.
+   · (#508 Fase 2) SOCIOS: el tablero del socio (tvSocio_, abajo). Solo sale en pantalla si la app avisó al vincular que
+     sabe pintar ese tipo (tipos → voztvtipos_<conv_id>); con la app de antes queda en el chat y Alma lo dice de viva voz. */
 
 var TV_CANDIDATA_ = null;
 var TV_SEG_ = 600, TV_LLAMADA_SEG_ = 21600, TV_FOTOS_SEG_ = 21600, TV_FOTOS_MAX_ = 8;
@@ -50,8 +52,10 @@ var TV_TEL_ = /(\b(tel[eé]fono|tel|cel(ular)?|whats ?app|wa)\.?:?\s*)?\(?\+?\(?
 
 /* agEjecutar_ deja la candidata del turno. tipo null = una lista: borra la de antes. hacer() arma la tarjeta solo si de
    verdad se va a mostrar (el apartamento lee la semana del calendario). */
+var TV_TOCADA_ = false;   // este turno ya dejó (o borró) una candidata: el tema del socio no la pisa (tvCandidataTema_)
 function tvCandidata_(tipo, hacer) {
   if (typeof AGENTE_PERMITIDAS_ !== 'undefined' && AGENTE_PERMITIDAS_) return;   // la familia (vozFamilia_) nunca tiene tarjetas
+  TV_TOCADA_ = true;
   if (tipo && (typeof AGENTE_CANAL_ === 'undefined' || AGENTE_CANAL_ !== 'llamada')) { TV_CANDIDATA_ = null; return; }   // WhatsApp, chat o segundo plano: nunca
   TV_CANDIDATA_ = tipo && typeof hacer === 'function' ? { tipo: tipo, hacer: hacer } : null;
 }
@@ -59,13 +63,14 @@ function tvCandidata_(tipo, hacer) {
 /* Al cerrar el turno de la secretaria. app: la llamada es de la app de Alma (vozapp_) · conf: modo conferencia.
    Devuelve null o { celda (columna tarjeta), voz (para el resultado), tarjeta, visible }. */
 function tvCerrar_(convId, app, conf) {
-  var cand = TV_CANDIDATA_; TV_CANDIDATA_ = null;
+  var cand = TV_CANDIDATA_; TV_CANDIDATA_ = null; TV_TOCADA_ = false;
   convId = String(convId || '').trim();
   var c = CacheService.getScriptCache();
   if (!convId || !tvPermitida_(convId, app)) return null;   // voztarjeta_ solo en la app o el Hub expandido, con un administrador
   if (!cand) { c.remove('voztarjeta_' + convId); return null; }
   /* Conferencia: solo con la pantalla encendida (vozpant_ «1», lo dice la app nueva). Fuera de conferencia: salvo bloqueada. */
   var pant = c.get('vozpant_' + convId), visible = conf ? pant === '1' : pant !== '0';
+  if (visible && TV_TIPOS_AVISO_.indexOf(cand.tipo) >= 0 && !tvAppPinta_(convId, cand.tipo)) visible = false;   // la app de antes no lo pinta: solo el chat
   var t = null; TV_SIN_PEDIR_ = !visible;   // lo que no se va a ver no pide fotos (tvPedirFotos_)
   try { t = cand.hacer(); } catch (e) { console.error('tarjeta ' + cand.tipo + ': ' + (e.stack || e)); } finally { TV_SIN_PEDIR_ = false; }
   if (!t || !t.clave) { c.remove('voztarjeta_' + convId); return null; }
@@ -113,6 +118,13 @@ function tvPermitida_(convId, app) {
   var tel = vozWebTel_(convId);
   return !!(tel && adminPorTel_(tel));
 }
+/* Los tipos nuevos (#508 Fase 2) salen en pantalla solo si la app dijo al vincular que los pinta (vozWebVincular_, tipos):
+   la app de antes descarta un tipo que no conoce y la voz habría dicho «EN PANTALLA» sin que nada se viera. */
+var TV_TIPOS_AVISO_ = ['socio'];
+function tvAppPinta_(convId, tipo) {
+  var l = []; try { l = JSON.parse(CacheService.getScriptCache().get('voztvtipos_' + convId) || '[]') || []; } catch (e) {}
+  return Array.isArray(l) && l.indexOf(tipo) >= 0;
+}
 function tvDeLaLlamada_(adm, conv) {
   var tel = vozWebTel_(conv); if (!tel) return false;
   return (adm.tels || []).some(function (x) { return fin8_(x) === fin8_(tel); });
@@ -128,6 +140,7 @@ function tvLineaChat_(celda) {
   if (o.tipo === 'apartamento') return 'Tarjeta de la llamada · apartamento ' + (o.titulo || '');
   if (o.tipo === 'edificio') return 'Tarjeta de la llamada · edificio ' + (o.titulo || '');
   if (o.tipo === 'consulta') return 'Tarjeta de la llamada · consulta de ' + (o.titulo || 'un interesado');
+  if (o.tipo === 'socio') return 'Tarjeta de la llamada · socio ' + (o.titulo || '');
   return '';
 }
 function tvConLinea_(m) {
@@ -617,4 +630,240 @@ function tvEdificio_(e) {
     resumen: 'el ' + nombre.charAt(0).toLowerCase() + nombre.slice(1) + ' (apartamentos, llegadas y salidas de hoy)',
     cabeza: nombre, cuadros: cuadros
   };
+}
+
+/* ── Tablero del socio (#508 Fase 2; Juan, 16-nov-2026: «estilo Jarvis») ────────────────────────────────────────────────
+   Mientras Juan habla de un socio, Alma muestra en pantalla lo que el Hub ya sabe de él. Mismo formato y mismas reglas que
+   la reserva (cuadros con tipo, tam y prioridad; por estado; solo administradores, solo en la app, nunca la familia).
+   La candidata la dejan: ficha_socio (ver), buscar_contacto cuando trae UN socio (tvCandidataContacto_) y el tema del
+   turno cuando es el pedido de un socio y se eligió con certeza (tvCandidataTema_). Cuadros:
+   · foto: la del login (Control de usuarios, la misma de la bandeja) o la de su ficha de contacto; sin foto, sus iniciales
+     sobre el color de su esfera (Propósito; Finanzas si Juan lo movió ahí) en un cuadro más angosto.
+   · ocupacion y deposito (junto a la foto): el último mes cerrado de sus apartamentos en el reporte del mes de Mi, SOLO si ya
+     está en la caché (rmes_v1, la deja reporte_mes): nunca se calcula ni se abre la hoja para esto. Solo el principal.
+   · pedidos: sus temas tipo socio abiertos (#531), con «Tu opinión» cuando esperan a Juan.
+   · ficha: notas y detalles que importan (#525) con su fecha; el que toca retomar va primero. Solo el principal; si la
+     herramienta no la trajo, se lee de Mi (fichaVer_, 5 min en caché) solo si el tablero se va a ver.
+   · llegadas: las próximas en sus apartamentos (estadías del calendario), con la foto del huésped.
+   · grow: su proyecto en Grow (etapa y siguiente paso) si Alma ya lo trajo (grow_proyectos → tvGrowGuardar_, 6 h).
+   Con poca información, los que hay crecen (acomodar, alma/inicio.html). Nunca teléfonos, correos, datos bancarios, salud,
+   religión ni política en lo que se ve (tvSocioLimpio_), y la clave no lleva su número. */
+var TV_GROW_ETAPAS_ = [['desconocido', 'Por conocer'], ['reunion', 'Reunión'], ['archivos', 'Archivos'], ['visita', 'Visita'], ['decision', 'Decisión'],
+  ['anteproyecto', 'Anteproyecto'], ['presupuesto', 'Presupuesto'], ['contrato', 'Contrato'], ['ejecucion', 'Ejecución'], ['fotos', 'Fotos'], ['lanzamiento', 'Lanzamiento'], ['revision', 'Revisión']];
+var TV_TEMA_SEGURO_ = ['nombre', 'tarjeta', 'cita', 'numero', 'socio', 'aclaracion'];   // el tema se eligió con certeza (no por Jev ni «el más reciente»)
+var TV_CORREO_ = /[^\s@<>()"',;:]+@[^\s@<>()"',;:]+\.[a-z]{2,}/gi;
+var TV_URL_FOTO_ = /^https:\/\/[^\s"'<>]+$/;
+
+/* Lo que sale en pantalla del socio: sin correos ni teléfonos; si queda algo de banco, salud, religión, política o un
+   código (fichasocio.js, la misma lista que Mi), no sale nada. */
+function tvSocioLimpio_(t, n) {
+  var antes = tvTxt_(t);
+  t = tvSinTel_(tvTxt_(antes.replace(TV_CORREO_, ' ')));
+  if (t !== antes) t = t.replace(/(?:\s+(?:o|y|a|al|es|el|en|mi|su|correo|n[uú]mero|tel[eé]fono|whats ?app))+\s*$/i, '').replace(/[\s(:,;-]+$/, '');   // «mi correo es o al» → nada colgando
+  if (!t || tvSecreto_('', t) || (typeof fichaProhibido_ === 'function' && fichaProhibido_(t))) return '';
+  return tvTxt_(t, n || 120);
+}
+function tvCortoClave_(n) { return calpClave_(calpPartes_(n).corto || n); }
+function tvSocioHash_(s) { var h = 5381; s = String(s || ''); for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+function tvPrincipal_(adm) { try { return typeof esAdminPrincipal_ === 'function' && !!esAdminPrincipal_(adm); } catch (e) { return false; } }
+
+/* Quién es: { tel, correo, nombre, props, claves, ficha } (tel y correo nunca van a la pantalla). null si es un
+   administrador o no hay a quién. Sus apartamentos: lo que trajo la herramienta, su ficha de contacto y el SETUP de Mi. */
+function tvSocioDe_(o) {
+  o = o || {};
+  var tel = String(o.tel || '').replace(/\D/g, ''), s = null, f = null;
+  if (tel) { try { if (adminPorTel_(tel)) return null; } catch (e) {} }
+  if (tel && typeof socioSeguro_ === 'function') s = socioSeguro_(tel);
+  if (tel && typeof contactoFicha_ === 'function') { try { f = contactoFicha_(tel); } catch (e) {} }
+  var props = [], claves = {};
+  var mete = function (p) { String(p || '').split(/[,;\n]/).forEach(function (x) { x = tvTxt_(x, 60); var k = x ? tvCortoClave_(x) : ''; if (k && !claves[k]) { claves[k] = 1; props.push(x); } }); };
+  (o.props || []).forEach(mete);
+  if (s) mete(s.propiedad);
+  if (f && String(f.tipo) === 'socio') mete(f.propiedades);
+  tvSocioPropsMi_(tel, o.correo).forEach(mete);
+  var nombre = tvTxt_(o.nombre || (s && s.nombre) || (f && f.nombre), 40);
+  if (!nombre && !props.length) return null;
+  return { tel: tel, correo: String(o.correo || '').trim().toLowerCase(), nombre: nombre, props: props.slice(0, 6), claves: claves, ficha: f };
+}
+/* Los apartamentos que Mi le da (SETUP por su correo, o por el correo que el Control de usuarios tiene para su número). */
+function tvSocioPropsMi_(tel, correo) {
+  if (typeof socioMiSetup_ !== 'function') return [];
+  var emails = correo ? [String(correo).trim().toLowerCase()] : [];
+  try { if (tel && typeof socioMiUsuarios_ === 'function') { var u = socioMiUsuarios_(), k = fin8_(tel); Object.keys(u).forEach(function (e) { if (fin8_(u[e].tel) === k && emails.indexOf(e) < 0) emails.push(e); }); } } catch (e) {}
+  if (!emails.length) return [];
+  try { return socioMiSetup_().filter(function (x) { return (x.emails || []).some(function (e) { return emails.indexOf(e) >= 0; }); }).map(function (x) { return x.propiedad; }); } catch (e) { return []; }
+}
+/* La foto (login o ficha de contacto, solo https) y la esfera para las iniciales. */
+function tvSocioFoto_(so) {
+  var out = { foto: '', esfera: 'proposito' };
+  if (so.tel && typeof bandejaEsferaMapas_ === 'function') {
+    try {
+      var m = bandejaEsferaMapas_(); out.foto = String((m.fotos || {})[fin8_(so.tel)] || '');
+      if (typeof bandejaEsferaDe_ === 'function' && bandejaEsferaDe_(m, 'wa:' + so.tel) === 'finanzas') out.esfera = 'finanzas';
+    } catch (e) { console.error('tvSocioFoto_: ' + e); }
+  }
+  if (!TV_URL_FOTO_.test(out.foto)) out.foto = '';
+  if (!out.foto && so.ficha) { var f = String(tvCampo_(so.ficha, /^(foto|photo|picture|avatar)/i) || '').trim(); if (TV_URL_FOTO_.test(f)) out.foto = f; }
+  return out;
+}
+/* El reporte del mes que ya está en la caché (la misma que arma rmesFilas_): sin abrir la hoja. null si no está. */
+function tvRmesGuardadas_() {
+  var c = CacheService.getScriptCache(), k = 'rmes_v1';
+  try {
+    var n = Number(c.get(k + '_n') || 0); if (!(n > 0)) return null;
+    var ks = []; for (var i = 0; i < n; i++) ks.push(k + '_' + i);
+    var got = c.getAll(ks); if (!ks.every(function (x) { return got[x] != null; })) return null;
+    return JSON.parse(ks.map(function (x) { return got[x]; }).join(''));
+  } catch (e) { return null; }
+}
+function tvUsd_(n) { n = Math.round(Number(n) || 0); return (n < 0 ? '-' : '') + 'US$ ' + String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+/* El último mes cerrado de sus apartamentos, sumado como en Mi (rmesMes_). */
+function tvSocioMes_(so) {
+  if (typeof rmesMes_ !== 'function') return null;
+  var filas = tvRmesGuardadas_(); if (!filas || !filas.length) return null;
+  var hoy = tvHoy_().slice(0, 7), suyas = filas.filter(function (f) { return f && f.mes < hoy && so.claves[tvCortoClave_(f.prop)]; });
+  var mes = ''; suyas.forEach(function (f) { if (f.mes > mes) mes = f.mes; }); if (!mes) return null;
+  var m = null; try { m = rmesMes_(suyas, mes); } catch (e) { console.error('tvSocioMes_: ' + e); } if (!m) return null;
+  var aptos = {}; suyas.forEach(function (f) { if (f.mes === mes) aptos[tvCortoClave_(f.prop)] = 1; });
+  var meses = typeof RMES_MESES_ !== 'undefined' ? RMES_MESES_ : TV_MESES_;
+  return { nombre: meses[Number(mes.slice(5, 7)) - 1], corto: TV_MESES_[Number(mes.slice(5, 7)) - 1], ocup: m.ocup == null ? '' : (Math.round(m.ocup * 1000) / 10).toFixed(1) + '%', noches: m.noches, estadias: m.estadias,
+    dep: tvUsd_(m.deposito), aptos: Object.keys(aptos).length };
+}
+/* Sus pedidos abiertos: temas tipo socio con su número o con uno de sus apartamentos. */
+function tvSocioPedidos_(so) {
+  if (typeof temaFilas_ !== 'function') return [];
+  var l = []; try { l = temaFilas_(); } catch (e) { console.error('tvSocioPedidos_: ' + e); return []; }
+  var k = so.tel ? fin8_(so.tel) : '';
+  return l.filter(function (t) {
+    if (!t || t.estado !== 'abierto' || t.tipo !== 'socio') return false;
+    if (k && (t.personas || []).some(function (p) { return fin8_(p.t) === k; })) return true;
+    return !!(t.apartamento && so.claves[tvCortoClave_(t.apartamento)]);
+  }).sort(function (a, b) { return b.actualizado - a.actualizado; }).map(function (t) {
+    var juan = t.espera === 'juan', ts = Number(t.actualizado || t.creado) || 0;
+    var que = tvSocioLimpio_(String(t.ultimo_paso || '').replace(/^el socio pidi[oó]:\s*/i, ''), 90) || tvSocioLimpio_(t.titulo, 60) || 'Pedido del socio';
+    return { t: juan ? 'Tu opinión' : 'Abierto', v: que, d: ts ? tvHora_(new Date(ts).toISOString()) : '', tono: juan ? 'aviso' : 'info' };
+  });
+}
+/* La ficha (#525): lo que toca retomar primero y luego lo más reciente. */
+function tvSocioFicha_(items) {
+  var ret = null; try { ret = typeof fichaParaRetomar_ === 'function' ? fichaParaRetomar_(items, tvHoy_()) : null; } catch (e) {}
+  var l = (items || []).filter(function (x) { return x && !x.borrado && tvSocioLimpio_(x.texto); });
+  var orden = (ret && tvSocioLimpio_(ret.texto) ? [ret] : []).concat(l.filter(function (x) { return !ret || x.id !== ret.id; }).reverse());
+  return orden.map(function (x) {
+    var r = !!ret && x.id === ret.id, f = String(x.fecha_evento || x.fecha || '');
+    return { t: r ? 'Retomar' : x.tipo === 'detalle' ? 'Detalle' : 'Nota', v: tvSocioLimpio_(x.texto, 90), d: /^\d{4}-\d\d-\d\d$/.test(f) ? tvFecha_(f) : '', tono: r ? 'info' : x.tipo === 'detalle' ? 'aviso' : '' };
+  });
+}
+function tvSocioFichaLeer_(so) {
+  if (typeof fichaVer_ !== 'function' || (!so.tel && !so.correo)) return null;
+  try { return fichaVer_({ tel: so.tel, correo: so.correo }); } catch (e) { console.error('tvSocioFichaLeer_: ' + e); return null; }
+}
+/* Las próximas llegadas en sus apartamentos (45 días; las consultas no cuentan). */
+function tvSocioLlegadas_(so, varios) {
+  var hoy = tvHoy_(), hasta = tvMasDias_(hoy, 45), est = [];
+  try { est = tvEstadias_(); } catch (e) { console.error('tvSocioLlegadas_: ' + e); }
+  var l = (est || []).filter(function (e) { return e && e.tipo !== 'consulta' && e.checkin >= hoy && e.checkin <= hasta && so.claves[tvCortoClave_(e.propiedad)]; })
+    .sort(function (a, b) { return a.checkin < b.checkin ? -1 : a.checkin > b.checkin ? 1 : 0; });
+  var inbox = l.length ? tvInbox_() : [];
+  return l.map(function (e) {
+    return { t: tvCuando_(e.checkin), v: (varios ? (calpPartes_(e.propiedad).corto || tvTxt_(e.propiedad)) + ' · ' : '') + tvQuien_(e), d: tvNoches_(e.checkin, e.checkout) + ' noches',
+      tono: e.checkin === hoy ? 'info' : '', foto: tvFotoHuesped_(e, inbox), iniciales: tvIniciales_(e.huesped) };
+  });
+}
+/* Lo que grow_proyectos ya trajo en la llamada (sin dueños con su número ni enlaces): 6 h. */
+function tvGrowGuardar_(r) {
+  var l = (r && r.ok && Array.isArray(r.proyectos)) ? r.proyectos : []; if (!l.length) return;
+  var c = CacheService.getScriptCache(), prev = []; try { prev = JSON.parse(c.get('tvgrow') || '[]') || []; } catch (e) {}
+  var nuevos = l.slice(0, 25).map(function (p) {
+    var v = p && p.visita;
+    return { id: tvTxt_(p && p.id, 24), edificio: tvTxt_(p.edificio, 40), apto: tvTxt_(p.apto, 20), etapa: tvTxt_(p.etapa, 20), dueno: tvTxt_(p.dueno, 60),
+      visita: v ? { fecha: tvTxt_(v.fecha, 16), asignado: tvTxt_(v.asignado, 40), completa: !!v.completa } : null };
+  }).filter(function (p) { return p.id; });
+  var ids = nuevos.map(function (p) { return p.id; });
+  try { c.put('tvgrow', JSON.stringify(nuevos.concat(prev.filter(function (p) { return p && ids.indexOf(p.id) < 0; })).slice(0, 60)), TV_LLAMADA_SEG_); } catch (e) { console.error('tvGrowGuardar_: ' + e); }
+}
+/* Su proyecto en Grow: el que datoshecho.js ya ligó a su número, el que tiene su nombre completo como dueño o uno de sus
+   apartamentos (edificio + apto). Etapa y siguiente paso (la visita pendiente o la etapa que sigue). */
+function tvSocioGrow_(so) {
+  var c = CacheService.getScriptCache(), l = [], dh = null;
+  try { l = JSON.parse(c.get('tvgrow') || '[]') || []; } catch (e) {}
+  if (!l.length) return null;
+  try { if (so.tel) dh = JSON.parse(c.get('dh_proy_' + fin8_(so.tel)) || 'null'); } catch (e) {}
+  var nom = norm_(so.nombre).split(/\s+/).filter(function (w) { return w.length > 2; });
+  var p = l.filter(function (x) {
+    if (!x || x.etapa === 'descartado') return false;
+    if (dh && dh.id && dh.id === x.id) return true;
+    var dn = ' ' + norm_(x.dueno) + ' ';
+    if (nom.length >= 2 && nom.every(function (w) { return dn.indexOf(' ' + w + ' ') >= 0; })) return true;
+    return !!(x.apto && so.claves[calpClave_(x.edificio + ' ' + x.apto)]);
+  })[0];
+  if (!p) return null;
+  var orden = TV_GROW_ETAPAS_.map(function (e) { return e[0]; }), i = orden.indexOf(p.etapa), v = p.visita, sig = '';
+  if (v && !v.completa && /^\d{4}-\d\d-\d\d/.test(v.fecha) && v.fecha.slice(0, 10) >= tvHoy_())
+    sig = 'Visita ' + tvCuando_(v.fecha).replace(/^(Hoy|Mañana)$/, function (x) { return x.toLowerCase(); }) + (/\d\d:\d\d/.test(v.fecha.slice(11)) ? ' ' + v.fecha.slice(11, 16) : '') + (v.asignado ? ' con ' + tvTxt_(v.asignado).split(' ')[0] : '');
+  else if (i >= 0 && i < orden.length - 1) sig = 'Sigue: ' + TV_GROW_ETAPAS_[i + 1][1].toLowerCase();
+  return { id: 'grow', tipo: 'dato', tam: 'm', prioridad: 6, k: 'Proyecto en Grow', v: i >= 0 ? TV_GROW_ETAPAS_[i][1] : (tvSocioLimpio_(p.etapa, 20) || 'En Grow'), d: tvSocioLimpio_(sig, 60) };
+}
+
+/* El tablero del socio. o: { tel, nombre, correo, props } · op: { principal, items (la ficha, si la herramienta ya la leyó) }. */
+function tvSocio_(o, op) {
+  op = op || {};
+  var so = tvSocioDe_(o); if (!so) return null;
+  var ver = !TV_SIN_PEDIR_, varios = so.props.length > 1;
+  var cortos = so.props.map(function (p) { return calpPartes_(p).corto || p; });
+  var nombre = so.nombre || (cortos[0] ? 'Socio de ' + cortos[0] : 'Socio');
+  var fo = ver ? tvSocioFoto_(so) : { foto: '', esfera: 'proposito' };
+  var cuadros = [{ id: 'foto', tipo: 'foto', tam: fo.foto ? 'alto' : 'm', prioridad: 1, fondo: fo.foto, de: fo.foto ? 'socio' : '', esfera: fo.esfera,
+    iniciales: tvIniciales_(so.nombre || cortos[0] || 'Socio'), alt: fo.foto ? 'Foto de ' + nombre : '', chip: 'Socio', tono: 'info' }];
+  var mes = op.principal ? tvSocioMes_(so) : null;
+  if (mes) {
+    cuadros.push({ id: 'ocupacion', tipo: 'dato', tam: 's', prioridad: 2, k: 'Ocupación · ' + mes.corto, v: mes.ocup || 'Sin dato', d: mes.noches + ' noches · ' + mes.estadias + (mes.estadias === 1 ? ' estadía' : ' estadías') });
+    cuadros.push({ id: 'deposito', tipo: 'dato', tam: 's', prioridad: 3, k: 'A depositar · ' + mes.corto, v: mes.dep, d: mes.aptos > 1 ? mes.aptos + ' apartamentos' : 'Reporte de Mi' });
+  }
+  var ped = tvSocioPedidos_(so), espera = ped.some(function (x) { return x.t === 'Tu opinión'; });
+  if (ped.length) cuadros.push({ id: 'pedidos', tipo: 'lista', tam: 'ancho', prioridad: 2, k: 'Pedidos abiertos', chip: String(ped.length), tono: espera ? 'aviso' : 'info', items: tvRecortar_(ped, 3) });
+  var items = op.principal ? (op.items || (ver ? tvSocioFichaLeer_(so) : null)) : null, fi = items ? tvSocioFicha_(items) : [];
+  if (fi.length) cuadros.push({ id: 'ficha', tipo: 'lista', tam: 'ancho', prioridad: 3, k: 'Ficha del socio', items: tvRecortar_(fi, 4) });
+  var lle = tvSocioLlegadas_(so, varios);
+  if (lle.length) cuadros.push({ id: 'llegadas', tipo: 'lista', tam: 'ancho', prioridad: 4, k: 'Próximas llegadas', items: tvRecortar_(lle, 3) });
+  var gr = tvSocioGrow_(so); if (gr) cuadros.push(gr);
+  /* La app de antes (sin cuadros) pinta estos campos de siempre. */
+  var datos = [];
+  if (mes) datos.push('Ocupación ' + mes.nombre + ': ' + (mes.ocup || 'sin dato'), 'A depositar ' + mes.nombre + ': ' + mes.dep);
+  if (ped.length) datos.push(ped.length + (ped.length === 1 ? ' pedido abierto' : ' pedidos abiertos'));
+  if (gr) datos.push('Grow: ' + gr.v);
+  var detalle = ped.slice(0, 3).map(function (x) { return 'Pedido: ' + x.v; })
+    .concat(fi.slice(0, 4).map(function (x) { return x.t + ': ' + x.v + (x.d ? ' (' + x.d + ')' : ''); }), lle.slice(0, 3).map(function (x) { return 'Llega ' + x.t + ': ' + x.v; }));
+  var partes = [mes ? 'el mes de sus apartamentos' : '', ped.length ? 'sus pedidos abiertos' : '', fi.length ? 'su ficha' : '', lle.length ? 'las próximas llegadas' : '', gr ? 'su proyecto en Grow' : ''].filter(Boolean);
+  return {
+    tipo: 'socio', clave: 'socio:' + tvSocioHash_(fin8_(so.tel) || so.correo || calpClave_(nombre)), ref: nombre, etiqueta: 'Socio' + (cortos.length === 1 ? ' · ' + cortos[0] : ''),
+    titulo: nombre, sub: cortos.length > 3 ? cortos.slice(0, 3).join(' · ') + ' y ' + (cortos.length - 3) + ' más' : cortos.join(' · '), chip: 'Socio', tono: 'info',
+    foto: fo.foto, iniciales: cuadros[0].iniciales, fechas: [], datos: datos, mensajes: [], promesas: [], semana: [], detalle: detalle, conv: '', tel: '', wa: '',
+    resumen: 'lo que sabemos de ' + nombre + (partes.length ? ' (' + partes.join(', ') + ')' : ''),
+    cabeza: nombre, cuadros: cuadros
+  };
+}
+
+/* buscar_contacto: si trae UN socio (el del apartamento según Mi, o el primer contacto y es socio), es la candidata;
+   con varios, una lista: borra la de antes. Otro tipo de contacto no la toca. */
+function tvCandidataContacto_(adm, fichas, sB) {
+  if (sB && sB.opciones) return tvCandidata_(null);
+  var socios = [], mete = function (o) { var k = fin8_(o.tel) || String(o.correo || '').toLowerCase() || calpClave_(o.nombre); if (k && !socios.some(function (x) { return x.k === k; })) { o.k = k; socios.push(o); } };
+  if (sB && sB.socios) sB.socios.forEach(function (x) { mete({ tel: x.tel, nombre: x.nombre, correo: x.email, props: [sB.propiedad] }); });
+  var f0 = (fichas || [])[0];
+  if (!socios.length && f0 && String(f0.tipo) === 'socio') mete({ tel: f0.tel, nombre: f0.nombre, props: String(f0.propiedades || '').split(/[,;\n]/) });
+  if (socios.length > 1) return tvCandidata_(null);
+  if (!socios.length) return;
+  var s = socios[0], principal = tvPrincipal_(adm);
+  tvCandidata_('socio', function () { return tvSocio_(s, { principal: principal }); });
+}
+/* Al cerrar el turno de la llamada (agCerrarTurno_): si ninguna herramienta dejó candidata y el tema del turno es el
+   pedido de un socio, elegido con certeza (lo nombró, lo citó, su tarjeta), el tablero es ese socio. */
+function tvCandidataTema_(adm) {
+  if (TV_TOCADA_ || typeof AGENTE_CANAL_ === 'undefined' || AGENTE_CANAL_ !== 'llamada') return;
+  var sel = typeof TEMA_ACT_ !== 'undefined' ? TEMA_ACT_ : null;
+  if (!sel || !sel.id || TV_TEMA_SEGURO_.indexOf(sel.por) < 0 || typeof temaLeer_ !== 'function') return;
+  var t = temaLeer_(sel.id); if (!t || t.tipo !== 'socio' || t.estado !== 'abierto') return;
+  var p = (t.personas || []).filter(function (x) { return x && x.t; })[0] || (t.personas || [])[0] || {}, principal = tvPrincipal_(adm);
+  tvCandidata_('socio', function () { return tvSocio_({ tel: p.t, nombre: p.n, props: [t.apartamento] }, { principal: principal }); });
 }

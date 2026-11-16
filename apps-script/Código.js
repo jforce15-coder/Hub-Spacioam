@@ -3148,6 +3148,7 @@ function aprender() {
   try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
   try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
   try { rutinaHora_(); } catch (e) { console.error('rutinaHora_: ' + e); }   // pendientes y promesas sin humano: resolver sola al menos el 60 % (rutinahora.js, #545)
+  try { fotosGoogleRepasar_(); } catch (e) { console.error('fotosGoogleRepasar_: ' + e); }   // la foto del contacto desde los Contactos de Google de Juan (fotoscontacto.js, #567 T4)
   if (!automejoraOn_()) return;
   try { aprenderSenales(); } catch (e) { console.error('aprenderSenales: ' + e); }
   try { amHoja_(); } catch (e) {}
@@ -3363,12 +3364,15 @@ function hubApi_(body) {
       case 'cerebro': return json_(cerebroAccion_(ses, body));                              // cerebro de Alma: estado y búsqueda de prueba, solo el principal (cerebro.js)
       case 'areas': return json_(areas_(ses));                                            // app de Alma: las 6 áreas de vida (areas.js)
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
+      case 'fotosContacto': return json_(fotosContactoApi_(ses, body));                      // la foto del contacto sin reserva: ver · faltan · subir · quitar (fotoscontacto.js, #567 T4)
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
       case 'notifAjustes': return json_(notifAjustesApi_(ses));                            // Ajustes → Notificaciones por tipo, de quien tiene la sesión (notifajustes.js · alma/avisos.html)
       case 'notifAjustesGuardar': return json_(notifAjustesGuardarApi_(ses, body));          // { tipo, ajuste } → lo guarda y deja al día sus etiquetas de OneSignal
+      case 'notifPrueba': return json_(notifPruebaApi_(ses));                              // «Probar con Siri» desde el Hub web: solo el principal; la app la arma con Siri (notifajustes.js)
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
+      case 'anilloBle': return json_(anilloBleGuardar_(ses, body));                       // app de iPhone: el Diagnóstico del anillo (Bluetooth) { diagnostico } (anillo.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)
@@ -4048,6 +4052,9 @@ function hubCola_(horas, hashPrev) {
     return sh.getRange(desde, 1, n - desde + 1, cab.length).getDisplayValues().map((v, k) => { const o = {}; cab.forEach((c, q) => { if (c) o[c] = v[q]; }); o._fila = desde + k; return o; });
   };
   let inbox = []; try { inbox = hubInbox_(); } catch (e) { console.error('hubInbox_: ' + e); }
+  try { bandejaEsferaFoto_(inbox); } catch (e) { console.error('bandejaEsferaFoto_: ' + e); }   // esfera y foto de cada conversación (bandejaesfera.js, #567)
+  /* La foto del contacto de TODA la bandeja (no solo lo reciente): el Hub la pinta también en conversaciones quietas (#567 T4). */
+  const fotosCt = {}; inbox.forEach(o => { if (o.foto_contacto) fotosCt[o.conv_id] = o.foto_contacto; });
   let auto = {}; try { auto = autoTodos_(); } catch (e) {}
   let resueltas = []; try { resueltas = resueltasVivo_(); } catch (e) { console.error('resueltasVivo_: ' + e); }
   let formsOk = []; try { formsOk = formsOk_(); } catch (e) { console.error('formsOk_: ' + e); }
@@ -4059,7 +4066,7 @@ function hubCola_(horas, hashPrev) {
   const corto = (t, n) => { t = String(t || ''); return t.length > n ? t.slice(0, n) + '…' : t; };
   inbox = inbox.filter(o => Math.max(actividadInbox_(o), Date.parse(o.actualizado) || 0, Date.parse(o.revisado_ts) || 0) >= lim || o.promesa_estado === 'abierta' || o.promesa_estado === 'vencida')
     .map(o => { const x = Object.assign({}, o); x.ultimo_texto = corto(o.ultimo_texto, 400); x.ultimo_auto_texto = corto(o.ultimo_auto_texto, 500); x.revision_razon = corto(o.revision_razon, 200); return x; });
-  const out = { ok: true, cola: cola, log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk };
+  const out = { ok: true, cola: cola, log: tail(CFG.TAB_LOG, 400), inbox: inbox, auto: auto, resueltas: resueltas, formsOk: formsOk, fotosCt: fotosCt };
   /* Huella del contenido: si el Hub ya tiene exactamente esto, se responde «sin cambios» (unos bytes) y no repinta nada. */
   const huella = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify(out), Utilities.Charset.UTF_8));
   const pulsoMs = Number(PropertiesService.getScriptProperties().getProperty('PULSO') || 0);

@@ -222,8 +222,9 @@ function fichaDeLlamada_(tel, transcript) {
   return out;
 }
 
-/* Herramienta ficha_socio (agente.js): ver, anotar, corregir o borrar. Solo el administrador principal. */
-function fichaHerramienta_(adm, inp) {
+/* Herramienta ficha_socio (agente.js): ver, anotar, corregir o borrar. Solo el administrador principal. fuera (opcional):
+   al ver, recibe el socio y su ficha para el tablero de la llamada (tarjeta.js), sin volver a buscarlos. */
+function fichaHerramienta_(adm, inp, fuera) {
   inp = inp || {};
   if (!esAdminPrincipal_(adm)) return { error: 'Solo el administrador principal ve y cambia la ficha de un socio.' };
   var s = fichaSocioBuscar_(inp.socio); if (s.error) return s;
@@ -240,6 +241,7 @@ function fichaHerramienta_(adm, inp) {
     return r2 && r2.ok ? { ok: true, socio: quien } : { error: (r2 && r2.error) || 'Mi no respondió.' };
   }
   var items = fichaVer_(s, true); if (!items) return { error: 'No pude leer su ficha en Mi ahora.' };
+  if (fuera) { fuera.s = s; fuera.items = items; }
   var ret = fichaParaRetomar_(items);
   return { socio: quien, propiedad: s.propiedad, ficha: items.map(function (x) { return { id: x.id, tipo: x.tipo, texto: x.texto, fecha: x.fecha_evento || undefined, retomado: x.retomado ? String(x.retomado).slice(0, 10) : undefined }; }),
     retomar: ret ? 'Al escribirle o llamarle, salúdalo preguntando con calidez por «' + ret.texto + '» (fue el ' + ret.fecha_evento + '). Una sola vez.' : undefined,

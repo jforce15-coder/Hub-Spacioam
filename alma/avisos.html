@@ -12,7 +12,10 @@
      cada uno y, al tocar uno, su pantalla: los tres teléfonos (bloqueada, centro, banner), sonido, número en el ícono,
      anunciar con Siri, vista previa y agrupar. Los ajustes se guardan por usuario en el Hub (apps-script/notifajustes.js,
      acciones notifAjustes y notifAjustesGuardar); la app de Alma los recibe en vozAvisos y el Hub web los respeta (sin Siri).
-     Mismos componentes que Ajustes en inicio.html: grupo, fila, interruptor, selector, títulos y notas. -->
+     Mismos componentes que Ajustes en inicio.html: grupo, fila, interruptor, selector, títulos y notas.
+     «Probar con Siri» (Juan, 16-nov-2026): en la app, ella programa una notificación a los 15 s armada como mensaje de Alma,
+     con Siri (NotifArmar.swift, accion notif · probarSiri → AlmaNotif.evento); en el Hub web, la pide al Hub (notifPrueba,
+     solo el principal) y llega a la app con su próxima vuelta. -->
 <style>
   :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --durazno: #E9826A; --durazno-t: #B5624E; }
   * { box-sizing: border-box; }
@@ -34,6 +37,10 @@
   .fila[hidden], .grupo[hidden] { display: none; }
   .fila .et { flex: 1; min-width: 0; }
   .fila .et.n { white-space: nowrap; }
+  .fila.boton { width: 100%; border: 0; background: transparent; font: 600 15px Montserrat, system-ui, sans-serif; color: var(--tinta); justify-content: center; cursor: pointer; }
+  .fila.boton:disabled { color: var(--tenue); cursor: default; }
+  .fila.boton:focus-visible { outline: 2px solid var(--durazno); outline-offset: -2px; border-radius: 18px; }
+  .cuenta { font-variant-numeric: tabular-nums; }
   .tit-g { margin: 18px 4px 8px; font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
   .nota-g { font-size: 12px; line-height: 1.45; color: var(--suave); margin: 0; padding: 0 16px 12px; }
   .nota-g[hidden] { display: none; }
@@ -148,7 +155,54 @@
     C.appendChild(el("p", "nota-g", NATIVA
       ? "Siri anuncia con su voz solo con la app cerrada o el teléfono bloqueado, fuera de conferencia y del Modo calle. Si Alma está activa, te lo dice ella."
       : "En el Hub web cuenta si llega y la vista previa («solo desbloqueado» se ve como «nunca»). Sonido, número, Siri y agrupar son de la app de Alma."));
+    pintarPrueba(C);
   }
+
+  /* «Probar con Siri»: en la app, una notificación a los 15 s como mensaje de Alma (con Siri aunque el tipo no lo tenga);
+     en el Hub web, el Hub la deja para la app. Abajo, qué hacer mientras tanto y la cuenta atrás. */
+  var pruebaT = null;
+  function pintarPrueba(C) {
+    C.appendChild(el("p", "tit-g", "Prueba"));
+    var g = el("div", "grupo"), b = el("button", "fila boton", "Probar con Siri"); b.type = "button"; b.id = "b-siri";
+    b.onclick = probarSiri; g.appendChild(b);
+    var n = el("p", "nota-g", NATIVA ? "Bloquea el teléfono, ponte los AirPods y espera 15 segundos." : "Te llega a la app de Alma en el iPhone en menos de un minuto (con la app abierta o en segundo plano). Bloquea el teléfono y ponte los AirPods.");
+    n.id = "n-siri"; g.appendChild(n);
+    C.appendChild(g);
+    C.appendChild(el("p", "nota-g", "Si Siri no la lee: Ajustes del iPhone → Notificaciones → Anunciar notificaciones, y enciende Alma."));
+  }
+  function notaPrueba(txt, mal) { var n = $("n-siri"); if (!n) return; n.textContent = txt; n.style.color = mal ? "#B4452A" : ""; }
+  function probarSiri() {
+    var b = $("b-siri"); if (b) b.disabled = true;
+    clearInterval(pruebaT);
+    if (NATIVA) { notaPrueba("Preparando la prueba…"); try { webkit.messageHandlers.alma.postMessage({ accion: "notif", que: "probarSiri" }); } catch (e) { notaPrueba("No se pudo hablar con la app.", true); if (b) b.disabled = false; } return; }
+    notaPrueba("Pidiéndola…");
+    pedir("notifPrueba").then(function (r) {
+      if (b) b.disabled = false;
+      if (r && r.ok && r.push) notaPrueba("Listo. Salió por push: te llega en segundos aunque la app de Alma esté cerrada. Bloquea el teléfono y ponte los AirPods.");
+      else if (r && r.ok) notaPrueba("Listo. Te llega a la app de Alma en menos de un minuto: bloquea el teléfono y ponte los AirPods.");
+      else notaPrueba("No se pudo: " + ((r && r.error) || "sin respuesta") + ".", true);
+    });
+  }
+  /* La app contesta: { tipo: "prueba", ok, en, error }. Cuenta atrás hasta que llegue. */
+  window.AlmaNotif = { evento: function (e) {
+    if (!e || e.tipo !== "prueba") return;
+    var b = $("b-siri");
+    if (!e.ok) { if (b) b.disabled = false; notaPrueba(e.error || "No se pudo programar la prueba.", true); return; }
+    var falta = Number(e.en) || 15;
+    var pinta = function () {
+      var n = $("n-siri"); if (!n) { clearInterval(pruebaT); return; }
+      n.style.color = ""; n.innerHTML = "";
+      n.appendChild(document.createTextNode("Bloquea el teléfono, ponte los AirPods y espera " ));
+      n.appendChild(el("b", "cuenta", falta + " s")); n.appendChild(document.createTextNode("."));
+    };
+    pinta();
+    pruebaT = setInterval(function () {
+      falta -= 1;
+      if (falta > 0) return pinta();
+      clearInterval(pruebaT); if ($("b-siri")) $("b-siri").disabled = false;
+      notaPrueba("Ya llegó. Si Siri no la leyó, revisa «Anunciar notificaciones» en Ajustes del iPhone.");
+    }, 1000);
+  } };
 
   function interruptor(id, txt, on, cambia) {
     var f = el("div", "fila"), et = el("span", "et", txt); et.id = "et-" + id; f.appendChild(et);

@@ -56,7 +56,7 @@ function socioMiUsuarios_() {
   SpreadsheetApp.openById(SHEET_ACCESOS_ID).getSheets().forEach(function (sh) {
     var v = sh.getDataRange().getDisplayValues(); if (v.length < 2) return;
     var cab = v[0].map(function (h) { return socioNorm_(h).replace(/ /g, '_'); }), col = function (re) { return cab.findIndex(function (h) { return re.test(h); }); };
-    var ce = col(/^(email|correo|mail)$/), ca = col(/^(email_alterno|correo_alterno)$/), ct = col(/^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/);
+    var ce = col(/^(email|correo|mail)$/), ca = col(/^(email_alterno|correo_alterno)$/), ct = socioColTel_(cab);
     var cn = col(/^(nombre|name)$/), cpn = col(/^primer_nombre$/), cpa = col(/^primer_apellido$/);
     if (ce < 0) return;
     v.slice(1).forEach(function (r) {
@@ -68,6 +68,19 @@ function socioMiUsuarios_() {
   });
   try { c.put('socmi_usr', JSON.stringify(out), 1800); } catch (e) {}
   return out;
+}
+
+/* La columna del teléfono de ESA fila (#583): el nombre exacto de siempre y, si no está, uno que claramente lo es
+   («Teléfono WhatsApp», «Número de celular», «Número»), nunca el de otra persona o de otra cosa (contacto de emergencia,
+   asistente, oficina, número de apartamento o de cuenta). cab = encabezados ya normalizados con _ (socioMiUsuarios_). */
+var SOCIO_TEL_PALABRA_ = /^(telefono|telefonos|tel|cel|celular|whatsapp|wa|phone|movil|mobile)$/;
+var SOCIO_TEL_AJENO_ = /^(emergencia|emergency|asistente|ayudante|assistant|referencia|conyuge|esposo|esposa|pareja|familiar|oficina|trabajo|recepcion|administrador|admin|alterno|alterna|secundario|otro|otra|fijo|casa|apartamento|apto|unidad|propiedad|cuenta|banco|dpi|nit|documento|pasaporte|tarjeta|id|cuarto|habitacion)$/;
+function socioColTel_(cab) {
+  var exacta = cab.findIndex(function (h) { return /^(telefono|telefonos|tel|celular|whatsapp|phone|movil)$/.test(h); }); if (exacta >= 0) return exacta;
+  var ws = cab.map(function (h) { return String(h).split('_').filter(Boolean); });
+  var limpia = function (w) { return !w.some(function (x) { return SOCIO_TEL_AJENO_.test(x); }); };
+  var tol = ws.findIndex(function (w) { return limpia(w) && w.some(function (x) { return SOCIO_TEL_PALABRA_.test(x); }); }); if (tol >= 0) return tol;
+  return ws.findIndex(function (w) { return limpia(w) && /^(numero|no|num)$/.test(w[0]) && w.every(function (x) { return /^(numero|no|num|de|del|contacto|personal|principal)$/.test(x); }); });
 }
 
 /* Lo que un administrador ya escribió en su chat con Alma: el número que viene junto al apartamento. El tramo va desde

@@ -84,6 +84,35 @@ function hospEnviarMensaje_(resId, texto) {
   return { ok: false, code: r.code, reintento: otra, error: hospErrorTexto_(r.code, r.json) + (otra ? ' (ya lo reintenté una vez)' : '') };
 }
 
+/* ── Duplicados al huésped (#583 T4.3) ── 16-nov: la misma huésped recibió el mismo mensaje a las 12:01 y a las 12:28: el
+   freno duraba 3 min y comparaba el texto exacto (y los saltos de línea eran otros). Ahora es duplicado si es la misma
+   reserva y el mismo texto normalizado (sin espacios, saltos, tildes ni puntuación) en 24 h, o si ya es lo último que le
+   escribimos en el hilo. Sale de nuevo solo si Juan lo pide («otra vez», «de nuevo»). */
+var HUESPED_DUP_H_ = 24, HUESPED_DUP_PROP_ = 'HUESPED_ENVIADOS', HUESPED_OTRA_VEZ_RE_ = /\b(otra vez|de nuevo|nuevamente|reenv[ií]a(lo|selo)?|vuelve a (mandar|enviar))\b/i;
+function huespedTextoNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ''); }
+function huespedEnvioClave_(rid, texto) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(rid) + '|' + huespedTextoNorm_(texto).slice(0, 1500))); }
+function huespedEnviadosLeer_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty(HUESPED_DUP_PROP_) || '{}') || {}; } catch (e) { return {}; } }
+/* { cuando, donde } si ya salió; null si no (o si Juan pidió repetirlo en este turno). */
+function huespedYaEnviado_(rid, texto, turno) {
+  if (HUESPED_OTRA_VEZ_RE_.test(String(turno || ''))) return null;
+  var ts = huespedEnviadosLeer_()[huespedEnvioClave_(rid, texto)];
+  if (ts && Date.now() - ts < HUESPED_DUP_H_ * 3600000) return { cuando: ts, donde: 'registro' };
+  try {
+    var ib = hubInbox_().filter(function (x) { return String(x.conv_id) === String(rid); })[0], ult = ib ? huespedTextoNorm_(ib.ultimo_texto) : '';
+    if (ib && String(ib.ultimo_de) === 'host' && ult.length >= 20 && ult === huespedTextoNorm_(String(texto).slice(0, 300)) && Date.now() - (Date.parse(ib.ultimo_ts) || 0) < HUESPED_DUP_H_ * 3600000) return { cuando: Date.parse(ib.ultimo_ts) || 0, donde: 'hilo' };
+  } catch (e) {}
+  return null;
+}
+function huespedEnviadoAnotar_(rid, texto) {
+  try {
+    var p = PropertiesService.getScriptProperties(), m = huespedEnviadosLeer_(), lim = Date.now() - HUESPED_DUP_H_ * 3600000;
+    Object.keys(m).forEach(function (k) { if (!(m[k] > lim)) delete m[k]; });
+    m[huespedEnvioClave_(rid, texto)] = Date.now();
+    var ks = Object.keys(m); if (ks.length > 150) ks.sort(function (a, b) { return m[a] - m[b]; }).slice(0, ks.length - 150).forEach(function (k) { delete m[k]; });
+    p.setProperty(HUESPED_DUP_PROP_, JSON.stringify(m));
+  } catch (e) { console.error('huespedEnviadoAnotar_: ' + e); }
+}
+
 /* ── Borrador de reserva: el «sí» va a la reserva exacta del borrador ── */
 function reservaBorradorClave_(adm) { return 'RESERVA_BORR_' + String((adm && adm.email) || '').toLowerCase(); }
 function reservaBorradorPendiente_(adm) {

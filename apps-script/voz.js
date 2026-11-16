@@ -264,6 +264,7 @@ function vozPostCall_(body) {
   var convHilo = admC ? 'op:' + admC.email : convId;
   if (admC) { try { opLlamadaGuardar_(admC, d, t0, dur, canal, motivo, resumen); } catch (x) { console.error('opLlamadaGuardar_: ' + x); } }
   if (admC) { try { retDespuesLlamada_(admC, d.transcript); } catch (x) { console.error('retDespuesLlamada_: ' + x); } }   // ¿resolvieron algún tema por retomar?
+  if (admC) { try { prometerAuditarLlamada_(admC, d.transcript, convEL); } catch (x) { console.error('prometerAuditarLlamada_: ' + x); } }   // ¿dijo «le llegó» sin un envío hecho? (prometer.js, #583)
   var sh = hojaWA_(), filas = [];
   filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convHilo, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
@@ -879,6 +880,10 @@ function vozSecretaria_(b) {
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los VOZ_SECRETARIA_TIMEOUT_S_), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > (VOZ_SECRETARIA_TIMEOUT_S_ - 5) * 1000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
   var out = { ok: true, resultado: (tv && tv.voz ? tv.voz + '\n\n' : '') + r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+  /* #583: el nombre y el apartamento tal como los dio el resolvedor (destino.js), para que la voz no diga los suyos («Narama
+     seis veintitrés» por 633), y si de verdad salió algo (la auditoría al colgar lo compara: prometer.js). */
+  if (r.destinos && r.destinos.length) out.decir = 'Nombre y apartamento tal cual, sin cambiarlos: ' + r.destinos.join(' · ');
+  try { out.envio_hecho = prometerEnvioHecho_(r.hechas); } catch (e) {}
   VOZ_MS_.despues = Date.now() - tD;
   return out;
 }

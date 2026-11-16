@@ -173,7 +173,7 @@ ok(/waPendienteSoltar_\(wa, \{ texto: textoSoltar/.test(ent), 'waEntrante_ le pa
 ok(/encargoRespuestaFalta_\(texto, out, quien, de\)/.test(sacar(AGE, 'encargoEntrante_')), 'encargoEntrante_ usa la respuesta mínima');
 ok(/solicitante_tel\) === fin8_\(tel\)\) return/.test(sacar(AGE, 'encargoCerrarConLlamada_')), 'una llamada del mismo administrador no cierra su propio encargo («pídeme el número por WhatsApp»)');
 const esc = (/case 'escribir_a_equipo': \{[\s\S]*?\n    \}/.exec(AGE) || [''])[0];
-ok(esc.indexOf('agSocio_(') >= 0 && esc.indexOf('agSocio_(') < esc.indexOf('agPersona_(inp.persona'), 'escribir_a_equipo busca primero al socio del apartamento y después por nombre');
+ok(esc.indexOf('destinoElegir_(') >= 0 && esc.indexOf('agPersona_(') < 0, 'escribir_a_equipo busca al socio del apartamento y por nombre con el resolvedor único (destino.js, #583; los dobles en .github/destino.js)');
 ok(/waEntregaEsperar_\(p\.tel, rw\.id\)/.test(esc) && /waVigilarAnotar_/.test(esc) && /socioGuardarFicha_\(inp\.numero/.test(esc), 'escribir_a_equipo espera el estado de Meta, vigila si no llega y guarda el número de socio que da Juan');
 ok(/socioDatosEnMensaje_\(adm, texto\)/.test(sacar(COD, 'opProcesar_')), 'opProcesar_ anota los números de socios del mensaje antes de que Alma conteste');
 ok(/function contactosProcesar_\(\) \{\s*\/\*[^*]*\*\/\s*try \{ waVigilarRevisar_\(\)/.test(leer('contactos.js')), 'la vigilancia corre en la pasada de contactos (sin tocar el ritmo de procesarCola)');

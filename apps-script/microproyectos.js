@@ -233,14 +233,19 @@ function microRevisar_() {
   var c = CacheService.getScriptCache(); if (c.get('micro_revisar')) return 0;
   c.put('micro_revisar', '1', 600);
   var n = 0;
-  microFilas_().filter(function (m) { return m.estado === MICRO_ESTADOS_.listo && m.pr; }).slice(0, 10).forEach(function (m) {
+  /* También lo que pregunta con su PR: si Juan lo unió o lo cerró en GitHub, la pregunta ya no espera (#567). Lo que sigue
+     en trabajo no: Claudio puede estar sumando al mismo PR y su respuesta pone el estado. */
+  microFilas_().filter(function (m) { return m.pr && (m.estado === MICRO_ESTADOS_.listo || m.estado === MICRO_ESTADOS_.pregunta); }).slice(0, 10).forEach(function (m) {
     var i = null; try { i = paraClaudePrInfo_(m.pr); } catch (e) {}
     if (!i) return;
-    if (i.estado === 'unido') n += microUnido_(m.pr);
-    else if (i.estado === 'cerrado') { m.estado = MICRO_ESTADOS_.cerrado; microGuardar_(m); n++; }
+    if (i.estado === 'unido' && m.estado === MICRO_ESTADOS_.listo) n += microUnido_(m.pr);
+    else if (i.estado === 'unido') { microFinPr_(m, i); n++; }
+    else if (i.estado === 'cerrado') { m.estado = MICRO_ESTADOS_.cerrado; m.opciones = []; m.ultima_pregunta = ''; microGuardar_(m); n++; }
   });
   return n;
 }
+/* Su PR se unió mientras Claudio preguntaba: queda unido sin otro aviso (Juan ya lo unió) y sin pregunta abierta. */
+function microFinPr_(m, info) { m.estado = MICRO_ESTADOS_.unido; m.unido = (info && info.unido) || new Date().toISOString(); m.opciones = []; m.ultima_pregunta = ''; microGuardar_(m); }
 function microCerrar_(id) { var m = microLeer_(id); if (!m) return { ok: false, error: 'no existe' }; m.estado = MICRO_ESTADOS_.cerrado; m.opciones = []; m.ultima_pregunta = ''; microGuardar_(m); return { ok: true }; }
 
 /* Juan responde a lo que Claude preguntó (botón de opción o «Responder» en Pendientes, o la opción en su chat):
@@ -286,13 +291,17 @@ function microOpcionChat_(adm, texto) {
 
 /* ── Pendientes: una tarjeta por microproyecto (pendientes.js → paraClaudePendientes_) ── */
 function microTarjetas_(adm) {
-  var out = [], ahora = Date.now();
+  var out = [], ahora = Date.now(), prVisto = {};
   microAbiertos_(adm && adm.email, ahora).forEach(function (m) {
     if (m.estado === MICRO_ESTADOS_.cerrado) return;
+    /* Un PR, una tarjeta: dos microproyectos con el mismo PR (Juan pidió «une» dos veces) muestran solo el más reciente (#567). */
+    var prK = String(m.pr || '').replace(/\/+$/, ''); if (prK && m.estado !== MICRO_ESTADOS_.unido) { if (prVisto[prK]) return; prVisto[prK] = 1; }
     var info = null;
-    if (m.pr && (m.estado === MICRO_ESTADOS_.listo || m.estado === MICRO_ESTADOS_.unido)) { try { info = paraClaudePrInfo_(m.pr); } catch (e) {} }
+    if (m.pr && m.estado !== MICRO_ESTADOS_.trabajo) { try { info = paraClaudePrInfo_(m.pr); } catch (e) {} }
+    /* Claudio preguntaba y Juan ya unió o cerró su PR: la pregunta ya no espera (#567). */
+    if (info && info.estado === 'unido' && m.estado === MICRO_ESTADOS_.pregunta) { microFinPr_(m, info); return; }
     if (info && info.estado === 'unido' && m.estado !== MICRO_ESTADOS_.unido) { microUnido_(m.pr); m.estado = MICRO_ESTADOS_.unido; m.unido = info.unido || new Date().toISOString(); }
-    if (info && info.estado === 'cerrado' && m.estado === MICRO_ESTADOS_.listo) { m.estado = MICRO_ESTADOS_.cerrado; microGuardar_(m); return; }
+    if (info && info.estado === 'cerrado' && (m.estado === MICRO_ESTADOS_.listo || m.estado === MICRO_ESTADOS_.pregunta)) { m.estado = MICRO_ESTADOS_.cerrado; m.opciones = []; m.ultima_pregunta = ''; microGuardar_(m); return; }
     var ajustes = m.ajustes.slice(-12).map(function (a) { return { ts: a.ts, de: a.de, texto: String(a.texto).slice(0, 400) }; });
     var base = { id: 'mp:' + m.id, micro: m.id, titulo: m.nombre, nivel: m.nivel, modelo: CLAUDE_MODELO_NIVEL_[m.nivel], fecha: m.parte > 1 ? 'Parte ' + m.parte : '', ajustes: ajustes, pasos: [], pregunta: '', instrucciones: '', hecho: true,
       original: (m.ajustes.filter(function (a) { return a.de === 'claude'; }).pop() || {}).texto || '', enlaces: [], ts: m.actualizado };

@@ -12,7 +12,8 @@
    6. «Probar con Siri» (16-nov-2026): solo el principal con su sesión; la prueba llega a la app sin voz ni historial.
    7. Los pasos del anillo (16-nov-2026): llegan con vozAvisos, se guardan los últimos 30 por usuario, con origen «app» y
       sin datos personales.
-   8. Sin despedidas en Modo calle y conferencia (16-nov-2026): la voz del Hub lo dice en las tres reglas que chocaban.
+   8. Conversación continua en Modo calle y conferencia (16-nov-2026): sin despedidas y sin colgar; la app cierra sola
+      tras un silencio (los segundos van en la ficha).
    node .github/notif-ajustes.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -233,15 +234,35 @@ function caja(o) {
   ok(leido.ok && Object.keys(leido.app || {}).length === 1, '7 · el robot los lee con «anillo» aunque la hoja esté vacía');
 }
 
-/* ── 8. Sin despedidas en Modo calle y conferencia ── */
+/* ── 8. Conversación continua en Modo calle y conferencia: sin despedidas y sin colgar ── */
 {
   const VOZ = leer('voz.js');
   const regla = n => (VOZ.match(new RegExp("'· " + n + "[^\\n]*")) || [''])[0];
-  ok(/MODO CALLE o MODO CONFERENCIA[^']*no te despidas/.test(regla('SILENCIO LARGO')), '8 · SILENCIO LARGO: en Modo calle o conferencia no se despide y cuelga');
-  ok(/MODO CALLE o MODO CONFERENCIA[^']*sin despedirte/.test(regla('Nunca cuelgues tú primero')), '8 · «Nunca cuelgues tú primero» tiene la excepción');
-  ok(/Entendido, lo hago y te aviso cuando esté listo/.test(regla('SEGUNDO PLANO')), '8 · segundo plano en Modo calle o conferencia: la frase corta y cuelga');
+  ok(/MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA[^']*no te despidas ni cuelgues[^']*skip_turn/.test(regla('SILENCIO LARGO')), '8 · SILENCIO LARGO: con conversación continua no se despide ni cuelga: se queda en silencio');
+  ok(/MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA nunca cuelgas tú ni te despides[^']*sigues escuchando/.test(regla('Nunca cuelgues tú primero')), '8 · «Nunca cuelgues tú primero»: con conversación continua nunca cuelga ella');
+  ok(/Entendido, lo hago y te aviso cuando esté listo» y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar/.test(regla('SEGUNDO PLANO')), '8 · segundo plano: la frase corta y sigue escuchando');
+  ok(/sin CONVERSACIÓN CONTINUA, despídete y cuelga con end_call/.test(regla('SEGUNDO PLANO')), '8 · «TARDA MÁS DE LO NORMAL»: solo cuelga sin conversación continua');
   const ec = (VOZ.match(/end_call: '[^\n]*/) || [''])[0];
-  ok(/MODO CALLE o MODO CONFERENCIA[^']*sin despedirte/.test(ec) && !/modo conferencia no la uses/.test(ec), '8 · la descripción de end_call: cuelga tras la respuesta corta, sin despedirse');
+  ok(/Con CONVERSACIÓN CONTINUA \(MODO CALLE o MODO CONFERENCIA[^']*no la uses nunca/.test(ec) && !/apenas termines/.test(ec) && !/salvo en MODO CALLE/.test(ec), '8 · la descripción de end_call: con conversación continua no se usa');
+  ok(/Si la ficha trae la regla SIN DESPEDIDAS \(una versión anterior de la app, que no cierra sola\), cuelga como ella dice/.test(ec), '8 · una app de antes (que no cierra sola) sigue colgando: ninguna llamada queda abierta');
+  const st = (VOZ.match(/skip_turn: '[^\n]*/) || [''])[0];
+  ok(/MODO CALLE o MODO CONFERENCIA cuando ya respondiste/.test(st), '8 · la descripción de skip_turn: quedarse escuchando después de responder');
+  /* Nada de la voz del Hub manda colgar en esos modos (así empezó «se corta en automático», 16-nov-2026). Lo decide la
+     ficha de la app («CONVERSACIÓN CONTINUA»): una app de antes, que no sabe cerrar sola, sigue colgando como antes. */
+  const cuelga = /MODO (?:CALLE|CONFERENCIA)[^.'\n]{0,90}(?:cuelga con end_call|cuelgas tú al terminar|úsala apenas)/i;
+  ok(!cuelga.test(VOZ) && !cuelga.test(leer('almaabre.js')), '8 · ninguna regla manda colgar en Modo calle o conferencia');
+  ok(/Si tu ficha dice CONVERSACIÓN CONTINUA, no cuelgues ni te despidas: sigue escuchando/.test(VOZ) && /con CONVERSACIÓN CONTINUA en tu ficha no: ahí sigue escuchando/.test(VOZ), '8 · lo que tarda de más: con conversación continua tampoco cuelga');
+  ok(/no cuelgues tú: la app cierra sola/.test(leer('almaabre.js')), '8 · Alma abre: tampoco cuelga ella');
+  ok(/en Modo calle o conferencia no cuelgas: la app cierra sola/.test(fs.readFileSync(path.join(RAIZ, 'playbooks', 'alma.json'), 'utf8')), '8 · la fuente única dice lo mismo de end_call');
+  /* La app cierra sola: los segundos van en la ficha y se ajustan con las Propiedades del script. */
+  const { ctx, props } = caja();
+  const d = ctx.confSueno_();
+  ok(d.silencio === 30 && d.tope === 60, '8 · de fábrica: 30 s de silencio y 60 s sin que Alma hable');
+  props.CONF_SILENCIO_S = '40'; props.CONF_TOPE_S = '90';
+  const a1 = ctx.confSueno_(); ok(a1.silencio === 40 && a1.tope === 90, '8 · se ajustan con CONF_SILENCIO_S y CONF_TOPE_S');
+  props.CONF_SILENCIO_S = '2'; props.CONF_TOPE_S = '9999';
+  const a2 = ctx.confSueno_(); ok(a2.silencio === 10 && a2.tope === 300, '8 · con límites: nunca menos de 10 s ni más de 5 min abierta sin que Alma hable');
+  ok(/out\.conferencia_silencio_s = cf\.silencio; out\.conferencia_tope_s = cf\.tope/.test(VOZ), '8 · la ficha de la llamada los lleva (conferencia_silencio_s, conferencia_tope_s)');
 }
 
 if (fallo) process.exit(1);

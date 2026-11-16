@@ -250,7 +250,7 @@ jobs:
       - name: Alma no repite la misma muletilla ni la misma frase seguidas («Listo, entregado») y el resto del texto queda igual (dobles)
         # 14-nov: Juan pidió que Alma varíe el fraseo y no caiga en bucles como «Listo, entregado» (pedido pc1794698090317).
         run: node .github/variar-frases.js apps-script
-      - name: Notificaciones por tipo, una clasificación, ajustes por usuario con sesión, lo que la app recibe, el Hub web, «Probar con Siri», los pasos del anillo y sin despedidas en Modo calle y conferencia (dobles)
+      - name: Notificaciones por tipo, una clasificación, ajustes por usuario con sesión, lo que la app recibe, el Hub web, «Probar con Siri», los pasos del anillo y la conversación continua en Modo calle y conferencia, sin despedidas y sin colgar (dobles)
         # 16-nov: Juan quiere ajustes como los de WhatsApp, por tipo, y Siri sin pisar la voz de Alma (#551, diseño B). El mismo
         # día: probar si Siri anuncia, saber por qué el anillo deja de responder y que Alma no se despida en Modo calle ni conferencia.
         run: node .github/notif-ajustes.js apps-script

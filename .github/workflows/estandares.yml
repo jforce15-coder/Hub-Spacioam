@@ -281,3 +281,6 @@ jobs:
         # 13-nov: el borrador al socio de Narama 633 nunca salió y Alma dijo «Listo, con ese cambio»; 16-nov: la misma huésped
         # recibió el mismo mensaje a las 12:01 y a las 12:28; en una llamada dijo «Listo, le llegó» antes de mandar nada (#583 T4).
         run: node .github/prometer.js apps-script
+      - name: Acento de España solo con el administrador principal, neutro con equipo, socios, familia y huéspedes (dobles)
+        # 16-nov: el acento sube con el Modo Weebo (#572), pero la voz de marca prohíbe «vale» y modismos de España con huéspedes.
+        run: node .github/acento-principal.js apps-script

@@ -363,6 +363,12 @@ var ALMA_FUENTE_ = {
     ],
     "linea": "En la app de Alma, avisa tu nivel de Modo Weebo, en silencio."
    },
+   "hablar_con_claudio": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Solo si la ficha dice «PUEDES PASARLO CON CLAUDIO» y Juan pide hablar con Claudio o con desarrollo: di la frase de la herramienta y pásalo, sin preguntar más."
+   },
    "leer_pagina": {
     "canales": [
      "voz"

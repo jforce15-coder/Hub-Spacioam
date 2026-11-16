@@ -2,6 +2,7 @@
    que pone el código y la fuente única playbooks/alma.json). Lo usan .github/presupuesto-prompts.js (el tamaño) y
    .github/prompts-json.js (que cada uno sea JSON válido; #498 T2). Carga apps-script/*.js con dobles de Google y arma:
    · voz: vozPromptCompleto_().texto (lo que el Hub sube al agente de ElevenLabs, con {{quien_llama}} al final);
+   · voz_claudio: claudioPromptCompleto_() (el agente de voz de Claudio, #550; un prompt aparte con su propio tope);
    · chat_texto / whatsapp_texto / calle_texto: los bloques de system de opAgente_ (claudeSystem_) con Juan en el Hub,
      WhatsApp y modo calle;
    · chat_herramientas: las herramientas del chat (JSON, se mandan en cada turno);
@@ -35,6 +36,7 @@ function armar(DIR) {
   const hub = chat('hub');
   return {
     voz: [String(R('vozPromptCompleto_().texto'))],
+    voz_claudio: [String(R('claudioPromptCompleto_()'))],   // Hablar con Claudio (#550): el prompt del agente de desarrollo
     chat_texto: hub.bloques,
     chat_herramientas: [JSON.stringify(hub.tools)],
     whatsapp_texto: chat('whatsapp').bloques,

@@ -1,5 +1,5 @@
 {
-  "nota": "Topes del texto armado que recibe Alma por canal (T9, 3-nov-2026): lo medido el 3-nov con la hoja vacía + 10 %, redondeado. Antes (2-nov) solo se medían constantes: voz 22.522 de un prompt real de 67.630, y al chat le quedaban 8 caracteres. Subir un tope es decisión de Juan. 14-nov-2026: chat_herramientas 39.200 → 39.800 por buscar_en_mi_chat (pedido pc1794697915354; Juan lo aprueba al unir).",
-  "medido": { "fecha": "2026-11-03", "voz": 38891, "chat_texto": 21730, "chat_herramientas": 35628, "whatsapp_texto": 21773, "calle_texto": 23612, "redactor": 15575 },
-  "topes": { "voz": 42800, "chat_texto": 23900, "chat_herramientas": 39800, "whatsapp_texto": 24000, "calle_texto": 26000, "redactor": 17100 }
+  "nota": "Topes del texto armado que recibe Alma por canal (T9, 3-nov-2026): lo medido el 3-nov con la hoja vacía + 10 %, redondeado. Antes (2-nov) solo se medían constantes: voz 22.522 de un prompt real de 67.630, y al chat le quedaban 8 caracteres. Subir un tope es decisión de Juan. 14-nov-2026: chat_herramientas 39.200 → 39.800 por buscar_en_mi_chat (pedido pc1794697915354; Juan lo aprueba al unir). 16-nov-2026: voz_claudio nuevo (#550, el agente de voz de Claudio, un prompt aparte): lo medido 2.907 + 10 % = 3.200; no sube los de Alma.",
+  "medido": { "fecha": "2026-11-03", "voz": 38891, "voz_claudio_16nov": 2907, "chat_texto": 21730, "chat_herramientas": 35628, "whatsapp_texto": 21773, "calle_texto": 23612, "redactor": 15575 },
+  "topes": { "voz": 42800, "voz_claudio": 3200, "chat_texto": 23900, "chat_herramientas": 39800, "whatsapp_texto": 24000, "calle_texto": 26000, "redactor": 17100 }
 }

@@ -8,7 +8,11 @@
      guarda 9 min, una sola vez.
    - La ficha del administrador (quién es, saludo) se guarda en el teléfono y se renueva en segundo plano;
      solo la primera vez se espera al Hub.
-   - Si la conexión falla por la red, reintenta una vez sola. */
+   - Si la conexión falla por la red, reintenta una vez sola.
+   - Hablar con Claudio (#550): si Juan (el administrador principal) pide hablar con Claudio, Alma dice su frase y usa
+     hablar_con_claudio; aquí se espera a que termine de hablar, se cierra su conversación y se abre la de Claudio (otro
+     agente, otra voz, acción vozClaudio del Hub) en ~1 s, con el halo de la roca todo naranja. Claudio usa volver_con_alma
+     y regresa Alma con su voz y su halo. El halo es una variable de CSS (--san-halo) que lee la roca de sa-nav e inicio. */
 (function (w) {
   "use strict";
   var SDK = new URL("vendor/eleven-ws.js?v=1.27.0a", (document.currentScript && document.currentScript.src) || location.href).href;
@@ -111,6 +115,18 @@
      la página. La de inicio la toca SIEMPRE la página: pedírsela a la app justo cuando la página abre el micrófono y el
      audio de la llamada (31-oct) coincidía con llamadas web que conectaban sin sonido y sin micrófono (0 s de audio en
      ElevenLabs). Así queda como funcionaba el 29-oct. */
+  /* El halo de la roca según quién habla: Claudio, todo naranja (Juan, 16-nov-2026); Alma, el de cada página. Es la misma
+     variable que ya usan la roca de sa-nav y el inicio (--san-halo): no hay movimiento nuevo, solo cambia el color. La app
+     de iPhone lo pide igual cuando su voz nativa cambia de agente (inicio.html, AlmaVoz.evento «agente»). */
+  var HALO_CLAUDIO = "linear-gradient(180deg,#FFB25E 0%,#FF9A3C 34%,#F5821F 66%,#E66A0E 100%)";
+  function agenteHalo(a) {
+    try {
+      var r = document.documentElement;
+      if (a === "claudio") { r.setAttribute("data-voz-agente", "claudio"); r.style.setProperty("--san-halo", HALO_CLAUDIO); }
+      else { r.removeAttribute("data-voz-agente"); r.style.removeProperty("--san-halo"); }
+      w.dispatchEvent(new CustomEvent("sa-voz-agente", { detail: { agente: a === "claudio" ? "claudio" : "alma" } }));
+    } catch (e) {}
+  }
   function sonido(n, pagina) { try { if (!pagina && w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma) { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "sonido", n: n }); return; } } catch (e) {}
     try { var a = new Audio(SONIDOS + n + ".wav"); a.volume = 0.9; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {} }
   /* Notas de actuación del modelo de voz ([warm], [softly], [laughs]…): se oyen como tono, no se leen. */
@@ -134,33 +150,70 @@
   var CANAL_CHAT = 'CANAL: CHAT DE TEXTO. La persona está en el chat de la app: te escribe y también puede seguir hablándote (el micrófono sigue abierto), pero a ti no se te oye. Responde por escrito, breve y claro (puedes usar saltos de línea). No digas «llamada», no ofrezcas colgar ni «te dejo continuar». Si no llega un mensaje nuevo, NO preguntes si sigue ahí: el silencio es normal en un chat (está leyendo o escribiendo); usa skip_turn y espera en silencio. Si mandas algo a segundo plano, di que se lo confirmas aquí en el chat o por WhatsApp. Cuando le ofrezcas elegir entre caminos o acciones, escribe la pregunta terminada en «?» y debajo de 2 a 5 opciones, una por línea, empezando con «• » y de 6 palabras como mucho (si hace falta aclarar, después de « — »): la app las muestra como botones. No uses «• » para otras listas.';
   var CANAL_VOZ = 'CANAL: VOZ. La persona volvió a hablar contigo en voz alta: es una conversación hablada.';
   var CANAL_NOTA = 'CANAL: CHAT · NOTA DE VOZ. La persona te está grabando una nota de voz dentro del chat. Espera a que termine y responde por escrito, como en el chat.';
+  /* Lo que Alma dice al volver de Claudio (Juan no la llamó: ya estaba en la llamada). */
+  var VUELTA = "Aquí estoy de nuevo. ¿Qué más hacemos?";
   function start(h) {
     unlockAudio();
     var enChat = false, sono = true;
+    /* Hablar con Claudio: quién habla ahora, si está hablando (para no cortarle la frase) y la serie de la conversación
+       vigente (la que se cierra al cambiar de agente no termina la llamada). */
+    var agente = "alma", habla = false, callada = 0, serie = 0, cambio = false, mod = null, colgo = false;
+    agenteHalo("alma");
     sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
+    function terminada() { vivo = null; agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
     function abrir(f, m, u) {
+      var yo = serie, claudio = agente === "claudio";
       var opt = {
-        signedUrl: u, connectionType: "websocket", dynamicVariables: conCtx(f.dynamic_variables || {}),
-        onConnect: function (x) { h.status("Te escucho"); if (x && x.conversationId) vincular(x.conversationId, 0); },
-        onMessage: function (x) { if (!x) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
-        onModeChange: function (x) { if (!enChat && x) h.status(x.mode === "speaking" ? "Alma habla" : "Te escucho"); },
-        onDisconnect: function () { vivo = null; despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } },
-        onError: function (e) { h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
+        signedUrl: u, connectionType: "websocket", dynamicVariables: claudio ? (f.dynamic_variables || {}) : conCtx(f.dynamic_variables || {}),
+        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) vincular(x.conversationId, 0); },
+        onMessage: function (x) { if (!x || yo !== serie) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
+        onModeChange: function (x) { if (yo !== serie || !x) return; habla = x.mode === "speaking"; if (!habla) callada = Date.now(); if (!enChat) h.status(habla ? (claudio ? "Claudio habla" : "Alma habla") : "Te escucho"); },
+        onDisconnect: function () { if (yo !== serie) return; terminada(); },
+        onError: function (e) { if (yo !== serie) return; h.error(typeof e === "string" ? e : (e && e.message) || "Se perdió la conexión"); }
       };
       /* mostrar_en_chat (#381): la app de iPhone la atiende en su voz nativa. Aquí, si la página no trae la suya
          (o.herramientas, p. ej. «Alma aquí»), se contesta enseguida que no se pudo: Alma lo dice por voz y nunca espera. */
       var ht = { mostrar_en_chat: function () { return "Aquí no hay chat a la vista: no se mostró. Díselo por voz, en corto, solo lo más importante."; },
         nivel_weebo: function () {} };   // medidor de la app de iPhone (#410): aquí no se muestra; no espera respuesta
       if (o.herramientas) for (var k in o.herramientas) ht[k] = o.herramientas[k];
+      /* Hablar con Claudio: solo el proveedor del Hub (ALMA.vozClaudio) sabe abrirlo; las demás apps no lo ofrecen. */
+      if (puedeClaudio()) {
+        if (claudio) ht = { volver_con_alma: function () { cambiarA("alma"); } };
+        else ht.hablar_con_claudio = function (p) { cambiarA("claudio", p && p.motivo); };
+      }
       opt.clientTools = ht;
-      var fm = f.first_message; if (o.primerMensaje) { try { fm = o.primerMensaje() || fm; } catch (e) {} }
+      var fm = f.first_message; if (!claudio && f.first_message !== VUELTA && o.primerMensaje) { try { fm = o.primerMensaje() || fm; } catch (e) {} }
       if (fm || f.language) { opt.overrides = { agent: {} }; if (fm) opt.overrides.agent.firstMessage = fm; if (f.language) opt.overrides.agent.language = f.language; }
       return m.Conversation.startSession(opt);
     }
+    /* Cambiar de agente (Hablar con Claudio y volver con Alma): se pide la conversación nueva mientras termina la frase de
+       quien habla (como mucho 6 s), se cierra la de antes sin colgar la llamada y se abre la nueva. Si no se puede, quien
+       estaba sigue y lo dice; si ya se había cerrado, la llamada termina con el error. */
+    function cambiarA(nuevo, motivo) {
+      if (cambio || !vivo || nuevo === agente) return;
+      cambio = true;
+      var pedir = nuevo === "claudio" ? w.ALMA.vozClaudio(String(motivo || "").slice(0, 300)).then(function (j) {
+        if (!j || !j.ok || !j.signed_url) throw new Error((j && j.error) || "No pude abrir a Claudio");
+        return [{ dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "" }, j.signed_url];
+      }) : ficha().then(function (f) { return firma().then(function (u) { return [Object.assign({}, f, { first_message: VUELTA }), u]; }); });
+      var t0 = Date.now(), termina = new Promise(function (ok) { (function mira() { if ((!habla && Date.now() - callada > 350) || Date.now() - t0 > 6000) ok(); else setTimeout(mira, 120); })(); });
+      var cerrada = false;
+      Promise.all([pedir, termina, mod ? Promise.resolve(mod) : loadSdk()]).then(function (r) {
+        if (colgo || !vivo) return;   // Juan colgó mientras tanto: no se abre nada
+        var viejo = vivo; serie++; cerrada = true; vivo = null; habla = false;
+        try { viejo.endSession(); } catch (e) {}
+        agente = nuevo; agenteHalo(nuevo); h.status("Conectando…");
+        return abrir(r[0][0], r[2], r[0][1]).then(function (c) { vivo = c; if (enChat) { try { c.setVolume({ volume: 0 }); } catch (e) {} } });
+      }).catch(function (e) {
+        var msg = (e && e.message) || "No se pudo cambiar";
+        if (!cerrada && vivo) { try { vivo.sendContextualUpdate("No se pudo " + (nuevo === "claudio" ? "pasar con Claudio" : "volver con Alma") + ": " + msg + ". Díselo a Juan en una frase y sigue tú."); } catch (x) {} return; }
+        agente = "alma"; h.error(msg); terminada();
+      }).then(function () { cambio = false; });
+    }
     /* La ficha primero: la primera vez (sin ficha guardada) trae también la URL firmada y no hace falta otra vuelta al Hub. */
     return Promise.all([ficha().then(function (f) { return firma().then(function (u) { return [f, u]; }); }), loadSdk()]).then(function (r) {
-      var f = r[0][0], u = r[0][1], m = r[1];
+      var f = r[0][0], u = r[0][1], m = r[1]; mod = m;
       return abrir(f, m, u).catch(function (e) {
         if (e && (e.name === "NotAllowedError" || e.name === "SecurityError" || e.name === "NotFoundError")) throw e;
         /* Reintento con otra URL firmada (cada una se usa una vez). */
@@ -172,21 +225,24 @@
       throw e;
     }).then(function (conv) {
       vivo = conv;
+      /* Todo va a la conversación vigente (la de Alma o la de Claudio). */
       return {
-        end: function () { vivo = null; despedida(); try { conv.endSession(); } catch (e) {} },
-        level: function () { try { return conv.getOutputVolume(); } catch (e) { return 0; } },
-        sendText: function (t) { try { conv.sendUserMessage(t); } catch (e) {} },
-        mute: function (on) { try { conv.setMicMuted(!!on); } catch (e) {} },
+        end: function () { var c = vivo; colgo = true; vivo = null; agenteHalo("alma"); despedida(); try { c && c.endSession(); } catch (e) {} },
+        level: function () { try { return vivo ? vivo.getOutputVolume() : 0; } catch (e) { return 0; } },
+        sendText: function (t) { try { vivo.sendUserMessage(t); } catch (e) {} },
+        mute: function (on) { try { vivo.setMicMuted(!!on); } catch (e) {} },
         /* Alma sabe por dónde le hablan. Modo chat de la llamada (#333, #334): el micrófono sigue (Alma te oye) pero no
            suena (volumen 0) y responde por escrito en el hilo; al volver a la voz, habla otra vez. */
-        chat: function (on) { enChat = on; try { conv.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho");
-          try { conv.sendContextualUpdate(on ? CANAL_CHAT : CANAL_VOZ); } catch (e) {} },
+        chat: function (on) { enChat = on; try { vivo.setVolume({ volume: on ? 0 : 1 }); } catch (e) {} if (!on) h.status("Te escucho");
+          try { vivo.sendContextualUpdate(on ? CANAL_CHAT : CANAL_VOZ); } catch (e) {} },
         /* nota de voz dentro del chat: Alma responde por escrito. El micrófono ya sigue abierto en el chat: al soltar no se apaga. */
-        nota: function (on) { if (on) { try { conv.setMicMuted(false); conv.sendContextualUpdate(CANAL_NOTA); } catch (e) {} } }
+        nota: function (on) { if (on) { try { vivo.setMicMuted(false); vivo.sendContextualUpdate(CANAL_NOTA); } catch (e) {} } }
       };
     });
   }
-  return { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto };
+  /* Solo el Hub (sin ficha propia) abre a Claudio: con la acción vozClaudio, que el Hub da solo al principal. */
+  function puedeClaudio() { return !o.ficha && !!(w.ALMA && w.ALMA.vozClaudio); }
+  return { prepare: prepare, start: start, limpiar: limpiar, setContexto: setContexto, agente: agenteHalo };
   }
   w.SAAlmaVoz = crear({});
   w.SAAlmaVoz.crear = crear;

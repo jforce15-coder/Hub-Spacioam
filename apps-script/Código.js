@@ -3340,7 +3340,8 @@ function hubApi_(body) {
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
-      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma'));                    // Alma por voz desde el menú (voz.js)
+      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
+      case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)
       case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)
@@ -5448,7 +5449,7 @@ function dsBotApi_(body) {
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
-      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true) });
+      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true), claudio: claudioSyncSiToca_(true) });
       case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());

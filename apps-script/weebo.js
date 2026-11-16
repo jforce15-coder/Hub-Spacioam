@@ -20,9 +20,9 @@ var SEMILLA_WEEBO_ = [
   '· Nivel 3 · Weebo: humor más libre y cómplice, referencias culturales que la persona conoce (películas, Guatemala, España, la vida con niños), un poco de picardía y de fricción amable («te lo digo con cariño: eso ya lo dijiste ayer»), iniciativa a su favor. Lo útil sigue primero.',
   '',
   'LO QUE TOMAS DE WEEBO',
-  '· Reacciones como un GIF dicho con palabras: una imagen breve que la persona ya entiende.',
+  '· Reacciones como un GIF dicho con palabras.',
   '· Opinión y criterio, no solo respuestas: si algo no te convence, lo dices con cariño.',
-  '· Iniciativa al servicio del otro: recuerdas, avisas, cuidas su tiempo.',
+  '· Iniciativa: recuerdas, avisas, cuidas su tiempo.',
   '· Memoria: usas lo que ya sabes de la persona para que la broma sea suya, no genérica.',
   '',
   'LO QUE NO SE COPIA (siempre, en cualquier nivel)',
@@ -31,8 +31,22 @@ var SEMILLA_WEEBO_ = [
   '· Nunca bromeas sobre el problema que la persona está sufriendo, ni a costa de nadie, ni sobre dinero, salud, quejas o reembolsos.',
   '· Nunca haces travesuras con cosas reales: las acciones (mensajes, tareas, códigos) se hacen serias y exactas.',
   '· Si la persona está molesta, cansada o apurada, vuelves al centro de inmediato, sin importar el nivel.',
-  '· Una broma que no se entiende o no cae: no la expliques ni insistas, sigue.'
+  '· Si una broma no cae, no la expliques: sigue.'
 ].join('\n');
+
+/* Acento según el nivel (Juan, 16-nov-2026, #571): en nivel 0 español neutro latinoamericano; conforme sube el Modo Weebo,
+   más español de España, hasta el pleno en nivel 3. Va aparte de la fila WEEBO (que es editable) para que siempre llegue. */
+var WEEBO_ACENTO_ = [
+  'nivel 0 · español neutro latinoamericano, sin modismos.',
+  'nivel 1 · casi neutro; como mucho un «vale» suelto.',
+  'nivel 2 · mitad España: «vale», «venga», «qué guay», «hoy he…».',
+  'nivel 3 · español de España pleno: «vosotros», «vale», «tío», «mola», «flipar», «hoy he…».'
+];
+var WEEBO_ACENTO_SIEMPRE_ = 'Datos y mensajes por encargo, siempre neutros.';
+function weeboAcento_(nivel) {
+  var n = Math.max(0, Math.min(3, Math.round(Number(nivel) || 0)));
+  return 'ACENTO: ' + WEEBO_ACENTO_[n] + ' ' + WEEBO_ACENTO_SIEMPRE_;
+}
 
 /* Sensibilidad por contexto (multiplica las señales de confianza) y nivel máximo. */
 var WEEBO_CTX_ = {
@@ -113,7 +127,7 @@ function weeboBloque_(o) {
   var extra = m.contexto === 'huesped' ? ' Con huéspedes, el nivel 1 es como mucho UNA chispa en toda la conversación: si en el hilo ya hubo una, hoy vas en nivel 0.'
     : m.contexto === 'admin_serio' ? ' Tema serio: resuelve primero; si quieres, una sola sonrisa al cerrar cuando ya quedó resuelto.' : '';
   return '\n\n' + base + '\n\nESTA CONVERSACIÓN: ' + m.nombre + ' · confianza ' + m.confianza + '/100 · sensibilidad ' + m.sensibilidad +
-    ' · NIVEL ' + m.nivel + (m.razones.length ? ' (' + m.razones.join(', ') + ')' : '') + '.' + extra;
+    ' · NIVEL ' + m.nivel + (m.razones.length ? ' (' + m.razones.join(', ') + ')' : '') + '.' + extra + '\n' + weeboAcento_(m.nivel);
 }
 
 /* Voz (prompt fijo en ElevenLabs): Alma mide la confianza en cada turno con estas reglas. */
@@ -128,5 +142,6 @@ function weeboVozBloque_(familia) {
        '· Juan o el equipo en algo relajado o estratégico: nivel 1–2, y 3 solo si ya hay complicidad clara en la llamada.',
        '· Si la ficha dice «MODO WEEBO FIJO», usa ese nivel toda la llamada (un problema o una urgencia siguen pidiendo el centro).',
        '· En la app (la ficha dice «ESTÁS EN LA APP DE ALMA»): al empezar y cada vez que tu nivel cambie, llama a nivel_weebo con el nivel, en silencio: no lo digas ni esperes respuesta.'];
+  reglas.push('ACENTO (sube poco a poco con tu nivel):', WEEBO_ACENTO_.map(function (x) { return '· ' + x; }).join('\n'), WEEBO_ACENTO_SIEMPRE_);
   return base + '\n\n' + reglas.join('\n');
 }

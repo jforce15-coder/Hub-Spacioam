@@ -34,7 +34,7 @@ function caja(o) {
   return { ctx, props, tarjetas, pedidos, st };
 }
 const FALTAN = { ok: true, fecha: '2026-11-15', lectura: { ok: true, edadH: 0.5, error: '' }, salidas: 20, tentativas: 1,
-  faltan: [{ propiedad: 'Z13 - Narama - 623', entradaHoy: true, propuesta: 'Sucely', razon: '' }, { propiedad: 'Z7 - Monaco - D6', entradaHoy: false, propuesta: '', razon: 'No cabe en la jornada de nadie' }] };
+  faltan: [{ propiedad: 'Z13 - Narama - 623', entradaHoy: true, propuesta: 'Ana', razon: '' }, { propiedad: 'Z7 - Monaco - D6', entradaHoy: false, propuesta: '', razon: 'No cabe en la jornada de nadie' }] };
 
 /* 1 · 19:00 → mañana, una tarjeta */
 (() => {
@@ -43,7 +43,7 @@ const FALTAN = { ok: true, fecha: '2026-11-15', lectura: { ok: true, edadH: 0.5,
   ok(c.pedidos.length === 1 && c.pedidos[0].accion === 'redSalidas' && c.pedidos[0].p.fecha === '2026-11-15', 'a las 19:00 pide a Epi la red de mañana (15-nov)');
   const t = c.tarjetas[0];
   ok(t && t.adm.email === 'juan@x' && t.c.tipo === 'atencion' && t.op.push === true && t.op.origen === 'red_salidas', 'una tarjeta «Necesita tu sí» para el administrador principal, con notificación');
-  ok(/^Mañana: 2 salidas sin limpieza confirmada$/.test(t.c.titulo) && /Narama - 623 \(tentativa con Sucely\)/.test(t.c.resumen) && /Monaco - D6 \(sin persona\)/.test(t.c.resumen), 'el título y el resumen dicen cuáles y qué propone');
+  ok(/^Mañana: 2 salidas sin limpieza confirmada$/.test(t.c.titulo) && /Narama - 623 \(tentativa con Ana\)/.test(t.c.resumen) && /Monaco - D6 \(sin persona\)/.test(t.c.resumen), 'el título y el resumen dicen cuáles y qué propone');
   ok(/No cabe en la jornada de nadie/.test(t.op.detalle) && /tiene entrada ese día/.test(t.op.detalle) && t.c.acciones[0].url === 'https://epi.spacioam.com', 'el detalle trae la razón y el botón abre Programación');
   ok(!/@|\+\d{6,}|hu[eé]sped/i.test(JSON.stringify([t.c, t.op.detalle])), 'sin correos, teléfonos ni datos de huéspedes');
   c.st.ahora = gt('2026-11-14T19:50:00');

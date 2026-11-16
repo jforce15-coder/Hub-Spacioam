@@ -364,7 +364,7 @@ function vozQuienBloque_() {
     '· ' + CLAUDE_DERIVAR_REGLA_ + ' Por llamada, usa secretaria empezando por «Mejora para Claude:» como arriba (casi siempre complejo).',
     '· Mientras secretaria trabaja no hables encima ni rellenes, y nunca adelantes el resultado ni digas «listo» antes de que llegue.',
     '· TE PUEDEN INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto», «mejor a Gabriel»): escucha. Si corrige o agrega algo, llama a secretaria otra vez SOLO con la corrección o lo que agrega, dicho claro («Corrige el pedido anterior: el mensaje va para Gabriel, no para Jorge»), nunca con el mismo pedido repetido. Si dice «no, espera» y nada más, espera en silencio a que termine la idea.',
-    '· CUANDO LLEGA LA RESPUESTA de secretaria: dila una vez, en 1 o 2 frases. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté.',
+    '· CUANDO LLEGA LA RESPUESTA de secretaria: dila una vez, en 1 o 2 frases. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté. Nombres, apartamentos y números: solo los que te da (decir), tal cual; nunca de memoria ni como los oíste.',
     '· AVÍSAME CUANDO (solo caller_type juan): «avísame cuando cambie la puerta de mi vuelo», «cuando responda el huésped», «cuando se una el PR», «avísale a Lucky cuando aterrice»: usa secretaria con su pedido tal cual; ella deja la vigilancia y avisa sola. «Deja de vigilar…», igual.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»).',
     '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Usa secretaria con modo = segundo_plano UNA sola vez y di a lo mucho UNA frase corta («Listo, me encargo»), sin repetir el pedido y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. En MODO CALLE o MODO CONFERENCIA di solo «Entendido, lo hago y te aviso cuando esté listo» y cuelga con end_call, sin despedirte (tú le avisas el resultado); nunca digas que se mandará a la app. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás y te despides; cuelga con end_call.',
@@ -1117,7 +1117,7 @@ function vozWebFicha_(adm, nom) {
   try {
     var corte = Date.now() - 24 * 3600000;
     var ult = opFilas_(adm.email, 12).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }).slice(-6);
-    if (ult.length) t += '\nLO ÚLTIMO QUE HABLARON (WhatsApp / Hub):\n' + ult.map(function (m) { return (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, 220); }).join('\n');
+    if (ult.length) t += '\nLO ÚLTIMO QUE HABLARON (WhatsApp / Hub):\n' + ult.map(function (m) { return ctxLinea_(m, nom); }).join('\n') + '\n' + CTX_SIN_VERIFICAR_;
   } catch (e) {}
   return t;
 }
@@ -1308,6 +1308,20 @@ function ctxFilas_(filas) {
   });
   return out.slice(-CTX_LINEAS_);
 }
+/* Nunca un dato sin fuente (#583 T5): el resumen de ElevenLabs y lo que Juan dicta traen nombres como se oyeron («la
+   huésped Jimena») y la voz los repetía durante una hora. Aquí lo dicho por Juan queda marcado «sin verificar» y en lo de
+   una llamada (sus turnos y el resumen 📞) también, y se quita el nombre que sigue a un rol («la huésped (nombre sin
+   verificar)»). Lo que Alma escribió en el Hub o WhatsApp salió de sus herramientas y queda igual. */
+var CTX_SIN_VERIFICAR_ = 'Lo marcado «sin verificar» lo dictó o resumió alguien: un nombre, apartamento o número de aquí solo lo dices si te lo confirma tu sistema.';
+var CTX_ROL_NOMBRE_ = /\b(hu[ée]sped(?:es|a)?|soci[oa]s?|propietari[oa]s?|client[ea]s?|inquilin[oa]s?|interesad[oa]s?|se[ñn]or(?:a)?|don|do[ñn]a|guest|host|owner|partner|tenant|client|named)(,?\s+(?:Mr\.?|Mrs\.?|Ms\.?)?\s*)([A-ZÁÉÍÓÚÑ][a-záéíóúñü]+(?: (?!(?:Juan|Alma|Claudio|Spacio)\b)[A-ZÁÉÍÓÚÑ][a-záéíóúñü]+)?)/g;
+function ctxSinNombres_(t) { return String(t || '').replace(CTX_ROL_NOMBRE_, function (x, rol, esp, n) { return /^(Juan|Alma|Claudio|Spacio)\b/.test(n) ? x : rol + ' (nombre sin verificar)'; }); }
+function ctxLinea_(m, nom) {
+  var t = String(m.texto || '');
+  if (m.canal === 'llamada') t = ctxSinNombres_(t);
+  t = t.replace(/\s+/g, ' ');
+  var quien = m.de === 'yo' ? nom + ' (sin verificar)' : m.canal === 'llamada' ? 'Alma (' + (/^📞/.test(t) ? 'resumen' : 'por voz') + ', sin verificar)' : 'Alma';
+  return quien + ': ' + t.slice(0, CTX_LARGO_);
+}
 function contextoReciente_(adm, fresco) {
   if (!adm || !adm.email) return null;
   /* En una misma ejecución (vozWebInicio_ → vozInicio_ → vozWebFicha_) se calculaba 3 veces, con 3 lecturas de la hoja. */
@@ -1319,13 +1333,14 @@ function contextoRecienteCalc_(adm) {
   var filas = ctxFilas_(opFilas_(adm.email, 120).filter(function (m) { return new Date(m.ts).getTime() >= corte && String(m.texto || '').trim(); }));
   if (!filas.length) return null;
   var CAN = { whatsapp: 'WhatsApp', hub: 'Hub', llamada: 'llamada', app: 'app' };
-  var lineas = filas.map(function (m) { return '[' + (CAN[m.canal] || m.canal) + ' · ' + Utilities.formatDate(new Date(m.ts), CFG.TZ, 'HH:mm') + '] ' + (m.de === 'yo' ? nom : 'Alma') + ': ' + String(m.texto).replace(/\s+/g, ' ').slice(0, CTX_LARGO_); });
+  var lineas = filas.map(function (m) { return '[' + (CAN[m.canal] || m.canal) + ' · ' + Utilities.formatDate(new Date(m.ts), CFG.TZ, 'HH:mm') + '] ' + ctxLinea_(m, nom); });
   var tema = ctxTema_(adm, filas, lineas);
   var ult = filas[filas.length - 1], hace = Math.max(1, Math.round((Date.now() - new Date(ult.ts).getTime()) / 60000));
   var fresco = hace <= ctxSaludoMin_();
   return {
     tema: tema, minutos: hace, fresco: fresco,
     bloque: 'CONTEXTO RECIENTE (su última hora con Alma, por cualquier canal; lo último fue hace ' + hace + ' min' + (ult.canal === 'llamada' ? ', en una llamada que terminó o se cortó' : '') + '):\n' + lineas.join('\n') +
+      '\n' + CTX_SIN_VERIFICAR_ +
       (fresco ? '\nESTÁ VOLVIENDO A HABLAR CONTIGO: no te presentes otra vez («te saluda Alma»). Ya le ofreciste retomar en el saludo.' : '\nYA PASÓ UN RATO (más de ' + ctxSaludoMin_() + ' min): no le preguntes por ese tema ni ofrezcas retomarlo; úsalo solo si él lo menciona. No te presentes otra vez.') + ' Si quiere retomar, sigue exactamente donde quedaron, sin repetir lo que ya se dijo ni volver a preguntar lo que ya respondió. Si quiere otra cosa, cámbiate de tema sin más.',
     saludo: function (n) { n = n || nom; return '¡Hola, ' + n + '! ' + (tema ? '¿Retomamos lo ' + (/^el\s/i.test(tema) ? 'del ' + tema.slice(3) : 'de ' + tema) + ', o hablamos de otra cosa?' : '¿Retomamos donde nos quedamos, o hablamos de otra cosa?'); }
   };
@@ -1338,11 +1353,12 @@ function ctxTema_(adm, filas, lineas) {
   var t = '', titulo = '';
   try {
     var llam = filas.slice().reverse().filter(function (m) { return m.canal === 'llamada' && m.acciones && m.acciones[0] && m.acciones[0].tema; })[0];
-    if (llam) titulo = String(llam.acciones[0].tema);
+    if (llam) titulo = ctxSinNombres_(String(llam.acciones[0].tema)).replace(/\s*\(nombre sin verificar\)/g, '');
   } catch (e) {}
   try {
-    t = String(claude_(CFG.MODELO_CLASIFICADOR, 30, 'Lees una conversación entre un administrador y su asistente Alma. Di de qué estaban hablando en 2 a 6 palabras, empezando con artículo, para completar la frase «¿Retomamos lo de …?». Sin punto final, sin comillas, en minúsculas salvo nombres propios. Ej.: la reserva de Marta en 1104 · el pago de la luz de Rue · la ruta de mañana de Kevin.',
+    t = String(claude_(CFG.MODELO_CLASIFICADOR, 30, 'Lees una conversación entre un administrador y su asistente Alma. Di de qué estaban hablando en 2 a 6 palabras, empezando con artículo, para completar la frase «¿Retomamos lo de …?». Sin punto final, sin comillas, en minúsculas salvo nombres propios. Sin nombres de huéspedes ni de lo marcado «sin verificar». Ej.: la reserva de 1104 · el pago de la luz de Rue · la ruta de mañana de Kevin.',
       (titulo ? 'Título de la última llamada: ' + titulo + '\n\n' : '') + lineas.slice(-14).join('\n'), 0) || '').replace(/["«»“”.]/g, '').replace(/^lo de\s+/i, '').trim();
+    t = ctxSinNombres_(t).replace(/\s*\(nombre sin verificar\)/g, '');   // el saludo lo dice en voz alta: sin nombres dictados (#583 T5)
     if (t.length > 60 || /\n/.test(t)) t = '';
   } catch (e) { t = ''; }
   if (!t && titulo) t = titulo;

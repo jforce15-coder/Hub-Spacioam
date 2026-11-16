@@ -290,3 +290,7 @@ jobs:
       - name: Números +1, la plantilla que sí les llega antes de mandar y un solo reintento cuando Meta los bloquea por marketing (dobles)
         # 12-nov: Juan pidió que, si Meta no entrega a un número de EE. UU. por marketing, se use sola la plantilla aprobada (#497).
         run: node .github/masuno-reintento.js apps-script
+      - name: Nunca un dato sin fuente en los prompts (chat, WhatsApp, calle y voz), el destinatario con su fuente en las herramientas y el contexto reciente de la voz sin nombres dictados (dobles)
+        # 16-nov: el contexto reciente copiaba el resumen de ElevenLabs con «la huésped Jimena» durante una hora; la voz dijo
+        # «Narama seis veintitrés» cuando su sistema decía 633 (#583 T5).
+        run: node .github/dato-con-fuente.js apps-script

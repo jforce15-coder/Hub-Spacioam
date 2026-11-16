@@ -33,15 +33,29 @@ function reservaConv_(codigo, fila, vivo, inbox) {
   if (!vivo) return { error: 'la bandeja todavía no tiene la conversación de ' + C };
   var ci = fecha_(fila.checkin_date); if (!ci) return { error: 'la reserva ' + C + ' no tiene fecha de llegada en la hoja' };
   var ids = idsPropiedades_(); if (!ids.length) return { error: 'no pude leer las propiedades de Hospitable' };
-  var falla = 0;
+  /* Primero la llegada de la hoja (±1 día). Si la reserva cambió de fechas, la hoja puede tener la llegada de antes
+     (16-nov, HMFC34ZH8P en Narama 623: historial_reserva decía «no encontré»): se busca entonces en una ventana amplia. */
+  var b = reservaBuscarHosp_(C, sumarDias_(ci, -1), sumarDias_(ci, 1), ids, 1);
+  if (!b.id && !b.falla) b = reservaBuscarHosp_(C, sumarDias_(ci, -120), sumarDias_(ci, 365), ids, 6);
+  if (b.id) { cache.put(k, b.id, RESERVA_CONV_SEG_); reservaConvReparar_(b.id, C, fila, inbox); return { conv_id: b.id }; }
+  return { error: b.falla ? hospErrorTexto_(b.falla < 0 ? 0 : b.falla) : 'Hospitable no tiene la reserva ' + C + ' con llegada entre el ' + sumarDias_(ci, -120) + ' y el ' + sumarDias_(ci, 365) };
+}
+/* Una reserva por su código en Hospitable (lista por fecha de llegada, todas las propiedades): { id } o { falla } con
+   el código HTTP del último error (-1 sin respuesta). paginas = cuántas páginas de 100 leer por grupo de propiedades. */
+function reservaBuscarHosp_(codigo, ini, fin, ids, paginas) {
+  var C = reservaCodigoNorm_(codigo), falla = 0; ids = ids || idsPropiedades_();
+  if (!ids.length) return { falla: -1 };
   for (var i = 0; i < ids.length; i += 40) {
     var qs = ids.slice(i, i + 40).map(function (x) { return 'properties[]=' + encodeURIComponent(x); }).join('&');
-    var r = hosp_('get', '/reservations?' + qs + '&date_query=checkin&start_date=' + sumarDias_(ci, -1) + '&end_date=' + sumarDias_(ci, 1) + '&per_page=100');
-    if (r.code !== 200) { falla = r.code || -1; continue; }
-    var hit = ((r.json && r.json.data) || []).filter(function (x) { return reservaCodigoNorm_(x.code) === C || reservaCodigoNorm_(x.platform_id) === C; })[0];
-    if (hit && s_(hit.id)) { cache.put(k, s_(hit.id), RESERVA_CONV_SEG_); reservaConvReparar_(s_(hit.id), C, fila, inbox); return { conv_id: s_(hit.id) }; }
+    for (var pg = 1; pg <= (paginas || 1); pg++) {
+      var r = hosp_('get', '/reservations?' + qs + '&date_query=checkin&start_date=' + ini + '&end_date=' + fin + '&per_page=100&page=' + pg);
+      if (r.code !== 200) { falla = r.code || -1; break; }
+      var hit = ((r.json && r.json.data) || []).filter(function (x) { return reservaCodigoNorm_(x.code) === C || reservaCodigoNorm_(x.platform_id) === C; })[0];
+      if (hit && s_(hit.id)) return { id: s_(hit.id) };
+      var meta = r.json && r.json.meta; if (!meta || !meta.last_page || pg >= meta.last_page) break;
+    }
   }
-  return { error: falla ? hospErrorTexto_(falla < 0 ? 0 : falla) : 'Hospitable no tiene la reserva ' + C + ' con llegada el ' + ci };
+  return falla ? { falla: falla } : {};
 }
 /* La fila de la bandeja que perdió su código lo recupera (así la próxima búsqueda no vuelve a Hospitable). */
 function reservaConvReparar_(uuid, codigo, fila, inbox) {

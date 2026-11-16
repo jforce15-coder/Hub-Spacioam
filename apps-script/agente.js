@@ -358,6 +358,13 @@ function agEstadoReserva_(uuid, fila, vivo) {
    los dos, en orden, y se dice con claridad qué no se puede saber. */
 function agHistorialReserva_(codigo) {
   var cod = s_(codigo).toUpperCase().replace(/\s+/g, ''), uuid = agResId_(codigo);
+  /* Si el código no está en la hoja Reservas (o su llegada cambió), se busca en Hospitable un año para atrás y uno para
+     adelante (16-nov: la búsqueda de HMFC34ZH8P falló). El error dice el motivo real. */
+  if ((!uuid || /^(wa|op|inq):/.test(uuid)) && /^[A-Z0-9-]{6,16}$/.test(cod)) {
+    var hoyH = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), bh = reservaBuscarHosp_(cod, sumarDias_(hoyH, -365), sumarDias_(hoyH, 365), null, 10);
+    if (bh.id) uuid = bh.id;
+    else return { error: 'No encontré la reserva «' + s_(codigo) + '»: ' + (bh.falla ? hospErrorTexto_(bh.falla < 0 ? 0 : bh.falla) : 'no está en la hoja Reservas ni en Hospitable con llegada entre ' + sumarDias_(hoyH, -365) + ' y ' + sumarDias_(hoyH, 365)) + '. Revisa el código con buscar_reservas (por nombre o apartamento).' };
+  }
   if (!uuid || /^(wa|op|inq):/.test(uuid)) return { error: 'No encontré la reserva «' + s_(codigo) + '» en Hospitable. Búscala antes con buscar_reservas y usa su código.' };
   var hora = function (x) { try { return Utilities.formatDate(new Date(x), CFG.TZ, 'yyyy-MM-dd HH:mm'); } catch (e) { return s_(x); } };
   var out = { codigo: cod, eventos: [] }, fila = null;

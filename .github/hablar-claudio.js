@@ -11,7 +11,9 @@
       un pedido sale solo con el sí de Juan y nada se une sin «une» (ni «¿qué falta unir?» ni «no lo unas»);
    5. leer código es solo lectura (GET a GitHub) y corto;
    6. su prompt es JSON con {{quien_llama}} al final, y Claudio no existe con otras audiencias: ni la frase ni el permiso
-      están en los prompts del chat, WhatsApp, calle, redactor ni en lo de huéspedes de la voz.
+      están en los prompts del chat, WhatsApp, calle, redactor ni en lo de huéspedes de la voz;
+   7. habla como Alma: cómo habla, por voz, confirmaciones, «nunca» y el Modo Weebo salen de su misma fuente, y su ficha
+      trae el mismo Weebo y la misma adaptación a Juan.
    node .github/hablar-claudio.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -135,6 +137,16 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(H('claudio_estado', { conv_id: 'conv_3' }).ok === false, 'otro administrador: no');
   cache = {}; conv = { tel: '', otro: true, agente: 'agent_claudio' };
   ok(H('claudio_estado', { conv_id: 'conv_4', caller_id: '50211110000' }).ok === false, 'sin firma del Hub no vale un caller_id (aunque sea el número de Juan)');
+  /* 16-nov-2026: con la conversación en curso, leerla no traía la firma (Juan oyó tres veces «solo para el administrador
+     principal»). La firma llega en el pedido (sa_web, variable de la ficha que el Hub firmó) y se verifica con su HMAC. */
+  const telDe = ctx.vozWebTokenTel_; ctx.vozWebTokenTel_ = t => (t === 'firma-juan' ? '50211110000' : t === 'firma-ana' ? '50222220000' : '');
+  cache = {}; conv = { tel: '', otro: true, agente: 'agent_claudio' };
+  ok(H('claudio_estado', { conv_id: 'conv_6', sa_web: 'firma-juan' }).ok === true, 'la firma del principal en el pedido: sí, aunque leer la conversación no la traiga');
+  cache = {}; ok(H('claudio_estado', { conv_id: 'conv_7', sa_web: 'firma-ana' }).ok === false, 'la firma de otro administrador en el pedido: no');
+  cache = {}; ok(H('claudio_estado', { conv_id: 'conv_8', sa_web: 'firma-falsa' }).ok === false, 'una firma que no verifica: no');
+  ctx.vozWebTokenTel_ = telDe;
+  const defs = R("claudioDefHerramientas_('B')").filter(d => d.type === 'webhook');
+  ok(defs.length === 4 && defs.every(d => (d.api_schema.request_body_schema.properties.sa_web || {}).dynamic_variable === 'sa_web'), 'cada herramienta de Claudio manda la firma de su ficha (sa_web)');
   cache = {}; conv = { tel: '50211110000', otro: true, agente: 'agent_claudio' };
   let unir = [], pedidos = [];
   ctx.unirCambio_ = c => { unir.push(c); return { ok: true, unidos: [] }; };
@@ -178,7 +190,21 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   const voz = JSON.parse(a.voz[0]);
   ok(!FR.test(a.voz[0]) && JSON.stringify(voz.con_huespedes || '').indexOf('Claudio') < 0, 'la voz de Alma: la frase no va en su prompt y lo de huéspedes no nombra a Claudio');
   ok(/claudioSyncSiToca_\(false\)/.test((leer('voz.js').match(/function vozSyncSiToca_\(\) \{[\s\S]*?\n\}/) || [''])[0]), 'Claudio se crea y se sincroniza solo, cada 30 min con el prompt de Alma');
-  ok(/claudio: claudioSyncSiToca_\(true\)/.test(leer('Código.js')), 'el robot voz_sync también lo sincroniza'); }
+  ok(/claudio: claudioSyncSiToca_\(true\)/.test(leer('Código.js')), 'el robot voz_sync también lo sincroniza');
+  /* 7. Habla como Alma (Juan, 16-nov-2026): sus secciones salen de la misma fuente (playbooks/alma.json y el Modo Weebo). */
+  const C = o.claudio, F = R('ALMA_FUENTE_'), txt = (l, id) => l.filter(x => x.id === id)[0].texto;
+  ok(JSON.stringify(C.como_hablas) === JSON.stringify(F.identidad.como_habla.map(x => R('almaRellenar_(' + JSON.stringify(x.texto) + ', {})'))), '7 · cómo habla: lo mismo que Alma, tomado de la fuente única (si cambia allá, cambia aquí)');
+  ok(C.por_voz.indexOf(txt(F.canales.voz.reglas, 'v_turno')) >= 0 && C.por_voz.indexOf(txt(F.canales.voz.reglas, 'v_silencio')) >= 0 && C.por_voz.indexOf(txt(F.canales.voz.reglas, 'v_interrumpen')) >= 0, '7 · por voz: respuesta primero, 2–3 frases, se detiene si lo interrumpen, skip_turn en pausas');
+  ok(C.una_sola_confirmacion_por_cosa.indexOf(txt(F.confirmaciones.reglas, 'c_no_anuncia')) >= 0 && C.una_sola_confirmacion_por_cosa.indexOf(txt(F.confirmaciones.reglas, 'c_entendi')) < 0, '7 · confirmaciones de Alma que aplican (no la de no repetir el pedido: Claudio lo confirma antes de pedirlo)');
+  ok(C.nunca.length === 5 && C.nunca.every(x => !/secretaria|mi sistema/.test(x)), '7 · «nunca» de Alma, sin lo de sus herramientas');
+  ok(/MODO WEEBO/.test(C.weebo.join('\n')) && /MODO WEEBO FIJO/.test(C.weebo.join('\n')) && /ADAPTACIÓN A JUAN/.test(C.weebo.join('\n')) && !/de Alma/.test(C.weebo.join('\n')), '7 · Modo Weebo con su nivel y la adaptación a Juan');
+  ok(!/huésped|reserva|lookup_reservation|property_info|secretaria|caller_type/i.test(JSON.stringify(C).replace(/un mensaje a un huésped, una reserva/, '')), '7 · nada de huéspedes, reservas ni herramientas de Alma');
+  ok(t.length <= 10000, '7 · corto: ' + t.length + ' caracteres (cada turno lo manda entero)');
+  ctx.personalidadFicha_ = () => ({ bloque: '\nMODO WEEBO FIJO: nivel 3 (lo fijó Juan).\nADAPTACIÓN A JUAN: 50 %' });
+  mem = { ELEVENLABS_KEY: 'k', CLAUDIO_AGENT_ID: 'agent_claudio' }; resp = s => /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 'wss://c' } } : { codigo: 404, cuerpo: '' };
+  ctx.SES_ = { email: 'juan@x' }; ctx.MOT_ = '';
+  const fj = R('claudioWebInicio_(SES_, MOT_)');
+  ok(fj.ok && /MODO WEEBO FIJO: nivel 3/.test(fj.dynamic_variables.quien_llama) && /ADAPTACIÓN A JUAN/.test(fj.dynamic_variables.quien_llama), '7 · su ficha trae el mismo Weebo y la misma adaptación que la de Alma'); }
 
 if (!fallo) console.log('Todo bien: Claudio solo con el principal, una vez, sin unir sin «une».');
 process.exit(fallo);

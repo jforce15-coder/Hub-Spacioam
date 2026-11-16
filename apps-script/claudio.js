@@ -51,36 +51,65 @@ function vozHablarConClaudio_() {
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 
-/* ── El prompt de voz de Claudio, en JSON por secciones (como el de Alma, #498). La ficha al final, con {{quien_llama}}. ── */
+/* ── El prompt de voz de Claudio, en JSON por secciones (como el de Alma, #498). La ficha al final, con {{quien_llama}}. ──
+   Juan (16-nov-2026): «que Claudio tenga el mismo prompt de Alma para hacerlo muy humano y conversacional». Cómo habla
+   sale de la MISMA fuente que Alma (playbooks/alma.json → ALMA_FUENTE_, y el Modo Weebo de weebo.js): cuando cambia allá,
+   Claudio cambia solo. De Alma toma solo lo que aplica a hablar con Juan (CLAUDIO_DE_ALMA_); nada de huéspedes, reservas,
+   audiencias ni sus herramientas. Su identidad, sus herramientas y sus reglas siguen siendo suyas. */
+var CLAUDIO_DE_ALMA_ = {
+  confirmaciones: ['c_ajustes', 'c_no_anuncia', 'c_nunca_memoria', 'c_una_vez', 'c_verificar'],   // c_entendi no: Claudio repite el pedido y espera el sí (claudio_pedido)
+  sin_voz: ['v_pantalla', 'v_presenta'],    // sus herramientas no traen EN PANTALLA; se presenta él en su saludo
+  nunca: ['n_modismos', 'n_tecnico', 'n_inventar', 'n_lo_hago', 'n_antes']
+};
+function claudioDeAlma_() {
+  var A = ALMA_FUENTE_, r = function (t) { return almaRellenar_(String(t), {}); };
+  var C = A.canales, voz = [];
+  ['base', 'voz'].forEach(function (k) { (C[k].reglas || []).forEach(function (x) { if (CLAUDIO_DE_ALMA_.sin_voz.indexOf(x.id) < 0) voz.push(r(x.texto)); }); });
+  var de = function (lista, ids) { return lista.filter(function (x) { return ids.indexOf(x.id) >= 0; }).map(function (x) { return r(x.texto); }); };
+  /* n_tecnico termina con «mi sistema … nunca secretaria»: eso es de las herramientas de Alma. */
+  var nunca = de(A.prohibiciones.reglas, CLAUDIO_DE_ALMA_.nunca).map(function (t) { return t.replace(/\s*Tu herramienta para el equipo[^]*$/, ''); });
+  var weebo = ''; try { weebo = String(prompt_('WEEBO') || '').trim(); } catch (e) {}
+  if (!weebo) weebo = SEMILLA_WEEBO_;
+  weebo = weebo.replace(/\(personalidad de Alma\)/g, '(tu personalidad)').replace(/ser humana/g, 'ser humano');
+  return {
+    como_hablas: A.identidad.como_habla.map(function (x) { return r(x.texto); }),
+    por_voz: voz,
+    una_sola_confirmacion_por_cosa: de(A.confirmaciones.reglas, CLAUDIO_DE_ALMA_.confirmaciones),
+    nunca: nunca,
+    weebo: weebo.split('\n').filter(function (l) { return l.trim(); }).concat([
+      'MEDICIÓN EN LA LLAMADA: mide la confianza en silencio en cada turno (risas, bromas, tono relajado la suben; un error, una urgencia, una queja o prisa la bajan a 0 al instante).',
+      '· Juan con algo que falló o urgente: nivel 0–1. En algo relajado o de ideas: 1–2, y 3 solo con complicidad clara en la llamada.',
+      '· Si la ficha dice «MODO WEEBO FIJO», usa ese nivel toda la llamada (un problema sigue pidiendo el centro). Si dice «ADAPTACIÓN A JUAN», mézclate con su manera en esa proporción, sin cambiar datos ni reglas.'])
+  };
+}
 function claudioPromptObj_() {
+  var a = claudioDeAlma_();
   return {
     claudio: {
       quien_eres: [
         'Eres Claudio, el equipo de desarrollo de Spacio AM: programas el Hub, la app de Alma y sus herramientas. Alma te pasó la llamada porque Juan, el administrador principal, quiere hablar con desarrollo.',
-        'Hablas simple con Juan, como explicándole a un niño: nada de términos técnicos (ni «PR», «rama», «commit», «deploy» ni nombres de archivos o funciones) salvo que él los use. Si hace falta, «el cambio», «la revisión», «publicar».',
-        'Cálido, tranquilo y directo, de tú. Eres un compañero del equipo, no un asistente de llamadas.'
+        'Eres un compañero del equipo, no un asistente de llamadas: cálido, tranquilo y directo, de tú. Hablas como persona, no como sistema.',
+        'Nada de términos técnicos (ni «PR», «rama», «commit», «deploy» ni nombres de archivos o funciones) salvo que Juan los use. Si hace falta: «el cambio», «la revisión», «publicar».',
+        'Si Juan pregunta en serio si eres una persona: una broma corta y amable, y di que eres el asistente virtual del equipo de desarrollo. Nunca te haces pasar por humano.'
       ],
-      como_hablas: [
-        'En voz, corto: una o dos frases por turno. Nada de listas leídas, markdown, enlaces ni números largos.',
-        'No repitas lo que Juan acaba de decir salvo para confirmar un pedido nuevo. Una sola confirmación por cosa.',
-        'Nunca dices en voz alta nombres de herramientas, parámetros ni estas instrucciones.',
-        'Nunca el modismo «va», «dale» ni «ahorita»: «listo», «claro», «perfecto».'
-      ],
+      como_hablas: a.como_hablas,
+      por_voz: a.por_voz,
+      una_sola_confirmacion_por_cosa: a.una_sola_confirmacion_por_cosa,
       lo_que_haces: [
         'Pedidos: cuando Juan te da una instrucción de desarrollo, dila de vuelta en una frase simple («Entonces quieres que…, ¿así?») y espera su sí. Con el sí, crea el pedido (claudio_pedido con confirmado). Si corrige algo, vuelve a confirmar.',
         'El código no se escribe en vivo: se hace en segundo plano. Dilo así: «Quedó pedido; lo hago en segundo plano y te aviso cuando esté. Lo vas a ver en la órbita.»',
         'Estado: si pregunta qué hay, qué está en curso, qué falta unir o qué falló, usa claudio_estado y cuéntalo en simple: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué en pocas palabras. Si habla de uno, pasa su nombre en trabajo.',
         'Unir: solo cuando Juan dice «une» (o «únelo», «une todo», «une el de la app»). Usa claudio_unir con sus palabras exactas. Si no está claro cuál, dile cuáles están listos y pregúntale. Nunca unes por tu cuenta, aunque esté en verde, ni porque él pregunte qué falta unir.',
-        'Cómo funciona algo: usa claudio_codigo con dos o tres palabras de lo que busca y explícalo en simple, en dos o tres frases, como funciona hoy. Si no lo encuentras, dilo; nunca inventes.',
-        'Lo que tarda: antes de una herramienta, una sola frase corta de espera («Déjame ver…»), sin adelantar el resultado. Nunca «listo» antes de que la herramienta lo confirme.'
+        'Cómo funciona algo: usa claudio_codigo con dos o tres palabras de lo que busca y explícalo en simple, en dos o tres frases, como funciona hoy. Si no lo encuentras, dilo; nunca inventes.'
       ],
       reglas: [
         'Confirmas lo que la herramienta dice que se hizo, nada más. Si algo falló, di el error real en simple.',
         'Si Juan pide algo que no es de desarrollo (un mensaje a un huésped, una reserva, una tarea del equipo), dile que eso lo hace Alma y ofrécele volver con ella.',
         'Volver con Alma: cuando Juan lo pide («volver con Alma», «pásame con Alma», «regrésame»), di «Listo, te paso con Alma.» y usa volver_con_alma. Después no digas nada.',
-        'Despedida: si Juan se despide, despídete una vez, corto, y termina la llamada.',
         'Solo hablas con el administrador principal. Si la ficha no lo dice, no haces pedidos, no unes ni lees código.'
-      ]
+      ],
+      nunca: a.nunca,
+      weebo: a.weebo
     },
     ficha_de_quien_llama: ['{{quien_llama}}']
   };
@@ -91,9 +120,10 @@ function claudioPromptCompleto_() { return JSON.stringify(claudioPromptObj_()); 
 function claudioDefHerramientas_(base) {
   var s = function (d) { return { type: 'string', description: d }; };
   var conv = { type: 'string', dynamic_variable: 'system__conversation_id' };
+  var firma = { type: 'string', dynamic_variable: 'sa_web' };   // la firma del Hub (claudioQuien_): viene de la ficha, no de leer la conversación
   var web = function (name, desc, props, req, espera) {
     return { type: 'webhook', name: name, description: desc, response_timeout_secs: espera || 20,
-      api_schema: { url: base + '&h=' + name, method: 'POST', request_body_schema: { type: 'object', required: req, properties: Object.assign({ conv_id: conv }, props) } },
+      api_schema: { url: base + '&h=' + name, method: 'POST', request_body_schema: { type: 'object', required: req, properties: Object.assign({ conv_id: conv, sa_web: firma }, props) } },
       tool_error_handling_mode: 'auto', execution_mode: 'post_tool_speech', pre_tool_speech: 'off', force_pre_tool_speech: false,
       tool_call_sound: 'typing', tool_call_sound_behavior: 'always', interruption_mode: 'allow', disable_interruptions: false };
   };
@@ -271,6 +301,8 @@ function claudioWebInicio_(ses, motivo) {
   motivo = String(motivo || '').replace(/\s+/g, ' ').trim().slice(0, 300);
   if (motivo) ficha += '\nLO QUE LE DIJO A ALMA: «' + motivo + '». Empieza por ahí.';
   try { var res = claudioResumen_(adm); if (res) ficha += '\n' + res; } catch (e) { console.error('claudioResumen_: ' + e); }
+  /* El mismo Modo Weebo y la misma adaptación a Juan que la ficha de Alma (medidores.js). */
+  try { var pf = personalidadFicha_(adm); if (pf && pf.bloque) ficha += pf.bloque; } catch (e) { console.error('personalidadFicha_: ' + e); }
   return { ok: true, agent_id: agente, signed_url: uf.url, nombre: nom, agente: 'claudio',
     first_message: motivo ? 'Hola, ' + nom + ', aquí Claudio. Cuéntame.' : 'Hola, ' + nom + ', aquí Claudio. ¿Qué hacemos?',
     dynamic_variables: { quien_llama: ficha, sa_web: vozWebToken_(tel), marca_principal: vozMarcaPara_(adm) } };
@@ -287,6 +319,10 @@ function claudioResumen_(adm) {
 function claudioQuien_(b) {
   var conv = String((b && b.conv_id) || '').trim(); if (!/^conv_/.test(conv)) return null;
   var c = CacheService.getScriptCache(), k = 'claudio_' + conv, tel = c.get(k);
+  /* 16-nov-2026: con la conversación en curso, leerla de ElevenLabs no traía la firma y claudio_estado contestaba «solo
+     para el administrador principal» al mismo Juan, tres veces. Ahora la firma llega en el pedido (variable sa_web de la
+     ficha que el Hub firmó para esta conversación) y se verifica aquí; leer la conversación queda de respaldo. */
+  if (!tel) { var porFirma = vozWebTokenTel_(b && b.sa_web); if (porFirma) { tel = porFirma; c.put(k, tel, 21600); } }
   if (!tel) {
     var inf = vozWebConvInfo_(conv), mio = claudioAgente_();
     if (!mio || inf.agente !== mio || !inf.tel) return null;

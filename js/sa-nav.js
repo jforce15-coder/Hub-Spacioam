@@ -2314,11 +2314,12 @@
     if (E.ov.classList.contains("pend")) pendAbrir(false);
     if (E.ov.classList.contains("noti")) notiAbrir(false);
     if (!AL.on) escActivar(true); else if (!AL.chat) almaChat(true);
-    chatPintar(function () { if (E.u) E.u.filtro(e, true); });
+    chatPintar(function () { if (E.u) E.u.filtro(e, true); if (o.texto) chatEnviar(o.texto); });   // o.texto: lo pregunta ya (un anillo en órbita del inicio)
     return true;
   }
   w.SANav = {
-    /* Abre el Chat con Alma filtrado en una esfera: SANav.chat({ esfera: "Finanzas" }) (también para la app nativa). */
+    /* Abre el Chat con Alma filtrado en una esfera: SANav.chat({ esfera: "Finanzas" }) (también para la app nativa).
+       Con texto, además se lo manda a Alma: SANav.chat({ texto: "¿Qué pasó con «X»?" }) (al tocar un pedido en órbita). */
     chat: function (o) { return root ? chatEn(o) : false; },
     /* la barra de avisos del inicio: los datos de Pendientes y Notificaciones, una tarjeta con sus botones y abrirla en su hoja */
     datos: function () { return { pend: AL.pendData, noti: AL.notiData }; },

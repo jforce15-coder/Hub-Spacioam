@@ -979,7 +979,7 @@ function vozSecProcesar_() {
       opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas);
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
     finally { ORBITA_ACTUAL_ = null; }
-    try { orbitaTermina_(adm.email, orbs, r.fallo); } catch (e) { console.error('orbitaTermina_: ' + e); }
+    try { orbitaTermina_(adm.email, orbs, r.fallo, r); } catch (e) { console.error('orbitaTermina_: ' + e); }
     try { vozSecAvisar_(grupo[0].tel, adm, r, pedido, orbs); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }

@@ -11,6 +11,9 @@
    Rápido o largo lo decide la FUENTE, en un solo lugar (ORBITA_TIPO_), nunca un cálculo de tiempo ni un porcentaje.
    Estados: en_curso · listo · fallo. Lo terminado se queda ORBITA_FIN_MS_ (10 min) para que la app muestre el check.
    Nunca devuelve el pedido completo, teléfonos, correos, enlaces ni códigos: solo un nombre corto ya limpio.
+   Explicar (Juan, 14-nov-2026, #539): al tocar un anillo o preguntar por él, Alma cuenta qué pasó, qué se hizo y en qué
+   estado va. Para eso cada pedido guarda aquí, solo del lado del Hub, lo que pidió (corto), los pasos que dio y cómo
+   terminó; la herramienta `pedidos_en_orbita` (agente.js) lo lee con orbitaExplicar_. Nada de eso va a la app.
    El nombre (Juan, 14-nov-2026): un título de 2 o 3 palabras que resume el pedido («Pagos de Amalfi»), no el arranque
    del texto. Lo escribe el modelo rápido una vez por pedido (orbitaTitulo_, guardado 6 h en la caché); si no responde,
    las primeras 3 palabras del pedido. */
@@ -22,23 +25,26 @@ var ORBITA_VIVO_MS_ = 15 * 60000;
 /* Un pedido a Claude «en trabajo» sin noticias en 24 h ya no se dibuja (sigue en Pendientes). */
 var ORBITA_DESARROLLO_MS_ = 24 * 3600000;
 var ORBITA_MAX_ = 8;
+/* Lo terminado se puede explicar hasta 6 h después (la caché dura eso); desarrollo, lo de las últimas 24 h. */
+var ORBITA_EXPLICA_MS_ = 6 * 3600000;
 /* Mientras corre un segundo plano: { email, ids } (el paso de cada herramienta va a esos pedidos). */
 var ORBITA_ACTUAL_ = null;
 /* El paso, por la herramienta que Alma está usando. El primero que coincide gana; sin coincidencia, «Actualizando». */
 var ORBITA_PASOS_ = [
   [/evento|agendar|agenda/, 'Agendando'],
-  [/^(buscar|ver|leer|tareas|promesas|propuestas|mensajes_programados|programados|cancelaciones|vigilancias|proyectos|ruta|calcular|reporte|memoria|grow_proyectos|grow_fotos)/, 'Revisando'],
+  [/^(buscar|ver|leer|tareas|promesas|propuestas|mensajes_programados|programados|cancelaciones|vigilancias|proyectos|ruta|calcular|reporte|memoria|grow_proyectos|grow_fotos|pedidos_en_orbita)/, 'Revisando'],
   [/^(enviar|escribir|mensaje|responder|programar_mensaje|encargar|pedir_a_agente)/, 'Redactando']
 ];
 
 function orbitaClave_(email) {
   return 'orbita_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16);
 }
-function orbitaLeer_(email) {
+/* todo = true: también lo terminado de las últimas horas (para explicarlo; orbitaCambiar_ lo conserva). */
+function orbitaLeer_(email, todo) {
   var l = []; try { l = JSON.parse(CacheService.getScriptCache().get(orbitaClave_(email)) || '[]'); } catch (e) { l = []; }
-  var ahora = Date.now();
+  var ahora = Date.now(), fin = todo ? ORBITA_EXPLICA_MS_ : ORBITA_FIN_MS_;
   return (Array.isArray(l) ? l : []).filter(function (x) {
-    return x && x.id && (x.estado === 'en_curso' ? ahora - x.desde < ORBITA_VIVO_MS_ : ahora - (x.fin || 0) < ORBITA_FIN_MS_);
+    return x && x.id && (x.estado === 'en_curso' ? ahora - x.desde < (todo ? ORBITA_EXPLICA_MS_ : ORBITA_VIVO_MS_) : ahora - (x.fin || 0) < fin);
   });
 }
 /* Cosmético: si el candado está ocupado, no se espera (la llamada y el segundo plano no se frenan por un anillo). Es el
@@ -47,7 +53,7 @@ function orbitaCambiar_(email, fn) {
   if (!email) return null;
   var lock = vozColaLock_(); if (!lock.tryLock(3000)) { console.error('orbita: candado ocupado'); return null; }
   try {
-    var l = orbitaLeer_(email), r = fn(l);
+    var l = orbitaLeer_(email, true), r = fn(l);
     CacheService.getScriptCache().put(orbitaClave_(email), JSON.stringify(l.slice(-12)), 21600);
     return r;
   } catch (e) { console.error('orbitaCambiar_: ' + e); return null; } finally { lock.releaseLock(); }
@@ -57,7 +63,8 @@ function orbitaId_() { return 'ob' + Date.now().toString(36) + Math.floor(Math.r
 function orbitaEmpieza_(email, pedido, fuente, paso, id) {
   id = id || orbitaId_();
   var ok = orbitaCambiar_(email, function (l) {
-    l.push({ id: id, nombre: orbitaNombre_(pedido), texto: orbitaLimpio_(pedido).slice(0, 600), paso: String(paso || ''), fuente: fuente || 'segundo_plano', estado: 'en_curso', desde: Date.now() });
+    l.push({ id: id, nombre: orbitaNombre_(pedido), texto: orbitaLimpio_(pedido).slice(0, 600), paso: String(paso || ''), fuente: fuente || 'segundo_plano', estado: 'en_curso', desde: Date.now(),
+      pedido: String(pedido || '').slice(0, 400), pasos: [] });
     return true;
   });
   if (ok) { try { abrePedido_(email, id); } catch (e) { console.error('abrePedido_: ' + e); } }   // uno de sus pedidos recientes (almaabre.js)
@@ -70,13 +77,24 @@ function orbitaPaso_(herramienta) {
   for (var i = 0; i < ORBITA_PASOS_.length; i++) if (ORBITA_PASOS_[i][0].test(n)) { paso = ORBITA_PASOS_[i][1]; break; }
   if (a.paso === paso) return;
   a.paso = paso;
-  orbitaCambiar_(a.email, function (l) { l.forEach(function (x) { if (a.ids.indexOf(x.id) >= 0 && x.estado === 'en_curso') x.paso = paso; }); });
+  orbitaCambiar_(a.email, function (l) { l.forEach(function (x) {
+    if (a.ids.indexOf(x.id) < 0 || x.estado !== 'en_curso') return;
+    x.paso = paso; x.pasos = (x.pasos || []).filter(function (p) { return p !== paso; }).concat([paso]).slice(-6);   // para explicar qué hizo
+  }); });
 }
-/* Terminó (con o sin falla). */
-function orbitaTermina_(email, ids, fallo) {
+/* Terminó (con o sin falla). r: lo que respondió el agente ({ respuesta, hechas }) para poder explicarlo después. */
+function orbitaTermina_(email, ids, fallo, r) {
   ids = (ids || []).filter(Boolean); if (!ids.length) return;
+  r = r || {};
+  var hechas = (r.hechas || []).map(function (h) { return String(h && h.resumen || '').slice(0, 140) + (h && h.error ? ' (no salió: ' + String(h.error).slice(0, 80) + ')' : ''); }).filter(Boolean).slice(0, 8);
   orbitaCambiar_(email, function (l) {
-    l.forEach(function (x) { if (ids.indexOf(x.id) >= 0) { x.estado = fallo ? 'fallo' : 'listo'; x.fin = Date.now(); x.paso = fallo ? 'No se pudo' : 'Listo'; } });
+    l.forEach(function (x) {
+      if (ids.indexOf(x.id) < 0) return;
+      x.estado = fallo ? 'fallo' : 'listo'; x.fin = Date.now(); x.paso = fallo ? 'No se pudo' : 'Listo';
+      if (r.respuesta) x.resultado = String(r.respuesta).slice(0, 700);
+      if (hechas.length) x.hechas = hechas;
+      if (fallo) x.motivo = String(fallo).slice(0, 200);
+    });
   });
 }
 
@@ -141,39 +159,102 @@ function orbitaTitulo_(texto, nombre, presupuesto) {
 
 /* ── Desarrollo: pedidos a Claude del principal (microproyectos) y lo que Alma escaló (escalar.js) ── */
 var ORBITA_ESCALAR_PASO_ = { pedido: 'En desarrollo', por_unir: 'Uniendo', publicando: 'Publicando', publicado: 'Entregando', entregando: 'Entregando', entregada: 'Entregado' };
-function orbitaDesarrollo_(adm) {
+/* largo = true (para explicar): lo terminado de las últimas 24 h, sin caché y con su detalle (det). */
+function orbitaDesarrollo_(adm, largo) {
   if (!adm || !esAdminPrincipal_(adm)) return [];
-  var c = CacheService.getScriptCache(), k = orbitaClave_(adm.email) + '_d', guardado = c.get(k);
+  var c = CacheService.getScriptCache(), k = orbitaClave_(adm.email) + '_d', guardado = largo ? null : c.get(k);
   if (guardado) { try { return JSON.parse(guardado); } catch (e) {} }
+  var VENTANA = largo ? ORBITA_DESARROLLO_MS_ : ORBITA_FIN_MS_;
   var ahora = Date.now(), email = String(adm.email || '').toLowerCase(), out = [], vistos = {};
   var esc = []; try { esc = escalarEntregas_(); } catch (e) { console.error('orbita escalar: ' + e); }
+  var micros = []; try { micros = microFilas_(); } catch (e) { console.error('orbita micro: ' + e); }
   esc.forEach(function (e) {
     if (String(e.email || '').toLowerCase() !== email) return;
     var estado = /^(fallo|no_unida|fallo_pub)$/.test(e.estado) ? 'fallo' : e.estado === 'entregada' ? 'listo' : 'en_curso';
     var fin = Number(e.fin || 0);
-    if (estado !== 'en_curso' && ahora - fin >= ORBITA_FIN_MS_) { if (e.micro) vistos[e.micro] = 1; return; }
+    if (estado !== 'en_curso' && ahora - fin >= VENTANA) { if (e.micro) vistos[e.micro] = 1; return; }
     if (e.micro) vistos[e.micro] = 1;
-    out.push({ id: 'es' + String(e.id || e.micro).replace(/\W/g, ''), nombre: e.nombre, texto: String(e.para_entregar || ''), paso: estado === 'fallo' ? 'No se pudo' : ORBITA_ESCALAR_PASO_[e.estado] || 'En desarrollo',
-      fuente: 'desarrollo', estado: estado, desde: Number(e.t || ahora), fin: estado === 'en_curso' ? 0 : fin });
+    var oe = { id: 'es' + String(e.id || e.micro).replace(/\W/g, ''), nombre: e.nombre, texto: String(e.para_entregar || ''), paso: estado === 'fallo' ? 'No se pudo' : ORBITA_ESCALAR_PASO_[e.estado] || 'En desarrollo',
+      fuente: 'desarrollo', estado: estado, desde: Number(e.t || ahora), fin: estado === 'en_curso' ? 0 : fin };
+    if (largo) oe.det = { como: 'Alma lo escaló a Claude y lo une y entrega sola', pedido: String(e.para_entregar || '').slice(0, 400), etapa: String(e.estado || ''),
+      prs: (e.prs || []).slice(0, 3), unidos: (e.unidos || []).slice(0, 3), micro: e.micro ? microResumen_(e.micro, micros) : null };
+    out.push(oe);
   });
-  var micros = []; try { micros = microFilas_(); } catch (e) { console.error('orbita micro: ' + e); }
   micros.forEach(function (m) {
     var pedido = ((m.ajustes || []).filter(function (a) { return a.de === 'juan'; })[0] || {}).texto || '';
     if (vistos[m.id] || String(m.quien || '').toLowerCase() !== email) return;
     var act = Number(m.actualizado) || 0, est = String(m.estado || '');
     if (est === MICRO_ESTADOS_.trabajo) {
-      if (ahora - act < ORBITA_DESARROLLO_MS_) out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), nombre: m.nombre, texto: pedido, paso: 'En desarrollo', fuente: 'desarrollo', estado: 'en_curso', desde: Number(m.creado) || act, fin: 0 });
+      if (ahora - act < ORBITA_DESARROLLO_MS_) out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), nombre: m.nombre, texto: pedido, paso: 'En desarrollo', fuente: 'desarrollo', estado: 'en_curso', desde: Number(m.creado) || act, fin: 0,
+        det: largo ? { como: 'Pedido a Claude', micro: microResumen_(m.id, micros) } : undefined });
       return;
     }
     /* Recién terminado: lo último es una respuesta de Claude (listo para unir, pregunta o consulta contestada) de los
        últimos 10 min. Un «cerrado» a mano o un «unido» no es un resultado nuevo. */
     var ult = (m.ajustes || [])[(m.ajustes || []).length - 1], fin = ult && ult.de === 'claude' ? Number(ult.ts) || 0 : 0;
-    if (!fin || ahora - fin >= ORBITA_FIN_MS_ || est === MICRO_ESTADOS_.unido) return;
-    var paso = est === MICRO_ESTADOS_.listo ? 'Listo para unir' : est === MICRO_ESTADOS_.pregunta ? 'Te pregunta algo' : 'Listo';
-    out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), nombre: m.nombre, texto: pedido, paso: paso, fuente: 'desarrollo', estado: 'listo', desde: Number(m.creado) || fin, fin: fin });
+    if (!fin || ahora - fin >= VENTANA || (est === MICRO_ESTADOS_.unido && !largo)) return;
+    var paso = est === MICRO_ESTADOS_.listo ? 'Listo para unir' : est === MICRO_ESTADOS_.pregunta ? 'Te pregunta algo' : est === MICRO_ESTADOS_.unido ? 'Unido' : 'Listo';
+    out.push({ id: 'mp' + String(m.id).replace(/\W/g, ''), nombre: m.nombre, texto: pedido, paso: paso, fuente: 'desarrollo', estado: 'listo', desde: Number(m.creado) || fin, fin: fin,
+      det: largo ? { como: 'Pedido a Claude', micro: microResumen_(m.id, micros) } : undefined });
   });
-  try { c.put(k, JSON.stringify(out), 60); } catch (e) {}
+  if (!largo) try { c.put(k, JSON.stringify(out), 60); } catch (e) {}
   return out;
+}
+/* Un microproyecto contado corto: lo que pidió Juan, lo último que respondió Claude, su estado y su PR. */
+function microResumen_(id, micros) {
+  var m = (micros || []).filter(function (x) { return String(x.id) === String(id); })[0]; if (!m) return null;
+  var aj = m.ajustes || [], deJuan = aj.filter(function (a) { return a.de !== 'claude'; }), deClaude = aj.filter(function (a) { return a.de === 'claude'; });
+  return { estado: String(m.estado || ''), pidio: String((deJuan[0] || {}).texto || '').slice(0, 400), ultimo_ajuste: deJuan.length > 1 ? String(deJuan[deJuan.length - 1].texto || '').slice(0, 300) : '',
+    claude_respondio: String((deClaude[deClaude.length - 1] || {}).texto || '').slice(0, 900), pregunta: m.estado === MICRO_ESTADOS_.pregunta ? String(m.ultima_pregunta || '').slice(0, 500) : '',
+    pr: String(m.pr || ''), issue: String(m.issue || '') };
+}
+
+/* ── Explicar un pedido en órbita (herramienta pedidos_en_orbita, agente.js) ──
+   buscar: el nombre que se ve en el anillo (o parte), o vacío para todos. Devuelve, por pedido, qué pasó (lo que pidió),
+   qué se hizo (los pasos y lo que quedó hecho), en qué estado va y qué falta. Es solo para Alma: nunca va a la app. */
+var ORBITA_ESTADO_TXT_ = { en_curso: 'en curso', listo: 'terminado', fallo: 'no se pudo' };
+function orbitaExplicar_(adm, buscar) {
+  if (!adm || !adm.email) return { ok: false, error: 'usuario' };
+  var hora = function (t) { return t ? Utilities.formatDate(new Date(Number(t)), CFG.TZ, 'd MMM HH:mm') : ''; };
+  var n = function (t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); };
+  var todos = orbitaLeer_(adm.email, true).concat(orbitaDesarrollo_(adm, true)).sort(function (a, b) { return (b.desde || 0) - (a.desde || 0); });
+  var q = n(buscar), elegidos = todos;
+  if (q) {
+    var pal = q.split(' ').filter(function (p) { return p.length > 2; });
+    var nota = function (x) { var t = n(x.nombre) + ' ' + n(x.pedido || (x.det && x.det.pedido) || ''); if (n(x.nombre) === q || String(x.id) === String(buscar)) return 99; return pal.filter(function (p) { return t.indexOf(p) >= 0; }).length; };
+    var mejor = Math.max.apply(null, [0].concat(todos.map(nota)));
+    elegidos = mejor ? todos.filter(function (x) { return nota(x) === mejor; }) : [];
+  }
+  var lista = elegidos.slice(0, 5).map(function (x) {
+    var falta = x.estado === 'fallo' ? 'Decidir si se intenta de nuevo' : x.estado === 'en_curso' ? 'Nada: Alma sigue trabajando y avisa al terminar' : 'Nada';
+    var o = { nombre: x.nombre, tipo: ORBITA_TIPO_[x.fuente] === 'largo' ? 'desarrollo (lleva un cambio con PR; tarda horas)' : 'segundo plano (Alma lo trabaja por detrás)',
+      estado: ORBITA_ESTADO_TXT_[x.estado] || x.estado, paso: x.paso || '', empezo: hora(x.desde), termino: x.estado === 'en_curso' ? '' : hora(x.fin) };
+    if (x.pedido) o.que_pidio = x.pedido;
+    if ((x.pasos || []).length) o.pasos_que_dio = x.pasos;
+    if ((x.hechas || []).length) o.lo_que_hizo = x.hechas;
+    if (x.resultado) o.lo_que_respondio = x.resultado;
+    if (x.motivo) o.por_que_fallo = x.motivo;
+    var d = x.det;
+    if (d) {
+      o.como = d.como;
+      if (d.pedido) o.que_pidio = d.pedido;
+      if (d.etapa) o.etapa = ORBITA_ESCALAR_PASO_[d.etapa] || d.etapa;
+      if (d.micro) { o.claude = d.micro; if (!o.que_pidio && d.micro.pidio) o.que_pidio = d.micro.pidio; }
+      if ((d.prs || []).length) o.prs = d.prs;
+      var est = d.micro ? d.micro.estado : '';
+      falta = x.estado === 'fallo' ? 'Revisar por qué no se pudo (Pendientes)'
+        : est === MICRO_ESTADOS_.pregunta ? 'Que Juan conteste la pregunta de Claude'
+        : est === MICRO_ESTADOS_.listo && !/^(por_unir|publicando|publicado|entregando)$/.test(d.etapa || '') ? 'Que Juan lo una (Pendientes, Unir)'
+        : x.estado === 'en_curso' ? 'Nada de Juan por ahora: sigue en desarrollo' : 'Nada';
+    }
+    if (x.fuente !== 'desarrollo' && x.estado === 'en_curso' && Date.now() - (x.desde || 0) >= ORBITA_VIVO_MS_) {   // Apps Script lo cortó: ya no corre
+      o.estado = 'se quedó a medias'; falta = 'Pedírmelo de nuevo';
+    }
+    o.que_falta = falta;
+    return o;
+  });
+  return { ok: true, pedidos: lista, nota: !lista.length ? (q ? 'No encontré un pedido en órbita con ese nombre; estos son los de hoy: ' + todos.slice(0, 6).map(function (x) { return x.nombre; }).join(' · ') : 'No hay pedidos en órbita ahora.') :
+    'Explícale en palabras simples, en este orden: qué pasó (lo que pidió), qué se hizo y en qué estado va (y qué falta, si falta algo). Sin enlaces ni nombres de archivos en voz.' };
 }
 
 /* ── La lista para la app ── */

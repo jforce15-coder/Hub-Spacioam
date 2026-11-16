@@ -3368,6 +3368,7 @@ function hubApi_(body) {
       case 'fotosContacto': return json_(fotosContactoApi_(ses, body));                      // la foto del contacto sin reserva: ver · faltan · subir · quitar (fotoscontacto.js, #567 T4)
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
       case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
+      case 'almaArchivo': return json_(almaArchivo_(ses, body));                             // archivo del chat de Alma (PDF, Word, Excel, CSV, audio): lo guarda privado y lo lee (adjuntos.js, #544)
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
       case 'notifAjustes': return json_(notifAjustesApi_(ses));                            // Ajustes → Notificaciones por tipo, de quien tiene la sesión (notifajustes.js · alma/avisos.html)
       case 'notifAjustesGuardar': return json_(notifAjustesGuardarApi_(ses, body));          // { tipo, ajuste } → lo guarda y deja al día sus etiquetas de OneSignal
@@ -3413,7 +3414,7 @@ function hubApi_(body) {
       case 'responder': if (String(body.resId || '').indexOf('op:') === 0) return json_(chatResponderOp_(ses, body));   // chat con Alma: solo el suyo; op:desarrollo = Pedido para Claude (chat.js)
         return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
       case 'responderWa': return json_(hubResponderSeguro_(body, ses));
-      case 'adjunto': return json_(adjSubir_(ses, body));                                    // el «+» del nuevo chat: sube una foto o un PDF para el huésped (adjuntos.js)
+      case 'adjunto': return json_(adjSubir_(ses, body));                                    // el «+» del nuevo chat: sube una foto, PDF, Word, Excel o audio para el huésped (adjuntos.js)
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
       case 'decision': return json_(decisionApi_(ses, body));                                // decisión del equipo: leer, elegir o enviada (decisiones.js)

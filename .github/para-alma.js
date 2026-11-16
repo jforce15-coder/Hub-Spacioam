@@ -89,6 +89,7 @@ function caja(o) {
   c.pasada(0);
   ok(c.agentes.length === 1 && c.agentes[0].adm === JUAN && c.agentes[0].canal === 'instruccion', 'se ejecuta como el administrador principal, canal «instruccion»');
   ok(/Recepción Brunelo/.test(c.agentes[0].pedido) && /no le pidas confirmación/.test(c.agentes[0].pedido), 'Alma recibe la instrucción con la nota (ya lo pidió Juan: sin confirmación)');
+  ok(/issue público/.test(c.agentes[0].pedido) && /nómbrala por su rol/.test(c.agentes[0].pedido) && /sin nombres ni apellidos/.test(c.agentes[0].pedido), 'la nota le pide nombrar a cada persona por su rol, sin nombres ni apellidos (el issue es público)');
   ok(c.agentes[0].cierre && c.agentes[0].cierre.sinDesarrollo && c.agentes[0].cierre.sinEscalar, 'no escala ni pide a Desarrollo (sería pedirle a Claude lo que Claude pidió)');
   const com = c.comentarios();
   ok(com.length === 1 && /Listo/.test(com[0]) && /wp1731420000123/.test(com[0]) && /09:00/.test(com[0]), 'comenta qué hizo, con el id de lo programado: ' + JSON.stringify(com[0]));
@@ -102,7 +103,11 @@ function caja(o) {
   // Con «chat» no hay WhatsApp
   abiertos = [issue(502, { body: cuerpo({ instruccion: 'Dime cuántas llegadas hay hoy.', responder_a: 'chat' }) })];
   c.pasada();
-  ok(c.agentes.length === 2 && c.wa.length === 1, 'con «chat» no manda WhatsApp'); }
+  ok(c.agentes.length === 2 && c.wa.length === 1, 'con «chat» no manda WhatsApp');
+  abiertos = [issue(503, { body: cuerpo({ instruccion: 'Dime quién tiene la limpieza de hoy.', responder_a: 'chat' }) })];
+  c.ctx.opAgente_ = () => ({ respuesta: 'Ya está en la ruta de hoy a las 11:00.', hechas: [] });
+  c.pasada();
+  ok(/no cambié nada ni le escribí a nadie \(solo consulté y respondí\)/.test(c.comentarios().pop()), 'si solo consultó, el comentario no dice «nada con herramientas»: dice que no cambió nada'); }
 
 /* ── 2 ── Autor no autorizado. */
 { const c = caja({ issues: () => [issue(510, { user: { login: 'alguien' } })] });

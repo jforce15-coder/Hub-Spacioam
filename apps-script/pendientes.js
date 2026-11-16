@@ -3,13 +3,14 @@
    en vez de llegarle por WhatsApp (el WhatsApp con Alma es solo para conversar). Tres tipos:
      · atencion  «Necesita tu sí»: comprar, decidir, responder, unir. Se queda hasta que Juan toca «Ya está» o lo
                  resuelven en una llamada (retomar.js). Si vino de segundo plano, avisa con notificación en la app.
-     · aviso     «Para leer»: información que pidió. Se va sola a la hora.
-     · hecho     «Listo hoy»: confirma algo que ya quedó. Se va solo a la hora.
+     · aviso     «Para leer»: información que pidió. Se va de aquí a la hora; en Notificaciones vence a los 3 días.
+     · hecho     «Listo hoy»: confirma algo que ya quedó. Se va de aquí a la hora; en Notificaciones vence al día.
+   Cada tarjeta se cierra sola, con su motivo, cuando su origen se resolvió o vence (pendlimpieza.js, #567).
    Entra por pendEncolar_ (cada pedido a Alma: chat, WhatsApp, llamada, segundo plano; se clasifica en procesarCola para
    no frenar la respuesta) o por pendAvisar_ (encargos, Claude, correos, entregas, programados).
    Algunos traen tarjeta (un vuelo: ruta, fecha, aerolínea, precio) y acciones («Comprar» abre la página; Juan paga ahí).
    Hoja ALMA_PENDIENTES. */
-var PEND_CAB_ = ['id', 'ts', 'email', 'tipo', 'area', 'proyecto', 'titulo', 'resumen', 'detalle', 'tarjeta', 'acciones', 'estado', 'origen', 'ret_id', 'importancia', 'tema_id'];   // tema_id: temas.js (#526)
+var PEND_CAB_ = ['id', 'ts', 'email', 'tipo', 'area', 'proyecto', 'titulo', 'resumen', 'detalle', 'tarjeta', 'acciones', 'estado', 'origen', 'ret_id', 'importancia', 'tema_id', 'motivo', 'repregunta'];   // tema_id: temas.js (#526) · motivo y repregunta: pendlimpieza.js (#567)
 var PEND_HORA_ = 3600000;
 var PEND_TIPOS_ = ['atencion', 'aviso', 'hecho'];
 
@@ -18,9 +19,9 @@ function hojaPend_() {
   if (sh.getLastColumn() < PEND_CAB_.length) sh.getRange(1, 1, 1, PEND_CAB_.length).setValues([PEND_CAB_]);
   return sh;
 }
-function pendFilas_() {
+function pendFilas_(todas) {
   var sh = hojaPend_(), n = sh.getLastRow(); if (n < 2) return [];
-  var ini = Math.max(2, n - 299);   // los últimos 300 bastan: lo viejo ya venció o se resolvió
+  var ini = todas ? 2 : Math.max(2, n - 299);   // los últimos 300 bastan: lo viejo ya venció o se resolvió (todas: la corrida única)
   return sh.getRange(ini, 1, n - ini + 1, PEND_CAB_.length).getValues().map(function (v, i) {
     var o = { fila: ini + i }; PEND_CAB_.forEach(function (k, j) { o[k] = v[j]; }); o.ts = Number(o.ts) || 0; return o;
   });
@@ -113,7 +114,7 @@ function pendCrear_(adm, c, o) {
   }
   var fila = { id: 'pd' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), email: adm.email, tipo: c.tipo, area: c.area, proyecto: String(c.proyecto || '').slice(0, 60),
     titulo: tituloCorto_(c.titulo, 100), resumen: String(c.resumen || '').slice(0, 300), detalle: String(o.detalle || '').slice(0, 4000),
-    tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2, tema_id: o.tema || '' };
+    tarjeta: c.tarjeta ? JSON.stringify(c.tarjeta).slice(0, 1500) : '', acciones: JSON.stringify(c.acciones || []), estado: 'abierto', origen: o.origen || '', ret_id: it ? it.id : '', importancia: c.importancia || 2, tema_id: o.tema || '', motivo: '', repregunta: '' };
   /* Lo que espera a Juan es un tema (temas.js): el del turno o uno propio que se cierra cuando la tarjeta se resuelve. */
   if (c.tipo === 'atencion' && !fila.tema_id) { try { fila.tema_id = temaCrear_(adm, { tipo: 'pendiente', titulo: fila.titulo, origen: 'pendiente', origen_id: fila.id, ultimo_paso: fila.resumen.slice(0, 200), espera: 'juan' }).id; } catch (e) { console.error('pendCrear_ tema: ' + e); } }
   var lock = LockService.getScriptLock(); lock.waitLock(10000);
@@ -126,10 +127,10 @@ function pendCrear_(adm, c, o) {
   return fila;
 }
 
-/* ¿Sigue en la lista? Lo de atención, hasta resolverse (o 30 días); lo demás, una hora. */
+/* ¿Sigue en la lista? Lo de atención, hasta resolverse (o PEND_VENCE_H_.atencion: 30 días); lo demás, una hora. */
 function pendVivo_(x, ahora) {
   if (String(x.estado) !== 'abierto') return false;
-  return x.tipo === 'atencion' ? ahora - x.ts < 30 * 86400000 : ahora - x.ts < PEND_HORA_;
+  return x.tipo === 'atencion' ? ahora - x.ts < PEND_VENCE_H_.atencion * 3600000 : ahora - x.ts < PEND_HORA_;
 }
 /* o.sinTema: la tarjeta se cierra porque Juan respondió (el tema sigue: responder no es el resultado). */
 function pendResolver_(ses, id, o) {
@@ -137,6 +138,7 @@ function pendResolver_(ses, id, o) {
   if (/^vg:/.test(String(id))) return vigDejarApi_(ses, String(id).slice(3));   // «Dejar de vigilar» en la tarjeta (vigilancias.js)
   var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; if (!x) return { ok: false, error: 'no existe' };
   hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto');
+  try { hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('motivo') + 1).setValue(o && o.sinTema ? 'Juan respondió' : 'Juan: «Ya está»'); } catch (e) {}
   if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
   if (!(o && o.sinTema)) { try { temaTarjetaResuelta_(x); } catch (e) { console.error('temaTarjetaResuelta_: ' + e); } }   // el tema que nació de la tarjeta (temas.js)
   return { ok: true };
@@ -145,6 +147,7 @@ function pendResolver_(ses, id, o) {
 function pendCerrar_(id) {
   var x = pendFilas_().filter(function (r) { return String(r.id) === String(id); })[0]; if (!x || String(x.estado) !== 'abierto') return false;
   hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('estado') + 1).setValue('resuelto');
+  try { hojaPend_().getRange(x.fila, PEND_CAB_.indexOf('motivo') + 1).setValue('ya se respondió en el chat'); } catch (e) {}
   if (x.ret_id) { try { retResolver_(adminPorEmail_(x.email), [String(x.ret_id)]); } catch (e) {} }
   try { temaTarjetaResuelta_(x); } catch (e) { console.error('temaTarjetaResuelta_: ' + e); }
   return true;
@@ -153,7 +156,7 @@ function pendAbierto_(id) { var x = pendFilas_().filter(function (r) { return St
 /* Si un tema por retomar se resolvió en una llamada, su pendiente también. */
 function pendResolverRet_(ids) {
   if (!ids || !ids.length) return;
-  try { var sh = hojaPend_(), col = PEND_CAB_.indexOf('estado') + 1; pendFilas_().forEach(function (x) { if (x.ret_id && ids.indexOf(String(x.ret_id)) >= 0 && x.estado === 'abierto') sh.getRange(x.fila, col).setValue('resuelto'); }); } catch (e) {}
+  try { var sh = hojaPend_(), col = PEND_CAB_.indexOf('estado') + 1; pendFilas_().forEach(function (x) { if (x.ret_id && ids.indexOf(String(x.ret_id)) >= 0 && x.estado === 'abierto') { sh.getRange(x.fila, col).setValue('resuelto'); sh.getRange(x.fila, PEND_CAB_.indexOf('motivo') + 1).setValue('se resolvió como tema por retomar'); } }); } catch (e) {}
 }
 
 /* ── La lista para la app: los de Alma + lo de Claude + los cambios por unir, por urgencia y con conteo por esfera ── */
@@ -162,10 +165,12 @@ var PEND_SECCION_ = { atencion: 'atencion', aviso: 'leer', hecho: 'listo' };
 function pendItems_(ses, adm, noti) {
   var ahora = Date.now(), items = [];
   pendFilas_().forEach(function (x) {
-    /* en Notificaciones, lo que es para leer o ya quedó listo se queda 3 días (como el historial de avisos) */
-    var vivo = pendVivo_(x, ahora) || (noti && String(x.estado) === 'abierto' && x.tipo !== 'atencion' && ahora - x.ts < 3 * 86400000);
+    /* en Notificaciones, lo que es para leer o ya quedó listo se queda lo que dice su tipo (PEND_VENCE_H_: 3 días o 1) */
+    var vivo = pendVivo_(x, ahora) || (noti && String(x.estado) === 'abierto' && x.tipo !== 'atencion' && ahora - x.ts < pendVenceH_(x) * 3600000);
     if (String(x.email).toLowerCase() !== String(adm.email).toLowerCase() || !vivo) return;
     var tj = null, ac = []; try { tj = x.tarjeta ? JSON.parse(x.tarjeta) : null; } catch (e) {} try { ac = JSON.parse(x.acciones || '[]'); } catch (e) {}
+    /* Una pregunta que trae opciones en el texto se contesta en un toque, como la del chat (#567, js/sa-nav.js). */
+    if (!tj && x.tipo === 'atencion') { var ops = pendOpcionesDe_(x); if (ops.length >= 2) tj = { tipo: 'pregunta', opciones: ops, esfera: '', subcategoria: x.proyecto || '' }; }
     items.push({ id: String(x.id), fuente: 'alma', seccion: PEND_SECCION_[x.tipo] || 'leer', area: x.area, proyecto: x.proyecto, titulo: x.titulo, resumen: x.resumen,
       detalle: x.detalle, tarjeta: tj, acciones: ac, ts: x.ts, importancia: Number(x.importancia) || 2, resolver: x.tipo === 'atencion', responder: x.tipo === 'atencion', resultado: x.origen === 'segundo_plano' });
   });
@@ -205,7 +210,7 @@ function notificacionesTodo_(ses) {
       items.push({ id: String(x.id), ts: x.ts || Date.now(), area: x.area, proyecto: x.proyecto || '', titulo: x.titulo || '', texto: x.resumen || '', estado: x.estado || '',
         detalle: x.detalle || x.original || '', enlaces: x.enlaces || [], fuente: x.fuente, enlace: ((x.acciones || [])[0] || {}).url || '' });
     });
-    var porRet = {}, ahora = Date.now(); pendFilas_().forEach(function (r) { if (r.ret_id) porRet[String(r.ret_id)] = r; });
+    var porRet = {}, ahora = Date.now(); pendFilas_().forEach(function (r) { if (r.ret_id) porRet[String(r.ret_id)] = r; porRet[String(r.id)] = r; });   // la re-pregunta lleva el id de la tarjeta
     (base.lista || []).forEach(function (a) {
       var r = porRet[String(a.id)];
       items.push({ id: 'av:' + a.id + ':' + a.ts, ts: a.ts, area: r ? r.area : '', proyecto: r ? String(r.proyecto || '') : '', titulo: r ? String(r.titulo || '') : '', texto: a.texto,

@@ -108,6 +108,11 @@ function avisoTexto_(tipo, d) {
     case 'correo_respuesta': out = { titulo: 'Respuesta lista',
       texto: 'Ya te dejé lista la respuesta al correo ' + q(d.asunto) + '; si te parece, la mando con un toque.',
       datos: [lin('Asunto', d.asunto), 'Qué falta: que la revises', 'Dónde: Tus correos'] }; break;
+    /* Pendientes limpios (pendlimpieza.js, #567): una pregunta sin respuesta, vuelta a preguntar una sola vez. */
+    case 'pend_repregunta': out = { titulo: 'Sigo esperando',
+      texto: 'Te pregunté por ' + q(d.titulo) + ' y sigo esperando; con un toque me contestas.',
+      datos: [lin('Pregunta', d.pregunta), (d.opciones || []).length ? lin('Opciones', d.opciones.join(' · ')) : '', 'Dónde: en Pendientes'],
+      voz: d.pregunta ? avisoCorto_(d.pregunta, 160) : '' }; break;
     default: out = { titulo: '', texto: avisoCorto_(d.texto, 400), datos: [] };
   }
   out.texto = avisoSinDatos_(out.texto);

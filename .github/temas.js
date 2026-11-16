@@ -277,7 +277,7 @@ const tema = (c, id) => { c.X.TEMA_MEMO_ = null; return c.X.temaLeer_(id); };
 { const c = caja();
   const X = c.X;
   vm.runInContext(/var ENC_CAB_ = [^\n]*/.exec(AGE)[0] + '\nvar ENC_OK_ = false;\n' + sacar(AGE, 'hojaEnc_') + '\n' + /var MICRO_CAB_ = [^\n]*/.exec(leer('microproyectos.js'))[0] + '\n' + /var MICRO_ESTADOS_ = [^\n]*/.exec(leer('microproyectos.js'))[0] + '\n' +
-    ['microHoja_', 'microDe_', 'microFilas_'].map(n => sacar(leer('microproyectos.js'), n)).join('\n') + '\n' + /var PEND_CAB_ = [^\n]*/.exec(leer('pendientes.js'))[0] + '\nvar PEND_HORA_ = 3600000;\n' +
+    ['microHoja_', 'microDe_', 'microFilas_'].map(n => sacar(leer('microproyectos.js'), n)).join('\n') + '\n' + /var PEND_CAB_ = [^\n]*/.exec(leer('pendientes.js'))[0] + '\nvar PEND_HORA_ = 3600000;\n' + /var PEND_VENCE_H_ = [^\n]*/.exec(leer('pendlimpieza.js'))[0] + '\n' +
     ['hojaPend_', 'pendFilas_', 'pendVivo_'].map(n => sacar(leer('pendientes.js'), n)).join('\n'), X, { filename: 'extractos 9' });
   X.claudeNivel_ = x => x || 'complejo';
   const iso = new Date(AHORA0 - 2 * H).toISOString();

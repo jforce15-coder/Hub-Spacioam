@@ -50,7 +50,8 @@ const CASOS = [
   ['vuelo_aterrizo', { quienes: 'Lucky', lugar: 'Guatemala', esperan: 'Ana' }, ['Lucky', 'Guatemala', 'Ana']],
   ['vuelo_fallo', { nombre: 'Lucky', vuelo: 'UA1234', error: 'WhatsApp respondió 131047' }, ['Lucky', 'UA1234', '131047']],
   ['correo_autorizacion', { asunto: 'Cotización de remodelación', de_nombre: '', de: 'compras@casasol.com' }, ['Cotización de remodelación', 'Casasol', 'autorización']],
-  ['correo_respuesta', { asunto: 'Cotización de remodelación' }, ['Cotización de remodelación', 'Tus correos']]
+  ['correo_respuesta', { asunto: 'Cotización de remodelación' }, ['Cotización de remodelación', 'Tus correos']],
+  ['pend_repregunta', { titulo: 'Tarifa de limpieza', pregunta: '¿La cobramos por noche o por estadía?', opciones: ['Por noche', 'Por estadía'] }, ['Tarifa de limpieza', 'por noche', 'Pendientes']]
 ];
 const tipos = new Set();
 for (const [tipo, d0, quedan] of CASOS) {

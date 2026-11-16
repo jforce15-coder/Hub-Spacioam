@@ -1207,6 +1207,8 @@ function vozWebVincular_(ses, convId, app, b) {
   if (app && (b.pantalla === false || b.pantalla === 0 || b.pantalla === '0')) CacheService.getScriptCache().put('vozpant_' + convId, '0', 21600);
   else if (app && (b.pantalla === true || b.pantalla === 1 || b.pantalla === '1')) CacheService.getScriptCache().put('vozpant_' + convId, '1', 21600);
   if (app && b.tablero === 'estado') CacheService.getScriptCache().put('voztvest_' + convId, '1', 21600);
+  /* Los tipos de tarjeta que esta app pinta (#508 Fase 2): uno nuevo («socio») sale en pantalla solo si la app lo nombra. */
+  if (app && Array.isArray(b.tipos)) CacheService.getScriptCache().put('voztvtipos_' + convId, JSON.stringify(b.tipos.map(String).filter(function (x) { return /^[a-z]{2,20}$/.test(x); }).slice(0, 20)), 21600);
   /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
   if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);

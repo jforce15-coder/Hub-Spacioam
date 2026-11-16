@@ -253,3 +253,7 @@ jobs:
         # 16-nov: Juan quiere la foto de su familia, amigos y contactos sin reserva en la bandeja (#567 T4): Contactos del iPhone,
         # Contactos de Google y a mano; nunca la agenda entera, nunca Facebook ni Instagram y nunca con enlace público.
         run: node .github/fotos-contactos.js apps-script
+      - name: Diagnóstico del anillo por Bluetooth, solo con sesión, el último por usuario, sin datos personales, recortado para caber y el robot lo lee con «anillo» (dobles)
+        # 16-nov: el anillo llega como control de música y Spotify se lo quita; Juan aprobó leerlo directo por Bluetooth y antes
+        # hay que saber qué manda (ticket #29, paso 1). La app manda el registro y Claude lo lee para mapear los toques.
+        run: node .github/anillo-ble.js apps-script

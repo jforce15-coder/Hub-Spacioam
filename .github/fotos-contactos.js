@@ -162,7 +162,10 @@ const inbox = [
 ok(!/UrlFetchApp/.test(FC), 'fotoscontacto.js va a internet solo por uf_');
 ok(!/facebook|instagram/i.test(FC.replace(/Facebook e Instagram no[^\n]*/g, '')), 'no se usan Facebook ni Instagram');
 const man = JSON.parse(leer('appsscript.json'));
-ok((man.dependencies.enabledAdvancedServices || []).some((s) => s.userSymbol === 'People' && s.serviceId === 'peopleapi'), 'el servicio avanzado People está en appsscript.json');
+// People pide un permiso nuevo («Ver tus contactos»): se agrega en su propio PR cuando Juan puede autorizarlo al momento.
+// Mientras no esté, Google no se consulta y el resto (iPhone y a mano) funciona igual.
+const conPeople = (man.dependencies.enabledAdvancedServices || []).some((s) => s.userSymbol === 'People' && s.serviceId === 'peopleapi');
+ok(conPeople || /typeof People === 'undefined'/.test(FC), 'sin el servicio People en appsscript.json, Google se salta sin romper (' + (conPeople ? 'People activo' : 'People pendiente de autorizar') + ')');
 ok(/case 'fotosContacto': return json_\(fotosContactoApi_\(ses, body\)\)/.test(COD), 'la acción fotosContacto pasa la sesión verificada');
 ok(/try \{ fotosGoogleRepasar_\(\); \} catch/.test(COD), 'Google se repasa en la rutina de cada hora (aprender) y un error no la tumba');
 ok(/fotosCt: fotosCt \}/.test(COD), 'la bandeja manda la foto del contacto de todas las conversaciones, también las quietas');

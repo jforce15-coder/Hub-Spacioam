@@ -22,6 +22,12 @@
       guardan; otro armado en 6 h: 0; con fotos (guardadas, picture o de la herramienta): 0; si falla o viene vacía: no se
       repite; nunca más de 1 por tablero (el edificio, solo si ninguno tiene fotos: el primero sin intento); si tarda más de 2 s el tablero sale sin
       galería y el próximo la trae; con la pantalla bloqueada no se pide.
+  12. Tablero del socio (#508 Fase 2): el socio completo (foto del login, ocupación y depósito del último mes cerrado que ya
+      está en la caché, pedidos abiertos con «Tu opinión», ficha con lo que toca retomar primero, próximas llegadas con la
+      foto del huésped y su proyecto en Grow); con poca información los cuadros crecen y sin foto van sus iniciales sobre el
+      color de su esfera; nunca teléfonos, correos, banco, salud ni religión (ni en la clave); otro administrador no ve
+      dinero ni ficha; la app de antes (sin «socio» en tipos) lo recibe solo en el chat; las candidatas (ficha_socio,
+      buscar_contacto con UN socio, el tema del socio elegido con certeza) y la ficha se lee de Mi solo si se va a ver.
    node .github/tarjeta-llamada.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -61,6 +67,8 @@ function caja(o) {
   vm.runInContext(fs.readFileSync(path.join(DIR, 'calprops.js'), 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'fuentes.js'), 'utf8'), ctx);   // fuentesPedirFotos_: el mismo pedido de las fotos
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'fichasocio.js'), 'utf8'), ctx);   // fichaProhibido_ y fichaParaRetomar_ (tablero del socio)
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'reportemes.js'), 'utf8'), ctx);   // rmesMes_: el mes sumado como en Mi (tablero del socio)
   return { X: ctx, cache, puestos, pedidos, reloj };
 }
 
@@ -545,6 +553,182 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
     c.X.tvCandidata_('conversacion', () => c.X.tvConversacion_('r-1', [], [], []));
     c.X.tvCerrar_('conv-app', true, false);
     ok(c.pedidos.length === 1, '11 · la conversación no pide fotos');
+  }
+}
+
+/* 12 · tablero del socio (#508 Fase 2) */
+{ const TEL = '50277770001', OTRO = '50288880000', NARAMA = 'Z13 - Narama - 633', RUE = 'Z4 - Rue - 301';
+  const ITEMS = [
+    { id: 'f1', tipo: 'detalle', texto: 'La boda de su hija', fecha_evento: '2026-10-25' },
+    { id: 'f2', tipo: 'nota', texto: 'Prefiere que le escriban por la tarde' },
+    { id: 'f3', tipo: 'detalle', texto: 'Lo operaron de la rodilla', fecha_evento: '2026-10-20' },
+    { id: 'f4', tipo: 'nota', texto: 'Su cuenta bancaria termina en 4421' },
+    { id: 'f5', tipo: 'nota', texto: 'Va a misa los domingos' }];
+  const AHORA = Date.parse(HOY + 'T16:00:00Z');
+  const TEMAS = [
+    { id: 'tm1', tipo: 'socio', estado: 'abierto', titulo: 'Narama 633 · socio', apartamento: 'Narama 633', personas: [{ n: 'Carlos Prueba', t: TEL }], ultimo_paso: 'El socio pidió: Cambiar el colchón del cuarto principal', espera: 'juan', actualizado: AHORA - 3600e3 },
+    { id: 'tm2', tipo: 'socio', estado: 'abierto', titulo: 'Rue 301 · socio', apartamento: 'Rue 301', personas: [], ultimo_paso: 'El socio pidió: Mándame el estado de octubre, mi correo es carlos@ejemplo.com o al +502 7777 0001', espera: '', actualizado: AHORA - 86400e3 },
+    { id: 'tm3', tipo: 'socio', estado: 'abierto', titulo: 'Rue 301 · socio', apartamento: 'Rue 301', personas: [], ultimo_paso: 'El socio pidió: Hazme la transferencia a la cuenta 1234567890', espera: '', actualizado: AHORA - 2 * 86400e3 },
+    { id: 'tm4', tipo: 'socio', estado: 'cerrado', titulo: 'Narama 633 · socio', apartamento: 'Narama 633', personas: [{ t: TEL }], ultimo_paso: 'Ya cerrado', actualizado: AHORA },
+    { id: 'tm5', tipo: 'pedido', estado: 'abierto', titulo: 'Narama 633', apartamento: 'Narama 633', personas: [], ultimo_paso: 'Otro pedido', actualizado: AHORA },
+    { id: 'tm6', tipo: 'socio', estado: 'abierto', titulo: 'Monaco D4 · socio', apartamento: 'Monaco D4', personas: [{ t: OTRO }], ultimo_paso: 'El socio pidió: Otra cosa', espera: 'juan', actualizado: AHORA }];
+  const FILAS = [
+    { prop: NARAMA, mes: '2026-10', noches: 26, estadias: 4, bruto: 2000, fee: 300, insumos: 50, reparaciones: 0, neto: 1234, neto2: 0, adr: 76.9, ocupAj: 0.8387 },
+    { prop: RUE, mes: '2026-10', noches: 20, estadias: 3, bruto: 1500, fee: 225, insumos: 40, reparaciones: 0, neto: 900, neto2: 0, adr: 75, ocupAj: 0.64516 },
+    { prop: NARAMA, mes: '2026-11', noches: 3, estadias: 1, bruto: 200, fee: 30, insumos: 0, reparaciones: 0, neto: 170, neto2: 0, adr: 66, ocupAj: 0.1 },
+    { prop: 'Z99 - Otro - 1', mes: '2026-10', noches: 30, estadias: 2, bruto: 9000, fee: 0, insumos: 0, reparaciones: 0, neto: 9999, neto2: 0, adr: 300, ocupAj: 1 }];
+  const EST = [
+    { propiedad: NARAMA, checkin: '2026-11-06', checkout: '2026-11-09', huesped: 'Ana Prueba', tipo: 'reserva', codigo: 'HMSOC00001' },
+    { propiedad: RUE, checkin: '2026-11-04', checkout: '2026-11-07', huesped: 'Luis Ejemplo', tipo: 'reserva', codigo: 'HMSOC00002' },
+    { propiedad: NARAMA, checkin: '2026-11-12', checkout: '2026-11-13', huesped: 'Consulta X', tipo: 'consulta' },
+    { propiedad: NARAMA, checkin: '2026-10-28', checkout: '2026-11-02', huesped: 'Ya Salió', tipo: 'reserva' },
+    { propiedad: 'Z99 - Otro - 1', checkin: '2026-11-05', checkout: '2026-11-06', huesped: 'De Otro', tipo: 'reserva' }];
+  const SECRETO = /77770001|7777 0001|1234567890|4421|@|banc|transfer|rodilla|operaron|misa/i;
+  const sinClave = (t) => { const o = Object.assign({}, t); delete o.clave; return JSON.stringify(o); };
+  const ids = (t) => t.cuadros.map((c) => c.id).join(',');
+  const de = (t, id) => t.cuadros.filter((c) => c.id === id)[0];
+  /* Un Hub con todo lo del socio: Mi, contactos, la foto del login, el reporte en la caché, temas y Grow. */
+  const arma = (o) => {
+    o = o || {}; const c = caja({ inbox: [{ codigo: 'HMSOC00001', foto: 'https://a0.muscache.example/ana.jpg' }] }), X = c.X;
+    let lecturasFicha = 0;
+    Object.assign(X, {
+      socioSeguro_: (wa) => (String(wa).slice(-8) === TEL.slice(-8) ? { wa: TEL, nombre: 'Carlos Prueba', propiedad: NARAMA } : String(wa).slice(-8) === OTRO.slice(-8) ? { wa: OTRO, nombre: 'Otra Socia', propiedad: 'Z7 - Monaco - D4' } : null),
+      contactoFicha_: (wa) => (String(wa).slice(-8) === TEL.slice(-8) ? { tel: TEL, nombre: 'Carlos Prueba', tipo: 'socio', propiedades: NARAMA } : null),
+      socioMiUsuarios_: () => ({ 'carlos@ejemplo.com': { nombre: 'Carlos Prueba', tel: TEL } }),
+      socioMiSetup_: () => (o.sinMi ? [] : [{ propiedad: NARAMA, emails: ['carlos@ejemplo.com'] }, { propiedad: RUE, emails: ['carlos@ejemplo.com'] }, { propiedad: 'Z7 - Monaco - D4', emails: ['otra@ejemplo.com'] }]),
+      bandejaEsferaMapas_: () => ({ conv: {}, pers: o.finanzas ? { [TEL.slice(-8)]: 'finanzas' } : {}, fotos: o.sinFoto ? {} : { [TEL.slice(-8)]: 'https://fotos.example/carlos.jpg' } }),
+      bandejaEsferaDe_: (m, id) => (m.pers[String(id).slice(-8)] || 'proposito'),
+      temaFilas_: () => (o.sinTemas ? [] : TEMAS), temaLeer_: (id) => TEMAS.filter((t) => t.id === id)[0] || null,
+      esAdminPrincipal_: (a) => !!(a && a.principal),
+      fichaVer_: () => { lecturasFicha++; return o.sinFicha ? [] : ITEMS; }
+    });
+    if (!o.sinEst) c.cache['calp_base_' + HOY] = JSON.stringify({ estadias: EST }); else c.cache['calp_base_' + HOY] = JSON.stringify({ estadias: [] });
+    if (!o.sinMes) { c.cache.rmes_v1_n = '1'; c.cache.rmes_v1_0 = JSON.stringify(FILAS); }
+    if (!o.sinGrow) X.tvGrowGuardar_({ ok: true, proyectos: [{ id: 'p1', nombre: 'Torre Demo 1503', edificio: 'Torre Demo', apto: '1503', etapa: 'presupuesto', dueno: 'Carlos Prueba Méndez', dueno_tel: '+502 7777 0001', url: 'https://grow.example/p1', visita: null },
+      { id: 'p2', nombre: 'Otro', edificio: 'Otro', apto: '1', etapa: 'visita', dueno: 'Alguien Más', visita: { fecha: '2026-11-06 10:00', asignado: 'Inés Demo', completa: false } }] });
+    return { c, X, lecturas: () => lecturasFicha };
+  };
+  const JUAN = { email: 'juan@spacioam.com', principal: true }, ANA = { email: 'ana@spacioam.com', principal: false };
+  const html = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');
+  const i0 = html.indexOf('  function acomodar('), i1 = html.indexOf('    return filas;\n  }', i0);
+  const acomodar = vm.runInNewContext('(' + html.slice(i0, i1 + '    return filas;\n  }'.length).trim() + ')');
+  const forma = (f) => f.map((x) => x.hero ? 'hero[' + x.hero.id + ':' + x.cols + ':' + x.alto + '|' + x.pila.map((c) => c.id).join('+') + ']' : x.celdas.map((c) => c.id + ':' + x.span + 'x' + x.alto).join('+')).join(' / ');
+
+  /* socio completo, en una llamada de la app nueva */
+  { const { c, X } = arma();
+    c.cache['voztvest_conv-app'] = '1'; c.cache['voztvtipos_conv-app'] = JSON.stringify(['reserva', 'conversacion', 'apartamento', 'consulta', 'edificio', 'claudio', 'socio']);
+    X.tvCandidata_('socio', () => X.tvSocio_({ tel: TEL, nombre: 'Carlos Prueba', correo: 'carlos@ejemplo.com', props: [NARAMA] }, { principal: true, items: ITEMS }));
+    const r = X.tvCerrar_('conv-app', true, false), t = JSON.parse(c.cache['voztarjeta_conv-app'] || 'null');
+    ok(r && r.visible && /^EN PANTALLA: lo que sabemos de Carlos Prueba/.test(r.voz) && t && t.tipo === 'socio', '12 · el socio sale en pantalla y la voz no lee lo que ya se ve: ' + (r && r.voz));
+    ok(ids(t) === 'foto,ocupacion,deposito,pedidos,ficha,llegadas,grow', '12 · socio completo: foto, ocupación, depósito, pedidos, ficha, llegadas y Grow: ' + ids(t));
+    ok(t.cabeza === 'Carlos Prueba' && t.sub === 'Narama 633 · Rue 301' && t.etiqueta === 'Socio' && t.cuadros.every((x) => x.tipo && x.tam && x.prioridad), '12 · arriba su nombre y sus apartamentos (los de Mi también): ' + t.sub);
+    const f = de(t, 'foto');
+    ok(f.tam === 'alto' && f.fondo === 'https://fotos.example/carlos.jpg' && f.de === 'socio' && f.chip === 'Socio' && f.iniciales === 'CP', '12 · la foto del login, alta');
+    ok(de(t, 'ocupacion').k === 'Ocupación · oct' && de(t, 'deposito').k === 'A depositar · oct' && de(t, 'ocupacion').v === '74.2%' && de(t, 'ocupacion').d === '46 noches · 7 estadías', '12 · ocupación del último mes cerrado, sumada como en Mi (sin el mes en curso ni otro socio): ' + de(t, 'ocupacion').v);
+    ok(de(t, 'deposito').v === 'US$ 2,134' && de(t, 'deposito').d === '2 apartamentos', '12 · a depositar: ' + de(t, 'deposito').v);
+    const ped = de(t, 'pedidos');
+    ok(ped.chip === '3' && ped.tono === 'aviso' && ped.items[0].t === 'Tu opinión' && ped.items[0].v === 'Cambiar el colchón del cuarto principal' && ped.items[0].tono === 'aviso', '12 · pedidos abiertos: el que espera a Juan primero (sin cerrados, sin otros temas ni otros socios)');
+    ok(ped.items[1].v === 'Mándame el estado de octubre' && ped.items[2].v === 'Rue 301 · socio', '12 · un pedido sin su correo ni su número; uno con datos de banco sale solo con su título: ' + ped.items.map((x) => x.v).join(' | '));
+    const fi = de(t, 'ficha');
+    ok(fi.items.map((x) => x.t + ':' + x.v).join(' | ') === 'Retomar:La boda de su hija | Nota:Prefiere que le escriban por la tarde' && fi.items[0].d === 'dom 25 oct', '12 · ficha: lo que toca retomar primero, con su fecha; nunca salud, religión ni banco: ' + fi.items.map((x) => x.v).join(' | '));
+    const ll = de(t, 'llegadas');
+    ok(ll.items.map((x) => x.t + ' ' + x.v).join(' | ') === 'Hoy Rue 301 · Luis Ejemplo | vie 6 nov Narama 633 · Ana Prueba' && ll.items[1].foto === 'https://a0.muscache.example/ana.jpg', '12 · próximas llegadas en sus apartamentos, con la foto del huésped (sin consultas ni pasadas): ' + ll.items.map((x) => x.t + ' ' + x.v).join(' | '));
+    ok(de(t, 'grow').v === 'Presupuesto' && de(t, 'grow').d === 'Sigue: contrato', '12 · su proyecto en Grow: etapa y siguiente paso');
+    ok(!SECRETO.test(sinClave(t)) && !/7777|0001/.test(t.clave) && t.tel === '' && t.wa === '' && t.conv === '', '12 · nunca teléfonos, correos, banco, salud ni religión, y la clave no lleva su número');
+    ok(!/7777/.test(c.cache.tvgrow) && !/grow\.example/.test(c.cache.tvgrow), '12 · lo que se guarda de Grow no lleva el número del dueño ni enlaces');
+    ok(t.titulo === 'Carlos Prueba' && t.datos.join(' | ') === 'Ocupación octubre: 74.2% | A depositar octubre: US$ 2,134 | 3 pedidos abiertos | Grow: Presupuesto' && t.detalle.length >= 5, '12 · app vieja: los campos de siempre (título, datos y detalle)');
+    ok(forma(acomodar(t.cuadros)) === 'hero[foto:1fr 1fr:3|ocupacion+deposito] / pedidos:6x1 / ficha:6x1 / llegadas:6x1 / grow:6x1', '12 · acomodo: ' + forma(acomodar(t.cuadros)));
+    ok(X.tvLineaChat_(r.celda) === 'Tarjeta de la llamada · socio Carlos Prueba', '12 · la línea del chat junto a la llamada');
+    X.tvCandidata_('socio', () => X.tvSocio_({ tel: TEL, nombre: 'Carlos Prueba', props: [NARAMA] }, { principal: true, items: ITEMS }));
+    ok(X.tvCerrar_('conv-app', true, false).visible && JSON.parse(c.cache['voztarjeta_conv-app']).id === t.id, '12 · por estado: el mismo socio no se rearma');
+  }
+  /* visita pendiente en Grow */
+  { const { X } = arma();
+    X.tvGrowGuardar_({ ok: true, proyectos: [{ id: 'p1', edificio: 'Torre Demo', apto: '1503', etapa: 'visita', dueno: 'Carlos Prueba Méndez', visita: { fecha: '2026-11-06 10:00', asignado: 'Inés Demo', completa: false } }] });
+    const t = X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true, items: [] });
+    ok(de(t, 'grow').v === 'Visita' && de(t, 'grow').d === 'Visita vie 6 nov 10:00 con Inés', '12 · Grow con visita pendiente: ' + de(t, 'grow').d);
+  }
+  /* poca información: los cuadros crecen */
+  { const { X } = arma({ sinFoto: true, sinMes: true, sinTemas: true, sinEst: true, sinGrow: true, sinMi: true });
+    const t = X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true, items: [] });
+    ok(ids(t) === 'foto' && de(t, 'foto').tam === 'm' && !de(t, 'foto').fondo && de(t, 'foto').esfera === 'proposito' && de(t, 'foto').iniciales === 'CP', '12 · poca información: solo la foto, con sus iniciales sobre Propósito');
+    ok(forma(acomodar(t.cuadros)) === 'hero[foto:1fr:2|]' && t.sub === 'Narama 633', '12 · … y ocupa todo el ancho: ' + forma(acomodar(t.cuadros)));
+    const t2 = X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true, items: ITEMS.slice(0, 2) });
+    ok(forma(acomodar(t2.cuadros)) === 'hero[foto:1fr:2|] / ficha:6x1', '12 · con solo la ficha: foto a lo ancho y la ficha debajo: ' + forma(acomodar(t2.cuadros)));
+    const f = arma({ sinFoto: true, finanzas: true, sinMes: true });
+    ok(de(f.X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true, items: [] }), 'foto').esfera === 'finanzas', '12 · si Juan lo movió a Finanzas, sus iniciales van sobre ese color');
+    const sinNombre = arma({ sinFoto: true, sinMi: true }).X.tvSocio_({ props: [RUE] }, { principal: true, items: [] });
+    ok(sinNombre && sinNombre.titulo === 'Socio de Rue 301' && de(sinNombre, 'foto').iniciales === 'R3', '12 · un socio sin nombre ni número (solo Mi): «Socio de Rue 301»');
+  }
+  /* otro administrador: sin dinero ni ficha; un administrador nunca es socio */
+  { const { X, lecturas } = arma();
+    const t = X.tvSocio_({ tel: TEL, nombre: 'Carlos Prueba', props: [NARAMA] }, { principal: false });
+    ok(!de(t, 'ocupacion') && !de(t, 'deposito') && !de(t, 'ficha') && de(t, 'pedidos') && de(t, 'llegadas') && lecturas() === 0, '12 · otro administrador: sin ocupación, depósito ni ficha (y no se lee de Mi): ' + ids(t));
+    ok(X.tvSocio_({ tel: '50255550101', nombre: 'Juan' }, { principal: true }) === null, '12 · el número de un administrador nunca es un socio');
+  }
+  /* la app de antes y los tipos que avisa la app */
+  { const { c, X } = arma();
+    X.tvCandidata_('socio', () => X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true, items: ITEMS }));
+    const r = X.tvCerrar_('conv-app', true, false);
+    ok(r && !r.visible && !r.voz && !c.cache['voztarjeta_conv-app'] && JSON.parse(r.celda).tipo === 'socio', '12 · app de antes (no avisó «socio»): no sale en pantalla, queda en el chat y Alma lo dice de viva voz');
+    c.cache['voztvtipos_conv-app'] = JSON.stringify(['reserva', 'apartamento']);
+    X.tvCandidata_('socio', () => X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true, items: ITEMS }));
+    ok(!X.tvCerrar_('conv-app', true, false).visible, '12 · una app que avisa otros tipos sin «socio»: tampoco');
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
+    ok(X.tvCerrar_('conv-app', true, false).visible, '12 · la reserva sigue saliendo como siempre (no necesita aviso)');
+    const voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), vin = voz.slice(voz.indexOf('function vozWebVincular_'), voz.indexOf('function vozWebVincular_') + 3200);
+    ok(/Array\.isArray\(b\.tipos\)\) CacheService\.getScriptCache\(\)\.put\('voztvtipos_' \+ convId/.test(vin), '12 · vozWebVincular_ guarda los tipos que la app pinta');
+    ok(/socio: "Socio"/.test(html) && /\.tvb-foto\[data-esfera="proposito"\]/.test(html) && /\.tvb-foto\[data-esfera="finanzas"\]/.test(html) && /d\.setAttribute\("data-esfera", c\.esfera\)/.test(html), '12 · la página pinta las iniciales del socio sobre el color de su esfera');
+  }
+  /* la ficha se lee de Mi solo si el tablero se va a ver */
+  { const a = arma(); a.c.cache['vozpant_conv-app'] = '0'; a.c.cache['voztvtipos_conv-app'] = '["socio"]';
+    a.X.tvCandidata_('socio', () => a.X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true }));
+    a.X.tvCerrar_('conv-app', true, false);
+    ok(a.lecturas() === 0, '12 · pantalla bloqueada: no se lee la ficha de Mi');
+    delete a.c.cache['vozpant_conv-app'];
+    a.X.tvCandidata_('socio', () => a.X.tvSocio_({ tel: TEL, props: [NARAMA] }, { principal: true }));
+    const r = a.X.tvCerrar_('conv-app', true, false);
+    ok(r.visible && a.lecturas() === 1 && de(r.tarjeta, 'ficha'), '12 · en pantalla: se lee una vez (con su caché de 5 min) y sale la ficha');
+  }
+  /* las candidatas */
+  { const { X } = arma();
+    X.tvCandidataContacto_(JUAN, [], { propiedad: NARAMA, socios: [{ nombre: 'Carlos Prueba', tel: TEL, email: 'carlos@ejemplo.com' }] });
+    ok(X.TV_CANDIDATA_ && X.TV_CANDIDATA_.tipo === 'socio', '12 · buscar_contacto con UN socio (el del apartamento según Mi): candidata');
+    const t = X.TV_CANDIDATA_.hacer();
+    ok(de(t, 'ocupacion') && de(t, 'ficha'), '12 · … con el principal, con su dinero y su ficha');
+    X.tvCandidataContacto_(JUAN, [], { propiedad: RUE, socios: [{ nombre: 'Carlos Prueba', tel: TEL }, { nombre: 'Otra Socia', tel: OTRO }] });
+    ok(X.TV_CANDIDATA_ === null, '12 · dos socios: es una lista, no hay tablero');
+    X.tvCandidataContacto_(JUAN, [{ tel: TEL, nombre: 'Carlos Prueba', tipo: 'socio', propiedades: NARAMA }], null);
+    ok(X.TV_CANDIDATA_ && X.TV_CANDIDATA_.tipo === 'socio', '12 · el contacto encontrado es un socio: candidata');
+    X.tvCandidataContacto_(JUAN, [], { opciones: [NARAMA, RUE] });
+    ok(X.TV_CANDIDATA_ === null, '12 · varios apartamentos: nada');
+    X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, []));
+    X.tvCandidataContacto_(JUAN, [{ tel: '50211112222', nombre: 'Técnico Demo', tipo: 'tecnico' }, { tel: TEL, nombre: 'Carlos Prueba', tipo: 'socio' }], null);
+    ok(X.TV_CANDIDATA_ && X.TV_CANDIDATA_.tipo === 'reserva', '12 · si el contacto encontrado no es un socio, no toca la candidata');
+    const ana = arma().X; ana.tvCandidataContacto_(ANA, [], { propiedad: NARAMA, socios: [{ nombre: 'Carlos Prueba', tel: TEL }] });
+    const ta = ana.TV_CANDIDATA_.hacer();
+    ok(!de(ta, 'ocupacion') && !de(ta, 'ficha'), '12 · … con otro administrador, sin dinero ni ficha');
+  }
+  { const temaCaso = (sel, prev) => { const { X } = arma(); X.TEMA_ACT_ = sel; X.TV_CANDIDATA_ = null; X.TV_TOCADA_ = false; if (prev) prev(X); X.tvCandidataTema_(JUAN); return X; };
+    const a = temaCaso({ id: 'tm1', por: 'nombre' });
+    ok(a.TV_CANDIDATA_ && a.TV_CANDIDATA_.tipo === 'socio' && a.TV_CANDIDATA_.hacer().titulo === 'Carlos Prueba', '12 · el tema del turno es el pedido de un socio (lo nombró): su tablero');
+    ok(temaCaso({ id: 'tm1', por: 'jev' }).TV_CANDIDATA_ === null && temaCaso({ id: 'tm1', por: 'reciente' }).TV_CANDIDATA_ === null, '12 · elegido por Jev o «el más reciente»: no (podría no ser de él)');
+    ok(temaCaso({ id: 'tm5', por: 'nombre' }).TV_CANDIDATA_ === null && temaCaso({ id: 'tm4', por: 'nombre' }).TV_CANDIDATA_ === null, '12 · un tema que no es de socio, o ya cerrado: no');
+    const r = temaCaso({ id: 'tm1', por: 'nombre' }, (X) => X.tvCandidata_('reserva', () => X.tvReserva_(FILA, ITEM, [])));
+    ok(r.TV_CANDIDATA_.tipo === 'reserva', '12 · si una herramienta ya dejó otra cosa (una reserva), gana esa');
+    const l = temaCaso({ id: 'tm1', por: 'nombre' }, (X) => X.tvCandidata_(null));
+    ok(l.TV_CANDIDATA_ === null, '12 · si el turno trajo una lista, tampoco');
+    const w = caja({ canal: 'whatsapp' }).X; w.TEMA_ACT_ = { id: 'tm1', por: 'nombre' }; w.temaLeer_ = (id) => TEMAS.filter((t) => t.id === id)[0]; w.tvCandidataTema_(JUAN);
+    ok(w.TV_CANDIDATA_ === null, '12 · por WhatsApp o el chat escrito: nunca');
+    const fam = arma().X; fam.AGENTE_PERMITIDAS_ = ['proyectos_personales']; fam.tvCandidata_('socio', () => ({})); ok(fam.TV_CANDIDATA_ === null, '12 · la familia nunca');
+  }
+  { const src = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8');
+    const bc = src.slice(src.indexOf("case 'buscar_contacto'"), src.indexOf("case 'ver_imagenes'"));
+    ok(/tvCandidataContacto_\(adm, fichas, sB\)/.test(bc), '12 · buscar_contacto deja la candidata del socio');
+    ok(/case 'ficha_socio': \{[\s\S]{0,400}fichaHerramienta_\(adm, inp, fueraF\)[\s\S]{0,300}tvCandidata_\('socio'/.test(src), '12 · ficha_socio (ver) deja la candidata con la ficha que ya leyó');
+    ok(/tvGrowGuardar_\(rGp\)/.test(src) && /tvCandidataTema_\(adm\)/.test(src.slice(src.indexOf('function agCerrarTurno_'))), '12 · grow_proyectos guarda la etapa y el cierre del turno revisa el tema del socio');
+    const fsoc = fs.readFileSync(path.join(DIR, 'fichasocio.js'), 'utf8');
+    ok(/function fichaHerramienta_\(adm, inp, fuera\)/.test(fsoc) && /if \(fuera\) \{ fuera\.s = s; fuera\.items = items; \}/.test(fsoc), '12 · fichaHerramienta_ entrega el socio y su ficha al tablero sin volver a buscarlos');
   }
 }
 

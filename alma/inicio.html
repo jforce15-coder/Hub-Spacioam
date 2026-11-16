@@ -629,6 +629,8 @@
   .tvb-chip[data-tono="alerta"] { background: #F2DAD5; color: #9E3326; }
   .tvb-foto { padding: 0; background: radial-gradient(120% 90% at 22% 18%, rgba(242,198,168,.95) 0%, rgba(233,130,106,.55) 38%, rgba(233,130,106,0) 70%), linear-gradient(155deg, #E9DED3 0%, #B9A493 52%, #8F7F74 100%); }
   .tvb-foto > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .tvb-foto[data-esfera="proposito"] { background: linear-gradient(150deg, #E9826A, #C9705E); }   /* socio sin foto: sus iniciales sobre el color de su esfera (#508 Fase 2) */
+  .tvb-foto[data-esfera="finanzas"] { background: linear-gradient(150deg, #9DB59A, #6F8E6E); }
   .tvb-foto .tvb-chip { position: absolute; top: 10px; left: 10px; box-shadow: 0 4px 12px -6px rgba(40,30,25,.4); }
   .tvb-ini { position: absolute; inset: 0; display: grid; place-items: center; font: 400 clamp(34px, 11vw, 46px)/1 Valky, "Cormorant Garamond", Georgia, serif; color: #fff; letter-spacing: .04em; text-shadow: 0 2px 14px rgba(110,70,55,.35); }
   .tvb-av { position: absolute; left: 10px; bottom: 10px; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; box-sizing: border-box;
@@ -2581,7 +2583,7 @@
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio", socio: "Socio" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -2677,7 +2679,10 @@
     var d = el("div", "tvb-t tvb-" + (c.tipo === "dato" ? "dato" : c.tipo === "mensaje" ? "msg" : c.tipo));
     var cara = function (src, ini, alt) { var a = el("span", "tvb-cara"), u = seguro(src); if (u) a.appendChild(img(u, alt || "", function () { a.textContent = ini || ""; })); else a.textContent = ini || ""; a.setAttribute("aria-hidden", "true"); return a; };
     if (c.tipo === "foto") {
-      var ini = function () { if (!d.querySelector(".tvb-av,.tvb-ini")) d.appendChild(el("span", "tvb-ini", c.iniciales || "")); };
+      var ini = function () {
+        if (!d.querySelector(".tvb-av,.tvb-ini")) d.appendChild(el("span", "tvb-ini", c.iniciales || ""));
+        if (/^(proposito|finanzas)$/.test(c.esfera || "")) d.setAttribute("data-esfera", c.esfera);   // socio sin foto: el color de su esfera (#508 Fase 2)
+      };
       var fondo = seguro(c.fondo);
       if (fondo) { var f = img(fondo, c.alt, function () { var a = d.querySelector(".tvb-av"); if (a) a.parentNode.removeChild(a); ini(); }); d.appendChild(f); if (c.alt) d.setAttribute("role", "img"), d.setAttribute("aria-label", c.alt); }
       /* Encima de la foto del apartamento, la del huésped: en la reserva siempre (o sus iniciales); en otros tableros, solo

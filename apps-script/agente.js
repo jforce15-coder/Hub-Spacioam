@@ -525,6 +525,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       /* Con su número, lo que de verdad pasó por WhatsApp: «¿le llegó?», «¿le mandamos el mensaje al socio de…?» (entrega.js). */
       var sociosB = sB && sB.socios ? sB.socios.map(function (x) { var st = null; if (x.tel) { try { st = waEstadoContacto_(x.tel); } catch (e) {} }
         return { nombre: x.nombre || x.email, numero: x.tel ? '+' + x.tel : 'sin número (pídeselo a Juan una vez y va en numero con propiedad)', de_donde: x.fuente || 'Mi (sin teléfono)', propiedad: sB.propiedad, whatsapp: st ? st.resumen : undefined }; }) : sB && sB.opciones ? [{ opciones: sB.opciones }] : undefined;
+      try { tvCandidataContacto_(adm, fichas, sB); } catch (e) { console.error('tvCandidataContacto_: ' + e); }   // UN socio: su tablero en la llamada (tarjeta.js, #508 Fase 2)
       if (!fichas.length && !recientes.length && !sociosB) return { error: 'No tengo ficha de «' + inp.texto + '» ni le he escrito en los últimos 30 días. Si tienes su número, búscalo con el número.' };
       return { socios_del_apartamento: sociosB, recientes: recientes.length ? recientes : undefined, contactos: fichas.slice(0, 3).map(function (o, i) {
         var st = null; if (i === 0) { try { st = waEstadoContacto_(o.tel); } catch (e) {} }   // el estado real de lo último que se le mandó (entrega.js)
@@ -695,9 +696,17 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rE;
     }
     case 'reporte_mes': return reporteMes_(adm, inp);   // reportemes.js
-    case 'ficha_socio': return fichaHerramienta_(adm, inp);   // fichasocio.js (#522)
+    case 'ficha_socio': {   // fichasocio.js (#522); al verla en una llamada, el tablero del socio (tarjeta.js, #508 Fase 2)
+      var fueraF = {}, rF = fichaHerramienta_(adm, inp, fueraF), sF = fueraF.s;
+      if (sF && rF && !rF.error) tvCandidata_('socio', function () { return tvSocio_({ tel: sF.tel, nombre: sF.nombre, correo: sF.correo, props: [sF.propiedad] }, { principal: true, items: fueraF.items }); });
+      return rF;
+    }
     case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
-    case 'grow_proyectos': return acortarEnObjeto_(growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' }), nombre, 'grow');   // lo de Grow, con grow.spacioam.com (enlaces.js)
+    case 'grow_proyectos': {   // lo de Grow, con grow.spacioam.com (enlaces.js)
+      var rGp = growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
+      try { tvGrowGuardar_(rGp); } catch (e) { console.error('tvGrowGuardar_: ' + e); }   // la etapa para el tablero del socio (tarjeta.js)
+      return acortarEnObjeto_(rGp, nombre, 'grow');
+    }
     case 'grow_crear_proyecto': case 'grow_mover_etapa': case 'grow_agendar_visita': {
       if (nombre === 'grow_mover_etapa' && inp.etapa === 'descartado' && !String(inp.motivo || '').trim()) return { error: 'Para descartar necesito el motivo.' };
       var op = { grow_crear_proyecto: 'crear', grow_mover_etapa: 'etapa', grow_agendar_visita: 'visita' }[nombre];
@@ -972,6 +981,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
 function agCerrarTurno_(adm, final, ctx) {
   /* La etiqueta [[esfera: … · …]] sale del texto antes de que nadie lo vea o lo oiga (chat.js). */
   var mt = microSacarEtiqueta_(final), nv = claudeNivelSacarEtiqueta_(mt.texto), et = chatSacarEtiqueta_(nv.texto), tg = temaSacarEtiqueta_(et.texto); final = tg.texto;   // y [[tema: …]] (temas.js)   // [[micro: …]] (microproyectos.js), [[nivel: …]] (paraclaude.js) y [[esfera: …]]
+  try { tvCandidataTema_(adm); } catch (e) { console.error('tvCandidataTema_: ' + e); }   // en una llamada, el pedido de un socio sin otra tarjeta: su tablero (tarjeta.js)
   var respFinal = final || (ctx.hechas.length ? 'Listo.' : 'Entendido.');
   /* Solo lo que terminó en segundo plano va a Pendientes: lo que Juan vio en el chat o en la llamada ya lo sabe, y una
      tarjeta o notificación por cada turno era ruido (Juan, 2-nov). */

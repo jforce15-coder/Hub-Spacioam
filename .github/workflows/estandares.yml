@@ -249,3 +249,7 @@ jobs:
       - name: Modo calle en un solo control, un toque escucha, un toque largo enciende o apaga y no hay interruptor en Ajustes
         # 16-nov: Juan quiere un solo botón del caminante en la pantalla principal; «Probar» queda en la línea y en Ajustes.
         run: node .github/calle-boton.js
+      - name: Foto del contacto, iPhone antes que Google, la manual gana, solo los números sin foto, 256 px JPEG, privada y con sesión (dobles)
+        # 16-nov: Juan quiere la foto de su familia, amigos y contactos sin reserva en la bandeja (#567 T4): Contactos del iPhone,
+        # Contactos de Google y a mano; nunca la agenda entera, nunca Facebook ni Instagram y nunca con enlace público.
+        run: node .github/fotos-contactos.js apps-script

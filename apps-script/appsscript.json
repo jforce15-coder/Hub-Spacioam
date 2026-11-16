@@ -2,7 +2,8 @@
   "timeZone": "America/Guatemala",
   "dependencies": {
     "enabledAdvancedServices": [
-      { "userSymbol": "Gmail", "serviceId": "gmail", "version": "v1" }
+      { "userSymbol": "Gmail", "serviceId": "gmail", "version": "v1" },
+      { "userSymbol": "People", "serviceId": "peopleapi", "version": "v1" }
     ]
   },
   "exceptionLogging": "STACKDRIVER",

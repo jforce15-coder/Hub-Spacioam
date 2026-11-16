@@ -223,7 +223,8 @@ function vozAnilloHerramientas_() {
   var solo = ' Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ANILLO DE JUAN». Si responde conectado: false, dilo claro y no inventes datos (lo que traiga es lo último leído, con su hora).';
   var dia = { type: 'integer', description: '0 = hoy (por defecto), 1 = ayer… hasta 6.' };
   return [
-    cliente('anillo_estado', 8, 'Estado del anillo QRing de Juan: si está conectado, batería y si carga, firmware y cuándo se sincronizó.' + solo),
+    cliente('anillo_estado', 8, 'Estado del anillo QRing de Juan: si está conectado, batería y si carga, firmware y cuándo se sincronizó. Con mostrar: true abre en la app la pantalla Dispositivos (el anillo y los lentes, con su batería y sus ajustes) si Juan la pide o quiere verlo.' + solo,
+      { mostrar: { type: 'boolean', description: 'true para abrir la pantalla Dispositivos en la app.' } }),
     cliente('anillo_medidas', 20, 'Lo que el anillo midió en un día: pasos, kcal y km, el ritmo cardíaco del día (mín., máx., promedio y la última lectura con su hora) y el último ritmo y oxígeno medidos en vivo.' + solo,
       { dia: dia }),
     cliente('anillo_medir_ahora', 40, 'Mide AHORA el ritmo cardíaco o el oxígeno con el anillo (tarda de 15 a 30 s). Antes di una frase corta («Te mido; quédate quieto unos segundos»). Si Juan dice que ya no, llámala con cancelar: true.' + solo,

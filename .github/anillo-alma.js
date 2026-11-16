@@ -98,6 +98,7 @@ const ahora = () => Date.now() / 1000;
   ok(nombres === 'anillo_estado anillo_medidas anillo_medir_ahora anillo_ajustes anillo_buscar', '5 · las 5 herramientas de cliente: ' + nombres);
   ok(hs.every(h => h.type === 'client' && h.expects_response === true && /ANILLO DE JUAN/.test(h.description) && /no inventes/.test(h.description) && !h.url),
     '5 · de cliente, contestan, sin URL ni llave y solo con «ANILLO DE JUAN» en la ficha');
+  ok(hs[0].parameters.properties.mostrar, '5 · anillo_estado también abre la pantalla Dispositivos (mostrar)');
   const med = hs.find(h => h.name === 'anillo_medir_ahora');
   ok(med.response_timeout_secs >= 35 && med.parameters.properties.cancelar, '5 · medir ahora espera lo que tarda el anillo y se puede cancelar');
   const voz = leer('voz.js'), ag = leer('agente.js'), cod = leer('Código.js'), rap = leer('rapido.js'), cupo = leer('cupo.js');
@@ -105,6 +106,9 @@ const ahora = () => Date.now() / 1000;
   ok(/T\('anillo', /.test(ag) && /case 'anillo': return anilloHerramienta_\(adm\)/.test(ag), '5 · la herramienta «anillo» del chat');
   ok(/case 'anilloResumen': return json_\(anilloResumenGuardar_\(ses, body\)\)/.test(cod) && /anilloResumen/.test(cupo), '5 · la acción anilloResumen en Código.js y su canal');
   ok(/'anillo', 'pedidos_en_orbita'\]/.test(rap), '5 · la voz rápida también la puede leer');
+  const ini = fs.readFileSync(path.join(DIR, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/id="b-dispositivos"[^>]*hidden/.test(ini) && /\$\("b-dispositivos"\)\.hidden = !e\.dispositivos/.test(ini) && /accion: "dispositivos"/.test(ini),
+    '5 · Ajustes → «Dispositivos», solo con una app que la sabe abrir');
 }
 
 process.exit(fallo);

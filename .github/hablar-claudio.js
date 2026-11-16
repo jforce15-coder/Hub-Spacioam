@@ -52,7 +52,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(!pr.tool_ids && !pr.built_in_tools.transfer_to_number && pr.built_in_tools.end_call && pr.built_in_tools.end_call.description !== 'de Alma' && !b.platform_settings.data_collection, 'no se copian herramientas ni datos de Alma (solo colgar, con su propia descripción)');
   ok(b.platform_settings.auth.enable_auth === true, 'acceso cerrado: solo con URL firmada');
   const g = b.platform_settings.guardrails, mia = g.custom.config.configs.filter(c => c.name === R('CLAUDIO_PROTECCION_NOMBRE_'))[0];
-  ok(g.prompt_injection.is_enabled === false && mia && mia.trigger_action.type === 'retry' && mia.prompt.indexOf('{{marca_principal}}') > 0 && mia.prompt.indexOf(R('vozMarcaPrincipal_()')) > 0, 'protección con la marca del principal, que reintenta y no cuelga');
+  ok(g.prompt_injection.is_enabled === false && mia && mia.trigger_action.type === 'end_call' && mia.prompt.indexOf('{{marca_principal}}') > 0 && mia.prompt.indexOf(R('vozMarcaPrincipal_()')) > 0, 'protección con la marca del principal, que cuelga a quien no lo es');
   ok(cc.agent.dynamic_variables.dynamic_variable_placeholders.marca_principal === 'ninguna' && /no es el administrador principal/.test(cc.agent.dynamic_variables.dynamic_variable_placeholders.quien_llama), 'sin ficha del Hub: «ninguna» y no es el principal');
   ok(pr.prompt === R('claudioPromptCompleto_()'), 'nace con su prompt');
   salidas = []; R('claudioCrearSiFalta_(true)');

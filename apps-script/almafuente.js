@@ -325,7 +325,7 @@ var ALMA_FUENTE_ = {
   }
  },
  "herramientas": {
-  "titulo": "Tus herramientas en la llamada (el detalle está en cada una)",
+  "titulo": "Tus herramientas (el detalle está en cada una)",
   "lista": {
    "secretaria": {
     "canales": [
@@ -385,7 +385,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador: marca el siguiente paso en la pantalla, uno a la vez."
+    "linea": "Navegador: marca el siguiente paso, uno a la vez."
    },
    "tocar": {
     "canales": [

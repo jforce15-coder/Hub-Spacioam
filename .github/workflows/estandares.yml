@@ -120,6 +120,10 @@ jobs:
         # 13-nov: la pantalla de Propiedades del script ya no deja agregar más (~50); Juan eligió guardarlas desde Ajustes (opción A).
         run: node .github/llaves.js apps-script
 
+      - name: Reiniciar contraseña, solo con la sesión firmada del administrador principal y sin ninguna llave escrita en la página (dobles)
+        # 16-nov-2026: usuarios.html llevaba la llave compartida de las apps y no mandaba la sesión: el botón nunca reiniciaba.
+        run: node .github/usuarios-reinicio.js login/apps-script
+
       - name: El PR trae evidencia (aviso)
         run: |
           if ! printf '%s' "$CUERPO" | grep -qiE '^##+ *(evidencia|prueba)'; then

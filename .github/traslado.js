@@ -4,6 +4,8 @@
    2. Idempotente: crea el proyecto una sola vez; la segunda publicación actualiza el mismo y la misma app web.
    3. La llave de «traer» sirve UNA vez; con otra llave no entrega nada; tras traer, la publicación quita traslado_traer.
    4. El viejo entrega solo a alma@ (correo verificado, emisor Google, sin vencer) y a la misma app (aud) siempre.
+      Revisa la firma del token AQUÍ (RS256), sin UrlFetch: sin cupo de Google entrega igual; firma mala o llave
+      desconocida, no entrega.
    5. trasladoTraer copia solo las Propiedades que faltan (nunca pisa) y corre lo de instalar.
    node .github/traslado.js */
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
@@ -24,32 +26,55 @@ const utilidades = {
   getUuid: () => crypto.randomUUID(), sleep() {},
   DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
   computeDigest: (alg, t) => Array.from(crypto.createHash('sha256').update(t, 'utf8').digest()).map(b => (b > 127 ? b - 256 : b)),
-  formatDate: (d) => d.toISOString().slice(0, 10)
+  formatDate: (d) => d.toISOString().slice(0, 10),
+  base64DecodeWebSafe: t => Array.from(Buffer.from(t, 'base64url')).map(b => (b > 127 ? b - 256 : b)),
+  newBlob: bytes => ({ getDataAsString: () => Buffer.from(bytes.map(b => b & 0xFF)).toString('utf8') })
 };
+/* Tokens de identidad firmados de verdad (RS256) con una llave de prueba que hace de «llave pública de Google». */
+const LLAVE = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }), OTRA = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
+const JWK = LLAVE.publicKey.export({ format: 'jwk' });
+const b64u = o => Buffer.from(JSON.stringify(o)).toString('base64url');
+function token(cambios, opc) {
+  opc = opc || {};
+  const t = Object.assign({ iss: 'https://accounts.google.com', email: 'alma@spacioam.com', email_verified: true, aud: 'app-mudador',
+    exp: Math.floor(Date.now() / 1000) + 600 }, cambios || {});
+  const datos = b64u({ alg: 'RS256', kid: opc.kid || 'prueba', typ: 'JWT' }) + '.' + b64u(t);
+  return datos + '.' + crypto.sign('sha256', Buffer.from(datos), (opc.clave || LLAVE).privateKey).toString('base64url');
+}
 const contenido = { createTextOutput: t => ({ setMimeType() { return this; }, texto: t }), MimeType: { JSON: 'json' } };
 const base = () => ({ console: { log: (...a) => logs.push(a.join(' ')), error() {}, warn() {} }, JSON, Math, String, Number, Object, Array, RegExp, Date, Error,
   encodeURIComponent, Utilities: utilidades, ContentService: contenido, LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) } });
 
 /* ── Proyecto VIEJO con entregar.js ── */
 const viejo = propiedades({ ANTHROPIC_KEY: SECRETO, ACCESOS: 'a', CUPO_HORAS: '{}', SESION_EXIGIR: '1' });
-let tokeninfo = { iss: 'https://accounts.google.com', email: 'alma@spacioam.com', email_verified: 'true', aud: 'app-mudador', exp: String(Math.floor(Date.now() / 1000) + 600) };
+let fetches = 0;
+const sinCupo = () => { fetches++; throw new Error('Service invoked too many times for one day: urlfetch.'); };
 const ctxViejo = Object.assign(base(), {
   PropertiesService: { getScriptProperties: () => viejo.sp },
-  uf_: (url) => (url.indexOf('https://oauth2.googleapis.com/tokeninfo?id_token=') === 0 && url.indexOf('a.b.c') > 0 ? respuesta(200, tokeninfo) : respuesta(400, {}))
+  BigInt, uf_: sinCupo, UrlFetchApp: { fetch: sinCupo }   // la cuenta vieja sin cupo de Google (17-nov-2026)
 });
 vm.createContext(ctxViejo);
 vm.runInContext(fs.readFileSync(path.join(RAIZ, 'traslado', 'entregar.js'), 'utf8'), ctxViejo, { filename: 'entregar.js' });
+ok(ctxViejo.TRASLADO_LLAVES_.length >= 2 && ctxViejo.TRASLADO_LLAVES_.every(k => k.kid && k.n && k.e === 'AQAB'), 'entregar.js trae las llaves públicas de Google de hoy');
+ctxViejo.TRASLADO_LLAVES_ = [{ kid: 'prueba', n: JWK.n, e: JWK.e }];
 const entregar = tok => JSON.parse(ctxViejo.trasladoEntregar_({ traslado: 'entregar', id_token: tok }).texto);
 
 ok(ctxViejo.trasladoEntregar_({ action: 'ping' }) === null, 'entregar.js no toca los pedidos normales de la app');
-ok(entregar('basura').error === 'identidad', 'sin token de identidad válido no entrega');
-tokeninfo.email = 'otra@gmail.com';
-ok(entregar('a.b.c').error === 'identidad', 'a otra cuenta no le entrega');
-tokeninfo.email = 'alma@spacioam.com'; tokeninfo.email_verified = 'false';
-ok(entregar('a.b.c').error === 'identidad', 'correo sin verificar no recibe');
-tokeninfo.email_verified = 'true'; tokeninfo.exp = '1000';
-ok(entregar('a.b.c').error === 'identidad', 'token vencido no recibe');
-tokeninfo.exp = String(Math.floor(Date.now() / 1000) + 600);
+ok(/^identidad/.test(entregar('basura').error), 'sin token de identidad válido no entrega');
+ok(/firma mala/.test(entregar(token({}, { clave: OTRA })).error), 'firma mala no recibe');
+ok(/llave de Google desconocida/.test(entregar(token({}, { kid: 'otra-llave' })).error), 'llave desconocida no recibe');
+const partes = token().split('.'), cambiado = partes[0] + '.' + b64u({ iss: 'https://accounts.google.com', email: 'alma@spacioam.com', email_verified: true, aud: 'x', exp: 9e9 }) + '.' + partes[2];
+ok(/firma mala/.test(entregar(cambiado).error), 'token con datos cambiados no recibe');
+ok(/emisor/.test(entregar(token({ iss: 'https://otro.com' })).error), 'emisor que no es Google no recibe');
+delete viejo.d.TRASLADO_DIA;   // tope de 6 al día: se empieza de cero
+ok(/otro correo/.test(entregar(token({ email: 'otra@gmail.com' })).error), 'a otra cuenta no le entrega');
+ok(/sin verificar/.test(entregar(token({ email_verified: false })).error), 'correo sin verificar no recibe');
+ok(/vencido/.test(entregar(token({ exp: 1000 })).error), 'token vencido no recibe');
+ok(!viejo.d.TRASLADO_AUD, 'ningún rechazo fija la app');
+delete viejo.d.TRASLADO_DIA;
+const sinCupoOk = entregar(token());
+ok(sinCupoOk.ok && sinCupoOk.propiedades.ANTHROPIC_KEY === SECRETO && fetches === 0, 'token válido y sin cupo de Google: entrega sin llamar a internet');
+delete viejo.d.TRASLADO_AUD;
 delete viejo.d.TRASLADO_DIA;   // los intentos de arriba cuentan en el tope del día; se empieza de cero
 
 /* ── El MUDADOR ── */
@@ -59,7 +84,7 @@ let proximo = 0;
 const ctxMud = Object.assign(base(), {
   PropertiesService: { getScriptProperties: () => mud.sp },
   Session: { getEffectiveUser: () => ({ getEmail: () => 'alma@spacioam.com' }) },
-  ScriptApp: { getOAuthToken: () => 'tok-oauth', getIdentityToken: () => 'a.b.c', getScriptId: () => 'MUDADOR' },
+  ScriptApp: { getOAuthToken: () => 'tok-oauth', getIdentityToken: () => token(), getScriptId: () => 'MUDADOR' },
   UrlFetchApp: { fetch: (url, o) => {
     if (url === VIEJO) return respuesta(200, JSON.parse(ctxViejo.trasladoEntregar_(JSON.parse(o.payload)).texto));
     const ruta = url.replace('https://script.googleapis.com/v1', ''), cuerpo = o.payload ? JSON.parse(o.payload) : null;
@@ -122,11 +147,9 @@ let segunda = '';
 try { ctxNuevo.trasladoTraer(); } catch (e) { segunda = e.message; }
 ok(/sin_llave/.test(segunda), 'la llave de traer sirve una sola vez');
 
-tokeninfo.aud = 'otra-app';
-ok(entregar('a.b.c').error === 'otra_app', 'otra app de alma@ ya no puede pedir las Propiedades');
-tokeninfo.aud = 'app-mudador';
+ok(entregar(token({ aud: 'otra-app' })).error === 'otra_app', 'otra app de alma@ ya no puede pedir las Propiedades');
 viejo.d.TRASLADO_DIA = JSON.stringify({ d: new Date().toISOString().slice(0, 10), n: 99 });
-ok(entregar('a.b.c').error === 'tope_del_dia', 'el viejo tiene tope de entregas al día');
+ok(entregar(token()).error === 'tope_del_dia', 'el viejo tiene tope de entregas al día');
 
 const r3 = pub({ sha: 'bbb222' });
 const sub3 = api.filter(x => /\/content$/.test(x.ruta)).slice(-1)[0].cuerpo.files;
@@ -150,5 +173,11 @@ ok(/MUDADOR_LLAVE/.test(sinLlave), 'empacar sin el secreto se detiene');
 const man = JSON.parse(fs.readFileSync(path.join(RAIZ, 'traslado', 'appsscript.json'), 'utf8'));
 ok(['script.projects', 'script.deployments', 'script.external_request', 'userinfo.email'].every(s => man.oauthScopes.some(x => x.endsWith(s))) &&
   man.oauthScopes.includes('openid') && man.webapp.executeAs === 'USER_DEPLOYING', 'el manifiesto del Mudador pide los permisos justos');
+
+ok(fetches === 0, 'entregar.js nunca usó UrlFetch');
+const roto = Object.assign(base(), { PropertiesService: { getScriptProperties: () => { throw new Error('Service invoked too many times for one day: properties.'); } } });
+vm.createContext(roto);
+vm.runInContext(fs.readFileSync(path.join(RAIZ, 'traslado', 'entregar.js'), 'utf8'), roto);
+ok(/^sin cupo de Google/.test(JSON.parse(roto.trasladoEntregar_({ traslado: 'entregar', id_token: 'x' }).texto).error), 'un error de cupo dice «sin cupo de Google», no «interno»');
 
 process.exit(fallo);

@@ -805,12 +805,67 @@ function _entrarComo(email){
 }
 function _googleLogin(credential){
   credential=String(credential||''); if(!credential) return {ok:false, error:'google'};
-  var r=UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(credential), {muteHttpExceptions:true});
-  if(r.getResponseCode()!==200) return {ok:false, error:'google'};
-  var t=JSON.parse(r.getContentText()||'{}');
+  var t;
+  try{
+    var r=UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token='+encodeURIComponent(credential), {muteHttpExceptions:true});
+    if(r.getResponseCode()!==200) return {ok:false, error:'google'};
+    t=JSON.parse(r.getContentText()||'{}');
+    _googleLlavesRefrescar();
+  }catch(e){
+    /* Sin llamadas a internet (cupo diario de Google agotado, 17-nov-2026): se comprueba la firma del token aquí. */
+    t=_googleTokenLocal(credential); if(!t) return {ok:false, error:'google'};
+  }
   if(_googleIds().indexOf(String(t.aud))<0) return {ok:false, error:'google_client'};
   if(String(t.email_verified)!=='true' || !t.email || Number(t.exp)*1000<Date.now()) return {ok:false, error:'google'};
   return _entrarComo(String(t.email).toLowerCase());
+}
+/* Comprobación local del ID token de Google (RS256), para cuando Google no deja llamar a internet (cupo diario agotado).
+   Usa las llaves PÚBLICAS de Google (googleapis.com/oauth2/v3/certs): las guardadas en GOOGLE_LLAVES (se renuevan cada
+   6 h cuando sí hay cupo) y, si no hay, las de GOOGLE_LLAVES_SEMILLA. Revisa firma, emisor; aud, correo verificado y
+   vencimiento los revisa _googleLogin igual que con tokeninfo. Un token sin firma válida o con llave desconocida: null. */
+var GOOGLE_LLAVES_SEMILLA=[   // públicas, 17-nov-2026
+  {kid:'943a3a5d7d919625a454e489b75c29adab57acba', e:'AQAB', n:'pIpnzA2ezyEERJSxiqpLBmMeIqATH-V6iuBtKIibXEyYovujrx8niqTeO6RIyXT6uDUUv0V2kJ8V_iWYFxzXY1BqK9IfcAmjg0XUDoyTVkoyLsF0gj299LH-zw5vCvy8jmamFIZKAbKcQ5hpHvSittM1vl-6vVL-i2GxyGbMA9aY6Hq15NylS1t7ELTYfQimlnvxcb7_DM0cuS5U1SfbCZMCpKhh0nrSlYds240oxpCJOV2rBahs_Ea5c7tezS1nwVC9W_E-bR9TF6BHkC_fv-E8DcWfkI_6geaJzBhINNxBfjx-w1-WUp2Jz3YYFWEfeQjxMqu-Fg6cGxwk7V16uQ'},
+  {kid:'9e7b714e8bfb4ef03bac2570eb322bfb7d686ee9', e:'AQAB', n:'7O_xgke58DhpSDJRmIMm-u4fcgxyybcqhkKLHesjVvRuhcxYWFUDkb4elTCgEZGH35JXHK0BDZzA1IDuNdum6wnHFC9emCtE0j781ZPVdpK40qBB_tCk05iJrBaeL92Ep4AznwgCUI0ETQkZHnRcHDn2u-XDlABu1a9nfi3ZNL-JYZEBioielRWvIST64Q7EADp8VglvLQTTNcIYXYSoySBlI4YLipMwJYlw49Skac2IunodvJB6z8Z8VcZKvM87uC00CZMfi6ZuIN7Qjval66BIgamM4sJ6W6aUHDFfCiDOuEQtsXo5ItWg70fItLeTpss1_pJdxkM0nzfx6ccmQQ'}
+];
+function _googleLlaves(){
+  var g=[]; try{ g=JSON.parse(PropertiesService.getScriptProperties().getProperty('GOOGLE_LLAVES')||'{}').keys||[]; }catch(e){}
+  return g.concat(GOOGLE_LLAVES_SEMILLA);
+}
+function _googleLlavesRefrescar(){
+  try{
+    var p=PropertiesService.getScriptProperties(), v=JSON.parse(p.getProperty('GOOGLE_LLAVES')||'{}');
+    if(v.t && Date.now()-v.t < 6*3600000) return;
+    var r=UrlFetchApp.fetch('https://www.googleapis.com/oauth2/v3/certs', {muteHttpExceptions:true});
+    if(r.getResponseCode()!==200) return;
+    var k=(JSON.parse(r.getContentText()||'{}').keys||[]).filter(function(x){ return x && x.kty==='RSA' && x.kid && x.n && x.e; })
+      .map(function(x){ return {kid:x.kid, n:x.n, e:x.e}; });
+    if(k.length) p.setProperty('GOOGLE_LLAVES', JSON.stringify({t:Date.now(), keys:k}));
+  }catch(e){}
+}
+function _b64uBytes(s){ s=String(s||''); return Utilities.base64DecodeWebSafe(s+'==='.slice((s.length+3)%4)); }
+function _bigDe(bytes){ var h=_hex([].slice.call(bytes)); return BigInt('0x'+(h||'0')); }
+function _rsaSha256Ok(datos, firma, nBytes, eBytes){
+  var n=_bigDe(nBytes), e=_bigDe(eBytes), s=_bigDe(firma), uno=BigInt(1), cero=BigInt(0);
+  if(n<=uno || s>=n) return false;
+  var r=uno, b=s%n; while(e>cero){ if((e&uno)===uno) r=r*b%n; e=e>>uno; b=b*b%n; }
+  var nh=n.toString(16), k=Math.ceil(nh.length/2), em=r.toString(16);
+  while(em.length<2*k) em='0'+em;
+  var hash=_hex(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, datos, Utilities.Charset.UTF_8));
+  var relleno=2*k-2*(3+19+32); if(relleno<16) return false;
+  var esperado='0001'+new Array(relleno/2+1).join('ff')+'00'+'3031300d060960864801650304020105000420'+hash;
+  return _iguales(em, esperado);
+}
+function _googleTokenLocal(jwt){
+  try{
+    var p=String(jwt||'').split('.'); if(p.length!==3) return null;
+    var h=JSON.parse(Utilities.newBlob(_b64uBytes(p[0])).getDataAsString());
+    if(!h || h.alg!=='RS256' || !h.kid) return null;
+    var k=_googleLlaves().filter(function(x){ return x.kid===h.kid; })[0]; if(!k) return null;
+    if(!_rsaSha256Ok(p[0]+'.'+p[1], _b64uBytes(p[2]), _b64uBytes(k.n), _b64uBytes(k.e))) return null;
+    var t=JSON.parse(Utilities.newBlob(_b64uBytes(p[1])).getDataAsString());
+    if(['accounts.google.com','https://accounts.google.com'].indexOf(String(t.iss))<0) return null;
+    return t;
+  }catch(e){ return null; }
 }
 function _faceClave(email){ return 'face_'+String(email||'').toLowerCase().slice(0,200); }
 function _faceLista(email){ try{ return JSON.parse(PropertiesService.getScriptProperties().getProperty(_faceClave(email))||'[]'); }catch(e){ return []; } }

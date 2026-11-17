@@ -146,6 +146,10 @@ jobs:
         # 16-nov-2026: usuarios.html llevaba la llave compartida de las apps y no mandaba la sesión: el botón nunca reiniciaba.
         run: node .github/usuarios-reinicio.js login/apps-script
 
+      - name: Entrar sin cupo de Google, sesión firmada y Entrar con Google se comprueban aquí y lo que no tiene firma válida no entra (dobles)
+        # 17-nov-2026: Google cortó las llamadas a internet y Juan no podía entrar (tokeninfo de Google y el verify del Hub).
+        run: node .github/sesion-sin-cupo.js .
+
       - name: Mudador a Workspace, crea una vez, la llave de traer sirve una vez y nada sale sin ser alma@ (dobles)
         # 17-nov-2026: traslado a alma@spacioam.com sin computadora (Juan solo usa iPad): el Mudador reemplaza a clasp.
         run: node .github/traslado.js

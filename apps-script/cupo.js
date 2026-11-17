@@ -420,7 +420,7 @@ function cupoParaAlma_(adm) {
     hoy: { usado: o.usado, pct: o.pctHoy, proyeccion_fin_dia_pct: o.proyeccion, se_acaba_hoy_cerca_de: o.horaAgotado || '', alcanza: o.alcanza },
     lo_que_mas_gasta_hoy: top, funciones_que_mas_gastan_hoy: cupoTopFunciones_(cupoLeerFunciones_(o.hoyIni), o.hoyIni, 3), sin_datos_de: sinDatos,
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0', ahorro: cupoAhorro_(),
-    nota: 'Dilo simple: «vamos en X % del cupo de hoy, estamos bien / en riesgo» y, si preguntan, qué más gasta. El detalle está en Ajustes → Uso.' };
+    nota: 'Dilo simple: «vamos en X % del cupo de hoy, estamos bien / en riesgo» y, si preguntan, qué más gasta. El detalle está en Ajustes → Gasto de Alma → Google.' };
 }
 /* ── Las otras apps ── { horas: { inicio_ms: { 'App Hola': n, … } }, sinDatos: ['Grow', …] }. Cada app guarda 48 h.
    Cacheado CUPO_APPS_MIN (60 min; antes 15), también si alguna no contestó: no se reintenta en cada llamada. */

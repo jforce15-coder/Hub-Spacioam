@@ -3163,7 +3163,8 @@ function aprender() {
   try { purgarAutomejoraSinAprendizaje_(); } catch (e) { console.error('purgar: ' + e); }
   try { memoriaAprender_(); } catch (e) { console.error('memoriaAprender_: ' + e); }   // memoria de propiedades: corre aunque las propuestas de mejora estén apagadas
   try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
-  try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
+  try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }
+  try { gastoParetoSiToca_(); } catch (e) { console.error('gastoParetoSiToca_: ' + e); }   // equipo de ahorro Pareto 80/20: cada lunes desde las 9 (gasto.js)   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
   try { rutinaHora_(); } catch (e) { console.error('rutinaHora_: ' + e); }   // pendientes y promesas sin humano: resolver sola al menos el 60 % (rutinahora.js, #545)
   try { fotosGoogleRepasar_(); } catch (e) { console.error('fotosGoogleRepasar_: ' + e); }   // la foto del contacto desde los Contactos de Google de Juan (fotoscontacto.js, #567 T4)
   if (!automejoraOn_()) return;
@@ -3350,6 +3351,8 @@ function hubApi_(body) {
   try {
     switch (body.action) {
       case 'acortar': return json_(enlaceAcortarApi_(ses, body.url));                       // enlace corto hub.spacioam.com/<código>, solo con sesión (enlaces.js)
+      case 'gasto': return json_(gastoApi_(ses, body));                                    // Ajustes → Gasto de Alma: el mes, los proveedores y el equipo de ahorro, solo el principal (gasto.js · alma/gasto.html)
+      case 'gastoPlanFijar': return json_(gastoPlanFijarApi_(ses, body));                  // { prov, nombre, tipo, usd, … } o { quitar } → la tabla de planes (propiedad GASTO_PLANES, nunca el repo)
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
       case 'biblioteca': return json_(bibliotecaLista_(ses));                                // Ajustes → Biblioteca de Claudio: skills y documentos para Claudio (biblioteca.js · alma/biblioteca.html)
       case 'bibliotecaSubir': return json_(bibliotecaSubir_(ses, body));                     // { tipo, nombre, para_que, data+mime+archivo | texto, pedido } → lo guarda privado
@@ -5553,6 +5556,9 @@ function dsBotApi_(body) {
       case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());
+      case 'gasto': return json_(gastoReporte_(body.mes, body.fresco || false));   // el reporte de gasto (gasto.js)
+      case 'gasto_planes': return json_(body.planes ? (gastoPlanesGuardar_(body.planes), { ok: true, planes: gastoPlanes_() }) : { ok: true, planes: gastoPlanes_() });   // la tabla de planes desde los recibos: solo en la propiedad, nunca en el repo
+      case 'gasto_pareto': return json_(body.sincronizar ? gastoAhorroSincronizar_() : gastoPareto_(body.seco !== false));   // el equipo de ahorro: qué abriría (seco) o abrirlo ya
       case 'voz_recoger': return json_(vozRecoger_(true));
       case 'voz_turnos': return json_(vozTurnos_(body.eagerness));
       case 'voz_inicio': return json_(vozConfigInicio_(body.k));

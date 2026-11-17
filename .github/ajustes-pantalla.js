@@ -14,12 +14,12 @@ const ini = H.indexOf('<div class="panel aj" id="panel"'), fin = H.indexOf('<div
 ok(ini > 0 && fin > ini, '0 · el panel de Ajustes existe');
 const P = H.slice(ini, fin);
 
-/* 1 · nada se perdió */
+/* 1 · nada se perdió (17-nov-2026: «Reportes» y «Uso» se volvieron una sola fila, «Gasto de Alma», que los lleva adentro) */
 const antes = ['p-av', 'p-nombre', 'p-correo', 'p-rol', 'p-alt-f', 'p-tel-f', 'g-tarjetas', 'b-tarjetas', 'g-face', 'i-face', 'g-escucha', 'i-escucha',
   'g-avisos', 's-hablado', 's-telefono', 'q-hablado', 'q-telefono', 'p-avisos-tipo', 'g-calle', 'i-calle-musica', 'b-calle-probar', 'g-conf-aj', 'i-conf-musica',
   'g-anillo', 'b-dispositivos', 'i-anillo', 'b-probar', 'd-anillo', 'b-anillo-ble', 'n-anillo-ble', 'g-atajos', 'l-atajos', 'i-atajo', 'b-atajo', 'i-atajos-todos',
   'g-pers', 'pp-tope', 'g-weebo', 'pp-niveles', 'pp-modo', 'g-huesp', 'pp-tope-h', 'g-comp', 'i-comp', 'g-llaves', 'l-llaves', 's-llave', 'i-llave', 'b-llave',
-  'p-health-f', 'a-health', 'p-agentes', 'p-reportes', 'p-correos', 'p-conexiones', 'p-uso-f', 'p-aprendio-f', 'p-biblioteca-f', 'p-claudio-f', 'p-hub', 'b-salir', 'p-nota'];
+  'p-health-f', 'a-health', 'p-agentes', 'p-gasto-f', 'p-correos', 'p-conexiones', 'p-aprendio-f', 'p-biblioteca-f', 'p-claudio-f', 'p-hub', 'b-salir', 'p-nota'];
 const faltan = antes.filter(id => (P.match(new RegExp('id="' + id + '"', 'g')) || []).length !== 1);
 ok(!faltan.length, '1 · las ' + antes.length + ' opciones de antes siguen, una vez cada una' + (faltan.length ? ': faltan ' + faltan.join(', ') : ''));
 
@@ -40,7 +40,10 @@ ok(/@media \(prefers-reduced-motion: reduce\) \{\s*#panel/.test(H), '3 · reduci
 const pag = (n) => { const i = P.indexOf('data-pag="' + n + '"'); return i < 0 ? '' : P.slice(i, P.indexOf('</section>', i)); };
 ok(/id="g-llaves"/.test(pag('llaves')) && /id="b-anillo-ble"/.test(pag('diagnostico')) && /id="d-anillo"/.test(pag('diagnostico')), '4 · Llaves y el diagnóstico viven en sus páginas de Avanzado');
 const raiz = pag('raiz'), av = raiz.slice(raiz.indexOf('>Avanzado<'));
-ok(/data-ir="llaves"/.test(av) && /data-ir="diagnostico"/.test(av) && /id="p-conexiones"/.test(av) && /id="p-uso-f"/.test(av), '4 · la raíz los pone abajo, en «Avanzado»');
+ok(/data-ir="llaves"/.test(av) && /data-ir="diagnostico"/.test(av) && /id="p-conexiones"/.test(av), '4 · la raíz los pone abajo, en «Avanzado»');
+
+const eq = raiz.slice(raiz.indexOf('>Equipo<'), raiz.indexOf('>Avanzado<'));
+ok(/id="p-gasto-f" hidden><a href="gasto\.html"/.test(eq) && !/id="p-reportes"|id="p-uso-f"/.test(P) && /\$\("p-gasto-f"\)\.hidden = \$\("p-health-f"\)\.hidden/.test(H), '4 · Gasto de Alma en Equipo (solo el principal), en lugar de Reportes y Uso');
 
 /* 5 · Wearables */
 const visible = P.replace(/<[^>]+>/g, ' ');

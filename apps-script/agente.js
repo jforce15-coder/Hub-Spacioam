@@ -271,6 +271,7 @@ function agHerramientas_() {
     T('dejar_de_vigilar', 'Para «deja de vigilar…»: cancela una vigilancia (por su id o palabras de lo que vigila).', { cual: s('id (vg…) o palabras: «el vuelo», «Marcela»') }, ['cual']),
     T('vigilancias', 'Lo que estás vigilando para Juan ahora.', {}),
     T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
+    T('gasto_alma', 'Gasto de Alma del mes y en qué se va.', {}),
     /* Pedidos en órbita (orbita.js, Juan 14-nov-2026, #539): los anillos alrededor de la roca en el inicio de la app. */
     T('pedidos_en_orbita', 'Anillos del inicio: qué pidió, qué se hizo y cómo va. Si toca uno o pregunta «¿cómo va…?».', { nombre: s('Del anillo; vacío: todos') }),
     /* Avisos de aterrizaje (avisovuelo.js): Juan elige por viaje a quién; el código vigila y escribe. */
@@ -882,6 +883,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
     case 'cupo_google': return cupoParaAlma_(adm);   // cupo.js
+    case 'gasto_alma': return gastoParaAlma_(adm);   // gasto.js
     case 'pedidos_en_orbita': { var rOr = orbitaExplicar_(adm, inp.nombre); if (rOr && rOr.ok) tvCandidata_('datos', function () { return tdPedido_(rOr); }); return rOr; }   // orbita.js; cómo va, en pantalla (tablero.js)
     case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
     case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js

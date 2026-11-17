@@ -16,6 +16,8 @@ jobs:
     env:
       BASE: ${{ github.base_ref }}
       CUERPO: ${{ github.event.pull_request.body }}
+      TITULO: ${{ github.event.pull_request.title }}
+      RAMA: ${{ github.head_ref }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -147,6 +149,11 @@ jobs:
       - name: Mudador a Workspace, crea una vez, la llave de traer sirve una vez y nada sale sin ser alma@ (dobles)
         # 17-nov-2026: traslado a alma@spacioam.com sin computadora (Juan solo usa iPad): el Mudador reemplaza a clasp.
         run: node .github/traslado.js
+
+      - name: Gasto de Alma y equipo de ahorro, ningún PR de ahorro se une sin compuerta de calidad (antes, después, veredicto igual o mejor) y sin montos en el repo (dobles)
+        # 17-nov-2026, Juan: «si deterioramos la calidad, no es un buen proyecto». Un PR «Ahorro ·» sin la compuerta o con
+        # veredicto «peor» sale en rojo y nadie lo une (unir.js no une en «fallo»).
+        run: node .github/gasto-calidad.js apps-script
 
       - name: El PR trae evidencia (aviso)
         run: |

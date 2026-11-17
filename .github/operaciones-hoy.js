@@ -45,6 +45,7 @@ function caja(o) {
     EQ_EQUIPOS_: ['operaciones'], EQ_EQUIPOS_: ['operaciones'], costoIA_: () => 0, playbookLeer_: () => '', opGuardar_() {}, pushA_() {}, eqRefrescarSuave_() {}
   };
   vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'literal.js'), 'utf8'), ctx, { filename: 'literal.js' });   // las palabras de Juan tal cual
   vm.runInContext(fs.readFileSync(path.join(DIR, 'agentes.js'), 'utf8'), ctx, { filename: 'agentes.js' });
   return { ctx, st };
 }

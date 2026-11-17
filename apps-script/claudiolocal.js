@@ -160,6 +160,7 @@ function claudioLocalApi_(ses, b) {
   if (tel && !(adm.tels || []).some(function (x) { return fin8_(x) === fin8_(tel); })) return { ok: false, error: 'Esa conversación no es tuya.' };
   if (!tel) c.put('claudio_' + conv, normTel_(adm.tels[0]), 21600);
   var texto = String(b.texto || '').replace(/\s+/g, ' ').trim().slice(0, 1500);
+  literalLlamadaPoner_(conv, '', Date.now(), texto);   // un pedido de este turno lleva su dictado tal cual (literal.js)
   var ficha = c.get('claudiolocal_' + conv);
   if (!ficha) {   // la caché venció (más de 6 h) o se borró: se arma otra vez
     ficha = claudioFicha_(adm, String(adm.nombre || '').trim().split(/\s+/)[0] || 'Juan', '');

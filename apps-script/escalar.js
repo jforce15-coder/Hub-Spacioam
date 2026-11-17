@@ -49,12 +49,15 @@ var ESCALAR_CANALES_ = { whatsapp: 'WhatsApp', hub: 'el chat del Hub', app: 'la 
 function escalarJson_(adm, x) {
   x = x || {};
   var principal = esAdminPrincipal_(adm), juan = String(x.pedido || '').trim(), entrega = principal && x.entrega !== false;
+  /* Sus palabras exactas son la referencia principal; lo que entendió Alma va aparte y solo si dice otra cosa (literal.js). */
+  var lit = String(x.literal !== undefined ? x.literal : literalDeJuan_(juan)).trim(), resumen = lit && !literalIgual_(lit, juan) ? juan : '';
   var hechas = (x.hechas || []).filter(function (h) { return h && h.resumen; }).map(function (h) { return h.resumen + (h.error ? ' (falló: ' + h.error + ')' : ''); }).slice(0, 8);
   return {
     rol: x.rol || 'Desarrollo de Spacio AM (Claude): resuelves lo que Alma no puede hacer sola.',
-    tarea: x.tarea || 'Consigue lo que pidió ' + (adm.nombre || 'Juan') + '. Si hace falta un cambio (una herramienta de Alma, un dato, una pantalla), constrúyelo para que Alma lo pueda entregar.',
+    tarea: x.tarea || 'Consigue lo que pidió ' + (adm.nombre || 'Juan') + ' (contexto.palabras_de_juan). Si hace falta un cambio (una herramienta de Alma, un dato, una pantalla), constrúyelo para que Alma lo pueda entregar.',
     contexto: {
-      pedido_exacto: juan,
+      palabras_de_juan: lit || juan,
+      resumen_de_alma: resumen || undefined,
       pedido_por: { nombre: adm.nombre || '', rol: principal ? 'administrador principal' : 'administrador', principal: principal },
       canal: ESCALAR_CANALES_[x.canal] || x.canal || 'el chat con Alma',
       intento_de_alma: { dijo: String(x.intento || '').replace(/\s+/g, ' ').slice(0, 700), herramientas: hechas, por_que_escalo: ESCALAR_MOTIVOS_[x.motivo] || x.motivo || '' },
@@ -64,6 +67,7 @@ function escalarJson_(adm, x) {
     },
     pasos: x.pasos || [
       'Lee CLAUDE.md, ESTANDARES.md y docs/GLOSARIO.md.',
+      LITERAL_REGLA_,
       'Si el resultado sale de datos que puedes leer, devuélvelo completo en tu respuesta (detalle).',
       'Si hace falta un cambio, hazlo en un PR chico, con prueba, para que Alma entregue el resultado sola cuando se una.',
       'Lo que sea decisión de Juan, pregúntalo (estado pregunta) con tu opción recomendada.'
@@ -94,7 +98,7 @@ function escalarPedir_(adm, x) {
   if (ya) return { ok: true, repetido: true, texto: ESCALAR_FRASE_, micro: ya.micro, claude: { ok: true, micro: ya.micro } };
   var json = escalarJson_(adm, Object.assign({}, x, { canal: canal }));
   var r = paraClaudeCrear_(adm, { titulo: escalarTitulo_(x.tarea || juan), app: 'Otro', tipo: 'mejora', prioridad: 'normal', nivel: 'complejo', sinChat: x.sinChat !== false,
-    que_quiere: JSON.stringify(json, null, 2), resumen: juan });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: (json.contexto || {}).palabras_de_juan || juan });
   if (!r || !r.ok) return { ok: false, texto: 'Eso todavía no lo puedo hacer yo sola, y el pedido no salió: ' + ((r && r.error) || 'error') + '.', claude: { ok: false } };
   var mi = r.micro || {};
   /* Solo el pedido del principal se une solo (Juan, 12-nov-2026); el de otra persona espera su «une». */

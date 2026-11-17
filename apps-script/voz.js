@@ -513,6 +513,7 @@ function vozDefHerramientas_(base) {
       api_schema: { url: base + '&h=secretaria', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller, conv_id: conv,
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
+        palabras_de_juan: s('Solo con «Mejora para Claude»: lo que dijo, palabra por palabra como lo oíste, sin resumir ni corregir. Vacío en lo demás.'),
         modo: { type: 'string', enum: ['esperar', 'segundo_plano'], description: 'esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le deja el resultado en Pendientes de la app (con notificación si necesita algo de él); úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.' } } } } }
   ].map(function (t) {
     var sec = t.name === 'secretaria';
@@ -890,6 +891,9 @@ function vozSecretaria_(b) {
   if (!adm && tel) { var qf = vozQuien_(tel); if (qf.tipo === 'familia') return vozFamilia_(tel, qf, b); }
   if (!adm) return { ok: false, error: b.conv_id && !tel ? 'NO SE HIZO NADA: no pude confirmar la identidad del administrador en esta llamada. Díselo tal cual y pídele que cuelgue y vuelva a abrir la llamada (o que lo pida por WhatsApp).' : 'NO SE HIZO NADA: esta función es solo para administradores de Spacio AM. Ofrece dejarlo anotado para el equipo.' };
   var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'Falta el pedido.' };
+  /* pedido es lo que entendió la voz; si de aquí sale algo para Claudio o un agente, va con lo que Juan dijo tal cual
+     (la transcripción de la llamada; literal.js). Se lee solo si hace falta. */
+  literalLlamadaPoner_(b.conv_id, b.palabras_de_juan, Date.now());
   var t0 = Date.now(); VOZ_MS_ = { antes: 0, ia: 0, n: 0, herr: 0, nh: 0, agente: 0, despues: 0 };
   /* Pedido para Claude: sale al instante (chat.js, claudeMandarYa_). «Mejora para Claude: mándalo / agrégale … / no lo
      envíes» solo contesta un borrador viejo (del 1 al 3-nov); sin borrador, «agrégale …» es un pedido más (va a su

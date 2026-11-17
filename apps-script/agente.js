@@ -874,7 +874,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var txm = [String(inp.titulo || '').trim(), String(inp.que_pasa || '').trim() && 'Qué pasa hoy: ' + String(inp.que_pasa).trim(), String(inp.que_quiere || '').trim(),
         String(inp.ejemplo || '').trim() && 'Ejemplo: ' + String(inp.ejemplo).trim()].filter(Boolean).join('\n');
       if (!txm) return { error: 'Falta qué quiere que cambie.' };
-      claudeBorradorPoner_(adm, txm, { micro: inp.microproyecto, nivel: inp.nivel === 'sencillo' || inp.nivel === 'complejo' ? inp.nivel : '' });
+      claudeBorradorPoner_(adm, txm, { micro: inp.microproyecto, nivel: inp.nivel === 'sencillo' || inp.nivel === 'complejo' ? inp.nivel : '', literal: literalDeJuan_() });   // txm es lo que armó Alma; sus palabras van aparte (literal.js)
       ctx.hechas.push({ tipo: 'borrador_claude', resumen: 'Borrador para Claude · ' + String(inp.titulo || txm).slice(0, 80) });
       return { ok: true, nota: 'Sale al cerrar tu respuesta. El sistema contesta por ti «Listo, quedó pedido.»: no lo repitas ni lo anuncies.' };
     }

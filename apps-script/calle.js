@@ -103,9 +103,9 @@ function calle_(ses, b) {
   }
   if (!out) {
     AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
-    var persona = b.persona || b.alter;   // la app de Alma manda alter: "maricarmen" (alma-app #109); persona, la de #671
-    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms; IDENTIDAD_VOZ_ = typeof identidadVozDe_ === 'function' ? identidadVozDe_(persona, adm) : '';   // Maricarmen: su nombre solo en la voz (identidad.js); el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
-    WEEBO_ALTER_ = maricarmenAlter_({ alter: persona }, esAdminPrincipal_(adm));   // Maricarmen (maricarmen.js): el alter ego de Alma, Weebo 3
+    if (!b.persona && b.alter) b.persona = b.alter;   // la app de Alma manda alter: "maricarmen" (alma-app #109); persona, la de #671
+    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms; IDENTIDAD_VOZ_ = typeof identidadVozDe_ === 'function' ? identidadVozDe_(b.persona, adm) : '';   // Maricarmen: su nombre solo en la voz (identidad.js); el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
+    WEEBO_ALTER_ = maricarmenAlter_({ alter: b.persona }, esAdminPrincipal_(adm));   // Maricarmen (maricarmen.js): el alter ego de Alma, Weebo 3
     try { r = b.aviso_id ? calleAviso_(ses, adm, texto, String(b.aviso_id)) : opProcesar_(adm, texto, 'calle', []); }
     catch (e) { console.error('calle_: ' + (e.stack || e)); r = { ok: false, error: String(e) }; }
     finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; AGENTE_PLAZO_PRIMERA_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; IDENTIDAD_VOZ_ = ''; WEEBO_ALTER_ = ''; }

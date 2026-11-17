@@ -182,7 +182,7 @@ function instRuta_(adm, r, canal, ctx) {
   var cfg = ctx.cfg(); if (!cfg || !cfg.vendors || !cfg.vendors.length) return null;   // Epi sin leer: que la IA lo diga bien
   var f = instFechaDe_(r.dia), dt = instDiaTxt_(r.dia, f), max = instEsVoz_(canal) ? INST_VOZ_MAX_ : INST_CHAT_MAX_, pasado = f < recHoy_();
   if (r.extra.todos) {
-    var rt = agRutaTrabajos_(cfg, f, ''); if (rt.error) return null;
+    var rt = agRutaTrabajos_(cfg, f, ''); if (rt.oculta) return rt.error; if (rt.error) return null;
     tvCandidata_('datos', function () { return tdRuta_(rt, f); });   // en una llamada, la ruta en pantalla (tablero.js, #607)
     if (!rt.trabajos.length) return instMayus_(dt) + ' no ' + (pasado ? 'hubo' : 'hay') + ' trabajos programados en Epi.';
     var por = {}, orden = [];
@@ -193,7 +193,7 @@ function instRuta_(adm, r, canal, ctx) {
       instLista_(orden.map(function (q) { return q.split(' ')[0] + ' (' + por[q] + ')'; }), max) + '.';
   }
   var quien = instPersona_(r.n, cfg.vendors.map(vendNombre_)); if (!quien) return null;
-  var rp = agRutaTrabajos_(cfg, f, quien); if (rp.error) return null;
+  var rp = agRutaTrabajos_(cfg, f, quien); if (rp.oculta) return rp.error; if (rp.error) return null;
   if (rp.trabajos.length) tvCandidata_('datos', function () { return tdRuta_(rp, f); });
   var corto = String(rp.persona).split(' ')[0];
   if (!rp.trabajos.length) return corto + ' no ' + (pasado ? 'tuvo' : 'tiene') + ' ruta asignada ' + dt + '.';

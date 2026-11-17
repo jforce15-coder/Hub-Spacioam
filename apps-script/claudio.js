@@ -136,12 +136,10 @@ function claudioDefHerramientas_(base) {
     return { type: 'webhook', name: name, description: desc, response_timeout_secs: espera || 20,
       api_schema: { url: base + '&h=' + name, method: 'POST', request_body_schema: { type: 'object', required: req, properties: Object.assign({ conv_id: conv, sa_web: firma }, props) } },
       tool_error_handling_mode: 'auto', execution_mode: 'post_tool_speech', pre_tool_speech: 'off', force_pre_tool_speech: false,
-      /* Sin tecleo (Juan, 17-nov-2026): Claudio vive solo en la app y en la web, y ahí suena el coro «Alma está trabajando»
-         (CoroTrabajo.swift · js/alma-voz.js). null borra el sonido que ya tenía en ElevenLabs. */
-      tool_call_sound: null, tool_call_sound_behavior: 'auto', interruption_mode: 'allow', disable_interruptions: false };
+      tool_call_sound: 'typing', tool_call_sound_behavior: 'always', interruption_mode: 'allow', disable_interruptions: false };
   };
   return [
-    web('claudio_pedido', 'Crea un pedido de desarrollo con lo que Juan pidió, en ese mismo turno y sin repetírselo (se trabaja en segundo plano, se ve en la órbita y le llega un aviso cuando está). Pásale su pedido completo, con todos los datos que dio.',
+    web('claudio_pedido', 'Crea un pedido de desarrollo con lo que Juan pidió, en ese mismo turno y sin repetírselo (se trabaja en segundo plano, se ve en la órbita y le llega un aviso cuando está). Pásale su pedido completo, con todos los datos que dio. Corre de fondo: di solo «Lo estoy pidiendo» y sigue con Juan («¿algo más?»); nunca digas que ya quedó. Si después vuelve con un error, díselo en una frase.',
       { pedido: s('Lo que Juan quiere que se construya o se arregle, completo, en sus palabras.'),
         palabras_de_juan: s('Lo que dijo Juan para este pedido, palabra por palabra como lo oíste, sin resumir ni corregir.'),
         trabajo: s('Si es para un trabajo que ya está abierto («agrégale…», «lo del botón»): dos o tres palabras de su nombre. «nuevo» si Juan dice que es otra cosa. Vacío si no lo sabes.'),
@@ -164,7 +162,13 @@ function claudioDefHerramientas_(base) {
       description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz; ella cierra con Juan. Úsala cuando Juan pida volver con Alma, cuando ya terminaron o cuando diga que eso era todo (en vez de colgar). Antes di solo «Listo, te paso con Alma.» y después nada.',
       parameters: { type: 'object', required: [], properties: { nota: { type: 'string', description: 'Vacío.' } } },
       pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false }
-  ];
+  ].map(function (t) {
+    /* Envío de fondo (Juan, 17-nov-2026): «después de que ya se confirmó el envío, los agentes todavía hacen typing que ya no
+       es necesario; ahí deberíamos escuchar la continuación de la conversación». claudio_pedido manda el pedido a Claude: sin
+       tecleo y async (la conversación sigue sin esperar; si vuelve con error, Claudio lo dice). Las demás, con tecleo. */
+    if (t.name === 'claudio_pedido') { t.tool_call_sound = null; t.tool_call_sound_behavior = 'auto'; t.execution_mode = 'async'; }
+    return t;
+  });
 }
 var CLAUDIO_FIN_DESC_ = 'Termina la llamada. Solo cuando Juan ya se despidió o dijo que no necesita nada más. Antes, despídete una sola vez, corto. Para volver con Alma no la uses: usa volver_con_alma.';
 

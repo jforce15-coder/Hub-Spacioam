@@ -114,7 +114,7 @@ function bibliotecaSubir_(ses, b) {
     biblioPedidoQuitar_(micro);
     try {
       var rr = microResponder_(adm, micro, 'Te compartí ' + (tipo === 'skill' ? 'el skill' : 'el documento') + ' «' + nombre + '» en la Biblioteca de Claudio (id ' + id + '), lo que pediste («' + pedido.que + '»). Léelo con tu lector y sigue.', { sinChat: false });
-      out.claudio = rr.ok ? 'Se lo mandé a Claudio en «' + pedido.nombre + '».' : (rr.error || 'Quedó en la biblioteca, pero no pude avisarle a Claudio.');
+      out.claudio = rr.ok ? 'Claudio ya lo tiene en «' + pedido.nombre + '».' : (rr.error || 'Quedó en la biblioteca, pero no pude avisarle a Claudio.');
     } catch (e) { console.error('bibliotecaSubir_ ajuste: ' + e); out.claudio = 'Quedó en la biblioteca, pero no pude avisarle a Claudio.'; }
   }
   return out;

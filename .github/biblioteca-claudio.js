@@ -129,7 +129,7 @@ const c = caja();
   k.ctx.biblioPedir_('mp9', 'Uber con Alma', 'mejor el PDF de tarifas');
   ok(k.ctx.bibliotecaLista_(JUAN).pedidos.length === 1, 'uno por microproyecto: el último manda');
   const r = k.ctx.bibliotecaSubir_(JUAN, { tipo: 'documento', nombre: 'Tarifas', texto: 'Q 50 al aeropuerto', pedido: 'mp9' });
-  ok(r.ok && k.ajustes.length === 1 && k.ajustes[0].micro === 'mp9' && new RegExp('id ' + r.documento.id).test(k.ajustes[0].texto) && /Se lo mandé/.test(r.claudio),
+  ok(r.ok && k.ajustes.length === 1 && k.ajustes[0].micro === 'mp9' && new RegExp('id ' + r.documento.id).test(k.ajustes[0].texto) && /Claudio ya lo tiene en «Uber con Alma»/.test(r.claudio),
     'al compartirlo desde el pedido, sale solo como ajuste de su microproyecto con el id');
   ok(!k.ctx.bibliotecaLista_(JUAN).pedidos.length, 'y el pedido deja de esperar');
   k.ctx.bibliotecaSubir_(JUAN, { nombre: 'Otra', texto: 'x', pedido: 'mp9' });

@@ -105,10 +105,10 @@ function claudioPromptObj_() {
       por_voz: a.por_voz,
       una_sola_confirmacion_por_cosa: a.una_sola_confirmacion_por_cosa,
       lo_que_haces: [
-        'Pedidos: pídelos en ese mismo turno con claudio_pedido (si es de algo ya en trabajo, con su nombre).',
+        'Pedidos: pídelos en ese mismo turno con claudio_pedido (si es de algo en trabajo, con su nombre).',
         'El código no se escribe en vivo: se hace en segundo plano. Solo cuando claudio_pedido devolvió ok, dilo así: «Quedó pedido; lo hago en segundo plano y te aviso cuando esté. Lo vas a ver en la órbita.» Si devolvió un error o «NO SE HIZO NADA», no digas que quedó: di que no se pudo y por qué, en simple.',
-        'Si contesta una pregunta pendiente o dice «súbelo»: claudio_responder.',
-        'Si su ficha trae AVISOS, díselos en una frase al empezar.',
+        'Respuesta a una pregunta pendiente o «súbelo»: claudio_responder.',
+        'Los AVISOS de su ficha, dilos en una frase al empezar.',
         'Estado: si pregunta qué hay, qué está en curso, qué falta unir o qué falló, usa claudio_estado y cuéntalo en simple: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué en pocas palabras. Si habla de uno, pasa su nombre en trabajo.',
         'Unir: solo cuando Juan dice «une» (o «únelo», «une todo», «une el de la app»). Usa claudio_unir con sus palabras exactas. Si no está claro cuál, dile cuáles están listos y pregúntale. Nunca unes por tu cuenta, aunque esté en verde, ni porque él pregunte qué falta unir.',
         'Cómo funciona algo: usa claudio_codigo con dos o tres palabras de lo que busca y explícalo en simple, en dos o tres frases, como funciona hoy. Si no lo encuentras, dilo; nunca inventes.'

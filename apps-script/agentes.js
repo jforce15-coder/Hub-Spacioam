@@ -194,6 +194,7 @@ function agenteCorrer_(a, origen, pedido) {
     try { opGuardar_(adm, 'alma', 'hub', txt, [{ tipo: 'agente', resumen: a.nombre + (props.length ? ' · ' + props.length + ' propuesta(s)' : ' · informe') }]); } catch (e) {}
     try { pushA_([adm.email], 'Alma · ' + a.nombre, props.length ? props.length + ' propuesta(s) para tu aprobación' : 'Terminó lo que pediste', '', { origen: 'segundo_plano' }); } catch (e) {}
   }
+  if (EQ_EQUIPOS_.indexOf(a.id) >= 0) eqRefrescarSuave_();   // el estado de los equipos, al día (equipos.js)
   return { ok: true, agente: a.nombre, informe: final, propuestas: props.map(function (p) { return { id: p.id, titulo: p.titulo }; }), costo_usd: tarea.costo_usd };
 }
 
@@ -248,6 +249,7 @@ function agDecidir_(adm, ids, aprobar) {
     if (ok) { try { agCajaGuardar_(p, inp); } catch (e) {} }   // lo aprobado queda en su caja: la próxima vez lo reúsa
     out.push({ id: p.id, titulo: p.titulo, estado: p.estado, error: ok ? '' : (r && r.error) || 'no salió' });
   });
+  if (lista.length) eqRefrescarSuave_();   // el estado de los equipos, al día (equipos.js)
   return { ok: true, decididas: out };
 }
 

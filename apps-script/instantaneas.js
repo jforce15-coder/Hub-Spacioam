@@ -12,6 +12,8 @@
                    solo si la propiedad es una sola y trae todas las palabras pedidas (nada de «se parece»).
      5. tareas     «¿Qué tareas tengo abiertas?», «Revisar si hay pendientes o tareas urgentes activas» → las tareas
                    abiertas de Epi (como tareas_abiertas) y, para el principal, lo que espera su sí en Pendientes.
+     6. equipos    «¿Cómo van los equipos?», «Estado de operaciones, finanzas y desarrollo (tareas, limitaciones y problemas)»
+                   → el resumen precargado de equipos.js (solo el administrador principal).
    · Cada regla cubre la frase COMPLETA (de principio a fin, con «por favor», «Alma,» y el verbo de la voz alrededor): si el
      pedido trae algo más («… y escríbele que…», dos preguntas, una hora, «ella»), no coincide y sigue la IA tal cual hoy.
    · También va a la IA: un nombre que no está o que se parece a dos, una propiedad que no existe o son varias, varias
@@ -57,7 +59,15 @@ var INST_REGLAS_ = null;
 function instReglas_() {
   if (INST_REGLAS_) return INST_REGLAS_;
   var R = function (tipo, s, extra) { return { tipo: tipo, re: instRe_(s), extra: extra || {} }; };
+  /* 6 · estado de los equipos (equipos.js): va primero para que «resumen de operaciones» no caiga en otra regla */
+  var EQW = '(?:operaciones|finanzas|desarrollo)', EQL = '(?<eq>' + EQW + '(?: (?:y |de |del |el |equipo |equipos )*' + EQW + ')*)';
+  var EQG = '(?:los |mis |todos los |cada )?(?:equipos|departamentos|agentes)', EQS = '(?:estado|resumen|reporte|informe)(?: y (?:el )?(?:estado|resumen))?';
+  var EQT = '(?: (?:sus |con |y |de )*(?:tareas|limitaciones|problemas|pendientes)(?: (?:y |sus )*(?:tareas|limitaciones|problemas|pendientes))*)?';
   INST_REGLAS_ = [
+    R('equipos', '{V}como (?:van|estan|andan|va|esta|anda) ' + EQG + '(?: de ' + EQL + ')?' + EQT),
+    R('equipos', '{V}(?:el |un )?' + EQS + ' de ' + EQG + '(?: de ' + EQL + ')?' + EQT),
+    R('equipos', '{V}como (?:van|va|esta|estan|anda|andan) (?:el equipo de |los equipos de |el departamento de )?' + EQL + EQT),
+    R('equipos', '{V}(?:el |un )?' + EQS + ' (?:de|del) (?:el equipo de |los equipos de |equipo de |departamento de )?' + EQL + EQT),
     /* 1 · ruta de todos (antes que la de una persona: «ruta de hoy» no es una persona) */
     R('ruta', '{V}(?:si )?(?:quien|quienes) (?:limpia|limpian|trabaja|trabajan|tiene ruta|tienen ruta|va a limpiar|van a limpiar|esta de turno|estan de turno)(?: asignad[ao]s?)?{DIA}', { todos: true }),
     R('ruta', '{V}(?:las |la )?rutas?(?: del dia| del equipo| de limpieza)?{DIA}', { todos: true }),
@@ -112,7 +122,7 @@ function instReconocer_(texto) {
   for (var i = 0; i < reglas.length; i++) {
     var m = reglas[i].re.exec(s); if (!m) continue;
     var g = m.groups || {};
-    return { tipo: reglas[i].tipo, extra: reglas[i].extra, n: g.n || '', p: g.p || '', dia: g.dia || '', cola: g.cola || '', norm: s };
+    return { tipo: reglas[i].tipo, extra: reglas[i].extra, n: g.n || '', p: g.p || '', dia: g.dia || '', cola: g.cola || '', eq: g.eq || '', norm: s };
   }
   return null;
 }
@@ -292,10 +302,10 @@ function instResponder_(adm, texto, canal) {
   if (!instOn_() || !adm || AGENTE_PERMITIDAS_) return null;
   var r = instReconocer_(texto); if (!r) return null;
   var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
-  var f = { ruta: instRuta_, operacion: instOperacion_, reserva: instReserva_, codigo: instCodigo_, tareas: instTareas_ }[r.tipo];
+  var f = { ruta: instRuta_, operacion: instOperacion_, reserva: instReserva_, codigo: instCodigo_, tareas: instTareas_, equipos: instEquipos_ }[r.tipo];
   var t = f ? f(adm, r, canal, ctx) : null;
   if (!t) return null;
-  return { texto: t, acciones: ctx.hechas, tipo: r.tipo, esfera: 'Propósito', subcategoria: r.tipo === 'reserva' ? 'Huéspedes' : 'Operación' };
+  return { texto: t, acciones: ctx.hechas, tipo: r.tipo, esfera: 'Propósito', subcategoria: r.tipo === 'reserva' ? 'Huéspedes' : r.tipo === 'equipos' ? 'Equipo' : 'Operación' };
 }
 /* Para opAgente_: la misma salida que el bucle de la IA (respuesta, hechas, esfera…), o null. */
 function instAgente_(adm, texto, canal) {

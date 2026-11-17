@@ -351,3 +351,7 @@ jobs:
       - name: Envío directo, la orden de Juan de responder o enviar un mensaje ya es su sí; si pide verlo antes, o Alma adivinó a quién, sigue el borrador (dobles)
         # 17-nov-2026 (#633): «cuando Juan dé la instrucción de responder o enviar un mensaje, enviarlo directamente, sin preguntar ¿lo envío?».
         run: node .github/envio-directo.js apps-script
+
+      - name: Estado de los equipos precargado, al instante sin IA, con tareas, limitaciones y problemas, solo el principal (dobles)
+        # 17-nov-2026: Juan pidió tener listo el estado de Operaciones, Finanzas y Desarrollo para darlo sin demoras.
+        run: node .github/equipos.js apps-script

@@ -239,6 +239,8 @@ function agHerramientas_() {
       { cual: s('Cuál cambio: número, «App #número», palabras del título, enlace o «todos». Vacío para ver la lista') }, []),
     T('ajustar_playbook', 'Cuando Juan corrige CÓMO trabaja uno de tus agentes («que Operaciones revise también las salidas»), guárdalo en su playbook para siempre. campo: reglas (lo normal), pasos (el orden) o listo (qué cumple antes de entregar). Si no está claro, antes una o dos preguntas. Solo administrador principal.',
       { agente: s('id del agente (los de pedir_a_agente)'), cambio: s('La regla, paso o condición de «listo», en una frase clara'), campo: s('reglas | pasos | listo') }, ['agente', 'cambio']),
+    T('estado_equipos', 'El estado de los equipos de Operaciones, Finanzas y Desarrollo, ya precargado (tareas, limitaciones y problemas): al instante. Úsala cuando Juan pregunte cómo van los equipos o uno de ellos; no corras pedir_a_agente para eso. Solo administrador principal.',
+      { equipos: s('Cuáles: operaciones, finanzas, desarrollo (vacío = los tres)') }, []),
     T('propuestas_agentes', 'Lo que tus agentes proponen y espera el sí de Juan (numeradas). Úsala cuando pregunte qué hay pendiente de los agentes o antes de aprobar.', {}),
     T('decidir_propuestas', 'Aprueba (se hace en ese momento) o rechaza propuestas de los agentes. Solo cuando Juan lo dice claro («apruébalas», «solo la 2», «la 3 no»).',
       { numeros: s('Números de la lista de propuestas_agentes separados por coma, o «todas»'), aprobar: { type: 'boolean', description: 'true aprueba (y se hace), false rechaza' } }, ['numeros', 'aprobar']),
@@ -811,6 +813,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var gu = unirGuardia_(inp.cual, AGENTE_TEXTO_); if (gu) return gu;   // sin un «une» claro en este mensaje no se une nada (unirorden.js)
       var ru = unirCambio_(inp.cual); (ru.unidos || []).forEach(function (x) { ctx.hechas.push({ tipo: 'cambio', resumen: 'Unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 60) }); }); return ru; }
     case 'ajustar_playbook': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ajusta a los agentes.' }; var rp = agAjustarPlaybook_(inp.agente, inp.cambio, inp.campo); if (rp.ok) ctx.hechas.push({ tipo: 'agente', resumen: 'Playbook de ' + rp.agente + ' · ' + String(inp.cambio).slice(0, 60) }); return rp; }
+    case 'estado_equipos': return eqHerramienta_(adm, inp);   // precargado (equipos.js)
     case 'propuestas_agentes': return { ok: true, propuestas: agPropuestas_() };
     case 'decidir_propuestas': {
       var P = agPropuestas_(), nums = String(inp.numeros || '').toLowerCase();

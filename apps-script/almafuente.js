@@ -361,13 +361,13 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app, tu nivel de Modo Weebo, en silencio."
+    "linea": "Tu nivel de Modo Weebo, en la app, en silencio."
    },
    "mostrar_gif": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app y solo con Juan: un GIF tras una broma que ya cayó, en silencio."
+    "linea": "Solo con Juan, en la app: un GIF tras una broma que cayó, en silencio."
    },
    "hablar_con_claudio": {
     "canales": [
@@ -385,7 +385,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador: marca el siguiente paso, uno a la vez."
+    "linea": "Navegador: marca paso a paso."
    },
    "tocar": {
     "canales": [
@@ -416,6 +416,12 @@ var ALMA_FUENTE_ = {
      "voz"
     ],
     "linea": "En la app: corre uno de sus atajos permitidos de iPhone."
+   },
+   "guiar_camino": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Guía de camino."
    },
    "anillo_estado": {
     "canales": [

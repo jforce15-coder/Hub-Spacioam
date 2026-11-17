@@ -532,7 +532,7 @@ function vozDefHerramientas_(base) {
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozHablarConClaudio_()], vozManosHerramientas_(), vozAnilloHerramientas_(), vozGuiaHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio · anillo.js: el anillo QRing · guia.js: la Guía de camino
+  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozHablarConClaudio_()], vozManosHerramientas_(), vozAnilloHerramientas_()).concat(vozGuiaHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio · anillo.js: el anillo QRing · guia.js: la Guía de camino
 }
 /* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
    trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al

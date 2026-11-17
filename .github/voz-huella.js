@@ -53,7 +53,7 @@ function caja(opc) {
     vozProteccionResumen_: () => ({}), vozAccesoCerrado_: () => true
   };
   vm.createContext(ctx);
-  ['voz.js', 'anillo.js', 'manos.js', 'claudio.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
+  ['voz.js', 'anillo.js', 'manos.js', 'claudio.js', 'guia.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   return { ctx, props, avisos, agente };
 }
 const esperadas = c => c.ctx.vozDefHerramientas_('BASE').map(d => d.name);

@@ -8,6 +8,8 @@
      · si hace falta elegir o conversar, conversar = true y la app abre la llamada de ElevenLabs.
    La frase corta sale de la misma respuesta de Alma (CALLE_REGLA_ en el prompt, sin otra llamada a la IA) y
    calleHablar_ le quita lo que no se puede decir (markdown, listas, enlaces, etiquetas [[…]]).
+   TÁCTICA Y UNA SOLA CONFIRMACIÓN (Juan, 17-nov-2026): «Copiado», «Confirmado», «Listo», sin rodeos y cálida; nunca dos
+   confirmaciones seguidas ni la misma frase dos veces (CALLE_REGLA_ y, por si el modelo igual la repite, calleUnaVez_).
    COMANDOS CORTOS (Juan, 17-nov-2026, «listo Llorens»): la respuesta a un pedido es un comando, como en un radio: «Listo.»,
    «Listo, anotado.», «Tres llegadas hoy.»; sin saludos, sin repetir el pedido ni explicar. Lo que pase de 12 palabras
    (CALLE_COMANDO_PALABRAS_) se corta en la última frase entera. Los avisos hablados y los errores siguen con 20.
@@ -87,8 +89,8 @@ var CALLE_SILENCIO_S_ = 6;         // sueño: segundos de silencio de Juan, desp
 var CALLE_TOPE_S_ = 45;            // sueño: segundos sin que Alma hable para colgar aunque haya ruido o gente cerca
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
-  'Responde como COMANDO CORTO, como en un radio: sin saludos, sin repetir el pedido ni explicar. ' +
-  'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma con 1 a 4 palabras: «Listo.», «Listo, anotado», «Listo, le escribí a Flor». ' +
+  'Responde TÁCTICO, como en un radio: sin saludos, sin repetir el pedido ni explicar. ' +
+  'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma UNA sola vez con 1 a 4 palabras: «Copiado.», «Listo, le escribí a Flor». ' +
   'Si pregunta algo, solo el dato, 12 palabras como mucho. Sin listas, markdown, enlaces ni emojis. ' +
   'Si de verdad tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 
@@ -217,7 +219,22 @@ function calleCorto_(s, n) {
   if (!out) out = s.split(/\s+/).slice(0, n).join(' ').replace(/[,;:.\-–—]+$/, '') + '…';
   return out;
 }
-function calleHablar_(t) { return calleCorto_(calleLimpiar_(t), CALLE_COMANDO_PALABRAS_); }
+function calleHablar_(t) { return calleCorto_(calleUnaVez_(calleLimpiar_(t)), CALLE_COMANDO_PALABRAS_); }
+/* UNA SOLA CONFIRMACIÓN (Juan, 17-nov-2026: Alma repetía la misma frase de confirmación): se quita una frase igual a la
+   anterior («Listo. Listo.») y una confirmación suelta seguida de otra («Copiado. Listo, anotado.» → «Listo, anotado.»). */
+var CALLE_CONFIRMA_RE_ = /^(?:listo|copiado|confirmado|entendido|hecho|anotado|perfecto|claro|ok|okay|de acuerdo|recibido)(?:\s+(?:listo|copiado|confirmado|entendido|hecho|anotado|perfecto|claro|ok|okay|de acuerdo|recibido))*$/;
+function calleUnaVez_(s) {
+  var frases = String(s || '').match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g); if (!frases) return String(s || '');
+  var out = [], normas = [];
+  frases.forEach(function (f) {
+    f = f.trim(); var n = calleNorm_(f); if (!n) return;
+    if (normas.length && normas[normas.length - 1] === n) return;                                    // la misma frase otra vez
+    var prev = normas[normas.length - 1];
+    if (prev && CALLE_CONFIRMA_RE_.test(prev) && CALLE_CONFIRMA_RE_.test(n.split(' ')[0])) { out.pop(); normas.pop(); }   // «Copiado.» + «Listo, …»: queda la segunda
+    out.push(f); normas.push(n);
+  });
+  return out.join(' ');
+}
 /* Con opciones: una sola frase que lo introduce (la pregunta de la tarjeta o la primera frase); la llamada sigue. */
 function calleEntrada_(t) {
   var op = null; try { op = chatOpciones_(t); } catch (e) {}

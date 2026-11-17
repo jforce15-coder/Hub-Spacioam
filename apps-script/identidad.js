@@ -31,7 +31,27 @@ function identidadPistaAlter_(adm, texto) {
   if (IDENTIDAD_VOZ_ || !/mar(?:i|y|ia)\s?[ck]armen/i.test(String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) return '';
   try { if (!adm || !esAdminPrincipal_(adm)) return ''; } catch (e) { return ''; }
   return '\nMARICARMEN: es tu alter ego de voz (no una persona ni un contacto: no la busques ni le escribas a nadie). Si Juan quiere hablar ' +
-    'o comunicarse con ella, dile en una frase cómo: en la llamada de la app de Alma (o con el Modo calle) diciendo «pásame con Maricarmen»; vuelve contigo con «pásame con Alma».';
+    'o comunicarse con ella (o que ella lo llame), dile en una frase cómo: en la llamada de la app de Alma (o con el Modo calle) diciendo «pásame con Maricarmen»; vuelve contigo con «pásame con Alma». ' +
+    'Eso no es un cambio del sistema: no lo pidas a Desarrollo.';
+}
+
+/* Hub #705 (Juan, 17-nov-2026, en una llamada): «Comunicar a Juan con Mari Carmen o solicitarle que lo llame» salió como
+   pedido a Desarrollo, aunque ya existe: Maricarmen vive en la llamada de la app. Si el principal pide HABLAR con ella
+   (pásame, comunícame, conéctame, quiero hablar con…) o que ELLA LO LLAME, el turno no escala (chatTurnoCerrar_, chat.js):
+   Alma le dice cómo en una frase (IDENTIDAD_COMO_ALTER_). Maricarmen no llama sola (no tiene teléfono: es la voz local de
+   la app); la forma es abrir la llamada de Alma y decir «pásame con Maricarmen», que la app atrapa al instante. Un pedido
+   de CAMBIAR algo de Maricarmen («haz que Maricarmen hable más lento») sí sigue a Desarrollo. */
+var IDENTIDAD_COMO_ALTER_ = 'Para hablar con Maricarmen, abre la llamada de Alma en la app (o el Modo calle) y di «pásame con Maricarmen»; ' +
+  'ella no puede llamarte sola. Para volver conmigo, «pásame con Alma».';
+function identidadPideAlter_(adm, texto) {
+  if (IDENTIDAD_VOZ_) return false;
+  var t = ' ' + String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9ñ]+/g, ' ').replace(/\bmar(?:i|y|ia) ?[ck]armen\b/g, 'maricarmen') + ' ';
+  if (t.indexOf(' maricarmen ') < 0) return false;
+  try { if (!adm || !esAdminPrincipal_(adm)) return false; } catch (e) { return false; }
+  if (/ (haz|hagas|hagan|hacer|cambia|cambiale|cambiar|agrega|agregale|agregar|anade|anadele|suma|sumale|quita|quitale|arregla|arreglar|mejora|mejorar|configura|ajusta|ajustar|programa|programar|que pueda|que sepa|que hable|que diga|que suene|no funciona|falla) /.test(t)) return false;
+  var hablar = / (pasa|pasame|pasar|pasarme|pasas|pon|ponme|ponerme|comunica|comunicame|comunicar|comunicarme|comunicarlo|conecta|conectame|conectar|conectarme|conectarlo|hablar|habla|hablo|platicar|conversar)( \w+){0,4} con (la )?maricarmen /;
+  var llame = / maricarmen( \w+){0,4} (me|lo|le|a juan) (llame|llama|marque|hable)|(me|lo|le) (llame|marque) maricarmen|llamada (de|con) maricarmen /;
+  return hablar.test(t) || llame.test(t);
 }
 
 /* La regla para el prompt del turno (vacía si habla Alma). */

@@ -1262,7 +1262,7 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   var tel = normTel_(adm.tels[0]), ini = {};
   marca('admin');
   /* Siempre con URL firmada (también la ficha «ligera» que la app web guarda): el agente pide autenticación. */
-  var uf = vozUrlFirmada_(); if (!uf.ok) return uf;
+  var uf = vozFirmaSinCupo_(); if (!uf.ok) return uf;
   var firmada = uf.url; marca('url_firmada');
   try { ini = vozInicio_({ caller_id: tel }); } catch (e) {}
   marca('inicio');
@@ -1318,8 +1318,15 @@ var VOZ_SIN_SESION_ = 'Inicia sesión en el Hub para hablar con Alma.';
 function vozWebUrlApi_(ses) {
   if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };
   if (!vozWebAdmin_(ses)) return { ok: false, error: 'usuario' };
-  var uf = vozUrlFirmada_();
+  var uf = vozFirmaSinCupo_();
   return uf.ok ? { ok: true, signed_url: uf.url } : uf;
+}
+/* La URL firmada, pero sin cupo de Google (#737) un mensaje claro (CUPO_VOZ_SIN_, cupo.js) en vez de «Exception: Service
+   invoked too many times…»: la app lo muestra y no saluda para luego colgar. Con el cupo marcado como agotado igual se
+   intenta (Google puede haberlo reiniciado: si sale bien, se quita la marca). */
+function vozFirmaSinCupo_() {
+  try { return vozUrlFirmada_(); }
+  catch (e) { if (cupoSinGoogle_(e)) return { ok: false, error: CUPO_VOZ_SIN_, sin_cupo: true }; throw e; }
 }
 /* Los tiempos de los últimos 20 inicios (ms desde que entró): consola y propiedad VOZWEB_TIEMPOS. Barato y sin internet. */
 function vozWebTiempos_(marcas, ligero, app) {

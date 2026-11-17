@@ -22,7 +22,14 @@
      cupo_<hora>_fn = { canal: { función: n } }, sin lecturas extra: getAll/putAll), se vuelca a GOOGLE_USO_FUNCION y
      «Uso» lo muestra en «Por función». No suma al nivel: el total sigue saliendo de los canales.
    · Ahorro (14-nov, CUPO_INTERVALOS_): cada intervalo que se alargó para gastar menos, con su porqué y su valor de antes.
-     Una propiedad con el mismo nombre lo cambia sin PR; CUPO_AHORRO = 0 vuelve todo a como estaba. */
+     Una propiedad con el mismo nombre lo cambia sin PR; CUPO_AHORRO = 0 vuelve todo a como estaba.
+   · Cupo agotado (17-nov, #737): Google cortó a las 15:26 («too many times for one day: urlfetch») y, sin cupo, la app
+     de Alma saludaba (el saludo grabado) y colgaba en cada llamada, también al despertarla con «Alma» en el Modo Inicio:
+     la ficha de la voz necesita la URL firmada de ElevenLabs, que es una llamada a internet. Ahora uf_/ufAll_ reconocen ese
+     error (cupoAgotadoMarcar_): el nivel pasa a «agotado» (lo de fondo se pausa), Juan recibe un aviso en Notificaciones,
+     la voz contesta con un mensaje claro en vez del error de Google (CUPO_VOZ_SIN_, voz.js) y lo que el Hub había contado
+     hasta ese momento queda como el límite que de verdad hay (CUPO_DIA_VISTO): así el 60 % y el 85 % llegan antes del
+     corte la próxima vez. La primera llamada a internet que sale bien lo quita (cupoAgotadoQuitar_). */
 
 var CUPO_LIMITE_DEF_ = 20000;
 var CUPO_HOJA_ = 'GOOGLE_USO';
@@ -43,10 +50,12 @@ var CUPO_NUNCA_ = ['login', 'sesion', 'huespedes', 'documentos', 'epi', 'limpiez
 /* Lo que sí se pausa y desde qué nivel. */
 /* La voz y el chat de Alma NO se pausan por cupo (Juan, 1-nov: en crítico la app dejaba de conectar las llamadas y no
    respondía al chat, mientras el teléfono sí). Lo de fondo se pausa desde el 60 % justamente para dejarle el cupo a Alma. */
-var CUPO_PAUSAS_ = { fondo: ['fondo', 'critico'] };
+var CUPO_PAUSAS_ = { fondo: ['fondo', 'critico', 'agotado'] };
 /* Acciones del Hub que son «Alma en el chat o en la voz»: en crítico devuelven un aviso amable (nunca error 'session'). */
 var CUPO_ACC_ALMA_ = ['opEnviar', 'almaFoto', 'almaArchivo', 'vozWeb', 'vozFirma', 'vozClaudio', 'vozClaudioPanel', 'claudioLocal'];
 var CUPO_PAUSA_ALMA_ = 'Alma está en pausa por cupo; vuelve en un rato.';
+/* Lo que la app de Alma muestra (y dice) cuando no puede abrir la voz porque Google ya no deja llamar a internet. */
+var CUPO_VOZ_SIN_ = 'Google se quedó sin cupo de llamadas a internet por hoy y no puedo abrir la voz. Vuelvo sola en cuanto Google lo reinicie; no es el Modo Inicio.';
 /* Canal de cada acción del Hub (hubApi_). Lo que no está aquí cuenta como «Otros». */
 var CUPO_ACCIONES_ = {
   inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos notifAjustes notifAjustesGuardar notifPrueba pedidosOrbita anilloBle anilloResumen tutoriales biblioteca bibliotecaSubir bibliotecaQuitar bibliotecaPedidoDejar recetas recetaBorrar vigilancias vigilanciaDejar llaveEstado llaveGuardar',
@@ -101,13 +110,47 @@ var CUPO_EN_AVISO_ = false;  // el aviso también llama a internet: que no se vu
 /* ── Las llamadas ── mismos argumentos que UrlFetchApp.fetch / fetchAll, más el canal (opcional). */
 function uf_(url, opciones, canal) {
   cupoContar_(canal || cupoCanalDe_(url), 1);
-  return opciones === undefined ? UrlFetchApp.fetch(url) : UrlFetchApp.fetch(url, opciones);
+  var r;
+  try { r = opciones === undefined ? UrlFetchApp.fetch(url) : UrlFetchApp.fetch(url, opciones); }
+  catch (e) { if (cupoSinGoogle_(e)) cupoAgotadoMarcar_(); throw e; }
+  if (CUPO_AGOTADO_VISTO_) cupoAgotadoQuitar_();   // salió bien: Google ya volvió a dejar
+  return r;
 }
 function ufAll_(pedidos, canal) {
   var lista = pedidos || [];
   if (lista.length) cupoContar_(canal || cupoCanalDe_(typeof lista[0] === 'string' ? lista[0] : lista[0].url), lista.length);   // fetchAll cuenta N
-  return UrlFetchApp.fetchAll(lista);
+  var r;
+  try { r = UrlFetchApp.fetchAll(lista); }
+  catch (e) { if (cupoSinGoogle_(e)) cupoAgotadoMarcar_(); throw e; }
+  if (CUPO_AGOTADO_VISTO_ && lista.length) cupoAgotadoQuitar_();
+  return r;
 }
+
+/* ── Cupo agotado (#737) ── Google dijo que no hay más llamadas a internet por hoy. */
+var CUPO_AGOTADO_VISTO_ = false;   // la caché dice que está agotado (lo lee cupoContar_ junto con su clave, sin lecturas extra)
+var CUPO_AGOTADO_HECHO_ = false;   // ya se marcó en esta ejecución: no se repite
+var CUPO_VISTO_MIN_ = 5000;        // el límite aprendido nunca baja de esto (un contador que perdió horas no apaga todo)
+function cupoSinGoogle_(e) { var m = String((e && e.message) || e || ''); return /too many times/i.test(m) && /urlfetch/i.test(m); }
+function cupoAgotadoMarcar_() {
+  if (CUPO_AGOTADO_HECHO_) return; CUPO_AGOTADO_HECHO_ = true; CUPO_AGOTADO_VISTO_ = true;
+  try {
+    var c = CacheService.getScriptCache(); if (c.get('cupo_agotado')) return;   // otra ejecución ya lo marcó
+    c.put('cupo_agotado', String(Date.now()), 21600); c.remove('cupo_nivel'); CUPO_MEMO_ = null;
+    var p = PropertiesService.getScriptProperties(), usado = 0;
+    try { var desde = Date.now() - 24 * 3600000, horas = cupoLeer_(desde); cupoSumarApps_(horas, desde); usado = cupoSuma_(horas, desde + 1); } catch (x) {}
+    var hora = Utilities.formatDate(new Date(), CFG.TZ, 'HH:mm');
+    p.setProperty('CUPO_AGOTADO', JSON.stringify({ ts: new Date().toISOString(), hora: hora, contado: usado }));
+    if (usado >= CUPO_VISTO_MIN_) p.setProperty('CUPO_DIA_VISTO', String(usado));
+    cupoAvisar_('Google se quedó sin cupo de llamadas a internet a las ' + hora + ' (el Hub llevaba ' + usado + ' contadas). Mientras vuelve, nada sale a internet: '
+      + 'la voz de Alma no conecta y WhatsApp y Hospitable no reciben respuestas. No es el Modo Inicio. Pausé lo de fondo; todo vuelve solo en cuanto Google lo reinicie.', false);
+  } catch (e) { console.warn('cupoAgotadoMarcar_: ' + e); }
+}
+function cupoAgotadoQuitar_() {
+  CUPO_AGOTADO_VISTO_ = false; CUPO_AGOTADO_HECHO_ = false;
+  try { var c = CacheService.getScriptCache(); c.remove('cupo_agotado'); c.remove('cupo_nivel'); CUPO_MEMO_ = null; } catch (e) { console.warn('cupoAgotadoQuitar_: ' + e); }
+}
+/* ¿Google cortó hace poco? Lo mira la ficha de la voz antes de pedir nada. */
+function cupoAgotado_() { if (CUPO_AGOTADO_VISTO_) return true; try { return !!CacheService.getScriptCache().get('cupo_agotado'); } catch (e) { return false; } }
 /* El canal de la ejecución: lo ponen doPost, hubApi_ y los activadores. */
 function cupoCanal_(nombre) { CUPO_CTX_ = cupoNombre_(nombre); }
 /* La función que está gastando ahora (un paso de procesarCola, el webhook, una acción del Hub, un activador). */
@@ -144,17 +187,23 @@ function cupoId_(nombre) {
 }
 function cupoHora_(ms) { return Utilities.formatDate(new Date(ms), CFG.TZ, 'yyyyMMddHH'); }
 function cupoInicioHora_(ms) { return Math.floor(ms / 3600000) * 3600000; }   // Guatemala va en horas enteras respecto a UTC
-function cupoLimite_() { var n = Number(PropertiesService.getScriptProperties().getProperty('CUPO_DIA') || 0); return n > 0 ? n : CUPO_LIMITE_DEF_; }
+/* CUPO_DIA si Juan lo puso; si no, lo que el Hub había contado cuando Google cortó (CUPO_DIA_VISTO, #737), si es menor. */
+function cupoLimite_() {
+  var p = PropertiesService.getScriptProperties(), n = Number(p.getProperty('CUPO_DIA') || 0); if (n > 0) return n;
+  var v = Number(p.getProperty('CUPO_DIA_VISTO') || 0);
+  return v >= CUPO_VISTO_MIN_ && v < CUPO_LIMITE_DEF_ ? v : CUPO_LIMITE_DEF_;
+}
 
 /* ── El contador ── barato: una lectura y una escritura de caché por llamada (el canal y la función van juntos con
    getAll/putAll); nunca rompe la llamada. */
 function cupoContar_(canal, n) {
   try {
     var c = CacheService.getScriptCache(), hora = cupoHora_(Date.now()), k = 'cupo_' + hora + '_' + cupoId_(canal), kf = 'cupo_' + hora + '_fn';
-    var v = c.getAll([k, kf]), F = {}, nom = cupoNombre_(canal), fn = CUPO_FUNC_ || 'otra', put = {};
+    var v = c.getAll([k, kf, 'cupo_agotado']), F = {}, nom = cupoNombre_(canal), fn = CUPO_FUNC_ || 'otra', put = {};
     try { F = JSON.parse(v[kf] || '{}') || {}; } catch (e) { F = {}; }
     F[nom] = F[nom] || {}; F[nom][fn] = (Number(F[nom][fn]) || 0) + (n || 1);
     put[k] = String(Number(v[k] || 0) + (n || 1)); put[kf] = JSON.stringify(F);
+    CUPO_AGOTADO_VISTO_ = !!v['cupo_agotado'];
     c.putAll(put, 21600);
     if (CUPO_HORA_VISTA_ !== hora) {   // la primera llamada de la hora vuelca las horas que ya cerraron
       CUPO_HORA_VISTA_ = hora;
@@ -277,6 +326,7 @@ function cupoNivel_() {
   var desde = Date.now() - 24 * 3600000, horas = cupoLeer_(desde);
   cupoSumarApps_(horas, desde);   // el cupo es de la cuenta: también lo de Hola, Epi, Grow, Docs y Mi
   var o = cupoCalcular_(horas);
+  if (cupoAgotado_()) o.nivel = 'agotado';   // Google ya cortó: manda sobre lo contado
   try { c.put('cupo_nivel', JSON.stringify(o), 300); } catch (e) {}
   CUPO_MEMO_ = o;
   try { cupoAvisarSiToca_(o); } catch (e) { console.warn('cupoAvisarSiToca_: ' + e); }
@@ -303,7 +353,8 @@ function cupoAvisarSiToca_(o) {
   var texto = '', critico = false, cambio = false;
   if (o.nivel !== (e.nivel || 'verde')) {
     cambio = true;
-    if (e.avisados.indexOf(o.nivel) < 0) {
+    if (o.nivel === 'agotado') { /* el aviso ya salió al marcarlo (cupoAgotadoMarcar_) */ }
+    else if (e.avisados.indexOf(o.nivel) < 0) {
       e.avisados.push(o.nivel);
       if (o.nivel === 'critico') { critico = true; texto = 'El cupo de Google va en ' + Math.round(o.pct) + ' %. Pausé lo de fondo; la voz y el chat de Alma siguen. Huéspedes, entrar, documentos, Epi y limpieza siguen normal.'; }
       else if (o.nivel === 'fondo') texto = 'El cupo de Google va en ' + Math.round(o.pct) + ' %. Pausé lo de fondo (cerebro, mejoras y sincronizaciones). Huéspedes, entrar, documentos, Epi y limpieza siguen normal.';
@@ -311,7 +362,7 @@ function cupoAvisarSiToca_(o) {
     }
     e.nivel = o.nivel;
   }
-  if (!texto && o.proyeccion >= CUPO_PROY_PCT_ && e.avisados.indexOf('proyeccion') < 0) {
+  if (!texto && o.nivel !== 'agotado' && o.proyeccion >= CUPO_PROY_PCT_ && e.avisados.indexOf('proyeccion') < 0) {
     e.avisados.push('proyeccion');
     texto = o.horaAgotado ? 'A este ritmo, el cupo de Google de hoy se acaba cerca de las ' + o.horaAgotado + '. Mira qué lo gasta en Ajustes → Uso.'
       : 'A este ritmo, el cupo de Google de hoy va a pasar el ' + CUPO_PROY_PCT_ + ' %. Mira qué lo gasta en Ajustes → Uso.';
@@ -349,8 +400,10 @@ function cupoUso_(ses) {
     niveles: [
       { nivel: 'verde', desde: 0, texto: 'Todo corre normal.' },
       { nivel: 'fondo', desde: CUPO_FONDO_PCT_, texto: 'Se pausa lo de fondo: cerebro, mejoras y sincronizaciones.' },
-      { nivel: 'critico', desde: CUPO_CRITICO_PCT_, texto: 'Lo de fondo sigue en pausa; la voz y el chat de Alma siguen.' }
+      { nivel: 'critico', desde: CUPO_CRITICO_PCT_, texto: 'Lo de fondo sigue en pausa; la voz y el chat de Alma siguen.' },
+      { nivel: 'agotado', desde: 100, texto: 'Google ya no deja llamar a internet: la voz de Alma no conecta hasta que lo reinicie. Lo contado ese día queda como el límite.' }
     ],
+    agotado: (function () { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('CUPO_AGOTADO') || 'null'); } catch (e) { return null; } })(),
     nunca: 'Nunca se pausa: entrar, responder a huéspedes, documentos, Epi y las rutas de limpieza.',
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0' };
 }
@@ -362,7 +415,7 @@ function cupoParaAlma_(adm) {
   var ahora = Date.now(), desde = ahora - 24 * 3600000, horas = cupoLeer_(desde), sinDatos = cupoSumarApps_(horas, desde), o = cupoCalcular_(horas), m = {};
   Object.keys(horas).forEach(function (t) { if (Number(t) >= o.hoyIni) Object.keys(horas[t]).forEach(function (k) { m[k] = (m[k] || 0) + horas[t][k]; }); });
   var top = Object.keys(m).sort(function (a, b) { return m[b] - m[a]; }).slice(0, 3).map(function (k) { return { canal: k, llamadas: m[k] }; });
-  var NIV = { verde: 'bien: todo corre normal', fondo: 'en riesgo: lo de fondo (cerebro, mejoras y sincronizaciones) está en pausa', critico: 'crítico: lo de fondo en pausa; la voz y el chat de Alma siguen' };
+  var NIV = { agotado: 'agotado: Google ya no deja llamar a internet hasta que lo reinicie', verde: 'bien: todo corre normal', fondo: 'en riesgo: lo de fondo (cerebro, mejoras y sincronizaciones) está en pausa', critico: 'crítico: lo de fondo en pausa; la voz y el chat de Alma siguen' };
   return { ok: true, nivel: o.nivel, como_va: NIV[o.nivel], pct_24h: o.pct, usado_24h: o.usado24, limite_dia: o.limite, restante: o.restante,
     hoy: { usado: o.usado, pct: o.pctHoy, proyeccion_fin_dia_pct: o.proyeccion, se_acaba_hoy_cerca_de: o.horaAgotado || '', alcanza: o.alcanza },
     lo_que_mas_gasta_hoy: top, funciones_que_mas_gastan_hoy: cupoTopFunciones_(cupoLeerFunciones_(o.hoyIni), o.hoyIni, 3), sin_datos_de: sinDatos,

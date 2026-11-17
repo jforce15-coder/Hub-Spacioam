@@ -269,13 +269,14 @@ function agOpDescartar_(motivo) {
 
 /* Pedidos entre agentes en JSON (Juan, 12-nov-2026): rol, tarea, contexto, pasos, restricciones y formato_de_respuesta.
    Es lenguaje interno; el agente responde su informe en español simple para Alma. */
+/* Sus palabras tal cual van primero y mandan (literal.js, Juan 17-nov-2026); la tarea es lo que entendió Alma. */
 function agPedidoJson_(a, pedido) {
-  var juan = typeof AGENTE_TEXTO_ !== 'undefined' ? String(AGENTE_TEXTO_ || '').trim() : '';
+  var juan = literalDeJuan_(), dif = juan && !literalIgual_(juan, pedido);
   return JSON.stringify({
     rol: 'Agente de ' + a.nombre + ' de Spacio AM (' + a.rol + '), detrás de Alma',
-    tarea: String(pedido || ''),
-    contexto: { pedido_por: 'Juan (administrador principal), por medio de Alma', mensaje_de_juan: juan && juan !== pedido ? juan.slice(0, 800) : '', fecha: Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd HH:mm') },
-    pasos: ['Revisa con tus herramientas de lectura.', 'Lo que cambiaría algo afuera queda como propuesta para Juan.', 'Revisa tu «listo significa» antes del informe.'],
+    tarea: String(pedido || '') + (dif ? ' (es lo que entendió Alma; lo que pidió Juan, tal cual, está en contexto.palabras_de_juan)' : ''),
+    contexto: { palabras_de_juan: dif ? juan : undefined, pedido_por: 'Juan (administrador principal), por medio de Alma', fecha: Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd HH:mm') },
+    pasos: (dif ? ['La referencia principal es contexto.palabras_de_juan: si no coincide con la tarea, mandan sus palabras.'] : []).concat(['Revisa con tus herramientas de lectura.', 'Lo que cambiaría algo afuera queda como propuesta para Juan.', 'Revisa tu «listo significa» antes del informe.']),
     restricciones: ['No hablas con nadie: solo Alma habla con las personas.', 'No inventes datos.', 'Máximo 4 propuestas.'],
     formato_de_respuesta: 'Tu INFORME para Alma: 2 a 5 líneas claras (qué revisaste, qué encontraste, qué propones). Si no pudiste, dilo y qué faltaría.'
   }, null, 1);
@@ -425,9 +426,9 @@ function agDesarrolloRonda_(a, adm, origen, pedido) {
   /* Un pedido de Juan a Desarrollo (sin app) es lo que Alma no puede hacer sola: sale como en escalar.js (JSON, sin
      los pasos de revisión de pantallas; el 11-nov un listado de datos llegó con «míralo con Playwright en 5 tamaños»)
      y, si es para entregarle algo, Alma une y entrega sola (Juan, 12-nov-2026). */
+  var lit = pedido ? literalDeJuan_() : '';   // sus palabras tal cual (literal.js): en la llamada, la transcripción
   if (!obj && pedido) {
-    var ju = typeof AGENTE_TEXTO_ !== 'undefined' ? String(AGENTE_TEXTO_ || '').trim() : '';
-    var re = escalarPedir_(adm, { pedido: ju.length > 15 ? ju : pedido, tarea: pedido, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'alma' });
+    var re = escalarPedir_(adm, { pedido: lit.length > 15 ? lit : pedido, literal: lit.length > 15 ? lit : undefined, tarea: pedido, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'alma' });
     a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
     agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido, estado: re.ok ? 'con Claudio' : 'error',
       informe: re.ok ? 'Pedido enviado a Claudio en JSON.' : 'No se pudo enviar: ' + (re.texto || ''), costo_usd: 0, terminado: a.ultima });
@@ -440,18 +441,19 @@ function agDesarrolloRonda_(a, adm, origen, pedido) {
     rol: 'Subdepartamento ' + a.nombre + ' de Spacio AM: dueño de ' + obj.app + ' y de nada más, uno de los agentes que trabajan detrás de Alma.',
     tarea: pedido ? 'Pedido de Juan: ' + pedido : 'Tu ronda de revisión (' + origen + ').',
     contexto: { app: obj.app + ': ' + obj.que, meta: a.mision || '', playbook: pb ? 'playbooks/' + pb + '.md en jforce15-coder/Hub-Spacioam (meta, pasos, reglas, caja de herramientas y «listo significa»): síguelo en orden.' : '',
-      reglas_nuevas_de_juan: a.reglas ? a.reglas + ' (cúmplelas y, en el mismo PR, pásalas a tu playbook)' : '', pedido_por: pedido ? 'Juan (administrador principal), por medio de Alma' : 'rutina' },
-    pasos: [
+      reglas_nuevas_de_juan: a.reglas ? a.reglas + ' (cúmplelas y, en el mismo PR, pásalas a tu playbook)' : '', pedido_por: pedido ? 'Juan (administrador principal), por medio de Alma' : 'rutina',
+      palabras_de_juan: lit || undefined },
+    pasos: (lit ? [LITERAL_REGLA_.replace(' contexto.resumen_de_alma', ' La tarea')] : []).concat([
       'Además de CLAUDE.md: ábrelo de verdad, sírvelo localmente y míralo con Playwright en iPhone SE (375×667), iPhone 15 (390×844), iPhone Pro Max (430×932), iPad (820×1180) y computadora (1280×800). Donde haga falta sesión, usa datos de prueba, nunca datos reales de huéspedes.',
       'Revisa con los skills de diseño: web-design-guidelines, apple-design, emil-design-eng, improve-animations y find-animation-opportunities, design-taste-frontend; para la app, ios-liquid-glass y write-swift. Respeta el sistema de diseño (ds/).',
       'Busca: textos cortados o que se salen, contraste bajo, botones que no se ven o miden menos de 44 px, cosas tapadas por la barra o el teclado, áreas seguras, cargas sin transición, animaciones bruscas, funciones que fallan y textos confusos.',
       'No corras los bots de prueba antes del PR: corren solos después de que Juan une. Mira su último aviso (etiqueta bots-prueba) por si dejaron algo de tu app.',
       'Arregla lo claro y pequeño en UN PR de tu app, con evidencia antes y después.'
-    ],
+    ]),
     restricciones: ['No toques otras apps: si encuentras algo de otra, anótalo para su subdepartamento.', 'No unas: Juan une.'],
     formato_de_respuesta: 'Antes de responder, revisa el «listo significa» de tu playbook punto por punto. A Alma: resumen corto con el enlace al PR, la línea «Listo: ✓ …» o «Falta: ✗ …», y lo que encontraste y no tocaste, de mayor a menor importancia.'
   }, null, 2);
-  var r = paraClaudeCrear_(adm, { titulo: (obj ? a.nombre + ' · ronda' : 'Desarrollo · ' + String(pedido).slice(0, 60)), app: obj ? obj.app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que });
+  var r = paraClaudeCrear_(adm, { titulo: (obj ? a.nombre + ' · ronda' : 'Desarrollo · ' + String(pedido).slice(0, 60)), app: obj ? obj.app : 'Otro', tipo: 'mejora', prioridad: 'normal', que_quiere: que, literal: lit });
   a.ultima = new Date().toISOString(); agGuardar_(hojaAg_(), AG_CAB_, a);
   agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: a.ultima, origen: origen, pedido: pedido || '', estado: r.ok ? 'con Claudio' : 'error',
     informe: r.ok ? 'Ronda enviada a Claudio: ' + donde + '. Cuando termine, Alma te cuenta en tu chat (Propósito · Desarrollo) y su PR aparece en Pendientes.' : 'No se pudo enviar: ' + (r.error || ''), costo_usd: 0, terminado: a.ultima });

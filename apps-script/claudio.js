@@ -141,6 +141,7 @@ function claudioDefHerramientas_(base) {
   return [
     web('claudio_pedido', 'Crea un pedido de desarrollo con lo que Juan pidió, en ese mismo turno y sin repetírselo (se trabaja en segundo plano, se ve en la órbita y le llega un aviso cuando está). Pásale su pedido completo, con todos los datos que dio.',
       { pedido: s('Lo que Juan quiere que se construya o se arregle, completo, en sus palabras.'),
+        palabras_de_juan: s('Lo que dijo Juan para este pedido, palabra por palabra como lo oíste, sin resumir ni corregir.'),
         trabajo: s('Si es para un trabajo que ya está abierto («agrégale…», «lo del botón»): dos o tres palabras de su nombre. «nuevo» si Juan dice que es otra cosa. Vacío si no lo sabes.'),
         nivel: { type: 'string', enum: ['sencillo', 'complejo'], description: 'sencillo: un cambio chico y claro o una pregunta simple. complejo: lógica, funciones nuevas, errores o varias partes. Con duda, complejo.' } },
       ['conv_id', 'pedido'], 30),
@@ -438,6 +439,7 @@ function claudioPedido_(adm, b) {
     if (!m) return { ok: false, error: 'NO SE HIZO NADA: no encontré el trabajo «' + trabajo.slice(0, 60) + '». Los abiertos son: ' + claudioNombres_(ms) + '. Pregúntale a cuál va (o si es nuevo).' };
     micro = m.id;
   }
+  literalLlamadaPoner_(b.conv_id, b.palabras_de_juan, Date.now());   // texto es lo que entendió la voz; lo que dijo Juan va tal cual (literal.js)
   var r = claudeMandarYa_(adm, texto, { nivel: nivel, micro: micro });
   try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
   var titulo = temaTitulo_(texto);

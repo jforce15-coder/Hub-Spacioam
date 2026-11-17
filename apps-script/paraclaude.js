@@ -90,15 +90,17 @@ function paraClaudeCrear_(adm, inp) {
   /* Pedido entre agentes en JSON (Juan, 12-nov-2026): Claude lo recibe tal cual; en el issue va como bloque json y en el
      historial y el chat de Juan, en simple (inp.resumen o su «tarea»): el JSON es lenguaje interno. */
   var pedJson = null; if (/^\{/.test(queQuiere)) { try { pedJson = JSON.parse(queQuiere); } catch (e) { pedJson = null; } }
-  var queSimple = String(inp.resumen || (pedJson && pedJson.tarea) || queQuiere).trim();
+  /* Sus palabras tal cual (literal.js, Juan 17-nov-2026): arriba del pedido y en el historial, antes que cualquier resumen. */
+  var lit = String(inp.literal || '').trim();
+  var queSimple = String(lit || inp.resumen || (pedJson && pedJson.tarea) || queQuiere).trim();
   var queCuerpo = pedJson ? '```json\n' + queQuiere + '\n```' : queQuiere;
   /* Nivel: lo que dijeron Juan o Alma (inp.nivel); si no, un ajuste hereda el de su microproyecto; si no, complejo. */
   var nivel = inp.nivel ? claudeNivel_(inp.nivel) : ajuste ? claudeNivel_(m.nivel) : 'complejo';
   m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + queSimple });
   var como = microComoSeguir_(m, segunda, prAnterior);
-  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + '### Lo nuevo\n' + queCuerpo + '\n\n'
+  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + literalBloque_(lit) + '### Lo nuevo\n' + queCuerpo + '\n\n'
     : '**Pedido de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' +
-    '**Dónde:** ' + (inp.app || 'Otro') + ' · **Tipo:** ' + String(inp.tipo || 'mejora').replace('_', ' ') + ' · **Prioridad:** ' + (inp.prioridad || 'normal') + '\n\n' +
+    '**Dónde:** ' + (inp.app || 'Otro') + ' · **Tipo:** ' + String(inp.tipo || 'mejora').replace('_', ' ') + ' · **Prioridad:** ' + (inp.prioridad || 'normal') + '\n\n' + literalBloque_(lit) +
     (String(inp.que_pasa || '').trim() ? '### Qué pasa hoy\n' + String(inp.que_pasa).trim() + '\n\n' : '') +
     (pedJson ? '### Pedido (JSON)\n' : '### Cómo debería funcionar\n') + queCuerpo + '\n\n' +
     (String(inp.ejemplo || '').trim() ? '### Ejemplo\n' + String(inp.ejemplo).trim() + '\n\n' : '')) +

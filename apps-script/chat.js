@@ -156,7 +156,8 @@ function chatDesarrollo_(adm, texto, resp, hechas, o) {
 /* Pedir YA (Juan, 3-nov-2026): arma el pedido con la misma lógica del borrador (microproyecto y nivel) y lo manda en el
    mismo turno. Con duda de microproyecto no se pregunta: un seguimiento corto («agrégale…», «también…») va al que se
    sospecha; lo demás, a uno nuevo (separar de más no rompe nada; juntar de más mezcla dos cambios en un PR).
-   o: { micro, nivel, yaArmado (mejora_para_claude ya lo dejó en el borrador) }. Devuelve { texto, voz, claude }. */
+   o: { micro, nivel, yaArmado (mejora_para_claude ya lo dejó en el borrador), literal (sus palabras tal cual; sin él, las
+   del turno: literal.js) }. Devuelve { texto, voz, claude }. */
 var CLAUDE_SIGUE_RE_ = /^(y |agregale|anadele|sumale|quitale|cambiale|ponle|tambien|ademas|ah y|y que)\b/;
 function claudeMandarYa_(adm, texto, o) {
   o = o || {};
@@ -165,6 +166,7 @@ function claudeMandarYa_(adm, texto, o) {
   var uo = unirOrdenHacer_(adm, texto);
   if (uo) { if (o.yaArmado) { try { claudeBorradorGuardar_(adm.email, null); } catch (e) {} } return uo; }
   var b = o.yaArmado ? (claudeBorradorLeer_(adm.email) || claudeBorradorPoner_(adm, texto, o)) : claudeBorradorPoner_(adm, texto, o);
+  if (o.yaArmado) claudeBorradorLiteral_(b, o.literal !== undefined ? o.literal : literalDeJuan_(texto));   // lo que escribió en este turno, tal cual
   if (b.microDuda) {
     if (CLAUDE_SIGUE_RE_.test(chatNorm_(texto))) { b.micro = b.microDuda; b.ult = ''; }
     else { b.micro = ''; b.microNombre = ''; b.nuevo = true; b.ult = chatUltimaDeClaude_(adm.email).slice(0, 1500); }
@@ -177,10 +179,11 @@ function claudeMandarYa_(adm, texto, o) {
 function claudeBorradorMandar_(adm, b, ajusteVoz) {
   /* En JSON (Juan, 12-nov-2026), como todo pedido entre agentes. Es un cambio que pidió: se une con su «une». */
   var juan = b.partes.join('\n\nY además: ');
-  var json = escalarJson_(adm, { pedido: juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
-    tarea: 'Haz el cambio del sistema que pidió ' + (adm.nombre || 'Juan') + ' (contexto.pedido_exacto).', seguimiento: b.ult && !b.micro ? 'Puede ser un seguimiento de tu última respuesta en su chat con Alma: ' + b.ult : '' });
+  var lit = (b.literal || []).join('\n\n');   // sus palabras tal cual (literal.js); un borrador viejo sin ellas usa las partes
+  var json = escalarJson_(adm, { pedido: juan, literal: lit || juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
+    tarea: 'Haz el cambio del sistema que pidió ' + (adm.nombre || 'Juan') + ' (contexto.palabras_de_juan).', seguimiento: b.ult && !b.micro ? 'Puede ser un seguimiento de tu última respuesta en su chat con Alma: ' + b.ult : '' });
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
-    que_quiere: JSON.stringify(json, null, 2), resumen: juan });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: json.contexto.palabras_de_juan });
   if (!r.ok) {
     return { accion: 'mandar', claude: { ok: false }, texto: 'No se pudo pedir: ' + (r.error || 'error') + '. Quedó guardado; dime «mándalo» para intentarlo otra vez.',
       voz: (ajusteVoz ? 'AJUSTE GUARDADO (' + ajusteVoz + ') PERO ' : '') + 'NO SALIÓ: ' + (r.error || 'error') + '. Díselo en una frase; quedó guardado.' };
@@ -245,6 +248,7 @@ function claudeBorradorPoner_(adm, texto, o) {
   }
   claudeBorradorNivel_(b, texto, o.nivel);
   if (texto && b.partes.indexOf(texto) < 0) b.partes.push(texto);
+  claudeBorradorLiteral_(b, o.literal !== undefined ? o.literal : literalDeJuan_(texto));
   b.u = Date.now(); b.espera = false;
   claudeBorradorGuardar_(adm.email, b);
   return b;
@@ -260,6 +264,15 @@ function claudeBorradorNivel_(b, texto, nivelAlma) {
   var m = null; if (b.micro) { try { m = microLeer_(b.micro); } catch (e) {} }
   if (m) { b.nivel = claudeNivel_(m.nivel); b.nivelDe = 'hereda'; return b; }
   b.nivel = 'complejo'; b.nivelDe = '';
+  return b;
+}
+/* Sus palabras tal cual, aparte de lo que se pide (literal.js): las partes pueden ser lo que armó Alma; esto no. */
+function claudeBorradorLiteral_(b, lit) {
+  lit = String(lit || '').trim(); if (!lit) return b;
+  b.literal = (b.literal || []).filter(function (x) { return !literalIgual_(x, lit); });
+  b.literal.push(lit);
+  var total = 0; b.literal = b.literal.reverse().filter(function (x) { total += x.length; return total <= 4000; }).reverse();
+  if (!b.literal.length) b.literal = [lit.slice(-4000)];
   return b;
 }
 function claudeBorradorTitulo_(b) { return String(b.partes[0] || '').replace(/\s+/g, ' ').split(/[.!?]\s/)[0].slice(0, 80); }
@@ -373,7 +386,7 @@ function claudeBorradorResponder_(adm, texto, o) {
       b.espera = true; claudeBorradorGuardar_(adm.email, b);
       return { accion: 'esperar', texto: CLAUDE_BORR_AGREGO_ + ' Dímelo y lo sumo al pedido.', voz: 'Pregúntale en una frase qué le agregas al pedido para Claude. Todavía no se envía.' };
     }
-    b.partes.push(extra); b.espera = false; claudeBorradorGuardar_(adm.email, b);
+    b.partes.push(extra); claudeBorradorLiteral_(b, literalDeJuan_(texto)); b.espera = false; claudeBorradorGuardar_(adm.email, b);
     /* Un ajuste a algo ya confirmado se aplica y sale sin volver a preguntar, igual en chat y en voz (alma.json,
        c_ajustes; Juan, 2 y 3-nov-2026). Antes el chat volvía a preguntar «¿Lo pido?» y la voz no. */
     que = 'mandar'; ajusteVoz = 'Ajustado: «' + claudeBorradorCorto_({ partes: [extra] }, 120) + '».';

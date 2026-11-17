@@ -143,6 +143,7 @@ function paraClaudeCrear_(adm, inp) {
   if (!inp.sinChat && adm && adm.email) {
     try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queSimple.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
+  eqDesarrolloSuave_();   // el estado de Desarrollo, al día (equipos.js)
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel },
     nota: disparo.ok ? 'Listo, quedó pedido.' :
       issue ? 'Listo, quedó pedido en la lista (el arranque directo falló); cuando esté, llega a Pendientes para unir.' : 'Quedó guardado en la lista de pedidos, pero no arrancó: falta CLAUDE_RUTINA_TOKEN.' };
@@ -283,7 +284,7 @@ function paraClaudeRespuesta_(b) {
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
     if (esc !== 'unir') paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado, String(v[i][15] || ''));
     return { ok: true };
-  } finally { lock.releaseLock(); }
+  } finally { lock.releaseLock(); eqDesarrolloSuave_(); }   // el estado de Desarrollo, al día (equipos.js)
 }
 /* Fecha legible en hora de Guatemala, ej. «28 Oct 2026». */
 function paraClaudeFecha_() {

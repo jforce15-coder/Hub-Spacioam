@@ -3149,6 +3149,8 @@ function aprender() {
   /* Red de salidas (7:00 y 19:00): cada salida con su limpieza confirmada en Epi; si no, tarjeta en Pendientes. Nunca se pausa (redsalidas.js). */
   try { redSalidasRevisar_(); } catch (e) { console.error('redSalidasRevisar_: ' + e); }
   cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
+  /* El estado de los equipos precargado (equipos.js): solo lee hojas, corre aunque el cupo esté en pausa. */
+  try { eqRefrescar_(); } catch (e) { console.error('eqRefrescar_: ' + e); }
   /* Todo lo de aquí es de fondo y se pausa con el cupo en 60 % o más, salvo el agente de Operaciones (rutas y limpiezas: CUPO_NUNCA_). */
   if (!cupoPermite_('fondo')) {
     try { agentesLatido_(['operaciones']); } catch (e) { console.error('agentesLatido_ operaciones: ' + e); }

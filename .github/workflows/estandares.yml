@@ -161,7 +161,7 @@ jobs:
         # se volvía un pedido de texto en vez de abrir la llamada con Claudio.
         run: node .github/calle-rapida.js apps-script
 
-      - name: Modo calle con comandos cortos («Listo» y 1 a 4 palabras, solo el dato en 12 palabras como mucho)
+      - name: Modo calle táctico con comandos cortos («Copiado», «Listo», una sola confirmación, solo el dato en 12 palabras como mucho)
         # 17-nov: Juan pidió que en Modo calle Alma conteste como comando corto («listo Llorens»).
         run: node .github/calle-comandos.js apps-script
 

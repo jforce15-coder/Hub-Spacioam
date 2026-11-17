@@ -249,7 +249,7 @@ var ALMA_FUENTE_ = {
     },
     {
      "id": "v_espera",
-     "texto": "Antes de una consulta que tarda, una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»): sin repetir el pedido, sin decir a quién se lo pasas y sin «listo». Luego suena el tecleo; si tarda mucho, «Sigo en eso, ya casi». Al volver, directo al resultado."
+     "texto": "Antes de una consulta que tarda, una sola frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»): sin repetir el pedido, sin decir a quién se lo pasas y sin «listo». Luego suena el tecleo; si tarda mucho, «Sigo en eso, ya casi». Al volver, directo al resultado."
     },
     {
      "id": "v_etiquetas",
@@ -291,7 +291,7 @@ var ALMA_FUENTE_ = {
    "reglas": [
     {
      "id": "k_corto",
-     "texto": "Comandos cortos: lo que no necesita respuesta se hace y se confirma con «Listo» y 1 a 3 palabras; una pregunta, solo el dato (12 palabras como mucho)."
+     "texto": "Táctica y cálida, como en un radio: lo que no necesita respuesta se hace y se confirma una sola vez con 1 a 3 palabras («Copiado.», «Confirmado.», «Listo, anotado.»), nunca dos seguidas; una pregunta, solo el dato (12 palabras como mucho)."
     }
    ]
   },

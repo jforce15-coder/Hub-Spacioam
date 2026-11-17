@@ -156,6 +156,10 @@ jobs:
         # siempre lo haga en nombre de Alma».
         run: node .github/identidad-voz.js apps-script
 
+      - name: «Comunícame con Maricarmen» desde cualquier canal (chat, Pendientes, WhatsApp, llamada) y «pásame con Alma» para volver
+        # 17-nov (#706): antes solo funcionaba en la llamada de la app.
+        run: node .github/maricarmen-canales.js apps-script
+
       - name: Modo calle rápido (sin Epi en cada mensaje, frases de prueba sin IA, camino rápido, plazo antes de la primera vuelta, vozPausa) y Hablar con Claudio desde la calle (dobles)
         # 16-nov: «Estoy probando el modo» tardó 28 s y la app se rinde a los 25 s; «quiero hablar con Claudio» en Modo calle
         # se volvía un pedido de texto en vez de abrir la llamada con Claudio.

@@ -120,3 +120,45 @@ Cada app siguiente (Hub, login, Hola, Epi, Grow, Mi) repite solo el paso 8, cuan
 - El paso 6 es el único donde Juan ve la llave (en su propio registro de ejecución, solo visible para alma@).
 - Si Workspace bloquea las apps web para «cualquiera», se activa en admin.google.com → Apps → Google Workspace → Drive y
   Documentos → Compartir fuera de la organización.
+
+## Docs: cortado (17-nov-2026)
+Docs corre en alma@ (`/exec` `AKfycbxcz_zj…`). `sheets-sync.js` y `404.html` apuntan ahí; si un navegador guardó la dirección
+vieja a mano, se ignora. Los programados los manda solo el de alma@ (el viejo sale al instante: compara su id de proyecto).
+Ya no se publica con clasp: el workflow **Traslado a Workspace** publica cada 10 min desde `main` lo que tenga
+`"sincronizar": true` en `proyectos.json` (los otros repos no necesitan secretos). El viejo queda vivo 7 días de respaldo.
+Volver atrás: revertir el PR de Docs (las dos direcciones) y el de los programados.
+
+## Plan de corte del Hub (T4)
+**Antes (ya en `main`):** el Hub viejo y el login tienen `traslado.js` (entregan sus Propiedades solo a alma@) y el Hub tiene
+`trasladocorte.js`: tres acciones del robot (`traslado_activadores`, `traslado_apagar`, `traslado_encender`) para que el
+corte no dependa del editor. El Hub nuevo se crea con el workflow (`proyecto = hub`, `crear = true`) **sin activadores**
+(`al_traer` vacío): hasta el corte no atiende la cola. Copia **todas** las Propiedades salvo `CUPO_*` (la lista fija de antes
+dejaba fuera llaves como `GITHUB_PRS`).
+
+**Qué apunta al `/exec` del Hub y quién lo cambia**
+| Qué | Dónde | Quién |
+|---|---|---|
+| Páginas de hub.spacioam.com: `js/alma-client.js` (sube `?v=`), `alma/*.html` (gasto, claudio, uso, biblioteca, avisos, aprendio, conexiones), `health/`, `anillo/`, `claude.html`, `404.html`, `design-system.html`, `js/sa-tutoriales.js` | este repo | código (un PR) |
+| App de iPhone | carga las páginas de hub.spacioam.com | nada (sale con el PR de arriba) |
+| `vigia-alma.yml`, `para-alma-aviso.yml`, el robot de Claude | este repo / las sesiones | código |
+| `paraclaude.js` (`HUB_EXEC_DEF_`) | este repo | código |
+| Hola (`HUB_ALMA_URL_`, `ALMA_URL`), Epi (`ALMA_URL`), The Gentle Stoic Parent (`HUB_URL_`) | sus repos | código: la constante nueva y, si la Propiedad guarda la dirección vieja, se ignora |
+| ElevenLabs: 10 herramientas, el aviso de inicio y el webhook de fin de llamada | pasan por el Worker `alma-puente` | **Juan**: Cloudflare → Workers → alma-puente → la dirección del Hub (la del webhook directo viejo está apagada) |
+| WhatsApp (Meta) | developers.facebook.com → la app → WhatsApp → Configuración → Webhook (URL de devolución, mismo token de verificación) | **Juan** |
+| Hospitable | my.hospitable.com → Apps/Integraciones → Webhooks: la URL `…/exec?k=<WEBHOOK_KEY>` | **Juan** (la `k` sale del registro de la acción, nunca del chat) |
+| `correo-puente` en el Gmail de Juan | script.google.com con jforce15 → proyecto del puente → `var HUB` | **Juan** (o regenerarlo en Conexiones) |
+| `CUPO_DIA = 100000` | Propiedad del Hub nuevo | robot (`traslado_encender`) |
+
+**Orden de la noche (con poco movimiento)**
+1. Juan corre `trasladoTraer` en el Hub nuevo **justo antes** del corte (así el estado copiado está fresco).
+2. Prueba de humo del nuevo, sin activadores: `{salud:1}` responde viva; robot `voz_estado` y `traslado_activadores`
+   (`proyecto` = el id nuevo, sin activadores); una lectura del Hub con sesión desde hub.spacioam.com con la dirección nueva
+   guardada a mano (`localStorage` de alma-client si existe) o con `curl`.
+3. Corte en un solo paso: robot `traslado_apagar` en el **viejo** → `traslado_encender` con `cupo_dia: 100000` en el
+   **nuevo** → se une el PR de direcciones (páginas, workflows, Hola, Epi, GSP) → Juan cambia el Worker, Meta y Hospitable.
+4. Prueba: una llamada de voz corta, un chat, un WhatsApp de prueba y entrar a cada app.
+5. Ese mismo PR pone `"sincronizar": true` al Hub y deja su `apps-script.yml` sin clasp.
+
+**Volver atrás (un paso):** `traslado_apagar` en el nuevo, `traslado_encender` en el viejo, revertir el PR de direcciones y
+Juan vuelve a poner la dirección vieja en el Worker, Meta y Hospitable. Lo que el nuevo guardó en Propiedades se pierde
+(las hojas son las mismas).

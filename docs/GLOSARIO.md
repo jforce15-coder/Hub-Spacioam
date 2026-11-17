@@ -14,6 +14,12 @@ herramientas (acción `claudioLocal`) y habla una voz de hombre del iPhone afina
 volvió a esta voz; la de ElevenLabs frase por frase de #636 quedó apagada). Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
 agente de ElevenLabs, `CLAUDIO_VOZ_LOCAL` afina la voz (`{"motor":"elevenlabs"}` vuelve a mandar cada frase con su voz de
 ElevenLabs) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo de ese camino. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
+**Voz de respaldo** (17-nov-2026, #657): en la app de Alma, la voz del iPhone que sigue la llamada con Alma cuando falla la
+conexión (se fue el internet o la voz se cortó seguido). La app vigila la conexión; con internet bueno, Alma habla con su
+voz de ElevenLabs como siempre. En el respaldo la oye el dictado del iPhone, contesta el Hub por texto (acción `calle` con
+`sin_audio`) y habla una voz de mujer del iPhone; sin nada de internet, lo que Juan dice se guarda y se manda al volver.
+Cuando la conexión vuelve y se queda estable, Alma regresa a su voz sin colgar. No aplica en el Modo calle ni en
+conferencia. Evitar: «Alma offline», «modo sin internet» (para pensar necesita el Hub).
 Alma tampoco nombra a «la secretaria» (su herramienta) ni anuncia que la usa; si cita un resultado, «mi sistema dice…».
 
 **Sin repetir:** Alma no lee el pedido de vuelta, no pide confirmaciones que no hacen falta y no anuncia lo que va a hacer

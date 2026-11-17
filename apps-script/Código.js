@@ -1721,7 +1721,11 @@ const NOTAS_PROMPTS = {
   ACCESO_EDIFICIO_EN: 'Mismo mensaje en inglés.'
 };
 const sinCab_ = s => String(s || '').replace(/^\s*REGLAS FIJAS \(prevalecen sobre todo lo anterior\):\n/, '').trim();
-const PROMPT_INQ_EVALUAR_ = "Eres el filtro de consultas (inquiries) de Spacio AM. Una persona aún sin reserva escribió. Decide si hizo una pregunta concreta y si la FICHA o la BASE DE CONOCIMIENTO contienen la respuesta EXACTA.\nDevuelve SOLO JSON: {\"hay_pregunta\":true|false,\"pregunta\":\"...\",\"puede_responder\":true|false,\"respuesta\":\"...\",\"idioma\":\"es|en|...\"}\n· hay_pregunta=false si solo saluda, dice que le interesa o pide disponibilidad general.\n· puede_responder=true solo si el dato está escrito en la FICHA o la BASE. Nunca deduzcas, nunca inventes precios, horarios ni condiciones. Disponibilidad, descuentos, precios especiales, mascotas fuera de política o excepciones = false.\n· Privacidad: sin reserva no compartas número de apartamento, WiFi, códigos ni dirección exacta; zona, edificio, amenidades, parqueo y políticas sí.\n· respuesta: 1-2 frases con la voz de Spacio AM (tú, cálida, precisa), en el idioma del huésped. Sin saludo ni cierre.";
+/* Datos públicos en consultas (Juan, 17-nov-2026): el piso o nivel, la zona, el edificio, amenidades, parqueo, políticas y
+   las distancias o tiempos a eventos y lugares se responden sin esperar a Juan. Va en código (no en la hoja) para que
+   ningún prompt editado lo quite; lo privado sigue fuera y además lo filtra inqSinPrivado_. */
+const REGLAS_FIJAS_INQ_ = '\n\nREGLA FIJA · DATOS PÚBLICOS (Juan, 17-nov-2026; prevalece sobre lo anterior): sin reserva confirmada SÍ respondes, sin pedir permiso a nadie, lo público o general de la propiedad cuando está en la FICHA, la BASE o los TIEMPOS CALCULADOS: piso o nivel del apartamento, zona, edificio, amenidades, parqueo, políticas, qué hay cerca y cuánto se tarda a un evento (concierto, partido, feria, congreso), al lugar donde se hace o a un punto de interés. Ahí puede_responder=true. Sigue en false lo privado (número de apartamento, WiFi, códigos, dirección exacta) y lo que el equipo decide (disponibilidad, precios, descuentos, excepciones).';
+const PROMPT_INQ_EVALUAR_ = "Eres el filtro de consultas (inquiries) de Spacio AM. Una persona aún sin reserva escribió. Decide si hizo una pregunta concreta y si la FICHA o la BASE DE CONOCIMIENTO contienen la respuesta EXACTA.\nDevuelve SOLO JSON: {\"hay_pregunta\":true|false,\"pregunta\":\"...\",\"puede_responder\":true|false,\"respuesta\":\"...\",\"idioma\":\"es|en|...\"}\n· hay_pregunta=false si solo saluda, dice que le interesa o pide disponibilidad general.\n· puede_responder=true solo si el dato está escrito en la FICHA o la BASE. Nunca deduzcas, nunca inventes precios, horarios ni condiciones. Disponibilidad, descuentos, precios especiales, mascotas fuera de política o excepciones = false.\n· Privacidad: sin reserva no compartas número de apartamento, WiFi, códigos ni dirección exacta; zona, edificio, piso o nivel, amenidades, parqueo, políticas y distancias o tiempos a lugares y eventos sí.\n· respuesta: 1-2 frases con la voz de Spacio AM (tú, cálida, precisa), en el idioma del huésped. Sin saludo ni cierre.";
 const PROMPT_INQ_FUSIONAR_ = "Recibes el MENSAJE AUTOMÁTICO que Spacio AM envía a cada consulta y la RESPUESTA a la pregunta del huésped. Devuelve el mismo mensaje, adaptado para que también responda su pregunta.\n· La respuesta va lo más cerca posible del inicio: justo después del saludo, integrada con naturalidad (no como posdata ni \"respecto a tu pregunta\").\n· Conserva TODO lo demás del original: datos, enlaces, precios, pasos, formato, saltos de línea y firma. No quites ni resumas nada.\n· No agregues datos que no estén en la RESPUESTA o en el original. Idioma: el indicado en IDIOMA (si el original está en otro idioma, tradúcelo completo).\n· Sin markdown. Devuelve SOLO el mensaje final.";
 /* ESTILO y MEJORAR viven en ALMA_INSTRUCCIONES (se editan desde el hub). Este texto solo siembra la fila la primera vez que no existe. */
 const SEMILLA_ESTILO_ = "ESTILO Y FORMATO (mandan sobre la forma, nunca sobre los datos):\n· Dentro de Airbnb, Booking o Hospitable no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya está en su reserva. Tú sí te presentas cuando haga falta, porque no te conocen, con «te saluda Alma» («Hola Marcela, te saluda Alma.»).\n· Saludo en su propia línea y párrafos cortos separados por una línea en blanco; nunca todo en un solo bloque.\n· Que se sienta humano, natural y fácil de seguir: lectura muy fácil (Flesch ~80).\n· Ritmo variado: frases cortas y directas mezcladas con alguna más larga y fluida. Voz activa casi siempre.\n· Cercano y profesional a la vez: términos precisos solo cuando hacen falta; cero relleno, cero frases hechas, pocos adverbios, vocabulario variado.\n· Un toque conversacional solo si ayuda a la fluidez; señales emocionales sutiles y escasas.\n· Se lee en el teléfono: NUNCA un solo bloque. Cada idea en su párrafo de 1 a 3 frases, con una línea en blanco entre párrafos. Varios datos o pasos van en líneas separadas que empiezan con \"· \". Un enlace siempre en su propia línea.\n· Transiciones suaves entre párrafos, sin cortes bruscos.";
@@ -1996,6 +2000,9 @@ function redactar_(ctx, correccion) {
   }
   return out;
 }
+/* Un código de cerradura o clave en el texto (palabra «código/clave/PIN» y 4 a 8 dígitos cerca). Faltaba en el script:
+   fugaSinConfirmar_ lo usaba y fallaba con cualquier borrador sin reserva confirmada (17-nov-2026). */
+var RX_CODIGO_ENVIADO_ = /(c[oó]digo|clave|contrase[nñ]a|\bpin\b|\bcode\b|passcode)[^\d\n]{0,48}\d{4,8}\b/i;
 function fugaSinConfirmar_(ctx, t) {
   t = String(t || ''); if (!t) return false;
   if (RX_CODIGO_ENVIADO_.test(t)) return true;
@@ -3798,14 +3805,25 @@ function hitoResuelta_(resId) {
   return u && u.estado === 'resuelta' ? u.ts_ms : 0;
 }
 /* Reserva sin confirmar: solo zona, edificio y piso. Nada de apartamento, códigos ni WiFi. */
-function aplicarSinConfirmar_(ctx) {
-  const partes = String(ctx.propiedad || '').split(/\s+[-–·|]\s+/).map(x => x.trim()).filter(Boolean);
-  const zona = partes[0] || '', edif = partes[1] || '', unidad = partes.slice(2).join(' ');
-  const info = String(ctx.propiedadInfo || ''), piso = ((info.match(/^Piso: (.+)$/m) || [])[1] || '').trim();
+/* Lo que no sale sin reserva confirmada: el número de apartamento o unidad y la clave del WiFi (el piso sí). */
+function tokensPrivados_(propiedad, info, apartamento) {
+  const unidad = String(propiedad || '').split(/\s+[-–·|]\s+/).map(x => x.trim()).filter(Boolean).slice(2).join(' ');
+  info = String(info || ''); const piso = ((info.match(/^Piso: (.+)$/m) || [])[1] || '').trim();
   const uFicha = ((info.match(/^Apartamento \/ unidad: (.+)$/m) || [])[1] || '').trim();
   const wifi = (info.match(/clave "([^"]+)"/) || [])[1] || '';
+  return [unidad, uFicha, wifi, apartamento].concat(unidad.split(/\s+/)).map(x => String(x || '').trim()).filter(x => x && x.length >= 2 && /\d/.test(x) && x !== piso).filter((v, i, a) => a.indexOf(v) === i);
+}
+/* La respuesta a una consulta sin las líneas que traen un dato privado. */
+function inqSinPrivado_(propiedad, ficha, texto) {
+  const ctx = { tokensPrivados: tokensPrivados_(propiedad, ficha, '') };
+  return String(texto || '').split(/\n/).filter(l => !fugaSinConfirmar_(ctx, l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+function aplicarSinConfirmar_(ctx) {
+  const partes = String(ctx.propiedad || '').split(/\s+[-–·|]\s+/).map(x => x.trim()).filter(Boolean);
+  const zona = partes[0] || '', edif = partes[1] || '';
+  const info = String(ctx.propiedadInfo || ''), piso = ((info.match(/^Piso: (.+)$/m) || [])[1] || '').trim();
   ctx.sinConfirmar = true;
-  ctx.tokensPrivados = [unidad, uFicha, wifi, ctx.apartamento].concat(unidad.split(/\s+/)).map(x => String(x || '').trim()).filter(x => x && x.length >= 2 && /\d/.test(x) && x !== piso).filter((v, i, a) => a.indexOf(v) === i);
+  ctx.tokensPrivados = tokensPrivados_(ctx.propiedad, info, ctx.apartamento);
   ctx.propiedadPublica = [zona, edif].filter(Boolean).join(' · ') || 'Spacio AM';
   ctx.apartamento = '';
   const parq = (info.match(/^Parqueo: (.+)$/m) || [])[1] || '';
@@ -3898,7 +3916,7 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   const prog = inquiryProgramado_(inf.uuid);
   if (!prog && desdeMs && Date.now() - desdeMs < esperaMs && !inqPrevio_('inq:' + inf.uuid)) return Object.assign(base, { esperar: true, nota: 'inquiry: esperando el automático de Hospitable' });
   const ficha = infoPropiedad_(inf.propiedad, inf.idioma) || '', kb = (conocimiento_(inf.propiedad) || '') + distanciaBloque_(inf.propiedad, pregunta);
-  const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR'),
+  const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR') + REGLAS_FIJAS_INQ_,
     'PROPIEDAD: ' + (inf.propiedad || 'sin dato') + '\nFECHAS: ' + inf.checkin + ' → ' + inf.checkout +
     '\n\nFICHA:\n' + ficha + '\n\nBASE DE CONOCIMIENTO:\n' + kb + '\n\nMENSAJE DEL HUÉSPED:\n' + pregunta, 0);
   let ev = null; try { ev = JSON.parse(String(evalTxt).match(/\{[\s\S]*\}/)[0]); } catch (e) { }
@@ -3909,6 +3927,9 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
     ? { estado: 'omitido', nota: 'inquiry sin pregunta: sigue el automático', nivel: 'INQUIRY', razon: 'Consulta sin pregunta concreta: sigue el mensaje automático de Hospitable', accion: 'sin cambios' }
     : { estado: 'omitido', nota: 'inquiry sin automático', nivel: 'AMARILLO', razon: 'Consulta sin pregunta concreta' + preaprobar, accion: 'revisar manualmente · pre-aprobar' });
   if (!ev.puede_responder || !s_(ev.respuesta).trim()) return Object.assign(base, { estado: 'omitido', nota: 'inquiry sin respuesta en la ficha', nivel: 'AMARILLO', razon: 'Pregunta sin respuesta en la ficha o la base: ' + s_(ev.pregunta).slice(0, 160) + (prog ? ' · el automático sale tal cual' : preaprobar), accion: 'revisar manualmente' });
+  /* Red de seguridad: lo privado (número de apartamento, WiFi, código) nunca sale en una consulta; esa línea se quita. */
+  ev.respuesta = inqSinPrivado_(inf.propiedad, ficha, s_(ev.respuesta));
+  if (!ev.respuesta) return Object.assign(base, { estado: 'omitido', nota: 'inquiry: la respuesta solo traía datos privados', nivel: 'AMARILLO', razon: 'La pregunta pide un dato privado (apartamento, WiFi o código): ' + s_(ev.pregunta).slice(0, 140) + (prog ? ' · el automático sale tal cual' : preaprobar), accion: 'revisar manualmente' });
   const idioma = s_(ev.idioma) || inf.idioma || 'es';
   if (prog) {
     const nuevo = String(claude_(CFG.MODELO_REDACTOR, 1400, prompt_('INQUIRY_FUSIONAR'),

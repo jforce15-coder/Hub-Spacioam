@@ -7,6 +7,8 @@
       noticias en 10 min se da por terminada.
    5. Los subtítulos tapan lo que parece un código y se quedan los últimos 8.
    6. Las acciones vivoPublicar y vivoLeer están en el Hub y alma/inicio.html tiene el interruptor y el espejo.
+   8. La clave del compañero (la voz por la red local): la misma para los dos dispositivos de Juan, otra para Ana, y se
+      queda aunque la caché se borre.
    7. El Panel de Claudio (los trabajos en curso) también llega al compañero, en la llamada que ya sigue.
    node .github/modo-companero.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -14,14 +16,15 @@ const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
 
 function caja() {
-  const cache = {}, reloj = { ms: Date.parse('2026-11-16T22:00:00Z') };
+  const cache = {}, props = {}, reloj = { ms: Date.parse('2026-11-16T22:00:00Z') };
   const JUAN = { email: 'juan@spacioam.com', tels: ['50255550101'], principal: true }, ANA = { email: 'ana@spacioam.com', tels: ['50255550202'] };
   const ctx = {
     console: { log() {}, warn() {}, error() {} }, JSON, Math, String, Number, Object, Array, RegExp, isNaN, isFinite, Buffer,
     Date: class extends Date { constructor(...a) { if (!a.length) super(reloj.ms); else super(...a); } static now() { return reloj.ms; } },
     CFG: { TZ: 'America/Guatemala' },
-    Utilities: { base64EncodeWebSafe: (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'), computeDigest: (a, s) => Array.from(require('crypto').createHash('md5').update(String(s)).digest()), DigestAlgorithm: { MD5: 'md5' },
+    Utilities: { base64EncodeWebSafe: (b) => Buffer.from(b).toString('base64').replace(/\+/g, '-').replace(/\//g, '_'), computeDigest: (a, s) => Array.from(require('crypto').createHash('md5').update(String(s)).digest()), DigestAlgorithm: { MD5: 'md5' }, getUuid: () => require('crypto').randomUUID(),
       formatDate: (d) => new Date(d.getTime() - 6 * 3600e3).toISOString().slice(0, 10) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
     CacheService: { getScriptCache: () => ({ get: (k) => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: (k) => { delete cache[k]; },
       getAll: (ks) => { const r = {}; ks.forEach((k) => { if (k in cache) r[k] = cache[k]; }); return r; } }) },
     s_: (v) => (v == null || typeof v === 'object') ? '' : String(v),
@@ -115,6 +118,18 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(r.en_llamada && r.tarjeta && r.tarjeta.id === 'cp9', '7 · sin llamada publicada (app de antes), el compañero igual ve el panel');
   ok(/vivoPanel_\(adm, conv, panel\)/.test(fs.readFileSync(path.join(DIR, 'claudiopanel.js'), 'utf8')), '7 · claudioPanelApi_ se lo deja al compañero');
 }
+/* 8 · la clave del compañero */
+{ const { X, cache } = caja();
+  const a = X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  const r = X.vivoLeerApi_(J, {});
+  ok(/^[0-9a-f]{64}$/.test(a.clave || '') && r.clave === a.clave, '8 · el iPhone y el iPad reciben la misma clave');
+  const ca = X.vivoLeerApi_(A, {}).clave;
+  ok(/^[0-9a-f]{64}$/.test(ca || '') && ca !== a.clave, '8 · Ana tiene otra (y el compañero la recibe aunque no haya llamada: así ya espera la voz)');
+  ok(X.vivoLeerApi_(null, {}).clave === undefined, '8 · sin sesión, ninguna clave');
+  Object.keys(cache).forEach((k) => { delete cache[k]; });
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando' });
+  ok(X.vivoLeerApi_(J, {}).clave === a.clave, '8 · se queda aunque la caché se borre');
+}
 /* 6 · Hub y página */
 { const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), tj = fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8');
   ok(/case 'vivoPublicar': return json_\(vivoPublicarApi_\(ses, body\)\)/.test(cod) && /case 'vivoLeer': return json_\(vivoLeerApi_\(ses, body\)\)/.test(cod), '6 · las acciones están en el Hub, con la sesión');
@@ -122,5 +137,7 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
   ok(/id="i-comp"/.test(h) && /hub\("vivoLeer"/.test(h) && /AlmaTarjeta\.bento/.test(h), '6 · inicio.html: el interruptor «Modo compañero» y el espejo');
   ok(/id="b-comp"[^>]*aria-pressed/.test(h) && /bc\.onclick = function \(\) \{ poner\(!C\.on\); \}/.test(h) && /\$\("b-comp"\)\.classList\.add\("on"\)/.test(h), '6 · inicio.html: el botón de arriba, junto a Pendientes y Notificaciones, enciende y apaga lo mismo');
+  ok(/accion: "companero"/.test(h) && /clave: /.test(h) && /comp-son/.test(h), '6 · inicio.html: le pasa a la app la clave, si la llamada del otro sigue (una sola llamada) y el botón del sonido');
+  ok(/comp-lado/.test(h) && /min-width: 900px/.test(h), '6 · inicio.html: en el iPad (pantalla ancha) el tablero y al lado la conversación y los datos de la llamada');
 }
 process.exit(fallo);

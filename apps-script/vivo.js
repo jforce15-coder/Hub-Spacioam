@@ -11,12 +11,28 @@
      (tvCerrar_), y la voz dice «EN PANTALLA» igual.
    · Todo vive en la caché del script por usuario (la clave sale de su correo): solo la misma sesión verificada de ese
      administrador lo lee. Nada va a una hoja. Una llamada sin noticias en VIVO_VENCE_S_ se da por terminada.
+   · Retransmisión (Juan, 17-nov-2026: «el modo Companion debería ser una retransmisión de lo que se está viendo… el audio
+     que se reproduce en el teléfono es lo mismo que se debería reproducir en el iPad… sólo haya una llamada»): la voz de
+     Alma no pasa por aquí. Va directo del dispositivo de la llamada al compañero por la red local (alma-app,
+     Retransmision.swift), cifrada con la clave del compañero (vivoClaveComp_): la misma para los dos dispositivos del
+     mismo administrador, solo se la damos a él con su sesión. El compañero no abre otra llamada mientras la del otro siga.
    Check con dobles: .github/modo-companero.js. */
 
 var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600;
 var VIVO_ESTADOS_ = ['conectando', 'hablando', 'escuchando', 'pausa', 'fin'];
 
 function vivoClave_(email) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16); }
+/* La clave del compañero: un secreto por administrador que se queda (propiedad del script) para que el iPhone y el iPad
+   se reconozcan en la red local y nadie más oiga la llamada. La caché evita leer las propiedades en cada vistazo. */
+function vivoClaveComp_(h) {
+  var c = CacheService.getScriptCache(), k = 'vivo_psk_' + h, v = c.get(k);
+  if (v) return v;
+  var pr = PropertiesService.getScriptProperties(), pk = 'VIVO_PSK_' + h;
+  v = pr.getProperty(pk);
+  if (!v) { v = (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, ''); pr.setProperty(pk, v); }
+  c.put(k, v, 21600);
+  return v;
+}
 function vivoLeerCache_(k) { try { return JSON.parse(CacheService.getScriptCache().get(k) || 'null'); } catch (e) { return null; } }
 
 /* vivoPublicar { conv_id, estado, subs: [{ de: 'alma'|'yo', t }], dispositivo }: solo el administrador de esa llamada. */
@@ -42,7 +58,7 @@ function vivoPublicarApi_(ses, b) {
     c.put('vivo_sub_' + h, JSON.stringify(subs), VIVO_SEG_);
   }
   if (e.estado === 'fin') c.remove('vivo_tv_' + h);
-  return { ok: true, mirando: !!vivoMira_(adm.email) };
+  return { ok: true, mirando: !!vivoMira_(adm.email), clave: vivoClaveComp_(h) };
 }
 
 /* El tablero de la llamada (lo deja tvCerrar_ al cerrar el turno de la secretaria). */
@@ -88,9 +104,9 @@ function vivoLeerApi_(ses, b) {
   var v = c.getAll(['vivo_est_' + h, 'vivo_sub_' + h, 'vivo_tv_' + h]), js = function (k) { try { return JSON.parse(v[k] || 'null'); } catch (e) { return null; } };
   var e = js('vivo_est_' + h), s = js('vivo_sub_' + h), tv = js('vivo_tv_' + h);
   var vivo = !!(e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000);
-  if (!vivo) return { ok: true, en_llamada: false, estado: e && e.estado === 'fin' && ahora - Number(e.ts || 0) < 15000 ? 'fin' : '' };
+  if (!vivo) return { ok: true, en_llamada: false, clave: vivoClaveComp_(h), estado: e && e.estado === 'fin' && ahora - Number(e.ts || 0) < 15000 ? 'fin' : '' };
   var desde = Number(b.desde) || 0;
-  return { ok: true, en_llamada: true, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts,
+  return { ok: true, en_llamada: true, clave: vivoClaveComp_(h), conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts,
     subs: s && s.conv === e.conv ? s.l.filter(function (x) { return x.n > desde; }) : [],
     tarjeta: tv && tv.conv === e.conv ? tv.t : null };
 }

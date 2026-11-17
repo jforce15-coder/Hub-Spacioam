@@ -13,7 +13,7 @@
      administrador lo lee. Nada va a una hoja. Una llamada sin noticias en VIVO_VENCE_S_ se da por terminada.
    Check con dobles: .github/modo-companero.js. */
 
-var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600;
+var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120;
 var VIVO_ESTADOS_ = ['conectando', 'hablando', 'escuchando', 'pausa', 'fin'];
 
 function vivoClave_(email) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16); }
@@ -109,5 +109,8 @@ function vivoFin_(adm, convId) {
   if (!adm || !adm.email || !convId) return;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
   if (!e || e.conv !== String(convId) || e.estado === 'fin') return;
+  /* La app que publica dice «fin» ella misma al colgar. Si publicó hace poco, este aviso es de la conversación de Alma que
+     se cerró al pasar a Claudio: la llamada sigue (si no, el compañero se apagaba y el panel cambiaba de conversación). */
+  if (e.dev && Date.now() - Number(e.ts || 0) < VIVO_APP_S_ * 1000) return;
   e.estado = 'fin'; e.ts = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); c.remove('vivo_tv_' + h);
 }

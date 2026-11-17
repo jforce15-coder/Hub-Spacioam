@@ -368,6 +368,9 @@ jobs:
       - name: Números +1, la plantilla que sí les llega antes de mandar y un solo reintento cuando Meta los bloquea por marketing (dobles)
         # 12-nov: Juan pidió que, si Meta no entrega a un número de EE. UU. por marketing, se use sola la plantilla aprobada (#497).
         run: node .github/masuno-reintento.js apps-script
+      - name: Pedidos a Claudio que no salieron se vuelven a mandar y sin cupo Alma dice la causa real (dobles)
+        # 17-nov: se acabó el cupo de Google, dos pedidos de Juan quedaron sin mandar y Alma dijo «falta CLAUDE_RUTINA_TOKEN».
+        run: node .github/pedidos-reintento.js apps-script
       - name: Nunca un dato sin fuente en los prompts (chat, WhatsApp, calle y voz), el destinatario con su fuente en las herramientas y el contexto reciente de la voz sin nombres dictados (dobles)
         # 16-nov: el contexto reciente copiaba el resumen de ElevenLabs con «la huésped Jimena» durante una hora; la voz dijo
         # «Narama seis veintitrés» cuando su sistema decía 633 (#583 T5).

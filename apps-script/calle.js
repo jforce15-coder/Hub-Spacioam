@@ -98,7 +98,7 @@ function calle_(ses, b) {
   if (!b.aviso_id) {
     /* Hablar con Claudio (solo el principal) y las frases de prueba: sin la IA. */
     if (calleClaudio_(texto) && esAdminPrincipal_(adm)) out = { ok: true, hablar: CLAUDIO_FRASE_, conversar: true, claudio: true, motivo: texto.slice(0, 300) };
-    else if (guiaPideCamino_(texto)) out = { ok: true, hablar: 'Va, te guío.', conversar: true };   // Guía de camino: la llamada sigue con guiar_camino (guia.js)
+    else if (guiaPideCamino_(texto)) out = { ok: true, hablar: 'Claro, te guío.', conversar: true };   // Guía de camino: la llamada sigue con guiar_camino (guia.js)
     else { var ch = calleCharla_(texto); if (ch) { out = { ok: true, hablar: ch, conversar: false }; calleGuardarCharla_(adm, texto, ch); } }
     if (out) ms.via = 'sin IA';
   }

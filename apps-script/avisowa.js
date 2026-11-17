@@ -7,8 +7,13 @@
    fallos, urgencias) y lo que terminó en segundo plano (aviso con `resultado`); lo de nivel 3 suelto, no.
    Una sola vez por notificación (marca `wa` en la cola, con el candado), varias juntas en un solo mensaje. Si la app la
    recoge después, igual la muestra. Corre en cada pasada de procesarCola (solo lee una propiedad; sin IA).
-   AVISO_WA = 0 en las Propiedades del script lo apaga. */
+   AVISO_WA = 0 en las Propiedades del script lo apaga.
+   Juan, 17-nov-2026 (pedido pc1794935556577): «desactivar el envío de mensajes de unir por WhatsApp». Los avisos de unir
+   (listo para unir, unido, no se pudo unir, falló la publicación, unido y entregado) ya no salen por WhatsApp: se quedan
+   en la app de iPhone y en Pendientes. */
 var AVISO_WA_MIN_ = 10, AVISO_WA_MAX_ = 5;
+var AVISO_WA_SIN_UNIR_ = /^(claude_listo|claude_unido|escalar_entregado|escalar_no_unido|escalar_no_publico)$/;
+function avisoEsDeUnir_(a) { return AVISO_WA_SIN_UNIR_.test(String((a && a.tipo) || '')); }
 function avisoWaRespaldo_() {
   var p = PropertiesService.getScriptProperties();
   if (String(p.getProperty('AVISO_WA') || '') === '0') return;
@@ -22,7 +27,7 @@ function avisoWaRespaldo_() {
   try { rets = retLeer_(jefe); } catch (e) {}
   try { pends = pendFilas_(); } catch (e) {}
   /* Lo que ya salió como notificación push (pushapp.js) llegó al teléfono aunque la app dormía: no se repite por WhatsApp. */
-  var toca = viejos.filter(function (a) { return !a.push && (a.resultado || avisoNivel_(a, rets, pends) <= 2); });
+  var toca = viejos.filter(function (a) { return !a.push && !avisoEsDeUnir_(a) && (a.resultado || avisoNivel_(a, rets, pends) <= 2); });
   /* Lo que no toca también se marca: así no se vuelve a calcular su nivel en cada pasada. */
   var ids = {}; viejos.forEach(function (a) { ids[String(a.id)] = true; });
   var lock = LockService.getScriptLock(); lock.waitLock(10000);

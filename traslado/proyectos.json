@@ -1,0 +1,45 @@
+{
+  "_nota": "Qué publica el Mudador en alma@ (workflow traslado.yml). viejo = /exec del script viejo (de ahí se traen las Propiedades). copiar: \"todas\" o lista (un * al final = prefijo); excluir se aplica después. al_traer: funciones del proyecto que corren cuando Juan corre trasladoTraer (activadores). El viejo necesita apps-script/traslado.js (copia de entregar.js) publicado antes de traer.",
+  "docs": {
+    "repo": "Docs-spacioam", "carpeta": "apps-script", "titulo": "Docs · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbz2_KDtQ5Wm8LRiyEwCXxsHx_DtE4pe2b_aJlLFrN0zu7UvLrnh2PM-6VzbEf00oekW_Q/exec",
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": ["instalar"]
+  },
+  "hub": {
+    "repo": "Hub-Spacioam", "carpeta": "apps-script", "titulo": "ALMA · Hub · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec",
+    "copiar": ["AIRLABS_KEY", "ALMA_ACTIVO", "ALMA_ADAPTACION_TOPE", "ALMA_ARCHIVO_ID", "ANTHROPIC_KEY", "BQ_CUENTA", "BQ_PROYECTO",
+      "CER_TABLA", "CLAUDE_RUTINA_TOKEN", "CLAUDIO_AGENT_ID", "ELEVENLABS_AGENT_ID", "ELEVENLABS_KEY", "ELEVENLABS_PHONE_ID",
+      "GOOGLE_MAPS_KEY", "GROW_TOKEN", "HOSPITABLE_TOKEN", "HUB_SOLO_SESION", "HUB_TOKEN", "JEV_KEY", "LLAVES_GUARDADAS",
+      "LOGIN_SECRETO", "ONESIGNAL_APP_ID", "ONESIGNAL_KEY", "PARA_ALMA_AVISO_KEY", "ROBOT_TOKEN", "SPOTIFY_CLIENT_ID",
+      "SPOTIFY_CLIENT_SECRET", "SPOTIFY_REFRESH", "USO_KEY", "VOZ_VOICE_ID", "VOZ_WEB_SECRETO", "WA_APP_ID", "WA_EQUIPO",
+      "WA_PHONE_ID", "WA_PLANTILLA_SOCIO", "WA_PLANTILLA_SOCIO_IDIOMA", "WA_PLANTILLA_SOCIO_IDIOMA_EN", "WA_RELAY", "WA_TOKEN",
+      "WA_VERIFY_TOKEN", "WA_WABA_ID", "WEBHOOK_KEY", "WEEBO_MODO", "WEEBO_NIVEL_FIJO"],
+    "excluir": [], "al_traer": []
+  },
+  "login": {
+    "repo": "Hub-Spacioam", "carpeta": "login/apps-script", "titulo": "Login · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec",
+    "copiar": "todas", "excluir": [], "al_traer": []
+  },
+  "hola": {
+    "repo": "Hola-spacioam", "carpeta": "apps-script", "titulo": "Hola · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbwnaUyShyZHDD--rLd7XouPY4mBpgEYPYVxG2bL86nswVg89XZ9jLMFkh2ktL2IG1VRUg/exec",
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+  },
+  "epi": {
+    "repo": "Epi-spacioam", "carpeta": "apps-script", "titulo": "Epi · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec",
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+  },
+  "grow": {
+    "repo": "Grow-spacioam", "carpeta": "apps-script", "titulo": "Grow · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec",
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+  },
+  "mi": {
+    "repo": "mi-spacioam", "carpeta": "apps-script", "titulo": "Mi · Spacio AM",
+    "viejo": "https://script.google.com/macros/s/AKfycbzqUTv_0NuNBVRXhlfHGaS5RdWKjBAmfA-dIsdDnMLbl2aE2PriEXNWw3qCi8yPF28qaQ/exec",
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+  }
+}

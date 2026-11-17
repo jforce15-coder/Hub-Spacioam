@@ -5265,7 +5265,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE HH:mm');
   const props = cfg.props.map(propNombre_).filter(Boolean), equipo = adminsOp_().map(a => a.nombre).concat(cfg.vendors.map(vendNombre_)).filter(Boolean);
   const abiertas = cfg.tareas.filter(t => t && t.id && !t.hecha).slice(0, 40);
-  const prox = cfg.schedules.filter(s => s && String(s.fecha || '') >= hoy && String(s.estado || '') !== 'cancelado').sort((a, b) => String(a.fecha + a.hora).localeCompare(String(b.fecha + b.hora))).slice(0, 30);
+  const prox = cfg.schedules.filter(s => s && String(s.fecha || '') >= hoy && String(s.estado || '') !== 'cancelado' && !rutaFechaOculta_(s.fecha)).sort((a, b) => String(a.fecha + a.hora).localeCompare(String(b.fecha + b.hora))).slice(0, 30);
   const previos = opFilas_(adm.email, 60).filter(m => m.id !== yo.id);   // incluye los turnos de las llamadas
   const notas = previos.filter(m => m.acciones.some(a => a.tipo === 'nota')).map(m => m.acciones.filter(a => a.tipo === 'nota').map(a => '· ' + a.texto).join('\n'));
   const user = conAgente ? '' : 'HOY: ' + hoy + ' (' + dia + ', Guatemala)\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' (admin principal)' : '') +

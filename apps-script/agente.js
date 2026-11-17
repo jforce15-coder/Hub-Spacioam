@@ -37,6 +37,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
   '\n· CIERRE (solo con Juan): de vez en cuando —no siempre y nunca dos veces seguidas—, en vez de «¿algo más?», ofrece el pendiente más importante, uno solo y sin contar cuántos hay, si ya lo conoces (ENCARGOS PENDIENTES CONTIGO o lo que trajeron tus herramientas en esta conversación). No consultes herramientas solo para ofrecerlo ni lo inventes. Si dice «luego», no insistas.' +
   '\n· Ocupación, ingresos o depósito de un mes: usa reporte_mes y repite sus cifras. Nunca los calcules con reservas ni conviertas noches en porcentaje (26 noches no son 26 %).' +
+  '\n· Limpiezas de mañana o después: no las cuentes antes de las 7 p. m. (Guatemala), aunque las veas.' +
   '\n· Reviews, recordatorios y mensajes automáticos de UNA reserva: programados_reserva para verlos y cancelar_programados_reserva para quitarlos (filtro review para los de reseña). No digas que no puedes.';
 var SEMILLA_SECRETARIA_ = [
   'Hablas con un administrador de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala; te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
@@ -442,7 +443,20 @@ function agCancelaciones_(desde, hasta) {
 }
 /* Los trabajos de Epi de un día (de todos o de una persona), en orden: los usan la herramienta ruta_del_dia y las
    respuestas instantáneas (instantaneas.js), así las dos leen la ruta igual. Devuelve { error } o { persona, trabajos: [{ x, quien }] }. */
+/* Regla de Juan (17-nov-2026): la programación de limpiezas de un día se comparte desde las 7 p. m. (Guatemala) del día
+   anterior. Antes de esa hora Alma solo habla de la de hoy o de días anteriores. Devuelve '' si se puede contar, o el texto para decir. */
+var RUTA_HORA_VISIBLE_ = 19;
+function rutaFechaOculta_(fd) {
+  var ah = ahora_(), hoy = Utilities.formatDate(ah, CFG.TZ, 'yyyy-MM-dd');
+  fd = String(fd || '').slice(0, 10); if (!fd || fd <= hoy) return '';
+  var hora = Number(Utilities.formatDate(ah, CFG.TZ, 'H')), manana = sumarDias_(hoy, 1);
+  if (fd === manana && hora >= RUTA_HORA_VISIBLE_) return '';
+  return fd === manana
+    ? 'La programación de limpiezas de mañana se comparte desde las 7 p. m. (hora de Guatemala). Ahora te puedo dar la de hoy o la de días anteriores.'
+    : 'La programación de limpiezas de un día se comparte desde las 7 p. m. del día anterior (hora de Guatemala). Ahora te puedo dar la de hoy o la de días anteriores.';
+}
 function agRutaTrabajos_(cfg, fd, persona) {
+  var oculta = rutaFechaOculta_(fd); if (oculta) return { error: oculta, oculta: true };
   var n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
   var quienR = persona ? opMatch_(persona, cfg.vendors.map(vendNombre_)) : '';
   var vend = quienR ? cfg.vendors.filter(function (v) { return vendNombre_(v) === quienR; })[0] : null;

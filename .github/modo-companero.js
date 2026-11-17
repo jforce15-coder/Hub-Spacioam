@@ -102,5 +102,6 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/vivoInicio_\(adm, convId\)/.test(voz) && /vivoFin_\(admC, convEL\)/.test(voz) && /vivoTarjeta_\(convId, t\)/.test(tj), '6 · empieza al vincular, termina al colgar y el tablero llega solo');
   const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
   ok(/id="i-comp"/.test(h) && /hub\("vivoLeer"/.test(h) && /AlmaTarjeta\.bento/.test(h), '6 · inicio.html: el interruptor «Modo compañero» y el espejo');
+  ok(/id="b-comp"[^>]*aria-pressed/.test(h) && /bc\.onclick = function \(\) \{ poner\(!C\.on\); \}/.test(h) && /\$\("b-comp"\)\.classList\.add\("on"\)/.test(h), '6 · inicio.html: el botón de arriba, junto a Pendientes y Notificaciones, enciende y apaga lo mismo');
 }
 process.exit(fallo);

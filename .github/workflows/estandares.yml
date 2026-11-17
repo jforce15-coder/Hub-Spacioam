@@ -124,6 +124,10 @@ jobs:
         # 13-nov: decide el portero Jev (#498 T5), con dobles de su API; si falla o tarda, las reglas de antes.
         run: node .github/voz-rapido.js apps-script
 
+      - name: Huella de las herramientas de voz, solo se guarda si cada herramienta quedó en el agente; si falta alguna, la siguiente vuelta reintenta (dobles)
+        # 17-nov-2026: el Hub guardó la huella sin que las 5 del anillo quedaran en ElevenLabs; voz_sync decía «sin_cambios» y hubo que forzarlas con voz_tools.
+        run: node .github/voz-huella.js apps-script
+
       - name: Llaves desde Ajustes, solo el principal con sesión, solo la lista permitida y nunca devuelve el valor (dobles)
         # 13-nov: la pantalla de Propiedades del script ya no deja agregar más (~50); Juan eligió guardarlas desde Ajustes (opción A).
         run: node .github/llaves.js apps-script

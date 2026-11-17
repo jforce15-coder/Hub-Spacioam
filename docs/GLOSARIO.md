@@ -10,8 +10,10 @@ Desde el 16-nov-2026 Claudio también es una **voz**: el agente del equipo de de
 Claudio**. Solo existe con el administrador principal y en ese modo; con huéspedes, socios, equipo y externos, no.
 **Claudio local** (17-nov-2026): la misma conversación con Claudio sin pasar por ElevenLabs, para que las sesiones largas
 de trabajo no gasten créditos de voz. Lo oye el dictado del iPhone, contesta el Hub con su mismo prompt, su ficha y sus
-herramientas (acción `claudioLocal`) y habla una voz de hombre del iPhone. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
-agente de ElevenLabs y `CLAUDIO_VOZ_LOCAL` afina la voz. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
+herramientas (acción `claudioLocal`) y habla con **la misma voz de Claudio en ElevenLabs** (17-nov-2026, #636: su voz, el modelo
+y los ajustes de su agente; solo se paga lo que dice, no los minutos de la llamada). Si ElevenLabs falla, habla una voz de
+hombre del iPhone. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al agente de ElevenLabs, `CLAUDIO_VOZ_LOCAL` afina la voz
+(`{"motor":"iphone"}` usa solo la del iPhone) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
 Alma tampoco nombra a «la secretaria» (su herramienta) ni anuncia que la usa; si cita un resultado, «mi sistema dice…».
 
 **Sin repetir:** Alma no lee el pedido de vuelta, no pide confirmaciones que no hacen falta y no anuncia lo que va a hacer

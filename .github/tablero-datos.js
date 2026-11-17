@@ -33,7 +33,7 @@ function caja(o) {
     AGENTE_CANAL_: o.canal === undefined ? 'llamada' : o.canal
   };
   vm.createContext(ctx);
-  ['calprops.js', 'tarjeta.js', 'tablero.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx));
+  ['calprops.js', 'episnap.js', 'tarjeta.js', 'tablero.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx));
   return { X: ctx, cache };
 }
 const tipos = (t) => (t.cuadros || []).map((c) => c.tipo);

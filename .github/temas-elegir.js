@@ -62,7 +62,7 @@ function caja(o) {
   vm.runInContext(['s_', 'celdaTexto_', 'normTel_', 'telsEnTexto_'].map(n => sacar(COD, n)).join('\n') + '\nvar fin8_ = x => String(x || "").replace(/\\D/g, "").slice(-8);\n' +
     sacar(leer('contacto.js'), 'esAcuseCorto_') + '\n' + /var MICRO_CAB_ = [^\n]*/.exec(MICRO)[0] + '\n' + /var MICRO_ESTADOS_ = [^\n]*/.exec(MICRO)[0] + '\n' +
     ['microHoja_', 'microDe_', 'microFilas_', 'microNombre_'].map(n => sacar(MICRO, n)).join('\n'), ctx, { filename: 'extractos' });
-  ['sociosmi.js', 'rapido.js', 'orbita.js', 'temas.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['sociosmi.js', 'rapido.js', 'orbita.js', 'episnap.js', 'temas.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   const reloj = ms => { ahora += ms; };
   /* Un turno como opAgente_ + chatTurnoCerrar_, sin IA: elige el tema, «Alma» responde y se cierra el turno. */
   const turno = (texto, resp, x) => {

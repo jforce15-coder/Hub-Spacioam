@@ -12,7 +12,7 @@ var PLAYBOOKS_URL_ = 'https://hub.spacioam.com/playbooks/';
 
 function playbookLeer_(nombre) {
   nombre = String(nombre || '').toLowerCase().replace(/[^a-z0-9-]/g, ''); if (!nombre) return '';
-  var c = CacheService.getScriptCache(), k = 'pb6_' + nombre   /* pb6: cambia la clave cuando un playbook debe llegar ya (no esperar 6 h) */, v = c.get(k); if (v != null) return v;
+  var c = CacheService.getScriptCache(), k = 'pb7_' + nombre   /* pb7: cambia la clave cuando un playbook debe llegar ya (no esperar 6 h) */, v = c.get(k); if (v != null) return v;
   var p = PropertiesService.getScriptProperties(), txt = '';
   try {
     var r = uf_((p.getProperty('PLAYBOOKS_URL') || PLAYBOOKS_URL_) + nombre + '.md', { muteHttpExceptions: true, followRedirects: true });

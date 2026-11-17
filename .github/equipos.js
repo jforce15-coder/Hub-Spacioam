@@ -22,7 +22,7 @@ vm.createContext(ctx);
 vm.runInContext(`
 var MICRO_ESTADOS_ = { trabajo: 'en trabajo', pregunta: 'Claude pregunta', listo: 'listo para unir', unido: 'unido', cerrado: 'cerrado' };
 var AGT_CAB_ = [], AGP_CAB_ = [], PRINCIPAL_ = true;
-function agente_(id) { return { id: id, nombre: id, estado: 'activo', ultima: new Date(${ahora} - 2 * 3600000).toISOString(), horas: id === 'finanzas' ? '9' : '7,13,18', dias: id === 'finanzas' ? '1,2,3,4,5' : '1,2,3,4,5,6,7', presupuesto_usd: 10, mes: '', gasto_mes: 0 }; }
+function agente_(id) { return { id: id, nombre: id, estado: 'activo', ultima: new Date(${ahora} - 2 * 3600000).toISOString(), horas: id === 'finanzas' ? '9' : '7,13,19', dias: id === 'finanzas' ? '1,2,3,4,5' : '1,2,3,4,5,6,7', presupuesto_usd: 10, mes: '', gasto_mes: 0 }; }
 function hojaAgT_() { LECTURAS_(); return 'T'; } function hojaAgP_() { return 'P'; }
 function agFilas_(sh) { return sh === 'T' ? [{ agente: 'operaciones', estado: 'hecha', informe: 'Revisé llegadas de hoy y mañana.\\nListo: ✓ todo' }]
   : [{ agente: 'operaciones', estado: 'pendiente', titulo: 'Crear tarea en 1102: cambiar foco' }, { agente: 'finanzas', estado: 'error', titulo: 'Guardar nota: cobro', decidido: new Date().toISOString() }]; }

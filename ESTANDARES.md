@@ -95,6 +95,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 ## PRs
 - La plantilla completa: Resumen, Evidencia antes/después, Peligros al unir, Cómo probarlo. ✅ (aviso si falta Evidencia)
 - Ningún identificador de modelo en commits ni PRs.
+- Nada se sube sin pasar `node .github/revisar-local.js`: corre los mismos pasos de `estandares.yml` y `revisar-apps-script.yml` (los lee del yml) y devuelve solo lo que falla. El hook de `.claude/settings.json` lo corre en cada `git push` y bloquea si algo falla (17-nov-2026: 8 rojos en un día por subir sin revisar).
 
 ## Alma habla como persona (Juan, 2-nov-2026)
 - Nunca el modismo «va» (ni «dale» ni «ahorita»): «listo», «claro», «perfecto». Hay un check en `estandares.yml`.

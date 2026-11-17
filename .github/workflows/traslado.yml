@@ -1,0 +1,93 @@
+# Publica un Apps Script en la cuenta alma@spacioam.com a través del Mudador (traslado/Mudador.js), sin clasp ni la
+# cuenta vieja. Spec: docs/specs/traslado-workspace.md. Los «Publicar Apps Script» de cada repo siguen igual hasta el corte.
+#
+# Secretos (los pone Juan en GitHub, nunca en el chat): MUDADOR_URL y MUDADOR_LLAVE.
+# proyecto = docs | hub | login | hola | epi | grow | mi (traslado/proyectos.json), «mudador» (se sube a sí mismo)
+# o «estado» (qué hay en alma@). crear = true solo la primera vez de cada proyecto.
+
+name: Traslado a Workspace
+
+on:
+  workflow_dispatch:
+    inputs:
+      proyecto:
+        description: "docs, hub, login, hola, epi, grow, mi, mudador o estado"
+        required: true
+        default: estado
+      crear:
+        description: "Crear el proyecto si no existe (primera vez)"
+        type: boolean
+        default: false
+      ref:
+        description: "Rama o commit del repo de la app"
+        default: main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: traslado
+  cancel-in-progress: false
+
+jobs:
+  mudar:
+    runs-on: ubuntu-latest
+    env:
+      PROYECTO: ${{ inputs.proyecto }}
+      CREAR: ${{ inputs.crear }}
+      REF: ${{ inputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Elegir el repo de la app
+        id: app
+        run: |
+          case "$PROYECTO" in estado|mudador) echo "repo=" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          REPO=$(node -e "const c=require('./traslado/proyectos.json')[process.argv[1]]; if(!c||process.argv[1].startsWith('_')) process.exit(1); console.log(c.repo)" "$PROYECTO") \
+            || { echo "::error::Proyecto desconocido: $PROYECTO"; exit 1; }
+          CARPETA=$(node -e "console.log(require('./traslado/proyectos.json')[process.argv[1]].carpeta)" "$PROYECTO")
+          echo "repo=jforce15-coder/$REPO" >> "$GITHUB_OUTPUT"
+          echo "carpeta=fuente/$CARPETA" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.app.outputs.repo != ''
+        with:
+          repository: ${{ steps.app.outputs.repo }}
+          ref: ${{ inputs.ref }}
+          path: fuente
+
+      - name: Revisar el código antes de subir
+        if: steps.app.outputs.repo != ''
+        run: for f in ${{ steps.app.outputs.carpeta }}/*.js; do cp "$f" /tmp/x.js; node --check /tmp/x.js; done
+
+      - name: Mandar al Mudador
+        env:
+          MUDADOR_URL: ${{ secrets.MUDADOR_URL }}
+          MUDADOR_LLAVE: ${{ secrets.MUDADOR_LLAVE }}
+          CARPETA: ${{ steps.app.outputs.carpeta }}
+        run: |
+          if [ -z "$MUDADOR_URL" ] || [ -z "$MUDADOR_LLAVE" ]; then
+            echo "::error::Faltan los secretos MUDADOR_URL o MUDADOR_LLAVE (Settings → Secrets and variables → Actions)."; exit 1
+          fi
+          PEDIDO="$RUNNER_TEMP/pedido.json"
+          case "$PROYECTO" in
+            estado)  node traslado/empacar.js estado "$PEDIDO" ;;
+            mudador) node traslado/empacar.js mudador "$GITHUB_SHA" "$PEDIDO" ;;
+            *)       SHA=$(git -C fuente rev-parse HEAD)
+                     MENSAJE="$(git -C fuente log -1 --format=%s | cut -c1-80)" node traslado/empacar.js publicar "$PROYECTO" "$CARPETA" "$SHA" "$PEDIDO" "$CREAR" ;;
+          esac
+          RESP="$RUNNER_TEMP/respuesta.json"
+          curl -sL --max-time 300 -H 'Content-Type: text/plain' --data-binary @"$PEDIDO" "$MUDADOR_URL" -o "$RESP" || true
+          rm -f "$PEDIDO"
+          node -e "
+            const fs=require('fs'); let r={};
+            try { r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); } catch(e) { console.log('::error::El Mudador no respondió JSON (¿URL bien puesta y publicada para cualquiera?)'); process.exit(1); }
+            const lineas=[];
+            if (r.proyectos) { for (const [k,v] of Object.entries(r.proyectos)) lineas.push('- **'+k+'**: versión '+v.version+' · '+(v.traido?'Propiedades traídas':'falta trasladoTraer')+' · '+v.url+' · editar: '+v.editar);
+              lineas.push('', 'Últimos movimientos:'); for (const x of (r.registro||[]).slice(-10)) lineas.push('- '+x.t+' '+x.accion+' '+x.proyecto+' '+(x.ok?'ok':'falló')+' '+x.nota); }
+            else for (const k of ['creado','sin_cambios','version','url','editar','traido']) if (k in r) lineas.push('- '+k+': '+r[k]);
+            for (const a of (r.avisos||[])) { lineas.push('- ⚠️ '+a); console.log('::warning::'+a); }
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### Traslado · '+process.env.PROYECTO+'\n'+lineas.join('\n')+'\n');
+            console.log(lineas.join('\n'));
+            if (!r.ok) { console.log('::error::Mudador: '+(r.error||'no')); process.exit(1); }
+          " "$RESP"

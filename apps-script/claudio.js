@@ -44,7 +44,7 @@ var CLAUDIO_FRASE_ = 'Te lo paso.';
 var CLAUDIO_PERMISO_ = 'PUEDES PASARLO CON CLAUDIO: es el administrador principal y la app sabe cambiar a Claudio (el equipo de desarrollo).';
 var CLAUDIO_PROTECCION_NOMBRE_ = 'Instrucciones de Claudio (solo el administrador principal)';
 var CLAUDIO_REINTENTO_MS_ = 6 * 3600000;   // si crear el agente falló, se vuelve a intentar a las 6 h (no en cada vuelta)
-var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo'];
+var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo', 'claudio_acciones'];
 var CLAUDIO_REPOS_ = { hub: 'Hub-Spacioam', app: 'alma-app' };
 var CLAUDIO_CODIGO_MAX_ = 2400;            // lo que vuelve de leer código: corto, es para explicarlo en voz
 var CLAUDIO_SIN_FICHA_ = 'Sin ficha del Hub: no es el administrador principal. No hagas pedidos, no unas ni leas código; dile con amabilidad que esto es solo para el administrador desde la app de Alma.';
@@ -158,6 +158,18 @@ function claudioDefHerramientas_(base) {
         repo: { type: 'string', enum: ['hub', 'app'], description: 'hub: el Hub, la web y el Apps Script (por defecto). app: la app de iPhone de Alma.' },
         archivo: s('Ruta de un archivo del repositorio, si ya la sabes (por ejemplo apps-script/orbita.js). Vacío para buscar.') },
       ['conv_id', 'buscar'], 25),
+    web('claudio_acciones', 'Deja en pantalla UNA acción que Juan tiene que hacer él, como tarjeta con su botón (en la app y en el hilo de Claudio): abrir una página, copiar un texto, pegar algo en un lugar, elegir entre opciones, unir, ver una captura o ir a una pantalla de la app. Si son varios pasos, llámala una vez por paso, en orden. Después di solo «Te dejé dos acciones en pantalla» (con el número que devuelva); nunca leas enlaces ni códigos en voz alta. Nunca para pedir una llave o contraseña en el chat: para eso usa pegar_en con destino llaves. Devuelve cuántas hay en pantalla.',
+      { tipo: { type: 'string', enum: ['abrir_enlace', 'copiar_texto', 'pegar_en', 'elegir_opcion', 'aprobar', 'ver_captura', 'ir_a_pantalla'], description: 'abrir_enlace: abrir una página (enlace). copiar_texto: copiar un texto (texto). pegar_en: pegar algo en un lugar (enlace o destino, y texto si hay que copiarlo). elegir_opcion: escoger entre 2 a 4 opciones. aprobar: unir un cambio listo (cual). ver_captura: revisar una imagen (enlace). ir_a_pantalla: abrir una pantalla de la app (pantalla).' },
+        titulo: s('Lo que tiene que hacer, corto y en imperativo: «Abre la página de permisos», «Toca Permitir», «Elige el diseño».'),
+        detalle: s('Una frase con lo que verá o para qué sirve. Puede ir vacío.'),
+        enlace: s('El enlace https (abrir_enlace, pegar_en, ver_captura). Vacío si no hay.'),
+        texto: s('El texto a copiar (copiar_texto o pegar_en). Nunca una llave ni una contraseña. Vacío si no hay.'),
+        opciones: s('Para elegir_opcion: las opciones separadas por « | », por ejemplo «A: tarjetas grandes | B: lista compacta».'),
+        pantalla: { type: 'string', enum: ['', 'inicio', 'ajustes', 'llaves', 'biblioteca', 'conexiones', 'agentes', 'avisos', 'uso', 'google'], description: 'Para ir_a_pantalla: cuál pantalla de la app. Vacío si no aplica.' },
+        destino: { type: 'string', enum: ['', 'llaves', 'github_secretos'], description: 'llaves: guardar una llave en Ajustes → Llaves. github_secretos: en los secretos de GitHub. Vacío si no aplica.' },
+        cual: s('Para aprobar: el cambio a unir (su número o dos palabras de su nombre). Vacío si no aplica.'),
+        trabajo: s('Si la acción es de un trabajo abierto, dos o tres palabras de su nombre. Vacío si no.') },
+      ['conv_id', 'tipo', 'titulo'], 20),
     { type: 'client', name: 'volver_con_alma', expects_response: false, response_timeout_secs: 1,
       description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz; ella cierra con Juan. Úsala cuando Juan pida volver con Alma, cuando ya terminaron o cuando diga que eso era todo (en vez de colgar). Antes di solo «Listo, te paso con Alma.» y después nada.',
       parameters: { type: 'object', required: [], properties: { nota: { type: 'string', description: 'Vacío.' } } },
@@ -420,7 +432,9 @@ function claudioHerramienta_(herr, b) {
 function claudioEjecutar_(adm, herr, b) {
   CLAUDIO_PANEL_ = null;
   var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_responder' ? claudioResponder_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
-    : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b) : { ok: false, error: 'herramienta desconocida' };
+    : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b)
+    : herr === 'claudio_acciones' ? claudioAccionesHerr_(adm, b) : { ok: false, error: 'herramienta desconocida' };   // claudioacciones.js
+  if (herr === 'claudio_acciones' && out.ok) claudioPanelCandidata_('lista', '');   // en pantalla: el panel con sus acciones arriba
   var cand = CLAUDIO_PANEL_;
   try { claudioPanelGuardar_(b.conv_id); } catch (e) { console.error('claudioPanelGuardar_: ' + e); }
   /* Modo compañero (vivo.js): si el iPad está mirando, el panel le llega aunque el teléfono de la llamada esté bloqueado. */
@@ -450,7 +464,7 @@ function claudioPedido_(adm, b) {
   }
   literalLlamadaPoner_(b.conv_id, b.palabras_de_juan, Date.now());   // texto es lo que entendió la voz; lo que dijo Juan va tal cual (literal.js)
   var r = claudeMandarYa_(adm, texto, { nivel: nivel, micro: micro, nuevoJuan: micro === 'nuevo' });
-  try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
+  if (!b.sin_chat) { try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); } }   // sin_chat: el hilo de texto ya lo guarda (claudioacciones.js)
   var titulo = temaTitulo_(texto);
   /* «Quedó pedido» una sola vez por llamada (Juan, 17-nov-2026: «lo repite hasta ocho veces; con una sola vez basta»):
      si en esta conversación ya salió otro pedido, la confirmación va corta (variar.js). */
@@ -475,7 +489,7 @@ function claudioResponder_(adm, b) {
   }
   var r = subir ? microSubir_(adm, m, { sinChat: true }) : microResponder_(adm, m.id, texto, { sinChat: true });
   var nombre = (m && m.nombre) || r.nombre || 'el pedido';
-  try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + (r.ok ? r.respuesta : 'no salió: ' + (r.error || 'error')), [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioResponder_ chat: ' + e); }
+  if (!b.sin_chat) { try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + (r.ok ? r.respuesta : 'no salió: ' + (r.error || 'error')), [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioResponder_ chat: ' + e); } }
   if (!r.ok) { claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: false, titulo: nombre } }); return { ok: false, error: 'No salió: ' + String(r.error || 'error').slice(0, 200) }; }
   claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: true, titulo: nombre } });
   if (r.micro) claudioPanelCandidata_('trabajo', 'mp:' + r.micro);

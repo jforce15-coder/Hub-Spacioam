@@ -293,6 +293,7 @@ function claudioConfigSiCambio_(forzar) {
   var g = uf_(url, { headers: h, muteHttpExceptions: true }, 'Voz');
   if (g.getResponseCode() !== 200) return { ok: false, error: 'GET agente HTTP ' + g.getResponseCode() };
   var ag = JSON.parse(g.getContentText()), ps = ag.platform_settings || {}, tts = (ag.conversation_config || {}).tts || {};
+  try { claudioTtsGuardar_(tts); } catch (e) { console.error('claudioTtsGuardar_: ' + e); }   // la misma voz en Claudio local (claudiolocal.js)
   var listo = function (o) { p.setProperty('CLAUDIO_CONFIG_HUELLA', huella); p.setProperty('CLAUDIO_CONFIG_T', String(Date.now())); return o; };
   if (vozAccesoCerrado_(ps.auth) && claudioOverridesAlDia_(ps.overrides) && vozProteccionAlDia_(ps.guardrails, cfg) && tts.voice_id === CLAUDIO_VOZ_ID_) return listo({ ok: true, al_dia: true });
   var r = uf_(url, { method: 'patch', contentType: 'application/json', headers: h, muteHttpExceptions: true, payload: JSON.stringify({

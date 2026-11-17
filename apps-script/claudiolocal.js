@@ -8,9 +8,12 @@
        confirmaciones, «nunca» y Weebo salen de la misma fuente que Alma), la MISMA ficha (claudioFicha_) y las MISMAS
        herramientas (claudio_pedido, claudio_responder, claudio_estado, claudio_unir, claudio_codigo y volver_con_alma),
        con el modelo rápido de la voz (rapidoModelo_, como el camino rápido): cuesta centavos de texto, no minutos de voz;
-     · voz: una voz de hombre del iPhone (la mejor que tenga en español), afinada para parecerse a la de Claudio en
-       ElevenLabs (calmada, cálida, ritmo de conversación): CLAUDIO_VOZ_LOCAL_, y se cambia sin PR con la propiedad
-       CLAUDIO_VOZ_LOCAL (JSON).
+     · voz: LA MISMA voz de Claudio en ElevenLabs (Juan, 17-nov-2026, #636: «mantener la voz igual a la que usábamos antes
+       con ElevenLabs, que la voz local tenga la misma calidad sin bajar el nivel»). Cada frase se convierte en audio con
+       su voz (CLAUDIO_VOZ_ID_), el mismo modelo y los mismos ajustes de su agente (claudioTts_), en el mismo formato de la
+       llamada (PCM 16 kHz). Solo se paga lo que Claudio dice (unas letras por frase), no los minutos de la llamada
+       (escuchar, pensar y los silencios). Si ElevenLabs falla o se apaga (CLAUDIO_VOZ_LOCAL {"motor":"iphone"}), habla la
+       voz de hombre del iPhone afinada para parecerse (CLAUDIO_VOZ_LOCAL_): la conversación nunca se queda muda.
    Las reglas de cómo suena (skill alma-humana, «Diseñar para el oído»): la respuesta primero, frases cortas, una sola
    pregunta al final, nada de listas ni etiquetas de emoción (la voz del iPhone las leería en voz alta): CLAUDIO_LOCAL_VOZ_.
    Encendido de fábrica. CLAUDIO_LOCAL = 0 (Propiedades del script) vuelve al agente de ElevenLabs sin un PR. La app
@@ -24,7 +27,12 @@ var CLAUDIO_LOCAL_VUELTAS_ = 4, CLAUDIO_LOCAL_MS_ = 22000, CLAUDIO_LOCAL_HIST_ =
 var CLAUDIO_LOCAL_REPITE_ = 'Perdón, no me llegó bien. ¿Me lo repites?';
 /* La voz del iPhone que imita a Claudio: de hombre, en español de México (luego Estados Unidos y España), la de mejor
    calidad instalada; un poco más grave y apenas más pausada que la de fábrica, como su voz de ElevenLabs. */
-var CLAUDIO_VOZ_LOCAL_ = { idiomas: ['es-MX', 'es-US', 'es-419', 'es-ES'], genero: 'hombre', velocidad: 0.5, tono: 0.92, volumen: 1 };
+var CLAUDIO_VOZ_LOCAL_ = { motor: 'elevenlabs', idiomas: ['es-MX', 'es-US', 'es-419', 'es-ES'], genero: 'hombre', velocidad: 0.5, tono: 0.92, volumen: 1 };
+/* La voz de ElevenLabs en Claudio local: los modelos que también sirven fuera del agente; si el agente usa otro (o todavía
+   no se leyó), el rápido, que es el de las llamadas. Los ajustes (estabilidad, parecido, velocidad) son los de su agente. */
+var CLAUDIO_TTS_MODELOS_ = ['eleven_flash_v2_5', 'eleven_turbo_v2_5', 'eleven_multilingual_v2', 'eleven_v3'];
+var CLAUDIO_TTS_FABRICA_ = { model_id: 'eleven_flash_v2_5', stability: 0.5, similarity_boost: 0.8, speed: 1 };
+var CLAUDIO_TTS_HZ_ = 16000, CLAUDIO_TTS_LETRAS_ = 600;
 var CLAUDIO_LOCAL_VOZ_ = [
   'Te oye el dictado del iPhone y te lee en voz alta una voz del iPhone: escribe SOLO lo que dirías, en texto plano.',
   'Nada de etiquetas de emoción ([warm], [laughs]…), markdown, viñetas, emojis, enlaces ni nombres de archivos: la voz los leería tal cual.',
@@ -44,7 +52,51 @@ function claudioVozLocal_() {
   o.idiomas = (Array.isArray(o.idiomas) ? o.idiomas : [String(o.idiomas || '')]).map(String).filter(function (x) { return /^es(-[A-Za-z0-9]+)?$/.test(x); }).slice(0, 5);
   if (!o.idiomas.length) o.idiomas = CLAUDIO_VOZ_LOCAL_.idiomas.slice();
   o.genero = o.genero === 'mujer' ? 'mujer' : 'hombre';
+  o.motor = o.motor === 'iphone' ? 'iphone' : 'elevenlabs';
   return o;
+}
+
+/* Lo que usa el agente de Claudio para hablar (lo guarda claudioConfigSiCambio_ una vez al día al leer su agente). */
+function claudioTtsGuardar_(tts) {
+  tts = tts || {}; var o = {};
+  if (tts.model_id) o.model_id = String(tts.model_id);
+  ['stability', 'similarity_boost', 'speed'].forEach(function (k) { if (tts[k] != null && !isNaN(Number(tts[k]))) o[k] = Number(tts[k]); });
+  PropertiesService.getScriptProperties().setProperty('CLAUDIO_TTS_AGENTE', JSON.stringify(o));
+  return o;
+}
+function claudioTts_() {
+  var p = PropertiesService.getScriptProperties(), o = Object.assign({}, CLAUDIO_TTS_FABRICA_), g = {};
+  try { g = JSON.parse(p.getProperty('CLAUDIO_TTS_AGENTE') || '{}') || {}; } catch (e) {}
+  Object.keys(o).forEach(function (k) { if (g[k] != null) o[k] = g[k]; });
+  var m = String(p.getProperty('CLAUDIO_LOCAL_TTS_MODELO') || o.model_id);   // se cambia sin PR
+  o.model_id = CLAUDIO_TTS_MODELOS_.indexOf(m) >= 0 ? m : CLAUDIO_TTS_FABRICA_.model_id;
+  var n = function (x, a, b, d) { x = Number(x); return isNaN(x) ? d : Math.min(b, Math.max(a, x)); };
+  o.stability = n(o.stability, 0, 1, 0.5); o.similarity_boost = n(o.similarity_boost, 0, 1, 0.8); o.speed = n(o.speed, 0.7, 1.2, 1);
+  return o;
+}
+/* Una frase con la voz de Claudio en ElevenLabs: PCM 16 bits a 16 kHz en base64 (lo mismo que manda su agente), o '' si no
+   se pudo (la app la dice con la voz del iPhone). Si el modelo del agente falla, una vez más con el rápido. */
+function claudioLocalAudio_(texto) {
+  texto = String(texto || '').trim().slice(0, CLAUDIO_TTS_LETRAS_);
+  if (!texto || claudioVozLocal_().motor !== 'elevenlabs') return '';
+  var key = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_KEY'); if (!key) return '';
+  var t = claudioTts_(), modelos = [t.model_id];
+  if (t.model_id !== CLAUDIO_TTS_FABRICA_.model_id) modelos.push(CLAUDIO_TTS_FABRICA_.model_id);
+  for (var i = 0; i < modelos.length; i++) {
+    var r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(CLAUDIO_VOZ_ID_) + '?output_format=pcm_' + CLAUDIO_TTS_HZ_, {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
+      payload: JSON.stringify({ text: texto, model_id: modelos[i], language_code: 'es',
+        voice_settings: { stability: t.stability, similarity_boost: t.similarity_boost, speed: t.speed } }) }, 'Voz');
+    if (r.getResponseCode() === 200) { var b = r.getBlob().getBytes(); return b && b.length ? Utilities.base64Encode(b) : ''; }
+    console.error('claudioLocalAudio_ ' + modelos[i] + ' ' + r.getResponseCode() + ': ' + String(r.getContentText()).slice(0, 200));
+  }
+  return '';
+}
+/* Le pone el audio a lo que se va a decir (sin audio, la app usa la voz del iPhone). */
+function claudioLocalConAudio_(out, texto) {
+  var a = ''; try { a = claudioLocalAudio_(texto); } catch (e) { console.error('claudioLocalAudio_: ' + e); }
+  if (a) { out.audio = a; out.hz = CLAUDIO_TTS_HZ_; }
+  return out;
 }
 
 /* vozClaudio (claudioWebInicio_) suma lo de Claudio local: la conversación local y su voz. La ficha queda guardada para
@@ -55,6 +107,7 @@ function claudioLocalSumar_(out, adm, ficha) {
   c.put('claudio_' + conv, normTel_(adm.tels[0]), 21600);
   try { c.put('claudiolocal_' + conv, String(ficha || '').slice(0, 90000), 21600); } catch (e) { console.error('claudiolocal ficha: ' + e); }
   out.local = true; out.conv_id = conv; out.voz_local = claudioVozLocal_();
+  claudioLocalConAudio_(out.voz_local, out.first_message);   // el saludo, también con su voz (voz_local.audio)
   return out;
 }
 
@@ -94,7 +147,7 @@ function claudioLocalMensajes_(historial, texto) {
 function claudioLocalHablar_(t) { return calleCorto_(calleLimpiar_(t), CLAUDIO_LOCAL_PALABRAS_); }
 
 /* ── Acción claudioLocal { conv_id, texto, historial: [{ de: 'juan'|'claudio', texto }] } (solo el principal) ──
-   Devuelve { ok, hablar, volver, herramientas }. volver: Claudio usó volver_con_alma (la app vuelve a Alma después de
+   Devuelve { ok, hablar, volver, herramientas, audio?, hz? } (audio: hablar con su voz de ElevenLabs, PCM en base64). volver: Claudio usó volver_con_alma (la app vuelve a Alma después de
    decir hablar). herramientas: las de claudio_* que corrieron (la app pide el Panel de Claudio). */
 function claudioLocalApi_(ses, b) {
   b = b || {};
@@ -112,7 +165,8 @@ function claudioLocalApi_(ses, b) {
     ficha = claudioFicha_(adm, String(adm.nombre || '').trim().split(/\s+/)[0] || 'Juan', '');
     try { c.put('claudiolocal_' + conv, ficha.slice(0, 90000), 21600); } catch (e) {}
   }
-  return claudioLocalTurno_(adm, conv, claudioLocalSystem_(ficha), claudioLocalMensajes_(b.historial, texto));
+  var out = claudioLocalTurno_(adm, conv, claudioLocalSystem_(ficha), claudioLocalMensajes_(b.historial, texto));
+  return claudioLocalConAudio_(out, out.hablar);   // con la voz de Claudio en ElevenLabs (audio + hz)
 }
 function claudioLocalTurno_(adm, conv, system, msgs) {
   var t0 = Date.now(), tools = claudioLocalHerramientas_(), corridas = [], volver = false, dicho = '';

@@ -7,7 +7,9 @@
    3. solo el principal con su sesión, y la conversación es de él;
    4. corre sus herramientas con la conversación local (para el panel y la vuelta con Alma) y avisa volver_con_alma;
    5. lo que se dice sale limpio y corto (sin etiquetas, markdown ni enlaces);
-   6. la voz se afina sin PR (CLAUDIO_VOZ_LOCAL) y con límites; la acción está en el Hub y cuenta como voz en el cupo.
+   6. la voz se afina sin PR (CLAUDIO_VOZ_LOCAL) y con límites; la acción está en el Hub y cuenta como voz en el cupo;
+   7. la voz es LA MISMA de Claudio en ElevenLabs (#636): su voz, el modelo y los ajustes de su agente, PCM 16 kHz, en el
+      saludo y en cada turno; si ElevenLabs falla o el motor es «iphone», sin audio (la app usa la voz del iPhone).
    node .github/claudio-local.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -20,8 +22,8 @@ let mem = {}, cache = {}, salidas = [], claude = [], resp = () => ({ codigo: 404
 ctx.PropertiesService = { getScriptProperties: () => ({ getProperty: k => (k in mem ? mem[k] : null), setProperty: (k, v) => { mem[k] = String(v); }, deleteProperty: k => { delete mem[k]; }, getKeys: () => Object.keys(mem) }) };
 ctx.CacheService = { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = String(v); }, remove: k => { delete cache[k]; }, getAll: () => ({}), putAll() {} }) };
 ctx.uf_ = (url, o) => { o = o || {}; const s = { url: String(url), metodo: String(o.method || 'get').toLowerCase(), cuerpo: o.payload ? JSON.parse(o.payload) : null }; salidas.push(s); const r = resp(s);
-  return { getResponseCode: () => r.codigo, getContentText: () => (typeof r.cuerpo === 'string' ? r.cuerpo : JSON.stringify(r.cuerpo)) }; };
-let n = 0; ctx.Utilities = Object.assign({}, ctx.Utilities, { getUuid: () => 'ab12cd34-ef56-ab78-cd90-ef12ab34cd5' + (n++ % 10) });
+  return { getResponseCode: () => r.codigo, getContentText: () => (typeof r.cuerpo === 'string' ? r.cuerpo : JSON.stringify(r.cuerpo)), getBlob: () => ({ getBytes: () => r.bytes || [] }) }; };
+let n = 0; ctx.Utilities = Object.assign({}, ctx.Utilities, { getUuid: () => 'ab12cd34-ef56-ab78-cd90-ef12ab34cd5' + (n++ % 10), base64Encode: b => Buffer.from(b).toString('base64') });
 const JUAN = { email: 'juan@x', nombre: 'Juan Prueba', principal: true, tels: ['50211110000'] };
 const ANA = { email: 'ana@x', nombre: 'Ana', principal: false, tels: ['50222220000'] };
 Object.assign(ctx, { adminsOp_: () => [JUAN, ANA], adminPorTel_: t => [JUAN, ANA].filter(x => String(t).slice(-8) === x.tels[0].slice(-8))[0] || null,
@@ -103,5 +105,33 @@ const cod = leer('Código.js'), cupo = leer('cupo.js');
 ok(/case 'claudioLocal': return json_\(claudioLocalApi_\(ses, body\)\)/.test(cod), '6 · la acción claudioLocal usa la sesión verificada');
 ok(/CUPO_ACC_ALMA_ = \[[^\]]*'claudioLocal'/.test(cupo) && /voz: '[^']*\bclaudioLocal\b/.test(cupo), '6 · claudioLocal cuenta como voz de Alma en el cupo (no se pausa)');
 
-if (!fallo) console.log('Todo bien: Claudio local habla con su mismo prompt y herramientas, sin ElevenLabs.');
+/* 7. La misma voz de ElevenLabs (#636) */
+delete mem.CLAUDIO_VOZ_LOCAL;
+const tts = () => salidas.filter(s => /text-to-speech/.test(s.url));
+resp = s => /text-to-speech/.test(s.url) ? { codigo: 200, bytes: [1, 2, 3, 4] } : /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 'wss://c' } } : { codigo: 404, cuerpo: '' };
+R("claudioTtsGuardar_({ voice_id: 'x', model_id: 'eleven_turbo_v2_5', stability: 0.42, similarity_boost: 0.77, speed: 1.08, otra: 1 })");
+const j7 = ini(), s7 = tts()[0];
+ok(j7.voz_local.motor === 'elevenlabs' && j7.voz_local.audio === Buffer.from([1, 2, 3, 4]).toString('base64') && j7.voz_local.hz === 16000, '7 · el saludo llega con su voz de ElevenLabs (PCM 16 kHz)');
+ok(s7 && s7.url.indexOf('/text-to-speech/' + R('CLAUDIO_VOZ_ID_') + '?output_format=pcm_16000') > 0 && s7.cuerpo.text === j7.first_message, '7 · con LA voz de Claudio y el formato de su llamada');
+ok(s7.cuerpo.model_id === 'eleven_turbo_v2_5' && s7.cuerpo.voice_settings.stability === 0.42 && s7.cuerpo.voice_settings.similarity_boost === 0.77 && s7.cuerpo.voice_settings.speed === 1.08, '7 · con el modelo y los ajustes de su agente');
+salidas = []; fila = [{ content: [{ type: 'text', text: 'Ya quedó el cambio del botón.' }] }];
+const t7 = turno({ conv_id: j7.conv_id, texto: '¿y el botón?' });
+ok(t7.ok && t7.audio && t7.hz === 16000 && tts().length === 1 && tts()[0].cuerpo.text === t7.hablar, '7 · cada turno trae lo que dice con su voz (solo lo que dice, una vez)');
+let primero = true; salidas = [];
+resp = s => /text-to-speech/.test(s.url) ? (primero ? (primero = false, { codigo: 400, cuerpo: 'modelo' }) : { codigo: 200, bytes: [9] }) : { codigo: 404, cuerpo: '' };
+fila = [{ content: [{ type: 'text', text: 'Listo.' }] }];
+const t8 = turno({ conv_id: j7.conv_id, texto: 'ok' });
+ok(t8.audio === Buffer.from([9]).toString('base64') && tts().map(x => x.cuerpo.model_id).join() === 'eleven_turbo_v2_5,eleven_flash_v2_5', '7 · si el modelo del agente falla, otra vez con el rápido');
+resp = () => ({ codigo: 500, cuerpo: 'caído' }); fila = [{ content: [{ type: 'text', text: 'Listo.' }] }];
+const t9 = turno({ conv_id: j7.conv_id, texto: 'ok' });
+ok(t9.ok && t9.hablar === 'Listo.' && !t9.audio, '7 · si ElevenLabs falla, igual contesta (sin audio: la voz del iPhone)');
+mem.CLAUDIO_VOZ_LOCAL = JSON.stringify({ motor: 'iphone' }); salidas = [];
+resp = s => /text-to-speech/.test(s.url) ? { codigo: 200, bytes: [1] } : { codigo: 404, cuerpo: '' }; fila = [{ content: [{ type: 'text', text: 'Listo.' }] }];
+const t10 = turno({ conv_id: j7.conv_id, texto: 'ok' });
+ok(!t10.audio && !tts().length && R('claudioVozLocal_()').motor === 'iphone', '7 · CLAUDIO_VOZ_LOCAL {"motor":"iphone"}: la voz del iPhone, sin gastar ElevenLabs');
+mem.CLAUDIO_LOCAL_TTS_MODELO = 'inventado'; delete mem.CLAUDIO_VOZ_LOCAL;
+ok(R('claudioTts_()').model_id === 'eleven_flash_v2_5', '7 · un modelo que no existe vuelve al rápido');
+ok(/claudioTtsGuardar_\(tts\)/.test(leer('claudio.js')), '7 · el Hub guarda el modelo y los ajustes de la voz de su agente al revisarlo');
+
+if (!fallo) console.log('Todo bien: Claudio local habla con su mismo prompt, sus herramientas y su misma voz de ElevenLabs, sin el agente.');
 process.exit(fallo);

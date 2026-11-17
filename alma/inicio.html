@@ -1163,6 +1163,7 @@
       <div class="fila aj-enlace"><a href="reporte.html" id="p-reportes"><i class="aj-ico verde" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 19v-7M10 19V5.5M14.5 19v-5M19 19V9"/></svg></i><span class="et"><b>Reportes</b><small>Llamadas y semanas</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
       <div class="fila aj-enlace"><a href="correos.html" id="p-correos"><i class="aj-ico azul2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.6"/><path d="m4.5 7.5 7.5 5.6 7.5-5.6"/></svg></i><span class="et"><b>Tus correos</b><small>Lo que Alma lee y responde</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
       <div class="fila aj-enlace" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio"><i class="aj-ico arena" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3M12 3.5a5.8 5.8 0 0 0-3.4 10.5v2h6.8v-2A5.8 5.8 0 0 0 12 3.5z"/></svg></i><span class="et"><b>Lo que Alma aprendió</b><small>Sus recetas</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <div class="fila aj-enlace" id="p-claudio-f" hidden><a href="claudio.html" id="p-claudio"><i class="aj-ico durazno" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 10h8M8 13h5"/></svg></i><span class="et"><b>Hilo de Claudio</b><small>Lo que le pediste, sus respuestas y acciones</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
       <div class="fila aj-enlace" id="p-biblioteca-f" hidden><a href="biblioteca.html" id="p-biblioteca"><i class="aj-ico malva" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h3.5v15H5zM10.5 4.5H14v15h-3.5zM15.6 5.4l3.3-.9 2.6 14.5-3.3.9z"/></svg></i><span class="et"><b>Biblioteca de Claudio</b><small>Skills y documentos</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
       </div>
       <p class="tit-g" data-auto>Avanzado</p>
@@ -1959,6 +1960,7 @@ window.SAPulso = {
     $("p-uso-f").hidden = $("p-health-f").hidden;
     $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
     $("p-biblioteca-f").hidden = $("p-health-f").hidden;   // skills y documentos para Claudio (alma/biblioteca.html): solo el principal
+    $("p-claudio-f").hidden = $("p-health-f").hidden;   // el hilo de Claudio (alma/claudio.html, #743): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "atajos", que: "estado" }); avisosReloj(true); }
@@ -4156,7 +4158,8 @@ window.SAPulso = {
   var h = location.hash; if (h !== "#ajustes" && h !== "#ajustes-llaves") return;
   setTimeout(function () {
     var b = document.getElementById("b-ajustes"); if (!b) return; b.click();
-    if (h === "#ajustes-llaves") setTimeout(function () { var t = document.getElementById("t-llaves"); if (t && !t.hidden) t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 500);
+    /* Llaves vive en su página (Ajustes → Avanzado → Llaves, #744): se abre esa página; sin ella, se baja hasta su título */
+    if (h === "#ajustes-llaves") setTimeout(function () { if (window.AlmaAjustes && AlmaAjustes.ir) { AlmaAjustes.ir("llaves"); return; } var t = document.getElementById("t-llaves"); if (t && !t.hidden) t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 500);
   }, 1200);
 })();
 </script>

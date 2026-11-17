@@ -373,7 +373,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app: la tarjeta de club que pide, en pantalla para la caja."
+    "linea": "En la app: la tarjeta de club o el boleto que pide, en pantalla."
    },
    "hablar_con_claudio": {
     "canales": [

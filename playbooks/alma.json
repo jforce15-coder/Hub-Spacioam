@@ -155,7 +155,7 @@
       "mostrar_en_chat": { "canales": ["voz"], "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si se mostró, lo resumes en una frase." },
       "nivel_weebo": { "canales": ["voz"], "linea": "En la app, tu nivel de Modo Weebo, en silencio." },
       "mostrar_gif": { "canales": ["voz"], "linea": "En la app y solo con Juan: un GIF tras una broma que ya cayó, en silencio." },
-      "mostrar_tarjeta_club": { "canales": ["voz"], "linea": "En la app: la tarjeta de club que pide, en pantalla para la caja." },
+      "mostrar_tarjeta_club": { "canales": ["voz"], "linea": "En la app: la tarjeta de club o el boleto que pide, en pantalla." },
       "hablar_con_claudio": { "canales": ["voz"], "linea": "Solo si la ficha dice «PUEDES PASARLO CON CLAUDIO» y Juan pide hablar con Claudio o con desarrollo: di la frase de la herramienta y pásalo, sin preguntar más." },
       "leer_pagina": { "canales": ["voz"], "linea": "Navegador: lee la página abierta." },
       "senalar": { "canales": ["voz"], "linea": "Navegador: marca el siguiente paso, uno a la vez." },

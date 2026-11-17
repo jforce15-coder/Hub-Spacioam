@@ -55,6 +55,20 @@ function vivoTarjeta_(convId, t) {
   return true;
 }
 
+/* El Panel de Claudio (claudiopanel.js; Juan, 17-nov-2026: «en el teléfono me pones los trabajos, pero en el iPad no veo
+   nada»): no pasa por tvCerrar_, lo pide la app con vozClaudioPanel. Lo deja aquí para el compañero, en la llamada que el
+   compañero ya sigue (la de Alma: la app sigue publicando con su conversación aunque ahora hable Claudio). Al volver con
+   Alma, vozWebVincular_ abre otra conversación (vivoInicio_) y el panel se quita solo. */
+function vivoPanel_(adm, convClaudio, p) {
+  if (!adm || !adm.email || !p || p.tipo !== 'claudio') return false;
+  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h), ahora = Date.now();
+  var conv = e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000 ? String(e.conv) : String(convClaudio || '');
+  if (!conv) return false;
+  if (!e || e.conv !== conv) c.put('vivo_est_' + h, JSON.stringify({ conv: conv, estado: 'hablando', dev: '', ts: ahora }), VIVO_SEG_);
+  else { e.ts = ahora; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }
+  c.put('vivo_tv_' + h, JSON.stringify({ conv: conv, ts: ahora, t: p }), VIVO_SEG_);
+  return true;
+}
 /* ¿Hay un compañero mirando? → { ts, tipos } o null. */
 function vivoMira_(email) { return email ? vivoLeerCache_('vivo_mira_' + vivoClave_(email)) : null; }
 /* Para tvCerrar_: ¿el compañero de quien está en esta llamada pinta este tipo? (los tipos nuevos, solo si los nombra) */

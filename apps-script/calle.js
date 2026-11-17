@@ -87,7 +87,7 @@ var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audíf
   'Si pregunta algo, responde en una o dos frases cortas, de 20 palabras como mucho. Sin listas, sin markdown, sin enlaces, sin emojis. ' +
   'Si de verdad tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 
-/* calle { texto, aviso_id? } → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
+/* calle { texto, aviso_id?, sin_audio? } → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
 function calle_(ses, b) {
   b = b || {};
   var t0 = Date.now();
@@ -110,6 +110,9 @@ function calle_(ses, b) {
     if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false, ms: calleMs_(t0, tA, ms, 0) };
     out = calleRespuesta_(adm, r);
   }
+  /* La voz de respaldo de Alma (alma-app, VozRespaldo; Juan, 17-nov-2026, #657) pide sin_audio: la dice la voz del iPhone,
+     así con poca señal no se espera ni se baja el audio de ElevenLabs. */
+  if (b.sin_audio) { out.ms = calleMs_(t0, tA, ms, 0); return out; }
   var tV = Date.now(), audio = calleAudio_(out.hablar, t0, { donde: 'calle' });
   if (audio) out.audio = audio; else { out.vozMotivo = CALLE_VOZ_MOTIVO_; if (CALLE_VOZ_PAUSA_) out.vozPausa = true; }
   out.ms = calleMs_(t0, tA, ms, Date.now() - tV);

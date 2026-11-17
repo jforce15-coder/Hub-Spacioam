@@ -67,7 +67,9 @@ function claudioPanelApi_(ses, b) {
     if (tel && !(adm.tels || []).some(function (x) { return fin8_(x) === fin8_(tel); })) return { ok: false, error: 'Esa llamada no es tuya.' };
     try { spec = JSON.parse(c.get('claudiopanel_' + conv) || 'null'); } catch (e) { spec = null; }
   }
-  return { ok: true, panel: claudioPanelArmar_(adm, spec || { vista: 'lista', foco: '' }) };
+  var panel = claudioPanelArmar_(adm, spec || { vista: 'lista', foco: '' });
+  try { if (typeof vivoPanel_ === 'function') vivoPanel_(adm, conv, panel); } catch (e) { console.error('vivoPanel_: ' + e); }   // y al compañero (vivo.js)
+  return { ok: true, panel: panel };
 }
 
 /* ── Armar el panel ── */

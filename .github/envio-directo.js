@@ -69,6 +69,6 @@ function caja(props) {
   ok(/if \(inp\.borrador === true && !siE && typeof envioDirecto_ === 'function' && envioDirecto_\(adm\)\) inp\.borrador = false;/.test(src), 'equipo: la orden de Juan salta el borrador');
   ok(/correoResponder_\(adm, Object\.assign\(\{\}, inp, \{ directo:/.test(src), 'correo: pasa directo');
   const fuente = leer('almafuente.js');
-  ok(/sale de inmediato, sin borrador ni «¿lo envío\?»/.test(fuente), 'alma.json: la regla de cero fricción incluye los mensajes que Juan ordena');
+  ok(/mensajes que te ordena enviar, sin «¿lo envío\?»/.test(fuente), 'alma.json: la regla de cero fricción incluye los mensajes que Juan ordena');
 }
 process.exit(fallo);

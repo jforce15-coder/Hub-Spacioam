@@ -8,6 +8,7 @@
    4. corre sus herramientas con la conversación local (para el panel y la vuelta con Alma) y avisa volver_con_alma;
    5. lo que se dice sale limpio y corto (sin etiquetas, markdown ni enlaces);
    6. la voz se afina sin PR (CLAUDIO_VOZ_LOCAL) y con límites; la acción está en el Hub y cuenta como voz en el cupo;
+   4b. un pedido hecho («Listo, quedó …») se dice sin otra vuelta de la IA y el turno trae ms_ia / ms_voz (#651);
    7. de fábrica habla la voz del iPhone, sin gastar ElevenLabs (Juan, #649); con CLAUDIO_VOZ_LOCAL {"motor":"elevenlabs"},
       LA MISMA voz de Claudio en ElevenLabs (#636): su voz, el modelo y los ajustes de su agente, PCM 16 kHz, en el
       saludo y en cada turno; si ElevenLabs falla, sin audio (la app usa la voz del iPhone).
@@ -79,11 +80,17 @@ fila = [{ content: [{ type: 'tool_use', id: 'tu1', name: 'claudio_pedido', input
         { content: [{ type: 'text', text: 'Quedó pedido; lo hago en segundo plano y te aviso cuando esté.' }] }];
 const t4 = turno({ conv_id: j.conv_id, texto: 'cambia el botón de pagos' });
 ok(t4.ok && pedido && pedido.adm === 'juan@x' && /botón de pagos/.test(pedido.texto) && t4.herramientas.join() === 'claudio_pedido', '4 · claudio_pedido sale con el principal verificado por su sesión');
-const res = claude[1].messages[claude[1].messages.length - 1].content[0];
-ok(res.type === 'tool_result' && res.tool_use_id === 'tu1' && /"ok":true/.test(res.content), '4 · el resultado vuelve a Claude y él lo dice');
+ok(claude.length === 1 && /^Listo, quedó pedido\. Lo hago en segundo plano/.test(t4.hablar) && /órbita/.test(t4.hablar), '4 · pedido hecho: la frase sale sin otra vuelta de la IA (#651, más rápido): «' + t4.hablar + '»');
+ok(typeof t4.ms_ia === 'number' && typeof t4.ms === 'number', '4 · el turno dice cuánto tardó la IA (ms_ia) para ver dónde se va el tiempo');
 const hizo = R("claudioHizo_('" + j.conv_id + "', adminsOp_()[0])");
 ok(hizo.pedidos.length === 1 && hizo.pedidos[0].ok, '4 · queda anotado en la conversación local (Alma cierra con lo que hizo Claudio)');
 ok(JSON.parse(cache['claudiopanel_' + j.conv_id] || '{}').vista === 'trabajo', '4 · y el Panel de Claudio de esa conversación muestra el trabajo nuevo');
+/* Si el resultado no es «Listo, quedó …» (una orden de unir, un error), la IA sí da otra vuelta y lo dice ella. */
+{ const antes = ctx.claudeMandarYa_; ctx.claudeMandarYa_ = () => ({ texto: 'Uní el cambio del botón.', claude: { ok: true } }); claude = [];
+  fila = [{ content: [{ type: 'tool_use', id: 'tu1', name: 'claudio_pedido', input: { pedido: 'une el del botón' } }] }, { content: [{ type: 'text', text: 'Ya quedó unido.' }] }];
+  const tu = turno({ conv_id: j.conv_id, texto: 'une el del botón' }), res = claude[1] && claude[1].messages[claude[1].messages.length - 1].content[0];
+  ok(claude.length === 2 && res && res.type === 'tool_result' && res.tool_use_id === 'tu1' && /"ok":true/.test(res.content) && tu.hablar === 'Ya quedó unido.', '4 · con otro resultado, vuelve a Claude y él lo dice');
+  ctx.claudeMandarYa_ = antes; claude = []; }
 fila = [{ content: [{ type: 'text', text: 'Listo, te paso con Alma.' }, { type: 'tool_use', id: 'tu2', name: 'volver_con_alma', input: {} }] }];
 const t5 = turno({ conv_id: j.conv_id, texto: 'eso es todo, gracias' });
 ok(t5.ok && t5.volver === true && t5.hablar === 'Listo, te paso con Alma.' && claude.length === 1, '4 · volver_con_alma: dice su frase, avisa volver y no da otra vuelta');

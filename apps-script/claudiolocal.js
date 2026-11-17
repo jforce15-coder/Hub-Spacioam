@@ -146,7 +146,7 @@ function claudioLocalMensajes_(historial, texto) {
 function claudioLocalHablar_(t) { return calleCorto_(calleLimpiar_(t), CLAUDIO_LOCAL_PALABRAS_); }
 
 /* ── Acción claudioLocal { conv_id, texto, historial: [{ de: 'juan'|'claudio', texto }] } (solo el principal) ──
-   Devuelve { ok, hablar, volver, herramientas, audio?, hz? } (audio: hablar con su voz de ElevenLabs, PCM en base64). volver: Claudio usó volver_con_alma (la app vuelve a Alma después de
+   Devuelve { ok, hablar, volver, herramientas, audio?, hz?, ms, ms_ia, ms_voz } (ms_*: lo que tardó la IA y la voz) (audio: hablar con su voz de ElevenLabs, PCM en base64). volver: Claudio usó volver_con_alma (la app vuelve a Alma después de
    decir hablar). herramientas: las de claudio_* que corrieron (la app pide el Panel de Claudio). */
 function claudioLocalApi_(ses, b) {
   b = b || {};
@@ -165,19 +165,35 @@ function claudioLocalApi_(ses, b) {
     try { c.put('claudiolocal_' + conv, ficha.slice(0, 90000), 21600); } catch (e) {}
   }
   var out = claudioLocalTurno_(adm, conv, claudioLocalSystem_(ficha), claudioLocalMensajes_(b.historial, texto));
-  return claudioLocalConAudio_(out, out.hablar);   // con la voz de Claudio en ElevenLabs (audio + hz)
+  var tv = Date.now(); claudioLocalConAudio_(out, out.hablar);   // con la voz de Claudio en ElevenLabs si está encendida (audio + hz); de fábrica, la del iPhone
+  out.ms_voz = Date.now() - tv;   // cuánto tardó la voz (la app lo anota junto a ms_ia: así se ve dónde se va el tiempo)
+  return out;
+}
+/* Pedido hecho, sin otra vuelta de la IA (#651; Juan, 17-nov-2026: «Claudio responde más lento que Alma»). Después de
+   claudio_pedido la IA solo repetía la frase fija de su prompt («Quedó pedido; lo hago en segundo plano…»): esa vuelta
+   costaba otra llamada completa a Claude (1 a 3 s) en el turno más común. Si en la vuelta solo hubo pedidos y todos
+   salieron con «Listo, quedó …», la frase se arma aquí. Si algo falló o el resultado es otro (una orden de unir), la IA
+   lo dice como siempre. */
+var CLAUDIO_LOCAL_PEDIDO_ = 'Lo hago en segundo plano y te aviso cuando esté; lo vas a ver en la órbita.';
+function claudioLocalPedidoListo_(usos, salidas) {
+  if (!usos.length || usos.some(function (u) { return u.name !== 'claudio_pedido'; })) return '';
+  var dichos = salidas.map(function (o) { return o && o.ok && /^Listo, quedó (pedido|sumado)/.test(String(o.hecho || '')) ? String(o.hecho) : ''; });
+  if (dichos.some(function (d) { return !d; })) return '';
+  return dichos.filter(function (d, i) { return dichos.indexOf(d) === i; }).join(' ') + ' ' + CLAUDIO_LOCAL_PEDIDO_;
 }
 function claudioLocalTurno_(adm, conv, system, msgs) {
-  var t0 = Date.now(), tools = claudioLocalHerramientas_(), corridas = [], volver = false, dicho = '';
+  var t0 = Date.now(), tools = claudioLocalHerramientas_(), corridas = [], volver = false, dicho = '', msIa = 0;
   for (var v = 0; v < CLAUDIO_LOCAL_VUELTAS_; v++) {
     if (v && Date.now() - t0 > CLAUDIO_LOCAL_MS_) break;
-    var j = claudeTools_(rapidoModelo_(), system, msgs, tools, 900, { sinTemperatura: true, esfuerzo: 'low', funcion: 'Claudio · voz local' });
+    var ti = Date.now(), j = claudeTools_(rapidoModelo_(), system, msgs, tools, 900, { sinTemperatura: true, esfuerzo: 'low', funcion: 'Claudio · voz local' });
+    msIa += Date.now() - ti;
     if (!j) return { ok: false, hablar: CLAUDIO_LOCAL_REPITE_, volver: false, herramientas: corridas, error: 'la IA no respondió' };
     var bloques = j.content || [], usos = bloques.filter(function (x) { return x.type === 'tool_use'; });
     var txt = bloques.filter(function (x) { return x.type === 'text'; }).map(function (x) { return x.text; }).join(' ').trim();
     if (txt) dicho = txt;
     if (!usos.length) break;
     msgs.push({ role: 'assistant', content: bloques });
+    var salidas = [];
     var res = usos.map(function (u) {
       var out;
       if (u.name === 'volver_con_alma') { volver = true; out = { ok: true }; }
@@ -185,12 +201,15 @@ function claudioLocalTurno_(adm, conv, system, msgs) {
         out = claudioEjecutar_(adm, u.name, Object.assign({}, u.input || {}, { conv_id: conv }));
         corridas.push(u.name);
       } else out = { ok: false, error: 'herramienta desconocida' };
+      salidas.push(out);
       return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(out).slice(0, 6000) };
     });
     msgs.push({ role: 'user', content: res });
     if (volver) break;   // ya dijo «Listo, te paso con Alma.»: no hace falta otra vuelta
+    var listo = claudioLocalPedidoListo_(usos, salidas);
+    if (listo) { dicho = listo; break; }   // el pedido salió: la frase ya se sabe, sin otra vuelta de la IA
   }
   var hablar = claudioLocalHablar_(dicho);
   if (volver && !hablar) hablar = 'Listo, te paso con Alma.';
-  return { ok: true, hablar: hablar || CLAUDIO_LOCAL_REPITE_, volver: volver, herramientas: corridas, ms: Date.now() - t0 };
+  return { ok: true, hablar: hablar || CLAUDIO_LOCAL_REPITE_, volver: volver, herramientas: corridas, ms: Date.now() - t0, ms_ia: msIa };
 }

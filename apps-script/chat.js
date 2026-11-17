@@ -108,6 +108,12 @@ function chatTurnoCerrar_(adm, yoIds, texto, ag, o) {
   var hechas = (ag && ag.hechas) || [], hizoBorrador = hechas.some(function (h) { return h && h.tipo === 'borrador_claude'; });
   /* pedir_a_agente a Desarrollo ya lo pidió en este turno: no sale otra vez (11-nov salieron dos sesiones de Claude). */
   var yaPidio = hechas.some(function (h) { return h && h.tipo === 'pedido_desarrollo'; });
+  /* Hub #705: «comunícame con Maricarmen» o «que Maricarmen me llame» ya existe (la llamada de la app): Alma dice cómo y no
+     escala a Desarrollo (identidad.js). Si la herramienta ya dejó un borrador para Claude, se tira. */
+  if (!yaPidio && typeof identidadPideAlter_ === 'function' && identidadPideAlter_(adm, texto)) {
+    if (hizoBorrador) { try { claudeBorradorGuardar_(adm.email, null); } catch (e) {} }
+    out.texto = IDENTIDAD_COMO_ALTER_; TEMA_ACT_ = null; return out;
+  }
   if (!o.sinDesarrollo && !yaPidio && (chatEsDesarrollo_(clas) || hizoBorrador)) {
     try { var d = chatDesarrollo_(adm, texto, out.texto, hechas, Object.assign({}, o, { micro: (ag && ag.micro) || '', nivel: (ag && ag.nivel) || '' })); out.texto = d.texto; if (d.borrador) out.borrador = d.borrador; if (d.claude) out.claude = d.claude; if (d.paraJuan) out.paraJuan = true; }
     catch (e) { console.error('chatDesarrollo_: ' + (e.stack || e)); }

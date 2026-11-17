@@ -914,6 +914,10 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 /* Lo que cambia en cada turno va después de esta marca: claudeTools_ deja en caché solo lo de antes (T8, 3-nov-2026). */
 var AG_CORTE_CACHE_ = '\n\n═══ ESTE TURNO ═══';
 function opAgente_(adm, texto, canal, fotos, previos) {
+  /* Maricarmen en cualquier canal (maricarmen.js, #706): decide quién contesta este turno; «pásame con Maricarmen» o
+     «pásame con Alma» solos se contestan al instante, sin la IA. */
+  var mc = null; try { mc = typeof maricarmenTurno_ === 'function' ? maricarmenTurno_(adm, texto, canal) : null; } catch (e) { console.error('maricarmenTurno_: ' + (e.stack || e)); }
+  if (mc && mc.salida) return mc.salida;
   AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || ''); MF_ADM_ = AGENTE_PERMITIDAS_ ? null : adm;   // memoria fresca (memoriafresca.js)
   /* Temas (temas.js, #526): a qué tema va este mensaje. Con duda entre dos temas activos, Alma pregunta sin la IA; si responde
      a esa pregunta, va el pedido original al tema que eligió. */

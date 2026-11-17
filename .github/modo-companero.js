@@ -142,4 +142,10 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/vivoMira_\(adm\.email\)\) vivoPanel_\(adm, b\.conv_id, claudioPanelArmar_\(adm, cand\)\)/.test(cl), '8 · con el iPad mirando, cada herramienta de Claudio le deja el panel (aunque el iPhone esté bloqueado)');
   ok(/con Claudio/.test(h), '8 · inicio.html: arriba dice «con Claudio» mientras se ve su panel');
 }
+/* 10 · el iPad, con más espacio (Juan, 17-nov-2026: «en el iPad hay más espacio… más datos o desplegar las cosas distinto») */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/@media \(min-width: 900px\)[\s\S]*\.comp-lado \{ display: flex/.test(h) && /\.comp-centro \.comp-subs \{ display: none/.test(h), '10 · inicio.html: en pantalla ancha, columna a la derecha (en el teléfono no cambia)');
+  ok(/"La llamada"/.test(h) && /"Se mostró"/.test(h) && /"Conversación"/.test(h) && /lineas\.children\.length > 200/.test(h), '10 · inicio.html: la llamada, lo que se mostró y la conversación completa');
+  ok(/b\.onclick = function \(\) \{ mostrar\(v\.t\); \}/.test(h), '10 · inicio.html: tocar un tablero de antes lo vuelve a mostrar');
+}
 process.exit(fallo);

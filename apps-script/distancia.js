@@ -6,7 +6,7 @@
    Con GOOGLE_MAPS_KEY (propiedad del script) usa Google con tráfico real; sin llave, OpenStreetMap
    (Nominatim + OSRM) con un margen por tráfico. Casco 64A/64B: Google Maps se equivoca con su ubicación,
    así que para el centro/parque de Antigua se usa un valor fijo. */
-var DIST_RX_ = /(qu[eé] tan (lejos|cerca)|a cu[aá]nto(s)? (tiempo|minutos|km|kil[oó]metros)?\s*(est[aá]|queda|me queda|estamos|de)|cu[aá]nto (tiempo|se tarda|me tardo|tardo|hay)|distancia|cerca (de|del)|lejos (de|del)|minutos (de|del|a|al)|how far|how long (does it take|to get|is it)|distance (to|from)|close to|near(by)? (the )?)/i;
+var DIST_RX_ = /(qu[eé] tan (lejos|cerca)|a cu[aá]nto(s)? (tiempo|minutos|km|kil[oó]metros)?\s*(est[aá]|queda|me queda|estamos|de)|cu[aá]nto (tiempo|se tarda|me tardo|tardo|hay)|distancia|cerca (de|del)|lejos (de|del)|minutos (de|del|a|al)|how far|how long (does it take|to get|is it)|distance (to|from)|close to|near(by)? (the )?|c[oó]mo (llego|llegar|me voy) (a|al|hasta)|qu[eé] tan retirad|walking distance|how (do|can) (i|we) get to|(concierto|partido|evento|feria|congreso|estadio).{0,40}(lejos|cerca|minutos|tiempo)|(far|close|minutes) (from|to) the (venue|stadium|concert|event))/i;
 
 function distFijo_(propiedad, destino) {
   if (!/casco\s*-?\s*64\s*[ab]\b/i.test(String(propiedad))) return null;
@@ -95,7 +95,7 @@ function distanciaBloque_(propiedad, texto) {
   try {
     texto = String(texto || ''); if (!propiedad || !DIST_RX_.test(texto)) return '';
     var sys = 'Del mensaje de un huésped de un alojamiento en Guatemala, extrae los lugares a los que pregunta cuánto tiempo o qué tan lejos queda. ' +
-      'Devuelve SOLO JSON: {"destinos":["nombre buscable del lugar, con ciudad si ayuda (p. ej. «Universidad de San Carlos USAC, Ciudad de Guatemala», «Aeropuerto La Aurora», «Parque Central, Antigua Guatemala»)"]}. Si no pregunta por un lugar concreto, {"destinos":[]}.';
+      'Devuelve SOLO JSON: {"destinos":["nombre buscable del lugar, con ciudad si ayuda (p. ej. «Universidad de San Carlos USAC, Ciudad de Guatemala», «Aeropuerto La Aurora», «Parque Central, Antigua Guatemala»)"]}. Si pregunta por un evento (concierto, partido, feria, congreso), el destino es el lugar donde se hace (el que nombra o el conocido). Si no pregunta por un lugar concreto, {"destinos":[]}.';
     var j = JSON.parse(String(claude_(CFG.MODELO_CLASIFICADOR, 200, sys, texto.slice(-1500), 0)).match(/\{[\s\S]*\}/)[0]);
     var ds = (j.destinos || []).slice(0, 3); if (!ds.length) return '';
     var lineas = ds.map(function (d) { var r = distanciaCalcular_(propiedad, d); return r.error ? '- ' + d + ': no se pudo calcular (' + r.error + ')' : '- ' + d + ': ' + distanciaFrase_(r) + ' · ' + r.fuente; });

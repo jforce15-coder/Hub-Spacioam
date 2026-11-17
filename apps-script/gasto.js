@@ -109,9 +109,15 @@ function gastoElevenLabs_(mes, fresco) {
   var key = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_KEY');
   if (!key) return { ok: false, error: 'Falta la llave de ElevenLabs.' };
   var H = { 'xi-api-key': key }, R = gastoRangoMes_(mes), out = { ok: true, plan: null, conversaciones: 0, minutos: 0, agentes: {}, canales: {}, muestra: [] };
+  /* Lo que ElevenLabs contestó cuando no fue 200 (código y el principio del error, sin la llave): para saber por qué falta un dato. */
+  var leer = function (u, que) {
+    var r = uf_(u, { headers: H, muteHttpExceptions: true }), c = r.getResponseCode(), t = r.getContentText() || '{}';
+    if (c !== 200) { (out.avisos = out.avisos || []).push(que + ': HTTP ' + c + ' ' + t.slice(0, 140)); return {}; }
+    try { return JSON.parse(t); } catch (e) { return {}; }
+  };
   cupoFuncion_('gastoElevenLabs_');
   try {
-    var s = JSON.parse(uf_('https://api.elevenlabs.io/v1/user/subscription', { headers: H, muteHttpExceptions: true }).getContentText() || '{}');
+    var s = leer('https://api.elevenlabs.io/v1/user/subscription', 'plan');
     if (s && s.tier) out.plan = { nivel: String(s.tier), creditos_usados: Number(s.character_count) || 0, creditos_limite: Number(s.character_limit) || 0,
       reinicio: s.next_character_count_reset_unix ? new Date(s.next_character_count_reset_unix * 1000).toISOString() : '' };
   } catch (e) { out.error_plan = String(e).slice(0, 120); }
@@ -119,7 +125,7 @@ function gastoElevenLabs_(mes, fresco) {
   try {
     for (var i = 0; i < 8; i++) {
       var u = 'https://api.elevenlabs.io/v1/convai/conversations?page_size=100&call_start_after_unix=' + Math.floor(R.ini / 1000) + '&call_start_before_unix=' + Math.floor(Math.min(R.fin, Date.now()) / 1000) + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
-      var j = JSON.parse(uf_(u, { headers: H, muteHttpExceptions: true }).getContentText() || '{}');
+      var j = leer(u, 'conversaciones');
       lista = lista.concat(j.conversations || []); if (!j.has_more || !j.next_cursor) break; cursor = j.next_cursor;
     }
   } catch (e) { out.error_lista = String(e).slice(0, 120); }
@@ -128,7 +134,7 @@ function gastoElevenLabs_(mes, fresco) {
   var real = {};
   largas.forEach(function (cv) {
     try {
-      var d = JSON.parse(uf_('https://api.elevenlabs.io/v1/convai/conversations/' + cv.conversation_id, { headers: H, muteHttpExceptions: true }).getContentText() || '{}');
+      var d = leer('https://api.elevenlabs.io/v1/convai/conversations/' + cv.conversation_id, 'detalle');
       var md = d.metadata || {}, ch = md.charging || {};
       real[cv.conversation_id] = { creditos: Number(md.cost) || 0, llm: Number(ch.llm_charge) || 0, llm_usd: Number(ch.llm_price) || 0 };
     } catch (e) { console.error('gastoElevenLabs_ detalle: ' + e); }
@@ -204,7 +210,7 @@ function gastoReporte_(mes, fresco) {
   var E = deAlma.filter(function (p) { return p.id === 'elevenlabs'; })[0];
   if (E && el && el.ok) {
     var usdCr = el.creditos_mes ? E.usd / el.creditos_mes : 0, rep = function (l) { return l.map(function (x) { return Object.assign({}, x, { usd: usdCr ? gastoR2_(x.creditos * usdCr) : null, pct: el.creditos_mes ? Math.round(1000 * x.creditos / el.creditos_mes) / 10 : 0 }); }); };
-    E.detalle = { plan: el.plan, conversaciones: el.conversaciones, minutos: el.minutos, creditos_mes: el.creditos_mes, llm_pct: el.llm_pct, cpm: el.cpm,
+    E.detalle = { avisos: el.avisos || [], plan: el.plan, conversaciones: el.conversaciones, minutos: el.minutos, creditos_mes: el.creditos_mes, llm_pct: el.llm_pct, cpm: el.cpm,
       usd_min: el.minutos ? gastoR2_(E.usd / el.minutos) : null, agentes: rep(el.agentes), canales: rep(el.canales),
       caras: el.muestra.slice(0, 6).map(function (x) { return Object.assign({}, x, { usd: usdCr ? gastoR2_(x.creditos * usdCr) : null }); }), actualizado: el.actualizado,
       nota: 'Lo pagado sale de los recibos; el reparto por agente y canal es estimado con los créditos de cada conversación (las más largas, leídas una por una).' };

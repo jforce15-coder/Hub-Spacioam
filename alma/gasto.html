@@ -238,6 +238,7 @@
 
   function detElevenLabs(det, D, P) {
     if (D.error) { det.appendChild(el("p", "nota", D.error)); return; }
+    if ((D.avisos || []).length) det.appendChild(el("p", "nota", "ElevenLabs no dio todo: " + D.avisos.join(" · ")));
     var cf = el("div", "cifras");
     cifra(cf, es.format(D.minutos || 0), "minutos de llamada"); cifra(cf, es.format(D.conversaciones || 0), "conversaciones");
     cifra(cf, D.usd_min != null ? usd(D.usd_min) : "—", "por minuto, en promedio"); if (D.llm_pct != null) cifra(cf, D.llm_pct + " %", "de los créditos se va en el LLM");

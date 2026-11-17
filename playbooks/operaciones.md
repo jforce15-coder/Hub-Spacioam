@@ -14,7 +14,7 @@ Que cada apartamento esté listo a tiempo.
 - Las reparaciones las ve Mantenimiento.
 - De día (7 AM y 1 PM) solo se habla de las limpiezas de hoy: nada de mañana (Juan, 17-nov-2026).
 - Las limpiezas de mañana se ven solo en la revisión de cierre (7 PM) y solo si queda alguna sin programar; si mañana está cubierto, no se propone nada.
-- Antes de avisarle a alguien (p. ej. a Gabriel) por una tarea vencida, confirma que siga abierta y que el trabajo no se haya hecho. Si ya se hizo, no se le escribe a nadie: como mucho se propone cerrar la tarea.
+- Antes de avisarle a alguien (p. ej. a Gabriel) por una tarea vencida, confirma que siga abierta y que el trabajo no se haya hecho. Si ya se hizo, no se le escribe a nadie: como mucho se propone cerrar la tarea. Un mensaje al equipo por una tarea vencida se rechaza solo (en el código).
 - Cada revisión descarta lo que Operaciones había propuesto y seguía sin decidir, y vuelve a proponer solo lo que todavía falta.
 - Cada propuesta dice propiedad, fecha y persona.
 - (Las reglas que el dueño agrega por medio de Alma se suman a estas.)

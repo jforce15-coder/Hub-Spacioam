@@ -8,6 +8,7 @@
    5. Los subtítulos tapan lo que parece un código y se quedan los últimos 8.
    6. Las acciones vivoPublicar y vivoLeer están en el Hub y alma/inicio.html tiene el interruptor y el espejo.
    7. El Panel de Claudio (los trabajos en curso) también llega al compañero, en la llamada que ya sigue.
+   8. El iPad muestra desde qué hora y cuánto lleva la llamada («ini»).
    node .github/modo-companero.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -47,6 +48,20 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [{ de: 'alma', t: 'Mariana llega a las 3.' }] });
   r = X.vivoLeerApi_(J, { desde: 2 });
   ok(r.subs.length === 1 && r.subs[0].n === 3 && r.estado === 'hablando', '1 · con «desde», solo lo nuevo; sin estado, se queda el de antes');
+}
+/* 8 · el iPad muestra desde qué hora y cuánto lleva la llamada (Juan, 17-nov-2026: «en el iPad hay más espacio») */
+{ const { X, reloj, JUAN } = caja();
+  const t0 = reloj.ms;
+  X.vivoInicio_(JUAN, 'conv-1');
+  reloj.ms += 5 * 60000; X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  let r = X.vivoLeerApi_(J, {});
+  ok(r.ini === t0 && r.ts === t0 + 5 * 60000, '8 · «ini» es cuándo empezó, aunque el iPhone publique después');
+  X.vivoInicio_(JUAN, 'conv-2'); r = X.vivoLeerApi_(J, {});
+  ok(r.conv === 'conv-2' && r.ini === reloj.ms, '8 · una llamada nueva empieza su propia hora');
+  const { X: X2, reloj: R2 } = caja();
+  X2.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando' }); const t1 = R2.ms; R2.ms += 60000;
+  X2.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [{ t: 'hola' }] });
+  ok(X2.vivoLeerApi_(J, {}).ini === t1, '8 · sin vincular (app de antes), cuenta desde lo primero que publicó');
 }
 /* 2 · cada uno lo suyo */
 { const { X } = caja();
@@ -121,6 +136,8 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/vivoInicio_\(adm, convId\)/.test(voz) && /vivoFin_\(admC, convEL\)/.test(voz) && /vivoTarjeta_\(convId, t\)/.test(tj), '6 · empieza al vincular, termina al colgar y el tablero llega solo');
   const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
   ok(/id="i-comp"/.test(h) && /hub\("vivoLeer"/.test(h) && /AlmaTarjeta\.bento/.test(h), '6 · inicio.html: el interruptor «Modo compañero» y el espejo');
+  ok(/comp-lado/.test(h) && /@media \(min-width: 900px\)[^{]*\{\s*\.comp-cuerpo \{ display: grid/.test(h) && /comp-hist/.test(h) && /HIST_MAX = 40/.test(h), '6 · inicio.html: en el iPad (pantalla ancha), la llamada y la conversación completa al lado del tablero');
+  ok(/avisarApp\(\{ llamada: true, de: r\.dispositivo/.test(h) && /avisarApp\(\{ llamada: false \}\)/.test(h), '6 · inicio.html: le dice a la app si hay llamada en el otro (una sola llamada)');
   ok(/id="b-comp"[^>]*aria-pressed/.test(h) && /bc\.onclick = function \(\) \{ poner\(!C\.on\); \}/.test(h) && /\$\("b-comp"\)\.classList\.add\("on"\)/.test(h), '6 · inicio.html: el botón de arriba, junto a Pendientes y Notificaciones, enciende y apaga lo mismo');
 }
 process.exit(fallo);

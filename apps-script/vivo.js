@@ -28,7 +28,8 @@ function vivoPublicarApi_(ses, b) {
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), ahora = Date.now();
   var est = String(b.estado || '');
   var antes = vivoLeerCache_('vivo_est_' + h) || {};
-  var e = { conv: conv, estado: VIVO_ESTADOS_.indexOf(est) >= 0 ? est : (antes.conv === conv ? antes.estado : 'hablando'), dev: String(b.dispositivo || antes.dev || '').replace(/[^\w ]/g, '').slice(0, 20), ts: ahora };
+  var e = { conv: conv, estado: VIVO_ESTADOS_.indexOf(est) >= 0 ? est : (antes.conv === conv ? antes.estado : 'hablando'), dev: String(b.dispositivo || antes.dev || '').replace(/[^\w ]/g, '').slice(0, 20), ts: ahora,
+    ini: antes.conv === conv && antes.ini ? antes.ini : ahora };   // cuándo empezó (el iPad muestra cuánto lleva)
   c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_);
   var nuevos = (Array.isArray(b.subs) ? b.subs : []).map(function (x) {
     var t = tvTapar_(String((x && x.t) || '').replace(/\s+/g, ' ').trim()).slice(0, VIVO_SUB_LARGO_);
@@ -49,7 +50,7 @@ function vivoPublicarApi_(ses, b) {
 function vivoTarjeta_(convId, t) {
   var tel = vozWebTel_(convId), adm = tel && adminPorTel_(tel); if (!adm || !adm.email || !t) return false;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
-  if (!e || e.conv !== String(convId)) c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'hablando', dev: '', ts: Date.now() }), VIVO_SEG_);
+  if (!e || e.conv !== String(convId)) c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'hablando', dev: '', ts: Date.now(), ini: Date.now() }), VIVO_SEG_);
   else if (e.estado !== 'fin') { e.ts = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }
   c.put('vivo_tv_' + h, JSON.stringify({ conv: String(convId), ts: Date.now(), t: t }), VIVO_SEG_);
   return true;
@@ -64,7 +65,7 @@ function vivoPanel_(adm, convClaudio, p) {
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h), ahora = Date.now();
   var conv = e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000 ? String(e.conv) : String(convClaudio || '');
   if (!conv) return false;
-  if (!e || e.conv !== conv) c.put('vivo_est_' + h, JSON.stringify({ conv: conv, estado: 'hablando', dev: '', ts: ahora }), VIVO_SEG_);
+  if (!e || e.conv !== conv) c.put('vivo_est_' + h, JSON.stringify({ conv: conv, estado: 'hablando', dev: '', ts: ahora, ini: ahora }), VIVO_SEG_);
   else { e.ts = ahora; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }
   c.put('vivo_tv_' + h, JSON.stringify({ conv: conv, ts: ahora, t: p }), VIVO_SEG_);
   return true;
@@ -90,7 +91,7 @@ function vivoLeerApi_(ses, b) {
   var vivo = !!(e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000);
   if (!vivo) return { ok: true, en_llamada: false, estado: e && e.estado === 'fin' && ahora - Number(e.ts || 0) < 15000 ? 'fin' : '' };
   var desde = Number(b.desde) || 0;
-  return { ok: true, en_llamada: true, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts,
+  return { ok: true, en_llamada: true, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts, ini: Number(e.ini || e.ts) || 0,
     subs: s && s.conv === e.conv ? s.l.filter(function (x) { return x.n > desde; }) : [],
     tarjeta: tv && tv.conv === e.conv ? tv.t : null };
 }
@@ -101,7 +102,7 @@ function vivoInicio_(adm, convId) {
   if (!adm || !adm.email || !convId) return;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
   if (e && e.conv === String(convId) && e.estado !== 'fin') return;
-  c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'conectando', dev: '', ts: Date.now() }), VIVO_SEG_);
+  c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'conectando', dev: '', ts: Date.now(), ini: Date.now() }), VIVO_SEG_);
   c.remove('vivo_tv_' + h);
 }
 function vivoFin_(adm, convId) {

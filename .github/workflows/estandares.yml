@@ -42,6 +42,10 @@ jobs:
         # 16-nov-2026: Juan vio rocas distintas en Health y al probar el modo anillo, y pulsos que chocaban con las órbitas.
         run: node .github/una-roca.js .
 
+      - name: Ajustes a pantalla completa con Wearables, sin perder ninguna opción y lo técnico en Avanzado
+        # 17-nov-2026: Juan pidió ordenar Ajustes al estilo de iOS, a pantalla completa en iPhone y iPad, y una sección Wearables.
+        run: node .github/ajustes-pantalla.js .
+
       - name: La copia de Epi se guarda en trozos y responde al instante sin reintentos (dobles)
         # 17-nov-2026: Juan vio lentitud y «urlfetch/error interno» en las consultas de limpieza; la copia ya no cabía en la caché.
         run: node .github/epi-copia.js apps-script

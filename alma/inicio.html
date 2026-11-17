@@ -184,6 +184,162 @@
   #l-llaves.cargando .va { opacity: .45; }
   #n-llave.error { color: #D9583A; }
 
+  /* ── Ajustes a pantalla completa (Juan, 17-nov-2026: «muy al estilo Apple, y lo de WhatsApp»). En el iPhone, una lista
+     de grupos y cada uno abre su página (entra por la derecha y vuelve por la derecha); en el iPad (ancho ≥ 900 px), la
+     lista a la izquierda y la página a la derecha, las dos a la vez. Filas con su ícono de color, título y un subtítulo
+     corto con cómo está ahora. Claro y oscuro (sigue al teléfono); con «reducir movimiento», sin deslizar. Los bloques de
+     cada página son los mismos de antes (mismos id): solo cambió dónde viven. ── */
+  #panel { --aj-fondo: #F2EFEC; --aj-tarjeta: #FFFFFF; --aj-tinta: #2F3030; --aj-suave: #857F7A; --aj-linea: rgba(62,63,63,.13);
+    --aj-barra: rgba(242,239,236,.8); --aj-toque: rgba(62,63,63,.07); --aj-accion: #C25F45; --aj-elegida: rgba(233,130,106,.16);
+    --aj-ease: cubic-bezier(.32,.72,0,1); --aj-ancho: 640px;
+    left: 0; right: 0; top: 0; bottom: 0; width: 100%; height: 100%; max-height: none; padding: 0; border-radius: 0; overflow: hidden;
+    color: var(--aj-tinta); background: var(--aj-fondo); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+    transform: translateY(100%); transition: transform .5s var(--aj-ease); font: 400 15px/1.35 Montserrat, system-ui, sans-serif; }
+  #panel.on { transform: none; }
+  @media (prefers-color-scheme: dark) {
+    #panel { --aj-fondo: #121111; --aj-tarjeta: #1F1D1C; --aj-tinta: #F3EEE9; --aj-suave: #9E9690; --aj-linea: rgba(255,255,255,.1);
+      --aj-barra: rgba(18,17,17,.78); --aj-toque: rgba(255,255,255,.08); --aj-accion: #F0957D; --aj-elegida: rgba(233,130,106,.22); color-scheme: dark; }
+  }
+  #panel .aj-pag { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--aj-fondo);
+    transform: translateX(100%); transition: transform .44s var(--aj-ease); will-change: transform; }
+  #panel .aj-pag[hidden] { display: none; }
+  #panel .aj-pag.on { transform: none; }
+  #panel .aj-raiz { transform: none; }
+  #panel .aj-raiz::after { content: ""; position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .44s var(--aj-ease); }
+  #panel.empuja .aj-raiz { transform: translateX(-28%); }
+  #panel.empuja .aj-raiz::after { opacity: .06; }
+  #panel .aj-pag.sin, #panel .aj-pag.sin::after { transition: none; }
+  /* la barra de arriba: transparente con el título grande; al bajar, vidrio con el título chico (como Ajustes de iOS) */
+  #panel .aj-barra { position: absolute; left: 0; right: 0; top: 0; z-index: 2; box-sizing: border-box; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    height: calc(env(safe-area-inset-top) + 52px); padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 max(8px, env(safe-area-inset-left));
+    border-bottom: .5px solid transparent; transition: background .2s ease, border-color .2s ease; }
+  #panel .aj-pag.sc .aj-barra { background: var(--aj-barra); -webkit-backdrop-filter: blur(24px) saturate(1.8); backdrop-filter: blur(24px) saturate(1.8); border-bottom-color: var(--aj-linea); }
+  #panel .aj-tit-chico { font: 600 16px Montserrat, system-ui, sans-serif; text-align: center; opacity: 0; transform: translateY(4px); transition: opacity .2s ease, transform .2s ease; white-space: nowrap; }
+  #panel .aj-pag.sc .aj-tit-chico { opacity: 1; transform: none; }
+  #panel .aj-atras, #panel .aj-listo { justify-self: start; display: inline-flex; align-items: center; gap: 4px; min-height: 44px; min-width: 44px; padding: 0 8px; border: 0; background: none;
+    color: var(--aj-accion); font: 500 16px Montserrat, system-ui, sans-serif; cursor: pointer; border-radius: 12px; }
+  #panel .aj-listo { justify-self: end; font-weight: 600; }
+  #panel .aj-atras span { width: 11px; height: 11px; border: solid currentColor; border-width: 0 0 2.2px 2.2px; transform: rotate(45deg); margin: 0 2px 0 6px; border-radius: 1px; }
+  #panel .aj-atras:active, #panel .aj-listo:active { opacity: .5; }
+  #panel .aj-atras:focus-visible, #panel .aj-listo:focus-visible { outline: 2px solid #E9826A; outline-offset: -2px; }
+  #panel .aj-pag:not(.aj-raiz) .aj-listo { visibility: hidden; }
+  #panel .aj-scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; box-sizing: border-box;
+    padding: calc(env(safe-area-inset-top) + 52px) max(16px, env(safe-area-inset-right), calc((100% - var(--aj-ancho)) / 2)) max(36px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left), calc((100% - var(--aj-ancho)) / 2)); }
+  #panel h2, #panel .aj-titulo { margin: 2px 4px 16px; font: 400 36px/1.05 Valky, Georgia, serif; letter-spacing: -.01em; text-align: left; }
+  #panel .aj-bajada { margin: -8px 4px 18px; font-size: 13.5px; line-height: 1.45; color: var(--aj-suave); }
+  /* los componentes de siempre, con los colores de Ajustes (claro u oscuro) */
+  #panel .grupo { background: var(--aj-tarjeta); border-radius: 16px; margin-bottom: 26px; }
+  #panel .tit-g { margin: 0 16px 8px; color: var(--aj-suave); letter-spacing: .12em; }
+  #panel .tit-g + .grupo { margin-top: 0; }
+  #panel .fila + .fila, #panel #l-atajos:not(:empty) + .fila, #panel #l-llaves:not(:empty) + .fila { border-top-color: var(--aj-linea); }
+  #panel .fila .va, #panel .nota-g, #panel .nota-p, #panel .yo small, #panel .pp-esc, #panel .pp-cab .v, #panel .pp-seg button small { color: var(--aj-suave); }
+  #panel .nota-g { padding-top: 2px; }
+  #panel .fila.boton { color: var(--aj-accion); font-weight: 500; }
+  #panel .fila.boton:active { background: var(--aj-toque); }
+  #panel .fila.boton.rojo { color: #D9583A; }
+  #panel .fila .sel select { color: var(--aj-suave); }
+  #panel .fila input.nuevo { background: var(--aj-fondo); color: var(--aj-tinta); border-color: var(--aj-linea); }
+  #panel .fila .quitar, #panel .fila.cuanto button, #panel .pp-seg button { background: var(--aj-toque); color: var(--aj-tinta); }
+  #panel .fila.cuanto button[aria-pressed="true"] { background: #E9826A; color: #fff; }
+  #panel .pp-cab b, #panel .pp-esc .t { color: var(--aj-tinta); }
+  #panel .pp-seg button[aria-pressed="true"] { background: var(--aj-tinta); color: var(--aj-fondo); }
+  #panel .pp-seg.dos button[aria-pressed="true"] { background: var(--aj-tarjeta); color: var(--aj-tinta); }
+  #panel .pp-barra .riel { background: var(--aj-toque); }
+  #panel .interruptor span { background: rgba(120,120,128,.24); }
+  #panel .interruptor input:checked + span { background: #E9826A; }
+  @media (prefers-color-scheme: dark) {
+    #panel .interruptor span { background: rgba(120,120,128,.36); }
+    #panel .interruptor input:checked + span { background: #E9826A; }
+    #panel .pp-barra input::-webkit-slider-thumb { background: linear-gradient(90deg, transparent 11px, #F3EEE9 11px, #F3EEE9 17px, transparent 17px); }
+  }
+  /* las filas de la lista: ícono de color, título, subtítulo corto y la flecha */
+  #panel .aj-lista { overflow: hidden; }
+  #panel .aj-lista > .fila { position: relative; padding: 0; border-top: 0; min-height: 0; }
+  #panel .aj-lista > .fila:not([hidden]) ~ .fila::before { content: ""; position: absolute; left: 60px; right: 0; top: 0; border-top: .5px solid var(--aj-linea); }
+  #panel .aj-ir, #panel .aj-enlace > a, #panel .aj-toque { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 58px; padding: 9px 14px 9px 14px; box-sizing: border-box;
+    border: 0; background: transparent; color: inherit; font: inherit; text-align: left; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: background .15s ease; }
+  #panel .aj-lista > .fila.aj-ir { padding: 9px 14px; min-height: 58px; }
+  #panel .aj-enlace > a { padding-right: 34px; }
+  #panel .aj-enlace > .aj-chev { position: absolute; right: 18px; top: 50%; margin-top: -4px; pointer-events: none; }
+  #panel .aj-ir:active, #panel .aj-enlace > a:active, #panel .aj-toque:active { background: var(--aj-toque); transition: none; }
+  #panel .aj-ir:focus-visible, #panel .aj-enlace > a:focus-visible, #panel .aj-toque:focus-visible { outline: 2px solid #E9826A; outline-offset: -2px; border-radius: 16px; }
+  #panel .aj-ir[aria-current="page"] { background: var(--aj-elegida); }
+  #panel .aj-lista .et { flex: 1; min-width: 0; }
+  #panel .aj-lista .et b { display: block; font-weight: 500; font-size: 15.5px; }
+  #panel .aj-lista .et small { display: block; margin-top: 1px; font-size: 12.5px; color: var(--aj-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #panel .aj-chev { flex: none; width: 8px; height: 8px; margin-right: 4px; border: solid var(--aj-suave); border-width: 1.8px 1.8px 0 0; transform: rotate(45deg); opacity: .6; }
+  #panel .aj-ico { flex: none; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; color: #fff; background: var(--c, #8A8580);
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.18), inset 0 1px 0 rgba(255,255,255,.22); }
+  #panel .aj-ico svg { width: 19px; height: 19px; }
+  #panel .aj-ico.w { background: linear-gradient(160deg, #6F6867, #2F3030); }
+  #panel .aj-ico.durazno { --c: #E9826A; } #panel .aj-ico.verde { --c: #7FA88A; } #panel .aj-ico.lila { --c: #9C96C8; } #panel .aj-ico.rojo { --c: #D9583A; }
+  #panel .aj-ico.arena { --c: #D99A6C; } #panel .aj-ico.azul { --c: #7F98C2; } #panel .aj-ico.azul2 { --c: #5F7BA8; } #panel .aj-ico.malva { --c: #A98C93; }
+  #panel .aj-ico.gris { --c: #8E8A86; } #panel .aj-ico.tinta { --c: #3E3F3F; }
+  @media (prefers-color-scheme: dark) { #panel .aj-ico.tinta { --c: #5A5858; } }
+  /* el perfil arriba: la foto grande, el nombre y «Cuenta, Face ID y sesión» */
+  #panel .aj-perfil { display: block; width: 100%; padding: 0; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  #panel .aj-perfil:active { background: var(--aj-toque); }
+  #panel .aj-perfil .yo { padding: 14px 14px 14px 14px; gap: 14px; }
+  #panel .aj-perfil .av { width: 60px; height: 60px; font-size: 26px; }
+  #panel .aj-yo-t { flex: 1; min-width: 0; }
+  #panel .aj-yo-t b { font-size: 19px; font-weight: 600; }
+  #panel .aj-rolito { margin-top: 3px !important; font-size: 12.5px !important; }
+  #panel .aj-perfil[aria-current="page"] { background: var(--aj-elegida); }
+  /* Wearables: una tarjeta por dispositivo con su batería en un anillo (como el widget de Baterías) */
+  #panel .aj-wear-fila { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
+  #panel .aj-wt { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px; border: 0; border-radius: 22px; background: var(--aj-tarjeta);
+    color: inherit; font: inherit; text-align: left; cursor: pointer; transition: transform .16s ease-out; }
+  #panel .aj-wt:active { transform: scale(.97); }
+  #panel .aj-wt:focus-visible { outline: 2px solid #E9826A; outline-offset: 2px; }
+  #panel .aj-wt .aro { position: relative; width: 66px; height: 66px; }
+  #panel .aj-wt .aro svg.r { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+  #panel .aj-wt .aro .pista { stroke: var(--aj-toque); }
+  #panel .aj-wt .aro .nivel { stroke: #7FA88A; transition: stroke-dashoffset .9s cubic-bezier(.23,1,.32,1); }
+  #panel .aj-wt.bajo .aro .nivel { stroke: #D9583A; }
+  #panel .aj-wt .aro .dib { position: absolute; inset: 15px; color: var(--aj-tinta); }
+  #panel .aj-wt b { display: block; font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  #panel .aj-wt .pct { font: 400 30px/1 Valky, Georgia, serif; font-variant-numeric: tabular-nums; }
+  #panel .aj-wt .pct.sin { font: 500 13px Montserrat, system-ui, sans-serif; color: var(--aj-suave); }
+  #panel .aj-wt small { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--aj-suave); }
+  #panel .aj-wt small i { width: 7px; height: 7px; border-radius: 50%; background: var(--aj-suave); opacity: .45; flex: none; }
+  #panel .aj-wt.con small i { background: #7FA88A; opacity: 1; }
+  #panel .aj-wt.mas { align-items: center; justify-content: center; min-height: 168px; border: 1.5px dashed var(--aj-linea); background: transparent; color: var(--aj-suave); gap: 8px; }
+  #panel .aj-wt.mas span { font-size: 28px; font-weight: 300; line-height: 1; }
+  /* Notificaciones: la vista previa arriba (como WhatsApp): así te llega, según «En el teléfono» */
+  #panel .aj-vista { margin: 0 0 22px; padding: 22px 16px 14px; border-radius: 22px; overflow: hidden; text-align: center;
+    background: url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat, linear-gradient(180deg, #8FA5C8, #E9826A 60%, #A98C93); }
+  #panel .aj-banner { display: flex; gap: 11px; align-items: flex-start; padding: 11px 13px; border-radius: 20px; text-align: left; color: #1E1E1E;
+    background: rgba(255,255,255,.62); -webkit-backdrop-filter: blur(20px) saturate(1.8) brightness(1.06); backdrop-filter: blur(20px) saturate(1.8) brightness(1.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.75), 0 10px 26px -14px rgba(40,30,25,.5); transition: opacity .25s ease, transform .35s cubic-bezier(.3,1.3,.55,1); }
+  #panel .aj-banner-ico { flex: none; width: 34px; height: 34px; border-radius: 9px; background: url("../assets/icons/favicon-32.png") center / cover, #E9826A; }
+  #panel .aj-banner b { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 600; }
+  #panel .aj-banner b span { font-weight: 400; font-size: 12px; opacity: .55; }
+  #panel .aj-banner p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.35; }
+  #panel .aj-vista small { display: block; margin-top: 12px; font: 600 11.5px Montserrat, system-ui, sans-serif; color: #FFFDFB; text-shadow: 0 1px 6px rgba(40,30,32,.45); }
+  #panel .aj-vista.callada .aj-banner { opacity: .35; transform: scale(.96); }
+  /* iPad y pantallas anchas: la lista a la izquierda y la página a la derecha */
+  @media (min-width: 900px) {
+    #panel { --aj-ancho: 620px; }
+    #panel .aj-raiz { right: auto; width: 380px; border-right: .5px solid var(--aj-linea); transform: none !important; }
+    #panel .aj-raiz::after { display: none; }
+    #panel .aj-raiz .aj-scroll { padding-left: max(16px, env(safe-area-inset-left)); padding-right: 16px; }
+    #panel .aj-raiz .aj-listo { visibility: hidden; }
+    #panel .aj-pag:not(.aj-raiz) { left: 380px; transform: none; opacity: 0; transition: opacity .2s ease; }
+    #panel .aj-pag:not(.aj-raiz).on { opacity: 1; }
+    #panel .aj-pag:not(.aj-raiz) .aj-listo { visibility: visible; }
+    #panel .aj-atras { visibility: hidden; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #panel { transition: opacity .25s ease; transform: none; opacity: 0; pointer-events: none; }
+    #panel.on { opacity: 1; pointer-events: auto; }
+    #panel .aj-pag { transform: none; opacity: 0; transition: opacity .2s ease; }
+    #panel .aj-pag.on, #panel .aj-raiz { opacity: 1; }
+    #panel.empuja .aj-raiz { transform: none; }
+    #panel .aj-wt .aro .nivel, #panel .aj-banner { transition: none; }
+  }
+  @media (prefers-reduced-transparency: reduce) { #panel .aj-pag.sc .aj-barra { background: var(--aj-fondo); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
   /* ── Áreas de vida: un toque a Alma la encoge y las 6 áreas llegan a su alrededor como esferas (solo el administrador principal, por ahora) ── */
   /* z-index menor que el de la roca (--san-z 880 en js/sa-nav.js): las esferas salen y se esconden siempre DETRÁS del botón roca */
   .orbita { position: fixed; inset: 0; z-index: 870; pointer-events: none; }
@@ -983,110 +1139,194 @@
   <div class="grupo"><ol class="cp-pasos" id="cp-pasos"></ol><div class="fila boton" id="cp-copiar" role="button" tabindex="0">Copiar el diagnóstico</div></div>
 </div>
 <div class="panel viaje" id="vj-panel" role="dialog" aria-label="Tu viaje" aria-hidden="true"><div class="asa"></div><h2>Tu viaje</h2><div id="vj-cu"></div></div>
-<div class="panel" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
-  <div class="asa"></div>
-  <h2>Ajustes</h2>
-  <div class="grupo"><div class="yo"><div class="av" id="p-av"></div><div><b id="p-nombre"></b><small id="p-correo"></small></div></div></div>
-  <div class="grupo">
-    <div class="fila"><span class="et">Rol</span><span class="va" id="p-rol"></span></div>
-    <div class="fila" id="p-alt-f" hidden><span class="et">Correo alterno</span><span class="va" id="p-alt"></span></div>
-    <div class="fila" id="p-tel-f" hidden><span class="et">Teléfono</span><span class="va" id="p-tel"></span></div>
-  </div>
-  <div class="grupo" id="g-tarjetas" hidden>
-    <div class="fila boton" id="b-tarjetas" role="button" tabindex="0">Tarjetas y boletos</div>
-    <p class="nota-g">Las del supermercado y de cliente frecuente, guardadas solo en este iPhone. Dile a Alma «enséñame mi tarjeta de…» y la pone en pantalla para la caja.</p>
-  </div>
-  <div class="grupo" id="g-face" hidden>
-    <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
-  </div>
-  <div class="grupo" id="g-escucha" hidden>
-    <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
-    <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El botón de la reunión titila en durazno mientras te escucha; tócalo para que deje de escuchar y otra vez para que vuelva.</p>
-  </div>
-  <p class="tit-g" id="t-avisos" hidden>Notificaciones</p>
-  <div class="grupo" id="g-avisos" hidden>
-    <div class="fila"><span class="et n" id="et-hablado">Habladas</span><span class="sel"><select id="s-hablado" aria-labelledby="et-hablado"></select></span></div>
-    <div class="fila cuanto" id="q-hablado" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
-    <p class="vuelve" id="v-hablado" hidden></p>
-    <div class="fila"><span class="et n" id="et-telefono">En el teléfono</span><span class="sel"><select id="s-telefono" aria-labelledby="et-telefono"></select></span></div>
-    <div class="fila cuanto" id="q-telefono" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
-    <p class="vuelve" id="v-telefono" hidden></p>
-    <div class="fila" style="border-top: .5px solid rgba(62,63,63,.12)"><a href="avisos.html" id="p-avisos-tipo">Por tipo</a><span class="va">›</span></div>
-    <p class="nota-g">Habladas: las que Alma te dice al oído, con su voz, con la app abierta, en conferencia y en el Modo calle. En el teléfono: las que suenan. Si bajas el nivel, vuelve solo a «Todo».</p>
-  </div>
-  <p class="tit-g" id="t-calle" hidden>Modo calle</p>
-  <div class="grupo" id="g-calle" hidden>
-    <p class="nota-g" id="n-calle-on">Todo en el botón del caminante: un toque y Alma te escucha ya, sin decir «Alma». Un toque largo enciende o apaga el Modo calle: encendido, Alma espera «Alma» con el teléfono bloqueado (el botón respira en durazno y lleva un punto) y se queda así al volver a abrir la app hasta que lo apagues. También con Siri.</p>
-    <div class="fila" id="f-calle-musica" hidden><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-calle-musica" aria-label="Bajar la música cuando Alma hable en el Modo calle"><span></span></label></div>
-    <p class="nota-g" id="n-calle-musica" hidden>Mientras Alma te oye, te contesta o habla contigo, la música de tus otras apps baja (no se pausa) y vuelve al terminar. Con el teléfono bloqueado puede quedarse baja hasta que abras Alma. Con «Alma con el anillo» encendido, la música se pausa: el anillo necesita el audio.</p>
-    <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
-    <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También tocando la línea junto al botón del caminante.</p>
-  </div>
-  <p class="tit-g" id="t-conf-aj" hidden>Modo conferencia</p>
-  <div class="grupo" id="g-conf-aj" hidden>
-    <div class="fila"><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-conf-musica" aria-label="Bajar la música cuando Alma hable en el modo conferencia"><span></span></label></div>
-    <p class="nota-g">Apagado, Alma habla encima de la música y su llamada la pausa. Encendido, la música baja mientras Alma habla y vuelve al terminar.</p>
-  </div>
-  <div class="grupo" id="g-anillo" hidden>
-    <div class="fila boton" id="b-dispositivos" role="button" tabindex="0" hidden>Dispositivos: tu anillo y tus lentes</div>
-    <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
-    <p class="nota-g" id="n-anillo">Dos toques en tu anillo encienden o apagan el modo conferencia, aunque el teléfono esté bloqueado; di «Alma» y te escucha. Si Alma está hablando, dos toques la pausan. El anillo va en modo Music.</p>
-    <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
-    <p class="nota-g" id="d-anillo" hidden></p>
-    <div class="fila boton" id="b-anillo-ble" role="button" tabindex="0" hidden>Diagnóstico del anillo (Bluetooth)</div>
-    <p class="nota-g" id="n-anillo-ble" hidden>Mira qué manda tu anillo por Bluetooth cuando lo tocas y mándalo al Hub. No cambia cómo funciona hoy.</p>
-  </div>
-  <p class="tit-g" id="t-atajos" hidden>Atajos permitidos</p>
-  <div class="grupo" id="g-atajos" hidden>
-    <div id="l-atajos"></div>
-    <div class="fila"><input type="text" class="nuevo" id="i-atajo" placeholder="Nombre exacto del atajo" aria-label="Nombre del atajo para agregar" autocomplete="off" enterkeyhint="done"><button type="button" class="agregar" id="b-atajo" disabled>Agregar</button></div>
-    <div class="fila"><span class="et">Permitir todos</span><label class="interruptor"><input type="checkbox" id="i-atajos-todos" aria-label="Permitir todos los atajos"><span></span></label></div>
-    <p class="nota-g">Alma corre por voz los atajos de tu app Atajos que pongas aquí («Alma, pon mi atajo de música»). Escribe el nombre tal como está en Atajos. Con «Permitir todos», Alma puede correr cualquiera.</p>
-  </div>
-  <p class="tit-g" id="t-pers" hidden>Personalidad de Alma</p>
-  <div class="grupo" id="g-pers" hidden>
-    <div class="pp-cab"><b>Adaptación a ti</b><span class="v" id="pp-adapt">—</span></div>
-    <div class="pp-barra"><div class="riel"><div class="lleva" id="pp-lleva"></div></div><input type="range" id="pp-tope" min="0" max="100" step="5" value="60" aria-label="Tope de adaptación"></div>
-    <div class="pp-esc"><span>0 · neutra</span><span class="t" id="pp-tope-v">tope 60 %</span><span>100</span></div>
-    <p class="pp-nota" id="pp-adapt-n">Se llena sola mientras le hablas (+5 % cada 10 mensajes). La raya oscura es el tope: arrástrala.</p>
-  </div>
-  <div class="grupo" id="g-weebo" hidden>
-    <div class="pp-cab"><b>Modo Weebo</b><span class="v">humor y chispa</span></div>
-    <span class="pp-ahora" id="pp-ahora" hidden></span>
-    <div class="pp-seg" id="pp-niveles" role="group" aria-label="Nivel de Modo Weebo"></div>
-    <div class="pp-seg dos" id="pp-modo" role="group" aria-label="Automático o fijo"><button type="button" data-pp-m="auto" aria-pressed="false">Automático</button><button type="button" data-pp-m="fijo" aria-pressed="false">Fijo</button></div>
-    <p class="pp-nota" id="pp-weebo-n">En automático sube y baja según la confianza de la conversación. En fijo se queda donde lo pongas (con un problema o una urgencia, Alma igual vuelve a su centro).</p>
-  </div>
-  <div class="grupo" id="g-huesp" hidden>
-    <div class="pp-cab"><b>Para huéspedes</b><span class="v" id="pp-h-v">tope 20 %</span></div>
-    <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
-    <div class="pp-fija"><span>Modo Weebo</span><b id="pp-h-w">máximo 1 · chispa</b></div>
-  </div>
-  <p class="tit-g" id="t-comp">Modo compañero</p>
-  <div class="grupo" id="g-comp">
-    <div class="fila"><span class="et">Mostrar aquí la llamada de tu otro dispositivo</span><label class="interruptor"><input type="checkbox" id="i-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo"><span></span></label></div>
-    <p class="nota-g">Encendido en este dispositivo (por ejemplo, el iPad): cuando hablas con Alma desde el otro, aquí ves en vivo lo que ella te muestra y lo que dicen, sin sonido. El micrófono y el audio se quedan en el dispositivo donde empezaste la llamada: siempre es una sola llamada, y desde aquí no se abre otra mientras siga.</p>
-  </div>
-  <p class="tit-g" id="t-llaves" hidden>Llaves</p>
-  <div class="grupo" id="g-llaves" hidden>
-    <div id="l-llaves"></div>
-    <div class="fila" id="f-llave-cual" hidden><span class="et n" id="et-llave">Cuál</span><span class="sel"><select id="s-llave" aria-labelledby="et-llave"></select></span></div>
-    <div class="fila"><input type="password" class="nuevo" id="i-llave" placeholder="Pega la llave" aria-label="Llave para guardar" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done"><button type="button" class="agregar" id="b-llave" disabled>Guardar</button></div>
-    <p class="nota-g" id="n-llave">Se guarda en el Hub. Nadie la vuelve a ver: aquí solo salen sus 4 últimas letras.</p>
-  </div>
-  <div class="grupo">
-    <div class="fila" id="p-health-f" hidden><a href="../health/" id="a-health">Health</a><span class="va">›</span></div>
-    <!-- Gasto de Alma (gasto.html): el reporte único que reemplaza a «Uso» (cupos de Google) y «Reportes» (llamadas); los dos siguen como su detalle -->
-    <div class="fila" id="p-gasto-f" hidden><a href="gasto.html" id="p-gasto">Gasto de Alma</a><span class="va">›</span></div>
-    <div class="fila"><a href="agentes.html" id="p-agentes">Tu equipo de agentes</a><span class="va">›</span></div>
-    <div class="fila"><a href="correos.html" id="p-correos">Tus correos</a><span class="va">›</span></div>
-    <div class="fila"><a href="conexiones.html" id="p-conexiones">Conexiones</a><span class="va">›</span></div>
-    <div class="fila" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio">Lo que Alma aprendió</a><span class="va">›</span></div>
-    <div class="fila" id="p-biblioteca-f" hidden><a href="biblioteca.html" id="p-biblioteca">Biblioteca de Claudio</a><span class="va">›</span></div>
-    <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
-  </div>
-  <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
-  <p class="nota-p" id="p-nota"></p>
+<div class="panel aj" id="panel" role="dialog" aria-label="Ajustes" aria-hidden="true">
+  <section class="aj-pag aj-raiz on" data-pag="raiz" aria-label="Ajustes">
+    <header class="aj-barra"><span class="aj-hueco"></span><b class="aj-tit-chico">Ajustes</b><button type="button" class="aj-listo" id="aj-cerrar">Listo</button></header>
+    <div class="aj-scroll">
+      <h2>Ajustes</h2>
+      <button type="button" class="grupo aj-perfil aj-ir" data-ir="cuenta"><span class="yo"><span class="av" id="p-av"></span><span class="aj-yo-t"><b id="p-nombre"></b><small id="p-correo"></small><small class="aj-rolito" id="aj-sub-cuenta">Cuenta, Face ID y sesión</small></span><span class="aj-chev" aria-hidden="true"></span></span></button>
+      <div class="grupo aj-lista" data-auto>
+      <button type="button" class="fila aj-ir" data-ir="wearables" data-auto><i class="aj-ico w" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="14" rx="7" ry="5.2"/><path d="M8.6 9.4 10 5.5h4l1.4 3.9"/></svg></i><span class="et"><b>Wearables</b><small id="aj-sub-wearables">Tu anillo y tus lentes</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      <div class="fila aj-enlace" id="p-health-f" hidden><a href="../health/" id="a-health"><i class="aj-ico durazno" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19.5s-7-4.3-7-9.8A4 4 0 0 1 12 7a4 4 0 0 1 7 2.7c0 5.5-7 9.8-7 9.8z"/></svg></i><span class="et"><b>Health</b><small>Sueño, ritmo y pasos</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <div class="fila aj-enlace" id="g-tarjetas" hidden><button type="button" class="aj-toque" id="b-tarjetas"><i class="aj-ico verde" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12.5" rx="2.6"/><path d="M3 10.5h18M7 15h4"/></svg></i><span class="et"><b>Tarjetas y boletos</b><small>Solo en este iPhone, para la caja</small></span><span class="aj-chev" aria-hidden="true"></span></button></div>
+      </div>
+      <p class="tit-g" data-auto>Alma</p>
+      <div class="grupo aj-lista" data-auto>
+      <button type="button" class="fila aj-ir" data-ir="voz" data-auto><i class="aj-ico lila" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5v3M8 7.5v9M12 4.5v15M16 8v8M20 10.5v3"/></svg></i><span class="et"><b>Voz y modos</b><small id="aj-sub-voz">Escucha, calle, conferencia y compañero</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      <button type="button" class="fila aj-ir" data-ir="avisos" data-auto><i class="aj-ico rojo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 16v-4.8a5.5 5.5 0 0 1 11 0V16l1.6 2H4.9z"/><path d="M10 20.4a2.1 2.1 0 0 0 4 0"/></svg></i><span class="et"><b>Notificaciones</b><small id="aj-sub-avisos">Qué te dice al oído y qué suena</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      <button type="button" class="fila aj-ir" data-ir="personalidad" data-auto><i class="aj-ico arena" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 16.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></svg></i><span class="et"><b>Personalidad</b><small id="aj-sub-personalidad">Adaptación y Modo Weebo</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      <button type="button" class="fila aj-ir" data-ir="atajos" data-auto><i class="aj-ico azul" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3 5.5 13.5h6l-1 7.5 8-10.5h-6z"/></svg></i><span class="et"><b>Atajos</b><small id="aj-sub-atajos">Los atajos que Alma puede correr</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      </div>
+      <p class="tit-g" data-auto>Equipo</p>
+      <div class="grupo aj-lista" data-auto>
+      <div class="fila aj-enlace"><a href="agentes.html" id="p-agentes"><i class="aj-ico azul" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9.5" r="2.3"/><path d="M15.6 14.4A4.5 4.5 0 0 1 20.5 19"/></svg></i><span class="et"><b>Tu equipo de agentes</b><small>Quién hace qué</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <!-- Gasto de Alma (gasto.html, 17-nov-2026): el reporte único que reemplaza a «Reportes» (llamadas) y «Uso» (cupos de Google); los dos siguen como su detalle -->
+      <div class="fila aj-enlace" id="p-gasto-f" hidden><a href="gasto.html" id="p-gasto"><i class="aj-ico verde" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 19v-7M10 19V5.5M14.5 19v-5M19 19V9"/></svg></i><span class="et"><b>Gasto de Alma</b><small>Cuánto cuesta al mes y en qué se va</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <div class="fila aj-enlace"><a href="correos.html" id="p-correos"><i class="aj-ico azul2" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.6"/><path d="m4.5 7.5 7.5 5.6 7.5-5.6"/></svg></i><span class="et"><b>Tus correos</b><small>Lo que Alma lee y responde</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <div class="fila aj-enlace" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio"><i class="aj-ico arena" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.5 21h3M12 3.5a5.8 5.8 0 0 0-3.4 10.5v2h6.8v-2A5.8 5.8 0 0 0 12 3.5z"/></svg></i><span class="et"><b>Lo que Alma aprendió</b><small>Sus recetas</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <div class="fila aj-enlace" id="p-claudio-f" hidden><a href="claudio.html" id="p-claudio"><i class="aj-ico durazno" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5.5h14a1.5 1.5 0 0 1 1.5 1.5v8.5A1.5 1.5 0 0 1 19 17h-7l-4.5 3.5V17H5a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 5 5.5z"/><path d="M8 10h8M8 13h5"/></svg></i><span class="et"><b>Hilo de Claudio</b><small>Lo que le pediste, sus respuestas y acciones</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <div class="fila aj-enlace" id="p-biblioteca-f" hidden><a href="biblioteca.html" id="p-biblioteca"><i class="aj-ico malva" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h3.5v15H5zM10.5 4.5H14v15h-3.5zM15.6 5.4l3.3-.9 2.6 14.5-3.3.9z"/></svg></i><span class="et"><b>Biblioteca de Claudio</b><small>Skills y documentos</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      </div>
+      <p class="tit-g" data-auto>Avanzado</p>
+      <div class="grupo aj-lista" data-auto>
+      <div class="fila aj-enlace"><a href="conexiones.html" id="p-conexiones"><i class="aj-ico gris" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.2 13.8a3.8 3.8 0 0 0 5.4 0l2.8-2.8a3.8 3.8 0 0 0-5.4-5.4l-.9.9"/><path d="M13.8 10.2a3.8 3.8 0 0 0-5.4 0L5.6 13a3.8 3.8 0 0 0 5.4 5.4l.9-.9"/></svg></i><span class="et"><b>Conexiones</b><small>Google, WhatsApp y más</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      <button type="button" class="fila aj-ir" data-ir="llaves" data-auto><i class="aj-ico gris" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15.5" r="3.8"/><path d="m10.8 12.7 8.2-8.2M16 7.5l2 2M13.8 9.7l1.8 1.8"/></svg></i><span class="et"><b>Llaves</b><small id="aj-sub-llaves">Las llaves de los servicios</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      <button type="button" class="fila aj-ir" data-ir="diagnostico" data-auto><i class="aj-ico gris" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5h4l2.2-5.5 4.2 10.5 2.1-5h5.5"/></svg></i><span class="et"><b>Diagnóstico</b><small id="aj-sub-diagnostico">Para revisar si algo falla</small></span><span class="aj-chev" aria-hidden="true"></span></button>
+      <div class="fila aj-enlace"><a href="https://hub.spacioam.com/" id="p-hub"><i class="aj-ico tinta" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6.8" height="6.8" rx="1.6"/><rect x="13.2" y="4" width="6.8" height="6.8" rx="1.6"/><rect x="4" y="13.2" width="6.8" height="6.8" rx="1.6"/><rect x="13.2" y="13.2" width="6.8" height="6.8" rx="1.6"/></svg></i><span class="et"><b>Abrir el Hub</b><small>hub.spacioam.com</small></span></a><span class="aj-chev" aria-hidden="true"></span></div>
+      </div>
+      <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
+      <p class="nota-p" id="p-nota"></p>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="cuenta" aria-label="Tu cuenta" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Tu cuenta</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Tu cuenta</h3>
+    <div class="grupo">
+      <div class="fila"><span class="et">Rol</span><span class="va" id="p-rol"></span></div>
+      <div class="fila" id="p-alt-f" hidden><span class="et">Correo alterno</span><span class="va" id="p-alt"></span></div>
+      <div class="fila" id="p-tel-f" hidden><span class="et">Teléfono</span><span class="va" id="p-tel"></span></div>
+    </div>
+    <div class="grupo" id="g-face" hidden>
+      <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="wearables" aria-label="Wearables" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Wearables</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Wearables</h3>
+      <p class="aj-bajada">Tu anillo, tus lentes y tus audífonos: su batería, si están conectados y sus ajustes.</p>
+    <div class="aj-wear" id="g-wear" hidden>
+      <div class="aj-wear-fila" id="aj-wear-l" aria-live="polite"></div>
+      <div class="grupo">
+      <div class="fila boton" id="b-dispositivos" role="button" tabindex="0" hidden>Ver y configurar</div>
+      </div>
+    </div>
+    <p class="tit-g" id="t-anillo" data-auto>Anillo</p>
+    <div class="grupo" id="g-anillo" hidden>
+      <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
+      <p class="nota-g" id="n-anillo">Dos toques en tu anillo encienden o apagan el modo conferencia, aunque el teléfono esté bloqueado; di «Alma» y te escucha. Si Alma está hablando, dos toques la pausan. El anillo va en modo Music.</p>
+      <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="voz" aria-label="Voz y modos" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Voz y modos</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Voz y modos</h3>
+      <p class="aj-bajada">Cómo te escucha Alma y en qué modo trabaja.</p>
+    <div class="grupo" id="g-escucha" hidden>
+      <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
+      <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El botón de la reunión titila en durazno mientras te escucha; tócalo para que deje de escuchar y otra vez para que vuelva.</p>
+    </div>
+    <p class="tit-g" id="t-calle" hidden>Modo calle</p>
+    <div class="grupo" id="g-calle" hidden>
+      <p class="nota-g" id="n-calle-on">Todo en el botón del caminante: un toque y Alma te escucha ya, sin decir «Alma». Un toque largo enciende o apaga el Modo calle: encendido, Alma espera «Alma» con el teléfono bloqueado (el botón respira en durazno y lleva un punto) y se queda así al volver a abrir la app hasta que lo apagues. También con Siri.</p>
+      <div class="fila" id="f-calle-musica" hidden><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-calle-musica" aria-label="Bajar la música cuando Alma hable en el Modo calle"><span></span></label></div>
+      <p class="nota-g" id="n-calle-musica" hidden>Mientras Alma te oye, te contesta o habla contigo, la música de tus otras apps baja (no se pausa) y vuelve al terminar. Con el teléfono bloqueado puede quedarse baja hasta que abras Alma. Con «Alma con el anillo» encendido, la música se pausa: el anillo necesita el audio.</p>
+      <div class="fila boton" id="b-calle-probar" role="button" tabindex="0">Probar el Modo calle</div>
+      <p class="nota-g">Mira si el micrófono te oye y con qué fuerza el detector oye «Alma», y ajústalo. También tocando la línea junto al botón del caminante.</p>
+    </div>
+    <p class="tit-g" id="t-conf-aj" hidden>Modo conferencia</p>
+    <div class="grupo" id="g-conf-aj" hidden>
+      <div class="fila"><span class="et">Bajar la música cuando Alma hable</span><label class="interruptor"><input type="checkbox" id="i-conf-musica" aria-label="Bajar la música cuando Alma hable en el modo conferencia"><span></span></label></div>
+      <p class="nota-g">Apagado, Alma habla encima de la música y su llamada la pausa. Encendido, la música baja mientras Alma habla y vuelve al terminar.</p>
+    </div>
+    <p class="tit-g" id="t-comp">Modo compañero</p>
+    <div class="grupo" id="g-comp">
+      <div class="fila"><span class="et">Mostrar aquí la llamada de tu otro dispositivo</span><label class="interruptor"><input type="checkbox" id="i-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo"><span></span></label></div>
+      <p class="nota-g">Encendido en este dispositivo (por ejemplo, el iPad): cuando hablas con Alma desde el otro, aquí ves en vivo lo que ella te muestra y lo que dicen, sin sonido. El micrófono y el audio se quedan en el dispositivo donde empezaste la llamada: siempre es una sola llamada, y desde aquí no se abre otra mientras siga.</p>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="avisos" aria-label="Notificaciones" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Notificaciones</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Notificaciones</h3>
+    <div class="aj-vista" id="aj-vista" aria-hidden="true">
+      <div class="aj-banner"><i class="aj-banner-ico"></i><div><b>Alma <span>ahora</span></b><p id="aj-vista-t">Juan, revisé lo que me pediste. ¿Lo vemos ahora?</p></div></div>
+      <small id="aj-vista-n">Así te llega un aviso que pide algo de ti</small>
+    </div>
+    <p class="tit-g" id="t-avisos" hidden>Hasta dónde te avisa</p>
+    <div class="grupo" id="g-avisos" hidden>
+      <div class="fila"><span class="et n" id="et-hablado">Habladas</span><span class="sel"><select id="s-hablado" aria-labelledby="et-hablado"></select></span></div>
+      <div class="fila cuanto" id="q-hablado" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
+      <p class="vuelve" id="v-hablado" hidden></p>
+      <div class="fila"><span class="et n" id="et-telefono">En el teléfono</span><span class="sel"><select id="s-telefono" aria-labelledby="et-telefono"></select></span></div>
+      <div class="fila cuanto" id="q-telefono" hidden><span class="et">¿Por cuánto tiempo?</span><button type="button" data-por="1h">1 h</button><button type="button" data-por="4h">4 h</button><button type="button" data-por="manana">Hasta mañana</button></div>
+      <p class="vuelve" id="v-telefono" hidden></p>
+      <div class="fila" style="border-top: .5px solid rgba(62,63,63,.12)"><a href="avisos.html" id="p-avisos-tipo">Por tipo</a><span class="va">›</span></div>
+      <p class="nota-g">Habladas: las que Alma te dice al oído, con su voz, con la app abierta, en conferencia y en el Modo calle. En el teléfono: las que suenan. Si bajas el nivel, vuelve solo a «Todo».</p>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="personalidad" aria-label="Personalidad" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Personalidad</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Personalidad</h3>
+      <p class="aj-bajada">Qué tanto se parece Alma a tu manera de hablar y cuánto humor usa.</p>
+    <p class="tit-g" id="t-pers" hidden>Cómo se adapta a ti</p>
+    <div class="grupo" id="g-pers" hidden>
+      <div class="pp-cab"><b>Adaptación a ti</b><span class="v" id="pp-adapt">—</span></div>
+      <div class="pp-barra"><div class="riel"><div class="lleva" id="pp-lleva"></div></div><input type="range" id="pp-tope" min="0" max="100" step="5" value="60" aria-label="Tope de adaptación"></div>
+      <div class="pp-esc"><span>0 · neutra</span><span class="t" id="pp-tope-v">tope 60 %</span><span>100</span></div>
+      <p class="pp-nota" id="pp-adapt-n">Se llena sola mientras le hablas (+5 % cada 10 mensajes). La raya oscura es el tope: arrástrala.</p>
+    </div>
+    <div class="grupo" id="g-weebo" hidden>
+      <div class="pp-cab"><b>Modo Weebo</b><span class="v">humor y chispa</span></div>
+      <span class="pp-ahora" id="pp-ahora" hidden></span>
+      <div class="pp-seg" id="pp-niveles" role="group" aria-label="Nivel de Modo Weebo"></div>
+      <div class="pp-seg dos" id="pp-modo" role="group" aria-label="Automático o fijo"><button type="button" data-pp-m="auto" aria-pressed="false">Automático</button><button type="button" data-pp-m="fijo" aria-pressed="false">Fijo</button></div>
+      <p class="pp-nota" id="pp-weebo-n">En automático sube y baja según la confianza de la conversación. En fijo se queda donde lo pongas (con un problema o una urgencia, Alma igual vuelve a su centro).</p>
+    </div>
+    <div class="grupo" id="g-huesp" hidden>
+      <div class="pp-cab"><b>Para huéspedes</b><span class="v" id="pp-h-v">tope 20 %</span></div>
+      <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
+      <div class="pp-fija"><span>Modo Weebo</span><b id="pp-h-w">máximo 1 · chispa</b></div>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="atajos" aria-label="Atajos" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Atajos</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Atajos</h3>
+    <p class="tit-g" id="t-atajos" hidden>Atajos permitidos</p>
+    <div class="grupo" id="g-atajos" hidden>
+      <div id="l-atajos"></div>
+      <div class="fila"><input type="text" class="nuevo" id="i-atajo" placeholder="Nombre exacto del atajo" aria-label="Nombre del atajo para agregar" autocomplete="off" enterkeyhint="done"><button type="button" class="agregar" id="b-atajo" disabled>Agregar</button></div>
+      <div class="fila"><span class="et">Permitir todos</span><label class="interruptor"><input type="checkbox" id="i-atajos-todos" aria-label="Permitir todos los atajos"><span></span></label></div>
+      <p class="nota-g">Alma corre por voz los atajos de tu app Atajos que pongas aquí («Alma, pon mi atajo de música»). Escribe el nombre tal como está en Atajos. Con «Permitir todos», Alma puede correr cualquiera.</p>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="llaves" aria-label="Llaves" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Llaves</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Llaves</h3>
+      <p class="aj-bajada">Las llaves de los servicios que usa el Hub. Solo el administrador principal.</p>
+    <p class="tit-g" id="t-llaves" hidden>Llaves</p>
+    <div class="grupo" id="g-llaves" hidden>
+      <div id="l-llaves"></div>
+      <div class="fila" id="f-llave-cual" hidden><span class="et n" id="et-llave">Cuál</span><span class="sel"><select id="s-llave" aria-labelledby="et-llave"></select></span></div>
+      <div class="fila"><input type="password" class="nuevo" id="i-llave" placeholder="Pega la llave" aria-label="Llave para guardar" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done"><button type="button" class="agregar" id="b-llave" disabled>Guardar</button></div>
+      <p class="nota-g" id="n-llave">Se guarda en el Hub. Nadie la vuelve a ver: aquí solo salen sus 4 últimas letras.</p>
+    </div>
+    </div>
+  </section>
+  <section class="aj-pag" data-pag="diagnostico" aria-label="Diagnóstico" hidden>
+    <header class="aj-barra"><button type="button" class="aj-atras" aria-label="Volver a Ajustes"><span aria-hidden="true"></span>Ajustes</button><b class="aj-tit-chico">Diagnóstico</b><button type="button" class="aj-listo">Listo</button></header>
+    <div class="aj-scroll">
+      <h3 class="aj-titulo">Diagnóstico</h3>
+      <p class="aj-bajada">Lo técnico, por si algo falla: qué pasó la última vez y qué manda el anillo.</p>
+    <p class="tit-g" data-auto>Alma con el anillo</p>
+    <div class="grupo" id="g-diag">
+      <div class="fila boton" id="b-anillo-ble" role="button" tabindex="0" hidden>Diagnóstico del anillo (Bluetooth)</div>
+      <p class="nota-g" id="n-anillo-ble" hidden>Mira qué manda tu anillo por Bluetooth cuando lo tocas y mándalo al Hub. No cambia cómo funciona hoy.</p>
+      <p class="nota-g" id="d-anillo" hidden></p>
+    </div>
+    </div>
+  </section>
 </div>
 <div class="entrar fuera" id="entrar" aria-label="Entrar">
   <h1>Alma</h1>
@@ -1565,6 +1805,150 @@ window.SAPulso = {
     for (var i = 0; i < orden.length; i++) if (v.indexOf(orden[i]) >= 0) return ROLES[orden[i]];
     return v.length ? (ROLES[v[0]] || v[0]) : "—";
   }
+  /* ── Ajustes a pantalla completa (Juan, 17-nov-2026): la raíz con los grupos y una página por grupo. En el iPhone la
+     página entra por la derecha y «‹ Ajustes» la regresa (también deslizando desde el borde izquierdo); en el iPad
+     (≥ 900 px) la lista queda a la izquierda y la página a la derecha. Una fila de la raíz sale solo si su página tiene
+     algo que mostrar; su subtítulo dice cómo está ahora (ajResumir). ── */
+  var AJ = { pag: "raiz", wear: null, t: 0 };
+  function ajPag(n) { return document.querySelector('#panel .aj-pag[data-pag="' + n + '"]'); }
+  function ajAncho() { return window.matchMedia && matchMedia("(min-width: 900px)").matches; }
+  function ajQuieto() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
+  function ajSalir(p, ya) {
+    p.classList.remove("on");
+    if (ya) { p.hidden = true; return; }
+    setTimeout(function () { if (!p.classList.contains("on")) p.hidden = true; }, 460);
+  }
+  function ajMarcar() {
+    [].forEach.call(document.querySelectorAll("#panel .aj-ir[data-ir]"), function (b) {
+      if (b.getAttribute("data-ir") === AJ.pag) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+    });
+  }
+  function ajIr(n, sinAnim) {
+    var nueva = ajPag(n);
+    if (!nueva || n === "raiz") { ajAtras(); return; }
+    if (AJ.pag === n && nueva.classList.contains("on")) return;
+    var vieja = AJ.pag !== "raiz" ? ajPag(AJ.pag) : null, ancho = ajAncho();
+    if (vieja && vieja !== nueva) ajSalir(vieja, true);
+    nueva.hidden = false; nueva.classList.remove("sc");
+    var sc = nueva.querySelector(".aj-scroll"); if (sc) sc.scrollTop = 0;
+    if (sinAnim || (vieja && !ancho)) nueva.classList.add("sin");
+    void nueva.offsetWidth;   // que el navegador vea la página fuera antes de entrar
+    nueva.classList.add("on"); $("panel").classList.add("empuja");
+    requestAnimationFrame(function () { requestAnimationFrame(function () { nueva.classList.remove("sin"); }); });
+    AJ.pag = n; ajMarcar();
+    if (!ancho && !sinAnim) { var a = nueva.querySelector(".aj-atras"); if (a) setTimeout(function () { try { a.focus({ preventScroll: true }); } catch (e) {} }, 60); }
+  }
+  function ajAtras() {
+    if (ajAncho()) return;   // en el iPad la lista siempre está a la vista
+    var v = AJ.pag !== "raiz" ? ajPag(AJ.pag) : null;
+    if (v) ajSalir(v);
+    var fila = document.querySelector('#panel .aj-ir[data-ir="' + AJ.pag + '"]');
+    AJ.pag = "raiz"; $("panel").classList.remove("empuja"); ajMarcar();
+    if (fila) setTimeout(function () { try { fila.focus({ preventScroll: true }); } catch (e) {} }, 60);
+  }
+  /* En el iPad siempre hay una página a la derecha: la primera que tenga algo. */
+  function ajPrimera() {
+    if (!ajAncho() || AJ.pag !== "raiz") return;
+    var b = [].filter.call(document.querySelectorAll("#panel .aj-raiz .aj-ir[data-ir]"), function (x) { return !x.hidden && x.getAttribute("data-ir") !== "cuenta"; })[0];
+    ajIr(b ? b.getAttribute("data-ir") : "cuenta", true);
+  }
+  function ajTexto(id, t) { var e = $(id); if (e && t && e.textContent !== t) e.textContent = t; }
+  function ajVer(e, v) { if (e && e.hidden !== !v) e.hidden = !v; }
+  function ajElegido(s) { var o = s && s.options && s.options[s.selectedIndex]; return o ? o.textContent : ""; }
+  /* Wearables: la tarjeta de cada uno (lo manda la app en su estado, alma-app Wearables.swift). Sin datos, el anillo y los lentes. */
+  var AJ_DIB = {
+    anillo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="14" rx="7.5" ry="5.5"/><path d="M8.4 9.2 10 5h4l1.6 4.2"/></svg>',
+    lentes: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="14" r="3.6"/><circle cx="17.5" cy="14" r="3.6"/><path d="M10.1 13.4c1.2-.8 2.6-.8 3.8 0M2.9 13 4.5 7.5M21.1 13l-1.6-5.5"/></svg>',
+    audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6" rx="1.6"/><rect x="16.5" y="14" width="4" height="6" rx="1.6"/></svg>'
+  };
+  function ajWear(lista) {
+    if (lista) AJ.wear = lista;
+    var L = AJ.wear && AJ.wear.length ? AJ.wear : [{ id: "anillo", tipo: "anillo", nombre: "Anillo" }, { id: "lentes", tipo: "lentes", nombre: "Lentes" }];
+    var caja = $("aj-wear-l"); if (!caja) return;
+    var C = 2 * Math.PI * 28, html = L.map(function (w) {
+      var b = typeof w.bateria === "number" ? Math.max(0, Math.min(100, Math.round(w.bateria))) : null;
+      var est = w.estado || (w.conectado ? "Conectado" : "Sin conectar");
+      return '<button type="button" class="aj-wt' + (w.conectado ? " con" : "") + (b != null && b <= 20 ? " bajo" : "") + '" data-w="' + String(w.id || "").replace(/[^\w-]/g, "") + '" aria-label="' +
+        (w.nombre || "").replace(/"/g, "") + ", " + (b != null ? b + " por ciento" : "batería no disponible") + ", " + est.replace(/"/g, "") + '">' +
+        '<span class="aro"><svg class="r" viewBox="0 0 66 66"><circle class="pista" cx="33" cy="33" r="28" fill="none" stroke-width="5"/>' +
+        (b != null ? '<circle class="nivel" cx="33" cy="33" r="28" fill="none" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '" data-o="' + (C * (1 - b / 100)).toFixed(1) + '"/>' : "") +
+        '</svg><span class="dib">' + (AJ_DIB[w.tipo] || AJ_DIB.audio) + '</span></span>' +
+        '<span><b></b><span class="pct' + (b == null ? " sin" : "") + '">' + (b != null ? b + (w.cargando ? " %⚡︎" : " %") : "Batería no disponible") + '</span></span>' +
+        '<small><i></i><span></span></small></button>';
+    }).join("") + '<button type="button" class="aj-wt mas" data-w="agregar"><span aria-hidden="true">+</span>Agregar</button>';
+    caja.innerHTML = html;
+    [].forEach.call(caja.querySelectorAll(".aj-wt[data-w]:not(.mas)"), function (el, i) {
+      el.querySelector("b").textContent = L[i].nombre || "Wearable";
+      el.querySelector("small span").textContent = L[i].estado || (L[i].conectado ? "Conectado" : "Sin conectar");
+    });
+    requestAnimationFrame(function () { requestAnimationFrame(function () {   // el anillo se llena hasta su nivel
+      [].forEach.call(caja.querySelectorAll(".nivel"), function (c) { c.setAttribute("stroke-dashoffset", c.getAttribute("data-o")); });
+    }); });
+    ajResumir();
+  }
+  $("aj-wear-l").addEventListener("click", function (e) {
+    var t = e.target.closest && e.target.closest(".aj-wt"); if (!t) return;
+    vozConfig(); nativa({ accion: "dispositivos", id: t.getAttribute("data-w") });
+  });
+  function ajResumir() {
+    var pn = $("panel"); if (!pn) return;
+    /* páginas: su fila sale si tienen algún grupo a la vista */
+    ajVer($("g-diag"), [].some.call($("g-diag").children, function (c) { return !c.hidden; }));
+    ajVer($("t-anillo"), !$("g-anillo").hidden);
+    [].forEach.call(pn.querySelectorAll(".aj-pag:not(.aj-raiz) .tit-g[data-auto]"), function (t) { var g = t.nextElementSibling; if (g) ajVer(t, !g.hidden); });
+    [].forEach.call(pn.querySelectorAll(".aj-raiz .aj-ir[data-ir]"), function (b) {
+      var n = b.getAttribute("data-ir"); if (n === "cuenta") return;
+      var p = ajPag(n), hay = !!p && [].some.call(p.querySelectorAll(".aj-scroll > .grupo, .aj-scroll > .aj-wear"), function (g) { return !g.hidden; });
+      ajVer(b, hay);
+    });
+    /* una lista sin filas no se ve, ni su título */
+    [].forEach.call(pn.querySelectorAll(".aj-raiz .aj-lista"), function (l) {
+      var hay = [].some.call(l.children, function (f) { return !f.hidden; });
+      ajVer(l, hay); var t = l.previousElementSibling; if (t && t.classList.contains("tit-g")) ajVer(t, hay);
+    });
+    /* los subtítulos: cómo está cada cosa ahora */
+    if (AJ.wear && AJ.wear.length) ajTexto("aj-sub-wearables", AJ.wear.map(function (w) {
+      return (w.corto || w.nombre || "") + (typeof w.bateria === "number" ? " " + Math.round(w.bateria) + " %" : w.conectado ? " conectados" : "");
+    }).join(" · "));
+    var h = ajElegido($("s-hablado")), tel = ajElegido($("s-telefono"));
+    if (h || tel) ajTexto("aj-sub-avisos", "Al oído: " + (h || "—") + " · Teléfono: " + (tel || "—"));
+    var v = [];
+    if (!$("g-escucha").hidden && $("i-escucha").checked) v.push("Escucha activa");
+    if (!$("g-calle").hidden) v.push("Modo calle");
+    if (!$("g-conf-aj").hidden) v.push("conferencia");
+    if ($("i-comp").checked) v.push("compañero encendido"); else v.push("compañero");
+    ajTexto("aj-sub-voz", v.join(", ").replace(/^./, function (c) { return c.toUpperCase(); }));
+    var ad = $("pp-adapt").textContent, wb = document.querySelector('#pp-niveles button[aria-pressed="true"]');
+    if (ad && ad !== "—") ajTexto("aj-sub-personalidad", "Adaptación " + ad + (wb ? " · Weebo " + wb.firstChild.textContent : ""));
+    var na = $("l-atajos").querySelectorAll(".fila").length;
+    ajTexto("aj-sub-atajos", $("i-atajos-todos").checked ? "Todos permitidos" : na ? na + (na === 1 ? " atajo permitido" : " atajos permitidos") : "Ninguno todavía");
+    var nl = $("l-llaves").querySelectorAll(".fila").length, nf = $("l-llaves").querySelectorAll(".va.falta").length;
+    if (nl) ajTexto("aj-sub-llaves", nf ? (nf === 1 ? "Falta 1" : "Faltan " + nf) + " de " + nl : "Las " + nl + " guardadas");
+    /* la vista previa de Notificaciones sigue a «En el teléfono» */
+    var calla = /silencio/i.test(tel), vi = $("aj-vista");
+    if (vi) { vi.classList.toggle("callada", calla); ajTexto("aj-vista-n", calla ? "Con «Silencio», el teléfono no suena" : tel ? "Así te llega con «" + tel + "»" : "Así te llega un aviso que pide algo de ti"); }
+    if (ajAncho() && pn.classList.contains("on")) ajPrimera();
+  }
+  function ajPronto() { cancelAnimationFrame(AJ.t); AJ.t = requestAnimationFrame(ajResumir); }
+  (function () {
+    var pn = $("panel");
+    pn.addEventListener("click", function (e) {
+      var b = e.target.closest && e.target.closest(".aj-ir[data-ir]"); if (b) { ajIr(b.getAttribute("data-ir")); return; }
+      if (e.target.closest && e.target.closest(".aj-atras")) { ajAtras(); return; }
+      if (e.target.closest && e.target.closest(".aj-listo")) cerrarAjustes();
+    });
+    pn.addEventListener("change", ajPronto);
+    pn.addEventListener("keydown", function (e) { if (e.key === "Escape") { e.preventDefault(); if (AJ.pag !== "raiz" && !ajAncho()) ajAtras(); else cerrarAjustes(); } });
+    /* la barra se vuelve vidrio con el título chico al bajar */
+    [].forEach.call(pn.querySelectorAll(".aj-scroll"), function (s) {
+      var pag = s.parentNode, h = pag.querySelector("h2, .aj-titulo");
+      s.addEventListener("scroll", function () { pag.classList.toggle("sc", s.scrollTop > (h ? h.offsetTop + h.offsetHeight - s.offsetTop - 60 : 30)); }, { passive: true });
+    });
+    try { new MutationObserver(ajPronto).observe(pn, { subtree: true, childList: true, attributes: true, attributeFilter: ["hidden", "aria-pressed"] }); } catch (e) {}
+    if (window.matchMedia) { var mq = matchMedia("(min-width: 900px)"); var cambio = function () { if (!mq.matches && AJ.pag !== "raiz") ajAtras(); ajPrimera(); };
+      if (mq.addEventListener) mq.addEventListener("change", cambio); else if (mq.addListener) mq.addListener(cambio); }
+  })();
+  window.AlmaAjustes = { ir: function (n, sin) { ajIr(n, sin); }, atras: ajAtras, wear: ajWear };
   function abrirAjustes() {
     var p = perfil();
     $("p-nombre").textContent = p.nombre || p.email; $("p-correo").textContent = p.email; $("p-rol").textContent = rolDe(p.apps);
@@ -1572,14 +1956,21 @@ window.SAPulso = {
     $("p-tel-f").hidden = !p.tel; $("p-tel").textContent = p.tel;
     /* Health (anillo, ritmo cardíaco, pasos): por ahora solo el administrador principal. */
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
-    /* Gasto de Alma (con Uso y Reportes adentro): solo el administrador principal; el Hub lo vuelve a comprobar. */
-    $("p-gasto-f").hidden = $("p-health-f").hidden;   // Gasto de Alma (gasto.html; dentro: los cupos de Google y el reporte de llamadas): solo el principal
+    /* Gasto de Alma (con Uso y Reportes adentro, alma/gasto.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
+    $("p-gasto-f").hidden = $("p-health-f").hidden;
     $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
     $("p-biblioteca-f").hidden = $("p-health-f").hidden;   // skills y documentos para Claudio (alma/biblioteca.html): solo el principal
+    $("p-claudio-f").hidden = $("p-health-f").hidden;   // el hilo de Claudio (alma/claudio.html, #743): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "atajos", que: "estado" }); avisosReloj(true); }
+    /* cada vez empieza en la raíz (en el iPad, con la primera página a la derecha) */
+    if (AJ.pag !== "raiz") { var v = ajPag(AJ.pag); if (v) ajSalir(v, true); AJ.pag = "raiz"; $("panel").classList.remove("empuja"); ajMarcar(); }
+    var r = document.querySelector("#panel .aj-raiz .aj-scroll"); if (r) r.scrollTop = 0;
+    ajResumir();
     $("velo").classList.add("on"); $("panel").classList.add("on"); $("panel").setAttribute("aria-hidden", "false");
+    ajPrimera();
+    setTimeout(function () { var c = $("aj-cerrar"); if (c && !ajAncho()) try { c.focus({ preventScroll: true }); } catch (e) {} }, 80);
   }
   function cerrarAjustes() { avisosReloj(false); $("velo").classList.remove("on"); $("panel").classList.remove("on"); $("panel").setAttribute("aria-hidden", "true"); }
   $("b-ajustes").onclick = abrirAjustes;
@@ -1591,12 +1982,24 @@ window.SAPulso = {
     var href = this.href; setTimeout(function () { if (!window.__healthOk) location.href = href; }, 700);
   };
   $("velo").onclick = cerrarAjustes;
-  /* Deslizar el panel hacia abajo lo cierra. */
+  /* Deslizar hacia abajo en la raíz (arriba de todo) cierra Ajustes; desde el borde izquierdo de una página, regresa. */
   (function () {
-    var y0 = null, pn = $("panel");
-    pn.addEventListener("touchstart", function (e) { y0 = pn.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
-    pn.addEventListener("touchmove", function (e) { if (y0 == null) return; var dy = e.touches[0].clientY - y0; if (dy > 0) { pn.style.transition = "none"; pn.style.transform = "translate(-50%," + dy + "px)"; } }, { passive: true });
-    pn.addEventListener("touchend", function (e) { if (y0 == null) return; var dy = e.changedTouches[0].clientY - y0; y0 = null; pn.style.transition = ""; pn.style.transform = ""; if (dy > 90) cerrarAjustes(); });
+    var pn = $("panel"), y0 = null, x0 = null, pag = null;
+    pn.addEventListener("touchstart", function (e) {
+      var t = e.touches[0]; y0 = x0 = null; pag = null;
+      if (AJ.pag === "raiz" || ajAncho()) { var s = document.querySelector("#panel .aj-raiz .aj-scroll"); if (AJ.pag === "raiz" && s && s.scrollTop <= 0) y0 = t.clientY; return; }
+      if (t.clientX < 28) { x0 = t.clientX; pag = ajPag(AJ.pag); }
+    }, { passive: true });
+    pn.addEventListener("touchmove", function (e) {
+      var t = e.touches[0];
+      if (y0 != null) { var dy = t.clientY - y0; if (dy > 0) { pn.style.transition = "none"; pn.style.transform = "translateY(" + dy + "px)"; } }
+      if (x0 != null && pag) { var dx = Math.max(0, t.clientX - x0); pag.style.transition = "none"; pag.style.transform = "translateX(" + dx + "px)"; }
+    }, { passive: true });
+    pn.addEventListener("touchend", function (e) {
+      var t = e.changedTouches[0];
+      if (y0 != null) { var dy = t.clientY - y0; y0 = null; pn.style.transition = ""; pn.style.transform = ""; if (dy > 90) cerrarAjustes(); }
+      if (x0 != null && pag) { var dx = t.clientX - x0, p = pag; x0 = null; pag = null; p.style.transition = ""; p.style.transform = ""; if (dx > 90) ajAtras(); }
+    });
   })();
   $("i-face").onchange = function () {
     var on = this.checked, sw = this;
@@ -1696,6 +2099,7 @@ window.SAPulso = {
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
         $("b-dispositivos").hidden = !e.dispositivos;
+        $("g-wear").hidden = !e.dispositivos; if (e.dispositivos) AlmaAjustes.wear(e.wearables || null);   // Wearables: una tarjeta por dispositivo (alma-app Wearables.swift)
         $("g-tarjetas").hidden = !e.tarjetas;   // solo una app que sabe abrir Tarjetas de clubes (alma-app TarjetasClub.swift)   // solo una app que sabe abrir la pantalla Dispositivos (Dispositivos.swift)
         $("b-anillo-ble").hidden = $("n-anillo-ble").hidden = !e.diagBle;   // solo una app que sabe abrir el diagnóstico (DiagnosticoAnillo.swift)
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
@@ -2682,7 +3086,7 @@ window.SAPulso = {
     }
   };
   /* hub.spacioam.com/alma/inicio.html#ajustes-personalidad: Ajustes abiertos en esta sección (un enlace directo). */
-  if (location.hash === "#ajustes-personalidad") setTimeout(function () { if (!ses()) return; $("b-ajustes").click(); setTimeout(function () { $("t-pers").scrollIntoView({ block: "start", behavior: "smooth" }); }, 500); }, 1200);
+  if (location.hash === "#ajustes-personalidad") setTimeout(function () { if (!ses()) return; $("b-ajustes").click(); setTimeout(function () { AlmaAjustes.ir("personalidad"); }, 500); }, 1200);
 })();
 </script>
 <script>
@@ -3754,7 +4158,8 @@ window.SAPulso = {
   var h = location.hash; if (h !== "#ajustes" && h !== "#ajustes-llaves") return;
   setTimeout(function () {
     var b = document.getElementById("b-ajustes"); if (!b) return; b.click();
-    if (h === "#ajustes-llaves") setTimeout(function () { var t = document.getElementById("t-llaves"); if (t && !t.hidden) t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 500);
+    /* Llaves vive en su página (Ajustes → Avanzado → Llaves, #744): se abre esa página; sin ella, se baja hasta su título */
+    if (h === "#ajustes-llaves") setTimeout(function () { if (window.AlmaAjustes && AlmaAjustes.ir) { AlmaAjustes.ir("llaves"); return; } var t = document.getElementById("t-llaves"); if (t && !t.hidden) t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 500);
   }, 1200);
 })();
 </script>

@@ -57,15 +57,15 @@ function caja() {
   ctx.avisoPoner_(JUAN, 'claude_unido', { titulo: 'Botón de facturas' }, 'r3', { nivel: 3, pedidos: ['mp1'] });
   const l = avisos(), por = id => l.filter(x => x.id === id)[0];
   ok(por('r1').abre && /^Juan, /.test(por('r1').abre.primer_mensaje) && por('r1').abre_por === 'resultado_reciente',
-    '1 · el cambio listo para unir de un pedido reciente abre la conversación: «' + (por('r1').abre || {}).primer_mensaje + '»');
+    '1 · el cambio listo de un pedido reciente (Claudio lo une solo) abre la conversación: «' + (por('r1').abre || {}).primer_mensaje + '»');
   ok(!por('r2').abre && por('r2').abre_por === 'no_es_resultado', '1 · lo que apenas empieza no abre (' + por('r2').abre_por + ')');
   ok(!por('r3').abre && por('r3').abre_por === 'no_es_resultado', '1 · «ya quedó unido» (lo unió Juan) no es un resultado nuevo: no abre');
-  ok(['claude_pregunta', 'claude_fallo'].every(t => ctx.abreEstado_({ tipo: t }) === 'accion') && ctx.abreEstado_({ tipo: 'claude_listo' }) === 'unir' &&
+  ok(['claude_pregunta', 'claude_fallo'].every(t => ctx.abreEstado_({ tipo: t }) === 'accion') && ctx.abreEstado_({ tipo: 'claude_listo' }) === 'termino' &&
     ctx.abreEstado_({ tipo: 'escalar_entregado' }) === 'termino' && ctx.abreEstado_({ resultado: true, nivel: 3 }) === 'termino' &&
     ctx.abreEstado_({ resultado: true, nivel: 2 }) === 'accion' && ['huesped_espera', 'vuelo_aterrizo', 'vigilancia_paso', 'correo_respuesta'].every(t => ctx.abreEstado_({ tipo: t, resultado: true }) === ''),
-    '1 · terminó, necesita unir o necesita a Juan; un huésped, un vuelo, una vigilancia o un correo no son el resultado de un pedido');
+    '1 · terminó o necesita a Juan (lo listo ya no pide unir); un huésped, un vuelo, una vigilancia o un correo no son el resultado de un pedido');
   const ctxJ = JSON.parse(por('r1').abre.contexto.replace(/^ALMA ABRE: /, ''));
-  ok(ctxJ.alma_abre && ctxJ.alma_abre.pedido === 'Botón de facturas' && /una/.test(ctxJ.alma_abre.que_falta) && /no cuelgues tú: la app cierra sola/.test(ctxJ.alma_abre.como_seguir) && !/end_call/.test(ctxJ.alma_abre.como_seguir),
+  ok(ctxJ.alma_abre && ctxJ.alma_abre.pedido === 'Botón de facturas' && /nada/.test(ctxJ.alma_abre.que_falta) && /no cuelgues tú: la app cierra sola/.test(ctxJ.alma_abre.como_seguir) && !/end_call/.test(ctxJ.alma_abre.como_seguir),
     '1 · el contexto dice qué pedido es y qué falta («' + ctxJ.alma_abre.que_falta + '»), para que Alma siga la conversación');
 }
 

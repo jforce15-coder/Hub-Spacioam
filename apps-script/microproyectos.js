@@ -309,7 +309,7 @@ function microTarjetas_(adm) {
       var ck = info && info.sha ? paraClaudeChecks_(info.repo, info.sha) : null;
       var est = ck && ck.fallas ? 'fallo_pub' : (!ck || ck.corriendo || (!ck.total && ahora - t0 < 180000)) ? 'publicando' : 'publicado';
       if (est === 'publicado' && ahora - t0 > 30 * 60000) return;
-      out.push(Object.assign(base, { estado: est, progreso: ck && ck.total ? ck.ok / ck.total : 0, resumen: est === 'publicando' ? 'Ya lo uniste. GitHub lo está revisando y publicando.' : est === 'publicado' ? '¡Listo! Ya está publicado.' : 'Se unió, pero algo falló al publicarlo.',
+      out.push(Object.assign(base, { estado: est, progreso: ck && ck.total ? ck.ok / ck.total : 0, resumen: est === 'publicando' ? 'Ya se unió. GitHub lo está revisando y publicando.' : est === 'publicado' ? '¡Listo! Ya está publicado.' : 'Se unió, pero algo falló al publicarlo.',
         pasos: est === 'publicado' ? ['Pruébalo.'] : est === 'fallo_pub' ? ['Escríbele a Alma en tu chat: «falló la publicación de ' + m.nombre + '».'] : [], enlaces: est === 'fallo_pub' ? [m.pr] : [] }));
       return;
     }
@@ -320,7 +320,7 @@ function microTarjetas_(adm) {
       return;
     }
     if (m.estado === MICRO_ESTADOS_.listo) {
-      out.push(Object.assign(base, { estado: 'listo', resumen: 'Claudio lo dejó listo. Revísalo y únelo.', pasos: ['Toca «Unir». O dile a Alma: «une ' + m.nombre + '».'], enlaces: m.pr ? [m.pr] : [] }));
+      out.push(Object.assign(base, { estado: 'listo', resumen: 'Claudio lo dejó listo; se une y se publica solo.', pasos: [], enlaces: m.pr ? [m.pr] : [] }));
       return;
     }
     var n = m.ajustes.filter(function (a) { return a.de === 'juan'; }).length;

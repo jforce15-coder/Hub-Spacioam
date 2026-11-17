@@ -31,7 +31,7 @@ const SISTEMA = /^(Se registró|Necesita tu aprobación|Hay una pregunta sobre|E
 /* tipo, lo que entra y lo que tiene que quedar (en la entrada o en los datos). */
 const CASOS = [
   ['claude_pregunta', { titulo: 'Reporte de limpieza', detalle: '¿Lo quieres por propiedad o por día?' }, ['Reporte de limpieza', 'por propiedad', 'Pendientes']],
-  ['claude_listo', { titulo: 'Botón de facturas' }, ['Botón de facturas', 'unas']],
+  ['claude_listo', { titulo: 'Botón de facturas' }, ['Botón de facturas', 'se publica solo']],
   ['claude_fallo', { titulo: 'Borrar reservas viejas', detalle: 'no se considera seguro borrar sin respaldo' }, ['Borrar reservas viejas', 'seguro']],
   ['claude_unido', { titulo: 'Botón de facturas' }, ['Botón de facturas', 'unido']],
   ['claude_consulta', { titulo: 'Ocupación de octubre', detalle: 'Rue 301 tuvo 83.9 % de ocupación' }, ['Ocupación de octubre', '83.9']],

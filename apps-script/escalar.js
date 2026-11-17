@@ -98,7 +98,7 @@ function escalarPedir_(adm, x) {
   if (ya) return { ok: true, repetido: true, texto: ESCALAR_FRASE_, micro: ya.micro, claude: { ok: true, micro: ya.micro } };
   var json = escalarJson_(adm, Object.assign({}, x, { canal: canal }));
   var r = paraClaudeCrear_(adm, { titulo: escalarTitulo_(x.tarea || juan), app: 'Otro', tipo: 'mejora', prioridad: 'normal', nivel: 'complejo', sinChat: x.sinChat !== false,
-    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: json.contexto.palabras_de_juan });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: (json.contexto || {}).palabras_de_juan || juan });
   if (!r || !r.ok) return { ok: false, texto: 'Eso todavía no lo puedo hacer yo sola, y el pedido no salió: ' + ((r && r.error) || 'error') + '.', claude: { ok: false } };
   var mi = r.micro || {};
   /* Solo el pedido del principal se une solo (Juan, 12-nov-2026); el de otra persona espera su «une». */

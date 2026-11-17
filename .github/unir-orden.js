@@ -34,7 +34,7 @@ function caja(o) {
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = v; }, remove: k => { delete cache[k]; } }) }
   };
   vm.createContext(ctx);
-  ['unir.js', 'unirorden.js', 'chat.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['literal.js', 'unir.js', 'unirorden.js', 'chat.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   Object.assign(ctx, {
     esAdminPrincipal_: a => !!(a && a.principal),
     /* GitHub de mentira: la lista de abiertos y el «merge» (403 si o.sinPermiso lo dice). */

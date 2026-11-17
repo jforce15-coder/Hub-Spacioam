@@ -183,7 +183,7 @@ function claudeBorradorMandar_(adm, b, ajusteVoz) {
   var json = escalarJson_(adm, { pedido: juan, literal: lit || juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
     tarea: 'Haz el cambio del sistema que pidió ' + (adm.nombre || 'Juan') + ' (contexto.palabras_de_juan).', seguimiento: b.ult && !b.micro ? 'Puede ser un seguimiento de tu última respuesta en su chat con Alma: ' + b.ult : '' });
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
-    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: json.contexto.palabras_de_juan });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: lit || juan });
   if (!r.ok) {
     return { accion: 'mandar', claude: { ok: false }, texto: 'No se pudo pedir: ' + (r.error || 'error') + '. Quedó guardado; dime «mándalo» para intentarlo otra vez.',
       voz: (ajusteVoz ? 'AJUSTE GUARDADO (' + ajusteVoz + ') PERO ' : '') + 'NO SALIÓ: ' + (r.error || 'error') + '. Díselo en una frase; quedó guardado.' };

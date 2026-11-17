@@ -42,7 +42,7 @@ function caja() {
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) }
   };
   vm.createContext(ctx);
-  ['avisotexto.js', 'paraclaude.js', 'chat.js', 'agentes.js', 'escalar.js', 'equipos.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
+  ['avisotexto.js', 'literal.js', 'paraclaude.js', 'chat.js', 'agentes.js', 'escalar.js', 'equipos.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   Object.assign(ctx, {
     adminsOp_: () => [JUAN, GABY], adminPorEmail_: e => [JUAN, GABY].filter(a => a.email === e)[0] || null, opMarcar_: () => 0, chatMarcarLuego_: () => {},
     paraClaudeCrear_: (adm, inp) => { log.claude.push({ adm, inp }); return { ok: true, id: 'pc' + log.claude.length, claude: true, issue: 'https://github.com/x/y/issues/1', micro: { id: 'mp' + log.claude.length, nombre: 'Contactos recepción Hola' }, nivel: 'complejo' }; },
@@ -70,7 +70,7 @@ const cerrar = (c, adm, pedido, respuesta, extra, o) => c.ctx.chatTurnoCerrar_(a
   const c = caja(), out = cerrar(c, JUAN, PEDIDO, DIJO_11NOV), j = c.log.claude[0] && json(c.log.claude[0].inp);
   ok(c.log.claude.length === 1, '11-nov: «necesito pedírselo a Claudio… ¿Lo pido?» → una llamada real a Desarrollo en ese mismo turno');
   ok(j && LLAVES.every(k => k in j), 'el pedido es JSON válido con rol, tarea, contexto, pasos, restricciones y formato_de_respuesta');
-  ok(j && j.contexto.pedido_exacto === PEDIDO && j.contexto.pedido_por.principal === true && j.contexto.pedido_por.nombre === 'Juan Ovalle' && j.contexto.canal === 'WhatsApp',
+  ok(j && j.contexto.palabras_de_juan === PEDIDO && j.contexto.pedido_por.principal === true && j.contexto.pedido_por.nombre === 'Juan Ovalle' && j.contexto.canal === 'WhatsApp',
     'contexto: el pedido exacto de Juan, quién lo pidió (administrador principal) y por qué canal');
   ok(j && /pedírselo a Claudio/.test(j.contexto.intento_de_alma.dijo) && j.contexto.intento_de_alma.por_que_escalo && j.contexto.para_entregar === PEDIDO, 'contexto: qué intentó Alma, por qué escaló y para_entregar');
   ok(/ya quedó pedido/.test(out.texto) && /enlace/.test(out.texto) && !/[¿?]/.test(out.texto) && !/claud/i.test(out.texto), 'a Juan: una frase, ya pedido y que le avisa con el enlace; sin preguntar ni nombrar a Claudio');
@@ -162,7 +162,7 @@ const cerrar = (c, adm, pedido, respuesta, extra, o) => c.ctx.chatTurnoCerrar_(a
   Object.assign(c.ctx, { agGuardar_: (sh, cab, o) => o, hojaAg_: () => null, hojaAgT_: () => null, AGENTE_TEXTO_: PEDIDO, AGENTE_CANAL_: 'whatsapp' });
   const r = c.ctx.agDesarrolloRonda_({ id: 'desarrollo', nombre: 'Desarrollo' }, JUAN, 'pedido', 'Listado de propiedades donde Juan es contacto de recepción en Hola');
   const p = c.log.claude[0], jd = p && json(p.inp);
-  ok(r.ok && jd && LLAVES.every(k => k in jd) && jd.contexto.pedido_exacto === PEDIDO && !/Playwright/.test(p.inp.que_quiere), 'pedir_a_agente a Desarrollo: JSON con el pedido exacto de Juan, sin «míralo con Playwright»');
+  ok(r.ok && jd && LLAVES.every(k => k in jd) && jd.contexto.palabras_de_juan === PEDIDO && !/Playwright/.test(p.inp.que_quiere), 'pedir_a_agente a Desarrollo: JSON con el pedido exacto de Juan, sin «míralo con Playwright»');
   ok(c.entregas().length === 1 && /ya quedó pedido/.test(r.informe), 'y su entrega queda para unir y entregar sola');
   c.ctx.AG_DEV_OBJETIVOS_ = [{ app: 'Hub', que: 'el Hub' }];
   c.ctx.agDesarrolloRonda_({ id: 'dev_hub', nombre: 'Desarrollo · Hub', app: 'Hub' }, JUAN, 'rutina', '');

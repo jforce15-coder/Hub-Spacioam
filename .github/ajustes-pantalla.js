@@ -19,7 +19,7 @@ const antes = ['p-av', 'p-nombre', 'p-correo', 'p-rol', 'p-alt-f', 'p-tel-f', 'g
   'g-avisos', 's-hablado', 's-telefono', 'q-hablado', 'q-telefono', 'p-avisos-tipo', 'g-calle', 'i-calle-musica', 'b-calle-probar', 'g-conf-aj', 'i-conf-musica',
   'g-anillo', 'b-dispositivos', 'i-anillo', 'b-probar', 'd-anillo', 'b-anillo-ble', 'n-anillo-ble', 'g-atajos', 'l-atajos', 'i-atajo', 'b-atajo', 'i-atajos-todos',
   'g-pers', 'pp-tope', 'g-weebo', 'pp-niveles', 'pp-modo', 'g-huesp', 'pp-tope-h', 'g-comp', 'i-comp', 'g-llaves', 'l-llaves', 's-llave', 'i-llave', 'b-llave',
-  'p-health-f', 'a-health', 'p-agentes', 'p-reportes', 'p-correos', 'p-conexiones', 'p-uso-f', 'p-aprendio-f', 'p-biblioteca-f', 'p-hub', 'b-salir', 'p-nota'];
+  'p-health-f', 'a-health', 'p-agentes', 'p-reportes', 'p-correos', 'p-conexiones', 'p-uso-f', 'p-aprendio-f', 'p-biblioteca-f', 'p-claudio-f', 'p-hub', 'b-salir', 'p-nota'];
 const faltan = antes.filter(id => (P.match(new RegExp('id="' + id + '"', 'g')) || []).length !== 1);
 ok(!faltan.length, '1 · las ' + antes.length + ' opciones de antes siguen, una vez cada una' + (faltan.length ? ': faltan ' + faltan.join(', ') : ''));
 
@@ -48,5 +48,10 @@ ok(/data-ir="wearables"/.test(P) && /<b>Wearables<\/b>/.test(P) && !/Dispositivo
 ok(/AlmaAjustes\.wear\(e\.wearables \|\| null\)/.test(H) && /accion: "dispositivos", id:/.test(H), '5 · las tarjetas con la batería que manda la app y, al tocar una, su detalle nativo');
 const an = fs.readFileSync(path.join(R, 'apps-script', 'anillo.js'), 'utf8');
 ok(/pantalla Wearables/.test(an) && !/pantalla Dispositivos/.test(an), '5 · la voz (anillo_estado con mostrar) dice «Wearables»');
+
+/* 6 · los enlaces que llegan a Ajustes desde fuera siguen llegando */
+ok(/id="p-claudio-f" hidden><a href="claudio\.html"/.test(P) && /\$\("p-claudio-f"\)\.hidden = \$\("p-health-f"\)\.hidden/.test(H), '6 · el hilo de Claudio está en Equipo (solo el principal)');
+ok(/h === "#ajustes-llaves"\) setTimeout\(function \(\) \{ if \(window\.AlmaAjustes && AlmaAjustes\.ir\) \{ AlmaAjustes\.ir\("llaves"\)/.test(H) && /id="b-ajustes"/.test(H) && /id="t-llaves"/.test(P),
+  '6 · inicio.html#ajustes-llaves abre Ajustes en la página Llaves');
 
 process.exit(fallo);

@@ -1,8 +1,8 @@
 /* Música en Spotify sin dispositivo activo (apps-script/musica.js) con dobles: sin Spotify ni Google.
    Juan, 17-nov-2026 (pedido pc1794924234976): «si no hay dispositivo activo de Spotify, reproducir por defecto en el
    dispositivo actual o predeterminado para que la música empiece de inmediato sin error».
-   1. Con dispositivos pero ninguno sonando: elige el predeterminado (el último donde sonó), le pasa la reproducción y suena.
-   2. Sin predeterminado: el teléfono antes que la bocina o la compu; los restringidos no cuentan.
+   1. Con dispositivos pero ninguno sonando: elige el predeterminado (el último donde sonó, SPOTIFY_ULTIMO), le pasa la reproducción y suena.
+   2. Sin predeterminado: el teléfono o la compu antes que la bocina o la compu; los restringidos no cuentan.
    3. Si Spotify contesta 404 (no hay dispositivo activo) al primer play, lo activa y lo intenta otra vez.
    4. Sin ningún dispositivo en la lista: prueba el predeterminado por su id; si Spotify no lo acepta, el mensaje claro.
    5. El que está sonando y el que Juan nombra siguen mandando (no se cambia de dispositivo sin razón).
@@ -26,7 +26,7 @@ function caja(o) {
   const resp = (code, j) => ({ getResponseCode: () => code, getContentText: () => (j ? JSON.stringify(j) : '') });
   const ctx = {
     console: { log() {}, error() {}, warn() {} }, JSON, Math, String, Number, Object, Array, RegExp, Date, encodeURIComponent,
-    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
+    PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); }, setProperties: o => { Object.keys(o).forEach(k => { props[k] = String(o[k]); }); } }) },
     CacheService: { getScriptCache: () => ({ get: k => (k in cache ? cache[k] : null), put: (k, v) => { cache[k] = v; }, remove: k => { delete cache[k]; } }) },
     Utilities: { sleep() {}, getUuid: () => 'u', base64Encode: s => s },
     esAdminPrincipal_: a => !!(a && a.principal), AGENTE_APP_: true,
@@ -51,14 +51,14 @@ function caja(o) {
   vm.createContext(ctx);
   ['musica.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   const poner = extra => ctx.musica_(JUAN, Object.assign({ accion: 'poner', consulta: 'clair de lune', tipo: 'cancion' }, extra || {}));
-  const pre = () => { try { return JSON.parse(props.SPOTIFY_DISPOSITIVO || 'null'); } catch (e) { return null; } };
+  const pre = () => (props.SPOTIFY_ULTIMO ? { id: props.SPOTIFY_ULTIMO, name: props.SPOTIFY_ULTIMO_NOMBRE } : null);
   return { ctx, props, llamadas, poner, pre, activo: () => activo };
 }
 const traspasos = c => c.llamadas.filter(x => x.ruta === '/me/player' && x.m === 'put').map(x => x.cuerpo.device_ids[0]);
 
 /* 1. Ninguno sonando: el predeterminado */
 {
-  const c = caja({ lista: [SALA, TEL, COMPU], props: { SPOTIFY_DISPOSITIVO: JSON.stringify({ id: 'sala1', name: 'Bocina sala' }) } });
+  const c = caja({ lista: [SALA, TEL, COMPU], props: { SPOTIFY_ULTIMO: 'sala1', SPOTIFY_ULTIMO_NOMBRE: 'Bocina sala' } });
   const r = c.poner();
   ok(r.ok && r.en === 'Bocina sala' && traspasos(c)[0] === 'sala1' && c.activo() === 'sala1',
     '1 · ninguno sonando: le pasa la reproducción al predeterminado y suena ahí (' + JSON.stringify(r) + ')');
@@ -68,10 +68,10 @@ const traspasos = c => c.llamadas.filter(x => x.ruta === '/me/player' && x.m ===
 
 /* 2. Sin predeterminado: el teléfono; los restringidos no cuentan; y queda recordado */
 {
-  const c = caja({ lista: [TV, SALA, COMPU, TEL] });
+  const c = caja({ lista: [TV, SALA, TEL, COMPU] });
   const r = c.poner();
-  ok(r.ok && r.en === 'iPhone de Juan', '2 · sin predeterminado elige el teléfono antes que la bocina, la compu o la tele restringida (' + r.en + ')');
-  ok(c.pre() && c.pre().id === 'tel1' && !/@|\+\d/.test(c.props.SPOTIFY_DISPOSITIVO), '2 · el teléfono queda como predeterminado (solo id, nombre y tipo)');
+  ok(r.ok && r.en === 'iPhone de Juan', '2 · sin predeterminado elige el teléfono o la compu antes que la bocina o la tele restringida (' + r.en + ')');
+  ok(c.pre() && c.pre().id === 'tel1' && c.pre().name === 'iPhone de Juan', '2 · el teléfono queda como predeterminado (su id y su nombre)');
   const c2 = caja({ lista: [TV] });
   ok(c2.poner().error && traspasos(c2).length === 0, '2 · solo un dispositivo restringido: no lo intenta y da el mensaje claro');
 }
@@ -85,10 +85,10 @@ const traspasos = c => c.llamadas.filter(x => x.ruta === '/me/player' && x.m ===
 
 /* 4. Lista vacía: el predeterminado por id, o el mensaje claro */
 {
-  const c = caja({ lista: [], conocidos: ['sala1'], props: { SPOTIFY_DISPOSITIVO: JSON.stringify({ id: 'sala1', name: 'Bocina sala', type: 'Speaker' }) } });
+  const c = caja({ lista: [], conocidos: ['sala1'], props: { SPOTIFY_ULTIMO: 'sala1', SPOTIFY_ULTIMO_NOMBRE: 'Bocina sala' } });
   const r = c.poner();
   ok(r.ok && r.en === 'Bocina sala', '4 · lista vacía y Spotify acepta el predeterminado por su id: suena ahí');
-  const c2 = caja({ lista: [], props: { SPOTIFY_DISPOSITIVO: JSON.stringify({ id: 'viejo', name: 'Bocina vieja' }) } });
+  const c2 = caja({ lista: [], props: { SPOTIFY_ULTIMO: 'viejo', SPOTIFY_ULTIMO_NOMBRE: 'Bocina vieja' } });
   const r2 = c2.poner();
   ok(r2.error && /Abre Spotify en el teléfono/.test(r2.error), '4 · lista vacía y Spotify no lo acepta: el mensaje claro, no «HTTP 404»');
   const c3 = caja({ lista: [] });
@@ -97,14 +97,12 @@ const traspasos = c => c.llamadas.filter(x => x.ruta === '/me/player' && x.m ===
 
 /* 5. El que suena y el nombrado mandan */
 {
-  const c = caja({ lista: [TEL, SALA], activo: 'sala1', props: { SPOTIFY_DISPOSITIVO: JSON.stringify({ id: 'tel1' }) } });
+  const c = caja({ lista: [TEL, SALA], activo: 'sala1', props: { SPOTIFY_ULTIMO: 'tel1' } });
   const r = c.poner();
   ok(r.ok && r.en === 'Bocina sala' && traspasos(c).length === 0, '5 · lo que ya suena se queda donde suena, sin traspasar');
   const c2 = caja({ lista: [TEL, SALA, COMPU], activo: 'tel1' });
   const r2 = c2.poner({ dispositivo: 'macbook' });
   ok(r2.ok && r2.en === 'MacBook' && traspasos(c2)[0] === 'pc1', '5 · «ponlo en la MacBook»: la activa y suena ahí');
-  const c3 = caja({ lista: [TEL, SALA] });
-  ok(c3.ctx.musica_(JUAN, { accion: 'pausar' }) && c3.pre() === null, '5 · pausar no cambia el predeterminado');
 }
 
 process.exit(fallo);

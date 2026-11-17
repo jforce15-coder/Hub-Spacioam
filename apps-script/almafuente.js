@@ -355,7 +355,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si responde que se mostró, lo dices y resumes en una frase."
+    "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si se mostró, lo resumes en una frase."
    },
    "nivel_weebo": {
     "canales": [
@@ -368,6 +368,12 @@ var ALMA_FUENTE_ = {
      "voz"
     ],
     "linea": "En la app y solo con Juan: un GIF tras una broma que ya cayó, en silencio."
+   },
+   "mostrar_tarjeta_club": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "En la app: la tarjeta de club que pide, en pantalla para la caja."
    },
    "hablar_con_claudio": {
     "canales": [

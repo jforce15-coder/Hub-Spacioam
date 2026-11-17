@@ -56,4 +56,10 @@ caja.IDENTIDAD_VOZ_ = 'Maricarmen'; caja.WEEBO_ALTER_ = 'maricarmen'; caja.maric
 ok(caja.IDENTIDAD_VOZ_ === '' && caja.WEEBO_ALTER_ === '', '5. un turno de otro canal escrito no hereda a Maricarmen del turno anterior');
 caja.IDENTIDAD_VOZ_ = 'Maricarmen'; caja.WEEBO_ALTER_ = 'maricarmen'; caja.maricarmenTurno_(juan, 'dime las llegadas', 'calle');
 ok(caja.IDENTIDAD_VOZ_ === 'Maricarmen' && caja.WEEBO_ALTER_ === 'maricarmen', '5. en la calle no la toca (la pone calle_ con lo que manda la app)');
+/* Con #705 (identidad.js): si Maricarmen ya contestó este turno, chatTurnoCerrar_ no lo cambia por «abre la llamada». */
+const caja2 = { console, esAdminPrincipal_: a => !!(a && a.principal), CacheService: caja.CacheService }; vm.createContext(caja2);
+vm.runInContext(fs.readFileSync(path.join(DIR, 'identidad.js'), 'utf8') + '\n' + fs.readFileSync(path.join(DIR, 'maricarmen.js'), 'utf8'), caja2);
+for (const k in memo) delete memo[k];
+const r2 = caja2.maricarmenTurno_(juan, 'Alma, comunícame con Maricarmen', 'app');
+ok(r2.salida && caja2.identidadPideAlter_(juan, 'Alma, comunícame con Maricarmen') === false, '6. con Maricarmen ya activa, la respuesta de #705 («abre la llamada») no la pisa');
 process.exit(fallo);

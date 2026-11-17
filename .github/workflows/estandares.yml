@@ -351,3 +351,6 @@ jobs:
       - name: Envío directo, la orden de Juan de responder o enviar un mensaje ya es su sí; si pide verlo antes, o Alma adivinó a quién, sigue el borrador (dobles)
         # 17-nov-2026 (#633): «cuando Juan dé la instrucción de responder o enviar un mensaje, enviarlo directamente, sin preguntar ¿lo envío?».
         run: node .github/envio-directo.js apps-script
+      - name: Biblioteca de Claudio, solo el principal comparte, todo privado, Claudio lee con el lector de su pedido (nunca la llave), lo que pide le llega solo al compartirlo y nada va al issue (dobles)
+        # 17-nov-2026 (pedido pc1794916196762): «que el usuario comparta fácilmente un skill o documento, sin usar el chat, y que Claudio pueda pedirlo».
+        run: node .github/biblioteca-claudio.js apps-script

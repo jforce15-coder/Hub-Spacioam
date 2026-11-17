@@ -34,6 +34,16 @@ ok(caja.identidadVozDe_('maricarmen', { principal: false }) === '' && caja.ident
 const regla = caja.identidadVozRegla_('Maricarmen');
 ok(/te llamas Maricarmen/.test(regla) && /SIEMPRE en nombre de Alma/.test(regla) && caja.identidadVozRegla_('') === '', '4. la regla dice el nombre de voz y que lo externo va como Alma');
 
+const P = (t, principal = true) => caja.identidadPideAlter_({ principal }, t);
+ok(P('Comunicar a Juan con Mari Carmen o solicitarle que lo llame.'), '5. #705: «comunicar a Juan con Mari Carmen o que lo llame» → Alma dice cómo, no escala');
+ok(P('Comunícame con Maricarmen') && P('quiero hablar con la Maricarmen') && P('Dile a Maricarmen que me llame') && P('que me llame Maricarmen'), '5. pásame, hablar con, que me llame → dice cómo');
+ok(!P('Haz que Maricarmen hable más lento') && !P('Agrégale a Maricarmen que sepa los vuelos') && !P('Maricarmen no funciona en la llamada'), '5. cambiar algo de Maricarmen → sí sigue a Desarrollo');
+ok(!P('Comunícame con Maricarmen', false) && !P('Comunícame con Lucía'), '5. otro admin u otra persona → no aplica');
+caja.IDENTIDAD_VOZ_ = 'Maricarmen'; ok(!P('Comunícame con Maricarmen'), '5. ya hablando con Maricarmen → no aplica'); caja.IDENTIDAD_VOZ_ = '';
+ok(/pásame con Maricarmen/.test(caja.IDENTIDAD_COMO_ALTER_), '5. la respuesta dice cómo llamarla');
+const ch = fs.readFileSync(path.join(DIR, 'chat.js'), 'utf8'), iC = ch.indexOf('function chatTurnoCerrar_('), iD = ch.indexOf('chatDesarrollo_(adm', iC);
+ok(iC >= 0 && ch.slice(iC, iD).indexOf('identidadPideAlter_(adm, texto)') > 0, '5. chatTurnoCerrar_ lo revisa antes de Desarrollo y de escalar');
+
 const ag = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8'), ca = fs.readFileSync(path.join(DIR, 'calle.js'), 'utf8');
 const iE = ag.indexOf('function agEjecutar_('), iS = ag.indexOf('switch (nombre)', iE);
 ok(iE >= 0 && ag.slice(iE, iS).indexOf('identidadEntrada_(inp') > 0, '4. agEjecutar_ limpia la entrada antes de cada herramienta');

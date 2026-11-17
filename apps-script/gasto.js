@@ -186,6 +186,7 @@ function gastoReporte_(mes, fresco) {
     });
     var variable = 0, estado = lineas.some(function (l) { return l.estado === 'estimado'; }) ? 'estimado' : 'medido';
     if (P.id === 'anthropic') { variable = cl.usd; lineas.push({ nombre: 'Tokens registrados (IA_USO)', usd: cl.usd, estado: 'medido', tipo: 'uso' }); }
+    if (!lineas.length && P.id === 'otros') return null;   // «Otros» solo sale si alguien le puso algo
     if (!lineas.length) { falta = true; lineas.push({ nombre: 'Sin dato todavía', usd: null, estado: 'falta' }); }
     var usd = gastoR2_(fijo + unaVez + variable);
     /* Proyección: lo fijo entero; lo de uso (tokens y recargas) al ritmo de lo que va del mes. */
@@ -193,6 +194,7 @@ function gastoReporte_(mes, fresco) {
     if (falta) faltan.push(P.nombre);
     return { id: P.id, nombre: P.nombre, que: P.que, grupo: P.grupo || 'alma', usd: usd, proyeccion: proy, estado: falta && !usd ? 'falta' : falta ? 'incompleto' : estado, lineas: lineas };
   });
+  provs = provs.filter(Boolean);
   var deAlma = provs.filter(function (p) { return p.grupo === 'alma'; }), negocio = provs.filter(function (p) { return p.grupo !== 'alma'; });
   var total = gastoR2_(deAlma.reduce(function (s, p) { return s + p.usd; }, 0)), proy = gastoR2_(deAlma.reduce(function (s, p) { return s + p.proyeccion; }, 0));
   var medido = gastoR2_(deAlma.reduce(function (s, p) { return s + p.lineas.filter(function (l) { return l.estado === 'medido'; }).reduce(function (a, l) { return a + (l.usd || 0); }, 0); }, 0));

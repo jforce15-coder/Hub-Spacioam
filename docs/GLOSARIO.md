@@ -11,7 +11,9 @@ Claudio**. Solo existe con el administrador principal y en ese modo; con huéspe
 **Claudio local** (17-nov-2026): la misma conversación con Claudio sin pasar por ElevenLabs, para que las sesiones largas
 de trabajo no gasten créditos de voz. Lo oye el dictado del iPhone, contesta el Hub con su mismo prompt, su ficha y sus
 herramientas (acción `claudioLocal`) y habla una voz de hombre del iPhone afinada como la suya (Juan, 17-nov-2026, #649:
-volvió a esta voz; la de ElevenLabs frase por frase de #636 quedó apagada). Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
+volvió a esta voz; la de ElevenLabs frase por frase de #636 quedó apagada). Para que suene natural (#687): con su tono
+natural (sin bajarlo), a 24 kHz en la app (no aplanada a 16 kHz como una llamada) y una voz mejorada o premium antes que una
+normal. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
 agente de ElevenLabs, `CLAUDIO_VOZ_LOCAL` afina la voz (`{"motor":"elevenlabs"}` vuelve a mandar cada frase con su voz de
 ElevenLabs) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo de ese camino. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
 **Voz de respaldo** (17-nov-2026, #657): cuando la señal falla, Alma sigue la llamada sin ElevenLabs, como Claudio local: la

@@ -25,8 +25,9 @@ var CLAUDIO_LOCAL_PALABRAS_ = 45;   // ~15 s hablados: dos o tres frases cortas 
 var CLAUDIO_LOCAL_VUELTAS_ = 4, CLAUDIO_LOCAL_MS_ = 22000, CLAUDIO_LOCAL_HIST_ = 14;
 var CLAUDIO_LOCAL_REPITE_ = 'Perdón, no me llegó bien. ¿Me lo repites?';
 /* La voz del iPhone que imita a Claudio: de hombre, en español de México (luego Estados Unidos y España), la de mejor
-   calidad instalada; un poco más grave y apenas más pausada que la de fábrica, como su voz de ElevenLabs. */
-var CLAUDIO_VOZ_LOCAL_ = { motor: 'iphone', idiomas: ['es-MX', 'es-US', 'es-419', 'es-ES'], genero: 'hombre', velocidad: 0.5, tono: 0.92, volumen: 1 };
+   calidad instalada, con su tono natural. Juan, 17-nov-2026 (#687): «que la voz suene natural otra vez». El tono 0.92
+   (un poco más grave, para parecerse a ElevenLabs) la hacía sonar procesada; ahora 1, el de la voz tal cual. */
+var CLAUDIO_VOZ_LOCAL_ = { motor: 'iphone', idiomas: ['es-MX', 'es-US', 'es-419', 'es-ES'], genero: 'hombre', velocidad: 0.5, tono: 1, volumen: 1 };
 /* La voz de ElevenLabs en Claudio local: los modelos que también sirven fuera del agente; si el agente usa otro (o todavía
    no se leyó), el rápido, que es el de las llamadas. Los ajustes (estabilidad, parecido, velocidad) son los de su agente. */
 var CLAUDIO_TTS_MODELOS_ = ['eleven_flash_v2_5', 'eleven_turbo_v2_5', 'eleven_multilingual_v2', 'eleven_v3'];
@@ -47,7 +48,7 @@ function claudioVozLocal_() {
   var o = Object.assign({}, CLAUDIO_VOZ_LOCAL_), p = PropertiesService.getScriptProperties().getProperty('CLAUDIO_VOZ_LOCAL');
   if (p) { try { var j = JSON.parse(p); if (j && typeof j === 'object') Object.keys(o).forEach(function (k) { if (j[k] != null) o[k] = j[k]; }); } catch (e) { console.error('CLAUDIO_VOZ_LOCAL: ' + e); } }
   var n = function (x, a, b, d) { x = Number(x); return isNaN(x) ? d : Math.min(b, Math.max(a, x)); };
-  o.velocidad = n(o.velocidad, 0.3, 0.65, 0.5); o.tono = n(o.tono, 0.6, 1.4, 0.92); o.volumen = n(o.volumen, 0.2, 1, 1);
+  o.velocidad = n(o.velocidad, 0.3, 0.65, 0.5); o.tono = n(o.tono, 0.6, 1.4, 1); o.volumen = n(o.volumen, 0.2, 1, 1);
   o.idiomas = (Array.isArray(o.idiomas) ? o.idiomas : [String(o.idiomas || '')]).map(String).filter(function (x) { return /^es(-[A-Za-z0-9]+)?$/.test(x); }).slice(0, 5);
   if (!o.idiomas.length) o.idiomas = CLAUDIO_VOZ_LOCAL_.idiomas.slice();
   o.genero = o.genero === 'mujer' ? 'mujer' : 'hombre';

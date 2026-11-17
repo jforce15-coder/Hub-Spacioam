@@ -81,6 +81,8 @@ function claudioPanelArmar_(adm, spec) {
   var p = t ? claudioPanelTrabajo_(t, l) : claudioPanelLista_(l);
   p.tipo = 'claudio'; p.iniciales = 'C';
   if (!prs) p.aviso = 'GitHub no respondió: las revisiones pueden estar atrasadas.';
+  /* Las acciones que Claudio le dejó a Juan (claudioacciones.js): arriba del panel, con su botón. */
+  try { var acc = claudioAccPendientes_(adm.email).slice(-3).map(claudioAccVista_); if (acc.length) p.acciones = acc; } catch (e) { console.error('claudioPanel acciones: ' + e); }
   p.clave = 'claudio:' + p.vista + (t ? ':' + t.id : '');
   /* El mismo contenido, el mismo id (la app no lo vuelve a armar); si algo cambió, otro id y se reemplaza con un fundido. */
   p.id = 'cp' + claudioPanelHuella_(JSON.stringify(p));

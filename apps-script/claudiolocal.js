@@ -187,8 +187,11 @@ function claudioLocalPedidoListo_(usos, salidas) {
   dichos = dichos.filter(function (d, i) { return dichos.indexOf(d) === i; });
   return dichos.join(' ') + (completo ? ' ' + CLAUDIO_LOCAL_PEDIDO_ : '');
 }
-function claudioLocalTurno_(adm, conv, system, msgs) {
-  var t0 = Date.now(), tools = claudioLocalHerramientas_(), corridas = [], volver = false, dicho = '', msIa = 0;
+/* o.texto: el hilo de Claudio por escrito (claudioacciones.js): sin volver_con_alma, sin cortar la respuesta a lo que cabe
+   en voz y sin repetir en el chat lo que el hilo ya guarda (sin_chat). */
+function claudioLocalTurno_(adm, conv, system, msgs, o) {
+  o = o || {};
+  var t0 = Date.now(), tools = claudioLocalHerramientas_().filter(function (h) { return !o.texto || h.name !== 'volver_con_alma'; }), corridas = [], volver = false, dicho = '', msIa = 0;
   for (var v = 0; v < CLAUDIO_LOCAL_VUELTAS_; v++) {
     if (v && Date.now() - t0 > CLAUDIO_LOCAL_MS_) break;
     var ti = Date.now(), j = claudeTools_(rapidoModelo_(), system, msgs, tools, 900, { sinTemperatura: true, esfuerzo: 'low', funcion: 'Claudio · voz local' });
@@ -204,7 +207,7 @@ function claudioLocalTurno_(adm, conv, system, msgs) {
       var out;
       if (u.name === 'volver_con_alma') { volver = true; out = { ok: true }; }
       else if (CLAUDIO_HERR_.indexOf(u.name) >= 0) {
-        out = claudioEjecutar_(adm, u.name, Object.assign({}, u.input || {}, { conv_id: conv }));
+        out = claudioEjecutar_(adm, u.name, Object.assign({}, u.input || {}, { conv_id: conv }, o.texto ? { sin_chat: true } : {}));
         corridas.push(u.name);
       } else out = { ok: false, error: 'herramienta desconocida' };
       salidas.push(out);
@@ -215,7 +218,7 @@ function claudioLocalTurno_(adm, conv, system, msgs) {
     var listo = claudioLocalPedidoListo_(usos, salidas);
     if (listo) { dicho = listo; break; }   // el pedido salió: la frase ya se sabe, sin otra vuelta de la IA
   }
-  var hablar = claudioLocalHablar_(dicho);
+  var hablar = o.texto ? String(dicho || '').replace(/\[\[[^\]]*\]\]/g, '').trim().slice(0, 2400) : claudioLocalHablar_(dicho);
   if (volver && !hablar) hablar = 'Listo, te paso con Alma.';
   return { ok: true, hablar: hablar || CLAUDIO_LOCAL_REPITE_, volver: volver, herramientas: corridas, ms: Date.now() - t0, ms_ia: msIa };
 }

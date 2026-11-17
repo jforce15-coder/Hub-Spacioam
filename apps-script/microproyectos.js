@@ -166,7 +166,10 @@ function microComoSeguir_(m, segunda, prAnterior) {
   return 'Es un microproyecto nuevo: trabájalo en una rama nueva con su PR.';
 }
 var MICRO_RESPONDER_ = 'Al responder a Alma (respuesta_url) manda también «rama» (el nombre de tu rama) y el enlace del PR en «enlaces»: ' +
-  'así el siguiente ajuste sigue en el mismo PR. Si preguntas algo, pon las opciones como viñetas «• » debajo de la pregunta (2 a 5, cortas): Juan las toca como botones.';
+  'así el siguiente ajuste sigue en el mismo PR. Si preguntas algo, pon las opciones como viñetas «• » debajo de la pregunta (2 a 5, cortas): Juan las toca como botones. ' +
+  'Si Juan tiene que hacer algo él (abrir una página, copiar o pegar algo, tocar Permitir, ir a una pantalla de la app, elegir entre diseños con capturas, revisar una captura), mándalo en «acciones» (hasta 5, en orden): ' +
+  '[{"tipo":"abrir_enlace|copiar_texto|pegar_en|elegir_opcion|aprobar|ver_captura|ir_a_pantalla","titulo":"corto, en imperativo","detalle":"una frase","enlace":"https://…","texto":"lo que copia","opciones":[{"t":"A · …","imagen":"https://…"}],"pantalla":"llaves|ajustes|biblioteca|conexiones|…","espera":true}]. ' +
+  'Le salen como tarjetas con botón en el hilo de Claudio; con «espera» (o si es elegir_opcion), cuando toca «Hecho» te llega como ajuste y sigues. Nunca le pidas una llave ni una contraseña en el chat: usa pegar_en con «destino»: «llaves» (Ajustes → Llaves) o «github_secretos».';
 function microParaClaude_(m, o) {
   return { id: m.id, nombre: m.nombre, parte: m.parte, ajuste: !!o.ajuste, segunda_parte: !!o.segunda, issue: m.issue, pr: m.pr, rama: m.rama,
     sesion_anterior: o.sesionAnterior || '', como_seguir: o.como, como_responder: MICRO_RESPONDER_,

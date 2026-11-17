@@ -308,6 +308,9 @@ jobs:
         # 16-nov: Juan quiere que Claudio sea local para no gastar créditos de ElevenLabs en sesiones largas de trabajo (#629):
         # el dictado y la voz del iPhone en la app, y aquí el turno con el modelo rápido.
         run: node .github/claudio-local.js apps-script
+      - name: Acciones de Claudio y su hilo, solo con lo suyo, nunca una llave en el chat, Hecho hace seguir a Claudio y aprobar une de verdad, solo el principal (dobles)
+        # 17-nov: Juan quiere hablar con Claudio como con Claude Code: respuestas, propuestas y acciones concretas como tarjetas.
+        run: node .github/claudio-acciones.js apps-script
       - name: Alma no repite la misma muletilla ni la misma frase seguidas («Listo, entregado») y el resto del texto queda igual (dobles)
         # 14-nov: Juan pidió que Alma varíe el fraseo y no caiga en bucles como «Listo, entregado» (pedido pc1794698090317).
         run: node .github/variar-frases.js apps-script

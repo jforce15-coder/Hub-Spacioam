@@ -355,7 +355,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si se mostró, lo resumes en una frase."
+    "linea": "En la app, pone en pantalla lo que tiene muchos datos; si se mostró, lo resumes en una frase."
    },
    "nivel_weebo": {
     "canales": [
@@ -379,7 +379,13 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Solo si la ficha dice «PUEDES PASARLO CON CLAUDIO» y Juan pide hablar con Claudio o con desarrollo: di la frase de la herramienta y pásalo, sin preguntar más."
+    "linea": "Si la ficha lo permite y Juan pide a Claudio: di su frase y pásalo."
+   },
+   "pasar_a_maricarmen": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Si la ficha lo permite: pásalo con Maricarmen aquí mismo; nunca WhatsApp."
    },
    "leer_pagina": {
     "canales": [

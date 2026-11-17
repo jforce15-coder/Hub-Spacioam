@@ -123,10 +123,16 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(ficha('juan@x', false).indexOf(P) < 0, 'una app vieja que no sabe cambiar de agente: sin permiso (Alma no promete lo que la app no hace)');
   const voz = leer('voz.js');
   ok((voz.match(/claudioPermiso_\(/g) || []).length === 1 && /if \(claudio\) \{ var pc = claudioPermiso_\(adm\)/.test(voz), 'el permiso solo lo pone vozWebInicio_ (la app con sesión), nunca la llamada por teléfono');
-  ok(/case 'vozWeb': return json_\(vozWebInicio_\(ses, !!body\.ligero, body\.app === 'alma', !!body\.claudio, String\(body\.vuelta_claudio \|\| ''\)\.slice\(0, 80\)\)\)/.test(leer('Código.js')), 'la app pide el permiso con «claudio» en vozWeb (y al volver, la conversación de Claudio)');
+  ok(/case 'vozWeb': return json_\(vozWebInicio_\(ses, !!body\.ligero, body\.app === 'alma', !!body\.claudio, String\(body\.vuelta_claudio \|\| ''\)\.slice\(0, 80\), !!body\.maricarmen\)\)/.test(leer('Código.js')), 'la app pide el permiso con «claudio» en vozWeb (y al volver, la conversación de Claudio)');
   const h = R("vozDefHerramientas_('B')").filter(t => t.name === 'hablar_con_claudio')[0];
   ok(h && h.type === 'client' && h.pre_tool_speech === 'off' && h.expects_response === false, 'hablar_con_claudio es de la app (cliente), sin frase que agregue ElevenLabs y sin esperar respuesta');
-  ok(h && h.description.indexOf('PUEDES PASARLO CON CLAUDIO') >= 0 && h.description.indexOf(R('CLAUDIO_FRASE_')) >= 0 && R('CLAUDIO_FRASE_') === 'Te lo paso.' && /no confirmes ni anuncies/.test(h.description) && /o nada/.test(h.description), 'se usa solo con el permiso de la ficha y sin ceremonia: como mucho «Te lo paso.» (Juan, 16-nov-2026)'); }
+  ok(h && h.description.indexOf('PUEDES PASARLO CON CLAUDIO') >= 0 && h.description.indexOf(R('CLAUDIO_FRASE_')) >= 0 && R('CLAUDIO_FRASE_') === 'Te lo paso.' && /no confirmes ni anuncies/.test(h.description) && /o nada/.test(h.description), 'se usa solo con el permiso de la ficha y sin ceremonia: como mucho «Te lo paso.» (Juan, 16-nov-2026)');
+  /* Pasar con Maricarmen (#707): el mismo camino, dentro de la llamada de la app; nunca WhatsApp ni una llamada aparte. */
+  const fm = (email, m) => { ctx.SES_ = { email }; return R('vozWebInicio_(SES_, true, true, false, "", ' + m + ')').dynamic_variables.quien_llama; };
+  const PM = R('MARICARMEN_PERMISO_');
+  ok(fm('juan@x', true).indexOf(PM) >= 0 && fm('ana@x', true).indexOf(PM) < 0 && fm('juan@x', false).indexOf(PM) < 0, 'Maricarmen: solo el principal y solo en una app que sabe pasarla (la pide con «maricarmen»)');
+  const hm = R("vozDefHerramientas_('B')").filter(t => t.name === 'pasar_a_maricarmen')[0];
+  ok(hm && hm.type === 'client' && hm.pre_tool_speech === 'off' && hm.expects_response === false && hm.description.indexOf('PUEDES PASARLO CON MARICARMEN') >= 0 && /nunca le ofrezcas WhatsApp/.test(hm.description) && /nunca le ofrezcas WhatsApp/.test(PM), 'pasar_a_maricarmen: de la app, sin anunciar y sin ofrecer WhatsApp ni llamada aparte (Juan, 17-nov-2026)'); }
 
 /* 4. Las herramientas de Claudio: solo el principal, por la firma de la conversación de Claudio */
 { mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' }; cache = {};

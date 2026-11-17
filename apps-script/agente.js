@@ -192,6 +192,8 @@ function agHerramientas_() {
     /* Reporte del mes (reportemes.js): lo lee de la hoja de Mi; Alma repite sus cifras y nunca las calcula. */
     T('reporte_mes', 'Reporte del mes de una propiedad como lo cierra Mi (noches, estadías, ocupación en %, ADR, ingresos, fee, gastos, depósito en USD, mes anterior). Para ocupación, ingresos o depósito: repite sus cifras tal cual; si el mes no está, no lo calcules. Cada estadía cuenta en su mes de entrada. Solo administrador principal.',
       { propiedad: s('Como la digan («Rue 301», «z4 rue»)'), mes: s('AAAA-MM, «octubre», «octubre 2026» o «el mes pasado»; vacío = el último cerrado'), meses: { type: 'integer', description: 'Opcional: cuántos meses hacia atrás, para comparar' } }, ['propiedad']),
+    T('precio_por_noche', 'Por noche: desglose de una reserva de Airbnb del último mes ÷ noches y largo plazo de Hola. Solo principal.',
+      { propiedad: s('«Mónaco», «Z7»…') }, ['propiedad']),
     T('grow_proyectos', 'Grow (captación y montaje de apartamentos nuevos): busca proyectos por edificio, apartamento, zona o dueño, o lista los de una etapa. Sin filtros da el conteo por etapa. Devuelve id, etapa, dueño y visita.',
       { buscar: s('Opcional: edificio, apartamento, zona o nombre del dueño'), etapa: { type: 'string', enum: GROW_ETAPAS_, description: 'Opcional: solo los de esta etapa' } }),
     T('grow_crear_proyecto', 'Grow: da de alta un apartamento nuevo (prospecto) con su dueño. Si el dueño trae correo, queda con acceso inmediato a Grow. Si ya existe ese edificio + apartamento, devuelve el existente.',
@@ -742,6 +744,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rE;
     }
     case 'pagos_epi': { var rPg = pagosEpi_(adm, inp); if (rPg && rPg.ok) ctx.hechas.push({ tipo: 'consulta', resumen: 'Pagos de Epi · ' + rPg.persona + ': pendiente ' + rPg.pendiente_texto }); return rPg; }   // pagosepi.js
+    case 'precio_por_noche': return precioPorNoche_(adm, inp);   // precionoche.js
     case 'reporte_mes': { var rMe = reporteMes_(adm, inp); if (rMe && rMe.ok) tvCandidata_('datos', function () { return tdMes_(rMe); }); return rMe; }   // reportemes.js; el mes en pantalla (tablero.js)
     case 'anillo': return anilloHerramienta_(adm);   // anillo.js: la Lectura del anillo que mandó la app
     case 'ficha_socio': {   // fichasocio.js (#522); al verla en una llamada, el tablero del socio (tarjeta.js, #508 Fase 2)

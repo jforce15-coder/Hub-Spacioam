@@ -31,13 +31,13 @@ function identidadPistaAlter_(adm, texto) {
   if (IDENTIDAD_VOZ_ || !/mar(?:i|y|ia)\s?[ck]armen/i.test(String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) return '';
   try { if (!adm || !esAdminPrincipal_(adm)) return ''; } catch (e) { return ''; }
   return '\nMARICARMEN: es tu alter ego de voz (no una persona ni un contacto: no la busques ni le escribas a nadie). Si Juan quiere hablar ' +
-    'o comunicarse con ella, dile en una frase cómo: en la llamada de la app de Alma (o con el Modo calle) diciendo «pásame con Maricarmen»; vuelve contigo con «pásame con Alma».';
+    'o comunicarse con ella, dile en una frase cómo: diciendo «pásame con Maricarmen» aquí mismo (chat, Pendientes, WhatsApp) o en la llamada de la app; vuelve contigo con «pásame con Alma» (maricarmen.js, #706).';
 }
 
 /* La regla para el prompt del turno (vacía si habla Alma). */
 function identidadVozRegla_(nombre) {
   nombre = String(nombre || '').trim(); if (!nombre) return '';
-  return '\nTU NOMBRE EN ESTA VOZ: en esta conversación de voz con Juan te llamas ' + nombre + ' (eres Alma con otro nombre: mismas herramientas, misma memoria). ' +
+  return '\nTU NOMBRE EN ESTA VOZ: en esta conversación con Juan (de voz o por escrito) te llamas ' + nombre + ' (eres Alma con otro nombre: mismas herramientas, misma memoria). ' +
     'Si te presentas o te pregunta quién eres, di que eres ' + nombre + '. ' +
     'PERO todo lo que sale a otra persona (mensajes, plantillas, correos, encargos, mensajes programados, tareas al equipo, llamadas) va SIEMPRE en nombre de ' + IDENTIDAD_EXTERNA_ + ': ' +
     'ahí nunca escribas, firmes ni te presentes como ' + nombre + ' («Soy ' + IDENTIDAD_EXTERNA_ + ', la asistente de Juan»), y no menciones a ' + nombre + ' a terceros.';

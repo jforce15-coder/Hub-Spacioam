@@ -123,4 +123,23 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/id="i-comp"/.test(h) && /hub\("vivoLeer"/.test(h) && /AlmaTarjeta\.bento/.test(h), '6 · inicio.html: el interruptor «Modo compañero» y el espejo');
   ok(/id="b-comp"[^>]*aria-pressed/.test(h) && /bc\.onclick = function \(\) \{ poner\(!C\.on\); \}/.test(h) && /\$\("b-comp"\)\.classList\.add\("on"\)/.test(h), '6 · inicio.html: el botón de arriba, junto a Pendientes y Notificaciones, enciende y apaga lo mismo');
 }
+/* 8 · retransmisión al pasar a Claudio (pedido pc1794949124807) */
+{ const { X, reloj, JUAN } = caja();
+  const P = { tipo: 'claudio', vista: 'lista', id: 'cp1', titulo: 'Trabajando en 1', trabajos: [] };
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone', subs: [{ de: 'yo', t: 'Pásame con Claudio' }] });
+  reloj.ms += 5000;
+  X.vivoFin_(JUAN, 'conv-1');   // ElevenLabs avisa que la conversación de Alma se cerró (pasó a Claudio)
+  ok(X.vivoLeerApi_(J, {}).en_llamada, '8 · pasar a Claudio no termina la llamada en el compañero');
+  X.vivoPanel_(JUAN, 'conv_claudio1', P);
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [{ de: 'alma', t: 'Van tres trabajos.' }] });
+  const r = X.vivoLeerApi_(J, {});
+  ok(r.tarjeta && r.tarjeta.id === 'cp1' && r.subs.length === 2, '8 · el panel y los subtítulos siguen juntos en la misma llamada');
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  reloj.ms += 3 * 60000;
+  X.vivoFin_(JUAN, 'conv-1');
+  ok(!X.vivoLeerApi_(J, {}).en_llamada, '8 · si la app se calló hace rato, el aviso al colgar sí la termina');
+  const cl = fs.readFileSync(path.join(DIR, 'claudio.js'), 'utf8'), h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/vivoMira_\(adm\.email\)\) vivoPanel_\(adm, b\.conv_id, claudioPanelArmar_\(adm, cand\)\)/.test(cl), '8 · con el iPad mirando, cada herramienta de Claudio le deja el panel (aunque el iPhone esté bloqueado)');
+  ok(/con Claudio/.test(h), '8 · inicio.html: arriba dice «con Claudio» mientras se ve su panel');
+}
 process.exit(fallo);

@@ -3383,6 +3383,7 @@ function hubApi_(body) {
       case 'anilloResumen': return json_(anilloResumenGuardar_(ses, body));               // app de iPhone: la Lectura del anillo { resumen } (lo último leído, con su hora; anillo.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio, String(body.vuelta_claudio || '').slice(0, 80)));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
+      case 'claudioLocal': return json_(claudioLocalApi_(ses, body));                       // Claudio local { conv_id, texto, historial }: un turno de Claudio sin ElevenLabs, solo el principal (claudiolocal.js)
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)

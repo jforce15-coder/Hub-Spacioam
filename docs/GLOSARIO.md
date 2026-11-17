@@ -8,6 +8,10 @@ algo, Alma no lo nombra ni lo anuncia: lo pide y dice el resultado («Listo, que
 «Claude» y «Claudio» por igual. En el código, las hojas, las etiquetas de los issues y los comentarios sigue siendo «Claude».
 Desde el 16-nov-2026 Claudio también es una **voz**: el agente del equipo de desarrollo con el que Juan habla en **Hablar con
 Claudio**. Solo existe con el administrador principal y en ese modo; con huéspedes, socios, equipo y externos, no.
+**Claudio local** (17-nov-2026): la misma conversación con Claudio sin pasar por ElevenLabs, para que las sesiones largas
+de trabajo no gasten créditos de voz. Lo oye el dictado del iPhone, contesta el Hub con su mismo prompt, su ficha y sus
+herramientas (acción `claudioLocal`) y habla una voz de hombre del iPhone. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
+agente de ElevenLabs y `CLAUDIO_VOZ_LOCAL` afina la voz. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
 Alma tampoco nombra a «la secretaria» (su herramienta) ni anuncia que la usa; si cita un resultado, «mi sistema dice…».
 
 **Sin repetir:** Alma no lee el pedido de vuelta, no pide confirmaciones que no hacen falta y no anuncia lo que va a hacer

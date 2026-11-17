@@ -243,6 +243,13 @@ function agOpFuera_(alc, herramienta, inp) {
     if (!alc.cierre && f > alc.hoy) return 'No propuesta: de día solo va lo de hoy (' + alc.hoy + '). Lo de mañana se revisa al cierre, de 7 a 8 PM.';
     if (alc.cierre && f !== alc.manana) return 'No propuesta: en la revisión de cierre solo va lo de mañana (' + alc.manana + ').';
   }
+  /* Un mensaje al equipo por una tarea vencida (casi siempre ya se hizo y nadie la cerró, 17-nov): no; como mucho cerrar_tarea. */
+  if (/^(escribir_a_equipo|programar_mensaje)$/.test(herramienta)) {
+    var tv = [inp.texto, inp.mensaje].map(function (x) { return String(x || ''); }).join(' ');
+    if (/\b(vencid[ao]s?|atrasad[ao]s?|siguen? (abiertas?|pendientes?)|qued[óo] pendiente|no se ha (hecho|cerrado))\b/i.test(tv) ||
+      (/\btareas?\b/i.test(tv) && /\b(pendientes?|abiertas?|recordatorio|recordar(te|les)?|sin cerrar)\b/i.test(tv)))
+      return 'No propuesta: no se le escribe al equipo por una tarea vencida (casi siempre ya se hizo y nadie la cerró). Si sigue abierta, propón cerrar_tarea o nómbrala en tu informe.';
+  }
   if (!alc.cierre && /^(escribir_a_equipo|programar_mensaje|crear_tarea)$/.test(herramienta)) {
     var t = String(inp.texto || '').replace(/\b(la|esta|cada|por la|en la)\s+mañana/gi, '');
     if (/mañana/i.test(t) || t.indexOf(alc.manana) >= 0) return 'No propuesta: de día no se habla de las limpiezas de mañana; eso va en la revisión de cierre (7 a 8 PM).';

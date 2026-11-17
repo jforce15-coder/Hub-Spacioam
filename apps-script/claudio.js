@@ -440,7 +440,7 @@ function claudioPedido_(adm, b) {
     micro = m.id;
   }
   literalLlamadaPoner_(b.conv_id, b.palabras_de_juan, Date.now());   // texto es lo que entendió la voz; lo que dijo Juan va tal cual (literal.js)
-  var r = claudeMandarYa_(adm, texto, { nivel: nivel, micro: micro });
+  var r = claudeMandarYa_(adm, texto, { nivel: nivel, micro: micro, nuevoJuan: micro === 'nuevo' });
   try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
   var titulo = temaTitulo_(texto);
   /* «Quedó pedido» una sola vez por llamada (Juan, 17-nov-2026: «lo repite hasta ocho veces; con una sola vez basta»):

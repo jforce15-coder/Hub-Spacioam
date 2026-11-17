@@ -98,11 +98,14 @@ function escalarPedir_(adm, x) {
   if (ya) return { ok: true, repetido: true, texto: ESCALAR_FRASE_, micro: ya.micro, claude: { ok: true, micro: ya.micro } };
   var json = escalarJson_(adm, Object.assign({}, x, { canal: canal }));
   var r = paraClaudeCrear_(adm, { titulo: escalarTitulo_(x.tarea || juan), app: 'Otro', tipo: 'mejora', prioridad: 'normal', nivel: 'complejo', sinChat: x.sinChat !== false,
-    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: (json.contexto || {}).palabras_de_juan || juan });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: (json.contexto || {}).palabras_de_juan || juan, unificar: true, canal: canal });   // si ya hay uno abierto de lo mismo, va ahí (unificar.js)
   if (!r || !r.ok) return { ok: false, texto: 'Eso todavía no lo puedo hacer yo sola, y el pedido no salió: ' + ((r && r.error) || 'error') + '.', claude: { ok: false } };
   var mi = r.micro || {};
-  /* Solo el pedido del principal se une solo (Juan, 12-nov-2026); el de otra persona espera su «une». */
-  if (esAdminPrincipal_(adm) && mi.id) escalarGuardar_({ id: 'esc' + Date.now(), micro: mi.id, nombre: mi.nombre || escalarTitulo_(juan), email: adm.email, canal: canal,
+  /* Ya estaba pedido y Claude sigue en eso (unificar.js): sin otra entrega. */
+  if (r.repetido) return { ok: true, repetido: true, texto: 'Eso ya está pedido y sigue en trabajo; en cuanto esté, te lo entrego aquí con el enlace del cambio.', micro: mi.id || '', claude: { ok: true, micro: mi.id || '' } };
+  /* Solo el pedido del principal se une solo (Juan, 12-nov-2026); el de otra persona espera su «une». Un pedido que se
+     sumó a un microproyecto con su entrega ya guardada no guarda otra (unificar.js). */
+  if (esAdminPrincipal_(adm) && mi.id && !escalarDeMicro_(mi.id)) escalarGuardar_({ id: 'esc' + Date.now(), micro: mi.id, nombre: mi.nombre || escalarTitulo_(juan), email: adm.email, canal: canal,
     pedido_por: 'principal', para_entregar: juan.slice(0, 700), clave: clave, t: Date.now(), estado: 'pedido', prs: [], unidos: [] });
   return { ok: true, texto: r.claude ? ESCALAR_FRASE_ : r.nota, micro: mi.id || '', claude: { ok: true, id: r.id || '', directo: !!r.claude, issue: r.issue || '', micro: mi.id || '', nivel: r.nivel || '' } };
 }

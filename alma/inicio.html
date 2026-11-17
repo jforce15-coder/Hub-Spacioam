@@ -942,6 +942,10 @@
     <div class="fila" id="p-alt-f" hidden><span class="et">Correo alterno</span><span class="va" id="p-alt"></span></div>
     <div class="fila" id="p-tel-f" hidden><span class="et">Teléfono</span><span class="va" id="p-tel"></span></div>
   </div>
+  <div class="grupo" id="g-tarjetas" hidden>
+    <div class="fila boton" id="b-tarjetas" role="button" tabindex="0">Tarjetas de clubes</div>
+    <p class="nota-g">Las del supermercado y de cliente frecuente, guardadas solo en este iPhone. Dile a Alma «enséñame mi tarjeta de…» y la pone en pantalla para la caja.</p>
+  </div>
   <div class="grupo" id="g-face" hidden>
     <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
   </div>
@@ -1054,7 +1058,7 @@
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-16-archivos"></script>
-<script src="../js/alma-voz.js?v=2026-11-16-gif"></script>
+<script src="../js/alma-voz.js?v=2026-11-17-tarjetas"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-16-una-roca"></script>
 <script src="../js/alma-gif.js?v=2026-11-16a"></script>
@@ -1629,7 +1633,8 @@ window.SAPulso = {
       try { if (window.AlmaGif) AlmaGif.evento(e); } catch (x) {}   // el GIF de la broma: un cuadro del tablero o el chat (js/alma-gif.js)
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
-        $("b-dispositivos").hidden = !e.dispositivos;   // solo una app que sabe abrir la pantalla Dispositivos (Dispositivos.swift)
+        $("b-dispositivos").hidden = !e.dispositivos;
+        $("g-tarjetas").hidden = !e.tarjetas;   // solo una app que sabe abrir Tarjetas de clubes (alma-app TarjetasClub.swift)   // solo una app que sabe abrir la pantalla Dispositivos (Dispositivos.swift)
         $("b-anillo-ble").hidden = $("n-anillo-ble").hidden = !e.diagBle;   // solo una app que sabe abrir el diagnóstico (DiagnosticoAnillo.swift)
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
         /* Diagnóstico: qué pasó la última vez (sirve para ver dónde se queda con el teléfono bloqueado) */
@@ -2024,6 +2029,8 @@ window.SAPulso = {
   $("b-anillo-ble").onclick = function () { vozConfig(); nativa({ accion: "anilloBle" }); };
   /* Dispositivos (Juan, 16-nov-2026): el anillo y los lentes, cada uno con su batería y sus ajustes; pantalla nativa. */
   $("b-dispositivos").onclick = function () { vozConfig(); nativa({ accion: "dispositivos" }); };
+  /* Tarjetas de clubes (Juan, 17-nov-2026): se guardan y se muestran en la app (pantalla nativa); nada pasa por el Hub. */
+  $("b-tarjetas").onclick = function () { nativa({ accion: "tarjetas" }); };
   if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
 
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */

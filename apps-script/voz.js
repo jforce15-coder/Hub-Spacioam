@@ -571,12 +571,14 @@ function vozMostrarGif_() {
    que, al pedirlas por voz, se muestren en pantalla para enseñárselas al dependiente». Herramienta de CLIENTE: las tarjetas
    viven solo en el iPhone (llavero; alma-app TarjetasClub.swift) y la app la contesta enseguida: la pone en pantalla con el
    brillo al máximo, o dice cuáles tiene, o dónde agregarlas. El número nunca llega al Hub ni a la conversación. Sirve a
-   cualquier persona con la app (cada quien ve las suyas). En las web apps contesta js/alma-voz.js: solo en la app. */
+   cualquier persona con la app (cada quien ve las suyas). En las web apps contesta js/alma-voz.js: solo en la app.
+   Ajuste (Juan, 17-nov-2026): también boletos de avión, tren, conciertos y eventos (con su fecha); la app los busca por
+   nombre o por tipo («mi boleto de avión» → el vuelo más próximo). El nombre de la herramienta no cambia. */
 function vozMostrarTarjetaClub_() {
   return { type: 'client', name: 'mostrar_tarjeta_club', expects_response: true, response_timeout_secs: 5,
-    description: 'Pone en la pantalla del iPhone una tarjeta de club de compra o de cliente frecuente (supermercado, farmacia, tienda) para enseñarla en la caja, cuando la persona la pide («enséñame mi tarjeta de La Torre», «la del súper»). Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». Llámala sin anunciarla. Di en una frase solo lo que responda; nunca leas el número en voz alta. Si responde que hay varias o que no está, pregunta cuál o di cuáles tiene, en una frase.',
+    description: 'Pone en la pantalla del iPhone una tarjeta de club de compra o de cliente frecuente (supermercado, farmacia, tienda) o un boleto (avión, tren, concierto, evento) para enseñarlo en la caja, el aeropuerto o la entrada, cuando la persona lo pide («enséñame mi tarjeta de La Torre», «mi boleto de avión», «la entrada del concierto»). Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». Llámala sin anunciarla. Di en una frase solo lo que responda; nunca leas el número en voz alta. Si responde que hay varias o que no está, pregunta cuál o di cuáles tiene, en una frase.',
     parameters: { type: 'object', required: ['club'], properties: {
-      club: { type: 'string', description: 'El nombre del club o la tienda como lo dijo (p. ej. «La Torre», «PriceSmart»); vacío si no dijo cuál.' } } },
+      club: { type: 'string', description: 'Lo que pidió, como lo dijo: el nombre del club o del boleto («La Torre», «Vuelo a Madrid»), o el tipo si no dijo nombre («boleto de avión», «concierto»); vacío si no dijo cuál.' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 /* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):

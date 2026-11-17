@@ -35,6 +35,7 @@ Juan no espera para unir. **Antes del PR** solo lo que tarda segundos: `node --c
 y un repaso propio contra el pedido y [ESTANDARES.md](ESTANDARES.md). **Después de unir**, atrás y sin que Juan espere:
 los bots de prueba prueban la versión publicada y, si encuentran algo, abren el aviso y Claude manda el arreglo en un PR
 corto. Nada lento (bots, navegadores, subagentes revisores) va como requisito antes de unir.
+Antes de subir, corre `node .github/revisar-local.js` (~6 s; dice «OK» o solo lo que falla); el hook lo corre solo en cada `git push`.
 
 ## 7. El PR es la imagen más chica posible, con prueba
 Usa la plantilla: Resumen corto · **Evidencia antes y después** (capturas, simulación) ·

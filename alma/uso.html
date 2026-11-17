@@ -31,9 +31,9 @@
   .bateria .carga b { font: 300 34px/1 Montserrat, sans-serif; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: -.02em; white-space: nowrap; }
   .bateria .carga.poca { justify-content: flex-start; } .bateria .carga.poca b { color: var(--tinta); transform: translateX(calc(100% + 16px)); }
   .bateria .polo { width: 10px; height: 34px; border-radius: 0 6px 6px 0; background: var(--papel); box-shadow: inset 0 0 0 1px var(--linea); }
-  .bateria.fondo .carga { background: var(--ambar-c); } .bateria.critico .carga { background: var(--rojo); }
+  .bateria.fondo .carga { background: var(--ambar-c); } .bateria.critico .carga, .bateria.agotado .carga { background: var(--rojo); }
   .estado { display: inline-block; font: 600 10px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; padding: 6px 11px; border-radius: 999px; background: #E6F2EA; color: var(--verde); }
-  .estado.fondo { background: #FBF3E2; color: var(--ambar); } .estado.critico { background: #FBEAE6; color: var(--rojo); }
+  .estado.fondo { background: #FBF3E2; color: var(--ambar); } .estado.critico, .estado.agotado { background: #FBEAE6; color: var(--rojo); }
   .lin { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font: 500 12.5px Montserrat, sans-serif; color: var(--suave); font-variant-numeric: tabular-nums; }
   .sec { margin: 44px 0 16px; display: flex; align-items: baseline; gap: 12px; border-top: 1px solid var(--linea); padding-top: 18px; flex-wrap: wrap; }
   .sec h2 { margin: 0; font: 400 28px/1.1 Valky, Georgia, serif; flex: 1; min-width: 0; }
@@ -55,7 +55,7 @@
   .niveles { display: grid; gap: 10px; }
   .nivel { display: grid; grid-template-columns: 14px 1fr; gap: 4px 12px; align-items: baseline; padding: 14px 16px; border-radius: 18px; background: transparent; }
   .nivel i { width: 12px; height: 12px; border-radius: 50%; background: var(--verde-c); align-self: center; }
-  .nivel.fondo i { background: var(--ambar-c); } .nivel.critico i { background: var(--rojo); }
+  .nivel.fondo i { background: var(--ambar-c); } .nivel.critico i { background: var(--rojo); } .nivel.agotado i { background: #8E2A1C; }
   .nivel b { font: 600 13.5px Montserrat, sans-serif; } .nivel b small { font-weight: 500; color: var(--suave); margin-left: 6px; }
   .nivel p { grid-column: 2; margin: 0; font: 500 13px/1.5 Montserrat, sans-serif; color: #5A5856; }
   .nivel.ahora { background: var(--papel); box-shadow: 0 18px 40px -28px rgba(70,50,40,.4); }
@@ -93,7 +93,7 @@
   var $ = function (id) { return document.getElementById(id); };
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
   var es = new Intl.NumberFormat("es-ES"), usd = function (x) { return "US$ " + (x >= 10 ? Math.round(x) : (Math.round((x || 0) * 100) / 100).toFixed(2)); };
-  var NIVEL = { verde: "Bien", fondo: "Riesgo", critico: "Crítico" };
+  var NIVEL = { verde: "Bien", fondo: "Riesgo", critico: "Crítico", agotado: "Agotado" };
   var R = null, vista = "hoy", CU = null;
   function pedir(accion) {
     if (window.ALMA_USO) return window.ALMA_USO(accion || "uso");   // para probar la página con datos de ejemplo
@@ -166,6 +166,7 @@
       f.appendChild(el("i")); f.appendChild(t); f.appendChild(el("p", "", n.texto)); nv.appendChild(f);
     });
     C.appendChild(nv);
+    if (R.agotado && R.agotado.ts) C.appendChild(el("p", "nota", "La última vez que Google cortó: " + new Date(R.agotado.ts).toLocaleDateString("es", { day: "numeric", month: "short" }) + " a las " + (R.agotado.hora || "") + ", con " + (R.agotado.contado || 0) + " llamadas contadas. Límite que usa la batería: " + (H.limite || "") + "."));
     C.appendChild(el("p", "nota", (R.nunca || "") + (R.pausas === false ? " Las pausas están apagadas (CUPO_PAUSAR = 0): solo se cuenta." : "") + " Te aviso cuando cambia el nivel y si a este ritmo el día pasa del 80 %."));
     C.appendChild(el("p", "nota", "Actualizado: " + new Date(R.actualizado || Date.now()).toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) + "."));
   }

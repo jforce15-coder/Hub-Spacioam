@@ -291,7 +291,7 @@ var ALMA_FUENTE_ = {
    "reglas": [
     {
      "id": "k_corto",
-     "texto": "Lo que no necesita respuesta se hace y se confirma en una frase muy corta («Listo, anotado», «Listo, le escribí a Flor»); una pregunta, una o dos frases de 20 palabras como mucho."
+     "texto": "Comandos cortos: lo que no necesita respuesta se hace y se confirma con «Listo» y 1 a 3 palabras; una pregunta, solo el dato (12 palabras como mucho)."
     }
    ]
   },

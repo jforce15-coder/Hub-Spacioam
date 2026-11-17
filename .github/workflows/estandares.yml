@@ -161,6 +161,10 @@ jobs:
         # se volvía un pedido de texto en vez de abrir la llamada con Claudio.
         run: node .github/calle-rapida.js apps-script
 
+      - name: Modo calle con comandos cortos («Listo» y 1 a 4 palabras, solo el dato en 12 palabras como mucho)
+        # 17-nov: Juan pidió que en Modo calle Alma conteste como comando corto («listo Llorens»).
+        run: node .github/calle-comandos.js apps-script
+
       - name: Notificaciones humanas con sus datos y sin datos personales, y la voz de Alma lista antes de que la app la pida (dobles)
         # 13-nov: las notificaciones sonaban a sistema («Hay una pregunta sobre…») y a veces salían con la voz del iPhone porque
         # el audio se armaba en la misma petición y la app dejaba de esperar a los 8-12 s (#509 T1 y T2).

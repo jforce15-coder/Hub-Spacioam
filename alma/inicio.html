@@ -1028,6 +1028,7 @@
     <div class="fila"><a href="conexiones.html" id="p-conexiones">Conexiones</a><span class="va">›</span></div>
     <div class="fila" id="p-uso-f" hidden><a href="uso.html" id="p-uso">Uso</a><span class="va">›</span></div>
     <div class="fila" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio">Lo que Alma aprendió</a><span class="va">›</span></div>
+    <div class="fila" id="p-biblioteca-f" hidden><a href="biblioteca.html" id="p-biblioteca">Biblioteca de Claudio</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
   </div>
   <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
@@ -1520,6 +1521,7 @@ window.SAPulso = {
     /* Uso (cupo de Google e IA, alma/uso.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
     $("p-uso-f").hidden = $("p-health-f").hidden;
     $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
+    $("p-biblioteca-f").hidden = $("p-health-f").hidden;   // skills y documentos para Claudio (alma/biblioteca.html): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "atajos", que: "estado" }); avisosReloj(true); }

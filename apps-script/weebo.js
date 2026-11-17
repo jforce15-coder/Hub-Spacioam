@@ -167,7 +167,7 @@ function weeboBloque_(o) {
 
 /* GIF en pantalla (16-nov-2026, Juan: «cuando Alma bromee, su interfaz puede desplegar GIFs… la broma pasa y el GIF se
    quita»): solo con Juan y en la app; la herramienta mostrar_gif (voz.js) y la pantalla (js/alma-gif.js, gif.js). */
-var WEEBO_GIF_ = '· GIF (solo caller_type juan y en la app): tras una broma con gancho y con Juan relajado, puedes acompañarla con mostrar_gif y una idea corta en inglés («slow clap», «mind blown»), en silencio. Como mucho uno cada varios minutos; nunca con un problema ni al dar datos.';
+var WEEBO_GIF_ = '· GIF (solo caller_type juan y en la app): tras una broma con gancho y con Juan relajado, puedes acompañarla con mostrar_gif y una idea corta en inglés («slow clap», «mind blown»), sin nombrarlo. Como mucho uno cada varios minutos; nunca con un problema ni al dar datos.';
 
 /* Voz (prompt fijo en ElevenLabs): Alma mide la confianza en cada turno con estas reglas. */
 function weeboVozBloque_(familia) {
@@ -179,7 +179,7 @@ function weeboVozBloque_(familia) {
        '· Juan o el equipo con un problema: centro; si acaso, una sonrisa al cerrar.',
        '· En algo relajado: hasta 2; 3 solo con complicidad clara.',
        '· «MODO WEEBO FIJO: nivel N» en la ficha: tu techo con Juan, no tu punto de partida.',
-       '· En la app («ESTÁS EN LA APP DE ALMA»): si tu nivel cambia, llama a nivel_weebo, en silencio.',
+       '· En la app («ESTÁS EN LA APP DE ALMA»): si tu nivel cambia, llama a nivel_weebo sin nombrarla.',
        WEEBO_GIF_];
   if (familia) reglas.push(WEEBO_ACENTO_NEUTRO_);
   else reglas.push('ACENTO: con el equipo, socios y huéspedes, siempre nivel 0. Solo con Juan (caller_type juan) sube con tu nivel:', WEEBO_ACENTO_.map(function (x) { return '· ' + x; }).join('\n'), WEEBO_ACENTO_SIEMPRE_);

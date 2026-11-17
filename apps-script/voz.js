@@ -551,7 +551,7 @@ function vozMostrarEnChat_() {
    cambia (weeboVozBloque_). La app lo muestra en el chip «✨ Weebo N» con ▲/▼; no espera respuesta ni dice nada antes. */
 function vozNivelWeebo_() {
   return { type: 'client', name: 'nivel_weebo', expects_response: false, response_timeout_secs: 1,
-    description: 'Avisa a la app de Alma en qué nivel de Modo Weebo vas (0 centro, 1 chispa, 2 suelta, 3 Weebo). Llámala en silencio al empezar y solo cuando tu nivel cambie, y solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». No digas nada antes ni después, y no esperes respuesta.',
+    description: 'Avisa a la app de Alma en qué nivel de Modo Weebo vas (0 centro, 1 chispa, 2 suelta, 3 Weebo). Llámala en silencio al empezar y solo cuando tu nivel cambie, y solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». No digas nada antes ni después (ni su nombre ni el nivel en voz alta), y no esperes respuesta.',
     parameters: { type: 'object', required: ['nivel'], properties: {
       nivel: { type: 'integer', description: 'Tu nivel de Modo Weebo ahora: 0, 1, 2 o 3.' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
@@ -562,7 +562,7 @@ function vozNivelWeebo_() {
    unos segundos en UN cuadro del tablero, o en el chat si no hay tablero. No espera respuesta: no hace hablar a Alma. */
 function vozMostrarGif_() {
   return { type: 'client', name: 'mostrar_gif', expects_response: false, response_timeout_secs: 1,
-    description: 'Muestra unos segundos un GIF que acompaña una broma que ya hiciste y que cayó en su contexto. Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA» y caller_type es juan; nunca con un problema, una queja o al dar datos. Como mucho uno cada varios minutos. Llámala en silencio: no la anuncies ni esperes respuesta.',
+    description: 'Muestra unos segundos un GIF que acompaña una broma que ya hiciste y que cayó en su contexto. Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA» y caller_type es juan; nunca con un problema, una queja o al dar datos. Como mucho uno cada varios minutos. Llámala en silencio: no la anuncies, no digas su nombre ni la idea en voz alta, y no esperes respuesta.',
     parameters: { type: 'object', required: ['idea'], properties: {
       idea: { type: 'string', description: 'Lo que el GIF expresa, en 1 a 4 palabras en inglés (p. ej. «slow clap», «mind blown», «I\'ll be back», «mic drop»).' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
@@ -1139,7 +1139,11 @@ function vozWebAdmin_(ses) {
   return adm && adm.tels && adm.tels.length ? adm : null;
 }
 /* Quita las notas de actuación del modelo de voz ([warm], [softly]…) de lo que se guarda o se muestra. */
-function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
+/* Lo que se dice o se guarda como dicho por Alma: sin notas de voz ([softly]…) ni nombres de herramientas.
+   Juan (16-nov-2026): «que Alma no lea en voz alta nivel_weebo ni otros comandos al ejecutarlos». Un nombre con
+   guion bajo (nivel_weebo, skip_turn, mostrar_gif(…)) nunca es español hablado: se quita (los correos no se tocan). */
+var VOZ_HERRAMIENTA_RX_ = /(^|[\s«"'(¿¡])[A-Za-z]+(?:_[A-Za-z0-9]+)+(?:\s*\([^)\n]{0,80}\))?(?=$|[\s,.;:!?…»"')])/g;
+function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(VOZ_HERRAMIENTA_RX_, '$1').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
 /* Ficha para la llamada desde la app: quién es, cómo tratarlo y lo último que habló con Alma por WhatsApp o el Hub,
    para que la voz sea la misma Alma que ya lo conoce y no la del protocolo de huéspedes. */
 function vozWebFicha_(adm, nom) {

@@ -567,7 +567,7 @@ function tvPendientes_(claves) {
     });
   } catch (e) { console.error('tvPendientes_ promesas: ' + e); }
   try {
-    var sn = JSON.parse(CacheService.getScriptCache().get('episnap') || 'null');
+    var sn = epiSnapCache_();   // la copia de Epi en trozos (episnap.js), sin ir a internet
     ((sn && sn.tareas) || []).forEach(function (t) {
       if (!t || t.hecha || !claves[calpClave_(t.prop)] || !tvTxt_(t.texto) || tvSecreto_('', t.texto)) return;
       out.push({ t: 'Tarea', v: tvSinTel_(tvTxt_(t.texto, 90)), d: [tvTxt_(t.quien, 20), vence(t.vence) ? 'vence ' + vence(t.vence) : ''].filter(Boolean).join(' · '), tono: '' });

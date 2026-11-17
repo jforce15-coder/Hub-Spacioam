@@ -47,7 +47,7 @@ function caja(o) {
     fecha_: (v) => String(v || '').slice(0, 10), canalPlat_: (p) => String(p || '')
   };
   vm.createContext(ctx);
-  ['calprops.js', 'tarjeta.js', 'fichasocio.js', 'snapshot.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx));
+  ['calprops.js', 'episnap.js', 'tarjeta.js', 'fichasocio.js', 'snapshot.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx));
   return { X: ctx, cache, ia };
 }
 const ids = (t) => (t.cuadros || []).map((c) => c.id);

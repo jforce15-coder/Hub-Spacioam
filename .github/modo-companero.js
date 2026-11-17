@@ -33,7 +33,7 @@ function caja() {
     AGENTE_CANAL_: 'llamada'
   };
   vm.createContext(ctx);
-  ['calprops.js', 'tarjeta.js', 'tablero.js', 'vivo.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx));
+  ['calprops.js', 'episnap.js', 'tarjeta.js', 'tablero.js', 'vivo.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx));
   return { X: ctx, cache, reloj, JUAN, ANA };
 }
 const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };

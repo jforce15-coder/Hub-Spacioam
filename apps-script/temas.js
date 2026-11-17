@@ -177,7 +177,7 @@ function temaCorto_(t) {
 function temaAptoEnTexto_(texto) {
   var nombres = [], c = CacheService.getScriptCache();
   try { (JSON.parse(c.get('socmi_setup') || '[]') || []).forEach(function (s) { if (s && s.propiedad) nombres.push(s.propiedad); }); } catch (e) {}
-  try { ((JSON.parse(c.get('episnap') || '{}') || {}).props || []).forEach(function (p) { var n = propNombre_(p); if (n) nombres.push(n); }); } catch (e) {}
+  try { ((epiSnapCache_() || {}).props || []).forEach(function (p) { var n = propNombre_(p); if (n) nombres.push(n); }); } catch (e) {}
   var h = []; try { h = socioPropsEnTexto_(texto, nombres); } catch (e) {}
   return h.length === 1 ? temaApto_(h[0]) : '';
 }

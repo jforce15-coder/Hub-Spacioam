@@ -40,6 +40,10 @@ jobs:
         # 16-nov-2026: Juan vio rocas distintas en Health y al probar el modo anillo, y pulsos que chocaban con las órbitas.
         run: node .github/una-roca.js .
 
+      - name: La copia de Epi se guarda en trozos y responde al instante sin reintentos (dobles)
+        # 17-nov-2026: Juan vio lentitud y «urlfetch/error interno» en las consultas de limpieza; la copia ya no cabía en la caché.
+        run: node .github/epi-copia.js apps-script
+
       - name: Snapshot estilo Jarvis del tablero, piezas, cupo de IA y nada privado (dobles)
         # 16-nov-2026: Juan pidió que el tablero sea un snapshot que se entienda de un vistazo, no cuadros con un número.
         run: node .github/snapshot.js apps-script

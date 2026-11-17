@@ -526,7 +526,8 @@ function vozDefHerramientas_(base) {
          («Déjame revisar…», «Dame un segundo…»). Las demás herramientas siguen en 'off'.
          execution_mode 'immediate': la herramienta arranca en cuanto el modelo la pide.
        · SE LE PUEDE INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto»): interruption_mode 'allow'.
-       · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta).
+       · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta). Solo por
+         teléfono y WhatsApp: la app y la web usan las gemelas sin sonido y tocan el coro de Juan (vozGemelas_).
        Antes era async (la conversación seguía y la respuesta llegaba suelta) y en vivo estaba post_tool_speech, sin
        frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s.
        · UNA SOLA FRASE ANTES (Juan, 17-nov-2026: «repite dos veces la misma frase de confirmación antes de llamar a
@@ -614,7 +615,7 @@ function vozHerramientas_(k) {
 }
 /* La huella de lo que el código dice de las herramientas (sin la URL con la llave). Si cambia, se publican solas. */
 function vozHerramientasHuella_() {
-  var t = JSON.stringify({ d: vozDefHerramientas_('BASE'), a: VOZ_AJUSTES_AJENAS_, s: VOZ_SISTEMA_DESC_ });
+  var t = JSON.stringify({ d: vozDefHerramientas_('BASE'), a: VOZ_AJUSTES_AJENAS_, s: VOZ_SISTEMA_DESC_, g: VOZ_GEMELAS_VERSION_ });
   return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t, Utilities.Charset.UTF_8));
 }
 /* T3 (3-nov-2026): antes las herramientas solo se publicaban si alguien corría el robot voz_tools, y quedaron atrasadas
@@ -650,6 +651,35 @@ function vozHerramientasFaltan_(o) {
     return !h || ids.indexOf(h.id) < 0;
   });
 }
+/* ═══ Coro «Alma está trabajando» (Juan, 17-nov-2026) ═══
+   En la app de Alma y en la web, mientras Alma usa una herramienta suena el coro de Juan (sus voces con eco: la app lo toca
+   en VozNativa · CoroTrabajo.swift; la web en js/alma-voz.js) en lugar del tecleo de ElevenLabs. El tecleo es por
+   herramienta (tool_call_sound) y ElevenLabs no deja cambiarlo por conversación; lo que sí deja cambiar por conversación es
+   la LISTA de herramientas (conversation_config_override.agent.prompt.tool_ids). Por eso cada herramienta webhook de Alma
+   tiene una GEMELA igual pero sin sonido (mismo nombre, misma URL): el agente (teléfono y WhatsApp) sigue con las
+   originales y su tecleo, y la app y la web abren su conversación con las gemelas (tool_ids_app en la ficha).
+   VOZ_GEMELAS: { id original → id gemela }. VOZ_GEMELAS_OK = '1' solo si ElevenLabs confirmó el permiso de tool_ids:
+   sin él la ficha no manda la lista (una sustitución sin permiso no deja abrir la conversación). */
+var VOZ_GEMELAS_VERSION_ = 'coro-1';
+function vozGemelas_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_GEMELAS') || '{}') || {}; } catch (e) { return {}; } }
+/* La lista de herramientas para la conversación de la app o la web: la del agente con cada original cambiada por su gemela.
+   La del agente se lee de ElevenLabs (10 min en caché): así una herramienta nueva del agente también llega a la app. */
+function vozToolIdsApp_() {
+  var p = PropertiesService.getScriptProperties(); if (p.getProperty('VOZ_GEMELAS_OK') !== '1') return null;
+  var gem = vozGemelas_(); if (!Object.keys(gem).length) return null;
+  var c = CacheService.getScriptCache(), guardado = c.get('voz_tool_ids'), ids = null;
+  try { ids = guardado ? JSON.parse(guardado) : null; } catch (e) {}
+  if (!ids) {
+    var key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'); if (!key || !agente) return null;
+    var r = uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return null;
+    ids = ((((JSON.parse(r.getContentText()).conversation_config || {}).agent || {}).prompt || {}).tool_ids) || [];
+    if (!ids.length) return null;
+    c.put('voz_tool_ids', JSON.stringify(ids), 600);
+  }
+  var cambio = false, out = ids.map(function (id) { if (gem[id]) { cambio = true; return gem[id]; } return id; });
+  return cambio ? out : null;
+}
 function vozPublicarHerramientas_(base) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
@@ -661,18 +691,33 @@ function vozPublicarHerramientas_(base) {
     if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
     return t ? JSON.parse(t) : {};
   };
-  var existentes = (pedir('get', '/tools').tools || []), hechas = [];
+  var gem = vozGemelas_(), esGemela = function (t) { return Object.keys(gem).some(function (o) { return gem[o] === t.id; }); };
+  var todas = pedir('get', '/tools').tools || [], hechas = [], gemelas = [];
+  var existentes = todas.filter(function (t) { return !esGemela(t); });   // las gemelas tienen el mismo nombre: nunca se toman por la original
+  /* La gemela sin tecleo de cada herramienta webhook (coro de la app, vozGemelas_): se actualiza o se crea con la misma
+     configuración que la original, menos el sonido. No se agrega al agente: solo la usa la app y la web (tool_ids_app). */
+  var gemela = function (origId, cfg) {
+    var c = JSON.parse(JSON.stringify(cfg)); c.tool_call_sound = null; c.tool_call_sound_behavior = 'auto';
+    var yaG = gem[origId] && todas.filter(function (t) { return t.id === gem[origId]; })[0];
+    try {   // si falla, esa herramienta sigue con su tecleo también en la app; lo demás se publica igual
+      var r = yaG ? pedir('patch', '/tools/' + yaG.id, { tool_config: c }) : pedir('post', '/tools', { tool_config: c });
+      var id = (r && r.id) || (yaG && yaG.id); if (id) { gem[origId] = id; gemelas.push({ name: c.name, id: id, de: origId }); }
+    } catch (e) { console.error('gemela ' + c.name + ': ' + e); gemelas.push({ name: c.name, error: String(e).slice(0, 200) }); }
+  };
   vozDefHerramientas_(base).forEach(function (def) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];
     var r = ya ? pedir('patch', '/tools/' + ya.id, { tool_config: def }) : pedir('post', '/tools', { tool_config: def });
     hechas.push({ name: def.name, id: (r && r.id) || ya.id, accion: ya ? 'actualizada' : 'creada' });
+    if (def.type === 'webhook' && def.tool_call_sound) gemela((r && r.id) || ya.id, def);
   });
   Object.keys(VOZ_AJUSTES_AJENAS_).forEach(function (nombre) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === nombre; })[0]; if (!ya) return;
     var cfg = Object.assign({}, ya.tool_config, VOZ_AJUSTES_AJENAS_[nombre]);
     pedir('patch', '/tools/' + ya.id, { tool_config: cfg });
     hechas.push({ name: nombre, id: ya.id, accion: 'ajustada (' + Object.keys(VOZ_AJUSTES_AJENAS_[nombre]).join(', ') + ')' });
+    if (cfg.type === 'webhook' && cfg.tool_call_sound) gemela(ya.id, cfg);
   });
+  p.setProperty('VOZ_GEMELAS', JSON.stringify(gem));
   var ag = pedir('get', '/agents/' + encodeURIComponent(agente)), pr = ag.conversation_config.agent.prompt;
   var ids = (pr.tool_ids || []).slice();
   hechas.forEach(function (t) { if (t.id && ids.indexOf(t.id) < 0) ids.push(t.id); });
@@ -683,8 +728,17 @@ function vozPublicarHerramientas_(base) {
   /* Paciencia: Alma espera a que la persona termine la frase (turn_eagerness 'patient') y no la interrumpe al primer silencio.
      Cada vez que se publican las herramientas se vuelve a dejar así, para que ningún cambio del agente la apure sin querer. */
   var turn = Object.assign({}, (ag.conversation_config || {}).turn || {}, { turn_eagerness: 'patient' });
-  pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr }, turn: turn } });
-  return vozEstado_({ herramientas: hechas, turnos: turn.turn_eagerness });
+  /* Coro (vozGemelas_): la app y la web pueden cambiar, solo en su conversación, la lista de herramientas (tool_ids) por la
+     de las gemelas sin tecleo. Se permite aquí; lo demás de las sustituciones (saludo, idioma…) queda como está. */
+  var ov = JSON.parse(JSON.stringify((ag.platform_settings || {}).overrides || {}));
+  ov.conversation_config_override = ov.conversation_config_override || {};
+  ov.conversation_config_override.agent = ov.conversation_config_override.agent || {};
+  ov.conversation_config_override.agent.prompt = Object.assign({}, ov.conversation_config_override.agent.prompt || {}, { tool_ids: true });
+  var ag2 = pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr }, turn: turn }, platform_settings: { overrides: ov } });
+  var permitido = !!((((((ag2.platform_settings || {}).overrides || {}).conversation_config_override || {}).agent || {}).prompt || {}).tool_ids);
+  p.setProperty('VOZ_GEMELAS_OK', permitido && gemelas.some(function (g) { return g.id; }) ? '1' : '0');
+  try { CacheService.getScriptCache().remove('voz_tool_ids'); } catch (e) {}
+  return vozEstado_({ herramientas: hechas, turnos: turn.turn_eagerness, gemelas: gemelas, gemelas_permitidas: permitido });
 }
 
 /* Estado del agente tal como lo ve ElevenLabs (para comprobar que el prompt y las herramientas quedaron). */
@@ -1261,6 +1315,8 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   CacheService.getScriptCache().put('vozweb_pend', tel, ligero ? 120 : 90);
   /* ligero: la app web guarda esta ficha para la próxima llamada; la URL firmada la usa enseguida o la pide aparte (vozFirma). */
   out.signed_url = firmada;
+  /* Coro «Alma está trabajando» (vozGemelas_): la app y la web abren con las herramientas gemelas sin tecleo. */
+  try { var tia = vozToolIdsApp_(); if (tia) out.tool_ids_app = tia; } catch (e) { console.error('vozToolIdsApp_: ' + e); }
   marca('total'); vozWebTiempos_(marcas, ligero, app);
   out.tiempos = marcas;
   return out;

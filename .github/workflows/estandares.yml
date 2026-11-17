@@ -348,3 +348,6 @@ jobs:
       - name: Inventario para el traslado a Workspace, solo lee, nombres de Propiedades sin valores, activadores y hojas y carpetas con su carpeta (dobles)
         # 16-nov-2026: T1 del traslado a la cuenta Workspace (docs/specs/traslado-workspace.md): saber qué compartir sin tocar nada.
         run: node .github/inventario-ws.js apps-script
+      - name: Envío directo, la orden de Juan de responder o enviar un mensaje ya es su sí; si pide verlo antes, o Alma adivinó a quién, sigue el borrador (dobles)
+        # 17-nov-2026 (#633): «cuando Juan dé la instrucción de responder o enviar un mensaje, enviarlo directamente, sin preguntar ¿lo envío?».
+        run: node .github/envio-directo.js apps-script

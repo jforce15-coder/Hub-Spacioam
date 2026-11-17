@@ -164,7 +164,7 @@ function agHerramientas_() {
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
     T('marcar_resuelta', 'Marca la conversación de una reserva como RESUELTA en la bandeja del Hub (como el botón «Resuelta»): sale de pendientes y se cierran las promesas abiertas de ALMA ahí. Un mensaje nuevo del huésped la reabre.',
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
-    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Para mostrar el borrador: borrador = true. Con el sí de Juan: confirmado = true (una consulta sale solo así).',
+    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Si Juan te ordena enviarlo en su mensaje, sale directo. Si pide verlo antes: borrador = true; con su sí, confirmado = true.',
       { codigo: s('Código de reserva o conv_id, si lo tienes'), huesped: s('Sin código: nombre del huésped tal cual lo dijo (no hace falta buscar antes)'), propiedad: s('Sin código: propiedad y apartamento («Ignacio 1105»); con varias reservas posibles no sale y vuelven las opciones'),
         texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), borrador: { type: 'boolean', description: 'true = guarda el borrador con su reserva; no sale' }, confirmado: CAL_SI_ }, ['texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre o «socio de <apto>».',
@@ -247,7 +247,7 @@ function agHerramientas_() {
        caracteres por turno. La voz pide con «Mejora para Claude: …» por secretaria (voz.js). */
     T('leer_correo', 'Abre un correo de la bandeja del Hub (el de Juan y hola@): el hilo entero, lo más reciente primero, sin citas ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, resúmele a Juan de qué trata, qué piden y qué falta. Para mandar sus datos, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
       { buscar: s('Palabras sueltas del asunto, de quién lo mandó o del texto (ej. «Casa Sol remodelación»)') }, ['buscar']),
-    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, desde hola@spacioam.com. Sin confirmado te da el borrador: muéstraselo a Juan COMPLETO (para, copia, asunto y texto) y espera su sí; con su sí, otra vez con confirmado = true y el mismo texto.',
+    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, desde hola@spacioam.com. Si Juan te ordena responder en su mensaje, sale directo. Si no, te da el borrador: muéstraselo COMPLETO (para, copia, asunto y texto); con su sí, otra vez con confirmado = true y el mismo texto.',
       { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), adjuntos: s('Opcional: drive_id de PDF a adjuntar, con comas'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
     T('enviar_correo', 'Manda un correo NUEVO a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
@@ -582,10 +582,12 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       }
       /* Una consulta (inq:) es un tercero sin reserva: sale solo con el sí de Juan en otro turno (consultas.js). El borrador
          se ve en la tarjeta de la llamada cuando se puede (tarjeta.js). */
+      /* La orden de Juan en este mensaje ya es su sí (enviodirecto.js): sale sin borrador, salvo si Alma adivinó a quién. */
+      var directoH = typeof envioDirecto_ === 'function' && envioDirecto_(adm) && !(elegida && elegida.elegida_por);
       if (/^inq:/.test(rid2)) {
         var ibC = hubInbox_().filter(function (x) { return x.conv_id === rid2; })[0] || { conv_id: rid2 };
         var fichaC = elegida && elegida.tipo === 'consulta' ? elegida : consultaFicha_(ibC);
-        var bC = consultaBorrador_(adm, fichaC, pulirMsgHuesped_(inp.texto, 'plataforma'), inp.confirmado);
+        var bC = consultaBorrador_(adm, fichaC, pulirMsgHuesped_(inp.texto, 'plataforma'), inp.confirmado, directoH);
         if (!bC.enviar) { if (bC.ok) tvCandidata_('consulta', function () { return tvConsulta_(ibC, null, bC.borrador.texto); }); return bC; }
         inp.texto = bC.texto; inp.canal = 'plataforma';
         elegida = { codigo: '', huesped: fichaC.huesped, propiedad: fichaC.propiedad };
@@ -593,6 +595,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       /* Elegida por lo reciente (memoriafresca.js): no sale sin que Juan vea a quién va; primero el borrador. */
       var porRec = elegida && elegida.elegida_por ? elegida.elegida_por : '';
       if (porRec && inp.confirmado !== true && String(inp.texto || '').trim()) inp.borrador = true;
+      if (directoH && inp.borrador === true && !porRec) inp.borrador = false;
       /* Borrador para Juan: se guarda con su reserva y no sale. */
       if (inp.borrador === true && !/^inq:/.test(rid2)) {
         if (!String(inp.texto || '').trim()) return { error: 'Falta el texto del borrador.' };
@@ -628,6 +631,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       /* Juan dio el número de un socio: queda en su ficha (socio de ese apartamento) aunque el mensaje no salga. */
       if (normTel_(inp.numero || '') && inp.propiedad && SOCIO_MI_PALABRAS_.test(String(inp.persona || '') + ' ' + String(inp.texto || '').slice(0, 200))) { try { socioGuardarFicha_(inp.numero, String(inp.persona || '').replace(SOCIO_MI_PALABRAS_, '').replace(/\b(de|del)\b.*$/i, '').replace(/[,;·\s-]+$/, '').trim(), inp.propiedad, 'lo dio ' + ((adm && adm.nombre) || 'el administrador')); } catch (e) { console.error('socioGuardarFicha_: ' + e); } }
       for (var iE = 0; iE < destE.length; iE++) { var bS = socioSoloPrincipal_(adm, destE[iE].tel); if (bS) return { error: bS }; }   // a un socio solo le escribe el administrador principal (socios.js)
+      if (inp.borrador === true && !siE && typeof envioDirecto_ === 'function' && envioDirecto_(adm)) inp.borrador = false;   // la orden de Juan ya es su sí (enviodirecto.js)
       if (inp.borrador === true) {
         var bE = equipoBorradorGuardar_(adm, destE, inp.texto, { propiedad: inp.propiedad || '', al_responder: inp.al_responder || '' });
         ctx.borrador = { para: destE.map(function (c) { return c.nombre; }).join(' y '), texto: bE.texto };
@@ -819,7 +823,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'responder_correo': {   // correohilo.js: sin el sí de Juan en un mensaje nuevo, solo devuelve el borrador
       if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que responda correos.' };
-      var rr = correoResponder_(adm, inp);
+      var rr = correoResponder_(adm, Object.assign({}, inp, { directo: typeof envioDirecto_ === 'function' && envioDirecto_(adm) }));   // la orden de Juan ya es su sí (enviodirecto.js)
       if (rr.enviado) ctx.hechas.push({ tipo: 'correo', resumen: 'Respuesta en el hilo a ' + rr.enviado_a + ' · ' + String(rr.asunto || '').slice(0, 60) });
       return rr;
     }

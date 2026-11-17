@@ -46,6 +46,14 @@
      se pega al borde (como Ajustes a la derecha) en vez de dejar su hueco vacío. */
   .san-scope .san-pendb::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
   .san-scope .san-ov:has(.san-pendb[data-a="pend"][hidden]) .san-pendb.san-notib { left: max(16px, env(safe-area-inset-left)); }
+  /* Modo compañero arriba (Juan, 17-nov-2026: «al lado de los íconos de notificaciones y pendientes»): el mismo botón de
+     cristal, a la derecha de la campana. Si Pendientes o la campana no están, se corre para no dejar hueco. Debajo de la
+     llamada en vivo (.comp) y de las hojas, igual que los otros dos. Encendido: durazno, como el modo conferencia. */
+  .ajustes.comp-b { right: auto; left: calc(max(16px, env(safe-area-inset-left)) + 100px); z-index: 891; }
+  body:has(.san-pendb[data-a="pend"][hidden]) .ajustes.comp-b, body:has(.san-notib[hidden]) .ajustes.comp-b { left: calc(max(16px, env(safe-area-inset-left)) + 50px); }
+  body:has(.san-pendb[data-a="pend"][hidden]):has(.san-notib[hidden]) .ajustes.comp-b { left: max(16px, env(safe-area-inset-left)); }
+  body:has(.san-ov.suelta) .ajustes.comp-b { opacity: 0 !important; pointer-events: none !important; }
+  .ajustes.comp-b[aria-pressed="true"] { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: #FFFDFB; }
   /* «Alma está escuchando» (#REC): ya no hay puntito aparte. El botón del modo conferencia ES el indicador: con Alma
@@ -888,6 +896,7 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<button type="button" class="ajustes comp-b" id="b-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="12" height="16" rx="2"/><rect x="16" y="8.5" width="5.5" height="11.5" rx="1.4"/><path d="M7.5 17h2"/><path d="M18 17.2h1.5"/></svg></button>
 <button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <button type="button" class="calle-linea" id="calle-linea" aria-label="Probar el Modo calle" hidden><span class="f" id="calle-fase" aria-live="polite"></span><span class="e" id="calle-error" role="alert"></span></button>
@@ -1130,7 +1139,7 @@ window.SAPulso = {
     if (window.ALMA && ALMA.pendientes) SANav.update({ pendientes: { cargar: function () { return ALMA.pendientes().then(function (r) { return fotoGuardar("pend", r); }); }, foto: fotoConAlgo(fotoLeer("pend")), hecho: function (id) { return ALMA.pendienteHecho(id); },
       resolver: function (id) { return ALMA.pendienteResolver(id); }, responder: function (id, t) { return ALMA.pendienteResponder(id, t); }, nota: function (o) { return ALMA.pendienteNota(o); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
       notificaciones: { cargar: function () { return ALMA.notificaciones().then(function (r) { return fotoGuardar("noti", r); }); }, foto: fotoLeer("noti") } });
-    setTimeout(function () { $("b-ajustes").classList.add("on"); }, 900);
+    setTimeout(function () { $("b-ajustes").classList.add("on"); $("b-comp").classList.add("on"); }, 900);
   }
 
   /* ── Áreas de vida (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia): proyectos y conversaciones de cada una.
@@ -3269,8 +3278,12 @@ window.SAPulso = {
       C.t = setTimeout(ciclo, vivo ? CADA_VIVO : CADA_NADA);
     });
   }
-  function poner(on) { C.on = !!on; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} ciclo(); }
-  var i = $("i-comp"); if (i) { i.checked = C.on; i.onchange = function () { poner(this.checked); }; }
+  /* El botón de arriba (#b-comp, junto a Pendientes y Notificaciones) y el interruptor de Ajustes son el mismo: van juntos */
+  function reflejar() { var i = $("i-comp"), b = $("b-comp"); if (i) i.checked = C.on; if (b) b.setAttribute("aria-pressed", C.on ? "true" : "false"); }
+  function poner(on) { C.on = !!on; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); ciclo(); }
+  var i = $("i-comp"); if (i) i.onchange = function () { poner(this.checked); };
+  var bc = $("b-comp"); if (bc) bc.onclick = function () { poner(!C.on); };
+  reflejar();
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") ciclo(); });
   window.AlmaCompanero = { poner: poner, probar: function (r) { C.prueba = true; clearTimeout(C.t); pintar(r); } };   // para las capturas: sin pedir al Hub
   setTimeout(ciclo, 1500);

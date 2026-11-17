@@ -52,9 +52,9 @@ y qué copiar (`docs/specs/traslado-workspace-inventario.md`). Prueba: el invent
 **T2 · Compartir.** Compartir como editor con la cuenta nueva cada hoja y carpeta del inventario (Juan con un clic por
 carpeta, o un script que lo haga). Prueba: con la cuenta nueva se abren todas.
 
-**T3 · Piloto: Docs.** Crear el script en la cuenta nueva (`clasp create`), cambiar `scriptId` y `DEPLOYMENT_ID` en el repo,
-nuevo `CLASPRC_JSON` (Juan lo pone en los secretos de GitHub), copiar Propiedades (Juan las pega; nunca por chat), crear el
-activador, cambiar las direcciones /exec del front. Prueba: firmar un documento de prueba en docs.spacioam.com.
+**T3 · Piloto: Docs.** Con el **Mudador** (abajo), sin clasp ni computadora: crear el script en la cuenta nueva, traer sus
+Propiedades, crear el activador (`instalar`) y, ya probado, cambiar las direcciones /exec del front. Prueba: firmar un
+documento de prueba en docs.spacioam.com.
 
 **T4 · Hub / ALMA + login.** Igual que T3, más: herramientas de ElevenLabs, webhooks (WhatsApp, Hospitable y los que salgan
 en T1), `CUPO_DIA = 100000` y cambiar la dirección del Hub en las otras apps. Se hace de noche, con poco movimiento.
@@ -72,3 +72,51 @@ glosario y de `cupo.js`.
   nunca en el código ni en el chat. Se arma en T4, antes de mover el Hub; mientras tanto el Hub sigue en la cuenta Gmail.
 - **Desde qué dirección salen los correos** que mandan las apps (códigos de entrada, avisos): pasarían a salir de la cuenta
   nueva (`…@spacioam.com`). Se ve más profesional; solo hay que avisarle a quien filtre por remitente.
+
+## El Mudador (17-nov-2026): mudar sin computadora
+Juan solo usa iPad, así que `clasp` (que necesita una computadora para iniciar sesión) no sirve para la cuenta nueva. En su
+lugar hay un Apps Script chico, el **Mudador** (`traslado/Mudador.js` + `traslado/appsscript.json`), que Juan crea una sola vez
+en alma@ pegando dos textos. Corre como alma@ y usa la **API de Apps Script** con su propio permiso
+(`ScriptApp.getOAuthToken()`): `projects.create`, `projects.updateContent`, `projects.versions.create`,
+`projects.deployments.create/update`.
+
+**Cómo se usa (Claude):** el workflow **Traslado a Workspace** (`.github/workflows/traslado.yml`, a mano) toma el código de la
+app (`traslado/proyectos.json` dice repo, carpeta y script viejo), lo manda al Mudador con la llave (secretos `MUDADOR_URL`
+y `MUDADOR_LLAVE`) y el Mudador crea el proyecto si falta (`crear`, la primera vez), sube el código, crea versión y crea o
+actualiza su app web. Es idempotente: guarda el `scriptId` y la implementación de cada app; el mismo commit dos veces no gasta
+versiones. `proyecto = estado` muestra qué hay; `proyecto = mudador` sube un Mudador nuevo sin que Juan vuelva a pegar.
+
+**Las Propiedades del script** (llaves) nunca pasan por el chat, GitHub ni un registro:
+1. El proyecto VIEJO tiene `apps-script/traslado.js` (copia de `traslado/entregar.js`): entrega sus Propiedades solo a quien
+   pruebe ser **alma@spacioam.com** con un token de identidad de Google, que Google mismo revisa (correo verificado, sin
+   vencer). La primera app que las pide (el Mudador) queda fijada; tope de 6 entregas al día.
+2. Mientras no se hayan traído, el Mudador agrega al proyecto nuevo el archivo `traslado_traer` con una llave de **un solo
+   uso** (vence en 48 h).
+3. Juan corre `trasladoTraer` en el proyecto nuevo: da los permisos de todo el proyecto (una vez), el Mudador pide las
+   Propiedades al viejo y se las pasa por HTTPS, y el nuevo guarda las que le faltan (nunca pisa una que ya tiene) y corre
+   lo de instalar (`al_traer`, p. ej. el activador de Docs). La siguiente publicación quita `traslado_traer`.
+
+**Pasos de Juan en el iPad (una sola vez):**
+1. En Safari entra a **script.google.com** con alma@spacioam.com → **Proyecto nuevo**. Toca «Proyecto sin título» y ponle **Mudador**.
+2. ⚙️ **Configuración del proyecto** → activa **«Mostrar el archivo de manifiesto appsscript.json en el editor»**.
+3. Abre en otra pestaña <https://raw.githubusercontent.com/jforce15-coder/Hub-Spacioam/main/traslado/appsscript.json>,
+   selecciona todo y copia. En el editor abre **appsscript.json**, borra todo, pega y guarda (💾).
+4. Abre <https://raw.githubusercontent.com/jforce15-coder/Hub-Spacioam/main/traslado/Mudador.js>, copia todo. En **Código.gs**
+   borra todo, pega y guarda.
+5. Arriba elige la función **empezar** → **Ejecutar** → **Revisar permisos** → alma@ → (si sale «Google no verificó esta app»:
+   **Configuración avanzada → Ir a Mudador**) → **Permitir**.
+6. Abajo, en el **Registro de ejecución**, salen la URL y la llave. En GitHub: Hub-Spacioam → **Settings → Secrets and
+   variables → Actions → New repository secret**: `MUDADOR_URL` con la URL, y otro `MUDADOR_LLAVE` con la llave.
+7. Escríbele a Claude «Mudador listo». Claude crea Docs en alma@ y te manda un enlace.
+8. Abre ese enlace, elige la función **trasladoTraer** → **Ejecutar** → **Permitir**. Cuando el registro diga «Listo», avísale a Claude.
+
+Cada app siguiente (Hub, login, Hola, Epi, Grow, Mi) repite solo el paso 8, cuando Claude manda su enlace.
+
+**Límites y riesgos conocidos**
+- Google permite 200 versiones por proyecto (el Mudador avisa desde 180) y la API de Apps Script tiene cuotas diarias por
+  cuenta para crear proyectos y subir código: de sobra para 7 apps y unas decenas de publicaciones al día.
+- La app web del Mudador queda «cualquiera» con la llave: quien tenga la llave puede subir código que corre como alma@. Si
+  se filtra: correr `nuevaLlave` y cambiar el secreto.
+- El paso 6 es el único donde Juan ve la llave (en su propio registro de ejecución, solo visible para alma@).
+- Si Workspace bloquea las apps web para «cualquiera», se activa en admin.google.com → Apps → Google Workspace → Drive y
+  Documentos → Compartir fuera de la organización.

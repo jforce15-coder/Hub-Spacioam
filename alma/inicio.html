@@ -1064,11 +1064,11 @@
   </div>
   <div class="grupo">
     <div class="fila" id="p-health-f" hidden><a href="../health/" id="a-health">Health</a><span class="va">›</span></div>
+    <!-- Gasto de Alma (gasto.html): el reporte único que reemplaza a «Uso» (cupos de Google) y «Reportes» (llamadas); los dos siguen como su detalle -->
+    <div class="fila" id="p-gasto-f" hidden><a href="gasto.html" id="p-gasto">Gasto de Alma</a><span class="va">›</span></div>
     <div class="fila"><a href="agentes.html" id="p-agentes">Tu equipo de agentes</a><span class="va">›</span></div>
-    <div class="fila"><a href="reporte.html" id="p-reportes">Reportes</a><span class="va">›</span></div>
     <div class="fila"><a href="correos.html" id="p-correos">Tus correos</a><span class="va">›</span></div>
     <div class="fila"><a href="conexiones.html" id="p-conexiones">Conexiones</a><span class="va">›</span></div>
-    <div class="fila" id="p-uso-f" hidden><a href="uso.html" id="p-uso">Uso</a><span class="va">›</span></div>
     <div class="fila" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio">Lo que Alma aprendió</a><span class="va">›</span></div>
     <div class="fila" id="p-biblioteca-f" hidden><a href="biblioteca.html" id="p-biblioteca">Biblioteca de Claudio</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
@@ -1560,8 +1560,8 @@ window.SAPulso = {
     $("p-tel-f").hidden = !p.tel; $("p-tel").textContent = p.tel;
     /* Health (anillo, ritmo cardíaco, pasos): por ahora solo el administrador principal. */
     $("p-health-f").hidden = !Object.keys(p.apps).some(function (k) { return p.apps[k] === "admin_principal"; });
-    /* Uso (cupo de Google e IA, alma/uso.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
-    $("p-uso-f").hidden = $("p-health-f").hidden;
+    /* Gasto de Alma (con Uso y Reportes adentro): solo el administrador principal; el Hub lo vuelve a comprobar. */
+    $("p-gasto-f").hidden = $("p-health-f").hidden;   // Gasto de Alma (gasto.html; dentro: los cupos de Google y el reporte de llamadas): solo el principal
     $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
     $("p-biblioteca-f").hidden = $("p-health-f").hidden;   // skills y documentos para Claudio (alma/biblioteca.html): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";

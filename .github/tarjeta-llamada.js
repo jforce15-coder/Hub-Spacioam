@@ -65,6 +65,7 @@ function caja(o) {
   };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'calprops.js'), 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'episnap.js'), 'utf8'), ctx);   // epiSnapCache_: la copia de Epi en trozos
   vm.runInContext(fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'fuentes.js'), 'utf8'), ctx);   // fuentesPedirFotos_: el mismo pedido de las fotos
   vm.runInContext(fs.readFileSync(path.join(DIR, 'fichasocio.js'), 'utf8'), ctx);   // fichaProhibido_ y fichaParaRetomar_ (tablero del socio)

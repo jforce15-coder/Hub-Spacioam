@@ -685,7 +685,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (rt.error) return { error: rt.error };
       tvCandidata_('datos', function () { return tdRuta_(rt, fd); });   // la ruta en pantalla, sin códigos (tablero.js, #607)
       var codDe = function (x) { try { var c = codigoEquipo_(x.propiedad, fd, cfg.schedules); return c && c.codigo ? 'código ' + c.codigo + ' (' + c.tipo + ')' : ''; } catch (e) { return ''; } };
-      return { fecha: fd, persona: rt.persona, trabajos: rt.trabajos.map(function (t) { var x = t.x; return [x.hora || '', x.tipo || '', x.propiedad || '', t.quien, x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : '', codDe(x)].filter(Boolean).join(' · '); }) };
+      return { fecha: fd, persona: rt.persona, nota: epiSnapNota_(cfg), trabajos: rt.trabajos.map(function (t) { var x = t.x; return [x.hora || '', x.tipo || '', x.propiedad || '', t.quien, x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : '', codDe(x)].filter(Boolean).join(' · '); }) };
     }
     case 'tareas_abiertas': tvCandidata_('datos', function () { return tdTareas_(ctx.cfg().tareas, hoy); }); return { tareas: ctx.cfg().tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 40).map(function (t) { return [t.id, t.texto, t.prop || '-', t.quien || '-', 'vence ' + (t.vence || '-')].join(' · '); }) };
     case 'crear_tarea': case 'cerrar_tarea': case 'agendar_en_epi': {
@@ -1054,12 +1054,29 @@ function agCerrarTurno_(adm, final, ctx) {
 }
 
 /* Foto liviana de Epi para el agente (Epi tarda 20-35 s en devolver su configuración completa de 1 MB).
-   Se refresca sola cada 10 min desde procesarCola y se guarda en caché: técnicos, propiedades, tareas abiertas
-   y la programación de ayer a +7 días. Si no hay foto, se lee en vivo una vez. */
+   Se refresca sola cada 10 min desde procesarCola y se guarda en caché en trozos (episnap.js): técnicos, propiedades,
+   tareas abiertas y la programación de 3 semanas atrás a un mes adelante.
+   Juan (17-nov-2026): lo ya guardado se responde al instante, sin reintentos. Con una copia de hasta EPISNAP_FRESCA_MIN_
+   minutos se responde con ella; más vieja, se lee Epi en vivo UNA vez y, si falla, se responde con la copia (vieja = minutos)
+   y durante EPISNAP_PAUSA_S_ no se vuelve a intentar en vivo. Sin copia y sin Epi: un error claro, no «urlfetch». */
+var EPISNAP_FRESCA_MIN_ = 30, EPISNAP_PAUSA_S_ = 180;
+var EPISNAP_SIN_EPI_ = 'Epi no respondió en este momento y no hay una copia guardada de su programación. Dilo así y que lo pidan otra vez en unos minutos; no vuelvas a intentarlo en este turno.';
+function epiSnapUtil_(sv) { return !!(sv && sv.props && sv.props.length && sv.vendors && sv.vendors.length); }
 function epiSnap_(forzar) {
-  var c = CacheService.getScriptCache();
-  if (!forzar) { try { var t = c.get('episnap'); if (t) { var sv = JSON.parse(t); if (sv && sv.props && sv.props.length && sv.vendors && sv.vendors.length) return sv; } } catch (e) {} }
-  var cfg = epiCfg_();
+  var c = CacheService.getScriptCache(), g = null;
+  try { g = epiSnapCache_(); } catch (e) { console.error('epiSnapCache_: ' + e); }
+  var hay = epiSnapUtil_(g), edad = hay ? Math.max(0, Math.round((Date.now() - Date.parse(g.ts)) / 60000)) : Infinity;
+  if (hay && isNaN(edad)) edad = EPISNAP_FRESCA_MIN_ + 1;
+  if (!forzar && hay && edad <= EPISNAP_FRESCA_MIN_) return g;
+  var vieja = function () { return Object.assign({}, g, { vieja: edad }); };
+  if (!forzar && c.get('episnap_falla')) { if (hay) return vieja(); throw new Error(EPISNAP_SIN_EPI_); }   // Epi acaba de fallar: no se insiste
+  var cfg;
+  try { cfg = epiCfg_(); } catch (e) {
+    console.error('epiSnap_ (Epi no respondió): ' + e);
+    try { c.put('episnap_falla', '1', EPISNAP_PAUSA_S_); } catch (e2) {}
+    if (hay) return vieja();
+    throw new Error(EPISNAP_SIN_EPI_);
+  }
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), ayer = sumarDias_(hoy, -21), fin = sumarDias_(hoy, 30);
   var snap = {
     ts: new Date().toISOString(),
@@ -1069,10 +1086,13 @@ function epiSnap_(forzar) {
     schedules: cfg.schedules.filter(function (x) { var f = String(x && x.fecha || '').slice(0, 10); return f >= ayer && f <= fin; })
       .map(function (x) { return { id: x.id, fecha: x.fecha, hora: x.hora, tipo: x.tipo, propiedad: x.propiedad, vendorEmail: x.vendorEmail, vendorId: x.vendorId, vendorRaw: x.vendorRaw, estado: x.estado, orden: x.orden, entradaHoy: x.entradaHoy }; })
   };
-  /* Un snapshot vacío (Epi tardó o falló) no se guarda: antes quedaba 25 min y ALMA decía que no existían propiedades, códigos ni técnicos. */
-  if (snap.props.length && snap.vendors.length) { try { c.put('episnap', JSON.stringify(snap), 1500); } catch (e) { console.error('episnap: ' + e); } }
+  /* Una foto vacía (Epi tardó o falló) no se guarda ni pisa la buena: antes ALMA decía que no existían propiedades, códigos ni técnicos. */
+  if (!epiSnapUtil_(snap)) { if (hay) return vieja(); return snap; }
+  if (epiSnapGuardar_(snap)) { try { c.remove('episnap_falla'); } catch (e) {} }
   return snap;
 }
+/* Una nota para la respuesta cuando la copia de Epi es vieja (Epi no respondió ahora). */
+function epiSnapNota_(cfg) { return cfg && cfg.vieja ? 'Datos de Epi de hace ' + cfg.vieja + ' min (Epi no respondió ahora): dilo así, sin volver a intentarlo.' : undefined; }
 function epiSnapSiToca_() { var c = CacheService.getScriptCache(); if (c.get('episnap_t')) return; c.put('episnap_t', '1', 600); try { epiSnap_(true); } catch (e) { console.error('epiSnapSiToca_: ' + e); } }
 
 /* «El socio de Narama 633»: { nombre, tel, propiedad, fuente } o { error } desde Mi (sociosmi.js); null si no aplica. */
@@ -1283,7 +1303,7 @@ function hubLimpiezas_(codigo) {
   var antes = deProp.filter(function (x) { return String(x.fecha).slice(0, 10) <= ci; }).sort(function (a, b) { return String(b.fecha).localeCompare(String(a.fecha)); })[0];
   var salida = deProp.filter(function (x) { return String(x.fecha).slice(0, 10) >= co; }).sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); })[0];
   var f = function (x) { return x ? { fecha: String(x.fecha).slice(0, 10), hora: x.hora || '', tipo: x.tipo || '', quien: nombreDe(x), tel: tel(x), estado: x.estado || '' } : null; };
-  return { ok: true, propiedad: prop, checkin: ci, checkout: co, antes: f(antes), salida: f(salida), rango: 'Epi: últimas 3 semanas y próximo mes' };
+  return { ok: true, propiedad: prop, checkin: ci, checkout: co, antes: f(antes), salida: f(salida), rango: 'Epi: últimas 3 semanas y próximo mes', nota: epiSnapNota_(cfg) };
 }
 
 /* ═══ GROW (captación y montaje) ═══════════════════════════════════════════════════════════════

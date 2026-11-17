@@ -56,7 +56,7 @@ function caja() {
   vm.runInContext(['s_', 'celdaTexto_', 'normTel_', 'telsEnTexto_'].map(n => sacar(COD, n)).join('\n') + '\nvar fin8_ = x => String(x || "").replace(/\\D/g, "").slice(-8);\n' +
     sacar(leer('contacto.js'), 'esAcuseCorto_') + '\n' + /var MICRO_CAB_ = [^\n]*/.exec(MICRO)[0] + '\n' + /var MICRO_ESTADOS_ = [^\n]*/.exec(MICRO)[0] + '\n' +
     ['microHoja_', 'microDe_', 'microFilas_', 'microNombre_'].map(n => sacar(MICRO, n)).join('\n'), ctx, { filename: 'extractos' });
-  ['sociosmi.js', 'rapido.js', 'orbita.js', 'temas.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
+  ['sociosmi.js', 'rapido.js', 'orbita.js', 'episnap.js', 'temas.js'].forEach(f => vm.runInContext(leer(f), ctx, { filename: f }));
   const micro = (id, nombre, x) => { x = x || {}; ctx.microHoja_().appendRow([id, nombre, x.estado || 'en trabajo', ahora - 2 * H, ahora - (x.hace || 10 * 60000), x.quien || JUAN.email, x.issue || '', x.pr || '', '', '', JSON.stringify(x.ajustes || []), x.pregunta || '', '[]', 1, '', 'complejo', x.tema || '']); };
   return { X: ctx, d, props, cache, hojas, micro, pasa: ms => { ahora += ms; }, tema: id => { ctx.TEMA_MEMO_ = null; return ctx.temaLeer_(id); } };
 }

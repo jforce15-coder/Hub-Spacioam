@@ -739,7 +739,7 @@
   .tvb .tvb-cif { opacity: 0; transform: translateY(6px); transition: opacity .4s ease, transform .55s var(--ease, cubic-bezier(.22,.61,.36,1)); transition-delay: calc(var(--i, 0) * 45ms + var(--j, 0) * 70ms + 120ms); }
   .tvb.on .tvb-cif { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { .tvb-term i, .tvb-term b { transition: none; } .tvb .tvb-cif { transform: none; transition: opacity .2s ease; transition-delay: 0s; } }
-  /* Modo compañero (#607 T-C1, apps-script/vivo.js): este dispositivo muestra la llamada del otro, sin audio. */
+  /* Modo compañero (#607 T-C1, apps-script/vivo.js): este dispositivo muestra la llamada del otro (en la app, también con su voz: #727). */
   .comp { position: fixed; inset: 0; z-index: 2147482450; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity .35s ease;
     background: linear-gradient(180deg, rgba(40,30,32,.10), rgba(40,30,32,.30)), #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat; color: #fff; }
   .comp.on { opacity: 1; pointer-events: auto; }
@@ -3210,8 +3210,11 @@ window.SAPulso = {
 /* ── Modo compañero (#607 T-C1, apps-script/vivo.js; Juan, 16-nov-2026: «hablamos desde el iPhone y en el iPad se
    muestran las cosas») ── Con el interruptor encendido EN ESTE dispositivo (se guarda aquí), mientras no haya una llamada
    aquí mismo, la página pide al Hub lo que pasa en la llamada del otro (vivoLeer): cada 1,5 s durante una llamada y cada
-   8 s si no hay, y nada con la pantalla oculta. Muestra el mismo tablero (sin botones), los subtítulos y el estado, sin
-   audio: el micrófono y el sonido se quedan en el dispositivo de la llamada. Al terminar, «Llamada terminada» ~3 s. */
+   8 s si no hay, y nada con la pantalla oculta. Muestra el mismo tablero (sin botones), los subtítulos y el estado. El
+   micrófono se queda en el dispositivo de la llamada; la voz de Alma suena también aquí (Juan, 17-nov-2026: «El audio
+   que se reproduce en el teléfono es lo mismo que se debería reproducir en el iPad», #727): la app la recibe del otro
+   dispositivo por la red de cerca (alma-app Retransmision.swift), por eso se le avisa el interruptor. Al terminar,
+   «Llamada terminada» ~3 s. */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
@@ -3280,10 +3283,12 @@ window.SAPulso = {
   }
   /* El botón de arriba (#b-comp, junto a Pendientes y Notificaciones) y el interruptor de Ajustes son el mismo: van juntos */
   function reflejar() { var i = $("i-comp"), b = $("b-comp"); if (i) i.checked = C.on; if (b) b.setAttribute("aria-pressed", C.on ? "true" : "false"); }
-  function poner(on) { C.on = !!on; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); ciclo(); }
+  /* En la app de iPhone/iPad, el sonido lo pone la app: se le dice si este dispositivo es compañero (al abrir y al cambiar) */
+  function avisarApp() { try { if (window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma) webkit.messageHandlers.alma.postMessage({ accion: "companero", on: C.on }); } catch (e) {} }
+  function poner(on) { C.on = !!on; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); avisarApp(); ciclo(); }
   var i = $("i-comp"); if (i) i.onchange = function () { poner(this.checked); };
   var bc = $("b-comp"); if (bc) bc.onclick = function () { poner(!C.on); };
-  reflejar();
+  reflejar(); avisarApp();
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") ciclo(); });
   window.AlmaCompanero = { poner: poner, probar: function (r) { C.prueba = true; clearTimeout(C.t); pintar(r); } };   // para las capturas: sin pedir al Hub
   setTimeout(ciclo, 1500);

@@ -68,7 +68,7 @@ function claudioPanelApi_(ses, b) {
     try { spec = JSON.parse(c.get('claudiopanel_' + conv) || 'null'); } catch (e) { spec = null; }
   }
   var panel = claudioPanelArmar_(adm, spec || { vista: 'lista', foco: '' });
-  try { vivoPanel_(adm, panel); } catch (e) { console.error('vivoPanel_: ' + e); }   // y al modo compañero: lo mismo que ve el teléfono (vivo.js)
+  try { if (typeof vivoPanel_ === 'function') vivoPanel_(adm, conv, panel); } catch (e) { console.error('vivoPanel_: ' + e); }   // y al compañero (vivo.js)
   return { ok: true, panel: panel };
 }
 

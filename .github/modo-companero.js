@@ -7,8 +7,7 @@
       noticias en 10 min se da por terminada.
    5. Los subtítulos tapan lo que parece un código y se quedan los últimos 8.
    6. Las acciones vivoPublicar y vivoLeer están en el Hub y alma/inicio.html tiene el interruptor y el espejo.
-   7. Retransmisión con Claudio (Juan, 17-nov-2026): el Panel de Claudio llega al compañero y el cierre de la conversación
-      de Alma al pasar a Claudio no termina la llamada mientras la app sigue publicando.
+   7. El Panel de Claudio (los trabajos en curso) también llega al compañero, en la llamada que ya sigue.
    node .github/modo-companero.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -98,6 +97,24 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(r.subs.length === 8, '5 · se quedan los últimos 8');
   ok(!/482910/.test(JSON.stringify(r.subs)), '5 · lo que parece un código se tapa');
 }
+/* 7 · el Panel de Claudio (Juan, 17-nov-2026: «en el teléfono me pones los trabajos, pero en el iPad no veo nada») */
+{ const { X, JUAN } = caja();
+  const P = (id) => ({ tipo: 'claudio', vista: 'lista', id, titulo: 'Lo que está haciendo desarrollo', trabajos: [{ nombre: 'Saludos pregrabados', etapa: 'escribiendo', pasos: ['hecho', 'curso', 'pend', 'pend'] }] });
+  X.vivoInicio_(JUAN, 'conv-1'); X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando' });
+  ok(X.vivoPanel_(JUAN, 'conv_claudio1', P('cp1')), '7 · el panel que pide el iPhone se deja para el compañero');
+  let r = X.vivoLeerApi_(J, {});
+  ok(r.en_llamada && r.conv === 'conv-1' && r.tarjeta && r.tarjeta.tipo === 'claudio' && r.tarjeta.trabajos.length === 1, '7 · el iPad ve los trabajos en la misma llamada que ya seguía');
+  X.vivoPanel_(JUAN, 'conv_claudio1', P('cp2'));
+  ok(X.vivoLeerApi_(J, {}).tarjeta.id === 'cp2', '7 · el panel nuevo reemplaza al de antes');
+  X.vivoInicio_(JUAN, 'conv-2');
+  ok(!X.vivoLeerApi_(J, {}).tarjeta, '7 · al volver con Alma (otra conversación) el panel se quita');
+  ok(!X.vivoPanel_(JUAN, 'conv_claudio1', { tipo: 'datos', id: 'x' }) && !X.vivoPanel_(null, 'c', P('cp3')), '7 · solo paneles de Claudio y con administrador');
+  const { X: X2, JUAN: J2 } = caja();
+  X2.vivoPanel_(J2, 'conv_claudio9', P('cp9'));
+  r = X2.vivoLeerApi_(J, {});
+  ok(r.en_llamada && r.tarjeta && r.tarjeta.id === 'cp9', '7 · sin llamada publicada (app de antes), el compañero igual ve el panel');
+  ok(/vivoPanel_\(adm, conv, panel\)/.test(fs.readFileSync(path.join(DIR, 'claudiopanel.js'), 'utf8')), '7 · claudioPanelApi_ se lo deja al compañero');
+}
 /* 6 · Hub y página */
 { const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), tj = fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8');
   ok(/case 'vivoPublicar': return json_\(vivoPublicarApi_\(ses, body\)\)/.test(cod) && /case 'vivoLeer': return json_\(vivoLeerApi_\(ses, body\)\)/.test(cod), '6 · las acciones están en el Hub, con la sesión');
@@ -106,26 +123,23 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/id="i-comp"/.test(h) && /hub\("vivoLeer"/.test(h) && /AlmaTarjeta\.bento/.test(h), '6 · inicio.html: el interruptor «Modo compañero» y el espejo');
   ok(/id="b-comp"[^>]*aria-pressed/.test(h) && /bc\.onclick = function \(\) \{ poner\(!C\.on\); \}/.test(h) && /\$\("b-comp"\)\.classList\.add\("on"\)/.test(h), '6 · inicio.html: el botón de arriba, junto a Pendientes y Notificaciones, enciende y apaga lo mismo');
 }
-/* 7 · retransmisión con Claudio */
+/* 8 · retransmisión al pasar a Claudio (pedido pc1794949124807) */
 { const { X, reloj, JUAN } = caja();
-  const panel = { tipo: 'claudio', vista: 'lista', id: 'cp1', titulo: 'Lo que está haciendo desarrollo', filas: [] };
-  ok(X.vivoPanel_(JUAN, panel) === false && !X.vivoLeerApi_(J, {}).en_llamada, '7 · sin llamada en vivo, el panel no se retransmite');
+  const P = { tipo: 'claudio', vista: 'lista', id: 'cp1', titulo: 'Trabajando en 1', trabajos: [] };
   X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone', subs: [{ de: 'yo', t: 'Pásame con Claudio' }] });
   reloj.ms += 5000;
   X.vivoFin_(JUAN, 'conv-1');   // ElevenLabs avisa que la conversación de Alma se cerró (pasó a Claudio)
-  ok(X.vivoLeerApi_(J, {}).en_llamada, '7 · pasar a Claudio no termina la llamada en el compañero');
-  ok(X.vivoPanel_(JUAN, panel) === true, '7 · el panel de Claudio se deja para el compañero');
-  let r = X.vivoLeerApi_(J, {});
-  ok(r.en_llamada && r.tarjeta && r.tarjeta.tipo === 'claudio' && r.tarjeta.id === 'cp1', '7 · el iPad ve los mismos trabajos que el iPhone');
-  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'fin' });
-  ok(!X.vivoLeerApi_(J, {}).en_llamada, '7 · al colgar, la app dice «fin» y se termina');
+  ok(X.vivoLeerApi_(J, {}).en_llamada, '8 · pasar a Claudio no termina la llamada en el compañero');
+  X.vivoPanel_(JUAN, 'conv_claudio1', P);
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [{ de: 'alma', t: 'Van tres trabajos.' }] });
+  const r = X.vivoLeerApi_(J, {});
+  ok(r.tarjeta && r.tarjeta.id === 'cp1' && r.subs.length === 2, '8 · el panel y los subtítulos siguen juntos en la misma llamada');
   X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
   reloj.ms += 3 * 60000;
   X.vivoFin_(JUAN, 'conv-1');
-  ok(!X.vivoLeerApi_(J, {}).en_llamada, '7 · si la app se calló hace rato, el aviso al colgar sí la termina');
-  const cp = fs.readFileSync(path.join(DIR, 'claudiopanel.js'), 'utf8'), cl = fs.readFileSync(path.join(DIR, 'claudio.js'), 'utf8');
-  ok(/vivoPanel_\(adm, panel\)/.test(cp) && /vivoMira_\(adm\.email\)\) vivoPanel_\(adm, claudioPanelArmar_\(adm, cand\)\)/.test(cl), '7 · el panel sale hacia el compañero al pedirlo el teléfono y en cada herramienta de Claudio');
-  const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
-  ok(/con Claudio/.test(h), '7 · inicio.html: arriba dice «con Claudio» mientras se ve su panel');
+  ok(!X.vivoLeerApi_(J, {}).en_llamada, '8 · si la app se calló hace rato, el aviso al colgar sí la termina');
+  const cl = fs.readFileSync(path.join(DIR, 'claudio.js'), 'utf8'), h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/vivoMira_\(adm\.email\)\) vivoPanel_\(adm, b\.conv_id, claudioPanelArmar_\(adm, cand\)\)/.test(cl), '8 · con el iPad mirando, cada herramienta de Claudio le deja el panel (aunque el iPhone esté bloqueado)');
+  ok(/con Claudio/.test(h), '8 · inicio.html: arriba dice «con Claudio» mientras se ve su panel');
 }
 process.exit(fallo);

@@ -1237,6 +1237,8 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   /* Saludo variado y medidores de personalidad (medidores.js, #410): la app elige un saludo distinto cada vez y muestra los
      chips de Weebo y Adaptación; si Juan fijó el Weebo, Alma lo sabe por la ficha. */
   out.saludos = saludosVoz_(nom);
+  /* Saludos grabados (saludosgrabados.js, #724): la versión de los que la app tiene en el teléfono; si cambió, los vuelve a bajar. */
+  if (app) { try { out.saludos_grabados = sgVersion_(nom); } catch (e) { console.error('sgVersion_: ' + e); } }
   /* Sueño del Modo calle (calle.js): cuándo cuelga sola una llamada que abrió el Modo calle. */
   try { var cs = calleSueno_(); out.calle_silencio_s = cs.silencio; out.calle_tope_s = cs.tope; } catch (e) { console.error('calleSueno_: ' + e); }
   /* Conversación continua en conferencia: cuándo cierra sola la app (confSueno_). */

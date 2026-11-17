@@ -5731,6 +5731,8 @@ function sesionLogin_(session) {
   try {
     hit = cache.get(k);
     if (hit) { try { return hit === '-' ? null : JSON.parse(hit); } catch (e) {} }
+    /* Google ya cortó las llamadas a internet por hoy (cupo.js): primero la firma aquí, sin gastar una llamada que va a fallar. */
+    if (typeof cupoAgotado_ === 'function' && cupoAgotado_()) { const loc = sesionLocal_(session); if (loc) { cache.put(k, JSON.stringify(loc), 600); return loc; } }
     return sesionLoginRemota_(session, k);
   } finally { if (conLock) lock.releaseLock(); }
 }

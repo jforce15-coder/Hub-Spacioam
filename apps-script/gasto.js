@@ -120,7 +120,7 @@ function gastoElevenLabs_(mes, fresco) {
     var s = leer('https://api.elevenlabs.io/v1/user/subscription', 'plan');
     if (s && s.tier) out.plan = { nivel: String(s.tier), creditos_usados: Number(s.character_count) || 0, creditos_limite: Number(s.character_limit) || 0,
       reinicio: s.next_character_count_reset_unix ? new Date(s.next_character_count_reset_unix * 1000).toISOString() : '' };
-  } catch (e) { out.error_plan = String(e).slice(0, 120); }
+  } catch (e) { (out.avisos = out.avisos || []).push('plan: ' + String(e).slice(0, 120)); }
   var lista = [], cursor = '';
   try {
     for (var i = 0; i < 8; i++) {
@@ -128,7 +128,7 @@ function gastoElevenLabs_(mes, fresco) {
       var j = leer(u, 'conversaciones');
       lista = lista.concat(j.conversations || []); if (!j.has_more || !j.next_cursor) break; cursor = j.next_cursor;
     }
-  } catch (e) { out.error_lista = String(e).slice(0, 120); }
+  } catch (e) { (out.avisos = out.avisos || []).push('conversaciones: ' + String(e).slice(0, 120)); }
   /* La muestra: las más largas del mes (son las que más pesan). Créditos reales y la parte del LLM. */
   var largas = lista.slice().sort(function (a, b) { return (b.call_duration_secs || 0) - (a.call_duration_secs || 0); }).slice(0, GASTO_EL_MUESTRA_);
   var real = {};

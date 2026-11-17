@@ -612,9 +612,23 @@ function vozHerramientasSiCambiaron_() {
   var base = url.indexOf(VOZ_PUENTE_) === 0 ? url.replace(/&h=[^&]*$/, '') : '';
   if (!base) { p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: false, t: new Date().toISOString(), error: 'secretaria sin URL del puente: corre voz_tools una vez' })); return { ok: false, error: 'sin base' }; }
   var o = vozPublicarHerramientas_(base);
-  if (o && o.ok !== false) p.setProperty('VOZ_TOOLS_HUELLA', huella);
-  p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: o && o.ok !== false, t: new Date().toISOString(), herramientas: (o && o.herramientas || []).length }));
+  /* 17-nov-2026: la huella se guardaba con cualquier respuesta sin ok:false, aunque las 5 del anillo no quedaran en el agente;
+     voz_sync y la vuelta de 30 min decían «sin_cambios» y hubo que forzarlas con voz_tools. Ahora solo se guarda si cada
+     herramienta esperada volvió con id y ese id está en los tool_ids del agente; si falta alguna, la siguiente vuelta reintenta. */
+  var faltan = o && o.ok !== false ? vozHerramientasFaltan_(o) : null;
+  if (faltan && !faltan.length) p.setProperty('VOZ_TOOLS_HUELLA', huella);
+  else if (faltan) { console.warn('voz_tools: no se guarda la huella, faltan en el agente: ' + faltan.join(', ')); o.ok = false; o.faltan = faltan; }
+  p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: !!faltan && !faltan.length, t: new Date().toISOString(), herramientas: (o && o.herramientas || []).length, faltan: faltan || undefined }));
   return o;
+}
+/* Las herramientas que define el Hub (vozDefHerramientas_) que no quedaron en el agente: sin id en la respuesta de la
+   publicación o con un id que no está en los tool_ids que devolvió ElevenLabs (vozEstado_). Vacía = todas están. */
+function vozHerramientasFaltan_(o) {
+  var ids = (o && o.tool_ids) || [], hechas = (o && o.herramientas) || [];
+  return vozDefHerramientas_('BASE').map(function (d) { return d.name; }).filter(function (n) {
+    var h = hechas.filter(function (x) { return x && x.name === n && x.id; })[0];
+    return !h || ids.indexOf(h.id) < 0;
+  });
 }
 function vozPublicarHerramientas_(base) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');

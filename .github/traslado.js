@@ -180,4 +180,32 @@ vm.createContext(roto);
 vm.runInContext(fs.readFileSync(path.join(RAIZ, 'traslado', 'entregar.js'), 'utf8'), roto);
 ok(/^sin cupo de Google/.test(JSON.parse(roto.trasladoEntregar_({ traslado: 'entregar', id_token: 'x' }).texto).error), 'un error de cupo dice «sin cupo de Google», no «interno»');
 
+/* 6. Las copias en el Hub y el login son iguales al original y doPost las llama primero (antes de cualquier llave). */
+const original = fs.readFileSync(path.join(RAIZ, 'traslado', 'entregar.js'), 'utf8');
+for (const [copia, entrada] of [['apps-script/traslado.js', 'apps-script/Código.js'], ['login/apps-script/traslado.js', 'login/apps-script/03-auth-endpoint.js']]) {
+  ok(fs.readFileSync(path.join(RAIZ, copia), 'utf8') === original, copia + ' es igual a traslado/entregar.js');
+  const src = fs.readFileSync(path.join(RAIZ, entrada), 'utf8'), dp = src.slice(src.indexOf('function doPost'), src.indexOf('function doPost') + 600);
+  ok(/trasladoEntregar_\(/.test(dp), entrada + ': doPost entrega las Propiedades al Mudador');
+}
+
+/* 7. El corte del Hub (trasladocorte.js): apagar borra los activadores y marca; encender crea los fijos y guarda el cupo. */
+{
+  const props = propiedades({});
+  let trig = [{ f: 'procesarCola' }, { f: 'aprender' }, { f: 'cerebroSincronizar' }];
+  const nuevo = f => ({ timeBased: () => ({ everyMinutes: () => ({ create: () => trig.push({ f }) }), everyHours: () => ({ create: () => trig.push({ f }) }) }) });
+  const ctx = Object.assign(base(), { PropertiesService: { getScriptProperties: () => props.sp },
+    ScriptApp: { getScriptId: () => 'id-prueba', getProjectTriggers: () => trig.map(t => ({ getHandlerFunction: () => t.f, _t: t })),
+      deleteTrigger: x => { trig = trig.filter(t => t !== x._t); }, newTrigger: nuevo } });
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(RAIZ, 'apps-script', 'trasladocorte.js'), 'utf8'), ctx);
+  let r = ctx.trasladoCorte_('traslado_apagar', {});
+  ok(r.ok && trig.length === 0 && ctx.trasladoApagado_(), 'apagar borra todos los activadores y marca el Hub como apagado');
+  r = ctx.trasladoCorte_('traslado_encender', { cupo_dia: 100000 });
+  ok(r.ok && !ctx.trasladoApagado_() && r.activadores.procesarCola === 1 && r.activadores.aprender === 1 && props.d.CUPO_DIA === '100000', 'encender crea procesarCola y aprender una vez y guarda CUPO_DIA');
+  ctx.trasladoCorte_('traslado_encender', {});
+  ok(trig.length === 2, 'encender dos veces no duplica activadores');
+  const cod = fs.readFileSync(path.join(RAIZ, 'apps-script', 'Código.js'), 'utf8');
+  ok(/function procesarCola\(\) \{\s*if \([^\n]*trasladoApagado_\(\)\) return;/.test(cod) && /function aprender\(\) \{\s*if \([^\n]*trasladoApagado_\(\)\) return;/.test(cod), 'procesarCola y aprender no corren en el Hub apagado');
+}
+
 process.exit(fallo);

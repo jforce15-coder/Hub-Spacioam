@@ -121,6 +121,7 @@ function doPost(e) {
   try {
     const props = PropertiesService.getScriptProperties();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const __mud = typeof trasladoEntregar_ === 'function' && trasladoEntregar_(body); if (__mud) return __mud;   // traslado a Workspace: entrega las Propiedades solo a alma@ (traslado.js)
     cupoCanal_('Huéspedes');   // canal de la ejecución para el cupo de Google (cupo.js); abajo cambia según quién llama
     cupoFuncion_('doPost');    // la función que gasta, para «Uso» por función (hubApi_ y el webhook la precisan abajo)
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
@@ -761,6 +762,7 @@ function saludAlma_() {
   return { ok: true, pulso: t ? new Date(t).toISOString() : '', pulso_min: min, sano: t > 0 && min <= 5 };
 }
 function procesarCola() {
+  if (typeof trasladoApagado_ === 'function' && trasladoApagado_()) return;   // Hub viejo después del corte a alma@: no atiende la cola (trasladocorte.js)
   const inicioCola = Date.now();
   pulso_();
   cupoCanal_('Huéspedes');   // lo de huéspedes, documentos, Epi y limpieza nunca se pausa por cupo (CUPO_NUNCA_, cupo.js)
@@ -3144,6 +3146,7 @@ function proponerAutomejora_(info, prop) {
 
 // Disparador cada hora (lo crea configurar()).
 function aprender() {
+  if (typeof trasladoApagado_ === 'function' && trasladoApagado_()) return;   // Hub viejo después del corte (trasladocorte.js)
   cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
   try { cupoVolcar_(); } catch (e) { console.error('cupoVolcar_: ' + e); }   // el cupo de Google: las horas cerradas a GOOGLE_USO (cupo.js)
   /* Red de salidas (7:00 y 19:00): cada salida con su limpieza confirmada en Epi; si no, tarjeta en Pendientes. Nunca se pausa (redsalidas.js). */
@@ -5223,7 +5226,7 @@ const ACCESOS_APPS_ = {
   epi: () => epiUrl_(), hola: () => holaUrl_(),
   mi: () => 'https://script.google.com/macros/s/AKfycbzqUTv_0NuNBVRXhlfHGaS5RdWKjBAmfA-dIsdDnMLbl2aE2PriEXNWw3qCi8yPF28qaQ/exec',
   grow: () => 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec',
-  docs: () => 'https://script.google.com/macros/s/AKfycbz2_KDtQ5Wm8LRiyEwCXxsHx_DtE4pe2b_aJlLFrN0zu7UvLrnh2PM-6VzbEf00oekW_Q/exec'
+  docs: () => 'https://script.google.com/macros/s/AKfycbxcz_zjz39kRCfwQLLIk7HugqwqNGe2VKpf8okRemCrDvoVEgVCezeou9w5pfNjuXlE/exec'   // Docs en alma@ (17-nov-2026)
 };
 function accesosApps_() {
   const llave = llaveRobot_(); if (!llave) return { ok: false, error: 'falta ROBOT_TOKEN en el Hub' };
@@ -5545,6 +5548,7 @@ function dsBotApi_(body) {
         if (body.valor === '1' || body.valor === '0') pS.setProperty('HUB_SOLO_SESION', body.valor);
         return json_({ ok: true, solo_sesion: pS.getProperty('HUB_SOLO_SESION') === '1' });
       }
+      case 'traslado_activadores': case 'traslado_apagar': case 'traslado_encender': return json_(trasladoCorte_(body.action, body));   // corte a alma@ (trasladocorte.js)
       case 'inventario_ws': return json_(invWsInventario_(body));   // traslado a Workspace T1: solo lectura, nombres sin valores (inventariows.js)
       case 'accesos_apps': return json_(accesosApps_());   // fase 1c: ACCESOS de Epi, Hola, Mi, Grow y Docs
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua

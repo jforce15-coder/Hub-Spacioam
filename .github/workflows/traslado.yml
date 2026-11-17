@@ -4,14 +4,18 @@
 # Secretos (los pone Juan en GitHub, nunca en el chat): MUDADOR_URL y MUDADOR_LLAVE.
 # proyecto = docs | hub | login | hola | epi | grow | mi (traslado/proyectos.json), «mudador» (se sube a sí mismo)
 # o «estado» (qué hay en alma@). crear = true solo la primera vez de cada proyecto.
+# Cada 10 min (y a mano con proyecto = sincronizar) publica desde main las apps ya cortadas («sincronizar»: true en
+# proyectos.json): así reemplaza a clasp sin secretos en los otros repos. El mismo commit no gasta versiones (sin_cambios).
 
 name: Traslado a Workspace
 
 on:
+  schedule:
+    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       proyecto:
-        description: "docs, hub, login, hola, epi, grow, mi, mudador o estado"
+        description: "docs, hub, login, hola, epi, grow, mi, mudador, estado o sincronizar"
         required: true
         default: estado
       crear:
@@ -33,16 +37,16 @@ jobs:
   mudar:
     runs-on: ubuntu-latest
     env:
-      PROYECTO: ${{ inputs.proyecto }}
-      CREAR: ${{ inputs.crear }}
-      REF: ${{ inputs.ref }}
+      PROYECTO: ${{ inputs.proyecto || 'sincronizar' }}
+      CREAR: ${{ inputs.crear || false }}
+      REF: ${{ inputs.ref || 'main' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Elegir el repo de la app
         id: app
         run: |
-          case "$PROYECTO" in estado|mudador) echo "repo=" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          case "$PROYECTO" in estado|mudador|sincronizar) echo "repo=" >> "$GITHUB_OUTPUT"; exit 0;; esac
           REPO=$(node -e "const c=require('./traslado/proyectos.json')[process.argv[1]]; if(!c||process.argv[1].startsWith('_')) process.exit(1); console.log(c.repo)" "$PROYECTO") \
             || { echo "::error::Proyecto desconocido: $PROYECTO"; exit 1; }
           CARPETA=$(node -e "console.log(require('./traslado/proyectos.json')[process.argv[1]].carpeta)" "$PROYECTO")
@@ -53,7 +57,7 @@ jobs:
         if: steps.app.outputs.repo != ''
         with:
           repository: ${{ steps.app.outputs.repo }}
-          ref: ${{ inputs.ref }}
+          ref: ${{ env.REF }}
           path: fuente
 
       - name: Revisar el código antes de subir
@@ -69,25 +73,39 @@ jobs:
           if [ -z "$MUDADOR_URL" ] || [ -z "$MUDADOR_LLAVE" ]; then
             echo "::error::Faltan los secretos MUDADOR_URL o MUDADOR_LLAVE (Settings → Secrets and variables → Actions)."; exit 1
           fi
-          PEDIDO="$RUNNER_TEMP/pedido.json"
+          PEDIDO="$RUNNER_TEMP/pedido.json"; RESP="$RUNNER_TEMP/respuesta.json"
+          mandar() {   # $1 = nombre para el resumen. Manda $PEDIDO al Mudador y resume la respuesta.
+            curl -sL --max-time 300 -H 'Content-Type: text/plain' --data-binary @"$PEDIDO" "$MUDADOR_URL" -o "$RESP" || true
+            rm -f "$PEDIDO"
+            NOMBRE="$1" node -e "
+              const fs=require('fs'); let r={};
+              try { r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); } catch(e) { console.log('::error::El Mudador no respondió JSON (¿URL bien puesta y publicada para cualquiera?)'); process.exit(1); }
+              const lineas=[];
+              if (r.proyectos) { for (const [k,v] of Object.entries(r.proyectos)) lineas.push('- **'+k+'**: versión '+v.version+' · '+(v.traido?'Propiedades traídas':'falta trasladoTraer')+' · '+v.url+' · editar: '+v.editar);
+                lineas.push('', 'Últimos movimientos:'); for (const x of (r.registro||[]).slice(-10)) lineas.push('- '+x.t+' '+x.accion+' '+x.proyecto+' '+(x.ok?'ok':'falló')+' '+x.nota); }
+              else for (const k of ['creado','sin_cambios','version','url','editar','traido']) if (k in r) lineas.push('- '+k+': '+r[k]);
+              for (const a of (r.avisos||[])) { lineas.push('- ⚠️ '+a); console.log('::warning::'+a); }
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### Traslado · '+process.env.NOMBRE+'\\n'+lineas.join('\\n')+'\\n');
+              console.log(lineas.join('\\n'));
+              if (!r.ok) { console.log('::error::Mudador: '+(r.error||'no')); process.exit(1); }
+            " "$RESP"
+          }
           case "$PROYECTO" in
-            estado)  node traslado/empacar.js estado "$PEDIDO" ;;
-            mudador) node traslado/empacar.js mudador "$GITHUB_SHA" "$PEDIDO" ;;
+            estado)  node traslado/empacar.js estado "$PEDIDO"; mandar estado ;;
+            mudador) node traslado/empacar.js mudador "$GITHUB_SHA" "$PEDIDO"; mandar mudador ;;
+            sincronizar)
+              FALLO=0
+              for P in $(node -e "const c=require('./traslado/proyectos.json'); console.log(Object.keys(c).filter(k=>!k.startsWith('_')&&c[k].sincronizar).join(' '))"); do
+                R=$(node -e "const c=require('./traslado/proyectos.json')[process.argv[1]]; console.log(c.repo+' '+c.carpeta)" "$P")
+                REPO=${R% *}; DIR=${R#* }; rm -rf "$RUNNER_TEMP/s"
+                git clone -q --depth 1 "https://github.com/jforce15-coder/$REPO" "$RUNNER_TEMP/s" || { echo "::error::No pude bajar $REPO"; FALLO=1; continue; }
+                for f in "$RUNNER_TEMP/s/$DIR"/*.js; do cp "$f" /tmp/x.js; node --check /tmp/x.js || { FALLO=1; continue 2; }; done
+                SHA=$(git -C "$RUNNER_TEMP/s" rev-parse HEAD)
+                MENSAJE="$(git -C "$RUNNER_TEMP/s" log -1 --format=%s | cut -c1-80)" node traslado/empacar.js publicar "$P" "$RUNNER_TEMP/s/$DIR" "$SHA" "$PEDIDO" false
+                mandar "$P" || FALLO=1
+              done
+              exit $FALLO ;;
             *)       SHA=$(git -C fuente rev-parse HEAD)
-                     MENSAJE="$(git -C fuente log -1 --format=%s | cut -c1-80)" node traslado/empacar.js publicar "$PROYECTO" "$CARPETA" "$SHA" "$PEDIDO" "$CREAR" ;;
+                     MENSAJE="$(git -C fuente log -1 --format=%s | cut -c1-80)" node traslado/empacar.js publicar "$PROYECTO" "$CARPETA" "$SHA" "$PEDIDO" "$CREAR"
+                     mandar "$PROYECTO" ;;
           esac
-          RESP="$RUNNER_TEMP/respuesta.json"
-          curl -sL --max-time 300 -H 'Content-Type: text/plain' --data-binary @"$PEDIDO" "$MUDADOR_URL" -o "$RESP" || true
-          rm -f "$PEDIDO"
-          node -e "
-            const fs=require('fs'); let r={};
-            try { r=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); } catch(e) { console.log('::error::El Mudador no respondió JSON (¿URL bien puesta y publicada para cualquiera?)'); process.exit(1); }
-            const lineas=[];
-            if (r.proyectos) { for (const [k,v] of Object.entries(r.proyectos)) lineas.push('- **'+k+'**: versión '+v.version+' · '+(v.traido?'Propiedades traídas':'falta trasladoTraer')+' · '+v.url+' · editar: '+v.editar);
-              lineas.push('', 'Últimos movimientos:'); for (const x of (r.registro||[]).slice(-10)) lineas.push('- '+x.t+' '+x.accion+' '+x.proyecto+' '+(x.ok?'ok':'falló')+' '+x.nota); }
-            else for (const k of ['creado','sin_cambios','version','url','editar','traido']) if (k in r) lineas.push('- '+k+': '+r[k]);
-            for (const a of (r.avisos||[])) { lineas.push('- ⚠️ '+a); console.log('::warning::'+a); }
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, '### Traslado · '+process.env.PROYECTO+'\n'+lineas.join('\n')+'\n');
-            console.log(lineas.join('\n'));
-            if (!r.ok) { console.log('::error::Mudador: '+(r.error||'no')); process.exit(1); }
-          " "$RESP"

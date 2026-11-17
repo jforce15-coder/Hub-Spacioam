@@ -42,6 +42,8 @@ var APP_KEYS   = ['mi','epi','grow','hola'];
 var CONTROL_SHEET_ID = '1r5LYE-YZw2_1JCt6919jZlcBf7AkHk5Hf2eIsP_wX2U';
 
 function doPost(e){
+  var __p = {}; try { __p = JSON.parse((e && e.postData && e.postData.contents) || '{}'); } catch (x) {}
+  var __mud = trasladoEntregar_(__p); if (__mud) return __mud;   // traslado a Workspace: Propiedades solo a alma@ (traslado.js)
   var out = _handle(e);
   return ContentService.createTextOutput(JSON.stringify(out))
     .setMimeType(ContentService.MimeType.JSON);

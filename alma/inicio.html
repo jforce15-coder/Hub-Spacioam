@@ -758,8 +758,37 @@
   .comp-subs p.alma { font: 400 clamp(19px, 3vw, 24px)/1.3 Valky, "Cormorant Garamond", Georgia, serif; }
   .comp-subs p.yo { font: 500 13px/1.35 Montserrat, system-ui, sans-serif; opacity: .82; }
   .comp-subs p.yo::before { content: "Tú · "; font-weight: 600; }
+  .comp p.yo { display: block; padding: 0; }   /* no la fila «.yo» de Ajustes (la misma clase) */
   @keyframes compSub { from { opacity: 0; transform: translateY(6px); } }
   @media (prefers-reduced-motion: reduce) { .comp-cab i, .comp-subs p { animation: none; } }
+  /* En el iPad (Juan, 17-nov-2026: «en el iPad hay más espacio… se pueden poner más datos o desplegar las cosas de forma
+     distinta»): el tablero a la izquierda y a la derecha todo lo de la llamada: datos, lo que se mostró y la conversación. */
+  .comp-cuerpo { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .comp-centro { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .comp-lado { display: none; }
+  @media (min-width: 900px) {
+    .comp-cuerpo { flex-direction: row; gap: 18px; padding: 0 max(18px, env(safe-area-inset-right)) max(18px, calc(env(safe-area-inset-bottom) + 10px)) 0; }
+    .comp-centro { min-width: 0; }
+    .comp-centro .comp-subs { display: none; }
+    .comp .tvb { max-width: 900px; }
+    .comp-lado { display: flex; flex-direction: column; gap: 14px; flex: none; width: clamp(300px, 30vw, 380px); min-height: 0; margin-top: 18px; }
+    .comp-lado h3 { margin: 0 0 8px; font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .24em; text-transform: uppercase; opacity: .85; }
+    .comp-caja { padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+    .comp-datos dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font: 500 13px/1.3 Montserrat, system-ui, sans-serif; }
+    .comp-datos dt { opacity: .75; }
+    .comp-datos dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .comp-vistos ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 168px; overflow: auto; }
+    .comp-vistos button { width: 100%; min-height: 40px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-radius: 12px; background: rgba(255,255,255,.14); color: inherit; font: 500 13px/1.25 Montserrat, system-ui, sans-serif; text-align: left; cursor: pointer; }
+    .comp-vistos button[aria-current="true"] { background: rgba(255,255,255,.34); }
+    .comp-vistos button small { margin-left: auto; opacity: .7; font-variant-numeric: tabular-nums; }
+    .comp-vistos .nada, .comp-lineas .nada { margin: 0; font: 400 13px/1.35 Montserrat, system-ui, sans-serif; opacity: .75; }
+    .comp-conv { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .comp-lineas { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+    .comp-lineas p { margin: 0; }
+    .comp-lineas p.alma { font: 400 18px/1.3 Valky, "Cormorant Garamond", Georgia, serif; }
+    .comp-lineas p.yo { font: 500 13px/1.35 Montserrat, system-ui, sans-serif; opacity: .85; }
+    .comp-lineas p.yo::before { content: "Tú · "; font-weight: 600; }
+  }
   .tvb-galeria { padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; background: #fff; }
   .tvb-galeria > img { position: static; width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
   .tvb-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--g); }
@@ -3223,14 +3252,17 @@ window.SAPulso = {
    muestran las cosas») ── Con el interruptor encendido EN ESTE dispositivo (se guarda aquí), mientras no haya una llamada
    aquí mismo, la página pide al Hub lo que pasa en la llamada del otro (vivoLeer): cada 1,5 s durante una llamada y cada
    8 s si no hay, y nada con la pantalla oculta. Muestra el mismo tablero (sin botones), los subtítulos y el estado, sin
-   audio: el micrófono y el sonido se quedan en el dispositivo de la llamada. Al terminar, «Llamada terminada» ~3 s. */
+   audio: el micrófono y el sonido se quedan en el dispositivo de la llamada. Al terminar, «Llamada terminada» ~3 s.
+   En el iPad (pantalla ancha), a la derecha: la llamada (duración, con quién, desde dónde), lo que se mostró (tocar uno lo
+   vuelve a mostrar) y la conversación completa (Juan, 17-nov-2026). */
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
   var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos", "recepcion", "proyecto"];
   var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
-  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "" };
+  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Trabajos de Claudio", socio: "Socio", datos: "Datos", recepcion: "Recepción", proyecto: "Proyecto" };
   var OTRA_MS = 20000;   // lo que vale «hay llamada en el otro» sin volver a preguntar (se pregunta cada 1,5 s durante una)
   try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
   function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
@@ -3248,27 +3280,74 @@ window.SAPulso = {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
     var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
-    c.appendChild(cab); c.appendChild(el("div", "comp-tab")); c.appendChild(el("div", "comp-subs"));
+    var cu = el("div", "comp-cuerpo"), centro = el("div", "comp-centro");
+    centro.appendChild(el("div", "comp-tab")); centro.appendChild(el("div", "comp-subs")); cu.appendChild(centro);
+    /* En el iPad (pantalla ancha) va a la derecha; en el teléfono no se ve (CSS) */
+    var lado = el("aside", "comp-lado"); lado.setAttribute("aria-label", "Lo de la llamada");
+    var datos = el("section", "comp-caja comp-datos"); datos.appendChild(el("h3", "", "La llamada")); datos.appendChild(el("dl")); lado.appendChild(datos);
+    var vistos = el("section", "comp-caja comp-vistos"); vistos.appendChild(el("h3", "", "Se mostró")); vistos.appendChild(el("ul")); lado.appendChild(vistos);
+    var conv = el("section", "comp-caja comp-conv"); conv.appendChild(el("h3", "", "Conversación")); conv.appendChild(el("div", "comp-lineas")); lado.appendChild(conv);
+    cu.appendChild(lado); c.appendChild(cab); c.appendChild(cu);
     document.body.appendChild(c); return c;
+  }
+  function dur(ms) { var s = Math.max(0, Math.round(ms / 1000)), m = Math.floor(s / 60); return m + ":" + ("0" + (s % 60)).slice(-2); }
+  function hora(ts) { var d = new Date(ts); return d.getHours() + ":" + ("0" + d.getMinutes()).slice(-2); }
+  /* Muestra un tablero: el de ahora o uno que ya salió (tocándolo a la derecha) */
+  function mostrar(t) {
+    var tab = C.capa.querySelector(".comp-tab"), nuevo = window.AlmaTarjeta && AlmaTarjeta.bento ? AlmaTarjeta.bento(t) : null;
+    if (!nuevo) return false;
+    C.verId = t.id; tab.textContent = ""; tab.appendChild(nuevo);
+    requestAnimationFrame(function () { requestAnimationFrame(function () { nuevo.classList.add("on"); }); });
+    marcarVistos(); return true;
+  }
+  function marcarVistos() {
+    var ul = C.capa.querySelector(".comp-vistos ul"); ul.textContent = "";
+    if (!C.vistos.length) { ul.appendChild(el("li", "nada", "Aquí quedan los tableros que Alma te muestre")); return; }
+    C.vistos.slice().reverse().forEach(function (v) {
+      var li = el("li"), b = el("button"); b.type = "button"; b.setAttribute("aria-current", v.t.id === C.verId ? "true" : "false");
+      b.appendChild(el("span", "", v.nombre)); b.appendChild(el("small", "", hora(v.ts)));
+      b.onclick = function () { mostrar(v.t); };
+      li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  function datos(r, conClaudio) {
+    var dl = C.capa.querySelector(".comp-datos dl"); dl.textContent = "";
+    [["Duración", dur(Date.now() - C.inicio)], ["Con", conClaudio ? "Claudio" : "Alma"], ["Desde", r.dispositivo ? "Tu " + r.dispositivo : "Tu otro dispositivo"],
+     ["Estado", ESTADO[r.estado] || "En llamada"], ["Mensajes", String(C.desde)], ["Tableros", String(C.vistos.length)]]
+      .forEach(function (x) { dl.appendChild(el("dt", "", x[0])); dl.appendChild(el("dd", "", x[1])); });
   }
   function vacio() { var tab = C.capa.querySelector(".comp-tab"); if (!tab.firstChild) tab.appendChild(el("div", "comp-vacio", "Lo que Alma te muestre en la llamada aparece aquí")); }
   function pintar(r) {
     var c = montar();
     if (C.fin) { clearTimeout(C.fin); C.fin = 0; }
     c.classList.remove("fin");
-    if (r.conv !== C.conv) { C.conv = r.conv; C.desde = 0; C.tvId = ""; c.querySelector(".comp-subs").textContent = ""; c.querySelector(".comp-tab").textContent = ""; }
+    if (r.conv !== C.conv) {
+      C.conv = r.conv; C.desde = 0; C.tvId = ""; C.verId = ""; C.vistos = []; C.inicio = Date.now();
+      c.querySelector(".comp-subs").textContent = ""; c.querySelector(".comp-tab").textContent = ""; c.querySelector(".comp-lineas").textContent = ""; marcarVistos();
+    }
     /* Con Claudio se ve su panel (los trabajos que se están haciendo) y arriba dice con quién se habla (vivoPanel_) */
     var conClaudio = !!(r.tarjeta && r.tarjeta.tipo === "claudio");
     c.querySelector(".comp-de").textContent = "En vivo" + (conClaudio ? " · con Claudio" : "") + (r.dispositivo ? " · desde tu " + r.dispositivo : "");
     c.querySelector(".comp-est").textContent = ESTADO[r.estado] || "En llamada";
     var subs = c.querySelector(".comp-subs");
-    (r.subs || []).forEach(function (x) { C.desde = Math.max(C.desde, Number(x.n) || 0); subs.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t)); });
+    var lineas = c.querySelector(".comp-lineas"), abajo = lineas.scrollHeight - lineas.scrollTop - lineas.clientHeight < 40;
+    (r.subs || []).forEach(function (x) {
+      C.desde = Math.max(C.desde, Number(x.n) || 0);
+      subs.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t)); lineas.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t));
+    });
     while (subs.children.length > 3) subs.removeChild(subs.firstChild);
-    var t = r.tarjeta, tab = c.querySelector(".comp-tab");
-    if (t && t.id !== C.tvId && window.AlmaTarjeta && AlmaTarjeta.bento) {
-      var nuevo = AlmaTarjeta.bento(t);
-      if (nuevo) { C.tvId = t.id; tab.textContent = ""; tab.appendChild(nuevo); requestAnimationFrame(function () { requestAnimationFrame(function () { nuevo.classList.add("on"); }); }); }
+    var n0 = lineas.querySelector(".nada"); if (n0 && lineas.children.length > 1) lineas.removeChild(n0);
+    while (lineas.children.length > 200) lineas.removeChild(lineas.firstChild);
+    if (!lineas.children.length) lineas.appendChild(el("p", "nada", "Lo que digan tú y Alma aparece aquí"));
+    if (abajo) lineas.scrollTop = lineas.scrollHeight;   // sigue lo último, salvo que estés leyendo más arriba
+    var t = r.tarjeta;
+    if (t && t.id !== C.tvId && mostrar(t)) {   // lo nuevo siempre se muestra, aunque estuvieras viendo uno de antes
+      C.tvId = t.id; C.vistos = C.vistos.filter(function (v) { return v.t.id !== t.id; });
+      C.vistos.push({ t: t, nombre: (NOMBRE[t.tipo] || "Tablero") + (t.titulo || t.cabeza ? " · " + (t.titulo || t.cabeza) : ""), ts: Date.now() });
+      if (C.vistos.length > 12) C.vistos.shift();
+      marcarVistos();
     }
+    datos(r, conClaudio);
     vacio();
     c.classList.add("on");
   }

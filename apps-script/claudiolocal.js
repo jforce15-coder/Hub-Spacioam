@@ -173,13 +173,17 @@ function claudioLocalApi_(ses, b) {
    claudio_pedido la IA solo repetía la frase fija de su prompt («Quedó pedido; lo hago en segundo plano…»): esa vuelta
    costaba otra llamada completa a Claude (1 a 3 s) en el turno más común. Si en la vuelta solo hubo pedidos y todos
    salieron con «Listo, quedó …», la frase se arma aquí. Si algo falló o el resultado es otro (una orden de unir), la IA
-   lo dice como siempre. */
+   lo dice como siempre. «Quedó pedido» y lo del segundo plano, una sola vez por llamada (Juan, 17-nov-2026: «lo repite
+   hasta ocho veces; con una sola vez basta»): claudio_pedido ya devuelve la confirmación corta («También quedó.») cuando
+   no es el primero de la conversación, y en un mismo turno con varios pedidos se dice completo solo el primero. */
 var CLAUDIO_LOCAL_PEDIDO_ = 'Lo hago en segundo plano y te aviso cuando esté; lo vas a ver en la órbita.';
 function claudioLocalPedidoListo_(usos, salidas) {
   if (!usos.length || usos.some(function (u) { return u.name !== 'claudio_pedido'; })) return '';
-  var dichos = salidas.map(function (o) { return o && o.ok && /^Listo, quedó (pedido|sumado)/.test(String(o.hecho || '')) ? String(o.hecho) : ''; });
+  var dichos = salidas.map(function (o) { return o && o.ok && (o.corta || /^Listo, quedó (pedido|sumado)/.test(String(o.hecho || ''))) ? String(o.hecho) : ''; });
   if (dichos.some(function (d) { return !d; })) return '';
-  return dichos.filter(function (d, i) { return dichos.indexOf(d) === i; }).join(' ') + ' ' + CLAUDIO_LOCAL_PEDIDO_;
+  var completo = !salidas[0].corta;   // el primero de la llamada: con lo del segundo plano
+  dichos = dichos.filter(function (d, i) { return dichos.indexOf(d) === i; });
+  return dichos.join(' ') + (completo ? ' ' + CLAUDIO_LOCAL_PEDIDO_ : '');
 }
 function claudioLocalTurno_(adm, conv, system, msgs) {
   var t0 = Date.now(), tools = claudioLocalHerramientas_(), corridas = [], volver = false, dicho = '', msIa = 0;

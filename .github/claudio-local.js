@@ -81,9 +81,12 @@ fila = [{ content: [{ type: 'tool_use', id: 'tu1', name: 'claudio_pedido', input
 const t4 = turno({ conv_id: j.conv_id, texto: 'cambia el botón de pagos' });
 ok(t4.ok && pedido && pedido.adm === 'juan@x' && /botón de pagos/.test(pedido.texto) && t4.herramientas.join() === 'claudio_pedido', '4 · claudio_pedido sale con el principal verificado por su sesión');
 ok(claude.length === 1 && /^Listo, quedó pedido\. Lo hago en segundo plano/.test(t4.hablar) && /órbita/.test(t4.hablar), '4 · pedido hecho: la frase sale sin otra vuelta de la IA (#651, más rápido): «' + t4.hablar + '»');
+fila = [{ content: [{ type: 'tool_use', id: 'tu3', name: 'claudio_pedido', input: { pedido: 'y que sea verde' } }] }];
+const t4b = turno({ conv_id: j.conv_id, texto: 'y que sea verde' });
+ok(t4b.ok && claude.length === 1 && t4b.hablar === 'También quedó.', '4 · el segundo pedido de la llamada: corto, sin «quedó pedido» ni lo del segundo plano otra vez (17-nov: «con una sola vez basta»): «' + t4b.hablar + '»');
 ok(typeof t4.ms_ia === 'number' && typeof t4.ms === 'number', '4 · el turno dice cuánto tardó la IA (ms_ia) para ver dónde se va el tiempo');
 const hizo = R("claudioHizo_('" + j.conv_id + "', adminsOp_()[0])");
-ok(hizo.pedidos.length === 1 && hizo.pedidos[0].ok, '4 · queda anotado en la conversación local (Alma cierra con lo que hizo Claudio)');
+ok(hizo.pedidos.length === 2 && hizo.pedidos[0].ok, '4 · queda anotado en la conversación local (Alma cierra con lo que hizo Claudio)');
 ok(JSON.parse(cache['claudiopanel_' + j.conv_id] || '{}').vista === 'trabajo', '4 · y el Panel de Claudio de esa conversación muestra el trabajo nuevo');
 /* Si el resultado no es «Listo, quedó …» (una orden de unir, un error), la IA sí da otra vuelta y lo dice ella. */
 { const antes = ctx.claudeMandarYa_; ctx.claudeMandarYa_ = () => ({ texto: 'Uní el cambio del botón.', claude: { ok: true } }); claude = [];

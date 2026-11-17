@@ -468,7 +468,8 @@ function agRutaTrabajos_(cfg, fd, persona) {
   return { persona: vend ? vendNombre_(vend) : 'todos', trabajos: del.map(function (x) { return { x: x, quien: nomDe(x) }; }) };
 }
 function agEjecutar_(adm, nombre, inp, ctx) {
-  inp = inp || {}; if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
+  inp = typeof identidadEntrada_ === 'function' ? identidadEntrada_(inp || {}) : (inp || {});   // lo que sale a otra persona va en nombre de Alma, nunca de Maricarmen (identidad.js)
+  if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
@@ -933,7 +934,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var adapt = ''; try { adapt = canal === 'segundo_plano' ? '' : adaptBloque_(adm.email, 'admin', texto); } catch (e) {}
   var encV = null; try { encV = encValores_(); } catch (e) { console.error('encValores_: ' + e); }   // una sola lectura de ALMA_ENCARGOS por turno
   var aud = audienciaDe_({ adm: adm });   // Juan: conversación personal · equipo: en nombre de la empresa (alma.json)
-  var turno = AG_CORTE_CACHE_ + weebo + adapt + '\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
+  var turno = AG_CORTE_CACHE_ + weebo + adapt + (typeof identidadVozRegla_ === 'function' ? identidadVozRegla_(IDENTIDAD_VOZ_) : '') + '\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
     encargosTexto_(adm, encV) + encargosPedidosTexto_(adm, encV) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'calle' ? CALLE_REGLA_ : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];

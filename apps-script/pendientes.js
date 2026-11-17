@@ -1,7 +1,7 @@
 /* ═══ PENDIENTES DE ALMA (app de Alma: botón «Pendientes») ═════════════════════════════════════════════════
    Todo lo que Alma resuelve para el administrador principal queda aquí, con su esfera (las 6 del inicio) y su proyecto,
    en vez de llegarle por WhatsApp (el WhatsApp con Alma es solo para conversar). Tres tipos:
-     · atencion  «Necesita tu sí»: comprar, decidir, responder, unir. Se queda hasta que Juan toca «Ya está» o lo
+     · atencion  «Necesita tu sí»: comprar, decidir, responder (unir no: lo hace Claudio). Se queda hasta que Juan toca «Ya está» o lo
                  resuelven en una llamada (retomar.js). Si vino de segundo plano, avisa con notificación en la app.
      · aviso     «Para leer»: información que pidió. Se va de aquí a la hora; en Notificaciones vence a los 3 días.
      · hecho     «Listo hoy»: confirma algo que ya quedó. Se va de aquí a la hora; en Notificaciones vence al día.
@@ -159,9 +159,9 @@ function pendResolverRet_(ids) {
   try { var sh = hojaPend_(), col = PEND_CAB_.indexOf('estado') + 1; pendFilas_().forEach(function (x) { if (x.ret_id && ids.indexOf(String(x.ret_id)) >= 0 && x.estado === 'abierto') { sh.getRange(x.fila, col).setValue('resuelto'); sh.getRange(x.fila, PEND_CAB_.indexOf('motivo') + 1).setValue('se resolvió como tema por retomar'); } }); } catch (e) {}
 }
 
-/* ── La lista para la app: los de Alma + lo de Claude + los cambios por unir, por urgencia y con conteo por esfera ── */
+/* ── La lista para la app: los de Alma + lo de Claude + los cambios abiertos, por urgencia y con conteo por esfera ── */
 var PEND_SECCION_ = { atencion: 'atencion', aviso: 'leer', hecho: 'listo' };
-/* Todo lo de Juan (lo que Alma resolvió, lo de Claude y los cambios por unir), cada uno con su sección. */
+/* Todo lo de Juan (lo que Alma resolvió, lo de Claude y los cambios abiertos), cada uno con su sección. */
 function pendItems_(ses, adm, noti) {
   var ahora = Date.now(), items = [];
   pendFilas_().forEach(function (x) {
@@ -176,10 +176,10 @@ function pendItems_(ses, adm, noti) {
   });
   /* Lo que Alma está vigilando (vigilancias.js): «Vigilando: …» con «Dejar de vigilar». */
   try { if (!noti) vigTarjetas_(adm).forEach(function (x) { items.push(x); }); } catch (e) { console.error('pendItems_ vigilancias: ' + e); }
-  /* Lo de Claude y los cambios por unir: Propósito · Desarrollo */
+  /* Lo de Claude y los cambios abiertos: Propósito · Desarrollo */
   var claude = []; try { var rc = paraClaudePendientes_(ses); claude = rc.ok ? rc.lista : []; } catch (e) { console.error('pendientesTodo_ claude: ' + e); }
   claude.forEach(function (p) {
-    var sec = (p.unir || []).length || p.estado === 'pregunta' || p.estado === 'fallo' || p.estado === 'fallo_pub' ? 'atencion' : p.estado === 'publicado' ? 'listo' : 'leer';
+    var sec = pendDesarrolloSeccion_(p);
     items.push({ id: p.id, fuente: p.pr ? 'pr' : 'claude', seccion: sec, area: 'proposito', proyecto: 'Desarrollo', titulo: p.titulo, resumen: p.resumen, etiqueta: p.fecha, estado: p.estado,
       pasos: p.pasos, pregunta: p.pregunta, original: p.original, enlaces: p.enlaces, unir: p.unir, progreso: p.progreso, ts: 0, importancia: 2, hecho: !p.pr,
       tarjeta: p.tarjeta || null, ajustes: p.ajustes || null, micro: p.micro || '', modelo: p.modelo || '',
@@ -187,12 +187,21 @@ function pendItems_(ses, adm, noti) {
   });
   return items;
 }
+/* Desarrollo en Pendientes (Juan, 17-nov-2026, pc1794936657400): «Claudio recibe la instrucción, valida y publica
+   directamente». Un cambio listo, por unir, que choca o cuya publicación falló NO es un pendiente de Juan: lo une y lo
+   arregla Claudio. Solo es pendiente lo que pide algo explícito de Juan: Claudio pregunta, o Claudio no pudo y necesita
+   que le diga cómo seguir (un PR suelto de GitHub que falla o choca no cuenta: es de Claudio). Lo demás va a
+   Notificaciones (publicado → «Listo hoy»; en trabajo, listo o publicando → «Para leer»). */
+function pendDesarrolloSeccion_(p) {
+  if (p.estado === 'pregunta' || (p.estado === 'fallo' && !p.pr)) return 'atencion';
+  return p.estado === 'publicado' ? 'listo' : 'leer';
+}
 var PEND_ORDEN_ = function (a, b) { return (b.importancia - a.importancia) || (b.ts - a.ts); };
 function pendAreas_(items) {
   return AREAS_.map(function (a) { return { k: a.k, n: a.n, total: items.filter(function (x) { return x.area === a.k; }).length,
     atencion: items.filter(function (x) { return x.area === a.k && (x.seccion === 'atencion' || x.pendiente); }).length }; });
 }
-/* Pendientes: SOLO lo que necesita una acción de Juan (decidir, responder, unir, comprar). Lo que es para leer o ya
+/* Pendientes: SOLO lo que necesita una acción de Juan (decidir, responder, comprar; unir ya no: lo hace Claudio). Lo que es para leer o ya
    quedó listo es una notificación: va a notificacionesTodo_. Las claves leer/listo quedan vacías por compatibilidad. */
 function pendientesTodo_(ses) {
   var adm = paraClaudePrincipalSes_(ses); if (!adm) return { ok: false, error: 'Solo el administrador principal.' };

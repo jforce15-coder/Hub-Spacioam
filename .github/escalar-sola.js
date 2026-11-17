@@ -141,7 +141,7 @@ const cerrar = (c, adm, pedido, respuesta, extra, o) => c.ctx.chatTurnoCerrar_(a
     c.gh.abiertos[PR_HUB] = est; c.ctx.escalarRevisar_();
     const av = c.log.avisos.join(' | ');
     ok(c.log.unir.length === 0 && c.entregas()[0].estado === 'no_unida', est + ': no une');
-    ok(av.indexOf(PR_HUB) >= 0 && av.indexOf(causa) >= 0 && !c.log.wa.some(w => w.t.indexOf(PR_HUB) >= 0) && c.log.acciones.join() === PR_HUB, est + ': avisa con el enlace y la causa («' + causa + '») en la app (no por WhatsApp) y deja «Unir el PR» para Juan');
+    ok(av.indexOf(PR_HUB) >= 0 && av.indexOf(causa) >= 0 && !c.log.wa.some(w => w.t.indexOf(PR_HUB) >= 0) && c.log.acciones.length === 0, est + ': avisa con el enlace y la causa («' + causa + '») en la app (no por WhatsApp), sin «Unir el PR» para Juan (17-nov-2026)');
   });
   const c = caja(); cerrar(c, JUAN, PEDIDO, DIJO_11NOV); c.ctx.escalarAlResponder_(c.entregas()[0].micro, 'listo', [PR_HUB], 'listo');
   c.gh.abiertos[PR_HUB] = 'listo'; c.ctx.escalarRevisar_(); c.gh.checks.sha487 = { total: 3, ok: 2, corriendo: 0, fallas: 1 }; c.mover(120000); c.ctx.escalarRevisar_();
@@ -182,6 +182,6 @@ const cerrar = (c, adm, pedido, respuesta, extra, o) => c.ctx.chatTurnoCerrar_(a
   const c = caja(); cerrar(c, JUAN, PEDIDO, DIJO_11NOV); const av = respuesta(c, c.entregas()[0].micro, [PR_HUB]);
   ok(c.entregas()[0].estado === 'por_unir' && c.log.acciones.length === 0 && av.length === 0, 'Claude responde con PR a lo que Alma escaló: sin «Unir el PR» ni «para que lo unas»; Alma lo une sola');
   const c2 = caja(), av2 = respuesta(c2, 'mp9', [PR_HUB]);
-  ok(c2.log.acciones.join() === PR_HUB && av2.join() === 'listo', 'un PR de cualquier otro pedido: «Unir el PR» y el aviso de siempre (Juan une)');
+  ok(c2.log.acciones.length === 0 && av2.join() === 'listo', 'un PR de cualquier otro pedido: el aviso de siempre, sin «Unir el PR» (Claudio une solo, 17-nov-2026)');
 }
 process.exit(fallo);

@@ -275,7 +275,7 @@ function paraClaudeRespuesta_(b) {
     /* Pedido que Alma escaló porque no podía (escalar.js): si trae PR, Alma lo une sola con las revisiones en verde y
        entrega el resultado (Juan, 12-nov-2026); entonces ni «Unir el PR» ni «para que lo unas». */
     var esc = ''; try { esc = escalarAlResponder_(String(v[i][15] || ''), estado, enlaces, cuerpoR); } catch (e) { console.error('escalarAlResponder_: ' + e); }
-    if (estado === 'listo' && esc !== 'unir') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
+    /* Sin «Unir el PR» en Acciones: Claudio une y publica solo (Juan, 17-nov-2026, pc1794936657400). */
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? (conPr ? 'PR listo' : 'respondido') : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
     if (v[i][17]) sh.getRange(i + 2, 18).setValue('');                         // ni el lector de la biblioteca
@@ -295,7 +295,8 @@ function paraClaudeFecha_() {
 /* Avisos de Claude (decisión de Juan, #374): solo lo que sirve, nunca un acuse («se lo mandé», «lo recibió»). Los textos,
    humanos y con sus datos debajo, están en avisotexto.js (#509 T2):
      pregunta → nivel 2 «Revisé lo que me pediste de «X» y tengo una duda antes de seguir…» (las opciones, en Pendientes)
-     listo    → nivel 2 «Ya quedó listo el cambio para «X»; solo falta que lo unas…» (hay un PR)
+     listo    → nivel 3 «Ya quedó el cambio para «X»; se publica solo…» (hay un PR: Claudio lo une, Juan no hace nada;
+                17-nov-2026, pc1794936657400)
      fallo    → nivel 2 «Intenté «X», pero no se pudo terminar; necesito que lo revises…»
    Sin «Claudio» en lo que se dice: el resultado, ya hecho (Juan, 3-nov-2026).
      consulta → nivel 3 «Ya tengo la respuesta a lo que preguntaste de «X»» (respondió sin PR: solo para leer)
@@ -311,7 +312,7 @@ function paraClaudeAvisarTexto_(titulo, voz, estado) {
 }
 /* micro: su microproyecto, el pedido de la fila del que esto es resultado (Alma abre, almaabre.js). */
 function paraClaudeAvisar_(titulo, voz, estado, micro) {
-  var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo|listo)$/.test(String(estado)) ? 2 : 3;
+  var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo)$/.test(String(estado)) ? 2 : 3;
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   nov.push({ ts: new Date().toISOString(), titulo: titulo, voz: texto, estado: estado });
   p.setProperty('DESARROLLO_NOVEDADES', JSON.stringify(nov.slice(-5)));
@@ -499,7 +500,7 @@ function paraClaudePendientes_(ses) {
     simple = simple || { titulo: String(r[6] || ''), que_es: est === 'trabajando' ? 'Claudio está trabajando en esto.' : (cuerpo.split(/\n\n/)[0] || ''), pasos: [], pregunta: '' };
     if (pub) {   // estados de la publicación: textos fijos y simples
       var tt = pub.t || {}, de = tt.total ? ' (' + tt.ok + ' de ' + tt.total + ' listos)' : '';
-      var tx = { publicando: ['Ya lo uniste. GitHub lo está revisando y publicando' + de + '.', []],
+      var tx = { publicando: ['Ya se unió. GitHub lo está revisando y publicando' + de + '.', []],
         publicado: [pub.app ? '¡Listo! Ya está publicado. La versión nueva llega a TestFlight en unos minutos.' : '¡Listo! Ya está publicado.', [pub.app ? 'Actualiza Alma en TestFlight y pruébalo.' : 'Pruébalo.']],
         fallo_pub: ['Se unió, pero algo falló al publicarlo.', ['Escríbele a Alma en tu chat: «falló la publicación de ' + simple.titulo + '».']] }[pub.est];
       lista.push({ id: String(r[0]), titulo: simple.titulo, fecha: '', estado: pub.est, resumen: tx[0], pasos: tx[1], pregunta: '', original: cuerpo, instrucciones: '',
@@ -523,12 +524,12 @@ function pendientesPrs_(lista) {
     (p.enlaces || []).forEach(function (u) { vistos[u] = 1; });
     p.unir = (p.enlaces || []).filter(function (u) { return porUrl[u] && porUrl[u].estado === 'listo'; });
   });
-  var TX = { listo: 'Pasó sus revisiones: está listo para unir.', revisando: 'GitHub lo está revisando; en un momento queda listo.',
-    fallo: 'Algo falló en sus revisiones; Claudio lo está arreglando.', choque: 'Choca con lo último que se unió; Claudio tiene que ponerlo al día.', borrador: 'Todavía es un borrador.' };
+  var TX = { listo: 'Pasó sus revisiones; se une y se publica solo.', revisando: 'GitHub lo está revisando; en un momento queda listo.',
+    fallo: 'Algo falló en sus revisiones; lo arregla Claudio.', choque: 'Choca con lo último que se unió; lo pone al día Claudio.', borrador: 'Todavía es un borrador.' };
   var EST = { listo: 'listo', revisando: 'revisando', fallo: 'fallo', choque: 'fallo', borrador: 'trabajando' };
   var nuevos = prs.filter(function (x) { return !vistos[x.url]; }).map(function (x) {
     return { id: 'pr:' + x.repo + '#' + x.numero, pr: true, titulo: x.titulo, fecha: x.app + ' #' + x.numero, estado: EST[x.estado] || 'listo', resumen: TX[x.estado] || '',
-      pasos: x.estado === 'listo' ? ['Toca «Unir». O dile a Alma: «une el ' + x.numero + '».'] : [], pregunta: '', original: '', instrucciones: '',
+      pasos: [], pregunta: '', original: '', instrucciones: '',
       enlaces: [x.url], unir: x.estado === 'listo' ? [x.url] : [] };
   });
   return nuevos.concat(lista);

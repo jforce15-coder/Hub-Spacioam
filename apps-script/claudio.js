@@ -378,9 +378,9 @@ function claudioResumen_(adm) {
   var todos = microAbiertos_(adm.email).filter(function (m) { return m.estado !== MICRO_ESTADOS_.cerrado; }), l = todos.slice(0, 5);
   if (!l.length) return '';
   var out = 'SUS PEDIDOS RECIENTES (para contexto; no los leas): ' + l.map(function (m) { return '«' + m.nombre + '» ' + m.estado; }).join(' · ');
-  var av = todos.filter(function (m) { return m.estado === MICRO_ESTADOS_.listo || m.estado === MICRO_ESTADOS_.pregunta; }).slice(0, 3).map(function (m) {
-    return m.estado === MICRO_ESTADOS_.listo ? '«' + m.nombre + '» está listo para unir (si quiere, dice «une»)'
-      : '«' + m.nombre + '» tiene una pregunta: ' + String(m.ultima_pregunta || '').replace(/\s+/g, ' ').slice(0, 200);
+  /* Solo lo que pide algo de Juan: lo listo lo une Claudio solo (Juan, 17-nov-2026, pc1794936657400). */
+  var av = todos.filter(function (m) { return m.estado === MICRO_ESTADOS_.pregunta; }).slice(0, 3).map(function (m) {
+    return '«' + m.nombre + '» tiene una pregunta: ' + String(m.ultima_pregunta || '').replace(/\s+/g, ' ').slice(0, 200);
   });
   return out + (av.length ? '\nAVISOS (díselos en una frase en tu primera respuesta): ' + av.join(' · ') : '');
 }

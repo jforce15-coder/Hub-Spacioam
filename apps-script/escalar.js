@@ -192,8 +192,8 @@ function escalarUnir_(e) {
 }
 function escalarNoUne_(e, adm, url, causa) {
   e.estado = 'no_unida'; e.causa = causa; e.fin = Date.now(); escalarGuardar_(e);
-  try { accionCrear_('Unir el PR: ' + e.nombre, 'No lo uní sola: ' + causa + '. Revísalo y únelo cuando esté.', url, 'claude'); } catch (er) {}
-  escalarAvisar_(adm, e, avisoTexto_('escalar_no_unido', { nombre: e.nombre, causa: causa, url: url }), 2);
+  /* Sin «Unir el PR» para Juan ni pendiente de unir (Juan, 17-nov-2026, pc1794936657400): solo un aviso para leer. */
+  escalarAvisar_(adm, e, avisoTexto_('escalar_no_unido', { nombre: e.nombre, causa: causa, url: url }), 3);
   return 1;
 }
 /* La publicación: las revisiones del commit de cada unión (Actions, Publicar Apps Script, Pages). */

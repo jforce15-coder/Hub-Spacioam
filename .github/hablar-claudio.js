@@ -10,7 +10,7 @@
    4. las herramientas de Claudio solo atienden al principal, por la firma del Hub dentro de la conversación de Claudio;
       un pedido sale al instante como con Alma (16-nov-2026), se suma a un trabajo por su nombre, contesta preguntas
       pendientes y «súbelo»; nada se une sin «une» (ni «¿qué falta unir?» ni «no lo unas»); su ficha trae los AVISOS
-      (listo para unir, pregunta pendiente);
+      (la pregunta pendiente; lo listo lo une Claudio solo);
    5. leer código es solo lectura (GET a GitHub) y corto;
    6. su prompt es JSON con {{quien_llama}} al final, y Claudio no existe con otras audiencias: ni la frase ni el permiso
       están en los prompts del chat, WhatsApp, calle, redactor ni en lo de huéspedes de la voz;
@@ -191,7 +191,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(r2p.ok === false && !resp_.length && /2 preguntas/.test(r2p.error), 'dos preguntas pendientes y sin trabajo: no adivina, pregunta cuál');
   MICROS[0].estado = 'listo para unir';
   const fr = R('claudioResumen_({ email: "juan@x" })');
-  ok(/AVISOS/.test(fr) && /«Botón de pagos naranja» está listo para unir/.test(fr) && /«Avión de la órbita» tiene una pregunta: ¿Cinco o tres días\?/.test(fr), 'su ficha trae los AVISOS: lo listo para unir y la pregunta pendiente');
+  ok(/AVISOS/.test(fr) && !/listo para unir \(/.test(fr) && !/AVISOS[^\n]*Botón de pagos naranja/.test(fr) && /«Avión de la órbita» tiene una pregunta: ¿Cinco o tres días\?/.test(fr), 'su ficha trae los AVISOS: solo la pregunta pendiente (lo listo lo une Claudio, 17-nov-2026)');
   MICROS.forEach(m => { m.estado = 'en trabajo'; });
   ok(!/AVISOS/.test(R('claudioResumen_({ email: "juan@x" })')), 'sin nada listo ni preguntas: sin AVISOS');
   ctx.microAbiertos_ = microsDe;

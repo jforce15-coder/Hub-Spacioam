@@ -10,7 +10,10 @@
    4. la respuesta en un toque: la tarjeta que trae opciones en su texto llega a la app con sus opciones;
    5. la corrida única PEND_LIMPIEZA_V1: respalda la hoja antes de tocar, cierra lo resuelto con motivo, deja el conteo en
       el registro y no se repite; la limpieza normal corre cada 15 min;
-   6. microproyectos: una pregunta de Claudio cuyo PR ya se unió deja de esperar, y un PR muestra una sola tarjeta.
+   6. microproyectos: una pregunta de Claudio cuyo PR ya se unió deja de esperar, y un PR muestra una sola tarjeta;
+   7. unir ya no es de Juan (17-nov-2026, pc1794936657400): una tarjeta que pide unir o avisa un choque se cierra aunque
+      el PR siga abierto; la corrida única PEND_LIMPIEZA_UNIR_V1 da por hechas las acciones «Unir el PR» y quita los temas
+      por retomar de unir; Desarrollo solo entra a Pendientes si Claudio pregunta o no pudo.
    node .github/pendientes-limpios.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -51,6 +54,8 @@ function caja(o) {
     ssAlma_: () => ({ getSheetByName: n => hojas[n] || null }),
     adminPorEmail_: e => (e === JUAN.email ? JUAN : null), esAdminPrincipal_: a => !!(a && a.principal),
     retCambiar_: (adm, fn) => { const l = (o.rets || []).slice(); fn(l); rets.push(l.map(x => x.id)); },
+    adminsOp_: () => [JUAN], ACCIONES_CAB_: ['id', 'fecha', 'titulo', 'instruccion', 'enlace', 'estado', 'origen'],
+    accionesHoja_: () => (hojas.ALMA_ACCIONES = hojas.ALMA_ACCIONES || hoja(['id', 'fecha', 'titulo', 'instruccion', 'enlace', 'estado', 'origen'], o.acciones || [])),
     retResolver_: () => {}, retPoner_: () => ({ id: 'rt1' }),
     temaFilas_: () => o.temas || [],
     temaTarjetaResuelta_: x => temasCerrados.push(String(x.id)),
@@ -98,8 +103,17 @@ const fila = (c, id) => { const cab = c.ctx.PEND_CAB_, f = c.hojas.ALMA_PENDIENT
   const conPrs = base({ resumen: 'Revisa Hub #555 y Hub #541 antes de unir.' });
   r = X.pendMotivoCierre_(conPrs, ctx({ prs: { [REPO + '555']: { estado: 'unido' }, [REPO + '541']: { estado: 'cerrado' } } }));
   ok(r && r.estado === 'resuelto' && /se unieron/.test(r.motivo), '1 · todos sus PR unidos o cerrados → resuelta («' + (r && r.motivo) + '»)');
-  ok(!X.pendMotivoCierre_(conPrs, ctx({ prs: { [REPO + '555']: { estado: 'unido' }, [REPO + '541']: { estado: 'abierto' } } })), '1 · un PR todavía abierto → sigue abierta');
-  ok(!X.pendMotivoCierre_(conPrs, ctx({ prs: { [REPO + '555']: { estado: 'unido' } } })), '1 · un PR que GitHub no contestó → sigue abierta (sin adivinar)');
+  const revisa = base({ resumen: 'Revisa Hub #555 y Hub #541 antes de decidir la tarifa.' });
+  ok(!X.pendMotivoCierre_(revisa, ctx({ prs: { [REPO + '555']: { estado: 'unido' }, [REPO + '541']: { estado: 'abierto' } } })), '1 · un PR todavía abierto (y la tarjeta no pide unir) → sigue abierta');
+  ok(!X.pendMotivoCierre_(revisa, ctx({ prs: { [REPO + '555']: { estado: 'unido' } } })), '1 · un PR que GitHub no contestó → sigue abierta (sin adivinar)');
+  r = X.pendMotivoCierre_(conPrs, ctx({ prs: { [REPO + '555']: { estado: 'unido' }, [REPO + '541']: { estado: 'abierto' } } }));
+  ok(r && r.estado === 'resuelto' && /era para unir/.test(r.motivo), '7 · pedía unir con un PR todavía abierto → resuelta (lo une Claudio): «' + (r && r.motivo) + '»');
+  [['Unir el PR: Botón de pagos', REPO + '600'], ['Cambio por revisar', 'No pude unir sola el cambio: choca con lo último de main. ' + REPO + '601'], ['Hay 3 cambios por unir', ''], ['Únelo', 'Hub #602']].forEach(([t, d]) => {
+    const q = X.pendMotivoCierre_(base({ titulo: t, detalle: d }), ctx());
+    ok(q && /era para unir/.test(q.motivo), '7 · «' + t + '» → resuelta sin preguntar a GitHub');
+  });
+  ok(!X.pendMotivoCierre_(base({ origen: 'socio', resumen: 'El socio pide unir Hub #603 con su reporte.' }), ctx()), '7 · un pedido de socio no se toca aunque diga unir');
+  ok(!X.pendMotivoCierre_(base({ resumen: '¿Unimos los dos apartamentos en una sola reserva?' }), ctx()), '7 · «unir» sin un cambio nombrado no es de unir PR');
   const ent = n => base({ id: 'e' + n, origen: 'entrega', ts: ahora - n * H, detalle: 'No le llegó tu mensaje a Recepción (+50255551234): bloqueada.' });
   r = X.pendMotivoCierre_(ent(5), ctx({ nueva: { 'entrega:55551234': 'e1' } }));
   ok(r && /repetida/.test(r.motivo), '1 · entrega: hay una más nueva del mismo número → la vieja se cierra');
@@ -173,6 +187,7 @@ const fila = (c, id) => { const cab = c.ctx.PEND_CAB_, f = c.hojas.ALMA_PENDIENT
     { titulo: 'Tema abierto', tema_id: 'tmA', ts: AHORA0 - 3 * H },
     { titulo: 'PR unidos', resumen: 'Revisa Hub #555 antes de unir.', ts: AHORA0 - 3 * H },
     { titulo: 'PR abierto', resumen: 'Une Hub #562.', ts: AHORA0 - 3 * H },
+    { titulo: 'PR por decidir', resumen: 'Revisa Hub #562 y dime qué tarifa dejamos.', ts: AHORA0 - 3 * H },
     { titulo: 'Entrega vieja', origen: 'entrega', detalle: '(+50255551234)', ts: AHORA0 - 40 * H },
     { titulo: 'Entrega nueva', origen: 'entrega', detalle: '(+50255551234)', ts: AHORA0 - 2 * H },
     { titulo: 'Aviso viejo', tipo: 'aviso', ts: AHORA0 - 10 * D },
@@ -187,16 +202,16 @@ const fila = (c, id) => { const cab = c.ctx.PEND_CAB_, f = c.hojas.ALMA_PENDIENT
   const r = c.ctx.pendLimpiar_();
   const est = t => { const f = sh.filas.find(x => x[6] === t); return f[c.ctx.PEND_CAB_.indexOf('estado')] + ' · ' + f[c.ctx.PEND_CAB_.indexOf('motivo')]; };
   ok(sh.log[antes] === 'copia' && sh.log[antes + 1] === 'nombre:ALMA_PENDIENTES_RESPALDO_V1', '5 · respaldo en ALMA_PENDIENTES_RESPALDO_V1 antes de tocar nada');
-  const cerradas = ['Tema cerrado', 'PR unidos', 'Entrega vieja', 'Aviso viejo', 'Hecho de ayer', 'Cupo viejo'], siguen = ['Tema abierto', 'PR abierto', 'Entrega nueva', 'Cupo nuevo', 'Aviso de hoy'];
+  const cerradas = ['Tema cerrado', 'PR unidos', 'PR abierto', 'Entrega vieja', 'Aviso viejo', 'Hecho de ayer', 'Cupo viejo'], siguen = ['Tema abierto', 'PR por decidir', 'Entrega nueva', 'Cupo nuevo', 'Aviso de hoy'];
   ok(cerradas.every(t => /^(resuelto|vencido) · \S/.test(est(t))), '5 · cierra con motivo lo ya resuelto o vencido: ' + cerradas.map(t => t + ' → ' + est(t)).join(' | '));
   ok(siguen.every(t => /^abierto · $/.test(est(t))) && /^resuelto · $/.test(est('Ya resuelta')), '5 · lo que sigue vivo (y lo que ya estaba cerrado) no se toca');
-  ok(r.v1 && r.v1.total === 6 && /6 cerradas/.test(c.props.PEND_LIMPIEZA_V1) && JSON.parse(c.props.PEND_LIMPIEZA_REGISTRO).PEND_LIMPIEZA_V1.cuenta.total === 6, '5 · conteo en el registro: ' + JSON.stringify(r.v1));
+  ok(r.v1 && r.v1.total === 7 && /7 cerradas/.test(c.props.PEND_LIMPIEZA_V1) && JSON.parse(c.props.PEND_LIMPIEZA_REGISTRO).PEND_LIMPIEZA_V1.cuenta.total === 7, '5 · conteo en el registro: ' + JSON.stringify(r.v1));
   ok(c.rets.some(l => l.indexOf('rt9') < 0 && l.indexOf('rt8') >= 0) && c.temasCerrados.length >= 2, '5 · lo que esperaba a Juan suelta su tema por retomar y su tema');
   const copias = () => sh.log.filter(x => x === 'copia').length;
   ok(c.ctx.pendLimpiar_() === null, '5 · la limpieza normal no corre antes de 15 min');
   c.mover(16 * 60000); const r2 = c.ctx.pendLimpiar_();
   ok(r2 && !r2.v1 && copias() === 1 && r2.cuenta.total === 0, '5 · la corrida única no se repite (un solo respaldo) y después solo limpia lo nuevo');
-  const sinCupo = conHoja({ cupo: false, prs: { [REPO + '555']: 'unido' } }, [{ titulo: 'PR unidos', resumen: 'Revisa Hub #555 antes de unir.' }]);
+  const sinCupo = conHoja({ cupo: false, prs: { [REPO + '555']: 'unido' } }, [{ titulo: 'PR unidos', resumen: 'Revisa Hub #555 antes de decidir.' }]);
   sinCupo.ctx.pendLimpiar_();
   ok(/^abierto/.test(sinCupo.hojas.ALMA_PENDIENTES.filas[1][sinCupo.ctx.PEND_CAB_.indexOf('estado')]), '5 · con el cupo de Google alto no pregunta a GitHub (la tarjeta espera)');
   ok(/cupoFuncion_\('pendLimpiar_'\); try \{ pendLimpiar_\(\); \}/.test(leer('Código.js')), '5 · procesarCola la llama con su nombre (cupoFuncion_)');
@@ -213,6 +228,32 @@ const fila = (c, id) => { const cab = c.ctx.PEND_CAB_, f = c.hojas.ALMA_PENDIENT
   const t = c.ctx.microTarjetas_(JUAN);
   ok(!t.some(x => x.micro === 'mpA' && x.estado === 'pregunta') && c.ctx.microLeer_('mpA').estado === 'unido' && !c.avisos.some(a => a.unido), '6 · Claudio preguntaba y Juan ya unió su PR: deja de preguntar, queda unido y sin otro aviso');
   ok(t.filter(x => (x.enlaces || []).indexOf(REPO + '562') >= 0).length === 1 && t.some(x => x.micro === 'mpC'), '6 · dos microproyectos con el mismo PR: una sola tarjeta, la más reciente');
+}
+
+/* ── 7 · Unir ya no es de Juan: la corrida única PEND_LIMPIEZA_UNIR_V1 y Desarrollo en Pendientes ── */
+{
+  const acciones = [['ac1', '2026-11-15 10:00', 'Unir el PR: Botón de pagos', 'Claudio dejó listo este cambio.', REPO + '600', 'pendiente', 'claude'],
+    ['ac2', '2026-11-15 11:00', 'Aprobar la factura', 'Ábrela y apruébala.', 'https://x.y/f', 'pendiente', 'claude'],
+    ['ac3', '2026-11-14 11:00', 'Unir el PR: Viejo', '', REPO + '590', 'completada', 'claude']];
+  const rets = [{ id: 'rt1', origen: 'claude', texto: 'Ya quedó listo el cambio para «X»; solo falta que lo unas para que se publique.' },
+    { id: 'rt2', origen: 'claude', texto: 'Revisé lo que me pediste de «Y» y tengo una duda antes de seguir.' },
+    { id: 'rt3', origen: 'segundo_plano', texto: 'Hay 2 cambios por unir.' }];
+  const c = conHoja({ props: { PEND_LIMPIEZA_V1: 'ya' }, acciones, rets, prs: { [REPO + '562']: 'abierto' } }, [
+    { id: 'u1', titulo: 'Unir', resumen: 'Une Hub #562 cuando puedas.', ts: AHORA0 - 5 * D },
+    { id: 'u2', titulo: 'Decidir', resumen: '¿Cuál tarifa dejamos para Rue?', ts: AHORA0 - 2 * D }]);
+  const r = c.ctx.pendLimpiar_();
+  const est = id => fila(c, id).estado + ' · ' + fila(c, id).motivo;
+  ok(r.unir && /^resuelto · era para unir/.test(est('u1')) && /^abierto/.test(est('u2')), '7 · corrida única: lo viejo de unir se cierra con su motivo y lo que pide a Juan se queda (' + est('u1') + ')');
+  const ac = c.hojas.ALMA_ACCIONES.filas;
+  ok(ac[1][5] === 'completada' && ac[2][5] === 'pendiente' && r.unir.acciones === 1, '7 · las acciones «Unir el PR» quedan hechas; las demás no se tocan');
+  ok(c.rets.some(l => l.indexOf('rt1') < 0 && l.indexOf('rt2') >= 0 && l.indexOf('rt3') >= 0) && r.unir.retomar === 1, '7 · sale el tema por retomar de «solo falta que lo unas» (de Claude); lo demás se queda');
+  ok(/1 acciones · 1 por retomar/.test(c.props.PEND_LIMPIEZA_UNIR_V1) && JSON.parse(c.props.PEND_LIMPIEZA_REGISTRO).PEND_LIMPIEZA_UNIR_V1, '7 · deja su marca y el conteo en el registro: ' + c.props.PEND_LIMPIEZA_UNIR_V1);
+  c.mover(16 * 60000); const r2 = c.ctx.pendLimpiar_();
+  ok(r2 && r2.unir === null, '7 · la corrida única de unir no se repite');
+  const S = c.ctx.pendDesarrolloSeccion_;
+  ok(S({ estado: 'pregunta' }) === 'atencion' && S({ estado: 'fallo' }) === 'atencion', '7 · Desarrollo en Pendientes: Claudio pregunta o no pudo');
+  ok(['listo', 'revisando', 'trabajando', 'publicando', 'fallo_pub'].every(e => S({ estado: e, unir: ['u'] }) === 'leer') && S({ estado: 'fallo', pr: true }) === 'leer' && S({ estado: 'publicado' }) === 'listo',
+    '7 · listo para unir, un choque, un PR suelto que falla o una publicación que falló: a Notificaciones, no a Pendientes');
 }
 
 process.exit(fallo);

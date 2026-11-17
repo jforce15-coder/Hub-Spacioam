@@ -49,9 +49,10 @@ function avisoTexto_(tipo, d) {
     case 'claude_pregunta': out = { titulo: 'Necesito tu respuesta',
       texto: 'Revisé lo que me pediste de ' + q(d.titulo) + ' y tengo una duda antes de seguir; necesito tu respuesta.',
       datos: [lin('Pedido', d.titulo), lin('La duda', det), 'Dónde: en Pendientes, con las opciones'], voz: det }; break;
-    case 'claude_listo': out = { titulo: 'Cambio por unir',
-      texto: 'Ya quedó listo el cambio para ' + q(d.titulo) + '; solo falta que lo unas para que se publique.',
-      datos: [lin('Pedido', d.titulo), 'Qué falta: que lo unas', 'Dónde: Pendientes → Unir'] }; break;
+    /* Claudio une y publica solo (Juan, 17-nov-2026, pc1794936657400): no se le pide a Juan que lo una. */
+    case 'claude_listo': out = { titulo: 'Cambio listo',
+      texto: 'Ya quedó el cambio para ' + q(d.titulo) + '; se publica solo en cuanto pasa sus revisiones.',
+      datos: [lin('Pedido', d.titulo), 'Qué falta: nada de tu parte', 'Dónde: en tu chat con Alma'] }; break;
     case 'claude_fallo': out = { titulo: 'No se pudo',
       texto: 'Intenté ' + q(d.titulo) + ', pero no se pudo terminar; necesito que lo revises para ver cómo seguimos.',
       datos: [lin('Pedido', d.titulo), lin('Qué pasó', det || 'no quedó terminado'), 'Qué falta: que me digas cómo seguir'], voz: det ? 'El motivo: ' + det : '' }; break;
@@ -65,9 +66,9 @@ function avisoTexto_(tipo, d) {
     case 'escalar_entregado': out = { titulo: 'Ya está lo que pediste',
       texto: 'Ya está lo que me pediste de ' + q(d.nombre) + ': hizo falta un cambio, lo uní y te dejé el resultado en tu chat.',
       datos: [lin('Pedido', d.nombre), 'Estado: unido y entregado', 'Dónde: en tu chat con Alma'] }; break;
-    case 'escalar_no_unido': out = { titulo: 'Cambio por revisar',
-      texto: 'No pude unir sola el cambio de ' + q(d.nombre) + ' porque ' + avisoCorto_(d.causa, 50) + '; te lo dejé en Pendientes: ' + d.url,
-      datos: [lin('Pedido', d.nombre), lin('Por qué', d.causa), 'Qué falta: que lo revises y lo unas'] }; break;
+    case 'escalar_no_unido': out = { titulo: 'Todavía no está',
+      texto: 'Todavía no pude terminar ' + q(d.nombre) + ': el cambio no se pudo unir porque ' + avisoCorto_(d.causa, 50) + ': ' + d.url,
+      datos: [lin('Pedido', d.nombre), lin('Por qué', d.causa), 'Qué falta: nada de tu parte'] }; break;
     case 'escalar_no_publico': out = { titulo: 'Falló la publicación',
       texto: 'Uní el cambio para ' + q(d.nombre) + ', pero falló al publicarse; hay que revisarlo: ' + d.url,
       datos: [lin('Pedido', d.nombre), 'Estado: unido, sin publicar', 'Qué falta: revisar la publicación'] }; break;

@@ -142,4 +142,7 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/vivoMira_\(adm\.email\)\) vivoPanel_\(adm, b\.conv_id, claudioPanelArmar_\(adm, cand\)\)/.test(cl), '8 · con el iPad mirando, cada herramienta de Claudio le deja el panel (aunque el iPhone esté bloqueado)');
   ok(/con Claudio/.test(h), '8 · inicio.html: arriba dice «con Claudio» mientras se ve su panel');
 }
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/comp-lado/.test(h) && /@media \(min-width: 900px\) \{\s*\.comp-cuerpo/.test(h) && /ci-dur/.test(h) && /subs\.children\.length > 40/.test(h), '9 · en el iPad (pantalla ancha): el tablero y al lado los datos de la llamada y la conversación entera');
+}
 process.exit(fallo);

@@ -78,9 +78,11 @@ function musicaLista_() {
 /* El dispositivo: el que se nombró (sala, cocina, carro…); si no, el que está sonando; si no, el último donde Alma puso
    música; si no, el teléfono o la compu (los que más rápido despiertan); si no, el primero. */
 function musicaDispositivo_(nombre) {
-  var l = musicaLista_();
-  if (!l.length) return { lista: [] };
-  var n = musicaNorm_(nombre), el = null, ult = PropertiesService.getScriptProperties().getProperty('SPOTIFY_ULTIMO') || '';
+  var l = musicaLista_(), pp = PropertiesService.getScriptProperties(), ult = pp.getProperty('SPOTIFY_ULTIMO') || '';
+  // Lista vacía (17-nov, «reproducir en el predeterminado sin error»): se prueba el último donde sonó por su id;
+  // a veces Spotify lo acepta aunque no lo muestre. Si no, el mensaje claro (musica_).
+  if (!l.length) return { el: ult ? { id: ult, name: pp.getProperty('SPOTIFY_ULTIMO_NOMBRE') || 'el último dispositivo donde sonó', is_active: false, recordado: true } : null, lista: [] };
+  var n = musicaNorm_(nombre), el = null;
   if (n) el = l.find(function (x) { return musicaNorm_(x.name).indexOf(n) >= 0 || n.indexOf(musicaNorm_(x.name)) >= 0; });
   var otro = l.find(function (x) { return x.is_active; }) || l.find(function (x) { return x.id === ult; }) ||
     l.find(function (x) { return /smartphone|computer/i.test(x.type); }) || l[0];
@@ -101,7 +103,7 @@ function musicaOrden_(el, metodo, ruta, cuerpo) {
     Utilities.sleep(1500);
     r = spotifyApi_(metodo, ruta, cuerpo);
   }
-  if (r.code < 300) PropertiesService.getScriptProperties().setProperty('SPOTIFY_ULTIMO', el.id);
+  if (r.code < 300) PropertiesService.getScriptProperties().setProperties({ SPOTIFY_ULTIMO: el.id, SPOTIFY_ULTIMO_NOMBRE: String(el.name || '').slice(0, 60) });
   return r;
 }
 /* Herramienta de Alma (secretaria). Solo el admin principal: la cuenta de Spotify es la suya. */
@@ -116,8 +118,8 @@ function musica_(adm, inp) {
     var a = spotifyApi_('get', '/me/player/currently-playing'); if (a.code === 204 || !a.j.item) return { sonando: 'Nada' };
     return { sonando: a.j.item.name + ' · ' + (a.j.item.artists || []).map(function (x) { return x.name; }).join(', '), en_pausa: !a.j.is_playing };
   }
-  var dsp = musicaDispositivo_(inp.dispositivo);
-  if (!dsp.el) return { error: 'No veo ningún dispositivo de Spotify despierto (Spotify solo muestra los que están abiertos). Abre Spotify en el teléfono un momento, o di «Ok Google, pon Spotify» en la bocina, y vuelve a pedírmelo: ahí ya lo prendo yo.' };
+  var dsp = musicaDispositivo_(inp.dispositivo), sinDsp = 'No veo ningún dispositivo de Spotify despierto (Spotify solo muestra los que están abiertos). Abre Spotify en el teléfono un momento, o di «Ok Google, pon Spotify» en la bocina, y vuelve a pedírmelo: ahí ya lo prendo yo.';
+  if (!dsp.el) return { error: sinDsp };
   var el = dsp.el, q = '?device_id=' + encodeURIComponent(el.id), r;
   if (acc !== 'pausar') musicaActivar_(el, false);
   if (acc === 'pausar') r = musicaOrden_(el, 'put', '/me/player/pause' + q);
@@ -136,6 +138,7 @@ function musica_(adm, inp) {
     if (r.code < 300) return { ok: true, sonando: it.name + (it.artists ? ' · ' + it.artists.map(function (x) { return x.name; }).join(', ') : it.owner ? ' (playlist de ' + it.owner.display_name + ')' : ''), en: el.name,
       nota: dsp.pedido && !dsp.hallado ? 'No encontré «' + inp.dispositivo + '»; lo puse en ' + el.name + '.' : undefined };
   }
+  if (r.code >= 300 && el.recordado) return { error: sinDsp };
   if (r.code < 300) return { ok: true, en: el.name };
   var m = (r.j && r.j.error && (r.j.error.message || r.j.error)) || ('HTTP ' + r.code);
   return { error: /premium/i.test(m) ? 'Spotify pide Premium para controlar la música.' : 'Spotify no lo hizo: ' + m };

@@ -312,6 +312,9 @@ jobs:
         # 16-nov: el anillo llega como control de música y Spotify se lo quita; Juan aprobó leerlo directo por Bluetooth y antes
         # hay que saber qué manda (ticket #29, paso 1). La app manda el registro y Claude lo lee para mapear los toques.
         run: node .github/anillo-ble.js apps-script
+      - name: Música sin dispositivo activo, suena en el predeterminado o el teléfono, activa antes del play y reintenta, mensaje claro si no hay ninguno (dobles)
+        # 17-nov-2026 (pedido pc1794924234976): «si no hay dispositivo activo de Spotify, reproducir en el actual o el predeterminado, sin error».
+        run: node .github/musica-dispositivo.js apps-script
       - name: Alma y el anillo, la Lectura del anillo solo con sesión y con su hora, sin datos personales, la herramienta del chat y las 5 de la voz (dobles)
         # 16-nov: Juan quiere manejar el anillo QRing desde Alma (batería, pasos, ritmo, oxígeno, ajustes). En la app, en vivo;
         # fuera de ella, lo último que leyó la app, siempre con su hora y sin inventar si no está conectado.

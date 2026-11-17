@@ -214,6 +214,9 @@ jobs:
       - name: Reporte del mes, la ocupación y el neto salen de la hoja de Mi, nunca de un cálculo, y un mes que no está no se estima (dobles)
         # 7-nov: Alma dijo 26 % de ocupación de Rue 301 en octubre (eran 26 noches; la real, 83.9 %).
         run: node .github/reporte-mes.js apps-script
+      - name: Precio por noche, el desglose de Airbnb ÷ noches sale de Hospitable y el largo plazo de Hola sin datos del inquilino (dobles)
+        # 17-nov: Juan pidió para Mónaco tarifa, limpieza y comisión por noche y el largo plazo de Hola; Alma no tenía de dónde leerlo.
+        run: node .github/precio-noche.js apps-script
       - name: Enlaces cortos, mismo enlace mismo código, «enlace» pública y todo WhatsApp, correo y Hospitable sale con el corto (dobles)
         # #488 T2: los enlaces largos (los PDF de Drive, el formulario de Grow, el Hub) se veían raros y daban desconfianza.
         run: node .github/enlaces.js apps-script

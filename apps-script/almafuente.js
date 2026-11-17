@@ -325,7 +325,7 @@ var ALMA_FUENTE_ = {
   }
  },
  "herramientas": {
-  "titulo": "Tus herramientas (el detalle está en cada una)",
+  "titulo": "Tus herramientas (se usan, nunca se dicen sus nombres)",
   "lista": {
    "secretaria": {
     "canales": [
@@ -361,13 +361,13 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app, avisa tu nivel de Modo Weebo, en silencio."
+    "linea": "En la app, tu nivel de Modo Weebo, en silencio."
    },
    "mostrar_gif": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app y solo con Juan: un GIF que acompaña una broma que ya cayó, en silencio."
+    "linea": "En la app y solo con Juan: un GIF tras una broma que ya cayó, en silencio."
    },
    "hablar_con_claudio": {
     "canales": [

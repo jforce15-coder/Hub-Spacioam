@@ -103,4 +103,10 @@ ok(!c.gifApi_({ email: 'juan@x.com' }, '<>{}').ok && c.gifIdea_('x'.repeat(90)).
 const L = fs.readFileSync(path.join(DIR, 'llaves.js'), 'utf8');
 ok(/nombre: 'GIPHY_KEY'/.test(L), 'GIPHY_KEY se puede guardar en Ajustes → Llaves');
 
+/* 6 · Los nombres de herramientas no se dicen (Juan, 16-nov-2026: «que Alma no lea en voz alta nivel_weebo»). */
+const sinN = new Function(v.match(/var VOZ_HERRAMIENTA_RX_[^\n]+\nfunction vozSinNotas_[^\n]+/)[0] + '; return vozSinNotas_;')();
+ok(sinN('nivel_weebo Claro, lo reviso.') === 'Claro, lo reviso.' && sinN('Listo. mostrar_gif("slow clap") Te cuento.') === 'Listo. Te cuento.' && sinN('skip_turn') === '', 'Lo que Alma dice queda sin nombres de herramientas (nivel_weebo, mostrar_gif(…), skip_turn)');
+ok(sinN('Escríbele a ana_lopez@correo.com') === 'Escríbele a ana_lopez@correo.com', 'Los correos con guion bajo no se tocan');
+ok(/nunca se dicen sus nombres/.test(A.herramientas.titulo) && /no digas su nombre/.test(def) && /ni su nombre/.test(v.slice(v.indexOf('function vozNivelWeebo_'), v.indexOf('function vozMostrarGif_'))), 'El prompt y las herramientas silenciosas piden no decir su nombre');
+
 process.exit(fallo);

@@ -186,6 +186,9 @@ function agHerramientas_() {
       { persona: s(AG_DEST_.description + '; o su WhatsApp'), objetivo: s('Todo lo que hay que lograr en la conversación: qué explicar, qué preguntar, qué validar'), mensaje: s('WhatsApp inicial concreto: quién eres, de parte de quién, para qué y que llame a la línea de ALMA (+502 3128 0966)') }, ['persona', 'objetivo', 'mensaje']),
     T('cerrar_encargo', 'Marca como cumplido un encargo de ENCARGOS PENDIENTES CONTIGO y le avisa a quien lo pidió.', { id: s('id del encargo'), resultado: s('Qué se hizo, en una o dos frases') }, ['id', 'resultado']),
     T('promesas_abiertas', 'Lo que ALMA le prometió a huéspedes o contactos y sigue pendiente.', {}),
+    /* Historial de pagos de Epi (pagosepi.js): solo lee; «pendiente de depositar» = comprobantes sin soporte de transferencia. */
+    T('pagos_epi', 'Historial de pagos de Epi de una persona del equipo (técnico, limpieza o planilla): sus comprobantes con fecha, neto y si ya se depositó (tiene soporte de la transferencia), el monto pendiente de depositarle y el saldo de sus adelantos. Para «¿cuánto le debemos a…?», «¿qué falta depositarle a…?». Repite las cifras tal cual; no las calcules. Solo administrador principal.',
+      { persona: s('Nombre como lo digan («Gabriel», «Gabriel Asturias») o su correo') }, ['persona']),
     /* Reporte del mes (reportemes.js): lo lee de la hoja de Mi; Alma repite sus cifras y nunca las calcula. */
     T('reporte_mes', 'Reporte del mes de una propiedad como lo cierra Mi (noches, estadías, ocupación en %, ADR, ingresos, fee, gastos, depósito en USD, mes anterior). Para ocupación, ingresos o depósito: repite sus cifras tal cual; si el mes no está, no lo calcules. Cada estadía cuenta en su mes de entrada. Solo administrador principal.',
       { propiedad: s('Como la digan («Rue 301», «z4 rue»)'), mes: s('AAAA-MM, «octubre», «octubre 2026» o «el mes pasado»; vacío = el último cerrado'), meses: { type: 'integer', description: 'Opcional: cuántos meses hacia atrás, para comparar' } }, ['propiedad']),
@@ -706,6 +709,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       ctx.hechas.push({ tipo: 'encargo', resumen: 'Encargo cumplido · ' + String(inp.resultado || '').slice(0, 80), error: rE.ok ? '' : rE.error });
       return rE;
     }
+    case 'pagos_epi': { var rPg = pagosEpi_(adm, inp); if (rPg && rPg.ok) ctx.hechas.push({ tipo: 'consulta', resumen: 'Pagos de Epi · ' + rPg.persona + ': pendiente ' + rPg.pendiente_texto }); return rPg; }   // pagosepi.js
     case 'reporte_mes': return reporteMes_(adm, inp);   // reportemes.js
     case 'ficha_socio': {   // fichasocio.js (#522); al verla en una llamada, el tablero del socio (tarjeta.js, #508 Fase 2)
       var fueraF = {}, rF = fichaHerramienta_(adm, inp, fueraF), sF = fueraF.s;

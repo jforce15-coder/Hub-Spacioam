@@ -13,7 +13,8 @@
        2. Si solo está el reenvío de Juan: un correo nuevo al socio con «Re: <asunto original>». Si el reenvío trae el
           Message-ID del original, sale por el servicio avanzado de Gmail con In-Reply-To y References (GmailApp no deja
           poner esos encabezados); si no lo trae, o el servicio no está, sale con GmailApp.sendEmail.
-     Nunca sale sin el sí de Juan: la primera llamada solo arma el borrador (para, copia, asunto y texto) y lo guarda; el
+     Nunca sale sin el sí de Juan (desde el 17-nov, su orden de responder en el mismo mensaje ya es su sí: enviodirecto.js;
+     si pidió verlo antes, como sigue): la primera llamada solo arma el borrador (para, copia, asunto y texto) y lo guarda; el
      envío pide confirmado = true en un mensaje NUEVO de Juan (otro turno), con el mismo texto. Es la confirmación del
      chat para mensajes a terceros (como el calendario), no el «Envío con deshacer» de decisiones.js: ese es para los
      casos de huéspedes por WhatsApp y manda por la conversación de la reserva, no por correo.
@@ -330,7 +331,8 @@ function correoDestino_(q, aTodos) {
 }
 function correoNorm_(s) { return String(s || '').replace(/[“”«»"]/g, '"').replace(/\s+/g, ' ').trim(); }
 /* Sin confirmado (o en el mismo turno del borrador): arma el borrador y lo guarda. Con confirmado en un mensaje nuevo de
-   Juan y el mismo texto: lo manda. AGENTE_TEXTO_ es lo que Juan escribió en este turno (agente.js). */
+   Juan y el mismo texto: lo manda. AGENTE_TEXTO_ es lo que Juan escribió en este turno (agente.js).
+   o.directo: ese mensaje de Juan ya era la orden de responder (enviodirecto.js, 17-nov-2026): sale en la primera llamada. */
 function correoResponder_(adm, o) {
   o = o || {};
   var c = CacheService.getScriptCache(), k = 'CORREO_RESP_' + String((adm && adm.email) || '').toLowerCase(), turno = String(typeof AGENTE_TEXTO_ === 'undefined' ? '' : AGENTE_TEXTO_ || '');
@@ -349,6 +351,7 @@ function correoResponder_(adm, o) {
   var no = ''; try { no = correoNoResponder_(correoCuentaHub_(), d.para); } catch (e) {}
   if (no) return { error: 'No le respondo a ' + d.para + ': ' + no + '.' };
   var b = { texto: texto, a_todos: aTodos, turno: turno, modo: d.modo, para: d.para, cc: d.cc, asunto: d.asunto, msg: d.mensaje ? d.mensaje.getId() : '', hilo: d.hilo.getId(), mid: d.mid || '', adjuntos: adjIds, adj_nombres: adj.nombres };
+  if (o.directo === true) { c.remove(k); return correoResponderEnviar_(b); }   // Juan ordenó responder en este mensaje: su orden es el sí (enviodirecto.js)
   c.put(k, JSON.stringify(b), 3600);
   return { ok: true, falta_confirmar: true,
     borrador: { para: d.para, copia: d.cc.length ? d.cc.join(', ') : 'nadie', asunto: d.asunto, texto: texto, adjuntos: adj.nombres.length ? adj.nombres.join(', ') : undefined, como: d.modo === 'hilo' ? 'respuesta en el mismo hilo' : 'correo nuevo con «Re:» (solo tengo tu reenvío)' },

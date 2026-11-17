@@ -136,7 +136,16 @@ function bandejaConOriginal() {
   c.ctx.AGENTE_TEXTO_ = 'Juan en otro turno'; c.R('correoResponder_', { email: 'otra@ejemplo.test' }, { buscar: 'Estado de cuenta', texto: 'Otro texto que Juan no vio.', confirmado: true });
   ok(nada(), 'el borrador de una persona no lo confirma otra');
   const src = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8');
-  ok(/T\('responder_correo'/.test(src) && /case 'responder_correo'[\s\S]{0,200}esAdminPrincipal_[\s\S]{0,120}correoResponder_\(adm, inp\)/.test(src), 'agente.js: responder_correo existe y solo para Juan');
+  ok(/T\('responder_correo'/.test(src) && /case 'responder_correo'[\s\S]{0,200}esAdminPrincipal_[\s\S]{0,120}correoResponder_\(adm, Object\.assign\(\{\}, inp, \{ directo: typeof envioDirecto_ === 'function' && envioDirecto_\(adm\) \}\)\)/.test(src), 'agente.js: responder_correo existe, solo para Juan y pasa si su orden ya es el sí');
+}
+/* ── 4b. La orden de Juan ya es su sí (17-nov-2026, enviodirecto.js): directo = true sale en la primera llamada ── */
+{
+  const b = bandejaConOriginal(), c = caja({ hilos: [b.T1, b.T2], buscar: b.buscar });
+  c.ctx.AGENTE_TEXTO_ = 'Respóndele a Ana que el pago sale el viernes';
+  const r = c.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola Ana, el pago sale el viernes.', directo: true });
+  ok(r.enviado && !r.falta_confirmar && b.orig.replies.length === 1 && b.orig.replies[0].tipo === 'reply', 'directo: sale ya, en el mismo hilo, sin borrador');
+  c.ctx.AGENTE_TEXTO_ = 'sí'; c.R('correoResponder_', { email: YO }, { buscar: 'Estado de cuenta', texto: 'Hola Ana, el pago sale el viernes.', confirmado: true });
+  ok(b.orig.replies.length === 1, 'directo: no queda borrador que un «sí» vuelva a mandar');
 }
 
 /* ── 5. Solo el reenvío ── */

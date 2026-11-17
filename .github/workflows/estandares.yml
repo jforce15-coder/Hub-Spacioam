@@ -166,6 +166,10 @@ jobs:
         # 15-nov: Juan pidió que cada hora Alma limpie pendientes y promesas sin humano y resuelva sola al menos el 60 % (#545).
         run: node .github/rutina-hora.js apps-script
 
+      - name: Operaciones de día solo propone lo de hoy, lo de mañana al cierre, y nunca un mensaje al equipo por tareas vencidas (dobles)
+        # 17-nov: Juan pidió descartar los mensajes a Gabriel por tareas ya hechas y no ver de día las limpiezas de mañana (#643, #644).
+        run: node .github/operaciones-hoy.js apps-script
+
       - name: Un mensaje del huésped es un caso y un aviso, aunque dos disparos lo procesen a la vez (dobles)
         # 3-nov: el caso de Alejandra (la biblia) llegó dos veces a Juan, con opciones A/B/C distintas: dos pasadas se cruzaron.
         run: node .github/decision-unica.js apps-script

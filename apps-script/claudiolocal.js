@@ -8,12 +8,11 @@
        confirmaciones, «nunca» y Weebo salen de la misma fuente que Alma), la MISMA ficha (claudioFicha_) y las MISMAS
        herramientas (claudio_pedido, claudio_responder, claudio_estado, claudio_unir, claudio_codigo y volver_con_alma),
        con el modelo rápido de la voz (rapidoModelo_, como el camino rápido): cuesta centavos de texto, no minutos de voz;
-     · voz: LA MISMA voz de Claudio en ElevenLabs (Juan, 17-nov-2026, #636: «mantener la voz igual a la que usábamos antes
-       con ElevenLabs, que la voz local tenga la misma calidad sin bajar el nivel»). Cada frase se convierte en audio con
-       su voz (CLAUDIO_VOZ_ID_), el mismo modelo y los mismos ajustes de su agente (claudioTts_), en el mismo formato de la
-       llamada (PCM 16 kHz). Solo se paga lo que Claudio dice (unas letras por frase), no los minutos de la llamada
-       (escuchar, pensar y los silencios). Si ElevenLabs falla o se apaga (CLAUDIO_VOZ_LOCAL {"motor":"iphone"}), habla la
-       voz de hombre del iPhone afinada para parecerse (CLAUDIO_VOZ_LOCAL_): la conversación nunca se queda muda.
+     · voz: una voz de hombre del iPhone (la mejor que tenga en español), afinada para parecerse a la de Claudio en
+       ElevenLabs (calmada, cálida, ritmo de conversación): CLAUDIO_VOZ_LOCAL_, y se cambia sin PR con la propiedad
+       CLAUDIO_VOZ_LOCAL (JSON). Juan, 17-nov-2026 (#649): «volver a la voz local que funcionaba bien antes del último
+       ajuste» (el de #636, que mandaba cada frase con la voz de Claudio en ElevenLabs). Ese camino queda apagado de
+       fábrica; CLAUDIO_VOZ_LOCAL {"motor":"elevenlabs"} lo vuelve a encender sin PR (claudioLocalAudio_).
    Las reglas de cómo suena (skill alma-humana, «Diseñar para el oído»): la respuesta primero, frases cortas, una sola
    pregunta al final, nada de listas ni etiquetas de emoción (la voz del iPhone las leería en voz alta): CLAUDIO_LOCAL_VOZ_.
    Encendido de fábrica. CLAUDIO_LOCAL = 0 (Propiedades del script) vuelve al agente de ElevenLabs sin un PR. La app
@@ -27,7 +26,7 @@ var CLAUDIO_LOCAL_VUELTAS_ = 4, CLAUDIO_LOCAL_MS_ = 22000, CLAUDIO_LOCAL_HIST_ =
 var CLAUDIO_LOCAL_REPITE_ = 'Perdón, no me llegó bien. ¿Me lo repites?';
 /* La voz del iPhone que imita a Claudio: de hombre, en español de México (luego Estados Unidos y España), la de mejor
    calidad instalada; un poco más grave y apenas más pausada que la de fábrica, como su voz de ElevenLabs. */
-var CLAUDIO_VOZ_LOCAL_ = { motor: 'elevenlabs', idiomas: ['es-MX', 'es-US', 'es-419', 'es-ES'], genero: 'hombre', velocidad: 0.5, tono: 0.92, volumen: 1 };
+var CLAUDIO_VOZ_LOCAL_ = { motor: 'iphone', idiomas: ['es-MX', 'es-US', 'es-419', 'es-ES'], genero: 'hombre', velocidad: 0.5, tono: 0.92, volumen: 1 };
 /* La voz de ElevenLabs en Claudio local: los modelos que también sirven fuera del agente; si el agente usa otro (o todavía
    no se leyó), el rápido, que es el de las llamadas. Los ajustes (estabilidad, parecido, velocidad) son los de su agente. */
 var CLAUDIO_TTS_MODELOS_ = ['eleven_flash_v2_5', 'eleven_turbo_v2_5', 'eleven_multilingual_v2', 'eleven_v3'];
@@ -52,7 +51,7 @@ function claudioVozLocal_() {
   o.idiomas = (Array.isArray(o.idiomas) ? o.idiomas : [String(o.idiomas || '')]).map(String).filter(function (x) { return /^es(-[A-Za-z0-9]+)?$/.test(x); }).slice(0, 5);
   if (!o.idiomas.length) o.idiomas = CLAUDIO_VOZ_LOCAL_.idiomas.slice();
   o.genero = o.genero === 'mujer' ? 'mujer' : 'hombre';
-  o.motor = o.motor === 'iphone' ? 'iphone' : 'elevenlabs';
+  o.motor = o.motor === 'elevenlabs' ? 'elevenlabs' : 'iphone';   // de fábrica, la del iPhone (#649)
   return o;
 }
 

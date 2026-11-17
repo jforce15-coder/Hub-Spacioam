@@ -391,7 +391,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Navegador: marca el siguiente paso, uno a la vez."
+    "linea": "Navegador: marca paso a paso."
    },
    "tocar": {
     "canales": [
@@ -428,6 +428,12 @@ var ALMA_FUENTE_ = {
      "voz"
     ],
     "linea": "En la app: abre Apple Pay."
+   },
+   "guiar_camino": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Guía de camino."
    },
    "anillo_estado": {
     "canales": [

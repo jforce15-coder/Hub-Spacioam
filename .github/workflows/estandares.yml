@@ -145,6 +145,9 @@ jobs:
       - name: Plantilla para socios, con dobles de la API de Meta (crear, aprobada, pasada a Marketing)
         run: node .github/socio-plantilla.js apps-script
 
+      - name: La Guía de camino pregunta el medio, lo recuerda y arma los pasos (dobles de Google)
+        run: node .github/guia-camino.js apps-script
+
       - name: La voz del Modo calle dice por qué no hubo audio (dobles de ElevenLabs)
         run: node .github/calle-voz.js apps-script
 

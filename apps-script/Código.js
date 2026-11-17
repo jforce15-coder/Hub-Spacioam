@@ -3469,6 +3469,7 @@ function hubApi_(body) {
       case 'viajePase': return json_(viajePase_(ses, body));                               // botón del avión: { id, pdf? } → el pase de abordar (imagen, PDF o Wallet)
       case 'vueloVivo': return json_(vueloVivoAccion_(ses));                               // tarjeta del vuelo: puerta, embarque y número al día (vuelovivo.js: AirLabs; FlightAware opcional)
       case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
+      case 'guiaCamino': return json_(guiaCamino_(ses, body));                             // Guía de camino: { destino, modo?, lat, lng } → la ruta paso a paso para el mapa y la voz de la app (guia.js)
       case 'calleVoz': return json_(calleVoz_(ses, body));                                 // modo calle: { texto } → { audio } con la voz de Alma, para lo que la app dice sin audio (calle.js)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'vozCaida': return json_(vozCaida_(ses, body));                                 // la app habló con la voz del iPhone: { donde, motivo, ms } a VOZ_CAIDAS (calle.js, #509)

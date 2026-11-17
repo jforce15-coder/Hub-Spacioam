@@ -151,6 +151,11 @@ jobs:
       - name: La voz del Modo calle dice por qué no hubo audio (dobles de ElevenLabs)
         run: node .github/calle-voz.js apps-script
 
+      - name: Maricarmen se llama así solo en la voz; lo que sale a otra persona va en nombre de Alma
+        # 17-nov (#667): «que solo de voz se identifique como Maricarmen, pero cualquier mensaje, contacto o acción externa
+        # siempre lo haga en nombre de Alma».
+        run: node .github/identidad-voz.js apps-script
+
       - name: Modo calle rápido (sin Epi en cada mensaje, frases de prueba sin IA, camino rápido, plazo antes de la primera vuelta, vozPausa) y Hablar con Claudio desde la calle (dobles)
         # 16-nov: «Estoy probando el modo» tardó 28 s y la app se rinde a los 25 s; «quiero hablar con Claudio» en Modo calle
         # se volvía un pedido de texto en vez de abrir la llamada con Claudio.

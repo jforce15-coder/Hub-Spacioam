@@ -355,19 +355,25 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si responde que se mostró, lo dices y resumes en una frase."
+    "linea": "En la app, pone en pantalla lo que tiene muchos datos; solo si se mostró, lo resumes en una frase."
    },
    "nivel_weebo": {
     "canales": [
      "voz"
     ],
-    "linea": "Tu nivel de Modo Weebo, en la app, en silencio."
+    "linea": "En la app, tu nivel de Modo Weebo, en silencio."
    },
    "mostrar_gif": {
     "canales": [
      "voz"
     ],
-    "linea": "Solo con Juan, en la app: un GIF tras una broma que cayó, en silencio."
+    "linea": "En la app y solo con Juan: un GIF tras una broma que ya cayó, en silencio."
+   },
+   "mostrar_tarjeta_club": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "En la app: la tarjeta de club que pide, en pantalla para la caja."
    },
    "hablar_con_claudio": {
     "canales": [
@@ -416,6 +422,12 @@ var ALMA_FUENTE_ = {
      "voz"
     ],
     "linea": "En la app: corre uno de sus atajos permitidos de iPhone."
+   },
+   "abrir_apple_pay": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "En la app: abre Apple Pay."
    },
    "guiar_camino": {
     "canales": [

@@ -43,7 +43,7 @@ resp = s => /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 
 const j = ini();
 ok(j.ok && j.local === true && /^conv_local_[a-f0-9]{8,40}$/.test(j.conv_id), '1 · vozClaudio trae la conversación local (' + j.conv_id + ')');
 ok(j.signed_url === 'wss://c' && j.first_message && j.dynamic_variables.quien_llama, '1 · y sigue trayendo la URL firmada, el saludo y la ficha (la app vieja sigue igual)');
-ok(j.voz_local && j.voz_local.genero === 'hombre' && j.voz_local.idiomas[0] === 'es-MX' && j.voz_local.velocidad > 0 && j.voz_local.tono < 1, '1 · su voz del iPhone: de hombre, español de México primero, un poco más grave');
+ok(j.voz_local && j.voz_local.genero === 'hombre' && j.voz_local.idiomas[0] === 'es-MX' && j.voz_local.velocidad > 0 && j.voz_local.tono === 1, '1 · su voz del iPhone: de hombre, español de México primero, con su tono natural (#687)');
 ok(cache['claudio_' + j.conv_id] === '50211110000' && cache['claudiolocal_' + j.conv_id] === j.dynamic_variables.quien_llama, '1 · la conversación queda ligada a su teléfono y con su ficha guardada');
 mem.CLAUDIO_LOCAL = '0'; const j0 = ini();
 ok(j0.ok && !j0.local && !j0.conv_id && j0.signed_url, '1 · CLAUDIO_LOCAL = 0: vuelve al agente de ElevenLabs sin un PR');

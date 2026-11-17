@@ -118,7 +118,7 @@ const opa = sacar(AGE, 'opAgente_');
 ok(/turno \+= mfBloque_\(adm\)/.test(opa) && /mfCalle_\(adm, textoPedido\)/.test(opa) && /ctx = \{ adm:/.test(opa) && /MF_ADM_ = /.test(opa), 'el chat (Hub, WhatsApp, app, calle) la trae, el Modo calle se anota y las herramientas saben quién pide');
 const pc = sacar(VOZ, 'vozPostCall_');
 ok(/mfLlamadaDeVoz_\(admC/.test(pc) && /mfClaudio_\(admCl/.test(pc), 'se actualiza al cerrar cada llamada de Alma y de Claudio');
-ok(/ficha \+= mfBloque_\(adm\)/.test(sacar(CLA, 'claudioWebInicio_')), 'Claudio también la tiene al empezar');
+ok(/ficha \+= mfBloque_\(adm\)/.test(sacar(CLA, 'claudioFicha_')) && /claudioFicha_\(adm,/.test(sacar(CLA, 'claudioWebInicio_')), 'Claudio también la tiene al empezar (su ficha, la misma en ElevenLabs y en Claudio local)');
 ok(/mfAnotar_\(ctx\.adm, cs\)/.test(leer('destino.js')) && /mfDesempate_\(o\.adm \|\| \(o\.ctx && o\.ctx\.adm\)/.test(leer('destino.js')), 'destino.js anota a quién eligió y desempata por lo reciente');
 
 if (!fallo) console.log('Todo bien: Alma recuerda las últimas 5 llamadas y desempata por lo reciente.');

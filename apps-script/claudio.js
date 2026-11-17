@@ -312,16 +312,23 @@ function claudioWebInicio_(ses, motivo) {
   var agente = claudioAgente_(); if (!agente) return { ok: false, error: 'Claudio todavía no está listo (el Hub lo crea en la próxima vuelta).', codigo: 'sin_agente' };
   var uf = vozUrlFirmada_(agente); if (!uf.ok) return { ok: false, error: uf.error, codigo: 'sin_url' };
   var nom = String(adm.nombre || '').trim().split(/\s+/)[0] || 'Juan', tel = normTel_(adm.tels[0]);
-  var ficha = 'LLAMADA DESDE LA APP DE ALMA. Quien habla es ' + nom + ', el administrador principal, verificado por su sesión. Alma te pasó la llamada porque pidió hablar con desarrollo.';
   motivo = String(motivo || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  var ficha = claudioFicha_(adm, nom, motivo);
+  var out = { ok: true, agent_id: agente, signed_url: uf.url, nombre: nom, agente: 'claudio',
+    first_message: claudioSaludo_(nom, motivo),
+    dynamic_variables: { quien_llama: ficha, sa_web: vozWebToken_(tel), marca_principal: vozMarcaPara_(adm) } };
+  try { claudioLocalSumar_(out, adm, ficha); } catch (e) { console.error('claudioLocalSumar_: ' + e); }   // Claudio local (claudiolocal.js)
+  return out;
+}
+/* La ficha de Claudio (la misma para su agente de ElevenLabs y para Claudio local, claudiolocal.js). */
+function claudioFicha_(adm, nom, motivo) {
+  var ficha = 'LLAMADA DESDE LA APP DE ALMA. Quien habla es ' + nom + ', el administrador principal, verificado por su sesión. Alma te pasó la llamada porque pidió hablar con desarrollo.';
   if (motivo) ficha += '\nLO QUE LE DIJO A ALMA: «' + motivo + '». Empieza por ahí.';
   try { var res = claudioResumen_(adm); if (res) ficha += '\n' + res; } catch (e) { console.error('claudioResumen_: ' + e); }
   try { ficha += mfBloque_(adm); } catch (e) { console.error('mfBloque_: ' + e); }   // las últimas 5 llamadas (memoriafresca.js)
   /* El mismo Modo Weebo y la misma adaptación a Juan que la ficha de Alma (medidores.js). */
   try { var pf = personalidadFicha_(adm); if (pf && pf.bloque) ficha += pf.bloque; } catch (e) { console.error('personalidadFicha_: ' + e); }
-  return { ok: true, agent_id: agente, signed_url: uf.url, nombre: nom, agente: 'claudio',
-    first_message: claudioSaludo_(nom, motivo),
-    dynamic_variables: { quien_llama: ficha, sa_web: vozWebToken_(tel), marca_principal: vozMarcaPara_(adm) } };
+  return ficha;
 }
 /* El saludo de Claudio: como una persona a la que Alma fue a llamar, variado (Juan, 16-nov-2026: «Hola Juan, ¿cómo estás?
    Alma me dijo que me necesitabas»). Con un motivo corto («sobre el botón de pagos») lo nombra; si no, «cuéntame». */
@@ -400,6 +407,10 @@ function claudioHerramienta_(herr, b) {
   if (!adm) return { ok: false, error: 'NO SE HIZO NADA: no pude confirmar que hablas con el administrador principal desde la app de Alma. No digas que quedó pedido ni que lo haces: dile que no se pudo y que vuelva a pasar a Claudio desde la app.' };
   /* Panel de Claudio (claudiopanel.js): cada herramienta deja su candidata (como tvCandidata_ para Alma) y queda para
      esta conversación; la app la pide con vozClaudioPanel. Solo aquí, después de verificar al principal. */
+  return claudioEjecutar_(adm, herr, b);
+}
+/* Corre una herramienta de Claudio para un principal ya verificado (por la firma o, en Claudio local, por su sesión). */
+function claudioEjecutar_(adm, herr, b) {
   CLAUDIO_PANEL_ = null;
   var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_responder' ? claudioResponder_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
     : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b) : { ok: false, error: 'herramienta desconocida' };

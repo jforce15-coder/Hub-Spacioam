@@ -3399,6 +3399,7 @@ function hubApi_(body) {
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
       case 'claudioLocal': return json_(claudioLocalApi_(ses, body));                       // Claudio local { conv_id, texto, historial }: un turno de Claudio sin ElevenLabs, solo el principal (claudiolocal.js)
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)
+      case 'vozSaludosGrabados': return json_(saludosGrabadosApi_(ses, body));            // app de iPhone: los Saludos grabados y el Aviso de volver a llamar, con la voz de Alma (saludosgrabados.js, #724)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)
       case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)

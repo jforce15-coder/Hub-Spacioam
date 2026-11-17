@@ -214,6 +214,9 @@ jobs:
       - name: Reporte del mes, la ocupación y el neto salen de la hoja de Mi, nunca de un cálculo, y un mes que no está no se estima (dobles)
         # 7-nov: Alma dijo 26 % de ocupación de Rue 301 en octubre (eran 26 noches; la real, 83.9 %).
         run: node .github/reporte-mes.js apps-script
+      - name: Pagos de Epi, lo por depositar sale de los comprobantes de Epi (sin soporte), nunca de un cálculo, y una quincena que falta no se estima (dobles)
+        # 17-nov: Juan preguntó por llamada cuánto depositarle a Gabriel Asturias y Alma no tenía cómo ver el historial de pagos de Epi.
+        run: node .github/pagos-epi.js apps-script
       - name: Enlaces cortos, mismo enlace mismo código, «enlace» pública y todo WhatsApp, correo y Hospitable sale con el corto (dobles)
         # #488 T2: los enlaces largos (los PDF de Drive, el formulario de Grow, el Hub) se veían raros y daban desconfianza.
         run: node .github/enlaces.js apps-script

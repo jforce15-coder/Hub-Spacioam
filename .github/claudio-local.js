@@ -8,8 +8,9 @@
    4. corre sus herramientas con la conversación local (para el panel y la vuelta con Alma) y avisa volver_con_alma;
    5. lo que se dice sale limpio y corto (sin etiquetas, markdown ni enlaces);
    6. la voz se afina sin PR (CLAUDIO_VOZ_LOCAL) y con límites; la acción está en el Hub y cuenta como voz en el cupo;
-   7. la voz es LA MISMA de Claudio en ElevenLabs (#636): su voz, el modelo y los ajustes de su agente, PCM 16 kHz, en el
-      saludo y en cada turno; si ElevenLabs falla o el motor es «iphone», sin audio (la app usa la voz del iPhone).
+   7. de fábrica habla la voz del iPhone, sin gastar ElevenLabs (Juan, #649); con CLAUDIO_VOZ_LOCAL {"motor":"elevenlabs"},
+      LA MISMA voz de Claudio en ElevenLabs (#636): su voz, el modelo y los ajustes de su agente, PCM 16 kHz, en el
+      saludo y en cada turno; si ElevenLabs falla, sin audio (la app usa la voz del iPhone).
    node .github/claudio-local.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -105,10 +106,16 @@ const cod = leer('Código.js'), cupo = leer('cupo.js');
 ok(/case 'claudioLocal': return json_\(claudioLocalApi_\(ses, body\)\)/.test(cod), '6 · la acción claudioLocal usa la sesión verificada');
 ok(/CUPO_ACC_ALMA_ = \[[^\]]*'claudioLocal'/.test(cupo) && /voz: '[^']*\bclaudioLocal\b/.test(cupo), '6 · claudioLocal cuenta como voz de Alma en el cupo (no se pausa)');
 
-/* 7. La misma voz de ElevenLabs (#636) */
+/* 7. De fábrica, la voz del iPhone (#649); con el motor «elevenlabs», la misma voz de ElevenLabs (#636) */
 delete mem.CLAUDIO_VOZ_LOCAL;
 const tts = () => salidas.filter(s => /text-to-speech/.test(s.url));
 resp = s => /text-to-speech/.test(s.url) ? { codigo: 200, bytes: [1, 2, 3, 4] } : /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 'wss://c' } } : { codigo: 404, cuerpo: '' };
+const jFab = ini();
+ok(jFab.voz_local.motor === 'iphone' && !jFab.voz_local.audio && !tts().length, '7 · de fábrica el saludo va con la voz del iPhone (sin ElevenLabs, #649)');
+salidas = []; fila = [{ content: [{ type: 'text', text: 'Listo.' }] }];
+const tFab = turno({ conv_id: jFab.conv_id, texto: 'ok' });
+ok(tFab.ok && tFab.hablar === 'Listo.' && !tFab.audio && !tts().length, '7 · de fábrica cada turno va con la voz del iPhone (sin ElevenLabs, #649)');
+mem.CLAUDIO_VOZ_LOCAL = JSON.stringify({ motor: 'elevenlabs' });
 R("claudioTtsGuardar_({ voice_id: 'x', model_id: 'eleven_turbo_v2_5', stability: 0.42, similarity_boost: 0.77, speed: 1.08, otra: 1 })");
 const j7 = ini(), s7 = tts()[0];
 ok(j7.voz_local.motor === 'elevenlabs' && j7.voz_local.audio === Buffer.from([1, 2, 3, 4]).toString('base64') && j7.voz_local.hz === 16000, '7 · el saludo llega con su voz de ElevenLabs (PCM 16 kHz)');
@@ -129,9 +136,9 @@ mem.CLAUDIO_VOZ_LOCAL = JSON.stringify({ motor: 'iphone' }); salidas = [];
 resp = s => /text-to-speech/.test(s.url) ? { codigo: 200, bytes: [1] } : { codigo: 404, cuerpo: '' }; fila = [{ content: [{ type: 'text', text: 'Listo.' }] }];
 const t10 = turno({ conv_id: j7.conv_id, texto: 'ok' });
 ok(!t10.audio && !tts().length && R('claudioVozLocal_()').motor === 'iphone', '7 · CLAUDIO_VOZ_LOCAL {"motor":"iphone"}: la voz del iPhone, sin gastar ElevenLabs');
-mem.CLAUDIO_LOCAL_TTS_MODELO = 'inventado'; delete mem.CLAUDIO_VOZ_LOCAL;
+mem.CLAUDIO_LOCAL_TTS_MODELO = 'inventado'; mem.CLAUDIO_VOZ_LOCAL = JSON.stringify({ motor: 'elevenlabs' });
 ok(R('claudioTts_()').model_id === 'eleven_flash_v2_5', '7 · un modelo que no existe vuelve al rápido');
 ok(/claudioTtsGuardar_\(tts\)/.test(leer('claudio.js')), '7 · el Hub guarda el modelo y los ajustes de la voz de su agente al revisarlo');
 
-if (!fallo) console.log('Todo bien: Claudio local habla con su mismo prompt, sus herramientas y su misma voz de ElevenLabs, sin el agente.');
+if (!fallo) console.log('Todo bien: Claudio local habla con su mismo prompt y sus herramientas, con la voz del iPhone (y la de ElevenLabs si se enciende), sin el agente.');
 process.exit(fallo);

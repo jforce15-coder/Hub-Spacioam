@@ -183,7 +183,7 @@ function claudeBorradorMandar_(adm, b, ajusteVoz) {
   var json = escalarJson_(adm, { pedido: juan, literal: lit || juan, entrega: false, canal: typeof AGENTE_CANAL_ !== 'undefined' ? AGENTE_CANAL_ : '', motivo: 'pidió un cambio del sistema',
     tarea: 'Haz el cambio del sistema que pidió ' + (adm.nombre || 'Juan') + ' (contexto.palabras_de_juan).', seguimiento: b.ult && !b.micro ? 'Puede ser un seguimiento de tu última respuesta en su chat con Alma: ' + b.ult : '' });
   var r = paraClaudeCrear_(adm, { titulo: claudeBorradorTitulo_(b), app: 'Otro', tipo: 'mejora', prioridad: 'normal', sinChat: true, micro: b.micro || '', nombre: b.nombreNuevo || '', nivel: b.nivel || 'complejo',
-    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: lit || juan });
+    que_quiere: JSON.stringify(json, null, 2), resumen: juan, literal: lit || juan, unificar: !b.micro && !b.nuevo });   // sin microproyecto y sin «Es nuevo» de Juan: busca uno abierto de lo mismo (unificar.js)
   if (!r.ok) {
     return { accion: 'mandar', claude: { ok: false }, texto: 'No se pudo pedir: ' + (r.error || 'error') + '. Quedó guardado; dime «mándalo» para intentarlo otra vez.',
       voz: (ajusteVoz ? 'AJUSTE GUARDADO (' + ajusteVoz + ') PERO ' : '') + 'NO SALIÓ: ' + (r.error || 'error') + '. Díselo en una frase; quedó guardado.' };
@@ -191,7 +191,7 @@ function claudeBorradorMandar_(adm, b, ajusteVoz) {
   claudeBorradorGuardar_(adm.email, null);
   if (b.pend) { try { pendCerrar_(b.pend); } catch (e) {} }
   var mi = r.micro || {};
-  var listo = !r.claude ? r.nota : mi.ajuste && !mi.segunda ? 'Listo, quedó sumado a «' + mi.nombre + '».' : 'Listo, quedó pedido.';
+  var listo = r.repetido ? r.nota : !r.claude ? r.nota : mi.ajuste && !mi.segunda ? 'Listo, quedó sumado a «' + mi.nombre + '».' : 'Listo, quedó pedido.';
   if (ajusteVoz) listo = ajusteVoz + ' ' + listo;
   return { accion: 'mandar', claude: { ok: true, id: r.id || '', directo: !!r.claude, issue: r.issue || '', micro: mi.id || '', nivel: r.nivel || '' }, texto: listo,
     voz: 'HECHO. Dile solo: «' + listo + '». Nada más: no repitas el pedido ni nombres a Claudio, el nivel o el modelo.' };
@@ -245,6 +245,7 @@ function claudeBorradorPoner_(adm, texto, o) {
     var el = null; try { el = microElegir_(adm, texto, o.micro); } catch (e) { console.error('microElegir_: ' + e); }
     if (el && el.id) { if (el.seguro) b.micro = el.id; else b.microDuda = el.id; b.microNombre = el.nombre; }
     else { if (el && el.nombre) b.nombreNuevo = el.nombre; b.ult = chatUltimaDeClaude_(adm.email).slice(0, 1500); }
+    if (o.nuevoJuan) { b.micro = ''; b.microDuda = ''; b.nuevo = true; }   // Juan dijo que es otro trabajo: no se une a nada (unificar.js)
   }
   claudeBorradorNivel_(b, texto, o.nivel);
   if (texto && b.partes.indexOf(texto) < 0) b.partes.push(texto);

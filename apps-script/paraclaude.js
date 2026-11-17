@@ -83,6 +83,15 @@ function paraClaudeCrear_(adm, inp) {
   /* Microproyecto (#374): un ajuste se suma al suyo (mismo issue como comentario, misma rama y PR, historial completo);
      si su PR ya se unió, es la «segunda parte» (PR nuevo, mismo historial). Un pedido nuevo abre uno. */
   var m = null; try { m = inp.micro ? microLeer_(inp.micro) : null; } catch (e) { console.error('microLeer_: ' + e); }
+  /* Un pedido de Juan sin microproyecto (llamada, WhatsApp, Maricarmen, Claudio, chat) busca antes si ya hay uno abierto
+     de lo mismo (unificar.js, #715). Un reintento mientras Claude trabaja no abre otra sesión. */
+  var uni = null, canal = String(inp.canal || (typeof AGENTE_CANAL_ !== 'undefined' && AGENTE_CANAL_) || '');
+  if (!m && inp.unificar) {
+    var textoUni = String(inp.literal || inp.resumen || '').trim() || titulo;
+    try { uni = microUnificar_(adm, textoUni); m = uni ? microLeer_(uni.id) : null; } catch (e) { console.error('microUnificar_: ' + e); uni = null; m = null; }
+    if (!m) uni = null;
+    else if (uni.por === 'reintento' && unifEnCurso_(m)) return unifAnotarReintento_(adm, m, textoUni, canal);
+  }
   var ajuste = !!m, segunda = false, prAnterior = '', sesionAnterior = m ? m.sesion : '';
   if (m && microPrTermino_(m)) { segunda = true; prAnterior = m.pr; m.parte = (Number(m.parte) || 1) + 1; m.pr = ''; m.rama = ''; m.unido = ''; }
   if (!m) m = microCrear_(adm, inp.nombre || titulo);
@@ -96,9 +105,10 @@ function paraClaudeCrear_(adm, inp) {
   var queCuerpo = pedJson ? '```json\n' + queQuiere + '\n```' : queQuiere;
   /* Nivel: lo que dijeron Juan o Alma (inp.nivel); si no, un ajuste hereda el de su microproyecto; si no, complejo. */
   var nivel = inp.nivel ? claudeNivel_(inp.nivel) : ajuste ? claudeNivel_(m.nivel) : 'complejo';
-  m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + queSimple });
+  var notaUni = uni ? unifNota_(uni, canal) : '';
+  m.ajustes.push({ ts: Date.now(), de: 'juan', texto: (ajuste ? '' : titulo + ': ') + (notaUni ? notaUni + ' ' : '') + queSimple });
   var como = microComoSeguir_(m, segunda, prAnterior);
-  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + literalBloque_(lit) + '### Lo nuevo\n' + queCuerpo + '\n\n'
+  var cuerpo = (ajuste ? '**' + (segunda ? 'Segunda parte' : 'Ajuste') + ' de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' + (notaUni ? '_' + notaUni + '_\n\n' : '') + literalBloque_(lit) + '### Lo nuevo\n' + queCuerpo + '\n\n'
     : '**Pedido de ' + quien + ' a través de ALMA** · ' + fecha + ' (hora de Guatemala)\n\n' +
     '**Dónde:** ' + (inp.app || 'Otro') + ' · **Tipo:** ' + String(inp.tipo || 'mejora').replace('_', ' ') + ' · **Prioridad:** ' + (inp.prioridad || 'normal') + '\n\n' + literalBloque_(lit) +
     (String(inp.que_pasa || '').trim() ? '### Qué pasa hoy\n' + String(inp.que_pasa).trim() + '\n\n' : '') +
@@ -146,7 +156,7 @@ function paraClaudeCrear_(adm, inp) {
     try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queSimple.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
   eqDesarrolloSuave_();   // el estado de Desarrollo, al día (equipos.js)
-  return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel },
+  return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel, unido: uni ? uni.por : '' },
     nota: disparo.ok ? 'Listo, quedó pedido.' :
       issue ? 'Listo, quedó pedido en la lista (el arranque directo falló); cuando esté, llega a Pendientes para unir.' : 'Quedó guardado en la lista de pedidos, pero no arrancó: falta CLAUDE_RUTINA_TOKEN.' };
 }

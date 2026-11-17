@@ -165,8 +165,10 @@ function caja() {
   ok(/\.pob-s \.resp/.test(rm) && /svg\.arco/.test(rm) && /angulo\(x, now\) \{ return RM \? x\.a0/.test(h), 'prefers-reduced-motion: sin giro, sin pulso y los anillos quietos en su lugar');
   ok(/x\.a0 \+ 2 \* Math\.PI \* \(\(now - x\.nace\) \/ x\.per\)/.test(h), 'Los anillos giran conforme a las agujas del reloj (el ángulo sube; en pantalla la «y» va hacia abajo)');
   ok(/AV\.a0 \+ 2 \* Math\.PI \* \(\(now - AV\.nace\) \/ AV\.per\)/.test(h), 'El avión de «Tu viaje» gira en el mismo sentido que los pedidos (a favor de las agujas del reloj)');
-  ok(/dataset\.orbita = !vs\.length \? "" : proximo\(vs\) \? "cerca" : "lejos"/.test(h) && /o === "lejos" \? "largo" : "rapido"/.test(h) && /andar: andar/.test(h),
-    'El avión de «Tu viaje» orbita: viaje por venir o en curso en la cercana, ya pasado en la lejana');
+  ok(/dataset\.orbita = !vs\.length \? "" : viene \? "cerca" : "lejos"/.test(h) && /o === "lejos" \? "largo" : "rapido"/.test(h) && /andar: andar/.test(h),
+    'El avión de «Tu viaje» orbita: vuelo cercano por salir o en el aire en la cercana, ya aterrizado en la lejana');
+  ok(/var VENTANA_DIAS = 5;/.test(h) && /function cercanos\(v, t\) \{[^\n]*\n[^\n]*ms\(x\.sale\) - VENTANA_DIAS \* DIA && t <= ms\(x\.llega\) \+ VENTANA_DIAS \* DIA/.test(h) && /return cercanos\(v, t\)\.length > 0;/.test(h),
+    'El avión solo se ve de 5 días antes a 5 días después de cada vuelo (no del viaje entero de la ida a la vuelta; Juan, 16-nov-2026)');
   const ini = h.indexOf('Pedidos en órbita (#509 T3, Juan'), mod = h.slice(ini, h.indexOf('window.AlmaOrbita', ini));   // el bloque del avión también nombra AlmaOrbita, antes
   ok(mod.length > 1000 && !/\+ ?"%"|"%"|progreso|porcentaje\s*[:=]/.test(mod.replace(/\/\*[\s\S]*?\*\//g, '')), 'La pantalla no inventa porcentajes (el arco gira, indeterminado)');
 }

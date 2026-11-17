@@ -28,7 +28,7 @@ function retCambiar_(adm, fn) {
 function retPoner_(adm, o) {
   if (!adm || !adm.email || !String(o.texto || '').trim()) return null;
   var it = { id: 'rt' + Date.now().toString(36) + Math.floor(Math.random() * 1e4), ts: Date.now(), texto: String(o.texto).replace(/\s+/g, ' ').trim().slice(0, 300), tema: String(o.tema || '').replace(/\s+/g, ' ').trim().slice(0, 60),
-    detalle: String(o.detalle || '').replace(/\s+/g, ' ').trim().slice(0, 600), imp: Math.max(1, Math.min(3, Number(o.importancia) || 2)), veces: 0, ult: 0, origen: o.origen || '' };
+    detalle: String(o.detalle || '').replace(/\s+/g, ' ').trim().slice(0, 600), imp: Math.max(1, Math.min(3, Number(o.importancia) || 2)), veces: 0, ult: 0, origen: o.origen || '', ref: String(o.ref || '') };
   retCambiar_(adm, function (l) { l.push(it); });
   return it;
 }
@@ -69,29 +69,64 @@ function retClasificar_(pedido, respuesta, fallo) {
   return out;
 }
 
-/* Para la ficha de la llamada. Los pendientes se ofrecen con suavidad: el saludo invita a verlos y nombra solo UNO (el más
-   importante que no se ofreció en las últimas RET_PAUSA_H_ horas), sin contar cuántos hay ni leer datos. Si ya se ofreció
-   hace poco, el saludo es el normal y Alma solo lo ofrece si encuentra una pausa natural. */
-var RET_PAUSA_H_ = 2;
+/* ── Para la ficha de la llamada: solo lo que importa (#607; Juan, 16-nov-2026: «Alma me está preguntando siempre por los
+   pendientes, demasiado insistentemente, y muchas veces me está dando pendientes que ya no tienen ninguna relevancia»).
+   Medido el 15 y 16-nov: 13 de 44 llamadas empezaron con «Cuando quieras vemos tus pendientes…», casi nunca con algo
+   urgente (errores viejos, cambios ya unidos, un «no entregado» repetido, algo ya descartado).
+   · Alma NO ofrece pendientes en el saludo ni insiste: el saludo es el normal.
+   · URGENTE (retUrgente_): importancia 3 (urgente, dinero, huéspedes o fechas cercanas: retClasificar_), de las últimas
+     RET_URGENTE_H_ horas, nunca de desarrollo y ofrecido en menos de RET_VOZ_VECES_ llamadas. Solo ese se menciona, UNA vez
+     en la llamada; si lo deja pasar en RET_VOZ_VECES_ llamadas, ya no es urgente (sigue en Pendientes).
+   · Lo demás, solo si él pregunta. Antes de llegar a la ficha se quita lo que ya no aplica (retVigente_, sin IA): lo de
+     desarrollo cuyo cambio ya se unió o se cerró (lo quita microGuardar_ con retQuitarRef_) o de hace más de RET_CLAUDE_H_,
+     el repetido del mismo cambio (vale el más nuevo) y lo que no es urgente de hace más de RET_VOZ_DIAS_ días.
+     Lo que se cierra en Pendientes ya sale solo (pendCerrarCon_, pendResolver_). Check: .github/pendientes-voz.js. */
+var RET_URGENTE_H_ = 24, RET_VOZ_VECES_ = 2, RET_VOZ_DIAS_ = 3, RET_CLAUDE_H_ = 48, RET_FICHA_MAX_ = 3;
 function retTema_(x) {
   var t = String(x.tema || '').trim();
   if (!t) { t = String(x.texto || '').split(/[:.;!?]|—| - /)[0].trim(); if (t.split(/\s+/).length > 8) t = t.split(/\s+/).slice(0, 8).join(' ') + '…'; }
   return t.charAt(0).toLowerCase() + t.slice(1);
 }
-var RET_FICHA_MAX_ = 3;
+function retUrgente_(x, ahora) {
+  return Number(x.imp) >= 3 && x.origen !== 'claude' && ahora - Number(x.ts || 0) < RET_URGENTE_H_ * 3600000 && (Number(x.veces) || 0) < RET_VOZ_VECES_;
+}
+/* '' = sigue vigente para la voz; si no, por qué no llega a la ficha. vistos: refs de desarrollo ya vistas (el más nuevo gana). */
+function retVigente_(x, ahora, vistos) {
+  var h = (ahora - Number(x.ts || 0)) / 3600000;
+  if (x.origen === 'claude') {
+    if (h >= RET_CLAUDE_H_) return 'de desarrollo, de hace más de ' + RET_CLAUDE_H_ + ' h (está en Pendientes)';
+    if (x.ref && vistos[x.ref]) return 'repetido: hay uno más nuevo del mismo cambio';
+    if (x.ref) vistos[x.ref] = 1;
+  }
+  if (Number(x.imp) < 3 && h >= RET_VOZ_DIAS_ * 24) return 'de hace más de ' + RET_VOZ_DIAS_ + ' días y no es urgente';
+  return '';
+}
+/* l: la lista guardada. → { urgente, lista (vigentes; el urgente primero), fuera: [{ id, motivo }] } */
+function retVoz_(l, ahora) {
+  var vistos = {}, fuera = [], vig = (l || []).slice().sort(function (a, b) { return b.ts - a.ts; }).filter(function (x) {
+    var m = retVigente_(x, ahora, vistos); if (m) fuera.push({ id: x.id, motivo: m }); return !m;
+  });
+  vig = retOrden_(vig);
+  var urg = vig.filter(function (x) { return retUrgente_(x, ahora); })[0] || null;
+  if (urg) vig = [urg].concat(vig.filter(function (x) { return x !== urg; }));
+  return { urgente: urg, lista: vig, fuera: fuera };
+}
 function retFicha_(adm, nom) {
-  var l = retOrden_(retLeer_(adm)); if (!l.length) return null;
-  var corte = Date.now() - RET_PAUSA_H_ * 3600000, top = l.filter(function (x) { return !x.ult || x.ult < corte; })[0] || null;
-  var saludo = top ? '¡Hola, ' + nom + '! Aquí estoy. Cuando quieras vemos tus pendientes; el más importante es ' + retTema_(top) + '. ¿Lo retomamos?' : '';
-  var bloque = '\n\nPENDIENTES POR RETOMAR (lo que trabajaste en segundo plano y necesita algo de él; el más importante primero). CÓMO TRATARLOS: con suavidad, nunca de golpe. ' +
-    (top ? 'Ya lo invitaste en el saludo a ver «' + retTema_(top) + '». Si dice que sí, cuéntaselo en 1 o 2 frases sencillas y pregúntale lo que necesitas. '
-         : 'Ya se los ofreciste hace poco: NO empieces por ahí. Solo si hay una pausa natural, pregúntale una vez «¿quieres que veamos los pendientes?». ') +
-    'Si dice «luego», «no te preocupes» o cambia de tema, síguelo sin insistir: queda guardado. Nunca leas la lista, ni cuántos hay, ni números sueltos; ' +
-    'si pregunta qué más hay, nombra el siguiente (solo su tema) y pregunta si lo ven.\n' +
-    /* Solo los 3 más importantes y en corto (cada token entra en cada llamada); el resto lo ve en Pendientes. */
+  var v = retVoz_(retLeer_(adm), Date.now()), l = v.lista, u = v.urgente; if (!l.length) return null;
+  var bloque = '\n\nPENDIENTES (él quiere una plática directa: NO los ofrezcas en el saludo ni insistas). ' +
+    (u ? 'UNO ES URGENTE, el 1): menciónalo UNA sola vez en toda la llamada, en una frase y con su dato clave, después de atender lo primero que pida (o enseguida si solo saluda). Si dice «luego», «no te preocupes» o cambia de tema, no lo vuelvas a sacar. '
+       : 'Ninguno es urgente: no los menciones. ') +
+    'Los demás, SOLO si él pregunta por pendientes: nombra uno (su tema) y pregunta si lo ven; nunca leas la lista ni cuántos hay.\n' +
     l.slice(0, RET_FICHA_MAX_).map(function (x, i) { return (i + 1) + ') ' + retTema_(x) + ': ' + String(x.texto || '').replace(/\s+/g, ' ').slice(0, 140) + ' (hace ' + retHace_(x.ts) + ')'; }).join('\n') +
-    (l.length > RET_FICHA_MAX_ ? '\n(y ' + (l.length - RET_FICHA_MAX_) + ' más en Pendientes: si pregunta, dile que están ahí)' : '');
-  return { id: top ? top.id : '', total: l.length, saludo: saludo, bloque: bloque };
+    (l.length > RET_FICHA_MAX_ ? '\n(y ' + (l.length - RET_FICHA_MAX_) + ' más en Pendientes)' : '');
+  return { id: u ? u.id : '', total: l.length, saludo: '', bloque: bloque };
+}
+/* Un cambio de desarrollo se unió o se cerró (microGuardar_): su tema por retomar ya no hace falta. Sin el candado si no hay. */
+function retQuitarRef_(ref) {
+  ref = String(ref || ''); if (!ref) return 0;
+  var jefe = adminsOp_().filter(function (a) { return a.principal; })[0]; if (!jefe) return 0;
+  if (!retLeer_(jefe).some(function (x) { return String(x.ref || '') === ref; })) return 0;
+  return retCambiar_(jefe, function (l) { var n = 0; for (var i = l.length - 1; i >= 0; i--) if (String(l[i].ref || '') === ref) { l.splice(i, 1); n++; } return n; });
 }
 function retHace_(ts) {
   var m = Math.max(1, Math.round((Date.now() - ts) / 60000));

@@ -24,8 +24,8 @@ var ABRE_VENCE_MS_ = 30 * 60000;        // un aviso de hace más de 30 min ya no
 var ABRE_ABIERTOS_MAX_ = 40;
 /* Tipo de aviso (avisotexto.js) → qué resultado es. Lo que no está aquí (huésped en rojo, vuelos, vigilancias, correos,
    «ya quedó unido» después de que Juan lo unió) no es el resultado de un pedido reciente: no abre. */
-var ABRE_RESULTADO_ = { claude_pregunta: 'accion', claude_fallo: 'accion', claude_listo: 'unir', claude_consulta: 'termino',
-  escalar_entregado: 'termino', escalar_no_unido: 'accion', escalar_no_publico: 'accion' };
+var ABRE_RESULTADO_ = { claude_pregunta: 'accion', claude_fallo: 'accion', claude_listo: 'termino', claude_consulta: 'termino',
+  escalar_entregado: 'termino', escalar_no_publico: 'accion' };   // escalar_no_unido no abre: no pide nada a Juan (17-nov-2026)
 var ABRE_FALTA_ = { accion: 'que Juan responda o decida', unir: 'que Juan lo una (Pendientes, Unir)', termino: 'nada; solo contarle el resultado' };
 var ABRE_QUE_ = { accion: 'necesita algo de Juan', unir: 'listo; falta que Juan lo una', termino: 'terminó' };
 

@@ -12,6 +12,8 @@
                    solo si la propiedad es una sola y trae todas las palabras pedidas (nada de «se parece»).
      5. tareas     «¿Qué tareas tengo abiertas?», «Revisar si hay pendientes o tareas urgentes activas» → las tareas
                    abiertas de Epi (como tareas_abiertas) y, para el principal, lo que espera su sí en Pendientes.
+     6. equipos    «¿Cómo van los equipos?», «Estado de operaciones, finanzas y desarrollo (tareas, limitaciones y problemas)»
+                   → el resumen precargado de equipos.js (solo el administrador principal).
    · Cada regla cubre la frase COMPLETA (de principio a fin, con «por favor», «Alma,» y el verbo de la voz alrededor): si el
      pedido trae algo más («… y escríbele que…», dos preguntas, una hora, «ella»), no coincide y sigue la IA tal cual hoy.
    · También va a la IA: un nombre que no está o que se parece a dos, una propiedad que no existe o son varias, varias
@@ -57,7 +59,15 @@ var INST_REGLAS_ = null;
 function instReglas_() {
   if (INST_REGLAS_) return INST_REGLAS_;
   var R = function (tipo, s, extra) { return { tipo: tipo, re: instRe_(s), extra: extra || {} }; };
+  /* 6 · estado de los equipos (equipos.js): va primero para que «resumen de operaciones» no caiga en otra regla */
+  var EQW = '(?:operaciones|finanzas|desarrollo)', EQL = '(?<eq>' + EQW + '(?: (?:y |de |del |el |equipo |equipos )*' + EQW + ')*)';
+  var EQG = '(?:los |mis |todos los |cada )?(?:equipos|departamentos|agentes)', EQS = '(?:estado|resumen|reporte|informe)(?: y (?:el )?(?:estado|resumen))?';
+  var EQT = '(?: (?:sus |con |y |de )*(?:tareas|limitaciones|problemas|pendientes)(?: (?:y |sus )*(?:tareas|limitaciones|problemas|pendientes))*)?';
   INST_REGLAS_ = [
+    R('equipos', '{V}como (?:van|estan|andan|va|esta|anda) ' + EQG + '(?: de ' + EQL + ')?' + EQT),
+    R('equipos', '{V}(?:el |un )?' + EQS + ' de ' + EQG + '(?: de ' + EQL + ')?' + EQT),
+    R('equipos', '{V}como (?:van|va|esta|estan|anda|andan) (?:el equipo de |los equipos de |el departamento de )?' + EQL + EQT),
+    R('equipos', '{V}(?:el |un )?' + EQS + ' (?:de|del) (?:el equipo de |los equipos de |equipo de |departamento de )?' + EQL + EQT),
     /* 1 · ruta de todos (antes que la de una persona: «ruta de hoy» no es una persona) */
     R('ruta', '{V}(?:si )?(?:quien|quienes) (?:limpia|limpian|trabaja|trabajan|tiene ruta|tienen ruta|va a limpiar|van a limpiar|esta de turno|estan de turno)(?: asignad[ao]s?)?{DIA}', { todos: true }),
     R('ruta', '{V}(?:las |la )?rutas?(?: del dia| del equipo| de limpieza)?{DIA}', { todos: true }),
@@ -112,7 +122,7 @@ function instReconocer_(texto) {
   for (var i = 0; i < reglas.length; i++) {
     var m = reglas[i].re.exec(s); if (!m) continue;
     var g = m.groups || {};
-    return { tipo: reglas[i].tipo, extra: reglas[i].extra, n: g.n || '', p: g.p || '', dia: g.dia || '', cola: g.cola || '', norm: s };
+    return { tipo: reglas[i].tipo, extra: reglas[i].extra, n: g.n || '', p: g.p || '', dia: g.dia || '', cola: g.cola || '', eq: g.eq || '', norm: s };
   }
   return null;
 }
@@ -172,7 +182,8 @@ function instRuta_(adm, r, canal, ctx) {
   var cfg = ctx.cfg(); if (!cfg || !cfg.vendors || !cfg.vendors.length) return null;   // Epi sin leer: que la IA lo diga bien
   var f = instFechaDe_(r.dia), dt = instDiaTxt_(r.dia, f), max = instEsVoz_(canal) ? INST_VOZ_MAX_ : INST_CHAT_MAX_, pasado = f < recHoy_();
   if (r.extra.todos) {
-    var rt = agRutaTrabajos_(cfg, f, ''); if (rt.error) return null;
+    var rt = agRutaTrabajos_(cfg, f, ''); if (rt.oculta) return rt.error; if (rt.error) return null;
+    tvCandidata_('datos', function () { return tdRuta_(rt, f); });   // en una llamada, la ruta en pantalla (tablero.js, #607)
     if (!rt.trabajos.length) return instMayus_(dt) + ' no ' + (pasado ? 'hubo' : 'hay') + ' trabajos programados en Epi.';
     var por = {}, orden = [];
     rt.trabajos.forEach(function (t) { if (!por[t.quien]) { por[t.quien] = 0; orden.push(t.quien); } por[t.quien]++; });
@@ -182,7 +193,8 @@ function instRuta_(adm, r, canal, ctx) {
       instLista_(orden.map(function (q) { return q.split(' ')[0] + ' (' + por[q] + ')'; }), max) + '.';
   }
   var quien = instPersona_(r.n, cfg.vendors.map(vendNombre_)); if (!quien) return null;
-  var rp = agRutaTrabajos_(cfg, f, quien); if (rp.error) return null;
+  var rp = agRutaTrabajos_(cfg, f, quien); if (rp.oculta) return rp.error; if (rp.error) return null;
+  if (rp.trabajos.length) tvCandidata_('datos', function () { return tdRuta_(rp, f); });
   var corto = String(rp.persona).split(' ')[0];
   if (!rp.trabajos.length) return corto + ' no ' + (pasado ? 'tuvo' : 'tiene') + ' ruta asignada ' + dt + '.';
   var items = rp.trabajos.map(function (t) { var x = t.x; return [String(x.tipo || 'trabajo').toLowerCase(), 'en', x.propiedad || 'sin propiedad'].join(' ') + (x.hora ? ' a las ' + x.hora : '') + (x.estado === 'tentativa' ? ' (tentativa)' : ''); });
@@ -196,7 +208,7 @@ function instReservasDia_(f) {
   try { inbox = hubInbox_(); } catch (e) {}
   var vivos = 0, conv = function (r) { var cod = s_(r.code).toUpperCase(); var ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0]; return ib ? ib.conv_id : ''; };
   var vale = function (r) { return agEstadoReserva_(conv(r), r, vivos++ < 8).estado !== 'cancelada'; };   // en vivo las primeras, como buscar_reservas
-  var dato = function (r) { return { huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim() || 'Sin nombre', propiedad: s_(r.property_name) }; };
+  var dato = function (r) { return { huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim() || 'Sin nombre', propiedad: s_(r.property_name), codigo: s_(r.code), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date) }; };
   var lleg = filas.filter(function (r) { return fecha_(r.checkin_date) === f; }).filter(vale).map(dato);
   var sal = filas.filter(function (r) { return fecha_(r.checkout_date) === f; }).filter(vale).map(dato);
   return { llegadas: lleg, salidas: sal };
@@ -204,6 +216,11 @@ function instReservasDia_(f) {
 function instOperacion_(adm, r, canal) {
   var f = instFechaDe_(r.dia), dt = instDiaTxt_(r.dia, f), voz = instEsVoz_(canal), max = voz ? INST_VOZ_MAX_ : INST_CHAT_MAX_, pasado = f < recHoy_();
   var d = instReservasDia_(f), modo = r.extra.modo;
+  /* En una llamada, las llegadas y salidas del día en pantalla (tablero.js, #607). */
+  if (d.llegadas.length || d.salidas.length) tvCandidata_('datos', function () {
+    var lis = modo === 'salidas' ? d.salidas : d.llegadas, sal = modo === 'llegadas' || modo === 'salidas' ? undefined : d.salidas;
+    return tdReservas_(lis, { dia: f, que: modo === 'salidas' ? 'Salen' : 'Llegan', salidas: sal, inbox: (function () { try { return hubInbox_(); } catch (e) { return []; } })(), titulo: instMayus_(modo === 'salidas' ? 'salen ' + dt : modo === 'llegadas' ? 'llegan ' + dt : dt), resumen: 'las llegadas y salidas de ' + dt });
+  });
   var quien = function (l) { return instLista_(l.map(function (x) { return x.huesped.split(' ')[0] + (x.propiedad ? ' (' + x.propiedad + ')' : ''); }), max); };
   var verbo = function (n, pres, pas) { return pasado ? pas[n === 1 ? 0 : 1] : pres[n === 1 ? 0 : 1]; };
   if (modo === 'llegadas') {
@@ -271,9 +288,10 @@ function instTareas_(adm, r, canal, ctx) {
   });
   var frTareas = !abiertas.length ? 'No hay tareas abiertas.' :
     'Hay ' + abiertas.length + (abiertas.length === 1 ? ' tarea abierta' : ' tareas abiertas') + (vencidas ? ' (' + vencidas + (vencidas === 1 ? ' vencida' : ' vencidas') + ')' : '') + ': ' + instLista_(items, max) + '.';
-  if (r.extra.modo !== 'pendientes' || !esAdminPrincipal_(adm)) return frTareas;
+  if (r.extra.modo !== 'pendientes' || !esAdminPrincipal_(adm)) { tvCandidata_('datos', function () { return tdTareas_(cfg.tareas, hoy); }); return frTareas; }
   /* Lo que espera su sí en Pendientes (lo mismo que ve en la app). Si no se puede leer, mejor la IA. */
   var p = pendientesTodo_({ email: adm.email }); if (!p || !p.ok) return null;
+  tvCandidata_('datos', function () { return tdPendientes_(p); });   // lo que espera su sí, en pantalla (tablero.js, #607)
   var tit = (p.atencion || []).map(function (x) { return String(x.titulo || x.resumen || '').replace(/\s+/g, ' ').trim().slice(0, 60); }).filter(Boolean);
   var frPend = !tit.length ? 'En Pendientes no hay nada esperando tu sí.' : 'En Pendientes ' + (tit.length === 1 ? 'te espera 1' : 'te esperan ' + tit.length) + ': ' + instLista_(tit, voz ? 3 : max) + '.';
   return frPend + ' ' + frTareas;
@@ -284,10 +302,10 @@ function instResponder_(adm, texto, canal) {
   if (!instOn_() || !adm || AGENTE_PERMITIDAS_) return null;
   var r = instReconocer_(texto); if (!r) return null;
   var ctx = { hechas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
-  var f = { ruta: instRuta_, operacion: instOperacion_, reserva: instReserva_, codigo: instCodigo_, tareas: instTareas_ }[r.tipo];
+  var f = { ruta: instRuta_, operacion: instOperacion_, reserva: instReserva_, codigo: instCodigo_, tareas: instTareas_, equipos: instEquipos_ }[r.tipo];
   var t = f ? f(adm, r, canal, ctx) : null;
   if (!t) return null;
-  return { texto: t, acciones: ctx.hechas, tipo: r.tipo, esfera: 'Propósito', subcategoria: r.tipo === 'reserva' ? 'Huéspedes' : 'Operación' };
+  return { texto: t, acciones: ctx.hechas, tipo: r.tipo, esfera: 'Propósito', subcategoria: r.tipo === 'reserva' ? 'Huéspedes' : r.tipo === 'equipos' ? 'Equipo' : 'Operación' };
 }
 /* Para opAgente_: la misma salida que el bucle de la IA (respuesta, hechas, esfera…), o null. */
 function instAgente_(adm, texto, canal) {

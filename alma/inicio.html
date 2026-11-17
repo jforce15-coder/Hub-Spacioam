@@ -206,6 +206,12 @@
     font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #FFFDFB; text-shadow: 0 1px 10px rgba(40,25,25,.5); }
   @keyframes esf-quieta { 0%, 100% { transform: scale(1); } 50% { transform: scale(.97); } }
   @keyframes esf-halo { 0%, 100% { transform: scale(1); opacity: .42; } 50% { transform: scale(1.12); opacity: .8; } }
+  /* UNA ROCA, UN PULSO (Juan, 16-nov-2026: «el pulse de la roca es súper importante […] sin ningún conflicto con las
+     animaciones de alrededor»): las esferas y los anillos en órbita respiran AL MISMO TIEMPO que la roca (SAPulso.enFase los
+     pone en la fase de su respiración, js/sa-nav.js PULSE) y, mientras hay una llamada (Alma o Claudio hablan y la roca sigue
+     la voz), se quedan quietos: el único pulso que se mueve es el de la roca. Capas separadas: ninguna comparte transform. */
+  html:has(#sa-nav-root .san-ov.on:not(.quieta)) .esf .resp, html:has(#sa-nav-root .san-ov.on:not(.quieta)) .esf .halo,
+  html:has(#sa-nav-root .san-ov.on:not(.quieta)) .pob-s .resp, html:has(#sa-nav-root .san-ov.on:not(.quieta)) .pob-s .halo { animation: none; }
   .esf.proposito { --c: #E9826A; --c2: #F2B08F; --c3: #C9705E; }
   .esf.relaciones { --c: #D99AA0; --c2: #F0C4C3; --c3: #B06F7A; }
   .esf.finanzas { --c: #8FB38C; --c2: #C3D9B8; --c3: #5F8A5E; }
@@ -666,6 +672,86 @@
   .tvb-cara img { width: 100%; height: 100%; object-fit: cover; }
   .tvb-dato.con-cara { padding-right: 46px; }
   .tvb-dato.con-cara > .tvb-cara { position: absolute; right: 10px; top: 50%; margin-top: -15px; width: 30px; height: 30px; font-size: 10px; }
+  /* Tablero de datos (#607, apps-script/tablero.js): número grande, barras y línea de tiempo, en el mismo bento. Un solo
+     color (el coral de Alma) para las barras; el valor va escrito al lado (sin leyenda ni eje). */
+  .tvb-numero { display: flex; flex-direction: column; justify-content: center; }
+  .tvb-numero .tvb-v { font-size: clamp(26px, 8vw, 34px); }
+  .tvb-numero[data-tono="alerta"] .tvb-v { color: #9E3326; }
+  .tvb-numero[data-tono="aviso"] .tvb-v { color: #6F5210; }
+  .tvb-br { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: minmax(56px, max-content) 1fr max-content; gap: 6px 8px; align-items: center; font-size: 12px; }
+  .tvb-br li { display: contents; }
+  .tvb-br span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #3E3F3F; }
+  .tvb-br i { display: block; height: 10px; border-radius: 0 6px 6px 0; background: #E9826A; min-width: 3px; width: 0; transition: width .7s var(--ease, cubic-bezier(.22,.61,.36,1)); }
+  .tvb.on .tvb-br i { width: var(--w); }
+  .tvb-br b { font: 600 11px Montserrat, system-ui, sans-serif; color: #3E3F3F; font-variant-numeric: tabular-nums; }
+  .tvb-ln { list-style: none; margin: 8px 0 0; padding: 0 0 0 14px; position: relative; display: flex; flex-direction: column; gap: 8px; }
+  .tvb-ln::before { content: ""; position: absolute; left: 4px; top: 4px; bottom: 4px; width: 2px; border-radius: 2px; background: #ECEAE7; }
+  .tvb-ln li { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 0 8px; font-size: 12.5px; line-height: 1.3; min-width: 0; }
+  .tvb-ln li::before { content: ""; position: absolute; left: -14px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: #fff; border: 2px solid #E9826A; box-sizing: border-box; }
+  .tvb-ln li[data-tono="aviso"]::before { border-color: #C99A2E; }
+  .tvb-ln li[data-tono="alerta"]::before { border-color: #9E3326; background: #F2DAD5; }
+  .tvb-ln time { font: 600 11px Montserrat, system-ui, sans-serif; color: #6F6867; font-variant-numeric: tabular-nums; }
+  .tvb-ln span { min-width: 0; overflow-wrap: anywhere; }
+  .tvb-ln small { grid-column: 2; font-size: 10.5px; color: #6F6867; }
+  @media (prefers-reduced-motion: reduce) { .tvb-br i { transition: none; } }
+  /* Snapshot estilo Jarvis (Juan, 16-nov-2026; apps-script/snapshot.js): futurista pero cálido. Lo importante en una frase
+     bajo el título (vidrio con el destello de Alma); la experiencia como termómetro del coral al verde con su riesgo; lo que
+     le molesta y lo que lo tiene feliz lado a lado; el problema con lo que estamos haciendo; y los números grandes. */
+  .tvb-dest { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 0; padding: 10px 13px; border-radius: 16px; font: 500 13px/1.42 Montserrat, system-ui, sans-serif; color: #fff;
+    background: linear-gradient(120deg, rgba(255,255,255,.26), rgba(255,255,255,.12)); -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.28), 0 10px 26px -18px rgba(40,30,25,.55); text-shadow: 0 1px 6px rgba(40,30,25,.25); text-wrap: pretty; }
+  .tvb-dest svg { flex: none; width: 15px; height: 15px; margin-top: 2px; color: #FFE3D9; filter: drop-shadow(0 0 6px rgba(255,214,196,.8)); }
+  .tvb-dest[data-tono="alerta"] { background: linear-gradient(120deg, rgba(158,51,38,.42), rgba(233,130,106,.28)); }
+  .tvb-dest[data-tono="aviso"] { background: linear-gradient(120deg, rgba(201,154,46,.34), rgba(255,255,255,.14)); }
+  .tvb-termometro .tvb-v { font-size: clamp(22px, 6.4vw, 27px); }
+  .tvb-termometro .tvb-v[data-tono="alerta"] { color: #9E3326; }
+  .tvb-termometro .tvb-v[data-tono="aviso"] { color: #8A6413; }
+  .tvb-termometro .tvb-v[data-tono="libre"] { color: #2F5B43; }
+  .tvb-term { position: relative; height: 8px; margin: 10px 0 2px; border-radius: 4px; background: linear-gradient(90deg, #E36A55 0%, #E9A15C 45%, #A8C48F 75%, #6FA37F 100%); }
+  .tvb-term i { position: absolute; right: 0; top: 0; bottom: 0; width: calc(100% - var(--n)); border-radius: 0 4px 4px 0; background: rgba(236,234,231,.92); transition: width .9s var(--ease, cubic-bezier(.22,.61,.36,1)) .25s; }
+  .tvb-term b { position: absolute; top: 50%; left: var(--n); width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(233,130,106,.28), 0 2px 6px rgba(40,30,25,.35);
+    transition: left .9s var(--ease, cubic-bezier(.22,.61,.36,1)) .25s; }
+  .tvb:not(.on) .tvb-term i { width: 100%; } .tvb:not(.on) .tvb-term b { left: 0; }
+  .tvb-porque { color: #6F6867; margin-top: 6px; }
+  .tvb-animo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tvb-animo.uno { grid-template-columns: 1fr; }
+  .tvb-an ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .tvb-an li { position: relative; padding-left: 14px; font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
+  .tvb-an li::before { content: ""; position: absolute; left: 0; top: 5px; width: 7px; height: 7px; border-radius: 50%; }
+  .tvb-an.molesta li::before { background: #E36A55; box-shadow: 0 0 0 3px rgba(227,106,85,.18); }
+  .tvb-an.feliz li::before { background: #6FA37F; box-shadow: 0 0 0 3px rgba(111,163,127,.2); }
+  .tvb-an.molesta .tvb-k { color: #9E3326; } .tvb-an.feliz .tvb-k { color: #2F5B43; }
+  .tvb-prob { display: block; margin-top: 4px; font: 400 clamp(18px, 5vw, 21px)/1.2 Valky, "Cormorant Garamond", Georgia, serif; color: #3E3F3F; overflow-wrap: anywhere; text-wrap: pretty; }
+  .tvb-k2 { margin-top: 10px; }
+  .tvb-cifras { display: grid; grid-template-columns: repeat(var(--c, 3), minmax(0, 1fr)); gap: 0; padding: 12px 4px; }
+  .tvb-cif { min-width: 0; padding: 0 10px; }
+  .tvb-cif + .tvb-cif { border-left: 1px solid #ECEAE7; }
+  .tvb-cif .tvb-v { font-size: clamp(24px, 7.4vw, 32px); font-variant-numeric: tabular-nums; }
+  .tvb-cif .tvb-v.txt { font-size: clamp(18px, 5.2vw, 22px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 8px; }
+  .tvb .tvb-cif { opacity: 0; transform: translateY(6px); transition: opacity .4s ease, transform .55s var(--ease, cubic-bezier(.22,.61,.36,1)); transition-delay: calc(var(--i, 0) * 45ms + var(--j, 0) * 70ms + 120ms); }
+  .tvb.on .tvb-cif { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) { .tvb-term i, .tvb-term b { transition: none; } .tvb .tvb-cif { transform: none; transition: opacity .2s ease; transition-delay: 0s; } }
+  /* Modo compañero (#607 T-C1, apps-script/vivo.js): este dispositivo muestra la llamada del otro, sin audio. */
+  .comp { position: fixed; inset: 0; z-index: 2147482450; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity .35s ease;
+    background: linear-gradient(180deg, rgba(40,30,32,.10), rgba(40,30,32,.30)), #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat; color: #fff; }
+  .comp.on { opacity: 1; pointer-events: auto; }
+  .comp-cab { display: flex; align-items: center; gap: 10px; padding: max(18px, calc(env(safe-area-inset-top) + 10px)) 80px 0 max(18px, env(safe-area-inset-left)); font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .24em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(40,30,25,.25); }
+  .comp-cab i { width: 8px; height: 8px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 4px rgba(233,130,106,.3); animation: compLate 1.8s ease-in-out infinite; }
+  .comp.fin .comp-cab i { animation: none; background: rgba(255,255,255,.7); box-shadow: none; }
+  @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
+  .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
+  .comp-tab { position: relative; flex: 1; min-height: 0; }
+  .comp .tvb { top: 18px; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto; }
+  .comp-vacio { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font: 400 clamp(22px, 4vw, 30px)/1.25 Valky, "Cormorant Garamond", Georgia, serif; opacity: .9; }
+  .comp-subs { flex: none; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; padding: 12px max(18px, env(safe-area-inset-right)) max(22px, calc(env(safe-area-inset-bottom) + 12px)) max(18px, env(safe-area-inset-left));
+    display: flex; flex-direction: column; gap: 6px; min-height: 96px; justify-content: flex-end; }
+  .comp-subs p { margin: 0; text-shadow: 0 1px 10px rgba(40,30,25,.35); animation: compSub .35s ease both; }
+  .comp-subs p.alma { font: 400 clamp(19px, 3vw, 24px)/1.3 Valky, "Cormorant Garamond", Georgia, serif; }
+  .comp-subs p.yo { font: 500 13px/1.35 Montserrat, system-ui, sans-serif; opacity: .82; }
+  .comp-subs p.yo::before { content: "Tú · "; font-weight: 600; }
+  @keyframes compSub { from { opacity: 0; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) { .comp-cab i, .comp-subs p { animation: none; } }
   .tvb-galeria { padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; background: #fff; }
   .tvb-galeria > img { position: static; width: 100%; height: 100%; min-height: 0; object-fit: cover; display: block; }
   .tvb-acc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--g); }
@@ -856,6 +942,10 @@
     <div class="fila" id="p-alt-f" hidden><span class="et">Correo alterno</span><span class="va" id="p-alt"></span></div>
     <div class="fila" id="p-tel-f" hidden><span class="et">Teléfono</span><span class="va" id="p-tel"></span></div>
   </div>
+  <div class="grupo" id="g-tarjetas" hidden>
+    <div class="fila boton" id="b-tarjetas" role="button" tabindex="0">Tarjetas y boletos</div>
+    <p class="nota-g">Las del supermercado y de cliente frecuente, guardadas solo en este iPhone. Dile a Alma «enséñame mi tarjeta de…» y la pone en pantalla para la caja.</p>
+  </div>
   <div class="grupo" id="g-face" hidden>
     <div class="fila"><span class="et">Entrar con Face ID</span><label class="interruptor"><input type="checkbox" id="i-face" aria-label="Entrar con Face ID"><span></span></label></div>
   </div>
@@ -888,6 +978,7 @@
     <p class="nota-g">Apagado, Alma habla encima de la música y su llamada la pausa. Encendido, la música baja mientras Alma habla y vuelve al terminar.</p>
   </div>
   <div class="grupo" id="g-anillo" hidden>
+    <div class="fila boton" id="b-dispositivos" role="button" tabindex="0" hidden>Dispositivos: tu anillo y tus lentes</div>
     <div class="fila"><span class="et">Alma con el anillo</span><label class="interruptor"><input type="checkbox" id="i-anillo" aria-label="Alma con el anillo"><span></span></label></div>
     <p class="nota-g" id="n-anillo">Dos toques en tu anillo encienden o apagan el modo conferencia, aunque el teléfono esté bloqueado; di «Alma» y te escucha. Si Alma está hablando, dos toques la pausan. El anillo va en modo Music.</p>
     <div class="fila boton" id="b-probar" role="button" tabindex="0">Probar ahora</div>
@@ -921,6 +1012,11 @@
     <div class="pp-barra"><div class="riel"></div><input type="range" id="pp-tope-h" min="0" max="100" step="5" value="20" aria-label="Tope de adaptación con huéspedes"></div>
     <div class="pp-fija"><span>Modo Weebo</span><b id="pp-h-w">máximo 1 · chispa</b></div>
   </div>
+  <p class="tit-g" id="t-comp">Modo compañero</p>
+  <div class="grupo" id="g-comp">
+    <div class="fila"><span class="et">Mostrar aquí la llamada de tu otro dispositivo</span><label class="interruptor"><input type="checkbox" id="i-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo"><span></span></label></div>
+    <p class="nota-g">Encendido en este dispositivo (por ejemplo, el iPad): cuando hablas con Alma desde el otro, aquí ves en vivo lo que ella te muestra y lo que dicen, sin sonido. El micrófono y el audio se quedan en el dispositivo donde empezaste la llamada.</p>
+  </div>
   <p class="tit-g" id="t-llaves" hidden>Llaves</p>
   <div class="grupo" id="g-llaves" hidden>
     <div id="l-llaves"></div>
@@ -936,6 +1032,7 @@
     <div class="fila"><a href="conexiones.html" id="p-conexiones">Conexiones</a><span class="va">›</span></div>
     <div class="fila" id="p-uso-f" hidden><a href="uso.html" id="p-uso">Uso</a><span class="va">›</span></div>
     <div class="fila" id="p-aprendio-f" hidden><a href="aprendio.html" id="p-aprendio">Lo que Alma aprendió</a><span class="va">›</span></div>
+    <div class="fila" id="p-biblioteca-f" hidden><a href="biblioteca.html" id="p-biblioteca">Biblioteca de Claudio</a><span class="va">›</span></div>
     <div class="fila"><a href="https://hub.spacioam.com/" id="p-hub">Abrir el Hub</a><span class="va">›</span></div>
   </div>
   <div class="grupo"><div class="fila boton rojo" id="b-salir" role="button" tabindex="0">Cerrar sesión</div></div>
@@ -961,9 +1058,34 @@
 <script src="../js/sa-auth-client.js?v=2026-10-25a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-16-archivos"></script>
-<script src="../js/alma-voz.js?v=2026-11-16e"></script>
+<script src="../js/alma-voz.js?v=2026-11-17-tarjetas"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-16-archivos"></script>
+<script src="../js/sa-nav.js?v=2026-11-16-una-roca"></script>
+<script src="../js/alma-gif.js?v=2026-11-16a"></script>
+<script>
+/* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
+   el reloj de la página (sa-nav.js: J.p = t % PULSE, 3.6 s); sus animaciones de CSS (esf-quieta, esf-halo) arrancan en ese
+   mismo cero, sin desfases propios. */
+window.SAPulso = {
+  enFase: function (raiz) {
+    try {
+      if (!raiz || !raiz.querySelectorAll || !document.getAnimations) return;
+      Array.prototype.forEach.call(raiz.querySelectorAll(".resp, .halo"), function (e) {
+        (e.getAnimations ? e.getAnimations() : []).forEach(function (a) { if (/^esf-(quieta|halo)$/.test(a.animationName || "")) a.startTime = 0; });
+      });
+    } catch (e) {}
+  }
+};
+/* Al terminar la llamada vuelven a respirar (sus animaciones se crean de nuevo): otra vez en la fase de la roca. */
+(function () {
+  var antes = false;
+  setInterval(function () {
+    var o = document.querySelector("#sa-nav-root .san-ov"), ahora = !!(o && o.classList.contains("on") && !o.classList.contains("quieta"));
+    if (antes && !ahora) requestAnimationFrame(function () { SAPulso.enFase(document.body); });
+    antes = ahora;
+  }, 700);
+})();
+</script>
 <script>
 (function () {
   "use strict";
@@ -1048,7 +1170,7 @@
     if (OR.armada || !AR.datos) return; OR.armada = true;
     var o = $("orbita");
     AR.datos.forEach(function (a, i) {
-      var b = el("button", "esf " + a.k); b.type = "button"; b.setAttribute("aria-label", a.n); b.style.setProperty("--dl", (i * -600) + "ms");
+      var b = el("button", "esf " + a.k); b.type = "button"; b.setAttribute("aria-label", a.n);
       b.innerHTML = '<span class="resp"><span class="pres"><span class="halo"></span><span class="piedra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (ICON[a.k] || "") + '</svg></span></span></span>';
       b.appendChild(el("span", "nom", a.n));
       /* respuesta en el dedo: se hunde al tocar, no al soltar */
@@ -1061,6 +1183,7 @@
       };
       o.appendChild(b);
     });
+    if (window.SAPulso) SAPulso.enFase(o);
   }
   /* Dónde va cada una: un círculo perfecto alrededor de Alma, que se encoge a una piedra mediana. Las esferas, más
      chicas que ella, quedan con aire entre ellas (nunca se tocan) y con su nombre debajo. */
@@ -1402,6 +1525,7 @@
     /* Uso (cupo de Google e IA, alma/uso.html): solo el administrador principal; el Hub lo vuelve a comprobar. */
     $("p-uso-f").hidden = $("p-health-f").hidden;
     $("p-aprendio-f").hidden = $("p-health-f").hidden;   // las recetas de Alma (alma/aprendio.html): solo el principal
+    $("p-biblioteca-f").hidden = $("p-health-f").hidden;   // skills y documentos para Claudio (alma/biblioteca.html): solo el principal
     var av = $("p-av"); av.textContent = p.foto ? "" : (p.primer || p.email || "?").charAt(0).toUpperCase(); av.style.backgroundImage = p.foto ? "url(" + JSON.stringify(p.foto) + ")" : "";
     $("p-nota").textContent = NATIVA ? "Alma para iPhone y iPad" : "";
     if (NATIVA) { nativa({ accion: "estado" }); nativa({ accion: "voz", que: "estado" }); nativa({ accion: "atajos", que: "estado" }); avisosReloj(true); }
@@ -1506,8 +1630,11 @@
       try { vozAgente(e); } catch (x) {}
       try { if (window.AlmaPersonalidad) AlmaPersonalidad.evento(e); } catch (x) {}   // medidores en vivo de la llamada (#410)
       try { if (window.AlmaTarjeta) AlmaTarjeta.evento(e); } catch (x) {}   // la tarjeta de la llamada (#446 T2)
+      try { if (window.AlmaGif) AlmaGif.evento(e); } catch (x) {}   // el GIF de la broma: un cuadro del tablero o el chat (js/alma-gif.js)
       if (e.tipo === "estado") {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
+        $("b-dispositivos").hidden = !e.dispositivos;
+        $("g-tarjetas").hidden = !e.tarjetas;   // solo una app que sabe abrir Tarjetas de clubes (alma-app TarjetasClub.swift)   // solo una app que sabe abrir la pantalla Dispositivos (Dispositivos.swift)
         $("b-anillo-ble").hidden = $("n-anillo-ble").hidden = !e.diagBle;   // solo una app que sabe abrir el diagnóstico (DiagnosticoAnillo.swift)
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
         /* Diagnóstico: qué pasó la última vez (sirve para ver dónde se queda con el teléfono bloqueado) */
@@ -1900,6 +2027,10 @@
   $("b-probar").onclick = function () { vozConfig(); nativa({ accion: "voz", que: "alternar" }); };
   /* Diagnóstico del anillo (Bluetooth), ticket #29 paso 1: la app abre su pantalla nativa; vozConfig deja lista la sesión para «Mandar al Hub». */
   $("b-anillo-ble").onclick = function () { vozConfig(); nativa({ accion: "anilloBle" }); };
+  /* Dispositivos (Juan, 16-nov-2026): el anillo y los lentes, cada uno con su batería y sus ajustes; pantalla nativa. */
+  $("b-dispositivos").onclick = function () { vozConfig(); nativa({ accion: "dispositivos" }); };
+  /* Tarjetas de clubes (Juan, 17-nov-2026): se guardan y se muestran en la app (pantalla nativa); nada pasa por el Hub. */
+  $("b-tarjetas").onclick = function () { nativa({ accion: "tarjetas" }); };
   if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
 
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */
@@ -2053,12 +2184,16 @@
   }
   function dura(a, b) { var m = Math.round((ms(b) - ms(a)) / 6e4), h = Math.floor(m / 60); return (h ? h + " h " : "") + (m % 60 ? (m % 60) + " min" : "").trim(); }
 
-  /* ── ¿Se ve el botón? Solo con un viaje cercano (Juan, 16-nov-2026): desde 5 días antes del primer tramo hasta 5 días
-     después del último. Fuera de esa ventana el botón desaparece. ── */
+  /* ── ¿Se ve el botón? Solo cerca de un vuelo (Juan, 16-nov-2026): de 5 días antes de que sale a 5 días después de que
+     aterriza, vuelo por vuelo. Con la ida y la vuelta separadas (una estancia de semanas), entre las dos ventanas no hay
+     avión: no cuenta el viaje entero de la ida a la vuelta. Fuera de la ventana el botón desaparece. ── */
   var VENTANA_DIAS = 5;
+  function cercanos(v, t) {   // los vuelos del viaje cuya ventana incluye este momento
+    return (v.tramos || []).filter(function (x) { return t >= ms(x.sale) - VENTANA_DIAS * DIA && t <= ms(x.llega) + VENTANA_DIAS * DIA; });
+  }
   function vigentes(d) {
     var t = Date.now();
-    return ((d && d.viajes) || []).filter(function (v) { return v.tramos && v.tramos.length && t >= ms(v.desde) - VENTANA_DIAS * DIA && t <= ms(v.hasta) + VENTANA_DIAS * DIA; });
+    return ((d && d.viajes) || []).filter(function (v) { return cercanos(v, t).length > 0; });
   }
   /* El próximo tramo (o el que va en el aire) y si toca la vista centrada. */
   function proximo(vs) {
@@ -2085,11 +2220,12 @@
     orbitaAvion();
     if (VJ.abierto) pintar();
   }
-  /* La órbita del avión (Juan, 13-nov-2026): con un tramo que aún no aterriza (viaje próximo o en curso), la cercana;
-     cuando ya aterrizó el último, la lejana (hasta los 5 días en que el botón se va). El bloque «Pedidos en órbita» lo mueve. */
+  /* La órbita del avión (Juan, 13-nov-2026): con un vuelo cercano que aún no aterriza (por salir o en el aire), la cercana;
+     cuando ya aterrizó, la lejana (hasta los 5 días en que el botón se va). El bloque «Pedidos en órbita» lo mueve. */
   function orbitaAvion() {
-    var b = $("b-avion"), vs = b.hidden ? [] : vigentes(VJ.datos);
-    b.dataset.orbita = !vs.length ? "" : proximo(vs) ? "cerca" : "lejos";
+    var b = $("b-avion"), t = Date.now(), vs = b.hidden ? [] : vigentes(VJ.datos);
+    var viene = vs.some(function (v) { return cercanos(v, t).some(function (x) { return ms(x.llega) > t; }); });
+    b.dataset.orbita = !vs.length ? "" : viene ? "cerca" : "lejos";
     if (window.AlmaOrbita && AlmaOrbita.andar) AlmaOrbita.andar();
   }
   setInterval(function () {   // el viaje pasa a la lejana, y el botón aparece o se va al cruzar los 5 días, sin cerrar la app
@@ -2583,7 +2719,7 @@
     wa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 18.8z"/></svg>',
     arriba: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg>'
   };
-  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio", socio: "Socio" };
+  var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio", socio: "Socio", recepcion: "Recepción", proyecto: "Proyecto", datos: "Datos" };
   var LEY = [["res", "#D9E4EF", "Reservado"], ["con", "#F5E6BF", "Consulta"], ["bloq", "#F2DAD5", "Bloqueado"], ["libre", "#E1EEE5", "Libre"]];
   var EST = { res: "reservado", con: "consulta o solicitud", bloq: "bloqueado", libre: "libre", pasado: "pasado" };
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -2668,7 +2804,7 @@
       if (c === foto || c.tam === "s") return;
       if (c.tam === "m") { medio.push(c); if (medio.length === 2) { filas.push({ celdas: medio, span: 3, alto: 2 }); medio = []; } return; }
       if (medio.length) { filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 }); medio = []; }
-      filas.push({ celdas: [c], span: 6, alto: c.tipo === "semana" || c.tipo === "lista" ? 1 : 2 });   // semana y lista: del alto de lo que traen
+      filas.push({ celdas: [c], span: 6, alto: /^(semana|lista|barras|linea|termometro|animo|foco|cifras|resumen)$/.test(c.tipo) ? 1 : 2 });   // semana, lista, barras, línea y las piezas del snapshot: del alto de lo que traen
     });
     if (medio.length) filas.push({ celdas: medio, span: 6, alto: medio[0].tipo === "mapa" ? 2 : 1 });   // un texto solo: del alto de lo que dice
     return filas;
@@ -2733,7 +2869,66 @@
       });
       d.appendChild(ul); return d;
     }
+    if (c.tipo === "barras") {   // #607: barras horizontales; la más larga es el 100 %
+      d.appendChild(el("small", "tvb-k", c.k || ""));
+      var its = (c.items || []).filter(function (x) { return x && x.t; }), mx = Math.max.apply(null, [0].concat(its.map(function (x) { return Number(x.n) || 0; })));
+      var br = el("ul", "tvb-br"); br.setAttribute("role", "list");
+      its.forEach(function (x) {
+        var li = el("li"); li.setAttribute("aria-label", x.t + ": " + (x.v == null ? x.n : x.v));
+        li.appendChild(el("span", "", x.t)); var bar = el("i"); bar.style.setProperty("--w", (mx ? Math.max(2, Math.round((Number(x.n) || 0) / mx * 100)) : 0) + "%"); li.appendChild(bar);
+        li.appendChild(el("b", "", String(x.v == null ? x.n : x.v))); br.appendChild(li);
+      });
+      d.appendChild(br); return d;
+    }
+    if (c.tipo === "linea") {   // #607: línea de tiempo (hora · qué · quién)
+      d.appendChild(el("small", "tvb-k", c.k || ""));
+      var ln = el("ol", "tvb-ln");
+      (c.items || []).forEach(function (x) {
+        if (!x || !x.t) return; var li = el("li"); if (x.tono) li.setAttribute("data-tono", x.tono);
+        li.appendChild(el("time", "", x.h || "")); li.appendChild(el("span", "", x.t)); if (x.d) li.appendChild(el("small", "", x.d)); ln.appendChild(li);
+      });
+      d.appendChild(ln); return d;
+    }
+    /* ── Snapshot estilo Jarvis (apps-script/snapshot.js) ── */
+    if (c.tipo === "termometro") {   // la experiencia: un termómetro del coral al verde, el riesgo de mala reseña y su porqué
+      var kt = el("div", "tvb-kf"); kt.appendChild(el("small", "tvb-k", c.k || "Experiencia"));
+      if (c.riesgo) { var cr = el("span", "tvb-chip", "Riesgo de mala reseña · " + c.riesgo); cr.setAttribute("data-tono", c.riesgoTono || "aviso"); kt.appendChild(cr); }
+      d.appendChild(kt);
+      var vt = el("b", "tvb-v", c.v || ""); vt.setAttribute("data-tono", c.tono || "info"); d.appendChild(vt);
+      var bar = el("div", "tvb-term"), niv = Math.max(4, Math.min(96, Number(c.nivel) || 50)); bar.style.setProperty("--n", niv + "%");
+      bar.setAttribute("role", "meter"); bar.setAttribute("aria-valuemin", "0"); bar.setAttribute("aria-valuemax", "100"); bar.setAttribute("aria-valuenow", String(Math.round(niv))); bar.setAttribute("aria-label", (c.k || "Experiencia") + ": " + (c.v || ""));
+      bar.appendChild(el("i")); bar.appendChild(el("b")); d.appendChild(bar);
+      if (c.porque) d.appendChild(el("p", "tvb-p tvb-porque", c.porque));
+      return d;
+    }
+    if (c.tipo === "animo") {   // lo que le molesta y lo que lo tiene feliz, lado a lado
+      [["molesta", "Le molesta"], ["feliz", "Lo tiene feliz"]].forEach(function (x) {
+        var l = c[x[0]] || []; if (!l.length) return;
+        var col = el("div", "tvb-an " + x[0]); col.appendChild(el("small", "tvb-k", x[1])); var ul = el("ul");
+        l.forEach(function (it) { ul.appendChild(el("li", "", it)); }); col.appendChild(ul); d.appendChild(col);
+      });
+      if (d.children.length === 1) d.classList.add("uno");
+      return d;
+    }
+    if (c.tipo === "foco") {   // el problema de ahora y lo que estamos haciendo
+      if (c.problema) { d.appendChild(el("small", "tvb-k", c.k || "El problema")); d.appendChild(el("b", "tvb-prob", c.problema)); }
+      if ((c.acciones || []).length) {
+        d.appendChild(el("small", "tvb-k tvb-k2", c.kAcciones || "Lo que estamos haciendo")); var ua = el("ul", "tvb-l");
+        c.acciones.forEach(function (x) { var li = el("li", x.t ? "" : "mas"); if (x.tono) li.setAttribute("data-tono", x.tono); if (x.t) li.appendChild(el("b", "", x.t)); li.appendChild(el("span", "tvb-tx", x.v || "")); if (x.d) li.appendChild(el("small", "", x.d)); ua.appendChild(li); });
+        d.appendChild(ua);
+      }
+      return d;
+    }
+    if (c.tipo === "cifras") {   // tres o cuatro números grandes
+      d.style.setProperty("--c", Math.max(2, Math.min(4, (c.items || []).length)));
+      (c.items || []).forEach(function (x, i) { var n = el("div", "tvb-cif"); n.style.setProperty("--j", i); n.appendChild(el("small", "tvb-k", x.k || "")); n.appendChild(el("b", "tvb-v" + (/^[\d−-]/.test(String(x.v)) ? "" : " txt"), String(x.v))); if (x.d) n.appendChild(el("small", "tvb-d", x.d)); d.appendChild(n); });
+      return d;
+    }
     if (c.k) d.appendChild(el("small", "tvb-k", c.k));
+    if (c.tipo === "numero") {   // #607: un número grande
+      d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d)); if (c.tono) d.setAttribute("data-tono", c.tono);
+      return d;
+    }
     if (c.tipo === "dato") {
       d.appendChild(el("b", "tvb-v", c.v || "–")); if (c.d) d.appendChild(el("small", "tvb-d", c.d));
       if (seguro(c.foto)) { d.classList.add("con-cara"); d.appendChild(cara(c.foto, c.iniciales)); }   // la foto del huésped (#508 T2)
@@ -2753,10 +2948,13 @@
     d.appendChild(el("p", "tvb-p", c.texto || c.v || ""));
     return d;
   }
-  function pintarBento(t) {
-    var b = el("section", "tvb"); b.setAttribute("role", "group"); b.setAttribute("aria-label", "Alma encontró: " + (t.cabeza || t.titulo || ""));
-    var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode("Alma encontró")); cab.appendChild(eti);
-    cab.appendChild(el("b", "tvb-tit", t.cabeza || t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub)); b.appendChild(cab);
+  function pintarBento(t, sinAcciones) {
+    var b = el("section", "tvb"); b.setAttribute("role", "group"); b.setAttribute("aria-label", (t.eti || "Alma encontró") + ": " + (t.cabeza || t.titulo || ""));
+    var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.eti || "Alma encontró")); cab.appendChild(eti);
+    cab.appendChild(el("b", "tvb-tit", t.cabeza || t.titulo || "")); if (t.sub) cab.appendChild(el("small", "tvb-sub", t.sub));
+    /* Snapshot (apps-script/snapshot.js): lo importante en una frase, debajo del título */
+    if (t.destacado && t.destacado.texto) { var de = el("p", "tvb-dest"); de.setAttribute("data-tono", t.destacado.tono || "info"); de.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5c.4 4.6 1.6 6.2 7 7.5-5.4 1.3-6.6 2.9-7 9.5-.4-6.6-1.6-8.2-7-9.5 5.4-1.3 6.6-2.9 7-7.5z"/></svg>'; de.appendChild(el("span", "", t.destacado.texto)); cab.appendChild(de); }
+    b.appendChild(cab);
     var g = el("div", "tvb-g"), k = 0;
     acomodar(t.cuadros).forEach(function (f) {
       if (f.hero) {
@@ -2769,7 +2967,7 @@
     });
     b.appendChild(g);
     /* «Abrir conversación» ya está en «Necesita respuesta»; abajo quedan las demás (o todas, si no hay ese cuadro). */
-    var ac = acciones(t, !!g.querySelector(".tvb-msg[role=button]")); if (ac) { var a = el("div", "tvb-acc"); a.style.setProperty("--i", k); a.appendChild(ac[0]); a.appendChild(ac[1]); b.appendChild(a); }
+    var ac = sinAcciones ? null : acciones(t, !!g.querySelector(".tvb-msg[role=button]")); if (ac) { var a = el("div", "tvb-acc"); a.style.setProperty("--i", k); a.appendChild(ac[0]); a.appendChild(ac[1]); b.appendChild(a); }
     b.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
     return b;
   }
@@ -2993,8 +3191,89 @@
     /* La página de la llamada pregunta si debe esperar antes de cerrarse */
     sostiene: function () { return enPantalla(); },
     /* Para las capturas y las pruebas: pinta una tarjeta de mentira */
-    probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); }
+    probar: function (t, vista) { TV.t = t; TV.vista = vista || "abierta"; pintar(); },
+    /* Modo compañero (#607): el mismo tablero, armado aparte y sin botones (desde aquí no se llama ni se abre nada) */
+    bento: function (t) { return esClaudio(t) ? pintarClaudio(t) : esBento(t) ? pintarBento(t, true) : null; }
   };
+})();
+</script>
+<script>
+/* ── Modo compañero (#607 T-C1, apps-script/vivo.js; Juan, 16-nov-2026: «hablamos desde el iPhone y en el iPad se
+   muestran las cosas») ── Con el interruptor encendido EN ESTE dispositivo (se guarda aquí), mientras no haya una llamada
+   aquí mismo, la página pide al Hub lo que pasa en la llamada del otro (vivoLeer): cada 1,5 s durante una llamada y cada
+   8 s si no hay, y nada con la pantalla oculta. Muestra el mismo tablero (sin botones), los subtítulos y el estado, sin
+   audio: el micrófono y el sonido se quedan en el dispositivo de la llamada. Al terminar, «Llamada terminada» ~3 s. */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
+  var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos", "recepcion", "proyecto"];
+  var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
+  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false };
+  try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function hub(accion, extra) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "no_url" });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: accion, token: d.token, session: ses() }, extra || {})) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: "red" }; });
+  }
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. */
+  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on")); }
+  function montar() {
+    if (C.capa) return C.capa;
+    var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
+    var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    c.appendChild(cab); c.appendChild(el("div", "comp-tab")); c.appendChild(el("div", "comp-subs"));
+    document.body.appendChild(c); return c;
+  }
+  function vacio() { var tab = C.capa.querySelector(".comp-tab"); if (!tab.firstChild) tab.appendChild(el("div", "comp-vacio", "Lo que Alma te muestre en la llamada aparece aquí")); }
+  function pintar(r) {
+    var c = montar();
+    if (C.fin) { clearTimeout(C.fin); C.fin = 0; }
+    c.classList.remove("fin");
+    if (r.conv !== C.conv) { C.conv = r.conv; C.desde = 0; C.tvId = ""; c.querySelector(".comp-subs").textContent = ""; c.querySelector(".comp-tab").textContent = ""; }
+    c.querySelector(".comp-de").textContent = "En vivo" + (r.dispositivo ? " · desde tu " + r.dispositivo : "");
+    c.querySelector(".comp-est").textContent = ESTADO[r.estado] || "En llamada";
+    var subs = c.querySelector(".comp-subs");
+    (r.subs || []).forEach(function (x) { C.desde = Math.max(C.desde, Number(x.n) || 0); subs.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t)); });
+    while (subs.children.length > 3) subs.removeChild(subs.firstChild);
+    var t = r.tarjeta, tab = c.querySelector(".comp-tab");
+    if (t && t.id !== C.tvId && window.AlmaTarjeta && AlmaTarjeta.bento) {
+      var nuevo = AlmaTarjeta.bento(t);
+      if (nuevo) { C.tvId = t.id; tab.textContent = ""; tab.appendChild(nuevo); requestAnimationFrame(function () { requestAnimationFrame(function () { nuevo.classList.add("on"); }); }); }
+    }
+    vacio();
+    c.classList.add("on");
+  }
+  function cerrar(fin) {
+    if (!C.capa || !C.capa.classList.contains("on") || C.fin) return;
+    if (fin) { C.capa.classList.add("fin"); C.capa.querySelector(".comp-est").textContent = ESTADO.fin; C.fin = setTimeout(function () { C.fin = 0; cerrar(false); }, FIN_MS); return; }
+    C.capa.classList.remove("on", "fin"); C.conv = ""; C.tvId = ""; C.desde = 0;
+  }
+  function ciclo() {
+    clearTimeout(C.t); C.t = 0;
+    if (C.prueba) return;
+    if (!C.on || !ses()) { cerrar(false); return; }
+    if (document.visibilityState === "hidden") return;   // vuelve con visibilitychange
+    if (llamadaAqui()) { cerrar(false); C.t = setTimeout(ciclo, CADA_NADA); return; }
+    if (C.pidiendo) return;
+    C.pidiendo = true;
+    hub("vivoLeer", { desde: C.desde, tipos: TIPOS }).then(function (r) {
+      C.pidiendo = false;
+      var vivo = !!(r && r.ok && r.en_llamada);
+      if (!C.on) return;
+      if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin"));
+      C.t = setTimeout(ciclo, vivo ? CADA_VIVO : CADA_NADA);
+    });
+  }
+  function poner(on) { C.on = !!on; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} ciclo(); }
+  var i = $("i-comp"); if (i) { i.checked = C.on; i.onchange = function () { poner(this.checked); }; }
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") ciclo(); });
+  window.AlmaCompanero = { poner: poner, probar: function (r) { C.prueba = true; clearTimeout(C.t); pintar(r); } };   // para las capturas: sin pedir al Hub
+  setTimeout(ciclo, 1500);
 })();
 </script>
 <script>
@@ -3067,12 +3346,11 @@
     /* velocidad: la cercana da la vuelta en 2.5 a 3.2 min y la lejana en 4 a 5 min, cada anillo a la suya */
     x.per = (x.tipo === "largo" ? 240 + (h % 5) * 15 : 150 + (h % 5) * 10) * 1000;
     el.style.setProperty("--d", (x.tipo === "largo" ? 30 : 34) + "px");
-    el.style.setProperty("--dl", -((h % 36) * 100) + "ms");
     x.a0 = lugar(x);
     var toca = function (e) { if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return; e.preventDefault(); e.stopPropagation(); preguntar(x); };
     [x.an, x.et].forEach(function (z) { z.addEventListener("click", toca); });
     x.an.addEventListener("keydown", toca);
-    c.appendChild(el); P.s[p.id] = x;
+    c.appendChild(el); P.s[p.id] = x; if (window.SAPulso) SAPulso.enFase(el);
     return x;
   }
   /* Al tocar un anillo (o su nombre), Alma explica qué pasó, qué se hizo y en qué estado va (Juan, 14-nov-2026, #539): se

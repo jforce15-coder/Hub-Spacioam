@@ -192,5 +192,19 @@ function lista(c) { c.ctx.vozAvisos_(SES, { push: { listo: true } }); c.ctx.vozA
   ok(/pushAppToca_\(adm, nuevo\)/.test(VOZ) && /pushAppMandar_\(adm, nuevo\)/.test(VOZ) && /pushAppAlPreguntar_\(adm, b, resp\)/.test(VOZ), '7 · los ganchos: al nacer el aviso (vozAvisoPoner_) y cuando la app pregunta (vozAvisos_)');
 }
 
+/* ── 8. Avisos de unir: nunca por WhatsApp (Juan, 17-nov-2026: «desactivar el envío de mensajes de unir por WhatsApp») ── */
+{
+  const c = caja();
+  c.ctx.vozAvisoPoner_(JUAN, 'Ya quedó listo el cambio para «X»; solo falta que lo unas.', 'u1', { nivel: 2, tipo: 'claude_listo' });
+  c.ctx.vozAvisoPoner_(JUAN, 'No pude unir sola el cambio de «Y».', 'u2', { nivel: 2, tipo: 'escalar_no_unido' });
+  c.ctx.vozAvisoPoner_(JUAN, 'Ya quedó unido el cambio de «Z».', 'u3', { resultado: true, nivel: 3, tipo: 'claude_unido' });
+  c.ctx.vozAvisoPoner_(JUAN, 'Necesito tu respuesta sobre «W».', 'u4', { nivel: 2, tipo: 'claude_pregunta' });
+  const t = JSON.parse(c.props.VOZ_AVISOS); t[JUAN.email].forEach(a => { a.ts -= 11 * 60000; }); c.props.VOZ_AVISOS = JSON.stringify(t);
+  c.ctx.avisoWaRespaldo_();
+  ok(c.wa.length === 1 && /«W»/.test(c.wa[0].t) && !/unid|unas|unir/.test(c.wa[0].t), '8 · listo para unir, unido y no se pudo unir no salen por WhatsApp; una pregunta sí');
+  const E = leer('escalar.js');
+  ok(!/escalarWhatsApp_\(e, conDatos\)/.test(E) && /escalarWhatsApp_\(e, resp\)/.test(E), '8 · escalar sola: por WhatsApp solo el resultado, sin la línea de lo que se unió ni los avisos de unir');
+}
+
 if (fallo) process.exit(1);
 console.log('Todo bien.');

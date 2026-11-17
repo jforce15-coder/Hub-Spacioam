@@ -48,8 +48,8 @@ function saludosVoz_(nom) {
 function personalidadFicha_(adm) {
   if (!adm || !adm.principal) return null;
   var e = personalidadEstado_(adm), w = e.weebo, a = e.adapt, lineas = [];
-  if (w.modo === 'fijo') lineas.push('MODO WEEBO FIJO: nivel ' + w.nivel_fijo + ' (lo fijó Juan).');
+  if (w.modo === 'fijo') lineas.push('MODO WEEBO FIJO: nivel ' + w.nivel_fijo + ' (lo fijó Juan): es tu techo; empiezas en el centro y subes por grados.');
   if (a.nivel_juan >= 5) lineas.push('ADAPTACIÓN A JUAN: ' + a.nivel_juan + ' % (de ' + a.tope + ' % posible): mézclate con su manera en esa proporción, sin cambiar datos ni reglas.');
-  return { adapt_nivel: a.nivel_juan, adapt_tope: a.tope, weebo_modo: w.modo, weebo_nivel: w.nivel_actual == null ? 1 : w.nivel_actual,
+  return { adapt_nivel: a.nivel_juan, adapt_tope: a.tope, weebo_modo: w.modo, weebo_nivel: w.modo === 'fijo' ? 0 : w.nivel_actual == null ? 1 : w.nivel_actual,   // la llamada empieza en el centro (techo ≠ partida)
     bloque: lineas.length ? '\n' + lineas.join('\n') : '' };
 }

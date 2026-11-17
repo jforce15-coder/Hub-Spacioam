@@ -37,6 +37,7 @@ var REGLAS_FIJAS_SECRETARIA_ = '\n\nREGLAS FIJAS (código):' +
   '\n· «¿Hubo cancelaciones…?» (hoy, ayer, esta semana, los últimos N días) se responde con cancelaciones, nunca con buscar_reservas. Calcula el rango desde la fecha de hoy.' +
   '\n· CIERRE (solo con Juan): de vez en cuando —no siempre y nunca dos veces seguidas—, en vez de «¿algo más?», ofrece el pendiente más importante, uno solo y sin contar cuántos hay, si ya lo conoces (ENCARGOS PENDIENTES CONTIGO o lo que trajeron tus herramientas en esta conversación). No consultes herramientas solo para ofrecerlo ni lo inventes. Si dice «luego», no insistas.' +
   '\n· Ocupación, ingresos o depósito de un mes: usa reporte_mes y repite sus cifras. Nunca los calcules con reservas ni conviertas noches en porcentaje (26 noches no son 26 %).' +
+  '\n· Limpiezas de mañana o después: no las cuentes antes de las 7 p. m. (Guatemala), aunque las veas.' +
   '\n· Reviews, recordatorios y mensajes automáticos de UNA reserva: programados_reserva para verlos y cancelar_programados_reserva para quitarlos (filtro review para los de reseña). No digas que no puedes.';
 var SEMILLA_SECRETARIA_ = [
   'Hablas con un administrador de Spacio AM (alojamientos boutique de estancia corta en Ciudad de Guatemala; te dicen quién y su rol). Tu trabajo: resolver lo que pide usando tus herramientas, no solo responder.',
@@ -133,7 +134,7 @@ function agHerramientas_() {
   var s = function (d) { return { type: 'string', description: d }; };
   var T = function (name, description, props, req) { return { name: name, description: description, input_schema: { type: 'object', properties: props || {}, required: req || [] } }; };
   return [
-    T('buscar_reservas', 'Reservas por huésped, código, propiedad o fecha, con su estado en Hospitable (también canceladas) y las consultas (quien escribió sin reservar). Tolera errores de escritura y de voz (Brunello/Brunelo, un dígito): manda lo que te dieron tal cual, nombre y propiedad juntos en una búsqueda, sin probar variantes. Si la coincidencia es aproximada y hay más de una, confirma cuál.',
+    T('buscar_reservas', 'Reservas por huésped, código, propiedad o fecha, con su estado en Hospitable (también canceladas) y las consultas (quien escribió sin reservar). Tolera errores de escritura y de voz: manda lo que te dieron tal cual, nombre y propiedad juntos en una búsqueda, sin probar variantes. Si la coincidencia es aproximada y hay más de una, confirma cuál.',
       { texto: s('Nombre, apellido, código o parte del nombre de la propiedad'), fecha: s('YYYY-MM-DD: reservas activas ese día (entre entrada y salida)'), solo_llegadas: { type: 'boolean', description: 'Solo las que llegan en esa fecha' },
         consultas: { type: 'boolean', description: 'true: solo consultas, la más reciente primero («la que acaba de entrar»: sin texto)' } }),
     T('cancelaciones', 'Reservas CANCELADAS en un rango de fechas (según la fecha en que se canceló, en Hospitable en vivo). Úsala para «¿hubo cancelaciones ayer / esta semana / en los últimos 3 días?».',
@@ -144,7 +145,7 @@ function agHerramientas_() {
     T('cancelar_programados_reserva', 'Cancela mensajes programados de una reserva en Hospitable: por filtro o por ids de programados_reserva. Hospitable no permite posponerlos: si piden «posponer», cancélalos y ofrece programar uno nuevo con la fecha que digan.',
       { codigo: s('Código de reserva o conv_id'), filtro: s('review, todos o una palabra del título'), ids: s('Opcional: ids separados por coma') }, ['codigo']),
     T('ver_conversacion', 'Últimos mensajes de una reserva (plataforma, WhatsApp y llamadas) y promesas abiertas. También la de WhatsApp de ALMA con cualquier número (socio, contacto, equipo), con código de país.', { codigo: s('Código de reserva, conv_id o número de WhatsApp') }, ['codigo']),
-    T('buscar_reuniones', 'Reuniones, llamadas y memos que Alma escuchó en modo conferencia (app del iPhone): resumen, acuerdos y lo que le tocó a Juan («¿qué quedamos con…?», «¿qué se dijo de…?»). Sin búsqueda, las últimas. Lo sin sentido (grabación por error, ruido) queda unos días en Temporal y se borra solo si nadie lo consulta: temporales=true las muestra; si Juan busca algo y sale una temporal, se rescata.',
+    T('buscar_reuniones', 'Reuniones, llamadas y memos que Alma escuchó en modo conferencia (app del iPhone): resumen, acuerdos y lo que le tocó a Juan («¿qué quedamos con…?», «¿qué se dijo de…?»). Sin búsqueda, las últimas. Lo sin sentido (ruido, grabación por error) queda unos días en Temporal: temporales=true lo muestra; si sale en una búsqueda, se rescata.',
       { buscar: s('Palabras: persona, proyecto o tema. Vacío para las últimas'), temporales: { type: 'boolean', description: 'true para ver solo las que están en Temporal' } }, []),
     T('ver_vuelos', 'Vuelos del botón del avión (de su correo): vuelo, aerolínea, ruta, horas, puerta, asiento y apertura del check-in. «Mi vuelo» = mi_vuelo (el de ahora o el próximo, con puerta y embarque al día), en su hora local. Solo administrador principal.', {}, []),
     /* Calendario de Juan (calendario.js): una sola confirmación, que el código exige con confirmado. */
@@ -156,15 +157,15 @@ function agHerramientas_() {
     T('mover_evento', 'Mueve un evento que TÚ creaste (id de crear_evento o ver_agenda). Primero la pregunta; con su sí, confirmado = true.',
       { id: s('id'), inicio: s('AAAA-MM-DD HH:MM'), duracion_min: { type: 'number', description: 'Vacío = la misma' }, zona: s(CAL_ZONA_), confirmado: CAL_SI_ }, ['id', 'inicio']),
     T('cancelar_evento', 'Borra un evento que TÚ creaste. Primero la pregunta; con su sí, confirmado = true.', { id: s('id'), confirmado: CAL_SI_ }, ['id']),
-    T('preparar_uber', 'Deja listo un Uber para que solo confirme (enlace y las dos direcciones). Antes busca la dirección exacta (hospedaje con leer_correo o ver_proyecto; aeropuerto con su nombre completo); si no la hallas, destino vacío y dilo. Por WhatsApp pega texto_whatsapp; en llamada o en la app, enviar = true.', { origen: s('Dirección o lugar de salida; vacío = su ubicación actual'), destino: s('Dirección o lugar de llegada'), enviar: { type: 'boolean', description: 'true = mandarlo a su WhatsApp' } }, []),
+    T('preparar_uber', 'Deja listo un Uber para que solo confirme. Antes busca la dirección exacta (hospedaje con leer_correo o ver_proyecto; aeropuerto con su nombre completo); si no la hallas, destino vacío y dilo. Por WhatsApp pega texto_whatsapp; en llamada o en la app, enviar = true.', { origen: s('Dirección o lugar de salida; vacío = su ubicación actual'), destino: s('Dirección o lugar de llegada'), enviar: { type: 'boolean', description: 'true = mandarlo a su WhatsApp' } }, []),
     T('buscar_en_mi_chat', 'Tu chat completo con quien te habla (también días atrás): borradores que redactaste, lo que pidió o acordaron. Úsala antes de decir que no lo tienes. Entrega el texto tal cual.',
       { texto: s('Palabras del mensaje'), desde: s('Día YYYY-MM-DD, opcional'), hasta: s('Último día, opcional'), de: { type: 'string', enum: ['alma', 'yo'], description: 'alma: tus borradores' } }, []),
-    T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala cuando pidan retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el del transporte», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número; también a quien le escribiste en 30 días (con su número: no lo pidas).', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
+    T('buscar_contacto', 'Ficha y TODO el historial de alguien que no es huésped: proveedores, técnicos, socios, potenciales socios, recepciones. Úsala para retomar, dar seguimiento o saber qué se habló con alguien («lo de Liliana», «el técnico del aire»). Busca por nombre, empresa, servicio, apartamento o número; también a quien le escribiste en 30 días (con su número: no lo pidas).', { texto: s('Nombre, empresa, servicio, apartamento o número') }, ['texto']),
     T('ver_imagenes', 'Las imágenes que mandó el huésped en la conversación de una reserva (capturas, comprobantes, fotos de un problema), las más recientes, para que las leas. Úsala si mencionan una imagen o ver_conversacion marca [imagen].',
       { codigo: s('Código de reserva o conv_id'), cuantas: { type: 'integer', description: 'Cuántas imágenes recientes (1 a 4, por defecto 4)' } }, ['codigo']),
     T('marcar_resuelta', 'Marca la conversación de una reserva como RESUELTA en la bandeja del Hub (como el botón «Resuelta»): sale de pendientes y se cierran las promesas abiertas de ALMA ahí. Un mensaje nuevo del huésped la reabre.',
       { codigo: s('Código de reserva o conv_id (si solo tienes el nombre, búscalo antes con buscar_reservas)'), reabrir: { type: 'boolean', description: 'true para reabrirla en vez de resolverla' } }, ['codigo']),
-    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa («te escribimos de Spacio AM»): el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Para mostrar el borrador: borrador = true. Con el sí de Juan: confirmado = true (una consulta sale solo así).',
+    T('enviar_a_huesped', 'Envía un mensaje al huésped de una reserva por la plataforma (Airbnb/Booking/Hospitable) o por WhatsApp. Por la plataforma no presentes a la empresa: el huésped ya sabe con quién reservó. Tú sí te presentas si no te conocen: «Hola Marcela, te saluda Alma.» Saludo en su línea; párrafos cortos con una línea en blanco. Si Juan te ordena enviarlo en su mensaje, sale directo. Si pide verlo antes: borrador = true; con su sí, confirmado = true.',
       { codigo: s('Código de reserva o conv_id, si lo tienes'), huesped: s('Sin código: nombre del huésped tal cual lo dijo (no hace falta buscar antes)'), propiedad: s('Sin código: propiedad y apartamento («Ignacio 1105»); con varias reservas posibles no sale y vuelven las opciones'),
         texto: s('Mensaje final, listo para enviar'), canal: { type: 'string', enum: ['plataforma', 'whatsapp'] }, numero: s('Opcional: número de WhatsApp si no es el registrado'), borrador: { type: 'boolean', description: 'true = guarda el borrador con su reserva; no sale' }, confirmado: CAL_SI_ }, ['texto', 'canal']),
     T('escribir_a_equipo', 'Envía un WhatsApp a una persona del equipo (administradores, técnicos, limpieza) o a un socio por su nombre o «socio de <apto>».',
@@ -186,9 +187,8 @@ function agHerramientas_() {
       { persona: s(AG_DEST_.description + '; o su WhatsApp'), objetivo: s('Todo lo que hay que lograr en la conversación: qué explicar, qué preguntar, qué validar'), mensaje: s('WhatsApp inicial concreto: quién eres, de parte de quién, para qué y que llame a la línea de ALMA (+502 3128 0966)') }, ['persona', 'objetivo', 'mensaje']),
     T('cerrar_encargo', 'Marca como cumplido un encargo de ENCARGOS PENDIENTES CONTIGO y le avisa a quien lo pidió.', { id: s('id del encargo'), resultado: s('Qué se hizo, en una o dos frases') }, ['id', 'resultado']),
     T('promesas_abiertas', 'Lo que ALMA le prometió a huéspedes o contactos y sigue pendiente.', {}),
-    /* Historial de pagos de Epi (pagosepi.js): solo lee; «pendiente de depositar» = comprobantes sin soporte de transferencia. */
-    T('pagos_epi', 'Historial de pagos de Epi de una persona del equipo (técnico, limpieza o planilla): sus comprobantes con fecha, neto y si ya se depositó (tiene soporte de la transferencia), el monto pendiente de depositarle y el saldo de sus adelantos. Para «¿cuánto le debemos a…?», «¿qué falta depositarle a…?». Repite las cifras tal cual; no las calcules. Solo administrador principal.',
-      { persona: s('Nombre como lo digan («Gabriel», «Gabriel Asturias») o su correo') }, ['persona']),
+    /* Pagos de Epi (pagosepi.js): solo lee; pendiente de depositar = comprobantes sin soporte de transferencia. */
+    T('pagos_epi', 'Pagos de Epi de alguien del equipo: comprobantes, si se depositaron, lo pendiente de depositar y adelantos. Repite cifras. Solo el principal.', { persona: s('Nombre o correo') }, ['persona']),
     /* Reporte del mes (reportemes.js): lo lee de la hoja de Mi; Alma repite sus cifras y nunca las calcula. */
     T('reporte_mes', 'Reporte del mes de una propiedad como lo cierra Mi (noches, estadías, ocupación en %, ADR, ingresos, fee, gastos, depósito en USD, mes anterior). Para ocupación, ingresos o depósito: repite sus cifras tal cual; si el mes no está, no lo calcules. Cada estadía cuenta en su mes de entrada. Solo administrador principal.',
       { propiedad: s('Como la digan («Rue 301», «z4 rue»)'), mes: s('AAAA-MM, «octubre», «octubre 2026» o «el mes pasado»; vacío = el último cerrado'), meses: { type: 'integer', description: 'Opcional: cuántos meses hacia atrás, para comparar' } }, ['propiedad']),
@@ -214,8 +214,9 @@ function agHerramientas_() {
     T('olvidar_memoria', 'Borra un dato de la memoria de una propiedad (por su id de memoria_propiedad). Si el administrador confirma uno «por confirmar», guárdalo con recordar_en_propiedad y borra el viejo.', { id: s('id del dato (mp…)') }, ['id']),
     T('ficha_socio', 'Ficha del socio en Mi: notas y detalles que importan (con fecha) de lo que él contó. Léela antes de escribirle o llamarle; si trae retomar, úsalo una vez. Nunca salud, religión, política ni banco.',
       { socio: s('«socio de <apto>», nombre o número'), accion: { type: 'string', enum: ['ver', 'anotar', 'corregir', 'borrar'] }, texto: s('anotar/corregir'), fecha: s('AAAA-MM-DD del evento'), id: s('de ver') }, ['socio']),
-    T('calcular_distancia', 'Tiempo en carro y caminando desde una propiedad hasta un lugar (USAC, aeropuerto, un centro comercial, el parque central…). Responde en minutos; caminando solo cuenta si son 15 min o menos.', { propiedad: s('Nombre o parte del nombre de la propiedad'), destino: s('Lugar, con ciudad si ayuda') }, ['propiedad', 'destino']),
-    T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp como Alma, la asistente de Juan, sin mencionar Spacio AM. Sin mensajes suyos en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, al responder, este. Lo que conteste le llega al administrador.',
+    T('anillo', 'Lo último que la app de Alma leyó del anillo QRing de Juan (batería, pasos, ritmo, oxígeno) y de cuándo es. No es en vivo: di siempre la hora. Solo administrador principal.', {}),
+    T('calcular_distancia', 'Tiempo en carro y caminando desde una propiedad hasta un lugar (USAC, aeropuerto, un centro comercial…). Responde en minutos; caminando solo cuenta si son 15 min o menos.', { propiedad: s('Nombre o parte del nombre de la propiedad'), destino: s('Lugar, con ciudad si ayuda') }, ['propiedad', 'destino']),
+    T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp como Alma, sin mencionar Spacio AM. Sin mensajes suyos en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, al responder, este. Lo que conteste le llega al administrador.',
       { persona: AG_DEST_, numero: AG_NUM_, texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»)'), objetivo: s('Qué reunir o resolver («su itinerario: fechas, vuelos, hospedaje»): ALMA conversa hasta tenerlo y manda un resumen al administrador; sin objetivo, solo reenvía lo que conteste.'), proyecto: s('Proyecto personal («Boda Pamela»): todo se consolida en un solo resumen. Si el administrador lo nombra, úsalo siempre.'), contexto_de: { type: 'array', items: { type: 'string' }, description: 'Solo si no hay proyecto: nombres de personas con las que ya hablaste del mismo tema' } }, ['texto']),
     T('proyectos_personales', 'Lista los proyectos personales abiertos y quién participa en cada uno.', {}),
     T('ver_proyecto', 'Resumen consolidado de un proyecto personal (todo lo reunido con todas las personas, contradicciones y lo que falta).', { proyecto: s('Nombre del proyecto'), actualizar: { type: 'boolean', description: 'Rehacer el resumen con los últimos mensajes' } }, ['proyecto']),
@@ -232,24 +233,26 @@ function agHerramientas_() {
       { accion: { type: 'string', enum: ['poner', 'pausar', 'seguir', 'siguiente', 'anterior', 'volumen', 'que_suena', 'dispositivos'] }, consulta: s('Qué poner: canción y artista, artista, álbum o mood'),
         tipo: { type: 'string', enum: ['cancion', 'artista', 'album', 'playlist', 'mood'] }, dispositivo: s('Dónde (como lo dijo: sala, cocina, cuarto, teléfono…). Vacío = donde ya suena'), nivel: { type: 'number', description: 'Volumen 0-100' } }, ['accion']),
     /* El equipo de agentes detrás de Alma (agentes.js): ella le pide trabajo a cada uno y le pasa a Juan lo que proponen. */
-    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes (trabajan detrás de ti) y devuelve su informe y lo que propone: operaciones, huespedes, finanzas, crecimiento (anuncios, Grow), marketing, mantenimiento, desarrollo (Claude: lo que tú no puedes, sin preguntarle a Juan) y sus apps (dev_…), mejora (gastar menos) o archivo (orden y guardado). Solo el administrador principal.',
+    T('pedir_a_agente', 'Le pide trabajo a uno de tus agentes y devuelve su informe y lo que propone: operaciones, huespedes, finanzas, crecimiento (anuncios, Grow), marketing, mantenimiento, desarrollo (Claude: lo que tú no puedes, sin preguntarle a Juan) y sus apps (dev_…), mejora (gastar menos) o archivo (orden y guardado). Solo el administrador principal.',
       { agente: s('operaciones | huespedes | finanzas | crecimiento | marketing | mantenimiento | desarrollo | dev_hub | dev_api | dev_app | dev_hola | dev_epi | dev_grow | dev_mi | dev_docs | mejora | archivo'), pedido: s('Lo que Juan quiere que revise o haga, con sus palabras') }, ['agente']),
-    T('leer_playbook', 'Abre el playbook de un trabajo (pasos, reglas, herramientas y «listo significa»). Úsalo antes de un tema de un departamento o de una app, o si no sabes bien cómo se hace. Nombres: operaciones, huespedes, finanzas, crecimiento, marketing, mantenimiento, archivo, correos, desarrollo, hub, api, app-alma, hola, epi, grow, mi, docs.',
+    T('leer_playbook', 'Abre el playbook de un trabajo (pasos, reglas, herramientas y «listo significa»). Úsalo antes de un tema de un área o una app, o si no sabes cómo se hace. Nombres: operaciones, huespedes, finanzas, crecimiento, marketing, mantenimiento, archivo, correos, desarrollo, hub, api, app-alma, hola, epi, grow, mi, docs.',
       { nombre: s('Nombre del playbook') }, ['nombre']),
-    T('enviar_archivo', 'Manda en PDF al WhatsApp de Juan el reporte de actividad (tipo actividad: lo que hiciste en el chat operativo, de 3 días por defecto) o la transcripción de una llamada (tipo llamada: sin id, la última). Si responde error de 24 h, dile en una frase que escriba a Alma por WhatsApp y vuelva a pedirlo. Solo administrador principal.', { tipo: s('actividad o llamada'), dias: { type: 'number', description: 'Solo actividad: días hacia atrás (1 a 30)' }, id: s('Solo llamada: id de la conversación; vacío = la última') }, ['tipo']),
+    T('enviar_archivo', 'Manda en PDF al WhatsApp de Juan el reporte de actividad (tipo actividad: lo que hiciste en el chat, 3 días por defecto) o la transcripción de una llamada (tipo llamada: sin id, la última). Si da error de 24 h, pídele que escriba a Alma por WhatsApp y lo pida otra vez. Solo administrador principal.', { tipo: s('actividad o llamada'), dias: { type: 'number', description: 'Solo actividad: días hacia atrás (1 a 30)' }, id: s('Solo llamada: id de la conversación; vacío = la última') }, ['tipo']),
     T('unir_cambio', 'Une (publica) un cambio que Claude dejó listo, sin que Juan entre a GitHub: «une», «une el de la app», «une el 240», «une todo», «publícalo». Sin cual, devuelve la lista de cambios abiertos: dile en simple cuáles hay y pregúntale. Si uno no se pudo unir, dile por qué en una frase. Solo administrador principal.',
       { cual: s('Cuál cambio: número, «App #número», palabras del título, enlace o «todos». Vacío para ver la lista') }, []),
     T('ajustar_playbook', 'Cuando Juan corrige CÓMO trabaja uno de tus agentes («que Operaciones revise también las salidas»), guárdalo en su playbook para siempre. campo: reglas (lo normal), pasos (el orden) o listo (qué cumple antes de entregar). Si no está claro, antes una o dos preguntas. Solo administrador principal.',
       { agente: s('id del agente (los de pedir_a_agente)'), cambio: s('La regla, paso o condición de «listo», en una frase clara'), campo: s('reglas | pasos | listo') }, ['agente', 'cambio']),
+    T('estado_equipos', 'El estado de los equipos de Operaciones, Finanzas y Desarrollo, ya precargado (tareas, limitaciones y problemas): al instante. Úsala cuando Juan pregunte cómo van los equipos o uno de ellos; no corras pedir_a_agente para eso. Solo administrador principal.',
+      { equipos: s('Cuáles: operaciones, finanzas, desarrollo (vacío = los tres)') }, []),
     T('propuestas_agentes', 'Lo que tus agentes proponen y espera el sí de Juan (numeradas). Úsala cuando pregunte qué hay pendiente de los agentes o antes de aprobar.', {}),
     T('decidir_propuestas', 'Aprueba (se hace en ese momento) o rechaza propuestas de los agentes. Solo cuando Juan lo dice claro («apruébalas», «solo la 2», «la 3 no»).',
       { numeros: s('Números de la lista de propuestas_agentes separados por coma, o «todas»'), aprobar: { type: 'boolean', description: 'true aprueba (y se hace), false rechaza' } }, ['numeros', 'aprobar']),
     /* mejora_para_claude ya no está en el chat (T8, 3-nov-2026): lo que es Propósito · Desarrollo lo pide el sistema al
        cerrar el turno (chat.js, chatDesarrollo_), así que la herramienta y su regla «no la uses» gastaban ~3.500
        caracteres por turno. La voz pide con «Mejora para Claude: …» por secretaria (voz.js). */
-    T('leer_correo', 'Abre un correo de la bandeja del Hub (el de Juan y hola@): el hilo entero, lo más reciente primero, sin citas ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, resúmele a Juan de qué trata, qué piden y qué falta. Para mandar sus datos, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
+    T('leer_correo', 'Abre un correo de la bandeja del Hub (el de Juan y hola@): el hilo entero, lo más reciente primero, sin citas ni firmas, y lo que dicen sus adjuntos (PDF, fotos, Excel, CSV). Si es largo, resume qué piden y qué falta. Para mandar sus datos, mensaje_personal o enviar_correo; para contestarle a quien lo escribió, responder_correo.',
       { buscar: s('Palabras sueltas del asunto, de quién lo mandó o del texto (ej. «Casa Sol remodelación»)') }, ['buscar']),
-    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, desde hola@spacioam.com. Sin confirmado te da el borrador: muéstraselo a Juan COMPLETO (para, copia, asunto y texto) y espera su sí; con su sí, otra vez con confirmado = true y el mismo texto.',
+    T('responder_correo', 'Responder en el hilo: contesta un correo (o el original de uno que Juan reenvió) a quien lo escribió, desde hola@spacioam.com. Si Juan te ordena responder en su mensaje, sale directo. Si no, te da el borrador: muéstraselo COMPLETO (para, copia, asunto y texto); con su sí, otra vez con confirmado = true y el mismo texto.',
       { buscar: s('Como en leer_correo'), texto: s('La respuesta completa, lista para salir'), adjuntos: s('Opcional: drive_id de PDF a adjuntar, con comas'), a_todos: { type: 'boolean', description: 'true solo si Juan pide copiar a todos' }, confirmado: CAL_SI_ }, ['buscar', 'texto']),
     T('enviar_correo', 'Manda un correo NUEVO a la dirección que Juan te diga (p. ej. «mándale los vuelos a hola@spacioam.com»). Solo cuando Juan lo pide. Escribe el correo completo y claro, con los datos tal cual (vuelos, horarios, enlaces).',
       { para: s('Correo de destino'), asunto: s('Asunto corto'), texto: s('Cuerpo del correo, completo') }, ['para', 'asunto', 'texto']),
@@ -316,7 +319,7 @@ function agBuscarReservas_(texto, f, soloLlegadas, hoy, max) {
    2 semanas). Si queda una (o una sola está hoy en el apartamento), esa; si quedan varias, NO elige: devuelve las opciones
    para que Alma pregunte cuál. Antes enviar_a_huesped solo aceptaba el código y la IA tenía que buscar primero (una
    vuelta más de Claude: con el plazo de la llamada eso pasaba a segundo plano). */
-function agElegirReserva_(texto, hoy) {
+function agElegirReserva_(texto, hoy, adm) {
   /* Ya no se descartan las reservas cuya fila de la bandeja perdió el código (7-nov, Oscar): su conversación se busca
      después, solo para la elegida (reservaConv_, enviohuesped.js). */
   var inbox = hubInbox_();
@@ -331,11 +334,17 @@ function agElegirReserva_(texto, hoy) {
   var hoyAqui = lista.filter(function (x) { return fecha_(x.item.checkin_date) <= hoy; });
   var ficha = function (r) { return { codigo: s_(r.code).toUpperCase(), huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date) }; };
   if (!lista.length) return { error: 'NO SE ENVIÓ: no encontré una reserva actual o próxima ni una consulta de «' + texto + '» con conversación. Pídele el código de reserva o el nombre como aparece en Airbnb.' };
-  var una = lista.length === 1 ? lista[0] : hoyAqui.length === 1 ? hoyAqui[0] : null;
+  var una = lista.length === 1 ? lista[0] : hoyAqui.length === 1 ? hoyAqui[0] : null, porReciente = '';
+  /* Varias reservas con ese nombre: lo reciente desempata (memoriafresca.js): la de la llamada de hace poco, el tema activo
+     o una conversación reciente de la bandeja. Si no decide, se pregunta como siempre. */
+  if (!una && lista.length > 1) {
+    try { var dr = mfDesempate_(adm, lista.map(function (x) { var f = ficha(x.item); return { nombre: f.huesped, propiedad: f.propiedad, codigo: f.codigo }; })); if (dr) { una = lista[dr.i]; porReciente = dr.fuente; } } catch (e) { console.error('agElegirReserva_ reciente: ' + e); }
+  }
   if (!una) return { error: 'NO SE ENVIÓ: hay ' + lista.length + ' reservas que coinciden con «' + texto + '». Pregúntale en una frase cuál es (nombre, apartamento o fechas) y vuelve a enviar con su código.', ambiguo: true, opciones: lista.slice(0, 5).map(function (x) { return ficha(x.item); }) };
   var fu = ficha(una.item), rc = reservaConv_(fu.codigo, una.item, true, inbox);
   if (!rc.conv_id) return { error: 'NO SE ENVIÓ: encontré la reserva ' + fu.codigo + ' (' + fu.huesped + ', ' + fu.propiedad + ') pero no ubiqué su conversación: ' + rc.error + '. Dile a Juan exactamente eso, sin otra causa.', reserva: fu };
-  return Object.assign(fu, { conv_id: rc.conv_id });
+  try { mfAnotar_(adm, [{ nombre: fu.huesped, rol: 'huésped', propiedad: fu.propiedad, codigo: fu.codigo, fuente: 'reserva ' + fu.codigo }]); } catch (e) {}
+  return Object.assign(fu, { conv_id: rc.conv_id }, porReciente ? { elegida_por: 'Había ' + lista.length + ' reservas con ese nombre; es la de ' + fu.huesped + ' (' + fu.propiedad + ') porque ' + porReciente + '. Dile a Juan cuál elegiste y por qué, en una frase.' } : {});
 }
 /* Estado real de una reserva: Hospitable en vivo (10 min en caché) para los primeros resultados; si no, lo que diga
    la hoja. La hoja puede tardar en enterarse de una cancelación, por eso se pregunta a Hospitable. */
@@ -436,7 +445,20 @@ function agCancelaciones_(desde, hasta) {
 }
 /* Los trabajos de Epi de un día (de todos o de una persona), en orden: los usan la herramienta ruta_del_dia y las
    respuestas instantáneas (instantaneas.js), así las dos leen la ruta igual. Devuelve { error } o { persona, trabajos: [{ x, quien }] }. */
+/* Regla de Juan (17-nov-2026): la programación de limpiezas de un día se comparte desde las 7 p. m. (Guatemala) del día
+   anterior. Antes de esa hora Alma solo habla de la de hoy o de días anteriores. Devuelve '' si se puede contar, o el texto para decir. */
+var RUTA_HORA_VISIBLE_ = 19;
+function rutaFechaOculta_(fd) {
+  var ah = ahora_(), hoy = Utilities.formatDate(ah, CFG.TZ, 'yyyy-MM-dd');
+  fd = String(fd || '').slice(0, 10); if (!fd || fd <= hoy) return '';
+  var hora = Number(Utilities.formatDate(ah, CFG.TZ, 'H')), manana = sumarDias_(hoy, 1);
+  if (fd === manana && hora >= RUTA_HORA_VISIBLE_) return '';
+  return fd === manana
+    ? 'La programación de limpiezas de mañana se comparte desde las 7 p. m. (hora de Guatemala). Ahora te puedo dar la de hoy o la de días anteriores.'
+    : 'La programación de limpiezas de un día se comparte desde las 7 p. m. del día anterior (hora de Guatemala). Ahora te puedo dar la de hoy o la de días anteriores.';
+}
 function agRutaTrabajos_(cfg, fd, persona) {
+  var oculta = rutaFechaOculta_(fd); if (oculta) return { error: oculta, oculta: true };
   var n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
   var quienR = persona ? opMatch_(persona, cfg.vendors.map(vendNombre_)) : '';
   var vend = quienR ? cfg.vendors.filter(function (v) { return vendNombre_(v) === quienR; })[0] : null;
@@ -448,7 +470,8 @@ function agRutaTrabajos_(cfg, fd, persona) {
   return { persona: vend ? vendNombre_(vend) : 'todos', trabajos: del.map(function (x) { return { x: x, quien: nomDe(x) }; }) };
 }
 function agEjecutar_(adm, nombre, inp, ctx) {
-  inp = inp || {}; if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
+  inp = typeof identidadEntrada_ === 'function' ? identidadEntrada_(inp || {}) : (inp || {});   // lo que sale a otra persona va en nombre de Alma, nunca de Maricarmen (identidad.js)
+  if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
@@ -474,10 +497,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var unaC = cons.length === 1 && consH[0].coincidencia === 'exacta' && !hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'exacta'; });
       if (hits.length === 1 && outR.reservas.length === 1 && !cons.length) tvCandidata_('reserva', function () { return tvReserva_(hits[0], outR.reservas[0], inbox); });
       else if (unaC) tvCandidata_('consulta', function () { return tvConsulta_(consH[0].item); });
+      else if (hits.length > 1) tvCandidata_('datos', function () { return tdReservas_(outR.reservas, { inbox: inbox }); });   // varias: el tablero de datos (tablero.js, #607)
       else if (hits.length + cons.length > 1) tvCandidata_(null);
       return outR;
     }
-    case 'cancelaciones': return agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy);
+    case 'cancelaciones': { var rCa = agCancelaciones_(inp.desde || inp.fecha || hoy, inp.hasta || inp.desde || inp.fecha || hoy); if (rCa && !rCa.error) tvCandidata_('datos', function () { return tdCancelaciones_(rCa); }); return rCa; }
     case 'historial_reserva': return agHistorialReserva_(inp.codigo);
     case 'programados_reserva': {
       var ridP = agResId_(inp.codigo); if (!ridP || /^(wa|op):/.test(ridP)) return { error: 'No encontré esa reserva. Búscala antes con buscar_reservas y usa su código.' };
@@ -516,7 +540,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ver_vuelos': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ve los vuelos.' }; return viajesParaAlma_(adm); }   // viajes.js
     case 'crear_evento': case 'ver_agenda': case 'mover_evento': case 'cancelar_evento': {   // calendario.js
       if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal usa su calendario.' };
-      var rCal = calendarioHerramienta_(nombre, inp); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
+      var rCal = calendarioHerramienta_(nombre, inp); if (nombre === 'ver_agenda' && rCal && rCal.ok) tvCandidata_('datos', function () { return tdAgenda_(rCal); }); if (rCal.hecho) ctx.hechas.push({ tipo: 'calendario', resumen: rCal.hecho }); return rCal;
     }
     case 'preparar_uber': { var rU = uberHerramienta_(adm, inp); if (rU.enviado) ctx.hechas.push({ tipo: 'uber', resumen: 'Uber listo por WhatsApp · ' + (rU.destino || rU.origen) }); return rU; }   // uber.js
     case 'buscar_en_mi_chat': return chatBuscar_(adm, inp);   // chatbuscar.js: solo el chat de quien habla
@@ -572,19 +596,25 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       if (!rid2) {
         var buscaH = [inp.huesped, inp.propiedad, inp.codigo].map(function (x) { return String(x || '').trim(); }).filter(Boolean).join(' ');
         if (!buscaH) return { error: 'NO SE ENVIÓ: falta a quién (código de reserva, o nombre del huésped y propiedad).' };
-        elegida = agElegirReserva_(buscaH, hoy); if (elegida.error) return elegida;
+        elegida = agElegirReserva_(buscaH, hoy, adm); if (elegida.error) return elegida;
         rid2 = elegida.conv_id;
       }
       /* Una consulta (inq:) es un tercero sin reserva: sale solo con el sí de Juan en otro turno (consultas.js). El borrador
          se ve en la tarjeta de la llamada cuando se puede (tarjeta.js). */
+      /* La orden de Juan en este mensaje ya es su sí (enviodirecto.js): sale sin borrador, salvo si Alma adivinó a quién. */
+      var directoH = typeof envioDirecto_ === 'function' && envioDirecto_(adm) && !(elegida && elegida.elegida_por);
       if (/^inq:/.test(rid2)) {
         var ibC = hubInbox_().filter(function (x) { return x.conv_id === rid2; })[0] || { conv_id: rid2 };
         var fichaC = elegida && elegida.tipo === 'consulta' ? elegida : consultaFicha_(ibC);
-        var bC = consultaBorrador_(adm, fichaC, pulirMsgHuesped_(inp.texto, 'plataforma'), inp.confirmado);
+        var bC = consultaBorrador_(adm, fichaC, pulirMsgHuesped_(inp.texto, 'plataforma'), inp.confirmado, directoH);
         if (!bC.enviar) { if (bC.ok) tvCandidata_('consulta', function () { return tvConsulta_(ibC, null, bC.borrador.texto); }); return bC; }
         inp.texto = bC.texto; inp.canal = 'plataforma';
         elegida = { codigo: '', huesped: fichaC.huesped, propiedad: fichaC.propiedad };
       }
+      /* Elegida por lo reciente (memoriafresca.js): no sale sin que Juan vea a quién va; primero el borrador. */
+      var porRec = elegida && elegida.elegida_por ? elegida.elegida_por : '';
+      if (porRec && inp.confirmado !== true && String(inp.texto || '').trim()) inp.borrador = true;
+      if (directoH && inp.borrador === true && !porRec) inp.borrador = false;
       /* Borrador para Juan: se guarda con su reserva y no sale. */
       if (inp.borrador === true && !/^inq:/.test(rid2)) {
         if (!String(inp.texto || '').trim()) return { error: 'Falta el texto del borrador.' };
@@ -592,7 +622,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
         var bR = reservaBorradorGuardar_(adm, fB, pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma'), inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
         ctx.borrador = { para: bR.huesped, texto: bR.texto };   // «Listo» sobre un borrador → «Todavía no salió» (prometer.js)
         return { ok: true, falta_confirmar: true, borrador: { para: bR.huesped, propiedad: bR.propiedad, codigo: bR.codigo, texto: bR.texto },
-          nota: 'Todavía NO salió. Muéstrale a Juan el borrador y a quién va; con su sí, enviar_a_huesped con confirmado = true (sale a esta misma reserva).' };
+          nota: (porRec ? porRec + ' ' : '') + 'Todavía NO salió. Muéstrale a Juan el borrador y a quién va; con su sí, enviar_a_huesped con confirmado = true (sale a esta misma reserva).' };
       }
       var quien = 'ALMA · pedido de ' + adm.nombre;
       inp.texto = pulirMsgHuesped_(inp.texto, inp.canal === 'whatsapp' ? 'whatsapp' : 'plataforma');
@@ -620,6 +650,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       /* Juan dio el número de un socio: queda en su ficha (socio de ese apartamento) aunque el mensaje no salga. */
       if (normTel_(inp.numero || '') && inp.propiedad && SOCIO_MI_PALABRAS_.test(String(inp.persona || '') + ' ' + String(inp.texto || '').slice(0, 200))) { try { socioGuardarFicha_(inp.numero, String(inp.persona || '').replace(SOCIO_MI_PALABRAS_, '').replace(/\b(de|del)\b.*$/i, '').replace(/[,;·\s-]+$/, '').trim(), inp.propiedad, 'lo dio ' + ((adm && adm.nombre) || 'el administrador')); } catch (e) { console.error('socioGuardarFicha_: ' + e); } }
       for (var iE = 0; iE < destE.length; iE++) { var bS = socioSoloPrincipal_(adm, destE[iE].tel); if (bS) return { error: bS }; }   // a un socio solo le escribe el administrador principal (socios.js)
+      if (inp.borrador === true && !siE && typeof envioDirecto_ === 'function' && envioDirecto_(adm)) inp.borrador = false;   // la orden de Juan ya es su sí (enviodirecto.js)
       if (inp.borrador === true) {
         var bE = equipoBorradorGuardar_(adm, destE, inp.texto, { propiedad: inp.propiedad || '', al_responder: inp.al_responder || '' });
         ctx.borrador = { para: destE.map(function (c) { return c.nombre; }).join(' y '), texto: bE.texto };
@@ -650,10 +681,11 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'ruta_del_dia': {
       var cfg = ctx.cfg(), fd = String(inp.fecha || hoy).slice(0, 10), rt = agRutaTrabajos_(cfg, fd, inp.persona);
       if (rt.error) return { error: rt.error };
+      tvCandidata_('datos', function () { return tdRuta_(rt, fd); });   // la ruta en pantalla, sin códigos (tablero.js, #607)
       var codDe = function (x) { try { var c = codigoEquipo_(x.propiedad, fd, cfg.schedules); return c && c.codigo ? 'código ' + c.codigo + ' (' + c.tipo + ')' : ''; } catch (e) { return ''; } };
       return { fecha: fd, persona: rt.persona, trabajos: rt.trabajos.map(function (t) { var x = t.x; return [x.hora || '', x.tipo || '', x.propiedad || '', t.quien, x.estado === 'tentativa' ? 'tentativa' : '', x.entradaHoy ? 'tiene entrada hoy' : '', codDe(x)].filter(Boolean).join(' · '); }) };
     }
-    case 'tareas_abiertas': return { tareas: ctx.cfg().tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 40).map(function (t) { return [t.id, t.texto, t.prop || '-', t.quien || '-', 'vence ' + (t.vence || '-')].join(' · '); }) };
+    case 'tareas_abiertas': tvCandidata_('datos', function () { return tdTareas_(ctx.cfg().tareas, hoy); }); return { tareas: ctx.cfg().tareas.filter(function (t) { return t && t.id && !t.hecha; }).slice(0, 40).map(function (t) { return [t.id, t.texto, t.prop || '-', t.quien || '-', 'vence ' + (t.vence || '-')].join(' · '); }) };
     case 'crear_tarea': case 'cerrar_tarea': case 'agendar_en_epi': {
       var c2 = ctx.cfg(), props = c2.props.map(propNombre_).filter(Boolean);
       var acc = nombre === 'crear_tarea' ? { tipo: 'tarea', texto: inp.texto, prop: inp.propiedad, quien: inp.quien, vence: inp.vence }
@@ -710,16 +742,18 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       return rE;
     }
     case 'pagos_epi': { var rPg = pagosEpi_(adm, inp); if (rPg && rPg.ok) ctx.hechas.push({ tipo: 'consulta', resumen: 'Pagos de Epi · ' + rPg.persona + ': pendiente ' + rPg.pendiente_texto }); return rPg; }   // pagosepi.js
-    case 'reporte_mes': return reporteMes_(adm, inp);   // reportemes.js
+    case 'reporte_mes': { var rMe = reporteMes_(adm, inp); if (rMe && rMe.ok) tvCandidata_('datos', function () { return tdMes_(rMe); }); return rMe; }   // reportemes.js; el mes en pantalla (tablero.js)
+    case 'anillo': return anilloHerramienta_(adm);   // anillo.js: la Lectura del anillo que mandó la app
     case 'ficha_socio': {   // fichasocio.js (#522); al verla en una llamada, el tablero del socio (tarjeta.js, #508 Fase 2)
       var fueraF = {}, rF = fichaHerramienta_(adm, inp, fueraF), sF = fueraF.s;
       if (sF && rF && !rF.error) tvCandidata_('socio', function () { return tvSocio_({ tel: sF.tel, nombre: sF.nombre, correo: sF.correo, props: [sF.propiedad] }, { principal: true, items: fueraF.items }); });
       return rF;
     }
-    case 'promesas_abiertas': return { promesas: hubPromesas_(false).promesas.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) };
+    case 'promesas_abiertas': { var lPr = hubPromesas_(false).promesas; tvCandidata_('datos', function () { return tdPromesas_(lPr); }); return { promesas: lPr.map(function (p) { return (p.estado === 'vencida' ? 'VENCIDA · ' : '') + (p.huesped || '') + ' · ' + p.que + ' · vence ' + p.vence; }) }; }
     case 'grow_proyectos': {   // lo de Grow, con grow.spacioam.com (enlaces.js)
       var rGp = growApi_('resumen', { q: inp.buscar || '', etapa: inp.etapa || '' });
       try { tvGrowGuardar_(rGp); } catch (e) { console.error('tvGrowGuardar_: ' + e); }   // la etapa para el tablero del socio (tarjeta.js)
+      try { jvCandidataGrow_(rGp); } catch (e) { console.error('jvCandidataGrow_: ' + e); }   // UN proyecto: su tablero en la llamada (snapshot.js)
       return acortarEnObjeto_(rGp, nombre, 'grow');
     }
     case 'grow_crear_proyecto': case 'grow_mover_etapa': case 'grow_agendar_visita': {
@@ -797,6 +831,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
       var gu = unirGuardia_(inp.cual, AGENTE_TEXTO_); if (gu) return gu;   // sin un «une» claro en este mensaje no se une nada (unirorden.js)
       var ru = unirCambio_(inp.cual); (ru.unidos || []).forEach(function (x) { ctx.hechas.push({ tipo: 'cambio', resumen: 'Unido ' + x.pr + ' · ' + String(x.titulo || '').slice(0, 60) }); }); return ru; }
     case 'ajustar_playbook': { if (!esAdminPrincipal_(adm)) return { ok: false, error: 'Solo el administrador principal ajusta a los agentes.' }; var rp = agAjustarPlaybook_(inp.agente, inp.cambio, inp.campo); if (rp.ok) ctx.hechas.push({ tipo: 'agente', resumen: 'Playbook de ' + rp.agente + ' · ' + String(inp.cambio).slice(0, 60) }); return rp; }
+    case 'estado_equipos': return eqHerramienta_(adm, inp);   // precargado (equipos.js)
     case 'propuestas_agentes': return { ok: true, propuestas: agPropuestas_() };
     case 'decidir_propuestas': {
       var P = agPropuestas_(), nums = String(inp.numeros || '').toLowerCase();
@@ -809,7 +844,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'responder_correo': {   // correohilo.js: sin el sí de Juan en un mensaje nuevo, solo devuelve el borrador
       if (!esAdminPrincipal_(adm)) return { error: 'Solo Juan puede pedir que responda correos.' };
-      var rr = correoResponder_(adm, inp);
+      var rr = correoResponder_(adm, Object.assign({}, inp, { directo: typeof envioDirecto_ === 'function' && envioDirecto_(adm) }));   // la orden de Juan ya es su sí (enviodirecto.js)
       if (rr.enviado) ctx.hechas.push({ tipo: 'correo', resumen: 'Respuesta en el hilo a ' + rr.enviado_a + ' · ' + String(rr.asunto || '').slice(0, 60) });
       return rr;
     }
@@ -844,7 +879,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     case 'dejar_de_vigilar': { var rdv = vigDejar_(adm, inp.cual); if (rdv.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: 'Dejé de vigilar · ' + rdv.dejaste }); return rdv; }
     case 'vigilancias': return { ok: true, vigilando: vigListaTexto_(adm) };
     case 'cupo_google': return cupoParaAlma_(adm);   // cupo.js
-    case 'pedidos_en_orbita': return orbitaExplicar_(adm, inp.nombre);   // orbita.js
+    case 'pedidos_en_orbita': { var rOr = orbitaExplicar_(adm, inp.nombre); if (rOr && rOr.ok) tvCandidata_('datos', function () { return tdPedido_(rOr); }); return rOr; }   // orbita.js; cómo va, en pantalla (tablero.js)
     case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
     case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js
     case 'guardar_nota': ctx.hechas.push({ tipo: 'nota', texto: String(inp.texto).slice(0, 500), resumen: 'Nota · ' + String(inp.texto).slice(0, 80) }); return { ok: true };
@@ -876,7 +911,7 @@ function agSetCampo_(propiedad, campo, valor, adm) {
 /* Lo que cambia en cada turno va después de esta marca: claudeTools_ deja en caché solo lo de antes (T8, 3-nov-2026). */
 var AG_CORTE_CACHE_ = '\n\n═══ ESTE TURNO ═══';
 function opAgente_(adm, texto, canal, fotos, previos) {
-  AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || '');
+  AGENTE_TEXTO_ = String(texto || ''); AGENTE_CANAL_ = String(canal || ''); MF_ADM_ = AGENTE_PERMITIDAS_ ? null : adm;   // memoria fresca (memoriafresca.js)
   /* Temas (temas.js, #526): a qué tema va este mensaje. Con duda entre dos temas activos, Alma pregunta sin la IA; si responde
      a esa pregunta, va el pedido original al tema que eligió. */
   var tsel = null; try { tsel = AGENTE_PERMITIDAS_ ? (TEMA_ACT_ = null) : temaTurno_(adm, texto, canal); } catch (e) { console.error('temaTurno_: ' + (e.stack || e)); }   // la familia (herramientas limitadas) no toca los temas de Juan
@@ -902,7 +937,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var adapt = ''; try { adapt = canal === 'segundo_plano' ? '' : adaptBloque_(adm.email, 'admin', texto); } catch (e) {}
   var encV = null; try { encV = encValores_(); } catch (e) { console.error('encValores_: ' + e); }   // una sola lectura de ALMA_ENCARGOS por turno
   var aud = audienciaDe_({ adm: adm });   // Juan: conversación personal · equipo: en nombre de la empresa (alma.json)
-  var turno = AG_CORTE_CACHE_ + weebo + adapt + '\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
+  var turno = AG_CORTE_CACHE_ + weebo + adapt + (typeof identidadVozRegla_ === 'function' ? identidadVozRegla_(IDENTIDAD_VOZ_) : '') + (typeof identidadPistaAlter_ === 'function' ? identidadPistaAlter_(adm, texto) : '') + '\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' · administrador principal (acceso total)' : ' · administrador') +
     encargosTexto_(adm, encV) + encargosPedidosTexto_(adm, encV) + '\nCANAL: ' + (canal === 'whatsapp' ? 'WhatsApp' : canal === 'llamada' ? 'llamada de voz: tu respuesta se leerá en voz alta, así que responde en 1 a 3 frases cortas, sin listas, sin markdown, sin enlaces' : canal === 'calle' ? CALLE_REGLA_ : canal === 'segundo_plano' ? 'pedido que el administrador te hizo en una LLAMADA que ya terminó. Tu respuesta final le llega tal cual a él por WhatsApp. Si te pide que le mandes o envíes información a él, tu respuesta ES ese envío: escríbela completa y ordenada (líneas con ·), sin pedirle su número ni usar herramientas para escribirle. Si menciona imágenes o archivos que mandó un huésped, míralas con ver_imagenes antes de responder. Si algo no se pudo, dilo claro.' : 'Hub') + '\n\nNOTAS QUE TE PIDIÓ RECORDAR:\n' + (notas.join('\n') || '(ninguna)');
   /* Conversación: lo de las últimas 6 h es la conversación activa; lo anterior solo como contexto breve. */
   var corte = Date.now() - 6 * 3600000, msgs = [];
@@ -915,7 +950,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var contenido = (fotos || []).slice(0, 4).map(imgBloque_).filter(Boolean); contenido.push({ type: 'text', text: texto });
   if (msgs.length && msgs[msgs.length - 1].role === 'user') msgs.push({ role: 'assistant', content: '(continúo)' });
   msgs.push({ role: 'user', content: contenido });
-  var ctx = { hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
+  var ctx = { adm: AGENTE_PERMITIDAS_ ? null : adm, hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   ctx.hechasAntes = ctx.hechas.length;
   var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
   /* Primero lo que no cambia entre turnos (fuente única, trabajo, herramientas, esfera) y al final, después de
@@ -923,7 +958,10 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var system = secretariaPrompt_(aud, canal) + '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.' +
     chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
   try { turno += temaBloque_(adm, tsel); } catch (e) { console.error('temaBloque_: ' + e); }   // temas vivos y el hilo del tema de este mensaje (temas.js)
-  try { turno += microBloque_(adm); } catch (e) {}   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
+  try { turno += microBloque_(adm); } catch (e) {}
+  /* Memoria fresca (memoriafresca.js): las últimas 5 llamadas del principal. En una llamada ya la tiene la voz (su ficha). */
+  if (!AGENTE_PERMITIDAS_ && canal !== 'llamada' && canal !== 'segundo_plano') { try { turno += mfBloque_(adm); } catch (e) { console.error('mfBloque_: ' + e); } }
+  if (canal === 'calle' && !AGENTE_PERMITIDAS_) { try { mfCalle_(adm, textoPedido); } catch (e) { console.error('mfCalle_: ' + e); } }   // microproyectos abiertos: a cuál va un pedido para Claude, en el mismo turno (microproyectos.js)
   system += turno + '\n\nHOY: ' + hoy + ' (' + dia + ', hora de Guatemala).';
   /* Camino rápido (rapido.js, #498 T4): en una llamada, un pedido de leer lo contesta primero el modelo rápido con solo
      herramientas de leer. null = no era para él; false = no pudo y sigue el de siempre (que ya esperó: mira el plazo antes

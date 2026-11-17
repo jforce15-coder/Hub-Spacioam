@@ -26,10 +26,14 @@ var AG_LECTURA_ = ['buscar_reservas', 'cancelaciones', 'historial_reserva', 'pro
 var AG_PROPONE_ = ['enviar_a_huesped', 'escribir_a_equipo', 'crear_tarea', 'cerrar_tarea', 'agendar_en_epi', 'programar_mensaje', 'cancelar_programado',
   'marcar_resuelta', 'cambiar_dato_propiedad', 'recordar_en_propiedad', 'guardar_nota', 'grow_mover_etapa', 'grow_agendar_visita'];
 
+/* Operaciones (Juan, 17-nov-2026): de día solo las limpiezas de HOY; las de mañana, solo en la revisión de cierre (7 PM). */
+var AG_OP_MISION_VIEJA_ = 'Que cada apartamento esté listo a tiempo. Revisa llegadas y salidas de hoy y mañana contra la ruta de Epi y las tareas abiertas: limpiezas que faltan o chocan, check-ins sin limpieza asignada, tareas viejas sin cerrar (las reparaciones las ve Mantenimiento). Propón crear o agendar lo que falte y avisar a quien corresponda.';
+var AG_OP_MISION_ = 'Que cada apartamento esté listo a tiempo. De día revisa solo las limpiezas de HOY: llegadas y salidas de hoy contra la ruta de Epi y las tareas abiertas (limpiezas que faltan o chocan, check-ins sin limpieza asignada, tareas viejas sin cerrar; las reparaciones las ve Mantenimiento). Las limpiezas de mañana solo se ven en la revisión de cierre (7 a 8 PM) y solo si queda alguna sin programar. Propón crear o agendar lo que falte y avisar a quien corresponda.';
+
 var AGENTES_SEMILLA_ = [
-  { id: 'operaciones', nombre: 'Operaciones', rol: 'Jefe de operaciones', horas: '7,13,18', dias: '1,2,3,4,5,6,7', presupuesto_usd: 15,
+  { id: 'operaciones', nombre: 'Operaciones', rol: 'Jefe de operaciones', horas: '7,13,19', dias: '1,2,3,4,5,6,7', presupuesto_usd: 15,
     herramientas: 'buscar_reservas,ruta_del_dia,tareas_abiertas,ver_propiedad,memoria_propiedad,ver_conversacion,crear_tarea,cerrar_tarea,agendar_en_epi,escribir_a_equipo,recordar_en_propiedad',
-    mision: 'Que cada apartamento esté listo a tiempo. Revisa llegadas y salidas de hoy y mañana contra la ruta de Epi y las tareas abiertas: limpiezas que faltan o chocan, check-ins sin limpieza asignada, tareas viejas sin cerrar (las reparaciones las ve Mantenimiento). Propón crear o agendar lo que falte y avisar a quien corresponda.' },
+    mision: AG_OP_MISION_ },
   { id: 'huespedes', nombre: 'Huéspedes y reseñas', rol: 'Jefa de experiencia del huésped', horas: '8,16,21', dias: '1,2,3,4,5,6,7', presupuesto_usd: 15,
     herramientas: 'buscar_reservas,ver_conversacion,promesas_abiertas,programados_reserva,mensajes_programados,ver_propiedad,enviar_a_huesped,programar_mensaje,marcar_resuelta,escribir_a_equipo',
     mision: 'Que ningún huésped se quede sin respuesta ni con una promesa olvidada. Revisa las promesas abiertas, las conversaciones con pendientes, las llegadas de mañana (que tengan sus mensajes de llegada programados) y las salidas recientes (pedir reseña). Propón el mensaje exacto o el aviso al equipo.' },
@@ -72,7 +76,7 @@ var AGENTES_SEMILLA_ = [
 
 /* Pasos y «listo significa» de los que ya existían (se llenan solos donde la hoja está vacía). */
 var AG_PLAYBOOK_ = {
-  operaciones: { pasos: '1. Llegadas y salidas de hoy y mañana · 2. Contra la ruta de Epi y las tareas abiertas · 3. Lo que falta o choca · 4. Propuestas', listo: 'Cada llegada de hoy y mañana tiene limpieza asignada · ninguna tarea vieja sin dueño · cada propuesta dice propiedad, fecha y persona' },
+  operaciones: { pasos: '1. Llegadas y salidas de hoy (en la revisión de cierre, las de mañana) · 2. Contra la ruta de Epi y las tareas abiertas · 3. Lo que falta o choca · 4. Propuestas', listo: 'Cada llegada de hoy tiene limpieza asignada (al cierre, las de mañana) · ninguna tarea vieja sin dueño · ningún aviso por una tarea que ya se hizo · cada propuesta dice propiedad, fecha y persona' },
   huespedes: { pasos: '1. Promesas abiertas · 2. Conversaciones con pendientes · 3. Llegadas de mañana con sus mensajes · 4. Salidas recientes para reseña', listo: 'Ninguna promesa vencida sin propuesta · cada mensaje propuesto tiene el texto final listo para enviar · sin datos personales en el informe' },
   finanzas: { pasos: '1. Cancelaciones recientes · 2. Reservas de la semana · 3. Pagos o cobros mencionados con socios y proveedores', listo: 'Cada monto con su moneda y su fuente · nada mueve dinero · cada propuesta dice a quién y por qué' },
   crecimiento: { pasos: '1. Huecos en las próximas dos semanas · 2. Datos que faltan en las fichas · 3. Proyectos de Grow detenidos', listo: 'Cada mejora dice la propiedad y el texto o dato exacto · nada inventado sobre la propiedad' },
@@ -96,6 +100,15 @@ function hojaAg_() {
       cols.forEach(function (c) { var k = AG_CAB_[c], val = sem[k] != null ? sem[k] : pb[k]; if (!String(row[c]) && val) { row[c] = val; cambio = true; } });
       /* Desarrollo pasa a ser el jefe (los subdepartamentos revisan cada app): deja su horario viejo de rondas */
       if (row[0] === 'desarrollo' && String(row[4]) === '10' && String(row[5]) === '2,5') { row[2] = sem.rol; row[4] = sem.horas; row[5] = sem.dias; cambio = true; }
+      /* Operaciones (Juan, 17-nov-2026): la revisión de las 6 PM pasa a ser la de cierre (7 PM, limpiezas de mañana); la
+         misión deja «hoy y mañana» (solo si nadie la editó) y lo que proponía con la regla vieja se descarta una vez. */
+      if (row[0] === 'operaciones') {
+        var mi = AG_CAB_.indexOf('mision'), pi = AG_CAB_.indexOf('pasos'), li = AG_CAB_.indexOf('listo');
+        if (String(row[4]) === '7,13,18') { row[4] = '7,13,19'; cambio = true; try { agOpDescartar_('La regla de Operaciones cambió (17-nov): de día solo las limpiezas de hoy; mañana, al cierre.'); } catch (e) {} }
+        if (String(row[mi]) === AG_OP_MISION_VIEJA_) { row[mi] = AG_OP_MISION_; cambio = true; }
+        if (/hoy y mañana/.test(String(row[pi])) && String(row[pi]).indexOf('1. Llegadas y salidas de hoy y mañana · 2.') === 0) { row[pi] = pb.pasos; cambio = true; }
+        if (String(row[li]).indexOf('Cada llegada de hoy y mañana tiene limpieza asignada') === 0) { row[li] = pb.listo; cambio = true; }
+      }
     });
     if (cambio) sh.getRange(2, 1, n - 1, AG_CAB_.length).setValues(v);
   }
@@ -145,6 +158,9 @@ function agenteCorrer_(a, origen, pedido) {
   var tools = agHerramientas_().filter(function (t) { return permitidas.indexOf(t.name) >= 0 && (AG_LECTURA_.indexOf(t.name) >= 0 || AG_PROPONE_.indexOf(t.name) >= 0); });
   var proponer = tools.filter(function (t) { return AG_PROPONE_.indexOf(t.name) >= 0; }).map(function (t) { return t.name; });
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, "yyyy-MM-dd (EEEE) HH:mm");
+  /* Operaciones en su rutina: de día solo hoy, al cierre solo mañana; lo que propuso antes se descarta (datos al día). */
+  var alc = a.id === 'operaciones' && !pedido ? agOpAlcance_(ahora_()) : null;
+  if (alc) { try { agOpDescartar_('La revisión nueva (' + (alc.cierre ? 'cierre' : 'del día') + ') la reemplaza con datos al día.'); } catch (e) {} }
   var system = 'Eres el agente de ' + a.nombre + ' de Spacio AM (' + a.rol + '), alojamientos de estadía corta en Guatemala. Trabajas DETRÁS de Alma: ' +
     'no hablas con nadie; Alma es la única que habla con las personas y ella le pasa a Juan (el dueño) lo que tú encuentres.\n' +
     'TU MISIÓN: ' + a.mision + '\n\nCÓMO TRABAJAS\n' +
@@ -152,7 +168,7 @@ function agenteCorrer_(a, origen, pedido) {
     '· Estas herramientas NO se ejecutan al usarlas: quedan como PROPUESTA para que Juan la apruebe: ' + proponer.join(', ') + '. Antes de cada una, escribe en una frase por qué (eso es lo que Juan lee). Usa los datos exactos (código de reserva, propiedad, texto final del mensaje).\n' +
     '· Propón solo lo que de verdad vale la pena: máximo 4 propuestas, sin repetir lo que ya está pendiente.\n' +
     '· Al final escribe tu INFORME para Alma: 2 a 5 líneas, claras y concretas (qué revisaste, qué encontraste, qué propones). Si todo está en orden, dilo en una línea.\n\n' +
-    agPlaybookTexto_(a) +
+    agPlaybookTexto_(a) + (alc ? alc.texto : '') +
     'HOY: ' + hoy + ' (hora de Guatemala).' + agPendientesTexto_(a.id);
   var msgs = [{ role: 'user', content: pedido ? agPedidoJson_(a, pedido) : 'Es tu hora de revisión (' + origen + '). Haz tu revisión.' }];
   var tarea = agGuardar_(hojaAgT_(), AGT_CAB_, { id: 'agt' + Date.now(), agente: a.id, creado: new Date().toISOString(), origen: origen, pedido: pedido || '', estado: 'en_curso' });
@@ -170,7 +186,9 @@ function agenteCorrer_(a, origen, pedido) {
     var res = usos.map(function (u) {
       var out;
       if (proponer.indexOf(u.name) >= 0) {
-        if (props.length >= 4) out = { ok: false, error: 'Ya tienes 4 propuestas en esta revisión.' };
+        var fuera = alc ? agOpFuera_(alc, u.name, u.input || {}) : '';
+        if (fuera) out = { ok: false, error: fuera };
+        else if (props.length >= 4) out = { ok: false, error: 'Ya tienes 4 propuestas en esta revisión.' };
         else {
           var p = agGuardar_(hojaAgP_(), AGP_CAB_, { id: 'agp' + Date.now() + props.length, tarea: tarea.id, agente: a.id, creado: new Date().toISOString(),
             titulo: agTitulo_(u.name, u.input), porque: String(porque || '').slice(0, 600), herramienta: u.name, entrada: u.input || {}, estado: 'pendiente' });
@@ -194,7 +212,59 @@ function agenteCorrer_(a, origen, pedido) {
     try { opGuardar_(adm, 'alma', 'hub', txt, [{ tipo: 'agente', resumen: a.nombre + (props.length ? ' · ' + props.length + ' propuesta(s)' : ' · informe') }]); } catch (e) {}
     try { pushA_([adm.email], 'Alma · ' + a.nombre, props.length ? props.length + ' propuesta(s) para tu aprobación' : 'Terminó lo que pediste', '', { origen: 'segundo_plano' }); } catch (e) {}
   }
+  if (EQ_EQUIPOS_.indexOf(a.id) >= 0) eqRefrescarSuave_();   // el estado de los equipos, al día (equipos.js)
   return { ok: true, agente: a.nombre, informe: final, propuestas: props.map(function (p) { return { id: p.id, titulo: p.titulo }; }), costo_usd: tarea.costo_usd };
+}
+
+/* ── Operaciones: hoy de día, mañana al cierre (Juan, 17-nov-2026) ──
+   «1) Descartar propuestas de mensajes a Gabriel por tareas vencidas ya realizadas. 2) No presentar propuestas de
+   limpiezas de mañana durante el día; solo hablar de las limpiezas de hoy. 3) Para limpiezas de mañana, avisar
+   únicamente al final del día entre las 7:00 PM y 8:00 PM si queda alguna pendiente tras la programación.»
+     · Revisiones del día (7 AM y 1 PM): solo hoy. Una propuesta con fecha de mañana o después se rechaza en el código.
+     · Revisión de cierre (la de las 7 PM): solo mañana; si todo está programado no propone nada y Juan no recibe aviso
+       (Alma solo le cuenta cuando hay propuestas).
+     · Cada revisión descarta lo que Operaciones había propuesto y seguía sin decidir: vuelve a mirar con datos al día y
+       propone de nuevo solo lo que todavía falta (así no queda un aviso por una tarea que ya se hizo).
+     · Antes de avisarle a alguien por una tarea vencida, confirma que siga abierta y que el trabajo no se haya hecho. */
+var AG_OP_CIERRE_H_ = 19;
+function agOpAlcance_(ahora) {
+  var h = Number(Utilities.formatDate(ahora, CFG.TZ, 'H')), hoy = Utilities.formatDate(ahora, CFG.TZ, 'yyyy-MM-dd');
+  var man = Utilities.formatDate(new Date(ahora.getTime() + 86400000), CFG.TZ, 'yyyy-MM-dd'), cierre = h === AG_OP_CIERRE_H_;
+  var vencidas = '· TAREAS VENCIDAS: antes de proponer un mensaje a alguien del equipo por una tarea vencida, confirma con tareas_abiertas que siga abierta y con ruta_del_dia que el trabajo no se haya hecho ya. Si ya se hizo, no le escribas a nadie: como mucho propón cerrar_tarea.\n';
+  var texto = cierre
+    ? 'ESTA ES LA REVISIÓN DE CIERRE (7 a 8 PM): revisa SOLO las limpiezas de MAÑANA (' + man + '). Compara las llegadas y salidas de mañana con la ruta de Epi de mañana (ruta_del_dia con la fecha de mañana). Si todas tienen su limpieza programada, no propongas nada y di en una línea que mañana está cubierto. Si falta alguna, propón agendarla y a quién avisar. No hables de hoy.\n' + vencidas + '\n'
+    : 'ESTA ES UNA REVISIÓN DEL DÍA: revisa y habla SOLO de las limpiezas de HOY (' + hoy + '). No revises, menciones ni propongas nada de mañana: eso se ve en la revisión de cierre, de 7 a 8 PM.\n' + vencidas + '\n';
+  return { cierre: cierre, hoy: hoy, manana: man, texto: texto };
+}
+/* Lo que se sale del alcance de la revisión (el texto es la respuesta para el agente; vacío = está bien). */
+function agOpFuera_(alc, herramienta, inp) {
+  var f = String(inp.fecha || inp.vence || '').slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(f)) {
+    if (!alc.cierre && f > alc.hoy) return 'No propuesta: de día solo va lo de hoy (' + alc.hoy + '). Lo de mañana se revisa al cierre, de 7 a 8 PM.';
+    if (alc.cierre && f !== alc.manana) return 'No propuesta: en la revisión de cierre solo va lo de mañana (' + alc.manana + ').';
+  }
+  /* Un mensaje al equipo por una tarea vencida (casi siempre ya se hizo y nadie la cerró, 17-nov): no; como mucho cerrar_tarea. */
+  if (/^(escribir_a_equipo|programar_mensaje)$/.test(herramienta)) {
+    var tv = [inp.texto, inp.mensaje].map(function (x) { return String(x || ''); }).join(' ');
+    if (/\b(vencid[ao]s?|atrasad[ao]s?|siguen? (abiertas?|pendientes?)|qued[óo] pendiente|no se ha (hecho|cerrado))\b/i.test(tv) ||
+      (/\btareas?\b/i.test(tv) && /\b(pendientes?|abiertas?|recordatorio|recordar(te|les)?|sin cerrar)\b/i.test(tv)))
+      return 'No propuesta: no se le escribe al equipo por una tarea vencida (casi siempre ya se hizo y nadie la cerró). Si sigue abierta, propón cerrar_tarea o nómbrala en tu informe.';
+  }
+  if (!alc.cierre && /^(escribir_a_equipo|programar_mensaje|crear_tarea)$/.test(herramienta)) {
+    var t = String(inp.texto || '').replace(/\b(la|esta|cada|por la|en la)\s+mañana/gi, '');
+    if (/mañana/i.test(t) || t.indexOf(alc.manana) >= 0) return 'No propuesta: de día no se habla de las limpiezas de mañana; eso va en la revisión de cierre (7 a 8 PM).';
+  }
+  return '';
+}
+/* Descarta lo que Operaciones propuso y sigue sin decidir (estado «descartada», con su motivo). */
+function agOpDescartar_(motivo) {
+  var sh = hojaAgP_(), n = 0;
+  agFilas_(sh, AGP_CAB_).forEach(function (p) {
+    if (p.agente !== 'operaciones' || p.estado !== 'pendiente') return;
+    p.estado = 'descartada'; p.resultado = String(motivo || '').slice(0, 300); p.decidio = 'alma'; p.decidido = new Date().toISOString();
+    agGuardar_(sh, AGP_CAB_, p); n++;
+  });
+  return n;
 }
 
 /* Pedidos entre agentes en JSON (Juan, 12-nov-2026): rol, tarea, contexto, pasos, restricciones y formato_de_respuesta.
@@ -248,6 +318,7 @@ function agDecidir_(adm, ids, aprobar) {
     if (ok) { try { agCajaGuardar_(p, inp); } catch (e) {} }   // lo aprobado queda en su caja: la próxima vez lo reúsa
     out.push({ id: p.id, titulo: p.titulo, estado: p.estado, error: ok ? '' : (r && r.error) || 'no salió' });
   });
+  if (lista.length) eqRefrescarSuave_();   // el estado de los equipos, al día (equipos.js)
   return { ok: true, decididas: out };
 }
 

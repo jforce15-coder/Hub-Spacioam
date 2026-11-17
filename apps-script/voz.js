@@ -229,7 +229,11 @@ function vozPostCall_(body) {
   /* El webhook de ElevenLabs es de toda la cuenta: las conversaciones de otros agentes (Alma · Familia de The Gentle Stoic Parent)
      son personales y no entran al Hub. */
   var miAgente = PropertiesService.getScriptProperties().getProperty('ELEVENLABS_AGENT_ID');
-  if (d.agent_id && miAgente && s_(d.agent_id) !== miAgente) return { ok: true, ignorado: 'otro agente' };
+  if (d.agent_id && miAgente && s_(d.agent_id) !== miAgente) {
+    /* Claudio (claudio.js) no entra al Hub como llamada, pero sí a la memoria fresca de Juan (memoriafresca.js): lo que hizo. */
+    try { if (s_(d.agent_id) === claudioAgente_()) { var admCl = claudioQuien_({ conv_id: convEL, sa_web: dv.sa_web }); if (admCl) mfClaudio_(admCl, convEL, Number(md.start_time_unix_secs || 0) * 1000 || Date.now(), Number(md.call_duration_secs || 0), s_((d.analysis || {}).call_summary_title)); } } catch (x) { console.error('mfClaudio_: ' + x); }
+    return { ok: true, ignorado: 'otro agente' };
+  }
   var tel = normTel_(pc.external_number || dv.system__caller_id || '');
   if (!convEL) return { ok: false, error: 'sin conversation_id' };
   /* Llamada sin número (prueba desde el navegador o el panel de ElevenLabs): es del administrador principal y va a su conversación. */
@@ -263,6 +267,8 @@ function vozPostCall_(body) {
   var admC = null; try { admC = tel ? (adminPorTel_(tel) || (quien.tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] || null : null)) : null; } catch (x) {}
   var convHilo = admC ? 'op:' + admC.email : convId;
   if (admC) { try { opLlamadaGuardar_(admC, d, t0, dur, canal, motivo, resumen); } catch (x) { console.error('opLlamadaGuardar_: ' + x); } }
+  if (admC) { try { mfLlamadaDeVoz_(admC, d, t0, dur, canal); } catch (x) { console.error('mfLlamadaDeVoz_: ' + x); } }   // las últimas 5 llamadas (memoriafresca.js)
+  if (admC) { try { vivoFin_(admC, convEL); } catch (x) { console.error('vivoFin_: ' + x); } }   // el modo compañero ve que terminó (vivo.js, #607)
   if (admC) { try { retDespuesLlamada_(admC, d.transcript); } catch (x) { console.error('retDespuesLlamada_: ' + x); } }   // ¿resolvieron algún tema por retomar?
   if (admC) { try { prometerAuditarLlamada_(admC, d.transcript, convEL); } catch (x) { console.error('prometerAuditarLlamada_: ' + x); } }   // ¿dijo «le llegó» sin un envío hecho? (prometer.js, #583)
   var sh = hojaWA_(), filas = [];
@@ -357,7 +363,7 @@ function vozQuienBloque_() {
     '· Si quien llama es administrador (caller_type juan, o equipo con rol admin) y pide hacer o consultar algo operativo (escribirle a alguien, rutas, tareas, reservas, datos de propiedades, búsquedas), usa la herramienta secretaria con su pedido completo. Nunca digas que hiciste algo si secretaria no lo confirma. Si no tienes cómo hacer algo que te piden, dilo en tu primera respuesta, no al final.',
     '· SILENCIO LARGO: solo si la persona ya pidió algo y luego se queda en silencio sin responderte (o la comunicación se corta), NO hagas preguntas de seguimiento: nada de «¿sigues ahí?», «¿quieres…?», «¿algo más?», «¿te ayudo con otra cosa?» ni ofrecer repasar pendientes. Cualquier verificación pendiente con la persona se hace ANTES de ese silencio, nunca después. Despídete directo con UNA frase corta y afirmativa, sin pregunta (por ejemplo: «Te dejo; si me necesitas, aquí estoy»); fuera de la app de Alma, usa end_call. En MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA (lo dice la ficha) no te despidas ni cuelgues: quédate en silencio con skip_turn; la app cierra sola. Si aún no ha dicho nada, no rompas el silencio tú. En el CHAT DE TEXTO nunca preguntes si sigue ahí: el silencio es normal (está leyendo o escribiendo); usa skip_turn y espera.',
     '· MÚSICA (solo caller_type juan y solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; en las web apps no existe): si pide música («pon…», «algo para…», «pausa la música», «súbele»), usa secretaria con su pedido tal cual, empezando por «Música:». Confirma en una frase corta.',
-    '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»; por teléfono, WhatsApp o las web apps no hay pantalla): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), usa mostrar_en_chat sin anunciarlo, con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos); solo si responde que se mostró, di «ya lo tienes en pantalla» y resume en UNA frase. Nunca prometas pantalla antes ni escribas tablas en lo que dices. La llamada sigue mientras Juan lo ve. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
+    '· MOSTRAR EN EL CHAT (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»): cuando la respuesta trae muchos datos (un itinerario, una lista, una tabla, muchos números o un texto largo), usa mostrar_en_chat sin anunciarlo, con un título corto y toda la información en markdown (listas, tablas, horas, fechas y montos exactos); solo si responde que se mostró, di «ya lo tienes en pantalla» y resume en UNA frase. Nunca prometas pantalla antes ni escribas tablas en lo que dices. Si la herramienta responde que no se pudo mostrar, dilo por voz en corto, solo lo más importante.',
     VOZ_MANOS_REGLA_, VOZ_ATAJOS_REGLA_,   // Manos de Alma (navegador) y Atajos de iOS (manos.js)
     '· CANAL: puede llegarte un aviso «CANAL: CHAT DE TEXTO», «CANAL: VOZ» o «CANAL: CHAT · NOTA DE VOZ». Obedécelo: en el chat la persona te escribe, no es una llamada; nunca digas «llamada» ni ofrezcas colgar, y responde por escrito, breve y ordenado.',
     '· MEJORAS DEL SISTEMA (solo caller_type juan): si Juan pide cambiar cómo funciona algo (una regla, una función nueva, algo que falla, «dile a Claudio…»), nunca digas que no puedes: usa secretaria con «Mejora para Claude (sencillo): …» o «Mejora para Claude (complejo): …» y el pedido completo. Sencillo: una pregunta simple, leer datos, un cambio chico y claro; complejo: lógica, funciones nuevas, errores, varias partes; con duda, complejo. Al volver di solo lo que diga secretaria («Listo, quedó pedido.»). Un ajuste («agrégale…») va igual, con «Mejora para Claude: agrégale …»; «con Opus» o «súbelo»: «Mejora para Claude: súbelo». Un pedido para Claudio va solo, no junto con otros. Si quien lo pide no es Juan, dile que se lo pida a Juan.',
@@ -367,11 +373,12 @@ function vozQuienBloque_() {
     '· CUANDO LLEGA LA RESPUESTA de secretaria: dila una vez, en 1 o 2 frases. Si en ese momento la persona está hablando, déjala terminar y luego dásela («Ya tengo lo de César: …»). Si la persona ya cambió de tema, dásela breve y vuelve a donde iban. Si trae en_proceso o «TARDA MÁS DE LO NORMAL», dile que lo sigues por detrás y que le avisas cuando esté. Nombres, apartamentos y números: solo los que te da (decir), tal cual; nunca de memoria ni como los oíste.',
     '· AVÍSAME CUANDO (solo caller_type juan): «avísame cuando cambie la puerta de mi vuelo», «cuando responda el huésped», «cuando se una el PR», «avísale a Lucky cuando aterrice»: usa secretaria con su pedido tal cual; ella deja la vigilancia y avisa sola. «Deja de vigilar…», igual.',
     '· Si la persona pregunta por algo que pediste y aún no llega, di que sigue en proceso («todavía no me responde, te aviso en cuanto llegue»).',
-    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (crear tareas o recordatorios, programar mensajes, marcar algo, cerrar pendientes, el paso final de algo ya resuelto), cuando son varias acciones juntas, cuando la persona dice que se tiene que ir, o si un intento anterior falló o tardó. Usa secretaria con modo = segundo_plano UNA sola vez y di a lo mucho UNA frase corta («Listo, me encargo»), sin repetir el pedido y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin haber usado el modo segundo_plano: es lo que hace que el aviso llegue. En MODO CALLE o MODO CONFERENCIA di solo «Entendido, lo hago y te aviso cuando esté listo» y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar (tú le avisas el resultado); nunca digas que se mandará a la app. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás; sin CONVERSACIÓN CONTINUA, despídete y cuelga con end_call.',
+    '· SEGUNDO PLANO (secretaria con modo = segundo_plano): úsalo cuando el pedido es una acción que no necesita respuesta en la llamada (tareas, recordatorios, mensajes programados, marcar algo, cerrar pendientes, el cierre de algo resuelto), cuando son varias acciones juntas, si la persona se tiene que ir, o si un intento anterior falló o tardó. Usa secretaria con modo = segundo_plano UNA sola vez y di a lo mucho UNA frase corta y nueva («Me encargo»), sin repetir el pedido y, si la persona ya no necesita nada más, despídete. Nunca prometas avisar sin usar segundo_plano: es lo que hace que el aviso llegue. En MODO CALLE o MODO CONFERENCIA di solo una frase corta y nueva de que lo haces y le avisas («Copiado, te aviso») y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar (tú le avisas el resultado); nunca digas que se mandará a la app. Si secretaria responde «TARDA MÁS DE LO NORMAL», ya quedó en segundo plano: avísale en una frase que lo trabajas por detrás; sin CONVERSACIÓN CONTINUA, despídete y cuelga con end_call.',
     '· Si secretaria falla, no lo reintentes en la llamada: pásalo a segundo plano.',
     '· caller_type = familia: lo personal de Juan que pida (viajes, vuelos, agenda) va por secretaria con su pedido completo.',
-    '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Explícale con amabilidad que por esta línea no puedes gestionar solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
-    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida, confirme que no necesita nada más o se quede en SILENCIO LARGO sin responderte (ahí te despides directo, como dice esa regla). En MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA nunca cuelgas tú ni te despides: respondes y sigues escuchando.',
+    '· caller_type = registro: número de un edificio o contacto que solo comparte información de registros. Dile con amabilidad que por esta línea no gestionas solicitudes para su número y que para soporte escriba al grupo de Spacio AM en WhatsApp. Si solo saluda o agradece, responde breve y amable.',
+    '· MODO CALLE: táctica y cálida, como en un radio («Copiado.», «Confirmado.», «Listo.»), una sola confirmación.',
+    '· Nunca cuelgues tú primero ni uses end_call justo después de responder: termina la llamada solo cuando la persona se despida, confirme que no necesita nada más o se quede en SILENCIO LARGO sin responderte. En MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA nunca cuelgas tú ni te despides: respondes y sigues escuchando.',
     '',
     'CON EL EQUIPO Y LOS SOCIOS (caller_type juan, equipo o propietario) NO APLICAN LAS REGLAS DE HUÉSPEDES',
     '· Si preguntan por alguien del equipo (ej. «¿y Gabriel?»), responde con lo que sabes de su trabajo (rutas, tareas) usando secretaria; no digas que «no está disponible» ni inventes su estado.',
@@ -520,13 +527,17 @@ function vozDefHerramientas_(base) {
        · SE LE PUEDE INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto»): interruption_mode 'allow'.
        · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta).
        Antes era async (la conversación seguía y la respuesta llegaba suelta) y en vivo estaba post_tool_speech, sin
-       frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s. */
+       frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s.
+       · UNA SOLA FRASE ANTES (Juan, 17-nov-2026: «repite dos veces la misma frase de confirmación antes de llamar a
+         herramientas»): con 'force' ElevenLabs agregaba su frase aunque el modelo ya hubiera dicho la suya, y Juan oía la
+         confirmación dos veces. Ahora 'auto': la frase la dice el modelo una sola vez (v_espera y VOZ_SECRETARIA_DESC_) y el
+         tecleo cubre el silencio mientras trabaja. */
     t.execution_mode = sec ? 'immediate' : 'post_tool_speech';
-    t.pre_tool_speech = sec ? 'force' : 'off'; t.force_pre_tool_speech = sec;   // force_pre_tool_speech está obsoleto en la API: va igual que pre_tool_speech
+    t.pre_tool_speech = sec ? 'auto' : 'off'; t.force_pre_tool_speech = false;   // force_pre_tool_speech está obsoleto en la API
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozHablarConClaudio_()], vozManosHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio
+  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozMostrarTarjetaClub_(), vozHablarConClaudio_()], vozManosHerramientas_(), vozAnilloHerramientas_()).concat(vozGuiaHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio · anillo.js: el anillo QRing · guia.js: la Guía de camino
 }
 /* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
    trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al
@@ -545,9 +556,34 @@ function vozMostrarEnChat_() {
    cambia (weeboVozBloque_). La app lo muestra en el chip «✨ Weebo N» con ▲/▼; no espera respuesta ni dice nada antes. */
 function vozNivelWeebo_() {
   return { type: 'client', name: 'nivel_weebo', expects_response: false, response_timeout_secs: 1,
-    description: 'Avisa a la app de Alma en qué nivel de Modo Weebo vas (0 centro, 1 chispa, 2 suelta, 3 Weebo). Llámala en silencio al empezar y solo cuando tu nivel cambie, y solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». No digas nada antes ni después, y no esperes respuesta.',
+    description: 'Avisa a la app de Alma en qué nivel de Modo Weebo vas (0 centro, 1 chispa, 2 suelta, 3 Weebo). Llámala en silencio al empezar y solo cuando tu nivel cambie, y solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». No digas nada antes ni después (ni su nombre ni el nivel en voz alta), y no esperes respuesta.',
     parameters: { type: 'object', required: ['nivel'], properties: {
       nivel: { type: 'integer', description: 'Tu nivel de Modo Weebo ahora: 0, 1, 2 o 3.' } } },
+    pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
+}
+/* GIF de la broma (Juan, 16-nov-2026): herramienta de CLIENTE que Alma llama en silencio, solo con Juan y en la app, para
+   acompañar una broma que ya cayó (weeboVozBloque_ · WEEBO_GIF_). La app (VozNativa.swift · GifBroma.swift) la pasa a la
+   página del inicio (js/alma-gif.js), que pide el GIF al Hub (gif.js: GIPHY con rating g o un emoji animado) y lo pone
+   unos segundos en UN cuadro del tablero, o en el chat si no hay tablero. No espera respuesta: no hace hablar a Alma. */
+function vozMostrarGif_() {
+  return { type: 'client', name: 'mostrar_gif', expects_response: false, response_timeout_secs: 1,
+    description: 'Muestra unos segundos un GIF que acompaña una broma que ya hiciste y que cayó en su contexto. Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA» y caller_type es juan; nunca con un problema, una queja o al dar datos. Como mucho uno cada varios minutos. Llámala en silencio: no la anuncies, no digas su nombre ni la idea en voz alta, y no esperes respuesta.',
+    parameters: { type: 'object', required: ['idea'], properties: {
+      idea: { type: 'string', description: 'Lo que el GIF expresa, en 1 a 4 palabras en inglés (p. ej. «slow clap», «mind blown», «I\'ll be back», «mic drop»).' } } },
+    pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
+}
+/* Tarjetas de clubes (Juan, 17-nov-2026): «guardar en mi perfil las tarjetas de clubes de compra o de cliente frecuente y
+   que, al pedirlas por voz, se muestren en pantalla para enseñárselas al dependiente». Herramienta de CLIENTE: las tarjetas
+   viven solo en el iPhone (llavero; alma-app TarjetasClub.swift) y la app la contesta enseguida: la pone en pantalla con el
+   brillo al máximo, o dice cuáles tiene, o dónde agregarlas. El número nunca llega al Hub ni a la conversación. Sirve a
+   cualquier persona con la app (cada quien ve las suyas). En las web apps contesta js/alma-voz.js: solo en la app.
+   Ajuste (Juan, 17-nov-2026): también boletos de avión, tren, conciertos y eventos (con su fecha); la app los busca por
+   nombre o por tipo («mi boleto de avión» → el vuelo más próximo). El nombre de la herramienta no cambia. */
+function vozMostrarTarjetaClub_() {
+  return { type: 'client', name: 'mostrar_tarjeta_club', expects_response: true, response_timeout_secs: 5,
+    description: 'Pone en la pantalla del iPhone una tarjeta de club de compra o de cliente frecuente (supermercado, farmacia, tienda) o un boleto (avión, tren, concierto, evento) para enseñarlo en la caja, el aeropuerto o la entrada, cuando la persona lo pide («enséñame mi tarjeta de La Torre», «mi boleto de avión», «la entrada del concierto»). Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA». Llámala sin anunciarla. Di en una frase solo lo que responda; nunca leas el número en voz alta. Si responde que hay varias o que no está, pregunta cuál o di cuáles tiene, en una frase.',
+    parameters: { type: 'object', required: ['club'], properties: {
+      club: { type: 'string', description: 'Lo que pidió, como lo dijo: el nombre del club o del boleto («La Torre», «Vuelo a Madrid»), o el tipo si no dijo nombre («boleto de avión», «concierto»); vacío si no dijo cuál.' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 /* Herramientas del agente que no define el Hub (las hizo otra persona en ElevenLabs, p. ej. hospitable_router en n8n):
@@ -569,7 +605,7 @@ var VOZ_SISTEMA_DESC_ = {
 
 /* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Antes, una frase de espera corta que no adelanta nada
    (pre_tool_speech 'force', #498); el resultado se confirma solo cuando ya se hizo (Juan, 3-nov-2026). */
-var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di solo una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»): confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
+var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di UNA sola vez una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»; en MODO CALLE, «Copiado.»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»), sin repetir la frase de espera ni confirmar dos veces: confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
@@ -595,9 +631,23 @@ function vozHerramientasSiCambiaron_() {
   var base = url.indexOf(VOZ_PUENTE_) === 0 ? url.replace(/&h=[^&]*$/, '') : '';
   if (!base) { p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: false, t: new Date().toISOString(), error: 'secretaria sin URL del puente: corre voz_tools una vez' })); return { ok: false, error: 'sin base' }; }
   var o = vozPublicarHerramientas_(base);
-  if (o && o.ok !== false) p.setProperty('VOZ_TOOLS_HUELLA', huella);
-  p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: o && o.ok !== false, t: new Date().toISOString(), herramientas: (o && o.herramientas || []).length }));
+  /* 17-nov-2026: la huella se guardaba con cualquier respuesta sin ok:false, aunque las 5 del anillo no quedaran en el agente;
+     voz_sync y la vuelta de 30 min decían «sin_cambios» y hubo que forzarlas con voz_tools. Ahora solo se guarda si cada
+     herramienta esperada volvió con id y ese id está en los tool_ids del agente; si falta alguna, la siguiente vuelta reintenta. */
+  var faltan = o && o.ok !== false ? vozHerramientasFaltan_(o) : null;
+  if (faltan && !faltan.length) p.setProperty('VOZ_TOOLS_HUELLA', huella);
+  else if (faltan) { console.warn('voz_tools: no se guarda la huella, faltan en el agente: ' + faltan.join(', ')); o.ok = false; o.faltan = faltan; }
+  p.setProperty('VOZ_TOOLS_SYNC', JSON.stringify({ ok: !!faltan && !faltan.length, t: new Date().toISOString(), herramientas: (o && o.herramientas || []).length, faltan: faltan || undefined }));
   return o;
+}
+/* Las herramientas que define el Hub (vozDefHerramientas_) que no quedaron en el agente: sin id en la respuesta de la
+   publicación o con un id que no está en los tool_ids que devolvió ElevenLabs (vozEstado_). Vacía = todas están. */
+function vozHerramientasFaltan_(o) {
+  var ids = (o && o.tool_ids) || [], hechas = (o && o.herramientas) || [];
+  return vozDefHerramientas_('BASE').map(function (d) { return d.name; }).filter(function (n) {
+    var h = hechas.filter(function (x) { return x && x.name === n && x.id; })[0];
+    return !h || ids.indexOf(h.id) < 0;
+  });
 }
 function vozPublicarHerramientas_(base) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
@@ -729,6 +779,7 @@ function vozInicio_(b) {
       var admI = adminPorTel_(tel) || (tipo === 'juan' ? adminsOp_().filter(function (a) { return a.principal; })[0] : null);
       var cr = admI ? contextoReciente_(admI) : null;
       if (cr) { ficha += '\n\n' + cr.bloque; if (cr.fresco) saludo = cr.saludo(nom(r.caller_name || admI.nombre)); }
+      if (admI) ficha += mfBloque_(admI);   // memoria fresca: las últimas 5 llamadas del principal (memoriafresca.js)
     } catch (e) { console.error('contextoReciente_: ' + e); }
   }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
@@ -1107,7 +1158,11 @@ function vozWebAdmin_(ses) {
   return adm && adm.tels && adm.tels.length ? adm : null;
 }
 /* Quita las notas de actuación del modelo de voz ([warm], [softly]…) de lo que se guarda o se muestra. */
-function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
+/* Lo que se dice o se guarda como dicho por Alma: sin notas de voz ([softly]…) ni nombres de herramientas.
+   Juan (16-nov-2026): «que Alma no lea en voz alta nivel_weebo ni otros comandos al ejecutarlos». Un nombre con
+   guion bajo (nivel_weebo, skip_turn, mostrar_gif(…)) nunca es español hablado: se quita (los correos no se tocan). */
+var VOZ_HERRAMIENTA_RX_ = /(^|[\s«"'(¿¡])[A-Za-z]+(?:_[A-Za-z0-9]+)+(?:\s*\([^)\n]{0,80}\))?(?=$|[\s,.;:!?…»"')])/g;
+function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(VOZ_HERRAMIENTA_RX_, '$1').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
 /* Ficha para la llamada desde la app: quién es, cómo tratarlo y lo último que habló con Alma por WhatsApp o el Hub,
    para que la voz sea la misma Alma que ya lo conoce y no la del protocolo de huéspedes. */
 function vozWebFicha_(adm, nom) {
@@ -1145,7 +1200,7 @@ var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pa
    primero (si falla, falla rápido). saludo_corto: «Dime, Juan» para cuando la app despierta a Alma con el anillo o con
    «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual).
    saludos: el Saludo variado (#410), la app de Alma elige uno; saludo_tema = el first_message trae un tema (retomar), no un hola. */
-function vozWebInicio_(ses, ligero, app, claudio) {
+function vozWebInicio_(ses, ligero, app, claudio, vueltaDe) {
   var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
   /* Acceso cerrado (vozacceso.js): la voz solo se abre con la sesión verificada del Hub, nunca con la llave antigua. */
   if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };   // no 'session': ese error cierra la sesión del navegador
@@ -1181,14 +1236,18 @@ function vozWebInicio_(ses, ligero, app, claudio) {
   /* Conversación continua en conferencia: cuándo cierra sola la app (confSueno_). */
   try { var cf = confSueno_(); out.conferencia_silencio_s = cf.silencio; out.conferencia_tope_s = cf.tope; } catch (e) { console.error('confSueno_: ' + e); }
   try { var pf = personalidadFicha_(adm); if (pf) { dv.quien_llama += pf.bloque; delete pf.bloque; Object.assign(out, pf); } } catch (e) { console.error('personalidadFicha_: ' + e); }
-  /* Temas por retomar (retomar.js): la llamada empieza por el más importante, en lugar de la última conversación.
-     Se cuenta como mencionado solo cuando la llamada de verdad empieza (vozWebVincular). */
+  /* Pendientes (retomar.js, #607): el saludo es el normal; solo lo urgente va en la ficha para decirlo una vez. Ese cuenta
+     como mencionado solo cuando la llamada de verdad empieza (vozWebVincular): en 2 llamadas deja de ser urgente. */
   var ret = null; try { ret = retFicha_(adm, nom); } catch (e) { console.error('retFicha_: ' + e); }
   if (ret) {
     dv.quien_llama += ret.bloque; out.retomar_total = ret.total;
-    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; out.saludo_tema = true; CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200); }
+    if (ret.saludo) { out.first_message = ret.saludo; out.retomar = ret.saludo; out.saludo_tema = true; }
+    if (ret.id) CacheService.getScriptCache().put('vozret_' + adm.email, ret.id, 1200);
   }
   marca('retomar');
+  /* Vuelve de Claudio (claudio.js, Juan 16-nov-2026): Alma cierra en una frase con lo que Claudio de verdad hizo (sus
+     herramientas, no lo que se dijo) y la app cuelga si Juan no sigue hablando. */
+  if (vueltaDe) { try { var vu = claudioVuelta_(adm, vueltaDe); dv.quien_llama += vu.linea; out.vuelta = vu.frase; out.cerrar_tras_vuelta = true; } catch (e) { console.error('claudioVuelta_: ' + e); } }
   /* Mientras el navegador conecta, la primera herramienta de la llamada (lookup_reservation) ya sabe que es él:
      sin esto podía llegar antes que vozWebVincular y Alma lo trataba como huésped. */
   CacheService.getScriptCache().put('vozweb_pend', tel, ligero ? 120 : 90);
@@ -1234,6 +1293,7 @@ function vozWebVincular_(ses, convId, app, b) {
   if (app && Array.isArray(b.tipos)) CacheService.getScriptCache().put('voztvtipos_' + convId, JSON.stringify(b.tipos.map(String).filter(function (x) { return /^[a-z]{2,20}$/.test(x); }).slice(0, 20)), 21600);
   /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
   if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
+  try { vivoInicio_(adm, convId); } catch (e) { console.error('vivoInicio_: ' + e); }   // el modo compañero ve que empezó (vivo.js, #607)
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
   /* Alma abre (#509 T4): la llamada empezó por un aviso (b.aviso_id), no por el saludo de retomar. Ese aviso cuenta como
      dicho (su tema por retomar no vuelve a salir en el próximo saludo) y el tema del saludo, que no se dijo, sigue igual. */

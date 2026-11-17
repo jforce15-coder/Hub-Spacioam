@@ -192,8 +192,8 @@ function escalarUnir_(e) {
 }
 function escalarNoUne_(e, adm, url, causa) {
   e.estado = 'no_unida'; e.causa = causa; e.fin = Date.now(); escalarGuardar_(e);
-  try { accionCrear_('Unir el PR: ' + e.nombre, 'No lo uní sola: ' + causa + '. Revísalo y únelo cuando esté.', url, 'claude'); } catch (er) {}
-  escalarAvisar_(adm, e, avisoTexto_('escalar_no_unido', { nombre: e.nombre, causa: causa, url: url }), 2);
+  /* Sin «Unir el PR» para Juan ni pendiente de unir (Juan, 17-nov-2026, pc1794936657400): solo un aviso para leer. */
+  escalarAvisar_(adm, e, avisoTexto_('escalar_no_unido', { nombre: e.nombre, causa: causa, url: url }), 3);
   return 1;
 }
 /* La publicación: las revisiones del commit de cada unión (Actions, Publicar Apps Script, Pages). */
@@ -236,7 +236,8 @@ function escalarEntregar_(e) {
   var texto = resp + '\n\n' + (e.unidos.length > 1 ? 'Uní los cambios que hacían falta: ' : 'Uní el cambio que hacía falta: ') + e.unidos.join(' ');
   e.estado = 'entregada'; e.fin = Date.now(); escalarGuardar_(e);
   try { opGuardar_(adm, 'alma', canal === 'segundo_plano' ? 'llamada' : canal, texto, hechas); } catch (er) { console.error('escalarEntregar_ chat: ' + er); }
-  if (e.canal === 'whatsapp') escalarWhatsApp_(e, texto);
+  /* Por WhatsApp va solo el resultado, sin la línea de lo que se unió (Juan, 17-nov-2026: sin avisos de unir por WhatsApp). */
+  if (e.canal === 'whatsapp') escalarWhatsApp_(e, resp);
   try { avisoPoner_(adm, 'escalar_entregado', { nombre: e.nombre }, null, { nivel: 2, pedidos: e.micro ? [e.micro] : [] }); } catch (er) {}   // pedidos: Alma abre (almaabre.js)
   return 1;
 }
@@ -246,7 +247,8 @@ function escalarAvisar_(adm, e, aviso, nivel) {
   var conDatos = a.texto + ((a.datos || []).length ? '\n\n' + a.datos.map(function (d) { return '· ' + d; }).join('\n') : '');
   try { opGuardar_(adm, 'alma', 'claude', conDatos, [], CHAT_DESARROLLO_); } catch (er) { console.error('escalarAvisar_ chat: ' + er); }
   try { vozAvisoPoner_(adm, a.texto, null, { nivel: nivel || 2, datos: a.datos, titulo: a.titulo, tipo: a.tipo || '', pedidos: e && e.micro ? [e.micro] : [] }); } catch (er) {}
-  if (e && e.canal === 'whatsapp') escalarWhatsApp_(e, conDatos);
+  /* Estos avisos son de unir (no se pudo unir, falló la publicación): ya no van por WhatsApp (Juan, 17-nov-2026); se
+     quedan en el chat, en la app de iPhone y en Pendientes. */
 }
 /* Lo pidió por WhatsApp: el resultado y los avisos de su pedido vuelven por WhatsApp. */
 function escalarWhatsApp_(e, texto) {

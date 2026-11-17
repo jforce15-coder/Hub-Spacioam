@@ -36,6 +36,14 @@ jobs:
           done
           exit $fallo
 
+      - name: Una sola roca por pantalla, siempre la misma y con su pulso (sa-nav.js la dibuja; nadie pinta otra)
+        # 16-nov-2026: Juan vio rocas distintas en Health y al probar el modo anillo, y pulsos que chocaban con las órbitas.
+        run: node .github/una-roca.js .
+
+      - name: Snapshot estilo Jarvis del tablero, piezas, cupo de IA y nada privado (dobles)
+        # 16-nov-2026: Juan pidió que el tablero sea un snapshot que se entienda de un vistazo, no cuadros con un número.
+        run: node .github/snapshot.js apps-script
+
       - name: Cada sc-for de las páginas lee su lista con list= (support.js no conoce each=)
         # 3-nov: la ventana de «Acciones pendientes» usaba each= y salía vacía (la píldora decía 1, la lista 0).
         run: |
@@ -116,6 +124,10 @@ jobs:
         # 13-nov: decide el portero Jev (#498 T5), con dobles de su API; si falla o tarda, las reglas de antes.
         run: node .github/voz-rapido.js apps-script
 
+      - name: Huella de las herramientas de voz, solo se guarda si cada herramienta quedó en el agente; si falta alguna, la siguiente vuelta reintenta (dobles)
+        # 17-nov-2026: el Hub guardó la huella sin que las 5 del anillo quedaran en ElevenLabs; voz_sync decía «sin_cambios» y hubo que forzarlas con voz_tools.
+        run: node .github/voz-huella.js apps-script
+
       - name: Llaves desde Ajustes, solo el principal con sesión, solo la lista permitida y nunca devuelve el valor (dobles)
         # 13-nov: la pantalla de Propiedades del script ya no deja agregar más (~50); Juan eligió guardarlas desde Ajustes (opción A).
         run: node .github/llaves.js apps-script
@@ -133,13 +145,25 @@ jobs:
       - name: Plantilla para socios, con dobles de la API de Meta (crear, aprobada, pasada a Marketing)
         run: node .github/socio-plantilla.js apps-script
 
+      - name: La Guía de camino pregunta el medio, lo recuerda y arma los pasos (dobles de Google)
+        run: node .github/guia-camino.js apps-script
+
       - name: La voz del Modo calle dice por qué no hubo audio (dobles de ElevenLabs)
         run: node .github/calle-voz.js apps-script
+
+      - name: Maricarmen se llama así solo en la voz; lo que sale a otra persona va en nombre de Alma
+        # 17-nov (#667): «que solo de voz se identifique como Maricarmen, pero cualquier mensaje, contacto o acción externa
+        # siempre lo haga en nombre de Alma».
+        run: node .github/identidad-voz.js apps-script
 
       - name: Modo calle rápido (sin Epi en cada mensaje, frases de prueba sin IA, camino rápido, plazo antes de la primera vuelta, vozPausa) y Hablar con Claudio desde la calle (dobles)
         # 16-nov: «Estoy probando el modo» tardó 28 s y la app se rinde a los 25 s; «quiero hablar con Claudio» en Modo calle
         # se volvía un pedido de texto en vez de abrir la llamada con Claudio.
         run: node .github/calle-rapida.js apps-script
+
+      - name: Modo calle táctico con comandos cortos («Copiado», «Listo», una sola confirmación, solo el dato en 12 palabras como mucho)
+        # 17-nov: Juan pidió que en Modo calle Alma conteste como comando corto («listo Llorens»).
+        run: node .github/calle-comandos.js apps-script
 
       - name: Notificaciones humanas con sus datos y sin datos personales, y la voz de Alma lista antes de que la app la pida (dobles)
         # 13-nov: las notificaciones sonaban a sistema («Hay una pregunta sobre…») y a veces salían con la voz del iPhone porque
@@ -153,6 +177,10 @@ jobs:
       - name: Rutina de cada hora, responde sola solo con una respuesta anterior del equipo y nunca dinero ni de noche (dobles)
         # 15-nov: Juan pidió que cada hora Alma limpie pendientes y promesas sin humano y resuelva sola al menos el 60 % (#545).
         run: node .github/rutina-hora.js apps-script
+
+      - name: Operaciones de día solo propone lo de hoy, lo de mañana al cierre, y nunca un mensaje al equipo por tareas vencidas (dobles)
+        # 17-nov: Juan pidió descartar los mensajes a Gabriel por tareas ya hechas y no ver de día las limpiezas de mañana (#643, #644).
+        run: node .github/operaciones-hoy.js apps-script
 
       - name: Un mensaje del huésped es un caso y un aviso, aunque dos disparos lo procesen a la vez (dobles)
         # 3-nov: el caso de Alejandra (la biblia) llegó dos veces a Juan, con opciones A/B/C distintas: dos pasadas se cruzaron.
@@ -193,6 +221,10 @@ jobs:
         # 7-nov: el «Si» de Juan para Oscar (Brunelo 1808) no salió y Alma dijo «no tiene conversación activa»; a Juan le llegó
         # tres veces «El huésped sigue sin su código» por Estrella (Ignacio 1206), después de haberle contestado.
         run: node .github/envio-huesped.js apps-script
+
+      - name: Consultas sin reserva - lo público sale sin esperar a Juan y lo privado nunca (dobles)
+        # 17-nov-2026: Juan pidió que Alma conteste sola el piso y las distancias a eventos; fugaSinConfirmar_ fallaba sin RX_CODIGO_ENVIADO_.
+        run: node .github/consulta-publica.js apps-script
       - name: Alma escala sola cuando no puede, no promete sin hacerlo, pide en JSON y une sola solo lo que Juan necesita (dobles)
         # 11-nov: Juan pidió sus contactos de recepción de Hola; Alma dijo «necesito pedírselo a Claudio… ¿Lo pido?» y no pidió
         # nada hasta su «Si» 44 min después (y salió dos veces). 12-nov: Alma une sola solo lo necesario para un pedido de Juan.
@@ -247,6 +279,10 @@ jobs:
         # 16-nov: Juan quiere ver en pantalla lo que hace desarrollo mientras habla con Claudio (#550, prototipos A y B, como el
         # panel «Agent Huddle»): sin pasos reales de la sesión de Claude, la barra es la etapa, nunca un porcentaje.
         run: node .github/panel-claudio.js apps-script
+      - name: Claudio local, sin ElevenLabs, con su mismo prompt, su ficha y sus herramientas, solo el principal y lo dicho limpio y corto (dobles)
+        # 16-nov: Juan quiere que Claudio sea local para no gastar créditos de ElevenLabs en sesiones largas de trabajo (#629):
+        # el dictado y la voz del iPhone en la app, y aquí el turno con el modelo rápido.
+        run: node .github/claudio-local.js apps-script
       - name: Alma no repite la misma muletilla ni la misma frase seguidas («Listo, entregado») y el resto del texto queda igual (dobles)
         # 14-nov: Juan pidió que Alma varíe el fraseo y no caiga en bucles como «Listo, entregado» (pedido pc1794698090317).
         run: node .github/variar-frases.js apps-script
@@ -262,6 +298,17 @@ jobs:
         # 16-nov: en Pendientes 85 de 163 tarjetas seguían abiertas: temas ya cerrados, cambios ya unidos, el mismo aviso de
         # entrega 4 veces y avisos que nunca cambiaban de estado; las preguntas esperaban sin que nadie volviera a preguntar (#567 T2).
         run: node .github/pendientes-limpios.js apps-script
+
+      - name: Plática directa, el saludo no ofrece pendientes y solo lo urgente se dice una vez (dobles)
+        # 16-nov (#607): 13 de 44 llamadas empezaban ofreciendo pendientes que casi nunca eran urgentes.
+        run: node .github/pendientes-voz.js apps-script
+
+      - name: Tablero de datos, lo que Alma responde con números y listas se ve en la llamada sin códigos ni teléfonos (dobles)
+        # 16-nov (#607): «las listas no son tarjetas» y las respuestas instantáneas no dejaban tablero: casi nunca se veía nada.
+        run: node .github/tablero-datos.js apps-script
+
+      - name: Modo compañero, el otro dispositivo ve la llamada sin audio y solo la misma sesión la lee (dobles)
+        run: node .github/modo-companero.js apps-script
       - name: Bandeja A3, cada conversación con su esfera y su foto (o null), los colores exactos del inicio, lo personal pendiente arriba y los filtros (dobles)
         # 16-nov: Juan eligió el diseño A3 para la bandeja del Hub (#567 T1): círculos arriba con el aro partido (estado y esfera)
         # y la lista como WhatsApp con un fondo muy tenue del color exacto de su esfera.
@@ -277,10 +324,20 @@ jobs:
         # 16-nov: el anillo llega como control de música y Spotify se lo quita; Juan aprobó leerlo directo por Bluetooth y antes
         # hay que saber qué manda (ticket #29, paso 1). La app manda el registro y Claude lo lee para mapear los toques.
         run: node .github/anillo-ble.js apps-script
+      - name: Música sin dispositivo activo, suena en el predeterminado o el teléfono, activa antes del play y reintenta, mensaje claro si no hay ninguno (dobles)
+        # 17-nov-2026 (pedido pc1794924234976): «si no hay dispositivo activo de Spotify, reproducir en el actual o el predeterminado, sin error».
+        run: node .github/musica-dispositivo.js apps-script
+      - name: Alma y el anillo, la Lectura del anillo solo con sesión y con su hora, sin datos personales, la herramienta del chat y las 5 de la voz (dobles)
+        # 16-nov: Juan quiere manejar el anillo QRing desde Alma (batería, pasos, ritmo, oxígeno, ajustes). En la app, en vivo;
+        # fuera de ella, lo último que leyó la app, siempre con su hora y sin inventar si no está conectado.
+        run: node .github/anillo-alma.js apps-script
       - name: Destinatario con su fuente, un solo resolvedor, el apartamento nombrado manda, varias personas se preguntan y «los socios» son todos (dobles)
         # 13-nov: Juan pidió escribirle al socio de Narama 633; Alma tomó la primera coincidencia por un pedazo del nombre (otro
         # apartamento) y antes dijo «El único Mayorga que tengo es …», inventado (#583 T3).
         run: node .github/destino.js apps-script
+      - name: Memoria fresca de las últimas 5 llamadas y lo reciente desempata («Amílcar» es el de hace 10 min) (dobles)
+        # 16-nov: Juan: «no estamos teniendo contexto de la llamada anterior»; con dos personas del mismo nombre, la de la llamada reciente.
+        run: node .github/memoria-fresca.js apps-script
       - name: Verificar antes de prometer, borrador al contacto con su sí, «listo» solo con un envío hecho, sin duplicados al huésped en 24 h y la llamada auditada (dobles)
         # 13-nov: el borrador al socio de Narama 633 nunca salió y Alma dijo «Listo, con ese cambio»; 16-nov: la misma huésped
         # recibió el mismo mensaje a las 12:01 y a las 12:28; en una llamada dijo «Listo, le llegó» antes de mandar nada (#583 T4).
@@ -288,6 +345,9 @@ jobs:
       - name: Acento de España solo con el administrador principal, neutro con equipo, socios, familia y huéspedes (dobles)
         # 16-nov: el acento sube con el Modo Weebo (#572), pero la voz de marca prohíbe «vale» y modismos de España con huéspedes.
         run: node .github/acento-principal.js apps-script
+      - name: Modo Weebo con tino (humor solo con gancho, nunca risa sola, el fijo es techo) y el GIF de la broma con rating g (dobles)
+        # 16-nov: Juan: «se da una carcajada que no correspondía a nada»; en una llamada, 7 de 7 [laugh] sin chiste (tras «eh», «mmm», un corte).
+        run: node .github/weebo-tino.js apps-script
       - name: Archivos en los chats, Alma recibe PDF, Word, Excel y audio en privado y por WhatsApp salen como documento o audio (dobles)
         # 14-nov: Juan intentó agregar archivos en el chat y no los agregaba: el «+» solo aceptaba fotos (#544).
         run: node .github/archivos-chat.js apps-script
@@ -307,3 +367,13 @@ jobs:
       - name: Inventario para el traslado a Workspace, solo lee, nombres de Propiedades sin valores, activadores y hojas y carpetas con su carpeta (dobles)
         # 16-nov-2026: T1 del traslado a la cuenta Workspace (docs/specs/traslado-workspace.md): saber qué compartir sin tocar nada.
         run: node .github/inventario-ws.js apps-script
+      - name: Envío directo, la orden de Juan de responder o enviar un mensaje ya es su sí; si pide verlo antes, o Alma adivinó a quién, sigue el borrador (dobles)
+        # 17-nov-2026 (#633): «cuando Juan dé la instrucción de responder o enviar un mensaje, enviarlo directamente, sin preguntar ¿lo envío?».
+        run: node .github/envio-directo.js apps-script
+      - name: Biblioteca de Claudio, solo el principal comparte, todo privado, Claudio lee con el lector de su pedido (nunca la llave), lo que pide le llega solo al compartirlo y nada va al issue (dobles)
+        # 17-nov-2026 (pedido pc1794916196762): «que el usuario comparta fácilmente un skill o documento, sin usar el chat, y que Claudio pueda pedirlo».
+        run: node .github/biblioteca-claudio.js apps-script
+
+      - name: Estado de los equipos precargado, al instante sin IA, con tareas, limitaciones y problemas, solo el principal (dobles)
+        # 17-nov-2026: Juan pidió tener listo el estado de Operaciones, Finanzas y Desarrollo para darlo sin demoras.
+        run: node .github/equipos.js apps-script

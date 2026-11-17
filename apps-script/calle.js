@@ -8,6 +8,11 @@
      · si hace falta elegir o conversar, conversar = true y la app abre la llamada de ElevenLabs.
    La frase corta sale de la misma respuesta de Alma (CALLE_REGLA_ en el prompt, sin otra llamada a la IA) y
    calleHablar_ le quita lo que no se puede decir (markdown, listas, enlaces, etiquetas [[…]]).
+   TÁCTICA Y UNA SOLA CONFIRMACIÓN (Juan, 17-nov-2026): «Copiado», «Confirmado», «Listo», sin rodeos y cálida; nunca dos
+   confirmaciones seguidas ni la misma frase dos veces (CALLE_REGLA_ y, por si el modelo igual la repite, calleUnaVez_).
+   COMANDOS CORTOS (Juan, 17-nov-2026, «listo Llorens»): la respuesta a un pedido es un comando, como en un radio: «Listo.»,
+   «Listo, anotado.», «Tres llegadas hoy.»; sin saludos, sin repetir el pedido ni explicar. Lo que pase de 12 palabras
+   (CALLE_COMANDO_PALABRAS_) se corta en la última frase entera. Los avisos hablados y los errores siguen con 20.
    Plazo duro (CALLE_PLAZO_, 15 s): si no alcanza, el agente lo sigue en segundo plano (retomar.js) y Alma dice
    «Sigo en eso; te aviso al terminar» (nunca «Listo»: todavía no está hecho).
    NUNCA EN SILENCIO (Juan, 4-nov-2026): la app espera la respuesta 25 s; si no llega, Alma dice «No me llegó la respuesta,
@@ -68,7 +73,8 @@
 var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
 var CALLE_AUDIO_PLAZO_ = 20000;    // con más de esto desde que llegó el pedido ya no se pide el audio (la app espera 25 s y dice «No me llegó la respuesta…»)
 var CALLE_VOZ_MAX_ = 400;          // calleVoz: lo más largo que se convierte en voz (caracteres)
-var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído
+var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído (avisos y errores)
+var CALLE_COMANDO_PALABRAS_ = 12;  // la respuesta a un pedido: un comando corto (Juan, 17-nov-2026: «listo Llorens»)
 var CALLE_SIGUE_ = 'Sigo en eso; te aviso al terminar.';   // todavía no está hecho: nada de «Listo» (Juan, 3-nov-2026)
 var CALLE_VOZ_RESPALDO_ = 'qpGRZJK2msOprnlnBj0M';   // la voz del agente, por si VOZ_VOICE_ID todavía no está guardada
 var CALLE_TTS_MODELO_ = 'eleven_flash_v2_5';   // el modelo rápido (la Propiedad CALLE_TTS_MODELO lo cambia)
@@ -83,11 +89,12 @@ var CALLE_SILENCIO_S_ = 6;         // sueño: segundos de silencio de Juan, desp
 var CALLE_TOPE_S_ = 45;            // sueño: segundos sin que Alma hable para colgar aunque haya ruido o gente cerca
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
-  'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma en UNA frase muy corta que empiece con «Listo, …» (p. ej. «Listo, anotado», «Listo, le escribí a Flor»). ' +
-  'Si pregunta algo, responde en una o dos frases cortas, de 20 palabras como mucho. Sin listas, sin markdown, sin enlaces, sin emojis. ' +
-  'Si de verdad tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
+  'Responde TÁCTICO, como en un radio: sin saludos, sin repetir el pedido ni explicar. ' +
+  'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma UNA sola vez con 1 a 4 palabras: «Copiado.», «Listo, le escribí a Flor». ' +
+  'Si pregunta algo, solo el dato, 12 palabras como mucho. Sin listas, markdown, enlaces ni emojis. ' +
+  'Si tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 
-/* calle { texto, aviso_id? } → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
+/* calle { texto, aviso_id?, sin_audio?, persona?, alter? } (persona o alter "maricarmen" = el alter ego de voz: su nombre, identidad.js; su Weebo 3, maricarmen.js) → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
 function calle_(ses, b) {
   b = b || {};
   var t0 = Date.now();
@@ -98,18 +105,24 @@ function calle_(ses, b) {
   if (!b.aviso_id) {
     /* Hablar con Claudio (solo el principal) y las frases de prueba: sin la IA. */
     if (calleClaudio_(texto) && esAdminPrincipal_(adm)) out = { ok: true, hablar: CLAUDIO_FRASE_, conversar: true, claudio: true, motivo: texto.slice(0, 300) };
+    else if (guiaPideCamino_(texto)) out = { ok: true, hablar: 'Claro, te guío.', conversar: true };   // Guía de camino: la llamada sigue con guiar_camino (guia.js)
     else { var ch = calleCharla_(texto); if (ch) { out = { ok: true, hablar: ch, conversar: false }; calleGuardarCharla_(adm, texto, ch); } }
     if (out) ms.via = 'sin IA';
   }
   if (!out) {
     AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
-    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms;   // el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
+    if (!b.persona && b.alter) b.persona = b.alter;   // la app de Alma manda alter: "maricarmen" (alma-app #109); persona, la de #671
+    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms; IDENTIDAD_VOZ_ = typeof identidadVozDe_ === 'function' ? identidadVozDe_(b.persona, adm) : '';   // Maricarmen: su nombre solo en la voz (identidad.js); el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
+    WEEBO_ALTER_ = maricarmenAlter_({ alter: b.persona }, esAdminPrincipal_(adm));   // Maricarmen (maricarmen.js): el alter ego de Alma, Weebo 3
     try { r = b.aviso_id ? calleAviso_(ses, adm, texto, String(b.aviso_id)) : opProcesar_(adm, texto, 'calle', []); }
     catch (e) { console.error('calle_: ' + (e.stack || e)); r = { ok: false, error: String(e) }; }
-    finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; AGENTE_PLAZO_PRIMERA_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; }
+    finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; AGENTE_PLAZO_PRIMERA_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; IDENTIDAD_VOZ_ = ''; WEEBO_ALTER_ = ''; }
     if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false, ms: calleMs_(t0, tA, ms, 0) };
     out = calleRespuesta_(adm, r);
   }
+  /* La voz de respaldo de Alma (alma-app, VozRespaldo; Juan, 17-nov-2026, #657) pide sin_audio: la dice la voz del iPhone,
+     así con poca señal no se espera ni se baja el audio de ElevenLabs. */
+  if (b.sin_audio) { out.ms = calleMs_(t0, tA, ms, 0); return out; }
   var tV = Date.now(), audio = calleAudio_(out.hablar, t0, { donde: 'calle' });
   if (audio) out.audio = audio; else { out.vozMotivo = CALLE_VOZ_MOTIVO_; if (CALLE_VOZ_PAUSA_) out.vozPausa = true; }
   out.ms = calleMs_(t0, tA, ms, Date.now() - tV);
@@ -206,14 +219,29 @@ function calleCorto_(s, n) {
   if (!out) out = s.split(/\s+/).slice(0, n).join(' ').replace(/[,;:.\-–—]+$/, '') + '…';
   return out;
 }
-function calleHablar_(t) { return calleCorto_(calleLimpiar_(t), CALLE_PALABRAS_); }
+function calleHablar_(t) { return calleCorto_(calleUnaVez_(calleLimpiar_(t)), CALLE_COMANDO_PALABRAS_); }
+/* UNA SOLA CONFIRMACIÓN (Juan, 17-nov-2026: Alma repetía la misma frase de confirmación): se quita una frase igual a la
+   anterior («Listo. Listo.») y una confirmación suelta seguida de otra («Copiado. Listo, anotado.» → «Listo, anotado.»). */
+var CALLE_CONFIRMA_RE_ = /^(?:listo|copiado|confirmado|entendido|hecho|anotado|perfecto|claro|ok|okay|de acuerdo|recibido)(?:\s+(?:listo|copiado|confirmado|entendido|hecho|anotado|perfecto|claro|ok|okay|de acuerdo|recibido))*$/;
+function calleUnaVez_(s) {
+  var frases = String(s || '').match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/g); if (!frases) return String(s || '');
+  var out = [], normas = [];
+  frases.forEach(function (f) {
+    f = f.trim(); var n = calleNorm_(f); if (!n) return;
+    if (normas.length && normas[normas.length - 1] === n) return;                                    // la misma frase otra vez
+    var prev = normas[normas.length - 1];
+    if (prev && CALLE_CONFIRMA_RE_.test(prev) && CALLE_CONFIRMA_RE_.test(n.split(' ')[0])) { out.pop(); normas.pop(); }   // «Copiado.» + «Listo, …»: queda la segunda
+    out.push(f); normas.push(n);
+  });
+  return out.join(' ');
+}
 /* Con opciones: una sola frase que lo introduce (la pregunta de la tarjeta o la primera frase); la llamada sigue. */
 function calleEntrada_(t) {
   var op = null; try { op = chatOpciones_(t); } catch (e) {}
   var antes = String(t || '').split(/\[\[\s*opciones\s*\]\]/i)[0];
   var base = calleLimpiar_(op && op.pregunta ? op.pregunta : antes);
   var una = (base.match(/[^.!?…]+[.!?…]+["»”)]*|[^.!?…]+$/) || [''])[0].trim();
-  return calleCorto_(una || base, CALLE_PALABRAS_) || 'Mejor lo hablamos.';
+  return calleCorto_(una || base, CALLE_COMANDO_PALABRAS_) || 'Mejor lo hablamos.';
 }
 
 /* La frase con la voz de Alma (base64 mp3) o '' si no hay llave, si ya pasó el plazo o si ElevenLabs falló; el porqué

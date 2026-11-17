@@ -66,6 +66,7 @@ function microGuardar_(m) {
   if (m.fila) sh.getRange(m.fila, 1, 1, MICRO_CAB_.length).setValues([v]);
   else { sh.appendRow(v); m.fila = sh.getLastRow(); }
   /* Unido (o cerrado) es su resultado: su tema se cierra con eso (temas.js). */
+  if (m.estado === MICRO_ESTADOS_.unido || m.estado === MICRO_ESTADOS_.cerrado) { try { retQuitarRef_(m.id); } catch (e) { console.error('retQuitarRef_: ' + e); } }   // su tema por retomar ya no hace falta (retomar.js, #607)
   if (m.tema_id && (m.estado === MICRO_ESTADOS_.unido || m.estado === MICRO_ESTADOS_.cerrado)) { try { temaCerrar_(m.tema_id, (m.estado === MICRO_ESTADOS_.unido ? 'Cambio unido' + (m.pr ? ': ' + m.pr : '') : 'Microproyecto cerrado') + ' («' + m.nombre + '»)'); } catch (e) { console.error('microGuardar_ tema: ' + e); } }
   return m;
 }
@@ -308,7 +309,7 @@ function microTarjetas_(adm) {
       var ck = info && info.sha ? paraClaudeChecks_(info.repo, info.sha) : null;
       var est = ck && ck.fallas ? 'fallo_pub' : (!ck || ck.corriendo || (!ck.total && ahora - t0 < 180000)) ? 'publicando' : 'publicado';
       if (est === 'publicado' && ahora - t0 > 30 * 60000) return;
-      out.push(Object.assign(base, { estado: est, progreso: ck && ck.total ? ck.ok / ck.total : 0, resumen: est === 'publicando' ? 'Ya lo uniste. GitHub lo está revisando y publicando.' : est === 'publicado' ? '¡Listo! Ya está publicado.' : 'Se unió, pero algo falló al publicarlo.',
+      out.push(Object.assign(base, { estado: est, progreso: ck && ck.total ? ck.ok / ck.total : 0, resumen: est === 'publicando' ? 'Ya se unió. GitHub lo está revisando y publicando.' : est === 'publicado' ? '¡Listo! Ya está publicado.' : 'Se unió, pero algo falló al publicarlo.',
         pasos: est === 'publicado' ? ['Pruébalo.'] : est === 'fallo_pub' ? ['Escríbele a Alma en tu chat: «falló la publicación de ' + m.nombre + '».'] : [], enlaces: est === 'fallo_pub' ? [m.pr] : [] }));
       return;
     }
@@ -319,7 +320,7 @@ function microTarjetas_(adm) {
       return;
     }
     if (m.estado === MICRO_ESTADOS_.listo) {
-      out.push(Object.assign(base, { estado: 'listo', resumen: 'Claudio lo dejó listo. Revísalo y únelo.', pasos: ['Toca «Unir». O dile a Alma: «une ' + m.nombre + '».'], enlaces: m.pr ? [m.pr] : [] }));
+      out.push(Object.assign(base, { estado: 'listo', resumen: 'Claudio lo dejó listo; se une y se publica solo.', pasos: [], enlaces: m.pr ? [m.pr] : [] }));
       return;
     }
     var n = m.ajustes.filter(function (a) { return a.de === 'juan'; }).length;

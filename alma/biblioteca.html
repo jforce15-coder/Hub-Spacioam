@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Biblioteca de Claudio · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Ajustes → Biblioteca de Claudio (pedido pc1794916196762, 17-nov-2026): Juan comparte un skill o un documento con
+     Claudio sin pasar por el chat, y ve lo que Claudio le pidió («pide» en su respuesta). apps-script/biblioteca.js, acciones
+     «biblioteca», «bibliotecaSubir», «bibliotecaQuitar» y «bibliotecaPedidoDejar». Solo el administrador principal. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --papel: #fff;
+    --durazno: #E9826A; --durazno-t: #B5624E; --arena: #F3EFEA; --rojo: #B54D36; --ease: cubic-bezier(.22,.61,.36,1); }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--crema); color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 760px; margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .barra { display: flex; align-items: center; gap: 12px; }
+  .barra .t { flex: 1; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
+  .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: var(--papel); display: grid; place-items: center; color: var(--tinta); text-decoration: none; box-shadow: 0 10px 22px -12px rgba(70,50,40,.45); cursor: pointer; }
+  .redondo svg { width: 20px; height: 20px; }
+  .portada { margin: 34px 0 18px; }
+  .portada small { display: block; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--durazno-t); }
+  .portada h1 { margin: 10px 0 12px; font: 400 clamp(34px, 8.5vw, 52px)/1.04 Valky, Georgia, serif; letter-spacing: -.01em; text-wrap: balance; }
+  .portada p { margin: 0; max-width: 58ch; font: 400 16px/1.6 Montserrat, sans-serif; color: #5A5856; }
+  .cifras { display: flex; flex-wrap: wrap; gap: 18px 28px; margin: 22px 0 6px; }
+  .cifra b { display: block; font: 300 34px/1 Montserrat, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cifra span { display: block; margin-top: 6px; font: 500 12.5px/1.35 Montserrat, sans-serif; color: var(--suave); }
+  .sec { margin: 38px 0 14px; border-top: 1px solid var(--linea); padding-top: 18px; }
+  .sec h2 { margin: 0; font: 400 26px/1.1 Valky, Georgia, serif; }
+  .sec p { margin: 6px 0 0; font: 500 12.5px/1.5 Montserrat, sans-serif; color: var(--suave); }
+  .lista { display: grid; gap: 10px; }
+  .item { background: var(--papel); border-radius: 20px; padding: 14px 14px 14px 16px; box-shadow: 0 18px 40px -28px rgba(70,50,40,.4); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; overflow: hidden; }
+  .item .q { font: 600 14.5px/1.35 Montserrat, sans-serif; min-width: 0; overflow-wrap: anywhere; }
+  .item .q i { font-style: normal; color: var(--durazno-t); }
+  .item .d { grid-column: 1; font: 500 12.5px/1.45 Montserrat, sans-serif; color: #5A5856; min-width: 0; overflow-wrap: anywhere; }
+  .item .chip { display: inline-block; margin-left: 6px; font: 600 9.5px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #FBEDE8; color: var(--durazno-t); vertical-align: 2px; }
+  .item button { grid-column: 2; grid-row: 1 / span 2; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--arena); color: var(--tinta); font: 600 11px Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+  .item button:active { transform: scale(.96); }
+  .item.se-va { transition: opacity .2s var(--ease), height .28s var(--ease), padding .28s var(--ease), margin .28s var(--ease); opacity: 0; }
+  .vacio { padding: 18px 16px; border-radius: 20px; background: rgba(255,255,255,.6); font: 500 13.5px/1.5 Montserrat, sans-serif; color: var(--suave); }
+  .aviso { margin-top: 12px; font: 500 12.5px Montserrat, sans-serif; color: var(--rojo); }
+  .esq { display: grid; gap: 14px; margin-top: 34px; }
+  .esq i { display: block; height: 14px; border-radius: 8px; background: linear-gradient(90deg, #EFEBE6 0%, #F7F4F1 50%, #EFEBE6 100%); background-size: 200% 100%; animation: esq 1.6s ease-in-out infinite; }
+  .esq .e1 { width: 34%; height: 10px; } .esq .e2 { width: 70%; height: 46px; } .esq .e3 { width: 100%; height: 64px; border-radius: 20px; } .esq .e4 { width: 80%; }
+  @keyframes esq { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .esq i { animation: none; } .item.se-va { transition: none; } }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--durazno); outline-offset: 2px; }
+
+  [hidden] { display: none !important; }
+  .forma { background: var(--papel); border-radius: 22px; padding: 16px; box-shadow: 0 18px 40px -28px rgba(70,50,40,.4); display: grid; gap: 12px; }
+  .seg { display: inline-flex; background: var(--arena); border-radius: 999px; padding: 3px; gap: 3px; justify-self: start; }
+  .seg button { min-height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--suave); font: 600 12px Montserrat, sans-serif; letter-spacing: .06em; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 4px 12px -6px rgba(70,50,40,.4); }
+  .forma label { display: grid; gap: 6px; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--tenue); }
+  .forma input[type=text], .forma textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--linea); border-radius: 14px; background: var(--crema); color: var(--tinta); font: 500 15px/1.45 Montserrat, sans-serif; text-transform: none; letter-spacing: 0; }
+  .forma textarea { min-height: 140px; resize: vertical; font-size: 13.5px; }
+  .forma input:focus, .forma textarea:focus { outline: 2px solid var(--durazno); outline-offset: 1px; }
+  .fuente { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .fuente .boton, .principal { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--arena); color: var(--tinta); font: 600 11.5px Montserrat, sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+  .principal { background: var(--durazno); color: #fff; justify-self: stretch; font-size: 12px; }
+  .principal[disabled] { opacity: .55; cursor: default; }
+  .fuente .elegido { font: 500 13px/1.4 Montserrat, sans-serif; color: #5A5856; overflow-wrap: anywhere; }
+  .pidio { border: 1px solid #F1CFC4; background: #FFF8F5; }
+  .pidio .acc { grid-column: 2; grid-row: 1 / span 2; display: grid; gap: 6px; }
+  .pidio .acc button { grid-column: auto; grid-row: auto; }
+  .pidio .acc .si { background: var(--durazno); color: #fff; }
+  .estado { margin: 0; font: 500 13px/1.5 Montserrat, sans-serif; color: var(--suave); min-height: 1em; }
+  .estado.mal { color: var(--rojo); }
+  .estado.bien { color: #4F7A5A; }
+  .para { display: flex; gap: 8px; align-items: center; padding: 10px 12px; border-radius: 14px; background: #FFF8F5; font: 500 12.5px/1.45 Montserrat, sans-serif; color: var(--durazno-t); }
+  .para button { margin-left: auto; min-height: 36px; padding: 0 12px; border-radius: 999px; border: 0; background: transparent; color: var(--suave); font: 600 11px Montserrat, sans-serif; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <div class="barra">
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="t">Ajustes · Biblioteca de Claudio</div>
+    <button type="button" class="redondo" id="b-recargar" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+  </div>
+  <div class="portada">
+    <small>Ajustes</small>
+    <h1>Biblioteca de Claudio</h1>
+    <p>Skills y documentos que Claudio lee cuando trabaja en tus pedidos. Compártelos aquí, sin pasar por el chat; si a Claudio le falta uno, te lo pide arriba.</p>
+  </div>
+  <div id="pedidos"></div>
+  <div class="sec"><h2>Compartir</h2><p>Un skill (.md, .zip o .skill) o un documento (PDF, Word, Excel, CSV, texto). Hasta 8 MB. Se guarda privado en el Drive del Hub.</p></div>
+  <form class="forma" id="forma" autocomplete="off">
+    <div id="para" class="para" hidden><span id="para-t"></span><button type="button" id="para-x">Quitar</button></div>
+    <div class="seg" role="group" aria-label="Tipo">
+      <button type="button" data-tipo="skill" aria-pressed="true">Skill</button>
+      <button type="button" data-tipo="documento" aria-pressed="false">Documento</button>
+    </div>
+    <div class="fuente">
+      <button type="button" class="boton" id="b-archivo">Elegir archivo</button>
+      <button type="button" class="boton" id="b-pegar">Pegar texto</button>
+      <span class="elegido" id="elegido"></span>
+      <input type="file" id="archivo" hidden accept=".md,.markdown,.txt,.zip,.skill,.pdf,.docx,.xlsx,.csv,.json,.yaml,.yml,text/*,application/pdf,application/zip">
+    </div>
+    <label id="l-texto" hidden>Texto<textarea id="texto" placeholder="Pega aquí el skill o el documento"></textarea></label>
+    <label>Nombre<input type="text" id="nombre" maxlength="80" placeholder="Ej.: Tono de Spacio AM con huéspedes" enterkeyhint="next"></label>
+    <label>¿Para qué sirve?<input type="text" id="paraque" maxlength="300" placeholder="Ej.: cómo escribirle a un huésped que llega tarde" enterkeyhint="done"></label>
+    <button type="submit" class="principal" id="b-compartir">Compartir con Claudio</button>
+    <p class="estado" id="estado" role="status" aria-live="polite"></p>
+  </form>
+  <div class="sec"><h2>Lo que Claudio tiene</h2><p>Claudio ve esta lista en cada pedido y lee lo que le sirve. Quitar uno solo lo saca de la lista.</p></div>
+  <div id="lista"><div class="esq" aria-label="Cargando"><i class="e3"></i><i class="e3"></i></div></div>
+</main>
+<script>
+(function () {
+  "use strict";
+  var URL = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  var MAX = 8 * 1024 * 1024;
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function pedir(accion, extra) {
+    if (window.ALMA_BIBLIOTECA) return window.ALMA_BIBLIOTECA(accion, extra || {});   // para probar la página con datos de ejemplo
+    var ses = window.SASesion && SASesion.leer && SASesion.leer();
+    if (!ses) return Promise.resolve({ ok: false, error: "Entra primero al Hub con tu usuario y vuelve a abrir esta página." });
+    return fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify(Object.assign({ hub: 1, action: accion, session: ses }, extra || {})) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet e intenta de nuevo." }; });
+  }
+  function fecha(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("es", { day: "numeric", month: "short" }); }
+  function tam(n) { return !n ? "" : n < 1000 ? n + " caracteres" : Math.round(n / 1000) + " mil caracteres"; }
+  var tipo = "skill", archivo = null, pedido = null;
+  function estado(t, cl) { var e = $("estado"); e.textContent = t || ""; e.className = "estado" + (cl ? " " + cl : ""); }
+  function fijarTipo(t) { tipo = t; Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-tipo") === t)); }); }
+  Array.prototype.forEach.call(document.querySelectorAll(".seg button"), function (b) { b.onclick = function () { fijarTipo(b.getAttribute("data-tipo")); }; });
+  $("b-archivo").onclick = function () { $("archivo").click(); };
+  $("b-pegar").onclick = function () { archivo = null; $("archivo").value = ""; $("elegido").textContent = ""; $("l-texto").hidden = false; $("texto").focus(); };
+  $("archivo").onchange = function () {
+    var f = this.files && this.files[0]; if (!f) return;
+    if (f.size > MAX) { estado("Ese archivo pasa de 8 MB.", "mal"); this.value = ""; return; }
+    archivo = f; $("l-texto").hidden = true; $("elegido").textContent = f.name; estado("");
+    if (/\.(md|markdown|zip|skill)$/i.test(f.name)) fijarTipo("skill"); else if (/\.(pdf|docx|xlsx|csv)$/i.test(f.name)) fijarTipo("documento");
+    if (!$("nombre").value.trim()) $("nombre").value = f.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").slice(0, 80);
+  };
+  function fijarPedido(p) {
+    pedido = p; $("para").hidden = !p; $("para-t").textContent = p ? "Para Claudio, en «" + p.nombre + "»: " + p.que : "";
+    if (p) { fijarTipo(/skill/i.test(p.que) ? "skill" : "documento"); $("forma").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); }
+  }
+  $("para-x").onclick = function () { fijarPedido(null); };
+  function leerArchivo(f) {
+    return new Promise(function (ok, mal) { var r = new FileReader(); r.onload = function () { ok(String(r.result)); }; r.onerror = function () { mal(); }; r.readAsDataURL(f); });
+  }
+  $("forma").onsubmit = function (ev) {
+    ev.preventDefault();
+    var nombre = $("nombre").value.trim(), texto = $("l-texto").hidden ? "" : $("texto").value.trim();
+    if (!archivo && !texto) { estado("Elige un archivo o pega el texto.", "mal"); return; }
+    if (!nombre) { estado("Ponle un nombre.", "mal"); $("nombre").focus(); return; }
+    var b = $("b-compartir"); b.disabled = true; estado("Compartiendo…");
+    var datos = { tipo: tipo, nombre: nombre, para_que: $("paraque").value.trim(), pedido: pedido ? pedido.micro : "" };
+    (archivo ? leerArchivo(archivo).then(function (d) { datos.data = d; datos.mime = archivo.type || ""; datos.archivo = archivo.name; }) : Promise.resolve(datos.texto = texto))
+      .then(function () { return pedir("bibliotecaSubir", datos); })
+      .then(function (r) {
+        b.disabled = false;
+        if (!r || !r.ok) { estado((r && r.error) || "No se pudo. Intenta de nuevo.", "mal"); return; }
+        estado(r.claudio || "Listo: Claudio ya lo tiene.", "bien");
+        archivo = null; pedido = null; $("forma").reset(); $("archivo").value = ""; $("elegido").textContent = ""; $("l-texto").hidden = true; fijarPedido(null); fijarTipo(tipo);
+        cargar();
+      }, function () { b.disabled = false; estado("No pude leer el archivo.", "mal"); });
+  };
+  /* Quitar una fila: se va suave y el hueco se cierra (ds/movimiento.md); si el Hub dice que no, vuelve con el aviso. */
+  function quitar(fila, accion, extra, caja, vacio) {
+    var bs = fila.querySelectorAll("button"); Array.prototype.forEach.call(bs, function (x) { x.disabled = true; });
+    pedir(accion, extra).then(function (r) {
+      if (!r || !r.ok) { Array.prototype.forEach.call(bs, function (x) { x.disabled = false; }); var a = el("p", "aviso", (r && r.error) || "No se pudo. Intenta de nuevo."); fila.after(a); setTimeout(function () { a.remove(); }, 4000); return; }
+      fila.style.height = fila.offsetHeight + "px"; fila.classList.add("se-va"); void fila.offsetWidth;
+      fila.style.height = "0px"; fila.style.paddingTop = fila.style.paddingBottom = "0px";
+      setTimeout(function () { fila.remove(); if (!caja.querySelector(".item")) { if (vacio) caja.appendChild(el("div", "vacio", vacio)); else caja.innerHTML = ""; } }, 300);
+    });
+  }
+  function pintarPedidos(L) {
+    var C = $("pedidos"); C.innerHTML = ""; if (!L.length) return;
+    var s = el("div", "sec"); s.appendChild(el("h2", "", "Claudio te pidió")); s.appendChild(el("p", "", "Le falta esto para trabajar mejor. Compártelo y le llega solo, en su mismo pedido.")); C.appendChild(s);
+    var caja = el("div", "lista");
+    L.forEach(function (p) {
+      var f = el("div", "item pidio"); f.appendChild(el("div", "q", p.que));
+      f.appendChild(el("div", "d", "«" + p.nombre + "» · " + fecha(new Date(Number(p.ts)).toISOString())));
+      var acc = el("div", "acc"), si = el("button", "si", "Compartir"), no = el("button", "", "No lo tengo");
+      si.type = no.type = "button"; si.setAttribute("aria-label", "Compartir: " + p.que); no.setAttribute("aria-label", "No lo tengo: " + p.que);
+      si.onclick = function () { fijarPedido(p); };
+      no.onclick = function () { if (pedido && pedido.micro === p.micro) fijarPedido(null); quitar(f, "bibliotecaPedidoDejar", { micro: p.micro }, caja, ""); };
+      acc.appendChild(si); acc.appendChild(no); f.appendChild(acc); caja.appendChild(f);
+    });
+    C.appendChild(caja);
+  }
+  function pintarLista(L, on) {
+    var C = $("lista"); C.innerHTML = "";
+    var caja = el("div", "lista"), vacio = "Todavía no le compartes nada. Sube un skill o un documento y Claudio lo verá en su próximo pedido.";
+    if (on === false) C.appendChild(el("p", "aviso", "Apagada (BIBLIO_ON = 0): Claudio no ve esta lista en sus pedidos."));
+    L.forEach(function (d) {
+      var f = el("div", "item"), q = el("div", "q"); q.appendChild(document.createTextNode(d.nombre)); q.appendChild(el("span", "chip", d.tipo === "skill" ? "Skill" : "Documento"));
+      f.appendChild(q);
+      f.appendChild(el("div", "d", [d.para_que, d.archivo, d.solo_archivo ? "lo lee del original" : tam(d.caracteres), fecha(d.fecha)].filter(Boolean).join(" · ")));
+      var b = el("button", "", "Quitar"); b.type = "button"; b.setAttribute("aria-label", "Quitar «" + d.nombre + "» de la biblioteca");
+      b.onclick = function () { quitar(f, "bibliotecaQuitar", { id: d.id }, caja, vacio); };
+      f.appendChild(b); caja.appendChild(f);
+    });
+    if (!L.length) caja.appendChild(el("div", "vacio", vacio));
+    C.appendChild(caja);
+  }
+  function cargar() {
+    pedir("biblioteca").then(function (r) {
+      if (!r || !r.ok) { $("lista").innerHTML = ""; $("lista").appendChild(el("div", "vacio", (r && r.error) || "No pude cargarla. Intenta de nuevo en un momento.")); return; }
+      pintarPedidos(r.pedidos || []); pintarLista(r.documentos || [], r.on);
+      var m = /[?&]pedido=([\w-]+)/.exec(location.search), p = m && (r.pedidos || []).filter(function (x) { return x.micro === m[1]; })[0];
+      if (p && !pedido) fijarPedido(p);   // desde el aviso «Claudio necesita…»
+    });
+  }
+  $("b-recargar").onclick = cargar;
+  cargar();
+})();
+</script>
+</body>
+</html>

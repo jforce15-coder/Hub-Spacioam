@@ -240,7 +240,7 @@ function caja(o) {
   const regla = n => (VOZ.match(new RegExp("'· " + n + "[^\\n]*")) || [''])[0];
   ok(/MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA[^']*no te despidas ni cuelgues[^']*skip_turn/.test(regla('SILENCIO LARGO')), '8 · SILENCIO LARGO: con conversación continua no se despide ni cuelga: se queda en silencio');
   ok(/MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA nunca cuelgas tú ni te despides[^']*sigues escuchando/.test(regla('Nunca cuelgues tú primero')), '8 · «Nunca cuelgues tú primero»: con conversación continua nunca cuelga ella');
-  ok(/Entendido, lo hago y te aviso cuando esté listo» y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar/.test(regla('SEGUNDO PLANO')), '8 · segundo plano: la frase corta y sigue escuchando');
+  ok(/di solo una frase corta y nueva de que lo haces y le avisas[^']*y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar/.test(regla('SEGUNDO PLANO')), '8 · segundo plano: una frase corta (que no se repite) y sigue escuchando');
   ok(/sin CONVERSACIÓN CONTINUA, despídete y cuelga con end_call/.test(regla('SEGUNDO PLANO')), '8 · «TARDA MÁS DE LO NORMAL»: solo cuelga sin conversación continua');
   const ec = (VOZ.match(/end_call: '[^\n]*/) || [''])[0];
   ok(/Con CONVERSACIÓN CONTINUA \(MODO CALLE o MODO CONFERENCIA[^']*no la uses nunca/.test(ec) && !/apenas termines/.test(ec) && !/salvo en MODO CALLE/.test(ec), '8 · la descripción de end_call: con conversación continua no se usa');
@@ -262,6 +262,7 @@ function caja(o) {
   const a1 = ctx.confSueno_(); ok(a1.silencio === 40 && a1.tope === 90, '8 · se ajustan con CONF_SILENCIO_S y CONF_TOPE_S');
   props.CONF_SILENCIO_S = '2'; props.CONF_TOPE_S = '9999';
   const a2 = ctx.confSueno_(); ok(a2.silencio === 10 && a2.tope === 300, '8 · con límites: nunca menos de 10 s ni más de 5 min abierta sin que Alma hable');
+  ok(/case 'voz_sync':[^\n]*vozHerramientasSiCambiaron_\(\)/.test(leer('Código.js')), '8 · el robot voz_sync también sube las descripciones de end_call y skip_turn (no esperan la vuelta de 30 min)');
   ok(/out\.conferencia_silencio_s = cf\.silencio; out\.conferencia_tope_s = cf\.tope/.test(VOZ), '8 · la ficha de la llamada los lleva (conferencia_silencio_s, conferencia_tope_s)');
 }
 

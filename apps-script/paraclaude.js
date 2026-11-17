@@ -26,7 +26,7 @@
    Un ajuste hereda el nivel de su microproyecto salvo que Juan o Alma digan otro. Sin la llave de la sencilla, va a la
    compleja y se avisa (así nada se rompe antes de que Juan la pegue en hub.spacioam.com/claude.html). */
 
-var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro', 'nivel'];
+var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro', 'nivel', 'lector', 'fecha_lector'];   // lector: la llave de solo leer la Biblioteca de Claudio (biblioteca.js)
 var PARA_CLAUDE_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CLAUDE_RUTINA_DEF_ = 'trig_01VrusYxvHrU1MBz4x39RVEm';
 var CLAUDE_RUTINA_SENCILLO_DEF_ = 'trig_01Vdg8SQEvDKV2aywfmBtQ1X';
@@ -120,9 +120,13 @@ function paraClaudeCrear_(adm, inp) {
   }
   m.issue = issue;
   /* La instrucción lleva el historial completo: cada disparo abre una sesión nueva de Claude, sin memoria. */
-  var instruccion = cuerpo + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + '\n\n' + MICRO_RESPONDER_;
+  /* La Biblioteca de Claudio (biblioteca.js) va en la instrucción, no en el issue: la lista y cómo leer o pedir uno. */
+  var hubUrl = PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_, biblio = '';
+  try { biblio = bibliotecaParaClaude_(hubUrl); } catch (e) { console.error('bibliotecaParaClaude_: ' + e); }
+  var instruccion = cuerpo + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + (biblio ? '\n\n' + biblio : '') + '\n\n' + MICRO_RESPONDER_;
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-  var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_,
+  var lector = biblio ? Utilities.getUuid().replace(/-/g, '') : '';   // solo leer la biblioteca; distinta de la llave de responder
+  var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: hubUrl, biblioteca: lector ? { lector: lector } : undefined,
     quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: ajuste ? m.nombre + ' · ' + (segunda ? 'segunda parte' : 'ajuste') : titulo,
     instruccion: instruccion, issue: issue, micro: microParaClaude_(m, { ajuste: ajuste, segunda: segunda, como: como, sesionAnterior: sesionAnterior }) }, nivel);
   if (disparo.ok) nivel = claudeNivel_(disparo.nivel);   // sin la llave de la sencilla corrió la compleja: el chip dice la verdad
@@ -132,13 +136,14 @@ function paraClaudeCrear_(adm, inp) {
   try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); }
   if (m.fila) { try { abrePedido_(adm && adm.email, m.id); } catch (e) { console.error('abrePedido_: ' + e); } }   // uno de sus pedidos recientes (almaabre.js)
   /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). micro: su microproyecto. */
-  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id, nivel]); }
+  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id, nivel, disparo.ok && lector ? paraClaudeHuella_(lector) : '', disparo.ok && lector ? Date.now() : '']); }
   catch (e) { return { ok: false, error: 'No pude guardarlo: ' + e }; }
   /* Lo que no salió de un mensaje suyo (rondas de los agentes, bots de prueba, Pendientes) queda anotado en su chat.
      Lo que sí salió de su chat (sinChat) ya está ahí: su mensaje y la respuesta de Alma. */
   if (!inp.sinChat && adm && adm.email) {
     try { opGuardar_(adm, 'alma', 'claude', 'Pedido para Claudio · ' + (ajuste ? m.nombre : titulo) + '\n\n' + queSimple.slice(0, 1500) + (disparo.ok ? '' : '\n\n(No se pudo enviar directo a Claudio: ' + disparo.error + '. Quedó en la lista de pedidos.)'), [], CHAT_DESARROLLO_); } catch (e) { console.error('Pedido en el chat: ' + e); }
   }
+  eqDesarrolloSuave_();   // el estado de Desarrollo, al día (equipos.js)
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel },
     nota: disparo.ok ? 'Listo, quedó pedido.' :
       issue ? 'Listo, quedó pedido en la lista (el arranque directo falló); cuando esté, llega a Pendientes para unir.' : 'Quedó guardado en la lista de pedidos, pero no arrancó: falta CLAUDE_RUTINA_TOKEN.' };
@@ -258,6 +263,9 @@ function paraClaudeRespuesta_(b) {
     var voz = String(b.voz || '').replace(/\s+/g, ' ').trim().slice(0, 240);
     var enlaces = (Array.isArray(b.enlaces) ? b.enlaces : []).map(String).filter(function (u) { return /^https:\/\/github\.com\//.test(u); }).slice(0, 6);
     var cuerpoR = (voz ? voz + '\n\n' : '') + String(b.detalle || '').trim().slice(0, 3000);
+    /* Claudio pide un skill o documento (biblioteca.js): queda arriba en Ajustes → Biblioteca de Claudio y en su chat. */
+    var pide = String(b.pide || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (pide && v[i][15]) { try { if (biblioPedir_(String(v[i][15]), String(v[i][6]), pide)) cuerpoR += '\n\nClaudio necesita: ' + pide + '. Compártelo en Ajustes › Biblioteca de Claudio y le llega solo.'; } catch (e) { console.error('biblioPedir_: ' + e); } }
     /* Su microproyecto (#374): la respuesta entra al historial y cambia el estado (pregunta, listo para unir…). */
     var m = null; if (v[i][15]) { try { m = microRespuesta_(String(v[i][15]), { estado: estado, voz: voz, detalle: b.detalle, enlaces: enlaces, rama: b.rama }, cuerpoR); } catch (e) { console.error('microRespuesta_: ' + e); } }
     if (m) titulo = m.nombre;
@@ -267,15 +275,16 @@ function paraClaudeRespuesta_(b) {
     /* Pedido que Alma escaló porque no podía (escalar.js): si trae PR, Alma lo une sola con las revisiones en verde y
        entrega el resultado (Juan, 12-nov-2026); entonces ni «Unir el PR» ni «para que lo unas». */
     var esc = ''; try { esc = escalarAlResponder_(String(v[i][15] || ''), estado, enlaces, cuerpoR); } catch (e) { console.error('escalarAlResponder_: ' + e); }
-    if (estado === 'listo' && esc !== 'unir') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
+    /* Sin «Unir el PR» en Acciones: Claudio une y publica solo (Juan, 17-nov-2026, pc1794936657400). */
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? (conPr ? 'PR listo' : 'respondido') : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
+    if (v[i][17]) sh.getRange(i + 2, 18).setValue('');                         // ni el lector de la biblioteca
     /* En el chat con Alma de quien lo pidió (o del principal, para los pedidos viejos); cada mensaje empieza con la fecha. */
     var dest = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_() || DESARROLLO_;
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);
     if (esc !== 'unir') paraClaudeAvisar_(titulo, voz || cuerpoR.slice(0, 200), estado === 'listo' && !conPr ? 'consulta' : estado, String(v[i][15] || ''));
     return { ok: true };
-  } finally { lock.releaseLock(); }
+  } finally { lock.releaseLock(); eqDesarrolloSuave_(); }   // el estado de Desarrollo, al día (equipos.js)
 }
 /* Fecha legible en hora de Guatemala, ej. «28 Oct 2026». */
 function paraClaudeFecha_() {
@@ -286,7 +295,8 @@ function paraClaudeFecha_() {
 /* Avisos de Claude (decisión de Juan, #374): solo lo que sirve, nunca un acuse («se lo mandé», «lo recibió»). Los textos,
    humanos y con sus datos debajo, están en avisotexto.js (#509 T2):
      pregunta → nivel 2 «Revisé lo que me pediste de «X» y tengo una duda antes de seguir…» (las opciones, en Pendientes)
-     listo    → nivel 2 «Ya quedó listo el cambio para «X»; solo falta que lo unas…» (hay un PR)
+     listo    → nivel 3 «Ya quedó el cambio para «X»; se publica solo…» (hay un PR: Claudio lo une, Juan no hace nada;
+                17-nov-2026, pc1794936657400)
      fallo    → nivel 2 «Intenté «X», pero no se pudo terminar; necesito que lo revises…»
    Sin «Claudio» en lo que se dice: el resultado, ya hecho (Juan, 3-nov-2026).
      consulta → nivel 3 «Ya tengo la respuesta a lo que preguntaste de «X»» (respondió sin PR: solo para leer)
@@ -302,14 +312,14 @@ function paraClaudeAvisarTexto_(titulo, voz, estado) {
 }
 /* micro: su microproyecto, el pedido de la fila del que esto es resultado (Alma abre, almaabre.js). */
 function paraClaudeAvisar_(titulo, voz, estado, micro) {
-  var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo|listo)$/.test(String(estado)) ? 2 : 3;
+  var p = PropertiesService.getScriptProperties(), nov = [], texto = paraClaudeAvisarTexto_(titulo, voz, estado), nivel = /^(pregunta|fallo)$/.test(String(estado)) ? 2 : 3;
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   nov.push({ ts: new Date().toISOString(), titulo: titulo, voz: texto, estado: estado });
   p.setProperty('DESARROLLO_NOVEDADES', JSON.stringify(nov.slice(-5)));
   try {
     var jefe = adminsOp_().find(function (a) { return a.principal; });
     /* tema por retomar (solo lo que pide algo de Juan) y notificación en la app de iPhone */
-    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel, pedidos: micro ? [String(micro)] : [] }); } catch (e) {}
+    try { var it = nivel === 2 ? retPoner_(jefe, { texto: texto, importancia: 2, origen: 'claude', ref: micro ? String(micro) : '' }) : null; avisoPoner_(jefe, paraClaudeAvisoTipo_(estado), { titulo: titulo, detalle: voz }, it && it.id, { nivel: nivel, pedidos: micro ? [String(micro)] : [] }); } catch (e) {}
     /* lo de Claude ya aparece en Pendientes (Propósito · Desarrollo): al principal no se le manda por WhatsApp */
     if (jefe && jefe.tels.length && !esAdminPrincipal_(jefe) && nivel === 2) waEnviar_(jefe.wa || jefe.tels[0], texto + '\n\nEl detalle está en tu chat con Alma (Propósito · Desarrollo).');
   } catch (e) { console.error('paraClaudeAvisar_: ' + e); }
@@ -321,7 +331,7 @@ function paraClaudeNovedades_(adm) {
   try { nov = JSON.parse(p.getProperty('DESARROLLO_NOVEDADES') || '[]'); } catch (e) {}
   if (!nov.length) return '';
   p.deleteProperty('DESARROLLO_NOVEDADES');
-  return '\nNOVEDADES DEL SISTEMA (lo que terminó Claude, el desarrollador; nómbralo «Claudio» solo si Juan pregunta por él): cuéntaselas en una frase cada una, sin leer detalles, cuando termine su primer pedido o si pregunta qué hay nuevo:\n' +
+  return '\nNOVEDADES DEL SISTEMA (lo que terminó Claude, el desarrollador; nómbralo «Claudio» solo si Juan pregunta por él): cuéntaselas SOLO si pregunta qué hay nuevo o por desarrollo (#607: plática directa), en una frase cada una, sin leer detalles:\n' +
     nov.map(function (n) { return '· ' + n.voz; }).join('\n');
 }
 /* Robot: los pedidos (por defecto los pendientes) y marcar uno como hecho. */
@@ -490,7 +500,7 @@ function paraClaudePendientes_(ses) {
     simple = simple || { titulo: String(r[6] || ''), que_es: est === 'trabajando' ? 'Claudio está trabajando en esto.' : (cuerpo.split(/\n\n/)[0] || ''), pasos: [], pregunta: '' };
     if (pub) {   // estados de la publicación: textos fijos y simples
       var tt = pub.t || {}, de = tt.total ? ' (' + tt.ok + ' de ' + tt.total + ' listos)' : '';
-      var tx = { publicando: ['Ya lo uniste. GitHub lo está revisando y publicando' + de + '.', []],
+      var tx = { publicando: ['Ya se unió. GitHub lo está revisando y publicando' + de + '.', []],
         publicado: [pub.app ? '¡Listo! Ya está publicado. La versión nueva llega a TestFlight en unos minutos.' : '¡Listo! Ya está publicado.', [pub.app ? 'Actualiza Alma en TestFlight y pruébalo.' : 'Pruébalo.']],
         fallo_pub: ['Se unió, pero algo falló al publicarlo.', ['Escríbele a Alma en tu chat: «falló la publicación de ' + simple.titulo + '».']] }[pub.est];
       lista.push({ id: String(r[0]), titulo: simple.titulo, fecha: '', estado: pub.est, resumen: tx[0], pasos: tx[1], pregunta: '', original: cuerpo, instrucciones: '',
@@ -514,12 +524,12 @@ function pendientesPrs_(lista) {
     (p.enlaces || []).forEach(function (u) { vistos[u] = 1; });
     p.unir = (p.enlaces || []).filter(function (u) { return porUrl[u] && porUrl[u].estado === 'listo'; });
   });
-  var TX = { listo: 'Pasó sus revisiones: está listo para unir.', revisando: 'GitHub lo está revisando; en un momento queda listo.',
-    fallo: 'Algo falló en sus revisiones; Claudio lo está arreglando.', choque: 'Choca con lo último que se unió; Claudio tiene que ponerlo al día.', borrador: 'Todavía es un borrador.' };
+  var TX = { listo: 'Pasó sus revisiones; se une y se publica solo.', revisando: 'GitHub lo está revisando; en un momento queda listo.',
+    fallo: 'Algo falló en sus revisiones; lo arregla Claudio.', choque: 'Choca con lo último que se unió; lo pone al día Claudio.', borrador: 'Todavía es un borrador.' };
   var EST = { listo: 'listo', revisando: 'revisando', fallo: 'fallo', choque: 'fallo', borrador: 'trabajando' };
   var nuevos = prs.filter(function (x) { return !vistos[x.url]; }).map(function (x) {
     return { id: 'pr:' + x.repo + '#' + x.numero, pr: true, titulo: x.titulo, fecha: x.app + ' #' + x.numero, estado: EST[x.estado] || 'listo', resumen: TX[x.estado] || '',
-      pasos: x.estado === 'listo' ? ['Toca «Unir». O dile a Alma: «une el ' + x.numero + '».'] : [], pregunta: '', original: '', instrucciones: '',
+      pasos: [], pregunta: '', original: '', instrucciones: '',
       enlaces: [x.url], unir: x.estado === 'listo' ? [x.url] : [] };
   });
   return nuevos.concat(lista);

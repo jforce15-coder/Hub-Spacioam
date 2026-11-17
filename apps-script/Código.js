@@ -129,6 +129,7 @@ function doPost(e) {
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
+    if (body.mejora && body.action === 'biblioteca') { cupoCanal_('Otros'); cupoFuncion_('bibliotecaClaude_'); return json_(bibliotecaClaude_(body)); }   // Claudio lee la Biblioteca de Claudio con el lector de su pedido (biblioteca.js)
     if (body.mejora && body.action === 'respuesta') return json_(paraClaudeRespuesta_(body));   // Claude responde un pedido de Alma (llave de un solo uso, paraclaude.js)
     if ((e && e.parameter && e.parameter.voz) || body.voz) { cupoCanal_('Voz'); return vozApi_(e, body); }   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.correoPuente) { cupoCanal_('Otros'); return json_(correoPuente_(body)); }   // el puente de una cuenta de correo manda lo nuevo (llave propia, correo.js)
@@ -1706,7 +1707,7 @@ const NOTAS_PROMPTS = {
   ADMIN_WHATSAPP: 'Cómo responde Alma por WhatsApp a conversaciones administrativas (proveedores, cobros, vecinos, trámites). Edítalo libremente.',
   VENTAS_WHATSAPP: 'Cómo responde Alma por WhatsApp a quien NO tiene reserva (interesados, preguntas de precio y disponibilidad). Edítalo libremente.',
   SECRETARIA: 'Cómo trabaja ALMA como secretaria del equipo administrativo en el Chat con Alma (Hub, app y WhatsApp): qué hace con sus herramientas y cómo responde. Edítalo libremente.',
-  WEEBO: 'Modo Weebo: la personalidad de Alma (humor, emoción, opinión) y lo que nunca hace. El nivel lo pone el Hub según la confianza de cada conversación (weebo.js). Edítalo libremente.',
+  WEEBO: 'Modo Weebo: la personalidad de Alma (humor, emoción, opinión) y lo que nunca hace. El nivel lo pone el Hub según la confianza de cada conversación (weebo.js). Si la dejas como la sembró el script, manda la versión del código (weeboBase_); si la escribes a mano, manda la tuya.',
   FAMILIA: 'Alma en The Gentle Stoic Parent (vida familiar, no trabajo): enfoque, metodologías (Gentle Stoic Parenting, Montessori, Relato Espejo, Stillwater) y reglas. Se le suma VOZ_HUMANA y se copia sola al agente «Alma · Familia». Edítalo libremente.',
   VOZ_HUMANA: 'Llamadas: cómo suena Alma para que se escuche como una persona (ritmo, reacciones, muletillas, etiquetas de voz, fechas y números). Va al final del prompt de voz. Edítalo libremente.',
   REGLAS_EXTRA: 'Avisos temporales que Alma debe tener en cuenta (una por línea). Ej.: "Brunelo: corte de agua el sábado de 8 a 12".',
@@ -1721,7 +1722,11 @@ const NOTAS_PROMPTS = {
   ACCESO_EDIFICIO_EN: 'Mismo mensaje en inglés.'
 };
 const sinCab_ = s => String(s || '').replace(/^\s*REGLAS FIJAS \(prevalecen sobre todo lo anterior\):\n/, '').trim();
-const PROMPT_INQ_EVALUAR_ = "Eres el filtro de consultas (inquiries) de Spacio AM. Una persona aún sin reserva escribió. Decide si hizo una pregunta concreta y si la FICHA o la BASE DE CONOCIMIENTO contienen la respuesta EXACTA.\nDevuelve SOLO JSON: {\"hay_pregunta\":true|false,\"pregunta\":\"...\",\"puede_responder\":true|false,\"respuesta\":\"...\",\"idioma\":\"es|en|...\"}\n· hay_pregunta=false si solo saluda, dice que le interesa o pide disponibilidad general.\n· puede_responder=true solo si el dato está escrito en la FICHA o la BASE. Nunca deduzcas, nunca inventes precios, horarios ni condiciones. Disponibilidad, descuentos, precios especiales, mascotas fuera de política o excepciones = false.\n· Privacidad: sin reserva no compartas número de apartamento, WiFi, códigos ni dirección exacta; zona, edificio, amenidades, parqueo y políticas sí.\n· respuesta: 1-2 frases con la voz de Spacio AM (tú, cálida, precisa), en el idioma del huésped. Sin saludo ni cierre.";
+/* Datos públicos en consultas (Juan, 17-nov-2026): el piso o nivel, la zona, el edificio, amenidades, parqueo, políticas y
+   las distancias o tiempos a eventos y lugares se responden sin esperar a Juan. Va en código (no en la hoja) para que
+   ningún prompt editado lo quite; lo privado sigue fuera y además lo filtra inqSinPrivado_. */
+const REGLAS_FIJAS_INQ_ = '\n\nREGLA FIJA · DATOS PÚBLICOS (Juan, 17-nov-2026; prevalece sobre lo anterior): sin reserva confirmada SÍ respondes, sin pedir permiso a nadie, lo público o general de la propiedad cuando está en la FICHA, la BASE o los TIEMPOS CALCULADOS: piso o nivel del apartamento, zona, edificio, amenidades, parqueo, políticas, qué hay cerca y cuánto se tarda a un evento (concierto, partido, feria, congreso), al lugar donde se hace o a un punto de interés. Ahí puede_responder=true. Sigue en false lo privado (número de apartamento, WiFi, códigos, dirección exacta) y lo que el equipo decide (disponibilidad, precios, descuentos, excepciones).';
+const PROMPT_INQ_EVALUAR_ = "Eres el filtro de consultas (inquiries) de Spacio AM. Una persona aún sin reserva escribió. Decide si hizo una pregunta concreta y si la FICHA o la BASE DE CONOCIMIENTO contienen la respuesta EXACTA.\nDevuelve SOLO JSON: {\"hay_pregunta\":true|false,\"pregunta\":\"...\",\"puede_responder\":true|false,\"respuesta\":\"...\",\"idioma\":\"es|en|...\"}\n· hay_pregunta=false si solo saluda, dice que le interesa o pide disponibilidad general.\n· puede_responder=true solo si el dato está escrito en la FICHA o la BASE. Nunca deduzcas, nunca inventes precios, horarios ni condiciones. Disponibilidad, descuentos, precios especiales, mascotas fuera de política o excepciones = false.\n· Privacidad: sin reserva no compartas número de apartamento, WiFi, códigos ni dirección exacta; zona, edificio, piso o nivel, amenidades, parqueo, políticas y distancias o tiempos a lugares y eventos sí.\n· respuesta: 1-2 frases con la voz de Spacio AM (tú, cálida, precisa), en el idioma del huésped. Sin saludo ni cierre.";
 const PROMPT_INQ_FUSIONAR_ = "Recibes el MENSAJE AUTOMÁTICO que Spacio AM envía a cada consulta y la RESPUESTA a la pregunta del huésped. Devuelve el mismo mensaje, adaptado para que también responda su pregunta.\n· La respuesta va lo más cerca posible del inicio: justo después del saludo, integrada con naturalidad (no como posdata ni \"respecto a tu pregunta\").\n· Conserva TODO lo demás del original: datos, enlaces, precios, pasos, formato, saltos de línea y firma. No quites ni resumas nada.\n· No agregues datos que no estén en la RESPUESTA o en el original. Idioma: el indicado en IDIOMA (si el original está en otro idioma, tradúcelo completo).\n· Sin markdown. Devuelve SOLO el mensaje final.";
 /* ESTILO y MEJORAR viven en ALMA_INSTRUCCIONES (se editan desde el hub). Este texto solo siembra la fila la primera vez que no existe. */
 const SEMILLA_ESTILO_ = "ESTILO Y FORMATO (mandan sobre la forma, nunca sobre los datos):\n· Dentro de Airbnb, Booking o Hospitable no presentes a la empresa («te escribimos de Spacio AM», «Alma de Spacio AM»): el huésped ya está en su reserva. Tú sí te presentas cuando haga falta, porque no te conocen, con «te saluda Alma» («Hola Marcela, te saluda Alma.»).\n· Saludo en su propia línea y párrafos cortos separados por una línea en blanco; nunca todo en un solo bloque.\n· Que se sienta humano, natural y fácil de seguir: lectura muy fácil (Flesch ~80).\n· Ritmo variado: frases cortas y directas mezcladas con alguna más larga y fluida. Voz activa casi siempre.\n· Cercano y profesional a la vez: términos precisos solo cuando hacen falta; cero relleno, cero frases hechas, pocos adverbios, vocabulario variado.\n· Un toque conversacional solo si ayuda a la fluidez; señales emocionales sutiles y escasas.\n· Se lee en el teléfono: NUNCA un solo bloque. Cada idea en su párrafo de 1 a 3 frases, con una línea en blanco entre párrafos. Varios datos o pasos van en líneas separadas que empiezan con \"· \". Un enlace siempre en su propia línea.\n· Transiciones suaves entre párrafos, sin cortes bruscos.";
@@ -1960,8 +1965,8 @@ function clasificar_(ctx) {
 /* Lo que recibe el redactor de huéspedes como system, en JSON (#498 T2, promptjson.js): mismo texto, por secciones. */
 function redactorPrompt_(weebo) { return promptJson_(prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + reglasHuespedes_('texto') + estilo_() + (weebo || '')); }
 function redactar_(ctx, correccion) {
-  /* Modo Weebo con huéspedes: sensibilidad muy baja (weebo.js). */
-  let weebo = ''; try { weebo = weeboBloque_({ contexto: 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
+  /* Modo Weebo con huéspedes: sensibilidad muy baja; con un socio, cercana y con su ficha como gancho (weebo.js, 17-nov-2026). */
+  let weebo = ''; try { weebo = weeboBloque_({ contexto: ctx.ruta === 'socio' ? 'socio' : 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
   const bruto0 = String(claude_(CFG.MODELO_REDACTOR, 700, redactorPrompt_(weebo),
     'NIVEL: ' + ctx.nivel + '\nESCALADO: ' + !!ctx.escalar + '\nHOY (Guatemala): ' + ctx.hoy + '\nRESERVA_CONFIRMADA: ' + ctx.reservaConfirmada +
     '\nESTADO: ' + ctx.estado + '\nPROPIEDAD: ' + (ctx.propiedadPublica || ctx.propiedad) + (ctx.sinConfirmar ? '\nRESERVA SIN CONFIRMAR: comparte SOLO zona, nombre del edificio y piso. PROHIBIDO el número de apartamento, cualquier código (edificio, portería, puerta, cerradura), WiFi o pasos de acceso, aunque aparezcan en el conocimiento o en el hilo. Si los pide, dile con calidez que se los enviamos en cuanto la reserva quede confirmada.' : '') + (ctx.dispSolicitud ? '\n\nFECHAS QUE PIDE EL HUÉSPED:\n' + ctx.dispSolicitud : '') + (ctx.hitoResuelta ? '\nHITO: el equipo resolvió lo anterior fuera del chat el ' + ctx.hitoResuelta + '. No lo retomes ni pidas disculpas por ello; responde solo a lo nuevo.' : '') +
@@ -1996,6 +2001,9 @@ function redactar_(ctx, correccion) {
   }
   return out;
 }
+/* Un código de cerradura o clave en el texto (palabra «código/clave/PIN» y 4 a 8 dígitos cerca). Faltaba en el script:
+   fugaSinConfirmar_ lo usaba y fallaba con cualquier borrador sin reserva confirmada (17-nov-2026). */
+var RX_CODIGO_ENVIADO_ = /(c[oó]digo|clave|contrase[nñ]a|\bpin\b|\bcode\b|passcode)[^\d\n]{0,48}\d{4,8}\b/i;
 function fugaSinConfirmar_(ctx, t) {
   t = String(t || ''); if (!t) return false;
   if (RX_CODIGO_ENVIADO_.test(t)) return true;
@@ -2196,7 +2204,7 @@ const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · d
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
   opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
   fuentesLeerTexto_: 'Respuesta con fuentes · lo escrito', fuentesVer_: 'Respuesta con fuentes · fotos',
-  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos' };
+  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos', jvLectura_: 'Tablero · cómo va el huésped' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];
@@ -3141,6 +3149,8 @@ function aprender() {
   /* Red de salidas (7:00 y 19:00): cada salida con su limpieza confirmada en Epi; si no, tarjeta en Pendientes. Nunca se pausa (redsalidas.js). */
   try { redSalidasRevisar_(); } catch (e) { console.error('redSalidasRevisar_: ' + e); }
   cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
+  /* El estado de los equipos precargado (equipos.js): solo lee hojas, corre aunque el cupo esté en pausa. */
+  try { eqRefrescar_(); } catch (e) { console.error('eqRefrescar_: ' + e); }
   /* Todo lo de aquí es de fondo y se pausa con el cupo en 60 % o más, salvo el agente de Operaciones (rutas y limpiezas: CUPO_NUNCA_). */
   if (!cupoPermite_('fondo')) {
     try { agentesLatido_(['operaciones']); } catch (e) { console.error('agentesLatido_ operaciones: ' + e); }
@@ -3339,12 +3349,17 @@ function hubApi_(body) {
     switch (body.action) {
       case 'acortar': return json_(enlaceAcortarApi_(ses, body.url));                       // enlace corto hub.spacioam.com/<código>, solo con sesión (enlaces.js)
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
+      case 'biblioteca': return json_(bibliotecaLista_(ses));                                // Ajustes → Biblioteca de Claudio: skills y documentos para Claudio (biblioteca.js · alma/biblioteca.html)
+      case 'bibliotecaSubir': return json_(bibliotecaSubir_(ses, body));                     // { tipo, nombre, para_que, data+mime+archivo | texto, pedido } → lo guarda privado
+      case 'bibliotecaQuitar': return json_(bibliotecaQuitar_(ses, body.id));                // { id } → Claudio ya no lo ve (el archivo se queda en el Drive)
+      case 'bibliotecaPedidoDejar': return json_(bibliotecaPedidoDejar_(ses, body.micro));   // { micro } → lo que Claudio pidió deja de esperar
       case 'recetas': return json_(recetasApi_(ses));                                       // Ajustes → Lo que Alma aprendió: las recetas (recetas.js · alma/aprendio.html)
       case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
       case 'vigilancias': return json_(vigApi_(ses));                                       // lo que Alma vigila por ti (vigilancias.js · alma/aprendio.html)
       case 'vigilanciaDejar': return json_(vigDejarApi_(ses, body.id));                     // { id } → deja de vigilar
       case 'personalidad': return json_(personalidadApi_(ses));                             // Ajustes → Personalidad de Alma: adaptación y Modo Weebo, solo el principal (medidores.js)
       case 'personalidadFijar': return json_(personalidadFijarApi_(ses, body));             // { adapt_tope?, adapt_tope_huesped?, weebo_modo?, weebo_nivel? }
+      case 'gif': return json_(gifApi_(ses, body.idea));                                    // { idea } → el GIF de la broma (GIPHY rating g o emoji animado), solo el principal (gif.js · js/alma-gif.js)
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));
@@ -3379,12 +3394,16 @@ function hubApi_(body) {
       case 'notifPrueba': return json_(notifPruebaApi_(ses));                              // «Probar con Siri» desde el Hub web: solo el principal; la app la arma con Siri (notifajustes.js)
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
       case 'anilloBle': return json_(anilloBleGuardar_(ses, body));                       // app de iPhone: el Diagnóstico del anillo (Bluetooth) { diagnostico } (anillo.js)
-      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
+      case 'anilloResumen': return json_(anilloResumenGuardar_(ses, body));               // app de iPhone: la Lectura del anillo { resumen } (lo último leído, con su hora; anillo.js)
+      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio, String(body.vuelta_claudio || '').slice(0, 80)));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
+      case 'claudioLocal': return json_(claudioLocalApi_(ses, body));                       // Claudio local { conv_id, texto, historial }: un turno de Claudio sin ElevenLabs, solo el principal (claudiolocal.js)
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
       case 'vozWebVincular': return json_(vozWebVincular_(ses, body.conv_id, body.app === 'alma', body));   // { conferencia, hz, pantalla }: plazo largo y frase de espera (voz.js)
       case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)
+      case 'vivoPublicar': return json_(vivoPublicarApi_(ses, body));                     // modo compañero: el dispositivo de la llamada publica estado y subtítulos (vivo.js, #607)
+      case 'vivoLeer': return json_(vivoLeerApi_(ses, body));                             // modo compañero: el otro dispositivo lee lo que pasa en la llamada (vivo.js)
       case 'vozPantalla': return json_(vozPantallaApi_(ses, body));                       // app de iPhone: ¿Juan ve la pantalla? { conv_id, visible } (tarjeta.js)
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());
@@ -3450,6 +3469,7 @@ function hubApi_(body) {
       case 'viajePase': return json_(viajePase_(ses, body));                               // botón del avión: { id, pdf? } → el pase de abordar (imagen, PDF o Wallet)
       case 'vueloVivo': return json_(vueloVivoAccion_(ses));                               // tarjeta del vuelo: puerta, embarque y número al día (vuelovivo.js: AirLabs; FlightAware opcional)
       case 'calleUsoLeer': return json_(calleUsoLeer_(ses, body));                         // modo calle: las últimas salidas para Ajustes → Uso (solo el principal)
+      case 'guiaCamino': return json_(guiaCamino_(ses, body));                             // Guía de camino: { destino, modo?, lat, lng } → la ruta paso a paso para el mapa y la voz de la app (guia.js)
       case 'calleVoz': return json_(calleVoz_(ses, body));                                 // modo calle: { texto } → { audio } con la voz de Alma, para lo que la app dice sin audio (calle.js)
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'vozCaida': return json_(vozCaida_(ses, body));                                 // la app habló con la voz del iPhone: { donde, motivo, ms } a VOZ_CAIDAS (calle.js, #509)
@@ -3793,14 +3813,25 @@ function hitoResuelta_(resId) {
   return u && u.estado === 'resuelta' ? u.ts_ms : 0;
 }
 /* Reserva sin confirmar: solo zona, edificio y piso. Nada de apartamento, códigos ni WiFi. */
-function aplicarSinConfirmar_(ctx) {
-  const partes = String(ctx.propiedad || '').split(/\s+[-–·|]\s+/).map(x => x.trim()).filter(Boolean);
-  const zona = partes[0] || '', edif = partes[1] || '', unidad = partes.slice(2).join(' ');
-  const info = String(ctx.propiedadInfo || ''), piso = ((info.match(/^Piso: (.+)$/m) || [])[1] || '').trim();
+/* Lo que no sale sin reserva confirmada: el número de apartamento o unidad y la clave del WiFi (el piso sí). */
+function tokensPrivados_(propiedad, info, apartamento) {
+  const unidad = String(propiedad || '').split(/\s+[-–·|]\s+/).map(x => x.trim()).filter(Boolean).slice(2).join(' ');
+  info = String(info || ''); const piso = ((info.match(/^Piso: (.+)$/m) || [])[1] || '').trim();
   const uFicha = ((info.match(/^Apartamento \/ unidad: (.+)$/m) || [])[1] || '').trim();
   const wifi = (info.match(/clave "([^"]+)"/) || [])[1] || '';
+  return [unidad, uFicha, wifi, apartamento].concat(unidad.split(/\s+/)).map(x => String(x || '').trim()).filter(x => x && x.length >= 2 && /\d/.test(x) && x !== piso).filter((v, i, a) => a.indexOf(v) === i);
+}
+/* La respuesta a una consulta sin las líneas que traen un dato privado. */
+function inqSinPrivado_(propiedad, ficha, texto) {
+  const ctx = { tokensPrivados: tokensPrivados_(propiedad, ficha, '') };
+  return String(texto || '').split(/\n/).filter(l => !fugaSinConfirmar_(ctx, l)).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+function aplicarSinConfirmar_(ctx) {
+  const partes = String(ctx.propiedad || '').split(/\s+[-–·|]\s+/).map(x => x.trim()).filter(Boolean);
+  const zona = partes[0] || '', edif = partes[1] || '';
+  const info = String(ctx.propiedadInfo || ''), piso = ((info.match(/^Piso: (.+)$/m) || [])[1] || '').trim();
   ctx.sinConfirmar = true;
-  ctx.tokensPrivados = [unidad, uFicha, wifi, ctx.apartamento].concat(unidad.split(/\s+/)).map(x => String(x || '').trim()).filter(x => x && x.length >= 2 && /\d/.test(x) && x !== piso).filter((v, i, a) => a.indexOf(v) === i);
+  ctx.tokensPrivados = tokensPrivados_(ctx.propiedad, info, ctx.apartamento);
   ctx.propiedadPublica = [zona, edif].filter(Boolean).join(' · ') || 'Spacio AM';
   ctx.apartamento = '';
   const parq = (info.match(/^Parqueo: (.+)$/m) || [])[1] || '';
@@ -3893,7 +3924,7 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   const prog = inquiryProgramado_(inf.uuid);
   if (!prog && desdeMs && Date.now() - desdeMs < esperaMs && !inqPrevio_('inq:' + inf.uuid)) return Object.assign(base, { esperar: true, nota: 'inquiry: esperando el automático de Hospitable' });
   const ficha = infoPropiedad_(inf.propiedad, inf.idioma) || '', kb = (conocimiento_(inf.propiedad) || '') + distanciaBloque_(inf.propiedad, pregunta);
-  const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR'),
+  const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR') + REGLAS_FIJAS_INQ_,
     'PROPIEDAD: ' + (inf.propiedad || 'sin dato') + '\nFECHAS: ' + inf.checkin + ' → ' + inf.checkout +
     '\n\nFICHA:\n' + ficha + '\n\nBASE DE CONOCIMIENTO:\n' + kb + '\n\nMENSAJE DEL HUÉSPED:\n' + pregunta, 0);
   let ev = null; try { ev = JSON.parse(String(evalTxt).match(/\{[\s\S]*\}/)[0]); } catch (e) { }
@@ -3904,6 +3935,9 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
     ? { estado: 'omitido', nota: 'inquiry sin pregunta: sigue el automático', nivel: 'INQUIRY', razon: 'Consulta sin pregunta concreta: sigue el mensaje automático de Hospitable', accion: 'sin cambios' }
     : { estado: 'omitido', nota: 'inquiry sin automático', nivel: 'AMARILLO', razon: 'Consulta sin pregunta concreta' + preaprobar, accion: 'revisar manualmente · pre-aprobar' });
   if (!ev.puede_responder || !s_(ev.respuesta).trim()) return Object.assign(base, { estado: 'omitido', nota: 'inquiry sin respuesta en la ficha', nivel: 'AMARILLO', razon: 'Pregunta sin respuesta en la ficha o la base: ' + s_(ev.pregunta).slice(0, 160) + (prog ? ' · el automático sale tal cual' : preaprobar), accion: 'revisar manualmente' });
+  /* Red de seguridad: lo privado (número de apartamento, WiFi, código) nunca sale en una consulta; esa línea se quita. */
+  ev.respuesta = inqSinPrivado_(inf.propiedad, ficha, s_(ev.respuesta));
+  if (!ev.respuesta) return Object.assign(base, { estado: 'omitido', nota: 'inquiry: la respuesta solo traía datos privados', nivel: 'AMARILLO', razon: 'La pregunta pide un dato privado (apartamento, WiFi o código): ' + s_(ev.pregunta).slice(0, 140) + (prog ? ' · el automático sale tal cual' : preaprobar), accion: 'revisar manualmente' });
   const idioma = s_(ev.idioma) || inf.idioma || 'es';
   if (prog) {
     const nuevo = String(claude_(CFG.MODELO_REDACTOR, 1400, prompt_('INQUIRY_FUSIONAR'),
@@ -5232,7 +5266,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   const hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), dia = Utilities.formatDate(ahora_(), CFG.TZ, 'EEEE HH:mm');
   const props = cfg.props.map(propNombre_).filter(Boolean), equipo = adminsOp_().map(a => a.nombre).concat(cfg.vendors.map(vendNombre_)).filter(Boolean);
   const abiertas = cfg.tareas.filter(t => t && t.id && !t.hecha).slice(0, 40);
-  const prox = cfg.schedules.filter(s => s && String(s.fecha || '') >= hoy && String(s.estado || '') !== 'cancelado').sort((a, b) => String(a.fecha + a.hora).localeCompare(String(b.fecha + b.hora))).slice(0, 30);
+  const prox = cfg.schedules.filter(s => s && String(s.fecha || '') >= hoy && String(s.estado || '') !== 'cancelado' && !rutaFechaOculta_(s.fecha)).sort((a, b) => String(a.fecha + a.hora).localeCompare(String(b.fecha + b.hora))).slice(0, 30);
   const previos = opFilas_(adm.email, 60).filter(m => m.id !== yo.id);   // incluye los turnos de las llamadas
   const notas = previos.filter(m => m.acciones.some(a => a.tipo === 'nota')).map(m => m.acciones.filter(a => a.tipo === 'nota').map(a => '· ' + a.texto).join('\n'));
   const user = conAgente ? '' : 'HOY: ' + hoy + ' (' + dia + ', Guatemala)\nADMINISTRADOR: ' + adm.nombre + (adm.principal ? ' (admin principal)' : '') +
@@ -5508,7 +5542,7 @@ function dsBotApi_(body) {
         return json_({ ok: true, ultima_sesion: p.getProperty('HUB_ULTIMA_SESION') || '', ultima_llave: p.getProperty('HUB_ULTIMA_LLAVE') || '', solo_sesion: p.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'voz_traza': return json_({ ok: true, traza: JSON.parse(CacheService.getScriptCache().get('voz_traza') || '[]'), sync: JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_SYNC') || '{}') });
-      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true), claudio: claudioSyncSiToca_(true) });
+      case 'voz_sync': return json_({ voz: vozSyncPrompt_(true), herramientas: (function () { try { return vozHerramientasSiCambiaron_(); } catch (e) { return { ok: false, error: String(e) }; } })(), proteccion: vozProteccionSiCambio_(true), acceso: vozAccesoSiCambio_(true), familia: familiaSyncPrompt_(true), claudio: claudioSyncSiToca_(true) });
       case 'familia_sync': return json_(familiaSyncPrompt_(true));
       case 'voz_tools': return json_(vozHerramientas_(body.k));
       case 'voz_estado': return json_(vozEstado_());

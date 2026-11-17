@@ -50,13 +50,15 @@ function consultaElegir_(texto, inbox, hoy) {
 }
 function consultaNorm_(t) { return String(t || '').replace(/[“”«»"]/g, '"').replace(/\s+/g, ' ').trim().toLowerCase(); }
 /* El mensaje a una consulta. Sin confirmado, o en el mismo turno del borrador: lo guarda y devuelve el borrador (no sale).
-   Con confirmado = true en otro turno y el mismo texto (o sin texto: el del borrador): { enviar: true, texto }. */
-function consultaBorrador_(adm, ficha, texto, confirmado) {
+   Con confirmado = true en otro turno y el mismo texto (o sin texto: el del borrador): { enviar: true, texto }.
+   directo: Juan ordenó enviarlo en este mensaje (enviodirecto.js): sale ya, con ese texto. */
+function consultaBorrador_(adm, ficha, texto, confirmado, directo) {
   var c = CacheService.getScriptCache(), k = 'CONSULTA_BORR_' + String((adm && adm.email) || '').toLowerCase();
   var turno = String(typeof AGENTE_TEXTO_ === 'undefined' ? '' : AGENTE_TEXTO_ || ''), prev = null;
   try { prev = JSON.parse(c.get(k) || 'null'); } catch (e) {}
   texto = String(texto || '').trim();
   if (CONSULTA_APROBADA_ && texto) return { enviar: true, texto: texto };
+  if (directo === true && texto) { if (prev && prev.conv_id === ficha.conv_id) c.remove(k); return { enviar: true, texto: texto }; }   // la orden de Juan ya es su sí (enviodirecto.js)
   if (confirmado === true && prev && prev.conv_id === ficha.conv_id && turno && prev.turno !== turno && (!texto || consultaNorm_(texto) === consultaNorm_(prev.texto))) {
     c.remove(k);
     return { enviar: true, texto: prev.texto };

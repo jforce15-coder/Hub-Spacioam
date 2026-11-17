@@ -8,7 +8,9 @@
    3. la ficha de Alma trae el permiso de pasar a Claudio solo con el principal y solo si la app sabe cambiar de agente;
       la herramienta de Alma (hablar_con_claudio) es de la app y se apoya en ese permiso;
    4. las herramientas de Claudio solo atienden al principal, por la firma del Hub dentro de la conversación de Claudio;
-      un pedido sale solo con el sí de Juan y nada se une sin «une» (ni «¿qué falta unir?» ni «no lo unas»);
+      un pedido sale al instante como con Alma (16-nov-2026), se suma a un trabajo por su nombre, contesta preguntas
+      pendientes y «súbelo»; nada se une sin «une» (ni «¿qué falta unir?» ni «no lo unas»); su ficha trae los AVISOS
+      (la pregunta pendiente; lo listo lo une Claudio solo);
    5. leer código es solo lectura (GET a GitHub) y corto;
    6. su prompt es JSON con {{quien_llama}} al final, y Claudio no existe con otras audiencias: ni la frase ni el permiso
       están en los prompts del chat, WhatsApp, calle, redactor ni en lo de huéspedes de la voz;
@@ -99,7 +101,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   const j = ini({ email: 'juan@x' }, 'quiero cambiar el botón');
   ok(j.ok && j.signed_url === 'wss://firmada?agent_claudio' && j.agent_id === 'agent_claudio', 'el principal recibe la URL firmada del agente de Claudio (no la de Alma)');
   ok(j.dynamic_variables.marca_principal === R('vozMarcaPrincipal_()') && /firma:/.test(j.dynamic_variables.sa_web) && /administrador principal/.test(j.dynamic_variables.quien_llama), 'su ficha lleva la marca del principal y la firma del Hub');
-  ok(/quiero cambiar el botón/.test(j.dynamic_variables.quien_llama) && /Claudio/.test(j.first_message), 'lo que le dijo a Alma llega a Claudio y Claudio saluda');
+  ok(/quiero cambiar el botón/.test(j.dynamic_variables.quien_llama) && /^¡?Hola, Juan/.test(j.first_message) && /Alma me (dijo|contó)|Me dijo Alma/.test(j.first_message), 'lo que le dijo a Alma llega a Claudio y Claudio saluda como alguien a quien fueron a llamar');
   const na = ini({ email: 'ana@x' });
   ok(!na.ok && !salidas.length, 'otro administrador: no hay Claudio ni URL firmada');
   ok(!ini(null).ok && !salidas.length && ini(null).error !== 'session', 'sin sesión: no (y sin el error «session» que cierra la sesión)');
@@ -121,10 +123,10 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(ficha('juan@x', false).indexOf(P) < 0, 'una app vieja que no sabe cambiar de agente: sin permiso (Alma no promete lo que la app no hace)');
   const voz = leer('voz.js');
   ok((voz.match(/claudioPermiso_\(/g) || []).length === 1 && /if \(claudio\) \{ var pc = claudioPermiso_\(adm\)/.test(voz), 'el permiso solo lo pone vozWebInicio_ (la app con sesión), nunca la llamada por teléfono');
-  ok(/case 'vozWeb': return json_\(vozWebInicio_\(ses, !!body\.ligero, body\.app === 'alma', !!body\.claudio\)\)/.test(leer('Código.js')), 'la app pide el permiso con «claudio» en vozWeb');
+  ok(/case 'vozWeb': return json_\(vozWebInicio_\(ses, !!body\.ligero, body\.app === 'alma', !!body\.claudio, String\(body\.vuelta_claudio \|\| ''\)\.slice\(0, 80\)\)\)/.test(leer('Código.js')), 'la app pide el permiso con «claudio» en vozWeb (y al volver, la conversación de Claudio)');
   const h = R("vozDefHerramientas_('B')").filter(t => t.name === 'hablar_con_claudio')[0];
   ok(h && h.type === 'client' && h.pre_tool_speech === 'off' && h.expects_response === false, 'hablar_con_claudio es de la app (cliente), sin frase que agregue ElevenLabs y sin esperar respuesta');
-  ok(h && h.description.indexOf('PUEDES PASARLO CON CLAUDIO') >= 0 && h.description.indexOf(R('CLAUDIO_FRASE_')) >= 0 && R('CLAUDIO_FRASE_') === 'Sí, no hay problema, te paso con Claudio.', 'se usa solo con el permiso de la ficha y con la frase de Juan'); }
+  ok(h && h.description.indexOf('PUEDES PASARLO CON CLAUDIO') >= 0 && h.description.indexOf(R('CLAUDIO_FRASE_')) >= 0 && R('CLAUDIO_FRASE_') === 'Te lo paso.' && /no confirmes ni anuncies/.test(h.description) && /o nada/.test(h.description), 'se usa solo con el permiso de la ficha y sin ceremonia: como mucho «Te lo paso.» (Juan, 16-nov-2026)'); }
 
 /* 4. Las herramientas de Claudio: solo el principal, por la firma de la conversación de Claudio */
 { mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma', CLAUDIO_AGENT_ID: 'agent_claudio' }; cache = {};
@@ -146,7 +148,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   cache = {}; ok(H('claudio_estado', { conv_id: 'conv_8', sa_web: 'firma-falsa' }).ok === false, 'una firma que no verifica: no');
   ctx.vozWebTokenTel_ = telDe;
   const defs = R("claudioDefHerramientas_('B')").filter(d => d.type === 'webhook');
-  ok(defs.length === 4 && defs.every(d => (d.api_schema.request_body_schema.properties.sa_web || {}).dynamic_variable === 'sa_web'), 'cada herramienta de Claudio manda la firma de su ficha (sa_web)');
+  ok(defs.length === 5 && defs.every(d => (d.api_schema.request_body_schema.properties.sa_web || {}).dynamic_variable === 'sa_web'), 'cada herramienta de Claudio manda la firma de su ficha (sa_web)');
   cache = {}; conv = { tel: '50211110000', otro: true, agente: 'agent_claudio' };
   let unir = [], pedidos = [];
   ctx.unirCambio_ = c => { unir.push(c); return { ok: true, unidos: [] }; };
@@ -160,9 +162,39 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
     unir = []; H('claudio_unir', { conv_id: 'conv_5', dijo: d, cual: c });
     ok(unir.length === 1 && unir[0] === c, 'une con «' + d + '»' + (c ? ' (' + c + ')' : ' (sin cual: devuelve la lista para preguntar)'));
   });
-  pedidos = []; ok(H('claudio_pedido', { conv_id: 'conv_5', pedido: 'que el botón sea naranja', confirmado: false }).ok === false && !pedidos.length, 'un pedido sin el sí de Juan no sale');
-  const rp = H('claudio_pedido', { conv_id: 'conv_5', pedido: 'que el botón sea naranja', confirmado: true });
-  ok(rp.ok && pedidos.length === 1 && pedidos[0] === 'que el botón sea naranja' && /segundo plano/.test(rp.resultado) && /órbita/.test(rp.resultado), 'con el sí: sale una vez por el camino de siempre y Claudio dice que es en segundo plano y se ve en la órbita');
+  pedidos = []; let opts = [];
+  ctx.claudeMandarYa_ = (adm, t, o) => { pedidos.push(t); opts.push(o || {}); return { texto: 'Listo, quedó pedido.', claude: { ok: true } }; };
+  const rp = H('claudio_pedido', { conv_id: 'conv_5', pedido: 'que el botón sea naranja' });
+  ok(rp.ok && pedidos.length === 1 && pedidos[0] === 'que el botón sea naranja' && /segundo plano/.test(rp.resultado) && /órbita/.test(rp.resultado), 'como con Alma: sale al instante, una vez, por el camino de siempre (sin esperar el sí) y Claudio dice que es en segundo plano y se ve en la órbita');
+  ok(!R("claudioDefHerramientas_('B')").filter(d => d.name === 'claudio_pedido')[0].api_schema.request_body_schema.required.includes('confirmado'), 'claudio_pedido ya no pide «confirmado»');
+  /* Sumar a un trabajo abierto, contestar su pregunta y «súbelo» (lo mismo que Alma y la tarjeta de Pendientes). */
+  const MICROS = [{ id: 'mpbotonpagos1', nombre: 'Botón de pagos naranja', estado: 'en trabajo', actualizado: Date.now() },
+    { id: 'mporbitaviaje', nombre: 'Avión de la órbita', estado: 'Claude pregunta', ultima_pregunta: '¿Cinco o tres días?', actualizado: Date.now() }];
+  const microsDe = ctx.microAbiertos_; ctx.microAbiertos_ = () => MICROS;
+  pedidos = []; opts = []; H('claudio_pedido', { conv_id: 'conv_5', pedido: 'agrégale un borde', trabajo: 'botón de pagos' });
+  ok(pedidos.length === 1 && opts[0].micro === 'mpbotonpagos1', 'con trabajo: se suma a ese microproyecto (' + opts[0].micro + ')');
+  pedidos = []; opts = []; H('claudio_pedido', { conv_id: 'conv_5', pedido: 'otra cosa', trabajo: 'nuevo' });
+  ok(pedidos.length === 1 && opts[0].micro === 'nuevo', '«nuevo»: va a un microproyecto nuevo');
+  pedidos = []; const rx = H('claudio_pedido', { conv_id: 'conv_5', pedido: 'algo', trabajo: 'calendario de limpieza' });
+  ok(rx.ok === false && !pedidos.length && /^NO SE HIZO NADA/.test(rx.error) && /Botón de pagos/.test(rx.error), 'un trabajo que no existe: no sale nada y dice cuáles hay');
+  let resp_ = [], sub_ = [];
+  ctx.microResponder_ = (adm, id, t, o) => { resp_.push([id, t, o]); return { ok: true, micro: id, respuesta: 'Listo, quedó tu respuesta en «Avión de la órbita».' }; };
+  ctx.microSubir_ = (adm, m) => { sub_.push(m && m.id); return { ok: true, micro: m ? m.id : 'mpbotonpagos1', nombre: m ? m.nombre : 'Botón de pagos naranja', respuesta: 'Listo, quedó con Opus.' }; };
+  const rr = H('claudio_responder', { conv_id: 'conv_5', respuesta: 'cinco días' });
+  ok(rr.ok && resp_.length === 1 && resp_[0][0] === 'mporbitaviaje' && resp_[0][1] === 'cinco días' && resp_[0][2].sinChat, 'sin trabajo y con una sola pregunta pendiente: la respuesta va a ese trabajo');
+  H('claudio_responder', { conv_id: 'conv_5', respuesta: 'súbelo', trabajo: 'botón de pagos' });
+  ok(sub_.length === 1 && sub_[0] === 'mpbotonpagos1' && resp_.length === 1, '«súbelo» con trabajo: ese microproyecto, con Opus');
+  sub_ = []; H('claudio_responder', { conv_id: 'conv_5', respuesta: 'súbelo' });
+  ok(sub_.length === 1 && sub_[0] == null, '«súbelo» a secas: el más reciente (microSubir_ lo elige)');
+  MICROS[0].estado = 'Claude pregunta'; resp_ = [];
+  const r2p = H('claudio_responder', { conv_id: 'conv_5', respuesta: 'sí' });
+  ok(r2p.ok === false && !resp_.length && /2 preguntas/.test(r2p.error), 'dos preguntas pendientes y sin trabajo: no adivina, pregunta cuál');
+  MICROS[0].estado = 'listo para unir';
+  const fr = R('claudioResumen_({ email: "juan@x" })');
+  ok(/AVISOS/.test(fr) && !/listo para unir \(/.test(fr) && !/AVISOS[^\n]*Botón de pagos naranja/.test(fr) && /«Avión de la órbita» tiene una pregunta: ¿Cinco o tres días\?/.test(fr), 'su ficha trae los AVISOS: solo la pregunta pendiente (lo listo lo une Claudio, 17-nov-2026)');
+  MICROS.forEach(m => { m.estado = 'en trabajo'; });
+  ok(!/AVISOS/.test(R('claudioResumen_({ email: "juan@x" })')), 'sin nada listo ni preguntas: sin AVISOS');
+  ctx.microAbiertos_ = microsDe;
   const api = leer('voz.js');
   ok(/CLAUDIO_HERR_\.indexOf\(herr\) >= 0\) out = claudioHerramienta_\(herr, body\)/.test(api), 'vozApi_ manda las herramientas de Claudio a claudioHerramienta_ (con la llave de voz)');
 
@@ -182,7 +214,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
 { const t = R('claudioPromptCompleto_()'); let o = null; try { o = JSON.parse(t); } catch (e) {}
   ok(o && o.claudio && o.claudio.quien_eres && Object.keys(o).pop() === 'ficha_de_quien_llama', 'el prompt de Claudio es JSON por secciones con la ficha al final');
   ok((t.match(/\{\{[^}]*\}\}/g) || []).join() === '{{quien_llama}}' && t.indexOf('marca_principal') < 0, 'solo {{quien_llama}} (la marca nunca va en el prompt)');
-  ok(/como explicándole a un niño/.test(t) && /espera su sí/.test(t) && /«une»/.test(t) && /segundo plano/.test(t) && /volver_con_alma/.test(t), 'habla simple, confirma antes de pedir, une solo con «une», dice lo de segundo plano y sabe volver con Alma');
+  ok(/como explicándole a un niño/.test(t) && /«une»/.test(t) && /segundo plano/.test(t) && /volver_con_alma/.test(t) && /en ese mismo turno con claudio_pedido/.test(t) && /AVISOS/.test(t), 'habla simple, pide sin repetir (como Alma), une solo con «une», dice lo de segundo plano, da los avisos y sabe volver con Alma');
   const FR = /te (paso|comunico|transfiero) con claudio/i, P = 'PUEDES PASARLO CON CLAUDIO';
   ['chat_texto', 'whatsapp_texto', 'calle_texto', 'redactor', 'chat_herramientas'].forEach(k => {
     const x = a[k].join('\n'); ok(!FR.test(x) && x.indexOf(P) < 0 && x.indexOf('hablar_con_claudio') < 0, k + ': sin «te paso con Claudio» ni su permiso');
@@ -195,7 +227,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   const C = o.claudio, F = R('ALMA_FUENTE_'), txt = (l, id) => l.filter(x => x.id === id)[0].texto;
   ok(JSON.stringify(C.como_hablas) === JSON.stringify(F.identidad.como_habla.map(x => R('almaRellenar_(' + JSON.stringify(x.texto) + ', {})'))), '7 · cómo habla: lo mismo que Alma, tomado de la fuente única (si cambia allá, cambia aquí)');
   ok(C.por_voz.indexOf(txt(F.canales.voz.reglas, 'v_turno')) >= 0 && C.por_voz.indexOf(txt(F.canales.voz.reglas, 'v_silencio')) >= 0 && C.por_voz.indexOf(txt(F.canales.voz.reglas, 'v_interrumpen')) >= 0, '7 · por voz: respuesta primero, 2–3 frases, se detiene si lo interrumpen, skip_turn en pausas');
-  ok(C.una_sola_confirmacion_por_cosa.indexOf(txt(F.confirmaciones.reglas, 'c_no_anuncia')) >= 0 && C.una_sola_confirmacion_por_cosa.indexOf(txt(F.confirmaciones.reglas, 'c_entendi')) < 0, '7 · confirmaciones de Alma que aplican (no la de no repetir el pedido: Claudio lo confirma antes de pedirlo)');
+  ok(C.una_sola_confirmacion_por_cosa.indexOf(txt(F.confirmaciones.reglas, 'c_no_anuncia')) >= 0 && C.una_sola_confirmacion_por_cosa.indexOf(txt(F.confirmaciones.reglas, 'c_entendi')) >= 0, '7 · confirmaciones de Alma que aplican, también la de no repetir el pedido (16-nov-2026: pide como Alma)');
   ok(C.nunca.length === 5 && C.nunca.every(x => !/secretaria|mi sistema/.test(x)), '7 · «nunca» de Alma, sin lo de sus herramientas');
   ok(/MODO WEEBO/.test(C.weebo.join('\n')) && /MODO WEEBO FIJO/.test(C.weebo.join('\n')) && /ADAPTACIÓN A JUAN/.test(C.weebo.join('\n')) && !/de Alma/.test(C.weebo.join('\n')), '7 · Modo Weebo con su nivel y la adaptación a Juan');
   ok(!/huésped|reserva|lookup_reservation|property_info|secretaria|caller_type/i.test(JSON.stringify(C).replace(/un mensaje a un huésped, una reserva/, '')), '7 · nada de huéspedes, reservas ni herramientas de Alma');
@@ -210,6 +242,42 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ctx.SES_ = { email: 'juan@x' }; ctx.MOT_ = '';
   const fj = R('claudioWebInicio_(SES_, MOT_)');
   ok(fj.ok && /MODO WEEBO FIJO: nivel 3/.test(fj.dynamic_variables.quien_llama) && /ADAPTACIÓN A JUAN/.test(fj.dynamic_variables.quien_llama), '7 · su ficha trae el mismo Weebo y la misma adaptación que la de Alma'); }
+
+/* 8. Pase sin ceremonia y vuelta con Alma que cierra (Juan, 16-nov-2026: «Claudio aparece y se va; cuando se va vuelve Alma y
+   cierra esa interacción»). */
+{ const sal = [0, 1, 2].map(i => R("claudioSaludo_('Juan', '', " + i + ")"));
+  ok(sal.every(x => /^¡?Hola, Juan/.test(x) && /Alma/.test(x) && /¿/.test(x) && !/aquí Claudio/.test(x)) && new Set(sal).size === 3, '8 · Claudio saluda como persona que llegó («Hola, Juan, ¿cómo estás? Alma me dijo que me necesitabas»), variado');
+  const sm = R("claudioSaludo_('Juan', 'quiero hablar con Claudio sobre el botón de pagos', 0)");
+  ok(/por lo del botón de pagos\. Cuéntame\.$/.test(sm), '8 · con motivo, lo nombra: «… por lo del botón de pagos. Cuéntame.» (' + sm + ')');
+  ok(/Cuéntame\.$/.test(R("claudioSaludo_('Juan', 'ayúdame con algo raro que vi ayer en la app cuando abrí', 1)")), '8 · un motivo largo no se lee: «Cuéntame.»');
+  const t = R('claudioPromptCompleto_()');
+  ok(/terminaron lo de desarrollo o dice que eso era todo/.test(t) && /usa volver_con_alma, nunca end_call/.test(t), '8 · al terminar, Claudio vuelve con Alma (volver_con_alma), no cuelga');
+  const vv = R("claudioDefHerramientas_('B')").filter(d => d.name === 'volver_con_alma')[0];
+  ok(vv && /cuando ya terminaron/.test(vv.description) && /en vez de colgar/.test(vv.description), '8 · la herramienta volver_con_alma lo dice también');
+  /* Lo que hizo Claudio sale de sus herramientas, por conversación y solo para el mismo administrador. */
+  cache = {}; let conv = { tel: '50211110000', otro: true, agente: 'agent_claudio' }; ctx.vozWebConvInfo_ = () => conv;
+  ctx.claudeMandarYa_ = () => ({ texto: 'Listo, quedó pedido.', claude: { ok: true } }); ctx.opGuardar_ = () => ({});
+  const H = (herr, b) => { ctx.B_ = b; return R("claudioHerramienta_('" + herr + "', B_)"); };
+  const V = (email, c) => { ctx.ADM_ = email === 'juan@x' ? JUAN : ANA; return R("claudioVuelta_(ADM_, '" + c + "')"); };
+  ok(V('juan@x', 'conv_9').frase === 'Listo. Si necesitas algo más, aquí estoy.', '8 · sin pedido: «Listo. Si necesitas algo más, aquí estoy.»');
+  H('claudio_pedido', { conv_id: 'conv_9', pedido: 'cambiar el color del botón de pagos' });
+  const v1 = V('juan@x', 'conv_9');
+  ok(v1.frase === 'Ya volví. Si necesitas algo más, aquí estoy.' && /pedido creado «/.test(v1.linea) && /no saludes/.test(v1.linea), '8 · con el pedido confirmado: Claudio ya lo dijo, Alma no repite «quedó pedido» (17-nov: «con una sola vez basta») (' + v1.frase + ')');
+  const p2 = H('claudio_pedido', { conv_id: 'conv_9', pedido: 'y que el botón sea más grande' });
+  ok(p2.ok && p2.corta && !/quedó pedido/.test(p2.hecho + p2.resultado.replace(/No repitas «quedó pedido»/, '')) && /^También quedó\.$/.test(p2.hecho), '8 · el segundo pedido de la llamada se confirma corto: «' + p2.hecho + '»');
+  ok(V('ana@x', 'conv_9').frase === 'Listo. Si necesitas algo más, aquí estoy.', '8 · lo de la conversación de Juan no se le cuenta a otro administrador');
+  ctx.claudeMandarYa_ = () => ({ texto: 'falló GitHub', claude: { ok: false } });
+  H('claudio_pedido', { conv_id: 'conv_10', pedido: 'otra cosa' });
+  const v2 = V('juan@x', 'conv_10');
+  ok(!/quedó pedido/.test(v2.frase) && /no salió/.test(v2.frase) && /NO salió/.test(v2.linea), '8 · si el pedido falló, Alma dice la verdad («el pedido no salió»), nunca «quedó pedido»');
+  /* vozWebInicio_ con la conversación de Claudio: la frase de cierre para la app y la línea en la ficha. */
+  mem = { ELEVENLABS_KEY: 'k', ELEVENLABS_AGENT_ID: 'agent_alma' };
+  resp = s => /get-signed-url/.test(s.url) ? { codigo: 200, cuerpo: { signed_url: 'wss://alma' } } : { codigo: 404, cuerpo: '' };
+  ctx.SES_ = { email: 'juan@x' };
+  const w = R("vozWebInicio_(SES_, false, true, true, 'conv_9')");
+  ok(w.ok && w.vuelta === v1.frase && w.cerrar_tras_vuelta === true && /VUELVES DE CLAUDIO/.test(w.dynamic_variables.quien_llama), '8 · al volver, el Hub da la frase de cierre (vuelta) y la app cuelga si Juan no sigue');
+  const w0 = R("vozWebInicio_(SES_, false, true, true, '')");
+  ok(w0.ok && !w0.vuelta && !w0.cerrar_tras_vuelta, '8 · una llamada normal no trae cierre'); }
 
 if (!fallo) console.log('Todo bien: Claudio solo con el principal, una vez, sin unir sin «une».');
 process.exit(fallo);

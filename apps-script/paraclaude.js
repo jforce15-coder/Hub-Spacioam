@@ -26,7 +26,7 @@
    Un ajuste hereda el nivel de su microproyecto salvo que Juan o Alma digan otro. Sin la llave de la sencilla, va a la
    compleja y se avisa (así nada se rompe antes de que Juan la pegue en hub.spacioam.com/claude.html). */
 
-var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro', 'nivel'];
+var PARA_CLAUDE_CAB_ = ['id', 'fecha', 'quien', 'app', 'tipo', 'prioridad', 'titulo', 'detalle', 'estado', 'issue', 'sesion', 'respuesta', 'llave', 'simple', 'chat', 'micro', 'nivel', 'lector', 'fecha_lector'];   // lector: la llave de solo leer la Biblioteca de Claudio (biblioteca.js)
 var PARA_CLAUDE_REPO_ = 'jforce15-coder/Hub-Spacioam';
 var CLAUDE_RUTINA_DEF_ = 'trig_01VrusYxvHrU1MBz4x39RVEm';
 var CLAUDE_RUTINA_SENCILLO_DEF_ = 'trig_01Vdg8SQEvDKV2aywfmBtQ1X';
@@ -120,9 +120,13 @@ function paraClaudeCrear_(adm, inp) {
   }
   m.issue = issue;
   /* La instrucción lleva el historial completo: cada disparo abre una sesión nueva de Claude, sin memoria. */
-  var instruccion = cuerpo + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + '\n\n' + MICRO_RESPONDER_;
+  /* La Biblioteca de Claudio (biblioteca.js) va en la instrucción, no en el issue: la lista y cómo leer o pedir uno. */
+  var hubUrl = PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_, biblio = '';
+  try { biblio = bibliotecaParaClaude_(hubUrl); } catch (e) { console.error('bibliotecaParaClaude_: ' + e); }
+  var instruccion = cuerpo + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + (biblio ? '\n\n' + biblio : '') + '\n\n' + MICRO_RESPONDER_;
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
-  var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_,
+  var lector = biblio ? Utilities.getUuid().replace(/-/g, '') : '';   // solo leer la biblioteca; distinta de la llave de responder
+  var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: hubUrl, biblioteca: lector ? { lector: lector } : undefined,
     quien: quien, app: inp.app || 'Otro', tipo: inp.tipo || 'mejora', prioridad: inp.prioridad || 'normal', titulo: ajuste ? m.nombre + ' · ' + (segunda ? 'segunda parte' : 'ajuste') : titulo,
     instruccion: instruccion, issue: issue, micro: microParaClaude_(m, { ajuste: ajuste, segunda: segunda, como: como, sesionAnterior: sesionAnterior }) }, nivel);
   if (disparo.ok) nivel = claudeNivel_(disparo.nivel);   // sin la llave de la sencilla corrió la compleja: el chip dice la verdad
@@ -132,7 +136,7 @@ function paraClaudeCrear_(adm, inp) {
   try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); }
   if (m.fila) { try { abrePedido_(adm && adm.email, m.id); } catch (e) { console.error('abrePedido_: ' + e); } }   // uno de sus pedidos recientes (almaabre.js)
   /* chat: en qué chat con Alma caen sus respuestas (el de quien lo pidió). micro: su microproyecto. */
-  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id, nivel]); }
+  try { paraClaudeHoja_().appendRow([id, fecha, quien, inp.app || 'Otro', inp.tipo || 'mejora', inp.prioridad || 'normal', ajuste ? m.nombre : titulo, cuerpo.slice(0, 45000), disparo.ok ? 'con Claude' : 'pendiente', issue, disparo.url || '', '', disparo.ok ? paraClaudeHuella_(llave) : '', '', (adm && adm.email) || '', m.id, nivel, disparo.ok && lector ? paraClaudeHuella_(lector) : '', disparo.ok && lector ? Date.now() : '']); }
   catch (e) { return { ok: false, error: 'No pude guardarlo: ' + e }; }
   /* Lo que no salió de un mensaje suyo (rondas de los agentes, bots de prueba, Pendientes) queda anotado en su chat.
      Lo que sí salió de su chat (sinChat) ya está ahí: su mensaje y la respuesta de Alma. */
@@ -259,6 +263,9 @@ function paraClaudeRespuesta_(b) {
     var voz = String(b.voz || '').replace(/\s+/g, ' ').trim().slice(0, 240);
     var enlaces = (Array.isArray(b.enlaces) ? b.enlaces : []).map(String).filter(function (u) { return /^https:\/\/github\.com\//.test(u); }).slice(0, 6);
     var cuerpoR = (voz ? voz + '\n\n' : '') + String(b.detalle || '').trim().slice(0, 3000);
+    /* Claudio pide un skill o documento (biblioteca.js): queda arriba en Ajustes → Biblioteca de Claudio y en su chat. */
+    var pide = String(b.pide || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    if (pide && v[i][15]) { try { if (biblioPedir_(String(v[i][15]), String(v[i][6]), pide)) cuerpoR += '\n\nClaudio necesita: ' + pide + '. Compártelo en Ajustes › Biblioteca de Claudio y le llega solo.'; } catch (e) { console.error('biblioPedir_: ' + e); } }
     /* Su microproyecto (#374): la respuesta entra al historial y cambia el estado (pregunta, listo para unir…). */
     var m = null; if (v[i][15]) { try { m = microRespuesta_(String(v[i][15]), { estado: estado, voz: voz, detalle: b.detalle, enlaces: enlaces, rama: b.rama }, cuerpoR); } catch (e) { console.error('microRespuesta_: ' + e); } }
     if (m) titulo = m.nombre;
@@ -271,6 +278,7 @@ function paraClaudeRespuesta_(b) {
     if (estado === 'listo' && esc !== 'unir') enlaces.forEach(function (u) { if (/\/pull\/\d+/.test(u)) { try { accionCrear_('Unir el PR: ' + titulo, 'Claudio dejó listo este cambio. Abre el enlace, revisa y toca «Merge pull request».', u, 'claude'); } catch (e) { console.error('accionCrear_: ' + e); } } });
     sh.getRange(i + 2, 9).setValue(estado === 'listo' ? (conPr ? 'PR listo' : 'respondido') : estado);
     sh.getRange(i + 2, 12, 1, 2).setValues([[texto.slice(0, 45000), '']]);   // la llave ya no sirve
+    if (v[i][17]) sh.getRange(i + 2, 18).setValue('');                         // ni el lector de la biblioteca
     /* En el chat con Alma de quien lo pidió (o del principal, para los pedidos viejos); cada mensaje empieza con la fecha. */
     var dest = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_() || DESARROLLO_;
     opGuardar_(dest, 'alma', 'claude', paraClaudeFecha_() + ' · ' + texto, [], CHAT_DESARROLLO_);

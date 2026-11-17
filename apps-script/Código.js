@@ -129,6 +129,7 @@ function doPost(e) {
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
+    if (body.mejora && body.action === 'biblioteca') { cupoCanal_('Otros'); cupoFuncion_('bibliotecaClaude_'); return json_(bibliotecaClaude_(body)); }   // Claudio lee la Biblioteca de Claudio con el lector de su pedido (biblioteca.js)
     if (body.mejora && body.action === 'respuesta') return json_(paraClaudeRespuesta_(body));   // Claude responde un pedido de Alma (llave de un solo uso, paraclaude.js)
     if ((e && e.parameter && e.parameter.voz) || body.voz) { cupoCanal_('Voz'); return vozApi_(e, body); }   // ALMA voz (ElevenLabs), sección 15 (voz.js)
     if (body.correoPuente) { cupoCanal_('Otros'); return json_(correoPuente_(body)); }   // el puente de una cuenta de correo manda lo nuevo (llave propia, correo.js)
@@ -3348,6 +3349,10 @@ function hubApi_(body) {
     switch (body.action) {
       case 'acortar': return json_(enlaceAcortarApi_(ses, body.url));                       // enlace corto hub.spacioam.com/<código>, solo con sesión (enlaces.js)
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
+      case 'biblioteca': return json_(bibliotecaLista_(ses));                                // Ajustes → Biblioteca de Claudio: skills y documentos para Claudio (biblioteca.js · alma/biblioteca.html)
+      case 'bibliotecaSubir': return json_(bibliotecaSubir_(ses, body));                     // { tipo, nombre, para_que, data+mime+archivo | texto, pedido } → lo guarda privado
+      case 'bibliotecaQuitar': return json_(bibliotecaQuitar_(ses, body.id));                // { id } → Claudio ya no lo ve (el archivo se queda en el Drive)
+      case 'bibliotecaPedidoDejar': return json_(bibliotecaPedidoDejar_(ses, body.micro));   // { micro } → lo que Claudio pidió deja de esperar
       case 'recetas': return json_(recetasApi_(ses));                                       // Ajustes → Lo que Alma aprendió: las recetas (recetas.js · alma/aprendio.html)
       case 'recetaBorrar': return json_(recetaBorrarApi_(ses, body.clave));                  // { clave } → la olvida
       case 'vigilancias': return json_(vigApi_(ses));                                       // lo que Alma vigila por ti (vigilancias.js · alma/aprendio.html)

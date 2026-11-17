@@ -2175,12 +2175,16 @@ window.SAPulso = {
   }
   function dura(a, b) { var m = Math.round((ms(b) - ms(a)) / 6e4), h = Math.floor(m / 60); return (h ? h + " h " : "") + (m % 60 ? (m % 60) + " min" : "").trim(); }
 
-  /* ── ¿Se ve el botón? Solo con un viaje cercano (Juan, 16-nov-2026): desde 5 días antes del primer tramo hasta 5 días
-     después del último. Fuera de esa ventana el botón desaparece. ── */
+  /* ── ¿Se ve el botón? Solo cerca de un vuelo (Juan, 16-nov-2026): de 5 días antes de que sale a 5 días después de que
+     aterriza, vuelo por vuelo. Con la ida y la vuelta separadas (una estancia de semanas), entre las dos ventanas no hay
+     avión: no cuenta el viaje entero de la ida a la vuelta. Fuera de la ventana el botón desaparece. ── */
   var VENTANA_DIAS = 5;
+  function cercanos(v, t) {   // los vuelos del viaje cuya ventana incluye este momento
+    return (v.tramos || []).filter(function (x) { return t >= ms(x.sale) - VENTANA_DIAS * DIA && t <= ms(x.llega) + VENTANA_DIAS * DIA; });
+  }
   function vigentes(d) {
     var t = Date.now();
-    return ((d && d.viajes) || []).filter(function (v) { return v.tramos && v.tramos.length && t >= ms(v.desde) - VENTANA_DIAS * DIA && t <= ms(v.hasta) + VENTANA_DIAS * DIA; });
+    return ((d && d.viajes) || []).filter(function (v) { return cercanos(v, t).length > 0; });
   }
   /* El próximo tramo (o el que va en el aire) y si toca la vista centrada. */
   function proximo(vs) {
@@ -2207,11 +2211,12 @@ window.SAPulso = {
     orbitaAvion();
     if (VJ.abierto) pintar();
   }
-  /* La órbita del avión (Juan, 13-nov-2026): con un tramo que aún no aterriza (viaje próximo o en curso), la cercana;
-     cuando ya aterrizó el último, la lejana (hasta los 5 días en que el botón se va). El bloque «Pedidos en órbita» lo mueve. */
+  /* La órbita del avión (Juan, 13-nov-2026): con un vuelo cercano que aún no aterriza (por salir o en el aire), la cercana;
+     cuando ya aterrizó, la lejana (hasta los 5 días en que el botón se va). El bloque «Pedidos en órbita» lo mueve. */
   function orbitaAvion() {
-    var b = $("b-avion"), vs = b.hidden ? [] : vigentes(VJ.datos);
-    b.dataset.orbita = !vs.length ? "" : proximo(vs) ? "cerca" : "lejos";
+    var b = $("b-avion"), t = Date.now(), vs = b.hidden ? [] : vigentes(VJ.datos);
+    var viene = vs.some(function (v) { return cercanos(v, t).some(function (x) { return ms(x.llega) > t; }); });
+    b.dataset.orbita = !vs.length ? "" : viene ? "cerca" : "lejos";
     if (window.AlmaOrbita && AlmaOrbita.andar) AlmaOrbita.andar();
   }
   setInterval(function () {   // el viaje pasa a la lejana, y el botón aparece o se va al cruzar los 5 días, sin cerrar la app

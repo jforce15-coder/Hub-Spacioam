@@ -16,6 +16,11 @@ natural (sin bajarlo), a 24 kHz en la app (no aplanada a 16 kHz como una llamada
 normal. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
 agente de ElevenLabs, `CLAUDIO_VOZ_LOCAL` afina la voz (`{"motor":"elevenlabs"}` vuelve a mandar cada frase con su voz de
 ElevenLabs) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo de ese camino. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
+**Voces locales** (17-nov-2026): con qué voz hablan Claudio local y Maricarmen en la app (Ajustes → Voz y modos → Voces
+locales). Por personaje: **Kokoro** (un modelo de voz abierto que trabaja en el iPhone, sin internet ni créditos; se baja una
+vez, 92 MB) o la voz del iPhone. Si Kokoro falla, no está o tarda, sigue la voz del iPhone sin cortar la conversación. Las
+voces de Kokoro son provisionales (Alex para Claudio, Dora para Maricarmen); una voz nueva se agrega sin otra versión de la app
+(alma-app `voces/catalogo.json` o por enlace). Evitar: «voz offline», «TTS local».
 **Voz de respaldo** (17-nov-2026, #657): cuando la señal falla, Alma sigue la llamada sin ElevenLabs, como Claudio local: la
 oye el dictado del iPhone, contesta el Hub por la acción `calle` (sin audio) y habla la voz de mujer del iPhone. La app vigila
 la señal y solo entra cuando no hay internet o la voz de ElevenLabs se corta o no conecta; con la señal de vuelta (20 s

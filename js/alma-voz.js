@@ -57,7 +57,7 @@
     if (vivo && vivo.sendContextualUpdate) { try { vivo.sendContextualUpdate("Cambió la pantalla. " + ctxTexto(c)); } catch (e) {} }
   }
   function leerFicha() { try { var j = JSON.parse(localStorage.getItem(KEY) || "null"); return j && j.agent_id && Date.now() - j.t < VIGENCIA ? j : null; } catch (e) { return null; } }
-  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "", language: j.language || "" })); } catch (e) {} }
+  function guardarFicha(j) { try { localStorage.setItem(KEY, JSON.stringify({ t: Date.now(), agent_id: j.agent_id, dynamic_variables: j.dynamic_variables || {}, first_message: j.first_message || "", language: j.language || "", tool_ids_app: j.tool_ids_app || null })); } catch (e) {} }
   /* La URL firmada guardada: vale FIRMA_VIGENCIA (ElevenLabs da 15 min para conectarse) y se usa una sola vez. */
   var FKEY = KEY + ":firma";   // «:» para que se borre con la ficha al cerrar sesión (index.html, copiasBorrar)
   function leerFirma() { try { var j = JSON.parse(localStorage.getItem(FKEY) || "null"); return j && j.u && Date.now() - j.t < FIRMA_VIGENCIA ? j : null; } catch (e) { return null; } }
@@ -122,6 +122,72 @@
      variable que ya usan la roca de sa-nav y el inicio (--san-halo): no hay movimiento nuevo, solo cambia el color. La app
      de iPhone lo pide igual cuando su voz nativa cambia de agente (inicio.html, AlmaVoz.evento «agente»). */
   var HALO_CLAUDIO = "linear-gradient(180deg,#FFB25E 0%,#FF9A3C 34%,#F5821F 66%,#E66A0E 100%)";
+  /* Coro «Alma está trabajando» (Juan, 17-nov-2026): mientras Alma usa una herramienta suena el coro de Juan
+     (assets/alma/sonidos/alma-trabaja.wav: loop sin costura de 39 s, 48 kHz mono, −24 LUFS) en lugar del tecleo de
+     ElevenLabs. Igual que la app de iPhone (CoroTrabajoReglas.swift): lleva la cuenta de las herramientas y para al terminar
+     la última; solo si tarda más de 0,6 s; entra en 0,4 s y sale en 0,5 s; mientras Alma habla baja 10 dB (150 ms, vuelve en
+     400 ms) y mientras Juan habla, 6 dB; una interrupción o colgar lo corta. Solo suena si la conversación no trae el tecleo
+     (Alma con las herramientas gemelas, tool_ids_app del Hub, o Claudio): si no, se oirían los dos. En el navegador lo toca
+     Web Audio (un AudioBufferSource en loop con un GainNode); dentro de la app de Alma, la app, por el puente («coro»). */
+  var CORO = { url: SONIDOS + "alma-trabaja.wav", umbral: 600, entra: 0.4, sale: 0.5, baja: 0.15, sube: 0.4, tope: 75e3,
+    sinEspera: { nivel_weebo: 1, mostrar_gif: 1, hablar_con_claudio: 1, volver_con_alma: 1, pasar_a_maricarmen: 1, mostrar_tarjeta_club: 1, mostrar_en_chat: 1, skip_turn: 1, end_call: 1 } };
+  var coroCtx = null, coroBuf = null, coroBufP = null;
+  function enApp() { try { return !!(w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma); } catch (e) { return false; } }
+  /* Dentro del gesto que abre la llamada (iPhone solo deja sonar audio que se despertó en un toque): el contexto y el archivo. */
+  function coroPreparar() {
+    if (enApp()) return;
+    try { var C = w.AudioContext || w.webkitAudioContext; if (!C) return; if (!coroCtx) coroCtx = new C(); if (coroCtx.resume) coroCtx.resume(); } catch (e) { return; }
+    if (coroBuf || coroBufP) return;
+    coroBufP = fetch(CORO.url).then(function (r) { if (!r.ok) throw new Error("coro " + r.status); return r.arrayBuffer(); })
+      .then(function (a) { return new Promise(function (ok, no) { coroCtx.decodeAudioData(a, ok, no); }); })
+      .then(function (b) { coroBuf = b; }, function () { coroBufP = null; });
+  }
+  function crearCoro(almaHabla, juanHabla) {
+    var activas = {}, reloj = 0, permitido = false, sonando = false, objetivo = 0, paraEn = 0, src = null, gan = null;
+    function hay() { for (var k in activas) return true; return false; }
+    function primera() { var m = Infinity; for (var k in activas) m = Math.min(m, activas[k]); return m; }
+    function poner(v, t) {
+      if (enApp()) { try { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "coro", v: v, t: t }); } catch (e) {} return; }
+      if (!gan || !coroCtx) return;
+      try { var g = gan.gain, a = coroCtx.currentTime; g.cancelScheduledValues(a); g.setValueAtTime(g.value, a); g.linearRampToValueAtTime(v, a + t); } catch (e) {}
+    }
+    function arrancar() {
+      if (!enApp()) {
+        if (!coroCtx || !coroBuf) return false;
+        try {
+          gan = coroCtx.createGain(); gan.gain.value = 0; gan.connect(coroCtx.destination);
+          src = coroCtx.createBufferSource(); src.buffer = coroBuf; src.loop = true; src.connect(gan); src.start();
+        } catch (e) { return false; }
+      }
+      sonando = true; objetivo = 0; return true;
+    }
+    function soltar() {
+      if (src) { try { src.stop(); } catch (e) {} try { src.disconnect(); gan.disconnect(); } catch (e) {} }
+      src = null; gan = null; sonando = false; objetivo = 0;
+    }
+    function tick() {
+      var ahora = Date.now();
+      for (var k in activas) if (ahora - activas[k] > CORO.tope) delete activas[k];   // una respuesta que nunca llegó
+      var debe = permitido && hay() && ahora - primera() >= CORO.umbral;
+      if (debe && !sonando && !arrancar()) return;
+      if (!sonando) { if (!hay()) { clearInterval(reloj); reloj = 0; } return; }
+      var nuevo = debe ? Math.pow(10, (almaHabla() ? -10 : juanHabla() ? -6 : 0) / 20) : 0;
+      if (nuevo !== objetivo) {
+        var t = nuevo === 0 ? CORO.sale : objetivo === 0 ? CORO.entra : nuevo < objetivo ? CORO.baja : CORO.sube;
+        poner(nuevo, t); objetivo = nuevo; if (nuevo === 0) paraEn = ahora + t * 1000 + 60;
+      }
+      if (!debe && objetivo === 0 && ahora >= paraEn) { soltar(); if (!hay()) { clearInterval(reloj); reloj = 0; } }
+    }
+    return {
+      permitir: function (on) { permitido = !!on; if (!on) this.corta(); },
+      empieza: function (id, nombre) {
+        if (!permitido || !id || CORO.sinEspera[nombre] || activas[id]) return;
+        activas[id] = Date.now(); if (!reloj) reloj = setInterval(tick, 25);
+      },
+      termina: function (id) { if (id) delete activas[id]; },
+      corta: function () { activas = {}; if (reloj) { clearInterval(reloj); reloj = 0; } if (sonando) { poner(0, 0.05); soltar(); } }
+    };
+  }
   function agenteHalo(a) {
     try {
       var r = document.documentElement;
@@ -158,11 +224,12 @@
   /* Lo que Alma dice al volver de Claudio (Juan no la llamó: ya estaba en la llamada). */
   var VUELTA = "Aquí estoy de nuevo. ¿Qué más hacemos?";
   function start(h) {
-    unlockAudio();
+    unlockAudio(); coroPreparar();
     var enChat = false, sono = true;
     /* Hablar con Claudio: quién habla ahora, si está hablando (para no cortarle la frase) y la serie de la conversación
        vigente (la que se cierra al cambiar de agente no termina la llamada). */
     var agente = "alma", habla = false, callada = 0, serie = 0, cambio = false, mod = null, colgo = false, convClaudio = "";
+    var coro = crearCoro(function () { return habla; }, function () { try { return !!vivo && vivo.getInputVolume() > 0.08; } catch (e) { return false; } });
     /* Lo que Juan respondió tocando el Panel de Claudio: Claudio lo sabe en esta misma conversación. */
     function alContexto(e) { var t = e && e.detail && e.detail.texto; if (!t || agente !== "claudio" || !vivo) return; try { vivo.sendContextualUpdate(String(t).slice(0, 600)); } catch (x) {} }
     w.addEventListener("sa-claudio-contexto", alContexto);
@@ -170,14 +237,17 @@
     agenteHalo("alma");
     sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
-    function terminada() { vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
+    function terminada() { coro.permitir(false); vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
     function abrir(f, m, u) {
       var yo = serie, claudio = agente === "claudio";
       var opt = {
         signedUrl: u, connectionType: "websocket", dynamicVariables: claudio ? (f.dynamic_variables || {}) : conCtx(f.dynamic_variables || {}),
         onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) vincular(x.conversationId, 0);
           if (claudio && x && x.conversationId) { convClaudio = x.conversationId; avisoClaudio("entra", convClaudio); } },   // Panel de Claudio: la lista al entrar
-        onAgentToolResponse: function (r) { if (yo !== serie || !claudio || !convClaudio || !r || !/^claudio_/.test(String(r.tool_name || ""))) return; avisoClaudio("herramienta", convClaudio); },
+        onAgentToolRequest: function (r) { if (yo !== serie || !r) return; coro.empieza(r.tool_call_id, String(r.tool_name || "")); },
+        onInterruption: function () { if (yo !== serie) return; coro.corta(); },
+        onAgentToolResponse: function (r) { if (yo !== serie || !r) return; coro.termina(r.tool_call_id);
+          if (!claudio || !convClaudio || !/^claudio_/.test(String(r.tool_name || ""))) return; avisoClaudio("herramienta", convClaudio); },
         onMessage: function (x) { if (!x || yo !== serie) return; var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
         onModeChange: function (x) { if (yo !== serie || !x) return; habla = x.mode === "speaking"; if (!habla) callada = Date.now(); if (!enChat) h.status(habla ? (claudio ? "Claudio habla" : "Alma habla") : "Te escucho"); },
         onDisconnect: function () { if (yo !== serie) return; terminada(); },
@@ -199,6 +269,10 @@
       opt.clientTools = ht;
       var fm = f.first_message; if (!claudio && f.first_message !== VUELTA && o.primerMensaje) { try { fm = o.primerMensaje() || fm; } catch (e) {} }
       if (fm || f.language) { opt.overrides = { agent: {} }; if (fm) opt.overrides.agent.firstMessage = fm; if (f.language) opt.overrides.agent.language = f.language; }
+      /* Coro: con Alma, las herramientas gemelas sin tecleo (tool_ids_app del Hub, voz.js vozGemelas_); Claudio ya no tiene tecleo. */
+      var sinTecleo = !claudio && f.tool_ids_app && f.tool_ids_app.length ? f.tool_ids_app : null;
+      if (sinTecleo) { opt.overrides = opt.overrides || { agent: {} }; opt.overrides.agent = opt.overrides.agent || {}; opt.overrides.agent.prompt = { tool_ids: sinTecleo }; }
+      coro.corta(); coro.permitir(claudio || !!sinTecleo);   // la conversación nueva (también al pasar a Claudio) empieza sin herramientas en curso
       return m.Conversation.startSession(opt);
     }
     /* Cambiar de agente (Hablar con Claudio y volver con Alma): se pide la conversación nueva mientras termina la frase de
@@ -242,7 +316,7 @@
       vivo = conv;
       /* Todo va a la conversación vigente (la de Alma o la de Claudio). */
       return {
-        end: function () { var c = vivo; colgo = true; vivo = null; saleClaudio(); agenteHalo("alma"); despedida(); try { c && c.endSession(); } catch (e) {} },
+        end: function () { var c = vivo; colgo = true; vivo = null; coro.permitir(false); saleClaudio(); agenteHalo("alma"); despedida(); try { c && c.endSession(); } catch (e) {} },
         level: function () { try { return vivo ? vivo.getOutputVolume() : 0; } catch (e) { return 0; } },
         sendText: function (t) { try { vivo.sendUserMessage(t); } catch (e) {} },
         mute: function (on) { try { vivo.setMicMuted(!!on); } catch (e) {} },

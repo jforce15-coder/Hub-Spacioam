@@ -136,7 +136,9 @@ function claudioDefHerramientas_(base) {
     return { type: 'webhook', name: name, description: desc, response_timeout_secs: espera || 20,
       api_schema: { url: base + '&h=' + name, method: 'POST', request_body_schema: { type: 'object', required: req, properties: Object.assign({ conv_id: conv, sa_web: firma }, props) } },
       tool_error_handling_mode: 'auto', execution_mode: 'post_tool_speech', pre_tool_speech: 'off', force_pre_tool_speech: false,
-      tool_call_sound: 'typing', tool_call_sound_behavior: 'always', interruption_mode: 'allow', disable_interruptions: false };
+      /* Sin tecleo (Juan, 17-nov-2026): Claudio vive solo en la app y en la web, y ahí suena el coro «Alma está trabajando»
+         (CoroTrabajo.swift · js/alma-voz.js). null borra el sonido que ya tenía en ElevenLabs. */
+      tool_call_sound: null, tool_call_sound_behavior: 'auto', interruption_mode: 'allow', disable_interruptions: false };
   };
   return [
     web('claudio_pedido', 'Crea un pedido de desarrollo con lo que Juan pidió, en ese mismo turno y sin repetírselo (se trabaja en segundo plano, se ve en la órbita y le llega un aviso cuando está). Pásale su pedido completo, con todos los datos que dio.',

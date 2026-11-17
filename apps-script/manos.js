@@ -5,6 +5,7 @@
      (senalar) y toca, escribe, baja o abre dentro de su propio navegador. Lo que compra, paga, envía, borra o confirma no
      se toca sin el sí de Juan (la app responde necesita_permiso). Contraseñas y tarjetas nunca: las escribe Juan.
    · Atajos de iOS: corre un atajo de la app Atajos por su nombre, solo si es un atajo permitido (Ajustes de la app).
+   · Apple Pay (#662): abrir_apple_pay abre la vista de pago (su atajo de Apple Pay o Wallet); nunca lee ni cobra tarjetas.
    La ficha de la llamada dice «NAVEGADOR DE ALMA: …» cuando la app las tiene (VozNativa.swift). Las web apps no las
    tienen: su voz (js/alma-voz.js) contesta que no existen y las reglas dicen que solo se usan con esa ficha.
    Idea de Atticus (github.com/SaarthurR/atticus-mac, MIT): «Draw on screen», el trabajo web en su propia ventana y «Safe by default». */
@@ -31,9 +32,12 @@ function vozManosHerramientas_() {
     cliente('abrir', 15, 'Abre una dirección web en el navegador de la app de Alma, o busca en Google lo que le pases. Solo páginas web.' + ' Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA».',
       { url: s('La dirección (p. ej. «https://…» o «amazon.com») o lo que hay que buscar.') }, ['url']),
     cliente('correr_atajo', 8, 'Corre un atajo de la app Atajos del iPhone de Juan por su nombre (p. ej. «Modo concentración»). Solo corren sus atajos permitidos: si responde permitido: false, dile que lo agregue en Ajustes → Atajos permitidos. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA».',
-      { nombre: s('El nombre del atajo, como lo dijo Juan.') }, ['nombre'])
+      { nombre: s('El nombre del atajo, como lo dijo Juan.') }, ['nombre']),
+    /* Apple Pay por voz (#662): Alma no lee las tarjetas de Wallet (iOS no deja); abre la vista de pago. La app corre su atajo
+       permitido con «Apple Pay», «Wallet» o «Cartera» en el nombre, o si no tiene, abre Wallet. No paga: Juan usa Face ID. */
+    cliente('abrir_apple_pay', 8, 'Abre Apple Pay en el iPhone de Juan para que pague (su atajo de Apple Pay si lo tiene en sus atajos permitidos, o la app Wallet con sus tarjetas). No paga ni lee las tarjetas: Juan elige la tarjeta, confirma con Face ID y acerca el teléfono. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA».')
   ];
 }
 /* Las reglas del prompt de voz (vozQuienBloque_, voz.js). Cortas: el prompt tiene presupuesto. */
 var VOZ_MANOS_REGLA_ = '· MANOS DE ALMA (solo si la ficha dice «NAVEGADOR DE ALMA»): si Juan pregunta «¿dónde toco…?» o «¿cómo hago…?» en la página, usa leer_pagina y senalar UN paso a la vez, con una etiqueta corta; espera a que lo haga o diga «listo» antes del siguiente. Si pide «llena…», «búscame…» o «haz clic…», hazlo tú paso a paso (tocar, escribir, bajar, abrir) y narra en corto («Escribo tu correo… listo»). Antes de comprar, pagar, enviar, borrar o confirmar (lo marcado con ⚠ o cuando la herramienta responde necesita_permiso) pregúntale siempre en una frase y repite con confirmado: true solo con su sí. Nunca escribas contraseñas ni números de tarjeta: dile que los escriba él. Di qué cambió; si la herramienta no pudo confirmar el resultado, dilo así.';
-var VOZ_ATAJOS_REGLA_ = '· ATAJOS DE iOS (solo si la ficha dice «ESTÁS EN LA APP DE ALMA»): si Juan pide correr uno de sus atajos («pon mi atajo de música»), usa correr_atajo con el nombre. Si responde permitido: false, dile que lo agregue en Ajustes → Atajos permitidos; no busques otro camino.';
+var VOZ_ATAJOS_REGLA_ = '· ATAJOS DE iOS (solo con «ESTÁS EN LA APP DE ALMA»): «pon mi atajo de música» → correr_atajo con el nombre; si responde permitido: false, dile que lo agregue en Ajustes → Atajos permitidos. Pagar con Apple Pay → abrir_apple_pay.';

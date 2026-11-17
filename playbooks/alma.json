@@ -164,6 +164,7 @@
       "bajar": { "canales": ["voz"], "linea": "Navegador: mueve la página." },
       "abrir": { "canales": ["voz"], "linea": "En la app: abre una página o una búsqueda." },
       "correr_atajo": { "canales": ["voz"], "linea": "En la app: corre uno de sus atajos permitidos de iPhone." },
+      "abrir_apple_pay": { "canales": ["voz"], "linea": "En la app: abre Apple Pay." },
       "anillo_estado": { "canales": ["voz"], "linea": "Anillo." },
       "anillo_medidas": { "canales": ["voz"], "linea": "Anillo." },
       "anillo_medir_ahora": { "canales": ["voz"], "linea": "Anillo." },

@@ -24,6 +24,16 @@ function identidadVozDe_(persona, adm) {
   try { return adm && esAdminPrincipal_(adm) ? IDENTIDAD_ALTER_EGOS_[p] : ''; } catch (e) { return ''; }
 }
 
+/* Hub #680: fuera de la llamada de la app (chat, WhatsApp), Alma no sabía quién era Maricarmen: si Juan la pedía, no pasaba
+   nada o buscaba a una persona. Si Juan la nombra (y no está hablando ya con ella), el turno suma esta pista. Solo entonces:
+   así no cuesta en los demás mensajes. */
+function identidadPistaAlter_(adm, texto) {
+  if (IDENTIDAD_VOZ_ || !/mar(?:i|y|ia)\s?[ck]armen/i.test(String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) return '';
+  try { if (!adm || !esAdminPrincipal_(adm)) return ''; } catch (e) { return ''; }
+  return '\nMARICARMEN: es tu alter ego de voz (no una persona ni un contacto: no la busques ni le escribas a nadie). Si Juan quiere hablar ' +
+    'o comunicarse con ella, dile en una frase cómo: en la llamada de la app de Alma (o con el Modo calle) diciendo «pásame con Maricarmen»; vuelve contigo con «pásame con Alma».';
+}
+
 /* La regla para el prompt del turno (vacía si habla Alma). */
 function identidadVozRegla_(nombre) {
   nombre = String(nombre || '').trim(); if (!nombre) return '';

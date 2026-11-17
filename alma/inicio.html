@@ -856,6 +856,18 @@
   .tvc-st[data-e="fallo"] > i { background: #C9584A; border-color: #C9584A; }
   .tvc-big { display: block; margin-top: 4px; font: 400 30px/1 Valky, "Cormorant Garamond", Georgia, serif; color: #3E3F3F; }
   .tvc-preg { border: 1.5px solid #E66A0E; }
+  /* Acciones de Claudio (apps-script/claudioacciones.js): lo que Juan tiene que hacer él, arriba del panel, con su botón. */
+  .tvc-acc { border: 1.5px solid #E66A0E; }
+  .tvc-ac { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-top: 1px solid #EEE9E4; }
+  .tvc-ac:first-of-type { border-top: 0; }
+  .tvc-ac .tvc-tx b { display: block; font: 600 13.5px/1.3 Montserrat, system-ui, sans-serif; overflow-wrap: anywhere; }
+  .tvc-ac.hecha b { color: #6F6867; font-weight: 500; text-decoration: line-through; text-decoration-color: rgba(111,104,103,.4); }
+  .tvc-acb { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+  .tvc-acb button, .tvc-acb a { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 0; display: inline-flex; align-items: center; font: 600 12px Montserrat, system-ui, sans-serif; color: #3E3F3F; background: #F3EFEA; text-decoration: none; cursor: pointer; transition: transform .14s cubic-bezier(.23,1,.32,1); }
+  .tvc-acb .p { background: linear-gradient(160deg, #FFB25E, #E66A0E); color: #fff; }
+  .tvc-acb button:active, .tvc-acb a:active { transform: scale(.97); }
+  .tvc-acb button:disabled { opacity: .5; }
+  .tvc-hilo { display: inline-block; margin-top: 8px; font: 600 11.5px Montserrat, system-ui, sans-serif; color: #9A4A0B; text-decoration: none; }
   @keyframes tvc-late { 50% { opacity: .45; } }
   @keyframes tvc-gira { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .tvc-barra i, .tvc-st > i { animation: none !important; } .tvc-op:active { transform: none; } }
@@ -3095,6 +3107,51 @@ window.SAPulso = {
     var d = el("div", "tvb-t " + cls); d.style.gridColumn = "span " + span; d.style.setProperty("--i", k);
     return d;
   }
+  /* Acciones de Claudio (apps-script/claudioacciones.js; Juan, 17-nov-2026): «te dejé dos acciones en pantalla». Arriba
+     del panel, cada una con su botón; «Hecho» (o la opción, o «Unir») va al Hub (claudioAccion) y Claudio se entera en la
+     llamada por el mismo camino de las opciones (la app nativa se lo dice; en el navegador, la voz de la página). Todo el
+     hilo, con lo que respondió y sus propuestas, en alma/claudio.html. */
+  var ACC_HECHAS = {};
+  function accionHub(id, eleccion) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null, s = null;
+    try { s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (x) {}
+    if (!d || !d.url) return Promise.resolve({ ok: false, error: "Sin conexión con el Hub." });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify({ hub: 1, action: "claudioAccion", token: d.token, session: s, id: id, eleccion: eleccion || "" }) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: "Sin conexión con el Hub." }; });
+  }
+  function accionC(a) {
+    var it = el("div", "tvc-ac" + (ACC_HECHAS[a.id] ? " hecha" : "")), tx = el("div", "tvc-tx");
+    tx.appendChild(el("b", "", a.titulo)); if (a.detalle) tx.appendChild(el("small", "tvc-p", a.detalle));
+    it.appendChild(el("span", "tvc-av", ACC_HECHAS[a.id] ? "✓" : "→")); it.appendChild(tx);
+    if (ACC_HECHAS[a.id]) return it;
+    var bs = el("div", "tvc-acb"), res = el("p", "tvc-res"); res.hidden = true;
+    function listo(eleccion, boton) {
+      Array.prototype.forEach.call(bs.querySelectorAll("button"), function (x) { x.disabled = true; });
+      accionHub(a.id, eleccion).then(function (r) {
+        if (!r || !r.ok) throw new Error((r && r.error) || "No se pudo.");
+        ACC_HECHAS[a.id] = 1; it.classList.add("hecha"); it.firstChild.textContent = "✓"; bs.remove();
+        avisarClaudio({ de: a.titulo }, eleccion || (a.tipo === "aprobar" ? "Lo uní" : "Hecho"));
+      }).catch(function (e) { Array.prototype.forEach.call(bs.querySelectorAll("button"), function (x) { x.disabled = false; }); res.hidden = false; res.className = "tvc-res mal"; res.textContent = e.message; });
+    }
+    function btn(txt, cls, fn) { var x = el("button", cls || "", txt); x.type = "button"; x.onclick = function (e) { e.stopPropagation(); fn(x); }; bs.appendChild(x); return x; }
+    var url = a.pantalla ? a.pantalla.u : a.enlace || a.imagen;
+    if (a.tipo === "elegir_opcion") (a.opciones || []).forEach(function (o) { btn(o.t, "", function (x) { listo(o.t, x); }); });
+    else if (a.tipo === "aprobar") btn("Unir" + (a.cual ? " " + a.cual : ""), "p", function (x) { listo("", x); });
+    else {
+      if (url) { var l = el("a", "p", a.destino === "llaves" ? "Abrir Llaves" : a.tipo === "ir_a_pantalla" ? "Ir" : "Abrir"); l.href = url; if (!a.pantalla) { l.target = "_blank"; l.rel = "noopener"; } bs.appendChild(l); }
+      else if (a.texto) btn("Copiar", "p", function (x) { try { navigator.clipboard.writeText(a.texto).then(function () { x.textContent = "Copiado"; }); } catch (e) {} });
+      btn("Hecho", "", function (x) { listo("", x); });
+    }
+    tx.appendChild(bs); tx.appendChild(res);
+    return it;
+  }
+  function accionesC(l, k) {
+    var c = cuadroC("tvc-acc", 6, k); c.appendChild(el("small", "tvb-k", l.length === 1 ? "Para ti · una acción" : "Para ti · " + l.length + " acciones"));
+    l.forEach(function (a) { c.appendChild(accionC(a)); });
+    var h = el("a", "tvc-hilo", "Ver todo en el hilo de Claudio ›"); h.href = "claudio.html"; c.appendChild(h);
+    return c;
+  }
   function pintarClaudio(t) {
     var b = el("section", "tvb tvc"); b.setAttribute("role", "group"); b.setAttribute("aria-label", "Claudio: " + (t.titulo || ""));
     var cab = el("header", "tvb-cab"), eti = el("span", "tvb-eti"); eti.appendChild(el("i")); eti.appendChild(document.createTextNode(t.etiqueta || "Claudio · Desarrollo")); cab.appendChild(eti);
@@ -3121,6 +3178,7 @@ window.SAPulso = {
       if (t.mas > 0) l.appendChild(el("p", "tvc-mas", "y " + t.mas + " más"));
       g.appendChild(l);
     }
+    if ((t.acciones || []).length) g.insertBefore(accionesC(t.acciones, k++), g.firstChild);
     b.appendChild(g);
     if (t.aviso) b.appendChild(el("p", "tvc-aviso", t.aviso));
     b.addEventListener("pointerdown", function () { hacer("toque"); }, { passive: true });
@@ -3687,6 +3745,17 @@ window.SAPulso = {
     probar: function (lista) { P.prueba = true; clearTimeout(P.t); aplicar(lista); },
     estado: function () { var av = avion(); return { modo: P.modo, avion: av && AV.en ? av.tipo : "", anillos: Object.keys(P.s).map(function (k) { var x = P.s[k]; return { id: x.id, tipo: x.tipo, estado: x.estado, sale: !!x.sale }; }) }; }
   };
+})();
+</script>
+<script>
+/* Las acciones de Claudio que llevan a Ajustes (claudioacciones.js, pantallas «ajustes» y «llaves»): inicio.html#ajustes o
+   #ajustes-llaves abre Ajustes y baja a Llaves. Bloque aparte: no toca Ajustes; si su botón o su título cambian, no hace nada. */
+(function () {
+  var h = location.hash; if (h !== "#ajustes" && h !== "#ajustes-llaves") return;
+  setTimeout(function () {
+    var b = document.getElementById("b-ajustes"); if (!b) return; b.click();
+    if (h === "#ajustes-llaves") setTimeout(function () { var t = document.getElementById("t-llaves"); if (t && !t.hidden) t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 500);
+  }, 1200);
 })();
 </script>
 </body>

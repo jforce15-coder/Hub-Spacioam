@@ -345,6 +345,12 @@ function paraClaudeRespuesta_(b) {
     var pide = String(b.pide || '').replace(/\s+/g, ' ').trim().slice(0, 300);
     if (pide && v[i][15]) { try { if (biblioPedir_(String(v[i][15]), String(v[i][6]), pide)) cuerpoR += '\n\nClaudio necesita: ' + pide + '. Compártelo en Ajustes › Biblioteca de Claudio y le llega solo.'; } catch (e) { console.error('biblioPedir_: ' + e); } }
     /* Su microproyecto (#374): la respuesta entra al historial y cambia el estado (pregunta, listo para unir…). */
+    /* Lo que Juan tiene que hacer él (claudioacciones.js): tarjetas con botón en el hilo de Claudio y en su panel. */
+    var accs = null;
+    if (Array.isArray(b.acciones) && b.acciones.length) {
+      try { var dAcc = (v[i][14] && adminPorEmail_(String(v[i][14]))) || chatPrincipal_(); if (dAcc) accs = claudioAccCrear_(dAcc, b.acciones, { micro: String(v[i][15] || ''), origen: 'claude' }); } catch (e) { console.error('claudioAccCrear_: ' + e); }
+      if (accs && accs.ok && accs.creadas.length) cuerpoR += '\n\nTe dejé ' + accs.creadas.length + (accs.creadas.length === 1 ? ' acción' : ' acciones') + ' en el hilo de Claudio: hub.spacioam.com/alma/claudio.html';
+    }
     var m = null; if (v[i][15]) { try { m = microRespuesta_(String(v[i][15]), { estado: estado, voz: voz, detalle: b.detalle, enlaces: enlaces, rama: b.rama }, cuerpoR); } catch (e) { console.error('microRespuesta_: ' + e); } }
     if (m) titulo = m.nombre;
     var texto = (estado === 'pregunta' ? 'Pregunta · ' : estado === 'fallo' ? 'No se pudo · ' : 'Listo · ') + titulo + '\n\n' +

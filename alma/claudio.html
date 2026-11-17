@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#B9ABAE">
+<title>Claudio · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Hilo de Claudio (Juan, 17-nov-2026: «que fuese como hablar contigo aquí, con acciones, y que Claudio me fuera dando
+     propuestas, respuestas, estuviéramos discutiendo»). Como la conversación con Claude Code: las burbujas de Juan y de
+     Claudio (su chat de Propósito · Desarrollo), las ACCIONES DE CLAUDIO como tarjetas con su botón (abrir, copiar, pegar,
+     elegir A/B, unir, ver una captura, ir a una pantalla) y el estado de cada trabajo en el mismo hilo. Abajo se le escribe.
+     apps-script/claudioacciones.js: acciones «claudioHilo», «claudioEscribir» y «claudioAccion». Solo el principal.
+     Se ve igual en la app (iPhone y iPad: es la misma página) y en el navegador. Sin roca: es la conversación con Claudio,
+     y su marca es la «C» con su halo naranja. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #6F6867; --tenue: #A39B93; --linea: rgba(62,63,63,.10);
+    --alabastro: #FAF8F6; --papel: rgba(255,255,255,.9); --c1: #FFB25E; --c2: #E66A0E; --c-t: #9A4A0B; --c-f: #FFF4EA;
+    --ok: #3D6B52; --ok-f: #E3EFDD; --mal: #9E3326; --info: #3B6691;
+    --ease: cubic-bezier(.23,1,.32,1); --ancho: 760px; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent;
+    background: #B9ABAE url("../assets/alma/atardecer-difuso.jpg") center / cover no-repeat fixed; }
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(250,248,246,.10), rgba(250,248,246,.38) 60%, rgba(250,248,246,.55)); }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; }
+  button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid var(--c2); outline-offset: 2px; }
+
+  /* Vidrio (ios-liquid-glass): escarcha + color + borde de luz arriba; sin backdrop-filter, más blanco. */
+  .vidrio { background: rgba(255,255,255,.55); -webkit-backdrop-filter: blur(22px) saturate(180%) brightness(1.06); backdrop-filter: blur(22px) saturate(180%) brightness(1.06);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.75), inset 0 0 0 1px rgba(255,255,255,.35), 0 18px 40px -26px rgba(60,40,35,.55); }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .vidrio { background: rgba(250,248,246,.94); } }
+  @media (prefers-reduced-transparency: reduce) { .vidrio { background: rgba(250,248,246,.97); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+  /* Arriba: volver, quién es y cuántas acciones esperan */
+  .cab { position: fixed; z-index: 5; left: 0; right: 0; top: 0; padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); }
+  .cab-in { max-width: var(--ancho); margin: 0 auto; display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 8px; border-radius: 999px; }
+  .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: rgba(255,255,255,.8); display: grid; place-items: center; color: var(--tinta); text-decoration: none; cursor: pointer; transition: transform 140ms var(--ease); }
+  .redondo:active { transform: scale(.94); }
+  .redondo svg { width: 20px; height: 20px; }
+  .quien { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
+  .c { flex: none; width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; color: #fff; font: 600 14px Montserrat, sans-serif;
+    background: linear-gradient(160deg, var(--c1), var(--c2)); box-shadow: 0 0 0 3px rgba(255,178,94,.32); }
+  .quien b { display: block; font: 600 14.5px/1.2 Montserrat, sans-serif; }
+  .quien small { display: block; font: 500 11.5px/1.3 Montserrat, sans-serif; color: var(--suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pend { flex: none; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 0; background: linear-gradient(160deg, var(--c1), var(--c2)); color: #fff; font: 600 11.5px Montserrat, sans-serif; cursor: pointer; }
+
+  /* El hilo */
+  main { position: relative; max-width: var(--ancho); margin: 0 auto; padding: calc(max(10px, env(safe-area-inset-top)) + 84px) max(16px, env(safe-area-inset-right)) 150px max(16px, env(safe-area-inset-left)); }
+  .dia { margin: 18px 0 10px; text-align: center; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: rgba(62,63,63,.6); }
+  .it { margin: 10px 0; opacity: 1; transform: none; transition: opacity 260ms var(--ease), transform 320ms var(--ease); }
+  .it.entra { opacity: 0; transform: translateY(8px); }
+  @media (prefers-reduced-motion: reduce) { .it { transition: opacity 200ms ease; } .it.entra { transform: none; } }
+
+  .msg { display: flex; gap: 10px; align-items: flex-end; }
+  .msg .c { width: 28px; height: 28px; border-radius: 10px; font-size: 12px; }
+  .burbuja { max-width: min(560px, 84%); padding: 11px 14px; border-radius: 22px 22px 22px 8px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.5; }
+  .msg.juan { justify-content: flex-end; }
+  .msg.juan .burbuja { border-radius: 22px 22px 8px 22px; background: linear-gradient(160deg, #F4A35B, #E2752A); color: #fff; box-shadow: 0 14px 30px -22px rgba(150,70,20,.8); }
+  .burbuja .de { display: block; margin-bottom: 2px; font: 600 10px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--c-t); }
+  .burbuja .de i { font-style: normal; color: var(--tenue); letter-spacing: .06em; text-transform: none; font-weight: 500; }
+
+  /* Tarjeta de acción: lo que Juan tiene que hacer él, con su botón */
+  .acc { margin-left: 38px; padding: 14px; border-radius: 22px; background: rgba(255,255,255,.92); box-shadow: inset 0 0 0 1.5px rgba(230,106,14,.55), 0 18px 40px -28px rgba(70,50,40,.5); }
+  .acc-cab { display: flex; gap: 11px; align-items: flex-start; }
+  .acc-ic { flex: none; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: var(--c-f); color: var(--c2); }
+  .acc-ic svg { width: 18px; height: 18px; }
+  .acc-tx { flex: 1; min-width: 0; }
+  .acc-k { display: block; font: 600 9.5px Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--c-t); }
+  .acc-t { display: block; margin-top: 2px; font: 600 15px/1.35 Montserrat, sans-serif; overflow-wrap: anywhere; }
+  .acc-d { display: block; margin-top: 3px; font-size: 13px; line-height: 1.45; color: var(--suave); overflow-wrap: anywhere; }
+  .acc-txt { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: #F6F2EE; font: 500 12.5px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow: auto; }
+  .acc-img { display: block; width: 100%; margin-top: 10px; border-radius: 14px; background: #F3EFEA; aspect-ratio: 16 / 10; object-fit: cover; }
+  .acc-bs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .b { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; cursor: pointer; font: 600 12.5px Montserrat, sans-serif; display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    transition: transform 140ms var(--ease), opacity 200ms ease, background-color 200ms ease; }
+  .b:active { transform: scale(.97); }
+  .b.p { background: linear-gradient(160deg, var(--c1), var(--c2)); color: #fff; box-shadow: 0 10px 22px -14px rgba(180,80,10,.9); }
+  .b.s { background: #F3EFEA; color: var(--tinta); }
+  .b:disabled { opacity: .55; cursor: default; transform: none; }
+  .ops { display: grid; gap: 8px; margin-top: 12px; }
+  .ops.img { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+  .op { min-height: 44px; text-align: left; border: 1px solid #EEE9E4; background: #fff; border-radius: 14px; padding: 10px 12px; cursor: pointer; font: 500 13.5px/1.35 Montserrat, sans-serif;
+    transition: transform 140ms var(--ease), border-color 200ms ease, background-color 200ms ease; }
+  .op:active { transform: scale(.98); }
+  .op img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; margin-bottom: 8px; background: #F3EFEA; }
+  .op[aria-pressed="true"] { border-color: var(--c2); background: var(--c-f); }
+  .op:disabled:not([aria-pressed="true"]) { opacity: .45; cursor: default; }
+  .res { margin: 8px 0 0; font-size: 12.5px; color: var(--ok); }
+  .res.mal { color: var(--mal); }
+  /* Hecha: se pliega a una línea con su check (fundido, sin saltos) */
+  .acc.hecha { background: rgba(255,255,255,.62); box-shadow: inset 0 0 0 1px rgba(62,63,63,.08); padding: 10px 14px; }
+  .acc.hecha .acc-ic { background: var(--ok-f); color: var(--ok); }
+  .acc.hecha .acc-t { font-weight: 500; color: var(--suave); }
+  .acc.hecha .acc-d, .acc.hecha .acc-bs, .acc.hecha .acc-txt, .acc.hecha .ops, .acc.hecha .acc-img { display: none; }
+  .acc.hecha .acc-k { color: var(--ok); }
+
+  /* Estado de un trabajo, como en el Panel de Claudio */
+  .est { margin-left: 38px; padding: 12px 14px; border-radius: 18px; }
+  .est-f { display: flex; gap: 10px; align-items: center; }
+  .est-n { flex: 1; min-width: 0; font: 600 13.5px/1.3 Montserrat, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chip { flex: none; font: 600 10px Montserrat, sans-serif; padding: 4px 9px; border-radius: 999px; background: #FCE3CC; color: var(--c-t); }
+  .chip[data-e="listo"] { background: var(--ok-f); color: var(--ok); }
+  .chip[data-e="fallo"] { background: #F6DCD7; color: var(--mal); }
+  .chip[data-e="revisando"] { background: rgba(232,237,243,.96); color: var(--info); }
+  .est-p { display: block; margin-top: 3px; font-size: 12px; color: var(--suave); }
+  .barra { display: flex; gap: 3px; height: 5px; margin-top: 8px; }
+  .barra i { flex: 1; border-radius: 3px; background: rgba(62,63,63,.12); }
+  .barra i[data-e="hecho"] { background: var(--c2); }
+  .barra i[data-e="en_curso"] { background: linear-gradient(90deg, var(--c1), var(--c2)); animation: late 1.8s ease-in-out infinite; }
+  .barra i[data-e="espera"] { background: var(--c1); }
+  .barra i[data-e="fallo"] { background: #C9584A; }
+  .est .ops { margin-top: 10px; }
+  .est .q { margin: 8px 0 0; font-size: 13px; line-height: 1.45; }
+  @keyframes late { 50% { opacity: .45; } }
+
+  /* Claudio escribiendo */
+  .esc { display: inline-flex; gap: 4px; padding: 14px 16px; border-radius: 22px 22px 22px 8px; }
+  .esc i { width: 6px; height: 6px; border-radius: 50%; background: var(--c2); opacity: .35; animation: punto 1.2s ease-in-out infinite; }
+  .esc i:nth-child(2) { animation-delay: .15s; } .esc i:nth-child(3) { animation-delay: .3s; }
+  @keyframes punto { 40% { opacity: 1; transform: translateY(-2px); } }
+  @media (prefers-reduced-motion: reduce) { .barra i, .esc i { animation: none !important; } .esc i { opacity: .7; } .b:active, .op:active, .redondo:active { transform: none; } }
+
+  .vacio { margin: 30px 0; padding: 22px; border-radius: 24px; text-align: center; }
+  .vacio h1 { margin: 0 0 6px; font: 400 32px/1.08 Valky, Georgia, serif; letter-spacing: -.01em; }
+  .vacio p { margin: 0 auto; max-width: 46ch; font-size: 14px; color: var(--suave); }
+  .aviso { margin: 10px 0; padding: 10px 14px; border-radius: 16px; font-size: 12.5px; color: var(--mal); background: rgba(255,255,255,.85); }
+
+  /* Abajo: escribirle a Claudio */
+  .pie { position: fixed; z-index: 5; left: 0; right: 0; bottom: 0; padding: 10px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  .pie-in { max-width: var(--ancho); margin: 0 auto; display: flex; align-items: flex-end; gap: 8px; padding: 6px 6px 6px 16px; border-radius: 26px; }
+  .pie textarea { flex: 1; min-height: 44px; max-height: 160px; resize: none; border: 0; background: transparent; padding: 11px 0; font: 500 15px/1.45 Montserrat, sans-serif; color: var(--tinta); outline: none; }
+  .pie textarea::placeholder { color: rgba(62,63,63,.5); }
+  .enviar { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; color: #fff; cursor: pointer;
+    background: linear-gradient(160deg, var(--c1), var(--c2)); transition: transform 140ms var(--ease), opacity 200ms ease; }
+  .enviar:active { transform: scale(.94); }
+  .enviar:disabled { opacity: .4; cursor: default; }
+  .enviar svg { width: 20px; height: 20px; }
+  .pie-av { max-width: var(--ancho); margin: 0 auto 6px; padding: 0 6px; font-size: 12px; color: var(--mal); }
+  @media (min-width: 900px) { .acc, .est { margin-left: 38px; max-width: 600px; } }
+</style>
+</head>
+<body>
+<header class="cab"><div class="cab-in vidrio">
+  <a class="redondo" href="inicio.html" aria-label="Volver al inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <div class="quien"><span class="c" aria-hidden="true">C</span><span style="min-width:0"><b>Claudio</b><small id="sub">Desarrollo de Spacio AM</small></span></div>
+  <button type="button" class="pend" id="pend" hidden></button>
+  <button type="button" class="redondo" id="b-recargar" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></button>
+</div></header>
+<main id="hilo" aria-live="polite" aria-busy="true"></main>
+<footer class="pie">
+  <p class="pie-av" id="pie-av" role="alert" hidden></p>
+  <form class="pie-in vidrio" id="forma" autocomplete="off">
+    <textarea id="texto" rows="1" placeholder="Escríbele a Claudio" aria-label="Mensaje para Claudio" enterkeyhint="send"></textarea>
+    <button type="submit" class="enviar" id="enviar" aria-label="Enviar" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg></button>
+  </form>
+</footer>
+<script>
+(function () {
+  "use strict";
+  var URL = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  var $ = function (id) { return document.getElementById(id); };
+  var QUIETO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function pedir(accion, extra) {
+    if (window.ALMA_CLAUDIO) return Promise.resolve(window.ALMA_CLAUDIO(accion, extra || {}));   // para probar la página con datos de ejemplo
+    var ses = window.SASesion && SASesion.leer && SASesion.leer();
+    if (!ses) return Promise.resolve({ ok: false, error: "Entra primero al Hub con tu usuario y vuelve a abrir esta página." });
+    return fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify(Object.assign({ hub: 1, action: accion, session: ses }, extra || {})) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet e intenta de nuevo." }; });
+  }
+  /* La app de iPhone: si hay una llamada con Claudio, le cuenta lo que Juan hizo en pantalla (VozNativa.panelClaudio). */
+  function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
+  function contarAClaudio(titulo, texto) {
+    nativa({ accion: "voz", que: "claudioPanel", hacer: "respondio", nombre: titulo || "", texto: texto || "Hecho" });
+  }
+  /* Lo mismo que el Hub: algo que parece una llave no sale de aquí. */
+  var LLAVE = /\b(sk-[A-Za-z0-9_-]{12,}|sk_(live|test)_[A-Za-z0-9]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,})|(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])\b[A-Za-z0-9_-]{36,}\b/;
+  var IC = {
+    abrir_enlace: '<path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    copiar_texto: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+    pegar_en: '<path d="M9 4h6v3H9z"/><path d="M15 5h3a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3"/>',
+    elegir_opcion: '<rect x="3" y="4" width="8" height="16" rx="2"/><rect x="13" y="4" width="8" height="16" rx="2"/>',
+    aprobar: '<circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="12" r="2.2"/><path d="M6 8.2v7.6"/><path d="M8 6c5 0 8 2 8 4"/>',
+    ver_captura: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/>',
+    ir_a_pantalla: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/>',
+    hecho: '<path d="M5 12.5l4.5 4.5L19 7.5"/>'
+  };
+  var K = { abrir_enlace: "Abre", copiar_texto: "Copia", pegar_en: "Pega", elegir_opcion: "Elige", aprobar: "Aprueba", ver_captura: "Revisa", ir_a_pantalla: "Ve a" };
+  function icono(tipo) { var s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 24 24"); s.setAttribute("fill", "none"); s.setAttribute("stroke", "currentColor"); s.setAttribute("stroke-width", "1.8"); s.setAttribute("stroke-linecap", "round"); s.setAttribute("stroke-linejoin", "round"); s.setAttribute("aria-hidden", "true"); s.innerHTML = IC[tipo] || IC.hecho; return s; }
+  function hora(ts) { var d = new Date(ts); return isNaN(d) ? "" : d.toLocaleTimeString("es", { hour: "numeric", minute: "2-digit" }); }
+  function dia(ts) {
+    var d = new Date(ts), h = new Date(); if (isNaN(d)) return "";
+    var a = new Date(h.getFullYear(), h.getMonth(), h.getDate()).getTime(), x = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    return x === a ? "Hoy" : x === a - 86400000 ? "Ayer" : d.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "short" });
+  }
+
+  var H = { items: [], ids: {}, esperando: false, primera: true, local: {} };
+  function aviso(t) { var a = $("pie-av"); a.textContent = t || ""; a.hidden = !t; }
+  function pegarAbajo(suave) { var y = document.documentElement.scrollHeight; try { window.scrollTo({ top: y, behavior: suave && !QUIETO ? "smooth" : "auto" }); } catch (e) { window.scrollTo(0, y); } }
+  function cercaDelFinal() { return window.innerHeight + window.scrollY > document.documentElement.scrollHeight - 220; }
+
+  /* ── Burbujas ── */
+  function burbuja(m) {
+    var f = el("div", "msg " + (m.de === "juan" ? "juan" : "claudio"));
+    if (m.de !== "juan") { var c = el("span", "c", "C"); c.setAttribute("aria-hidden", "true"); f.appendChild(c); }
+    var b = el("div", "burbuja" + (m.de === "juan" ? "" : " vidrio"));
+    if (m.de !== "juan") { var de = el("span", "de", "Claudio "); de.appendChild(el("i", "", (m.canal === "claude" ? "trabajando · " : m.canal === "llamada" ? "en la llamada · " : "") + hora(m.ts))); b.appendChild(de); }
+    b.appendChild(document.createTextNode(m.texto || ""));
+    f.appendChild(b); return f;
+  }
+
+  /* ── Tarjeta de acción ── */
+  function resultado(caja, t, mal) { var r = caja.querySelector(".res") || caja.appendChild(el("p", "res")); r.className = "res" + (mal ? " mal" : ""); r.textContent = t; r.setAttribute("role", mal ? "alert" : "status"); }
+  function marcarHecha(card, a, eleccion) {
+    a.estado = "hecho"; if (eleccion) a.eleccion = eleccion;
+    card.classList.add("hecha");
+    card.querySelector(".acc-ic").replaceChildren(icono("hecho"));
+    card.querySelector(".acc-k").textContent = "Hecho" + (eleccion ? " · elegiste " + eleccion : "");
+    pintarCabeza();
+  }
+  function hecho(card, a, eleccion, boton) {
+    var bs = card.querySelectorAll("button"); Array.prototype.forEach.call(bs, function (x) { x.disabled = true; });
+    if (boton) boton.setAttribute("aria-pressed", "true");
+    resultado(card, a.tipo === "aprobar" ? "Uniendo…" : "Avisándole a Claudio…");
+    pedir("claudioAccion", { id: a.id, eleccion: eleccion || "" }).then(function (r) {
+      if (!r || !r.ok) throw new Error((r && r.error) || "No se pudo.");
+      contarAClaudio(a.titulo, eleccion || (a.tipo === "aprobar" ? "Lo uní" : "Hecho"));
+      try { window.dispatchEvent(new CustomEvent("sa-claudio-contexto", { detail: { texto: r.aviso || "" } })); } catch (x) {}
+      H.local[a.id] = { estado: "hecho", eleccion: eleccion };
+      marcarHecha(card, a, eleccion);
+      resultado(card, a.tipo === "aprobar" ? "Quedó unido; se publica solo." : r.siguio ? "Le llegó a Claudio: sigue con el trabajo." : "Listo, Claudio ya lo sabe.");
+    }).catch(function (e) {
+      Array.prototype.forEach.call(bs, function (x) { x.disabled = false; }); if (boton) boton.setAttribute("aria-pressed", "false");
+      resultado(card, (e && e.message) || "No se pudo.", true);
+    });
+  }
+  function copiar(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t);
+    return new Promise(function (ok, mal) { var x = el("textarea"); x.value = t; x.style.position = "fixed"; x.style.opacity = "0"; document.body.appendChild(x); x.select(); try { document.execCommand("copy") ? ok() : mal(); } catch (e) { mal(); } x.remove(); });
+  }
+  function boton(txt, cls, fn) { var b = el("button", "b " + cls, txt); b.type = "button"; b.onclick = fn; return b; }
+  function tarjetaAccion(a) {
+    var card = el("section", "it acc"); card.setAttribute("aria-label", "Acción: " + a.titulo);
+    var cab = el("div", "acc-cab"), ic = el("span", "acc-ic"); ic.appendChild(icono(a.tipo)); cab.appendChild(ic);
+    var tx = el("div", "acc-tx"); tx.appendChild(el("span", "acc-k", "Para ti · " + (K[a.tipo] || "Acción")));
+    tx.appendChild(el("span", "acc-t", a.titulo)); if (a.detalle) tx.appendChild(el("span", "acc-d", a.detalle));
+    cab.appendChild(tx); card.appendChild(cab);
+    var bs = el("div", "acc-bs"), listo = boton("Hecho", "s", function () { hecho(card, a, "", listo); });
+    if (a.texto) card.appendChild(el("pre", "acc-txt", a.texto));
+    if (a.imagen) { var im = el("img", "acc-img"); im.src = a.imagen; im.alt = a.titulo; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; card.appendChild(im); }
+    if (a.tipo === "elegir_opcion") {
+      var conImg = (a.opciones || []).some(function (o) { return o.imagen; }), ops = el("div", "ops" + (conImg ? " img" : ""));
+      ops.setAttribute("role", "group"); ops.setAttribute("aria-label", "Opciones");
+      (a.opciones || []).forEach(function (o) {
+        var b = el("button", "op"); b.type = "button"; b.setAttribute("aria-pressed", String(a.eleccion === o.t));
+        if (o.imagen) { var i = el("img"); i.src = o.imagen; i.alt = ""; i.loading = "lazy"; i.referrerPolicy = "no-referrer"; b.appendChild(i); }
+        b.appendChild(document.createTextNode(o.t));
+        b.onclick = function () { hecho(card, a, o.t, b); };
+        ops.appendChild(b);
+      });
+      card.appendChild(ops);
+    } else {
+      if (a.tipo === "abrir_enlace" || a.tipo === "ver_captura" && a.enlace) bs.appendChild(boton("Abrir", "p", function () { window.open(a.enlace || a.imagen, "_blank", "noopener"); }));
+      if (a.tipo === "copiar_texto") bs.appendChild(boton("Copiar", "p", function () { var b = this; copiar(a.texto).then(function () { b.textContent = "Copiado"; }, function () { b.textContent = "No se pudo copiar"; }); }));
+      if (a.tipo === "pegar_en") {
+        var dest = a.pantalla ? a.pantalla.u : a.enlace, nom = a.destino === "llaves" ? "Abrir Llaves" : a.destino === "github_secretos" ? "Abrir GitHub" : a.texto ? "Copiar y abrir" : "Abrir";
+        bs.appendChild(boton(nom, "p", function () { var ir = function () { if (a.pantalla) location.href = dest; else window.open(dest, "_blank", "noopener"); }; if (a.texto) copiar(a.texto).then(ir, ir); else ir(); }));
+      }
+      if (a.tipo === "ir_a_pantalla" && a.pantalla) bs.appendChild(boton("Ir a " + a.pantalla.t, "p", function () { location.href = a.pantalla.u; }));
+      if (a.tipo === "aprobar") { var u = boton("Unir" + (a.cual ? " " + a.cual : ""), "p", function () { hecho(card, a, "", u); }); bs.appendChild(u); }
+      if (a.tipo !== "aprobar") bs.appendChild(listo);
+      card.appendChild(bs);
+    }
+    if (a.estado !== "pendiente") marcarHecha(card, a, a.eleccion);
+    return card;
+  }
+
+  /* ── Estado de un trabajo (y su pregunta, por el camino de Pendientes) ── */
+  var ETAPA = { pregunta: "Te pregunta", fallo: "Falló", listo: "Listo para unir", revisando: "Revisando", escribiendo: "Escribiendo" };
+  function tarjetaEstado(t) {
+    var c = el("section", "it est vidrio"); c.setAttribute("aria-label", "Trabajo: " + t.nombre);
+    var f = el("div", "est-f"); f.appendChild(el("span", "est-n", t.nombre)); var ch = el("span", "chip", ETAPA[t.etapa] || t.etapa); ch.setAttribute("data-e", t.etapa); f.appendChild(ch); c.appendChild(f);
+    c.appendChild(el("span", "est-p", t.paso + (t.cual ? " · " + t.cual : "")));
+    var br = el("span", "barra"); br.setAttribute("role", "img"); br.setAttribute("aria-label", (ETAPA[t.etapa] || "") + ": paso " + ((t.indice || 0) + 1) + " de " + (t.total || 0));
+    (t.pasos || []).forEach(function (e) { var i = el("i"); i.setAttribute("data-e", e); br.appendChild(i); }); c.appendChild(br);
+    if (t.pregunta) {
+      c.appendChild(el("p", "q", t.pregunta.texto));
+      if ((t.pregunta.opciones || []).length) {
+        var ops = el("div", "ops");
+        t.pregunta.opciones.forEach(function (op) {
+          var b = el("button", "op", op); b.type = "button";
+          b.onclick = function () {
+            Array.prototype.forEach.call(ops.querySelectorAll("button"), function (x) { x.disabled = true; }); b.setAttribute("aria-pressed", "true");
+            pedir("pendienteResponder", { id: t.pregunta.id, texto: op }).then(function (r) {
+              if (!r || !r.ok) throw new Error((r && r.error) || "No se pudo.");
+              resultado(c, "Listo, le llegó a Claudio: «" + op + "».");
+              contarAClaudio(t.nombre, op);
+            }).catch(function (e) { Array.prototype.forEach.call(ops.querySelectorAll("button"), function (x) { x.disabled = false; }); b.setAttribute("aria-pressed", "false"); resultado(c, e.message, true); });
+          };
+          ops.appendChild(b);
+        });
+        c.appendChild(ops);
+      }
+    } else if (t.une) {
+      var bs = el("div", "acc-bs"); bs.appendChild(boton("Pedir que lo una", "p", function () { mandar("Une " + (t.cual || t.nombre)); })); c.appendChild(bs);
+    }
+    return c;
+  }
+
+  /* ── Pintar: solo lo nuevo entra con su fundido; lo que ya estaba no se vuelve a armar ── */
+  function clave(x) { return x.k + ":" + x.id + ":" + (x.k === "estado" ? x.etapa + x.paso + (x.pregunta ? 1 : 0) : x.k === "accion" ? x.estado : ""); }
+  function pintarCabeza() {
+    var n = H.items.filter(function (x) { return x.k === "accion" && x.estado === "pendiente"; }).length, p = $("pend");
+    p.hidden = !n; p.textContent = n === 1 ? "1 acción" : n + " acciones"; p.setAttribute("aria-label", n + (n === 1 ? " acción" : " acciones") + " para ti; ir a la primera");
+  }
+  function pintar(items) {
+    var main = $("hilo"), abajo = H.primera || cercaDelFinal();
+    items = items.map(function (x) { var l = x.k === "accion" && H.local[x.id]; if (l && x.estado === "pendiente") { x.estado = l.estado; x.eleccion = l.eleccion; } return x; });
+    /* Cada trabajo se ve una vez, en su último estado: el de antes se quita. */
+    var ant = {}; H.items.forEach(function (x) { ant[clave(x)] = 1; });
+    H.items = items; main.setAttribute("aria-busy", "false");
+    if (!items.length) {
+      main.replaceChildren(); var v = el("div", "vacio vidrio"); v.appendChild(el("h1", "", "Hola, soy Claudio"));
+      v.appendChild(el("p", "", "Cuéntame qué quieres construir o arreglar. Te respondo, te propongo opciones y, cuando haga falta que hagas algo, te lo dejo aquí como una tarjeta con su botón."));
+      main.appendChild(v); pintarCabeza(); return;
+    }
+    var frag = document.createDocumentFragment(), ultimoDia = "", nuevos = [];
+    items.forEach(function (x) {
+      var d = dia(x.ts); if (d && d !== ultimoDia) { frag.appendChild(el("p", "dia", d)); ultimoDia = d; }
+      var n = x.k === "msg" ? el("div", "it") : null;
+      if (n) n.appendChild(burbuja(x)); else n = x.k === "accion" ? tarjetaAccion(x) : tarjetaEstado(x);
+      if (!H.primera && !ant[clave(x)]) { n.classList.add("entra"); nuevos.push(n); }
+      frag.appendChild(n);
+    });
+    if (H.esperando) frag.appendChild(escribiendo());
+    main.replaceChildren(frag);
+    if (nuevos.length) requestAnimationFrame(function () { requestAnimationFrame(function () { nuevos.forEach(function (n, i) { n.style.transitionDelay = Math.min(i, 4) * 40 + "ms"; n.classList.remove("entra"); }); }); });
+    pintarCabeza();
+    if (abajo) pegarAbajo(!H.primera);
+    H.primera = false;
+  }
+  function escribiendo() { var f = el("div", "it msg claudio"); f.id = "escribiendo"; var c = el("span", "c", "C"); c.setAttribute("aria-hidden", "true"); f.appendChild(c); var b = el("div", "esc vidrio"); b.setAttribute("aria-label", "Claudio está escribiendo"); b.appendChild(el("i")); b.appendChild(el("i")); b.appendChild(el("i")); f.appendChild(b); return f; }
+
+  function cargar() {
+    return pedir("claudioHilo").then(function (r) {
+      if (!r || !r.ok) { if (H.primera) { var m = $("hilo"); m.replaceChildren(el("p", "aviso", (r && r.error) || "No pude cargar el hilo.")); m.setAttribute("aria-busy", "false"); } return; }
+      $("sub").textContent = r.github === "ok" ? "Desarrollo de Spacio AM" : "GitHub no respondió: el estado puede ir atrasado";
+      pintar(r.items || []);
+    });
+  }
+
+  /* ── Escribirle ── */
+  var T = $("texto");
+  function ajustarAlto() { T.style.height = "auto"; T.style.height = Math.min(160, T.scrollHeight) + "px"; $("enviar").disabled = !T.value.trim() || H.esperando; }
+  T.addEventListener("input", function () { ajustarAlto(); aviso(LLAVE.test(T.value) ? "Eso parece una llave. No la pongas en el chat: guárdala en Ajustes → Llaves." : ""); });
+  T.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && matchMedia("(pointer: fine)").matches) { e.preventDefault(); $("forma").requestSubmit(); } });
+  function mandar(texto) {
+    texto = String(texto || "").trim(); if (!texto || H.esperando) return;
+    if (LLAVE.test(texto)) { aviso("Eso parece una llave. No la pongas en el chat: guárdala en Ajustes → Llaves."); return; }
+    aviso(""); H.esperando = true;
+    var yo = { k: "msg", id: "local" + Date.now(), de: "juan", texto: texto, ts: Date.now() };
+    pintar(H.items.concat([yo])); T.value = ""; ajustarAlto(); pegarAbajo(true);
+    pedir("claudioEscribir", { texto: texto }).then(function (r) {
+      H.esperando = false;
+      if (!r || !r.ok) { aviso((r && r.error) || "No le llegó a Claudio. Intenta de nuevo."); T.value = texto; ajustarAlto(); H.items = H.items.filter(function (x) { return x !== yo; }); return cargar(); }
+      return cargar();
+    }).then(ajustarAlto);
+  }
+  $("forma").onsubmit = function (e) { e.preventDefault(); mandar(T.value); };
+  $("pend").onclick = function () { var a = document.querySelector(".acc:not(.hecha)"); if (a) a.scrollIntoView({ behavior: QUIETO ? "auto" : "smooth", block: "center" }); };
+  $("b-recargar").onclick = cargar;
+  /* Se pone al día solo mientras se ve (Claudio contesta de fondo cuando termina un pedido). */
+  setInterval(function () { if (!document.hidden && !H.esperando) cargar(); }, 25000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) cargar(); });
+  var q = /[?&]t=([^&]+)/.exec(location.search); if (q) { T.value = decodeURIComponent(q[1]).slice(0, 500); ajustarAlto(); }
+  cargar();
+})();
+</script>
+</body>
+</html>

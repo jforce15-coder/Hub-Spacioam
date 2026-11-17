@@ -29,3 +29,18 @@ function maricarmenWeebo_(m, o) {
   m.nivel = 3; m.razones = ['Maricarmen: Modo Weebo al máximo, pedido por Juan'];
   return true;
 }
+
+/* ── Alma la pasa sola, dentro de la llamada (Juan, 17-nov-2026, Hub #707) ──────────────────────────────────────────
+   «Poder hablar directamente con Maricarmen dentro de la llamada de la app de Alma, sin derivarlo a WhatsApp ni llamadas
+   externas.» Antes solo entraba si la app reconocía la frase exacta («pásame con Maricarmen»); si Juan lo decía de otra
+   forma, Alma (ElevenLabs) no sabía quién era y ofrecía escribirle o llamarla. Ahora Alma tiene la herramienta de CLIENTE
+   pasar_a_maricarmen (como hablar_con_claudio: la atiende la app, sin URL ni llave) y la usa en cuanto Juan pide hablar,
+   comunicarse o «llamar» a Maricarmen. Solo el principal y solo en una app que sabe hacerlo (la pide con «maricarmen»). */
+var MARICARMEN_PERMISO_ = 'PUEDES PASARLO CON MARICARMEN: es tu alter ego de voz en esta misma llamada (no una persona ni un contacto). Si Juan pide hablar, comunicarse o llamar a Maricarmen, usa pasar_a_maricarmen: nunca le ofrezcas WhatsApp, una llamada aparte ni un mensaje.';
+function maricarmenPermiso_(adm) { try { return adm && esAdminPrincipal_(adm) ? MARICARMEN_PERMISO_ : ''; } catch (e) { return ''; } }
+function vozPasarAMaricarmen_() {
+  return { type: 'client', name: 'pasar_a_maricarmen', expects_response: false, response_timeout_secs: 1,
+    description: 'Pasa a Juan con Maricarmen, tu alter ego de voz, dentro de esta misma llamada de la app (sin colgar). Úsala SOLO si la FICHA DE QUIEN LLAMA dice «PUEDES PASARLO CON MARICARMEN» y Juan pide hablar, comunicarse, pasar o llamar a Maricarmen (dicho como sea). Llámala en ese mismo turno, sin confirmar ni anunciar nada y sin decir nada después: la app cambia la voz al instante. Maricarmen no es una persona ni un contacto: nunca le ofrezcas WhatsApp, una llamada aparte ni un mensaje. Sin esa línea en la ficha, no la uses.',
+    parameters: { type: 'object', required: [], properties: {} },
+    pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
+}

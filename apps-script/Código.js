@@ -3395,7 +3395,7 @@ function hubApi_(body) {
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
       case 'anilloBle': return json_(anilloBleGuardar_(ses, body));                       // app de iPhone: el Diagnóstico del anillo (Bluetooth) { diagnostico } (anillo.js)
       case 'anilloResumen': return json_(anilloResumenGuardar_(ses, body));               // app de iPhone: la Lectura del anillo { resumen } (lo último leído, con su hora; anillo.js)
-      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio, String(body.vuelta_claudio || '').slice(0, 80)));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
+      case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio, String(body.vuelta_claudio || '').slice(0, 80), !!body.maricarmen));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)
       case 'claudioLocal': return json_(claudioLocalApi_(ses, body));                       // Claudio local { conv_id, texto, historial }: un turno de Claudio sin ElevenLabs, solo el principal (claudiolocal.js)
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)

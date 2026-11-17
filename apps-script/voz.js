@@ -537,7 +537,7 @@ function vozDefHerramientas_(base) {
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
     return t;
-  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozMostrarTarjetaClub_(), vozHablarConClaudio_()], vozManosHerramientas_(), vozAnilloHerramientas_()).concat(vozGuiaHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio · anillo.js: el anillo QRing · guia.js: la Guía de camino
+  }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozMostrarTarjetaClub_(), vozHablarConClaudio_(), vozPasarAMaricarmen_()], vozManosHerramientas_(), vozAnilloHerramientas_()).concat(vozGuiaHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio · anillo.js: el anillo QRing · guia.js: la Guía de camino
 }
 /* «Mostrar en el chat» (#381): herramienta de CLIENTE (la ejecuta la app, no el Hub; sin URL ni llave). Cuando la respuesta
    trae muchos datos, Alma la pone en pantalla: la app de iPhone abre el chat con ese contenido y la llamada sigue; al
@@ -1200,7 +1200,7 @@ var VOZ_CONFERENCIA_TRAS_ = 240;   // segundos: desde el minuto 4 el silencio pa
    primero (si falla, falla rápido). saludo_corto: «Dime, Juan» para cuando la app despierta a Alma con el anillo o con
    «Alma» en conferencia (la app decide si lo usa como first_message; el saludo normal y retomar siguen igual).
    saludos: el Saludo variado (#410), la app de Alma elige uno; saludo_tema = el first_message trae un tema (retomar), no un hola. */
-function vozWebInicio_(ses, ligero, app, claudio, vueltaDe) {
+function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   var t0 = Date.now(), marcas = {}, marca = function (k) { marcas[k] = Date.now() - t0; };
   /* Acceso cerrado (vozacceso.js): la voz solo se abre con la sesión verificada del Hub, nunca con la llave antigua. */
   if (!ses) return { ok: false, error: VOZ_SIN_SESION_ };   // no 'session': ese error cierra la sesión del navegador
@@ -1220,6 +1220,8 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe) {
   dv.quien_llama = vozWebFicha_(adm, nom) + (app ? '\nESTÁS EN LA APP DE ALMA (iPhone): aquí sí puedes poner música (Spotify), correr sus atajos permitidos de iOS y, cuando esté conectada, controlar la casa.' : '') + '\n\n' + (dv.quien_llama || '');
   /* Hablar con Claudio (claudio.js, #550): solo el principal y solo en una app que sabe cambiar de agente (la pide con «claudio»). */
   if (claudio) { var pc = claudioPermiso_(adm); if (pc) dv.quien_llama += '\n' + pc; }
+  /* Pasar con Maricarmen (maricarmen.js, #707): igual, solo el principal y solo si la app sabe hacerlo (la pide con «maricarmen»). */
+  if (maricarmen) { var pm = maricarmenPermiso_(adm); if (pm) dv.quien_llama += '\n' + pm; }
   marca('ficha');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   dv.marca_principal = vozMarcaPara_(adm);   /* por su sesión del Hub, no por el número (vozproteccion.js) */

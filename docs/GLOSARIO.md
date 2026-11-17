@@ -22,7 +22,7 @@ señal (30 min como mucho). Evitar: «Alma offline», «modo avión».
 **Maricarmen** (17-nov-2026, #666 y #667): el alter ego de voz de Alma, solo con el administrador principal. Es la misma
 Alma (mismas herramientas y memoria) con otro nombre, y ese nombre vive solo en la voz: se presenta como Maricarmen, pero
 todo lo que sale a otra persona (mensajes, plantillas, correos, encargos, tareas) va siempre en nombre de Alma. La app lo
-pide con `persona: "maricarmen"` en la acción `calle`; el Hub suma la regla al prompt y, antes de cada herramienta, cambia
+pide con `persona: "maricarmen"` (o `alter`) en la acción `calle`; Juan la llama con «pásame con Maricarmen» en la llamada de la app y vuelve con «pásame con Alma»: va 100 % por la voz local del iPhone (como la voz de respaldo, sin ElevenLabs) y con el **Modo Weebo al máximo** (nivel 3 desde la primera respuesta, `apps-script/maricarmen.js`, alma-app `MaricarmenReglas.swift`); el Hub suma la regla al prompt y, antes de cada herramienta, cambia
 cualquier «soy Maricarmen» o firma con ese nombre por Alma (`apps-script/identidad.js`). Evitar: «otra asistente», «Alma 2».
 Alma tampoco nombra a «la secretaria» (su herramienta) ni anuncia que la usa; si cita un resultado, «mi sistema dice…».
 

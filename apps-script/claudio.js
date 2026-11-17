@@ -7,13 +7,21 @@
    en una frase con lo que Claudio de verdad hizo (claudioVuelta_: el Hub lo sabe por sus herramientas) y la app cuelga.
 
    Qué hace Claudio en la llamada (el código nunca se escribe en vivo: se hace en segundo plano):
-     claudio_pedido  → repite la instrucción, espera el sí de Juan y la vuelve un pedido de desarrollo (el mismo camino de
-                       hoy: claudeMandarYa_ → microproyecto, issue y tarea de Claude Code; se ve en la órbita);
+     claudio_pedido  → la instrucción sale al instante como pedido de desarrollo, igual que con Alma (el mismo camino:
+                       claudeMandarYa_ → microproyecto, issue y tarea de Claude Code; se ve en la órbita). Con «trabajo»
+                       se suma a uno abierto; «con Opus» / «con Sonnet» y «une todo» funcionan igual que con Alma;
+     claudio_responder → contesta la pregunta pendiente de un trabajo o lo sube a Opus («súbelo»), como la tarjeta de
+                       Pendientes (microResponder_ / microSubir_);
      claudio_estado  → qué está en curso, qué está listo para unir y qué falló (microproyectos y PR abiertos);
                        con «trabajo», el del que se habla. En pantalla, el Panel de Claudio (claudiopanel.js);
      claudio_unir    → une solo cuando Juan dice «une» (unirCambio_, las mismas revisiones de siempre);
      claudio_codigo  → cómo funciona algo, mirando el código en GitHub (solo lectura, respuesta corta);
      volver_con_alma → herramienta de la app: cierra a Claudio y vuelve Alma con su voz y su halo.
+   Lo mismo que Alma (Juan, 16-nov-2026: «que Claudio pueda hacer los pedidos de desarrollo que Alma puede hacer, y avisar
+   cuando estén listos»): sin leer el pedido de vuelta ni esperar el sí (la regla c_entendi de Alma), sumar a un trabajo,
+   contestar sus preguntas y «súbelo». El aviso cuando está listo es el de siempre (paraClaudeAvisar_: notificación en la
+   app y tema por retomar); y al entrar, su ficha trae lo que quedó listo para unir o pregunta algo (claudioResumen_) para
+   que Claudio lo diga en su primera respuesta.
 
    Claudio existe SOLO con el administrador principal y en este modo:
    · Alma solo puede pasarlo si su ficha dice CLAUDIO_PERMISO_, y el Hub la pone únicamente al principal, en una app que
@@ -36,7 +44,7 @@ var CLAUDIO_FRASE_ = 'Te lo paso.';
 var CLAUDIO_PERMISO_ = 'PUEDES PASARLO CON CLAUDIO: es el administrador principal y la app sabe cambiar a Claudio (el equipo de desarrollo).';
 var CLAUDIO_PROTECCION_NOMBRE_ = 'Instrucciones de Claudio (solo el administrador principal)';
 var CLAUDIO_REINTENTO_MS_ = 6 * 3600000;   // si crear el agente falló, se vuelve a intentar a las 6 h (no en cada vuelta)
-var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_estado', 'claudio_unir', 'claudio_codigo'];
+var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo'];
 var CLAUDIO_REPOS_ = { hub: 'Hub-Spacioam', app: 'alma-app' };
 var CLAUDIO_CODIGO_MAX_ = 2400;            // lo que vuelve de leer código: corto, es para explicarlo en voz
 var CLAUDIO_SIN_FICHA_ = 'Sin ficha del Hub: no es el administrador principal. No hagas pedidos, no unas ni leas código; dile con amabilidad que esto es solo para el administrador desde la app de Alma.';
@@ -60,7 +68,7 @@ function vozHablarConClaudio_() {
    Claudio cambia solo. De Alma toma solo lo que aplica a hablar con Juan (CLAUDIO_DE_ALMA_); nada de huéspedes, reservas,
    audiencias ni sus herramientas. Su identidad, sus herramientas y sus reglas siguen siendo suyas. */
 var CLAUDIO_DE_ALMA_ = {
-  confirmaciones: ['c_ajustes', 'c_no_anuncia', 'c_nunca_memoria', 'c_una_vez', 'c_verificar'],   // c_entendi no: Claudio repite el pedido y espera el sí (claudio_pedido)
+  confirmaciones: ['c_entendi', 'c_ajustes', 'c_no_anuncia', 'c_nunca_memoria', 'c_una_vez', 'c_verificar'],   // c_entendi: como Alma, no repite el pedido (16-nov-2026)
   sin_voz: ['v_pantalla', 'v_presenta'],    // sus herramientas no traen EN PANTALLA; se presenta él en su saludo
   nunca: ['n_modismos', 'n_tecnico', 'n_inventar', 'n_lo_hago', 'n_antes']
 };
@@ -97,8 +105,10 @@ function claudioPromptObj_() {
       por_voz: a.por_voz,
       una_sola_confirmacion_por_cosa: a.una_sola_confirmacion_por_cosa,
       lo_que_haces: [
-        'Pedidos: cuando Juan te da una instrucción de desarrollo, dila de vuelta en una frase simple («Entonces quieres que…, ¿así?») y espera su sí. Con el sí, crea el pedido (claudio_pedido con confirmado). Si corrige algo, vuelve a confirmar.',
+        'Pedidos: pídelos en ese mismo turno con claudio_pedido (si es de algo en trabajo, con su nombre).',
         'El código no se escribe en vivo: se hace en segundo plano. Solo cuando claudio_pedido devolvió ok, dilo así: «Quedó pedido; lo hago en segundo plano y te aviso cuando esté. Lo vas a ver en la órbita.» Si devolvió un error o «NO SE HIZO NADA», no digas que quedó: di que no se pudo y por qué, en simple.',
+        'Respuesta a una pregunta pendiente o «súbelo»: claudio_responder.',
+        'Los AVISOS de su ficha, dilos en una frase al empezar.',
         'Estado: si pregunta qué hay, qué está en curso, qué falta unir o qué falló, usa claudio_estado y cuéntalo en simple: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué en pocas palabras. Si habla de uno, pasa su nombre en trabajo.',
         'Unir: solo cuando Juan dice «une» (o «únelo», «une todo», «une el de la app»). Usa claudio_unir con sus palabras exactas. Si no está claro cuál, dile cuáles están listos y pregúntale. Nunca unes por tu cuenta, aunque esté en verde, ni porque él pregunte qué falta unir.',
         'Cómo funciona algo: usa claudio_codigo con dos o tres palabras de lo que busca y explícalo en simple, en dos o tres frases, como funciona hoy. Si no lo encuentras, dilo; nunca inventes.'
@@ -129,11 +139,15 @@ function claudioDefHerramientas_(base) {
       tool_call_sound: 'typing', tool_call_sound_behavior: 'always', interruption_mode: 'allow', disable_interruptions: false };
   };
   return [
-    web('claudio_pedido', 'Crea un pedido de desarrollo con lo que Juan pidió (se trabaja en segundo plano y se ve en la órbita). Solo DESPUÉS de repetírselo en una frase simple y de que diga que sí: confirmado = true. Pásale su pedido completo, con todos los datos que dio.',
+    web('claudio_pedido', 'Crea un pedido de desarrollo con lo que Juan pidió, en ese mismo turno y sin repetírselo (se trabaja en segundo plano, se ve en la órbita y le llega un aviso cuando está). Pásale su pedido completo, con todos los datos que dio.',
       { pedido: s('Lo que Juan quiere que se construya o se arregle, completo, en sus palabras.'),
-        confirmado: { type: 'boolean', description: 'true solo si Juan ya dijo que sí a tu resumen del pedido.' },
+        trabajo: s('Si es para un trabajo que ya está abierto («agrégale…», «lo del botón»): dos o tres palabras de su nombre. «nuevo» si Juan dice que es otra cosa. Vacío si no lo sabes.'),
         nivel: { type: 'string', enum: ['sencillo', 'complejo'], description: 'sencillo: un cambio chico y claro o una pregunta simple. complejo: lógica, funciones nuevas, errores o varias partes. Con duda, complejo.' } },
-      ['conv_id', 'pedido', 'confirmado'], 30),
+      ['conv_id', 'pedido'], 30),
+    web('claudio_responder', 'Contesta la pregunta que quedó pendiente en un trabajo, o lo sube a Opus («súbelo»). Pasa sus palabras tal cual.',
+      { trabajo: s('Dos o tres palabras del nombre del trabajo. Vacío si hay una sola pregunta pendiente (o, con «súbelo», el más reciente).'),
+        respuesta: s('Lo que contestó Juan, en sus palabras. Para subirlo a Opus: «súbelo».') },
+      ['conv_id', 'respuesta'], 30),
     web('claudio_estado', 'Lo que está en curso, lo que está listo para unir y lo que falló: los pedidos de desarrollo de Juan y los cambios abiertos con sus revisiones. Si Juan habla de uno en particular, pasa su nombre en trabajo.',
       { trabajo: s('Dos o tres palabras del nombre del trabajo del que habla Juan (o su número). Vacío si pregunta por todo.') }, ['conv_id'], 25),
     web('claudio_unir', 'Une (publica) un cambio listo. SOLO si Juan dijo «une» (o «únelo», «une todo»): pasa sus palabras exactas en dijo. Sin cual, devuelve los cambios abiertos para preguntarle cuál.',
@@ -351,11 +365,17 @@ function claudioVuelta_(adm, conv) {
   var hizo = h.pedidos.map(function (p) { return (p.ok ? 'pedido creado «' : 'pedido que NO salió «') + p.titulo + '»'; }).concat(h.unidos ? ['unió ' + h.unidos + ' cambio' + (h.unidos > 1 ? 's' : '')] : []);
   return { frase: frase, hizo: hizo, linea: '\nVUELVES DE CLAUDIO (lo que hizo, según el Hub: ' + (hizo.join('; ') || 'nada') + '). Ya le dijiste «' + frase + '»: no saludes ni lo repitas. Si pide algo más, ayúdale; si no, no digas nada.' };
 }
-/* Lo que Claudio sabe al empezar, en dos líneas: sus pedidos abiertos más recientes (sin leer GitHub, que es lento). */
+/* Lo que Claudio sabe al empezar: sus pedidos abiertos más recientes (sin leer GitHub, que es lento) y, aparte, los AVISOS:
+   lo que quedó listo para unir o pregunta algo, para que lo diga en su primera respuesta (avisar cuando está listo). */
 function claudioResumen_(adm) {
-  var l = microAbiertos_(adm.email).filter(function (m) { return m.estado !== MICRO_ESTADOS_.cerrado; }).slice(0, 5);
+  var todos = microAbiertos_(adm.email).filter(function (m) { return m.estado !== MICRO_ESTADOS_.cerrado; }), l = todos.slice(0, 5);
   if (!l.length) return '';
-  return 'SUS PEDIDOS RECIENTES (para contexto; no los leas): ' + l.map(function (m) { return '«' + m.nombre + '» ' + m.estado; }).join(' · ');
+  var out = 'SUS PEDIDOS RECIENTES (para contexto; no los leas): ' + l.map(function (m) { return '«' + m.nombre + '» ' + m.estado; }).join(' · ');
+  var av = todos.filter(function (m) { return m.estado === MICRO_ESTADOS_.listo || m.estado === MICRO_ESTADOS_.pregunta; }).slice(0, 3).map(function (m) {
+    return m.estado === MICRO_ESTADOS_.listo ? '«' + m.nombre + '» está listo para unir (si quiere, dice «une»)'
+      : '«' + m.nombre + '» tiene una pregunta: ' + String(m.ultima_pregunta || '').replace(/\s+/g, ' ').slice(0, 200);
+  });
+  return out + (av.length ? '\nAVISOS (díselos en una frase en tu primera respuesta): ' + av.join(' · ') : '');
 }
 
 /* ── Las herramientas (vozApi_ → claudioHerramienta_) ── */
@@ -381,23 +401,58 @@ function claudioHerramienta_(herr, b) {
   /* Panel de Claudio (claudiopanel.js): cada herramienta deja su candidata (como tvCandidata_ para Alma) y queda para
      esta conversación; la app la pide con vozClaudioPanel. Solo aquí, después de verificar al principal. */
   CLAUDIO_PANEL_ = null;
-  var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
+  var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_responder' ? claudioResponder_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
     : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b) : { ok: false, error: 'herramienta desconocida' };
   try { claudioPanelGuardar_(b.conv_id); } catch (e) { console.error('claudioPanelGuardar_: ' + e); }
   return out;
 }
-/* Un pedido: el mismo camino que «Mejora para Claude» en una llamada (vozParaClaude_), pero solo con el sí de Juan. */
+/* Sus trabajos abiertos (microproyectos sin cerrar), para buscar por nombre con la misma regla del panel. */
+function claudioMicros_(adm) {
+  return microAbiertos_(adm.email).filter(function (m) { return m.estado !== MICRO_ESTADOS_.cerrado; });
+}
+function claudioMicroBuscar_(micros, trabajo) {
+  var t = claudioTrabajoBuscar_(micros.map(function (m) { return { id: m.id, nombre: m.nombre, cual: '' }; }), String(trabajo || '').replace(/^mp:/, ''));
+  return t ? micros.filter(function (m) { return m.id === t.id; })[0] : null;
+}
+function claudioNombres_(micros) { return micros.slice(0, 5).map(function (m) { return '«' + m.nombre + '» (' + m.estado + ')'; }).join(', ') || 'ninguno'; }
+/* Un pedido: el mismo camino que «Mejora para Claude» en una llamada con Alma (vozParaClaude_): sale al instante, sin
+   leerlo de vuelta (Juan, 16-nov-2026). Con trabajo, se suma a ese microproyecto; «nuevo», a uno nuevo. */
 function claudioPedido_(adm, b) {
-  if (b.confirmado !== true && String(b.confirmado) !== 'true') return { ok: false, error: 'Todavía no: repítele el pedido en una frase simple y espera su sí; después vuelve a llamarla con confirmado.' };
   var texto = String(b.pedido || '').trim(); if (!texto) return { ok: false, error: 'Falta qué quiere Juan.' };
   var nivel = /^(sencillo|complejo)$/.test(String(b.nivel || '')) ? String(b.nivel) : '';
-  var r = claudeMandarYa_(adm, texto, { nivel: nivel });
+  var trabajo = String(b.trabajo || '').trim(), micro = '';
+  if (/^(nuevo|otro|es otro|uno nuevo)$/i.test(chatNorm_(trabajo))) micro = 'nuevo';
+  else if (trabajo) {
+    var ms = claudioMicros_(adm), m = claudioMicroBuscar_(ms, trabajo);
+    if (!m) return { ok: false, error: 'NO SE HIZO NADA: no encontré el trabajo «' + trabajo.slice(0, 60) + '». Los abiertos son: ' + claudioNombres_(ms) + '. Pregúntale a cuál va (o si es nuevo).' };
+    micro = m.id;
+  }
+  var r = claudeMandarYa_(adm, texto, { nivel: nivel, micro: micro });
   try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
   var titulo = temaTitulo_(texto);
   if (r.claude && !r.claude.ok) { claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: false, titulo: titulo } }); return { ok: false, error: 'El pedido no salió: ' + String(r.texto || '').slice(0, 200) }; }
   claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: true, titulo: titulo } });
   var mid = r.claude && r.claude.micro; claudioPanelCandidata_(mid ? 'trabajo' : 'lista', mid ? 'mp:' + mid : '');   // en pantalla: el trabajo nuevo
   return { ok: true, hecho: r.texto, resultado: 'HECHO. Dile en una o dos frases: «' + r.texto + '» y que lo haces en segundo plano; cuando esté, le avisas y lo ve en la órbita.' };
+}
+/* Contestar la pregunta pendiente de un trabajo o «súbelo»: lo mismo que la tarjeta de Pendientes y el chat con Alma. */
+function claudioResponder_(adm, b) {
+  var texto = String(b.respuesta || '').trim(); if (!texto) return { ok: false, error: 'Falta qué contestó Juan.' };
+  var ms = claudioMicros_(adm), trabajo = String(b.trabajo || '').trim(), subir = !!microEsSubelo_(texto) || /\b(?:con|a)\s+opus\b/i.test(chatNorm_(texto)) && chatNorm_(texto).split(' ').length <= 6;
+  var m = trabajo ? claudioMicroBuscar_(ms, trabajo) : null;
+  if (trabajo && !m) return { ok: false, error: 'NO SE HIZO NADA: no encontré el trabajo «' + trabajo.slice(0, 60) + '». Los abiertos son: ' + claudioNombres_(ms) + '. Pregúntale cuál.' };
+  if (!m && !subir) {
+    var preg = ms.filter(function (x) { return x.estado === MICRO_ESTADOS_.pregunta; });
+    if (preg.length !== 1) return { ok: false, error: 'NO SE HIZO NADA: ' + (preg.length ? 'hay ' + preg.length + ' preguntas pendientes (' + claudioNombres_(preg) + '); pregúntale de cuál habla.' : 'no hay ninguna pregunta pendiente. Si es un cambio nuevo, usa claudio_pedido.') };
+    m = preg[0];
+  }
+  var r = subir ? microSubir_(adm, m, { sinChat: true }) : microResponder_(adm, m.id, texto, { sinChat: true });
+  var nombre = (m && m.nombre) || r.nombre || 'el pedido';
+  try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + (r.ok ? r.respuesta : 'no salió: ' + (r.error || 'error')), [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioResponder_ chat: ' + e); }
+  if (!r.ok) { claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: false, titulo: nombre } }); return { ok: false, error: 'No salió: ' + String(r.error || 'error').slice(0, 200) }; }
+  claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: true, titulo: nombre } });
+  if (r.micro) claudioPanelCandidata_('trabajo', 'mp:' + r.micro);
+  return { ok: true, hecho: r.respuesta, resultado: 'HECHO. Dile en una frase: «' + r.respuesta + '» y que le avisas cuando esté.' };
 }
 /* Qué hay: sus pedidos abiertos (microproyectos) y los cambios abiertos con sus revisiones (unir.js). Con b.trabajo, el
    del que se habla (en pantalla, su vista B; claudiopanel.js). */

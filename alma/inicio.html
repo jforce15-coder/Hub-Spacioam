@@ -1220,6 +1220,11 @@
       <div class="fila"><span class="et">Inicio con escucha activa</span><label class="interruptor"><input type="checkbox" id="i-escucha" aria-label="Inicio con escucha activa"><span></span></label></div>
       <p class="nota-g">Con Alma abierta en el inicio, te escucha en tu iPhone y despierta cuando dices «Alma». No graba ni guarda nada. El botón de la reunión titila en durazno mientras te escucha; tócalo para que deje de escuchar y otra vez para que vuelva.</p>
     </div>
+    <p class="tit-g" id="t-voces" hidden>Voces locales</p>
+    <div class="grupo" id="g-voces" hidden>
+      <div class="fila boton" id="b-voces" role="button" tabindex="0">Voces de Claudio y Maricarmen</div>
+      <p class="nota-g">Con qué voz hablan Claudio local y Maricarmen: Kokoro, más natural y en tu iPhone, o la voz del iPhone. Si Kokoro falla o tarda, sigue la del iPhone sin cortar.</p>
+    </div>
     <p class="tit-g" id="t-calle" hidden>Modo calle</p>
     <div class="grupo" id="g-calle" hidden>
       <p class="nota-g" id="n-calle-on">Todo en el botón del caminante: un toque y Alma te escucha ya, sin decir «Alma». Un toque largo enciende o apaga el Modo calle: encendido, Alma espera «Alma» con el teléfono bloqueado (el botón respira en durazno y lleva un punto) y se queda así al volver a abrir la app hasta que lo apagues. También con Siri.</p>
@@ -2100,6 +2105,7 @@ window.SAPulso = {
         $("g-anillo").hidden = false; $("i-anillo").checked = !!e.modoAnillo;
         $("b-dispositivos").hidden = !e.dispositivos;
         $("g-wear").hidden = !e.dispositivos; if (e.dispositivos) AlmaAjustes.wear(e.wearables || null);   // Wearables: una tarjeta por dispositivo (alma-app Wearables.swift)
+        $("t-voces").hidden = $("g-voces").hidden = !e.vocesLocales;   // solo una app que sabe abrir Voces locales (alma-app VocesLocalesVista.swift)
         $("g-tarjetas").hidden = !e.tarjetas;   // solo una app que sabe abrir Tarjetas de clubes (alma-app TarjetasClub.swift)   // solo una app que sabe abrir la pantalla Dispositivos (Dispositivos.swift)
         $("b-anillo-ble").hidden = $("n-anillo-ble").hidden = !e.diagBle;   // solo una app que sabe abrir el diagnóstico (DiagnosticoAnillo.swift)
         $("b-probar").textContent = e.estado === "hablando" || e.estado === "conectando" ? "Pausar" : "Probar ahora";
@@ -2497,6 +2503,8 @@ window.SAPulso = {
   $("b-dispositivos").onclick = function () { vozConfig(); nativa({ accion: "dispositivos" }); };
   /* Tarjetas de clubes (Juan, 17-nov-2026): se guardan y se muestran en la app (pantalla nativa); nada pasa por el Hub. */
   $("b-tarjetas").onclick = function () { nativa({ accion: "tarjetas" }); };
+  $("b-voces").onclick = function () { nativa({ accion: "vocesLocales" }); };
+  $("b-voces").onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); nativa({ accion: "vocesLocales" }); } };
   if (NATIVA && hay()) { vozConfig(); nativa({ accion: "voz", que: "estado" }); }
 
   /* Cerrar sesión: borra la sesión de todas las apps en este equipo. Face ID queda guardado para volver a entrar. */

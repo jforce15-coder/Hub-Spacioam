@@ -87,7 +87,7 @@ var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audíf
   'Si pregunta algo, responde en una o dos frases cortas, de 20 palabras como mucho. Sin listas, sin markdown, sin enlaces, sin emojis. ' +
   'Si de verdad tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 
-/* calle { texto, aviso_id?, sin_audio?, alter? } (alter 'maricarmen': el alter ego de Alma, maricarmen.js) → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
+/* calle { texto, aviso_id?, sin_audio?, persona?, alter? } (persona o alter "maricarmen" = el alter ego de voz: su nombre, identidad.js; su Weebo 3, maricarmen.js) → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
 function calle_(ses, b) {
   b = b || {};
   var t0 = Date.now();
@@ -103,11 +103,12 @@ function calle_(ses, b) {
   }
   if (!out) {
     AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
-    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms;   // el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
-    WEEBO_ALTER_ = maricarmenAlter_(b, esAdminPrincipal_(adm));   // Maricarmen (maricarmen.js): el alter ego de Alma, Weebo 3
+    var persona = b.persona || b.alter;   // la app de Alma manda alter: "maricarmen" (alma-app #109); persona, la de #671
+    AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms; IDENTIDAD_VOZ_ = typeof identidadVozDe_ === 'function' ? identidadVozDe_(persona, adm) : '';   // Maricarmen: su nombre solo en la voz (identidad.js); el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
+    WEEBO_ALTER_ = maricarmenAlter_({ alter: persona }, esAdminPrincipal_(adm));   // Maricarmen (maricarmen.js): el alter ego de Alma, Weebo 3
     try { r = b.aviso_id ? calleAviso_(ses, adm, texto, String(b.aviso_id)) : opProcesar_(adm, texto, 'calle', []); }
     catch (e) { console.error('calle_: ' + (e.stack || e)); r = { ok: false, error: String(e) }; }
-    finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; AGENTE_PLAZO_PRIMERA_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; WEEBO_ALTER_ = ''; }
+    finally { AGENTE_PLAZO_ = 0; AGENTE_PEDIDO_ = ''; AGENTE_APP_ = false; AGENTE_PLAZO_PRIMERA_ = false; AGENTE_RAPIDO_ = false; AG_USO_FUNCION_ = ''; AG_MS_ = null; IDENTIDAD_VOZ_ = ''; WEEBO_ALTER_ = ''; }
     if (!r || !r.ok) return { ok: false, error: (r && r.error) || 'error', hablar: 'Tuve un problema. ¿Lo intentas otra vez?', conversar: false, ms: calleMs_(t0, tA, ms, 0) };
     out = calleRespuesta_(adm, r);
   }

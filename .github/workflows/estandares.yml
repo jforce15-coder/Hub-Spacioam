@@ -256,6 +256,9 @@ jobs:
       - name: Alma abre la conversación solo con un resultado de un pedido reciente del principal, una vez y sin datos sensibles (dobles)
         # 13-nov: Juan quiere que Alma abra ella misma la conversación para contarle un resultado (#509 T4), sin gastar de más.
         run: node .github/alma-abre.js apps-script
+      - name: Tras una notificación, Alma solo contesta si le responden; otra plática o ruido, silencio (dobles)
+        # 17-nov: Juan: en llamada o modo continuo, cualquier voz después del aviso se tomaba como su respuesta.
+        run: node .github/aviso-respuesta.js apps-script
       - name: Ahorro del cupo de Google, conteo por función, intervalos respetados y lo del webhook en la misma vuelta (dobles)
         # 14-nov: el Hub gastaba 7 000–12 000 llamadas al día y «Huéspedes» (lo automático de procesarCola) era el 65–70 %,
         # casi plano de madrugada. Ahora cada llamada dice qué función la hizo y lo que se repetía sin necesidad se espacia.

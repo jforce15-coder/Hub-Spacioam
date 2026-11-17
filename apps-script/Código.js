@@ -3464,6 +3464,7 @@ function hubApi_(body) {
       case 'opEnviar': return json_(chatEnviar_(ses, body));                                // { texto, canal: 'hub' | 'app' | 'calle' }
       case 'opLista': return json_(chatLista_(ses));
       case 'calle': return json_(calle_(ses, body));                                       // modo calle: una frase tras «Alma» → { hablar, conversar, audio? } (calle.js)
+      case 'avisoRespuesta': return json_(avisoRespuesta_(ses, body));                 // ¿lo que se oyó tras un aviso le responde? → { es, por } (avisorespuesta.js)
       case 'calleUso': return json_(calleUso_(ses, body));                                 // modo calle: { usos: [...] } → filas de uso en ALMA_CALLE_USO (calle.js)
       case 'viajes': return json_(viajes_(ses, body));                                     // botón del avión: { forzar? } → el viaje cercano de tu correo (viajes.js)
       case 'viajePase': return json_(viajePase_(ses, body));                               // botón del avión: { id, pdf? } → el pase de abordar (imagen, PDF o Wallet)

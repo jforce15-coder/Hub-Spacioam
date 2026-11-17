@@ -96,7 +96,7 @@ function abreDatos_(a, o, estado) {
     que_paso: 'Abriste tú esta conversación para contarle a Juan el resultado de un pedido suyo reciente; tu primer mensaje ya se lo dijo.',
     pedido: ped ? ped.replace(/^Pedido:\s*/, '') : abreLimpio_(o.titulo || a.titulo || '', 80),
     resultado: ABRE_QUE_[estado], que_falta: ABRE_FALTA_[estado], datos: lineas,
-    como_seguir: 'No repitas lo que ya le dijiste ni saludes. Si quiere el detalle, búscalo con tus herramientas (está en Pendientes). Si te pide algo sobre esto, hazlo como siempre. Si dice que no o «luego», contesta solo «Claro, queda en Pendientes» y no digas más; no cuelgues tú: la app cierra sola.'
+    como_seguir: 'No repitas lo que ya le dijiste ni saludes. Si quiere el detalle, búscalo con tus herramientas (está en Pendientes). Si te pide algo sobre esto, hazlo como siempre. Si dice que no o «luego», contesta solo «Claro, queda en Pendientes» y no digas más; no cuelgues tú: la app cierra sola. Si lo que oyes después no responde a tu aviso ni te habla a ti (otra plática, otra persona, ruido), usa skip_turn y no digas nada.'
   } };
   return { primer_mensaje: abreLimpio_(o.hablar || a.texto, 400), contexto: 'ALMA ABRE: ' + JSON.stringify(ctx) };
 }

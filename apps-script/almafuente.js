@@ -417,6 +417,12 @@ var ALMA_FUENTE_ = {
     ],
     "linea": "En la app: corre uno de sus atajos permitidos de iPhone."
    },
+   "abrir_apple_pay": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "En la app: abre Apple Pay."
+   },
    "anillo_estado": {
     "canales": [
      "voz"

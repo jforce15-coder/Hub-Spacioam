@@ -214,7 +214,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
 { const t = R('claudioPromptCompleto_()'); let o = null; try { o = JSON.parse(t); } catch (e) {}
   ok(o && o.claudio && o.claudio.quien_eres && Object.keys(o).pop() === 'ficha_de_quien_llama', 'el prompt de Claudio es JSON por secciones con la ficha al final');
   ok((t.match(/\{\{[^}]*\}\}/g) || []).join() === '{{quien_llama}}' && t.indexOf('marca_principal') < 0, 'solo {{quien_llama}} (la marca nunca va en el prompt)');
-  ok(/como explicándole a un niño/.test(t) && /«une»/.test(t) && /segundo plano/.test(t) && /volver_con_alma/.test(t) && /sin repetirla/.test(t) && /AVISOS/.test(t), 'habla simple, pide sin repetir (como Alma), une solo con «une», dice lo de segundo plano, da los avisos y sabe volver con Alma');
+  ok(/como explicándole a un niño/.test(t) && /«une»/.test(t) && /segundo plano/.test(t) && /volver_con_alma/.test(t) && /en ese mismo turno con claudio_pedido/.test(t) && /AVISOS/.test(t), 'habla simple, pide sin repetir (como Alma), une solo con «une», dice lo de segundo plano, da los avisos y sabe volver con Alma');
   const FR = /te (paso|comunico|transfiero) con claudio/i, P = 'PUEDES PASARLO CON CLAUDIO';
   ['chat_texto', 'whatsapp_texto', 'calle_texto', 'redactor', 'chat_herramientas'].forEach(k => {
     const x = a[k].join('\n'); ok(!FR.test(x) && x.indexOf(P) < 0 && x.indexOf('hablar_con_claudio') < 0, k + ': sin «te paso con Claudio» ni su permiso');

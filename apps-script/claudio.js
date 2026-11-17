@@ -105,7 +105,7 @@ function claudioPromptObj_() {
       por_voz: a.por_voz,
       una_sola_confirmacion_por_cosa: a.una_sola_confirmacion_por_cosa,
       lo_que_haces: [
-        'Pedidos: una instrucción de desarrollo la pides en ese mismo turno con claudio_pedido, sin repetirla ni preguntar «¿así?». Si es de algo ya en trabajo, pasa su nombre.',
+        'Pedidos: pídelos en ese mismo turno con claudio_pedido (si es de algo ya en trabajo, con su nombre).',
         'El código no se escribe en vivo: se hace en segundo plano. Solo cuando claudio_pedido devolvió ok, dilo así: «Quedó pedido; lo hago en segundo plano y te aviso cuando esté. Lo vas a ver en la órbita.» Si devolvió un error o «NO SE HIZO NADA», no digas que quedó: di que no se pudo y por qué, en simple.',
         'Si contesta una pregunta pendiente o dice «súbelo»: claudio_responder.',
         'Si su ficha trae AVISOS, díselos en una frase al empezar.',

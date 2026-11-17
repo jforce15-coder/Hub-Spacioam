@@ -33,7 +33,7 @@
 <link rel="stylesheet" href="ds/styles.css">
 <link rel="stylesheet" href="ds/esqueleto.css">
 <link rel="stylesheet" href="ds/movimiento.css">
-<link rel="stylesheet" href="ds/chat.css?v=2026-11-17a">
+<link rel="stylesheet" href="ds/chat.css?v=2026-11-17b">
 <script src="ds/bundle.js"></script>
 <script src="ds/movimiento.js"></script>
 <script src="js/sa-nav.js?v=2026-11-16-una-roca"></script>
@@ -2139,12 +2139,6 @@
                       <div class="sa-chat-fila"><span class="sa-chat-slot"><span class="sa-chat-avatar sa-chat-avatar--alma" aria-hidden="true"></span></span><div class="sa-chat-pensando"><span class="sa-chat-barra"></span><span class="sa-chat-barra"></span></div></div>
                     </div>
                   </sc-if>
-                  <sc-if value="{{ c.respBusy }}" hint-placeholder-val="{{ false }}">
-                    <div class="sa-chat-msg sa-chat-msg--mia" role="status" aria-label="{{ c.respBusyTxt }}" style="margin-top:4px; animation:sa-fade .24s cubic-bezier(.22,.61,.36,1) backwards">
-                      <div class="sa-chat-pensando"><span class="sa-chat-barra"></span><span class="sa-chat-barra"></span></div>
-                      <span class="sa-chat-meta">{{ c.respBusyCorto }}</span>
-                    </div>
-                  </sc-if>
                   <!-- Decisión del equipo (#325): opciones A/B/C de Alma y «Otra respuesta». Elegir pone el borrador en el cuadro; nada sale solo. -->
                   <sc-if value="{{ c.decHay }}" hint-placeholder-val="{{ false }}">
                     <div class="sa-chat-msg sa-chat-msg--otro" data-decision="{{ c.decId }}" style="margin-top:8px; animation:sa-fade .36s cubic-bezier(.22,.61,.36,1) backwards">
@@ -2258,7 +2252,9 @@
                   </sc-if>
                   <div class="sa-chat-pie" data-lleno="{{ c.respLlenoS }}" style="flex-shrink:0">
                     <button class="sa-chat-mas" onClick="{{ c.respMas }}" aria-label="Plantillas y más" title="Plantillas y más"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="display:block"><path d="M12 5v14M5 12h14"/></svg></button>
-                    <div class="sa-chat-cuadro" style="flex:1; min-width:0; display:flex; align-items:flex-end; min-height:44px; box-sizing:border-box; padding:0 2px 0 4px" data-composer="1">
+                    <!-- Mejorar / Redactar con ALMA: el brillo va sobre el cuadro del borrador, no en el historial (el texto aún no se envía). -->
+                    <div class="sa-chat-cuadro" data-mejorando="{{ c.respBusyS }}" aria-busy="{{ c.respBusy }}" style="flex:1; min-width:0; display:flex; align-items:flex-end; min-height:44px; box-sizing:border-box; padding:0 2px 0 4px" data-composer="1">
+                      <sc-if value="{{ c.respBusy }}" hint-placeholder-val="{{ false }}"><span class="sa-chat-mejorando-txt" role="status">{{ c.respBusyTxt }}</span></sc-if>
                       <textarea ref="{{ c.respRef }}" readOnly="{{ c.respReadOnly }}" onInput="{{ c.setRespTexto }}" onKeyDown="{{ c.respKey }}" onFocus="{{ c.respOnFocus }}" onBlur="{{ c.respOnBlur }}" rows="1" placeholder="Escribe un mensaje…" aria-label="Escribe tu respuesta" enterKeyHint="enter" autoCapitalize="sentences" autoCorrect="on" spellCheck="true" style="flex:1; min-width:0; border:none; background:transparent; padding:11px 12px; outline:none; resize:none; box-sizing:border-box; height:42px; overflow-y:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch"></textarea>
                       <sc-if value="{{ c.respLleno }}" hint-placeholder-val="{{ false }}">
                         <button class="sa-chat-reloj" onClick="{{ c.progPickToggle }}" aria-label="Programar envío" title="Programar envío (hora de Guatemala)" style="margin-bottom:1px"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="clock" size="19" color="currentColor" hint-size="19px,19px"></x-import></button>
@@ -5378,12 +5374,12 @@ class Component extends DCLogic {
       var mejorar = function () {
         var t = ta.value.trim(); if (!t || mejorando) { if (window.SAMov) SAMov.sacudir(roca); return; }
         if (!(window.ALMA && ALMA.mejorarTexto)) return;
-        mejorando = true; roca.style.opacity = ".5"; ta.readOnly = true; var antes = ta.value;
+        mejorando = true; roca.style.opacity = ".5"; ta.readOnly = true; caja.setAttribute("data-mejorando", "1"); var antes = ta.value;
         ALMA.mejorarTexto(t, { pagina: "Hub · WhatsApp con " + (o.huesped || "el huésped"), etiqueta: "Mensaje por WhatsApp para el huésped" }).then(function (r) {
-          mejorando = false; roca.style.opacity = "1"; ta.readOnly = false;
+          mejorando = false; roca.style.opacity = "1"; ta.readOnly = false; caja.removeAttribute("data-mejorando");
           if (r && r.ok && r.texto && ta.value === antes) ponerTa(r.texto);
           else if (!(r && r.ok)) { nota.style.display = "block"; nota.textContent = (r && r.error) || "No pude mejorarlo ahora."; }
-        }, function () { mejorando = false; roca.style.opacity = "1"; ta.readOnly = false; nota.style.display = "block"; nota.textContent = "Sin conexión. Tu texto sigue aquí."; });
+        }, function () { mejorando = false; roca.style.opacity = "1"; ta.readOnly = false; caja.removeAttribute("data-mejorando"); nota.style.display = "block"; nota.textContent = "Sin conexión. Tu texto sigue aquí."; });
       };
       roca.onclick = mejorar;
       var nota = mk("span", "display:none; font-size:11px; line-height:1.5; color:#6F6867");
@@ -7842,7 +7838,7 @@ class Component extends DCLogic {
           /* Con texto sale el «+» (y el reloj): el cuadro se angosta y el texto ocupa más líneas. Si cambia el ancho, se mide otra vez el alto. */
           if (!el._anchoRO && window.ResizeObserver) { el._anchoW = el.clientWidth; el._anchoRO = new ResizeObserver(function () { var w = el.clientWidth; if (w === el._anchoW) return; el._anchoW = w; el._altoLen = 0; el.style.height = ""; self.altoResp(el, (self.state.convResp[convKey] || {}).alma ? 10 : 0); }); el._anchoRO.observe(el); } if (el.value !== self._respDraft[convKey]) el.value = self._respDraft[convKey] || ""; self.altoResp(el, (self.state.convResp[convKey] || {}).alma ? 10 : 0); } }),
         setRespTexto: function (e) { var v = e.target.value; self._respDraft[convKey] = v; self.altoResp(e.target, (self.state.convResp[convKey] || {}).alma ? 10 : 0); self.guardarBorrador(convKey, v); if (!!v.trim() !== !!(self.state.convResp[convKey] || {}).lleno) upd({ lleno: !!v.trim() }); },
-        respNota: rs.nota || "", respBusy: !!rs.busy, respSinTexto: !llenoV || !!rs.enviando,
+        respNota: rs.nota || "", respBusy: !!rs.busy, respBusyS: rs.busy ? "1" : "0", respSinTexto: !llenoV || !!rs.enviando,
         respLleno: !!llenoV || conAdj, respVacio: !llenoV && !conAdj, respLlenoS: llenoV || conAdj ? "1" : "0", /* con texto sale el «+» (ds/chat.css) */ respEnviando: !!rs.enviando, respEnviarOp: rs.enviando ? ".5" : "1",
         /* El nuevo chat (#304): Enter siempre salta de línea; solo se envía con el botón (como WhatsApp en el teléfono). */
         respKey: function (e) { if (e.key === "Escape") e.currentTarget.blur(); },
@@ -7881,7 +7877,6 @@ class Component extends DCLogic {
         respHint: llenoV ? "Mejorar pule tu texto y suma lo que falte según toda la conversación, con la voz de Spacio AM." : "Redactar con ALMA propone la respuesta. Tú decides si se envía.",
         respEnviarLabel: rs.enviando ? "Enviando…" : "Enviar", respEnviarBg: llenoV ? "#3E3F3F" : "#D8D4CE", respEnviarFg: llenoV ? "#FAFAFA" : "#938B8A",
         respBusyTxt: rs.modo === "mejorar" ? "ALMA está mejorando tu texto con el contexto de la conversación…" : "ALMA está leyendo la conversación y redactando…",
-        respBusyCorto: rs.modo === "mejorar" ? "Alma está mejorando tu texto…" : "Alma está redactando…",
         hayPropuesta: false, sinPropuesta: true, propuesta: "",
         hayAlmaTxt: !!rs.alma && !rs.busy, almaTxtTitulo: rs.modo === "mejorar" ? "Tu texto, mejorado por ALMA · revísalo y envía" : "Redactado por ALMA · revísalo y envía",
         almaDeshacer: function () { var b = (self.state.convResp[convKey] || {}).base || ""; ponerTexto(b); self.guardarBorrador(convKey, b); upd({ alma: false, lleno: !!b.trim() }); },

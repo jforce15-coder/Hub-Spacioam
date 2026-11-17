@@ -92,6 +92,16 @@
 .sa-chat-cuadro{ background:#FFFFFF !important; border:1px solid var(--chat-borde-cuadro) !important; border-radius:21px !important; transition:border-color .18s cubic-bezier(.22,.61,.36,1); }
 .sa-chat-cuadro:focus-within{ border-color:var(--chat-tinta) !important; }
 .sa-chat-cuadro textarea, .sa-chat-campo{ font-family:var(--chat-sans); font-size:15px; line-height:20px; letter-spacing:0; color:var(--chat-tinta); }
+/* Mejorar / Redactar con ALMA: mientras Alma pule el borrador, el brillo recorre el mismo cuadro (no sale nada en el historial,
+   porque el texto aún no se envía). El borde toma el coral de Alma y el texto se atenúa; el aviso para lector de pantalla va oculto. */
+.sa-chat-cuadro[data-mejorando="1"]{ position:relative; overflow:hidden; border-color:#E9826A !important; }
+.sa-chat-cuadro[data-mejorando="1"] textarea{ opacity:.45; transition:opacity .18s ease; }
+.sa-chat-cuadro[data-mejorando="1"]::after{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(100deg, rgba(233,130,106,0) 30%, rgba(233,130,106,.22) 50%, rgba(233,130,106,0) 70%); background-size:250% 100%;
+  animation:sa-chat-mejora 1.4s ease-in-out infinite; }
+@keyframes sa-chat-mejora{ 0%{ background-position:100% 0; } 100%{ background-position:-50% 0; } }
+@media (prefers-reduced-motion: reduce){ .sa-chat-cuadro[data-mejorando="1"]::after{ animation:none; background:rgba(233,130,106,.10); } }
+.sa-chat-mejorando-txt{ position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 /* Campos de los formularios ([data-campo]): el mismo borde, radio y letra. */
 .sa-chat-campo{ box-sizing:border-box; background:#FFFFFF; border:1px solid var(--chat-borde-cuadro); border-radius:21px; outline:none; transition:border-color .18s cubic-bezier(.22,.61,.36,1), box-shadow .18s cubic-bezier(.22,.61,.36,1); }
 .sa-chat-campo:focus{ border-color:var(--chat-tinta); box-shadow:0 0 0 3px rgba(233,130,106,.25); }

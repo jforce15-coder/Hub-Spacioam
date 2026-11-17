@@ -660,23 +660,16 @@ function vozHerramientasFaltan_(o) {
    originales y su tecleo, y la app y la web abren su conversación con las gemelas (tool_ids_app en la ficha).
    VOZ_GEMELAS: { id original → id gemela }. VOZ_GEMELAS_OK = '1' solo si ElevenLabs confirmó el permiso de tool_ids:
    sin él la ficha no manda la lista (una sustitución sin permiso no deja abrir la conversación). */
-var VOZ_GEMELAS_VERSION_ = 'coro-1';
+var VOZ_GEMELAS_VERSION_ = 'coro-2';
 function vozGemelas_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_GEMELAS') || '{}') || {}; } catch (e) { return {}; } }
 /* La lista de herramientas para la conversación de la app o la web: la del agente con cada original cambiada por su gemela.
-   La del agente se lee de ElevenLabs (10 min en caché): así una herramienta nueva del agente también llega a la app. */
+   La del agente la guarda vozPublicarHerramientas_ (VOZ_TOOL_IDS), el único camino que agrega herramientas a Alma: así la
+   ficha no gasta internet (17-nov-2026: el cupo diario de Google se acabó y una lectura de ElevenLabs por ficha sobraba). */
 function vozToolIdsApp_() {
   var p = PropertiesService.getScriptProperties(); if (p.getProperty('VOZ_GEMELAS_OK') !== '1') return null;
-  var gem = vozGemelas_(); if (!Object.keys(gem).length) return null;
-  var c = CacheService.getScriptCache(), guardado = c.get('voz_tool_ids'), ids = null;
-  try { ids = guardado ? JSON.parse(guardado) : null; } catch (e) {}
-  if (!ids) {
-    var key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'); if (!key || !agente) return null;
-    var r = uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
-    if (r.getResponseCode() !== 200) return null;
-    ids = ((((JSON.parse(r.getContentText()).conversation_config || {}).agent || {}).prompt || {}).tool_ids) || [];
-    if (!ids.length) return null;
-    c.put('voz_tool_ids', JSON.stringify(ids), 600);
-  }
+  var gem = vozGemelas_(), ids = null; if (!Object.keys(gem).length) return null;
+  try { ids = JSON.parse(p.getProperty('VOZ_TOOL_IDS') || 'null'); } catch (e) {}
+  if (!ids || !ids.length) return null;
   var cambio = false, out = ids.map(function (id) { if (gem[id]) { cambio = true; return gem[id]; } return id; });
   return cambio ? out : null;
 }
@@ -737,7 +730,7 @@ function vozPublicarHerramientas_(base) {
   var ag2 = pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr }, turn: turn }, platform_settings: { overrides: ov } });
   var permitido = !!((((((ag2.platform_settings || {}).overrides || {}).conversation_config_override || {}).agent || {}).prompt || {}).tool_ids);
   p.setProperty('VOZ_GEMELAS_OK', permitido && gemelas.some(function (g) { return g.id; }) ? '1' : '0');
-  try { CacheService.getScriptCache().remove('voz_tool_ids'); } catch (e) {}
+  p.setProperty('VOZ_TOOL_IDS', JSON.stringify((((ag2.conversation_config || {}).agent || {}).prompt || {}).tool_ids || pr.tool_ids || []));
   return vozEstado_({ herramientas: hechas, turnos: turn.turn_eagerness, gemelas: gemelas, gemelas_permitidas: permitido });
 }
 

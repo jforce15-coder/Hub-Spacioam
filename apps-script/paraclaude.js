@@ -121,15 +121,7 @@ function paraClaudeCrear_(adm, inp) {
   var issue = m.issue || '';
   var pg = PropertiesService.getScriptProperties(), tok = pg.getProperty('GITHUB_TOKEN') || pg.getProperty('GITHUB_PRS');   // la llave de Conexiones también sirve
   if (tok && issue) { try { microComentar_(issue, cuerpo); } catch (e) { console.error('paraClaude comentario: ' + e); } }   // el ajuste va como comentario, no otro issue
-  else if (tok) {
-    try {
-      var r = uf_('https://api.github.com/repos/' + PARA_CLAUDE_REPO_ + '/issues', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
-        headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
-        payload: JSON.stringify({ title: '[' + (inp.app || 'Otro') + '] ' + (ajuste ? m.nombre : titulo), body: cuerpo, labels: ['alma-mejora', String(inp.tipo || 'mejora'), 'prioridad-' + (inp.prioridad || 'normal')] }) });
-      if (r.getResponseCode() < 300) issue = JSON.parse(r.getContentText()).html_url || '';
-      else console.error('GitHub issue ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
-    } catch (e) { console.error('paraClaude GitHub: ' + e); }
-  }
+  else if (tok) issue = paraClaudeIssue_(tok, inp.app, ajuste ? m.nombre : titulo, cuerpo, inp.tipo, inp.prioridad);
   m.issue = issue;
   /* La instrucción lleva el historial completo: cada disparo abre una sesión nueva de Claude, sin memoria. */
   /* La Biblioteca de Claudio (biblioteca.js) va en la instrucción, no en el issue: la lista y cómo leer o pedir uno. */
@@ -157,8 +149,82 @@ function paraClaudeCrear_(adm, inp) {
   }
   eqDesarrolloSuave_();   // el estado de Desarrollo, al día (equipos.js)
   return { ok: true, id: id, issue: issue || undefined, claude: disparo.ok, nivel: nivel, nivelNota: disparo.ok ? (disparo.nota || '') : '', micro: { id: m.id, nombre: m.nombre, ajuste: ajuste, segunda: segunda, parte: m.parte, nivel: nivel, unido: uni ? uni.por : '' },
-    nota: disparo.ok ? 'Listo, quedó pedido.' :
-      issue ? 'Listo, quedó pedido en la lista (el arranque directo falló); cuando esté, llega a Pendientes para unir.' : 'Quedó guardado en la lista de pedidos, pero no arrancó: falta CLAUDE_RUTINA_TOKEN.' };
+    nota: disparo.ok ? 'Listo, quedó pedido.' : paraClaudeNotaFallo_(disparo, issue) };
+}
+/* El issue del pedido en GitHub. Devuelve su enlace o '' (sin cupo de Google, GitHub caído…): nunca rompe el pedido. */
+function paraClaudeIssue_(tok, app, titulo, cuerpo, tipo, prioridad) {
+  try {
+    var r = uf_('https://api.github.com/repos/' + PARA_CLAUDE_REPO_ + '/issues', { method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+      payload: JSON.stringify({ title: '[' + (app || 'Otro') + '] ' + titulo, body: cuerpo, labels: ['alma-mejora', String(tipo || 'mejora'), 'prioridad-' + (prioridad || 'normal')] }) });
+    if (r.getResponseCode() < 300) return JSON.parse(r.getContentText()).html_url || '';
+    console.error('GitHub issue ' + r.getResponseCode() + ': ' + r.getContentText().slice(0, 200));
+  } catch (e) { console.error('paraClaude GitHub: ' + e); }
+  return '';
+}
+
+/* ═══ PEDIDOS QUE NO SALIERON (17-nov-2026) ═══════════════════════════════════════════════════════════════════════
+   El 17-nov se acabó el cupo diario de llamadas a internet de la cuenta de Google (cupo.js) y dos pedidos de Juan a
+   Claudio se quedaron en la hoja como «pendiente», sin issue ni sesión. Alma le dijo «falta CLAUDE_RUTINA_TOKEN», que no
+   era cierto: la llave estaba; lo que faltaba era cupo. Ahora:
+   · La nota dice la causa real (paraClaudeNotaFallo_): sin cupo, «se lo mando solo en cuanto vuelva el cupo».
+   · aprender() (cada hora) vuelve a mandar los pedidos «pendiente» de las últimas PC_REINTENTO_H_ horas que nunca
+     llegaron a Claudio (sin sesión), del más viejo al más nuevo, como mucho PC_REINTENTO_TANDA_ por hora. Si Google sigue
+     sin cupo, para en el primero (no gasta más) y no cuenta como intento; otro error cuenta, y a los PC_REINTENTO_MAX_
+     intentos se deja (queda en la lista, como antes). No es «fondo»: es un pedido de Juan, corre aunque el cupo esté en
+     pausa. Un pedido que ya salió no se toca. */
+var PC_REINTENTO_H_ = 48, PC_REINTENTO_MAX_ = 6, PC_REINTENTO_TANDA_ = 3;
+function paraClaudeSinCupo_(e) { return /too many times|Bandwidth quota|urlfetch/i.test(String((e && e.message) || e || '')); }
+function paraClaudeNotaFallo_(disparo, issue) {
+  var err = String((disparo && disparo.error) || '');
+  if (paraClaudeSinCupo_(err)) return 'Quedó guardado, pero Google se quedó sin cupo de llamadas por hoy y no pude mandárselo a Claudio. Se lo mando solo en cuanto vuelva el cupo.';
+  if (/falta CLAUDE_RUTINA_TOKEN/.test(err)) return 'Quedó guardado en la lista de pedidos, pero no arrancó: falta CLAUDE_RUTINA_TOKEN.';
+  return (issue ? 'Quedó pedido en la lista (' : 'Quedó guardado en la lista de pedidos (') + 'el arranque directo falló: ' + err.slice(0, 120) + '). Lo vuelvo a intentar solo en la próxima hora.';
+}
+function paraClaudeReintentar_() {
+  var p = PropertiesService.getScriptProperties(), out = { ok: true, enviados: [], sin_cupo: false, dejados: [] };
+  if (!p.getProperty('CLAUDE_RUTINA_TOKEN')) return out;
+  var lock = LockService.getScriptLock(); if (!lock.tryLock(1000)) return out;
+  try {
+    var sh = paraClaudeHoja_(), n = sh.getLastRow(); if (n < 2) return out;
+    var C = {}; PARA_CLAUDE_CAB_.forEach(function (k, i) { C[k] = i; });
+    var ini = Math.max(2, n - 300), v = sh.getRange(ini, 1, n - ini + 1, PARA_CLAUDE_CAB_.length).getValues();
+    var reg = {}; try { reg = JSON.parse(p.getProperty('PC_REINTENTOS') || '{}') || {}; } catch (e) { reg = {}; }
+    var desde = Date.now() - PC_REINTENTO_H_ * 3600000, tok = p.getProperty('GITHUB_TOKEN') || p.getProperty('GITHUB_PRS'), hubUrl = p.getProperty('HUB_URL') || HUB_EXEC_DEF_;
+    for (var i = 0; i < v.length && out.enviados.length < PC_REINTENTO_TANDA_; i++) {
+      var r = v[i], id = String(r[C.id]), t = Number(id.replace(/^pc/, ''));
+      if (String(r[C.estado]) !== 'pendiente' || String(r[C.sesion]) || String(r[C.llave]) || !(t > desde)) continue;
+      if ((reg[id] || 0) >= PC_REINTENTO_MAX_) { out.dejados.push(id); continue; }
+      var fila = ini + i, m = null; try { m = r[C.micro] ? microLeer_(String(r[C.micro])) : null; } catch (e) { m = null; }
+      var cuerpo = String(r[C.detalle]), issue = String(r[C.issue] || (m && m.issue) || ''), ajuste = /^\*\*(Ajuste|Segunda parte) /.test(cuerpo);
+      if (!issue && tok) {
+        issue = paraClaudeIssue_(tok, String(r[C.app]), String(r[C.titulo]), cuerpo, String(r[C.tipo]), String(r[C.prioridad]));
+        if (issue) { sh.getRange(fila, C.issue + 1).setValue(issue); if (m) m.issue = issue; }
+      }
+      var biblio = ''; try { biblio = bibliotecaParaClaude_(hubUrl); } catch (e) {}
+      var instruccion = cuerpo + (m && m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + (biblio ? '\n\n' + biblio : '') + '\n\n' + MICRO_RESPONDER_;
+      var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, ''), lector = biblio ? Utilities.getUuid().replace(/-/g, '') : '';
+      var titulo = String(r[C.titulo]) + (ajuste ? ' · ajuste' : '');
+      var d = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: hubUrl, biblioteca: lector ? { lector: lector } : undefined, quien: String(r[C.quien]),
+        app: String(r[C.app]), tipo: String(r[C.tipo]), prioridad: String(r[C.prioridad]), titulo: titulo, instruccion: instruccion, issue: issue, reenviado: true,
+        micro: m ? microParaClaude_(m, { ajuste: ajuste, segunda: false, como: microComoSeguir_(m, false, ''), sesionAnterior: m.sesion }) : undefined }, String(r[C.nivel]));
+      if (!d.ok) {
+        if (paraClaudeSinCupo_(d.error)) { out.sin_cupo = true; break; }   // sigue sin cupo: no gasta más ni cuenta el intento
+        reg[id] = (reg[id] || 0) + 1; continue;
+      }
+      sh.getRange(fila, C.estado + 1).setValue('con Claude');
+      sh.getRange(fila, C.sesion + 1).setValue(d.url || '');
+      sh.getRange(fila, C.llave + 1).setValue(paraClaudeHuella_(llave));
+      sh.getRange(fila, C.nivel + 1).setValue(claudeNivel_(d.nivel));
+      if (lector) { sh.getRange(fila, C.lector + 1).setValue(paraClaudeHuella_(lector)); sh.getRange(fila, C.fecha_lector + 1).setValue(Date.now()); }
+      if (m) { m.estado = MICRO_ESTADOS_.trabajo; if (d.url) m.sesion = d.url; try { microGuardar_(m); } catch (e) { console.error('microGuardar_: ' + e); } }
+      delete reg[id]; out.enviados.push(id);
+    }
+    Object.keys(reg).forEach(function (k) { if (!(Number(k.replace(/^pc/, '')) > desde)) delete reg[k]; });
+    p.setProperty('PC_REINTENTOS', JSON.stringify(reg));
+  } finally { lock.releaseLock(); }
+  if (out.enviados.length) console.log('paraClaudeReintentar_: reenviados ' + out.enviados.join(', '));
+  return out;
 }
 /* Apps viejas que todavía responden en la conversación «Desarrollo» (resId op:desarrollo): el mensaje entra al chat del
    principal como Propósito · Desarrollo. Como en todo el chat (chat.js), queda de borrador y Alma pregunta

@@ -3151,6 +3151,8 @@ function aprender() {
   cupoCanal_('Mejoras y fondo'); cupoFuncion_('aprender');
   /* El estado de los equipos precargado (equipos.js): solo lee hojas, corre aunque el cupo esté en pausa. */
   try { eqRefrescar_(); } catch (e) { console.error('eqRefrescar_: ' + e); }
+  /* Los pedidos de Juan a Claudio que no salieron (sin cupo de Google u otro error): se vuelven a mandar. No es fondo (paraclaude.js). */
+  try { paraClaudeReintentar_(); } catch (e) { console.error('paraClaudeReintentar_: ' + e); }
   /* Todo lo de aquí es de fondo y se pausa con el cupo en 60 % o más, salvo el agente de Operaciones (rutas y limpiezas: CUPO_NUNCA_). */
   if (!cupoPermite_('fondo')) {
     try { agentesLatido_(['operaciones']); } catch (e) { console.error('agentesLatido_ operaciones: ' + e); }
@@ -5570,6 +5572,8 @@ function dsBotApi_(body) {
       case 'para_claude': return json_(paraClaudeLista_(!!body.todos));
       case 'para_alma_estado': return json_(paraAlmaDiag_());   // instrucciones «para-alma»: estado del aviso y código de GitHub, sin textos (paraalma.js)
       case 'para_claude_marcar': return json_(paraClaudeMarcar_(body.id, body.estado, body.nota));
+      case 'para_claude_reintentar': return json_(paraClaudeReintentar_());   // los pedidos que no salieron, ya (paraclaude.js)
+      case 'para_claude_crear': { const admP = agPrincipal_(); return json_(paraClaudeCrear_(admP, { titulo: String(body.titulo || ''), que_quiere: String(body.que_quiere || ''), literal: String(body.literal || ''), app: body.app || 'Otro', tipo: body.tipo || 'mejora', nivel: body.nivel || '', canal: 'robot', unificar: true, sinChat: true })); }   // un pedido de Juan que se perdió (sin datos personales)
       case 'contacto_clasificar': return json_({ ok: true, ficha: contactoClasificar_(String(body.tel || ''), String(body.contexto || ''), true) });
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico

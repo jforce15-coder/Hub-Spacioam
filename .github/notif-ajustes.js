@@ -240,7 +240,7 @@ function caja(o) {
   const regla = n => (VOZ.match(new RegExp("'· " + n + "[^\\n]*")) || [''])[0];
   ok(/MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA[^']*no te despidas ni cuelgues[^']*skip_turn/.test(regla('SILENCIO LARGO')), '8 · SILENCIO LARGO: con conversación continua no se despide ni cuelga: se queda en silencio');
   ok(/MODO CALLE o MODO CONFERENCIA con CONVERSACIÓN CONTINUA nunca cuelgas tú ni te despides[^']*sigues escuchando/.test(regla('Nunca cuelgues tú primero')), '8 · «Nunca cuelgues tú primero»: con conversación continua nunca cuelga ella');
-  ok(/Entendido, lo hago y te aviso cuando esté listo» y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar/.test(regla('SEGUNDO PLANO')), '8 · segundo plano: la frase corta y sigue escuchando');
+  ok(/di solo una frase corta y nueva de que lo haces y le avisas[^']*y, con CONVERSACIÓN CONTINUA, sigue escuchando sin despedirte ni colgar/.test(regla('SEGUNDO PLANO')), '8 · segundo plano: una frase corta (que no se repite) y sigue escuchando');
   ok(/sin CONVERSACIÓN CONTINUA, despídete y cuelga con end_call/.test(regla('SEGUNDO PLANO')), '8 · «TARDA MÁS DE LO NORMAL»: solo cuelga sin conversación continua');
   const ec = (VOZ.match(/end_call: '[^\n]*/) || [''])[0];
   ok(/Con CONVERSACIÓN CONTINUA \(MODO CALLE o MODO CONFERENCIA[^']*no la uses nunca/.test(ec) && !/apenas termines/.test(ec) && !/salvo en MODO CALLE/.test(ec), '8 · la descripción de end_call: con conversación continua no se usa');

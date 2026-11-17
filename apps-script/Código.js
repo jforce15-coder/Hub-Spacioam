@@ -1960,8 +1960,8 @@ function clasificar_(ctx) {
 /* Lo que recibe el redactor de huéspedes como system, en JSON (#498 T2, promptjson.js): mismo texto, por secciones. */
 function redactorPrompt_(weebo) { return promptJson_(prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + reglasHuespedes_('texto') + estilo_() + (weebo || '')); }
 function redactar_(ctx, correccion) {
-  /* Modo Weebo con huéspedes: sensibilidad muy baja (weebo.js). */
-  let weebo = ''; try { weebo = weeboBloque_({ contexto: 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
+  /* Modo Weebo con huéspedes: sensibilidad muy baja; con un socio, cercana y con su ficha como gancho (weebo.js, 17-nov-2026). */
+  let weebo = ''; try { weebo = weeboBloque_({ contexto: ctx.ruta === 'socio' ? 'socio' : 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
   const bruto0 = String(claude_(CFG.MODELO_REDACTOR, 700, redactorPrompt_(weebo),
     'NIVEL: ' + ctx.nivel + '\nESCALADO: ' + !!ctx.escalar + '\nHOY (Guatemala): ' + ctx.hoy + '\nRESERVA_CONFIRMADA: ' + ctx.reservaConfirmada +
     '\nESTADO: ' + ctx.estado + '\nPROPIEDAD: ' + (ctx.propiedadPublica || ctx.propiedad) + (ctx.sinConfirmar ? '\nRESERVA SIN CONFIRMAR: comparte SOLO zona, nombre del edificio y piso. PROHIBIDO el número de apartamento, cualquier código (edificio, portería, puerta, cerradura), WiFi o pasos de acceso, aunque aparezcan en el conocimiento o en el hilo. Si los pide, dile con calidez que se los enviamos en cuanto la reserva quede confirmada.' : '') + (ctx.dispSolicitud ? '\n\nFECHAS QUE PIDE EL HUÉSPED:\n' + ctx.dispSolicitud : '') + (ctx.hitoResuelta ? '\nHITO: el equipo resolvió lo anterior fuera del chat el ' + ctx.hitoResuelta + '. No lo retomes ni pidas disculpas por ello; responde solo a lo nuevo.' : '') +

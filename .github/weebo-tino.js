@@ -48,13 +48,34 @@ ok(S.length <= 2400, 'La semilla cabe en el presupuesto (' + S.length + ' ≤ 24
 c = caja({ props: { WEEBO_MODO: 'fijo', WEEBO_NIVEL_FIJO: '3' } });
 const prob = c.weeboBloque_({ contexto: 'admin', principal: true, clave: 'juan@x.com', texto: 'no funciona la cerradura, es urgente', historial: ['jaja'] });
 ok(/NIVEL 0/.test(prob), 'Weebo fijo en 3 y un problema urgente: NIVEL 0 (antes seguía en 3)');
-const rel = c.weeboBloque_({ contexto: 'admin', principal: true, clave: 'juan@x.com', texto: 'jaja pensemos la estrategia', historial: ['jaja'] });
-ok(/NIVEL 3 \(techo/.test(rel), 'Weebo fijo en 3 en algo relajado: NIVEL 3 como techo');
+/* Se enciende despacio (Juan, 17-nov-2026: «que se active de forma gradual y natural»): aun con el techo en 3, la chispa crece
+   con los turnos; no llega de golpe. */
+const nivelDe = t => +(String(t).match(/· NIVEL (\d)/) || [0, -1])[1];
+const primera = c.weeboBloque_({ contexto: 'admin', principal: true, clave: 'juan@x.com', texto: 'jaja pensemos la estrategia', historial: [] });
+const segunda = c.weeboBloque_({ contexto: 'admin', principal: true, clave: 'juan@x.com', texto: 'pensemos la estrategia', historial: ['hola'] });
+const rel = c.weeboBloque_({ contexto: 'admin', principal: true, clave: 'juan@x.com', texto: 'jaja pensemos la estrategia', historial: ['hola', 'jaja', 'qué buena idea', 'me encanta', 'genial'] });
+ok(nivelDe(primera) === 0 && nivelDe(segunda) === 1 && /NIVEL 3 \(techo 3/.test(rel), 'Weebo fijo en 3: primera respuesta 0, luego 1 y, ya con charla, 3 como techo (por grados, no de golpe)');
+const auto = caja();
+const m0 = auto.weeboMedir_({ contexto: 'admin', texto: 'jajaja pensemos la estrategia de marca 😂', historial: [] });
+const m2 = auto.weeboMedir_({ contexto: 'admin', texto: 'jajaja pensemos la estrategia de marca 😂', historial: ['jaja', 'jaja genial', 'me encanta 😊'] });
+ok(m0.nivel === 0 && m0.razones.indexOf('se enciende despacio') >= 0 && m2.nivel > m0.nivel, 'En automático también: mucha risa en el primer mensaje no salta niveles; sube con los turnos');
+ok(auto.weeboRampa_(1, false) === 1 && auto.weeboRampa_(1, true) === 2 && auto.weeboRampa_(3, false) === 2 && auto.weeboRampa_(9, true) === 3, 'La rampa: 1–2 mensajes 1, 3–4 mensajes 2, 5 o más 3; abrir el juego suma un grado');
+
+/* Con un socio por WhatsApp: ya no con la vara del huésped (máximo una chispa); cercana, con su ficha de gancho y acento neutro. */
+const so = auto.weeboBloque_({ contexto: 'socio', texto: 'jaja qué bien, gracias', historial: ['hola', 'jaja', 'gracias crack', 'genial 😊'] });
+ok(/ESTA CONVERSACIÓN: socio/.test(so) && /ficha trae algo suyo/.test(so) && nivelDe(so) >= 1 && nivelDe(so) <= 2 && /neutro latinoamericano/.test(so), 'Socio: su contexto (hasta 2), la ficha como gancho y acento neutro');
+const soProb = auto.weeboBloque_({ contexto: 'socio', texto: 'hay una fuga urgente en el apartamento', historial: ['jaja', 'jaja', 'genial', 'gracias'] });
+ok(nivelDe(soProb) === 0, 'Socio con un problema urgente: NIVEL 0');
+ok(/Lo que sabes de la persona/.test(S) && /mejor gancho/.test(S) && /amigable siempre/.test(S), 'El carácter: amigable siempre y lo que sabe de la persona es su mejor gancho');
+const C = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8');
+ok(/weeboBloque_\(\{ contexto: ctx\.ruta === 'socio' \? 'socio' : 'huesped'/.test(C), 'El redactor de WhatsApp usa el contexto socio con los socios');
+const F = fs.readFileSync(path.join(DIR, 'fichasocio.js'), 'utf8');
+ok(/FICHA_CONECTAR_/.test(F.slice(F.indexOf('function fichaBloque_'))) && /FICHA_CONECTAR_/.test(F.slice(F.indexOf('function fichaVozBloque_'))), 'La ficha del socio pide conectar con lo que contó, por escrito y en la llamada');
 
 /* 3 · Voz */
 const voz = c.weeboVozBloque_(false), fam = c.weeboVozBloque_(true);
 ok(/mostrar_gif/.test(voz) && !/mostrar_gif/.test(fam), 'La regla del GIF va en la voz de Spacio AM (con Juan), no en la de la familia');
-ok(/Empiezas en el centro/.test(voz) && /tu techo con Juan, no tu punto de partida/.test(voz) && !/al empezar y cada vez/.test(voz), 'Voz: empieza en el centro; el Weebo fijo es techo; nivel_weebo solo cuando cambia');
+ok(/Empiezas en el centro/.test(voz) && /de a un grado/.test(voz) && /Socio: cálida desde el saludo/.test(voz) && /tu techo con Juan, no tu punto de partida/.test(voz) && !/al empezar y cada vez/.test(voz), 'Voz: empieza en el centro; el Weebo fijo es techo; nivel_weebo solo cuando cambia');
 const A = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'playbooks', 'alma.json'), 'utf8'));
 const et = JSON.stringify(A).match(/"v_etiquetas"[^}]*/)[0];
 ok(/\[laugh\]/.test(et) && /Nunca escribas risas/.test(et), 'La regla de etiquetas prohíbe [laugh] y escribir risas');

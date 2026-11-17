@@ -151,12 +151,18 @@ function fichaMarcas_(texto) {
   return { texto: t.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim(), detalles: dets, retomado: ret };
 }
 
+/* Conectar con el socio (Juan, 17-nov-2026: «que use la información personal de los socios para conectar mejor»): más allá
+   del detalle por retomar, lo que contó le sirve a Alma para hablarle como alguien que lo conoce. Va en el turno escrito y
+   en la llamada, y el Modo Weebo (weebo.js) lo toma como su mejor gancho. */
+var FICHA_CONECTAR_ = 'CONECTA: cuando venga al caso, nombra algo suyo de la ficha como lo haría alguien que lo conoce (su idioma, un gusto, su viaje, su familia): una vez por conversación, en una frase y de vuelta al tema. Nunca en una queja, una urgencia ni para rellenar.';
+
 /* Lo que Alma lee del socio en un turno escrito. modo «marca» (el redactor de WhatsApp) o «json» (un encargo). */
 function fichaBloque_(s, items, modo, hoy) {
   hoy = hoy || fichaHoy_();
   var ret = fichaParaRetomar_(items, hoy), json = modo === 'json';
   var lineas = (items || []).slice(-15).map(function (x) { return '· [' + x.id + '] ' + (x.tipo === 'detalle' ? 'Detalle' : 'Nota') + ': ' + x.texto + (x.fecha_evento ? ' (' + x.fecha_evento + ')' : '') + (x.retomado ? ' · ya retomado' : ''); });
   return 'FICHA DEL SOCIO' + (s.nombre ? ' ' + s.nombre : '') + ' (lo que él te ha contado; úsala con naturalidad y nunca digas que tienes una ficha):\n' + (lineas.join('\n') || '(vacía)') +
+    (lineas.length ? '\n' + FICHA_CONECTAR_ : '') +
     (ret ? '\nRETOMAR una sola vez, solo si el tono lo permite (no en una queja ni en una urgencia): al saludar pregúntale con calidez por «' + ret.texto + '» (fue el ' + ret.fecha_evento + '), p. ej. «¿Cómo estás? Espero que todo haya salido muy bien con…». Si lo usas, ' +
       (json ? 'pon "retomado":"' + ret.id + '" en el JSON.' : 'agrega al final [[RETOMADO:' + ret.id + ']].') : '') +
     '\nDETALLE QUE IMPORTA: si en ' + (json ? 'su ÚLTIMO MENSAJE' : 'los MENSAJES A RESPONDER') + ' el socio cuenta algo personal suyo (un evento, un viaje, su familia) o una preferencia, ' +
@@ -198,7 +204,7 @@ function fichaVozBloque_(tel) {
   var s = fichaSocioDe_(tel); if (!s) return '';
   var items = fichaVer_(s); if (!items || !items.length) return '';
   var ret = fichaParaRetomar_(items);
-  return 'FICHA DEL SOCIO (lo que te ha contado; úsala con naturalidad, no la cites): ' + items.slice(-10).map(function (x) { return x.texto + (x.fecha_evento ? ' (' + x.fecha_evento + ')' : ''); }).join(' · ') + '.' +
+  return 'FICHA DEL SOCIO (lo que te ha contado; úsala con naturalidad, no la cites): ' + items.slice(-10).map(function (x) { return x.texto + (x.fecha_evento ? ' (' + x.fecha_evento + ')' : ''); }).join(' · ') + '. ' + FICHA_CONECTAR_ +
     (ret ? ' RETOMAR una sola vez, al saludar y solo si el tono lo permite: pregúntale con calidez cómo le fue con «' + ret.texto + '».' : '');
 }
 /* Después de una llamada con un socio (vozPostCall_): si Alma nombró el detalle por retomar, queda retomado; y lo personal

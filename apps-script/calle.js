@@ -94,7 +94,7 @@ var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audíf
   'Si pregunta algo, solo el dato, 12 palabras como mucho. Sin listas, markdown, enlaces ni emojis. ' +
   'Si tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 
-/* calle { texto, aviso_id?, sin_audio?, persona?, alter? } (persona o alter "maricarmen" = el alter ego de voz: su nombre, identidad.js; su Weebo 3, maricarmen.js) → { ok, hablar, conversar, audio?, seguira?, claudio?, vozMotivo?, vozPausa?, ms } */
+/* calle { texto, aviso_id?, puede_callar?, sin_audio?, persona?, alter? } (persona o alter "maricarmen" = el alter ego de voz: su nombre, identidad.js; su Weebo 3, maricarmen.js) → { ok, hablar, conversar, audio?, seguira?, claudio?, silencio?, vozMotivo?, vozPausa?, ms } */
 function calle_(ses, b) {
   b = b || {};
   var t0 = Date.now();
@@ -108,6 +108,13 @@ function calle_(ses, b) {
     else if (guiaPideCamino_(texto)) out = { ok: true, hablar: 'Claro, te guío.', conversar: true };   // Guía de camino: la llamada sigue con guiar_camino (guia.js)
     else { var ch = calleCharla_(texto); if (ch) { out = { ok: true, hablar: ch, conversar: false }; calleGuardarCharla_(adm, texto, ch); } }
     if (out) ms.via = 'sin IA';
+  }
+  /* ¿Le contestó el aviso? (Juan, 17-nov-2026, avisorespuesta.js): si lo que se oyó tras el aviso es otra plática o ruido,
+     Alma no dice nada. Solo con la app que sabe callar (puede_callar); la de antes diría «Listo.». */
+  if (!out && b.aviso_id && b.puede_callar) {
+    var av0 = null; try { av0 = calleAvisoHist_(adm, String(b.aviso_id)); } catch (e) {}
+    var jz = avisoEsRespuesta_(texto, av0 ? av0.texto : '');
+    if (!jz.es) { ms.via = 'juez del aviso'; ms.motivo = 'no respondía al aviso: ' + jz.por; return { ok: true, hablar: '', conversar: false, silencio: true, por: jz.por, ms: calleMs_(t0, tA, ms, 0) }; }
   }
   if (!out) {
     AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma

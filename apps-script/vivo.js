@@ -11,9 +11,12 @@
      (tvCerrar_), y la voz dice «EN PANTALLA» igual.
    · Todo vive en la caché del script por usuario (la clave sale de su correo): solo la misma sesión verificada de ese
      administrador lo lee. Nada va a una hoja. Una llamada sin noticias en VIVO_VENCE_S_ se da por terminada.
+   · Retransmisión (Juan, 17-nov-2026: «el modo compañero debería ser una retransmisión de lo que se está viendo»): con
+     Claudio, el Panel de Claudio (los trabajos que se están haciendo) también llega aquí (vivoPanel_, desde
+     claudioPanelApi_ y desde cada herramienta de Claudio), y pasar a Claudio no termina la llamada en el compañero.
    Check con dobles: .github/modo-companero.js. */
 
-var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600;
+var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120;
 var VIVO_ESTADOS_ = ['conectando', 'hablando', 'escuchando', 'pausa', 'fin'];
 
 function vivoClave_(email) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16); }
@@ -52,6 +55,17 @@ function vivoTarjeta_(convId, t) {
   if (!e || e.conv !== String(convId)) c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'hablando', dev: '', ts: Date.now() }), VIVO_SEG_);
   else if (e.estado !== 'fin') { e.ts = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }
   c.put('vivo_tv_' + h, JSON.stringify({ conv: String(convId), ts: Date.now(), t: t }), VIVO_SEG_);
+  return true;
+}
+
+/* El Panel de Claudio de la llamada en vivo de este administrador (claudiopanel.js): con Claudio no hay tvCerrar_, así que
+   el panel que ve el teléfono se deja aquí, en la misma llamada que el compañero ya está mostrando. Sin llamada, nada. */
+function vivoPanel_(adm, t) {
+  if (!adm || !adm.email || !t) return false;
+  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h), ahora = Date.now();
+  if (!e || e.estado === 'fin' || ahora - Number(e.ts || 0) >= VIVO_VENCE_S_ * 1000) return false;
+  e.ts = ahora; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_);
+  c.put('vivo_tv_' + h, JSON.stringify({ conv: e.conv, ts: ahora, t: t }), VIVO_SEG_);
   return true;
 }
 
@@ -94,5 +108,8 @@ function vivoFin_(adm, convId) {
   if (!adm || !adm.email || !convId) return;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
   if (!e || e.conv !== String(convId) || e.estado === 'fin') return;
+  /* La app que publica dice «fin» ella misma al colgar. Si publicó hace poco, este aviso es de la conversación de Alma que
+     se cerró al pasar a Claudio: la llamada sigue (antes el compañero se apagaba justo cuando salían los trabajos). */
+  if (e.dev && Date.now() - Number(e.ts || 0) < VIVO_APP_S_ * 1000) return;
   e.estado = 'fin'; e.ts = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); c.remove('vivo_tv_' + h);
 }

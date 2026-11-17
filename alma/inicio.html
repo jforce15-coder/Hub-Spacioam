@@ -3244,7 +3244,9 @@ window.SAPulso = {
     if (C.fin) { clearTimeout(C.fin); C.fin = 0; }
     c.classList.remove("fin");
     if (r.conv !== C.conv) { C.conv = r.conv; C.desde = 0; C.tvId = ""; c.querySelector(".comp-subs").textContent = ""; c.querySelector(".comp-tab").textContent = ""; }
-    c.querySelector(".comp-de").textContent = "En vivo" + (r.dispositivo ? " · desde tu " + r.dispositivo : "");
+    /* Con Claudio se ve su panel (los trabajos que se están haciendo) y arriba dice con quién se habla (vivoPanel_) */
+    var conClaudio = !!(r.tarjeta && r.tarjeta.tipo === "claudio");
+    c.querySelector(".comp-de").textContent = "En vivo" + (conClaudio ? " · con Claudio" : "") + (r.dispositivo ? " · desde tu " + r.dispositivo : "");
     c.querySelector(".comp-est").textContent = ESTADO[r.estado] || "En llamada";
     var subs = c.querySelector(".comp-subs");
     (r.subs || []).forEach(function (x) { C.desde = Math.max(C.desde, Number(x.n) || 0); subs.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t)); });

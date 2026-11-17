@@ -418,7 +418,7 @@ function claudioEjecutar_(adm, herr, b) {
   var cand = CLAUDIO_PANEL_;
   try { claudioPanelGuardar_(b.conv_id); } catch (e) { console.error('claudioPanelGuardar_: ' + e); }
   /* Modo compañero (vivo.js): si el iPad está mirando, el panel le llega aunque el teléfono de la llamada esté bloqueado. */
-  try { if (cand && vivoMira_(adm.email)) vivoPanel_(adm, claudioPanelArmar_(adm, cand)); } catch (e) { console.error('vivoPanel_: ' + e); }
+  try { if (cand && vivoMira_(adm.email)) vivoPanel_(adm, b.conv_id, claudioPanelArmar_(adm, cand)); } catch (e) { console.error('vivoPanel_: ' + e); }
   return out;
 }
 /* Sus trabajos abiertos (microproyectos sin cerrar), para buscar por nombre con la misma regla del panel. */

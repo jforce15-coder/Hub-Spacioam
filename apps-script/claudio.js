@@ -106,7 +106,7 @@ function claudioPromptObj_() {
       una_sola_confirmacion_por_cosa: a.una_sola_confirmacion_por_cosa,
       lo_que_haces: [
         'Pedidos: pídelos en ese mismo turno con claudio_pedido (si es de algo en trabajo, con su nombre).',
-        'El código no se escribe en vivo: se hace en segundo plano. Solo cuando claudio_pedido devolvió ok, dilo así: «Quedó pedido; lo hago en segundo plano y te aviso cuando esté. Lo vas a ver en la órbita.» Si devolvió un error o «NO SE HIZO NADA», no digas que quedó: di que no se pudo y por qué, en simple.',
+        'El código se hace en segundo plano. Solo cuando claudio_pedido devolvió ok, di lo que diga su resultado: la primera vez, que quedó pedido y lo ve en la órbita; después, corto («También quedó.»). Si devolvió un error o «NO SE HIZO NADA», no digas que quedó: di que no se pudo y por qué, en simple.',
         'Respuesta a una pregunta pendiente o «súbelo»: claudio_responder.',
         'Los AVISOS de su ficha, dilos en una frase al empezar.',
         'Estado: si pregunta qué hay, qué está en curso, qué falta unir o qué falló, usa claudio_estado y cuéntalo en simple: primero lo listo para unir, luego lo que sigue en curso y lo que falló con su porqué en pocas palabras. Si habla de uno, pasa su nombre en trabajo.',
@@ -360,13 +360,12 @@ function claudioHizo_(conv, adm) {
   var h = null; try { h = JSON.parse(CacheService.getScriptCache().get('claudiohizo_' + String(conv || '').trim()) || 'null'); } catch (e) {}
   return h && adm && h.email === adm.email ? h : { pedidos: [], unidos: 0 };
 }
-/* Alma vuelve y cierra en una frase, con la verdad: «quedó pedido» solo si claudio_pedido lo confirmó. */
+/* Alma vuelve y cierra en una frase, con la verdad: «quedó pedido» solo si claudio_pedido lo confirmó. Si salió bien, Claudio
+   ya lo confirmó en la llamada: Alma no lo repite (Juan, 17-nov-2026: «con una sola vez basta»); solo avisa lo que falló. */
 function claudioVuelta_(adm, conv) {
   var h = claudioHizo_(conv, adm), ok = h.pedidos.filter(function (p) { return p.ok; }), mal = h.pedidos.filter(function (p) { return !p.ok; });
-  var t1 = ok.length === 1 && ok[0].titulo && ok[0].titulo !== 'Pedido' ? ok[0].titulo.charAt(0).toLowerCase() + ok[0].titulo.slice(1) : '';
-  var frase = ok.length === 1 ? 'Listo, quedó pedido' + (t1 ? ' lo de ' + t1 : '') + '.'
-    : ok.length > 1 ? 'Listo, quedaron pedidos los ' + ok.length + ' cambios.'
-    : mal.length ? 'Ojo: el pedido no salió.'
+  var frase = mal.length && !ok.length ? 'Ojo: el pedido no salió.'
+    : ok.length ? 'Ya volví.'
     : h.unidos ? 'Listo, quedó unido.' : 'Listo.';
   frase += mal.length && ok.length ? ' Uno no salió; si quieres, lo intento de nuevo.' : mal.length ? ' Si quieres, lo intento de nuevo.' : '';
   frase += ' Si necesitas algo más, aquí estoy.';
@@ -442,9 +441,14 @@ function claudioPedido_(adm, b) {
   var r = claudeMandarYa_(adm, texto, { nivel: nivel, micro: micro });
   try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + r.texto, [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioPedido_ chat: ' + e); }
   var titulo = temaTitulo_(texto);
+  /* «Quedó pedido» una sola vez por llamada (Juan, 17-nov-2026: «lo repite hasta ocho veces; con una sola vez basta»):
+     si en esta conversación ya salió otro pedido, la confirmación va corta (variar.js). */
+  var yaConfirmo = claudioHizo_(b.conv_id, adm).pedidos.some(function (p) { return p.ok; });
   if (r.claude && !r.claude.ok) { claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: false, titulo: titulo } }); return { ok: false, error: 'El pedido no salió: ' + String(r.texto || '').slice(0, 200) }; }
   claudioHizoAnotar_(adm, b.conv_id, { pedido: { ok: true, titulo: titulo } });
   var mid = r.claude && r.claude.micro; claudioPanelCandidata_(mid ? 'trabajo' : 'lista', mid ? 'mp:' + mid : '');   // en pantalla: el trabajo nuevo
+  var corta = yaConfirmo ? variarConfirmacionCorta_(r.texto, []) : null;
+  if (corta) return { ok: true, hecho: corta, corta: true, resultado: 'HECHO. Ya le confirmaste otro pedido en esta llamada: di solo «' + corta + '». No repitas «quedó pedido» ni lo del segundo plano.' };
   return { ok: true, hecho: r.texto, resultado: 'HECHO. Dile en una o dos frases: «' + r.texto + '» y que lo haces en segundo plano; cuando esté, le avisas y lo ve en la órbita.' };
 }
 /* Contestar la pregunta pendiente de un trabajo o «súbelo»: lo mismo que la tarjeta de Pendientes y el chat con Alma. */

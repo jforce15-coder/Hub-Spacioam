@@ -6,7 +6,12 @@
    («Listo», «Hecho», «Perfecto»…) o es idéntica a una reciente, se cambia el arranque. El resto del texto no se toca.
    Segunda parte (Juan, 16-nov-2026, pedido pc1794873974792: «me halagas», «vale, lo hago»): «Vale» cuenta como muletilla
    y un halago de cajón («¡Me halagas!») no se repite si ya salió en las últimas respuestas, aunque no fuera la anterior:
-   se quita y queda el resto («¡Me halagas! Soy Alma…» → «Soy Alma…»). */
+   se quita y queda el resto («¡Me halagas! Soy Alma…» → «Soy Alma…»).
+   Tercera parte (Juan, 17-nov-2026, pedido pc1794933663821): «repite "Listo, quedó pedido" hasta ocho veces; con una sola
+   vez basta», y lo mismo con Maricarmen. Cambiar la muletilla no alcanzaba: «Hecho, quedó pedido», «Quedó pedido»… seguían
+   repitiendo lo mismo. Si en las últimas respuestas ya se confirmó un pedido, la confirmación fija se dice corta y sin
+   «quedó pedido» («También quedó.»; «Sumado a «X».»). Lo usan el chat, WhatsApp y la calle (Alma y Maricarmen, que pasan
+   por opProcesar_) y Claudio (claudio.js, por conversación). */
 var VARIAR_HECHO_ = ['listo', 'hecho', 'ya esta', 'ya quedo', 'perfecto', 'entregado', 'enviado', 'anotado', 'ok', 'okey', 'de acuerdo'];
 var VARIAR_ENTIENDO_ = ['entendido', 'claro', 'claro que si', 'entiendo', 'con gusto', 'vale'];
 var VARIAR_HALAGO_ = ['me halagas', 'que halago', 'me sonrojas', 'me haces sonrojar'];
@@ -28,11 +33,36 @@ function variarArranque_(t) {
   var tipo = VARIAR_HECHO_.indexOf(n) >= 0 ? 'hecho' : VARIAR_ENTIENDO_.indexOf(n) >= 0 ? 'entiendo' : VARIAR_HALAGO_.indexOf(n) >= 0 ? 'halago' : '';
   return { norm: n, tipo: tipo, sep: m[0].replace(/^\s*¡?[^,.:;!?¡\n]*/, '').trim(), resto: String(t).slice(m[0].length) };
 }
+/* Confirmación de pedido ya dicha: la frase corta que la reemplaza. i rota entre las opciones. */
+var VARIAR_PEDIDO_RE_ = /^\s*(?:(?:listo|hecho|ya está|ya quedó)\s*[,.]\s*)?quedó pedido(\s+lo de [^.]+)?\.\s*/i;
+var VARIAR_SUMADO_RE_ = /^\s*(?:(?:listo|hecho|ya está)\s*[,.]\s*)?quedó sumado a («[^»]+»)\.\s*/i;
+var VARIAR_CORTAS_ = ['También quedó.', 'Anotado también.', 'Ese también.'];
+var VARIAR_YA_CONFIRMO_ = ['quedo pedido', 'quedaron pedidos', 'quedo sumado', 'tambien quedo', 'anotado tambien', 'ese tambien'];
+function variarEsConfirmacion_(t) { return VARIAR_PEDIDO_RE_.test(String(t || '')) || VARIAR_SUMADO_RE_.test(String(t || '')); }
+function variarYaConfirmo_(recientes) {
+  return (recientes || []).some(function (p) { var n = variarNorm_(p); return VARIAR_YA_CONFIRMO_.some(function (x) { return n.indexOf(x) >= 0; }); });
+}
+/* «Listo, quedó pedido.» → «También quedó.» (o la que no se usó hace poco); «…quedó pedido lo de X.» → «También quedó lo de
+   X.»; «Listo, quedó sumado a «X».» → «Sumado a «X».». El resto del texto queda. Sin confirmación fija: null. */
+function variarConfirmacionCorta_(texto, recientes) {
+  var t = String(texto || ''), m = VARIAR_PEDIDO_RE_.exec(t), corta = '';
+  var vistos = (recientes || []).map(variarNorm_);
+  if (m && m[1]) corta = 'También quedó' + m[1].replace(/\s+/g, ' ') + '.';
+  else if (m) {   // la que hace más que no se usa (o nunca), para no decir la misma dos veces seguidas
+    var cuando = VARIAR_CORTAS_.map(function (o) { var k = -1; vistos.forEach(function (p, j) { if (p.indexOf(variarNorm_(o)) === 0) k = j; }); return k; });
+    corta = VARIAR_CORTAS_[cuando.indexOf(Math.min.apply(null, cuando))];
+  } else { m = VARIAR_SUMADO_RE_.exec(t); if (!m) return null; corta = 'Sumado a ' + m[1] + '.'; }
+  var resto = t.slice(m[0].length).trim();
+  return corta + (resto ? ' ' + resto : '');
+}
 /* texto: la respuesta nueva. recientes: las respuestas anteriores de Alma, de la más vieja a la más nueva. */
 function variarFrase_(texto, recientes) {
   var t = String(texto || ''); if (!t.trim()) return t;
   var prev = (recientes || []).map(String).filter(function (x) { return x.trim(); }).slice(-4);
   if (!prev.length) return t;
+  /* Un pedido ya confirmado hace poco: «quedó pedido» no se repite (tercera parte). */
+  var prev8 = (recientes || []).map(String).filter(function (x) { return x.trim(); }).slice(-8);
+  if (variarEsConfirmacion_(t) && variarYaConfirmo_(prev8)) { var c = variarConfirmacionCorta_(t, prev8); if (c) return c; }
   var a = variarArranque_(t); if (!a || !a.tipo) return t;   // solo se cambian muletillas conocidas
   var usados = prev.map(function (p) { var x = variarArranque_(p); return x ? x.norm : ''; });
   var nt = variarNorm_(t), igual = prev.some(function (p) { return variarNorm_(p) === nt; });

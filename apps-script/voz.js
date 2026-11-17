@@ -28,6 +28,7 @@ function vozApi_(e, body) {
     else if (herr === 'property_info') out = vozPropertyInfo_(body);
     else if (herr === 'postcall') out = vozPostCall_(body);
     else if (herr === 'secretaria') out = vozSecretaria_(body);
+    else if (herr === 'enviar_confirmado') out = vozEnviarConfirmado_(body);
     else if (CLAUDIO_HERR_.indexOf(herr) >= 0) out = claudioHerramienta_(herr, body);   // Hablar con Claudio (claudio.js): solo el principal, por la firma de su conversación
     else if (herr === 'inicio') { out = vozInicio_(body); vozTraza_(herr, body, { ok: true, found: out._tipo }); delete out._tipo; return json_(out); }
     else out = { ok: false, error: 'herramienta desconocida: ' + herr };
@@ -515,6 +516,12 @@ function vozDefHerramientas_(base) {
         pedido: s('Lo que pide el administrador, completo y con todos los datos que dio (nombres, códigos, fechas, texto del mensaje).'),
         palabras_de_juan: s('Solo con «Mejora para Claude»: lo que dijo, palabra por palabra como lo oíste, sin resumir ni corregir. Vacío en lo demás.'),
         modo: { type: 'string', enum: ['esperar', 'segundo_plano'], description: 'esperar (por defecto): lo haces ahora y respondes en la llamada. segundo_plano: el Hub lo hace después de la llamada y le deja el resultado en Pendientes de la app (con notificación si necesita algo de él); úsalo para acciones que no necesitan respuesta en la llamada, varias acciones juntas, si la persona se tiene que ir o si un intento falló o tardó.' } } } } }
+    ,
+    { name: 'enviar_confirmado', response_timeout_secs: 20,
+      description: VOZ_ENVIAR_DESC_,
+      api_schema: { url: base + '&h=enviar_confirmado', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
+        caller_id: caller, conv_id: conv,
+        pedido: s('El envío ya confirmado, completo: a quién (nombre y apartamento o reserva, tal cual) y el texto exacto que se manda (o «el borrador que le leí»).') } } } }
   ].map(function (t) {
     var sec = t.name === 'secretaria';
     t.type = 'webhook'; t.tool_error_handling_mode = 'auto';
@@ -526,8 +533,10 @@ function vozDefHerramientas_(base) {
          («Déjame revisar…», «Dame un segundo…»). Las demás herramientas siguen en 'off'.
          execution_mode 'immediate': la herramienta arranca en cuanto el modelo la pide.
        · SE LE PUEDE INTERRUMPIR MIENTRAS TRABAJA («no, espera», «agrega esto»): interruption_mode 'allow'.
-       · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta). Solo por
-         teléfono y WhatsApp: la app y la web usan las gemelas sin sonido y tocan el coro de Juan (vozGemelas_).
+       · El tecleo suena solo mientras trabaja (tool_call_sound 'typing', siempre que corre una herramienta). Juan,
+         17-nov-2026: el tecleo es para el trabajo corto; si en la app o la web la herramienta pasa de 2,5 s, el tecleo se
+         apaga y entra el coro de espera (alma-trabaja.wav: CoroTrabajo.swift · js/alma-voz.js). Por teléfono, tecleo.
+         'auto' no sirve: solo suena con frase previa, y las búsquedas cortas (sin frase) quedarían mudas.
        Antes era async (la conversación seguía y la respuesta llegaba suelta) y en vivo estaba post_tool_speech, sin
        frase previa y sin poder interrumpir: Juan se quedaba en silencio hasta 60 s.
        · UNA SOLA FRASE ANTES (Juan, 17-nov-2026: «repite dos veces la misma frase de confirmación antes de llamar a
@@ -538,6 +547,9 @@ function vozDefHerramientas_(base) {
     t.pre_tool_speech = sec ? 'auto' : 'off'; t.force_pre_tool_speech = false;   // force_pre_tool_speech está obsoleto en la API
     t.tool_call_sound = 'typing'; t.tool_call_sound_behavior = 'always';
     t.interruption_mode = 'allow'; t.disable_interruptions = false;
+    /* Envío de fondo (Juan, 17-nov-2026; vozEnviarConfirmado_): sin tecleo, sin frase antes y async: la conversación sigue
+       («¿algo más?») mientras el Hub lo manda por detrás. */
+    if (t.name === 'enviar_confirmado') { t.tool_call_sound = null; t.tool_call_sound_behavior = 'auto'; t.execution_mode = 'async'; t.pre_tool_speech = 'off'; }
     return t;
   }).concat([vozMostrarEnChat_(), vozNivelWeebo_(), vozMostrarGif_(), vozMostrarTarjetaClub_(), vozHablarConClaudio_(), vozPasarAMaricarmen_()], vozManosHerramientas_(), vozAnilloHerramientas_()).concat(vozGuiaHerramientas_());   // manos.js: Manos de Alma (navegador) y Atajos de iOS · claudio.js: pasar a Claudio · anillo.js: el anillo QRing · guia.js: la Guía de camino
 }
@@ -607,7 +619,7 @@ var VOZ_SISTEMA_DESC_ = {
 
 /* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Antes, una frase de espera corta que no adelanta nada
    (pre_tool_speech 'force', #498); el resultado se confirma solo cuando ya se hizo (Juan, 3-nov-2026). */
-var VOZ_SECRETARIA_DESC_ = 'SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di UNA sola vez una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»; en MODO CALLE, «Copiado.»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»), sin repetir la frase de espera ni confirmar dos veces: confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
+var VOZ_SECRETARIA_DESC_ = 'Si Juan ya confirmó un envío, no la uses: usa enviar_confirmado. SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di UNA sola vez una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»; en MODO CALLE, «Copiado.»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»), sin repetir la frase de espera ni confirmar dos veces: confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
@@ -615,7 +627,7 @@ function vozHerramientas_(k) {
 }
 /* La huella de lo que el código dice de las herramientas (sin la URL con la llave). Si cambia, se publican solas. */
 function vozHerramientasHuella_() {
-  var t = JSON.stringify({ d: vozDefHerramientas_('BASE'), a: VOZ_AJUSTES_AJENAS_, s: VOZ_SISTEMA_DESC_, g: VOZ_GEMELAS_VERSION_ });
+  var t = JSON.stringify({ d: vozDefHerramientas_('BASE'), a: VOZ_AJUSTES_AJENAS_, s: VOZ_SISTEMA_DESC_ });
   return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, t, Utilities.Charset.UTF_8));
 }
 /* T3 (3-nov-2026): antes las herramientas solo se publicaban si alguien corría el robot voz_tools, y quedaron atrasadas
@@ -651,28 +663,6 @@ function vozHerramientasFaltan_(o) {
     return !h || ids.indexOf(h.id) < 0;
   });
 }
-/* ═══ Coro «Alma está trabajando» (Juan, 17-nov-2026) ═══
-   En la app de Alma y en la web, mientras Alma usa una herramienta suena el coro de Juan (sus voces con eco: la app lo toca
-   en VozNativa · CoroTrabajo.swift; la web en js/alma-voz.js) en lugar del tecleo de ElevenLabs. El tecleo es por
-   herramienta (tool_call_sound) y ElevenLabs no deja cambiarlo por conversación; lo que sí deja cambiar por conversación es
-   la LISTA de herramientas (conversation_config_override.agent.prompt.tool_ids). Por eso cada herramienta webhook de Alma
-   tiene una GEMELA igual pero sin sonido (mismo nombre, misma URL): el agente (teléfono y WhatsApp) sigue con las
-   originales y su tecleo, y la app y la web abren su conversación con las gemelas (tool_ids_app en la ficha).
-   VOZ_GEMELAS: { id original → id gemela }. VOZ_GEMELAS_OK = '1' solo si ElevenLabs confirmó el permiso de tool_ids:
-   sin él la ficha no manda la lista (una sustitución sin permiso no deja abrir la conversación). */
-var VOZ_GEMELAS_VERSION_ = 'coro-2';
-function vozGemelas_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('VOZ_GEMELAS') || '{}') || {}; } catch (e) { return {}; } }
-/* La lista de herramientas para la conversación de la app o la web: la del agente con cada original cambiada por su gemela.
-   La del agente la guarda vozPublicarHerramientas_ (VOZ_TOOL_IDS), el único camino que agrega herramientas a Alma: así la
-   ficha no gasta internet (17-nov-2026: el cupo diario de Google se acabó y una lectura de ElevenLabs por ficha sobraba). */
-function vozToolIdsApp_() {
-  var p = PropertiesService.getScriptProperties(); if (p.getProperty('VOZ_GEMELAS_OK') !== '1') return null;
-  var gem = vozGemelas_(), ids = null; if (!Object.keys(gem).length) return null;
-  try { ids = JSON.parse(p.getProperty('VOZ_TOOL_IDS') || 'null'); } catch (e) {}
-  if (!ids || !ids.length) return null;
-  var cambio = false, out = ids.map(function (id) { if (gem[id]) { cambio = true; return gem[id]; } return id; });
-  return cambio ? out : null;
-}
 function vozPublicarHerramientas_(base) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
@@ -684,33 +674,18 @@ function vozPublicarHerramientas_(base) {
     if (c < 200 || c >= 300) throw new Error(metodo + ' ' + ruta + ' → HTTP ' + c + ': ' + t.slice(0, 300));
     return t ? JSON.parse(t) : {};
   };
-  var gem = vozGemelas_(), esGemela = function (t) { return Object.keys(gem).some(function (o) { return gem[o] === t.id; }); };
-  var todas = pedir('get', '/tools').tools || [], hechas = [], gemelas = [];
-  var existentes = todas.filter(function (t) { return !esGemela(t); });   // las gemelas tienen el mismo nombre: nunca se toman por la original
-  /* La gemela sin tecleo de cada herramienta webhook (coro de la app, vozGemelas_): se actualiza o se crea con la misma
-     configuración que la original, menos el sonido. No se agrega al agente: solo la usa la app y la web (tool_ids_app). */
-  var gemela = function (origId, cfg) {
-    var c = JSON.parse(JSON.stringify(cfg)); c.tool_call_sound = null; c.tool_call_sound_behavior = 'auto';
-    var yaG = gem[origId] && todas.filter(function (t) { return t.id === gem[origId]; })[0];
-    try {   // si falla, esa herramienta sigue con su tecleo también en la app; lo demás se publica igual
-      var r = yaG ? pedir('patch', '/tools/' + yaG.id, { tool_config: c }) : pedir('post', '/tools', { tool_config: c });
-      var id = (r && r.id) || (yaG && yaG.id); if (id) { gem[origId] = id; gemelas.push({ name: c.name, id: id, de: origId }); }
-    } catch (e) { console.error('gemela ' + c.name + ': ' + e); gemelas.push({ name: c.name, error: String(e).slice(0, 200) }); }
-  };
+  var existentes = (pedir('get', '/tools').tools || []), hechas = [];
   vozDefHerramientas_(base).forEach(function (def) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === def.name; })[0];
     var r = ya ? pedir('patch', '/tools/' + ya.id, { tool_config: def }) : pedir('post', '/tools', { tool_config: def });
     hechas.push({ name: def.name, id: (r && r.id) || ya.id, accion: ya ? 'actualizada' : 'creada' });
-    if (def.type === 'webhook' && def.tool_call_sound) gemela((r && r.id) || ya.id, def);
   });
   Object.keys(VOZ_AJUSTES_AJENAS_).forEach(function (nombre) {
     var ya = existentes.filter(function (t) { return t.tool_config && t.tool_config.name === nombre; })[0]; if (!ya) return;
     var cfg = Object.assign({}, ya.tool_config, VOZ_AJUSTES_AJENAS_[nombre]);
     pedir('patch', '/tools/' + ya.id, { tool_config: cfg });
     hechas.push({ name: nombre, id: ya.id, accion: 'ajustada (' + Object.keys(VOZ_AJUSTES_AJENAS_[nombre]).join(', ') + ')' });
-    if (cfg.type === 'webhook' && cfg.tool_call_sound) gemela(ya.id, cfg);
   });
-  p.setProperty('VOZ_GEMELAS', JSON.stringify(gem));
   var ag = pedir('get', '/agents/' + encodeURIComponent(agente)), pr = ag.conversation_config.agent.prompt;
   var ids = (pr.tool_ids || []).slice();
   hechas.forEach(function (t) { if (t.id && ids.indexOf(t.id) < 0) ids.push(t.id); });
@@ -721,17 +696,8 @@ function vozPublicarHerramientas_(base) {
   /* Paciencia: Alma espera a que la persona termine la frase (turn_eagerness 'patient') y no la interrumpe al primer silencio.
      Cada vez que se publican las herramientas se vuelve a dejar así, para que ningún cambio del agente la apure sin querer. */
   var turn = Object.assign({}, (ag.conversation_config || {}).turn || {}, { turn_eagerness: 'patient' });
-  /* Coro (vozGemelas_): la app y la web pueden cambiar, solo en su conversación, la lista de herramientas (tool_ids) por la
-     de las gemelas sin tecleo. Se permite aquí; lo demás de las sustituciones (saludo, idioma…) queda como está. */
-  var ov = JSON.parse(JSON.stringify((ag.platform_settings || {}).overrides || {}));
-  ov.conversation_config_override = ov.conversation_config_override || {};
-  ov.conversation_config_override.agent = ov.conversation_config_override.agent || {};
-  ov.conversation_config_override.agent.prompt = Object.assign({}, ov.conversation_config_override.agent.prompt || {}, { tool_ids: true });
-  var ag2 = pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr }, turn: turn }, platform_settings: { overrides: ov } });
-  var permitido = !!((((((ag2.platform_settings || {}).overrides || {}).conversation_config_override || {}).agent || {}).prompt || {}).tool_ids);
-  p.setProperty('VOZ_GEMELAS_OK', permitido && gemelas.some(function (g) { return g.id; }) ? '1' : '0');
-  p.setProperty('VOZ_TOOL_IDS', JSON.stringify((((ag2.conversation_config || {}).agent || {}).prompt || {}).tool_ids || pr.tool_ids || []));
-  return vozEstado_({ herramientas: hechas, turnos: turn.turn_eagerness, gemelas: gemelas, gemelas_permitidas: permitido });
+  pedir('patch', '/agents/' + encodeURIComponent(agente), { conversation_config: { agent: { prompt: pr }, turn: turn } });
+  return vozEstado_({ herramientas: hechas, turnos: turn.turn_eagerness });
 }
 
 /* Estado del agente tal como lo ve ElevenLabs (para comprobar que el prompt y las herramientas quedaron). */
@@ -1036,13 +1002,46 @@ function vozBorradorTurno_(adm, texto, explicito) {
 }
 /* Segundo plano: la llamada no espera. El pedido queda en cola, se ejecuta en unos segundos con la misma secretaria
    y el resultado le llega al administrador por WhatsApp. Cola en VOZ_SEC_COLA; se saca antes de ejecutar (nunca se repite). */
-function vozSecEncolar_(tel, pedido, conf) {
+/* ═══ ENVÍO DE FONDO (Juan, 17-nov-2026) ═══
+   «Después de que ya se confirmó el envío de un mensaje (¿estás seguro? — sí, se envía), los agentes de voz todavía hacen
+   typing que ya no es necesario. Ahí deberíamos escuchar la continuación de la conversación (si necesita algo más). Lo
+   pendiente se queda en el background y el usuario ya no escucha ese procesamiento.»
+   enviar_confirmado: herramienta webhook SIN tecleo y async (ElevenLabs no espera su respuesta). El Hub solo lo pone en la
+   cola de segundo plano marcado como envío (vozSecEncolar_) y contesta al instante «en camino»; vozSecProcesar_ lo manda
+   en la próxima pasada (sin la espera de 40 s para juntar pedidos) con el mismo agente y los mismos frenos de siempre
+   (envío directo, duplicados, prometer.js). Alma dice «Lo estoy enviando», nunca «enviado». Si no salió, aviso a Juan
+   (vozEnvioFallo_ → Pendientes con notificación, el canal de avisos de siempre); si salió, no se le interrumpe. */
+var VOZ_ENVIO_TRAS_MS_ = 5000;
+var VOZ_ENVIO_PREFIJO_ = 'Envíaselo (Juan ya lo confirmó en la llamada): ';
+var VOZ_ENVIAR_DESC_ = 'SOLO cuando Juan ya confirmó un envío (te dijo «sí», «envíalo», «mándalo» a un mensaje que le leíste) o te dio la orden de enviar con destinatario y texto claros: a un huésped, alguien del equipo, un socio o un contacto. Lo manda por detrás. Llámala sin anunciarla y di solo «Lo estoy enviando» (nunca «enviado» ni «listo»), y sigue: pregúntale si necesita algo más. Si falla, a Juan le llega un aviso. Si falta saber a quién o qué decir, usa secretaria.';
+function vozEnviarConfirmado_(b) {
+  var tel = normTel_(b.caller_id || b.system__caller_id || ''), adm = tel ? adminPorTel_(tel) : null;
+  if (!adm) return { ok: false, error: 'NO SE ENVIÓ NADA: no pude confirmar que hablas con un administrador. Díselo y que lo pida por WhatsApp.' };
+  var pedido = String(b.pedido || '').trim(); if (!pedido) return { ok: false, error: 'NO SE ENVIÓ NADA: falta qué enviar y a quién.' };
+  var conf = false; try { conf = vozEsConferencia_(b.conv_id); } catch (e) {}
+  /* «Envíaselo»: vale como el sí de un borrador pendiente (EQUIPO_SI_RE_) y como orden de envío directo (enviodirecto.js). */
+  vozSecEncolar_(tel, VOZ_ENVIO_PREFIJO_ + pedido, conf, true);
+  return { ok: true, en_camino: true, resultado: 'EN CAMINO (todavía no salió): si aún no lo dijiste, di solo «Lo estoy enviando» y sigue con Juan. No digas «enviado» ni «listo». Si falla, a Juan le llega un aviso.' };
+}
+/* Un envío de fondo terminó: si no salió (falló el agente, un envío con error o ningún envío hecho), aviso a Juan. */
+function vozEnvioFallo_(adm, r, pedido, orbs) {
+  var malas = ((r && r.hechas) || []).filter(function (h) { return h && h.error; });
+  var salio = !(r && r.fallo) && !malas.length && prometerEnvioHecho_((r && r.hechas) || []);
+  if (salio) return false;
+  if (r) r.avisado = true;   // vozSecAvisar_ no repite el aviso
+  var porque = r && r.fallo ? r.fallo : malas.length ? malas.map(function (h) { return (h.resumen || h.tipo) + ': ' + h.error; }).join('; ') : String((r && r.respuesta) || 'no se hizo ningún envío').slice(0, 300);
+  pendAvisar_(adm, 'No salió el mensaje que confirmaste en la llamada (' + String(pedido).replace(VOZ_ENVIO_PREFIJO_, '').slice(0, 160) + '): ' + porque,
+    { origen: 'segundo_plano', pedido: pedido, tipo: 'atencion', fallo: porque, pedidos: orbs || [] });
+  return true;
+}
+function vozSecEncolar_(tel, pedido, conf, envio) {
   var admE = null; try { admE = adminPorTel_(tel); } catch (e) {}
   var orb = ''; try { if (admE) orb = orbitaEmpieza_(admE.email, pedido, 'segundo_plano', 'En fila'); } catch (e) {}   // su anillo en el inicio (orbita.js)
   var lock = vozColaLock_(); lock.waitLock(10000);   // retomar.js: el del script lo tiene procesarCola con los huéspedes
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
     var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;   // lo pidió en modo conferencia: el resultado se le dice al oído
+    if (envio) x.envio = 1;   // envío ya confirmado (vozEnviarConfirmado_): sale enseguida, sin esperar a juntarlo con otros
     if (orb) x.orb = orb;
     cola.push(x);
     p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.slice(-20)));
@@ -1051,7 +1050,7 @@ function vozSecEncolar_(tel, pedido, conf) {
   /* Espera breve: si en la misma llamada piden algo más (p. ej. «revisa también la imagen»), todo se hace junto en un solo WhatsApp. */
   try {
     ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'vozSecretariaPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
-    ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(45000).create();
+    ScriptApp.newTrigger('vozSecretariaPronto').timeBased().after(envio ? VOZ_ENVIO_TRAS_MS_ : 45000).create();
   } catch (e) { console.error('trigger vozSecretariaPronto: ' + e); }
   return { ok: true, en_proceso: true, resultado: 'Recibido. Lo hago en segundo plano; el resultado le queda en Pendientes de la app y, si necesito algo de él, le llega una notificación. Si es solo una confirmación, no hace falta avisar. Ya puedes despedirte si no necesita nada más.' };
 }
@@ -1071,7 +1070,7 @@ function vozSecProcesar_() {
       if (!cola.length) return;
       var tel = cola[0].tel, suyos = cola.filter(function (x) { return x.tel === tel; });
       /* Si el último pedido de esa persona es muy reciente, puede seguir en la llamada: se espera a la próxima pasada. */
-      if (Date.now() - Math.max.apply(null, suyos.map(function (x) { return x.t; })) < 40000) return;
+      if (!suyos.every(function (x) { return x.envio; }) && Date.now() - Math.max.apply(null, suyos.map(function (x) { return x.t; })) < 40000) return;   // un envío confirmado no espera
       grupo = suyos;
       p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.filter(function (x) { return x.tel !== tel; })));
     } finally { lock.releaseLock(); }
@@ -1089,6 +1088,7 @@ function vozSecProcesar_() {
     } catch (e) { r = { respuesta: 'No pude terminar lo que me pediste en la llamada: ' + String(e).slice(0, 150) + '. ¿Lo intentamos por aquí?', hechas: [], fallo: String(e).slice(0, 150) }; }
     finally { ORBITA_ACTUAL_ = null; }
     try { orbitaTermina_(adm.email, orbs, r.fallo, r); } catch (e) { console.error('orbitaTermina_: ' + e); }
+    try { if (grupo.some(function (x) { return x.envio; })) vozEnvioFallo_(adm, r, pedido, orbs); } catch (e) { console.error('vozEnvioFallo_: ' + e); }
     try { vozSecAvisar_(grupo[0].tel, adm, r, pedido, orbs); } catch (e) { console.error('vozSecAvisar_: ' + e); }
   }
 }
@@ -1098,7 +1098,7 @@ function vozSecAvisar_(tel, adm, r, pedido, orbs) {
   try { vozTrabajando_(adm, -1); } catch (e) {}
   /* Al principal el resultado ya le llega a Pendientes (opAgente_ → pendientes.js, con notificación si necesita algo de él):
      el WhatsApp queda solo para conversar. Si falló antes de responder, el aviso va directo. */
-  if (esAdminPrincipal_(adm)) { if (r.fallo) pendAvisar_(adm, r.respuesta, { origen: 'segundo_plano', pedido: pedido, tipo: 'atencion', fallo: r.fallo, pedidos: orbs || [] }); return; }   // pedidos: Alma abre (almaabre.js)
+  if (esAdminPrincipal_(adm)) { if (r.fallo && !r.avisado) pendAvisar_(adm, r.respuesta, { origen: 'segundo_plano', pedido: pedido, tipo: 'atencion', fallo: r.fallo, pedidos: orbs || [] }); return; }   // pedidos: Alma abre (almaabre.js)
   var malas = (r.hechas || []).filter(function (h) { return h.error; });
   var txt = String(r.respuesta || 'Listo.').trim() + (malas.length ? '\n\nOjo, esto no salió: ' + malas.map(function (h) { return (h.resumen || h.tipo) + ' (' + h.error + ')'; }).join('; ') : '');
   var c = retClasificar_(pedido, txt, malas.length ? malas.map(function (h) { return h.resumen || h.tipo; }).join('; ') : '');
@@ -1308,8 +1308,6 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   CacheService.getScriptCache().put('vozweb_pend', tel, ligero ? 120 : 90);
   /* ligero: la app web guarda esta ficha para la próxima llamada; la URL firmada la usa enseguida o la pide aparte (vozFirma). */
   out.signed_url = firmada;
-  /* Coro «Alma está trabajando» (vozGemelas_): la app y la web abren con las herramientas gemelas sin tecleo. */
-  try { var tia = vozToolIdsApp_(); if (tia) out.tool_ids_app = tia; } catch (e) { console.error('vozToolIdsApp_: ' + e); }
   marca('total'); vozWebTiempos_(marcas, ligero, app);
   out.tiempos = marcas;
   return out;

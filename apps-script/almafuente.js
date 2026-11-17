@@ -331,13 +331,19 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Hace lo que pide un administrador (mensajes, correos, rutas, tareas, reservas, datos, música, vigilancias, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»."
+    "linea": "Hace lo que pide un administrador (mensajes, correos, rutas, tareas, reservas, datos, música, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»."
+   },
+   "enviar_confirmado": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Envío ya confirmado: «Lo estoy enviando» y sigues."
    },
    "lookup_reservation": {
     "canales": [
      "voz"
     ],
-    "linea": "Valida la reserva de un huésped. Solo si la ficha de quien llama no dice quién es; nunca con {dueño} ni con el equipo."
+    "linea": "Valida la reserva de un huésped, solo si la ficha no dice quién es; nunca con {dueño} ni con el equipo."
    },
    "property_info": {
     "canales": [
@@ -349,13 +355,13 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "Solo disponibilidad de fechas para quien todavía no tiene reserva. Nunca con el equipo."
+    "linea": "Solo fechas libres para quien aún no tiene reserva; nunca con el equipo."
    },
    "mostrar_en_chat": {
     "canales": [
      "voz"
     ],
-    "linea": "En la app, pone en pantalla lo que tiene muchos datos; si se mostró, lo resumes en una frase."
+    "linea": "En la app, pone en pantalla lo que trae muchos datos; si se mostró, lo resumes."
    },
    "nivel_weebo": {
     "canales": [
@@ -367,7 +373,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app y solo con Juan: un GIF tras una broma que ya cayó, en silencio."
+    "linea": "En la app y solo con Juan: un GIF tras una broma, en silencio."
    },
    "mostrar_tarjeta_club": {
     "canales": [

@@ -42,7 +42,8 @@ function rllFin_(t) {
   return t ? 'Otro corte' : 'Sin dato';
 }
 var RLL_MALOS_ = ['Se cortó la conexión', 'Silencio largo de la persona', 'Filtro de seguridad', 'Cuota agotada', 'Otro corte'];
-var RLL_RELLENO_ = /(sigues ah[ií]|est[aá]s ah[ií]|skip_turn|^\s*\.{2,}\s*$|^\s*\[[^\]]*\]\s*$)/i;
+/* Frases de presencia (18-nov-2026): «sigo aquí en silencio», «aquí sigo», «sigo escuchando» también son relleno y quedan contadas en el reporte. */
+var RLL_RELLENO_ = /(sigues ah[ií]|est[aá]s ah[ií]|skip_turn|sigo aqu[ií]|aqu[ií] sigo|sigo (en silencio|escuchando)|me quedo (en silencio|escuchando)|^\s*\.{2,}\s*$|^\s*\[[^\]]*\]\s*$)/i;
 var RLL_NEGATIVA_ = /\bno (puedo|pude|tengo acceso|encontr|me es posible)|no es algo que pueda|no tengo (la )?capacidad/i;
 
 function rllElevenLabs_(desde, hasta) {

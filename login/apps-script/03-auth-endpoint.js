@@ -100,7 +100,7 @@ function _handle(e){
 }
 
 // ---- fase 1c: confirmar la primera contraseña desde el correo ----
-var LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec';
+var LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbyX_ON7wF0Logs2EfL-K13MJXPDAGADWizVxJt_DP2ZAvSscS1qirYeZYOP5n-zfhnO/exec';
 function _esRobot(token){ return !!token && _diagLector(token).ok; }
 function _pedirConfirmacion(row, H, next){
   var email = String(row[H.email]||'').trim().toLowerCase(), c = CacheService.getScriptCache();

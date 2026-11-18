@@ -205,3 +205,19 @@ antes de traer. Mi la abre por id y, sin acceso, da un error claro en vez de cre
 - La dirección /exec de Mi está en `sheets.js` (`SA_PUBLIC_URL`; la guardada en el navegador se ignora si es la vieja),
   `404.html` y `Actualizacion.js` de Mi, y en el Hub en `apps-script/Código.js` (`ACCESOS_APPS_.mi`: accesos, fichas de
   socios y enlaces cortos).
+
+## Login (18-nov-2026)
+El login corre en alma@ (`/exec` `AKfycbyX_ON7…`). Juan corrió `trasladoTraer`; la prueba de humo usó el robot
+`diagTraslado` (`login/apps-script/04-traslado-diag.js`): la huella de `SESSION_SECRET` es igual en el viejo y el nuevo
+(una sesión firmada por uno pasa en el otro y `LOGIN_SECRETO` de las apps sigue sirviendo), las mismas llaves de Face ID,
+abre Control de usuarios y SETUP de Mi, y `diagClaves`/`diagAlternos` dan lo mismo en los dos. alma@ es editora de las
+hojas del lector seguro (`HOJAS_PERMITIDAS`; la de The Gentle Stoic Parent es pública con enlace).
+- **Dónde está la dirección:** en el Hub `js/sa-auth-client.js` (sube `?v=`), `js/sa-sesion.js`, `usuarios.html`,
+  `apps-script/Código.js` (`LOGIN_URL_`) y `login/apps-script/03-auth-endpoint.js` (su propia dirección, para el enlace de
+  «Confirma tu contraseña»); en cada app `apps-script/sesion.js` y `sa-auth-client.js` (Grow, Docs, Hola, Epi, Mi), Grow
+  `apps-script/accesos-duenos.js` (y el `sa-auth-client` empaquetado dentro de `index.html`) y Mi `04-cliente-frontend.js`.
+- **Orden:** como los dos logins leen la misma hoja y firman con la misma llave, se pueden cortar en cualquier orden sin
+  dejar a nadie fuera. Lo único que no se comparte son las llaves de Face ID nuevas (Propiedades): quien registre Face ID
+  en el viejo después del traer lo registra otra vez.
+- Ya no se publica con clasp: `login-apps-script.yml` solo revisa; `"sincronizar": true` en `proyectos.json`.
+- **Volver atrás:** revertir los PR de direcciones (el viejo sigue vivo 7 días con su `SESSION_SECRET`).

@@ -20,7 +20,7 @@
 (function (w) {
   if (w.__saSesion) return; w.__saSesion = true;
   var KEY = 'sa_auth', MAX = 30 * 86400;
-  var LOGIN = 'AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd';
+  var LOGIN = 'AKfycbyX_ON7wF0Logs2EfL-K13MJXPDAGADWizVxJt_DP2ZAvSscS1qirYeZYOP5n-zfhnO';
 
   function dominio() { return /(^|\.)spacioam\.com$/i.test(location.hostname) ? '; domain=.spacioam.com' : ''; }
   function leer() {

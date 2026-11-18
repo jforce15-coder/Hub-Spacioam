@@ -61,7 +61,7 @@ ok(JSON.stringify(sys.claudio.como_hablas) === JSON.stringify(base.claudio.como_
 ok(sys.ficha_de_quien_llama[0] === j.dynamic_variables.quien_llama && !/\{\{quien_llama\}\}/.test(c1.system), '2 · con su ficha en lugar de {{quien_llama}}');
 ok(sys.claudio.voz_local.some(x => /texto plano/.test(x)) && sys.claudio.voz_local.some(x => /\[warm\]/.test(x)), '2 · y las reglas de la voz local (texto plano, sin etiquetas)');
 const nombres = c1.tools.map(x => x.name).sort().join(',');
-ok(nombres === 'claudio_acciones,claudio_codigo,claudio_creator,claudio_estado,claudio_pedido,claudio_responder,claudio_unir,poner_voz,ver_video,volver_con_alma', '2 · sus mismas herramientas: ' + nombres);
+ok(nombres === 'claudio_acciones,claudio_codigo,claudio_creator,claudio_estado,claudio_pedido,claudio_responder,claudio_unir,claudio_voces,poner_voz,ver_video,volver_con_alma', '2 · sus mismas herramientas: ' + nombres);
 ok(c1.tools.every(x => x.input_schema && !x.input_schema.properties.conv_id && !x.input_schema.properties.sa_web && !(x.input_schema.required || []).includes('conv_id')), '2 · sin conv_id ni sa_web (los pone el Hub)');
 ok(c1.messages[0].role === 'user' && c1.messages[1].role === 'assistant' && c1.messages[2].role === 'user' && /botón de pagos/.test(c1.messages[2].content), '2 · la conversación llega alternada, empezando por Juan');
 

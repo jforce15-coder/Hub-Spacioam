@@ -234,6 +234,11 @@ function claudioHiloArmar_(adm) {
   try {
     opFilas_(email, 900).filter(function (m) { return chatEsDesarrollo_(m); }).slice(-40).forEach(function (m) {
       var t = claudioHiloTexto_(m.texto); if (!t) return;
+      var tj = null; try { tj = m.tarjeta ? JSON.parse(m.tarjeta) : null; } catch (e) {}
+      if (tj && tj.tipo === 'voces' && Array.isArray(tj.voces)) {   // Muestras de voz (muestrasvoz.js): la tarjeta con su botón ▶
+        items.push({ k: 'voces', id: m.id, buscar: String(tj.buscar || ''), frase: String(tj.frase || ''), voces: tj.voces.slice(0, MV_MAX_), ts: new Date(m.ts).getTime() || 0 });
+        return;
+      }
       items.push({ k: 'msg', id: m.id, de: m.de === 'alma' ? 'claudio' : 'juan', canal: m.canal, texto: t, ts: new Date(m.ts).getTime() || 0 });
     });
   } catch (e) { console.error('claudioHilo chat: ' + e); }

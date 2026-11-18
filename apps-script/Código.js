@@ -801,6 +801,7 @@ function procesarCola() {
   cupoFuncion_('avisoWaRespaldo_'); try { avisoWaRespaldo_(); } catch (e) { console.error('avisoWaRespaldo_: ' + e); }   // notificación que la app no recogió en 10 min → WhatsApp al principal (avisowa.js); Juan espera: no se pausa
   cupoFuncion_('vigProcesar_'); try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   cupoFuncion_('pubSoloRevisar_'); try { pubSoloRevisar_(false); } catch (e) { console.error('pubSoloRevisar_: ' + e); }   // unir = publicar: cada 5 min, si cambió el código de una app en main, pide el Traslado (publicarsolo.js); no se pausa
+  cupoFuncion_('buzonRevisar_'); try { buzonRevisar_(false); } catch (e) { console.error('buzonRevisar_: ' + e); }   // correo a Claudio: cada 5 min, lo que Juan manda a alma@ entra a la Biblioteca de Claudio (buzon.js); sin IA
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {
     cupoCanal_('Mejoras y fondo');

@@ -932,9 +932,16 @@ function vozSecretaria_(b) {
   }
   var conf = vozEsConferencia_(b.conv_id), plazo = conf ? vozPlazoConferencia_() : Math.min(vozTolerancia_(), VOZ_PLAZO_DURO_);
   if (String(b.modo || '').toLowerCase() === 'segundo_plano') return vozSecEncolar_(tel, pedido, conf);
+  AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
+  /* Música sin dispositivo de Spotify despierto: se contesta en 1 a 2 s, sin la IA (musica.js, Hub #793). */
+  var mp = null; try { mp = musicaPrevia_(adm, pedido); } catch (e) { console.error('musicaPrevia_: ' + e); }
+  if (mp) {
+    AGENTE_APP_ = false;
+    try { opGuardar_(adm, 'yo', 'llamada', pedido); opGuardar_(adm, 'alma', 'llamada', mp.error); } catch (e) {}
+    return { ok: false, error: 'NO SE PUSO LA MÚSICA: ' + mp.error + ' Díselo en una o dos frases cortas y no lo reintentes en esta llamada.' };
+  }
   var previos = opFilas_(adm.email, 20);
   var yoF = opGuardar_(adm, 'yo', 'llamada', pedido);
-  AGENTE_APP_ = !!(b.conv_id && CacheService.getScriptCache().get('vozapp_' + String(b.conv_id)));   // música y casa solo desde la app de Alma
   var esApp = AGENTE_APP_; TV_CANDIDATA_ = null;   // tarjeta de la llamada (tarjeta.js): la deja agEjecutar_ en este turno
   /* Tolerancia (retomar.js): si tarda más de lo que la llamada puede esperar, sigue en segundo plano y la llamada cuelga. */
   AGENTE_PLAZO_ = t0 + plazo; AGENTE_PEDIDO_ = pedido; AGENTE_CONF_ = conf;   // AGENTE_CONF_: si sigue en segundo plano, el resultado se dice al oído (pendientes.js)

@@ -72,9 +72,16 @@ function musicaLista_() {
   for (var i = 0; i < (MUSICA_REVISADA_ ? 1 : 2); i++) {
     var d = spotifyApi_('get', '/me/player/devices'), l = ((d.j && d.j.devices) || []).filter(function (x) { return x && x.id && !x.is_restricted; });
     if (l.length || d.code === 401) return l;
+    var pl = musicaEnReproductor_(); if (pl) return [pl];
     if (i === 0) Utilities.sleep(2000);
   }
   return [];
+}
+/* El dispositivo que Spotify tiene en la reproducción (/me/player), aunque la lista de dispositivos venga vacía: pasa con el
+   iPhone en pausa (Hub #822, 18-nov-2026: «cuando le pido a Alma poner música sigue sin detectar el dispositivo»). */
+function musicaEnReproductor_() {
+  var e = spotifyApi_('get', '/me/player'), dv = e.code < 300 && e.j && e.j.device;
+  return dv && dv.id && !dv.is_restricted ? dv : null;
 }
 /* El dispositivo: el que se nombró (sala, cocina, carro…); si no, el que está sonando; si no, el último donde Alma puso
    música; si no, el teléfono o la compu (los que más rápido despiertan); si no, el primero. */
@@ -139,10 +146,13 @@ function musica_(adm, inp) {
     if (!items.length) return { error: 'No encontré «' + consulta + '» en Spotify.' };
     var it = items[0], cuerpo = tt === 'track' ? { uris: [it.uri] } : { context_uri: it.uri };
     r = musicaOrden_(el, 'put', '/me/player/play' + q, cuerpo);
+    if (r.code < 300) PropertiesService.getScriptProperties().setProperty('SPOTIFY_PAUSA_ALMA', '0');
     if (r.code < 300) return { ok: true, sonando: it.name + (it.artists ? ' · ' + it.artists.map(function (x) { return x.name; }).join(', ') : it.owner ? ' (playlist de ' + it.owner.display_name + ')' : ''), en: el.name,
       nota: dsp.pedido && !dsp.hallado ? 'No encontré «' + inp.dispositivo + '»; lo puse en ' + el.name + '.' : undefined };
   }
   if (r.code >= 300 && el.recordado) return { error: sinDsp };
+  // La música vuelve: lo que Alma pausó a pedido de Juan no se retoma solo; lo que siguió o puso, sí.
+  if (r.code < 300) PropertiesService.getScriptProperties().setProperty('SPOTIFY_PAUSA_ALMA', acc === 'pausar' ? String(Date.now()) : '0');
   if (r.code < 300) return { ok: true, en: el.name };
   var m = (r.j && r.j.error && (r.j.error.message || r.j.error)) || ('HTTP ' + r.code);
   return { error: /premium/i.test(m) ? 'Spotify pide Premium para controlar la música.' : 'Spotify no lo hizo: ' + m };
@@ -163,8 +173,35 @@ function musicaPrevia_(adm, pedido) {
   var d = spotifyApi_('get', '/me/player/devices');
   if (d.code === 401 || d.code >= 500) return null;   // Spotify no contestó bien: que lo vea la secretaria
   var l = ((d.j && d.j.devices) || []).filter(function (x) { return x && x.id && !x.is_restricted; });
-  if (l.length) return null;
+  if (l.length || musicaEnReproductor_()) return null;
   var pp = PropertiesService.getScriptProperties(), ult = pp.getProperty('SPOTIFY_ULTIMO') || '';
   if (ult) { var tr = spotifyApi_('put', '/me/player', { device_ids: [ult], play: false }); if (tr.code < 300) return null; }
   return { error: MUSICA_SIN_DISPOSITIVO_ };
+}
+
+/* La música vuelve (Hub #822, 18-nov-2026: «después de una interacción con Alma nunca se reanuda la música»). La app de Alma
+   (MusicaVuelve.swift) nota que Spotify se pausó por Alma (al encender el Modo calle, al abrir la llamada…) y, cuando Alma
+   termina, pide aquí que siga donde iba. Solo si: lo que quedó en pausa es el teléfono, no está sonando ya y Alma no lo pausó
+   porque Juan se lo pidió (en los últimos 30 min). Así Spotify no se queda dormido y sigue apareciendo para «pon música». */
+var MUSICA_PAUSA_RESPETA_MS_ = 30 * 60 * 1000;
+function musicaVuelve_(adm) {
+  if (!esAdminPrincipal_(adm)) return { ok: false, error: 'usuario' };
+  if (!spotifyEstado_().conectado) return { ok: true, hecho: false, motivo: 'sin_spotify' };
+  var c = CacheService.getScriptCache(); if (c.get('musica_vuelve')) return { ok: true, hecho: false, motivo: 'reciente' };
+  c.put('musica_vuelve', '1', 10);
+  var pausa = Number(PropertiesService.getScriptProperties().getProperty('SPOTIFY_PAUSA_ALMA') || 0);
+  if (pausa && Date.now() - pausa < MUSICA_PAUSA_RESPETA_MS_) return { ok: true, hecho: false, motivo: 'la_pauso_alma' };
+  var e = spotifyApi_('get', '/me/player'), dv = e.code < 300 && e.j && e.j.device;
+  if (!dv || !dv.id) return { ok: true, hecho: false, motivo: 'sin_dispositivo' };
+  if (e.j.is_playing) return { ok: true, hecho: false, motivo: 'ya_suena' };
+  if (!/smartphone/i.test(String(dv.type || '')) || dv.is_restricted) return { ok: true, hecho: false, motivo: 'otro_dispositivo' };
+  var r = spotifyApi_('put', '/me/player/play?device_id=' + encodeURIComponent(dv.id));
+  if (r.code < 300) return { ok: true, hecho: true };
+  var m = String((r.j && r.j.error && (r.j.error.message || r.j.error)) || ('HTTP ' + r.code));
+  return { ok: true, hecho: false, motivo: /no active device|device not found/i.test(m) ? 'sin_dispositivo' : 'error', error: m.slice(0, 120) };
+}
+/* Acción musicaVuelve de la app de Alma (con la sesión). */
+function musicaVuelveApi_(ses) {
+  var adm = ses && vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'usuario' };
+  return musicaVuelve_(adm);
 }

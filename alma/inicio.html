@@ -1933,7 +1933,7 @@ window.SAPulso = {
   }
   $("av-pil").onclick = function () {
     if (!AV.actual) return;
-    if (AV.actual.tipo === "resumen" && !AM.on) { areasAbrir(true, AV.actual.area); return; }   // un nivel más hondo: su área
+    if (AV.actual.tipo === "resumen" && !AM.on) { esferaUnir(AV.actual.area); return; }   // un nivel más hondo: su área (como tocar la esfera, #799)
     AV.abierta = !AV.abierta;
     if (AV.abierta && AM.on) amEnfocar(AV.actual);
     avisoMostrar();

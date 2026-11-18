@@ -2,10 +2,11 @@
    Casi siempre es que Hola (hola.spacioam.com) aún no sincronizó la reserva. Cuando el huésped lo dice, ALMA:
    1) le pide un momento, 2) fuerza la sincronización de Hola y comprueba que el código ya aparece,
    3) le avisa que ya puede entrar (o, si sigue sin aparecer, lo pasa al equipo). Solo en modo AUTO. */
-var HOLA_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbwnaUyShyZHDD--rLd7XouPY4mBpgEYPYVxG2bL86nswVg89XZ9jLMFkh2ktL2IG1VRUg/exec';
+var HOLA_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxgMoVZxVnfRqmvCEEoVvbVfDkthnRw_Mq0IeiOLJbjlyaBc6UyBzEfvBi8eSaLu1yW2A/exec';   // Hola en alma@ (traslado a Workspace)
+var HOLA_URL_VIEJA_ = 'https://script.google.com/macros/s/AKfycbwnaUyShyZHDD--rLd7XouPY4mBpgEYPYVxG2bL86nswVg89XZ9jLMFkh2ktL2IG1VRUg/exec';
 var HOLA_ACC_RX_ = /((no|not|can'?t|cannot|unable)[^.?!\n]{0,40}(entrar|ingresar|acceder|abrir|cargar|carga|abre|funciona|deja|access|open|load|log ?in|sign ?in|enter|work)[^.?!\n]{0,60}(formulario|registro|p[aá]gina|link|enlace|web|app|sistema|portal|form|page|website|site|check.?in)|(formulario|registro|p[aá]gina|link|enlace|form|page|website)[^.?!\n]{0,50}(no (me )?(deja|funciona|carga|abre|reconoce|encuentra)|error|not (working|loading|found)|doesn'?t (work|load|open)|won'?t (work|load|open))|(c[oó]digo|code)[^.?!\n]{0,40}(no (es )?v[aá]lido|inv[aá]lido|no (lo )?(reconoce|encuentra|aparece)|not (valid|found|recognized)|invalid)|reserva no encontrada|reservation not found)/i;
 
-function holaUrl_() { return PropertiesService.getScriptProperties().getProperty('HOLA_URL') || HOLA_URL_DEF_; }
+function holaUrl_() { var u = PropertiesService.getScriptProperties().getProperty('HOLA_URL'); return u && u !== HOLA_URL_VIEJA_ ? u : HOLA_URL_DEF_; }
 function holaPost_(body, seg) {
   try {
     var r = uf_(holaUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true, payload: JSON.stringify(Object.assign({ robot: llaveRobot_() }, body)) }, 'Hola');

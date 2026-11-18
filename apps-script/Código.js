@@ -2157,10 +2157,12 @@ function almaFoto_(ses, foto, captura, voz) {
      espera: va con el modelo rápido y barato (Haiku), más corta, y llega a la llamada como contexto. */
   if (captura && voz) {
     var tv = claude_(CFG.MODELO_CLASIFICADOR, 600, 'Es una captura de la pantalla del teléfono de una persona del equipo de Spacio AM, que acaba de llamar por voz a su asistente Alma para hablar de lo que está viendo. Describe en español, en 3 a 6 frases: qué página o app es, qué dice (copia textual los títulos, montos, fechas, horas, nombres, errores y botones importantes) y qué parece estar intentando hacer. Solo lo que se ve; sin suponer.', 'Esta es la captura.', 0.2, [foto]);
+    if (tv) pantallaGuardar_(ses.email, tv);   // si después pide un cambio («mira esta pantalla»), Claudio la recibe (pantalla.js)
     return tv ? { ok: true, texto: String(tv).trim().slice(0, 2000) } : { ok: false, error: 'lectura' };
   }
   if (captura) {
     var tc = claude_(CFG.MODELO_REDACTOR, 900, 'Es una captura de la pantalla del teléfono de una persona del equipo de Spacio AM, que se la manda a su asistente Alma para hablar de lo que está viendo. Describe en español, en 3 a 8 frases: qué página o app es, qué dice (copia textual los títulos, mensajes, errores, montos, fechas y botones importantes) y qué parece estar intentando hacer. Solo lo que se ve; sin suponer.', 'Esta es la captura.', 0.2, [foto]);
+    if (tc) pantallaGuardar_(ses.email, tc);
     return tc ? { ok: true, texto: String(tc).trim().slice(0, 2500) } : { ok: false, error: 'lectura' };
   }
   var t = claude_(CFG.MODELO_REDACTOR, 500, 'Describe en español, en 2 a 5 frases, la foto que una persona del equipo de Spacio AM (apartamentos de estadía corta en Guatemala) le manda a su asistente Alma. Incluye todo lo útil: texto o números visibles (montos, fechas, códigos, nombres), qué lugar o cosa se ve, y cualquier daño, problema o pendiente. Solo lo que se ve; sin suponer.', 'Esta es la foto.', 0.2, [foto]);

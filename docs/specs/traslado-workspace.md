@@ -162,3 +162,14 @@ dejaba fuera llaves como `GITHUB_PRS`).
 **Volver atrás (un paso):** `traslado_apagar` en el nuevo, `traslado_encender` en el viejo, revertir el PR de direcciones y
 Juan vuelve a poner la dirección vieja en el Worker, Meta y Hospitable. Lo que el nuevo guardó en Propiedades se pierde
 (las hojas son las mismas).
+
+## Hola primero (Juan, 18-nov-2026)
+«Hola no tiene backup; si el Hub y todo se cae por el cupo, Hola no tenemos cómo resolverlo. Ese tiene que ser el primero.»
+- **Lo de fondo** (sync con Hospitable, recordatorios, despedidas, avisos de early check-in, borrado de documentos): lo
+  atiende un solo proyecto, el que diga la pestaña **TRASLADO** de la hoja de Hola (B1 = id del proyecto). Al correr
+  `trasladoTraer` en el nuevo, `holaTomarActivadores` instala sus activadores y lo anota como dueño: desde ese momento lo de
+  fondo corre en alma@ (con cupo) y el viejo sale sin hacer nada. Volver atrás: poner en B1 el id del viejo.
+- **Sesión:** Hola ya comprueba la firma localmente con `LOGIN_SECRETO` (se copia al traer); sin cupo deja de insistir al login.
+- **La dirección /exec** está en `config.js` y `404.html` de Hola, y en el Hub: `index.html` (`HOLA_URL`) y
+  `apps-script/holaacceso.js` (`HOLA_URL_DEF_`, o la Propiedad `HOLA_URL` si existe). Se cambian en un PR por repo después
+  de la prueba de humo; volver atrás = revertir esos PR.

@@ -173,3 +173,17 @@ Juan vuelve a poner la dirección vieja en el Worker, Meta y Hospitable. Lo que 
 - **La dirección /exec** está en `config.js` y `404.html` de Hola, y en el Hub: `index.html` (`HOLA_URL`) y
   `apps-script/holaacceso.js` (`HOLA_URL_DEF_`, o la Propiedad `HOLA_URL` si existe). Se cambian en un PR por repo después
   de la prueba de humo; volver atrás = revertir esos PR.
+
+## Epi (18-nov-2026)
+Epi asigna las rutas de limpieza: **nunca** puede quedar un día sin rutas ni con rutas dobles.
+- **Lo de fondo** (rutas de las 18:00, revisión 6:00, salidas contra Hospitable 7:00, sync cada 3 h, alerta 13:00,
+  recordatorio 19:00, reseñas 4:00, lista de propiedades y datos del anuncio 3:00) lo corre un solo proyecto: el que diga la pestaña **TRASLADO** de Spacio AM DB (B1 = id).
+  Solo se saltan las corridas de activador; lo que piden la app o el Hub por /exec corre siempre. Se lee en cada activador
+  (sin caché) y, si la hoja no responde, corre. Epi `apps-script/trasladocorte.js`.
+- Al correr `trasladoTraer` en el nuevo, `epiTomarActivadores` instala los 9 activadores (los vivos del viejo; los tres `cronCodigos*` ya no tienen función y no se pasan) y **solo si quedaron todos** se
+  anota como dueño (si falta uno, borra los suyos y el viejo sigue).
+- Robot de Epi `{action:"__traslado", token}`: id, dueño y activadores. Con `dueno:"yo"` ese proyecto vuelve a ser el dueño
+  (solo si tiene sus activadores). **Volver atrás** = `__traslado` con `dueno:"yo"` al /exec viejo y revertir los PR de
+  direcciones.
+- La dirección /exec de Epi está en `app.jsx`/`app.build.js` e `index.html` de Epi y, en el Hub, en `apps-script/Código.js`
+  (`EPI_URL`) y en las páginas que la usan. Se cambian en PRs [NO UNIR] que se unen después de la prueba de humo.

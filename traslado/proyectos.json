@@ -23,7 +23,7 @@
   "epi": {
     "repo": "Epi-spacioam", "carpeta": "apps-script", "titulo": "Epi · Spacio AM",
     "viejo": "https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec",
-    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": ["epiTomarActivadores"]
   },
   "grow": {
     "repo": "Grow-spacioam", "carpeta": "apps-script", "titulo": "Grow · Spacio AM",

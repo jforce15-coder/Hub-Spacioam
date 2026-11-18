@@ -5602,6 +5602,7 @@ function dsBotApi_(body) {
       case 'amano_medir': return json_(amanoMedir_(body.dias));   // A la mano: la medición, solo números (amano.js)
       case 'amano_prueba': return json_(amanoPrueba_());   // A la mano: lo precargado contra Epi en vivo
       case 'amano_estado': return json_(amanoEstadoRobot_(!!body.ver));
+      case 'amano_voz': return json_(amanoVozPrueba_(body.tema, body.que));   // A la mano: a_mano como si llamara el principal (solo tiempo y si lo tenía)
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

@@ -38,7 +38,7 @@ function prometerFreno_(texto, ctx) {
 
 /* ── Borrador para el equipo, un socio o un contacto (escribir_a_equipo con borrador = true) ── */
 var EQUIPO_BORRADOR_SEG_ = 3 * 3600;
-var EQUIPO_SI_RE_ = /^\W*(s[ií]|sip|dale|ok|okay|claro|perfecto|adelante|m[aá]nd[ae]lo|m[aá]ndaselo|env[ií]a(lo|selo)?|enviar|de acuerdo|correcto|as[ií] est[aá] bien)\b/i;
+var EQUIPO_SI_RE_ = /^[^\p{L}\p{N}]*(s[ií]|sip|dale|ok|okay|claro|perfecto|adelante|m[aá]nd[ae]lo|m[aá]ndaselo|env[ií]a(lo|selo)?|enviar|de acuerdo|correcto|as[ií] est[aá] bien)(?![\p{L}\p{N}_])/iu;   // \b no ve la í: con \b, «sí» no contaba como sí
 function equipoBorradorClave_(adm) { return 'EQUIPO_BORR_' + String((adm && adm.email) || '').toLowerCase(); }
 function equipoBorradorPendiente_(adm) { try { return JSON.parse(CacheService.getScriptCache().get(equipoBorradorClave_(adm)) || 'null'); } catch (e) { return null; } }
 function equipoBorradorGuardar_(adm, destinos, texto, o) {

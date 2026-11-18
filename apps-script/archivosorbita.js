@@ -144,3 +144,52 @@ function archivosFicha_(adm) {
     return '«' + x.nombre + '» (' + x.desc + ')' + (x.resumen ? ': ' + x.resumen : '');
   }).join(' · ');
 }
+
+/* ── De la órbita a la Biblioteca de Claudio (Juan, 18-nov-2026, pedido pc1795012788851) ─────────────────────────────
+   Juan: «ya están cargados en mis archivos en órbita… pásalos a la biblioteca y quítalos de la órbita». Claudio no tiene
+   sesión en la app: ve los archivos que el administrador principal tiene en órbita o en la Carpeta de archivos en cada
+   pedido (archivosOrbitaParaClaude_) y, con el lector de ese pedido, pasa uno a la Biblioteca (bibliotecaClaude_ con
+   «orbita»: «lista» o el id). Pasar = una fila nueva en ALMA_BIBLIOTECA con el mismo archivo del Drive privado (no se
+   copia) y su texto si es Word, Excel o texto (un PDF se lee con «crudo»), y el archivo sale de la órbita y de la carpeta.
+   Solo los del administrador principal y solo en un pedido que él hizo. */
+function archOrbCorreosPrincipal_() {
+  var out = [];
+  adminsOp_().filter(function (a) { return a.principal; }).forEach(function (a) {
+    [a.email].concat(a.alternos || []).forEach(function (c) { c = String(c || '').trim().toLowerCase(); if (c && out.indexOf(c) < 0) out.push(c); });
+  });
+  return out;
+}
+function archOrbDelPrincipal_() {
+  var out = [];
+  archOrbCorreosPrincipal_().forEach(function (c) { archOrbLeer_(c).l.forEach(function (x) { out.push({ email: c, x: x }); }); });
+  return out;
+}
+function archOrbParaClaudePublico_(x) { return { id: x.id, nombre: x.nombre, desc: x.desc, tipo: x.tipo, estado: x.estado === 'carpeta' ? 'carpeta' : 'orbita' }; }
+/* El bloque del pedido (va con la biblioteca, nunca en el issue): nombre y descripción corta, sin el resumen. */
+function archivosOrbitaParaClaude_() {
+  var l = []; try { l = archOrbDelPrincipal_(); } catch (e) { console.error('archivosOrbitaParaClaude_: ' + e); return ''; }
+  if (!l.length) return '';
+  return '### Archivos en órbita de Juan (los que cargó en la app; todavía no están en la biblioteca)\n' + l.slice(-12).reverse().map(function (o) {
+    return '- ' + o.x.id + ' · «' + o.x.nombre + '» · ' + o.x.desc + ' · ' + (o.x.estado === 'carpeta' ? 'en la Carpeta de archivos' : 'en órbita');
+  }).join('\n') + '\nSi uno sirve, pásalo a la biblioteca con tu lector: el mismo curl de la biblioteca con "orbita":"<id>" en vez de "doc" (sale de la órbita y queda como documento; "orbita":"lista" da esta lista).';
+}
+function archOrbABiblioteca_(arId) {
+  arId = String(arId || '');
+  return archOrbCandado_(function () {
+    var o = archOrbDelPrincipal_().filter(function (y) { return y.x.id === arId; })[0];
+    if (!o) return { ok: false, error: 'Ese archivo ya no está en la órbita ni en la carpeta.' };
+    var x = o.x, mime = '', texto = '', textoId = '';
+    if (!x.drive_id) return { ok: false, error: 'Ese archivo no quedó guardado en el Drive del Hub.' };
+    try {
+      var f = DriveApp.getFileById(x.drive_id), blob = f.getBlob(); mime = String(blob.getContentType() || '').toLowerCase();
+      var r = {}; try { r = biblioTexto_(blob, x.nombre, mime) || {}; } catch (e) { r = {}; }
+      texto = biblioLimpio_(r.texto, BIBLIO_TEXTO_MAX_);
+      if (texto) textoId = biblioCarpeta_().createFile(Utilities.newBlob(texto, 'text/plain', x.id + ' · ' + x.nombre + '.txt')).getId();
+    } catch (e) { console.error('archOrbABiblioteca_ Drive: ' + e); return { ok: false, error: 'No pude abrir el archivo en el Drive del Hub.' }; }
+    var id = 'b' + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36), fecha = new Date().toISOString();
+    var nombre = biblioLimpio_(x.desc || x.nombre, 80), paraQue = biblioLimpio_('Lo cargó en la órbita de la app' + (x.resumen ? ': ' + x.resumen : ''), 300);
+    biblioHoja_().appendRow([id, fecha, nombre, 'documento', paraQue, x.nombre, mime, x.drive_id, textoId, texto.length, o.email, 'activo', '']);
+    var d = archOrbLeer_(o.email); d.l = d.l.filter(function (y) { return y.id !== arId; }); archOrbGuardar_(o.email, d);
+    return { ok: true, documento: biblioPublico_({ id: id, fecha: fecha, nombre: nombre, tipo: 'documento', para_que: paraQue, archivo: x.nombre, caracteres: texto.length, texto_id: textoId }) };
+  });
+}

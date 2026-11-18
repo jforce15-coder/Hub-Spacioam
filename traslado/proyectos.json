@@ -18,7 +18,7 @@
   "hola": {
     "repo": "Hola-spacioam", "carpeta": "apps-script", "titulo": "Hola · Spacio AM",
     "viejo": "https://script.google.com/macros/s/AKfycbwnaUyShyZHDD--rLd7XouPY4mBpgEYPYVxG2bL86nswVg89XZ9jLMFkh2ktL2IG1VRUg/exec",
-    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+    "copiar": "todas", "excluir": ["CUPO_*", "SES_FALLA"], "al_traer": ["holaTomarActivadores"]
   },
   "epi": {
     "repo": "Epi-spacioam", "carpeta": "apps-script", "titulo": "Epi · Spacio AM",

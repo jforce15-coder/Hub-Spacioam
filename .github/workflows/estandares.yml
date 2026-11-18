@@ -175,6 +175,9 @@ jobs:
       - name: La Guía de camino pregunta el medio, lo recuerda y arma los pasos (dobles de Google)
         run: node .github/guia-camino.js apps-script
 
+      - name: Navegador de Alma, modos guiado y control y pausa de privacidad (dobles de la app)
+        run: node .github/navegador-modos.js apps-script
+
       - name: La voz del Modo calle dice por qué no hubo audio (dobles de ElevenLabs)
         run: node .github/calle-voz.js apps-script
 

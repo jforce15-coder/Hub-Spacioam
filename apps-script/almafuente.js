@@ -405,6 +405,12 @@ var ALMA_FUENTE_ = {
     ],
     "linea": "Navegador: marca paso a paso."
    },
+   "mostrar_dato": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Navegador: dato para copiar."
+   },
    "tocar": {
     "canales": [
      "voz"

@@ -61,7 +61,7 @@ ok(JSON.stringify(sys.claudio.como_hablas) === JSON.stringify(base.claudio.como_
 ok(sys.ficha_de_quien_llama[0] === j.dynamic_variables.quien_llama && !/\{\{quien_llama\}\}/.test(c1.system), '2 · con su ficha en lugar de {{quien_llama}}');
 ok(sys.claudio.voz_local.some(x => /texto plano/.test(x)) && sys.claudio.voz_local.some(x => /\[warm\]/.test(x)), '2 · y las reglas de la voz local (texto plano, sin etiquetas)');
 const nombres = c1.tools.map(x => x.name).sort().join(',');
-ok(nombres === 'claudio_acciones,claudio_codigo,claudio_creator,claudio_estado,claudio_pedido,claudio_responder,claudio_unir,claudio_voces,ver_video,volver_con_alma', '2 · sus mismas herramientas: ' + nombres);
+ok(nombres === 'claudio_acciones,claudio_codigo,claudio_creator,claudio_estado,claudio_pedido,claudio_responder,claudio_unir,claudio_voces,poner_voz,ver_video,volver_con_alma', '2 · sus mismas herramientas: ' + nombres);
 ok(c1.tools.every(x => x.input_schema && !x.input_schema.properties.conv_id && !x.input_schema.properties.sa_web && !(x.input_schema.required || []).includes('conv_id')), '2 · sin conv_id ni sa_web (los pone el Hub)');
 ok(c1.messages[0].role === 'user' && c1.messages[1].role === 'assistant' && c1.messages[2].role === 'user' && /botón de pagos/.test(c1.messages[2].content), '2 · la conversación llega alternada, empezando por Juan');
 
@@ -97,6 +97,15 @@ ok(JSON.parse(cache['claudiopanel_' + j.conv_id] || '{}').vista === 'trabajo', '
 fila = [{ content: [{ type: 'text', text: 'Listo, te paso con Alma.' }, { type: 'tool_use', id: 'tu2', name: 'volver_con_alma', input: {} }] }];
 const t5 = turno({ conv_id: j.conv_id, texto: 'eso es todo, gracias' });
 ok(t5.ok && t5.volver === true && t5.hablar === 'Listo, te paso con Alma.' && claude.length === 1, '4 · volver_con_alma: dice su frase, avisa volver y no da otra vuelta');
+/* poner_voz (#779): el Hub no la corre; la devuelve para que la app la suene después de «Te la pongo.», sin otra vuelta. */
+claude = [];
+fila = [{ content: [{ type: 'tool_use', id: 'tu3', name: 'poner_voz', input: { voz: '  Dora ', frase: 'Hola', otra: 'x' } }] }];
+const tp = turno({ conv_id: j.conv_id, texto: 'ponme la voz de Dora' });
+ok(tp.ok && tp.hablar === 'Te la pongo.' && tp.poner && tp.poner.voz === 'Dora' && tp.poner.frase === 'Hola' && !('otra' in tp.poner) && !tp.volver && claude.length === 1, '4 · poner_voz: «Te la pongo.», la app recibe qué poner (solo voz, enlace y frase) y no hay otra vuelta');
+fila = [{ content: [{ type: 'tool_use', id: 'tu4', name: 'poner_voz', input: {} }] }];
+const tl = turno({ conv_id: j.conv_id, texto: '¿qué voces hay?' });
+ok(tl.poner && !Object.keys(tl.poner).length, '4 · poner_voz sin voz: la app dice cuáles hay');
+ok(/h\.name !== CLAUDIO_PONER_VOZ_/.test(leer('claudiolocal.js')), '4 · el hilo por escrito no la tiene (ahí no suena nada)');
 fila = [];
 const t6 = turno({ conv_id: j.conv_id, texto: 'hola' });
 ok(!t6.ok && t6.hablar && !/undefined/.test(t6.hablar), '4 · si la IA no responde, igual hay una frase para decir (nunca en silencio)');

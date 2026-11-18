@@ -16,6 +16,9 @@ natural (sin bajarlo), a 24 kHz en la app (no aplanada a 16 kHz como una llamada
 normal. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
 agente de ElevenLabs, `CLAUDIO_VOZ_LOCAL` afina la voz (`{"motor":"elevenlabs"}` vuelve a mandar cada frase con su voz de
 ElevenLabs) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo de ese camino. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
+**Poner una voz** (18-nov-2026, #779): en la llamada con Claudio, Juan pide oír una voz («ponme la de Dora», «todas», «la
+tuya») o un audio por enlace, y suena ahí mismo, por la app (herramienta `poner_voz`). Cada voz dice una frase corta con su
+nombre o la que Juan pidió. Evitar: «reproducir el TTS», «sample».
 **Ver video** (18-nov-2026): Juan pasa un enlace de TikTok, Instagram, Facebook, YouTube o X (o dice «mira lo nuevo» por su
 carpeta de Drive de desarrollo) y Claudio lo ve: fotos clave con su hora, la transcripción con tiempos y un resumen, guardados
 en el Drive de alma@ («Claudio · Videos vistos»). Lo hace el workflow «Ver video» de GitHub; el resumen llega al hilo de

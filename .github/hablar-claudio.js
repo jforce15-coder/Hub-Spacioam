@@ -258,6 +258,9 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   ok(/Cuéntame\.$/.test(R("claudioSaludo_('Juan', 'ayúdame con algo raro que vi ayer en la app cuando abrí', 1)")), '8 · un motivo largo no se lee: «Cuéntame.»');
   const t = R('claudioPromptCompleto_()');
   ok(/terminaron lo de desarrollo o dice que eso era todo/.test(t) && /usa volver_con_alma, nunca end_call/.test(t), '8 · al terminar, Claudio vuelve con Alma (volver_con_alma), no cuelga');
+  const pv = R("claudioDefHerramientas_('B')").filter(d => d.name === 'poner_voz')[0];
+  ok(pv && pv.type === 'client' && pv.expects_response === true && pv.response_timeout_secs >= 60 && ['voz', 'enlace', 'frase'].every(k => pv.parameters.properties[k]), '8 · poner_voz (#779): de la app, espera a que suene, con voz, enlace y frase');
+  ok(pv && /en ese mismo turno/.test(pv.description) && /Te la pongo/.test(pv.description) , '8 · poner_voz se usa en ese mismo turno, con «Te la pongo.» (sin agrandar su prompt: lo dice la herramienta)');
   const vv = R("claudioDefHerramientas_('B')").filter(d => d.name === 'volver_con_alma')[0];
   ok(vv && /cuando ya terminaron/.test(vv.description) && /en vez de colgar/.test(vv.description), '8 · la herramienta volver_con_alma lo dice también');
   /* Lo que hizo Claudio sale de sus herramientas, por conversación y solo para el mismo administrador. */

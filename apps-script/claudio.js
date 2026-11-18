@@ -19,6 +19,9 @@
      claudio_voces   → busca voces de ElevenLabs y deja su tarjeta ▶ en el hilo; reproducir_voz (de la app) hace sonar
                        la muestra en la llamada (muestrasvoz.js, #781);
      volver_con_alma → herramienta de la app: cierra a Claudio y vuelve Alma con su voz y su halo.
+     poner_voz       → herramienta de la app (#779; Juan, 18-nov-2026: «que Claudio pueda poner las voces en la llamada»):
+                       suenan las voces locales (Kokoro: Alex, Dora, Santa y las propias; la del iPhone) con una frase, o un
+                       audio por enlace, en la misma llamada. Con Claudio local la pide el Hub y suena en la app (claudiolocal.js).
    Lo mismo que Alma (Juan, 16-nov-2026: «que Claudio pueda hacer los pedidos de desarrollo que Alma puede hacer, y avisar
    cuando estén listos»): sin leer el pedido de vuelta ni esperar el sí (la regla c_entendi de Alma), sumar a un trabajo,
    contestar sus preguntas y «súbelo». El aviso cuando está listo es el de siempre (paraClaudeAvisar_: notificación en la
@@ -47,6 +50,7 @@ var CLAUDIO_PERMISO_ = 'PUEDES PASARLO CON CLAUDIO: es el administrador principa
 var CLAUDIO_PROTECCION_NOMBRE_ = 'Instrucciones de Claudio (solo el administrador principal)';
 var CLAUDIO_REINTENTO_MS_ = 6 * 3600000;   // si crear el agente falló, se vuelve a intentar a las 6 h (no en cada vuelta)
 var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo', 'claudio_acciones', 'ver_video', 'claudio_creator', 'claudio_voces'];
+var CLAUDIO_PONER_VOZ_ = 'poner_voz';       // herramienta de la app: suena una voz o un audio en la llamada (#779)
 var CLAUDIO_REPOS_ = { hub: 'Hub-Spacioam', app: 'alma-app' };
 var CLAUDIO_CODIGO_MAX_ = 2400;            // lo que vuelve de leer código: corto, es para explicarlo en voz
 var CLAUDIO_SIN_FICHA_ = 'Sin ficha del Hub: no es el administrador principal. No hagas pedidos, no unas ni leas código; dile con amabilidad que esto es solo para el administrador desde la app de Alma.';
@@ -185,7 +189,7 @@ function claudioDefHerramientas_(base) {
         version: s('Para deshacer a una versión en particular: su número. Vacío: la anterior.'),
         dijo: s('Para publicar: las palabras exactas de Juan.') },
       ['conv_id', 'accion'], 40),
-    web('claudio_voces', 'Busca voces de ElevenLabs para que Juan las oiga: por nombre («la de Alma», «Rachel») o por cómo suenan («hombre tranquilo», «mujer alegre con acento mexicano»). Úsala en cuanto Juan pida oír una voz («ponme la voz de…», «cómo suena una voz de hombre tranquila»). Devuelve hasta 3 con su voice_id y deja en el hilo de Claudio una tarjeta con botón para oírlas otra vez. En la llamada, en ese mismo turno usa reproducir_voz con la primera; si quiere otra, la siguiente.',
+    web('claudio_voces', 'Busca voces de ElevenLabs (no las locales de Kokoro ni la del iPhone: esas, con poner_voz) para que Juan las oiga: por nombre («la de Alma», «Rachel») o por cómo suenan («hombre tranquilo», «mujer alegre con acento mexicano»). Úsala en cuanto Juan pida oír una voz («ponme la voz de…», «cómo suena una voz de hombre tranquila»). Devuelve hasta 3 con su voice_id y deja en el hilo de Claudio una tarjeta con botón para oírlas otra vez. En la llamada, en ese mismo turno usa reproducir_voz con la primera; si quiere otra, la siguiente.',
       { buscar: s('Lo que Juan pidió de la voz, en sus palabras: el nombre o cómo quiere que suene. Vacío para ver las de la cuenta.'),
         genero: { type: 'string', enum: ['', 'mujer', 'hombre'], description: 'Si Juan dijo voz de mujer o de hombre. Vacío si no.' },
         frase: s('Lo que la voz debe decir, solo si Juan lo pidió («que diga bienvenido a Spacio»). Vacío: una frase corta de muestra.') },
@@ -196,6 +200,13 @@ function claudioDefHerramientas_(base) {
         voice_id: { type: 'string', description: 'El voice_id exacto que devolvió claudio_voces.' },
         nombre: { type: 'string', description: 'El nombre de la voz.' },
         frase: { type: 'string', description: 'La misma frase que devolvió claudio_voces (o la que pidió Juan).' } } },
+      pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false },
+    { type: 'client', name: CLAUDIO_PONER_VOZ_, expects_response: true, response_timeout_secs: 90,
+      description: 'Pone en la llamada una voz o un audio para que Juan lo escuche: suena por la app, con la frase de cada voz. Úsala en ese mismo turno cuando Juan pida oír las voces (las de Kokoro como Alex, Dora o Santa, una propia, la del iPhone, la de Maricarmen, la tuya o todas) o un audio por enlace. Antes di solo «Te la pongo.»; mientras suena no hables. Devuelve qué sonó (o cuáles hay, si va sin voz).',
+      parameters: { type: 'object', required: [], properties: {
+        voz: { type: 'string', description: 'La voz por su nombre («Dora», «la de Maricarmen», «la del iPhone», «la tuya») o «todas». Vacío para saber cuáles hay.' },
+        enlace: { type: 'string', description: 'Un enlace https a un audio (mp3, m4a o wav) que Juan quiere oír. Vacío si es una voz.' },
+        frase: { type: 'string', description: 'Lo que Juan quiere que diga la voz, en sus palabras. Vacío: se presenta con su nombre.' } } },
       pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false },
     { type: 'client', name: 'volver_con_alma', expects_response: false, response_timeout_secs: 1,
       description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz; ella cierra con Juan. Úsala cuando Juan pida volver con Alma, cuando ya terminaron o cuando diga que eso era todo (en vez de colgar). Antes di solo «Listo, te paso con Alma.» y después nada.',

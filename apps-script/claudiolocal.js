@@ -148,7 +148,7 @@ function claudioLocalMensajes_(historial, texto) {
 function claudioLocalHablar_(t) { return calleCorto_(calleLimpiar_(t), CLAUDIO_LOCAL_PALABRAS_); }
 
 /* ── Acción claudioLocal { conv_id, texto, historial: [{ de: 'juan'|'claudio', texto }] } (solo el principal) ──
-   Devuelve { ok, hablar, volver, herramientas, audio?, hz?, ms, ms_ia, ms_voz } (ms_*: lo que tardó la IA y la voz) (audio: hablar con su voz de ElevenLabs, PCM en base64). volver: Claudio usó volver_con_alma (la app vuelve a Alma después de
+   Devuelve { ok, hablar, volver, herramientas, poner?, audio?, hz?, ms, ms_ia, ms_voz } (poner: lo que pidió poner_voz, #779, suena en la app después de hablar) (ms_*: lo que tardó la IA y la voz) (audio: hablar con su voz de ElevenLabs, PCM en base64). volver: Claudio usó volver_con_alma (la app vuelve a Alma después de
    decir hablar). herramientas: las de claudio_* que corrieron (la app pide el Panel de Claudio). */
 function claudioLocalApi_(ses, b) {
   b = b || {};
@@ -192,7 +192,7 @@ function claudioLocalPedidoListo_(usos, salidas) {
    en voz y sin repetir en el chat lo que el hilo ya guarda (sin_chat). */
 function claudioLocalTurno_(adm, conv, system, msgs, o) {
   o = o || {};
-  var t0 = Date.now(), tools = claudioLocalHerramientas_().filter(function (h) { return !o.texto || h.name !== 'volver_con_alma'; }), corridas = [], volver = false, dicho = '', msIa = 0;
+  var t0 = Date.now(), tools = claudioLocalHerramientas_().filter(function (h) { return !o.texto || (h.name !== 'volver_con_alma' && h.name !== CLAUDIO_PONER_VOZ_); }), corridas = [], volver = false, dicho = '', msIa = 0, poner = null;
   for (var v = 0; v < CLAUDIO_LOCAL_VUELTAS_; v++) {
     if (v && Date.now() - t0 > CLAUDIO_LOCAL_MS_) break;
     var ti = Date.now(), j = claudeTools_(rapidoModelo_(), system, msgs, tools, 900, { sinTemperatura: true, esfuerzo: 'low', funcion: 'Claudio · voz local' });
@@ -207,6 +207,7 @@ function claudioLocalTurno_(adm, conv, system, msgs, o) {
     var res = usos.map(function (u) {
       var out;
       if (u.name === 'volver_con_alma') { volver = true; out = { ok: true }; }
+      else if (u.name === CLAUDIO_PONER_VOZ_) { poner = claudioLocalPoner_(u.input); out = { ok: true, hecho: 'La app la pone en cuanto termines tu frase. Di solo «Te la pongo.» y nada más.' }; }
       else if (CLAUDIO_HERR_.indexOf(u.name) >= 0) {
         out = claudioEjecutar_(adm, u.name, Object.assign({}, u.input || {}, { conv_id: conv }, o.texto ? { sin_chat: true } : {}));
         corridas.push(u.name);
@@ -215,11 +216,20 @@ function claudioLocalTurno_(adm, conv, system, msgs, o) {
       return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(out).slice(0, 6000) };
     });
     msgs.push({ role: 'user', content: res });
-    if (volver) break;   // ya dijo «Listo, te paso con Alma.»: no hace falta otra vuelta
+    if (volver || poner) break;   // ya dijo «Listo, te paso con Alma.» o «Te la pongo.»: no hace falta otra vuelta
     var listo = claudioLocalPedidoListo_(usos, salidas);
     if (listo) { dicho = listo; break; }   // el pedido salió: la frase ya se sabe, sin otra vuelta de la IA
   }
   var hablar = o.texto ? String(dicho || '').replace(/\[\[[^\]]*\]\]/g, '').trim().slice(0, 2400) : claudioLocalHablar_(dicho);
   if (volver && !hablar) hablar = 'Listo, te paso con Alma.';
-  return { ok: true, hablar: hablar || CLAUDIO_LOCAL_REPITE_, volver: volver, herramientas: corridas, ms: Date.now() - t0, ms_ia: msIa };
+  if (poner && !hablar) hablar = 'Te la pongo.';
+  var r = { ok: true, hablar: hablar || CLAUDIO_LOCAL_REPITE_, volver: volver, herramientas: corridas, ms: Date.now() - t0, ms_ia: msIa };
+  if (poner && !volver) r.poner = poner;   // la app la suena después de su frase (PonerVoz.swift)
+  return r;
+}
+/* poner_voz con Claudio local (#779): solo lo que la app entiende, en texto y corto. */
+function claudioLocalPoner_(x) {
+  x = x || {}; var p = {};
+  ['voz', 'enlace', 'frase'].forEach(function (k) { var v = String(x[k] == null ? '' : x[k]).replace(/\s+/g, ' ').trim().slice(0, 400); if (v) p[k] = v; });
+  return p;
 }

@@ -39,7 +39,8 @@ var CLAUDIO_ACC_PANTALLAS_ = {
   agentes: { t: 'Agentes', u: 'agentes.html' },
   avisos: { t: 'Avisos', u: 'avisos.html' },
   uso: { t: 'Uso', u: 'uso.html' },
-  google: { t: 'Google', u: 'google.html' }
+  google: { t: 'Google', u: 'google.html' },
+  creator: { t: 'Modo Creator', u: 'creator.html' }
 };
 /* Algo que parece una llave: prefijos conocidos o una tira larga sin espacios con letras y números mezclados. */
 var CLAUDIO_ACC_LLAVE_RE_ = /\b(sk-[A-Za-z0-9_-]{12,}|sk_(live|test)_[A-Za-z0-9]{12,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|ya29\.[0-9A-Za-z_-]{20,}|dsbot-[A-Za-z0-9_-]{10,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,})|(?=[A-Za-z0-9_-]*\d)(?=[A-Za-z0-9_-]*[A-Za-z])\b[A-Za-z0-9_-]{36,}\b/;

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Página de prueba del Modo Creator</title>
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Página de prueba del Modo Creator (apps-script/creator.js, #770). Sencilla a propósito: es para pedirle cambios
+     por voz («sube el nivel del diseño», «ponle vidrio esmerilado», «ordena por uso»), verlos al momento y navegar
+     («Ver detalle» lleva a creator-prueba-detalle.html). Sin datos reales: los nombres y números son de ejemplo. -->
+<style>
+  body { margin: 0; font-family: Montserrat, system-ui, sans-serif; background: #FAF8F6; color: #3E3F3F; }
+  header { padding: 20px 16px; border-bottom: 1px solid #ddd; }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { font-size: 13px; color: #888; margin-top: 4px; }
+  main { padding: 16px; max-width: 720px; margin: 0 auto; }
+  .buscar { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #ccc; font: inherit; }
+  .grupo { margin-top: 20px; }
+  .grupo h2 { font-size: 15px; margin: 0 0 8px; }
+  .tarjeta { background: #fff; border: 1px solid #ddd; padding: 12px; margin-bottom: 8px; }
+  .tarjeta b { display: block; }
+  .tarjeta span { font-size: 13px; color: #777; }
+  .estado { float: right; font-size: 12px; }
+  .boton { display: inline-block; margin-top: 8px; padding: 8px 12px; border: 1px solid #999; background: #eee; color: inherit; text-decoration: none; }
+  footer { text-align: center; font-size: 12px; color: #999; padding: 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Llegadas de hoy</h1>
+  <div class="sub">Martes · 4 llegadas · 2 salidas</div>
+</header>
+<main>
+  <input class="buscar" type="search" placeholder="Buscar huésped o departamento">
+
+  <section class="grupo">
+    <h2>Llegan</h2>
+    <div class="tarjeta"><span class="estado">Listo</span><b>Departamento 1104</b><span>Huésped A · 3 noches · 15:00</span><br><a class="boton" href="creator-prueba-detalle.html">Ver detalle</a></div>
+    <div class="tarjeta"><span class="estado">Falta limpieza</span><b>Departamento 301</b><span>Huésped B · 2 noches · 16:00</span><br><a class="boton" href="creator-prueba-detalle.html">Ver detalle</a></div>
+    <div class="tarjeta"><span class="estado">Listo</span><b>Departamento 1102</b><span>Huésped C · 5 noches · 18:30</span><br><a class="boton" href="creator-prueba-detalle.html">Ver detalle</a></div>
+    <div class="tarjeta"><span class="estado">Sin código</span><b>Departamento 633</b><span>Huésped D · 1 noche · 21:00</span><br><a class="boton" href="creator-prueba-detalle.html">Ver detalle</a></div>
+  </section>
+
+  <section class="grupo">
+    <h2>Salen</h2>
+    <div class="tarjeta"><span class="estado">Pendiente</span><b>Departamento 702</b><span>Huésped E · 11:00</span><br><a class="boton" href="creator-prueba-detalle.html">Ver detalle</a></div>
+    <div class="tarjeta"><span class="estado">Pendiente</span><b>Departamento 405</b><span>Huésped F · 12:00</span><br><a class="boton" href="creator-prueba-detalle.html">Ver detalle</a></div>
+  </section>
+</main>
+<footer>Spacio AM · página de prueba del Modo Creator</footer>
+</body>
+</html>

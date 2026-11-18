@@ -154,7 +154,7 @@ const VOZ = R('CLAUDIO_VOZ_ID_');
   cache = {}; ok(H('claudio_estado', { conv_id: 'conv_8', sa_web: 'firma-falsa' }).ok === false, 'una firma que no verifica: no');
   ctx.vozWebTokenTel_ = telDe;
   const defs = R("claudioDefHerramientas_('B')").filter(d => d.type === 'webhook');
-  ok(defs.length === 7 && defs.every(d => (d.api_schema.request_body_schema.properties.sa_web || {}).dynamic_variable === 'sa_web'), 'cada herramienta de Claudio manda la firma de su ficha (sa_web)');
+  ok(defs.length === 8 && defs.every(d => (d.api_schema.request_body_schema.properties.sa_web || {}).dynamic_variable === 'sa_web'), 'cada herramienta de Claudio manda la firma de su ficha (sa_web)');
   cache = {}; conv = { tel: '50211110000', otro: true, agente: 'agent_claudio' };
   let unir = [], pedidos = [];
   ctx.unirCambio_ = c => { unir.push(c); return { ok: true, unidos: [] }; };

@@ -3397,9 +3397,10 @@ function hubApi_(body) {
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'fotosContacto': return json_(fotosContactoApi_(ses, body));                      // la foto del contacto sin reserva: ver · faltan · subir · quitar (fotoscontacto.js, #567 T4)
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
-      case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
-      case 'almaArchivo': return json_(almaArchivo_(ses, body));                             // archivo del chat de Alma (PDF, Word, Excel, CSV, audio): lo guarda privado y lo lee (adjuntos.js, #544)
+      case 'almaFoto': return json_(body.captura ? almaFoto_(ses, body.foto, true, !!body.voz) : archivoEnOrbita_(ses, almaFoto_(ses, body.foto, false, !!body.voz), body.nombre || 'Foto', 'foto'));                          // foto del chat de Alma: la describe para que Alma la entienda
+      case 'almaArchivo': return json_(archivoEnOrbita_(ses, almaArchivo_(ses, body), body.nombre, ''));                             // archivo del chat de Alma (PDF, Word, Excel, CSV, audio): lo guarda privado y lo lee (adjuntos.js, #544)
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
+      case 'archivosOrbita': return json_(archivosOrbitaApi_(ses, body));                  // app de Alma: Archivos en órbita y la Carpeta de archivos (archivosorbita.js)
       case 'notifAjustes': return json_(notifAjustesApi_(ses));                            // Ajustes → Notificaciones por tipo, de quien tiene la sesión (notifajustes.js · alma/avisos.html)
       case 'notifAjustesGuardar': return json_(notifAjustesGuardarApi_(ses, body));          // { tipo, ajuste } → lo guarda y deja al día sus etiquetas de OneSignal
       case 'notifPrueba': return json_(notifPruebaApi_(ses));                              // «Probar con Siri» desde el Hub web: solo el principal; la app la arma con Siri (notifajustes.js)
@@ -5603,6 +5604,7 @@ function dsBotApi_(body) {
       case 'amano_medir': return json_(amanoMedir_(body.dias));   // A la mano: la medición, solo números (amano.js)
       case 'amano_prueba': return json_(amanoPrueba_());   // A la mano: lo precargado contra Epi en vivo
       case 'amano_estado': return json_(amanoEstadoRobot_(!!body.ver));
+      case 'amano_voz': return json_(amanoVozPrueba_(body.tema, body.que));   // A la mano: a_mano como si llamara el principal (solo tiempo y si lo tenía)
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

@@ -1284,6 +1284,8 @@ function vozWebInicio_(ses, ligero, app, claudio, vueltaDe, maricarmen) {
   if (claudio) { var pc = claudioPermiso_(adm); if (pc) dv.quien_llama += '\n' + pc; }
   /* Pasar con Maricarmen (maricarmen.js, #707): igual, solo el principal y solo si la app sabe hacerlo (la pide con «maricarmen»). */
   if (maricarmen) { var pm = maricarmenPermiso_(adm); if (pm) dv.quien_llama += '\n' + pm; }
+  /* Archivos en órbita (archivosorbita.js): lo que Juan cargó en las últimas 5 conversaciones, con su resumen. */
+  try { dv.quien_llama += archivosFicha_(adm); } catch (e) { console.error('archivosFicha_: ' + e); }
   marca('ficha');
   dv.sa_web = vozWebToken_(tel);   /* firma del Hub: identifica la llamada aunque la vinculación llegue tarde */
   dv.marca_principal = vozMarcaPara_(adm);   /* por su sesión del Hub, no por el número (vozproteccion.js) */
@@ -1367,6 +1369,7 @@ function vozWebVincular_(ses, convId, app, b) {
   /* El Hub con la voz de Alma expandida (al centro, no minimizada) es el otro lugar donde puede haber tarjeta (tvPermitida_). */
   if (!app && (b.expandida === true || b.expandida === 1 || b.expandida === '1')) CacheService.getScriptCache().put('vozexp_' + convId, '1', 21600);
   try { vivoInicio_(adm, convId); } catch (e) { console.error('vivoInicio_: ' + e); }   // el modo compañero ve que empezó (vivo.js, #607)
+  try { archivosInteraccion_(adm.email, 'voz:' + convId); } catch (e) { console.error('archivosInteraccion_: ' + e); }   // una vuelta de los Archivos en órbita (archivosorbita.js)
   var c = CacheService.getScriptCache(), rid = c.get('vozret_' + adm.email);
   /* Alma abre (#509 T4): la llamada empezó por un aviso (b.aviso_id), no por el saludo de retomar. Ese aviso cuenta como
      dicho (su tema por retomar no vuelve a salir en el próximo saludo) y el tema del saludo, que no se dijo, sigue igual. */

@@ -45,5 +45,19 @@ Object.keys(p._crudo).forEach(k => {
   });
 });
 
+/* 4 · El redactor de huéspedes: lo que cambia por conversación (Weebo: «ESTA CONVERSACIÓN: confianza · NIVEL») va en un
+   bloque aparte, después de la marca de caché. Si lo fijo cambiara entre dos huéspedes, la caché se escribiría en cada
+   respuesta y nunca se leería (pasó con el modo Weebo, 17-nov-2026). */
+const vmR = c => require('vm').runInContext(c, ctx);
+const sysDe = o => { ctx.W_ = vmR('weeboBloque_(' + JSON.stringify(o) + ')'); return { s: vmR('redactorSystem_(W_)'), full: vmR('redactorPrompt_(W_)') }; };
+const r1 = sysDe({ contexto: 'huesped', texto: 'hola, a qué hora es el check-in?', nivelHuesped: 'VERDE', historial: ['hola'] });
+const r2 = sysDe({ contexto: 'socio', texto: 'jaja gracias, todo perfecto!', historial: ['hola', 'jaja gracias, todo perfecto!'] });
+[r1, r2].forEach((r, i) => {
+  if (!Array.isArray(r.s) || r.s.length !== 2) return error('redactor: el system debe ir en dos bloques (lo fijo con la caché y esta conversación).');
+  if (!r.s[0].cache_control || r.s[1].cache_control) error('redactor: la marca de caché va solo en el primer bloque.');
+  if (r.s.map(b => b.text).join('') !== r.full) error('redactor: los dos bloques juntos deben ser el mismo prompt de siempre.');
+});
+if (Array.isArray(r1.s) && Array.isArray(r2.s) && r1.s[0].text !== r2.s[0].text) error('redactor: el bloque con caché cambia entre conversaciones; lo que cambia va en el segundo bloque.');
+
 if (!fallo) console.log('✓ JSON válido: ' + Object.keys(obj).map(k => k + (p[k].length > 1 ? ' (' + p[k].length + ' bloques)' : '')).join(', ') + '; la voz con {{quien_llama}} al final; nada se perdió al convertir.');
 process.exit(fallo);

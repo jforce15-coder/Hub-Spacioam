@@ -29,6 +29,7 @@ function vozApi_(e, body) {
     else if (herr === 'postcall') out = vozPostCall_(body);
     else if (herr === 'secretaria') out = vozSecretaria_(body);
     else if (herr === 'enviar_confirmado') out = vozEnviarConfirmado_(body);
+    else if (herr === 'a_mano') out = amanoVoz_(body);   // A la mano (amano.js): lo ya preparado, sin modelo
     else if (CLAUDIO_HERR_.indexOf(herr) >= 0) out = claudioHerramienta_(herr, body);   // Hablar con Claudio (claudio.js): solo el principal, por la firma de su conversación
     else if (herr === 'inicio') { out = vozInicio_(body); vozTraza_(herr, body, { ok: true, found: out._tipo }); delete out._tipo; return json_(out); }
     else out = { ok: false, error: 'herramienta desconocida: ' + herr };
@@ -521,7 +522,13 @@ function vozDefHerramientas_(base) {
       description: VOZ_ENVIAR_DESC_,
       api_schema: { url: base + '&h=enviar_confirmado', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'pedido'], properties: {
         caller_id: caller, conv_id: conv,
-        pedido: s('El envío ya confirmado, completo: a quién (nombre y apartamento o reserva, tal cual) y el texto exacto que se manda (o «el borrador que le leí»).') } } } }
+        pedido: s('El envío ya confirmado, completo: a quién (nombre y apartamento o reserva, tal cual) y el texto exacto que se manda (o «el borrador que le leí»).') } } } },
+    { name: 'a_mano', response_timeout_secs: 10,   // A la mano (amano.js): sin modelo, responde en ~1 s
+      description: typeof AMANO_VOZ_DESC_ === 'string' ? AMANO_VOZ_DESC_ : 'A la mano',
+      api_schema: { url: base + '&h=a_mano', method: 'POST', request_body_schema: { type: 'object', required: ['caller_id', 'tema'], properties: {
+        caller_id: caller, conv_id: conv,
+        tema: { type: 'string', enum: ['limpieza', 'socio', 'reserva'], description: 'limpieza (operación del día), socio o reserva.' },
+        que: s('La pregunta tal cual; para socio o reserva, con el apartamento, nombre o código.') } } } }
   ].map(function (t) {
     var sec = t.name === 'secretaria';
     t.type = 'webhook'; t.tool_error_handling_mode = 'auto';
@@ -621,7 +628,7 @@ var VOZ_SISTEMA_DESC_ = {
 
 /* La descripción de secretaria en ElevenLabs (la sube «voz_tools»). Antes, una frase de espera corta que no adelanta nada
    (pre_tool_speech 'force', #498); el resultado se confirma solo cuando ya se hizo (Juan, 3-nov-2026). */
-var VOZ_SECRETARIA_DESC_ = 'Si Juan ya confirmó un envío, no la uses: usa enviar_confirmado. SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di UNA sola vez una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»; en MODO CALLE, «Copiado.»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»), sin repetir la frase de espera ni confirmar dos veces: confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
+var VOZ_SECRETARIA_DESC_ = 'Si Juan ya confirmó un envío, no la uses: usa enviar_confirmado. Para leer limpiezas, un socio o una reserva, primero lo que tengas A LA MANO o a_mano (al instante). SOLO para administradores de Spacio AM (caller_type juan o equipo con rol admin). Ejecuta lo que pide el administrador con las herramientas de la secretaria: escribir a un huésped o a alguien del equipo, revisar rutas de Epi, tareas, reservas, conversaciones, corregir datos de propiedades, promesas, búsquedas. Pásale el pedido completo en palabras del administrador. Antes de llamarla di UNA sola vez una frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»; en MODO CALLE, «Copiado.»): no repitas el pedido, no digas a quién se lo pasas ni «listo»; luego suena el tecleo. Nunca la nombres ni digas en voz alta lo que le pasas («Mejora para Claude: …» ni otros comandos internos). Responde en 18 s como mucho: si trae en_proceso, lo sigue en segundo plano y le avisa al terminar. «Mejora para Claude: …» se pide al instante, sin preguntar. Al volver, di UNA vez solo el resultado real («Listo, quedó …»), sin repetir la frase de espera ni confirmar dos veces: confirma solo lo que esta herramienta diga que se hizo. Si ofrece mirar algo más que pidió («¿quieres que vea…?»), no se lo preguntes: vuelve a llamarla con eso.';
 function vozHerramientas_(k) {
   if (!k || Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(k), Utilities.Charset.UTF_8)
         .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('') !== VOZ_HASH_) return { ok: false, error: 'llave de voz' };
@@ -796,6 +803,7 @@ function vozInicio_(b) {
       var cr = admI ? contextoReciente_(admI) : null;
       if (cr) { ficha += '\n\n' + cr.bloque; if (cr.fresco) saludo = cr.saludo(nom(r.caller_name || admI.nombre)); }
       if (admI) ficha += mfBloque_(admI);   // memoria fresca: las últimas 5 llamadas del principal (memoriafresca.js)
+      if (admI && typeof amanoFicha_ === 'function') { try { ficha += amanoFicha_(admI); } catch (e) { console.error('amanoFicha_: ' + e); } }   // A la mano: lo cercano, ya preparado (amano.js)
     } catch (e) { console.error('contextoReciente_: ' + e); }
   }
   try { var encI = encargoAbierto_(tel); if (encI) { ficha += '\n\nENCARGO PENDIENTE PARA ESTA LLAMADA: ' + encargoInstruccion_(encI); saludo = '¡Hola' + (r.caller_name ? ' ' + r.caller_name : '') + '! Te saluda Alma, de Spacio A eme… Gracias por llamar.'; } } catch (e) {}
@@ -956,6 +964,7 @@ function vozSecretaria_(b) {
      seis veintitrés» por 633), y si de verdad salió algo (la auditoría al colgar lo compara: prometer.js). */
   if (r.destinos && r.destinos.length) out.decir = 'Nombre y apartamento tal cual, sin cambiarlos: ' + r.destinos.join(' · ');
   try { out.envio_hecho = prometerEnvioHecho_(r.hechas); } catch (e) {}
+  try { var am = typeof amanoParaSecretaria_ === 'function' ? amanoParaSecretaria_(adm, pedido) : ''; if (am) out.a_mano = am; } catch (e) {}   // lo del mismo tema, para lo que siga (amano.js)
   VOZ_MS_.despues = Date.now() - tD;
   return out;
 }

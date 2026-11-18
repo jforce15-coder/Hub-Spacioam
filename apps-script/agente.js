@@ -477,6 +477,7 @@ function agRutaTrabajos_(cfg, fd, persona) {
 function agEjecutar_(adm, nombre, inp, ctx) {
   inp = typeof identidadEntrada_ === 'function' ? identidadEntrada_(inp || {}) : (inp || {});   // lo que sale a otra persona va en nombre de Alma, nunca de Maricarmen (identidad.js)
   if (AGENTE_PERMITIDAS_ && AGENTE_PERMITIDAS_.indexOf(nombre) < 0) return { error: 'Esa herramienta no está disponible para esta persona.' };
+  if (!AGENTE_PERMITIDAS_ && typeof amanoHerramienta_ === 'function') amanoHerramienta_(adm, nombre, inp);   // A la mano (amano.js): la herramienta acerca su tema
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
@@ -929,6 +930,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   var tsel = null; try { tsel = AGENTE_PERMITIDAS_ ? (TEMA_ACT_ = null) : temaTurno_(adm, texto, canal); } catch (e) { console.error('temaTurno_: ' + (e.stack || e)); }   // la familia (herramientas limitadas) no toca los temas de Juan
   if (tsel && tsel.pregunta) return temaPreguntaSalida_(tsel);
   if (tsel && tsel.texto) texto = tsel.texto;
+  if (!AGENTE_PERMITIDAS_ && typeof amanoSentir_ === 'function') amanoSentir_(adm, texto);   // A la mano (amano.js): el tema se acerca al nombrarlo
   /* Recetas (recetas.js): si Juan ya pidió esto y salió bien, se repite sin IA. Si un paso falla, la receta se olvida y la
      IA sigue en este mismo turno sabiendo lo que ya quedó hecho. */
   var memo = null, textoPedido = texto;
@@ -969,7 +971,8 @@ function opAgente_(adm, texto, canal, fotos, previos) {
      AG_CORTE_CACHE_, lo de este turno (Weebo, adaptación, quién, encargos, canal, notas, microproyectos y la hora). */
   var system = secretariaPrompt_(aud, canal) + '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.' +
     chatClasificarRegla_();   // chat único (chat.js): la esfera del turno viaja en la misma respuesta, sin otra llamada
-  try { turno += temaBloque_(adm, tsel); } catch (e) { console.error('temaBloque_: ' + e); }   // temas vivos y el hilo del tema de este mensaje (temas.js)
+  try { turno += temaBloque_(adm, tsel); } catch (e) { console.error('temaBloque_: ' + e); }
+  if (!AGENTE_PERMITIDAS_ && typeof amanoBloque_ === 'function') { try { turno += amanoBloque_(adm, textoPedido); } catch (e) { console.error('amanoBloque_: ' + e); } }   // A la mano (amano.js): lo ya leído del tema que nombra   // temas vivos y el hilo del tema de este mensaje (temas.js)
   try { turno += microBloque_(adm); } catch (e) {}
   /* Memoria fresca (memoriafresca.js): las últimas 5 llamadas del principal. En una llamada ya la tiene la voz (su ficha). */
   if (!AGENTE_PERMITIDAS_ && canal !== 'llamada' && canal !== 'segundo_plano') { try { turno += mfBloque_(adm); } catch (e) { console.error('mfBloque_: ' + e); } }

@@ -440,3 +440,7 @@ jobs:
       - name: Estado de los equipos precargado, al instante sin IA, con tareas, limitaciones y problemas, solo el principal (dobles)
         # 17-nov-2026: Juan pidió tener listo el estado de Operaciones, Finanzas y Desarrollo para darlo sin demoras.
         run: node .github/equipos.js apps-script
+
+      - name: A la mano, lo cercano preparado antes (limpieza del día), con su hora, sin inventar y solo para administradores (dobles)
+        # 18-nov-2026: Juan pidió que Alma trabaje como un juego de mundo abierto y tenga a la mano lo que se acerca.
+        run: node .github/a-la-mano.js apps-script

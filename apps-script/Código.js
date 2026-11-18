@@ -813,6 +813,7 @@ function procesarCola() {
   }
   cupoCanal_('Epi');
   cupoFuncion_('epiSnapSiToca_'); try { epiSnapSiToca_(); } catch (e) { console.error('epiSnapSiToca_: ' + e); }   // Epi nunca se pausa; lo más lento, al final
+  cupoFuncion_('amanoPrepararSiToca_'); try { amanoPrepararSiToca_(); } catch (e) { console.error('amanoPrepararSiToca_: ' + e); }   // A la mano: prepara lo cercano con la copia de Epi; sin internet para la limpieza (amano.js)
 }
 function procesarColaNucleo_() {
   const props = PropertiesService.getScriptProperties();
@@ -5594,6 +5595,9 @@ function dsBotApi_(body) {
       case 'para_claude_crear': { const admP = agPrincipal_(); return json_(paraClaudeCrear_(admP, { titulo: String(body.titulo || ''), que_quiere: String(body.que_quiere || ''), literal: String(body.literal || ''), app: body.app || 'Otro', tipo: body.tipo || 'mejora', nivel: body.nivel || '', canal: 'robot', unificar: true, sinChat: true })); }   // un pedido de Juan que se perdió (sin datos personales)
       case 'contacto_clasificar': return json_({ ok: true, ficha: contactoClasificar_(String(body.tel || ''), String(body.contexto || ''), true) });
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
+      case 'amano_medir': return json_(amanoMedir_(body.dias));   // A la mano: la medición, solo números (amano.js)
+      case 'amano_prueba': return json_(amanoPrueba_());   // A la mano: lo precargado contra Epi en vivo
+      case 'amano_estado': return json_(amanoEstadoRobot_(!!body.ver));
       case 'op_ultimos': return json_({ ok: true, filas: opFilas_('', 12).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: m.texto.slice(0, 400), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) });   // diagnóstico
       case 'diag_admin': { const tel = String(body.tel || ''), sh = ssAlma_().getSheetByName('ALMA_WHATSAPP'), n = sh.getLastRow(), v = sh.getRange(Math.max(2, n - 400), 1, Math.min(400, n - 1), WA_CAB_.length).getValues().filter(r => fin8_(r[1]) === fin8_(tel)).slice(-8);
         const a = adminPorTel_(tel); return json_({ ok: true, admin: a ? { nombre: a.nombre, principal: a.principal, tels: a.tels.length } : null, admins: adminsOp_().map(x => x.nombre + (x.principal ? ' (principal)' : '') + ' · tels ' + x.tels.length),

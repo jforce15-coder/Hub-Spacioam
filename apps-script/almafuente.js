@@ -333,6 +333,12 @@ var ALMA_FUENTE_ = {
     ],
     "linea": "Hace lo que pide un administrador (mensajes, correos, rutas, tareas, reservas, datos, música, pedidos para Claudio): pásale sus palabras completas, una sola vez. Para la persona es «mi sistema»."
    },
+   "a_mano": {
+    "canales": [
+     "voz"
+    ],
+    "linea": "Lo ya listo de limpieza, socio o reserva, al instante: va primero."
+   },
    "enviar_confirmado": {
     "canales": [
      "voz"

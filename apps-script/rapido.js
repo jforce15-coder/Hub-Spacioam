@@ -73,6 +73,8 @@ var AG_USO_FUNCION_ = '';
 var RAPIDO_PASAR_ = { name: 'pasar_al_completo', description: 'Pasa este pedido al modelo completo, que tiene todas las herramientas. Úsala en vez de responder si el pedido pide hacer algo (enviar, escribir, programar, crear, cambiar, cancelar, guardar, unir), si necesitas una herramienta que no tienes o si no puedes contestarlo con seguridad con lo que leíste.',
   input_schema: { type: 'object', properties: { motivo: { type: 'string', description: 'Por qué, en pocas palabras' } }, required: [] } };
 
+/* ¿El pedido trae un verbo de hacer? Solo las reglas (sin Jev): la usa la medición de A la mano (amano.js). */
+function rapidoPideHacer_(texto) { var n = rapidoNorm_(texto); return VOZ_RAPIDO_HACER_RE_.test(n) || VOZ_RAPIDO_HACER_EXTRA_RE_.test(n); }
 function rapidoOn_() { return String(PropertiesService.getScriptProperties().getProperty('VOZ_RAPIDO') || '1') !== '0'; }
 function rapidoModelo_() { return String(PropertiesService.getScriptProperties().getProperty('VOZ_RAPIDO_MODELO') || '').trim() || VOZ_RAPIDO_MODELO_; }
 function rapidoNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9?\s]/g, ' ').replace(/\s+/g, ' ').trim(); }

@@ -127,7 +127,8 @@ function paraClaudeCrear_(adm, inp) {
   /* La Biblioteca de Claudio (biblioteca.js) va en la instrucción, no en el issue: la lista y cómo leer o pedir uno. */
   var hubUrl = PropertiesService.getScriptProperties().getProperty('HUB_URL') || HUB_EXEC_DEF_, biblio = '';
   try { biblio = bibliotecaParaClaude_(hubUrl); } catch (e) { console.error('bibliotecaParaClaude_: ' + e); }
-  var instruccion = cuerpo + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + (biblio ? '\n\n' + biblio : '') + '\n\n' + MICRO_RESPONDER_;
+  var pantalla = ''; try { pantalla = pantallaParaClaude_(adm.email); } catch (e) { console.error('pantallaParaClaude_: ' + e); }   // la captura que acaba de mandar (pantalla.js): solo aquí, nunca en el issue
+  var instruccion = cuerpo + (pantalla ? '\n\n' + pantalla : '') + (m.ajustes.length > 1 ? '\n\n### Historial del microproyecto (lo más viejo primero)\n' + microHistorialTexto_(m).slice(-40000) : '') + (biblio ? '\n\n' + biblio : '') + '\n\n' + MICRO_RESPONDER_;
   var llave = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   var lector = biblio ? Utilities.getUuid().replace(/-/g, '') : '';   // solo leer la biblioteca; distinta de la llave de responder
   var disparo = paraClaudeDisparar_({ id: id, llave: llave, respuesta_url: hubUrl, biblioteca: lector ? { lector: lector } : undefined,

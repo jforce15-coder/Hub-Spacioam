@@ -445,6 +445,9 @@ jobs:
       - name: Biblioteca de Claudio, solo el principal comparte, todo privado, Claudio lee con el lector de su pedido (nunca la llave), lo que pide le llega solo al compartirlo y nada va al issue (dobles)
         # 17-nov-2026 (pedido pc1794916196762): «que el usuario comparta fácilmente un skill o documento, sin usar el chat, y que Claudio pueda pedirlo».
         run: node .github/biblioteca-claudio.js apps-script
+      - name: La captura que Juan le mandó a Alma (30 min) llega a Claudio en la instrucción privada del pedido, nunca en el issue (dobles)
+        # 18-nov-2026 (pedido pc1795009527355): «Mira esta pantalla. Hay un ícono mal posicionado.» y el pedido salió sin la captura.
+        run: node .github/pantalla-claudio.js apps-script
 
       - name: Estado de los equipos precargado, al instante sin IA, con tareas, limitaciones y problemas, solo el principal (dobles)
         # 17-nov-2026: Juan pidió tener listo el estado de Operaciones, Finanzas y Desarrollo para darlo sin demoras.

@@ -73,7 +73,7 @@ var CUPO_VOZ_SIN_ = 'Google se quedó sin cupo de llamadas a internet por hoy y 
 var CUPO_ACCIONES_ = {
   inicio: 'pendientes notificaciones areas areaMover pendienteResolver pendienteResponder pendienteNota pendienteHecho pendientesClaude unirPr vozAvisos notifAjustes notifAjustesGuardar notifPrueba pedidosOrbita anilloBle anilloResumen tutoriales biblioteca bibliotecaSubir bibliotecaQuitar bibliotecaPedidoDejar recetas recetaBorrar vigilancias vigilanciaDejar llaveEstado llaveGuardar',
   chat: 'opEnviar opHilo opLista almaFoto almaArchivo mejorarCampo dictar plantillas claudioHilo claudioEscribir claudioAccion',
-  voz: 'vozWeb vozFirma vozClaudio vozClaudioPanel claudioLocal vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar vozCaida vozCaidas',
+  voz: 'vozWeb vozFirma vozClaudio vozClaudioPanel claudioLocal vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar vozCaida vozCaidas pruebasInicio',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
     'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision calendarioProps calendarioVisto calendarioProp',
   cerebro: 'cerebro conexiones',

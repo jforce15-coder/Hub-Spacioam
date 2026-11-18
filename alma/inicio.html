@@ -2097,6 +2097,7 @@ window.SAPulso = {
     evento: function (e) {
       if (!e) return;
       try { vozNativaEvento(e); } catch (x) {}
+      try { if (window.AlmaPrueba) AlmaPrueba.voz(e); } catch (x) {}   // registro de pruebas del Modo inicio (#764)
       try { vozAgente(e); } catch (x) {}
       try { if (window.AlmaPersonalidad) AlmaPersonalidad.evento(e); } catch (x) {}   // medidores en vivo de la llamada (#410)
       try { if (window.AlmaTarjeta) AlmaTarjeta.evento(e); } catch (x) {}   // la tarjeta de la llamada (#446 T2)
@@ -2166,6 +2167,7 @@ window.SAPulso = {
   }
   window.AlmaConf = { evento: function (e) {
     if (!e) return; var b = $("b-conf"); CONF.activa = !!e.activa;
+    try { if (window.AlmaPrueba) AlmaPrueba.conf(e); } catch (x) {}   // registro de pruebas (#764)
     /* «Bajar la música cuando Alma hable» (AudioCalle.swift): solo si la app lo sabe (una versión vieja no lo manda). */
     if (typeof e.musica === "boolean") { $("t-conf-aj").hidden = $("g-conf-aj").hidden = false; $("i-conf-musica").checked = e.musica; }
     CONF.enLlamada = !!e.enLlamada; recPintar();
@@ -2487,6 +2489,7 @@ window.SAPulso = {
   }
   window.AlmaEscucha = { evento: function (e) {
     if (!e) return; $("g-escucha").hidden = false; $("i-escucha").checked = !!e.activada;
+    try { if (window.AlmaPrueba) AlmaPrueba.escucha(e); } catch (x) {}   // registro de pruebas (#764)
     ESC.escuchando = !!e.escuchando; escUbicar();
   } };
   $("i-escucha").onchange = function () { nativa({ accion: "escucha", que: "activar", on: this.checked }); };
@@ -4169,6 +4172,64 @@ window.SAPulso = {
     /* Llaves vive en su página (Ajustes → Avanzado → Llaves, #744): se abre esa página; sin ella, se baja hasta su título */
     if (h === "#ajustes-llaves") setTimeout(function () { if (window.AlmaAjustes && AlmaAjustes.ir) { AlmaAjustes.ir("llaves"); return; } var t = document.getElementById("t-llaves"); if (t && !t.hidden) t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }, 500);
   }, 1200);
+})();
+</script>
+<script>
+/* Registro de pruebas del Modo inicio (Juan, 18-nov-2026, #764; apps-script/pruebas.js). Solo anota si Alma abrió la ventana
+   (herramienta registro_de_pruebas): qué pasó y cuánto tardó, nunca lo que se dijo. Bloque aparte: lo llaman AlmaEscucha,
+   AlmaConf y AlmaVoz; si falla, no toca nada más. Sin ventana abierta pregunta al Hub cada 5 min como mucho y no manda nada. */
+(function () {
+  var P = { activo: false, revisado: 0, cola: [], reloj: null, abierta: false, esc: null, conf: null, voz: false, t0: 0, hablo: 0 };
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function hub(extra, quieto) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url || !ses()) return Promise.resolve({ ok: false });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", keepalive: !!quieto,
+      body: JSON.stringify(Object.assign({ hub: 1, action: "pruebasInicio", token: d.token, session: ses() }, extra)) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false }; });
+  }
+  function revisar() {
+    if (Date.now() - P.revisado < 300000) return; P.revisado = Date.now();
+    hub({ que: "estado" }).then(function (j) {
+      P.activo = !!(j && j.activo);
+      if (P.activo) pronto(3000); else P.cola = P.cola.filter(function (e) { return Date.now() - e.t < 360000; });   // lo reciente espera la próxima revisión
+    });
+  }
+  function mandar(quieto) {
+    clearTimeout(P.reloj); P.reloj = null;
+    if (!P.activo || !P.cola.length) return;
+    var lote = P.cola.splice(0, 60);
+    hub({ que: "anotar", eventos: lote }, quieto).then(function (j) {
+      if (j && j.ok === false) { P.cola = lote.concat(P.cola).slice(-200); return; }   // sin red: vuelve a la cola
+      if (j && j.activo === false) { P.activo = false; P.cola = []; P.revisado = Date.now(); }
+      else if (P.cola.length) pronto(3000);
+    });
+  }
+  function pronto(ms) { if (!P.reloj) P.reloj = setTimeout(function () { mandar(false); }, ms); }
+  function anotar(que, det, ms) {
+    P.cola.push({ t: Date.now(), que: que, det: det ? String(det).slice(0, 120) : "", ms: Math.round(ms || 0) });
+    if (P.cola.length > 200) P.cola.splice(0, P.cola.length - 200);
+    if (P.activo) pronto(que === "voz_fin" || que === "error" ? 3000 : 15000); else revisar();
+  }
+  document.addEventListener("visibilitychange", function () { if (document.hidden) mandar(true); });
+  window.AlmaPrueba = {
+    escucha: function (e) {
+      if (!P.abierta) { P.abierta = true; anotar("app_abierta", e.activada ? "" : "Modo inicio apagado en Ajustes"); }
+      var on = !!e.escuchando; if (on !== P.esc) { if (P.esc !== null || on) anotar(on ? "escucha_on" : "escucha_off"); P.esc = on; }
+    },
+    conf: function (e) {
+      var on = !!e.activa; if (on !== P.conf) { if (P.conf !== null || on) anotar(on ? "conferencia_on" : "conferencia_off"); P.conf = on; }
+      if (e.error) anotar("error", e.error);
+    },
+    voz: function (e) {
+      if (e.tipo === "error" && e.mensaje) { anotar("error", e.mensaje); return; }
+      if (e.tipo !== "estado") return;
+      var activa = e.estado === "conectando" || e.estado === "hablando", ahora = Date.now();
+      if (activa && !P.voz) { P.voz = true; P.t0 = ahora; P.hablo = 0; anotar("voz_conectando"); }
+      if (e.estado === "hablando" && P.voz && !P.hablo) { P.hablo = ahora; anotar("voz_hablando", "", ahora - P.t0); }
+      if (!activa && P.voz) { P.voz = false; anotar("voz_fin", P.hablo ? "" : "sin_conectar", ahora - (P.hablo || P.t0)); }
+    }
+  };
 })();
 </script>
 </body>

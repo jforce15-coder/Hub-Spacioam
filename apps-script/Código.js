@@ -3487,6 +3487,7 @@ function hubApi_(body) {
       case 'avisoHablar': return json_(avisoHablar_(ses, body));                           // notificación hablada: { hablar, audio? } de un aviso (calle.js)
       case 'vozCaida': return json_(vozCaida_(ses, body));                                 // la app habló con la voz del iPhone: { donde, motivo, ms } a VOZ_CAIDAS (calle.js, #509)
       case 'vozCaidas': return json_(vozCaidas_(ses, body));                               // por qué no sonó la voz de Alma: las últimas caídas, sin datos personales (solo el principal)
+      case 'pruebasInicio': return json_(pruebasInicio_(ses, body));                       // registro de pruebas del Modo inicio: { que: estado | anotar, eventos } (pruebas.js, #764)
       case 'dsPropuestas': return json_(dsPropuestas_());
       case 'dsDecidir': return json_(dsDecidir_(body.id, body.decision, body.nota, body.quien));
       default: return json_({ ok: false, error: 'accion' });

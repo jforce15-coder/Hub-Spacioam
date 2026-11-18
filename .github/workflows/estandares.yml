@@ -297,6 +297,10 @@ jobs:
       - name: Cupo agotado, la voz lo dice claro, se pausa lo de fondo y lo contado queda como límite (dobles)
         # 17-nov (#737): Google cortó a las 15:26 y la app de Alma saludaba y colgaba en cada llamada (también desde el Modo Inicio).
         run: node .github/cupo-agotado.js apps-script
+
+      - name: Registro de pruebas del Modo inicio, solo dentro de su ventana y sin lo que se dijo (dobles)
+        # 18-nov-2026: Juan pidió registrar sus pruebas del Modo inicio durante dos horas (#764).
+        run: node .github/registro-pruebas.js apps-script
       - name: WhatsApp a socios, el número sale de Mi, fuera de 24 h siempre plantilla, «listo» solo con el estado de Meta y si escriben se les contesta (dobles)
         # 13-nov: Juan pidió escribirle a dos socios; Alma no encontró sus números (le preguntó por el apartamento vecino),
         # dijo que ya estaba sin confirmación (no salió nada) y un socio que escribe a veces se queda sin respuesta.

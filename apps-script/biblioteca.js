@@ -164,9 +164,10 @@ function bibliotecaParaClaude_(url) {
     'Si uno sirve para este pedido, léelo antes de programar: curl -sL -H "Content-Type: text/plain;charset=utf-8" --data-binary ' +
     '\'{"mejora":1,"action":"biblioteca","id":"<id del pedido>","lector":"<biblioteca.lector del payload>","doc":"<id>"}\' "' + (url || '<respuesta_url>') + '" ' +
     '(devuelve el texto en páginas: sigue con "desde"; "crudo":1 da el archivo original en base64). El lector es solo para leer y no gasta la llave de responder. ' +
-    'Si te falta un skill o documento de Juan para hacerlo mejor o más rápido, responde estado "pregunta" y agrega "pide": "qué necesitas, en una línea": Juan lo comparte desde la app y te llega como ajuste con su id.';
+    'Si te falta un skill o documento de Juan para hacerlo mejor o más rápido, responde estado "pregunta" y agrega "pide": "qué necesitas, en una línea": Juan lo comparte desde la app y te llega como ajuste con su id.' +
+    (function () { var o = ''; try { o = archivosOrbitaParaClaude_(); } catch (e) { console.error('archivosOrbitaParaClaude_: ' + e); } return o ? '\n\n' + o : ''; })();
 }
-/* Claudio lee (doPost {mejora:1, action:'biblioteca', id, lector, doc?, desde?, crudo?}). Solo con el lector vivo de su pedido. */
+/* Claudio lee (doPost {mejora:1, action:'biblioteca', id, lector, doc?, desde?, crudo?, orbita?}). Solo con el lector vivo de su pedido. */
 function bibliotecaClaude_(b) {
   b = b || {};
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2 || !b.id || !b.lector) return { ok: false, error: 'lector' };
@@ -176,6 +177,13 @@ function bibliotecaClaude_(b) {
   for (var i = v.length - 1; i >= 0; i--) if (String(v[i][cId]) === String(b.id)) { fila = v[i]; break; }
   if (!fila || !fila[cL] || String(fila[cL]) !== paraClaudeHuella_(b.lector)) return { ok: false, error: 'lector' };
   if (cF >= 0 && Number(fila[cF]) && Date.now() - Number(fila[cF]) > BIBLIO_LECTOR_MS_) return { ok: false, error: 'lector vencido' };
+  /* Los archivos en órbita de Juan (archivosorbita.js): solo en un pedido del administrador principal. */
+  if (b.orbita) {
+    var cQ = cab.indexOf('quien'), ppal = adminsOp_().filter(function (a) { return a.principal; }).map(function (a) { return a.nombre; });
+    if (cQ < 0 || ppal.indexOf(String(fila[cQ])) < 0) return { ok: false, error: 'Solo en un pedido del administrador principal.' };
+    if (String(b.orbita) === 'lista') return { ok: true, archivos: archOrbDelPrincipal_().map(function (o) { return archOrbParaClaudePublico_(o.x); }) };
+    return archOrbABiblioteca_(b.orbita);
+  }
   var docs = biblioActivos_();
   if (!b.doc) return { ok: true, documentos: docs.map(biblioPublico_) };
   var d = docs.filter(function (x) { return x.id === String(b.doc); })[0];

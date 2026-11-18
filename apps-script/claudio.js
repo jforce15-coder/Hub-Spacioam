@@ -20,7 +20,8 @@
                        la muestra en la llamada (muestrasvoz.js, #781);
      volver_con_alma → herramienta de la app: cierra a Claudio y vuelve Alma con su voz y su halo.
      poner_voz       → herramienta de la app (#779; Juan, 18-nov-2026: «que Claudio pueda poner las voces en la llamada»):
-                       suenan las voces locales (Kokoro: Alex, Dora, Santa y las propias; la del iPhone) con una frase, o un
+                       suenan las voces locales (Kokoro: Alex, Dora, Santa y las propias; las gratis de Pocket, Claudio gratis y
+                       Maricarmen gratis, app ≥ 319; la del iPhone) con una frase, o un
                        audio por enlace, en la misma llamada. Con Claudio local la pide el Hub y suena en la app (claudiolocal.js).
    Lo mismo que Alma (Juan, 16-nov-2026: «que Claudio pueda hacer los pedidos de desarrollo que Alma puede hacer, y avisar
    cuando estén listos»): sin leer el pedido de vuelta ni esperar el sí (la regla c_entendi de Alma), sumar a un trabajo,
@@ -189,7 +190,7 @@ function claudioDefHerramientas_(base) {
         version: s('Para deshacer a una versión en particular: su número. Vacío: la anterior.'),
         dijo: s('Para publicar: las palabras exactas de Juan.') },
       ['conv_id', 'accion'], 40),
-    web('claudio_voces', 'Busca voces de ElevenLabs (no las locales de Kokoro ni la del iPhone: esas, con poner_voz) para que Juan las oiga: por nombre («la de Alma», «Rachel») o por cómo suenan («hombre tranquilo», «mujer alegre con acento mexicano»). Úsala en cuanto Juan pida oír una voz («ponme la voz de…», «cómo suena una voz de hombre tranquila»). Devuelve hasta 3 con su voice_id y deja en el hilo de Claudio una tarjeta con botón para oírlas otra vez. En la llamada, en ese mismo turno usa reproducir_voz con la primera; si quiere otra, la siguiente.',
+    web('claudio_voces', 'Busca voces de ElevenLabs (no las locales de Kokoro, las gratis ni la del iPhone: esas, con poner_voz) para que Juan las oiga: por nombre («la de Alma», «Rachel») o por cómo suenan («hombre tranquilo», «mujer alegre con acento mexicano»). Úsala en cuanto Juan pida oír una voz («ponme la voz de…», «cómo suena una voz de hombre tranquila»). Devuelve hasta 3 con su voice_id y deja en el hilo de Claudio una tarjeta con botón para oírlas otra vez. En la llamada, en ese mismo turno usa reproducir_voz con la primera; si quiere otra, la siguiente.',
       { buscar: s('Lo que Juan pidió de la voz, en sus palabras: el nombre o cómo quiere que suene. Vacío para ver las de la cuenta.'),
         genero: { type: 'string', enum: ['', 'mujer', 'hombre'], description: 'Si Juan dijo voz de mujer o de hombre. Vacío si no.' },
         frase: s('Lo que la voz debe decir, solo si Juan lo pidió («que diga bienvenido a Spacio»). Vacío: una frase corta de muestra.') },
@@ -202,7 +203,7 @@ function claudioDefHerramientas_(base) {
         frase: { type: 'string', description: 'La misma frase que devolvió claudio_voces (o la que pidió Juan).' } } },
       pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false },
     { type: 'client', name: CLAUDIO_PONER_VOZ_, expects_response: true, response_timeout_secs: 90,
-      description: 'Pone en la llamada una voz o un audio para que Juan lo escuche: suena por la app, con la frase de cada voz. Úsala en ese mismo turno cuando Juan pida oír las voces (las de Kokoro como Alex, Dora o Santa, una propia, la del iPhone, la de Maricarmen, la tuya o todas) o un audio por enlace. Antes di solo «Te la pongo.»; mientras suena no hables. Devuelve qué sonó (o cuáles hay, si va sin voz).',
+      description: 'Pone en la llamada una voz o un audio para que Juan lo escuche: suena por la app, con la frase de cada voz. Úsala en ese mismo turno cuando Juan pida oír las voces (las de Kokoro como Alex, Dora o Santa, una propia, las gratis «Claudio gratis» y «Maricarmen gratis» —las de prueba, en la app 319 o más nueva; si no suenan, dile que actualice Alma—, la del iPhone, la de Maricarmen, la tuya o todas) o un audio por enlace. Antes di solo «Te la pongo.»; mientras suena no hables. Devuelve qué sonó (o cuáles hay, si va sin voz).',
       parameters: { type: 'object', required: [], properties: {
         voz: { type: 'string', description: 'La voz por su nombre («Dora», «la de Maricarmen», «la del iPhone», «la tuya») o «todas». Vacío para saber cuáles hay.' },
         enlace: { type: 'string', description: 'Un enlace https a un audio (mp3, m4a o wav) que Juan quiere oír. Vacío si es una voz.' },

@@ -36,6 +36,7 @@ r = ctx.pubSoloRevisar_(false);
 ok(r.mirado === false && pedidos.length === 1, '2 · procesarCola espera 5 min entre vueltas');
 const g0 = gets; r = ctx.pubSoloAviso_();
 ok(pedidos.length === 1 && r.cambiaron && r.cambiaron.length === 0 && gets > g0, '2 · el aviso mira al instante y sin cambios no pide nada');
+ok(props.PUBLICAR_MIRADO === '0', '2 · el aviso sin nada nuevo hace que procesarCola vuelva a mirar en su próximo minuto (GitHub tarda en mostrarlo)');
 r = ctx.pubSoloAviso_();
 ok(r.espera === true, '2 · dos avisos seguidos: el segundo espera (20 s)');
 huellaDocs = 'bbb'; codigoPedido = 500; delete cache.pub_solo_aviso;

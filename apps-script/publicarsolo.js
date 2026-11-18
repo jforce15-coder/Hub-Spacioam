@@ -63,5 +63,9 @@ function pubSoloRevisar_(forzar) {
 function pubSoloAviso_() {
   var c = CacheService.getScriptCache(); if (c.get('pub_solo_aviso')) return { ok: true, espera: true };
   c.put('pub_solo_aviso', '1', 20);
-  try { return pubSoloRevisar_(true); } catch (e) { return { ok: false, error: String(e).slice(0, 200) }; }
+  var r; try { r = pubSoloRevisar_(true); } catch (e) { r = { ok: false, error: String(e).slice(0, 200) }; }
+  /* GitHub puede tardar unos segundos en mostrar lo recién unido (18-nov: el aviso de Docs vio la carpeta de antes): si no vio
+     nada nuevo, procesarCola vuelve a mirar en su próximo minuto en vez de esperar 5. */
+  if (!r.pedido) { try { PropertiesService.getScriptProperties().setProperty('PUBLICAR_MIRADO', '0'); } catch (e) {} }
+  return r;
 }

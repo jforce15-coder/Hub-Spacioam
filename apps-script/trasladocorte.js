@@ -35,9 +35,10 @@ function trasladoCorte_(accion, body) {
       (x[1] === 'min' ? b.everyMinutes(x[2]) : b.everyHours(x[2])).create();
     });
     var cupo = Number(body && body.cupo_dia) || 0;
-    if (cupo >= 20000) sp.setProperty('CUPO_DIA', String(cupo));
+    if (cupo >= 20000) { sp.setProperty('CUPO_DIA', String(cupo)); sp.deleteProperty('CUPO_DIA_VISTO'); }   // cuenta nueva, límite nuevo: lo aprendido en la otra no vale (#836)
     console.log('Traslado: Hub encendido');
   } else if (accion !== 'traslado_activadores') return { ok: false, error: 'accion' };
   return { ok: true, proyecto: ScriptApp.getScriptId(), apagado: sp.getProperty('TRASLADO_APAGADO') || '',
-    cupo_dia: sp.getProperty('CUPO_DIA') || '', activadores: trasladoActivadores_() };
+    cupo_dia: sp.getProperty('CUPO_DIA') || '', cupo_dia_visto: sp.getProperty('CUPO_DIA_VISTO') || '',
+    limite: (function () { try { return cupoLimite_(); } catch (e) { return 0; } })(), activadores: trasladoActivadores_() };
 }

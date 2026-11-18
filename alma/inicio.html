@@ -539,6 +539,24 @@
   .mover button.ya { background: #3E3F3F; color: #fff; }
   .mover .lbl { width: 100%; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
   .b-mov { margin-top: 10px; padding: 0; border: 0; background: none; color: #A39B93; font: 600 11.5px Montserrat, system-ui, sans-serif; cursor: pointer; }
+  /* «Lo que te toca» dentro de un área: un proyecto por tarjeta; cerrado dice cuántos, abierto muestra cada uno (jerarquía) */
+  .grupo { padding: 0; overflow: hidden; }
+  .grupo .gr { display: flex; align-items: center; gap: 10px; width: 100%; padding: 16px; border: 0; background: none; text-align: left; font: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .grupo .gr .tx { flex: 1; min-width: 0; }
+  .grupo .gr .pt { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 8px #E9826A; }
+  .grupo .gr .ch { flex: none; width: 20px; height: 20px; color: #A39B93; transition: transform .35s cubic-bezier(.3,1.3,.5,1); }
+  .grupo.abierta .gr .ch { transform: rotate(90deg); }
+  .grupo .gr-cu { display: none; padding: 0 12px 12px; }
+  .grupo.abierta .gr-cu { display: block; }
+  .grupo .gr-cu .san-pc { margin: 0 0 10px; }
+  .grupo .nt { padding: 12px; margin-bottom: 10px; border-radius: 16px; background: #F6F3F0; }
+  .grupo .nt small { display: block; font: 700 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #A39B93; }
+  .grupo .nt b { display: block; margin-top: 4px; font: 600 14px/1.35 Montserrat, system-ui, sans-serif; overflow-wrap: anywhere; }
+  .grupo .nt p { white-space: pre-wrap; }
+  .grupo .ir { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+  .grupo .ir button { border: 0; border-radius: 999px; padding: 9px 16px; font: 600 12.5px Montserrat, system-ui, sans-serif; cursor: pointer; background: #3E3F3F; color: #FAFAFA; }
+  .grupo .ir button.sec { background: rgba(62,63,63,.08); color: #3E3F3F; }
+  @media (prefers-reduced-motion: reduce) { .grupo .gr .ch { transition: none; } }
   .vacio { text-align: center; padding: 26px 20px; font: 500 13.5px/1.5 Montserrat, system-ui, sans-serif; color: #A39B93; }
   /* ── Órbitas de la esfera (Juan, 18-nov-2026, #796): dentro de una esfera, en vez de la lista, la esfera al centro y lo
      suyo girando alrededor. 1.ª órbita: los proyectos. 2.ª: lo que pide atención (pendientes primero, luego avisos).
@@ -1801,6 +1819,7 @@ window.SAPulso = {
     $("a-tit").textContent = a.n; $("a-sub").textContent = a.d;
     /* Las 6 esferas se ven en órbitas (o en lista, si Juan la elige); los cajones del archivo siguen en lista. */
     if (EO_C[a.k]) { c.appendChild(eoModo()); if (eoVista() === "orbitas") { eoPintar(c, a); return; } }
+    var tt = el("div", "te-toca san-scope"); tt.id = "a-toca"; c.appendChild(tt); AR.tocaFirma = null; teTocaPintar();
     if (a.proyectos.length) {
       c.appendChild(el("div", "sec-t", "Proyectos"));
       a.proyectos.forEach(function (p) {
@@ -1856,6 +1875,7 @@ window.SAPulso = {
       .forEach(function (x) { out.push({ tipo: "noti", id: x.id, titulo: x.titulo || x.texto || "Aviso", x: x }); });
     return out;
   }
+  function eoFirma(k) { return eoAtencion(k).map(function (x) { return x.id; }).join("|"); }
   function eoIniciales(n) { var p = String(n || "").replace(/[·|]/g, " ").split(/\s+/).filter(function (w) { return /^[\wÁÉÍÓÚÑáéíóúñ]/.test(w); }); return ((p[0] || "")[0] || "").toUpperCase() + ((p[1] || "")[0] || "").toUpperCase(); }
   function eoPintar(c, a) {
     var col = EO_C[a.k], S = Math.round(Math.max(280, Math.min(460, c.clientWidth - 32)));
@@ -1863,6 +1883,7 @@ window.SAPulso = {
     /* cuánto cabe con aire en cada órbita (los nombres de los proyectos piden más espacio) */
     var cap1 = Math.max(3, Math.min(6, Math.floor(2 * Math.PI * R1 / 112))), cap2 = Math.max(4, Math.min(8, Math.floor(2 * Math.PI * R2 / (d2 * 2.6))));
     var proys = a.proyectos || [], at = eoAtencion(a.k), convs = a.conversaciones || [];
+    EO.firma = eoFirma(a.k);
     var o1 = proys.slice(0, cap1).map(function (p) { return { tipo: "proy", id: "p:" + p.k, titulo: p.n, pr: p }; });
     var o2 = at.slice(0, cap2), fuera = proys.slice(cap1).map(function (p) { return { tipo: "proy", id: "p:" + p.k, titulo: p.n, pr: p, fuerte: true }; })
       .concat(at.slice(cap2).map(function (x) { x.fuerte = true; return x; }));
@@ -1952,6 +1973,43 @@ window.SAPulso = {
     }
     t.appendChild(x); det.appendChild(t);
   }
+  /* «Lo que te toca» (niveles 2 y 3 de la jerarquía): los pendientes y avisos del área agrupados por proyecto. Cerrado,
+     cada proyecto dice solo cuántos tiene; al tocarlo se abre con cada pendiente (sus mismos botones de Pendientes) y cada
+     aviso. Solo se vuelve a pintar si cambió lo que hay (así no se borra una respuesta a medio escribir). */
+  function teTocaPintar() {
+    var c = $("a-toca"); if (!c || !AR.area) return;
+    var L = avisosTodos().filter(function (x) { return x.area === AR.area; });
+    var firma = L.map(function (x) { return x.id; }).join("|"); if (firma === AR.tocaFirma) return; AR.tocaFirma = firma;
+    c.innerHTML = ""; if (!L.length) return;
+    var por = {}, orden = [];
+    L.forEach(function (x) { var k = String((x.p && x.p.proyecto) || (x.x && x.x.proyecto) || "General"); if (!por[k]) { por[k] = []; orden.push(k); } por[k].push(x); });
+    orden.sort(function (a, b) { return (a === "General") - (b === "General") || avCuenta(por[b]).np - avCuenta(por[a]).np; });   // primero lo que pide algo de ti
+    AR.tocaAbierto = AR.tocaAbierto || {};
+    c.appendChild(el("div", "sec-t", "Lo que te toca · " + avCuenta(L).texto));
+    orden.forEach(function (k) {
+      var G = por[k], llave = AR.area + "|" + k, t = el("div", "tarjeta grupo" + (AR.tocaAbierto[llave] ? " abierta" : ""));
+      var b = el("button", "gr"); b.type = "button"; b.setAttribute("aria-expanded", AR.tocaAbierto[llave] ? "true" : "false");
+      var tx = el("span", "tx"); tx.appendChild(el("h4", "", k)); tx.appendChild(el("p", "", avCuenta(G).texto)); b.appendChild(tx);
+      if (avCuenta(G).np) b.appendChild(el("i", "pt"));
+      var ch = el("span", "ch"); ch.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>'; b.appendChild(ch);
+      var cu = el("div", "gr-cu");
+      b.onclick = function () { var on = !t.classList.contains("abierta"); AR.tocaAbierto[llave] = on; t.classList.toggle("abierta", on); b.setAttribute("aria-expanded", on ? "true" : "false"); if (on && !cu.firstChild) teTocaCuerpo(cu, G); };
+      t.appendChild(b); t.appendChild(cu); if (AR.tocaAbierto[llave]) teTocaCuerpo(cu, G);
+      c.appendChild(t);
+    });
+  }
+  function teTocaCuerpo(cu, G) {
+    G.forEach(function (a) {
+      if (a.tipo === "pend" && SANav.tarjeta) { cu.appendChild(SANav.tarjeta(a.p, avNombre(a.area) + (a.p.proyecto ? " · " + a.p.proyecto : ""))); return; }
+      var n = el("div", "nt"); n.appendChild(el("small", "", (a.tipo === "pend" ? "Pendiente" : "Aviso") + (a.x && a.x.ts ? " · " + cuando(a.x.ts) : "")));
+      n.appendChild(el("b", "", a.titulo || "")); if (a.texto) n.appendChild(el("p", "", a.texto)); if (a.detalle) n.appendChild(el("p", "", a.detalle));
+      var ir = el("div", "ir");
+      if (a.enlace) { var ab = el("button", "sec", "Abrir"); ab.type = "button"; ab.onclick = function () { location.href = a.enlace; }; ir.appendChild(ab); }
+      var vb = el("button", "", a.tipo === "pend" ? "Ver en Pendientes" : "Ver en Notificaciones"); vb.type = "button";
+      vb.onclick = function () { areasAbrir(false); orbita(false); SANav.escena(null); SANav.ver(a.tipo, a.id, a.area); };
+      ir.appendChild(vb); n.appendChild(ir); cu.appendChild(n);
+    });
+  }
   /* Cómo se guarda (reglas del departamento de Archivo): para quedarse, o temporal hasta una fecha. */
   function guardadoTexto(v) {
     if (v.guardado === "temporal" && v.vence) { var d = Math.max(0, Math.ceil((new Date(v.vence) - Date.now()) / 864e5)); return " · temporal" + (d <= 30 ? " · " + (d <= 1 ? "se archiva mañana" : "se archiva en " + d + " días") : ""); }
@@ -1996,12 +2054,25 @@ window.SAPulso = {
       .forEach(function (x) { out.push({ tipo: "noti", id: x.id, area: x.area, titulo: x.titulo || x.texto, texto: x.titulo ? x.texto || "" : "", detalle: x.detalle || "", enlace: x.enlace || "", x: x }); });
     return out;
   }
+  /* JERARQUÍA (Juan, 18-nov-2026: «en una vista general sólo mostrar categorías generales, no tareas específicas; y una vez
+     que vamos profundizando en el proyecto, cosas más específicas»). Tres niveles:
+       1. Esferas abiertas: la barra muestra de cada esfera solo cuántos pendientes y avisos tiene (nunca el título de uno).
+       2. Al tocar la barra o la esfera: su área, con «Lo que te toca» por proyecto (cuántos de cada cosa).
+       3. Al tocar un proyecto: sus pendientes (con sus botones) y sus avisos, uno por uno.
+     El Modo avisos sigue contando uno por uno: ahí Juan pidió el detalle. */
+  function avCuenta(L) {
+    var np = L.filter(function (a) { return a.tipo === "pend"; }).length, nn = L.length - np, t = [];
+    if (np) t.push(np + (np === 1 ? " pendiente" : " pendientes"));
+    if (nn) t.push(nn + (nn === 1 ? " aviso" : " avisos"));
+    return { np: np, nn: nn, texto: t.join(" · ") };
+  }
   function avisoArmar() {
     AV.lista = avisosTodos();
-    var orden = (AR.datos || []).map(function (a) { return a.k; }), uno = {};
-    AV.lista.forEach(function (a) { if (!uno[a.area]) uno[a.area] = a; });
-    AV.esf = orden.filter(function (k) { return uno[k]; }).map(function (k) { return uno[k]; });
-    if (AV.actual && !AV.lista.some(function (a) { return a.id === AV.actual.id; })) { AV.actual = null; AV.abierta = false; }   // ya se resolvió
+    var orden = (AR.datos || []).map(function (a) { return a.k; }), por = {};
+    AV.lista.forEach(function (a) { (por[a.area] = por[a.area] || []).push(a); });
+    AV.esf = orden.filter(function (k) { return por[k]; }).map(function (k) { var c = avCuenta(por[k]); return { tipo: "resumen", id: "r:" + k, area: k, titulo: c.texto, np: c.np, nn: c.nn }; });
+    if (AV.actual && !AV.lista.concat(AV.esf).some(function (a) { return a.id === AV.actual.id; })) { AV.actual = null; AV.abierta = false; }   // ya se resolvió
+    if (AR.abierta && AR.area) teTocaPintar();   // dentro del área: «Lo que te toca» al día
     if (!AV.actual || !AV.abierta) { var j = AV.actual ? AV.esf.map(function (a) { return a.area; }).indexOf(AV.actual.area) : -1; AV.i = j >= 0 ? j : Math.min(AV.i, Math.max(0, AV.esf.length - 1)); }
     avisoMostrar();
   }
@@ -2019,11 +2090,12 @@ window.SAPulso = {
   function avisoPintar() {
     var a = AV.actual, b = $("aviso"); if (!a) { b.classList.remove("on"); avisoFoco(null); return; }
     b.style.setProperty("--c", AV_COLOR[a.area] || "#E9826A");
-    $("av-tag").textContent = avNombre(a.area) + (a.tipo === "pend" ? " · Pendiente" : " · Aviso") + (AM.on ? " · Alma te cuenta" : "");
+    $("av-tag").textContent = avNombre(a.area) + (a.tipo === "resumen" ? "" : a.tipo === "pend" ? " · Pendiente" : " · Aviso") + (AM.on ? " · Alma te cuenta" : "");
+    if (a.tipo === "resumen") $("av-pil").setAttribute("aria-label", avNombre(a.area) + ": " + a.titulo + ". Toca para verlos"); else $("av-pil").removeAttribute("aria-label");
     $("av-tit").textContent = a.titulo || "";
     $("av-n").textContent = AM.on ? (AM.i + 1) + "/" + AM.L.length : AV.esf.length > 1 ? (AV.i % AV.esf.length + 1) + "/" + AV.esf.length : "";
     b.classList.toggle("abierta", AV.abierta); $("av-pil").setAttribute("aria-expanded", AV.abierta ? "true" : "false");
-    if (AV.abierta) avisoCuerpo(a);
+    if (AV.abierta && a.tipo !== "resumen") avisoCuerpo(a);
     avisoFoco(a.area);
   }
   function avisoCuerpo(a) {
@@ -2043,6 +2115,7 @@ window.SAPulso = {
   }
   $("av-pil").onclick = function () {
     if (!AV.actual) return;
+    if (AV.actual.tipo === "resumen" && !AM.on) { areasAbrir(true, AV.actual.area); return; }   // un nivel más hondo: su área
     AV.abierta = !AV.abierta;
     if (AV.abierta && AM.on) amEnfocar(AV.actual);
     avisoMostrar();
@@ -2119,7 +2192,7 @@ window.SAPulso = {
       if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
-    alDatos: function () { avisoArmar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas") areasPintar(); },   /* las órbitas, con lo último que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
+    alDatos: function () { avisoArmar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas" && eoFirma(AR.area) !== EO.firma) areasPintar(); },   /* las órbitas, solo si cambió lo que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }

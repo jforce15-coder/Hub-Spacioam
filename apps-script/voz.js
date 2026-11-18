@@ -894,12 +894,25 @@ function vozConv_(n, cual) {
   return { ok: true, errores: errores, conv: todas.map(function (t, i) {
     var c = t.c, d = {};
     try { if (det[i].getResponseCode() === 200) d = JSON.parse(det[i].getContentText()); else errores.push(c.conversation_id + ': detalle HTTP ' + det[i].getResponseCode()); } catch (e) {}
-    var md = d.metadata || {};
+    var md = d.metadata || {}, tr = d.transcript || [], tu = vozConvTurnos_(tr);
     return { id: c.conversation_id, agente: t.quien, rama: d.branch_id || md.branch_id || c.branch_id || '', status: c.status,
       inicio: new Date(Number(c.start_time_unix_secs || 0) * 1000).toISOString(), dur: md.call_duration_secs != null ? md.call_duration_secs : c.call_duration_secs,
-      fin: md.termination_reason || '', error: md.error || null, turnos: (d.transcript || []).length,
+      fin: md.termination_reason || '', error: md.error || null, turnos: tr.length, usuario: tu.usuario, agente_turnos: tu.agente,
+      sin_respuesta: tu.sin_respuesta, ultimo_usuario_s: tu.ultimo_usuario_s, palabras_ultimo: tu.palabras_ultimo,
       origen: JSON.stringify(md.conversation_initiation_source || md.initiation_webhook || '').slice(0, 200) };
   }) };
+}
+
+/* Guardia 18-nov-2026: una llamada donde Juan habló ~40 s y Alma nunca contestó (1 turno del usuario, 0 del agente).
+   Sin leer el texto (el diagnóstico no trae transcripciones): cuántos turnos dijo cada lado, si el último del usuario
+   quedó sin respuesta del agente, en qué segundo empezó y cuántas palabras tenía (para ver si es un turno largo). */
+function vozConvTurnos_(tr) {
+  var u = 0, a = 0, ult = -1;
+  (tr || []).forEach(function (t, i) { if (!t) return; if (t.role === 'user') { u++; ult = i; } else if (t.role === 'agent') a++; });
+  var resp = ult >= 0 && (tr || []).slice(ult + 1).some(function (t) { return t && t.role === 'agent' && String(t.message || '').trim(); });
+  var m = ult >= 0 ? String(tr[ult].message || '').trim() : '';
+  return { usuario: u, agente: a, sin_respuesta: ult >= 0 && !resp, ultimo_usuario_s: ult >= 0 ? tr[ult].time_in_call_secs : null,
+    palabras_ultimo: m ? m.split(/\s+/).length : 0 };
 }
 
 /* Código de reserva cuyo registro de llegada (hola, pestaña Formularios / LT_Huespedes) tiene este teléfono. El más reciente gana. */

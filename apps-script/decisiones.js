@@ -502,6 +502,7 @@ function decisionesSalir_() {
 function decisionSalirPronto() {
   cupoCanal_('Huéspedes');   // es una respuesta a un huésped: nunca se pausa por cupo
   ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'decisionSalirPronto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  if (typeof trasladoApagado_ === 'function' && trasladoApagado_()) return;   // Hub apagado tras el corte: no atiende la cola aunque un webhook lo despierte (trasladocorte.js)
   decisionesSalir_();
 }
 

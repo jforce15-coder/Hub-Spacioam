@@ -742,6 +742,7 @@ function agruparSeg_(texto) {
 }
 function programarPronto_(texto) {
   try {
+    if (typeof trasladoApagado_ === 'function' && trasladoApagado_()) return;   // Hub apagado tras el corte: no atiende la cola aunque un webhook lo despierte (trasladocorte.js)
     const ya = ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'procesarColaPronto');
     if (ya) return;
     ScriptApp.newTrigger('procesarColaPronto').timeBased().after(agruparSeg_(texto) * 1000 + 2000).create();
@@ -750,6 +751,7 @@ function programarPronto_(texto) {
 function procesarColaPronto() {
   cupoCanal_('Huéspedes'); cupoFuncion_('procesarColaPronto');
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'procesarColaPronto').forEach(t => ScriptApp.deleteTrigger(t));
+  if (typeof trasladoApagado_ === 'function' && trasladoApagado_()) return;   // Hub apagado tras el corte: no atiende la cola aunque un webhook lo despierte (trasladocorte.js)
   procesarColaNucleo_();   // solo la cola: el mantenimiento lo hace el disparador de cada minuto
 }
 
@@ -1106,7 +1108,7 @@ function enviarPendiente_(sh, f, ctrl, filas) {
     return log_(d, '', 'no enviado: marcador interno bloqueado');
   }
   const env = enviarCanal_(d, d.borrador);
-  if (env.code < 200 || env.code >= 300) return reintentar_(sh, f, 'envío ' + (d.canal === 'whatsapp' ? 'WhatsApp ' + (env.error || env.code) : 'HTTP ' + env.code), 'esperando_envio');
+  if (env.code < 200 || env.code >= 300) return reintentar_(sh, f, 'envío ' + (d.canal === 'whatsapp' ? 'WhatsApp ' + (env.error || env.code) : 'HTTP ' + env.code + (env.error ? ' · ' + env.error : (env.code >= 400 && env.json && (env.json.message || env.json.error) ? ' · ' + String(env.json.message || env.json.error).slice(0, 120) : ''))), 'esperando_envio');
   set_(sh, f, { estado: 'respondido', nota: d.nivel + ' · enviado' });
   log_(d, d.borrador, 'ENVIADO al huésped' + (d.seguimiento ? ' · seguimiento avisado' : ''));
   avisarSeguimiento_(d);
@@ -2368,7 +2370,8 @@ function hosp_(metodo, ruta, payload, o) {
     if (mi && payload && payload.body) { try { registrarEnvioInq_('inq:' + mi[1], payload.body, s_(json && (json.sent_reference_id || (json.data && json.data.sent_reference_id)))); } catch (e) {} }
     return { code: code, json: json };
   } catch (err) {
-    return { code: 0, json: null };
+    /* code 0 = la llamada ni salió (sin cupo de Google, red caída): el motivo viaja para que la nota no diga solo «HTTP 0». */
+    return { code: 0, json: null, error: String((err && err.message) || err).slice(0, 120) };
   }
 }
 
@@ -5363,6 +5366,7 @@ function opWaProgramar_(seg) {
 function opWaPronto() {
   cupoCanal_('WhatsApp'); cupoFuncion_('opWaPronto');
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'opWaPronto').forEach(t => ScriptApp.deleteTrigger(t));
+  if (typeof trasladoApagado_ === 'function' && trasladoApagado_()) return;   // Hub apagado tras el corte: no atiende la cola aunque un webhook lo despierte (trasladocorte.js)
   opWaProcesar_();
 }
 function opWaProcesar_() {

@@ -13,7 +13,7 @@
   "login": {
     "repo": "Hub-Spacioam", "carpeta": "login/apps-script", "titulo": "Login · Spacio AM",
     "viejo": "https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec",
-    "copiar": "todas", "excluir": [], "al_traer": []
+    "copiar": "todas", "excluir": [], "al_traer": [], "sincronizar": true
   },
   "hola": {
     "repo": "Hola-spacioam", "carpeta": "apps-script", "titulo": "Hola · Spacio AM",

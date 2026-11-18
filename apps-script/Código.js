@@ -5741,7 +5741,7 @@ function migrarVinculos() {
 /* ═══════════════════════════════ 14. SESIÓN FIRMADA (fase 1b) ═══════════════════
    El login (Apps Script de «Control de usuarios») firma la sesión. Aquí se comprueba con su acción verify
    y se guarda 1 hora en caché (10 min si es inválida). Devuelve el perfil vigente o null. */
-const LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbxfdwLzsA8bwgOxUTOtf3Hw1ptIm8Cy34tspmFndu3WtRrkVSSnGyBP7obRrm73mcUd/exec';
+const LOGIN_URL_ = 'https://script.google.com/macros/s/AKfycbyX_ON7wF0Logs2EfL-K13MJXPDAGADWizVxJt_DP2ZAvSscS1qirYeZYOP5n-zfhnO/exec';
 function sesionLogin_(session) {
   session = String(session || ''); if (session.indexOf('.') < 1 || session.length > 4000) return null;
   const cache = CacheService.getScriptCache();

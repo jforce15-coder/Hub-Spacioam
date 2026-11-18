@@ -10,7 +10,8 @@ var LLAVES_PERMITIDAS_ = [
   { nombre: 'PARA_ALMA_AVISO_KEY', para: 'Aviso de GitHub: las instrucciones para Alma llegan al instante' },   // #526 T5 (el mismo valor va en el secreto de GitHub)
   { nombre: 'ONESIGNAL_IOS_APP_ID', para: 'Notificaciones push de la app de Alma: el App ID de su app de OneSignal (iPhone)' },   // Ticket #28 (pushapp.js)
   { nombre: 'ONESIGNAL_IOS_KEY', para: 'Notificaciones push de la app de Alma: la REST API Key de esa misma app de OneSignal' },   // Ticket #28 (pushapp.js)
-  { nombre: 'GIPHY_KEY', para: 'GIFs de las bromas de Alma en la pantalla (GIPHY, solo aptos para todo público); sin ella, emojis animados' }   // 16-nov-2026 (gif.js)
+  { nombre: 'GIPHY_KEY', para: 'GIFs de las bromas de Alma en la pantalla (GIPHY, solo aptos para todo público); sin ella, emojis animados' },   // 16-nov-2026 (gif.js)
+  { nombre: 'WA_VERIFY_TOKEN', para: 'WhatsApp (Meta): el «Verify token» del webhook; pon el mismo texto en Meta → WhatsApp → Configuración' }
 ];
 var LLAVES_META_ = 'LLAVES_GUARDADAS';   // { NOMBRE: { t, por } }: cuándo y quién, nunca el valor
 

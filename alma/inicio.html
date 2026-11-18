@@ -46,13 +46,36 @@
      se pega al borde (como Ajustes a la derecha) en vez de dejar su hueco vacío. */
   .san-scope .san-pendb::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
   .san-scope .san-ov:has(.san-pendb[data-a="pend"][hidden]) .san-pendb.san-notib { left: max(16px, env(safe-area-inset-left)); }
-  /* Modo compañero arriba (Juan, 17-nov-2026: «al lado de los íconos de notificaciones y pendientes»): el mismo botón de
-     cristal, a la derecha de la campana. Si Pendientes o la campana no están, se corre para no dejar hueco. Debajo de la
-     llamada en vivo (.comp) y de las hojas, igual que los otros dos. Encendido: durazno, como el modo conferencia. */
-  .ajustes.comp-b { right: auto; left: calc(max(16px, env(safe-area-inset-left)) + 100px); z-index: 891; }
-  body:has(.san-pendb[data-a="pend"][hidden]) .ajustes.comp-b, body:has(.san-notib[hidden]) .ajustes.comp-b { left: calc(max(16px, env(safe-area-inset-left)) + 50px); }
-  body:has(.san-pendb[data-a="pend"][hidden]):has(.san-notib[hidden]) .ajustes.comp-b { left: max(16px, env(safe-area-inset-left)); }
-  body:has(.san-ov.suelta) .ajustes.comp-b { opacity: 0 !important; pointer-events: none !important; }
+  /* Las dos columnas de abajo (Juan, 18-nov-2026: «el botón de companion … debería estar cercano a donde está el botoncito
+     de mute. Arriba podríamos poner el de los archivos, y también agregar un botón de browser»). Izquierda, sobre el
+     silencio (#b-mudo): Modo compañero y, arriba, la Carpeta de archivos. Derecha, sobre el Modo calle: el Navegador. Los
+     ubica colUbicar con los botones de abajo y se esconden con ellos. Debajo de las hojas, como antes el compañero.
+     Compañero encendido: durazno, como el modo conferencia. */
+  .ajustes.col { right: auto; top: 0; left: 0; z-index: 891; }
+  body:has(.san-ov.suelta) .ajustes.col { opacity: 0 !important; pointer-events: none !important; }
+  .ajustes.arch-b .arch-n { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; padding: 0 4px; box-sizing: border-box; border-radius: 9px;
+    background: #FFFDFB; color: #B4452A; font: 700 10px/17px Montserrat, system-ui, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(40,25,25,.25); }
+  .ajustes.arch-b .arch-n[hidden] { display: none; }
+  /* Un archivo llega volando a la carpeta: el botón lo recibe con un saltito (sin rebote largo). */
+  .ajustes.arch-b.recibe { animation: archRecibe .34s cubic-bezier(.23,1,.32,1); }
+  @keyframes archRecibe { 45% { transform: scale(1.12); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .ajustes.arch-b.recibe { animation: none; box-shadow: inset 0 0 0 1.5px #FFFDFB; } }
+  /* Soltar un archivo en el inicio: el marco durazno de «Suelta el archivo para Alma». */
+  .soltar { position: fixed; inset: max(10px, env(safe-area-inset-top)) 10px 10px; z-index: 2147483300; border: 2px dashed rgba(255,253,251,.9); border-radius: 28px;
+    background: rgba(233,130,106,.28); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); display: grid; place-items: center; pointer-events: none;
+    font: 600 17px Montserrat, system-ui, sans-serif; color: #FFFDFB; text-shadow: 0 1px 8px rgba(40,25,25,.4); opacity: 0; transition: opacity .18s ease; }
+  .soltar.on { opacity: 1; }
+  /* La Carpeta de archivos (#arch-panel): la misma hoja de Ajustes. */
+  #arch-velo { z-index: 2147483240; }
+  .panel.arch { z-index: 2147483250; }
+  .arch-fila .ic { width: 38px; height: 38px; flex: none; border-radius: 11px; display: grid; place-items: center; background: rgba(233,130,106,.12); color: #C9654E; }
+  .arch-fila .ic svg { width: 20px; height: 20px; }
+  .arch-fila .et b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .arch-fila .et small { display: block; color: #8A8580; font-size: 12.5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .arch-fila .usar { border: 0; border-radius: 999px; padding: 0 14px; min-height: 34px; background: rgba(62,63,63,.08); color: #3E3F3F; font: 600 13px Montserrat, system-ui, sans-serif; cursor: pointer; }
+  .arch-fila .usar:active { transform: scale(.96); }
+  .arch-fila .quita { width: 44px; height: 44px; margin-right: -10px; border: 0; background: none; color: #8A8580; display: grid; place-items: center; cursor: pointer; border-radius: 50%; }
+  .arch-vacio { padding: 18px 16px; font-size: 13.5px; line-height: 1.45; color: #8A8580; text-align: center; }
   .ajustes.comp-b[aria-pressed="true"] { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.activa { background: rgba(233,130,106,.42); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55); }
   .ajustes.conf.voces::after { content: ""; position: absolute; top: 3px; left: 3px; width: 7px; height: 7px; border-radius: 50%; background: #FFFDFB; }
@@ -1081,6 +1104,9 @@
   .pob-n.listo svg { animation: none; }
   @keyframes pob-gira { to { transform: rotate(360deg); } }
   .pob-voz { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  /* Archivo en órbita: el satélite con el ícono del archivo (sin arco que gira: no es trabajo en curso). */
+  .pob-s.arch .pie .ico { width: 15px; height: 15px; color: #B4452A; }
+  .pob-s.arch .halo { opacity: .32; }
   /* Sin movimiento: los anillos quietos en su lugar, sin giro ni pulso; el check aparece con un fundido */
   @media (prefers-reduced-motion: reduce) {
     .pob-s .resp, .pob-s .halo, .pob-s svg.arco, .pob-n svg { animation: none; }
@@ -1093,7 +1119,9 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<button type="button" class="ajustes comp-b" id="b-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="12" height="16" rx="2"/><rect x="16" y="8.5" width="5.5" height="11.5" rx="1.4"/><path d="M7.5 17h2"/><path d="M18 17.2h1.5"/></svg></button>
+<button type="button" class="ajustes col comp-b" id="b-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="12" height="16" rx="2"/><rect x="16" y="8.5" width="5.5" height="11.5" rx="1.4"/><path d="M7.5 17h2"/><path d="M18 17.2h1.5"/></svg></button>
+<button type="button" class="ajustes col arch-b" id="b-arch" aria-label="Carpeta de archivos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.6l2 2.2h7.4A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M3 10.5h18"/></svg><i class="arch-n" hidden></i></button>
+<button type="button" class="ajustes col nav-b" id="b-nav" aria-label="Abrir el navegador" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg></button>
 <button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
 <button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
 <button type="button" class="calle-linea" id="calle-linea" aria-label="Probar el Modo calle" hidden><span class="f" id="calle-fase" aria-live="polite"></span><span class="e" id="calle-error" role="alert"></span></button>
@@ -1116,6 +1144,14 @@
 <div class="velo" id="velo"></div>
 <div class="velo" id="vj-velo"></div>
 <div class="velo" id="cp-velo"></div>
+<div class="velo" id="arch-velo"></div>
+<div class="panel arch" id="arch-panel" role="dialog" aria-label="Carpeta de archivos" aria-hidden="true"><div class="asa"></div><h2>Archivos</h2>
+  <p class="cp-guia">Lo que le pasaste a Alma. Orbita su roca durante 5 conversaciones con ella y después queda aquí.</p>
+  <div class="grupo" id="arch-orb" hidden></div>
+  <div class="grupo" id="arch-lista"></div>
+  <div class="grupo"><div class="fila boton" id="arch-cerrar" role="button" tabindex="0">Listo</div></div>
+</div>
+<div class="soltar" id="soltar" aria-hidden="true">Suelta el archivo para Alma</div>
 <div class="panel cp" id="cp-panel" role="dialog" aria-label="Probar el Modo calle" aria-hidden="true"><div class="asa"></div><h2>Probar el Modo calle</h2>
   <p class="cp-guia">Di «Alma» como lo dirías en la calle. Aquí ves si el micrófono te oye, con qué fuerza te oyó el detector y qué entendió el dictado.</p>
   <div class="grupo">
@@ -1355,7 +1391,7 @@
 <script src="../js/alma-client.js?v=2026-11-18-alma-ws"></script>
 <script src="../js/alma-voz.js?v=2026-11-17-espera"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-18-ws"></script>
+<script src="../js/sa-nav.js?v=2026-11-18-ar"></script>
 <script src="../js/alma-gif.js?v=2026-11-16a"></script>
 <script>
 /* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
@@ -3929,11 +3965,13 @@ window.SAPulso = {
   }
   function crear(p) {
     var c = montar(); if (!c) return null;
-    var el = document.createElement("div"); el.className = "pob-s";
-    el.innerHTML = '<div class="an" role="button" tabindex="0"><div class="resp"><span class="halo"></span><span class="pie"><svg class="marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></svg></span>' +
-      '<svg class="arco" viewBox="0 0 36 36"><circle class="base" cx="18" cy="18" r="16.5"/><circle class="va" cx="18" cy="18" r="16.5" pathLength="100"/></svg></div></div><div class="et" aria-hidden="true"><b></b><small></small></div>';
-    var h = hash(p.id), x = { id: p.id, el: el, et: el.querySelector(".et"), an: el.querySelector(".an"), nace: performance.now(), estado: "en_curso", tipo: p.tipo === "largo" ? "largo" : "rapido",
-      h: h, dr: [-6, -2, 2, 6][h % 4], lw: 0, lh: 0, a0: 0, r: 0 };
+    var el = document.createElement("div"); el.className = "pob-s" + (p.archivo ? " arch" : "");
+    /* Archivo en órbita (AlmaArchivos): el mismo satélite, con el ícono del archivo en vez del arco que gira. */
+    el.innerHTML = '<div class="an" role="button" tabindex="0"><div class="resp"><span class="halo"></span><span class="pie">' + (p.archivo ? ARCH_ICO[p.archivo] || ARCH_ICO.doc :
+      '<svg class="marca" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></svg></span>' +
+      '<svg class="arco" viewBox="0 0 36 36"><circle class="base" cx="18" cy="18" r="16.5"/><circle class="va" cx="18" cy="18" r="16.5" pathLength="100"/></svg>') + (p.archivo ? '</span>' : '') + '</div></div><div class="et" aria-hidden="true"><b></b><small></small></div>';
+    var h = hash(p.id), x = { id: p.id, el: el, et: el.querySelector(".et"), an: el.querySelector(".an"), nace: performance.now(), estado: p.archivo ? "archivo" : "en_curso", tipo: p.tipo === "largo" || p.archivo ? "largo" : "rapido",
+      h: h, dr: [-6, -2, 2, 6][h % 4], lw: 0, lh: 0, a0: 0, r: 0, archivo: !!p.archivo };
     /* velocidad: la cercana da la vuelta en 2.5 a 3.2 min y la lejana en 4 a 5 min, cada anillo a la suya */
     x.per = (x.tipo === "largo" ? 240 + (h % 5) * 15 : 150 + (h % 5) * 10) * 1000;
     el.style.setProperty("--d", (x.tipo === "largo" ? 30 : 34) + "px");
@@ -3949,10 +3987,12 @@ window.SAPulso = {
      El contador del tablero pregunta por todos. */
   function pregunta(x) {
     if (!x) return "¿Cómo van mis pedidos en órbita?";
+    if (x.archivo) return "Hablemos del archivo «" + x.nombre + "». ¿Qué dice?";
     var n = x.et.querySelector("b").textContent || "Pedido en curso";
     return x.estado === "en_curso" ? "¿Cómo va «" + n + "»? Cuéntame qué pasó, qué has hecho y en qué estado está." : "¿Qué pasó con «" + n + "»? Cuéntame qué se hizo y en qué estado quedó.";
   }
   function preguntar(x) {
+    if (x && x.archivo) { try { if (window.SANav && SANav.chat) SANav.chat({ texto: pregunta(x) }); } catch (e) {} return; }
     if (x && x.saleT && x.estado !== "en_curso") { clearTimeout(x.saleT); x.saleT = setTimeout(function () { quitar(x); }, SALE_MS); }   // no se va mientras lo miras
     try { if (window.SANav && SANav.chat) SANav.chat({ texto: pregunta(x), orbita: x ? x.id : "" }); } catch (e) {}   // con su id: va a su tema con el estado ya cargado (#583 T1)
   }
@@ -3998,6 +4038,45 @@ window.SAPulso = {
     /* Lo que ya no viene y seguía en curso (se cayó o venció): se va sin check. */
     Object.keys(P.s).forEach(function (id) { var x = P.s[id]; if (!vivos[id] && x.estado === "en_curso") quitar(x); });
     voz(); andar();
+  }
+  /* ── Archivos en órbita (Juan, 18-nov-2026; apps-script/archivosorbita.js): lo que le pasaste a Alma orbita en la órbita
+     lejana con el ícono del archivo y su descripción corta, durante 5 conversaciones con ella. Al pasar a la Carpeta de
+     archivos vuela hasta su botón (vuela). La lista la manda el bloque de AlmaArchivos. */
+  var ARCH_ICO = {
+    doc: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/></svg>',
+    pdf: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 15.5h7"/></svg>',
+    hoja: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 9.5h16M4 14.5h16M10 4v16"/></svg>',
+    foto: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m20.5 16-5-5-8 8"/></svg>',
+    audio: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10v4M9 7v10M13 4.5v15M17 8v8M21 10.5v3"/></svg>'
+  };
+  function archivosAplicar(lista) {
+    var vivos = {};
+    (lista || []).slice(0, 6).forEach(function (a) {
+      if (!a || !a.id) return; var id = "arch:" + a.id; vivos[id] = 1;
+      var x = P.s[id]; if (!x) { x = crear({ id: id, archivo: a.tipo || "doc" }); if (!x) return; }
+      if (x.sale) return;
+      x.nombre = String(a.nombre || "Archivo");
+      var corto = x.nombre.length > 22 ? x.nombre.slice(0, 19) + "…" : x.nombre;
+      textos(x, { nombre: a.desc || corto, paso: a.desc ? corto : "" });
+      x.an.setAttribute("aria-label", "Archivo " + x.nombre + (a.quedan ? ", en órbita " + a.quedan + (a.quedan === 1 ? " conversación más" : " conversaciones más") : "") + ". Tócalo y hablan de él");
+    });
+    Object.keys(P.s).forEach(function (id) { var x = P.s[id]; if (x.archivo && !vivos[id] && !x.sale) quitar(x); });
+    voz(); andar();
+  }
+  /* De la órbita a la Carpeta de archivos: una copia del satélite viaja desde donde va hasta el botón de la carpeta
+     (on-screen: ease-in-out fuerte, 560 ms) y el botón lo recibe con un saltito. Con «reducir movimiento», un fundido. */
+  function vuela(id, destino) {
+    var x = P.s["arch:" + id]; if (!x || x.sale) return false;
+    var a = x.an.getBoundingClientRect(), b = destino && destino.getBoundingClientRect(); x.sale = true;
+    var fin = function () { if (x.el.parentNode) x.el.parentNode.removeChild(x.el); if (P.s[x.id] === x) delete P.s[x.id]; voz(); if (destino) { destino.classList.remove("recibe"); void destino.offsetWidth; destino.classList.add("recibe"); } };
+    if (!a.width || !b || !b.width || RM || P.modo !== "orbita" || !x.el.animate) { x.el.classList.add("sale"); setTimeout(fin, 500); return true; }
+    var dx = (b.left + b.width / 2) - (a.left + a.width / 2), dy = (b.top + b.height / 2) - (a.top + a.height / 2);
+    x.et.style.opacity = "0";
+    var base = x.el.style.transform;
+    var an = x.el.animate([{ transform: base, opacity: 1 }, { transform: base + " translate(" + dx.toFixed(1) + "px," + dy.toFixed(1) + "px) scale(.55)", opacity: .2 }],
+      { duration: 560, easing: "cubic-bezier(0.77, 0, 0.175, 1)", fill: "forwards" });
+    an.onfinish = fin; an.oncancel = fin;
+    return true;
   }
   /* Para lectores de pantalla: qué sigue trabajando y qué terminó. */
   function voz() {
@@ -4087,7 +4166,7 @@ window.SAPulso = {
       var w = n.offsetWidth || 90, x = g.cx - g.R - 12 - w, y = g.cy - 14;
       if (x < 10) { x = Math.max(10, Math.min(g.W - 10 - w, g.cx - w / 2)); y = g.cy - g.R - 38; }
       n.style.transform = "translate3d(" + Math.round(x) + "px," + Math.round(y) + "px,0)";
-      n.classList.toggle("on", ids.some(function (k) { return !P.s[k].sale; }));
+      n.classList.toggle("on", ids.some(function (k) { return !P.s[k].sale && !P.s[k].archivo; }));
     } else if (P.n) P.n.classList.remove("on");
     if (modo !== "orbita") avionSuelta();
     if (modo === "orbita") {
@@ -4107,6 +4186,7 @@ window.SAPulso = {
       }
       ids.forEach(function (k) {
         var x = P.s[k], ob = o[x.tipo], d = x.tipo === "largo" ? 30 : 34;
+        if (x.archivo && x.sale) return;   // va volando a la carpeta (vuela): la animación lo lleva
         if (!x.sale) usadas[x.tipo]++;
         var e = RM ? 1 : Math.min(1, (now - x.nace) / 1200), suave = 1 - Math.pow(1 - e, 3);
         var rx = ob.rx + x.dr, ry = ob.ry + x.dr, a = angulo(x, now);
@@ -4158,7 +4238,157 @@ window.SAPulso = {
     andar: andar,
     /* Para las capturas y las pruebas: pinta una lista de mentira (y deja de preguntarle al Hub). */
     probar: function (lista) { P.prueba = true; clearTimeout(P.t); aplicar(lista); },
+    /* Archivos en órbita (bloque AlmaArchivos): la lista de la órbita y el vuelo a la carpeta. */
+    archivos: function (lista) { archivosAplicar(lista); },
+    vuela: function (id, destino) { return vuela(id, destino); },
     estado: function () { var av = avion(); return { modo: P.modo, avion: av && AV.en ? av.tipo : "", anillos: Object.keys(P.s).map(function (k) { var x = P.s[k]; return { id: x.id, tipo: x.tipo, estado: x.estado, sale: !!x.sale }; }) }; }
+  };
+})();
+</script>
+<script>
+/* ── Archivos en órbita, Carpeta de archivos y los botones de abajo (Juan, 18-nov-2026; apps-script/archivosorbita.js) ──
+   «Si hacemos drag and drop de un archivo en el app de Alma debe leerlo como input… el archivo solo quedará cargado y el
+   usuario tiene que dar un prompt… también en las órbitas… durante las próximas 5 interacciones… el archivo pasa a una
+   carpetita.» Este bloque:
+   1. Soltar un archivo en cualquier parte del inicio (iPad, Mac) abre el chat con el archivo cargado (SANav.adjuntar); la
+      app hace lo mismo con «Compartir» o «Abrir en Alma» (AlmaArchivos.recibir).
+   2. Le pregunta al Hub la lista (archivosOrbita): los de la órbita se dibujan como satélites (AlmaOrbita.archivos) y los
+      que pasaron a la carpeta vuelan hasta su botón (AlmaOrbita.vuela). El chat avisa al instante («sa-archivo»).
+   3. La Carpeta de archivos: tocar «Usar» lo deja cargado en el chat otra vez (y vuelve a la órbita); ✕ lo saca de la lista.
+   4. Los botones de abajo (colUbicar): sobre el silencio, Modo compañero y la Carpeta; sobre el Modo calle, el Navegador
+      (en la app abre el navegador con la búsqueda lista, como llevar a Alma hacia un lado). */
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var NATIVA = !!(window.webkit && webkit.messageHandlers && webkit.messageHandlers.alma);
+  var RM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var A = { orbita: [], carpeta: [], t: 0, prueba: false, listo: false };
+  function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
+  function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
+  function hub(b) {
+    var d = window.ALMA && ALMA.destino ? ALMA.destino() : null;
+    if (!d || !d.url || !ses()) return Promise.resolve({ ok: false });
+    return fetch(d.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: "archivosOrbita", token: d.token, session: ses() }, b || {})) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false }; });
+  }
+
+  /* ── Los botones de abajo ── */
+  function visible(c) { var r = c && c.getBoundingClientRect(); return r && r.width && +getComputedStyle(c).opacity >= .5 && getComputedStyle(c).visibility !== "hidden" ? r : null; }
+  function colUbicar() {
+    var chat = visible(document.querySelector('#sa-nav-root .san-ob[data-a="chat"]')), ini = visible(document.querySelector("#sa-nav-root .san-ob.start"));
+    var izq = [$("b-comp"), $("b-arch")], der = [$("b-nav")];
+    izq.concat(der).forEach(function (b) { if (b) b.style.visibility = chat && ini ? "" : "hidden"; });
+    if (!chat || !ini) return;
+    /* la misma columna que el silencio (a la izquierda de «Chat») y la misma que conferencia y Modo calle (a la derecha de
+       «Iniciar llamada»), un piso de 54 px cada uno: silencio · compañero · carpeta | conferencia · calle · navegador */
+    var y0 = chat.top + chat.height / 2 - 20 + 10, xi = Math.max(16, chat.left - 30 - 40), xd = Math.min(innerWidth - 56, ini.right + 30);
+    izq.forEach(function (b, k) { if (b) { b.style.left = xi + "px"; b.style.top = (y0 - 54 * (k + 1)) + "px"; } });
+    der.forEach(function (b) { if (b) { b.style.left = xd + "px"; b.style.top = (y0 - 108) + "px"; } });
+    if (!A.listo) { A.listo = true; izq.concat(der).forEach(function (b) { if (b && !b.hidden) b.classList.add("on"); }); }
+  }
+  setTimeout(colUbicar, 700); setInterval(colUbicar, 1200); addEventListener("resize", colUbicar);
+  if (NATIVA) $("b-nav").hidden = false;
+  /* Navegador: la búsqueda lista en la app, con Alma en tu lugar de siempre del navegador. */
+  $("b-nav").onclick = function () {
+    var pos = (/(?:^|;\s*)sa_nav_pos=([a-z]{2})/.exec(document.cookie) || [])[1];
+    if (["tl", "tc", "tr", "ml", "mr", "bl", "br"].indexOf(pos) < 0) pos = "br";
+    nativa({ accion: "navegador", pos: pos });
+  };
+
+  /* ── La lista: órbita y carpeta ── */
+  function aplicar(r) {
+    if (!r || !r.ok) return;
+    var antes = {}; A.orbita.forEach(function (x) { antes[x.id] = 1; });
+    var orb = Array.isArray(r.orbita) ? r.orbita : [], car = Array.isArray(r.carpeta) ? r.carpeta : [];
+    var vuelan = car.filter(function (x) { return antes[x.id]; });
+    A.orbita = orb; A.carpeta = car;
+    vuelan.forEach(function (x) { try { if (window.AlmaOrbita && AlmaOrbita.vuela) AlmaOrbita.vuela(x.id, $("b-arch")); } catch (e) {} });
+    try { if (window.AlmaOrbita && AlmaOrbita.archivos) AlmaOrbita.archivos(orb); } catch (e) {}
+    var n = $("b-arch").querySelector(".arch-n"); n.hidden = !car.length; n.textContent = car.length > 9 ? "9+" : String(car.length);
+    $("b-arch").setAttribute("aria-label", "Carpeta de archivos" + (car.length ? ", " + car.length + (car.length === 1 ? " archivo" : " archivos") : ""));
+    if ($("arch-panel").classList.contains("on")) pintar();
+  }
+  function pedir() {
+    clearTimeout(A.t); A.t = 0; if (A.prueba) return;
+    if (document.hidden || !ses()) { A.t = setTimeout(pedir, 60000); return; }
+    hub({ que: "lista" }).then(function (r) { if (!A.prueba) aplicar(r); clearTimeout(A.t); A.t = setTimeout(pedir, A.orbita.length ? 30000 : 90000); });
+  }
+  setTimeout(pedir, 2800);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) pedir(); });
+  /* El chat cargó, quitó o mandó un archivo (js/sa-nav.js): se pinta ya y luego se confirma con el Hub. */
+  addEventListener("sa-archivo", function (e) {
+    var dt = e.detail || {}, o = dt.archivo;
+    if (dt.que === "nuevo" && o && !A.orbita.some(function (x) { return x.id === o.id; })) { A.orbita = A.orbita.concat([o]); try { AlmaOrbita.archivos(A.orbita); } catch (x) {} }
+    if (dt.que === "quitado" && o) { A.orbita = A.orbita.filter(function (x) { return x.id !== o.id; }); try { AlmaOrbita.archivos(A.orbita); } catch (x) {} }
+    if (dt.que === "nuevo" && NATIVA) nativa({ accion: "archivos", que: "nuevo" });   // la app pide otra ficha de voz: Alma ya lo sabe en la próxima llamada
+    setTimeout(pedir, dt.que === "lista" ? 0 : 4000);
+  });
+  /* Una llamada que termina pudo pasar archivos a la carpeta (la vuelta se cuenta en el Hub al empezar). */
+  var vozAntes = window.AlmaVoz && AlmaVoz.evento;
+  if (window.AlmaVoz && vozAntes) AlmaVoz.evento = function (e) { try { if (e && e.tipo === "estado" && (e.estado === "lista" || e.estado === "apagada")) setTimeout(pedir, 1500); } catch (x) {} return vozAntes.apply(this, arguments); };
+
+  /* ── La Carpeta de archivos ── */
+  var ICO = { doc: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 13h7M8.5 16.5h5"/>',
+    pdf: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M8.5 15.5h7"/>',
+    hoja: '<rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 9.5h16M4 14.5h16M10 4v16"/>',
+    foto: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m20.5 16-5-5-8 8"/>',
+    audio: '<path d="M5 10v4M9 7v10M13 4.5v15M17 8v8M21 10.5v3"/>' };
+  function cuando(t) {
+    if (!t) return ""; var dd = Math.floor((Date.now() - t) / 864e5);
+    return dd < 1 ? "hoy" : dd === 1 ? "ayer" : "hace " + dd + " días";
+  }
+  function fila(x, enOrbita) {
+    var f = document.createElement("div"); f.className = "fila arch-fila";
+    f.innerHTML = '<i class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICO[x.tipo] || ICO.doc) + '</svg></i>' +
+      '<span class="et"><b></b><small></small></span>' + (enOrbita ? "" : '<button type="button" class="usar">Usar</button><button type="button" class="quita" aria-label="Quitar de la carpeta"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>');
+    f.querySelector("b").textContent = x.desc || x.nombre;
+    f.querySelector("small").textContent = (x.desc ? x.nombre + " · " : "") + (enOrbita ? "en órbita · faltan " + (x.quedan || 0) : cuando(x.fecha));
+    if (!enOrbita) {
+      f.querySelector(".usar").onclick = function () { usar(x); };
+      f.querySelector(".quita").onclick = function () { f.style.opacity = ".4"; hub({ que: "borrar", id: x.id }).then(function (r) { if (r && r.ok) aplicar(r); else f.style.opacity = ""; }); };
+    }
+    return f;
+  }
+  function pintar() {
+    var o = $("arch-orb"), l = $("arch-lista"); o.innerHTML = ""; l.innerHTML = "";
+    o.hidden = !A.orbita.length; A.orbita.forEach(function (x) { o.appendChild(fila(x, true)); });
+    if (!A.carpeta.length) { var v = document.createElement("div"); v.className = "arch-vacio"; v.textContent = A.orbita.length ? "Todavía nada en la carpeta: lo de arriba sigue en órbita." : "Suelta un archivo en la pantalla o mándalo desde el chat con el «+». Alma lo lee y orbita su roca."; l.appendChild(v); }
+    A.carpeta.forEach(function (x) { l.appendChild(fila(x, false)); });
+  }
+  function abrir(on) {
+    $("arch-velo").classList.toggle("on", on); $("arch-panel").classList.toggle("on", on); $("arch-panel").setAttribute("aria-hidden", on ? "false" : "true");
+    if (on) { pintar(); $("arch-panel").scrollTop = 0; pedir(); }
+  }
+  /* «Usar»: vuelve a la órbita (de cero) y queda cargado en el chat, listo para tu mensaje. */
+  function usar(x) {
+    hub({ que: "usar", id: x.id }).then(function (r) {
+      if (!(r && r.ok)) return; aplicar(r); abrir(false);
+      setTimeout(function () { try { if (window.SANav && SANav.adjuntar) SANav.adjuntar({ texto: r.texto, archivo: r.archivo }); } catch (e) {} }, 380);
+    });
+  }
+  $("b-arch").onclick = function () { abrir(true); };
+  $("arch-cerrar").onclick = $("arch-velo").onclick = function () { abrir(false); };
+
+  /* ── Soltar un archivo en el inicio ── */
+  var sobre = 0;
+  function conArch(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") >= 0; }
+  document.addEventListener("dragenter", function (e) { if (!conArch(e)) return; sobre++; $("soltar").classList.add("on"); });
+  document.addEventListener("dragover", function (e) { if (!conArch(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; });
+  document.addEventListener("dragleave", function (e) { if (!conArch(e)) return; if (--sobre <= 0) { sobre = 0; $("soltar").classList.remove("on"); } });
+  document.addEventListener("drop", function (e) {
+    sobre = 0; $("soltar").classList.remove("on"); if (!conArch(e)) return;
+    e.preventDefault(); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) recibir(f);
+  });
+  function recibir(f) { try { return !!(window.SANav && SANav.adjuntar && SANav.adjuntar(f)); } catch (e) { return false; } }
+
+  window.AlmaArchivos = {
+    /* La app: «Compartir» o «Abrir en Alma» → { nombre, mime, data (base64) }. */
+    recibir: function (o) { return recibir(o); },
+    /* Para las capturas y las pruebas: una lista de mentira (y deja de preguntarle al Hub). */
+    probar: function (r) { A.prueba = true; clearTimeout(A.t); aplicar(Object.assign({ ok: true }, r)); },
+    estado: function () { return { orbita: A.orbita.map(function (x) { return x.id; }), carpeta: A.carpeta.map(function (x) { return x.id; }) }; },
+    pedir: pedir
   };
 })();
 </script>

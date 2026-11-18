@@ -340,6 +340,16 @@
     ".san-scope .san-in{flex:1;min-width:0;border:1px solid #DDDDDD;border-radius:21px;background:#fff;padding:11px 16px;font:400 15px/20px Montserrat,system-ui,sans-serif;color:#222222;outline:none;resize:none;height:44px;max-height:126px;overflow-y:hidden;box-sizing:border-box;transition:border-color .18s cubic-bezier(.22,.61,.36,1)}.san-scope .san-in:focus{border-color:#222222}.san-scope .san-in::placeholder{color:#8A8A8A}",
     "@supports (-webkit-touch-callout:none){.san-scope .san-in{font-size:16px}}",
     ".san-scope .san-chat form.mejorando .san-in{opacity:.5}",
+    /* Archivo cargado (Juan, 18-nov-2026): queda arriba del cuadro hasta el próximo mensaje; ✕ lo quita. Entra con 200 ms. */
+    ".san-scope .san-adj{display:flex;align-items:center;gap:10px;margin:0 12px 8px;padding:8px 8px 8px 10px;border:1px solid #EEEEEE;border-radius:16px;background:#FAF8F6;font:500 13px/1.3 Montserrat,system-ui,sans-serif;color:#222222;animation:san-adj-in .2s cubic-bezier(.23,1,.32,1)}",
+    ".san-scope .san-adj[hidden]{display:none}.san-scope .san-adj .ic{width:36px;height:36px;flex:none;border-radius:10px;display:grid;place-items:center;background:#fff;color:#E9826A;box-shadow:inset 0 0 0 1px #EEEEEE;background-size:cover;background-position:center}",
+    ".san-scope .san-adj .tx{flex:1;min-width:0}.san-scope .san-adj b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.san-scope .san-adj small{display:block;color:#8A8A8A;font-size:12px}",
+    ".san-scope .san-adj.leyendo small::after{content:'';display:inline-block;width:10px;height:10px;margin-left:6px;vertical-align:-1px;border-radius:50%;border:1.5px solid #E9826A;border-right-color:transparent;animation:san-adj-gira .9s linear infinite}",
+    ".san-scope .san-adj.mal small{color:#B4452A}.san-scope .san-adj .x{width:44px;height:44px;margin:-4px -4px -4px 0;flex:none;border:0;background:none;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:#8A8A8A}.san-scope .san-adj .x:active{background:#EFEDEA}",
+    "@keyframes san-adj-in{from{opacity:0;transform:translateY(6px) scale(.97)}}@keyframes san-adj-gira{to{transform:rotate(360deg)}}",
+    "@media (prefers-reduced-motion:reduce){.san-scope .san-adj{animation:none}.san-scope .san-adj.leyendo small::after{animation:none}}",
+    /* Soltar un archivo sobre el chat: un marco durazno mientras está encima. */
+    ".san-scope .san-chat.soltando::after{content:'Suelta el archivo para Alma';position:absolute;inset:8px;border:2px dashed #E9826A;border-radius:22px;background:rgba(255,248,244,.86);display:grid;place-items:center;font:600 15px Montserrat,system-ui,sans-serif;color:#B4452A;pointer-events:none;z-index:5}",
     ".san-scope .san-chat form .san-env{display:none}.san-scope .san-chat form.lleno .san-env{display:grid}.san-scope .san-chat form.lleno .san-mic{display:none}",
     ".san-scope .san-chat form .san-tips{right:auto;left:0;bottom:0;width:0;height:0;position:absolute}.san-scope .san-chat form.lleno:focus-within .san-tips span{opacity:1;transform:none}",
     /* el lugar de la roca: transparente, solo el área de toque (la piedra de verdad, E.stone, se pinta encima). 1 toque mejora · 2 toques, hablar */
@@ -1287,6 +1297,7 @@
       '<div class="san-vacio"><h3>¿En qué te ayudo?</h3><p>Escríbeme o díctame con el micrófono. Cuando escribes aparece el +: me mandas una foto o un archivo, o usas tus plantillas.</p><div class="san-sug">' +
       '<button type="button" data-s="¿Qué hay hoy?" data-y="1">¿Qué hay hoy?</button><button type="button" data-s="Crea una tarea para ">Crea una tarea</button>' +
       '<button type="button" data-s="Escríbele a ">Escríbele a alguien</button><button type="button" data-s="Dile a Claudio que ">Mejorar el sistema</button></div></div>' +
+      '<div class="san-adj" hidden aria-live="polite"></div>' +
       '<form class="sa-chat-pie" data-lleno="0"><button type="button" class="san-mas sa-chat-mas" aria-label="Plantillas, foto y más">' + svg('<path d="M12 5v14M5 12h14"/>', 22) + '</button>' +
       '<textarea class="san-in" rows="1" placeholder="Escríbele a Alma…" autocomplete="off" aria-label="Mensaje para Alma" enterkeyhint="enter"></textarea>' +
       '<button type="button" class="san-mic sa-chat-redondo" aria-label="Dictar: toca y habla">' + svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', 20) + '</button>' +
@@ -1349,6 +1360,8 @@
   }
   function chatEnviar(v) {
     v = String(v || "").trim(); if (!v) return false; chatQuieto();
+    adjVuelta();
+    if (E.adj) { adjEnviar(v); return true; }
     if (AL.chat && chatServidor() && !enLlamada()) { chatPintar(function () { if (E.u) E.u.enviar(v); }); return true; }
     addMsg(v, "u"); chatPensando(true);
     if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(v); } catch (x) {} } else AL.cola = v;   // aún conectando: va en cuanto conecte
@@ -1414,6 +1427,11 @@
     };
     file.onchange = function () { var x = file.files && file.files[0]; file.value = ""; if (x) chatFoto(x, i); };
     doc.onchange = function () { var x = doc.files && doc.files[0]; doc.value = ""; if (x) chatArchivo(x, i); };
+    /* Soltar un archivo sobre el chat (iPad, Mac): queda cargado como con el «+». */
+    var hj = ov.querySelector(".san-chat"), conArch = function (e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], "Files") >= 0; };
+    hj.addEventListener("dragover", function (e) { if (!conArch(e)) return; e.preventDefault(); e.stopPropagation(); hj.classList.add("soltando"); });
+    hj.addEventListener("dragleave", function (e) { if (e.target === hj) hj.classList.remove("soltando"); });
+    hj.addEventListener("drop", function (e) { if (!conArch(e)) return; e.preventDefault(); e.stopPropagation(); hj.classList.remove("soltando"); var x = e.dataTransfer.files && e.dataTransfer.files[0]; if (x) adjCargar(x); });
   }
   /* El compositor compartido (js/sa-compositor.js) se carga solo la primera vez que se usa, junto a este archivo. */
   function conComp(cb) {
@@ -1465,53 +1483,110 @@
     if (cfg.app === "hub") { almaEnd(false); try { w.dispatchEvent(new CustomEvent("sa-push-click", { detail: u })); } catch (x) {} return; }
     w.open(u, "_blank", "noopener");
   }
-  function chatFoto(archivo, i) {
+  /* ── Archivo cargado (Juan, 18-nov-2026: «el archivo solo quedará cargado y el usuario tiene que dar un prompt») ──
+     Una foto («+» → Foto) o un archivo («+» → Archivo, soltarlo encima, compartirlo a la app): se sube y se lee YA (el Hub
+     lo guarda privado y lo pone en órbita, apps-script/archivosorbita.js), pero no se manda: queda arriba del cuadro hasta
+     el próximo mensaje, que lo lleva con lo que escribiste. ✕ lo quita (y sale de la órbita). Uno a la vez: el nuevo
+     reemplaza al anterior. PDF, Word, Excel, CSV, texto, audio o foto; hasta 8 MB (adjuntos.js, almaArchivo_). */
+  var ICO_DOC = '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>';
+  function adjNota(t) { chatPintar(function (p) { if (p) p.nota(t); }); }
+  function adjPintar() {
+    var c = E.ov && E.ov.querySelector(".san-adj"), a = E.adj; if (!c) return;
+    if (!a) { c.hidden = true; c.innerHTML = ""; return; }
+    var est = a.estado === "leyendo" ? (a.foto ? "Mirando la foto…" : "Leyendo…") : a.estado === "mal" ? a.error : "Listo · escribe qué quieres que haga";
+    c.className = "san-adj " + a.estado; c.hidden = false;
+    c.innerHTML = '<i class="ic" aria-hidden="true">' + (a.foto ? "" : svg(ICO_DOC, 20)) + '</i><span class="tx"><b></b><small></small></span>' +
+      '<button type="button" class="x" aria-label="Quitar el archivo">' + svg('<path d="M6 6l12 12M18 6L6 18"/>', 16) + '</button>';
+    if (a.foto) c.querySelector(".ic").style.backgroundImage = "url(" + a.foto + ")";
+    c.querySelector("b").textContent = a.nombre; c.querySelector("small").textContent = est;
+    c.querySelector(".x").onclick = function () { adjQuitar(true); };
+  }
+  function adjQuitar(delHub) {
+    var a = E.adj; E.adj = null; adjPintar();
+    if (delHub && a && a.orbita && w.ALMA && w.ALMA.destino) archHub({ que: "quitar", id: a.orbita.id });
+    if (a && a.orbita) adjAvisar("quitado", a.orbita);
+  }
+  /* La página (el inicio) pinta la órbita: se le avisa al instante, sin esperar su próxima consulta. */
+  function adjAvisar(que, o) { try { w.dispatchEvent(new CustomEvent("sa-archivo", { detail: { que: que, archivo: o } })); } catch (x) {} }
+  /* El Hub directo (sin tocar alma-client.js): acción archivosOrbita con la sesión de la página. */
+  function archHub(b) {
+    var dd = w.ALMA && w.ALMA.destino ? w.ALMA.destino() : null, s = null; try { s = w.SAAuth && w.SAAuth.session ? w.SAAuth.session() : null; } catch (x) {}
+    if (!dd || !dd.url || !s) return Promise.resolve({ ok: false });
+    return fetch(dd.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: "archivosOrbita", token: dd.token, session: s }, b)) }).then(function (r) { return r.json(); }).catch(function () { return { ok: false }; });
+  }
+  /* Un chat con Alma cuenta como una vuelta de los archivos en órbita la primera vez que se escribe (no al abrirlo). */
+  function adjVuelta() {
+    if (!AL.chat || E.chatContado || enLlamada()) return; E.chatContado = true;
+    archHub({ que: "interaccion", clave: E.chatClave, desde: E.chatDesde }).then(function (j) { if (j && j.pasan && j.pasan.length) adjAvisar("lista", null); });
+  }
+  function adjCargar(archivo) {
+    if (!archivo || !E.ov) return;
+    var foto = /^image\//.test(archivo.type) || /\.(jpe?g|png|heic|webp)$/i.test(archivo.name || "");
+    var nombre = archivo.name || (foto ? "Foto" : "archivo"), ext = String((/\.([a-z0-9]+)$/i.exec(nombre) || [])[1] || "").toLowerCase();
+    var mime = foto ? "image" : DOC_EXT[ext] || (/^audio\//.test(archivo.type) ? archivo.type.split(";")[0] : "");
+    if (!mime) { adjNota("Ese tipo de archivo no lo puedo abrir. Mándame un PDF, Word, Excel, CSV, una foto o un audio."); return; }
+    if (archivo.size > 8e6) { adjNota("«" + nombre + "» pasa de 8 MB."); return; }
+    if (!(w.ALMA && (foto ? w.ALMA.almaFoto : w.ALMA.almaArchivo))) { adjNota("Aquí no puedo recibir archivos."); return; }
+    if (E.adj) adjQuitar(true);
+    var a = E.adj = { nombre: foto && !archivo.name ? "Foto" : nombre, estado: "leyendo", foto: "" }; adjPintar();
+    var listo = function (j, texto) {
+      if (E.adj !== a) { if (j && j.orbita) archHub({ que: "quitar", id: j.orbita.id }); return; }   // ya lo quitaron
+      if (!(j && j.ok)) { a.estado = "mal"; a.error = (j && j.error && j.error !== "foto") ? j.error : "No lo pude subir. Quítalo e intenta de nuevo."; adjPintar(); return; }
+      a.estado = "listo"; a.texto = texto(j); a.orbita = j.orbita || null; adjPintar();
+      if (a.orbita) adjAvisar("nuevo", a.orbita);
+    };
+    var falla = function () { listo({ ok: false }); };
     var r = new FileReader();
-    r.onload = function () {
-      var im = new Image();
-      im.onload = function () {
-        var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = d.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
-        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); var du = c.toDataURL("image/jpeg", .8);
-        var srv = AL.chat && chatServidor() && !enLlamada();   // con la llamada abierta, la foto entra a la llamada
-        chatPintar(function (p) { if (E.u && srv) E.u.foto(du); else if (p) p.foto(du); });
-        var nota = i.value.trim(), mNota = null; if (nota) { i.value = ""; i.dispatchEvent(new Event("input")); if (srv && E.u) mNota = E.u.yo(nota); else addMsg(nota, "u"); }
-        chatQuieto(); chatPensando(true);   // «pensando» mientras Alma ve la foto y hasta que responde
-        w.ALMA.almaFoto(du).then(function (j) {
-          var desc = j && j.ok && j.texto ? j.texto : "";
-          var t = "[Te mando una foto" + (desc ? ". Lo que se ve: " + desc : ", pero no pude describirla") + "]" + (nota ? " " + nota : "");
-          if (srv && E.u) { E.u.pensando(false); E.u.mandar(mNota, t); return; }   // chat único: va al Hub como un mensaje más
-          if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(t); } catch (x) {} } else AL.cola = t;
-        }, function () { chatPensando(false); chatPintar(function (p) { if (p) p.nota("No pude mandar la foto. Intenta de nuevo."); }); });
+    r.onerror = function () { listo({ ok: false, error: "No pude leer «" + nombre + "»." }); };
+    if (foto) {
+      r.onload = function () {
+        var im = new Image();
+        im.onerror = function () { listo({ ok: false, error: "No pude abrir la foto." }); };
+        im.onload = function () {
+          var k = Math.min(1, 1280 / Math.max(im.width, im.height)), c = d.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+          c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); var du = c.toDataURL("image/jpeg", .8);
+          a.foto = du; adjPintar();
+          w.ALMA.almaFoto(du).then(function (j) {
+            listo(j, function (q) { return "[Te mando una foto" + (q.texto ? ". Lo que se ve: " + q.texto : ", pero no pude describirla") + "]"; });
+          }, falla);
+        };
+        im.src = r.result;
       };
-      im.src = r.result;
-    };
+    } else {
+      r.onload = function () {
+        w.ALMA.almaArchivo({ data: String(r.result).split(",")[1] || "", mime: mime, nombre: nombre }).then(function (j) {
+          listo(j, function (q) { return "[Te mando el archivo «" + q.nombre + "» (quedó en el Drive del Hub, drive_id " + q.drive_id + ")" + (q.texto ? ". Lo que dice: " + q.texto : ". " + (q.nota || "")) + "]"; });
+        }, falla);
+      };
+    }
     r.readAsDataURL(archivo);
   }
-  /* «+» → «Archivo» (#544): PDF, Word, Excel, CSV, texto o audio; una foto elegida aquí va por chatFoto. El Hub lo guarda
-     en una carpeta privada de su Drive y le pasa a Alma lo que dice (apps-script/adjuntos.js, almaArchivo_). Hasta 8 MB. */
-  function chatArchivo(archivo, i) {
-    if (/^image\//.test(archivo.type)) { chatFoto(archivo, i); return; }
-    var nombre = archivo.name || "archivo", ext = String((/\.([a-z0-9]+)$/i.exec(nombre) || [])[1] || "").toLowerCase();
-    var mime = DOC_EXT[ext] || (/^audio\//.test(archivo.type) ? archivo.type.split(";")[0] : "");
-    var nota = function (t) { chatPintar(function (p) { if (p) p.nota(t); }); };
-    if (!mime) { nota("Ese tipo de archivo no lo puedo abrir. Mándame un PDF, Word, Excel, CSV, una foto o un audio."); return; }
-    if (archivo.size > 8e6) { nota("«" + nombre + "» pasa de 8 MB."); return; }
-    var r = new FileReader();
-    r.onload = function () {
-      var srv = AL.chat && chatServidor() && !enLlamada(), texto = i.value.trim(), ver = "📎 " + nombre + (texto ? "\n" + texto : ""), m = null;
-      if (texto) { i.value = ""; i.dispatchEvent(new Event("input")); }
-      if (srv && E.u) m = E.u.yo(ver); else addMsg(ver, "u");
-      chatQuieto(); chatPensando(true);
-      w.ALMA.almaArchivo({ data: String(r.result).split(",")[1] || "", mime: mime, nombre: nombre }).then(function (j) {
-        if (!(j && j.ok)) { chatPensando(false); if (E.u) E.u.pensando(false); nota((j && j.error) || "No pude mandar el archivo. Intenta de nuevo."); return; }
-        var t = "[Te mando el archivo «" + j.nombre + "» (quedó en el Drive del Hub, drive_id " + j.drive_id + ")" + (j.texto ? ". Lo que dice: " + j.texto : ". " + (j.nota || "")) + "]" + (texto ? " " + texto : "");
-        if (srv && E.u) { E.u.pensando(false); E.u.mandar(m, t); return; }   // chat único: va al Hub como un mensaje más
-        if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(t); } catch (x) {} } else AL.cola = t;
-      }, function () { chatPensando(false); nota("No pude mandar el archivo. Intenta de nuevo."); });
+  /* El mensaje que lleva el archivo cargado: se ve «📎 nombre» y tu texto; a Alma le llega lo que dice el archivo y tu
+     texto. Si todavía se está leyendo, sale en cuanto termine. */
+  function adjEnviar(v) {
+    var a = E.adj; E.adj = null; adjPintar();
+    var srv = AL.chat && chatServidor() && !enLlamada(), ver = (a.foto ? "" : "📎 " + a.nombre + "\n") + v, m = null;
+    if (a.foto) chatPintar(function (p) { if (E.u && srv) E.u.foto(a.foto); else if (p) p.foto(a.foto); });
+    if (srv && E.u) m = E.u.yo(a.foto ? v : ver); else addMsg(a.foto ? v : ver, "u");
+    chatQuieto(); chatPensando(true);
+    var ir = function () {
+      if (a.estado !== "listo") { chatPensando(false); if (E.u) E.u.pensando(false); adjNota("No pude leer «" + a.nombre + "». Mándalo otra vez."); return; }
+      var t = a.texto + " " + v;
+      if (srv && E.u) { E.u.pensando(false); E.u.mandar(m, t); return; }   // chat único: va al Hub como un mensaje más
+      if (AL.ses && AL.ses.sendText) { try { AL.ses.sendText(t); } catch (x) {} } else AL.cola = t;
     };
-    r.onerror = function () { nota("No pude leer «" + nombre + "»."); };
-    r.readAsDataURL(archivo);
+    if (a.estado !== "leyendo") { ir(); return; }
+    var n = 0, esp = setInterval(function () { if (a.estado !== "leyendo" || ++n > 240) { clearInterval(esp); ir(); } }, 250);
   }
+  /* Volver a usar un archivo de la Carpeta de archivos (el inicio): ya está leído, solo queda cargado. */
+  function adjYaLeido(o) {
+    if (!E.ov || !o || !o.texto) return;
+    if (E.adj) adjQuitar(true);
+    E.adj = { nombre: (o.archivo && o.archivo.nombre) || "Archivo", estado: "listo", foto: "", texto: o.texto, orbita: o.archivo || null }; adjPintar();
+  }
+  function chatFoto(archivo) { adjCargar(archivo); }
+  function chatArchivo(archivo) { adjCargar(archivo); }
   /* Pendientes de Claude: la app da cfg.pendientes = { cargar(): Promise<{ok, lista}>, hecho(id), unir(url), responder(id, texto), nota({audio, mime}) }. Sin eso, el botón no existe. */
   var pendT = 0;
   function pendCargar() {
@@ -2088,6 +2163,7 @@
   }
   function almaChat(on) {
     AL.chat = on; E.ov.classList.toggle("chat", on); hoja(); if (on) chatQuieto(); else clearTimeout(chatT);
+    if (on) { E.chatDesde = Date.now(); E.chatContado = false; E.chatClave = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }   // una vuelta de los archivos en órbita (adjVuelta)
     if (on) chatPintar(function () {});   // el hilo (y «Cargar historial») listo al abrir
     /* los hints del botón roca rotan mientras el chat está abierto; al cerrarlo, paran */
     if (on && E.verTips) setTimeout(function () { if (AL.chat) E.verTips(); }, 650); else if (!on && E.rotC) E.rotC.parar();
@@ -2372,6 +2448,19 @@
        Con texto, además se lo manda a Alma: SANav.chat({ texto: "¿Qué pasó con «X»?", orbita: "mp…" }) (al tocar un pedido en
        órbita o su notificación en la app de iPhone; orbita: su id, para que vaya a su tema con el estado ya cargado, #583). */
     chat: function (o) { return root ? chatEn(o) : false; },
+    /* Un archivo para Alma (Juan, 18-nov-2026): abre el chat y lo deja cargado hasta el próximo mensaje. archivo: un File
+       (soltarlo, elegirlo) o { nombre, mime, data } en base64 (la app: «Compartir» o «Abrir en Alma»). Con { texto, archivo }
+       (la Carpeta de archivos: ya leído) solo lo deja cargado. */
+    adjuntar: function (x) {
+      if (!root || !x || !chatEn({})) return false;
+      if (x.error) { var er = String(x.error).slice(0, 200); setTimeout(function () { adjNota(er); }, 300); return true; }   // la app: lo que no sirve se dice aquí
+      if (x.texto) { adjYaLeido(x); return true; }
+      if (!(x instanceof Blob) && x.data) {
+        try { var bin = atob(String(x.data).replace(/^data:[^,]*,/, "")), u8 = new Uint8Array(bin.length); for (var k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k); x = new File([u8], x.nombre || "archivo", { type: x.mime || "" }); }
+        catch (e) { return false; }
+      }
+      setTimeout(function () { adjCargar(x); }, 60); return true;
+    },
     /* la barra de avisos del inicio: los datos de Pendientes y Notificaciones, una tarjeta con sus botones y abrirla en su hoja */
     datos: function () { return { pend: AL.pendData, noti: AL.notiData }; },
     tarjeta: function (p, tag) { var c = pendTarjeta(p, tag || ""); c.classList.add("abierta"); return c; },

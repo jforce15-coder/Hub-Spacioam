@@ -111,7 +111,7 @@ const SES = { email: 'juan@x.com' };
   ok(/almaArchivo: function/.test(cli) && /almaArchivo: 1/.test(cli), 'alma-client: almaArchivo, con el tiempo de las acciones lentas');
   ok(/txt: "Archivo", icono/.test(hub) && /elegir\("\.pdf,\.doc,\.docx,\.xls,\.xlsx,\.mp3,\.m4a/.test(hub) && /esFoto: x\.tipo === "foto"/.test(hub),
     'chat con huéspedes: el «Archivo» de WhatsApp acepta Word, Excel y audio y los muestra como archivo, no como foto');
-  ok(/case 'almaArchivo': return json_\(almaArchivo_\(ses, body\)\)/.test(cod) && /CUPO_ACC_ALMA_ = \[[^\]]*'almaArchivo'/.test(cupo) && /chat: '[^']*almaArchivo/.test(cupo),
+  ok(/case 'almaArchivo': return json_\((archivoEnOrbita_\(ses, )?almaArchivo_\(ses, body\)/.test(cod) && /CUPO_ACC_ALMA_ = \[[^\]]*'almaArchivo'/.test(cupo) && /chat: '[^']*almaArchivo/.test(cupo),
     'el Hub sabe la acción y la cuenta como chat de Alma (aviso amable si hay pausa por cupo)');
 }
 process.exit(fallo);

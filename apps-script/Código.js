@@ -3397,9 +3397,10 @@ function hubApi_(body) {
       case 'areaMover': return json_(areaMover_(ses, body.clave, body.area));
       case 'fotosContacto': return json_(fotosContactoApi_(ses, body));                      // la foto del contacto sin reserva: ver · faltan · subir · quitar (fotoscontacto.js, #567 T4)
       case 'conexiones': return json_(conexiones_(ses, body));                               // hub.spacioam.com/alma/conexiones.html               // hub.spacioam.com/claude.html: guarda CLAUDE_RUTINA_TOKEN (paraclaude.js)
-      case 'almaFoto': return json_(almaFoto_(ses, body.foto, !!body.captura, !!body.voz));                          // foto del chat de Alma: la describe para que Alma la entienda
-      case 'almaArchivo': return json_(almaArchivo_(ses, body));                             // archivo del chat de Alma (PDF, Word, Excel, CSV, audio): lo guarda privado y lo lee (adjuntos.js, #544)
+      case 'almaFoto': return json_(body.captura ? almaFoto_(ses, body.foto, true, !!body.voz) : archivoEnOrbita_(ses, almaFoto_(ses, body.foto, false, !!body.voz), body.nombre || 'Foto', 'foto'));                          // foto del chat de Alma: la describe para que Alma la entienda
+      case 'almaArchivo': return json_(archivoEnOrbita_(ses, almaArchivo_(ses, body), body.nombre, ''));                             // archivo del chat de Alma (PDF, Word, Excel, CSV, audio): lo guarda privado y lo lee (adjuntos.js, #544)
       case 'pedidosOrbita': return json_(orbitaApi_(ses));                                // app de Alma: lo que Alma sigue trabajando, para los anillos alrededor de la roca (orbita.js)
+      case 'archivosOrbita': return json_(archivosOrbitaApi_(ses, body));                  // app de Alma: Archivos en órbita y la Carpeta de archivos (archivosorbita.js)
       case 'notifAjustes': return json_(notifAjustesApi_(ses));                            // Ajustes → Notificaciones por tipo, de quien tiene la sesión (notifajustes.js · alma/avisos.html)
       case 'notifAjustesGuardar': return json_(notifAjustesGuardarApi_(ses, body));          // { tipo, ajuste } → lo guarda y deja al día sus etiquetas de OneSignal
       case 'notifPrueba': return json_(notifPruebaApi_(ses));                              // «Probar con Siri» desde el Hub web: solo el principal; la app la arma con Siri (notifajustes.js)

@@ -185,5 +185,6 @@ Epi asigna las rutas de limpieza: **nunca** puede quedar un día sin rutas ni co
 - Robot de Epi `{action:"__traslado", token}`: id, dueño y activadores. Con `dueno:"yo"` ese proyecto vuelve a ser el dueño
   (solo si tiene sus activadores). **Volver atrás** = `__traslado` con `dueno:"yo"` al /exec viejo y revertir los PR de
   direcciones.
-- La dirección /exec de Epi está en `app.jsx`/`app.build.js` e `index.html` de Epi y, en el Hub, en `apps-script/Código.js`
-  (`EPI_URL`) y en las páginas que la usan. Se cambian en PRs [NO UNIR] que se unen después de la prueba de humo.
+- La dirección /exec de Epi está en `app.jsx`/`app.build.js` de Epi y, en el Hub, en `apps-script/Código.js`
+  (`EPI_API_URL`, `EPI_URL_DEF_` o la Propiedad `EPI_URL` si no guarda la vieja) e `index.html` (`EPI_URL`). Si Hospitable
+  tiene un webhook al /exec de Epi (reseñas, reservas), **Juan** lo cambia en my.hospitable.com → Webhooks. Se cambian en PRs [NO UNIR] que se unen después de la prueba de humo.

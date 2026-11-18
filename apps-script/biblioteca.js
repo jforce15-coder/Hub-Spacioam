@@ -164,10 +164,11 @@ function bibliotecaParaClaude_(url) {
     'Si uno sirve para este pedido, léelo antes de programar: curl -sL -H "Content-Type: text/plain;charset=utf-8" --data-binary ' +
     '\'{"mejora":1,"action":"biblioteca","id":"<id del pedido>","lector":"<biblioteca.lector del payload>","doc":"<id>"}\' "' + (url || '<respuesta_url>') + '" ' +
     '(devuelve el texto en páginas: sigue con "desde"; "crudo":1 da el archivo original en base64). El lector es solo para leer y no gasta la llave de responder. ' +
-    'Si te falta un skill o documento de Juan para hacerlo mejor o más rápido, responde estado "pregunta" y agrega "pide": "qué necesitas, en una línea": Juan lo comparte desde la app y te llega como ajuste con su id.' +
+    'Si te falta un skill o documento de Juan para hacerlo mejor o más rápido, responde estado "pregunta" y agrega "pide": "qué necesitas, en una línea": Juan lo comparte desde la app y te llega como ajuste con su id. ' +
+    'Si el resultado es un archivo para Juan (un formulario lleno, un reporte), entrégaselo con el mismo curl y el lector, con "entregar":{"archivo":"nombre.pdf","mime":"application/pdf","data":"<base64>"} en vez de "doc": queda privado en el Drive del Hub, compartido solo con Juan, y devuelve "url"; ponla en una acción abrir_enlace al responder.' +
     (function () { var o = ''; try { o = archivosOrbitaParaClaude_(); } catch (e) { console.error('archivosOrbitaParaClaude_: ' + e); } return o ? '\n\n' + o : ''; })();
 }
-/* Claudio lee (doPost {mejora:1, action:'biblioteca', id, lector, doc?, desde?, crudo?, orbita?}). Solo con el lector vivo de su pedido. */
+/* Claudio lee (doPost {mejora:1, action:'biblioteca', id, lector, doc?, desde?, crudo?, orbita?, entregar?}). Solo con el lector vivo de su pedido. */
 function bibliotecaClaude_(b) {
   b = b || {};
   var sh = ssAlma_().getSheetByName('ALMA_PARA_CLAUDE'); if (!sh || sh.getLastRow() < 2 || !b.id || !b.lector) return { ok: false, error: 'lector' };
@@ -184,6 +185,12 @@ function bibliotecaClaude_(b) {
     if (String(b.orbita) === 'lista') return { ok: true, archivos: archOrbDelPrincipal_().map(function (o) { return archOrbParaClaudePublico_(o.x); }) };
     return archOrbABiblioteca_(b.orbita);
   }
+  /* Claudio le entrega un archivo a Juan (un formulario lleno, un reporte): solo en un pedido del administrador principal. */
+  if (b.entregar) {
+    var cQe = cab.indexOf('quien'), ppalE = adminsOp_().filter(function (a) { return a.principal; }).map(function (a) { return a.nombre; });
+    if (cQe < 0 || ppalE.indexOf(String(fila[cQe])) < 0) return { ok: false, error: 'Solo en un pedido del administrador principal.' };
+    return biblioEntregar_(b.entregar, String(b.id));
+  }
   var docs = biblioActivos_();
   if (!b.doc) return { ok: true, documentos: docs.map(biblioPublico_) };
   var d = docs.filter(function (x) { return x.id === String(b.doc); })[0];
@@ -194,4 +201,35 @@ function bibliotecaClaude_(b) {
     var t = DriveApp.getFileById(d.texto_id).getBlob().getDataAsString(), desde = Math.max(0, Number(b.desde) || 0), parte = t.slice(desde, desde + BIBLIO_PAGINA_);
     return { ok: true, id: d.id, nombre: d.nombre, tipo: d.tipo, para_que: d.para_que, texto: parte, desde: desde, total: t.length, sigue: desde + parte.length < t.length ? desde + parte.length : null };
   } catch (e) { console.error('bibliotecaClaude_: ' + e); return { ok: false, error: 'No pude leerlo del Drive ahora.' }; }
+}
+
+/* ═══ ENTREGAS DE CLAUDIO: el archivo que Claudio le prepara a Juan (Juan, 18-nov-2026, pedido pc1795013670362) ═══════
+   Claudio, con el lector de un pedido de Juan, manda {mejora:1, action:'biblioteca', id, lector, entregar:{archivo, mime,
+   data (base64)}}. El archivo va a una carpeta PRIVADA del Drive del Hub («Entregas de Claudio», ENTREGAS_CARPETA_ID;
+   nunca con enlace público) y se comparte como lector solo con los correos del administrador principal (Drive le avisa
+   por correo). Devuelve el enlace de Drive, que Claudio le deja a Juan en una acción del hilo («Abrir»). */
+var ENTREGAS_MIME_ = /^(application\/pdf|image\/(png|jpeg)|text\/(plain|csv|markdown)|application\/vnd\.openxmlformats-officedocument\.(wordprocessingml\.document|spreadsheetml\.sheet|presentationml\.presentation))$/;
+function entregasCarpeta_() {
+  var p = PropertiesService.getScriptProperties(), id = p.getProperty('ENTREGAS_CARPETA_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { console.error('ENTREGAS_CARPETA_ID inválida: ' + e); } }
+  var f = DriveApp.createFolder('Entregas de Claudio');
+  p.setProperty('ENTREGAS_CARPETA_ID', f.getId());
+  return f;
+}
+function biblioEntregar_(e, pedido) {
+  e = e || {};
+  var archivo = String(e.archivo || '').replace(/[\\/:*?"<>|\r\n]+/g, ' ').trim().slice(0, 100);
+  var mime = String(e.mime || '').split(';')[0].toLowerCase(), data = String(e.data || '').replace(/^data:[^,]*,/, '');
+  if (!archivo || !data) return { ok: false, error: 'Falta el archivo (archivo y data en base64).' };
+  if (!ENTREGAS_MIME_.test(mime)) return { ok: false, error: 'Solo PDF, imagen, texto, Word, Excel o PowerPoint.' };
+  if (data.length > BIBLIO_MAX_B64_) return { ok: false, error: 'El archivo pasa de 8 MB.' };
+  var correos = archOrbCorreosPrincipal_(); if (!correos.length) return { ok: false, error: 'No encontré el correo del administrador principal.' };
+  var f;
+  try {
+    f = entregasCarpeta_().createFile(Utilities.newBlob(Utilities.base64Decode(data), mime, archivo));
+    f.setDescription('Entrega de Claudio · pedido ' + pedido + ' · ' + new Date().toISOString());
+    f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+    correos.forEach(function (c) { try { f.addViewer(c); } catch (x) { console.warn('biblioEntregar_ addViewer: ' + x); } });
+  } catch (x) { console.error('biblioEntregar_: ' + x); return { ok: false, error: 'No pude guardarlo en el Drive del Hub. Intenta de nuevo.' }; }
+  return { ok: true, archivo: archivo, drive_id: f.getId(), url: f.getUrl() };
 }

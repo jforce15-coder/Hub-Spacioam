@@ -150,6 +150,10 @@ jobs:
         # 17-nov-2026: Google cortó las llamadas a internet y Juan no podía entrar (tokeninfo de Google y el verify del Hub).
         run: node .github/sesion-sin-cupo.js .
 
+      - name: Entrar nunca depende del cupo, contraseña, verify y Face ID sin internet, reserva desde el 90 por ciento y entrega de LOGIN_SECRETO (dobles)
+        # 18-nov-2026, Juan: «El cupo nunca nos debería evitar que hagamos login. Siempre debemos tener un cupo en reserva».
+        run: node .github/entrar-sin-cupo.js .
+
       - name: Mudador a Workspace, crea una vez, la llave de traer sirve una vez y nada sale sin ser alma@ (dobles)
         # 17-nov-2026: traslado a alma@spacioam.com sin computadora (Juan solo usa iPad): el Mudador reemplaza a clasp.
         run: node .github/traslado.js

@@ -29,12 +29,25 @@
      error (cupoAgotadoMarcar_): el nivel pasa a «agotado» (lo de fondo se pausa), Juan recibe un aviso en Notificaciones,
      la voz contesta con un mensaje claro en vez del error de Google (CUPO_VOZ_SIN_, voz.js) y lo que el Hub había contado
      hasta ese momento queda como el límite que de verdad hay (CUPO_DIA_VISTO): así el 60 % y el 85 % llegan antes del
-     corte la próxima vez. La primera llamada a internet que sale bien lo quita (cupoAgotadoQuitar_). */
+     corte la próxima vez. La primera llamada a internet que sale bien lo quita (cupoAgotadoQuitar_).
+   · Reserva para entrar (18-nov-2026, Juan: «El cupo nunca nos debería evitar que hagamos login. Siempre debemos tener un
+     cupo en reserva»). Desde CUPO_RESERVA_PCT_ (90 %) de las últimas 24 h, uf_/ufAll_ ya no dejan salir lo que no es
+     esencial (CUPO_RESERVA_PAUSA_: lo de fondo, el cerebro, viajes, vigilancias y el Modo inicio): el último 10 % queda
+     para entrar y lo de CUPO_NUNCA_. La lectura del gasto de las otras apps sigue (5 por hora): sin ella el nivel bajaría. Entrar casi no gasta: la contraseña y Face ID
+     no llaman a internet y la sesión firmada se revisa aquí si hace falta (sesionLocal_). La voz y el chat de Alma siguen
+     (decisión del 1-nov). Se ajusta sin PR: propiedad CUPO_RESERVA_PCT (un número; 0 la apaga) y CUPO_RESERVA_PAUSA (ids de
+     canal separados por comas, p. ej. «fondo,cerebro,voz»). CUPO_PAUSAR = 0 también la apaga. Solo mira el nivel ya
+     guardado en la caché (cupo_nivel, 5 min): nunca lo calcula dentro de una llamada. */
 
 var CUPO_LIMITE_DEF_ = 20000;
 var CUPO_HOJA_ = 'GOOGLE_USO';
 var CUPO_CAB_ = ['hora', 'canal', 'llamadas', 'inicio_ms'];
-var CUPO_FONDO_PCT_ = 60, CUPO_CRITICO_PCT_ = 85, CUPO_PROY_PCT_ = 80;
+var CUPO_FONDO_PCT_ = 60, CUPO_CRITICO_PCT_ = 85, CUPO_PROY_PCT_ = 80, CUPO_RESERVA_PCT_ = 90;
+/* Lo que se frena en la reserva (ids de CUPO_CANALES_). CUPO_RESERVA_SIEMPRE_ no se frena ni con la propiedad; la voz,
+   el chat y Hola tampoco se frenan, salvo que Juan los agregue en CUPO_RESERVA_PAUSA. */
+var CUPO_RESERVA_PAUSA_ = ['fondo', 'cerebro', 'viajes', 'vigilar', 'inicio'];
+var CUPO_RESERVA_SIEMPRE_ = ['login', 'huespedes', 'whatsapp', 'epi', 'apps'];   // ni con la propiedad se frenan
+var CUPO_RESERVA_ERROR_ = 'Cupo de Google en reserva (para entrar): esto vuelve cuando baje el uso.';
 /* Los canales (id corto para la clave de caché · nombre que ve Juan). Un canal desconocido cuenta como «Otros». */
 var CUPO_CANALES_ = [
   ['inicio', 'Modo inicio'], ['chat', 'Chat de Alma'], ['voz', 'Voz'], ['huespedes', 'Huéspedes'], ['whatsapp', 'WhatsApp'],
@@ -109,7 +122,9 @@ var CUPO_EN_AVISO_ = false;  // el aviso también llama a internet: que no se vu
 
 /* ── Las llamadas ── mismos argumentos que UrlFetchApp.fetch / fetchAll, más el canal (opcional). */
 function uf_(url, opciones, canal) {
-  cupoContar_(canal || cupoCanalDe_(url), 1);
+  canal = canal || cupoCanalDe_(url);
+  cupoReservaFrena_(canal);
+  cupoContar_(canal, 1);
   var r;
   try { r = opciones === undefined ? UrlFetchApp.fetch(url) : UrlFetchApp.fetch(url, opciones); }
   catch (e) { if (cupoSinGoogle_(e)) cupoAgotadoMarcar_(); throw e; }
@@ -118,12 +133,50 @@ function uf_(url, opciones, canal) {
 }
 function ufAll_(pedidos, canal) {
   var lista = pedidos || [];
-  if (lista.length) cupoContar_(canal || cupoCanalDe_(typeof lista[0] === 'string' ? lista[0] : lista[0].url), lista.length);   // fetchAll cuenta N
+  if (lista.length) {
+    canal = canal || cupoCanalDe_(typeof lista[0] === 'string' ? lista[0] : lista[0].url);
+    cupoReservaFrena_(canal);
+    cupoContar_(canal, lista.length);   // fetchAll cuenta N
+  }
   var r;
   try { r = UrlFetchApp.fetchAll(lista); }
   catch (e) { if (cupoSinGoogle_(e)) cupoAgotadoMarcar_(); throw e; }
   if (CUPO_AGOTADO_VISTO_ && lista.length) cupoAgotadoQuitar_();
   return r;
+}
+
+/* ── Reserva para entrar (18-nov-2026) ── */
+var CUPO_RESERVA_MEMO_ = null;   // { pct, pausa } leído una vez por ejecución
+function cupoReservaPct_() {
+  try {
+    var p = PropertiesService.getScriptProperties();
+    if (p.getProperty('CUPO_PAUSAR') === '0') return 0;
+    var v = p.getProperty('CUPO_RESERVA_PCT');
+    if (v !== null && v !== '' && !isNaN(Number(v)) && Number(v) >= 0) return Number(v);
+  } catch (e) {}
+  return CUPO_RESERVA_PCT_;
+}
+function cupoReservaPausa_() {
+  var l = CUPO_RESERVA_PAUSA_;
+  try { var v = PropertiesService.getScriptProperties().getProperty('CUPO_RESERVA_PAUSA'); if (v !== null && v !== '') l = String(v).split(/[\s,;]+/).filter(String); } catch (e) {}
+  return l.filter(function (x) { return CUPO_RESERVA_SIEMPRE_.indexOf(x) < 0; });
+}
+/* ¿Estamos en la reserva? Con el nivel ya calculado (esta ejecución o la caché); si no hay, no frena. */
+function cupoEnReserva_() {
+  try {
+    if (!CUPO_RESERVA_MEMO_) {
+      var o = CUPO_MEMO_; if (!o) { try { o = JSON.parse(CacheService.getScriptCache().get('cupo_nivel') || 'null'); } catch (e) { o = null; } }
+      var pct = cupoReservaPct_();
+      CUPO_RESERVA_MEMO_ = { si: !!(o && pct > 0 && Number(o.pct) >= pct), pausa: cupoReservaPausa_() };
+    }
+    return CUPO_RESERVA_MEMO_;
+  } catch (e) { return { si: false, pausa: [] }; }
+}
+/* Lanza un error (sin gastar la llamada) si estamos en la reserva y el canal no es esencial. Nunca frena el aviso del cupo. */
+function cupoReservaFrena_(canal) {
+  if (CUPO_EN_AVISO_) return;
+  var r = cupoEnReserva_(); if (!r.si) return;
+  if (r.pausa.indexOf(cupoId_(canal)) >= 0) throw new Error(CUPO_RESERVA_ERROR_);
 }
 
 /* ── Cupo agotado (#737) ── Google dijo que no hay más llamadas a internet por hoy. */
@@ -311,7 +364,8 @@ function cupoCalcular_(horas) {
   var reciente = cupoSuma_(horas, horaIni - 2 * 3600000), ritmo = reciente / Math.max(0.25, 2 + minFr);   // llamadas por hora, últimas ~3 h
   var proyFin = Math.round(usadoHoy + ritmo * Math.max(0, (finDia - ahora) / 3600000));
   var pct = Math.round(1000 * usado24 / limite) / 10, restante = Math.max(0, limite - usado24), agotaMs = ritmo > 0 ? ahora + restante / ritmo * 3600000 : 0;
-  return { pct: pct, nivel: pct >= CUPO_CRITICO_PCT_ ? 'critico' : pct >= CUPO_FONDO_PCT_ ? 'fondo' : 'verde', limite: limite, usado24: usado24, restante: restante,
+  var resPct = cupoReservaPct_();
+  return { pct: pct, reserva: resPct > 0 && pct >= resPct, nivel: pct >= CUPO_CRITICO_PCT_ ? 'critico' : pct >= CUPO_FONDO_PCT_ ? 'fondo' : 'verde', limite: limite, usado24: usado24, restante: restante,
     usado: usadoHoy, pctHoy: Math.round(1000 * usadoHoy / limite) / 10, porHora: Math.round(usadoHoy / horasHoy), ritmo: Math.round(ritmo),
     proyeccionFinDia: proyFin, proyeccion: Math.round(1000 * proyFin / limite) / 10,
     horaAgotado: agotaMs && agotaMs < finDia ? Utilities.formatDate(new Date(agotaMs), CFG.TZ, 'HH:mm') : '', alcanza: !(agotaMs && agotaMs < finDia),
@@ -327,6 +381,7 @@ function cupoNivel_() {
   cupoSumarApps_(horas, desde);   // el cupo es de la cuenta: también lo de Hola, Epi, Grow, Docs y Mi
   var o = cupoCalcular_(horas);
   if (cupoAgotado_()) o.nivel = 'agotado';   // Google ya cortó: manda sobre lo contado
+  CUPO_RESERVA_MEMO_ = null;   // la reserva se vuelve a leer con este nivel
   try { c.put('cupo_nivel', JSON.stringify(o), 300); } catch (e) {}
   CUPO_MEMO_ = o;
   try { cupoAvisarSiToca_(o); } catch (e) { console.warn('cupoAvisarSiToca_: ' + e); }
@@ -361,6 +416,10 @@ function cupoAvisarSiToca_(o) {
       else texto = 'El cupo de Google volvió a estar bien (' + Math.round(o.pct) + ' %). Ya corre todo otra vez.';
     }
     e.nivel = o.nivel;
+  }
+  if (!texto && o.reserva && o.nivel !== 'agotado' && e.avisados.indexOf('reserva') < 0) {
+    e.avisados.push('reserva');
+    texto = 'El cupo de Google va en ' + Math.round(o.pct) + ' %. Guardé lo que queda para entrar a las apps: paré lo de fondo, el cerebro, viajes, vigilancias y el Modo inicio. Huéspedes, entrar, Epi, la voz y el chat de Alma siguen.';
   }
   if (!texto && o.nivel !== 'agotado' && o.proyeccion >= CUPO_PROY_PCT_ && e.avisados.indexOf('proyeccion') < 0) {
     e.avisados.push('proyeccion');
@@ -401,10 +460,11 @@ function cupoUso_(ses) {
       { nivel: 'verde', desde: 0, texto: 'Todo corre normal.' },
       { nivel: 'fondo', desde: CUPO_FONDO_PCT_, texto: 'Se pausa lo de fondo: cerebro, mejoras y sincronizaciones.' },
       { nivel: 'critico', desde: CUPO_CRITICO_PCT_, texto: 'Lo de fondo sigue en pausa; la voz y el chat de Alma siguen.' },
+      { nivel: 'reserva', desde: cupoReservaPct_() || 100, texto: 'Reserva para entrar: solo sale lo esencial (entrar, huéspedes, Epi, la voz y el chat de Alma).' },
       { nivel: 'agotado', desde: 100, texto: 'Google ya no deja llamar a internet: la voz de Alma no conecta hasta que lo reinicie. Lo contado ese día queda como el límite.' }
     ],
     agotado: (function () { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('CUPO_AGOTADO') || 'null'); } catch (e) { return null; } })(),
-    nunca: 'Nunca se pausa: entrar, responder a huéspedes, documentos, Epi y las rutas de limpieza.',
+    nunca: 'Nunca se pausa: entrar, responder a huéspedes, documentos, Epi y las rutas de limpieza. Desde el ' + (cupoReservaPct_() || 100) + ' % queda una reserva para entrar.', reserva: !!o.reserva,
     pausas: PropertiesService.getScriptProperties().getProperty('CUPO_PAUSAR') !== '0' };
 }
 /* ── Para Alma (herramienta cupo_google, agente.js) ── «¿cómo estamos con los cupos de Google?» por voz o chat, solo el

@@ -83,7 +83,7 @@
     return a;
   }
   /* ── Servidor (Apps Script del Hub, hoja TUTORIALES): el avance vale en todos los equipos de la persona ── */
-  var API = "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec";
+  var API = "https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec";
   function servidor(datos, ms) {
     var s = sesion(); if (!s || !w.fetch) return Promise.resolve(null);
     var cuerpo = JSON.stringify(Object.assign({ tutorial: 1, session: s }, datos));

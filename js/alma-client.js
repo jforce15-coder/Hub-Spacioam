@@ -5,7 +5,7 @@
 (function (global) {
   var CFG = {
     sheetId: '1K8_MUCmJ4_Ks4DMKLSCbua1qC7X6QuilRaMvCquZ7kk',
-    url: 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec',   // URL /exec del Apps Script de ALMA
+    url: 'https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec',   // URL /exec del Apps Script de ALMA
     webappSheetId: '12TF-FO6vld2VkzDr9YlUnHlNjh4d1u9Ss6qWz3F3KeQ',   // hoja de hola.spacioam.com (solo lectura: Reservas)
     token: 'SpacioAM2026!'
   };

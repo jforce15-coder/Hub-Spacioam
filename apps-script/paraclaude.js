@@ -60,7 +60,7 @@ function claudeNivelSacarEtiqueta_(texto) {
     .replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
   return { texto: limpio, nivel: nivel };
 }
-var HUB_EXEC_DEF_ = 'https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec';
+var HUB_EXEC_DEF_ = 'https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec';
 /* El antiguo chat aparte «Desarrollo» (usuario «desarrollo» en ALMA_OPERATIVO). Desde el chat único (#334) ya no se
    escribe aquí: chatMigrarDesarrollo_ (chat.js) pasa sus filas al chat del principal. Queda para reconocer lo viejo. */
 var DESARROLLO_ = { email: 'desarrollo', nombre: 'Desarrollo · mejoras del sistema', tels: [], principal: false };

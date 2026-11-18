@@ -8,7 +8,7 @@
   "hub": {
     "repo": "Hub-Spacioam", "carpeta": "apps-script", "titulo": "ALMA · Hub · Spacio AM",
     "viejo": "https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec",
-    "copiar": "todas", "excluir": ["CUPO_*", "TRASLADO_APAGADO"], "al_traer": []
+    "copiar": "todas", "excluir": ["CUPO_*", "TRASLADO_APAGADO"], "al_traer": [], "sincronizar": true
   },
   "login": {
     "repo": "Hub-Spacioam", "carpeta": "login/apps-script", "titulo": "Login · Spacio AM",

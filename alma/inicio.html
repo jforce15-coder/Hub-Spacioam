@@ -434,26 +434,57 @@
   body.orbita-on .ajustes.avion, body.orbita-on .vj-vivo, body.orbita-on .pob-s, body.orbita-on .pob-orb { transition: opacity .12s ease !important; }
   .ajustes.aparta, #sa-nav-root .san-pendb.aparta { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s ease !important; }
   .ajustes.col.muda { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s ease !important; }
-  /* Tocar una esfera: se une a la roca (vuelve a su centro) y la roca toma su ícono y su color mientras estás en esa área.
-     La roca queda abajo a la derecha, encima de la hoja del área; tocarla te regresa a las esferas. */
+  /* Niveles (Juan, 18-nov-2026, #831): la roca nunca se mueve del centro. Al comerse una esfera o un proyecto toma su ícono
+     (o su foto, o sus iniciales en el color de su esfera) y su halo; el ícono anterior se va con un fundido cruzado. */
   #sa-nav-root .san-st-spark .esf-ico { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transform: scale(.5); transition: opacity .25s ease, transform .5s cubic-bezier(.3,1.5,.5,1); }
   #sa-nav-root .san-st-spark .esf-ico svg { width: 36%; height: 36%; filter: drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32)); }
+  #sa-nav-root .san-st-spark .esf-ico .nv-ini { font: 400 calc(var(--nv-d, 110px) * .3)/1 Valky, Georgia, serif; color: var(--nv-c, #B9B1A8); text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+  #sa-nav-root .san-st-spark .esf-ico img { width: 86%; height: 86%; border-radius: 50%; object-fit: cover; }
   #sa-nav-root .san-st-spark > svg { transition: opacity .2s ease; }
   #sa-nav-root .san-rock[data-esfera] .san-st-spark > svg { opacity: 0; }
   #sa-nav-root .san-rock[data-esfera] .san-st-spark .esf-ico { opacity: 1; transform: none; }
+  #sa-nav-root .san-rock .san-st-spark .esf-ico.entra { opacity: 0; transform: scale(.7); transition: none; }
+  #sa-nav-root .san-rock .san-st-spark .esf-ico.sale { opacity: 0; transform: scale(.85); transition: opacity .18s cubic-bezier(.23,1,.32,1), transform .25s cubic-bezier(.23,1,.32,1); }
   #sa-nav-root .san-rock[data-esfera="proposito"] { --san-halo: linear-gradient(180deg, #F2B08F 0%, #E9826A 55%, #C9705E 100%); }
   #sa-nav-root .san-rock[data-esfera="relaciones"] { --san-halo: linear-gradient(180deg, #F0C4C3 0%, #D99AA0 55%, #B06F7A 100%); }
   #sa-nav-root .san-rock[data-esfera="finanzas"] { --san-halo: linear-gradient(180deg, #C3D9B8 0%, #8FB38C 55%, #5F8A5E 100%); }
   #sa-nav-root .san-rock[data-esfera="health"] { --san-halo: linear-gradient(180deg, #F3CDA6 0%, #E3A47F 55%, #C47E52 100%); }
   #sa-nav-root .san-rock[data-esfera="comunidad"] { --san-halo: linear-gradient(180deg, #C2D0E6 0%, #8FA5C8 55%, #5F7BA8 100%); }
   #sa-nav-root .san-rock[data-esfera="espiritualidad"] { --san-halo: linear-gradient(180deg, #D5D1EA 0%, #A9A4CC 55%, #7C76A8 100%); }
-  /* dentro del área: solo la roca sube encima de la hoja; lo demás de Alma (fondo, botones, campana) sigue debajo */
-  body.esf-dentro #sa-nav-root.san-scope { --san-z: 2147483420; }
-  body.esf-dentro #sa-nav-root .san-ov.quieta, body.esf-dentro #sa-nav-root .san-ov.quieta .san-ov-bg { pointer-events: none !important; }
-  body.esf-dentro #sa-nav-root .san-ov.quieta > :not(.san-rock) { opacity: 0 !important; pointer-events: none !important; }
-  body.esf-dentro #sa-nav-root .san-ov.quieta .san-rock { pointer-events: auto !important; }
-  body.esf-dentro .areas .cuerpo { padding-bottom: 128px; }   /* lo último del área se puede subir por encima de la roca */
-  @media (prefers-reduced-motion: reduce) { #sa-nav-root .san-st-spark .esf-ico { transition: opacity .2s ease; transform: none; } }
+  /* Los círculos del nivel (proyectos y pendientes) son piedras como las esferas, en la misma capa detrás de la roca */
+  .orbita.nivel .esf .piedra .nv-ini { font: 400 calc(var(--d, 60px) * .36)/1 Valky, Georgia, serif; color: var(--c3); }
+  .orbita.nivel .esf .piedra img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+  .orbita.nivel .esf .nom { max-width: 104px; white-space: normal; text-align: center; line-height: 1.25; }
+  .esf.nv-luna .halo { display: none; }
+  .esf.nv-luna .piedra { background: radial-gradient(circle at 38% 32%, var(--c2), var(--c) 70%, var(--c3)); box-shadow: 0 8px 16px -8px var(--c3); }
+  .esf.nv-luna .piedra::after { display: none; }
+  .esf.nv-luna svg { width: 48%; height: 48%; color: #fff; filter: none; }
+  .esf.nv-luna.nv-av .piedra { background: #fff; box-shadow: 0 8px 16px -10px rgba(40,28,24,.4), inset 0 0 0 1.5px var(--c); }
+  .esf.nv-luna.nv-av svg { color: var(--c3); }
+  .esf.nv-luna.sel .pres { transform: scale(1.22); }
+  /* La fusión (gotas de mercurio): formas planas con desenfoque y umbral, solo en la caja de la escena y solo mientras algo
+     entra o sale de la roca (rendimiento en el iPhone). Va debajo de las piedras nítidas y de la roca. */
+  .nv-goo { position: fixed; left: 0; top: 0; z-index: 869; pointer-events: none; display: none; overflow: visible; }
+  .nv-goo.on { display: block; }
+  .nv-guia { position: fixed; left: 0; top: 0; z-index: 868; pointer-events: none; border-radius: 50%; border: 1px solid rgba(255,253,251,.5); opacity: 0; transition: opacity .3s cubic-bezier(.23,1,.32,1); }
+  .nv-guia.lejos { border-style: dashed; border-color: rgba(255,253,251,.4); }
+  .nv-guia.on { opacity: 1; }
+  /* Arriba: dónde estás y cómo volver (atrás). Abajo: la ficha de lo que tocaste, sin tapar la roca. */
+  .nv-miga { position: fixed; left: 50%; top: 0; z-index: 2147482300; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; min-height: 44px; max-width: calc(100% - 32px);
+    padding: 0 18px 0 10px; border: 0; border-radius: 999px; cursor: pointer; color: #FFFDFB; background: rgba(255,255,255,.26); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2);
+    font: 600 11px Montserrat, system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(40,25,25,.35); white-space: nowrap;
+    opacity: 0; pointer-events: none; transition: opacity .2s cubic-bezier(.23,1,.32,1); -webkit-tap-highlight-color: transparent; }
+  .nv-miga.on { opacity: 1; pointer-events: auto; }
+  .nv-miga svg { width: 18px; height: 18px; flex: none; }
+  .nv-miga span { overflow: hidden; text-overflow: ellipsis; }
+  .nv-det { position: fixed; left: 16px; right: 16px; bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px)); z-index: 2147482300; max-width: 520px; margin: 0 auto; max-height: 40vh; overflow-y: auto;
+    color: #3E3F3F; opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity .2s cubic-bezier(.23,1,.32,1), transform .25s cubic-bezier(.23,1,.32,1); }
+  .nv-det.on { opacity: 1; transform: none; pointer-events: auto; }
+  .nv-det .tarjeta { margin-bottom: 0; }
+  .nv-det .vacio { padding: 12px 16px; border-radius: 22px; background: rgba(255,255,255,.3); color: #FFFDFB; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  .nv-det .nv-lista { display: block; margin: 8px auto 0; min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; cursor: pointer; background: rgba(255,255,255,.3); color: #FFFDFB;
+    font: 600 12px Montserrat, system-ui, sans-serif; -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  @media (prefers-reduced-motion: reduce) { #sa-nav-root .san-st-spark .esf-ico { transition: opacity .2s ease; transform: none; } .nv-det { transform: none; } }
   /* ── Barra de avisos: arriba de las esferas, lo más importante de cada esfera, una a la vez. Al tocarla se abre con
      sus botones (los mismos de Pendientes). La esfera del aviso crece y su halo brilla; las demás respiran más lento. ── */
   .aviso { position: fixed; left: 16px; right: 16px; top: calc(max(14px, env(safe-area-inset-top) + 6px) + 58px); z-index: 2147482300; max-width: 520px; margin: 0 auto;
@@ -1245,6 +1276,11 @@
 <div class="vj-salas" id="vj-salas" hidden><button type="button" class="tab" id="vj-salas-tab" aria-expanded="false" aria-controls="vj-salas-lista"></button><div class="lista" id="vj-salas-lista"></div></div>
 <div class="lado-riel" id="riel-i" aria-hidden="true" hidden></div><div class="lado-riel" id="riel-d" aria-hidden="true" hidden></div>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
+<div class="nv-guia" id="nv-g1" aria-hidden="true"></div><div class="nv-guia lejos" id="nv-g2" aria-hidden="true"></div>
+<svg class="nv-goo" id="nv-goo" aria-hidden="true"><defs><filter id="nv-gf" filterUnits="userSpaceOnUse" x="0" y="0" width="10" height="10" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="8"/><feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/></filter></defs><g filter="url(#nv-gf)" fill="#ECE8E3"></g></svg>
+<div class="orbita nivel" id="nivel" aria-label="Lo de esta esfera"></div>
+<button type="button" class="nv-miga" id="nv-miga" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span></span></button>
+<div class="eo-det nv-det" id="nv-det" aria-live="polite"></div>
 <div class="pob" id="pob"></div>
 <div class="pob-voz" id="pob-voz" role="status" aria-live="polite"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
@@ -1506,7 +1542,7 @@
 <script src="../js/alma-client.js?v=2026-11-18-alma-ws"></script>
 <script src="../js/alma-voz.js?v=2026-11-17-espera"></script>
 <script src="../ds/movimiento.js"></script>
-<script src="../js/sa-nav.js?v=2026-11-18-ar"></script>
+<script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
 <script src="../js/alma-gif.js?v=2026-11-16a"></script>
 <script>
 /* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
@@ -1664,21 +1700,24 @@ window.SAPulso = {
      nombre llega al final. Sin arco: directo hacia afuera, que es lo que el ojo espera de algo que «sale» de Alma. */
   function orbitaPintar() {
     var g = OR.geo; if (!g) return;
+    var gl = [];
     [].forEach.call($("orbita").children, function (b, i) {
       var e = ES[i]; if (!e) return;
-      var q = e.q.x, ang = (-90 + i * 60) * Math.PI / 180, r = g.R * q;
-      b.style.transform = "translate(" + (g.cx + Math.cos(ang) * r).toFixed(1) + "px," + (g.cy + Math.sin(ang) * r).toFixed(1) + "px) scale(" + Math.max(.3, .3 + .7 * q).toFixed(3) + ")";
-      b.style.opacity = Math.max(0, Math.min(1, q * 2.2 - .2)).toFixed(3);
+      var q = e.q.x, ang = (-90 + i * 60) * Math.PI / 180, r = g.R * (RM ? 1 : q), s = RM ? 1 : Math.max(.3, .3 + .7 * q), x = g.cx + Math.cos(ang) * r, y = g.cy + Math.sin(ang) * r;
+      b.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
+      b.style.opacity = Math.max(0, Math.min(1, RM ? q : q * 2.2 - .2)).toFixed(3);   // con «reducir movimiento»: fundido en su lugar
+      gl.push({ x: x, y: y, r: g.d / 2 * s, q: q, suelta: e.suelta });
       b.style.setProperty("--lq", Math.max(0, Math.min(1, (q - .75) * 4)).toFixed(2));
       b.style.pointerEvents = OR.abierta && q > .6 ? "auto" : "none";
     });
+    GOO.esf = gl; gooPintar();
   }
   var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   /* Un toque a Alma quieta: se encoge y las 6 áreas salen de detrás de ella, una tras otra en el sentido del reloj desde
      arriba (30 ms), con un rebote corto (respuesta .5, amortiguación .68: se pasan ~5 % y vuelven). Otro toque o tocar
      afuera: regresan detrás de ella sin rebote (.34 / 1), en orden inverso, y Alma vuelve a su tamaño. Son resortes:
      cambiar de idea a media animación sigue desde donde va. */
-  function orbita(on) {
+  function orbita(on, primero) {   // primero: la esfera que la roca suelta al volver de un nivel (sale sola, las demás 110 ms después)
     if (on === OR.abierta) return; OR.abierta = on;
     var o = $("orbita"), L = [].slice.call(o.children), n = L.length;
     while (ES.length < n) ES.push({ q: new Res(0), w: new Res(0) });
@@ -1688,11 +1727,12 @@ window.SAPulso = {
       L.forEach(function (b) { b.style.setProperty("--d", g.d.toFixed(1) + "px"); });
       SANav.escena({ y: g.cy / g.H, s: g.alma });
       o.classList.add("on"); document.body.classList.add("orbita-on");
-      ES.forEach(function (e, j) { esLuego(e.q, 1, 40 + j * 30, .5, .68); });
+      var pr = primero != null && primero >= 0;
+      ES.forEach(function (e, j) { e.suelta = pr && j === primero && !RM; esLuego(e.q, 1, !pr ? 40 + j * 30 : j === primero ? 0 : 110 + j * 30, .5, .68); });
       if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
     } else {
       o.classList.remove("on"); document.body.classList.remove("orbita-on");
-      ES.forEach(function (e, j) { esLuego(e.q, 0, (n - 1 - j) * 24, .38, 1); });
+      ES.forEach(function (e, j) { e.suelta = false; esLuego(e.q, 0, (n - 1 - j) * 24, .38, 1); });
     }
     orbitaPintar(); avisoArmar();   // las esferas ya están: la barra se arma con ellas
     if (window.AlmaColUbicar) try { AlmaColUbicar(); } catch (e) {}   // el Navegador baja (o vuelve) sin esperar su vuelta
@@ -1702,6 +1742,16 @@ window.SAPulso = {
      esfera (no contra la animación) y el que choca se aparta (.aparta) mientras están abiertas. */
   function esferasCajas() {
     var g = OR.geo, L = $("orbita").children, out = [];
+    if (NV.pila.length && g) {   // en un nivel: los círculos de alrededor de la roca (las lunas, donde van ahora)
+      var G = nvGeo();
+      NV.nodos.forEach(function (n) {
+        if (n.estado !== "fuera") return;
+        var R = nvRadio(G, n.d), x = g.cx + Math.cos(n.ang) * R, y = g.cy + Math.sin(n.ang) * R, h = n.d.d / 2;
+        out.push({ left: x - h - 8, right: x + h + 8, top: y - h - 8, bottom: y + h + 6 });
+        if (n.d.tipo === "proy") out.push({ left: x - 58, right: x + 58, top: y + h + 4, bottom: y + h + 40 });
+      });
+      return out;
+    }
     if (!OR.abierta || !g) return out;
     for (var i = 0; i < L.length; i++) {
       var ang = (-90 + i * 60) * Math.PI / 180, x = g.cx + Math.cos(ang) * g.R, y = g.cy + Math.sin(ang) * g.R, n = L[i].querySelector(".nom"), nw = n ? n.offsetWidth : g.d;
@@ -1722,58 +1772,279 @@ window.SAPulso = {
       b.classList.toggle("aparta", choca);
     });
   }
-  setInterval(function () { if (OR.abierta || document.querySelector(".aparta")) apartar(); }, 400);
-  /* Tocar una esfera (Juan, 18-nov-2026): la esfera se une a la roca (vuelve a su centro mientras las demás se guardan),
-     la roca toma su ícono y su color y se va abajo a la derecha, encima de la hoja del área. Mientras estás en esa área
-     la roca lleva su ícono; en «Tu vida» o en un cajón, el destello de siempre. Tocar la roca o cerrar te regresa a las
-     esferas. Dos toques a la roca siguen siendo la voz de Alma. */
-  var DENTRO = { on: false, t: 0 };
-  function rocaEsfera(k) {
+  setInterval(function () { if (OR.abierta || NV.pila.length || document.querySelector(".aparta")) apartar(); }, 400);
+  /* ── Niveles (Juan, 18-nov-2026, #831; eligió el prototipo A) ──
+     La roca nunca se mueve del centro ni se esconde. Tocar una esfera: la roca se la come (vuelve a su centro y se funde
+     como dos gotas de mercurio), toma su ícono y su color y de ella nacen los proyectos de esa esfera. Tocar un proyecto:
+     se lo come, toma su foto (o sus iniciales en el color de su esfera) y alrededor nacen sus pendientes como órbitas.
+     Atrás (la píldora de arriba o tocar la roca): al revés; la roca suelta la gota (el cuello se estira y se rompe) y
+     recupera el ícono anterior. Cada vez que algo se esconde en la roca, la roca da un pulso de tamaño en su sitio (Juan:
+     «aumenta su tamaño y lo vuelve a reducir»; SANav.pulso). Dos toques a la roca siguen siendo la voz. Con «reducir
+     movimiento»: fundido simple (nada viaja, sin cuellos ni pulso). Ya no hay hoja encima ni la roca va a la esquina: la
+     hoja «Tus áreas» solo se abre con «Ver … en lista». */
+  var NV = { pila: [], nodos: [], esperas: [], gen: 0, loop: false, ult: 0, sel: null, quieta: false };
+  var NV_NS = "http://www.w3.org/2000/svg", GOO = { esf: [], nv: [] };
+  function rocaIcono(it) {   // it: null (el destello) · { tipo: "esfera", k } · { tipo: "proy", k, p }
     var r = document.querySelector("#sa-nav-root .san-ov .san-rock"), sp = r && r.querySelector(".san-st-spark"); if (!sp) return;
-    var ic = sp.querySelector(".esf-ico");
-    if (k && ICON[k]) {
-      if (!ic) { ic = el("span", "esf-ico"); sp.appendChild(ic); }
-      if (ic.getAttribute("data-k") !== k) { ic.setAttribute("data-k", k); ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[k] + '</svg>'; }
-      r.setAttribute("data-esfera", k);
-      var a = todas().filter(function (x) { return x.k === k; })[0]; r.setAttribute("aria-label", "Alma · " + (a ? a.n : k) + ". Toca para volver a tus áreas");
-    } else { r.removeAttribute("data-esfera"); r.setAttribute("aria-label", "Alma"); }
+    var firma = it ? (it.tipo === "esfera" ? "e:" + it.k : "p:" + it.p.k) : "", ya = sp.querySelector(".esf-ico:not(.sale)");
+    if (firma && (!ya || ya.getAttribute("data-k") !== firma)) {
+      if (ya) ya.classList.add("sale");
+      var ic = el("span", "esf-ico entra"); ic.setAttribute("data-k", firma);
+      if (it.tipo === "esfera") ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICON[it.k] || "") + "</svg>";
+      else if (it.p.foto) { var im = document.createElement("img"); im.alt = ""; im.src = it.p.foto; ic.appendChild(im); }
+      else { var c = EO_C[it.k] || EO_C.proposito; ic.appendChild(el("span", "nv-ini", eoIniciales(it.p.n))); ic.style.setProperty("--nv-c", c[2]); }
+      var b = r.getBoundingClientRect(); ic.style.setProperty("--nv-d", Math.round(b.width || 110) + "px");
+      sp.appendChild(ic); requestAnimationFrame(function () { requestAnimationFrame(function () { ic.classList.remove("entra"); }); });
+    } else if (!firma && ya) ya.classList.add("sale");
+    [].forEach.call(sp.querySelectorAll(".esf-ico.sale"), function (x) { if (!x._t) x._t = setTimeout(function () { x.remove(); }, 320); });
+    if (it) { r.setAttribute("data-esfera", it.k); r.setAttribute("aria-label", "Alma · " + (it.tipo === "esfera" ? it.n : it.p.n) + ". Toca para volver"); }
+    else { r.removeAttribute("data-esfera"); r.setAttribute("aria-label", "Alma"); }
   }
-  function esquina() {
-    var W = document.documentElement.clientWidth || innerWidth, H = (window.visualViewport && visualViewport.height) || innerHeight;
-    var p = el("div"); p.style.cssText = "position:fixed;visibility:hidden;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px)";
-    document.body.appendChild(p); var ab = Math.max(34, (p.offsetHeight || 0) + 14); document.body.removeChild(p);
-    return { x: (W - 18 - 37) / W, y: (H - ab - 37) / H, s: 74 };
+  function pulso() { if (!RM && window.SANav && SANav.pulso) SANav.pulso(); }
+  function nvArea(k) { return (AR.datos || []).filter(function (x) { return x.k === k; })[0] || null; }
+  function nvNorm(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/^proy:/, "").trim(); }
+  function nvDeProyecto(x, p) {
+    var pr = nvNorm((x.p && x.p.proyecto) || (x.x && x.x.proyecto)); if (!pr) return false;
+    var n = nvNorm(p.n), k = nvNorm(p.k); return pr === n || pr === k || (pr.length > 3 && (n.indexOf(pr) >= 0 || pr.indexOf(n) >= 0));
   }
+  /* Los proyectos de la esfera; lo que pide atención sin proyecto va a «General» (como en «Lo que te toca»). */
+  function nvProyectos(a) {
+    var ps = a.proyectos || [], L = ps.slice(0, 8);
+    if (eoAtencion(a.k).some(function (x) { return !ps.some(function (p) { return nvDeProyecto(x, p); }); })) L = L.slice(0, 7).concat([{ k: "general", n: "General", general: true }]);
+    return L;
+  }
+  function nvAtencionDe(a, p) { var ps = a.proyectos || []; return eoAtencion(a.k).filter(function (x) { return p.general ? !ps.some(function (q) { return nvDeProyecto(x, q); }) : nvDeProyecto(x, p); }); }
+  function nvGeo() {
+    var g = OR.geo || (OR.geo = orbitaGeo()), dl = Math.max(30, Math.min(42, g.d * .5)), da = Math.max(26, Math.min(36, g.d * .42));
+    var R1 = g.alma / 2 + dl / 2 + Math.max(26, g.d * .4), R2 = Math.min(R1 + Math.max(46, g.d * .66), g.W / 2 - da / 2 - 10);
+    return { g: g, dp: Math.round(g.d * .84), dl: dl, da: da, R1: R1, R2: Math.max(R2, R1 + da) };
+  }
+  function nvRadio(G, d) { return d.ring === 1 ? G.R1 : d.ring === 2 ? G.R2 : G.g.R; }
+  /* Lo que va alrededor de la roca en este nivel (1: proyectos · 2: pendientes en la 1.ª órbita, avisos en la 2.ª). */
+  function nvLista() {
+    var top = NV.pila[NV.pila.length - 1]; if (!top) return [];
+    var G = nvGeo(), a = nvArea(top.k); if (!a) return [];
+    if (top.tipo === "esfera") {
+      var L = nvProyectos(a);
+      return L.map(function (p, i) { return { id: "p:" + p.k, tipo: "proy", k: a.k, p: p, n: p.n, d: G.dp, ring: 0, ang: (-90 + i * 360 / L.length) * Math.PI / 180 }; });
+    }
+    var at = nvAtencionDe(a, top.p), c1 = Math.max(3, Math.min(8, Math.floor(2 * Math.PI * G.R1 / (G.dl * 2.2)))), c2 = Math.max(4, Math.min(10, Math.floor(2 * Math.PI * G.R2 / (G.da * 2.4))));
+    var pe = at.filter(function (x) { return x.tipo === "pend"; }).slice(0, c1), no = at.filter(function (x) { return x.tipo === "noti"; }).slice(0, c2), out = [];
+    pe.forEach(function (x, i) { out.push({ id: "l:" + x.id, tipo: "luna", k: a.k, it: x, n: x.titulo, d: G.dl, ring: 1, rot: .07, ang: (-90 + i * 360 / pe.length) * Math.PI / 180 }); });
+    no.forEach(function (x, i) { out.push({ id: "l:" + x.id, tipo: "luna", aviso: true, k: a.k, it: x, n: x.titulo, d: G.da, ring: 2, rot: -.045, ang: (-90 + 180 / no.length + i * 360 / no.length) * Math.PI / 180 }); });
+    return out;
+  }
+  /* Cada círculo del nivel es una piedra como las esferas (la misma capa, detrás de la roca), con su resorte q
+     (0 = escondida en la roca, 1 = en su lugar), como el abanico. */
+  function nvNodo(d) {
+    var b = el("button", "esf " + d.k + " nv-" + d.tipo + (d.aviso ? " nv-av" : "")); b.type = "button";
+    b.setAttribute("aria-label", (d.tipo === "proy" ? "Proyecto: " : d.aviso ? "Aviso: " : "Pendiente: ") + d.n);
+    b.style.setProperty("--d", d.d.toFixed(1) + "px");
+    b.innerHTML = '<span class="resp"><span class="pres"><span class="halo"></span><span class="piedra"></span></span></span>';
+    var pi = b.querySelector(".piedra");
+    if (d.tipo === "proy") {
+      if (d.p.foto) { var im = document.createElement("img"); im.alt = ""; im.src = d.p.foto; pi.appendChild(im); } else pi.appendChild(el("span", "nv-ini", eoIniciales(d.n)));
+      b.appendChild(el("span", "nom", d.n));
+    } else pi.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + EO_ICON[d.aviso ? "noti" : "pend"] + "</svg>";
+    var n = { d: d, id: d.id, el: b, q: new Res(0), estado: "fuera", ang: d.ang, x: 0, y: 0 };
+    b.addEventListener("pointerdown", function () { if (n.estado === "fuera") b.classList.add("press"); });
+    ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) { b.addEventListener(t, function () { b.classList.remove("press"); }); });
+    b.onclick = function () { nvTocar(n); };
+    $("nivel").appendChild(b); NV.nodos.push(n); return n;
+  }
+  function nvQ(n, t, ms, resp, amort) { var e = n.estado; if (RM || !ms) { n.q.to(t, resp, amort); nvCorre(); return; } setTimeout(function () { if (n.estado === e) { n.q.to(t, resp, amort); nvCorre(); } }, ms); }
+  /* Esperar algo (que la gota llegue a la roca, que se separe): se mira en cada cuadro; una orden nueva lo cancela. */
+  function nvCuando(si, fn, max) { NV.esperas.push({ g: NV.gen, si: si, fn: fn, hasta: performance.now() + (RM ? 0 : max || 700) }); nvCorre(); }
+  function nvCorre() { if (!NV.loop) { NV.loop = true; NV.ult = performance.now(); requestAnimationFrame(nvCuadro); } }
+  function nvCuadro(now) {
+    var dt = Math.min(.05, (now - NV.ult) / 1000); NV.ult = now;
+    var k = Math.max(1, Math.round(dt / (1 / 240))), h = dt / k;
+    NV.nodos.forEach(function (n) { for (var i = 0; i < k; i++) n.q.paso(h); if (n.d.rot && !RM && !NV.quieta && n.estado === "fuera") n.ang += n.d.rot * dt; });
+    var listas = NV.esperas.filter(function (w) { return w.g !== NV.gen || w.si() || now >= w.hasta; });
+    NV.esperas = NV.esperas.filter(function (w) { return listas.indexOf(w) < 0; });
+    listas.forEach(function (w) { if (w.g === NV.gen) w.fn(); });
+    NV.nodos = NV.nodos.filter(function (n) {
+      if (n.suelta && n.q.x > .45) { n.suelta = false; rocaIcono(NV.pila[NV.pila.length - 1] || null); }   // la roca soltó la gota: vuelve su ícono
+      if ((n.estado === "vuelve" || n.estado === "comida") && n.q.quieto() && n.q.x < .01) { n.el.remove(); return false; }
+      return true;
+    });
+    nvPintar();
+    if (NV.esperas.length || NV.nodos.some(function (n) { return !n.q.quieto() || (n.d.rot && !RM && !NV.quieta && n.estado === "fuera"); })) requestAnimationFrame(nvCuadro); else NV.loop = false;
+  }
+  function nvPintar() {
+    var G = nvGeo(), g = G.g, gl = [];
+    NV.nodos.forEach(function (n) {
+      var q = n.q.x, R = nvRadio(G, n.d), r = RM ? R : R * q, s = RM ? 1 : Math.max(.3, .3 + .7 * q);
+      n.x = g.cx + Math.cos(n.ang) * r; n.y = g.cy + Math.sin(n.ang) * r;
+      n.el.style.transform = "translate(" + n.x.toFixed(1) + "px," + n.y.toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
+      n.el.style.opacity = Math.max(0, Math.min(1, RM ? q : q * 2.2 - .2)).toFixed(3);
+      n.el.style.setProperty("--lq", Math.max(0, Math.min(1, (q - .75) * 4)).toFixed(2));
+      n.el.style.pointerEvents = n.estado === "fuera" && q > .6 ? "auto" : "none";
+      gl.push({ x: n.x, y: n.y, r: n.d.d / 2 * s, q: q, suelta: n.suelta });
+    });
+    GOO.nv = gl; gooPintar();
+  }
+  /* Lo del nivel de arriba sale de la roca (nace detrás de ella); lo que ya no va vuelve a ella. «primero»: la gota que
+     la roca suelta al volver un nivel (sale sola y las demás 110 ms después). */
+  function nvAplicar(primero) {
+    var L = nvLista(), ids = {}, j = 0, k = 0;
+    L.forEach(function (d) { ids[d.id] = 1; });
+    NV.nodos.slice().reverse().forEach(function (n) { if (!ids[n.id] && n.estado === "fuera") { n.estado = "vuelve"; nvQ(n, 0, (k++) * 18, .38, 1); } });
+    L.forEach(function (d) {
+      var n = NV.nodos.filter(function (x) { return x.id === d.id && x.estado === "fuera"; })[0];
+      if (n) { n.d = d; return; }   // ya estaba afuera (datos al día)
+      n = nvNodo(d); if (d.id === primero && !RM) n.suelta = true;
+      nvQ(n, 1, primero ? (d.id === primero ? 0 : 110 + (j++) * 34) : 40 + (j++) * 34, .5, .68);
+    });
+    if (k) nvCuando(function () { return NV.nodos.every(function (n) { return n.estado !== "vuelve" || n.q.x < .2; }); }, pulso, 600);
+    if (window.SAPulso) SAPulso.enFase($("nivel"));
+    nvCorre(); nvUi();
+  }
+  /* Tocar una esfera: la roca se la come; al fundirse toma su ícono, da su pulso y nacen los proyectos. */
   function esferaUnir(k) {
     if (!OR.abierta) return;
-    var L = [].slice.call($("orbita").children), i = (AR.datos || []).map(function (x) { return x.k; }).indexOf(k), n = L.length;
+    var L = [].slice.call($("orbita").children), i = (AR.datos || []).map(function (x) { return x.k; }).indexOf(k), n = L.length, a = nvArea(k);
+    if (i < 0 || !a) return;
     OR.abierta = false; ESP = []; $("orbita").classList.remove("on");
-    ES.forEach(function (e, j) { if (j === i) esLuego(e.q, 0, 0, .34, .9); else esLuego(e.q, 0, 30 + (n - 1 - j) * 18, .38, 1); });
+    ES.forEach(function (e, j) { e.suelta = false; if (j === i) esLuego(e.q, 0, 0, .42, .86); else esLuego(e.q, 0, 30 + (n - 1 - j) * 18, .38, 1); });
     orbitaPintar();
     if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
-    clearTimeout(DENTRO.t);
-    DENTRO.t = setTimeout(function () {   // ya llegó a la roca: la roca toma su ícono y se va a la esquina, encima del área
-      rocaEsfera(k);
-      DENTRO.on = true; document.body.classList.add("esf-dentro");
-      SANav.escena(esquina());
-      document.body.classList.remove("orbita-on"); avisoArmar();
-      areasAbrir(true, k);
-    }, RM ? 60 : 260);
+    NV.gen++; NV.pila = [{ tipo: "esfera", k: k, n: a.n }]; NV.sel = null; NV.quieta = false;
+    document.body.classList.add("orbita-on"); avisoArmar(); nvUi();
+    var gen = NV.gen;
+    nvCuando(function () { return !ES[i] || ES[i].q.x < .3; }, function () { rocaIcono(NV.pila[0]); pulso(); setTimeout(function () { if (gen === NV.gen) nvAplicar(); }, RM ? 0 : 70); }, 700);
   }
-  function esferaSalir() {   // de vuelta: la roca al centro y las esferas salen otra vez de ella
-    if (!DENTRO.on) return; DENTRO.on = false; clearTimeout(DENTRO.t);
-    rocaEsfera(null);
-    if (OR.armada) orbita(true); else SANav.escena(null);
-    DENTRO.t = setTimeout(function () { if (!DENTRO.on) document.body.classList.remove("esf-dentro"); }, 450);   // la hoja termina de irse
+  function nvTocar(n) {
+    if (n.estado !== "fuera" || n.q.x < .6) return;
+    if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+    var a = nvArea(n.d.k); if (!a) return;
+    if (n.d.tipo === "luna") {   // un pendiente o un aviso: su ficha abajo y las órbitas se detienen
+      var ya = NV.sel === n.id; NV.sel = ya ? null : n.id; NV.quieta = !ya;
+      NV.nodos.forEach(function (m) { m.el.classList.toggle("sel", m.id === NV.sel); });
+      if (ya) nvDet(); else nvFicha(n.d.it, a);
+      nvCorre(); return;
+    }
+    /* un proyecto: crece un poco («te escuché»), la roca se lo come y al fundirse toma su foto o sus iniciales */
+    NV.gen++; NV.sel = null; NV.quieta = false;
+    NV.pila.push({ tipo: "proy", k: n.d.k, p: n.d.p, n: n.d.n });
+    var gen = NV.gen, k = 0;
+    n.estado = "comida"; n.el.classList.add("elegida"); setTimeout(function () { n.el.classList.remove("elegida"); }, 170);
+    NV.nodos.slice().reverse().forEach(function (m) { if (m !== n && m.estado === "fuera") { m.estado = "vuelve"; nvQ(m, 0, 30 + (k++) * 18, .38, 1); } });
+    setTimeout(function () { if (n.estado === "comida") { n.q.to(0, .42, .86); nvCorre(); } }, RM ? 0 : 90);
+    nvUi();
+    nvCuando(function () { return n.q.x < .3; }, function () { rocaIcono(NV.pila[NV.pila.length - 1]); pulso(); setTimeout(function () { if (gen === NV.gen) nvAplicar(); }, RM ? 0 : 70); }, 800);
   }
-  addEventListener("resize", function () { if (DENTRO.on) SANav.escena(esquina()); });
+  /* Atrás: lo de alrededor vuelve a la roca (pulso), la roca suelta la gota de donde venías y salen sus hermanos. */
+  function nvAtras() {
+    if (!NV.pila.length) return false;
+    NV.gen++; NV.sel = null; NV.quieta = false;
+    var sale = NV.pila.pop(), gen = NV.gen, k = 0;
+    NV.nodos.slice().reverse().forEach(function (n) { if (n.estado === "fuera") { n.estado = "vuelve"; nvQ(n, 0, (k++) * 18, .38, 1); } });
+    nvUi();
+    var seguir = function () {
+      if (gen !== NV.gen) return;
+      if (!NV.pila.length) { esferasVolver(sale.k); return; }
+      nvAplicar("p:" + sale.p.k);
+    };
+    if (k) nvCuando(function () { return NV.nodos.every(function (n) { return n.estado !== "vuelve" || n.q.x < .2; }); }, function () { pulso(); setTimeout(seguir, RM ? 0 : 120); }, 600);
+    else seguir();
+    nvCorre(); return true;
+  }
+  /* De vuelta a las esferas: la roca suelta la esfera de la que venías (primero) y recupera el destello al separarse. */
+  function esferasVolver(k) {
+    var i = (AR.datos || []).map(function (x) { return x.k; }).indexOf(k);
+    if (!NV.pila.length) document.body.classList.add("orbita-on");
+    orbita(true, i);
+    if (i < 0 || RM) { rocaIcono(null); return; }
+    nvCuando(function () { return !ES[i] || ES[i].q.x > .45; }, function () { if (ES[i]) ES[i].suelta = false; if (!NV.pila.length) rocaIcono(null); }, 900);
+  }
+  /* Cerrar el abanico: las esferas vuelven a la roca, la roca da su pulso y después vuelve a su tamaño. */
+  function abanicoCerrar() {
+    orbita(false);
+    if (RM || !window.SANav || !SANav.pulso) { SANav.escena(null); return; }
+    var g = ++NV.gen;
+    setTimeout(function () { if (g !== NV.gen || OR.abierta) return; pulso(); setTimeout(function () { if (g === NV.gen && !OR.abierta && !NV.pila.length) SANav.escena(null); }, 420); }, 210);
+  }
+  /* Para irse a otra pantalla (Pendientes, Notificaciones): todo de una vez, sin animación. */
+  function nvReset() {
+    if (!NV.pila.length && !NV.nodos.length) return;
+    NV.gen++; NV.pila = []; NV.sel = null; NV.quieta = false; NV.esperas = [];
+    NV.nodos.forEach(function (n) { n.el.remove(); }); NV.nodos = []; GOO.nv = [];
+    rocaIcono(null); if (!OR.abierta) document.body.classList.remove("orbita-on"); nvUi(); gooPintar();
+  }
+  /* Arriba: dónde estás (tocarla = atrás). Abajo: la ficha del proyecto o de lo que tocaste. Guías de las órbitas. */
+  function nvUi() {
+    var m = $("nv-miga"), on = NV.pila.length > 0, G = nvGeo(), g = G.g, top = NV.pila[NV.pila.length - 1];
+    if (on) {
+      m.querySelector("span").textContent = NV.pila.map(function (x) { return x.n; }).join(" · ");
+      var R = top.tipo === "proy" ? G.R2 + G.da / 2 : g.R + G.dp / 2;
+      m.style.top = Math.max(96, g.cy - R - 36).toFixed(0) + "px";
+    }
+    m.classList.toggle("on", on); m.setAttribute("aria-hidden", on ? "false" : "true"); m.tabIndex = on ? 0 : -1;
+    var lun = on && top.tipo === "proy" ? NV.nodos.filter(function (n) { return n.estado === "fuera" && n.d.tipo === "luna"; }).map(function (n) { return n.d; }) : [];   // las guías llegan con las lunas
+    [[1, G.R1], [2, G.R2]].forEach(function (x) {
+      var d = $("nv-g" + x[0]); d.style.width = d.style.height = (2 * x[1]).toFixed(0) + "px"; d.style.left = (g.cx - x[1]).toFixed(0) + "px"; d.style.top = (g.cy - x[1]).toFixed(0) + "px";
+      d.classList.toggle("on", lun.some(function (l) { return l.ring === x[0]; }));
+    });
+    nvDet();
+  }
+  function nvFicha(it, a) {
+    var d = $("nv-det"); eoDetalle(d, it, a, $("nivel"));
+    var x = d.querySelector(".tarjeta > .x"); if (x) x.onclick = function () { NV.sel = null; NV.quieta = false; NV.nodos.forEach(function (m) { m.el.classList.remove("sel"); }); nvDet(); nvCorre(); };
+    d.classList.add("on");
+  }
+  function nvDet() {
+    var d = $("nv-det"), top = NV.pila[NV.pila.length - 1], a = top && nvArea(top.k);
+    d.innerHTML = ""; if (!a || NV.esperas.length) { d.classList.remove("on"); return; }
+    var c = EO_C[a.k] || EO_C.proposito; d.style.setProperty("--c", c[0]); d.style.setProperty("--c2", c[1]); d.style.setProperty("--c3", c[2]);
+    if (top.tipo === "esfera") {
+      if (!nvProyectos(a).length) d.appendChild(el("div", "vacio", "Todavía no hay proyectos en " + a.n + "."));
+      var b = el("button", "nv-lista", "Ver " + a.n + " en lista"); b.type = "button"; b.onclick = function () { areasAbrir(true, a.k); }; d.appendChild(b);
+    } else {
+      var at = nvAtencionDe(a, top.p);
+      if (top.p.general) d.appendChild(el("div", "vacio", at.length ? "Lo de " + a.n + " que no es de un proyecto. Toca uno para ver más." : "Nada pide tu atención aquí."));
+      else {
+        eoDetalle(d, { tipo: "proy", pr: top.p }, a, $("nivel"));
+        var x = d.querySelector(".tarjeta > .x"); if (x) x.remove();
+        if (!at.length) d.appendChild(el("div", "vacio", "Nada pide tu atención en " + top.p.n + "."));
+      }
+    }
+    d.classList.add("on");
+  }
+  $("nv-miga").onclick = function () { nvAtras(); };
+  /* La fusión (gotas de mercurio): círculos planos con desenfoque y umbral (filtro SVG), en una caja del tamaño de la
+     escena y solo mientras algo entra o sale de la roca; quieto, el filtro no se dibuja. Las piedras nítidas van encima. */
+  function gooPintar() {
+    var sv = $("nv-goo"); if (!sv) return;
+    var L = GOO.esf.concat(GOO.nv), act = !RM && L.some(function (b) { return b.q > .02 && b.q < .97; });
+    sv.classList.toggle("on", act); if (!act) return;
+    var g = OR.geo || orbitaGeo(), G = nvGeo(), B = Math.ceil(Math.max(g.R + g.d, G.R2 + G.da) + 28), ox = g.cx - B, oy = g.cy - B;
+    if (sv._k !== B + "|" + ox + "|" + oy) {
+      sv._k = B + "|" + ox + "|" + oy; sv.style.left = ox + "px"; sv.style.top = oy + "px"; sv.setAttribute("width", 2 * B); sv.setAttribute("height", 2 * B);
+      var f = sv.querySelector("filter"); f.setAttribute("width", 2 * B); f.setAttribute("height", 2 * B);
+    }
+    var p = window.SANav && SANav.piedra ? SANav.piedra() : null, rx = p ? p.x : g.cx, ry = p ? p.y : g.cy, rr = (p ? p.s : g.alma) / 2 * .94;
+    var gg = sv.querySelector("g"), cs = gg.children, k = 0;
+    var pon = function (x, y, r) { var c = cs[k] || gg.appendChild(document.createElementNS(NV_NS, "circle")); c.setAttribute("cx", (x - ox).toFixed(1)); c.setAttribute("cy", (y - oy).toFixed(1)); c.setAttribute("r", Math.max(0, r).toFixed(1)); k++; };
+    pon(rx, ry, rr);
+    L.forEach(function (b) {
+      if (b.q <= .02) return;
+      pon(b.x, b.y, b.r * Math.min(1, b.q * 2.5));
+      if (b.suelta && b.q < .8) {   // al soltarla, el cuello se estira y se rompe
+        var f = 1 - Math.max(0, (b.q - .5) / .3);
+        for (var i = 1; i <= 3; i++) { var t = i / 4; pon(rx + (b.x - rx) * t, ry + (b.y - ry) * t, b.r * .5 * f * (1 - t * .3)); }
+      }
+    });
+    while (cs.length > k) gg.removeChild(cs[cs.length - 1]);
+  }
+  addEventListener("resize", function () { if (!NV.pila.length) return; OR.geo = orbitaGeo(); nvUi(); nvPintar(); });
   addEventListener("resize", function () { if (!OR.abierta) return; var g = OR.geo = orbitaGeo(); SANav.escena({ y: g.cy / g.H, s: g.alma });
     [].forEach.call($("orbita").children, function (b) { b.style.setProperty("--d", g.d.toFixed(1) + "px"); }); orbitaPintar(); });
   /* Tocar fuera de Alma y de las esferas las cierra (Alma vuelve a su tamaño). */
   document.addEventListener("pointerdown", function (e) {
     if (!OR.abierta || AR.abierta) return;
     if (e.target.closest && (e.target.closest(".esf") || e.target.closest(".aviso") || e.target.closest(".san-rock") || e.target.closest(".ajustes") || e.target.closest(".panel"))) return;
-    orbita(false); SANav.escena(null);
+    abanicoCerrar();
   }, true);
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
   function cuando(ts) {
@@ -1784,7 +2055,6 @@ window.SAPulso = {
   function abrirLink(u, nat) { if (nat && NATIVA) { nativa({ accion: nat }); return; } if (u) location.href = u; }
   function areasPintar() {
     var c = $("a-cuerpo"); c.innerHTML = ""; $("a-atras").hidden = !AR.area;
-    if (DENTRO.on) rocaEsfera(AR.area);   // la roca lleva el ícono del área en la que estás
     if (!AR.datos) { var sq = el("div", "sa-esq dos"); sq.setAttribute("aria-label", "Cargando tus áreas"); for (var q = 0; q < 6; q++) sq.appendChild(el("i", "g")); c.appendChild(sq); return; }   // la forma antes que el contenido (ds/velocidad.md)
     if (!AR.area) {
       $("a-tit").textContent = "Tu vida"; $("a-sub").textContent = "Seis áreas";
@@ -1818,7 +2088,7 @@ window.SAPulso = {
     var a = todas().filter(function (x) { return x.k === AR.area; })[0]; if (!a) { AR.area = null; areasPintar(); return; }
     $("a-tit").textContent = a.n; $("a-sub").textContent = a.d;
     /* Las 6 esferas se ven en órbitas (o en lista, si Juan la elige); los cajones del archivo siguen en lista. */
-    if (EO_C[a.k]) { c.appendChild(eoModo()); if (eoVista() === "orbitas") { eoPintar(c, a); return; } }
+    if (EO_C[a.k] && !NV.pila.length) { c.appendChild(eoModo()); if (eoVista() === "orbitas") { eoPintar(c, a); return; } }   // desde los niveles («Ver … en lista»): la lista
     var tt = el("div", "te-toca san-scope"); tt.id = "a-toca"; c.appendChild(tt); AR.tocaFirma = null; teTocaPintar();
     if (a.proyectos.length) {
       c.appendChild(el("div", "sec-t", "Proyectos"));
@@ -1950,7 +2220,7 @@ window.SAPulso = {
     var t = el("div", "tarjeta"), x = el("button", "x", "×"); x.type = "button"; x.setAttribute("aria-label", "Cerrar");
     x.onclick = function () { EO.sel = null; eo.classList.remove("quieta"); [].forEach.call(eo.querySelectorAll(".eo-it.sel"), function (y) { y.classList.remove("sel"); }); eoGuia(det, eoAtencion(a.k), a); };
     var ir = el("div", "ir"), boton = function (txt, sec, fn) { var b = el("button", sec ? "sec" : "", txt); b.type = "button"; b.onclick = fn; ir.appendChild(b); };
-    var irA = function (tipo, id) { areasAbrir(false); orbita(false); SANav.escena(null); SANav.ver(tipo, id, a.k); };
+    var irA = function (tipo, id) { nvReset(); areasAbrir(false); orbita(false); SANav.escena(null); SANav.ver(tipo, id, a.k); };
     if (it.tipo === "proy") {
       var p = it.pr; t.appendChild(el("div", "tag", "Proyecto")); t.appendChild(el("h4", "", p.n)); if (p.d) t.appendChild(el("p", "", p.d));
       if (p.apps && p.apps.length) { var ap = el("div", "apps"); p.apps.forEach(function (z) { var b = el("button"); b.type = "button"; b.appendChild(document.createTextNode(z.n)); if (z.d && z.d !== z.n) b.appendChild(el("small", "", z.d)); b.onclick = function () { abrirLink(z.url, z.nativa); }; ap.appendChild(b); }); t.appendChild(ap); }
@@ -2006,7 +2276,7 @@ window.SAPulso = {
       var ir = el("div", "ir");
       if (a.enlace) { var ab = el("button", "sec", "Abrir"); ab.type = "button"; ab.onclick = function () { location.href = a.enlace; }; ir.appendChild(ab); }
       var vb = el("button", "", a.tipo === "pend" ? "Ver en Pendientes" : "Ver en Notificaciones"); vb.type = "button";
-      vb.onclick = function () { areasAbrir(false); orbita(false); SANav.escena(null); SANav.ver(a.tipo, a.id, a.area); };
+      vb.onclick = function () { nvReset(); areasAbrir(false); orbita(false); SANav.escena(null); SANav.ver(a.tipo, a.id, a.area); };
       ir.appendChild(vb); n.appendChild(ir); cu.appendChild(n);
     });
   }
@@ -2176,7 +2446,6 @@ window.SAPulso = {
   }
   function areasAbrir(on, area) {
     AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true"); avisoMostrar();
-    if (!on) esferaSalir();
     if (on) { AR.area = area || null; EO.sel = null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
   }
   $("a-cerrar").onclick = function () { areasAbrir(false); };
@@ -2188,11 +2457,11 @@ window.SAPulso = {
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
     alSoltar: NATIVA ? function (pos) { orbita(false); nativa({ accion: "navegador", pos: pos }); } : null,
     /* Alma quieta: 1 toque abre las áreas (si las hay) y otro toque las cierra; 2 toques activan la voz sin cambiar de estado (lo resuelve sa-nav.js). */
-    alTocar: function () { if (DENTRO.on && AR.abierta) { areasAbrir(false); return true; }   // dentro de un área: la roca te regresa a las esferas
-      if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
+    alTocar: function () { if (NV.pila.length) { nvAtras(); return true; }   // en un nivel (esfera o proyecto): la roca te regresa uno (#831)
+      if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { abanicoCerrar(); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
-    alDatos: function () { avisoArmar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas" && eoFirma(AR.area) !== EO.firma) areasPintar(); },   /* las órbitas, solo si cambió lo que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
+    alDatos: function () { avisoArmar(); if (NV.pila.length && !NV.esperas.length && !NV.sel) nvAplicar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas" && eoFirma(AR.area) !== EO.firma) areasPintar(); },   /* las órbitas, solo si cambió lo que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }

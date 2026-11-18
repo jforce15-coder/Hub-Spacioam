@@ -2470,6 +2470,13 @@
     /* La roca de Alma sin voz, respiración ni gelatina: centro y diámetro (px) a los que va. Las órbitas del inicio la usan
        para no seguir el pulso de la voz. null si la roca no está a la vista. */
     piedra: function () { return root && E.stone && AL.vis && isFinite(aS.x) ? { x: aX.x, y: aY.x, s: aS.x } : null; },
+    /* Pulso de tamaño en su sitio (inicio de la app, #831; Juan, 18-nov-2026: «aumenta su tamaño y lo vuelve a reducir»):
+       algo se escondió en la roca. Un empujón al resorte del tamaño (el mismo de la escena, .7 / .72) sin cambiar su
+       destino: crece ~f (7 %) en ~120 ms y vuelve solo, sin moverse. Quieta con «reducir movimiento». */
+    pulso: function (f) {
+      if (!root || !AL.esc || RM || !isFinite(aS.x) || aS.x <= 0) return false;
+      aS.to(aS.t, .7, .72, aS.x * (f || .07) * (2 * Math.PI / .7) * 2.2); return true;
+    },
     /* UNA ROCA en otra pantalla (Health, Respira, conectar el anillo): la misma piedra, del tamaño que pidan, dentro de el.
        SANav.roca(el, { d: 150 }) → la piedra (respira sola; quien la agrande o la mueva usa transform en el, no en ella). */
     roca: function (el, o) {

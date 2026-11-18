@@ -428,6 +428,45 @@
   /* con las áreas abiertas, «Toca a Alma» y los botones de abajo se van al instante (antes de que lleguen las esferas) */
   body.orbita-on #sa-nav-root .san-ov-ui, body.orbita-on #sa-nav-root .san-ov-st { opacity: 0 !important; pointer-events: none !important; transition: opacity .1s ease !important; }
   @media (prefers-reduced-motion: reduce) { .esf .halo, .esf .resp { animation: none; } }
+  /* ── Órbitas de la esfera (Juan, 18-nov-2026, #798): tocar una esfera la lleva al centro (las demás se recogen detrás
+     de Alma, que baja chica) y alrededor orbitan sus proyectos con algo que pide atención: solo el nombre y cuántos.
+     Tocar un proyecto: orbitan sus pendientes y avisos (lo específico). Tocar uno abre la barra de avisos con sus botones.
+     Tocar afuera o la ruta de arriba sube un nivel; tocar la esfera del centro abre su área completa. ── */
+  .sat-capa { position: fixed; inset: 0; z-index: 872; pointer-events: none; }
+  .sat-capa .anillo { position: absolute; left: 0; top: 0; border-radius: 50%; border: 1px dashed rgba(255,253,251,.5); opacity: 0;
+    transform: scale(.6); transition: opacity .35s ease, transform .6s cubic-bezier(.3,1.2,.5,1); }
+  .sat-capa.on .anillo { opacity: 1; transform: none; }
+  .sat { position: absolute; left: 0; top: 0; width: var(--sd, 56px); height: var(--sd, 56px); margin: calc(var(--sd, 56px) / -2) 0 0 calc(var(--sd, 56px) / -2);
+    border: 0; padding: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; color: inherit;
+    opacity: 0; pointer-events: none; transform: translate(var(--x0), var(--y0)) scale(.3);
+    transition: transform .55s cubic-bezier(.3,1.35,.5,1) var(--sdl, 0ms), opacity .3s ease var(--sdl, 0ms); }   /* --sdl: solo la llegada escalonada; el pulso no se desfasa */
+  .sat-capa.on .sat { opacity: 1; pointer-events: auto; transform: translate(var(--x), var(--y)) scale(1); }
+  .sat .resp { position: absolute; inset: 0; animation: esf-quieta 3.6s ease-in-out infinite; }
+  .sat .pres { position: absolute; inset: 0; transition: transform .45s cubic-bezier(.3,1.6,.5,1); }
+  .sat.press .pres { transform: scale(.9); transition: transform .12s cubic-bezier(.2,0,0,1); }
+  .sat .halo { position: absolute; inset: -30%; border-radius: 50%; background: radial-gradient(circle, var(--c) 0%, transparent 62%); filter: blur(10px);
+    opacity: .35; animation: esf-halo 3.6s ease-in-out infinite; }
+  .sat .piedra { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; color: #8C847D;
+    background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 45%, #E4DFD9 80%, #D3CDC6 100%);
+    box-shadow: 0 12px 18px -10px rgba(40,28,24,.42), 0 3px 6px rgba(40,28,24,.10), inset 0 -5px 8px rgba(110,90,80,.12), inset 0 3px 6px rgba(255,255,255,.8);
+    font: 600 17px Montserrat, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+  .sat .piedra::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; border: 1px solid var(--c); opacity: .45; }
+  .sat.pide .piedra::after { border-width: 2px; opacity: 1; }   /* pide algo de ti: el anillo de su color, lleno */
+  .sat.pide .halo { opacity: .7; }
+  .sat svg { width: 40%; height: 40%; }
+  .sat .nom { position: absolute; left: 50%; top: calc(100% + 8px); width: 104px; margin-left: -52px; text-align: center;
+    font: 600 10.5px/1.3 Montserrat, system-ui, sans-serif; color: #FFFDFB; text-shadow: 0 1px 10px rgba(40,25,25,.55);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .sat-ruta { position: fixed; left: 50%; top: calc(max(14px, env(safe-area-inset-top) + 6px) + 58px); z-index: 2147482290; transform: translate(-50%, -8px);
+    display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px); padding: 9px 16px 9px 12px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px;
+    background: rgba(255,255,255,.3); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); color: #2F3030; cursor: pointer;
+    font: 600 12.5px Montserrat, system-ui, sans-serif; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .45s cubic-bezier(.3,1.2,.5,1); }
+  .sat-ruta.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .sat-ruta .p { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--c, #E9826A); }
+  .sat-ruta span { overflow: hidden; text-overflow: ellipsis; }
+  .sat-ruta small { font-weight: 500; color: #6F6867; }
+  html:has(#sa-nav-root .san-ov.on:not(.quieta)) .sat .resp, html:has(#sa-nav-root .san-ov.on:not(.quieta)) .sat .halo { animation: none; }
+  @media (prefers-reduced-motion: reduce) { .sat .resp, .sat .halo { animation: none; } .sat, .sat-capa .anillo, .sat-ruta { transition: opacity .2s ease; } }
   /* ── Barra de avisos: arriba de las esferas, lo más importante de cada esfera, una a la vez. Al tocarla se abre con
      sus botones (los mismos de Pendientes). La esfera del aviso crece y su halo brilla; las demás respiran más lento. ── */
   .aviso { position: fixed; left: 16px; right: 16px; top: calc(max(14px, env(safe-area-inset-top) + 6px) + 58px); z-index: 2147482300; max-width: 520px; margin: 0 auto;
@@ -1151,6 +1190,8 @@
 <div class="vj-salas" id="vj-salas" hidden><button type="button" class="tab" id="vj-salas-tab" aria-expanded="false" aria-controls="vj-salas-lista"></button><div class="lista" id="vj-salas-lista"></div></div>
 <div class="lado-riel" id="riel-i" aria-hidden="true" hidden></div><div class="lado-riel" id="riel-d" aria-hidden="true" hidden></div>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
+<div class="sat-capa" id="sat-capa" aria-label="Lo que pide atención en esta área"></div>
+<button type="button" class="sat-ruta" id="sat-ruta" aria-label="Subir un nivel"><span class="p"></span><span id="sat-ruta-t"></span></button>
 <div class="pob" id="pob"></div>
 <div class="pob-voz" id="pob-voz" role="status" aria-live="polite"></div>
 <div class="aviso" id="aviso" aria-live="polite"><button type="button" class="av-pil" id="av-pil" aria-expanded="false"><span class="p"></span><span class="t"><small id="av-tag"></small><b id="av-tit"></b></span><span class="n" id="av-n"></span></button><div class="av-cu san-scope" id="av-cu"></div></div>
@@ -1531,6 +1572,9 @@ window.SAPulso = {
       b.onclick = function () {
         if (!OR.abierta) return;
         if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+        /* la esfera del centro abre su área completa; una de las 6 con algo que pide atención entra a sus órbitas (#798) */
+        if (FO.k) { if (FO.k === a.k) areasAbrir(true, a.k); return; }
+        if (focoItems(a.k).length) { focoEntrar(a.k, i); return; }
         b.classList.add("elegida"); setTimeout(function () { b.classList.remove("elegida"); areasAbrir(true, a.k); }, 170);
       };
       o.appendChild(b);
@@ -1562,9 +1606,9 @@ window.SAPulso = {
     var dt = Math.min(.05, (now - esUlt) / 1000); esUlt = now;
     ESP = ESP.filter(function (p) { if (now >= p.at) { p.r.to(p.t, p.resp, p.amort, p.vel); return false; } return true; });
     var n = Math.max(1, Math.round(dt / (1 / 240))), h = dt / n;
-    ES.forEach(function (e) { for (var i = 0; i < n; i++) { e.q.paso(h); e.w.paso(h); } });
+    ES.forEach(function (e) { for (var i = 0; i < n; i++) { e.q.paso(h); e.w.paso(h); if (e.z) e.z.paso(h); } });
     orbitaPintar();
-    if (ESP.length || ES.some(function (e) { return !e.q.quieto() || !e.w.quieto(); })) requestAnimationFrame(orbitaCuadro); else esLoop = false;
+    if (ESP.length || ES.some(function (e) { return !e.q.quieto() || !e.w.quieto() || (e.z && !e.z.quieto()); })) requestAnimationFrame(orbitaCuadro); else esLoop = false;
   }
   /* Cada esfera sale de detrás del centro de Alma hacia su lugar (q: 0 → 1), creciendo (.3 → 1) y apareciendo; el
      nombre llega al final. Sin arco: directo hacia afuera, que es lo que el ojo espera de algo que «sale» de Alma. */
@@ -1573,7 +1617,10 @@ window.SAPulso = {
     [].forEach.call($("orbita").children, function (b, i) {
       var e = ES[i]; if (!e) return;
       var q = e.q.x, ang = (-90 + i * 60) * Math.PI / 180, r = g.R * q;
-      b.style.transform = "translate(" + (g.cx + Math.cos(ang) * r).toFixed(1) + "px," + (g.cy + Math.sin(ang) * r).toFixed(1) + "px) scale(" + Math.max(.3, .3 + .7 * q).toFixed(3) + ")";
+      var x = g.cx + Math.cos(ang) * r, y = g.cy + Math.sin(ang) * r, s = Math.max(.3, .3 + .7 * q), z = e.z ? e.z.x : 0;
+      /* la esfera elegida viaja al centro de sus órbitas y crece (#798) */
+      if (z > .0005 && FO.geo) { var fg = FO.geo; x += (fg.cx - x) * z; y += (fg.cy - y) * z; s *= 1 + (fg.d / g.d - 1) * z; }
+      b.style.transform = "translate(" + x.toFixed(1) + "px," + y.toFixed(1) + "px) scale(" + s.toFixed(3) + ")";
       b.style.opacity = Math.max(0, Math.min(1, q * 2.2 - .2)).toFixed(3);
       b.style.setProperty("--lq", Math.max(0, Math.min(1, (q - .75) * 4)).toFixed(2));
       b.style.pointerEvents = OR.abierta && q > .6 ? "auto" : "none";
@@ -1597,6 +1644,7 @@ window.SAPulso = {
       ES.forEach(function (e, j) { esLuego(e.q, 1, 40 + j * 30, .5, .68); });
       if (navigator.vibrate) try { navigator.vibrate(8); } catch (e) {}
     } else {
+      focoSalir(false);   // cerrar todo también cierra las órbitas de la esfera
       o.classList.remove("on"); document.body.classList.remove("orbita-on");
       ES.forEach(function (e, j) { esLuego(e.q, 0, (n - 1 - j) * 24, .38, 1); });
     }
@@ -1608,6 +1656,7 @@ window.SAPulso = {
   document.addEventListener("pointerdown", function (e) {
     if (!OR.abierta || AR.abierta) return;
     if (e.target.closest && (e.target.closest(".esf") || e.target.closest(".aviso") || e.target.closest(".san-rock") || e.target.closest(".ajustes") || e.target.closest(".panel"))) return;
+    if (FO.k) { if (!e.target.closest(".sat") && !e.target.closest(".sat-ruta")) focoSubir(); return; }   // dentro de una esfera: afuera sube un nivel
     orbita(false); SANav.escena(null);
   }, true);
   function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
@@ -1728,7 +1777,9 @@ window.SAPulso = {
     avisoMostrar();
   }
   function avisoMostrar() {
-    var b = $("aviso"), hay = OR.abierta && !AR.abierta && (AV.esf.length || AM.on);
+    /* dentro de una esfera (#798) la barra solo sale con el pendiente o aviso que tocaste */
+    var b = $("aviso"), hay = OR.abierta && !AR.abierta && (FO.k ? AV.abierta || AM.on : AV.esf.length || AM.on);
+    if (FO.k) focoRuta();
     b.classList.toggle("on", !!hay);
     clearTimeout(AV.t);
     if (!hay) { avisoFoco(null); if (!OR.abierta) { AV.abierta = false; b.classList.remove("abierta"); } return; }
@@ -1743,7 +1794,7 @@ window.SAPulso = {
     b.style.setProperty("--c", AV_COLOR[a.area] || "#E9826A");
     $("av-tag").textContent = avNombre(a.area) + (a.tipo === "pend" ? " · Pendiente" : " · Aviso") + (AM.on ? " · Alma te cuenta" : "");
     $("av-tit").textContent = a.titulo || "";
-    $("av-n").textContent = AM.on ? (AM.i + 1) + "/" + AM.L.length : AV.esf.length > 1 ? (AV.i % AV.esf.length + 1) + "/" + AV.esf.length : "";
+    $("av-n").textContent = AM.on ? (AM.i + 1) + "/" + AM.L.length : !FO.k && AV.esf.length > 1 ? (AV.i % AV.esf.length + 1) + "/" + AV.esf.length : "";
     b.classList.toggle("abierta", AV.abierta); $("av-pil").setAttribute("aria-expanded", AV.abierta ? "true" : "false");
     if (AV.abierta) avisoCuerpo(a);
     avisoFoco(a.area);
@@ -1823,6 +1874,100 @@ window.SAPulso = {
     };
     return w2;
   }
+  /* ── Órbitas de la esfera (Juan, 18-nov-2026, #798: «al hacer clic en una esfera, sus notificaciones pendientes y cosas
+     que necesitan atención se muestran como órbitas, con jerarquía: en la vista general solo categorías generales; al
+     profundizar en un proyecto, lo específico»). Tres niveles: las 6 esferas → los proyectos de una esfera (nombre y
+     cuántos; nada específico) → los pendientes y avisos de ese proyecto. Salen de los mismos datos de la barra de avisos
+     (avisosTodos: Pendientes que piden algo de ti y avisos de 24 h), sin llamadas nuevas al Hub. ── */
+  var FO = { k: null, i: -1, proy: null, firma: "" }, SAT_MAX = 8, SIN_PROY = "General";
+  function focoItems(k) { return avisosTodos().filter(function (a) { return a.area === k; }); }
+  function focoProy(a) { return String(((a.p || a.x || {}).proyecto) || "").trim() || SIN_PROY; }
+  /* Los proyectos de la esfera con algo que pide atención: primero los que piden algo de ti, luego los de más cosas */
+  function focoGrupos(k) {
+    var g = {}, L = [];
+    focoItems(k).forEach(function (a) { var n = focoProy(a); if (!g[n]) { g[n] = { n: n, items: [], pide: 0 }; L.push(g[n]); } g[n].items.push(a); if (a.tipo === "pend") g[n].pide++; });
+    return L.sort(function (x, y) { return (y.pide > 0) - (x.pide > 0) || y.items.length - x.items.length; });
+  }
+  function focoGeo() {
+    var W = innerWidth, H = innerHeight, sd = Math.max(48, Math.min(60, W * .14)), d = Math.max(74, Math.min(104, W * .23));
+    var R = Math.min(W / 2 - sd / 2 - 40, d / 2 + sd / 2 + 70, 170), cy = Math.min(Math.max(H * .45, 150 + R), H - R - 150);
+    return { W: W, H: H, sd: sd, d: d, R: R, cx: W / 2, cy: cy };
+  }
+  /* Entrar a una esfera: ella va al centro, las demás se recogen detrás de Alma y Alma baja chica (tocarla cierra todo). */
+  function focoEntrar(k, i) {
+    FO.k = k; FO.i = i; FO.proy = null; FO.firma = "";
+    var g = FO.geo = focoGeo();
+    SANav.escena({ y: (g.H - 92) / g.H, s: 70 });
+    ES.forEach(function (e, j) { if (j === i) { e.z = e.z || new Res(0); e.z.to(1, .55, .8); } else esLuego(e.q, 0, (ES.length - 1 - j) * 18, .38, 1); });
+    AV.abierta = false; clearTimeout(AV.t); avisoMostrar();
+    focoPintar(true);
+    if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+  }
+  /* Subir un nivel: del proyecto a la esfera; de la esfera a las 6 */
+  function focoSubir() {
+    if (!FO.k) return;
+    if (AV.abierta) { AV.abierta = false; avisoMostrar(); return; }
+    if (FO.proy) { FO.proy = null; focoPintar(true); return; }
+    focoSalir(true);
+  }
+  function focoSalir(volver) {
+    if (!FO.k) return;
+    var i = FO.i; FO.k = null; FO.i = -1; FO.proy = null; FO.firma = "";
+    $("sat-capa").classList.remove("on"); $("sat-ruta").classList.remove("on");
+    setTimeout(function () { if (!FO.k) $("sat-capa").innerHTML = ""; }, 400);
+    ES.forEach(function (e, j) { if (e.z) e.z.to(0, .5, .85); if (volver && j !== i) esLuego(e.q, 1, 60 + j * 30, .5, .68); });
+    if (volver && OR.geo) SANav.escena({ y: OR.geo.cy / OR.geo.H, s: OR.geo.alma });
+    AV.abierta = false; avisoArmar();
+  }
+  /* Pinta el nivel actual: los proyectos (solo nombre y cuántos) o, dentro de un proyecto, sus pendientes y avisos */
+  function focoPintar(nuevo) {
+    if (!FO.k) return;
+    var grupos = focoGrupos(FO.k), gp = FO.proy && grupos.filter(function (x) { return x.n === FO.proy; })[0];
+    if (FO.proy && !gp) { FO.proy = null; nuevo = true; }   // ya se resolvió todo lo de ese proyecto: vuelve a los proyectos
+    if (!grupos.length) { focoSalir(true); return; }
+    var L = FO.proy ? gp.items.map(function (a) { return { t: "item", a: a, n: a.titulo || "", pide: a.tipo === "pend" }; })
+      : grupos.map(function (x) { return { t: "proy", n: x.n, c: x.items.length, pide: x.pide > 0 }; });
+    var firma = (FO.proy || "") + "|" + L.map(function (x) { return x.n + (x.c || "") + (x.a ? x.a.id : ""); }).join("|");
+    if (!nuevo && firma === FO.firma) return; FO.firma = firma;
+    var g = FO.geo || (FO.geo = focoGeo()), capa = $("sat-capa"), col = AV_COLOR[FO.k] || "#E9826A", mas = 0;
+    if (L.length > SAT_MAX) { mas = L.length - (SAT_MAX - 1); L = L.slice(0, SAT_MAX - 1); L.push({ t: "mas", n: "Ver todo", c: "+" + mas }); }
+    capa.classList.remove("on"); capa.innerHTML = ""; capa.style.setProperty("--c", col);
+    var an = el("i", "anillo"); an.style.cssText = "width:" + (2 * g.R) + "px;height:" + (2 * g.R) + "px;margin:" + (-g.R) + "px 0 0 " + (-g.R) + "px;left:" + g.cx + "px;top:" + g.cy + "px";
+    capa.appendChild(an);
+    L.forEach(function (s, j) {
+      var ang = (-90 + j * 360 / L.length) * Math.PI / 180, b = el("button", "sat " + s.t + (s.pide ? " pide" : "")); b.type = "button";
+      b.style.setProperty("--sd", g.sd + "px"); b.style.setProperty("--x0", g.cx + "px"); b.style.setProperty("--y0", g.cy + "px");
+      b.style.setProperty("--x", (g.cx + Math.cos(ang) * g.R).toFixed(1) + "px"); b.style.setProperty("--y", (g.cy + Math.sin(ang) * g.R).toFixed(1) + "px");
+      b.style.setProperty("--sdl", (RM ? 0 : 60 + j * 35) + "ms");
+      var dentro = s.t === "item" ? (s.pide ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 6.5v7"/><circle cx="12" cy="17.5" r=".6" fill="currentColor"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5h-14z"/><path d="M10.2 20a2 2 0 0 0 3.6 0"/></svg>') : "";
+      b.innerHTML = '<span class="resp"><span class="pres"><span class="halo"></span><span class="piedra">' + dentro + '</span></span></span>';
+      if (s.t !== "item") b.querySelector(".piedra").textContent = String(s.c);
+      b.appendChild(el("span", "nom", s.n));
+      b.setAttribute("aria-label", s.t === "proy" ? s.n + ", " + s.c + (s.c === 1 ? " cosa" : " cosas") + (s.pide ? ", pide algo de ti" : "") : s.t === "mas" ? "Ver todo en Pendientes" : (s.pide ? "Pendiente: " : "Aviso: ") + s.n);
+      b.addEventListener("pointerdown", function () { b.classList.add("press"); });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) { b.addEventListener(t, function () { b.classList.remove("press"); }); });
+      b.onclick = function () {
+        if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+        if (s.t === "proy") { FO.proy = s.n; focoPintar(true); return; }
+        if (s.t === "item") { AV.actual = s.a; AV.abierta = true; avisoMostrar(); focoRuta(); return; }
+        var pr = (FO.proy ? gp.items : focoItems(FO.k)).filter(function (a) { return a.tipo === "pend"; })[0] || focoItems(FO.k)[0];
+        var k = FO.k; orbita(false); SANav.escena(null); if (pr) SANav.ver(pr.tipo, pr.id, k);
+      };
+      capa.appendChild(b);
+    });
+    focoRuta();
+    requestAnimationFrame(function () { requestAnimationFrame(function () { capa.classList.add("on"); if (window.SAPulso) SAPulso.enFase(capa); }); });
+  }
+  /* La ruta de arriba dice dónde estás («Propósito · Spacio AM») y tocarla sube un nivel; con un aviso abierto, se esconde */
+  function focoRuta() {
+    var r = $("sat-ruta"), t = $("sat-ruta-t"); r.style.setProperty("--c", AV_COLOR[FO.k] || "#E9826A");
+    t.textContent = ""; t.appendChild(document.createTextNode("‹ " + avNombre(FO.k)));
+    if (FO.proy) t.appendChild(el("small", "", " · " + FO.proy));
+    r.classList.toggle("on", !!FO.k && !AV.abierta);
+  }
+  $("sat-ruta").onclick = function () { focoSubir(); };
+  addEventListener("resize", function () { if (FO.k) { FO.geo = focoGeo(); orbitaPintar(); focoPintar(true); } });
   function areasAbrir(on, area) {
     AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true"); avisoMostrar();
     if (on) { AR.area = area || null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
@@ -1839,7 +1984,7 @@ window.SAPulso = {
     alTocar: function () { if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
-    alDatos: function () { avisoArmar(); }, alDoble: function () { if (OR.abierta) modoAvisos(); } });
+    alDatos: function () { avisoArmar(); focoPintar(false); }, alDoble: function () { if (OR.abierta) modoAvisos(); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }

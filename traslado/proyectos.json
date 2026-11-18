@@ -28,7 +28,7 @@
   "grow": {
     "repo": "Grow-spacioam", "carpeta": "apps-script", "titulo": "Grow · Spacio AM",
     "viejo": "https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec",
-    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": []
+    "copiar": "todas", "excluir": ["CUPO_*"], "al_traer": [], "sincronizar": true
   },
   "mi": {
     "repo": "mi-spacioam", "carpeta": "apps-script", "titulo": "Mi · Spacio AM",

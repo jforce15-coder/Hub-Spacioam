@@ -1317,13 +1317,15 @@ function hubLimpiezas_(codigo) {
 /* ═══ GROW (captación y montaje) ═══════════════════════════════════════════════════════════════
    La secretaria consulta y mueve proyectos de Grow por su puerta de servidor (__secretaria), que escribe en las
    hojas y en el estado compartido de la app. Token en la propiedad GROW_TOKEN (se carga por el robot: grow_token). */
-var GROW_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec';
+var GROW_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxECFedgEkQF7wh9k__sLYza_jDO6yCljHVFBv984zZT2C73awX1ChqWXXdkiEfkA/exec';   // Grow en alma@ (18-nov-2026)
+var GROW_URL_VIEJA_ = 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec';   // la de la cuenta vieja: si la Propiedad la guarda, se ignora
+function growUrl_() { var u = PropertiesService.getScriptProperties().getProperty('GROW_URL'); return u && u !== GROW_URL_VIEJA_ ? u : GROW_URL_DEF_; }
 var GROW_ETAPAS_ = ['desconocido', 'reunion', 'archivos', 'visita', 'decision', 'anteproyecto', 'presupuesto', 'contrato', 'ejecucion', 'fotos', 'lanzamiento', 'revision', 'descartado'];
 function growApi_(op, datos) {
   var P = PropertiesService.getScriptProperties(), tok = P.getProperty('GROW_TOKEN');
   if (!tok) return { ok: false, error: 'Grow no está conectado todavía (falta GROW_TOKEN).' };
   try {
-    var r = uf_(P.getProperty('GROW_URL') || GROW_URL_DEF_, { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
+    var r = uf_(growUrl_(), { method: 'post', contentType: 'text/plain;charset=utf-8', muteHttpExceptions: true, followRedirects: true,
       payload: JSON.stringify(Object.assign({}, datos || {}, { action: '__secretaria', token: tok, op: op })) }, 'Otras apps');
     var t = r.getContentText();
     try { return JSON.parse(t); } catch (e) { return { ok: false, error: 'Grow respondió ' + r.getResponseCode() + ': ' + t.slice(0, 200) }; }

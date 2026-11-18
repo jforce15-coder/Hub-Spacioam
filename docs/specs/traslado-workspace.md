@@ -221,3 +221,14 @@ hojas del lector seguro (`HOJAS_PERMITIDAS`; la de The Gentle Stoic Parent es p�
   en el viejo después del traer lo registra otra vez.
 - Ya no se publica con clasp: `login-apps-script.yml` solo revisa; `"sincronizar": true` en `proyectos.json`.
 - **Volver atrás:** revertir los PR de direcciones (el viejo sigue vivo 7 días con su `SESSION_SECRET`).
+
+## Grow (18-nov-2026)
+Grow corre en alma@ (`/exec` `AKfycbxECFed…`). No tiene activadores, así que no hace falta pestaña TRASLADO: al traer solo
+copia las Propiedades (`SPREADSHEET_ID`, `FOLDER_ID`, `LOGIN_SECRETO`…). alma@ es editora de la carpeta «Grow App» y de la
+hoja «Spacio AM · Gestión». Robot de Grow `{action:"__traslado", token}`: id, cuenta, si abre la hoja y la carpeta y si
+tiene `LOGIN_SECRETO` (Grow `apps-script/trasladodiag.js`).
+- La dirección /exec de Grow está en `404.html`, en el `index.html` empaquetado (la app) y en los `.dc.html` de Grow; en el
+  Hub en `apps-script/agente.js` (`GROW_URL_DEF_`, o la Propiedad `GROW_URL` si no guarda la vieja; también la usa
+  `ACCESOS_APPS_.grow`) y en Docs `esign.jsx` (`GROW_API`).
+- Ya no se publica con clasp: el «Publicar Apps Script» de Grow avisa al Hub y `"sincronizar": true`.
+- **Volver atrás:** revertir los PR de direcciones (el viejo queda vivo 7 días).

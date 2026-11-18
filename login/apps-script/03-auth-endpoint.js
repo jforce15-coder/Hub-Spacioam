@@ -62,6 +62,7 @@ function _handle(e){
     if(body.action === 'diagLector') return _diagLector(body.robot);
     if(body.action === 'diagClaves') return _diagClaves(body.robot);
     if(body.action === 'diagAlternos') return _diagAlternos(body.robot);
+    if(body.action === 'diagTraslado') return _diagTraslado(body.robot);   // prueba de humo del traslado (04-traslado-diag.js)
     if(body.action === 'resolverSocios') return _resolverSocios(body.robot, body.aplicar === true);
     if(body.action === 'crearContador') return _crearContador(body.robot, body.email, body.alternos, body.nombre, body.aplicar === true);
     if(body.action === 'accesoAyudanteMi'){   // robot (el Hub) o la sesión firmada de un admin principal

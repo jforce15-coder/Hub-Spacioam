@@ -44,7 +44,7 @@ var CLAUDIO_FRASE_ = 'Te lo paso.';
 var CLAUDIO_PERMISO_ = 'PUEDES PASARLO CON CLAUDIO: es el administrador principal y la app sabe cambiar a Claudio (el equipo de desarrollo).';
 var CLAUDIO_PROTECCION_NOMBRE_ = 'Instrucciones de Claudio (solo el administrador principal)';
 var CLAUDIO_REINTENTO_MS_ = 6 * 3600000;   // si crear el agente falló, se vuelve a intentar a las 6 h (no en cada vuelta)
-var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo', 'claudio_acciones'];
+var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo', 'claudio_acciones', 'ver_video'];
 var CLAUDIO_REPOS_ = { hub: 'Hub-Spacioam', app: 'alma-app' };
 var CLAUDIO_CODIGO_MAX_ = 2400;            // lo que vuelve de leer código: corto, es para explicarlo en voz
 var CLAUDIO_SIN_FICHA_ = 'Sin ficha del Hub: no es el administrador principal. No hagas pedidos, no unas ni leas código; dile con amabilidad que esto es solo para el administrador desde la app de Alma.';
@@ -170,6 +170,11 @@ function claudioDefHerramientas_(base) {
         cual: s('Para aprobar: el cambio a unir (su número o dos palabras de su nombre). Vacío si no aplica.'),
         trabajo: s('Si la acción es de un trabajo abierto, dos o tres palabras de su nombre. Vacío si no.') },
       ['conv_id', 'tipo', 'titulo'], 20),
+    web('ver_video', 'Ve un video que Juan te pasó: un enlace de TikTok, Instagram, Facebook, YouTube o X, o lo nuevo de su carpeta de desarrollo en Drive («mira lo nuevo»). La primera vez lo manda a ver (fotos clave, transcripción y resumen) y el resumen llega al hilo de Claudio en 1 a 5 minutos: di solo «Lo estoy viendo; te aviso en el hilo». Si ya lo viste, devuelve su resumen y la transcripción con tiempos: úsalos para opinar y decidir con Juan. Sin enlace, los últimos videos.',
+      { url: s('El enlace tal cual lo pegó Juan (o el texto que lo trae). Vacío para «mira lo nuevo» o para los últimos videos.'),
+        carpeta: { type: 'string', enum: ['', 'nuevo'], description: 'nuevo: Juan dijo «mira lo nuevo» (lo que subió hoy a la carpeta de desarrollo). Vacío si no.' },
+        otra_vez: s('«sí» solo si Juan pide verlo de nuevo aunque ya lo viste. Vacío si no.') },
+      ['conv_id'], 20),
     { type: 'client', name: 'volver_con_alma', expects_response: false, response_timeout_secs: 1,
       description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz; ella cierra con Juan. Úsala cuando Juan pida volver con Alma, cuando ya terminaron o cuando diga que eso era todo (en vez de colgar). Antes di solo «Listo, te paso con Alma.» y después nada.',
       parameters: { type: 'object', required: [], properties: { nota: { type: 'string', description: 'Vacío.' } } },
@@ -433,7 +438,8 @@ function claudioEjecutar_(adm, herr, b) {
   CLAUDIO_PANEL_ = null;
   var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_responder' ? claudioResponder_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
     : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b)
-    : herr === 'claudio_acciones' ? claudioAccionesHerr_(adm, b) : { ok: false, error: 'herramienta desconocida' };   // claudioacciones.js
+    : herr === 'claudio_acciones' ? claudioAccionesHerr_(adm, b)   // claudioacciones.js
+    : herr === 'ver_video' ? claudioVerVideo_(adm, b) : { ok: false, error: 'herramienta desconocida' };   // vervideo.js
   if (herr === 'claudio_acciones' && out.ok) claudioPanelCandidata_('lista', '');   // en pantalla: el panel con sus acciones arriba
   var cand = CLAUDIO_PANEL_;
   try { claudioPanelGuardar_(b.conv_id); } catch (e) { console.error('claudioPanelGuardar_: ' + e); }

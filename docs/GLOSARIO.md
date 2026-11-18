@@ -16,6 +16,10 @@ natural (sin bajarlo), a 24 kHz en la app (no aplanada a 16 kHz como una llamada
 normal. Viene encendido; `CLAUDIO_LOCAL = 0` vuelve al
 agente de ElevenLabs, `CLAUDIO_VOZ_LOCAL` afina la voz (`{"motor":"elevenlabs"}` vuelve a mandar cada frase con su voz de
 ElevenLabs) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo de ese camino. Evitar: «Claudio offline», «Claudio sin internet» (necesita internet).
+**Ver video** (18-nov-2026): Juan pasa un enlace de TikTok, Instagram, Facebook, YouTube o X (o dice «mira lo nuevo» por su
+carpeta de Drive de desarrollo) y Claudio lo ve: fotos clave con su hora, la transcripción con tiempos y un resumen, guardados
+en el Drive de alma@ («Claudio · Videos vistos»). Lo hace el workflow «Ver video» de GitHub; el resumen llega al hilo de
+Claudio. Evitar: «descargar el video», «subir el TikTok».
 **Voces locales** (17-nov-2026): con qué voz hablan Claudio local y Maricarmen en la app (Ajustes → Voz y modos → Voces
 locales). Por personaje: **Kokoro** (un modelo de voz abierto que trabaja en el iPhone, sin internet ni créditos; se baja una
 vez, 92 MB) o la voz del iPhone. Si Kokoro falla, no está o tarda, sigue la voz del iPhone sin cortar la conversación. Las

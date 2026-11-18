@@ -1,0 +1,73 @@
+# Ver video (Juan, 18-nov-2026): «Tengo que poder compartir un link de TikTok y que tú puedas ver el video, entenderlo.
+# Esto tiene que estar también habilitado para Alma App.» Juan pasa un ENLACE (TikTok, Instagram, Facebook, YouTube o X)
+# o un archivo de su carpeta de Drive de desarrollo; este flujo lo baja, saca fotos clave con su hora (hojas de contacto)
+# y la transcripción con tiempos, y se lo entrega al Hub (apps-script/vervideo.js), que lo guarda en el Drive de alma@ y
+# arma el resumen. Claudio (Alma App) y las sesiones de Claude lo leen del Hub.
+#
+# Privado: el repo es público, así que este flujo NUNCA imprime la transcripción, la descripción ni el enlace del archivo
+# de Drive, y no deja artefactos (en un repo público cualquiera con cuenta los descarga). Todo viaja directo al Hub.
+# La llave con el Hub es la misma de «Aviso para Alma» (secreto PARA_ALMA_AVISO_KEY = propiedad del Hub); nunca se imprime.
+# Instagram y Facebook a veces piden sesión: si Juan carga el secreto VER_VIDEO_COOKIES (cookies.txt de un navegador con
+# la sesión abierta), se usan; si no, ese video se sube a la carpeta de Drive.
+#
+# Lo lanza el Hub (repository_dispatch «ver-video» con {id, url | drive}) o una sesión de Claude (workflow_dispatch con el
+# id que da el robot «ver_video»).
+name: Ver video
+
+on:
+  repository_dispatch:
+    types: [ver-video]
+  workflow_dispatch:
+    inputs:
+      id:
+        description: 'Id del pedido en el Hub (lo da el robot «ver_video»)'
+        required: true
+      url:
+        description: 'Enlace del video (TikTok, Instagram, Facebook, YouTube, X)'
+        required: false
+      drive:
+        description: 'Id del archivo en la carpeta de Drive de desarrollo'
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ver-video-${{ github.event.client_payload.id || github.event.inputs.id }}
+  cancel-in-progress: false
+
+jobs:
+  ver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/ver-video
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Modelo de transcripción (caché)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-small-v1
+      - name: Herramientas
+        run: |
+          command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          pip install -q yt-dlp==2026.10.26 faster-whisper==1.2.1 pillow==11.3.0
+      - name: Ver el video
+        env:
+          VV_ID: ${{ github.event.client_payload.id || github.event.inputs.id }}
+          VV_URL: ${{ github.event.client_payload.url || github.event.inputs.url }}
+          VV_DRIVE: ${{ github.event.client_payload.drive || github.event.inputs.drive }}
+          VV_LLAVE: ${{ secrets.PARA_ALMA_AVISO_KEY }}
+          VV_COOKIES: ${{ secrets.VER_VIDEO_COOKIES }}
+          VV_HUB: https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec
+        run: |
+          if [ -z "$VV_LLAVE" ]; then echo "::error::Falta el secreto PARA_ALMA_AVISO_KEY: no hay cómo entregarle el resultado al Hub."; exit 1; fi
+          if ! printf '%s' "$VV_ID" | grep -Eq '^vv[0-9]{6,20}$'; then echo "::error::Id de pedido inválido."; exit 1; fi
+          python .github/ver-video/ver_video.py
+      - name: Limpiar
+        if: always()
+        run: rm -rf vv

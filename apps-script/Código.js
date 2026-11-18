@@ -129,6 +129,7 @@ function doPost(e) {
     if (body.action === 'enlace' && !body.hub) { cupoCanal_('Otros'); return json_(enlacePublico_(body.codigo)); }   // enlace corto (pública: solo devuelve el enlace largo; la usa 404.html, enlaces.js)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
+    if (body.verVideo && !body.hub) { cupoCanal_('Chat de Alma'); cupoFuncion_('vvApi_'); return json_(vvApi_(body)); }   // el workflow «Ver video» entrega o pide un trozo (llave compartida, vervideo.js)
     if (body.dsBot) return dsBotApi_(body);                    // revisión automática del design system (token propio)
     if (body.mejora && body.action === 'biblioteca') { cupoCanal_('Otros'); cupoFuncion_('bibliotecaClaude_'); return json_(bibliotecaClaude_(body)); }   // Claudio lee la Biblioteca de Claudio con el lector de su pedido (biblioteca.js)
     if (body.mejora && body.action === 'respuesta') return json_(paraClaudeRespuesta_(body));   // Claude responde un pedido de Alma (llave de un solo uso, paraclaude.js)
@@ -2206,7 +2207,7 @@ const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · d
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
   opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
   fuentesLeerTexto_: 'Respuesta con fuentes · lo escrito', fuentesVer_: 'Respuesta con fuentes · fotos',
-  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos', jvLectura_: 'Tablero · cómo va el huésped' };
+  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos', jvLectura_: 'Tablero · cómo va el huésped', vvResumir_: 'Ver video · resumen' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];
@@ -5586,6 +5587,7 @@ function dsBotApi_(body) {
       case 'contactos': return json_({ ok: true, contactos: contactosTodos_().map(c => ({ tel: '…' + String(c.tel).slice(-4), nombre: c.nombre, tipo: c.tipo, rol: c.rol, estado: c.estado, actualizado: String(c.actualizado).slice(0, 10) })) });
       case 'contactos_rellenar': return json_(contactosRellenar_());
       case 'para_claude': return json_(paraClaudeLista_(!!body.todos));
+      case 'ver_video': case 'ver_video_estado': case 'ver_videos': case 'carpeta_nuevo': case 'drive_archivo': return json_(vvRobot_(body));   // Ver video (vervideo.js)
       case 'para_alma_estado': return json_(paraAlmaDiag_());   // instrucciones «para-alma»: estado del aviso y código de GitHub, sin textos (paraalma.js)
       case 'para_claude_marcar': return json_(paraClaudeMarcar_(body.id, body.estado, body.nota));
       case 'para_claude_reintentar': return json_(paraClaudeReintentar_());   // los pedidos que no salieron, ya (paraclaude.js)

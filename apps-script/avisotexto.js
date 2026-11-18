@@ -62,6 +62,13 @@ function avisoTexto_(tipo, d) {
     case 'claude_consulta': out = { titulo: 'Ya tengo la respuesta',
       texto: 'Ya tengo la respuesta a lo que preguntaste de ' + q(d.titulo) + '.',
       datos: [lin('Pedido', d.titulo), lin('Respuesta', det), 'Dónde: en tu chat con Alma'], voz: det ? 'En corto: ' + det : '' }; break;
+    /* Ver video (vervideo.js): ya se vio el video que Juan pasó, o no se pudo (sin «Claudio», como los de arriba). */
+    case 'video_visto': out = { titulo: 'Ya vi el video',
+      texto: 'Ya vi el video ' + q(d.titulo) + '; el resumen está en el hilo de desarrollo.',
+      datos: [lin('Resumen', det), 'Dónde: en el hilo de desarrollo'], voz: det ? 'En corto: ' + det : '' }; break;
+    case 'video_fallo': out = { titulo: 'No pude ver el video',
+      texto: 'No pude ver el video que me pasaste; en el hilo de desarrollo te digo por qué.',
+      datos: [lin('Qué pasó', det || 'no se pudo bajar'), 'Qué falta: súbelo a la carpeta de desarrollo y dime «mira lo nuevo»'] }; break;
     /* Escalar sola (escalar.js): lo que hizo falta cambiar para cumplir un pedido de Juan. */
     case 'escalar_entregado': out = { titulo: 'Ya está lo que pediste',
       texto: 'Ya está lo que me pediste de ' + q(d.nombre) + ': hizo falta un cambio, lo uní y te dejé el resultado en tu chat.',

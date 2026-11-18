@@ -453,3 +453,7 @@ jobs:
       - name: A la mano, lo cercano preparado antes (limpieza del día), con su hora, sin inventar y solo para administradores (dobles)
         # 18-nov-2026: Juan pidió que Alma trabaje como un juego de mundo abierto y tenga a la mano lo que se acerca.
         run: node .github/a-la-mano.js apps-script
+
+      - name: Unir = publicar, lo que cambia en main de una app con sincronizar se publica solo en alma@ (pedido del Hub, push y a mano sincroniza todas) (dobles)
+        # 18-nov-2026: el horario de «Traslado a Workspace» pasó 12 h sin correr y lo unido no llegaba a producción.
+        run: node .github/publicar-solo.js apps-script

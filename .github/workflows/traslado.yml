@@ -1,23 +1,41 @@
 # Publica un Apps Script en la cuenta alma@spacioam.com a través del Mudador (traslado/Mudador.js), sin clasp ni la
-# cuenta vieja. Spec: docs/specs/traslado-workspace.md. Los «Publicar Apps Script» de cada repo siguen igual hasta el corte.
+# cuenta vieja. Spec: docs/specs/traslado-workspace.md.
 #
 # Secretos (los pone Juan en GitHub, nunca en el chat): MUDADOR_URL y MUDADOR_LLAVE.
-# proyecto = docs | hub | login | hola | epi | grow | mi (traslado/proyectos.json), «mudador» (se sube a sí mismo)
-# o «estado» (qué hay en alma@). crear = true solo la primera vez de cada proyecto.
-# Cada 10 min (y a mano con proyecto = sincronizar) publica desde main las apps ya cortadas («sincronizar»: true en
-# proyectos.json): así reemplaza a clasp sin secretos en los otros repos. El mismo commit no gasta versiones (sin_cambios).
+# proyecto = docs | hub | login | hola | epi | grow | mi (traslado/proyectos.json), «mudador» (se sube a sí mismo),
+# «estado» (qué hay en alma@) o «sincronizar». crear = true solo la primera vez de cada proyecto.
+#
+# Unir = publicar (18-nov-2026). «sincronizar» publica desde main todas las apps ya cortadas («sincronizar»: true en
+# proyectos.json). Corre solo:
+#   - al unir en el Hub un cambio de apps-script/, login/apps-script/ o proyectos.json (push);
+#   - cuando el Hub (Apps Script) ve que cambió la carpeta apps-script de Docs, Hola, Epi o Mi en main: el «Publicar Apps
+#     Script» de cada app le avisa al unir y además el Hub mira cada 5 min (repository_dispatch «publicar»,
+#     apps-script/publicarsolo.js). Así no hace falta ningún secreto en los otros repos;
+#   - a mano sin proyecto (sincroniza todas) y con el horario como red de seguridad (GitHub lo corre cuando puede: el
+#     18-nov pasaron 12 h sin una sola corrida de las de cada 10 min).
+# Cada corrida sincroniza todas desde el main de ese momento: si GitHub descarta una corrida en espera (concurrency),
+# la siguiente publica lo mismo. La huella es la de la carpeta (árbol de git), no la del commit: una app sin cambios en
+# su carpeta responde sin_cambios y no gasta versiones.
 
 name: Traslado a Workspace
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "apps-script/**"
+      - "login/apps-script/**"
+      - "traslado/proyectos.json"
+  repository_dispatch:
+    types: [publicar]
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "7,37 * * * *"
   workflow_dispatch:
     inputs:
       proyecto:
-        description: "docs, hub, login, hola, epi, grow, mi, mudador, estado o sincronizar"
-        required: true
-        default: estado
+        description: "sincronizar (todas), docs, hub, login, hola, epi, grow, mi, mudador o estado"
+        required: false
+        default: sincronizar
       crear:
         description: "Crear el proyecto si no existe (primera vez)"
         type: boolean
@@ -100,12 +118,12 @@ jobs:
                 REPO=${R% *}; DIR=${R#* }; rm -rf "$RUNNER_TEMP/s"
                 git clone -q --depth 1 "https://github.com/jforce15-coder/$REPO" "$RUNNER_TEMP/s" || { echo "::error::No pude bajar $REPO"; FALLO=1; continue; }
                 for f in "$RUNNER_TEMP/s/$DIR"/*.js; do cp "$f" /tmp/x.js; node --check /tmp/x.js || { FALLO=1; continue 2; }; done
-                SHA=$(git -C "$RUNNER_TEMP/s" rev-parse HEAD)
-                MENSAJE="$(git -C "$RUNNER_TEMP/s" log -1 --format=%s | cut -c1-80)" node traslado/empacar.js publicar "$P" "$RUNNER_TEMP/s/$DIR" "$SHA" "$PEDIDO" false
+                SHA=$(git -C "$RUNNER_TEMP/s" rev-parse "HEAD:$DIR")   # huella de la carpeta: sin cambios en ella, sin versión nueva
+                MENSAJE="$(git -C "$RUNNER_TEMP/s" log -1 --format='%h %s' | cut -c1-80)" node traslado/empacar.js publicar "$P" "$RUNNER_TEMP/s/$DIR" "$SHA" "$PEDIDO" false
                 mandar "$P" || FALLO=1
               done
               exit $FALLO ;;
-            *)       SHA=$(git -C fuente rev-parse HEAD)
-                     MENSAJE="$(git -C fuente log -1 --format=%s | cut -c1-80)" node traslado/empacar.js publicar "$PROYECTO" "$CARPETA" "$SHA" "$PEDIDO" "$CREAR"
+            *)       SHA=$(git -C fuente rev-parse "HEAD:${CARPETA#fuente/}")
+                     MENSAJE="$(git -C fuente log -1 --format='%h %s' | cut -c1-80)" node traslado/empacar.js publicar "$PROYECTO" "$CARPETA" "$SHA" "$PEDIDO" "$CREAR"
                      mandar "$PROYECTO" ;;
           esac

@@ -1,8 +1,7 @@
 # Publica el Apps Script del Hub cuando un cambio aprobado llega a main.
 # La web (GitHub Pages) se publica sola; este flujo se ocupa solo del Apps Script.
 #
-# Requiere el secreto CLASPRC_JSON (Settings → Secrets and variables → Actions).
-# Actualiza siempre la misma implementación, así la URL de la web app no cambia.
+# Revisa el código; desde el corte a alma@ lo publica «Traslado a Workspace» (traslado.yml), no clasp.
 
 name: Publicar Apps Script
 
@@ -21,9 +20,6 @@ permissions:
 concurrency:
   group: apps-script
   cancel-in-progress: false
-
-env:
-  DEPLOYMENT_ID: AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ
 
 jobs:
   publicar:
@@ -55,59 +51,11 @@ jobs:
           print('Sin nombres duplicados.')
           EOF
 
-      - name: Instalar clasp
-        run: npm install -g @google/clasp@3
-
-      - name: Cargar credenciales de Google
-        env:
-          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+      - name: Dónde se publica
+        # Desde el corte a alma@ (docs/specs/traslado-workspace.md) el Hub ya no se publica con clasp ni con la cuenta vieja:
+        # el workflow «Traslado a Workspace» lo sube cada 10 min desde main por el Mudador (traslado/proyectos.json, sincronizar).
         run: |
-          if [ -z "$CLASPRC_JSON" ]; then
-            echo "::error::Falta el secreto CLASPRC_JSON en este repositorio."
-            exit 1
-          fi
-          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
-
-      - name: Subir el código
-        run: clasp push --force
-
-      - name: Crear versión y actualizar la implementación
-        env:
-          MSG: ${{ github.event.head_commit.message || 'Publicación manual' }}
-        run: |
-          # El mensaje llega por env: con comillas invertidas (`así`) ya no se ejecuta como comando
-          DESC="$(printf '%s' "$MSG" | head -n1 | cut -c1-90)"
-          # Si falla, que se vea por qué (antes «set -e» lo cortaba sin mostrar nada)
-          if ! OUT="$(clasp create-version "$DESC" 2>&1)"; then
-            echo "$OUT"
-            if printf '%s' "$OUT" | grep -qiE 'maximum|limit|200'; then
-              echo "::error::Google llegó al máximo de 200 versiones del Apps Script. Hay que borrar versiones viejas: script.google.com → el proyecto → Implementaciones → Gestionar → (o Historial del proyecto) y borrar las más antiguas. El código ya se subió; solo falta publicar."
-            else
-              echo "::error::No se pudo crear la versión: $(printf '%s' "$OUT" | tail -n3 | tr '\n' ' ')"
-            fi
-            exit 1
-          fi
-          echo "$OUT"
-          VERSION="$(printf '%s' "$OUT" | grep -oE '[0-9]+' | tail -n1)"
-          if [ -z "$VERSION" ]; then
-            echo "::error::No se pudo leer el número de versión."
-            exit 1
-          fi
-          clasp update-deployment "$DEPLOYMENT_ID" -V "$VERSION" -d "$DESC"
-          echo "Publicada la versión $VERSION en la implementación $DEPLOYMENT_ID" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Avisar antes de llegar al límite de 200 versiones
-        # Google no deja borrar versiones por API: hay que hacerlo a mano en el historial del proyecto. Se avisa con tiempo.
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          N="$(clasp list-versions 2>&1 | head -n1 | grep -oE '[0-9]+' | head -n1 || true)"
-          echo "Versiones del Apps Script: ${N:-?} de 200"
-          if [ -n "$N" ] && [ "$N" -ge 180 ]; then
-            echo "::warning::El Apps Script lleva $N de 200 versiones."
-            if [ -z "$(gh issue list --state open --label apps-script-versiones --json number -q '.[0].number' 2>/dev/null)" ]; then
-              gh label create apps-script-versiones --color E9826A --description "Borrar versiones viejas del Apps Script" --force >/dev/null 2>&1 || true
-              gh issue create --label apps-script-versiones --title "Apps Script: $N de 200 versiones, hay que borrar las viejas" \
-                --body "Google permite 200 versiones; al llegar, el Hub deja de publicarse. Borra las más viejas en https://script.google.com/home/projects/1IGzA_-bFOqiC9Y6SEMkWs6DlyaaSmsXYP_vERsivCWRqd3UXRBZu-H2V/projecthistory (Historial del proyecto → borrado masivo). Deja las últimas 20." || true
-            fi
-          fi
+          {
+            echo "### El Hub se publica en alma@spacioam.com"
+            echo "Lo sube «Traslado a Workspace» (cada 10 min desde main, commit ${GITHUB_SHA::7}). El Hub viejo queda apagado de respaldo."
+          } >> "$GITHUB_STEP_SUMMARY"

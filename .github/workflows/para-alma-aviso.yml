@@ -31,7 +31,7 @@ jobs:
           NUM: ${{ github.event.issue.number }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          URL: https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec
+          URL: https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec
         run: |
           if [ -z "$LLAVE" ]; then echo "Sin el secreto PARA_ALMA_AVISO_KEY: no aviso; el Hub revisa GitHub por su cuenta."; exit 0; fi
           CUERPO=$(jq -cn --arg k "$LLAVE" --argjson n "$NUM" '{action: "paraAlmaAviso", llave: $k, issue: $n}')

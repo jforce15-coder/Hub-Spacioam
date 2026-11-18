@@ -827,7 +827,7 @@
   function conTutoriales(cb) {
     if (w.SATutoriales) { cb(); return; }
     tutCb.push(cb); if (tutCargando) return; tutCargando = true;
-    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-10-28a";
+    var s = d.createElement("script"); s.async = true; s.src = HUB + "/js/sa-tutoriales.js?v=2026-11-18-ws";
     s.onload = function () { var l = tutCb; tutCb = []; l.forEach(function (f) { try { f(); } catch (e) { console.error(e); } }); };
     s.onerror = function () { tutCargando = false; tutCb = []; };
     (d.head || d.documentElement).appendChild(s);

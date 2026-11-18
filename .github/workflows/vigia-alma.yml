@@ -22,7 +22,7 @@ jobs:
       - name: Preguntar a ALMA
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          URL: https://script.google.com/macros/s/AKfycbzTdkEpRPgnwaUIHWbQmrysPEqGYqTqDKYwMaQlnun-OT7B2hIa6KdSNS-aedWN-I0cZQ/exec
+          URL: https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec
         run: |
           R=""; for i in 1 2 3; do R=$(curl -sSL -m 60 -d '{"salud":1}' "$URL" || true); echo "$R" | grep -q '"ok":true' && break; sleep 20; done
           echo "Respuesta: $(echo "$R" | head -c 300)"

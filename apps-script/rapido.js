@@ -12,6 +12,8 @@
      leyó (leer otra vez no cambia nada): pidió pasar_al_completo, pidió una herramienta que no tiene, dijo que no sabe o no
      puede (escalarNoPudo_), dijo que algo quedó hecho (no tiene cómo hacerlo), falló la API, se negó, se le acabaron los
      tokens, pasó de VOZ_RAPIDO_VUELTAS_ vueltas o de VOZ_RAPIDO_MS_. Juan no lo nota: solo tarda lo de antes.
+     Excepción (guardia 18-nov-2026): si paró solo por tiempo o por vueltas, lo que ya leyó pasa al de siempre y no se
+     vuelve a leer (rapidoReusar_; el cronómetro guarda reuso = cuántos mensajes pasaron).
    · Mismo system: lo que Alma sabe y cómo habla no cambia. Al final de este_turno, una línea le dice qué herramientas tiene.
    · El modelo rápido no acepta temperatura (400): va sin ella y con esfuerzo bajo (output_config.effort = low).
    · Para medir después de unir: el cronómetro (VOZ_MS_ en voz_traza) guarda via (rapido · completo · rapido>completo),
@@ -105,6 +107,18 @@ function rapidoDecide_(texto, o) {
   return r;
 }
 
+/* Lo que el rápido leyó y el completo puede usar tal cual: solo si paró por tiempo o por vueltas (no si se equivocó, pidió
+   otra cosa o dijo algo raro), y solo pares completos (pedido de herramienta + su resultado), hasta el último resultado
+   (leido). Del modelo rápido quedan solo texto y herramientas, nada que dependa de su modelo. → mensajes para agregar. */
+function rapidoReusar_(motivo, m, base, leido) {
+  if (motivo !== 'tiempo' && motivo !== 'muchas vueltas') return [];
+  if (!(leido > base) || !m || leido > m.length) return [];
+  return m.slice(base, leido).map(function (x) {
+    if (x.role !== 'assistant' || !Array.isArray(x.content)) return x;
+    return { role: 'assistant', content: x.content.filter(function (b) { return b && (b.type === 'tool_use' || (b.type === 'text' && String(b.text || '').trim())); }) };
+  });
+}
+
 /* ¿Le preguntamos a Jev? Llave guardada, interruptor encendido y no está en pausa por fallar o tardar. */
 function jevKey_() { return String(PropertiesService.getScriptProperties().getProperty('JEV_KEY') || '').trim(); }
 function jevModelo_() { return String(PropertiesService.getScriptProperties().getProperty('JEV_MODELO') || '').trim() || JEV_MODELO_; }
@@ -178,7 +192,7 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
   var sys = system + '\n\nCAMINO RÁPIDO: en este turno solo tienes herramientas de leer (' + nombres.join(', ') + ') y pasar_al_completo. ' +
     'Si el pedido pide hacer algo, necesita otra herramienta o no lo puedes contestar con seguridad con lo que leas, llama pasar_al_completo y no respondas. Nunca digas que algo quedó hecho.';
   var limite = t0 + VOZ_RAPIDO_MS_; if (AGENTE_PLAZO_) limite = Math.min(limite, AGENTE_PLAZO_ - AGENTE_MARGEN_VUELTA_);
-  var m = msgs.slice();
+  var m = msgs.slice(), leido = 0;
   try {
     for (var vuelta = 0; vuelta < VOZ_RAPIDO_VUELTAS_ && !motivo && fin === null; vuelta++) {
       if (vuelta && Date.now() > limite) { motivo = 'tiempo'; break; }
@@ -208,13 +222,19 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
         return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
       });
       m.push({ role: 'user', content: resultados });
+      leido = m.length;
     }
     if (!motivo && fin === null) motivo = 'muchas vueltas';
   } catch (e) { console.error('rapidoIntentar_: ' + (e.stack || e)); motivo = 'error: ' + String(e.message || e).slice(0, 60); fin = null; }
   ms.rapido = Date.now() - t0;
   if (fin !== null && !motivo) { ms.via = 'rapido'; ms.motivo = d.motivo; ms.modelo = modelo; return agCerrarTurno_(adm, fin, ctx); }
-  /* No pudo: lo que el rápido leyó no queda; el de siempre empieza limpio desde el mismo pedido. */
-  ctx.hechas.length = hechas0; if (ctx.llamadas) ctx.llamadas.length = llamadas0; ctx.parcial = null;
+  /* No pudo: el de siempre sigue desde el mismo pedido. Si solo se le acabó el tiempo o las vueltas mientras leía
+     (rapidoReusar_), lo que ya leyó le sirve: va en msgs y no se vuelve a leer (guardia 18-nov-2026: «rapido>completo
+     por tiempo» hizo esperar 50 s a Juan, con 23 s de herramientas leídas dos veces). Si no, lo leído no queda. */
+  var reusa = rapidoReusar_(motivo, m, msgs.length, leido);
+  ctx.hechas.length = hechas0; ctx.parcial = null;
+  if (reusa.length) { Array.prototype.push.apply(msgs, reusa); ms.reuso = reusa.length; }
+  else if (ctx.llamadas) ctx.llamadas.length = llamadas0;
   if (typeof TV_CANDIDATA_ !== 'undefined') TV_CANDIDATA_ = null;   // la tarjeta de la llamada (tarjeta.js) la elige lo que lea el de siempre
   ms.via = 'rapido>completo'; ms.motivo = motivo; ms.modelo = CFG.MODELO_REDACTOR;
   AG_USO_FUNCION_ = 'Voz · completo tras el rápido';

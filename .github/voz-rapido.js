@@ -143,8 +143,7 @@ const LEER = 'Verificar si Mariana López ya llegó';
   ['dice que lo hizo', [{ text: 'Listo, ya le envié el mensaje a Mariana.' }], /dijo que lo hizo/],
   ['dice que ya lo mandó', [{ text: 'Ya le mandé el código a Mariana.' }], /dijo que lo hizo/],
   ['se niega', [{ text: '', stop: 'refusal' }], /se negó/],
-  ['se queda sin tokens', [{ thinking: 1, text: 'Mariana', stop: 'max_tokens' }], /sin tokens/],
-  ['da vueltas', [{ tools: [{ name: 'buscar_reservas' }] }, { tools: [{ name: 'ver_conversacion' }] }, { tools: [{ name: 'codigo_acceso' }] }], /muchas vueltas/]
+  ['se queda sin tokens', [{ thinking: 1, text: 'Mariana', stop: 'max_tokens' }], /sin tokens/]
 ].forEach(([caso, rapido, re]) => {
   const c = caja({ rapido });
   const { r, ms } = c.turno(LEER);
@@ -155,6 +154,27 @@ const LEER = 'Verificar si Mariana López ya llegó';
   ok(c.corridas.every((n) => ESCRIBEN.indexOf(n) < 0) && r.hechas.length === 0, '3 · ' + caso + ': nada de escribir corrió y lo que el rápido leyó no queda como hecho');
   ok(c.usos.filter((u) => u.modelo === SONNET).every((u) => u.funcion === 'Voz · completo tras el rápido'), '3 · ' + caso + ': IA_USO lo marca como «Voz · completo tras el rápido»');
 });
+
+/* 3b · se le acabaron las vueltas o el tiempo mientras leía → el de siempre sigue con lo ya leído, sin leerlo otra vez
+   (guardia 18-nov-2026: «rapido>completo por tiempo», 50 s con las herramientas leídas dos veces) */
+{ const c = caja({ rapido: [{ thinking: 1, tools: [{ name: 'buscar_reservas' }] }, { tools: [{ name: 'ver_conversacion' }] }, { tools: [{ name: 'codigo_acceso' }] }] });
+  const { r, ms } = c.turno(LEER);
+  const s = c.de(SONNET), m = s[0] && s[0].messages;
+  ok(s.length === 1 && ms.via === 'rapido>completo' && /muchas vueltas/.test(ms.motivo) && ms.reuso === 6 && r.respuesta === 'Respuesta del de siempre.', '3b · da vueltas: pasa al de siempre con lo leído (reuso ' + ms.reuso + ')');
+  ok(m && m.length === 7 && m[1].role === 'assistant' && m[6].role === 'user' && m[6].content[0].type === 'tool_result', '3b · da vueltas: el de siempre recibe el pedido y los 3 pares de lectura, terminando en un resultado');
+  ok(m && m.filter((x) => x.role === 'assistant').every((x) => x.content.every((b) => b.type === 'tool_use' || b.type === 'text')), '3b · del rápido no pasa su pensamiento (thinking), solo herramientas y texto');
+  ok(c.corridas.join() === 'buscar_reservas,ver_conversacion,codigo_acceso' && !/CAMINO RÁPIDO/.test(s[0].system.map((b) => b.text).join('')), '3b · cada lectura corrió una sola vez y el de siempre no ve la regla del rápido');
+  ok(r.hechas.length === 0, '3b · lo leído no queda como hecho');
+}
+{ const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { text: 'no debería llegar' }] }), lee = c.X.agEjecutar_;
+  c.X.agEjecutar_ = (a, n, i, x) => { const res = lee(a, n, i, x); const ahora = c.X.Date.now(); c.X.Date.now = () => ahora + 20000; return res; };
+  const { ms } = c.turno(LEER);
+  const s = c.de(SONNET);
+  ok(c.de(RAPIDO).length === 1 && s.length === 1 && ms.motivo === 'tiempo' && ms.reuso === 2 && s[0].messages.length === 3 && c.corridas.join() === 'buscar_reservas',
+    '3b · se le acabó el tiempo después de leer: el de siempre sigue con esa lectura y no la repite (' + ms.motivo + ', reuso ' + ms.reuso + ')'); }
+{ const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { tools: [{ name: 'enviar_a_huesped', input: { texto: 'hola' } }] }] });
+  const { ms } = c.turno(LEER);
+  ok(/pidió enviar_a_huesped/.test(ms.motivo) && !ms.reuso && c.de(SONNET)[0].messages.length === 1, '3b · si pidió otra cosa, lo leído no pasa: el de siempre empieza limpio'); }
 
 /* 4 · interruptor y fuera de la voz */
 { const c = caja({ props: { VOZ_RAPIDO: '0' }, rapido: [{ text: 'no debería' }] }); const { ms } = c.turno(LEER);

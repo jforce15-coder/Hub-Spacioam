@@ -142,4 +142,12 @@ function caja(props, agente) {
   ok(JSON.stringify(c.ctx.vozProteccionResumen_({}).cuelgan) === '[]', 'resumen: sin protecciones, nada cuelga');
   ok(JSON.stringify(c.ctx.vozProteccionAplicar_(g, c.ctx.vozProteccionConfig_('x')).content) === JSON.stringify(g.content), 'el Hub no toca las protecciones de contenido al sincronizar'); }
 
+/* 7. Guardia 18-nov: voz_conv marca la llamada donde el usuario habló y el agente nunca contestó (sin leer el texto). */
+{ const vc = { String, Number, Object, Array, JSON, Math, RegExp, Date }; vm.createContext(vc);
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), vc, { filename: 'voz.js' }); const T = vc.vozConvTurnos_;
+  const r = T([{ role: 'user', message: 'Hola Alma, necesito que le respondas al inquiry de Mónaco y luego', time_in_call_secs: 3 }]);
+  ok(r.usuario === 1 && r.agente === 0 && r.sin_respuesta === true && r.ultimo_usuario_s === 3 && r.palabras_ultimo === 12, 'voz_conv: 1 turno del usuario y 0 del agente → sin_respuesta, con su segundo y sus palabras');
+  ok(T([{ role: 'agent', message: 'Hola' }, { role: 'user', message: 'gracias', time_in_call_secs: 9 }, { role: 'agent', message: 'Con gusto' }]).sin_respuesta === false, 'voz_conv: si el agente contestó después, no es sin_respuesta');
+  ok(T([]).sin_respuesta === false && T(null).usuario === 0, 'voz_conv: sin turnos (la llamada no arrancó) no se marca sin_respuesta'); }
+
 process.exit(fallo);

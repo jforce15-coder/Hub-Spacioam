@@ -353,7 +353,9 @@ function amanoParaSecretaria_(adm, pedido) {
 }
 
 /* ── Uso y medición ── */
+var AMANO_PRUEBA_ = false;   // la prueba del robot no cuenta como uso
 function amanoUso_(que, ms) {
+  if (AMANO_PRUEBA_) return;
   try {
     var c = CacheService.getScriptCache(), d = recHoy_(), k = 'AMANO_USO_' + d, u = {}; try { u = JSON.parse(c.get(k) || '{}') || {}; } catch (e) {}
     u[que] = (u[que] || 0) + 1; if (ms) u[que + '_ms'] = (u[que + '_ms'] || 0) + ms;
@@ -404,4 +406,11 @@ function amanoEstadoRobot_(ver) {
     });
   } catch (e) { out.error = String(e); }
   return out;
+}
+/* Robot amano_voz: corre a_mano como si llamara el administrador principal y dice cuánto tardó el Hub y si lo tenía (sin
+   el contenido). Es la medición de la herramienta sin depender de una llamada real. */
+function amanoVozPrueba_(tema, que) {
+  var adm = adminsOp_().filter(function (a) { return a.principal; })[0]; if (!adm || !adm.tels || !adm.tels[0]) return { ok: false, error: 'sin principal con número' };
+  AMANO_PRUEBA_ = true; var t0 = Date.now(), r; try { r = amanoVoz_({ caller_id: adm.tels[0], tema: tema || 'limpieza', que: que || '' }); } finally { AMANO_PRUEBA_ = false; }
+  return { ok: true, ms: Date.now() - t0, encontrado: !!r.encontrado, de: r.de || '', resumen_largo: String(r.resumen || '').length, detalle_largo: String(r.detalle || '').length };
 }

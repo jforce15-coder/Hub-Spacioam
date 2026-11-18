@@ -188,3 +188,18 @@ Epi asigna las rutas de limpieza: **nunca** puede quedar un día sin rutas ni co
 - La dirección /exec de Epi está en `app.jsx`/`app.build.js` de Epi y, en el Hub, en `apps-script/Código.js`
   (`EPI_API_URL`, `EPI_URL_DEF_` o la Propiedad `EPI_URL` si no guarda la vieja) e `index.html` (`EPI_URL`). Si Hospitable
   tiene un webhook al /exec de Epi (reseñas, reservas), **Juan** lo cambia en my.hospitable.com → Webhooks. Se cambian en PRs [NO UNIR] que se unen después de la prueba de humo.
+
+## Mi (18-nov-2026)
+Mi es la app privada de Juan con los números de los socios: su hoja **Spacio AM 2025** ya está compartida (editor) con
+alma@; la carpeta **Spacio AM - Archivos de socios** (facturas, depósitos y soportes) **no**: Juan la comparte como editor
+antes de traer. Mi la abre por id y, sin acceso, da un error claro en vez de crear otra vacía.
+- **Hoja pegada:** el Mi viejo está pegado a la hoja (usaba «la hoja activa»); el de alma@ es suelto, así que Mi abre la hoja
+  con `miLibro_` (la pegada si la hay, si no por id).
+- **Lo de fondo** (gastos fijos y Hospitable a las 6:00, resumen del mes) lo corre un solo proyecto: el que diga la pestaña
+  **TRASLADO** (oculta) de Spacio AM 2025 (B1 = id). Al traer, `miTomarActivadores` instala los 3 activadores y solo si
+  quedaron todos se anota como dueño. Lo que piden la app o el Hub por /exec corre siempre. Mi `apps-script/trasladocorte.js`.
+- Robot de Mi `{action:"__traslado", token}`: id, dueño, activadores, si abre la hoja y la carpeta. **Volver atrás** =
+  `__traslado` con `dueno:"yo"` al /exec viejo y revertir los PR de direcciones.
+- La dirección /exec de Mi está en `sheets.js` (`SA_PUBLIC_URL`; la guardada en el navegador se ignora si es la vieja),
+  `404.html` y `Actualizacion.js` de Mi, y en el Hub en `apps-script/Código.js` (`ACCESOS_APPS_.mi`: accesos, fichas de
+  socios y enlaces cortos).

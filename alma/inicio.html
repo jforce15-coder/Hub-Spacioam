@@ -46,13 +46,33 @@
      se pega al borde (como Ajustes a la derecha) en vez de dejar su hueco vacío. */
   .san-scope .san-pendb::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; }
   .san-scope .san-ov:has(.san-pendb[data-a="pend"][hidden]) .san-pendb.san-notib { left: max(16px, env(safe-area-inset-left)); }
-  /* Las dos columnas de abajo (Juan, 18-nov-2026: «el botón de companion … debería estar cercano a donde está el botoncito
-     de mute. Arriba podríamos poner el de los archivos, y también agregar un botón de browser»). Izquierda, sobre el
-     silencio (#b-mudo): Modo compañero y, arriba, la Carpeta de archivos. Derecha, sobre el Modo calle: el Navegador. Los
-     ubica colUbicar con los botones de abajo y se esconden con ellos. Debajo de las hojas, como antes el compañero.
-     Compañero encendido: durazno, como el modo conferencia. */
+  /* Compañero, Carpeta de archivos y Navegador: los ubica colUbicar (con lugares()) y se esconden con los botones de abajo.
+     Debajo de las hojas. Compañero encendido: durazno, como el modo conferencia. */
   .ajustes.col { right: auto; top: 0; left: 0; z-index: 891; }
-  body:has(.san-ov.suelta) .ajustes.col { opacity: 0 !important; pointer-events: none !important; }
+  body:has(.san-ov.suelta) .ajustes.col, body:has(.san-ov.suelta) .lado-riel { opacity: 0 !important; pointer-events: none !important; }
+  /* Dónde va cada botón chico (Juan, 18-nov-2026: «los siento muy apretados todos»; los ubica lugares()). En el teléfono:
+     la Carpeta arriba a la izquierda, junto a la campana; el Navegador al centro, arriba de la roca y fuera de las órbitas;
+     Compañero arriba y afuera del Silencio, y el Modo calle en espejo, arriba y afuera de Conferencia. En el iPad o la Mac
+     (pantalla ancha): dos rieles de vidrio a media altura en los bordes, donde caen los pulgares: Carpeta, Navegador y
+     Compañero a la izquierda; Modo calle y Conferencia a la derecha. El Silencio se queda junto a Chat. */
+  .lado-riel { position: fixed; z-index: 890; left: 0; top: 0; width: 64px; border-radius: 32px; pointer-events: none; opacity: 0;
+    background: rgba(255,255,255,.12); -webkit-backdrop-filter: blur(22px) saturate(1.5); backdrop-filter: blur(22px) saturate(1.5);
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.38), inset 0 1px 0 rgba(255,255,255,.26), 0 10px 30px rgba(50,30,40,.12); transition: opacity .8s ease; }
+  .lado-riel.on { opacity: 1; }
+  .lado-riel[hidden] { display: none; }
+  .ajustes.en-riel { width: 44px; height: 44px; }
+  .ajustes.en-riel svg { width: 21px; height: 21px; }
+  /* El nombre de cada botón del riel se ve al abrir y se desvanece (queda el ícono); vuelve al pasar encima o al tocar.
+     El nombre para el lector de pantalla es su aria-label: este texto es solo para los ojos. */
+  .ajustes .et-lado { display: none; position: absolute; top: 50%; translate: 0 -50%; pointer-events: none; white-space: nowrap; opacity: 0;
+    font: 500 11.5px/1 Montserrat, system-ui, sans-serif; letter-spacing: .04em; color: #FFFDFB; text-shadow: 0 1px 8px rgba(50,30,40,.4);
+    transition: opacity 1.2s cubic-bezier(.45,0,.55,1); }
+  .ajustes.riel-i .et-lado { display: block; left: calc(100% + 22px); }
+  .ajustes.riel-d .et-lado { display: block; right: calc(100% + 22px); }
+  body.et-ver .ajustes.en-riel .et-lado, .ajustes.en-riel.toca .et-lado, .ajustes.en-riel:focus-visible .et-lado { opacity: 1; transition-duration: .25s; }
+  @media (hover: hover) { .ajustes.en-riel:hover .et-lado { opacity: 1; transition-duration: .25s; } }
+  body:has(#calle-linea:not([hidden])) #b-calle .et-lado { opacity: 0 !important; }   /* la línea del Modo calle va en ese mismo lugar */
+  @media (prefers-reduced-motion: reduce) { .ajustes .et-lado, .lado-riel { transition: none; } }
   .ajustes.arch-b .arch-n { position: absolute; top: -2px; right: -2px; min-width: 17px; height: 17px; padding: 0 4px; box-sizing: border-box; border-radius: 9px;
     background: #FFFDFB; color: #B4452A; font: 700 10px/17px Montserrat, system-ui, sans-serif; text-align: center; box-shadow: 0 1px 4px rgba(40,25,25,.25); }
   .ajustes.arch-b .arch-n[hidden] { display: none; }
@@ -1119,16 +1139,17 @@
 <body class="llegando">
 <div class="hola" id="hola" aria-live="polite"></div>
 <button type="button" class="ajustes" id="b-ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<button type="button" class="ajustes col comp-b" id="b-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="12" height="16" rx="2"/><rect x="16" y="8.5" width="5.5" height="11.5" rx="1.4"/><path d="M7.5 17h2"/><path d="M18 17.2h1.5"/></svg></button>
-<button type="button" class="ajustes col arch-b" id="b-arch" aria-label="Carpeta de archivos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.6l2 2.2h7.4A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M3 10.5h18"/></svg><i class="arch-n" hidden></i></button>
-<button type="button" class="ajustes col nav-b" id="b-nav" aria-label="Abrir el navegador" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg></button>
+<button type="button" class="ajustes col comp-b" id="b-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="12" height="16" rx="2"/><rect x="16" y="8.5" width="5.5" height="11.5" rx="1.4"/><path d="M7.5 17h2"/><path d="M18 17.2h1.5"/></svg><span class="et-lado" aria-hidden="true">Compañero</span></button>
+<button type="button" class="ajustes col arch-b" id="b-arch" aria-label="Carpeta de archivos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.6l2 2.2h7.4A2.5 2.5 0 0 1 21 9.7v7.8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><path d="M3 10.5h18"/></svg><i class="arch-n" hidden></i><span class="et-lado" aria-hidden="true">Archivos</span></button>
+<button type="button" class="ajustes col nav-b" id="b-nav" aria-label="Abrir el navegador" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8z"/></svg><span class="et-lado" aria-hidden="true">Navegador</span></button>
 <button type="button" class="ajustes conf mudo" id="b-mudo" aria-label="Silenciar el micrófono" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M9 21h6"/><path class="tacha" d="M4 4l16 16"/></svg></button>
-<button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg></button>
+<button type="button" class="ajustes conf" id="b-conf" aria-label="Modo conferencia" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="2.5"/><path d="M8 14.5a4 4 0 0 1 8 0"/><circle cx="5" cy="9.5" r="1.9"/><path d="M2 15.5a3 3 0 0 1 4.8-2.4"/><circle cx="19" cy="9.5" r="1.9"/><path d="M22 15.5a3 3 0 0 0-4.8-2.4"/><path d="M4 19h16"/></svg><span class="et-lado" aria-hidden="true">Conferencia</span></button>
 <button type="button" class="calle-linea" id="calle-linea" aria-label="Probar el Modo calle" hidden><span class="f" id="calle-fase" aria-live="polite"></span><span class="e" id="calle-error" role="alert"></span></button>
-<button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg></button>
+<button type="button" class="ajustes conf calle" id="b-calle" aria-label="Modo calle" aria-pressed="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="4.3" r="1.9"/><path d="M12.6 8.2l-1.7 6.1"/><path d="M8 12.2l2.4-3.1 2.2-.9 2.4 2.6 2.6 1"/><path d="M10.9 14.3l-2.6 6.2"/><path d="M10.9 14.3l3.1 2.4.9 4.1"/></svg><span class="et-lado" aria-hidden="true">Modo calle</span></button>
 <button type="button" class="ajustes avion" id="b-avion" aria-label="Tu viaje" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2L16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></button>
 <button type="button" class="vj-vivo" id="vj-vivo" aria-label="Tu vuelo" hidden></button>
 <div class="vj-salas" id="vj-salas" hidden><button type="button" class="tab" id="vj-salas-tab" aria-expanded="false" aria-controls="vj-salas-lista"></button><div class="lista" id="vj-salas-lista"></div></div>
+<div class="lado-riel" id="riel-i" aria-hidden="true" hidden></div><div class="lado-riel" id="riel-d" aria-hidden="true" hidden></div>
 <div class="orbita" id="orbita" aria-label="Tus áreas"></div>
 <div class="pob" id="pob"></div>
 <div class="pob-voz" id="pob-voz" role="status" aria-live="polite"></div>
@@ -2195,10 +2216,8 @@ window.SAPulso = {
     /* va con los botones de abajo: si ellos se esconden (chat, llamada), él también */
     var se = !r || !r.width || +getComputedStyle(c).opacity < .5 || getComputedStyle(c).visibility === "hidden";
     var k = $("b-calle"); b.style.visibility = k.style.visibility = se ? "hidden" : ""; if (se) { calleLinea(); return; }
-    /* a la derecha de «Iniciar llamada», con aire para su nombre, y un poco más abajo que su centro */
-    b.style.left = Math.min(innerWidth - 56, r.right + 30) + "px"; b.style.top = (r.top + r.height / 2 - 20 + 10) + "px";
-    /* el del Modo calle, encima del de conferencia, en la misma columna */
-    k.style.left = b.style.left; k.style.top = (r.top + r.height / 2 - 20 + 10 - 54) + "px";
+    /* dónde van: lugares() (teléfono: a la derecha de «Iniciar llamada» y el Modo calle arriba y afuera; iPad: riel derecho) */
+    var L = window.AlmaLugares ? AlmaLugares() : null; if (L) [b, k].forEach(function (e) { var x = L.p[e.id]; if (x) { e.style.left = x[0] + "px"; e.style.top = x[1] + "px"; } });
     calleLinea();
   }
   window.AlmaConf = { evento: function (e) {
@@ -4275,18 +4294,63 @@ window.SAPulso = {
 
   /* ── Los botones de abajo ── */
   function visible(c) { var r = c && c.getBoundingClientRect(); return r && r.width && +getComputedStyle(c).opacity >= .5 && getComputedStyle(c).visibility !== "hidden" ? r : null; }
+  /* Dónde va cada botón chico (Juan, 18-nov-2026: «los siento muy apretados todos … en el iPad deberíamos darle amplitud»).
+     Teléfono: el Silencio a la izquierda de «Chat» y Conferencia a la derecha de «Iniciar llamada», como siempre; Compañero
+     arriba y afuera del Silencio y el Modo calle en espejo; la Carpeta arriba a la izquierda, junto a la campana; el
+     Navegador al centro, arriba de la roca y fuera de las órbitas. Pantalla ancha (iPad, Mac): Carpeta, Navegador y
+     Compañero en el riel izquierdo; Modo calle y Conferencia en el derecho, a la altura de la roca; el Silencio, junto a Chat. */
+  function lugares() {
+    var q = function (s) { return document.querySelector(s); }, W = innerWidth, H = innerHeight;
+    var c = q('#sa-nav-root .san-ob[data-a="chat"]'), i = q("#sa-nav-root .san-ob.start"), rc = c && c.getBoundingClientRect(), ri = i && i.getBoundingClientRect();
+    if (!rc || !rc.width || !ri || !ri.width) return null;
+    var y0 = rc.top + rc.height / 2 - 20 + 10, mx = Math.max(16, rc.left - 70), p = { "b-mudo": [mx, y0] }, L = { ancha: W >= 700 && H >= 500, p: p, i: [], d: [] };
+    var ro = q("#sa-nav-root .san-rock"), rr = ro && ro.getBoundingClientRect(), cy = rr && rr.height ? rr.top + rr.height / 2 : H * .44;
+    if (L.ancha) {
+      var ve = function (id) { return $(id) && !$(id).hidden; };
+      L.i = ["b-arch", "b-nav", "b-comp"].filter(ve); L.d = ["b-calle", "b-conf"].filter(ve);
+      [[L.i, 38], [L.d, W - 38 - 44]].forEach(function (r) {
+        var y = cy - (r[0].length * 74 - 30) / 2;
+        r[0].forEach(function (id, k) { p[id] = [r[1], Math.round(y + k * 74)]; });
+      });
+      return L;
+    }
+    var xc = Math.max(16, mx - 30); p["b-comp"] = [xc, y0 - 56]; p["b-calle"] = [W - xc - 40, y0 - 56];
+    p["b-conf"] = [Math.min(W - 56, ri.right + 30), y0];
+    var xa = 16, ya = 14;
+    document.querySelectorAll("#sa-nav-root .san-pendb").forEach(function (b) { var r = b.getBoundingClientRect(); if (r.width && r.left < W / 2) { xa = Math.max(xa, r.right + 14); ya = r.top; } });
+    p["b-arch"] = [Math.round(xa), Math.round(ya)];
+    /* el Navegador: arriba de la órbita lejana de los pedidos (orbitas(): R + 48 o 42 %), sin tocar el saludo */
+    var R = rr && rr.width ? rr.width / 2 : 120, yn = cy - R - Math.max(48, R * .42) - 54, h = $("hola"), rh = h && h.classList.contains("on") ? h.getBoundingClientRect() : null;
+    if (rh && rh.height) yn = Math.max(yn, rh.bottom + 8);
+    p["b-nav"] = [Math.round(W / 2 - 20), Math.round(Math.max(ya + 50, yn))];
+    return L;
+  }
+  window.AlmaLugares = lugares;   // también lo usa confUbicar (Conferencia y Modo calle)
   function colUbicar() {
     var chat = visible(document.querySelector('#sa-nav-root .san-ob[data-a="chat"]')), ini = visible(document.querySelector("#sa-nav-root .san-ob.start"));
-    var izq = [$("b-comp"), $("b-arch")], der = [$("b-nav")];
-    izq.concat(der).forEach(function (b) { if (b) b.style.visibility = chat && ini ? "" : "hidden"; });
-    if (!chat || !ini) return;
-    /* la misma columna que el silencio (a la izquierda de «Chat») y la misma que conferencia y Modo calle (a la derecha de
-       «Iniciar llamada»), un piso de 54 px cada uno: silencio · compañero · carpeta | conferencia · calle · navegador */
-    var y0 = chat.top + chat.height / 2 - 20 + 10, xi = Math.max(16, chat.left - 30 - 40), xd = Math.min(innerWidth - 56, ini.right + 30);
-    izq.forEach(function (b, k) { if (b) { b.style.left = xi + "px"; b.style.top = (y0 - 54 * (k + 1)) + "px"; } });
-    der.forEach(function (b) { if (b) { b.style.left = xd + "px"; b.style.top = (y0 - 108) + "px"; } });
-    if (!A.listo) { A.listo = true; izq.concat(der).forEach(function (b) { if (b && !b.hidden) b.classList.add("on"); }); }
+    var bs = [$("b-comp"), $("b-arch"), $("b-nav")], ve = !!(chat && ini), L = ve ? lugares() : null;
+    bs.forEach(function (b) { if (b) b.style.visibility = ve ? "" : "hidden"; });
+    /* los rieles del iPad: los botones van más grandes, con su nombre, y el vidrio detrás */
+    ["b-comp", "b-arch", "b-nav", "b-calle", "b-conf"].forEach(function (id) {
+      var b = $(id), iz = !!(L && L.i.indexOf(id) >= 0), de = !!(L && L.d.indexOf(id) >= 0);
+      b.classList.toggle("en-riel", iz || de); b.classList.toggle("riel-i", iz); b.classList.toggle("riel-d", de);
+    });
+    [["riel-i", L && L.i, 28], ["riel-d", L && L.d, innerWidth - 28 - 64]].forEach(function (r) {
+      var e = $(r[0]), n = r[1] ? r[1].length : 0; e.hidden = !n; if (!n) { e.classList.remove("on"); return; }
+      var y = L.p[r[1][0]][1] - 10; e.style.left = r[2] + "px"; e.style.top = y + "px"; e.style.height = (n * 74 - 30 + 20) + "px"; e.classList.toggle("on", ve);
+    });
+    if (!L) return;
+    bs.forEach(function (b) { var x = b && L.p[b.id]; if (x) { b.style.left = x[0] + "px"; b.style.top = x[1] + "px"; } });
+    if (!A.listo) {
+      A.listo = true; bs.forEach(function (b) { if (b && !b.hidden) b.classList.add("on"); });
+      /* los nombres del riel: se ven al abrir y se desvanecen solos */
+      document.body.classList.add("et-ver"); setTimeout(function () { document.body.classList.remove("et-ver"); }, 4200);
+    }
   }
+  ["b-comp", "b-arch", "b-nav", "b-calle", "b-conf"].forEach(function (id) {
+    var b = $(id), t = 0; if (!b) return;
+    b.addEventListener("pointerdown", function () { if (!b.classList.contains("en-riel")) return; b.classList.add("toca"); clearTimeout(t); t = setTimeout(function () { b.classList.remove("toca"); }, 1600); });
+  });
   setTimeout(colUbicar, 700); setInterval(colUbicar, 1200); addEventListener("resize", colUbicar);
   if (NATIVA) $("b-nav").hidden = false;
   /* Navegador: la búsqueda lista en la app, con Alma en tu lugar de siempre del navegador. */

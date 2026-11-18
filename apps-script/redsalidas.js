@@ -28,6 +28,8 @@ function redSalidasRevisar_() {
     if (h === 19 || h === 7) return { reintenta: true, error: error };   // a la hora siguiente se vuelve a pedir
   }
   var tarjeta = redSalidasTarjeta_(momento, fecha, r, error);
+  /* La última revisión, para el paquete de limpieza de A la mano (amano.js). */
+  try { P.setProperty('RED_SAL_ULTIMA', JSON.stringify({ fecha: fecha, momento: momento, ts: new Date().toISOString(), ok: !!(r && r.ok), faltan: ((r && r.faltan) || []).slice(0, 20).map(function (f) { return { propiedad: f.propiedad, propuesta: f.propuesta || '' }; }) })); } catch (e) {}
   if (tarjeta) {
     var jefe = adminsOp_().filter(function (a) { return a.principal; })[0];
     if (jefe) pendCrear_(jefe, tarjeta.c, { origen: 'red_salidas', detalle: tarjeta.detalle, push: true });

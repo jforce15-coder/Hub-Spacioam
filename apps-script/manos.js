@@ -5,6 +5,10 @@
      (senalar) y toca, escribe, baja o abre dentro de su propio navegador. Lo que compra, paga, envía, borra o confirma no
      se toca sin el sí de Juan (la app responde necesita_permiso). Contraseñas y tarjetas nunca: las escribe Juan.
    · Atajos de iOS: corre un atajo de la app Atajos por su nombre, solo si es un atajo permitido (Ajustes de la app).
+   · Modos del Navegador de Alma (#773): GUIADO (senalar + mostrar_dato: la tarjeta para copiar y pegar,
+     que se queda aunque la llamada termine), CONTROL (tocar, escribir y bajar una a la vez, con pausa humana y tope por
+     sitio: pausa_sitio) y PAUSA DE PRIVACIDAD (contraseña, código, tarjeta o captcha a la vista: la app responde te_toca y
+     no lee ni captura nada). Las reglas largas van en la ficha de la app (ManosAlma.modos), no en el prompt fijo.
    · Apple Pay (#662): abrir_apple_pay abre la vista de pago (su atajo de Apple Pay o Wallet); nunca lee ni cobra tarjetas.
    La ficha de la llamada dice «NAVEGADOR DE ALMA: …» cuando la app las tiene (VozNativa.swift). Las web apps no las
    tienen: su voz (js/alma-voz.js) contesta que no existen y las reglas dicen que solo se usan con esa ficha.
@@ -19,14 +23,16 @@ function vozManosHerramientas_() {
   };
   var solo = ' Úsala SOLO si la FICHA DE QUIEN LLAMA dice «NAVEGADOR DE ALMA».';
   return [
-    cliente('leer_pagina', 8, 'Lee la página abierta en el navegador de la app de Alma: título, dirección, el texto principal y la lista de elementos que se pueden tocar o llenar, cada uno con su id («7 · botón · Comprar ahora ⚠»). ⚠ = compra, paga, envía, borra o confirma. Úsala antes de senalar, tocar o escribir, y otra vez si la página cambió.' + solo,
-      { para: s('Qué buscas en la página, en pocas palabras (opcional).') }),
+    cliente('leer_pagina', 8, 'Lee la página abierta en el navegador de la app de Alma: título, dirección, el texto principal y la lista de elementos que se pueden tocar o llenar, cada uno con su id («7 · botón · Comprar ahora ⚠»). ⚠ = compra, paga, envía, borra o confirma. Úsala antes de senalar, tocar o escribir, y otra vez si la página cambió. Con para, viene solo lo que importa (más rápido). Si responde te_toca, la pantalla es privada (contraseña, código, tarjeta o «soy humano»): no la ves; dile a Juan «te toca a ti» y espera su «listo».' + solo,
+      { para: s('Qué buscas en la página, en pocas palabras (opcional; mejor con ella).') }),
     cliente('senalar', 6, 'Marca en la pantalla de Juan, con un círculo durazno y una etiqueta corta, el elemento que tiene que tocar. Un paso a la vez: marca uno, espera a que Juan lo haga o diga «listo» y sigue con el siguiente. La marca se quita sola cuando Juan toca la pantalla.' + solo,
       { id: s('El id del elemento (de leer_pagina).'), texto: s('La etiqueta corta junto al círculo, p. ej. «Toca aquí» o «Escribe tu correo».') }, ['id', 'texto']),
-    cliente('tocar', 15, 'Toca (hace clic en) un elemento de la página en el navegador de Alma y dice qué cambió. Si responde necesita_permiso, NO se tocó: pregúntale a Juan en una frase y solo si dice que sí vuelve a llamarla con el mismo id y confirmado: true. Si dice que no pudo confirmar el resultado, díselo a Juan así.' + solo,
+    cliente('tocar', 15, 'Toca (hace clic en) un elemento de la página en el navegador de Alma y dice qué cambió. Si responde necesita_permiso, NO se tocó: pregúntale a Juan en una frase y solo si dice que sí vuelve a llamarla con el mismo id y confirmado: true. Si dice que no pudo confirmar el resultado, díselo a Juan así. Si responde te_toca, es de Juan (contraseña, código, tarjeta o «soy humano»); si responde pausa_sitio o espera, la página no quiere prisa: espera los segundos que dice.' + solo,
       { id: s('El id del elemento (de leer_pagina).'), confirmado: b('true SOLO cuando Juan ya dijo que sí a lo que pidió necesita_permiso.') }, ['id']),
     cliente('escribir', 15, 'Escribe un texto en un campo de la página (o elige una opción de una lista, o marca una casilla con «sí» / «no»). Nunca escribe contraseñas ni números de tarjeta: esos los escribe Juan. Con enter: true da Enter, solo en una búsqueda.' + solo,
       { id: s('El id del campo (de leer_pagina).'), texto: s('Lo que se escribe, o la opción que se elige.'), enter: b('true para dar Enter después (solo en un cuadro de búsqueda).') }, ['id', 'texto']),
+    cliente('mostrar_dato', 6, 'Modo guiado: pone un dato en la tarjeta para copiar, encima del navegador de Alma (p. ej. «Número de reserva · HM4K2Q»), para que Juan lo toque, se copie y lo pegue donde le señalaste. Se queda aunque la llamada termine; Juan la cierra. Misma etiqueta = se reemplaza. Nunca contraseñas, códigos ni tarjetas (responde rechazado).' + solo,
+      { etiqueta: s('Qué es, corto (p. ej. «Correo», «Número de reserva»).'), valor: s('El dato tal cual se pega.') }, ['etiqueta', 'valor']),
     cliente('bajar', 6, 'Mueve la página del navegador de Alma para ver más.' + solo,
       { cuanto: { type: 'string', enum: ['poco', 'pantalla', 'subir', 'inicio', 'final'], description: 'poco · pantalla (por defecto) · subir (una pantalla hacia arriba) · inicio · final.' } }),
     cliente('abrir', 15, 'Abre una dirección web en el navegador de la app de Alma, o busca en Google lo que le pases. Solo páginas web.' + ' Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA».',
@@ -39,5 +45,5 @@ function vozManosHerramientas_() {
   ];
 }
 /* Las reglas del prompt de voz (vozQuienBloque_, voz.js). Cortas: el prompt tiene presupuesto. */
-var VOZ_MANOS_REGLA_ = '· MANOS DE ALMA (solo si la ficha dice «NAVEGADOR DE ALMA»): si Juan pregunta «¿dónde toco…?» o «¿cómo hago…?» en la página, usa leer_pagina y senalar UN paso a la vez, con una etiqueta corta; espera a que lo haga o diga «listo» antes del siguiente. Si pide «llena…», «búscame…» o «haz clic…», hazlo tú paso a paso (tocar, escribir, bajar, abrir) y narra en corto («Escribo tu correo… listo»). Antes de comprar, pagar, enviar, borrar o confirmar (lo marcado con ⚠ o cuando la herramienta responde necesita_permiso) pregúntale siempre en una frase y repite con confirmado: true solo con su sí. Nunca escribas contraseñas ni números de tarjeta: dile que los escriba él. Di qué cambió; si la herramienta no pudo confirmar el resultado, dilo así.';
+var VOZ_MANOS_REGLA_ = '· MANOS DE ALMA (solo con la ficha «NAVEGADOR DE ALMA», que trae sus MODOS): «¿dónde toco…?» o «¿cómo hago…?» → leer_pagina y senalar UN paso a la vez y espera su «listo»; el dato que debe poner, con mostrar_dato. «Llena…», «búscame…», «haz clic…» → hazlo tú paso a paso (tocar, escribir, bajar, abrir) y narra en corto. Antes de comprar, pagar, enviar, borrar o confirmar (⚠ o necesita_permiso) pregúntale en una frase y repite con confirmado: true solo con su sí. Contraseñas, códigos, tarjetas y «soy humano» son de Juan: con te_toca dile «te toca a ti» y espera. Di qué cambió; si no pudiste confirmarlo, dilo así.';
 var VOZ_ATAJOS_REGLA_ = '· ATAJOS DE iOS (solo con «ESTÁS EN LA APP DE ALMA»): «pon mi atajo de música» → correr_atajo con el nombre; si responde permitido: false, dile que lo agregue en Ajustes → Atajos permitidos. Pagar con Apple Pay → abrir_apple_pay.';

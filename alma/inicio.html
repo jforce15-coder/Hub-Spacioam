@@ -428,6 +428,32 @@
   /* con las áreas abiertas, «Toca a Alma» y los botones de abajo se van al instante (antes de que lleguen las esferas) */
   body.orbita-on #sa-nav-root .san-ov-ui, body.orbita-on #sa-nav-root .san-ov-st { opacity: 0 !important; pointer-events: none !important; transition: opacity .1s ease !important; }
   @media (prefers-reduced-motion: reduce) { .esf .halo, .esf .resp { animation: none; } }
+  /* Los botones chicos nunca tocan una esfera (Juan, 18-nov-2026): con las esferas abiertas, el Navegador baja al lugar
+     de «Chat» e «Iniciar llamada» (lo ubica lugares()), el avión y los anillos en órbita se van de una vez (no en .8 s) y
+     cualquier botón que igual quede encima de una esfera o de su nombre se aparta (apartar()). Al cerrarlas, vuelven. */
+  body.orbita-on .ajustes.avion, body.orbita-on .vj-vivo, body.orbita-on .pob-s, body.orbita-on .pob-orb { transition: opacity .12s ease !important; }
+  .ajustes.aparta, #sa-nav-root .san-pendb.aparta { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s ease !important; }
+  .ajustes.col.muda { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s ease !important; }
+  /* Tocar una esfera: se une a la roca (vuelve a su centro) y la roca toma su ícono y su color mientras estás en esa área.
+     La roca queda abajo a la derecha, encima de la hoja del área; tocarla te regresa a las esferas. */
+  #sa-nav-root .san-st-spark .esf-ico { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; transform: scale(.5); transition: opacity .25s ease, transform .5s cubic-bezier(.3,1.5,.5,1); }
+  #sa-nav-root .san-st-spark .esf-ico svg { width: 36%; height: 36%; filter: drop-shadow(0 1px 0 rgba(255,255,255,.8)) drop-shadow(0 -.8px 0 rgba(80,70,60,.32)); }
+  #sa-nav-root .san-st-spark > svg { transition: opacity .2s ease; }
+  #sa-nav-root .san-rock[data-esfera] .san-st-spark > svg { opacity: 0; }
+  #sa-nav-root .san-rock[data-esfera] .san-st-spark .esf-ico { opacity: 1; transform: none; }
+  #sa-nav-root .san-rock[data-esfera="proposito"] { --san-halo: linear-gradient(180deg, #F2B08F 0%, #E9826A 55%, #C9705E 100%); }
+  #sa-nav-root .san-rock[data-esfera="relaciones"] { --san-halo: linear-gradient(180deg, #F0C4C3 0%, #D99AA0 55%, #B06F7A 100%); }
+  #sa-nav-root .san-rock[data-esfera="finanzas"] { --san-halo: linear-gradient(180deg, #C3D9B8 0%, #8FB38C 55%, #5F8A5E 100%); }
+  #sa-nav-root .san-rock[data-esfera="health"] { --san-halo: linear-gradient(180deg, #F3CDA6 0%, #E3A47F 55%, #C47E52 100%); }
+  #sa-nav-root .san-rock[data-esfera="comunidad"] { --san-halo: linear-gradient(180deg, #C2D0E6 0%, #8FA5C8 55%, #5F7BA8 100%); }
+  #sa-nav-root .san-rock[data-esfera="espiritualidad"] { --san-halo: linear-gradient(180deg, #D5D1EA 0%, #A9A4CC 55%, #7C76A8 100%); }
+  /* dentro del área: solo la roca sube encima de la hoja; lo demás de Alma (fondo, botones, campana) sigue debajo */
+  body.esf-dentro #sa-nav-root.san-scope { --san-z: 2147483420; }
+  body.esf-dentro #sa-nav-root .san-ov.quieta, body.esf-dentro #sa-nav-root .san-ov.quieta .san-ov-bg { pointer-events: none !important; }
+  body.esf-dentro #sa-nav-root .san-ov.quieta > :not(.san-rock) { opacity: 0 !important; pointer-events: none !important; }
+  body.esf-dentro #sa-nav-root .san-ov.quieta .san-rock { pointer-events: auto !important; }
+  body.esf-dentro .areas .cuerpo { padding-bottom: 128px; }   /* lo último del área se puede subir por encima de la roca */
+  @media (prefers-reduced-motion: reduce) { #sa-nav-root .san-st-spark .esf-ico { transition: opacity .2s ease; transform: none; } }
   /* ── Barra de avisos: arriba de las esferas, lo más importante de cada esfera, una a la vez. Al tocarla se abre con
      sus botones (los mismos de Pendientes). La esfera del aviso crece y su halo brilla; las demás respiran más lento. ── */
   .aviso { position: fixed; left: 16px; right: 16px; top: calc(max(14px, env(safe-area-inset-top) + 6px) + 58px); z-index: 2147482300; max-width: 520px; margin: 0 auto;
@@ -1581,7 +1607,7 @@ window.SAPulso = {
       b.onclick = function () {
         if (!OR.abierta) return;
         if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
-        b.classList.add("elegida"); setTimeout(function () { b.classList.remove("elegida"); areasAbrir(true, a.k); }, 170);
+        b.classList.add("elegida"); setTimeout(function () { b.classList.remove("elegida"); esferaUnir(a.k); }, 170);
       };
       o.appendChild(b);
     });
@@ -1651,7 +1677,78 @@ window.SAPulso = {
       ES.forEach(function (e, j) { esLuego(e.q, 0, (n - 1 - j) * 24, .38, 1); });
     }
     orbitaPintar(); avisoArmar();   // las esferas ya están: la barra se arma con ellas
+    if (window.AlmaColUbicar) try { AlmaColUbicar(); } catch (e) {}   // el Navegador baja (o vuelve) sin esperar su vuelta
+    apartar();
   }
+  /* Ningún botón chico encima de una esfera ni de su nombre (Juan, 18-nov-2026): se mide contra el lugar final de cada
+     esfera (no contra la animación) y el que choca se aparta (.aparta) mientras están abiertas. */
+  function esferasCajas() {
+    var g = OR.geo, L = $("orbita").children, out = [];
+    if (!OR.abierta || !g) return out;
+    for (var i = 0; i < L.length; i++) {
+      var ang = (-90 + i * 60) * Math.PI / 180, x = g.cx + Math.cos(ang) * g.R, y = g.cy + Math.sin(ang) * g.R, n = L[i].querySelector(".nom"), nw = n ? n.offsetWidth : g.d;
+      out.push({ left: x - g.d / 2 - 8, right: x + g.d / 2 + 8, top: y - g.d / 2 - 8, bottom: y + g.d / 2 + 6 });
+      out.push({ left: x - nw / 2 - 6, right: x + nw / 2 + 6, top: y + g.d / 2 + 4, bottom: y + g.d / 2 + 30 });   // su nombre
+    }
+    return out;
+  }
+  window.AlmaEsferasCajas = esferasCajas;
+  function apartar() {
+    var cajas = esferasCajas();
+    document.querySelectorAll(".ajustes, #sa-nav-root .san-pendb").forEach(function (b) {
+      var choca = false;
+      if (cajas.length && !b.hidden) {
+        var r = b.getBoundingClientRect();
+        if (r.width) choca = cajas.some(function (c) { return r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top; });
+      }
+      b.classList.toggle("aparta", choca);
+    });
+  }
+  setInterval(function () { if (OR.abierta || document.querySelector(".aparta")) apartar(); }, 400);
+  /* Tocar una esfera (Juan, 18-nov-2026): la esfera se une a la roca (vuelve a su centro mientras las demás se guardan),
+     la roca toma su ícono y su color y se va abajo a la derecha, encima de la hoja del área. Mientras estás en esa área
+     la roca lleva su ícono; en «Tu vida» o en un cajón, el destello de siempre. Tocar la roca o cerrar te regresa a las
+     esferas. Dos toques a la roca siguen siendo la voz de Alma. */
+  var DENTRO = { on: false, t: 0 };
+  function rocaEsfera(k) {
+    var r = document.querySelector("#sa-nav-root .san-ov .san-rock"), sp = r && r.querySelector(".san-st-spark"); if (!sp) return;
+    var ic = sp.querySelector(".esf-ico");
+    if (k && ICON[k]) {
+      if (!ic) { ic = el("span", "esf-ico"); sp.appendChild(ic); }
+      if (ic.getAttribute("data-k") !== k) { ic.setAttribute("data-k", k); ic.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON[k] + '</svg>'; }
+      r.setAttribute("data-esfera", k);
+      var a = todas().filter(function (x) { return x.k === k; })[0]; r.setAttribute("aria-label", "Alma · " + (a ? a.n : k) + ". Toca para volver a tus áreas");
+    } else { r.removeAttribute("data-esfera"); r.setAttribute("aria-label", "Alma"); }
+  }
+  function esquina() {
+    var W = document.documentElement.clientWidth || innerWidth, H = (window.visualViewport && visualViewport.height) || innerHeight;
+    var p = el("div"); p.style.cssText = "position:fixed;visibility:hidden;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px)";
+    document.body.appendChild(p); var ab = Math.max(34, (p.offsetHeight || 0) + 14); document.body.removeChild(p);
+    return { x: (W - 18 - 37) / W, y: (H - ab - 37) / H, s: 74 };
+  }
+  function esferaUnir(k) {
+    if (!OR.abierta) return;
+    var L = [].slice.call($("orbita").children), i = (AR.datos || []).map(function (x) { return x.k; }).indexOf(k), n = L.length;
+    OR.abierta = false; ESP = []; $("orbita").classList.remove("on");
+    ES.forEach(function (e, j) { if (j === i) esLuego(e.q, 0, 0, .34, .9); else esLuego(e.q, 0, 30 + (n - 1 - j) * 18, .38, 1); });
+    orbitaPintar();
+    if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+    clearTimeout(DENTRO.t);
+    DENTRO.t = setTimeout(function () {   // ya llegó a la roca: la roca toma su ícono y se va a la esquina, encima del área
+      rocaEsfera(k);
+      DENTRO.on = true; document.body.classList.add("esf-dentro");
+      SANav.escena(esquina());
+      document.body.classList.remove("orbita-on"); avisoArmar();
+      areasAbrir(true, k);
+    }, RM ? 60 : 260);
+  }
+  function esferaSalir() {   // de vuelta: la roca al centro y las esferas salen otra vez de ella
+    if (!DENTRO.on) return; DENTRO.on = false; clearTimeout(DENTRO.t);
+    rocaEsfera(null);
+    if (OR.armada) orbita(true); else SANav.escena(null);
+    DENTRO.t = setTimeout(function () { if (!DENTRO.on) document.body.classList.remove("esf-dentro"); }, 450);   // la hoja termina de irse
+  }
+  addEventListener("resize", function () { if (DENTRO.on) SANav.escena(esquina()); });
   addEventListener("resize", function () { if (!OR.abierta) return; var g = OR.geo = orbitaGeo(); SANav.escena({ y: g.cy / g.H, s: g.alma });
     [].forEach.call($("orbita").children, function (b) { b.style.setProperty("--d", g.d.toFixed(1) + "px"); }); orbitaPintar(); });
   /* Tocar fuera de Alma y de las esferas las cierra (Alma vuelve a su tamaño). */
@@ -1669,6 +1766,7 @@ window.SAPulso = {
   function abrirLink(u, nat) { if (nat && NATIVA) { nativa({ accion: nat }); return; } if (u) location.href = u; }
   function areasPintar() {
     var c = $("a-cuerpo"); c.innerHTML = ""; $("a-atras").hidden = !AR.area;
+    if (DENTRO.on) rocaEsfera(AR.area);   // la roca lleva el ícono del área en la que estás
     if (!AR.datos) { var sq = el("div", "sa-esq dos"); sq.setAttribute("aria-label", "Cargando tus áreas"); for (var q = 0; q < 6; q++) sq.appendChild(el("i", "g")); c.appendChild(sq); return; }   // la forma antes que el contenido (ds/velocidad.md)
     if (!AR.area) {
       $("a-tit").textContent = "Tu vida"; $("a-sub").textContent = "Seis áreas";
@@ -2005,6 +2103,7 @@ window.SAPulso = {
   }
   function areasAbrir(on, area) {
     AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true"); avisoMostrar();
+    if (!on) esferaSalir();
     if (on) { AR.area = area || null; EO.sel = null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
   }
   $("a-cerrar").onclick = function () { areasAbrir(false); };
@@ -2016,7 +2115,8 @@ window.SAPulso = {
   SANav.mount({ app: "alma", home: { k: "inicio", l: "Inicio" }, apps: [], items: [], alma: null, tutoriales: false, bienvenida: false,
     alSoltar: NATIVA ? function (pos) { orbita(false); nativa({ accion: "navegador", pos: pos }); } : null,
     /* Alma quieta: 1 toque abre las áreas (si las hay) y otro toque las cierra; 2 toques activan la voz sin cambiar de estado (lo resuelve sa-nav.js). */
-    alTocar: function () { if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
+    alTocar: function () { if (DENTRO.on && AR.abierta) { areasAbrir(false); return true; }   // dentro de un área: la roca te regresa a las esferas
+      if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
     alDatos: function () { avisoArmar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas") areasPintar(); },   /* las órbitas, con lo último que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
@@ -4503,6 +4603,9 @@ window.SAPulso = {
     var R = rr && rr.width ? rr.width / 2 : 120, yn = cy - R - Math.max(48, R * .42) - 54, h = $("hola"), rh = h && h.classList.contains("on") ? h.getBoundingClientRect() : null;
     if (rh && rh.height) yn = Math.max(yn, rh.bottom + 8);
     p["b-nav"] = [Math.round(W / 2 - 20), Math.round(Math.max(ya + 50, yn))];
+    /* con las esferas abiertas, la de arriba (Propósito) ocupa ese lugar: el Navegador baja al centro de abajo, donde
+       estaban «Chat» e «Iniciar llamada» (que se esconden con las esferas) */
+    if (document.body.classList.contains("orbita-on")) p["b-nav"] = [Math.round(W / 2 - 20), Math.round(y0)];
     return L;
   }
   window.AlmaLugares = lugares;   // también lo usa confUbicar (Conferencia y Modo calle)
@@ -4520,7 +4623,14 @@ window.SAPulso = {
       var y = L.p[r[1][0]][1] - 10; e.style.left = r[2] + "px"; e.style.top = y + "px"; e.style.height = (n * 74 - 30 + 20) + "px"; e.classList.toggle("on", ve);
     });
     if (!L) return;
-    bs.forEach(function (b) { var x = b && L.p[b.id]; if (x) { b.style.left = x[0] + "px"; b.style.top = x[1] + "px"; } });
+    bs.forEach(function (b) {
+      var x = b && L.p[b.id]; if (!x) return;
+      var ox = parseFloat(b.style.left), oy = parseFloat(b.style.top), lejos = A.listo && !b.hidden && b.style.left && (Math.abs(ox - x[0]) > 30 || Math.abs(oy - x[1]) > 30);
+      if (!lejos) { if (!b.classList.contains("muda")) { b.style.left = x[0] + "px"; b.style.top = x[1] + "px"; } return; }
+      /* un salto grande (el Navegador al abrir o cerrar las esferas): se desvanece, cambia de lugar y aparece ahí */
+      b.classList.add("muda"); clearTimeout(b._muda);
+      b._muda = setTimeout(function () { var y = lugares(), z = y && y.p[b.id] || x; b.style.left = z[0] + "px"; b.style.top = z[1] + "px"; b.classList.remove("muda"); }, 130);
+    });
     if (!A.listo) {
       A.listo = true; bs.forEach(function (b) { if (b && !b.hidden) b.classList.add("on"); });
       /* los nombres del riel: se ven al abrir y se desvanecen solos */
@@ -4531,6 +4641,7 @@ window.SAPulso = {
     var b = $(id), t = 0; if (!b) return;
     b.addEventListener("pointerdown", function () { if (!b.classList.contains("en-riel")) return; b.classList.add("toca"); clearTimeout(t); t = setTimeout(function () { b.classList.remove("toca"); }, 1600); });
   });
+  window.AlmaColUbicar = colUbicar;   // orbita() lo llama al abrir y cerrar las esferas
   setTimeout(colUbicar, 700); setInterval(colUbicar, 1200); addEventListener("resize", colUbicar);
   if (NATIVA) $("b-nav").hidden = false;
   /* Navegador: la búsqueda lista en la app, con Alma en tu lugar de siempre del navegador. */

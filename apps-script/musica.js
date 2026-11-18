@@ -67,8 +67,9 @@ function spotifyEstado_() {
 function musicaNorm_(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').trim(); }
 /* Los dispositivos que Spotify deja controlar (los «restringidos» no aceptan órdenes). Una bocina o un teléfono que
    recién despierta tarda un poco en aparecer: si la lista viene vacía, se espera un momento y se vuelve a mirar. */
+var MUSICA_REVISADA_ = false;   // la revisión rápida (musicaPrevia_) ya miró en esta llamada: no se vuelve a esperar
 function musicaLista_() {
-  for (var i = 0; i < 2; i++) {
+  for (var i = 0; i < (MUSICA_REVISADA_ ? 1 : 2); i++) {
     var d = spotifyApi_('get', '/me/player/devices'), l = ((d.j && d.j.devices) || []).filter(function (x) { return x && x.id && !x.is_restricted; });
     if (l.length || d.code === 401) return l;
     if (i === 0) Utilities.sleep(2000);
@@ -118,9 +119,12 @@ function musica_(adm, inp) {
     var a = spotifyApi_('get', '/me/player/currently-playing'); if (a.code === 204 || !a.j.item) return { sonando: 'Nada' };
     return { sonando: a.j.item.name + ' · ' + (a.j.item.artists || []).map(function (x) { return x.name; }).join(', '), en_pausa: !a.j.is_playing };
   }
-  var dsp = musicaDispositivo_(inp.dispositivo), sinDsp = 'No veo ningún dispositivo de Spotify despierto (Spotify solo muestra los que están abiertos). Abre Spotify en el teléfono un momento, o di «Ok Google, pon Spotify» en la bocina, y vuelve a pedírmelo: ahí ya lo prendo yo.';
+  var dsp = musicaDispositivo_(inp.dispositivo), sinDsp = MUSICA_SIN_DISPOSITIVO_;
   if (!dsp.el) return { error: sinDsp };
   var el = dsp.el, q = '?device_id=' + encodeURIComponent(el.id), r;
+  // El último donde sonó, sin aparecer en la lista: un solo intento de pasarle la música; si Spotify no lo acepta, se
+  // dice al instante (antes esperaba y reintentaba ~5 s más y la IA volvía a probar: Hub #793).
+  if (el.recordado && acc !== 'pausar') { var tr = spotifyApi_('put', '/me/player', { device_ids: [el.id], play: false }); if (tr.code >= 300) return { error: sinDsp }; el.is_active = true; Utilities.sleep(800); }
   if (acc !== 'pausar') musicaActivar_(el, false);
   if (acc === 'pausar') r = musicaOrden_(el, 'put', '/me/player/pause' + q);
   else if (acc === 'seguir') r = musicaOrden_(el, 'put', '/me/player/play' + q);
@@ -142,4 +146,25 @@ function musica_(adm, inp) {
   if (r.code < 300) return { ok: true, en: el.name };
   var m = (r.j && r.j.error && (r.j.error.message || r.j.error)) || ('HTTP ' + r.code);
   return { error: /premium/i.test(m) ? 'Spotify pide Premium para controlar la música.' : 'Spotify no lo hizo: ' + m };
+}
+
+var MUSICA_SIN_DISPOSITIVO_ = 'No veo ningún dispositivo de Spotify despierto (Spotify solo muestra los que están abiertos). Abre Spotify en el teléfono y dale play un momento, o di «Ok Google, pon Spotify» en la bocina, y vuelve a pedírmelo: ahí ya lo pongo yo.';
+var MUSICA_PEDIDO_RE_ = /^\s*m[uú]sica\s*[:,.-]/i;
+
+/* Revisión rápida de un pedido de música en la llamada (Hub #793, 18-nov-2026: «pedir música tarda 26 s y Spotify no se
+   detecta»). Antes de la IA: si Spotify no tiene ningún dispositivo despierto y el último donde sonó no acepta la música,
+   se contesta en 1 a 2 s con qué hacer, sin vueltas de IA ni reintentos. Si hay dispositivo (o el último sí lo aceptó),
+   devuelve null y sigue la secretaria como siempre. Solo el admin principal, desde la app de Alma, con «Música: …». */
+function musicaPrevia_(adm, pedido) {
+  if (!MUSICA_PEDIDO_RE_.test(String(pedido || '')) || !esAdminPrincipal_(adm)) return null;
+  if (typeof AGENTE_APP_ !== 'undefined' && !AGENTE_APP_) return null;   // fuera de la app lo contesta la secretaria (solo en la app)
+  if (!spotifyEstado_().conectado) return null;
+  MUSICA_REVISADA_ = true;
+  var d = spotifyApi_('get', '/me/player/devices');
+  if (d.code === 401 || d.code >= 500) return null;   // Spotify no contestó bien: que lo vea la secretaria
+  var l = ((d.j && d.j.devices) || []).filter(function (x) { return x && x.id && !x.is_restricted; });
+  if (l.length) return null;
+  var pp = PropertiesService.getScriptProperties(), ult = pp.getProperty('SPOTIFY_ULTIMO') || '';
+  if (ult) { var tr = spotifyApi_('put', '/me/player', { device_ids: [ult], play: false }); if (tr.code < 300) return null; }
+  return { error: MUSICA_SIN_DISPOSITIVO_ };
 }

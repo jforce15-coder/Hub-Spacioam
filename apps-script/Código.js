@@ -4999,7 +4999,7 @@ function probarWhatsApp() {
 /* ═══ Daño reportado por un huésped → Reporte de Daños en EPI (tag "Reporte de huésped by ALMA") ═══
    Detección por texto (no es un prompt): el huésped dice que algo se rompió, está dañado, gotea, etc.
    Un reporte por reserva y día, para no duplicar si el huésped escribe varias veces. */
-const EPI_API_URL = 'https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec';
+const EPI_API_URL = 'https://script.google.com/macros/s/AKfycbzPnUMHeLudInuDl4p29MOd5B-BcnezH34evAqAPa7_oaxJkOo-7DHr8ezxhMyjTjSe/exec';   // Epi en alma@ (traslado a Workspace)
 const RX_DANO_ = /(se (me )?(rompi|quebr|da[ñn]|cay[oó]|desprendi|zaf)|est[aá] (rot[oa]|quebrad[oa]|da[ñn]ad[oa]|descompuest[oa])|rot[oa]s?\b|quebrad[oa]s?\b|da[ñn](o|os|ado|ada)\b|fuga|gotera|gotea|inund|mancha(do|da|s)?\b|no (sirve|funciona|enciende|prende|calienta|enfr[ií]a)|descompuest|broken|damaged|\bleak|stain|not working|doesn'?t work)/i;
 function reporteDanoEpi_(ctx) {
   const txt = String(ctx.texto || '').trim();
@@ -5125,7 +5125,8 @@ function hubReviewHuesped_(resId, recomendar, contexto, ajuste, previo) {
    Hoy solo administradores; técnicos y socios quedan para después (OP_ROLES).
    Chat único (#334, chat.js): un solo chat por persona; cada fila lleva esfera y subcategoría (al final de la hoja). */
 const OP_CAB_ = ['ts', 'usuario', 'nombre', 'de', 'canal', 'texto', 'acciones', 'id', 'esfera', 'subcategoria', 'tarjeta', 'tema_id'];   // tema_id: temas.js (#526)   // tarjeta: la de la llamada, { tipo, id, titulo } (tarjeta.js)
-const EPI_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec';
+const EPI_URL_DEF_ = 'https://script.google.com/macros/s/AKfycbzPnUMHeLudInuDl4p29MOd5B-BcnezH34evAqAPa7_oaxJkOo-7DHr8ezxhMyjTjSe/exec';   // Epi en alma@ (traslado a Workspace)
+const EPI_URL_VIEJA_ = 'https://script.google.com/macros/s/AKfycbxzYpBaTI_1S0VepOi810zrzB-fyC4R2Flug0ZEOOxNzZ9F7CLiSWaKXEtk1C17sfsX/exec';   // la Propiedad EPI_URL se ignora si guarda la vieja
 const SEMILLA_OPERATIVO_ = "Eres ALMA, la asistente operativa interna de Spacio AM (hospitalidad boutique en Guatemala). Hablas con un ADMINISTRADOR del equipo, no con un huésped. Tono: directo, cálido, de tú, frases cortas, sin emoji, sin despedidas ni firma. Primero el dato, luego el contexto.\n\nPUEDES:\n· Responder preguntas usando el contexto que te damos (tareas abiertas, programa de Epi, propiedades, equipo).\n· Crear tareas del equipo, cerrarlas o comentarlas.\n· Agendar un trabajo en Epi (limpieza, limpieza profunda, mantenimiento, supervisión) en una propiedad y fecha.\n· Guardar una nota para recordar algo (preferencias, acuerdos, datos que te piden recordar).\n\nREGLAS:\n· Solo ejecutas lo que se pide claro. Si falta un dato imprescindible (propiedad, fecha), pregunta en una sola frase y no ejecutes.\n· Fechas relativas (hoy, mañana, el viernes) se convierten a YYYY-MM-DD con la fecha de HOY que te damos.\n· La propiedad debe ser una de la lista, escrita igual. Para tareas, quien es un nombre de la lista del equipo o vacío.\n· Confirma en la respuesta lo que hiciste, en una línea por acción.\n· Nunca inventes datos de reservas, códigos ni montos.\n\nDevuelve SOLO JSON:\n{\"respuesta\":\"texto para el administrador\",\"acciones\":[{\"tipo\":\"tarea\",\"texto\":\"\",\"prop\":\"\",\"quien\":\"\",\"vence\":\"YYYY-MM-DD\",\"nota\":\"\"},{\"tipo\":\"hecha\",\"id\":\"\"},{\"tipo\":\"comentario\",\"id\":\"\",\"texto\":\"\"},{\"tipo\":\"epi\",\"fecha\":\"YYYY-MM-DD\",\"hora\":\"HH:MM\",\"propiedad\":\"\",\"trabajo\":\"Limpieza|Limpieza Profunda|Mantenimiento|Supervisión\",\"tecnico\":\"\",\"notas\":\"\"},{\"tipo\":\"nota\",\"texto\":\"\"}]}\nSi no hay nada que ejecutar, acciones es [].";
 let OP_ADM_ = null, OP_CAB_LISTA_ = false;
 /* La hoja ya existe con 8 columnas: se le agregan esfera y subcategoria al final (una vez por ejecución lo revisa). */
@@ -5139,7 +5140,7 @@ function hojaOp_() {
   return sh;
 }
 function opActivo_() { return String(PropertiesService.getScriptProperties().getProperty('OP_ACTIVO') || '1') !== '0'; }
-function epiUrl_() { return PropertiesService.getScriptProperties().getProperty('EPI_URL') || EPI_URL_DEF_; }
+function epiUrl_() { const u = PropertiesService.getScriptProperties().getProperty('EPI_URL'); return u && u !== EPI_URL_VIEJA_ ? u : EPI_URL_DEF_; }
 /* Administradores con acceso al hub, desde Control de usuarios: correo, nombre, teléfonos y si es principal. Cacheado 30 min. */
 function adminsOp_() {
   if (OP_ADM_) return OP_ADM_;

@@ -5550,6 +5550,7 @@ function dsBotApi_(body) {
       }
       case 'traslado_activadores': case 'traslado_apagar': case 'traslado_encender': return json_(trasladoCorte_(body.action, body));   // corte a alma@ (trasladocorte.js)
       case 'inventario_ws': return json_(invWsInventario_(body));   // traslado a Workspace T1: solo lectura, nombres sin valores (inventariows.js)
+      case 'login_secreto_apps': return json_(loginSecretoRepartir_(!!body.revisar));   // entrar sin cupo: LOGIN_SECRETO a Docs, Epi, Grow y Mi (entrarsincupo.js)
       case 'accesos_apps': return json_(accesosApps_());   // fase 1c: ACCESOS de Epi, Hola, Mi, Grow y Docs
       case 'accesos': {   // diagnóstico de la fase 1b: última entrada con sesión firmada y con la llave antigua
         const p = PropertiesService.getScriptProperties();

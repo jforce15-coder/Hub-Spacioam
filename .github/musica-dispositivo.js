@@ -33,6 +33,7 @@ function caja(o) {
     uf_: (url, op) => {
       const ruta = url.replace('https://api.spotify.com/v1', ''), m = (op.method || 'get').toLowerCase(), cuerpo = op.payload ? JSON.parse(op.payload) : null;
       llamadas.push({ m, ruta, cuerpo });
+      if (ruta === '/me/player' && m === 'get') return o.player ? resp(200, o.player) : resp(204);
       if (ruta === '/me/player/devices') return resp(200, { devices: (o.lista || []).map(d => Object.assign({}, d, { is_active: d.id === activo })) });
       if (ruta.indexOf('/search') === 0) return resp(200, { tracks: { items: [{ name: 'Clair de Lune', uri: 'spotify:track:1', artists: [{ name: 'Debussy' }] }] } });
       if (ruta === '/me/player' && m === 'put') {
@@ -42,6 +43,7 @@ function caja(o) {
       if (ruta.indexOf('/me/player/play') === 0) {
         const id = decodeURIComponent((ruta.match(/device_id=([^&]+)/) || [])[1] || '');
         if (primerPlay404) { primerPlay404 = false; return resp(404, { error: { status: 404, message: 'Player command failed: No active device found', reason: 'NO_ACTIVE_DEVICE' } }); }
+        if (o.player && id === (o.player.device || {}).id) { o.player.is_playing = true; return resp(204); }
         if (id !== activo) return resp(404, { error: { status: 404, message: 'Player command failed: No active device found', reason: 'NO_ACTIVE_DEVICE' } });
         return resp(204);
       }
@@ -52,7 +54,7 @@ function caja(o) {
   ['musica.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(DIR, f), 'utf8'), ctx, { filename: f }));
   const poner = extra => ctx.musica_(JUAN, Object.assign({ accion: 'poner', consulta: 'clair de lune', tipo: 'cancion' }, extra || {}));
   const pre = () => (props.SPOTIFY_ULTIMO ? { id: props.SPOTIFY_ULTIMO, name: props.SPOTIFY_ULTIMO_NOMBRE } : null);
-  return { ctx, props, llamadas, poner, pre, activo: () => activo };
+  return { ctx, props, llamadas, poner, pre, activo: () => activo, vuelve: () => ctx.musicaVuelve_(JUAN), cache };
 }
 const traspasos = c => c.llamadas.filter(x => x.ruta === '/me/player' && x.m === 'put').map(x => x.cuerpo.device_ids[0]);
 
@@ -103,6 +105,36 @@ const traspasos = c => c.llamadas.filter(x => x.ruta === '/me/player' && x.m ===
   const c2 = caja({ lista: [TEL, SALA, COMPU], activo: 'tel1' });
   const r2 = c2.poner({ dispositivo: 'macbook' });
   ok(r2.ok && r2.en === 'MacBook' && traspasos(c2)[0] === 'pc1', '5 · «ponlo en la MacBook»: la activa y suena ahí');
+}
+
+/* 6. La lista viene vacía pero Spotify tiene el teléfono en la reproducción (en pausa): se usa ese (Hub #822) */
+{
+  const c = caja({ lista: [], player: { is_playing: false, device: TEL } });
+  const r = c.poner();
+  ok(r.ok && r.en === 'iPhone de Juan', '6 · lista vacía con el iPhone en /me/player: lo encuentra y suena ahí (' + JSON.stringify(r) + ')');
+  const c2 = caja({ lista: [], player: { is_playing: false, device: TEL } });
+  ok(c2.ctx.musicaPrevia_(JUAN, 'Música: clair de lune') === null, '6 · la revisión rápida tampoco dice «no veo ningún dispositivo»');
+}
+
+/* 7. La música vuelve: la app pide que Spotify siga después de que Alma la pausó (Hub #822) */
+{
+  const c = caja({ lista: [TEL], player: { is_playing: false, device: TEL } });
+  const r = c.vuelve();
+  ok(r.ok && r.hecho === true && c.llamadas.some(x => x.m === 'put' && x.ruta === '/me/player/play?device_id=tel1'), '7 · el iPhone quedó en pausa: sigue donde iba (' + JSON.stringify(r) + ')');
+  delete c.cache.musica_vuelve;
+  ok(c.vuelve().motivo === 'ya_suena', '7 · si ya suena, no hace nada');
+  const c2 = caja({ lista: [SALA], player: { is_playing: false, device: SALA } });
+  ok(c2.vuelve().motivo === 'otro_dispositivo' && !c2.llamadas.some(x => x.ruta.indexOf('/me/player/play') === 0), '7 · lo que quedó en pausa es la bocina: no se toca');
+  const c3 = caja({ lista: [TEL], activo: 'tel1', player: { is_playing: true, device: TEL } });
+  c3.ctx.musica_(JUAN, { accion: 'pausar' });
+  const c3b = c3.ctx.musicaVuelve_(JUAN);
+  ok(c3b.motivo === 'la_pauso_alma', '7 · Juan le pidió a Alma pausar: no se retoma sola (' + JSON.stringify(c3b) + ')');
+  const c4 = caja({ lista: [] });
+  ok(c4.vuelve().motivo === 'sin_dispositivo', '7 · Spotify sin reproducción: lo dice, sin llamadas de play');
+  const c5 = caja({ lista: [TEL], player: { is_playing: false, device: TEL } });
+  c5.vuelve();
+  ok(c5.vuelve().motivo === 'reciente', '7 · dos pedidos seguidos: uno solo');
+  ok(c5.ctx.musicaVuelve_({ email: 'otro@x.com' }).error === 'usuario', '7 · solo el admin principal');
 }
 
 process.exit(fallo);

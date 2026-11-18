@@ -3414,6 +3414,7 @@ function hubApi_(body) {
       case 'notifPrueba': return json_(notifPruebaApi_(ses));                              // «Probar con Siri» desde el Hub web: solo el principal; la app la arma con Siri (notifajustes.js)
       case 'vozAvisos': return json_(vozAvisos_(ses, body));                              // app de iPhone: avisos para decir al oído, con la voz de Alma (calle.js)
       case 'anilloBle': return json_(anilloBleGuardar_(ses, body));                       // app de iPhone: el Diagnóstico del anillo (Bluetooth) { diagnostico } (anillo.js)
+      case 'musicaVuelve': return json_(musicaVuelveApi_(ses));                                // app de iPhone: Spotify se pausó por Alma y ya terminó: que siga (musica.js, #822)
       case 'anilloResumen': return json_(anilloResumenGuardar_(ses, body));               // app de iPhone: la Lectura del anillo { resumen } (lo último leído, con su hora; anillo.js)
       case 'vozWeb': return json_(vozWebInicio_(ses, !!body.ligero, body.app === 'alma', !!body.claudio, String(body.vuelta_claudio || '').slice(0, 80), !!body.maricarmen));    // Alma por voz desde el menú (voz.js); claudio: la app sabe pasar a Claudio
       case 'vozClaudio': return json_(claudioWebInicio_(ses, body.motivo));                 // Hablar con Claudio: su conversación, solo el principal con sesión (claudio.js)

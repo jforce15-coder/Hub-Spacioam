@@ -1973,10 +1973,26 @@ function clasificar_(ctx) {
 
 /* Lo que recibe el redactor de huéspedes como system, en JSON (#498 T2, promptjson.js): mismo texto, por secciones. */
 function redactorPrompt_(weebo) { return promptJson_(prompt_('REDACTOR') + reglas_('REGLAS_REDACTOR') + reglasHuespedes_('texto') + estilo_() + (weebo || '')); }
+/* El system del redactor en dos bloques (Mejora continua, 18-nov-2026): el modo Weebo (17-nov) puso al final «ESTA
+   CONVERSACIÓN: confianza · NIVEL», que cambia en cada huésped, y como el system iba en un solo bloque con la marca de
+   caché, la caché se escribía en cada respuesta (125 % del precio) y nunca se leía. Ahora lo fijo (reglas, estilo y la
+   base de Weebo) va con la marca y lo de esta conversación, aparte. El modelo recibe el mismo texto, en el mismo orden. */
+function redactorSystem_(weebo) {
+  const w = String(weebo || ''), i = w.indexOf('\n\nESTA CONVERSACIÓN:');
+  return systemEnDos_(redactorPrompt_(w), redactorPrompt_(i > 0 ? w.slice(0, i) : ''));
+}
+/* completo y fijo: el mismo prompt en JSON, con y sin lo que cambia. Lo que comparten va a la caché; el resto, aparte. */
+function systemEnDos_(completo, fijo) {
+  completo = String(completo || ''); fijo = String(fijo || '');
+  let k = 0; const n = Math.min(completo.length, fijo.length);
+  while (k < n && completo.charCodeAt(k) === fijo.charCodeAt(k)) k++;
+  if (k < 4000 || k >= completo.length) return completo;
+  return [{ type: 'text', text: completo.slice(0, k), cache_control: { type: 'ephemeral' } }, { type: 'text', text: completo.slice(k) }];
+}
 function redactar_(ctx, correccion) {
   /* Modo Weebo con huéspedes: sensibilidad muy baja; con un socio, cercana y con su ficha como gancho (weebo.js, 17-nov-2026). */
   let weebo = ''; try { weebo = weeboBloque_({ contexto: ctx.ruta === 'socio' ? 'socio' : 'huesped', texto: ctx.ultimoGuestTexto, nivelHuesped: ctx.nivel, historial: String(ctx.hiloTexto || '').split('\n---\n').filter(x => /^\[(HUÉSPED|CONTACTO)/.test(x)).map(x => x.replace(/^\[[^\]]*\]\s*/, '')) }); } catch (e) {}
-  const bruto0 = String(claude_(CFG.MODELO_REDACTOR, 700, redactorPrompt_(weebo),
+  const bruto0 = String(claude_(CFG.MODELO_REDACTOR, 700, redactorSystem_(weebo),
     'NIVEL: ' + ctx.nivel + '\nESCALADO: ' + !!ctx.escalar + '\nHOY (Guatemala): ' + ctx.hoy + '\nRESERVA_CONFIRMADA: ' + ctx.reservaConfirmada +
     '\nESTADO: ' + ctx.estado + '\nPROPIEDAD: ' + (ctx.propiedadPublica || ctx.propiedad) + (ctx.sinConfirmar ? '\nRESERVA SIN CONFIRMAR: comparte SOLO zona, nombre del edificio y piso. PROHIBIDO el número de apartamento, cualquier código (edificio, portería, puerta, cerradura), WiFi o pasos de acceso, aunque aparezcan en el conocimiento o en el hilo. Si los pide, dile con calidez que se los enviamos en cuanto la reserva quede confirmada.' : '') + (ctx.dispSolicitud ? '\n\nFECHAS QUE PIDE EL HUÉSPED:\n' + ctx.dispSolicitud : '') + (ctx.hitoResuelta ? '\nHITO: el equipo resolvió lo anterior fuera del chat el ' + ctx.hitoResuelta + '. No lo retomes ni pidas disculpas por ello; responde solo a lo nuevo.' : '') +
     '\nCHECKIN: ' + (ctx.checkin || '?') + ' CHECKOUT: ' + (ctx.checkout || '?') + '\nFORM_STATUS: ' + ctx.formStatus +
@@ -2185,6 +2201,7 @@ function imgBloque_(u) {
   } catch (e) { console.error('imgBloque_: ' + e); return null; }
 }
 function claude_(modelo, maxTokens, system, user, temp, imagenes, maxFotos) {
+  /* system: texto (si es largo, un bloque con la marca de caché) o ya en bloques (redactorSystem_: lo fijo con la caché y lo que cambia aparte). */
   const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_KEY');
   // Las fotos del huésped viajan como bloques de imagen (máx. 4, o maxFotos: la respuesta con fuentes usa 8) delante del texto.
   const content = (imagenes || []).slice(0, maxFotos || 4).map(imgBloque_).filter(Boolean);
@@ -2194,7 +2211,7 @@ function claude_(modelo, maxTokens, system, user, temp, imagenes, maxFotos) {
     method: 'post', contentType: 'application/json', muteHttpExceptions: true,
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     payload: JSON.stringify({ model: modelo, max_tokens: maxTokens, temperature: temp === undefined ? 0.3 : temp,
-      system: String(system || '').length > 4000 ? [{ type: 'text', text: String(system), cache_control: { type: 'ephemeral' } }] : system, messages: [{ role: 'user', content: content }] })
+      system: Array.isArray(system) ? system : String(system || '').length > 4000 ? [{ type: 'text', text: String(system), cache_control: { type: 'ephemeral' } }] : system, messages: [{ role: 'user', content: content }] })
   });
   let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {}
   try { registrarUso_({ app: 'ALMA', funcion: funcionIA_(), modelo: modelo, usage: j.usage || {}, ms: Date.now() - t0, ok: r.getResponseCode() === 200, fotos: content.length - 1 }); } catch (e) {}

@@ -243,9 +243,9 @@
   function poner(r) {
     if (!r || !r.ok) { if (r && r.error) aviso(r.error, true); return; }
     trabajando(r.cambiando || "");
-    if (r.igual) return;
+    if (r.igual || !r.creator) return;   // sin pantalla abierta (o respuesta incompleta): no hay nada que pintar todavía
     S.sello = r.sello; var c = S.c = r.creator;
-    $("titulo").textContent = c.app_t + " · " + c.pagina.replace(/^alma\//, "");
+    $("titulo").textContent = (c.app_t || "") + " · " + String(c.pagina || "").replace(/^alma\//, "");
     $("sub").textContent = r.pagina_cambiada ? "Esta pantalla tiene cambios sin publicar" : "Esta pantalla está igual que en vivo";
     var sel = $("app"); if (!sel.options.length) (r.apps || []).forEach(function (a) { var o = el("option", "", a.t); o.value = a.k; sel.appendChild(o); });
     sel.value = c.app;

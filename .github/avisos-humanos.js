@@ -35,6 +35,8 @@ const CASOS = [
   ['claude_fallo', { titulo: 'Borrar reservas viejas', detalle: 'no se considera seguro borrar sin respaldo' }, ['Borrar reservas viejas', 'seguro']],
   ['claude_unido', { titulo: 'Botón de facturas' }, ['Botón de facturas', 'unido']],
   ['claude_consulta', { titulo: 'Ocupación de octubre', detalle: 'Rue 301 tuvo 83.9 % de ocupación' }, ['Ocupación de octubre', '83.9']],
+  ['video_visto', { titulo: 'Cómo limpiar una cocina en 3 pasos', detalle: 'Una persona limpia una cocina: platos, estufa y piso.' }, ['Cómo limpiar una cocina', 'estufa', 'hilo de desarrollo']],
+  ['video_fallo', { titulo: 'No pude ver el video', detalle: 'Instagram pide iniciar sesión' }, ['Instagram pide iniciar sesión', 'carpeta de desarrollo']],
   ['escalar_entregado', { nombre: 'Contactos de recepción' }, ['Contactos de recepción', 'chat']],
   ['escalar_no_unido', { nombre: 'Contactos de recepción', causa: 'sus revisiones fallaron', url: 'https://github.com/x/y/pull/487' }, ['Contactos de recepción', 'revisiones fallaron', 'https://github.com/x/y/pull/487']],
   ['escalar_no_publico', { nombre: 'Contactos de recepción', url: 'https://github.com/x/y/pull/488' }, ['Contactos de recepción', 'publicarse', 'pull/488']],

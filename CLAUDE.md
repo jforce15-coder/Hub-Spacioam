@@ -53,6 +53,22 @@ jforce15-coder/Hub-Spacioam con la etiqueta `para-alma` y en el cuerpo un bloque
 en el issue. El repo es **público**: en la instrucción nada de teléfonos, correos ni datos de huéspedes; nombra a la persona
 como Alma la conoce («Recepción Brunelo»). Un issue = una ejecución: para corregir algo, abre otro (`apps-script/paraalma.js`).
 
+## 10. Ver un video que Juan te pasa (Ver video)
+Juan no baja videos: te pasa un **enlace** (TikTok, Instagram, Facebook, YouTube o X) o dice «mira lo nuevo» (lo que subió
+hoy a su carpeta de Drive de desarrollo). Lo ve el workflow «Ver video» (`.github/workflows/ver-video.yml`: fotos clave con
+su hora en hojas de 3 x 3, transcripción con tiempos) y el Hub guarda el resultado **privado** en el Drive de alma@ y arma el
+resumen (`apps-script/vervideo.js`). Con el robot del Hub (POST text/plain, `{"dsBot":1,"token":<llave del robot>,…}`;
+la llave nunca va en el repo):
+- `{"action":"ver_video","url":"<enlace>"}` → `video.id` y `lanzado` (204 = el Hub lanzó el workflow). Si `lanzado` no es
+  204, repite con `"otra_vez":true,"sin_lanzar":true` y lánzalo tú: workflow «Ver video» (workflow_dispatch) con `id` y `url`.
+- Espera 1 a 5 min y pide `{"action":"ver_video_estado","url":"<enlace>","fotos":true}`: con `estado` «listo» trae `resumen`,
+  `transcripcion` (con tiempos) y `hojas` (JPG en base64). Decodifícalas en tu scratchpad y míralas con Read.
+- «Mira lo nuevo»: `{"action":"carpeta_nuevo","dias":1}` lista lo de hoy y manda a ver los videos (3 por vez); una foto o
+  un PDF de ahí se lee con `{"action":"drive_archivo","id":"<id>"}` (base64).
+- Si una red pide sesión (Instagram, Facebook), el resultado es `error`: pídele a Juan que lo suba a la carpeta, o que cargue
+  el secreto `VER_VIDEO_COOKIES` en GitHub (nunca en el chat).
+Nada de transcripciones, fotos ni resúmenes en el repo, los PRs o los issues: el repo es público.
+
 ## Reglas fijas del repo
 - Todo cambio va por PR; nunca a `main` directo. Juan une: en GitHub, diciendo «une» en el chat de Claude (y Claude lo une),
   con el botón «Unir» de Pendientes en la app de Alma o pidiéndoselo a Alma (`unir_cambio`). Nadie une sin que él lo pida.

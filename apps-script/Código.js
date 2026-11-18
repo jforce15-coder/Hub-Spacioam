@@ -5238,7 +5238,7 @@ function llaveRobot_() { return PropertiesService.getScriptProperties().getPrope
 const ACCESOS_APPS_ = {
   epi: () => epiUrl_(), hola: () => holaUrl_(),
   mi: () => 'https://script.google.com/macros/s/AKfycbwJs7uCsJAzWu3artVCXrU4g7Nu6GoqU7iaLXpPYu9UilQpFl4CeQ9b1z9NgQ_31YTFlw/exec',   // Mi en alma@ (18-nov-2026)
-  grow: () => 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec',
+  grow: () => growUrl_(),   // Grow en alma@ (18-nov-2026, agente.js)
   docs: () => 'https://script.google.com/macros/s/AKfycbxcz_zjz39kRCfwQLLIk7HugqwqNGe2VKpf8okRemCrDvoVEgVCezeou9w5pfNjuXlE/exec'   // Docs en alma@ (17-nov-2026)
 };
 function accesosApps_() {

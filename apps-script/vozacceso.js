@@ -35,7 +35,7 @@ function vozAccesoSiCambio_(forzar) {
 function vozUrlFirmada_(otro) {
   var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = otro || p.getProperty('ELEVENLABS_AGENT_ID');
   if (!key || !agente) return { ok: false, error: 'faltan ELEVENLABS_KEY / ELEVENLABS_AGENT_ID' };
-  var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true });
+  var r = uf_('https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=' + encodeURIComponent(agente), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }, 'Voz', true);   // esencial (#836): ninguna reserva del cupo la frena
   if (r.getResponseCode() !== 200) return { ok: false, error: 'ElevenLabs ' + r.getResponseCode() };
   var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) {}
   return j.signed_url ? { ok: true, url: j.signed_url } : { ok: false, error: 'sin URL firmada' };

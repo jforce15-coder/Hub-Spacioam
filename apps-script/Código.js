@@ -5585,6 +5585,7 @@ function dsBotApi_(body) {
         return json_({ ok: true, solo_sesion: pS.getProperty('HUB_SOLO_SESION') === '1' });
       }
       case 'traslado_activadores': case 'traslado_apagar': case 'traslado_encender': return json_(trasladoCorte_(body.action, body));   // corte a alma@ (trasladocorte.js)
+      case 'cupo_top': return json_(cupoRobot_(body.n));   // la guardia: nivel, límite y top de canales y funciones de 24 h, solo lectura (cupo.js, #836)
       case 'inventario_ws': return json_(invWsInventario_(body));   // traslado a Workspace T1: solo lectura, nombres sin valores (inventariows.js)
       case 'login_secreto_apps': return json_(loginSecretoRepartir_(!!body.revisar));   // entrar sin cupo: LOGIN_SECRETO a Docs, Epi, Grow y Mi (entrarsincupo.js)
       case 'accesos_apps': return json_(accesosApps_());   // fase 1c: ACCESOS de Epi, Hola, Mi, Grow y Docs

@@ -44,7 +44,7 @@ var CLAUDIO_FRASE_ = 'Te lo paso.';
 var CLAUDIO_PERMISO_ = 'PUEDES PASARLO CON CLAUDIO: es el administrador principal y la app sabe cambiar a Claudio (el equipo de desarrollo).';
 var CLAUDIO_PROTECCION_NOMBRE_ = 'Instrucciones de Claudio (solo el administrador principal)';
 var CLAUDIO_REINTENTO_MS_ = 6 * 3600000;   // si crear el agente falló, se vuelve a intentar a las 6 h (no en cada vuelta)
-var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo', 'claudio_acciones', 'ver_video'];
+var CLAUDIO_HERR_ = ['claudio_pedido', 'claudio_responder', 'claudio_estado', 'claudio_unir', 'claudio_codigo', 'claudio_acciones', 'ver_video', 'claudio_creator'];
 var CLAUDIO_REPOS_ = { hub: 'Hub-Spacioam', app: 'alma-app' };
 var CLAUDIO_CODIGO_MAX_ = 2400;            // lo que vuelve de leer código: corto, es para explicarlo en voz
 var CLAUDIO_SIN_FICHA_ = 'Sin ficha del Hub: no es el administrador principal. No hagas pedidos, no unas ni leas código; dile con amabilidad que esto es solo para el administrador desde la app de Alma.';
@@ -165,7 +165,7 @@ function claudioDefHerramientas_(base) {
         enlace: s('El enlace https (abrir_enlace, pegar_en, ver_captura). Vacío si no hay.'),
         texto: s('El texto a copiar (copiar_texto o pegar_en). Nunca una llave ni una contraseña. Vacío si no hay.'),
         opciones: s('Para elegir_opcion: las opciones separadas por « | », por ejemplo «A: tarjetas grandes | B: lista compacta».'),
-        pantalla: { type: 'string', enum: ['', 'inicio', 'ajustes', 'llaves', 'biblioteca', 'conexiones', 'agentes', 'avisos', 'uso', 'google'], description: 'Para ir_a_pantalla: cuál pantalla de la app. Vacío si no aplica.' },
+        pantalla: { type: 'string', enum: ['', 'inicio', 'ajustes', 'llaves', 'biblioteca', 'conexiones', 'agentes', 'avisos', 'uso', 'google', 'creator'], description: 'Para ir_a_pantalla: cuál pantalla de la app. Vacío si no aplica.' },
         destino: { type: 'string', enum: ['', 'llaves', 'github_secretos'], description: 'llaves: guardar una llave en Ajustes → Llaves. github_secretos: en los secretos de GitHub. Vacío si no aplica.' },
         cual: s('Para aprobar: el cambio a unir (su número o dos palabras de su nombre). Vacío si no aplica.'),
         trabajo: s('Si la acción es de un trabajo abierto, dos o tres palabras de su nombre. Vacío si no.') },
@@ -175,6 +175,14 @@ function claudioDefHerramientas_(base) {
         carpeta: { type: 'string', enum: ['', 'nuevo'], description: 'nuevo: Juan dijo «mira lo nuevo» (lo que subió hoy a la carpeta de desarrollo). Vacío si no.' },
         otra_vez: s('«sí» solo si Juan pide verlo de nuevo aunque ya lo viste. Vacío si no.') },
       ['conv_id'], 20),
+    web('claudio_creator', 'El Modo Creator: Juan ve una app (Hub, Hola, Epi, Grow, Docs o Mi) en BORRADOR y te pide cambios hablando; se ven al momento y no están en vivo hasta publicar. Cada frase que pida un cambio de lo que ve («el título más grande», «ponle vidrio esmerilado», «todavía no, más»): cambiar, con sus palabras. «Regresa a la anterior»: deshacer. «Abre Mi» u otra pantalla: abrir. «Súbelo»/«publícalo»: publicar (la primera vez lo prepara; ya listo, publica solo si Juan dijo «publícalo»). Di solo lo que devuelva, corto («Listo, mira.»).',
+      { accion: { type: 'string', enum: ['cambiar', 'deshacer', 'abrir', 'publicar'], description: 'cambiar (por defecto) · deshacer · abrir · publicar.' },
+        pedido: s('Para cambiar: lo que Juan pidió, en sus palabras, completo.'),
+        app: { type: 'string', enum: ['', 'hub', 'hola', 'epi', 'grow', 'docs', 'mi'], description: 'Para abrir: la app. Vacío: la que ya está abierta (o la página de prueba del Hub).' },
+        pagina: s('Para abrir: la pantalla, por ejemplo «inicio» o «index.html». Vacío: la principal de la app.'),
+        version: s('Para deshacer a una versión en particular: su número. Vacío: la anterior.'),
+        dijo: s('Para publicar: las palabras exactas de Juan.') },
+      ['conv_id', 'accion'], 40),
     { type: 'client', name: 'volver_con_alma', expects_response: false, response_timeout_secs: 1,
       description: 'Vuelve con Alma: la app cierra esta conversación y abre la de Alma, con su voz; ella cierra con Juan. Úsala cuando Juan pida volver con Alma, cuando ya terminaron o cuando diga que eso era todo (en vez de colgar). Antes di solo «Listo, te paso con Alma.» y después nada.',
       parameters: { type: 'object', required: [], properties: { nota: { type: 'string', description: 'Vacío.' } } },
@@ -439,7 +447,8 @@ function claudioEjecutar_(adm, herr, b) {
   var out = herr === 'claudio_pedido' ? claudioPedido_(adm, b) : herr === 'claudio_responder' ? claudioResponder_(adm, b) : herr === 'claudio_estado' ? claudioEstado_(adm, b)
     : herr === 'claudio_unir' ? claudioUnir_(adm, b) : herr === 'claudio_codigo' ? claudioCodigo_(adm, b)
     : herr === 'claudio_acciones' ? claudioAccionesHerr_(adm, b)   // claudioacciones.js
-    : herr === 'ver_video' ? claudioVerVideo_(adm, b) : { ok: false, error: 'herramienta desconocida' };   // vervideo.js
+    : herr === 'ver_video' ? claudioVerVideo_(adm, b)   // vervideo.js
+    : herr === 'claudio_creator' ? claudioCreatorHerr_(adm, b) : { ok: false, error: 'herramienta desconocida' };   // creator.js
   if (herr === 'claudio_acciones' && out.ok) claudioPanelCandidata_('lista', '');   // en pantalla: el panel con sus acciones arriba
   var cand = CLAUDIO_PANEL_;
   try { claudioPanelGuardar_(b.conv_id); } catch (e) { console.error('claudioPanelGuardar_: ' + e); }
@@ -493,6 +502,8 @@ function claudioResponder_(adm, b) {
     if (preg.length !== 1) return { ok: false, error: 'NO SE HIZO NADA: ' + (preg.length ? 'hay ' + preg.length + ' preguntas pendientes (' + claudioNombres_(preg) + '); pregúntale de cuál habla.' : 'no hay ninguna pregunta pendiente. Si es un cambio nuevo, usa claudio_pedido.') };
     m = preg[0];
   }
+  /* «Súbelo» con el Modo Creator recién tocado y en borrador: es prepararlo para publicar, no pasar un trabajo a Opus (creator.js). */
+  if (subir && !trabajo && creatorSubeloEsMio_(adm)) return claudioCreatorHerr_(adm, { accion: 'publicar', dijo: texto });
   var r = subir ? microSubir_(adm, m, { sinChat: true }) : microResponder_(adm, m.id, texto, { sinChat: true });
   var nombre = (m && m.nombre) || r.nombre || 'el pedido';
   if (!b.sin_chat) { try { opGuardar_(adm, 'yo', 'llamada', texto, [], CHAT_DESARROLLO_); opGuardar_(adm, 'alma', 'llamada', 'Claudio: ' + (r.ok ? r.respuesta : 'no salió: ' + (r.error || 'error')), [], CHAT_DESARROLLO_); } catch (e) { console.error('claudioResponder_ chat: ' + e); } }

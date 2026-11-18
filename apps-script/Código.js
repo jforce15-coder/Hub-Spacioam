@@ -2220,6 +2220,7 @@ function precioIA_(modelo) {
   try { const x = JSON.parse(PropertiesService.getScriptProperties().getProperty('IA_PRECIOS') || '{}'); const k = Object.keys(x).find(k => m.indexOf(k.toLowerCase()) >= 0); if (k) return x[k]; } catch (e) {}
   if (/opus-4-[5-9]|opus-[5-9]/.test(m)) return [5, 25];
   if (/opus/.test(m)) return [15, 75];
+  if (/sonnet-5/.test(m)) return [2, 10];   // Sonnet 5 y 5.5 (el Modo Creator, creator.js)
   if (/sonnet/.test(m)) return [3, 15];
   if (/^jev/.test(m)) return [0.042, 0];   // Jev, el portero de la voz (rapido.js): ESTIMADO de fuentes secundarias; la salida no se cobra
   if (/haiku-5-5/.test(m)) return [0.1, 0.5];   // el modelo rápido de la voz (rapido.js): hasta 100K tokens de entrada; más largo, [0.5, 2.5]
@@ -3411,6 +3412,8 @@ function hubApi_(body) {
       case 'vozClaudioPanel': return json_(claudioPanelApi_(ses, body));                    // Panel de Claudio { conv_id }: lista de trabajos o el del que se habla, solo el principal (claudiopanel.js)
       case 'claudioHilo': return json_(claudioHiloApi_(ses, body));                         // Hilo de Claudio: chat de Desarrollo, acciones y estado de cada trabajo, solo el principal (claudioacciones.js)
       case 'claudioEscribir': return json_(claudioEscribirApi_(ses, body));                 // Hilo de Claudio { texto }: un turno de Claudio por escrito (claudioacciones.js)
+      case 'creatorVer': return json_(creatorVerApi_(ses, body));                           // Modo Creator { desde, vivo }: el estado y, si cambió, la pantalla del borrador (creator.js)
+      case 'creatorCambiar': case 'creatorDeshacer': case 'creatorPublicar': case 'creatorAbrir': case 'creatorIr': return json_(creatorAccionApi_(ses, body.action, body));   // Modo Creator: cambio, deshacer, publicar, abrir una app, ir a otra pantalla (creator.js)
       case 'claudioAccion': return json_(claudioAccionApi_(ses, body));                     // Acción de Claudio { id, eleccion?, quitar? }: Hecho, elegir o unir (claudioacciones.js)
       case 'vozSaludosGrabados': return json_(saludosGrabadosApi_(ses, body));            // app de iPhone: los Saludos grabados y el Aviso de volver a llamar, con la voz de Alma (saludosgrabados.js, #724)
       case 'vozFirma': return json_(vozWebUrlApi_(ses));                                  // solo la URL firmada de la voz, pedida por adelantado (voz.js · vozacceso.js)
@@ -5589,6 +5592,7 @@ function dsBotApi_(body) {
       case 'contactos_rellenar': return json_(contactosRellenar_());
       case 'para_claude': return json_(paraClaudeLista_(!!body.todos));
       case 'ver_video': case 'ver_video_estado': case 'ver_videos': case 'carpeta_nuevo': case 'drive_archivo': return json_(vvRobot_(body));   // Ver video (vervideo.js)
+      case 'creator_leer': case 'creator_prueba': case 'creator_abrir': case 'creator_deshacer': return json_(creatorRobot_(body));   // Modo Creator (creator.js)
       case 'para_alma_estado': return json_(paraAlmaDiag_());   // instrucciones «para-alma»: estado del aviso y código de GitHub, sin textos (paraalma.js)
       case 'para_claude_marcar': return json_(paraClaudeMarcar_(body.id, body.estado, body.nota));
       case 'para_claude_reintentar': return json_(paraClaudeReintentar_());   // los pedidos que no salieron, ya (paraclaude.js)

@@ -120,7 +120,8 @@ function claudioLocalSystem_(ficha) {
 }
 /* Sus herramientas, en el formato de Claude: las mismas de su agente (sin conv_id ni sa_web, que pone el Hub). */
 function claudioLocalHerramientas_() {
-  return claudioDefHerramientas_('L').map(function (d) {
+  /* reproducir_voz la atiende solo la app en una llamada de ElevenLabs (muestrasvoz.js): aquí no existe. */
+  return claudioDefHerramientas_('L').filter(function (d) { return d.name !== 'reproducir_voz'; }).map(function (d) {
     var sch = d.type === 'webhook' ? d.api_schema.request_body_schema : d.parameters, props = {};
     Object.keys(sch.properties || {}).forEach(function (k) { if (k !== 'conv_id' && k !== 'sa_web') props[k] = sch.properties[k]; });
     var req = (sch.required || []).filter(function (k) { return k !== 'conv_id' && k !== 'sa_web'; });

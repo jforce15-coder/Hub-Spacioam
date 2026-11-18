@@ -258,6 +258,9 @@ jobs:
       - name: Ver video, el enlace de una red o un archivo de la carpeta se ve en GitHub y el resultado queda privado en el Hub (dobles)
         # 18-nov: Juan quiere pasarle a Claudio un enlace de TikTok o Instagram y que lo vea, sin bajarlo él.
         run: node .github/ver-video.js apps-script
+      - name: Muestras de voz, Claudio busca una voz y suena en la llamada y en su hilo, solo el principal y sin pagar dos veces (dobles)
+        # #781: Juan quiere oír las voces que pide durante la llamada con Claudio y también poder ponerlas en el chat.
+        run: node .github/muestras-voz.js apps-script
       - name: Enlaces cortos, mismo enlace mismo código, «enlace» pública y todo WhatsApp, correo y Hospitable sale con el corto (dobles)
         # #488 T2: los enlaces largos (los PDF de Drive, el formulario de Grow, el Hub) se veían raros y daban desconfianza.
         run: node .github/enlaces.js apps-script

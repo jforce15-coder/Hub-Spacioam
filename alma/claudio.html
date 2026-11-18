@@ -140,7 +140,20 @@
   .enviar:disabled { opacity: .4; cursor: default; }
   .enviar svg { width: 20px; height: 20px; }
   .pie-av { max-width: var(--ancho); margin: 0 auto 6px; padding: 0 6px; font-size: 12px; color: var(--mal); }
-  @media (min-width: 900px) { .acc, .est { margin-left: 38px; max-width: 600px; } }
+  /* Muestras de voz (muestrasvoz.js): una fila por voz con su botón ▶ para oírla aquí, sin llamada */
+  .voces { margin-left: 38px; padding: 14px; border-radius: 22px; }
+  .voz { display: flex; gap: 11px; align-items: center; margin-top: 10px; }
+  .voz-tx { flex: 1; min-width: 0; }
+  .voz-n { display: block; font: 600 14px/1.3 Montserrat, sans-serif; overflow-wrap: anywhere; }
+  .voz-d { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.4; color: var(--suave); overflow-wrap: anywhere; }
+  .play { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer; color: #fff;
+    background: linear-gradient(160deg, #F4A35B, #E2752A); box-shadow: 0 10px 22px -14px rgba(150,70,20,.8); transition: transform .16s ease; }
+  .play svg { width: 18px; height: 18px; }
+  .play:active { transform: scale(.94); }
+  .play[aria-busy="true"] { opacity: .6; cursor: progress; }
+  .voces .res { margin-left: 55px; }
+  @media (prefers-reduced-motion: reduce) { .play:active { transform: none; } }
+  @media (min-width: 900px) { .acc, .est, .voces { margin-left: 38px; max-width: 600px; } }
 </style>
 </head>
 <body>
@@ -280,6 +293,40 @@
     return card;
   }
 
+  /* ── Muestras de voz: ▶ la pide al Hub (vozMuestra, mp3) y suena aquí; una a la vez. Una voz de la biblioteca de
+     ElevenLabs que no se puede usar por API suena con su muestra pública (preview). ── */
+  var PLAY = '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>', PAUSA = '<path d="M8.5 5.5v13M15.5 5.5v13"/>';
+  var SUENA = { audio: null, boton: null };
+  function iconoPlay(b, on) { var s = icono("hecho"); s.innerHTML = on ? PAUSA : PLAY; s.setAttribute("stroke-width", "2.4"); b.replaceChildren(s); b.setAttribute("aria-pressed", String(on)); }
+  function pararMuestra() { if (SUENA.audio) { try { SUENA.audio.pause(); } catch (e) {} } if (SUENA.boton) iconoPlay(SUENA.boton, false); SUENA.audio = null; SUENA.boton = null; }
+  function tarjetaVoces(t) {
+    var c = el("section", "it voces vidrio"); c.setAttribute("aria-label", "Muestras de voz");
+    c.appendChild(el("span", "acc-k", "Muestras de voz"));
+    if (t.buscar) c.appendChild(el("span", "acc-t", "«" + t.buscar + "»"));
+    (t.voces || []).forEach(function (v) {
+      var f = el("div", "voz"), b = el("button", "play"); b.type = "button"; b.setAttribute("aria-label", "Oír la voz " + v.nombre); iconoPlay(b, false);
+      var tx = el("div", "voz-tx"); tx.appendChild(el("span", "voz-n", v.nombre)); if (v.desc) tx.appendChild(el("span", "voz-d", v.desc));
+      f.appendChild(b); f.appendChild(tx); c.appendChild(f);
+      b.onclick = function () {
+        if (SUENA.boton === b) { pararMuestra(); return; }
+        pararMuestra(); b.setAttribute("aria-busy", "true");
+        var sonar = function (src) {
+          var a = new Audio(src); SUENA.audio = a; SUENA.boton = b; iconoPlay(b, true);
+          a.onended = function () { if (SUENA.audio === a) pararMuestra(); };
+          return a.play();
+        };
+        pedir("vozMuestra", { voice_id: v.id, frase: t.frase || "", nombre: v.nombre }).then(function (r) {
+          if (r && r.ok && r.audio) return sonar("data:audio/mpeg;base64," + r.audio);
+          if (v.preview) return sonar(v.preview);
+          throw new Error((r && r.error) || "No pude traer la muestra.");
+        }).then(function () { var x = c.querySelector(".res"); if (x) x.remove(); }).catch(function (e) {
+          pararMuestra(); resultado(c, (e && e.message) || "No pude ponerla.", true);
+        }).then(function () { b.removeAttribute("aria-busy"); });
+      };
+    });
+    return c;
+  }
+
   /* ── Estado de un trabajo (y su pregunta, por el camino de Pendientes) ── */
   var ETAPA = { pregunta: "Te pregunta", fallo: "Falló", listo: "Listo para unir", revisando: "Revisando", escribiendo: "Escribiendo" };
   function tarjetaEstado(t) {
@@ -333,7 +380,7 @@
     items.forEach(function (x) {
       var d = dia(x.ts); if (d && d !== ultimoDia) { frag.appendChild(el("p", "dia", d)); ultimoDia = d; }
       var n = x.k === "msg" ? el("div", "it") : null;
-      if (n) n.appendChild(burbuja(x)); else n = x.k === "accion" ? tarjetaAccion(x) : tarjetaEstado(x);
+      if (n) n.appendChild(burbuja(x)); else n = x.k === "accion" ? tarjetaAccion(x) : x.k === "voces" ? tarjetaVoces(x) : tarjetaEstado(x);
       if (!H.primera && !ant[clave(x)]) { n.classList.add("entra"); nuevos.push(n); }
       frag.appendChild(n);
     });

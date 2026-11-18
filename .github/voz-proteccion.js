@@ -131,4 +131,15 @@ function caja(props, agente) {
   const sal = vm.runInContext('vozInicio_({ caller_id: "50211110000", saliente: true })', ctx).dynamic_variables.marca_principal;
   ok(sal === marca, 'si Alma llama al principal (saliente), también lleva el código'); }
 
+/* 6. #826 (18-nov): voz_estado muestra también las protecciones de contenido («Violence» colgó una llamada mientras decía
+   integrada=false). */
+{ const c = caja({}, {});
+  const g = ACTUAL(); g.content.config.violence = { is_enabled: true, threshold: 0.5 }; g.prompt_injection.is_enabled = false;
+  const r = c.ctx.vozProteccionResumen_(g);
+  ok(r.integrada === false, 'resumen: la integrada (Prompt Injection) apagada se ve apagada');
+  ok(r.contenido && r.contenido.activas.indexOf('violence (0.5)') >= 0 && r.contenido.accion === 'end_call', 'resumen: muestra la protección de contenido «violence» con su umbral y que cuelga');
+  ok(r.cuelgan.indexOf('contenido: violence (0.5)') >= 0 && r.cuelgan.indexOf('moderación: harassment (0.8)') >= 0, 'resumen: «cuelgan» lista todo lo que puede colgar la llamada');
+  ok(JSON.stringify(c.ctx.vozProteccionResumen_({}).cuelgan) === '[]', 'resumen: sin protecciones, nada cuelga');
+  ok(JSON.stringify(c.ctx.vozProteccionAplicar_(g, c.ctx.vozProteccionConfig_('x')).content) === JSON.stringify(g.content), 'el Hub no toca las protecciones de contenido al sincronizar'); }
+
 process.exit(fallo);

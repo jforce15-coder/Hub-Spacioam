@@ -720,6 +720,16 @@ function vozEstado_(extra) {
     tool_ids: pr.tool_ids || [], sistema: Object.keys(pr.built_in_tools || {}).filter(function (k) { return pr.built_in_tools[k]; }),
     llm: pr.llm, rama: ag.branch_id || ag.main_branch_id || '', proteccion: vozProteccionResumen_((ag.platform_settings || {}).guardrails),
     acceso_cerrado: vozAccesoCerrado_((ag.platform_settings || {}).auth) };
+  /* #826: también las protecciones del agente de Claudio (la llamada que se cortó pudo ser suya). */
+  try {
+    var cl = typeof claudioAgente_ === 'function' ? claudioAgente_() : '';
+    if (cl) {
+      var rc = uf_('https://api.elevenlabs.io/v1/convai/agents/' + encodeURIComponent(cl), { headers: { 'xi-api-key': key }, muteHttpExceptions: true }, 'Voz');
+      var agc = rc.getResponseCode() === 200 ? JSON.parse(rc.getContentText()) : null;
+      o.claudio = agc ? { agente: agc.name, rama: agc.branch_id || agc.main_branch_id || '', proteccion: vozProteccionResumen_((agc.platform_settings || {}).guardrails) }
+        : { ok: false, error: 'GET agente de Claudio HTTP ' + rc.getResponseCode() };
+    }
+  } catch (e) { o.claudio = { ok: false, error: String(e).slice(0, 200) }; }
   for (var x in (extra || {})) o[x] = extra[x];
   return o;
 }
@@ -851,17 +861,44 @@ function vozInicioOff_() {
   var sy = r.getResponseCode() < 300 ? vozSyncPrompt_(true) : null;
   return { ok: r.getResponseCode() < 300, http: r.getResponseCode(), sync: sy };
 }
-/* Robot voz_conv: últimas conversaciones del agente con su estado y motivo de cierre (diagnóstico, sin transcripciones). */
-function vozConv_(n) {
-  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), agente = p.getProperty('ELEVENLABS_AGENT_ID'), h = { 'xi-api-key': key };
-  var api = 'https://api.elevenlabs.io/v1/convai/conversations';
-  var l = JSON.parse(uf_(api + '?page_size=' + (n || 5) + '&agent_id=' + encodeURIComponent(agente), { headers: h }).getContentText()).conversations || [];
-  return { ok: true, conv: l.map(function (c) {
-    var d = {}; try { d = JSON.parse(uf_(api + '/' + c.conversation_id, { headers: h, muteHttpExceptions: true }).getContentText()); } catch (e) {}
+/* Robot voz_conv: últimas conversaciones con su estado y motivo de cierre (diagnóstico, sin transcripciones).
+   18-nov-2026 (#826): se quedaba colgada más de 4 min. Pedía el detalle de cada conversación una por una, sin tope de n
+   (cada detalle trae la transcripción completa) y sin muteHttpExceptions en la lista. Ahora: n de 1 a 10 (5 por defecto),
+   los detalles en paralelo (ufAll_), cada error dice qué falló en vez de tumbar todo, y por defecto mira Alma y Claudio.
+   Robot: { action:'voz_conv', n:5, agente:'alma'|'claudio'|'ambos' }. Trae el agente, la rama y el motivo de cierre
+   (p. ej. «… the 'Violence' guardrail was triggered»). */
+function vozConv_(n, cual) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ELEVENLABS_KEY'), h = { 'xi-api-key': key };
+  if (!key) return { ok: false, error: 'falta ELEVENLABS_KEY' };
+  n = Math.max(1, Math.min(10, Math.floor(Number(n) || 5)));
+  cual = String(cual || 'ambos').toLowerCase();
+  var agentes = [];
+  if (cual !== 'claudio' && p.getProperty('ELEVENLABS_AGENT_ID')) agentes.push(['alma', p.getProperty('ELEVENLABS_AGENT_ID')]);
+  if (cual !== 'alma') { var cl = ''; try { cl = typeof claudioAgente_ === 'function' ? claudioAgente_() : ''; } catch (e) {} if (cl) agentes.push(['claudio', cl]); }
+  if (!agentes.length) return { ok: false, error: 'faltan ELEVENLABS_AGENT_ID / CLAUDIO_AGENT_ID' };
+  var api = 'https://api.elevenlabs.io/v1/convai/conversations', errores = [];
+  var listas = ufAll_(agentes.map(function (a) {
+    return { url: api + '?page_size=' + n + '&agent_id=' + encodeURIComponent(a[1]), headers: h, muteHttpExceptions: true };
+  }), 'Voz');
+  var todas = [];
+  listas.forEach(function (r, i) {
+    if (r.getResponseCode() !== 200) { errores.push(agentes[i][0] + ': lista HTTP ' + r.getResponseCode()); return; }
+    var l = []; try { l = JSON.parse(r.getContentText()).conversations || []; } catch (e) { errores.push(agentes[i][0] + ': lista ilegible'); }
+    l.forEach(function (c) { todas.push({ quien: agentes[i][0], c: c }); });
+  });
+  todas.sort(function (x, y) { return Number(y.c.start_time_unix_secs || 0) - Number(x.c.start_time_unix_secs || 0); });
+  todas = todas.slice(0, n);
+  var det = todas.length ? ufAll_(todas.map(function (t) {
+    return { url: api + '/' + encodeURIComponent(t.c.conversation_id), headers: h, muteHttpExceptions: true };
+  }), 'Voz') : [];
+  return { ok: true, errores: errores, conv: todas.map(function (t, i) {
+    var c = t.c, d = {};
+    try { if (det[i].getResponseCode() === 200) d = JSON.parse(det[i].getContentText()); else errores.push(c.conversation_id + ': detalle HTTP ' + det[i].getResponseCode()); } catch (e) {}
     var md = d.metadata || {};
-    return { id: c.conversation_id, status: c.status, inicio: new Date(Number(c.start_time_unix_secs || 0) * 1000).toISOString(), dur: md.call_duration_secs,
-      fin: md.termination_reason, error: md.error, turnos: (d.transcript || []).length, init: JSON.stringify(md.conversation_initiation_source || md.initiation_webhook || '').slice(0, 200),
-      extra: JSON.stringify(Object.keys(md)) };
+    return { id: c.conversation_id, agente: t.quien, rama: d.branch_id || md.branch_id || c.branch_id || '', status: c.status,
+      inicio: new Date(Number(c.start_time_unix_secs || 0) * 1000).toISOString(), dur: md.call_duration_secs != null ? md.call_duration_secs : c.call_duration_secs,
+      fin: md.termination_reason || '', error: md.error || null, turnos: (d.transcript || []).length,
+      origen: JSON.stringify(md.conversation_initiation_source || md.initiation_webhook || '').slice(0, 200) };
   }) };
 }
 

@@ -5232,7 +5232,7 @@ function llaveRobot_() { return PropertiesService.getScriptProperties().getPrope
    qué bloquear antes de encender SESION_EXIGIR. Solo lectura; la llave del robot no sale del Hub. Robot: dsBot · «accesos_apps». */
 const ACCESOS_APPS_ = {
   epi: () => epiUrl_(), hola: () => holaUrl_(),
-  mi: () => 'https://script.google.com/macros/s/AKfycbzqUTv_0NuNBVRXhlfHGaS5RdWKjBAmfA-dIsdDnMLbl2aE2PriEXNWw3qCi8yPF28qaQ/exec',
+  mi: () => 'https://script.google.com/macros/s/AKfycbwJs7uCsJAzWu3artVCXrU4g7Nu6GoqU7iaLXpPYu9UilQpFl4CeQ9b1z9NgQ_31YTFlw/exec',   // Mi en alma@ (18-nov-2026)
   grow: () => 'https://script.google.com/macros/s/AKfycbxPYwdz0Q8za7_wZzX37QeqODoqwxOeoXZpeEWp94HKtHMqru12VPD4xt0cOtWHZA1LDQ/exec',
   docs: () => 'https://script.google.com/macros/s/AKfycbxcz_zjz39kRCfwQLLIk7HugqwqNGe2VKpf8okRemCrDvoVEgVCezeou9w5pfNjuXlE/exec'   // Docs en alma@ (17-nov-2026)
 };

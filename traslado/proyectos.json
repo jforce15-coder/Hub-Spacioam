@@ -33,6 +33,6 @@
   "mi": {
     "repo": "mi-spacioam", "carpeta": "apps-script", "titulo": "Mi · Spacio AM",
     "viejo": "https://script.google.com/macros/s/AKfycbzqUTv_0NuNBVRXhlfHGaS5RdWKjBAmfA-dIsdDnMLbl2aE2PriEXNWw3qCi8yPF28qaQ/exec",
-    "copiar": "todas", "excluir": ["CUPO_*", "SA_HSP"], "al_traer": ["miTomarActivadores"]
+    "copiar": "todas", "excluir": ["CUPO_*", "SA_HSP"], "al_traer": ["miTomarActivadores"], "sincronizar": true
   }
 }

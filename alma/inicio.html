@@ -514,6 +514,56 @@
   .mover .lbl { width: 100%; font: 500 11.5px Montserrat, system-ui, sans-serif; color: #A39B93; }
   .b-mov { margin-top: 10px; padding: 0; border: 0; background: none; color: #A39B93; font: 600 11.5px Montserrat, system-ui, sans-serif; cursor: pointer; }
   .vacio { text-align: center; padding: 26px 20px; font: 500 13.5px/1.5 Montserrat, system-ui, sans-serif; color: #A39B93; }
+  /* ── Órbitas de la esfera (Juan, 18-nov-2026, #796): dentro de una esfera, en vez de la lista, la esfera al centro y lo
+     suyo girando alrededor. 1.ª órbita: los proyectos. 2.ª: lo que pide atención (pendientes primero, luego avisos).
+     Cinturón de estrellas: lo que no cabe y las conversaciones recientes, como puntitos. Tocar algo lo abre abajo. ── */
+  .eo-modo { display: flex; width: max-content; margin: 2px auto 6px; padding: 3px; border-radius: 999px; background: #F0EBE5; }
+  .eo-modo button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: none; cursor: pointer; color: #8A8580; font: 600 12px Montserrat, system-ui, sans-serif; }
+  .eo-modo button.ya { background: #fff; color: #3E3F3F; box-shadow: 0 6px 14px -8px rgba(70,50,40,.45); }
+  .eo { position: relative; width: var(--S, 340px); height: var(--S, 340px); margin: 0 auto; touch-action: manipulation; }
+  .eo-anillo { position: absolute; left: 50%; top: 50%; border-radius: 50%; transform: translate(-50%, -50%); border: 1px solid color-mix(in srgb, var(--c) 34%, transparent); pointer-events: none; }
+  .eo-anillo.lejos { border-style: dashed; border-color: color-mix(in srgb, var(--c) 22%, transparent); }
+  .eo-giro { position: absolute; inset: 0; pointer-events: none; animation: eo-gira var(--t, 120s) linear infinite; }
+  .eo-giro.rev { animation-direction: reverse; }
+  .eo-it { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto;
+    -webkit-tap-highlight-color: transparent; transform: rotate(var(--a)) translateX(var(--r)) rotate(calc(-1 * var(--a))); }
+  .eo-der { position: absolute; inset: 0; display: grid; place-items: center; animation: eo-gira var(--t, 120s) linear infinite reverse; }
+  .eo-giro.rev .eo-der { animation-direction: normal; }
+  .eo.quieta .eo-giro, .eo.quieta .eo-der { animation-play-state: paused; }
+  @keyframes eo-gira { to { transform: rotate(360deg); } }
+  .eo-cuerpo { position: relative; width: var(--d); height: var(--d); border-radius: 50%; display: grid; place-items: center; transition: transform .35s cubic-bezier(.3,1.4,.5,1); }
+  .eo-it:active .eo-cuerpo { transform: scale(.9); transition-duration: .08s; }
+  .eo-it.sel .eo-cuerpo { transform: scale(1.22); }
+  /* proyecto: una piedra como la esfera, con sus iniciales y su nombre debajo */
+  .eo-it.proy .eo-cuerpo { background: radial-gradient(circle at 40% 34%, #FFFFFF 0%, #F3EFEB 55%, #E2DCD5 100%); box-shadow: 0 10px 18px -10px rgba(40,28,24,.45), inset 0 -4px 7px rgba(110,90,80,.12);
+    font: 400 calc(var(--d) * .36)/1 Valky, Georgia, serif; color: var(--c3); }
+  .eo-it.proy .eo-cuerpo::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 1.5px solid var(--c); opacity: .8; }
+  .eo-nom { position: absolute; left: 50%; top: calc(50% + var(--d) / 2 + 4px); transform: translateX(-50%); max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    padding: 1px 5px; border-radius: 6px; background: rgba(250,248,246,.86); font: 600 9.5px Montserrat, system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #6E6862; pointer-events: none; }
+  /* lo que pide atención: una luna de su color (pendiente con «!», aviso con campana) */
+  .eo-it.luna .eo-cuerpo { background: radial-gradient(circle at 38% 32%, var(--c2), var(--c) 70%, var(--c3)); color: #fff; box-shadow: 0 8px 16px -8px var(--c3); }
+  .eo-it.luna.aviso .eo-cuerpo { background: #fff; color: var(--c3); box-shadow: 0 8px 16px -10px rgba(40,28,24,.4), inset 0 0 0 1.5px var(--c); }
+  .eo-it.luna svg { width: 46%; height: 46%; }
+  .eo-it.top .eo-cuerpo::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; background: radial-gradient(circle, var(--c) 0%, transparent 68%); opacity: .55; z-index: -1; animation: eo-late 2.4s ease-in-out infinite; }
+  @keyframes eo-late { 0%, 100% { transform: scale(.95); opacity: .4; } 50% { transform: scale(1.25); opacity: .8; } }
+  /* estrellas: puntitos (lo que no cupo va más grande y con su color pleno) */
+  .eo-it.estrella .eo-cuerpo { background: var(--c); opacity: .5; box-shadow: 0 0 6px var(--c2); }
+  .eo-it.estrella.fuerte .eo-cuerpo { opacity: .95; box-shadow: 0 0 9px var(--c); }
+  .eo-centro { position: absolute; left: 50%; top: 50%; width: var(--d0); height: var(--d0); transform: translate(-50%, -50%); border-radius: 50%; display: grid; place-items: center;
+    background: radial-gradient(circle at 40% 34%, #FBFAF8 0%, #F1EEEA 45%, #E4DFD9 80%, #D3CDC6 100%);
+    box-shadow: 0 18px 26px -12px rgba(40,28,24,.42), inset 0 -6px 10px rgba(110,90,80,.12), inset 0 4px 8px rgba(255,255,255,.8), 0 0 0 1.5px var(--c), 0 0 34px -4px var(--c2); }
+  .eo-centro svg { width: 40%; height: 40%; color: #B9B1A8; }
+  .eo-ley { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; margin: 6px 0 4px; font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .04em; color: #8A8580; }
+  .eo-ley i { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; vertical-align: -1px; }
+  .eo-det { margin-top: 10px; }
+  .eo-det .tarjeta { position: relative; }
+  .eo-det .tag { margin-bottom: 6px; font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--c3); }
+  .eo-det .x { position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; cursor: pointer; color: #A39B93; font: 400 20px/1 Montserrat, system-ui, sans-serif; }
+  .eo-det .ir { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .eo-det .ir button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; cursor: pointer; background: #3E3F3F; color: #fff; font: 600 12.5px Montserrat, system-ui, sans-serif; }
+  .eo-det .ir button.sec { background: #F3EFEA; color: #3E3F3F; }
+  .eo-det .san-pc { margin: 0; box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { .eo-giro, .eo-der, .eo-it.top .eo-cuerpo::before { animation: none; } }
 
   /* ── Entrar ── */
   body.entrando #sa-nav-root .san-ov-ui { opacity: 0 !important; pointer-events: none !important; }
@@ -1651,6 +1701,8 @@ window.SAPulso = {
     }
     var a = todas().filter(function (x) { return x.k === AR.area; })[0]; if (!a) { AR.area = null; areasPintar(); return; }
     $("a-tit").textContent = a.n; $("a-sub").textContent = a.d;
+    /* Las 6 esferas se ven en órbitas (o en lista, si Juan la elige); los cajones del archivo siguen en lista. */
+    if (EO_C[a.k]) { c.appendChild(eoModo()); if (eoVista() === "orbitas") { eoPintar(c, a); return; } }
     if (a.proyectos.length) {
       c.appendChild(el("div", "sec-t", "Proyectos"));
       a.proyectos.forEach(function (p) {
@@ -1673,6 +1725,134 @@ window.SAPulso = {
       if (v.url) b.onclick = function () { abrirLink(v.url); };
       t.appendChild(b); t.appendChild(botonMover(v.clave, a.k)); c.appendChild(t);
     });
+  }
+  /* ── Órbitas de la esfera (glosario; Juan, 18-nov-2026, #796) ──
+     Al centro la esfera. 1.ª órbita: sus proyectos (piedras con iniciales y nombre). 2.ª órbita: lo que pide atención,
+     en orden: primero los Pendientes que piden algo de ti (luna llena con «!»; la primera late), luego los avisos de
+     Notificaciones (luna blanca con campana). Cuando hay saturación nada se amontona: cada órbita lleva solo lo que cabe
+     con aire (según su largo) y lo demás baja al cinturón de estrellas, como puntitos de su color (los que no cupieron, más
+     fuertes), junto con las conversaciones recientes (las más nuevas, más brillantes). Tocar cualquiera la detiene y abre
+     su ficha abajo, con los mismos botones de la lista. Las órbitas giran muy despacio (quietas si el teléfono lo pide). */
+  var EO_C = { proposito: ["#E9826A", "#F2B08F", "#C9705E"], relaciones: ["#D99AA0", "#F0C4C3", "#B06F7A"], finanzas: ["#8FB38C", "#C3D9B8", "#5F8A5E"],
+    health: ["#E3A47F", "#F3CDA6", "#C47E52"], comunidad: ["#8FA5C8", "#C2D0E6", "#5F7BA8"], espiritualidad: ["#A9A4CC", "#D5D1EA", "#7C76A8"] };   // = .esf.<clave> (ESTANDARES: colores de las esferas)
+  var EO = { sel: null };
+  var EO_ICON = {
+    pend: '<path d="M12 6.5v7"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>',
+    noti: '<path d="M7 16.5V11a5 5 0 0 1 10 0v5.5l1.5 1.5h-13z"/><path d="M10.5 20a1.7 1.7 0 0 0 3 0"/>'
+  };
+  function eoVista() { try { return localStorage.getItem("alma_esfera_vista") === "lista" ? "lista" : "orbitas"; } catch (e) { return "orbitas"; } }
+  function eoModo() {
+    var w = el("div", "eo-modo"), v = eoVista();
+    [["orbitas", "Órbitas"], ["lista", "Lista"]].forEach(function (m) {
+      var b = el("button", m[0] === v ? "ya" : "", m[1]); b.type = "button"; b.setAttribute("aria-pressed", m[0] === v ? "true" : "false");
+      b.onclick = function () { try { localStorage.setItem("alma_esfera_vista", m[0]); } catch (e) {} EO.sel = null; areasPintar(); };
+      w.appendChild(b);
+    });
+    return w;
+  }
+  /* Lo que pide atención en esta esfera: Pendientes «Necesita tu sí» primero (en el orden de Pendientes), luego avisos. */
+  function eoAtencion(k) {
+    var D = window.SANav && SANav.datos ? SANav.datos() : {}, out = [];
+    ((D.pend && D.pend.atencion) || []).forEach(function (p) { if (p.area === k) out.push({ tipo: "pend", id: p.id, titulo: p.titulo || "Pendiente", p: p }); });
+    ((D.noti && D.noti.items) || []).filter(function (x) { return x.area === k && !x.pendiente; }).sort(function (a, b) { return (b.ts || 0) - (a.ts || 0); })
+      .forEach(function (x) { out.push({ tipo: "noti", id: x.id, titulo: x.titulo || x.texto || "Aviso", x: x }); });
+    return out;
+  }
+  function eoIniciales(n) { var p = String(n || "").replace(/[·|]/g, " ").split(/\s+/).filter(function (w) { return /^[\wÁÉÍÓÚÑáéíóúñ]/.test(w); }); return ((p[0] || "")[0] || "").toUpperCase() + ((p[1] || "")[0] || "").toUpperCase(); }
+  function eoPintar(c, a) {
+    var col = EO_C[a.k], S = Math.round(Math.max(280, Math.min(460, c.clientWidth - 32)));
+    var R1 = S * .25, R2 = S * .385, R3 = S * .468, d0 = S * .2, d1 = Math.max(42, Math.min(58, S * .135)), d2 = Math.max(32, Math.min(42, S * .1));
+    /* cuánto cabe con aire en cada órbita (los nombres de los proyectos piden más espacio) */
+    var cap1 = Math.max(3, Math.min(6, Math.floor(2 * Math.PI * R1 / 112))), cap2 = Math.max(4, Math.min(8, Math.floor(2 * Math.PI * R2 / (d2 * 2.6))));
+    var proys = a.proyectos || [], at = eoAtencion(a.k), convs = a.conversaciones || [];
+    var o1 = proys.slice(0, cap1).map(function (p) { return { tipo: "proy", id: "p:" + p.k, titulo: p.n, pr: p }; });
+    var o2 = at.slice(0, cap2), fuera = proys.slice(cap1).map(function (p) { return { tipo: "proy", id: "p:" + p.k, titulo: p.n, pr: p, fuerte: true }; })
+      .concat(at.slice(cap2).map(function (x) { x.fuerte = true; return x; }));
+    var pr1 = o2.filter(function (x) { return x.tipo === "pend"; })[0]; if (pr1) pr1.primero = true;   // lo primero que pide algo de ti late
+    var maxE = 40, est = fuera.concat(convs.slice(0, Math.max(0, maxE - fuera.length)).map(function (v, i) { return { tipo: "conv", id: "c:" + v.clave, titulo: v.titulo, v: v, brillo: i < 5 }; }));
+    var eo = el("div", "eo" + (EO.sel ? " quieta" : "")); eo.setAttribute("role", "group"); eo.setAttribute("aria-label", "Órbitas de " + a.n);
+    eo.style.setProperty("--S", S + "px"); eo.style.setProperty("--c", col[0]); eo.style.setProperty("--c2", col[1]); eo.style.setProperty("--c3", col[2]);
+    [[R1, ""], [R2, ""], [R3, " lejos"]].forEach(function (r) { var an = el("div", "eo-anillo" + r[1]); an.style.width = an.style.height = (2 * r[0]).toFixed(1) + "px"; eo.appendChild(an); });
+    var ce = el("div", "eo-centro"); ce.style.setProperty("--d0", d0.toFixed(1) + "px");
+    ce.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (ICON[a.k] || "") + "</svg>";
+    eo.appendChild(ce);
+    var det = el("div", "eo-det");
+    var giro = function (L, R, t, rev, f) {
+      var g = el("div", "eo-giro" + (rev ? " rev" : "")); g.style.setProperty("--t", t + "s");
+      L.forEach(function (it, i) { var p = f(it, i, L.length); g.appendChild(eoItem(it, p.ang, p.r != null ? p.r : R, p.d, t, det, a, eo)); });
+      eo.appendChild(g);
+    };
+    giro(o2, R2, 200, true, function (it, i, n) { return { ang: -90 + 180 / n + i * 360 / n, d: d2 }; });
+    giro(o1, R1, 140, false, function (it, i, n) { return { ang: -90 + i * 360 / n, d: d1 }; });   // después: sus nombres quedan encima de las lunas
+    /* las estrellas: repartidas en el cinturón con un vaivén fijo (siempre el mismo dibujo para los mismos datos) */
+    giro(est, R3, 280, false, function (it, i, n) { var j = Math.sin(i * 12.9898) * 43758.5453; j = j - Math.floor(j);
+      return { ang: -60 + i * 360 / Math.max(n, 12) + (j - .5) * 8, r: R3 + (j - .5) * S * .045, d: it.fuerte ? 12 : it.brillo ? 10 : 7 }; });
+    c.appendChild(eo);
+    /* qué es cada cosa, en una línea */
+    var ley = el("div", "eo-ley"), lin = function (txt, st) { var s = el("span"); var i = el("i"); i.style.cssText = st; s.appendChild(i); s.appendChild(document.createTextNode(txt)); ley.appendChild(s); };
+    var nP = at.filter(function (x) { return x.tipo === "pend"; }).length, nN = at.length - nP;
+    lin(proys.length === 1 ? "1 proyecto" : proys.length + " proyectos", "background:#fff;box-shadow:inset 0 0 0 1.5px " + col[0]);
+    lin(nP === 1 ? "1 pendiente" : nP + " pendientes", "background:" + col[0]);
+    lin(nN === 1 ? "1 aviso" : nN + " avisos", "background:#fff;box-shadow:inset 0 0 0 1.5px " + col[2]);
+    lin((a.total === 1 ? "1 conversación" : a.total + " conversaciones") + (fuera.length ? " · " + fuera.length + " más en las estrellas" : ""), "background:" + col[0] + ";opacity:.5;width:6px;height:6px");
+    c.appendChild(ley);
+    c.appendChild(det);
+    var s = EO.sel && [].concat(o1, o2, est).filter(function (x) { return x.id === EO.sel; })[0];
+    if (s) eoDetalle(det, s, a, eo); else { EO.sel = null; eoGuia(det, at, a); }
+  }
+  function eoItem(it, ang, r, d, t, det, a, eo) {
+    var b = el("button", "eo-it " + (it.tipo === "conv" || it.fuerte ? "estrella" : it.tipo === "proy" ? "proy" : "luna") + (it.tipo === "noti" ? " aviso" : "") + (it.fuerte ? " fuerte" : "") + (it.id === EO.sel ? " sel" : ""));
+    b.type = "button"; b.setAttribute("aria-label", (it.tipo === "pend" ? "Pendiente: " : it.tipo === "noti" ? "Aviso: " : it.tipo === "conv" ? "Conversación: " : "Proyecto: ") + it.titulo);
+    if (it.primero) b.classList.add("top");
+    b.style.setProperty("--a", ang.toFixed(2) + "deg"); b.style.setProperty("--r", r.toFixed(1) + "px"); b.style.setProperty("--t", t + "s");
+    var dr = el("span", "eo-der"), cu = el("span", "eo-cuerpo"); cu.style.setProperty("--d", d.toFixed(1) + "px"); dr.style.setProperty("--d", d.toFixed(1) + "px");
+    if (it.tipo === "proy" && !it.fuerte) { cu.textContent = eoIniciales(it.titulo); dr.appendChild(cu); dr.appendChild(el("span", "eo-nom", it.titulo)); }
+    else { if (!it.fuerte && (it.tipo === "pend" || it.tipo === "noti")) cu.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + EO_ICON[it.tipo] + "</svg>"; dr.appendChild(cu); }
+    b.appendChild(dr);
+    b.onclick = function () {
+      if (navigator.vibrate) try { navigator.vibrate(6); } catch (e) {}
+      var ya = EO.sel === it.id; EO.sel = ya ? null : it.id;
+      [].forEach.call(eo.querySelectorAll(".eo-it.sel"), function (x) { x.classList.remove("sel"); });
+      eo.classList.toggle("quieta", !ya);
+      if (ya) { eoGuia(det, eoAtencion(a.k), a); return; }
+      b.classList.add("sel"); eoDetalle(det, it, a, eo);
+      try { det.scrollIntoView({ behavior: RM ? "auto" : "smooth", block: "nearest" }); } catch (e) {}
+    };
+    return b;
+  }
+  /* Sin nada elegido: qué hacer, y lo primero que pide atención como atajo. */
+  function eoGuia(det, at, a) {
+    det.innerHTML = "";
+    det.appendChild(el("div", "vacio", at.length ? "Toca un punto de la órbita para ver más. Lo que late es lo primero que pide algo de ti."
+      : "Nada pide tu atención en " + a.n + ". Toca un proyecto o una estrella para ver más."));
+  }
+  function eoDetalle(det, it, a, eo) {
+    det.innerHTML = "";
+    var t = el("div", "tarjeta"), x = el("button", "x", "×"); x.type = "button"; x.setAttribute("aria-label", "Cerrar");
+    x.onclick = function () { EO.sel = null; eo.classList.remove("quieta"); [].forEach.call(eo.querySelectorAll(".eo-it.sel"), function (y) { y.classList.remove("sel"); }); eoGuia(det, eoAtencion(a.k), a); };
+    var ir = el("div", "ir"), boton = function (txt, sec, fn) { var b = el("button", sec ? "sec" : "", txt); b.type = "button"; b.onclick = fn; ir.appendChild(b); };
+    var irA = function (tipo, id) { areasAbrir(false); orbita(false); SANav.escena(null); SANav.ver(tipo, id, a.k); };
+    if (it.tipo === "proy") {
+      var p = it.pr; t.appendChild(el("div", "tag", "Proyecto")); t.appendChild(el("h4", "", p.n)); if (p.d) t.appendChild(el("p", "", p.d));
+      if (p.apps && p.apps.length) { var ap = el("div", "apps"); p.apps.forEach(function (z) { var b = el("button"); b.type = "button"; b.appendChild(document.createTextNode(z.n)); if (z.d && z.d !== z.n) b.appendChild(el("small", "", z.d)); b.onclick = function () { abrirLink(z.url, z.nativa); }; ap.appendChild(b); }); t.appendChild(ap); }
+      if (p.mover) t.appendChild(botonMover(p.k, a.k));
+    } else if (it.tipo === "pend") {
+      t.appendChild(el("div", "tag", "Pendiente · necesita tu sí"));
+      if (SANav.tarjeta) { var sc = el("div", "san-scope"); sc.appendChild(SANav.tarjeta(it.p, a.n + (it.p.proyecto ? " · " + it.p.proyecto : ""))); t.appendChild(sc); }
+      else { t.appendChild(el("h4", "", it.titulo)); if (it.p.resumen) t.appendChild(el("p", "", it.p.resumen)); }
+      boton("Ver en Pendientes", true, function () { irA("pend", it.id); }); t.appendChild(ir);
+    } else if (it.tipo === "noti") {
+      var n = it.x; t.appendChild(el("div", "tag", "Aviso" + (n.ts ? " · " + cuando(n.ts) : ""))); t.appendChild(el("h4", "", it.titulo));
+      if (n.titulo && n.texto) t.appendChild(el("p", "", n.texto)); if (n.detalle) t.appendChild(el("p", "", n.detalle));
+      if (n.enlace) boton("Abrir", false, function () { location.href = n.enlace; });
+      boton("Ver en Notificaciones", true, function () { irA("noti", it.id); }); t.appendChild(ir);
+    } else {
+      var v = it.v; t.appendChild(el("div", "tag", "Conversación · " + v.fuente + guardadoTexto(v) + (v.ts ? " · " + cuando(v.ts) : ""))); t.appendChild(el("h4", "", v.titulo));
+      if (v.texto) t.appendChild(el("p", "", v.texto));
+      if (v.url) { boton("Abrir", false, function () { abrirLink(v.url); }); t.appendChild(ir); }
+      t.appendChild(botonMover(v.clave, a.k));
+    }
+    t.appendChild(x); det.appendChild(t);
   }
   /* Cómo se guarda (reglas del departamento de Archivo): para quedarse, o temporal hasta una fecha. */
   function guardadoTexto(v) {
@@ -1825,10 +2005,10 @@ window.SAPulso = {
   }
   function areasAbrir(on, area) {
     AR.abierta = on; $("areas").classList.toggle("on", on); $("areas").setAttribute("aria-hidden", on ? "false" : "true"); avisoMostrar();
-    if (on) { AR.area = area || null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
+    if (on) { AR.area = area || null; EO.sel = null; areasPintar(); $("a-cuerpo").scrollTop = 0; areasCargar().then(function () { if (AR.abierta) areasPintar(); }); }
   }
   $("a-cerrar").onclick = function () { areasAbrir(false); };
-  $("a-atras").onclick = function () { AR.area = null; areasPintar(); };
+  $("a-atras").onclick = function () { AR.area = null; EO.sel = null; areasPintar(); };
 
   var ent = hay();
   /* En la app: llevar a Alma hacia los lados (una de las 8 posiciones) abre el navegador con la búsqueda lista;
@@ -1839,7 +2019,7 @@ window.SAPulso = {
     alTocar: function () { if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { orbita(false); SANav.escena(null); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
-    alDatos: function () { avisoArmar(); }, alDoble: function () { if (OR.abierta) modoAvisos(); } });
+    alDatos: function () { avisoArmar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas") areasPintar(); },   /* las órbitas, con lo último que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }

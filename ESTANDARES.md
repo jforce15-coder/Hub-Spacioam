@@ -97,6 +97,7 @@ veces, se agrega aquí; si se puede detectar solo, se vuelve ✅.
 - Al copiar código de otra función, revisa que cada variable exista en la nueva (p. ej. `o.forzarPlantilla` copiado sin el parámetro `o` tumbó todos los mensajes personales del 29 al 30-oct). Pruébala una vez con datos de ejemplo antes del PR.
 
 ## PRs
+- ✅ **Unir = publicar en alma@ (se verifica la versión)** (18-nov-2026): lo que se une a main en el Hub, Docs, Hola, Epi o Mi se publica solo con «Traslado a Workspace» (al unir en el Hub; en las apps, su «Publicar Apps Script» avisa al Hub y el Hub, que además mira cada 5 min, pide el Traslado; `apps-script/publicarsolo.js`). Nunca se confía en el horario de GitHub (pasó 12 h sin correr). Después de unir se verifica en el Traslado (o con `proyecto = estado`) que la versión de esa app subió o dijo `sin_cambios` con la huella de su carpeta; si no, se lanza a mano (`sincronizar`) y se arregla la causa (`.github/publicar-solo.js`).
 - La plantilla completa: Resumen, Evidencia antes/después, Peligros al unir, Cómo probarlo. ✅ (aviso si falta Evidencia)
 - Ningún identificador de modelo en commits ni PRs.
 - Nada se sube sin pasar `node .github/revisar-local.js`: corre los mismos pasos de `estandares.yml` y `revisar-apps-script.yml` (los lee del yml) y devuelve solo lo que falla. El hook de `.claude/settings.json` lo corre en cada `git push` y bloquea si algo falla (17-nov-2026: 8 rojos en un día por subir sin revisar).

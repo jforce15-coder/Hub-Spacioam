@@ -126,6 +126,7 @@ function doPost(e) {
     cupoFuncion_('doPost');    // la función que gasta, para «Uso» por función (hubApi_ y el webhook la precisan abajo)
     if (body.salud) return json_(saludAlma_());   // vigía (sin llave: solo dice si ALMA está viva)
     if (body.action === 'paraAlmaAviso' && !body.hub) { cupoCanal_('Chat de Alma'); cupoFuncion_('paraAlmaAviso_'); return json_(paraAlmaAviso_(body)); }   // GitHub avisa de un issue «para-alma» (llave propia, paraalma.js, #526 T5)
+    if (body.publicarAviso && !body.hub) { cupoCanal_('Otros'); cupoFuncion_('pubSoloAviso_'); return json_(pubSoloAviso_()); }   // unir = publicar: el «Publicar Apps Script» de una app avisa que cambió main (sin llave: solo hace mirar GitHub, publicarsolo.js)
     if (body.action === 'enlace' && !body.hub) { cupoCanal_('Otros'); return json_(enlacePublico_(body.codigo)); }   // enlace corto (pública: solo devuelve el enlace largo; la usa 404.html, enlaces.js)
     if (body.usoIA) return ok_(usoExterno_(body));                // consumo de IA que reportan EPI, Hola y las demás apps
     if (body.gspPase) return json_(familiaPase_(body));          // The Gentle Stoic Parent: usuario unificado → firma del Hub (familia.js)
@@ -797,6 +798,7 @@ function procesarCola() {
   cupoFuncion_('paraAlmaRevisar_'); try { paraAlmaRevisar_(inicioCola); } catch (e) { console.error('paraAlmaRevisar_: ' + e); }   // instrucción a Alma desde una sesión de Claude (issue «para-alma», paraalma.js); es Juan pidiendo: no se pausa
   cupoFuncion_('avisoWaRespaldo_'); try { avisoWaRespaldo_(); } catch (e) { console.error('avisoWaRespaldo_: ' + e); }   // notificación que la app no recogió en 10 min → WhatsApp al principal (avisowa.js); Juan espera: no se pausa
   cupoFuncion_('vigProcesar_'); try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
+  cupoFuncion_('pubSoloRevisar_'); try { pubSoloRevisar_(false); } catch (e) { console.error('pubSoloRevisar_: ' + e); }   // unir = publicar: cada 5 min, si cambió el código de una app en main, pide el Traslado (publicarsolo.js); no se pausa
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {
     cupoCanal_('Mejoras y fondo');

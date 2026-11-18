@@ -124,8 +124,10 @@ Cada app siguiente (Hub, login, Hola, Epi, Grow, Mi) repite solo el paso 8, cuan
 ## Docs: cortado (17-nov-2026)
 Docs corre en alma@ (`/exec` `AKfycbxcz_zj…`). `sheets-sync.js` y `404.html` apuntan ahí; si un navegador guardó la dirección
 vieja a mano, se ignora. Los programados los manda solo el de alma@ (el viejo sale al instante: compara su id de proyecto).
-Ya no se publica con clasp: el workflow **Traslado a Workspace** publica cada 10 min desde `main` lo que tenga
-`"sincronizar": true` en `proyectos.json` (los otros repos no necesitan secretos). El viejo queda vivo 7 días de respaldo.
+Ya no se publica con clasp: el workflow **Traslado a Workspace** publica desde `main` lo que tenga
+`"sincronizar": true` en `proyectos.json` al unir (**unir = publicar**, 18-nov-2026: push en el Hub; en las apps su «Publicar
+Apps Script» avisa al Hub y el Hub, que además mira cada 5 min, pide el Traslado; `apps-script/publicarsolo.js`). Los otros
+repos no necesitan secretos. El horario queda solo de red de seguridad: el 18-nov pasó 12 h sin correr. El viejo queda vivo 7 días de respaldo.
 Volver atrás: revertir el PR de Docs (las dos direcciones) y el de los programados.
 
 ## Plan de corte del Hub (T4)

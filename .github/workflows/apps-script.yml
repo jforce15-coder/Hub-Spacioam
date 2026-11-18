@@ -53,9 +53,9 @@ jobs:
 
       - name: Dónde se publica
         # Desde el corte a alma@ (docs/specs/traslado-workspace.md) el Hub ya no se publica con clasp ni con la cuenta vieja:
-        # el workflow «Traslado a Workspace» lo sube cada 10 min desde main por el Mudador (traslado/proyectos.json, sincronizar).
+        # el workflow «Traslado a Workspace» lo sube al unir (push a main en apps-script/) por el Mudador (traslado/proyectos.json).
         run: |
           {
             echo "### El Hub se publica en alma@spacioam.com"
-            echo "Lo sube «Traslado a Workspace» (cada 10 min desde main, commit ${GITHUB_SHA::7}). El Hub viejo queda apagado de respaldo."
+            echo "Lo sube «Traslado a Workspace» (al unir, commit ${GITHUB_SHA::7}). El Hub viejo queda apagado de respaldo."
           } >> "$GITHUB_STEP_SUMMARY"

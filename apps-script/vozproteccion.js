@@ -102,9 +102,37 @@ function vozProteccionSiCambio_(forzar) {
   if (r.getResponseCode() < 200 || r.getResponseCode() >= 300) return guardar({ ok: false, error: 'PATCH agente HTTP ' + r.getResponseCode(), detalle: r.getContentText().slice(0, 200) });
   return listo({ ok: true, integrada: 'apagada', personalizada: cfg.name, accion: cfg.trigger_action.type });
 }
-/* Para vozEstado_ (diagnóstico): cómo está la protección en ElevenLabs, sin el código. */
+/* Para vozEstado_ (diagnóstico): cómo está la protección en ElevenLabs, sin el código.
+   18-nov-2026 (#826): «Violence» colgó una llamada de Juan mientras voz_estado decía integrada=false y la personalizada
+   apagada. «integrada» era solo la de Prompt Injection: las de contenido (violencia, sexual, autolesión…), moderación y
+   enfoque no salían. Ahora salen todas, con su umbral y lo que hacen al activarse (end_call = cuelga). El Hub no las
+   prende ni las apaga (vozProteccionAplicar_ las deja como están): solo las muestra. */
 function vozProteccionResumen_(guardrails) {
   var g = guardrails || {};
+  var categorias = function (bloque) {
+    var cfg = (bloque || {}).config || {};
+    return Object.keys(cfg).filter(function (k) { return cfg[k] && cfg[k].is_enabled; })
+      .map(function (k) { return cfg[k].threshold != null ? k + ' (' + cfg[k].threshold + ')' : k; });
+  };
+  var bloque = function (b) {
+    if (!b) return null;
+    var cats = categorias(b);
+    return { activas: cats, accion: (b.trigger_action || {}).type || (cats.length ? 'end_call' : ''), modo: b.execution_mode || '' };
+  };
   return { integrada: !!(g.prompt_injection || {}).is_enabled,
+    contenido: bloque(g.content), moderacion: bloque(g.moderation), enfoque: !!(g.focus || {}).is_enabled,
+    cuelgan: vozProteccionCuelgan_(g),
     personalizadas: ((((g.custom || {}).config || {}).configs) || []).map(function (c) { return { nombre: c.name, activa: !!c.is_enabled, accion: (c.trigger_action || {}).type || 'end_call', modo: c.execution_mode || 'streaming' }; }) };
+}
+/* Lista corta de lo que hoy puede colgar una llamada («contenido: violence (0.5)», «Prompt Injection», «personalizada: …»). */
+function vozProteccionCuelgan_(g) {
+  g = g || {}; var l = [];
+  if ((g.prompt_injection || {}).is_enabled) l.push('Prompt Injection');
+  ['content', 'moderation'].forEach(function (k) {
+    var b = g[k]; if (!b || ((b.trigger_action || {}).type && b.trigger_action.type !== 'end_call')) return;
+    var cfg = b.config || {};
+    Object.keys(cfg).forEach(function (c) { if (cfg[c] && cfg[c].is_enabled) l.push((k === 'content' ? 'contenido: ' : 'moderación: ') + c + (cfg[c].threshold != null ? ' (' + cfg[c].threshold + ')' : '')); });
+  });
+  ((((g.custom || {}).config || {}).configs) || []).forEach(function (c) { if (c && c.is_enabled && ((c.trigger_action || {}).type || 'end_call') === 'end_call') l.push('personalizada: ' + c.name); });
+  return l;
 }

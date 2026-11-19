@@ -273,6 +273,7 @@ function vozPostCall_(body) {
   if (admC) { try { vivoFin_(admC, convEL); } catch (x) { console.error('vivoFin_: ' + x); } }   // el modo compañero ve que terminó (vivo.js, #607)
   if (admC) { try { retDespuesLlamada_(admC, d.transcript); } catch (x) { console.error('retDespuesLlamada_: ' + x); } }   // ¿resolvieron algún tema por retomar?
   if (admC) { try { prometerAuditarLlamada_(admC, d.transcript, convEL); } catch (x) { console.error('prometerAuditarLlamada_: ' + x); } }   // ¿dijo «le llegó» sin un envío hecho? (prometer.js, #583)
+  if (admC) { try { guardiaAlColgar_(admC, tel, d.transcript, convEL); } catch (x) { console.error('guardiaAlColgar_: ' + x); } }   // ¿dijo «me encargo» sin pedirlo? se pide ya con sus palabras (guardia.js, #879)
   var sh = hojaWA_(), filas = [];
   filas.push([new Date(t0).toISOString(), tel, pre.huesped || '', 'in', '📞 Llamada por ' + canal + ' · ' + mmss + (motivo ? ' · ' + motivo : '') + (resumen ? '\n' + resumen : ''), convEL + '#0', convHilo, 'llamada', 'sistema', '']);
   (d.transcript || []).forEach(function (m, i) {
@@ -1111,7 +1112,9 @@ function vozSecEncolar_(tel, pedido, conf, envio) {
   var lock = vozColaLock_(); lock.waitLock(10000);   // retomar.js: el del script lo tiene procesarCola con los huéspedes
   try {
     var p = PropertiesService.getScriptProperties(), cola = []; try { cola = JSON.parse(p.getProperty('VOZ_SEC_COLA') || '[]'); } catch (e) {}
-    var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;   // lo pidió en modo conferencia: el resultado se le dice al oído
+    var x = { tel: tel, pedido: String(pedido).slice(0, 3000), t: Date.now() }; if (conf) x.conf = 1;
+    /* Un pedido largo (un dictado que rescató la guardia al colgar, guardia.js) no cabe en la propiedad: completo va a la caché. */
+    if (String(pedido).length > 3000) { var kl = 'vozsec_largo_' + x.t + '_' + Math.floor(Math.random() * 1e6); try { CacheService.getScriptCache().put(kl, String(pedido).slice(0, 90000), 21600); x.largo = kl; } catch (e) { console.error('vozSecEncolar_ largo: ' + e); } }   // lo pidió en modo conferencia: el resultado se le dice al oído
     if (envio) x.envio = 1;   // envío ya confirmado (vozEnviarConfirmado_): sale enseguida, sin esperar a juntarlo con otros
     if (orb) x.orb = orb;
     cola.push(x);
@@ -1146,6 +1149,7 @@ function vozSecProcesar_() {
       p.setProperty('VOZ_SEC_COLA', JSON.stringify(cola.filter(function (x) { return x.tel !== tel; })));
     } finally { lock.releaseLock(); }
     var adm = adminPorTel_(grupo[0].tel); if (!adm) continue;
+    grupo.forEach(function (x) { if (x.largo) { var t = CacheService.getScriptCache().get(x.largo); if (t) x.pedido = t; } });   // el pedido completo (vozSecEncolar_)
     var pedido = grupo.length === 1 ? grupo[0].pedido : 'Me pediste varias cosas en la misma llamada; resuélvelas juntas y respóndeme en un solo mensaje:\n' + grupo.map(function (x, i) { return (i + 1) + ') ' + x.pedido; }).join('\n');
     var r, orbs = grupo.map(function (x) { return x.orb; }).filter(Boolean);
     ORBITA_ACTUAL_ = { email: adm.email, ids: orbs };   // el paso de cada herramienta va a su anillo (orbita.js)

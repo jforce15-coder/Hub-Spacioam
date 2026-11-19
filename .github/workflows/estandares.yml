@@ -412,6 +412,10 @@ jobs:
         # 13-nov: el borrador al socio de Narama 633 nunca salió y Alma dijo «Listo, con ese cambio»; 16-nov: la misma huésped
         # recibió el mismo mensaje a las 12:01 y a las 12:28; en una llamada dijo «Listo, le llegó» antes de mandar nada (#583 T4).
         run: node .github/prometer.js apps-script
+      - name: Guardia del «me encargo» al colgar, se pide con las palabras de Juan y le llega «esto no había salido, ya lo mandé» (dobles)
+        # 19-nov: Juan dictó 3 min para el manifiesto y pidió un anuncio; la voz dijo cuatro veces «me encargo» y nunca llamó a
+        # su sistema; colgó creyendo que quedó pedido (#879).
+        run: node .github/guardia.js apps-script
       - name: Acento de España solo con el administrador principal, neutro con equipo, socios, familia y huéspedes (dobles)
         # 16-nov: el acento sube con el Modo Weebo (#572), pero la voz de marca prohíbe «vale» y modismos de España con huéspedes.
         run: node .github/acento-principal.js apps-script

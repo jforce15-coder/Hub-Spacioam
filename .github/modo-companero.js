@@ -160,4 +160,35 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
     ok(aqui(['on']) === true && aqui([]) === false && aqui(null) === false, '11 · fuera del inicio, como antes');
   }
 }
+/* 12 · una sola voz: manda el teléfono (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está
+   activado el teléfono, por default el agente del teléfono») */
+const dosDev = (k) => { k.X.vozWebTel_ = (c) => (c === 'conv-ana' ? '50255550202' : /^conv-/.test(c) ? '50255550101' : ''); return k; };
+{ const { X, reloj, JUAN } = dosDev(caja());
+  X.vivoInicio_(JUAN, 'conv-1'); X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  X.vivoInicio_(JUAN, 'conv-ipad');
+  ok(X.vivoLeerApi_(J, {}).conv === 'conv-1', '12 · el iPad empieza otra llamada: al vincular no pisa la del iPhone');
+  let r = X.vivoPublicarApi_(J, { conv_id: 'conv-ipad', estado: 'conectando', dispositivo: 'iPad' });
+  ok(r.ok && r.ceder === true && r.otra === 'iPhone', '12 · con el iPhone en llamada, el iPad recibe «ceder» (la app cuelga la suya)');
+  ok(X.vivoLeerApi_(J, {}).conv === 'conv-1' && X.vivoLeerApi_(J, {}).dispositivo === 'iPhone', '12 · el compañero sigue viendo la del iPhone');
+  ok(X.vivoPublicarApi_(J, { conv_id: 'conv-ipad', estado: 'fin', dispositivo: 'iPad' }).ceder && X.vivoLeerApi_(J, {}).en_llamada, '12 · el «fin» de la que cedió no termina la del iPhone');
+  ok(X.vivoTarjeta_('conv-ipad', { tipo: 'datos', id: 'x' }) === false, '12 · un tablero de la que cedió no pisa la del iPhone');
+}
+{ const { X, JUAN } = dosDev(caja());
+  X.vivoInicio_(JUAN, 'conv-ipad'); X.vivoPublicarApi_(J, { conv_id: 'conv-ipad', estado: 'hablando', dispositivo: 'iPad' });
+  let r = X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'conectando', dispositivo: 'iPhone' });
+  ok(r.ok && !r.ceder, '12 · el iPad estaba primero y llega el iPhone: el iPhone se queda');
+  ok(X.vivoLeerApi_(J, {}).conv === 'conv-1', '12 · ahora la llamada que se ve es la del iPhone');
+  r = X.vivoPublicarApi_(J, { conv_id: 'conv-ipad', subs: [{ de: 'alma', t: 'hola' }], dispositivo: 'iPad' });
+  ok(r.ceder === true && X.vivoLeerApi_(J, {}).conv === 'conv-1', '12 · la siguiente vez que publica el iPad recibe «ceder» y no pisa');
+}
+{ const { X, reloj } = dosDev(caja());
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  reloj.ms += 31000;
+  ok(!X.vivoPublicarApi_(J, { conv_id: 'conv-ipad', estado: 'conectando', dispositivo: 'iPad' }).ceder, '12 · si el iPhone ya no avisa (30 s), el iPad sí puede');
+  const { X: Y } = dosDev(caja());
+  Y.vivoPublicarApi_(J, { conv_id: 'conv-a', estado: 'hablando', dispositivo: 'iPhone' });
+  Y.vivoPublicarApi_(J, { conv_id: 'conv-a', estado: 'fin', dispositivo: 'iPhone' });
+  ok(!Y.vivoPublicarApi_(J, { conv_id: 'conv-b', estado: 'conectando', dispositivo: 'iPad' }).ceder, '12 · con la del iPhone terminada, el iPad sí puede');
+  ok(!Y.vivoPublicarApi_(J, { conv_id: 'conv-c', estado: 'conectando', dispositivo: 'iPad' }).ceder, '12 · dos del mismo dispositivo: como antes, la última');
+}
 process.exit(fallo);

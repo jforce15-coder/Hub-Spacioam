@@ -10,7 +10,8 @@
    · La ventana del GIF (Juan, 19-nov-2026: «GIFs de memes, de esos que son mini fragmentos de video, no emojis… un tono
      gris oscuro, translúcido, frosted, y SIEMPRE encima de la roca, tanto en el iPad como en el teléfono»): un vidrio gris
      oscuro arriba de la roca, en el teléfono, el iPad y la computadora (sigue a la roca: al centro o en la esquina del
-     tablero). Pasa un GIF y después otro (cada 8 s, con fundido) del tema de lo que se habla: 7 por tema (catálogo del Hub,
+     tablero). Desde el 19-nov-2026 solo asoma de vez en cuando (ver «De vez en cuando», abajo), con un GIF de cine o series
+     del tema de lo que se habla: 7 por tema (catálogo del Hub,
      acción gifTemas, apps-script/gif.js), pedido una vez y guardado 12 h; sin repetir hasta agotar los 7. Nunca un emoji:
      sin catálogo todavía, la ventana no sale. La broma (mostrar_gif, js/alma-gif.js) la tapa unos segundos.
    · Sin otra llamada a la IA ni a Hospitable: el tema son los cuadros que ya manda la tarjeta de la llamada
@@ -81,14 +82,14 @@
   function gifsCargar() {
     if (B.gifs || B.gifsP) return;
     /* lo guardado sirve 12 h, salvo que traiga emojis (el catálogo de antes): entonces se pide otra vez */
-    var c = leer("alma_bento_gifs"); if (c && c.t && Date.now() - c.t < 12 * 3600e3 && c.temas && conGifs(c.temas)) { B.gifs = c.temas; return; }
+    var c = leer("alma_bento_gifs_cine"); if (c && c.t && Date.now() - c.t < 12 * 3600e3 && c.temas && conGifs(c.temas)) { B.gifs = c.temas; return; }
     var dst = w.ALMA && w.ALMA.destino ? w.ALMA.destino() : null, ses = w.SAAuth && w.SAAuth.session ? w.SAAuth.session() : null;
     if (!dst || !dst.url || !ses) return;
     B.gifsP = fetch(dst.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
       body: JSON.stringify({ hub: 1, action: "gifTemas", token: dst.token, session: ses }) })
       .then(function (r) { return r.json(); }).then(function (j) {
         B.gifsP = null; if (!j || !j.ok || !j.temas) return;
-        B.gifs = j.temas; guardar("alma_bento_gifs", { t: Date.now(), temas: j.temas }); ventana();
+        B.gifs = j.temas; guardar("alma_bento_gifs_cine", { t: Date.now(), temas: j.temas }); ventana();
       }, function () { B.gifsP = null; });
   }
   /* ¿El catálogo trae GIFs de verdad? (de GIPHY; nunca emojis) */
@@ -219,8 +220,19 @@
   /* ── La ventana del GIF: un vidrio gris oscuro arriba de la roca, en todas las pantallas. Sigue a la roca (al centro o en
      la esquina del tablero del teléfono) sin tapar su halo, el saludo, el tema del bento ni los botones de arriba. Si no
      cabe con el saludo, el saludo se va (la ventana toma su lugar); si ni así cabe (la roca arriba), no sale. ── */
-  var V = { el: null, tema: "reposo", url: "", pide: false, fallos: 0 }, CADA = 8000;
-  function gifTema(t) { var n = t ? temaGif(t) : "reposo"; if (n === V.tema) return; V.tema = n; ventana(true); }
+  /* De vez en cuando (Juan, 19-nov-2026: «que haya momentos sin GIF, porque está distrayendo mucho… sobre todo en el
+     iPhone; debería aparecer ocasionalmente»): la ventana ya no se queda ni rota. Asoma con UN GIF unos segundos (VISTA)
+     cuando cambia el tema de lo que se habla, si ya pasó la pausa (2 min en el iPad y la computadora, 6 en el teléfono),
+     y en el reposo una vez cada dos pausas; después se va y el saludo vuelve. La broma (js/alma-gif.js) la abre para sí. */
+  var V = { el: null, tema: "reposo", url: "", pide: false, fallos: 0, hasta: 0, broma: 0, ult: 0, desde: Date.now() },
+    VISTA = 7000, PAUSA_ANCHA = 120000, PAUSA_TEL = 360000;
+  function telefono() { var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight; return !(W >= 700 && H >= 500); }
+  function pausa() { return telefono() ? PAUSA_TEL : PAUSA_ANCHA; }
+  function asomar() {
+    var ahora = Date.now(); if (!B.gifs || ahora - V.ult < pausa()) return false;
+    V.ult = ahora; V.hasta = ahora + VISTA; ventana(true); return true;
+  }
+  function gifTema(t) { var n = t ? temaGif(t) : "reposo"; if (n === V.tema) return; V.tema = n; if (n !== "reposo") asomar(); }
   function rocaRect() {
     var r = d.querySelector("#sa-nav-root .san-ov .san-rock"); if (!r) return null;
     var b = r.getBoundingClientRect(); return b.width > 20 && b.height > 20 ? b : null;
@@ -244,7 +256,7 @@
     var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight, s = seguro();
     var chico = rb.width < 140, ancha = W >= 700 && H >= 500, cx = rb.left + rb.width / 2;
     var abajo = rb.top - Math.max(8, rb.width * .07) - (chico ? 8 : 12);   // el halo de la roca queda libre
-    var hmax = chico ? 96 : ancha ? 200 : 132, wmax = ancha ? 340 : Math.min(W - 32, 260);
+    var hmax = chico ? 96 : ancha ? 200 : 112, wmax = ancha ? 340 : Math.min(W - 32, 220);   // en el teléfono, más chica
     var tope = function (conHola) {
       var t = Math.max(16, s.t + 12), obs = [].slice.call(d.querySelectorAll(".bv-capa.on:not(.sale) .bv-tema:not([hidden])"));
       if (conHola) { var hb = holaRect(); if (hb && hb.bottom <= abajo) t = Math.max(t, hb.bottom + 10); }
@@ -279,8 +291,9 @@
       V.el.appendChild(m); V.el.appendChild(el("small", "gv-cred", "GIPHY"));
     }
     if (V.el.parentNode !== r) r.appendChild(V.el);
-    var p = B.gifs ? lugar() : null, raiz = d.documentElement;
-    if (!p) { V.el.classList.remove("on"); raiz.classList.remove("gv-sin-hola"); return; }
+    var ahora = Date.now(), broma = ahora < V.broma || !!V.el.querySelector(".gifb");
+    var p = (ahora < V.hasta && B.gifs) || broma ? lugar() : null, raiz = d.documentElement;
+    if (!p) { V.el.classList.remove("on", "listo"); raiz.classList.remove("gv-sin-hola"); return; }
     var st = V.el.style; st.left = p.x + "px"; st.top = p.y + "px"; st.width = p.w + "px"; st.height = p.h + "px";
     raiz.classList.toggle("gv-sin-hola", p.sinHola);
     if (!V.url || nuevo) siguiente();
@@ -288,8 +301,8 @@
   }
   /* la roca se mueve (al centro, a la esquina, crece con la voz) y la página cambia: la ventana la sigue */
   setInterval(function () { if (d.visibilityState !== "hidden") ventana(); }, 500);
-  /* uno y después otro, como en el reposo: cada 8 s, salvo con la broma encima */
-  setInterval(function () { if (V.el && V.el.classList.contains("on") && d.visibilityState !== "hidden" && !V.el.querySelector(".gifb")) siguiente(); }, CADA);
+  /* en el reposo, de vez en cuando (una vez cada dos pausas); nunca con la página escondida */
+  setInterval(function () { if (V.tema === "reposo" && d.visibilityState !== "hidden" && Date.now() - Math.max(V.ult, V.desde) >= 2 * pausa()) asomar(); }, 15000);
 
   /* ── Acomodar: cada región es una columna de tarjetas (la altura según su peso); el hueco del centro queda libre. ── */
   function region(r, items, cls) {
@@ -417,8 +430,14 @@
     enTema: function () { return !!B.t && d.documentElement.classList.contains("bv-on"); },
     /* El tema del GIF en el teléfono (sin bento vivo): la tarjeta de la llamada, o null para el reposo. */
     gifTema: function (t) { gifTema(t || null); },
-    /* La broma (js/alma-gif.js): el marco de la ventana del GIF, si está a la vista. */
-    gifCuadro: function () { var g = V.el && V.el.classList.contains("on") ? V.el.querySelector(".gv-marco") : null; return g && g.getClientRects().length && +getComputedStyle(B.el).opacity > .05 ? g : null; },
+    /* La broma (js/alma-gif.js): ¿cabe la ventana arriba de la roca? Y gifCuadro() la abre unos segundos para la broma
+       (aunque esté escondida por la pausa) y da su marco. */
+    gifCabe: function () { return !!(capaRaiz() && lugar() && +getComputedStyle(B.el).opacity > .05); },
+    gifCuadro: function () {
+      if (!w.AlmaBento.gifCabe()) return null;
+      V.broma = Date.now() + 1500; ventana(); if (!V.el || !V.el.classList.contains("on")) return null;
+      V.el.classList.add("listo"); var g = V.el.querySelector(".gv-marco"); return g && g.getClientRects().length ? g : null;
+    },
     /* Para las pruebas y las capturas: dónde está la ventana (null si no sale) */
     ventana: function () { ventana(); var b = V.el && V.el.classList.contains("on") ? V.el.getBoundingClientRect() : null; return b ? { x: b.left, y: b.top, w: b.width, h: b.height } : null; },
     /* Para las pruebas: el tema del GIF de una tarjeta */

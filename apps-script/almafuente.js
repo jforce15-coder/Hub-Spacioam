@@ -379,7 +379,7 @@ var ALMA_FUENTE_ = {
     "canales": [
      "voz"
     ],
-    "linea": "En la app y solo con Juan: un GIF tras una broma, en silencio."
+    "linea": "En la app y solo con Juan: de vez en cuando, un GIF de cine o series tras una broma, en silencio."
    },
    "mostrar_tarjeta_club": {
     "canales": [

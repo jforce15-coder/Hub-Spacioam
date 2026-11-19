@@ -183,11 +183,12 @@
     plantillas: function (o) { return call('plantillas', o || {}); },
     /* Mejorar cualquier texto (la roca del nuevo chat y los formularios): devuelve { ok, texto }. Es la misma acción del navegador de la app (campo.js). */
     mejorarTexto: function (texto, donde) { donde = donde || {}; return call('mejorarCampo', { texto: texto, pagina: donde.pagina || '', etiqueta: donde.etiqueta || '', url: donde.url || '' }); },
-    /* opEnviar({ texto, canal: 'app' | 'hub', orbita? }) → { ok, yo, alma, claude?, paraJuan? }. Forma vieja: opEnviar(correo, texto) = canal hub.
+    /* opEnviar({ texto, canal: 'app' | 'hub', orbita?, bento? }) → { ok, yo, alma, claude?, paraJuan?, tarjeta? }. Forma vieja: opEnviar(correo, texto) = canal hub.
        orbita (#583): el id del anillo o de la notificación que se tocó; el Hub lo lleva a su tema con su estado. */
     opEnviar: function (a, texto) {
       var o = a && typeof a === 'object' ? a : { texto: texto }, q = { texto: o.texto, canal: o.canal === 'app' ? 'app' : 'hub' };
       if (o.orbita) q.orbita = String(o.orbita).slice(0, 90);
+      if (o.bento) q.bento = 1;   // Bento vivo (#810): la respuesta trae la tarjeta del tema (tvDelChat_)
       return call('opEnviar', q);
     },
     opLista: function () { return call('opLista', {}); }

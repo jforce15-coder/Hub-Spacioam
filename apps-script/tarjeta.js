@@ -52,11 +52,29 @@ var TV_TEL_ = /(\b(tel[eé]fono|tel|cel(ular)?|whats ?app|wa)\.?:?\s*)?\(?\+?\(?
 
 /* agEjecutar_ deja la candidata del turno. tipo null = una lista: borra la de antes. hacer() arma la tarjeta solo si de
    verdad se va a mostrar (el apartamento lee la semana del calendario). */
+/* Bento vivo en el chat escrito (#810; Juan, 19-nov-2026: «Bento en el chat escrito, sí»): cuando el chat de la app o del
+   Hub se escribe desde una pantalla ancha con el Bento vivo (opEnviar con bento: 1, chatEnviar_), el mismo turno deja su
+   candidata y la respuesta del chat trae la tarjeta (tvDelChat_). Sin llamada nueva: va dentro de la respuesta de siempre.
+   Sin IA ni Hospitable al armarla (TV_SIN_PEDIR_: la lectura del huésped y las fotos solo si ya están guardadas). */
+var TV_CHAT_ = false;
+function tvCanalOk_() {
+  var c = typeof AGENTE_CANAL_ === 'undefined' ? '' : AGENTE_CANAL_;
+  return c === 'llamada' || (TV_CHAT_ && (c === 'app' || c === 'hub'));
+}
+function tvDelChat_() {
+  var cand = TV_CANDIDATA_; TV_CANDIDATA_ = null; TV_TOCADA_ = false;
+  if (!cand) return null;
+  var t = null; TV_SIN_PEDIR_ = true;
+  try { t = cand.hacer(); } catch (e) { console.error('tarjeta del chat ' + cand.tipo + ': ' + (e.stack || e)); } finally { TV_SIN_PEDIR_ = false; }
+  if (!t || !t.clave) return null;
+  t.id = 'tc' + Date.now(); delete t.tel; delete t.wa;   // en el chat no hay «Llamar» ni «WhatsApp» desde la tarjeta
+  return t;
+}
 var TV_TOCADA_ = false;   // este turno ya dejó (o borró) una candidata: el tema del socio no la pisa (tvCandidataTema_)
 function tvCandidata_(tipo, hacer) {
   if (typeof AGENTE_PERMITIDAS_ !== 'undefined' && AGENTE_PERMITIDAS_) return;   // la familia (vozFamilia_) nunca tiene tarjetas
   TV_TOCADA_ = true;
-  if (tipo && (typeof AGENTE_CANAL_ === 'undefined' || AGENTE_CANAL_ !== 'llamada')) { TV_CANDIDATA_ = null; return; }   // WhatsApp, chat o segundo plano: nunca
+  if (tipo && !tvCanalOk_()) { TV_CANDIDATA_ = null; return; }   // WhatsApp, chat sin Bento vivo o segundo plano: nunca
   TV_CANDIDATA_ = tipo && typeof hacer === 'function' ? { tipo: tipo, hacer: hacer } : null;
 }
 
@@ -892,7 +910,7 @@ function tvCandidataContacto_(adm, fichas, sB) {
 /* Al cerrar el turno de la llamada (agCerrarTurno_): si ninguna herramienta dejó candidata y el tema del turno es el
    pedido de un socio, elegido con certeza (lo nombró, lo citó, su tarjeta), el tablero es ese socio. */
 function tvCandidataTema_(adm) {
-  if (TV_TOCADA_ || typeof AGENTE_CANAL_ === 'undefined' || AGENTE_CANAL_ !== 'llamada') return;
+  if (TV_TOCADA_ || !tvCanalOk_()) return;
   var sel = typeof TEMA_ACT_ !== 'undefined' ? TEMA_ACT_ : null;
   if (!sel || !sel.id || TV_TEMA_SEGURO_.indexOf(sel.por) < 0 || typeof temaLeer_ !== 'function') return;
   var t = temaLeer_(sel.id); if (!t || t.tipo !== 'socio' || t.estado !== 'abierto') return;

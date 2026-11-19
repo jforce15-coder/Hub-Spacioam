@@ -1066,9 +1066,13 @@
   .bv-capa.sale .bv-tema { opacity: 0; transition: opacity .2s ease; }
   html.bv-tema-on .hola { opacity: 0 !important; }
   /* Escondido con las esferas y sus niveles (#831), las hojas, el chat, Pendientes, Notificaciones y al entrar */
-  body.orbita-on .bv, body.san-hoja .bv, body.entrando .bv, #sa-nav-root .san-ov.chat .bv, #sa-nav-root .san-ov.pend .bv, #sa-nav-root .san-ov.noti .bv { opacity: 0; }
-  body.orbita-on .bv *, body.san-hoja .bv *, body.entrando .bv *, #sa-nav-root .san-ov.chat .bv *, #sa-nav-root .san-ov.pend .bv *, #sa-nav-root .san-ov.noti .bv * { pointer-events: none !important; }
+  body.orbita-on .bv, html:not(.bv-chat) body.san-hoja .bv, body.entrando .bv, #sa-nav-root .san-ov.pend .bv, #sa-nav-root .san-ov.noti .bv { opacity: 0; }
+  body.orbita-on .bv *, html:not(.bv-chat) body.san-hoja .bv *, body.entrando .bv *, #sa-nav-root .san-ov.pend .bv *, #sa-nav-root .san-ov.noti .bv * { pointer-events: none !important; }
   #sa-nav-root .san-ov.ending .bv { opacity: .4; }
+  /* Con el chat escrito abierto en pantalla ancha (Juan, 19-nov-2026: «Bento en el chat escrito, sí»): el chat va en una
+     columna a la derecha y el bento a su izquierda (js/alma-bento.js, geoChat). Sin espacio, el chat como siempre. */
+  html.bv-chat #sa-nav-root .san-ov.chat .san-chat { left: auto; right: 0; width: var(--bv-chat-w, 480px); box-shadow: -24px 0 60px -34px rgba(40,30,25,.5); }
+  html.bv-chat .bv-tema { display: none; }
   /* Subtítulos sobre el bento: en el hueco del centro, más anchos y con su fondo oscuro (blanco sobre ~#3A3032: contraste
      6:1 o más, WCAG AA) para que se lean sobre cualquier atardecer; sin texto, sin fondo. */
   html.bv-on #sa-nav-root .san-ov-ui { width: min(420px, calc(100% - 32px)); }
@@ -1627,7 +1631,7 @@
 </div>
 <script src="../js/sa-auth-client.js?v=2026-11-18a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
-<script src="../js/alma-client.js?v=2026-11-18-alma-ws"></script>
+<script src="../js/alma-client.js?v=2026-11-19-bvchat"></script>
 <script src="../js/alma-voz.js?v=2026-11-19-unavoz"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
@@ -3981,6 +3985,8 @@ window.SAPulso = {
   function el(tag, cls, txt) { var x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
   /* TV.local: el Panel de Claudio que pidió esta página (la voz del navegador, sin la app): la pestañita se maneja aquí. */
   function hacer(h) {
+    /* La tarjeta del chat escrito (Bento vivo): «Necesita respuesta» abre la conversación en el Hub (sin llamada que colgar). */
+    if (TV.local && h === "conv" && TV.t && TV.t.conv) { try { window.open("https://hub.spacioam.com/?conv=" + encodeURIComponent(TV.t.conv), "_blank", "noopener"); } catch (e) {} return; }
     if (TV.local) { if (h === "abrir") { TV.vista = "abierta"; pintar(); } else if (h === "plegar") { TV.vista = "pestana"; pintar(); } return; }
     nativa({ accion: "voz", que: "tarjeta", hacer: h });
   }
@@ -4474,6 +4480,7 @@ window.SAPulso = {
     clearInterval(TV.reloj); TV.reloj = 0;
     if (v !== "nada") TV.reloj = setInterval(function () {
       var tp = tapada();
+      if (TV.chat && TV.local && !/(^|\s)chat(\s|$)/.test((ov() || {}).className || "")) { TV.chat = false; TV.local = false; soltar(); return; }   // se cerró el chat escrito
       if (TV.pest) TV.pest.style.visibility = tp ? "hidden" : "";
       if (abierta && !tp && !TV.bv && (!TV.card || TV.card.parentNode !== (bento ? ov() : ui()))) pintar();
     }, 700);
@@ -4517,6 +4524,14 @@ window.SAPulso = {
      vuelve el tablero de siempre. */
   if (window.AlmaBento) AlmaBento.iniciar({ hacer: function (h) { if (TV.t) hacer(h); } });
   /* La llamada web de la computadora (js/alma-voz.js) también trae la tarjeta del tema para el Bento vivo. */
+  /* El chat escrito (js/alma-bento.js, opEnviar con bento: 1): la tarjeta del tema llega en la respuesta y se pinta igual.
+     Es local (no hay llamada en la app): se queda mientras el chat esté abierto o hasta otra tarjeta, y al cerrar el chat
+     (sin llamada) espera FIN_MS y vuelve el reposo. */
+  window.addEventListener("sa-chat-tarjeta", function (e) {
+    var x = (e && e.detail) || {}; if (!x.tarjeta || !x.tarjeta.id || !window.AlmaBento || !AlmaBento.ancho()) return;
+    if (TV.t && !TV.local && TV.t.id) return;   // una llamada con su tarjeta manda
+    seguir(); TV.local = true; TV.chat = true; TV.t = x.tarjeta; TV.vista = "abierta"; pintar();
+  });
   window.addEventListener("sa-voz-tarjeta", function (e) {
     var x = (e && e.detail) || {};
     if (x.fin) { soltar(); return; }

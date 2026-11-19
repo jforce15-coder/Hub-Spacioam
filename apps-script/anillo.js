@@ -16,16 +16,18 @@ function anilloGuardar_(body) {
   } catch (e) { return { ok: false, error: String(e) }; }
   return { ok: true };
 }
-/* Robot: las últimas filas (por defecto 30) para leer una prueba completa, los pasos de la voz de la app, el último
+/* Robot: las últimas filas (por defecto 30) para leer una prueba completa, los pasos de la voz de la app (y aparte los
+   últimos cierres de llamada: cortes), el último
    Diagnóstico del anillo por Bluetooth de cada usuario (ble, abajo) y la última Lectura del anillo (resumen, abajo). */
 function anilloLeer_(n) {
-  var app = {}, ble = {}, res = {}; try { app = anilloPasosLeer_(); } catch (e) {} try { ble = anilloBleLeer_(); } catch (e) {}
+  var app = {}, ble = {}, res = {}, cortes = {}; try { app = anilloPasosLeer_(); } catch (e) {} try { ble = anilloBleLeer_(); } catch (e) {}
+  try { cortes = anilloCortesLeer_(); } catch (e) {}
   try { var tp = PropertiesService.getScriptProperties().getProperties(); Object.keys(tp).filter(function (k) { return k.indexOf('ANILLO_RES_') === 0; }).forEach(function (k) { try { res[k.slice(11)] = JSON.parse(tp[k]); } catch (e) {} }); } catch (e) {}
-  var sh = ssAlma_().getSheetByName('ALMA_ANILLO'); if (!sh || sh.getLastRow() < 2) return { ok: true, filas: [], app: app, ble: ble, resumen: res };
+  var sh = ssAlma_().getSheetByName('ALMA_ANILLO'); if (!sh || sh.getLastRow() < 2) return { ok: true, filas: [], app: app, cortes: cortes, ble: ble, resumen: res };
   n = Math.min(200, Number(n) || 30);
   var desde = Math.max(2, sh.getLastRow() - n + 1);
   var v = sh.getRange(desde, 1, sh.getLastRow() - desde + 1, 4).getValues();
-  return { ok: true, app: app, ble: ble, resumen: res, filas: v.map(function (r) { var e = []; try { e = JSON.parse(r[3]); } catch (x) {} return { fecha: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), sesion: String(r[1]), equipo: String(r[2]), eventos: e }; }) };
+  return { ok: true, app: app, cortes: cortes, ble: ble, resumen: res, filas: v.map(function (r) { var e = []; try { e = JSON.parse(r[3]); } catch (x) {} return { fecha: r[0] instanceof Date ? r[0].toISOString() : String(r[0]), sesion: String(r[1]), equipo: String(r[2]), eventos: e }; }) };
 }
 
 /* ── Los pasos de la voz de la app de Alma (Juan, 16-nov-2026: el anillo deja de responder y nadie sabía por qué) ──
@@ -38,19 +40,53 @@ function anilloPasoLimpio_(t) {
   return String(t == null ? '' : t).replace(/«[^»]*»/g, '«…»').replace(/[\w.%+-]+@[\w.-]+\.[a-z]{2,}/gi, '(correo)')
     .replace(/https?:\/\/\S+/g, '(enlace)').replace(/\s+/g, ' ').trim().slice(0, 160);
 }
+/* Guardia 19-nov-2026: la llamada se cortó (1006) y no se pudo ver por qué: las líneas «Voz enviada: 10 s en 10 s» (una cada
+   10 s) llenaban los 30 pasos y el cierre se borró con la llamada siguiente. Ahora (1) las «Voz enviada» normales (9 s o más
+   de 10) no se guardan, solo las raras (el micrófono mandó poco), y (2) cada cierre de llamada (corte, socket caído, la app
+   se cerró, llamada terminada…) se guarda aparte con los pasos que lo antecedieron, en ANILLO_CORTE_<clave>: los últimos
+   ANILLO_CORTES_MAX_ cierres, así la llamada siguiente no lo borra. El robot los lee con «anillo» (campo cortes). */
+var ANILLO_CORTES_MAX_ = 3, ANILLO_CORTE_PASOS_ = 14, ANILLO_CORTE_LARGO_ = 8500;
+var ANILLO_CIERRE_RE_ = /socket ca[ií]do|cierre del socket|llamada terminada|la app se cerr[oó]|se cort[oó]|ios interrumpi[oó]|^(\d\d:\d\d:\d\d )?error:/i;
+function anilloVozNormal_(t) {
+  var m = /^(\d\d:\d\d:\d\d )?Voz enviada: (\d+(?:[.,]\d+)?) s en 10 s$/.exec(t);
+  return !!m && Number(m[2].replace(',', '.')) >= 9;
+}
+function anilloEsCierre_(t) { return ANILLO_CIERRE_RE_.test(String(t || '')); }
 function anilloPasosGuardar_(adm, pasos, anillo) {
   if (!adm || !adm.email || !Array.isArray(pasos)) return 0;
-  var nuevos = pasos.slice(-30).map(anilloPasoLimpio_).filter(Boolean); if (!nuevos.length) return 0;
-  var p = PropertiesService.getScriptProperties(), k = 'ANILLO_APP_' + retClave_(adm).slice(8), l = [];
+  var nuevos = pasos.slice(-30).map(anilloPasoLimpio_).filter(function (t) { return t && !anilloVozNormal_(t); }); if (!nuevos.length) return 0;
+  var p = PropertiesService.getScriptProperties(), clave = retClave_(adm).slice(8), k = 'ANILLO_APP_' + clave, l = [];
   try { l = JSON.parse(p.getProperty(k) || '[]') || []; } catch (e) {}
-  var f = new Date().toISOString();
+  var f = new Date().toISOString(), antes = l.length;
   nuevos.forEach(function (t) { l.push({ f: f, origen: 'app', anillo: anillo === true, paso: t }); });
+  // Cada cierre, con los pasos que lo antecedieron (de esta tanda y de las anteriores), en su propia propiedad.
+  var cierres = [];
+  for (var i = antes; i < l.length; i++) if (anilloEsCierre_(l[i].paso)) cierres.push({ f: f, cierre: l[i].paso, pasos: l.slice(Math.max(0, i - ANILLO_CORTE_PASOS_), i + 1).map(function (x) { return x.paso; }) });
+  if (cierres.length) anilloCortesGuardar_(p, 'ANILLO_CORTE_' + clave, cierres);
   p.setProperty(k, JSON.stringify(l.slice(-ANILLO_PASOS_MAX_)));
   return nuevos.length;
+}
+/* Los cierres de una misma llamada seguidos (corte → «Llamada terminada») se juntan en uno: el último, con sus pasos. */
+function anilloCortesGuardar_(p, k, cierres) {
+  var l = [];
+  try { l = JSON.parse(p.getProperty(k) || '[]') || []; } catch (e) {}
+  cierres.forEach(function (c) {
+    var u = l[l.length - 1];
+    if (u && u.pasos && c.pasos.indexOf(u.cierre) >= 0) l[l.length - 1] = c; else l.push(c);
+  });
+  l = l.slice(-ANILLO_CORTES_MAX_);
+  while (l.length > 1 && JSON.stringify(l).length > ANILLO_CORTE_LARGO_) l.shift();
+  while (JSON.stringify(l).length > ANILLO_CORTE_LARGO_ && l[0].pasos.length > 1) l[0].pasos.shift();
+  p.setProperty(k, JSON.stringify(l));
 }
 function anilloPasosLeer_() {
   var t = PropertiesService.getScriptProperties().getProperties(), r = {};
   Object.keys(t).filter(function (k) { return k.indexOf('ANILLO_APP_') === 0; }).forEach(function (k) { try { r[k.slice(11)] = JSON.parse(t[k]); } catch (e) {} });
+  return r;
+}
+function anilloCortesLeer_() {
+  var t = PropertiesService.getScriptProperties().getProperties(), r = {};
+  Object.keys(t).filter(function (k) { return k.indexOf('ANILLO_CORTE_') === 0; }).forEach(function (k) { try { r[k.slice(13)] = JSON.parse(t[k]); } catch (e) {} });
   return r;
 }
 

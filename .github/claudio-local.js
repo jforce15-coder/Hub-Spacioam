@@ -9,7 +9,8 @@
    5. lo que se dice sale limpio y corto (sin etiquetas, markdown ni enlaces);
    6. la voz se afina sin PR (CLAUDIO_VOZ_LOCAL) y con límites; la acción está en el Hub y cuenta como voz en el cupo;
    4b. un pedido hecho («Listo, quedó …») se dice sin otra vuelta de la IA y el turno trae ms_ia / ms_voz (#651);
-   7. de fábrica habla la voz del iPhone, sin gastar ElevenLabs (Juan, #649); con CLAUDIO_VOZ_LOCAL {"motor":"elevenlabs"},
+   7. de fábrica habla la voz del iPhone, sin gastar ElevenLabs (Juan, #649); {"motor":"elevenlabs"} solo ya no basta
+      (Juan, 19-nov-2026: «solo voz local»); con CLAUDIO_VOZ_LOCAL {"motor":"elevenlabs"} y CLAUDIO_VOZ_ELEVENLABS = 1,
       LA MISMA voz de Claudio en ElevenLabs (#636): su voz, el modelo y los ajustes de su agente, PCM 16 kHz, en el
       saludo y en cada turno; si ElevenLabs falla, sin audio (la app usa la voz del iPhone).
    node .github/claudio-local.js [carpeta apps-script] */
@@ -134,7 +135,10 @@ ok(jFab.voz_local.motor === 'iphone' && !jFab.voz_local.audio && !tts().length, 
 salidas = []; fila = [{ content: [{ type: 'text', text: 'Listo.' }] }];
 const tFab = turno({ conv_id: jFab.conv_id, texto: 'ok' });
 ok(tFab.ok && tFab.hablar === 'Listo.' && !tFab.audio && !tts().length, '7 · de fábrica cada turno va con la voz del iPhone (sin ElevenLabs, #649)');
-mem.CLAUDIO_VOZ_LOCAL = JSON.stringify({ motor: 'elevenlabs' });
+mem.CLAUDIO_VOZ_LOCAL = JSON.stringify({ motor: 'elevenlabs' }); salidas = [];
+const jSolo = ini();
+ok(jSolo.voz_local.motor === 'iphone' && !jSolo.voz_local.audio && !tts().length, '7 · {"motor":"elevenlabs"} sin CLAUDIO_VOZ_ELEVENLABS = 1: voz local, sin gastar ElevenLabs (Juan, 19-nov-2026)');
+mem.CLAUDIO_VOZ_ELEVENLABS = '1'; salidas = [];
 R("claudioTtsGuardar_({ voice_id: 'x', model_id: 'eleven_turbo_v2_5', stability: 0.42, similarity_boost: 0.77, speed: 1.08, otra: 1 })");
 const j7 = ini(), s7 = tts()[0];
 ok(j7.voz_local.motor === 'elevenlabs' && j7.voz_local.audio === Buffer.from([1, 2, 3, 4]).toString('base64') && j7.voz_local.hz === 16000, '7 · el saludo llega con su voz de ElevenLabs (PCM 16 kHz)');

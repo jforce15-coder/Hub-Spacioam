@@ -13,6 +13,8 @@
        CLAUDIO_VOZ_LOCAL (JSON). Juan, 17-nov-2026 (#649): «volver a la voz local que funcionaba bien antes del último
        ajuste» (el de #636, que mandaba cada frase con la voz de Claudio en ElevenLabs). Ese camino queda apagado de
        fábrica; CLAUDIO_VOZ_LOCAL {"motor":"elevenlabs"} lo vuelve a encender sin PR (claudioLocalAudio_).
+       Juan, 19-nov-2026: «Claudio y Maricarmen solo deben trabajar con voz local». Ese {"motor":"elevenlabs"} ya no basta
+       (alguien pudo dejarlo puesto): además hace falta CLAUDIO_VOZ_ELEVENLABS = 1, a propósito. Sin eso, nunca ElevenLabs.
    Las reglas de cómo suena (skill alma-humana, «Diseñar para el oído»): la respuesta primero, frases cortas, una sola
    pregunta al final, nada de listas ni etiquetas de emoción (la voz del iPhone las leería en voz alta): CLAUDIO_LOCAL_VOZ_.
    Encendido de fábrica. CLAUDIO_LOCAL = 0 (Propiedades del script) vuelve al agente de ElevenLabs sin un PR. La app
@@ -52,9 +54,12 @@ function claudioVozLocal_() {
   o.idiomas = (Array.isArray(o.idiomas) ? o.idiomas : [String(o.idiomas || '')]).map(String).filter(function (x) { return /^es(-[A-Za-z0-9]+)?$/.test(x); }).slice(0, 5);
   if (!o.idiomas.length) o.idiomas = CLAUDIO_VOZ_LOCAL_.idiomas.slice();
   o.genero = o.genero === 'mujer' ? 'mujer' : 'hombre';
-  o.motor = o.motor === 'elevenlabs' ? 'elevenlabs' : 'iphone';   // de fábrica, la del iPhone (#649)
+  /* de fábrica, la local (#649); ElevenLabs solo con CLAUDIO_VOZ_ELEVENLABS = 1 a propósito (Juan, 19-nov-2026) */
+  o.motor = o.motor === 'elevenlabs' && claudioVozElevenLabs_() ? 'elevenlabs' : 'iphone';
   return o;
 }
+
+function claudioVozElevenLabs_() { return String(PropertiesService.getScriptProperties().getProperty('CLAUDIO_VOZ_ELEVENLABS') || '').trim() === '1'; }
 
 /* Lo que usa el agente de Claudio para hablar (lo guarda claudioConfigSiCambio_ una vez al día al leer su agente). */
 function claudioTtsGuardar_(tts) {

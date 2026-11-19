@@ -130,8 +130,8 @@ function calle_(ses, b) {
   /* La voz de respaldo de Alma (alma-app, VozRespaldo; Juan, 17-nov-2026, #657) pide sin_audio: la dice la voz del iPhone,
      así con poca señal no se espera ni se baja el audio de ElevenLabs. */
   if (b.sin_audio) {
-    /* Maricarmen con su voz de ElevenLabs, a prueba (maricarmen.js): la app la pide con voz_maricarmen; si no sale, su voz local. */
-    if (b.voz_maricarmen && maricarmenAlter_({ alter: b.alter || b.persona }, esAdminPrincipal_(adm))) {
+    /* Maricarmen con su voz de ElevenLabs, a prueba (maricarmen.js): la app la pide con voz_maricarmen = "a_proposito" (interruptor encendido a propósito); si no sale, su voz local. */
+    if (maricarmenVozPedida_(b) && maricarmenAlter_({ alter: b.alter || b.persona }, esAdminPrincipal_(adm))) {
       var tM = Date.now(), am = maricarmenAudio_(out.hablar, t0);
       if (am) { out.audio = am; out.hz = MARICARMEN_VOZ_HZ_; } else out.vozMotivo = CALLE_VOZ_MOTIVO_ || 'sin la voz de Maricarmen';
       out.ms = calleMs_(t0, tA, ms, Date.now() - tM); return out;
@@ -390,7 +390,9 @@ function calleVoz_(ses, b) {
   var texto = String(b.texto || '').trim().slice(0, CALLE_VOZ_MAX_);
   if (!texto) return { ok: false, error: 'falta el texto' };
   /* El saludo y la despedida de Maricarmen con su voz de ElevenLabs (maricarmen.js): { texto, voz_maricarmen, alter } → { audio, hz }. */
-  var mari = b.voz_maricarmen && maricarmenAlter_({ alter: b.alter || b.persona }, esAdminPrincipal_(adm));
+  var mari = maricarmenVozPedida_(b) && maricarmenAlter_({ alter: b.alter || b.persona }, esAdminPrincipal_(adm));
+  /* Maricarmen sin el interruptor a propósito (la build 328 lo mandaba encendido de fábrica): su voz local, sin ElevenLabs. */
+  if (b.voz_maricarmen && !mari) return { ok: false, error: 'sin audio', motivo: 'Maricarmen habla con su voz local (la de ElevenLabs está apagada)' };
   var audio = mari ? maricarmenAudio_(texto, 0) : calleAudio_(texto, 0, { donde: b.donde === 'aviso' ? 'calleVoz (aviso)' : 'calleVoz' });
   if (audio) return mari ? { ok: true, audio: audio, hz: MARICARMEN_VOZ_HZ_ } : { ok: true, audio: audio };
   var out = { ok: false, error: 'sin audio', motivo: CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio' };

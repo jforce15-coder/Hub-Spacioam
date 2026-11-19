@@ -32,6 +32,7 @@ function caja(props, respuestas) {
   };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(DIR, 'calle.js'), 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'maricarmen.js'), 'utf8'), ctx);   // maricarmenVozPedida_ (la voz de Maricarmen)
   return { ctx, llamadas, cache };
 }
 const ses = { email: 'juan@x' };
@@ -90,5 +91,15 @@ const ses = { email: 'juan@x' };
 { const c = caja({}, []);
   const l = c.ctx.avisosConVoz_([{ id: 'a1', hablar: 'Flor pregunta. ¿Lo vemos?', nivel: 1 }], { ahora: true, hablado: 3 });
   ok(!l[0].audio && /falta ELEVENLABS_KEY/.test(l[0].vozMotivo || ''), 'sin audio, el aviso dice por qué: «' + l[0].vozMotivo + '»'); }
+
+/* 7. Maricarmen solo con voz local (Juan, 19-nov-2026): su voz de ElevenLabs solo si la app la pide a propósito. */
+{ const c = caja({ ELEVENLABS_KEY: 'llave-de-prueba' }, []);
+  ok(!c.ctx.maricarmenVozPedida_({ voz_maricarmen: true }) && !c.ctx.maricarmenVozPedida_({}) && c.ctx.maricarmenVozPedida_({ voz_maricarmen: 'a_proposito' }),
+    'Maricarmen: el true de fábrica de la build 328 no gasta ElevenLabs; solo «a_proposito»');
+  c.ctx.maricarmenAlter_ = () => 'maricarmen'; c.ctx.esAdminPrincipal_ = () => true;
+  const r = c.ctx.calleVoz_(ses, { texto: 'Hola.', alter: 'maricarmen', voz_maricarmen: true });
+  ok(!r.ok && !c.llamadas.length, 'Maricarmen con voz_maricarmen = true (build 328): sin llamar a ElevenLabs (ni con la voz de Alma)');
+  const r2 = c.ctx.calleVoz_(ses, { texto: 'Hola.', alter: 'maricarmen', voz_maricarmen: 'a_proposito' });
+  ok(r2.ok && r2.hz === 24000 && c.llamadas.length === 1 && /Pd2xxQTFAhTlCcySMnct/.test(c.llamadas[0].url), 'Maricarmen con el interruptor a propósito: su voz «Maricarmen ES · 2» a 24 kHz'); }
 
 process.exit(fallo);

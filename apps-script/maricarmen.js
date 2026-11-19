@@ -116,9 +116,16 @@ function vozPasarAMaricarmen_() {
    una llamada de verdad antes de dejarla fija: la app (alma-app, Ajustes → Voces locales → Maricarmen) pide voz_maricarmen
    en «calle» y «calleVoz», y aquí cada frase de Maricarmen sale con esa voz en PCM a 24 kHz (lo mismo que su voz local).
    Si ElevenLabs falla o tarda, la app sigue con su voz local, sin cortar. No toca a Alma ni a Claudio ni a su agente.
-   La Propiedad MARICARMEN_VOZ_ID cambia la voz sin PR; «-» la apaga (vuelve la voz local para todos). */
+   La Propiedad MARICARMEN_VOZ_ID cambia la voz sin PR; «-» la apaga (vuelve la voz local para todos).
+   Juan, 19-nov-2026: «Deja apagada por defecto la voz de ElevenLabs. Claudio y Maricarmen solo deben trabajar con voz
+   local». El interruptor de la app queda apagado de fábrica (alma-app build 329) y solo cuenta si la app lo manda a
+   propósito: voz_maricarmen = "a_proposito". La build 328 mandaba voz_maricarmen = true con el interruptor encendido de
+   fábrica: eso ya no gasta ElevenLabs (habla su voz local). */
 var MARICARMEN_VOZ_ID_ = 'Pd2xxQTFAhTlCcySMnct';   // «Maricarmen ES · 2» (ElevenLabs)
 var MARICARMEN_VOZ_HZ_ = 24000;
+var MARICARMEN_VOZ_A_PROPOSITO_ = 'a_proposito';
+/* La app pidió su voz de ElevenLabs con el interruptor encendido a propósito (no el true de fábrica de la build 328). */
+function maricarmenVozPedida_(b) { return !!b && b.voz_maricarmen === MARICARMEN_VOZ_A_PROPOSITO_; }
 function maricarmenVozId_() {
   var p = String(PropertiesService.getScriptProperties().getProperty('MARICARMEN_VOZ_ID') || '').trim();
   if (p === '-') return '';

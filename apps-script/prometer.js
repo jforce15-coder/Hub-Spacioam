@@ -18,13 +18,25 @@ var PROMETER_LISTO_RE_ = /^\W*(listo|hecho|perfecto)\b[,.:!]?\s*/i;
 /* Herramientas que leen el estado real de un envío: si el turno las usó, «le llegó» puede venir de Meta (buscar_contacto). */
 var PROMETER_LEE_ESTADO_ = ['buscar_contacto', 'ver_conversacion', 'ver_conversacion_personal', 'mensajes_programados', 'historial_reserva'];
 
+/* Guardia 19-nov-2026: Juan pidió el contexto de un problema escalado (solo leer) y el freno cambió la respuesta por «Todavía
+   no salió: en este turno no hice ningún envío», porque contaba lo que otro mandó antes. «Ya salió» sin envío solo se frena
+   si el pedido del turno era mandar algo (o no se sabe cuál era); un borrador o un envío fallido se corrigen siempre. */
+var PROMETER_PIDE_ENVIO_RE_ = new RegExp('\\b(?:(?:re)?envi(?:a|ale|ales|alo|ala|alos|alas|aselo|aselos|aselas|ar|arle|arles|arlo|arla|aste|e|es)|' +
+  'mand(?:a|ale|ales|alo|ala|alos|alas|aselo|aselos|aselas|ar|arle|arles|arlo|arla|aste|e|es)|escrib(?:e|ele|eles|ir|irle|irles|iste|a|as)|' +
+  'avis(?:a|ale|ales|ar|arle|arles|aste|e|es)|contest(?:a|ale|ar|arle|e)|respond(?:e|ele|er|erle|a)|compart(?:e|elo|ela|ir|irlo|irla|a)|' +
+  'notific(?:a|ale|ar|arle)|dile|diles|decirle|decirles|digale|digales|pasale|pasales|pasarle|pasarles)\\b');
+function prometerPideEnvio_(texto) {
+  var t = String(texto || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  return !t || PROMETER_PIDE_ENVIO_RE_.test(t) || EQUIPO_SI_RE_.test(String(texto));   // sin pedido conocido o un «sí»: como antes, se frena
+}
 function prometerEnvioHecho_(hechas) { return (hechas || []).some(function (h) { return h && PROMETER_ENVIO_TIPOS_[h.tipo] && !h.error && !/^Encargo cumplido/.test(String(h.resumen || '')); }); }
 /* El texto final del turno, revisado contra lo que de verdad se hizo. Devuelve el texto (igual, o corregido). */
 function prometerFreno_(texto, ctx) {
   var t = String(texto || ''), hechas = (ctx && ctx.hechas) || []; if (!t.trim()) return t;
   if (prometerEnvioHecho_(hechas) || (ctx && ctx.duplicado)) return t;
   var leyo = ((ctx && ctx.llamadas) || []).some(function (l) { return PROMETER_LEE_ESTADO_.indexOf(l.tool) >= 0 && l.ok; });
-  var fuerte = PROMETER_DICHO_RE_.test(t) && !leyo, borr = ctx && ctx.borrador, fallo = hechas.filter(function (h) { return PROMETER_ENVIO_TIPOS_[h.tipo] && h.error; })[0];
+  var pide = prometerPideEnvio_(typeof AGENTE_TEXTO_ === 'undefined' ? '' : AGENTE_TEXTO_);
+  var fuerte = PROMETER_DICHO_RE_.test(t) && !leyo && pide, borr = ctx && ctx.borrador, fallo = hechas.filter(function (h) { return PROMETER_ENVIO_TIPOS_[h.tipo] && h.error; })[0];
   var debil = PROMETER_LISTO_RE_.test(t) && (borr || fallo);
   if (!fuerte && !debil) return t;
   var otras = hechas.filter(function (h) { return !h.error && !PROMETER_ENVIO_TIPOS_[h.tipo]; }).map(function (h) { return h.resumen || h.tipo; });

@@ -13,7 +13,8 @@
      puede (escalarNoPudo_), dijo que algo quedó hecho (no tiene cómo hacerlo), falló la API, se negó, se le acabaron los
      tokens, pasó de VOZ_RAPIDO_VUELTAS_ vueltas o de VOZ_RAPIDO_MS_. Juan no lo nota: solo tarda lo de antes.
      Excepción (guardia 18-nov-2026): si paró solo por tiempo o por vueltas, lo que ya leyó pasa al de siempre y no se
-     vuelve a leer (rapidoReusar_; el cronómetro guarda reuso = cuántos mensajes pasaron).
+     vuelve a leer (rapidoReusar_; el cronómetro guarda reuso = cuántos mensajes pasaron). Y otra vuelta empieza solo si
+     cabe en VOZ_RAPIDO_MS_ contando lo que tardó la anterior (guardia 19-nov-2026: se pasaba hasta ~13 s).
    · Mismo system: lo que Alma sabe y cómo habla no cambia. Al final de este_turno, una línea le dice qué herramientas tiene.
    · El modelo rápido no acepta temperatura (400): va sin ella y con esfuerzo bajo (output_config.effort = low).
    · Para medir después de unir: el cronómetro (VOZ_MS_ en voz_traza) guarda via (rapido · completo · rapido>completo),
@@ -192,10 +193,13 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
   var sys = system + '\n\nCAMINO RÁPIDO: en este turno solo tienes herramientas de leer (' + nombres.join(', ') + ') y pasar_al_completo. ' +
     'Si el pedido pide hacer algo, necesita otra herramienta o no lo puedes contestar con seguridad con lo que leas, llama pasar_al_completo y no respondas. Nunca digas que algo quedó hecho.';
   var limite = t0 + VOZ_RAPIDO_MS_; if (AGENTE_PLAZO_) limite = Math.min(limite, AGENTE_PLAZO_ - AGENTE_MARGEN_VUELTA_);
-  var m = msgs.slice(), leido = 0;
+  var m = msgs.slice(), leido = 0, vueltaMs = 0;
   try {
     for (var vuelta = 0; vuelta < VOZ_RAPIDO_VUELTAS_ && !motivo && fin === null; vuelta++) {
-      if (vuelta && Date.now() > limite) { motivo = 'tiempo'; break; }
+      /* Guardia 19-nov-2026: el rápido tardaba ~13 s antes de pasar al completo porque una vuelta que empezaba en el segundo
+         8,9 corría entera (modelo + herramientas). Otra vuelta empieza solo si cabe, contando lo que tardó la anterior. */
+      if (vuelta && Date.now() + vueltaMs > limite) { motivo = 'tiempo'; break; }
+      var tv = Date.now();
       var j = claudeTools_(modelo, sys, m, herr, 2000, { sinTemperatura: true, esfuerzo: 'low', funcion: 'Voz · camino rápido' });
       if (!j) { motivo = 'falló la API'; break; }
       if (j.stop_reason === 'refusal') { motivo = 'se negó'; break; }
@@ -222,7 +226,7 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
         return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
       });
       m.push({ role: 'user', content: resultados });
-      leido = m.length;
+      leido = m.length; vueltaMs = Date.now() - tv;
     }
     if (!motivo && fin === null) motivo = 'muchas vueltas';
   } catch (e) { console.error('rapidoIntentar_: ' + (e.stack || e)); motivo = 'error: ' + String(e.message || e).slice(0, 60); fin = null; }

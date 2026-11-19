@@ -7,7 +7,8 @@
    · en una llamada la voz dijo «Listo, le llegó» 26 s antes de llamar a la herramienta.
    Revisa:
    1. el freno al cerrar el turno: «listo / le llegó» sin un envío hecho → «Todavía no salió: …»; un «Listo» de otra cosa
-      que sí se hizo (una tarea) no se toca; un borrador o un envío fallido con «Listo» se corrige;
+      que sí se hizo (una tarea) no se toca; un borrador o un envío fallido con «Listo» se corrige; si el pedido era de solo
+      leer (guardia 19-nov: el contexto de un escalado), contar un envío de antes no se frena;
    2. borrador para el socio → no sale (ni con el sí en el mismo turno) → «sí» en otro mensaje → sale a ESE número con ese
       texto, una vez; un «sí» que nombra a otra persona no usa el borrador;
    3. dos enviar_a_huesped a 27 min con saltos de línea distintos → el segundo no sale; con «otra vez» sí; 25 h después sí;
@@ -82,6 +83,20 @@ const nuevo = () => ({ hechas: [], llamadas: [] });
   const c6 = { hechas: [], llamadas: [{ tool: 'buscar_contacto', ok: true }] };
   ok(X.agCerrarTurno_(ADM, 'Sí, le llegó: Meta dice ENTREGADO.', c6).respuesta === 'Sí, le llegó: Meta dice ENTREGADO.', '«¿le llegó?» contestado con el estado real (buscar_contacto) no se toca');
   ok(X.agCerrarTurno_(ADM, 'Mañana llegan tres huéspedes.', nuevo()).respuesta === 'Mañana llegan tres huéspedes.', 'una respuesta sin promesa de envío queda igual');
+  /* Guardia 19-nov: un pedido de solo leer cuya respuesta cuenta un envío de antes no se cambia por «Todavía no salió». */
+  const leerR = 'El reporte se escaló a las 17:05: ya se le envió a Gabriel y falta el código de la quincena en Epi.';
+  turno(X, 'Dame contexto del problema escalado de Baldone 1103');
+  ok(X.agCerrarTurno_(ADM, leerR, nuevo()).respuesta === leerR, 'pedido de leer (contexto de un escalado) que cuenta un envío pasado → la respuesta queda igual');
+  turno(X, '¿Qué pasó con el reporte de Gabriel? ¿Qué mandó?');
+  ok(X.agCerrarTurno_(ADM, leerR, nuevo()).respuesta === leerR, '«¿qué mandó Gabriel?» es leer: no se frena');
+  turno(X, 'Mándale los códigos pendientes a las llegadas de hoy');
+  ok(/^Todavía no salió: .*ningún envío/.test(X.agCerrarTurno_(ADM, 'Listo, ya les mandé los códigos.', nuevo()).respuesta), 'pedido de mandar y «ya les mandé los códigos» sin envío → se frena');
+  turno(X, 'sí');
+  ok(/^Todavía no salió/.test(X.agCerrarTurno_(ADM, 'Listo, le llegó a Ana.', nuevo()).respuesta), 'un «sí» seguido de «le llegó» sin envío → se frena');
+  turno(X, 'Dame contexto del escalado');
+  const c7 = { hechas: [{ tipo: 'mensaje', nombre: 'Ana', resumen: 'WhatsApp a Ana', error: 'Meta no lo entregó' }], llamadas: [] };
+  ok(/^Todavía no salió: el envío a Ana falló/.test(X.agCerrarTurno_(ADM, 'Listo.', c7).respuesta), 'un envío fallido se corrige aunque el pedido fuera de leer');
+  turno(X, '');
 }
 
 /* ── 2 · Borrador para el socio → «sí» → sale a ese número ── */

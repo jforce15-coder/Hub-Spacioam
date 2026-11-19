@@ -15,6 +15,12 @@
 
 var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120;
 var VIVO_ESTADOS_ = ['conectando', 'hablando', 'escuchando', 'pausa', 'fin'];
+/* Una voz a la vez (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono, usar por
+   default el agente del teléfono»). El iPhone manda: con la app abierta (o escuchando en el Modo calle o la conferencia)
+   avisa cada ~60 s con vivoTelefono; vale VIVO_TEL_S_. Los demás (el iPad, la computadora) lo leen en vivoLeer
+   (`telefono`): mientras el iPhone está activo no abren una llamada por voz, mientras está en una llamada tampoco a mano,
+   y si el iPhone empieza una mientras ellos tienen otra, cuelgan la suya (alma/inicio.html, js/alma-voz.js). */
+var VIVO_TEL_S_ = 150, VIVO_TEL_VIVA_S_ = 45;
 
 function vivoClave_(email) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16); }
 function vivoLeerCache_(k) { try { return JSON.parse(CacheService.getScriptCache().get(k) || 'null'); } catch (e) { return null; } }
@@ -42,6 +48,7 @@ function vivoPublicarApi_(ses, b) {
     c.put('vivo_sub_' + h, JSON.stringify(subs), VIVO_SEG_);
   }
   if (e.estado === 'fin') c.remove('vivo_tv_' + h);
+  if (e.dev === 'iPhone') c.put('vivo_tel_' + h, JSON.stringify({ ts: ahora }), VIVO_TEL_S_);   // en una llamada, el iPhone está activo
   return { ok: true, mirando: !!vivoMira_(adm.email) };
 }
 
@@ -78,19 +85,34 @@ function vivoMiraLlamada_(convId, tipo) {
   return TV_TIPOS_AVISO_.indexOf(tipo) < 0 || (Array.isArray(m.tipos) && m.tipos.indexOf(tipo) >= 0);
 }
 
-/* vivoLeer { desde (último n de subtítulo que ya tiene), tipos }: lo que pasa ahora en la llamada de este administrador. */
+/* vivoTelefono { activo }: el iPhone avisa que está activo (la app abierta o escuchando) o que dejó de estarlo. */
+function vivoTelefonoApi_(ses, b) {
+  b = b || {};
+  var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'session' };
+  if (String(b.dispositivo || '') !== 'iPhone') return { ok: true, telefono: false };   // solo el teléfono manda
+  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email);
+  if (b.activo === false) c.remove('vivo_tel_' + h); else c.put('vivo_tel_' + h, JSON.stringify({ ts: Date.now() }), VIVO_TEL_S_);
+  return { ok: true, telefono: b.activo !== false };
+}
+
+/* vivoLeer { desde (último n de subtítulo que ya tiene), tipos, solo_estado }: lo que pasa ahora en la llamada de este
+   administrador y si su iPhone está activo (`telefono`). Con solo_estado (Una voz a la vez, sin Modo compañero) no cuenta
+   como compañero mirando y no trae subtítulos ni tablero: solo si hay llamada, desde dónde y si está viva (`fresca`). */
 function vivoLeerApi_(ses, b) {
   b = b || {};
   var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'session' };
-  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), ahora = Date.now();
+  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), ahora = Date.now(), solo = !!b.solo_estado;
   var tipos = (Array.isArray(b.tipos) ? b.tipos : []).map(String).filter(function (x) { return /^[a-z]{2,20}$/.test(x); }).slice(0, 20);
-  c.put('vivo_mira_' + h, JSON.stringify({ ts: ahora, tipos: tipos }), VIVO_MIRA_SEG_);
-  var v = c.getAll(['vivo_est_' + h, 'vivo_sub_' + h, 'vivo_tv_' + h]), js = function (k) { try { return JSON.parse(v[k] || 'null'); } catch (e) { return null; } };
-  var e = js('vivo_est_' + h), s = js('vivo_sub_' + h), tv = js('vivo_tv_' + h);
+  if (!solo) c.put('vivo_mira_' + h, JSON.stringify({ ts: ahora, tipos: tipos }), VIVO_MIRA_SEG_);
+  var v = c.getAll(['vivo_est_' + h, 'vivo_sub_' + h, 'vivo_tv_' + h, 'vivo_tel_' + h]), js = function (k) { try { return JSON.parse(v[k] || 'null'); } catch (e) { return null; } };
+  var e = js('vivo_est_' + h), s = js('vivo_sub_' + h), tv = js('vivo_tv_' + h), tel = js('vivo_tel_' + h);
+  var telefono = !!(tel && ahora - Number(tel.ts || 0) < VIVO_TEL_S_ * 1000);
   var vivo = !!(e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000);
-  if (!vivo) return { ok: true, en_llamada: false, estado: e && e.estado === 'fin' && ahora - Number(e.ts || 0) < 15000 ? 'fin' : '' };
+  if (!vivo) return { ok: true, en_llamada: false, telefono: telefono, estado: e && e.estado === 'fin' && ahora - Number(e.ts || 0) < 15000 ? 'fin' : '' };
+  var fresca = ahora - Number(e.ts || 0) < VIVO_TEL_VIVA_S_ * 1000;
+  if (solo) return { ok: true, en_llamada: true, telefono: telefono, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', fresca: fresca };
   var desde = Number(b.desde) || 0;
-  return { ok: true, en_llamada: true, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts,
+  return { ok: true, en_llamada: true, telefono: telefono, fresca: fresca, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts,
     subs: s && s.conv === e.conv ? s.l.filter(function (x) { return x.n > desde; }) : [],
     tarjeta: tv && tv.conv === e.conv ? tv.t : null };
 }

@@ -1613,7 +1613,7 @@
 <script src="../js/sa-auth-client.js?v=2026-11-18a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-18-alma-ws"></script>
-<script src="../js/alma-voz.js?v=2026-11-19-bv"></script>
+<script src="../js/alma-voz.js?v=2026-11-19-uv"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
 <script src="../js/alma-gif.js?v=2026-11-19-bv"></script>
@@ -2845,6 +2845,14 @@ window.SAPulso = {
       setTimeout(function () { h.ended(); if (window.AlmaCompanero && AlmaCompanero.ya) AlmaCompanero.ya(); }, 1400);
     }
   }
+  /* Una voz a la vez (Juan, 19-nov-2026): el Modo compañero vio que el iPhone empezó otra llamada mientras esta seguía aquí
+     (en el iPad): el iPhone manda, la de aquí se cuelga. */
+  if (window.addEventListener) window.addEventListener("sa-una-voz", function (ev) {
+    var h = VN.h, d = (ev && ev.detail && ev.detail.otra) || "otro dispositivo";
+    if (!h || !VN.activa) return;
+    VN.h = null; h.status("Tu " + d + " tomó la llamada"); nativa({ accion: "voz", que: "colgar" });
+    setTimeout(function () { h.ended(); if (window.AlmaCompanero && AlmaCompanero.ya) AlmaCompanero.ya(); }, 1400);
+  });
   /* Hablar con Claudio (#550): la voz nativa cuenta con quién se habla («agente», también en cada «estado»); el halo de la
      roca se pone todo naranja con Claudio y vuelve al de Alma al volver o al terminar (alma-voz.js, agenteHalo). */
   function vozAgente(e) {
@@ -4523,6 +4531,14 @@ window.SAPulso = {
   var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "" };
   var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Trabajos de Claudio", socio: "Socio", datos: "Datos", recepcion: "Recepción", proyecto: "Proyecto" };
   var OTRA_MS = 20000;   // lo que vale «hay llamada en el otro» sin volver a preguntar (se pregunta cada 1,5 s durante una)
+  /* Una voz a la vez (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono, usar
+     por default el agente del teléfono», apps-script/vivo.js). El iPhone manda. En otro dispositivo (el iPad: el
+     «escritorio»), aunque el Modo compañero esté apagado, la página pregunta al Hub con poco gasto (solo_estado, cada 10 s
+     con la pantalla a la vista) si el iPhone está activo o en una llamada, y se lo cuenta a la app (UnaLlamada): con el
+     iPhone activo, aquí no se abre una llamada por voz; con el iPhone en una llamada, tampoco a mano. Si el iPhone empieza
+     una mientras aquí hay otra, la de aquí se cuelga sola («Tu iPhone tomó la llamada»). */
+  var ESCRITORIO = !/iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent || ""), CADA_SOLO = 10000, CADA_AQUI = 5000;
+  C.tel = false;
   try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
   function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
   function hub(accion, extra) {
@@ -4620,33 +4636,49 @@ window.SAPulso = {
   function ciclo() {
     clearTimeout(C.t); C.t = 0;
     if (C.prueba) return;
-    if (!C.on || !ses()) { cerrar(false); return; }
+    if ((!C.on && !ESCRITORIO) || !ses()) { cerrar(false); return; }
     if (document.visibilityState === "hidden") return;   // vuelve con visibilitychange
-    if (llamadaAqui()) { cerrar(false); C.t = setTimeout(ciclo, CADA_NADA); return; }
+    if (llamadaAqui()) { cerrar(false); if (ESCRITORIO) vigilar(); else C.t = setTimeout(ciclo, CADA_NADA); return; }
     if (C.pidiendo) return;
     C.pidiendo = true;
-    hub("vivoLeer", { desde: C.desde, tipos: TIPOS }).then(function (r) {
+    var mira = C.on;
+    hub("vivoLeer", mira ? { desde: C.desde, tipos: TIPOS } : { solo_estado: 1 }).then(function (r) {
       C.pidiendo = false;
       var vivo = !!(r && r.ok && r.en_llamada);
-      if (!C.on) return;
-      if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.otraTs = Date.now(); app(); }
-      if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin"));
-      C.t = setTimeout(ciclo, vivo ? CADA_VIVO : CADA_NADA);
+      if (!C.on && !ESCRITORIO) return;
+      if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.tel = !!r.telefono; C.otraTs = Date.now(); app(); }
+      if (C.on && mira) { if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin")); }
+      else cerrar(false);
+      C.t = setTimeout(ciclo, C.on ? (vivo ? CADA_VIVO : CADA_NADA) : CADA_SOLO);
+    });
+  }
+  /* Con una llamada aquí (en el escritorio): si el iPhone empezó otra, el iPhone manda y la de aquí se cuelga. */
+  function vigilar() {
+    if (C.pidiendo) return;
+    C.pidiendo = true;
+    hub("vivoLeer", { solo_estado: 1 }).then(function (r) {
+      C.pidiendo = false;
+      if (r && r.ok) { C.tel = !!r.telefono; C.otra = ""; C.otraTs = Date.now(); app(); }
+      if (r && r.ok && r.en_llamada && r.dispositivo === "iPhone" && r.fresca && llamadaAqui()) {
+        try { window.dispatchEvent(new CustomEvent("sa-una-voz", { detail: { otra: "iPhone" } })); } catch (e) {}
+      }
+      C.t = setTimeout(ciclo, CADA_AQUI);
     });
   }
   /* El botón de arriba (#b-comp, junto a Pendientes y Notificaciones) y el interruptor de Ajustes son el mismo: van juntos */
   function reflejar() { var i = $("i-comp"), b = $("b-comp"); if (i) i.checked = C.on; if (b) b.setAttribute("aria-pressed", C.on ? "true" : "false"); }
-  function poner(on) { C.on = !!on; if (!C.on) C.otra = ""; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); app(); ciclo(); }
-  /* Una sola llamada: la app (Companero.swift, UnaLlamada) sabe si este dispositivo es el compañero y si el otro está en una
-     llamada; así «Alma» dicho en voz alta, el Modo calle, la conferencia o un aviso no abren otra llamada aquí. Una app de
-     antes no conoce «companero» y no hace nada. Solo se avisa cuando cambia (y cada 10 s mientras sigue la llamada). */
+  function poner(on) { C.on = !!on; if (!C.on && !ESCRITORIO) C.otra = ""; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); app(); ciclo(); }
+  /* Una sola llamada: la app (Companero.swift, UnaLlamada) sabe si este dispositivo es el compañero, si el otro está en una
+     llamada y si el iPhone está activo (tel); así «Alma» dicho en voz alta, el Modo calle, la conferencia o un aviso no abren
+     otra llamada aquí. Una app de antes no conoce «companero» (ni «tel») y no hace nada. Solo se avisa cuando cambia (y cada
+     10 s mientras sigue la llamada o el iPhone está activo). */
   function app() {
-    var k = (C.on ? "1" : "0") + "|" + C.otra + "|" + (C.otra ? Math.floor(Date.now() / 10000) : 0);
+    var k = (C.on ? "1" : "0") + "|" + C.otra + "|" + (C.tel ? "t" : "") + "|" + (C.otra || C.tel ? Math.floor(Date.now() / 10000) : 0);
     if (k === C.avisado) return; C.avisado = k;
-    try { webkit.messageHandlers.alma.postMessage({ accion: "companero", on: C.on, otra: C.otra }); } catch (e) {}
+    try { webkit.messageHandlers.alma.postMessage({ accion: "companero", on: C.on, otra: C.otra, tel: C.tel }); } catch (e) {}
   }
   /* ¿La llamada está en el otro dispositivo? → su nombre («iPhone»), o "" si este puede llamar. */
-  function otra() { return C.on && C.otra && Date.now() - C.otraTs < OTRA_MS && !llamadaAqui() ? C.otra : ""; }
+  function otra() { return (C.on || ESCRITORIO) && C.otra && Date.now() - C.otraTs < OTRA_MS && !llamadaAqui() ? C.otra : ""; }
   var i = $("i-comp"); if (i) i.onchange = function () { poner(this.checked); };
   var bc = $("b-comp"); if (bc) bc.onclick = function () { poner(!C.on); };
   reflejar(); app();

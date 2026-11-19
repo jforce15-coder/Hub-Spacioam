@@ -1,6 +1,6 @@
 /* Prueba de la Guía de camino (apps-script/guia.js, pedido pc1794926294829) sin internet ni Google: el texto que se dice al
    oído, el medio que se recuerda (por lugar y el último), la primera vez pregunta (necesita_modo) y el Modo calle reconoce
-   «¿cómo llego a…?». node .github/guia-camino.js [carpeta apps-script] */
+   «¿cómo llego a…?». También la ruta del chat (calcular_distancia sin propiedad, #838): enlaces desde su ubicación actual. node .github/guia-camino.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
 let fallo = 0; const ok = (c, m) => { if (c) console.log('✓ ' + m); else { console.log('::error::' + m); fallo = 1; } };
@@ -34,6 +34,16 @@ ok(ctx.guiaCamino_('', { destino: 'x', lat: 1, lng: 1 }).error === 'session', 's
 ok(ctx.guiaPideCamino_('¿Cómo llego al Parque Central?') && ctx.guiaPideCamino_('llévame a la casa de Flor') && !ctx.guiaPideCamino_('anota que llego tarde'), 'el Modo calle reconoce el pedido de camino');
 const h = ctx.vozGuiaHerramientas_()[0];
 ok(h.type === 'client' && h.name === 'guiar_camino' && /ESTÁS EN LA APP DE ALMA/.test(h.description), 'guiar_camino es herramienta de la app');
+/* Cómo llegar en el chat (#838): siempre desde su ubicación actual, salvo que nombre otro punto. */
+const c1 = ctx.guiaComoLlegar_({ email: 'juan@x' }, { destino: 'Parque Central' });
+ok(c1.ok && c1.desde === 'tu ubicación actual' && !/origin=/.test(c1.google) && !/saddr=/.test(c1.apple) && /navigate=yes/.test(c1.waze), 'la ruta sale desde su ubicación actual (sin origen)');
+ok(c1.modo === 'caminando' && /travelmode=walking/.test(c1.google) && c1.recordado === 'lugar', 'la ruta usa el medio recordado de ese lugar');
+ok(['mi ubicación', 'desde mi ubicación actual', 'aquí', ''].every(o => !/origin=/.test(ctx.guiaComoLlegar_(null, { destino: 'x', origen: o }).google)), '«mi ubicación», «aquí» o vacío = sin origen');
+const c2 = ctx.guiaComoLlegar_(null, { destino: 'Oakland Mall', origen: 'Aeropuerto La Aurora', modo: 'en carro' });
+ok(/origin=Aeropuerto%20La%20Aurora/.test(c2.google) && /saddr=/.test(c2.apple) && !c2.waze && /travelmode=driving/.test(c2.google), 'otro punto solo si Juan lo nombra');
+ok(ctx.guiaComoLlegar_(null, {}).ok === false, 'sin destino no arma enlaces');
+const herr = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8');
+ok(/T\('calcular_distancia', [^\n]*sin propiedad, mapas desde su ubicación actual \(no preguntes desde dónde\)/.test(herr) && /if \(!String\(inp\.propiedad \|\| ''\)\.trim\(\)\) return guiaComoLlegar_\(adm,/.test(herr), 'en el chat, calcular_distancia sin propiedad sale desde su ubicación actual');
 
 /* Puntos de referencia (pedido pc1795047765857, #839): aviso antes del cruce, el cruce con su referencia y «vas bien». */
 const enc = pts => { let lat = 0, lng = 0, o = ''; const e = v => { v = v < 0 ? ~(v << 1) : v << 1; let s = ''; while (v >= 0x20) { s += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; } return s + String.fromCharCode(v + 63); };

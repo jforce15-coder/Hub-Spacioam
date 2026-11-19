@@ -217,7 +217,7 @@ function agHerramientas_() {
     T('ficha_socio', 'Ficha del socio en Mi: notas y detalles que importan (con fecha) de lo que él contó. Léela antes de escribirle o llamarle; si trae retomar, úsalo una vez. Nunca salud, religión, política ni banco.',
       { socio: s('«socio de <apto>», nombre o número'), accion: { type: 'string', enum: ['ver', 'anotar', 'corregir', 'borrar'] }, texto: s('anotar/corregir'), fecha: s('AAAA-MM-DD del evento'), id: s('de ver') }, ['socio']),
     T('anillo', 'Lo último que la app de Alma leyó del anillo QRing de Juan (batería, pasos, ritmo, oxígeno) y de cuándo es. No es en vivo: di siempre la hora. Solo administrador principal.', {}),
-    T('calcular_distancia', 'Tiempo en carro y caminando desde una propiedad hasta un lugar (USAC, aeropuerto, un centro comercial…). Responde en minutos; caminando solo cuenta si son 15 min o menos.', { propiedad: s('Nombre o parte del nombre de la propiedad'), destino: s('Lugar, con ciudad si ayuda') }, ['propiedad', 'destino']),
+    T('calcular_distancia', 'Minutos en carro y caminando (si son 15 o menos) de una propiedad a un lugar. Ruta de Juan: sin propiedad, mapas desde su ubicación actual (no preguntes desde dónde).', { propiedad: s('Nombre de la propiedad; vacío = donde está Juan'), destino: s('Lugar, con ciudad si ayuda') }, ['destino']),
     T('mensaje_personal', 'Temas PERSONALES del administrador (no de Spacio AM): escribirle a alguien de su parte por WhatsApp como Alma, sin mencionar Spacio AM. Sin mensajes suyos en 24 h, primero le llega «Hola, soy Alma, la asistente de Juan. ¿Tienes un minuto?» y, al responder, este. Lo que conteste le llega al administrador.',
       { persona: AG_DEST_, numero: AG_NUM_, texto: s('Mensaje completo, natural, en primera persona como su asistente (ej. «Juan me pidió avisarte que…»)'), objetivo: s('Qué reunir o resolver («su itinerario: fechas, vuelos, hospedaje»): ALMA conversa hasta tenerlo y manda un resumen al administrador; sin objetivo, solo reenvía lo que conteste.'), proyecto: s('Proyecto personal («Boda Pamela»): todo se consolida en un solo resumen. Si el administrador lo nombra, úsalo siempre.'), contexto_de: { type: 'array', items: { type: 'string' }, description: 'Solo si no hay proyecto: nombres de personas con las que ya hablaste del mismo tema' } }, ['texto']),
     T('proyectos_personales', 'Lista los proyectos personales abiertos y quién participa en cada uno.', {}),
@@ -793,6 +793,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'olvidar_memoria': { var r0 = memoriaOlvidar_(inp.id, (adm && adm.nombre) || ''); if (r0.ok) ctx.hechas.push({ tipo: 'memoria', resumen: 'Olvidado · ' + String(r0.olvidado).slice(0, 60) }); return r0; }
     case 'calcular_distancia': {
+      if (!String(inp.propiedad || '').trim()) return guiaComoLlegar_(adm, { destino: inp.destino, modo: inp.modo });   // Juan: siempre desde su ubicación actual (guia.js, #838)
       var flD = leerTabla_(CFG.TAB_PROPIEDADES).map(function (r) { return r.property_name; }).filter(Boolean);
       var pD = flD.filter(function (x) { return n(x) === n(inp.propiedad); })[0] || bqMejor_(inp.propiedad, flD) || inp.propiedad;
       var rD = distanciaCalcular_(pD, inp.destino); return rD.error ? rD : Object.assign({ propiedad: pD, frase: distanciaFrase_(rD) }, rD);

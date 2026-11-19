@@ -5,31 +5,25 @@
      hueco en el cruce (la columna del centro, de arriba hasta debajo de «Chat» y «Llamada»), así nada la tapa y la roca
      no tapa nada. Los rieles laterales (#788) quedan libres: el bento empieza a 112 px de cada borde.
    · Los subtítulos de Alma van en ese hueco, con su fondo oscuro (alma/inicio.html, html.bv-on): nunca encima de una foto.
-   · Regla fija: siempre 1 imagen y 1 GIF, nunca un cuadro vacío; lo demás es información. Lo que falta no se pinta y los
+   · Regla fija: siempre 1 imagen, nunca un cuadro vacío; lo demás es información (el GIF va en su ventana). Lo que falta no se pinta y los
      demás crecen.
-   · El GIF del tema: 7 por tema (catálogo del Hub, acción gifTemas, apps-script/gif.js), pedido una vez y guardado 12 h en
-     el dispositivo; rota sin repetir hasta agotar los 7. La broma (mostrar_gif, js/alma-gif.js) lo tapa unos segundos.
+   · La ventana del GIF (Juan, 19-nov-2026: «GIFs de memes, de esos que son mini fragmentos de video, no emojis… un tono
+     gris oscuro, translúcido, frosted, y SIEMPRE encima de la roca, tanto en el iPad como en el teléfono»): un vidrio gris
+     oscuro arriba de la roca, en el teléfono, el iPad y la computadora (sigue a la roca: al centro o en la esquina del
+     tablero). Pasa un GIF y después otro (cada 8 s, con fundido) del tema de lo que se habla: 7 por tema (catálogo del Hub,
+     acción gifTemas, apps-script/gif.js), pedido una vez y guardado 12 h; sin repetir hasta agotar los 7. Nunca un emoji:
+     sin catálogo todavía, la ventana no sale. La broma (mostrar_gif, js/alma-gif.js) la tapa unos segundos.
    · Sin otra llamada a la IA ni a Hospitable: el tema son los cuadros que ya manda la tarjeta de la llamada
      (apps-script/tarjeta.js) y el reposo sale de lo que el inicio ya trae (Pendientes, Notificaciones y las áreas).
    · Solo administradores (sin datos de Pendientes o de las áreas no se arma) y solo en pantalla ancha: el teléfono no cambia.
    · Se esconde con las esferas y sus niveles (#831), las hojas, el chat, Pendientes y Notificaciones.
    API: AlmaBento.iniciar({ hacer, abrir }) · ancho() · tema(t, { cuadro, claudio }) · reposo() · datos() · areas(r)
-        · gifCuadro() (para la broma) · el() · enTema() · geo() (para las pruebas) */
+        · gifTema(t) (el tema del GIF en el teléfono) · gifCuadro() (para la broma) · el() · enTema() · geo() (pruebas) */
 (function (w, d) {
   "use strict";
   if (w.AlmaBento) return;
   var B = { el: null, t: null, id: "", cfg: {}, areas: null, gifs: null, gifsP: null, tema: "", ultimo: {}, pintado: "", timer: 0 };
   var QUIETO = false; try { QUIETO = w.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-  var NOTO = "https://fonts.gstatic.com/s/e/notoemoji/latest/";
-  /* Mientras llega el catálogo (o si no llega): 7 emojis animados por tema, los mismos que el Hub usa sin GIPHY. */
-  var EMOJIS = {
-    huesped: ["1f6ec", "2708_fe0f", "1f44b", "1f917", "1f60a", "1f970", "1f31f"], salida: ["1f44b", "1f697", "1f6eb", "1f64c", "2728", "1f60c", "1f4ab"],
-    limpieza: ["1f9f9", "2728", "1f4aa", "1f31f", "1f44d", "1f64c", "1f4af"], mantenimiento: ["1f6e0_fe0f", "1f4a7", "1f914", "1f440", "1f4aa", "1f6a8", "1f4a1"],
-    cobro: ["1f4b8", "1f911", "1f4c8", "1f44d", "1f389", "1f929", "1f4af"], socio: ["1f91d", "1f4c8", "1f44d", "1f60e", "1f4aa", "2728", "1f64c"],
-    buena_noticia: ["1f389", "1f973", "1f929", "1f64c", "1f44f", "1f3c6", "1f308"], reserva_nueva: ["1f389", "1f680", "1f929", "1f4c8", "1f44f", "2728", "1f973"],
-    apartamento: ["1f3e0", "2728", "1f60a", "1f31f", "1f4f8", "1f440", "1f44d"], datos: ["1f4c8", "1f9e0", "1f914", "1f440", "1f4aa", "1f680", "1f4a1"],
-    claudio: ["1f916", "1f9e0", "1f680", "1f4bb", "1f914", "2728", "1f44d"], reposo: ["2615", "2728", "1f31b", "1f60a", "1f44b", "1f31f", "1f4ab"]
-  };
   var NOMBRE = { reserva: "Huésped", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Claudio",
     socio: "Socio", recepcion: "Recepción", proyecto: "Proyecto", datos: "Datos", limpieza: "Limpieza" };
   function el(tag, cls, txt) { var x = d.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; }
@@ -55,8 +49,9 @@
     if (!geoNormal()) return null;
     var s = seguro(), cw = chatW(W), gap = 16, X0 = 112 + s.l, X1 = W - cw - 24, Y0 = Math.max(20, s.t + 14), Y1 = H - Math.max(20, s.b + 14);
     if (X1 - X0 < 560) return null;
-    var hw = (X1 - X0 - gap) / 2;
-    return { W: W, H: H, chat: cw, cx: X0 + (X1 - X0) / 2, cy: H / 2, hueco: { x: X0, y: Y0, w: 0, h: 0 }, L: { x: X0, y: Y0, w: hw, h: Y1 - Y0 }, R: { x: X0 + hw + gap, y: Y0, w: hw, h: Y1 - Y0 }, B: null, modoChat: true };
+    var hw = (X1 - X0 - gap) / 2, gh = Math.round(Math.min(220, hw / 1.5));   // arriba de la columna izquierda, la ventana del GIF
+    return { W: W, H: H, chat: cw, cx: X0 + (X1 - X0) / 2, cy: H / 2, hueco: { x: X0, y: Y0, w: 0, h: 0 }, L: { x: X0, y: Y0 + gh + gap, w: hw, h: Y1 - Y0 - gh - gap }, R: { x: X0 + hw + gap, y: Y0, w: hw, h: Y1 - Y0 }, B: null, modoChat: true,
+      gifv: { x: Math.round(X0), y: Math.round(Y0), w: Math.round(hw), h: gh } };
   }
   function geo() { return chatAbierto() ? geoChat() : geoNormal(); }
   function geoNormal() {
@@ -85,21 +80,29 @@
   /* ── El GIF del tema ── */
   function gifsCargar() {
     if (B.gifs || B.gifsP) return;
-    var c = leer("alma_bento_gifs"); if (c && c.t && Date.now() - c.t < 12 * 3600e3 && c.temas) { B.gifs = c.temas; return; }
+    /* lo guardado sirve 12 h, salvo que traiga emojis (el catálogo de antes): entonces se pide otra vez */
+    var c = leer("alma_bento_gifs"); if (c && c.t && Date.now() - c.t < 12 * 3600e3 && c.temas && conGifs(c.temas)) { B.gifs = c.temas; return; }
     var dst = w.ALMA && w.ALMA.destino ? w.ALMA.destino() : null, ses = w.SAAuth && w.SAAuth.session ? w.SAAuth.session() : null;
     if (!dst || !dst.url || !ses) return;
     B.gifsP = fetch(dst.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
       body: JSON.stringify({ hub: 1, action: "gifTemas", token: dst.token, session: ses }) })
       .then(function (r) { return r.json(); }).then(function (j) {
         B.gifsP = null; if (!j || !j.ok || !j.temas) return;
-        B.gifs = j.temas; guardar("alma_bento_gifs", { t: Date.now(), temas: j.temas });
+        B.gifs = j.temas; guardar("alma_bento_gifs", { t: Date.now(), temas: j.temas }); ventana();
       }, function () { B.gifsP = null; });
   }
+  /* ¿El catálogo trae GIFs de verdad? (de GIPHY; nunca emojis) */
+  function gifsDe(c) { return (c && c.fuente === "giphy" && Array.isArray(c.gifs) ? c.gifs : []).filter(function (x) { return x && /^https:\/\/(media\d?|i)\.giphy\.com\//.test(String(x.url || "")); }); }
+  function conGifs(temas) { return Object.keys(temas || {}).some(function (k) { return gifsDe(temas[k]).length; }); }
   function seguro_url(u) { return /^https:\/\/[^\s"'<>]+$/.test(String(u || "")) ? String(u) : ""; }
-  /* El siguiente GIF del tema: un mazo barajado por tema en el dispositivo; no se repite hasta agotar los 7. */
+  /* El siguiente GIF del tema: un mazo barajado por tema en el dispositivo; no se repite hasta agotar los 7. Un tema sin
+     GIFs usa los del reposo (o los de cualquier tema). null si todavía no hay catálogo: nunca un emoji. */
   function gifDel(tema) {
-    var c = B.gifs && B.gifs[tema], lista = c && c.gifs && c.gifs.length ? c.gifs : (EMOJIS[tema] || EMOJIS.reposo).map(function (k) { return { url: NOTO + k + "/512.webp", alt: tema }; });
-    var fuente = c && c.fuente === "giphy" ? "giphy" : "emoji", firma = lista.map(function (x) { return x.url; }).join("|").length + ":" + lista.length;
+    var T = B.gifs || {}, lista = gifsDe(T[tema]);
+    if (!lista.length) { tema = "reposo"; lista = gifsDe(T.reposo); }
+    if (!lista.length) Object.keys(T).some(function (k) { lista = gifsDe(T[k]); tema = k; return lista.length; });
+    if (!lista.length) return null;
+    var firma = lista.map(function (x) { return x.url; }).join("|").length + ":" + lista.length;
     var m = leer("alma_bento_mazo_" + tema) || {};
     if (m.f !== firma || !Array.isArray(m.q) || !m.q.length) {
       var q = lista.map(function (x, i) { return i; });
@@ -109,7 +112,7 @@
     }
     var k = m.q.shift(); m.u = k; guardar("alma_bento_mazo_" + tema, m);
     var g = lista[k] || lista[0];
-    return { url: seguro_url(g.url), alt: g.alt || tema, fuente: fuente, credito: fuente === "giphy" ? "GIPHY" : "Noto Emoji" };
+    return { url: seguro_url(g.url), alt: g.alt || tema, fuente: "giphy", credito: "GIPHY" };
   }
   /* El tema del GIF según lo que se habla (sin IA: el tipo de la tarjeta y unas palabras de lo que ya trae). */
   function temaGif(t) {
@@ -128,14 +131,6 @@
     if (tipo === "apartamento" || tipo === "edificio") return "apartamento";
     return "huesped";
   }
-  function piezaGif(tema) {
-    var g = gifDel(tema), c = el("div", "tvb-t bv-gif" + (g.fuente === "emoji" ? " bv-emoji" : ""));
-    c.setAttribute("role", "img"); c.setAttribute("aria-label", "GIF: " + (g.alt || tema));
-    if (g.url) { var i = el("img"); i.alt = ""; i.decoding = "async"; i.referrerPolicy = "no-referrer"; i.src = g.url; i.onerror = function () { i.remove(); c.classList.add("bv-emoji"); c.appendChild(el("span", "bv-gif-alt", "✨")); }; c.appendChild(i); }
-    c.appendChild(el("small", "bv-cred", g.credito));
-    return c;
-  }
-
   /* ── La imagen: la foto del tema (con la del huésped encima, como el tablero) o la galería; sin foto, la de la marca. ── */
   function piezaImagenMarca(t, sub) {
     var c = el("div", "tvb-t tvb-foto bv-marca"), i = el("img"); i.alt = ""; i.decoding = "async"; i.src = "../assets/hub-hoy-v2.jpg"; c.appendChild(i);
@@ -176,7 +171,7 @@
       (t.datos || []).length && info.push({ el: (function () { var c = el("div", "tvb-t"); c.appendChild(el("small", "tvb-k", "Datos")); var u = el("ul", "tvb-l"); t.datos.slice(0, 4).forEach(function (x) { var li = el("li"); li.appendChild(el("span", "tvb-tx", x)); u.appendChild(li); }); c.appendChild(u); return c; })(), peso: 2, p: 6 });
     }
     info.sort(function (a, b) { return a.p - b.p; });
-    return { img: img, gif: piezaGif(temaGif(t)), info: info };
+    return { img: img, info: info };
   }
 
   /* ── El reposo: el bento del Hub con lo que el inicio ya trae ── */
@@ -218,8 +213,83 @@
     if (!info.length) return null;   // sin datos de administrador: no hay bento (el inicio de siempre)
     var h = new Date();
     return { img: piezaImagenMarca(DIAS[h.getDay()].charAt(0).toUpperCase() + DIAS[h.getDay()].slice(1) + " " + h.getDate() + " de " + MESES[h.getMonth()], "Spacio AM · hoy"),
-      gif: piezaGif("reposo"), info: info };
+      info: info };
   }
+
+  /* ── La ventana del GIF: un vidrio gris oscuro arriba de la roca, en todas las pantallas. Sigue a la roca (al centro o en
+     la esquina del tablero del teléfono) sin tapar su halo, el saludo, el tema del bento ni los botones de arriba. Si no
+     cabe con el saludo, el saludo se va (la ventana toma su lugar); si ni así cabe (la roca arriba), no sale. ── */
+  var V = { el: null, tema: "reposo", url: "", pide: false, fallos: 0 }, CADA = 8000;
+  function gifTema(t) { var n = t ? temaGif(t) : "reposo"; if (n === V.tema) return; V.tema = n; ventana(true); }
+  function rocaRect() {
+    var r = d.querySelector("#sa-nav-root .san-ov .san-rock"); if (!r) return null;
+    var b = r.getBoundingClientRect(); return b.width > 20 && b.height > 20 ? b : null;
+  }
+  function visto(e) {
+    if (!e || !e.getBoundingClientRect) return null; var b = e.getBoundingClientRect(); if (!b.width || !b.height) return null;
+    var cs = getComputedStyle(e); return +cs.opacity > .05 && cs.visibility !== "hidden" && cs.display !== "none" ? b : null;
+  }
+  /* El saludo «Hola, Juan»: su lugar aunque esté escondido por la ventana (html.gv-sin-hola); null si otra cosa lo esconde. */
+  function holaRect() {
+    var h = d.getElementById("hola"), R = d.documentElement, bo = d.body;
+    if (!h || !h.classList.contains("on") || !h.textContent || R.classList.contains("bv-tema-on") || R.classList.contains("tvb-on") ||
+      bo.classList.contains("orbita-on") || bo.classList.contains("vv-arriba")) return null;
+    var b = h.getBoundingClientRect(); return b.width && b.height ? b : null;
+  }
+  function lugar() {
+    /* con el chat escrito abierto la roca está en su botón de enviar: en pantalla ancha la ventana va arriba de la columna
+       de la imagen (geoChat); en el teléfono el chat ocupa la pantalla y la ventana se esconde */
+    if (chatAbierto()) { var gc = geoChat(); return gc && gc.gifv ? { x: gc.gifv.x, y: gc.gifv.y, w: gc.gifv.w, h: gc.gifv.h, sinHola: false } : null; }
+    var rb = rocaRect(); if (!rb) return null;
+    var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight, s = seguro();
+    var chico = rb.width < 140, ancha = W >= 700 && H >= 500, cx = rb.left + rb.width / 2;
+    var abajo = rb.top - Math.max(8, rb.width * .07) - (chico ? 8 : 12);   // el halo de la roca queda libre
+    var hmax = chico ? 96 : ancha ? 200 : 132, wmax = ancha ? 340 : Math.min(W - 32, 260);
+    var tope = function (conHola) {
+      var t = Math.max(16, s.t + 12), obs = [].slice.call(d.querySelectorAll(".bv-capa.on:not(.sale) .bv-tema:not([hidden])"));
+      if (conHola) { var hb = holaRect(); if (hb && hb.bottom <= abajo) t = Math.max(t, hb.bottom + 10); }
+      if (!ancha) [].push.apply(obs, d.querySelectorAll("#sa-nav-root .san-pendb, #b-ajustes, #b-arch, #b-nav"));
+      obs.forEach(function (e) { var b = visto(e); if (b && b.bottom <= abajo && b.right > cx - wmax / 2 && b.left < cx + wmax / 2) t = Math.max(t, b.bottom + 10); });
+      return t;
+    };
+    var top = tope(true), sinHola = false;
+    if (abajo - top < 84 && !chico) { var t2 = tope(false); if (t2 < top) { top = t2; sinHola = true; } }
+    var h = Math.min(hmax, abajo - top); if (h < 64) return null;
+    var wv = Math.min(wmax, Math.round(h * 1.5)), x = Math.max(16 + s.l, Math.min(W - 16 - s.r - wv, cx - wv / 2));
+    return { x: Math.round(x), y: Math.round(abajo - h), w: wv, h: Math.round(h), sinHola: sinHola };
+  }
+  function siguiente() {
+    if (!V.el || V.pide) return;
+    var g = gifDel(V.tema); if (!g || !g.url) return;
+    var imgs = V.el.querySelectorAll(".gv-marco > img"), act = V.el.querySelector(".gv-marco > img.on"), otra = act === imgs[0] ? imgs[1] : imgs[0];
+    var pre = new Image(); V.pide = true; pre.referrerPolicy = "no-referrer"; pre.decoding = "async";
+    pre.onload = function () {
+      V.pide = false; V.fallos = 0; V.url = g.url; otra.src = g.url; V.el.setAttribute("aria-label", "GIF: " + g.alt);
+      otra.classList.add("on"); if (act && act !== otra) act.classList.remove("on"); V.el.classList.add("listo");
+    };
+    pre.onerror = function () { V.pide = false; if (++V.fallos < 4) siguiente(); };
+    pre.src = g.url;
+  }
+  function ventana(nuevo) {
+    gifsCargar();
+    var r = capaRaiz(); if (!r) return;
+    if (!V.el) {
+      V.el = el("div", "gv"); V.el.setAttribute("role", "img"); V.el.setAttribute("aria-label", "GIF");
+      var m = el("div", "gv-marco"); [0, 1].forEach(function () { var i = el("img"); i.alt = ""; i.decoding = "async"; i.referrerPolicy = "no-referrer"; m.appendChild(i); });
+      V.el.appendChild(m); V.el.appendChild(el("small", "gv-cred", "GIPHY"));
+    }
+    if (V.el.parentNode !== r) r.appendChild(V.el);
+    var p = B.gifs ? lugar() : null, raiz = d.documentElement;
+    if (!p) { V.el.classList.remove("on"); raiz.classList.remove("gv-sin-hola"); return; }
+    var st = V.el.style; st.left = p.x + "px"; st.top = p.y + "px"; st.width = p.w + "px"; st.height = p.h + "px";
+    raiz.classList.toggle("gv-sin-hola", p.sinHola);
+    if (!V.url || nuevo) siguiente();
+    V.el.classList.add("on");
+  }
+  /* la roca se mueve (al centro, a la esquina, crece con la voz) y la página cambia: la ventana la sigue */
+  setInterval(function () { if (d.visibilityState !== "hidden") ventana(); }, 500);
+  /* uno y después otro, como en el reposo: cada 8 s, salvo con la broma encima */
+  setInterval(function () { if (V.el && V.el.classList.contains("on") && d.visibilityState !== "hidden" && !V.el.querySelector(".gifb")) siguiente(); }, CADA);
 
   /* ── Acomodar: cada región es una columna de tarjetas (la altura según su peso); el hueco del centro queda libre. ── */
   function region(r, items, cls) {
@@ -228,22 +298,20 @@
     return c;
   }
   function repartir(pz, g) {
-    var info = pz.info.slice(), I = { el: pz.img, peso: 5 }, G = { el: pz.gif, peso: 2.4 }, L = [], R = [], Bt = [];
-    if (g.modoChat) {   // con el chat: imagen (y GIF, si va en el bento) a la izquierda; la información a la derecha
-      L = [I].concat(pz.gif ? [{ el: pz.gif, peso: 2.4 }] : []); R = info.splice(0, 3);
-      if (!R.length && pz.gif) { R = [L.pop()]; }
+    var info = pz.info.slice(), I = { el: pz.img, peso: 5 }, L = [], R = [], Bt = [];
+    if (g.modoChat) {   // con el chat: la imagen a la izquierda (debajo de la ventana del GIF); la información a la derecha
+      L = [I]; R = info.splice(0, 3);
       return { L: L, R: R, B: [] };
     }
     if (!g.vertical) {
       R = info.splice(0, 3);
-      L = [I].concat(info.splice(0, g.B ? 2 : 1));
-      if (g.B) Bt = [G]; else if (R.length) L.push(G); else R = [G];
-      if (!R.length) R = [G], Bt = [];
+      L = [I].concat(info.splice(0, 1));
+      if (g.B) Bt = info.splice(0, 2); else L = L.concat(info.splice(0, 1));
     } else {
-      /* iPad vertical: las columnas de los lados son angostas (el GIF y, si hay, la galería o el mapa); abajo, a lo ancho,
+      /* iPad vertical: las columnas de los lados son angostas (la galería o el mapa y otra tarjeta); abajo, a lo ancho,
          la imagen con su nombre y dos tarjetas de información a su lado. */
       var k = -1; info.forEach(function (x, i) { if (k < 0 && /^(galeria|mapa)$/.test(x.tipo || "")) k = i; });
-      L = [G]; R = k >= 0 ? info.splice(k, 1) : []; Bt = [I].concat(info.splice(0, 2));
+      L = k >= 0 ? info.splice(k, 1) : []; Bt = [I].concat(info.splice(0, 2)); R = info.splice(0, 1);
     }
     return { L: L, R: R, B: Bt };
   }
@@ -292,29 +360,28 @@
   }
   function firmaReposo() { var x = datosReposo(); try { return "r:" + JSON.stringify([x.pend && (x.pend.atencion || []).map(function (p) { return p.id || p.titulo; }), x.noti && (x.noti.items || x.noti.lista || []).length, x.areas && (x.areas.areas || []).map(function (a) { return (a.proyectos || []).length; })]); } catch (e) { return "r"; } }
   function reposo(animar) {
-    B.t = null; B.id = ""; B.render = null;
+    B.t = null; B.id = ""; B.render = null; gifTema(null);
     var f = firmaReposo(); if (B.pintado === f && geo()) return;
     var pz = piezasReposo(); if (!pz) { quitar(); return; }
     /* el reposo ya a la vista: llegó un dato nuevo (Pendientes, avisos, áreas): se cambia en su lugar, sin volver a entrar */
-    var ya = !B.eraTema && B.capa && B.capa.parentNode ? B.capa : null, gif = ya && ya.querySelector(".bv-gif");
-    if (gif) pz.gif = gif;   // y el mismo GIF: no cambia por un dato nuevo
+    var ya = !B.eraTema && B.capa && B.capa.parentNode ? B.capa : null;
     pintar(pz, f, ya ? false : animar); B.eraTema = false;
   }
   function tema(t, r) {
     if (!t) return reposo();
     gifsCargar();
     if (B.t && B.id === t.id && B.pintado === "t:" + t.id) return true;
-    B.t = t; B.id = t.id || ""; B.render = r; B.eraTema = true;
+    B.t = t; B.id = t.id || ""; B.render = r; B.eraTema = true; gifTema(t);
     return pintar(piezasTema(t, r), "t:" + B.id);
   }
   /* Cambió el tamaño o se giró el iPad: se vuelve a acomodar sin animar (el mismo GIF no cambia: se mueve la misma pieza). */
   function reacomodar() {
     clearTimeout(B.timer);
     B.timer = setTimeout(function () {
+      ventana();
       if (!geo()) { quitar(); return; }
-      var cur = B.el && B.el.querySelector(".bv-capa:not(.sale)");
       B.pintado = "";
-      if (B.t && B.render) { var pz = piezasTema(B.t, B.render); var gif = cur && cur.querySelector(".bv-gif"); if (gif) pz.gif = gif; pintar(pz, "t:" + B.id, false); }
+      if (B.t && B.render) pintar(piezasTema(B.t, B.render), "t:" + B.id, false);
       else reposo(false);
     }, 160);
   }
@@ -339,7 +406,7 @@
   w.addEventListener("orientationchange", reacomodar);
 
   w.AlmaBento = {
-    iniciar: function (o) { B.cfg = Object.assign(B.cfg, o || {}); chatEnvolver(); gifsCargar(); if (!B.t) reposo(); },
+    iniciar: function (o) { B.cfg = Object.assign(B.cfg, o || {}); chatEnvolver(); gifsCargar(); if (!B.t) reposo(); ventana(); },
     ancho: ancho,
     geo: geo,
     tema: tema,
@@ -348,8 +415,12 @@
     areas: function (r) { if (r && r.ok) { B.areas = r; if (!B.t) reposo(); } },
     el: function () { return B.el; },
     enTema: function () { return !!B.t && d.documentElement.classList.contains("bv-on"); },
-    /* La broma (js/alma-gif.js): el cuadro del GIF del tema, si está a la vista. */
-    gifCuadro: function () { var g = B.el && B.el.querySelector(".bv-capa.on:not(.sale) .bv-gif"); return g && g.offsetParent !== null && d.documentElement.classList.contains("bv-on") ? g : null; },
+    /* El tema del GIF en el teléfono (sin bento vivo): la tarjeta de la llamada, o null para el reposo. */
+    gifTema: function (t) { gifTema(t || null); },
+    /* La broma (js/alma-gif.js): el marco de la ventana del GIF, si está a la vista. */
+    gifCuadro: function () { var g = V.el && V.el.classList.contains("on") ? V.el.querySelector(".gv-marco") : null; return g && g.getClientRects().length && +getComputedStyle(B.el).opacity > .05 ? g : null; },
+    /* Para las pruebas y las capturas: dónde está la ventana (null si no sale) */
+    ventana: function () { ventana(); var b = V.el && V.el.classList.contains("on") ? V.el.getBoundingClientRect() : null; return b ? { x: b.left, y: b.top, w: b.width, h: b.height } : null; },
     /* Para las pruebas: el tema del GIF de una tarjeta */
     temaGif: temaGif,
     siguienteGif: gifDel

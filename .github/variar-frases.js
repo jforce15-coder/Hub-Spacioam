@@ -8,6 +8,9 @@
       ya salió en las últimas respuestas (aunque no fuera la anterior), y las instrucciones no traen esas frases de guion.
    6. (17-nov-2026, pc1794933663821: «repite "Listo, quedó pedido" hasta ocho veces; con una sola vez basta») después de un
       pedido confirmado, los siguientes se confirman cortos y sin «quedó pedido»; ocho pedidos seguidos lo dicen una vez.
+   7. (19-nov-2026, pc1795089818616: «evitar la duplicación o repetición de frases idénticas en las respuestas de voz») la
+      llamada (vozSecretaria_) y la calle pasan por variarVoz_: una frase dicha dos veces en una respuesta sale una vez,
+      lo ya dicho en las dos anteriores no se repite si queda algo nuevo, y la regla v_espera pide variar la espera.
    node .github/variar-frases.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -51,4 +54,17 @@ ok(V('Listo, quedó sumado a «Música durante Alma».', ['Listo, quedó pedido.
 ok(V('Listo, quedó pedido. Lo hago en segundo plano.', ['Listo, quedó pedido.']) === 'También quedó. Lo hago en segundo plano.', '6. el resto del texto queda');
 ok(/quedó pedido\.$/.test(V('Listo, quedó pedido.', ['Mañana entran 3.', 'Listo, le escribí a Flor.'])), '6. sin pedido confirmado antes, la primera vez se dice completo');
 ok(V('Listo, me encargo de que quedó pedido.', ['Listo, quedó pedido.']) !== 'También quedó.', '6. solo la frase fija se acorta');
+
+const VV = caja.variarVoz_, SR = caja.variarSinRepetidas_;
+ok(SR('Listo, le escribí a Flor. Le dije que llegas a las tres. Listo, le escribí a Flor.') === 'Listo, le escribí a Flor. Le dije que llegas a las tres.', '7. la misma frase dos veces en una respuesta: sale una vez');
+ok(SR('Mañana entran tres huéspedes.\n\nMañana entran tres huéspedes. ¿Quieres los nombres?') === 'Mañana entran tres huéspedes.\n\n¿Quieres los nombres?', '7. tarjeta y respuesta con la misma frase: una vez');
+ok(SR('Sí. Sí. Entran tres.') === 'Sí. Sí. Entran tres.', '7. frases cortas («Sí.») no cuentan como repetición');
+const v1 = VV('Hecho, anoté la tarea. Te aviso cuando esté listo.', ['Listo, quedó pedido. Te aviso cuando esté listo.']);
+ok(v1 === 'Hecho, anoté la tarea.', '7. lo ya dicho en la respuesta anterior no se repite: ' + v1);
+ok(VV('Mañana entran tres huéspedes.', ['Mañana entran tres huéspedes.']) === 'Mañana entran tres huéspedes.', '7. si todo era repetido (pudo pedir que lo repitiera), se queda');
+ok(VV('Listo, quedó pedido.', ['Hecho, quedó pedido.']) === 'También quedó.', '7. por voz también la confirmación corta');
+const vz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), iVV = vz.indexOf('variarVoz_(r.respuesta'), iGV = vz.indexOf("opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas");
+ok(iVV > 0 && iGV > iVV && /resultado: variarSinRepetidas_\(/.test(vz), '7. la llamada (vozSecretaria_) varía y quita repetidas antes de guardar y de decirlo');
+ok(/canal === 'calle' \? variarVoz_\(resp/.test(cod), '7. la calle (voz al oído) también usa variarVoz_');
+ok(/"id": "v_espera", "texto": "[^"]*cada vez distinta[^"]*solo lo nuevo/.test(fs.readFileSync(path.join(DIR, '..', 'playbooks', 'alma.json'), 'utf8')), '7. v_espera pide variar la frase de espera y decir solo lo nuevo');
 process.exit(fallo);

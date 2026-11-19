@@ -1013,10 +1013,13 @@ function vozSecretaria_(b) {
   var turno = chatTurnoCerrar_(adm, [yoF.id], pedido, r, { canal: 'llamada', diferir: true }); r.respuesta = turno.texto || r.respuesta;
   /* Tarjeta de la llamada (tarjeta.js): solo en la app; con la pantalla a la vista, «EN PANTALLA» y la voz no lee los datos. */
   var tv = null; try { tv = tvCerrar_(b.conv_id, esApp, conf); } catch (e) { console.error('tvCerrar_: ' + (e.stack || e)); }
+  /* Sin frases repetidas en lo que dirá la voz (Juan, 19-nov-2026, pc1795089818616; variar.js, variarVoz_): ni dentro de la
+     respuesta, ni lo ya dicho en las dos anteriores, ni la misma muletilla seguida. */
+  try { r.respuesta = variarVoz_(r.respuesta, variarRecientes_(previos)); } catch (e) { console.error('variarVoz_: ' + e); }
   opGuardar_(adm, 'alma', 'llamada', r.respuesta, r.hechas, turno.clas, tv ? tv.celda : '');
   /* Si tardó tanto que la llamada ya dejó de esperar (ElevenLabs corta a los VOZ_SECRETARIA_TIMEOUT_S_), el resultado también va por WhatsApp. */
   if (Date.now() - t0 > (VOZ_SECRETARIA_TIMEOUT_S_ - 5) * 1000) { try { vozSecAvisar_(tel, adm, r, pedido); } catch (e) { console.error('vozSecAvisar_: ' + e); } }
-  var out = { ok: true, resultado: (tv && tv.voz ? tv.voz + '\n\n' : '') + r.respuesta, acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
+  var out = { ok: true, resultado: variarSinRepetidas_((tv && tv.voz ? tv.voz + '\n\n' : '') + r.respuesta), acciones: r.hechas.map(function (h) { return (h.resumen || h.tipo) + (h.error ? ' (falló: ' + h.error + ')' : ' (hecho)'); }) };
   /* #583: el nombre y el apartamento tal como los dio el resolvedor (destino.js), para que la voz no diga los suyos («Narama
      seis veintitrés» por 633), y si de verdad salió algo (la auditoría al colgar lo compara: prometer.js). */
   if (r.destinos && r.destinos.length) out.decir = 'Nombre y apartamento tal cual, sin cambiarlos: ' + r.destinos.join(' · ');

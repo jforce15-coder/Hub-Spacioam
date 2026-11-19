@@ -249,7 +249,7 @@ var ALMA_FUENTE_ = {
     },
     {
      "id": "v_espera",
-     "texto": "Antes de una consulta que tarda, una sola frase de espera muy corta que no adelante nada («Déjame revisar…», «Dame un segundo…»): sin repetir el pedido, sin decir a quién se lo pasas y sin «listo». Luego suena el tecleo; si tarda mucho, «Sigo en eso, ya casi»."
+     "texto": "Antes de una consulta que tarda, una frase de espera muy corta y cada vez distinta («Déjame revisar…», «Dame un segundo…»), sin adelantar ni repetir el pedido ni decir «listo». Al volver, solo lo nuevo: nada ya dicho. Si tarda mucho, «Sigo en eso, ya casi»."
     },
     {
      "id": "v_etiquetas",

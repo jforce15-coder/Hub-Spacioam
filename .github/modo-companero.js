@@ -181,7 +181,7 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   q.reloj.ms += 91000;
   ok(!q.X.vivoLeerApi_(J, {}).en_llamada, '12 · una llamada que nunca conectó no se queda en «Conectando»');
   const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
-  ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
+  ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; C\.ocultaCerca = true; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) \{ C\.ocultaCerca = false; pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
   ok(/!\(YO && r\.dispositivo === YO\)/.test(h), '12 · inicio.html: este dispositivo no se copia a sí mismo');
 }
 /* 13 · terminar desde el compañero (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada. Si por error
@@ -240,5 +240,28 @@ const dosDev = (k) => { k.X.vozWebTel_ = (c) => (c === 'conv-ana' ? '50255550202
   Y.vivoPublicarApi_(J, { conv_id: 'conv-a', estado: 'fin', dispositivo: 'iPhone' });
   ok(!Y.vivoPublicarApi_(J, { conv_id: 'conv-b', estado: 'conectando', dispositivo: 'iPad' }).ceder, '14 · con la del iPhone terminada, el iPad sí puede');
   ok(!Y.vivoPublicarApi_(J, { conv_id: 'conv-c', estado: 'conectando', dispositivo: 'iPad' }).ceder, '14 · dos del mismo dispositivo: como antes, la última');
+}
+/* 15 · en tiempo real por la red de cerca y el iPad sin llamadas (Juan, 19-nov-2026: «en modo Companion en iPad no sincroniza
+   la actividad de voz en pantalla en tiempo real y permite hacer llamadas»): la app pasa cada subtítulo, el estado y el nivel */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/window\.AlmaCompanero = \{ cerca: cerca,/.test(h), '15 · inicio.html: AlmaCompanero.cerca recibe lo de la red de cerca (Retransmision.swift)');
+  ok(/C\.vistosCerca\.indexOf\(norm\(x\.t\)\)/.test(h), '15 · lo que ya llegó por la red de cerca no se repite cuando lo trae el Hub');
+  ok(/if \(!cercaVivo\(\)\) cerrar\(/.test(h), '15 · mientras llega por la red de cerca, el Hub sin noticia no cierra la llamada');
+  ok(/--comp-nivel/.test(h), '15 · el punto de «En vivo» se mueve con la voz');
+  ok(/e\.ipad \? "Modo compañero: llama desde tu teléfono"/.test(h), '15 · en el iPad la roca dice que se llama desde el teléfono');
+  const m = /var SECRETO = [^\n]*\n\s*function norm\(t\) \{[^\n]*\}/.exec(h);
+  ok(!!m, '15 · norm existe');
+  if (m) {
+    const norm = new Function(m[0] + '; return norm;')();
+    ok(norm('  Hoy   llegan dos ') === 'Hoy llegan dos', '15 · norm: sin espacios de más, como el Hub');
+    ok(norm('El código es 4821') === 'El código es ••••', '15 · norm: sin los números de un código, como tvTapar_');
+  }
+}
+/* 16 · una sola voz (Juan, 19-nov-2026: «solo debe haber un agente activo dando notificaciones (por defecto el móvil /
+   audífonos), salvo que el usuario configure explícitamente la salida de audio en otro dispositivo»): el compañero no suena */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/id="i-comp-son"/.test(h) && /id="f-comp-son" hidden/.test(h), '16 · Ajustes: «Sonido de la llamada aquí», visible solo con el Modo compañero encendido');
+  ok(/C\.sonido = false;/.test(h) && /localStorage\.getItem\(CLAVE_SON\) === "1"/.test(h), '16 · viene apagado: solo suena el dispositivo de la llamada');
+  ok(/accion: "companero", on: C\.on, otra: C\.otra, sonido: C\.on && C\.sonido/.test(h), '16 · la app recibe «sonido» (Retransmision.swift) y sin él no suena');
 }
 process.exit(fallo);

@@ -44,4 +44,30 @@ ok(/origin=Aeropuerto%20La%20Aurora/.test(c2.google) && /saddr=/.test(c2.apple) 
 ok(ctx.guiaComoLlegar_(null, {}).ok === false, 'sin destino no arma enlaces');
 const herr = fs.readFileSync(path.join(DIR, 'agente.js'), 'utf8');
 ok(/T\('calcular_distancia', [^\n]*sin propiedad, mapas desde su ubicación actual \(no preguntes desde dónde\)/.test(herr) && /if \(!String\(inp\.propiedad \|\| ''\)\.trim\(\)\) return guiaComoLlegar_\(adm,/.test(herr), 'en el chat, calcular_distancia sin propiedad sale desde su ubicación actual');
+
+/* Puntos de referencia (pedido pc1795047765857, #839): aviso antes del cruce, el cruce con su referencia y «vas bien». */
+const enc = pts => { let lat = 0, lng = 0, o = ''; const e = v => { v = v < 0 ? ~(v << 1) : v << 1; let s = ''; while (v >= 0x20) { s += String.fromCharCode((0x20 | (v & 0x1f)) + 63); v >>= 5; } return s + String.fromCharCode(v + 63); };
+  pts.forEach(([a, b]) => { const A = Math.round(a * 1e5), B = Math.round(b * 1e5); o += e(A - lat) + e(B - lng); lat = A; lng = B; }); return o; };
+ok(JSON.stringify(ctx.guiaDecodificar_(enc([[14.6, -90.5], [14.601, -90.5]])).map(p => [p.lat, p.lng])) === '[[14.6,-90.5],[14.601,-90.5]]', 'lee la línea de Google');
+ok(ctx.guiaRefNombre_({ name: 'Galeno', amenity: 'pharmacy' }).texto === 'la farmacia Galeno' && ctx.guiaRefNombre_({ name: 'Farmacia Galeno', amenity: 'pharmacy' }).texto === 'la Farmacia Galeno' &&
+   ctx.guiaRefNombre_({ name: 'La Esquina', shop: 'tobacco' }).texto === 'la tienda de tabacos La Esquina' && ctx.guiaRefNombre_({ name: 'Polo', shop: 'clothes' }).texto === 'la tienda Polo' &&
+   ctx.guiaRefNombre_({ name: 'Parqueo X', amenity: 'parking' }) === null, 'nombra la referencia como se dice («la tienda Polo») y descarta parqueos');
+ok(ctx.guiaCruza_('Gira a la izquierda hacia 5a Av.') === 'Cruza a la izquierda hacia 5a Av.' && ctx.guiaGiro_('turn-left', '') === 'a la izquierda' && ctx.guiaGiro_('', 'Continúa por 5a Av.') === '', 'cruza a la izquierda, como en Guatemala');
+let consultas = 0;
+ctx.CacheService = { getScriptCache: () => ({ get: () => null, put: () => {} }) };
+ctx.uf_ = (u, o, canal) => { consultas++; return { getResponseCode: () => 200, getContentText: () => JSON.stringify({ elements: [
+  { lat: 14.6045, lon: -90.5001, tags: { name: 'Polo', shop: 'clothes' } },
+  { lat: 14.6045, lon: -90.5002, tags: { name: 'Parqueo', amenity: 'parking' } },
+  { type: 'way', center: { lat: 14.6022, lon: -90.5001 }, tags: { name: 'La Esquina', shop: 'tobacco' } }] }) }; };
+const largo = [{ texto: 'Dirígete al norte por 5a Av.', lat: 14.6, lng: -90.5, metros: 500, seg: 400, maniobra: '', tramo: enc([[14.6, -90.5], [14.6045, -90.5]]) },
+  { texto: 'Gira a la izquierda hacia 6a Calle.', lat: 14.6045, lng: -90.5, metros: 80, seg: 60, maniobra: 'turn-left', tramo: '' },
+  { texto: 'Gira a la derecha en 7a Av.', lat: 14.6045, lng: -90.5007, metros: 50, seg: 40, maniobra: 'turn-right', tramo: '' }];
+const cr = ctx.guiaConReferencias_(largo, 'caminando'), tx = cr.pasos.map(p => p.texto);
+ok(consultas === 1 && cr.referencias === 2, 'una sola consulta a OpenStreetMap para toda la ruta');
+ok(tx[1] === 'Vas bien: vas a ver la tienda de tabacos La Esquina. Sigue recto.' && cr.pasos[1].antes === 60, 'a mitad del tramo largo: «vas bien» con lo que va a ver');
+ok(tx[2] === 'Sigue recto hasta la tienda Polo; ahí cruzas a la izquierda. Yo te aviso.' && cr.pasos[2].antes === 120, 'avisa antes del cruce con la referencia');
+ok(tx[3] === 'Ahora, en la tienda Polo: cruza a la izquierda hacia 6a Calle.', 'en el cruce dice «ahora» con la referencia');
+ok(tx[4] === 'Cruza a la derecha en 7a Av.' && tx.length === 5, 'un cruce seguido (tramo corto) no lleva aviso ni repite la referencia');
+props.GUIA_REFERENCIAS = '0';
+ok(ctx.guiaConReferencias_([{ texto: 'a', lat: 1, lng: 1, metros: 900, tramo: '' }, { texto: 'Gira a la izquierda.', lat: 1.001, lng: 1, metros: 10 }], 'caminando').referencias === 0, 'GUIA_REFERENCIAS = 0 lo apaga');
 process.exit(fallo);

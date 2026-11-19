@@ -213,7 +213,9 @@ function areas_(ses) {
     return { k: a.k, n: a.n, d: a.d, proyectos: proyectos.filter(function (p) { return p.area === a.k; }), conversaciones: c.slice(0, 60), total: c.length };
   };
   if (reglas.proyectos) proyectos = proyectos.slice(0, 4).concat(archivistaOrdenar_(proyectos.slice(4).map(function (p) { p.titulo = p.n; return p; }), reglas.proyectos));
-  return { ok: true, areas: AREAS_.map(grupo), cajones: CAJONES_.map(grupo), sin_clasificar: sin, archivadas: ocultas };
+  /* La vida personal para el reposo del Bento vivo: la agenda y el día de la familia (vidahoy.js) */
+  var vida = {}; try { vida = vidaHoy_(); } catch (e) { console.error('areas vida: ' + e); }
+  return { ok: true, areas: AREAS_.map(grupo), cajones: CAJONES_.map(grupo), sin_clasificar: sin, archivadas: ocultas, vida: vida };
 }
 
 /* Mover una conversación (o un proyecto personal) a otra área o a un cajón del archivo. */

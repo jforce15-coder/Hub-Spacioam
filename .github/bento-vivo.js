@@ -91,6 +91,22 @@ for (const vista of [[1366, 1024], [1440, 900], [1024, 1366]]) {
   const sin = piezasDe(null, 1366, 1024, { datos: {} });
   ok(sin.n === 0, '2 · sin datos de administrador no hay bento en el reposo');
 }
+{
+  /* 2 · la vida personal en el reposo (Juan, 19-nov-2026, apps-script/vidahoy.js): «Tu agenda» y «Familia», después de «Necesita tu sí» */
+  const c = caja(1366, 1024, { datos: { pend: { atencion: [{ id: 'p1', titulo: 'Aprobar precio' }] }, noti: { items: [] } } });
+  const ov = nodo('div'); ov.querySelector = () => null; c.document.querySelector = (s) => (/san-ov$/.test(s) ? ov : null);
+  c.B.iniciar({});
+  c.B.areas({ ok: true, areas: [{ k: 'relaciones', n: 'Relaciones', proyectos: [] }], vida: {
+    agenda: { eventos: [{ t: 'Cena con Christine', dia: 'hoy', h: '20:00', fin: new Date(Date.now() + 3600e3).toISOString() }, { t: 'Ya pasó', dia: 'hoy', h: '7:00', fin: new Date(Date.now() - 3600e3).toISOString() }] },
+    familia: { lleva: 'Juan', casa: 'Christine', tarde: 'Ballet 7:00', frase: 'Observa más de lo que hablas.', url: 'https://thegentlestoicparent.com' } } });
+  const els = todos(ov).filter((x) => x.classList && x.classList.contains('bv-c')), cls = els.map((x) => x.children[0] && x.children[0].className || '');
+  const txt = (n) => [n.textContent].concat((n.children || []).map(txt)).join(' ');
+  const todo = els.map(txt).join(' ');
+  ok(cls.some((x) => /bv-familia/.test(x)) && /Tu agenda/.test(todo) && /Cena con Christine/.test(todo) && !/Ya pasó/.test(todo) && /Observa más/.test(todo),
+    '2 · reposo con vida personal: «Tu agenda» (sin lo que ya pasó) y «Familia» de The Gentle Stoic Parent con su frase');
+  const orden = els.map(txt).map((t) => /Necesita tu sí/.test(t) ? 'pend' : /Tu agenda/.test(t) ? 'agenda' : /Familia/.test(t) ? 'familia' : '').filter(Boolean);
+  ok(orden.length >= 3, '2 · reposo: Necesita tu sí, Tu agenda y Familia caben juntos (' + orden.join(', ') + ')');
+}
 
 /* 3 · GIFs del tema */
 function cajaGif(o) {

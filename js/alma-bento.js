@@ -14,7 +14,8 @@
      acción gifTemas, apps-script/gif.js), pedido una vez y guardado 12 h; sin repetir hasta agotar los 7. Nunca un emoji:
      sin catálogo todavía, la ventana no sale. La broma (mostrar_gif, js/alma-gif.js) la tapa unos segundos.
    · Sin otra llamada a la IA ni a Hospitable: el tema son los cuadros que ya manda la tarjeta de la llamada
-     (apps-script/tarjeta.js) y el reposo sale de lo que el inicio ya trae (Pendientes, Notificaciones y las áreas).
+     (apps-script/tarjeta.js) y el reposo sale de lo que el inicio ya trae (Pendientes, Notificaciones y las áreas, que traen también la vida personal:
+     «Tu agenda» y «Familia» de The Gentle Stoic Parent, apps-script/vidahoy.js).
    · Solo administradores (sin datos de Pendientes o de las áreas no se arma) y solo en pantalla ancha: el teléfono no cambia.
    · Se esconde con las esferas y sus niveles (#831), las hojas, el chat, Pendientes y Notificaciones.
    API: AlmaBento.iniciar({ hacer, abrir }) · ancho() · tema(t, { cuadro, claudio }) · reposo() · datos() · areas(r)
@@ -200,6 +201,14 @@
       var at = [].concat(x.pend.atencion || []);
       info.push({ el: lista("Necesita tu sí", at.map(function (p) { return { t: p.titulo || p.resumen || "", b: nombreArea[p.area] || "" }; }), "Todo al día", function () { ab("pend"); }), peso: at.length ? 4 : 2, p: 1 });
     }
+    /* La vida personal (Juan, 19-nov-2026: «no todo es de trabajo»): la agenda y el día de la familia, justo después de
+       lo que necesita su sí. Llegan con las áreas (apps-script/vidahoy.js); si no llegan, no se pintan. */
+    var vida = (x.areas && x.areas.vida) || {};
+    if (vida.agenda && vida.agenda.eventos) {
+      var ahora = Date.now(), ev = vida.agenda.eventos.filter(function (e) { var f = Date.parse(e.fin || ""); return !f || f > ahora; });
+      info.push({ el: lista("Tu agenda", ev.map(function (e) { return { b: (e.dia === "mañana" ? "Mañana" : "Hoy") + (e.h ? " " + e.h : ""), t: e.t || "" }; }), "Agenda libre"), peso: ev.length ? 3 : 2, p: 1.2 });
+    }
+    if (vida.familia && (vida.familia.lleva || vida.familia.frase || vida.familia.finde)) info.push({ el: piezaFamilia(vida.familia), peso: 3, p: 1.4 });
     if (x.noti) {
       var nl = [].concat(x.noti.items || x.noti.lista || []);
       info.push({ el: lista("Avisos", nl.map(function (n) { return { t: n.titulo || n.texto || "" }; }), "Sin avisos nuevos", function () { ab("noti"); }), peso: nl.length ? 3 : 2, p: 2 });
@@ -214,6 +223,22 @@
     var h = new Date();
     return { img: piezaImagenMarca(DIAS[h.getDay()].charAt(0).toUpperCase() + DIAS[h.getDay()].slice(1) + " " + h.getDate() + " de " + MESES[h.getMonth()], "Spacio AM · hoy"),
       info: info };
+  }
+
+  /* «Familia»: el día de The Gentle Stoic Parent (quién lleva a los niños, quién se queda, la tarde) y la frase del día.
+     Tocarla abre la app de la familia. */
+  function piezaFamilia(f) {
+    var c = el("div", "tvb-t bv-lista bv-familia"), kf = el("div", "tvb-kf"); kf.appendChild(el("small", "tvb-k", "Familia · hoy")); c.appendChild(kf);
+    var u = el("ul", "tvb-l"), fila = function (b, t) { if (!t) return; var li = el("li"); li.appendChild(el("b", "", b)); li.appendChild(el("span", "tvb-tx", t)); u.appendChild(li); };
+    if (f.finde) fila("Hoy", "Fin de semana en familia");
+    else { fila("Lleva", f.lleva); fila("En casa", f.casa); fila("Tarde", f.tarde); }
+    if (u.children.length) c.appendChild(u);
+    if (f.frase) c.appendChild(el("q", "bv-frase", f.frase));
+    if (f.url) { var abrir = function () { try { w.open(f.url, "_blank", "noopener"); } catch (e) {} };
+      c.setAttribute("role", "button"); c.tabIndex = 0; c.setAttribute("aria-label", "Familia hoy: abrir The Gentle Stoic Parent");
+      c.onclick = function (e) { e.stopPropagation(); abrir(); };
+      c.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } }; }
+    return c;
   }
 
   /* ── La ventana del GIF: un vidrio gris oscuro arriba de la roca, en todas las pantallas. Sigue a la roca (al centro o en
@@ -358,7 +383,7 @@
     if (B.el) [].forEach.call(B.el.querySelectorAll(".bv-capa"), function (v) { v.classList.add("sale"); setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 260); });
     B.pintado = "";
   }
-  function firmaReposo() { var x = datosReposo(); try { return "r:" + JSON.stringify([x.pend && (x.pend.atencion || []).map(function (p) { return p.id || p.titulo; }), x.noti && (x.noti.items || x.noti.lista || []).length, x.areas && (x.areas.areas || []).map(function (a) { return (a.proyectos || []).length; })]); } catch (e) { return "r"; } }
+  function firmaReposo() { var x = datosReposo(); try { return "r:" + JSON.stringify([x.pend && (x.pend.atencion || []).map(function (p) { return p.id || p.titulo; }), x.noti && (x.noti.items || x.noti.lista || []).length, x.areas && (x.areas.areas || []).map(function (a) { return (a.proyectos || []).length; }), x.areas && x.areas.vida]); } catch (e) { return "r"; } }
   function reposo(animar) {
     B.t = null; B.id = ""; B.render = null; gifTema(null);
     var f = firmaReposo(); if (B.pintado === f && geo()) return;

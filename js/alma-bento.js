@@ -44,7 +44,22 @@
     var p = el("div"); p.style.cssText = "position:fixed;visibility:hidden;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)";
     d.body.appendChild(p); var c = getComputedStyle(p); SAFE = { t: parseFloat(c.paddingTop) || 0, r: parseFloat(c.paddingRight) || 0, b: parseFloat(c.paddingBottom) || 0, l: parseFloat(c.paddingLeft) || 0 }; p.remove(); return SAFE;
   }
-  function geo() {
+  /* Con el chat escrito abierto (Juan, 19-nov-2026: «Bento en el chat escrito, sí»): en pantalla ancha el chat va en una
+     columna a la derecha (chatW) y el bento ocupa lo demás, en dos columnas (la imagen y el GIF a la izquierda; la
+     información a la derecha). La roca está en el botón de enviar del chat (sa-nav). Si no queda espacio (el iPad
+     vertical), el chat va como siempre y el bento se esconde. */
+  function chatAbierto() { var o = ov(); return !!(o && /(^|\s)chat(\s|$)/.test(o.className)); }
+  function chatW(W) { return Math.round(Math.max(400, Math.min(520, W * .4))); }
+  function geoChat() {
+    var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight;
+    if (!geoNormal()) return null;
+    var s = seguro(), cw = chatW(W), gap = 16, X0 = 112 + s.l, X1 = W - cw - 24, Y0 = Math.max(20, s.t + 14), Y1 = H - Math.max(20, s.b + 14);
+    if (X1 - X0 < 560) return null;
+    var hw = (X1 - X0 - gap) / 2;
+    return { W: W, H: H, chat: cw, cx: X0 + (X1 - X0) / 2, cy: H / 2, hueco: { x: X0, y: Y0, w: 0, h: 0 }, L: { x: X0, y: Y0, w: hw, h: Y1 - Y0 }, R: { x: X0 + hw + gap, y: Y0, w: hw, h: Y1 - Y0 }, B: null, modoChat: true };
+  }
+  function geo() { return chatAbierto() ? geoChat() : geoNormal(); }
+  function geoNormal() {
     var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight;
     if (W < 900 || H < 600) return null;
     var s = seguro(), D = Math.min(W * .66, H * .4, 270), R = D / 2, cx = W / 2, cy = H * .42, gap = 16;
@@ -65,7 +80,7 @@
     }
     return g;
   }
-  function ancho() { return !!geo(); }
+  function ancho() { return !!geoNormal(); }
 
   /* ── El GIF del tema ── */
   function gifsCargar() {
@@ -214,6 +229,11 @@
   }
   function repartir(pz, g) {
     var info = pz.info.slice(), I = { el: pz.img, peso: 5 }, G = { el: pz.gif, peso: 2.4 }, L = [], R = [], Bt = [];
+    if (g.modoChat) {   // con el chat: imagen (y GIF, si va en el bento) a la izquierda; la información a la derecha
+      L = [I].concat(pz.gif ? [{ el: pz.gif, peso: 2.4 }] : []); R = info.splice(0, 3);
+      if (!R.length && pz.gif) { R = [L.pop()]; }
+      return { L: L, R: R, B: [] };
+    }
     if (!g.vertical) {
       R = info.splice(0, 3);
       L = [I].concat(info.splice(0, g.B ? 2 : 1));
@@ -244,6 +264,8 @@
     var o = ov(); if (!o) return null;
     if (!B.el) { B.el = el("div", "bv"); B.el.setAttribute("role", "region"); B.el.setAttribute("aria-label", "Bento vivo"); B.el.addEventListener("pointerdown", function () { if (B.t && B.cfg.hacer) B.cfg.hacer("toque"); }, { passive: true }); }
     if (B.el.parentNode !== o) { var bg = o.querySelector(".san-ov-bg"); o.insertBefore(B.el, bg ? bg.nextSibling : o.firstChild); }
+    /* se abre o se cierra el chat: el bento se vuelve a acomodar (columna del chat a la derecha, o el hueco de la roca) */
+    if (B.obs !== o && w.MutationObserver) { B.obs = o; var era = chatAbierto(); new MutationObserver(function () { var y = chatAbierto(); if (y !== era) { era = y; reacomodar(); } }).observe(o, { attributes: true, attributeFilter: ["class"] }); }
     return B.el;
   }
   function pintar(pz, firma, animar) {
@@ -258,11 +280,12 @@
     viejas.forEach(function (v) { if (animar === false) { v.parentNode.removeChild(v); return; } v.classList.add("sale"); setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, QUIETO ? 0 : 260); });
     var entra = function () { if (B.capa !== nueva) return; [].forEach.call(r.querySelectorAll(".bv-capa:not(.sale)"), function (v) { v.parentNode.removeChild(v); }); r.appendChild(nueva); requestAnimationFrame(function () { requestAnimationFrame(function () { nueva.classList.add("on"); }); }); };
     if (viejas.length && animar !== false && !QUIETO) setTimeout(entra, 180); else entra();
-    raiz.classList.add("bv-on"); raiz.classList.toggle("bv-tema-on", !!B.t);
+    raiz.classList.add("bv-on"); raiz.classList.toggle("bv-tema-on", !!B.t); raiz.classList.toggle("bv-chat", !!g.modoChat);
+    if (g.modoChat) raiz.style.setProperty("--bv-chat-w", g.chat + "px");
     B.pintado = firma; return true;
   }
   function quitar() {
-    d.documentElement.classList.remove("bv-on", "bv-tema-on");
+    d.documentElement.classList.remove("bv-on", "bv-tema-on", "bv-chat");
     B.capa = null;
     if (B.el) [].forEach.call(B.el.querySelectorAll(".bv-capa"), function (v) { v.classList.add("sale"); setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 260); });
     B.pintado = "";
@@ -296,10 +319,27 @@
     }, 160);
   }
   w.addEventListener("resize", reacomodar);
+  /* El chat escrito (Juan, 19-nov-2026: «Bento en el chat escrito, sí»): en pantalla ancha, cada mensaje a Alma pide que
+     la respuesta traiga la tarjeta del tema (bento: 1; apps-script/tarjeta.js, tvDelChat_). Va en la misma respuesta: no
+     hay llamada nueva. La página la recibe con el evento «sa-chat-tarjeta». */
+  function chatEnvolver() {
+    var A = w.ALMA; if (!A || !A.opEnviar || A.opEnviar._bv) return;
+    var orig = A.opEnviar;
+    A.opEnviar = function (a, texto) {
+      var o = a && typeof a === "object" ? a : null;
+      if (o && ancho()) a = Object.assign({}, o, { bento: 1 });
+      var p = orig.call(A, a, texto);
+      return p && p.then ? p.then(function (r) {
+        if (r && r.ok && r.tarjeta && r.tarjeta.id) { try { w.dispatchEvent(new CustomEvent("sa-chat-tarjeta", { detail: { tarjeta: r.tarjeta } })); } catch (e) {} }
+        return r;
+      }) : p;
+    };
+    A.opEnviar._bv = true;
+  }
   w.addEventListener("orientationchange", reacomodar);
 
   w.AlmaBento = {
-    iniciar: function (o) { B.cfg = Object.assign(B.cfg, o || {}); gifsCargar(); if (!B.t) reposo(); },
+    iniciar: function (o) { B.cfg = Object.assign(B.cfg, o || {}); chatEnvolver(); gifsCargar(); if (!B.t) reposo(); },
     ancho: ancho,
     geo: geo,
     tema: tema,

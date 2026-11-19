@@ -318,7 +318,7 @@ const INBOX = [{ conv_id: 'r-1', codigo: 'HM4K2Q9XAB', huesped: 'Mariana López'
   const voz = fs.readFileSync(path.join(DIR, 'voz.js'), 'utf8'), vin = voz.slice(voz.indexOf('function vozWebVincular_'), voz.indexOf('function vozWebVincular_') + 2600);
   ok(/b\.pantalla === true[^\n]*put\('vozpant_' \+ convId, '1'/.test(vin) && /b\.tablero === 'estado'\) CacheService\.getScriptCache\(\)\.put\('voztvest_' \+ convId, '1'/.test(vin),
     '10 · vozWebVincular_ guarda la pantalla encendida («1») y que la app maneja el tablero por estado');
-  ok(/AGENTE_CANAL_ !== 'llamada'/.test(fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8')) && /opAgente_\(adm, pedido, 'llamada'/.test(voz) && /return vozSecEncolar_\(tel, pedido, conf\)/.test(voz),
+  ok(/return c === 'llamada' \|\| \(TV_CHAT_ && \(c === 'app' \|\| c === 'hub'\)\)/.test(fs.readFileSync(path.join(DIR, 'tarjeta.js'), 'utf8')) && /opAgente_\(adm, pedido, 'llamada'/.test(voz) && /return vozSecEncolar_\(tel, pedido, conf\)/.test(voz),
     '10 · la conferencia pasa por la misma secretaria (canal «llamada»); en segundo plano nunca hay tarjeta');
   /* estado: la app nueva */
   { const { X, cache } = caja();

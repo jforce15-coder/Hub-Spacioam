@@ -523,6 +523,15 @@ function chatEnviar_(ses, b) {
   var c = String(b.canal || ''), canal = c === 'app' || c === 'calle' ? c : 'hub';
   var orb = null; if (b.orbita) { try { orb = orbitaTurno_(adm, String(b.orbita).slice(0, 90)); } catch (e) { console.error('orbitaTurno_: ' + (e.stack || e)); } }
   var nota = orb ? orb.nota : '', o = orb ? orb.o : null;
+  /* Bento vivo (#810): desde una pantalla ancha (bento: 1), el turno arma la tarjeta del tema y va en la misma respuesta. */
+  if (canal !== 'calle' && (b.bento === 1 || b.bento === '1' || b.bento === true) && typeof tvDelChat_ === 'function') {
+    TV_CHAT_ = true; TV_CANDIDATA_ = null; TV_TOCADA_ = false;
+    try {
+      var out = opProcesar_(adm, b.texto, canal, [], nota, o);
+      if (out && out.ok && !out.seguira) { var t = null; try { t = tvDelChat_(); } catch (e) { console.error('tvDelChat_: ' + (e.stack || e)); } if (t) out.tarjeta = t; }
+      return out;
+    } finally { TV_CHAT_ = false; TV_CANDIDATA_ = null; }
+  }
   if (canal !== 'calle') return opProcesar_(adm, b.texto, canal, [], nota, o);
   AGENTE_APP_ = true;   // Modo calle: viene de la app de Alma (como calle_)
   try { return opProcesar_(adm, b.texto, canal, [], nota, o); } finally { AGENTE_APP_ = false; }

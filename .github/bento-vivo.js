@@ -147,10 +147,37 @@ function cajaGif(o) {
     '3 · el tema del GIF sale de la tarjeta sin IA (huésped, socio, Claudio, mantenimiento, reserva nueva, reposo)');
 }
 
+/* 5 · el chat escrito (Juan, 19-nov-2026: «Bento en el chat escrito, sí») */
+{
+  for (const [n, W, H, hay] of [['iPad horizontal', 1366, 1024, true], ['computadora', 1440, 900, true], ['iPad vertical', 1024, 1366, false]]) {
+    const c = caja(W, H), ov = nodo('div'); ov.className = 'san-ov escena on chat';
+    c.document.querySelector = (s) => (/san-ov$/.test(s) ? ov : null);
+    const g = c.B.geo();
+    if (hay) ok(g && g.modoChat && g.R.x + g.R.w <= W - g.chat - 16 && g.L.x >= 112 && c.B.ancho(), `5 · ${n}: con el chat abierto, el chat va a la derecha (${g && g.chat} px) y el bento a su lado`);
+    else ok(!g && c.B.ancho(), `5 · ${n}: sin espacio junto al chat, el bento se esconde (el chat como siempre)`);
+  }
+  const TJ = leer('apps-script/tarjeta.js'), CH = leer('apps-script/chat.js');
+  const ctx = { console: { log() {}, warn() {}, error() {} }, JSON, Math, String, Number, Object, Array, RegExp, Date, CacheService: { getScriptCache: () => ({ get: () => null, put() {}, remove() {} }) } };
+  vm.createContext(ctx); vm.runInContext(TJ + '\n;var AGENTE_CANAL_ = "", AGENTE_PERMITIDAS_ = null;', ctx);
+  const X = (code) => vm.runInContext(code, ctx);
+  X('AGENTE_CANAL_ = "app"; TV_CHAT_ = false; tvCandidata_("reserva", function () { return { clave: "r" }; });');
+  ok(X('TV_CANDIDATA_') === null, '5 · el chat sin Bento vivo (o WhatsApp) no deja tarjeta');
+  X('AGENTE_CANAL_ = "whatsapp"; TV_CHAT_ = true; tvCandidata_("reserva", function () { return { clave: "r" }; });');
+  ok(X('TV_CANDIDATA_') === null, '5 · WhatsApp nunca, aunque se pida');
+  X('var vio = null; AGENTE_CANAL_ = "app"; TV_CHAT_ = true; tvCandidata_("reserva", function () { vio = TV_SIN_PEDIR_; return { tipo: "reserva", clave: "reserva:HM1", tel: "+50255550101", wa: "50255550101", cuadros: [] }; });');
+  const t = X('tvDelChat_()');
+  ok(t && /^tc\d+/.test(t.id) && !t.tel && !t.wa, '5 · el chat de la app con Bento vivo trae la tarjeta, sin «Llamar» ni WhatsApp');
+  ok(X('vio') === true && X('TV_SIN_PEDIR_') === false, '5 · al armarla no se pide IA ni Hospitable (TV_SIN_PEDIR_), solo lo ya guardado');
+  ok(X('TV_CANDIDATA_') === null && X('tvDelChat_()') === null, '5 · se usa una vez');
+  ok(/b\.bento === 1[\s\S]{0,200}TV_CHAT_ = true[\s\S]{0,400}out\.tarjeta = t[\s\S]{0,120}finally \{ TV_CHAT_ = false/.test(CH), '5 · chatEnviar_: la tarjeta va en la misma respuesta (sin llamada nueva) y TV_CHAT_ se apaga siempre');
+  ok(/if \(o\.bento\) q\.bento = 1/.test(leer('js/alma-client.js')) && /bento: 1/.test(BENTO) && /sa-chat-tarjeta/.test(INICIO), '5 · la página pide la tarjeta solo en pantalla ancha y la pinta igual');
+  ok(/html\.bv-chat #sa-nav-root \.san-ov\.chat \.san-chat \{ left: auto; right: 0;/.test(INICIO) && !/#sa-nav-root \.san-ov\.chat \.bv \{|\.san-ov\.chat \.bv,/.test(INICIO), '5 · el chat abierto no esconde el bento en pantalla ancha');
+}
+
 /* 4 · la página */
 ok(/function pintarVivo\(t, v\)[\s\S]{0,200}roca\(null\)/.test(INICIO) && !/function pintarVivo[\s\S]{0,900}roca\("esquina"\)/.test(INICIO), '4 · con el bento vivo la roca se queda al centro (nunca a la esquina)');
 ok(/html\.bv-on #sa-nav-root \.san-ov-cap:not\(:empty\) \{ background: rgba\(34,26,28,\.7\d\)/.test(INICIO), '4 · los subtítulos llevan su fondo oscuro sobre el bento (blanco sobre ~#3A3032, AA)');
-ok(/body\.orbita-on \.bv,[^{]*body\.san-hoja \.bv,[^{]*\.san-ov\.chat \.bv/.test(INICIO), '4 · el bento se esconde con las esferas y sus niveles, las hojas y el chat');
+ok(/body\.orbita-on \.bv,[^{]*body\.san-hoja \.bv,[^{]*\.san-ov\.pend \.bv/.test(INICIO), '4 · el bento se esconde con las esferas y sus niveles, las hojas, Pendientes y Notificaciones');
 ok(/AlmaBento\.gifCuadro/.test(AGIF), '4 · la broma tapa el GIF del tema (alma-gif.js)');
 ok(/alma-bento\.js\?v=/.test(INICIO), '4 · alma/inicio.html carga js/alma-bento.js');
 process.exit(fallo);

@@ -6,7 +6,7 @@
    2. Mensajes (weeboBloque_): con el Weebo fijo en 3 y un problema, NIVEL 0.
    3. Voz: la regla de etiquetas prohíbe [laugh] y las risas escritas; mostrar_gif es de cliente, sin respuesta, y la
       regla del GIF va en el bloque de voz (no en el de la familia).
-   4. GIF (gif.js): GIPHY solo por uf_ y con rating g (y descarta lo que no sea g); sin llave o con error, emoji animado;
+   4. GIF (gif.js): GIPHY solo por uf_ y con rating g (y descarta lo que no sea g); sin llave o con error, un GIF del catálogo de temas (nunca emoji);
       solo el administrador principal; la idea se limpia.
    node .github/weebo-tino.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -92,12 +92,16 @@ ok(r.ok && r.fuente === 'giphy' && r.url === 'https://media.giphy.com/si.gif', '
 ok(c.pedidos.length === 1 && /[?&]rating=g(&|$)/.test(c.pedidos[0]) && /q=slow%20clap/.test(c.pedidos[0]), 'El pedido a GIPHY va por uf_ con rating=g y la idea limpia');
 c = caja({ props: { GIPHY_KEY: 'k' }, giphy: { code: 200, data: [{ rating: 'r', images: { downsized_medium: { url: 'https://x/y.gif' } } }] } });
 r = c.gifApi_({ email: 'juan@x.com' }, 'mind blown');
-ok(r.ok && r.fuente === 'emoji' && /notoemoji\/latest\/1f92f\//.test(r.url), 'Si GIPHY no trae nada apto (g): emoji animado que corresponde («mind blown» → 🤯)');
-c = caja({ props: { GIPHY_KEY: 'k' }, giphy: { code: 500, data: [] } });
-ok(c.gifApi_({ email: 'juan@x.com' }, 'aplauso').fuente === 'emoji', 'GIPHY falla: emoji animado');
-c = caja();
+ok(!r.ok && !/notoemoji/.test(JSON.stringify(r)), 'Si GIPHY no trae nada apto (g) y no hay catálogo: no se muestra nada (nunca un emoji)');
+const CAT = JSON.stringify({ buena_noticia: [1, 2, 3, 4, 5, 6, 7].map(i => ({ url: 'https://media.giphy.com/media/bn' + i + '/giphy.gif', alt: 'yay' })) });
+c = caja({ props: { GIPHY_KEY: 'k', GIF_TEMAS: CAT }, giphy: { code: 500, data: [] } });
+r = c.gifApi_({ email: 'juan@x.com' }, 'aplauso');
+ok(r.ok && r.fuente === 'giphy' && /\/bn\d\//.test(r.url), 'GIPHY falla: un GIF ya elegido del catálogo de temas');
+c = caja({ props: { GIF_TEMAS: CAT } });
 r = c.gifApi_({ email: 'juan@x.com' }, "I'll be back");
-ok(r.ok && r.fuente === 'emoji' && c.pedidos.length === 0 && /1f60e/.test(r.url) && /CC BY 4\.0/.test(r.credito), 'Sin llave: emoji animado de Noto (CC BY 4.0), sin pedir nada afuera');
+ok(r.ok && r.fuente === 'giphy' && c.pedidos.length === 0 && /giphy\.com/.test(r.url), 'Sin llave: un GIF del catálogo, sin pedir nada afuera');
+c = caja({ props: { GIPHY_KEY: 'k' }, giphy: { code: 200, data: [{ rating: 'g', is_sticker: 1, title: 'sticker', images: { downsized: { url: 'https://media.giphy.com/st.gif' } } }] } });
+ok(!c.gifApi_({ email: 'juan@x.com' }, 'mic drop').ok, 'Los stickers de GIPHY no cuentan como GIF');
 ok(!c.gifApi_({ email: 'ana@x.com' }, 'clap').ok && !c.gifApi_(null, 'clap').ok, 'Solo el administrador principal');
 ok(!c.gifApi_({ email: 'juan@x.com' }, '<>{}').ok && c.gifIdea_('x'.repeat(90)).length === 40, 'La idea se limpia (sin símbolos, 40 letras como mucho)');
 const L = fs.readFileSync(path.join(DIR, 'llaves.js'), 'utf8');

@@ -1005,7 +1005,8 @@
   .tvb-dato.con-cara > .tvb-cara { position: absolute; right: 10px; top: 50%; margin-top: -15px; width: 30px; height: 30px; font-size: 10px; }
   /* ── Bento vivo (#810, opción A; js/alma-bento.js): en el iPad y la computadora el bento del Hub rodea a la roca, que no se
      mueve ni se achica; las tarjetas dejan libre el hueco del centro (la roca, lo que dice Alma, «Chat» y «Llamada») y los
-     rieles de los bordes (#788). Siempre 1 imagen y 1 GIF. Se esconde con las esferas y sus niveles, las hojas y el chat. ── */
+     rieles de los bordes (#788). Siempre 1 imagen (el GIF va en su ventana, arriba de la roca). Se esconde con las esferas y
+     sus niveles, las hojas y el chat. ── */
   .bv { position: absolute; inset: 0; pointer-events: none; font: 500 12px/1.4 Montserrat, system-ui, sans-serif; color: #3E3F3F; text-align: left; transition: opacity .3s ease; }
   .bv-capa { position: absolute; inset: 0; }
   .bv-reg { position: absolute; display: flex; flex-direction: column; gap: 16px; pointer-events: none; }
@@ -1019,7 +1020,7 @@
   .bv-capa.ya .bv-c { transition: none; }
   .bv-capa.sale .bv-c { opacity: 0; filter: none; transition: opacity .25s ease; }
   .bv-c > .tvb-t, .bv-c > section { flex: 1; min-height: 0; border-radius: 22px; padding: 16px 18px; background: rgba(255,253,251,.94); box-shadow: 0 22px 46px -30px rgba(40,30,25,.55); overflow: hidden; }
-  .bv-c > .tvb-foto, .bv-c > .tvb-mapa, .bv-c > .tvb-galeria, .bv-c > .bv-gif { padding: 0; }
+  .bv-c > .tvb-foto, .bv-c > .tvb-mapa, .bv-c > .tvb-galeria { padding: 0; }
   .bv .tvb-k { font-size: 10px; letter-spacing: .2em; }
   .bv .tvb-v { font-size: 30px; }
   .bv .tvb-p, .bv .tvb-msg q, .bv .tvb-l li { font-size: 13.5px; }
@@ -1034,14 +1035,24 @@
   .bv-pie small { display: block; margin-top: 4px; font-size: 13px; opacity: .92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .bv-marca { background: #B9A493; }
   .bv-marca > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  /* el GIF: siempre uno; la broma (js/alma-gif.js) lo tapa unos segundos */
-  .bv-gif { position: relative; background: #1F1F1F; }
-  .bv-gif > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .bv-gif.bv-emoji { background: linear-gradient(140deg, #F7EBC6, #CFE6DE); }
-  .bv-gif.bv-emoji > img { object-fit: contain; padding: 14%; box-sizing: border-box; }
-  .bv-gif-alt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 48px; }
-  .bv-cred { position: absolute; right: 10px; bottom: 8px; font: 600 9px/1 Montserrat, system-ui, sans-serif; letter-spacing: .04em; color: rgba(255,255,255,.85); text-shadow: 0 1px 2px rgba(0,0,0,.5); }
-  .bv-emoji .bv-cred { color: rgba(0,0,0,.45); text-shadow: none; }
+  /* La ventana del GIF (Juan, 19-nov-2026: «GIFs de memes… un tono gris oscuro, translúcido, frosted, y SIEMPRE encima de
+     la roca, tanto en el iPad como en el teléfono»; js/alma-bento.js la pone y la mueve con la roca). Vidrio gris oscuro:
+     el atardecer se ve borroso y con más color detrás (blur + saturate), un filo de luz arriba y una sombra suave. Sin
+     verde y sin emojis. La broma (js/alma-gif.js) tapa el marco unos segundos. */
+  .gv { position: absolute; z-index: 2; box-sizing: border-box; padding: 6px; border-radius: 24px; pointer-events: none;
+    background: rgba(28,28,32,.44); -webkit-backdrop-filter: blur(22px) saturate(170%) brightness(.92); backdrop-filter: blur(22px) saturate(170%) brightness(.92);
+    border: 1px solid rgba(255,255,255,.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), inset 0 -1px 0 rgba(0,0,0,.22), 0 22px 44px -24px rgba(20,14,16,.65);
+    opacity: 0; transform: translateY(8px) scale(.97);
+    transition: opacity .5s ease, transform .55s cubic-bezier(.22,.61,.36,1), left .45s cubic-bezier(.22,.61,.36,1), top .45s cubic-bezier(.22,.61,.36,1), width .45s ease, height .45s ease; }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .gv { background: rgba(38,38,42,.86); } }
+  .gv.on.listo { opacity: 1; transform: none; }
+  .gv-marco { position: relative; width: 100%; height: 100%; border-radius: 18px; overflow: hidden; background: rgba(0,0,0,.28); }
+  .gv-marco > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s ease; }
+  .gv-marco > img.on { opacity: 1; }
+  .gv-cred { position: absolute; right: 14px; bottom: 11px; font: 600 8.5px/1 Montserrat, system-ui, sans-serif; letter-spacing: .06em; color: rgba(255,255,255,.82); text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+  html.gv-sin-hola .hola { opacity: 0 !important; }   /* no cabían los dos: la ventana toma el lugar del saludo */
+  @media (prefers-reduced-motion: reduce) { .gv, .gv-marco > img { transition: opacity .2s linear !important; transform: none !important; } }
   /* datos chicos juntos: «La estadía» en renglones */
   .bv-datos { display: flex; flex-direction: column; gap: 2px; }
   .bv-datos > * { flex: none; }
@@ -1635,8 +1646,8 @@
 <script src="../js/alma-voz.js?v=2026-11-19-unavoz"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
-<script src="../js/alma-gif.js?v=2026-11-19-bv"></script>
-<script src="../js/alma-bento.js?v=2026-11-19a"></script>
+<script src="../js/alma-gif.js?v=2026-11-19-gv"></script>
+<script src="../js/alma-bento.js?v=2026-11-19-gv"></script>
 <script>
 /* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
    el reloj de la página (sa-nav.js: J.p = t % PULSE, 3.6 s); sus animaciones de CSS (esf-quieta, esf-halo) arrancan en ese
@@ -4443,6 +4454,7 @@ window.SAPulso = {
   }
   function pintar() {
     var t = TV.t, v = t ? TV.vista : "nada", abierta = v === "abierta" || v === "detalle";
+    try { if (window.AlmaBento) AlmaBento.gifTema(abierta ? t : null); } catch (e) {}   // la ventana del GIF: el tema de lo que se habla
     if (vivoUsar(t)) return pintarVivo(t, v);
     if (TV.bv) { TV.bv = false; TV.card = null; if (window.AlmaBento) AlmaBento.reposo(); }
     var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id), bento = esBento(t) || esClaudio(t);   // el Panel de Claudio va donde el tablero

@@ -2,8 +2,10 @@
    bento se convierte en GIF y el resto se queda como información; la broma pasa y el GIF se quita. En la pantalla general,
    tal vez se muestra en el chat.»
    La app (VozNativa.swift · GifBroma.swift) cuenta AlmaVoz.evento({ tipo: "gif", idea }) cuando Alma llama a mostrar_gif
-   (solo con Juan y con la pantalla a la vista). Aquí se pide el GIF al Hub (acción gif, apps-script/gif.js: GIPHY rating g o
-   un emoji animado) y se pone:
+   (solo con Juan y con la pantalla a la vista). Aquí se pide el GIF al Hub (acción gif, apps-script/gif.js: GIPHY rating g,
+   nunca un emoji) y se pone:
+   · con la ventana del GIF arriba de la roca a la vista (js/alma-bento.js, 19-nov-2026; teléfono, iPad y computadora):
+     encima del GIF que está pasando, unos segundos, y después sigue la rotación;
    · con el tablero bento a la vista: encima de UN cuadro (el dato más grande; nunca la foto ni el mapa), unos segundos, y se
      quita con un fundido: el cuadro vuelve a su información;
    · sin tablero, con el chat de la llamada a la vista: como una burbuja de Alma en el chat (se queda, como lo demás del chat);
@@ -29,9 +31,7 @@
     s.textContent =
       ".gifb{position:absolute;inset:0;z-index:3;border-radius:inherit;overflow:hidden;background:#1F1F1F;opacity:0;transition:opacity .35s ease}" +
       ".gifb.on{opacity:1}.gifb img{width:100%;height:100%;object-fit:cover;display:block}" +
-      ".gifb-emoji{background:#FFF7EE}.gifb-emoji img{object-fit:contain;padding:8%;box-sizing:border-box}" +
       ".gifb small,.gifb-chat small{position:absolute;right:8px;bottom:6px;font:600 9px/1 Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.5)}" +
-      ".gifb-emoji small{color:rgba(0,0,0,.45);text-shadow:none}" +
       ".gifb-chat{position:relative;align-self:flex-start;max-width:200px;border-radius:20px;overflow:hidden;background:#F3F3F3}" +
       ".gifb-chat img{display:block;width:100%;height:auto;min-height:60px}" +
       "@media (prefers-reduced-motion: reduce){.gifb{transition:none}}";
@@ -45,7 +45,7 @@
   /* El cuadro que se vuelve GIF: el dato más grande del tablero (un número: lo que menos se extraña unos segundos); sin
      datos, el más chico de los demás. Nunca la foto ni el mapa. */
   function cuadroDelTablero() {
-    /* Bento vivo (#810): la broma tapa el GIF del tema unos segundos y después vuelve el del tema (js/alma-bento.js). */
+    /* La ventana del GIF (js/alma-bento.js): la broma tapa el GIF del tema unos segundos y después sigue la rotación. */
     var bv = null; try { bv = window.AlmaBento && AlmaBento.gifCuadro ? AlmaBento.gifCuadro() : null; } catch (e) {}
     if (bv) return bv;
     var tabs = Array.prototype.filter.call(document.querySelectorAll(".tvb"), visible); if (!tabs.length) return null;
@@ -60,7 +60,7 @@
     var m = Array.prototype.filter.call(document.querySelectorAll(".san-msgs"), visible); return m.length ? m[0] : null;
   }
   function enCuadro(c, r) {
-    var g = document.createElement("div"); g.className = "gifb" + (r.fuente === "emoji" ? " gifb-emoji" : "");
+    var g = document.createElement("div"); g.className = "gifb";
     g.setAttribute("role", "img"); g.setAttribute("aria-label", "GIF: " + (r.alt || ""));
     var fin = function () {
       if (!g.parentNode) return; g.classList.remove("on");

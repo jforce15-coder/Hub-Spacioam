@@ -6,7 +6,8 @@
       «Veredicto: peor» es rojo siempre. Lee TITULO, RAMA y CUERPO del PR (en local, sin PR, solo corren los dobles).
    2. El repo es público: gasto.js no trae montos (la tabla de planes vive en la propiedad GASTO_PLANES).
    3. El reporte: lo fijo cuenta entero, lo de una vez en su mes, lo anual entre 12, «falta dato» se marca y no suma,
-      Hospitable va aparte (negocio), y los tokens salen de IA_USO del mes.
+      los tokens salen de IA_USO del mes, y el gasto de Alma (agente) y el de Spacio AM (empresa) nunca se mezclan:
+      Hospitable es empresa, con su propio total; un recibo en euros sin usd se ve con «falta USD» y no suma.
    4. Solo el administrador principal ve el gasto y cambia la tabla.
    5. Pareto: abre como mucho 2 por semana, solo de lo que suma el 80 % y nunca dos veces el mismo lugar; el pedido a
       Claude va en JSON, sin montos, con la compuerta de calidad en sus pasos.
@@ -89,7 +90,8 @@ if (process.env.TITULO || process.env.CUERPO) {
     { id: 'elv', prov: 'elevenlabs', nombre: 'Recarga vieja', tipo: 'una_vez', usd: 999, fecha: '2026-10-02', fuente: 'recibo' },
     { id: 'ap', prov: 'apple', nombre: 'Programa', tipo: 'año', usd: 120, fuente: 'estimado' },
     { id: 'cp', prov: 'claude_plan', nombre: 'Plan', tipo: 'mes', usd: null },
-    { id: 'ho', prov: 'hospitable', nombre: 'Plan', tipo: 'mes', usd: 800, fuente: 'recibo' }
+    { id: 'ho', prov: 'hospitable', nombre: 'Plan', tipo: 'mes', usd: 800, fuente: 'recibo' },
+    { id: 'do', prov: 'dominio', nombre: 'Dominio', tipo: 'año', usd: 24, fuente: 'recibo' }
   ];
   const el = { ok: true, plan: { nivel: 'pro', creditos_usados: 1, creditos_limite: 2 }, conversaciones: 3, minutos: 60, creditos_mes: 1000, llm_pct: 52, cpm: [],
     agentes: [{ nombre: 'Alma', n: 2, minutos: 50, creditos: 900 }, { nombre: 'Claudio', n: 1, minutos: 10, creditos: 100 }],
@@ -102,9 +104,23 @@ if (process.env.TITULO || process.env.CUERPO) {
   const P = id => r.proveedores.filter(p => p.id === id)[0];
   ok(r.mes === '2026-11' && P('elevenlabs').usd === 150, '3 · ElevenLabs del mes = plan + la recarga de noviembre (la de octubre no)');
   ok(P('anthropic').usd === 4 && P('anthropic').detalle.funciones[0].nombre === 'ALMA · Redactar respuestas', '3 · Claude · tokens sale de IA_USO del mes, por función');
-  ok(P('apple').usd === 10, '3 · lo anual cuenta entre 12');
-  ok(P('claude_plan').estado === 'falta' && r.total.faltan.indexOf('Plan de Claude') >= 0, '3 · un plan sin monto queda como «falta dato»');
-  ok(r.total.usd === 164 && !r.proveedores.some(p => p.id === 'hospitable') && r.negocio[0].id === 'hospitable', '3 · el número grande es solo de Alma; Hospitable va aparte');
+  ok(r.empresa.proveedores.filter(p => p.id === 'apple')[0].usd === 10, '3 · lo anual cuenta entre 12');
+  ok(r.empresa.proveedores.filter(p => p.id === 'claude_plan')[0].estado === 'falta' && r.empresa.faltan.indexOf('Plan de Claude') >= 0 && r.total.faltan.indexOf('Plan de Claude') < 0, '3 · un plan sin monto queda como «falta dato» (en su clase)');
+  ok(P('anthropic') && !P('claude_plan'), '3 · los tokens de la llave de API cuentan en Alma; el plan de Claude no (es desarrollo)');
+  ok(r.total.usd === 154 && !r.proveedores.some(p => p.clase !== 'alma') && r.empresa.proveedores[0].id === 'hospitable', '3 · el número grande es solo de Alma (agente); Hospitable va en la empresa');
+  ok(r.empresa.usd === 812 && r.general.usd === 966 && r.proveedores.every(p => p.clase === 'alma') && r.empresa.proveedores.every(p => p.clase !== 'alma'), '3 · la empresa lleva su propio total y el total general (referencia) suma las dos');
+  ok(ctx.GASTO_PROV_.every(P => ['alma', 'desarrollo', 'operacion'].indexOf(P.clase) >= 0) && ctx.gastoClase_('hospitable') === 'operacion' && ctx.gastoClase_('claude_plan') === 'desarrollo' && ctx.gastoClase_('anthropic') === 'alma', '3 · cada proveedor tiene su clase (alma, desarrollo u operación)');
+  const parte = k => r.empresa.partes.filter(x => x.clase === k)[0];
+  ok(parte('operacion').usd === 802 && parte('desarrollo').usd === 10 && parte('desarrollo').proveedores.some(p => p.id === 'claude_plan'), '3 · la empresa se parte en desarrollo (plan de Claude, Apple) y operación (Hospitable)');
+  {
+    const pe = [{ id: 'ho', prov: 'hospitable', nombre: 'Professional + precios dinámicos', tipo: 'mes', usd: '', moneda: 'EUR', monto: 804, fuente: 'recibo' }];
+    const { ctx: ce } = caja({ props: { GASTO_PLANES: JSON.stringify(pe) }, uso, el });
+    const re = ce.gastoReporte_(), H = re.empresa.proveedores.filter(p => p.id === 'hospitable')[0];
+    ok(H.estado === 'falta_usd' && H.usd === 0 && H.sin_usd[0].monto === 804 && H.sin_usd[0].moneda === 'EUR' && re.empresa.sin_usd[0].monto === 804 && re.total.usd === 4,
+      '3 · un recibo en euros sin usd se ve con su monto y «falta USD», y no toca el gasto de Alma');
+    const pn = [{ id: 'ho', prov: 'hospitable', nombre: 'Plan', tipo: 'mes', usd: '', nota: 'recibo de 1.234,50 EUR' }];
+    ok(caja({ props: { GASTO_PLANES: JSON.stringify(pn) } }).ctx.gastoPlanes_()[0].monto === 1234.5, '3 · si la moneda viene solo en la nota («N EUR»), se lee de ahí');
+  }
   ok(r.proveedores[0].id === 'elevenlabs' && r.proveedores[0].pct > 90, '3 · los proveedores van de mayor a menor con su porcentaje');
   const ag = P('elevenlabs').detalle.agentes;
   ok(ag[0].nombre === 'Alma' && ag[0].usd === 135 && ag[1].usd === 15, '3 · ElevenLabs se reparte por agente según sus créditos');
@@ -119,6 +135,7 @@ if (process.env.TITULO || process.env.CUERPO) {
   const al = ctx.gastoParaAlma_({ principal: true });
   ok(al.ok && al.gastado_hasta_hoy_usd > 0 && al.lo_que_mas_pesa.length === 3 && /Gasto de Alma/.test(al.nota), '4 · gasto_alma: el número, la proyección y lo que más pesa, en simple');
   ok(ctx.gastoParaAlma_({ principal: false }).ok === false, '4 · gasto_alma solo con el principal');
+  ok(al.gasto_de_empresa_aparte.some(x => x.que.indexOf('Hospitable') >= 0) && !al.lo_que_mas_pesa.some(x => x.nombre === 'Hospitable'), '4 · gasto_alma dice la empresa aparte, nunca como gasto de Alma');
 }
 
 /* 5 · Pareto */
@@ -130,6 +147,7 @@ if (process.env.TITULO || process.env.CUERPO) {
   const { ctx, pedidos, props } = caja({ uso, el, ahora: lunes });
   const L = ctx.gastoParetoLugares_();
   ok(L.top.length === 3 && L.top[0].lugar === 'Claude · ALMA · F0', '5 · el 80 % son los pocos lugares de arriba (aquí 3 de 8)');
+  ok(!L.lugares.some(x => /hospitable|dominio|empresa|plan de claude|apple|higgsfield/i.test(x.lugar)), '5 · el equipo de ahorro solo trabaja sobre el gasto de Alma (nada de la empresa)');
   const seco = ctx.gastoPareto_(true);
   ok(seco.seco && pedidos.length === 0 && seco.abiertos.length === 2, '5 · en seco solo dice qué abriría');
   ctx.gastoParetoSiToca_();

@@ -12,7 +12,20 @@
      de cuentas). Juan la corrige en la pantalla (gastoPlanFijar) y el robot la llena desde los recibos (gasto_planes).
      Lo que no tiene monto sale como «falta dato» y se puede escribir ahí mismo.
    · Hoja privada GASTO_MES: una fila por mes con el total y su desglose, para comparar con el mes pasado.
-   · El equipo de ahorro (Pareto 80/20) vive abajo: gastoPareto_ y la hoja GASTO_AHORRO.
+   · El equipo de ahorro (Pareto 80/20) vive abajo: gastoPareto_ y la hoja GASTO_AHORRO. Solo mira el gasto de Alma.
+   · DOS CLASES, SIN MEZCLAR (Juan, 19-nov-2026): «Hospitable sí lo pondría, pero como un gasto aparte […] Hoy por hoy es
+     un gasto de Spacio AM como empresa, no un gasto de Alma como agente. Esa diferenciación necesito que esté súper clara.»
+     Y sobre el plan de Claude: «Alma lo único que gasta son tokens; hoy uso Claude porque estamos en desarrollo, pero un
+     usuario normal usando solo la app de Alma solo debería gastar tokens.» Por eso tres clases:
+       «alma»       = Gasto de Alma (agente): solo lo que cuesta que Alma funcione para un usuario (tokens de la llave de
+                      API del Hub, la voz de ElevenLabs, Google de alma@…). Es el número grande.
+       «desarrollo» = Desarrollo (empresa): construir Alma (plan de Claude de Claudio, Apple Developer, Higgsfield y la
+                      GPU de voces, herramientas de construcción).
+       «operacion»  = Operación (empresa): lo que Spacio AM pagaría igual sin Alma (Hospitable, dominio).
+     Las dos de empresa van aparte, con su propio total, y NUNCA suman al número de Alma. El total general sale al
+     final solo como referencia. Los tokens de la llave de API (IA_USO) y el plan de Claude son proveedores distintos.
+   · Moneda: un plan puede venir en otra moneda (moneda + monto, p. ej. un recibo en euros). El Hub no tiene todavía una
+     fuente de tipo de cambio: si falta usd, se muestra el monto en su moneda y «falta USD» (no se inventa la conversión).
    Pantalla: alma/gasto.html (Ajustes → Gasto de Alma). Voz y chat: herramienta gasto_alma («¿cuánto estamos gastando?»). */
 
 var GASTO_URL_ = 'https://hub.spacioam.com/alma/gasto.html';
@@ -20,20 +33,24 @@ var GASTO_CACHE_MIN_ = 30;            // el reporte armado, en caché (lo pesado
 var GASTO_EL_CACHE_MIN_ = 180;        // conversaciones de ElevenLabs del mes: cada 3 h como mucho (cuida el cupo de Google)
 var GASTO_EL_MUESTRA_ = 10;           // conversaciones leídas una por una (las más largas del mes): créditos y LLM reales
 var GASTO_MES_CAB_ = ['mes', 'actualizado', 'total_usd', 'medido_usd', 'estimado_usd', 'faltan', 'desglose'];
-/* Los proveedores con los que Alma tiene gasto. grupo «negocio»: herramientas del negocio que Alma usa pero que se pagarían
-   igual sin ella (van aparte, no suman al número grande). Sin montos aquí: los montos están en GASTO_PLANES. */
+/* Los proveedores, cada uno con su clase: «alma», «desarrollo» u «operacion». Sin montos aquí: están en GASTO_PLANES. */
 var GASTO_PROV_ = [
-  { id: 'elevenlabs', nombre: 'ElevenLabs', que: 'La voz de Alma y Claudio: llamadas en la app, por teléfono y WhatsApp.' },
-  { id: 'claude_plan', nombre: 'Plan de Claude', que: 'Claudio: las sesiones de Claude Code que hacen los cambios.' },
-  { id: 'anthropic', nombre: 'Claude · tokens', que: 'Lo que Alma piensa por escrito: chat, WhatsApp, huéspedes, mejoras.' },
-  { id: 'higgsfield', nombre: 'Higgsfield', que: 'Fotos y videos con IA.' },
-  { id: 'google', nombre: 'Google', que: 'Workspace de alma@ y Google Cloud. Aquí también los cupos de hoy.' },
-  { id: 'apple', nombre: 'Apple Developer', que: 'Para publicar la app de Alma (TestFlight).' },
-  { id: 'onesignal', nombre: 'OneSignal', que: 'Notificaciones de la web.' },
-  { id: 'dominio', nombre: 'Dominio y web', que: 'spacioam.com y lo que lo sirve.' },
-  { id: 'otros', nombre: 'Otros', que: 'Lo demás con IA o con Alma.' },
-  { id: 'hospitable', nombre: 'Hospitable', que: 'Las reservas y los mensajes de huéspedes que Alma lee y escribe.', grupo: 'negocio' }
+  { id: 'anthropic', clase: 'alma', nombre: 'Claude · tokens (API)', que: 'Lo que Alma piensa por escrito con la llave de API del Hub: chat, WhatsApp, huéspedes. No es el plan de Claude.' },
+  { id: 'elevenlabs', clase: 'alma', nombre: 'ElevenLabs', que: 'La voz de Alma: llamadas en la app, por teléfono y WhatsApp.' },
+  { id: 'google', clase: 'alma', nombre: 'Google', que: 'Workspace de alma@ y Google Cloud. Aquí también los cupos de hoy.' },
+  { id: 'onesignal', clase: 'alma', nombre: 'OneSignal', que: 'Las notificaciones de Alma en la web.' },
+  { id: 'otros', clase: 'alma', nombre: 'Otros de Alma', que: 'Lo demás que cuesta que Alma funcione.' },
+  { id: 'claude_plan', clase: 'desarrollo', nombre: 'Plan de Claude', que: 'Claudio: las sesiones de Claude Code que construyen Alma. Un usuario de la app no lo gasta.' },
+  { id: 'apple', clase: 'desarrollo', nombre: 'Apple Developer', que: 'Para publicar la app de Alma (TestFlight).' },
+  { id: 'higgsfield', clase: 'desarrollo', nombre: 'Higgsfield', que: 'Fotos y videos con IA y la GPU para crear voces.' },
+  { id: 'desarrollo_otros', clase: 'desarrollo', nombre: 'Otras herramientas de construcción', que: 'Lo demás que se usa para construir Alma.' },
+  { id: 'hospitable', clase: 'operacion', nombre: 'Hospitable', que: 'Las reservas y los canales de Spacio AM. Para Alma es conexión y respaldo, pero se paga igual sin ella.' },
+  { id: 'dominio', clase: 'operacion', nombre: 'Dominio y web', que: 'spacioam.com y lo que lo sirve: es de la empresa.' },
+  { id: 'empresa_otros', clase: 'operacion', nombre: 'Otros de la operación', que: 'Otra operación de Spacio AM que no es Alma.' }
 ];
+var GASTO_CLASES_ = { alma: 'Gasto de Alma (agente)', empresa: 'Gastos de Spacio AM (empresa)', desarrollo: 'Desarrollo (empresa)', operacion: 'Operación (empresa)' };
+var GASTO_CLASES_QUE_ = { desarrollo: 'Lo que cuesta construir Alma. Un usuario que solo usa la app no lo gasta.', operacion: 'Lo que Spacio AM pagaría igual sin Alma.' };
+function gastoClase_(prov) { var P = GASTO_PROV_.filter(function (x) { return x.id === prov; })[0]; return P ? P.clase : ''; }
 
 function gastoR2_(x) { return Math.round((Number(x) || 0) * 100) / 100; }
 function gastoMesDe_(t) { return Utilities.formatDate(new Date(t), CFG.TZ, 'yyyy-MM'); }
@@ -45,15 +62,25 @@ function gastoRangoMes_(mes) {
 }
 function gastoMesAnterior_(mes) { var y = +mes.slice(0, 4), m = +mes.slice(5, 7); return Utilities.formatDate(new Date(Date.UTC(y, m - 2, 15)), 'UTC', 'yyyy-MM'); }
 
-/* ── La tabla de planes (GASTO_PLANES) ── [{ id, prov, nombre, tipo: mes|año|una_vez, usd, desde, hasta, fecha, fuente, nota }]
-   usd vacío = falta dato. tipo «una_vez» (recargas, cuotas): cuenta en el mes de su fecha. */
+/* ── La tabla de planes (GASTO_PLANES) ── [{ id, prov, nombre, tipo: mes|año|una_vez, usd, moneda?, monto?, desde, hasta, fecha, fuente, nota }]
+   usd vacío = falta dato. tipo «una_vez» (recargas, cuotas): cuenta en el mes de su fecha.
+   moneda + monto: el recibo en otra moneda (EUR…). Si no vienen pero la nota o el nombre dicen «N EUR» o «N €», se leen de ahí. */
+function gastoMoneda_(p) {
+  var mon = String(p.moneda || '').toUpperCase().replace('€', 'EUR').slice(0, 3), monto = p.monto === '' || p.monto == null ? null : Number(String(p.monto).replace(',', '.'));
+  if (!mon || mon === 'USD') {
+    var m = /(\d[\d.,]*)\s*(EUR|€)/i.exec([p.nota, p.nombre, p.fuente].join(' '));
+    if (m && (p.usd === '' || p.usd == null)) { mon = 'EUR'; monto = Number(m[1].replace(/[.,](?=\d{3}\b)/g, '').replace(',', '.')); }
+  }
+  if (!mon || mon === 'USD' || !isFinite(monto) || monto == null) return { moneda: 'USD', monto: null };
+  return { moneda: mon, monto: monto };
+}
 function gastoPlanes_() {
   var s = PropertiesService.getScriptProperties().getProperty('GASTO_PLANES'), l = [];
   try { l = JSON.parse(s || '[]') || []; } catch (e) { l = []; }
   return l.filter(function (p) { return p && p.prov; }).map(function (p, i) {
     var usd = p.usd === '' || p.usd == null ? null : Number(p.usd);
     return { id: String(p.id || ('p' + i)), prov: String(p.prov), nombre: String(p.nombre || 'Plan'), tipo: /^(año|anual|ano)$/i.test(p.tipo) ? 'año' : p.tipo === 'una_vez' ? 'una_vez' : 'mes',
-      usd: isFinite(usd) ? usd : null, desde: String(p.desde || ''), hasta: String(p.hasta || ''), fecha: String(p.fecha || ''), fuente: String(p.fuente || ''), nota: String(p.nota || '').slice(0, 200) };
+      usd: isFinite(usd) ? usd : null, moneda: gastoMoneda_(p).moneda, monto: gastoMoneda_(p).monto, desde: String(p.desde || ''), hasta: String(p.hasta || ''), fecha: String(p.fecha || ''), fuente: String(p.fuente || ''), nota: String(p.nota || '').slice(0, 200) };
   });
 }
 function gastoPlanesGuardar_(l) { PropertiesService.getScriptProperties().setProperty('GASTO_PLANES', JSON.stringify(l).slice(0, 8500)); CacheService.getScriptCache().remove('gasto_rep'); }
@@ -183,25 +210,32 @@ function gastoReporte_(mes, fresco) {
   var R = gastoRangoMes_(mes), actual = mes === hoyMes, transcurrido = actual ? Math.max(1, (Date.now() - R.ini) / 86400000) : R.dias;
   var planes = gastoPlanes_(), cl = gastoClaude_(mes), el = gastoElevenLabs_(mes, fresco === 'todo'), faltan = [];   // «Actualizar» rehace el reporte; ElevenLabs sigue con su caché de 3 h (cupo de Google)
   var provs = GASTO_PROV_.map(function (P) {
-    var lineas = [], fijo = 0, unaVez = 0, falta = false;
+    var lineas = [], fijo = 0, unaVez = 0, falta = false, sinUsd = [];
     planes.filter(function (p) { return p.prov === P.id; }).forEach(function (p) {
       var v = gastoPlanEnMes_(p, mes); if (v === undefined) return;
-      if (v === null) { falta = true; lineas.push({ id: p.id, nombre: p.nombre, usd: null, estado: 'falta', tipo: p.tipo, fuente: p.fuente, nota: p.nota }); return; }
+      if (v === null) {
+        /* Sin usd pero con el monto en otra moneda: se ve el monto y «falta USD» (no suma a ningún total en dólares). */
+        var otra = p.moneda !== 'USD' && p.monto != null ? { monto: gastoR2_(p.tipo === 'año' ? p.monto / 12 : p.monto), moneda: p.moneda } : null;
+        if (otra) sinUsd.push(otra);
+        falta = true; lineas.push({ id: p.id, nombre: p.nombre, usd: null, estado: otra ? 'falta_usd' : 'falta', tipo: p.tipo, fuente: p.fuente, nota: p.nota, moneda: otra && otra.moneda, monto: otra && otra.monto }); return;
+      }
       if (p.tipo === 'una_vez') unaVez += v; else fijo += v;
       lineas.push({ id: p.id, nombre: p.nombre, usd: gastoR2_(v), estado: /recibo|factura/i.test(p.fuente) ? 'medido' : 'estimado', tipo: p.tipo, fuente: p.fuente, nota: p.nota, fecha: p.fecha });
     });
     var variable = 0, estado = lineas.some(function (l) { return l.estado === 'estimado'; }) ? 'estimado' : 'medido';
     if (P.id === 'anthropic') { variable = cl.usd; lineas.push({ nombre: 'Tokens registrados (IA_USO)', usd: cl.usd, estado: 'medido', tipo: 'uso' }); }
-    if (!lineas.length && P.id === 'otros') return null;   // «Otros» solo sale si alguien le puso algo
+    if (!lineas.length && /_otros$|^otros$/.test(P.id)) return null;   // «Otros» solo sale si alguien le puso algo
     if (!lineas.length) { falta = true; lineas.push({ nombre: 'Sin dato todavía', usd: null, estado: 'falta' }); }
     var usd = gastoR2_(fijo + unaVez + variable);
     /* Proyección: lo fijo entero; lo de uso (tokens y recargas) al ritmo de lo que va del mes. */
     var proy = actual ? gastoR2_(fijo + (unaVez + variable) * R.dias / transcurrido) : usd;
     if (falta) faltan.push(P.nombre);
-    return { id: P.id, nombre: P.nombre, que: P.que, grupo: P.grupo || 'alma', usd: usd, proyeccion: proy, estado: falta && !usd ? 'falta' : falta ? 'incompleto' : estado, lineas: lineas };
+    return { id: P.id, nombre: P.nombre, que: P.que, clase: P.clase, usd: usd, proyeccion: proy, sin_usd: sinUsd,
+      estado: falta && !usd ? (sinUsd.length ? 'falta_usd' : 'falta') : falta ? 'incompleto' : estado, lineas: lineas };
   });
   provs = provs.filter(Boolean);
-  var deAlma = provs.filter(function (p) { return p.grupo === 'alma'; }), negocio = provs.filter(function (p) { return p.grupo !== 'alma'; });
+  /* Las dos clases nunca se mezclan: el número grande (total) es SOLO de Alma; la empresa lleva su propio total. */
+  var deAlma = provs.filter(function (p) { return p.clase === 'alma'; }), deEmpresa = provs.filter(function (p) { return p.clase !== 'alma'; });
   var total = gastoR2_(deAlma.reduce(function (s, p) { return s + p.usd; }, 0)), proy = gastoR2_(deAlma.reduce(function (s, p) { return s + p.proyeccion; }, 0));
   var medido = gastoR2_(deAlma.reduce(function (s, p) { return s + p.lineas.filter(function (l) { return l.estado === 'medido'; }).reduce(function (a, l) { return a + (l.usd || 0); }, 0); }, 0));
   deAlma.forEach(function (p) { p.pct = total ? Math.round(1000 * p.usd / total) / 10 : 0; });
@@ -220,10 +254,22 @@ function gastoReporte_(mes, fresco) {
   var CP = deAlma.filter(function (p) { return p.id === 'claude_plan'; })[0];
   if (CP) { try { var mic = microFilas_().filter(function (m) { return gastoMesDe_(m.creado instanceof Date ? m.creado : Date.parse(m.creado) || 0) === mes; }); CP.detalle = { microproyectos: mic.length, unidos: mic.filter(function (m) { return m.estado === MICRO_ESTADOS_.unido; }).length }; } catch (e) {} }
   var ant = gastoMesAnterior_(mes), previo = gastoMesLeer_(ant);
+  var suma = function (l, k) { return gastoR2_(l.reduce(function (s, p) { return s + (p[k] || 0); }, 0)); };
+  var sinUsdDe = function (l) { var m = {}; l.forEach(function (p) { (p.sin_usd || []).forEach(function (x) { m[x.moneda] = gastoR2_((m[x.moneda] || 0) + x.monto); }); });
+    return Object.keys(m).map(function (k) { return { moneda: k, monto: m[k] }; }); };
+  deEmpresa.sort(function (a, b) { return b.usd - a.usd || (b.sin_usd.length - a.sin_usd.length); });
+  var bloque = function (l) { return { usd: suma(l, 'usd'), proyeccion: suma(l, 'proyeccion'), sin_usd: sinUsdDe(l),
+    faltan: l.filter(function (p) { return p.estado === 'falta' || p.estado === 'falta_usd' || p.estado === 'incompleto'; }).map(function (p) { return p.nombre; }), proveedores: l }; };
+  var empresa = Object.assign(bloque(deEmpresa), { titulo: GASTO_CLASES_.empresa, nota: 'Gastos de Spacio AM como empresa. No suman al gasto de Alma.',
+    partes: ['desarrollo', 'operacion'].map(function (k) { return Object.assign(bloque(deEmpresa.filter(function (p) { return p.clase === k; })), { clase: k, titulo: GASTO_CLASES_[k], que: GASTO_CLASES_QUE_[k] }); }) });
+  var empUsd = empresa.usd;
   var rep = { ok: true, mes: mes, actual: actual, actualizado: new Date().toISOString(), dia: Math.floor(transcurrido), dias_mes: R.dias,
+    titulo: GASTO_CLASES_.alma,
     total: { usd: total, proyeccion: proy, medido: medido, estimado: gastoR2_(total - medido), faltan: faltan.filter(function (n) { return deAlma.some(function (p) { return p.nombre === n; }); }) },
     mes_anterior: previo ? { mes: ant, usd: previo.total_usd } : { mes: ant, usd: null },
-    proveedores: deAlma, negocio: negocio, ahorro: gastoAhorroLista_(), url: GASTO_URL_ };
+    proveedores: deAlma, empresa: empresa,
+    general: { usd: gastoR2_(total + empUsd), proyeccion: gastoR2_(proy + empresa.proyeccion), sin_usd: empresa.sin_usd.concat(sinUsdDe(deAlma)), nota: 'Solo como referencia: Alma + empresa.' },
+    ahorro: gastoAhorroLista_(), url: GASTO_URL_ };
   if (actual) { try { c.put(ck, JSON.stringify(rep), GASTO_CACHE_MIN_ * 60); } catch (e) {} try { gastoMesGuardar_(rep); } catch (e) { console.error('gastoMesGuardar_: ' + e); } }
   return rep;
 }
@@ -259,7 +305,7 @@ function gastoPlanFijar_(b) {
   var usd = b.usd === '' || b.usd == null ? null : Number(String(b.usd).replace(',', '.'));
   if (usd != null && !(usd >= 0 && usd < 100000)) return { ok: false, error: 'El monto no es un número válido.' };
   var p = { id: String(b.id || ('p' + Date.now().toString(36))), prov: b.prov, nombre: String(b.nombre || 'Plan').slice(0, 60), tipo: b.tipo === 'una_vez' ? 'una_vez' : /^a/.test(b.tipo || '') ? 'año' : 'mes',
-    usd: usd, desde: String(b.desde || ''), hasta: String(b.hasta || ''), fecha: String(b.fecha || ''), fuente: String(b.fuente || 'Juan en la pantalla').slice(0, 60), nota: String(b.nota || '').slice(0, 200) };
+    usd: usd, moneda: /^[A-Za-z]{3}$/.test(b.moneda || '') ? String(b.moneda).toUpperCase() : 'USD', monto: b.monto === '' || b.monto == null || !isFinite(Number(String(b.monto).replace(',', '.'))) ? '' : Number(String(b.monto).replace(',', '.')), desde: String(b.desde || ''), hasta: String(b.hasta || ''), fecha: String(b.fecha || ''), fuente: String(b.fuente || 'Juan en la pantalla').slice(0, 60), nota: String(b.nota || '').slice(0, 200) };
   var i = -1; l.forEach(function (x, k) { if (x.id === p.id) i = k; });
   if (i >= 0) l[i] = p; else l.push(p);
   gastoPlanesGuardar_(l);
@@ -272,8 +318,9 @@ function gastoParaAlma_(adm) {
   var r = gastoReporte_();
   return { ok: true, mes: r.mes, gastado_hasta_hoy_usd: r.total.usd, proyeccion_fin_de_mes_usd: r.total.proyeccion, mes_pasado_usd: r.mes_anterior.usd,
     lo_que_mas_pesa: r.proveedores.slice(0, 3).map(function (p) { return { nombre: p.nombre, usd: p.usd, pct: p.pct }; }), falta_dato_de: r.total.faltan,
+    gasto_de_empresa_aparte: r.empresa.partes.map(function (x) { return { clase: x.titulo, usd: x.usd, sin_usd: x.sin_usd, que: x.proveedores.map(function (p) { return p.nombre; }) }; }),
     ahorro_en_curso: (r.ahorro || []).filter(function (x) { return x.estado !== 'descartado'; }).length, detalle: GASTO_URL_,
-    nota: 'Dilo simple: el número grande primero («este mes vamos en X dólares; a este ritmo cerramos en Y»), luego lo que más pesa. Si falta dato de algo, dilo. El detalle está en Ajustes → Gasto de Alma.' };
+    nota: 'Dilo simple: el número grande primero («este mes Alma va en X dólares; a este ritmo cerramos en Y»), luego lo que más pesa. Si falta dato de algo, dilo. El plan de Claude, Apple, Higgsfield (desarrollo) y Hospitable (operación) NO son gasto de Alma: si los nombras, di que son gasto de Spacio AM como empresa, aparte. El detalle está en Ajustes → Gasto de Alma.' };
 }
 
 /* ═══ EQUIPO DE AHORRO · PARETO 80/20 ═══════════════════════════════════════════════════════════════════════════════
@@ -304,9 +351,11 @@ function gastoAhorroLista_() {
 }
 /* Los lugares de gasto por uso, de mayor a menor, y los que suman el 80 %. */
 function gastoParetoLugares_() {
+  /* Solo el gasto de Alma (agente): la empresa (Hospitable…) nunca entra al equipo de ahorro. */
+  if (gastoClase_('anthropic') !== 'alma' || gastoClase_('elevenlabs') !== 'alma') return { total: 0, lugares: [], top: [] };
   var hoy = gastoMesDe_(Date.now()), lug = [];
   [gastoMesAnterior_(hoy), hoy].forEach(function (mes) { gastoClaude_(mes).funciones.forEach(function (f) { lug.push({ lugar: 'Claude · ' + f.nombre, tipo: 'claude', usd: f.usd, modelo: f.modelo }); }); });
-  var r = gastoReporte_(), E = r.proveedores.filter(function (p) { return p.id === 'elevenlabs'; })[0];
+  var r = gastoReporte_(), E = r.proveedores.filter(function (p) { return p.id === 'elevenlabs' && p.clase === 'alma'; })[0];
   if (E && E.detalle && E.detalle.agentes) {
     /* agente × canal no viene cruzado: se usa por agente y, para Alma, por canal (lo que más pesa es Alma). */
     (E.detalle.canales || []).forEach(function (c) { if (c.usd) lug.push({ lugar: 'ElevenLabs · ' + c.nombre, tipo: 'elevenlabs', usd: c.usd }); });

@@ -657,13 +657,22 @@ function respaldoPorLeer_(top, actividad, ahora) {
 function repararConsultas(max) {
   const sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return 'sin bandeja';
   const v = sh.getRange(2, 1, sh.getLastRow() - 1, INBOX_CAB_.length).getValues(); let n = 0, intentos = 0;
+  /* Cupo (19-nov-2026): una consulta ya intentada espera CUPO_INQ_FIX_MIN (6 h) antes del siguiente intento; antes las mismas
+     consultas sin fechas o sin nombre se volvían a pedir a Hospitable en cada pasada del respaldo (dos llamadas cada una). */
+  const espera = max ? cupoIntervalo_('CUPO_INQ_FIX_MIN') : 0, cache = CacheService.getScriptCache();
+  const falta = row => String(row[0]).indexOf('inq:') === 0 && !(row[4] && row[2] && row[6] && !/sin nombre|por confirmar/i.test(row[4]));
+  const claves = espera ? v.filter(falta).slice(-300).map(r => 'inqfix_' + String(r[0]).slice(4)) : [];   // las 300 más nuevas
+  const vistas = claves.length ? (cache.getAll(claves) || {}) : {}, leidas = {}, marcar = {}; claves.forEach(k => { leidas[k] = 1; });
   v.reverse().forEach((row, i) => {
-    const id = String(row[0]); if (id.indexOf('inq:') !== 0 || (row[4] && row[2] && row[6] && !/sin nombre|por confirmar/i.test(row[4]))) return;
+    const id = String(row[0]); if (!falta(row)) return;
+    if (espera && (vistas['inqfix_' + id.slice(4)] || !leidas['inqfix_' + id.slice(4)])) return;
     if (max && intentos >= max) return; intentos++;
+    if (espera) marcar['inqfix_' + id.slice(4)] = '1';
     CacheService.getScriptCache().remove('pre2_' + id);
     const q = inquiryDatos_(id.slice(4)); if (!q) return;
     inboxUpsert_(id, { huesped: q.huesped, foto: q.foto, propiedad: q.propiedad, tipo: 'consulta', checkin: q.checkin, checkout: q.checkout, canal: q.canal }); n++;
   });
+  if (Object.keys(marcar).length) { try { cache.putAll(marcar, Math.min(21600, Math.round(espera * 60))); } catch (e) {} }
   return n + ' consultas completadas';
 }
 /* Hacia atrás (una vez desde el editor, y luego 6 por vuelta solas): por cada consulta de los últimos 30 días
@@ -800,7 +809,7 @@ function procesarCola() {
   cupoFuncion_('paraAlmaRevisar_'); try { paraAlmaRevisar_(inicioCola); } catch (e) { console.error('paraAlmaRevisar_: ' + e); }   // instrucción a Alma desde una sesión de Claude (issue «para-alma», paraalma.js); es Juan pidiendo: no se pausa
   cupoFuncion_('avisoWaRespaldo_'); try { avisoWaRespaldo_(); } catch (e) { console.error('avisoWaRespaldo_: ' + e); }   // notificación que la app no recogió en 10 min → WhatsApp al principal (avisowa.js); Juan espera: no se pausa
   cupoFuncion_('vigProcesar_'); try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
-  cupoFuncion_('pubSoloRevisar_'); try { pubSoloRevisar_(false); } catch (e) { console.error('pubSoloRevisar_: ' + e); }   // unir = publicar: cada 5 min, si cambió el código de una app en main, pide el Traslado (publicarsolo.js); no se pausa
+  cupoFuncion_('pubSoloRevisar_'); try { pubSoloRevisar_(false); } catch (e) { console.error('pubSoloRevisar_: ' + e); }   // unir = publicar: cada 30 min (CUPO_PUBLICAR_MIN) y en una sola llamada, si cambió el código de una app en main, pide el Traslado (publicarsolo.js); no se pausa
   cupoFuncion_('buzonRevisar_'); try { buzonRevisar_(false); } catch (e) { console.error('buzonRevisar_: ' + e); }   // correo a Claudio: cada 5 min, lo que Juan manda a alma@ entra a la Biblioteca de Claudio (buzon.js); sin IA
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {

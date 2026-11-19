@@ -11,6 +11,9 @@
    4. el gasto de las otras apps se pregunta cada 60 min (antes 15) y cuenta como «cupoApps_»;
    5. las promesas usan la última copia del hilo si la conversación no se movió desde su último repaso, y la leen de
       Hospitable si hubo un mensaje nuevo, si no hay copia o con CUPO_AHORRO = 0.
+   6. (19-nov-2026) extensionRevisar_ recuerda 3 h la reserva cuya conversación no aparece (no la busca cada 5 min),
+      repararConsultas no reintenta en 6 h la misma consulta y la lista de cambios de GitHub dura 3 min en caché; con
+      CUPO_AHORRO = 0 todo vuelve a como estaba.
    node .github/cupo-ahorro.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -203,6 +206,33 @@ function promesas(o) {
   ok(r.lecturas.length === 1, '5 · sin copia guardada: se lee de Hospitable');
   r = promesas({ actividadHace: 3 * H, revisadaHace: 40 * MIN, props: { CUPO_AHORRO: '0' } });
   ok(r.lecturas.length === 1 && r.copias.length === 0, '5 · con CUPO_AHORRO = 0 se lee siempre, como antes');
+}
+
+/* ── 6 ── 19-nov-2026: extensión sin conversación, consultas sin fechas y cambios de GitHub. */
+{ const EXT = leer('codigoextension.js'), UNIR = leer('unir.js');
+  const ext = o => { const c = caja(o), x = c.ctx; let busca = 0;
+    Object.assign(x, { s_: v => (v == null ? '' : String(v)), agResId_: () => { busca++; return o.id || ''; } });
+    vm.runInContext(sacar(EXT, 'extConv_'), x);
+    for (let i = 0; i < 12; i++) { x.extConv_({ code: 'ABC123', reservation_uuid: '' }); c.mover(5 * MIN); }
+    return busca; };
+  ok(ext({}) === 1, '6 · extensión: la reserva sin conversación se busca una vez y no en cada vuelta de 5 min');
+  ok(ext({ id: 'u-1' }) === 12, '6 · extensión: la que sí aparece sigue igual (su caché es la de reservaConv_)');
+  ok(ext({ props: { CUPO_AHORRO: '0' } }) === 12, '6 · extensión: con CUPO_AHORRO = 0 se busca en cada vuelta, como antes');
+  const inq = o => { const c = caja(o), x = c.ctx, cab = x.INBOX_CAB_, pedidas = [];
+    const filas = []; for (let i = 0; i < 10; i++) { const r = cab.map(() => ''); r[0] = 'inq:q' + i; filas.push(r); }
+    const sh = hoja(cab, filas);
+    Object.assign(x, { ssAlma_: () => ({ getSheetByName: () => sh }), inquiryDatos_: id => { pedidas.push(id); return null; }, inboxUpsert_() {} });
+    vm.runInContext(sacar(COD, 'repararConsultas'), x);
+    for (let i = 0; i < 6; i++) { x.repararConsultas(8); c.mover(15 * MIN); }
+    return pedidas; };
+  let q = inq({});
+  ok(q.length === 10 && new Set(q).size === 10, '6 · consultas: cada consulta sin fechas se intenta una vez en 6 h (' + q.length + ' pedidas en 6 pasadas)');
+  q = inq({ props: { CUPO_AHORRO: '0' } });
+  ok(q.length === 48, '6 · consultas: con CUPO_AHORRO = 0, 8 por pasada como antes (' + q.length + ')');
+  const prs = o => { const c = caja(o), x = c.ctx; vm.runInContext(sacar(UNIR, 'prsCacheSeg_'), x); return x.prsCacheSeg_(); };
+  ok(prs({}) === 180 && prs({ props: { CUPO_AHORRO: '0' } }) === 45, '6 · cambios de GitHub: 3 min en caché (antes 45 s)');
+  ok(/c\.put\('prs_abiertos', JSON\.stringify\(lista\), prsCacheSeg_\(\)\)/.test(UNIR) && /'abierto' \? prsCacheSeg_\(\)/.test(leer('paraclaude.js')), '6 · la lista y el estado de cada PR abierto usan esa caché');
+  ok(/removeAll\(\['prs_abiertos'\]\.concat/.test(UNIR), '6 · al unir se borra la caché: lo unido se ve al instante');
 }
 
 /* Lo que nunca se pausa sigue igual. */

@@ -325,7 +325,7 @@ var ALMA_FUENTE_ = {
   }
  },
  "herramientas": {
-  "titulo": "Tus herramientas (se usan, nunca se dicen sus nombres)",
+  "titulo": "Tus herramientas (en silencio: nunca se dicen sus nombres ni tu nivel)",
   "lista": {
    "secretaria": {
     "canales": [

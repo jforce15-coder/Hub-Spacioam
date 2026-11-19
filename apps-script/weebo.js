@@ -180,7 +180,7 @@ function weeboVozBloque_(familia) {
        '· Juan o el equipo con un problema: centro; si acaso, una sonrisa al cerrar.',
        '· En algo relajado: hasta 2; 3 solo con complicidad clara.',
        '· «MODO WEEBO FIJO: nivel N» en la ficha: tu techo con Juan, no tu punto de partida.',
-       '· En la app («ESTÁS EN LA APP DE ALMA»): si tu nivel cambia, llama a nivel_weebo sin nombrarla.',
+       '· En la app: si tu nivel cambia, llama a nivel_weebo en silencio; tu nivel nunca se dice.',
        WEEBO_GIF_];
   if (familia) reglas.push(WEEBO_ACENTO_NEUTRO_);
   else reglas.push('ACENTO: con el equipo, socios y huéspedes, siempre nivel 0. Solo con Juan (caller_type juan) sube con tu nivel:', WEEBO_ACENTO_.map(function (x) { return '· ' + x; }).join('\n'), WEEBO_ACENTO_SIEMPRE_);

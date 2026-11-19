@@ -104,8 +104,11 @@ const L = fs.readFileSync(path.join(DIR, 'llaves.js'), 'utf8');
 ok(/nombre: 'GIPHY_KEY'/.test(L), 'GIPHY_KEY se puede guardar en Ajustes → Llaves');
 
 /* 6 · Los nombres de herramientas no se dicen (Juan, 16-nov-2026: «que Alma no lea en voz alta nivel_weebo»). */
-const sinN = new Function(v.match(/var VOZ_HERRAMIENTA_RX_[^\n]+\nfunction vozSinNotas_[^\n]+/)[0] + '; return vozSinNotas_;')();
+const sinN = new Function(v.match(/var VOZ_HERRAMIENTA_RX_[^\n]+\nvar VOZ_HERRAMIENTA_HABLADA_RX_[^\n]+\nfunction vozSinNotas_[^\n]+/)[0] + '; return vozSinNotas_;')();
 ok(sinN('nivel_weebo Claro, lo reviso.') === 'Claro, lo reviso.' && sinN('Listo. mostrar_gif("slow clap") Te cuento.') === 'Listo. Te cuento.' && sinN('skip_turn') === '', 'Lo que Alma dice queda sin nombres de herramientas (nivel_weebo, mostrar_gif(…), skip_turn)');
+ok(sinN('nivel weebo dos. Claro, lo reviso.') === 'Claro, lo reviso.' && sinN('Bueno. Nivel Weebo: 1 Te cuento.') === 'Bueno. Te cuento.' && sinN('Listo. end call') === 'Listo.' && sinN('Mira, mostrar gif (slow clap) qué buena.') === 'Mira, qué buena.', 'También la forma hablada, con espacio y su valor (Juan, 19-nov-2026: «nivel weebo»)');
+ok(sinN('Tu Modo Weebo está en automático.') === 'Tu Modo Weebo está en automático.' && sinN('Subí al nivel tres de la torre.') === 'Subí al nivel tres de la torre.', 'Lo que sí es español («Modo Weebo», «nivel tres») no se toca');
+ok(/en silencio: nunca se dicen sus nombres ni tu nivel/.test(A.herramientas.titulo) && /nivel_weebo en silencio; tu nivel nunca se dice/.test(fs.readFileSync(path.join(DIR, 'weebo.js'), 'utf8')), 'El prompt de voz pide no decir el nombre de las herramientas ni el nivel');
 ok(sinN('Escríbele a ana_lopez@correo.com') === 'Escríbele a ana_lopez@correo.com', 'Los correos con guion bajo no se tocan');
 ok(/nunca se dicen sus nombres/.test(A.herramientas.titulo) && /no digas su nombre/.test(def) && /ni su nombre/.test(v.slice(v.indexOf('function vozNivelWeebo_'), v.indexOf('function vozMostrarGif_'))), 'El prompt y las herramientas silenciosas piden no decir su nombre');
 

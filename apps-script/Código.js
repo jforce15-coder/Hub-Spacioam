@@ -3407,6 +3407,7 @@ function hubApi_(body) {
       case 'personalidad': return json_(personalidadApi_(ses));                             // Ajustes → Personalidad de Alma: adaptación y Modo Weebo, solo el principal (medidores.js)
       case 'personalidadFijar': return json_(personalidadFijarApi_(ses, body));             // { adapt_tope?, adapt_tope_huesped?, weebo_modo?, weebo_nivel? }
       case 'gif': return json_(gifApi_(ses, body.idea));                                    // { idea } → el GIF de la broma (GIPHY rating g o emoji animado), solo el principal (gif.js · js/alma-gif.js)
+      case 'gifTemas': return json_(gifTemasApi_(ses));                                     // los GIFs de cada tema del Bento vivo (7 por tema, guardados; gif.js · js/alma-bento.js)
       case 'setControl': return json_(hubSetControl_(body.valores || {}));
       case 'tutoriales': return json_(hubTutoriales_());                                 // quién vio cada tutorial (tutoriales.js)
       case 'llaveClaude': return json_(paraClaudeLlave_(ses, body.llave, body.sencilla));
@@ -5643,6 +5644,7 @@ function dsBotApi_(body) {
       case 'para_claude_crear': { const admP = agPrincipal_(); return json_(paraClaudeCrear_(admP, { titulo: String(body.titulo || ''), que_quiere: String(body.que_quiere || ''), literal: String(body.literal || ''), app: body.app || 'Otro', tipo: body.tipo || 'mejora', nivel: body.nivel || '', canal: 'robot', unificar: true, sinChat: true })); }   // un pedido de Juan que se perdió (sin datos personales)
       case 'contacto_clasificar': return json_({ ok: true, ficha: contactoClasificar_(String(body.tel || ''), String(body.contexto || ''), true) });
       case 'encargos': { const shE = hojaEnc_(), nE = shE.getLastRow(); let pendE = {}; try { pendE = JSON.parse(PropertiesService.getScriptProperties().getProperty('WA_PEND') || '{}'); } catch (e) {} return json_({ ok: true, esperando: Object.keys(pendE).map(k => ({ tel: k, n: pendE[k].length, desde: new Date(pendE[k][0].ts).toISOString(), nombre: pendE[k][0].nombre })), filas: nE < 2 ? [] : shE.getRange(Math.max(2, nE - 14), 1, Math.min(15, nE - 1), ENC_CAB_.length).getValues().map(v => ({ id: v[0], creado: v[1], persona: v[4], estado: v[7], objetivo: String(v[6]).slice(0, 400), resumen: String(v[8]).slice(0, 200) })) }); }   // diagnóstico de encargos
+      case 'gif_temas': return json_(gifTemasRobot_(body));   // Bento vivo: ver o cambiar los 7 GIFs de un tema { tema, urls | rehacer | emojis } (gif.js)
       case 'amano_medir': return json_(amanoMedir_(body.dias));   // A la mano: la medición, solo números (amano.js)
       case 'amano_prueba': return json_(amanoPrueba_());   // A la mano: lo precargado contra Epi en vivo
       case 'amano_estado': return json_(amanoEstadoRobot_(!!body.ver));

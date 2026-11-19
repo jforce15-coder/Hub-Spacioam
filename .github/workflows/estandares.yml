@@ -54,6 +54,10 @@ jobs:
         # 16-nov-2026: Juan pidió que el tablero sea un snapshot que se entienda de un vistazo, no cuadros con un número.
         run: node .github/snapshot.js apps-script
 
+      - name: Bento vivo del iPad y la computadora, la roca de siempre, subtítulos legibles y siempre 1 imagen y 1 GIF (dobles)
+        # 19-nov-2026 (#810): Juan eligió la opción A con la roca del mismo tamaño y los subtítulos legibles; 7 GIFs por tema.
+        run: node .github/bento-vivo.js
+
       - name: Cada sc-for de las páginas lee su lista con list= (support.js no conoce each=)
         # 3-nov: la ventana de «Acciones pendientes» usaba each= y salía vacía (la píldora decía 1, la lista 0).
         run: |

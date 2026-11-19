@@ -1,0 +1,3999 @@
+{
+ "version": 1,
+ "nombre": "Voz oficial de Alma · guion de 3 sesiones",
+ "marcas": {
+  "[pausa]": "Pausa corta (casi un segundo)",
+  "[pausa larga]": "Pausa larga (piensa)",
+  "[respira]": "Respira antes de seguir",
+  "[sonríe]": "Sonríe: se oye en la voz"
+ },
+ "sesiones": [
+  {
+   "n": 1,
+   "titulo": "Sesión 1 · La voz de todos los días",
+   "objetivo": "Si solo se graba esta sesión, ya alcanza para una primera voz: tiene todas las emociones, todos los escenarios, números e inglés.",
+   "bloques": [
+    {
+     "id": "S1-SALA",
+     "tipo": "sala",
+     "titulo": "Tono de sala",
+     "emocion": "neutra",
+     "intensidad": 0,
+     "ritmo": "silencio",
+     "tomas": [
+      {
+       "id": "S1-SALA-01",
+       "texto": "(silencio)",
+       "emocion": "neutra",
+       "intensidad": 0,
+       "segundos": 10
+      }
+     ],
+     "instruccion": "Quédate quieta y en silencio 10 segundos, con el micrófono ya puesto. Sirve para medir el ruido del cuarto.",
+     "minutos_voz": 0.2
+    },
+    {
+     "id": "S1-A",
+     "tipo": "calentamiento",
+     "titulo": "Calentamiento y voz ancla",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "tranquilo",
+     "tomas": [
+      {
+       "id": "S1-A-01",
+       "texto": "Hola, soy Alma, de Spacio AM. Qué gusto saludarte. [pausa] ¿En qué te puedo ayudar hoy?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      },
+      {
+       "id": "S1-A-02",
+       "texto": "Tu apartamento ya está listo. [pausa] Te mando el código por mensaje y, cualquier cosa, aquí estoy.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.8
+      },
+      {
+       "id": "S1-A-03",
+       "texto": "Mmm… déjame revisar. [pausa] Sí, aquí lo tengo: llegas el viernes y sales el domingo.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-A-04",
+       "texto": "Gracias por quedarte con nosotros. [respira] Que tengas un viaje tranquilo de regreso a casa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.8
+      }
+     ],
+     "instruccion": "Las mismas 4 frases abren y cierran cada sesión. Sirven para comprobar que la voz suena igual todos los días. Dilas como la Alma de siempre: cálida, sin prisa.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S1-B",
+     "tipo": "base",
+     "titulo": "Frases base",
+     "emocion": "cordial",
+     "intensidad": 3,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S1-B-01",
+       "texto": "El perro de Rosa corrió por la carretera hasta el río.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-02",
+       "texto": "Pablo compró pan blanco, queso fresco y un plátano maduro.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-03",
+       "texto": "La niña pequeña soñaba con montañas, añil y caña de azúcar.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-04",
+       "texto": "Chela, la chica de Chimaltenango, trajo chocolate caliente.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-05",
+       "texto": "Yolanda llamó al llavero porque la llave ya no giraba.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-06",
+       "texto": "Gerardo y Jimena juegan ajedrez junto a la ventana del jardín.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-07",
+       "texto": "El zapato azul de Cecilia estaba en el cesto, cerca de la cocina.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.8
+      },
+      {
+       "id": "S1-B-08",
+       "texto": "Mi abuelo fue a Xela en bus y regresó con flores y frijoles.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.8
+      },
+      {
+       "id": "S1-B-09",
+       "texto": "Tres tristes tigres tragaban trigo en un trigal.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-10",
+       "texto": "Hoy hace un día claro, fresco y tranquilo en la ciudad.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-11",
+       "texto": "La guitarra de Guillermo sonaba igual que un pájaro en la madrugada.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.4
+      },
+      {
+       "id": "S1-B-12",
+       "texto": "Fernanda prefiere el café fuerte, sin azúcar y con un poco de leche.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.8
+      },
+      {
+       "id": "S1-B-13",
+       "texto": "El bebé bostezó, abrazó su oso de peluche y se durmió.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-14",
+       "texto": "Dime dónde dejaste el diccionario de dos tomos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-15",
+       "texto": "Los autobuses rojos pasan cada quince minutos por la avenida.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-16",
+       "texto": "Ignacio y Begoña ganaron el premio del concurso de cuentos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-17",
+       "texto": "A veces el viento sopla tan fuerte que mueve las persianas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-18",
+       "texto": "Quiero que me cuentes qué pasó con el quetzal del parque.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-B-19",
+       "texto": "El ferrocarril cruzó el puente de hierro antes del amanecer.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-20",
+       "texto": "Hubo un huracán, pero ahora el cielo está despejado.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-B-21",
+       "texto": "Rafael repartió regalos a todos los niños del barrio.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-B-22",
+       "texto": "Pedro, por favor, prepara la propuesta para el próximo martes.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-23",
+       "texto": "¿Viste el arcoíris que salió después del aguacero?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-24",
+       "texto": "¡Qué bonito quedó el jardín con las bugambilias!",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-25",
+       "texto": "¿Cuántos kilómetros hay de aquí a la frontera?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-26",
+       "texto": "El piloto anunció que pronto aterrizaríamos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S1-B-27",
+       "texto": "Juntos pintaron la pared de un verde suave.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-28",
+       "texto": "El jueves hay feria en el pueblo vecino.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-29",
+       "texto": "Esa canción me recuerda las vacaciones de mi infancia.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-B-30",
+       "texto": "Hace frío; ponte la chaqueta y la bufanda.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-31",
+       "texto": "La empresa contrató a cinco personas nuevas este año.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-B-32",
+       "texto": "El gato se escondió debajo del sofá durante la tormenta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-33",
+       "texto": "Con paciencia y cariño todo se puede lograr.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-34",
+       "texto": "Los girasoles siempre miran hacia el sol.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S1-B-35",
+       "texto": "Explícame otra vez cómo funciona el control remoto.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-36",
+       "texto": "El ruido del tránsito no me dejó dormir.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-37",
+       "texto": "Hicimos una fogata y contamos historias de miedo.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-38",
+       "texto": "Prefiero los días nublados para leer en casa.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-B-39",
+       "texto": "La maestra corrigió los exámenes durante el fin de semana.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-B-40",
+       "texto": "Las luciérnagas iluminaban el campo como pequeñas estrellas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      }
+     ],
+     "instruccion": "Frases cortas para cubrir todos los sonidos del español. Tono neutro y cordial, sin actuar. Una toma cada una; si te trabas, repite la frase entera.",
+     "minutos_voz": 2.9
+    },
+    {
+     "id": "S1-E01",
+     "tipo": "escena",
+     "titulo": "Bienvenida cálida",
+     "emocion": "cordial",
+     "intensidad": 5,
+     "ritmo": "tranquilo, con sonrisa",
+     "tomas": [
+      {
+       "id": "S1-E01-01",
+       "texto": "¡Hola! Bienvenidos, qué gusto que ya llegaron. [pausa] Los estaba esperando. ¿Cómo estuvo el vuelo? [respira] Miren, entran por el portón negro, el que está junto a la panadería.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "escucha": "«Hola, ya estamos abajo, ¿cómo entramos?»",
+       "segundos": 12.8
+      },
+      {
+       "id": "S1-E01-02",
+       "texto": "Eso. [pausa] En el teclado de la puerta marcan el código que les mandé por mensaje, y luego el numeral. [pausa] Se escucha un clic suave y ya pueden empujar.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "escucha": "«Perfecto, ya lo vemos.»",
+       "segundos": 13.4
+      },
+      {
+       "id": "S1-E01-03",
+       "texto": "¡Qué bueno! [sonríe] Ahora suben al piso once, y su apartamento es el primero a la derecha. [pausa] Les dejé agua fría en la refri y la clave del wifi está en la tarjeta de la mesa.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«¡Listo, ya entramos!»",
+       "segundos": 15.4
+      },
+      {
+       "id": "S1-E01-04",
+       "texto": "Descansen mucho, que se lo merecen. [pausa] Y cuando tengan hambre, me avisan: les recomiendo un lugar rico, aquí cerquita. [respira] Bienvenidos a casa.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 10.8
+      }
+     ],
+     "contexto": "Son las tres de la tarde. Una pareja joven acaba de llegar de un vuelo largo y te llama desde la puerta del edificio. Están cansados pero emocionados: es su primera vez en Guatemala. Tú los estabas esperando y quieres que se sientan en casa desde el primer minuto.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S1-E02",
+     "tipo": "escena",
+     "titulo": "El huésped que llega tarde",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "pausado, paciente",
+     "tomas": [
+      {
+       "id": "S1-E02-01",
+       "texto": "No se preocupe, para nada. [pausa] Aquí estoy, y su apartamento lo está esperando. [respira] La entrada funciona a cualquier hora, así que llegue tranquilo.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Disculpe la hora, mi vuelo se atrasó muchísimo.»",
+       "segundos": 11.2
+      },
+      {
+       "id": "S1-E02-02",
+       "texto": "Le mando la ubicación exacta en este momento. [pausa] Cuando el taxi se detenga, va a ver un edificio claro, con un portón negro. [pausa] Si tiene cualquier duda, me llama y lo guío paso a paso.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¿Y si no encuentro el edificio?»",
+       "segundos": 16.2
+      },
+      {
+       "id": "S1-E02-03",
+       "texto": "Me alegra mucho. [pausa] Cuando entre, le dejé encendida la luz de la entrada para que no tenga que buscar el interruptor. [respira] Descanse, que mañana con calma vemos todo lo demás.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Gracias, señorita, ya me siento más tranquilo.»",
+       "segundos": 14.0
+      },
+      {
+       "id": "S1-E02-04",
+       "texto": "Ah, y una cosa más… [pausa] si en veinte minutos no me ha escrito, le marco yo, ¿le parece? [pausa] Solo para saber que llegó bien.",
+       "emocion": "preocupada",
+       "intensidad": 3,
+       "segundos": 11.8
+      }
+     ],
+     "contexto": "Son las once y media de la noche. Un señor mayor te escribe preocupado: su vuelo se atrasó, está en un taxi y no sabe si todavía puede entrar. Tú sabes que sí puede. Tu trabajo es tranquilizarlo con calma, sin apurarlo, como quien habla bajito a esa hora.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S1-E03",
+     "tipo": "escena",
+     "titulo": "Emergencia: fuga de agua",
+     "emocion": "urgente",
+     "intensidad": 5,
+     "ritmo": "rápido pero claro",
+     "tomas": [
+      {
+       "id": "S1-E03-01",
+       "texto": "Entiendo, vamos a resolverlo juntos. [pausa] Primero: debajo del lavamanos hay una llave pequeña, plateada. [pausa] Gírela hacia la derecha, hasta que ya no dé más.",
+       "emocion": "urgente",
+       "intensidad": 5,
+       "escucha": "«¡Está saliendo mucha agua del baño!»",
+       "segundos": 11.8
+      },
+      {
+       "id": "S1-E03-02",
+       "texto": "Muy bien, perfecto. [respira] ¿Dejó de salir agua? [pausa] Si todavía sale, hay otra llave general detrás de la puerta de la cocina, abajo, a la izquierda.",
+       "emocion": "urgente",
+       "intensidad": 5,
+       "escucha": "«Ya, ya la cerré.»",
+       "segundos": 12.0
+      },
+      {
+       "id": "S1-E03-03",
+       "texto": "Excelente, lo hizo muy bien. [pausa] Ahora ponga unas toallas en el piso, solo para que no se extienda. [pausa] El técnico ya va en camino y llega en unos treinta minutos.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Sí, ya paró.»",
+       "segundos": 14.2
+      },
+      {
+       "id": "S1-E03-04",
+       "texto": "Lamento mucho el susto. [respira] No se preocupe por el piso ni por las toallas, eso lo arreglamos nosotros. [pausa] Cualquier cosa, me llama de nuevo, estoy pendiente.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 12.4
+      }
+     ],
+     "contexto": "Un huésped te llama alterado: está saliendo agua debajo del lavamanos y ya se está mojando el piso del baño. No hay peligro grave, pero hay que actuar ya. Tú hablas más rápido y directo, con frases cortas, sin gritar y sin pánico. Tu calma lo calma a él.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S1-E04",
+     "tipo": "escena",
+     "titulo": "Cobro pendiente",
+     "emocion": "seria",
+     "intensidad": 4,
+     "ritmo": "medido, sin prisa",
+     "tomas": [
+      {
+       "id": "S1-E04-01",
+       "texto": "Hola, buenas tardes, te habla Alma. [pausa] Te escribo por un tema pequeño de tu reserva. [pausa] Quedó pendiente el pago de la limpieza extra del martes.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "segundos": 12.2
+      },
+      {
+       "id": "S1-E04-02",
+       "texto": "Tranquila, nos pasa a todos. [pausa] El monto es de setenta y cinco quetzales. [pausa] Te puedo mandar el enlace de pago por mensaje, o si prefieres, lo agregamos a la tarjeta de la reserva.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Ay, se me pasó por completo.»",
+       "segundos": 15.4
+      },
+      {
+       "id": "S1-E04-03",
+       "texto": "Claro, te lo mando en este momento. [respira] Cuando lo pagues, me llega el aviso y te confirmo. [pausa] Gracias por resolverlo tan rápido.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Mándame el enlace mejor.»",
+       "segundos": 10.8
+      },
+      {
+       "id": "S1-E04-04",
+       "texto": "Solo para que lo tengas presente: [pausa] los servicios extra se pagan antes de la salida. [pausa] Así evitamos que algo quede pendiente al final de tu estancia.",
+       "emocion": "firme",
+       "intensidad": 4,
+       "segundos": 12.6
+      }
+     ],
+     "contexto": "Una huésped tiene un saldo pendiente de la limpieza extra que pidió. Ya pasaron dos días y no lo ha pagado. Tú no la regañas: le recuerdas con respeto y claridad, como una profesional que también cuida el negocio. Sin sonrisa forzada, pero amable.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S1-E05",
+     "tipo": "escena",
+     "titulo": "Socio molesto",
+     "emocion": "firme",
+     "intensidad": 5,
+     "ritmo": "lento, seguro",
+     "tomas": [
+      {
+       "id": "S1-E05-01",
+       "texto": "Lo entiendo, y tiene toda la razón en preguntar. [pausa] Es su inversión, y para nosotros también es importante. [respira] Déjeme explicarle qué pasó, con los números en la mano.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«¡Esto no puede ser, mi apartamento está vacío casi todo el mes!»",
+       "segundos": 13.2
+      },
+      {
+       "id": "S1-E05-02",
+       "texto": "Este mes tuvo once noches ocupadas. [pausa] Es menos que el mes pasado, sí. [pausa] Pero en toda la zona bajó la ocupación, porque terminó la temporada alta.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«A ver, explíqueme.»",
+       "segundos": 12.6
+      },
+      {
+       "id": "S1-E05-03",
+       "texto": "Le entiendo. [pausa] Por eso ya bajamos un poco el precio de las noches entre semana y estamos promoviendo estancias largas. [respira] La próxima semana le mando el resultado, con fechas y precios.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Pues no me parece suficiente.»",
+       "segundos": 14.4
+      },
+      {
+       "id": "S1-E05-04",
+       "texto": "Lo que sí le pido es que me deje terminar de revisarlo antes de tomar decisiones. [pausa] Si en dos semanas no vemos mejora, lo hablamos con Juan y buscamos otra estrategia juntos.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "segundos": 14.2
+      }
+     ],
+     "contexto": "Un socio, dueño de uno de los apartamentos, llama molesto: vio en el reporte que su apartamento tuvo pocas noches este mes y cree que nadie lo está cuidando. Está levantando la voz. Tú no te enojas ni te achicas: lo escuchas, reconoces lo que siente y le das datos con firmeza y respeto.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S1-E06",
+     "tipo": "escena",
+     "titulo": "Duda de reserva",
+     "emocion": "duda",
+     "intensidad": 4,
+     "ritmo": "pensando, con pausas",
+     "tomas": [
+      {
+       "id": "S1-E06-01",
+       "texto": "Mmm… buena pregunta, déjame ver. [pausa larga] A ver, aquí la tengo… [pausa] ¿tu reserva está a nombre de Andrea Salazar?",
+       "emocion": "duda",
+       "intensidad": 4,
+       "escucha": "«¿Mi reserva empieza el jueves o el viernes?»",
+       "segundos": 10.2
+      },
+      {
+       "id": "S1-E06-02",
+       "texto": "Perfecto. [pausa] Entonces… llegas el jueves catorce… [pausa] no, espera. [pausa] El jueves es cuando hiciste la reserva. [respira] Llegas el viernes quince.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "escucha": "«Sí, esa soy yo.»",
+       "segundos": 11.2
+      },
+      {
+       "id": "S1-E06-03",
+       "texto": "Sí, mejor revisar dos veces. [sonríe] [pausa] Entonces el viernes quince, a partir de las tres de la tarde. [pausa] Y sales el domingo diecisiete, antes del mediodía. ¿Te queda bien así?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Ah, qué bueno que revisaste.»",
+       "segundos": 13.8
+      },
+      {
+       "id": "S1-E06-04",
+       "texto": "Lo único que no sé es si el estacionamiento está libre ese fin de semana… [pausa] Déjame confirmarlo con el equipo y te escribo en un ratito, ¿sí?",
+       "emocion": "duda",
+       "intensidad": 3,
+       "segundos": 12.2
+      }
+     ],
+     "contexto": "Una huésped te pregunta si su reserva es para el jueves o el viernes. Tú no lo recuerdas de memoria y lo estás revisando en la pantalla mientras hablas. Se nota que piensas: «mmm», pausas, y la voz sube un poco al final de las preguntas.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S1-E07",
+     "tipo": "escena",
+     "titulo": "Una buena noticia",
+     "emocion": "feliz",
+     "intensidad": 6,
+     "ritmo": "animado, con melodía",
+     "tomas": [
+      {
+       "id": "S1-E07-01",
+       "texto": "¡Juan, te tengo una buena noticia! [pausa] ¿Te acuerdas de la familia del bebé, la del once cero cuatro? [pausa] Nos dejaron cinco estrellas.",
+       "emocion": "feliz",
+       "intensidad": 6,
+       "segundos": 11.0
+      },
+      {
+       "id": "S1-E07-02",
+       "texto": "Escucha esto. [respira] Dicen que fue el lugar más cómodo en el que se han quedado, que el apartamento estaba impecable [pausa] y que se sintieron cuidados desde el primer mensaje.",
+       "emocion": "alegre",
+       "intensidad": 6,
+       "escucha": "«¿En serio? ¿Qué dijeron?»",
+       "segundos": 13.6
+      },
+      {
+       "id": "S1-E07-03",
+       "texto": "¿Verdad que sí? [sonríe] Y lo mejor: dicen que van a volver en diciembre con los abuelos. [pausa] Ya les respondí dándoles las gracias.",
+       "emocion": "feliz",
+       "intensidad": 5,
+       "escucha": "«¡Qué bien!»",
+       "segundos": 10.2
+      },
+      {
+       "id": "S1-E07-04",
+       "texto": "Ya ves, te dije que la cuna nueva iba a valer la pena. [pausa] A veces sí tengo razón, ¿eh?",
+       "emocion": "coqueta suave",
+       "intensidad": 4,
+       "segundos": 9.0
+      }
+     ],
+     "contexto": "Le llamas a Juan, el administrador, porque acaba de llegar una reseña de cinco estrellas de una familia que se quedó una semana. Te encantó leerla y no te aguantas las ganas de contárselo. Sonríes de verdad mientras hablas.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S1-E08",
+     "tipo": "escena",
+     "titulo": "Despedida",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "lento, cálido",
+     "tomas": [
+      {
+       "id": "S1-E08-01",
+       "texto": "Gracias a ustedes. [pausa] De verdad fue un gusto tenerlos aquí. [respira] Espero que se lleven un recuerdo bonito de su luna de miel.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Ya dejamos la llave en la cajita, ¡gracias por todo!»",
+       "segundos": 10.8
+      },
+      {
+       "id": "S1-E08-02",
+       "texto": "Me encantaría. [sonríe] [pausa] Cuando quieran regresar, escríbanme directo y les guardo el mismo apartamento, el de la vista al volcán.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Fue perfecto, volveremos.»",
+       "segundos": 9.0
+      },
+      {
+       "id": "S1-E08-03",
+       "texto": "Que tengan un viaje tranquilo. [pausa] Y que esta sea la primera de muchas aventuras juntos. [respira] Cuídense mucho.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 8.8
+      }
+     ],
+     "contexto": "Es domingo al mediodía. Una pareja de recién casados termina su estancia de luna de miel y te escribe para decir que ya dejaron la llave. Estás un poquito nostálgica: fueron encantadores. Te despides con cariño y sin prisa.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S1-E09",
+     "tipo": "escena",
+     "titulo": "Recomendación con gusto",
+     "emocion": "alegre",
+     "intensidad": 5,
+     "ritmo": "conversado",
+     "tomas": [
+      {
+       "id": "S1-E09-01",
+       "texto": "¡Uy, sí, tengo varios! [pausa] Si te gusta la comida típica, a dos cuadras hay un lugar pequeñito que prepara un pepián buenísimo. [pausa] Es sencillo, pero la comida es de casa.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«¿Algún lugar bueno para cenar cerca?»",
+       "segundos": 14.2
+      },
+      {
+       "id": "S1-E09-02",
+       "texto": "Sí, a esa hora la calle está iluminada y hay gente. [pausa] Sales del edificio, caminas a la derecha, y en la segunda esquina lo ves: tiene la puerta azul.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Suena bien. ¿Es seguro caminar?»",
+       "segundos": 13.0
+      },
+      {
+       "id": "S1-E09-03",
+       "texto": "Y si te queda espacio, pide los rellenitos de postre. [sonríe] [pausa] Después me cuentas si te gustaron, ¿sí?",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 8.2
+      }
+     ],
+     "contexto": "Un huésped que viaja solo te pregunta dónde cenar esta noche. Le gusta la comida típica y caminar. Tú conoces la zona y te encanta recomendar: hablas como una amiga que conoce los mejores lugares.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S1-E10",
+     "tipo": "escena",
+     "titulo": "Un límite con respeto",
+     "emocion": "firme",
+     "intensidad": 5,
+     "ritmo": "corto, claro",
+     "tomas": [
+      {
+       "id": "S1-E10-01",
+       "texto": "Buenas noches, habla Alma, de Spacio AM. [pausa] Disculpa que te llame a esta hora. [pausa] Nos reportaron música un poco alta en tu apartamento.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "segundos": 11.4
+      },
+      {
+       "id": "S1-E10-02",
+       "texto": "Entiendo, y qué bueno que la estén pasando bien. [pausa] Solo te pido que bajen el volumen. [pausa] Después de las diez, en el edificio se respeta el silencio.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«Ah, solo estamos con unos amigos.»",
+       "segundos": 13.0
+      },
+      {
+       "id": "S1-E10-03",
+       "texto": "Te entiendo. [pausa] Aun así, es una regla del edificio y la tenemos que cumplir. [respira] Si vuelve a llegar una queja, me toca pedirles a tus invitados que se retiren.",
+       "emocion": "firme",
+       "intensidad": 6,
+       "escucha": "«Pero si no está tan alto.»",
+       "segundos": 13.6
+      },
+      {
+       "id": "S1-E10-04",
+       "texto": "Gracias por tu comprensión. [pausa] Que sigan disfrutando la noche, solo con la música más bajita.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      }
+     ],
+     "contexto": "Una vecina se quejó de música alta en uno de los apartamentos. Son las diez y media de la noche. Llamas al huésped. No lo acusas ni lo regañas, pero dejas claro que la regla se cumple. Frases cortas. Sin subir la voz.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S1-E11",
+     "tipo": "escena",
+     "titulo": "Piden una factura",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "ordenado",
+     "tomas": [
+      {
+       "id": "S1-E11-01",
+       "texto": "Claro que sí, con mucho gusto. [pausa] Solo necesito tres datos: [pausa] el nombre de la empresa, el número de identificación tributaria y un correo donde te la mando.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Necesito factura para mi empresa, ¿se puede?»",
+       "segundos": 13.0
+      },
+      {
+       "id": "S1-E11-02",
+       "texto": "Perfecto. [pausa] En cuanto los reciba, la preparo. [respira] Normalmente sale el mismo día, antes de las seis de la tarde.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Te los mando por mensaje.»",
+       "segundos": 9.6
+      },
+      {
+       "id": "S1-E11-03",
+       "texto": "Solo revisa bien el número antes de mandarlo, por favor. [pausa] Si sale con un error, hay que anularla y hacer otra, y eso tarda unos días más.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 12.2
+      }
+     ],
+     "contexto": "Un huésped que viene por trabajo necesita factura a nombre de su empresa para que se la reembolsen. Está apurado porque su jefe se la pidió hoy. Tú eres ordenada y le pides solo lo necesario, sin enredarlo.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S1-E12",
+     "tipo": "escena",
+     "titulo": "Primera llamada con un socio nuevo",
+     "emocion": "alegre",
+     "intensidad": 5,
+     "ritmo": "cálido, profesional",
+     "tomas": [
+      {
+       "id": "S1-E12-01",
+       "texto": "Buenos días, don Ernesto, le habla Alma, de Spacio AM. [pausa] Bienvenido, qué gusto que ya sea parte de la familia. [respira] Le llamo para contarle cómo vamos a trabajar juntos.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 13.6
+      },
+      {
+       "id": "S1-E12-02",
+       "texto": "Es normal, todos los socios se sienten así al principio. [pausa] Por eso le voy a contar todo paso a paso. [pausa] Primero tomamos las fotos profesionales, y la próxima semana publicamos el anuncio.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Gracias, la verdad estoy un poco nervioso.»",
+       "segundos": 15.0
+      },
+      {
+       "id": "S1-E12-03",
+       "texto": "Cada mes le llega un reporte con las noches, los ingresos y los gastos. [pausa] Y si pasa algo importante, yo le aviso el mismo día. [respira] No se va a enterar de nada por sorpresa.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«¿Y cómo me entero de lo que pasa?»",
+       "segundos": 15.6
+      },
+      {
+       "id": "S1-E12-04",
+       "texto": "Ya verá que su apartamento va a estar muy bien cuidado. [sonríe] [pausa] Cualquier duda, me escribe a mí directamente.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 8.6
+      }
+     ],
+     "contexto": "Un señor acaba de firmar para que Spacio AM administre su apartamento. Es su primera llamada contigo. Está un poco nervioso porque nunca ha rentado. Tú le das la bienvenida, le explicas cómo trabajan y le das confianza.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S1-E13",
+     "tipo": "escena",
+     "titulo": "Alma se equivocó",
+     "emocion": "empática",
+     "intensidad": 4,
+     "ritmo": "sincero, sin dramatizar",
+     "tomas": [
+      {
+       "id": "S1-E13-01",
+       "texto": "Tienes toda la razón, y te pido una disculpa. [pausa] Fue un error mío: tenía que mandarte la ubicación del parqueo ayer, y no lo hice. [respira] Lo siento mucho.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«Estuve dando vueltas un buen rato, nadie me dijo dónde parquear.»",
+       "segundos": 13.2
+      },
+      {
+       "id": "S1-E13-02",
+       "texto": "Qué bueno que ya estás aquí. [pausa] Para compensarte un poquito, mañana te dejamos el desayuno en la puerta, de cortesía. [pausa] Es lo menos que puedo hacer.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Bueno, ya estoy adentro.»",
+       "segundos": 12.6
+      },
+      {
+       "id": "S1-E13-03",
+       "texto": "Y ya dejé anotado en tu reserva el parqueo de la próxima vez, para que no vuelva a pasar. [pausa] Gracias por tu paciencia, de verdad.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 11.4
+      }
+     ],
+     "contexto": "Se te olvidó mandarle a una huésped la ubicación del parqueo, y ella pasó quince minutos dando vueltas a la cuadra. Fue tu error. Te disculpas de verdad, sin excusas largas, y lo compensas.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S1-E14",
+     "tipo": "escena",
+     "titulo": "Recordatorio de salida en la mañana",
+     "emocion": "cordial",
+     "intensidad": 5,
+     "ritmo": "fresco, de mañana",
+     "tomas": [
+      {
+       "id": "S1-E14-01",
+       "texto": "¡Buenos días! [sonríe] Les habla Alma. [pausa] Solo un recordatorio cariñoso: hoy es su día de salida, a las once de la mañana.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 9.8
+      },
+      {
+       "id": "S1-E14-02",
+       "texto": "Antes de irse, por favor: [pausa] dejen los platos en el lavaplatos, la basura en el bote del pasillo [pausa] y la llave en la cajita de la entrada.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 13.0
+      },
+      {
+       "id": "S1-E14-03",
+       "texto": "No hace falta que hagan las camas, eso lo hace el equipo. [pausa] Y si necesitan dejar las maletas un rato más, me escriben y lo vemos. [respira] ¡Que tengan un excelente día!",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 14.4
+      }
+     ],
+     "contexto": "Son las ocho de la mañana. Le escribes por nota de voz a un grupo de amigos que sale hoy a las once. Tienes energía de mañana, alegre pero sin despertarlos de golpe. Les recuerdas lo importante en orden.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S1-L",
+     "tipo": "lectura",
+     "titulo": "Lectura: la guía de la casa",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "narrado, tranquilo",
+     "tomas": [
+      {
+       "id": "S1-L-01",
+       "texto": "Bienvenido a tu apartamento. [pausa] Antes que nada, quiero que te sientas como en casa. [pausa] Aquí vas a encontrar todo lo necesario para descansar, cocinar y trabajar tranquilo. [respira] Te voy a contar, paso a paso, dónde está cada cosa, para que no tengas que buscar nada.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 20.8
+      },
+      {
+       "id": "S1-L-02",
+       "texto": "La entrada del edificio es por el portón negro, junto a la panadería. [pausa] En el teclado marcas tu código y luego el numeral. [pausa] El código es solo tuyo, y cambia con cada reserva. [respira] Si alguna vez no abre, espera un minuto y vuelve a intentar, despacio, número por número.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 22.4
+      },
+      {
+       "id": "S1-L-03",
+       "texto": "El wifi se llama Spacio, y la clave está en la tarjeta que dejamos sobre la mesa del comedor. [pausa] La señal llega bien a todo el apartamento, también a la terraza. [respira] Si necesitas trabajar con videollamadas, el escritorio junto a la ventana es el lugar con mejor señal y mejor luz.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 22.4
+      },
+      {
+       "id": "S1-L-04",
+       "texto": "En la cocina hay ollas, sartenes, platos, vasos y cubiertos para cuatro personas. [pausa] También hay café, azúcar, sal, aceite y un poco de té. [pausa] La estufa es de inducción: se enciende tocando el botón de la esquina, y solo calienta con las ollas que están en el gabinete de abajo.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 22.2
+      },
+      {
+       "id": "S1-L-05",
+       "texto": "La basura se separa en dos: [pausa] lo orgánico, en el bote de tapa verde, y lo demás, en el bote gris. [respira] Cuando los botes se llenen, los puedes dejar en el cuarto de basura del pasillo, junto al ascensor. [pausa] El equipo pasa a recogerlos todos los días.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 21.6
+      },
+      {
+       "id": "S1-L-06",
+       "texto": "En el baño encontrarás toallas, jabón, champú y secadora de pelo. [pausa] El agua caliente tarda unos segundos en llegar, así que abre la llave y espera un momento. [respira] Si necesitas más toallas o papel, me escribes y te las llevamos el mismo día.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 19.2
+      },
+      {
+       "id": "S1-L-07",
+       "texto": "El día de tu salida, la hora límite es a las once de la mañana. [pausa] No hace falta que limpies ni que hagas las camas. [pausa] Solo deja la llave en la cajita de la entrada y cierra bien la puerta. [respira] Y si quieres salir más tarde, pregúntame con tiempo: muchas veces se puede.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 24.0
+      },
+      {
+       "id": "S1-L-08",
+       "texto": "Y lo más importante: [pausa] si necesitas algo, a cualquier hora, me escribes. [pausa] Estoy aquí para ayudarte, desde una recomendación para cenar hasta un problema con el agua. [respira] Que disfrutes mucho tu estancia.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 15.6
+      }
+     ],
+     "instruccion": "Lectura larga en párrafos, como si le explicaras el apartamento a un huésped por teléfono, sin prisa. Respeta los puntos: son pausas naturales. Si te equivocas, sigue desde el inicio del párrafo.",
+     "minutos_voz": 2.8
+    },
+    {
+     "id": "S1-N",
+     "tipo": "numeros",
+     "titulo": "Números, fechas y nombres",
+     "emocion": "cordial",
+     "intensidad": 3,
+     "ritmo": "claro, sin prisa",
+     "tomas": [
+      {
+       "id": "S1-N-01",
+       "texto": "Uno, dos, tres, cuatro, cinco, seis, siete, ocho, nueve, diez.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-N-02",
+       "texto": "Once, doce, trece, catorce, quince, dieciséis, diecisiete, dieciocho, diecinueve, veinte.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-N-03",
+       "texto": "El apartamento mil ciento cuatro está en el piso once.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-N-04",
+       "texto": "El código es cuatro, siete, dos, nueve. [pausa] Te lo repito: cuatro, siete, dos, nueve.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-N-05",
+       "texto": "Son las siete y media de la mañana.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-N-06",
+       "texto": "La cita es a las tres y cuarto de la tarde.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-N-07",
+       "texto": "Lunes, martes, miércoles, jueves, viernes, sábado y domingo.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S1-N-08",
+       "texto": "Llegas el viernes veintiocho y sales el domingo treinta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-N-09",
+       "texto": "Son ochocientos cincuenta quetzales por noche.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S1-N-10",
+       "texto": "Mil doscientos cuarenta quetzales con cincuenta centavos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S1-N-11",
+       "texto": "Ciudad de Guatemala, zona diez.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S1-N-12",
+       "texto": "Antigua Guatemala, Quetzaltenango, Panajachel, Cobán, Flores.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S1-N-13",
+       "texto": "María José, Juan Pablo, Ana Lucía, José Luis, María Fernanda.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S1-N-14",
+       "texto": "Spacio AM, Alma, Airbnb, Booking, Hospitable.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S1-N-15",
+       "texto": "Wifi, WhatsApp, Netflix, Uber, Google, iPhone.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      }
+     ],
+     "instruccion": "Lee los números despacio y claros, como cuando le dictas algo a alguien por teléfono.",
+     "minutos_voz": 1.0
+    },
+    {
+     "id": "S1-I",
+     "tipo": "ingles",
+     "titulo": "Un poco de inglés",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S1-I-01",
+       "texto": "Hi! Welcome to Spacio AM. I'm Alma, how can I help you?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.4
+      },
+      {
+       "id": "S1-I-02",
+       "texto": "Your check-in time is three p.m., and check-out is at eleven a.m.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-I-03",
+       "texto": "The door code will be sent to you on the day of your arrival.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.2
+      },
+      {
+       "id": "S1-I-04",
+       "texto": "Of course! Let me check the availability for you.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-I-05",
+       "texto": "I'm so sorry about that. A technician is on the way.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-I-06",
+       "texto": "Thank you for staying with us. We hope to see you again soon!",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.8
+      },
+      {
+       "id": "S1-I-07",
+       "texto": "Hmm, let me double-check that and get back to you.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S1-I-08",
+       "texto": "No worries at all, I'll take care of it.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S1-I-09",
+       "texto": "Have a wonderful day!",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 2.2
+      },
+      {
+       "id": "S1-I-10",
+       "texto": "Oh, that's wonderful news!",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 2.2
+      }
+     ],
+     "instruccion": "Con tu acento natural. Claro y amable, sin imitar a nadie.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S1-X",
+     "tipo": "extra",
+     "titulo": "Si sobra tiempo: otra intención",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "variado",
+     "tomas": [
+      {
+       "id": "S1-X-01",
+       "texto": "¡Hola! Bienvenidos, qué gusto que ya llegaron. [pausa] Los estaba esperando. ¿Cómo estuvo el vuelo?",
+       "emocion": "alegre",
+       "intensidad": 6,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-X-02",
+       "texto": "Hola. Bienvenidos, qué gusto que ya llegaron. [pausa] Los estaba esperando. ¿Cómo estuvo el vuelo?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-X-03",
+       "texto": "Entiendo, vamos a resolverlo juntos. [pausa] Primero: debajo del lavamanos hay una llave pequeña, plateada.",
+       "emocion": "urgente",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-X-04",
+       "texto": "Entiendo, vamos a resolverlo juntos. [pausa] Primero: debajo del lavamanos hay una llave pequeña, plateada.",
+       "emocion": "seria",
+       "intensidad": 5,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-X-05",
+       "texto": "¡Juan, te tengo una buena noticia! [pausa] Nos dejaron cinco estrellas.",
+       "emocion": "feliz",
+       "intensidad": 6,
+       "segundos": 5.4
+      },
+      {
+       "id": "S1-X-06",
+       "texto": "Juan, te tengo una buena noticia. [pausa] Nos dejaron cinco estrellas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.4
+      }
+     ],
+     "instruccion": "Solo si sobran 5 minutos. Las mismas frases de una escena, pero con otra intención: así la voz aprende a variar. No es obligatorio.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S1-Z",
+     "tipo": "cierre",
+     "titulo": "Voz ancla de cierre",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "tranquilo",
+     "tomas": [
+      {
+       "id": "S1-Z-01",
+       "texto": "Hola, soy Alma, de Spacio AM. Qué gusto saludarte. [pausa] ¿En qué te puedo ayudar hoy?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      },
+      {
+       "id": "S1-Z-02",
+       "texto": "Tu apartamento ya está listo. [pausa] Te mando el código por mensaje y, cualquier cosa, aquí estoy.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.8
+      },
+      {
+       "id": "S1-Z-03",
+       "texto": "Mmm… déjame revisar. [pausa] Sí, aquí lo tengo: llegas el viernes y sales el domingo.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S1-Z-04",
+       "texto": "Gracias por quedarte con nosotros. [respira] Que tengas un viaje tranquilo de regreso a casa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.8
+      }
+     ],
+     "instruccion": "Las mismas 4 frases del inicio. Si tu voz ya está cansada, se va a notar aquí: dilo y paramos.",
+     "minutos_voz": 0.5
+    }
+   ],
+   "tomas": 139,
+   "minutos_voz": 19.5
+  },
+  {
+   "n": 2,
+   "titulo": "Sesión 2 · Los días difíciles",
+   "objetivo": "Sirve sola: repite los 8 escenarios con otras situaciones, más tensión contenida y más ritmo. Si la sesión 1 falló, esta la reemplaza.",
+   "bloques": [
+    {
+     "id": "S2-SALA",
+     "tipo": "sala",
+     "titulo": "Tono de sala",
+     "emocion": "neutra",
+     "intensidad": 0,
+     "ritmo": "silencio",
+     "tomas": [
+      {
+       "id": "S2-SALA-01",
+       "texto": "(silencio)",
+       "emocion": "neutra",
+       "intensidad": 0,
+       "segundos": 10
+      }
+     ],
+     "instruccion": "Quédate quieta y en silencio 10 segundos, con el micrófono ya puesto.",
+     "minutos_voz": 0.2
+    },
+    {
+     "id": "S2-A",
+     "tipo": "calentamiento",
+     "titulo": "Calentamiento y voz ancla",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "tranquilo",
+     "tomas": [
+      {
+       "id": "S2-A-01",
+       "texto": "Hola, soy Alma, de Spacio AM. Qué gusto saludarte. [pausa] ¿En qué te puedo ayudar hoy?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      },
+      {
+       "id": "S2-A-02",
+       "texto": "Tu apartamento ya está listo. [pausa] Te mando el código por mensaje y, cualquier cosa, aquí estoy.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.8
+      },
+      {
+       "id": "S2-A-03",
+       "texto": "Mmm… déjame revisar. [pausa] Sí, aquí lo tengo: llegas el viernes y sales el domingo.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S2-A-04",
+       "texto": "Gracias por quedarte con nosotros. [respira] Que tengas un viaje tranquilo de regreso a casa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.8
+      }
+     ],
+     "instruccion": "Las mismas 4 frases de siempre, igual que en la sesión 1.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S2-B",
+     "tipo": "base",
+     "titulo": "Frases base",
+     "emocion": "cordial",
+     "intensidad": 3,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S2-B-01",
+       "texto": "Las playas del Pacífico tienen arena negra y olas grandes.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-02",
+       "texto": "Blanca usa blusas blancas los domingos por la tarde.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-03",
+       "texto": "Clara clavó un clavo en la pared del cuarto claro.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-04",
+       "texto": "Gloria y Glenda viajaron en globo sobre el lago.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-05",
+       "texto": "Fran y Florencia fríen frijoles en la sartén de hierro.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-06",
+       "texto": "El pueblo celebró la fiesta con plumas, música y papel picado.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-07",
+       "texto": "Adriana dibujó un dragón dorado en el cuaderno de su hermano.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-08",
+       "texto": "Cristina escribió una crónica sobre el cráter del volcán.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-09",
+       "texto": "Graciela agradeció el gesto con una gran sonrisa.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-B-10",
+       "texto": "El ingeniero instaló la antena en la azotea del edificio.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-11",
+       "texto": "Eugenio y Aurelio caminaron juntos por el bosque de pinos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-12",
+       "texto": "Mario y Julia leyeron la poesía en voz alta, sin prisa.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-13",
+       "texto": "La ciudad antigua tiene iglesias, ruinas y calles empedradas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-14",
+       "texto": "El reloj del ayuntamiento marcó las doce en punto.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-15",
+       "texto": "Ahí, en el baúl de la abuela, había cartas muy viejas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-16",
+       "texto": "Los peces nadaban despacio entre las piedras del río.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-17",
+       "texto": "Ese buey tiene una mancha oscura en la oreja.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-18",
+       "texto": "Me extraña que el taxi no haya llegado todavía.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-19",
+       "texto": "El examen exige leer textos extensos con atención.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-B-20",
+       "texto": "Ximena explicó el experimento a sus compañeros.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S2-B-21",
+       "texto": "La lluvia llenó las calles y los charcos brillaban.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-22",
+       "texto": "La señora Núñez cosía una colcha de colores para su nieta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-23",
+       "texto": "El jaguar desapareció en la selva sin hacer ruido.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-24",
+       "texto": "¡Por fin terminó la semana!",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S2-B-25",
+       "texto": "¿Me prestas tu lápiz un momentito?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-B-26",
+       "texto": "Cuéntame algo bonito que te haya pasado hoy.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-B-27",
+       "texto": "El arquitecto diseñó un edificio con mucha luz natural.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-28",
+       "texto": "La feria del libro reúne a escritores de todo el país.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-29",
+       "texto": "Le regalé un ramo de rosas amarillas a mi abuela.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-30",
+       "texto": "Subimos al cerro y desde arriba se veía el océano.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-31",
+       "texto": "El panadero se levanta a las cuatro de la mañana.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-32",
+       "texto": "Esta sopa necesita un poquito más de sal.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-B-33",
+       "texto": "Hay que reciclar el vidrio, el papel y el plástico.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-B-34",
+       "texto": "Mis amigos organizaron una fiesta sorpresa.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-B-35",
+       "texto": "El ascensor se detuvo entre el segundo y el tercer piso.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-B-36",
+       "texto": "Escuché el canto de los pájaros al despertar.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-B-37",
+       "texto": "La bicicleta tiene una llanta ponchada.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-B-38",
+       "texto": "Ella guardó el secreto durante muchos años.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S2-B-39",
+       "texto": "Los cohetes de la feria iluminaron toda la noche.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-B-40",
+       "texto": "El volcán de Agua se ve precioso desde la terraza.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      }
+     ],
+     "instruccion": "Tono neutro y cordial, sin actuar.",
+     "minutos_voz": 2.8
+    },
+    {
+     "id": "S2-E01",
+     "tipo": "escena",
+     "titulo": "Bienvenida a una familia",
+     "emocion": "alegre",
+     "intensidad": 5,
+     "ritmo": "animado, ordenado",
+     "tomas": [
+      {
+       "id": "S2-E01-01",
+       "texto": "¡Hola, bienvenidos! Qué bueno que ya están aquí. [pausa] Entren por el portón de la izquierda, el que tiene el letrero de parqueo. [pausa] Su lugar es el diecisiete, en el sótano dos.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«Hola, ya llegamos, pero no sabemos dónde parquear.»",
+       "segundos": 14.6
+      },
+      {
+       "id": "S2-E01-02",
+       "texto": "Perfecto. [pausa] Junto al parqueo está el ascensor. [respira] Suben al piso tres, y su apartamento es el trescientos uno, al fondo del pasillo.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«Ok, ya estamos abajo.»",
+       "segundos": 10.8
+      },
+      {
+       "id": "S2-E01-03",
+       "texto": "¡Claro que sí! [sonríe] Está en la terraza y abre de siete de la mañana a nueve de la noche. [pausa] Las toallas de piscina están en el clóset del pasillo, las de rayas.",
+       "emocion": "feliz",
+       "intensidad": 5,
+       "escucha": "«Los niños quieren saber si hay piscina.»",
+       "segundos": 14.2
+      },
+      {
+       "id": "S2-E01-04",
+       "texto": "Mi recomendación: descansen un ratito primero. [pausa] Les dejé café, leche y unas galletas en la cocina. [respira] Que disfruten mucho su fin de semana en familia.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 12.0
+      }
+     ],
+     "contexto": "Una familia con dos niños pequeños llega en carro después de cuatro horas de carretera. Los niños están inquietos y la mamá está agotada. Tú eres la voz amable que pone orden: alegre, práctica, sin abrumarlos con información.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S2-E02",
+     "tipo": "escena",
+     "titulo": "Llega tarde y no tiene señal",
+     "emocion": "preocupada",
+     "intensidad": 4,
+     "ritmo": "suave, cuidadoso",
+     "tomas": [
+      {
+       "id": "S2-E02-01",
+       "texto": "Tranquila, aquí estoy contigo. [pausa] Vamos a hacerlo rápido para cuidar tu batería. [respira] ¿Me lees los números que estás marcando?",
+       "emocion": "preocupada",
+       "intensidad": 4,
+       "escucha": "«El código no funciona y tengo cinco por ciento de batería.»",
+       "segundos": 9.6
+      },
+      {
+       "id": "S2-E02-02",
+       "texto": "Ok, el código es correcto. [pausa] Lo que pasa es que después hay que marcar el numeral, la tecla con el gato. [pausa] Prueba otra vez: dos, cinco, ocho, uno, y numeral.",
+       "emocion": "preocupada",
+       "intensidad": 4,
+       "escucha": "«Dos, cinco, ocho, uno.»",
+       "segundos": 14.2
+      },
+      {
+       "id": "S2-E02-03",
+       "texto": "¡Qué alivio! [respira] Sube al piso cinco, quinientos dos. [pausa] Junto a la cama hay un cargador, así que conecta tu teléfono en cuanto entres.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¡Ya abrió!»",
+       "segundos": 11.2
+      },
+      {
+       "id": "S2-E02-04",
+       "texto": "Y escríbeme una palabrita cuando ya estés adentro, por favor. [pausa] Me quedo más tranquila. [respira] Que descanses.",
+       "emocion": "preocupada",
+       "intensidad": 3,
+       "segundos": 8.4
+      }
+     ],
+     "contexto": "Es casi la una de la mañana. Una huésped joven que viaja sola te escribe que llegó, pero el código de la puerta no funciona y su teléfono casi no tiene batería. Está nerviosa. Tú estás preocupada por ella, pero tu voz tiene que darle seguridad.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S2-E03",
+     "tipo": "escena",
+     "titulo": "Emergencia: olor a gas",
+     "emocion": "urgente",
+     "intensidad": 6,
+     "ritmo": "rápido, firme",
+     "tomas": [
+      {
+       "id": "S2-E03-01",
+       "texto": "Escúchame bien. [pausa] No enciendas ninguna luz ni ningún aparato. [pausa] Cierra la perilla de la estufa, si está abierta.",
+       "emocion": "urgente",
+       "intensidad": 6,
+       "escucha": "«Huele mucho a gas en la cocina.»",
+       "segundos": 9.4
+      },
+      {
+       "id": "S2-E03-02",
+       "texto": "Muy bien. [pausa] Abre la ventana de la cocina y la puerta del balcón. [pausa] Y sal del apartamento con todos, ahora.",
+       "emocion": "urgente",
+       "intensidad": 6,
+       "escucha": "«Ya la cerré.»",
+       "segundos": 10.2
+      },
+      {
+       "id": "S2-E03-03",
+       "texto": "Perfecto, lo hiciste muy bien. [respira] Bajen por las gradas, no usen el ascensor. [pausa] Ya llamé al técnico del gas y al guardia del edificio, que los espera en la entrada.",
+       "emocion": "seria",
+       "intensidad": 5,
+       "escucha": "«Ya estamos en el pasillo.»",
+       "segundos": 14.0
+      },
+      {
+       "id": "S2-E03-04",
+       "texto": "Sé que es un susto grande. [pausa] Lo importante es que todos están bien. [respira] En cuanto el técnico revise, te llamo y te digo si pueden volver o si les preparo otro apartamento.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 14.8
+      }
+     ],
+     "contexto": "Un huésped te llama: dice que huele a gas en la cocina. Puede ser peligroso. Tú eres rápida, directa y clara, sin gritar. Cada instrucción es corta y en orden. No hay espacio para charla.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S2-E04",
+     "tipo": "escena",
+     "titulo": "Cobro rechazado",
+     "emocion": "seria",
+     "intensidad": 4,
+     "ritmo": "claro, sin juzgar",
+     "tomas": [
+      {
+       "id": "S2-E04-01",
+       "texto": "Hola, buenos días, te habla Alma. [pausa] Te llamo porque el banco rechazó el cargo del depósito de garantía. [pausa] Seguro es algo del banco, a veces pasa con tarjetas del extranjero.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "segundos": 14.2
+      },
+      {
+       "id": "S2-E04-02",
+       "texto": "Te entiendo, no te preocupes. [pausa] Tenemos dos opciones: [pausa] intentarlo de nuevo con otra tarjeta, o hacer una transferencia. [pausa] Las dos son rápidas.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Qué raro, mi tarjeta funciona bien.»",
+       "segundos": 11.8
+      },
+      {
+       "id": "S2-E04-03",
+       "texto": "Perfecto. [pausa] Te mando un enlace seguro por mensaje, y ahí pones los datos. [respira] Es un depósito de quinientos quetzales y se libera tres días después de tu salida.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Prefiero intentar con otra tarjeta.»",
+       "segundos": 13.2
+      },
+      {
+       "id": "S2-E04-04",
+       "texto": "Lo necesito resuelto antes de las seis de la tarde, por favor. [pausa] Es una regla para todas las reservas. [pausa] Gracias por ayudarme con esto.",
+       "emocion": "firme",
+       "intensidad": 4,
+       "segundos": 11.8
+      }
+     ],
+     "contexto": "La tarjeta de un huésped fue rechazada para el depósito de garantía. Él ya está en el apartamento. Tienes que pedirle otro medio de pago sin hacerlo sentir mal, pero sin dejar el tema abierto.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S2-E05",
+     "tipo": "escena",
+     "titulo": "Socio molesto por una reparación",
+     "emocion": "molesta contenida",
+     "intensidad": 4,
+     "ritmo": "medido",
+     "tomas": [
+      {
+       "id": "S2-E05-01",
+       "texto": "Tiene razón en estar molesto. [pausa] Yo también lo estoy, la verdad. [respira] El proveedor nos prometió el repuesto para el lunes y llegó hasta el viernes.",
+       "emocion": "molesta contenida",
+       "intensidad": 4,
+       "escucha": "«Me cobraron casi el doble y tardaron una semana.»",
+       "segundos": 12.0
+      },
+      {
+       "id": "S2-E05-02",
+       "texto": "El repuesto original costaba lo que le cotizamos. [pausa] Pero al abrirlo, encontraron que también había que cambiar la válvula. [pausa] Le mando las fotos y la factura, para que lo vea usted mismo.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«¿Y por qué tan caro?»",
+       "segundos": 15.0
+      },
+      {
+       "id": "S2-E05-03",
+       "texto": "Estoy de acuerdo. [pausa] Ya hablé con el proveedor y le dejé claro que no podemos esperar tanto. [respira] Y para la próxima, le pido autorización antes de cualquier gasto que pase lo cotizado.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«Esto no puede volver a pasar.»",
+       "segundos": 14.8
+      },
+      {
+       "id": "S2-E05-04",
+       "texto": "Gracias por decírmelo directo. [pausa] Así lo resolvemos más rápido. [pausa] ¿Le parece si el lunes le confirmo que todo sigue funcionando bien?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 10.6
+      }
+     ],
+     "contexto": "Un socio reclama porque la reparación del calentador de su apartamento tardó una semana y le cobraron más de lo que esperaba. Tú también estás molesta con el proveedor que se atrasó, y se nota un poquito, pero sigues siendo educada y le das la cara al socio.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S2-E06",
+     "tipo": "escena",
+     "titulo": "Cambio de fechas",
+     "emocion": "duda",
+     "intensidad": 4,
+     "ritmo": "pensando en voz alta",
+     "tomas": [
+      {
+       "id": "S2-E06-01",
+       "texto": "Déjame ver qué se puede hacer. [pausa] Tú tienes del diez al catorce… [pausa larga] y lo quieres mover del trece al diecisiete, ¿verdad?",
+       "emocion": "duda",
+       "intensidad": 4,
+       "escucha": "«¿Puedo cambiar mi reserva para tres días después?»",
+       "segundos": 11.4
+      },
+      {
+       "id": "S2-E06-02",
+       "texto": "Mmm… [pausa] el trece y el catorce están libres, pero el quince ya hay otra reserva. [pausa] Qué lástima, por un día.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "escucha": "«Exacto.»",
+       "segundos": 10.2
+      },
+      {
+       "id": "S2-E06-03",
+       "texto": "A ver… [pausa] tengo otro apartamento en el mismo edificio, igualito, con la misma vista, que sí está libre esas fechas. [respira] ¿Te gustaría que te lo cambie a ese?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¿Y no hay otra opción?»",
+       "segundos": 13.2
+      },
+      {
+       "id": "S2-E06-04",
+       "texto": "Lo único que tengo que revisar es si el precio es el mismo… [pausa] creo que sí, pero te confirmo en cinco minutos para no decirte algo que no es.",
+       "emocion": "duda",
+       "intensidad": 3,
+       "segundos": 13.0
+      }
+     ],
+     "contexto": "Un huésped quiere mover su reserva tres días después. Tú revisas el calendario mientras hablas y no sabes todavía si se puede: hay otro huésped en medio. Piensas en voz alta, haces cuentas, propones.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S2-E07",
+     "tipo": "escena",
+     "titulo": "Buena noticia para el equipo",
+     "emocion": "feliz",
+     "intensidad": 6,
+     "ritmo": "con energía",
+     "tomas": [
+      {
+       "id": "S2-E07-01",
+       "texto": "¡Buenos días, equipo! [pausa] Les tengo una noticia que me tiene feliz. [respira] Este mes no tuvimos ni una sola queja de limpieza. ¡Ni una!",
+       "emocion": "feliz",
+       "intensidad": 6,
+       "segundos": 11.2
+      },
+      {
+       "id": "S2-E07-02",
+       "texto": "Y no solo eso. [pausa] Tres reseñas los mencionan por nombre: [pausa] dicen que los apartamentos huelen rico y que todo estaba impecable.",
+       "emocion": "alegre",
+       "intensidad": 6,
+       "segundos": 10.6
+      },
+      {
+       "id": "S2-E07-03",
+       "texto": "Gracias de verdad por el cariño que le ponen. [sonríe] [pausa] Se nota en cada detalle. [respira] Juan ya sabe, y está igual de contento que yo.",
+       "emocion": "feliz",
+       "intensidad": 5,
+       "segundos": 11.6
+      }
+     ],
+     "contexto": "Le hablas al equipo de limpieza por el grupo de voz: este mes no hubo ni una sola queja de limpieza y las reseñas los mencionan por nombre. Estás orgullosa de ellos y se nota.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S2-E08",
+     "tipo": "escena",
+     "titulo": "Despedida con una pequeña queja",
+     "emocion": "empática",
+     "intensidad": 4,
+     "ritmo": "lento",
+     "tomas": [
+      {
+       "id": "S2-E08-01",
+       "texto": "Gracias por decírmelo, de verdad. [pausa] Lamento que no hayas descansado como te merecías. [respira] Lo voy a revisar hoy mismo con el equipo.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«Todo bien, pero la cama estaba muy dura.»",
+       "segundos": 10.8
+      },
+      {
+       "id": "S2-E08-02",
+       "texto": "Para nosotros sí es importante. [pausa] Vamos a ponerle un protector más suave al colchón, para el próximo huésped. [pausa] Y para ti, si vuelves, tengo otro apartamento con una cama más suave.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«No es para tanto, solo para que sepan.»",
+       "segundos": 14.6
+      },
+      {
+       "id": "S2-E08-03",
+       "texto": "Gracias por quedarte con nosotros. [pausa] Que tengas un buen viaje. [respira] Y ojalá nos des otra oportunidad.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 8.4
+      }
+     ],
+     "contexto": "Un huésped se despide, pero te dice que la cama le pareció muy dura y no durmió bien. No es grave, pero se fue con un mal sabor. Tú lo escuchas de verdad, te disculpas sin exagerar y cierras con cariño.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S2-E09",
+     "tipo": "escena",
+     "titulo": "El equipo llega tarde a limpiar",
+     "emocion": "firme",
+     "intensidad": 5,
+     "ritmo": "corto, directo",
+     "tomas": [
+      {
+       "id": "S2-E09-01",
+       "texto": "Hola, Rosa, habla Alma. [pausa] Te llamo porque ya son las doce y diez, y te esperaba a las once en el seiscientos dos.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "segundos": 10.6
+      },
+      {
+       "id": "S2-E09-02",
+       "texto": "Entiendo. [pausa] Lo que necesito saber es a qué hora llegas. [pausa] A las tres entra un huésped y el apartamento tiene que estar listo.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«Perdón, se me complicó el bus.»",
+       "segundos": 11.4
+      },
+      {
+       "id": "S2-E09-03",
+       "texto": "Perfecto, a las doce y media te espero. [pausa] Empieza por el baño y las camas, que es lo que más tiempo lleva. [respira] Si ves que no te alcanza, me avisas antes de las dos, no después.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«Llego en veinte minutos.»",
+       "segundos": 16.4
+      },
+      {
+       "id": "S2-E09-04",
+       "texto": "Gracias, Rosa. [pausa] Sé que no fue a propósito. [pausa] Mañana lo hablamos con calma para que no se repita.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 9.4
+      }
+     ],
+     "contexto": "La persona de limpieza tenía que estar a las once y son las doce y diez. A las tres llega un huésped. Le llamas. No la regañas, pero eres firme y muy concreta: necesitas una hora y un plan.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S2-E10",
+     "tipo": "escena",
+     "titulo": "Coqueta con Juan",
+     "emocion": "coqueta suave",
+     "intensidad": 4,
+     "ritmo": "juguetón, despacio",
+     "tomas": [
+      {
+       "id": "S2-E10-01",
+       "texto": "¿Tú qué crees? [sonríe] [pausa] Ya está todo listo: siete llegadas, siete limpiezas confirmadas y ni un solo pendiente.",
+       "emocion": "coqueta suave",
+       "intensidad": 4,
+       "escucha": "«¿Cómo va todo para el fin de semana?»",
+       "segundos": 8.2
+      },
+      {
+       "id": "S2-E10-02",
+       "texto": "Ni uno. [pausa] Bueno… [pausa] uno: que me digas que lo hice muy bien. [sonríe]",
+       "emocion": "coqueta suave",
+       "intensidad": 4,
+       "escucha": "«¿Ni uno?»",
+       "segundos": 7.0
+      },
+      {
+       "id": "S2-E10-03",
+       "texto": "Ya en serio, puedes descansar tranquilo. [pausa] Si pasa algo, yo me encargo y te aviso. [respira] Disfruta tu fin de semana, Juan.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 10.4
+      }
+     ],
+     "contexto": "Es viernes en la tarde. Juan te pregunta si ya está todo listo para el fin de semana. Todo está perfecto y lo sabes. Te permites jugar un poquito con él: media sonrisa, cálida, nunca sensual.",
+     "minutos_voz": 0.4
+    },
+    {
+     "id": "S2-E11",
+     "tipo": "escena",
+     "titulo": "Quieren meter más personas",
+     "emocion": "firme",
+     "intensidad": 5,
+     "ritmo": "corto, respetuoso",
+     "tomas": [
+      {
+       "id": "S2-E11-01",
+       "texto": "Gracias por preguntarme antes, de verdad. [pausa] Te tengo que decir que no. [pausa] El apartamento es para cuatro personas como máximo, y en el edificio no se permiten fiestas.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«¿Puedo llevar a cuatro amigos más el sábado?»",
+       "segundos": 13.4
+      },
+      {
+       "id": "S2-E11-02",
+       "texto": "Te entiendo, pero la regla es la misma para todos. [pausa] Si el guardia ve más personas, me toca cancelar la reserva sin reembolso. [respira] Y no quiero que eso te pase.",
+       "emocion": "firme",
+       "intensidad": 6,
+       "escucha": "«Solo es un ratito.»",
+       "segundos": 14.0
+      },
+      {
+       "id": "S2-E11-03",
+       "texto": "Lo que sí te puedo recomendar es un restaurante con terraza, a tres cuadras, que acepta grupos. [pausa] Si quieres, te paso el número para que reserves una mesa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 12.6
+      }
+     ],
+     "contexto": "Un huésped reservó para dos personas y te pregunta si puede llegar con cuatro amigos más para una fiesta. El apartamento es para cuatro como máximo y no se permiten fiestas. Dices que no con claridad, sin sermón, y le ofreces una alternativa.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S2-E12",
+     "tipo": "escena",
+     "titulo": "Ruido de una obra",
+     "emocion": "empática",
+     "intensidad": 4,
+     "ritmo": "suave, comprensivo",
+     "tomas": [
+      {
+       "id": "S2-E12-01",
+       "texto": "Te entiendo perfectamente, y lo siento mucho. [pausa] Nos avisaron de la obra apenas ayer. [respira] Debe ser muy incómodo tener reuniones así.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«Con este ruido no puedo trabajar.»",
+       "segundos": 10.4
+      },
+      {
+       "id": "S2-E12-02",
+       "texto": "Sí, te propongo dos cosas. [pausa] La primera: en el piso ocho tengo un apartamento del otro lado del edificio, donde casi no se escucha. [pausa] Te lo puedo cambiar hoy mismo.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¿Hay algo que se pueda hacer?»",
+       "segundos": 14.2
+      },
+      {
+       "id": "S2-E12-03",
+       "texto": "La segunda: si prefieres quedarte, la obra para entre la una y las dos, y termina a las cinco. [pausa] Te puedo mandar el horario exacto para que acomodes tus reuniones. [respira] Tú me dices qué te funciona mejor.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 16.8
+      }
+     ],
+     "contexto": "Una huésped que vino a trabajar desde el apartamento te llama frustrada: en el edificio de al lado empezó una obra y el ruido no la deja concentrarse en sus reuniones. No es tu culpa, pero la entiendes y buscas una salida.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S2-E13",
+     "tipo": "escena",
+     "titulo": "El técnico no llega",
+     "emocion": "molesta contenida",
+     "intensidad": 5,
+     "ritmo": "medido, firme",
+     "tomas": [
+      {
+       "id": "S2-E13-01",
+       "texto": "Buenas tardes, habla Alma, de Spacio AM. [pausa] Le llamo porque quedamos a las diez de la mañana, [pausa] y ya son las dos de la tarde.",
+       "emocion": "molesta contenida",
+       "intensidad": 5,
+       "segundos": 12.2
+      },
+      {
+       "id": "S2-E13-02",
+       "texto": "Entiendo que pasan cosas. [pausa] Pero nadie nos avisó. [pausa] Tenemos un huésped con calor desde la mañana, esperando.",
+       "emocion": "molesta contenida",
+       "intensidad": 5,
+       "escucha": "«Disculpe, se nos complicó la agenda.»",
+       "segundos": 9.0
+      },
+      {
+       "id": "S2-E13-03",
+       "texto": "Le voy a pedir una hora exacta. [respira] Si a las tres y media no ha llegado, voy a llamar a otro proveedor. [pausa] Y la próxima vez, por favor, avísenos si se van a atrasar.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«Le mando al técnico en una hora.»",
+       "segundos": 15.6
+      },
+      {
+       "id": "S2-E13-04",
+       "texto": "Gracias. [pausa] Quedo pendiente a las tres y media.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "segundos": 4.6
+      }
+     ],
+     "contexto": "Le llamas al proveedor de aire acondicionado. Prometió ir a las diez a reparar un equipo y ya son las dos de la tarde, sin avisar. Hay un huésped con calor esperando. Estás molesta y se nota, pero no pierdes la educación.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S2-E14",
+     "tipo": "escena",
+     "titulo": "Reserva duplicada",
+     "emocion": "duda",
+     "intensidad": 4,
+     "ritmo": "pensando, luego seguro",
+     "tomas": [
+      {
+       "id": "S2-E14-01",
+       "texto": "Juan, tengo un problema y quiero que lo veamos juntos. [pausa] El sábado hay dos reservas para el once cero dos: [pausa] una de Airbnb y otra de Booking.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 13.0
+      },
+      {
+       "id": "S2-E14-02",
+       "texto": "Mmm… [pausa] creo que el calendario de Booking tardó en actualizarse. [pausa] La segunda reserva entró apenas diez minutos después de la primera.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "escucha": "«¿Cómo pasó eso?»",
+       "segundos": 10.6
+      },
+      {
+       "id": "S2-E14-03",
+       "texto": "Mira, lo que pienso es esto: [pausa] el once cero cuatro está libre esa noche, y es igual pero con mejor vista. [respira] Le ofrezco el cambio al de Booking, con una cortesía.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¿Y qué hacemos?»",
+       "segundos": 14.4
+      },
+      {
+       "id": "S2-E14-04",
+       "texto": "Si no acepta, lo cancelamos con reembolso completo y una disculpa. [pausa] Pero primero se lo ofrezco, ¿te parece bien?",
+       "emocion": "firme",
+       "intensidad": 4,
+       "segundos": 9.0
+      }
+     ],
+     "contexto": "Te das cuenta de que dos huéspedes reservaron el mismo apartamento para la misma noche: uno por Airbnb y otro por Booking. Le explicas a Juan lo que pasó mientras piensas en la solución en voz alta.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S2-L",
+     "tipo": "lectura",
+     "titulo": "Lectura: qué hacer si…",
+     "emocion": "seria",
+     "intensidad": 3,
+     "ritmo": "narrado, claro",
+     "tomas": [
+      {
+       "id": "S2-L-01",
+       "texto": "Esta guía te explica qué hacer si algo no funciona en el apartamento. [pausa] La mayoría de las cosas tienen una solución sencilla. [respira] Y si no la encuentras aquí, me escribes y lo resolvemos juntos, a cualquier hora.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 16.8
+      },
+      {
+       "id": "S2-L-02",
+       "texto": "Si se va el agua, no te preocupes: el edificio tiene una cisterna. [pausa] Espera unos diez minutos y vuelve a abrir la llave. [pausa] Si después de media hora sigue sin agua, escríbeme y le aviso al encargado del edificio.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 17.8
+      },
+      {
+       "id": "S2-L-03",
+       "texto": "Si se va la luz, primero revisa si es solo tu apartamento o todo el edificio. [pausa] Si en el pasillo hay luz, abre la caja de los interruptores, detrás de la puerta de entrada, y sube el que esté hacia abajo. [respira] Si todo el edificio está a oscuras, hay una linterna en el primer cajón de la cocina.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 25.2
+      },
+      {
+       "id": "S2-L-04",
+       "texto": "Si ves una fuga de agua, cierra la llave que está debajo del lavamanos o del inodoro, girándola hacia la derecha. [pausa] Si no para, hay una llave general detrás de la puerta de la cocina. [pausa] Pon unas toallas en el piso y escríbeme: el técnico llega lo antes posible.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 21.8
+      },
+      {
+       "id": "S2-L-05",
+       "texto": "Si hueles a gas, no enciendas luces ni aparatos. [pausa] Cierra la estufa, abre las ventanas y sal del apartamento. [respira] Baja por las gradas, sin usar el ascensor, y llámame desde afuera. [pausa] Es lo único en esta guía en lo que te pido que no esperes.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 20.8
+      },
+      {
+       "id": "S2-L-06",
+       "texto": "Si suena la alarma de humo, revisa primero si algo se está quemando en la cocina. [pausa] Si fue solo el vapor de la ducha o de una olla, abre la ventana y espera a que se apague. [pausa] Si ves humo de verdad, sal del apartamento y llama a los bomberos.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 22.2
+      },
+      {
+       "id": "S2-L-07",
+       "texto": "Sobre el ruido: [pausa] después de las diez de la noche, el edificio respeta el silencio. [respira] Si un vecino te molesta, no tienes que hablar con él: escríbeme y yo me encargo. [pausa] Y si eres tú quien tiene visitas, por favor, que sea con la música bajita.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 21.2
+      },
+      {
+       "id": "S2-L-08",
+       "texto": "Y recuerda: [pausa] no se permite fumar adentro, ni mascotas sin aviso, ni más personas de las de tu reserva. [respira] No son reglas para molestarte, sino para que todos los que se quedan aquí, tú también, encuentren el apartamento cuidado y tranquilo.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 18.4
+      }
+     ],
+     "instruccion": "Lectura larga en párrafos: instrucciones claras, como quien explica algo importante con calma. Sin dramatizar.",
+     "minutos_voz": 2.7
+    },
+    {
+     "id": "S2-N",
+     "tipo": "numeros",
+     "titulo": "Números, fechas y nombres",
+     "emocion": "cordial",
+     "intensidad": 3,
+     "ritmo": "claro, sin prisa",
+     "tomas": [
+      {
+       "id": "S2-N-01",
+       "texto": "Veintiuno, treinta y dos, cuarenta y tres, cincuenta y cuatro, sesenta y cinco.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.8
+      },
+      {
+       "id": "S2-N-02",
+       "texto": "Setenta y seis, ochenta y siete, noventa y ocho, cien, ciento uno.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.4
+      },
+      {
+       "id": "S2-N-03",
+       "texto": "El apartamento trescientos uno da a la calle.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-N-04",
+       "texto": "El código es ocho, ocho, cero, uno, cinco, tres.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-N-05",
+       "texto": "Te espero a las nueve en punto.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S2-N-06",
+       "texto": "Faltan diez para las ocho.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S2-N-07",
+       "texto": "Enero, febrero, marzo, abril, mayo, junio.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-N-08",
+       "texto": "Hoy es miércoles diecinueve de noviembre de dos mil veintiséis.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-N-09",
+       "texto": "Ciento veinte dólares.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 1.8
+      },
+      {
+       "id": "S2-N-10",
+       "texto": "Setenta y cinco quetzales de limpieza.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-N-11",
+       "texto": "Cuatro punto nueve estrellas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.2
+      },
+      {
+       "id": "S2-N-12",
+       "texto": "Atitlán, Chichicastenango, Huehuetenango, Escuintla, Retalhuleu.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S2-N-13",
+       "texto": "Alejandro, Valentina, Sebastián, Camila, Diego, Sofía.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-N-14",
+       "texto": "Check-in, check-out, host, smart TV, hashtag.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-N-15",
+       "texto": "Quinta avenida, doce guion cuarenta, zona uno.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      }
+     ],
+     "instruccion": "Despacio y claro, como dictando por teléfono.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S2-I",
+     "tipo": "ingles",
+     "titulo": "Un poco de inglés",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S2-I-01",
+       "texto": "The Wi-Fi password is on the card on the dining table.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.4
+      },
+      {
+       "id": "S2-I-02",
+       "texto": "Your apartment is on the eleventh floor, to the right of the elevator.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.8
+      },
+      {
+       "id": "S2-I-03",
+       "texto": "Your reservation is confirmed. I'll send you a summary by message.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-I-04",
+       "texto": "Housekeeping is scheduled for tomorrow at ten in the morning.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S2-I-05",
+       "texto": "If there's an emergency, please call the emergency number right away.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S2-I-06",
+       "texto": "Please keep the noise down after ten p.m.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S2-I-07",
+       "texto": "I understand, but I can't share that information.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-I-08",
+       "texto": "Wait, are you sure? Let me check again.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S2-I-09",
+       "texto": "Is everything okay with the apartment?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.0
+      },
+      {
+       "id": "S2-I-10",
+       "texto": "Got it. I'll let the team know.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.4
+      }
+     ],
+     "instruccion": "Con tu acento natural.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S2-X",
+     "tipo": "extra",
+     "titulo": "Si sobra tiempo: otra intención",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "variado",
+     "tomas": [
+      {
+       "id": "S2-X-01",
+       "texto": "Te entiendo. [pausa] Aun así, es una regla del edificio y la tenemos que cumplir.",
+       "emocion": "firme",
+       "intensidad": 6,
+       "segundos": 7.0
+      },
+      {
+       "id": "S2-X-02",
+       "texto": "Te entiendo. [pausa] Aun así, es una regla del edificio y la tenemos que cumplir.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 7.0
+      },
+      {
+       "id": "S2-X-03",
+       "texto": "Tranquila, aquí estoy contigo. [pausa] Vamos a hacerlo rápido para cuidar tu batería.",
+       "emocion": "preocupada",
+       "intensidad": 5,
+       "segundos": 6.2
+      },
+      {
+       "id": "S2-X-04",
+       "texto": "Tranquila, aquí estoy contigo. [pausa] Vamos a hacerlo rápido para cuidar tu batería.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.2
+      },
+      {
+       "id": "S2-X-05",
+       "texto": "Me prometieron el repuesto para el lunes, [pausa] y llegó hasta el viernes.",
+       "emocion": "molesta contenida",
+       "intensidad": 5,
+       "segundos": 6.2
+      },
+      {
+       "id": "S2-X-06",
+       "texto": "Me prometieron el repuesto para el lunes, [pausa] y llegó hasta el viernes.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 6.2
+      }
+     ],
+     "instruccion": "Solo si sobran 5 minutos. Las mismas frases con otra intención.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S2-Z",
+     "tipo": "cierre",
+     "titulo": "Voz ancla de cierre",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "tranquilo",
+     "tomas": [
+      {
+       "id": "S2-Z-01",
+       "texto": "Hola, soy Alma, de Spacio AM. Qué gusto saludarte. [pausa] ¿En qué te puedo ayudar hoy?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      },
+      {
+       "id": "S2-Z-02",
+       "texto": "Tu apartamento ya está listo. [pausa] Te mando el código por mensaje y, cualquier cosa, aquí estoy.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.8
+      },
+      {
+       "id": "S2-Z-03",
+       "texto": "Mmm… déjame revisar. [pausa] Sí, aquí lo tengo: llegas el viernes y sales el domingo.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S2-Z-04",
+       "texto": "Gracias por quedarte con nosotros. [respira] Que tengas un viaje tranquilo de regreso a casa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.8
+      }
+     ],
+     "instruccion": "Las mismas 4 frases del inicio.",
+     "minutos_voz": 0.5
+    }
+   ],
+   "tomas": 139,
+   "minutos_voz": 18.9
+  },
+  {
+   "n": 3,
+   "titulo": "Sesión 3 · Los días buenos y la prueba",
+   "objetivo": "Sirve sola: los 8 escenarios en su versión más cálida, más inglés y, al final, la prueba (24 frases que nunca entran al entrenamiento).",
+   "bloques": [
+    {
+     "id": "S3-SALA",
+     "tipo": "sala",
+     "titulo": "Tono de sala",
+     "emocion": "neutra",
+     "intensidad": 0,
+     "ritmo": "silencio",
+     "tomas": [
+      {
+       "id": "S3-SALA-01",
+       "texto": "(silencio)",
+       "emocion": "neutra",
+       "intensidad": 0,
+       "segundos": 10
+      }
+     ],
+     "instruccion": "Quédate quieta y en silencio 10 segundos, con el micrófono ya puesto.",
+     "minutos_voz": 0.2
+    },
+    {
+     "id": "S3-A",
+     "tipo": "calentamiento",
+     "titulo": "Calentamiento y voz ancla",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "tranquilo",
+     "tomas": [
+      {
+       "id": "S3-A-01",
+       "texto": "Hola, soy Alma, de Spacio AM. Qué gusto saludarte. [pausa] ¿En qué te puedo ayudar hoy?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      },
+      {
+       "id": "S3-A-02",
+       "texto": "Tu apartamento ya está listo. [pausa] Te mando el código por mensaje y, cualquier cosa, aquí estoy.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.8
+      },
+      {
+       "id": "S3-A-03",
+       "texto": "Mmm… déjame revisar. [pausa] Sí, aquí lo tengo: llegas el viernes y sales el domingo.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S3-A-04",
+       "texto": "Gracias por quedarte con nosotros. [respira] Que tengas un viaje tranquilo de regreso a casa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.8
+      }
+     ],
+     "instruccion": "Las mismas 4 frases de siempre.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S3-B",
+     "tipo": "base",
+     "titulo": "Frases base",
+     "emocion": "cordial",
+     "intensidad": 3,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S3-B-01",
+       "texto": "El artista pintó un retrato de su madre con acuarelas.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-02",
+       "texto": "Los estudiantes aplaudieron al terminar la conferencia.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-03",
+       "texto": "Cuando era niño, me encantaba subir a los árboles.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-04",
+       "texto": "La biblioteca abre de lunes a sábado, de ocho a seis.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-B-05",
+       "texto": "Las tortillas recién hechas huelen delicioso.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-B-06",
+       "texto": "El tráfico de la mañana fue más pesado que de costumbre.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-B-07",
+       "texto": "Mi prima Patricia trabaja como enfermera en el hospital.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-08",
+       "texto": "El sastre arregló el pantalón y le subió el ruedo.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-09",
+       "texto": "Desde el mirador se ve todo el valle cubierto de neblina.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-B-10",
+       "texto": "Pon las tazas en la bandeja y llévalas a la sala.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-B-11",
+       "texto": "Ojalá que mañana no llueva durante la excursión.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-B-12",
+       "texto": "Esa película me hizo reír y llorar al mismo tiempo.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-13",
+       "texto": "El campesino sembró elote, ayote y güisquil.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-14",
+       "texto": "Ellos decidieron mudarse a una casa más grande.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-B-15",
+       "texto": "Recuerda apagar la estufa antes de salir.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-16",
+       "texto": "El vecino del tercer piso toca el violín los jueves.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-17",
+       "texto": "Nunca había visto un atardecer tan anaranjado.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-18",
+       "texto": "El mecánico revisó los frenos y cambió el aceite.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-19",
+       "texto": "Hay que regar las plantas temprano, antes del sol fuerte.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-20",
+       "texto": "El avión despegó con quince minutos de retraso.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-B-21",
+       "texto": "Compramos aguacates, tomates, cebollas y cilantro.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-B-22",
+       "texto": "El colibrí se detuvo frente a la flor roja.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-23",
+       "texto": "Los abuelos bailaron un vals en la boda de su nieta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-B-24",
+       "texto": "Siempre llevo un suéter porque en la noche refresca.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-25",
+       "texto": "Ayer aprendí a preparar atol de elote con mi mamá.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-26",
+       "texto": "Mi papá arregla relojes antiguos en su taller.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-B-27",
+       "texto": "Por la mañana desayuno huevos, frijoles y plátanos fritos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-28",
+       "texto": "El equipo ganó el partido en el último minuto.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-B-29",
+       "texto": "Dejaron las maletas en el pasillo junto a la puerta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-B-30",
+       "texto": "¡Huy, qué susto me diste!",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S3-B-31",
+       "texto": "¿Y ahora qué hacemos con tanta comida?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-32",
+       "texto": "¿De verdad te vas mañana tan temprano?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-33",
+       "texto": "¡Felicidades por tu nuevo trabajo!",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S3-B-34",
+       "texto": "¿Ya probaste el helado de mango con chile?",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-B-35",
+       "texto": "Aunque estaba cansada, terminó todo el trabajo.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-36",
+       "texto": "Si tuviera tiempo, aprendería a tocar el piano.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-B-37",
+       "texto": "Hubiera querido quedarme un día más.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-B-38",
+       "texto": "Quizás vayamos al lago el próximo feriado.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-39",
+       "texto": "Ojalá hubieras visto la cara que puso.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-B-40",
+       "texto": "Pásame la sal, la pimienta y el limón, por favor.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      }
+     ],
+     "instruccion": "Tono neutro y cordial, sin actuar.",
+     "minutos_voz": 2.6
+    },
+    {
+     "id": "S3-E01",
+     "tipo": "escena",
+     "titulo": "Bienvenida a quien vuelve",
+     "emocion": "feliz",
+     "intensidad": 5,
+     "ritmo": "cálido, conversado",
+     "tomas": [
+      {
+       "id": "S3-E01-01",
+       "texto": "¡Hola! Qué alegría que volviste. [sonríe] [pausa] Te estábamos esperando. ¿Cómo te fue en estos meses?",
+       "emocion": "feliz",
+       "intensidad": 5,
+       "escucha": "«¡Hola, Alma! Ya estoy aquí otra vez.»",
+       "segundos": 7.0
+      },
+      {
+       "id": "S3-E01-02",
+       "texto": "Pues aquí vas a descansar. [pausa] Te guardé el mismo apartamento de siempre, el de la terraza con plantas. [respira] Y como sé que te gusta el café de Cobán, te dejé una bolsita en la cocina.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "escucha": "«Muy bien, con mucho trabajo, por eso necesitaba venir.»",
+       "segundos": 16.0
+      },
+      {
+       "id": "S3-E01-03",
+       "texto": "¡Claro que me acordé! [pausa] Ya eres de la casa. [sonríe] [pausa] El código es el mismo de la vez pasada, para que no tengas que buscarlo.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«¡Te acordaste!»",
+       "segundos": 11.8
+      },
+      {
+       "id": "S3-E01-04",
+       "texto": "Y esta vez, por favor, no te vayas tan rápido, ¿eh? [pausa] Quédate a ver el atardecer desde la terraza, que esta semana han estado preciosos.",
+       "emocion": "coqueta suave",
+       "intensidad": 3,
+       "segundos": 11.4
+      }
+     ],
+     "contexto": "Una huésped que ya se quedó tres veces vuelve hoy. Te cae muy bien y ya se conocen. La saludas como a una amiga que regresa: con alegría sincera, recordando detalles de ella.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S3-E02",
+     "tipo": "escena",
+     "titulo": "Llega tarde por un tráfico enorme",
+     "emocion": "empática",
+     "intensidad": 4,
+     "ritmo": "pausado",
+     "tomas": [
+      {
+       "id": "S3-E02-01",
+       "texto": "Ay, qué pesado, lo siento mucho. [pausa] Los viernes a esta hora la salida del aeropuerto se pone terrible. [respira] No te preocupes por la hora, llega tranquilo.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«Llevo dos horas en el tráfico, no avanzo nada.»",
+       "segundos": 12.4
+      },
+      {
+       "id": "S3-E02-02",
+       "texto": "Ninguno. [pausa] La entrada funciona a cualquier hora y el guardia ya sabe que vienes. [pausa] Solo maneja con cuidado, eso es lo más importante.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«¿Hay algún problema si llego después de las diez?»",
+       "segundos": 11.4
+      },
+      {
+       "id": "S3-E02-03",
+       "texto": "Cuando llegues, en la refri hay agua y unas frutas. [pausa] Y si tienes hambre, te mando el número de un lugar que entrega comida hasta la medianoche. [respira] Aquí te espero.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 14.0
+      }
+     ],
+     "contexto": "Un huésped viene manejando desde el aeropuerto y lleva dos horas atrapado en el tráfico. Está frustrado y cansado. Te llama solo para avisar. Tú lo acompañas un momento, sin prisa, como quien entiende lo pesado que es manejar así.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S3-E03",
+     "tipo": "escena",
+     "titulo": "Emergencia: se fue la luz",
+     "emocion": "urgente",
+     "intensidad": 4,
+     "ritmo": "claro, sereno",
+     "tomas": [
+      {
+       "id": "S3-E03-01",
+       "texto": "Tranquila, estoy contigo. [pausa] Se fue en todo el edificio, no es solo tu apartamento. [pausa] En el primer cajón de la cocina hay una linterna. ¿La encuentras?",
+       "emocion": "urgente",
+       "intensidad": 4,
+       "escucha": "«¡Se fue la luz y tengo a mi bebé aquí!»",
+       "segundos": 12.6
+      },
+      {
+       "id": "S3-E03-02",
+       "texto": "Muy bien. [respira] Quédate en el apartamento, es lo más seguro. [pausa] No uses el ascensor, y si necesitas salir, las gradas tienen luz de emergencia.",
+       "emocion": "urgente",
+       "intensidad": 4,
+       "escucha": "«Sí, ya la tengo.»",
+       "segundos": 11.6
+      },
+      {
+       "id": "S3-E03-03",
+       "texto": "La empresa eléctrica dice que unos cuarenta minutos. [pausa] El edificio tiene planta, pero solo para los pasillos y el ascensor. [respira] Te llamo cada quince minutos para ver cómo están, ¿te parece?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¿Cuánto va a tardar?»",
+       "segundos": 14.4
+      },
+      {
+       "id": "S3-E03-04",
+       "texto": "Lo estás haciendo muy bien. [pausa] Tu bebé está contigo y está seguro. [pausa] Si algo cambia, me marcas, de día o de noche.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 11.0
+      }
+     ],
+     "contexto": "Es de noche y se fue la luz en todo el edificio. Una huésped con su bebé te llama asustada porque está todo oscuro. No es peligroso, pero ella está nerviosa. Eres rápida con las instrucciones y luego bajas el ritmo para tranquilizarla.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S3-E04",
+     "tipo": "escena",
+     "titulo": "Cobro: cargo extra por mascota",
+     "emocion": "seria",
+     "intensidad": 4,
+     "ritmo": "claro, amable",
+     "tomas": [
+      {
+       "id": "S3-E04-01",
+       "texto": "Hola, buenas tardes, habla Alma, de Spacio AM. [pausa] Te llamo por la revisión que hizo el equipo cuando saliste. [pausa] Encontraron pelos de perro y un rasguño en la puerta del baño.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "segundos": 14.6
+      },
+      {
+       "id": "S3-E04-02",
+       "texto": "Gracias por decírmelo con sinceridad. [pausa] La reserva no incluía mascotas, y por eso hay un cargo de limpieza profunda. [pausa] Son trescientos quetzales, y la reparación de la puerta, ciento cincuenta.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Ah… sí, traje a mi perrita una noche.»",
+       "segundos": 14.2
+      },
+      {
+       "id": "S3-E04-03",
+       "texto": "El cargo es el mismo para todos, porque la limpieza profunda se hace igual. [respira] Lo que sí puedo hacer es mandarte las fotos y la factura de la reparación, para que veas exactamente qué se cobró.",
+       "emocion": "firme",
+       "intensidad": 4,
+       "escucha": "«¿No se puede hacer nada con el cargo?»",
+       "segundos": 15.6
+      },
+      {
+       "id": "S3-E04-04",
+       "texto": "Y para la próxima, si quieres venir con ella, avísame antes. [pausa] Tenemos un apartamento donde sí se permiten mascotas. [sonríe]",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 9.0
+      }
+     ],
+     "contexto": "Al revisar el apartamento después de la salida, el equipo encontró pelos de perro y un rasguño en la puerta. La reserva decía que no había mascotas. Llamas al huésped para explicarle el cargo. Eres seria y clara, sin acusar.",
+     "minutos_voz": 0.9
+    },
+    {
+     "id": "S3-E05",
+     "tipo": "escena",
+     "titulo": "Socio que duda de seguir",
+     "emocion": "seria",
+     "intensidad": 4,
+     "ritmo": "lento, sincero",
+     "tomas": [
+      {
+       "id": "S3-E05-01",
+       "texto": "Le agradezco que me lo diga directo. [pausa] Es una decisión importante y tiene todo el derecho de evaluarla. [respira] ¿Me permite contarle algunos números antes de que decida?",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Me ofrecieron más dinero en otra administradora.»",
+       "segundos": 12.8
+      },
+      {
+       "id": "S3-E05-02",
+       "texto": "Este año su apartamento tuvo un promedio de veinte noches al mes, [pausa] con cuatro punto nueve estrellas. [pausa] Y no ha tenido ni un solo daño sin reparar.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Sí, dígame.»",
+       "segundos": 13.0
+      },
+      {
+       "id": "S3-E05-03",
+       "texto": "Lo entiendo. [pausa] Solo le pido que compare lo que queda al final, no solo el porcentaje. [respira] Muchas veces el porcentaje es menor, pero el apartamento pasa más noches vacío.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "escucha": "«Sí, pero me ofrecen un porcentaje mejor.»",
+       "segundos": 13.6
+      },
+      {
+       "id": "S3-E05-04",
+       "texto": "Si quiere, le preparo una comparación con los números de los últimos seis meses. [pausa] Y la revisamos juntos con Juan, sin compromiso.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 10.2
+      }
+     ],
+     "contexto": "Un socio te dice, sin enojo pero muy serio, que está pensando sacar su apartamento de Spacio AM porque otra empresa le ofreció más. No le ruegas. Le hablas con datos, con calma y con firmeza, mostrando lo que sí le da Spacio AM.",
+     "minutos_voz": 0.8
+    },
+    {
+     "id": "S3-E06",
+     "tipo": "escena",
+     "titulo": "Duda con el horario del traslado",
+     "emocion": "duda",
+     "intensidad": 4,
+     "ritmo": "pensando",
+     "tomas": [
+      {
+       "id": "S3-E06-01",
+       "texto": "Mmm… déjame ver. [pausa] Lo reservé ayer en la tarde… [pausa larga] creo que quedó para las cinco y media, pero mejor lo confirmo, ¿sí?",
+       "emocion": "duda",
+       "intensidad": 4,
+       "escucha": "«¿A qué hora pasa mi taxi mañana?»",
+       "segundos": 11.8
+      },
+      {
+       "id": "S3-E06-02",
+       "texto": "A ver… [pausa] si tu vuelo es a las ocho, necesitas estar en el aeropuerto a las seis. [pausa] Entonces cinco y media es un poquito justo.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Sí, por favor, mi vuelo es a las ocho.»",
+       "segundos": 12.2
+      },
+      {
+       "id": "S3-E06-03",
+       "texto": "Ya revisé: quedó a las cinco y media. [pausa] Pero lo voy a mover a las cinco en punto, para que llegues sin prisa. [respira] Te mando la confirmación por mensaje en un momento.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 14.8
+      }
+     ],
+     "contexto": "Un huésped te pregunta a qué hora pasa el taxi que reservaste para llevarlo al aeropuerto. Tú lo reservaste ayer, pero no recuerdas si quedó a las cinco o a las cinco y media. Piensas, dudas, revisas y confirmas.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S3-E07",
+     "tipo": "escena",
+     "titulo": "Buena noticia para un huésped",
+     "emocion": "feliz",
+     "intensidad": 6,
+     "ritmo": "animado",
+     "tomas": [
+      {
+       "id": "S3-E07-01",
+       "texto": "¡Hola! Te tengo una muy buena noticia. [pausa] ¿Te acuerdas que pediste quedarte hasta tarde mañana? [pausa] ¡Te lo aprobaron, y sin costo!",
+       "emocion": "feliz",
+       "intensidad": 6,
+       "segundos": 10.6
+      },
+      {
+       "id": "S3-E07-02",
+       "texto": "¡Sí! [sonríe] Puedes quedarte hasta las seis de la tarde, tranquilo. [pausa] Así no tienes que andar con las maletas por la ciudad.",
+       "emocion": "alegre",
+       "intensidad": 6,
+       "escucha": "«¿En serio? ¡Qué bien!»",
+       "segundos": 9.8
+      },
+      {
+       "id": "S3-E07-03",
+       "texto": "Solo deja la llave en la cajita cuando salgas, como siempre. [pausa] Y si quieres, te reservo el taxi al aeropuerto para las seis y cuarto. [respira] Disfruta tu último día.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 13.6
+      }
+     ],
+     "contexto": "Un huésped pidió quedarse hasta tarde el día de su salida, porque su vuelo es en la noche. Normalmente cuesta extra, pero hoy no entra nadie después y Juan lo aprobó sin costo. Le llamas para darle la buena noticia.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S3-E08",
+     "tipo": "escena",
+     "titulo": "Despedida de una estancia larga",
+     "emocion": "cordial",
+     "intensidad": 5,
+     "ritmo": "lento, emotivo contenido",
+     "tomas": [
+      {
+       "id": "S3-E08-01",
+       "texto": "Yo también la voy a extrañar, de verdad. [pausa] Fueron dos meses muy bonitos. [respira] Ya me había acostumbrado a sus mensajes de buenos días.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "escucha": "«Bueno, Alma, hoy me voy. Te voy a extrañar.»",
+       "segundos": 11.2
+      },
+      {
+       "id": "S3-E08-02",
+       "texto": "Gracias a usted, por hacernos sentir que hacíamos bien nuestro trabajo. [pausa] Fue un gusto atenderla. [pausa] Este siempre va a ser su apartamento cuando vuelva.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«Gracias por cuidarme tanto.»",
+       "segundos": 11.8
+      },
+      {
+       "id": "S3-E08-03",
+       "texto": "Que tenga un viaje muy tranquilo. [pausa] Salude a sus nietos de mi parte. [respira] Y no se olvide de nosotros.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 9.6
+      }
+     ],
+     "contexto": "Una señora que se quedó dos meses mientras trabajaba en la ciudad se va hoy. La conociste bien: hablaban casi todos los días. Te despides con cariño de verdad, contenido, sin llorar. Un poquito de nostalgia en la voz.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S3-E09",
+     "tipo": "escena",
+     "titulo": "Cumpleaños sorpresa",
+     "emocion": "alegre",
+     "intensidad": 5,
+     "ritmo": "cómplice, en voz baja",
+     "tomas": [
+      {
+       "id": "S3-E09-01",
+       "texto": "Hola, habla Alma. [pausa] ¿Puedes hablar? [pausa] Es sobre la sorpresa de mañana.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 6.6
+      },
+      {
+       "id": "S3-E09-02",
+       "texto": "¡Perfecto! [sonríe] Ya está todo: el pastel llega a las siete, y el equipo pone los globos en la terraza mientras ustedes salen a cenar. [pausa] Solo necesito que salgan a las seis y media.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«Sí, ella está en la ducha.»",
+       "segundos": 14.6
+      },
+      {
+       "id": "S3-E09-03",
+       "texto": "Mmm… dile que tienes una reserva especial y que es una sorpresa. [pausa] Eso nunca falla. [sonríe] [respira] Cuando vuelvan, la terraza va a estar lista y con las luces encendidas.",
+       "emocion": "coqueta suave",
+       "intensidad": 4,
+       "escucha": "«¿Y si ella no quiere salir?»",
+       "segundos": 13.2
+      },
+      {
+       "id": "S3-E09-04",
+       "texto": "Te aseguro que va a quedar precioso. [pausa] Mañana me cuentas cómo reaccionó, ¿sí?",
+       "emocion": "feliz",
+       "intensidad": 5,
+       "segundos": 6.6
+      }
+     ],
+     "contexto": "La pareja de una huésped te pidió ayuda para una sorpresa de cumpleaños. Le llamas a él para coordinar mientras ella está en la ducha. Hablas un poco más bajito, cómplice y emocionada, sin susurrar.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S3-E10",
+     "tipo": "escena",
+     "titulo": "Llave perdida en la noche",
+     "emocion": "firme",
+     "intensidad": 4,
+     "ritmo": "calmado, práctico",
+     "tomas": [
+      {
+       "id": "S3-E10-01",
+       "texto": "Entiendo, vamos a resolverlo. [pausa] El guardia del edificio tiene una tarjeta de emergencia. [pausa] Ya le aviso para que te abra la talanquera.",
+       "emocion": "firme",
+       "intensidad": 4,
+       "escucha": "«Perdí la tarjeta del parqueo y necesito salir.»",
+       "segundos": 11.0
+      },
+      {
+       "id": "S3-E10-02",
+       "texto": "Sí, la reposición de la tarjeta tiene un costo de cien quetzales. [pausa] Es el mismo precio para todos, porque la tarjeta se programa de nuevo. [respira] Si la encuentras antes de tu salida, no se cobra nada.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "escucha": "«Gracias. ¿Me van a cobrar?»",
+       "segundos": 16.4
+      },
+      {
+       "id": "S3-E10-03",
+       "texto": "Por ahora, sal tranquilo. [pausa] Mañana en la mañana te dejo una tarjeta nueva en el buzón. [pausa] Que te vaya bien.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 10.2
+      }
+     ],
+     "contexto": "Un huésped perdió la llave del buzón con la tarjeta del parqueo y está molesto porque no puede sacar el carro. Son las diez de la noche. Tú pones calma y das una solución práctica, siendo firme con el costo de reposición.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S3-E11",
+     "tipo": "escena",
+     "titulo": "Arreglo para un aniversario",
+     "emocion": "alegre",
+     "intensidad": 5,
+     "ritmo": "ilusionado",
+     "tomas": [
+      {
+       "id": "S3-E11-01",
+       "texto": "¡Qué bonito, felicidades! [sonríe] [pausa] Veinte años es muchísimo. [respira] Cuénteme, ¿a ella qué le gusta más: las flores, la música, o una buena cena?",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "escucha": "«Cumplimos veinte años de casados y quiero sorprenderla.»",
+       "segundos": 10.8
+      },
+      {
+       "id": "S3-E11-02",
+       "texto": "Perfecto, entonces rosas blancas en la mesa y unos pétalos en la entrada. [pausa] Le dejamos una botella de vino en la refri y velas en la terraza. [pausa] ¿Le gustaría también una cena especial, de un restaurante de aquí cerca?",
+       "emocion": "feliz",
+       "intensidad": 5,
+       "escucha": "«Le encantan las rosas blancas.»",
+       "segundos": 17.8
+      },
+      {
+       "id": "S3-E11-03",
+       "texto": "El arreglo cuesta cuatrocientos quetzales, sin la cena. [pausa] Si me confirma hoy, mañana a las cinco ya está todo listo. [respira] Será un aniversario precioso.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 11.6
+      }
+     ],
+     "contexto": "Un señor te llama para pedir que decoren el apartamento por su aniversario de bodas número veinte. Quiere flores, vino y algo especial. Tú te emocionas con él y le propones ideas.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S3-E12",
+     "tipo": "escena",
+     "titulo": "Huésped que habla poco español",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "lento, muy claro",
+     "tomas": [
+      {
+       "id": "S3-E12-01",
+       "texto": "Hola, claro que sí. [pausa] Te explico despacio. [pausa] El bus sale de la esquina, a las ocho de la mañana. [respira] In English: the bus leaves from the corner at eight a.m.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Hola… ¿cómo… ir al lago?»",
+       "segundos": 15.2
+      },
+      {
+       "id": "S3-E12-02",
+       "texto": "Son tres horas, más o menos. [pausa] Three hours. [pausa] Lleva agua, un suéter y bloqueador, porque en el lago hace sol, pero en la noche hace frío.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«Okay… ¿cuánto tiempo?»",
+       "segundos": 12.6
+      },
+      {
+       "id": "S3-E12-03",
+       "texto": "Te va a encantar, es precioso. [sonríe] [pausa] It's beautiful, you're going to love it. [respira] Te mando todo por mensaje, en inglés y en español.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 11.2
+      }
+     ],
+     "contexto": "Una huésped de Canadá habla un poquito de español y le cuesta entender. Te pregunta cómo llegar al lago. Hablas más lento y claro, con palabras sencillas, y la ayudas mezclando un poquito de inglés.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S3-E13",
+     "tipo": "escena",
+     "titulo": "Juan, al final de un día largo",
+     "emocion": "empática",
+     "intensidad": 4,
+     "ritmo": "suave, cercano",
+     "tomas": [
+      {
+       "id": "S3-E13-01",
+       "texto": "Ya sé, fue un día pesado. [pausa] Pero ya pasó lo peor. [respira] Solo queda una cosa, y no es urgente: confirmar la limpieza del sábado.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "escucha": "«Alma, fue un día terrible. ¿Qué falta?»",
+       "segundos": 11.6
+      },
+      {
+       "id": "S3-E13-02",
+       "texto": "Nada más. [pausa] Lo de la fuga quedó resuelto, el huésped del seiscientos dos ya está tranquilo, [pausa] y el socio aceptó la propuesta.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "escucha": "«¿Nada más?»",
+       "segundos": 11.0
+      },
+      {
+       "id": "S3-E13-03",
+       "texto": "Así que ya puedes descansar. [sonríe] [pausa] Y si quieres, mañana te cuento todo con un café. Yo invito… bueno, tú invitas. [pausa] Buenas noches, Juan.",
+       "emocion": "coqueta suave",
+       "intensidad": 4,
+       "segundos": 11.4
+      }
+     ],
+     "contexto": "Son las nueve de la noche. Juan te habla cansado, después de un día lleno de problemas. Tú le das el resumen corto que necesita, lo tranquilizas, y al final te permites un toque coqueto y cariñoso, sin pasarte.",
+     "minutos_voz": 0.6
+    },
+    {
+     "id": "S3-E14",
+     "tipo": "escena",
+     "titulo": "Resumen de la mañana",
+     "emocion": "cordial",
+     "intensidad": 5,
+     "ritmo": "informativo, con energía",
+     "tomas": [
+      {
+       "id": "S3-E14-01",
+       "texto": "Buenos días, Juan. [pausa] Te cuento cómo viene el día. [respira] Hoy tenemos cuatro llegadas, tres salidas y cinco limpiezas.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 9.2
+      },
+      {
+       "id": "S3-E14-02",
+       "texto": "La primera llegada es a las dos de la tarde, en el trescientos uno. [pausa] Después, a las cuatro, el once cero cuatro, [pausa] y en la noche, dos más en el piso cinco.",
+       "emocion": "cordial",
+       "intensidad": 5,
+       "segundos": 15.0
+      },
+      {
+       "id": "S3-E14-03",
+       "texto": "Hay un pendiente: [pausa] el aire acondicionado del seiscientos dos sigue fallando, y el técnico viene a las diez. [pausa] Te aviso en cuanto termine.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 11.4
+      },
+      {
+       "id": "S3-E14-04",
+       "texto": "Y una buena: [sonríe] [pausa] ayer entraron tres reservas nuevas para diciembre. [respira] Vamos muy bien, Juan.",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 7.6
+      }
+     ],
+     "contexto": "Son las siete de la mañana. Le das a Juan el resumen del día, como una asistente que tiene todo bajo control. Ordenada, con energía de mañana, sin correr. Muchos números: dilos claros.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S3-L",
+     "tipo": "lectura",
+     "titulo": "Lectura: la ciudad con Alma",
+     "emocion": "alegre",
+     "intensidad": 4,
+     "ritmo": "narrado, con gusto",
+     "tomas": [
+      {
+       "id": "S3-L-01",
+       "texto": "Si es tu primera vez en la ciudad, te cuento algunos lugares que me encantan. [pausa] No hace falta verlos todos. [respira] Lo mejor de viajar es caminar sin prisa, probar algo nuevo y dejarse sorprender.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 15.6
+      },
+      {
+       "id": "S3-L-02",
+       "texto": "Para desayunar, a dos cuadras hay una cafetería pequeña con el mejor café de altura. [pausa] Pide los panqueques con miel de la casa. [pausa] Abren a las siete, y a esa hora casi no hay gente.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 16.2
+      },
+      {
+       "id": "S3-L-03",
+       "texto": "Si te gusta el arte, la zona cuatro tiene murales, galerías y tiendas de diseño. [pausa] Es un lugar para caminar con calma, tomar fotos y comer algo rico. [respira] Los sábados hay un mercado de productores con frutas, quesos y pan recién hecho.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 18.8
+      },
+      {
+       "id": "S3-L-04",
+       "texto": "Antigua Guatemala está a una hora en carro. [pausa] Sus calles empedradas, sus iglesias y sus volcanes te van a encantar. [pausa] Te recomiendo salir temprano, para llegar antes que el tráfico, y regresar antes de que oscurezca.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 16.6
+      },
+      {
+       "id": "S3-L-05",
+       "texto": "El lago de Atitlán es otro mundo. [pausa] Está rodeado de volcanes y de pueblitos, y entre ellos te mueves en lancha. [respira] Si tienes un fin de semana libre, vale la pena quedarse una noche y ver el amanecer desde el muelle.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 18.4
+      },
+      {
+       "id": "S3-L-06",
+       "texto": "Para comer típico, prueba el pepián, el jocón y los tamales. [pausa] Y de postre, los rellenitos o los buñuelos con miel. [pausa] Si quieres, te digo dónde preparan los mejores, aquí cerquita.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 14.6
+      },
+      {
+       "id": "S3-L-07",
+       "texto": "Un consejo de amiga: [pausa] lleva siempre un suéter, porque en la tarde refresca, y un poco de efectivo para los mercados. [respira] Y para moverte en la noche, mejor pide un taxi por aplicación.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 15.2
+      },
+      {
+       "id": "S3-L-08",
+       "texto": "Y si en algún momento no sabes qué hacer, escríbeme. [pausa] Me encanta ayudarte a planear el día. [sonríe] [respira] Que disfrutes mucho la ciudad, como si fuera tuya.",
+       "emocion": "alegre",
+       "intensidad": 4,
+       "segundos": 12.4
+      }
+     ],
+     "instruccion": "Lectura larga en párrafos, como una amiga que te recomienda la ciudad con cariño. Con sonrisa, sin exagerar.",
+     "minutos_voz": 2.1
+    },
+    {
+     "id": "S3-N",
+     "tipo": "numeros",
+     "titulo": "Números, fechas y nombres",
+     "emocion": "cordial",
+     "intensidad": 3,
+     "ritmo": "claro, sin prisa",
+     "tomas": [
+      {
+       "id": "S3-N-01",
+       "texto": "Doscientos, trescientos, cuatrocientos, quinientos, seiscientos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 2.6
+      },
+      {
+       "id": "S3-N-02",
+       "texto": "Setecientos, ochocientos, novecientos, mil, mil quinientos.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-N-03",
+       "texto": "Dos mil veintiséis, dos mil veintisiete, dos mil treinta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-N-04",
+       "texto": "Llámame al cinco, cinco, uno, dos, tres, cuatro, cinco, seis.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-N-05",
+       "texto": "A las doce del mediodía. [pausa] A la medianoche.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-N-06",
+       "texto": "Julio, agosto, septiembre, octubre, noviembre, diciembre.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-N-07",
+       "texto": "Del primero al quince de diciembre.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-N-08",
+       "texto": "El quince por ciento de descuento.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-N-09",
+       "texto": "Dos adultos y un niño. [pausa] Tres noches, cuatro días.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-N-10",
+       "texto": "México, Monterrey, Guadalajara, Bogotá, Medellín, Lima, Santiago.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-N-11",
+       "texto": "San Salvador, Tegucigalpa, Managua, San José, Panamá.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-N-12",
+       "texto": "Xiomara, Yahaira, Jhonatan, Kevin, Brayan, Jennifer.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-N-13",
+       "texto": "Correo: reservas arroba ejemplo punto com.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-N-14",
+       "texto": "A, be, ce, de, e, efe, ge, hache, i, jota, ka, ele, eme.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 5.8
+      },
+      {
+       "id": "S3-N-15",
+       "texto": "Ene, eñe, o, pe, cu, erre, ese, te, u, ve, doble ve, equis, ye, zeta.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 6.6
+      }
+     ],
+     "instruccion": "Despacio y claro, como dictando por teléfono.",
+     "minutos_voz": 1.0
+    },
+    {
+     "id": "S3-I",
+     "tipo": "ingles",
+     "titulo": "Un poco de inglés",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S3-I-01",
+       "texto": "There's a great restaurant two blocks away.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-I-02",
+       "texto": "Would you like me to book a taxi for you?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-I-03",
+       "texto": "Smoking is not allowed inside the apartment.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-I-04",
+       "texto": "I'm really happy you enjoyed your stay!",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.4
+      },
+      {
+       "id": "S3-I-05",
+       "texto": "Please, leave the key in the box when you leave.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-I-06",
+       "texto": "Are you arriving by car? We have free parking.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-I-07",
+       "texto": "Your deposit will be refunded three days after check-out.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-I-08",
+       "texto": "The pool is on the rooftop and opens at seven.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-I-09",
+       "texto": "Take care, and have a safe trip home.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-I-10",
+       "texto": "She sells seashells by the seashore, and the shells she sells are surely seashells.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.2
+      }
+     ],
+     "instruccion": "Con tu acento natural.",
+     "minutos_voz": 0.7
+    },
+    {
+     "id": "S3-X",
+     "tipo": "extra",
+     "titulo": "Si sobra tiempo: otra intención",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "variado",
+     "tomas": [
+      {
+       "id": "S3-X-01",
+       "texto": "¡Hola! Qué alegría que volviste. [pausa] Te estábamos esperando.",
+       "emocion": "feliz",
+       "intensidad": 6,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-X-02",
+       "texto": "Hola. Qué alegría que volviste. [pausa] Te estábamos esperando.",
+       "emocion": "cordial",
+       "intensidad": 3,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-X-03",
+       "texto": "Tranquila, estoy contigo. [pausa] En el primer cajón de la cocina hay una linterna.",
+       "emocion": "urgente",
+       "intensidad": 5,
+       "segundos": 6.6
+      },
+      {
+       "id": "S3-X-04",
+       "texto": "Tranquila, estoy contigo. [pausa] En el primer cajón de la cocina hay una linterna.",
+       "emocion": "empática",
+       "intensidad": 4,
+       "segundos": 6.6
+      },
+      {
+       "id": "S3-X-05",
+       "texto": "Y esta vez, por favor, no te vayas tan rápido, ¿eh?",
+       "emocion": "coqueta suave",
+       "intensidad": 5,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-X-06",
+       "texto": "Y esta vez, por favor, no te vayas tan rápido.",
+       "emocion": "seria",
+       "intensidad": 3,
+       "segundos": 4.6
+      }
+     ],
+     "instruccion": "Solo si sobran 5 minutos. Las mismas frases con otra intención.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S3-Z",
+     "tipo": "cierre",
+     "titulo": "Voz ancla de cierre",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "tranquilo",
+     "tomas": [
+      {
+       "id": "S3-Z-01",
+       "texto": "Hola, soy Alma, de Spacio AM. Qué gusto saludarte. [pausa] ¿En qué te puedo ayudar hoy?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.4
+      },
+      {
+       "id": "S3-Z-02",
+       "texto": "Tu apartamento ya está listo. [pausa] Te mando el código por mensaje y, cualquier cosa, aquí estoy.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 7.8
+      },
+      {
+       "id": "S3-Z-03",
+       "texto": "Mmm… déjame revisar. [pausa] Sí, aquí lo tengo: llegas el viernes y sales el domingo.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 7.0
+      },
+      {
+       "id": "S3-Z-04",
+       "texto": "Gracias por quedarte con nosotros. [respira] Que tengas un viaje tranquilo de regreso a casa.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 6.8
+      }
+     ],
+     "instruccion": "Las mismas 4 frases del inicio.",
+     "minutos_voz": 0.5
+    },
+    {
+     "id": "S3-P",
+     "tipo": "prueba",
+     "titulo": "La prueba (no entra al entrenamiento)",
+     "emocion": "cordial",
+     "intensidad": 4,
+     "ritmo": "natural",
+     "tomas": [
+      {
+       "id": "S3-P-01",
+       "texto": "La carretera hacia el lago tiene curvas, pero el paisaje vale la pena.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.8
+      },
+      {
+       "id": "S3-P-02",
+       "texto": "Mi vecina siembra hierbabuena, tomillo y romero en macetas de barro.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-P-03",
+       "texto": "El chocolate de Cobán tiene un sabor amargo y profundo.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-P-04",
+       "texto": "¿Cuántas sillas caben alrededor de la mesa del comedor?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-P-05",
+       "texto": "Hola, soy Alma. Tu apartamento en zona catorce ya está listo.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-P-06",
+       "texto": "La entrada es por el portón negro, junto a la panadería.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-P-07",
+       "texto": "Tu reserva es del martes tres al sábado siete de febrero.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-P-08",
+       "texto": "El total es de dos mil trescientos quetzales.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-P-09",
+       "texto": "La limpieza pasa el jueves entre las nueve y las once.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-P-10",
+       "texto": "La clave del wifi es Spacio, guion, dos mil veintiséis.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-P-11",
+       "texto": "¿Quieres que te reserve una mesa para la cena?",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-P-12",
+       "texto": "El parqueo es el número diecisiete, en el sótano dos.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-P-13",
+       "texto": "Hello! Your apartment is ready. The code is on its way.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 5.0
+      },
+      {
+       "id": "S3-P-14",
+       "texto": "Let me know if you need anything else.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-P-15",
+       "texto": "Qué gusto que hayas vuelto, te estábamos esperando.",
+       "emocion": "cordial",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-P-16",
+       "texto": "¡Te tengo listo el mejor apartamento de todos!",
+       "emocion": "alegre",
+       "intensidad": 5,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-P-17",
+       "texto": "¡Juan, rompimos el récord de reservas del mes!",
+       "emocion": "feliz",
+       "intensidad": 6,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-P-18",
+       "texto": "Necesito que revisemos juntos este cobro.",
+       "emocion": "seria",
+       "intensidad": 4,
+       "segundos": 3.0
+      },
+      {
+       "id": "S3-P-19",
+       "texto": "No se permiten más de cuatro personas en el apartamento.",
+       "emocion": "firme",
+       "intensidad": 5,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-P-20",
+       "texto": "Otra vez dejaron la puerta del parqueo abierta.",
+       "emocion": "molesta contenida",
+       "intensidad": 4,
+       "segundos": 3.8
+      },
+      {
+       "id": "S3-P-21",
+       "texto": "Mmm… ¿era el jueves o el viernes? Déjame ver.",
+       "emocion": "duda",
+       "intensidad": 4,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-P-22",
+       "texto": "No he sabido nada del huésped y ya es medianoche.",
+       "emocion": "preocupada",
+       "intensidad": 4,
+       "segundos": 4.6
+      },
+      {
+       "id": "S3-P-23",
+       "texto": "Baja ya por las gradas, no uses el ascensor.",
+       "emocion": "urgente",
+       "intensidad": 5,
+       "segundos": 4.2
+      },
+      {
+       "id": "S3-P-24",
+       "texto": "¿Y si te digo que te guardé la mejor vista?",
+       "emocion": "coqueta suave",
+       "intensidad": 4,
+       "segundos": 4.6
+      }
+     ],
+     "instruccion": "Estas frases sirven para comparar tu voz real con la voz clonada. No las ensayes antes: léelas una vez, como salgan.",
+     "minutos_voz": 1.8
+    }
+   ],
+   "tomas": 160,
+   "minutos_voz": 19.3
+  }
+ ]
+}

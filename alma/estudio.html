@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Mini estudio · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Mini estudio (Juan, 19-nov-2026): grabar la voz oficial de Alma con un micrófono de solapa, ahí mismo. Teleprompter que
+     marca pausas y respiraciones, medidor en vivo (dBFS), revisión de cada toma (js/estudio-calidad.js) y guardado privado en
+     el Drive de alma@ por trozos (apps-script/estudio.js: acciones «estudio», «estudioSubir», «estudioInvitar»).
+     El guion vive en alma/estudio-guion.json (no tiene datos personales). Solo el principal y quien él invite. -->
+<style>
+  :root { color-scheme: light; --fondo: #FAF8F6; --papel: #fff; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12);
+    --arena: #F3EFEA; --durazno: #E9826A; --durazno-t: #B5624E; --verde: #4F8A5E; --amarillo: #D9A23B; --rojo: #C2553B; --sombra: 0 18px 40px -28px rgba(70,50,40,.4);
+    --prompt: #2E2F2F; --hecho: #B9B2AB; --ease: cubic-bezier(.22,.61,.36,1); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --fondo: #171615; --papel: #22201F; --tinta: #F1ECE6; --suave: #A9A099;
+    --tenue: #8C847D; --linea: rgba(241,236,230,.12); --arena: #2D2A28; --durazno-t: #F0A28D; --sombra: 0 18px 40px -24px rgba(0,0,0,.7); --prompt: #FAF6F1; --hecho: #5E5854; } }
+  :root[data-theme="dark"] { color-scheme: dark; --fondo: #171615; --papel: #22201F; --tinta: #F1ECE6; --suave: #A9A099; --tenue: #8C847D; --linea: rgba(241,236,230,.12);
+    --arena: #2D2A28; --durazno-t: #F0A28D; --sombra: 0 18px 40px -24px rgba(0,0,0,.7); --prompt: #FAF6F1; --hecho: #5E5854; }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  main { max-width: 980px; margin: 0 auto; padding: max(18px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  [hidden] { display: none !important; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--durazno); outline-offset: 2px; }
+  .barra { display: flex; align-items: center; gap: 12px; }
+  .barra .t { flex: 1; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); }
+  .redondo { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: var(--papel); display: grid; place-items: center; color: var(--tinta); text-decoration: none; box-shadow: var(--sombra); }
+  .redondo svg { width: 20px; height: 20px; }
+  .portada { margin: 26px 0 14px; }
+  .portada small { display: block; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: var(--durazno-t); }
+  .portada h1 { margin: 8px 0 10px; font: 400 clamp(32px, 7vw, 48px)/1.05 Valky, Georgia, serif; letter-spacing: -.01em; }
+  .portada p { margin: 0; max-width: 62ch; color: var(--suave); }
+  .tarjeta { background: var(--papel); border-radius: 22px; padding: 16px; box-shadow: var(--sombra); }
+  .sec { margin: 26px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+  .sec h2 { margin: 0; font: 400 24px/1.1 Valky, Georgia, serif; }
+  .sec span { font: 500 12.5px Montserrat, sans-serif; color: var(--suave); }
+  .sesiones { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .ses { text-align: left; border: 2px solid transparent; display: grid; gap: 8px; min-height: 44px; }
+  .ses[aria-pressed="true"] { border-color: var(--durazno); }
+  .ses b { font: 600 15px/1.3 Montserrat, sans-serif; }
+  .ses small { color: var(--suave); font: 500 12.5px/1.45 Montserrat, sans-serif; }
+  .avance { height: 6px; border-radius: 99px; background: var(--arena); overflow: hidden; }
+  .avance i { display: block; height: 100%; width: 0; background: var(--verde); border-radius: 99px; transition: width .4s var(--ease); }
+  .fila { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  select, input[type=email] { min-height: 44px; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--linea); background: var(--fondo); color: var(--tinta); font: 500 14.5px Montserrat, sans-serif; max-width: 100%; }
+  .boton { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: var(--arena); font: 600 12px Montserrat, sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+  .boton.si { background: var(--durazno); color: #fff; }
+  .boton[disabled] { opacity: .5; cursor: default; }
+  .nota { margin: 8px 0 0; font: 500 13px/1.5 Montserrat, sans-serif; color: var(--suave); }
+  .nota.mal { color: var(--rojo); } .nota.bien { color: var(--verde); }
+  details.guia { margin-top: 10px; }
+  details.guia summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font: 600 13px Montserrat, sans-serif; color: var(--durazno-t); }
+  details.guia ol { margin: 4px 0 0; padding-left: 20px; color: var(--suave); font-size: 14px; }
+  details.guia li { margin: 4px 0; }
+
+  /* Medidor: −60 a 0 dBFS. Zonas: baja (amarilla tenue) · verde −18…−6 con el objetivo −12…−6 marcado · amarilla −6…−3 · roja. */
+  .medidor { display: grid; gap: 6px; }
+  .regla { position: relative; height: 26px; border-radius: 10px; overflow: hidden;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--amarillo) 22%, transparent) 0 70%, color-mix(in srgb, var(--verde) 30%, transparent) 70% 90%, color-mix(in srgb, var(--amarillo) 40%, transparent) 90% 95%, color-mix(in srgb, var(--rojo) 45%, transparent) 95% 100%); }
+  .regla .obj { position: absolute; top: 0; bottom: 0; left: 80%; width: 10%; border-left: 2px solid var(--verde); border-right: 2px solid var(--verde); }
+  .regla .rms, .regla .pico { position: absolute; left: 0; top: 0; bottom: 0; width: 0; }
+  .regla .rms { background: color-mix(in srgb, var(--tinta) 30%, transparent); }
+  .regla .pico { background: var(--verde); opacity: .9; height: 8px; top: 9px; border-radius: 0 6px 6px 0; }
+  .regla .pico.amarillo { background: var(--amarillo); } .regla .pico.rojo { background: var(--rojo); }
+  .regla .tope { position: absolute; top: 0; bottom: 0; width: 3px; left: 0; background: var(--tinta); border-radius: 2px; }
+  .escala { display: flex; justify-content: space-between; font: 600 10px Montserrat, sans-serif; color: var(--tenue); font-variant-numeric: tabular-nums; }
+  .lectura { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font: 600 13px Montserrat, sans-serif; font-variant-numeric: tabular-nums; }
+  .lectura .clip { margin-left: auto; padding: 4px 10px; border-radius: 99px; background: var(--arena); color: var(--suave); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .lectura .clip.on { background: var(--rojo); color: #fff; }
+
+  /* Grabar */
+  .cabeza { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 18px 0 10px; }
+  .cabeza .donde { font: 600 12px Montserrat, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: var(--tenue); }
+  .cabeza .reloj { margin-left: auto; font: 600 13px Montserrat, sans-serif; font-variant-numeric: tabular-nums; color: var(--suave); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 99px; background: var(--arena); font: 600 12.5px Montserrat, sans-serif; }
+  .chip.emo { background: color-mix(in srgb, var(--durazno) 20%, var(--papel)); color: var(--durazno-t); }
+  .puntos { display: inline-flex; gap: 3px; } .puntos i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: .2; } .puntos i.on { opacity: 1; }
+  .escena { margin: 10px 0; border-left: 4px solid var(--durazno); }
+  .escena b { font: 400 22px/1.2 Valky, Georgia, serif; display: block; margin-bottom: 6px; }
+  .escena p { margin: 0; color: var(--suave); font-size: 15px; }
+  .escucha { margin: 14px 0 4px; font: italic 500 16px/1.4 Montserrat, sans-serif; color: var(--suave); }
+  .escucha::before { content: "Te dicen: "; font-style: normal; font-weight: 600; color: var(--tenue); }
+  .prompter { position: relative; min-height: 180px; padding: 22px 20px; border-radius: 26px; background: var(--papel); box-shadow: var(--sombra);
+    font: 500 clamp(26px, 4.4vw, 42px)/1.42 Montserrat, sans-serif; color: var(--prompt); letter-spacing: -.005em; cursor: pointer; user-select: none; -webkit-user-select: none; }
+  .prompter .seg { transition: color .25s var(--ease), opacity .25s var(--ease); }
+  .prompter.vivo .seg { opacity: .38; } .prompter.vivo .seg.ahora { opacity: 1; } .prompter.vivo .seg.dicho { opacity: .3; color: var(--hecho); }
+  .marca { display: inline-flex; align-items: center; vertical-align: middle; gap: 6px; margin: 0 6px; padding: 2px 12px; border-radius: 99px; font: 700 .42em/2 Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; background: var(--arena); color: var(--suave); }
+  .marca.pausa { background: color-mix(in srgb, var(--amarillo) 26%, var(--papel)); color: #8A6216; }
+  .marca.respira { background: color-mix(in srgb, #6C8FB8 26%, var(--papel)); color: #3F5F86; }
+  .marca.sonrie { background: color-mix(in srgb, var(--durazno) 24%, var(--papel)); color: var(--durazno-t); }
+  :root[data-theme="dark"] .marca.pausa { color: #F1C56B; } :root[data-theme="dark"] .marca.respira { color: #A9C4E6; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .marca.pausa { color: #F1C56B; } :root:not([data-theme="light"]) .marca.respira { color: #A9C4E6; } }
+  .senal { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 64px; margin: 12px 0; border-radius: 20px; font: 700 clamp(20px, 3.4vw, 30px)/1 Montserrat, sans-serif; letter-spacing: .14em; text-transform: uppercase; background: var(--arena); color: var(--suave); }
+  .senal.habla, .senal.sigue { background: color-mix(in srgb, var(--verde) 22%, var(--papel)); color: var(--verde); }
+  .senal.pausa { background: color-mix(in srgb, var(--amarillo) 26%, var(--papel)); color: #9A6E17; }
+  .senal.respira { background: color-mix(in srgb, #6C8FB8 26%, var(--papel)); color: #4A6E98; }
+  .senal.info { font: 600 15px/1.4 Montserrat, sans-serif; letter-spacing: 0; text-transform: none; padding: 10px 16px; text-align: center; }
+  .senal.rojo { background: color-mix(in srgb, var(--rojo) 20%, var(--papel)); color: var(--rojo); }
+  .senal.silencio { background: var(--arena); color: var(--tinta); }
+  .senal .barrita { width: 120px; height: 6px; border-radius: 99px; background: rgba(0,0,0,.08); overflow: hidden; }
+  .senal .barrita i { display: block; height: 100%; width: 100%; background: currentColor; transform-origin: left; }
+  .controles { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 14px 0; }
+  .rec { width: 88px; height: 88px; border-radius: 50%; border: 0; background: var(--rojo); color: #fff; display: grid; place-items: center; box-shadow: 0 16px 30px -14px rgba(194,85,59,.8); }
+  .rec svg { width: 34px; height: 34px; }
+  .rec.grabando { background: var(--tinta); color: var(--fondo); }
+  .rec:active { transform: scale(.96); }
+  .rec[disabled] { opacity: .5; }
+  .resultado { margin: 12px 0; display: grid; gap: 10px; }
+  .resultado .titulo { display: flex; align-items: center; gap: 12px; font: 600 18px/1.3 Montserrat, sans-serif; }
+  .foco { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--verde); box-shadow: 0 0 0 6px color-mix(in srgb, var(--verde) 20%, transparent); }
+  .foco.amarillo { background: var(--amarillo); box-shadow: 0 0 0 6px color-mix(in srgb, var(--amarillo) 22%, transparent); }
+  .foco.rojo { background: var(--rojo); box-shadow: 0 0 0 6px color-mix(in srgb, var(--rojo) 22%, transparent); }
+  .problemas { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .problemas li { padding: 10px 12px; border-radius: 14px; background: var(--fondo); font-size: 14px; }
+  .problemas li b { display: block; } .problemas li span { color: var(--suave); }
+  .problemas li.rojo { border-left: 4px solid var(--rojo); } .problemas li.amarillo { border-left: 4px solid var(--amarillo); }
+  .metricas { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 600 12px Montserrat, sans-serif; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .subida { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; min-height: 36px; border-radius: 99px; background: var(--arena); font: 600 12px Montserrat, sans-serif; border: 0; }
+  .subida.mal { background: color-mix(in srgb, var(--rojo) 18%, var(--papel)); color: var(--rojo); }
+  .gira { width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira .9s linear infinite; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .aviso-tiempo { margin: 10px 0; padding: 12px 14px; border-radius: 16px; background: color-mix(in srgb, #6C8FB8 18%, var(--papel)); font-size: 14px; }
+  .lista-inv { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .lista-inv .chip button { border: 0; background: transparent; min-width: 28px; min-height: 28px; color: var(--suave); }
+  .atajos { margin-top: 6px; font: 500 12px Montserrat, sans-serif; color: var(--tenue); text-align: center; }
+  @media (max-width: 600px) { .atajos { display: none; } .prompter { padding: 18px 16px; } }
+  @media (prefers-reduced-motion: reduce) { .gira { animation: none; } .avance i, .prompter .seg { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="barra">
+    <a class="redondo" href="inicio.html" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <span class="t">Voz oficial de Alma</span>
+    <button class="subida" id="subida" type="button" hidden></button>
+    <button class="redondo" id="tema" type="button" aria-label="Cambiar a modo claro u oscuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+  </div>
+
+  <section id="preparar">
+    <div class="portada">
+      <small>Mini estudio</small>
+      <h1>Graba la voz de Alma</h1>
+      <p>Elige la sesión, conecta el micrófono y sigue el teleprompter. Cada toma se revisa sola: si sale verde, se guarda en el Drive privado y pasas a la siguiente.</p>
+    </div>
+    <p class="nota mal" id="acceso" hidden></p>
+
+    <div class="sec"><h2>1 · La sesión</h2><span>Cada una dura una hora y sirve sola.</span></div>
+    <div class="sesiones" id="sesiones"></div>
+
+    <div class="sec"><h2>2 · El micrófono</h2><span>El receptor del DJI por USB‑C o Lightning.</span></div>
+    <div class="tarjeta">
+      <div class="fila">
+        <select id="mic" aria-label="Micrófono"><option value="">Micrófono del sistema</option></select>
+        <button class="boton si" id="b-mic" type="button">Activar micrófono</button>
+      </div>
+      <p class="nota" id="mic-info">Todavía no está activo. El navegador te va a pedir permiso.</p>
+      <div class="medidor" id="medidor1" hidden></div>
+      <details class="guia">
+        <summary>Cómo poner el micrófono de solapa (DJI)</summary>
+        <ol>
+          <li>Transmisor prendido con clip en el centro del pecho, a 15–20 cm bajo la barbilla (una mano abierta). Siempre en el mismo lugar: márcalo con cinta en la ropa.</li>
+          <li>Ropa que no roce: una blusa de algodón lisa, sin collares, aretes largos ni cierres cerca. Pelo recogido. El cable o el transmisor, quietos.</li>
+          <li>Receptor conectado al iPad o a la compu por USB‑C o Lightning; nada de Bluetooth.</li>
+          <li>En el receptor: sin cancelación de ruido (NC apagado), sin «safety track», sin efectos; modo mono. Si deja elegir, 48 kHz y 24 bit.</li>
+          <li>Ganancia: di «¡qué buena noticia!» fuerte. El pico debe quedar entre −12 y −6 (la franja marcada). Si llega al rojo, baja la ganancia; si no pasa de −18, súbela. Luego no la toques más.</li>
+          <li>Cuarto pequeño, con cortinas, cama, ropa o colchones alrededor. Apaga ventilador, aire, refri si se oye, y el celular en modo avión. Aplaude una vez: si suena a eco, agrega cosas blandas.</li>
+          <li>Misma hora, mismo cuarto y misma silla en las 3 sesiones. Agua al tiempo; nada de lácteos ni café una hora antes.</li>
+        </ol>
+      </details>
+    </div>
+
+    <div id="invitar" hidden>
+      <div class="sec"><h2>Quién puede grabar</h2><span>La persona entra al Hub con su usuario y abre esta página.</span></div>
+      <div class="tarjeta">
+        <form class="fila" id="f-inv">
+          <input type="email" id="inv-email" placeholder="correo de la persona" aria-label="Correo de la persona que va a grabar" autocomplete="off">
+          <button class="boton" type="submit">Invitar</button>
+        </form>
+        <div class="lista-inv" id="inv-lista"></div>
+        <p class="nota" id="inv-nota"></p>
+      </div>
+    </div>
+
+    <div class="controles"><button class="boton si" id="b-empezar" type="button" disabled>Empezar la sesión</button></div>
+  </section>
+
+  <section id="grabar" hidden>
+    <div class="cabeza">
+      <button class="boton" id="b-salir" type="button">Sesiones</button>
+      <span class="donde" id="donde"></span>
+      <select id="ir" aria-label="Ir a un bloque"></select>
+      <span class="reloj" id="reloj">0:00</span>
+    </div>
+    <div class="avance" aria-hidden="true"><i id="avance-ses"></i></div>
+    <div class="aviso-tiempo" id="aviso-tiempo" hidden></div>
+    <div class="tarjeta escena" id="escena" hidden><b id="escena-t"></b><p id="escena-c"></p></div>
+    <div class="chips" id="chips"></div>
+    <p class="escucha" id="escucha" hidden></p>
+    <div class="prompter" id="prompter" role="region" aria-label="Teleprompter" aria-live="off"></div>
+    <div class="senal info" id="senal" aria-live="polite">Lista para grabar</div>
+    <div class="medidor tarjeta" id="medidor2"></div>
+    <div class="controles">
+      <button class="boton" id="b-ant" type="button" aria-label="Toma anterior">Anterior</button>
+      <button class="rec" id="b-rec" type="button" aria-label="Grabar"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg></button>
+      <button class="boton" id="b-sig" type="button" aria-label="Saltar a la siguiente toma">Saltar</button>
+    </div>
+    <p class="atajos">Espacio: grabar o parar · → avanza el teleprompter · R: regrabar · Enter: guardar</p>
+    <div class="tarjeta resultado" id="resultado" hidden>
+      <div class="titulo"><span class="foco" id="foco"></span><span id="res-t"></span></div>
+      <ul class="problemas" id="res-p"></ul>
+      <div class="metricas" id="res-m"></div>
+      <div class="nav">
+        <button class="boton" id="b-oir" type="button">Escuchar</button>
+        <span class="fila">
+          <button class="boton" id="b-otra" type="button">Regrabar</button>
+          <button class="boton si" id="b-guardar" type="button">Guardar y seguir</button>
+        </span>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="../js/estudio-calidad.js"></script>
+<script>
+(function () {
+  "use strict";
+  var URL_HUB = "https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec";
+  var Q = window.EstudioCalidad, $ = function (id) { return document.getElementById(id); };
+  var TROZO = 4 * 1024 * 1024, PAUSAS = { "pausa": 0.8, "pausa larga": 1.6, "respira": 0.7, "sonríe": 0 };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function guardarLocal(k, v) { try { localStorage.setItem("estudio." + k, JSON.stringify(v)); } catch (e) {} }
+  function leerLocal(k, d) { try { var v = JSON.parse(localStorage.getItem("estudio." + k)); return v == null ? d : v; } catch (e) { return d; } }
+  function n1(x) { return (Math.round(x * 10) / 10).toLocaleString("es", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).replace("-", "−"); }
+
+  /* ── Tema claro / oscuro ── */
+  (function () {
+    var t = leerLocal("tema", ""); if (t) document.documentElement.setAttribute("data-theme", t);
+    $("tema").onclick = function () {
+      var osc = document.documentElement.getAttribute("data-theme") ? document.documentElement.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      var nuevo = osc ? "light" : "dark"; document.documentElement.setAttribute("data-theme", nuevo); guardarLocal("tema", nuevo);
+    };
+  })();
+
+  /* ── El Hub ── */
+  function pedir(accion, extra) {
+    if (window.ALMA_ESTUDIO) return window.ALMA_ESTUDIO(accion, extra || {});   // para probar la página con datos de ejemplo
+    var ses = window.SASesion && SASesion.leer && SASesion.leer();
+    if (!ses) return Promise.resolve({ ok: false, error: "Entra primero al Hub con tu usuario y vuelve a abrir esta página." });
+    return fetch(URL_HUB, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify(Object.assign({ hub: 1, action: accion, session: ses }, extra || {})) })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet." }; });
+  }
+
+  /* ── Estado ── */
+  var G = null, sesion = leerLocal("sesion", 1), tomas = [], idx = 0;
+  var hechos = leerLocal("hechos", {});          // { tomaId: { i: intento, s: semáforo, ok: subida confirmada } }
+  var intentos = leerLocal("intentos", {});
+  function aplanar(n) {
+    var s = G.sesiones.filter(function (x) { return x.n === n; })[0], L = [];
+    s.bloques.forEach(function (b, bi) { b.tomas.forEach(function (t, ti) { L.push({ t: t, b: b, bi: bi, ti: ti }); }); });
+    return L;
+  }
+  function hechasDe(n) { return aplanar(n).filter(function (x) { return hechos[x.t.id]; }).length; }
+
+  function pintarSesiones() {
+    var C = $("sesiones"); C.innerHTML = "";
+    G.sesiones.forEach(function (s) {
+      var b = el("button", "tarjeta ses"); b.type = "button"; b.setAttribute("aria-pressed", String(s.n === sesion));
+      var h = hechasDe(s.n);
+      b.appendChild(el("b", "", s.titulo)); b.appendChild(el("small", "", s.objetivo));
+      var a = el("div", "avance"), i = el("i"); i.style.width = Math.round(100 * h / s.tomas) + "%"; a.appendChild(i); b.appendChild(a);
+      b.appendChild(el("small", "", h + " de " + s.tomas + " tomas · unos " + Math.round(s.minutos_voz) + " min de voz"));
+      b.onclick = function () { sesion = s.n; guardarLocal("sesion", sesion); pintarSesiones(); };
+      C.appendChild(b);
+    });
+    $("b-empezar").textContent = hechasDe(sesion) ? "Seguir la sesión " + sesion : "Empezar la sesión " + sesion;
+  }
+
+  /* ── Audio: micrófono crudo, PCM por AudioWorklet (o ScriptProcessor si el navegador es viejo) ── */
+  var A = { ctx: null, stream: null, hz: 48000, grabando: false, bufs: [], pico: -120, rms: -120, tope: -120, topeT: 0, clipT: -1e9, oyentes: [] };
+  var WORKLET = "class C extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.i=0}process(e){var c=e[0]&&e[0][0];if(!c)return true;for(var k=0;k<c.length;k++){this.b[this.i++]=c[k];if(this.i===2048){this.port.postMessage(this.b,[this.b.buffer]);this.b=new Float32Array(2048);this.i=0}}return true}}registerProcessor('estudio-captura',C);";
+  function bloqueLlego(x) {
+    var p = 0, s2 = 0;
+    for (var i = 0; i < x.length; i++) { var v = x[i], a = v < 0 ? -v : v; if (a > p) p = a; s2 += v * v; }
+    var pd = Q.db(p), rd = Q.db(Math.sqrt(s2 / x.length)), ahora = performance.now();
+    A.pico = Math.max(pd, A.pico - 1.2); A.rms = rd;
+    if (pd > A.tope || ahora - A.topeT > 1500) { A.tope = pd; A.topeT = ahora; }
+    if (p >= Q.UMBRAL.recorte) A.clipT = ahora;
+    if (A.grabando) A.bufs.push(x);
+    A.oyentes.forEach(function (f) { f(rd, x.length / A.hz); });
+  }
+  function abrirMic(id) {
+    var med = navigator.mediaDevices;
+    if (!med || !med.getUserMedia) return Promise.reject(new Error("Este navegador no deja usar el micrófono. Usa Safari en el iPad o Chrome en la compu."));
+    if (A.stream) A.stream.getTracks().forEach(function (t) { t.stop(); });
+    var pide = { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: { ideal: 1 }, sampleRate: { ideal: 48000 }, sampleSize: { ideal: 24 } } };
+    if (id) pide.audio.deviceId = { exact: id };
+    return med.getUserMedia(pide).then(function (stream) {
+      A.stream = stream;
+      var Ctx = window.AudioContext || window.webkitAudioContext, src;
+      if (A.ctx) { try { A.ctx.close(); } catch (e) {} }
+      try { A.ctx = new Ctx({ sampleRate: 48000, latencyHint: "interactive" }); src = A.ctx.createMediaStreamSource(stream); }
+      catch (e) { try { A.ctx.close(); } catch (e2) {} A.ctx = new Ctx(); src = A.ctx.createMediaStreamSource(stream); }   // el micrófono no da 48 kHz: se graba a lo que dé
+      A.hz = A.ctx.sampleRate;
+      var mudo = A.ctx.createGain(); mudo.gain.value = 0; mudo.connect(A.ctx.destination);
+      var listo;
+      if (A.ctx.audioWorklet && window.AudioWorkletNode) {
+        var u = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+        listo = A.ctx.audioWorklet.addModule(u).then(function () {
+          var nodo = new AudioWorkletNode(A.ctx, "estudio-captura", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1, channelCountMode: "explicit" });
+          nodo.port.onmessage = function (ev) { bloqueLlego(ev.data); };
+          src.connect(nodo); nodo.connect(mudo);
+        });
+      } else {
+        var sp = A.ctx.createScriptProcessor(4096, 1, 1);
+        sp.onaudioprocess = function (ev) { bloqueLlego(new Float32Array(ev.inputBuffer.getChannelData(0))); };
+        src.connect(sp); sp.connect(mudo); listo = Promise.resolve();
+      }
+      return listo.then(function () { return A.ctx.resume(); }).then(function () {
+        var tr = stream.getAudioTracks()[0], cfg = tr && tr.getSettings ? tr.getSettings() : {};
+        return { nombre: tr ? tr.label : "", hz: A.hz, cfg: cfg };
+      });
+    });
+  }
+  function listarMics() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then(function (L) {
+      var s = $("mic"), antes = s.value || leerLocal("mic", ""); s.innerHTML = "";
+      var ins = L.filter(function (d) { return d.kind === "audioinput"; });
+      if (!ins.length) s.appendChild(el("option", "", "Micrófono del sistema"));
+      ins.forEach(function (d, i) { var o = el("option", "", d.label || ("Micrófono " + (i + 1))); o.value = d.deviceId; s.appendChild(o); });
+      var dji = ins.filter(function (d) { return /dji|wireless|mic/i.test(d.label) && !/built|integrado|interno|macbook|ipad/i.test(d.label); })[0];
+      s.value = ins.some(function (d) { return d.deviceId === antes; }) ? antes : dji ? dji.deviceId : (ins[0] ? ins[0].deviceId : "");
+    });
+  }
+
+  /* ── Medidor ── */
+  function armarMedidor(C) {
+    C.innerHTML = '<div class="regla" aria-hidden="true"><span class="obj"></span><span class="rms"></span><span class="pico"></span><span class="tope"></span></div>' +
+      '<div class="escala" aria-hidden="true"><span>−60</span><span>−48</span><span>−36</span><span>−24</span><span>−18</span><span>−12</span><span>−6</span><span>0 dBFS</span></div>' +
+      '<div class="lectura"><span class="lp">Pico —</span><span class="lr">RMS —</span><span class="lz"></span><span class="clip">Recorte</span></div>';
+  }
+  function pct(d) { return Math.max(0, Math.min(100, (d + 60) / 60 * 100)); }
+  var ZTXT = { verde: "Bien", amarillo: "Revisa", rojo: "Muy alto" };
+  function pintarMedidores() {
+    ["medidor1", "medidor2"].forEach(function (id) {
+      var C = $(id); if (!C || C.hidden || !C.firstChild) return;
+      var z = Q.zona(A.tope), p = C.querySelector(".pico");
+      p.style.width = pct(A.pico) + "%"; p.className = "pico " + Q.zona(A.pico);
+      C.querySelector(".rms").style.width = pct(A.rms) + "%";
+      C.querySelector(".tope").style.left = "calc(" + pct(A.tope) + "% - 2px)";
+      C.querySelector(".lp").textContent = "Pico " + (A.tope > -100 ? n1(A.tope) : "—") + " dBFS";
+      C.querySelector(".lr").textContent = "RMS " + (A.rms > -100 ? n1(A.rms) : "—");
+      C.querySelector(".lz").textContent = A.tope < -45 ? "" : A.tope < Q.UMBRAL.picoBajo ? "Bajo: sube la ganancia" : ZTXT[z];
+      C.querySelector(".clip").classList.toggle("on", performance.now() - A.clipT < 2000);
+    });
+    requestAnimationFrame(pintarMedidores);
+  }
+
+  $("b-mic").onclick = function () {
+    var b = this; b.disabled = true; $("mic-info").className = "nota"; $("mic-info").textContent = "Activando…";
+    abrirMic($("mic").value).then(function (r) {
+      b.disabled = false; b.textContent = "Cambiar micrófono"; guardarLocal("mic", $("mic").value);
+      listarMics(); $("medidor1").hidden = false; armarMedidor($("medidor1")); armarMedidor($("medidor2"));
+      var malos = ["echoCancellation", "noiseSuppression", "autoGainControl"].filter(function (k) { return r.cfg[k] === true; });
+      var txt = (r.nombre || "Micrófono") + " · " + Math.round(r.hz / 100) / 10 + " kHz";
+      if (r.hz !== 48000) txt += " (el dispositivo no da 48 kHz; se graba a " + Math.round(r.hz / 100) / 10 + " kHz)";
+      txt += malos.length ? " · Ojo: el sistema dejó encendido " + malos.join(", ") + "." : " · efectos del navegador apagados.";
+      $("mic-info").textContent = txt; $("mic-info").className = "nota " + (malos.length ? "mal" : "bien");
+      $("b-empezar").disabled = !G;
+    }, function (e) {
+      b.disabled = false; $("mic-info").className = "nota mal";
+      $("mic-info").textContent = e && e.name === "NotAllowedError" ? "No hay permiso para el micrófono. Actívalo en los ajustes del navegador para hub.spacioam.com." : (e && e.message) || "No pude abrir el micrófono.";
+    });
+  };
+
+  /* ── Teleprompter ── */
+  var P = { ring: [], sala: -70, segs: [], cur: 0, voz: 0, sil: 0, fase: "quieta", marcaT: 0, marcaD: 0, fin: 0, ini: 0, durMax: 0 };
+  function partir(texto) {
+    var L = [];
+    String(texto).split(/(\[[^\]]+\])/).forEach(function (x) {
+      if (!x.trim()) return;
+      var m = /^\[([^\]]+)\]$/.exec(x);
+      if (m) L.push({ marca: m[1].toLowerCase() }); else L.push({ texto: x.trim(), pal: (x.match(/[\wáéíóúñü']+/gi) || []).length });
+    });
+    return L;
+  }
+  function pintarPrompter(x) {
+    var C = $("prompter"); C.innerHTML = ""; C.classList.remove("vivo");
+    P.segs = x.b.tipo === "sala" ? [{ texto: "Silencio. Quédate quieta 10 segundos, sin hablar.", pal: 0 }] : partir(x.t.texto);
+    P.segs.forEach(function (s, i) {
+      var e;
+      if (s.marca) { var k = s.marca === "sonríe" ? "sonrie" : /pausa/.test(s.marca) ? "pausa" : s.marca; e = el("span", "seg marca " + k, s.marca); }
+      else e = el("span", "seg", s.texto);
+      e.setAttribute("data-i", i); C.appendChild(e); C.appendChild(document.createTextNode(" "));
+    });
+  }
+  function marcarSeg() {
+    Array.prototype.forEach.call($("prompter").querySelectorAll(".seg"), function (e) {
+      var i = Number(e.getAttribute("data-i")); e.classList.toggle("ahora", i === P.cur); e.classList.toggle("dicho", i < P.cur);
+    });
+  }
+  function senal(t, cl, dur) {
+    var s = $("senal"); s.className = "senal" + (cl ? " " + cl : ""); s.textContent = t;
+    if (dur) { var b = el("span", "barrita"), i = el("i"); b.appendChild(i); s.appendChild(b);
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && i.animate) i.animate([{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: dur * 1000, easing: "linear", fill: "forwards" }); }
+  }
+  /* Avanza al siguiente trozo de texto; si hay una marca en medio, la muestra el tiempo que dura y luego «Sigue». */
+  function avanzar() {
+    if (P.fase !== "habla" && P.fase !== "marca") return;
+    var i = P.cur + 1, espera = 0, marca = "";
+    while (i < P.segs.length && P.segs[i].marca) { espera += PAUSAS[P.segs[i].marca] || 0.8; if (P.segs[i].marca !== "sonríe") marca = P.segs[i].marca; i++; }
+    if (i >= P.segs.length) { P.cur = P.segs.length; marcarSeg(); P.fase = "final"; P.sil = 0; senal("Silencio… y listo", "silencio"); return; }
+    P.cur = i; P.voz = 0; P.sil = 0; marcarSeg();
+    if (marca && espera > 0) {
+      P.fase = "marca"; P.marcaT = performance.now(); P.marcaD = espera;
+      senal(marca === "respira" ? "Respira" : marca === "pausa larga" ? "Pausa larga" : "Pausa", marca === "respira" ? "respira" : "pausa", espera);
+    } else { P.fase = "habla"; senal("Sigue", "sigue"); }
+  }
+  /* Cada bloque de audio (~43 ms) mueve el teleprompter: voz si pasa el ruido del cuarto por 12 dB. */
+  A.oyentes.push(function (rd, dt) {
+    if (!A.grabando) return;
+    var ahora = performance.now(), t = (ahora - P.ini) / 1000, x = tomas[idx];
+    $("reloj").textContent = reloj();
+    if (x.b.tipo === "sala") { if (t >= 10.4) parar(); return; }
+    if (P.fase === "previo") { if (t >= 1.0) { P.fase = "habla"; P.cur = -1; P.fase = "habla"; avanzar(); senal("Habla", "habla"); } return; }
+    if (t > P.durMax) { parar(); return; }
+    /* El piso de ruido: el más bajo de los últimos 4 s (o el del cuarto, si es mayor). Si entra un ruido constante, el
+       teleprompter no lo confunde con voz. */
+    P.ring.push(rd); if (P.ring.length > Math.round(4 / dt)) P.ring.shift();
+    var piso = Math.max(P.sala, Math.min.apply(null, P.ring)), hay = rd > Math.max(piso + 12, -55);
+    if (hay) { P.voz += dt; P.sil = 0; } else P.sil += dt;
+    if (P.fase === "marca") { if ((ahora - P.marcaT) / 1000 >= P.marcaD) { P.fase = "habla"; senal("Sigue", "sigue"); } return; }
+    if (P.fase === "habla") {
+      var s = P.segs[P.cur], min = Math.max(0.4, 0.35 * ((s && s.pal) || 1) / 2.5);   // un poco de voz antes de aceptar una pausa (las comas duran menos de 0,45 s)
+      if (P.voz >= min && P.sil >= 0.45) avanzar();
+    } else if (P.fase === "final" && P.sil >= 1.0) parar();
+  });
+  $("prompter").onclick = function () { if (A.grabando) { if (P.fase === "marca") { P.fase = "habla"; } avanzar(); } };
+
+  /* ── La sesión ── */
+  var inicioSes = 0;
+  function reloj() { var s = Math.floor((Date.now() - inicioSes) / 1000); return Math.floor(s / 60) + ":" + ("0" + s % 60).slice(-2); }
+  setInterval(function () {
+    if ($("grabar").hidden || !inicioSes) return;
+    if (!A.grabando) $("reloj").textContent = reloj();
+    var m = (Date.now() - inicioSes) / 60000, av = $("aviso-tiempo"), txt = "";
+    if (m > 52) txt = "Ya van " + Math.floor(m) + " minutos: ve al cierre (las 4 frases ancla) y termina. Lo que falte queda guardado para otra sesión.";
+    else if ((m > 22 && m < 25) || (m > 42 && m < 45)) txt = "Buen momento para un descanso de 3 minutos: agua, estirarte, sin hablar fuerte. El estudio te espera.";
+    av.hidden = !txt; av.textContent = txt;
+  }, 5000);
+
+  function pintarIr() {
+    var s = $("ir"); s.innerHTML = "";
+    var vistos = {};
+    tomas.forEach(function (x, i) { if (vistos[x.b.id]) return; vistos[x.b.id] = 1; var o = el("option", "", x.b.titulo); o.value = i; s.appendChild(o); });
+  }
+  function mostrar() {
+    var x = tomas[idx]; if (!x) return;
+    var tot = tomas.length, h = tomas.filter(function (y) { return hechos[y.t.id]; }).length;
+    $("avance-ses").style.width = Math.round(100 * h / tot) + "%";
+    $("donde").textContent = "Sesión " + sesion + " · toma " + (idx + 1) + " de " + tot + (hechos[x.t.id] ? " · ya guardada" : "");
+    var ops = $("ir").options; for (var k = ops.length - 1; k >= 0; k--) if (Number(ops[k].value) <= idx) { $("ir").selectedIndex = k; break; }
+    var esc = x.b.contexto || x.b.instruccion;
+    $("escena").hidden = !esc; $("escena-t").textContent = x.b.titulo; $("escena-c").textContent = esc || "";
+    var C = $("chips"); C.innerHTML = "";
+    if (x.b.tipo !== "sala") {
+      var e = el("span", "chip emo"); e.appendChild(document.createTextNode(x.t.emocion[0].toUpperCase() + x.t.emocion.slice(1) + " · " + x.t.intensidad + "/10"));
+      var pu = el("span", "puntos"); for (var i = 1; i <= 10; i++) pu.appendChild(el("i", i <= x.t.intensidad ? "on" : "")); e.appendChild(pu);
+      C.appendChild(e); C.appendChild(el("span", "chip", "Ritmo: " + x.b.ritmo)); C.appendChild(el("span", "chip", "≈ " + Math.round(x.t.segundos) + " s"));
+    }
+    $("escucha").hidden = !x.t.escucha; $("escucha").textContent = x.t.escucha || "";
+    pintarPrompter(x); $("resultado").hidden = true; ultima = null;
+    senal(x.b.tipo === "sala" ? "Primero, el silencio del cuarto: 10 segundos sin hablar ni moverte" : "Lee en silencio, imagina la escena y graba cuando estés lista", "info");
+    $("b-ant").disabled = idx === 0;
+    guardarLocal("pos" + sesion, idx);
+  }
+  function primeraPendiente() { for (var i = 0; i < tomas.length; i++) if (!hechos[tomas[i].t.id]) return i; return tomas.length - 1; }
+  $("b-empezar").onclick = function () {
+    if (!A.ctx) { $("mic-info").className = "nota mal"; $("mic-info").textContent = "Primero activa el micrófono."; return; }
+    tomas = aplanar(sesion); pintarIr();
+    var sala = tomas[0];
+    idx = hechos[sala.t.id] && leerLocal("sala" + sesion, null) != null ? primeraPendiente() : 0;   // sin el silencio de hoy, se empieza por ahí
+    inicioSes = Date.now(); $("preparar").hidden = true; $("grabar").hidden = false; window.scrollTo(0, 0); mostrar();
+  };
+  $("b-salir").onclick = function () { if (A.grabando) return; $("grabar").hidden = true; $("preparar").hidden = false; pintarSesiones(); };
+  $("ir").onchange = function () { if (A.grabando) return; idx = Number(this.value); mostrar(); };
+  $("b-ant").onclick = function () { if (A.grabando || idx === 0) return; idx--; mostrar(); };
+  $("b-sig").onclick = function () { if (A.grabando) return; if (idx < tomas.length - 1) { idx++; mostrar(); } };
+
+  /* ── Grabar, revisar, guardar ── */
+  var ultima = null;   // { x, muestras, r, intento }
+  function empezar() {
+    if (!A.ctx || A.grabando) return;
+    A.ctx.resume();
+    var x = tomas[idx];
+    A.bufs = []; A.grabando = true; P.ini = performance.now(); P.cur = -1; P.voz = 0; P.sil = 0; P.ring = []; P.sala = Number(leerLocal("sala" + sesion, -70));
+    P.durMax = x.b.tipo === "sala" ? 12 : x.t.segundos * 3 + 10;
+    P.fase = x.b.tipo === "sala" ? "sala" : "previo";
+    $("prompter").classList.add("vivo"); marcarSeg(); $("resultado").hidden = true;
+    var b = $("b-rec"); b.classList.add("grabando"); b.setAttribute("aria-label", "Detener"); b.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>';
+    if (x.b.tipo === "sala") senal("Silencio · 10 segundos", "silencio", 10.4); else senal("Silencio…", "silencio", 1);
+  }
+  function parar() {
+    if (!A.grabando) return;
+    A.grabando = false; P.fase = "quieta"; $("prompter").classList.remove("vivo");
+    var b = $("b-rec"); b.classList.remove("grabando"); b.setAttribute("aria-label", "Grabar"); b.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg>';
+    var n = 0; A.bufs.forEach(function (z) { n += z.length; });
+    var mu = new Float32Array(n), p = 0; A.bufs.forEach(function (z) { mu.set(z, p); p += z.length; }); A.bufs = [];
+    var x = tomas[idx], r;
+    senal("Revisando…", "info");
+    if (x.b.tipo === "sala") { r = Q.analizarSala(mu, A.hz); if (r.estado !== "rojo") guardarLocal("sala" + sesion, r.m.ruido); }
+    else r = Q.analizarToma(mu, A.hz, { ruidoSala: leerLocal("sala" + sesion, null), esperado: x.t.segundos });
+    intentos[x.t.id] = (intentos[x.t.id] || 0) + 1; guardarLocal("intentos", intentos);
+    ultima = { x: x, muestras: mu, r: r, intento: intentos[x.t.id] };
+    pintarResultado(ultima);
+    if (r.estado === "verde" && leerLocal("solo", true)) setTimeout(function () { if (ultima && ultima.r === r && !A.grabando) guardar(); }, 900);
+  }
+  var TIT = { verde: "Toma buena: se guarda sola", amarillo: "Sirve, pero revisa esto", rojo: "Regrábala" };
+  function pintarResultado(u) {
+    var r = u.r, x = u.x;
+    $("resultado").hidden = false; $("foco").className = "foco " + r.estado; $("res-t").textContent = x.b.tipo === "sala" && r.estado !== "rojo" ? "Cuarto medido: " + n1(r.m.ruido) + " dBFS de ruido" : TIT[r.estado];
+    var L = $("res-p"); L.innerHTML = "";
+    r.problemas.forEach(function (p) { var li = el("li", p.nivel); li.appendChild(el("b", "", p.texto)); li.appendChild(el("span", "", p.arreglo)); L.appendChild(li); });
+    var m = r.m, M = $("res-m"); M.innerHTML = "";
+    [["Pico", n1(m.pico) + " dBFS"], ["Ruido", n1(m.ruido) + " dBFS"], m.snr != null ? ["Voz/ruido", Math.round(m.snr) + " dB"] : null, ["Duración", n1(m.dur) + " s"]]
+      .filter(Boolean).forEach(function (k) { M.appendChild(el("span", "", k[0] + " " + k[1])); });
+    $("b-guardar").textContent = r.estado === "verde" ? "Guardar y seguir" : r.estado === "amarillo" ? "Guardar así" : "Guardar igual";
+    $("b-guardar").className = "boton" + (r.estado === "rojo" ? "" : " si");
+    $("b-otra").className = "boton" + (r.estado === "rojo" ? " si" : "");
+    senal(r.estado === "verde" ? "Bien" : r.estado === "amarillo" ? "Revisa" : "Regrabar", r.estado === "verde" ? "sigue" : r.estado === "rojo" ? "rojo" : "pausa");
+    try { $("resultado").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" }); } catch (e) {}
+    $("b-oir").textContent = "Escuchar";
+  }
+  var sonando = null;
+  $("b-oir").onclick = function () {
+    if (!ultima || !A.ctx) return;
+    if (sonando) { try { sonando.stop(); } catch (e) {} sonando = null; this.textContent = "Escuchar"; return; }
+    var buf = A.ctx.createBuffer(1, ultima.muestras.length, A.hz); buf.copyToChannel ? buf.copyToChannel(ultima.muestras, 0) : buf.getChannelData(0).set(ultima.muestras);
+    var s = A.ctx.createBufferSource(), b = this; s.buffer = buf; s.connect(A.ctx.destination); s.onended = function () { sonando = null; b.textContent = "Escuchar"; };
+    s.start(); sonando = s; b.textContent = "Parar";
+  };
+  $("b-otra").onclick = function () { if (A.grabando) return; ultima = null; mostrar(); };
+  $("b-rec").onclick = function () { if (A.grabando) parar(); else empezar(); };
+  function guardar() {
+    if (!ultima || A.grabando) return;
+    var u = ultima; ultima = null;
+    var wav = new Blob([Q.wav24(u.muestras, A.hz)], { type: "audio/wav" });
+    var meta = { segundos: u.r.m.dur, pico: u.r.m.pico, rms: u.r.m.rms, ruido: u.r.m.ruido, snr: u.r.m.snr, semaforo: u.r.estado, problemas: u.r.problemas.map(function (p) { return p.clave; }), hz: A.hz };
+    hechos[u.x.t.id] = { i: u.intento, s: u.r.estado, ok: false }; guardarLocal("hechos", hechos);
+    encolar({ clave: u.x.t.id + "_" + u.intento, sesion: sesion, toma: u.x.t.id, intento: u.intento, wav: wav, meta: meta });
+    if (idx < tomas.length - 1) idx++;
+    mostrar();
+  }
+  $("b-guardar").onclick = guardar;
+  document.addEventListener("keydown", function (e) {
+    if ($("grabar").hidden || /input|select|textarea/i.test((e.target && e.target.tagName) || "")) return;
+    if (e.code === "Space") { e.preventDefault(); $("b-rec").click(); }
+    else if (e.key === "ArrowRight" && A.grabando) { e.preventDefault(); $("prompter").click(); }
+    else if ((e.key === "r" || e.key === "R") && !A.grabando && ultima) $("b-otra").click();
+    else if (e.key === "Enter" && !A.grabando && ultima) { e.preventDefault(); guardar(); }
+    else if (e.key === "Escape" && A.grabando) parar();
+  });
+
+  /* ── Cola de subida: cada WAV espera en el iPad (IndexedDB) hasta que el Hub confirma que quedó en el Drive ── */
+  var cola = [], subiendo = false, fallas = 0, db = null;
+  function abrirDb() {
+    return new Promise(function (ok) {
+      try { var r = indexedDB.open("estudio", 1); r.onupgradeneeded = function () { r.result.createObjectStore("pend", { keyPath: "clave" }); };
+        r.onsuccess = function () { db = r.result; ok(); }; r.onerror = function () { ok(); }; } catch (e) { ok(); }
+    });
+  }
+  function dbHacer(modo, f) { return new Promise(function (ok) { if (!db) return ok(null); try { var t = db.transaction("pend", modo), q = f(t.objectStore("pend")); t.oncomplete = function () { ok(q && q.result); }; t.onerror = function () { ok(null); }; } catch (e) { ok(null); } }); }
+  function encolar(it) { cola.push(it); dbHacer("readwrite", function (s) { return s.put(it); }); pintarSubida(); subir(); }
+  function pintarSubida() {
+    var b = $("subida"), n = cola.length; b.hidden = !n && !b.getAttribute("data-ok");
+    b.className = "subida" + (fallas && !subiendo ? " mal" : ""); b.innerHTML = "";
+    if (n) { if (subiendo) b.appendChild(el("span", "gira")); b.appendChild(document.createTextNode(fallas && !subiendo ? n + " sin subir · reintentar" : "Guardando " + n + "…")); }
+    else b.appendChild(document.createTextNode("Todo guardado en Drive ✓"));
+  }
+  $("subida").onclick = function () { fallas = 0; subir(); };
+  function b64(blob) { return new Promise(function (ok, mal) { var r = new FileReader(); r.onload = function () { ok(String(r.result).split(",")[1] || ""); }; r.onerror = mal; r.readAsDataURL(blob); }); }
+  function subirUno(it) {
+    var total = Math.ceil(it.wav.size / TROZO), n = 0, intentosT = 0;
+    function paso() {
+      return b64(it.wav.slice(n * TROZO, Math.min(it.wav.size, (n + 1) * TROZO))).then(function (data) {
+        return pedir("estudioSubir", { sesion: it.sesion, toma: it.toma, intento: it.intento, n: n, total: total, bytes: it.wav.size, data: data, meta: it.meta });
+      }).then(function (r) {
+        if (r && r.ok) { intentosT = 0; if (r.listo) return true; n++; return paso(); }
+        if (r && r.reiniciar) n = 0;
+        if (++intentosT > 3) throw new Error((r && r.error) || "No se pudo guardar.");
+        return new Promise(function (ok) { setTimeout(ok, 1500 * intentosT); }).then(paso);
+      });
+    }
+    return paso();
+  }
+  function subir() {
+    if (subiendo || !cola.length) return;
+    subiendo = true; pintarSubida();
+    var it = cola[0];
+    subirUno(it).then(function () {
+      cola.shift(); fallas = 0; dbHacer("readwrite", function (s) { return s.delete(it.clave); });
+      if (hechos[it.toma]) { hechos[it.toma].ok = true; guardarLocal("hechos", hechos); }
+      $("subida").setAttribute("data-ok", "1");
+    }, function (e) { fallas++; console.warn("estudio: " + (e && e.message)); })
+      .then(function () { subiendo = false; pintarSubida(); if (cola.length && !fallas) subir(); else if (fallas && fallas < 4) setTimeout(subir, 8000 * fallas); });
+  }
+  window.addEventListener("beforeunload", function (e) { if (cola.length) { e.preventDefault(); e.returnValue = ""; } });
+
+  /* ── Invitados (solo el principal) ── */
+  function pintarInvitados(L) {
+    var C = $("inv-lista"); C.innerHTML = "";
+    (L || []).forEach(function (m) {
+      var c = el("span", "chip", m), x = el("button", "", "×"); x.type = "button"; x.setAttribute("aria-label", "Quitar a " + m);
+      x.onclick = function () { pedir("estudioInvitar", { email: m, quitar: true }).then(function (r) { if (r && r.ok) pintarInvitados(r.invitados); }); };
+      c.appendChild(x); C.appendChild(c);
+    });
+  }
+  $("f-inv").onsubmit = function (ev) {
+    ev.preventDefault();
+    var m = $("inv-email").value.trim(); if (!m) return;
+    pedir("estudioInvitar", { email: m }).then(function (r) {
+      $("inv-nota").className = "nota" + (r && r.ok ? " bien" : " mal");
+      $("inv-nota").textContent = r && r.ok ? "Listo: ya puede entrar al Mini estudio con su usuario del Hub." : (r && r.error) || "No se pudo.";
+      if (r && r.ok) { $("inv-email").value = ""; pintarInvitados(r.invitados); }
+    });
+  };
+
+  /* ── Arranque ── */
+  armarMedidor($("medidor2")); requestAnimationFrame(pintarMedidores);
+  Promise.all([
+    fetch("estudio-guion.json", { cache: "no-cache" }).then(function (r) { return r.json(); }),
+    pedir("estudio"),
+    abrirDb().then(function () { return dbHacer("readonly", function (s) { return s.getAll(); }); })
+  ]).then(function (v) {
+    G = v[0]; var est = v[1] || {};
+    if (!est.ok) { $("acceso").hidden = false; $("acceso").textContent = est.error || "No pude leer el Mini estudio."; }
+    else {
+      if (est.trozo) TROZO = est.trozo;
+      (est.tomas || []).forEach(function (t) { var h = hechos[t.toma]; if (!h || h.i <= t.intento) hechos[t.toma] = { i: t.intento, s: t.semaforo, ok: true }; intentos[t.toma] = Math.max(intentos[t.toma] || 0, t.intento); });
+      guardarLocal("hechos", hechos); guardarLocal("intentos", intentos);
+      if (est.principal) { $("invitar").hidden = false; pintarInvitados(est.invitados); }
+    }
+    (v[2] || []).forEach(function (it) { cola.push(it); });
+    if (cola.length) { pintarSubida(); subir(); }
+    pintarSesiones(); listarMics();
+    $("b-empezar").disabled = !A.ctx;
+  }, function () { $("acceso").hidden = false; $("acceso").textContent = "No pude cargar el guion. Revisa tu internet y vuelve a abrir la página."; });
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener("devicechange", listarMics);
+})();
+</script>
+</body>
+</html>

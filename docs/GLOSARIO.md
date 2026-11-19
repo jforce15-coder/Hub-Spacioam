@@ -19,6 +19,12 @@ ElevenLabs) y `CLAUDIO_LOCAL_TTS_MODELO` cambia el modelo de ese camino. Evitar:
 **Poner una voz** (18-nov-2026, #779): en la llamada con Claudio, Juan pide oír una voz («ponme la de Dora», «todas», «la
 tuya») o un audio por enlace, y suena ahí mismo, por la app (herramienta `poner_voz`). Cada voz dice una frase corta con su
 nombre o la que Juan pidió. Evitar: «reproducir el TTS», «sample».
+**Mini estudio** (19-nov-2026): la página del Hub para grabar la **voz oficial de Alma** (la voz de una persona real con la que
+se afina el modelo propio, sin ElevenLabs): `alma/estudio.html`, en Ajustes. Tiene teleprompter (marca «pausa», «respira» y
+«sigue», la emoción y su intensidad de 1 a 10), medidor en vivo en dBFS y revisión de cada **toma** (una lectura grabada de un
+texto del guion; si se repite, es otro **intento**) con un semáforo: verde se guarda sola, amarilla se revisa, roja se regraba.
+Antes de grabar se toma el **tono de sala** (10 s de silencio del cuarto para medir el ruido de fondo). Lo guardado va privado al
+Drive de alma@. Evitar: «estudio de grabación», «grabadora», «clip» (para la toma).
 **Ver video** (18-nov-2026): Juan pasa un enlace de TikTok, Instagram, Facebook, YouTube o X (o dice «mira lo nuevo» por su
 carpeta de Drive de desarrollo) y Claudio lo ve: fotos clave con su hora, la transcripción con tiempos y un resumen, guardados
 en el Drive de alma@ («Claudio · Videos vistos»). Lo hace el workflow «Ver video» de GitHub; el resumen llega al hilo de

@@ -445,6 +445,9 @@ jobs:
       - name: Espera de Alma, tecleo para lo corto y coro de espera pasados 2,5 s; envío confirmado de fondo, sin tecleo, «lo estoy enviando» y aviso si falla (dobles)
         # 17-nov-2026 (Juan): «el typing es mientras se procesa; el eco es el sonido de espera» y «después de confirmado el envío, ya no typing».
         run: node .github/espera-coro.js apps-script
+      - name: Mini estudio, la revisión de cada toma (recorte, nivel, ruido, silencios, toma corta) con señales sintéticas, WAV de 24 bit y guardado privado por trozos solo del principal y sus invitados (dobles)
+        # 19-nov-2026: «que ahí mismo se grabe, ahí mismo detecte los decibeles y diga si está bien o mal… y si hay un problema con la grabación que lo indique para regrabar esa parte».
+        run: node .github/estudio-calidad.js apps-script
       - name: Biblioteca de Claudio, solo el principal comparte, todo privado, Claudio lee con el lector de su pedido (nunca la llave), lo que pide le llega solo al compartirlo y nada va al issue (dobles)
         # 17-nov-2026 (pedido pc1794916196762): «que el usuario comparta fácilmente un skill o documento, sin usar el chat, y que Claudio pueda pedirlo».
         run: node .github/biblioteca-claudio.js apps-script

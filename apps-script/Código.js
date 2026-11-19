@@ -3415,6 +3415,9 @@ function hubApi_(body) {
       case 'pendientesClaude': return json_(paraClaudePendientes_(ses));                    // app de Alma: botón «Pendientes»
       case 'pendienteHecho': return json_(paraClaudeHecho_(ses, body.id));
       case 'conferencia': return json_(conferencia_(ses, body));
+      case 'estudio': return json_(estudioEstadoApi_(ses));                                 // Mini estudio (alma/estudio.html): lo guardado por sesión para retomar; solo el principal y sus invitados (estudio.js)
+      case 'estudioSubir': return json_(estudioSubirApi_(ses, body));                       // { sesion, toma, intento, n, total, bytes, data, meta } → un trozo del WAV al Drive privado de alma@
+      case 'estudioInvitar': return json_(estudioInvitarApi_(ses, body));                   // { email, quitar? } → quién más puede grabar; solo el principal
       case 'conferenciaAudio': return json_(conferenciaAudio_(ses, body));                  // modo conferencia: una parte del audio de una reunión (conferencia.js)                            // app de Alma: modo conferencia (conferencia.js)
       case 'notificaciones': return json_(notificacionesTodo_(ses));
       case 'reporteLlamadas': return json_(reporteLlamadas_(ses, body));                      // el reporte semanal de llamadas y sus propuestas (reporte_llamadas.js)                        // app de Alma: botón «Notificaciones» (historial de avisos, voz.js)

@@ -129,7 +129,15 @@ function calle_(ses, b) {
   }
   /* La voz de respaldo de Alma (alma-app, VozRespaldo; Juan, 17-nov-2026, #657) pide sin_audio: la dice la voz del iPhone,
      así con poca señal no se espera ni se baja el audio de ElevenLabs. */
-  if (b.sin_audio) { out.ms = calleMs_(t0, tA, ms, 0); return out; }
+  if (b.sin_audio) {
+    /* Maricarmen con su voz de ElevenLabs, a prueba (maricarmen.js): la app la pide con voz_maricarmen; si no sale, su voz local. */
+    if (b.voz_maricarmen && maricarmenAlter_({ alter: b.alter || b.persona }, esAdminPrincipal_(adm))) {
+      var tM = Date.now(), am = maricarmenAudio_(out.hablar, t0);
+      if (am) { out.audio = am; out.hz = MARICARMEN_VOZ_HZ_; } else out.vozMotivo = CALLE_VOZ_MOTIVO_ || 'sin la voz de Maricarmen';
+      out.ms = calleMs_(t0, tA, ms, Date.now() - tM); return out;
+    }
+    out.ms = calleMs_(t0, tA, ms, 0); return out;
+  }
   var tV = Date.now(), audio = calleAudio_(out.hablar, t0, { donde: 'calle' });
   if (audio) out.audio = audio; else { out.vozMotivo = CALLE_VOZ_MOTIVO_; if (CALLE_VOZ_PAUSA_) out.vozPausa = true; }
   out.ms = calleMs_(t0, tA, ms, Date.now() - tV);
@@ -255,7 +263,8 @@ function calleEntrada_(t) {
    queda en CALLE_VOZ_MOTIVO_ y en VOZ_CAIDAS (vozCaidaAnotar_). La caché (6 h) va primero: lo que ya está listo se manda
    aunque haya pasado el plazo (antes se miraba el plazo antes que la caché y un audio ya hecho se tiraba). Un audio largo
    se guarda en partes (calleVozCacheGuardar_). o: { plazo (ms desde t0; CALLE_AUDIO_PLAZO_ si no viene), donde (para el
-   registro: «calle», «vozAvisos», «avisoHablar», «calleVoz», «al nacer») }. */
+   registro: «calle», «vozAvisos», «avisoHablar», «calleVoz», «al nacer»), voz (otra voz que la de Alma), pcm (hz: PCM 16 bits
+   en vez de mp3) }. */
 function calleAudio_(hablar, t0, o) {
   o = o || {};
   CALLE_VOZ_MOTIVO_ = ''; CALLE_VOZ_CACHE_ = false; CALLE_VOZ_PAUSA_ = false;
@@ -269,8 +278,8 @@ function calleAudio_(hablar, t0, o) {
   if (p.getProperty('CALLE_AUDIO') === '0') return falla('la voz está apagada (Propiedad CALLE_AUDIO = 0)', true);
   var voz = '', c = CacheService.getScriptCache(), k = '';
   try {
-    voz = vozVozId_() || CALLE_VOZ_RESPALDO_;
-    k = 'callevoz_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voz + '|' + texto, Utilities.Charset.UTF_8));
+    voz = o.voz || vozVozId_() || CALLE_VOZ_RESPALDO_;   // o.voz: otra voz (Maricarmen, maricarmen.js)
+    k = 'callevoz_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voz + '|' + (o.pcm ? 'pcm' + o.pcm + '|' : '') + texto, Utilities.Charset.UTF_8));
     var ya = calleVozCacheLeer_(c, k); if (ya) { CALLE_VOZ_CACHE_ = true; return ya; }
   } catch (e) { console.error('calleAudio_ caché: ' + e); }
   var plazo = Number(o.plazo) > 0 ? Number(o.plazo) : CALLE_AUDIO_PLAZO_;
@@ -284,7 +293,7 @@ function calleAudio_(hablar, t0, o) {
     if ((i > 0 || ocupada) && t0 && Date.now() - t0 > plazo) return falla(CALLE_VOZ_MOTIVO_ ? CALLE_VOZ_MOTIVO_ + '; ya no había tiempo para otro intento' : 'la respuesta tardó más de ' + Math.round(plazo / 1000) + ' s');
     var ini = Date.now(), r;
     try {
-      r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=mp3_44100_64', {
+      r = uf_('https://api.elevenlabs.io/v1/text-to-speech/' + encodeURIComponent(voz) + '?output_format=' + (o.pcm ? 'pcm_' + o.pcm : 'mp3_44100_64'), {
         method: 'post', contentType: 'application/json', muteHttpExceptions: true, headers: { 'xi-api-key': key },
         payload: JSON.stringify({ text: texto, model_id: modelos[i], voice_settings: { stability: 0.6, similarity_boost: 0.8, speed: 1.05 } }) }, 'Voz');
     } catch (e) { console.error('calleAudio_: ' + e); return falla('no pude llamar a ElevenLabs (' + String(e).slice(0, 90) + ')'); }
@@ -380,8 +389,10 @@ function calleVoz_(ses, b) {
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var texto = String(b.texto || '').trim().slice(0, CALLE_VOZ_MAX_);
   if (!texto) return { ok: false, error: 'falta el texto' };
-  var audio = calleAudio_(texto, 0, { donde: b.donde === 'aviso' ? 'calleVoz (aviso)' : 'calleVoz' });
-  if (audio) return { ok: true, audio: audio };
+  /* El saludo y la despedida de Maricarmen con su voz de ElevenLabs (maricarmen.js): { texto, voz_maricarmen, alter } → { audio, hz }. */
+  var mari = b.voz_maricarmen && maricarmenAlter_({ alter: b.alter || b.persona }, esAdminPrincipal_(adm));
+  var audio = mari ? maricarmenAudio_(texto, 0) : calleAudio_(texto, 0, { donde: b.donde === 'aviso' ? 'calleVoz (aviso)' : 'calleVoz' });
+  if (audio) return mari ? { ok: true, audio: audio, hz: MARICARMEN_VOZ_HZ_ } : { ok: true, audio: audio };
   var out = { ok: false, error: 'sin audio', motivo: CALLE_VOZ_MOTIVO_ || 'ElevenLabs no mandó audio' };
   if (CALLE_VOZ_PAUSA_) out.pausa = true;   // no se arregla solo en un rato: la app deja de pedirla unos minutos
   return out;

@@ -110,3 +110,24 @@ function vozPasarAMaricarmen_() {
     parameters: { type: 'object', required: [], properties: {} },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
+
+/* ═══ LA VOZ DE ELEVENLABS DE MARICARMEN, A PRUEBA (Juan, 19-nov-2026: «Maricarmen es 2») ═══════════════════════════════
+   Juan eligió la voz «Maricarmen ES · 2» (castellano de España; la de antes tenía un toque rioplatense). Para probarla en
+   una llamada de verdad antes de dejarla fija: la app (alma-app, Ajustes → Voces locales → Maricarmen) pide voz_maricarmen
+   en «calle» y «calleVoz», y aquí cada frase de Maricarmen sale con esa voz en PCM a 24 kHz (lo mismo que su voz local).
+   Si ElevenLabs falla o tarda, la app sigue con su voz local, sin cortar. No toca a Alma ni a Claudio ni a su agente.
+   La Propiedad MARICARMEN_VOZ_ID cambia la voz sin PR; «-» la apaga (vuelve la voz local para todos). */
+var MARICARMEN_VOZ_ID_ = 'Pd2xxQTFAhTlCcySMnct';   // «Maricarmen ES · 2» (ElevenLabs)
+var MARICARMEN_VOZ_HZ_ = 24000;
+function maricarmenVozId_() {
+  var p = String(PropertiesService.getScriptProperties().getProperty('MARICARMEN_VOZ_ID') || '').trim();
+  if (p === '-') return '';
+  return /^[A-Za-z0-9]{16,32}$/.test(p) ? p : MARICARMEN_VOZ_ID_;
+}
+/* Una frase con la voz de Maricarmen: PCM 16 bits a 24 kHz en base64, o '' (el porqué en CALLE_VOZ_MOTIVO_). Quien llama ya
+   comprobó que es el administrador principal (maricarmenAlter_). */
+function maricarmenAudio_(texto, t0) {
+  var voz = maricarmenVozId_();
+  if (!voz) { CALLE_VOZ_MOTIVO_ = 'la voz de Maricarmen está apagada (MARICARMEN_VOZ_ID = -)'; return ''; }
+  return calleAudio_(texto, t0, { donde: 'maricarmen', voz: voz, pcm: MARICARMEN_VOZ_HZ_ });
+}

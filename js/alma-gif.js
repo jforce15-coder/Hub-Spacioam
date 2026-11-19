@@ -101,6 +101,8 @@
       else if (e.tipo === "estado" && e.estado !== "hablando" && e.estado !== "conectando") Array.prototype.forEach.call(document.querySelectorAll(".gifb"), function (g) { g.parentNode.removeChild(g); G.activo = false; });
     },
     /* Para las capturas y las pruebas: muestra un GIF ya resuelto, sin pedirlo al Hub */
+    /* La broma de la llamada larga (js/alma-bento.js, el ritmo del GIF): la página la pide con una idea corta */
+    mostrar: function (idea) { mostrar(idea); },
     probar: function (r) { estilo(); var c = cuadroDelTablero(true); if (c && c !== true) return enCuadro(c, r); var m = chatDeLaLlamada(); if (m) enChat(m, r); }
   };
 })();

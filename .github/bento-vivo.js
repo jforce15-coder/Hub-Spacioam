@@ -36,7 +36,7 @@ function caja(W, H, o) {
   const window = { innerWidth: W, innerHeight: H, matchMedia: () => ({ matches: false }), addEventListener() {}, getComputedStyle: () => ({ paddingTop: '0', paddingRight: '0', paddingBottom: '0', paddingLeft: '0' }),
     SANav: { datos: () => o.datos || {} }, ALMA: null, SAAuth: null };
   const ctx = { window, document, localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } }, getComputedStyle: window.getComputedStyle,
-    requestAnimationFrame: (f) => f(), setTimeout: (f) => f(), clearTimeout() {}, setInterval() {}, Date, Math, JSON, String, Number, Object, Array, RegExp, fetch: () => Promise.reject(new Error('sin red')) };
+    requestAnimationFrame: (f) => f(), setTimeout: (f) => f(), clearTimeout() {}, setInterval() {}, Date: o.Date || Date, Math, JSON, String, Number, Object, Array, RegExp, fetch: () => Promise.reject(new Error('sin red')) };
   vm.createContext(ctx); vm.runInContext(BENTO, ctx);
   return { B: window.AlmaBento, window, document, store };
 }
@@ -222,7 +222,35 @@ ok(!/#CFE6DE|#F7EBC6/i.test(INICIO), '5 · sin el verde de antes');
 ok(/function lugar\(\)[\s\S]{0,400}rocaRect\(\)/.test(BENTO) && /abajo = rb\.top - /.test(BENTO) && /y: Math\.round\(abajo - h\)/.test(BENTO), '5 · la ventana va arriba de la roca, sin tocar su halo (la sigue al centro o a la esquina)');
 ok(/AlmaBento\.gifTema\(abierta \? t : null\)/.test(INICIO), '5 · en el teléfono la ventana sigue el tema de lo que se habla');
 ok(!/CADA = 8000/.test(BENTO) && /PAUSA_ANCHA = 120000, PAUSA_TEL = 360000/.test(BENTO) && /VISTA = 7000/.test(BENTO), '5 · ya no rota: asoma con un GIF unos segundos y descansa (2 min en pantalla ancha, 6 en el teléfono)');
-ok(/var p = \(ahora < V\.hasta && B\.gifs\) \|\| broma \? lugar\(\) : null/.test(BENTO) && /classList\.remove\("on", "listo"\)/.test(BENTO), '5 · fuera de su momento la ventana se va (y el saludo vuelve)');
+ok(/var p = \(ahora < V\.hasta && B\.gifs && !escucha\(\)\) \|\| broma \? lugar\(\) : null/.test(BENTO) && /classList\.remove\("on", "listo"\)/.test(BENTO), '5 · fuera de su momento la ventana se va (y el saludo vuelve)');
 ok(/G\.ult && Date\.now\(\) - G\.ult < pausa\(\)/.test(AGIF) && /PAUSA_ANCHA = 300000, PAUSA_TEL = 600000/.test(AGIF), '5 · la broma con GIF es ocasional: después de una, 5 min sin GIF (10 en el teléfono)');
 ok(/alma-bento\.js\?v=/.test(INICIO), '4 · alma/inicio.html carga js/alma-bento.js');
+
+/* 6 · el ritmo del GIF en la llamada (Juan, 19-nov-2026: «si solo estás escuchando no debería poner ningún GIF… salvo una
+   broma en conversaciones largas… y cuando aparece el bento, un poquito más activo») */
+{
+  let ahora = 1e12; const Reloj = class extends Date {}; Reloj.now = () => ahora;
+  const cat = { reposo: { fuente: 'giphy', gifs: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media1.giphy.com/media/r' + i + '/giphy.gif' })) },
+    huesped: { fuente: 'giphy', gifs: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media2.giphy.com/media/h' + i + '/giphy.gif' })) } };
+  const c = caja(1366, 1024, { Date: Reloj, store: { alma_bento_gifs_cine: JSON.stringify({ t: 1e12, temas: cat }) } });
+  const ov = nodo('div'), st = nodo('div'), pedidas = [];
+  ov.className = 'san-ov escena on'; st.textContent = 'Te escucho';
+  c.document.querySelector = (s) => (/san-ov-st$/.test(s) ? st : /san-ov$/.test(s) ? ov : null);
+  c.window.AlmaGif = { mostrar: (i) => pedidas.push(i) };
+  c.B.iniciar({});
+  const R = () => c.B.ritmo(), seg = (n) => { ahora = 1e12 + n * 1000; };
+  seg(0); R(); seg(3); ok(R().escucha && c.B.asomar() === false, '6 · en la llamada, Alma escucha: no asoma ningún GIF');
+  st.textContent = 'Alma habla'; seg(4); ok(!R().escucha && c.B.asomar() === true, '6 · Alma habla: el GIF puede asomar (de vez en cuando)');
+  seg(5); ok(c.B.asomar() === false, '6 · y descansa su pausa');
+  c.B.gifTema({ tipo: 'reserva', titulo: 'Ana', cuadros: [] });
+  seg(50); ok(c.B.asomar() === true, '6 · con información a la vista, más activo: asoma otra vez a los 45 s');
+  st.textContent = 'Te escucho'; seg(51); R(); seg(52);
+  ok(!R().escucha, '6 · entre frases (menos de 2,5 s) no cuenta como escuchar');
+  seg(100); ok(R().escucha && c.B.asomar() === false, '6 · Alma ya solo escucha: nada, aunque haya tema');
+  c.B.gifTema(null);
+  seg(200); R(); ok(!pedidas.length, '6 · llamada corta: sin broma de aburrimiento');
+  seg(361); R(); ok(pedidas.length === 1 && /asleep|watch|bored|yawn/.test(pedidas[0]), '6 · llamada larga y Juan hablando 45 s: una broma («me estoy durmiendo», «viendo el reloj»)');
+  seg(500); R(); ok(pedidas.length === 1, '6 · como mucho una broma cada 6 min');
+  ov.classList.add('quieta'); st.textContent = 'Toca a Alma'; ok(!R().escucha, '6 · fuera de la llamada, el reposo de siempre');
+}
 process.exit(fallo);

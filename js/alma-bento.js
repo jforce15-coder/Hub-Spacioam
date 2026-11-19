@@ -252,9 +252,11 @@
   var V = { el: null, tema: "reposo", url: "", pide: false, fallos: 0, hasta: 0, broma: 0, ult: 0, desde: Date.now() },
     VISTA = 7000, PAUSA_ANCHA = 120000, PAUSA_TEL = 360000;
   function telefono() { var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight; return !(W >= 700 && H >= 500); }
-  function pausa() { return telefono() ? PAUSA_TEL : PAUSA_ANCHA; }
+  /* Con información a la vista (el bento o el tablero con un tema), un poco más activo: asoma cada 45 s (ver «El ritmo») */
+  var PAUSA_TEMA = 45000;
+  function pausa() { return V.tema !== "reposo" ? PAUSA_TEMA : telefono() ? PAUSA_TEL : PAUSA_ANCHA; }
   function asomar() {
-    var ahora = Date.now(); if (!B.gifs || ahora - V.ult < pausa()) return false;
+    var ahora = Date.now(); if (!B.gifs || ahora - V.ult < pausa() || escucha()) return false;
     V.ult = ahora; V.hasta = ahora + VISTA; ventana(true); return true;
   }
   function gifTema(t) { var n = t ? temaGif(t) : "reposo"; if (n === V.tema) return; V.tema = n; if (n !== "reposo") asomar(); }
@@ -317,7 +319,7 @@
     }
     if (V.el.parentNode !== r) r.appendChild(V.el);
     var ahora = Date.now(), broma = ahora < V.broma || !!V.el.querySelector(".gifb");
-    var p = (ahora < V.hasta && B.gifs) || broma ? lugar() : null, raiz = d.documentElement;
+    var p = (ahora < V.hasta && B.gifs && !escucha()) || broma ? lugar() : null, raiz = d.documentElement;
     if (!p) { V.el.classList.remove("on", "listo"); raiz.classList.remove("gv-sin-hola"); return; }
     var st = V.el.style; st.left = p.x + "px"; st.top = p.y + "px"; st.width = p.w + "px"; st.height = p.h + "px";
     raiz.classList.toggle("gv-sin-hola", p.sinHola);
@@ -325,9 +327,47 @@
     V.el.classList.add("on");
   }
   /* la roca se mueve (al centro, a la esquina, crece con la voz) y la página cambia: la ventana la sigue */
-  setInterval(function () { if (d.visibilityState !== "hidden") ventana(); }, 500);
-  /* en el reposo, de vez en cuando (una vez cada dos pausas); nunca con la página escondida */
-  setInterval(function () { if (V.tema === "reposo" && d.visibilityState !== "hidden" && Date.now() - Math.max(V.ult, V.desde) >= 2 * pausa()) asomar(); }, 15000);
+  setInterval(function () { if (d.visibilityState !== "hidden") { ritmo(); ventana(); } }, 500);
+  /* en el reposo, de vez en cuando (una vez cada dos pausas); con un tema a la vista, cada pausa (45 s); nunca con la
+     página escondida ni mientras Alma solo escucha */
+  setInterval(function () {
+    if (d.visibilityState === "hidden") return;
+    var ahora = Date.now();
+    if (V.tema === "reposo" ? ahora - Math.max(V.ult, V.desde) >= 2 * pausa() : ahora - V.ult >= pausa()) asomar();
+  }, 5000);
+
+  /* ── El ritmo del GIF en la llamada (Juan, 19-nov-2026: «el GIF no debería aparecer si tú solo estás escuchando… salvo
+     alguna broma en conversaciones largas, "me estoy durmiendo" o "estoy viendo el reloj"… y cuando aparece el bento,
+     porque estás desplegando información, que esté un poquito más activo»). Igual en el teléfono, el iPad y la
+     computadora (la llamada de la app y la web): se lee de la roca (sa-nav: la llamada abierta y su estado «Alma habla» /
+     «Te escucho»), sin tocar sa-nav.
+     · Alma escucha (2,5 s sin hablar, para que no parpadee entre frases): ningún GIF; si estaba asomando, se va.
+     · Con un tema a la vista: asoma cada 45 s (más activo que el reposo), siempre que Alma no esté solo escuchando.
+     · Llamada larga (más de 4 min) y Juan hablando 45 s seguidos: una broma corta («me estoy durmiendo», «viendo el
+       reloj») por js/alma-gif.js (GIPHY rating g), como mucho una cada 6 min.
+     · La broma de Alma (mostrar_gif) siempre puede salir (gifCuadro la abre para sí). */
+  var RT = { llamada: 0, habla: false, cambio: 0, broma: 0 }, CALMA = 2500, LARGA = 240000, ESCUCHA = 45000, BROMAS = 360000;
+  var IDEAS = ["falling asleep", "checking watch", "bored waiting", "yawning"];
+  function estadoRoca() { var s = d.querySelector("#sa-nav-root .san-ov-st"); return s ? String(s.textContent || "") : ""; }
+  function enLlamada() {
+    var o = ov(), t = estadoRoca();
+    return !!(o && o.classList.contains("on") && !o.classList.contains("quieta") && t && !/toca a alma|terminada/i.test(t));
+  }
+  /* ¿Alma solo escucha? (en la llamada, sin el chat escrito abierto, y 2,5 s sin hablar) */
+  function escucha() {
+    if (!enLlamada() || chatAbierto()) return false;
+    var h = /habla/i.test(estadoRoca()); if (h !== RT.habla) { RT.habla = h; RT.cambio = Date.now(); }
+    return !h && Date.now() - RT.cambio >= CALMA;
+  }
+  function ritmo() {
+    var ahora = Date.now();
+    if (!enLlamada()) { RT.llamada = 0; return; }
+    if (!RT.llamada) { RT.llamada = RT.cambio = RT.broma = ahora; RT.habla = false; }
+    if (!escucha()) return;
+    if (ahora - RT.llamada >= LARGA && ahora - RT.cambio >= ESCUCHA && ahora - RT.broma >= BROMAS && w.AlmaGif && w.AlmaGif.mostrar) {
+      RT.broma = ahora; try { w.AlmaGif.mostrar(IDEAS[Math.floor(Math.random() * IDEAS.length)]); } catch (e) {}
+    }
+  }
 
   /* ── Acomodar: cada región es una columna de tarjetas (la altura según su peso); el hueco del centro queda libre. ── */
   function region(r, items, cls) {
@@ -457,6 +497,9 @@
     gifTema: function (t) { gifTema(t || null); },
     /* La broma (js/alma-gif.js): ¿cabe la ventana arriba de la roca? Y gifCuadro() la abre unos segundos para la broma
        (aunque esté escondida por la pausa) y da su marco. */
+    /* Para las pruebas: ¿se ve la ventana ahora? ¿Alma solo escucha? */
+    ritmo: function () { ritmo(); ventana(); return { escucha: escucha(), visible: !!(V.el && V.el.classList.contains("on")) }; },
+    asomar: function () { return asomar(); },
     gifCabe: function () { return !!(capaRaiz() && lugar() && +getComputedStyle(B.el).opacity > .05); },
     gifCuadro: function () {
       if (!w.AlmaBento.gifCabe()) return null;

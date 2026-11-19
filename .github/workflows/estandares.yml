@@ -394,6 +394,9 @@ jobs:
         # 16-nov: Juan quiere manejar el anillo QRing desde Alma (batería, pasos, ritmo, oxígeno, ajustes). En la app, en vivo;
         # fuera de ella, lo último que leyó la app, siempre con su hora y sin inventar si no está conectado.
         run: node .github/anillo-alma.js apps-script
+      - name: El cierre de una llamada no se pierde, sin las «Voz enviada» normales, aparte y los últimos 3 (dobles)
+        # 19-nov (guardia): la llamada con Alma se cortó (1006) y el porqué se borró del registro con la llamada siguiente.
+        run: node .github/anillo-cortes.js apps-script
       - name: Destinatario con su fuente, un solo resolvedor, el apartamento nombrado manda, varias personas se preguntan y «los socios» son todos (dobles)
         # 13-nov: Juan pidió escribirle al socio de Narama 633; Alma tomó la primera coincidencia por un pedazo del nombre (otro
         # apartamento) y antes dijo «El único Mayorga que tengo es …», inventado (#583 T3).

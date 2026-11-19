@@ -181,7 +181,7 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   q.reloj.ms += 91000;
   ok(!q.X.vivoLeerApi_(J, {}).en_llamada, '12 · una llamada que nunca conectó no se queda en «Conectando»');
   const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
-  ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
+  ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; C\.ocultaCerca = true; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) \{ C\.ocultaCerca = false; pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
   ok(/!\(YO && r\.dispositivo === YO\)/.test(h), '12 · inicio.html: este dispositivo no se copia a sí mismo');
 }
 /* 13 · terminar desde el compañero (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada. Si por error
@@ -241,28 +241,51 @@ const dosDev = (k) => { k.X.vozWebTel_ = (c) => (c === 'conv-ana' ? '50255550202
   ok(!Y.vivoPublicarApi_(J, { conv_id: 'conv-b', estado: 'conectando', dispositivo: 'iPad' }).ceder, '14 · con la del iPhone terminada, el iPad sí puede');
   ok(!Y.vivoPublicarApi_(J, { conv_id: 'conv-c', estado: 'conectando', dispositivo: 'iPad' }).ceder, '14 · dos del mismo dispositivo: como antes, la última');
 }
-/* 15 · una voz a la vez (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono,
+/* 15 · en tiempo real por la red de cerca y el iPad sin llamadas (Juan, 19-nov-2026: «en modo Companion en iPad no sincroniza
+   la actividad de voz en pantalla en tiempo real y permite hacer llamadas»): la app pasa cada subtítulo, el estado y el nivel */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/window\.AlmaCompanero = \{ cerca: cerca,/.test(h), '15 · inicio.html: AlmaCompanero.cerca recibe lo de la red de cerca (Retransmision.swift)');
+  ok(/C\.vistosCerca\.indexOf\(norm\(x\.t\)\)/.test(h), '15 · lo que ya llegó por la red de cerca no se repite cuando lo trae el Hub');
+  ok(/if \(!cercaVivo\(\)\) cerrar\(/.test(h), '15 · mientras llega por la red de cerca, el Hub sin noticia no cierra la llamada');
+  ok(/--comp-nivel/.test(h), '15 · el punto de «En vivo» se mueve con la voz');
+  ok(/e\.ipad \? "Modo compañero: llama desde tu teléfono"/.test(h), '15 · en el iPad la roca dice que se llama desde el teléfono');
+  const m = /var SECRETO = [^\n]*\n\s*function norm\(t\) \{[^\n]*\}/.exec(h);
+  ok(!!m, '15 · norm existe');
+  if (m) {
+    const norm = new Function(m[0] + '; return norm;')();
+    ok(norm('  Hoy   llegan dos ') === 'Hoy llegan dos', '15 · norm: sin espacios de más, como el Hub');
+    ok(norm('El código es 4821') === 'El código es ••••', '15 · norm: sin los números de un código, como tvTapar_');
+  }
+}
+/* 16 · una sola voz (Juan, 19-nov-2026: «solo debe haber un agente activo dando notificaciones (por defecto el móvil /
+   audífonos), salvo que el usuario configure explícitamente la salida de audio en otro dispositivo»): el compañero no suena */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/id="i-comp-son"/.test(h) && /id="f-comp-son" hidden/.test(h), '16 · Ajustes: «Sonido de la llamada aquí», visible solo con el Modo compañero encendido');
+  ok(/C\.sonido = false;/.test(h) && /localStorage\.getItem\(CLAVE_SON\) === "1"/.test(h), '16 · viene apagado: solo suena el dispositivo de la llamada');
+  ok(/accion: "companero", on: C\.on, otra: C\.otra, sonido: C\.on && C\.sonido/.test(h), '16 · la app recibe «sonido» (Retransmision.swift) y sin él no suena');
+}
+/* 17 · una voz a la vez (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono,
    usar por default el agente del teléfono»): el iPhone avisa que está activo y los demás lo saben sin Modo compañero */
 { const { X, reloj } = caja();
-  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '15 · sin aviso del iPhone: no está activo');
-  ok(X.vivoTelefonoApi_(J, { activo: true, dispositivo: 'iPad' }).telefono === false && X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '15 · solo el iPhone cuenta como teléfono');
+  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '17 · sin aviso del iPhone: no está activo');
+  ok(X.vivoTelefonoApi_(J, { activo: true, dispositivo: 'iPad' }).telefono === false && X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '17 · solo el iPhone cuenta como teléfono');
   X.vivoTelefonoApi_(J, { activo: true, dispositivo: 'iPhone' });
-  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === true, '15 · el iPhone abierto: los demás lo saben');
-  ok(X.vivoLeerApi_(A, { solo_estado: 1 }).telefono === false && X.vivoTelefonoApi_(null, {}).error === 'session', '15 · cada administrador, lo suyo; sin sesión, nada');
+  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === true, '17 · el iPhone abierto: los demás lo saben');
+  ok(X.vivoLeerApi_(A, { solo_estado: 1 }).telefono === false && X.vivoTelefonoApi_(null, {}).error === 'session', '17 · cada administrador, lo suyo; sin sesión, nada');
   reloj.ms += 3 * 60000;
-  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '15 · sin aviso en 2,5 min, ya no está activo');
+  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '17 · sin aviso en 2,5 min, ya no está activo');
   X.vivoTelefonoApi_(J, { activo: true, dispositivo: 'iPhone' }); X.vivoTelefonoApi_(J, { activo: false, dispositivo: 'iPhone' });
-  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '15 · el iPhone avisa que dejó de estar activo');
+  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).telefono === false, '17 · el iPhone avisa que dejó de estar activo');
   X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone', subs: [{ de: 'yo', t: 'hola' }] });
   let r = X.vivoLeerApi_(J, { solo_estado: 1 });
-  ok(r.en_llamada && r.telefono && r.dispositivo === 'iPhone' && r.fresca && !('subs' in r) && !('tarjeta' in r), '15 · en una llamada del iPhone: solo el estado, desde dónde y que está viva');
-  ok(!X.vivoMira_(J.email), '15 · solo_estado no cuenta como compañero mirando (el tablero no sale por eso)');
+  ok(r.en_llamada && r.telefono && r.dispositivo === 'iPhone' && r.fresca && !('subs' in r) && !('tarjeta' in r), '17 · en una llamada del iPhone: solo el estado, desde dónde y que está viva');
+  ok(!X.vivoMira_(J.email), '17 · solo_estado no cuenta como compañero mirando (el tablero no sale por eso)');
   reloj.ms += 60000;
-  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).fresca === false, '15 · sin noticias en 45 s, la llamada del iPhone ya no cuelga la de aquí');
+  ok(X.vivoLeerApi_(J, { solo_estado: 1 }).fresca === false, '17 · sin noticias en 45 s, la llamada del iPhone ya no cuelga la de aquí');
   const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
   const v = fs.readFileSync(path.join(__dirname, '..', 'js', 'alma-voz.js'), 'utf8');
-  ok(/case 'vivoTelefono': return json_\(vivoTelefonoApi_\(ses, body\)\)/.test(cod), '15 · la acción vivoTelefono está en el Hub, con la sesión');
-  ok(/ESCRITORIO = YO !== "iPhone"/.test(h) && /hub\("vivoLeer", \{ solo_estado: 1 \}\)/.test(h) && /tel: C\.tel/.test(h) && /\(C\.on \|\| ESCRITORIO\) && C\.otra/.test(h), '15 · inicio.html: en el iPad pregunta sin Modo compañero y se lo cuenta a la app (con «tel»)');
-  ok(/unaVozOtra\(\)\]\)/.test(v) && /La llamada sigue en tu/.test(v) && /Tu iPhone tomó la llamada/.test(v), '15 · alma-voz.js: la computadora no abre otra mientras el iPhone está en una y cuelga si el iPhone la toma');
+  ok(/case 'vivoTelefono': return json_\(vivoTelefonoApi_\(ses, body\)\)/.test(cod), '17 · la acción vivoTelefono está en el Hub, con la sesión');
+  ok(/ESCRITORIO = YO !== "iPhone"/.test(h) && /hub\("vivoLeer", \{ solo_estado: 1 \}\)/.test(h) && /tel: C\.tel/.test(h) && /\(C\.on \|\| ESCRITORIO\) && C\.otra/.test(h), '17 · inicio.html: en el iPad pregunta sin Modo compañero y se lo cuenta a la app (con «tel»)');
+  ok(/unaVozOtra\(\)\]\)/.test(v) && /La llamada sigue en tu/.test(v) && /Tu iPhone tomó la llamada/.test(v), '17 · alma-voz.js: la computadora no abre otra mientras el iPhone está en una y cuelga si el iPhone la toma');
 }
 process.exit(fallo);

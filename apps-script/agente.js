@@ -127,6 +127,15 @@ var AGENTE_CONF_ = false;
 /* Cronómetro de un turno de voz (#498 T1): vozSecretaria_ lo pone en { ia, n, herr, nh } y aquí se suman los ms de cada
    vuelta de Claude y de cada herramienta. Queda en la traza de la voz (robot voz_traza) para ver en qué se van los segundos. */
 var AG_MS_ = null;
+/* Guardia 19-nov-2026 (parte 3): además del total, qué herramienta tardó. lentas = las 4 más lentas del turno, cada una
+   { h: nombre, s: segundos, v: 'r' camino rápido · 'c' completo }: así la próxima guardia ve cuál tarda 10-16 s. */
+function agMsHerr_(nombre, ms, via) {
+  if (!AG_MS_) return;
+  AG_MS_.herr += ms; AG_MS_.nh++;
+  var l = AG_MS_.lentas || (AG_MS_.lentas = []);
+  l.push({ h: String(nombre || ''), s: Math.round(ms / 100) / 10, v: via || 'c' });
+  l.sort(function (a, b) { return b.s - a.s; }); if (l.length > 4) l.length = 4;
+}
 /* Destinatario (#583 T5): una sola frase para persona y número en todas las herramientas que escriben a alguien. */
 var AG_DEST_ = { type: 'string', description: 'Nombre o rol («Recepción Ignacio», «socio de 633»): se resuelve solo, con su fuente' }, AG_NUM_ = { type: 'string', description: 'Opcional: WhatsApp con código de país, si no lo tengo' };
 var CAL_ZONA_ = 'America/Guatemala por defecto; «hora de Montana» = America/Denver', CAL_SI_ = { type: 'boolean', description: 'true solo después del sí de Juan' };
@@ -1034,7 +1043,7 @@ function opAgenteBucle_(adm, system, msgs, tools, ctx, desde, seguir, yaEspero) 
       if (vencido(AGENTE_MARGEN_HERR_)) { var ch = cortar(resultados); if (ch) return ch; }   // lo que falta se ejecuta en segundo plano
       if (typeof ORBITA_ACTUAL_ !== 'undefined' && ORBITA_ACTUAL_) { try { orbitaPaso_(u.name); } catch (e) {} }   // el paso del anillo en el inicio (orbita.js)
       var res, th = Date.now(); try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('agEjecutar_ ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
-      if (AG_MS_) { AG_MS_.herr += Date.now() - th; AG_MS_.nh++; }
+      agMsHerr_(u.name, Date.now() - th, 'c');
       if (res && /^Herramienta desconocida/.test(String(res.error || ''))) (ctx.noPudo = ctx.noPudo || []).push(u.name);   // no tiene cómo: se escala al cerrar (escalar.js)
       if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });   // para las recetas (recetas.js)
       if (res && res._imgs && res._imgs.length) {   // ver_imagenes: las fotos viajan como bloques de imagen

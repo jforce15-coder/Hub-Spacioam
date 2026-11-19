@@ -14,13 +14,13 @@
      tokens, pasó de VOZ_RAPIDO_VUELTAS_ vueltas o de VOZ_RAPIDO_MS_. Juan no lo nota: solo tarda lo de antes.
      Excepción (guardia 18-nov-2026): si paró solo por tiempo o por vueltas, lo que ya leyó pasa al de siempre y no se
      vuelve a leer (rapidoReusar_; el cronómetro guarda reuso = cuántos mensajes pasaron). Y otra vuelta empieza solo si
-     cabe en VOZ_RAPIDO_MS_ contando lo que tardó la anterior (guardia 19-nov-2026: se pasaba hasta ~13 s).
+     cabe en el tope (rapidoMs_, 5 s) contando lo que tardó la anterior (guardia 19-nov-2026: se pasaba hasta ~13 s).
    · Mismo system: lo que Alma sabe y cómo habla no cambia. Al final de este_turno, una línea le dice qué herramientas tiene.
    · El modelo rápido no acepta temperatura (400): va sin ella y con esfuerzo bajo (output_config.effort = low).
    · Para medir después de unir: el cronómetro (VOZ_MS_ en voz_traza) guarda via (rapido · completo · rapido>completo),
-     motivo, modelo (el que contestó) y rapido (ms en el camino rápido); IA_USO guarda el modelo de cada llamada, con la
+     motivo, modelo (el que contestó), rapido (ms en el camino rápido) y lentas (las herramientas más lentas, agMsHerr_); IA_USO guarda el modelo de cada llamada, con la
      función «Voz · camino rápido» o «Voz · completo tras el rápido» (claudeTools_).
-   · Propiedades del script: VOZ_RAPIDO = 0 lo apaga sin un PR; VOZ_RAPIDO_MODELO cambia el modelo rápido. */
+   · Propiedades del script: VOZ_RAPIDO = 0 lo apaga sin un PR; VOZ_RAPIDO_MODELO cambia el modelo rápido; VOZ_RAPIDO_MS su tope. */
 
 /* ═══ EL PORTERO JEV: decide en ~0,2 s si el pedido es de leer o de hacer (#498 T5) ═══════════════════════════════════
    Jev (TypeSafe AI) es un modelo de decisiones: recibe el pedido y una pregunta de opciones, y contesta solo la opción.
@@ -51,7 +51,10 @@ var VOZ_RAPIDO_MODELO_ = 'claude-haiku-5-5';
 var VOZ_RAPIDO_HERR_ = ['buscar_reservas', 'cancelaciones', 'historial_reserva', 'programados_reserva', 'ver_conversacion', 'ver_agenda', 'ruta_del_dia',
   'tareas_abiertas', 'promesas_abiertas', 'mensajes_programados', 'propuestas_agentes', 'estado_equipos', 'vigilancias', 'ver_propiedad', 'codigo_acceso',
   'memoria_propiedad', 'cupo_google', 'gasto_alma', 'buscar_en_mi_chat', 'anillo', 'pedidos_en_orbita'];
-var VOZ_RAPIDO_MS_ = 9000, VOZ_RAPIDO_VUELTAS_ = 3, VOZ_RAPIDO_MAX_LARGO_ = 300;
+/* Tope del camino rápido. Guardia 19-nov-2026 (parte 3, propuesta de Juan): de 9 s a 5 s. Con 9 s el rápido gastaba
+   7-13 s antes de pasar al completo y se pagaban dos vueltas; ahora, pasados 5 s, lo ya leído pasa al completo (rapidoReusar_)
+   y no se espera otra vuelta. La propiedad VOZ_RAPIDO_MS (ms, 2000 a 15000) lo cambia sin un PR. */
+var VOZ_RAPIDO_MS_ = 5000, VOZ_RAPIDO_VUELTAS_ = 3, VOZ_RAPIDO_MAX_LARGO_ = 300;
 /* Pedir hacer algo: la raíz de un verbo de hacer con su terminación (envía, mándale, programar, cancélalo, avisé…).
    «agenda», «pregunta» y «reserva» no están: también son sustantivos de leer («¿qué tengo en la agenda?»). Un nombre que
    se parece («Marcela») manda el pedido al de siempre: en la duda, el de siempre. */
@@ -78,6 +81,7 @@ var RAPIDO_PASAR_ = { name: 'pasar_al_completo', description: 'Pasa este pedido 
 
 /* ¿El pedido trae un verbo de hacer? Solo las reglas (sin Jev): la usa la medición de A la mano (amano.js). */
 function rapidoPideHacer_(texto) { var n = rapidoNorm_(texto); return VOZ_RAPIDO_HACER_RE_.test(n) || VOZ_RAPIDO_HACER_EXTRA_RE_.test(n); }
+function rapidoMs_() { var n = Number(PropertiesService.getScriptProperties().getProperty('VOZ_RAPIDO_MS') || ''); return n >= 2000 && n <= 15000 ? n : VOZ_RAPIDO_MS_; }
 function rapidoOn_() { return String(PropertiesService.getScriptProperties().getProperty('VOZ_RAPIDO') || '1') !== '0'; }
 function rapidoModelo_() { return String(PropertiesService.getScriptProperties().getProperty('VOZ_RAPIDO_MODELO') || '').trim() || VOZ_RAPIDO_MODELO_; }
 function rapidoNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9?\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
@@ -192,7 +196,7 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
   herr = herr.concat([RAPIDO_PASAR_]);
   var sys = system + '\n\nCAMINO RÁPIDO: en este turno solo tienes herramientas de leer (' + nombres.join(', ') + ') y pasar_al_completo. ' +
     'Si el pedido pide hacer algo, necesita otra herramienta o no lo puedes contestar con seguridad con lo que leas, llama pasar_al_completo y no respondas. Nunca digas que algo quedó hecho.';
-  var limite = t0 + VOZ_RAPIDO_MS_; if (AGENTE_PLAZO_) limite = Math.min(limite, AGENTE_PLAZO_ - AGENTE_MARGEN_VUELTA_);
+  var limite = t0 + rapidoMs_(); if (AGENTE_PLAZO_) limite = Math.min(limite, AGENTE_PLAZO_ - AGENTE_MARGEN_VUELTA_);
   var m = msgs.slice(), leido = 0, vueltaMs = 0;
   try {
     for (var vuelta = 0; vuelta < VOZ_RAPIDO_VUELTAS_ && !motivo && fin === null; vuelta++) {
@@ -221,7 +225,7 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
       if (Date.now() > limite) { motivo = 'tiempo'; break; }
       var resultados = usos.map(function (u) {
         var res, th = Date.now(); try { res = agEjecutar_(adm, u.name, u.input, ctx); } catch (e) { console.error('rapido ' + u.name + ': ' + (e.stack || e)); res = { error: String(e.message || e).slice(0, 200) }; }
-        if (AG_MS_) { AG_MS_.herr += Date.now() - th; AG_MS_.nh++; }
+        agMsHerr_(u.name, Date.now() - th, 'r');
         if (ctx.llamadas) ctx.llamadas.push({ tool: u.name, input: u.input || {}, ok: !!res && !res.error && res.ok !== false });
         return { type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(res).slice(0, 12000), is_error: !!(res && res.error) };
       });

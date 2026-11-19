@@ -281,7 +281,7 @@ var ALMA_FUENTE_ = {
     },
     {
      "id": "v_despedida",
-     "texto": "Despídete una sola vez, corto y cálido. Si después responde con otra cortesía, cuelga sin decir nada más."
+     "texto": "Despídete una sola vez, corto y cálido. Si luego calla o solo responde otra cortesía, cuelga sin decir nada más."
     }
    ]
   },

@@ -15,6 +15,10 @@
      activa, no puedo terminarla»): el botón «Terminar» del compañero pide vivoColgar. La llamada se da por terminada ya
      (el compañero se cierra) y el Hub le dice a la app de la llamada «colgar» en su próximo vivoPublicar (la app manda uno
      cada pocos segundos mientras alguien mira); la app cuelga y responde «fin». VIVO_COLGAR_SEG_: lo que vale el pedido.
+   · Una sola voz (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono,
+     por default el agente del teléfono»): si dos dispositivos del mismo administrador publican dos llamadas distintas a la
+     vez, se queda la del iPhone. La otra recibe «ceder» al publicar y la app la cuelga (VozNativa.cederAlTelefono); lo que
+     publique después esa llamada ya no pisa la del teléfono (vivo_cede_). Entre dos del mismo tipo, como antes: la última.
    Check con dobles: .github/modo-companero.js. */
 
 var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120, VIVO_COLGAR_SEG_ = 120;
@@ -33,6 +37,11 @@ function vivoViva_(e, ahora) {
   return true;
 }
 var VIVO_ESTADOS_ = ['conectando', 'hablando', 'escuchando', 'pausa', 'fin'];
+var VIVO_TEL_ = 'iPhone', VIVO_TURNO_S_ = 30;   // la app publica al menos cada 6 s (latido): 30 s sin noticias = ya no está
+
+/* ¿Hay otra llamada viva, de una app que publica (con dispositivo), distinta de conv? */
+function vivoOtraViva_(e, conv, ahora) { return !!(e && e.conv !== conv && e.estado !== 'fin' && e.dev && ahora - Number(e.ts || 0) < VIVO_TURNO_S_ * 1000); }
+function vivoCedida_(h, conv) { return !!conv && CacheService.getScriptCache().get('vivo_cede_' + h) === String(conv); }
 
 function vivoClave_(email) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16); }
 function vivoLeerCache_(k) { try { return JSON.parse(CacheService.getScriptCache().get(k) || 'null'); } catch (e) { return null; } }
@@ -44,9 +53,18 @@ function vivoPublicarApi_(ses, b) {
   if (!adm || !conv) return { ok: false, error: 'session' };
   if (!tvDeLaLlamada_(adm, conv)) return { ok: false, error: 'Esa llamada no es tuya.' };
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), ahora = Date.now();
-  var est = String(b.estado || '');
+  var est = String(b.estado || ''), dev = String(b.dispositivo || '').replace(/[^\w ]/g, '').slice(0, 20);
   var antes = vivoLeerCache_('vivo_est_' + h) || {};
-  var e = { conv: conv, estado: VIVO_ESTADOS_.indexOf(est) >= 0 ? est : (antes.conv === conv ? antes.estado : 'hablando'), dev: String(b.dispositivo || antes.dev || '').replace(/[^\w ]/g, '').slice(0, 20), ts: ahora };
+  /* Una sola voz: manda el teléfono. Una llamada que cedió ya no publica; el iPad cede si el iPhone está en otra. */
+  if (vivoCedida_(h, conv)) return { ok: true, ceder: true, otra: antes.dev || VIVO_TEL_, mirando: !!vivoMira_(adm.email) };
+  if (vivoOtraViva_(antes, conv, ahora) && dev && antes.dev !== dev) {
+    if (antes.dev === VIVO_TEL_) {
+      if (est !== 'fin') c.put('vivo_cede_' + h, conv, VIVO_SEG_);
+      return { ok: true, ceder: est !== 'fin', otra: VIVO_TEL_, mirando: !!vivoMira_(adm.email) };
+    }
+    if (dev === VIVO_TEL_) c.put('vivo_cede_' + h, String(antes.conv), VIVO_SEG_);   // el teléfono llegó después: la otra cede
+  }
+  var e = { conv: conv, estado: VIVO_ESTADOS_.indexOf(est) >= 0 ? est : (antes.conv === conv ? antes.estado : 'hablando'), dev: dev || (antes.conv === conv ? antes.dev || '' : ''), ts: ahora };
   /* Juan la terminó desde el compañero: sigue terminada aquí aunque la app todavía hable, y la app cuelga al leer «colgar» */
   var col = vivoLeerCache_('vivo_colgar_' + h), colgar = !!(col && col.conv === conv);
   if (colgar) { e.estado = 'fin'; if (est === 'fin') c.remove('vivo_colgar_' + h); }
@@ -85,6 +103,7 @@ function vivoColgarApi_(ses, b) {
 function vivoTarjeta_(convId, t) {
   var tel = vozWebTel_(convId), adm = tel && adminPorTel_(tel); if (!adm || !adm.email || !t) return false;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
+  if (vivoCedida_(h, convId) || vivoOtraViva_(e, String(convId), Date.now())) return false;   // una sola voz: no pisa la del teléfono
   if (!e || e.conv !== String(convId)) c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'hablando', dev: '', ts: Date.now() }), VIVO_SEG_);
   else if (e.estado !== 'fin') { e.ts = Date.now(); if (e.estado === 'conectando') e.estado = 'hablando'; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }   // con tablero, ya conectó
   c.put('vivo_tv_' + h, JSON.stringify({ conv: String(convId), ts: Date.now(), t: t }), VIVO_SEG_);
@@ -136,6 +155,8 @@ function vivoInicio_(adm, convId) {
   if (!adm || !adm.email || !convId) return;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
   if (e && e.conv === String(convId) && e.estado !== 'fin') return;
+  /* Otra llamada viva de una app que publica: no se pisa aquí; la nueva se presenta al publicar y ahí se decide cuál queda. */
+  if (vivoOtraViva_(e, String(convId), Date.now())) return;
   c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'conectando', dev: '', ts: Date.now() }), VIVO_SEG_);
   c.remove('vivo_tv_' + h);
 }

@@ -13,11 +13,12 @@
      sigue con guiar_camino.
    · Las reglas van en la descripción de la herramienta, no en el prompt (el presupuesto de la voz ya está lleno). */
 
+/* maps = el valor de Maps.DirectionFinder.Mode (en minúsculas: con 'WALKING' Apps Script responde «Argumento no válido: mode»). */
 var GUIA_MODOS_ = {
-  caminando: { maps: 'WALKING', texto: 'caminando' },
-  carro: { maps: 'DRIVING', texto: 'en carro' },
-  bici: { maps: 'BICYCLING', texto: 'en bici' },
-  bus: { maps: 'TRANSIT', texto: 'en bus' }
+  caminando: { maps: 'walking', texto: 'caminando' },
+  carro: { maps: 'driving', texto: 'en carro' },
+  bici: { maps: 'bicycling', texto: 'en bici' },
+  bus: { maps: 'transit', texto: 'en bus' }
 };
 var GUIA_LUGARES_ = 30;   // cuántos lugares con su medio se recuerdan
 var GUIA_PASOS_ = 90;     // lo más que se manda a la app (con los avisos y los «vas bien» de los puntos de referencia)

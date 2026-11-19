@@ -14,7 +14,7 @@ const ctx = { console, JSON, Date, Math, String, Number, Object, Array, RegExp, 
   Utilities: { computeDigest: (a, s) => Array.from(crypto.createHash('md5').update(String(s)).digest()), base64EncodeWebSafe: b => Buffer.from(b).toString('base64url'), DigestAlgorithm: { MD5: 'md5' } },
   Maps: {
     newGeocoder: () => { const g = { setLanguage: () => g, setBounds: () => g, geocode: () => ({ status: 'OK', results: [{ formatted_address: 'Parque Central, Antigua Guatemala, Guatemala', geometry: { location: { lat: 14.55, lng: -90.73 } } }] }) }; return g; },
-    newDirectionFinder: () => { const f = { setLanguage: () => f, setOrigin: () => f, setDestination: () => f, setMode: m => { pedidoModo = m; return f; }, setDepart: () => f, getDirections: () => ruta }; return f; }
+    newDirectionFinder: () => { const f = { setLanguage: () => f, setOrigin: () => f, setDestination: () => f, setMode: m => { if (!['driving', 'walking', 'bicycling', 'transit'].includes(m)) throw new Error('Argumento no válido: mode'); pedidoModo = m; return f; }, setDepart: () => f, getDirections: () => ruta }; return f; }
   },
   chatSesAdm_: s => (s ? { email: 'juan@x' } : null) };
 vm.createContext(ctx);
@@ -24,12 +24,13 @@ ok(ctx.guiaTexto_('Gira a la <b>derecha</b><div style="x">El destino está a la 
 ok(ctx.guiaModo_('voy en Uber') === 'carro' && ctx.guiaModo_('a pie') === 'caminando' && ctx.guiaModo_('en camioneta') === 'bus' && ctx.guiaModo_('bicicleta') === 'bici', 'entiende el medio como lo dice Juan');
 ok(G({ destino: 'Parque Central' }).necesita_modo === true, 'la primera vez pregunta el medio');
 const r1 = G({ destino: 'Parque Central', modo: 'caminando' });
-ok(r1.ok && r1.pasos.length === 2 && r1.minutos === 10 && pedidoModo === 'WALKING' && !r1.recordado, 'con el medio da la ruta paso a paso');
+ok(r1.ok && r1.pasos.length === 2 && r1.minutos === 10 && pedidoModo === 'walking' && !r1.recordado, 'con el medio da la ruta paso a paso');
 const r2 = G({ destino: 'parque central' });
 ok(r2.ok && r2.modo === 'caminando' && r2.recordado === 'lugar', 'recuerda el medio de ese lugar');
 G({ destino: 'Aeropuerto', modo: 'carro' });
 ok(G({ destino: 'Oakland Mall' }).recordado === 'ultimo' && G({ destino: 'Oakland Mall' }).modo === 'carro', 'en un lugar nuevo usa el último medio');
 ok(G({ destino: 'Parque Central' }).modo === 'caminando', 'el lugar ganó sobre el último');
+ok(['carro', 'bici', 'bus', 'caminando'].every(m => G({ destino: 'Parque Central', modo: m }).ok), 'los 4 medios pasan el modo que acepta Google (Maps.DirectionFinder.Mode, en minúsculas)');
 ok(ctx.guiaCamino_('', { destino: 'x', lat: 1, lng: 1 }).error === 'session', 'sin sesión no responde');
 ok(ctx.guiaPideCamino_('¿Cómo llego al Parque Central?') && ctx.guiaPideCamino_('llévame a la casa de Flor') && !ctx.guiaPideCamino_('anota que llego tarde'), 'el Modo calle reconoce el pedido de camino');
 const h = ctx.vozGuiaHerramientas_()[0];

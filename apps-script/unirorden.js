@@ -22,7 +22,7 @@ var UNIR_COSA_RE_ = /\b(cambios?|prs?|pull requests?|merge|pendientes? (?:de|par
 var UNIR_RELLENO_RE_ = /\b(todo|todos|todas|ambos|ambas|los dos|las dos|lo|los|eso|esos|ese|ahora|ya|de una vez|por favor|alma|si|listo|listos|pendiente|pendientes|que haya|que tengamos|que este|que esten|el|de|y)\b/g;
 var UNIR_PREGUNTA_RE_ = /\b(pendientes?|algo|cambios?|prs?|cosas?)\b[^.?!]{0,40}\b(para|por|de) (unir|dar merge|merge)\b|\bque (cambios?|prs?) (estan|hay|quedan|tenemos)\b[^.?!]{0,30}\b(unir|merge|pendientes?|listos?)\b/;
 var UNIR_APP_RE_ = /^(?:el|la|lo|los|las) (?:de|del)(?: la| el)? (hub|app|hola|epi|grow|docs|iphone)(?: de alma)?$/;   // «une el de la app», «une el del Hub»
-var UNIR_APARTE_RE_ = /\b(no unir|unir solo|une solo|solo con juan)\b/i;   // el título pide unirlo aparte: «todos» no lo toca
+var UNIR_APARTE_RE_ = /\b(no unir|unir solo|une solo|solo con juan|toca datos)\b/i;   // el título pide unirlo aparte: «todos» no lo toca
 var UNIR_SI_RE_ = /^(si|sip|dale|ok|okay|claro|hazlo|adelante|perfecto|de acuerdo|correcto|todos|todas|ambos|ambas|los dos|las dos|el primero|el segundo|el tercero|ese|esos|listo)\b/;
 
 function unirNorm_(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\[nota de voz\]/g, ' ').replace(/[¿?¡!.,;:()]/g, ' ').replace(/\s+/g, ' ').trim(); }

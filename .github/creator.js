@@ -11,7 +11,13 @@
       escribe en GitHub) y, ya listo, publicar (une ese PR; por voz solo si Juan dijo «publícalo»); cambiar algo después
       de pedirlo lo devuelve a borrador;
    8. solo el administrador principal; la pantalla pregunta barato (sello en caché: sin hojas si nada cambió);
-   9. Claudio tiene claudio_creator y el resultado avisa a la app.
+   9. Claudio tiene claudio_creator y el resultado avisa a la app;
+  10. el enrutador: reglas y el modelo básico deciden el escalón (básico · medio · avanzado con tope diario), sube un
+      escalón una sola vez si falla, modelos y tope en Propiedades, y cada llamada queda en IA_USO por escalón;
+  11. datos reales en solo lectura: el marco trae una llave de lectura (nunca la sesión); el Hub solo le contesta lecturas;
+  12. la barrera: lo que escribe se detiene en el marco y pide aprobación; aprobar lo anota (sin valores), una vez;
+  13. toca datos: el borrador que agrega escrituras o el PR que toca apps-script/ lleva etiqueta y título «toca datos», no
+      se une con «todos» ni por Alma, y Publicar pide confirmación aparte (nunca por voz).
    node .github/creator.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -44,7 +50,9 @@ const LISTA = '<!doctype html><html><head>\n<script src="https://hub.spacioam.co
 const DETALLE = '<!doctype html><html><head><title>Detalle</title><style>h1{color:#333}</style></head><body><h1>Departamento 1104</h1></body></html>';
 const MI = '<!doctype html><html><head><title>Mi</title></head><body><h1>Mi</h1></body></html>';
 let respuestas = [];
-const red = s => /api\.anthropic\.com/.test(s.url) ? { codigo: 200, cuerpo: { model: s.cuerpo.model, stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 5 }, content: [{ type: 'text', text: JSON.stringify(respuestas.shift() || { resumen: 'nada', cambios: [] }) }] } }
+let clasifica = [];   // lo que contesta el enrutador (modelo básico) cuando las reglas no alcanzan
+const red = s => /api\.anthropic\.com/.test(s.url) && /Clasificador/.test(String(s.cuerpo.system || '')) ? { codigo: 200, cuerpo: { model: s.cuerpo.model, usage: { input_tokens: 5, output_tokens: 2 }, content: [{ type: 'text', text: JSON.stringify({ escalon: clasifica.length ? clasifica.shift() : 1 }) }] } }
+  : /api\.anthropic\.com/.test(s.url) ? { codigo: 200, cuerpo: { model: s.cuerpo.model, stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 5 }, content: [{ type: 'text', text: JSON.stringify(respuestas.shift() || { resumen: 'nada', cambios: [] }) }] } }
   : /Hub-Spacioam\/main\/alma\/creator-prueba\.html$/.test(s.url) ? { codigo: 200, cuerpo: LISTA }
   : /Hub-Spacioam\/main\/alma\/creator-prueba-detalle\.html$/.test(s.url) ? { codigo: 200, cuerpo: DETALLE }
   : /mi-spacioam\/main\/index\.html$/.test(s.url) ? { codigo: 200, cuerpo: MI } : { codigo: 404, cuerpo: '' };
@@ -87,7 +95,12 @@ const ses = { email: 'juan@x' }, act = () => R('creatorActivo_')('juan@x');
   const c1 = R('creatorAccionApi_')(ses, 'creatorCambiar', { texto: 'haz el título más grande' });
   ok(c1.ok && c1.version === 1 && /Listo, mira/.test(c1.resultado) && /aún no está en vivo/.test(c1.resultado), '4 · un cambio guarda la versión 1; Claudio dice «Listo, mira.» y sabe que no está en vivo');
   const ll = salidas.filter(s => /anthropic/.test(s.url)).pop();
-  ok(ll.cuerpo.model === 'claude-sonnet-5-5' && ll.cuerpo.output_config.effort === 'low' && ll.cuerpo.output_config.format.type === 'json_schema' && ll.cuerpo.fallbacks === 'default' && ll.headers['anthropic-beta'] === 'server-side-fallback-2026-07-01', '4 · motor: Sonnet 5.5, esfuerzo bajo, salida JSON y respaldo si un clasificador declina');
+  ok(ll.cuerpo.model === 'claude-haiku-5-5' && !ll.cuerpo.fallbacks && c1.escalon === 'básico', '4 · enrutador: «el título más grande» es simple → modelo básico (Haiku), sin pasar por el caro');
+  respuestas = [{ resumen: 'Animé.', cambios: [] }];
+  const r1b = R('creatorRuta_')('agrega una animación a las tarjetas al pasar el dedo');
+  R('creatorPedirAlModelo_')('<p>x</p>', 'anima', [], r1b);
+  const llm = salidas.filter(s => /anthropic/.test(s.url)).pop();
+  ok(r1b.escalon === 1 && r1b.por === 'reglas' && llm.cuerpo.model === 'claude-sonnet-5-5' && llm.cuerpo.output_config.effort === 'low' && llm.cuerpo.output_config.format.type === 'json_schema' && llm.cuerpo.fallbacks === 'default' && llm.headers['anthropic-beta'] === 'server-side-fallback-2026-07-01', '4 · escalón medio (componente, animación): Sonnet 5.5, esfuerzo bajo, salida JSON y respaldo si un clasificador declina');
   ok(/<pantalla>[\s\S]*Llegadas de hoy/.test(ll.cuerpo.messages[0].content[0].text) && JSON.parse(ll.cuerpo.system[0].text).formato_de_respuesta, '4 · le llega la pantalla y el prompt en JSON (rol, tarea, contexto, pasos, restricciones, formato)');
   mem.CREATOR_MODELO = 'claude-haiku-5-5';
   respuestas = [{ resumen: 'Le puse vidrio.', cambios: [{ buscar: '</style>', reemplazar: '.v{backdrop-filter:blur(20px)}</style>' }] }];
@@ -97,7 +110,9 @@ const ses = { email: 'juan@x' }, act = () => R('creatorActivo_')('juan@x');
   const nA = salidas.filter(s => /anthropic/.test(s.url)).length;
   respuestas = [{ resumen: 'x', cambios: [{ buscar: '<p>Hola</p>', reemplazar: '<p>Adiós</p>' }] }, { resumen: 'x', cambios: [{ buscar: '<h2>nada</h2>', reemplazar: '' }] }];
   const c3 = R('creatorCambiar_')(JUAN, 'cambia el saludo', 'voz');
-  ok(!c3.ok && /^NO CAMBIÓ NADA/.test(c3.error) && salidas.filter(s => /anthropic/.test(s.url)).length === nA + 2 && act().actual === 2, '4 · si copia mal, prueba una vez más; si tampoco, no guarda nada y lo dice');
+  ok(!c3.ok && /^NO CAMBIÓ NADA/.test(c3.error) && salidas.filter(s => /anthropic/.test(s.url)).length === nA + 3 && act().actual === 2, '4 · si copia mal, prueba una vez más; si tampoco, no guarda nada y lo dice');
+  { const m3 = salidas.filter(s => /anthropic/.test(s.url)).slice(-3).map(s => s.cuerpo.model);
+    ok(m3[0] === 'claude-haiku-5-5' && m3[1] === 'claude-sonnet-5-5' && m3[2] === 'claude-opus-5-5', '10 · sin regla: clasifica el básico (nunca el caro) → medio; falló al aplicar → sube UN escalón una sola vez (avanzado)'); }
   ok(!R('creatorCambiar_')(JUAN, 'pon ' + ['sk', 'ant', 'api03', 'abcdefghijklmnopqrstuvwxyz'].join('-'), 'voz').ok, '4 · algo que parece una llave no viaja al modelo');
 
   /* 5. Navegar: borrador vs en vivo */
@@ -161,4 +176,108 @@ const ses = { email: 'juan@x' }, act = () => R('creatorActivo_')('juan@x');
   const r = R('claudioEjecutar_')(JUAN, 'claudio_creator', { conv_id: 'conv_1', accion: 'abrir', app: 'mi' });
   ok(r.ok && r.creator === true, '9 · el resultado avisa a la app que abra el Modo Creator'); }
 
-if (fallo) process.exit(1); else console.log('Todo bien: el Modo Creator muestra el borrador, cambia en segundos, deshace y publica solo en dos pasos con Juan.');
+/* 10. El enrutador */
+{ const E = (t, o) => R('creatorEnrutar_')(t, Object.assign({ queda_avanzado: true, clasificar: () => null }, o || {}));
+  ok(E('el título más grande').escalon === 0 && E('ponlo en durazno').escalon === 0 && E('cambia el texto del botón').escalon === 0, '10 · simple (color, texto, tamaño) → básico, por reglas');
+  ok(E('agrega una lista de llegadas con filtro').escalon === 1 && E('ponle vidrio esmerilado').escalon === 1, '10 · componente o lógica de pantalla → medio');
+  ok(E('rediseño completo de todas las pantallas').escalon === 2 && E('rediseño completo de todas las pantallas', { queda_avanzado: false }).escalon === 1, '10 · avanzado solo con señales claras, y con el tope diario lleno baja a medio');
+  let pregunto = 0; const q = E('mejóralo', { clasificar: () => { pregunto++; return 0; } });
+  ok(pregunto === 1 && q.escalon === 0 && q.por === 'básico' && E('mejóralo', { clasificar: () => 2 }).escalon === 1, '10 · sin regla, decide el básico (0 o 1; nunca sube al avanzado él solo)');
+  mem.CREATOR_MODELO_BASICO = 'claude-haiku-9'; mem.CREATOR_TOPE_AVANZADO = '1'; delete mem.CREATOR_AVANZADO_HOY;
+  ok(R('creatorRuta_')('el título más grande').modelo === 'claude-haiku-9', '10 · los modelos se cambian sin PR (CREATOR_MODELO_BASICO/MEDIO/AVANZADO)');
+  const a1 = R('creatorRuta_')('toda la app desde cero'), a2 = R('creatorRuta_')('toda la app desde cero');
+  ok(a1.escalon === 2 && a2.escalon === 1 && JSON.parse(mem.CREATOR_AVANZADO_HOY).n === 1, '10 · CREATOR_TOPE_AVANZADO: el avanzado se cuenta por día y al llegar al tope usa el medio');
+  mem.CREATOR_ENRUTADOR = '0'; ok(R('creatorRuta_')('el título más grande').escalon === 1, '10 · CREATOR_ENRUTADOR = 0 lo apaga (medio, como antes)');
+  delete mem.CREATOR_ENRUTADOR; delete mem.CREATOR_MODELO_BASICO; delete mem.CREATOR_TOPE_AVANZADO; delete mem.CREATOR_AVANZADO_HOY;
+  const usos = []; const reg0 = ctx.registrarUso_; ctx.registrarUso_ = o => usos.push(o);
+  R('creatorPedirAlModelo_')('<p>x</p>', 'x', [], R('creatorRuta_')('el título más grande'));
+  ctx.registrarUso_ = reg0;
+  ok(usos.length === 1 && usos[0].funcion === 'Modo Creator · básico' && /cambio simple/.test(usos[0].detalle), '10 · cada pedido queda en IA_USO con su escalón y por qué (Gasto de Alma lo mide)'); }
+
+/* 11 y 12. Datos reales en solo lectura y la barrera */
+{ let n = 0; ctx.Utilities.getUuid = () => 'aaaaaaaa-bbbb-cccc-dddd-' + String(++n).padStart(12, '0');
+  const SES = { email: 'juan@x', nombre: 'Juan Prueba' };
+  const t = R('creatorLecturaLlave_')(SES);
+  ok(/^crlec_[a-f0-9]{32}$/.test(t) && t.indexOf('.') < 0 && R('creatorLecturaLlave_')(SES) === t, '11 · la llave de lectura no tiene punto (ningún login la toma por sesión) y se reusa');
+  ok(R('creatorLecturaPuerta_')({ action: 'cola', session: 'abc.def' }) === null, '11 · una sesión de verdad no pasa por la puerta');
+  const lee = R('creatorLecturaPuerta_')({ hub: 1, action: 'cola', session: t });
+  ok(lee && lee.ses && lee.ses.email === 'juan@x' && !lee.salida, '11 · con la llave, una lectura («cola») se contesta con los datos de Juan');
+  const esc = ['enviarAhora', 'responderWa', 'programar', 'setAuto', 'resolver', 'calendarioVisto', 'llaveGuardar', 'creatorCambiar', 'creatorAprobar', 'loQueSea'].map(a => R('creatorLecturaPuerta_')({ hub: 1, action: a, session: t }));
+  ok(esc.every(x => x && x.salida && x.salida.creator_bloqueo && !x.ses), '11 · con la llave, lo que escribe (o no está en la lista) vuelve como creator_bloqueo, sin tocar nada');
+  ok(R('creatorLecturaPuerta_')({ hub: 1, action: 'correos', session: t }).ses && R('creatorLecturaPuerta_')({ hub: 1, action: 'correos', accion: 'hacer', session: t }).salida &&
+    R('creatorLecturaPuerta_')({ hub: 1, action: 'decision', op: 'elegir', session: t }).salida, '11 · las que leen y escriben según sus campos: solo su forma de leer');
+  ok(R('creatorLecturaPuerta_')({ hub: 1, action: 'cola', session: 'crlec_ffffffffffffffffffffffffffffffff' }).salida.creator_vencido, '11 · una llave vencida o inventada no lee nada');
+  const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), ih = cod.indexOf('function hubApi_('), ip = cod.indexOf('creatorLecturaPuerta_(body)', ih), is = cod.indexOf('sesionLogin_(body.session)', ih);
+  ok(ip > ih && ip < is && /if \(lec && lec\.salida\) return json_\(lec\.salida\)/.test(cod), '11 · hubApi_ pasa por la puerta antes de cualquier acción');
+  const v = R('creatorVerApi_')(ses, {});
+  ok(v.ok && v.html.indexOf(t) > 0 && !/sa-sesion\.js/.test(v.html) && /window\.SASesion=/.test(v.html) && v.datos === 'reales · solo lectura', '11 · el borrador se pinta con la llave de lectura y un SASesion que solo la entrega (nunca la sesión)');
+
+  /* El lector, corriendo en un marco de mentira */
+  const pinta = R('creatorParaPintar_')('<html><head></head><body></body></html>', 'hub', 'alma/x.html', { token: t, perfil: SES });
+  const codigo = /<script>(\(function\(\)\{var C=[\s\S]*?)<\/script>/.exec(pinta)[1];
+  const avisos = [], red2 = [];
+  class Resp { constructor(b, o) { this.b = b; this.status = (o || {}).status || 200; } text() { return Promise.resolve(this.b); } json() { return Promise.resolve(JSON.parse(this.b)); } }
+  const escuchas = [], parent = { postMessage: (d) => { avisos.push(d); if (d.creator === 'aprobar' || d.creator === 'hoja') setTimeout(() => escuchas.forEach(f => f({ source: parent, data: d.creator === 'hoja' ? { creatorRespuesta: 1, id: d.id, texto: 'a,b', status: 200 } : { creatorRespuesta: 1, id: d.id, ok: false } })), 0); } };
+  const w = { parent, document: { baseURI: 'https://hub.spacioam.com/alma/' }, navigator: { sendBeacon: () => true }, Response: Resp, URL, Promise, JSON, Object, String, setTimeout,
+    addEventListener: (k, f) => { if (k === 'message') escuchas.push(f); },
+    fetch: (u, o) => { red2.push({ u, o }); const b = o && o.body ? JSON.parse(o.body) : {}; return Promise.resolve(new Resp(JSON.stringify(b.action === 'enviarAhora' ? { ok: false, creator_bloqueo: { accion: 'enviarAhora', por: 'escribe datos' } } : { ok: true, lista: [1] }))); } };
+  w.window = w; w.self = w;
+  vm.runInNewContext(codigo, w);
+  const HUB = 'https://script.google.com/macros/s/HUB/exec';
+  Promise.all([
+    w.fetch(HUB, { method: 'POST', body: JSON.stringify({ hub: 1, action: 'cola', session: 'otra', token: 'viejo' }) }).then(r => r.text()),
+    w.fetch(HUB, { method: 'POST', body: JSON.stringify({ hub: 1, action: 'enviarAhora', fila: 3 }) }).then(r => r.text()),
+    w.fetch('https://script.google.com/macros/s/OTRA/exec', { method: 'POST', body: JSON.stringify({ action: 'guardar' }) }).then(r => r.text()),
+    w.fetch('https://api.ejemplo.com/x', { method: 'POST', body: '{}' }).then(r => r.text()),
+    w.fetch('https://docs.google.com/spreadsheets/d/' + 'a'.repeat(44) + '/gviz/tq?tqx=out:csv').then(r => r.text()),
+    w.fetch('https://hub.spacioam.com/ds/x.css').then(r => r.text())
+  ]).then(([lect, bloq, otro, fuera, hoja, css]) => {
+    const pedidosHub = red2.filter(x => /HUB/.test(x.u)).map(x => JSON.parse(x.o.body));
+    ok(JSON.parse(lect).ok && pedidosHub[0].session === t && !pedidosHub[0].token, '12 · en el marco, una lectura sale al Hub con la llave de lectura (la de la página se cambia; sin llave vieja)');
+    ok(JSON.parse(bloq).creator_no_aprobado && avisos.some(a => a.creator === 'aprobar' && a.accion === 'enviarAhora'), '12 · lo que el Hub bloquea pide aprobación a la pantalla; con «No», la página recibe «no se aprobó» y nada cambia');
+    ok(JSON.parse(otro).creator_no_aprobado && JSON.parse(fuera).creator_no_aprobado && !red2.some(x => /OTRA|ejemplo/.test(x.u)), '12 · otro Apps Script o un envío a otro sitio no sale del marco sin aprobación');
+    ok(hoja === 'a,b' && !red2.some(x => /gviz/.test(x.u)) && css && red2.some(x => /x\.css/.test(x.u)), '12 · las hojas las lee la pantalla (con la sesión de Juan) y lo demás (estilos, fotos) carga igual');
+    ok(w.navigator.sendBeacon('https://x.com/y', 'z') === false && avisos.some(a => a.creator === 'bloqueado'), '12 · sendBeacon no sale');
+    ok(w.SASesion.leer() === t && w.SASesion.perfilRapido().email === 'juan@x', '12 · SASesion del marco entrega solo la llave de lectura');
+  }).catch(e => ok(false, '12 · el lector del marco: ' + e));
+
+  const ap = R('creatorAccionApi_')(ses, 'creatorAprobar', { accion: 'enviarAhora', url: HUB, campos: ['fila', 'texto'], que: 'accion' });
+  const fila = hojas.ALMA_CREATOR_APROBADOS && hojas.ALMA_CREATOR_APROBADOS.filas.slice(-1)[0];
+  ok(ap.ok && fila && fila[1] === 'juan@x' && fila[5] === 'enviarAhora' && fila[6] === 'script.google.com' && fila[7] === 'fila, texto', '12 · aprobar queda anotado: quién, qué acción, a dónde y los NOMBRES de los campos (nunca sus valores)');
+  ok(R('creatorAccionApi_')({ email: 'ana@x' }, 'creatorAprobar', { accion: 'x' }).ok === false, '12 · solo el administrador principal aprueba');
+  const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'creator.html'), 'utf8');
+  ok(/Este cambio modificaría datos reales: ¿apruebas\?/.test(h) && /Aprobar esta vez/.test(h) && /pedir\("creatorAprobar"/.test(h) && /if \(!esMarco\(e\.source\)\) return;/.test(h) && /Datos reales · solo lectura/.test(h),
+    '12 · la pantalla: tarjeta «¿apruebas?» con detalle, anota antes de mandar, y solo escucha a sus marcos');
+  ok(/if \(!r \|\| !r\.ok\) \{ contestar\(w, d\.id, \{ ok: false \}\)/.test(h), '12 · si no se pudo anotar la aprobación, no se manda nada'); }
+
+/* 13. Toca datos */
+{ const T = (a, b) => R('creatorTocaDatos_')(a, b);
+  const vivo = "<script>pedir({ action: 'cola' })</script>";
+  ok(!T(vivo, vivo + '<style>h1{color:red}</style>').toca, '13 · un cambio de estilo no toca datos');
+  const t1 = T(vivo, vivo + "<script>pedir({ action: 'enviarAhora', fila: 1 })</script>");
+  ok(t1.toca && t1.acciones.join() === 'enviarAhora', '13 · agregar una acción que escribe sí toca datos');
+  ok(T(vivo, vivo + "<script>fetch('https://api.otro.com/x',{method:'POST'})</script>").sitios.join() === 'https://api.otro.com', '13 · mandar algo a un sitio nuevo también');
+  ok(R('creatorPrTocaDatos_')(['alma/x.html', 'apps-script/creator.js'], [], 'Diseño', false).toca && !R('creatorPrTocaDatos_')(['alma/x.html'], [], 'Diseño', false).toca, '13 · un PR que toca apps-script/ toca datos');
+  ok(R('unirAparte_')('Toca datos · solo con Juan · Hub') && R('prsElegir_')('todos', [{ estado: 'listo', titulo: 'Toca datos · solo con Juan · x' }]).length === 0, '13 · «une todos» no une un PR «toca datos»');
+  ok(/if \(\/toca datos\/i\.test\(String\(pr\.titulo/.test(fs.readFileSync(path.join(DIR, 'escalar.js'), 'utf8')), '13 · Alma (escalar) tampoco lo une sola');
+
+  /* El camino completo: borrador que escribe → preparar avisa → PR listo con apps-script → etiqueta → publicar pide confirmación */
+  R('creatorAbrir_')(JUAN, 'hub', 'alma/creator-prueba.html');
+  respuestas = [{ resumen: 'Botón que manda.', cambios: [{ buscar: '<p>Hola</p><p>Hola</p>', reemplazar: "<p>Hola</p><button onclick=\"pedir({ action: 'enviarAhora' })\">Enviar</button>" }] }];
+  ok(R('creatorCambiar_')(JUAN, 'agrega un botón que mande el mensaje', 'voz').ok, '13 · (un cambio que agrega un botón que escribe)');
+  pedidos = []; const pr = R('creatorPublicar_')(JUAN, 'súbelo', true);
+  ok(pr.ok && /ESTE BORRADOR TOCA DATOS \(acciones que escriben: enviarAhora/.test(pedidos[0].texto) && /etiqueta toca-datos/.test(pedidos[0].texto) && /Toca datos · solo con Juan/.test(pedidos[0].texto) && /no toques apps-script/.test(pedidos[0].texto),
+    '13 · preparar avisa a Claude: etiqueta toca-datos, título «Toca datos · solo con Juan» y no tocar apps-script/');
+  const id = act().id; micro = { id: 'mpcreator1', estado: R('MICRO_ESTADOS_').listo, pr: 'https://github.com/jforce15-coder/Hub-Spacioam/pull/901' }; delete cache['creator_mira_' + id];
+  const gh = []; ctx.unirGh_ = (m, r, c) => { gh.push({ m, r, c }); return /\/files/.test(r) ? { codigo: 200, j: [{ filename: 'alma/creator-prueba.html' }, { filename: 'apps-script/x.js' }] } : /\/labels$/.test(r) ? { codigo: 200, j: [] } : { codigo: 200, j: { title: 'Diseño · Hub', labels: [] } }; };
+  const vL = R('creatorVerApi_')(ses, {});
+  ok(vL.creator.estado === 'listo' && /apps-script\/x\.js/.test(vL.toca_datos) && gh.some(x => x.m === 'post' && /issues\/901\/labels$/.test(x.r) && x.c.labels[0] === 'toca-datos'), '13 · cuando el PR queda listo y toca datos, se le pone la etiqueta y la pantalla lo dice');
+  unidos = [];
+  const voz = R('creatorPublicar_')(JUAN, 'publícalo', true), sin = R('creatorAccionApi_')(ses, 'creatorPublicar', {});
+  ok(!voz.ok && voz.toca_datos && !sin.ok && sin.toca_datos && unidos.length === 0, '13 · toca datos: ni por voz («publícalo») ni con el botón solo se publica');
+  const con = R('creatorAccionApi_')(ses, 'creatorPublicar', { confirmo_datos: true });
+  ok(con.ok && unidos.length === 1 && hojas.ALMA_CREATOR_APROBADOS.filas.slice(-1)[0][5] === 'publicar · toca datos', '13 · con la confirmación aparte de Juan en la pantalla sí se publica, y queda anotado');
+  const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'creator.html'), 'utf8');
+  ok(/Este cambio toca datos reales: ¿publicar igual\?/.test(h) && /confirmo_datos: true/.test(h), '13 · la pantalla pide esa confirmación con su tarjeta'); }
+
+setTimeout(() => { if (fallo) process.exit(1); else console.log('Todo bien: el Modo Creator muestra el borrador con datos reales en solo lectura, pide aprobación para lo que escribe, elige el modelo justo y publica solo en dos pasos con Juan.'); }, 50);

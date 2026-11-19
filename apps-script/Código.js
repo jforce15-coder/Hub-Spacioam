@@ -3379,7 +3379,9 @@ function hubApi_(body) {
   const tok = p.getProperty('HUB_TOKEN');
   /* Fase 1b: la app envía la sesión firmada del login (body.session). Mientras todas las apps se actualizan,
      la llave antigua (HUB_TOKEN) sigue valiendo; HUB_SOLO_SESION=1 la apaga. */
-  const ses = body.session ? sesionLogin_(body.session) : null;
+  /* Modo Creator: el borrador trae una llave de LECTURA (crlec_…), nunca la sesión: solo contesta lecturas (creator.js). */
+  const lec = creatorLecturaPuerta_(body); if (lec && lec.salida) return json_(lec.salida);
+  const ses = lec ? lec.ses : body.session ? sesionLogin_(body.session) : null;
   if (ses) marcaAcceso_('HUB_ULTIMA_SESION');
   else {
     if (p.getProperty('HUB_SOLO_SESION') === '1' || !tok || body.token !== tok) return json_({ ok: false, error: body.session ? 'session' : 'token' });
@@ -3449,7 +3451,7 @@ function hubApi_(body) {
       case 'claudioHilo': return json_(claudioHiloApi_(ses, body));                         // Hilo de Claudio: chat de Desarrollo, acciones y estado de cada trabajo, solo el principal (claudioacciones.js)
       case 'claudioEscribir': return json_(claudioEscribirApi_(ses, body));                 // Hilo de Claudio { texto }: un turno de Claudio por escrito (claudioacciones.js)
       case 'creatorVer': return json_(creatorVerApi_(ses, body));                           // Modo Creator { desde, vivo }: el estado y, si cambió, la pantalla del borrador (creator.js)
-      case 'creatorCambiar': case 'creatorDeshacer': case 'creatorPublicar': case 'creatorAbrir': case 'creatorIr': return json_(creatorAccionApi_(ses, body.action, body));   // Modo Creator: cambio, deshacer, publicar, abrir una app, ir a otra pantalla (creator.js)
+      case 'creatorCambiar': case 'creatorDeshacer': case 'creatorPublicar': case 'creatorAbrir': case 'creatorIr': case 'creatorAprobar': return json_(creatorAccionApi_(ses, body.action, body));   // Modo Creator: cambio, deshacer, publicar, abrir una app, ir a otra pantalla, aprobar un cambio de datos (creator.js)
       case 'claudioAccion': return json_(claudioAccionApi_(ses, body));                     // Acción de Claudio { id, eleccion?, quitar? }: Hecho, elegir o unir (claudioacciones.js)
       case 'vozMuestra': return json_(vozMuestraApi_(ses, body));                         // Muestra de voz { voice_id, frase, hz? }: la app en la llamada con Claudio (PCM) y el hilo de Claudio (mp3), solo el principal (muestrasvoz.js)
       case 'vozSaludosGrabados': return json_(saludosGrabadosApi_(ses, body));            // app de iPhone: los Saludos grabados y el Aviso de volver a llamar, con la voz de Alma (saludosgrabados.js, #724)

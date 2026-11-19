@@ -9,6 +9,9 @@
    4. lo que ya salió antes por la secretaria no se repite: solo van las palabras de después;
    5. frases de espera («Déjame revisar…») y una charla sin compromisos → nada; sin administrador → nada;
    6. si no se pudo encolar → el aviso pide su atención y trae sus palabras;
+   8. (parte 2, 19-nov 20:29) «Listo, se lo paso a Claudio» sin secretaria y después una secretaria de OTRO tema → sí se
+      pide, solo con las palabras de ese turno (lo del otro tema ya salió); si Juan solo asiente («ok») el tramo sigue
+      abierto, y una secretaria más tarde con sus palabras lo respalda;
    7. vozPostCall_ llama a la guardia con un administrador, y un pedido largo pasa completo por la caché (vozSecEncolar_ →
       vozSecProcesar_).
    node .github/guardia.js [carpeta apps-script] */
@@ -98,6 +101,25 @@ const LLAMADA = [
 /* 6 · No se pudo encolar */
 { const { X, pend } = caja({ encolarFalla: true });
   ok(X.guardiaAlColgar_(ADM, '50255550100', LLAMADA, 'c6') === false && pend.length === 1 && pend[0].x.tipo === 'atencion' && /Tampoco pude mandarlo/.test(pend[0].t) && pend[0].t.indexOf(DICTADO) >= 0, 'sin cola → aviso de atención con sus palabras para pedirlo otra vez');
+}
+
+/* 8 · Parte 2: el respaldo es por tema (llamada del 19-nov 20:29) */
+{ const SECP = (ok, args) => ({ tool_calls: [{ request_id: 'r' + args.length, tool_name: 'secretaria', params_as_json: JSON.stringify({ pedido: args }) }], tool_results: [{ request_id: 'r' + args.length, tool_name: 'secretaria', is_error: false, result_value: JSON.stringify({ ok }) }] });
+  const GROW = 'Oye, ese problema de la app de Grow que no carga las fotos, necesito que se lo pases a Claudio.';
+  const t = [A(0, '¡Hola Juan!'), U(6, GROW), A(11, 'Listo, se lo paso a Claudio para que lo revise.'),
+    U(40, 'Otra cosa: el candado de Narama 1012 no abre, el código no funciona.'), U(70, 'Pide que lo revisen hoy.'),
+    A(82, '', SECP(true, 'El candado de Narama 1012 no abre, el código no funciona; que lo revisen hoy.')), A(95, 'Listo, ya quedó pedido lo del candado.')];
+  const { X, cola } = caja();
+  const g = X.guardiaSinPedir_(t);
+  ok(g && g.dichos.length === 1 && g.dichos[0].seg === 11, 'una secretaria de OTRO tema más tarde no respalda «se lo paso a Claudio» (dichos=1, seg 11)');
+  ok(g && g.palabras === GROW, 'van solo las palabras del seg 6 (lo del candado ya salió y no se repite)');
+  ok(X.guardiaAlColgar_(ADM, '50255550100', t, 'conv_grow') === true && cola.length === 1 && cola[0].pedido.indexOf(GROW) >= 0 && !/Narama/.test(cola[0].pedido), 'al colgar se pide lo de Grow, sin lo del candado');
+  const t2 = [U(6, GROW), A(11, 'Listo, se lo paso a Claudio.'), U(14, 'Ok, gracias.'), A(16, '', SECP(true, 'Para Claudio: la app de Grow no carga las fotos.'))];
+  ok(X.guardiaSinPedir_(t2) === null, 'si Juan solo asiente («Ok, gracias») y la secretaria vuelve después, sigue en su tramo → respaldado');
+  const t3 = [U(6, GROW), A(11, 'Listo, se lo paso a Claudio.'), U(30, '¿Cuántas llegadas hay hoy?'), A(35, 'Hoy hay tres llegadas.'), A(50, '', SECP(true, 'Claudio: revisa por qué la app de Grow no carga las fotos.'))];
+  ok(X.guardiaSinPedir_(t3) === null, 'si lo pidió más tarde con sus palabras (Grow, fotos) → respaldado');
+  const t4 = [U(6, GROW), A(11, 'Listo, se lo paso a Claudio.'), U(30, 'Y el candado.'), A(50, '', SECP(false, 'Claudio: la app de Grow no carga las fotos.'))];
+  ok(X.guardiaSinPedir_(t4) !== null, 'si esa secretaria volvió con error → no respalda');
 }
 
 /* 7 · El enganche en voz.js */

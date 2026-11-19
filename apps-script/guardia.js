@@ -23,27 +23,78 @@ function guardiaResultadoOk_(tr) {
   return !!j && j.ok !== false;
 }
 
-/* transcript de ElevenLabs: [{ role, message, time_in_call_secs, tool_calls, tool_results }]. Un compromiso queda
-   respaldado si desde lo último que dijo Juan antes de él (o después, en la misma llamada) volvió una secretaria con
-   resultado. Devuelve { dichos: [{ seg, dicho }], palabras: 'lo que dijo Juan sin respaldo, tal cual' } o null. */
-function guardiaSinPedir_(transcript) {
-  var tr = transcript || [], okEn = [], usuario = -1, dichos = [], desde = -1;
-  tr.forEach(function (m, i) { okEn[i] = ((m && m.tool_results) || []).some(guardiaResultadoOk_); });
-  var ultimoOk = -1; tr.forEach(function (m, i) { if (okEn[i]) ultimoOk = i; });
+/* ═══ Parte 2 (Juan, 19-nov-2026, pc1795124809470): el respaldo es por TEMA, no por llamada ═══════════════════════════════
+   20:29 UTC: Juan dijo «ese problema [de Grow] necesito que se lo pases a Claudio»; la voz contestó «Listo, se lo paso a
+   Claudio» sin llamar a la secretaria. Después pidió otra cosa (un candado) y ESA sí salió por la secretaria. La parte 1
+   miraba el último resultado de TODA la llamada y dio por pedido lo de Grow. Ahora un compromiso solo queda respaldado si:
+   a) volvió una secretaria con resultado en SU tramo: después del turno de Juan que se prometió y antes de que Juan diga
+      algo nuevo («ok», «gracias», «perfecto» no cierran el tramo), o
+   b) más tarde volvió una secretaria con resultado cuyo pedido lleva las palabras de ese turno de Juan (lo pidió tarde).
+   Y al pedirlo solo van las palabras de los turnos sin respaldo: lo del otro tema ya salió y no se repite. */
+/* Palabras que no dicen de qué tema se habla (cualquier pedido las lleva). */
+var GUARDIA_GENERICAS_ = ('alma claudio juan necesito quiero puedes podes favor porfa pasale pases pasarle pasa manda mandale mandar ' +
+  'pide pidele pedir pedido hazlo hacer haga dile decirle problema tema esto este esta estos estas ese esos esas eso aquel para porque ' +
+  'como cuando donde tambien ahora ahorita luego despues entonces bueno gracias perfecto listo hola todo todos toda todas algo cosa ' +
+  'cosas otra otro mismo misma sobre tiene tienen tengo hay mira revisa busca buscar buscame mandame dime decir creo nada pero solo ' +
+  'muy bien vale okay oye mismo cual cuales quien');
+var GUARDIA_GEN_ = {}; GUARDIA_GENERICAS_.split(' ').forEach(function (w) { GUARDIA_GEN_[w] = 1; });
+/* Un turno de Juan que solo asiente no es «algo nuevo»: el compromiso sigue en su tramo. */
+var GUARDIA_ASIENTE_RE_ = /^(?:(?:ok|okay|va|sale|s[ií]|dale|listo|perfecto|gracias|muchas|bueno|claro|excelente|muy|bien|de|acuerdo|aj[aá]|mm+|eso|ya|genial|s[uú]per|alma|vale|exacto|correcto|aja)[\s,.!¡¿?…]*)+$/i;
+
+function guardiaPalabras_(t) {
+  var s = String(t || '').toLowerCase();
+  try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+  var out = {}; (s.match(/[a-z0-9ñ]+/g) || []).forEach(function (w) { if (w.length >= 4 && !GUARDIA_GEN_[w]) out[w] = 1; });
+  return out;
+}
+
+/* Lo que pidió cada secretaria con resultado: { i: índice del mensaje, args: texto de los argumentos }. */
+function guardiaPedidosOk_(tr) {
+  var llamadas = [], out = [];
   tr.forEach(function (m, i) {
-    if (!m) return;
-    var txt = String(m.message || '').trim();
-    if (m.role === 'user' && txt) { usuario = i; return; }
-    if (m.role !== 'agent' || !txt || !GUARDIA_DICHO_RE_.test(txt)) return;
-    if (ultimoOk >= Math.max(usuario, 0) && ultimoOk >= 0) return;   // hubo una secretaria con resultado desde lo último que dijo Juan
-    if (desde < 0) desde = usuario < 0 ? 0 : usuario;
-    dichos.push({ seg: Number(m.time_in_call_secs || 0), dicho: txt.replace(/\s+/g, ' ').slice(0, 160) });
+    ((m && m.tool_calls) || []).forEach(function (c) { if (c) llamadas.push({ i: i, id: String(c.request_id || ''), n: String(c.tool_name || ''), a: String(c.params_as_json || (c.params ? JSON.stringify(c.params) : '') || '') }); });
+    ((m && m.tool_results) || []).forEach(function (r) {
+      if (!guardiaResultadoOk_(r)) return;
+      var id = String(r.request_id || ''), c = null;
+      for (var k = llamadas.length - 1; k >= 0; k--) { var l = llamadas[k]; if ((id && l.id === id) || (!id && l.n === String(r.tool_name || ''))) { c = l; break; } }
+      out.push({ i: i, args: c ? c.a : '' });
+    });
+  });
+  return out;
+}
+
+/* ¿El pedido (args) lleva las palabras de lo que Juan se prometió? Al menos 2 palabras de tema y 40 % de las suyas (hasta 10). */
+function guardiaMismoTema_(juan, args) {
+  var p = Object.keys(juan); if (p.length < 2) return false;
+  var a = guardiaPalabras_(args), comunes = p.filter(function (w) { return a[w]; }).length;
+  return comunes >= Math.max(2, Math.ceil(0.4 * Math.min(p.length, 10)));
+}
+
+/* transcript de ElevenLabs: [{ role, message, time_in_call_secs, tool_calls, tool_results }]. Devuelve
+   { dichos: [{ seg, dicho }], palabras: 'lo que dijo Juan sin respaldo, tal cual' } o null. */
+function guardiaSinPedir_(transcript) {
+  var tr = transcript || [], okEn = [], dichos = [], turnos = {};
+  tr.forEach(function (m, i) { okEn[i] = ((m && m.tool_results) || []).some(guardiaResultadoOk_); });
+  var pedidos = guardiaPedidosOk_(tr);
+  var esJuan = function (m) { return m && m.role === 'user' && String(m.message || '').trim(); };
+  var esDicho = function (m) { return m && m.role === 'agent' && GUARDIA_DICHO_RE_.test(String(m.message || '').trim()); };
+  tr.forEach(function (m, i) {
+    if (!esDicho(m)) return;
+    var usuario = -1; for (var u = i - 1; u >= 0; u--) if (esJuan(tr[u])) { usuario = u; break; }
+    if (usuario < 0) return;                                            // sin nada dicho por Juan no hay pedido que mandar
+    /* Su tramo: hasta que Juan diga algo nuevo (asentir no cuenta). */
+    var fin = tr.length; for (var f = i + 1; f < tr.length; f++) if (esJuan(tr[f]) && !GUARDIA_ASIENTE_RE_.test(String(tr[f].message).trim())) { fin = f; break; }
+    for (var j = usuario + 1; j < fin; j++) if (okEn[j]) return;       // a) la secretaria volvió en su tramo
+    /* Los turnos de Juan que se prometieron: hacia atrás hasta lo que ya salió o hasta el compromiso anterior. */
+    var mios = []; for (var k = usuario; k >= 0; k--) { if (okEn[k] || (k < usuario && esDicho(tr[k]))) break; if (esJuan(tr[k])) mios.unshift(k); }
+    var juan = guardiaPalabras_(mios.map(function (x) { return tr[x].message; }).join(' '));
+    if (pedidos.some(function (p) { return p.i > usuario && guardiaMismoTema_(juan, p.args); })) return;   // b) lo pidió más tarde
+    mios.forEach(function (x) { turnos[x] = 1; });
+    dichos.push({ seg: Number(m.time_in_call_secs || 0), dicho: String(m.message).trim().replace(/\s+/g, ' ').slice(0, 160) });
   });
   if (!dichos.length) return null;
-  /* Las palabras de Juan desde el turno que quedó sin pedir, sin lo que ya respaldó una secretaria antes (eso ya salió). */
-  var inicio = desde; for (var k = desde; k >= 0; k--) { if (okEn[k]) break; if (tr[k] && tr[k].role === 'user') inicio = k; }
-  var palabras = tr.slice(inicio).filter(function (m) { return m && m.role === 'user' && String(m.message || '').trim(); })
-    .map(function (m) { return String(m.message).replace(/\s+/g, ' ').trim(); }).join('\n');
+  var palabras = Object.keys(turnos).map(Number).sort(function (a, b) { return a - b; })
+    .map(function (x) { return String(tr[x].message).replace(/\s+/g, ' ').trim(); }).join('\n');
   if (!palabras) return null;
   if (palabras.length > GUARDIA_MAX_) palabras = palabras.slice(0, GUARDIA_MAX_) + '…';
   return { dichos: dichos, palabras: palabras };

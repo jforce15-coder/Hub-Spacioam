@@ -11,6 +11,8 @@
    · sin tablero, con el chat de la llamada a la vista: como una burbuja de Alma en el chat (se queda, como lo demás del chat);
    · con el Bento vivo (iPad y computadora, #810): encima del GIF del tema, unos segundos, y vuelve el del tema;
    · si no hay nada a la vista, no se muestra.
+   La ventana sale para la broma aunque Alma esté en silencio de GIFs (el ritmo del GIF, js/alma-bento.js, 19-nov-2026); la
+   misma página pide aquí la broma de la llamada larga («me estoy durmiendo», «viendo el reloj») con AlmaGif.mostrar(idea).
    Uno a la vez: si ya hay un GIF en pantalla, el siguiente se ignora. Sin dependencias; no toca sa-nav.js ni alma-client.js. */
 (function () {
   "use strict";
@@ -96,6 +98,8 @@
       if (e.tipo === "gif") mostrar(e.idea);
       else if (e.tipo === "estado" && e.estado !== "hablando" && e.estado !== "conectando") Array.prototype.forEach.call(document.querySelectorAll(".gifb"), function (g) { g.parentNode.removeChild(g); G.activo = false; });
     },
+    /* La broma de la llamada larga (js/alma-bento.js, el ritmo del GIF): la página la pide con una idea corta */
+    mostrar: function (idea) { mostrar(idea); },
     /* Para las capturas y las pruebas: muestra un GIF ya resuelto, sin pedirlo al Hub */
     probar: function (r) { estilo(); var c = cuadroDelTablero(); if (c) return enCuadro(c, r); var m = chatDeLaLlamada(); if (m) enChat(m, r); }
   };

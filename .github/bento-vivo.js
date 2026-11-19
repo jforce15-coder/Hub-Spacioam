@@ -36,7 +36,7 @@ function caja(W, H, o) {
   const window = { innerWidth: W, innerHeight: H, matchMedia: () => ({ matches: false }), addEventListener() {}, getComputedStyle: () => ({ paddingTop: '0', paddingRight: '0', paddingBottom: '0', paddingLeft: '0' }),
     SANav: { datos: () => o.datos || {} }, ALMA: null, SAAuth: null };
   const ctx = { window, document, localStorage: { getItem: (k) => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } }, getComputedStyle: window.getComputedStyle,
-    requestAnimationFrame: (f) => f(), setTimeout: (f) => f(), clearTimeout() {}, setInterval() {}, Date, Math, JSON, String, Number, Object, Array, RegExp, fetch: () => Promise.reject(new Error('sin red')) };
+    requestAnimationFrame: (f) => f(), setTimeout: (f) => f(), clearTimeout() {}, setInterval() {}, Date: o.Date || Date, Math, JSON, String, Number, Object, Array, RegExp, fetch: () => Promise.reject(new Error('sin red')) };
   vm.createContext(ctx); vm.runInContext(BENTO, ctx);
   return { B: window.AlmaBento, window, document, store };
 }
@@ -189,13 +189,42 @@ function cajaGif(o) {
 ok(/function pintarVivo\(t, v\)[\s\S]{0,200}roca\(null\)/.test(INICIO) && !/function pintarVivo[\s\S]{0,900}roca\("esquina"\)/.test(INICIO), '4 · con el bento vivo la roca se queda al centro (nunca a la esquina)');
 ok(/html\.bv-on #sa-nav-root \.san-ov-cap:not\(:empty\) \{ background: rgba\(34,26,28,\.7\d\)/.test(INICIO), '4 · los subtítulos llevan su fondo oscuro sobre el bento (blanco sobre ~#3A3032, AA)');
 ok(/body\.orbita-on \.bv,[^{]*body\.san-hoja \.bv,[^{]*\.san-ov\.pend \.bv/.test(INICIO), '4 · el bento se esconde con las esferas y sus niveles, las hojas, Pendientes y Notificaciones');
-ok(/AlmaBento\.gifCuadro/.test(AGIF) && /gifCuadro: function \(\) \{ var g = V\.el[^\n]*gv-marco/.test(BENTO), '4 · la broma tapa el GIF de la ventana (alma-gif.js)');
+ok(/AlmaBento\.gifCuadro/.test(AGIF) && /gifCuadro: function \(\) \{[\s\S]{0,400}RT\.reservada = [\s\S]{0,200}gv-marco/.test(BENTO), '4 · la broma tapa el GIF de la ventana (alma-gif.js) y la ventana sale para ella');
 /* 5 · la ventana del GIF */
 const GV = (INICIO.match(/\n  \.gv \{[\s\S]*?\}\n/) || [''])[0];
 ok(/background: rgba\((2\d|3\d), ?(2\d|3\d), ?(2\d|3\d), ?\.[3-6]\d?\)/.test(GV) && /-webkit-backdrop-filter: blur\(\d+px\) saturate/.test(GV) && /backdrop-filter: blur/.test(GV), '5 · la ventana es vidrio gris oscuro translúcido (frosted, con su prefijo -webkit-)');
 ok(!/#CFE6DE|#F7EBC6/i.test(INICIO), '5 · sin el verde de antes');
 ok(/function lugar\(\)[\s\S]{0,400}rocaRect\(\)/.test(BENTO) && /abajo = rb\.top - /.test(BENTO) && /y: Math\.round\(abajo - h\)/.test(BENTO), '5 · la ventana va arriba de la roca, sin tocar su halo (la sigue al centro o a la esquina)');
 ok(/AlmaBento\.gifTema\(abierta \? t : null\)/.test(INICIO), '5 · en el teléfono la ventana sigue el tema de lo que se habla');
-ok(/CADA = 8000/.test(BENTO) && /setInterval\(function \(\) \{ if \(V\.el[^\n]*siguiente\(\); \}, CADA\)/.test(BENTO), '5 · pasa un GIF y después otro (cada 8 s), salvo con la broma encima');
+ok(/CADA = 8000/.test(BENTO) && /setInterval\(function \(\) \{ if \(V\.el[^\n]*modo\(\) === "activo"\) siguiente\(\); \}, CADA\)/.test(BENTO), '5 · pasa un GIF y después otro (cada 8 s) solo cuando toca estar activo, salvo con la broma encima');
+
+/* 6 · el ritmo del GIF en la llamada (Juan, 19-nov-2026: «si solo estás escuchando no debería poner ningún GIF… salvo una
+   broma en conversaciones largas… ocasionalmente… y con el bento, más activo») */
+{
+  let ahora = 1e12; const Reloj = class extends Date {}; Reloj.now = () => ahora;
+  const c = caja(390, 844, { Date: Reloj }), ov = nodo('div'), st = nodo('div'), pedidas = [];
+  ov.className = 'san-ov escena on quieta'; st.textContent = 'Toca a Alma';
+  c.document.querySelector = (s) => (/san-ov-st$/.test(s) ? st : /san-ov$/.test(s) ? ov : null);
+  c.window.AlmaGif = { mostrar: (i) => pedidas.push(i) };
+  const R = () => c.B.ritmo(), seg = (n) => { ahora = 1e12 + n * 1000; };
+  ok(R() === 'activo', '6 · fuera de la llamada, como siempre (uno tras otro)');
+  ov.classList.remove('quieta'); st.textContent = 'Te escucho'; seg(0);
+  ok(R() === 'nada', '6 · en la llamada, Alma escucha: ningún GIF');
+  seg(20); st.textContent = 'Alma habla'; R(); seg(22);
+  ok(R() === 'ocasional', '6 · Alma habla: de vez en cuando sale uno');
+  seg(30); ok(R() === 'nada', '6 · …unos 7 s y se va');
+  seg(50); ok(R() === 'nada', '6 · el siguiente, no antes de 40 s');
+  seg(63); ok(R() === 'ocasional', '6 · a los 40 s, otro');
+  seg(64); st.textContent = 'Te escucho'; R(); seg(65);
+  ok(R() === 'ocasional', '6 · entre frases (menos de 2,5 s) no parpadea');
+  seg(68); ok(R() === 'nada', '6 · Alma ya escucha: se va enseguida');
+  c.B.gifTema({ tipo: 'reserva', titulo: 'Ana', cuadros: [] });
+  ok(R() === 'activo', '6 · con el tablero o el bento con información: activo, aunque Alma escuche');
+  c.B.gifTema(null); ok(R() === 'nada', '6 · sin tema y escuchando: nada otra vez');
+  seg(200); R(); ok(!pedidas.length, '6 · llamada corta: sin broma de aburrimiento');
+  seg(361); R(); ok(pedidas.length === 1 && /asleep|watch|bored|yawn/.test(pedidas[0]), '6 · llamada larga y Juan hablando 45 s: una broma («me estoy durmiendo», «viendo el reloj»)');
+  seg(500); R(); ok(pedidas.length === 1, '6 · como mucho una broma cada 6 min');
+  c.B.gifCuadro(); ok(R() === 'broma', '6 · la broma de Alma (mostrar_gif) siempre saca la ventana');
+}
 ok(/alma-bento\.js\?v=/.test(INICIO), '4 · alma/inicio.html carga js/alma-bento.js');
 process.exit(fallo);

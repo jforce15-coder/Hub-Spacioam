@@ -1047,7 +1047,10 @@
     transition: opacity .5s ease, transform .55s cubic-bezier(.22,.61,.36,1), left .45s cubic-bezier(.22,.61,.36,1), top .45s cubic-bezier(.22,.61,.36,1), width .45s ease, height .45s ease; }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .gv { background: rgba(38,38,42,.86); } }
   .gv.on.listo { opacity: 1; transform: none; }
-  .gv-marco { position: relative; width: 100%; height: 100%; border-radius: 18px; overflow: hidden; background: rgba(0,0,0,.28); }
+  .gv::before { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(150deg, rgba(255,255,255,.26), rgba(255,255,255,.04) 34%, rgba(255,255,255,0) 62%, rgba(255,255,255,.1)); }
+  .gv-marco { position: relative; z-index: 1; width: 100%; height: 100%; border-radius: 18px; overflow: hidden; background: rgba(0,0,0,.28); box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+  .gv-cred { z-index: 2; }
   .gv-marco > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s ease; }
   .gv-marco > img.on { opacity: 1; }
   .gv-cred { position: absolute; right: 14px; bottom: 11px; font: 600 8.5px/1 Montserrat, system-ui, sans-serif; letter-spacing: .06em; color: rgba(255,255,255,.82); text-shadow: 0 1px 2px rgba(0,0,0,.55); }
@@ -1090,6 +1093,23 @@
   html.bv-on #sa-nav-root .san-ov-cap:not(:empty) { background: rgba(34,26,28,.72); box-shadow: 0 0 0 12px rgba(34,26,28,.72); border-radius: 6px; text-shadow: none;
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
   @media (prefers-reduced-motion: reduce) { .bv-c { transform: none !important; filter: none !important; transition: opacity .25s ease !important; } }
+  /* ── Vidrio líquido (Juan, 19-nov-2026: «muy estilo Apple… liquid glass… el frosted característico de Apple»): las tarjetas
+     del tablero de la llamada (teléfono) y del bento vivo (iPad y computadora), y la píldora del tema, son vidrio claro
+     esmerilado: el atardecer pasa borroso y con más color (blur + saturate), con un brillo de luz arriba a la izquierda (el
+     filo especular), un borde fino de luz y una sombra suave. El blanco queda en 82–90 % para que el texto se siga leyendo
+     (AA). Las fotos, el mapa y la galería no cambian (la imagen tapa el vidrio). Sin backdrop-filter: blanco casi lleno. ── */
+  .tvb-t:where(:not(.tvb-foto, .tvb-mapa, .tvb-galeria, .bv-marca)), .bv-c > .tvb-t:where(:not(.tvb-foto, .tvb-mapa, .tvb-galeria, .bv-marca)), .bv-c > section, .bv-tema {
+    background: linear-gradient(150deg, rgba(255,255,255,.9) 0%, rgba(255,253,251,.82) 46%, rgba(255,251,248,.86) 100%);
+    -webkit-backdrop-filter: blur(30px) saturate(185%); backdrop-filter: blur(30px) saturate(185%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.95), inset 1px 0 0 rgba(255,255,255,.5), inset 0 -1px 0 rgba(255,255,255,.3),
+      inset 0 0 0 1px rgba(255,255,255,.42), 0 22px 46px -30px rgba(40,30,25,.55); }
+  /* El vidrio necesita ver el atardecer: la máscara que desvanecía el borde de abajo del tablero (mask-image) lo cortaba
+     (el desenfoque solo veía lo de adentro), así que el tablero del teléfono ya no la lleva. */
+  .tvb { -webkit-mask-image: none; mask-image: none; }
+  .tvb-t::after, .bv-c > .tvb-t::after, .bv-c > section::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 4;
+    background: radial-gradient(120% 60% at 0% 0%, rgba(255,255,255,.34), rgba(255,255,255,0) 58%); mix-blend-mode: soft-light; }
+  .tvb-foto::after, .tvb-mapa::after, .tvb-galeria::after, .bv-marca::after { background: linear-gradient(150deg, rgba(255,255,255,.18), rgba(255,255,255,0) 40%); mix-blend-mode: normal; }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .tvb-t:where(:not(.tvb-foto, .tvb-mapa, .tvb-galeria, .bv-marca)), .bv-c > .tvb-t:where(:not(.tvb-foto, .tvb-mapa, .tvb-galeria, .bv-marca)), .bv-c > section, .bv-tema { background: rgba(255,253,251,.95); } }
   /* Tablero de datos (#607, apps-script/tablero.js): número grande, barras y línea de tiempo, en el mismo bento. Un solo
      color (el coral de Alma) para las barras; el valor va escrito al lado (sin leyenda ni eje). */
   .tvb-numero { display: flex; flex-direction: column; justify-content: center; }
@@ -1646,8 +1666,8 @@
 <script src="../js/alma-voz.js?v=2026-11-19-unavoz"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
-<script src="../js/alma-gif.js?v=2026-11-19-gv"></script>
-<script src="../js/alma-bento.js?v=2026-11-19-gv"></script>
+<script src="../js/alma-gif.js?v=2026-11-19-ritmo"></script>
+<script src="../js/alma-bento.js?v=2026-11-19-ritmo"></script>
 <script>
 /* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
    el reloj de la página (sa-nav.js: J.p = t % PULSE, 3.6 s); sus animaciones de CSS (esf-quieta, esf-halo) arrancan en ese

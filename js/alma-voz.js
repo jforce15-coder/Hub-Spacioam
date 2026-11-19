@@ -102,7 +102,7 @@
     document.addEventListener("keydown", precalentar, { capture: true, passive: true });
   } catch (e) {}
   /* Se adelanta mientras el dedo todavía jala: SDK + ficha fresca + URL firmada. */
-  function prepare() { loadSdk().catch(function () {}); renovar().catch(function () {}); precalentar(); }
+  function prepare() { loadSdk().catch(function () {}); renovar().catch(function () {}); precalentar(); unaVozPedir(); }
   /* iPhone: el audio solo arranca si se "despierta" dentro del gesto del usuario. */
   function unlockAudio() {
     try {
@@ -247,6 +247,26 @@
       body: JSON.stringify(Object.assign({ hub: 1, action: action, token: dst.token, session: ses }, extra || {})) })
       .then(function (r) { return r.json(); }).catch(function () { return null; });
   }
+  /* Una voz a la vez (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono, usar
+     por default el agente del teléfono»; apps-script/vivo.js). En la computadora o el iPad (no en el teléfono) y solo en el
+     Hub: si el iPhone está en una llamada, aquí no se abre otra («La llamada sigue en tu iPhone»); si el iPhone empieza una
+     mientras aquí hay otra, la de aquí se cuelga («Tu iPhone tomó la llamada»). Para no sumar espera, el estado se pide por
+     adelantado (prepare) y vale UNA_VOZ_MS; al empezar se espera como mucho UNA_VOZ_ESPERA. */
+  var UNA_VOZ_MS = 20000, UNA_VOZ_ESPERA = 1500, UNA_VOZ_CADA = 6000, unaVoz = { r: null, t: 0, p: null };
+  function escritorio() { var ua = ""; try { ua = (w.navigator && w.navigator.userAgent) || ""; } catch (e) {} return !o.ficha && !o.vincular && !!ua && !/iPhone|iPod|Android.*Mobile/i.test(ua); }
+  function unaVozPedir() {
+    if (!escritorio()) return Promise.resolve(null);
+    if (unaVoz.p) return unaVoz.p;
+    unaVoz.p = hubPost("vivoLeer", { solo_estado: 1 }).then(function (r) { unaVoz.p = null; if (r && r.ok) { unaVoz.r = r; unaVoz.t = Date.now(); } return r && r.ok ? r : null; });
+    return unaVoz.p;
+  }
+  /* ¿El iPhone tiene la llamada? → "iPhone" o "" (con lo de hace poco, o esperando un poco al Hub). */
+  function unaVozOtra() {
+    if (!escritorio()) return Promise.resolve("");
+    var de = function (r) { return r && r.en_llamada && r.dispositivo === "iPhone" ? "iPhone" : ""; };
+    if (unaVoz.r && Date.now() - unaVoz.t < UNA_VOZ_MS && !unaVoz.p) { var r0 = unaVoz.r; unaVozPedir(); return Promise.resolve(de(r0)); }
+    return Promise.race([unaVozPedir(), new Promise(function (ok) { setTimeout(function () { ok(null); }, UNA_VOZ_ESPERA); })]).then(de);
+  }
   var tvConv = "", tvUltima = "";
   function tvAvisar(d) { try { w.dispatchEvent(new CustomEvent("sa-voz-tarjeta", { detail: d })); } catch (e) {} }
   function tvPedir() {
@@ -286,14 +306,33 @@
     w.addEventListener("sa-claudio-contexto", alContexto);
     function saleClaudio() { if (convClaudio || agente === "claudio") { convClaudio = ""; avisoClaudio("sale"); } }
     agenteHalo("alma");
+    /* Una voz a la vez: mientras aquí hay llamada, cada UNA_VOZ_CADA se mira si el iPhone empezó otra (con la de Alma ya
+       ligada: convAqui). */
+    var convAqui = "", vigia = 0;
+    function vigilar() {
+      clearTimeout(vigia); vigia = 0;
+      if (!escritorio() || colgo) return;
+      vigia = setTimeout(function () {
+        if (colgo || !vivo) return;
+        unaVozPedir().then(function (r) {
+          if (colgo || !vivo) return;
+          if (r && r.en_llamada && r.dispositivo === "iPhone" && r.fresca && convAqui && r.conv !== convAqui) {
+            var c = vivo; colgo = true; vivo = null; h.status("Tu iPhone tomó la llamada");
+            setTimeout(function () { try { c.endSession(); } catch (e) {} }, 1200);
+            return;
+          }
+          vigilar();
+        });
+      }, UNA_VOZ_CADA);
+    }
     sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
-    function terminada() { if (tvConv) { tvConv = ""; tvUltima = ""; tvAvisar({ fin: true }); } coro.permitir(false); vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
+    function terminada() { clearTimeout(vigia); vigia = 0; if (tvConv) { tvConv = ""; tvUltima = ""; tvAvisar({ fin: true }); } coro.permitir(false); vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
     function abrir(f, m, u) {
       var yo = serie, claudio = agente === "claudio";
       var opt = {
         signedUrl: u, connectionType: "websocket", dynamicVariables: claudio ? (f.dynamic_variables || {}) : conCtx(f.dynamic_variables || {}),
-        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) { tvConv = x.conversationId; vincular(x.conversationId, 0); }
+        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) { tvConv = convAqui = x.conversationId; vincular(x.conversationId, 0); vigilar(); }
           if (claudio && x && x.conversationId) { convClaudio = x.conversationId; avisoClaudio("entra", convClaudio); } },   // Panel de Claudio: la lista al entrar
         onAgentToolRequest: function (r) { if (yo !== serie || !r) return; coro.empieza(r.tool_call_id, String(r.tool_name || "")); },
         onInterruption: function () { if (yo !== serie) return; coro.corta(); },
@@ -350,8 +389,12 @@
       }).then(function () { cambio = false; });
     }
     /* La ficha primero: la primera vez (sin ficha guardada) trae también la URL firmada y no hace falta otra vuelta al Hub. */
-    return Promise.all([ficha().then(function (f) { return firma().then(function (u) { return [f, u]; }); }), loadSdk()]).then(function (r) {
+    return Promise.all([ficha().then(function (f) { return firma().then(function (u) { return [f, u]; }); }), loadSdk(), unaVozOtra()]).then(function (r) {
       var f = r[0][0], u = r[0][1], m = r[1]; mod = m;
+      if (r[2]) {   // una voz a la vez: la llamada sigue en el iPhone; aquí no se abre otra
+        colgo = true; h.status("La llamada sigue en tu " + r[2]);
+        return new Promise(function (ok) { setTimeout(function () { coro.permitir(false); w.removeEventListener("sa-claudio-contexto", alContexto); h.ended(); ok(null); }, 1400); });
+      }
       return abrir(f, m, u).catch(function (e) {
         if (e && (e.name === "NotAllowedError" || e.name === "SecurityError" || e.name === "NotFoundError")) throw e;
         /* Reintento con otra URL firmada (cada una se usa una vez). */
@@ -362,6 +405,7 @@
       if (e && e.name === "NotFoundError") throw new Error("No encontré un micrófono.");
       throw e;
     }).then(function (conv) {
+      if (!conv) return { end: function () {}, level: function () { return 0; }, sendText: function () {}, mute: function () {}, chat: function () {}, nota: function () {} };
       vivo = conv;
       /* Todo va a la conversación vigente (la de Alma o la de Claudio). */
       return {

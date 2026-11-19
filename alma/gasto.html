@@ -12,7 +12,10 @@
      número grande; debajo los proveedores de mayor a menor; al tocar uno, su detalle. Abajo el equipo de ahorro (Pareto
      80/20) con cada proyecto, su ahorro medido y la calidad verificada. Reemplaza los reportes sueltos: Uso (cupos de
      Google) y Reportes (llamadas) quedan como detalle de Google y de ElevenLabs. Solo el administrador principal
-     (apps-script/gasto.js, acción «gasto»). Los montos nunca están en este repo: llegan del Hub. -->
+     (apps-script/gasto.js, acción «gasto»). Los montos nunca están en este repo: llegan del Hub.
+     Dos clases que no se mezclan (Juan, 19-nov-2026): arriba el Gasto de Alma (agente) con su total; aparte, en su propia
+     caja, los Gastos de Spacio AM (empresa) con su total, que NO suma al de Alma, partidos en Desarrollo (plan de Claude,
+     Apple, Higgsfield) y Operación (Hospitable, dominio); al final el total general solo como referencia. -->
 <style>
   :root { color-scheme: light; --tinta: #3E3F3F; --suave: #8A8580; --tenue: #A39B93; --linea: rgba(62,63,63,.12); --crema: #FAF8F6; --papel: #fff;
     --durazno: #E9826A; --durazno-t: #B5624E; --verde: #2F6B47; --verde-f: #E6F2EA; --ambar: #9A6B12; --ambar-f: #FBF3E2; --rojo: #B54D36; --rojo-f: #FBEAE6; --arena: #F3EFEA;
@@ -38,7 +41,7 @@
   .tile .sube { color: var(--rojo); } .tile .baja { color: var(--verde); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 0; }
   .chip { display: inline-flex; align-items: center; gap: 6px; font: 600 10px Montserrat, sans-serif; letter-spacing: .12em; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: var(--arena); color: var(--suave); white-space: nowrap; }
-  .chip.medido { background: var(--verde-f); color: var(--verde); } .chip.estimado, .chip.incompleto { background: var(--ambar-f); color: var(--ambar); } .chip.falta, .chip.peor, .chip.descartado { background: var(--rojo-f); color: var(--rojo); }
+  .chip.medido { background: var(--verde-f); color: var(--verde); } .chip.estimado, .chip.incompleto { background: var(--ambar-f); color: var(--ambar); } .chip.falta, .chip.falta_usd, .chip.peor, .chip.descartado { background: var(--rojo-f); color: var(--rojo); }
   .chip.igual, .chip.mejor, .chip.unido { background: var(--verde-f); color: var(--verde); }
   .chip i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .sec { margin: 44px 0 14px; display: flex; align-items: baseline; gap: 12px; border-top: 1px solid var(--linea); padding-top: 18px; flex-wrap: wrap; }
@@ -104,6 +107,21 @@
   .proy .num div b { display: block; font: 300 24px/1 Montserrat, sans-serif; font-variant-numeric: tabular-nums; } .proy .num div span { font: 500 11.5px Montserrat, sans-serif; color: var(--suave); }
   .regla { background: var(--arena); border-radius: 18px; padding: 14px 16px; font: 500 13px/1.5 Montserrat, sans-serif; color: #5A5856; }
   .regla b { color: var(--tinta); }
+  /* Gastos de Spacio AM (empresa): su propia caja, con otro fondo, para que nunca se lea como parte de Alma */
+  .empresa { margin: 52px 0 0; background: var(--arena); border-radius: 28px; padding: 22px 16px 18px; border: 1.5px dashed rgba(62,63,63,.22); }
+  .empresa .aparte { display: inline-block; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--suave); background: var(--papel); border-radius: 999px; padding: 6px 10px; }
+  .empresa h2 { margin: 14px 2px 4px; font: 400 28px/1.1 Valky, Georgia, serif; }
+  .empresa .tot { margin: 8px 2px 16px; font: 300 34px/1.1 Montserrat, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .empresa .tot small { display: block; margin-top: 6px; font: 500 13px/1.45 Montserrat, sans-serif; letter-spacing: 0; color: var(--suave); }
+  .empresa .tot .eur { color: var(--rojo); font-weight: 600; }
+  .empresa .parte { margin: 22px 2px 10px; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; }
+  .empresa .parte h3 { margin: 0; font: 600 10.5px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--tinta); }
+  .empresa .parte b { font: 500 15px Montserrat, sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+  .empresa .parte p { grid-column: 1 / -1; margin: 2px 0 0; font: 500 12px/1.4 Montserrat, sans-serif; color: var(--suave); }
+  .empresa .prov { box-shadow: 0 16px 36px -30px rgba(70,50,40,.38); }
+  .general { margin: 22px 0 0; display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: baseline; padding: 16px 18px; border-radius: 22px; border: 1px solid var(--linea); }
+  .general b { font: 600 13.5px Montserrat, sans-serif; } .general .m { font: 400 20px Montserrat, sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+  .general p { grid-column: 1 / -1; margin: 0; font: 500 12px/1.45 Montserrat, sans-serif; color: var(--suave); }
   .vacio { margin: 60px 0; text-align: center; font: 400 24px/1.3 Valky, Georgia, serif; color: var(--suave); }
   .vacio p { font: 500 14px Montserrat, sans-serif; margin: 12px 0 0; }
   .esq { display: grid; gap: 14px; margin-top: 34px; }
@@ -135,7 +153,9 @@
   function usd(x) { if (x == null) return "—"; x = +x || 0; return "US$ " + (Math.abs(x) >= 100 ? es.format(Math.round(x)) : es2.format(x)); }
   function num(x) { x = +x || 0; return x >= 100 ? es.format(Math.round(x)) : es2.format(x); }
   var MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-  var ESTADO = { medido: "Medido", estimado: "Estimado", incompleto: "Incompleto", falta: "Falta dato" };
+  var ESTADO = { medido: "Medido", estimado: "Estimado", incompleto: "Incompleto", falta: "Falta dato", falta_usd: "Falta USD" };
+  /* Un monto en otra moneda (un recibo en euros sin su valor en dólares): se muestra tal cual, nunca se suma a dólares. */
+  function otra(x) { return es2.format(+x.monto || 0).replace(/,00$/, "") + " " + x.moneda; }
   var R = null, abierto = {};
   function pedir(accion, extra) {
     var body = Object.assign({ hub: 1, action: accion }, extra || {});
@@ -167,10 +187,10 @@
     var C = $("cuerpo"); C.innerHTML = "";
     var T = R.total || {}, mesN = MESES[+String(R.mes).slice(5, 7) - 1] || R.mes;
     /* 1 · el número grande */
-    var pt = el("div", "portada"); pt.appendChild(el("small", "", "Lo que cuesta Alma · " + mesN));
+    var pt = el("div", "portada"); pt.appendChild(el("small", "", "Gasto de Alma (agente) · " + mesN));
     var g = el("div", "grande"); g.appendChild(el("span", "", "US$")); g.appendChild(document.createTextNode(num(T.usd))); g.setAttribute("aria-label", usd(T.usd) + " en " + mesN); pt.appendChild(g);
     var fr = el("p"); fr.appendChild(document.createTextNode(R.actual ? "Van " + R.dia + " de " + R.dias_mes + " días. A este ritmo el mes cierra en " : "Total del mes: "));
-    fr.appendChild(el("b", "", usd(R.actual ? T.proyeccion : T.usd))); fr.appendChild(document.createTextNode("."));
+    fr.appendChild(el("b", "", usd(R.actual ? T.proyeccion : T.usd))); fr.appendChild(document.createTextNode(". Es solo Alma: los gastos de Spacio AM como empresa van aparte, abajo."));
     pt.appendChild(fr);
     var ch = el("div", "chips"); ch.appendChild(chip("medido", "Medido " + usd(T.medido))); if (T.estimado > 0.005) ch.appendChild(chip("estimado", "Estimado " + usd(T.estimado)));
     if ((T.faltan || []).length) ch.appendChild(chip("falta", "Falta dato: " + T.faltan.length)); pt.appendChild(ch);
@@ -183,16 +203,33 @@
     else { t2.appendChild(el("b", "", "—")); t2.appendChild(el("span", "", "mes pasado: todavía sin registro (empieza a guardarse este mes)")); }
     dos.appendChild(t1); dos.appendChild(t2); C.appendChild(dos);
     /* 2 · en qué se va: proveedores de mayor a menor */
-    C.appendChild(sec("En qué se va", "toca uno para ver el detalle"));
+    C.appendChild(sec("En qué se va el gasto de Alma", "toca uno para ver el detalle"));
     var pv = el("div", "provs"); (R.proveedores || []).forEach(function (P, i) { pv.appendChild(proveedor(P, i === 0)); }); C.appendChild(pv);
     /* 3 · equipo de ahorro */
-    C.appendChild(sec("Equipo de ahorro", "Pareto 80/20"));
+    C.appendChild(sec("Equipo de ahorro", "Pareto 80/20 · solo el gasto de Alma"));
     C.appendChild(ahorro(R.ahorro || []));
-    /* 4 · negocio (no suma) */
-    if ((R.negocio || []).length) {
-      C.appendChild(sec("Del negocio", "no suman al número de arriba"));
-      var nv = el("div", "provs"); R.negocio.forEach(function (P) { nv.appendChild(proveedor(P, false, true)); }); C.appendChild(nv);
-      C.appendChild(el("p", "nota", "Herramientas que Alma usa pero que el negocio pagaría igual sin ella."));
+    /* 4 · empresa: su propia caja y su propio total (no suma al de Alma) */
+    var E = R.empresa;
+    if (E && ((E.proveedores || []).length || (E.partes || []).some(function (X) { return (X.proveedores || []).length; }))) {
+      var bx = el("section", "empresa"); bx.setAttribute("aria-label", "Gastos de Spacio AM como empresa, aparte del gasto de Alma");
+      bx.appendChild(el("span", "aparte", "Aparte · no es gasto de Alma"));
+      bx.appendChild(el("h2", "", "Gastos de Spacio AM (empresa)"));
+      var tt = el("div", "tot", usd(E.usd)), eu = (E.sin_usd || []).map(otra);
+      var ts = el("small"); if (eu.length) { ts.appendChild(document.createTextNode("más ")); ts.appendChild(el("span", "eur", eu.join(" + ") + " · falta USD")); ts.appendChild(document.createTextNode(". ")); }
+      ts.appendChild(document.createTextNode("Construir Alma y operar Spacio AM. No suma al gasto de Alma de arriba.")); tt.appendChild(ts); bx.appendChild(tt);
+      (E.partes || [{ titulo: "", proveedores: E.proveedores }]).forEach(function (X) {
+        if (!(X.proveedores || []).length) return;
+        if (X.titulo) { var ph = el("div", "parte"), xe = (X.sin_usd || []).map(otra); ph.appendChild(el("h3", "", X.titulo)); ph.appendChild(el("b", "", usd(X.usd) + (xe.length ? " + " + xe.join(" + ") : "")));
+          if (X.que) ph.appendChild(el("p", "", X.que)); bx.appendChild(ph); }
+        var nv = el("div", "provs"); X.proveedores.forEach(function (P) { nv.appendChild(proveedor(P, false, true)); }); bx.appendChild(nv);
+      });
+      C.appendChild(bx);
+    }
+    /* 5 · total general: solo referencia */
+    if (R.general) {
+      var gn = el("div", "general"), ge = (R.general.sin_usd || []).map(otra);
+      gn.appendChild(el("b", "", "Total general (solo referencia)")); gn.appendChild(el("div", "m", usd(R.general.usd) + (ge.length ? " + " + ge.join(" + ") : "")));
+      gn.appendChild(el("p", "", "Alma + empresa juntos. El número que importa para Alma es el de arriba.")); C.appendChild(gn);
     }
     C.appendChild(el("p", "nota", "Medido: sale de un recibo o del registro de cada llamada a la IA. Estimado: calculado (reparto o tarifa). Falta dato: escribe el monto en su detalle. Actualizado " +
       new Date(R.actualizado || Date.now()).toLocaleString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) + "."));
@@ -203,11 +240,12 @@
     var c = el("section", "prov" + (top ? " top" : "")), b = el("button"); b.type = "button";
     c.setAttribute("aria-expanded", String(!!abierto[P.id]));
     var nom = el("div", "nom", P.nombre); nom.appendChild(el("small", "", P.que)); b.appendChild(nom);
-    var mon = el("div", "mon", P.estado === "falta" ? "—" : usd(P.usd));
-    mon.appendChild(el("small", "", P.estado === "falta" ? "falta dato" : (R.actual && Math.abs(P.proyeccion - P.usd) > 0.5 ? "cierra en " + usd(P.proyeccion) : ESTADO[P.estado] || ""))); b.appendChild(mon);
+    var eu = (P.sin_usd || []).map(otra), soloEu = P.estado === "falta_usd";
+    var mon = el("div", "mon", P.estado === "falta" ? "—" : soloEu ? eu.join(" + ") : usd(P.usd));
+    mon.appendChild(el("small", "", P.estado === "falta" ? "falta dato" : soloEu ? "al mes · falta USD" : eu.length ? "+ " + eu.join(" + ") + " · falta USD" : (R.actual && Math.abs(P.proyeccion - P.usd) > 0.5 ? "cierra en " + usd(P.proyeccion) : ESTADO[P.estado] || ""))); b.appendChild(mon);
     var fl = el("span", "flecha"); fl.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>'; b.appendChild(fl);
     if (!negocio && P.estado !== "falta") { var ri = el("div", "riel"), p = el("div", "p"), i = el("i"); i.setAttribute("data-w", Math.max(P.usd ? 1.5 : 0, P.pct || 0) + "%"); p.appendChild(i); ri.appendChild(p); ri.appendChild(el("em", "", es.format(P.pct || 0) + " %")); b.appendChild(ri); }
-    b.setAttribute("aria-label", P.nombre + ", " + (P.estado === "falta" ? "falta dato" : usd(P.usd) + ", " + es.format(P.pct || 0) + " % del mes") + ". Toca para ver el detalle.");
+    b.setAttribute("aria-label", P.nombre + ", " + (P.estado === "falta" ? "falta dato" : soloEu ? eu.join(" + ") + ", falta el valor en dólares" : usd(P.usd) + (negocio ? ", gasto de la empresa" : ", " + es.format(P.pct || 0) + " % del gasto de Alma")) + ". Toca para ver el detalle.");
     b.onclick = function () { abierto[P.id] = !abierto[P.id]; c.setAttribute("aria-expanded", String(abierto[P.id])); if (abierto[P.id] && !det.firstChild) llenar(det, P); };
     var det = el("div", "det"); c.appendChild(b); c.appendChild(det);
     if (abierto[P.id]) llenar(det, P);
@@ -227,9 +265,9 @@
     var ls = el("div", "lineas");
     (P.lineas || []).forEach(function (l) {
       var f = el("div", "linea"), t = el("b", "", l.nombre); t.appendChild(el("small", "", l.tipo === "año" ? "anual ÷ 12" : l.tipo === "una_vez" ? "una vez" + (l.fecha ? " · " + l.fecha : "") : l.tipo === "uso" ? "por uso" : "al mes"));
-      f.appendChild(t); var m = el("div", "m"); m.appendChild(document.createTextNode(l.usd == null ? "—  " : usd(l.usd) + "  ")); m.appendChild(chip(l.estado)); f.appendChild(m);
+      f.appendChild(t); var m = el("div", "m"); m.appendChild(document.createTextNode(l.usd == null ? (l.monto != null && l.moneda ? otra(l) + "  " : "—  ") : usd(l.usd) + "  ")); m.appendChild(chip(l.estado)); f.appendChild(m);
       if (l.fuente || l.nota) f.appendChild(el("p", "", [l.fuente, l.nota].filter(Boolean).join(" · ")));
-      if (l.id && l.tipo !== "uso") { var ed = el("button", "btn", l.usd == null ? "Escribir monto" : "Corregir"); ed.type = "button"; ed.onclick = function () { formulario(det, P, l); }; f.appendChild(ed); }
+      if (l.id && l.tipo !== "uso") { var ed = el("button", "btn", l.estado === "falta_usd" ? "Escribir en US$" : l.usd == null ? "Escribir monto" : "Corregir"); ed.type = "button"; ed.onclick = function () { formulario(det, P, l); }; f.appendChild(ed); }
       ls.appendChild(f);
     });
     det.appendChild(ls);
@@ -296,14 +334,16 @@
     var viejo = det.querySelector(".form"); if (viejo) viejo.remove();
     var f = el("form", "form");
     var nom = el("input"); nom.value = l ? l.nombre : ""; nom.placeholder = "Qué es (Plan, Recarga…)"; nom.className = "ancho"; nom.setAttribute("aria-label", "Qué es");
-    var mon = el("input"); mon.inputMode = "decimal"; mon.placeholder = "Monto en US$"; mon.value = l && l.usd != null ? String(l.usd) : ""; mon.setAttribute("aria-label", "Monto en dólares");
-    var tipo = el("select"); [["mes", "Al mes"], ["año", "Al año"], ["una_vez", "Una vez"]].forEach(function (x) { var o = el("option", "", x[1]); o.value = x[0]; tipo.appendChild(o); }); tipo.value = l && l.tipo ? l.tipo : "mes"; tipo.setAttribute("aria-label", "Cada cuánto");
+    var mon = el("input"); mon.inputMode = "decimal"; mon.placeholder = "Monto"; mon.value = l && l.usd != null ? String(l.usd) : ""; mon.setAttribute("aria-label", "Monto");
+    var mo = el("select"); [["USD", "US$"], ["EUR", "EUR (sin convertir)"]].forEach(function (x) { var o = el("option", "", x[1]); o.value = x[0]; mo.appendChild(o); }); mo.value = "USD"; mo.setAttribute("aria-label", "Moneda");
+    var tipo = el("select"); tipo.className = "ancho"; [["mes", "Al mes"], ["año", "Al año"], ["una_vez", "Una vez"]].forEach(function (x) { var o = el("option", "", x[1]); o.value = x[0]; tipo.appendChild(o); }); tipo.value = l && l.tipo ? l.tipo : "mes"; tipo.setAttribute("aria-label", "Cada cuánto");
     var fe = el("input"); fe.type = "date"; fe.className = "ancho"; fe.value = l && l.fecha ? l.fecha : new Date().toISOString().slice(0, 10); fe.setAttribute("aria-label", "Fecha (para una vez) o desde cuándo");
     var bt = el("button", "", "Guardar"); bt.type = "submit";
-    [nom, mon, tipo, fe, bt].forEach(function (x) { f.appendChild(x); });
+    [nom, mon, mo, tipo, fe, bt].forEach(function (x) { f.appendChild(x); });
     f.onsubmit = function (ev) {
       ev.preventDefault(); bt.disabled = true; bt.textContent = "Guardando…";
-      var b = { prov: P.id, nombre: nom.value || "Plan", usd: mon.value, tipo: tipo.value, fuente: "Juan en la pantalla" };
+      var b = { prov: P.id, nombre: nom.value || "Plan", usd: mo.value === "USD" ? mon.value : "", tipo: tipo.value, fuente: "Juan en la pantalla" };
+      if (mo.value !== "USD") { b.moneda = mo.value; b.monto = mon.value; }
       if (l && l.id) b.id = l.id; if (tipo.value === "una_vez") b.fecha = fe.value; else b.desde = fe.value;
       pedir("gastoPlanFijar", b).then(function (r) { if (!r || !r.ok) { bt.disabled = false; bt.textContent = (r && r.error) || "No se pudo"; return; } abierto[P.id] = true; cargar(true); });
     };

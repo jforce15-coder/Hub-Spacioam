@@ -3464,6 +3464,7 @@ function hubApi_(body) {
       case 'vozTarjeta': return json_(vozTarjetaApi_(ses, body));                         // app de iPhone: la tarjeta de la llamada { conv_id } (tarjeta.js)
       case 'vivoPublicar': return json_(vivoPublicarApi_(ses, body));                     // modo compañero: el dispositivo de la llamada publica estado y subtítulos (vivo.js, #607)
       case 'vivoLeer': return json_(vivoLeerApi_(ses, body));                             // modo compañero: el otro dispositivo lee lo que pasa en la llamada (vivo.js)
+      case 'vivoColgar': return json_(vivoColgarApi_(ses, body));                         // modo compañero: «Terminar» cuelga la llamada del otro dispositivo (vivo.js)
       case 'vozPantalla': return json_(vozPantallaApi_(ses, body));                       // app de iPhone: ¿Juan ve la pantalla? { conv_id, visible } (tarjeta.js)
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());

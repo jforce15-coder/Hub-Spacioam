@@ -42,7 +42,25 @@ function vivoPublicarApi_(ses, b) {
     c.put('vivo_sub_' + h, JSON.stringify(subs), VIVO_SEG_);
   }
   if (e.estado === 'fin') c.remove('vivo_tv_' + h);
-  return { ok: true, mirando: !!vivoMira_(adm.email) };
+  /* «Terminar» desde el compañero (vivoColgar): la app de la llamada lo lee aquí, en su próximo envío, y cuelga. */
+  var col = vivoLeerCache_('vivo_colgar_' + h), colgar = !!(col && col.conv === conv && e.estado !== 'fin');
+  if (col && (colgar || col.conv !== conv || e.estado === 'fin')) c.remove('vivo_colgar_' + h);
+  return { ok: true, mirando: !!vivoMira_(adm.email), colgar: colgar };
+}
+
+/* vivoColgar { conv }: «Terminar» en el compañero (Juan, 19-nov-2026: «no me está dejando terminar la llamada… si por el
+   roce activa, no puedo terminar la llamada normalmente»). El compañero no tiene el audio: deja el pedido y la app de la
+   llamada cuelga en su próximo envío (con alguien mirando, cada 3 s como mucho). Solo la llamada de este administrador. */
+var VIVO_COLGAR_SEG_ = 120;
+function vivoColgarApi_(ses, b) {
+  b = b || {};
+  var adm = vozWebAdmin_(ses); if (!adm) return { ok: false, error: 'session' };
+  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h), ahora = Date.now();
+  if (!e || e.estado === 'fin' || ahora - Number(e.ts || 0) >= VIVO_VENCE_S_ * 1000) return { ok: true, en_llamada: false };
+  var conv = String(b.conv || e.conv);
+  if (conv !== String(e.conv)) return { ok: true, en_llamada: false };   // la que veía ya terminó y empezó otra: esa no se cuelga
+  c.put('vivo_colgar_' + h, JSON.stringify({ conv: conv, ts: ahora }), VIVO_COLGAR_SEG_);
+  return { ok: true, en_llamada: true, colgando: true, app: !!e.dev };   // app: la app de la llamada publica (sabe colgar si es nueva)
 }
 
 /* El tablero de la llamada (lo deja tvCerrar_ al cerrar el turno de la secretaria). */

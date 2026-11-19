@@ -1145,10 +1145,20 @@
   @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
   .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
+  /* «Terminar»: el mismo rojo de la equis de la llamada (sa-nav .san-ob.end); un toque normal, 44 px para el dedo. */
+  .comp-pie { flex: none; display: flex; justify-content: center; padding: 4px 18px max(18px, calc(env(safe-area-inset-bottom) + 8px)); }
+  .comp-fin { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 22px 0 16px; border: 0; border-radius: 999px; cursor: pointer;
+    background: radial-gradient(120% 120% at 50% 20%, #F4F1EE 0%, #ECE8E3 55%, #E3DED8 100%); color: #3A2E2C; font: 600 11px Montserrat, system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; text-shadow: none;
+    box-shadow: 0 8px 14px -6px rgba(40,30,25,.4), inset 0 2px 4px rgba(255,255,255,.55); transition: transform .3s cubic-bezier(.3,1.35,.55,1), opacity .2s ease; }
+  .comp-fin svg { width: 18px; height: 18px; color: #D9583A; }
+  .comp-fin:active { transform: scale(.94); transition-duration: .1s; }
+  .comp-fin:disabled { opacity: .55; cursor: default; }
+  .comp-fin:focus-visible { outline: 2px solid #E9826A; outline-offset: 3px; }
+  .comp.fin .comp-fin { visibility: hidden; }
   .comp-tab { position: relative; flex: 1; min-height: 0; }
   .comp .tvb { top: 18px; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto; }
   .comp-vacio { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font: 400 clamp(22px, 4vw, 30px)/1.25 Valky, "Cormorant Garamond", Georgia, serif; opacity: .9; }
-  .comp-subs { flex: none; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; padding: 12px max(18px, env(safe-area-inset-right)) max(22px, calc(env(safe-area-inset-bottom) + 12px)) max(18px, env(safe-area-inset-left));
+  .comp-subs { flex: none; max-width: 760px; width: 100%; margin: 0 auto; box-sizing: border-box; padding: 12px max(18px, env(safe-area-inset-right)) 8px max(18px, env(safe-area-inset-left));   /* abajo, el pie con «Terminar» */
     display: flex; flex-direction: column; gap: 6px; min-height: 96px; justify-content: flex-end; }
   .comp-subs p { margin: 0; text-shadow: 0 1px 10px rgba(40,30,25,.35); animation: compSub .35s ease both; }
   .comp-subs p.alma { font: 400 clamp(19px, 3vw, 24px)/1.3 Valky, "Cormorant Garamond", Georgia, serif; }
@@ -2785,6 +2795,10 @@ window.SAPulso = {
      conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
      roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
   var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null, agente: "alma" };
+  /* Para el Modo compañero (más abajo): ¿la llamada de la app está en ESTE dispositivo? Entonces la vista del compañero no
+     la tapa (Juan, 19-nov-2026: «no me está dejando terminar la llamada»), y su «Terminar» cuelga aquí mismo. */
+  window.AlmaVozAqui = function () { return VN.activa; };
+  window.AlmaVozColgar = function () { if (!VN.activa) return false; nativa({ accion: "voz", que: "colgar" }); return true; };
   function vozNativa() {
     var web = window.SAAlmaVoz;
     return {
@@ -4536,11 +4550,19 @@ window.SAPulso = {
   /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. En el inicio de la app
      la roca vive en la escena (sa-nav: .san-ov.on siempre) y, sin llamada, está «quieta»: eso no es una llamada aquí
      (Juan, 19-nov-2026: «en el iPad no está copiando lo mismo que está pasando en el teléfono»). */
-  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
+  /* También cuenta la llamada de la app en este dispositivo aunque la roca no esté abierta (empezó con el anillo, el Modo
+     calle o un roce): sin esto, con el compañero encendido en los dos, la vista del compañero tapaba la llamada propia y no
+     había cómo terminarla (Juan, 19-nov-2026). */
+  function llamadaAqui() { if (typeof AlmaVozAqui === "function" && AlmaVozAqui()) return true; var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
   function montar() {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
     var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    /* «Terminar» (Juan, 19-nov-2026: «no me está dejando terminar la llamada»): un toque normal cuelga la llamada del otro
+       dispositivo (vivoColgar; la app de la llamada cuelga en su próximo envío). */
+    var fin = el("button", "comp-fin"); fin.type = "button"; fin.setAttribute("aria-label", "Terminar la llamada");
+    fin.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Terminar</span>';
+    fin.onclick = terminar; var pie = el("footer", "comp-pie"); pie.appendChild(fin);
     var cu = el("div", "comp-cuerpo"), centro = el("div", "comp-centro");
     centro.appendChild(el("div", "comp-tab")); centro.appendChild(el("div", "comp-subs")); cu.appendChild(centro);
     /* En el iPad (pantalla ancha) va a la derecha; en el teléfono no se ve (CSS) */
@@ -4548,7 +4570,7 @@ window.SAPulso = {
     var datos = el("section", "comp-caja comp-datos"); datos.appendChild(el("h3", "", "La llamada")); datos.appendChild(el("dl")); lado.appendChild(datos);
     var vistos = el("section", "comp-caja comp-vistos"); vistos.appendChild(el("h3", "", "Se mostró")); vistos.appendChild(el("ul")); lado.appendChild(vistos);
     var conv = el("section", "comp-caja comp-conv"); conv.appendChild(el("h3", "", "Conversación")); conv.appendChild(el("div", "comp-lineas")); lado.appendChild(conv);
-    cu.appendChild(lado); c.appendChild(cab); c.appendChild(cu);
+    cu.appendChild(lado); c.appendChild(cab); c.appendChild(cu); c.appendChild(pie);
     document.body.appendChild(c); return c;
   }
   function dur(ms) { var s = Math.max(0, Math.round(ms / 1000)), m = Math.floor(s / 60); return m + ":" + ("0" + (s % 60)).slice(-2); }
@@ -4589,7 +4611,7 @@ window.SAPulso = {
     /* Con Claudio se ve su panel (los trabajos que se están haciendo) y arriba dice con quién se habla (vivoPanel_) */
     var conClaudio = !!(r.tarjeta && r.tarjeta.tipo === "claudio");
     c.querySelector(".comp-de").textContent = "En vivo" + (conClaudio ? " · con Claudio" : "") + (r.dispositivo ? " · desde tu " + r.dispositivo : "");
-    c.querySelector(".comp-est").textContent = ESTADO[r.estado] || "En llamada";
+    var fb = c.querySelector(".comp-fin"); if (!fb.disabled) c.querySelector(".comp-est").textContent = ESTADO[r.estado] || "En llamada";
     var subs = c.querySelector(".comp-subs");
     var lineas = c.querySelector(".comp-lineas"), abajo = lineas.scrollHeight - lineas.scrollTop - lineas.clientHeight < 40;
     (r.subs || []).forEach(function (x) {
@@ -4612,10 +4634,22 @@ window.SAPulso = {
     vacio();
     c.classList.add("on");
   }
+  function terminar() {
+    var b = C.capa && C.capa.querySelector(".comp-fin"); if (!b || b.disabled) return;
+    if (typeof AlmaVozColgar === "function" && AlmaVozColgar()) { cerrar(false); return; }   // la llamada era de aquí
+    var conv = C.conv, est = C.capa.querySelector(".comp-est");
+    b.disabled = true; est.textContent = "Colgando…";
+    hub("vivoColgar", { conv: conv }).then(function (r) {
+      if (r && r.ok && r.en_llamada === false) { b.disabled = false; cerrar(true); return; }
+      if (!r || !r.ok) { b.disabled = false; est.textContent = "No se pudo colgar"; return; }
+      /* La app de la llamada cuelga en unos segundos; si no (una app de antes), se vuelve a poder tocar */
+      setTimeout(function () { if (C.conv === conv && C.capa.classList.contains("on") && !C.fin) { b.disabled = false; est.textContent = "Cuelga en tu " + (C.otra || "otro dispositivo"); } }, 12000);
+    });
+  }
   function cerrar(fin) {
     if (!C.capa || !C.capa.classList.contains("on") || C.fin) return;
     if (fin) { C.capa.classList.add("fin"); C.capa.querySelector(".comp-est").textContent = ESTADO.fin; C.fin = setTimeout(function () { C.fin = 0; cerrar(false); }, FIN_MS); return; }
-    C.capa.classList.remove("on", "fin"); C.conv = ""; C.tvId = ""; C.desde = 0;
+    C.capa.classList.remove("on", "fin"); C.conv = ""; C.tvId = ""; C.desde = 0; var fb = C.capa.querySelector(".comp-fin"); if (fb) fb.disabled = false;
   }
   function ciclo() {
     clearTimeout(C.t); C.t = 0;

@@ -172,6 +172,16 @@ const LEER = 'Verificar si Mariana López ya llegó';
   const s = c.de(SONNET);
   ok(c.de(RAPIDO).length === 1 && s.length === 1 && ms.motivo === 'tiempo' && ms.reuso === 2 && s[0].messages.length === 3 && c.corridas.join() === 'buscar_reservas',
     '3b · se le acabó el tiempo después de leer: el de siempre sigue con esa lectura y no la repite (' + ms.motivo + ', reuso ' + ms.reuso + ')'); }
+/* 3c · guardia 19-nov-2026: una vuelta que ya no cabe en el tiempo no empieza (antes se pasaba hasta ~13 s) */
+{ const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { text: 'no debería llegar' }] }), lee = c.X.agEjecutar_;
+  c.X.agEjecutar_ = (a, n, i, x) => { const res = lee(a, n, i, x); const ahora = c.X.Date.now(); c.X.Date.now = () => ahora + 6000; return res; };
+  const { ms } = c.turno(LEER);
+  ok(c.de(RAPIDO).length === 1 && ms.motivo === 'tiempo' && ms.reuso === 2 && c.de(SONNET).length === 1,
+    '3c · la primera vuelta tardó 6 s: la segunda no cabe en 9 s, pasa al de siempre con lo leído sin otra vuelta del rápido'); }
+{ const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { text: 'Mañana llegan dos.' }] }), lee = c.X.agEjecutar_;
+  c.X.agEjecutar_ = (a, n, i, x) => { const res = lee(a, n, i, x); const ahora = c.X.Date.now(); c.X.Date.now = () => ahora + 2000; return res; };
+  const { r, ms } = c.turno(LEER);
+  ok(ms.via === 'rapido' && r.respuesta === 'Mañana llegan dos.', '3c · una vuelta corta (2 s) deja tiempo para la siguiente: contesta el rápido'); }
 { const c = caja({ rapido: [{ tools: [{ name: 'buscar_reservas' }] }, { tools: [{ name: 'enviar_a_huesped', input: { texto: 'hola' } }] }] });
   const { ms } = c.turno(LEER);
   ok(/pidió enviar_a_huesped/.test(ms.motivo) && !ms.reuso && c.de(SONNET)[0].messages.length === 1, '3b · si pidió otra cosa, lo leído no pasa: el de siempre empieza limpio'); }

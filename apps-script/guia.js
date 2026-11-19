@@ -145,6 +145,32 @@ function guiaCamino_(ses, b) {
   return out;
 }
 
+/* ═══ CÓMO LLEGAR EN EL CHAT (pedido pc1795047612596, #838) ═══
+   Juan: «Siempre es desde mi ubicación actual, tómalo en cuenta». En el chat (Hub, app, WhatsApp) el Hub no sabe dónde
+   está el teléfono, así que Alma no calcula la ruta: manda los enlaces de Google Maps, Apple Maps y Waze SIN origen, y el
+   mapa sale desde donde esté Juan al tocarlo. Nunca le pregunta desde dónde ni pone una propiedad u oficina de salida;
+   solo si él nombra otro punto («desde el aeropuerto») va como origen. El medio: el que dice, o el que eligió la última
+   vez para ese lugar (GUIA_PREF_, igual que la Guía de camino); si no hay, Maps usa el suyo. */
+var GUIA_AQUI_RX_ = /^\s*(desde\s+)?(mi ubicaci[oó]n( actual)?|aqu[ií]|donde estoy|ubicaci[oó]n actual|my location|current location)?\s*$/i;
+var GUIA_LINK_MODO_ = { caminando: ['walking', 'w'], carro: ['driving', 'd'], bici: ['bicycling', 'w'], bus: ['transit', 'r'] };
+/* calcular_distancia sin propiedad (agente.js) → guiaComoLlegar_(adm, { destino, modo?, origen? }) → { ok, desde, destino, modo, google, apple, waze, como_usarlo } */
+function guiaComoLlegar_(adm, inp) {
+  inp = inp || {};
+  var destino = String(inp.destino || '').trim().slice(0, 200), origen = String(inp.origen || '').trim().slice(0, 200);
+  if (!destino) return { ok: false, error: 'Falta a dónde va.' };
+  var aqui = GUIA_AQUI_RX_.test(origen), modo = guiaModo_(inp.modo), recordado = '';
+  if (modo && adm && adm.email) { try { guiaPrefGuardar_(adm.email, destino, modo); } catch (e) { console.error('guiaComoLlegar_: ' + e); } }
+  if (!modo && adm && adm.email) { var p = guiaPrefModo_(adm.email, destino); if (p) { modo = p.modo; recordado = p.por; } }
+  var lm = GUIA_LINK_MODO_[modo], e = encodeURIComponent;
+  var google = 'https://www.google.com/maps/dir/?api=1' + (aqui ? '' : '&origin=' + e(origen)) + '&destination=' + e(destino) + (lm ? '&travelmode=' + lm[0] : '');
+  var apple = 'https://maps.apple.com/?' + (aqui ? '' : 'saddr=' + e(origen) + '&') + 'daddr=' + e(destino) + (lm ? '&dirflg=' + lm[1] : '');
+  var out = { ok: true, desde: aqui ? 'tu ubicación actual' : origen, destino: destino, modo: modo ? GUIA_MODOS_[modo].texto : '', google: google, apple: apple,
+    como_usarlo: 'Manda el enlace de Google Maps (y el de Apple Maps o Waze si los pide): el mapa arma la ruta ' + (aqui ? 'desde donde está Juan al tocarlo' : 'desde ' + origen) + '. No le preguntes desde dónde.' };
+  if (aqui) out.waze = 'https://waze.com/ul?q=' + e(destino) + '&navigate=yes';   // Waze siempre sale desde donde está el teléfono
+  if (recordado) out.recordado = recordado;
+  return out;
+}
+
 /* Modo calle: «¿cómo llego a…?», «llévame a…», «guíame a…», «direcciones para…» → se abre la llamada sin la IA. */
 var GUIA_PIDE_RX_ = /(c[oó]mo (llego|me voy|se llega|puedo llegar|hago para llegar) (a|al|hasta|para)\b|ll[eé]vame (a|al|hasta)\b|gu[ií]ame (a|al|hasta)\b|(dame|necesito) (las )?(direcciones|indicaciones)|direcciones (a|al|para|hasta)\b|indicaciones para llegar)/i;
 function guiaPideCamino_(texto) { return GUIA_PIDE_RX_.test(String(texto || '')); }

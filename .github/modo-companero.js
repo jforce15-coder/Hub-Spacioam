@@ -148,4 +148,16 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   ok(/"La llamada"/.test(h) && /"Se mostró"/.test(h) && /"Conversación"/.test(h) && /lineas\.children\.length > 200/.test(h), '10 · inicio.html: la llamada, lo que se mostró y la conversación completa');
   ok(/b\.onclick = function \(\) \{ mostrar\(v\.t\); \}/.test(h), '10 · inicio.html: tocar un tablero de antes lo vuelve a mostrar');
 }
+/* 11 · la roca quieta del inicio no es una llamada (Juan, 19-nov-2026: «el modo companion está activado en el celular y en el
+   iPad, pero en el iPad no está copiando lo mismo que pasa en el teléfono»): en la escena, .san-ov.on queda siempre puesto */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  const m = /function llamadaAqui\(\) \{[^\n]*\}/.exec(h);
+  ok(!!m, '11 · inicio.html: llamadaAqui existe');
+  if (m) {
+    const aqui = (clases) => new Function('document', m[0] + '; return llamadaAqui();')({ querySelector: () => clases === null ? null : { classList: { contains: (c) => clases.indexOf(c) >= 0 } } });
+    ok(aqui(['on', 'escena', 'quieta']) === false, '11 · la roca quieta en el inicio (sin llamada): el iPad sí muestra la llamada del otro');
+    ok(aqui(['on', 'escena']) === true, '11 · con la llamada en este dispositivo (la roca despierta): no se muestra el otro');
+    ok(aqui(['on']) === true && aqui([]) === false && aqui(null) === false, '11 · fuera del inicio, como antes');
+  }
+}
 process.exit(fallo);

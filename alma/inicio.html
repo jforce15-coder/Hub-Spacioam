@@ -4533,8 +4533,10 @@ window.SAPulso = {
       .then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: "red" }; });
   }
   function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
-  /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. */
-  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on")); }
+  /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. En el inicio de la app
+     la roca vive en la escena (sa-nav: .san-ov.on siempre) y, sin llamada, está «quieta»: eso no es una llamada aquí
+     (Juan, 19-nov-2026: «en el iPad no está copiando lo mismo que está pasando en el teléfono»). */
+  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
   function montar() {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");

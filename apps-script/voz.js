@@ -305,7 +305,8 @@ function vozPostCall_(body) {
 /* Diagnóstico: últimas 30 llamadas a herramientas (sin datos personales), en caché 6 h. ms: lo que tardó el Hub en
    contestar; d (solo secretaria): antes de la IA, la IA (ia en ms y n vueltas), las herramientas (herr y nh), el resto
    del turno (agente) y lo de después (despues). Robot voz_traza (#498 T1). Desde T4 (rapido.js), también qué modelo
-   contestó: via (rapido · completo · rapido>completo), motivo, modelo y rapido (ms en el camino rápido). */
+   contestó: via (rapido · completo · rapido>completo), motivo, modelo y rapido (ms en el camino rápido). Desde la guardia
+   del 19-nov (parte 3), lentas: las 4 herramientas más lentas del turno ({ h, s, v: r rápido · c completo }, agMsHerr_). */
 var VOZ_T0_ = 0, VOZ_MS_ = null;
 function vozTraza_(herr, b, out) {
   try {

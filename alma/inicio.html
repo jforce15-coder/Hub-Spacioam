@@ -1144,6 +1144,10 @@
   .comp.fin .comp-cab i { animation: none; background: rgba(255,255,255,.7); box-shadow: none; }
   @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
   .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .comp-apagar { position: relative; flex: none; height: 30px; padding: 0 14px; border: 0; border-radius: 999px; cursor: pointer; color: #fff; background: rgba(255,255,255,.22);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.5); font: 600 11px Montserrat, system-ui, sans-serif; letter-spacing: .08em; text-transform: none; transition: transform .15s ease; }
+  .comp-apagar::after { content: ""; position: absolute; inset: -7px -2px; }   /* se toca en 44 px */
+  .comp-apagar:active { transform: scale(.95); }
   .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
   .comp-tab { position: relative; flex: 1; min-height: 0; }
   .comp .tvb { top: 18px; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto; }
@@ -4541,6 +4545,10 @@ window.SAPulso = {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
     var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    /* «Apagar» (Juan, 19-nov-2026: «en el iPad parece como atascado, siempre está encendido»): esta pantalla tapa el botón
+       Compañero del riel, así que se apaga desde aquí mismo, en este dispositivo. */
+    var ap = el("button", "comp-apagar", "Apagar"); ap.type = "button"; ap.setAttribute("aria-label", "Apagar el Modo compañero en este dispositivo");
+    ap.onclick = function () { C.prueba = false; poner(false); }; cab.appendChild(ap);
     var cu = el("div", "comp-cuerpo"), centro = el("div", "comp-centro");
     centro.appendChild(el("div", "comp-tab")); centro.appendChild(el("div", "comp-subs")); cu.appendChild(centro);
     /* En el iPad (pantalla ancha) va a la derecha; en el teléfono no se ve (CSS) */

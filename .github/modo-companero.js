@@ -160,4 +160,10 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
     ok(aqui(['on']) === true && aqui([]) === false && aqui(null) === false, '11 · fuera del inicio, como antes');
   }
 }
+/* 12 · «Apagar» dentro de «En vivo» (Juan, 19-nov-2026: «en el iPad parece como atascado, siempre está encendido»): la
+   pantalla de la llamada del otro tapa el botón Compañero del riel; desde ella misma se apaga */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/el\("button", "comp-apagar", "Apagar"\)[\s\S]{0,300}ap\.onclick = function \(\) \{ C\.prueba = false; poner\(false\); \}; cab\.appendChild\(ap\)/.test(h), '12 · inicio.html: «Apagar» arriba de «En vivo» apaga el Modo compañero');
+  ok(/\.comp-apagar \{[^}]*cursor: pointer/.test(h) && /\.comp-apagar::after/.test(h), '12 · inicio.html: «Apagar» se ve y se toca en 44 px');
+}
 process.exit(fallo);

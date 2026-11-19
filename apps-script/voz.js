@@ -1279,9 +1279,12 @@ function vozWebAdmin_(ses) {
 /* Quita las notas de actuación del modelo de voz ([warm], [softly]…) de lo que se guarda o se muestra. */
 /* Lo que se dice o se guarda como dicho por Alma: sin notas de voz ([softly]…) ni nombres de herramientas.
    Juan (16-nov-2026): «que Alma no lea en voz alta nivel_weebo ni otros comandos al ejecutarlos». Un nombre con
-   guion bajo (nivel_weebo, skip_turn, mostrar_gif(…)) nunca es español hablado: se quita (los correos no se tocan). */
+   guion bajo (nivel_weebo, skip_turn, mostrar_gif(…)) nunca es español hablado: se quita (los correos no se tocan).
+   Juan (19-nov-2026): «que no estés narrando los comandos internos como nivel weebo». También la forma con espacio,
+   como sale al hablar («nivel weebo dos», «skip turn», «end call», «mostrar gif»), con su valor si lo trae. */
 var VOZ_HERRAMIENTA_RX_ = /(^|[\s«"'(¿¡])[A-Za-z]+(?:_[A-Za-z0-9]+)+(?:\s*\([^)\n]{0,80}\))?(?=$|[\s,.;:!?…»"')])/g;
-function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(VOZ_HERRAMIENTA_RX_, '$1').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').trim(); }
+var VOZ_HERRAMIENTA_HABLADA_RX_ = /(^|[\s«"'(¿¡])(?:nivel[\s_-]+weebo|skip[\s_-]+turn|end[\s_-]+call|mostrar[\s_-]+gif)(?:\s*[:=]?\s*(?:\d|cero|uno|dos|tres)\b)?(?:\s*\([^)\n]{0,80}\))?(?=$|[\s,.;:!?…»"')])/gi;
+function vozSinNotas_(t) { return String(t || '').replace(/\[[^\]\n]{1,40}\]/g, '').replace(VOZ_HERRAMIENTA_RX_, '$1').replace(VOZ_HERRAMIENTA_HABLADA_RX_, '$1').replace(/\s{2,}/g, ' ').replace(/\s+([,.;:!?…])/g, '$1').replace(/^[\s,.;:]+/, '').trim(); }
 /* Ficha para la llamada desde la app: quién es, cómo tratarlo y lo último que habló con Alma por WhatsApp o el Hub,
    para que la voz sea la misma Alma que ya lo conoce y no la del protocolo de huéspedes. */
 function vozWebFicha_(adm, nom) {

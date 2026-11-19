@@ -160,4 +160,27 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
     ok(aqui(['on']) === true && aqui([]) === false && aqui(null) === false, '11 · fuera del inicio, como antes');
   }
 }
+/* 12 · nunca atascado (Juan, 19-nov-2026: «en el iPad parece como atascado, siempre está encendido») */
+{ const { X, reloj, JUAN } = caja();
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  reloj.ms += 5000;
+  X.vivoFin_(JUAN, 'conv-1');   // colgó, pero el «fin» de la app se perdió (pantalla bloqueada, sin red)
+  ok(X.vivoLeerApi_(J, {}).en_llamada, '12 · justo después del aviso al colgar sigue (puede ser el paso a Claudio)');
+  reloj.ms += 61000;
+  let r = X.vivoLeerApi_(J, {});
+  ok(!r.en_llamada && r.estado === 'fin', '12 · si la app ya no dice nada en 1 min, terminó (antes: 10 min «en vivo»)');
+  const k = caja();
+  k.X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  k.reloj.ms += 5000; k.X.vivoFin_(k.JUAN, 'conv-1');
+  k.reloj.ms += 30000; k.X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [{ de: 'alma', t: 'Sigo con Claudio.' }] });
+  k.reloj.ms += 50000;
+  ok(k.X.vivoLeerApi_(J, {}).en_llamada, '12 · si la app sigue hablando (con Claudio), la llamada sigue');
+  const q = caja();
+  q.X.vivoInicio_(q.JUAN, 'conv-1');
+  q.reloj.ms += 91000;
+  ok(!q.X.vivoLeerApi_(J, {}).en_llamada, '12 · una llamada que nunca conectó no se queda en «Conectando»');
+  const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
+  ok(/!\(YO && r\.dispositivo === YO\)/.test(h), '12 · inicio.html: este dispositivo no se copia a sí mismo');
+}
 process.exit(fallo);

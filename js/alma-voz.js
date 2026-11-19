@@ -127,11 +127,12 @@
      el tecleo de ElevenLabs (viene en la voz del agente; Alma, Claudio y cualquier agente lo tienen). Si pasa de 2,5 s
      (CORO.umbral), el tecleo se baja (la voz del agente a 0,12 mientras dura la espera; vuelve al terminar o cuando Alma
      habla) y entra el coro de Juan (assets/alma/sonidos/alma-trabaja.wav: loop sin costura de 39 s, 48 kHz mono, −24 LUFS):
-     0,4 s de entrada y 0,5 s de salida; −10 dB si Alma habla (150 ms, vuelve en 400 ms) y −6 dB si habla Juan. Cuenta las
-     herramientas y para con la última; interrupción o colgar lo cortan. Las de fondo (enviar_confirmado, claudio_pedido) y
+     entra en 1,2 s y sale en 1,2 s con curva coseno (ease in / ease out: Juan, 19-nov-2026, «que no entre ni se corte de
+     golpe»); −10 dB si Alma habla (250 ms, vuelve en 600 ms) y −6 dB si habla Juan. Cuenta las herramientas y para con la
+     última; interrupción o colgar lo bajan en 0,35 s con la misma curva (ya no en seco). Las de fondo (enviar_confirmado, claudio_pedido) y
      las que no esperan respuesta nunca lo tocan. Igual que la app de iPhone (CoroTrabajoReglas.swift). En el navegador lo
      toca Web Audio; dentro de la app de Alma, la app, por el puente («coro»). Por teléfono no hay coro: tecleo. */
-  var CORO = { url: SONIDOS + "alma-trabaja.wav", umbral: 2500, entra: 0.4, sale: 0.5, baja: 0.15, sube: 0.4, tope: 75e3, tecleo: 0.12, almaReciente: 8000,
+  var CORO = { url: SONIDOS + "alma-trabaja.wav", umbral: 2500, entra: 1.2, sale: 1.2, corte: 0.35, baja: 0.25, sube: 0.6, tope: 75e3, tecleo: 0.12, almaReciente: 8000,
     sinEspera: { nivel_weebo: 1, mostrar_gif: 1, hablar_con_claudio: 1, volver_con_alma: 1, pasar_a_maricarmen: 1, mostrar_tarjeta_club: 1, mostrar_en_chat: 1, skip_turn: 1, end_call: 1,
       enviar_confirmado: 1, claudio_pedido: 1 } };
   /* Reglas puras (las prueba .github/espera-coro.js): ¿cuenta esta herramienta?, ¿suena ya? y a qué volumen. */
@@ -139,7 +140,11 @@
     cuenta: function (nombre) { return !!nombre && !CORO.sinEspera[nombre]; },
     debe: function (activas, ahora) { var m = Infinity; for (var k in activas) m = Math.min(m, activas[k]); return m !== Infinity && ahora - m >= CORO.umbral; },
     objetivo: function (alma, juan) { return Math.pow(10, (alma ? -10 : juan ? -6 : 0) / 20); },
-    rampa: function (desde, hacia) { return hacia === 0 ? CORO.sale : desde === 0 ? CORO.entra : hacia < desde ? CORO.baja : CORO.sube; }
+    rampa: function (desde, hacia) { return hacia === 0 ? CORO.sale : desde === 0 ? CORO.entra : hacia < desde ? CORO.baja : CORO.sube; },
+    /* La curva ease-in/ease-out (coseno): arranca y termina con velocidad cero. Igual que CoroReglas.curva en la app. */
+    curva: function (p) { var x = Math.max(0, Math.min(1, p)); return (1 - Math.cos(Math.PI * x)) / 2; },
+    /* Los puntos de una rampa de `desde` a `hacia` para setValueCurveAtTime. */
+    puntos: function (desde, hacia, n) { var a = new Float32Array(n); for (var i = 0; i < n; i++) a[i] = desde + (hacia - desde) * coroReglas.curva(i / (n - 1)); return a; }
   };
   var coroCtx = null, coroBuf = null, coroBufP = null;
   function enApp() { try { return !!(w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.alma); } catch (e) { return false; } }
@@ -159,7 +164,12 @@
     function poner(v, t) {
       if (enApp()) { try { w.webkit.messageHandlers.alma.postMessage({ accion: "voz", que: "coro", v: v, t: t }); } catch (e) {} return; }
       if (!gan || !coroCtx) return;
-      try { var g = gan.gain, a = coroCtx.currentTime; g.cancelScheduledValues(a); g.setValueAtTime(g.value, a); g.linearRampToValueAtTime(v, a + t); } catch (e) {}
+      try {
+        var g = gan.gain, a = coroCtx.currentTime, d = g.value;
+        if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(a); else g.cancelScheduledValues(a);
+        g.setValueAtTime(d, a);
+        if (t > 0.02) g.setValueCurveAtTime(coroReglas.puntos(d, v, 64), a, t); else g.setValueAtTime(v, a);
+      } catch (e) { try { g.cancelScheduledValues(a); g.setValueAtTime(v, a); } catch (e2) {} }
     }
     function bajarTecleo(on) { if (on === bajo) return; bajo = on; try { tecleo(on ? CORO.tecleo : 1); } catch (e) {} }
     function arrancar() {
@@ -172,9 +182,12 @@
       }
       sonando = true; objetivo = 0; return true;
     }
-    function soltar() {
-      if (src) { try { src.stop(); } catch (e) {} try { src.disconnect(); gan.disconnect(); } catch (e) {} }
+    function soltar(tras) {
+      var s = src, g = gan;
       src = null; gan = null; sonando = false; objetivo = 0;
+      if (!s) return;
+      function fin() { try { s.stop(); } catch (e) {} try { s.disconnect(); g.disconnect(); } catch (e) {} }
+      if (tras) setTimeout(fin, tras); else fin();
     }
     function tick() {
       var ahora = Date.now();
@@ -197,7 +210,7 @@
         activas[id] = Date.now(); if (!reloj) reloj = setInterval(tick, 25);
       },
       termina: function (id) { if (id) delete activas[id]; if (!hay()) bajarTecleo(false); },
-      corta: function () { activas = {}; bajarTecleo(false); if (reloj) { clearInterval(reloj); reloj = 0; } if (sonando) { poner(0, 0.05); soltar(); } }
+      corta: function () { activas = {}; bajarTecleo(false); if (reloj) { clearInterval(reloj); reloj = 0; } if (sonando) { poner(0, CORO.corte); soltar(CORO.corte * 1000 + 60); } }
     };
   }
   function agenteHalo(a) {

@@ -1004,6 +1004,78 @@
   .tvb-cara img { width: 100%; height: 100%; object-fit: cover; }
   .tvb-dato.con-cara { padding-right: 46px; }
   .tvb-dato.con-cara > .tvb-cara { position: absolute; right: 10px; top: 50%; margin-top: -15px; width: 30px; height: 30px; font-size: 10px; }
+  /* ── Bento vivo (#810, opción A; js/alma-bento.js): en el iPad y la computadora el bento del Hub rodea a la roca, que no se
+     mueve ni se achica; las tarjetas dejan libre el hueco del centro (la roca, lo que dice Alma, «Chat» y «Llamada») y los
+     rieles de los bordes (#788). Siempre 1 imagen y 1 GIF. Se esconde con las esferas y sus niveles, las hojas y el chat. ── */
+  .bv { position: absolute; inset: 0; pointer-events: none; font: 500 12px/1.4 Montserrat, system-ui, sans-serif; color: #3E3F3F; text-align: left; transition: opacity .3s ease; }
+  .bv-capa { position: absolute; inset: 0; }
+  .bv-reg { position: absolute; display: flex; flex-direction: column; gap: 16px; pointer-events: none; }
+  .bv-reg.abajo { flex-direction: row; }
+  .bv-reg.abajo.dos { display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 1fr; }
+  .bv-reg.abajo.dos > .bv-c:first-child { grid-row: span 2; }
+  .bv-c { position: relative; min-height: 0; min-width: 0; display: flex; pointer-events: auto; opacity: 0; transform: translateX(var(--dx, 0)) scale(.94); filter: blur(6px);
+    transition: opacity .7s cubic-bezier(.22,.61,.36,1) calc(var(--i, 0) * 60ms), transform .7s cubic-bezier(.22,.61,.36,1) calc(var(--i, 0) * 60ms), filter .7s ease calc(var(--i, 0) * 60ms); }
+  .bv-reg.abajo .bv-c { flex-basis: 0; }
+  .bv-capa.on .bv-c, .bv-capa.ya .bv-c { opacity: 1; transform: none; filter: none; }
+  .bv-capa.ya .bv-c { transition: none; }
+  .bv-capa.sale .bv-c { opacity: 0; filter: none; transition: opacity .25s ease; }
+  .bv-c > .tvb-t, .bv-c > section { flex: 1; min-height: 0; border-radius: 22px; padding: 16px 18px; background: rgba(255,253,251,.94); box-shadow: 0 22px 46px -30px rgba(40,30,25,.55); overflow: hidden; }
+  .bv-c > .tvb-foto, .bv-c > .tvb-mapa, .bv-c > .tvb-galeria, .bv-c > .bv-gif { padding: 0; }
+  .bv .tvb-k { font-size: 10px; letter-spacing: .2em; }
+  .bv .tvb-v { font-size: 30px; }
+  .bv .tvb-p, .bv .tvb-msg q, .bv .tvb-l li { font-size: 13.5px; }
+  .bv .tvb-galeria { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+  .bv .tvb-galeria img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .bv .tvb-av { width: 64px; height: 64px; left: 18px; bottom: 18px; border-width: 3px; font-size: 20px; }
+  .bv .tvb-foto .tvb-chip { top: 16px; left: 16px; }
+  /* el nombre sobre la foto, con su velo (nunca texto directo sobre la foto) */
+  .bv-pie { position: absolute; left: 0; right: 0; bottom: 0; padding: 44px 18px 18px; color: #FFFDFB; background: linear-gradient(to top, rgba(30,22,20,.72), rgba(30,22,20,0)); }
+  .bv-pie.con-av { padding-left: 96px; min-height: 64px; }
+  .bv-pie b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; font: 400 30px/1.05 Valky, "Cormorant Garamond", Georgia, serif; overflow: hidden; text-wrap: balance; }
+  .bv-pie small { display: block; margin-top: 4px; font-size: 13px; opacity: .92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bv-marca { background: #B9A493; }
+  .bv-marca > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  /* el GIF: siempre uno; la broma (js/alma-gif.js) lo tapa unos segundos */
+  .bv-gif { position: relative; background: #1F1F1F; }
+  .bv-gif > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bv-gif.bv-emoji { background: linear-gradient(140deg, #F7EBC6, #CFE6DE); }
+  .bv-gif.bv-emoji > img { object-fit: contain; padding: 14%; box-sizing: border-box; }
+  .bv-gif-alt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 48px; }
+  .bv-cred { position: absolute; right: 10px; bottom: 8px; font: 600 9px/1 Montserrat, system-ui, sans-serif; letter-spacing: .04em; color: rgba(255,255,255,.85); text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .bv-emoji .bv-cred { color: rgba(0,0,0,.45); text-shadow: none; }
+  /* datos chicos juntos: «La estadía» en renglones */
+  .bv-datos { display: flex; flex-direction: column; gap: 2px; }
+  .bv-datos > * { flex: none; }
+  .bv-reg.lado .tvb-galeria { grid-auto-flow: row; grid-auto-rows: 1fr; }
+  .bv-fila { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 2px 10px; padding: 9px 0; border-bottom: 1px solid rgba(62,63,63,.08); }
+  .bv-fila:last-child { border-bottom: 0; }
+  .bv-fila > span { font-size: 13px; color: #6F6867; }
+  .bv-fila > b { font: 400 21px/1.1 Valky, "Cormorant Garamond", Georgia, serif; text-align: right; }
+  .bv-fila > small { grid-column: 1 / -1; font-size: 11.5px; color: #6F6867; }
+  .bv-lista[role=button], .bv-areas[role=button] { cursor: pointer; }
+  .bv-nada { font-size: 22px !important; color: #6F6867; }
+  .bv-ar { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+  .bv-ar li { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid rgba(62,63,63,.08); font-size: 13px; }
+  .bv-ar li b { font: 400 20px/1 Valky, Georgia, serif; }
+  .bv-c > section.tvc, .bv-c > section { padding: 14px; }
+  /* el tema arriba, en el hueco: «● Huésped · Valeria Ríos» */
+  .bv-tema { position: absolute; left: 50%; transform: translateX(-50%); max-width: 420px; box-sizing: border-box; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px;
+    background: rgba(255,253,251,.92); box-shadow: 0 10px 26px -18px rgba(40,30,25,.6); font: 600 13px Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity .5s ease .2s; }
+  .bv-tema[hidden] { display: none; }
+  .bv-tema i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #E9826A; }
+  .bv-capa.on .bv-tema, .bv-capa.ya .bv-tema { opacity: 1; }
+  .bv-capa.sale .bv-tema { opacity: 0; transition: opacity .2s ease; }
+  html.bv-tema-on .hola { opacity: 0 !important; }
+  /* Escondido con las esferas y sus niveles (#831), las hojas, el chat, Pendientes, Notificaciones y al entrar */
+  body.orbita-on .bv, body.san-hoja .bv, body.entrando .bv, #sa-nav-root .san-ov.chat .bv, #sa-nav-root .san-ov.pend .bv, #sa-nav-root .san-ov.noti .bv { opacity: 0; }
+  body.orbita-on .bv *, body.san-hoja .bv *, body.entrando .bv *, #sa-nav-root .san-ov.chat .bv *, #sa-nav-root .san-ov.pend .bv *, #sa-nav-root .san-ov.noti .bv * { pointer-events: none !important; }
+  #sa-nav-root .san-ov.ending .bv { opacity: .4; }
+  /* Subtítulos sobre el bento: en el hueco del centro, más anchos y con su fondo oscuro (blanco sobre ~#3A3032: contraste
+     6:1 o más, WCAG AA) para que se lean sobre cualquier atardecer; sin texto, sin fondo. */
+  html.bv-on #sa-nav-root .san-ov-ui { width: min(420px, calc(100% - 32px)); }
+  html.bv-on #sa-nav-root .san-ov-cap:not(:empty) { background: rgba(34,26,28,.72); box-shadow: 0 0 0 12px rgba(34,26,28,.72); border-radius: 6px; text-shadow: none;
+    -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+  @media (prefers-reduced-motion: reduce) { .bv-c { transform: none !important; filter: none !important; transition: opacity .25s ease !important; } }
   /* Tablero de datos (#607, apps-script/tablero.js): número grande, barras y línea de tiempo, en el mismo bento. Un solo
      color (el coral de Alma) para las barras; el valor va escrito al lado (sin leyenda ni eje). */
   .tvb-numero { display: flex; flex-direction: column; justify-content: center; }
@@ -1540,10 +1612,11 @@
 <script src="../js/sa-auth-client.js?v=2026-11-18a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-18-alma-ws"></script>
-<script src="../js/alma-voz.js?v=2026-11-17-espera"></script>
+<script src="../js/alma-voz.js?v=2026-11-19-bv"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
-<script src="../js/alma-gif.js?v=2026-11-16a"></script>
+<script src="../js/alma-gif.js?v=2026-11-19-bv"></script>
+<script src="../js/alma-bento.js?v=2026-11-19a"></script>
 <script>
 /* UNA ROCA, UN PULSO: las esferas de las áreas y los anillos en órbita respiran en la misma fase que la roca. La roca usa
    el reloj de la página (sa-nav.js: J.p = t % PULSE, 3.6 s); sus animaciones de CSS (esf-quieta, esf-halo) arrancan en ese
@@ -1613,6 +1686,12 @@ window.SAPulso = {
       resolver: function (id) { return ALMA.pendienteResolver(id); }, responder: function (id, t) { return ALMA.pendienteResponder(id, t); }, nota: function (o) { return ALMA.pendienteNota(o); }, unir: function (u) { return ALMA.unirPr(u); }, iconos: ICON },
       notificaciones: { cargar: function () { return ALMA.notificaciones().then(function (r) { return fotoGuardar("noti", r); }); }, foto: fotoLeer("noti") } });
     setTimeout(function () { $("b-ajustes").classList.add("on"); $("b-comp").classList.add("on"); }, 900);
+    /* Bento vivo (#810): en el iPad y la computadora, el bento del Hub alrededor de la roca. Tocar una tarjeta del reposo
+       abre lo suyo: Pendientes, Notificaciones o las esferas. */
+    if (window.AlmaBento) AlmaBento.iniciar({ abrir: function (que) {
+      if (que === "areas") { if (!OR.abierta) orbita(true); return; }
+      var b = document.querySelector('#sa-nav-root .san-ov [data-a="' + (que === "noti" ? "noti" : "pend") + '"]') || document.querySelector('#sa-nav-root [data-a="' + que + '"]'); if (b) b.click();
+    } });
   }
 
   /* ── Áreas de vida (Propósito, Relaciones, Finanzas, Health, Comunidad, Esencia): proyectos y conversaciones de cada una.
@@ -1634,7 +1713,8 @@ window.SAPulso = {
     if (!AR.temprano) return;   // los datos eran de verdad: nada que quitar
     AR.temprano = false; AR.datos = null; OR.armada = false; orbita(false); SANav.escena(null); $("orbita").innerHTML = ""; ES = [];
   }
-  function areasAplicar(r) { AR.temprano = false; AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0; }
+  function areasAplicar(r) { AR.temprano = false; AR.datos = r.areas; AR.cajones = r.cajones || []; AR.sin = r.sin_clasificar || 0; AR.archivadas = r.archivadas || 0;
+    try { if (window.AlmaBento) AlmaBento.areas(r); } catch (e) {} }   // el bento vivo del reposo: «Tus áreas» (#810)
   function areasIniciar() { areasCargar().then(function (r) { if (r && r.ok) orbitaArmar(); }); }
 
   /* Las esferas: sus íconos (trazo como los del Hub) y su lugar alrededor de Alma. */
@@ -2461,7 +2541,8 @@ window.SAPulso = {
       if (!OR.armada && !orbitaTemprano()) return false; if (OR.abierta) { abanicoCerrar(); return true; } orbita(true); return true; },
     alVolver: function () { nativa({ accion: "navegador", pos: "" }); },
     /* la barra de avisos sigue a Pendientes y Notificaciones; 2 toques con las esferas abiertas: Alma te cuenta tus avisos */
-    alDatos: function () { avisoArmar(); if (NV.pila.length && !NV.esperas.length && !NV.sel) nvAplicar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas" && eoFirma(AR.area) !== EO.firma) areasPintar(); },   /* las órbitas, solo si cambió lo que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
+    alDatos: function () { avisoArmar(); try { if (window.AlmaBento) AlmaBento.datos(); } catch (e) {}   // el bento vivo del reposo (#810)
+      if (NV.pila.length && !NV.esperas.length && !NV.sel) nvAplicar(); if (AR.abierta && AR.area && EO_C[AR.area] && !EO.sel && eoVista() === "orbitas" && eoFirma(AR.area) !== EO.firma) areasPintar(); },   /* las órbitas, solo si cambió lo que pide atención */ alDoble: function () { if (OR.abierta) modoAvisos(); } });
   /* Entrando: Alma más arriba y más chica, para dejar lugar a las formas de entrar. */
   var t = SANav.escena(ent ? null : { y: .3, s: 190 });
   if (ent) { var yo = sesion(), pp = yo.p || {}; conVoz(pp.primer_nombre || yo.n || pp.nombre); }
@@ -3865,7 +3946,7 @@ window.SAPulso = {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   function nativa(m) { try { webkit.messageHandlers.alma.postMessage(m); } catch (e) {} }
-  var TV = { t: null, vista: "nada", movida: false, reloj: 0, card: null, pest: null, preg: "", fin: 0 };
+  var TV = { t: null, vista: "nada", movida: false, reloj: 0, card: null, pest: null, preg: "", fin: 0, bv: false };
   var FIN_MS = 3000;   // del fin de la llamada al cambio de pantalla (Juan: «un pequeño retraso»)
   var IC = {
     chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>',
@@ -4322,8 +4403,21 @@ window.SAPulso = {
   function ov() { return document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov"); }
   /* La llamada pasó a chat, a Pendientes o se minimizó: la tarjeta espera (y vuelve después) */
   function tapada() { var ov = document.querySelector("#sa-nav-root .san-ov") || document.querySelector(".san-ov"); return !ov || !ov.classList.contains("on") || /(^|\s)(chat|min|pend|noti|ending)(\s|$)/.test(ov.className); }
+  /* Bento vivo (#810): en el iPad y la computadora, la tarjeta (con cuadros o sin ellos) va en las tarjetas del bento que
+     rodea a la roca; la roca se queda al centro con su tamaño y nada se va a la esquina (js/alma-bento.js). */
+  function vivoUsar(t) { return !!(t && window.AlmaBento && AlmaBento.ancho()); }
+  function pintarVivo(t, v) {
+    var abierta = v === "abierta" || v === "detalle", raiz = document.documentElement;
+    raiz.classList.remove("tv-on", "tvb-on"); roca(null);
+    if (abierta) { if (!TV.bv || TV.cardId !== t.id) AlmaBento.tema(t, { cuadro: function (c) { return cuadro(c, t); }, claudio: esClaudio(t) ? pintarClaudio(t) : null }); TV.bv = true; TV.cardId = t.id; TV.card = AlmaBento.el(); }
+    else { if (TV.bv) AlmaBento.reposo(); TV.bv = false; TV.card = null; }
+    vivo(abierta);
+    pestana(t, v, false, false);
+  }
   function pintar() {
     var t = TV.t, v = t ? TV.vista : "nada", abierta = v === "abierta" || v === "detalle";
+    if (vivoUsar(t)) return pintarVivo(t, v);
+    if (TV.bv) { TV.bv = false; TV.card = null; if (window.AlmaBento) AlmaBento.reposo(); }
     var raiz = document.documentElement, misma = !!(TV.card && t && TV.cardId === t.id), bento = esBento(t) || esClaudio(t);   // el Panel de Claudio va donde el tablero
     /* El tablero bento: sobre el atardecer, debajo de la roca y de los botones; la misma tarjeta no se vuelve a armar. */
     if (bento && abierta && misma && TV.card.classList.contains("tvb") && TV.card.parentNode === ov()) { roca("esquina"); return vivo(true); }
@@ -4345,7 +4439,10 @@ window.SAPulso = {
     }
     if (!abierta || !TV.card) { raiz.classList.remove("tv-on", "tvb-on"); roca(null); }
     vivo(!!(TV.card && bento));
-    /* La pestañita */
+    pestana(t, v, bento, abierta);
+  }
+  /* La pestañita (y el reloj que vuelve a pintar si la llamada tapó la tarjeta) */
+  function pestana(t, v, bento, abierta) {
     var p = TV.pest;
     if (!p) { p = TV.pest = el("button", "tv-pest"); p.type = "button"; p.hidden = true; p.onclick = function () { hacer("abrir"); }; document.body.appendChild(p); }
     if (v === "pestana") {
@@ -4357,7 +4454,7 @@ window.SAPulso = {
     if (v !== "nada") TV.reloj = setInterval(function () {
       var tp = tapada();
       if (TV.pest) TV.pest.style.visibility = tp ? "hidden" : "";
-      if (abierta && !tp && (!TV.card || TV.card.parentNode !== (bento ? ov() : ui()))) pintar();
+      if (abierta && !tp && !TV.bv && (!TV.card || TV.card.parentNode !== (bento ? ov() : ui()))) pintar();
     }, 700);
   }
   /* Respaldo para la app de antes (la encogía a los 20 s): mientras el tablero está a la vista, un toque cada 12 s. La app
@@ -4367,7 +4464,7 @@ window.SAPulso = {
     if (!TV.vivo) TV.vivo = setInterval(function () { if (TV.card && !tapada() && document.visibilityState !== "hidden") hacer("toque"); }, 12000);
   }
   /* ¿Hay un tablero a la vista? (vozNativaEvento espera FIN_MS antes de cerrar la llamada de la roca) */
-  function enPantalla() { return !!(TV.fin || (TV.card && TV.card.classList.contains("tvb") && TV.card.classList.contains("on") && !tapada())); }
+  function enPantalla() { return !!(TV.fin || (TV.bv && window.AlmaBento && AlmaBento.enTema()) || (TV.card && TV.card.classList.contains("tvb") && TV.card.classList.contains("on") && !tapada())); }
   /* La llamada terminó: el tablero se queda FIN_MS y después se va (con la llamada de la roca). Sin tablero, enseguida. */
   function soltar() {
     if (TV.fin) return;
@@ -4395,6 +4492,16 @@ window.SAPulso = {
     /* Modo compañero (#607): el mismo tablero, armado aparte y sin botones (desde aquí no se llama ni se abre nada) */
     bento: function (t) { return esClaudio(t) ? pintarClaudio(t) : esBento(t) ? pintarBento(t, true) : null; }
   };
+  /* Bento vivo: tocar una tarjeta mantiene la tarjeta (como tocar el tablero); al girar el iPad a una pantalla angosta
+     vuelve el tablero de siempre. */
+  if (window.AlmaBento) AlmaBento.iniciar({ hacer: function (h) { if (TV.t) hacer(h); } });
+  /* La llamada web de la computadora (js/alma-voz.js) también trae la tarjeta del tema para el Bento vivo. */
+  window.addEventListener("sa-voz-tarjeta", function (e) {
+    var x = (e && e.detail) || {};
+    if (x.fin) { soltar(); return; }
+    if (x.tarjeta && x.tarjeta.id) { seguir(); TV.local = false; TV.t = x.tarjeta; TV.vista = "abierta"; pintar(); }
+  });
+  window.addEventListener("resize", function () { if (TV.t && TV.bv !== vivoUsar(TV.t)) pintar(); });
 })();
 </script>
 <script>

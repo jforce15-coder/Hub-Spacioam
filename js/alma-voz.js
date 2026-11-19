@@ -222,9 +222,31 @@
       return j;
     });
   }
+  /* Bento vivo (#810, js/alma-bento.js): en la computadora (pantalla ancha) la llamada web también muestra la tarjeta del
+     tema en el bento. La llamada se liga como «expandida» (el Hub solo arma tarjetas ahí o en la app: tvPermitida_) y,
+     cuando contesta la secretaria, se pide la tarjeta UNA vez (vozTarjeta, sin IA ni Hospitable). La página la recibe con
+     el evento «sa-voz-tarjeta» ({ tarjeta } o { fin: true }). */
+  function bvActivo() { try { return !o.vincular && !!(w.AlmaBento && w.AlmaBento.ancho()); } catch (e) { return false; } }
+  function hubPost(action, extra) {
+    var dst = w.ALMA && w.ALMA.destino ? w.ALMA.destino() : null, ses = w.SAAuth && w.SAAuth.session ? w.SAAuth.session() : null;
+    if (!dst || !dst.url) return Promise.resolve(null);
+    return fetch(dst.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
+      body: JSON.stringify(Object.assign({ hub: 1, action: action, token: dst.token, session: ses }, extra || {})) })
+      .then(function (r) { return r.json(); }).catch(function () { return null; });
+  }
+  var tvConv = "", tvUltima = "";
+  function tvAvisar(d) { try { w.dispatchEvent(new CustomEvent("sa-voz-tarjeta", { detail: d })); } catch (e) {} }
+  function tvPedir() {
+    if (!tvConv || !bvActivo()) return;
+    hubPost("vozTarjeta", { conv_id: tvConv }).then(function (j) {
+      var t = j && j.ok && j.tarjeta; if (!t || !t.id || t.id === tvUltima) return;
+      tvUltima = t.id; tvAvisar({ tarjeta: t });
+    });
+  }
   /* Liga la llamada al administrador en el Hub; si falla (red, Hub dormido), reintenta. */
   function vincular(id, n) {
     var fn = o.vincular || (w.ALMA && w.ALMA.vozWebVincular); if (!fn) return;
+    if (bvActivo()) fn = function (x) { return hubPost("vozWebVincular", { conv_id: x, expandida: 1 }); };
     Promise.resolve().then(function () { return fn(id); }).then(function (r) { if ((!r || !r.ok) && n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); },
       function () { if (n < 3) setTimeout(function () { vincular(id, n + 1); }, 1500 * (n + 1)); });
   }
@@ -253,16 +275,17 @@
     agenteHalo("alma");
     sonido("alma-inicio", true);
     function despedida() { if (sono) { sono = false; if (!enChat) sonido("alma-fin"); } }
-    function terminada() { coro.permitir(false); vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
+    function terminada() { if (tvConv) { tvConv = ""; tvUltima = ""; tvAvisar({ fin: true }); } coro.permitir(false); vivo = null; saleClaudio(); w.removeEventListener("sa-claudio-contexto", alContexto); agenteHalo("alma"); despedida(); h.ended(); if (o.alTerminar) { try { o.alTerminar(); } catch (e) {} } }
     function abrir(f, m, u) {
       var yo = serie, claudio = agente === "claudio";
       var opt = {
         signedUrl: u, connectionType: "websocket", dynamicVariables: claudio ? (f.dynamic_variables || {}) : conCtx(f.dynamic_variables || {}),
-        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) vincular(x.conversationId, 0);
+        onConnect: function (x) { if (yo !== serie) return; h.status("Te escucho"); if (!claudio && x && x.conversationId) { tvConv = x.conversationId; vincular(x.conversationId, 0); }
           if (claudio && x && x.conversationId) { convClaudio = x.conversationId; avisoClaudio("entra", convClaudio); } },   // Panel de Claudio: la lista al entrar
         onAgentToolRequest: function (r) { if (yo !== serie || !r) return; coro.empieza(r.tool_call_id, String(r.tool_name || "")); },
         onInterruption: function () { if (yo !== serie) return; coro.corta(); },
         onAgentToolResponse: function (r) { if (yo !== serie || !r) return; coro.termina(r.tool_call_id);
+          if (!claudio && String(r.tool_name || "") === "secretaria") tvPedir();
           if (!claudio || !convClaudio || !/^claudio_/.test(String(r.tool_name || ""))) return; avisoClaudio("herramienta", convClaudio); },
         onMessage: function (x) { if (!x || yo !== serie) return; if (x.source === "ai") textoAlma = Date.now(); var t = x.source === "ai" ? limpiar(x.message) : x.message; if (t) { h.message(x.source, t); if (o.alMensaje) { try { o.alMensaje(x.source, t); } catch (e) {} } } },
         onModeChange: function (x) { if (yo !== serie || !x) return; habla = x.mode === "speaking"; if (!habla) callada = Date.now(); if (!enChat) h.status(habla ? (claudio ? "Claudio habla" : "Alma habla") : "Te escucho"); },
@@ -273,7 +296,7 @@
          (o.herramientas, p. ej. «Alma aquí»), se contesta enseguida que no se pudo: Alma lo dice por voz y nunca espera. */
       var ht = { mostrar_en_chat: function () { return "Aquí no hay chat a la vista: no se mostró. Díselo por voz, en corto, solo lo más importante."; },
         nivel_weebo: function () {},   // medidor de la app de iPhone (#410): aquí no se muestra; no espera respuesta
-        mostrar_gif: function () {},   // el GIF de la broma: solo en la app de iPhone (gif.js); aquí no se muestra
+        mostrar_gif: function (p) { if (bvActivo()) { try { w.dispatchEvent(new CustomEvent("sa-voz-gif", { detail: { idea: p && p.idea } })); } catch (e) {} } },   // el GIF de la broma: en el Bento vivo de la computadora (js/alma-gif.js); en otra página, nada
         // las tarjetas de clubes viven solo en el iPhone (voz.js, vozMostrarTarjetaClub_): aquí no hay ninguna
         mostrar_tarjeta_club: function () { return "Las tarjetas de clubes se guardan y se muestran solo en la app de Alma del iPhone: aquí no se pueden poner en pantalla. Díselo en una frase."; } };
       if (o.herramientas) for (var k in o.herramientas) ht[k] = o.herramientas[k];

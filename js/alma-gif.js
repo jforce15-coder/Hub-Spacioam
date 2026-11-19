@@ -7,6 +7,7 @@
    · con el tablero bento a la vista: encima de UN cuadro (el dato más grande; nunca la foto ni el mapa), unos segundos, y se
      quita con un fundido: el cuadro vuelve a su información;
    · sin tablero, con el chat de la llamada a la vista: como una burbuja de Alma en el chat (se queda, como lo demás del chat);
+   · con el Bento vivo (iPad y computadora, #810): encima del GIF del tema, unos segundos, y vuelve el del tema;
    · si no hay nada a la vista, no se muestra.
    Uno a la vez: si ya hay un GIF en pantalla, el siguiente se ignora. Sin dependencias; no toca sa-nav.js ni alma-client.js. */
 (function () {
@@ -44,6 +45,9 @@
   /* El cuadro que se vuelve GIF: el dato más grande del tablero (un número: lo que menos se extraña unos segundos); sin
      datos, el más chico de los demás. Nunca la foto ni el mapa. */
   function cuadroDelTablero() {
+    /* Bento vivo (#810): la broma tapa el GIF del tema unos segundos y después vuelve el del tema (js/alma-bento.js). */
+    var bv = null; try { bv = window.AlmaBento && AlmaBento.gifCuadro ? AlmaBento.gifCuadro() : null; } catch (e) {}
+    if (bv) return bv;
     var tabs = Array.prototype.filter.call(document.querySelectorAll(".tvb"), visible); if (!tabs.length) return null;
     var cs = Array.prototype.filter.call(tabs[tabs.length - 1].querySelectorAll(".tvb-t"), function (c) {
       return visible(c) && !/(^|\s)tvb-(foto|mapa)(\s|$)/.test(c.className) && c.offsetWidth >= 80 && c.offsetHeight >= 60;
@@ -84,6 +88,8 @@
       G.activo = false;
     });
   }
+  /* La llamada web de la computadora con el Bento vivo (js/alma-voz.js, mostrar_gif) */
+  window.addEventListener("sa-voz-gif", function (e) { mostrar(e && e.detail && e.detail.idea); });
   window.AlmaGif = {
     evento: function (e) {
       if (!e) return;

@@ -50,7 +50,7 @@ var VOZ_RAPIDO_MODELO_ = 'claude-haiku-5-5';
    agEjecutar_, que revisa el rol igual que siempre (códigos y agenda solo del principal). */
 var VOZ_RAPIDO_HERR_ = ['buscar_reservas', 'cancelaciones', 'historial_reserva', 'programados_reserva', 'ver_conversacion', 'ver_agenda', 'ruta_del_dia',
   'tareas_abiertas', 'promesas_abiertas', 'mensajes_programados', 'propuestas_agentes', 'estado_equipos', 'vigilancias', 'ver_propiedad', 'codigo_acceso',
-  'memoria_propiedad', 'cupo_google', 'gasto_alma', 'buscar_en_mi_chat', 'anillo', 'pedidos_en_orbita'];
+  'memoria_propiedad', 'consultas_tema', 'cupo_google', 'gasto_alma', 'buscar_en_mi_chat', 'anillo', 'pedidos_en_orbita'];
 /* Tope del camino rápido. Guardia 19-nov-2026 (parte 3, propuesta de Juan): de 9 s a 5 s. Con 9 s el rápido gastaba
    7-13 s antes de pasar al completo y se pagaban dos vueltas; ahora, pasados 5 s, lo ya leído pasa al completo (rapidoReusar_)
    y no se espera otra vuelta. La propiedad VOZ_RAPIDO_MS (ms, 2000 a 15000) lo cambia sin un PR. */

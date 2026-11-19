@@ -31,14 +31,26 @@ function gifApto_(g) {
   return !!(g && String(g.rating || '').toLowerCase() === 'g' && !Number(g.is_sticker) && String(g.type || 'gif') === 'gif' && im && /^https:\/\//.test(String(im.url || '')));
 }
 function gifImagen_(g) { var im = g.images.downsized || g.images.downsized_medium || g.images.fixed_height; return String(im.url); }
-/* GIPHY, solo rating g. Devuelve null si no hay llave, falla o no hay un resultado apto (entonces va el del catálogo). */
+/* Juan, 19-nov-2026: «los GIFs que utilicemos, que siempre sean cinematográficos: algún meme de alguna película, frames de
+   alguna serie de televisión». La búsqueda pide escenas de cine o series («… movie scene», después «… tv show») y, entre
+   los aptos, primero los de cuentas verificadas (estudios, cadenas y series oficiales); solo si no hay nada, la idea sola. */
+var GIF_CINE_ = [' movie scene', ' tv show', ''];
+function gifCine_(idea) { return /\b(movie|film|scene|tv|series|show|episode)\b/i.test(idea) ? [''] : GIF_CINE_; }
+function gifOficialPrimero_(l) {
+  var of = function (g) { return g && g.user && g.user.is_verified ? 1 : 0; };
+  return l.map(function (g, i) { return { g: g, i: i }; }).sort(function (a, b) { return of(b.g) - of(a.g) || a.i - b.i; }).map(function (x) { return x.g; });
+}
+function gifGiphyAptos_(key, q, limit) {
+  var r = uf_('https://api.giphy.com/v1/gifs/search?api_key=' + encodeURIComponent(key) + '&q=' + encodeURIComponent(q) +
+    '&limit=' + limit + '&rating=g&lang=en&bundle=messaging_non_clips', { muteHttpExceptions: true });
+  if (r.getResponseCode() !== 200) { console.warn('gifGiphy_: HTTP ' + r.getResponseCode()); return null; }
+  return gifOficialPrimero_(((JSON.parse(r.getContentText()) || {}).data || []).filter(gifApto_));
+}
+/* GIPHY, solo rating g y de cine o series. Devuelve null si no hay llave, falla o no hay un resultado apto (entonces va el del catálogo). */
 function gifGiphy_(idea) {
   var key = PropertiesService.getScriptProperties().getProperty('GIPHY_KEY'); if (!key) return null;
-  var url = 'https://api.giphy.com/v1/gifs/search?api_key=' + encodeURIComponent(key) + '&q=' + encodeURIComponent(idea) +
-    '&limit=10&rating=g&lang=en&bundle=messaging_non_clips';
-  var r = uf_(url, { muteHttpExceptions: true });
-  if (r.getResponseCode() !== 200) { console.warn('gifGiphy_: HTTP ' + r.getResponseCode()); return null; }
-  var aptos = ((JSON.parse(r.getContentText()) || {}).data || []).filter(gifApto_);
+  var cola = gifCine_(idea), aptos = [];
+  for (var i = 0; i < cola.length && !aptos.length; i++) { aptos = gifGiphyAptos_(key, (idea + cola[i]).trim(), 10); if (aptos === null) return null; }
   if (!aptos.length) return null;
   var g = aptos[Math.floor(Math.random() * Math.min(5, aptos.length))];
   return { ok: true, url: gifImagen_(g), alt: String(g.title || idea).slice(0, 80), fuente: 'giphy', credito: 'GIPHY', segundos: GIF_SEGUNDOS_ };
@@ -63,7 +75,7 @@ function gifApi_(ses, idea) {
    rotando y que no sea siempre el mismo. Y si Alma hace una broma, poner un GIF mientras está la broma y luego quitarlo.»
    Y el mismo día: «deberíamos poner GIFs de memes, de esos que son mini fragmentos de video, no emojis».
    · Un catálogo de temas con 7 GIFs de reacción (memes) cada uno. Se eligen UNA vez en GIPHY (endpoint de GIFs, nunca
-     stickers; rating g; búsqueda tipo «… reaction» o «… meme») y quedan guardados en la propiedad del script GIF_TEMAS;
+     stickers; rating g; desde el 19-nov-2026, escenas de cine o series: «… movie scene») y quedan guardados en la propiedad del script GIF_TEMAS;
      nunca se buscan en cada cambio de tema. Ya no hay emojis: un tema sin GIFs va vacío y la página usa los del reposo.
    · Editable sin PR: la propiedad GIF_TEMAS (JSON { tema: [ { url, alt } ×7 ] }) en el Apps Script, o el robot gif_temas:
      { tema, urls: [...] } (pone esos) · { tema, rehacer: true, q? } (lo vuelve a elegir en GIPHY, con otra búsqueda si
@@ -73,22 +85,30 @@ function gifApi_(ses, idea) {
      arriba de la roca, pasa uno y después otro sin repetir hasta agotar los 7. La broma (mostrar_gif) lo tapa unos segundos.
    · Solo administradores con sesión. */
 var GIF_TEMAS_PROP_ = 'GIF_TEMAS', GIF_POR_TEMA_ = 7;
+/* Desde el 19-nov-2026 (Juan: «siempre cinematográficos»), escenas de películas y series. GIF_TEMAS_ESTILO_ marca el
+   catálogo guardado: uno de antes (memes de reacción) se vuelve a elegir solo, 4 temas por vez. */
+var GIF_TEMAS_ESTILO_ = 'cine';
 var GIF_TEMAS_ = {
-  huesped:       { q: 'welcome reaction' },
-  salida:        { q: 'bye bye reaction' },
-  limpieza:      { q: 'cleaning meme' },
-  mantenimiento: { q: 'fixing it meme' },
-  cobro:         { q: 'money reaction' },
-  socio:         { q: 'high five reaction' },
-  buena_noticia: { q: 'good news celebration reaction' },
-  reserva_nueva: { q: 'excited reaction' },
-  apartamento:   { q: 'home sweet home reaction' },
-  datos:         { q: 'thinking math meme' },
-  claudio:       { q: 'robot dance meme' },
-  reposo:        { q: 'chill vibes reaction' }
+  huesped:       { q: 'welcome movie scene' },
+  salida:        { q: 'goodbye movie scene' },
+  limpieza:      { q: 'cleaning movie scene' },
+  mantenimiento: { q: 'fixing it movie scene' },
+  cobro:         { q: 'show me the money movie scene' },
+  socio:         { q: 'high five movie scene' },
+  buena_noticia: { q: 'celebration movie scene' },
+  reserva_nueva: { q: 'excited tv show scene' },
+  apartamento:   { q: 'home sweet home movie scene' },
+  datos:         { q: 'thinking hard movie scene' },
+  claudio:       { q: 'robot movie scene' },
+  reposo:        { q: 'relaxing movie scene' }
 };
-function gifTemasLeer_() { try { var o = JSON.parse(PropertiesService.getScriptProperties().getProperty(GIF_TEMAS_PROP_) || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
-function gifTemasGuardar_(o) { PropertiesService.getScriptProperties().setProperty(GIF_TEMAS_PROP_, JSON.stringify(o)); }
+function gifTemasLeer_() {
+  try {
+    var o = JSON.parse(PropertiesService.getScriptProperties().getProperty(GIF_TEMAS_PROP_) || '{}');
+    return o && typeof o === 'object' && o._estilo === GIF_TEMAS_ESTILO_ ? o : { _estilo: GIF_TEMAS_ESTILO_ };   // el de antes (memes de reacción) no se usa
+  } catch (e) { return { _estilo: GIF_TEMAS_ESTILO_ }; }
+}
+function gifTemasGuardar_(o) { o._estilo = GIF_TEMAS_ESTILO_; PropertiesService.getScriptProperties().setProperty(GIF_TEMAS_PROP_, JSON.stringify(o)); }
 /* Solo URLs de GIPHY (https): lo que llega a mano por el robot o la propiedad también pasa por aquí. */
 function gifTemaUrlOk_(u) { return /^https:\/\/(media\d?\.giphy\.com|i\.giphy\.com)\/[^\s"'<>]+$/.test(String(u || '')); }
 function gifTemaLimpio_(l) {
@@ -100,12 +120,10 @@ function gifTemaLimpio_(l) {
 function gifTemaBuscar_(tema, q) {
   var key = PropertiesService.getScriptProperties().getProperty('GIPHY_KEY'), def = GIF_TEMAS_[tema]; if (!key || !def) return null;
   q = gifIdea_(q) || def.q;
-  var r = uf_('https://api.giphy.com/v1/gifs/search?api_key=' + encodeURIComponent(key) + '&q=' + encodeURIComponent(q) +
-    '&limit=40&rating=g&lang=en&bundle=messaging_non_clips', { muteHttpExceptions: true });
-  if (r.getResponseCode() !== 200) { console.warn('gifTemaBuscar_: HTTP ' + r.getResponseCode()); return null; }
+  var aptos = gifGiphyAptos_(key, q, 40); if (aptos === null) return null;
   var vistos = {};
-  return ((JSON.parse(r.getContentText()) || {}).data || []).filter(function (g) {
-    if (!gifApto_(g) || vistos[g.id]) return false;
+  return aptos.filter(function (g) {
+    if (vistos[g.id]) return false;
     vistos[g.id] = 1; return gifTemaUrlOk_(gifImagen_(g));
   }).slice(0, 25).map(function (g) { return { url: gifImagen_(g), alt: String(g.title || q).slice(0, 80) }; });
 }

@@ -93,7 +93,7 @@ ok(c.pedidos.length === 1 && /[?&]rating=g(&|$)/.test(c.pedidos[0]) && /q=slow%2
 c = caja({ props: { GIPHY_KEY: 'k' }, giphy: { code: 200, data: [{ rating: 'r', images: { downsized_medium: { url: 'https://x/y.gif' } } }] } });
 r = c.gifApi_({ email: 'juan@x.com' }, 'mind blown');
 ok(!r.ok && !/notoemoji/.test(JSON.stringify(r)), 'Si GIPHY no trae nada apto (g) y no hay catálogo: no se muestra nada (nunca un emoji)');
-const CAT = JSON.stringify({ buena_noticia: [1, 2, 3, 4, 5, 6, 7].map(i => ({ url: 'https://media.giphy.com/media/bn' + i + '/giphy.gif', alt: 'yay' })) });
+const CAT = JSON.stringify({ _estilo: "cine", buena_noticia: [1, 2, 3, 4, 5, 6, 7].map(i => ({ url: 'https://media.giphy.com/media/bn' + i + '/giphy.gif', alt: 'yay' })) });
 c = caja({ props: { GIPHY_KEY: 'k', GIF_TEMAS: CAT }, giphy: { code: 500, data: [] } });
 r = c.gifApi_({ email: 'juan@x.com' }, 'aplauso');
 ok(r.ok && r.fuente === 'giphy' && /\/bn\d\//.test(r.url), 'GIPHY falla: un GIF ya elegido del catálogo de temas');

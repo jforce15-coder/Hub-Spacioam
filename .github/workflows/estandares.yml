@@ -380,6 +380,9 @@ jobs:
         # 16-nov: Juan eligió el diseño A3 para la bandeja del Hub (#567 T1): círculos arriba con el aro partido (estado y esfera)
         # y la lista como WhatsApp con un fondo muy tenue del color exacto de su esfera.
         run: node .github/bandeja-esferas.js apps-script
+      - name: Bandeja unificada, una persona por fila con todas sus redes, Instagram y Messenger con su ventana y lo delicado al equipo (dobles)
+        # 19-nov-2026 (#888): Juan eligió A en iPad y computadora y C en el iPhone; conexión propia con las APIs de Meta, apagada sin su llave.
+        run: node .github/bandeja-unica.js apps-script
       - name: Modo calle en un solo control, un toque escucha, un toque largo enciende o apaga y no hay interruptor en Ajustes
         # 16-nov: Juan quiere un solo botón del caminante en la pantalla principal; «Probar» queda en la línea y en Ajustes.
         run: node .github/calle-boton.js

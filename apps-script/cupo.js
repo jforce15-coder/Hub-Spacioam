@@ -90,7 +90,7 @@ var CUPO_ACCIONES_ = {
   chat: 'opEnviar opHilo opLista almaFoto almaArchivo mejorarCampo dictar plantillas claudioHilo claudioEscribir claudioAccion vozMuestra creatorVer creatorCambiar creatorDeshacer creatorPublicar creatorAbrir creatorIr',
   voz: 'musicaVuelve vozWeb vozFirma vozClaudio vozClaudioPanel claudioLocal vozWebVincular conferencia conferenciaAudio reporteLlamadas calle calleUso calleUsoLeer calleVoz avisoHablar vozCaida vozCaidas pruebasInicio',
   huespedes: 'responder responderWa adjunto hilo redactarHub cola reservaInfo programados programar adelantar cancelarProg editarProg setAuto setBorrador enviarAhora retener ' +
-    'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision calendarioProps calendarioVisto calendarioProp',
+    'guestReview enviarReview reviewHuesped respuestaReview publicarRespuesta apelacionReview waNumeros resolver limpiezas pasos foto promesas promesaCerrar ajustarBorrador decision calendarioProps calendarioVisto calendarioProp bandeja',
   cerebro: 'cerebro conexiones',
   viajes: 'viajes viajePase vueloVivo',   // botón del avión (viajes.js): leer el correo con la IA se pausa como lo de fondo, salvo con un tramo en 48 h
   fondo: 'mejoras automejora purgarAutomejora mejoraEditar mejoraEliminar mejoraVerificar proponerMejora prompts setPrompt agentes correos usoIA usoMensual uso ' +

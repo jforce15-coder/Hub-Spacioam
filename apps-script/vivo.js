@@ -11,13 +11,17 @@
      (tvCerrar_), y la voz dice «EN PANTALLA» igual.
    · Todo vive en la caché del script por usuario (la clave sale de su correo): solo la misma sesión verificada de ese
      administrador lo lee. Nada va a una hoja. Una llamada sin noticias en VIVO_VENCE_S_ se da por terminada.
+   · Terminar desde el compañero (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada; si por error se
+     activa, no puedo terminarla»): el botón «Terminar» del compañero pide vivoColgar. La llamada se da por terminada ya
+     (el compañero se cierra) y el Hub le dice a la app de la llamada «colgar» en su próximo vivoPublicar (la app manda uno
+     cada pocos segundos mientras alguien mira); la app cuelga y responde «fin». VIVO_COLGAR_SEG_: lo que vale el pedido.
    · Una sola voz (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono,
      por default el agente del teléfono»): si dos dispositivos del mismo administrador publican dos llamadas distintas a la
      vez, se queda la del iPhone. La otra recibe «ceder» al publicar y la app la cuelga (VozNativa.cederAlTelefono); lo que
      publique después esa llamada ya no pisa la del teléfono (vivo_cede_). Entre dos del mismo tipo, como antes: la última.
    Check con dobles: .github/modo-companero.js. */
 
-var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120;
+var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120, VIVO_COLGAR_SEG_ = 120;
 /* Juan, 19-nov-2026 («en el iPad parece como atascado, siempre está encendido»): una llamada que ya colgó no puede quedarse
    «en vivo» 10 min en el compañero. · Si ElevenLabs avisó que colgó pero la app había publicado hace poco (puede ser el paso
    a Claudio, vivoFin_), se espera VIVO_FIN_ESPERA_S_: si en ese rato la app no dice nada más, terminó (se perdió su «fin»).
@@ -61,6 +65,9 @@ function vivoPublicarApi_(ses, b) {
     if (dev === VIVO_TEL_) c.put('vivo_cede_' + h, String(antes.conv), VIVO_SEG_);   // el teléfono llegó después: la otra cede
   }
   var e = { conv: conv, estado: VIVO_ESTADOS_.indexOf(est) >= 0 ? est : (antes.conv === conv ? antes.estado : 'hablando'), dev: dev || (antes.conv === conv ? antes.dev || '' : ''), ts: ahora };
+  /* Juan la terminó desde el compañero: sigue terminada aquí aunque la app todavía hable, y la app cuelga al leer «colgar» */
+  var col = vivoLeerCache_('vivo_colgar_' + h), colgar = !!(col && col.conv === conv);
+  if (colgar) { e.estado = 'fin'; if (est === 'fin') c.remove('vivo_colgar_' + h); }
   c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_);
   var nuevos = (Array.isArray(b.subs) ? b.subs : []).map(function (x) {
     var t = tvTapar_(String((x && x.t) || '').replace(/\s+/g, ' ').trim()).slice(0, VIVO_SUB_LARGO_);
@@ -74,7 +81,22 @@ function vivoPublicarApi_(ses, b) {
     c.put('vivo_sub_' + h, JSON.stringify(subs), VIVO_SEG_);
   }
   if (e.estado === 'fin') c.remove('vivo_tv_' + h);
-  return { ok: true, mirando: !!vivoMira_(adm.email) };
+  var r = { ok: true, mirando: !!vivoMira_(adm.email) };
+  if (colgar && est !== 'fin') r.colgar = true;
+  return r;
+}
+
+/* vivoColgar { conv }: el botón «Terminar» del compañero. Solo la llamada de este administrador, y solo la que se ve
+   (si ya empezó otra, no se toca). → { ok, terminada }. */
+function vivoColgarApi_(ses, b) {
+  b = b || {};
+  var adm = vozWebAdmin_(ses); if (!adm || !adm.email) return { ok: false, error: 'session' };
+  var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h), ahora = Date.now();
+  var conv = String(b.conv || '').trim();
+  if (!e || e.estado === 'fin' || (conv && e.conv !== conv)) return { ok: true, terminada: false };
+  c.put('vivo_colgar_' + h, JSON.stringify({ conv: e.conv, ts: ahora }), VIVO_COLGAR_SEG_);
+  e.estado = 'fin'; e.ts = ahora; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); c.remove('vivo_tv_' + h);
+  return { ok: true, terminada: true };
 }
 
 /* El tablero de la llamada (lo deja tvCerrar_ al cerrar el turno de la secretaria). */

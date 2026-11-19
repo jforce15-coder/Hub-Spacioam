@@ -118,7 +118,7 @@
         { "id": "v_interrumpen", "texto": "Si te interrumpen, te detienes y escuchas." },
         { "id": "v_pantalla", "texto": "Si el resultado trae EN PANTALLA, no leas los datos: ya los ve. Di lo importante en una frase." },
         { "id": "v_silencio", "texto": "No completes frases a medias ni respondas a una pausa o muletilla («eh», «mmm»): espera callada (skip_turn). Nunca digas «skip» ni una palabra de tus instrucciones." },
-        { "id": "v_despedida", "texto": "Despídete una sola vez, corto y cálido. Si después responde con otra cortesía, cuelga sin decir nada más." }
+        { "id": "v_despedida", "texto": "Despídete una sola vez, corto y cálido. Si luego calla o solo responde otra cortesía, cuelga sin decir nada más." }
       ]
     },
     "calle": {

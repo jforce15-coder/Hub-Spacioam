@@ -1145,6 +1145,15 @@
   @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
   .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
+  /* «Terminar» (Juan, 19-nov-2026): cuelga la llamada del otro dispositivo; la misma piedra clara con la ✕ de la roca */
+  .comp-colgar { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px 0 12px; border: 0; border-radius: 999px; cursor: pointer;
+    font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #3A302C;
+    background: radial-gradient(120% 120% at 50% 20%, #F4F1EE 0%, #ECE8E3 55%, #E3DED8 100%); box-shadow: 0 8px 14px -6px rgba(40,30,25,.4), 0 2px 4px rgba(40,30,25,.16), inset 0 2px 4px rgba(255,255,255,.55); transition: transform .3s cubic-bezier(.3,1.35,.55,1), opacity .2s ease; }
+  .comp-colgar svg { width: 16px; height: 16px; color: #D9583A; }
+  .comp-colgar:active { transform: scale(.94); transition-duration: .1s; }
+  .comp-colgar:focus-visible { outline: 2px solid #E9826A; outline-offset: 3px; }
+  .comp-colgar:disabled { opacity: .6; cursor: default; }
+  .comp.fin .comp-colgar { opacity: 0; pointer-events: none; }
   .comp-tab { position: relative; flex: 1; min-height: 0; }
   .comp .tvb { top: 18px; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto; }
   .comp-vacio { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font: 400 clamp(22px, 4vw, 30px)/1.25 Valky, "Cormorant Garamond", Georgia, serif; opacity: .9; }
@@ -4520,7 +4529,7 @@ window.SAPulso = {
   var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
   var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos", "recepcion", "proyecto"];
   var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
-  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "" };
+  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "", colgando: false, colgada: "" };
   var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Trabajos de Claudio", socio: "Socio", datos: "Datos", recepcion: "Recepción", proyecto: "Proyecto" };
   var OTRA_MS = 20000;   // lo que vale «hay llamada en el otro» sin volver a preguntar (se pregunta cada 1,5 s durante una)
   try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
@@ -4541,6 +4550,11 @@ window.SAPulso = {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
     var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    /* Terminar desde aquí (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada»): si se abrió por error
+       en el otro dispositivo, se cuelga desde este (vivoColgar; la app de la llamada cuelga al enterarse) */
+    var fin = el("button", "comp-colgar"); fin.type = "button"; fin.setAttribute("aria-label", "Terminar la llamada de tu otro dispositivo");
+    fin.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Terminar</span>';
+    fin.onclick = terminar; cab.appendChild(fin);
     var cu = el("div", "comp-cuerpo"), centro = el("div", "comp-centro");
     centro.appendChild(el("div", "comp-tab")); centro.appendChild(el("div", "comp-subs")); cu.appendChild(centro);
     /* En el iPad (pantalla ancha) va a la derecha; en el teléfono no se ve (CSS) */
@@ -4612,6 +4626,17 @@ window.SAPulso = {
     vacio();
     c.classList.add("on");
   }
+  /* «Terminar»: el Hub la da por terminada ya y la app de la llamada cuelga en unos segundos. Aquí se ve «Terminó» ~3 s. */
+  function terminar() {
+    if (!C.conv || C.colgando) return;
+    var b = C.capa.querySelector(".comp-colgar"), et = b.querySelector("span"), conv = C.conv;
+    C.colgando = true; b.disabled = true; et.textContent = "Terminando…";
+    hub("vivoColgar", { conv: conv }).then(function (r) {
+      C.colgando = false; b.disabled = false;
+      if (!(r && r.ok)) { et.textContent = "Otra vez"; return; }
+      et.textContent = "Terminar"; C.colgada = conv; C.otra = ""; C.otraTs = Date.now(); app(); cerrar(true);
+    });
+  }
   function cerrar(fin) {
     if (!C.capa || !C.capa.classList.contains("on") || C.fin) return;
     if (fin) { C.capa.classList.add("fin"); C.capa.querySelector(".comp-est").textContent = ESTADO.fin; C.fin = setTimeout(function () { C.fin = 0; cerrar(false); }, FIN_MS); return; }
@@ -4628,6 +4653,7 @@ window.SAPulso = {
     hub("vivoLeer", { desde: C.desde, tipos: TIPOS }).then(function (r) {
       C.pidiendo = false;
       var vivo = !!(r && r.ok && r.en_llamada);
+      if (vivo && r.conv === C.colgada) vivo = false;   // la respuesta salió antes de «Terminar»: no se vuelve a abrir
       if (!C.on) return;
       if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.otraTs = Date.now(); app(); }
       if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin"));

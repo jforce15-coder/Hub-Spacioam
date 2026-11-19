@@ -160,4 +160,20 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
     ok(aqui(['on']) === true && aqui([]) === false && aqui(null) === false, '11 · fuera del inicio, como antes');
   }
 }
+/* 12 · en tiempo real por la red de cerca y el iPad sin llamadas (Juan, 19-nov-2026: «en modo Companion en iPad no sincroniza
+   la actividad de voz en pantalla en tiempo real y permite hacer llamadas»): la app pasa cada subtítulo, el estado y el nivel */
+{ const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/window\.AlmaCompanero = \{ cerca: cerca,/.test(h), '12 · inicio.html: AlmaCompanero.cerca recibe lo de la red de cerca (Retransmision.swift)');
+  ok(/C\.vistosCerca\.indexOf\(norm\(x\.t\)\)/.test(h), '12 · lo que ya llegó por la red de cerca no se repite cuando lo trae el Hub');
+  ok(/else if \(!cercaVivo\(\)\) cerrar\(/.test(h), '12 · mientras llega por la red de cerca, el Hub sin noticia no cierra la llamada');
+  ok(/--comp-nivel/.test(h), '12 · el punto de «En vivo» se mueve con la voz');
+  ok(/e\.ipad \? "Modo compañero: llama desde tu teléfono"/.test(h), '12 · en el iPad la roca dice que se llama desde el teléfono');
+  const m = /var SECRETO = [^\n]*\n\s*function norm\(t\) \{[^\n]*\}/.exec(h);
+  ok(!!m, '12 · norm existe');
+  if (m) {
+    const norm = new Function(m[0] + '; return norm;')();
+    ok(norm('  Hoy   llegan dos ') === 'Hoy llegan dos', '12 · norm: sin espacios de más, como el Hub');
+    ok(norm('El código es 4821') === 'El código es ••••', '12 · norm: sin los números de un código, como tvTapar_');
+  }
+}
 process.exit(fallo);

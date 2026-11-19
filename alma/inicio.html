@@ -1141,6 +1141,8 @@
   .comp.on { opacity: 1; pointer-events: auto; }
   .comp-cab { display: flex; align-items: center; gap: 10px; padding: max(18px, calc(env(safe-area-inset-top) + 10px)) 80px 0 max(18px, env(safe-area-inset-left)); font: 600 10px Montserrat, system-ui, sans-serif; letter-spacing: .24em; text-transform: uppercase; text-shadow: 0 1px 8px rgba(40,30,25,.25); }
   .comp-cab i { width: 8px; height: 8px; border-radius: 50%; background: #E9826A; box-shadow: 0 0 0 4px rgba(233,130,106,.3); animation: compLate 1.8s ease-in-out infinite; }
+  /* La voz del otro, al momento (red de cerca, --comp-nivel de 0 a 1): el punto de «En vivo» crece con lo que suena */
+  .comp-cab i { transform: scale(calc(1 + var(--comp-nivel, 0) * .9)); transition: transform .09s linear; }
   .comp.fin .comp-cab i { animation: none; background: rgba(255,255,255,.7); box-shadow: none; }
   @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
   .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -2841,7 +2843,8 @@ window.SAPulso = {
     else if (e.tipo === "yo" && e.texto) h.message("user", e.texto);
     else if (e.tipo === "error" && e.mensaje) h.error(e.mensaje);
     else if (e.tipo === "companero") {   // la app no abrió otra llamada (UnaLlamada): la roca se cierra y queda la retransmisión
-      VN.h = null; h.status("La llamada sigue en tu otro dispositivo");
+      /* En el iPad con el Modo compañero no se abren llamadas (alma-app UnaLlamada, Juan 19-nov-2026): la app manda ipad */
+      VN.h = null; h.status(e.ipad ? "Modo compañero: llama desde tu teléfono" : "La llamada sigue en tu otro dispositivo");
       setTimeout(function () { h.ended(); if (window.AlmaCompanero && AlmaCompanero.ya) AlmaCompanero.ya(); }, 1400);
     }
   }
@@ -4522,6 +4525,45 @@ window.SAPulso = {
   var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
   var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "" };
   var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Trabajos de Claudio", socio: "Socio", datos: "Datos", recepcion: "Recepción", proyecto: "Proyecto" };
+  /* La red de cerca (alma-app Retransmision.swift; Juan, 19-nov-2026: «no sincroniza la actividad de voz en pantalla en tiempo
+     real»): con las dos apps cerca, el teléfono le manda al iPad cada subtítulo, el estado y qué tan fuerte suena la voz en el
+     momento; la app los pasa aquí (AlmaCompanero.cerca) y se pintan sin esperar al Hub. Lo que después trae el Hub no se repite. */
+  var CERCA = "cerca", CERCA_MS = 6000;
+  C.vistosCerca = []; C.cercaTs = 0; C.nivelT = 0;
+  /* Igual que el Hub (vivoPublicar con tvTapar_, apps-script/tarjeta.js): sin espacios de más y, si habla de un código o
+     una clave, sin sus números. Así lo que llega por la red de cerca se ve como lo del Hub y no se repite. */
+  var SECRETO = /(c[oó]digo|clave|contrase|password|passcode|\bpin\b|wi-?fi|cerradura)/i;
+  function norm(t) { t = String(t || "").replace(/\s+/g, " ").trim(); return (SECRETO.test(t) ? t.replace(/\d{3,}/g, "••••") : t).slice(0, 280); }
+  function cercaVivo() { return C.cercaTs && Date.now() - C.cercaTs < CERCA_MS; }
+  function nivel(v) {
+    if (!C.capa) return;
+    C.capa.style.setProperty("--comp-nivel", String(Math.max(0, Math.min(1, +v || 0)).toFixed(2)));
+    clearTimeout(C.nivelT); if (v > 0) C.nivelT = setTimeout(function () { nivel(0); }, 260);   // entre trozos, vuelve sola
+  }
+  function cerca(e) {
+    if (!e || !C.on || C.prueba || !ses() || llamadaAqui()) return;
+    C.cercaTs = Date.now();
+    if (e.tipo === "estado" && e.estado === "fin") { C.cercaTs = 0; nivel(0); cerrar(true); return; }
+    var c = C.capa;
+    if (!c || !c.classList.contains("on") || c.classList.contains("fin")) {
+      if (e.tipo === "nivel" && !(e.v > 0)) return;
+      pintar({ conv: C.conv || CERCA, estado: e.tipo === "estado" ? e.estado : "hablando", subs: [], dispositivo: C.otra || "" });
+      c = C.capa;
+      if (!C.otra) { C.otra = "teléfono"; C.otraTs = Date.now(); app(); }   // una sola llamada: aquí no se abre otra
+    }
+    if (e.tipo === "estado") { c.querySelector(".comp-est").textContent = ESTADO[e.estado] || "En llamada"; return; }
+    if (e.tipo === "nivel") { nivel(e.v); return; }
+    if (e.tipo !== "sub") return;
+    var t = norm(e.t); if (!t) return;
+    var cl = e.de === "yo" ? "yo" : "alma", subs = c.querySelector(".comp-subs"), lineas = c.querySelector(".comp-lineas");
+    var abajo = lineas.scrollHeight - lineas.scrollTop - lineas.clientHeight < 40;
+    subs.appendChild(el("p", cl, t)); lineas.appendChild(el("p", cl, t));
+    while (subs.children.length > 3) subs.removeChild(subs.firstChild);
+    var n0 = lineas.querySelector(".nada"); if (n0) lineas.removeChild(n0);
+    while (lineas.children.length > 200) lineas.removeChild(lineas.firstChild);
+    if (abajo) lineas.scrollTop = lineas.scrollHeight;
+    C.vistosCerca.push(t); if (C.vistosCerca.length > 30) C.vistosCerca.shift();
+  }
   var OTRA_MS = 20000;   // lo que vale «hay llamada en el otro» sin volver a preguntar (se pregunta cada 1,5 s durante una)
   try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
   function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
@@ -4582,7 +4624,9 @@ window.SAPulso = {
     var c = montar();
     if (C.fin) { clearTimeout(C.fin); C.fin = 0; }
     c.classList.remove("fin");
+    if (C.conv === CERCA && r.conv) C.conv = r.conv;   // empezó por la red de cerca: el Hub trae la misma llamada, no se borra
     if (r.conv !== C.conv) {
+      C.vistosCerca = [];
       C.conv = r.conv; C.desde = 0; C.tvId = ""; C.verId = ""; C.vistos = []; C.inicio = Date.now();
       c.querySelector(".comp-subs").textContent = ""; c.querySelector(".comp-tab").textContent = ""; c.querySelector(".comp-lineas").textContent = ""; marcarVistos();
     }
@@ -4594,6 +4638,7 @@ window.SAPulso = {
     var lineas = c.querySelector(".comp-lineas"), abajo = lineas.scrollHeight - lineas.scrollTop - lineas.clientHeight < 40;
     (r.subs || []).forEach(function (x) {
       C.desde = Math.max(C.desde, Number(x.n) || 0);
+      var k = C.vistosCerca.indexOf(norm(x.t)); if (k >= 0) { C.vistosCerca.splice(k, 1); return; }   // ya llegó por la red de cerca
       subs.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t)); lineas.appendChild(el("p", x.de === "yo" ? "yo" : "alma", x.t));
     });
     while (subs.children.length > 3) subs.removeChild(subs.firstChild);
@@ -4630,7 +4675,7 @@ window.SAPulso = {
       var vivo = !!(r && r.ok && r.en_llamada);
       if (!C.on) return;
       if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.otraTs = Date.now(); app(); }
-      if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin"));
+      if (vivo && !llamadaAqui()) pintar(r); else if (!cercaVivo()) cerrar(!!(r && r.estado === "fin"));
       C.t = setTimeout(ciclo, vivo ? CADA_VIVO : CADA_NADA);
     });
   }
@@ -4651,7 +4696,7 @@ window.SAPulso = {
   var bc = $("b-comp"); if (bc) bc.onclick = function () { poner(!C.on); };
   reflejar(); app();
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") ciclo(); });
-  window.AlmaCompanero = { poner: poner, otra: otra, ya: function () { if (!C.pidiendo) ciclo(); }, probar: function (r) { C.prueba = true; clearTimeout(C.t); pintar(r); } };   // para las capturas: sin pedir al Hub
+  window.AlmaCompanero = { cerca: cerca, poner: poner, otra: otra, ya: function () { if (!C.pidiendo) ciclo(); }, probar: function (r) { C.prueba = true; clearTimeout(C.t); pintar(r); } };   // para las capturas: sin pedir al Hub
   setTimeout(ciclo, 1500);
 })();
 </script>

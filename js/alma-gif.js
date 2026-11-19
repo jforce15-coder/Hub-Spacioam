@@ -5,18 +5,19 @@
    (solo con Juan y con la pantalla a la vista). Aquí se pide el GIF al Hub (acción gif, apps-script/gif.js: GIPHY rating g,
    nunca un emoji) y se pone:
    · con la ventana del GIF arriba de la roca a la vista (js/alma-bento.js, 19-nov-2026; teléfono, iPad y computadora):
-     encima del GIF que está pasando, unos segundos, y después sigue la rotación;
+     se abre unos segundos para la broma (aunque esté en su pausa) y después se va;
    · con el tablero bento a la vista: encima de UN cuadro (el dato más grande; nunca la foto ni el mapa), unos segundos, y se
      quita con un fundido: el cuadro vuelve a su información;
    · sin tablero, con el chat de la llamada a la vista: como una burbuja de Alma en el chat (se queda, como lo demás del chat);
    · con el Bento vivo (iPad y computadora, #810): encima del GIF del tema, unos segundos, y vuelve el del tema;
    · si no hay nada a la vista, no se muestra.
-   La ventana sale para la broma aunque Alma esté en silencio de GIFs (el ritmo del GIF, js/alma-bento.js, 19-nov-2026); la
-   misma página pide aquí la broma de la llamada larga («me estoy durmiendo», «viendo el reloj») con AlmaGif.mostrar(idea).
-   Uno a la vez: si ya hay un GIF en pantalla, el siguiente se ignora. Sin dependencias; no toca sa-nav.js ni alma-client.js. */
+   Uno a la vez: si ya hay un GIF en pantalla, el siguiente se ignora.
+   De vez en cuando (Juan, 19-nov-2026: «está distrayendo mucho, sobre todo en el iPhone; debería aparecer ocasionalmente»):
+   después de una broma con GIF, las que vengan en los siguientes 5 min (10 en el teléfono) van sin GIF. Sin dependencias; no toca sa-nav.js ni alma-client.js. */
 (function () {
   "use strict";
-  var G = { activo: false };
+  var G = { activo: false, ult: 0 }, PAUSA_ANCHA = 300000, PAUSA_TEL = 600000;
+  function pausa() { return (window.innerWidth >= 700 && window.innerHeight >= 500) ? PAUSA_ANCHA : PAUSA_TEL; }
   var QUIETO = false; try { QUIETO = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
   function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
   function hub(idea) {
@@ -46,9 +47,9 @@
   function credito(r) { var c = document.createElement("small"); c.textContent = r.credito || ""; return c; }
   /* El cuadro que se vuelve GIF: el dato más grande del tablero (un número: lo que menos se extraña unos segundos); sin
      datos, el más chico de los demás. Nunca la foto ni el mapa. */
-  function cuadroDelTablero() {
-    /* La ventana del GIF (js/alma-bento.js): la broma tapa el GIF del tema unos segundos y después sigue la rotación. */
-    var bv = null; try { bv = window.AlmaBento && AlmaBento.gifCuadro ? AlmaBento.gifCuadro() : null; } catch (e) {}
+  function cuadroDelTablero(abrir) {
+    /* La ventana del GIF (js/alma-bento.js): para la broma se abre unos segundos (aunque esté en su pausa) y después se va. */
+    var bv = null; try { bv = window.AlmaBento && AlmaBento.gifCabe && AlmaBento.gifCabe() ? (abrir ? AlmaBento.gifCuadro() : true) : null; } catch (e) {}
     if (bv) return bv;
     var tabs = Array.prototype.filter.call(document.querySelectorAll(".tvb"), visible); if (!tabs.length) return null;
     var cs = Array.prototype.filter.call(tabs[tabs.length - 1].querySelectorAll(".tvb-t"), function (c) {
@@ -80,12 +81,13 @@
   }
   function mostrar(idea) {
     if (G.activo || !idea || document.visibilityState === "hidden") return;
+    if (G.ult && Date.now() - G.ult < pausa()) return;        // ocasional: esta broma va sin GIF
     if (!cuadroDelTablero() && !chatDeLaLlamada()) return;   // nada a la vista: no se pide nada
-    G.activo = true;
+    G.activo = true; G.ult = Date.now();
     hub(String(idea).slice(0, 60)).then(function (r) {
       if (!r || !r.ok || !/^https:\/\/[^\s"'<>]+$/.test(String(r.url || ""))) { G.activo = false; return; }
       estilo();
-      var c = cuadroDelTablero(); if (c) return enCuadro(c, r);
+      var c = cuadroDelTablero(true); if (c && c !== true) return enCuadro(c, r);
       var m = chatDeLaLlamada(); if (m) return enChat(m, r);
       G.activo = false;
     });
@@ -98,9 +100,9 @@
       if (e.tipo === "gif") mostrar(e.idea);
       else if (e.tipo === "estado" && e.estado !== "hablando" && e.estado !== "conectando") Array.prototype.forEach.call(document.querySelectorAll(".gifb"), function (g) { g.parentNode.removeChild(g); G.activo = false; });
     },
+    /* Para las capturas y las pruebas: muestra un GIF ya resuelto, sin pedirlo al Hub */
     /* La broma de la llamada larga (js/alma-bento.js, el ritmo del GIF): la página la pide con una idea corta */
     mostrar: function (idea) { mostrar(idea); },
-    /* Para las capturas y las pruebas: muestra un GIF ya resuelto, sin pedirlo al Hub */
-    probar: function (r) { estilo(); var c = cuadroDelTablero(); if (c) return enCuadro(c, r); var m = chatDeLaLlamada(); if (m) enChat(m, r); }
+    probar: function (r) { estilo(); var c = cuadroDelTablero(true); if (c && c !== true) return enCuadro(c, r); var m = chatDeLaLlamada(); if (m) enChat(m, r); }
   };
 })();

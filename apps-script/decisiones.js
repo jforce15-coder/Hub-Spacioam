@@ -140,6 +140,7 @@ function decisionesProcesar_() {
     }
     var f = decSiEsMia_(f0.id, r.tok, { opciones: JSON.stringify(ops), avisado: new Date().toISOString() });
     if (!f) { console.warn('decisionesProcesar_: ' + f0.id + ' ya lo avisó otra pasada'); return; }   // nunca dos avisos del mismo caso
+    if (f.origen === 'bandeja') return;   // lo pidió alguien que ya lo está mirando en la Bandeja (#888 T4): sin avisos aparte
     try { decisionAvisarWa_(f); } catch (e) { console.error('decisionAvisarWa_: ' + e); }
     try { decisionAvisarChat_(f); } catch (e) { console.error('decisionAvisarChat_: ' + e); }
   });

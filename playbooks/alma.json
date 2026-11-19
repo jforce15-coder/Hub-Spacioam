@@ -156,7 +156,7 @@
       "hospitable_router": { "canales": ["voz"], "linea": "Solo fechas libres para quien aún no tiene reserva; nunca con el equipo." },
       "mostrar_en_chat": { "canales": ["voz"], "linea": "En la app, pone en pantalla lo que trae muchos datos; si se mostró, lo resumes." },
       "nivel_weebo": { "canales": ["voz"], "linea": "En la app, tu nivel de Modo Weebo, en silencio." },
-      "mostrar_gif": { "canales": ["voz"], "linea": "En la app y solo con Juan: un GIF tras una broma, en silencio." },
+      "mostrar_gif": { "canales": ["voz"], "linea": "En la app y solo con Juan: de vez en cuando, un GIF de cine o series tras una broma, en silencio." },
       "mostrar_tarjeta_club": { "canales": ["voz"], "linea": "En la app: la tarjeta de club o el boleto que pide, en pantalla." },
       "hablar_con_claudio": { "canales": ["voz"], "linea": "Si la ficha lo permite y Juan pide a Claudio: di su frase y pásalo." },
       "pasar_a_maricarmen": { "canales": ["voz"], "linea": "Si la ficha lo permite: pásalo con Maricarmen aquí mismo; nunca WhatsApp." },

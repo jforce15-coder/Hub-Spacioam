@@ -10,12 +10,13 @@
    · La ventana del GIF (Juan, 19-nov-2026: «GIFs de memes, de esos que son mini fragmentos de video, no emojis… un tono
      gris oscuro, translúcido, frosted, y SIEMPRE encima de la roca, tanto en el iPad como en el teléfono»): un vidrio gris
      oscuro arriba de la roca, en el teléfono, el iPad y la computadora (sigue a la roca: al centro o en la esquina del
-     tablero). Pasa un GIF y después otro (cada 8 s, con fundido) del tema de lo que se habla (en la llamada, con su ritmo:
-     ver «El ritmo del GIF»): 7 por tema (catálogo del Hub,
+     tablero). Desde el 19-nov-2026 solo asoma de vez en cuando (ver «De vez en cuando», abajo), con un GIF de cine o series
+     del tema de lo que se habla: 7 por tema (catálogo del Hub,
      acción gifTemas, apps-script/gif.js), pedido una vez y guardado 12 h; sin repetir hasta agotar los 7. Nunca un emoji:
      sin catálogo todavía, la ventana no sale. La broma (mostrar_gif, js/alma-gif.js) la tapa unos segundos.
    · Sin otra llamada a la IA ni a Hospitable: el tema son los cuadros que ya manda la tarjeta de la llamada
-     (apps-script/tarjeta.js) y el reposo sale de lo que el inicio ya trae (Pendientes, Notificaciones y las áreas).
+     (apps-script/tarjeta.js) y el reposo sale de lo que el inicio ya trae (Pendientes, Notificaciones y las áreas, que traen también la vida personal:
+     «Tu agenda» y «Familia» de The Gentle Stoic Parent, apps-script/vidahoy.js).
    · Solo administradores (sin datos de Pendientes o de las áreas no se arma) y solo en pantalla ancha: el teléfono no cambia.
    · Se esconde con las esferas y sus niveles (#831), las hojas, el chat, Pendientes y Notificaciones.
    API: AlmaBento.iniciar({ hacer, abrir }) · ancho() · tema(t, { cuadro, claudio }) · reposo() · datos() · areas(r)
@@ -82,14 +83,14 @@
   function gifsCargar() {
     if (B.gifs || B.gifsP) return;
     /* lo guardado sirve 12 h, salvo que traiga emojis (el catálogo de antes): entonces se pide otra vez */
-    var c = leer("alma_bento_gifs"); if (c && c.t && Date.now() - c.t < 12 * 3600e3 && c.temas && conGifs(c.temas)) { B.gifs = c.temas; return; }
+    var c = leer("alma_bento_gifs_cine"); if (c && c.t && Date.now() - c.t < 12 * 3600e3 && c.temas && conGifs(c.temas)) { B.gifs = c.temas; return; }
     var dst = w.ALMA && w.ALMA.destino ? w.ALMA.destino() : null, ses = w.SAAuth && w.SAAuth.session ? w.SAAuth.session() : null;
     if (!dst || !dst.url || !ses) return;
     B.gifsP = fetch(dst.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store",
       body: JSON.stringify({ hub: 1, action: "gifTemas", token: dst.token, session: ses }) })
       .then(function (r) { return r.json(); }).then(function (j) {
         B.gifsP = null; if (!j || !j.ok || !j.temas) return;
-        B.gifs = j.temas; guardar("alma_bento_gifs", { t: Date.now(), temas: j.temas }); ventana();
+        B.gifs = j.temas; guardar("alma_bento_gifs_cine", { t: Date.now(), temas: j.temas }); ventana();
       }, function () { B.gifsP = null; });
   }
   /* ¿El catálogo trae GIFs de verdad? (de GIPHY; nunca emojis) */
@@ -201,6 +202,14 @@
       var at = [].concat(x.pend.atencion || []);
       info.push({ el: lista("Necesita tu sí", at.map(function (p) { return { t: p.titulo || p.resumen || "", b: nombreArea[p.area] || "" }; }), "Todo al día", function () { ab("pend"); }), peso: at.length ? 4 : 2, p: 1 });
     }
+    /* La vida personal (Juan, 19-nov-2026: «no todo es de trabajo»): la agenda y el día de la familia, justo después de
+       lo que necesita su sí. Llegan con las áreas (apps-script/vidahoy.js); si no llegan, no se pintan. */
+    var vida = (x.areas && x.areas.vida) || {};
+    if (vida.agenda && vida.agenda.eventos) {
+      var ahora = Date.now(), ev = vida.agenda.eventos.filter(function (e) { var f = Date.parse(e.fin || ""); return !f || f > ahora; });
+      info.push({ el: lista("Tu agenda", ev.map(function (e) { return { b: (e.dia === "mañana" ? "Mañana" : "Hoy") + (e.h ? " " + e.h : ""), t: e.t || "" }; }), "Agenda libre"), peso: ev.length ? 3 : 2, p: 1.2 });
+    }
+    if (vida.familia && (vida.familia.lleva || vida.familia.frase || vida.familia.finde)) info.push({ el: piezaFamilia(vida.familia), peso: 3, p: 1.4 });
     if (x.noti) {
       var nl = [].concat(x.noti.items || x.noti.lista || []);
       info.push({ el: lista("Avisos", nl.map(function (n) { return { t: n.titulo || n.texto || "" }; }), "Sin avisos nuevos", function () { ab("noti"); }), peso: nl.length ? 3 : 2, p: 2 });
@@ -217,11 +226,40 @@
       info: info };
   }
 
+  /* «Familia»: el día de The Gentle Stoic Parent (quién lleva a los niños, quién se queda, la tarde) y la frase del día.
+     Tocarla abre la app de la familia. */
+  function piezaFamilia(f) {
+    var c = el("div", "tvb-t bv-lista bv-familia"), kf = el("div", "tvb-kf"); kf.appendChild(el("small", "tvb-k", "Familia · hoy")); c.appendChild(kf);
+    var u = el("ul", "tvb-l"), fila = function (b, t) { if (!t) return; var li = el("li"); li.appendChild(el("b", "", b)); li.appendChild(el("span", "tvb-tx", t)); u.appendChild(li); };
+    if (f.finde) fila("Hoy", "Fin de semana en familia");
+    else { fila("Lleva", f.lleva); fila("En casa", f.casa); fila("Tarde", f.tarde); }
+    if (u.children.length) c.appendChild(u);
+    if (f.frase) c.appendChild(el("q", "bv-frase", f.frase));
+    if (f.url) { var abrir = function () { try { w.open(f.url, "_blank", "noopener"); } catch (e) {} };
+      c.setAttribute("role", "button"); c.tabIndex = 0; c.setAttribute("aria-label", "Familia hoy: abrir The Gentle Stoic Parent");
+      c.onclick = function (e) { e.stopPropagation(); abrir(); };
+      c.onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); abrir(); } }; }
+    return c;
+  }
+
   /* ── La ventana del GIF: un vidrio gris oscuro arriba de la roca, en todas las pantallas. Sigue a la roca (al centro o en
      la esquina del tablero del teléfono) sin tapar su halo, el saludo, el tema del bento ni los botones de arriba. Si no
      cabe con el saludo, el saludo se va (la ventana toma su lugar); si ni así cabe (la roca arriba), no sale. ── */
-  var V = { el: null, tema: "reposo", url: "", pide: false, fallos: 0 }, CADA = 8000;
-  function gifTema(t) { var n = t ? temaGif(t) : "reposo"; if (n === V.tema) return; V.tema = n; ventana(true); }
+  /* De vez en cuando (Juan, 19-nov-2026: «que haya momentos sin GIF, porque está distrayendo mucho… sobre todo en el
+     iPhone; debería aparecer ocasionalmente»): la ventana ya no se queda ni rota. Asoma con UN GIF unos segundos (VISTA)
+     cuando cambia el tema de lo que se habla, si ya pasó la pausa (2 min en el iPad y la computadora, 6 en el teléfono),
+     y en el reposo una vez cada dos pausas; después se va y el saludo vuelve. La broma (js/alma-gif.js) la abre para sí. */
+  var V = { el: null, tema: "reposo", url: "", pide: false, fallos: 0, hasta: 0, broma: 0, ult: 0, desde: Date.now() },
+    VISTA = 7000, PAUSA_ANCHA = 120000, PAUSA_TEL = 360000;
+  function telefono() { var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight; return !(W >= 700 && H >= 500); }
+  /* Con información a la vista (el bento o el tablero con un tema), un poco más activo: asoma cada 45 s (ver «El ritmo») */
+  var PAUSA_TEMA = 45000;
+  function pausa() { return V.tema !== "reposo" ? PAUSA_TEMA : telefono() ? PAUSA_TEL : PAUSA_ANCHA; }
+  function asomar() {
+    var ahora = Date.now(); if (!B.gifs || ahora - V.ult < pausa() || escucha()) return false;
+    V.ult = ahora; V.hasta = ahora + VISTA; ventana(true); return true;
+  }
+  function gifTema(t) { var n = t ? temaGif(t) : "reposo"; if (n === V.tema) return; V.tema = n; if (n !== "reposo") asomar(); }
   function rocaRect() {
     var r = d.querySelector("#sa-nav-root .san-ov .san-rock"); if (!r) return null;
     var b = r.getBoundingClientRect(); return b.width > 20 && b.height > 20 ? b : null;
@@ -245,7 +283,7 @@
     var W = d.documentElement.clientWidth || w.innerWidth, H = (w.visualViewport && w.visualViewport.height) || w.innerHeight, s = seguro();
     var chico = rb.width < 140, ancha = W >= 700 && H >= 500, cx = rb.left + rb.width / 2;
     var abajo = rb.top - Math.max(8, rb.width * .07) - (chico ? 8 : 12);   // el halo de la roca queda libre
-    var hmax = chico ? 96 : ancha ? 200 : 132, wmax = ancha ? 340 : Math.min(W - 32, 260);
+    var hmax = chico ? 96 : ancha ? 200 : 112, wmax = ancha ? 340 : Math.min(W - 32, 220);   // en el teléfono, más chica
     var tope = function (conHola) {
       var t = Math.max(16, s.t + 12), obs = [].slice.call(d.querySelectorAll(".bv-capa.on:not(.sale) .bv-tema:not([hidden])"));
       if (conHola) { var hb = holaRect(); if (hb && hb.bottom <= abajo) t = Math.max(t, hb.bottom + 10); }
@@ -280,62 +318,56 @@
       V.el.appendChild(m); V.el.appendChild(el("small", "gv-cred", "GIPHY"));
     }
     if (V.el.parentNode !== r) r.appendChild(V.el);
-    var p = B.gifs ? lugar() : null, raiz = d.documentElement;
-    var m = p ? modo() : "nada";
-    if (m === "nada") { V.el.classList.remove("on"); raiz.classList.remove("gv-sin-hola"); return; }
+    var ahora = Date.now(), broma = ahora < V.broma || !!V.el.querySelector(".gifb");
+    var p = (ahora < V.hasta && B.gifs && !escucha()) || broma ? lugar() : null, raiz = d.documentElement;
+    if (!p) { V.el.classList.remove("on", "listo"); raiz.classList.remove("gv-sin-hola"); return; }
     var st = V.el.style; st.left = p.x + "px"; st.top = p.y + "px"; st.width = p.w + "px"; st.height = p.h + "px";
     raiz.classList.toggle("gv-sin-hola", p.sinHola);
-    /* vuelve a salir después de estar escondida: con un GIF nuevo (nunca el de la vez pasada); para la broma, solo el marco */
-    if (!V.el.classList.contains("on")) { V.el.classList.remove("listo"); nuevo = m !== "broma"; if (m === "broma") V.el.classList.add("listo"); }
-    if ((!V.url && m !== "broma") || nuevo) siguiente();
+    if (!V.url || nuevo) siguiente();
     V.el.classList.add("on");
-  }
-
-  /* ── El ritmo del GIF en la llamada (Juan, 19-nov-2026: «el GIF no debería aparecer si tú solo estás escuchando… salvo
-     alguna broma en conversaciones largas, "me estoy durmiendo" o "estoy viendo el reloj"… los GIF deberían aparecer
-     ocasionalmente… y cuando aparece el bento, porque estás desplegando información, que esté un poquito más activo.
-     Actualmente está muy constante»). La misma regla en el teléfono, el iPad y la computadora (la llamada de la app y la
-     web): se lee de la roca (sa-nav: la llamada abierta y su estado «Alma habla» / «Te escucho»), sin tocar sa-nav.
-     · Fuera de la llamada (el inicio en reposo) y con el chat escrito: como antes, uno y después otro cada 8 s.
-     · Con un tema a la vista (el bento vivo o el tablero de la llamada con información): activo, uno tras otro cada 8 s.
-     · Alma habla y no hay tema: de vez en cuando, un GIF unos 7 s y se va; el siguiente, no antes de 40 s.
-     · Alma escucha (2,5 s sin hablar, para que no parpadee entre frases): ninguno. Solo en una llamada larga (más de
-       4 min) y si Juan lleva 45 s hablando, una broma corta («me estoy durmiendo», «viendo el reloj»), como mucho una
-       cada 6 min (js/alma-gif.js la pide al Hub: GIPHY rating g).
-     · La broma de Alma (mostrar_gif) siempre sale: la ventana aparece para ella y se va cuando la broma pasa. */
-  var RT = { llamada: 0, habla: false, cambio: 0, verHasta: 0, ultimo: 0, broma: 0, reservada: 0 };
-  var OCASION = 7000, ENTRE = 40000, CALMA = 2500, LARGA = 240000, ESCUCHA = 45000, BROMAS = 360000;
-  var IDEAS = ["falling asleep", "checking watch", "bored waiting", "yawning"];
-  function enLlamada() {
-    var o = ov(), s = d.querySelector("#sa-nav-root .san-ov-st"), t = s ? s.textContent : "";
-    return !!(o && o.classList.contains("on") && !o.classList.contains("quieta") && t && !/toca a alma|terminada/i.test(t));
-  }
-  function almaHabla() { var s = d.querySelector("#sa-nav-root .san-ov-st"); return /habla/i.test(s ? s.textContent : ""); }
-  function modo() {
-    var ahora = Date.now();
-    if (RT.reservada > ahora || (V.el && V.el.querySelector(".gifb"))) return "broma";
-    if (!enLlamada() || chatAbierto() || V.tema !== "reposo") return "activo";
-    return RT.verHasta > ahora ? "ocasional" : "nada";
-  }
-  function ritmo() {
-    var ahora = Date.now();
-    if (!enLlamada()) { RT.llamada = 0; RT.verHasta = 0; return; }
-    if (!RT.llamada) { RT.llamada = RT.cambio = ahora; RT.habla = false; RT.ultimo = ahora - ENTRE + 15000; RT.broma = ahora; }
-    var h = almaHabla(); if (h !== RT.habla) { RT.habla = h; RT.cambio = ahora; }
-    if (h) {
-      if (RT.verHasta <= ahora && ahora - RT.ultimo >= ENTRE && ahora - RT.cambio >= 1500) { RT.ultimo = ahora; RT.verHasta = ahora + OCASION; }
-      return;
-    }
-    if (ahora - RT.cambio < CALMA) return;
-    RT.verHasta = 0;
-    if (V.tema === "reposo" && !chatAbierto() && ahora - RT.llamada >= LARGA && ahora - RT.cambio >= ESCUCHA && ahora - RT.broma >= BROMAS && w.AlmaGif && w.AlmaGif.mostrar) {
-      RT.broma = ahora; try { w.AlmaGif.mostrar(IDEAS[Math.floor(Math.random() * IDEAS.length)]); } catch (e) {}
-    }
   }
   /* la roca se mueve (al centro, a la esquina, crece con la voz) y la página cambia: la ventana la sigue */
   setInterval(function () { if (d.visibilityState !== "hidden") { ritmo(); ventana(); } }, 500);
-  /* uno y después otro cada 8 s, solo cuando toca estar activo (fuera de la llamada o con un tema), salvo con la broma encima */
-  setInterval(function () { if (V.el && V.el.classList.contains("on") && d.visibilityState !== "hidden" && !V.el.querySelector(".gifb") && modo() === "activo") siguiente(); }, CADA);
+  /* en el reposo, de vez en cuando (una vez cada dos pausas); con un tema a la vista, cada pausa (45 s); nunca con la
+     página escondida ni mientras Alma solo escucha */
+  setInterval(function () {
+    if (d.visibilityState === "hidden") return;
+    var ahora = Date.now();
+    if (V.tema === "reposo" ? ahora - Math.max(V.ult, V.desde) >= 2 * pausa() : ahora - V.ult >= pausa()) asomar();
+  }, 5000);
+
+  /* ── El ritmo del GIF en la llamada (Juan, 19-nov-2026: «el GIF no debería aparecer si tú solo estás escuchando… salvo
+     alguna broma en conversaciones largas, "me estoy durmiendo" o "estoy viendo el reloj"… y cuando aparece el bento,
+     porque estás desplegando información, que esté un poquito más activo»). Igual en el teléfono, el iPad y la
+     computadora (la llamada de la app y la web): se lee de la roca (sa-nav: la llamada abierta y su estado «Alma habla» /
+     «Te escucho»), sin tocar sa-nav.
+     · Alma escucha (2,5 s sin hablar, para que no parpadee entre frases): ningún GIF; si estaba asomando, se va.
+     · Con un tema a la vista: asoma cada 45 s (más activo que el reposo), siempre que Alma no esté solo escuchando.
+     · Llamada larga (más de 4 min) y Juan hablando 45 s seguidos: una broma corta («me estoy durmiendo», «viendo el
+       reloj») por js/alma-gif.js (GIPHY rating g), como mucho una cada 6 min.
+     · La broma de Alma (mostrar_gif) siempre puede salir (gifCuadro la abre para sí). */
+  var RT = { llamada: 0, habla: false, cambio: 0, broma: 0 }, CALMA = 2500, LARGA = 240000, ESCUCHA = 45000, BROMAS = 360000;
+  var IDEAS = ["falling asleep", "checking watch", "bored waiting", "yawning"];
+  function estadoRoca() { var s = d.querySelector("#sa-nav-root .san-ov-st"); return s ? String(s.textContent || "") : ""; }
+  function enLlamada() {
+    var o = ov(), t = estadoRoca();
+    return !!(o && o.classList.contains("on") && !o.classList.contains("quieta") && t && !/toca a alma|terminada/i.test(t));
+  }
+  /* ¿Alma solo escucha? (en la llamada, sin el chat escrito abierto, y 2,5 s sin hablar) */
+  function escucha() {
+    if (!enLlamada() || chatAbierto()) return false;
+    var h = /habla/i.test(estadoRoca()); if (h !== RT.habla) { RT.habla = h; RT.cambio = Date.now(); }
+    return !h && Date.now() - RT.cambio >= CALMA;
+  }
+  function ritmo() {
+    var ahora = Date.now();
+    if (!enLlamada()) { RT.llamada = 0; return; }
+    if (!RT.llamada) { RT.llamada = RT.cambio = RT.broma = ahora; RT.habla = false; }
+    if (!escucha()) return;
+    if (ahora - RT.llamada >= LARGA && ahora - RT.cambio >= ESCUCHA && ahora - RT.broma >= BROMAS && w.AlmaGif && w.AlmaGif.mostrar) {
+      RT.broma = ahora; try { w.AlmaGif.mostrar(IDEAS[Math.floor(Math.random() * IDEAS.length)]); } catch (e) {}
+    }
+  }
 
   /* ── Acomodar: cada región es una columna de tarjetas (la altura según su peso); el hueco del centro queda libre. ── */
   function region(r, items, cls) {
@@ -404,7 +436,7 @@
     if (B.el) [].forEach.call(B.el.querySelectorAll(".bv-capa"), function (v) { v.classList.add("sale"); setTimeout(function () { if (v.parentNode) v.parentNode.removeChild(v); }, 260); });
     B.pintado = "";
   }
-  function firmaReposo() { var x = datosReposo(); try { return "r:" + JSON.stringify([x.pend && (x.pend.atencion || []).map(function (p) { return p.id || p.titulo; }), x.noti && (x.noti.items || x.noti.lista || []).length, x.areas && (x.areas.areas || []).map(function (a) { return (a.proyectos || []).length; })]); } catch (e) { return "r"; } }
+  function firmaReposo() { var x = datosReposo(); try { return "r:" + JSON.stringify([x.pend && (x.pend.atencion || []).map(function (p) { return p.id || p.titulo; }), x.noti && (x.noti.items || x.noti.lista || []).length, x.areas && (x.areas.areas || []).map(function (a) { return (a.proyectos || []).length; }), x.areas && x.areas.vida]); } catch (e) { return "r"; } }
   function reposo(animar) {
     B.t = null; B.id = ""; B.render = null; gifTema(null);
     var f = firmaReposo(); if (B.pintado === f && geo()) return;
@@ -463,14 +495,17 @@
     enTema: function () { return !!B.t && d.documentElement.classList.contains("bv-on"); },
     /* El tema del GIF en el teléfono (sin bento vivo): la tarjeta de la llamada, o null para el reposo. */
     gifTema: function (t) { gifTema(t || null); },
-    /* La broma (js/alma-gif.js): el marco de la ventana del GIF, si está a la vista. */
+    /* La broma (js/alma-gif.js): ¿cabe la ventana arriba de la roca? Y gifCuadro() la abre unos segundos para la broma
+       (aunque esté escondida por la pausa) y da su marco. */
+    /* Para las pruebas: ¿se ve la ventana ahora? ¿Alma solo escucha? */
+    ritmo: function () { ritmo(); ventana(); return { escucha: escucha(), visible: !!(V.el && V.el.classList.contains("on")) }; },
+    asomar: function () { return asomar(); },
+    gifCabe: function () { return !!(capaRaiz() && lugar() && +getComputedStyle(B.el).opacity > .05); },
     gifCuadro: function () {
-      /* la broma se lleva la ventana aunque Alma esté en silencio de GIFs: unos segundos mientras llega; después la
-         sostiene el GIF de la broma (.gifb) y, al quitarse, la ventana vuelve a su ritmo */
-      RT.reservada = Date.now() + 4000; ventana();
-      var g = V.el && V.el.classList.contains("on") ? V.el.querySelector(".gv-marco") : null; return g && g.getClientRects().length && +getComputedStyle(B.el).opacity > .05 ? g : null; },
-    /* Para las pruebas: el modo del ritmo («activo», «ocasional», «broma» o «nada») */
-    ritmo: function () { ritmo(); return modo(); },
+      if (!w.AlmaBento.gifCabe()) return null;
+      V.broma = Date.now() + 1500; ventana(); if (!V.el || !V.el.classList.contains("on")) return null;
+      V.el.classList.add("listo"); var g = V.el.querySelector(".gv-marco"); return g && g.getClientRects().length ? g : null;
+    },
     /* Para las pruebas y las capturas: dónde está la ventana (null si no sale) */
     ventana: function () { ventana(); var b = V.el && V.el.classList.contains("on") ? V.el.getBoundingClientRect() : null; return b ? { x: b.left, y: b.top, w: b.width, h: b.height } : null; },
     /* Para las pruebas: el tema del GIF de una tarjeta */

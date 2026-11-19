@@ -168,7 +168,9 @@ function weeboBloque_(o) {
 
 /* GIF en pantalla (16-nov-2026, Juan: «cuando Alma bromee, su interfaz puede desplegar GIFs… la broma pasa y el GIF se
    quita»): solo con Juan y en la app; la herramienta mostrar_gif (voz.js) y la pantalla (js/alma-gif.js, gif.js). */
-var WEEBO_GIF_ = '· GIF (solo caller_type juan y en la app): tras una broma con gancho y con Juan relajado, puedes acompañarla con mostrar_gif y una idea corta en inglés («slow clap», «mind blown»), sin nombrarlo. Como mucho uno cada varios minutos; nunca con un problema ni al dar datos.';
+/* Juan, 19-nov-2026: «que siempre sean cinematográficos (una película, frames de una serie)… que haya momentos sin GIF,
+   porque está distrayendo mucho, sobre todo en el iPhone: debería aparecer ocasionalmente». */
+var WEEBO_GIF_ = '· GIF (solo caller_type juan y en la app): ocasional, casi todas tus bromas van sin él. Tras una broma que cayó: mostrar_gif con una escena de cine o serie, sin nombrarlo. Máx. uno cada 10 min; nunca con problemas ni datos.';
 
 /* Voz (prompt fijo en ElevenLabs): Alma mide la confianza en cada turno con estas reglas. */
 function weeboVozBloque_(familia) {

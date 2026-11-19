@@ -41,7 +41,7 @@
 <script src="js/sw-reg.js?v=2026-10-18a"></script>
   <script src="js/sa-auth-client.js?v=2026-11-18a"></script>
 <script src="js/sa-session.js?v=2026-10-18a"></script>
-<script src="js/alma-client.js?v=2026-11-19-bvchat"></script>
+<script src="js/alma-client.js?v=2026-11-19-bandeja"></script>
 <script src="js/sa-compositor.js?v=2026-11-09b"></script>
 <script src="js/sa-chat.js?v=2026-11-15c"></script>
 <script src="js/push.js?v=2026-10-18a"></script>
@@ -388,6 +388,9 @@
   .alma-shell .alma-acc-cab:active{ transform:scale(.96); }
   .alma-shell .alma-acc-cab b{ font-variant-numeric:tabular-nums; }
   @media (max-width:369px){ .alma-shell .alma-acc-cab .bj-toca-txt{ display:none; } }
+  /* Bandeja unificada (#888, alma/bandeja.html): una persona por fila con todas sus redes. En el teléfono se entra desde la app de Alma (el encabezado solo tiene lugar para la lupa y ✦). */
+  .alma-shell .bj-unif{ height:40px; display:inline-flex; align-items:center; gap:6px; padding:0 14px; border-radius:999px; border:1px solid #D8D4CE; background:#FFFFFF; color:#3E3F3F; font-size:11.5px; font-weight:600; text-decoration:none; white-space:nowrap; }
+  @media (max-width:700px){ .alma-shell .bj-unif{ display:none; } }
   @media (prefers-reduced-motion:reduce){
     .bj-circulo{ animation:bj-fade .16s linear backwards; }
     .bj-aro.bj-late::after{ animation:none; }
@@ -1602,6 +1605,7 @@
         <sc-if value="{{ accHay }}" hint-placeholder-val="{{ false }}">
         <button class="alma-acc-cab" onClick="{{ accToggle }}" aria-label="Te toca a ti · {{ accN }} acciones pendientes" title="Acciones pendientes"><span aria-hidden="true" style="width:6px; height:6px; border-radius:50%; background:#E9826A; flex-shrink:0"></span><span class="bj-toca-txt">Te toca a ti</span><b>{{ accN }}</b></button>
         </sc-if>
+        <a class="bj-unif" href="alma/bandeja.html" title="Todas las redes, una persona por fila">Bandeja unificada</a>
         <div class="alma-q" data-on="{{ convQOn }}">
           <label class="alma-q-pill" title="Buscar conversaciones">
             <span class="alma-q-ico" aria-hidden="true"><x-import component-from-global-scope="SpacioAMDesignSystem_2c08fe.Icon" name="search" size="18" color="#3E3F3F" hint-size="18px,18px"></x-import></span>

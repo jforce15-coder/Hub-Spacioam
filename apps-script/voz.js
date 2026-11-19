@@ -584,14 +584,14 @@ function vozNivelWeebo_() {
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 /* GIF de la broma (Juan, 16-nov-2026): herramienta de CLIENTE que Alma llama en silencio, solo con Juan y en la app, para
-   acompañar una broma que ya cayó (weeboVozBloque_ · WEEBO_GIF_). La app (VozNativa.swift · GifBroma.swift) la pasa a la
+   acompañar una broma que ya cayó, de vez en cuando y siempre de cine o series (weeboVozBloque_ · WEEBO_GIF_). La app (VozNativa.swift · GifBroma.swift) la pasa a la
    página del inicio (js/alma-gif.js), que pide el GIF al Hub (gif.js: GIPHY con rating g o un emoji animado) y lo pone
    unos segundos en UN cuadro del tablero, o en el chat si no hay tablero. No espera respuesta: no hace hablar a Alma. */
 function vozMostrarGif_() {
   return { type: 'client', name: 'mostrar_gif', expects_response: false, response_timeout_secs: 1,
-    description: 'Muestra unos segundos un GIF que acompaña una broma que ya hiciste y que cayó en su contexto. Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA» y caller_type es juan; nunca con un problema, una queja o al dar datos. Como mucho uno cada varios minutos. Llámala en silencio: no la anuncies, no digas su nombre ni la idea en voz alta, y no esperes respuesta.',
+    description: 'Muestra unos segundos un GIF de cine o serie que acompaña una broma que ya cayó; ocasional. Solo si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA» y caller_type es juan; nunca con un problema, una queja o al dar datos. Como mucho uno cada 10 minutos. Llámala en silencio: no la anuncies, no digas su nombre ni la idea en voz alta, y no esperes respuesta.',
     parameters: { type: 'object', required: ['idea'], properties: {
-      idea: { type: 'string', description: 'Lo que el GIF expresa, en 1 a 4 palabras en inglés (p. ej. «slow clap», «mind blown», «I\'ll be back», «mic drop»).' } } },
+      idea: { type: 'string', description: 'Escena de película o serie famosa, 2 a 6 palabras en inglés con el título («Titanic king of the world», «The Office Michael no»).' } } },
     pre_tool_speech: 'off', force_pre_tool_speech: false, disable_interruptions: false };
 }
 /* Tarjetas de clubes (Juan, 17-nov-2026): «guardar en mi perfil las tarjetas de clubes de compra o de cliente frecuente y

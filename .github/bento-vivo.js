@@ -91,6 +91,22 @@ for (const vista of [[1366, 1024], [1440, 900], [1024, 1366]]) {
   const sin = piezasDe(null, 1366, 1024, { datos: {} });
   ok(sin.n === 0, '2 · sin datos de administrador no hay bento en el reposo');
 }
+{
+  /* 2 · la vida personal en el reposo (Juan, 19-nov-2026, apps-script/vidahoy.js): «Tu agenda» y «Familia», después de «Necesita tu sí» */
+  const c = caja(1366, 1024, { datos: { pend: { atencion: [{ id: 'p1', titulo: 'Aprobar precio' }] }, noti: { items: [] } } });
+  const ov = nodo('div'); ov.querySelector = () => null; c.document.querySelector = (s) => (/san-ov$/.test(s) ? ov : null);
+  c.B.iniciar({});
+  c.B.areas({ ok: true, areas: [{ k: 'relaciones', n: 'Relaciones', proyectos: [] }], vida: {
+    agenda: { eventos: [{ t: 'Cena con Christine', dia: 'hoy', h: '20:00', fin: new Date(Date.now() + 3600e3).toISOString() }, { t: 'Ya pasó', dia: 'hoy', h: '7:00', fin: new Date(Date.now() - 3600e3).toISOString() }] },
+    familia: { lleva: 'Juan', casa: 'Christine', tarde: 'Ballet 7:00', frase: 'Observa más de lo que hablas.', url: 'https://thegentlestoicparent.com' } } });
+  const els = todos(ov).filter((x) => x.classList && x.classList.contains('bv-c')), cls = els.map((x) => x.children[0] && x.children[0].className || '');
+  const txt = (n) => [n.textContent].concat((n.children || []).map(txt)).join(' ');
+  const todo = els.map(txt).join(' ');
+  ok(cls.some((x) => /bv-familia/.test(x)) && /Tu agenda/.test(todo) && /Cena con Christine/.test(todo) && !/Ya pasó/.test(todo) && /Observa más/.test(todo),
+    '2 · reposo con vida personal: «Tu agenda» (sin lo que ya pasó) y «Familia» de The Gentle Stoic Parent con su frase');
+  const orden = els.map(txt).map((t) => /Necesita tu sí/.test(t) ? 'pend' : /Tu agenda/.test(t) ? 'agenda' : /Familia/.test(t) ? 'familia' : '').filter(Boolean);
+  ok(orden.length >= 3, '2 · reposo: Necesita tu sí, Tu agenda y Familia caben juntos (' + orden.join(', ') + ')');
+}
 
 /* 3 · GIFs del tema */
 function cajaGif(o) {
@@ -110,7 +126,7 @@ function cajaGif(o) {
   const temas = Object.keys(X.GIF_TEMAS_);
   const pide = ['huesped', 'salida', 'limpieza', 'mantenimiento', 'cobro', 'socio', 'buena_noticia', 'reserva_nueva'];
   ok(temas.length >= 9 && pide.every((t) => temas.includes(t)), '3 · los temas que pidió Juan y más: ' + temas.join(', '));
-  ok(temas.every((t) => /\b(reaction|meme)\b/.test(X.GIF_TEMAS_[t].q) && !X.GIF_TEMAS_[t].e), '3 · cada tema busca GIFs de reacción o meme y no trae emojis');
+  ok(temas.every((t) => /\b(movie|tv show)\b/.test(X.GIF_TEMAS_[t].q) && !X.GIF_TEMAS_[t].e), '3 · cada tema busca escenas de cine o series (Juan: «siempre cinematográficos») y no trae emojis');
   const c = X.gifTemas_();
   ok(c.ok && c.por_tema === 7 && temas.every((t) => c.temas[t].gifs.length === 0) && !pedidos.length, '3 · sin llave de GIPHY: los temas van vacíos (nunca emojis) y ninguna llamada a internet');
   ok(!X.gifTemasApi_('otro').ok && X.gifTemasApi_('admin').ok, '3 · gifTemas solo con sesión de administrador');
@@ -125,10 +141,10 @@ function cajaGif(o) {
   ok(llenos.length === 4 && pedidos.length === 4, '3 · con GIPHY: se eligen como mucho 4 temas por vez (' + llenos.join(', ') + ')');
   const l = c.temas[llenos[0]].gifs.map((x) => x.url);
   ok(l.length === 7 && new Set(l).size === 7 && !l.some((u) => /g2\/|g6\/|g11\//.test(u)), '3 · 7 GIFs distintos, solo rating g y ningún sticker');
-  ok(/\/v1\/gifs\/search\?/.test(pedidos[0]) && /rating=g/.test(pedidos[0]) && /(reaction|meme)/.test(decodeURIComponent(pedidos[0])), '3 · la búsqueda va al endpoint de GIFs (no stickers), con rating g y texto de reacción');
+  ok(/\/v1\/gifs\/search\?/.test(pedidos[0]) && /rating=g/.test(pedidos[0]) && /(movie|tv show)/.test(decodeURIComponent(pedidos[0])), '3 · la búsqueda va al endpoint de GIFs (no stickers), con rating g y de cine o series');
   const n = pedidos.length; X.gifTemas_(); X.gifTemas_(); X.gifTemas_();
   const n2 = pedidos.length; X.gifTemas_();
-  ok(pedidos.length === n2 && JSON.parse(props.GIF_TEMAS).huesped.length === 7, '3 · elegidos una vez y guardados en GIF_TEMAS: después no se buscan (' + n + ' → ' + n2 + ' pedidos en total)');
+  ok(pedidos.length === n2 && JSON.parse(props.GIF_TEMAS).huesped.length === 7 && JSON.parse(props.GIF_TEMAS)._estilo === 'cine', '3 · elegidos una vez y guardados en GIF_TEMAS: después no se buscan (' + n + ' → ' + n2 + ' pedidos en total)');
   const r1 = X.gifTemasRobot_({ tema: 'huesped', urls: ['https://evil.example/x.gif', 'https://media.giphy.com/media/a/giphy.gif'] });
   ok(!r1.ok, '3 · el robot no acepta URLs que no sean de GIPHY, ni menos de 7');
   ok(!X.gifTemasRobot_({ tema: 'huesped', urls: [1, 2, 3, 4, 5, 6, 7].map((i) => 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60' + i + '/512.webp') }).ok, '3 · el robot no acepta emojis de Noto');
@@ -139,14 +155,23 @@ function cajaGif(o) {
   ok(r2.ok && JSON.parse(props.GIF_TEMAS).limpieza[0].url === urls[0], '3 · el robot cambia los 7 de un tema sin PR');
 }
 {
+  const g = (i, v) => ({ id: 'v' + i, rating: 'g', title: 'gif ' + i, user: v ? { is_verified: true } : undefined, images: { downsized_medium: { url: 'https://media.giphy.com/media/v' + i + '/giphy.gif' } } });
+  const viejo = JSON.stringify({ huesped: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media.giphy.com/media/old' + i + '/giphy.gif' })) });
+  const { X } = cajaGif({ props: { GIPHY_KEY: 'k', GIF_TEMAS: viejo }, giphy: [g(1), g(2), g(3), g(4), g(5), g(6), g(7, 1), g(8, 1)] });
+  const c = X.gifTemas_(), h = c.temas.huesped.gifs.map((x) => x.url).join(' ');
+  ok(!/old\d/.test(h), '3 · el catálogo de antes (memes de reacción) no se usa: se vuelve a elegir de cine');
+  const l = X.gifTemaBuscar_('huesped').map((x) => x.url);
+  ok(/v7\//.test(l[0]) && /v8\//.test(l[1]), '3 · primero los GIFs de cuentas verificadas (estudios y series oficiales)');
+}
+{
   ok(caja(1366, 1024).B.siguienteGif('huesped') === null, '3 · sin catálogo la página no tiene GIF (y nunca un emoji)');
   const cat = { reposo: { fuente: 'giphy', gifs: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media1.giphy.com/media/r' + i + '/giphy.gif' })) },
     huesped: { fuente: 'giphy', gifs: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media2.giphy.com/media/h' + i + '/giphy.gif' })) }, cobro: { fuente: 'giphy', gifs: [] },
     viejo: { fuente: 'emoji', gifs: [{ url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/2615/512.webp' }] } };
-  const c = caja(1366, 1024, { store: { alma_bento_gifs: JSON.stringify({ t: Date.now(), temas: cat }) } });
+  const c = caja(1366, 1024, { store: { alma_bento_gifs_cine: JSON.stringify({ t: Date.now(), temas: cat }) } });
   c.B.iniciar({});
   ok(/\/r\d\//.test(c.B.siguienteGif('cobro').url), '3 · un tema sin GIFs usa los del reposo');
-  const ce = caja(1366, 1024, { store: { alma_bento_gifs: JSON.stringify({ t: Date.now(), temas: { reposo: cat.viejo } }) } }); ce.B.iniciar({});
+  const ce = caja(1366, 1024, { store: { alma_bento_gifs_cine: JSON.stringify({ t: Date.now(), temas: { reposo: cat.viejo } }) } }); ce.B.iniciar({});
   ok(ce.B.siguienteGif('reposo') === null, '3 · un catálogo viejo con emojis no se usa (se vuelve a pedir)');
   const vistos = []; for (let i = 0; i < 7; i++) vistos.push(c.B.siguienteGif('huesped').url);
   ok(new Set(vistos).size === 7, '3 · la página rota los 7 sin repetir hasta agotarlos');
@@ -189,42 +214,43 @@ function cajaGif(o) {
 ok(/function pintarVivo\(t, v\)[\s\S]{0,200}roca\(null\)/.test(INICIO) && !/function pintarVivo[\s\S]{0,900}roca\("esquina"\)/.test(INICIO), '4 · con el bento vivo la roca se queda al centro (nunca a la esquina)');
 ok(/html\.bv-on #sa-nav-root \.san-ov-cap:not\(:empty\) \{ background: rgba\(34,26,28,\.7\d\)/.test(INICIO), '4 · los subtítulos llevan su fondo oscuro sobre el bento (blanco sobre ~#3A3032, AA)');
 ok(/body\.orbita-on \.bv,[^{]*body\.san-hoja \.bv,[^{]*\.san-ov\.pend \.bv/.test(INICIO), '4 · el bento se esconde con las esferas y sus niveles, las hojas, Pendientes y Notificaciones');
-ok(/AlmaBento\.gifCuadro/.test(AGIF) && /gifCuadro: function \(\) \{[\s\S]{0,400}RT\.reservada = [\s\S]{0,200}gv-marco/.test(BENTO), '4 · la broma tapa el GIF de la ventana (alma-gif.js) y la ventana sale para ella');
+ok(/AlmaBento\.gifCabe\(\)/.test(AGIF) && /AlmaBento\.gifCuadro\(\)/.test(AGIF) && /gifCuadro: function \(\) \{[\s\S]{0,200}V\.broma = [\s\S]{0,200}gv-marco/.test(BENTO), '4 · la broma abre la ventana del GIF para sí unos segundos (alma-gif.js)');
 /* 5 · la ventana del GIF */
 const GV = (INICIO.match(/\n  \.gv \{[\s\S]*?\}\n/) || [''])[0];
 ok(/background: rgba\((2\d|3\d), ?(2\d|3\d), ?(2\d|3\d), ?\.[3-6]\d?\)/.test(GV) && /-webkit-backdrop-filter: blur\(\d+px\) saturate/.test(GV) && /backdrop-filter: blur/.test(GV), '5 · la ventana es vidrio gris oscuro translúcido (frosted, con su prefijo -webkit-)');
 ok(!/#CFE6DE|#F7EBC6/i.test(INICIO), '5 · sin el verde de antes');
 ok(/function lugar\(\)[\s\S]{0,400}rocaRect\(\)/.test(BENTO) && /abajo = rb\.top - /.test(BENTO) && /y: Math\.round\(abajo - h\)/.test(BENTO), '5 · la ventana va arriba de la roca, sin tocar su halo (la sigue al centro o a la esquina)');
 ok(/AlmaBento\.gifTema\(abierta \? t : null\)/.test(INICIO), '5 · en el teléfono la ventana sigue el tema de lo que se habla');
-ok(/CADA = 8000/.test(BENTO) && /setInterval\(function \(\) \{ if \(V\.el[^\n]*modo\(\) === "activo"\) siguiente\(\); \}, CADA\)/.test(BENTO), '5 · pasa un GIF y después otro (cada 8 s) solo cuando toca estar activo, salvo con la broma encima');
+ok(!/CADA = 8000/.test(BENTO) && /PAUSA_ANCHA = 120000, PAUSA_TEL = 360000/.test(BENTO) && /VISTA = 7000/.test(BENTO), '5 · ya no rota: asoma con un GIF unos segundos y descansa (2 min en pantalla ancha, 6 en el teléfono)');
+ok(/var p = \(ahora < V\.hasta && B\.gifs && !escucha\(\)\) \|\| broma \? lugar\(\) : null/.test(BENTO) && /classList\.remove\("on", "listo"\)/.test(BENTO), '5 · fuera de su momento la ventana se va (y el saludo vuelve)');
+ok(/G\.ult && Date\.now\(\) - G\.ult < pausa\(\)/.test(AGIF) && /PAUSA_ANCHA = 300000, PAUSA_TEL = 600000/.test(AGIF), '5 · la broma con GIF es ocasional: después de una, 5 min sin GIF (10 en el teléfono)');
+ok(/alma-bento\.js\?v=/.test(INICIO), '4 · alma/inicio.html carga js/alma-bento.js');
 
 /* 6 · el ritmo del GIF en la llamada (Juan, 19-nov-2026: «si solo estás escuchando no debería poner ningún GIF… salvo una
-   broma en conversaciones largas… ocasionalmente… y con el bento, más activo») */
+   broma en conversaciones largas… y cuando aparece el bento, un poquito más activo») */
 {
   let ahora = 1e12; const Reloj = class extends Date {}; Reloj.now = () => ahora;
-  const c = caja(390, 844, { Date: Reloj }), ov = nodo('div'), st = nodo('div'), pedidas = [];
-  ov.className = 'san-ov escena on quieta'; st.textContent = 'Toca a Alma';
+  const cat = { reposo: { fuente: 'giphy', gifs: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media1.giphy.com/media/r' + i + '/giphy.gif' })) },
+    huesped: { fuente: 'giphy', gifs: [1, 2, 3, 4, 5, 6, 7].map((i) => ({ url: 'https://media2.giphy.com/media/h' + i + '/giphy.gif' })) } };
+  const c = caja(1366, 1024, { Date: Reloj, store: { alma_bento_gifs_cine: JSON.stringify({ t: 1e12, temas: cat }) } });
+  const ov = nodo('div'), st = nodo('div'), pedidas = [];
+  ov.className = 'san-ov escena on'; st.textContent = 'Te escucho';
   c.document.querySelector = (s) => (/san-ov-st$/.test(s) ? st : /san-ov$/.test(s) ? ov : null);
   c.window.AlmaGif = { mostrar: (i) => pedidas.push(i) };
+  c.B.iniciar({});
   const R = () => c.B.ritmo(), seg = (n) => { ahora = 1e12 + n * 1000; };
-  ok(R() === 'activo', '6 · fuera de la llamada, como siempre (uno tras otro)');
-  ov.classList.remove('quieta'); st.textContent = 'Te escucho'; seg(0);
-  ok(R() === 'nada', '6 · en la llamada, Alma escucha: ningún GIF');
-  seg(20); st.textContent = 'Alma habla'; R(); seg(22);
-  ok(R() === 'ocasional', '6 · Alma habla: de vez en cuando sale uno');
-  seg(30); ok(R() === 'nada', '6 · …unos 7 s y se va');
-  seg(50); ok(R() === 'nada', '6 · el siguiente, no antes de 40 s');
-  seg(63); ok(R() === 'ocasional', '6 · a los 40 s, otro');
-  seg(64); st.textContent = 'Te escucho'; R(); seg(65);
-  ok(R() === 'ocasional', '6 · entre frases (menos de 2,5 s) no parpadea');
-  seg(68); ok(R() === 'nada', '6 · Alma ya escucha: se va enseguida');
+  seg(0); R(); seg(3); ok(R().escucha && c.B.asomar() === false, '6 · en la llamada, Alma escucha: no asoma ningún GIF');
+  st.textContent = 'Alma habla'; seg(4); ok(!R().escucha && c.B.asomar() === true, '6 · Alma habla: el GIF puede asomar (de vez en cuando)');
+  seg(5); ok(c.B.asomar() === false, '6 · y descansa su pausa');
   c.B.gifTema({ tipo: 'reserva', titulo: 'Ana', cuadros: [] });
-  ok(R() === 'activo', '6 · con el tablero o el bento con información: activo, aunque Alma escuche');
-  c.B.gifTema(null); ok(R() === 'nada', '6 · sin tema y escuchando: nada otra vez');
+  seg(50); ok(c.B.asomar() === true, '6 · con información a la vista, más activo: asoma otra vez a los 45 s');
+  st.textContent = 'Te escucho'; seg(51); R(); seg(52);
+  ok(!R().escucha, '6 · entre frases (menos de 2,5 s) no cuenta como escuchar');
+  seg(100); ok(R().escucha && c.B.asomar() === false, '6 · Alma ya solo escucha: nada, aunque haya tema');
+  c.B.gifTema(null);
   seg(200); R(); ok(!pedidas.length, '6 · llamada corta: sin broma de aburrimiento');
   seg(361); R(); ok(pedidas.length === 1 && /asleep|watch|bored|yawn/.test(pedidas[0]), '6 · llamada larga y Juan hablando 45 s: una broma («me estoy durmiendo», «viendo el reloj»)');
   seg(500); R(); ok(pedidas.length === 1, '6 · como mucho una broma cada 6 min');
-  c.B.gifCuadro(); ok(R() === 'broma', '6 · la broma de Alma (mostrar_gif) siempre saca la ventana');
+  ov.classList.add('quieta'); st.textContent = 'Toca a Alma'; ok(!R().escucha, '6 · fuera de la llamada, el reposo de siempre');
 }
-ok(/alma-bento\.js\?v=/.test(INICIO), '4 · alma/inicio.html carga js/alma-bento.js');
 process.exit(fallo);

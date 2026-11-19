@@ -11,7 +11,9 @@ var LLAVES_PERMITIDAS_ = [
   { nombre: 'ONESIGNAL_IOS_APP_ID', para: 'Notificaciones push de la app de Alma: el App ID de su app de OneSignal (iPhone)' },   // Ticket #28 (pushapp.js)
   { nombre: 'ONESIGNAL_IOS_KEY', para: 'Notificaciones push de la app de Alma: la REST API Key de esa misma app de OneSignal' },   // Ticket #28 (pushapp.js)
   { nombre: 'GIPHY_KEY', para: 'GIFs de las bromas de Alma en la pantalla (GIPHY, solo aptos para todo público); sin ella, emojis animados' },   // 16-nov-2026 (gif.js)
-  { nombre: 'WA_VERIFY_TOKEN', para: 'WhatsApp (Meta): el «Verify token» del webhook; pon el mismo texto en Meta → WhatsApp → Configuración' }
+  { nombre: 'WA_VERIFY_TOKEN', para: 'WhatsApp (Meta): el «Verify token» del webhook; pon el mismo texto en Meta → WhatsApp → Configuración' },
+  { nombre: 'META_PAGE_TOKEN', para: 'Messenger (y el Instagram ligado a la Página): el token de acceso de la Página de Facebook de Spacio AM, de la misma app de Meta del WhatsApp' },   // #888 T5 (redesmeta.js)
+  { nombre: 'IG_TOKEN', para: 'Instagram con inicio de sesión de Instagram: el token de la cuenta profesional (si está, Instagram sale por aquí y no por la Página)' }   // #888 T5 (redesmeta.js)
 ];
 var LLAVES_META_ = 'LLAVES_GUARDADAS';   // { NOMBRE: { t, por } }: cuándo y quién, nunca el valor
 

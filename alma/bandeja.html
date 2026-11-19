@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAF8F6">
+<title>Bandeja · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<link rel="stylesheet" href="../ds/esqueleto.css">
+<!-- Bandeja unificada (#888; apps-script/bandejaunica.js y redesmeta.js): una persona por fila, todas las redes.
+     Juan eligió (19-nov-2026): en iPad y computadora el prototipo A (carpetas y canales · personas · hilo mezclado ·
+     ficha de la persona) y en el iPhone el C (Alma decide el orden: Te toca decidir · Alma lo lleva · Esperando a otros ·
+     Listo hoy, una tarjeta a la vez con A · B · C). -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --tenue: #8A8580; --tenue2: #A39B93; --linea: #EEEAE6; --fondo: #FAF8F6; --arena: #F3EFEA;
+    --durazno: #E9826A; --durazno-t: #B5624E; --rojo: #D9583A; --halo: linear-gradient(100deg,#E64E37 0%,#EE7552 45%,#F59D68 100%); --nota: #FBF3D9; --nota-b: #E8C468;
+    --ease: cubic-bezier(.2,.7,.2,1); }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta); font: 500 13.5px/1.45 Montserrat, system-ui, sans-serif; -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; overflow: hidden; }
+  button { font: inherit; color: inherit; }
+  .serif { font-family: Valky, "Cormorant Garamond", Georgia, serif; font-weight: 400; }
+  [hidden] { display: none !important; }
+  /* piezas comunes */
+  .cn { display: inline-grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 700; flex: none; line-height: 1; box-shadow: 0 0 0 2px #fff; }
+  .av { position: relative; display: inline-grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 600; flex: none; background-size: cover; background-position: center; }
+  .av > i { position: absolute; right: -3px; bottom: -3px; font-style: normal; display: flex; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #F1EDE9; color: var(--tinta); white-space: nowrap; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex: none; }
+  .badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--durazno); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; }
+  .btn { white-space: nowrap; border: 0; border-radius: 999px; padding: 0 16px; min-height: 40px; font: 600 12.5px Montserrat, sans-serif; background: #1F1F1F; color: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .btn.claro { background: #F1EDE9; color: var(--tinta); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .lugar-alma { width: 50px; height: 50px; flex: none; display: grid; place-items: center; }   /* la piedra la dibuja SANav.roca (una sola roca) */
+  .gira { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #E8DCD4; border-top-color: var(--durazno); display: inline-block; animation: gira 0.9s linear infinite; flex: none; }
+  @keyframes gira { to { transform: rotate(360deg); } }
+  .msg-flot { position: fixed; left: 50%; bottom: max(24px, env(safe-area-inset-bottom)); transform: translateX(-50%); background: #3E3F3F; color: #FAF8F6; padding: 10px 16px; border-radius: 999px;
+    font: 500 13px Montserrat, sans-serif; opacity: 0; transition: opacity .3s; pointer-events: none; max-width: calc(100% - 32px); z-index: 50; }
+  .msg-flot.on { opacity: 1; }
+  .vacio { padding: 28px 20px; text-align: center; color: var(--tenue2); }
+  .borrador { border-radius: 18px; padding: 12px 14px; background: linear-gradient(#fff,#fff) padding-box, var(--halo) border-box; border: 1.5px solid transparent; }
+  .borrador .k { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--rojo); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .ops { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .op { display: flex; align-items: center; gap: 10px; border-radius: 16px; background: #F6F3F0; padding: 11px 14px; font-weight: 600; text-align: left; border: 1.5px solid transparent; cursor: pointer; min-height: 48px; width: 100%; }
+  .op > i { font-style: normal; width: 26px; height: 26px; border-radius: 50%; background: #1F1F1F; color: #fff; display: grid; place-items: center; font-size: 12px; flex: none; }
+  .op.rec { background: linear-gradient(#fff,#fff) padding-box, var(--halo) border-box; }
+  .op.on { background: linear-gradient(#FFF6F2,#FFF6F2) padding-box, var(--halo) border-box; }
+  .op .vista { font-weight: 500; color: #6F6867; font-size: 12px; display: block; margin-top: 2px; }
+  .op small { margin-left: auto; color: var(--rojo); font-size: 11px; flex: none; }
+  .sale { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: #1F1F1F; color: #fff; font-size: 12.5px; }
+  .sale .btn { margin-left: auto; background: #fff; color: #1F1F1F; min-height: 34px; }
+  textarea.ed { width: 100%; min-height: 84px; resize: vertical; border: 1px solid #E5DFD8; border-radius: 14px; padding: 10px 12px; font: 500 13.5px/1.5 Montserrat, sans-serif; background: #FFFDFB; color: var(--tinta); margin-top: 8px; }
+
+  /* ═══ A · iPad y computadora ═══ */
+  .app { display: grid; grid-template-columns: 210px minmax(300px, 360px) 1fr 290px; height: 100vh; height: 100dvh; }
+  .app > * { min-height: 0; }
+  .rail { background: #F3F0EC; border-right: 1px solid var(--linea); padding: max(18px, env(safe-area-inset-top)) 12px 18px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+  .rail .tit { display: flex; align-items: center; gap: 10px; margin: 0 6px 14px; }
+  .rail h1 { font-size: 30px; margin: 0; line-height: 1; }
+  .rail .volver { margin-left: auto; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #fff; text-decoration: none; color: var(--tinta); box-shadow: 0 6px 14px -10px rgba(70,50,40,.5); }
+  .rail .sec { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); font-weight: 700; margin: 14px 8px 6px; }
+  .rail button { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 10px; border: 0; background: transparent; text-align: left; font-weight: 500; cursor: pointer; min-height: 38px; width: 100%; }
+  .rail button.on { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.06); font-weight: 600; }
+  .rail button .n { margin-left: auto; color: var(--tenue); font-size: 11.5px; }
+  .rail button .ico { width: 20px; text-align: center; flex: none; }
+  .rail .apagado { margin-left: auto; font-size: 10px; color: var(--tenue2); }
+  .lista { border-right: 1px solid var(--linea); background: #fff; display: flex; flex-direction: column; min-width: 0; }
+  .lista .top { padding: max(16px, env(safe-area-inset-top)) 16px 10px; display: flex; flex-direction: column; gap: 10px; }
+  .buscar { display: flex; align-items: center; gap: 8px; background: #F3F0EC; border-radius: 12px; padding: 0 12px; min-height: 40px; }
+  .buscar input { flex: 1; min-width: 0; border: 0; background: transparent; font: 500 13.5px Montserrat, sans-serif; color: var(--tinta); outline: none; }
+  .seg { display: flex; background: #F3F0EC; border-radius: 10px; padding: 3px; }
+  .seg button { flex: 1; border: 0; background: transparent; padding: 7px 0; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--tenue); cursor: pointer; min-height: 34px; }
+  .seg button.on { background: #fff; color: var(--tinta); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  .chips { display: none; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .chips button { border: 0; flex: none; min-height: 32px; }
+  .chips button.on { background: #1F1F1F; color: #fff; }
+  .filas { flex: 1; overflow-y: auto; }
+  .fila { display: flex; gap: 12px; padding: 12px 16px; border-bottom: 1px solid #F5F2EF; align-items: flex-start; cursor: pointer; border-left: 3px solid transparent; }
+  .fila:hover { background: #FCFAF8; }
+  .fila.on { background: #FBF3EF; border-left-color: var(--durazno); }
+  .fila .m { flex: 1; min-width: 0; }
+  .fila .l1 { display: flex; align-items: center; gap: 6px; }
+  .fila .l1 b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fila .l1 small { margin-left: auto; color: var(--tenue); font-size: 11px; flex: none; }
+  .fila .l2 { color: #6F6867; font-size: 12.5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 2px; }
+  .fila .l3 { display: flex; gap: 5px; margin-top: 6px; align-items: center; flex-wrap: wrap; }
+  .fila .l3 .badge { margin-left: auto; }
+  .conv { display: flex; flex-direction: column; background: var(--fondo); min-width: 0; }
+  .conv .cab { display: flex; align-items: center; gap: 12px; padding: max(14px, env(safe-area-inset-top)) 20px 14px; background: #fff; border-bottom: 1px solid var(--linea); }
+  .conv .cab .q { min-width: 0; }
+  .conv .cab .q b { font-size: 15px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .conv .cab .q span { font-size: 11.5px; color: var(--tenue); }
+  .conv .cab .acc { margin-left: auto; display: flex; gap: 6px; flex: none; }
+  .atras { display: none; border: 0; background: transparent; font-size: 30px; color: var(--rojo); padding: 0 6px 0 0; cursor: pointer; min-width: 36px; min-height: 44px; }
+  .hilo { flex: 1; padding: 20px 28px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+  .msg { max-width: 72%; padding: 10px 13px; border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.05); white-space: pre-wrap; word-wrap: break-word; }
+  .msg.nos { align-self: flex-end; background: #1F1F1F; color: #fff; }
+  .msg.auto { align-self: flex-end; background: #EFEBE6; color: #5A5856; }
+  .msg.nota { align-self: center; max-width: 86%; background: var(--nota); border: 1px dashed var(--nota-b); box-shadow: none; }
+  .msg.llamada { align-self: center; max-width: 86%; background: #fff; border: 1px solid #F1D9CF; }
+  .msg .meta { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--tenue); margin-top: 5px; white-space: normal; }
+  .msg.nos .meta { color: #BDB6B2; }
+  .msg img { display: block; max-width: 220px; border-radius: 10px; margin-top: 6px; }
+  .sep { align-self: center; font-size: 11px; color: var(--tenue); background: #F1EDE9; padding: 3px 10px; border-radius: 999px; }
+  .pie { padding: 12px 20px max(16px, env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--linea); display: flex; flex-direction: column; gap: 10px; }
+  .cuadro { display: flex; align-items: flex-end; gap: 10px; border: 1px solid #DDD; border-radius: 22px; padding: 6px 6px 6px 8px; background: #fff; }
+  .cuadro.nota { background: var(--nota); border-color: var(--nota-b); }
+  .cuadro textarea { flex: 1; min-width: 0; border: 0; resize: none; background: transparent; font: 500 14px/1.45 Montserrat, sans-serif; color: var(--tinta); outline: none; padding: 9px 4px; max-height: 160px; min-height: 40px; }
+  .por { position: relative; flex: none; align-self: center; }
+  .por button { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 0 10px; min-height: 36px; background: #F3F0EC; border-radius: 999px; border: 0; cursor: pointer; white-space: nowrap; }
+  .por .menu { position: absolute; bottom: calc(100% + 8px); left: 0; background: #fff; border-radius: 16px; box-shadow: 0 20px 40px -20px rgba(60,40,30,.5); padding: 6px; min-width: 280px; z-index: 5; }
+  .por .menu button { width: 100%; background: transparent; justify-content: flex-start; border-radius: 10px; min-height: 44px; text-align: left; white-space: normal; }
+  .por .menu button:hover, .por .menu button.on { background: #F6F3F0; }
+  .por .menu small { display: block; color: var(--tenue); font-weight: 500; font-size: 11px; }
+  .enviar { width: 42px; height: 42px; border-radius: 50%; border: 0; background: #1F1F1F; color: #fff; display: grid; place-items: center; cursor: pointer; flex: none; }
+  .enviar:disabled { opacity: .4; }
+  .ventana { font-size: 11.5px; color: var(--tenue); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ventana button { border: 0; background: transparent; color: var(--durazno-t); font-weight: 600; font-size: 11.5px; cursor: pointer; padding: 6px 0; min-height: 32px; }
+  .perfil { background: #fff; border-left: 1px solid var(--linea); padding: max(22px, env(safe-area-inset-top)) 18px 22px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+  .perfil .quien { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .perfil h3 { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--tenue); margin: 0 0 4px; }
+  .perfil .cnl { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #F5F2EF; font-size: 12.5px; }
+  .perfil .cnl span.d { margin-left: auto; color: var(--tenue); font-size: 11px; text-align: right; }
+  .perfil .cnl button { border: 0; background: transparent; color: var(--tenue); font-size: 11px; cursor: pointer; padding: 4px 0 4px 8px; min-height: 32px; }
+  .perfil .mas { border: 0; background: transparent; color: var(--rojo); font-weight: 600; cursor: pointer; padding: 10px 0; text-align: left; min-height: 40px; }
+  .perfil select { width: 100%; min-height: 40px; border-radius: 12px; border: 1px solid #E5DFD8; background: #FAF8F6; font: 600 12.5px Montserrat, sans-serif; color: var(--tinta); padding: 0 10px; }
+  .tarj { background: #FAF8F6; border-radius: 14px; padding: 12px; font-size: 12.5px; }
+  .tarj a { color: var(--durazno-t); font-weight: 600; }
+  .perfil .cerrar { display: none; align-self: flex-end; border: 0; background: #F3F0EC; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; }
+  .hoja { position: fixed; inset: 0; background: rgba(40,30,25,.32); display: grid; place-items: center; z-index: 40; padding: 16px; }
+  .hoja > div { background: #fff; border-radius: 22px; padding: 18px; width: min(440px, 100%); max-height: 80vh; overflow-y: auto; box-shadow: 0 30px 60px -30px rgba(40,25,20,.6); }
+  .hoja h4 { margin: 0 0 10px; font: 400 22px Valky, Georgia, serif; }
+  .hoja .it { display: flex; align-items: center; gap: 10px; padding: 10px 6px; border-radius: 12px; cursor: pointer; border: 0; background: transparent; width: 100%; text-align: left; min-height: 48px; }
+  .hoja .it:hover { background: #F6F3F0; }
+  .hoja input { width: 100%; min-height: 42px; border-radius: 12px; border: 1px solid #E5DFD8; padding: 0 12px; font: 500 14px Montserrat, sans-serif; margin-bottom: 8px; }
+
+  /* sin la ficha (iPad vertical o computadora chica): la ficha se abre como panel */
+  @media (max-width: 1239px) and (min-width: 701px) {
+    .app { grid-template-columns: 200px minmax(280px, 330px) 1fr; }
+    .perfil { position: fixed; right: 0; top: 0; bottom: 0; width: 320px; z-index: 30; box-shadow: -20px 0 40px -24px rgba(60,40,30,.45); transform: translateX(105%); transition: transform .32s var(--ease); }
+    .perfil.abierto { transform: none; }
+    .perfil .cerrar { display: grid; place-items: center; }
+  }
+  @media (max-width: 979px) and (min-width: 701px) {
+    .app { grid-template-columns: minmax(280px, 330px) 1fr; }
+    .rail { display: none; }
+    .chips { display: flex; }
+    .hilo { padding: 16px; }
+  }
+  @media (min-width: 1240px) { .solo-chico { display: none !important; } }
+
+  /* ═══ C · iPhone: Alma decide el orden ═══ */
+  .tel { display: none; }
+  @media (max-width: 700px) {
+    .app { display: none; }
+    .tel { display: flex; flex-direction: column; height: 100vh; height: 100dvh; background: linear-gradient(180deg, #EFE6E2 0%, #FAF8F6 38%); }
+    .tel .hola { display: flex; align-items: center; gap: 12px; padding: max(18px, env(safe-area-inset-top)) 16px 6px; }
+    .tel .hola h1 { font-size: 21px; line-height: 1.15; margin: 0; }
+    .tel .hola h1 em { font-style: normal; color: var(--rojo); }
+    .tel .volver { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.75); text-decoration: none; color: var(--tinta); flex: none; align-self: flex-start; }
+    .tel .cuerpo { flex: 1; overflow-y: auto; padding: 8px 16px 110px; }
+    .tel h2 { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--tenue); display: flex; align-items: center; gap: 8px; margin: 10px 2px 10px; font-weight: 700; }
+    .tel h2 .badge { background: #1F1F1F; }
+    .foco { background: #fff; border-radius: 26px; padding: 18px; box-shadow: 0 30px 60px -36px rgba(80,50,40,.45); display: flex; flex-direction: column; gap: 12px; }
+    .foco .quien { display: flex; align-items: center; gap: 12px; }
+    .foco .quien b { font-size: 21px; line-height: 1.05; display: block; }
+    .foco .quien small { display: block; color: var(--tenue); margin-top: 4px; font-size: 12px; }
+    .foco .quien .pill { margin-left: auto; align-self: flex-start; }
+    .foco .dijo { font-size: 19px; line-height: 1.3; }
+    .mini { display: flex; flex-direction: column; gap: 6px; border-left: 2px solid #F1EDE9; padding-left: 12px; }
+    .mini div { display: flex; align-items: flex-start; gap: 7px; font-size: 12.5px; color: #6F6867; }
+    .mini div .cn { margin-top: 1px; }
+    .foco .acc { display: flex; gap: 8px; flex-wrap: wrap; }
+    .foco .acc .btn { flex: 1; justify-content: center; }
+    .foco .nota-pie { font-size: 11.5px; color: var(--tenue); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+    .foco .pasar { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--tenue); }
+    .foco .pasar button { border: 0; background: transparent; color: var(--durazno-t); font-weight: 600; min-height: 40px; cursor: pointer; }
+    .tar { background: #fff; border-radius: 18px; padding: 12px 14px; display: flex; gap: 11px; box-shadow: 0 10px 24px -20px rgba(80,50,40,.5); margin-bottom: 10px; cursor: pointer; width: 100%; border: 0; text-align: left; }
+    .tar .m { flex: 1; min-width: 0; font-size: 12.5px; }
+    .tar .m b { display: flex; align-items: center; gap: 6px; font-size: 13.5px; }
+    .tar .m b small { margin-left: auto; color: var(--tenue); font-weight: 500; font-size: 11px; }
+    .tar .m p { color: #6F6867; margin: 3px 0 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tar .m .alma { margin-top: 6px; padding: 7px 10px; border-radius: 12px; background: #F6F3F0; color: var(--tinta); }
+    .tar .m .pie2 { display: flex; gap: 6px; margin-top: 6px; font-size: 11px; color: var(--durazno-t); font-weight: 600; }
+    .tar.tenue { opacity: .75; box-shadow: none; background: rgba(255,255,255,.6); }
+    .nav-tel { position: fixed; left: 16px; right: 16px; bottom: max(18px, env(safe-area-inset-bottom)); display: flex; justify-content: space-around; align-items: center; background: rgba(255,253,251,.86); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-radius: 999px; padding: 6px; box-shadow: 0 10px 30px -18px rgba(60,40,30,.5); z-index: 10; }
+    .nav-tel button { flex: 1; border: 0; background: transparent; font-size: 11.5px; font-weight: 600; color: var(--tenue); min-height: 44px; border-radius: 999px; cursor: pointer; }
+    .nav-tel button.on { color: var(--tinta); background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    /* el hilo de una persona, en pantalla completa */
+    .tel-hilo { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; background: var(--fondo); transform: translateX(100%); transition: transform .32s var(--ease); }
+    .tel-hilo.abierto { transform: none; }
+    .tel-hilo .conv { height: 100%; }
+    .tel-hilo .atras { display: block; }
+    .tel-hilo .conv .cab .acc .btn:not(.siempre) { display: none; }
+    .tel-hilo .hilo { padding: 14px; }
+    .tel-hilo .msg { max-width: 86%; }
+    .tel-hilo .pie { padding: 10px 12px max(14px, env(safe-area-inset-bottom)); }
+    .tel-hilo .por .menu { min-width: 250px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<!-- A · iPad y computadora -->
+<div class="app" id="app">
+  <nav class="rail" id="rail" aria-label="Carpetas y canales"></nav>
+  <section class="lista" aria-label="Personas">
+    <div class="top">
+      <label class="buscar"><span aria-hidden="true">🔍</span><input id="buscar" type="search" placeholder="Buscar personas, mensajes, reservas…" autocomplete="off" aria-label="Buscar"></label>
+      <div class="chips" id="chips"></div>
+      <div class="seg" id="seg" role="tablist"></div>
+    </div>
+    <div class="filas" id="filas"><div class="sa-esq" aria-label="Cargando la bandeja"><i class="corta"></i><i class="c"></i><i class="c"></i><i class="c"></i></div></div>
+  </section>
+  <main class="conv" id="conv"><div class="vacio" style="margin:auto">Elige una persona para ver su hilo.</div></main>
+  <aside class="perfil" id="perfil" aria-label="Ficha de la persona"></aside>
+</div>
+<!-- C · iPhone -->
+<div class="tel" id="tel">
+  <header class="hola"><span class="lugar-alma" id="lugaralma" aria-hidden="true"></span><h1 class="serif" id="saludo">Buenos días.</h1><a class="volver" href="inicio.html" aria-label="Volver">✕</a></header>
+  <div class="cuerpo" id="cuerpo"><div class="sa-esq" aria-label="Cargando la bandeja"><i class="corta"></i><i class="c"></i><i class="c"></i></div></div>
+  <nav class="nav-tel" id="navtel" aria-label="Carriles"></nav>
+  <div class="tel-hilo" id="telhilo" aria-hidden="true"></div>
+</div>
+<div class="msg-flot" id="msgflot" role="status"></div>
+
+<script src="../js/sa-auth-client.js?v=2026-11-18a"></script>
+<script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
+<script src="../js/alma-client.js?v=2026-11-19-bandeja"></script>
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  function el(t, c, x) { var e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; }
+  function aviso(t) { var m = $("msgflot"); m.textContent = t; m.classList.add("on"); clearTimeout(aviso.t); aviso.t = setTimeout(function () { m.classList.remove("on"); }, 3200); }
+  function api(b) { return window.ALMA && ALMA.bandeja ? ALMA.bandeja(b) : Promise.resolve({ ok: false, error: "Abre esta página desde la app de Alma." }); }
+
+  /* ── Canales, carpetas, estados (las palabras del glosario) ── */
+  var CANAL = {
+    whatsapp: { n: "WhatsApp", c: "#25D366", g: "W" }, instagram: { n: "Instagram", c: "linear-gradient(45deg,#F58529,#DD2A7B 55%,#8134AF)", g: "I" },
+    messenger: { n: "Messenger", c: "linear-gradient(45deg,#0084FF,#A033FF)", g: "M" }, airbnb: { n: "Airbnb", c: "#FF5A5F", g: "A" },
+    booking: { n: "Booking", c: "#003580", g: "B" }, vrbo: { n: "VRBO", c: "#245ABC", g: "V" }, expedia: { n: "Expedia", c: "#1E2A55", g: "E" },
+    directa: { n: "Reserva directa", c: "#8A8580", g: "D" }, correo: { n: "Correo", c: "#6F6867", g: "@" },
+    llamada: { n: "Llamada de Alma", c: "linear-gradient(100deg,#E64E37,#EE7552 45%,#F59D68)", g: "☎" }, nota: { n: "Nota interna", c: "#D9B04A", g: "✎" }
+  };
+  var CARPETAS = [["todo", "Todo", "◎"], ["huesped", "Huéspedes", "🛏"], ["socio", "Socios", "🤝"], ["equipo", "Equipo", "🧹"], ["proveedor", "Proveedores", "🧰"], ["prospecto", "Prospectos", "✨"], ["otro", "Otros", "…"]];
+  var CARPETA_N = {}; CARPETAS.forEach(function (c) { CARPETA_N[c[0]] = c[1]; });
+  var UNA = { huesped: "Huésped", socio: "Socio", equipo: "Equipo", proveedor: "Proveedor", prospecto: "Prospecto", otro: "Otro" };
+  var PRIO = { 1: ["Urgente", "#D9583A"], 2: ["Te toca", "#E9826A"], 3: ["Normal", "#8A8A8A"], 4: ["Baja", "#B8B2AE"] };
+  /* los MISMOS colores de alma/inicio.html (.esf.<clave> --c y --c2) */
+  var ESF = { proposito: ["#E9826A", "#F2B08F"], relaciones: ["#D99AA0", "#F0C4C3"], finanzas: ["#8FB38C", "#C3D9B8"], health: ["#E3A47F", "#F3CDA6"], comunidad: ["#8FA5C8", "#C2D0E6"], espiritualidad: ["#A9A4CC", "#D5D1EA"] };
+
+  function chip(k, tam) { var c = CANAL[k] || CANAL.directa; tam = tam || 18; var s = el("span", "cn", c.g); s.title = c.n; s.style.cssText = "width:" + tam + "px;height:" + tam + "px;font-size:" + Math.round(tam * 0.55) + "px;background:" + c.c; return s; }
+  function iniciales(n) { return String(n || "?").replace(/[^\p{L} ]/gu, "").split(" ").filter(Boolean).slice(0, 2).map(function (p) { return p[0]; }).join("").toUpperCase() || "·"; }
+  function avatar(p, tam) {
+    var e = ESF[p.esfera] || ESF.proposito; tam = tam || 44;
+    var a = el("span", "av"); a.style.cssText = "width:" + tam + "px;height:" + tam + "px;font-size:" + Math.round(tam * 0.36) + "px;background:linear-gradient(135deg," + e[1] + "," + e[0] + ")";
+    if (p.foto && /^https:/.test(p.foto)) { a.style.backgroundImage = "url(\"" + String(p.foto).replace(/"/g, "") + "\")"; } else a.textContent = iniciales(p.nombre);
+    var i = el("i"); i.appendChild(chip(p.ultimo_canal, Math.round(tam * 0.42))); a.appendChild(i); return a;
+  }
+  function pillPrio(p) { var x = PRIO[p.prioridad] || PRIO[4], s = el("span", "pill"), d = el("span", "dot"); d.style.background = x[1]; s.appendChild(d); s.appendChild(document.createTextNode(p.estado === "pospuesto" ? "Pospuesto" : p.estado === "resuelto" ? "Resuelto" : p.estado === "esperando" ? "Esperando" : x[0])); return s; }
+  function hora(ts) {
+    var d = new Date(ts); if (!ts || isNaN(d)) return "";
+    var hoy = new Date(), ayer = new Date(Date.now() - 864e5);
+    if (d.toDateString() === hoy.toDateString()) return d.toLocaleTimeString("es-GT", { hour: "numeric", minute: "2-digit" });
+    if (d.toDateString() === ayer.toDateString()) return "Ayer";
+    if (Date.now() - d < 6 * 864e5) return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][d.getDay()];
+    return d.getDate() + " " + ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"][d.getMonth()];
+  }
+  function dia(ts) { var d = new Date(ts); if (isNaN(d)) return ""; var h = new Date(); if (d.toDateString() === h.toDateString()) return "Hoy"; if (d.toDateString() === new Date(Date.now() - 864e5).toDateString()) return "Ayer"; return d.toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" }); }
+  function reservaTxt(r) { if (!r) return ""; return [r.propiedad, r.checkin ? "llega " + r.checkin.slice(5).split("-").reverse().join("/") : "", r.codigo].filter(Boolean).join(" · "); }
+  function convEtiqueta(c) {
+    var n = (CANAL[c.canal] || CANAL.directa).n;
+    if (c.canal === "whatsapp") return n + (c.conv_id.indexOf("wa:") === 0 ? " · …" + c.conv_id.slice(-4) : "");
+    if (c.codigo) return n + " · " + c.codigo;
+    if (c.conv_id.indexOf("inq:") === 0) return n + " · consulta";
+    if (c.conv_id.indexOf("mail:") === 0) return n + " · " + c.conv_id.slice(5);
+    return n;
+  }
+
+  /* ── Estado de la pantalla ── */
+  var D = null, sel = null, H = null, filtro = { carpeta: "todo", canal: "", estado: "nuevo", vista: "", q: "" }, carril = "toca", foco = 0, notaModo = false, viaSel = -1;
+  var esTel = function () { return window.matchMedia("(max-width: 700px)").matches; };
+
+  function cargar(silencio) {
+    return api({ op: "lista" }).then(function (r) {
+      if (!r || !r.ok) { if (!silencio) { $("filas").innerHTML = ""; $("filas").appendChild(el("div", "vacio", (r && r.error) || "No pude cargar la bandeja.")); $("cuerpo").innerHTML = ""; $("cuerpo").appendChild(el("div", "vacio", (r && r.error) || "No pude cargar la bandeja.")); } return; }
+      D = r;
+      if (sel) { var s2 = D.personas.filter(function (p) { return p.id === sel.id || p.convs.some(function (c) { return sel.convs.some(function (x) { return x.conv_id === c.conv_id; }); }); })[0]; if (s2) sel = s2; }
+      pintar();
+    }, function () { if (!silencio) aviso("Sin conexión"); });
+  }
+  function pintar() { if (!D) return; pintarRail(); pintarLista(); if (sel && !esTel()) { pintarPerfil(); pintarDecision(); } pintarTel(); }
+
+  /* ── A · rail ── */
+  function visibles(sinEstado) {
+    var q = filtro.q.toLowerCase();
+    return D.personas.filter(function (p) {
+      if (filtro.carpeta !== "todo" && p.carpeta !== filtro.carpeta) return false;
+      if (filtro.canal && p.canales.indexOf(filtro.canal) < 0) return false;
+      if (filtro.vista === "urgente" && p.prioridad !== 1) return false;
+      if (filtro.vista === "toca" && p.carril !== "toca") return false;
+      if (filtro.vista === "alma" && p.carril !== "alma") return false;
+      if (filtro.vista === "personal" && !p.personal) return false;
+      if (q && (p.nombre + " " + p.texto + " " + (p.reserva ? reservaTxt(p.reserva) : "") + " " + p.convs.map(function (c) { return c.propiedad + " " + c.codigo; }).join(" ")).toLowerCase().indexOf(q) < 0) return false;
+      if (sinEstado) return true;
+      if (filtro.estado === "nuevo") return p.estado === "nuevo";
+      if (filtro.estado === "esperando") return p.estado === "esperando" || p.estado === "pospuesto";
+      return p.estado === "resuelto";
+    });
+  }
+  function botonRail(ico, txt, n, on, fn) {
+    var b = el("button"); b.type = "button"; if (on) b.className = "on";
+    var i = typeof ico === "string" ? el("span", "ico", ico) : ico; b.appendChild(i); b.appendChild(el("span", "", txt));
+    if (n != null) b.appendChild(el("span", "n", String(n))); b.onclick = fn; return b;
+  }
+  function pintarRail() {
+    var r = $("rail"); r.innerHTML = "";
+    var t = el("div", "tit"); t.appendChild(el("h1", "serif", "Bandeja")); var v = el("a", "volver", "✕"); v.href = "inicio.html"; v.setAttribute("aria-label", "Volver"); t.appendChild(v); r.appendChild(t);
+    var cuenta = function (k) { return D.personas.filter(function (p) { return (k === "todo" || p.carpeta === k) && p.estado === "nuevo"; }).length; };
+    CARPETAS.forEach(function (c) { r.appendChild(botonRail(c[2], c[1], cuenta(c[0]) || "", filtro.carpeta === c[0], function () { filtro.carpeta = c[0]; pintar(); })); });
+    r.appendChild(el("div", "sec", "Vistas"));
+    var vistas = [["urgente", "Urgente", "●"], ["toca", "Te toca decidir", "◐"], ["alma", "Alma lo lleva", "✦"]];
+    if (D.principal) vistas.push(["personal", "Lo personal", "♡"]);
+    vistas.forEach(function (x) { r.appendChild(botonRail(x[2], x[1], D.personas.filter(function (p) { return x[0] === "urgente" ? p.prioridad === 1 : x[0] === "personal" ? p.personal && p.estado === "nuevo" : p.carril === x[0]; }).length || "", filtro.vista === x[0], function () { filtro.vista = filtro.vista === x[0] ? "" : x[0]; pintar(); })); });
+    r.appendChild(el("div", "sec", "Canales"));
+    ["whatsapp", "instagram", "messenger", "airbnb", "booking", "vrbo", "directa", "correo", "llamada"].forEach(function (k) {
+      var n = D.personas.filter(function (p) { return p.canales.indexOf(k) >= 0 && p.estado === "nuevo"; }).length;
+      if (k === "correo" && !D.principal) return;   // los correos son solo del principal
+      var apagado = (k === "instagram" || k === "messenger") && D.redes && !D.redes[k];
+      var b = botonRail(chip(k, 18), CANAL[k].n, apagado ? null : n || "", filtro.canal === k, function () { filtro.canal = filtro.canal === k ? "" : k; pintar(); });
+      if (apagado) b.appendChild(el("span", "apagado", "sin conectar"));
+      r.appendChild(b);
+    });
+    /* chips (sin rail) y segmentos de estado */
+    var ch = $("chips"); ch.innerHTML = "";
+    CARPETAS.forEach(function (c) { var b = el("button", "pill" + (filtro.carpeta === c[0] ? " on" : ""), c[1]); b.type = "button"; b.onclick = function () { filtro.carpeta = c[0]; pintar(); }; ch.appendChild(b); });
+    var sg = $("seg"); sg.innerHTML = ""; var base = visibles(true);
+    [["nuevo", "Nuevos"], ["esperando", "Esperando"], ["resuelto", "Resueltos"]].forEach(function (e) {
+      var n = base.filter(function (p) { return e[0] === "esperando" ? p.estado === "esperando" || p.estado === "pospuesto" : p.estado === e[0]; }).length;
+      var b = el("button", filtro.estado === e[0] ? "on" : "", e[1] + (e[0] !== "resuelto" ? " · " + n : "")); b.type = "button"; b.setAttribute("role", "tab");
+      b.onclick = function () { filtro.estado = e[0]; pintar(); }; sg.appendChild(b);
+    });
+  }
+  /* ── A · lista ── */
+  function pintarLista() {
+    var f = $("filas"), L = visibles(); f.innerHTML = "";
+    if (!L.length) { f.appendChild(el("div", "vacio", filtro.estado === "nuevo" ? "Nada nuevo aquí. Alma te avisa cuando alguien escriba." : "No hay personas en esta vista.")); return; }
+    L.forEach(function (p) {
+      var row = el("div", "fila" + (sel && sel.id === p.id ? " on" : "")); row.setAttribute("role", "button"); row.tabIndex = 0;
+      row.appendChild(avatar(p, 46));
+      var m = el("div", "m"), l1 = el("div", "l1"); l1.appendChild(el("b", "", p.nombre)); p.canales.forEach(function (k) { l1.appendChild(chip(k, 14)); }); l1.appendChild(el("small", "", hora(p.ultimo_ts))); m.appendChild(l1);
+      m.appendChild(el("div", "l2", (p.ultimo_de === "host" ? (p.por_alma ? "✦ Alma: " : "Tú: ") : "") + (p.texto || "")));
+      var l3 = el("div", "l3"); l3.appendChild(pillPrio(p)); l3.appendChild(el("span", "pill", UNA[p.carpeta] || "Otro"));
+      if (p.reserva && p.reserva.propiedad) l3.appendChild(el("span", "pill", String(p.reserva.propiedad).split(/\s[-–·|]\s/)[0].slice(0, 22)));
+      if (p.decision) l3.appendChild(el("span", "pill", "A · B · C"));
+      if (p.sin) l3.appendChild(el("span", "badge", String(p.sin)));
+      m.appendChild(l3); row.appendChild(m);
+      row.onclick = function () { abrir(p); };
+      row.onkeydown = function (e) { if (e.key === "Enter") abrir(p); };
+      f.appendChild(row);
+    });
+  }
+  /* ── Abrir una persona: el hilo mezclado ── */
+  function abrir(p) {
+    sel = p; H = null; viaSel = -1; notaModo = false;
+    if (esTel()) { var th = $("telhilo"); th.innerHTML = ""; th.appendChild(armarConv(true)); th.classList.add("abierto"); th.setAttribute("aria-hidden", "false"); }
+    else { pintarLista(); var c = $("conv"); c.innerHTML = ""; c.appendChild(armarConv(false)); pintarPerfil(); }
+    cargarHilo();
+  }
+  function cargarHilo() {
+    if (!sel) return;
+    var id = sel.id;
+    return api({ op: "hilo", convs: sel.convs.map(function (c) { return c.conv_id; }) }).then(function (r) {
+      if (!sel || sel.id !== id) return;
+      if (!r || !r.ok) { var h0 = document.querySelector(".hilo-cuerpo"); if (h0) { h0.innerHTML = ""; h0.appendChild(el("div", "vacio", (r && r.error) || "No pude cargar el hilo.")); } return; }
+      H = r; if (viaSel < 0 || !H.responder_por[viaSel]) viaSel = H.por_omision;
+      pintarHilo(); pintarDecision(); pintarPie(); if (!esTel()) pintarPerfil();
+    });
+  }
+  function armarConv(movil) {
+    var p = sel, c = el("div", "conv"); c.style.height = "100%";
+    var cab = el("div", "cab");
+    if (movil) { var at = el("button", "atras", "‹"); at.type = "button"; at.setAttribute("aria-label", "Volver"); at.onclick = cerrarTelHilo; cab.appendChild(at); }
+    cab.appendChild(avatar(p, 40));
+    var q = el("div", "q"); q.appendChild(el("b", "", p.nombre)); q.appendChild(el("span", "", (UNA[p.carpeta] || "Otro") + " · " + p.canales.map(function (k) { return (CANAL[k] || CANAL.directa).n; }).join(" + "))); cab.appendChild(q);
+    var acc = el("div", "acc");
+    var pos = el("button", "btn claro", "Posponer"); pos.type = "button"; pos.onclick = function () { posponer(p); }; acc.appendChild(pos);
+    var res = el("button", "btn siempre", p.estado === "resuelto" ? "Reabrir" : "Resolver ✓"); res.type = "button"; res.onclick = function () { resolver(p, res); }; acc.appendChild(res);
+    if (!movil) { var fi = el("button", "btn claro solo-chico", "Ficha"); fi.type = "button"; fi.onclick = function () { $("perfil").classList.add("abierto"); }; acc.appendChild(fi); }
+    cab.appendChild(acc); c.appendChild(cab);
+    var hilo = el("div", "hilo hilo-cuerpo"); hilo.appendChild(el("div", "sa-esq")).innerHTML = '<i class="corta"></i><i class="c"></i><i class="c"></i>'; c.appendChild(hilo);
+    var pie = el("div", "pie"); pie.id = movil ? "pie-tel" : "pie-a"; c.appendChild(pie);
+    return c;
+  }
+  function cerrarTelHilo() { var th = $("telhilo"); th.classList.remove("abierto"); th.setAttribute("aria-hidden", "true"); sel = null; H = null; }
+  function pintarHilo() {
+    var h = document.querySelector(esTel() ? "#telhilo .hilo-cuerpo" : "#conv .hilo-cuerpo"); if (!h || !H) return;
+    var abajo = h.scrollHeight - h.scrollTop - h.clientHeight < 80; h.innerHTML = "";
+    var canalesHilo = {}; H.mensajes.forEach(function (m) { if (m.canal !== "nota" && m.canal !== "llamada") canalesHilo[m.canal] = 1; });
+    var kc = Object.keys(canalesHilo); if (kc.length > 1) h.appendChild(el("span", "sep", "Un solo hilo · " + kc.map(function (k) { return (CANAL[k] || CANAL.directa).n; }).join(" y ") + " juntos"));
+    if (!H.mensajes.length) h.appendChild(el("div", "vacio", "Todavía no hay mensajes."));
+    var ultDia = "";
+    H.mensajes.forEach(function (m) {
+      var d = dia(m.ts); if (d && d !== ultDia) { ultDia = d; h.appendChild(el("span", "sep", d)); }
+      var cls = m.de === "nota" ? "nota" : m.canal === "llamada" ? "llamada" : m.de === "ella" ? "" : m.de === "auto" ? "auto" : "nos";
+      var b = el("div", "msg " + cls); b.appendChild(document.createTextNode(m.texto || ""));
+      (m.fotos || []).forEach(function (u) { if (/^https:/.test(u)) { var im = el("img"); im.src = u; im.alt = "Foto"; im.loading = "lazy"; b.appendChild(im); } });
+      var meta = el("div", "meta"); meta.appendChild(chip(m.canal, 13));
+      meta.appendChild(document.createTextNode((CANAL[m.canal] || CANAL.directa).n + " · " + hora(m.ts) + (m.de === "alma" ? " · ✦ Alma" : m.de === "auto" ? " · automático" : m.de === "nota" ? " · " + (m.autor || "Equipo") + " · solo el equipo lo ve" : m.autor && m.de === "nosotros" ? " · " + m.autor : "")));
+      b.appendChild(meta); h.appendChild(b);
+    });
+    var dz = el("div"); dz.id = esTel() ? "dec-tel" : "dec-a"; h.appendChild(dz);
+    if (abajo || !h.dataset.v) { h.scrollTop = h.scrollHeight; h.dataset.v = "1"; }
+  }
+  /* ── El borrador de Alma con A · B · C (Decisión del equipo) ── */
+  function decisionDe(p) { return (H && H.decisiones && H.decisiones[0]) || (p && p.decision) || null; }
+  function tarjetaDecision(p, d, compacta) {
+    var box = el("div", compacta ? "" : "borrador");
+    if (!compacta) { var k = el("div", "k"); k.appendChild(document.createTextNode("✦ Borrador de Alma")); var o = opcionActual(); if (o) { k.appendChild(document.createTextNode(" · sale por " + (CANAL[o.canal] || CANAL.directa).n)); } box.appendChild(k); }
+    if (d && d.sale) {
+      var s = el("div", "sale"); s.appendChild(el("span", "", "Sale en 1 min" + (d.opcion && d.opcion !== "otra" ? " · opción " + d.opcion : "")));
+      var u = el("button", "btn", "Deshacer"); u.type = "button"; u.onclick = function () { deshacer(d, u); }; s.appendChild(u); box.appendChild(s); return box;
+    }
+    if (d && d.generando) { var g = el("div", "nota-pie"); g.style.cssText = "display:flex;gap:8px;align-items:center;margin-top:8px;color:#8A8580"; g.appendChild(el("span", "gira")); g.appendChild(el("span", "", "Alma está preparando A · B · C…")); box.appendChild(g); return box; }
+    if (d && d.opciones && d.opciones.length) {
+      if (d.motivo && !compacta) box.appendChild(el("div", "", d.motivo)).style.cssText = "font-size:12px;color:#6F6867;margin-top:6px";
+      var ops = el("div", "ops"), ta = el("textarea", "ed"); ta.hidden = true;
+      var elegida = d.opcion && d.opcion !== "otra" ? d.opcion : "";
+      d.opciones.forEach(function (o, i) {
+        var b = el("button", "op" + (i === 0 ? " rec" : "") + (elegida === o.letra ? " on" : "")); b.type = "button";
+        b.appendChild(el("i", "", o.letra)); var t = el("div"); t.appendChild(document.createTextNode(o.titulo)); t.appendChild(el("span", "vista", "«" + String(o.mensaje).slice(0, compacta ? 120 : 220) + (String(o.mensaje).length > (compacta ? 120 : 220) ? "…" : "") + "»")); b.appendChild(t);
+        if (i === 0) b.appendChild(el("small", "", "Recomendada"));
+        b.onclick = function () { ops.querySelectorAll(".op").forEach(function (x) { x.classList.remove("on"); }); b.classList.add("on"); ta.hidden = false; ta.value = o.mensaje; ta.dataset.letra = o.letra; env.disabled = false; };
+        ops.appendChild(b);
+      });
+      box.appendChild(ops); box.appendChild(ta);
+      var fila = el("div"); fila.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px";
+      var env = el("button", "btn", "Enviar · 1 min para deshacer"); env.type = "button"; env.disabled = true;
+      env.onclick = function () { elegir(d, ta.dataset.letra || "otra", ta.value, env); };
+      var otra = el("button", "btn claro", "Otra respuesta"); otra.type = "button";
+      otra.onclick = function () { ops.querySelectorAll(".op").forEach(function (x) { x.classList.remove("on"); }); ta.hidden = false; ta.value = ""; ta.dataset.letra = "otra"; ta.placeholder = "Escribe tu respuesta…"; ta.focus(); env.disabled = false; };
+      fila.appendChild(env); fila.appendChild(otra); box.appendChild(fila);
+      return box;
+    }
+    if (p.estado === "nuevo") {
+      var pd = el("button", "btn claro", "Pedir A · B · C a Alma"); pd.type = "button"; pd.style.marginTop = "8px";
+      pd.onclick = function () { pedirDecision(p, pd); };
+      box.appendChild(el("div", "", "Alma prepara 3 respuestas cuando se lo pides (no gasta en cada mensaje).")).style.cssText = "font-size:12px;color:#6F6867;margin-top:6px";
+      box.appendChild(pd); return box;
+    }
+    return null;
+  }
+  function pintarDecision() {
+    var z = $(esTel() ? "dec-tel" : "dec-a"); if (!z || !sel) return; z.innerHTML = "";
+    var t = tarjetaDecision(sel, decisionDe(sel), false); if (t) z.appendChild(t);
+  }
+  function opcionActual() { return H && H.responder_por && H.responder_por[viaSel] || null; }
+  function elegir(d, letra, texto, b) {
+    if (!String(texto || "").trim()) { aviso("Escribe la respuesta."); return; }
+    b.disabled = true;
+    api({ op: "decision", sub: "elegir", id: d.id, opcion: letra, texto: texto }).then(function (r) {
+      if (!r || !r.ok) { b.disabled = false; aviso((r && r.error) || "No se pudo"); return; }
+      d.sale = r.sale; d.opcion = letra; aviso("Sale en 1 minuto. Puedes deshacerlo."); pintarDecision(); pintarTel(); setTimeout(function () { cargar(true); if (sel) cargarHilo(); }, 65000);
+    }, function () { b.disabled = false; aviso("Sin conexión"); });
+  }
+  function deshacer(d, b) {
+    b.disabled = true;
+    api({ op: "decision", sub: "deshacer", id: d.id }).then(function (r) {
+      if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); b.disabled = false; return; }
+      d.sale = ""; aviso("Listo, no salió."); pintarDecision(); pintarTel();
+    }, function () { b.disabled = false; aviso("Sin conexión"); });
+  }
+  function pedirDecision(p, b) {
+    b.disabled = true;
+    var conv = (p.convs.filter(function (c) { return c.pendiente && c.canal !== "correo"; })[0] || p.convs[0]).conv_id;
+    api({ op: "decision", sub: "pedir", resId: conv }).then(function (r) {
+      if (!r || !r.ok) { b.disabled = false; aviso((r && r.error) || "No se pudo"); return; }
+      p.decision = { id: r.id, generando: true, opciones: [] }; aviso("Alma prepara A · B · C (menos de un minuto)."); pintarDecision(); pintarTel();
+      esperarDecision(p, 0);
+    }, function () { b.disabled = false; aviso("Sin conexión"); });
+  }
+  function esperarDecision(p, n) { if (n > 8) return; setTimeout(function () { cargar(true).then(function () { var x = D && D.personas.filter(function (y) { return y.id === p.id; })[0]; if (x && x.decision && x.decision.generando) esperarDecision(p, n + 1); else if (sel && sel.id === p.id) cargarHilo(); }); }, 20000); }
+
+  /* ── Responder por (y la nota interna) ── */
+  function pintarPie() {
+    var pie = $(esTel() ? "pie-tel" : "pie-a"); if (!pie || !H) return; pie.innerHTML = "";
+    var o = opcionActual();
+    var cu = el("div", "cuadro" + (notaModo ? " nota" : ""));
+    var por = el("div", "por"), pb = el("button"); pb.type = "button";
+    if (notaModo) { pb.appendChild(chip("nota", 16)); pb.appendChild(document.createTextNode("Nota interna ▾")); }
+    else if (o) { pb.appendChild(chip(o.canal, 16)); pb.appendChild(document.createTextNode((CANAL[o.canal] || CANAL.directa).n + " ▾")); }
+    else pb.appendChild(document.createTextNode("Responder por ▾"));
+    pb.setAttribute("aria-label", "Responder por"); por.appendChild(pb);
+    pb.onclick = function (e) {
+      e.stopPropagation(); var ya = por.querySelector(".menu"); if (ya) { ya.remove(); return; }
+      var mn = el("div", "menu");
+      H.responder_por.forEach(function (x, i) {
+        var it = el("button", i === viaSel && !notaModo ? "on" : ""); it.type = "button"; it.appendChild(chip(x.canal, 18));
+        var t = el("div"); t.appendChild(document.createTextNode((CANAL[x.canal] || CANAL.directa).n + (x.wa ? " · …" + String(x.wa).slice(-4) : ""))); t.appendChild(el("small", "", x.texto || "")); it.appendChild(t);
+        it.disabled = !x.abierta; it.onclick = function () { viaSel = i; notaModo = false; pintarPie(); pintarDecision(); };
+        mn.appendChild(it);
+      });
+      var nt = el("button", notaModo ? "on" : ""); nt.type = "button"; nt.appendChild(chip("nota", 18)); var tn = el("div"); tn.appendChild(document.createTextNode("Nota interna")); tn.appendChild(el("small", "", "Solo la ve el equipo; nunca sale a la persona")); nt.appendChild(tn);
+      nt.onclick = function () { notaModo = true; pintarPie(); }; mn.appendChild(nt);
+      por.appendChild(mn); setTimeout(function () { document.addEventListener("click", function cierra() { mn.remove(); document.removeEventListener("click", cierra); }); }, 0);
+    };
+    cu.appendChild(por);
+    var ta = el("textarea"); ta.rows = 1; ta.placeholder = notaModo ? "Nota para el equipo…" : "Escribe…"; ta.setAttribute("aria-label", notaModo ? "Nota interna" : "Mensaje");
+    ta.oninput = function () { ta.style.height = "auto"; ta.style.height = Math.min(160, ta.scrollHeight) + "px"; env.disabled = !ta.value.trim(); };
+    cu.appendChild(ta);
+    var env = el("button", "enviar", "➤"); env.type = "button"; env.disabled = true; env.setAttribute("aria-label", notaModo ? "Guardar nota" : "Enviar");
+    env.onclick = function () { mandar(ta, env); };
+    cu.appendChild(env); pie.appendChild(cu);
+    var v = el("div", "ventana");
+    v.appendChild(document.createTextNode(notaModo ? "La persona nunca ve las notas internas." : o ? (o.texto || "") : "No hay un canal abierto para responder."));
+    pie.appendChild(v);
+  }
+  function mandar(ta, b) {
+    var t = ta.value.trim(); if (!t || !sel) return;
+    b.disabled = true;
+    if (notaModo) {
+      api({ op: "nota", conv: (sel.convs[0] || {}).conv_id, texto: t }).then(function (r) {
+        if (!r || !r.ok) { b.disabled = false; aviso((r && r.error) || "No se guardó"); return; }
+        ta.value = ""; H.mensajes.push(r.nota); pintarHilo(); pintarDecision(); aviso("Nota guardada");
+      }, function () { b.disabled = false; aviso("Sin conexión"); });
+      return;
+    }
+    var o = opcionActual(); if (!o || !o.abierta) { b.disabled = false; aviso("Elige por dónde responder."); return; }
+    /* Se ve al instante (y se quita si no sale). */
+    var tmp = { conv: o.resId, canal: o.canal, de: "nosotros", texto: t, ts: new Date().toISOString(), fotos: [], autor: D.nombre || "" };
+    H.mensajes.push(tmp); ta.value = ""; pintarHilo(); pintarDecision();
+    api({ op: "responder", resId: o.resId, via: o.via, wa: o.wa || "", texto: t }).then(function (r) {
+      if (!r || !r.ok) { H.mensajes.splice(H.mensajes.indexOf(tmp), 1); ta.value = t; pintarHilo(); pintarDecision(); aviso("No salió: " + ((r && r.error) || "error")); b.disabled = false; return; }
+      aviso(r.plantilla ? "Salió la plantilla para retomar; tu mensaje sale cuando responda." : "Enviado por " + (CANAL[o.canal] || CANAL.directa).n); setTimeout(function () { cargar(true); }, 1500);
+    }, function () { aviso("Sin conexión: revisa si salió"); b.disabled = false; });
+  }
+  /* ── Ficha de la persona ── */
+  function pintarPerfil() {
+    var f = $("perfil"); f.innerHTML = ""; if (!sel) return; var p = sel;
+    var x = el("button", "cerrar", "✕"); x.type = "button"; x.setAttribute("aria-label", "Cerrar la ficha"); x.onclick = function () { f.classList.remove("abierto"); }; f.appendChild(x);
+    var q = el("div", "quien"); q.appendChild(avatar(p, 72)); q.appendChild(el("b", "", p.nombre)).style.fontSize = "16px"; q.appendChild(pillPrio(p));
+    if (p.razon) q.appendChild(el("span", "", p.razon)).style.cssText = "font-size:11.5px;color:#8A8580"; f.appendChild(q);
+    var sc = el("div"); sc.appendChild(el("h3", "", "Carpeta"));
+    var s = el("select"); s.setAttribute("aria-label", "Carpeta"); CARPETAS.slice(1).forEach(function (c) { var o = el("option", "", c[1]); o.value = c[0]; if (p.carpeta === c[0]) o.selected = true; s.appendChild(o); });
+    s.onchange = function () { api({ op: "carpeta", convs: p.convs.map(function (c) { return c.conv_id; }), carpeta: s.value }).then(function (r) { if (r && r.ok) { p.carpeta = s.value; aviso("Movida a " + CARPETA_N[s.value]); cargar(true); } else aviso((r && r.error) || "No se pudo"); }); };
+    sc.appendChild(s); if (p.carpeta_mano) sc.appendChild(el("div", "", "La moviste a mano. Alma la había puesto en " + (CARPETA_N[p.carpeta_auto] || "Otros") + ".")).style.cssText = "font-size:11px;color:#8A8580;margin-top:4px"; f.appendChild(sc);
+    var cn = el("div"); cn.appendChild(el("h3", "", "Canales de esta persona"));
+    p.convs.forEach(function (c) {
+      var r = el("div", "cnl"); r.appendChild(chip(c.canal, 18)); r.appendChild(el("span", "", convEtiqueta(c)));
+      r.appendChild(el("span", "d", hora(c.ultimo_ts)));
+      if (p.convs.length > 1) { var sp = el("button", "", "Separar"); sp.type = "button"; sp.onclick = function () { separar(c); }; r.appendChild(sp); }
+      cn.appendChild(r);
+    });
+    var un = el("button", "mas", "＋ Unir otra conversación"); un.type = "button"; un.onclick = function () { unirHoja(p); }; cn.appendChild(un); f.appendChild(cn);
+    if (p.reserva) {
+      var rs = el("div"); rs.appendChild(el("h3", "", "Reserva")); var t = el("div", "tarj");
+      t.appendChild(el("b", "", p.reserva.propiedad || "Reserva")); t.appendChild(el("br"));
+      t.appendChild(document.createTextNode([p.reserva.checkin && "Llega " + p.reserva.checkin, p.reserva.checkout && "sale " + p.reserva.checkout, p.reserva.codigo].filter(Boolean).join(" · ")));
+      var conv = p.convs.filter(function (c) { return c.codigo || c.checkin; })[0];
+      if (conv) { t.appendChild(el("br")); var a = el("a", "", "Abrir la reserva en el Hub"); a.href = "../?conv=" + encodeURIComponent(conv.conv_id); t.appendChild(a); }
+      rs.appendChild(t); f.appendChild(rs);
+    }
+    var rp = el("div"); rp.appendChild(el("h3", "", "Quién lo lleva")); rp.appendChild(el("div", "tarj", p.carril === "alma" ? "✦ Alma lo lleva" + (p.por_alma ? ": respondió ella." : ": lo está viendo.") : p.carril === "toca" ? "Te toca a ti. " + (p.razon || "") : p.estado === "pospuesto" ? "Pospuesto hasta " + new Date(p.pospuesto_hasta).toLocaleString("es-GT", { weekday: "short", hour: "numeric", minute: "2-digit" }) + "." : p.carril === "espera" ? "Esperando a la otra persona." : "Resuelto."));
+    f.appendChild(rp);
+  }
+  function separar(c) { api({ op: "separar", conv: c.conv_id }).then(function (r) { if (r && r.ok) { aviso("Separada"); sel = null; $("conv").innerHTML = '<div class="vacio" style="margin:auto">Elige una persona para ver su hilo.</div>'; $("perfil").innerHTML = ""; cargar(true); } else aviso((r && r.error) || "No se pudo"); }); }
+  function unirHoja(p) {
+    var h = el("div", "hoja"), c = el("div"); h.appendChild(c); c.appendChild(el("h4", "", "Unir con " + p.nombre));
+    c.appendChild(el("p", "", "Elige la otra conversación de la misma persona. Si te equivocas, la separas con un toque.")).style.cssText = "font-size:12.5px;color:#6F6867;margin:0 0 10px";
+    var i = el("input"); i.type = "search"; i.placeholder = "Buscar por nombre…"; c.appendChild(i);
+    var L = el("div"); c.appendChild(L);
+    var pintarL = function () {
+      L.innerHTML = ""; var q = i.value.toLowerCase();
+      D.personas.filter(function (o) { return o.id !== p.id && (!q || o.nombre.toLowerCase().indexOf(q) >= 0); }).slice(0, 30).forEach(function (o) {
+        var it = el("button", "it"); it.type = "button"; it.appendChild(avatar(o, 34)); var t = el("div"); t.appendChild(el("b", "", o.nombre)); t.appendChild(el("div", "", o.canales.map(function (k) { return (CANAL[k] || CANAL.directa).n; }).join(" + "))).style.cssText = "font-size:11.5px;color:#8A8580"; it.appendChild(t);
+        it.onclick = function () { api({ op: "unir", conv: o.convs[0].conv_id, con: p.convs[0].conv_id }).then(function (r) { if (r && r.ok) { aviso("Unidas: ahora es una sola persona"); h.remove(); cargar(true).then(function () { if (sel) cargarHilo(); }); } else aviso((r && r.error) || "No se pudo"); }); };
+        L.appendChild(it);
+      });
+    };
+    i.oninput = pintarL; pintarL();
+    var x = el("button", "btn claro", "Cancelar"); x.type = "button"; x.style.marginTop = "10px"; x.onclick = function () { h.remove(); }; c.appendChild(x);
+    h.onclick = function (e) { if (e.target === h) h.remove(); };
+    document.body.appendChild(h); i.focus();
+  }
+  function posponer(p) {
+    var h = el("div", "hoja"), c = el("div"); h.appendChild(c); c.appendChild(el("h4", "", "Posponer a " + p.nombre));
+    var ahora = new Date(), tarde = new Date(); tarde.setHours(17, 0, 0, 0); if (tarde < ahora) tarde = null;
+    var man = new Date(); man.setDate(man.getDate() + 1); man.setHours(9, 0, 0, 0);
+    [["En 1 hora", new Date(Date.now() + 36e5)], ["Esta tarde (5 pm)", tarde], ["Mañana 9 am", man], ["Ya no posponer", "quitar"]].forEach(function (o) {
+      if (!o[1]) return; if (o[1] === "quitar" && p.estado !== "pospuesto") return;
+      var b = el("button", "it", o[0]); b.type = "button";
+      b.onclick = function () { api({ op: "posponer", convs: p.convs.map(function (x) { return x.conv_id; }), hasta: o[1] === "quitar" ? "" : o[1].toISOString() }).then(function (r) { if (r && r.ok) { aviso(o[1] === "quitar" ? "Vuelve a la bandeja" : "Vuelve sola " + o[0].toLowerCase()); h.remove(); cargar(true); } else aviso((r && r.error) || "No se pudo"); }); };
+      c.appendChild(b);
+    });
+    var x = el("button", "btn claro", "Cancelar"); x.type = "button"; x.style.marginTop = "10px"; x.onclick = function () { h.remove(); }; c.appendChild(x);
+    h.onclick = function (e) { if (e.target === h) h.remove(); };
+    document.body.appendChild(h);
+  }
+  function resolver(p, b) {
+    b.disabled = true; var abrirla = p.estado === "resuelto";
+    api({ op: "resolver", convs: p.convs.map(function (c) { return c.conv_id; }), estado: abrirla ? "abierta" : "resuelta" }).then(function (r) {
+      b.disabled = false; if (!r || !r.ok) { aviso((r && r.error) || "No se pudo"); return; }
+      aviso(abrirla ? "Reabierta" : "Resuelta"); p.estado = abrirla ? "nuevo" : "resuelto"; if (esTel()) cerrarTelHilo(); cargar(true);
+    }, function () { b.disabled = false; aviso("Sin conexión"); });
+  }
+
+  /* ═══ C · iPhone ═══ */
+  function saludo() {
+    var h = new Date().getHours(), s = h < 12 ? "Buenos días" : h < 19 ? "Buenas tardes" : "Buenas noches", nom = String(D.nombre || "").split(" ")[0], r = D.resumen;
+    var t = $("saludo"); t.innerHTML = "";
+    t.appendChild(document.createTextNode(s + (nom ? ", " + nom : "") + ". "));
+    if (r.personas_hoy) t.appendChild(document.createTextNode("Hoy te escribieron " + r.personas_hoy + (r.personas_hoy === 1 ? " persona" : " personas") + " por " + r.canales_hoy.length + (r.canales_hoy.length === 1 ? " canal" : " canales") + ". " + (r.respondio_alma ? "Respondí " + r.respondio_alma + "; " : "")));
+    var em = el("em", "", r.te_tocan ? (r.te_tocan === 1 ? "te toca 1." : "te tocan " + r.te_tocan + ".") : "no te toca nada."); t.appendChild(em);
+  }
+  function pintarTel() {
+    if (!D) return; saludo();
+    var n = { toca: D.resumen.te_tocan, alma: D.resumen.alma_lleva, espera: D.resumen.esperando, listo: D.resumen.listo };
+    var nav = $("navtel"); nav.innerHTML = "";
+    [["toca", "Te toca"], ["alma", "Alma"], ["espera", "Esperan"], ["listo", "Listo"]].forEach(function (c) {
+      var b = el("button", carril === c[0] ? "on" : "", c[1] + (n[c[0]] ? " · " + n[c[0]] : "")); b.type = "button"; b.onclick = function () { carril = c[0]; foco = 0; pintarTel(); $("cuerpo").scrollTop = 0; }; nav.appendChild(b);
+    });
+    var cu = $("cuerpo"); cu.innerHTML = "";
+    var L = D.personas.filter(function (p) { return p.carril === carril; });
+    var tit = { toca: "Te toca decidir", alma: "Alma lo lleva", espera: "Esperando a otros", listo: "Listo hoy" }[carril];
+    var h2 = el("h2", "", tit); h2.appendChild(el("span", "badge", String(L.length))); cu.appendChild(h2);
+    if (!L.length) { cu.appendChild(el("div", "vacio", carril === "toca" ? "Nada te toca ahora. Alma te avisa." : "Nada aquí por ahora.")); return; }
+    if (carril === "toca") { if (foco >= L.length) foco = 0; cu.appendChild(tarjetaFoco(L[foco], foco, L.length)); L.slice(foco + 1, foco + 4).forEach(function (p) { cu.appendChild(tarjeta(p, true)); }); return; }
+    L.forEach(function (p) { cu.appendChild(tarjeta(p, carril === "listo")); });
+  }
+  function tarjetaFoco(p, i, total) {
+    var a = el("article", "foco");
+    var q = el("div", "quien"); q.appendChild(avatar(p, 56)); var nm = el("div"); nm.appendChild(el("b", "serif", p.nombre));
+    nm.appendChild(el("small", "", [UNA[p.carpeta], p.reserva ? reservaTxt(p.reserva) : ""].filter(Boolean).join(" · "))); q.appendChild(nm); q.appendChild(pillPrio(p)); a.appendChild(q);
+    var dijo = el("div", "dijo"); dijo.appendChild(el("span", "serif", "«" + String(p.texto || "").slice(0, 220) + "»")); a.appendChild(dijo);
+    var mini = el("div", "mini"); p.convs.slice(0, 3).forEach(function (c) { var r = el("div"); r.appendChild(chip(c.canal, 14)); r.appendChild(el("span", "", hora(c.ultimo_ts) + " por " + (CANAL[c.canal] || CANAL.directa).n + ": " + String(c.ultimo_texto || "").slice(0, 90))); mini.appendChild(r); });
+    if (p.razon) { var rz = el("div"); rz.appendChild(document.createTextNode("✦ " + p.razon)); mini.appendChild(rz); }
+    a.appendChild(mini);
+    var t = tarjetaDecision(p, p.decision, true); if (t) a.appendChild(t);
+    var acc = el("div", "acc");
+    var ab = el("button", "btn claro", "Abrir hilo"); ab.type = "button"; ab.onclick = function () { abrir(p); }; acc.appendChild(ab);
+    var de = el("button", "btn claro", "Después ⏱"); de.type = "button"; de.onclick = function () { posponer(p); }; acc.appendChild(de);
+    a.appendChild(acc);
+    var ult = p.convs[0]; var pie = el("div", "nota-pie"); pie.appendChild(document.createTextNode("Sale por ")); pie.appendChild(chip(ult.canal, 12)); pie.appendChild(document.createTextNode(" " + (CANAL[ult.canal] || CANAL.directa).n + ", el canal donde escribió último · 1 min para deshacer")); a.appendChild(pie);
+    if (total > 1) { var ps = el("div", "pasar"); ps.appendChild(el("span", "", (i + 1) + " de " + total)); var sg = el("button", "", "Siguiente ›"); sg.type = "button"; sg.onclick = function () { foco = (i + 1) % total; pintarTel(); }; ps.appendChild(sg); a.appendChild(ps); }
+    return a;
+  }
+  function tarjeta(p, tenue) {
+    var b = el("button", "tar" + (tenue ? " tenue" : "")); b.type = "button"; b.appendChild(avatar(p, 38));
+    var m = el("div", "m"), t = el("b"); t.appendChild(document.createTextNode(p.nombre + " ")); p.canales.forEach(function (k) { t.appendChild(chip(k, 13)); }); t.appendChild(el("small", "", hora(p.ultimo_ts))); m.appendChild(t);
+    m.appendChild(el("p", "", p.texto || ""));
+    var ultNos = p.convs[0] && p.convs[0].ultimo_de === "host" ? p.convs[0].ultimo_texto : "";
+    if (ultNos && carril !== "toca") m.appendChild(el("div", "alma", (p.por_alma ? "✦ " : "Tú: ") + String(ultNos).slice(0, 120)));
+    var pie = el("div", "pie2"); pie.appendChild(el("span", "", p.estado === "pospuesto" ? "Vuelve " + hora(p.pospuesto_hasta) : p.razon || (p.carril === "alma" ? "Ver" : "Abrir"))); m.appendChild(pie);
+    b.appendChild(m); b.onclick = function () { abrir(p); }; return b;
+  }
+
+  /* ── Vida de la pantalla ── */
+  $("buscar").oninput = function () { filtro.q = this.value; pintarLista(); };
+  window.saRefrescar = function () { return cargar(); };   // desliza para actualizar (sa-tirar.js)
+  window.matchMedia("(max-width: 700px)").addEventListener("change", function () { sel = null; H = null; $("telhilo").classList.remove("abierto"); $("conv").innerHTML = '<div class="vacio" style="margin:auto">Elige una persona para ver su hilo.</div>'; pintar(); });
+  try { if (window.SANav && SANav.roca) SANav.roca($("lugaralma"), { d: 46 }); } catch (e) {}
+  cargar();
+  setInterval(function () { if (!document.hidden) cargar(true); }, 30000);
+  setInterval(function () { if (!document.hidden && sel && H) cargarHilo(); }, 45000);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && D) cargar(true); });
+})();
+</script>
+</body>
+</html>

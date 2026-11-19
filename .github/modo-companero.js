@@ -161,25 +161,53 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
     ok(aqui(['on']) === true && aqui([]) === false && aqui(null) === false, '11 · fuera del inicio, como antes');
   }
 }
-/* 12 · terminar desde el compañero (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada. Si por error
+/* 12 · nunca atascado (Juan, 19-nov-2026: «en el iPad parece como atascado, siempre está encendido») */
+{ const { X, reloj, JUAN } = caja();
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  reloj.ms += 5000;
+  X.vivoFin_(JUAN, 'conv-1');   // colgó, pero el «fin» de la app se perdió (pantalla bloqueada, sin red)
+  ok(X.vivoLeerApi_(J, {}).en_llamada, '12 · justo después del aviso al colgar sigue (puede ser el paso a Claudio)');
+  reloj.ms += 61000;
+  let r = X.vivoLeerApi_(J, {});
+  ok(!r.en_llamada && r.estado === 'fin', '12 · si la app ya no dice nada en 1 min, terminó (antes: 10 min «en vivo»)');
+  const k = caja();
+  k.X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone' });
+  k.reloj.ms += 5000; k.X.vivoFin_(k.JUAN, 'conv-1');
+  k.reloj.ms += 30000; k.X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [{ de: 'alma', t: 'Sigo con Claudio.' }] });
+  k.reloj.ms += 50000;
+  ok(k.X.vivoLeerApi_(J, {}).en_llamada, '12 · si la app sigue hablando (con Claudio), la llamada sigue');
+  const q = caja();
+  q.X.vivoInicio_(q.JUAN, 'conv-1');
+  q.reloj.ms += 91000;
+  ok(!q.X.vivoLeerApi_(J, {}).en_llamada, '12 · una llamada que nunca conectó no se queda en «Conectando»');
+  const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
+  ok(/!\(YO && r\.dispositivo === YO\)/.test(h), '12 · inicio.html: este dispositivo no se copia a sí mismo');
+}
+/* 13 · terminar desde el compañero (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada. Si por error
    se activa, no puedo terminar la llamada manualmente») */
 { const { X, cache, JUAN } = caja();
   X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone', subs: [{ de: 'alma', t: 'Hola, Juan.' }] });
-  ok(!X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [] }).colgar, '12 · sin «Terminar», la app no recibe «colgar»');
-  ok(X.vivoColgarApi_(A, { conv: 'conv-1' }).terminada === false && X.vivoLeerApi_(J, {}).en_llamada, '12 · otro administrador no termina la llamada de Juan');
-  ok(X.vivoColgarApi_(J, { conv: 'otra' }).terminada === false && X.vivoLeerApi_(J, {}).en_llamada, '12 · si ya empezó otra llamada, no se toca');
-  ok(X.vivoColgarApi_(null, {}).error === 'session', '12 · sin sesión, nada');
-  ok(X.vivoColgarApi_(J, { conv: 'conv-1' }).terminada === true, '12 · «Terminar» en el compañero');
+  ok(!X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [] }).colgar, '13 · sin «Terminar», la app no recibe «colgar»');
+  ok(X.vivoColgarApi_(A, { conv: 'conv-1' }).terminada === false && X.vivoLeerApi_(J, {}).en_llamada, '13 · otro administrador no termina la llamada de Juan');
+  ok(X.vivoColgarApi_(J, { conv: 'otra' }).terminada === false && X.vivoLeerApi_(J, {}).en_llamada, '13 · si ya empezó otra llamada, no se toca');
+  ok(X.vivoColgarApi_(null, {}).error === 'session', '13 · sin sesión, nada');
+  ok(X.vivoColgarApi_(J, { conv: 'conv-1' }).terminada === true, '13 · «Terminar» en el compañero');
   let r = X.vivoLeerApi_(J, {});
-  ok(!r.en_llamada && r.estado === 'fin', '12 · el compañero la ve terminada al momento');
+  ok(!r.en_llamada && r.estado === 'fin', '13 · el compañero la ve terminada al momento');
   let p = X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', subs: [{ de: 'alma', t: 'Sigo aquí.' }] });
-  ok(p.colgar === true && !X.vivoLeerApi_(J, {}).en_llamada, '12 · la app que sigue hablando recibe «colgar» y la llamada sigue terminada');
+  ok(p.colgar === true && !X.vivoLeerApi_(J, {}).en_llamada, '13 · la app que sigue hablando recibe «colgar» y la llamada sigue terminada');
   p = X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'fin' });
-  ok(!p.colgar && !('vivo_colgar_' + X.vivoClave_(J.email) in cache), '12 · al colgar la app («fin»), el pedido se borra');
+  ok(!p.colgar && !('vivo_colgar_' + X.vivoClave_(J.email) in cache), '13 · al colgar la app («fin»), el pedido se borra');
   X.vivoInicio_(JUAN, 'conv-2');
-  ok(X.vivoLeerApi_(J, {}).en_llamada, '12 · la llamada siguiente se ve normal');
+  ok(X.vivoLeerApi_(J, {}).en_llamada, '13 · la llamada siguiente se ve normal');
   const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
-  ok(/case 'vivoColgar': return json_\(vivoColgarApi_\(ses, body\)\)/.test(cod), '12 · la acción vivoColgar está en el Hub, con la sesión');
-  ok(/el\("button", "comp-colgar"\)/.test(h) && /hub\("vivoColgar", \{ conv: conv \}\)/.test(h) && /r\.conv === C\.colgada\) vivo = false/.test(h), '12 · inicio.html: el botón «Terminar» del compañero y no se vuelve a abrir');
+  ok(/case 'vivoColgar': return json_\(vivoColgarApi_\(ses, body\)\)/.test(cod), '13 · la acción vivoColgar está en el Hub, con la sesión');
+  const m13 = /function llamadaAqui\(\) \{[^\n]*\}/.exec(h);
+  if (m13) {
+    const aqui = (vn) => new Function('document', 'AlmaVozAqui', m13[0] + '; return llamadaAqui();')({ querySelector: () => ({ classList: { contains: (c) => ['on', 'escena', 'quieta'].indexOf(c) >= 0 } }) }, () => vn);
+    ok(aqui(true) === true && aqui(false) === false, '13 · la llamada de la app aquí (empezó con el anillo o un roce, la roca quieta): la vista del compañero no la tapa');
+  }
+  ok(/el\("button", "comp-colgar"\)/.test(h) && /hub\("vivoColgar", \{ conv: conv \}\)/.test(h) && /r\.conv === C\.colgada\) vivo = false/.test(h), '13 · inicio.html: el botón «Terminar» del compañero y no se vuelve a abrir');
 }
 process.exit(fallo);

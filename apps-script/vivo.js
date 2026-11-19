@@ -18,6 +18,20 @@
    Check con dobles: .github/modo-companero.js. */
 
 var VIVO_SUBS_MAX_ = 8, VIVO_SUB_LARGO_ = 280, VIVO_SEG_ = 1800, VIVO_MIRA_SEG_ = 40, VIVO_VENCE_S_ = 600, VIVO_APP_S_ = 120, VIVO_COLGAR_SEG_ = 120;
+/* Juan, 19-nov-2026 («en el iPad parece como atascado, siempre está encendido»): una llamada que ya colgó no puede quedarse
+   «en vivo» 10 min en el compañero. · Si ElevenLabs avisó que colgó pero la app había publicado hace poco (puede ser el paso
+   a Claudio, vivoFin_), se espera VIVO_FIN_ESPERA_S_: si en ese rato la app no dice nada más, terminó (se perdió su «fin»).
+   · Una llamada que se quedó en «conectando» VIVO_CONECTA_S_ sin noticias nunca conectó. */
+var VIVO_FIN_ESPERA_S_ = 60, VIVO_CONECTA_S_ = 90;
+/* ¿Sigue viva? (la llamada guardada en vivo_est_) */
+function vivoViva_(e, ahora) {
+  if (!e || e.estado === 'fin') return false;
+  var quieta = ahora - Number(e.ts || 0);
+  if (quieta >= VIVO_VENCE_S_ * 1000) return false;
+  if (e.colgo && quieta >= VIVO_FIN_ESPERA_S_ * 1000) return false;
+  if (e.estado === 'conectando' && quieta >= VIVO_CONECTA_S_ * 1000) return false;
+  return true;
+}
 var VIVO_ESTADOS_ = ['conectando', 'hablando', 'escuchando', 'pausa', 'fin'];
 
 function vivoClave_(email) { return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, String(email || '').toLowerCase())).slice(0, 16); }
@@ -72,7 +86,7 @@ function vivoTarjeta_(convId, t) {
   var tel = vozWebTel_(convId), adm = tel && adminPorTel_(tel); if (!adm || !adm.email || !t) return false;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h);
   if (!e || e.conv !== String(convId)) c.put('vivo_est_' + h, JSON.stringify({ conv: String(convId), estado: 'hablando', dev: '', ts: Date.now() }), VIVO_SEG_);
-  else if (e.estado !== 'fin') { e.ts = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }
+  else if (e.estado !== 'fin') { e.ts = Date.now(); if (e.estado === 'conectando') e.estado = 'hablando'; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }   // con tablero, ya conectó
   c.put('vivo_tv_' + h, JSON.stringify({ conv: String(convId), ts: Date.now(), t: t }), VIVO_SEG_);
   return true;
 }
@@ -84,7 +98,7 @@ function vivoTarjeta_(convId, t) {
 function vivoPanel_(adm, convClaudio, p) {
   if (!adm || !adm.email || !p || p.tipo !== 'claudio') return false;
   var c = CacheService.getScriptCache(), h = vivoClave_(adm.email), e = vivoLeerCache_('vivo_est_' + h), ahora = Date.now();
-  var conv = e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000 ? String(e.conv) : String(convClaudio || '');
+  var conv = vivoViva_(e, ahora) ? String(e.conv) : String(convClaudio || '');
   if (!conv) return false;
   if (!e || e.conv !== conv) c.put('vivo_est_' + h, JSON.stringify({ conv: conv, estado: 'hablando', dev: '', ts: ahora }), VIVO_SEG_);
   else { e.ts = ahora; c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }
@@ -109,8 +123,7 @@ function vivoLeerApi_(ses, b) {
   c.put('vivo_mira_' + h, JSON.stringify({ ts: ahora, tipos: tipos }), VIVO_MIRA_SEG_);
   var v = c.getAll(['vivo_est_' + h, 'vivo_sub_' + h, 'vivo_tv_' + h]), js = function (k) { try { return JSON.parse(v[k] || 'null'); } catch (e) { return null; } };
   var e = js('vivo_est_' + h), s = js('vivo_sub_' + h), tv = js('vivo_tv_' + h);
-  var vivo = !!(e && e.estado !== 'fin' && ahora - Number(e.ts || 0) < VIVO_VENCE_S_ * 1000);
-  if (!vivo) return { ok: true, en_llamada: false, estado: e && e.estado === 'fin' && ahora - Number(e.ts || 0) < 15000 ? 'fin' : '' };
+  if (!vivoViva_(e, ahora)) return { ok: true, en_llamada: false, estado: e && (e.estado === 'fin' || e.colgo) && ahora - Number(e.ts || 0) < (e.colgo ? VIVO_FIN_ESPERA_S_ * 1000 + 15000 : 15000) ? 'fin' : '' };
   var desde = Number(b.desde) || 0;
   return { ok: true, en_llamada: true, conv: e.conv, estado: e.estado, dispositivo: e.dev || '', ts: e.ts,
     subs: s && s.conv === e.conv ? s.l.filter(function (x) { return x.n > desde; }) : [],
@@ -132,6 +145,9 @@ function vivoFin_(adm, convId) {
   if (!e || e.conv !== String(convId) || e.estado === 'fin') return;
   /* La app que publica dice «fin» ella misma al colgar. Si publicó hace poco, este aviso es de la conversación de Alma que
      se cerró al pasar a Claudio: la llamada sigue (si no, el compañero se apagaba y el panel cambiaba de conversación). */
-  if (e.dev && Date.now() - Number(e.ts || 0) < VIVO_APP_S_ * 1000) return;
+  if (e.dev && Date.now() - Number(e.ts || 0) < VIVO_APP_S_ * 1000) {
+    if (!e.colgo) { e.colgo = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); }   // y si la app ya no dice nada, terminó (vivoViva_)
+    return;
+  }
   e.estado = 'fin'; e.ts = Date.now(); c.put('vivo_est_' + h, JSON.stringify(e), VIVO_SEG_); c.remove('vivo_tv_' + h);
 }

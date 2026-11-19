@@ -1147,6 +1147,15 @@
   @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
   .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
+  /* «Terminar» (Juan, 19-nov-2026): cuelga la llamada del otro dispositivo; la misma piedra clara con la ✕ de la roca */
+  .comp-colgar { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px 0 12px; border: 0; border-radius: 999px; cursor: pointer;
+    font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #3A302C;
+    background: radial-gradient(120% 120% at 50% 20%, #F4F1EE 0%, #ECE8E3 55%, #E3DED8 100%); box-shadow: 0 8px 14px -6px rgba(40,30,25,.4), 0 2px 4px rgba(40,30,25,.16), inset 0 2px 4px rgba(255,255,255,.55); transition: transform .3s cubic-bezier(.3,1.35,.55,1), opacity .2s ease; }
+  .comp-colgar svg { width: 16px; height: 16px; color: #D9583A; }
+  .comp-colgar:active { transform: scale(.94); transition-duration: .1s; }
+  .comp-colgar:focus-visible { outline: 2px solid #E9826A; outline-offset: 3px; }
+  .comp-colgar:disabled { opacity: .6; cursor: default; }
+  .comp.fin .comp-colgar { opacity: 0; pointer-events: none; }
   .comp-x { flex: none; width: 44px; height: 44px; margin: -12px -12px -12px 2px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .comp-x svg { width: 20px; height: 20px; padding: 6px; border-radius: 50%; background: rgba(255,255,255,.22); }
   .comp-x:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
@@ -2792,6 +2801,9 @@ window.SAPulso = {
      conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
      roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
   var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null, agente: "alma" };
+  /* Para el Modo compañero (más abajo): ¿la llamada de la app está en ESTE dispositivo? Entonces la vista del compañero no
+     la tapa (Juan, 19-nov-2026: «si por el roce activa, no puedo terminar la llamada normalmente»). */
+  window.AlmaVozAqui = function () { return VN.activa; };
   function vozNativa() {
     var web = window.SAAlmaVoz;
     return {
@@ -4528,7 +4540,7 @@ window.SAPulso = {
   var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
   var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos", "recepcion", "proyecto"];
   var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
-  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "", oculta: "" };
+  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "", oculta: "", colgando: false, colgada: "" };
   /* Juan, 19-nov-2026 («en el iPad parece como atascado, siempre está encendido»): la capa tapa toda la pantalla, así que
      siempre tiene salida (✕ «Cerrar»: esta llamada ya no se muestra aquí; la próxima, sí; el modo sigue encendido), y este
      dispositivo nunca se copia a sí mismo (una llamada suya que no avisó que terminó no es «la del otro»). */
@@ -4590,11 +4602,18 @@ window.SAPulso = {
   /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. En el inicio de la app
      la roca vive en la escena (sa-nav: .san-ov.on siempre) y, sin llamada, está «quieta»: eso no es una llamada aquí
      (Juan, 19-nov-2026: «en el iPad no está copiando lo mismo que está pasando en el teléfono»). */
-  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
+  /* También cuenta la llamada de la app en este dispositivo aunque la roca siga quieta (empezó con el anillo, el Modo calle o
+     un roce): la vista del compañero no la tapa y aquí sigue «Terminar» de la roca (Juan, 19-nov-2026). */
+  function llamadaAqui() { if (typeof AlmaVozAqui === "function" && AlmaVozAqui()) return true; var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
   function montar() {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
     var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    /* Terminar desde aquí (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada»): si se abrió por error
+       en el otro dispositivo, se cuelga desde este (vivoColgar; la app de la llamada cuelga al enterarse) */
+    var fin = el("button", "comp-colgar"); fin.type = "button"; fin.setAttribute("aria-label", "Terminar la llamada de tu otro dispositivo");
+    fin.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Terminar</span>';
+    fin.onclick = terminar; cab.appendChild(fin);
     var x = el("button", "comp-x"); x.type = "button"; x.setAttribute("aria-label", "Cerrar: dejar de mostrar esta llamada aquí");
     x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     x.onclick = function () { C.oculta = C.conv; C.ocultaCerca = true; cerrar(false); };   // y lo de la red de cerca de esta llamada tampoco
@@ -4673,6 +4692,17 @@ window.SAPulso = {
     vacio();
     c.classList.add("on");
   }
+  /* «Terminar»: el Hub la da por terminada ya y la app de la llamada cuelga en unos segundos. Aquí se ve «Terminó» ~3 s. */
+  function terminar() {
+    if (!C.conv || C.colgando) return;
+    var b = C.capa.querySelector(".comp-colgar"), et = b.querySelector("span"), conv = C.conv;
+    C.colgando = true; b.disabled = true; et.textContent = "Terminando…";
+    hub("vivoColgar", { conv: conv }).then(function (r) {
+      C.colgando = false; b.disabled = false;
+      if (!(r && r.ok)) { et.textContent = "Otra vez"; return; }
+      et.textContent = "Terminar"; C.colgada = conv; C.otra = ""; C.otraTs = Date.now(); app(); cerrar(true);
+    });
+  }
   function cerrar(fin) {
     if (!C.capa || !C.capa.classList.contains("on") || C.fin) return;
     if (fin) { C.capa.classList.add("fin"); C.capa.querySelector(".comp-est").textContent = ESTADO.fin; C.fin = setTimeout(function () { C.fin = 0; cerrar(false); }, FIN_MS); return; }
@@ -4689,6 +4719,7 @@ window.SAPulso = {
     hub("vivoLeer", { desde: C.desde, tipos: TIPOS }).then(function (r) {
       C.pidiendo = false;
       var vivo = !!(r && r.ok && r.en_llamada && !(YO && r.dispositivo === YO));   // la llamada de este mismo dispositivo no es «la del otro»
+      if (vivo && r.conv === C.colgada) vivo = false;   // la respuesta salió antes de «Terminar»: no se vuelve a abrir
       if (!C.on) return;
       if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.otraTs = Date.now(); app(); }
       if (vivo && !llamadaAqui() && r.conv !== C.oculta) { C.ocultaCerca = false; pintar(r); }

@@ -138,6 +138,7 @@ function doPost(e) {
     if (body.correoPuente) { cupoCanal_('Otros'); return json_(correoPuente_(body)); }   // el puente de una cuenta de correo manda lo nuevo (llave propia, correo.js)
     if (body.hub) return hubApi_(body);                       // llamadas del hub (token propio, sección 10)
     if (body.object === 'whatsapp_business_account') { cupoCanal_('WhatsApp'); return waWebhook_(body); }   // WhatsApp Cloud API (sección 11)
+    if (body.object === 'instagram' || body.object === 'page') { cupoCanal_('Huéspedes'); cupoFuncion_('redesWebhook_'); return redesWebhook_(body); }   // Instagram y Messenger, la misma app de Meta (redesmeta.js, #888 T5)
     if (body.anilloPrueba) return json_(anilloGuardar_(body));   // prueba del anillo desde hub.spacioam.com/anillo/ (anillo.js)
     if (body.tutorial) return json_(tutorialApi_(body));   // tutoriales: avance de cada persona (tutoriales.js)
     if (body.recepcionEstado) return json_(recepcionEstados_(body.codes));   // Hola: estado del envío a recepción por código
@@ -197,6 +198,8 @@ function doPost(e) {
 function preContexto_(resId) {
   if (!resId) return {};
   if (String(resId).indexOf('wa:') === 0) return { propiedad: 'Sin reserva', tipo: 'whatsapp', canal: 'whatsapp', codigo: '' };
+  if (/^(ig|fb):/.test(String(resId))) return { propiedad: 'Sin reserva', tipo: 'redes', canal: String(resId).indexOf('ig:') === 0 ? 'instagram' : 'messenger', codigo: '' };   // Instagram y Messenger: nunca se piden a Hospitable (redesmeta.js)
+  if (/^(llamada|mail):/.test(String(resId))) return {};
   const esInq = String(resId).indexOf('inq:') === 0;
   /* La consulta que ya se volvió reserva da los datos de la reserva (código, propiedad y fechas), nunca los de la consulta:
      antes de la caché, que puede guardar la consulta hasta 6 h (bandejareserva.js). */
@@ -958,7 +961,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
 
   const salientes = hilo.filter(m => m.tipo !== 'guest');
   const primerRecibido = new Date(grupo[0].v[C.recibido]).getTime();
-  if (!salientes.length && String(resId).indexOf('wa:') !== 0 && ahora.getTime() - primerRecibido < cfg_('ESPERA_SIN_SALIENTE_SEG') * 1000) {
+  if (!salientes.length && !/^(wa|ig|fb):/.test(String(resId)) && ahora.getTime() - primerRecibido < cfg_('ESPERA_SIN_SALIENTE_SEG') * 1000) {
     return set_(sh, lider, { proximo: new Date(ahora.getTime() + 60000).toISOString(), nota: 'esperando primer automático' });
   }
 
@@ -1006,6 +1009,13 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
   if (vigReenvio) { paso_(pKey, 'Código ya enviado y vigente · se lo reenvío', true); return codigoReenviar_(sh, lider, otros, ctx, vigReenvio); }
   if (codigoPendiente_(ctx, hilo)) { paso_(pKey, 'Código de acceso pendiente · avisando a los administradores', true); return manejarCodigo_(sh, lider, otros, ctx, hilo); }
 
+  /* Instagram y Messenger: canje, descuento o algo delicado no lo decide Alma (Juan, 19-nov-2026): la decisión del equipo con A · B · C. */
+  if (/^(ig|fb):/.test(String(resId)) && redesDelicado_(ctx)) {
+    paso_(pKey, 'Canje, descuento o algo delicado · lo decide el equipo con A · B · C', true);
+    try { decisionCrear_(Object.assign({}, ctx, { msgId: s_(lider.v[C.message_id]) }), 'redes', 'Por ' + (ctx.canal === 'instagram' ? 'Instagram' : 'Messenger') + ': canje, descuento o algo delicado. Alma no lo decide sola.'); } catch (e) { console.error('redes decisionCrear_: ' + e); }
+    marcarTodos('borrador', 'redes: decide el equipo');
+    return log_(ctx, '', 'BORRADOR para el equipo: canje, descuento o algo delicado por redes');
+  }
   /* Avance visible en el Hub (columna nota, prefijo ⏳): qué está haciendo ALMA mientras piensa. */
   const avance = t => { try { set_(sh, lider, { nota: '⏳ ' + t }); SpreadsheetApp.flush(); } catch (e) {} };
   avance('Leyendo la conversación y decidiendo cómo responder');
@@ -1326,7 +1336,7 @@ function verificarRojo_(sh, f) {
 /* Contexto unificado: reserva de Hospitable o conversación de WhatsApp sin reserva (modo asesor de ventas).
    ALMA responde por el canal del último mensaje del huésped. */
 function contexto_(resId, hilo, modo) {
-  const esWA = String(resId).indexOf('wa:') === 0;
+  const esWA = /^(wa|ig|fb):/.test(String(resId));   // Instagram y Messenger usan el contexto de WhatsApp sin reserva (redesmeta.js)
   /* Marca «resuelta» del equipo = hito: lo anterior quedó atendido (a veces fuera del chat). */
   const hito = hitoResuelta_(resId);
   if (hito) {
@@ -1341,6 +1351,7 @@ function contexto_(resId, hilo, modo) {
   const ultG = hilo.filter(m => m.tipo === 'guest').pop() || {};
   ctx.canal = ultG.canal === 'whatsapp' ? 'whatsapp' : 'hospitable';
   ctx.wa = (hilo.filter(m => m.wa).pop() || {}).wa || (esWA ? String(resId).slice(3) : '');
+  if (/^(ig|fb):/.test(String(resId))) redesContexto_(ctx, resId);   // su canal, sin número de WhatsApp y lo que Alma no decide sola (#888 T5)
   ctx.instrucciones = (ctx.instrucciones || '') + '\n· Mensaje programado de check-in: trae poca información a propósito. Al llenar el formulario de registro (hola.spacioam.com) el huésped recibe acceso a la dirección, el pin de ubicación, la clave del Wi-Fi, las instrucciones de ingreso y el resto de la guía. Si pregunta algo de eso y aún no llenó el formulario, dile que ahí lo recibe en cuanto lo complete (con el enlace). Los mensajes programados de Hospitable (check-in, checkout, first morning, recordatorio de reseña) NO son respuestas del equipo: si el huésped preguntó algo que el programado no responde, respóndelo tú.';
   if (ctx.canal === 'whatsapp') ctx.instrucciones = (ctx.instrucciones || '') + '\n· Este turno llegó por WhatsApp, no por la plataforma de la reserva. Responde como en WhatsApp: breve, cálido, párrafos cortos, sin despedidas largas ni firma.';
   return ctx;
@@ -3499,6 +3510,7 @@ function hubApi_(body) {
       case 'responder': if (String(body.resId || '').indexOf('op:') === 0) return json_(chatResponderOp_(ses, body));   // chat con Alma: solo el suyo; op:desarrollo = Pedido para Claude (chat.js)
         return json_(hubResponderSeguro_(body, ses));   // si no sale, avisa a quien lo escribió (envio.js)
       case 'responderWa': return json_(hubResponderSeguro_(body, ses));
+      case 'bandeja': return json_(bandejaApi_(ses, body));                                  // Bandeja unificada: una persona por fila, todas las redes (bandejaunica.js, #888)
       case 'adjunto': return json_(adjSubir_(ses, body));                                    // el «+» del nuevo chat: sube una foto, PDF, Word, Excel o audio para el huésped (adjuntos.js)
       case 'promesas': return json_(hubPromesas_(!!body.todas));
       case 'promesaCerrar': return json_(hubPromesaCerrar_(body.id, body.quien));
@@ -4222,6 +4234,15 @@ function hubResponder_(resId, texto, quien, canal, adj) {
   if (items.length && String(resId).indexOf('op:') === 0) return { ok: false, error: 'Aquí no se mandan archivos: usa la foto del chat de la roca.' };
   /* Chat operativo: el administrador escribe a ALMA desde la misma interfaz de conversaciones. */
   if (String(resId).indexOf('op:') === 0) { const adm = adminPorEmail_(String(resId).slice(3)); const r = opProcesar_(adm, texto, 'hub', []); return r.ok ? { ok: true, alma: r.alma } : r; }
+  /* Instagram y Messenger (redesmeta.js, #888 T5): por la red donde escribió, con su ventana de 24 h (7 días con la etiqueta de agente humano). */
+  if (/^(ig|fb):/.test(String(resId))) {
+    if (items.length) return { ok: false, error: 'Por ' + (String(resId).indexOf('ig:') === 0 ? 'Instagram' : 'Messenger') + ' todavía solo sale texto.' };
+    const rr = redesEnviar_(resId, texto, quien || 'Equipo'); if (!rr.ok) return { ok: false, error: rr.error };
+    try { promesasCumplir_(resId, quien || 'Equipo'); } catch (e) {}
+    try { decisionAlResponder_(resId, quien || 'Equipo'); } catch (e) {}
+    return { ok: true, canal: redesCanalDe_(resId), humano: !!rr.humano };
+  }
+  if (String(resId).indexOf('mail:') === 0) return { ok: false, error: 'Los correos se responden desde Correos.' };
   /* Se responde por el canal del último mensaje del huésped: WhatsApp o la plataforma de la reserva. */
   /* Conversación de WhatsApp sin reserva (proveedor, técnico, socio…): se le escribe a ese número, aunque todavía no haya
      respondido nunca (antes caía a Hospitable con «wa:…» y fallaba). Fuera de las 24 h sale el aviso de primer contacto. */
@@ -4895,11 +4916,11 @@ function mezclarEnvios_(id, hilo) {
 }
 function hiloConv_(convId, hiloCliente) {
   const id = String(convId || ''); let hilo = [];
-  if (!/^(wa|llamada):/.test(id)) {   // WhatsApp y llamadas sin número viven solo en ALMA_WHATSAPP
+  if (!/^(wa|llamada|ig|fb|mail):/.test(id)) {   // WhatsApp, llamadas sin número, Instagram, Messenger y correo viven solo en las hojas del Hub
     const fr = hiloCacheGet_(id, true);
     if (fr) { hilo = fr; try { hilo = hilo.concat(waHilo_(id)); } catch (e) {} hilo.sort((a, b) => new Date(a.created) - new Date(b.created)); try { hilo = mezclarEnvios_(id, hilo); } catch (e) {} return { code: 200, hilo: hilo, cache: true }; }
   }
-  if (!/^(wa|llamada):/.test(id)) {   // WhatsApp y llamadas sin número viven solo en ALMA_WHATSAPP
+  if (!/^(wa|llamada|ig|fb|mail):/.test(id)) {   // WhatsApp y llamadas sin número viven solo en ALMA_WHATSAPP
     /* Las consultas (inq:uuid) viven en /inquiries; antes se pedían a /reservations y fallaban → el hub solo mostraba un intercambio. */
     const inq = id.indexOf('inq:') === 0, uid = id.replace(/^inq:/, '');
     /* La API no deja leer el historial de una consulta: se intenta por si la consulta ya se convirtió en reserva y,
@@ -4931,6 +4952,7 @@ function hiloConv_(convId, hiloCliente) {
     }
   }
   try { hilo = hilo.concat(waHilo_(id)); } catch (e) { console.error('waHilo_: ' + e); }
+  if (/^(ig|fb):/.test(id)) { try { hilo = hilo.concat(redesHilo_(id)); } catch (e) { console.error('redesHilo_: ' + e); } }   // Instagram y Messenger (redesmeta.js)
   hilo.sort((a, b) => new Date(a.created) - new Date(b.created));
   try { hilo = mezclarEnvios_(id, hilo); } catch (e) {}
   return { code: 200, hilo: hilo };
@@ -4939,7 +4961,7 @@ function hiloConv_(convId, hiloCliente) {
    fresca (más WhatsApp y lo recién enviado o recibido). Para quien ya sabe que la conversación no se movió desde esa copia
    (promesas.js); null si no hay copia. */
 function hiloGuardado_(convId) {
-  const id = String(convId || ''); if (!id || /^(wa|llamada):/.test(id)) return null;
+  const id = String(convId || ''); if (!id || /^(wa|llamada|ig|fb|mail):/.test(id)) return null;
   const fr = hiloCacheGet_(id, false); if (!fr) return null;
   let hilo = fr; try { hilo = hilo.concat(waHilo_(id)); } catch (e) {}
   hilo.sort((a, b) => new Date(a.created) - new Date(b.created));
@@ -4956,7 +4978,7 @@ function waVentana_(wa) {
 /* Números de WhatsApp de una reserva, del más probable al menos: los que ya escribieron o llamaron, los del huésped en
    Hospitable y los del registro de llegada (titular, contacto, emergencia). */
 function telsReserva_(resId) {
-  resId = String(resId || ''); if (!resId || /^(wa|op|inq):/.test(resId)) return [];
+  resId = String(resId || ''); if (!resId || /^(wa|op|inq|ig|fb|mail):/.test(resId)) return [];
   const out = [], add = (t, origen) => { const n = normTel_(t); if (n && !out.some(x => fin8_(x.wa) === fin8_(n))) out.push({ wa: n, origen: origen }); };
   try { waHilo_(resId).slice().reverse().forEach(m => { if (m.wa) add(m.wa, m.llamada ? 'llamada' : 'whatsapp'); }); } catch (e) {}
   let pre = {}; try { pre = preContexto_(resId) || {}; } catch (e) {}
@@ -5026,6 +5048,7 @@ function enviarCanal_(d, texto, autor) {
   texto = limpiarSalida_(texto).texto;
   if (!textoEnviable_(texto)) { console.error('enviarCanal_ bloqueó un texto no enviable: ' + String(texto).slice(0, 80)); return { code: 422, error: 'texto bloqueado (marcador interno o vacío)', bloqueado: true }; }
   if (d.canal === 'whatsapp' && d.wa) { const w = waResponder_(d.wa, texto, d.resId, autor || 'alma', d.idioma, d.huesped); return { code: w.ok ? 200 : (w.code || 500), error: w.error }; }
+  if (/^(ig|fb):/.test(String(d.resId))) { const rr = redesEnviar_(d.resId, texto, autor || 'alma'); return { code: rr.ok ? 200 : (rr.code || 500), error: rr.error }; }   // Instagram y Messenger (redesmeta.js)
   return hosp_('post', '/reservations/' + d.resId + '/messages', { body: texto });
 }
 /* Ejecuta una vez desde el editor para revisar la conexión con Meta. */

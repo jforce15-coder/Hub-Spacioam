@@ -57,7 +57,7 @@
   }
   /* Cada llamada tiene tiempo máximo: en iPhone una petición cortada al pasar a segundo plano nunca responde
      y dejaba el hub sin actualizar hasta cerrarlo. */
-  var LENTAS = { cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, almaArchivo: 1, areas: 1, fotosContacto: 1, agentes: 1, dictar: 1, mejorarCampo: 1, adjunto: 1 };
+  var LENTAS = { bandeja: 1, cola: 1, redactarHub: 1, ajustarBorrador: 1, apelacionReview: 1, respuestaReview: 1, reviewHuesped: 1, guestReview: 1, enviarReview: 1, publicarRespuesta: 1, proponerMejora: 1, responder: 1, hilo: 1, reservaInfo: 1, probarPush: 1, opEnviar: 1, opHilo: 1, opLista: 1, almaFoto: 1, almaArchivo: 1, areas: 1, fotosContacto: 1, agentes: 1, dictar: 1, mejorarCampo: 1, adjunto: 1 };
   var SALEN = { responder: 1, responderWa: 1 };
   function call(action, payload) {
     if (!CFG.url) return Promise.resolve({ ok: false, error: 'no_url' });
@@ -115,6 +115,8 @@
     /* app de Alma: el equipo de agentes detrás de Alma (agentes.js) */
     agentes: function (b) { return call('agentes', b || {}); },
     correos: function (b) { return call('correos', b || {}); },
+    /* Bandeja unificada (#888, bandejaunica.js): { op: 'lista' | 'hilo' | 'responder' | 'decision' | 'unir' | 'separar' | 'carpeta' | 'posponer' | 'resolver' | 'nota', … } */
+    bandeja: function (b) { return call('bandeja', b || {}); },
     usoIA: function (dias) { return call('usoIA', { dias: dias || 30 }); },
     usoMensual: function (mes) { return call('usoMensual', { mes: mes || '' }); },
     mejoraEditar: function (id, cambios, resumen) { return call('mejoraEditar', { id: id, cambios: cambios, resumen: resumen }); },

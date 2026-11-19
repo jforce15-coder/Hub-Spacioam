@@ -112,7 +112,20 @@ var CUPO_INTERVALOS_ = {
   CUPO_RESPALDO_QUIETA_MIN: [60, 0, 'una conversación quieta casi nunca trae un webhook perdido'],
   /* Cada cuánto se le pregunta a Hola, Epi, Grow, Docs y Mi su gasto (5 llamadas por vez). Solo mueve el nivel, que se
      decide con las últimas 24 h: una hora de retraso no cambia la decisión. */
-  CUPO_APPS_MIN: [60, 15, 'el gasto de las otras apps solo mueve el nivel, que mira 24 h']
+  CUPO_APPS_MIN: [60, 15, 'el gasto de las otras apps solo mueve el nivel, que mira 24 h'],
+  /* 19-nov-2026 (alma@ cortó a ~21 249 el 18-nov; top de 24 h en cupo_top). Cada uno con su valor de antes:
+     · Respaldo de «unir = publicar» (pubSoloRevisar_, 1 488 al día): cada app avisa al unir (publicarAviso) y el Hub se
+       publica con su propio push; esto solo cubre un aviso perdido. Ahora una sola llamada (GraphQL) para todas las apps. */
+  CUPO_PUBLICAR_MIN: [30, 5, 'el respaldo de publicar: las apps ya avisan al unir'],
+  /* · Cambios abiertos de GitHub en Pendientes y Notificaciones (hub · pendientes 1 498 y hub · notificaciones 1 806): la
+       app pregunta cada 60–90 s y con 45 s de caché casi cada pregunta iba a GitHub (1 + una por PR). «Unir» la borra. */
+  CUPO_PRS_MIN: [3, 0.75, 'la lista de cambios de GitHub para Pendientes y Notificaciones'],
+  /* · Una reserva activa cuya conversación no se encuentra (sin uuid en la hoja ni en la bandeja) hacía que
+       extensionRevisar_ buscara en Hospitable cada 5 min, página por página (3 606 al día). Se recuerda que no está. */
+  CUPO_EXT_SIN_CONV_MIN: [180, 0, 'una reserva sin conversación no aparece en 5 min'],
+  /* · repararConsultas (en el respaldo de la bandeja) reintentaba en cada pasada las mismas consultas sin fechas ni nombre
+       (hasta 8, dos llamadas cada una). Una consulta ya intentada espera este tiempo. */
+  CUPO_INQ_FIX_MIN: [360, 0, 'una consulta sin fechas casi nunca las gana sola']
 };
 var CUPO_RESPALDO_ACTIVA_H_ = 2;   // «se movió hace poco»: actividad en las últimas 2 h
 /* Minutos de un intervalo: la propiedad del mismo nombre (si es un número ≥ 0) o el valor nuevo; CUPO_AHORRO = 0, el de antes. */

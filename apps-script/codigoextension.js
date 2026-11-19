@@ -47,13 +47,24 @@ function extEsAdmin_(wa) {
   if (extAdmins_().some(function (x) { return fin8_(x) === fin8_(wa); })) return true;
   try { return !!adminPorTel_(wa); } catch (e) { return false; }
 }
-function extConv_(r) { var u = s_(r.reservation_uuid); if (/^[0-9a-f-]{20,}$/i.test(u)) return u; try { return agResId_(s_(r.code)); } catch (e) { return ''; } }
+/* La conversación de la reserva. Sin uuid en la hoja, agResId_ la busca en la bandeja y en Hospitable (página por página):
+   si no aparece, se recuerda CUPO_EXT_SIN_CONV_MIN (3 h) para no volver a buscarla cada 5 min (19-nov-2026: 3 606 llamadas al
+   día; extensionRevisar_ era lo que más gastaba). Lo que sí aparece ya queda en la caché de reservaConv_ (6 h). */
+function extConv_(r) {
+  var u = s_(r.reservation_uuid); if (/^[0-9a-f-]{20,}$/i.test(u)) return u;
+  var c = null, k = 'extsc_' + s_(r.code).toUpperCase().replace(/\s+/g, ''), min = 0;
+  try { min = cupoIntervalo_('CUPO_EXT_SIN_CONV_MIN'); c = CacheService.getScriptCache(); if (min && c.get(k)) return ''; } catch (e) {}
+  var id = ''; try { id = agResId_(s_(r.code)); } catch (e) { id = ''; }
+  if (!id && c && min) { try { c.put(k, '1', Math.min(21600, Math.round(min * 60))); } catch (e) {} }
+  return id;
+}
 /* El último código que le mandamos en esa conversación (codigoaviso.js). leer: true = sin la caché de 6 h. */
 function extUltimo_(resId, fresco) {
   if (!resId) return null;
   var c = CacheService.getScriptCache(), k = 'extv_' + resId;
   if (!fresco) { var v = c.get(k); if (v) { try { return v === '-' ? null : JSON.parse(v); } catch (e) {} } }
-  var r = hiloConv_(resId); if (r.code !== 200) return null;
+  var r = hiloConv_(resId);
+  if (r.code !== 200) { if (!fresco) { try { c.put(k, '-', 1800); } catch (e) {} } return null; }   // Hospitable no la dio: se reintenta en 30 min, no en cada vuelta
   var u = codigoUltimoEnviado_(r.hilo || []), g = (r.hilo || []).filter(function (m) { return m.tipo === 'guest'; }).pop();
   var out = u ? { fuente: u.fuente, hastaMs: u.hastaMs, desdeMs: u.desdeMs, created: u.created, idioma: (g && idiomaDe_(g.texto)) || '' } : null;
   try { c.put(k, out ? JSON.stringify(out) : '-', out ? 21600 : 10800); } catch (e) {}

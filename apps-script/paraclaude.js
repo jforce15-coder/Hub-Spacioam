@@ -515,7 +515,7 @@ function paraClaudePrInfo_(url) {
   var c = CacheService.getScriptCache(), k = 'prinf_' + m[1] + '_' + m[2] + '_' + m[3], h = c.get(k); if (h) return JSON.parse(h);
   var j = paraClaudeGh_('/repos/' + m[1] + '/' + m[2] + '/pulls/' + m[3]); if (!j) return null;
   var o = { url: url, repo: m[1] + '/' + m[2], estado: j.merged_at ? 'unido' : j.state === 'closed' ? 'cerrado' : 'abierto', unido: j.merged_at || '', sha: j.merge_commit_sha || '' };
-  c.put(k, JSON.stringify(o), o.estado === 'abierto' ? 45 : 3600); return o;
+  c.put(k, JSON.stringify(o), o.estado === 'abierto' ? prsCacheSeg_() : 3600); return o;   // abierto: lo mismo que la lista de cambios (unir.js), antes 45 s
 }
 /* Las revisiones de GitHub sobre el commit del Merge (Actions, Pages, TestFlight…): cuántas van y si alguna falló. */
 function paraClaudeChecks_(repo, sha) {

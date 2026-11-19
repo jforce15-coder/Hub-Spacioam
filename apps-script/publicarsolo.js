@@ -6,10 +6,15 @@
    - si alguna cambió desde la última vez, le pide a GitHub que corra el Traslado (repository_dispatch «publicar»);
    - mira cada 5 min desde procesarCola y al instante cuando el «Publicar Apps Script» de una app avisa al unir
      (doPost { publicarAviso: 1 }, sin llave: el aviso solo hace mirar; si GitHub no cambió, no pasa nada).
-   Una llamada a GitHub por app cada vez; la lista de apps se guarda 6 h. Usa las llaves de GitHub del Hub (paraAlmaGh_). */
+   Una llamada a GitHub por app cada vez; la lista de apps se guarda 6 h. Usa las llaves de GitHub del Hub (paraAlmaGh_).
+   Ahorro (19-nov-2026, era 1 488 llamadas al día): las huellas de todas las apps salen en UNA llamada (GraphQL, la misma
+   huella que da la lista de la carpeta; si falla, la de antes: una por app) y procesarCola mira cada CUPO_PUBLICAR_MIN
+   (30 min; antes 5). El aviso de una app sigue mirando al instante y, si GitHub aún no muestra lo unido, procesarCola
+   vuelve a mirar cada minuto hasta PUB_SOLO_PRONTO_ veces. */
 var PUB_SOLO_PROP_ = 'PUBLICAR_HUELLAS';
-var PUB_SOLO_CADA_MS_ = 5 * 60000;
+var PUB_SOLO_PRONTO_ = 3;
 var PUB_SOLO_HUB_ = 'Hub-Spacioam';
+function pubSoloCadaMs_() { try { return cupoIntervalo_('CUPO_PUBLICAR_MIN') * 60000; } catch (e) { return 30 * 60000; } }
 
 function pubSoloDueno_() { try { return PropertiesService.getScriptProperties().getProperty('GITHUB_DUENO') || UNIR_DUENO_; } catch (e) { return UNIR_DUENO_; } }
 
@@ -38,16 +43,36 @@ function pubSoloHuella_(dueno, repo, carpeta) {
   return '';
 }
 
-/* Mira las huellas y, si cambió alguna, pide la publicación. forzar: sin esperar los 5 min (el aviso de una app). */
-function pubSoloRevisar_(forzar) {
-  var p = PropertiesService.getScriptProperties(), ahora = Date.now();
-  if (!forzar && ahora - Number(p.getProperty('PUBLICAR_MIRADO') || 0) < PUB_SOLO_CADA_MS_) return { ok: true, mirado: false };
-  p.setProperty('PUBLICAR_MIRADO', String(ahora));
-  var dueno = pubSoloDueno_(), proy = pubSoloProyectos_(dueno), ahoraH = {};
-  Object.keys(proy).forEach(function (k) {
+/* Las huellas de todas las apps en una sola llamada (GraphQL: el árbol de git de «main:carpeta», el mismo sha que da la
+   lista de la carpeta madre). null si GitHub no respondió bien: entonces se mira como antes, una por app. */
+function pubSoloHuellasJuntas_(dueno, proy) {
+  var ks = Object.keys(proy); if (!ks.length) return {};
+  var q = '{ ' + ks.map(function (k, i) {
     var x = proy[k].split(':');
-    try { var h = pubSoloHuella_(dueno, x[0], x[1]); if (h) ahoraH[k] = h; } catch (e) { console.error('pubSoloHuella_ ' + k + ': ' + e); }
-  });
+    return 'a' + i + ': repository(owner: ' + JSON.stringify(dueno) + ', name: ' + JSON.stringify(x[0]) + ') { object(expression: ' + JSON.stringify('main:' + x[1]) + ') { oid } }';
+  }).join(' ') + ' }';
+  var r = paraAlmaGh_('POST', '/graphql', { query: q });
+  if (r.code !== 200 || !r.json || !r.json.data) return null;
+  var out = {};
+  ks.forEach(function (k, i) { var o = r.json.data['a' + i]; if (o && o.object && o.object.oid) out[k] = String(o.object.oid); });
+  return out;
+}
+
+/* Mira las huellas y, si cambió alguna, pide la publicación. forzar: sin esperar (el aviso de una app). */
+function pubSoloRevisar_(forzar) {
+  var p = PropertiesService.getScriptProperties(), ahora = Date.now(), pronto = Number(p.getProperty('PUBLICAR_PRONTO') || 0);
+  if (!forzar && ahora - Number(p.getProperty('PUBLICAR_MIRADO') || 0) < (pronto > 0 ? 50000 : pubSoloCadaMs_())) return { ok: true, mirado: false };
+  p.setProperty('PUBLICAR_MIRADO', String(ahora));
+  if (!forzar && pronto > 0) p.setProperty('PUBLICAR_PRONTO', String(pronto - 1));
+  var dueno = pubSoloDueno_(), proy = pubSoloProyectos_(dueno), ahoraH = null;
+  try { ahoraH = pubSoloHuellasJuntas_(dueno, proy); } catch (e) { console.error('pubSoloHuellasJuntas_: ' + e); }
+  if (!ahoraH) {
+    ahoraH = {};
+    Object.keys(proy).forEach(function (k) {
+      var x = proy[k].split(':');
+      try { var h = pubSoloHuella_(dueno, x[0], x[1]); if (h) ahoraH[k] = h; } catch (e) { console.error('pubSoloHuella_ ' + k + ': ' + e); }
+    });
+  }
   var antes = {}; try { antes = JSON.parse(p.getProperty(PUB_SOLO_PROP_) || '{}') || {}; } catch (e) {}
   var cambiaron = Object.keys(ahoraH).filter(function (k) { return antes[k] !== ahoraH[k]; });
   if (!cambiaron.length) return { ok: true, cambiaron: [] };
@@ -65,7 +90,7 @@ function pubSoloAviso_() {
   c.put('pub_solo_aviso', '1', 20);
   var r; try { r = pubSoloRevisar_(true); } catch (e) { r = { ok: false, error: String(e).slice(0, 200) }; }
   /* GitHub puede tardar unos segundos en mostrar lo recién unido (18-nov: el aviso de Docs vio la carpeta de antes): si no vio
-     nada nuevo, procesarCola vuelve a mirar en su próximo minuto en vez de esperar 5. */
-  if (!r.pedido) { try { PropertiesService.getScriptProperties().setProperty('PUBLICAR_MIRADO', '0'); } catch (e) {} }
+     nada nuevo, procesarCola vuelve a mirar cada minuto (hasta PUB_SOLO_PRONTO_ veces) en vez de esperar 30. */
+  try { var p = PropertiesService.getScriptProperties(); if (!r.pedido) { p.setProperty('PUBLICAR_MIRADO', '0'); p.setProperty('PUBLICAR_PRONTO', String(PUB_SOLO_PRONTO_)); } else p.setProperty('PUBLICAR_PRONTO', '0'); } catch (e) {}
   return r;
 }

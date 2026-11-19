@@ -18,7 +18,9 @@ function unirGh_(metodo, ruta, cuerpo) {
 }
 function unirNombreRepo_(repo) { var n = String(repo).split('/')[1] || repo; return UNIR_NOMBRES_[n.toLowerCase()] || n; }
 
-/* Los cambios abiertos, con su estado: listo (checks en verde), revisando, fallo o choque. Caché de 45 s. */
+/* Los cambios abiertos, con su estado: listo (checks en verde), revisando, fallo o choque. Caché de CUPO_PRS_MIN (3 min;
+   antes 45 s): Pendientes y Notificaciones la piden cada 60–90 s (cupo, 19-nov-2026). Unir, Alma y la guardia piden fresco. */
+function prsCacheSeg_() { try { return Math.max(15, Math.round(cupoIntervalo_('CUPO_PRS_MIN') * 60)); } catch (e) { return 180; } }
 function prsAbiertos_(fresco) {
   var c = CacheService.getScriptCache(); if (!fresco) { var h = c.get('prs_abiertos'); if (h) return JSON.parse(h); }
   var dueno = PropertiesService.getScriptProperties().getProperty('GITHUB_DUENO') || UNIR_DUENO_;
@@ -31,7 +33,7 @@ function prsAbiertos_(fresco) {
     var estado = d.draft ? 'borrador' : d.mergeable === false ? 'choque' : ck && ck.fallas ? 'fallo' : ck && ck.corriendo ? 'revisando' : 'listo';
     return { repo: repo, app: unirNombreRepo_(repo), numero: it.number, titulo: it.title, url: it.html_url, estado: estado, fecha: it.created_at, checks: ck };
   });
-  try { c.put('prs_abiertos', JSON.stringify(lista), 45); } catch (e) {}
+  try { c.put('prs_abiertos', JSON.stringify(lista), prsCacheSeg_()); } catch (e) {}
   return lista;
 }
 
@@ -72,7 +74,7 @@ function unirCambio_(cual) {
   if (!elegidos.length) return { ok: false, error: 'No encontré ese cambio entre los abiertos.', abiertos: resumen };
   if (elegidos.length > 1 && !/^tod[oa]s?$/i.test(String(cual).trim())) return { ok: false, error: 'Hay varios que coinciden; pregúntale cuál.', abiertos: elegidos.map(function (x) { return { cual: x.app + ' #' + x.numero, titulo: x.titulo, estado: x.estado }; }) };
   var res = elegidos.map(prUnirUno_);
-  try { CacheService.getScriptCache().remove('prs_abiertos'); } catch (e) {}
+  try { CacheService.getScriptCache().removeAll(['prs_abiertos'].concat(res.map(function (x) { var m = /github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/.exec(x.url || ''); return m ? 'prinf_' + m[1] + '_' + m[2] + '_' + m[3] : ''; }).filter(Boolean))); } catch (e) {}   // lo unido se ve al instante
   /* Su microproyecto queda «unido» (#374): la tarjeta de Pendientes sigue la publicación y se cierra sola. */
   res.forEach(function (x) { if (x.ok && x.url) { try { microUnido_(x.url); } catch (e) { console.error('microUnido_: ' + e); } } });
   return { ok: res.some(function (x) { return x.ok; }), unidos: res.filter(function (x) { return x.ok; }), no_unidos: res.filter(function (x) { return !x.ok; }),

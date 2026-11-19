@@ -104,7 +104,9 @@
   var LUZ_MASK = "radial-gradient(closest-side,#000 0%,#000 55%,rgba(0,0,0,.78) 100%)";
   /* Color del halo y del brillo interno. Por defecto el del Hub; una app puede teñirlo con SANav.update({ tint: "#4B6A94" })
      (null vuelve al del Hub). Se aplica con variables CSS en <html> y cambia con un fundido suave. */
-  var GRAD = "linear-gradient(100deg,var(--san-t1,#E64E37) 0%,var(--san-t2,#EE7552) 45%,var(--san-t3,#F59D68) 100%)";
+  /* El halo de la roca en todas las web apps: el atardecer de la app de Alma (RocaAlma.swift: azul, lavanda, coral, durazno,
+     malva). Antes era un rojo-coral propio del Hub; Juan, 19-nov-2026: «que coincida con la estética y colores de la app de ALMA». */
+  var GRAD = "linear-gradient(180deg,#8FA5C8 0%,#B8B6C8 30%,#E9826A 56%,#E3A47F 74%,#A98C93 100%)";
   var TINT0 = ["#E64E37", "#EE7552", "#F59D68", "#F2A07E", "#F6B696", "#FAD0B6"];
   var tintNow = TINT0.map(hexRgb), tintRaf = 0, tintKey = "";
   function hexRgb(h) { h = String(h || "").replace("#", ""); if (h.length === 3) h = h.replace(/./g, "$&$&"); var n = parseInt(h.slice(0, 6), 16); return isNaN(n) ? [233, 130, 106] : [n >> 16 & 255, n >> 8 & 255, n & 255]; }
@@ -208,7 +210,7 @@
     ".san-scope .san-g .san-t{font:600 8.8px/1 Montserrat,system-ui,sans-serif;letter-spacing:.03em;color:var(--san-ink);text-shadow:0 1px 0 rgba(255,255,255,.7)}",
     ".san-scope .san-g-spark{color:var(--san-spark)}",
     ".san-scope .san-face[data-mode='idle'] .san-g-home,.san-scope .san-face[data-mode='idle'] .san-g-x,.san-scope .san-face[data-mode='home'] .san-g-spark,.san-scope .san-face[data-mode='home'] .san-g-x,.san-scope .san-face[data-mode='close'] .san-g-spark,.san-scope .san-face[data-mode='close'] .san-g-home{opacity:0;transform:scale(.75);filter:blur(4px)}",
-    ".san-scope .san-face[data-mode='close'] .san-g-x{color:#D9583A}.san-scope .san-face[data-mode='close'] .san-g-x svg{transform:rotate(45deg)}",
+    ".san-scope .san-face[data-mode='close'] .san-g-x{color:#E9826A}.san-scope .san-face[data-mode='close'] .san-g-x svg{transform:rotate(45deg)}",
     ".san-scope .san-hint{position:fixed;z-index:calc(var(--san-z) + 4);max-width:min(300px,calc(100vw - 32px));font:500 11.5px/1.45 Montserrat,system-ui,sans-serif;color:#3E3F3F;background:#F3F0EC;padding:10px 14px;border-radius:16px;box-shadow:0 10px 18px -8px rgba(96,76,66,.28),inset 0 2px 3px rgba(255,255,255,.6);opacity:0;pointer-events:none;transform:translate(-50%,-100%) translateY(8px);transition:opacity .45s ease,transform .6s cubic-bezier(.3,1.25,.55,1);text-align:center}",
     ".san-scope .san-hint b{font-weight:600}.san-scope .san-hint span{display:block;white-space:nowrap}",
     ".san-scope .san-hint[data-side='down']{transform:translate(-50%,0) translateY(-8px)}.san-scope .san-hint[data-side='right']{transform:translate(0,-50%) translateX(-8px)}.san-scope .san-hint[data-side='left']{transform:translate(-100%,-50%) translateX(8px)}",
@@ -220,8 +222,9 @@
     ".san-scope .san-ph{position:fixed;z-index:calc(var(--san-z) + 12);white-space:nowrap;font:600 11px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:#3E3F3F;background:rgba(243,240,236,.94);padding:8px 13px;border-radius:999px;box-shadow:0 8px 16px -8px rgba(96,76,66,.3);transform:translate(-50%,-50%) scale(.9);opacity:0;pointer-events:none;transition:opacity .25s,transform .4s cubic-bezier(.3,1.3,.55,1)}",
     ".san-scope .san-ph.on{opacity:1;transform:translate(-50%,-50%) scale(1)}",
     ".san-scope .san-ov{position:fixed;inset:0;z-index:calc(var(--san-z) + 10);pointer-events:none;font-family:Montserrat,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.san-scope .san-ov.on{pointer-events:auto}",
-    ".san-scope .san-ov-bg{position:absolute;inset:0;opacity:0;transition:opacity .7s cubic-bezier(.45,0,.55,1);background:radial-gradient(circle at 50% 50%,rgba(34,32,31,.62) 0px,rgba(34,32,31,.52) 170px,rgba(34,32,31,.34) 330px,rgba(34,32,31,.16) 480px,rgba(34,32,31,.06) 640px),rgba(250,250,250,.18)}",
-    ".san-scope .san-ov.on .san-ov-bg{opacity:1}.san-scope .san-ov.min .san-ov-bg{opacity:.4}",
+    /* La llamada sobre el atardecer de la app de Alma (LlamadaVista.swift), no sobre una sombra gris: la página se ve apenas detrás. */
+    ".san-scope .san-ov-bg{position:absolute;inset:0;opacity:0;transition:opacity .7s cubic-bezier(.45,0,.55,1);background:linear-gradient(180deg,rgba(92,107,135,.95) 0%,rgba(158,145,158,.94) 32%,rgba(242,179,148,.94) 62%,rgba(250,166,128,.95) 100%)}",
+    ".san-scope .san-ov.on .san-ov-bg{opacity:1}.san-scope .san-ov.min .san-ov-bg{opacity:.22}",
     /* escena (inicio de la app de Alma): solo la piedra con sus botones sobre el fondo de la página */
     ".san-scope.san-escena>:not(.san-ov):not(.san-ph){display:none!important}",
     ".san-scope .san-ov.escena .san-ov-bg{background:radial-gradient(circle at 50% 62%,rgba(40,30,32,.2) 0px,rgba(40,30,32,.08) 260px,rgba(40,30,32,0) 520px)}",
@@ -308,7 +311,7 @@
     ".san-scope .san-pr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px 16px}.san-scope .san-pr .n{font:600 26px/1 Montserrat,system-ui,sans-serif;color:#3E3F3F;letter-spacing:-.01em}.san-scope .san-pr .n small{margin-left:6px;font:500 11.5px Montserrat,system-ui,sans-serif;color:#6F6867;letter-spacing:0}",
     ".san-scope .san-pr .ir{flex:none;border:0;cursor:pointer;padding:12px 20px;border-radius:999px;background:#3E3F3F;color:#FAFAFA;font:600 12px Montserrat,system-ui,sans-serif;letter-spacing:.04em}.san-scope .san-vu .al{margin:-6px 0 0;padding:0 0 14px;font:500 12px Montserrat,system-ui,sans-serif;color:#6F6867}",
     ".san-scope .san-ob{position:relative;width:56px;height:56px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:var(--san-ink);background:radial-gradient(120% 120% at 50% 20%,#F4F1EE 0%,#ECE8E3 55%,#E3DED8 100%);box-shadow:0 12px 18px -6px rgba(40,30,25,.4),0 3px 5px rgba(40,30,25,.16),inset 0 2px 4px rgba(255,255,255,.55),inset 0 -4px 7px rgba(110,90,80,.10);transition:transform .45s cubic-bezier(.3,1.35,.55,1)}",
-    ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end svg{color:#D9583A}.san-scope .san-ob:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:4px}",
+    ".san-scope .san-ob:active{transform:scale(.92);transition-duration:.1s}.san-scope .san-ob.end{color:#E9826A;background:radial-gradient(120% 120% at 50% 20%,#4A4B4B 0%,#2E3030 60%,#252626 100%);box-shadow:0 12px 18px -6px rgba(40,30,25,.45),0 3px 5px rgba(40,30,25,.2),inset 0 1px 2px rgba(255,255,255,.14)}.san-scope .san-ob.end svg{color:#E9826A}.san-scope .san-ob:focus-visible{outline:2px solid var(--san-acc,#E9826A);outline-offset:4px}",
     ".san-scope .san-ob span{position:absolute;top:62px;left:50%;transform:translateX(-50%);font:600 9.5px Montserrat,system-ui,sans-serif;letter-spacing:.06em;color:#F5F1EC;white-space:nowrap;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
     ".san-scope .san-ov-tip{font:500 10.5px Montserrat,system-ui,sans-serif;letter-spacing:.04em;color:rgba(245,241,236,.8);text-align:center;text-shadow:0 1px 6px rgba(40,30,25,.4)}",
     /* Chat de la roca, estilo A (#317, «Airbnb fiel»): fondo blanco, encabezado simple con una línea fina y el hilo con las piezas

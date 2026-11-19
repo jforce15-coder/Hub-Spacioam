@@ -51,7 +51,7 @@
   .ajustes.col { right: auto; top: 0; left: 0; z-index: 891; }
   body:has(.san-ov.suelta) .ajustes.col, body:has(.san-ov.suelta) .lado-riel { opacity: 0 !important; pointer-events: none !important; }
   /* Dónde va cada botón chico (Juan, 18-nov-2026: «los siento muy apretados todos»; los ubica lugares()). En el teléfono:
-     la Carpeta arriba a la izquierda, junto a la campana; el Navegador al centro, arriba de la roca y fuera de las órbitas;
+     la Carpeta arriba a la izquierda, junto a la campana; el Navegador arriba a la derecha, junto a Ajustes (quieto);
      Compañero arriba y afuera del Silencio, y el Modo calle en espejo, arriba y afuera de Conferencia. En el iPad o la Mac
      (pantalla ancha): dos rieles de vidrio a media altura en los bordes, donde caen los pulgares: Carpeta, Navegador y
      Compañero a la izquierda; Modo calle y Conferencia a la derecha. El Silencio se queda junto a Chat. */
@@ -428,9 +428,8 @@
   /* con las áreas abiertas, «Toca a Alma» y los botones de abajo se van al instante (antes de que lleguen las esferas) */
   body.orbita-on #sa-nav-root .san-ov-ui, body.orbita-on #sa-nav-root .san-ov-st { opacity: 0 !important; pointer-events: none !important; transition: opacity .1s ease !important; }
   @media (prefers-reduced-motion: reduce) { .esf .halo, .esf .resp { animation: none; } }
-  /* Los botones chicos nunca tocan una esfera (Juan, 18-nov-2026): con las esferas abiertas, el Navegador baja al lugar
-     de «Chat» e «Iniciar llamada» (lo ubica lugares()), el avión y los anillos en órbita se van de una vez (no en .8 s) y
-     cualquier botón que igual quede encima de una esfera o de su nombre se aparta (apartar()). Al cerrarlas, vuelven. */
+  /* Los botones chicos nunca tocan una esfera (Juan, 18-nov-2026): con las esferas abiertas, el avión y los anillos en órbita
+     se van de una vez (no en .8 s) y cualquier botón que igual quede encima de una esfera o de su nombre se aparta (apartar()). Al cerrarlas, vuelven. */
   body.orbita-on .ajustes.avion, body.orbita-on .vj-vivo, body.orbita-on .pob-s, body.orbita-on .pob-orb { transition: opacity .12s ease !important; }
   .ajustes.aparta, #sa-nav-root .san-pendb.aparta { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s ease !important; }
   .ajustes.col.muda { opacity: 0 !important; pointer-events: none !important; transition: opacity .12s ease !important; }
@@ -1832,7 +1831,7 @@ window.SAPulso = {
       ES.forEach(function (e, j) { e.suelta = false; esLuego(e.q, 0, (n - 1 - j) * 24, .38, 1); });
     }
     orbitaPintar(); avisoArmar();   // las esferas ya están: la barra se arma con ellas
-    if (window.AlmaColUbicar) try { AlmaColUbicar(); } catch (e) {}   // el Navegador baja (o vuelve) sin esperar su vuelta
+    if (window.AlmaColUbicar) try { AlmaColUbicar(); } catch (e) {}   // los botones chicos se acomodan sin esperar su vuelta
     apartar();
   }
   /* Ningún botón chico encima de una esfera ni de su nombre (Juan, 18-nov-2026): se mide contra el lugar final de cada
@@ -5152,7 +5151,7 @@ window.SAPulso = {
   /* Dónde va cada botón chico (Juan, 18-nov-2026: «los siento muy apretados todos … en el iPad deberíamos darle amplitud»).
      Teléfono: el Silencio a la izquierda de «Chat» y Conferencia a la derecha de «Iniciar llamada», como siempre; Compañero
      arriba y afuera del Silencio y el Modo calle en espejo; la Carpeta arriba a la izquierda, junto a la campana; el
-     Navegador al centro, arriba de la roca y fuera de las órbitas. Pantalla ancha (iPad, Mac): Carpeta, Navegador y
+     Navegador arriba a la derecha, junto a Ajustes, quieto y lejos de las órbitas. Pantalla ancha (iPad, Mac): Carpeta, Navegador y
      Compañero en el riel izquierdo; Modo calle y Conferencia en el derecho, a la altura de la roca; el Silencio, junto a Chat. */
   function lugares() {
     var q = function (s) { return document.querySelector(s); }, W = innerWidth, H = innerHeight;
@@ -5174,13 +5173,11 @@ window.SAPulso = {
     var xa = 16, ya = 14;
     document.querySelectorAll("#sa-nav-root .san-pendb").forEach(function (b) { var r = b.getBoundingClientRect(); if (r.width && r.left < W / 2) { xa = Math.max(xa, r.right + 14); ya = r.top; } });
     p["b-arch"] = [Math.round(xa), Math.round(ya)];
-    /* el Navegador: arriba de la órbita lejana de los pedidos (orbitas(): R + 48 o 42 %), sin tocar el saludo */
-    var R = rr && rr.width ? rr.width / 2 : 120, yn = cy - R - Math.max(48, R * .42) - 54, h = $("hola"), rh = h && h.classList.contains("on") ? h.getBoundingClientRect() : null;
-    if (rh && rh.height) yn = Math.max(yn, rh.bottom + 8);
-    p["b-nav"] = [Math.round(W / 2 - 20), Math.round(Math.max(ya + 50, yn))];
-    /* con las esferas abiertas, la de arriba (Propósito) ocupa ese lugar: el Navegador baja al centro de abajo, donde
-       estaban «Chat» e «Iniciar llamada» (que se esconden con las esferas) */
-    if (document.body.classList.contains("orbita-on")) p["b-nav"] = [Math.round(W / 2 - 20), Math.round(y0)];
+    /* el Navegador: arriba, en la fila de la campana y Ajustes, a la izquierda de Ajustes (en espejo de la Carpeta). Quieto:
+       no depende del tamaño de la roca (que respira y crece con la voz) ni del saludo, y queda lejos de las órbitas de los
+       pedidos y de las esferas (Juan, 19-nov-2026: «está muy cerca de las órbitas… debería estar estático»). */
+    var aj = $("b-ajustes"), ra = aj && aj.getBoundingClientRect();
+    p["b-nav"] = [Math.round((ra && ra.width ? ra.left : W - 56) - 14 - 40), Math.round(ra && ra.width ? ra.top : ya)];
     return L;
   }
   window.AlmaLugares = lugares;   // también lo usa confUbicar (Conferencia y Modo calle)

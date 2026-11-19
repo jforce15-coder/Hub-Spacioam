@@ -1145,6 +1145,18 @@
   @keyframes compLate { 50% { box-shadow: 0 0 0 7px rgba(233,130,106,.12); } }
   .comp-de { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .comp-est { flex: none; white-space: nowrap; margin-left: auto; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.22); letter-spacing: .08em; }
+  /* «Terminar» (Juan, 19-nov-2026): cuelga la llamada del otro dispositivo; la misma piedra clara con la ✕ de la roca */
+  .comp-colgar { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px 0 12px; border: 0; border-radius: 999px; cursor: pointer;
+    font: 600 10.5px Montserrat, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #3A302C;
+    background: radial-gradient(120% 120% at 50% 20%, #F4F1EE 0%, #ECE8E3 55%, #E3DED8 100%); box-shadow: 0 8px 14px -6px rgba(40,30,25,.4), 0 2px 4px rgba(40,30,25,.16), inset 0 2px 4px rgba(255,255,255,.55); transition: transform .3s cubic-bezier(.3,1.35,.55,1), opacity .2s ease; }
+  .comp-colgar svg { width: 16px; height: 16px; color: #D9583A; }
+  .comp-colgar:active { transform: scale(.94); transition-duration: .1s; }
+  .comp-colgar:focus-visible { outline: 2px solid #E9826A; outline-offset: 3px; }
+  .comp-colgar:disabled { opacity: .6; cursor: default; }
+  .comp.fin .comp-colgar { opacity: 0; pointer-events: none; }
+  .comp-x { flex: none; width: 44px; height: 44px; margin: -12px -12px -12px 2px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .comp-x svg { width: 20px; height: 20px; padding: 6px; border-radius: 50%; background: rgba(255,255,255,.22); }
+  .comp-x:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
   .comp-tab { position: relative; flex: 1; min-height: 0; }
   .comp .tvb { top: 18px; bottom: 0; left: 0; right: 0; max-width: 760px; margin: 0 auto; }
   .comp-vacio { position: absolute; inset: 0; display: grid; place-items: center; padding: 0 24px; text-align: center; font: 400 clamp(22px, 4vw, 30px)/1.25 Valky, "Cormorant Garamond", Georgia, serif; opacity: .9; }
@@ -1501,7 +1513,7 @@
     <p class="tit-g" id="t-comp">Modo compañero</p>
     <div class="grupo" id="g-comp">
       <div class="fila"><span class="et">Mostrar aquí la llamada de tu otro dispositivo</span><label class="interruptor"><input type="checkbox" id="i-comp" aria-label="Modo compañero: mostrar aquí la llamada de tu otro dispositivo"><span></span></label></div>
-      <p class="nota-g">Encendido en este dispositivo (por ejemplo, el iPad): cuando hablas con Alma desde el otro, aquí ves en vivo lo que ella te muestra y lo que dicen, sin sonido. El micrófono y el audio se quedan en el dispositivo donde empezaste la llamada: siempre es una sola llamada, y desde aquí no se abre otra mientras siga.</p>
+      <p class="nota-g">Encendido en este dispositivo (por ejemplo, el iPad): cuando hablas con Alma desde el otro, aquí ves en vivo lo que ella te muestra y lo que dicen, sin sonido. El micrófono y el audio se quedan en el dispositivo donde empezaste la llamada: siempre es una sola llamada, y desde aquí no se abre otra mientras siga. Si llamas desde los dos a la vez, se queda la del iPhone.</p>
     </div>
     </div>
   </section>
@@ -1613,7 +1625,7 @@
 <script src="../js/sa-auth-client.js?v=2026-11-18a"></script>
 <script src="../js/sa-session.js?v=2026-10-18a"></script>
 <script src="../js/alma-client.js?v=2026-11-18-alma-ws"></script>
-<script src="../js/alma-voz.js?v=2026-11-19-uv"></script>
+<script src="../js/alma-voz.js?v=2026-11-19-unavoz"></script>
 <script src="../ds/movimiento.js"></script>
 <script src="../js/sa-nav.js?v=2026-11-18-nv"></script>
 <script src="../js/alma-gif.js?v=2026-11-19-bv"></script>
@@ -2785,6 +2797,9 @@ window.SAPulso = {
      conversación. Si empieza con el anillo, se abre aquí en la roca (con lo que dicen y su latido); si la abres tocando la
      roca, el anillo la pausa y la retoma. Una versión vieja de la app (sin esto) sigue con la voz de la página. */
   var VN = { h: null, nivel: 0, activa: false, estado: "", soporta: false, dice: "", fin: null, agente: "alma" };
+  /* Para el Modo compañero (más abajo): ¿la llamada de la app está en ESTE dispositivo? Entonces la vista del compañero no
+     la tapa (Juan, 19-nov-2026: «si por el roce activa, no puedo terminar la llamada normalmente»). */
+  window.AlmaVozAqui = function () { return VN.activa; };
   function vozNativa() {
     var web = window.SAAlmaVoz;
     return {
@@ -2845,14 +2860,6 @@ window.SAPulso = {
       setTimeout(function () { h.ended(); if (window.AlmaCompanero && AlmaCompanero.ya) AlmaCompanero.ya(); }, 1400);
     }
   }
-  /* Una voz a la vez (Juan, 19-nov-2026): el Modo compañero vio que el iPhone empezó otra llamada mientras esta seguía aquí
-     (en el iPad): el iPhone manda, la de aquí se cuelga. */
-  if (window.addEventListener) window.addEventListener("sa-una-voz", function (ev) {
-    var h = VN.h, d = (ev && ev.detail && ev.detail.otra) || "otro dispositivo";
-    if (!h || !VN.activa) return;
-    VN.h = null; h.status("Tu " + d + " tomó la llamada"); nativa({ accion: "voz", que: "colgar" });
-    setTimeout(function () { h.ended(); if (window.AlmaCompanero && AlmaCompanero.ya) AlmaCompanero.ya(); }, 1400);
-  });
   /* Hablar con Claudio (#550): la voz nativa cuenta con quién se habla («agente», también en cada «estado»); el halo de la
      roca se pone todo naranja con Claudio y vuelve al de Alma al volver o al terminar (alma-voz.js, agenteHalo). */
   function vozAgente(e) {
@@ -4528,16 +4535,19 @@ window.SAPulso = {
   var CLAVE = "sa_companero", CADA_VIVO = 1500, CADA_NADA = 8000, FIN_MS = 3000;
   var TIPOS = ["reserva", "conversacion", "apartamento", "consulta", "edificio", "claudio", "socio", "datos", "recepcion", "proyecto"];
   var ESTADO = { conectando: "Conectando", hablando: "En llamada", escuchando: "Te escucha", pausa: "En pausa", fin: "Terminó" };
-  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "" };
+  var C = { on: false, t: 0, desde: 0, conv: "", capa: null, tvId: "", fin: 0, pidiendo: false, otra: "", otraTs: 0, avisado: "", inicio: 0, vistos: [], verId: "", oculta: "", colgando: false, colgada: "" };
+  /* Juan, 19-nov-2026 («en el iPad parece como atascado, siempre está encendido»): la capa tapa toda la pantalla, así que
+     siempre tiene salida (✕ «Cerrar»: esta llamada ya no se muestra aquí; la próxima, sí; el modo sigue encendido), y este
+     dispositivo nunca se copia a sí mismo (una llamada suya que no avisó que terminó no es «la del otro»). */
+  var YO = /iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? "iPad" : /iPhone/.test(navigator.userAgent) ? "iPhone" : "";
   var NOMBRE = { reserva: "Reserva", conversacion: "Conversación", apartamento: "Apartamento", consulta: "Consulta", edificio: "Edificio", claudio: "Trabajos de Claudio", socio: "Socio", datos: "Datos", recepcion: "Recepción", proyecto: "Proyecto" };
   var OTRA_MS = 20000;   // lo que vale «hay llamada en el otro» sin volver a preguntar (se pregunta cada 1,5 s durante una)
-  /* Una voz a la vez (Juan, 19-nov-2026: «solo debería haber un agente por voz activo; si está activado el teléfono, usar
-     por default el agente del teléfono», apps-script/vivo.js). El iPhone manda. En otro dispositivo (el iPad: el
-     «escritorio»), aunque el Modo compañero esté apagado, la página pregunta al Hub con poco gasto (solo_estado, cada 10 s
-     con la pantalla a la vista) si el iPhone está activo o en una llamada, y se lo cuenta a la app (UnaLlamada): con el
-     iPhone activo, aquí no se abre una llamada por voz; con el iPhone en una llamada, tampoco a mano. Si el iPhone empieza
-     una mientras aquí hay otra, la de aquí se cuelga sola («Tu iPhone tomó la llamada»). */
-  var ESCRITORIO = !/iPhone|iPod|Android.*Mobile/i.test(navigator.userAgent || ""), CADA_SOLO = 10000, CADA_AQUI = 5000;
+  /* Una voz a la vez (Juan, 19-nov-2026: «desactivar el agente de voz de escritorio cuando el agente del teléfono está
+     activo», apps-script/vivo.js). En el escritorio (el iPad), aunque el Modo compañero esté apagado, la página pregunta al
+     Hub con poco gasto (solo_estado: no cuenta como compañero mirando) cada 10 s con la pantalla a la vista si el iPhone
+     está activo (la app abierta o escuchando) o en una llamada, y se lo cuenta a la app (UnaLlamada, «tel»): con el iPhone
+     activo, aquí no se abre una llamada por voz; con el iPhone en una llamada, tampoco a mano. */
+  var ESCRITORIO = YO !== "iPhone", CADA_SOLO = 10000;
   C.tel = false;
   try { C.on = localStorage.getItem(CLAVE) === "1"; } catch (e) {}
   function ses() { try { return window.SAAuth && SAAuth.session ? SAAuth.session() : null; } catch (e) { return null; } }
@@ -4552,11 +4562,22 @@ window.SAPulso = {
   /* Una llamada aquí mismo (la roca abierta): este dispositivo es el que habla; no se muestra el otro. En el inicio de la app
      la roca vive en la escena (sa-nav: .san-ov.on siempre) y, sin llamada, está «quieta»: eso no es una llamada aquí
      (Juan, 19-nov-2026: «en el iPad no está copiando lo mismo que está pasando en el teléfono»). */
-  function llamadaAqui() { var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
+  /* También cuenta la llamada de la app en este dispositivo aunque la roca siga quieta (empezó con el anillo, el Modo calle o
+     un roce): la vista del compañero no la tapa y aquí sigue «Terminar» de la roca (Juan, 19-nov-2026). */
+  function llamadaAqui() { if (typeof AlmaVozAqui === "function" && AlmaVozAqui()) return true; var o = document.querySelector("#sa-nav-root .san-ov"); return !!(o && o.classList.contains("on") && !o.classList.contains("quieta")); }
   function montar() {
     if (C.capa) return C.capa;
     var c = C.capa = el("section", "comp"); c.setAttribute("aria-live", "polite"); c.setAttribute("aria-label", "Modo compañero");
     var cab = el("header", "comp-cab"); cab.appendChild(el("i")); cab.appendChild(el("span", "comp-de", "En vivo")); cab.appendChild(el("span", "comp-est", ""));
+    /* Terminar desde aquí (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada»): si se abrió por error
+       en el otro dispositivo, se cuelga desde este (vivoColgar; la app de la llamada cuelga al enterarse) */
+    var fin = el("button", "comp-colgar"); fin.type = "button"; fin.setAttribute("aria-label", "Terminar la llamada de tu otro dispositivo");
+    fin.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span>Terminar</span>';
+    fin.onclick = terminar; cab.appendChild(fin);
+    var x = el("button", "comp-x"); x.type = "button"; x.setAttribute("aria-label", "Cerrar: dejar de mostrar esta llamada aquí");
+    x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    x.onclick = function () { C.oculta = C.conv; cerrar(false); };
+    cab.appendChild(x);
     var cu = el("div", "comp-cuerpo"), centro = el("div", "comp-centro");
     centro.appendChild(el("div", "comp-tab")); centro.appendChild(el("div", "comp-subs")); cu.appendChild(centro);
     /* En el iPad (pantalla ancha) va a la derecha; en el teléfono no se ve (CSS) */
@@ -4628,6 +4649,17 @@ window.SAPulso = {
     vacio();
     c.classList.add("on");
   }
+  /* «Terminar»: el Hub la da por terminada ya y la app de la llamada cuelga en unos segundos. Aquí se ve «Terminó» ~3 s. */
+  function terminar() {
+    if (!C.conv || C.colgando) return;
+    var b = C.capa.querySelector(".comp-colgar"), et = b.querySelector("span"), conv = C.conv;
+    C.colgando = true; b.disabled = true; et.textContent = "Terminando…";
+    hub("vivoColgar", { conv: conv }).then(function (r) {
+      C.colgando = false; b.disabled = false;
+      if (!(r && r.ok)) { et.textContent = "Otra vez"; return; }
+      et.textContent = "Terminar"; C.colgada = conv; C.otra = ""; C.otraTs = Date.now(); app(); cerrar(true);
+    });
+  }
   function cerrar(fin) {
     if (!C.capa || !C.capa.classList.contains("on") || C.fin) return;
     if (fin) { C.capa.classList.add("fin"); C.capa.querySelector(".comp-est").textContent = ESTADO.fin; C.fin = setTimeout(function () { C.fin = 0; cerrar(false); }, FIN_MS); return; }
@@ -4636,42 +4668,43 @@ window.SAPulso = {
   function ciclo() {
     clearTimeout(C.t); C.t = 0;
     if (C.prueba) return;
-    if ((!C.on && !ESCRITORIO) || !ses()) { cerrar(false); return; }
+    if (!ses()) { cerrar(false); return; }
+    if (!C.on) { if (ESCRITORIO) unaVoz(); else cerrar(false); return; }
     if (document.visibilityState === "hidden") return;   // vuelve con visibilitychange
-    if (llamadaAqui()) { cerrar(false); if (ESCRITORIO) vigilar(); else C.t = setTimeout(ciclo, CADA_NADA); return; }
+    if (llamadaAqui()) { cerrar(false); C.t = setTimeout(ciclo, CADA_NADA); return; }
     if (C.pidiendo) return;
     C.pidiendo = true;
-    var mira = C.on;
-    hub("vivoLeer", mira ? { desde: C.desde, tipos: TIPOS } : { solo_estado: 1 }).then(function (r) {
+    hub("vivoLeer", { desde: C.desde, tipos: TIPOS }).then(function (r) {
       C.pidiendo = false;
-      var vivo = !!(r && r.ok && r.en_llamada);
-      if (!C.on && !ESCRITORIO) return;
-      if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.tel = !!r.telefono; C.otraTs = Date.now(); app(); }
-      if (C.on && mira) { if (vivo && !llamadaAqui()) pintar(r); else cerrar(!!(r && r.estado === "fin")); }
-      else cerrar(false);
-      C.t = setTimeout(ciclo, C.on ? (vivo ? CADA_VIVO : CADA_NADA) : CADA_SOLO);
+      if (r && r.ok) C.tel = !!r.telefono;
+      var vivo = !!(r && r.ok && r.en_llamada && !(YO && r.dispositivo === YO));   // la llamada de este mismo dispositivo no es «la del otro»
+      if (vivo && r.conv === C.colgada) vivo = false;   // la respuesta salió antes de «Terminar»: no se vuelve a abrir
+      if (!C.on) return;
+      if (r && r.ok) { C.otra = vivo && !llamadaAqui() ? (r.dispositivo || "otro dispositivo") : ""; C.otraTs = Date.now(); app(); }
+      if (vivo && !llamadaAqui() && r.conv !== C.oculta) pintar(r); else cerrar(!!(r && r.estado === "fin"));
+      C.t = setTimeout(ciclo, vivo && r.conv !== C.oculta ? CADA_VIVO : CADA_NADA);
     });
   }
-  /* Con una llamada aquí (en el escritorio): si el iPhone empezó otra, el iPhone manda y la de aquí se cuelga. */
-  function vigilar() {
-    if (C.pidiendo) return;
+  /* Una voz a la vez, sin Modo compañero: solo el estado (si el iPhone está activo o en una llamada), sin mostrar nada. */
+  function unaVoz() {
+    cerrar(false);
+    if (document.visibilityState === "hidden" || C.pidiendo) return;
+    if (llamadaAqui()) { C.t = setTimeout(ciclo, CADA_SOLO); return; }
     C.pidiendo = true;
     hub("vivoLeer", { solo_estado: 1 }).then(function (r) {
       C.pidiendo = false;
-      if (r && r.ok) { C.tel = !!r.telefono; C.otra = ""; C.otraTs = Date.now(); app(); }
-      if (r && r.ok && r.en_llamada && r.dispositivo === "iPhone" && r.fresca && llamadaAqui()) {
-        try { window.dispatchEvent(new CustomEvent("sa-una-voz", { detail: { otra: "iPhone" } })); } catch (e) {}
-      }
-      C.t = setTimeout(ciclo, CADA_AQUI);
+      if (C.on) return;
+      if (r && r.ok) { C.tel = !!r.telefono; C.otra = r.en_llamada && r.dispositivo === "iPhone" && !llamadaAqui() ? "iPhone" : ""; C.otraTs = Date.now(); app(); }
+      C.t = setTimeout(ciclo, CADA_SOLO);
     });
   }
   /* El botón de arriba (#b-comp, junto a Pendientes y Notificaciones) y el interruptor de Ajustes son el mismo: van juntos */
   function reflejar() { var i = $("i-comp"), b = $("b-comp"); if (i) i.checked = C.on; if (b) b.setAttribute("aria-pressed", C.on ? "true" : "false"); }
-  function poner(on) { C.on = !!on; if (!C.on && !ESCRITORIO) C.otra = ""; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); app(); ciclo(); }
+  function poner(on) { C.on = !!on; C.oculta = ""; C.otra = ""; try { localStorage.setItem(CLAVE, C.on ? "1" : "0"); } catch (e) {} reflejar(); app(); ciclo(); }
   /* Una sola llamada: la app (Companero.swift, UnaLlamada) sabe si este dispositivo es el compañero, si el otro está en una
-     llamada y si el iPhone está activo (tel); así «Alma» dicho en voz alta, el Modo calle, la conferencia o un aviso no abren
-     otra llamada aquí. Una app de antes no conoce «companero» (ni «tel») y no hace nada. Solo se avisa cuando cambia (y cada
-     10 s mientras sigue la llamada o el iPhone está activo). */
+     llamada y si el iPhone está activo («tel», una voz a la vez); así «Alma» dicho en voz alta, el Modo calle, la conferencia
+     o un aviso no abren otra llamada aquí. Una app de antes no conoce «companero» (ni «tel») y no hace nada. Solo se avisa
+     cuando cambia (y cada 10 s mientras sigue la llamada o el iPhone está activo). */
   function app() {
     var k = (C.on ? "1" : "0") + "|" + C.otra + "|" + (C.tel ? "t" : "") + "|" + (C.otra || C.tel ? Math.floor(Date.now() / 10000) : 0);
     if (k === C.avisado) return; C.avisado = k;

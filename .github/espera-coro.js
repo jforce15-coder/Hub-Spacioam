@@ -39,7 +39,18 @@ const leer = f => fs.readFileSync(path.join(DIR, f), 'utf8');
     ok(Math.abs(R.objetivo(true, false) - Math.pow(10, -0.5)) < 1e-9, 'Alma habla: −10 dB');
     ok(Math.abs(R.objetivo(false, true) - Math.pow(10, -0.3)) < 1e-9, 'Juan habla: −6 dB');
     ok(Math.abs(R.objetivo(true, true) - Math.pow(10, -0.5)) < 1e-9, 'los dos: manda Alma');
-    ok(R.rampa(0, 1) === 0.4 && R.rampa(1, 0) === 0.5 && R.rampa(1, 0.3) === 0.15 && R.rampa(0.3, 1) === 0.4, 'rampas: entra 0,4 · sale 0,5 · baja 150 ms · sube 400 ms');
+    ok(R.rampa(0, 1) === 1.2 && R.rampa(1, 0) === 1.2 && R.rampa(1, 0.3) === 0.25 && R.rampa(0.3, 1) === 0.6, 'rampas suaves: entra 1,2 · sale 1,2 · baja 250 ms · sube 600 ms (los mismos que la app)');
+    /* Juan, 19-nov-2026: «fade in y fade out (ease in y ease out) más suave, que no entre ni se corte de golpe» */
+    ok(R.curva(0) === 0 && Math.abs(R.curva(1) - 1) < 1e-12 && Math.abs(R.curva(0.5) - 0.5) < 1e-12, 'la curva va de 0 a 1 y pasa por la mitad');
+    const ini = R.curva(0.1), med = R.curva(0.55) - R.curva(0.45), fin = 1 - R.curva(0.9);
+    ok(ini < med / 5 && fin < med / 5, 'ease in y ease out: arranca y termina despacio (sin escalón)');
+    const pe = R.puntos(0, 1, 64), ps = R.puntos(1, 0, 64);
+    ok(pe[0] === 0 && Math.abs(pe[63] - 1) < 1e-6 && pe[1] < 0.002 && ps[62] < 0.002 && ps[63] === 0, 'la entrada empieza en silencio y la salida termina en silencio, con el primer y último paso casi mudos');
+    let mayor = 0; for (let i = 1; i < 64; i++) mayor = Math.max(mayor, pe[i] - pe[i - 1]);
+    ok(mayor < 0.03, 'ningún tramo de la entrada sube de golpe');
+    const src2 = fs.readFileSync(path.join(RAIZ, 'js', 'alma-voz.js'), 'utf8');
+    ok(/setValueCurveAtTime/.test(src2) && !/linearRampToValueAtTime/.test(src2), 'el volumen del coro sigue la curva, no la rampa lineal');
+    ok(/poner\(0, CORO\.corte\)/.test(src2) && !/poner\(0, 0\.05\)/.test(src2), 'interrupción o colgar: baja en 0,35 s, no en seco');
   }
   const src = fs.readFileSync(path.join(RAIZ, 'js', 'alma-voz.js'), 'utf8');
   ok(!/tool_ids/.test(src), 'la web no cambia la lista de herramientas (el tecleo se queda)');

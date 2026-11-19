@@ -11,7 +11,12 @@
    vez basta», y lo mismo con Maricarmen. Cambiar la muletilla no alcanzaba: «Hecho, quedó pedido», «Quedó pedido»… seguían
    repitiendo lo mismo. Si en las últimas respuestas ya se confirmó un pedido, la confirmación fija se dice corta y sin
    «quedó pedido» («También quedó.»; «Sumado a «X».»). Lo usan el chat, WhatsApp y la calle (Alma y Maricarmen, que pasan
-   por opProcesar_) y Claudio (claudio.js, por conversación). */
+   por opProcesar_) y Claudio (claudio.js, por conversación).
+   Cuarta parte (Juan, 19-nov-2026, pedido pc1795089818616): «evitar la duplicación o repetición de frases idénticas en las
+   respuestas de voz». La llamada (vozSecretaria_, voz.js) no pasaba por esta red: lo que el sistema le devuelve a la voz
+   salía tal cual. Ahora pasa por variarVoz_: una frase dicha dos veces en la misma respuesta se dice una vez (también si
+   la tarjeta de la llamada y la respuesta traen la misma), una frase ya dicha en las dos respuestas anteriores no se repite
+   si queda algo nuevo que decir, y después va variarFrase_ como en el chat. */
 var VARIAR_HECHO_ = ['listo', 'hecho', 'ya esta', 'ya quedo', 'perfecto', 'entregado', 'enviado', 'anotado', 'ok', 'okey', 'de acuerdo'];
 var VARIAR_ENTIENDO_ = ['entendido', 'claro', 'claro que si', 'entiendo', 'con gusto', 'vale'];
 var VARIAR_HALAGO_ = ['me halagas', 'que halago', 'me sonrojas', 'me haces sonrojar'];
@@ -92,4 +97,32 @@ function variarFrase_(texto, recientes) {
 function variarRecientes_(previos) {
   var corte = Date.now() - 6 * 3600000;
   return (previos || []).filter(function (m) { return m && m.de === 'alma' && new Date(m.ts).getTime() >= corte; }).map(function (m) { return m.texto; });
+}
+
+/* ── Voz (cuarta parte) ── */
+/* Parte un texto en frases (con su puntuación y el espacio de después), sin perder nada: unir las partes da el texto. */
+function variarFrases_(t) { return String(t || '').match(/[^.!?…\n]+(?:[.!?…]+[»")]*|(?=\n)|$)\s*|\n+/g) || []; }
+/* Clave de una frase para compararla: normalizada; vacía si es muy corta para contar como repetición («Sí.», «Listo.»). */
+function variarClaveFrase_(f) { var n = variarNorm_(f); return n.split(' ').length >= 3 ? n : ''; }
+/* La misma frase dos veces en una respuesta: queda la primera. */
+function variarSinRepetidas_(texto) {
+  var vistas = {}, out = '';
+  variarFrases_(texto).forEach(function (f) {
+    var k = variarClaveFrase_(f);
+    if (k && vistas[k]) return;
+    if (k) vistas[k] = 1;
+    out += f;
+  });
+  return out.replace(/\n{3,}/g, '\n\n').trim();
+}
+/* La respuesta por voz: sin frases repetidas dentro de ella ni frases ya dichas en las dos respuestas anteriores (si queda
+   una frase nueva de 3 palabras o más; si no, se queda: puede ser que pidió que se lo repitiera), y con variarFrase_. */
+function variarVoz_(texto, recientes) {
+  var t = variarSinRepetidas_(texto); if (!t) return String(texto || '');
+  var prev = (recientes || []).map(String).filter(function (x) { return x.trim(); }).slice(-2), dichas = {};
+  prev.forEach(function (p) { variarFrases_(p).forEach(function (f) { var k = variarClaveFrase_(f); if (k) dichas[k] = 1; }); });
+  var nuevas = variarFrases_(t).filter(function (f) { var k = variarClaveFrase_(f); return !k || !dichas[k]; });
+  var sinViejas = nuevas.join('').trim();
+  if (nuevas.some(variarClaveFrase_)) t = sinViejas.charAt(0).toUpperCase() + sinViejas.slice(1);   // queda una frase nueva de verdad
+  return variarFrase_(t, recientes);
 }

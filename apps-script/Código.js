@@ -3465,6 +3465,7 @@ function hubApi_(body) {
       case 'vivoPublicar': return json_(vivoPublicarApi_(ses, body));                     // modo compañero: el dispositivo de la llamada publica estado y subtítulos (vivo.js, #607)
       case 'vivoLeer': return json_(vivoLeerApi_(ses, body));                             // modo compañero: el otro dispositivo lee lo que pasa en la llamada (vivo.js)
       case 'vivoTelefono': return json_(vivoTelefonoApi_(ses, body));                     // una voz a la vez: el iPhone avisa que está activo (vivo.js)
+      case 'vivoColgar': return json_(vivoColgarApi_(ses, body));                         // modo compañero: «Terminar» en el compañero cuelga la llamada del otro dispositivo { conv } (vivo.js)
       case 'vozPantalla': return json_(vozPantallaApi_(ses, body));                       // app de iPhone: ¿Juan ve la pantalla? { conv_id, visible } (tarjeta.js)
       case 'setPrompt': return json_(hubSetPrompt_(body.clave, body.prompt, body.nota, body.meta));
       case 'mejoras': return json_(hubMejoras_());
@@ -5378,7 +5379,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   let conversar = false;
   if (canal === 'calle') { const cv = calleSacarConversar_(turno.texto); turno.texto = cv.texto; conversar = cv.conversar; }
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
-  try { resp = variarFrase_(resp, variarRecientes_(previos)); } catch (e) { console.error('variarFrase_: ' + e); }   // sin la misma muletilla dos veces seguidas (variar.js)
+  try { resp = canal === 'calle' ? variarVoz_(resp, variarRecientes_(previos)) : variarFrase_(resp, variarRecientes_(previos)); } catch (e) { console.error('variarFrase_: ' + e); }   // sin la misma muletilla dos veces seguidas; en la calle (voz), tampoco frases repetidas (variar.js)
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
   const alma = opGuardar_(adm, 'alma', canal, resp, hechas, turno.clas);
   if (canal === 'whatsapp' && adm.tels.length) waEnviar_(adm.wa || adm.tels[0], resp, { tema: turno.clas.tema || '' });

@@ -8,6 +8,7 @@
    5. Los subtítulos tapan lo que parece un código y se quedan los últimos 8.
    6. Las acciones vivoPublicar y vivoLeer están en el Hub y alma/inicio.html tiene el interruptor y el espejo.
    7. El Panel de Claudio (los trabajos en curso) también llega al compañero, en la llamada que ya sigue.
+   12. «Terminar» en el compañero cuelga la llamada del otro dispositivo (vivoColgar → «colgar» a la app).
    node .github/modo-companero.js [carpeta apps-script] */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const DIR = process.argv[2] || path.join(__dirname, '..', 'apps-script');
@@ -182,5 +183,31 @@ const J = { email: 'juan@spacioam.com' }, A = { email: 'ana@spacioam.com' };
   const h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
   ok(/class(Name)?[^\n]*comp-x|el\("button", "comp-x"\)/.test(h) && /C\.oculta = C\.conv; cerrar\(false\)/.test(h) && /r\.conv !== C\.oculta\) pintar\(r\)/.test(h), '12 · inicio.html: la capa siempre tiene ✕ para cerrarla (la próxima llamada sí sale)');
   ok(/!\(YO && r\.dispositivo === YO\)/.test(h), '12 · inicio.html: este dispositivo no se copia a sí mismo');
+}
+/* 13 · terminar desde el compañero (Juan, 19-nov-2026: «en el desktop no me está dejando terminar la llamada. Si por error
+   se activa, no puedo terminar la llamada manualmente») */
+{ const { X, cache, JUAN } = caja();
+  X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', dispositivo: 'iPhone', subs: [{ de: 'alma', t: 'Hola, Juan.' }] });
+  ok(!X.vivoPublicarApi_(J, { conv_id: 'conv-1', subs: [] }).colgar, '13 · sin «Terminar», la app no recibe «colgar»');
+  ok(X.vivoColgarApi_(A, { conv: 'conv-1' }).terminada === false && X.vivoLeerApi_(J, {}).en_llamada, '13 · otro administrador no termina la llamada de Juan');
+  ok(X.vivoColgarApi_(J, { conv: 'otra' }).terminada === false && X.vivoLeerApi_(J, {}).en_llamada, '13 · si ya empezó otra llamada, no se toca');
+  ok(X.vivoColgarApi_(null, {}).error === 'session', '13 · sin sesión, nada');
+  ok(X.vivoColgarApi_(J, { conv: 'conv-1' }).terminada === true, '13 · «Terminar» en el compañero');
+  let r = X.vivoLeerApi_(J, {});
+  ok(!r.en_llamada && r.estado === 'fin', '13 · el compañero la ve terminada al momento');
+  let p = X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'hablando', subs: [{ de: 'alma', t: 'Sigo aquí.' }] });
+  ok(p.colgar === true && !X.vivoLeerApi_(J, {}).en_llamada, '13 · la app que sigue hablando recibe «colgar» y la llamada sigue terminada');
+  p = X.vivoPublicarApi_(J, { conv_id: 'conv-1', estado: 'fin' });
+  ok(!p.colgar && !('vivo_colgar_' + X.vivoClave_(J.email) in cache), '13 · al colgar la app («fin»), el pedido se borra');
+  X.vivoInicio_(JUAN, 'conv-2');
+  ok(X.vivoLeerApi_(J, {}).en_llamada, '13 · la llamada siguiente se ve normal');
+  const cod = fs.readFileSync(path.join(DIR, 'Código.js'), 'utf8'), h = fs.readFileSync(path.join(__dirname, '..', 'alma', 'inicio.html'), 'utf8');
+  ok(/case 'vivoColgar': return json_\(vivoColgarApi_\(ses, body\)\)/.test(cod), '13 · la acción vivoColgar está en el Hub, con la sesión');
+  const m13 = /function llamadaAqui\(\) \{[^\n]*\}/.exec(h);
+  if (m13) {
+    const aqui = (vn) => new Function('document', 'AlmaVozAqui', m13[0] + '; return llamadaAqui();')({ querySelector: () => ({ classList: { contains: (c) => ['on', 'escena', 'quieta'].indexOf(c) >= 0 } }) }, () => vn);
+    ok(aqui(true) === true && aqui(false) === false, '13 · la llamada de la app aquí (empezó con el anillo o un roce, la roca quieta): la vista del compañero no la tapa');
+  }
+  ok(/el\("button", "comp-colgar"\)/.test(h) && /hub\("vivoColgar", \{ conv: conv \}\)/.test(h) && /r\.conv === C\.colgada\) vivo = false/.test(h), '13 · inicio.html: el botón «Terminar» del compañero y no se vuelve a abrir');
 }
 process.exit(fallo);

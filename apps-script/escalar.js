@@ -190,6 +190,7 @@ function escalarUnir_(e) {
       return 0;   // en la próxima pasada
     }
     if (pr.estado !== 'listo') return escalarNoUne_(e, adm, url, pr.estado === 'fallo' ? 'sus revisiones fallaron' : pr.estado === 'choque' ? 'choca con lo último de main' : 'todavía es un borrador');
+    if (/toca datos/i.test(String(pr.titulo || ''))) return escalarNoUne_(e, adm, url, 'toca datos: lo une Juan');   // Modo Creator «toca datos» (creator.js)
     var r = unirCambio_(url);   // lo mismo que unir_cambio
     if (!r || !(r.unidos || []).length) return escalarNoUne_(e, adm, url, String(((r && r.no_unidos || [])[0] || {}).error || (r && r.error) || 'GitHub no lo dejó unir').replace(/\.$/, ''));
     e.unidos.push(url); e.unido_t = Date.now(); escalarGuardar_(e);

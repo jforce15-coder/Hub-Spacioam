@@ -15,6 +15,10 @@
    (CALLE_COMANDO_PALABRAS_) se corta en la última frase entera. Los avisos hablados y los errores siguen con 20.
    Plazo duro (CALLE_PLAZO_, 15 s): si no alcanza, el agente lo sigue en segundo plano (retomar.js) y Alma dice
    «Sigo en eso; te aviso al terminar» (nunca «Listo»: todavía no está hecho).
+   LOS 15 S SON DE JUAN (guardia 20-nov-2026, Maricarmen: la voz de respaldo anotó 20.3 s y 17.7 s para oír «toma un rato»):
+   el plazo se cuenta desde que el pedido llega al Hub (PETICION_T0_, la primera línea de doPost), no desde calle_, y el
+   agente se corta CALLE_RESERVA_CORTE_ antes, porque dejarlo en segundo plano también tarda (guardarlo en la cola con su
+   disparador, el tema, la fila del chat). ms.tras_corte dice cuánto tardó eso.
    NUNCA EN SILENCIO (Juan, 4-nov-2026): la app espera la respuesta 25 s; si no llega, Alma dice «No me llegó la respuesta,
    ¿me lo repites?» y el porqué queda en el diagnóstico. Por eso el audio se deja de pedir a los 20 s (CALLE_AUDIO_PLAZO_).
    audio: la frase con la voz de Alma (ElevenLabs, eleven_flash_v2_5). Si ElevenLabs tarda, el audio igual se manda (ya se
@@ -70,7 +74,9 @@
    igual llega aquí (una app vieja), calleClaudio_ contesta sin la IA { claudio: true, conversar: true } en vez de volverla
    un pedido de desarrollo. Solo el administrador principal, igual que en la llamada; con los demás sigue como pedido. */
 
-var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms)
+var CALLE_PLAZO_ = 15000;          // el plazo duro de una frase (ms), desde que el pedido llegó al Hub
+var CALLE_RESERVA_CORTE_ = 3500;   // el agente se corta esto antes del plazo: pasar a segundo plano también tarda (cola, tema, chat)
+var PETICION_T0_ = 0;              // cuándo llegó el pedido a doPost (Código.js); 0 fuera de una petición
 var CALLE_AUDIO_PLAZO_ = 20000;    // con más de esto desde que llegó el pedido ya no se pide el audio (la app espera 25 s y dice «No me llegó la respuesta…»)
 var CALLE_VOZ_MAX_ = 400;          // calleVoz: lo más largo que se convierte en voz (caracteres)
 var CALLE_PALABRAS_ = 20;          // lo más largo que se dice al oído (avisos y errores)
@@ -97,7 +103,7 @@ var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audíf
 /* calle { texto, aviso_id?, puede_callar?, sin_audio?, persona?, alter? } (persona o alter "maricarmen" = el alter ego de voz: su nombre, identidad.js; su Weebo 3, maricarmen.js) → { ok, hablar, conversar, audio?, seguira?, claudio?, silencio?, vozMotivo?, vozPausa?, ms } */
 function calle_(ses, b) {
   b = b || {};
-  var t0 = Date.now();
+  var t0 = PETICION_T0_ && Date.now() - PETICION_T0_ < 60000 ? PETICION_T0_ : Date.now();   // desde que llegó al Hub: lo de doPost también cuenta
   var adm = chatSesAdm_(ses); if (!adm) return { ok: false, error: 'session' };
   var texto = String(b.texto || '').trim().slice(0, 2000);
   if (!texto) return { ok: false, error: 'falta el texto', hablar: 'No te escuché bien. ¿Me lo repites?', conversar: false };
@@ -117,7 +123,7 @@ function calle_(ses, b) {
     if (!jz.es) { ms.via = 'juez del aviso'; ms.motivo = 'no respondía al aviso: ' + jz.por; return { ok: true, hablar: '', conversar: false, silencio: true, por: jz.por, ms: calleMs_(t0, tA, ms, 0) }; }
   }
   if (!out) {
-    AGENTE_PLAZO_ = t0 + CALLE_PLAZO_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
+    AGENTE_PLAZO_ = t0 + CALLE_PLAZO_ - CALLE_RESERVA_CORTE_; AGENTE_PEDIDO_ = texto; AGENTE_APP_ = true;   // viene de la app de Alma
     if (!b.persona && b.alter) b.persona = b.alter;   // la app de Alma manda alter: "maricarmen" (alma-app #109); persona, la de #671
     AGENTE_PLAZO_PRIMERA_ = true; AGENTE_RAPIDO_ = true; AG_MS_ = ms; IDENTIDAD_VOZ_ = typeof identidadVozDe_ === 'function' ? identidadVozDe_(b.persona, adm) : '';   // Maricarmen: su nombre solo en la voz (identidad.js); el plazo también antes de la primera vuelta; el camino rápido de la voz (rapido.js)
     WEEBO_ALTER_ = maricarmenAlter_({ alter: b.persona }, esAdminPrincipal_(adm));   // Maricarmen (maricarmen.js): el alter ego de Alma, Weebo 3
@@ -149,6 +155,7 @@ function calleMs_(t0, tA, ms, voz) {
   if (ms) {
     o.ia = ms.ia || 0; o.vueltas = ms.n || 0; o.herr = ms.herr || 0; o.resto = Math.max(0, o.agente - o.ia - o.herr);   // resto: hojas, Epi y lo demás
     if (ms.via) o.via = String(ms.via); if (ms.motivo) o.motivo = String(ms.motivo).slice(0, 80);
+    if (ms.corte) o.tras_corte = Math.max(0, Date.now() - ms.corte - voz);   // pasar a segundo plano: lo que tardó después del corte
   }
   try { console.log('calle ms ' + JSON.stringify(o)); } catch (e) {}
   return o;

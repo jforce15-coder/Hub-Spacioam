@@ -43,10 +43,9 @@ function libroMontos_(o) {
   var ks = Object.keys(o || {}).filter(function (k) { return libroRedondo_(o[k]); }).sort(function (a, b) { return a === 'USD' ? -1 : b === 'USD' ? 1 : a < b ? -1 : 1; });
   return ks.length ? ks.map(function (k) { return libroDinero_(o[k], k); }).join(' + ') : '0';
 }
-function libroMesDe_(v) {
-  if (v instanceof Date) return Utilities.formatDate(v, CFG.TZ, 'yyyy-MM');
-  var m = String(v || '').match(/^(\d{4})-(\d{2})/); return m ? m[1] + '-' + m[2] : '';
-}
+/* La hoja vuelve «2026-10-01» una fecha a medianoche en SU zona (no la del Hub): con la zona del Hub caía en septiembre
+   (20-nov-2026, primera importación: octubre salía vacío). rmesClaveMes_ (reportemes.js) le suma 12 h y lee también texto. */
+function libroMesDe_(v) { return rmesClaveMes_(v); }
 
 /* Las filas del libro como objetos (columnas de LIBRO_CAB_). */
 function libroFilas_() {

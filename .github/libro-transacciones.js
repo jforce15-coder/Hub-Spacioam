@@ -112,6 +112,9 @@ const MI = [
   ok(r.ok && r.meses.length === 1 && m.real === 'USD 900.00' && m.habria_ganado === 'USD 40.00', '4 · octubre: real USD 900 (fee) y habría ganado USD 40 (10 % de 100 + 300)');
   ok(m.por_tipo.gestion.real === 'USD 900.00' && m.por_tipo.margen.habria_ganado === 'USD 40.00' && m.por_propiedad[0].propiedad === 'Z2 - Ensayo - 202', '4 · por tipo y por propiedad (la de más comisión primero)');
   ok(/con 10 % de margen supuesto/.test(r.supuesto) && /10 % de margen supuesto/.test(r.decir) && /nunca como dinero que ya entró/.test(r.nota), '4 · el resumen dice el supuesto del margen');
+  const iOct = c.hojas.ALMA_TRANSACCIONES.filas.findIndex(f => f[0] === 'mi:z2ensayo202:2026-10:fee');
+  c.hojas.ALMA_TRANSACCIONES.filas[iOct][1] = new Date('2026-10-01T00:00:00+01:00');   // la hoja la vuelve fecha a medianoche en su zona (otra que la del Hub)
+  ok(c.ctx.libroParaAlma_(JUAN, { accion: 'resumen', mes: '2026-10' }).meses[0].real === 'USD 900.00', '4 · una fecha que la hoja volvió Date en otra zona sigue en su mes (octubre no cae en septiembre)');
   const r2 = c.ctx.libroParaAlma_(JUAN, { accion: 'resumen' });
   ok(r2.ok && r2.meses[0].clave === '2026-11' && r2.meses[0].habria_ganado === 'GTQ 30.00' && r2.meses.length === 3, '4 · sin mes: los últimos meses con datos (noviembre trae lo anotado en GTQ)');
   ok(c.lecturasMi.n === lecturas, '4 · el resumen solo lee el libro: nunca abre Mi');

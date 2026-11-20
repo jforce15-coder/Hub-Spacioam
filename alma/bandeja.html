@@ -73,7 +73,7 @@
   .seg { display: flex; background: #F3F0EC; border-radius: 10px; padding: 3px; }
   .seg button { flex: 1; border: 0; background: transparent; padding: 7px 0; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--tenue); cursor: pointer; min-height: 34px; }
   .seg button.on { background: #fff; color: var(--tinta); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-  .chips { display: none; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .chips { display: none; gap: 6px; flex-wrap: wrap; }   /* en varias líneas: en el iPad vertical no cabían y la conversación tapaba Proveedores, Prospectos y Otros (#901) */
   .chips button { border: 0; flex: none; min-height: 32px; }
   .chips button.on { background: #1F1F1F; color: #fff; }
   .filas { flex: 1; overflow-y: auto; }
@@ -289,6 +289,10 @@
       if (!r || !r.ok) { if (!silencio) { $("filas").innerHTML = ""; $("filas").appendChild(el("div", "vacio", (r && r.error) || "No pude cargar la bandeja.")); $("cuerpo").innerHTML = ""; $("cuerpo").appendChild(el("div", "vacio", (r && r.error) || "No pude cargar la bandeja.")); } return; }
       D = r; D.personas = (Array.isArray(r.personas) ? r.personas : []).filter(Boolean);
       D.personas.forEach(function (p) { if (!Array.isArray(p.convs)) p.convs = []; if (!Array.isArray(p.canales)) p.canales = []; });
+      /* El resumen del día puede no venir (respuesta vieja, incompleta o de prueba): lo que falta se cuenta de las personas, nunca undefined (#901). */
+      var rs = r.resumen && typeof r.resumen === "object" ? r.resumen : {}, en = function (k) { return D.personas.filter(function (p) { return p.carril === k; }).length; }, num = function (v, o) { return typeof v === "number" && v >= 0 ? v : o; };
+      D.resumen = { personas_hoy: num(rs.personas_hoy, 0), canales_hoy: Array.isArray(rs.canales_hoy) ? rs.canales_hoy : [], respondio_alma: num(rs.respondio_alma, 0),
+        te_tocan: num(rs.te_tocan, en("toca")), alma_lleva: num(rs.alma_lleva, en("alma")), esperando: num(rs.esperando, en("espera")), listo: num(rs.listo, en("listo")) };
       if (sel) { var s2 = D.personas.filter(function (p) { return p.id === sel.id || p.convs.some(function (c) { return sel.convs.some(function (x) { return x.conv_id === c.conv_id; }); }); })[0]; if (s2) sel = s2; }
       pintar();
     }, function () { if (!silencio) aviso("Sin conexión"); });

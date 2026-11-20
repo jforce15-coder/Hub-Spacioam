@@ -422,7 +422,7 @@
   if (window.SANav && SANav.roca) { SANav.roca(document.querySelector(".conexion .orbe"), { d: 150 }); SANav.roca($("esfera"), { d: 150 }); }
   var CAPS = Array.prototype.slice.call(document.querySelectorAll(".cap"));
 
-  /* ── Quién es (por ahora solo el administrador principal) ── */
+  /* ── Quién es (solo el administrador principal) ── */
   function sesion() {
     try { var s = window.SAAuth && SAAuth.session ? SAAuth.session() : null; if (!s) return null;
       var c = s.slice(0, s.lastIndexOf(".")).replace(/-/g, "+").replace(/_/g, "/");

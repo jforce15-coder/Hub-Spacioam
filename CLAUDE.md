@@ -44,6 +44,12 @@ Peligros al unir · Cómo probarlo. Los bots de prueba corren solos después de 
 ## 8. Retro: lo que se repite se vuelve regla
 Cuando Juan corrige lo mismo dos veces, o algo falló después de unir, agrégalo a ESTANDARES.md. **Si una máquina puede
 detectarlo, conviértelo en un check** (`.github/workflows/estandares.yml`), no en una nota.
+**Ante cada corrección de Juan, baja por la pirámide** ([docs/PIRAMIDE.md](docs/PIRAMIDE.md)) y quédate en el primer
+escalón que alcance: 1) **diseño**: que el error no se pueda escribir (una sola función, la herramienta que se niega);
+2) **revisión automática**: una regla en `.github/correcciones.js` o un paso de `estandares.yml` cuyo mensaje diga qué
+hacer en su lugar, y borra las copias viejas del mal patrón; 3) **verificación**: la función en
+`docs/mapa-funciones.json` para que los bots la prueben corriendo la página; 4) **prosa** (ESTANDARES.md, este archivo,
+el prompt de Alma) solo si nada de lo anterior alcanza; 5) Juan. Ningún comentario justifica un parche.
 
 ## 9. Pedirle algo a Alma desde una sesión de Claude
 Para que Alma haga algo de parte de Juan (programar un WhatsApp, escribirle al equipo, revisar un dato): abre un issue en

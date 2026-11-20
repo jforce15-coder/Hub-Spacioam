@@ -5,7 +5,7 @@
  * Este es el ÚNICO punto por el que las 4 apps hablan con la hoja.
  * Pégalo en el Apps Script de la hoja «Control de usuarios» y publícalo
  * como App Web:  Implementar › Nueva implementación › App web
- *   · Ejecutar como: **yo (jforce15@gmail.com)**
+ *   · Ejecutar como: **yo (la cuenta del administrador principal)**
  *   · Con acceso a:  Cualquier usuario
  * Copia la URL /exec resultante: es SA_AUTH_URL para las apps.
  *

@@ -4540,7 +4540,7 @@ function waCfg_() {
     equipo: String(p.getProperty('WA_EQUIPO') || '').split(/[,;]+/).concat([String(CFG.WHATSAPP_JUAN || '')], telefonosEquipo_()).map(normTel_).filter(Boolean) };
 }
 const fin8_ = x => String(x || '').replace(/\D/g, '').slice(-8);
-/* Normaliza cualquier formato a internacional sin "+": "+502 4080 1694", "33196383", "(502) 5116-2847",
+/* Normaliza cualquier formato a internacional sin "+": "+502 5555 1694", "55550383", "(502) 5555-2847",
    "00502…", "5.0255E+10", o varios en una celda ("5551 2345 / 4444 1234"). 8 dígitos = Guatemala → 502 delante. */
 function normTel_(x) {
   let s = String(x == null ? '' : x).trim(); if (!s) return '';

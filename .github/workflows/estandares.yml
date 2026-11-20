@@ -38,6 +38,20 @@ jobs:
           done
           exit $fallo
 
+      - name: Correcciones de Juan que una máquina ve (llaves, datos personales, comentarios-excusa, setTimeout por parpadeo, glosario, «Eres Alma» a mano, modismos, fechas del Hub y commits sin backticks ni modelos)
+        # 20-nov-2026 (docs/PIRAMIDE.md): cada corrección que se puede ver sola es una regla que falla y dice qué hacer en
+        # su lugar. Mira solo lo que agrega el PR; las copias viejas se limpiaron o están anotadas en docs/PIRAMIDE.md.
+        run: |
+          git fetch -q origin "$BASE"
+          node .github/correcciones.js
+          node .github/correcciones.js --prueba
+
+      - name: El título y el cuerpo del PR no nombran identificadores de modelo
+        run: CUERPO="$CUERPO" TITULO="$TITULO" node .github/correcciones.js --pr
+
+      - name: Mapa de funciones al día (sus páginas, los id que buscan los bots y las revisiones que nombra)
+        run: node .github/mapa-funciones.js .
+
       - name: Una sola roca por pantalla, siempre la misma y con su pulso (sa-nav.js la dibuja; nadie pinta otra)
         # 16-nov-2026: Juan vio rocas distintas en Health y al probar el modo anillo, y pulsos que chocaban con las órbitas.
         run: node .github/una-roca.js .

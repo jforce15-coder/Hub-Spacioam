@@ -11,6 +11,12 @@
    Uso:  node bots.mjs                     prueba esta copia del repositorio (antes de unir un PR)
          node bots.mjs --vivo              prueba hub.spacioam.com ya publicado (después de unir), igual sin registros
          node bots.mjs --paginas alma/inicio.html,alma/correos.html
+         node bots.mjs --mapa              solo recorre el mapa de funciones (docs/mapa-funciones.json)
+   Además de los usuarios ficticios, recorren el MAPA DE FUNCIONES: por cada función que Juan usa, abren su página y
+   comprueban que se ve lo que debe verse (y, si dice «tocar», que al tocar aparece lo de «luego»). Lo que falta va al
+   informe como «Función del mapa que no se ve».
+   Sin acceso a unpkg/jsdelivr (una sesión con red cerrada): CDN_LOCAL=<carpeta node_modules con react, react-dom…>
+   sirve esas librerías desde ahí. CHROMIUM_PATH=<chromium> usa otro navegador.
    Deja: salida/informe.md (para el PR o el aviso), salida/informe.json y capturas de lo que falló. */
 import { chromium, devices } from 'playwright';
 import fs from 'node:fs';
@@ -23,6 +29,9 @@ const SALIDA = path.join(RAIZ, 'pruebas', 'salida');
 const ARG = process.argv.slice(2);
 const VIVO = ARG.includes('--vivo');
 const SOLO = (ARG[ARG.indexOf('--paginas') + 1] || '').split(',').filter((x) => ARG.includes('--paginas') && x);
+const SOLO_MAPA = ARG.includes('--mapa');
+const MAPA = JSON.parse(fs.readFileSync(path.join(RAIZ, 'docs', 'mapa-funciones.json'), 'utf8')).funciones.filter((f) => f.bot && (!SOLO.length || SOLO.includes(f.bot.pagina)));
+const CDN_LOCAL = process.env.CDN_LOCAL || '';
 
 /* Las páginas: todas las .html del repositorio menos el sistema de diseño, herramientas y redirecciones. */
 const FUERA = /^(ds|tools|assets|login|correo-puente|pruebas|apps-script)\/|^(design-system|claude|diagnostico)\.html$|alma\/google\.html$/;
@@ -137,16 +146,11 @@ async function revisar(page, tapados) {
 }
 
 /* ── Un bot en una página ── */
-async function probar(browser, base, pag, bot) {
-  let sinRed = false;   // Carla apaga el internet a propósito: lo que no descarga después no es un error de la página
-  const hallazgos = [], anota = (nivel, que, detalle) => {
-    if (sinRed && /Imágenes rotas|Archivo que no carga|Error en la consola/.test(que)) return;
-    hallazgos.push({ pagina: pag, bot: bot.nombre, nivel, que, detalle: String(detalle || '').slice(0, 300) });
-  };
+async function contexto(browser, bot, conSesion) {
   const ctx = await browser.newContext({ ...bot.disp, locale: 'es-GT', timezoneId: 'America/Guatemala', serviceWorkers: 'block' });
   // la sesión ficticia (el «login» lo contesta el servidor falso)
   const ses = Buffer.from(JSON.stringify({ e: PERFIL.email, n: PERFIL.nombre, p: PERFIL, exp: Date.now() + 864e5 })).toString('base64url') + '.firma-de-prueba';
-  await ctx.addInitScript((s) => { try { localStorage.setItem('sa_auth', s); } catch (e) {} }, ses);
+  if (conSesion) await ctx.addInitScript((s) => { try { localStorage.setItem('sa_auth', s); } catch (e) {} }, ses);
   let n = 0;
   await ctx.route('**/*', async (route) => {
     const q = route.request(), u = q.url(), m = q.method();
@@ -161,10 +165,22 @@ async function probar(browser, base, pag, bot) {
       if (!f.startsWith(RAIZ) || !fs.existsSync(f)) return route.fulfill({ status: 404, body: 'no existe' });
       return route.fulfill({ status: 200, contentType: TIPOS[path.extname(f)] || 'application/octet-stream', body: fs.readFileSync(f) });
     }
+    const cdn = CDN_LOCAL && u.match(/^https:\/\/(?:unpkg\.com|cdn\.jsdelivr\.net\/npm)\/((?:@[^/]+\/)?[^@/]+)@[^/]+\/([^?#]*)/);
+    if (cdn && fs.existsSync(path.join(CDN_LOCAL, cdn[1], cdn[2]))) return route.fulfill({ status: 200, contentType: 'text/javascript', body: fs.readFileSync(path.join(CDN_LOCAL, cdn[1], cdn[2])) });
     if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS') return route.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true,"prueba":true}' });   // ninguna escritura sale
     if (/onesignal|firebase|googletagmanager|google-analytics|facebook|hotjar/.test(u)) return route.abort();
     return route.continue();
   });
+  return ctx;
+}
+
+async function probar(browser, base, pag, bot) {
+  let sinRed = false;   // Carla apaga el internet a propósito: lo que no descarga después no es un error de la página
+  const hallazgos = [], anota = (nivel, que, detalle) => {
+    if (sinRed && /Imágenes rotas|Archivo que no carga|Error en la consola/.test(que)) return;
+    hallazgos.push({ pagina: pag, bot: bot.nombre, nivel, que, detalle: String(detalle || '').slice(0, 300) });
+  };
+  const ctx = await contexto(browser, bot, true);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => anota('grave', 'Error de JavaScript', e.message));
   /* Lo que no cuenta: el servidor falso que falla a propósito, la página de login de Google (respaldo sin sesión), y
@@ -213,12 +229,41 @@ async function probar(browser, base, pag, bot) {
   return hallazgos;
 }
 
+/* ── El mapa de funciones: cada función que Juan usa, comprobada en su página ── */
+const MAPA_DISP = { telefono: { id: 'mapa', nombre: 'Mapa · iPhone', disp: devices['iPhone 13'], estilo: 'normal' }, computadora: { id: 'mapa', nombre: 'Mapa · computadora', disp: { viewport: { width: 1280, height: 800 } }, estilo: 'normal' } };
+async function recorrerFuncion(browser, base, f) {
+  const b = f.bot, bot = MAPA_DISP[b.ancho || 'telefono'], falta = [];
+  const ctx = await contexto(browser, bot, !b.sin_sesion);
+  const page = await ctx.newPage();
+  const verse = async (sel) => { try { await page.locator(sel).first().waitFor({ state: 'visible', timeout: 5000 }); return true; } catch (e) { return false; } };
+  try {
+    await page.goto((VIVO ? 'https://hub.spacioam.com/' : base) + b.pagina, { waitUntil: 'load', timeout: 25000 });
+    await page.waitForTimeout(1200);
+    for (const s of b.ver || []) if (!(await verse(s))) falta.push('no se ve ' + s);
+    if (b.texto) { const t = await page.evaluate(() => document.body ? document.body.innerText : '').catch(() => ''); if (t.toLowerCase().indexOf(b.texto.toLowerCase()) < 0) falta.push('no dice «' + b.texto + '»'); }
+    if (b.tocar && !falta.length) {
+      try { await page.locator(b.tocar).first().click({ timeout: 4000 }); await page.waitForTimeout(600); for (const s of b.luego || []) if (!(await verse(s))) falta.push('al tocar ' + b.tocar + ' no aparece ' + s); }
+      catch (e) { falta.push('no se puede tocar ' + b.tocar); }
+    }
+  } catch (e) { falta.push('la página no carga (' + e.message.split('\n')[0].slice(0, 80) + ')'); }
+  let foto = '';
+  if (falta.length) { try { foto = 'mapa-' + f.id + '.png'; await page.screenshot({ path: path.join(SALIDA, foto) }); } catch (e) { foto = ''; } }
+  await ctx.close();
+  return { id: f.id, funcion: f.funcion, pagina: b.pagina, ok: !falta.length, falta, foto };
+}
+
 /* ── Todo ── */
 fs.rmSync(SALIDA, { recursive: true, force: true }); fs.mkdirSync(SALIDA, { recursive: true });
 const srv = VIVO ? null : await servir();
 const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 const lista = paginas(), todos = [];
-for (const pag of lista) for (const bot of BOTS) { process.stdout.write('· ' + pag + ' — ' + bot.nombre + '\n'); todos.push(...await probar(browser, srv ? srv.base : '', pag, bot)); }
+if (!SOLO_MAPA) for (const pag of lista) for (const bot of BOTS) { process.stdout.write('· ' + pag + ' — ' + bot.nombre + '\n'); todos.push(...await probar(browser, srv ? srv.base : '', pag, bot)); }
+const mapa = [];
+for (const f of MAPA) {
+  process.stdout.write('· mapa — ' + f.funcion + '\n');
+  const r = await recorrerFuncion(browser, srv ? srv.base : '', f); mapa.push(r);
+  if (!r.ok) todos.push({ pagina: r.pagina, bot: 'Mapa de funciones', nivel: 'media', que: 'Función del mapa que no se ve: ' + r.funcion, detalle: r.falta.join(' · ') + (r.foto ? ' — ' + r.foto : '') });
+}
 await browser.close(); if (srv) srv.s.close();
 
 /* El mismo problema visto por varios bots se cuenta una vez (con quiénes lo vieron). */
@@ -228,7 +273,8 @@ const L = Object.values(unidos).sort((a, b) => ['grave', 'media', 'leve'].indexO
 const cuenta = (n) => L.filter((h) => h.nivel === n).length;
 const icono = { grave: '🔴', media: '🟠', leve: '🟡' };
 let md = '## 🤖 Bots de prueba · ' + (VIVO ? 'hub.spacioam.com publicado' : 'esta versión') + '\n\n' +
-  lista.length + ' páginas × ' + BOTS.length + ' usuarios ficticios (' + BOTS.map((b) => b.nombre).join(' · ') + '). Sin registros: todo lo que iba al servidor se contestó con datos de prueba.\n\n' +
+  (SOLO_MAPA ? '' : lista.length + ' páginas × ' + BOTS.length + ' usuarios ficticios (' + BOTS.map((b) => b.nombre).join(' · ') + '). ') + 'Sin registros: todo lo que iba al servidor se contestó con datos de prueba.\n\n' +
+  '**Mapa de funciones** (docs/mapa-funciones.json): ' + mapa.filter((r) => r.ok).length + ' de ' + mapa.length + ' funciones se ven' + (mapa.some((r) => !r.ok) ? ' · faltan: ' + mapa.filter((r) => !r.ok).map((r) => r.funcion).join(', ') : ' ✅') + '\n\n' +
   '**' + cuenta('grave') + ' graves · ' + cuenta('media') + ' medios · ' + cuenta('leve') + ' leves**\n\n';
 if (!L.length) md += 'Todo bien: ningún bot encontró problemas. ✅\n';
 for (const nivel of ['grave', 'media', 'leve']) {
@@ -239,5 +285,5 @@ for (const nivel of ['grave', 'media', 'leve']) {
   md += '\n';
 }
 fs.writeFileSync(path.join(SALIDA, 'informe.md'), md);
-fs.writeFileSync(path.join(SALIDA, 'informe.json'), JSON.stringify({ vivo: VIVO, paginas: lista, graves: cuenta('grave'), medios: cuenta('media'), leves: cuenta('leve'), hallazgos: L }, null, 1));
+fs.writeFileSync(path.join(SALIDA, 'informe.json'), JSON.stringify({ vivo: VIVO, paginas: SOLO_MAPA ? [] : lista, mapa, graves: cuenta('grave'), medios: cuenta('media'), leves: cuenta('leve'), hallazgos: L }, null, 1));
 console.log('\n' + md);

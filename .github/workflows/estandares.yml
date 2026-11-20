@@ -367,6 +367,12 @@ jobs:
       - name: Libro de transacciones, sus columnas, anotar con el margen supuesto, Mi sin duplicar y solo el principal (dobles)
         # 20-nov-2026: Juan dijo «Arranca el libro» (#935 T1, Alma orquestadora): anota y mide la Comisión de Alma, sin dinero real.
         run: node .github/libro-transacciones.js apps-script
+      - name: Escritura clara, marca frase larga, pasiva y palabra Evitar, lo claro pasa sin tocar, la reescritura que pierde un dato se descarta y la voz no pasa (dobles)
+        # 20-nov-2026: Juan pidió el truco del video de Andrej Karpathy (ASD-STE100 al 80 % en lo que Alma escribe), sin tocar los prompts.
+        run: node .github/escritura-clara.js apps-script
+      - name: Página explicativa, solo administradores, token de una vez, vence a los 7 días, tope diario y HTML sin scripts de fuera (dobles)
+        # 20-nov-2026: Juan pidió «Explícamelo en una página» (diagrama o calculadora por enlace), truco del mismo video.
+        run: node .github/pagina-explicativa.js apps-script
       - name: Tocar un anillo o su notificación manda su id, va a su tema con el estado ya cargado y una pregunta de estado no va a Claude (dobles)
         # 16-nov: el toque del anillo «Cupos Google» mandaba solo el texto y el tema se adivinaba; tres nombres para lo mismo (#583 T1).
         run: node .github/orbita-tema.js apps-script

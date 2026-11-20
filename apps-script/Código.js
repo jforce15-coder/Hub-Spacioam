@@ -744,6 +744,7 @@ function doGet(e) {
   const q = (e && e.parameter) || {};
   if (q.state && (q.code || q.error)) return spotifyVuelta_(q);   // Spotify vuelve después de autorizar (musica.js)
   if (q.enlace) { cupoCanal_('Otros'); return json_(enlacePublico_(q.enlace)); }   // enlace corto (pública, enlaces.js)
+  if (q.pagina) { cupoCanal_('Otros'); return json_(pagVerToken_(q.pagina, q.t)); }   // página explicativa con el token del enlace, una vez (paginaexplicativa.js)
   if (q['hub.mode'] === 'subscribe') {
     const v = PropertiesService.getScriptProperties().getProperty('WA_VERIFY_TOKEN') || 'spacioam-alma';
     return ContentService.createTextOutput(q['hub.verify_token'] === v ? String(q['hub.challenge'] || '') : 'token incorrecto');
@@ -822,6 +823,7 @@ function procesarCola() {
   cupoFuncion_('avisoWaRespaldo_'); try { avisoWaRespaldo_(); } catch (e) { console.error('avisoWaRespaldo_: ' + e); }   // notificación que la app no recogió en 10 min → WhatsApp al principal (avisowa.js); Juan espera: no se pausa
   cupoFuncion_('vigProcesar_'); try { vigProcesar_(); } catch (e) { console.error('vigProcesar_: ' + e); }   // vigilancias: solo código, sin IA; lo que va a internet cuida el cupo adentro (vigilancias.js)   // opciones A/B/C de los casos que esperan al equipo (decisiones.js); de huéspedes: nunca se pausa
   cupoFuncion_('pubSoloRevisar_'); try { pubSoloRevisar_(false); } catch (e) { console.error('pubSoloRevisar_: ' + e); }   // unir = publicar: cada 30 min (CUPO_PUBLICAR_MIN) y en una sola llamada, si cambió el código de una app en main, pide el Traslado (publicarsolo.js); no se pausa
+  cupoFuncion_('pagProcesar_'); try { pagProcesar_(); } catch (e) { console.error('pagProcesar_: ' + e); }   // páginas explicativas pendientes (respaldo del disparador; solo lee una propiedad si no hay; paginaexplicativa.js)
   cupoFuncion_('buzonRevisar_'); try { buzonRevisar_(false); } catch (e) { console.error('buzonRevisar_: ' + e); }   // correo a Claudio: cada 5 min, lo que Juan manda a alma@ entra a la Biblioteca de Claudio (buzon.js); sin IA
   /* Lo de fondo (sincronizaciones y mejoras): se pausa con el cupo de Google en 60 % o más (cupo.js). */
   if (cupoPermite_('fondo')) {
@@ -1069,6 +1071,7 @@ function procesarTurno_(sh, grupo, ctrl, ahora) {
     marcarTodos('silencio', 'nada nuevo que agregar');
     return log_(ctx, '', 'sin respuesta: nada nuevo que agregar');
   }
+  if (red.ok && red.texto) { try { red.texto = escrituraClara_(red.texto, { canal: 'huesped' }); } catch (e) { console.error('escrituraClara_ huésped: ' + e); } }   // ya pasó el control de calidad; conserva datos o sale el original (escrituraclara.js)
   const borrador = red.texto;
   if (!borrador) return reintentar_(sh, lider, 'redactor sin respuesta');
   if (red.problema) ctx.razon += ' · QA: ' + red.problema;
@@ -2261,7 +2264,8 @@ const FUNC_IA_ = { clasificar_: 'Clasificar mensajes', routerWA_: 'WhatsApp · d
   hubRedactar_: 'Hub · redactar y mejorar', mejoraSinContexto_: 'Hub · redactar y mejorar', hubAjustarBorrador_: 'Hub · ajustar borrador', hubProponerMejora_: 'Mejoras · propuesta', hubMejoraVerificar_: 'Mejoras · verificar',
   opProcesar_: 'Chat operativo', hubReviewHuesped_: 'Reviews · al huésped', hubGuestReview_: 'Reviews · al huésped', hubRespuestaReview_: 'Reviews · responder', hubApelacion_: 'Reviews · apelación', decisionGenerar_: 'Decisión del equipo · opciones',
   fuentesLeerTexto_: 'Respuesta con fuentes · lo escrito', fuentesVer_: 'Respuesta con fuentes · fotos',
-  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos', jvLectura_: 'Tablero · cómo va el huésped', vvResumir_: 'Ver video · resumen' };
+  viajeExtraer_: 'Viajes · leer el itinerario', correoAdjuntoVer_: 'Correo · leer adjuntos', jvLectura_: 'Tablero · cómo va el huésped', vvResumir_: 'Ver video · resumen',
+  ecReescribir_: 'Escritura clara · reescribir', pagGenerar_: 'Página explicativa' };
 function funcionIA_() {
   const nombres = String(new Error().stack || '').split('\n').map(l => (l.match(/at ([\w$.]+) /) || [])[1]).filter(n => n && !/^(claude_|funcionIA_|registrarUso_|Error)$/.test(n));
   for (let i = 0; i < nombres.length; i++) if (FUNC_IA_[nombres[i]]) return FUNC_IA_[nombres[i]];
@@ -3225,7 +3229,8 @@ function aprender() {
   try { cerebroAsegurarActivador_(); } catch (e) { console.error('cerebroAsegurarActivador_: ' + e); }   // cerebro de Alma: activador de 15 min, solo si está configurado (cerebro.js)
   try { cerebroPruebaSiToca_(); } catch (e) { console.error('cerebroPruebaSiToca_: ' + e); }
   try { gastoParetoSiToca_(); } catch (e) { console.error('gastoParetoSiToca_: ' + e); }   // equipo de ahorro Pareto 80/20: cada lunes desde las 9 (gasto.js)   // la prueba del cerebro: cada lunes desde las 7 (cerebro_prueba.js)
-  try { libroImportarSiToca_(); } catch (e) { console.error('libroImportarSiToca_: ' + e); }   // Libro de transacciones: lo de Mi, una vez al mes desde el 11 (libro.js)
+  try { libroImportarSiToca_(); } catch (e) { console.error('libroImportarSiToca_: ' + e); }
+  try { pagLimpiar_(); } catch (e) { console.error('pagLimpiar_: ' + e); }   // páginas explicativas: se borran a los 7 días (paginaexplicativa.js)   // Libro de transacciones: lo de Mi, una vez al mes desde el 11 (libro.js)
   try { rutinaHora_(); } catch (e) { console.error('rutinaHora_: ' + e); }   // pendientes y promesas sin humano: resolver sola al menos el 60 % (rutinahora.js, #545)
   try { fotosGoogleRepasar_(); } catch (e) { console.error('fotosGoogleRepasar_: ' + e); }   // la foto del contacto desde los Contactos de Google de Juan (fotoscontacto.js, #567 T4)
   if (!automejoraOn_()) return;
@@ -3414,6 +3419,7 @@ function hubApi_(body) {
   try {
     switch (body.action) {
       case 'acortar': return json_(enlaceAcortarApi_(ses, body.url));                       // enlace corto hub.spacioam.com/<código>, solo con sesión (enlaces.js)
+      case 'paginaVer': return json_(pagVerApi_(ses, body));                               // página explicativa: solo administradores, hasta que venza (paginaexplicativa.js · alma/pagina.html)
       case 'gasto': return json_(gastoApi_(ses, body));                                    // Ajustes → Gasto de Alma: el mes, los proveedores y el equipo de ahorro, solo el principal (gasto.js · alma/gasto.html)
       case 'gastoPlanFijar': return json_(gastoPlanFijarApi_(ses, body));                  // { prov, nombre, tipo, usd, … } o { quitar } → la tabla de planes (propiedad GASTO_PLANES, nunca el repo)
       case 'uso': return json_(cupoUso_(ses));                                             // Ajustes → Uso: cupo de Google e IA, solo el principal (cupo.js · alma/uso.html)
@@ -5446,6 +5452,7 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   /* Modo calle: la etiqueta [[conversar]] (hace falta hablarlo) sale del texto antes de guardarlo. */
   let conversar = false;
   if (canal === 'calle') { const cv = calleSacarConversar_(turno.texto); turno.texto = cv.texto; conversar = cv.conversar; }
+  else if (turno.texto) { try { turno.texto = escrituraClara_(turno.texto, { canal: canal }); } catch (e) { console.error('escrituraClara_: ' + e); } }   // al 80 % de ASD-STE100, sin la voz (escrituraclara.js)
   let resp = formatearMensaje_(turno.texto || (hechas.length ? 'Listo.' : 'Entendido.'));
   try { resp = canal === 'calle' ? variarVoz_(resp, variarRecientes_(previos)) : variarFrase_(resp, variarRecientes_(previos)); } catch (e) { console.error('variarFrase_: ' + e); }   // sin la misma muletilla dos veces seguidas; en la calle (voz), tampoco frases repetidas (variar.js)
   const fallidas = hechas.filter(a => a.error); if (fallidas.length) resp += '\n\n' + fallidas.map(a => 'No se pudo: ' + a.resumen + ' (' + a.error + ')').join('\n');
@@ -5686,6 +5693,8 @@ function dsBotApi_(body) {
       case 'voz_estado': return json_(vozEstado_());
       case 'libro_resumen': return json_(libroResumen_(agPrincipal_(), body));   // Libro de transacciones, solo lee (libro.js)
       case 'libro_importar': return json_(libroImportarMi_());   // del reporte del mes de Mi, sin duplicar (libro.js)
+      case 'escritura_clara': return json_(escrituraClaraRobot_(body));   // la cuenta del día o la prueba de un texto, sin mandar nada (escrituraclara.js)
+      case 'pagina_explicativa': return json_(pagRobot_(body));   // crear con datos de prueba, estado, HTML o borrar (paginaexplicativa.js)
       case 'gasto': return json_(gastoReporte_(body.mes, body.fresco || false));   // el reporte de gasto (gasto.js)
       case 'gasto_planes': return json_(body.planes ? (gastoPlanesGuardar_(body.planes), { ok: true, planes: gastoPlanes_() }) : { ok: true, planes: gastoPlanes_() });   // la tabla de planes desde los recibos: solo en la propiedad, nunca en el repo
       case 'gasto_pareto': return json_(body.sincronizar ? gastoAhorroSincronizar_() : gastoPareto_(body.seco !== false));   // el equipo de ahorro: qué abriría (seco) o abrirlo ya

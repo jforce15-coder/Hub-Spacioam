@@ -113,7 +113,7 @@ function claudeTools_(modelo, system, messages, tools, maxTokens, opc) {
 
 /* ── Definición de herramientas ── */
 /* Herramientas solo de la app de Alma (música, casa): el Hub, WhatsApp y las web apps no las ven. */
-var AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
+var AG_S_ = { type: 'string' }, AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
 /* Si no es null, solo esas herramientas (p. ej. la familia de Juan: vozFamilia_ en voz.js). */
 var AGENTE_PERMITIDAS_ = null;
 /* Tolerancia de una llamada (retomar.js): hasta cuándo puede esperar la voz y qué pidió, por si sigue en segundo plano. */
@@ -283,6 +283,7 @@ function agHerramientas_() {
     T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
     T('modo_clasico', '«Activa/sal del modo clásico». Solo Juan.', { encender: { type: 'boolean' } }, ['encender']),   // clasico.js
     T('gasto_alma', 'Gasto de Alma del mes y en qué se va.', {}),
+    T('libro', 'Libro de transacciones (sin dinero): anotar un pago o resumen de la Comisión de Alma.', { accion: { type: 'string', enum: ['anotar', 'resumen'] }, costo: { type: 'number' }, moneda: AG_S_, proveedor: AG_S_, concepto: AG_S_, propiedad: AG_S_, comision: { type: 'number' }, mes: AG_S_ }, ['accion']),   // libro.js
     /* Registro de pruebas del Modo inicio (pruebas.js, Juan 18-nov-2026, #764). */
     T('registro_de_pruebas', 'Registro de las pruebas del Modo inicio: empezar (2 h; luego avisa con el resumen), ver o parar.', { que: { type: 'string', enum: ['empezar', 'ver', 'parar'] }, horas: { type: 'number' } }, ['que']),
     /* Pedidos en órbita (orbita.js, Juan 14-nov-2026, #539): los anillos alrededor de la roca en el inicio de la app. */
@@ -923,6 +924,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'registro_de_pruebas': return pruebasParaAlma_(adm, inp);   // pruebas.js
     case 'gasto_alma': return gastoParaAlma_(adm);   // gasto.js
+    case 'libro': { var rLb = libroParaAlma_(adm, inp); if (rLb.ok && inp.accion === 'anotar') ctx.hechas.push({ tipo: 'libro', resumen: 'Libro · ' + rLb.anotado }); return rLb; }   // libro.js
     case 'pedidos_en_orbita': { var rOr = orbitaExplicar_(adm, inp.nombre); if (rOr && rOr.ok) tvCandidata_('datos', function () { return tdPedido_(rOr); }); return rOr; }   // orbita.js; cómo va, en pantalla (tablero.js)
     case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
     case 'dar_acceso_mi_ayudante': { var rAy = ayudanteMiHerramienta_(adm, inp); if (rAy.aplicado) ctx.hechas.push({ tipo: 'acceso', resumen: 'Acceso a Mi · ' + inp.nombre + ' (ayudante de ' + inp.socio + ')' }); return rAy; }   // ayudantemi.js

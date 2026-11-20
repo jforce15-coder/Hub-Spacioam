@@ -2952,7 +2952,7 @@ const CONTROL_DESC_ = {
   REVISAR_SIN_RESP_MIN: 'Minutos: una conversación "sin respuesta" se vuelve a revisar tras este tiempo; si el último mensaje del huésped no pide respuesta (gracias, ok, despedida), sale de pendientes. 0 = no revisar.',
   APRENDER_MIN: 'Minutos de espera tras la conversación antes de comparar ALMA vs. equipo (auto mejora).',
   CODIGO_REVISION_MIN: 'Minutos: el huésped pide el código de acceso (reserva confirmada, día de llegada o estadía) y en la conversación no consta enviado → alerta a ambos administradores; si a los X min sigue sin enviarse, ALMA envía el código de emergencia.',
-  INQUIRY_ESPERA_MIN: 'Minutos que ALMA espera a que aparezca el mensaje automático "Inquiry" de Hospitable (el que pre-aprueba). Si no aparece, responde con un mensaje normal y deja la consulta para que el equipo la pre-apruebe.',
+  INQUIRY_ESPERA_MIN: 'Minutos que ALMA espera a que aparezca el mensaje automático "Inquiry" de Hospitable (el que pre-aprueba; solo Airbnb: en Booking responde de una vez). Si no aparece, responde con un mensaje normal y deja la consulta para que el equipo la pre-apruebe.',
   EMERGENCIA_MIN: 'Minutos: huésped sin acceso al APARTAMENTO (no portería) en estadía activa y nadie del equipo responde → ALMA envía el código de limpieza vigente (aunque el formulario siga pendiente: ya se le pidió en la primera contención). 0 = desactivado.'
 };
 
@@ -3975,7 +3975,32 @@ function inquiryInfo_(convInq) {
   const prop = (d.properties && d.properties[0]) || d.property || (d.listings && d.listings[0]) || d.listing || {};
   const gu = d.guest || {};
   return { uuid: uuid, propiedad: nombrePropInq_(d) || s_(prop.title), huesped: s_(gu.first_name ? gu.first_name + ' ' + (gu.last_name || '') : gu.name).trim(),
-    idioma: s_(gu.language || d.language), checkin: s_(d.arrival_date || d.check_in), checkout: s_(d.departure_date || d.check_out) };
+    idioma: s_(gu.language || d.language || d.conversation_language), checkin: s_(d.arrival_date || d.check_in), checkout: s_(d.departure_date || d.check_out),
+    plataforma: s_(d.platform || (prop && prop.platform)).toLowerCase() };
+}
+/* Quiere reservar (19-nov-2026, consulta de Booking en Mónaco B2): «can we book please» no es una pregunta y el filtro lo
+   tomó como «solo agradeció»; nadie le respondió. Una intención de reservar en una consulta SIEMPRE recibe respuesta:
+   cómo reservar desde el anuncio (Booking) o con «Reservar» (Airbnb, que además el automático pre-aprueba). */
+const INQ_RESERVAR_RX_ = /(?:\b(?:can|could|may|shall)\s+(?:i|we)\s+(?:please\s+)?(?:book|reserve)\b|\b(?:want|wanna|like|ready|hoping|hope|going|plan|planning)\s+(?:to\s+)?(?:book|reserve)\b|\bhow\s+(?:do|can|should|would)\s+(?:i|we)\s+(?:book|reserve)\b|\bbook(?:\s+it)?\s+(?:now|please)\b|\blet'?s\s+book\b|\b(?:quiero|quisiera|queremos|quisi[eé]ramos|deseo|deseamos|puedo|podemos|podr[ií]a|podr[ií]amos|gustar[ií]a|vamos\s+a)\s+(?:hacer\s+(?:la|una)\s+)?reserva(?:r|rlo|rla)?\b|c[oó]mo\s+(?:\S+\s+){0,2}reserv\w*)/i;
+function inqQuiereReservar_(texto) { return INQ_RESERVAR_RX_.test(String(texto || '')); }
+/* Idioma del texto fijo: el que dio el filtro o Hospitable; si no, el del mensaje (palabras en español → es). */
+function inqIdiomaReservar_(idioma, texto) {
+  const i = String(idioma || '').toLowerCase();
+  if (/^(es|spa|esp)/.test(i)) return 'es';
+  if (/^(en|eng|ing)/.test(i)) return 'en';
+  return /\b(quiero|quisiera|queremos|podemos|reservar|c[oó]mo|gracias|hola)\b/i.test(String(texto || '')) ? 'es' : 'en';
+}
+/* Texto fijo de cómo reservar (sin saludo: va solo o al final de la respuesta). Nada privado ni promesas al equipo. */
+function inqComoReservar_(plataforma, idioma, solo) {
+  const es = idioma === 'es', bk = /booking/.test(String(plataforma || ''));
+  const paso = bk
+    ? (es ? 'Para confirmar, haz la reserva directamente en nuestro anuncio de Booking.com con tus fechas. Así el apartamento queda apartado para ti al instante.'
+          : 'To confirm, please book directly from our listing on Booking.com with your dates. That secures the apartment for you right away.')
+    : (es ? 'Para confirmar, toca «Reservar» en nuestro anuncio de Airbnb con tus fechas. Así el apartamento queda apartado para ti al instante.'
+          : 'To confirm, just tap «Reserve» on our Airbnb listing with your dates. That secures the apartment for you right away.');
+  if (!solo) return paso;
+  return (es ? '¡Qué gusto! Nos encantará recibirte.' : "Wonderful, we'd love to host you!") + '\n\n' + paso + '\n\n' +
+    (es ? 'Si algo no te deja reservar, escríbenos aquí y lo vemos.' : "If anything stops you from booking, just write to us here and we'll sort it out.");
 }
 function inquiryProgramado_(uuid) {
   const ids = ['/reservations/' + uuid + '/scheduled-messages', '/inquiries/' + uuid + '/scheduled-messages'];
@@ -3998,16 +4023,25 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   const base = { huesped: inf.huesped || huesped, propiedad: inf.propiedad };
   const esperaMs = Math.max(0, Number(cfg_('INQUIRY_ESPERA_MIN')) || 12) * 60000;
   const prog = inquiryProgramado_(inf.uuid);
-  if (!prog && desdeMs && Date.now() - desdeMs < esperaMs && !inqPrevio_('inq:' + inf.uuid)) return Object.assign(base, { esperar: true, nota: 'inquiry: esperando el automático de Hospitable' });
+  /* Booking no tiene pre-aprobación: el automático es solo bienvenida y la API no lo deja ver programado, así que esperarlo
+     solo retrasaba la respuesta hasta que salía (~6 min, 19-nov). En Booking se responde ya; en Airbnb se espera al que pre-aprueba. */
+  const esBooking = /booking/.test(inf.plataforma || '');
+  if (!prog && !esBooking && desdeMs && Date.now() - desdeMs < esperaMs && !inqPrevio_('inq:' + inf.uuid)) return Object.assign(base, { esperar: true, nota: 'inquiry: esperando el automático de Hospitable' });
   const ficha = infoPropiedad_(inf.propiedad, inf.idioma) || '', kb = (conocimiento_(inf.propiedad) || '') + distanciaBloque_(inf.propiedad, pregunta);
   const evalTxt = claude_(CFG.MODELO_CLASIFICADOR || CFG.MODELO_REDACTOR, 500, prompt_('INQUIRY_EVALUAR') + REGLAS_FIJAS_INQ_,
     'PROPIEDAD: ' + (inf.propiedad || 'sin dato') + '\nFECHAS: ' + inf.checkin + ' → ' + inf.checkout +
     '\n\nFICHA:\n' + ficha + '\n\nBASE DE CONOCIMIENTO:\n' + kb + '\n\nMENSAJE DEL HUÉSPED:\n' + pregunta, 0);
   let ev = null; try { ev = JSON.parse(String(evalTxt).match(/\{[\s\S]*\}/)[0]); } catch (e) { }
   const previo = !prog && inqPrevio_('inq:' + inf.uuid);
-  const preaprobar = previo ? '' : ' · PRE-APROBAR a mano: el automático "Inquiry" no apareció en ' + Math.round(esperaMs / 60000) + ' min';
+  /* Quiere reservar: nunca queda como «sin pregunta»; se responde cómo reservar (solo, o al final de la respuesta). */
+  if (inqQuiereReservar_(pregunta)) {
+    const idR = inqIdiomaReservar_(ev && ev.idioma || inf.idioma, pregunta);
+    if (ev && ev.hay_pregunta && ev.puede_responder && s_(ev.respuesta).trim()) ev.respuesta = s_(ev.respuesta).trim() + '\n\n' + inqComoReservar_(inf.plataforma, idR, false);
+    else ev = { hay_pregunta: true, puede_responder: true, pregunta: 'quiere reservar', respuesta: inqComoReservar_(inf.plataforma, idR, true), idioma: idR };
+  }
+  const preaprobar = (previo || esBooking) ? '' : ' · PRE-APROBAR a mano: el automático "Inquiry" no apareció en ' + Math.round(esperaMs / 60000) + ' min';
   if ((!ev || !ev.hay_pregunta) && previo) return Object.assign(base, { estado: 'omitido', nota: 'inquiry: seguimiento sin pregunta', nivel: 'VERDE', razon: 'Solo confirmó o agradeció · el automático ya se había enviado', accion: 'sin cambios' });
-  if (!ev || !ev.hay_pregunta) return Object.assign(base, prog
+  if (!ev || !ev.hay_pregunta) return Object.assign(base, (prog || esBooking)
     ? { estado: 'omitido', nota: 'inquiry sin pregunta: sigue el automático', nivel: 'INQUIRY', razon: 'Consulta sin pregunta concreta: sigue el mensaje automático de Hospitable', accion: 'sin cambios' }
     : { estado: 'omitido', nota: 'inquiry sin automático', nivel: 'AMARILLO', razon: 'Consulta sin pregunta concreta' + preaprobar, accion: 'revisar manualmente · pre-aprobar' });
   if (!ev.puede_responder || !s_(ev.respuesta).trim()) return Object.assign(base, { estado: 'omitido', nota: 'inquiry sin respuesta en la ficha', nivel: 'AMARILLO', razon: 'Pregunta sin respuesta en la ficha o la base: ' + s_(ev.pregunta).slice(0, 160) + (prog ? ' · el automático sale tal cual' : preaprobar), accion: 'revisar manualmente' });
@@ -4029,9 +4063,9 @@ function inquiryResponder_(convInq, pregunta, huesped, ctrl, desdeMs) {
   /* Último recurso: respuesta normal + el equipo pre-aprueba. */
   if (ctrl.modo === 'SOMBRA') return Object.assign(base, { estado: 'sombra', nota: 'inquiry sombra', nivel: 'AMARILLO', razon: 'SOMBRA · respondería normal: ' + s_(ev.pregunta) + preaprobar, texto: s_(ev.respuesta), accion: 'SOMBRA · no aplicado' });
   const env = hosp_('post', '/inquiries/' + inf.uuid + '/messages', { body: s_(ev.respuesta).trim() });
-  const motivo = prog ? ' · PRE-APROBAR a mano: Hospitable no dejó editar el automático' : preaprobar;
+  const motivo = prog && !esBooking ? ' · PRE-APROBAR a mano: Hospitable no dejó editar el automático' : preaprobar;
   return Object.assign(base, env.code < 300
-    ? { estado: 'respondido', nota: 'respuesta directa · falta pre-aprobar', nivel: 'AMARILLO', razon: 'Inquiry: se respondió la pregunta con un mensaje normal' + motivo, texto: s_(ev.respuesta), accion: 'ENVIADO · respuesta a la consulta · falta pre-aprobar' }
+    ? { estado: 'respondido', nota: 'respuesta directa' + (motivo ? ' · falta pre-aprobar' : ''), nivel: motivo ? 'AMARILLO' : 'VERDE', razon: 'Inquiry: se respondió la pregunta con un mensaje normal' + motivo, texto: s_(ev.respuesta), accion: 'ENVIADO · respuesta a la consulta · falta pre-aprobar' }
     : { estado: 'error', nota: 'Hospitable ' + env.code, nivel: 'AMARILLO', razon: 'No se pudo enviar la respuesta a la consulta' + motivo, accion: 'revisar manualmente' });
 }
 function hubProgramados_(resId) {

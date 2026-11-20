@@ -5701,7 +5701,8 @@ function dsBotApi_(body) {
       case 'contacto_cancelar': return json_(contactoCancelar_(String(body.tel || '')));
       case 'contacto_reenviar': return json_(contactoReenviar_(String(body.tel || ''), String(body.nombre || ''), String(body.texto || ''), String(body.plantilla || 'contacto')));
       case 'wa_diag': return json_(waDiag_());
-      case 'calendario_estado': return json_(calendarioEstado_());   // a qué calendario y con qué cuenta escribe Alma (calendario.js)
+      case 'calendario_estado': return json_(calendarioEstado_());
+      case 'calendario_fijar': return json_(calendarioFijar_(body.calendario));   // guarda CALENDARIO_JUAN si la cuenta del Hub lo ve (calendario.js)   // a qué calendario y con qué cuenta escribe Alma (calendario.js)
       case 'op_rango': { const n0 = Math.min(400, Number(body.n) || 80); return json_({ ok: true, filas: opFilas_('', n0).filter(m => !body.desde || String(m.ts) >= String(body.desde)).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: String(m.texto).slice(0, 600), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) }); }
       case 'contactos': return json_({ ok: true, contactos: contactosTodos_().map(c => ({ tel: '…' + String(c.tel).slice(-4), nombre: c.nombre, tipo: c.tipo, rol: c.rol, estado: c.estado, actualizado: String(c.actualizado).slice(0, 10) })) });
       case 'contactos_rellenar': return json_(contactosRellenar_());

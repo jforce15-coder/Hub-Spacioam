@@ -53,7 +53,7 @@ function opAgruparEspera_(items) {
 function ppNota_(texto) {
   var c = ppClasificar_(texto); if (!c.personal) return '';
   return '(Pedido PERSONAL de Juan (su agenda, su familia, una invitación): no es de huéspedes, socios ni de un caso pendiente; no lo mezcles con otros temas.' +
-    (c.agenda ? ' Pide ponerlo en su agenda: usa crear_evento ya (sin preguntar), con la zona que él diga (si no dice, Guatemala), y confírmalo con el enlace.'
+    (c.agenda ? ' Pide ponerlo en su agenda: usa crear_evento ya (sin preguntar), con la zona que él diga (si no dice, España), y confírmalo con el enlace.'
       : ' Si es una invitación o un evento con fecha, pregúntale solo si lo pones en su agenda y a qué hora.') + ')';
 }
 /* crear_evento con la orden explícita de Juan en el turno: sin la pregunta de confirmación. */

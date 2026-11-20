@@ -114,6 +114,8 @@ function claudeTools_(modelo, system, messages, tools, maxTokens, opc) {
 /* ── Definición de herramientas ── */
 /* Herramientas solo de la app de Alma (música, casa): el Hub, WhatsApp y las web apps no las ven. */
 var AG_S_ = { type: 'string' }, AGENTE_APP_ = false, AG_SOLO_APP_ = ['musica'];
+/* Herramientas que solo sirven por escrito (chat y WhatsApp): la llamada y el Modo calle son voz y no las ven. */
+var AG_SOLO_ESCRITO_ = ['explicar_en_pagina'];
 /* Si no es null, solo esas herramientas (p. ej. la familia de Juan: vozFamilia_ en voz.js). */
 var AGENTE_PERMITIDAS_ = null;
 /* Tolerancia de una llamada (retomar.js): hasta cuándo puede esperar la voz y qué pidió, por si sigue en segundo plano. */
@@ -283,6 +285,7 @@ function agHerramientas_() {
     T('cupo_google', 'Cupo de Google: nivel, % y qué lo gasta.', {}),
     T('modo_clasico', '«Activa/sal del modo clásico» (o «modo táctico», «modo militar»). Solo Juan.', { encender: { type: 'boolean' } }, ['encender']),   // clasico.js
     T('gasto_alma', 'Gasto de Alma del mes y en qué se va.', {}),
+    T('explicar_en_pagina', 'Página con diagrama o calculadora para entender algo; da el enlace.', { tema: AG_S_, datos: AG_S_ }, ['tema']),   // paginaexplicativa.js
     T('libro', 'Libro de transacciones (sin dinero): anotar un pago o resumen de la Comisión de Alma.', { accion: { type: 'string', enum: ['anotar', 'resumen'] }, costo: { type: 'number' }, moneda: AG_S_, proveedor: AG_S_, concepto: AG_S_, propiedad: AG_S_, comision: { type: 'number' }, mes: AG_S_ }, ['accion']),   // libro.js
     /* Registro de pruebas del Modo inicio (pruebas.js, Juan 18-nov-2026, #764). */
     T('registro_de_pruebas', 'Registro de las pruebas del Modo inicio: empezar (2 h; luego avisa con el resumen), ver o parar.', { que: { type: 'string', enum: ['empezar', 'ver', 'parar'] }, horas: { type: 'number' } }, ['que']),
@@ -924,6 +927,7 @@ function agEjecutar_(adm, nombre, inp, ctx) {
     }
     case 'registro_de_pruebas': return pruebasParaAlma_(adm, inp);   // pruebas.js
     case 'gasto_alma': return gastoParaAlma_(adm);   // gasto.js
+    case 'explicar_en_pagina': { var rPg = pagExplicar_(adm, inp, AGENTE_CANAL_); if (rPg.ok) ctx.hechas.push({ tipo: 'pagina', resumen: 'Página explicativa · ' + String(inp.tema || '').slice(0, 80) }); return rPg; }   // paginaexplicativa.js
     case 'libro': { var rLb = libroParaAlma_(adm, inp); if (rLb.ok && inp.accion === 'anotar') ctx.hechas.push({ tipo: 'libro', resumen: 'Libro · ' + rLb.anotado }); return rLb; }   // libro.js
     case 'pedidos_en_orbita': { var rOr = orbitaExplicar_(adm, inp.nombre); if (rOr && rOr.ok) tvCandidata_('datos', function () { return tdPedido_(rOr); }); return rOr; }   // orbita.js; cómo va, en pantalla (tablero.js)
     case 'avisar_aterrizaje': { var rav = avlCrear_(adm, inp, ctx); if (rav.ok) ctx.hechas.push({ tipo: 'vigilancia', resumen: (inp.quitar ? 'Sin aviso de aterrizaje · ' : 'Aviso de aterrizaje · ') + (rav.viaje || inp.vuelo) + ' → ' + (rav.avisar_a || []).join(', ') }); return rav; }
@@ -1003,7 +1007,7 @@ function opAgente_(adm, texto, canal, fotos, previos) {
   msgs.push({ role: 'user', content: contenido });
   var ctx = { adm: AGENTE_PERMITIDAS_ ? null : adm, hechas: memo && memo.fallo ? memo.hechas.slice() : [], llamadas: [], _cfg: null, cfg: function () { if (!this._cfg) this._cfg = epiSnap_(false); return this._cfg; } };
   ctx.hechasAntes = ctx.hechas.length;
-  var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0); }), final = '';
+  var tools = agHerramientas_().filter(function (t) { return (AGENTE_APP_ || AG_SOLO_APP_.indexOf(t.name) < 0) && (!AGENTE_PERMITIDAS_ || AGENTE_PERMITIDAS_.indexOf(t.name) >= 0) && (!/^(calle|llamada)$/.test(canal) || AG_SOLO_ESCRITO_.indexOf(t.name) < 0); }), final = '';
   /* Primero lo que no cambia entre turnos (fuente única, trabajo, herramientas, esfera) y al final, después de
      AG_CORTE_CACHE_, lo de este turno (Weebo, adaptación, quién, encargos, canal, notas, microproyectos y la hora). */
   var system = secretariaPrompt_(aud, canal) + '\n\nTUS HERRAMIENTAS HOY: ' + tools.map(function (t) { return t.name; }).filter(Boolean).join(', ') + '.' +

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<script src="https://hub.spacioam.com/js/sa-sesion.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FAFAFA">
+<meta name="robots" content="noindex">
+<title>Página explicativa · Alma</title>
+<link rel="icon" type="image/png" sizes="32x32" href="../assets/icons/favicon-32.png">
+<link rel="stylesheet" href="../ds/tokens/fonts.css">
+<!-- Página explicativa (Juan, 20-nov-2026; apps-script/paginaexplicativa.js): la página que Alma arma para explicar algo
+     (un diagrama o una calculadora) y manda por enlace. Con la sesión de un administrador abre siempre (acción paginaVer);
+     sin sesión, el token del enlace la abre una sola vez. Vence a los 7 días. La página corre en un marco aislado
+     (sandbox sin same-origin: no ve la sesión ni el Hub) y con la red cerrada por su política de contenido. -->
+<style>
+  :root { color-scheme: light; --tinta: #3E3F3F; --suave: #6F6867; --linea: #D8D4CE; --fondo: #FAFAFA; --arena: #F5F3F0; --durazno: #E9826A; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta); font: 15px/1.55 Montserrat, system-ui, sans-serif; display: flex; flex-direction: column; }
+  header { display: flex; align-items: center; gap: 10px; padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); border-bottom: 1px solid var(--linea); background: var(--fondo); }
+  header .t { flex: 1; min-width: 0; }
+  header small { display: block; font: 600 10px Montserrat, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: var(--suave); }
+  header b { display: block; font: 400 17px/1.3 Valky, Georgia, serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header em { font-style: normal; font-size: 12px; color: var(--suave); white-space: nowrap; }
+  #marco { flex: 1; width: 100%; border: 0; background: #fff; display: none; }
+  .aviso { flex: 1; display: grid; place-items: center; padding: 32px 20px; text-align: center; }
+  .aviso p { max-width: 34ch; margin: 12px auto 0; color: var(--suave); }
+  .aviso h1 { margin: 0; font: 400 26px/1.2 Valky, Georgia, serif; }
+  .punto { width: 14px; height: 14px; margin: 0 auto 16px; border-radius: 50%; background: var(--durazno); animation: latir 1.6s var(--ease, cubic-bezier(.22,.61,.36,1)) infinite; }
+  @keyframes latir { 50% { transform: scale(1.5); opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .punto { animation: none; } }
+  .aviso a { display: inline-flex; align-items: center; min-height: 44px; margin-top: 18px; padding: 0 20px; border-radius: 22px; background: var(--tinta); color: #fff; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <div class="t"><small>Página explicativa</small><b id="tema">Alma</b></div>
+  <em id="vence"></em>
+</header>
+<div class="aviso" id="aviso"><div><div class="punto"></div><h1>Preparando tu página</h1><p>Alma la está armando. Tarda cerca de un minuto; se abre sola aquí.</p></div></div>
+<iframe id="marco" title="Página explicativa" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe>
+<script>
+(function () {
+  "use strict";
+  var URL = "https://script.google.com/macros/s/AKfycbycTV0MsPWym02-ZcbpBBtwg9-WLw8dK9SAEDBslPd_9mgmizPQJS4-B_Q4uEkTWFqQ/exec";
+  var q = new URLSearchParams(location.search), id = q.get("id") || "", token = q.get("t") || "";
+  var $ = function (x) { return document.getElementById(x); }, intentos = 0;
+  function aviso(titulo, texto, conHub) {
+    var a = $("aviso"); a.style.display = ""; $("marco").style.display = "none"; a.innerHTML = "";
+    var d = document.createElement("div"), h = document.createElement("h1"), p = document.createElement("p");
+    h.textContent = titulo; p.textContent = texto; d.appendChild(h); d.appendChild(p);
+    if (conHub) { var l = document.createElement("a"); l.href = "/"; l.textContent = "Entrar al Hub"; d.appendChild(l); }
+    a.appendChild(d);
+  }
+  function pedir() {
+    if (window.ALMA_PAGINA) return window.ALMA_PAGINA(id);   // para probar la página con datos de ejemplo
+    var ses = window.SASesion && SASesion.leer && SASesion.leer();
+    var f = ses
+      ? fetch(URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, cache: "no-store", body: JSON.stringify({ hub: 1, action: "paginaVer", id: id, session: ses }) })
+      : fetch(URL + "?pagina=" + encodeURIComponent(id) + "&t=" + encodeURIComponent(token), { cache: "no-store" });
+    return f.then(function (r) { return r.json(); }).then(function (r) {
+      /* Con sesión pero sin ser administrador: el token del enlace todavía puede abrirla. */
+      if (ses && r && !r.ok && r.estado !== "vencida" && token) return fetch(URL + "?pagina=" + encodeURIComponent(id) + "&t=" + encodeURIComponent(token), { cache: "no-store" }).then(function (x) { return x.json(); });
+      return r;
+    }).catch(function () { return { ok: false, error: "No pude conectar con el Hub. Revisa tu internet e intenta de nuevo." }; });
+  }
+  function fecha(iso) { var d = new Date(iso); return isNaN(d) ? "" : "Vence el " + d.toLocaleDateString("es-GT", { day: "numeric", month: "short" }); }
+  function cargar() {
+    if (!id) { aviso("Falta la página", "Este enlace está incompleto. Pídele a Alma la página otra vez.", false); return; }
+    pedir().then(function (r) {
+      r = r || {};
+      if (r.tema) { $("tema").textContent = r.tema; document.title = r.tema + " · Alma"; }
+      if (r.vence) $("vence").textContent = fecha(r.vence);
+      if (r.ok && r.estado === "preparando") {
+        if (++intentos > 60) { aviso("Sigue preparándose", "Tarda más de lo normal. Vuelve a abrir el enlace en unos minutos.", false); return; }
+        setTimeout(cargar, 5000); return;   // se pregunta cada 5 s hasta que el Hub la tenga lista
+      }
+      if (r.ok && r.estado === "lista" && r.html) { $("aviso").style.display = "none"; var m = $("marco"); m.srcdoc = r.html; m.style.display = "block"; return; }
+      aviso(r.estado === "vencida" ? "Esta página ya venció" : "No pude abrirla", r.error || "Intenta de nuevo en un momento.", r.estado === "usado" || r.estado === "sin_permiso");
+    });
+  }
+  cargar();
+})();
+</script>
+</body>
+</html>

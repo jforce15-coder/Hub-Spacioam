@@ -314,7 +314,7 @@ function agResId_(codigo) {
    Las canceladas también salen (buscar_reservas las marca y las manda al final con el estado en vivo). Lo usan
    buscar_reservas y enviar_a_huesped. Devuelve [{ item, puntaje, coincidencia }]. */
 function agBuscarReservas_(texto, f, soloLlegadas, hoy, max) {
-  var q = String(texto || '').trim(), filas = leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return s_(r.code); });
+  var q = String(texto || '').trim(), filas = (typeof vozReservas_ === 'function' ? vozReservas_() : leerTabla_(CFG.TAB_RESERVAS)).filter(function (r) { return s_(r.code); });
   var enFecha = filas.filter(function (r) {
     var ci = fecha_(r.checkin_date), co = fecha_(r.checkout_date);
     return !f || (soloLlegadas ? ci === f : (ci <= f && f <= co));
@@ -364,23 +364,30 @@ function agElegirReserva_(texto, hoy, adm) {
 /* Estado real de una reserva: Hospitable en vivo (10 min en caché) para los primeros resultados; si no, lo que diga
    la hoja. La hoja puede tardar en enterarse de una cancelación, por eso se pregunta a Hospitable. */
 function agEstadoReserva_(uuid, fila, vivo) {
-  var hoja = /cancel/i.test(s_(fila && fila.status)) ? 'cancelada' : (s_(fila && fila.status) ? (estadoEs_(s_(fila.status).toLowerCase()) || s_(fila.status)) : 'confirmada');
+  var hoja = agEstadoHoja_(fila);
   if (!vivo || !uuid || /^(wa|op|inq):/.test(uuid)) return { estado: hoja };
   var c = CacheService.getScriptCache(), k = 'agest_' + String(uuid).slice(-40), c0 = c.get(k);
   if (c0) { try { return JSON.parse(c0); } catch (e) {} }
   var out = { estado: hoja };
   try {
     var r = hosp_('get', '/reservations/' + uuid), d = r.code === 200 && r.json && r.json.data;
-    if (d) {
-      var cur = (d.reservation_status && d.reservation_status.current) || {}, cat = s_(cur.category || d.status).toLowerCase();
-      out.estado = estadoEs_(cat) || cat || hoja;
-      if (/cancel/.test(cat)) {
-        var hc = ((d.reservation_status && d.reservation_status.history) || []).filter(function (h) { return /cancel/i.test(s_(h.category)); }).pop();
-        if (hc && hc.changed_at) out.cancelada_el = Utilities.formatDate(new Date(hc.changed_at), CFG.TZ, 'yyyy-MM-dd HH:mm');
-      }
-    }
+    if (d) out = agEstadoDeHosp_(d, hoja);
   } catch (e) { console.error('agEstadoReserva_: ' + e); }
   try { c.put(k, JSON.stringify(out), 600); } catch (e) {}
+  return out;
+}
+/* El estado según la hoja Reservas (cuando no se pregunta a Hospitable o no responde). */
+function agEstadoHoja_(fila) { return /cancel/i.test(s_(fila && fila.status)) ? 'cancelada' : (s_(fila && fila.status) ? (estadoEs_(s_(fila.status).toLowerCase()) || s_(fila.status)) : 'confirmada'); }
+/* El estado de una reserva de Hospitable (data de /reservations/{uuid}) → { estado, cancelada_el? }. También lo usa
+   agEstadosVivos_ (vozlectura.js), que pregunta varias a la vez. */
+function agEstadoDeHosp_(d, hoja) {
+  var out = { estado: hoja };
+  var cur = (d.reservation_status && d.reservation_status.current) || {}, cat = s_(cur.category || d.status).toLowerCase();
+  out.estado = estadoEs_(cat) || cat || hoja;
+  if (/cancel/.test(cat)) {
+    var hc = ((d.reservation_status && d.reservation_status.history) || []).filter(function (h) { return /cancel/i.test(s_(h.category)); }).pop();
+    if (hc && hc.changed_at) out.cancelada_el = Utilities.formatDate(new Date(hc.changed_at), CFG.TZ, 'yyyy-MM-dd HH:mm');
+  }
   return out;
 }
 /* Historial de una reserva (pedido pc1794699131767, 14-nov): Hospitable no publica las fechas de antes de una
@@ -491,21 +498,29 @@ function agEjecutar_(adm, nombre, inp, ctx) {
   var hoy = Utilities.formatDate(ahora_(), CFG.TZ, 'yyyy-MM-dd'), n = function (x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); };
   switch (nombre) {
     case 'buscar_reservas': {
-      var f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
+      var tB = Date.now(), f = String(inp.fecha || '').slice(0, 10), inbox = hubInbox_(); var fOk = []; try { fOk = formsOk_(); } catch (e) {}
+      var medirB = typeof vozLecturaMedir_ === 'function' ? vozLecturaMedir_ : function () {};
+      medirB('bandeja', Date.now() - tB); tB = Date.now();
       var soloC = inp.consultas === true;
       var parecido = {}, hits = soloC ? [] : agBuscarReservas_(inp.texto, f, !!inp.solo_llegadas, hoy, 12).map(function (x) { parecido[s_(x.item.code).toUpperCase()] = x.coincidencia; return x.item; });
+      medirB('hoja', Date.now() - tB); tB = Date.now();
+      /* Guardia 20-nov-2026 (vozlectura.js): el estado en vivo de las 5 primeras, todas a la vez y no una tras otra. */
+      var convDe = {}; hits.forEach(function (r) { var cod = s_(r.code).toUpperCase(); if (convDe[cod] === undefined) convDe[cod] = (inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {}).conv_id || ''; });
+      if (typeof agEstadosVivos_ === 'function') agEstadosVivos_(hits.slice(0, 5).map(function (r) { return { uuid: convDe[s_(r.code).toUpperCase()], fila: r }; }));
       /* Consultas (consultas.js): con texto, las que coinciden; con consultas = true, también las más recientes sin texto. */
       var consH = soloC || String(inp.texto || '').trim() ? consultasBuscar_(inp.texto, f, inbox, hoy, soloC ? 5 : 3) : [], cons = consH.map(function (x) { return consultaFicha_(x.item); });
       var outR = { nota: hits.some(function (r) { return parecido[s_(r.code).toUpperCase()] === 'aproximada'; }) ? 'Resultados por parecido (la búsqueda tolera errores de escritura). Confirma con el administrador si hay más de uno o si el nombre no es igual.' : undefined,
         reservas: (function () { var vivos = 0, enVivo = 0; return hits.map(function (r) {
-        var cod = s_(r.code).toUpperCase(), ib = inbox.filter(function (x) { return String(x.codigo || '').toUpperCase() === cod; })[0] || {};
-        /* Sin la conversación en la bandeja (le falta el código, 7-nov): la hoja y, para las 3 primeras vigentes, Hospitable. */
-        if (!ib.conv_id) { var rcB = reservaConv_(cod, r, !/cancel/i.test(s_(r.status)) && fecha_(r.checkout_date) >= sumarDias_(hoy, -14) && enVivo++ < 3, inbox); ib = { conv_id: rcB.conv_id || '' }; }
+        var cod = s_(r.code).toUpperCase(), ib = { conv_id: convDe[cod] || '' };
+        /* Sin la conversación en la bandeja (le falta el código, 7-nov): la hoja y, para las 3 primeras vigentes, Hospitable
+           solo alrededor de su llegada ('corto'; la búsqueda amplia tardaba hasta 15 s en una llamada, guardia 20-nov). */
+        if (!ib.conv_id) { var rcB = reservaConv_(cod, r, !/cancel/i.test(s_(r.status)) && fecha_(r.checkout_date) >= sumarDias_(hoy, -14) && enVivo++ < 3 ? 'corto' : false, inbox); ib = { conv_id: rcB.conv_id || '' }; }
         var est = agEstadoReserva_(ib.conv_id, r, vivos++ < 5);
         return { codigo: cod, estado: est.estado, cancelada_el: est.cancelada_el, huesped: [s_(r.guest_first_name), s_(r.guest_last_name)].join(' ').trim(), propiedad: s_(r.property_name), entrada: fecha_(r.checkin_date), salida: fecha_(r.checkout_date),
           coincidencia: parecido[cod] || 'exacta', huespedes: s_(r.guest_count), registro: (/complet/i.test(s_(r.status_form)) || fOk.indexOf(cod) >= 0) ? 'completo' : 'pendiente', conv_id: ib.conv_id || '' };
       }).sort(function (a, b) { return (a.estado === 'cancelada') - (b.estado === 'cancelada'); }); })(), total: hits.length,
         aviso_estado: 'El campo estado viene de Hospitable en vivo para los primeros resultados. Si dice cancelada, la reserva está CANCELADA: dilo así y no la trates como activa.' };
+      medirB('vivo', Date.now() - tB);   // estado en vivo + conversaciones que faltaban (voz_traza d.br)
       if (cons.length) { outR.consultas = cons; outR.nota_consultas = 'Consultas: escribieron sin reservar. Para responder, enviar_a_huesped con su conv_id como codigo.'; }
       else if (soloC) outR.nota = 'No hay consultas recientes en la bandeja.';
       /* Tarjeta de la llamada (tarjeta.js): un solo resultado es una tarjeta; una lista no (y borra la de antes). Una consulta

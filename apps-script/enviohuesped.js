@@ -16,10 +16,11 @@ var RESERVA_BORRADOR_SEG_ = 3600, RESERVA_CONV_SEG_ = 21600;
 function reservaCodigoNorm_(c) { return String(c || '').toUpperCase().replace(/\s+/g, ''); }
 function reservaFila_(codigo) {
   var C = reservaCodigoNorm_(codigo); if (!C) return null;
-  return leerTabla_(CFG.TAB_RESERVAS).filter(function (r) { return reservaCodigoNorm_(r.code) === C; }).pop() || null;
+  return (typeof vozReservas_ === 'function' ? vozReservas_() : leerTabla_(CFG.TAB_RESERVAS)).filter(function (r) { return reservaCodigoNorm_(r.code) === C; }).pop() || null;
 }
 /* La conversación (uuid de Hospitable) de una reserva por su código: { conv_id } o { error } con el motivo real.
-   vivo = false: solo la bandeja y la hoja, sin llamar a Hospitable. */
+   vivo = false: solo la bandeja y la hoja, sin llamar a Hospitable. vivo = 'corto': Hospitable solo alrededor de la llegada
+   de la hoja (±1 día), sin la búsqueda amplia (buscar_reservas en una llamada; guardia 20-nov-2026, vozlectura.js). */
 function reservaConv_(codigo, fila, vivo, inbox) {
   var C = reservaCodigoNorm_(codigo); if (!C) return { error: 'falta el código de la reserva' };
   var ib = (inbox || hubInbox_()).filter(function (x) { return reservaCodigoNorm_(x.codigo) === C && x.conv_id && !/^(wa|op|inq):/.test(x.conv_id); })[0];
@@ -36,7 +37,7 @@ function reservaConv_(codigo, fila, vivo, inbox) {
   /* Primero la llegada de la hoja (±1 día). Si la reserva cambió de fechas, la hoja puede tener la llegada de antes
      (16-nov, HMFC34ZH8P en Narama 623: historial_reserva decía «no encontré»): se busca entonces en una ventana amplia. */
   var b = reservaBuscarHosp_(C, sumarDias_(ci, -1), sumarDias_(ci, 1), ids, 1);
-  if (!b.id && !b.falla) b = reservaBuscarHosp_(C, sumarDias_(ci, -120), sumarDias_(ci, 365), ids, 6);
+  if (!b.id && !b.falla && vivo !== 'corto') b = reservaBuscarHosp_(C, sumarDias_(ci, -120), sumarDias_(ci, 365), ids, 6);
   if (b.id) { cache.put(k, b.id, RESERVA_CONV_SEG_); reservaConvReparar_(b.id, C, fila, inbox); return { conv_id: b.id }; }
   return { error: b.falla ? hospErrorTexto_(b.falla < 0 ? 0 : b.falla) : 'Hospitable no tiene la reserva ' + C + ' con llegada entre el ' + sumarDias_(ci, -120) + ' y el ' + sumarDias_(ci, 365) };
 }

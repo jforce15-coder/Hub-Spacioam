@@ -455,6 +455,7 @@ function idiomaDe_(t) {
 }
 function inboxUpsert_(convId, o) {
   if (!convId) return;
+  if (typeof vozLecturaOlvidarBandeja_ === 'function') vozLecturaOlvidarBandeja_();   // la copia de la bandeja del turno de voz ya no vale (vozlectura.js)
   const lock = LockService.getScriptLock(); try { lock.waitLock(8000); } catch (e) { return; }
   try {
     const sh = hojaInbox_(), n = sh.getLastRow();
@@ -719,17 +720,23 @@ function repararHilosConsultas(max) {
 }
 /* Última actividad de una fila de la bandeja, contando también los automáticos de Hospitable. */
 function actividadInbox_(o) { return Math.max(new Date(o.ultimo_ts).getTime() || 0, new Date(o.ultimo_auto_ts).getTime() || 0); }
-function hubInbox_() {
+/* En un turno de voz, una sola lectura por turno (vozInbox_, vozlectura.js); fuera de la voz, la hoja como siempre. */
+function hubInbox_() { return typeof vozInbox_ === 'function' ? vozInbox_(hubInboxLeer_) : hubInboxLeer_(); }
+function hubInboxLeer_() {
   const sh = ssAlma_().getSheetByName('ALMA_INBOX'); if (!sh || sh.getLastRow() < 2) return [];
   /* Los chats de WhatsApp de administradores viven en el chat operativo, no en la lista de huéspedes. */
   let admTel = {}; try { adminsOp_().forEach(a => a.tels.forEach(t => { if (fin8_(t)) admTel[fin8_(t)] = 1; })); if (CFG.WHATSAPP_JUAN) admTel[fin8_(CFG.WHATSAPP_JUAN)] = 1; } catch (e) {}
   const prueba = String(PropertiesService.getScriptProperties().getProperty('WA_PRUEBA') || '').split(/[,;\s]+/).filter(Boolean).map(fin8_);
   prueba.forEach(k => delete admTel[k]);
+  /* Las fichas de contacto en un mapa, leídas una vez (guardia 20-nov-2026): antes contactoFicha_ volvía a leer la lista
+     entera por cada chat de WhatsApp de la bandeja. */
+  let porTel = null;
+  const fichaDe = wa => { if (!porTel) { porTel = {}; contactosTodos_().forEach(c => { const k = fin8_(c.tel); if (k && !porTel[k]) porTel[k] = c; }); } return porTel[fin8_(wa)] || null; };
   return sh.getRange(2, 1, sh.getLastRow() - 1, INBOX_CAB_.length).getValues()
     .map(v => { const o = {}; INBOX_CAB_.forEach((k, i) => o[k] = v[i] instanceof Date ? v[i].toISOString() : String(v[i])); return o; })
     .filter(o => !(String(o.conv_id).indexOf('wa:') === 0 && admTel[fin8_(String(o.conv_id).slice(3))]))
     .sort((a, b) => actividadInbox_(b) - actividadInbox_(a)).slice(0, 250)
-    .map(o => { if (String(o.conv_id).indexOf('wa:') !== 0) return o; let f = null; try { f = contactoFicha_(o.conv_id.slice(3)); } catch (e) {} if (f) { o.contacto_tipo = f.tipo; o.contacto_estado = f.estado; o.contacto_rol = f.rol; o.contacto_empresa = f.empresa; if (f.nombre) { if (o.huesped && o.huesped !== f.nombre) o.wa_nombre = o.huesped; o.huesped = f.nombre; } }   /* el nombre que le pusimos manda sobre el de su perfil de WhatsApp */ return o; });   // ficha del contacto (contactos.js)
+    .map(o => { if (String(o.conv_id).indexOf('wa:') !== 0) return o; let f = null; try { f = fichaDe(o.conv_id.slice(3)); } catch (e) {} if (f) { o.contacto_tipo = f.tipo; o.contacto_estado = f.estado; o.contacto_rol = f.rol; o.contacto_empresa = f.empresa; if (f.nombre) { if (o.huesped && o.huesped !== f.nombre) o.wa_nombre = o.huesped; o.huesped = f.nombre; } }   /* el nombre que le pusimos manda sobre el de su perfil de WhatsApp */ return o; });   // ficha del contacto (contactos.js)
 }
 
 function doGet(e) {

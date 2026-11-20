@@ -196,7 +196,8 @@ function rapidoIntentar_(adm, texto, system, msgs, tools, ctx, o) {
   herr = herr.concat([RAPIDO_PASAR_]);
   var sys = system + '\n\nCAMINO RÁPIDO: en este turno solo tienes herramientas de leer (' + nombres.join(', ') + ') y pasar_al_completo. ' +
     'Si el pedido pide hacer algo, necesita otra herramienta o no lo puedes contestar con seguridad con lo que leas, llama pasar_al_completo y no respondas. Nunca digas que algo quedó hecho.';
-  var limite = t0 + rapidoMs_(); if (AGENTE_PLAZO_) limite = Math.min(limite, AGENTE_PLAZO_ - AGENTE_MARGEN_VUELTA_);
+  var tope = rapidoMs_(); ms.rapido_tope = tope;   // el tope que de verdad usó (VOZ_RAPIDO_MS o 5 s), en voz_traza (guardia 20-nov-2026)
+  var limite = t0 + tope; if (AGENTE_PLAZO_) limite = Math.min(limite, AGENTE_PLAZO_ - AGENTE_MARGEN_VUELTA_);
   var m = msgs.slice(), leido = 0, vueltaMs = 0;
   try {
     for (var vuelta = 0; vuelta < VOZ_RAPIDO_VUELTAS_ && !motivo && fin === null; vuelta++) {

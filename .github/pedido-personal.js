@@ -141,7 +141,7 @@ function calCaja(o) {
     CFG: { TZ: 'America/Guatemala' },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in props ? props[k] : null) }) },
     Session: { getEffectiveUser: () => ({ getEmail: () => o.cuenta || 'hub@ejemplo.com' }) },
-    CalendarApp: { getDefaultCalendar: () => cal(o.cuenta || 'hub@ejemplo.com', 'Calendario de la cuenta del Hub'), getCalendarById: id => (id === 'juan@ejemplo.com' ? cal(id, 'Juan') : null), subscribeToCalendar: () => null },
+    CalendarApp: { getDefaultCalendar: () => cal(o.cuenta || 'hub@ejemplo.com', 'Calendario de la cuenta del Hub'), getCalendarById: id => (id === 'juan@ejemplo.com' && !o.sinCompartir ? cal(id, 'Juan') : null), subscribeToCalendar: () => null },
     Utilities: { formatDate: fmt, base64EncodeWebSafe: s => Buffer.from(String(s)).toString('base64').replace(/\+/g, '-').replace(/\//g, '_') },
     adminsOp_: () => [JUAN] };
   vm.createContext(ctx);
@@ -170,7 +170,11 @@ function calCaja(o) {
 }
 { const { X, creados } = calCaja({ cuenta: 'hub@ejemplo.com' });
   const r = X.calendarioCrear_({ titulo: 'x', inicio: '2026-11-27 18:00', confirmado: true });
-  ok(r.error && /CALENDARIO_JUAN/.test(r.error) && /hub@ejemplo\.com/.test(r.error) && !creados.length, '4 · sin CALENDARIO_JUAN y con el Hub en otra cuenta: no escribe en el calendario equivocado y dice qué compartir');
+  ok(r.creado && r.calendario === 'Juan' && creados.length === 1, '4 · Juan compartió su calendario con la cuenta del Hub: se usa sin guardar CALENDARIO_JUAN');
+}
+{ const { X, creados } = calCaja({ cuenta: 'hub@ejemplo.com', sinCompartir: true });
+  const r = X.calendarioCrear_({ titulo: 'x', inicio: '2026-11-27 18:00', confirmado: true });
+  ok(r.error && /Compártelo/.test(r.error) && /hub@ejemplo\.com/.test(r.error) && !creados.length, '4 · sin CALENDARIO_JUAN y con el Hub en otra cuenta: no escribe en el calendario equivocado y dice qué compartir');
   const e = X.calendarioEstado_();
   ok(e.ok === false && e.calendario_juan === false, '4 · calendario_estado lo dice');
 }

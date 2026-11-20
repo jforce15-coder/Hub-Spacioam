@@ -50,7 +50,15 @@ function calendarioJuan_() {
      el predeterminado si la cuenta que corre es la del administrador principal. */
   if (!id) {
     var princ = ''; try { princ = String((adminsOp_().filter(function (a) { return a.principal; })[0] || {}).email || '').toLowerCase(); } catch (e) {}
-    if (cuenta && princ && cuenta.toLowerCase() !== princ) return { error: 'Todavía no tengo tu Google Calendar: el Hub corre en ' + cuenta + '. Compártelo con esa cuenta con permiso de «Hacer cambios en eventos» y guarda en Propiedades del script CALENDARIO_JUAN = el correo de tu calendario.' };
+    /* 20-nov-2026: si Juan ya compartió su Google Calendar con la cuenta del Hub, se usa sin guardar nada más
+       (el id del calendario principal es su correo). */
+    if (cuenta && princ && cuenta.toLowerCase() !== princ) {
+      var compartido = null;
+      try { compartido = CalendarApp.getCalendarById(princ); } catch (e) {}
+      if (!compartido) { try { compartido = CalendarApp.subscribeToCalendar(princ); } catch (e) {} }
+      if (compartido) return { cal: compartido, cuenta: cuenta, compartido: true };
+    }
+    if (cuenta && princ && cuenta.toLowerCase() !== princ) return { error: 'Todavía no tengo tu Google Calendar: el Hub corre en ' + cuenta + '. Compártelo con esa cuenta con permiso de «Hacer cambios en eventos».' };
     return { cal: CalendarApp.getDefaultCalendar(), cuenta: cuenta };
   }
   var cal = CalendarApp.getCalendarById(id);

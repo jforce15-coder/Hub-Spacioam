@@ -283,6 +283,9 @@ jobs:
       - name: Consultas sin reserva - lo público sale sin esperar a Juan y lo privado nunca (dobles)
         # 17-nov-2026: Juan pidió que Alma conteste sola el piso y las distancias a eventos; fugaSinConfirmar_ fallaba sin RX_CODIGO_ENVIADO_.
         run: node .github/consulta-publica.js apps-script
+      - name: Consulta que quiere reservar - siempre recibe cómo reservar y en Booking sale sin esperar el automático (dobles)
+        # 19-nov-2026: «can we book please» en Booking (Mónaco B2) quedó sin respuesta y la primera tardó ~6 min.
+        run: node .github/consulta-reservar.js apps-script
       - name: Alma escala sola cuando no puede, no promete sin hacerlo, pide en JSON y une sola solo lo que Juan necesita (dobles)
         # 11-nov: Juan pidió sus contactos de recepción de Hola; Alma dijo «necesito pedírselo a Claudio… ¿Lo pido?» y no pidió
         # nada hasta su «Si» 44 min después (y salió dos veces). 12-nov: Alma une sola solo lo necesario para un pedido de Juan.

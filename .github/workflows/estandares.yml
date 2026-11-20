@@ -216,6 +216,10 @@ jobs:
         # 17-nov (#715): Juan pedía lo mismo por otro canal o lo repetía creyendo que no salió y se abría otro microproyecto.
         run: node .github/unificar-pedidos.js apps-script
 
+      - name: Un pedido para Claudio en una llamada se guarda y la llamada sigue; lo pesado sale en segundo plano, medido por partes
+        # Guardia 20-nov-2026: 4 pedidos tardaron 6,7 a 15,8 s en contestar (casi 20 s de tecleo) y la traza no decía por qué.
+        run: node .github/claudio-fondo.js apps-script
+
       - name: Modo calle rápido (sin Epi en cada mensaje, frases de prueba sin IA, camino rápido, plazo antes de la primera vuelta, vozPausa) y Hablar con Claudio desde la calle (dobles)
         # 16-nov: «Estoy probando el modo» tardó 28 s y la app se rinde a los 25 s; «quiero hablar con Claudio» en Modo calle
         # se volvía un pedido de texto en vez de abrir la llamada con Claudio.

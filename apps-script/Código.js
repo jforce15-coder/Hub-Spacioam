@@ -798,6 +798,7 @@ function procesarCola() {
   cupoFuncion_('earlyRevisar_'); try { earlyRevisar_(); } catch (e) { console.error('earlyRevisar_: ' + e); }   // early check-in: revisión de las 21:15 (early.js)
   cupoFuncion_('extensionRevisar_'); try { extensionRevisar_(); } catch (e) { console.error('extensionRevisar_: ' + e); }   // extensión: pide el código nuevo 2 h antes de que venza el de la reserva original (codigoextension.js)
   cupoFuncion_('vozSecProcesar_'); try { vozSecProcesar_(); } catch (e) { console.error('vozSecProcesar_: ' + e); }   // pedidos de llamada en segundo plano (respaldo del disparador)
+  cupoFuncion_('paraClaudeVozProcesar_'); try { paraClaudeVozProcesar_(); } catch (e) { console.error('paraClaudeVozProcesar_: ' + e); }   // pedidos para Claudio de una llamada (claudiofondo.js; respaldo del disparador)
   cupoFuncion_('pendProcesar_'); try { pendProcesar_(); } catch (e) { console.error('pendProcesar_: ' + e); }
   cupoFuncion_('pendLimpiar_'); try { pendLimpiar_(); } catch (e) { console.error('pendLimpiar_: ' + e); }   // cada 15 min: cierra lo resuelto o vencido y re-pregunta una vez (pendlimpieza.js); GitHub solo si deja lo de fondo
   cupoFuncion_('chatPreguntasRevisar_'); try { chatPreguntasRevisar_(); } catch (e) { console.error('chatPreguntasRevisar_: ' + e); }   // pregunta de Alma sin responder en 10 min → Pendiente (chat.js); sin internet: nunca se pausa

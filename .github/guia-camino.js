@@ -67,8 +67,25 @@ const cr = ctx.guiaConReferencias_(largo, 'caminando'), tx = cr.pasos.map(p => p
 ok(consultas === 1 && cr.referencias === 2, 'una sola consulta a OpenStreetMap para toda la ruta');
 ok(tx[1] === 'Vas bien: vas a ver la tienda de tabacos La Esquina. Sigue recto.' && cr.pasos[1].antes === 60, 'a mitad del tramo largo: «vas bien» con lo que va a ver');
 ok(tx[2] === 'Sigue recto hasta la tienda Polo; ahí cruzas a la izquierda. Yo te aviso.' && cr.pasos[2].antes === 120, 'avisa antes del cruce con la referencia');
-ok(tx[3] === 'Ahora, en la tienda Polo: cruza a la izquierda hacia 6a Calle.', 'en el cruce dice «ahora» con la referencia');
+ok(tx[3] === 'En la tienda Polo, cruza a la izquierda hacia 6a Calle.', 'en el cruce: la referencia primero y la calle después');
 ok(tx[4] === 'Cruza a la derecha en 7a Av.' && tx.length === 5, 'un cruce seguido (tramo corto) no lleva aviso ni repite la referencia');
+/* Anticipación (Juan, 20-nov-2026): media cuadra caminando y en bici, una cuadra en carro; en bus, normal. */
+const conGiro = ps => ps.map(p => Object.assign(p, { giro: ctx.guiaGiroCodigo_(p) }));
+const an = ctx.guiaAnticipar_(cr.pasos.map(p => Object.assign({}, p)), 'caminando');
+ok(an[3].texto === 'En media cuadra, en la tienda Polo, cruza a la izquierda hacia 6a Calle.' && an[3].antes === 50, 'caminando: el cruce se dice media cuadra antes (50 m), con la referencia primero');
+ok(an[4].texto === 'En media cuadra, cruza a la derecha en 7a Av.' && an[4].antes === 50, 'el cruce seguido también media cuadra antes');
+ok(an[0].texto === 'Dirígete al norte por 5a Av.' && an[1].antes === 60 && an[2].antes === 120, 'el primer paso, el «vas bien» y el aviso no cambian');
+const auto = conGiro([{ texto: 'Dirígete al norte.', lat: 1, lng: 1, metros: 400, maniobra: '' }, { texto: 'Gira a la derecha en 7a Av.', lat: 1.004, lng: 1, metros: 300, maniobra: 'turn-right' }, { texto: 'Gira ligeramente a la izquierda.', lat: 1.005, lng: 1, metros: 30, maniobra: 'turn-slight-left' }]);
+const ac = ctx.guiaAnticipar_(auto, 'carro');
+ok(ac[1].texto === 'En una cuadra, gira a la derecha en 7a Av.' && ac[1].antes === 100 && ac[2].antes === 100 && ac[2].texto.indexOf('En una cuadra, ') === 0, 'en carro: una cuadra antes (100 m)');
+const bi = ctx.guiaAnticipar_(conGiro([{ texto: 'a', lat: 1, lng: 1, metros: 300 }, { texto: 'Gira a la izquierda.', lat: 1.003, lng: 1, metros: 40, maniobra: 'turn-left' }, { texto: 'Gira a la derecha.', lat: 1.0034, lng: 1, metros: 40, maniobra: 'turn-right' }]), 'bici');
+ok(bi[1].antes === 50 && /^En media cuadra, gira a la izquierda/.test(bi[1].texto) && bi[2].antes === 25 && /^Ahora, gira a la derecha/.test(bi[2].texto), 'en bici: media cuadra; tras un tramo de 40 m, «ahora»');
+const bu = [{ texto: 'Camina.', lat: 1, lng: 1, metros: 300 }, { texto: 'Toma el bus 1.', lat: 1.003, lng: 1, metros: 900, bus: true }];
+ok(ctx.guiaAnticipar_(bu.map(p => Object.assign({}, p)), 'bus').every((p, i) => p.texto === bu[i].texto && !p.antes), 'en bus no cambia');
+ok(['turn-left', 'turn-right', 'uturn-left', 'roundabout-right', ''].map(m => ctx.guiaGiroCodigo_({ maniobra: m, texto: '' })).join() === 'izquierda,derecha,vuelta,rotonda,recto' &&
+   ctx.guiaGiroCodigo_({ bus: true }) === 'bus' && ctx.guiaGiroCodigo_({ antes: 350, texto: 'Prepárate para bajarte.' }) === 'bajar', 'la flecha de cada paso para la pantalla');
+const rr = G({ destino: 'Parque Central', modo: 'caminando' });
+ok(rr.pasos[1].giro === 'derecha' && rr.pasos[1].texto === 'En media cuadra, cruza a la derecha. El destino está a la izquierda.' && rr.pasos[1].antes === 50 && rr.pasos[0].giro === 'recto', 'la ruta completa manda la flecha y la anticipación');
 props.GUIA_REFERENCIAS = '0';
 ok(ctx.guiaConReferencias_([{ texto: 'a', lat: 1, lng: 1, metros: 900, tramo: '' }, { texto: 'Gira a la izquierda.', lat: 1.001, lng: 1, metros: 10 }], 'caminando').referencias === 0, 'GUIA_REFERENCIAS = 0 lo apaga');
 process.exit(fallo);

@@ -109,11 +109,15 @@ function guiaPasos_(leg) {
      · A mitad de un tramo largo: «Excelente, vas bien: vas a ver la tienda de tabacos La Esquina. Sigue recto.»
    Sin referencia cerca, el aviso dice los metros y el cruce queda como lo dice Google («gira» → «cruza», como en Guatemala).
    El bus no lleva referencias (lo guían sus paradas). GUIA_REFERENCIAS = 0 lo apaga; en la reserva del cupo no se busca. */
-var GUIA_REF_ = {   // aviso: metros antes del cruce · cerca: qué tan lejos del punto puede estar la referencia
-  caminando: { aviso: 120, cerca: 35, umbral: 25 },
-  bici: { aviso: 180, cerca: 40, umbral: 45 },
-  carro: { aviso: 450, cerca: 60, umbral: 150 },
-  bus: { aviso: 120, cerca: 35, umbral: 40 }   // los tramos a pie del viaje en bus
+/* Anticipación (Juan, 20-nov-2026, #925): «media cuadra de anticipación caminando y en bicicleta, una cuadra en vehículo; con
+   los otros, normal». Cada cruce se dice ANTES de llegar (anticipa, en metros: una cuadra son unos 100 m) y empieza con
+   cuánto falta: «En media cuadra, en la farmacia Galeno, cruza a la izquierda hacia 5a Avenida». Primero la referencia;
+   el nombre de la calle va después, como dato extra. En bus no cambia (anticipa 0: el paso se dice en su punto). */
+var GUIA_REF_ = {   // aviso: metros antes del cruce del primer aviso · anticipa: cuándo se dice el cruce · cerca: qué tan lejos puede estar la referencia
+  caminando: { aviso: 120, anticipa: 50, cerca: 35, umbral: 25 },
+  bici: { aviso: 180, anticipa: 50, cerca: 40, umbral: 45 },
+  carro: { aviso: 450, anticipa: 100, cerca: 60, umbral: 150 },
+  bus: { aviso: 120, anticipa: 0, cerca: 35, umbral: 40 }   // los tramos a pie del viaje en bus
 };
 var GUIA_REF_PUNTOS_ = 40;   // lo más que se consulta a OpenStreetMap por ruta
 var GUIA_REF_URL_ = 'https://overpass-api.de/api/interpreter';
@@ -234,7 +238,7 @@ function guiaConReferencias_(pasos, modo) {
   var cfg = GUIA_REF_[modo] || GUIA_REF_.caminando, sinRef = { pasos: pasos, referencias: 0 };
   try { if (PropertiesService.getScriptProperties().getProperty('GUIA_REFERENCIAS') === '0') return sinRef; } catch (e) {}
   try { if (typeof cupoEnReserva_ === 'function' && cupoEnReserva_().si) return sinRef; } catch (e) {}
-  var largo = 3 * cfg.aviso + 2 * cfg.umbral;          // un tramo así de largo lleva su «vas bien» a la mitad
+  var cerca = Math.max(cfg.umbral, cfg.anticipa), largo = 3 * cfg.aviso + 2 * cerca;          // un tramo así de largo lleva su «vas bien» a la mitad
   var puntos = [];
   pasos.forEach(function (p, i) {
     if (p.bus) return;
@@ -251,21 +255,51 @@ function guiaConReferencias_(pasos, modo) {
       var ref = guiaRefJunto_(lugares, p, cfg.cerca, usados), giro = guiaGiro_(p.maniobra, p.texto), ant = pasos[i - 1];
       if (ref) refs++;
       /* Aviso antes del cruce, si el tramo que llega es largo (si no, se diría justo después del paso anterior). */
-      var avisa = giro && !ant.bus && ant.metros >= cfg.aviso + cfg.umbral + 60;
+      var avisa = giro && !ant.bus && ant.metros >= cfg.aviso + cerca + 60;
       if (avisa) out.push({ texto: ref ? 'Sigue recto hasta ' + ref + '; ahí cruzas ' + giro + '. Yo te aviso.' : 'Sigue recto; en unos ' + guiaRedondeo_(cfg.aviso) + ' cruzas ' + giro + '. Yo te aviso.',
-        lat: p.lat, lng: p.lng, metros: 0, seg: 0, antes: cfg.aviso, aviso: true });
+        lat: p.lat, lng: p.lng, metros: 0, seg: 0, antes: cfg.aviso, aviso: true, giro: p.giro });
       var t = guiaCruza_(p.texto);
-      p.texto = ref ? 'Ahora, en ' + ref + ': ' + guiaMinus_(t) : (avisa ? 'Ahora: ' + guiaMinus_(t) : t);
+      /* La referencia primero y la calle después («en la tienda Polo, cruza a la izquierda hacia 6a Calle»); guiaAnticipar_
+         le pone delante cuánto falta. */
+      p.texto = ref ? 'En ' + ref + ', ' + guiaMinus_(t) : t;
       if (ref) p.referencia = ref;
     }
     out.push(p);
     /* A mitad de un tramo largo: «vas bien» con lo que va a ver (se dice un poco antes de llegar a eso). */
     if (mitad) {
       var r2 = guiaRefJunto_(lugares, mitad, cfg.cerca, usados);
-      if (r2) { refs++; out.push({ texto: (i ? 'Excelente, vas bien' : 'Vas bien') + ': vas a ver ' + r2 + '. Sigue recto.', lat: mitad.lat, lng: mitad.lng, metros: 0, seg: 0, antes: Math.round(cfg.aviso / 2), referencia: r2 }); }
+      if (r2) { refs++; out.push({ texto: (i ? 'Excelente, vas bien' : 'Vas bien') + ': vas a ver ' + r2 + '. Sigue recto.', lat: mitad.lat, lng: mitad.lng, metros: 0, seg: 0, antes: Math.round(cfg.aviso / 2), referencia: r2, giro: 'recto' }); }
     }
   });
   return { pasos: out, referencias: refs };
+}
+
+/* Qué flecha muestra la pantalla de la guía: izquierda | derecha | vuelta | rotonda | recto | bus | bajar. */
+function guiaGiroCodigo_(p) {
+  if (p.bus) return 'bus';
+  if (p.antes) return 'bajar';
+  var m = String(p.maniobra || '');
+  if (/uturn/.test(m)) return 'vuelta';
+  if (/roundabout/.test(m)) return 'rotonda';
+  var g = guiaGiro_(m, p.texto);
+  return g === 'a la izquierda' ? 'izquierda' : g === 'a la derecha' ? 'derecha' : 'recto';
+}
+/* Anticipación (Juan, 20-nov-2026): el cruce se dice media cuadra antes caminando y en bici, una cuadra antes en carro,
+   y la frase empieza con cuánto falta. Si el tramo de antes es corto, se dice al terminarlo (nunca encima del paso
+   anterior) y empieza con «Ahora». El primer paso (lo dice Alma al empezar), los avisos, los «vas bien» y el bus no cambian. */
+function guiaAnticipar_(pasos, modo) {
+  var cfg = GUIA_REF_[modo] || GUIA_REF_.caminando; if (!cfg.anticipa) return pasos;
+  var previo = null;   // el último paso de verdad (no aviso ni «vas bien»)
+  pasos.forEach(function (p, i) {
+    if (p.antes || p.aviso) return;
+    if (i > 0 && !p.bus && previo && !previo.bus) {
+      var m = Math.round(Math.max(25, Math.min(cfg.anticipa, (previo.metros || 0) - 20)));
+      p.antes = m;
+      p.texto = (m >= 90 ? 'En una cuadra, ' : m >= 40 ? 'En media cuadra, ' : 'Ahora, ') + guiaMinus_(p.texto);
+    }
+    previo = p;
+  });
+  return pasos;
 }
 
 /* El lugar, primero cerca de donde está Juan (unos 50 km), luego donde sea → { lat, lng, nombre } o null. */
@@ -292,7 +326,9 @@ function guiaRuta_(destino, lat, lng, modo) {
   var pasos = guiaPasos_(leg);
   if (!pasos.length) return { ok: false, error: 'La ruta vino sin pasos.' };
   var refs = 0;
+  pasos.forEach(function (p) { p.giro = guiaGiroCodigo_(p); });
   try { var cr = guiaConReferencias_(pasos, modo); pasos = cr.pasos; refs = cr.referencias; } catch (e) { console.error('guiaConReferencias_: ' + (e.stack || e)); }
+  pasos = guiaAnticipar_(pasos, modo);
   pasos = pasos.slice(0, GUIA_PASOS_).map(function (p) { delete p.maniobra; delete p.tramo; return p; });
   return { ok: true, destino: lugar.nombre, modo: modo, modo_texto: GUIA_MODOS_[modo].texto,
     minutos: Math.max(1, Math.round(((leg.duration && leg.duration.value) || 0) / 60)), metros: (leg.distance && leg.distance.value) || 0,
@@ -356,7 +392,7 @@ function vozGuiaHerramientas_() {
       pre_tool_speech: 'off', force_pre_tool_speech: false,
       description: 'Guía de camino: Juan pide cómo llegar a un lugar («¿cómo llego a…?», «llévame a…»). La app calcula la ruta desde donde está el teléfono, abre el mapa y le dice cada paso al oído justo cuando llega a ese punto, aunque cuelgues o bloquee el teléfono. ' +
         'Llámala con destino y SIN modo si Juan no dijo cómo va: si responde necesita_modo, pregúntale en una frase «¿Vas caminando, en carro, en bici o en bus?» y vuelve a llamarla con su respuesta (se recuerda para la próxima). ' +
-        'Si responde recordado, dilo natural («Te llevo caminando, como la vez pasada») y ofrece cambiar solo si él lo pide. Con la ruta: di en UNA frase cuánto tarda y el primer paso (primer_paso); no leas los demás, la app los dice a tiempo, con puntos de referencia (tiendas, iglesias, monumentos), avisando antes de cada cruce y en el momento. ' +
+        'Si responde recordado, dilo natural («Te llevo caminando, como la vez pasada») y ofrece cambiar solo si él lo pide. Con la ruta: di en UNA frase cuánto tarda y el primer paso (primer_paso); no leas los demás, la app los dice a tiempo, con puntos de referencia (tiendas, iglesias, monumentos) y cada cruce con anticipación (media cuadra caminando o en bici, una cuadra en carro). ' +
         'detener: true termina la guía. Úsala SOLO si la FICHA DE QUIEN LLAMA dice «ESTÁS EN LA APP DE ALMA».',
       parameters: { type: 'object', required: [], properties: {
         destino: s('A dónde va, con el nombre como lo dijo y la ciudad si ayuda (p. ej. «Parque Central, Antigua Guatemala»).'),

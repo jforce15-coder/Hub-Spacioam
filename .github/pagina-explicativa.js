@@ -165,6 +165,7 @@ const PEDIDO = { tema: 'Cuánto deja Mónaco B2 si subo la tarifa 10 %', datos: 
   ok(/AG_SOLO_ESCRITO_ = \['explicar_en_pagina'\]/.test(AG) && /!\/\^\(calle\|llamada\)\$\/\.test\(canal\) \|\| AG_SOLO_ESCRITO_\.indexOf\(t\.name\) < 0/.test(AG), 'solo chat y WhatsApp: la llamada y el Modo calle no la ven');
   ok(/case 'paginaVer': return json_\(pagVerApi_\(ses, body\)\)/.test(COD), 'acción paginaVer con la sesión');
   ok(/if \(q\.pagina\) \{ cupoCanal_\('Otros'\); return json_\(pagVerToken_\(q\.pagina, q\.t\)\); \}/.test(COD), 'doGet abre con el token del enlace');
+  ok(/JSON\.stringify\(PAG_PROMPT_\), user, null\)/.test(PAG), 'la página va sin temperature (el modelo medio la rechaza con 400)');
   ok(/case 'pagina_explicativa': return json_\(pagRobot_\(body\)\)/.test(COD), 'robot pagina_explicativa');
   ok(/try \{ pagProcesar_\(\); \}/.test(COD.slice(COD.indexOf('function procesarCola()'))), 'procesarCola es el respaldo del disparador');
   const marco = (PAGINA.match(/<iframe[^>]*>/) || [''])[0];

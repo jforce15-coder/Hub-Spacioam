@@ -107,7 +107,7 @@ function pagArmar_(f) {
 }
 function pagGenerar_(tema, datos, modelo) {
   var user = 'Tema: ' + tema + (datos ? '\n\nDatos que ya tengo:\n' + datos : '\n\n(Sin datos: explica el concepto y deja editables los números.)');
-  var txt = String(claude_(modelo || pagModelo_(), 7000, JSON.stringify(PAG_PROMPT_), user, 0.3) || '');
+  var txt = String(claude_(modelo || pagModelo_(), 12000, JSON.stringify(PAG_PROMPT_), user, null) || '');
   var m = /<!doctype html[\s\S]*<\/html>/i.exec(txt) || /<html[\s\S]*<\/html>/i.exec(txt);
   return m ? m[0] : '';
 }

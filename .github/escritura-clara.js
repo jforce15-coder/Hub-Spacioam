@@ -99,6 +99,7 @@ const BUENA = 'Listo: el equipo confirmó la reserva de Mónaco B2 el martes. Ma
   const voz = fs.readdirSync(DIR).filter(f => /^(voz|calle|claudio|rapido|maricarmen|conferencia)\w*\.js$/.test(f)).filter(f => /escrituraClara_\(/.test(leer(f)));
   ok(!voz.length, 'ningún archivo de voz la llama' + (voz.length ? ': ' + voz.join(', ') : ''));
   ok(/ecReescribir_: 'Escritura clara · reescribir'/.test(COD), 'la reescritura queda en IA_USO con su nombre (el Gasto de Alma la cuenta)');
+  ok(/JSON\.stringify\(EC_PROMPT_\), String\(texto\), null\)/.test(EC) && /temp === null \? \{ output_config: \{ effort: 'low' \} \}/.test(COD), 'la reescritura va sin temperature (el modelo básico la rechaza con 400) y con esfuerzo bajo');
   ok(/case 'escritura_clara': return json_\(escrituraClaraRobot_\(body\)\)/.test(COD), 'robot escritura_clara');
 }
 /* 6 · las palabras «Evitar» siguen en el glosario */

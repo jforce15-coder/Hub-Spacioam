@@ -103,7 +103,7 @@ function ecContar_(campo) {
   } catch (e) {}
 }
 function ecReescribir_(texto) {
-  return String(claude_(ecModelo_(), Math.min(1500, Math.ceil(String(texto).length / 2) + 200), JSON.stringify(EC_PROMPT_), String(texto), 0.2) || '').trim();
+  return String(claude_(ecModelo_(), Math.min(4000, Math.ceil(String(texto).length / 2) + 1500), JSON.stringify(EC_PROMPT_), String(texto), null) || '').trim();
 }
 
 /* El punto de salida: devuelve el texto que sale (el mismo o el reescrito). o.canal: 'calle', 'voz' o 'llamada' no pasan;

@@ -979,10 +979,9 @@
   .tvb-ir { align-self: flex-end; margin-top: auto; font: 600 11px Montserrat, system-ui, sans-serif; color: #B54D36; }
   .tvb-mapa { padding: 0; background: linear-gradient(90deg, transparent 47%, #fff 47%, #fff 53%, transparent 53%), linear-gradient(0deg, transparent 60%, #fff 60%, #fff 64%, transparent 64%),
     linear-gradient(35deg, transparent 30%, #f1ece4 30%, #f1ece4 34%, transparent 34%), #e3e9dc; }
-  .tvb-mapa img { position: absolute; width: 128px; height: 128px; max-width: none; filter: saturate(.55) sepia(.12) brightness(1.04); }
+  .tvb-mapa iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }   /* Google Maps (20-nov-2026) */
   .tvb-pin { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -19px 0 0 -8px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E9826A; box-shadow: 0 2px 6px rgba(0,0,0,.3); border: 2px solid #fff; }
   .tvb-lugar { position: absolute; left: 8px; bottom: 8px; max-width: calc(100% - 16px); box-sizing: border-box; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.92); font: 600 10px Montserrat, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tvb-osm { position: absolute; right: 6px; top: 5px; font-size: 8px; color: #6F6867; background: rgba(255,255,255,.75); padding: 0 4px; border-radius: 4px; }
   /* #508 T2 · apartamento y edificio: chip «Libre hoy» en verde, la semana, las listas cortas, la galería y las fotos de huésped. */
   .tvb-chip[data-tono="libre"] { background: #E1EEE5; color: #2F5B43; }
   .tvb-kf { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
@@ -4146,17 +4145,17 @@ window.SAPulso = {
       return d;
     }
     if (c.tipo === "mapa") {
-      var lat = Number(c.lat), lng = Number(c.lng);
-      if (isFinite(lat) && isFinite(lng)) {
-        var z = 17, n = Math.pow(2, z), xt = (lng + 180) / 360 * n, r = lat * Math.PI / 180, yt = (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n;
-        var x0 = Math.floor(xt), y0 = Math.floor(yt), fx = xt - x0, fy = yt - y0;
-        for (var i = -1; i <= 1; i++) for (var j = -1; j <= 1; j++) {
-          var ti = img("https://tile.openstreetmap.org/" + z + "/" + (x0 + i) + "/" + (y0 + j) + ".png", "");
-          ti.style.left = "calc(50% + " + Math.round((i - fx) * 128) + "px)"; ti.style.top = "calc(50% + " + Math.round((j - fy) * 128) + "px)"; d.appendChild(ti);
-        }
-        d.appendChild(el("span", "tvb-osm", "© OpenStreetMap"));
-      }
-      d.appendChild(el("b", "tvb-pin")); if (c.lugar) d.appendChild(el("span", "tvb-lugar", c.lugar));
+      /* El mapa es de Google Maps (Juan, 20-nov-2026: «cada vez que mostremos un mapa, que sea de Google Maps»): el mapa
+         incrustado de Google, sin llave, con su propio pin. Solo se mira: el cuadro no atrapa el dedo ni el scroll. */
+      var lat = Number(c.lat), lng = Number(c.lng), g = isFinite(lat) && isFinite(lng);
+      if (g) {
+        var fr = el("iframe");
+        fr.src = "https://maps.google.com/maps?q=" + lat.toFixed(6) + "," + lng.toFixed(6) + "&z=16&hl=es&output=embed";
+        fr.title = "Mapa de Google" + (c.lugar ? " de " + c.lugar : ""); fr.loading = "lazy"; fr.tabIndex = -1;
+        fr.referrerPolicy = "no-referrer-when-downgrade"; fr.setAttribute("aria-hidden", "true");
+        d.appendChild(fr);
+      } else d.appendChild(el("b", "tvb-pin"));
+      if (c.lugar) d.appendChild(el("span", "tvb-lugar", c.lugar));
       d.setAttribute("role", "img"); d.setAttribute("aria-label", "Mapa" + (c.lugar ? " de " + c.lugar : ""));
       return d;
     }

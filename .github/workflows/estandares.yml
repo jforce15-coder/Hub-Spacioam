@@ -361,6 +361,9 @@ jobs:
         # 16-nov: Alma preguntó «¿Esto es para Juan pregunta cómo estamos con o para Estoy probando el modo?» y «pásame con
         # Claudio» cayó en el tema de una huésped cuyo «sí» se había terminado en segundo plano: el mensaje salió dos veces (#583 T2).
         run: node .github/temas-elegir.js apps-script
+      - name: Pedido personal del principal, la invitación y la nota de voz son un pedido, no preguntan por temas de trabajo y «ponlo en mi agenda» lo pone con zona y enlace (dobles)
+        # 20-nov: una invitación reenviada recibió «¿Esto es para <envío a huésped> o para <persona>?» y la nota de voz no la agendó.
+        run: node .github/pedido-personal.js apps-script
       - name: Tocar un anillo o su notificación manda su id, va a su tema con el estado ya cargado y una pregunta de estado no va a Claude (dobles)
         # 16-nov: el toque del anillo «Cupos Google» mandaba solo el texto y el tema se adivinaba; tres nombres para lo mismo (#583 T1).
         run: node .github/orbita-tema.js apps-script

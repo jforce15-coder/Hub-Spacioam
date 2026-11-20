@@ -3,6 +3,8 @@
    · Qué calendario: el predeterminado de la cuenta que corre el Hub (la web app corre como USER_DEPLOYING, igual que
      los disparadores: es la cuenta de Juan). Si la propiedad del script CALENDARIO_JUAN tiene el id de otro
      calendario, se usa ese: Juan lo comparte con la cuenta del Hub con permiso de «Hacer cambios en eventos».
+   · 20-nov-2026: el Hub ya corre en su propia cuenta; sin CALENDARIO_JUAN no escribe en el calendario de esa cuenta (dice
+     qué compartir). «Ponlo en mi agenda» ya es el sí (pedidopersonal.js) y lo creado vuelve con su enlace.
    · Una sola confirmación: sin confirmado = true no se toca el calendario; se devuelve la pregunta lista («¿Lo pongo
      el jueves 5 de noviembre a las 10:00, hora de Guatemala?») y lo que choca. Con el sí de Juan, se hace.
    · Horas: «AAAA-MM-DD HH:MM» en la zona que diga Juan (Guatemala por defecto; «hora de Montana» = America/Denver),
@@ -41,11 +43,30 @@ function autorizarCalendario() {
 function calendarioJuan_() {
   var id = String(PropertiesService.getScriptProperties().getProperty('CALENDARIO_JUAN') || '').trim(), cuenta = '';
   try { cuenta = String(Session.getEffectiveUser().getEmail() || ''); } catch (e) {}
-  if (!id) return { cal: CalendarApp.getDefaultCalendar(), cuenta: cuenta };
+  /* Desde el traslado (#757) el Hub corre en la cuenta del Hub, no en la de Juan: su calendario predeterminado NO es el
+     Google Calendar de Juan (20-nov: «en mi Google Calendar, no en mi calendario normal»). Sin CALENDARIO_JUAN solo se usa
+     el predeterminado si la cuenta que corre es la del administrador principal. */
+  if (!id) {
+    var princ = ''; try { princ = String((adminsOp_().filter(function (a) { return a.principal; })[0] || {}).email || '').toLowerCase(); } catch (e) {}
+    if (cuenta && princ && cuenta.toLowerCase() !== princ) return { error: 'Todavía no tengo tu Google Calendar: el Hub corre en ' + cuenta + '. Compártelo con esa cuenta con permiso de «Hacer cambios en eventos» y guarda en Propiedades del script CALENDARIO_JUAN = el correo de tu calendario.' };
+    return { cal: CalendarApp.getDefaultCalendar(), cuenta: cuenta };
+  }
   var cal = CalendarApp.getCalendarById(id);
   if (!cal) { try { cal = CalendarApp.subscribeToCalendar(id); } catch (e) {} }   // compartido pero sin agregar a la lista
   if (!cal) return { error: 'No tengo acceso al calendario de CALENDARIO_JUAN (' + id + '). Juan tiene que compartirlo con ' + (cuenta || 'la cuenta del Hub') + ' con permiso de «Hacer cambios en eventos».' };
   return { cal: cal, cuenta: cuenta };
+}
+
+/* Enlace para abrir el evento en Google Calendar: eid = base64(id sin «@google.com» + espacio + id del calendario). */
+function calendarioEnlace_(evId, calId) {
+  var id = String(evId || '').split('@')[0]; if (!id || !calId) return '';
+  return 'https://www.google.com/calendar/event?eid=' + Utilities.base64EncodeWebSafe(id + ' ' + calId).replace(/=+$/, '');
+}
+/* Robot (acción calendario_estado): en qué cuenta corre, a qué calendario escribe y en qué zona. Solo lee. */
+function calendarioEstado_() {
+  var c = calendarioJuan_(), fijo = !!String(PropertiesService.getScriptProperties().getProperty('CALENDARIO_JUAN') || '').trim();
+  if (c.error) return { ok: false, calendario_juan: fijo, error: c.error };
+  return { ok: true, calendario_juan: fijo, cuenta: c.cuenta, calendario: c.cal.getName(), id: c.cal.getId(), zona_del_calendario: c.cal.getTimeZone(), zona_por_defecto: CFG.TZ };
 }
 
 /* «hora de Montana», «GT», «America/Denver» → zona IANA. Vacío = Guatemala. '' si no se reconoce. */
@@ -119,14 +140,16 @@ function calendarioCrear_(o) {
     nota: 'Todavía NO está en el calendario. Pregúntaselo a Juan una sola vez (di si choca); con su sí, llama otra vez igual con confirmado = true.' };
   /* Si ya lo puse (un doble sí, un reintento de la llamada), no se duplica. */
   var ya = c.cal.getEvents(ini, fin).filter(function (e) { return calendarioDeAlma_(e) && e.getTitle() === titulo && e.getStartTime().getTime() === ini.getTime(); })[0];
-  if (ya) return { ok: true, ya_estaba: true, id: ya.getId(), titulo: titulo, cuando: cuando };
+  if (ya) return { ok: true, ya_estaba: true, id: ya.getId(), titulo: titulo, cuando: cuando, enlace: calendarioEnlace_(ya.getId(), c.cal.getId()) || undefined };
   var opc = { description: (String(o.descripcion || '').trim() + '\n\n' + CALENDARIO_MARCA_).trim() };
   if (String(o.lugar || '').trim()) opc.location = String(o.lugar).trim();
   if (invitados.length) { opc.guests = invitados.join(','); opc.sendInvites = true; }
   var ev = c.cal.createEvent(titulo, ini, fin, opc);
   try { ev.setTag('alma', '1'); } catch (e) {}
-  return { ok: true, creado: true, id: ev.getId(), titulo: titulo, cuando: cuando, hasta: calendarioHora_(fin, tz), calendario: c.cal.getName(),
-    invitados: invitados.length ? invitados : undefined, hecho: 'Evento en tu calendario · ' + titulo + ' · ' + cuando };
+  var enlace = calendarioEnlace_(ev.getId(), c.cal.getId());
+  return { ok: true, creado: true, id: ev.getId(), titulo: titulo, cuando: cuando, hasta: calendarioHora_(fin, tz), calendario: c.cal.getName(), zona: tz, enlace: enlace || undefined,
+    invitados: invitados.length ? invitados : undefined, hecho: 'Evento en tu calendario · ' + titulo + ' · ' + cuando + (enlace ? ' · ' + enlace : ''),
+    nota: 'Ya está en su calendario. Confírmaselo en una línea con el día, la hora y la zona, y pega el enlace.' };
 }
 
 /* Lo ocupado y los huecos libres (8:00–19:00, de al menos 30 min) entre desde y hasta (máx. 14 días). */

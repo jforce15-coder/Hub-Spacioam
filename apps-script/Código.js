@@ -5385,7 +5385,8 @@ function opProcesar_(adm, texto, canal, fotos, nota, o) {
   /* «¿Cómo va X?» (#583 T1.4): pregunta de estado, con lo que ya se sabe de X; no va a Claude (orbita.js). */
   let notaEst = '';
   if (!(o && o.estado)) { try { const est = orbitaEstadoPregunta_(adm, texto); if (est) { notaEst = est.nota; o = Object.assign({}, est.o, o && o.tema ? { tema: o.tema, por: o.por } : {}); } } catch (e) { console.error('orbitaEstadoPregunta_: ' + e); } }
-  const notaT = [nota, notaEst, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
+  let notaPers = ''; try { notaPers = ppNota_(texto); } catch (e) { console.error('ppNota_: ' + e); }   // agenda, familia, invitación (pedidopersonal.js)
+  const notaT = [nota, notaEst, notaPers, opNotaNumeros_(texto), notaSoc].filter(Boolean).join('\n');
   const pedido = notaT ? notaT + '\n\n' + texto : texto;   // la nota es solo para ALMA: el chat guarda lo que escribió
   /* La configuración de Epi (otra web app de Apps Script: varios segundos por pedido) solo la usa el flujo viejo sin agente. El agente lee Epi él solo,
      de la caché (epiSnap_), cuando una herramienta lo necesita: pedirla aquí sumaba segundos a cada mensaje (Modo calle,
@@ -5482,9 +5483,10 @@ function opWaProcesar_() {
     const sh = hojaWA_(), n = sh.getLastRow(); if (n < 2) return;
     const desde = Math.max(2, n - 299), v = sh.getRange(desde, 1, n - desde + 1, WA_CAB_.length).getValues(), grupos = {};
     v.forEach((r, i) => { if (s_(r[8]) === 'operativo_pend') (grupos[s_(r[6])] = grupos[s_(r[6])] || []).push({ fila: desde + i, r: r }); });
-    const espera = opAgruparSeg_() * 1000;
     Object.keys(grupos).forEach(conv => {
-      const g = grupos[conv], quedan = Math.max.apply(null, g.map(x => new Date(x.r[0]).getTime() || 0)) + espera - Date.now();
+      /* Solo material (reenviado, foto sin pie): espera la instrucción, que suele llegar como nota de voz (pedidopersonal.js). */
+      const g = grupos[conv], espera = opAgruparEspera_(g.map(x => ({ texto: s_(x.r[4]), tipo: s_(x.r[7]) })));
+      const quedan = Math.max.apply(null, g.map(x => new Date(x.r[0]).getTime() || 0)) + espera - Date.now();
       if (quedan > 0) { falta = Math.max(falta, quedan); return; }
       g.forEach(x => sh.getRange(x.fila, 9).setValue('operativo'));
       listos.push(g);
@@ -5504,7 +5506,7 @@ function opWaProcesar_() {
        otro); si no, los relevos que esperan su indicación, para no adivinar con otro pendiente (4-nov, Gustavo e Inés). */
     let rlv = null; g.forEach(x => { try { const c = cache.get('oprlv_' + s_(x.r[5])); if (c) rlv = JSON.parse(c); } catch (e) {} });
     let notaRel = ''; try { notaRel = rlv ? relevoNota_(rlv) : relevoNotaPendientes_(wa); } catch (e) { console.error('relevoNota_: ' + e); }
-    let notaCaso = ''; if (!rlv) { try { notaCaso = decNotaAgente_(wa); } catch (e) {} }   // un caso espera su decisión: Alma lo sabe, sin tomar esto como respuesta (decisiones.js)
+    let notaCaso = ''; if (!rlv && !ppClasificar_(textos.join('\n')).personal) { try { notaCaso = decNotaAgente_(wa); } catch (e) {} }   // lo personal nunca es para el caso (pedidopersonal.js)   // un caso espera su decisión: Alma lo sabe, sin tomar esto como respuesta (decisiones.js)
     const temaCita = g.map(x => s_(x.r[10])).filter(Boolean).pop() || '';   // citó un mensaje de un tema (waEntrante_, temas.js)
     try {
       const rp = opProcesar_(Object.assign({}, adm, { wa: wa }), textos.join('\n\n'), 'whatsapp', fotos, [nota, notaRel, notaCaso].filter(Boolean).join('\n'), temaCita ? { tema: temaCita, por: 'cita' } : null);
@@ -5699,6 +5701,7 @@ function dsBotApi_(body) {
       case 'contacto_cancelar': return json_(contactoCancelar_(String(body.tel || '')));
       case 'contacto_reenviar': return json_(contactoReenviar_(String(body.tel || ''), String(body.nombre || ''), String(body.texto || ''), String(body.plantilla || 'contacto')));
       case 'wa_diag': return json_(waDiag_());
+      case 'calendario_estado': return json_(calendarioEstado_());   // a qué calendario y con qué cuenta escribe Alma (calendario.js)
       case 'op_rango': { const n0 = Math.min(400, Number(body.n) || 80); return json_({ ok: true, filas: opFilas_('', n0).filter(m => !body.desde || String(m.ts) >= String(body.desde)).map(m => ({ ts: m.ts, quien: m.de === 'yo' ? m.nombre : 'ALMA', canal: m.canal, texto: String(m.texto).slice(0, 600), acciones: m.acciones.map(x => (x.resumen || x.tipo) + (x.error ? ' ✗ ' + x.error : '')) })) }); }
       case 'contactos': return json_({ ok: true, contactos: contactosTodos_().map(c => ({ tel: '…' + String(c.tel).slice(-4), nombre: c.nombre, tipo: c.tipo, rol: c.rol, estado: c.estado, actualizado: String(c.actualizado).slice(0, 10) })) });
       case 'contactos_rellenar': return json_(contactosRellenar_());

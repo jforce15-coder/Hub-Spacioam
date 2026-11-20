@@ -65,6 +65,7 @@ function caja(clasificaSi) {
     formatearMensaje_: t => t, limpiarSalida_: t => ({ texto: t }), estilo_: () => ''
   };
   vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(DIR, 'pedidopersonal.js'), 'utf8'), ctx);   // lo personal nunca es para el caso
   vm.runInContext(fs.readFileSync(path.join(DIR, 'decisiones.js'), 'utf8'), ctx);
   return { ctx, props, enviados, clasif, wa, dec: () => dec };
 }

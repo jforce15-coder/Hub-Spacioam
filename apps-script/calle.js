@@ -90,7 +90,7 @@ var CALLE_TOPE_S_ = 45;            // sueño: segundos sin que Alma hable para c
 /* La regla del canal (agente.js, opAgente_): la respuesta ya sale corta y para decirla. */
 var CALLE_REGLA_ = 'MODO CALLE: va caminando con el teléfono bloqueado y audífonos; tu respuesta se dirá al oído. ' +
   'Responde TÁCTICO, como en un radio: sin saludos, sin repetir el pedido ni explicar. ' +
-  'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo con tus herramientas y confirma UNA sola vez con 1 a 4 palabras: «Copiado.», «Listo, le escribí a Flor». ' +
+  'Si pide algo que no necesita respuesta (anotar, recordar, mandar un mensaje, contactar a alguien), hazlo y confirma UNA sola vez con 1 a 4 palabras: «Copiado.», «Listo, le escribí a Flor». ' +
   'Si pregunta algo, solo el dato, 12 palabras como mucho. Sin listas, markdown, enlaces ni emojis. ' +
   'Si tiene que elegir entre opciones o hace falta conversar, escribe una sola frase corta que lo introduzca y termina con una línea aparte: [[conversar]].';
 

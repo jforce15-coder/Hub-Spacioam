@@ -157,13 +157,15 @@ function weeboBloque_(o) {
     if (f.modo === 'fijo') { m.nivel = m.contexto === 'admin_serio' ? 0 : Math.min(f.nivel_fijo, m.rampa); m.razones = ['techo ' + f.nivel_fijo + ' fijado por Juan; se enciende por grados; con un problema o urgencia, centro']; }
   }
   var alter = false; try { alter = maricarmenWeebo_(m, o); } catch (e) {}   // Maricarmen (maricarmen.js): nivel 3 desde ya
+  var clasico = false; try { clasico = !alter && !!(o && o.principal && o.contexto === 'admin') && clasicoActivo_(); } catch (e) {}   // Modo clásico (clasico.js)
+  if (clasico) { m.nivel = 0; m.razones = ['Modo clásico prendido por Juan']; }
   if (o && o.clave) { try { CacheService.getScriptCache().put('weebo_ult_' + String(o.clave).toLowerCase(), JSON.stringify({ nivel: m.nivel, t: Date.now() }), 21600); } catch (e) {} }
   var extra = m.contexto === 'huesped' ? ' Con huéspedes, el nivel 1 es como mucho UNA chispa en toda la conversación: si en el hilo ya hubo una, hoy vas en nivel 0.'
     : m.contexto === 'admin_serio' ? ' Tema serio: resuelve primero; si quieres, una sola sonrisa al cerrar cuando ya quedó resuelto.'
     : m.contexto === 'socio' ? ' Con un socio hablas en nombre de la empresa: cercana y cálida desde el saludo; si su ficha trae algo suyo, ese es tu gancho para conectar.' : '';
   return '\n\n' + weeboBase_() + '\n\nESTA CONVERSACIÓN: ' + m.nombre + ' · confianza ' + m.confianza + '/100 · sensibilidad ' + m.sensibilidad +
     ' · NIVEL ' + m.nivel + (m.razones.length ? ' (' + m.razones.join(', ') + ')' : '') + '.' + extra + '\n' +
-    weeboAcento_(m.nivel, !!(o && o.principal) && o.contexto === 'admin') + (alter ? '\n\n' + MARICARMEN_BLOQUE_ : '');
+    weeboAcento_(m.nivel, !!(o && o.principal) && o.contexto === 'admin') + (alter ? '\n\n' + MARICARMEN_BLOQUE_ : '') + (clasico ? '\n\n' + CLASICO_REGLA_ : '');
 }
 
 /* GIF en pantalla (16-nov-2026, Juan: «cuando Alma bromee, su interfaz puede desplegar GIFs… la broma pasa y el GIF se
